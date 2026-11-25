@@ -48,7 +48,7 @@ theorem startServer.wp_proof
   wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold etcdstart.commonPremises at Hcom
-  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
+  icases Hcom with ⟨#Hzap, #Htd⟩
   iunfold etcdstart.memberBootOn at Hmb
   icases Hmb with ⟨%Hρ, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
@@ -115,7 +115,7 @@ theorem startServer.wp_proof
       (lease.bootCfg_none _ _ (lease.runCfg_lm hslg))
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
-      (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl)
+      (etcdstart.bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl)
       ⟨rfl, etcdstart.discoveryZero_len, etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty,
         dirFits_memberDataDir go!"authkv" (by decide)⟩
       HwbN)

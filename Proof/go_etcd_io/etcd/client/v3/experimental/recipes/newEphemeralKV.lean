@@ -32,7 +32,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
     (hNKV : newKV.spec (GF := GF) (hG := hG)) :
     newEphemeralKV.spec (GF := GF) (hG := hG) := by
   intro s γ client id pfx key val lo
-  wp_start as ⟨#Hsess, #Hcl, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hsess, #Hcl, #Hlo, %Hk⟩
   ihave #Hcp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency $$ []
   · iPkgInit
   ihave ⟨%kv, #HKV, #Hkv⟩ := isEtcdRecipesClient_kv client pfx $$ Hcl
@@ -41,7 +41,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
   (try wp_auto)
   wp_apply hLe s γ client id $$ [$Hcp $Hsess]
   (try wp_auto)
-  wp_apply hNKV kv pfx key val id lo $$ [$Hpkg $Hkv $Hlo] as %rk %err Hres
+  wp_apply hNKV kv pfx key val id lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rk %err ⟨Hlt, Hres⟩
   · ipureintro; exact Hk
   icases Hres with (⟨%Heq, %r, Hrk, #Hr, #Hc, %Hrr⟩ | ⟨#Herr, %Hrk, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
@@ -52,6 +52,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
     generalize «$r0_ptr» = ek at *
     iStructNamed Hek
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -68,6 +69,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ileft
     iframe Herr
     isplitr
@@ -82,6 +84,7 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; iright
     iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩

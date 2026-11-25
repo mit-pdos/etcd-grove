@@ -45,8 +45,8 @@ public import Net.Spec.net.rpc.Dial
 public import Net.Spec.net.rpc.Server__Accept
 public import Net.Spec.net.rpc.Server__Register
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
 public import Proof.bufio.PkgInit
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.fmt.Base

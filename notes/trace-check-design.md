@@ -72,7 +72,7 @@ harness really has: `examples/raft/tracecheck` bootstraps with `raft.Peer{ID: ui
   ```
 * *The proof did not rely on `False`* (the finding, with evidence): at `94767c2a2f` the only proof that
   opens `bootMarshal` is raft's `RawNode.Bootstrap` (`Proof/go_etcd_io/raft/v3/RawNode__Bootstrap.lean:298-299`,
-  and its copies in `RaftTla/`, `RaftNoAx/`, `KvNet/`, `RaftWitness/`): `iunfold bootMarshal at Hmarshal;
+  and its copies in `RaftTla/`, `RaftNoAx/`, `KvRaft/`, `RaftWitness/`): `iunfold bootMarshal at Hmarshal;
   icases Hmarshal with ⟨-, #Hmarshal'⟩`, which discards `⌜∀ c ∈ ctxs, c ≠ []⌝` and uses only the `□`
   marshal contract, at each peer's conf change (`wp_apply Hmk`). Elsewhere `bootMarshal` is only unfolded
   for its `Persistent` instance, or passed whole (`InvApiBoot`, `InvNodeRule`, the etcd server's
@@ -101,7 +101,7 @@ implies the new one (`bootMarshal`'s non-emptiness makes the new `nil` condition
 and in `bootstrapContract`'s `bootOk` hold trivially), so the change only weakens what they assume;
 for the trace check the premise is now `proto.Marshal`'s Go contract at `ConfChange{Type: AddNode,
 NodeId: i}` (no context), which protobuf-go meets. RaftNoAx's own `ApiVocab.lean` got the same edit
-(KvNet copies it); RaftWitness's `InvBoot.lean` keeps the conjunct: no result of that part
+(KvRaft copies it); RaftWitness's `InvBoot.lean` keeps the conjunct: no result of that part
 instantiates `bootMarshal` (kvwitness does not bootstrap through `StartNode`), so nothing is vacuous
 there; it should follow when that part next touches its boot vocabulary.
 

@@ -569,7 +569,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h102 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.types (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h21, h47, True.intro⟩
+    exact ⟨h21, h25, h13, h24, h47, True.intro⟩
   have h103 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.version (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -609,7 +609,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h112 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3.credentials (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h84, True.intro⟩
+    exact ⟨h5, h84, h100, True.intro⟩
   have h113 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -637,7 +637,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h119 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h13, h5, h1, h6, h26, h48, h52, h59, h106, h74, h118, True.intro⟩
+    exact ⟨h7, h13, h5, h1, h6, h26, h48, h52, h59, h106, h74, h118, h0, h38, True.intro⟩
   exact h119
 
 end table

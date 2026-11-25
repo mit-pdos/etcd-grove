@@ -5,11 +5,16 @@
 #                                     run.sh's; default the challenge's prompt.txt); returns once
 #                                     the agent has started (or the check failed); starts loadlog.sh
 #                                     and snapshot.sh
-#   experiment.sh wait RUN [HOURS]    returns when RUN's agent is done: Claude Code is not working (no
-#                                     "esc to interrupt" on its screen), no session or subagent has made a
-#                                     tool call for IDLE minutes (default 20; wakeups that only talk or
-#                                     schedule do not count), and no Lean/Go/test process runs; or after HOURS
-#                                     (default 12). Prints DONE, TIMEOUT, EXITED or DIALOG.
+#   experiment.sh wait RUN [HOURS] [--finish]
+#                                     returns when RUN's agent is done: Claude Code is not working (no
+#                                     "esc to interrupt" on its screen), no Lean/Go/test process in its
+#                                     container uses the CPU (an idle Lean server does not count), and either
+#                                     the goal looks proved (rundone.py: no sorry left on the branch finish
+#                                     would tag, all committed) with no transcript grown for GOAL_IDLE minutes
+#                                     (default 10), or no session or subagent has made a tool call for IDLE
+#                                     minutes (default 20; wakeups that only talk or schedule do not count);
+#                                     or after HOURS (default 12). Prints DONE, TIMEOUT, EXITED or DIALOG.
+#                                     --finish: at DONE (or EXITED), runs finish.
 #                                     While Claude Code shows "Usage limit reached" (it resumes by
 #                                     itself when the limit resets) the run is not done; the limit's
 #                                     dialog ("What do you want to do?") is answered 2, wait and
@@ -25,13 +30,15 @@
 #                                     session, then MESSAGE typed into it; loadlog.sh and snapshot.sh
 #                                     restarted; logged in runs/RUN/interventions.log
 #   (wait, at the usage limit with a staged TOKEN.next: swaps the token and resumes the run; see retoken)
+#   experiment.sh done RUN            whether RUN's agent is done now, as wait decides it (one check;
+#                                     read-only): DONE or NOT DONE, with why; exit 0 or 1
 #   experiment.sh finish RUN          closes the session (the container stops), tags the project's newest
 #                                     branch `final` (unless already tagged), and runs sandbox.sh verify RUN final
 # A run's screen: sudo tmux attach -t RUN (detach: ctrl-b d).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-cmd=${1:?usage: experiment.sh launch|wait|resume|finish RUN ...}; run=${2:?RUN}
-[ "$(id -u)" = 0 ] || exec sudo --preserve-env=DSV_LAB,DSV_TOKEN,IMAGE,LEAN_TOOLCHAIN,VERIFY_RUN,IDLE "$0" "$@"
+cmd=${1:?usage: experiment.sh launch|wait|resume|done|finish RUN ...}; run=${2:?RUN}
+[ "$(id -u)" = 0 ] || exec sudo --preserve-env=DSV_LAB,DSV_TOKEN,IMAGE,LEAN_TOOLCHAIN,VERIFY_RUN,IDLE,GOAL_IDLE "$0" "$@"
 LAB=$(cd "${DSV_LAB:?set DSV_LAB to the experiment directory}" && pwd)
 # the token file (sandbox.sh): TOKEN.next, staged beside it, is swapped in at a usage limit
 TOKEN=${DSV_TOKEN:-$LAB/token}
@@ -41,28 +48,6 @@ TENV="DSV_LAB=$(printf %q "$LAB") DSV_TOKEN=$(printf %q "$TOKEN") IMAGE=$(printf
 R="$LAB/runs/$run"; [ -d "$R" ] || { echo "no run $run"; exit 1; }
 S=/sys/fs/cgroup/machine.slice/dsverify-$run.scope
 screen() { tmux capture-pane -p -t "$run" -S -60 2>/dev/null; }
-# worked_within PROJECTS MIN: some session or subagent made a tool call in the last MIN minutes. Turns that only
-# talk or schedule (a /loop or cron wakeup finding nothing to do: text, ScheduleWakeup, Cron*) are not work, so
-# they do not keep a finished run from counting as done.
-worked_within() {
-    find "$1" -name '*.jsonl' -mmin -"$2" -print0 2>/dev/null | python3 -c '
-import sys, json, datetime
-cut = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=int(sys.argv[1]))
-noop = {"ScheduleWakeup", "CronCreate", "CronDelete", "CronList"}
-for f in sys.stdin.read().split("\0"):
-    if not f: continue
-    for line in open(f, errors="replace"):
-        try: d = json.loads(line)
-        except ValueError: continue
-        m = d.get("message")
-        if d.get("type") != "assistant" or not isinstance(m, dict): continue
-        if not any(isinstance(c, dict) and c.get("type") == "tool_use" and c.get("name") not in noop
-                   for c in m.get("content") or []): continue
-        try: t = datetime.datetime.fromisoformat(d["timestamp"].replace("Z", "+00:00"))
-        except (KeyError, ValueError): continue
-        if t >= cut: sys.exit(0)
-sys.exit(1)' "$2"
-}
 # dialog: Claude Code shows a dialog and waits for a key (the last lines of its screen; an
 # AskUserQuestion never gets this far: ask-hook.sh answers it). limit_dialog: the usage limit's.
 dialog() { screen | grep -v '^\s*$' | tail -12 | grep -qE 'Enter to confirm · Esc to cancel|Esc to cancel · Tab to amend'; }
@@ -74,12 +59,10 @@ limit_dialog() {
     echo "$s" | grep -q 'Stop and wait for limit to reset' && echo "$s" | grep -q 'Wait here, then continue automatically' &&
         echo "$s" | grep -q 'Enter to confirm'
 }
-# busy_procs: Lean, Lake, Go and test processes in the run's container (a long build or test writes nothing
-# to the transcripts while it runs)
-busy_procs() {
-    local pids; pids=$(cat $(find "$S" -name cgroup.procs 2>/dev/null) 2>/dev/null | tr '\n' ',' | sed 's/,$//')
-    [ -n "$pids" ] || { echo 0; return; }
-    ps -o comm= -p "$pids" 2>/dev/null | grep -cE '^(lean|lake|go|compile|link|asm|.*\.test)$'
+# done_now: the agent is done (rundone.py, with the screen: Claude Code not working); prints why
+done_now() {
+    if screen | grep -q 'esc to interrupt'; then echo "NOT DONE: Claude Code is working"; return 1; fi
+    python3 "$HERE/rundone.py" --idle "${IDLE:-20}" --goal-idle "${GOAL_IDLE:-10}" "$R"
 }
 log() { echo "$(date -u +%H:%M) $run: $*"; }
 # retoken: at the usage limit, with a staged TOKEN.next (another `claude setup-token` token, root 600,
@@ -141,10 +124,12 @@ resume)
     nohup "$HERE/snapshot.sh" "$run" >/dev/null 2>&1 </dev/null &
     log "resumed; message sent; logging load, snapshotting the work tree"; exit 0 ;;
 wait)
-    hours=${3:-12}; idle=${IDLE:-20}; t0=$SECONDS
-    P="$R/home/.claude/projects"
+    hours=12; fin=
+    for a in "${@:3}"; do case $a in --finish) fin=1 ;; *) hours=$a ;; esac; done
+    t0=$SECONDS
+    ended() { [ -n "$fin" ] && exec "$0" finish "$run"; exit 0; }
     while :; do
-        [ -d "$S" ] || { log "EXITED (container gone)"; exit 0; }
+        [ -d "$S" ] || { log "EXITED (container gone)"; ended; }
         # the usage limit's dialog: answered here (option 2), since nothing resumes the run otherwise
         if limit_dialog || limit_text; then
             if [ -f "$TOKEN.next" ] || token_newer; then
@@ -174,14 +159,12 @@ wait)
             [ -n "${limited:-}" ] || log "usage limit reached; waiting for the reset (or a staged TOKEN.next; after a weekly limit's API errors the session idles at its prompt and needs a resume)"; limited=1; sleep 60; continue
         fi
         [ -n "${limited:-}" ] && { log "working again after the usage limit"; limited=; }
-        if ! screen | grep -q 'esc to interrupt' &&
-           [ -n "$(find "$P" -name '*.jsonl' 2>/dev/null | head -1)" ] &&
-           ! worked_within "$P" "$idle" && [ "$(busy_procs)" = 0 ]; then
-            log "DONE (no work for $idle min)"; exit 0
-        fi
+        if why=$(done_now); then log "$why"; ended; fi
         [ $((SECONDS - t0)) -gt $((hours * 3600)) ] && { log "TIMEOUT after $hours h"; exit 2; }
         sleep 60
     done ;;
+done)
+    done_now ;;
 finish)
     screen | grep -v '^\s*$' | tail -40 >"$R/final-screen.txt"
     tmux kill-session -t "$run" 2>/dev/null
@@ -202,5 +185,5 @@ finish)
     [ -z "$(g status --porcelain --untracked-files=no)" ] || log "note: uncommitted changes in $P (not verified)"
     "$HERE/sandbox.sh" verify "$run" final </dev/null >/dev/null 2>&1   # stdin not a terminal: nspawn kills the container otherwise (ssh without -t)
     log "verify: $(grep -E '^== (NOT )?verified' "$R/verify-final.log" | tail -1)" ;;
-*) sed -n '2,30p' "$0"; exit 1 ;;
+*) sed -n '2,37p' "$0"; exit 1 ;;
 esac

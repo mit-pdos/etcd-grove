@@ -10,7 +10,7 @@ module
 public import Dsverify.Proof.rabia.roles.server.layers.consensus.Base
 public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.github_com.rs.zerolog.Init
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.container.heap.Init
@@ -46,7 +46,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.math.rand.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
 variable [_root_.Perennial.github_com.rs.zerolog.InitHyp GF]

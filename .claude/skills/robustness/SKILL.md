@@ -56,14 +56,56 @@ what we rely on. Write it as a spec, not as a test:
   run); the theorem then covers whatever the code produces. A validation that might never pass gets
   a **Go non-vacuity test** showing it passes and the real path (each assertion) is reached, over
   many seeds.
-- **No function-contract premises.** A contract of a function at the trust boundary is an axiom in
-  that function's file (`Proof/<pkg>/<fn>.lean`), never an Iris premise of the top-level statement.
+- **No Hoare triples or other Iris function specs, not even hidden.** A function's contract at the
+  trust boundary is an axiom in that function's file (`Proof/<pkg>/<fn>.lean`), like every other
+  trust-boundary spec. Hidden forms count too: a premise bundle whose definition unfolds to a triple
+  or WP (`putget_safe`'s `Hprem : ⊢ etcdstart.premises …`, holding `bootstrapContract`, a triple for
+  `etcdserver.bootstrap`, with `bootMarshal`, `rnLoggerZapOk`, `rnTimeoutDetectorOk`); an Iris
+  entailment about a package's values (`Hctx : ContextReadErrs`); a type class carrying a function's
+  body or contract (`[DialWithBalancerBody]`).
 - **What may remain a premise:** genuine start-state and environment facts (files as on disk,
   unused addresses, `ETCD_VERIFY` off), each with a compiled satisfiability witness (the premise
-  gate refuses a statement without one). Name bounds by constants or abstract facts, never literals.
+  gate refuses a statement without one), and the package-assumption classes of the translations
+  (`<pkg>.Assumptions`, field layouts) listed as trusted.
+- **The thread and step bounds.** `Robust crashing stable g threads bound` takes them separately.
+  `bound` (steps) is as high as the proof allows (`2^63 - 1` through `goose_dist_adequacy_below`,
+  or the proof's own cap, e.g. raft's `readyFits` at `2^61`), and the header says what caps it.
+  Never lower `bound` to get a thread cap. `threads` is a cap only when the proof needs one, a named
+  constant from the real limit (net/http's `2^30` reader slots); otherwise `threads := bound + 1`
+  (no execution under `bound` steps reaches it, so it excludes nothing), still named. No bare
+  literals anywhere in the statement: name constants or use abstract facts (`maxAddr`).
+- **Fix the extensions** (an instance list such as `kvraftExts`), and state their environment
+  assumptions (closed world, one process per file system, ...) in the header's prose.
 - **Reuse audited definitions.** Prefer premises and vocabulary already reviewed over new ones.
 - **Check the statement is not vacuous.** Besides the Go non-vacuity tests, every premise bundle
   must be satisfiable in Lean (a past statement held because a premise implied `False`).
+- **The header is the plan, concisely.** What it says, the premises and why each remains, the
+  extensions and their environment assumptions, what is trusted. Technical, present tense: no
+  history ("adapted here", "added on ..."), no narrative; those go in `notes/`. The same for every
+  trusted file's documentation.
+- **Example:** `examples/kvraft.md` (a decent statement, with what to improve).
+
+## Checklist before the statement packet
+
+1. **Unfold every premise and every class** in the statement down to its kind, and classify it:
+   - *start state* (files on disk, empty roots, fresh process) — allowed, with a witness;
+   - *environment* (address unused, nothing else touches the tree) — allowed, with a witness, or prose
+     for an extension's assumption;
+   - *package assumption* of a translation (`<pkg>.Assumptions`, `FieldAssumptions`, a name's model) —
+     allowed, listed as trusted;
+   - *a pure fact the program could check* (configuration validity, lengths, address syntax) — not
+     allowed: move it into Go (validate, `return`), with a Go non-vacuity test;
+   - *a function contract* (a triple, a WP, a class carrying a body or contract) — not allowed: an
+     axiom in `Proof/<pkg>/<fn>.lean`;
+   - *an Iris assumption* (any `⊢ …`, any entailment over ghost or package state) — not allowed.
+2. **Bounds:** `bound` the highest the proof allows, never lowered to cap threads; `threads` a cap
+   only if the proof needs one (from the real limit), else `bound + 1`; both named, each with why.
+3. **No bare literals:** every size, count and bound a named constant or abstract fact.
+4. **Non-vacuity:** the Go test (validation passes, every assertion reached, many seeds) and the Lean
+   satisfiability witness of the premises; plus a concrete example instance.
+5. **Extensions** fixed and listed; their environment assumptions in prose.
+6. **Trust** listed in the header: translations, models, package assumptions, extensions, axioms.
+7. **Header** concise and technical, no history.
 
 ## Process
 
@@ -72,8 +114,8 @@ what we rely on. Write it as a spec, not as a test:
    for real (network namespaces, `netem` where the extension allows faults) and write the
    non-vacuity tests.
 3. State the theorem (layout above); build the statement and an empty proof skeleton.
-4. Send the statement packet for review (Upamanyu reviews top-level statements asynchronously: keep
-   going): the statement, the driver's section list, every premise with why it remains, what is
-   trusted (extensions, models, axioms it rests on).
+4. Run the checklist, then send the statement packet for review (Upamanyu reviews top-level
+   statements asynchronously: keep going): the statement, the driver's section list, every premise
+   with its kind and why it remains, what is trusted (extensions, models, axioms it rests on).
 5. Prove it: specs, then invariants, then independent proofs (CLAUDE.md, "Proof writing"); track the
    remaining axioms with an `etc/tcb-collections/<example>.txt` collection, driven to empty.

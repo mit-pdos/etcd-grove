@@ -41,8 +41,7 @@ fact"). -/
 abbrev electionServer.Proclaim.spec : Prop :=
   ∀ (es c req lk : Loc) (vsl : GoSlice) (name key val : GoString) (rev lease : w64)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
-      isElectionServer es c ∗ electionClientOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ levelTok 0 ∗ (isElectionServer es c ∗ electionClientOk c ∗
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq⌝ ∗
       structFieldRef v3electionpb.ProclaimRequest go!"Leader" req ↦□ lk ∗
       (⌜lk = null⌝ ∨ leaderKeyAt lk name key rev lease ∗ ⌜name ≠ []⌝ ∗
@@ -50,17 +49,16 @@ abbrev electionServer.Proclaim.spec : Prop :=
           v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) key⌝) ∗
       structFieldRef v3electionpb.ProclaimRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
       ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs) }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Proclaim"))
       (Val #(GoInterface.ok ctx))) (Val #req))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜lk = null ∧ resp = null⌝ ∗ globalAddr ErrMissingLeaderKey ↦□ err ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜lk = null ∧ resp = null⌝ ∗ globalAddr ErrMissingLeaderKey ↦□ err ∗
         ⌜err ≠ GoInterface.nil⌝) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (v : v3electionpb.ProclaimResponse),
         resp ↦ v ∗ ⌜v.Header' = hdr⌝ ∗
         (⌜¬ name <+: key⌝ ∨ ∃ (r id : w64), hdrRevAt hdr r ∗ etcdReached r ∗
           proclaimedAt name key rev val id r ∗ ⌜id ≠ W64 0 ∧ (lease ≠ W64 0 → id = lease)⌝)) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

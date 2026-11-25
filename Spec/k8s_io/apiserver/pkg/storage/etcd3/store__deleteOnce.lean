@@ -53,19 +53,18 @@ abbrev store.deleteOnce.spec : Prop :=
   s.rev ≠ W64 0 →
   pre s.o (uint.nat s.rev) = true →
   validate s.o (uint.nat s.rev) = none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ownState c st s ∗ stFrom c key s ∗
       c.S.objAt out o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key pre validate) W Φ) }}
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key pre validate) W Φ)) }}
     (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"deleteOnce")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #out)) (Val #st)) (Val #v)) (Val #false))
-  {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err);
-      (unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
+  {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err); levelTok 0 ∗ ((unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).delete key pre validate).2 err out) ∨
       (⌜ok = false⌝ ∗ c.S.objAt out o0 rv0 ∗ ∃ σ, rdFacts c σ ∗ stAt c key false σ st' err ∗
-        (if stepHand c (delStep key pre validate) σ then Φ σ else W)) }}
+        (if stepHand c (delStep key pre validate) σ then Φ σ else W))) }}
 
 end spec
 

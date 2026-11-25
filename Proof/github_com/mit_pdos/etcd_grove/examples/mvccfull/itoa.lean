@@ -3,6 +3,8 @@ decDigits n ++ b` (each iteration prepends `n`'s last digit and divides `n` by t
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.itoa
+-- `decDigits_zero`, `decDigits_pos` (moved to `FileNames.lean`, P3, 2026-11-24)
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.FileNames
 
 @[expose] public section
 
@@ -16,13 +18,6 @@ namespace mvccfull
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.mvccfull
-
-theorem decDigits_zero : decDigits 0 = [] := by
-  rw [decDigits]; simp
-
-theorem decDigits_pos (n : Nat) (h : n ≠ 0) :
-    decDigits n = decDigits (n / 10) ++ [W8 (48 + n % 10 : Nat)] := by
-  rw [decDigits]; simp [h]
 
 theorem srem10 (m : w64) (h : 0 ≤ sint.Z m) : sint.Z (BitVec.srem m (W64 10)) = sint.Z m % 10 := by
   rw [show sint.Z (BitVec.srem m (W64 10)) = (BitVec.srem m (W64 10)).toInt from rfl,

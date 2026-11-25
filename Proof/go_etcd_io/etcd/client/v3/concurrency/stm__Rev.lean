@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
     stm.Rev.spec (GF := GF) (hG := hG) := by
   intro b pfx reads gs k
-  wp_start as ⟨#Henv, Hrs, Hopts, %Hgs, %Hpk⟩
+  wp_start as ⟨Hlt, #Henv, Hrs, Hopts, %Hgs, %Hpk⟩
   wp_auto
   wp_apply wp_slice_literal (l := [k])
   isplitr
@@ -37,7 +37,7 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
   iintro %ksl ⟨Hksl, -⟩
   ipersist Hksl
   wp_auto
-  wp_apply hF b pfx reads gs _ [k] $$ [$Hpkg $Henv $Hrs $Hopts $Hksl] as %r Hr
+  wp_apply hF b pfx reads gs _ [k] $$ [$Hpkg $Hlt $Henv $Hrs $Hopts $Hksl] as %r ⟨Hlt, Hr⟩
   · ipureintro; refine ⟨Hgs, ?_, ?_, ?_⟩
     · simpa using Hpk.1
     · simp [stmCallMax]
@@ -49,6 +49,7 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
     unfold stmAbort
     wp_auto
     iapply HΦ
+    iframe Hlt
     iapply stmRet_abort _ Hne
   subst Hrp
   wp_auto
@@ -72,6 +73,7 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
     rw [Hlen0]
     wp_auto
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists reads'
     iframe Hrs Hopts
@@ -93,6 +95,7 @@ theorem stm.Rev.wp_proof (hF : stm.fetch.spec (GF := GF) (hG := hG)) :
     wp_apply wp_load_slice_index sl (sint.Z (W64 0)) [kp] _ kp (by decide) $$ [Hps] as -
     · iframe Hps; ipureintro; rfl
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists reads'
     iframe Hrs Hopts

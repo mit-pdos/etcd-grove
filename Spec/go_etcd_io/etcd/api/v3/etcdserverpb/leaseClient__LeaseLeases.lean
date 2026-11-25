@@ -35,14 +35,13 @@ abbrev leaseClient.LeaseLeases.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse)
     (Φ : LeaseLeasesRespM → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseLeasesRequest) (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (leaseStubAt lc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec () Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
-      ⌜req.unknownFields' = slice.nil⌝ }}
+      ⌜req.unknownFields' = slice.nil⌝) }}
     (App (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.LeaseLeasesRequest, inp ↦ req') ∗ leaseLeasesCallOut Φ resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((∃ req' : etcdserverpb.LeaseLeasesRequest, inp ↦ req') ∗ leaseLeasesCallOut Φ resp err) }}
 
 end spec
 

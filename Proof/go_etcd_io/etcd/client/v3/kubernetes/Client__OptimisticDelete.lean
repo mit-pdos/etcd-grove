@@ -55,7 +55,7 @@ theorem Client.OptimisticDelete.wp_proof
     (h_txn_Commit_st : etcd_txnlin.txn_Commit_st.law (GF := GF) (hG := hG)) :
     Client.OptimisticDelete.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd key rev opts Q hk
-  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, Hau⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hctx, #Hce, Hau⟩
   wp_auto
   ihave #Hnil0 := optsAt_nil (GF := GF)
   wp_apply wp_OpDelete key slice.nil [] $$ [] as %op #Hop
@@ -139,8 +139,8 @@ theorem Client.OptimisticDelete.wp_proof
     (try wp_auto)
     wp_apply (h_txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.del key] [], true, true, false⟩
         Q [.mod key rev] [.del key] [] rfl (by simp)
-        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inl rfl) hk (by simp))) $$ [Hobj Hau Htwo]
-      as %resp %err Hout
+        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inl rfl) hk (by simp))) $$ [Hlt Hobj Hau Htwo]
+      as %resp %err ⟨Hlt, Hout⟩
     · iframe #
       iframe
       done
@@ -155,6 +155,7 @@ theorem Client.OptimisticDelete.wp_proof
       rw [hg]
       wp_auto
       iapply HΦ
+      iframe Hlt
       ileft
       isplitl []
       · ipureintro; rfl
@@ -172,6 +173,7 @@ theorem Client.OptimisticDelete.wp_proof
       | ok ei => ?_
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iunfold kvErr at Hke
       icases Hke with ⟨%Hce, #Hse, #Hcl⟩
@@ -218,8 +220,8 @@ theorem Client.OptimisticDelete.wp_proof
     wp_apply (h_txn_Commit_st tp ms ci cd
         ⟨clientTxn [.mod key rev] [.del key] [.get key], true, true, true⟩
         Q [.mod key rev] [.del key] [.get key] rfl (by simp)
-        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inr rfl) hk (by simp))) $$ [Hobj Hau Htwo]
-      as %resp %err Hout
+        (clientTxn_size (val := []) rev rfl (Or.inr rfl) (Or.inr rfl) hk (by simp))) $$ [Hlt Hobj Hau Htwo]
+      as %resp %err ⟨Hlt, Hout⟩
     · iframe #
       iframe
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
@@ -258,6 +260,7 @@ theorem Client.OptimisticDelete.wp_proof
           · iframe #
           wp_auto
           iapply HΦ
+          iframe Hlt
           ileft
           isplitl []
           · ipureintro; rfl
@@ -273,6 +276,7 @@ theorem Client.OptimisticDelete.wp_proof
       · -- the comparison held: no `KV`
         wp_auto
         iapply HΦ
+        iframe Hlt
         ileft
         isplitl []
         · ipureintro; rfl
@@ -290,6 +294,7 @@ theorem Client.OptimisticDelete.wp_proof
       | ok ei => ?_
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iunfold kvErr at Hke
       icases Hke with ⟨%Hce, #Hse, #Hcl⟩

@@ -10,9 +10,10 @@ a get (`isEtcdDoKV`), transactions with nested operations and owned responses (`
 what the monitors (unit 5) use of the client (`isLeasingClient`: its range watcher, its leases, a
 session client); its context (a `*cancelCtx`); the lease cache `lkv.leases` (`isLeaseCache`) with
 the KV's part of the cache's lock invariant (`leasingX`); and the wait group `lkv.wg`
-(`leasingWgInv`), and the **pool of the cache's reader slots** (`threadPool.isThreadPool`,
+(`leasingWgInv`), and the **pool of the cache's reader slots** (`threadPool.isThreadPoolL` at level 1,
 `notes/bounds-plan.md`, B2): every reader slot of `lkv.leases.mu`, from which a thread borrows one
-with its thread token (the exported methods do, at entry) and gives it back. `pfx` is not empty (a lease key `pfx ++ k` is never its data key `k`).
+with its thread token's level 1 (the exported methods do, at entry; level 0 stays with the thread,
+for the client's calls: decision 1b, 2026-11-24) and gives it back. `pfx` is not empty (a lease key `pfx ++ k` is never its data key `k`).
 
 **The KV's part of the cache's lock** (`leasingX lkv γ st q`, fractional, under `lkv.leases.mu`):
 the fields `session` and `sessionc`; the **log of the cache's states** (`γ.log`, a monotone list
@@ -27,7 +28,7 @@ the session, see `notes/STATUS.md`); the entries' facts (`entryFacts`) are the c
 **The wait group** (`leasingWgInv`, an invariant): as the cache's (`InvCache.lean`, `cacheWgInv`):
 the counter is the running goroutines, `k` of them with a loan receipt of the reader-slot pool
 deposited (`leasingWgRunning`: `get`'s lease monitors, each holding a slot borrowed for its life,
-for which the pool holds a thread token, so `k < threadBound GF`, `threadPool.loans_lt`), `d ≤ 2`
+for which the pool holds a level-1 token, so `k < threadBound GF`, `threadPool.loansL_lt`), `d ≤ 2`
 keeping their own thread token (`NewKV`'s session monitor
 and `clearOldRevokes`), with at most one waiter (`Close`), which holds the whole "open" token
 (`leasingOpen`): `get` adds to the wait group with a fraction of it.
@@ -261,7 +262,7 @@ def isLeasingKV (lkv : Loc) (γ : LeasingNames) (pfx : GoString) : IProp GF :=
     context.isContext ctx cs ∗ context.isCancelCtxCtx ctx cs ∗ metadata.outgoingCtxOkC ctx ∗
     lkvCache lkv γ pfx ∗
     sync.isWaitGroup (lkvWg lkv) γ.wg leasingWgWGN ∗ inv leasingWgN (leasingWgInv γ) ∗
-    threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) ∗
+    threadPool.isThreadPoolL leasingPoolN 1 γ.rp (lkvReader lkv γ pfx) ∗
     ⌜threadBound GF + leasingWgOwedMax ≤ 2 ^ 31⌝)
 
 set_option synthInstance.maxSize 512 in

@@ -145,6 +145,23 @@ theorem crHeadErr_msg (γe : GName) :
   iintro %r %e ⟨-, #H, -⟩
   iexact H
 
+/-- The read limit's field, lent out of the head phase. -/
+theorem crHead_remain (cr : Loc) (γ : CrNames) (γe : GName) (cn : Nat) (P Q : Proto GF) (L : Nat)
+    (c : Loc) (r : List w8) :
+    crHead cr γ γe cn P Q L c r ⊢
+      structFieldRef net.http.connReader go!"remain" cr ↦ (W64 (L - r.length : Nat)) ∗
+      (structFieldRef net.http.connReader go!"remain" cr ↦ (W64 (L - r.length : Nat)) -∗
+        crHead cr γ γe cn P Q L c r) := by
+  unfold crHead
+  iintro ⟨Hph, %HrL, %ab, Hc, Hhb, Hir, Hab, Hrm, Hbuf, Hsend, Hrecv, Hrdl, Hcell⟩
+  iframe Hrm
+  iintro Hrm
+  iframe Hph
+  isplitr
+  · ipureintro; exact HrL
+  iexists ab
+  iframe
+
 /-- The head started at `[]`, the limit set to `L`: a fresh once-cell. -/
 theorem crMain_head (cr : Loc) (γ : CrNames) (cn : Nat) (P Q : Proto GF) (L : Nat) (c : Loc) :
     crMain cr γ cn P Q c [] (W64 L) ⊢ |==> ∃ γe, crHead cr γ γe cn P Q L c [] := by

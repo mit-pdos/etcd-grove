@@ -52,12 +52,12 @@ theorem Main.wp_proof
     (wp_Run : Run.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS ES FS RS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit

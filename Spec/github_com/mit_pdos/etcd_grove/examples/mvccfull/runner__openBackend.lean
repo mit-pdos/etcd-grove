@@ -35,7 +35,7 @@ abbrev runner.openBackend.spec : Prop :=
     (h : Loc) (γh : HistNames) (path : GoString) (D : backend.Data)
     (W Pk K : backend.BNames → IProp GF),
   backend.dbOpenOk → sint.Z (limOf cfg) ≤ 2 ^ 57 →
-  {{ writerCtx (GF := GF) x ks cfg wr h γh ∗ backend.fileHolds path D ∗ envVerifyOff ∗ threadTok ∗
+  {{ writerCtx (GF := GF) x ks cfg wr h γh ∗ backend.fileHolds path D ∗ ⌜EtcdVerifyOff⌝ ∗ threadTok ∗
       (∀ γ : backend.BNames, backend.hkOwn γ (backend.hkData (mvccrand.rcP (limOf cfg)) D) ∗
         backend.bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"openBackend") (Val #path))

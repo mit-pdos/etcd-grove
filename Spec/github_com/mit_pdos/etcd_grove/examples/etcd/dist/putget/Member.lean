@@ -5,8 +5,8 @@ client, zap.NewNop())`), etcd's gRPC API served at `client` (`etcdstart.Serve`),
 error from a step returns. Lean-first (no Rocq counterpart); `notes/putget-dist-plan.md`, section 10.
 
 **The triple:** from the package's `isPkgInit`, the main thread's token, the member's named Iris premises
-(`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`envVerifyOff`, the statement's
-`HEnvTok`), its data directory fresh (`dataDirFresh`) and its WAL area
+(`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`EtcdVerifyOff`, the statement's
+`HEnv`), its data directory fresh (`dataDirFresh`) and its WAL area
 fresh (`memberAreasFresh`), its share of the distributed start against phase 7 S2's draft names
 (`memberShare`: its client address set to serve etcd's table at the publication name `γE` and its member id
 `id`, its half of the publication token, the publication invariant at `Pub`) and the obligation on `Pub`
@@ -61,7 +61,7 @@ abbrev Member.spec : Prop :=
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
       threadTok ∗ etcdstart.premises (GF := GF) name peer client (2 ^ 28) id ctxs boot ∗
-      envVerifyOff (GF := GF) ∗ dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
+      ⌜EtcdVerifyOff⌝ ∗ dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
       memberShare (G := hG.goose_globalGS) S client γE id Pub ∗ memberPubOk S Pub }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))
       (Val #client))

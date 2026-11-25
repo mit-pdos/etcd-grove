@@ -18,8 +18,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Init
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.net.Init
-public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.http.PkgInit
+public import Net.Proof.net.rpc.PkgInit
 
 @[expose] public section
 
@@ -34,9 +34,10 @@ open Iris Iris.BI
 namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : Assumptions]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet :=

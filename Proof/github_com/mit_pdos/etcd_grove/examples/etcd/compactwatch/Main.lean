@@ -103,13 +103,13 @@ theorem Main.wp_proof
     (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (compactkvDir id)
       go!"compactkv" go!"compactkv"
@@ -203,6 +203,7 @@ theorem Main.wp_proof
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23794"⌝ ∗
+        srvGoRes srv ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23794", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
         watchAddrFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv))))
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
@@ -214,7 +215,7 @@ theorem Main.wp_proof
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, Hleft, -, #Hics⟩
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hlis, Hleft, -, #Hics⟩
     obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     subst hRE
     -- (per-type stage B3) the gRPC run pools, from the serving stocks
@@ -251,9 +252,9 @@ theorem Main.wp_proof
     ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23794" srv [il, im, iu] R.E { ρ with wait := γw } HEo $$ [Hksa]
     · iframe #
     imodintro
-    iframe Hserv HKV HWF
+    iframe Hserv HKV HWF Hgo
     ipureintro; exact ⟨rfl, Hnr⟩
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HWF⟩⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, Hgo, #HKV, #HWF⟩⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -264,9 +265,10 @@ theorem Main.wp_proof
   obtain ⟨hRE, Hnr⟩ := HRQ
   ihave #Hregs := HKV
   -- `NewClient(clientAddr, lg)`
+  icases etcdstart.srvGoRes_level0 srv $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient go!"127.0.0.1:23794" lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv)
-      (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -359,7 +361,7 @@ theorem Main.wp_proof
         (fun σ => iprop(□ (monoNatLbOwn γf (sint.nat n + 1) ∗
           (∃ r0, monoListIdxOwn γl (sint.nat n) r0 ∗ ⌜r0 ≤ σ.rev + 1⌝) ∗ ⌜1 ≤ σ.rev⌝)))
         (opSizeOk_opPutModel (K := 2) (E := 0) (V := 1) (optsKeep_nil _ _ _) hkl (by decide)
-          (by decide))) $$ [] as %presp %perr Hput
+          (by decide))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hput⟩
     · iframe #
       iunfold kvOpAu at Hau
       iunfold kvAu at Hau
@@ -410,7 +412,7 @@ theorem Main.wp_proof
       as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
     (try wp_auto)
     wp_apply (client.client_Compact_kv cl api ρ.rd.kv true cctx ccd (m.hdr.revision - W64 1) Hr1
-        hkc) $$ [] as %cresp %cerr -
+        hkc) $$ [$Hlt] as %cresp %cerr ⟨Hlt, -⟩
     · iframe #
     (try wp_auto)
     wp_apply Hccancel
@@ -425,7 +427,7 @@ theorem Main.wp_proof
     wp_apply (client_Get_round cl go!"127.0.0.1:23794" _ E ρ.rd γf γl γv keysL go!"v" (sint.nat n) kk hk
         (sint.nat m.hdr.revision) (W64 0) cid mid gctx gcd slice.nil []
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
-        as %gresp %gerr Hget
+        $$ [$Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
     · iframe #
       iunfold committedAtLeast; ileft
       iExactEq Hc0; rfl
@@ -553,8 +555,8 @@ theorem Main.wp_proof
         (fun σ => iprop(⌜∀ r, rj ≤ r → r ≤ σ.rev →
           (mvcc.findKey pk (σ.at r).kvs).map EtcdKv.value = some go!"v"⌝))
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0)
-          (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide))) $$ []
-      as %oresp %oerr Hog
+          (optsKeep_cons (withRevM_keep pr) (optsKeep_nil _ _ _)) Hpkl (by decide))) $$ [$Hlt]
+      as %oresp %oerr ⟨Hlt, Hog⟩
     · iframe #
     (try wp_auto)
     wp_apply Hocancel
@@ -750,7 +752,7 @@ theorem Main.wp_proof
     cases ok
     · (try wp_auto)
       -- (C3's watch side) `checkCompactRev(cli, prevKey)`
-      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ [$Hlt] as ⟨Hlt, Hpost⟩
       · iframe #
         ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
         iunfold srvKVInvs at Hkvs
@@ -790,7 +792,7 @@ theorem Main.wp_proof
       ipureintro; word
     · (try wp_auto)
       -- (C3's watch side) `checkCompactRev(cli, prevKey)`
-      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ []
+      wp_apply (wp_checkCompactRev cl pk R E ρ.rd cid mid γf γl γv keysL go!"v" hpkl hkr hAs) $$ [$Hlt] as ⟨Hlt, Hpost⟩
       · iframe #
         ihave #Hkvs := srvKVInvs_of_read srv E ρ.rd $$ Hrd
         iunfold srvKVInvs at Hkvs

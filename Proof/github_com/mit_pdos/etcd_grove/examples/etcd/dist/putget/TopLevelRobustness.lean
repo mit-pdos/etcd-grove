@@ -19,7 +19,7 @@ bridge `robust_of_distBootIL` picks them). Against phase 7 S2's draft names (`S2
   invariant, the member's and the client's shares (`Defs.lean`);
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first half
   (`etcdstart.wp_StartServer1`, shared with it), `Serve` in S2's form publishing the view with `putgetPub`,
-  from S2's names, the statement's `envVerifyOff` (`HEnvTok`) and the named hypotheses `MemberBootHyps`
+  from S2's names, the statement's `EtcdVerifyOff` (`HEnv`) and the named hypotheses `MemberBootHyps`
   (`dataDirFresh`);
 * the client's boot (`PutgetClientS2`, a hypothesis): the in-process second half over S2's `Invoke`.
 -/
@@ -56,10 +56,6 @@ def PutgetBoot : Prop :=
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (peer client : GoString)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (_Hbf : etcdstart.BootFacts id ctxs boot)
     (_Haf : authRecordsFit) (_Hbuq : apply.backendUnderQuota) (_Hrf : grpcRepliesFit)
@@ -69,8 +65,7 @@ def PutgetBoot : Prop :=
           boot)
     (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc)
     (_Hok : ∀ a ∈ addrs peer client, Net.addrOk a = true)
-    (_HEnv : ∀ m ∈ system peer client σm σc, verifyEnvOff m.1)
-    (_HEnvTok : ⊢ envVerifyOff (GF := putgetGF)),
+    (_HEnv : EtcdVerifyOff),
     ∀ [GooseGlobalGS .hasLC putgetGF], srvLevelK ≤ receiptBound putgetGF →
       receiptBound putgetGF ≤ 2 ^ 28 - 1 →
       ⊢ ([∗list] a ∈ addrs peer client, Net.addrUnset a) ={⊤}=∗
@@ -82,12 +77,12 @@ def PutgetBoot : Prop :=
 /-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
 over `etcdNetExts` (`Net.robust_of_distBootI`), with each machine's `FsInit` from the statement. -/
 theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
-  intro _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
-    Hm Hc Hd HEnv HEnvTok
+  intro _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc g
+    Hm Hc Hd HEnv
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_
-    (fun hlo hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
-      Hd.2.1 HEnv HEnvTok hlo hb) Hd
+    (fun hlo hb => HS peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc Hm Hc
+      Hd.2.1 HEnv hlo hb) Hd
   refine etcdNetExts_initP g _ ?_
   intro m hm
   simp only [system, List.mem_cons, List.not_mem_nil, or_false] at hm
@@ -142,10 +137,6 @@ def PutgetClientS2 : Prop :=
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
-    (_Hctx : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (_Hcec : ∀ hG : HeapGS .hasLC putgetGF,
-      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (peer client : GoString)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (_Hbf : etcdstart.BootFacts id ctxs boot)
     (_Haf : authRecordsFit) (_Hbuq : apply.backendUnderQuota) (_Hrf : grpcRepliesFit)
@@ -163,12 +154,20 @@ start resources with no source yet (`MemberBootHyps`), and the client's boot (`P
 theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
       [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps)
-    (HC : PutgetClientS2) :
+    (HC : PutgetClientS2)
+    -- (wal-nostorageok, 2026-11-24) `os`'s field steps, which `etcdstart`'s linked results take since
+    -- `NewStorage`'s contract `rnNewStorageOk` left `etcdstart.premises` (proved over the real WAL): what
+    -- `putget_safe.spec` binds once this is settled (as the single-process theorems do), or goose emits
+    -- (`notes/perennial-changes.md`, 2026-11-21, "Goose emits no field steps for a trusted struct layout")
+    (HOs : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics],
+      os.file.FieldAssumptions ∧ os.fileStat.FieldAssumptions) :
     putget_safe.spec := by
   refine putget_safe_of_boot ?_
-  intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
-    Hm Hc Hok HEnv HEnvTok G hlo hb
-  have HCb : ClientBootS2 client id σc := HC Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
+  intro _ _ _ _ _ _ _ _ _ _ _ peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm σc
+    Hm Hc Hok HEnv G hlo hb
+  haveI : os.file.FieldAssumptions := HOs.1
+  haveI : os.fileStat.FieldAssumptions := HOs.2
+  have HCb : ClientBootS2 client id σc := HC peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo
     Hprem σc Hc
   have hpeer : Net.addrOk peer = true := Hok peer (by simp [addrs])
   have hclient : Net.addrOk client = true := Hok client (by simp [addrs])
@@ -187,7 +186,7 @@ theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
     match i, hm with
     | 0, hm =>
       simp only [system, List.getElem?_cons_zero, Option.some.injEq] at hm; subst hm
-      exact member_boot Hctx HM HEnvTok peer client hpeer hclient id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
+      exact member_boot HM HEnv peer client hpeer hclient id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem σm Hm S γE
     | 1, hm => simp only [system, List.getElem?_cons_succ, List.getElem?_cons_zero,
         Option.some.injEq] at hm; subst hm; exact HCb S γE
     | k + 2, hm => simp [system] at hm

@@ -1,6 +1,6 @@
 # Raft's crash law: design study (2026-11-21)
 
-Decision A of `notes/kvnet-proof-plan.md`: a replica process killed at any instruction must leave
+Decision A of `notes/kvraft-proof-plan.md`: a replica process killed at any instruction must leave
 its id restartable, i.e. the crash obligation of `goose_dist_crash_adequacy` (`Hwp`'s wand, given
 the dead generation's `crashed`) must produce `nodeVacant γ id` again. Read-only study: nothing
 built, no proof changed. Line numbers are at `f7d9ff4459`.
@@ -94,7 +94,7 @@ theorem nodeCrash : crashed -∗ nodeCrashTok γ id γx ={E}=∗ nodeVacant γ i
   stop-then-restart (kvdurable) stays covered and needs no crash.
 - `readyEnter` and `RawNode.Ready`'s enter wand: `|NC={E}=>` in place of `|={E}=>`.
 - The client's handle keeps `nodeRunning n γ N q` (`live` share + `nodeGen` + inv), and the boot
-  proof's frame keeps `nodeCrashTok`: kvnet's boot obligation turns `P i L`'s `nodeVacant` into
+  proof's frame keeps `nodeCrashTok`: kvraft's boot obligation turns `P i L`'s `nodeVacant` into
   `nodeVacantA` (to the WP) and `nodeCrashTok` (into `Hwp`'s crash wand, built before the WP runs:
   `DistAdequacy.lean:754-763`), so a crash before `RestartNode` is covered too.
 
@@ -199,7 +199,7 @@ before the return. Secondary: masks (the crash namespace must stay outside every
 opens: `raftN γ .@ "crash" .@ id` is disjoint from `slotN`, `raftLogN`, `raftRegN`, but each
 `⊤`-masked statement is checked when its lemma changes); and plan B's `nodeTabInv` (`InvApi.lean:1696`):
 a new heap can reuse a dead node's location, so `RestartNode`'s table insert must move to a
-per-generation table before kvnet's restart proof, independently of this law.
+per-generation table before kvraft's restart proof, independently of this law.
 
 ## (e) Gap found when implementation started (2026-11-21)
 
@@ -468,7 +468,7 @@ in all three trees.
 
 ## (k) A crash may enter a cut batch (`readyCrashEnter`, 2026-11-22, branch `raft-crash-enter`)
 
-**Need** (kvnet, `notes/kvnet-part.md` on its branch, "persist" item 3): a replica writes its storage image
+**Need** (kvraft, `notes/kvraft-part.md` on its branch, "persist" item 3): a replica writes its storage image
 with `durable.Write`, a rename then a directory sync. A crash between the two may keep either file, and the
 kernel decides which at crash time. `nodeCrash` discards a pending batch (the generation bump), so if the new
 file survived, raft's durable state was still the old one and `RestartNode` could not get `StorageHolds S σ`.
@@ -482,14 +482,14 @@ theorem readyCrashEnter (n γ N id st st' ms x q E) (HE : ↑N ⊆ E) :
         raftState γ id st'.durable ∗ nodeVacant γ id
 ```
 
-It differs from the statement kvnet asked for (`readyCrashEnter.law`):
+It differs from the statement kvraft asked for (`readyCrashEnter.law`):
 - **`nodeRunning n γ N q` is added** (any share). Without it the law is false of the ghost model: a client may
   `node.Stop` the node after the cut (`Stop` takes only `nodeRunning 1`). The stop bumps the generation within
   the same arm (`Stop`'s post is `nodeVacantA γ id x` at the same `x`), so the batch's queue entry is then of a
   dead generation. The client may restart the node, enter later batches, and crash, still holding the old
   `readyEnter`, `nodeArm n γ x` and the token. Entering the stale batch then would mint its promises against
   entered maps that later batches have moved. A share of `n`'s liveness proves that `n` was not stopped, so the
-  batch's generation is the slot's current one (`genView` against the crash invariant's `ghostVar x.g`). kvnet
+  batch's generation is the slot's current one (`genView` against the crash invariant's `ghostVar x.g`). kvraft
   holds `run`'s half of `nodeRunning` in `run`'s frame, so it moves a share into the file invariant with the
   `readyEnter` at the rename and takes both out at the sync, where the live wand takes any share anyway.
 - **`nodeArm n γ x` is added.** The token must be the node's arm's. With another arm, entered after a
@@ -526,7 +526,7 @@ durable at the crash point. A non-leader sends nothing of the batch before it is
 *enter*), and a leader's messages sent first carry no pending promise (`readyLeaderMsgs`). A batch the
 restarted node does not find is discarded by `nodeCrash`, as before.
 
-**Also on this branch: `statusOwn_hardState`** (for kvnet's `Node.status`). `node.Status`'s post `statusOwn st`
+**Also on this branch: `statusOwn_hardState`** (for kvraft's `Node.status`). `node.Status`'s post `statusOwn st`
 promised nothing of the values, and it still does not. The new law gives read access only:
 `statusOwn st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs`. `hsOpt` is `nil` (a stopped node's
 `Status{}`) or `hsRO`, which `HardState.GetTerm`/`GetCommit` read. `Lead` and `RaftState` are plain fields of the

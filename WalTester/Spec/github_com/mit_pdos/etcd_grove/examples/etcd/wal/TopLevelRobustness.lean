@@ -16,13 +16,17 @@ on any file or path) and `tQ` (a crash keeps no CRC collision in the WAL's image
 `WalTester/Proof/.../TopLevelDefs.lean`. That semantics' `initLocal` is the default (`True`), so the file
 state as on disk (`FsInit`) is a premise here, as in the osfs examples.
 
-**A visible premise: `Hopen`** (`TOpen`): the specs the proof takes that no proof discharges yet, today
-only `proto.UnmarshalWalRecordE.spec` (`proto.Unmarshal` of a WAL record, with its error's identity;
-the protobuf plan, etcd-grove#37 S3). When it is proved the premise goes, a strengthening.
+The premises, all start state: the file state as on disk (`Hinit`, `hRe`), the area and the oracle's
+directory two distinct roots of the tree (`hr`, `ho`, `hne`), and the first boot's facts (`Hfirst`). The
+directories' paths are checked by the program (`Main` returns unless `dirOk` accepts both).
 
-The thread bound is the step bound's (`threads := bound + 1`, `Robust` without a thread bound): the
-bounded theorem's thread bound `T` is free and an execution of `n` steps from one thread has fewer than
-`n + 2` (`RealCrashThreadsBelow.of_single`). The step bound `2 ^ 62` is the bounded theorem's largest.
+The bounds (`TopLevelDefs.lean`): `tStepBound` (`2 ^ 62`), the proof's limit (the WAL's file counter is a
+Go `int` and the WAL spends one receipt per step); `tThreads` (`tStepBound + 1`), no thread bound (an
+execution within the step bound never has that many live threads).
+
+Trusted: the translations of the tester, `durable`, the WAL and the packages they call; the packages'
+`Assumptions`; the file extension's semantics with `tSQ` and `tQ`; and the axioms `#print axioms
+etcd_wal_safe` lists (`etc/tcb-collections/wal-safe.txt`), among them `proto.UnmarshalWalRecordE.wp_proof`.
 
 This file only states it (to audit); the proof is in
 `WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness.lean`.
@@ -52,10 +56,9 @@ variable [GoGlobalContext]
 
 /-- **The WAL tester is robust** (see the file header): `bootWal area orDir` alone on one machine that
 may crash at any step and restart, a fresh Go process (`Robust`'s premise), its file state as on disk,
-the area and the oracle directory two distinct roots (`e.jr`, `e.jo` of the roots `e.R`), the first
-boot's facts (`tFirst`: no WAL in the area, no oracle file), the WAL's paths fitting, and the open specs
-(`Hopen`): in every execution of fewer than `2 ^ 62` steps no thread is stuck and none has an
-unrecovered panic. -/
+the area and the oracle directory two distinct roots (`e.jr`, `e.jo` of the roots `e.R`) and the first
+boot's facts (`tFirst`: no WAL in the area, no oracle file): in every execution of fewer than
+`tStepBound` steps no thread is stuck and none has an unrecovered panic. -/
 def etcd_wal_safe.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.go_uber_org.zap.Assumptions]
@@ -72,16 +75,11 @@ def etcd_wal_safe.spec : Prop :=
     [hash.crc32.Assumptions] [go_etcd_io.etcd.pkg.v3.pbutil.Assumptions] [go_uber_org.zap.Assumptions]
     [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions]
     [_root_.Perennial.internal.stringslite.Assumptions] [_root_.Perennial.log.NewModel]
-    -- the specs no proof discharges yet (see the file header)
-    (Hopen : ∀ hG : HeapGS .hasLC fsGF, TOpen (GF := fsGF) (hG := tHeapAt hG lctx))
     (σ : state) (g : GlobalState) (e : TEnv)
     (Hinit : FsInit (extLocal fsExt σ.world)) (hRe : (extLocal fsExt σ.world).fs.roots = e.R)
     (hr : (e.area, e.jr) ∈ e.R) (ho : (e.orDir, e.jo) ∈ e.R) (hne : e.jo ≠ e.jr)
-    (hf : e.orFile.Ok) (hpaths : tWalPathsOk e.area)
-    (hfit : PathFits (tWalDir e.area ++ go!".tmp") ∧ PathFits (tWalDir e.area))
     (Hfirst : tFirst e ((extLocal fsExt σ.world).fs.treeDur, [])),
-    Robustness.Robust [(bootWal e.area e.orDir, σ)] [] g (threads := 2 ^ 62 + 1)
-      (bound := 2 ^ 62)
+    Robustness.Robust [(bootWal e.area e.orDir, σ)] [] g (threads := tThreads) (bound := tStepBound)
 
 end statement
 

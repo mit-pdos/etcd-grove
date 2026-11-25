@@ -14,6 +14,8 @@ public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 public import Code.go_etcd_io.etcd.server.v3.lease
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
 public import Code.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Perennial.Code.errors
+public import Code.os
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -188,6 +190,15 @@ noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.Main"
+
+noncomputable def dirFits [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.dirFits"
+
+noncomputable def absent [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.absent"
+
+noncomputable def MainAt [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/mvccfull.MainAt"
 
 /-- MainConfig is Main's Config, with the files' prefix prefix: sizes
     past mvcc's internal thresholds (mvccfull.go, "Auditing"), batch limits small enough that
@@ -5742,13 +5753,152 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve Run []))) (Val #())) (Var "$a0")))))
   (Val #())))
 
+/-- dirFits reports whether the directory r leaves room below it: it is shorter than 3800 bytes and
+    every 256 consecutive bytes of it hold a '/' (no component is longer than 255 bytes).
+
+    go: start.go:10:6 -/
+noncomputable def dirFits.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc go.string))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "run" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "r")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 47)))))
+  (Let "$r0" (Val #(W64 0))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "run") (Var "$r0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "run")) (Val #(W64 256)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "run") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "run")) (Val #(W64 1)))))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "run") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 3800)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- absent reports whether nothing is at the path p.
+
+    go: start.go:29:6 -/
+noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc go.string))) (Var "p"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Lstat []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.os.ErrNotExist))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- MainAt is Main with its files in the directory r. It runs only if r fits (dirFits) and none of the
+    files the run may create is there yet; otherwise it returns without doing anything.
+
+    go: start.go:36:6 -/
+noncomputable def MainAt.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc go.string))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "r")) (Val #(go!"/mvccfull"))))
+  (App (App (Val (GoInstruction (FuncResolve MainConfig []))) (Val #())) (Var "$a0")))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Config.ty))) (Var "cfg"))
+  (App (App (Val (GoInstruction (FuncResolve Run []))) (Val #())) (Var "$a0"))))))
+  (Let "$range" (Let "$a0" (App (Val (GoInstruction (GoLoad Config.ty))) (Var "cfg"))
+  (App (App (Val (GoInstruction (FuncResolve FilePaths []))) (Val #())) (Var "$a0")))
+  (Let "p" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve absent []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "p") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "r"))
+  (App (App (Val (GoInstruction (FuncResolve dirFits []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.github_com.goose_lang.primitive, pkg_id.context, pkg_id.sort, pkg_id.sync, pkg_id.sync.atomic, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.github_com.goose_lang.primitive, pkg_id.context, pkg_id.sort, pkg_id.sync, pkg_id.sync.atomic, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.errors, pkg_id.os]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5786,7 +5936,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.os.initialize') (Val #()))))))))
 
 structure Mix [GooseExts] where
   mk ::
@@ -7139,6 +7293,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   inBounds_unfold : FuncUnfold inBounds [] inBounds.impl
   Run_unfold : FuncUnfold Run [] Run.impl
   Main_unfold : FuncUnfold Main [] Main.impl
+  dirFits_unfold : FuncUnfold dirFits [] dirFits.impl
+  absent_unfold : FuncUnfold absent [] absent.impl
+  MainAt_unfold : FuncUnfold MainAt [] MainAt.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
@@ -7152,6 +7309,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_lease_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   import_mvcc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions
+  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_os_Assumption : _root_.Perennial.os.Assumptions
 
 attribute [instance] Assumptions.Config_instance
   Assumptions.Mix_instance
@@ -7186,6 +7345,9 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.inBounds_unfold
   Assumptions.Run_unfold
   Assumptions.Main_unfold
+  Assumptions.dirFits_unfold
+  Assumptions.absent_unfold
+  Assumptions.MainAt_unfold
   Assumptions.import_time_Assumption
   Assumptions.import_primitive_Assumption
   Assumptions.import_context_Assumption
@@ -7199,6 +7361,8 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.import_lease_Assumption
   Assumptions.import_backend_Assumption
   Assumptions.import_mvcc_Assumption
+  Assumptions.import_errors_Assumption
+  Assumptions.import_os_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.mvccfull
 

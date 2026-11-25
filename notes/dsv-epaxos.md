@@ -109,6 +109,15 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 `GOROOT=DIR GOTOOLCHAIN=local PATH=DIR/bin:$PATH go test -tags netmodel ./examples/...`. Both pass
 (2026-11-23).
 
+## Non-vacuity
+
+`RpcHttpAddr` is no premise of `epaxos_remote_robust`: the statement instantiates it with `netRpcHttpAddr`
+(`Interface/RpcHttpAddrNet.lean`, a defs module), Net's proved `rpcAddrP`/`rpcLisP` and their laws, with `httpW W` the
+world `W` with HTTP's handshake (`connectReq defaultRPCPath`/`connectAns`) at every address, as
+dsv-gryff's `netRpcHttpAddr`. Its `#print axioms`: Lean's three. The proofs stay generic in
+`[RpcHttpAddr GF]`. The other premises (`RpcHttpHyp`, the boot and initializer hypotheses) have
+no instance here.
+
 ## Step bound 2^63 (2026-11-24, dsv-steps63)
 
 Perennial's pin 580868e54 (lean 5f5f28beeb, perennial#690) has `goose_dist_adequacy_below`
@@ -808,3 +817,14 @@ TCB baseline `etc/tcb-collections/dsv-epaxos.txt` (still the roots and an empty 
 Edit loop: `export PATH=$HOME/.elan/bin:$PATH` (lake is not on the default PATH here), then
 `etc/lean-check.py -a -q FILE`; `etc/gen-init.py --check` needs
 `PERENNIAL_DIR=/shared/perennial-7b2259a12` (the worktree has no `.lake/packages`).
+
+## dsv-fix2 (2026-11-25): net/rpc's and net/http's package facts from `Net/`
+
+The kit's net/rpc and net/http are `Net/`'s packages for their initializations too: their facts
+(`Net/Proof/net/{rpc,http}/PkgInit.lean`) and `wp_initialize'` (`Net/`'s interim axioms, by
+`etc/gen-init.py`'s `NET_AXIOM_INITS`), so the statement's `net.rpc.InitHyp`/`net.http.InitHyp`
+premises are gone (`Dsverify/Proof/net/{rpc,http}/Init.lean` deleted). The other net/rpc premises
+stay: the command's initializer runs net/rpc's before anything runs net/http's, so net/http's first
+run is inside net/rpc's, which `Net/`'s first-run axioms do not cover (notes/dsv-gryff.md,
+"dsv-fix2"). Next: net/rpc's first run proved from its translated initializer (dsv-fix2b), then the
+kit's net/rpc premises discharged from `Net/`'s specs.

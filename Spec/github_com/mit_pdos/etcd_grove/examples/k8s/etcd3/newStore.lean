@@ -41,24 +41,22 @@ abbrev newStore.spec : Prop :=
     (kc cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γs γh : GName),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   threadBound GF ≤ 2 ^ 30 - 1 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ levelTok 0 ∗ (kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
           #kc)) ∗
       isNewClient cl (ms.map (·.addr)) V ∗ client.clientWriteOnce cl (ms.map (·.addr)) ∗
       ([∗list] y ∈ ms, client.kvRegsAt y) ∗ ([∗list] y ∈ ms, seedInv γs y.γr.kv) ∗
-      ghostVar γs (1 : Qp).half σb }}
+      ghostVar γs (1 : Qp).half σb) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newStore)) (Val #kc))
   {{ (s : GoInterface) (s0 : mstore) (hsl : GoSlice) (ok : Bool),
-      RET (PairV (PairV (PairV #s #s0) #hsl) #ok);
-      ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ghostVar γs (1 : Qp).half σs2 ∗ storeOwn s0 g0s.st ∗
+      RET (PairV (PairV (PairV #s #s0) #hsl) #ok); levelTok 0 ∗ (⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ghostVar γs (1 : Qp).half σs2 ∗ storeOwn s0 g0s.st ∗
         (∃ hs : List mstore, hsl ↦*□ hs ∗ [∗list] x;g ∈ hs;g0s.hist, storeOwn x g) ∗
         rangeStreamOff ∗ watchListOn ∗
         ∃ sp mt lt : Loc,
           ⌜s = interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty) #sp⌝ ∗
           k8s.isStore sp (storeCfgD kc cl ms V mt lt γh) ∗
           □ ∀ γk : KVNames, clientWatchOk cl γk -∗
-            storeWatchOk sp (storeCfgD kc cl ms V mt lt γh) driverW γk) }}
+            storeWatchOk sp (storeCfgD kc cl ms V mt lt γh) driverW γk)) }}
 
 end spec
 

@@ -27,7 +27,15 @@ The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
 `http1ServerSupportsRequest`, `Request.ProtoAtLeast`, `Request.isH2Upgrade`, `Request.wantsClose` and
 `Request.wantsHttp10KeepAlive` (over `Header.get` and `hasToken`, both on a header with no
 `Connection` entry: `hasToken`'s loop calls `isTokenBoundary` and `ascii.EqualFold`, names only),
-`conn.hijacked`, and the read limit's `connReader.setReadLimit`/`setInfiniteReadLimit`/`hitReadLimit`.
+`conn.hijacked`, and the read limit's `connReader.setReadLimit`/`setInfiniteReadLimit`/`hitReadLimit`;
+and `conn.readRequest` itself (`section server`), over them, Perennial's `time.Now` and
+`context.WithCancel`, the net extension's `Conn.SetReadDeadline`, bufio's `Writer.Reset` and
+`NewWriterSize`. The accept loop (2026-11-24, phase 7 S5): `Server.Serve` (over `conn.serve`, the
+net extension's `Listener.Accept`/`Close`, `OpError.Temporary`) and `http.Serve` with a handler's
+contract (`Serve.specHandler`), both taking the two interim context specs as hypotheses; and
+`http.Serve(l, nil)` on an rpc listener (`Serve.wp_rpc`, `section serve_rpc`, 2026-11-25; an interim
+axiom before), over `Serve.wpHandler` given the two context axioms (`context.WithValue.wp_proofPtr`,
+`context.WithCancel.wp_proofValBg`, `Net/Proof/context/`) and `DefaultServeMux`'s dispatch.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
 `ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape`,
@@ -112,8 +120,30 @@ public import Net.Proof.net.http.conn__hijacked
 public import Net.Proof.net.http.connReader__setReadLimit
 public import Net.Proof.net.http.connReader__setInfiniteReadLimit
 public import Net.Proof.net.http.connReader__hitReadLimit
+public import Net.Proof.net.http.conn__readRequest
+public import Perennial.Proof.time.Link
+public import Perennial.Proof.context.Link
+public import Proof.bufio.NewWriterSizeRep
+public import Net.Proof.net.http.conn__serve
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.Conn__RemoteAddr
+public import Net.Proof.net.Conn__LocalAddr
+public import Proof.bufio.NewReaderFresh
+public import Proof.bufio.Reader__Reset
 public import Net.Proof.net.http.Request__ProtoAtLeast
 public import Net.Proof.net.http.http1ServerSupportsRequest
+public import Net.Proof.net.http.Server__Serve
+public import Net.Proof.net.http.ServeHandler
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Listener__Close
+public import Net.Proof.net.OpError__Temporary
+public import Net.Proof.net.http.Handle
+public import Perennial.Proof.sort.Link
+public import Perennial.Proof.runtime.Link
+public import Net.Proof.net.http.Serve
+public import Net.Proof.context.WithValuePtr
+public import Net.Proof.context.WithCancelValBg
 
 @[expose] public section
 
@@ -251,6 +281,45 @@ theorem conn.hijacked.wp : conn.hijacked.spec (GF := GF) (hG := hG) := conn.hija
 theorem response.Hijack.wp : response.Hijack.spec (GF := GF) (hG := hG) :=
   response.Hijack.wp_proof conn.hijackLocked.wp EtcdGrove.bufio.Writer.Reset.wp_proof
 
+theorem conn.readRequest.wp : conn.readRequest.spec (GF := GF) (hG := hG) :=
+  conn.readRequest.wp_proof conn.hijacked.wp time.wp_Now connReader.setReadLimit.wp
+    connReader.setInfiniteReadLimit.wp connReader.hitReadLimit.wp connReader.Read.wp
+    readRequestLimit.wp http1ServerSupportsRequest.wp Request.ProtoAtLeast.wp
+    Request.isH2Upgrade.wp Request.wantsClose.wp Request.wantsHttp10KeepAlive.wp
+    Server.maxHeaderValueCount.wp context.wp_WithCancel net.Conn.SetReadDeadline.wp_proof
+    EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
+
+/-- `conn.serve`, over the two interim context hypotheses (`context.WithValue.specPtr`,
+`context.WithCancel.specValBg`: pending Perennial's `internal/reflectlite` model and a wider
+`isParentCtx`, `notes/perennial-changes.md`), taken as premises. -/
+theorem conn.serve.wp
+    (h_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
+    (h_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG)) :
+    conn.serve.spec (GF := GF) (hG := hG) :=
+  conn.serve.wp_proof conn.readRequest.wp conn.hijacked.wp connReader.startBackgroundRead.wp
+    connReader.releaseConn.wp response.Hijack.wp net.Conn.RemoteAddr.wp_proof
+    net.Conn.LocalAddr.wp_proof net.Conn.Close.wp_proof net.Conn.Write.wp_proof h_WithValue
+    h_WithCancelBg net.OpError.Timeout.wp_proof Header.get.wp hasToken.wp
+    EtcdGrove.bufio.Reader.Reset.wp_proof
+    (EtcdGrove.bufio.NewReader.wp_proofFresh EtcdGrove.bufio.NewReaderSize.wp_proofFresh)
+    EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
+
+/-- `Server.Serve`'s accept loop, over `conn.serve` (and so the two interim context hypotheses),
+the net extension's `Listener.Accept`/`Close` and `OpError.Temporary`. -/
+theorem Server.Serve.wp [log.Assumptions]
+    (h_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
+    (h_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG)) :
+    Server.Serve.spec (GF := GF) (hG := hG) :=
+  Server.Serve.wp_proof net.Listener.Accept.wp_proof net.Listener.Close.wp_proof
+    net.OpError.Temporary.wp_proof h_WithValue (conn.serve.wp h_WithValue h_WithCancelBg)
+
+/-- `http.Serve(l, h)` with the handler's contract, over `Server.Serve`. -/
+theorem Serve.wpHandler [log.Assumptions]
+    (h_WithValue : context.WithValue.specPtr (GF := GF) (hG := hG))
+    (h_WithCancelBg : context.WithCancel.specValBg (GF := GF) (hG := hG)) :
+    Serve.specHandler (GF := GF) (hG := hG) :=
+  Serve.wp_proofHandler (Server.Serve.wp h_WithValue h_WithCancelBg)
+
 end server
 
 end net.http
@@ -313,6 +382,42 @@ theorem URL.EscapedPath.wp : URL.EscapedPath.spec (GF := GF) (hG := hG) :=
 end url
 
 end net.url
+
+namespace net.http
+
+section mux
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt Net.netExt]
+
+/-- `http.Handle`, over the real `ServeMux` (until 2026-11-25 an interim axiom). -/
+theorem Handle.wp : Handle.spec (GF := GF) (hG := hG) :=
+  Handle.wp_proof sort.wp_Search strings.wp_IndexAny strings.wp_IndexByte net.url.PathUnescape.wp
+    runtime.wp_Caller fmt.wp_Sprintf
+
+end mux
+
+section serve_rpc
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [bufio_sem : bufio.Assumptions]
+
+/-- `http.Serve(l, nil)` on an rpc listener, over `Serve.wpHandler` with the two context axioms
+(`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`: interim, pending Perennial's
+`internal/reflectlite` model and a wider `isParentCtx`) and `DefaultServeMux`'s dispatch (until
+2026-11-25 an interim axiom). -/
+theorem Serve.wp_rpc [log.Assumptions] : Serve.spec_rpc (GF := GF) (hG := hG) :=
+  Serve.wp_proof_rpc (Serve.wpHandler context.WithValue.wp_proofPtr context.WithCancel.wp_proofValBg)
+    net.url.PathUnescape.wp strings.wp_IndexByte strings.wp_Count net.url.URL.EscapedPath.wp
+
+end serve_rpc
+
+end net.http
 end Perennial
 
 #print axioms Perennial.net.http.internal.NewChunkedWriter.wp
@@ -341,6 +446,8 @@ end Perennial
 #print axioms Perennial.net.http.connReader.setInfiniteReadLimit.wp
 #print axioms Perennial.net.http.connReader.hitReadLimit.wp
 #print axioms Perennial.net.http.conn.hijacked.wp
+#print axioms Perennial.net.http.conn.readRequest.wp
+#print axioms Perennial.net.http.conn.serve.wp
 #print axioms Perennial.net.url.shouldEscape.wp
 #print axioms Perennial.net.url.ishex.wp
 #print axioms Perennial.net.url.unhex.wp
@@ -349,3 +456,7 @@ end Perennial
 #print axioms Perennial.net.url.unescape.wp
 #print axioms Perennial.net.url.PathUnescape.wp
 #print axioms Perennial.net.url.URL.EscapedPath.wp
+#print axioms Perennial.net.http.Server.Serve.wp
+#print axioms Perennial.net.http.Serve.wpHandler
+#print axioms Perennial.net.http.Handle.wp
+#print axioms Perennial.net.http.Serve.wp_rpc

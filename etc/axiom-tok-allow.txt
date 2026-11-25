@@ -117,3 +117,37 @@ trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 trunc Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof
+# --- rpc-driver's interim init axioms (2026-11-24; for the coordinator's review) ---
+# `net.http.wp_init_first`, `net.rpc.wp_init_first` (Net/Proof/net/{http,rpc}/InitFirst.lean; interim,
+# retired by L2 step 6, notes/library-drivers.md): the shape of the swiftpaxos kit's `RpcFirstInit`. The
+# note is the premise `hsame : ∀ p, p ≠ pkg → g' p = g p`, an equation between the caller's
+# initialization maps, not a resource; the walk stops at `ownInitializing` (Perennial's initialization
+# ghost state, given and returned: `g` before, `g'` after, equal off the package's own entry, which its
+# `isPkgInit` fixes). What the post returns besides is the package's own variables' state, which its
+# initializer allocates (net/rpc: `codecUnset` and `DefaultServer`'s empty owned registry; net/http:
+# `DefaultServeMux` empty), exclusive because `hnot : g pkg ⊢ False` (the package not yet initialized)
+# makes the first initialization run once per machine; no token or thread resource is produced.
+entry Perennial.net.http.wp_init_first note:IPropequation:g'p=gp  the initialization maps' equation off the package's own entry (see above), not a resource
+entry Perennial.net.rpc.wp_init_first note:IPropequation:g'p=gp  the initialization maps' equation off the package's own entry (see above), not a resource
+trunc Perennial.net.http.wp_init_first
+trunc Perennial.net.rpc.wp_init_first
+# --- dsv-fix2 (2026-11-25): Net's generic init axioms, now reached by the dsverify kits ---
+# `net.http.wp_initialize'`, `net.rpc.wp_initialize'` (Net/Proof/net/{http,rpc}/Init.lean; interim,
+# retired by L2 step 6): the walk stops at `ownInitializing` (Perennial's initialization ghost state,
+# given and returned with the same map); the post adds only the package's persistent `isPkgInit`. No
+# token or thread resource is produced.
+trunc Perennial.net.http.wp_initialize'
+trunc Perennial.net.rpc.wp_initialize'
+
+
+# --- decision 1b (prove-ps2-clientrdlock, 2026-11-24): the retry options' backoff lent the caller's
+# `levelTok 0` (`backoffOkT`, Proof/go_etcd_io/etcd/client/v3/InvRetry.lean) ---
+# The token counted as handed to a callback is the one inside `backoffOkT`'s persistent contract
+# (`□ ∀ a Φ, levelTok 0 -∗ ▷ (∀ d, levelTok 0 -∗ Φ #d) -∗ WP bf a {{ Φ }}`), nested in the retry
+# options' contracts these axioms carry (`streamCallOptOk`'s `optionsOk`, `optApplyOk`'s): a
+# function that, when called, is lent its caller's token and gives it back. Neither axiom calls the
+# backoff (grpc's `NewStream` runs a call option's `before`, a no-op for etcd's retry options, which
+# only the etcd interceptors read; `streamClientInterceptor` returns a pure fact), so no token is
+# handed out; the callers that do call it (`waitRetryBackoff`, proved) lend their own.
+entry Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof 2:L:0:handedtoacallbacklen(vs)+len(vs)/supplieddirectly0  see the section header: the `levelTok 0` of the call options' `backoffOkT` contract (`streamCallOptsOk vs`), lent by the backoff's caller, not by this axiom
+entry Perennial.EtcdGrove.Client.streamClientInterceptor.wp_proof 2:L:0:handedtoacallbacklen(ros)+len(ros)/supplieddirectly0  see the section header: the `levelTok 0` of the options' `backoffOkT` contract inside `optApplyOk`, lent by the backoff's caller, not by this axiom

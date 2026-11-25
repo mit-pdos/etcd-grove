@@ -1,0 +1,11 @@
+# The encoding/json model's codec for the vr kit (models/json/jsongen.py; notes/dsv-vr.md): the
+# registered codec, for the unnamed roots only (#24 J3: the named types' own JSONModel* methods are
+# jsongen's same-package mode, etc/dsv/vr.py's `jsonmodel_roots`, written by etc/goose.py into its
+# overlay). Generate from the repository root:
+#     models/json/jsongen.py examples/dsverify/vr/examples/vsrnet/json.toml examples/dsverify/vr/examples/vsrnet --pkg vsrnet
+# The roots: what log.Logs' JSON methods pass to encoding/json ([]log.Log) and the unnamed frame of
+# events.fromDecoderUnnamed (the path without vsrwire's hook).
+[json]
+imports = { events = "github.com/tangledbytes/go-vsr/pkg/events", log = "github.com/tangledbytes/go-vsr/pkg/log" }
+roots = ["[]log.Log",
+         'struct { Type events.EventType "json:\"@type\""; Data json.RawMessage "json:\"data\"" }']

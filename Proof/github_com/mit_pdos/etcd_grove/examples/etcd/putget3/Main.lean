@@ -126,7 +126,7 @@ theorem Main.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -150,7 +150,7 @@ theorem Main.wp_proof
   · iunfold etcdstart.commonPremises; iunfold etcd_putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
   iunfold etcd_putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -⟩
+  icases Hcom' with ⟨-, -⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -349,7 +349,7 @@ theorem Main.wp_proof
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
   · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve s₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid))
+      (fun cid mid _ => iprop(etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid ∗ srvGoRes s₁)))
     $$ [Hac Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -357,9 +357,9 @@ theorem Main.wp_proof
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
-    iapply (etcdstart.kv_served s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl HLv)
+    iapply (etcdstart.kv_served_go s₁ E { ρ₁ with wait := γw } ρ₁.rd gs lis clientAddr₁ cid mid R Hrb48 Hrf rfl HLv)
     iframe; iframe #
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, Hgo⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -370,9 +370,10 @@ theorem Main.wp_proof
   ihave #Hregs := etcdstart.etcdKVAt_regs clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid
     rfl $$ Hkv
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration)
+  icases etcdstart.srvGoRes_level0 s₁ $$ Hgo with ⟨Hlt, -⟩
   wp_apply (wp_NewClient clientAddr₁ lg
       (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ₁.rd false) ρ₁.rd clientAddr₁ [] null null [] null default)
-      (by unfold plainEndpoint clientAddr₁; decide) (by omega)) as %cl %cerr Hcl
+      (by unfold plainEndpoint clientAddr₁; decide) (by omega)) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
@@ -409,7 +410,7 @@ theorem Main.wp_proof
   wp_apply (client.client_Put_own cl clientAddr₁ _ E ρ₁.rd γf cid mid
       pctx pcd go!"k" go!"v" slice.nil []
       (opSizeOk_opPutModel (K := 1) (E := 0) (V := 1) (optsKeep_nil _ _ _) (by decide) (by decide)
-        (by decide))) as %presp %perr Hput
+        (by decide))) $$ [$Hlt] as %presp %perr ⟨Hlt, Hput⟩
   · iframe #
   -- `pcancel()`
   (try wp_auto)
@@ -434,7 +435,7 @@ theorem Main.wp_proof
   imod monoNatLbOwn_0 (GF := GF) ρ₁.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl clientAddr₁ _ E ρ₁.rd γf (W64 0) cid mid
       gctx gcd go!"k" go!"v" slice.nil []
-      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) as %gresp %gerr Hget
+      (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide))) $$ [$Hlt] as %gresp %gerr ⟨Hlt, Hget⟩
   · iframe #
     iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl

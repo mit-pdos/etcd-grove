@@ -15,6 +15,8 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.traceutil
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.backend
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.mvcc
+public import Perennial.Proof.errors.Base
+public import SpecPlan.Spec.PkgInit.os
 
 @[expose] public section
 noncomputable section

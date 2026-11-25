@@ -38,7 +38,7 @@ theorem lessor.TimeToLive.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     lessor.TimeToLive.spec (GF := GF) (hG := hG) := by
   intro l conn addr Spec Q ctx om cd id osl gs
-  wp_start as ⟨#Hrem, #Hrpc, #Hom, #Hpre, #Hopts, #Hctx, #Hce⟩
+  wp_start as ⟨Hlt, #Hrem, #Hrpc, #Hom, #Hpre, #Hopts, #Hctx, #Hce⟩
   iunfold lessorRemoteAtC at Hrem
   icases Hrem with ⟨%rlc, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
@@ -46,7 +46,7 @@ theorem lessor.TimeToLive.wp_proof
   wp_auto
   wp_apply wp_toReq id osl gs $$ [] as %r Hr
   · iframe #
-  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [Hr] as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rlc conn addr Spec Q ctx om cd _ _ sl vs $$ [Hlt Hr] as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     simp only
@@ -75,6 +75,7 @@ theorem lessor.TimeToLive.wp_proof
     ipersist Keys
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -90,6 +91,7 @@ theorem lessor.TimeToLive.wp_proof
       wp_apply wp_ContextError ctx cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', -, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro

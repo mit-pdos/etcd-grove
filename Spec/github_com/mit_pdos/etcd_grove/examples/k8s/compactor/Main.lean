@@ -56,8 +56,6 @@ abbrev clientAddr : GoString := go!"127.0.0.1:23976"
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry),
   etcdstart.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →

@@ -120,17 +120,18 @@ revision `wr` is reached. Its three uses: the key already held, with the value (
 `CreateRevision`); the key already held, after `Proclaim` (`wr`, `hd` from `Proclaim`); the key
 created by the transaction (`lr = wr`, its revision). -/
 local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tactic => `(tactic| (
-    wp_apply hWD ctx cs client pfx (($lr) - W64 1) ($wr) $$ [$(frameH `Hcl) $(frameH `Hctx) $(frameH `HctxC) $(frameH `Hcc) $(frameH Hr.getId)] as %werr Hwd
-    · ipureintro; exact ⟨Hpfx, Hpl, by have := HREV.1; word⟩
+    wp_apply hWD ctx cs client pfx (($lr) - W64 1) ($wr) $$ [Hlt $(frameH `Hcl) $(frameH `Hctx) $(frameH `HctxC) $(frameH `Hcc) $(frameH Hr.getId)] as %werr ⟨Hlt, Hwd⟩
+    · iframe Hlt; ipureintro; exact ⟨Hpfx, Hpl, by have := HREV.1; word⟩
     icases Hwd with (%Hwne | ⟨%Hwnil, %R, %sw, #HRR, #Hsw, %Hw⟩)
     · obtain ⟨e', rfl⟩ : ∃ e', werr = GoInterface.ok e' := by
         cases werr with
         | nil => exact absurd rfl Hwne
         | ok e' => exact ⟨e', rfl⟩
       (try wp_auto)
-      ihave HΦ' : iprop(∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')) $$ [HΦ]
-      · iintro %st' Hst'
+      ihave HΦ' : iprop(∀ st' : ElectionSt, electionState e s st' -∗ levelTok 0 -∗ Φ #(GoInterface.ok e')) $$ [HΦ]
+      · iintro %st' Hst' Hlt
         iapply HΦ
+        iframe Hlt
         iright
         isplitr
         · ipureintro; intro h; cases h
@@ -145,10 +146,10 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
             structFieldRef Election go!"leaderRev" e ↦ ($lr) ∗
             structFieldRef Election go!"leaderSession" e ↦ s ∗
             structFieldRef Election go!"hdr" e ↦ ($hd) ∗ «$res0_ptr» ↦ interface.nil ∗
-            (∀ st' : ElectionSt, electionState e s st' -∗ Φ #(GoInterface.ok e')))
-          $$ [] [e client err Hk Hrv Hls Hh «$res0» HΦ'] []
+            (∀ st' : ElectionSt, electionState e s st' -∗ levelTok 0 -∗ Φ #(GoInterface.ok e')) ∗ levelTok 0)
+          $$ [] [e client err Hk Hrv Hls Hh «$res0» HΦ' Hlt] []
       · iapply BigSepL2.bigSepL2_singleton.2
-        iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ'⟩
+        iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ', Hlt⟩
         simp only [chan.nonblockingAltClausePre]
         iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
         isplitr
@@ -163,21 +164,22 @@ local macro "campaign_wait" lr:term:max wr:term:max hd:term:max Hr:ident : tacti
           ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
           · iapply etcdReached_zero
           wp_apply hResign e s γ client id pfx ⟨key, ($lr), s, ($hd)⟩ cctx ccs (W64 0)
-            $$ [$(frameH `Hpkg) $(frameH `He) Hk Hrv Hls Hh $(frameH `Hcctx) $(frameH `HcctxC) $(frameH `H0)] as %rerr Hres
+            $$ [$(frameH `Hpkg) Hlt $(frameH `He) Hk Hrv Hls Hh $(frameH `Hcctx) $(frameH `HcctxC) $(frameH `H0)] as %rerr ⟨Hlt, Hres⟩
           · unfold electionState; iframe; ipureintro; exact ⟨Or.inr rfl, Hkey28⟩
           (try wp_auto)
-          icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst'
+          icases Hres with (⟨-, Hst'⟩ | ⟨-, %hdr'', Hst', -⟩ | ⟨-, Hst'⟩) <;> iapply HΦ' $$ Hst' Hlt
         · iframe
       · iframe
-      · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ'⟩ -
+      · iintro ⟨e, client, err, Hk, Hrv, Hls, Hh, «$res0», HΦ', Hlt⟩ -
         (try wp_auto)
-        iapply HΦ' $$ %(⟨key, ($lr), null, ($hd)⟩ : ElectionSt)
+        iapply HΦ' $$ %(⟨key, ($lr), null, ($hd)⟩ : ElectionSt) [Hk Hrv Hls Hh] Hlt
         unfold electionState
         iframe
         ipureintro; exact ⟨Or.inl rfl, Hkey28⟩
     subst Hwnil
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -214,7 +216,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
     (hCtx : Client.Ctx.spec (GF := GF) (hG := hG)) :
     Election.Campaign.spec (GF := GF) (hG := hG) := by
   intro e s γ client id pfx st ctx cs pv lo
-  wp_start as ⟨#He, Hst, #Hctx, #HctxC, #Hcc, #Hlo, %Hvl⟩
+  wp_start as ⟨Hlt, #He, Hst, #Hctx, #HctxC, #Hcc, #Hlo, %Hvl⟩
   ihave #He' := He
   iunfold isElection at He'
   icases He' with ⟨#Hes, #Hepfx, ⟨%Hpfx, %Hpl⟩, #Hsess, #Hcl⟩
@@ -366,8 +368,9 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro
+  wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨campaignTxn_under pfx key pv id Hpk, campaignTxn_size key pv id (by omega) Hvl⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
@@ -378,6 +381,7 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       | ok e' => exact ⟨e', rfl⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; exact Hne
@@ -456,8 +460,9 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
       ihave Hst : electionState (GF := GF) e s ⟨key, v.createRev, s, st.hdr⟩ $$ [Hk Hrv Hls Hh]
       · unfold electionState; iframe; ipureintro; exact ⟨Or.inr rfl, Hkey28⟩
       wp_apply hProclaim e s γ client id pfx ⟨key, v.createRev, s, st.hdr⟩ ctx cs pv r
-        $$ [$Hpkg $He $Hst $Hctx $HctxC $Hr] as %perr Hpr
-      · ipureintro; exact Hvl
+        $$ [$Hlt $Hpkg $He $Hst $Hctx $HctxC $Hr] as %perr ⟨Hlt, Hpr⟩
+      · (try iframe Hlt)
+        ipureintro; exact Hvl
       icases Hpr with (⟨%Hpn, %hdr', Hst, Hfact⟩ | ⟨#Herr, Hrest⟩ | ⟨%Hpne, Hst⟩)
       · obtain ⟨rfl, -⟩ := Hpn
         icases Hfact with (%Hnp | ⟨%r', #Hhr', #Hr', #Hpc, %Hrr'⟩)
@@ -484,9 +489,10 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
         · icases Hrest with (⟨-, Hst⟩ | ⟨-, Hst, -⟩) <;> iexists _ <;> iexact Hst
         icases Hst with ⟨%st'', Hst⟩
         (try wp_auto)
-        wp_apply hResign e s γ client id pfx st'' ctx cs r $$ [$Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr Hres
+        wp_apply hResign e s γ client id pfx st'' ctx cs r $$ [$Hlt $Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr ⟨Hlt, Hres⟩
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iright
         isplitr
         · ipureintro; intro h; cases h
@@ -496,9 +502,10 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
           | nil => exact absurd rfl Hpne
           | ok e' => exact ⟨e', rfl⟩
         (try wp_auto)
-        wp_apply hResign e s γ client id pfx _ ctx cs r $$ [$Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr Hres
+        wp_apply hResign e s γ client id pfx _ ctx cs r $$ [$Hlt $Hpkg $He $Hst $Hctx $HctxC $Hr] as %rerr ⟨Hlt, Hres⟩
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iright
         isplitr
         · ipureintro; intro h; cases h

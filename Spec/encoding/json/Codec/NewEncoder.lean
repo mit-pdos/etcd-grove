@@ -2,8 +2,7 @@
 `json.NewEncoder(w)` over the encoding/json model (mit-pdos/etcd-grove#24, item 1): an encoder
 writing to `w`, healthy (`EncoderRep.encOk`, a class while the model's bodies are opaque). Moved from
 `Dsverify`'s vr kit (`encoding.json.NewEncoder.spec`, the lab's `Harness/Proof/encoding/json/
-Stream.lean`). A statement only: neither assumed nor proved yet (the model's `NewEncoder` is
-`&Encoder{w: w}`). Lean-first (no Rocq counterpart).
+Stream.lean`). Proved at the model's encoder (`encRepModel`): `Proof/encoding/json/Codec/NewEncoder.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 

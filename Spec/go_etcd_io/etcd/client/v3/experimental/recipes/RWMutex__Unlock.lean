@@ -29,10 +29,9 @@ dereference), knowing etcd has reached `lo`: see `rwUnlockResult` (the key absen
 revision at least `lo`, or an error; `nil` if it was deleted already); the key's `KV` becomes nil. -/
 abbrev RWMutex.Unlock.spec : Prop :=
   ∀ (m : Loc) (pfx : GoString) (ek : Loc) (st : RemoteKVSt) (lo : w64),
-  {{ rwMyKey (GF := GF) m pfx (some (ek, st)) ∗ etcdReached lo }}
+  {{ levelTok 0 ∗ (rwMyKey (GF := GF) m pfx (some (ek, st)) ∗ etcdReached lo) }}
     (App (Val (m @!! go.GoType.PointerType RWMutex.ty @!! go!"Unlock")) (Val #()))
-  {{ (err : GoInterface), RET #err;
-      rwMyKey m pfx (some (ek, { st with kv := GoInterface.nil })) ∗ rwUnlockResult pfx st lo err }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (rwMyKey m pfx (some (ek, { st with kv := GoInterface.nil })) ∗ rwUnlockResult pfx st lo err) }}
 
 end spec
 

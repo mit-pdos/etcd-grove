@@ -7,6 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Spec.errors.Is
 public import Spec.errors.IsDeadlineExceeded
 public import Spec.google_golang_org.grpc.status.Error
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ErrMapKey
 
 @[expose] public section
 
@@ -150,8 +151,7 @@ theorem v3rpc.togRPCError.wp_proof
     have hE := HS1.2.1 ⟨ei, Hl.1, Hl.2.1, Hl.2.2⟩ ii hS1 hor
     rw [hE]
     iexact Hde
-  haveI := Hsafe
-  wp_apply wp_map_lookup2 $$ HM as -
+  wp_apply v3rpc.wp_errMap_lookup2 _ _ _ Hsafe $$ HM as -
   cases hk : Mg !! err with
   | some v =>
     simp only [Option.getD_some, Option.isSome_some, decide_true]

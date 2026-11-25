@@ -3,18 +3,14 @@ The vocabulary of net/http's `ServeMux` as net/rpc over HTTP uses it (`notes/lib
 the shared rpc-over-HTTP design, L2, with its amendments agreed with phase 7's S5): the right to
 register patterns on a mux, a route it serves, and the contract of an rpc handler. **Interim**: the
 specs over it, `Handle.spec` and `Serve.spec_rpc` (`Net/Spec/net/http/{Handle,Serve}.lean`), are
-trust-boundary axioms (`Net/Proof/net/http/{Handle,Serve}.lean`) until phase 7's S5 proves them, and
-S5 refines these definitions (the mux's `RWMutex` with its reader slots, the routing tree's contents):
-`muxI` here owns only the mux's tree, so that the right to register is unique per mux (it cannot be
-made twice: the tree's cell is in the one invariant), and records the patterns and their handlers in
-ghost state.
+proved by phase 7's S5 over the real `ServeMux` (`MuxServe.lean`: both matchers, chosen by `use121`;
+the lock's guard and reader-slot pool; the owner's half of the matcher's state). Until 2026-11-25
+`muxOwn` was an invariant on the mux's tree alone, with the patterns and handlers in ghost state.
 
 * `muxOwn m Ps` (exclusive): the right to register on the mux `m`, whose registered patterns are
   `Ps` (the patterns' owner: one goroutine at a time; net/rpc's `HandleHTTP` and the program's own
   `Handle`s, at the boot). From net/http's first initialization at `DefaultServeMux` (`muxOwn (globalAddr defaultServeMux) []`,
   `Net/Proof/net/http/InitFirst.lean`).
-* `muxAt m Ps` (persistent): `m` frozen with the patterns `Ps` (`muxOwn m Ps` given up into an
-  invariant; httpdriver's `ServeMux.ServeHTTP.spec`).
 * `muxRoute m p h` (persistent): `m` sends a request for the literal path `p` to the handler `h`.
 * `litPattern p`: a literal path pattern: `/`-initial, every byte one the model's request parser
   leaves alone in a path (`pathByte`, the model's `modelPathByte`: letters, digits and
@@ -36,6 +32,9 @@ public import Net.Proof.net.http.ServerDefs
 public import Net.Proof.net.http.RequestDefs
 public import Net.Proof.net.rpc.Proto
 public import Net.GeneratedProof.net.http
+public import Net.Proof.net.http.MuxServe
+public import Net.Proof.net.http.ServeLoopDefs
+public import Net.Proof.net.http.ServerConn
 
 @[expose] public section
 
@@ -53,56 +52,33 @@ namespace net.http
 def litPattern (p : GoString) : Prop :=
   p.head? = some (W8 47) ∧ ∀ b ∈ p, pathByte b = true
 
-/-- The ghost names of a mux: its routes (a ghost map from a pattern to its handler) and its
-registered patterns (a ghost variable, half with the registering owner). -/
-structure MuxNames where
-  routes : GName
-  pats : GName
-
-def muxN (m : Loc) : Namespace := (nroot.@"net.http.mux").@m
-
-def muxFrozenN (m : Loc) : Namespace := (nroot.@"net.http.muxfrozen").@m
-
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-attribute [local instance] GooseGlobalGS.gooseInvGS
+/-- The right to register on `m`, its patterns `Ps` (exclusive; see the file header): the owner's half
+of the state of the matcher `use121` chooses (`muxOwnS`, `MuxServe.lean`). -/
+def muxOwn (m : Loc) (Ps : List GoString) : IProp GF := muxOwnS (GF := GF) (hG := hG) m Ps
 
-/-- The mux `m`'s invariant with names `γ`: its patterns `Ps` (the owner's other half) and routes
-`H`, the same patterns, and the mux's tree's cell (see the file header). -/
-def muxI (m : Loc) (γ : MuxNames) : IProp GF :=
-  iprop(∃ (Ps : List GoString) (H : GMap GoString GoInterface),
-    ghostVar γ.pats (1 : Qp).half Ps ∗ ghostMapAuth γ.routes 1 H ∗
-    ⌜∀ p, p ∈ Ps ↔ (H.lookup p).isSome⌝ ∗
-    ∃ t : net.http.routingNode, structFieldRef net.http.ServeMux go!"tree" m ↦ t)
-
-/-- The right to register on `m`, its patterns `Ps` (exclusive; see the file header). -/
-def muxOwn (m : Loc) (Ps : List GoString) : IProp GF :=
-  iprop(∃ γ : MuxNames, inv (muxN m) (muxI m γ) ∗ ghostVar γ.pats (1 : Qp).half Ps)
-
-/-- The mux `m` frozen with the patterns `Ps` (persistent: the right to register, `muxOwn m Ps`,
-given up for good into an invariant; httpdriver, 2026-11-24, S5's `muxAt`): its patterns are
-exactly `Ps` from now on, what `ServeMux.ServeHTTP.spec` needs to answer `404` for the others. -/
-def muxAt (m : Loc) (Ps : List GoString) : IProp GF :=
-  iprop(∃ γ : MuxNames, inv (muxN m) (muxI m γ) ∗
-    inv (muxFrozenN m) (ghostVar γ.pats (1 : Qp).half Ps))
-
-instance muxAt_persistent (m : Loc) (Ps : List GoString) : Persistent (muxAt (GF := GF) m Ps) := by
-  unfold muxAt; infer_instance
-
-/-- `m` routes `p` to `h` (persistent). -/
-def muxRoute (m : Loc) (p : GoString) (h : GoInterface) : IProp GF :=
-  iprop(∃ γ : MuxNames, inv (muxN m) (muxI m γ) ∗ ghostMapElem γ.routes p .discard h)
+/-- `m` routes `p` to `h` (persistent): `muxRouteS`, `MuxServe.lean`. -/
+def muxRoute (m : Loc) (p : GoString) (h : GoInterface) : IProp GF := muxRouteS (GF := GF) (hG := hG) m p h
 
 instance muxRoute_persistent (m : Loc) (p : GoString) (h : GoInterface) :
-    Persistent (muxRoute (GF := GF) m p h) := by
+    Persistent (muxRoute (GF := GF) (hG := hG) m p h) := by
   unfold muxRoute; infer_instance
 
-/-- What net/http's server reads of its package's variables (S5 names it; `httpEnv` today). -/
-abbrev httpSrvEnv : IProp GF := httpEnv
+/-- What net/http's server reads of the package variables: `httpEnv` (its package fact), `readEnv`
+(io's and internal/poll's errors, from net/http's `isPkgInit`), and what net/http's first
+initialization leaves (`InitFirst.lean`): `serveEnv`, `ctxKeys`, `aLongTimeAgo`'s value, the reader and
+writer pools. (Until 2026-11-25 `httpEnv` alone.) -/
+def httpSrvEnv : IProp GF :=
+  iprop(httpEnv ∗ readEnv ∗ serveEnv ∗ ctxKeys ∗ (∃ tm : time.Time, globalAddr net.http.aLongTimeAgo ↦□ tm) ∗
+    wPools ∗ rPool)
+
+instance httpSrvEnv_persistent : Persistent (httpSrvEnv (GF := GF)) := by
+  unfold httpSrvEnv; infer_instance
 
 variable [π : NetProtoGS]
 

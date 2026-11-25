@@ -10,8 +10,10 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.absent
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.buildPath
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.check
@@ -20,6 +22,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.checkRangeA
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.choose
 public import Proof.context.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.copyState
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.dirFits
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.hashing
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
@@ -151,6 +154,7 @@ public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
 public import Proof.sort.SortAnyLessLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults
+public import Proof.errors.IsPathErrnoNotExist
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 @[expose] public section
@@ -480,6 +484,14 @@ theorem wp_hashing :
     EtcdGrove.mvccfull.hashing.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccfull.hashing.wp_proof
 
+theorem wp_dirFits :
+    EtcdGrove.mvccfull.dirFits.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.dirFits.wp_proof
+
+theorem wp_absent :
+    EtcdGrove.mvccfull.absent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.absent.wp_proof _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -736,6 +748,10 @@ theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccfull.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccfull.Main.wp_proof wp_MainConfig wp_Run
+
+theorem wp_MainAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccfull.MainAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccfull.MainAt.wp_proof wp_dirFits wp_absent wp_MainConfig wp_FilePaths wp_Run
 
 end links_hasLC
 
