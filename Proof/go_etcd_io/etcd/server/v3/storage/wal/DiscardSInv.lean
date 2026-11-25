@@ -473,6 +473,48 @@ theorem walTmpParked0_inj (Ls : GMap GoString WalLay) :
     iapply walTmpsRes_excl (G := G) (L := L) l2.j
     iframe H1 H2
 
+/-- **The discarded WAL's pipeline names out of the parked ones** (S, the lock free: `T = []`): both
+names' whole claims (`walTmpsRes lay.j`) to the program. -/
+theorem walTmpParked0_delete (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
+    (hl : Ls !! dir = some lay) :
+    walTmpParked0 (G := G) (L := L) Ls [] ⊢
+      walTmpsRes (hG := ⟨G, L⟩) lay.j ∗ walTmpParked0 (G := G) (L := L) (GMap.delete dir Ls) [] := by
+  unfold walTmpParked0
+  iintro ⟨%Jt, %hp, Hm⟩
+  ihave Hm := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (J : Ino) =>
+    iprop(if dir ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J)) (hp dir lay hl)).1 $$ Hm
+  icases Hm with ⟨H1, Hm⟩
+  simp only [List.not_mem_nil, ite_false]
+  iframe H1
+  iexists GMap.delete dir Jt
+  iframe Hm
+  ipureintro
+  intro k la hk
+  by_cases e : k = dir
+  · subst e; rw [GMap.lookup_delete_eq] at hk; cases hk
+  · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hk ⊢
+    exact hp k la hk
+
+/-- **The discarded WAL's pipeline names' invariant halves out** (S). -/
+theorem walTmpHalves_delete (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
+    (hl : Ls !! dir = some lay) :
+    walTmpHalves (G := G) (L := L) Ls ⊢
+      walTmpsHalf (hG := ⟨G, L⟩) lay.j ∗ walTmpHalves (G := G) (L := L) (GMap.delete dir Ls) := by
+  unfold walTmpHalves
+  iintro ⟨%Jh, %hp, Hm⟩
+  ihave Hm := (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (J : Ino) =>
+    walTmpsHalf (hG := ⟨G, L⟩) J) (hp dir lay hl)).1 $$ Hm
+  icases Hm with ⟨H1, Hm⟩
+  iframe H1
+  iexists GMap.delete dir Jh
+  iframe Hm
+  ipureintro
+  intro k la hk
+  by_cases e : k = dir
+  · subst e; rw [GMap.lookup_delete_eq] at hk; cases hk
+  · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hk ⊢
+    exact hp k la hk
+
 end iris
 
 end WalFs
