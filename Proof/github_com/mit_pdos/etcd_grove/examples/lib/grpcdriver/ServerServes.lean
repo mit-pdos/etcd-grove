@@ -79,7 +79,7 @@ theorem echo_handlerOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG)) (γid 
   iframe HS
   isplitl [Hsend HΦ]
   · iintro %_
-    iexists _
+    iexists ((m : GoString) ++ go!"#1")
     isplitl [Hsend]
     · iexact Hsend
     · iexact HΦ

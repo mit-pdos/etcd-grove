@@ -75,8 +75,8 @@ theorem server.Echo.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF)
     ihave %Hne := ghostMapElem_ne γid id id (DFrac.own 1) () () $$ Htok Htok'
     exact absurd rfl Hne
   try wp_auto
-  have Hz' : (m !! v).getD (zero_val w64) = W64 0 := by
-    have h0 : (zero_val w64) = W64 0 := by decide
+  have Hz' : (m !! v).getD (_root_.Perennial.zero_val w64) = W64 0 := by
+    have h0 : (_root_.Perennial.zero_val w64) = W64 0 := by decide
     rw [h0]; exact Hz
   wp_apply wp_map_lookup1 $$ [Hmap] as Hmap
   · iexact Hmap
