@@ -102,6 +102,15 @@ theorem mkVal_inj {a b : w64} {w w' : GoString} (hw : wordOk w) (hw' : wordOk w'
   exact fmtUint10_inj (digits_append_letters _ _ _ _ (fmtUint10_digits a) (fmtUint10_digits b)
     hw.2 hw'.2 h)
 
+/-- A fresh value is short: `"v"`, at most 20 digits and at most 16 letters. -/
+theorem mkVal_length (id : w64) (w : GoString) (hw : wordOk w) : (mkVal id w).length ≤ 37 := by
+  unfold mkVal
+  have := internal.strconv.fmtUint10_length_le id
+  have := hw.1
+  simp only [List.length_append]
+  simp only [List.length] at *
+  omega
+
 /-! ## The client's ids -/
 
 /-- The bound on the ids the client takes (see the file header). -/
@@ -131,6 +140,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
+
+/-- **The package's variable** (`drvFacts`, persistent): `reached` holds a function whose calls
+return (its body is empty). The package's `isPkgInit` fact is `True` (generated `Init.lean`); the
+client's boot gets this from the package's first initialization. -/
+def drvFacts : IProp GF :=
+  iprop(∃ f : GoFunc, globalAddr reached ↦□ f ∗
+    □ ∀ s : GoString, WP (App (Val #f) (Val #s)) {{ v, ⌜v = #()⌝ }})
+
+instance drvFacts_persistent : Persistent (drvFacts (GF := GF)) := by
+  unfold drvFacts; infer_instance
 
 /-- The token of the call id `id` (exclusive): an element of the ghost map `γid`. -/
 def idTok (γid : GName) (id : w64) : IProp GF :=

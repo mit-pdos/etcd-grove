@@ -47,7 +47,7 @@ instance drvStubAt_persistent (c : GoInterface) (conn : Loc) :
 /-- The client's environment (see the file header). -/
 def drvCli (γid γb : GName) (c : GoInterface) (ids : Loc) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
-    isCtr γid γb ids ∗
+    drvFacts ∗ isCtr γid γb ids ∗
     ∃ conn : Loc, drvStubAt c conn ∗ grpcConn conn [drvAddr] [] [] anyRes ∗
       isGrpcRpcMd (Req := (pbStringValueT (GF := GF)).toProtoMsg)
         (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr echoName (echoSpec γid) ∗

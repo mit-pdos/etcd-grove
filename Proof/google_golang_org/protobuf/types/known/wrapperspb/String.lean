@@ -26,11 +26,11 @@ variable [package_sem : google_golang_org.protobuf.types.known.wrapperspb.Assump
 
 theorem google_golang_org.protobuf.types.known.wrapperspb.String.wp_proof :
     google_golang_org.protobuf.types.known.wrapperspb.String.spec (GF := GF) (hG := hG) := by
-  intro v hv
+  intro b v hv
   wp_start
   wp_auto
   iapply HΦ
-  simp only [EtcdGrove.stringValueSend, EtcdGrove.stringValueSendB]
+  simp only [EtcdGrove.stringValueSendB]
   iexists _
   iframe
   ipureintro

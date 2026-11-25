@@ -106,7 +106,7 @@ theorem server.Echo.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF)
     rfl
   try wp_auto
   rw [hstr]
-  wp_apply wp_String (v ++ go!"#1") (by
+  wp_apply wp_String stringValueMax (v ++ go!"#1") (by
       simp only [List.length_append, stringValueMax]
       have h2 : (go!"#1" : GoString).length = 2 := rfl
       have h29 : stringValueReqMax = 536870912 := by decide
