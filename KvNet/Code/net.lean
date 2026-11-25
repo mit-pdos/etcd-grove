@@ -3808,22 +3808,6 @@ noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- netClosingErr: poll.ErrNetClosing as an error (errNetClosing{}, the only value of its type, which
-    net cannot name).
-
-    go: model.go:397:6 -/
-noncomputable def netClosingErr.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.internal.poll.errNetClosing.ty go.error))) (App (Val (GoInstruction (GoLoad _root_.Perennial.internal.poll.errNetClosing.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.internal.poll.ErrNetClosing))) (Val #()))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
-
 /-- detach (gc builds only, used by the stubs' bodies): the fd of a socket Go's own code made, as
     a plain blocking socket the stubs use, the netFD Go made closed.
 
@@ -5823,6 +5807,8 @@ class TCPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Write" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_ok_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"ok" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"ok"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
 
 attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.underlying
@@ -5845,6 +5831,7 @@ attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
   TCPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
   TCPConn.TypeAssumptions.ptr_Write_unfold
+  TCPConn.TypeAssumptions.ptr_ok_unfold
 
 structure TCPListener [GooseExts] where
   mk ::

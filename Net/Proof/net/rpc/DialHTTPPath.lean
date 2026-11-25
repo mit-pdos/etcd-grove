@@ -341,7 +341,7 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   ihave #Hhenv' := Hhenv
   iunfold net.http.httpEnv at Hhenv'
   icases Hhenv' with ⟨#Hbufio, -, #Hfmt, -⟩
-  -- `Conn.Read` takes `internal/poll`'s package fact: net/rpc imports it (through `net`)
+  -- `Conn.Read` takes `internal/poll`'s package fact: `net`'s (a precondition) imports it
   ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
   · solve_pkg_init
   wp_auto
