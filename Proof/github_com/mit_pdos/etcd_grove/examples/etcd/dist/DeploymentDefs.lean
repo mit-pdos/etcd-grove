@@ -201,6 +201,11 @@ def maxMembers : Nat := 64
 peer URLs, the initial cluster's `name=http://peer` list) far below `strings.Join`'s length bound. -/
 def maxLen : Nat := 255
 
+/-- The length bound, in bytes, of every member name (Go's `deployment.MaxNameLen`): the member's data
+directory `<name>.etcd` and its WAL area's paths fit in a path component (`dirFits_memberDataDir`,
+`dirFits_srvWalDirOf_memberDataDir`, which take a name of at most 200 bytes; N5, `notes/etcd-dist-plan.md` §19). -/
+def maxNameLen : Nat := 200
+
 /-- A member name the data directory can carry: nonempty, of ASCII letters, digits and `-` (so
 no `/`, `.` or `..`: one directory per member, `etcdWalAreasInit`'s `memberDataDir`). -/
 def nameOk (n : GoString) : Bool :=
@@ -221,8 +226,9 @@ def nameOk (n : GoString) : Bool :=
 5. the workloads are compatible (`Compatible`) and within their bounds, and a workload that
    needs the token provider has it; `compact` not under the periodic compactor (review F5); no token
    provider beside expiring leases (review F10);
-6. at most `maxMembers` members, and every member name, every address and the token of at most
-   `maxLen` bytes (so that `strings.Join` of a member's URLs, or of all members', stays in bounds). -/
+6. at most `maxMembers` members, every member name of at most `maxNameLen` bytes (its data directory and WAL
+   area fit), and every address and the token of at most `maxLen` bytes (so that `strings.Join` of a member's
+   URLs, or of all members', stays in bounds). -/
 def Deployment.WellFormed (d : Deployment) : Prop :=
   d.members ≠ [] ∧ (d.members.map Member.name).Nodup ∧ (∀ m ∈ d.members, nameOk m.name = true) ∧
   (∀ a ∈ d.addrs, Net.addrOk a = true) ∧ d.addrs.Nodup ∧
@@ -236,13 +242,13 @@ def Deployment.WellFormed (d : Deployment) : Prop :=
   (Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false) ∧
   -- review F10: the revocable lease mode with the token provider needs `leasesNoExpiry`
   ¬ (d.cfg.auth = true ∧ Workload.leaseExpiry ∈ d.workloads) ∧
-  -- 6. the sizes: at most `maxMembers` members; names, addresses and the token of at most
-  -- `maxLen` bytes
-  d.members.length ≤ maxMembers ∧ (∀ m ∈ d.members, m.name.length ≤ maxLen) ∧
+  -- 6. the sizes: at most `maxMembers` members; names of at most `maxNameLen` bytes, addresses and the
+  -- token of at most `maxLen` bytes
+  d.members.length ≤ maxMembers ∧ (∀ m ∈ d.members, m.name.length ≤ maxNameLen) ∧
   (∀ a ∈ d.addrs, a.length ≤ maxLen) ∧ d.token.length ≤ maxLen
 
 instance (d : Deployment) : Decidable d.WellFormed := by
-  unfold Deployment.WellFormed leaseIdsApart maxMembers maxLen; infer_instance
+  unfold Deployment.WellFormed leaseIdsApart maxMembers maxLen maxNameLen; infer_instance
 
 /-! ## The encoding of a typed deployment as the Go value -/
 
@@ -300,6 +306,17 @@ theorem Deployment.WellFormed.addrs {d : Deployment} (h : d.WellFormed) :
   have e := typed.Deployment.addrs_encodes he
   rw [← e]
   exact ⟨hw.2.2.2.2.1, hw.2.2.2.1⟩
+
+/-- **A well-formed deployment's members** (N5): at least one and at most `maxMembers`, their names distinct,
+valid (`nameOk`) and of at most `maxNameLen` bytes. -/
+theorem Deployment.WellFormed.members {d : Deployment} (h : d.WellFormed) :
+    d.members ≠ [] ∧ (d.members.map Member.name).Nodup ∧ (∀ m ∈ d.members, typed.nameOk m.name = true) ∧
+      d.members.length ≤ typed.maxMembers ∧ ∀ m ∈ d.members, m.name.length ≤ typed.maxNameLen := by
+  obtain ⟨t, he, hw⟩ := h
+  have hm : t.members = d.members := he.1
+  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
+  rw [← hm]
+  exact ⟨h1, h2, h3, h18, h19⟩
 
 /-- **A well-formed deployment's member URLs are within etcd's URL bounds**: every member's peer
 URL list (`[http://peer]`) and client URL list (`[http://client]`) have at most `etcdURLCountMax`

@@ -81,13 +81,16 @@ const (
 	CompactorPeriodic = "periodic"
 )
 
-// MaxMembers bounds the cluster's size and MaxLen every member name, every address and the token
-// (in bytes), so that the strings etcd builds from them (a member's peer URLs joined, the initial
-// cluster's "name=http://peer" list) stay far below strings.Join's length bound (Lean:
-// typed.maxMembers, typed.maxLen).
+// MaxMembers bounds the cluster's size and MaxLen every address and the token (in bytes), so that
+// the strings etcd builds from them (a member's peer URLs joined, the initial cluster's
+// "name=http://peer" list) stay far below strings.Join's length bound (Lean: typed.maxMembers,
+// typed.maxLen). MaxNameLen bounds every member name (Lean: typed.maxNameLen): the member's data
+// directory "<name>.etcd" and its WAL area's paths must fit in a path component (255 bytes); the
+// proof's bound is 200.
 const (
 	MaxMembers = 64
 	MaxLen     = 255
+	MaxNameLen = 200
 )
 
 // Member is a member of a deployment (Lean: Member).
@@ -324,13 +327,13 @@ func IdsOk(d Deployment) bool {
 // int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
 // needs.)
 func WellFormed(d Deployment) error {
-	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxLen bytes
+	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxNameLen bytes
 	if len(d.Members) == 0 || len(d.Members) > MaxMembers {
 		return fmt.Errorf("%d members", len(d.Members))
 	}
 	names := map[string]bool{}
 	for _, m := range d.Members {
-		if !nameOk(m.Name) || len(m.Name) > MaxLen || names[m.Name] {
+		if !nameOk(m.Name) || len(m.Name) > MaxNameLen || names[m.Name] {
 			return fmt.Errorf("member name %q", m.Name)
 		}
 		names[m.Name] = true
