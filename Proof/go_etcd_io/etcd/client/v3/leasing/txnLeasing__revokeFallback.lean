@@ -35,7 +35,7 @@ theorem txnLeasing.revokeFallback.wp_proof
     (hRLK : leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG)) :
     txnLeasing.revokeFallback.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl ps kvss
-  wp_start as ⟨Hl, Hc, #Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hsl, %Hlen, %Hkeys, #Hall⟩
+  wp_start as ⟨Hlt, Hl, Hc, #Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hsl, %Hlen, %Hkeys, #Hall⟩
   ihave %Hslen := ownSlice_len _ _ _ $$ Hsl
   wp_auto
   ihave IH : iprop(∃ (n : w64) (p0 : Loc),
@@ -61,7 +61,7 @@ theorem txnLeasing.revokeFallback.wp_proof
     · iPkgInit
     wp_apply hGRR p w rr $$ [$Hpbi $Hu $Hw]
     · ipureintro; exact Hnn.1
-    wp_apply hRLK $$ [$Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hkps $Hkv] as %mr %err ⟨Hrd, %Herr⟩
+    wp_apply hRLK $$ [$Hlt $Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc $Hkps $Hkv] as %mr %err ⟨Hlt, Hrd, %Herr⟩
     · ipureintro; exact Hkeys kvs (List.mem_of_getElem? Hk)
     cases err with
     | nil =>
@@ -76,6 +76,7 @@ theorem txnLeasing.revokeFallback.wp_proof
       wp_auto
       wp_for_post
       iapply HΦ
+      iframe Hlt
       iframe
   · iapply HΦ
     iframe

@@ -38534,6 +38534,8 @@ removes one of clause (3)'s writers; no file R1-4a edits is re-translated.
 
 ## Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off (`verifyEnvOff`, `envVerifyOff`) (2026-11-08 · sweep repairs 1, R1-4b: W5 + B4; the Scope (revision 3) approved by etcd-grove-81/82, narrowing (b) approved by the user via etcd-grove-82 · branch `sweep-repairs-1`)
 
+*Superseded in part (its B4 half: `verifyEnvOff`, `envVerifyOffTok`, `envVerifyOff`, `goose_adequacy_start`'s `hEnv`) by "`ETCD_VERIFY` as an environment premise over its value" (2026-11-25).*
+
 **W5, the defect.** `goose_adequacy_start` handed out `netAddrFree a`/`httpProtoFree a` per string,
 and `addrsUnclaimed` was per string, while Go binds and dials sockets: `localhost:p` resolves (to
 `127.0.0.1` or `[::1]`), a dial of it can reach a listener bound at `[::1]:p`, and a wildcard bind
@@ -41330,6 +41332,8 @@ name's validity.
 
 ## `ETCD_VERIFY` read through `os.Getenv`'s spec, not assumed per check (2026-11-20 · the coordinator's group `etcdstorage` · branch `prove-etcdstorage/2026-11-20`)
 
+*Superseded in part (`os.Getenv`'s post and the token `envVerifyOff`) by "`ETCD_VERIFY` as an environment premise over its value" (2026-11-25).*
+
 Sweep repairs 1 (B4) gave each of etcd's `ETCD_VERIFY` checks (`backend.ValidateCalled{Inside,OutSide}Apply`,
 `ValidateCalledInsideUnittest`, `VerifyBackendConsistency`) an axiom taking the token `envVerifyOff`;
 `verify.Verify` was an axiom too.
@@ -42446,6 +42450,28 @@ Not done: a whole-program analysis (an exit in a dependency, or a wrapper that d
 callers' conditions matter, is not followed); the gate is a review aid for the checks' own code, which
 is where a vacuous check would be written.
 
+## One `PkgInitExt` for every tree; a part imports the main tree's `Init.lean` when it is the same (2026-11-24 · L1 · branch `lib-pkginit`)
+
+**Problem.** `ExternalInit` (the premise of `initLb_of_spec`, which the generated initializers use for every package
+whose `wp_initialize'` is not generated here) was a closed inductive listing the main tree's packages, raft's,
+protobuf `proto`'s and the B-tree's among them, so `Proof/runtime/PkgInitExt.lean` imported raft's translation. A
+part that does not import raft (`Net/`) needed a copy without them, `Dsverify/` a guard-free variant
+(`PkgInitDsv`) for packages the copy did not list, and every package initializer that imported it was copied into
+the part, differing only in that import (11 in `Net/`, 9 more in `Dsverify/`); the parts likewise declared again
+the `True` facts of packages whose main-tree fact sat in an etcd module (`container/heap` in lease's `Base`,
+protobuf's in raft's and cache's).
+
+**Choice.** `ExternalInit` is an open registration: a fieldless `structure` in `Prop`, each external initializer a
+theorem `ExternalInit.<pkg> : ExternalInit pkg_id.<pkg> <pkg>.initialize' := ⟨⟩`. The shared module registers
+Perennial's packages (all trees'); a tree registers the others in a module of its own importing it (the main tree's
+`PkgInitExtRaft`, copied over their raft by the raft parts; `Dsverify/`'s `PkgInitDsv`), and a generated file
+imports that module only when it names one. The guard was already unused by the proof; it stays as documentation, and
+`initLb_of_spec`'s statement text is unchanged (rejected: dropping the premise, which changes every call site and
+loses the record of what is taken from elsewhere). `etc/gen-init.py`'s `shared_inits` then drops a part's generated
+`Init.lean` when, its imports resolved, it is the main tree's text at the same path: one file per Go package, found
+mechanically rather than listed. A `True` fact two trees need moves to `Proof/<pkg>/PkgInit.lean` (as `hash`'s,
+`os`'s), out of the etcd modules that declared it.
+
 ## `etcd_noRefusal` over the server listening at the address (2026-11-24 · trust-shrinking, from an axiom sweep · branch `norefusal-link/2026-11-24`)
 
 *Supersedes D29's sentence on the members' axiom's premises ("the gRPC server `gs` with the KV
@@ -42525,3 +42551,85 @@ full names; the client's three uses discharge it by `kvMethod_put`/`_deleteRange
 Trust-shrinking: the attempt contract (`grpcInvokerOk`) promises a non-refusal for fewer calls; the
 members' axioms are unchanged in statement and now speak of fewer calls.
 
+## `ETCD_VERIFY` as an environment premise over its value (2026-11-25 · the owner's decision · branch `etcd-verify-env/2026-11-25`)
+
+Supersedes in part the B4 half of "Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off" (2026-11-08)
+and `os.Getenv`'s post of "`ETCD_VERIFY` read through `os.Getenv`'s spec" (2026-11-20).
+
+**What was wrong.** `verifyEnvOff e` was an `axiom … : Prop` (a premise `HEnv : verifyEnvOff prog` of
+each closed theorem that starts a server, per machine in the distributed drafts): no witness can
+satisfy an axiom constant, so `etc/premise-witness.py` could only list it as `opaque`, and its meaning
+lived in two more axioms, the token `envVerifyOffTok` (`envVerifyOff := □ envVerifyOffTok`) and
+`goose_adequacy_start`, which handed the token out under it. The distributed `putget_safe` needed a
+second premise, `HEnvTok : ⊢ envVerifyOff`, since no distributed start hands the token out.
+
+**Decision.** An environment premise as Perennial's `crypto.fips140.GodebugFips140Off`
+(`TrustedCode/crypto/fips140.lean`: `opaque godebugFips140 : GoString`, `def GodebugFips140Off :=
+godebugFips140 = "" ∨ … = "off"`), over a concrete reading of the environment
+(`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`):
+- `opaque etcdVerifyEnv : GoString`: the value `os.Getenv("ETCD_VERIFY")` returns in the run (`""` when
+  unset). The model has no process environment: one value for every read, and for every machine of a
+  deployment, as `GODEBUG`; a process environment in `os`'s semantics is deferred.
+- `def EtcdVerifyOff : Prop := etcdVerifyOffValue etcdVerifyEnv`; `etcdVerifyOffValue_unset`: the
+  unset value satisfies it (the premise is satisfiable).
+- `os.Getenv`'s post: `⌜key = "ETCD_VERIFY" → EtcdVerifyOff → etcdVerifyOffValue v⌝` (no token; offness only:
+  a first draft `v = etcdVerifyEnv` was refuted across processes, `notes/axiom-review/getenv-etcd-verify.md`,
+  since one opaque value let a proof equate two machines' reads). The draft was sound only if every read of
+  the variable in a run returns the same value: no code of the run sets it; no verified code can
+  (`os.Setenv`/`Unsetenv`/`Clearenv` have no spec), stated in the spec's docstring
+  (`Spec/os/Getenv.lean`). Stronger than the old post in naming the value (it was "given the token,
+  some value that enables no check"); the satisfiability argument is unchanged (a model of the
+  names-only `Getenv` returning `etcdVerifyEnv` for that key).
+- The checks are proved under the pure premise: `IsVerificationEnabled`'s post is
+  `⌜EtcdVerifyOff → t = "assert" ∨ t = "lock" → b = false⌝`; `Verify`'s second disjunct, the three lock
+  checks', `VerifyBackendConsistency`'s and every carrier's precondition (`isBackend`, `NewServer`,
+  `bootstrap`, the `etcdstart` bundles, the examples' `Main`/`Run` specs) is `⌜EtcdVerifyOff⌝` where it
+  was `envVerifyOff`. Kept in the Iris assertions rather than made a Lean hypothesis of each spec, so
+  that `isBackend` still carries it to `batchTx.Lock` and no signature between changes.
+- Every closed statement's `HEnv` is `(HEnv : EtcdVerifyOff)`: `etcd_robust_single_process`,
+  `etcd_leaseexpiryN_robust_single_process`, `k8s_robust_single_process`, `mvccfull_robust`,
+  `mvccrand_robust` (and their `*_adequate`, `etcdstart`'s `etcd_adequate_*`); `putget_safe` loses both
+  `HEnv : ∀ m ∈ system …, verifyEnvOff m.1` and `HEnvTok`; the `etcd_robust` draft's per-machine
+  conjunction becomes the one premise.
+- `goose_adequacy_start` loses `hEnv : verifyEnvOff e` and `startRights`' `envVerifyOff`: it is the old
+  axiom with both read as `True` (the reading its satisfiability argument took), the rest unchanged, so it
+  claims nothing about the environment. The adequacy proofs introduce `⌜EtcdVerifyOff⌝` from `HEnv`.
+
+**Trust.** Axioms out: `verifyEnvOff`, `envVerifyOffTok`. Restated: `goose_adequacy_start` (an
+environment part fewer), `os.Getenv.wp_proof` (names the value). New: the `opaque` constant `etcdVerifyEnv` and
+the definition `EtcdVerifyOff` (`etcdVerifyOffValue` unchanged), which `#print axioms` does not list. The premise stays `opaque` in `etc/premise-witness-baseline.txt` (an opaque constant: no
+Lean proof establishes it), with `etcdVerifyOffValue_unset` as the compiled evidence that the
+environment can make it true.
+
+**Rejected.** A Lean hypothesis `EtcdVerifyOff →` on each check's spec, as `GodebugFips140Off` on
+`bootstrap`'s: it would thread through `batchTx.Lock` and every caller of the backend; the pure
+assertion inside `isBackend` carries it with no signature change.
+
+
+## `ContextReadErrs` was unsatisfiable: a local `MapKeys` for `togRPCError`, the classes theorems, a gate on Iris premises (2026-11-25 · soundness fix · branch `hctx-vacuity/2026-11-25`)
+
+**What.** The top-level premise `Hctx : ∀ hG, ContextReadErrs` stated of `context.DeadlineExceeded`'s
+value both "not a pointer" and `SafeMapKey go.error` at Perennial's interface keys, which since P8c
+(`mapKeys_interface`) are `nil` or pointers: `ContextReadErrs → isPkgInit context ⊢ False`, checked in
+Lean. Every statement taking it was vacuous for a month (`notes/axiom-review/ctx-readerrs-vacuity.md`,
+with the list). The Go fact is true; the Lean statement was wrong.
+
+**Choices.**
+- The conjunct was used only by `togRPCError`'s map lookup. Restated as `errKeyOk` (the keys Go's `==`
+  compares as Lean's equality: `nil`, pointers, `deadlineExceededError{}`, bcrypt's `InvalidCostError`)
+  with a local `MapKeys` instance `v3rpc.errKeys`, as Perennial's `MapKeys` doc invites (and as
+  `v3rpc.streamKeys` already did), not a change to Perennial's instance: no trust added, the
+  `SafeMapKey` of each key proved from `==`'s reduction.
+- The classes `ContextReadErrs` and `ContextErrsClient` became theorems from `isPkgInit context`
+  (Perennial's `context.isInit` names both errors' values since the context-errors change): no
+  premise is left to be false, and nothing to witness.
+- `client.ctxErrTargets` and `errors.IsStatusErr.spec`'s dead comparable-target case are restated for
+  `deadlineExceededError{}` (a trust-boundary spec covering one more target, true of Go; the ledger
+  entry of 2026-11-25), and `ctxErrTargets_of` proves the former.
+- **Prevention, kept small**: the pure-premise witness gate leaves out every binder over `HeapGS`, so a
+  second gate, `etc/iris-premise-check.py` (sources only; `etc/gates.sh`, CI), lists the Iris binders
+  of every top-level statement and refuses one not in `etc/iris-premise-baseline.txt`, either
+  `witness:<theorem>` (declared in the tree; the build checks it) or `unwitnessed` (the 19 present at
+  its introduction; the list only shrinks). It flags `Hctx`/`Hcec` on the tree before the fix. Not
+  done: a Lean-level check that a named witness really proves the premise at an initialized world (the
+  name is a pointer for review, not a proof obligation the script verifies).

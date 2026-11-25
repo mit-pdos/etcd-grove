@@ -32,8 +32,8 @@ theorem Server.freeRequest.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (
     Server.freeRequest.spec (GF := GF) (hG := hG) := by
   intro s γ req v
   wp_start as ⟨#Hs, Hv⟩
-  unfold isServer
-  icases Hs with ⟨#Hsync, #Hmu, #Hrq, #Hrs⟩
+  unfold isServerAny isServerO
+  icases Hs with ⟨%o, #Hsync, #Hmu, #Hrq, #Hrs⟩
   wp_auto
   wp_apply wp_Lock _ _ $$ [$Hsync $Hrq] as ⟨Hown, Hinv⟩
   iunfold reqFreeInv at Hinv

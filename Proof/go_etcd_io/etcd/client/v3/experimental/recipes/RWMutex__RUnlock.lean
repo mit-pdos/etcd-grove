@@ -29,14 +29,15 @@ theorem RWMutex.RUnlock.wp_proof (wp_Delete : RemoteKV.Delete.spec (GF := GF) (h
     RWMutex.RUnlock.spec (GF := GF) (hG := hG) := by
   intro m pfx ek st lo
   unfold rwMyKey
-  wp_start as ⟨⟨Hmk, Hek, #Hkv, %Hk⟩, #Hlo⟩
+  wp_start as ⟨Hlt, ⟨Hmk, Hek, #Hkv, %Hk⟩, #Hlo⟩
   wp_auto
   wp_method_call
   wp_auto
   unfold ownEphemeralKV
-  wp_apply wp_Delete _ st pfx lo $$ [$Hek $Hkv $Hlo] as %err ⟨Hek, Hres⟩
+  wp_apply wp_Delete _ st pfx lo $$ [$Hlt $Hek $Hkv $Hlo] as %err ⟨Hlt, Hek, Hres⟩
   · ipureintro; exact Hk
   iapply HΦ
+  iframe Hlt
   simp only
   iframe Hmk Hek
   isplitr

@@ -39,23 +39,21 @@ fact: grpc's server decoded the request under etcd's limit `v3rpc.etcdMaxRecvMsg
 abbrev lockServer.Lock.spec : Prop :=
   ∀ (ls c req : Loc) (nsl : GoSlice) (name : GoString) (lease : w64) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗
-      isLockServer ls c ∗ lockClientOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock ∗ levelTok 0 ∗ (isLockServer ls c ∗ lockClientOk c ∗
       structFieldRef v3lockpb.LockRequest go!"Name" req ↦□ nsl ∗
       nsl ↦*□ name ∗
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq ∧
         v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name⌝ ∗
       structFieldRef v3lockpb.LockRequest go!"Lease" req ↦□ lease ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs) }}
     (App (App (Val (ls @!! go.GoType.PointerType lockServer.ty @!! go!"Lock"))
       (Val #(GoInterface.ok ctx))) (Val #req))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc) (ksl : GoSlice)
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc) (ksl : GoSlice)
           (v : v3lockpb.LockResponse),
         resp ↦ v ∗ ⌜v.Header' = hdr ∧ v.Key' = ksl⌝ ∗ ksl ↦* key ∗ hdrRevAt hdr R ∗
         etcdReached R ∗ (lockedAt (name ++ go!"/") key rev R ∨ keyRecreated (name ++ go!"/") key rev R) ∗
         ⌜(name ++ go!"/") <+: key⌝) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

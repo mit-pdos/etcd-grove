@@ -37,15 +37,13 @@ etcd is known to have reached). -/
 abbrev Cache.get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (B : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ metadata.outgoingCtxOkC ctx ∗
-      cacheBound cf B }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ levelTok 0 ∗ (isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ metadata.outgoingCtxOkC ctx ∗
+      cacheBound cf B) }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"get")) (Val #(GoInterface.ok ctx)))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheBound cf B ∗ errStrOk err) ∨
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ cacheBound cf B ∗ errStrOk err) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ R : w64, getRespRev resp R ∗ cacheBound cf R ∗ etcdRead R ∗
         storeRevLb cf.γs R ∗ storeSnapLb cf.γs R ∗
-        ⌜sint.Z B ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝) }}
+        ⌜sint.Z B ≤ sint.Z R ∧ sint.Z R < 2 ^ 63 - 1⌝)) }}
 
 end spec
 

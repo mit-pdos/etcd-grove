@@ -30,14 +30,14 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev StartNode.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
-    (cf : GoInterface → List w8 → IProp GF)
+    (cf : GoInterface → List w8 → IProp GF) (stp : NodeStopper GF)
     (S : w64 → GoString → github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options → GMap w64 GoString → IProp GF) : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.NodeConfig) (M : GMap w64 GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       cfg.Addrs' ↦$□ M ∗ S cfg.ID' cfg.Dir' cfg.Opts' M }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvnet.StartNode)) (Val #cfg))
-  {{ (nd : Loc), RET #nd; ∃ (γ : Cluster) (N : Namespace) (n : NodeH),
-      isNodeS F rep nd γ N cfg.ID' n ∗ confLaw F rep cf γ N cfg.ID' }}
+  {{ (nd : Loc), RET #nd; ∃ (γ : Cluster) (N : Namespace),
+      isNodeS F rep stp nd γ N cfg.ID' ∗ confLaw F rep cf γ N cfg.ID' }}
 
 end spec
 

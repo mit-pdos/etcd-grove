@@ -12,7 +12,7 @@ module
 
 public import Dsverify.GeneratedProof.rabia.internal.queue
 public import Dsverify.Proof.rabia.internal.message.SpecPure
-public import Dsverify.Proof.container.heap.Init
+public import Proof.container.heap.Init
 public import Dsverify.Proof.rabia.internal.queue.Base
 
 

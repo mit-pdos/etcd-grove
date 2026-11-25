@@ -27,14 +27,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `ValidateCalledInsideApply(lg)` returns (the lock checks off).
-(Sweep repairs 1, B4, 2026-11-07: with `ETCD_VERIFY` off, `envVerifyOff`, from program start; until
+(Sweep repairs 1, B4, 2026-11-07: with `ETCD_VERIFY` off, `EtcdVerifyOff`, from program start; until
 then assumed unconditionally, false of a run with `ETCD_VERIFY=all`, `lock` or `assert`: Go
 `examples/sweeprepairs/b1`, `TestB4On`.) -/
 abbrev backend.ValidateCalledInsideApply.spec : Prop :=
   ∀ (lg : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run (`envVerifyOff`)
-      envVerifyOff }}
+      -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+      ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! ValidateCalledInsideApply)) (Val #lg))
   {{ RET #(); True }}
 

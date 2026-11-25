@@ -48,7 +48,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
     Client.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd key opts Q0 hrev hk
-  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
+  wp_start as ⟨Hlt, #Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
   wp_auto
   wp_apply (linkv.wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph)
     as %pr %xs Hpr
@@ -102,8 +102,8 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       [withRevM opts.Revision', withLimitM (W64 1)] iprop(True) Q []
       (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0)
         (optsKeep_cons (withRevM_keep _) (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))
-        hk (by decide))) $$ []
-    as %resp %err ⟨-, Hout, #Heo⟩
+        hk (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, -, Hout, #Heo⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel key [withRevM opts.Revision', withLimitM (W64 1)]).base.sortSet = false
@@ -149,6 +149,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         isimp only [List.getD_cons_zero, List.getD_cons_succ] at HQ
         have e1 : modAtRev key σ opts.Revision' = W64 0 := by simp [modAtRev, hk]
         iapply HΦ
+        iframe Hlt
         ileft
         isplitl []
         · ipureintro; rfl
@@ -190,6 +191,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
           isimp only [List.getD_cons_zero, List.getD_cons_succ] at HQ
           have e1 : modAtRev key σ opts.Revision' = v.modRev := by simp [modAtRev, hk]
           iapply HΦ
+          iframe Hlt
           ileft
           isplitl []
           · ipureintro; rfl
@@ -212,6 +214,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright
     iunfold kvErr at Hke
     icases Hke with ⟨%Hce, #Hse, #Hcl⟩

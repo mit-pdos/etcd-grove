@@ -24,7 +24,7 @@ public import Perennial.Proof.slices.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Init
@@ -37,7 +37,7 @@ public import Dsverify.Proof.github_com.orcaman.concurrent_map.Base
 public import Proof.encoding.json.Base
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.math.rand.Init
+public import Perennial.Proof.math.rand.Link
 public import Dsverify.Proof.github_com.google.uuid.Init
 
 @[expose] public section

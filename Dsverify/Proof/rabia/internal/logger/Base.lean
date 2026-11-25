@@ -9,7 +9,7 @@ public import Dsverify.Proof.github_com.rs.zerolog.Base
 public import Dsverify.Proof.rabia.internal.config.Base
 public import Perennial.Proof.fmt.Base
 public import Proof.os.PkgInit
-public import Dsverify.Proof.path.Base
+public import Proof.path.PkgInit
 
 @[expose] public section
 

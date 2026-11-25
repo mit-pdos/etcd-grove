@@ -23,11 +23,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `backoffLinearWithJitter(w, j)`: a backoff function that returns (`backoffOk`). No premise (it
-runs in the package's own initializer, `defaultOptions`). -/
+/-- `backoffLinearWithJitter(w, j)`: a backoff function that returns (`backoffOk`). Its premise is
+`math/rand`'s `isPkgInit` alone (it runs in the package's own initializer, `defaultOptions`, after
+`math/rand`'s; the function it returns calls `jitterUp`, hence `rand.Float64`: math-rand-isinit). -/
 abbrev backoffLinearWithJitter.spec : Prop :=
   ∀ (w : time.Duration) (j : w64),
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.backoffLinearWithJitter)) (Val #w)) (Val #j))
   {{ (bf : GoFunc), RET #bf; backoffOk bf }}
 

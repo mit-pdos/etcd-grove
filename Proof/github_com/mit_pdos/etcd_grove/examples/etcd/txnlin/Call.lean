@@ -33,12 +33,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 theorem Call.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
     Call.spec (GF := GF) (hG := hG) := by
-  intro _ CRE CEC cl ms V hAs x i Q hx hgen
-  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
+  intro _ cl ms V hAs x i Q hx hgen
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
-  wp_apply wp_call cl ms V hAs x i Q hx hgen $$ [Hau] as %y Hy
+  wp_apply wp_call cl ms V hAs x i Q hx hgen $$ [$Hlt Hau] as %y ⟨Hlt, Hy⟩
   · iframe Hau; iframe #
   iapply HΦ
+  iframe Hlt
   icases Hy with (%Hy | ⟨%σ, HQ, %Hy⟩)
   · ileft; ipureintro; subst Hy; rfl
   · iright

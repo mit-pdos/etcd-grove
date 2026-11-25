@@ -23,13 +23,13 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.internal.testlog.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
-public import RaftTla.Proof.internal.poll.Init
-public import RaftTla.Proof.io.fs.Init
-public import RaftTla.Proof.syscall.Init
+public import Proof.internal.poll.Init
+public import Proof.io.fs.Init
+public import Proof.syscall.Init
 public import Proof.os.Models
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.errors.NewVar
-public import RaftTla.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

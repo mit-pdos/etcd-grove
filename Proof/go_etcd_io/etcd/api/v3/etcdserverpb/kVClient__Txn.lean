@@ -31,7 +31,7 @@ theorem kVClient.Txn.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Txn.spec (GF := GF) (hG := hG) := by
   intro kc conn addr Spec Q ctx om cd inp req t opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hrpc, #Hom, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -60,7 +60,7 @@ theorem kVClient.Txn.wp_proof
   rw [show (pbTxnRequestT (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
     show (pbTxnResponseT (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI
   ihave Hpre := reqPre_scalar_app conn _ addr [sm] vs _ Hsms $$ Hpre
-  wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
+  wp_apply hI $$ [Hlt Hsend Hblank Hpre] as %err ⟨Hlt, Hin', Hres⟩
   · iframe #
     iframe
     isplitl []
@@ -72,6 +72,7 @@ theorem kVClient.Txn.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe
     unfold txnCallOut
     ileft
@@ -85,6 +86,7 @@ theorem kVClient.Txn.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe
       unfold txnCallOut
       iright

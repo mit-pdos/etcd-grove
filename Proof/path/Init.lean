@@ -8,7 +8,7 @@ trust-boundary axiom `opaqueInitsOk`).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
+public import Proof.path.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.internal.bytealg.Link
 public import Perennial.Proof.errors.NewVar

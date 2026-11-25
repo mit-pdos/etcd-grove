@@ -12,11 +12,11 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
-public import Net.Proof.net.Init
-public import Net.Proof.os.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.net.Init
+public import Proof.os.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

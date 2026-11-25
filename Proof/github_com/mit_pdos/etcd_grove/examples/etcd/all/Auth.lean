@@ -31,7 +31,7 @@ theorem Auth.wp_proof
     (wp_authN : etcd_authN.Main.spec (GF := GF) (hG := hG))
     (wp_authlease : etcd_authlease.Main.spec (GF := GF) (hG := hG)) :
     Auth.spec (GF := GF) (hG := hG) := by
-  intro CS ER FM RT CRE CEC N k₂ ids₂ ps₂ ctxs₂ boot₂ k₃ ids₃ ps₃ ctxs₃ boot₃ TB RB48 RBN HLv
+  intro CS ER FM RT N k₂ ids₂ ps₂ ctxs₂ boot₂ k₃ ids₃ ps₃ ctxs₃ boot₃ TB RB48 RBN HLv
     hk₂1 hk₂ hlen₂ Hbf₂ hk₃1 hk₃ hlen₃ Hbf₃ Hap Hwb Haf Hbuq Hrf Hdbo Hlp Hlne Hms Hat
   wp_start as ⟨Hms₂, Hms₃, Htok, Hp₂, Hp₃⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

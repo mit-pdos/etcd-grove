@@ -48,17 +48,17 @@ abbrev store.Create.spec : Prop :=
   (c.pathPrefix ++ k).length ≤ opKeyMax →
   c.S.storedSizeOk o →
   c.S.parseRV rv = some (W64 0) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ k8sctx.k8sCtxOk ci ∗ c.S.objAt obj o rv ∗ c.S.objAt out o0 rv0 ∗
       ([∧list] x ∈ c.ms, k8sAu1 x.γr.kv c
-        (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Φ) }}
+        (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Φ)) }}
     (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Create")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #obj)) (Val #out)) (Val #(W64 0)))
-  {{ (err : GoInterface), RET #err; (∃ o' rv', c.S.objAt obj o' rv') ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((∃ o' rv', c.S.objAt obj o' rv') ∗
       ((unkErr c err ∗ ∃ o' rv', c.S.objAt out o' rv') ∨
         (∃ σ : KVState, Φ σ ∗
-          respIs (E := Empty) c ((c.abs σ).create (c.pathPrefix ++ k) o 0).2 err out)) }}
+          respIs (E := Empty) c ((c.abs σ).create (c.pathPrefix ++ k) o 0).2 err out))) }}
 
 end spec
 

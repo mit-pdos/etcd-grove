@@ -67,7 +67,7 @@ abbrev Run.spec : Prop :=
   runCfgOk cfg wr → backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗
       mixOwn cfg.Mix' wr ∗ ([∗list] p ∈ filePathsM cfg, backend.fileHolds p ∅) ∗
-      threadTok ∗ envVerifyOff }}
+      threadTok ∗ ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)) (Val #cfg))
   {{ (rep : Report), RET #rep; True }}
 

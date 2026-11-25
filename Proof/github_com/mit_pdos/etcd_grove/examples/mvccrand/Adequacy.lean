@@ -37,7 +37,7 @@ package table `PkgTable.lean`) and `mvccrand.wp_Run` (`Link.lean`).
 **Its hypotheses** (S3e: no longer `dbOpenOk` and `dbCloseOk`, bbolt's `Open` and `Close` not
 failing, the user's decision of 2026-11-08: the semantics' steps do not fail on files, `etcdSQ`, and
 the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two are `True` now):
-* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset) and the
+* pure facts of the program's environment: `EtcdVerifyOff` (`ETCD_VERIFY` off) and the
   execution's length (prom-registry, route (b), 2026-11-22: no longer `namesUnclaimed` of
   `mvccrandNames`: the proof allocates the registration rights of the packages' metric IDs itself,
   `mvccrand_regQsOk`, and the default registry is client_golang's real code)
@@ -137,7 +137,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
-    (HEnv : verifyEnvOff (mvccrandProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
@@ -156,7 +156,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     ⟨trivial, Hfs, trivial⟩ [] [] List.nodup_nil List.nodup_nil
     (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
     ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
-    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
+    ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
@@ -169,8 +169,9 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ThreadBoundLe mvccrandGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccrandGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
-  iunfold startRights at Hrights
-  icases Hrights with ⟨-, -, -, #Hvoff⟩
+  iclear Hrights
+  ihave #Hvoff : ⌜EtcdVerifyOff⌝ $$ []
+  · ipureintro; exact HEnv
   -- (prom-registry, route (b)) the run's registration rights: a fresh ghost map of its packages' IDs,
   -- the run's registry name
   imod (prometheus.regKeys_alloc (GF := mvccrandGF) _ mvccrand_regQsOk) with ⟨%γreg, Hregs⟩
@@ -215,7 +216,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
-    (HEnv : verifyEnvOff (mvccrandProgram r))
+    (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)

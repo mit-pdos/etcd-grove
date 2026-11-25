@@ -9,7 +9,7 @@ module
 
 public import Proof.internal.syscall.unix.PkgInit
 public import KvNet.Proof.syscall.Init
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

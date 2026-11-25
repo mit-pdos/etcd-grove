@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__ApplySnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Storage__ApplySnapshot.lean`.
 Lean-first (no Rocq counterpart): the `MemoryStorage`'s `ApplySnapshot` (its triple, the premise,

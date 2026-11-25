@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/putSnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/putSnapshot.lean`. Lean-first (no
 Rocq counterpart): the getters lend the snapshot's parts (its metadata split in two, `dfrac_split`:

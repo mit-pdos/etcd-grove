@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `(*compactor).Stop`: `stopOnce.Do` of the closure that calls `onClose` when it is
+The proof of `(*compactor).Stop`: `stopOnce.Do` (lending the closure the caller's `levelTok 0`,
+`wp_Once_Do_lend`) of the closure that calls `onClose` when it is
 not `nil` (`closeOk`: it returns; Q1 (c), 2026-11-05), closes the
 `stop` channel and waits for the loop goroutine, with what `stopOnce` holds until its first run
 (the channel's closing right and the wait group's adder, `compactorStopOk`).
@@ -12,6 +13,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__Stop
 public import Perennial.Spec.sync.Once__Do
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
+public import Proof.sync.OnceLend
 import all Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
@@ -39,7 +41,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem compactor.Stop.wp_proof : compactor.Stop.spec (GF := GF) (hG := hG) := by
   intro c cl γk recorded γc
-  wp_start as #Hc
+  wp_start as ⟨Hlt, #Hc⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isCompactor at Hc
@@ -52,8 +54,8 @@ theorem compactor.Stop.wp_proof : compactor.Stop.spec (GF := GF) (hG := hG) := b
   icases Hch with ⟨#Hsc, #Hbc⟩
   (try wp_auto)
   ipersist c
-  wp_apply sync.Once.wp_Do $$ [$Honce]
-  · iintro !> %Φ' ⟨HP, %n, Hadd⟩ HΦ'
+  wp_apply wp_Once_Do_lend _ _ _ (levelTok 0) $$ [$Honce $Hlt] as ⟨-, Hlt⟩
+  · iintro !> %Φ' ⟨⟨HP, %n, Hadd⟩, Hlt⟩ HΦ'
     (try wp_auto)
     -- `onClose`, when not `nil`
     by_cases hf : f = func.nil
@@ -68,8 +70,9 @@ theorem compactor.Stop.wp_proof : compactor.Stop.spec (GF := GF) (hG := hG) := b
     · exact absurd h hf
     (try wp_auto)
     wp_bind (App (Val #f) (Val #()))
-    iapply Hf
+    iapply Hf $$ Hlt
     inext
+    iintro Hlt
     (try wp_auto)
     all_goals (
       wp_apply wp_broadcast_chan_close $$ [$HP] as -
@@ -77,9 +80,9 @@ theorem compactor.Stop.wp_proof : compactor.Stop.spec (GF := GF) (hG := hG) := b
       (try wp_auto)
       wp_apply sync.join.WaitGroup.wp_Wait $$ [$Hadd] as -
       (try wp_auto)
-      iapply HΦ'; itrivial)
+      iapply HΦ'; iframe Hlt)
   (try wp_auto)
-  iapply HΦ; itrivial
+  iapply HΦ $$ Hlt
 
 end proof
 

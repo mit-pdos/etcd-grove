@@ -27,7 +27,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
 public import Perennial.TrustedCode.crypto.fips140
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Json
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.JsonRoundTrip
 
 @[expose] public section
 
@@ -226,6 +226,36 @@ theorem memberJSON_eq [GooseExts] (v : go_etcd_io.etcd.server.v3.etcdserver.api.
   by_cases hcs : cs = []
   · subst hcs; simp [hp]
   · simp [hp, hc hcs, hcs]
+
+/-- **`memberJSON` is `membership.memberJsonM`** (#24 J2, 2026-11-24), when the member's name and URLs
+are plain (`membership.memberPlain`: the encoder writes them as they are). -/
+theorem memberJSON_eq_M [GooseExts] (m : apply.MemberM) (h : membership.memberPlain m) :
+    memberJSON m = membership.memberJsonM m := by
+  obtain ⟨hn, hps, hcs⟩ := h
+  have hq := models_lab.jsoncodec.jsonQuote_plain _ hn
+  unfold memberJSON membership.memberJsonM membership.jobj membership.memberMs
+  simp only [membership.jsonStrSlice_plain _ hps, models_lab.jsoncodec.decU64_eq_decN]
+  by_cases hcs0 : m.clientURLs = []
+  · rcases hb : m.isLearner with _ | _ <;> by_cases hnm : m.name = [] <;>
+      simp [hnm, hcs0, hq, membership.jmembers, membership.jquoted, membership.JVal.json]
+  · rw [membership.jsonStrSlice_plain _ hcs]
+    rcases hb : m.isLearner with _ | _ <;> by_cases hnm : m.name = [] <;>
+      simp [hnm, hcs0, hq, membership.jmembers, membership.jquoted, membership.JVal.json]
+
+/-- **A bootstrap context decodes back to its member** (#24 J2, for #34's `memBoot`): `json.Unmarshal`
+of `json.Marshal(*Member)` into a zero `ConfigChangeContext` is the member, `IsPromote` false, when its
+name and URLs are plain. -/
+theorem memberJSON_ccDecode [GooseExts] (m : apply.MemberM) (h : membership.memberPlain m) :
+    membership.ccDecode (memberJSON m) = some ⟨m, false⟩ := by
+  rw [memberJSON_eq_M m h]; exact membership.ccDecode_memberJsonM m h
+
+theorem ccContextOf_memberJSON [GooseExts] (m : apply.MemberM) (h : membership.memberPlain m) :
+    membership.ccContextOf (memberJSON m) = some (m.id, false) := by
+  rw [memberJSON_eq_M m h]; exact membership.ccContextOf_memberJsonM m h
+
+theorem ccMemberOf_memberJSON [GooseExts] (m : apply.MemberM) (h : membership.memberPlain m) :
+    membership.ccMemberOf (memberJSON m) = m := by
+  rw [memberJSON_eq_M m h]; exact membership.ccMemberOf_memberJsonM m h
 
 /-- **The peers' contexts** (`bootstrapRaftFromCluster`'s `json.Marshal(cl.Member(id))`, in `ps`
 order). -/

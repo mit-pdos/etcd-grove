@@ -40,21 +40,22 @@ theorem runWatch.wp_proof
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG)) :
     runWatch.spec (GF := GF) (hG := hG) := by
   intro _ _ _ sp c γk x k n Q hS hQ hQQ hnr htb hok
-  wp_start as ⟨#Hst, #Hsw, #Hwl, #Hrs, HQ0, #HQup⟩
+  wp_start as ⟨Hlt, #Hst, #Hsw, #Hwl, #Hrs, HQ0, #HQup⟩
   wp_auto
   cases hsk : x.Skip'
   rotate_left
   · -- skipped
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro
     exact ⟨rfl, rfl, Or.inl rfl⟩
   obtain ⟨hk, hkl, hn, hn63⟩ := hok hsk
   wp_auto
   wp_apply wp_Now as %t -
-  wp_apply (wp_watchEvents sp c γk x k n Q hS hQ hQQ hnr htb hk hkl hn hn63) $$ [HQ0]
-    as %sl %rsl %failed Hr
+  wp_apply (wp_watchEvents sp c γk x k n Q hS hQ hQQ hnr htb hk hkl hn hn63) $$ [$Hlt HQ0]
+    as %sl %rsl %failed ⟨Hlt, Hr⟩
   · iframe #; iframe HQ0
   simp only [github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.hiccupDuration]
   -- the hiccup sleep
@@ -74,6 +75,7 @@ theorem runWatch.wp_proof
     wp_apply wp_encodeWEvents $$ [$Hs] as %Hlen
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     iexists rs.map k8s_correctness.toWEvL, kes, rs, rsl
     iframe
@@ -84,6 +86,7 @@ theorem runWatch.wp_proof
     icases Hr with %Hr
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro
     exact ⟨rfl, rfl, Or.inr Hr⟩
