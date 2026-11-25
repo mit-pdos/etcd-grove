@@ -101,6 +101,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_github_com_tangledbytes_go_vsr_pkg_events : G pkg_id.github_com.tangledbytes.go_vsr.pkg.events = isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events
   e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
   e_log_slog : G pkg_id.log.slog = isPkgInit (PROP := IProp GF) pkg_id.log.slog
+  e_math_rand : G pkg_id.math.rand = isPkgInit (PROP := IProp GF) pkg_id.math.rand
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
   e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
@@ -261,6 +262,10 @@ theorem wf_log_slog {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.log.slog G :=
   And.intro h.e_log_slog ⟨wf_context h, wf_errors h, wf_fmt h, wf_strconv h, wf_strings h, True.intro⟩
 
+theorem wf_math_rand {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.math.rand G :=
+  And.intro h.e_math_rand ⟨wf_sync h, wf_sync_atomic h, True.intro⟩
+
 theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
   And.intro h.e_cmp True.intro
@@ -335,7 +340,7 @@ theorem wf_github_com_tangledbytes_go_vsr_pkg_replica {G : GoString → IProp GF
 
 theorem wf_github_com_tangledbytes_go_vsr_examples_vsrnet {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet G :=
-  And.intro h.e_github_com_tangledbytes_go_vsr_examples_vsrnet ⟨wf_models_lab_jsoncodec h, wf_encoding_json h, wf_github_com_tangledbytes_go_vsr_pkg_events h, wf_github_com_tangledbytes_go_vsr_pkg_log h, wf_io h, wf_log_slog h, wf_net h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_goose_lang_primitive h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_github_com_tangledbytes_go_vsr_examples_vsrkv h, wf_github_com_tangledbytes_go_vsr_examples_vsrwire h, wf_github_com_tangledbytes_go_vsr_pkg_client h, wf_github_com_tangledbytes_go_vsr_pkg_network h, wf_github_com_tangledbytes_go_vsr_pkg_replica h, wf_github_com_tangledbytes_go_vsr_pkg_time h, True.intro⟩
+  And.intro h.e_github_com_tangledbytes_go_vsr_examples_vsrnet ⟨wf_models_lab_jsoncodec h, wf_encoding_json h, wf_github_com_tangledbytes_go_vsr_pkg_events h, wf_github_com_tangledbytes_go_vsr_pkg_log h, wf_io h, wf_log_slog h, wf_math_rand h, wf_net h, wf_time h, wf_github_com_anishathalye_porcupine h, wf_github_com_goose_lang_primitive h, wf_github_com_mit_pdos_etcd_grove_examples_lib_remote h, wf_github_com_tangledbytes_go_vsr_examples_vsrkv h, wf_github_com_tangledbytes_go_vsr_examples_vsrwire h, wf_github_com_tangledbytes_go_vsr_pkg_client h, wf_github_com_tangledbytes_go_vsr_pkg_network h, wf_github_com_tangledbytes_go_vsr_pkg_replica h, wf_github_com_tangledbytes_go_vsr_pkg_time h, True.intro⟩
 
 theorem wfO_models_lab_jsoncodec {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.models_lab.jsoncodec (gOff S G) :=
@@ -496,6 +501,11 @@ theorem wfO_log_slog {G : GoString → IProp GF} (h : KitG G) (S : List GoString
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.log.slog (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.log.slog ∉ ownedPkgs) (hS _ hm))).trans
     h.e_log_slog) ⟨wfO_context h S hS, wfO_errors h S hS, wfO_fmt h S hS, wfO_strconv h S hS, wfO_strings h S hS, True.intro⟩
+
+theorem wfO_math_rand {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.rand (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.rand ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_math_rand) ⟨wfO_sync h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.cmp (gOff S G) :=

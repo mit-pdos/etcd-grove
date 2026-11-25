@@ -8,6 +8,7 @@ porcupine axiom replaced by remote's `Check`, as paxos's kit `Orch.wp_proof`).
 -/
 module
 
+public import Dsverify.Proof.math.rand.IntnPos
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ConfDefs
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.KitProofDefs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
@@ -87,13 +88,17 @@ theorem Orch.wp_proof
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (wp_Codec γ.gn) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 8) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (kvR γ.gn) kvS γp m addrs clientAddrs cd _ (W64 8) d pendN_vsr lintestN_vsr
+  wp_apply wp_Check (kvR γ.gn) kvS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_vsr lintestN_vsr
     (kvS_pendDec γ.gn) (kvR_encOut_inj γ.gn) (fun st => kvR_timeless γ.gn st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 24 (by decide) $$ [Hlib Hbud]
+    (by rw [hlen']; decide) (by word) (by rw [hlen']; word) 24 (by simp only [readTries]; word)
+    $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)

@@ -9,6 +9,7 @@ public import Perennial.Proof.io.Base
 public import Dsverify.Proof.log.slog.Base
 public import Net.Proof.net.Base
 public import Perennial.Proof.time.Base
+public import Perennial.Proof.math.rand.Base
 public import Proof.github_com.anishathalye.porcupine.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
