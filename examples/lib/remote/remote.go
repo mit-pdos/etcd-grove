@@ -13,7 +13,7 @@
 // never repeats the operation.
 //
 // The wire: one TCP connection per attempt, carrying one request and at most one reply, each a
-// frame: an 8-byte little-endian length, then the body (kvnet's format). The request's body is
+// frame: an 8-byte little-endian length, then the body (kvraft's format). The request's body is
 // the input's encoding, the reply's the output's (Codec).
 package remote
 

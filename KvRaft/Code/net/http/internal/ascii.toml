@@ -1,0 +1,7 @@
+# The copy for the part `KvRaft/` of `Net/Code/net/http/internal/ascii.toml` (etc/copy-part.py; rerun it, do not edit).
+# Project models-net (etc/goose.py): Go 1.27.3's `net/http/internal/ascii`, names only (net/http's
+# `transferReader.parseTransferEncoding`, which `readTransfer` runs, calls `EqualFold` on a
+# Transfer-Encoding header; the proofs reach it only on heads without that header).
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true

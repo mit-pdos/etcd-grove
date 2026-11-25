@@ -31,7 +31,7 @@ consumes an export, phase 3).
 - **D25** (Go's write lock): a waiting `Write` step may only stutter (the user: "stuttering is ok for
   Write because it's sound to do so"). **F1** (Go panics past 2^20 waiters on one socket): a known
   limitation, not modeled.
-- **kvnet's net changes** (2026-11-21, the user's task text in `notes/net-tcp.md`, v3.4): no plan, no
+- **kvraft's net changes** (2026-11-21, the user's task text in `notes/net-tcp.md`, v3.4): no plan, no
   hosts; `addrOk` addresses; a listening token; specs; the net+fs bundle.
 
 ## Done (on `origin/lean`)
@@ -41,7 +41,7 @@ consumes an export, phase 3).
 | plan, reference copies of dsverify's harness at `348a866` | `notes/dsverify-net-port-plan.md`, `old/dsverify/` | not built |
 | the rename tcp → net | `GooseLang/Ext/Net/`, part `Net/` (lean_lib `Net`), goose project `net`, `lake exe net-replay` | |
 | net semantics v3.3 | `Impl.lean` D23 `"tcp4"`, D24 socket options, D25 write lock | review `notes/axiom-review/tcp-semantics.md` v3.3 |
-| net semantics v3.4 (for kvnet) | `Impl.lean`: no plan/hosts, `addrOk`/`listenOk`/`lisAccepts`, `NetLocal.init`, `NetGlobal.init`, `crash_init`; `netLisTok` (atomic update at `Listen`, lives in an invariant, survives crashes); `GooseLang/Ext/NetFs/Adequacy.lean` (`kvnetExts = [netExt, fsExt]`, `kvnet_dist_crash_adequacy`) | review v3.4; `notes/net-tcp.md` |
+| net semantics v3.4 (for kvraft) | `Impl.lean`: no plan/hosts, `addrOk`/`listenOk`/`lisAccepts`, `NetLocal.init`, `NetGlobal.init`, `crash_init`; `netLisTok` (atomic update at `Listen`, lives in an invariant, survives crashes); `GooseLang/Ext/NetFs/Adequacy.lean` (`kvraftExts = [netExt, fsExt]`, `kvraft_dist_crash_adequacy`) | review v3.4; `notes/net-tcp.md` |
 | the kits' net library | `GooseLang/Ext/Net/Proto.lean` (+ `Stream.lean`) | the coverage table lab-name → our spec + law is in the plan, phase 4 |
 | the kits' statement | `Net/Statement/{DistDeploy,DistBridge}.lean`; echo's instance `…/examples/net/echo/RobustLinked.lean` (`echo_dist_robust`) | `DistDeploy` since v3.4: distinct valid addresses, no connections, no listeners |
 | codecs | `models/protobuf/` (`pbgen_core.py`, `pbdesc`, `pbgenrand`), `models/pbcodec`, `models/json/jsongen.py` (old form), `models/jsoncodec`; Go module `models.lab`; Lean `Net/*/models_lab/` | `models/README.md`; review `notes/axiom-review/pbgen.md` |
@@ -111,15 +111,15 @@ lands all three), push `lean`, delete the merged branches (`models-rpc-http`, `m
 
 ## Perennial changes needed (`notes/perennial-changes.md`)
 
-- **`init`/`globalInit` on `ExtSemantics`** (the user's item 2 for kvnet; `Robust` will require it):
-  landed in Perennial by the kvnet session as `ExtSemantics.initLocal`/`initGlobal` with `_init`
+- **`init`/`globalInit` on `ExtSemantics`** (the user's item 2 for kvraft; `Robust` will require it):
+  landed in Perennial by the kvraft session as `ExtSemantics.initLocal`/`initGlobal` with `_init`
   adequacy wrappers (`c0ec40070`), and `goose_dist_mixed_crash_adequacy` (some machines crash, others
-  never: `19fd486f6`), per STATUS's kvnet entry of 2026-11-21; **etcd-grove's pin is not bumped yet**.
+  never: `19fd486f6`), per STATUS's kvraft entry of 2026-11-21; **etcd-grove's pin is not bumped yet**.
   At the bump: plug net's `NetLocal.init`/`NetGlobal.init` (standalone in `Impl.lean`, with
   `crash_init`) into the net extension's `ExtSemantics` instance, give fs its own, and revisit
   `DistBridge` (the mixed adequacy also lets a kit's servers crash while its client does not).
 - **A stronger listening token** (held while the listener is open, returned by a crash) needs per-node
-  ghost state that can refer to global ghost state. The invariant-based token suffices for kvnet.
+  ghost state that can refer to global ghost state. The invariant-based token suffices for kvraft.
 - `wp_slice_copy`'s count as `sint.Z` (blocks the bufio-over-connection law, hence rabia, epaxos, gryff).
 - goose taking `-overlay` (today the std models need a GOROOT farm, `models/goroot.py`), goose's
   module name for vendored packages, `type Delim rune`.

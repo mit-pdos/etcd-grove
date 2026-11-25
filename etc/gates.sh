@@ -100,7 +100,7 @@ if python3 etc/gen-raft-tla.py --check > "$tmp/tla.log" 2>&1; then
 else
   echo "gen-raft-tla: FAILED"; tail -10 "$tmp/tla.log"; fail=1
 fi
-# (the parts RaftNoAx/ and KvNet/: one summary line each)
+# (the parts RaftNoAx/ and KvRaft/: one summary line each)
 if python3 etc/copy-part.py --check > "$tmp/cp.log" 2>&1; then
   grep '^copy-part: [A-Za-z]*: ' "$tmp/cp.log"
 else
