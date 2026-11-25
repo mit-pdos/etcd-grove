@@ -80,7 +80,9 @@ theorem osSpineDur_cons (j : Ino) (c : GoString) (cs : List GoString) (j' : Ino)
 
 instance osNames_discard_persistent (j : Ino) (N : NameSet) (h : NamesH) :
     Persistent (osNames (GF := GF) j N DFrac.discard h) := by
-  unfold osNames; split <;> infer_instance
+  unfold osNames; split
+  · infer_instance
+  · unfold gElem; letI := (gooseOsGS (GF := GF)).osAllG; infer_instance
 
 instance osSpineDur_persistent (j : Ino) (cs : List GoString) (j' : Ino) :
     Persistent (osSpineDur (GF := GF) j cs j') := by
@@ -105,7 +107,7 @@ end defs
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
@@ -115,11 +117,11 @@ theorem osSpineDur_agree (L : GooseLocalGS GF) (cs : List GoString) (j J j' : In
     ⊢ osSpineDur (hG := ⟨G, L⟩) j cs J -∗ osSpine (L := L) j cs dq j' -∗ ⌜j' = J⌝ := by
   induction cs generalizing j with
   | nil =>
-    rw [osSpineDur_nil, osSpine_nil]
+    rw [osSpineDur_nil (hG := ⟨G, L⟩), osSpine_nil]
     iintro %h1 %h2
     ipureintro; exact h2.symm.trans h1
   | cons c cs ih =>
-    rw [osSpineDur_cons, osSpine_cons]
+    rw [osSpineDur_cons (hG := ⟨G, L⟩), osSpine_cons]
     iintro ⟨%h1, %J1, Hn1, %hJ1, -, Hs1⟩ ⟨%h2, %J2, Hn2, %hJ2, Hs2⟩
     icases osNames_agree (L := L) _ _ _ _ _ _ $$ Hn1 Hn2 with %he
     subst he
@@ -149,12 +151,12 @@ theorem osSpineDur_crash (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
   induction cs generalizing j with
   | nil =>
-    rw [osSpineDur_nil]
+    rw [osSpineDur_nil (hG := ⟨G, L⟩)]
     iintro #Hsi Hr %h
     subst h
     imodintro; iframe Hr; ipureintro; rfl
   | cons c cs ih =>
-    rw [osSpineDur_cons]
+    rw [osSpineDur_cons (hG := ⟨G, L⟩)]
     iintro #Hsi Hr ⟨%h, %J1, #Hn, %hJ1, #Hc, #Hs⟩
     imod nameCrash_crash Q L L' D tt V' R j c DFrac.discard h (· = some (.dir J1)) E hE $$
       Hsi Hr Hn Hc with ⟨%he, Hr, -⟩
@@ -245,7 +247,7 @@ theorem osPathDur_root (L : GooseLocalGS GF) (R : Roots) (r : GoString) (j0 : In
   imodintro
   unfold osPathDur
   iexists r, j0, []
-  rw [osSpineDur_nil]
+  rw [osSpineDur_nil (hG := ⟨G, L⟩)]
   isplitl [] <;> ipureintro
   · exact ⟨hR, hr, by simp, by simp [joinPath]⟩
   · rfl
@@ -258,17 +260,17 @@ theorem osSpineDur_snoc (L : GooseLocalGS GF) (cs : List GoString) (j j' : Ino) 
       osSpineDur (hG := ⟨G, L⟩) j (cs ++ [b]) J := by
   induction cs generalizing j with
   | nil =>
-    rw [osSpineDur_nil, List.nil_append, osSpineDur_cons]
+    rw [osSpineDur_nil (hG := ⟨G, L⟩), List.nil_append, osSpineDur_cons (hG := ⟨G, L⟩)]
     iintro %hj Hn Hc
     subst hj
     iexists h, J
-    rw [osSpineDur_nil]
+    rw [osSpineDur_nil (hG := ⟨G, L⟩)]
     iframe Hn Hc
     isplit <;> ipureintro
     · exact hJ
     · rfl
   | cons c cs ih =>
-    rw [osSpineDur_cons, List.cons_append, osSpineDur_cons]
+    rw [osSpineDur_cons (hG := ⟨G, L⟩), List.cons_append, osSpineDur_cons (hG := ⟨G, L⟩)]
     iintro ⟨%h1, %J1, Hn1, %hJ1, Hc1, Hs⟩ Hn Hc
     iexists h1, J1
     iframe Hn1 Hc1

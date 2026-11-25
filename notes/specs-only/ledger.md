@@ -6998,3 +6998,37 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   vocabulary; nothing to change there.
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
+## 2026-11-25: T6's `snapDirKept` is unprovable as stated (T7, D6)
+
+- **Spec.** `snapCrash.snapDirKept`/`snapDirKeptF` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapDirCrash.lean`), a
+  premise of `snapDir_crash.law`, owed by T7.
+- **Defect.** It is a persistent plain wand `□ ∀ R0 dq j, osSharedInv R0 -∗ osPathS R0 sd dq j -∗ ⌜lookupH R V' sd =
+  some (.dir j)⌝` over the roots `R0` of any shared invariant. Without an update nothing relates `R0` to the law's `R`
+  (the roots live in the shared invariant; two of them agree only when opened), so for `R0 ≠ R` the spine is
+  unconstrained and the conclusion cannot be derived.
+- **Evidence.** T7 (`dist/crash/MemberCrash.lean`): with a durable spine (`osPathDur R sd J`, made from `TouchDirAll`'s
+  post) the fixed-root form `snapDirKeptR R V' sd := □ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`
+  is proved (`snapDirKeptR_of`), and `crashRest_roots` proves `R0 = R` for two shared invariants of the crashed
+  generation under an update, with `crashRest`.
+- **Proposed change.** `snapDirKeptF R V' sd := snapDirKeptR`'s body (no `R0`, no `osSharedInv`); `old_dir` (and its two
+  siblings) take `⌜R0 = R⌝`, which `snapDir_crash_law_holds` gets from `crashRest_roots` before each use (it holds the
+  law's `osSharedInv R` and `crashRest`). A weaker premise: the law gets stronger.
+- **Decision.** Pending (coordinator-E; reported by T7, 2026-11-25). Not edited.
+## 2026-11-25: `srvCrashImageAt` misses three crash images and drops a crash token (T7, D6)
+
+- **Spec.** `srvCrashImageAt` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean`), the vocabulary of
+  `NewServer.specC` and `bootstrapCrashContract`, and of `memberGen`'s restart disjunct.
+- **Defect.** (1) Its snapshot directory row is the handle `snapDirInvH` only; the next generation's crash law needs
+  `snapDirKeep` (handle and token at the same `γk`), which the image cannot name, so a restarted generation cannot
+  crash again. (2) `σ.b ≤ i` is false in the received-snapshot window (Q3): the WAL's `SaveSnap` at `k` is synced
+  before the apply thread renames `<k>.snap.db` to `db`; a crash in between leaves `σ.b = k > i`, which Go handles
+  (`recoverSnapshot` opens the `.snap.db`). (3) `γ.cl.bootLen ≤ i` is false after the first `Save` and before the
+  backend's first commit (`i = 0`; C-I1 checkpoint item 7).
+- **Evidence.** Code reading at the pin `e94f33b50` (`raftNode.start`'s `SaveSnap` before the apply thread's
+  `applySnapshot`; `bootstrap`'s `recoverSnapshot`; the backend's batch commit on its timer); T7's plan
+  (`notes/etcd-dist-d6.md`, "T7", B2, B3, D-T7-2). No Go test written.
+- **Proposed change.** (1) The row holds `snapDirKeep`; `NewServer.specC`'s post returns the token (as raft's crash
+  token). (2) A disjunct of the backend row: the `.snap.db` of `σ.b` saved and durable in the snapshot directory, its
+  data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
+  image. Each is T4's to restate (with `bootstrapCrashContract`).
+- **Decision.** Pending (coordinator-E / T4). Not edited.
