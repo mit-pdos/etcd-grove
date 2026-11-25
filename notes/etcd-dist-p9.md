@@ -289,3 +289,23 @@ waits on the lead's answer (which commit).
    Note `Call_dist.spec` (lead's) needs `[HasExt idIssueExt]`; the kv client deployment must provide it.
 3. Steps 5-6 (the start, the theorem).
 Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS`.
+
+## State (2026-11-25, Node session, branch `etcd-safe-p9-node` off `3d773113e6`): the Node proved over `Call_dist`
+
+- **Spec** (`Spec/.../dist/kvremote/Node.lean`): `kvNodePre svc c addr eps := ∃ Γ, ⌜Γ.auth = false ∧ threadBound GF
+  ≤ 2^30 ∧ plainEndpoints eps ∧ errors.AsTarget EtcdError.ty ∧ Nonempty (client.WEnv GF)⌝ ∗ levelTok 0 ∗ membersAtV
+  svc eps Γ ∗ remoteAddr (kvR Γ.kv) addr`; `Node.spec svc` is **literally N7-kv's `Node.specWith (kvNodePre svc)`**
+  (same binders `c addr eps epsL`, pre `isPkgInit kvremote ∗ eps ↦* epsL ∗ NP c addr epsL`, post `True`), as
+  `Orch.spec` is of `Orch.specWith`. The start supplies `membersAtV` (gap (3)), `remoteAddr` at the cluster's
+  `Γ.kv`, `levelTok 0`, and the pure facts (`Nonempty WEnv`: `putget`'s `wenv_nonempty`).
+- **Proof** (`Proof/.../dist/kvremote/Node.lean`, `Node.wp_proof svc`, lean-check clean incl. kernel): hypotheses
+  `zap.NewNop.spec`, `etcdstart.NewClients.spec`, `Codec.spec`, `Call_dist.spec svc`, `remote.ServeClient.spec
+  (I := VIn) (O := VOut)`; no axiom, `sorry` or premise. `tok sys := ⌜sys = mkOk *Client cl⌝ ∗ levelTok 0`; the
+  op: `wp_auto_lc 1` (the read's credit), a fresh `token γt`, `slotUpd_callUpd`, `wp_apply_core` of `Call_dist`
+  (the update `if write then nodeQ else nodeRQ γt`), then `nodeQ_out` / `nodeRQ_out` + `lc_fupd_elim_later`.
+- **Not linked**: `kvremote/Link.lean` is left to the `Call_dist` session (it edits it); the line, once
+  `wp_Call_dist` exists: `Node.wp_proof svc zap.NewNop.wp_proof etcdstart.wp_NewClients wp_Codec wp_Call_dist
+  remote.wp_ServeClient` (`etcdstart.wp_NewClients` needs `[DialWithBalancerBody]`; remote's in `linkedNet`).
+- **Builds**: fk-lean1 had 22 GB free (a seed needs 65), so checks ran in fk-lean2's `wt/etcd-safe-p9` with the two
+  new files copied in (`/shared/tmp/p9node-chk.sh`), then removed: `lake build` of both modules there at `6602c665b8`'s
+  text: built (4918 jobs, exit 0). `etc/tier-check.py --check`: ok.
