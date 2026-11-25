@@ -7289,3 +7289,83 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13); approved
   (coordinator, 2026-11-25, P6b session 14 brief).
 
+## 2026-11-25: T6's `snapDirKept` is unprovable as stated (T7, D6)
+
+- **Spec.** `snapCrash.snapDirKept`/`snapDirKeptF` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapDirCrash.lean`), a
+  premise of `snapDir_crash.law`, owed by T7.
+- **Defect.** It is a persistent plain wand `□ ∀ R0 dq j, osSharedInv R0 -∗ osPathS R0 sd dq j -∗ ⌜lookupH R V' sd =
+  some (.dir j)⌝` over the roots `R0` of any shared invariant. Without an update nothing relates `R0` to the law's `R`
+  (the roots live in the shared invariant; two of them agree only when opened), so for `R0 ≠ R` the spine is
+  unconstrained and the conclusion cannot be derived.
+- **Evidence.** T7 (`dist/crash/MemberCrash.lean`): with a durable spine (`osPathDur R sd J`, made from `TouchDirAll`'s
+  post) the fixed-root form `snapDirKeptR R V' sd := □ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`
+  is proved (`snapDirKeptR_of`), and `crashRest_roots` proves `R0 = R` for two shared invariants of the crashed
+  generation under an update, with `crashRest`.
+- **Proposed change.** `snapDirKeptF R V' sd := snapDirKeptR`'s body (no `R0`, no `osSharedInv`); `old_dir` (and its two
+  siblings) take `⌜R0 = R⌝`, which `snapDir_crash_law_holds` gets from `crashRest_roots` before each use (it holds the
+  law's `osSharedInv R` and `crashRest`). A weaker premise: the law gets stronger.
+- **Decision.** Pending (coordinator-E; reported by T7, 2026-11-25). Not edited.
+## 2026-11-25: `srvCrashImageAt` misses three crash images and drops a crash token (T7, D6)
+
+- **Spec.** `srvCrashImageAt` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean`), the vocabulary of
+  `NewServer.specC` and `bootstrapCrashContract`, and of `memberGen`'s restart disjunct.
+- **Defect.** (1) Its snapshot directory row is the handle `snapDirInvH` only; the next generation's crash law needs
+  `snapDirKeep` (handle and token at the same `γk`), which the image cannot name, so a restarted generation cannot
+  crash again. (2) `σ.b ≤ i` is false in the received-snapshot window (Q3): the WAL's `SaveSnap` at `k` is synced
+  before the apply thread renames `<k>.snap.db` to `db`; a crash in between leaves `σ.b = k > i`, which Go handles
+  (`recoverSnapshot` opens the `.snap.db`). (3) `γ.cl.bootLen ≤ i` is false after the first `Save` and before the
+  backend's first commit (`i = 0`; C-I1 checkpoint item 7).
+- **Evidence.** Code reading at the pin `e94f33b50` (`raftNode.start`'s `SaveSnap` before the apply thread's
+  `applySnapshot`; `bootstrap`'s `recoverSnapshot`; the backend's batch commit on its timer); T7's plan
+  (`notes/etcd-dist-d6.md`, "T7", B2, B3, D-T7-2). No Go test written.
+- **Proposed change.** (1) The row holds `snapDirKeep`; `NewServer.specC`'s post returns the token (as raft's crash
+  token). (2) A disjunct of the backend row: the `.snap.db` of `σ.b` saved and durable in the snapshot directory, its
+  data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
+  image. Each is T4's to restate (with `bootstrapCrashContract`).
+- **Decision.** Pending (coordinator-E / T4). Not edited.
+
+## 2026-11-25: `memberGen`'s restart case asks for the old incarnation's `idPfxInv` at the new generation (T7, D6)
+
+- **Spec.** `etcd_dist.memberRestart` (`Proof/.../examples/etcd/dist/crash/MemberGen.lean`): `memberRestartFacts γ' ρo id`
+  at the new generation, `ρo` the names of the incarnation that wrote the files (`etcdstart/Restart.lean`).
+- **Defect.** Every row of `memberRestartFacts` is ghost-only and carries over to a new generation (T7's
+  `memberRestartFacts_gen`), but `idPfxInv ρo.ids.gen ρo.ids.pfx` (`idutil/Defs.lean`) is heap-level: its invariant
+  `idPfxBody γip γgp` holds `structFieldRef Generator "prefix" g ↦□ k.1` on the old machine's heap and the authorities
+  `ghostMapAuth γip 1`/`γgp 1`, and the names `(γip, γgp)` are fixed by `ρo.ids.gen`'s persistent element. After a
+  crash no generation has those points-to facts, and the authorities stay in the old invariant (not cancellable), so
+  the new generation's `idPfxInv` at `ρo`'s names cannot be made: `memberRestart` is unprovable after any crash.
+- **Evidence.** T7's `memberRestartFacts_gen` (`dist/crash/MemberCrash.lean`): the generic `.rfl` fails exactly at
+  `idPfxInv` (diagnosed row by row, 2026-11-25); the lemma takes the new generation's `idPfxInv` as an input.
+- **Proposed change.** (a) `memberRestartFacts` drops `idPfxInv`, and `NewServer.specC` takes a fresh prefix
+  invariant from the new incarnation's names (`idIncarnation_alloc`, with the issued ids' facts ghost-only, so they
+  persist); or (b) `idPfxInv`'s invariant made crash-aware (contents or `crashed ∗` a token, as `walInv`), with a
+  ghost-only part that survives and a heap part re-made per generation. D7's / T8's to decide.
+- **Decision.** Pending (coordinator-E). Not edited; T7 takes it as the named hypothesis B6.
+
+2026-11-25: T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation (T7, D6)
+
+- **Spec.** `snapCrash.snapDir_crash.law` (`etcdserver/SnapDirCrash.lean`): `snapDirKeep (hG := atC L) sd γd img Rm`
+  in, `snapDirKeep (hG := atC L') sd γd img Rm'` out, with **one** `img : w64 → Data → IProp GF`; and
+  `srvCrashImageAt`'s snapshot row (`InvCrashImage.lean`), `snapDirInvH … (srvImageM γ.authOn γ) …` at the new generation.
+- **Defect.** The member keeps `img := srvImageM k.γ.authOn k.γ` elaborated at the old generation's `HeapGS`; the crash
+  image at `L'` wants `srvImageM` at `L'`'s. They are not definitionally equal: `srvImage` → `dbImage` →
+  `mvcc.api.mvccImage`, which is `@[no_expose]` (`Spec/.../mvcc/EtcdBackend.lean:94`) and takes the `HeapGS`; no
+  generation law exists for it. So T7's last step (the snapshot row of `srvCrashImageAt`) cannot be closed.
+- **Evidence.** T7 session 6 (`dist/crash/MemberCrash.lean`, the commented WIP proof of `memberGen_crash_law_holds`):
+  every step elaborates but this one; `show snapDirInvH (L') … (srvImageM (L0) …) … ⊢ snapDirInvH (L') … (srvImageM (L') …) …
+  from .rfl` fails, and `memberDurOut_gen`-style `.rfl` works for every other row (raft's state, the KV rows, the files).
+- **Proposed change.** (a) A generation law in mvcc's API, `mvccImage_gen : mvccImage (hG := ⟨G, L⟩) D M c u ⊣⊢
+  mvccImage (hG := ⟨G, L'⟩) D M c u` (proved inside the package if its body is ghost-only), then `srvImageM_gen`; and
+  T6's law takes `img img'` with `□ (∀ i D, img i D -∗ img' i D)` as it already does for `Rm → Rm'` (the body's image
+  facts are persistent); or (b) `snapDirKeep`'s `img` stated over `GooseGlobalGS` only. (a) is the smaller change.
+- **Decision.** (a), the coordinator's (2026-11-25). Checked first: `⧖ n` (`preceipt`) reads only `AllG` and
+  `ReceiptGS`, both fields of `GooseGlobalGS` (Perennial `GooseLang/Receipts.lean`, `Lifting.lean`: the receipts
+  are global, "the step bound counts the steps of all generations"), and the rest of `mvccImage` is pure, so the
+  law holds by `.rfl` inside the sealed module. Done (T7 session 7): `mvcc.api.mvccImage_gen` (`EtcdBackend.lean`,
+  `⊣⊢`, both generations at the program's Go context `lctx`: `go.Semantics` and mvcc's `Assumptions` take a
+  `GoLocalContext`, so the law fixes it as `{L with goose_go_local_context := lctx}`, T6's `atC`); `srvImageM_gen`
+  (`etcdserver/ImageOn.lean`, `⊢`, through `srvImage`/`dbImage` and `srvImageOn`/`dbImageOn`); T6's
+  `snapDir_crash.law` takes `img img'` and `□ (∀ j Dt, img j Dt -∗ img' j Dt)` after the `Rm → Rm'` wand, its
+  out `snapDirKeep … img' Rm'` (the proof weakens the kept files' image facts with `bigSepM_impl` before
+  allocating the new invariant). `mvccImage` stays `@[no_expose]`; no `etc/api/*.txt` change. The law's only
+  importer is `dist/crash/MemberCrash.lean` (`etc/importers.py --uses snapDir_crash`).

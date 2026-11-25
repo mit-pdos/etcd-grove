@@ -424,6 +424,15 @@ theorem OutTermOk.mono {t t' tc : w64} {m : MessageM}
 
 -- (2026-10-26, raft's signature, stage 1) `AppFrom` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
+/-- (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) **The attachment's term
+floor** (`StorNames.t0`, the stored term `newRaft` loaded): the node's term is at least it, a leader's
+or candidate's past it (a candidate's term is one past a term at least the floor; a leader was a
+candidate at its term), and so is every queued `MsgSnap`'s (only a leader sends one, at its term). -/
+def LifeOk (s : NState) (l : List QMsg) : Prop :=
+  uint.Z s.gh.sn.t0 ≤ uint.Z s.term ∧
+  ((s.role = .leader ∨ s.role = .candidate) → uint.Z s.gh.sn.t0 < uint.Z s.term) ∧
+  (∀ m ∈ l, m.st.msg.Type' = MsgSnap → uint.Z s.gh.sn.t0 < uint.Z m.st.msg.Term')
+
 /-- **The queued messages' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the queued messages
 `l`; raft-final, 2026-10-29, U7: the design's §2.2, in every cluster): every queued message has the
 shape raft sends (`SentMsgShape`, what a receiver's `NetMsgOk` and a transport need of it), a `MsgApp`
@@ -446,7 +455,9 @@ def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   -- every queued message of a type the model describes (no `MsgTimeoutNow`, no forwarded
   -- `MsgTransferLeader`: `raft.send.spec`'s traced premise), so that none drops out of the abstract
   -- outbox (`msgAbs`'s `none` arm), which a `Ready`'s `TrSent` reads (`acceptReady`)
-  (s.gh.tr.isSome → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none)
+  (s.gh.tr.isSome → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧
+  -- (2026-11-24, the lifetime law) the attachment's term floor (`LifeOk`)
+  LifeOk s l
 
 /-- No queued message has responses (`SentMsgShape`'s last clause): what `isRaftMsg` and a
 transport need. -/
@@ -454,11 +465,24 @@ theorem XfOk.resps {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
     ∀ m ∈ l, m.st.resps = [] :=
   fun m hm => (H.1 m hm).2.2.2.2.2.2.2
 
-/-- The empty queues, at a term past `0` if a leader or candidate. -/
+/-- The empty queues, at a term past `0` if a leader or candidate, at least the floor, and past it
+if a leader or candidate. -/
 theorem XfOk.nil {id : w64} {s : NState}
-    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) : XfOk id s [] :=
+    (ht : (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0)
+    (h0 : uint.Z s.gh.sn.t0 ≤ uint.Z s.term)
+    (h1 : (s.role = .leader ∨ s.role = .candidate) → uint.Z s.gh.sn.t0 < uint.Z s.term) :
+    XfOk id s [] :=
   ⟨fun _ hm => absurd hm List.not_mem_nil, fun _ hm => absurd hm List.not_mem_nil,
-   fun _ hm => absurd hm List.not_mem_nil, ht, fun _ _ hm => absurd hm List.not_mem_nil⟩
+   fun _ hm => absurd hm List.not_mem_nil, ht, fun _ _ hm => absurd hm List.not_mem_nil,
+   h0, h1, fun _ hm => absurd hm List.not_mem_nil⟩
+
+/-- (2026-11-24) The attachment's term floor (`LifeOk`). -/
+theorem XfOk.life {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) : LifeOk s l :=
+  H.2.2.2.2.2
+
+/-- (2026-11-24) The queues drained (a `Ready`'s hand-out). -/
+theorem XfOk.drain {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) : XfOk id s [] :=
+  XfOk.nil H.2.2.2.1 H.life.1 H.life.2.1
 
 /-- (2026-11-12, implementation step 3) A leader or candidate is past term `0`. -/
 theorem XfOk.term_nz {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
@@ -466,22 +490,28 @@ theorem XfOk.term_nz {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
 
 /-- (2026-11-12, implementation step 3) At a traced node, every queued message of a described type. -/
 theorem XfOk.typed {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
-    s.gh.tr.isSome → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none := H.2.2.2.2
+    s.gh.tr.isSome → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none := H.2.2.2.2.1
 
 /-- The same records, role and term, at the same queues. -/
 theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l)
     (hx : s'.gh.xw = s.gh.xw) (hr : s'.role = s.role) (ht : s'.term = s.term)
-    (htr : s'.gh.tr = s.gh.tr := by first | rfl | simp_all) : XfOk id s' l := by
-  obtain ⟨H1, H2, H3, H4, H5⟩ := H
-  refine ⟨H1, H2, fun m hm h1 h2 => ?_, fun h => ?_, fun h => H5 (htr ▸ h)⟩
+    (htr : s'.gh.tr = s.gh.tr := by first | rfl | simp_all)
+    (ht0 : s'.gh.sn.t0 = s.gh.sn.t0 := by first | rfl | simp_all) : XfOk id s' l := by
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8⟩ := H
+  refine ⟨H1, H2, fun m hm h1 h2 => ?_, fun h => ?_, fun h => H5 (htr ▸ h), ?_, fun h => ?_,
+    fun m hm h => ?_⟩
   · rw [hx]; exact H3 m hm h1 h2
   · rw [ht]; rw [hr] at h; exact H4 h
+  · rw [ht, ht0]; exact H6
+  · rw [ht, ht0]; rw [hr] at h; exact H7 h
+  · rw [ht0]; exact H8 m hm h
 
 /-- The term raised. -/
 theorem XfOk.term_le {id : w64} {s : NState} {l : List QMsg} {v : w64} (H : XfOk id s l)
     (Hle : uint.Z s.term ≤ uint.Z v) : XfOk id { s with term := v } l := by
-  obtain ⟨H1, H2, H3, H4, H5⟩ := H
-  refine ⟨H1, H2, H3, fun h => ?_, H5⟩
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8⟩ := H
+  refine ⟨H1, H2, H3, fun h => ?_, H5, show uint.Z s.gh.sn.t0 ≤ uint.Z v by omega,
+    fun h => show uint.Z s.gh.sn.t0 < uint.Z v by have := H7 h; omega, H8⟩
   intro hv
   have h0 := H4 h
   apply h0
@@ -491,16 +521,19 @@ theorem XfOk.term_le {id : w64} {s : NState} {l : List QMsg} {v : w64} (H : XfOk
   rw [show uint.Z (W64 0) = 0 by rfl] at Hle ⊢
   omega
 
-/-- A role stored: a leader or candidate past term `0` (`raft.wp_store_stateC`). -/
+/-- A role stored: a leader or candidate past term `0` (`raft.wp_store_stateC`), and (2026-11-24)
+past the attachment's term floor. -/
 theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk id s l)
-    (Hr : (ro = .leader ∨ ro = .candidate) → s.term ≠ W64 0) : XfOk id { s with role := ro } l :=
-  ⟨H.1, H.2.1, H.2.2.1, Hr, H.2.2.2.2⟩
+    (Hr : (ro = .leader ∨ ro = .candidate) → s.term ≠ W64 0)
+    (Hr0 : (ro = .leader ∨ ro = .candidate) → uint.Z s.gh.sn.t0 < uint.Z s.term) :
+    XfOk id { s with role := ro } l :=
+  ⟨H.1, H.2.1, H.2.2.1, Hr, H.2.2.2.2.1, H.life.1, Hr0, H.life.2.2⟩
 
 /-- A record added (`ownRaftPhysC_xw_record`). -/
 theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
     XfOk id { s with gh := { s.gh with xw := insert p s.gh.xw } } l := by
-  obtain ⟨H1, H2, H3, H4, H5⟩ := H
-  refine ⟨H1, H2, fun m hm h1 h2 => ?_, H4, H5⟩
+  obtain ⟨H1, H2, H3, H4, H5, H6⟩ := H
+  refine ⟨H1, H2, fun m hm h1 h2 => ?_, H4, H5, H6⟩
   have h := H3 m hm h1 h2
   show ((<[p := ()]> s.gh.xw) !! (m.st.msg.To', m.st.msg.Term')).isSome = true
   by_cases hp : p = (m.st.msg.To', m.st.msg.Term')
@@ -513,9 +546,11 @@ theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk i
     (hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     (hty : s.gh.tr.isSome → mtypeOf q.st.msg.Type' ≠ none)
+    (hsnap : q.st.msg.Type' = MsgSnap → uint.Z s.gh.sn.t0 < uint.Z q.st.msg.Term')
     (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk id s l' := by
-  obtain ⟨H1, H2, H3, H4, H5⟩ := H
-  refine ⟨fun m hm => ?_, fun m hm => ?_, fun m hm => ?_, H4, fun h m hm => ?_⟩
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8⟩ := H
+  refine ⟨fun m hm => ?_, fun m hm => ?_, fun m hm => ?_, H4, fun h m hm => ?_, H6, H7,
+    fun m hm => ?_⟩
   · rcases hl m hm with h | h
     · exact H1 m h
     · subst h; exact hsh
@@ -528,6 +563,9 @@ theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk i
   · rcases hl m hm with h' | h'
     · exact H5 h m h'
     · subst h'; exact hty h
+  · rcases hl m hm with h | h
+    · exact H8 m h
+    · subst h; exact hsnap
 
 /-- (2026-10-17) The ceiling raised. -/
 theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
@@ -1856,6 +1894,19 @@ theorem ownRaftPhysC_term_nz (r : Loc) (id : w64) (s : NState) :
   · ipureintro; exact Hxf.term_nz
   resealC c s
 
+/-- (2026-11-24, the lifetime law) The attachment's term floor: the term at least it, past it at a
+leader or candidate (`LifeOk`). -/
+theorem ownRaftPhysC_t0 (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜uint.Z s.gh.sn.t0 ≤ uint.Z s.term ∧
+        ((s.role = .leader ∨ s.role = .candidate) → uint.Z s.gh.sn.t0 < uint.Z s.term)⌝ ∗
+      ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  isplitr
+  · ipureintro; exact ⟨Hxf.life.1, Hxf.life.2.1⟩
+  resealC c s
+
 /-- (raft-final, 2026-10-29, U7: the design's §2.2) **Recording a stamped transfer request** (a
 ghost step, `NGhost.xw`): the physical state does not read it, and `XfOk` only gains a record. With
 `ownStepGhost_xw_record` (its witness), what `raft.Step`'s transfer arm does before `stepFollower`
@@ -2327,6 +2378,9 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
     (Hpr : ro = .leader → ∀ v p, s.prvals !! v = some p → PrOkN s.gh.ns s.logst p := by intro h; cases h)
     -- (raft-final, 2026-10-29, U7) a leader or candidate past term `0` (`XfOk`'s last clause)
     (Hrt : (ro = .leader ∨ ro = .candidate) → s.term ≠ W64 0 := by
+      intro h; rcases h with h | h <;> cases h)
+    -- (2026-11-24, the lifetime law) and past the attachment's term floor (`LifeOk`)
+    (Hrt0 : (ro = .leader ∨ ro = .candidate) → uint.Z s.gh.sn.t0 < uint.Z s.term := by
       intro h; rcases h with h | h <;> cases h) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
@@ -2342,7 +2396,7 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
         ({ s with role := ro } : NState).prevote = true) := ⟨Hprevote.1, Hpc⟩
   iapply HΦ
   iapply ownRaftPhysCV_intro c _ _ _ { s with role := ro } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) Hvoter' Hpr Hnsl (Hxf.role Hrt) Hlq
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) Hvoter' Hpr Hnsl (Hxf.role Hrt Hrt0) Hlq
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
 
 theorem raft.wp_store_stepC (r : Loc) (id : w64) (s : NState) (f : GoFunc) :
@@ -2765,7 +2819,9 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
-             (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none)⌝ -∗
+             (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none) ∧
+             -- (2026-11-24, the lifetime law) a `MsgSnap` past the attachment's term floor (`LifeOk`)
+             (st'.msg.Type' = MsgSnap → uint.Z s.gh.sn.t0 < uint.Z st'.msg.Term')⌝ -∗
            -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic); (2026-11-12,
            -- trace-check step 4) no append response (`send` routes responses to `msgsAfterAppend`)
            ⌜st'.msg.To' ≠ id ∧ st'.msg.Type' ≠ MsgAppResp⌝ -∗
@@ -2796,7 +2852,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ q => qSrc (GF := GF) s.gh.sn q (· ∈ s.logst.ksn))).2
     unfold qSrc; iexact Hq
   have Hxf' : XfOk id s ((msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA) :=
-    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2 _ (fun m hm => by
+    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2.1 Hxq.2.2.2.2 _ (fun m hm => by
       simp only [List.mem_append, List.mem_singleton] at hm
       rcases hm with (hm | rfl) | hm
       · exact .inl (List.mem_append_left _ hm)
@@ -2848,7 +2904,9 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
              (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
-             (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none)⌝ -∗
+             (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none) ∧
+             -- (2026-11-24, the lifetime law) a `MsgSnap` past the attachment's term floor (`LifeOk`)
+             (st'.msg.Type' = MsgSnap → uint.Z s.gh.sn.t0 < uint.Z st'.msg.Term')⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.gh.sn st'.msg.Type' st'.snap (· ∈ s.logst.ksn) -∗
            -- (2026-11-09, Q8 stage 1 slice 5) the message recorded as just queued (`NGhost.lq`), for
@@ -2871,7 +2929,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ q => qSrc (GF := GF) s.gh.sn q (· ∈ s.logst.ksn))).2
     unfold qSrc; iexact Hq
   have Hxf' : XfOk id s (msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)])) :=
-    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2 _ (fun m hm => by
+    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2.1 Hxq.2.2.2.2 _ (fun m hm => by
       simp only [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm | rfl
       · exact .inl (List.mem_append_left _ hm)

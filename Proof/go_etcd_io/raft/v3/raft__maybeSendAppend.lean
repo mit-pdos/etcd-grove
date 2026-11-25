@@ -170,7 +170,9 @@ local macro "msa_fetch" : tactic => `(tactic| (
       by_cases Htr : s.gh.tr = none
       case neg =>
         imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
-      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [Hphys]
+      -- (2026-11-24, the lifetime law) a leader's term is past the attachment's floor
+      icases ownRaftPhysC_t0 c r id s $$ Hphys with ⟨%Ht0l, Hphys⟩
+      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (Ht0l.2 (.inl Hlead)) (by tr_none) $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
@@ -509,7 +511,9 @@ theorem raft.maybeSendAppend.wp_proof
     case neg =>
       imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [$Hphys $Hcompact]
+    -- (2026-11-24, the lifetime law) a leader's term is past the attachment's floor
+    icases ownRaftPhysC_t0 c r id s $$ Hphys with ⟨%Ht0l, Hphys⟩
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (Ht0l.2 (.inl Hlead)) (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
     · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG

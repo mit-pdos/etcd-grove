@@ -968,6 +968,7 @@ theorem raft.becomeLeader.traced (h : raft.becomeLeader.spec (GF := GF) (hG := h
     (Φ Φ1 Φ2 Φ' : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ Λ1 Λ2 Λ' : Option TraceEv → Prop)
     (R1 R2 R' : IProp GF)
     (hrole : s.role ≠ .follower) (hnl : s.role ≠ .leader) (hterm : s.term ≠ W64 0)
+    (ht0 : uint.Z s.gh.sn.t0 < uint.Z s.term)
     (hps1 : PhaseStepB id c (NodeEvOf (W64 3) id (becomeLeaderPre id s) c) Φ Φ1)
     (hΛ1 : ∀ e, NodeEvOf (W64 3) id (becomeLeaderPre id s) c e → Λ1 (some e))
     (hOk1 : s.gh.tr.isSome → ∀ e, NodeEvOf (W64 3) id (becomeLeaderPre id s) c e →
@@ -1011,7 +1012,7 @@ theorem raft.becomeLeader.traced (h : raft.becomeLeader.spec (GF := GF) (hG := h
       (R2 -∗ FxPresUT s.gh.tr γ id (SendEvOf (W64 11) id (becomeLeaderLog id s) c
         (selfAck id (becomeLeaderLog id s))) Φ2 Φ' R'))
     iprop(trCapB s.gh.tr γ r id c true Φ' Λ' ∗ R') 0
-    hrole hnl hterm $$ [Hphys Hcap Hfx1 Hfx2 Hfx3]
+    hrole hnl hterm ht0 $$ [Hphys Hcap Hfx1 Hfx2 Hfx3]
   · iframe Hpkg Hphys Hrc0
     isplitl [Hcap Hfx1 Hfx2 Hfx3]
     · iapply to_named

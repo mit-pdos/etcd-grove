@@ -327,7 +327,8 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
 `nodeStartedFresh`; the driver at its start; the durable state at `RaftState.init`; the view at the
 peers' membership: until then the spec's own conjuncts); at `restart σ cs S a m A₀`, `RestartNode`'s
 (the committed log `l` of the restored base, the driver at it with the restored hard state, the
-durable state `S` and the follower's role; the view at `(a, m)`). -/
+durable state `S` and the follower's role; the view at `(a, m)`; (2026-11-24, the lifetime law) the
+node's start term, the durable state's: `nodeStartTerm`, by which its `Ready`s' `MsgSnap`s are past it). -/
 def rnBootPost (γr : SrvRaft) (n : NodeH) (K : GName) (bv : bootstrappedRaft) (cv : Config)
     (ps : List w64) (ctxs : List (List w8)) : RNBoot → IProp GF
   | .fresh =>
@@ -339,7 +340,8 @@ def rnBootPost (γr : SrvRaft) (n : NodeH) (K : GName) (bv : bootstrappedRaft) (
     letI := srvStor (GF := GF) γr
     iprop(∃ l : List LogEntry, isCommittedLogLb γr.cl l ∗ ⌜l.length = σ.b⌝ ∗
       nodeDriver n γr.cl srvClusterN ⟨memStorIface bv.storage', l, σ.hs, none, K, S, StateFollower⟩ ∗
-      nodeConfig n γr.cl srvClusterN ⟨a, m⟩)
+      nodeConfig n γr.cl srvClusterN ⟨a, m⟩ ∗
+      nodeStartTerm n S.term)
 
 /-- (P5, 2026-11-25) **The WAL view the boot starts the loop at**: `walView0` fresh; at a restart the
 durable state `S`, the restored hard state and the backend's log up to the records' base (Q34 (a)). -/

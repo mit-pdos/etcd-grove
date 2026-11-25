@@ -2373,6 +2373,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
         obtain ⟨k, hk, hid⟩ := hp
         have he : k.sid.index' = i := (congrArg entryID.index' hid).trans hix
         rw [← he]; iapply Hseen $$ %k %hk
+    isplitr
     · imodintro; iintro %q %hq %sv %hs #Hsi
       have hm := outboxRelP_snapshot Houtbox (Hmslen.subset (List.mem_append_left _ hq)) hs.1 hs.2
       iunfold queuedRestoreTerms at Hqueued
@@ -2381,6 +2382,11 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       ihave %hmem := installSeen_mem rs.sn.installs _ (by exact (show uint.nat sv.Metadata'.Index' ≤ uint.nat s.logst.committed by word)) $$ Hview Hsi
       obtain ⟨k, hk, hi⟩ := List.mem_map.1 hmem
       iexists k; ipureintro; exact ⟨hk, by word⟩
+    -- (2026-11-24, the lifetime law) every `MsgSnap` past the attachment's term floor (`LifeOk`)
+    · ipureintro
+      intro q hq hsnap
+      have h := Hxf.life.2.2 q (Hmslen.subset (List.mem_append_left _ hq)) hsnap
+      rw [Hstor.2, Hgh_unst.1.2.2]; exact h
   ihave %Hag : ⌜L = none → ∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
       uint.nat s.logst.prev.index' + k < (rs.delivered ++ ce).length →
       (rs.delivered ++ ce)[uint.nat s.logst.prev.index' + k]? = some e⌝ $$ [Hghost]

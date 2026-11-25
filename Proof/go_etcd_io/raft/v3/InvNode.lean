@@ -765,6 +765,25 @@ theorem nodeArm_agree (n : NodeH) (γ : Cluster) (x x' : CrashNames) :
     ⊢ nodeArm (GF := GF) n γ x -∗ nodeArm n γ x' -∗ ⌜x = x'⌝ := by
   unfold nodeArm; exact ApiImpl.nodeArmU_agree n γ x x'
 
+/-- (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) **The node at `n` was started
+at term `T0`** (persistent, sealed): the stored term `RestartNode` read (`σ.hs.Term`, its durable
+state's term). Every `MsgSnap` a `Ready` of `n` hands out is at a term past it
+(`readySnapSources_startTerm`): it was sent by `n` itself, a leader of a term `n` won after the
+restart, not by an earlier run of the same id at a term it led before. One per node
+(`nodeStartTerm_agree`). -/
+@[no_expose] def nodeStartTerm (n : NodeH) (T0 : w64) : IProp GF :=
+  iprop(⌜n.names.sn.t0 = T0⌝)
+
+instance nodeStartTerm_persistent (n : NodeH) (T0 : w64) :
+    Persistent (nodeStartTerm (GF := GF) n T0) := by
+  unfold nodeStartTerm; infer_instance
+
+theorem nodeStartTerm_agree (n : NodeH) (T0 T0' : w64) :
+    ⊢ nodeStartTerm (GF := GF) n T0 -∗ nodeStartTerm n T0' -∗ ⌜T0 = T0'⌝ := by
+  unfold nodeStartTerm
+  iintro %H1 %H2
+  ipureintro; rw [← H1, ← H2]
+
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2;
 2026-11-01, durability stage I-4: keyed by the storage key `K`) -/
 

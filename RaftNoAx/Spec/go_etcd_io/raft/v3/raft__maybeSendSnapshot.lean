@@ -73,6 +73,9 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
   s.gh.ns = false →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
+  -- (2026-11-24, the lifetime law) and past the attachment's term floor (`StorNames.t0`; a leader's,
+  -- `ownRaftPhysC_t0`): what `send` records of a queued `MsgSnap` (`LifeOk`)
+  uint.Z s.gh.sn.t0 < uint.Z s.term →
   -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
   -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
   -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)

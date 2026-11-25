@@ -300,6 +300,7 @@ abbrev raft.becomeLeader.untracedTriple : Prop :=
   s.role ≠ .follower →
   s.role ≠ .leader →
   s.term ≠ W64 0 →
+  uint.Z s.gh.sn.t0 < uint.Z s.term →
   s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
@@ -310,11 +311,11 @@ abbrev raft.becomeLeader.untracedTriple : Prop :=
 /-- `raft.becomeLeader.spec`'s untraced instance: every gate the struct's nil logger. -/
 theorem raft.becomeLeader.untraced (h : raft.becomeLeader.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnl Hnz htr
+  intro c r id s Hrole Hnl Hnz Hlt0 htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   imod (preceipt_zero (GF := GF)) with #Hrc0
-  iapply h c r id s iprop(emp) iprop(emp) iprop(emp) iprop(emp) 0 Hrole Hnl Hnz $$ [Hphys]
+  iapply h c r id s iprop(emp) iprop(emp) iprop(emp) iprop(emp) 0 Hrole Hnl Hnz Hlt0 $$ [Hphys]
   · iframe Hpkg Hphys Hrc0
     isplitr
     · iempintro

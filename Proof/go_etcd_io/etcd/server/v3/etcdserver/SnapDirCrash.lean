@@ -20,7 +20,7 @@ without a file has its removal fact `Rm`.
   of each directory they make (`fileutil.go:49-85`, F-N2) and ext4 commits the whole journal (coordinator's
   decision (b) on #50, 2026-11-25: a premise, not a field of `snap.snapDirOwn`).
 * `snapDir_crash.law` / `snapDir_crash_law_holds`: from the old generation's `snapDirKeep` (with `crashed`
-  and a later credit), the removal facts' weakening `Rm → Rm'`, `snapDirKept`, the file system's restart
+  and a later credit), the removal facts' weakening `Rm → Rm'` and the image's `img → img'`, `snapDirKept`, the file system's restart
   resources (`crashRest`) and the new generation's `snap.snapDirOwn` and slots, the new generation's
   `snapDirKeep` at `Rm'`, with the files it kept taken from `crashRest`. Per index (`snapStep`): a durable
   file comes back whole under its name; a pending one comes back whole (and stays pending) or is gone (its
@@ -587,30 +587,33 @@ new `L'` of a crash (both at the statement's Go context, `atC`) whose crashed hi
 logged) under the roots `R`, at the program's file-extension instances (`c`, `c'`: the one `FsCtx`, seen
 from each generation): the old generation's invariant with its crash token (`snapDirKeep`), its `crashed`
 and a later credit; the removal facts' weakening `Rm → Rm'` (a plain persistent wand: the body keeps one
-for every index); T7's obligation that the crash kept the directory (`snapDirKept`: `sd` resolves to the
+for every index) and the image facts' `img → img'` (the body keeps them persistent; the member's
+crash law passes `srvImageM_gen`, the image at the old generation's ghost state to the new one's: the
+coordinator's option (a), 2026-11-25); T7's obligation that the crash kept the directory (`snapDirKept`: `sd` resolves to the
 same directory `J` in the crashed tree, `lookupH R V' sd = some (.dir J)`, which Go provides by
 `TouchDirAll`'s syncs of the parents of `member` and `snap`, F-N2); the old generation's view of the roots
 and the file system's restart resources (`crashRest`, whose taken files `D` are not named at `J`'s
 snapshot names); and the new generation's right on the directory (`snap.snapDirOwn`) and its fresh claim
 on every index's name (`snapSlot`, nothing logged). Gives the new generation's invariant with its crash
-token, at `Rm'`, and the restart resources with the kept files `D'` taken. -/
+token, at `img'` and `Rm'`, and the restart resources with the kept files `D'` taken. -/
 abbrev snapDir_crash.law : Prop :=
   ∀ (L L' : GooseLocalGS GF) (c : FsCtx (hG := ⟨G, atC L⟩) GF) (c' : FsCtx (hG := ⟨G, atC L'⟩) GF)
     (Q : OsState → OsState → Prop) (tt : Bool) (V' : Hist)
-    (D : List Ino) (R : Roots) (J : Ino) (sd : GoString) (γd : GName) (img : w64 → Data → IProp GF)
+    (D : List Ino) (R : Roots) (J : Ino) (sd : GoString) (γd : GName) (img img' : w64 → Data → IProp GF)
     (Rm Rm' : w64 → IProp GF),
     theFs (hG := ⟨G, atC L⟩) GF = some c → theFs (hG := ⟨G, atC L'⟩) GF = some c' →
     V'.2 = [] → lookupH R V' sd = some (.dir J) →
     (∀ x ∈ D, ∀ i, V'.now.entry J (snap.snapDBName i) ≠ some (.file x)) →
     ⊢ £ 1 -∗ snapDirKeep (hG := ⟨G, atC L⟩) sd γd img Rm -∗ crashed (hC := (atC L).goose_crashGS) -∗
-      □ (∀ j, Rm j -∗ Rm' j) -∗ snapDirKept (hG := ⟨G, atC L⟩) R V' sd -∗
+      □ (∀ j, Rm j -∗ Rm' j) -∗ □ (∀ j Dt, img j Dt -∗ img' j Dt) -∗
+      snapDirKept (hG := ⟨G, atC L⟩) R V' sd -∗
       (letI := FsCtx.S (hG := ⟨G, atC L⟩) c; letI := FsCtx.ok (hG := ⟨G, atC L⟩) c
        letI := FsCtx.has (hG := ⟨G, atC L⟩) c
        iprop(osSharedInv (L := atC L) R ∗
         crashRest Q (gooseOsGS (L := atC L)) (gooseOsGS (L := atC L')) D tt V')) -∗
       snap.snapDirOwn (hG := ⟨G, atC L'⟩) (snap.snapDBPath sd) -∗
       ([∗list] i ∈ snap.allW64, snapSlot (hG := ⟨G, atC L'⟩) sd J V' i) ={⊤}=∗
-      ∃ D' : List Ino, snapDirKeep (hG := ⟨G, atC L'⟩) sd γd img Rm' ∗
+      ∃ D' : List Ino, snapDirKeep (hG := ⟨G, atC L'⟩) sd γd img' Rm' ∗
         (letI := FsCtx.S (hG := ⟨G, atC L⟩) c; letI := FsCtx.ok (hG := ⟨G, atC L⟩) c
          letI := FsCtx.has (hG := ⟨G, atC L⟩) c
          crashRest Q (gooseOsGS (L := atC L)) (gooseOsGS (L := atC L')) (D' ++ D) tt V')
@@ -622,7 +625,7 @@ theorem snapSaved_gen (L L' : GooseLocalGS GF) (γd : GName) (i : w64) :
 
 theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
   classical
-  intro L L' c c' Q tt V' D R J sd γd img Rm Rm' hfs hfs' hV hJ hD
+  intro L L' c c' Q tt V' D R J sd γd img img' Rm Rm' hfs hfs' hV hJ hD
   obtain ⟨S, ok, has, fa, fsa, ne⟩ := c
   obtain ⟨S', ok', has', fa', fsa', ne'⟩ := c'
   have hS : S' = S := has'.sem_eq.symm.trans has.sem_eq
@@ -656,7 +659,7 @@ theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
     unfold snapDirKept; rw [onFs_some (hG := ⟨G, atC L⟩) hfs]
   rw [hkept]
   simp only [hslot]
-  iintro Hlc Hkeep #Hcrd #Hrm #Hk ⟨#Hsh, Hcr⟩ Hown Hslots
+  iintro Hlc Hkeep #Hcrd #Hrm #Himg #Hk ⟨#Hsh, Hcr⟩ Hown Hslots
   -- the crashed tree's names are unique (a file is named once)
   imod crashRest_treeWf' Q (atC L) (atC L') D tt V' R ⊤ CoPset.subseteq_top $$ Hsh Hcr with ⟨%hwf, Hcr⟩
   -- the old invariant: its contents out, closed with the crash token
@@ -703,9 +706,16 @@ theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
     (fun {i Dt} => by rw [hfileN])) $$ HM'
   ihave HF' := (BigSepM.bigSepM_mono_of_forall (Ψ := fun i (_ : Unit) =>
     fileFreeDur (hG := ⟨G, atC L'⟩) (snap.snapDBPath sd i)) (fun {i _} => by rw [hfreeN])) $$ HF'
+  -- the image facts weakened, `img → img'`
+  ihave HM' := BigSepM.bigSepM_impl (Ψ := fun i Dt =>
+    iprop(snapFileAt (hG := ⟨G, atC L'⟩) sd E i Dt ∗ □ img' i Dt)) $$ HM' []
+  · iintro !> %i %Dt %_ ⟨Hf, #Hi⟩
+    iframe Hf
+    iintro !>
+    iapply Himg $$ Hi
   -- the new invariant and its crash token
   imod token_alloc (GF := GF) with ⟨%γk', Htok'⟩
-  imod (inv_alloc snapDirN ⊤ (snapDirInvK (hG := ⟨G, atC L'⟩) sd γd γk' img Rm')) $$ [Hown Ha HM' HF']
+  imod (inv_alloc snapDirN ⊤ (snapDirInvK (hG := ⟨G, atC L'⟩) sd γd γk' img' Rm')) $$ [Hown Ha HM' HF']
     with #Hinv'
   · inext
     iunfold snapDirInvK

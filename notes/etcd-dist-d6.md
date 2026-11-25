@@ -13,7 +13,7 @@ Lean written in this phase (statements and definitions only; no proof, no axiom,
 |---|---|---|
 | `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean` | defs | `wal.crashImage`, `srvCrashImageAt`, `srvCrashImage`, `bootstrapCrashContract` |
 | `Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServerCrash.lean` | spec | `NewServer.specC` |
-| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/crash/MemberGen.lean` | defs | `MemberCl`, `memberFirst`, `memberRestart`, `memberGen`, `atCtx`, `memberPc`, `memberGen_crash.law`, `raftTorn`, `readyCrashTorn.law` |
+| `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/crash/MemberGen.lean` | defs | `MemberCl`, `memberFirst`, `memberRestart`, `memberGen`, `atCtx`, `memberPc`, `memberGen_crash.law` (`raftTorn`, `readyCrashTorn.law` retired by T7, 2026-11-25) |
 
 ## 0. Findings that shape D6
 
@@ -1204,6 +1204,550 @@ obligation (Go: `TouchDirAll`'s parent syncs). Gaps 2 and 3 and simplifications 
 `nonissues/etcd-snapdb-removed-before-dirsync.md`). `snapDir_crash_law_holds` proved
 (`etcdserver/SnapDirCrash.lean`); `bootFs.touchMember.law` untouched.
 
+**2026-11-24, the leader-completeness law: statement and proof route (nothing written in Lean yet).**
+
+*Use.* `rnReplayJob_of_history` (`ReplayJob.lean`) takes, at the `Ready` that hands the payload (durable
+state `S` after its `Save`, `rt` its hard state's term, `S.term = rt` when the hard state is non-empty):
+`□ ∀ sm, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < |a0|⌝ -∗ sentMsg γ.node.cl N γ.id sm -∗
+⌜DurAgrees S (a0.map toLE)⌝`, with `a0` committed before the restart (`srvRLogLb γ.srv a0`). The
+`raftNode.start` side holds `raftState γ.node.cl γ.id S` (exclusive) at that point and must make this
+persistent implication before giving `S` up.
+
+*Statement (raft API, `Spec/go_etcd_io/raft/v3/Api.lean`, proved in `InvNode.lean`).* Roughly:
+`raftState γ id S ⊢ raftState γ id S ∗ □ (∀ l, isCommittedLogLb γ l -∗ snapshotLeader γ id S.term -∗
+⌜DurAgrees S l⌝)`, with `l` committed **before** the witness is made (a committed log that grows later
+in a higher term can overwrite `S`'s uncommitted tail, so the law must take the commit witness at the
+`raftState`'s time, e.g. as a hypothesis of the persistent implication's construction:
+`raftState γ id S ∗ isCommittedLogLb γ l ⊢ raftState γ id S ∗ □ (snapshotLeader γ id S.term -∗
+⌜DurAgrees S l⌝)`). `sentMsg_localSnapshotLeader` turns the sent `MsgSnap` into `snapshotLeader γ id rt`.
+
+*Why it is true.* A node with `S.term = T` that leads `T` was a candidate at `T` (a follower at `T`
+cannot campaign in `T`): its log from its campaign on only grows during `T`, so `S`'s log extends the
+campaign log `F0` of `isCamp γ id T F0` (or is it). Leader Completeness (`Protocol/LeaderCompleteness.lean`:
+`lc_core`, for entries committed in terms `< T`; `cq_agree` for the same term) puts every entry committed
+before `T` in any full log with records that reaches `F0`'s last entry; with equal terms at an index,
+the logs agree there (log matching over records, `full_match`).
+
+*What the proof needs from the ghost state (to find or add, in `Protocol/GhostState.lean`):*
+(i) from `ownDurGhost γ id S` (`durPers`) and `isLeader γ id S.term`: `S`'s log reaches the last entry of
+`id`'s campaign log for `S.term` (the durable log at the campaign, and append-only while the term lasts:
+the durable ghost's history at the term); (ii) `logRecs γ base0` of `S`'s full log (records, from
+`durPers`); (iii) `isCommittedLogLb γ l` as commit-quorum facts `cq γ t n F` at terms `≤ T` (the
+`reCommit` authority's justification, `raftCommitInv`); (iv) the votes table (`votesTbl`) inside the
+invariant (`lc_core` takes it), so the law is a view shift opening the cluster invariant (`↑N ⊆ E`).
+
+*Scope.* A raft-proof task: (i) is the open part. If the durable ghost keeps no per-term history
+linking `S` to the campaign, it has to be added to `durPers` and kept by every `Ready`'s *enter*
+(`StepGhost`), which reaches raft's step proofs. Estimate: several hundred lines in the protocol
+layer, plus the API statement and its interface (`etc/gen-interface.py etc/api/raft.txt`), the RaftTla
+copies (`etc/gen-raft-tla.py`) and, if `RaftNoAx`'s closure reaches `InvNode`, `etc/copy-part.py`. Not
+started in this session: its context is spent on scoping (items 1-4 above).
+
+**2026-11-24, the leader-completeness law: item (i) answered, and the stated form is false (nothing
+written in Lean).**
+
+*(i): no.* `durPers γ id S E` relates `S`'s log to nothing of `id`'s campaign: `E.camps` enters only as
+a term bound (`∀ T, camps T isSome → T ≤ S.term`), the vote-time logs (`E.vlogs`) only to the
+acknowledgements' histories, `klOkD` gives the term's winner without its log, `commitIn`/`isCommitted`
+only bound `S`'s committed prefix. With `isLeader γ id S.term` nothing says `S`'s full log reaches the
+last entry of `F0` (`isCamp γ id S.term F0`). So a campaign link has to be added to `durPers` (below).
+
+*The stated form is false.* `raftState γ id S ∗ isCommittedLogLb γ l ⊢ raftState γ id S ∗ □
+(snapshotLeader γ id S.term -∗ ⌜DurAgrees S l⌝)`, witness at `raftState`'s time: a leader commits
+entries of its own term before it persists them (raft v3.7: its own `MsgAppResp` waits in
+`msgsAfterAppend` until its storage append, `raft.go:855-863`, so two followers' acks commit an entry in
+a 3-voter cluster), and `node.run` steps those acks while a `Ready` is pending. Run: `id` campaigns at
+`T`; the `Ready` with hard-state term `T` and log `F0` is entered (`raftState γ id S`, `S.term = T`,
+`S`'s log `F0`); `id` wins, appends `e` at `n = |F0|+1`, sends the `MsgApp`s with the next `Ready`; the
+followers ack; `id` commits `e` before that `Ready` is entered. Now `isCommittedLogLb γ l` with
+`l[n-1] = e`, `raftState γ id S` still, `snapshotLeader γ id T`, and `S`'s log ends at `n-1`:
+`DurAgrees S l` is false. Leader completeness covers only entries committed at terms **below** `T`
+(`lc_core`'s `t < T`; for `t = T`, `cq_agree` compares two leader logs, and `S`'s is not one that
+contains the commit).
+
+*What the server's use has.* `rnReplayJob_of_history`'s `a0` was committed **before the restart**, and
+`rt` is a term this node leads **after** it, so `a0`'s certificates are at terms the node cannot lead
+any more. A sound pair of laws (to decide; not started):
+
+- (L1, at the witness) `raftState γ id S0 ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗
+  cmtBefore γ id S0.term l`, `cmtBefore` sealed and persistent: `l` is a prefix of a commit quorum's
+  log `cq γ t n G` (or within the bootstrap log), and every campaign of `id` existing now is at a term
+  `≤ S0.term` (the camp fragments are minted only at *enter*, so `ghostMapAuth γc ½ E.camps` bounds
+  them).
+- (L2) `cmtBefore γ id T0 l ∗ raftState γ id S ∗ snapshotLeader γ id S.term ∗ ⌜T0 < S.term⌝ ⊢
+  |={E}=> raftState γ id S ∗ ⌜DurAgrees S l⌝` (raft-side: `DurAgrees` is the server's, so restated over
+  `plogTermAt S.base S.ents`).
+
+L2's proof: `t < T` is `lc_core` plus `full_match`, given (i'); `t = T` is excluded by L1's campaign
+bound (`T`'s leader is `id`, `isLeader_unique`, whose campaign at `T > T0` did not exist at the
+witness); **`t > T` needs a new protocol lemma**: a commit quorum at `t` existing before `id`'s
+campaign at `T < t` excludes `id` winning `T` (a voter of both acked `(t, n)` before voting at `T`;
+its event history is sorted by term, `EvsOk`/`voteEv`), which no existing lemma states (`tbl_voter` and
+`lc_core` take `t < T` only). The server must also supply `T0 < rt` (its restart's durable term below
+the term it leads after the restart): a third fact, or L1's campaign bound read with a
+`snapshotLeader` obtained later.
+
+(i') The campaign link: a `durPers` conjunct `∀ F0 k, E.camps !! S.term = some (F0, k) → F0 <+: fp ++
+S.ents` (or: `S`'s full log has `F0`'s last entry), kept by every *enter* (`cut_durPers`,
+`Protocol/Enter.lean`: the cut's log is the node's in-memory log, which for a candidate or leader of
+its term extends its campaign log, a volatile-side fact to find in `ownRaftGhost` or add), by
+`durPers_rebase`, the restart (`raft_restart`) and the allocation (`RaftState.init`).
+
+*Estimate.* (i') a few hundred lines in `Protocol/GhostState.lean`/`Enter.lean` (one `durPers`
+conjunct reaches every proof that rebuilds `durPers`), the `t > T` lemma a few hundred in
+`Protocol/LeaderCompleteness.lean`, L1/L2 with sealing in a defs module beside `InvNode` (as
+`DurableLogView.lean`), plus the interface, RaftTla copies and RaftNoAx copies. Needs a decision on
+the form (L1/L2, and how the server gets `T0 < rt`) before writing it.
+
+Checkpoint 2026-11-24: leader-completeness law stopped at the design (above); no Lean changed; last
+green build still `fec7d8cf82`.
+
+**2026-11-24, L1/L2 approved; stopped again before Lean, on `T0 < rt` (the approval's stop condition).**
+
+*`T0 < rt` cannot come from L1's campaign bound.* `snapshotLeader γ id rt` (`isLeader`) and
+`sentMsg … sm` are persistent, so they hold for a term `id` led in an *earlier lifetime*, and the
+server's `rnReplayJob` quantifies over every sent `MsgSnap` at `rt`, old ones included. With `rt = T0`
+L2 is false: `id` leads `rt`, commits `e` through the followers before saving it (the run above),
+crashes; it restarts with `S0` (`S0.term = rt`, no `e`); L1 is taken there (`T0 = rt`; `e`'s
+certificate is at `t = rt` with leader `id`, and `t ≤ T0` holds); `S = S0`, `snapshotLeader γ id rt`
+from before the crash, `DurAgrees S l` false. So L2 needs `T0 < S.term` from outside: either the server
+narrows `rnReplayJob` to snapshots sent in the current lifetime and gets `rt > T0` from that, or raft
+gives a lifetime-scoped leadership fact (a third law). Decision needed; nothing is written.
+
+*What the rest needs (read off the code; for whoever continues).*
+
+(A) The campaign link. A pure `E.camps` link is false (a candidate that loses `T` becomes a follower at
+`T` and the winner's `MsgApp` can cut its campaign log), and a leader can become a follower at its own
+term (CheckQuorum step-down, `becomeFollower(r.Term, None)`; and every restart). Proposed:
+`campLink γ id camps T F := ∀ F0 k, ⌜camps !! T = some (F0, k)⌝ -∗ ⌜F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝`.
+- `campOwn` (`GhostState.lean:585`): the follower case becomes `campLink γ id camps s.term F` (today
+  `True`); the leader case adds `⌜∃ k, camps !! s.term = some (F0, k)⌝` (true at the win,
+  `Refinement.lean:937-979`, where `F0` is the candidate's own map entry).
+- Maintenance: same-term log changes of a follower come from messages with `m.src ≠ id` and
+  `isLeader m.src m.term` (`step_app_accept`, `snap_restore`, `snap_fastfwd`, `heartbeat` already
+  take `m.src ≠ id`), giving the right disjunct; a term change leaves no camp at the new term
+  (`Hcamps_ok`); a leader stepping down keeps `F0 <+: F`. Sites: `Hcown` in `Refinement.lean` (~10),
+  `StepGhost.lean` (~8), plus every step that frames `Hcown` across a follower's log change.
+- `durPers` gets `campLink γ id E.camps S.term (fp ++ S.ents)`: `cut_durPers` (`Enter.lean:372`, from
+  `campOwn` at the cut's virtual maps), `durPers_rebase` (same full log), the restart (`Enter.lean`
+  ~1566/1882: the follower's `campOwn` from it), `durPers_init` (`Facts.lean:799`, empty map).
+- At L2: `isLeader γ id T` gives `isCampK γ id T F0 k`; the fragment against `raftState`'s half of the
+  camps authority (`durShares`) gives `E.camps !! T = some (F0, k)`; the right disjunct contradicts
+  `isLeader_unique`. So `F0 <+: fp ++ S.ents`.
+
+(B) The `t > T` exclusion. A voter `v` of both the commit quorum (ack `(t, n)`, minted before the
+witness) and `id`'s winning quorum at `T < t` (vote via `votesTbl_just`). Needed changes:
+- `voteEv` carries `⌜EvSorted (L0 ++ [Aev.vote T d F])⌝` (as `ackEv` does), from `EvsOk` at *enter*.
+  Then `ackEv`'s `La` and the vote's prefix are comparable (`mono_list_lb_valid`) and sorting puts
+  the vote event in `La`.
+- `EvsOk` gets a vote clause (`Aev.vote T d F ∈ evs → (voted !! T).isSome`), and `ackEv` carries
+  `□ ∀ T' d F, ⌜Aev.vote T' d F ∈ La⌝ → ∃ c, isVote γ v T' c`, minted at *enter* from `durFrags`.
+- `cmtBefore` (L1) then records, for the certificate's quorum, `∃ c, isVote γ v T' c ∗ ⌜c = id → T' ≤ T0⌝`
+  for every vote event of each acknowledgement's `La`, proved at the witness (`votesTbl_just` →
+  `isCamp γ id T'` → `raftState`'s camps authority → `T' ≤ T0`). At L2 the vote at `T` for `id` agrees
+  with it (fragments of `v`'s vote map), so `T ≤ T0 < T`.
+
+(C) L1 also needs `isCommittedLogLb γ l` back to a raft certificate: `isCommitted γ L` with
+`strip L = l`, then `cq γ t n G` covering `|L|` (or the bootstrap log), from `raftCommitInv`.
+(D) L2: `t < T` by `lc_core` + `full_match` on `fp ++ S.ents` (reaching `F0`'s last entry,
+`prefix_camp_last`); `t = T` by `isLeader_unique` and `cmtBefore`'s `c = id → t ≤ T0`; `t > T` by (B).
+
+*Size.* (A) and (B) both change step-level invariants (`campOwn`, `voteEv`, `ackEv`, `EvsOk`), which
+reach `Refinement.lean` (5800 lines) and `StepGhost.lean`/`Enter.lean`: about 1-2k lines and several
+VM builds of the raft tree, then (C)-(D) and the API, interface and copies.
+
+Checkpoint 2026-11-24: no Lean changed; waiting on the `T0 < rt` decision; last green build `fec7d8cf82`.
+
+**2026-11-24, L1/L2 implementation, round 1: steps (A), (B), (C) written; L2's `t > T` case is
+not what (B) gives in raft's dynamic mode.**
+
+*Written (Lean).*
+- (A) `campLink γ id camps T F` (`Protocol/GhostState.lean`: `⌜∀ F0 k, camps !! T = some (F0, k) →
+  F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝`, with `campLink_none`/`_prefix`/`_leader`/`_cand`). Not
+  inside `campOwn` but a conjunct of its own of `ownLogGhost` (`"#Hclink"`, at `W.camps`, `s.term`,
+  `fp ++ s.log`, every role), so that a leader stepping down keeps it with no new `campOwn` fact; and
+  the last conjunct of `durPers` (at `E.camps`, `S.term`, `fp ++ S.ents`). Kept by: `ownLogGhost_upd`
+  (its log-change obligation gains a last conjunct: the full log extended, or a higher term, or
+  `∃ L ≠ id, isLeader L s.term`; `ownLogGhost_mono'` gives the first, `step_app_accept` and
+  `step_snap_restore` the third from the message's `isLeader m.src`), `ownLogGhost_stepDown`, the
+  campaign (`campLink_cand`), the win and `pappend` (prefix), `cut_durPers`, `durPers_rebase` (its
+  output gains the link), the restarts (both), `durPers_init`.
+- (B) `EvsOk` gains a fourth clause (every vote event's term in `voted`); `AcksEvs` (Enter) is now
+  `EvsOk`'s last two clauses; `voteEv` carries `⌜EvSorted (L0 ++ [vote])⌝`; `ackEv` carries
+  `∀ T d F, vote T d F ∈ L → ∃ c, isVote γ v T c` (minted in `mint_one` from `durFrags`'s vote
+  fragments). `ownEvs_ack`/`ownEvs_vote` (unused) deleted.
+- (C) `api_committed_cert` (`InvApi.lean`): `clusterInv ∗ isCommittedLogLb γ l ={E}=∗ ⌜l = []⌝ ∨ ∃ P,
+  ⌜l <+: strip P ∧ IdxOk P⌝ ∗ isCommitted γ.raft P ∗ (boot log ∨ ∃ t n G ldr, cq γ.raft t n G ∗
+  ⌜P = G.take n⌝ ∗ isLeader γ.raft ldr t)`.
+
+*The gap: (B) does not close `t > T` when the cluster is dynamic.* (B)'s argument takes a voter `v` in
+both the commit quorum at `t` and `id`'s winning quorum at `T`. In the static mode `CfgAt.overlap`
+gives one. In the dynamic mode (`γ.reDyn = some _`, the unified API's clusters, the server's) the two
+quorums are of the configurations at `G.take a` and `F0.take kw`, which overlap only when their conf
+counts differ by at most one (`CfgAt.overlap_adj`); `lc_core` needs `lc_far_newer`/`lc_far_older` and
+its induction for the far cases. The mirror for `t > T`:
+- campaign config ≥ 2 newer: `campDyn`'s witnesses are at terms ≤ `T < t`, so `lc_core` at `t` puts
+  their conf entries in `G` past `a`: two of them, against `ConfI1 G a` (no timing needed);
+- commit config ≥ 2 newer: `cqDyn`'s witnesses (certs at `t' ≤ t`) of two conf entries past `kw`:
+  `t' < T` → `lc_core` puts them in `F0` past `kw`, against the campaign's I1; `t' = T` → a cert of
+  `id` at `T` that existed at the witness, so `T ≤ T0`; `T < t' ≤ t` → the same argument again, by
+  induction on the witness's `a`.
+So the timing facts (every cert in the `cqAt` tree: its leader is not `id` or its term is `≤ T0`;
+every ack of its quorum: the vote events before it are for `(T', c)` with `c = id → T' ≤ T0`) are
+needed for the whole witness tree, not only the top certificate: `cmtBefore` must be a recursive
+predicate over `cqAt`'s structure (as `cqAt` is, `termination_by` the config index), proved at L1 by
+the same recursion, and L2's `t > T` case is a new theorem of `lc_core`'s size. Estimate 600-1000
+lines in `Protocol/LeaderCompleteness.lean` plus the recursive `cmtBefore`.
+
+A cheaper alternative, if the server can discharge it: L2 with a premise that every committed
+prefix has one membership (the server's `srv_confAt_simple`), e.g. `□ ∀ k m, confAt γ k m -∗ ⌜m =
+m0⌝`; then both quorums are of `m0` and (B)'s single-voter argument works. It needs a bridge from
+the API's `confAt` (`decFold`) to the internal `CfgAt` of `G.take a`/`F0.take kw`. Decision needed.
+
+*Built (VM):* the protocol layer, `InvApi`, the modules that unfold the changed definitions
+(`DurableLogView`, `InvRawnode`, `CommitWit`, `Term0`, `TraceSimFacts`, `TracedRaftStepPropBundle`)
+and raft's `Link`, `Linked`, `Results`: 3475 jobs, green. RaftTla copies regenerated
+(`etc/gen-raft-tla.py`, 8 written), RaftNoAx/KvNet copies (`etc/copy-part.py`); `etc/tier-check.py
+--check` ok. No axiom, no `sorry`, no spec or top-level statement changed.
+
+Not written: `cmtBefore`, L1, L2, the API laws, the T0-lifetime law ("a term this node leads in its
+current lifetime is > its restart term": it falls out of the same camps bound as L1's, `durPers`'s
+`camps T isSome → T ≤ S.term` at the restart state, plus `campLink`; not yet stated).
+
+*Next lemma (whichever option is chosen), exact statement:* L1,
+`raftState γ id S0 ∗ isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗ cmtBefore γ id S0.term l`
+(`↑N ⊆ E`), from `api_committed_cert` and, for the certificate's leader `ldr`, `isCamp γ ldr t F0`
+(`cq_base`, `leadFull_camp`) against `raftState`'s half of the camps authority (`durShares`):
+`ldr = id → t ≤ S0.term`.
+
+**2026-11-24, L1 and L2 proved (`Proof/go_etcd_io/raft/v3/LeaderCompleteLaw.lean`, exposed in `Api.lean`,
+listed in `etc/api/raft.txt`).** No axiom, no `sorry`, no spec or top-level statement changed.
+
+- `cmtBefore γ id T0 l` (sealed, persistent; body `cmtBeforeR` over raft's names): `l = []`, or
+  `l <+: strip γ.reBoot`, or `l <+: strip (G.take n)` for a commit certificate `cqAt γ t n G a c q`
+  (`0 < n`) whose leader `ldr` has `ldr = id → t ≤ T0`, and every quorum member's acknowledgement at `t`
+  has a recorded history (`ackBefore`: a sorted event list holding the ack, every vote event in it for
+  some `c`, with `c = id → T' ≤ T0`).
+- `confFixed γ E m0 := □ ∀ l, isCommittedLogLb γ l ={E}=∗ confAt γ l.length m0` (the fixed-membership
+  premise; the server discharges it with `srv_confAt_simple γ l l.length le_refl E ..`).
+- `durLogAgrees S l` (raft's copy of the server's `DurAgrees`, the same body).
+- **L1** `raftState_cmtBefore (γ N E) (HE : ↑N ⊆ E) id S0 l :
+  raftState γ id S0 ∗ isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗ cmtBefore γ id S0.term l`
+  (from `api_committed_cert`; the leader's and the votes' timing from `durPers`'s camps bound against
+  `durShares`'s camps authority; the votes through the vote table, threaded with `bigSepM_fupd_thread`).
+- **L2** `raftState_cmtBefore_agree (γ N E) (HE : ↑N ⊆ E) m0 id T0 S l : uint.Z T0 < uint.Z S.term →
+  isCluster γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ∗ snapshotLeader γ id S.term ⊢
+  |={E}=> raftState γ id S ∗ ⌜durLogAgrees S l⌝`. `campLink` gives `F0 <+: fp ++ S.ents` (`id`'s
+  campaign log at `S.term`); then `t < T` by `lc_core` + `full_match`, `t = T` by `isLeader_unique` and the
+  mark, `t > T` by a voter of both quorums (`quorums_meet`: static `CfgAt.overlap`; dynamic, both
+  configurations are `cfgOf m0` by `confFixed` + `confAt_agree`, then `D.adj` at one prefix), whose vote
+  at `T` for `id` is in the marked history (`ev_vote_mem`, sorting) against `T0 < T`. Re-checked against
+  the commit-before-save run: it needs `T0 = rt`, which the premise excludes.
+
+**The lifetime law (task 3): not written; it is not derivable over the current API.** Every leadership
+fact the API has (`snapshotLeader`, `sentMsg`, `isLeader`) is persistent and carries no lifetime: after a
+restart at `S0.term = T0` the node still has `snapshotLeader γ id T0` and its old `sentMsg` MsgSnaps at
+`T0`, and `raftState` does not hold the node's role. `durPers`'s camps bound and `campLink` say that a
+campaign the node *makes* after the mark is at a term `> T0`, but nothing the server receives tells a
+current-lifetime MsgSnap from an old one. What it needs is a raft-side fact on the messages a `Ready`
+hands out (e.g. with each MsgSnap at `rt`, a persistent `ledSince γ id T0 rt` with `T0 < rt`, where `T0`
+is the restart mark), i.e. a change to `node.Ready`/`isReadyChan_recvAu`'s post (and `RestartNode`'s, for
+the mark), which this task may not touch. Decision needed.
+
+**Left for the server:** (1) narrow `rnReplayJob` (`InvRaftNode.lean:2140`) to MsgSnaps with `T0 < rt`
+(given the lifetime fact above), then discharge `rnReplayJob_of_history`'s premise with L2 (L1 taken at
+`raftNode.start`'s restart with `l = a0`); (2) discharge `confFixed` by `srv_confAt_simple`
+(`srvRaftLogInv` is persistent: `iintro !> %l #Hl; iapply srv_confAt_simple γ l l.length (Nat.le_refl _) E hC hL $$ Hinv Hl`).
+
+*Built (VM, `25c7bb088e`):* `LeaderCompleteLaw`; raft's `Link`, `Linked`, `Results`, `Api`; the server's
+`ReplayJob`; and the `RaftTla`, `RaftNoAx` and `KvNet` copies of `LeaderCompleteLaw`, `Api` and `Link`:
+7626 jobs, green. `etc/gen-raft-tla.py --check`, `etc/copy-part.py --check`, `etc/tier-check.py --check`
+and `etc/api-check.py etc/api/raft.txt --check` pass. This branch has no `interface/` directory.
+Not rebuilt: the rest of `Api`'s 2675 importers. They gain one import, and none of the new names
+clashes with an existing one (checked by grep).
+
+Checkpoint 2026-11-24: L1 and L2 done. **Next statement:** the lifetime fact (above), which needs a
+decision on changing `node.Ready`'s post. Then the server's `rnReplayJob` narrowing.
+
+**2026-11-24, T4 round 5: the lifetime law (decision: change the API's posts).** No axiom, no `sorry`, no
+new premise on any API spec.
+
+*Raft side (built, VM).*
+- The attachment's term floor: `StorNames.t0 : w64` (default `0`; `Defs.lean`), set by `RestartNode` to
+  the stored term `σ.hs.Term'` (in the `storKeyNames` tuple too). Raft's queue invariant gets
+  `LifeOk s l` as `XfOk`'s last conjunct (`InvRaftPhys.lean`): `t0 ≤ s.term`, `t0 < s.term` at a leader
+  or candidate, and `t0 < m.Term` for every queued `MsgSnap`. Kept by: `raft.wp_store_stateC`'s new
+  premise `Hrt0` (leader/candidate past `t0`: `becomeCandidate` from `ownRaftPhysC_t0` before its
+  `reset(term+1)`; `becomeLeader`'s new spec premise `uint.Z s.gh.sn.t0 < uint.Z s.term`, which
+  `stepCandidate` gets from its candidate role), `send`'s `SendOk` `MsgSnap` clause (new last conjunct
+  `t0 < s.term`; `maybeSendSnapshot`'s new premise, which `maybeSendAppend` gets from its leader role),
+  the queue pushes (`Hxq`'s new last conjunct), `XfOk.term_le` (term raised), `XfOk.drain` (a `Ready`),
+  and `newRaft`/`NewRawNode`/`setupNode`'s new premise `uint.Z sn.t0 ≤ uint.Z hs.Term'` (callers:
+  `RestartNode` `le_refl`, `StartNode` `0 ≤ 0`).
+- `handoutOrigins` (`InvRawnode.lean`) gains `⌜∀ q ∈ ms, MsgSnap → uint.Z sn.t0 < uint.Z q.st.msg.Term'⌝`
+  (from `LifeOk` at the hand-out), so `readyGot`'s statement is unchanged: the fact is inside the sealed
+  `readySnapSources` it already gives.
+- **The mark** (`InvNode.lean`, sealed, persistent): `nodeStartTerm (n : NodeH) (T0 : w64)`, body
+  `⌜n.names.sn.t0 = T0⌝`; `nodeStartTerm_agree`.
+- **The lifetime fact** (`InvNodeRule.lean`): `readySnapSources_startTerm γ n id term ms bound installed T0 :
+  readySnapSources γ n id term ms bound installed ∗ nodeStartTerm n T0 ⊢
+  ⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z T0 < uint.Z q.st.msg.Term'⌝`.
+- **Posts changed:** `RestartNode.spec` only: `nodeStartTerm n S.term` after `nodeArm n γ x` (clients'
+  patterns gain one slot: kv, kvreconf (2), kvdurable, kvnet (KvNet's own `StartNode.lean`), the
+  server's `newRaftNode`). `StartNode.spec` unchanged (a first start's `rnReplayJob` is vacuous,
+  `a0 = []`). Internal specs changed: `raft.send` (`SendOk`), `raft.maybeSendSnapshot`,
+  `raft.becomeLeader` (and its untraced/traced wrappers), `newRaft`, `NewRawNode`, `setupNode`.
+- RaftNoAx's own `newRaft.lean` patched by hand (the same two edits).
+
+*Server side (written; see the build line below).*
+- `rnBootPost`'s restart arm gives `nodeStartTerm n S.term`; `rnRestartOk`'s restart disjunct carries
+  `nodeStartTerm γ.nl γ.t0` (`NodeStartLinked`: `γw.t0 = σ.hs.Term' = S.term`, `StorageHolds`).
+- `rnReplayJob` narrowed to this run's `MsgSnap`s: its premise takes `rnMessageSource γ ⟨ml, sm⟩` (which
+  `rnSnapMsg` carries; `applyAll` passes `%m Hsrc`). `ReplayJob.lean`: `rnReplayJob_lifetime`
+  (`rnRestartOk γ ∗ rnMessageSource γ ⟨ml, sm⟩ ⊢ ⌜MsgSnap → a0 ≠ [] → uint.Z γ.t0 < uint.Z sm.msg.Term'⌝`),
+  and `rnReplayJob_of_history` now takes `rnRestartOk γ` and its premise only at `uint.Z γ.t0 < uint.Z rt`.
+- `srv_confFixed` (`ReplayJob.lean`): `srvRaftLogInv γ ⊢ confFixed γ.raft.cl E (Membership.simple γ.raft.cfg)`
+  for `↑srvConfN ⊆ E`, `↑srvLogN ⊆ E`.
+
+*Not done: `rnReplayJob_of_history`'s premise from L2.* Its premise is a persistent wand returning a pure
+fact (`□ ∀ sm, … -∗ sentMsg … sm -∗ ⌜DurAgrees S a0⌝`), but L2 (`raftState_cmtBefore_agree`) is an
+update that needs the exclusive `raftState γ id S` (its camps authority identifies the leader's campaign
+record). So L2 cannot be fed into that premise as stated. Two ways: (a) a raft law of the wand form
+`raftState γ id S ∗ … ⊢ |={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term -∗ ⌜durLogAgrees S l⌝)`
+(needs, from the authority at the update, a persistent fragment of the camps entry at `S.term`, and for
+an absent entry a persistent "no campaign at `S.term`" fact: a change to `durShares`'s camps ghost);
+or (b) the producer (`raftNode.start`'s snapshot hand-off) applies L2 at its update with a
+`snapshotLeader` it obtains first, which needs the `MsgSnap` in hand, i.e. reorder the job's
+quantifier. Decision needed (raft-proof work for (a)).
+
+*Built (VM, `e3572c99c0`):* raft's `Link`, `Linked`, `Results`, `Api` (3474 jobs); the server's `Link` and
+`ReplayJob`, kv/kvreconf/kvdurable `Link`, `RaftTla`'s raft `Link`, `RaftNoAx`'s raft and kvdurablenoax
+`Link`, `KvNet`'s kvnet `Link` (13763 jobs); every module naming a changed name (`etc/importers.py
+--uses` for `rnRestartOk`, `rnReplayJob`, `rnReplayJob_of_history`, `rnBootPost`, `RestartNode`,
+`StorNames`, `XfOk`, `handoutOrigins`: 102 modules, plus `etcdstart.Restart` and `NewServerCrash`; 5495
+jobs): all green. `etc/gen-raft-tla.py --check`, `etc/copy-part.py --check`, `etc/tier-check.py --check`,
+`etc/api-check.py etc/api/raft.txt --check` pass. Not rebuilt: the rest of `Defs.lean`'s cone (9156
+modules; `StorNames` gains a defaulted field, which only its two constructions and `storKeyNames_agree`
+enumerate). `etc/tcb-report.py --check` not run (needs a local build).
+
+*Left for `wp_proofC`:* step 1 (the snapshot payload's `rnReplayJob` by `rnReplayJob_of_history`) needs
+the L2 bridge above; step 3 (raft's restart configuration point past the stored log: the other branch's
+option D); steps 2, 4, 5 after them; `NewServerCrash.lean`'s `sorry` (the case `σ.commit < i`) stays.
+
+Checkpoint 2026-11-24: the lifetime law proved and exposed (`e3572c99c0`); next decision: the L2
+bridge's form (a) or (b) above.
+
+**2026-11-24, decision: option (b) for the L2 bridge (L2 applied at the producer, not a raft ghost
+change). Not started; the next agent's starting point.**
+
+*Where the `MsgSnap` is in hand.* Not at `rnApSnap`'s production (`raftNode.start`'s snapshot hand-off):
+the payload's `rnReplayJob` quantifies over `MsgSnap`s that reach `applyAll` later through `msgSnapC`,
+from this `Ready` or a later one. The raft loop has the `MsgSnap` in hand where `processMessages` puts it
+on `msgSnapC` (`rnSnapMsg`, built from `rnRawMsgs` after the WAL `Save`, `rn_enter`), and there it holds
+`raftState γ.node.cl γ.id S'` (the busy driver's durable state after the batch is entered). So (b) is:
+1. At that point, for a `MsgSnap` `sm` of the `Ready` (`rnMessageSource`), with `nodeStartTerm γ.nl γ.t0`
+   from `rnRestartOk` and `readySnapSources_startTerm` (`t0 < sm.term`), `sentMsg_localSnapshotLeader`
+   (`snapshotLeader γ id sm.term`), and `sm.term = S'.term` (to check: the `Ready`'s hard-state term is
+   the leader's term while it sends; a later step-down raises `S'.term`, then `snapshotLeader` is at an
+   older term and L2 does not apply: that case must be shown unreachable at the merge, or the fact
+   carried only when the terms agree), apply L2 `raftState_cmtBefore_agree` with `cmtBefore γ id t0 a0`
+   (L1 at `raftNode.start`'s restart, `raftState_cmtBefore` with `l = srvLE … a0`, kept in the loop's
+   persistent restart data next to `rnRestartOk`) and `confFixed` (`srv_confFixed`). Result:
+   `⌜DurAgrees S' (a0.map toLE)⌝`.
+2. Carry it in `rnSnapMsg` (a new pure conjunct `sm.msg.Term' = S'.term → DurAgrees S' a0` with `S'`
+   existential), and change `rnReplayJob`'s premise to take that conjunct instead of
+   `rnMessageSource`.
+3. Open question that decides whether (b) works: `rnReplayJob_of_history` needs `replayRunsDescribe runs S n`
+   for the **same** `S` as the `DurAgrees`; the payload's runs describe the durable state at the snapshot
+   `Ready` (`S` = the snapshot at `k` plus `rd.Entries`), while step 1 gives `DurAgrees` at the `MsgSnap`'s
+   `Ready`. Needed: both durable states agree on `(n, |a0|]`, i.e. log monotonicity of the node's durable
+   log within a term between the two `Ready`s (a leader's log only grows), or produce the job at the
+   merge from the `MsgSnap`'s own `S'`. If neither holds, (b) is blocked and option (a) is the fallback:
+   report before starting it.
+
+Next statement to write (`ReplayJob.lean`, server): `rnReplayJob_of_snapMsg` — from `rnRestartOk γ`, the
+persistent L1 mark `cmtBefore γ.node.cl γ.id γ.t0 (srvLE γ.srv γ.a0)`, `srvRaftLogInv`, and
+`raftState γ.node.cl γ.id S'` with `rnMessageSource γ ⟨ml, sm⟩`, `sentMsg … sm`, `sm.msg.Type' = MsgSnap`,
+`sm.msg.Term' = S'.term`, `γ.a0 ≠ []`: `|={E}=> raftState … S' ∗ ⌜DurAgrees S' (γ.a0.map EntryModel.toLE)⌝`
+(L2 instantiated; `↑srvClusterN ∪ ↑srvConfN ∪ ↑srvLogN ⊆ E`).
+
+**2026-11-24, option (b): blocked; the S/S' question has no answer over raft's current API and ghost
+state. No Lean changed; last green build `e3572c99c0`.**
+
+*What the payload's job needs.* `rnReplayJob_of_history` needs `DurAgrees S_P a0` at the durable state
+`S_P` the payload's runs describe: the state after the payload's own `Ready` `P` (`raftTerm = rt` is
+`P`'s hard-state term). The `MsgSnap` at `rt` comes from a `Ready` `M` that can be before `P`, `P`
+itself, or after `P` (the loop runs ahead of `applyAll`; `applyAll` merges any queued `MsgSnap` with
+`m.Term == apply.raftTerm`). L2 holds only at a state `S` with `snapshotLeader γ id S.term` in hand.
+
+*(1) Relating `S_P` and `S_M`: fails.* In Go, if `id` leads `rt` then at `P`'s hand-out `id` is already
+a candidate or leader at `rt` (a node at term `rt` campaigns only at `rt + 1`), and from then on its log
+only grows, so `S_P` and `S_M` agree below `|a0|`. None of this is visible from `raftState`: the server
+sees each `Ready`'s entries, not the node's role, and a follower's durable entry at an index `≤ |a0|` can
+change within a term (overwrite by the term's leader). Inside raft, `durPers` at `S_P` gives `campLink`
+only for a campaign record that exists in the entered maps at `P` (`E_P.camps !! rt`). When it is `none`
+(a follower at `rt` that never voted at `rt`), nothing in the ghost state stops a record at `rt` from being
+added later: `PromFresh` only asks that the key be absent, and `durPers`'s camps bound allows `T ≤ S.term`.
+The vote map has the same gap (`voted !! rt = none`). Ruling it out needs "no campaign record is ever
+added at a term at or below a durable term that had none". That is a persistent fact about the future
+(closing the camps map up to the durable term), which means new campaign ghost state in raft.
+`EvSorted` and the term registry (`TermsOk`) do not provide it.
+*(2) Moving the production site: fails alone.* The payload goes on `applyc` before the `Save` and before
+*enter*, so `raftState` is still `S_{P-1}`. After *enter* (before the `notifyc` sends, which `applyAll`
+receives before the merge), the loop holds `raftState S_P`. `notifyc`'s deposit can carry a pure fact made
+there, so the job could be discharged from it. But L2 still needs `snapshotLeader γ id rt` at that point,
+which exists only if `id` already leads `rt` at `P`. A payload of a candidate `Ready` that wins later is
+the same gap as (1).
+*(3) Server-side ghost state: fails.* A record per `MsgSnap` of `DurAgrees S_M` does not reach `S_P` (as
+in (1)); the server cannot observe raft's camps.
+
+*The same gap blocks every later step, not only the kept snapshot.* The batch `Ready`s keep `replayPending`
+through `rnReplayState.appendEntries`. Its premise `above` (entries past `|a0|`) comes from `Ha0p`
+(`rnRestartOk_a0_le`: `|a0| ≤ commit0`, `raftNode__start.lean:232`, `:1354`). Dropping `|A₀| ≤ σ.commit`
+(the crash case) removes that, and after a crash the WAL's entries `≤ |a0|` can be stale (round 4,
+step 3). So the crash window needs the history form (runs describe `S_P`, then L2 at `S_P`) for every
+payload.
+
+*Two ways forward (a decision for the lead; neither started):*
+- (a) raft ghost: the camps map closed up to the durable term, i.e. a persistent "no campaign of `id` at
+  `T`" for `T ≤ S.term` with no record. Then the law `raftState γ id S ⊢ |={E}=> raftState γ id S ∗
+  □ (snapshotLeader γ id S.term -∗ ⌜durLogAgrees S l⌝)` holds, made at *enter* and deposited in
+  `notifyc`. This is new campaign ghost state in raft, which this task excluded.
+- (b') a fork change plus a raft law over the existing ghost state. In `raft.go`, set `ap.raftTerm` only
+  on a `Ready` whose role is leader (`islead`), else `0`. A `MsgSnap` is then merged only with a leader
+  `Ready`'s payload (liveness only: an unmerged `MsgSnap` is reported failed and resent). Raft's `Ready`
+  post (`readyGot`/`readyLeaderMsgs`) gains `⌜roleAfter st.role ss = StateLeader⌝ -∗ snapshotLeader γ id
+  (phsNext st.hardState h).Term'`. At a leader, `campOwn` already holds the `isCamp`; the win's certificate
+  is `leadLogOwn`'s term record. Server: after *enter* of a leader `Ready`, L2 at `S_P` (with `t0 < rt`
+  from `LifeOk`'s leader clause, to be exposed with it); `DurAgrees S_P a0` goes in `notifyc`'s deposit;
+  the job reads it. The loop keeps `replayHistoryMatches runs S n` (runs describe the current durable
+  state above the cursor) through `appendEntries`'s cut (`appendEntries_nonempty`'s `hcut`), the snapshot
+  reset and `after`, in place of `replayPending`. The seed is the WAL's entries, which are `S_0`'s.
+  Estimate: the fork change and its test, one raft `Ready` law, the loop's replay invariant reworked in
+  `raftNode__start.lean` (2000 lines; three `Ready` arms) and `replaySeed_facts`, and `applyAll`'s two
+  `notifyc` receives.
+
+Checkpoint 2026-11-24: (b) blocked as above. **Next statement** (once (a) or (b') is chosen): for (b'),
+raft's `readyLeaderMsgs` widened to `⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms ∗
+snapshotLeader γ id (phsNext st.hardState h).Term' ∗ ⌜uint.Z n.names.sn.t0 < uint.Z (phsNext st.hardState
+h).Term'⌝`. For (a), the raft law above.
+
+**2026-11-24, option (a): the campaign map closed up to the durable term; `raftState_leadAgree` proved;
+the replay job's premise in the law's form.** No axiom, no `sorry`, no new top-level premise, no Go change.
+
+*The closure fact (raft, `Protocol/`).* A closure value on the existing campaign map, no new resource:
+- `campNone := ([], W64 (2^64-1))` and `isCampNone γ c T := ∃ γc, ⌜γ.reCamp !! c = some γc⌝ ∗ T ↪[γc]□ campNone`
+  (`Ghost.lean`, persistent): node `c`'s campaign map key `T` is closed, for good. `isCampNone_campK`:
+  `isCampNone γ c T -∗ isCampK γ c T F k -∗ False` (a record's commit index is within its log;
+  `campNone_ne`).
+- A promise `Prom.close T` (`GhostState.lean`): fresh when the key is free, `promNeed` trivial, entering
+  it inserts `campNone` (`mint_one`) and mints `isCampNone`; `durFrags`' camps part is `campFrag`
+  (`isCampK ∨ (⌜x = campNone⌝ ∗ isCampNone)`).
+- The cut closes the node's term's key when it has none (`Enter.lean`: `cutClose V πc s.term`, the
+  pending list with `.close s.term` appended iff `(virt V πc).camps !! s.term = none`; `ownLogGhost_close`,
+  `campOwn_close`, `campLink_close`). This is raft's fact: a node campaigns only at `term + 1`.
+- `durPers γ id S E` gains a last conjunct `⌜uint.Z S.term = 0 ∨ (E.camps !! S.term).isSome⌝`
+  (`cut_durPers` takes `(W.camps !! s.term).isSome`). With the map's fragments (persistent), the key of
+  every durable term is final: a record or `campNone`.
+
+*The law* (`LeaderCompleteLaw.lean`, exposed by `Api.lean`):
+`raftState_leadAgree (γ N E) (HE : ↑N ⊆ E) m0 id T0 S l : uint.Z T0 < uint.Z S.term →
+isCluster γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ⊢
+|={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term ={E}=∗ ⌜durLogAgrees S l⌝)`.
+It reads the key's fragment through the slot (`Enter.durShares_frags`); in the wand, a record is
+the leader's campaign record (`isCampK_agree`) and `campLink` + `cmtBefore_core` (L2's core) give the
+agreement; `campNone` refutes the leadership. **The wand is an update, not pure** (as the notes' form
+had it): L2's core opens the vote table (`lc_core`) and the membership (`confFixed`) at the time the
+leadership is shown, so no pure form is provable.
+
+*Server (built only as far as noted below).* `rnReplayJob`'s conclusion is now `|={⊤}=> ∃ runs r, …`
+(`applyAll` `imod`s it; `rnReplayState.job` `imodintro`s); `rnReplayJob_of_history`'s premise is
+`□ ∀ sm, … -∗ sentMsg … sm ={⊤}=∗ ⌜DurAgrees S (a0.map toLE)⌝`; new `rnReplayJob_premise_of_lead`
+(`ReplayJob.lean`): the law's wand at `S` with `S.term = rt` gives that premise
+(`sentMsg_localSnapshotLeader`).
+
+*Built (VM, raft at `efec220057`):* raft's `Link`, `Linked`, `Results`, `Api`, `DurableLogView`, the
+protocol modules, `RaftTla`/`RaftNoAx` raft `Link`, `RaftNoAx` kvdurablenoax `Link`, `KvNet` kvnet
+`Link`, the server `Link` (before the server edits): 13236 jobs, green. `gen-raft-tla --check`,
+`copy-part --check`, `tier-check --check`, `api-check etc/api/raft.txt --check` pass.
+*Built (VM, with the server edits):* the server's `Link` and `ReplayJob`: 9494 jobs, green.
+
+*Not done (next, in order).* Nothing of `wp_proofC`'s steps closed yet; its `sorry`
+(`NewServerCrash.lean:77`) stays.
+1. **L1 at the restart.** In `raftNode.start` (restart arm, where `rnRestartOk`'s `nodeStartTerm γ.nl γ.t0`
+   and `raftState γ.node.cl γ.id S0` with `S0.term = γ.t0` are in hand): `raftState_cmtBefore` with
+   `l = γ.a0.map EntryModel.toLE` (its `isCommittedLogLb` from `srvRLogLb`; note `srvLE` prefixes `γ.pre`),
+   kept as a persistent `cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map toLE)` in the loop's restart data.
+2. **The law at each *enter*.** After `rn_enter`/`rn_enterS` (`raftNode__start.lean:721, :1540`), with
+   `raftState … S'`: if `uint.Z γ.t0 < uint.Z S'.term`, `raftState_leadAgree` (with `srv_confFixed`) gives
+   `□ (snapshotLeader … S'.term ={⊤}=∗ ⌜durLogAgrees S' (a0.map toLE)⌝)`.
+3. **The deposit.** `rnApR` (batch) and the snapshot's `isNotify2` first-send deposit carry
+   `∃ S, ⌜replayRunsDescribe runs S n ∧ S.term = rt⌝ ∗ (⌜t0 < rt⌝ -∗ law-wand at S)` for the payload's runs;
+   the loop keeps `replayHistoryMatches runs S n` (runs describe the current durable state above the
+   cursor) in place of `replayPending` through `appendEntries`' cut, the snapshot reset and `after`.
+4. `rnReplayJob` then takes the deposit (received before the merge) instead of being a payload
+   field; `applyAll` discharges it with `rnReplayJob_of_history` + `rnReplayJob_premise_of_lead`.
+5. T4 round 4's steps (drop `|A₀| ≤ σ.commit`, step 1, step 2), the merge of
+   `origin/raft-restart-confpoint/2026-11-24`, then `wp_proofC` and its Link entry.
+
+Checkpoint 2026-11-24: raft (a) and the law done; server job in the law's form. **Next statement:** item 1,
+`rnRestart_cmtBefore` (server, `ReplayJob.lean`): `rnRestartOk γ ∗ raftState γ.node.cl γ.id S0 ∗
+⌜S0.term = γ.t0⌝ ∗ srvRaftLogInv … ∗ srvRLogLb γ.srv γ.a0 ⊢ |={⊤}=> raftState … S0 ∗ cmtBefore γ.node.cl
+γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.
+
+**2026-11-25, option (a), item 1 closed; item 3's pure lemmas proved.** No axiom, no `sorry`, no new
+top-level premise, no Go change.
+
+*Item 1, L1 at the restart (done, `c62ac989e4`).* Made at the producer, not in `raftNode.start` (whose
+loop state has moved past `S0` by then): `NodeStartLinked`'s restart arm holds `raftState γr.cl cv.ID' S`
+with `σ.hs.Term' = S.term` (`StorageHolds`), `isCluster` and the image `isCommittedLogLb (A₀.map toLE)`
+(already there for `replaySeed_facts`), and applies `raftState_cmtBefore`. The mark goes in the restart
+data: `rnRestartOk`'s restart disjunct gains `cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.
+New (`InvRaftNode.lean`): `rnRestart_cmtBefore (γ) : rnRestartOk γ ⊢ ⌜γ.a0 ≠ []⌝ -∗ cmtBefore γ.node.cl
+γ.id γ.t0 (γ.a0.map EntryModel.toLE)`. Built (VM): `NewServerCrash`, `NodeStartLinked`, `ReplayJob`,
+`AuthCompRows` and their cones (4993 jobs), green.
+
+*Item 3's pure lemmas (`ReplayCoverage.lean`; built with the server's `Link`, 9494 jobs, green).*
+- `replayHistoryMatches_append rs S S' n k first rest idx (h : replayHistoryMatches rs S n)
+  (hcut : replayCutIndex rs first.index k) below here : replayHistoryMatches ((first :: rest).foldl
+  replayAddEntry (replayRetain rs k first.index)) S' n`, with `below : ∀ ci t, n < ci → ci < first.index →
+  plogTermAt S' ci = some t → plogTermAt S ci = some t` and `here : ∀ ci t, n < ci → first.index ≤ ci →
+  plogTermAt S' ci = some t → ∃ e ∈ first :: rest, e.index = ci ∧ e.term = t` (`appendEntries_nonempty`'s
+  output; replaces `rnReplayState.appendEntries`' `above`, i.e. `Ha0p`).
+- `replayHistoryMatches_same rs S S' n m h (hb : S'.base = S.base) (he : S'.ents = S.ents) (hm : n ≤ m)`
+  (an empty batch, the tick arm).
+- `plogTermAt_next_batch S term vote commit first rest idx (hb : uint.Z S.base.index' < uint.Z
+  first.index) (hwf : PlogWf S'.base S'.ents)` with `S' := S.next term vote commit none ((first ::
+  rest).map toM)`: `below ∧ here` (without the cursor). `hwf` from `raftState_logView` at the entered
+  `S'`; `hb` from `rnReadyData`'s `p.Commit' < first.index` plus `S.base.index ≤ p.Commit'` (to find:
+  `rnLoopTokP`/`durPers`; else take it from raft's `Ready` post).
+  For a snapshot `Ready`: `S.next … (some sn) es` has the base/ents of `{S with base := snapId, ents :=
+  []}.next … none es` (by `rfl` on the fields), and `replayHistoryMatches [] {base := snapId, ents := []}
+  n` holds for `n ≥ snapIdx` (no entry above), so the lemma applies after the reset.
+
+*The design for items 2-4 (read off the code; not started).* The job is `applyAll`'s precondition
+(`taReplayBatch`, `EtcdServer__run.lean:1436` from the payload's field) and is used only after
+`<-apply.notifyc` (`EtcdServer__applyAll.lean:214`, the merge at :481). So:
+- `rnReplayState γ view n` → `rnReplayState γ view S n := ∃ runs, view ↦*□ runs ∗ ⌜replayHistoryMatches
+  runs S n⌝`, `S` the loop's durable state (`rnLoopTokP`'s); the seed is `replaySeed_facts`' `DurAgrees`
+  form (the WAL's entries are `S0`'s); `.advance` by `replayHistoryMatches_after`, `.appendEntries` by
+  the lemmas above, with `S'` the receive's (`rn_ready_recv` names it before the `Save`).
+- The payload (`rnApN`, `rnApSnap`, `InvRaftLoop`'s copy): `∃ S, rnReplayHist γ ap.replayTerms' S n ∗
+  ⌜S.term = ap.raftTerm' ∨ uint.Z ap.raftTerm' = 0⌝` in place of `rnReplayJob`, and the same `S` in the
+  `notifyc` deposit: `isNotify γnc ap.notifyc' (rnApR γ F ce ∗ rnLeadLaw γ S)` with `rnLeadLaw γ S :=
+  ⌜γ.a0 ≠ [] ∧ uint.Z γ.t0 < uint.Z S.term⌝ -∗ □ (snapshotLeader γ.node.cl γ.id S.term ={⊤}=∗
+  ⌜durLogAgrees S (γ.a0.map toLE)⌝)` (the snapshot's `isNotify2`: on the first send).
+- Item 2: after `rn_enter`/`rn_enterS` (`raftNode__start.lean:721, :1540`), `raftState_leadAgree` with
+  `rnRestart_cmtBefore`, `srv_confFixed` and `isCluster` (from `rnEnvOk`'s `srvClusterOk`) gives
+  `rnLeadLaw γ S'`; the `notifyc` sends deposit it.
+- Item 4: `taReplayBatch` carries the history; `applyAll` builds `rnReplayJob` after the receive by
+  `rnReplayJob_of_history` + `rnReplayJob_premise_of_lead` (its law premise made conditional as above).
+
+Checkpoint 2026-11-25. **Next statement:** `rnReplayState` over the durable state, `def rnReplayState
+(γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) : IProp GF := iprop(∃ runs, view ↦*□ runs ∗
+⌜replayHistoryMatches runs S n⌝)`, with `rnReplayState.appendEntries` re-proved over
+`replayHistoryMatches_append`/`plogTermAt_next_batch` (`S → S'`), then the loop invariant of
+`raftNode.start` (`Hhistory`) at `rnLoopTokP`'s `S`.
 
 ## 10T2. T2: the server's crash-aware durability invariant (2026-11-24, branch `etcd-safe-d6t2/2026-11-24`)
 
@@ -1281,3 +1825,394 @@ storage contract's `Sync` gives `walSyncedLb` at `Save`'s length bound, and a sn
 follows etcd's explicit `Sync`; the snapshot directory's durability `WalNamesK.sd` is the trivial one until
 T6. Built: the change's 58 importer leaves (fk-lean2, 14,036 jobs, exit 0); `etc/tier-check.py --check` ok.
 `etc/tcb-baseline.txt` still lacks the P5-RESTART `sorry` (needs a local build to update).
+
+## T7: the member's crash law (plan, 2026-11-25, branch `etcd-safe-t7`; etcd-grove-03)
+
+Base `etcd-safe-p5` @ `f353cbb2fb` (round 3 `5a1c41d945`, P6b `2d2f3cc470`, P5's T2 integration). File
+`dist/crash/MemberCrash.lean` (defs tier: it imports only defs and the proved defs-tier laws).
+
+**The law as it stands** (`MemberGen.lean`): `memberGen_crash.law C cfg id Keep Q` — for generations `L`, `L'`
+at the statement's Go context, `Keep L -∗ £ 1 -∗ crashed L -∗ Fs.crashRest Q L L' [] false V' -∗ Fs.osInv L'
+={⊤}=∗ memberGen (at L') C cfg id`. `Keep` and `Q` are parameters: T7 chooses `Keep` (`memberKeep`, what a run
+of a generation keeps for its crash) and proves the law for it under a premise on `Q`. `memberGen` =
+`clusterFacts ∗ (memberFirst ∨ memberRestart)`, `memberRestart` = `memberRestartFacts γ' ρo id ∗
+srvCrashImage γ' ρo id dd` (`InvCrashImage.lean`).
+
+**Inputs** (source; status):
+
+| input | what T7 uses | source | status |
+|---|---|---|---|
+| T1 raft torn law | — | `readyCrashTorn.law` (`MemberGen.lean`) | **retired**: the torn-`Save` fix (Q1 (a), fork `e94f33b50`) makes a torn `Save` read as none; T7 deletes `raftTorn`/`readyCrashTorn.law` (P5 plan step) |
+| T2 raft + WAL records | `raftState S`, `nodeVacant`, `StorageHolds S σ`, `walReadFacts σ`, `σ.b ≤ |l|`, `DurAgrees S l`, `walSnapCert`, `walSnapDur`, `isCommittedLogLb l`, and the WAL's borrowed `walRecsH`/`walSyncedLb` for the files | `rnDurK_crash.law` / `rnDurK_crash_law_holds` (`InvWalCrashLaws.lean`) | **proved**; its second disjunct `rnTakenK` (the stop took the records) must be excluded by `Keep` (decision D-T7-3 below) |
+| T2 allocation | — (the run's, not the law's) | `rnRestartAllocK.law` | named hypothesis of `newRaftNode` (P5-RESTART `sorry`), consumed as stated by T8's run, not by T7 |
+| T5 the WAL's files | `walFilesC` at `L'` from `walCrashWal`, the old `walDiskAtI`/`walSyncedLb`/`walNamed` | `walFilesC_crash` (`storage/WalRecsCrash.lean`); `walInv_crash` (`storage/wal/Crash.lean`, premise `Q → W1`); `walBootCrash` (`BootCrash.lean`) | **proved** |
+| T5 read facts | `walReadFacts σ` | `walReadFacts_of_take`; T2's post already carries it | **proved** |
+| T6 snapshot directory | `snapDirKeep` at `L'` | `snapDir_crash.law` / `snapDir_crash_law_holds` (`SnapDirCrash.lean`) | **proved**, with two premises owed by T7: `lookupH R V' sd = some (.dir J)` and `snapDirKept R V' sd` (item 2 below) |
+| A1 bbolt after a power loss | `bbolt.fileHoldsM i0 D'`, `D' ∈ {Dl, Dn, pd}` | `backend.dbCrash` (C-I1, `storage/backend/CrashInterim.lean`) | **interim axiom** (reviewed six times), premise `Q → BoltCrashWhole (· = i0)`; its record `dbCrashKeep` is made by `dbCrashKeep_new` at boot, used by no run yet |
+| `Q`'s premise | `Q → W1 walCodec` and `Q → BoltCrashWhole I` | `etcdCQ` (`etcdstart/FsExts.lean`) has `W1` only | **open**: `BoltCrashWhole` accepted for the packet, not yet in `etcdCQ`; T7's theorem takes `hQ` |
+| the backend's image across a crash | for each of `Dl`, `Dn`, `pd`: a committed prefix `A` with `i = ai0 + |A|`, `imageRestAt`, `imageStOk`, `mvccImage`, `confAt i m`, `srvRLogLb A`, `σ.b ≤ i`, `bootLen ≤ i` (all of `srvCrashImageAt`'s backend rows) | none: the apply thread's commits must deposit them beside `dbCrashKeep` (an invariant of the run, "D6.4") | **open, no task owns it** (proposed T10 below) |
+| the backend file's name after the crash | `Named V'.now i0` and `config.backendPathOf dd` naming `i0` in `V'` (`backend.fileHolds`) | the name's commit (`dbOpts`, the WAL's first directory sync, the fork's syncs after the renames; `renamedDur` from `OpenSnapshotBackend`, not persistent as stated: add the instance) | **open** (C-I1's note: "the caller derives which inode `path` names from the file extension's crash facts") |
+| the request ids | `memberRestartFacts γ' ρo id` (persistent, global) | the generation's boot (`memberRestartFacts_alloc`) kept in `Keep`; D4b's `idIssue` crash interpretation for the new incarnation | facts **proved**; D4b's crash interpretation open (Q5), not T7's |
+
+**Obligations** (what T7 proves, in order):
+1. **`memberGen` first** (the predicate both the first boot and the crash law produce and `NewServer` consumes):
+   (a) delete the torn law; (b) the rows the next generation's `Keep` needs that today's `memberRestart` drops:
+   the snapshot directory's crash token (`srvCrashImageAt` holds only the handle `snapDirInvH`; the next
+   crash law needs `snapDirKeep`, i.e. the token, with the same `γk`), raft's crash token (`specC` returns
+   it: T4 round 2), the WAL area's `walInv`/`walCrashTok` at `L'` (from `walInv_crash`/`walBootCrash`), and
+   the durable spine of `sd` (item 2). (b) changes `srvCrashImageAt` (shared with `NewServer.specC`, T4):
+   **reported, not done** (D-T7-2).
+2. **P7's two premises from `TouchDirAll`**: a persistent durable spine `osPathDur R sd J` (each component's
+   claim held at a discarded fraction, with `nameCrash` at its directory: what `TouchDirAll`'s post gives,
+   `h'.next ≤ n` and `osCommitLb n`, plus `osNames_histCoh`); `osPathDur_crash`: with `crashRest`,
+   `lookupH R V' sd = some (.dir J)`; `osPathDur_agree`: every spine of `sd` at the same roots ends at `J`, so
+   the fixed-root form of `snapDirKept` holds. P7's `snapDirKept` quantifies over the roots `R0` of any
+   `osSharedInv R0` and is a plain wand (no update): unprovable as stated (two shared invariants' roots agree
+   only under an update), see D-T7-1.
+3. **The assembly** `memberGen_crash_law_holds` for `memberKeep`: open `rnDurInvK` (T2), inside its `Φ` the
+   WAL's crash (`walInv_crash`, `walBootCrash`, `walFilesC_crash`: T5), the backend (`dbCrash`: A1, and the
+   image invariant: open), the snapshot directory (`snapDir_crash_law_holds` with item 2), the new
+   registry (`memStorRegAuth ∅` at a fresh name, Q4's decision), then `srvCrashImageAt` at `ρo`.
+
+**What blocks 3** (each needs a decision or a task outside T7; found by reading, 2026-11-25):
+* **B1 the backend's image invariant** (above): `Keep` must carry, for the data a crash can leave, the image
+  facts; nothing in the run records them. A task of its own (T10: the apply thread deposits each commit's image
+  facts next to `dbCrashKeep`; `dbCrashKeep_new`/`_announce` at its commit points).
+* **B2 Q3, the received-snapshot window**: between the WAL's `SaveSnap` (synced) and the apply thread's
+  rename of `<k>.snap.db` to `db` (`OpenSnapshotBackend`), a crash leaves `σ.b = k > i` (the old `db`);
+  Go recovers by opening the `.snap.db` at restart (`recoverSnapshot`). `srvCrashImageAt`'s `σ.b ≤ i` is then
+  false: the image (and `bootstrapCrashContract`) needs the `.snap.db` case (shared spec: T4's).
+* **B3 `γ.cl.bootLen ≤ i`** (C-I1 checkpoint item 7): after the first `Save` and before the backend's first
+  commit `i = 0`; `srvCrashImageAt` and `bootstrapCrashContract` exclude it (shared spec).
+* **B4 the first generation's boot phases**: a crash before `newRaftNode` allocates `rnDurInvK` (after
+  `bootstrapBackend`, `wal.Create`, an unsaved first `Save`) must give `memberFirst` (with T3's leftovers), so
+  `Keep` is a disjunction over the boot's phases (kvnet's `kd_boot_choose`); `memberFirst`'s slice is consumed
+  by `NewServer.specG` by then. Needs T3 and T8's boot.
+* **B5 `Keep` out of the run** (T8): `NewServer.spec{G,C}`'s posts return raft's crash token only; `rnDurInvK`'s
+  token and names, `snapDirKeep`, the WAL area's `walInv`/token, `dbCrashKeep`, the durable spine must come out
+  of `NewServer` into the member's program.
+
+**Decisions taken in T7 (D-T7-*)**:
+* D-T7-1 `snapDirKept` at fixed roots: T7 proves `□ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`
+  (the law's own `R`); P7's `snapDirKeptF` should take `R0 := R`, and `old_dir` get `R0 = R` from the two shared
+  invariants and `crashRest` (`crashRest_roots`, T7 proves it). A premise of P7's law weakened: ledger entry
+  2026-11-25; not edited here (shared law statement).
+* D-T7-2 `srvCrashImageAt` carries `snapDirKeep` (handle and token) instead of `snapDirInvH`, and `NewServer.specC`'s
+  post returns the token (as raft's crash token): T4's spec; reported.
+* D-T7-3 the stop excluded: `Keep` holds `token νk.ν.stop` (the member's program never stops its server, so the run
+  never takes it); `rnDurK_crash`'s `rnTakenK` case is refuted by it. Asks of T8: the run's specs do not need the
+  stop token (or route the graceful stop's image to the crash, §10T2 (4)).
+* D-T7-4 the durable spine is persistent: the boot discards a fraction of the claims on `member` (in `dd`) and `snap`
+  (in `member`) after `TouchDirAll` (`gElem` persist; Go never writes those names again: `DiscardUnsaved` renames
+  `member/wal`, the bootstrap fix removes `member/snap/db`, both other claims). Asks of T8: the discard at boot.
+
+**Order**: (1a) delete the torn law; (2) `osPathDur` and its lemmas (proved now); (1b)/(3) after B1-B5's decisions.
+Estimate for (3) once unblocked: the table's 600-1000 lines for the assembly alone, plus T10 (B1, 800-1500) and T8.
+
+### T7 status and handoff (2026-11-25, session 1; branch `etcd-safe-t7`)
+
+**Done** (built on fk-lean2 in the P8/P5 worktree, `lake build …dist.crash.MemberCrash`, 4497 jobs, exit 0; no
+axiom, no `sorry`; `etc/tier-check.py --check` ok, the new file is defs tier):
+* (1a) `raftTorn`/`readyCrashTorn.law` deleted from `MemberGen.lean` (no user; T1 retired by the torn-`Save` fix).
+* (2) `dist/crash/MemberCrash.lean`: `osSpineDur`/`osPathDur` (persistent durable paths), `osPathDur_root`,
+  `osPathDur_child` (from `TouchDirAll`'s post: the claim at a discarded fraction, `h.next ≤ n`, `osCommitLb n`),
+  `osSpineDur_crash`/`osPathDur_lookup` (**T6's premise `lookupH R V' sd = some (.dir J)`**, from `crashRest`),
+  `osPathDur_agree`, `snapDirKeptR`/`snapDirKeptR_of` (**T6's `snapDirKept` at the law's roots**), `crashRest_roots`
+  (two shared invariants of the crashed generation agree on their roots: what `old_dir` needs for the restatement);
+  `rnTakenK_stop` (D-T7-3: T2's crash law's stop case refuted by the stop's token).
+* Ledger entries (2026-11-25): T6's `snapDirKept` unprovable as stated (D-T7-1); `srvCrashImageAt`'s three
+  gaps (D-T7-2, B2, B3). Neither statement edited.
+
+**Next, in order** (each waits on the decision named):
+1. D-T7-1 approved → in `SnapDirCrash.lean`: `snapDirKeptF := snapDirKeptR`'s body, `old_dir`'s three callers
+   get `R0 = R` from `memberCrash.crashRest_roots` (move it, or `osPathDur`'s file, below `SnapDirCrash` if the
+   import direction requires: `MemberCrash` imports `SnapDirCrash` today).
+2. The producer side of `osPathDur R sd J` (T8's boot): after `bootFs.touchMember` (`member`) and
+   `bootstrapSnapshot`'s `TouchDirAll(SnapDir())` (`snap`), persist a fraction of each claim (`gElem` persist,
+   `DFrac.update_discard`) and apply `osPathDur_root` (the data directory is a root?) then `osPathDur_child`
+   twice (`dd` is a root of the shared invariant, P7 round 4 gap 1, so `sd`'s spine is `[member, snap]`).
+3. B1 (the backend's image invariant): a design note first (who deposits the image facts at each backend
+   commit; `dbCrashKeep_new`/`_announce`/`_clear` at the apply thread's commit points; the facts must cover
+   `Dl`, `Dn` and `pd`).
+4. (done, session 2: see below) The WAL+raft part of the assembly.
+5. B2/B3/D-T7-2 decided (T4's `srvCrashImageAt`) → the image assembly; B4 (T3, T8's boot phases) → the
+   `memberFirst` case; B5 (T8) → `memberKeep` as a definition and the law proved.
+
+### T7 status and handoff (2026-11-25, session 2; branch `etcd-safe-t7`)
+
+**Done** (built on fk-lean2, `lake build …dist.crash.MemberCrash`, 4499 jobs, exit 0, no warning in the file;
+no axiom, no `sorry`; tier and API checks ok):
+* `storage/WalRecsHGen.lean` (new, imports `WalRecsH` with `import all`, so nothing above rebuilds):
+  `walRecsH_gen`, the records at one generation are the records at another (both at the statement's Go
+  context: `go.Semantics` is over a `GoLocalContext`, so the generations are `{L with goose_go_local_context
+  := lctx}`, i.e. `etcd_dist.atCtx`). `walFilesC` needs no such lemma: T5's `walRecsH_crash` states it at the
+  new generation directly, so the callback runs at `L'` and only the records cross.
+* `MemberCrash.lean`, section `durDefs` (one `HeapGS` each; see the pitfall below): `memberDurKeep` (T2's
+  invariant, `token νk.tk`, `nodeCrashTok`, the stop's `token νk.ν.stop`: D-T7-3), `memberWalKeep h` (`walInv` at
+  `walCodec`/`walSrvMr`, `walCrashTok`, `osSharedInv h.R`), `memberWalCrashW h W'` (`walCrashWal`, `W'`'s lock
+  token), `memberWalCrash h W'` (that and the WAL directory's call permission's half), `memberDurOut` (T2's
+  outputs: `raftState`, `nodeVacant`, the image facts, `walSnapCert`, `walSnapDur`, the committed log);
+  `memberDurOut_gen` (`.rfl`).
+* `memberWal_crash`: `walInv_crash` at the member's WAL, first of the crash lemmas (`D = []`): `W'`,
+  `memberWalCrashW` at `L'`, `W'.roots = h.R ∧ TreeWf h.R V'.now`, the crash rest with the area's files.
+  The new generation's `walStart`/boot files are dropped: `memberGen`'s restart case holds only the files
+  (`srvFilesC`), so `walBootCrash` is **not** needed by T7 (the restarted server's area is `bootstrap`'s crash
+  contract's business; noted, not a blocker of T7).
+* `memberDur_crash` (T2 + T5): `memberDurKeep` at `L`, `isCluster`, **one** credit, `crashed` at `L`,
+  `memberWalCrash` at `L'` ⊢ `∃ S σ l, walFilesC (L') {h.toWalA with W := W'} id cid σ true ∗ memberDurOut (L)`.
+  `rnTakenK_stop` now needs no credit (the contradiction is pure under the later, `▷ ⌜False⌝`), so the
+  law's single `£ 1` goes to T2. **But `snapDir_crash.law` also takes a `£ 1`**: the assembly needs a second
+  credit, which `Keep` must carry (`£ 1` in `memberKeep`, deposited by T8; B5's) unless T6's law is
+  restated credit-free (its body is not timeless).
+
+**Pitfall (cost three builds).** In a statement over two generations, `G : GooseGlobalGS`, `L`, `L'` are all
+local instances (a binder of class type is one, brackets or not), so a predicate written directly in the
+statement gets instances Lean picks (`nodeCrashTok`'s `InvGS` came out as `invGS (goose_irisGS G L')`), not
+the law's (`… ⟨G, atCtx L⟩`), and `iapply`/`$$` fails with `IntoWand` on syntactically equal-looking
+terms. Fix: name each generation's resources by a definition over one `[hG : HeapGS]` and use it at
+`(hG := ⟨G, atCtx L⟩)`; predicates over `GooseGlobalGS` alone (`walCrashWal`) are fine.
+
+**Next, the assembly** (`memberGen_crash_law_holds`, one named hypothesis per blocker). Design:
+* `Keep L := memberKeep KeepF KeepB L`, two abstract keep pieces (parameters) for the blocked parts:
+  `clusterFacts …` (persistent) `∗ £ 1 ∗ (KeepF L ∨ memberKeepR KeepB L)`, where `memberKeepR` =
+  `∃ h νk γn ρo r cid …, memberDurKeep ∗ memberWalKeep h ∗ dbCrashKeep … ∗ snapDirKeep … ∗ osPathDur R sd J ∗
+  memberRestartFacts γ' ρo id ∗ KeepB L ∗ ⌜h.toWalA = etcdWalArea … ∧ h.md = walMetaEnc id cid ∧ h.dir =
+  srvWalDirOf dd ∧ …⌝`. The equation `h.toWalA = etcdWalArea …` is needed: `memberWalKeep`/`walInv_crash` are at
+  `h.ext`, the law's `crashRest` at the ambient `ExtSemantics`; `cases h` + `subst` makes `h.ext` the ambient
+  `inferInstance` definitionally.
+* Named hypotheses (each an `abbrev memberCrash.<name>.law : Prop` with a docstring naming its blocker):
+  - **B4** `memberFirstCrash.law KeepF`: `KeepF L` (and the crash's inputs) `={⊤}=∗ memberFirst` at `L'`.
+  - **B1** `memberImage.law KeepB`: `KeepB L`, the backend's `fileHoldsM i0 D'` (from `dbCrash`) and
+    `memberDurOut` give the image rows `srvRLogLb A`, `i = ai0 + |A|`, `imageRestAt`, `imageStOk`, `mvccImage`,
+    `confAt`, `v3ConfStateIs`, `memStorRegAuth M`, and the backend's `fileHolds (backendPathOf dd) D`
+    (the backend file name: B1's too).
+  - **B2** `σ.b ≤ i` and **B3** `bootLen ≤ i`: two pure hypotheses over B1's outputs (as stated they are false
+    in some runs, ledger 2026-11-25; T4's restatement of `srvCrashImageAt` replaces them).
+  - **D-T7-1**: `snapDirKept` from `snapDirKeptR` (the ledger's restatement makes it `snapDirKeptR_of`).
+  - **D-T7-2**: the snapshot directory's row of `srvCrashImageAt` (`snapDirInvH … ∗ monoNatAuthOwn γm 1 c`)
+    from `snapDir_crash`'s `snapDirKeep` at `L'`.
+  - **A1** `∀ st st', Q st st' → BoltCrashWhole (· = i0) st st'` (and `W1`), a plain hypothesis on `Q`
+    until `etcdCQ` has it.
+* Order of the proof: `memberWal_crash` → `dbCrash` (`Dx` = the WAL's `D`) → `crashRest_treeWf'`,
+  `crashRest_treeS'` (`V'.2 = []`, `osShared L' R V'`; the WAL directory's call permission's half out of
+  `osCallPerms`) → `osPathDur_lookup` → `snapDir_crash_law_holds` (its `snapDirOwn`/`snapSlot`s from the
+  shared claims of `dd`'s directories at `L'`: still to write, D-T7-4) → `memberDur_crash` → the image
+  hypotheses → `memberRestart` at `L'` (`memberRestartFacts`, `clusterFacts` moved to `L'`: check they are
+  generation-free by `.rfl`, as `memberDurOut_gen`).
+
+### T7 status and handoff (2026-11-25, session 3; branch `etcd-safe-t7`)
+
+Coordinator's ask: write `memberGen_crash_law_holds` with one named hypothesis per blocker (B4, B1, B2, B3, D-T7-1,
+D-T7-2, A1), the extra `£ 1` in `Keep` (T8's obligation); then D-T7-4's slots; check the facts carry over.
+
+**Done** (built on fk-lean2, `…dist.crash.MemberCrash`, exit 0; no axiom, no `sorry`):
+* `memberClusterFacts` (wrapper over one `HeapGS`) and `memberClusterFacts_gen` (`.rfl`): the cluster's facts carry
+  over.
+* `memberRestartFacts_gen`: a restart's facts carry over **except `idPfxInv`**, which is heap-level (its invariant
+  holds the generators' `prefix` field points-to on the old heap). New blocker **B6**, ledger 2026-11-25
+  ("`memberGen`'s restart case asks for the old incarnation's `idPfxInv`…"): as stated, `memberRestart` is
+  unprovable after any crash. The lemma takes the new generation's `idPfxInv` as an input; the assembly takes it as
+  the named hypothesis B6.
+
+**Not done: the assembly.** Two plumbing facts found while reading its inputs, which fix `Keep`'s pure rows:
+* (instances, B7, internal to T7's `Keep`, no spec change) Three file-system instance sources meet: the law's ambient
+  `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` (its `crashRest`), the WAL's `h.ext/h.semOk/h.has` (`walInv`,
+  `walInv_crash`), and the backend's and snapshot directory's `theFs GF = some c` (`onFs`: `dbCrashKeep`'s
+  `bbolt.fileHoldsM`, `snapDir_crash.law`'s `crashRest` at `c`'s instances; `theFs` is a `Classical.choice`). `Keep`
+  must carry `⌜h.toWalA = etcdWalArea …⌝` and `⌜theFs GF = some ⟨‹_›, ‹_›, ‹_›, fa, fsa, ne⟩⌝` (ambient ones), and the
+  proof `cases`/`subst`s them before applying each crash lemma.
+* (D-T7-4) `snapDir_crash.law` takes `snapDirOwn (snapDBPath sd)` and `[∗list] i ∈ snap.allW64, snapSlot sd J V' i`
+  at `L'` (each slot: `osInv`, `osSharedInv R`, `osPathS R sd dq J`, a call permission share, the claim on index `i`'s
+  name `osNames J (.only [snapDBName i]) 1 …`, `PathFits`). They come from `osShared L' R V'` (`crashRest_treeS'`):
+  the whole claim `osNames J (.except []) 1 (namesOf V' J …)` of `sd`'s directory split into `.except snapDirNames`
+  and the `2^64` singletons (a lemma over `snap.allW64` by induction, no `[∗list]` materialized: never `iframe` it),
+  the path `osPathS R sd dq J` from the claims of `dd` and `member` (fractions split off `osShared`'s whole claims
+  along `osPathDur`'s spine), and the call permission from `osCallPerms R`.
+
+**Next, in order:**
+1. `memberKeep C cfg id KeepF KeepB L := memberClusterFacts ∗ £ 1 ∗ (KeepF L ∨ memberKeepR KeepB L)` (`£ 1` for
+   `snapDir_crash.law`: T8's obligation), `memberKeepR` with the rows of session 2's design plus B7's two pure rows and
+   `memberRestartFacts γ' ρo id`.
+2. The hypotheses, each an `abbrev memberCrash.<name>.law : Prop` with its blocker in the docstring: `memberFirstCrash`
+   (B4), `memberImage` (B1), `memberImageB` (B2, pure, "false in some runs as stated; replaced by T4's restatement"),
+   `memberImageBoot` (B3, likewise), `snapDirKeptOf` (D-T7-1: `snapDirKeptR ⊢ snapDirKeptF` at the law's roots),
+   `memberSnapRow` (D-T7-2: `snapDirKeep` at `L'` gives the image's snapshot row), `memberPfx` (B6: the new
+   generation's `idPfxInv`), `hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st'` (A1, until `etcdCQ`), and the
+   law's own premise `Q → W1 walCodec` (not a blocker).
+3. The proof, in session 2's order, with D-T7-4's split lemma (above) proved first in `MemberCrash.lean`.
+
+### T7 status and handoff (2026-11-25, session 4; branch `etcd-safe-t7`)
+
+**Done** (`dist/crash/MemberCrash.lean`; built on fk-lean2, `…dist.crash.MemberCrash`, 4515 jobs, exit 0; tier check ok; no axiom, no `sorry`):
+* **D-T7-4's split** (`section slots`): `snapSlots_of` (induction over an index list: each index's fresh claim
+  plus half of the remaining path/call shares gives `snapCrash.snapSlotF`), `snapDir_split` (the new generation's
+  whole claim `osNames J (.except []) 1 (namesOf V J (.except []))` with a path share and a call share ⊢ every
+  index's slot over `snap.allW64`, the claim on `db` (for B1), and the `.except snapDirNames` claim with shares,
+  i.e. `snap.snapDirOwn`'s body). Over `WalFs.osNames_split_only`; `allW64` is never unfolded and no context
+  search runs next to its `[∗list]` (every step frames by name).
+* **`memberKeep`** (`section keep`): `memberClusterFacts ∗ £ 1 ∗ (KeepF L ∨ memberKeepR C cfg id (KeepB L))` at
+  `⟨G, atCtx L⟩`; `memberKeepR` = `∃ k : MemberKN`, pure rows (`k.γ = {C.γ with reg}`, `k.h.dir = srvWalDirOf dd`,
+  `k.h.md = walMetaEnc id k.cid`, `k.γ.snapLoc id = some k.γd`, `∃ c, theFs GF = some c`), `memberRestartFacts`,
+  `memberDurKeep`, `memberWalKeep`, `dbCrashKeep γb (backendPathOf dd) i0 Dl Dn pd`, `memberSnapKeep` (snapDirKeep
+  at the image's `img`/`Rm`), `osPathDur h.R (snapDirOf dd) J`, `KeepB k`.
+* **Named hypotheses**: `memberFirstCrash.law` (B4), `memberImage.law` (B1, with B2/B3's bounds as its pure
+  output `memberImageB σ i ∧ memberImageBoot γ i`, each a named def whose docstring says "false in some runs as
+  stated; replaced by T4's restatement"), `memberPfx.law` (B6), `snapDirKeptOf.law` (D-T7-1). A1 and W1 are plain
+  premises on `Q` of the theorem.
+
+**Decisions (session 4).**
+* B7 needs no row for the WAL: `h.has.sem_eq` and the ambient `HasExt.sem_eq` give `h.ext = ‹_›` (as
+  `snapDir_crash_law_holds` does); `FsSemOk`/`HasExt` are `Prop`s (`Subsingleton.elim`). Only `∃ c, theFs GF = some c`
+  is kept (the `onFs`-wrapped resources and `snapDir_crash.law` need `c`).
+* B2/B3 are not separate hypotheses: as standalone `∀ σ i` entailments they would be false outright (making the
+  law vacuous), so they are B1's pure output, named (`memberImageB`, `memberImageBoot`).
+* D-T7-2 needs no hypothesis for this law: the image's snapshot row is `snapDirKeep_handle`'s handle at `L'` plus
+  the counter authority `monoNatAuthOwn γm 1 c`, `c ≤ i+1`, which B1 returns (`memberImageRows`). The token is
+  dropped (D-T7-2 stays a defect for the *next* crash, T4/T8).
+* Q4 (fresh registry): `memberRestartFacts` fixes `ρo.rd.raft = ⟨γ', [], 0⟩`, so the image at a fresh `r'` needs
+  `ρo' := ρo` with `rd.raft := ⟨{γ' with reg := r'}, [], 0⟩` and a transport lemma (the bodies don't read `reg`:
+  `Alloc3.lean`'s `*_reg` are `entails_refl`; expect `.rfl` up to the pure row).
+
+**Next: `memberGen_crash_law_holds`** with
+`(hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st') (hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st')
+(hB4 : memberFirstCrash.law C cfg id KeepF Q) (hB1 : memberImage.law cfg id KeepB) (hB6 : memberPfx.law)
+(hD1 : snapDirKeptOf.law) : memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q`. Steps:
+1. `cases L`/`cases L'` and the context equations so `atCtx L` is `L` definitionally.
+2. First case: `hB4` (with the law's credit), frame the cluster facts (`memberClusterFacts_gen`).
+3. Restart case: `obtain` `k.h`'s instances equal to the ambient ones (sem_eq), then `memberWal_crash` (D = []),
+   `dbCrash` (`Dx` = the WAL's `D`, `i0 ∉ Dx` and `Named V'.now i0`: **still open**, from the backend file's
+   durable name: add to `memberKeepR` as a durable path of `backendPathOf dd` — `osPathDur` gives the spine
+   but not the file entry; a `nameCrash` for `db` in `J` is what's needed — or into B1's keep),
+   `crashRest_treeS'` (→ `osShared L' R V'`), `osPathDur_lookup`, `snapDirKeptR_of` + `hD1`.
+4. **The path at `L'`** (T7's own, not yet written): `osPathS R sd (own q) J` at `L'` from `osShared`'s
+   `[∗list] j ∈ dirsOf V'` whole claims along `osPathDur`'s spine (claims `.only [c]` split off each spine
+   directory; the directories pairwise distinct and in `dirsOf V'`, from `TreeWf` and the walk). Then
+   `snapDir_split` at `L'` and `snap.snapDirOwn` via `onFs_some`.
+5. `snapDir_crash_law_holds` (second credit from `memberKeep`), `memberDur_crash` (the law's credit; the WAL
+   directory's call permission's half from `osCallPerms R`), `hB1`, `hB6` + `memberRestartFacts_gen`, the Q4
+   transport, and `srvCrashImageAt` assembled (`srvFilesC`: `walFilesC` with `a.dir = h.dir`, `B1`'s `fileHolds`).
+
+### T7 status and handoff (2026-11-25, session 7; branch `etcd-safe-t7`)
+
+**`memberGen_crash_law_holds` proved** (`dist/crash/MemberCrash.lean`, out of its comment; built on fk-lean2,
+`lake build …dist.crash.MemberCrash` green, 4515 jobs; `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` and
+the reviewed interim axiom C-I1 `backend.dbCrash`, no `sorry`, nothing new). Statement unchanged from session 6:
+`(hQ) (hA1) (hB4) (hB1) (hB1n) (hB6) (hD1) : etcd_dist.memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q`.
+
+* The blocker (T6's `img` of the old generation) closed by the coordinator's option (a) (ledger 2026-11-25, decision
+  recorded): `mvcc.api.mvccImage_gen` (`EtcdBackend.lean`, `.rfl` inside the sealed module: `⧖` is global ghost
+  state), `srvImageM_gen` (`etcdserver/ImageOn.lean`), and T6's `snapDir_crash.law` takes `img img'` with
+  `□ (∀ j Dt, img j Dt -∗ img' j Dt)`. Both generation laws fix the Go context (`{L with goose_go_local_context :=
+  lctx}`): `go.Semantics` takes a `GoLocalContext`. Only importer of the T6 law: `MemberCrash`.
+* `etc/tier-check.py --check` ok. `etc/api-check.py etc/api/backend.txt --check` reports one error that predates this
+  session (`MemberCrash` imports `backend.CrashInterim`, not importable; the C-I1 interim axioms' module).
+* **Left for T8/T10**: the named hypotheses: B4 `memberFirstCrash.law` (T8's boot phases), B1 `memberImage.law` and
+  `memberDbNamed.law` (T10's backend image invariant and the `db` file's durable name), B6 `memberPfx.law`, D-T7-1
+  `snapDirKeptOf.law`, `hQ` (W1) and `hA1` (bbolt's crash premise, until `etcdCQ` has it); T8 builds `memberKeep`
+  (the second later credit, `KeepB`, the spine `member/snap` with its root rows) and applies the law; D-T7-2 stays
+  a defect for the next crash (T4/T8); C-I1 (`dbCrash`) is interim.
+
+### T7 status and handoff (2026-11-25, session 6; branch `etcd-safe-t7`)
+
+**`memberGen_crash_law_holds` written, stopped one step short** (`dist/crash/MemberCrash.lean`, the last section, in a
+block comment marked WIP so the file builds; no axiom, no `sorry`). With the comment removed, `lean-check` on fk-lean2
+(`etcd-safe-p8` worktree) elaborates every step of the session-5 plan and reports **one error**: the snapshot row of
+`srvCrashImageAt`. Statement: `(hQ) (hA1 : ∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st') (hB4) (hB1) (hB1n)
+(hB6) (hD1) : etcd_dist.memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q`.
+
+* **The blocker** (ledger 2026-11-25, "T6's `snapDir_crash.law` keeps the image predicate `img` of the old
+  generation"): the kept `snapDirKeep`'s `img = srvImageM γ.authOn γ` is at the old generation's `HeapGS`, the image
+  wants the new one's; `mvccImage` is `@[no_expose]` and takes the `HeapGS`, so no `.rfl`. Proposed: an mvcc API law
+  `mvccImage_gen` and `img → img'` in T6's law. **Decision needed** before T7 can finish.
+* New, compiled (outside the comment): `memberRestartFacts_cluster` (the restart facts give `ρo.rd.raft = ⟨γ,[],0⟩`,
+  `c0 = 0` and `isCluster γ.cl srvClusterN`), `memberRestartFacts_reg` (the facts at a fresh registry, term-level:
+  `BI.sep_mono (pure_mono …) .rfl`), `crashImage_of` (the image `srvCrashImageAt` at the fresh registry from
+  `memberDurOut`, `memberImageRows`, `walFilesC`, the handle and `ghostMapAuth r' 1 ∅`; its `srvImageM` at
+  `{γ with reg := r'}` **is** `.rfl`: the registry is not read).
+* Recipe learnt (for the rest of the proof): destructure `L`, `L'` (`⟨fl, lc, nh, gs, th, cr⟩`), `subst` the context
+  equations, then `letI hG : HeapGS .hasLC GF := ⟨G, L0⟩` (without it `imod` finds no `BIFUpdate`); pass every
+  generation-`L'` instance explicitly (`(hG := ⟨G, L1⟩)`, `(L := L1)`), never an anonymous constructor of `FsCtx` at
+  `L1` (`theFs` at `L1`: `backend.theFs_eq GF (hG := …) (S := Sc) …`; `FsCtx`'s `hG` is a structure parameter, so
+  `theFs` at `L0` is not `theFs` at `L1`); `iexact` unifies only reducibly, so a row equal by unfolding goes through
+  `iapply (show P ⊢ P' from .rfl)` (or `have e : P ⊢ P' := .rfl` before `unfold`). `srvClusterN_rnDurKN` is not
+  imported here: its proof is inlined.
+* Checking: `/shared/tmp/t7-chk.sh [-a] [--goal L:C]` copies the file to fk-lean2's `etcd-safe-p8` worktree and runs
+  `etc/lean-check.py` there (seconds per edit).
+
+### T7 status and handoff (2026-11-25, session 5; branch `etcd-safe-t7`)
+
+**Done** (`dist/crash/MemberCrash.lean`, no axiom, no `sorry`; build evidence below):
+* The two open items of session 4, decided:
+  - **The backend file's durable name goes in B1's keep `KeepB`**, as the named hypothesis `memberDbNamed.law
+    KeepB` (crash rest in, `V'.now.entry J "db" = some (.file i0)` out, `KeepB` and the crash rest back). Why not
+    `memberKeepR`: the record `dbCrashKeep` holds the claim on `db` (`bPath`), so no `nameCrash` can sit beside it
+    (`nameCrash_crash` needs the claim); the name's commits are the backend's run's (bbolt's `Open`, the snapshot
+    rename's `renamedDur`), which T10's invariant tracks. T8 only threads `KeepB`. The theorem gets one more
+    hypothesis than session 4's list (`hB1n`).
+  - **The path at `L'`** (`snapClaims_new`): from `osShared`'s whole claims, the spine `dd/member/snap` at the
+    fraction `1` (claims `.only [member]`, `.only [snap]` split off `jd`'s and `jm`'s) and `J`'s whole claim. For it,
+    `memberKeepR` now keeps the **concrete spine** `osSpineDur k.jd [member, snap] k.J` (not `osPathDur`; T8 builds
+    it the same way, `osSpineDur_snoc`), with pure rows (T8's, from the boot's roots): `(dd, jd) ∈ R`,
+    `(h.r, h.jr) ∈ R`, `h.r ≠ dd`, `IsUnder h.r h.dir`, `snapDirOf dd = joinPath dd [member, snap]`, and
+    `∀ i, PathFits (snapDBPath sd i)` (`snapDir_split`'s premise). `MemberKN` gains `jd`.
+* Pure geometry (`section geom`): `walk_two`; `notInArea` (no file of `J` is in a WAL area directory: `J`'s parent
+  `jm` is a child, the area `jr` a root; what `walInv_crash`'s `hD` and `snapDir_crash.law`'s disjointness need);
+  `mem_dirsOf`; `spineDirs` (`jd`, `jm`, `J` in the tree, pairwise distinct); `namesOf_only_cur`.
+* `osCallPerms_two` (the data directory's and the WAL area's whole call permissions, at the keys of paths below
+  them), `osCallPerm_halve`, `root_ne_nil`.
+* `memberWal_crash` generalized to files `D` taken before it (`hD : ∀ i ∈ D, ¬ InAreaDir V'.now h.jr i`), its
+  post gains `∀ i ∈ D', InAreaDir V'.now h.jr i`.
+* `memberImage.law` (B1) returns `memberDurOut` (the image needs raft's state and vacancy after it).
+
+**Next: `memberGen_crash_law_holds`** (`(hQ) (hA1) (hB4) (hB1) (hB1n) (hB6) (hD1) : memberGen_crash.law C cfg id
+(memberKeep C cfg id KeepF KeepB) Q`), in this order (each step's lemma exists unless marked *new*):
+1. `intro L L' V' hL hL'`; `obtain ⟨fl, lc, nh, gs, th, cr⟩ := L` (and `L'`), `simp only at hL hL'`, `subst` (as
+   `BootBad.serverBadWp`), so `atCtx L` is `L` up to whnf. `iintro Hk Hlc #Hcr Hrest #Hosi` (`crashed`, `osInv`
+   persistent). `iunfold memberKeep at Hk`; `⟨#Hcf, Hlc2, (HF | HR)⟩`; `memberClusterFacts_gen` for the cluster row.
+2. First case: `hB4 L L' V' rfl rfl $$ HF Hlc Hcr Hrest Hosi`; `memberGen` = facts ∗ `ileft`.
+3. Restart case: `iunfold memberKeepR`; `⟨%k, %hk, #Hrf, Hdur, Hwal, Hdb, Hsnap, #Hsp, HKB⟩`. Destructure `k` and
+   `k.h` (`WalH` = `⟨⟨ext, semOk, has, W, Sio, sat, satL, cov, R, jr, r, dir, fits, covP⟩, inj, w, γ, md, γh⟩`),
+   `subst` `ext = S` (`has.sem_eq.symm.trans` the ambient's; `semOk`/`has` are proofs, defeq), likewise `c`
+   (`⟨S, ok, has, fa, fsa, ne⟩`); `hfs' : theFs (hG := new) = some c := hfs` (defeq: `theFs` ignores `hG`);
+   `haveI := inj`.
+4. Old generation: `iunfold memberWalKeep at Hwal` → `⟨Hwi, Hwt, #Hsh⟩`; `osSharedInv_rootsOk` → `RootsOk R`;
+   `crashRest_treeWf'` → `TreeWf R V'.now`; `osSpineDur_crash … [member, snap] jd J $$ Hsh Hrest Hsp` → walk;
+   `walk_two` → `jm`, `h1`, `h2`.
+5. `hB1n L L' k Q [] false V' $$ HKB Hrest` → `hdb`; `dbCrash … (hA1 i0) [] (by simp) V' ⟨J, _, hdb⟩ ⊤ $$ Hdb Hcr Hrest`
+   → `D'`, `fileHoldsM i0 D'`.
+6. `memberWal_crash L L' h Q hQ V' [i0] (notInArea hwf h1 h2 hrR hdb …) ⊤ … $$ [Hwi Hwt Hsh] Hcr Hrest` → `W'`, `Dw`.
+7. `crashRest_treeS' … (Dw ++ [i0]) …` → `V'.2 = []`, `osShared (L := L') R V'` (`⟨#Hsh', -, Hperms, -, Hall⟩`),
+   crash rest at `true`. `snapClaims_new … hwf hRok hdR hsd h1 h2 $$ Hsh' Hall` → path `1`, `J`'s claim.
+   `osCallPerms_two R dd r sd dir … hrne.symm (isUnder from hsd: isUnder_joinPath) hunder $$ Hperms`;
+   `osCallPerm_halve` for the WAL's half.
+8. `snapDir_split … 1 1 ⊤ … hfit $$ Hosi Hsh' Hp Hcs HJ` → slots, `db`'s claim, `q' qc'` path/perm, `.except` claim;
+   `rw [← Qp.half_add_half q', ← Qp.half_add_half qc']`, `osPathS_frac`/`osCallPerm_split`; `snapDirOwn` (`unfold;
+   rw [onFs_some hfs']`), the slots as `snapSlot` (`have hslot … onFs_some hfs'`, `simp only [hslot]`; never
+   `iframe` next to the list).
+9. `osPathDur` at the old generation from the spine and the rows (`unfold osPathDur; iexists dd, jd, [member, snap]`);
+   `osPathDur_lookup` → `lookupH`; `snapDirKeptR_of` + `hD1` + `onFs_some hfs` → `snapDirKept`.
+   Disjointness for `snapDir_crash.law`: `x ∈ Dw` by `notInArea` (with `hwp`), `x = i0` by uniqueness at `J`
+   (`db` ≠ `snapDBName i`: `bootSnap.snapDBName_length`). Apply `snapDir_crash_law_holds L L' c c Q true V' (Dw ++
+   [i0]) R J sd γd img Rm Rm …` with `Hlc2`, `Hsnap`, `Hcr`, `□ (∀ j, Rm j -∗ Rm j)`, the kept, `Hsh ∗ Hrest`, the own
+   and slots → `snapDirKeep` at `L'` (keep its handle: `snapDirKeep_handle`).
+10. `memberRestartFacts` → `ρo.rd.raft = ⟨γ, [], 0⟩` and `isCluster γ.cl srvClusterN` (*new* small lemma: unfold,
+    `srvRaftLogInv` → `srvClusterOk` → `isCluster`); `memberDur_crash … ⊤ CoPset.subseteq_top srvClusterN_rnDurKN $$
+    Hdur Hcl Hlc [Hwc Hcw]` → `S σ l`, `walFilesC`, `memberDurOut`. Watch the pitfall: `memberDur_crash`'s
+    `isCluster` was elaborated with instances Lean picked; if `$$` fails, wrap it as `memberIsCluster` over one `HeapGS`.
+11. `hB1 L L' V' k S σ l D' q'.half qc'.half hD' $$ HKB Hdo Hfm Hp2 Hc2 Hdbc` → `memberDurOut`, `memberImageRows`,
+    the bounds.
+12. Registry (Q4): `ghost_map_alloc_empty (K := Loc) (V := MemStorNamesRec)` → `r'`; `γ' := {γ with reg := r'}`,
+    `ρ' := {ρo with rd := {ρo.rd with raft := ⟨γ', [], 0⟩}}`; *new* `memberRestartFacts_move` (as
+    `memberRestartFacts_gen`, plus `rw [hr]` and the `*_reg` transports, `entails_refl`, of `Alloc3.lean`:
+    `srvRaftLogInv`, `kvInv`, `srvPropMint`, `srvRdCtxInv`; `srvRLogLb_reg` for the image), with `hB6 L' ρo`.
+13. `memberRestart` at `L'`: `iright; iexists ρ', γ'`, `⟨r', rfl⟩`-style pure row (`γ = {C.γ with reg := r}`),
+    `srvCrashImageAt γ' ρ' id dd S σ i A D m ∅`: rows from `memberDurOut` (`.rfl` across generations,
+    `memberDurOut_gen`), `memberImageRows`, the bounds, `srvFilesC` (`walFilesC` at `{h.toWalA with W := W'}`, `a.dir =
+    h.dir = srvWalDirOf dd`), the snapshot row (`snapDirKeep_handle` at `L'` + the counter authority; `srvImageM`
+    at `γ'` is `srvImageM` at `γ` if it does not read `reg`, else a transport lemma).
+
+Build evidence (session 5): fk-lean2, worktree `etcd-safe-p8` at `f27b5f6d36`, `lake build
+…dist.crash.MemberCrash`: `[4515/4515] Built …MemberCrash`, `Build completed successfully (4515 jobs)`, exit 0;
+one linter warning (`walk_two`: the `walk` argument of the inner `simp only` is unused). Helper:
+`/shared/tmp/t7-build.sh` (pushes `HEAD` as `etcd-safe-p8` to fk-lean2 and builds the module; log
+`/shared/tmp/t7-build.log`).
