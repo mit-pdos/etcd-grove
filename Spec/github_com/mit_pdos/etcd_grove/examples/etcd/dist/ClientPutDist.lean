@@ -9,7 +9,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
-public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 
 @[expose] public section
 
@@ -34,16 +34,16 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **`cli.Put(ctx, key, val)` by `New`'s client of a member of the view `Γ` at another machine**
 (the cross-machine form of `client.client_Put_own`): a client that dials with no proxy (`clientNoProxy`,
 `etcdstart.NewClient`'s post) of an address set to serve etcd's table for a member of `Γ` (`etcdAddrAt`), a
-cluster with auth off, and the client's putget invariant at read names whose KV names are the view's. On
+cluster with auth off, and the client's putget invariant at the view's KV names (`putGetInvK`). On
 `nil`, the put's flag. -/
 abbrev Client_Put_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (γr : ReadNames) (γf : GName) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (γf : GName) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice),
-  opSizeOk (opPutModel key val []) → Γ.auth = false → γr.kv = Γ.kv →
+  opSizeOk (opPutModel key val []) → Γ.auth = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       isNewClient cl [ep] V ∗ clientNoProxy cl ∗ etcdAddrAt (Gg := hG.goose_globalGS) ep Γ mid ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ putGetInv γr γf key val }}
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ putGetInvK Γ.kv γf key val }}
     (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
         go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗

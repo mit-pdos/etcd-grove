@@ -2,7 +2,7 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ClientPutDist.lean`: `cli.Put` through the
 `KV` field (`Client.Put`'s promotion, `ptr_Put_unfold`) is `(*kv).Put`, whose cross-machine contract is the
 interim axiom `KV_Put_dist` (a hypothesis here), at putget's put update fired at most once
-(`client.putAu_of_putGetInv`, `kvOpAu_one`). Until 2026-11-25 (O1-B, `notes/etcd-dist-plan.md` §18.3) an
+(`putAu_of_putGetInvK`, `kvOpAu_one`). Until 2026-11-25 (O1-B, `notes/etcd-dist-plan.md` §18.3) an
 axiom of its own over the published view. Lean-first (no Rocq counterpart).
 -/
 module
@@ -40,7 +40,7 @@ set_option maxHeartbeats 800000 in
 /-- See the file header. -/
 theorem Client_Put_dist.wp_proof (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) :
     Client_Put_dist.spec (GF := GF) (hG := hG) := by
-  intro π cl ep V Γ mid γr γf ci cd key val sl hsz hauth hkv
+  intro π cl ep V Γ mid γf ci cd key val sl hsz hauth
   iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hnp, #Hat, #Hctx, #Hce, #Hopts, #Hinv⟩ HΦ
   ihave #Hms := membersAt_one (Gg := hG.goose_globalGS) ep Γ mid $$ Hat
   ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl [ep] V Γ $$ [Hcl Hnp Hms]
@@ -49,10 +49,10 @@ theorem Client_Put_dist.wp_proof (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG :=
   iunfold kvClientAt at Hkc'
   icases Hkc' with ⟨-, -, #Hkvf, -⟩
   -- putget's put update, fired at most once (`Γ.auth = false`: the put is sent at most once)
-  ihave #Hau := putAu_of_putGetInv γr γf key val $$ Hinv
-  ihave Hau1 := kvOpAu_one γr.kv (.put (putKeyOp key val)) (fun _ => monoNatLbOwn γf 1) $$ Hau
-  iunfold kvOpAu1 kvAu1 at Hau1
-  rw [hkv]
+  ihave #Hau := putAu_of_putGetInvK Γ.kv γf key val $$ Hinv
+  ihave Hau1 := kvOpAu_one Γ.kv (.put (putKeyOp key val)) (fun _ => monoNatLbOwn γf 1) $$ Hau
+  iunfold kvOpAu1 at Hau1
+  iunfold kvAu1 at Hau1
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto

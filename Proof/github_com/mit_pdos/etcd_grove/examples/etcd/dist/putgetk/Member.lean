@@ -517,7 +517,7 @@ theorem Member.wp_proof
       (etcdstart.env₀ γm (c.idx (memberIdOf pi)) (c.rev (memberIdOf pi)) (srvApi.kvNx ρ.rd false) false)
       lg γn (memberIdOf pi) c.view) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg⟩
+    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
   cases serr with
   | ok ei =>
     (try wp_auto)

@@ -46,7 +46,8 @@ facts at `Γ`) and the error arm without `kvErr`, for a cluster with auth off (`
   through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, `TestProxyRogue`, `TestWithNoProxyFix`).
   Each endpoint's table is set once by the start (`etcdAddr_set` spends `addrUnset`) and served only by
   `Serve_dist` at a member whose KV names are `kvCongr` to `Γ.kv`; `bridge.New` consumes `netAddrLeft`
-  (review 4). So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
+  (review 4). Another program at the address (a raw listener, an empty gRPC server, the only server that
+  serves the opaque table without its handlers) answers no call successfully: the error arm. So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
   asks of each member), and the handler's spec is the one its in-process proof meets.
 * *Errors, timeouts, retries are the error arm*, as `KV_Put_dist`'s: a delete is retried only after a
   refusal, which an auth-off member never sends, so it is sent at most once and its one-shot update fires at

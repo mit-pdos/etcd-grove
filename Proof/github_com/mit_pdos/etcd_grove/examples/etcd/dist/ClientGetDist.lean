@@ -2,7 +2,7 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ClientGetDist.lean`: `cli.Get` through the
 `KV` field (`ptr_Get_unfold`) is `(*kv).Get`, whose cross-machine contract is the interim axiom
 `KV_Get_dist` (a hypothesis here), at putget's read update after the put fired
-(`client.getAu_of_putGetInv`); the reply's first key-value from the selection of the one key in the state
+(`getAu_of_putGetInvK`); the reply's first key-value from the selection of the one key in the state
 the read linearized at (`srvRangeOk_getKey`, `filter_key_of_findKey`). Until 2026-11-25 (O1-B,
 `notes/etcd-dist-plan.md` §18.3) an axiom of its own over the published view. Lean-first (no Rocq
 counterpart).
@@ -13,6 +13,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientGetDi
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVClientDist
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -42,7 +43,7 @@ set_option maxHeartbeats 800000 in
 /-- See the file header. -/
 theorem Client_Get_dist.wp_proof (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) :
     Client_Get_dist.spec (GF := GF) (hG := hG) := by
-  intro π cl ep V Γ mid γr γf ci cd key val sl hsz hkv
+  intro π cl ep V Γ mid γf ci cd key val sl hsz
   iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hnp, #Hat, #Hctx, #Hce, #Hopts, #Hinv, #Hlb⟩ HΦ
   ihave #Hms := membersAt_one (Gg := hG.goose_globalGS) ep Γ mid $$ Hat
   ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl [ep] V Γ $$ [Hcl Hnp Hms]
@@ -52,9 +53,8 @@ theorem Client_Get_dist.wp_proof (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG :=
   icases Hkc' with ⟨-, -, #Hkvf, -⟩
   ihave #Hopts' := optsAt_res sl [] iprop(True) $$ Hopts
   -- putget's read update: the state's value of `key` is `val`
-  ihave #Hau := getAu_of_putGetInv γr γf key val $$ [Hinv Hlb]
+  ihave #Hau := getAu_of_putGetInvK Γ.kv γf key val $$ [Hinv Hlb]
   · iframe #
-  rw [hkv] at *
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
