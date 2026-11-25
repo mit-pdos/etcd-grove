@@ -1705,8 +1705,20 @@ What the merges needed:
 **Checked:** gen-raft-tla, copy-part, gen-init, gen-specs-pkginit (`PERENNIAL_DIR` a checkout at the manifest's
 `fce59af75`); api (raft); tier (208 known); bounds (390). The merged modules and their importers were built on the VM
 first (only the KvRaft copy failed). Then the full VM build went green at `1c2958cbb4` (28669 jobs). Every `Link`
-regenerated on the VM matches, and so does btree's. `tcb-report --check`, the collections and the new collection
-`etc/tcb-collections/etcd-dist.txt` (P12; roots: the dist `TopLevelRobustness`): see below.
+regenerated on the VM matches, and so does btree's. The trust-base checks ran through `vmlake env` (re-run after the VM was preempted at 16:12Z: rebuilt with
+no change, then checked):
+- **`tcb-report --check`: one difference, from T7's line, none from T4 or the merges.** `+ sorry
+  rnRestartAllocK_law_holds`. It is P5's labeled hole P5-RESTART (`InvWalCrashSteps.lean`, `a38f75bcc3`: the
+  restart slot does not carry `walHistCerts`, pending the restatement over the reader's fold on #50). It is
+  linked in the server `Link` (`bootstrappedRaft.newRaftNode`'s `rnRestartAllocK.law`), so on `etcd-safe-t7` itself
+  too. That branch's baseline never listed it (`etcd-dist-d6.md`: "needs a local build to update"). No axiom
+  was added or removed. **The baselines were not updated here** (no new `sorry` without a decision). The
+  collections that differ by this `sorry` alone: `server`, `putget-dist`, `etcd-all-single-process`,
+  `k8s-all-single-process`, `leaseexpiryN-single-process`. Every other collection matches.
+- **`etc/tcb-collections/etcd-dist.txt`** (P12, from the draft; roots: the dist `TopLevelRobustness`): baseline
+  empty (0 axioms, 0 sorries; `--check --update`). `etcd_safe_of_boot` and `etcd_safe_nocrash_of_boot` take
+  the boot WPs (`EtcdBootC`/`EtcdBootCBad`, `EtcdBootNC`/`EtcdBootNCBad`) as named hypotheses, so no axiom is
+  reached yet.
 
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
