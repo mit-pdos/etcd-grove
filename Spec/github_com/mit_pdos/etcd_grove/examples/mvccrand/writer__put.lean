@@ -5,7 +5,7 @@ the key's previous key-value, then puts a new value (with no lease or a live one
 checked (the hook ran with the index `i` being applied; the transaction's revision; the read, by
 `checkRange`; the put's revision), then `end`. The writer, between operations (`writerOwn`), ends
 between operations at the committed state and history; the hook saved `i` (`hookPre` to `hookPost`);
-one value drawn (`vals`).
+one value drawn (`vals`). Every live lease id is in `(0, 2^62]` (`genLease`'s premise).
 -/
 module
 
@@ -34,6 +34,7 @@ abbrev writer.put.spec : Prop :=
   ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : GoFunc) (q : Qp) (σ : MvccState)
     (Hs : List HRev) (L : List w64) (i s n : w64),
   0 ≤ sint.Z n → sint.Z n + 1 < 2 ^ 63 →
+  (∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ 2 ^ 62) →
   {{ writerCtx w wv γ B f ∗ writerOwn wv γ B q σ Hs L ∗ hookPre wv i s ∗ wF go!"vals" w ↦ n }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"put")) (Val #i))
   {{ RET #(); (∃ (σ' : MvccState) (Hs' : List HRev), writerOwn (GF := GF) wv γ B q σ' Hs' L) ∗ hookPost wv i ∗

@@ -180,6 +180,22 @@ def writerLe (w : Loc) (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) 
     ⌜0 ≤ sint.Z n ∧ (∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ sint.Z n) ∧
       ∀ id ∈ U, sint.Z id ≤ sint.Z n⌝)
 
+/-- **Every live lease's id is in `(0, nextID]`** (read off `writerLe`, which is kept). -/
+theorem writerLe_ids (w : Loc) (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc)
+    (L : List w64) (n : w64) (k : Nat) (T R : IProp GF) :
+    writerLe w wv γ B f L n k T R ⊢
+      ⌜∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ sint.Z n⌝ ∗ writerLe w wv γ B f L n k T R := by
+  iintro Hle
+  iunfold writerLe at Hle
+  icases Hle with ⟨%lp, %rd, %r, %U, Hro, Hlrd, Hrvk, Hever, HR, HT, Hrdo, Hdel, Hbe, Hrb, %HlP,
+    Hnext, %Hn⟩
+  isplitr
+  · ipureintro; exact Hn.2.1
+  iunfold writerLe
+  iexists lp, rd, r, U
+  iframe
+  ipureintro; exact ⟨HlP, Hn⟩
+
 /-- **The published revision is positive** (the tester's invariant): so the writer's history has
 at least two revisions. -/
 theorem writer_pub_pos (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (h : Loc)

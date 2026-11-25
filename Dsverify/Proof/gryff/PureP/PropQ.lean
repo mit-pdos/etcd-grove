@@ -336,7 +336,10 @@ theorem overwrite_PF (s : RState) (v : w64) (t : model.Tag) : PF s (s.overwrite 
 
 theorem shortCircuit_PF {s s' : RState} {n : w32} {v : ValTag} {f : Bool} {o : List Out}
     (h : shortCircuit s n v f = some (s', o)) : PF s s' := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · exact PF.refl _
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h
