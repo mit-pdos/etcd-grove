@@ -178,32 +178,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **What `Repair` holds for the `.broken` create's update**: the directory's key, a quarter of
 the WAL directory's claim (the call has another), the handle's record of what is out (the claim
 among it). -/
-def walBrokenP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) :
-    IProp GF :=
-  iprop(walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own qQuarter) hj ∗
-    walOutFrag (W := W) o)
+def walBrokenP (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
+    (o : WalOut) : IProp GF :=
+  iprop(walDirKey (W := W) dir (incOf I dir) j X ∗ walLockedTokI (W := W) I ∗
+    osNames j (.except X) (DFrac.own qQuarter) hj ∗ walOutFrag (W := W) o)
 
 /-- **What `Repair` gets from the update**: with no effect, what it held; after the create of `bt`
 (the file `i`, logged at `x` by a call begun at `s0`), its quarter of the claim at the new history and
 `bt` lent (`lendKey`: the new file is the program's until it gives it back, `walOthers_unlend`). -/
-def walBrokenQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut)
-    (bt : GoString) : Option (Nat × Nat × Ino) → IProp GF
-  | none => walBrokenP (W := W) dir j X hj o
-  | some (x, s0, i) => iprop(walDirKey (W := W) dir j X ∗
+def walBrokenQ (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
+    (o : WalOut) (bt : GoString) : Option (Nat × Nat × Ino) → IProp GF
+  | none => walBrokenP (W := W) dir I j X hj o
+  | some (x, s0, i) => iprop(walDirKey (W := W) dir (incOf I dir) j X ∗ walLockedTokI (W := W) I ∗
       osNames j (.except X) (DFrac.own qQuarter) (hj.log x (crEnt j bt i s0) (<[bt := .file i]> hj.cur)) ∗
       walOutFrag (W := W) (o.addClaim (lendKey j bt)))
 
 /-- **`Repair`'s update for `os.OpenFile.specCreateTruncSncN`** (see the file header): the name `bt`
 a `.wal.broken` name, the claim out (`hoD`). -/
 theorem walBroken_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut) (bt : GoString)
-    (hoD : (j, NameSet.except X) ∈ o.D) (hbt : go!".wal.broken" <:+ bt) :
-    ⊢ walInv (W := W) C Mr R jr r -∗ walBrokenP (W := W) dir j X hj o -∗
+    (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut)
+    (bt : GoString) (hoD : (j, NameSet.except X) ∈ o.D) (hbt : go!".wal.broken" <:+ bt) :
+    ⊢ walInv (W := W) C Mr R jr r -∗ walBrokenP (W := W) dir I j X hj o -∗
       osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
         (crOutN j (.except X) bt hj (DFrac.own ((1 : Qp).half + qQuarter)))
-        (walBrokenQ (W := W) dir j X hj o bt) := by
+        (walBrokenQ (W := W) dir I j X hj o bt) := by
   iintro #Hinv HP
-  iapply osAUnc_coiter _ _ _ (walBrokenP (W := W) dir j X hj o) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (walBrokenP (W := W) dir I j X hj o) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -211,11 +211,11 @@ theorem walBroken_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walBrokenP
-  icases HP with ⟨#Hkey, Hq, Ho⟩
+  icases HP with ⟨#Hkey, HlI, Hq, Ho⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupL K dir j X I $$ Hdk Hkey HlI with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
@@ -261,7 +261,7 @@ theorem walBroken_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only [walBrokenP]
-    iframe Hkey Hq Ho
+    iframe Hkey HlI Hq Ho
   · iintro %oc Hβ
     rcases oc with _ | ⟨x, s0, i⟩
     · -- no effect: as the abort
@@ -296,7 +296,7 @@ theorem walBroken_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walBrokenQ, walBrokenP]
-      iframe Hkey Hq Ho
+      iframe Hkey HlI Hq Ho
     · imod Hcl'
       simp only [crOutN]
       icases Hβ with ⟨%hcs, Hlog, Hwn⟩
@@ -355,7 +355,7 @@ theorem walBroken_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         iframe Hnms; ipureintro; exact ⟨hat', Hbd⟩
       imodintro
       dsimp only [walBrokenQ]
-      iframe Hkey Hqn Ho
+      iframe Hkey HlI Hqn Ho
 
 end au
 

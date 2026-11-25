@@ -3,7 +3,7 @@
 # What a purge round uses of the WAL (unit `locks`, session 10; `notes/wal-units/locks.md`)
 
 The tester's `purgeRound` (a round of `fileutil.purgeFile`'s loop on the WAL directory, while the WAL's
-handle is lent to it, `walOpenWF_lend`) removes the oldest names ending in `"wal"`. Besides the two removal
+handle is lent to it, `walOpenWFI_lend`) removes the oldest names ending in `"wal"`. Besides the two removal
 updates (`walPurge_osAUnc` for a segment, `walPurgeOther_osAUnc` for a leftover file) and the leftover's
 lending (`walInv_lendOther`/`walInv_unlendOther`, to learn that it is a file), it needs:
 
@@ -40,16 +40,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **Every `.wal` entry of a keyed WAL directory's claim is a file** (the invariant's body). -/
 theorem walInvBody_walFiles (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (q : Qp) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
-      osNames (L := L) j (.except X) (DFrac.own q) hj -∗
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (q : Qp) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗ osNames (L := L) j (.except X) (DFrac.own q) hj -∗
       ⌜∀ b e, walNameP b = true → hj.cur !! b = some e → ∃ i, e = .file i⌝ ∗
-        osNames (L := L) j (.except X) (DFrac.own q) hj ∗ walInvBody (L := L) (W := W) C Mr R jr r s := by
-  iintro Hb #Hkey Hq
+        osNames (L := L) j (.except X) (DFrac.own q) hj ∗ walIncQ (W := W) I ∗
+        walInvBody (L := L) (W := W) C Mr R jr r s := by
+  iintro Hb #Hkey HIq Hq
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, HCR,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hkey HIq with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
@@ -60,7 +61,7 @@ theorem walInvBody_walFiles (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     List.mem_append_right _ (List.mem_cons_self ..)
   have hsn : SegsNamed lay1.segs hj1.cur :=
     (Hnm dir lay1 hl1).1 hj1 ⟨X, hXw, by rw [hj1j]; exact hclm, by rw [hj1j]; exact hcoh⟩
-  iframe Hq
+  iframe Hq HIq
   isplitr
   · ipureintro; exact hsn.2
   iexists Ls, l1 ++ (j, NameSet.except X, hj1) :: l2, n, F
@@ -84,18 +85,20 @@ theorem walInvBody_walFiles (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
 
 /-- `walInvBody_walFiles` at any step. -/
 theorem walInv_walFiles (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (q : Qp) :
+    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString)
+    (hj : NamesH) (q : Qp) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own q) hj ={E}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) (DFrac.own q) hj ∗
+      walDirKey (W := W) dir (incOf I dir) j X -∗ walIncQ (W := W) I -∗
+      osNames (L := L) j (.except X) (DFrac.own q) hj ={E}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) (DFrac.own q) hj ∗ walIncQ (W := W) I ∗
         ⌜∀ b e, walNameP b = true → hj.cur !! b = some e → ∃ i, e = .file i⌝ := by
-  iintro #Hinv Hnc #Hk Hq
+  iintro #Hinv Hnc #Hk HIq Hq
   imod walInv_open C Mr R jr r E hE $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_walFiles C Mr R jr r s dir j X hj q $$ Hb Hk Hq with ⟨%hx, Hq, Hb⟩
+  icases walInvBody_walFiles C Mr R jr r s dir I j X hj q $$ Hb Hk HIq Hq with ⟨%hx, Hq, HIq, Hb⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   imodintro
-  iframe Hnc Hq
+  iframe Hnc Hq HIq
   ipureintro; exact hx
 
 end look

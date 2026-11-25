@@ -64,12 +64,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **The WAL as `ReadAll` reads it, its tail registered, not yet zeroed** (see the file header). -/
 theorem walInvBody_readReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG)
-    (gl : SegG)
+    (s : AbsDiskState) (dir : GoString) (i : Nat) (I : GMap GoString Nat) (hi : incOf I dir = i) (j : Ino)
+    (X : List GoString) (hj0 : NamesH) (gs : List SegG) (gl : SegG)
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
     (hdrop : ∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name))
     (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) (hgl : gs.getLast? = some gl) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗
       ([∗list] g ∈ gs, osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
@@ -80,18 +80,19 @@ theorem walInvBody_readReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
           TailMetaR gl.om gl.bs ∧ TailZ0 lay ∧ lay.old.length = gl.om.size ∧
           (∀ z, gl.om.zf = some z → gl.om.size ≤ z) ∧ (∀ y ∈ gl.bs, y = Fs.durB y.1) ∧
           CloseLeftOk X hj0 lay.segs gl⌝ ∗
-        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir j X ∗
+        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
         walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
         walPendTok (W := W) dir γ lay.old.length ∗
         (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay gl.ino none)) ∗
         ([∗list] g ∈ gs, osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
           osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) := by
-  iintro Hb Hk Hn Hf Hgs
+  iintro Hb Hk HI Hn Hf Hgs
+  subst hi
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hk with %hK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hk HI with %hK
   obtain ⟨lay, hj, hl, hlj, -, hXw, hOnce, -, hOther⟩ := Hdko.1 dir j X hK
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
     cases h : s.wal !! dir with
@@ -146,7 +147,7 @@ theorem walInvBody_readReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     obtain ⟨k, hk⟩ := List.getElem?_of_mem hg
     obtain ⟨sq, ix, hnm, -⟩ := habs.nameBound k g hk
     exact ⟨sq, ix, hnm⟩
-  iframe Hk Hn Hf Hgs Hpt Hv
+  iframe Hk HI Hn Hf Hgs Hpt Hv
   iexists Ls, cl, n, ∅
   iframe Hg Hcm HCR Htl Hpk Hnms Hcl
   isplitr
@@ -181,16 +182,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **`walInvRegisterPendLaw` proved** (see the file header). -/
 theorem walInvRegisterPendLaw_holds (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (r : GoString) : walInvRegisterPendLaw (hG := hG) (W := W) C Mr R jr r := by
-  intro dir j X hj0 gs gl hnm hdrop hsz hgl
-  iintro #Hinv Hnc Hk Hn Htf Hh
+  intro dir i I j X hj0 gs gl hi hnm hdrop hsz hgl
+  iintro #Hinv Hnc Hk HI Hn Htf Hh
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_readReg (L := hG.goose_localGS) C Mr R jr r s dir j X hj0 gs gl hnm hdrop hsz hgl
-    $$ Hb Hk Hn Htf Hh with ⟨%d, %lay, %kk, %γ, %hrs, Hb, -, Hn, Htf, Hpt, Hv, Hh⟩
+  imod walInvBody_readReg (L := hG.goose_localGS) C Mr R jr r s dir i I hi j X hj0 gs gl hnm hdrop hsz hgl
+    $$ Hb Hk HI Hn Htf Hh with ⟨%d, %lay, %kk, %γ, %hrs, Hb, -, HI, Hn, Htf, Hpt, Hv, Hh⟩
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   imodintro
-  iframe Hnc Hn Hh
+  iframe Hnc HI Hn Hh
   iexists d, lay, kk, γ
   iframe Htf Hpt Hv
   ipureintro
@@ -210,7 +211,7 @@ theorem walInv_readCommitReg {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : W
     (hPre : ∀ dc d lay kk, Pre dc → walDurLe dc d → WalAbsD C Mr d lay hj0.cur → lay.segs.drop kk = gs →
       segStart lay.cuts (lay.first + kk) ≤ d.unl) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir ic j X -∗
       osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
       ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
@@ -244,10 +245,13 @@ theorem walInv_readCommitReg {Lo : List (GoString × Qp)} (C : WalCodec) (Mr : W
   iintro #Hinv #Hsi Hnc #Hk Hn Htf Hnf Hh Ho Hau
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_readReg (L := hG.goose_localGS) C Mr R jr r s dir j X hj0 gs gl hnm hdrop hsz hgl
-    $$ Hb Hk Hn Htf Hh with ⟨%d, %lay, %kk, %γ, %hrs, Hb, -, Hn, Htf, Hpt, Hv, Hh⟩
+  icases walOpening_incQ (W := W) w dir sn ic $$ Ho with ⟨%IQ, HIQ, %hIQ, Ho⟩
+  imod walInvBody_readReg (L := hG.goose_localGS) C Mr R jr r s dir ic IQ hIQ j X hj0 gs gl hnm hdrop hsz hgl
+    $$ Hb Hk HIQ Hn Htf Hh with ⟨%d, %lay, %kk, %γ, %hrs, Hb, -, HIQ, Hn, Htf, Hpt, Hv, Hh⟩
   imod walInvBody_past C Mr R jr r s $$ Hb with ⟨Hb, #Hp⟩
-  imod walInvBody_nameClaim C Mr R jr r s dir j X Lo $$ Hb Hnf Hk with ⟨Hb, %nm, %q, %hn, Hnf, Hnn, %hnc⟩
+  imod walInvBody_nameClaim C Mr R jr r s dir ic IQ hIQ j X Lo $$ Hb Hnf Hk HIQ
+    with ⟨Hb, HIQ, %nm, %q, %hn, Hnf, Hnn, %hnc⟩
+  ihave Ho := Ho $$ HIQ
   -- the client's update, committed unchanged
   ihave Hau := atomic_update_mask_weaken walAuMask_sub_top' $$ Hau
   ihave Hacc := aupd_aacc $$ Hau

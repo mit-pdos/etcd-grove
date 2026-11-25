@@ -2249,6 +2249,45 @@ theorem walDirKey_lookupH (K : GMap GoString (Fs.Ino × List GoString)) (w : Loc
   subst h
   iapply walDirKey_lookupL $$ Ha Hk Hl
 
+/-- **The opening handle's quarter of the incarnations, lent** (P6b fix B: a key lookup by `ReadAll`). -/
+theorem walOpening_incQ (w : Loc) (dir : GoString) (sn : w64 × w64) (i : Nat) :
+    walOpening (W := W) w dir sn i ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walOpening (W := W) w dir sn i) := by
+  unfold walOpening; exact walHandlePI_incQ w dir i _
+
+/-- **An open handle's quarter of the incarnations, lent.** -/
+theorem walOpenWI_incQ (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWI (W := W) w dir i ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walOpenWI (W := W) w dir i) := by
+  unfold walOpenWI
+  iintro ⟨%I, Hs, Hl, %h⟩
+  icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+  iexists I
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iintro HI
+  iexists I
+  iframe Hs
+  isplitl
+  · iapply Hl $$ HI
+  ipureintro; exact h
+
+/-- **A cutting handle's quarter of the incarnations, lent.** -/
+theorem walOpenWCI_incQ (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWCI (W := W) w dir i ⊢ ∃ I, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      (walIncQ (W := W) I -∗ walOpenWCI (W := W) w dir i) := by
+  unfold walOpenWCI
+  iintro ⟨%I, Hs, Ht, HI, %h⟩
+  iexists I
+  iframe HI
+  isplitr
+  · ipureintro; exact h
+  iintro HI
+  iexists I
+  iframe Hs Ht HI
+  ipureintro; exact h
+
 /-- `walOpenWI_incLb` of the cut form. -/
 theorem walOpenWCI_incLb (w : Loc) (dir : GoString) (i : Nat) :
     walOpenWCI (W := W) w dir i ⊢ walOpenWCI (W := W) w dir i ∗ walIncLb (W := W) dir i := by

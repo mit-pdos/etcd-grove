@@ -73,8 +73,8 @@ theorem walInv_dirKeyArea (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     (dir : GoString) (i : Nat) (j : Ino) (X : List GoString) (I : GMap GoString Nat) (hi : incOf I dir = i) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
-      walLockedTokI (W := W) I ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗ ⌜∃ nm, InArea r dir nm⌝ := by
+      walIncQ (W := W) I ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walIncQ (W := W) I ∗ ⌜∃ nm, InArea r dir nm⌝ := by
   iintro #Hinv Hnc #Hk Hl
   subst hi
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc
@@ -82,7 +82,7 @@ theorem walInv_dirKeyArea (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, Hbd⟩
-  icases walDirKey_lookupL (W := W) K dir j X I $$ HKa Hk Hl with %hK
+  icases walDirKey_lookupI (W := W) K dir j X I $$ HKa Hk Hl with %hK
   have hin : ∃ nm, InArea r dir nm := by
     obtain ⟨lay, -, hl, -⟩ := HDK.1 dir j X hK
     cases hw : s.wal !! dir with
@@ -130,10 +130,10 @@ theorem walInv_returnHLoans2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     (hi : incOf I dir = i) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
-      walLockedTokI (W := W) I -∗ walHLoans (W := W) dir none [q1, q2] -∗
+      walIncQ (W := W) I -∗ walHLoans (W := W) dir none [q1, q2] -∗
       osPathS (L := hG.goose_localGS) R dir (DFrac.own q1) j1 -∗
       osPathS (L := hG.goose_localGS) R dir (DFrac.own q2) j2 ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walIncQ (W := W) I ∗
       walNamesFrag (W := W) none := by
   iintro #Hinv Hnc #Hk HlI Hl Hp1 Hp2
   imod walInv_dirKeyArea C Mr R jr r dir i j X I hi $$ Hinv Hnc Hk HlI with ⟨Hnc, HlI, %hA⟩
@@ -156,9 +156,9 @@ theorem walInv_returnHLoans1 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     (hi : incOf I dir = i) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir i j X -∗
-      walLockedTokI (W := W) I -∗ walHLoans (W := W) dir none [q1] -∗
+      walIncQ (W := W) I -∗ walHLoans (W := W) dir none [q1] -∗
       osPathS (L := hG.goose_localGS) R dir (DFrac.own q1) j1 ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walLockedTokI (W := W) I ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walIncQ (W := W) I ∗
       walNamesFrag (W := W) none := by
   iintro #Hinv Hnc #Hk HlI Hl Hp1
   imod walInv_dirKeyArea C Mr R jr r dir i j X I hi $$ Hinv Hnc Hk HlI with ⟨Hnc, HlI, %hA⟩

@@ -1222,7 +1222,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) (DFrac.own d)
         (createU Mr R jr r nm ic hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
           (createSeg i mS ysS))
-        (createSp Mr R jr r d) (createSpR jr J nm (b1 + b1)) :=
+        (createSp Mr R jr r d) (createSpR jr J nm (b1 + b1))
+        (fun x => createUK (W := W) Mr R jr r nm ic md Q Wn J (createSeg i mS ysS) x) :=
       ⟨hin, hdl, hnmO, tmpName_nameOk hnmO, tmpName_ne nm, by simp [NameSet.Mem],
         by simp [NameSet.Mem], hctmp, hcnm,
         create_spine Mr R jr J r nm ic hC md Q Pv Wn _ _ _ d (b1 + b1) hd hnm hnmO,
@@ -1230,7 +1231,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
-      (createUH jr J r nm ic md Q Wn d) hOk ⟨hnoerr.1.mono (fun _ hp => .inl hp), by rw [← tmp_path]; exact hnoerr.2.1, hnoerr.2.2⟩
+      (fun x => createUK (W := W) Mr R jr r nm ic md Q Wn J (createSeg i mS ysS) x) hOk ⟨hnoerr.1.mono (fun _ hp => .inl hp), by rw [← tmp_path]; exact hnoerr.2.1, hnoerr.2.2⟩
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hlks Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
@@ -1402,9 +1403,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
       (tmpName_nameOk hnmO) hnt.2 $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
-    unfold createU
-    icases HU with ⟨-, -, HQ⟩
-    unfold walCreateQ
+    unfold createUK
+    icases HU with ⟨-, HQ⟩
+    unfold walCreateQK
     icases HQ with ⟨HQ, Hsf, -, -, -, -, Hnf, -, %s', %Il, Hlt, Hpast, %hIs⟩
     obtain ⟨-, hs'⟩ := hIs
     iapply wp_notCrashed_acc _ _ rfl

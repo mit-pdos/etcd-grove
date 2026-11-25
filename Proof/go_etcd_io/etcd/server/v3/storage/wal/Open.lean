@@ -38,9 +38,9 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- The WAL's key, held by a read handle (persistent). -/
-theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) :
-    walReadH (W := W) write w dir s ⊢
-      walReadH (W := W) write w dir s ∗ ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
+theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) :
+    walReadH (W := W) write w dir s i ⊢
+      walReadH (W := W) write w dir s i ∗ ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir i j X := by
   unfold walReadH walReadTie
   iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, %qs, Hd, Hdec, Hde, Htie, Hr⟩
   icases Htie with ⟨%X, %hj, %gs, %fls, Hn, Ho, Ht, #Hk, Hrest⟩
@@ -55,13 +55,13 @@ theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) 
 
 /-- **The lock's registration token out of a read handle and back** (with its loans, and the WAL's key,
 persistent): `walInv_dirPath`'s inputs. -/
-theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) :
-    walReadH (W := W) write w dir s ⊢
+theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) :
+    walReadH (W := W) write w dir s i ⊢
       walOpenIn w dir s ∗
       ∃ Lo : List (GoString × Qp), walNamesFragS (W := W) ⟨none, none, Lo⟩ ∗
       (walOpenIn w dir s -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
-        walReadH (W := W) write w dir s) ∗
-      ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
+        walReadH (W := W) write w dir s i) ∗
+      ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir i j X := by
   unfold walReadH walReadTie
   iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, %qs, Hd, Hdec, Hde, Htie, Hr⟩
   icases Htie with ⟨%X, %hj, %gs, %fls, Hn, Ho, ⟨Ht, Hnf⟩, #Hk, Hrest⟩
@@ -134,11 +134,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     iframe
   · subst he
     try wp_auto
-    icases walReadH_namesOut true w dir s $$ Hrh with ⟨Hin, %Lo, Hnf, Hback, %j, %X, #Hkey⟩
+    icases walReadH_namesOut true w dir s ic $$ Hrh with ⟨Hin, %Lo, Hnf, Hback, %j, %X, #Hkey⟩
+    icases walOpening_incQ (W := W) w dir s ic $$ Hop with ⟨%IQ, HIQ, %hIQ, Hop⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_dirPath walCodec Mr R jr r dir j X Lo $$ Hinv Hnc Hnf Hkey
-      with ⟨Hnc, %nmd, %qd, %hdn, Hnf, Hpd⟩
+    rw [← hIQ] at *
+    imod walInv_dirPath walCodec Mr R jr r dir IQ j X Lo $$ Hinv Hnc Hnf Hkey HIQ
+      with ⟨Hnc, HIQ, %nmd, %qd, %hdn, Hnf, Hpd⟩
+    ihave Hop := Hop $$ HIQ
     imodintro
     iframe Hnc
     unfold walOpenIn

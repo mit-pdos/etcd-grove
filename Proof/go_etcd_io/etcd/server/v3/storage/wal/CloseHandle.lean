@@ -105,7 +105,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **`Close`'s put-back** (see the file header), at a program step (`notCrashed`): the WAL in `dir`
 with its tail `ino` (record `γ`, every record written, `wr` the tail stream's end, no write in flight;
 the program's halves of its `OsMeta` and bytes, synced: `TailMetaS`), the directory's claim's half and
-key, the pipeline names' claims (`b`, `b'`: the pipeline's leftover name and the one the handle kept,
+key (at the handle's incarnation `i`), the pipeline's key (`walPipeKey`, from `pipeLeft`: the pipeline reserve
+goes back with the names), the pipeline names' claims (`b`, `b'`: the pipeline's leftover name and the one the handle kept,
 both of `walTmps`), the record of what is out, the lock holder's halves (the tails' authority with
 this tail, no registration pending), the ghost handle with the lock token (`walOpenW`), the purge right
 and the history synced; the client's update. Gives the update's `Q d` (committed unchanged), the
@@ -121,7 +122,8 @@ def WalCloseLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoS
   ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
     walTailKey (W := W) dir γ -∗ tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
     osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs -∗
-    walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
+    walDirKey (W := W) dir i j X -∗ walPipeKey (W := W) dir j -∗
+    osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
     tmpClaim (hG := ⟨G, L⟩) j b -∗ tmpClaim (hG := ⟨G, L⟩) j b' -∗
     walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
     walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗ walNamesFrag (W := W) none -∗

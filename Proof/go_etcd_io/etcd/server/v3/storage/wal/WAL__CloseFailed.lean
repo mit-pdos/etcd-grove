@@ -71,7 +71,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
             (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir) }} := by
   intro R jr r w dir
   wp_start as ⟨#Harea, Hrf⟩
-  icases walReadFailedF_elim Mr w dir $$ Hrf with ⟨Hfail, %lg, %locks, %ls, %lt, %fp, %j, %X, %hj, %gs0, %gL,
+  icases walReadFailedF_elim Mr w dir $$ Hrf with ⟨%i, Hfail, %lg, %locks, %ls, %lt, %fp, %j, %X, %hj, %gs0, %gL,
     %fls, %df, %dfd, %ph, %qp, Hcm, Ht⟩
   unfold walFailCommon
   icases Hcm with ⟨Hlg, #Hzap, Hdir, Hlocks, Hls, Hfp, Hpipe, Hns, #Hmu, #Henv, Hdff, Hdf, Hdfs, Hph, Hn, Hout,
@@ -87,9 +87,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
   iunfold encEnv at Henv0
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
   -- the lock token, out of the ghost handle
-  ihave Hl := walReadFailed_lockedTok w dir $$ Hfail
-  unfold walLockedTok walLockedTokI
-  icases Hl with ⟨%Il, Hlt, Hpf, Hcf, HIl⟩
+  icases walReadFailed_lockedTokI w dir i $$ Hfail with ⟨%Il, Hl, %hIl⟩
+  subst hIl
+  unfold walLockedTokI
+  icases Hl with ⟨Hlt, Hpf, Hcf, HIl⟩
   ihave #HltL := (BigSepL.bigSepL_snoc (PROP := IProp GF)).1 $$ Hlks
   icases HltL with ⟨-, #HltL⟩
   have hll : (ls ++ [lt]).length = (gs0 ++ [gL]).length := by simp [hlsl]
@@ -126,10 +127,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
     icases HsT with ⟨Hm, Hb⟩
     rw [hgTi, ← hd]
     wp_apply (wp_syncIdleF R jr r w lg locks ls lt (fls.getD gs0.length null) fdt (child dir gL.name)
-        dir j X hj gL.name d gT.om gT.bs e hlastN (by rw [hd]; exact hiL) hgTs.symm)
-        $$ [He Henc Hns Hlg Hlocks Hls Hft Hfdt Hn Htf Hcf Hm Hb]
-        as %err ⟨He, Henc, Hns, Hlg, Hlocks, Hls, Hft, Hfdt, -, Hn, Htf, Hcf, Hsy⟩
-    · iframe; iframe #
+        dir _ Il j X hj gL.name d gT.om gT.bs e hlastN (by rw [hd]; exact hiL) hgTs.symm)
+        $$ [He Henc Hns Hlg Hlocks Hls Hft Hfdt Hn Htf Hcf Hm Hb HIl]
+        as %err ⟨He, Henc, Hns, Hlg, Hlocks, Hls, Hft, Hfdt, -, HIl, -, Hn, Htf, Hcf, Hsy⟩
+    · iframe; iframe #; try (ipureintro; rfl)
     ihave Hsy := syncOut_segF { gT with ino := d.ino } hgTs.symm (err = GoInterface.nil) $$ Hsy
     icases Hsy with ⟨%g', %hg', HsT⟩
     ihave Hres : iprop((walTailsFrag (W := W) ∅ ∗ ∃ (fdt : w64) (d : OsFd) (g : SegG),
@@ -149,7 +150,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
     -- after the sync: the put-back, or (a lent tail's failed sync) what the handle held of the directory
     iunfold pipeLeft at Hleft
     iunfold pipeRes at Hleft
-    icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
+    icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
+    iunfold walPipeKey at Hpkey
+    icases Hpkey with ⟨%Ip, %Xp, HIp, -⟩
     icases Hres with (⟨Htf, %fdt', %d', %g', Hft, Hfdt, Hlkt, HsT, %hg'⟩ | ⟨%he, %kk, %fdt', Hlk, #Hkk, %hcl⟩)
     rotate_left
     · -- returned before the locks
@@ -187,21 +190,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
     -- the pipeline's path loan back (P6b fix A)
     ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
     · rw [← hWR]; iexact Hpp
-    imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
+    imod walInv_returnHLoans1 walCodec Mr R jr r dir _ j j X qp Il rfl $$ Hinv Hnc Hk HIl Hnf Hpp with ⟨Hnc, HIl, Hnf⟩
     imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [g']) true (by
         intro g hg
         rcases List.mem_append.1 hg with hg | hg
         · exact hsz0 g hg
-        · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
-        [Hsegs HsT] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-    · unfold walLockedTok walLockedTokI; iexists Il; iframe
+        · simp at hg; subst hg; exact hg'.2.2) Il _ rfl $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
+        [Hsegs HsT] Hn [Htmps HIp] Hk with ⟨Hnc, Hunl⟩
+    · unfold walLockedTokI; iframe
     · iframe
     · iapply walOutFrag_eq' (W := W) $$ Hout
       ipureintro
       simp [hg'.2.1]
     · iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
       iframe
-    · simp only [↓reduceIte]; iexact Htmps
+    · simp only [↓reduceIte]
+      iframe Htmps
+      unfold walIncEAny; iexists Ip; iexact HIp
     imodintro
     iframe Hnc
     cases err with
@@ -360,7 +365,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       -- after the sync: the put-back, or (a lent tail's failed sync) what the handle held of the directory
       iunfold pipeLeft at Hleft
       iunfold pipeRes at Hleft
-      icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
+      icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
+      iunfold walPipeKey at Hpkey
+      icases Hpkey with ⟨%Ip, %Xp, HIp, -⟩
       icases Hres with (⟨Htf, %fdt', %d', %g', Hft, Hfdt, Hlkt, HsT, %hg'⟩ | ⟨%he, %kk, %fdt', Hlk, #Hkk, %hcl⟩)
       rotate_left
       · -- returned before the locks
@@ -398,21 +405,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       -- the pipeline's path loan back (P6b fix A)
       ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
       · rw [← hWR]; iexact Hpp
-      imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
+      imod walInv_returnHLoans1 walCodec Mr R jr r dir _ j j X qp Il rfl $$ Hinv Hnc Hk HIl Hnf Hpp with ⟨Hnc, HIl, Hnf⟩
       imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [g']) true (by
           intro g hg
           rcases List.mem_append.1 hg with hg | hg
           · exact hsz0 g hg
-          · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
-          [Hsegs HsT] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-      · unfold walLockedTok walLockedTokI; iexists Il; iframe
+          · simp at hg; subst hg; exact hg'.2.2) Il _ rfl $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
+          [Hsegs HsT] Hn [Htmps HIp] Hk with ⟨Hnc, Hunl⟩
+      · unfold walLockedTokI; iframe
       · iframe
       · iapply walOutFrag_eq' (W := W) $$ Hout
         ipureintro
         simp [hg'.2.1]
       · iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
         iframe
-      · simp only [↓reduceIte]; iexact Htmps
+      · simp only [↓reduceIte]
+        iframe Htmps
+        unfold walIncEAny; iexists Ip; iexact HIp
       imodintro
       iframe Hnc
       cases err with
@@ -566,7 +575,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       -- after the sync: the put-back, or (a lent tail's failed sync) what the handle held of the directory
       iunfold pipeLeft at Hleft
       iunfold pipeRes at Hleft
-      icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
+      icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
+      iunfold walPipeKey at Hpkey
+      icases Hpkey with ⟨%Ip, %Xp, HIp, -⟩
       icases Hres with (⟨Htf, %fdt', %d', %g', Hft, Hfdt, Hlkt, HsT, %hg'⟩ | ⟨%he, %kk, %fdt', Hlk, #Hkk, %hcl⟩)
       rotate_left
       · -- returned before the locks
@@ -604,21 +615,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       -- the pipeline's path loan back (P6b fix A)
       ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own qp) j $$ [Hpp]
       · rw [← hWR]; iexact Hpp
-      imod walInv_returnHLoans1 walCodec Mr R jr r dir j j X qp $$ Hinv Hnc Hk Hnf Hpp with ⟨Hnc, Hnf⟩
+      imod walInv_returnHLoans1 walCodec Mr R jr r dir _ j j X qp Il rfl $$ Hinv Hnc Hk HIl Hnf Hpp with ⟨Hnc, HIl, Hnf⟩
       imod walInv_unpin walCodec Mr R jr r dir j X hj (gs0 ++ [g']) true (by
           intro g hg
           rcases List.mem_append.1 hg with hg | hg
           · exact hsz0 g hg
-          · simp at hg; subst hg; exact hg'.2.2) $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
-          [Hsegs HsT] Hn [Htmps] Hk with ⟨Hnc, Hunl⟩
-      · unfold walLockedTok walLockedTokI; iexists Il; iframe
+          · simp at hg; subst hg; exact hg'.2.2) Il _ rfl $$ Hinv Hnc [Hlt Hpf Hcf HIl] [Htf Hnf] [Hout]
+          [Hsegs HsT] Hn [Htmps HIp] Hk with ⟨Hnc, Hunl⟩
+      · unfold walLockedTokI; iframe
       · iframe
       · iapply walOutFrag_eq' (W := W) $$ Hout
         ipureintro
         simp [hg'.2.1]
       · iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
         iframe
-      · simp only [↓reduceIte]; iexact Htmps
+      · simp only [↓reduceIte]
+        iframe Htmps
+        unfold walIncEAny; iexists Ip; iexact HIp
       imodintro
       iframe Hnc
       cases err with

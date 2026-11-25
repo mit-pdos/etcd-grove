@@ -748,11 +748,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   iapply wp_notCrashed_acc
   · rfl
   iintro Hnc
-  imod (walInv_cutSynced Mr R jr r dir j X hj x (renFileEnt j (pipeTmp np) j bt g.ino hj s0)
+  icases walOpenWCI_incQ (W := W) w dir h.inc $$ Hopen with ⟨%IQ, HIQ, %hIQ, Hopen⟩
+  imod (walInv_cutSynced Mr R jr r dir h.inc IQ hIQ j X hj x (renFileEnt j (pipeTmp np) j bt g.ino hj s0)
       (<[bt := .file g.ino]> hj.cur) bt g.ino (DFrac.own (1 : Qp).half) h1.γ
       ((h.H, h.md, h.cuts ++ [h.H.length], L, g.ino, none) : TailG) (x + 1) (by omega)
       ((renFileEnt_writes _ _ _ _ _ _ _ _).2 ⟨rfl, Or.inr rfl⟩) hbtw (GMap.lookup_insert _ _ _) rfl)
-    $$ Hinv Hnc Hdk Hcw Htk Hv Hcf Hcm with ⟨Hnc, Hcw, Htk, Hv, Hcf⟩
+    $$ Hinv Hnc Hdk HIQ Hcw Htk Hv Hcf Hcm with ⟨Hnc, HIQ, Hcw, Htk, Hv, Hcf⟩
+  ihave Hopen := Hopen $$ HIQ
   imodintro
   iframe Hnc
   -- the fsync's duration

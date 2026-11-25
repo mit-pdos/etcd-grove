@@ -94,11 +94,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     iframe Hu
     ipureintro; nofun
   · iunfold walPinLast at Hpin
-    icases Hpin with ⟨%lay, %X, %hj, %gL, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj⟩
+    icases Hpin with ⟨%lay, %X, %hj, %gL, %I, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj⟩
     obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn, hgL⟩ := hfacts
     icases Htf with ⟨Htf, Hnf⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X [] $$ Hinv Hnc Hnf Hkey
-      with ⟨Hnc, %nmd, %qd, %hdd, Hnf, Hpd⟩
+    icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+    imod walInv_dirPath walCodec Mr R jr r dir I lay.j X [] $$ Hinv Hnc Hnf Hkey HI
+      with ⟨Hnc, HI, %nmd, %qd, %hdd, Hnf, Hpd⟩
+    ihave Hl := Hl $$ HI
     have hnmd : nmd = nm := Fs.child_inj (hdd.symm.trans hdc)
     subst nmd
     imodintro
@@ -116,7 +118,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdd $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
-      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
+      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz I $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
         Hkey with ⟨Hnc, Hu⟩
       · iframe
       imodintro
@@ -211,7 +213,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod walInv_dirPathRetD walCodec Mr R jr r dir nm qd lay.j hdd $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
-      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
+      imod walInv_unpinLast walCodec Mr R jr r dir lay.j X hj gL hSz I $$ Hinv Hnc Hl [Htf Hnf] Ho HS Hj
         Hkey with ⟨Hnc, Hu⟩
       · iframe
       imodintro

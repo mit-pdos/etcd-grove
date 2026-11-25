@@ -53,6 +53,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.OpenForRead.wp_proof (Mr : WalMars
     isplitr
     · ipureintro; exact ho
     unfold walReadOnlyF
+    icases Hl with ⟨%I, Hl, %hI⟩
+    subst hI
+    iexists I
     iframe
 
 end proof

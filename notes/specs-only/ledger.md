@@ -43,7 +43,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `walReadOnlyF w dir s := ∃ I, walLockedTokI I ∗ walReadH false w dir s (incOf I dir) ∗ …` and `walOpeningF`
   (already at `i`) follow; no client-visible predicate changes.
 - **Decision.** Applied (P6b session 12, under the coordinator's rule for further internal spec changes);
-  reported for review.
+  approved (coordinator, 2026-11-25, P6b session 13 brief).
 
 ## 2026-11-25: WAL.renameWAL (`RenameWALOk`'s spine law, `renameWALPost`'s committed arms) -- the spine law cannot give the pipeline its eighth of the incarnations and return the update's result unchanged
 
@@ -63,7 +63,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `UH x := createUK … x` (`walCreateQK`: `walCreateQ … (some _)` but the reserve, which `walCreateQ … (some
   _)` now holds as `walCreateQK ∗ walIncEAny`). No other caller (`renameWAL`'s only caller is `Create`).
 - **Decision.** Applied (P6b session 12, under the coordinator's rule "a further internal spec change gets a
-  ledger entry first; report it"); reported for review.
+  ledger entry first; report it"); approved (coordinator, 2026-11-25, P6b session 13 brief).
 
 ## 2026-11-25: filePipeline (newFilePipeline, Close, run, alloc), WAL.renameWAL, WAL.sync.specIdle(F) -- fix B's key lookup needs a share of the incarnations the pipeline and the idle syncs do not hold
 
@@ -98,6 +98,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   encoding of "a share of `γI`", recorded here for review. `walTmp_osAUnc` (the pipeline's steps on its
   names) takes and returns `walPipeKey dir j` (its commit post `fun o => β ¼ o ∗ walPipeKey dir j`), as
   `wp_createTmp`/`wp_removeTmp` do.
+  The amendment (the reserve in `walOutAuth`): approved (coordinator, 2026-11-25, P6b session 13 brief).
 
 ## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
 
@@ -7085,3 +7086,23 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   vocabulary; nothing to change there.
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
+
+## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
+
+- **Spec.** Internal laws of the WAL proof (`Proof/go_etcd_io/etcd/server/v3/storage/wal/`), none exported:
+  `walInvRegisterPendLaw` (`ReadAllRegPend`), `repair_brokenOpen` (`RepairBrokenOpen`), `WalCloseLaw`/`walCloseLaw`/
+  `walCloseLawU` (`CloseHandle`, `CloseLaw`, `CloseLawU`), `walInv_dirKeyArea`/`walInv_returnHLoans{1,2}`
+  (`HandleLoans`), `walInv_lendOther`/`walInv_unlendOther` (`BrokenLend`), `walPurgeP`/`walPurgeOP` and their
+  updates (`PurgeAu`, `PurgeOther`), `walInv_walFiles` (`PurgeRoundLaws`), `walDirH_lend`/`walOpenWFI_lend`
+  (`PurgeLend`), `probeHandles`/`prefixScanState` and the probe laws (`ReadAllProbe`, `ReadAllPrefixAccess`),
+  `walFailCommon`/`walReadFailedF_{intro,elim,idleIntro,lentIntro}`/`readAll_fail*`/`walInv_failOpening`
+  (`ReadAllFail`, `ReadAllCommit`, `ReadAllExit`), and the tester's `pr_fileOf`/`pr_remove` (`purgeRound`).
+- **Defect.** Consequences of the approved fix B (directory keys at `(dir, incarnation)`): each looked up a
+  3-argument key, which no longer exists; a lookup now needs a share of the incarnations at the key's.
+- **Evidence.** The frontier of `lake build …wal.Link` (`/shared/tmp/p6b-build7.log`).
+- **Proposed change.** Each takes the key at its holder's incarnation and threads that holder's quarter `walIncQ I`
+  (in and out, `incOf I dir = i`); `walCloseLaw`s take `walPipeKey dir j` from `pipeLeft` (the reserve for
+  `walParked_putTmps0`); the lending laws take `walIncQ I` rather than the lock token (the purge round holds only
+  the handle's quarter); `walReadFailed_lockedTok` becomes `walReadFailed_lockedTokI` (at the incarnation);
+  `walOpenWF_lend` (no users) is removed. No exported spec changes beyond the approved entries.
+- **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13).

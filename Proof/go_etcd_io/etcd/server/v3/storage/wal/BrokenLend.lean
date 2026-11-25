@@ -64,20 +64,21 @@ theorem dirClaim_noOther {Ls : GMap GoString WalLay} {l1 l2 : List Claim} {j : I
 /-- **The invariant's parked state at a keyed WAL directory's claim** (the claim's program half
 agreeing with the invariant's): the claims split at it, the facts its others need, and the way back. -/
 theorem walInvBody_dirClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (dq : DFrac) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
-      osNames (L := L) j (.except X) dq hj -∗
+    (s : AbsDiskState) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
+    (dq : DFrac) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir (incOf I dir) j X -∗
+      walIncQ (W := W) I -∗ osNames (L := L) j (.except X) dq hj -∗
       ∃ (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (F : GMap Ino SegFl),
         ⌜WalDirClaimOf Ls (j, .except X, hj) ∧ ∀ c1 ∈ l1 ++ l2, WalDirClaimOf Ls c1 → c1.1 ≠ j⌝ ∗
         walParked (L := L) (W := W) Ls (l1 ++ (j, .except X, hj) :: l2) F ∗
-        osNames (L := L) j (.except X) dq hj ∗
+        osNames (L := L) j (.except X) dq hj ∗ walIncQ (W := W) I ∗
         (walParked (L := L) (W := W) Ls (l1 ++ (j, .except X, hj) :: l2) F -∗
           walInvBody (L := L) (W := W) C Mr R jr r s) := by
-  iintro Hb #Hkey Hq
+  iintro Hb #Hkey HlI Hq
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hkey HlI with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
@@ -85,7 +86,7 @@ theorem walInvBody_dirClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   icases osNames_agree j (.except X) _ _ hj1 hj $$ Hα Hq with %Hhj
   subst Hhj
   iexists Ls, l1, l2, F
-  iframe Hpk Hq
+  iframe Hpk Hq HlI
   isplitr
   · ipureintro
     exact ⟨⟨dir, lay1, hl1, hj1j.symm, X, rfl, hXw⟩, dirClaim_noOther hn1 hn2 hexcl⟩
@@ -231,44 +232,46 @@ theorem walParked_unlend (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c : C
 /-- **`Repair`'s leftover `.broken` lent** (see the file header), at any step: the claim out
 (`hoD`), its program half at `hj` holding the file `n` at `bt`, a non-`.wal` name not yet lent. -/
 theorem walInv_lendOther (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
-    (dq : DFrac) (o : WalOut) (bt : GoString) (n : Node)
+    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString)
+    (hj : NamesH) (dq : DFrac) (o : WalOut) (bt : GoString) (n : Node)
     (hw : walNameP bt = false) (hD : lendKey j bt ∉ o.D) (hcur : hj.cur !! bt = some n) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) dq hj -∗ walOutFrag (W := W) o ={E}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) dq hj ∗
+      walDirKey (W := W) dir (incOf I dir) j X -∗ walIncQ (W := W) I -∗
+      osNames (L := L) j (.except X) dq hj -∗ walOutFrag (W := W) o ={E}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) dq hj ∗ walIncQ (W := W) I ∗
         walOutFrag (W := W) (o.addClaim (lendKey j bt)) ∗ tmpEnt (hG := ⟨G, L⟩) (some n) := by
-  iintro #Hinv Hnc #Hk Hq Ho
+  iintro #Hinv Hnc #Hk HlI Hq Ho
   imod walInv_open C Mr R jr r E hE $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_dirClaim C Mr R jr r s dir j X hj dq $$ Hb Hk Hq with
-    ⟨%Ls, %l1, %l2, %F, ⟨%hW, %hoth⟩, Hpk, Hq, Hback⟩
+  icases walInvBody_dirClaim C Mr R jr r s dir I j X hj dq $$ Hb Hk HlI Hq with
+    ⟨%Ls, %l1, %l2, %F, ⟨%hW, %hoth⟩, Hpk, Hq, HlI, Hback⟩
   imod walParked_lendOld Ls l1 l2 (j, .except X, hj) F o bt n hW hoth hw hD hcur $$ Hpk Ho
     with ⟨Hpk, Ho, Hn⟩
   imod Hcl $$ [Hback Hpk] with -
   · iexists s; iapply Hback $$ Hpk
   imodintro
-  iframe Hnc Hq Ho Hn
+  iframe Hnc Hq HlI Ho Hn
 
 /-- **A lent file of a WAL directory given back** (see the file header), at any step. -/
 theorem walInv_unlendOther (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
-    (dq : DFrac) (o : WalOut) (bt : GoString) (n : Node)
+    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString)
+    (hj : NamesH) (dq : DFrac) (o : WalOut) (bt : GoString) (n : Node)
     (hw : walNameP bt = false) (hD : lendKey j bt ∈ o.D) (hcur : hj.cur !! bt = some n) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) dq hj -∗ walOutFrag (W := W) o -∗
+      walDirKey (W := W) dir (incOf I dir) j X -∗ walIncQ (W := W) I -∗
+      osNames (L := L) j (.except X) dq hj -∗ walOutFrag (W := W) o -∗
       tmpEnt (hG := ⟨G, L⟩) (some n) ={E}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) dq hj ∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) j (.except X) dq hj ∗ walIncQ (W := W) I ∗
         walOutFrag (W := W) (o.delClaim (lendKey j bt)) := by
-  iintro #Hinv Hnc #Hk Hq Ho Hn
+  iintro #Hinv Hnc #Hk HlI Hq Ho Hn
   imod walInv_open C Mr R jr r E hE $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_dirClaim C Mr R jr r s dir j X hj dq $$ Hb Hk Hq with
-    ⟨%Ls, %l1, %l2, %F, ⟨%hW, %hoth⟩, Hpk, Hq, Hback⟩
+  icases walInvBody_dirClaim C Mr R jr r s dir I j X hj dq $$ Hb Hk HlI Hq with
+    ⟨%Ls, %l1, %l2, %F, ⟨%hW, %hoth⟩, Hpk, Hq, HlI, Hback⟩
   imod walParked_unlend Ls l1 l2 (j, .except X, hj) F o bt n hW hoth hw hD hcur $$ Hpk Ho Hn
     with ⟨Hpk, Ho⟩
   imod Hcl $$ [Hback Hpk] with -
   · iexists s; iapply Hback $$ Hpk
   imodintro
-  iframe Hnc Hq Ho
+  iframe Hnc Hq HlI Ho
 
 end iris
 

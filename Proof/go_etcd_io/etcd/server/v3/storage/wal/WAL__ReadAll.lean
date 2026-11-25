@@ -356,7 +356,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   ipersist Hbefore
   imodintro
   -- `w.dirFile`'s inode is the read tie's (the directory keys agree)
-  icases walDirKey_agree dir jd j Xd X $$ Hkd Hk with %hjd
+  icases walDirKey_agree dir ic jd j Xd X $$ Hkd Hk with %hjd
   ihave #Henv0 := Henv
   iunfold encEnv at Henv0
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
@@ -388,8 +388,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   -- the look at the invariant: the update committed and the tail registered at one opening, at the
   -- state the tail record holds (`walInv_readCommitReg`)
   obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
-  imod walInv_dirPath walCodec Mr R jr rt dir j X _ $$ Hinv Hnc Hnf Hk
-    with ⟨Hnc, %nmp, %qProbe, %hdp, Hnf, HprobePath⟩
+  icases walOpening_incQ w dir s ic $$ Hgh with ⟨%IQ, HIQ, %hIQ, Hgh⟩
+  imod walInv_dirPath walCodec Mr R jr rt dir IQ j X _ $$ Hinv Hnc Hnf [] HIQ
+    with ⟨Hnc, HIQ, %nmp, %qProbe, %hdp, Hnf, HprobePath⟩
+  · rw [hIQ]; iexact Hk
+  ihave Hgh := Hgh $$ HIQ
   have hnmp : nmp = nm := Fs.child_inj (hdp.symm.trans (inArea_child hin))
   subst nmp
   imod walInv_readCommitReg walCodec Mr R jr rt w dir s j X hj gs glr
@@ -756,7 +759,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iframe Hnc
             iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
             iintro %dq HQ Htf Hfail
-            ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ qpp fsI γt
+            ihave Hrf := walReadFailedF_lentIntro Mr w dir ic lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ qpp fsI γt
                 d0.H d0.metadata lay.cuts lay.wr gl.om.size gl.om.size fdl lay.segs gl hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0
                 hwrT hclo1 rfl $$ [Hfail Hlg Hdir Hlocks Hls Hfp Hpipe Hns Hdff Hdf Hdfs Hph Hn Hout Hnf Hleft Htf He Htw]
             · rw [hft]
@@ -817,7 +820,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iframe Hnc
             iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
             iintro %dq HQ Htf Hfail
-            ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ qpp fsI γt
+            ihave Hrf := walReadFailedF_lentIntro Mr w dir ic lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ qpp fsI γt
                 d0.H d0.metadata lay.cuts lay.wr sz' gl.om.size fdl lay.segs gl hfI hls0 hfll0 hfk0 hlastN hiL hXt hsz0
                 hwrT hclo1 rfl $$ [Hfail Hlg Hdir Hlocks Hls Hfp Hpipe Hns Hdff Hdf Hdfs Hph Hn Hout Hnf Hleft Htf He Htw]
             · rw [hft]
@@ -1169,8 +1172,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hLh1' := walHLoans_loans hin hLh1.1
             simp only [List.map_cons, List.map_nil] at hLh1'
             subst hLh1'
-            imod walInv_dirPath walCodec Mr R jr rt dir jd Xd _ $$ Hinv Hnc Hnf Hkd
-              with ⟨Hnc, %nmd, %qd, %hdd, Hnf, Hpd⟩
+            icases walOpenWI_incQ w dir ic $$ Hopen with ⟨%IQ2, HIQ2, %hIQ2, Hopen⟩
+            imod walInv_dirPath walCodec Mr R jr rt dir IQ2 jd Xd _ $$ Hinv Hnc Hnf [] HIQ2
+              with ⟨Hnc, HIQ2, %nmd, %qd, %hdd, Hnf, Hpd⟩
+            · rw [hIQ2]; iexact Hkd
+            ihave Hopen := Hopen $$ HIQ2
             have hnmd : nmd = nm := Fs.child_inj (hdd.symm.trans (inArea_child hin))
             subst nmd
             ihave Hnf : walHLoans (W := W) dir none [qd, qpp] $$ [Hnf]
@@ -1179,7 +1185,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               iapply hm $$ Hnf
             imod walInv_readGive walCodec Mr R jr rt dir γt
               ((d0.H, d0.metadata, lay.cuts, lay.wr + ([] : List w8).length, gl.ino, none) : TailG)
-              (gs.take fsI.length) _ jd Xd hSz rfl
+              (gs.take fsI.length) _ ic jd Xd hSz rfl
               $$ Hinv Hnc Htf Hk [Hv] Hkd Hout HS with ⟨Hnc, %hgv, Htf, Hk, Hv, Hout⟩
             · unfold tailVar; iexact Hv
             -- the WALs' step bound: `⧖ |H|` (`notes/bounds-plan.md`, "The WAL's segment sequence")
@@ -1548,7 +1554,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                   · exact False.elim (hfb hf)
                   obtain ⟨hfirst, hltF, hdirL, rfl, hdrop⟩ := hF
                   let out : WalOut := ⟨gs.map (·.ino), [(j, .except X)], [dir]⟩
-                  let accP := prefixScanState (W := W) R jr rt dir j X hj qProbe (1 : Qp).half.half
+                  icases walOpening_incQ w dir s ic $$ Hgh with ⟨%IQ3, HIQ3, %hIQ3, Hgh⟩
+                  let accP := prefixScanState (W := W) R jr rt dir IQ3 j X hj qProbe (1 : Qp).half.half
                     out γt (<[dir := segStart lay.cuts (lay.first + kk)]> (∅ : GMap GoString Nat)) Mr lg
                   have hhead : ∀ nm, (walNames hj.cur)[sint.nat v.first']? = some nm → ∀ sq ix,
                       nm = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1 := by
@@ -1557,12 +1564,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                     rw [List.head?_drop, hn, List.head?_map] at hnm'
                     obtain ⟨g0, hg0, hname⟩ := Option.map_eq_some_iff.1 hnm'.symm
                     exact hghd g0 hg0 sq ix (hname.trans he) hix
-                  have hpfiles := fun i hi nm hn => readAll_prefix_file Mr U hU wp_probe R jr rt dir j X hj
+                  have hpfiles := fun i hi nm hn => readAll_prefix_file Mr U hU wp_probe R jr rt dir IQ3 j X hj
                     qProbe (1 : Qp).half.half γt (<[dir := segStart lay.cuts (lay.first + kk)]> (∅ : GMap GoString Nat)) gs out lg (sint.nat v.first') i nm s.1 hdirL hclo1.1 rfl
                     hi hltF hn hdrop (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hhead
                   ihave HphR := walPerm_ofW hWR dir _ $$ Hph
-                  ihave Hacc : accP $$ [HprobePath HphR Hn Hout Htf]
+                  ihave Hacc : accP $$ [HprobePath HphR Hn Hout Htf HIQ3]
                   · unfold accP prefixScanState
+                    rw [hIQ3]
                     iframe Hpkg Hzap HosI Hsi Hinv Hk
                     unfold probeAccess; iintro Hnc; imodintro; unfold probeHandles; iframe
                   wp_apply (wp_reopen accP w fb lg sp dir s v (walNames hj.cur) (by omega) (by omega) hpfiles)
@@ -1577,7 +1585,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                   imod HP $$ Hnc with ⟨Hnc, HP⟩
                   imodintro; iframe Hnc
                   iunfold probeHandles at HP
-                  icases HP with ⟨HprobePath, HphR, Hn, Hout, Htf⟩
+                  icases HP with ⟨HprobePath, HphR, Hn, Hout, Htf, HIQ3⟩
+                  ihave Hgh := Hgh $$ HIQ3
                   ihave Hph : osCallPerm (callKey W.roots dir) (1 : Qp).half.half $$ [HphR]
                   · rw [hWR]; iexact HphR
                   cases errP

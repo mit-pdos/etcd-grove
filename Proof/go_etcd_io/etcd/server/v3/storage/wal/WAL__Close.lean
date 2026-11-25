@@ -340,7 +340,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   -- the put-back, at the next step
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   -- the handle's two loans of the WAL's name returned (P6b fix A)
@@ -349,13 +349,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   · rw [← hWR]; iexact Hpd
   ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own h.qp) j $$ [Hpp]
   · rw [← hWR]; iexact Hpp
-  imod walInv_returnHLoans2 walCodec Mr R jr r dir j j j X qd h.qp $$ Hinv Hnc Hdk Hnf Hpd Hpp
-    with ⟨Hnc, Hnf⟩
+  icases walOpenWI_incQ (W := W) w dir h.inc $$ Hopen with ⟨%IQ, HIQ, %hIQ, Hopen⟩
+  imod walInv_returnHLoans2 walCodec Mr R jr r dir _ j j j X qd h.qp IQ hIQ $$ Hinv Hnc Hdk HIQ Hnf Hpd Hpp
+    with ⟨Hnc, HIQ, Hnf⟩
+  ihave Hopen := Hopen $$ HIQ
   imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLaw (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
-    b (pipeTmp (np + 1)) Q γ.inc hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc
+    b (pipeTmp (np + 1)) Q γ.inc hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 [Hdk] Hpkey Hcl Htb Hpc
     Hout Htf Hnf [Hopen] Hpw Hsy' Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩
   · unfold tailVar; iexact Hv2
+  · rw [← hinc]; iexact Hdk
   · rw [← hinc]; iexact Hopen
   imodintro
   iframe Hnc
@@ -431,10 +434,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
     iapply HΦ
     iexact H
   | opening s =>
-    iintro %Φ ⟨#Harea, Hpk, Hop, Hrh, Hperm, Hdf⟩ HΦ
+    iintro %Φ ⟨#Harea, Hpk, Hoh, Hperm, Hdf⟩ HΦ
     iapply (go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening Mr wp_syncIdle wp_fpClose wp_tail
-      wp_Close wp_CloseNil wp_Error wp_LError R jr r w dir s) $$ [Hpk Hop Hrh Hperm Hdf]
-    · iframe Hpk Harea Hop Hrh Hperm Hdf
+      wp_Close wp_CloseNil wp_Error wp_LError R jr r w dir s) $$ [Hpk Hoh Hperm Hdf]
+    · iframe Hpk Harea Hoh Hperm Hdf
     inext
     iintro %err H
     iapply HΦ
