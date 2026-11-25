@@ -66,6 +66,16 @@ theorem antStep_stamped {t : w32} (h : t ∈ antStepTypes) : ¬ UnstampedType t 
   rcases h with rfl | rfl | rfl | rfl | rfl | rfl <;> decide
 
 /-- Every type of the harness's network has a protocol type. -/
+theorem antStep_disj {t : w32} (h : t ∈ antStepTypes) :
+    t = MsgApp ∨ t = MsgAppResp ∨ t = MsgVote ∨ t = MsgVoteResp ∨ t = MsgHeartbeat ∨
+      t = MsgHeartbeatResp := by
+  unfold antStepTypes at h
+  simpa only [List.mem_cons, List.not_mem_nil, _root_.or_false] using h
+
+theorem absMsg_ty_eq (ty : MsgType) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
+    (absMsg ty m ents ctx).ty = ty := by
+  simp [absMsg, absMsgFrom, Msg.mkV]
+
 theorem antStep_mtype {t : w32} (h : t ∈ antStepTypes) : ∃ ty, mtypeOf t = some ty := by
   unfold antStepTypes at h
   simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at h
@@ -169,7 +179,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   try wp_auto
   ihave Hsc := rnScopeAt_keepIf sc rs
     { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s s
-    (fun _ H => H) rfl $$ Hsc
+    (fun _ H => H) rfl (fun _ => rfl) $$ Hsc
   iapply HΦ $$ %$e %rs.term %ps %ip
   isplitl
   · iapply ownRawNodeAt_intro γ rn id
@@ -188,7 +198,8 @@ local macro "early_return" e:term : tactic => `(tactic| (
     refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
     split <;> omega
   ipureintro
-  intro h
+  intro md hmd
+  have h := hsct md hmd
   exfalso
   first
   | exact antStep_not_local (Hscp h).1 (of_decide_eq_true Hb1.symm)
@@ -293,11 +304,14 @@ local macro "step_tail" : tactic => `(tactic| (
         ihave Hsc := rnScopeAt_basicFalse (GF := GF) (γ := γ) (id := id)
           { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s'
         wp_auto
-        iapply HΦ $$ %err %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
+        iapply HΦ $$ %err %s'.term
+          %(toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp' s')
+          %(uint.nat s'.logst.inprogress - 1)
         isplitl
         · iapply ownRawNodeAt_intro γ rn id
               { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) }
-              (toPState s') qs (uint.nat s'.logst.inprogress - 1) (basicScope false) s' cf fp'
+              (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp' s')
+              qs (uint.nat s'.logst.inprogress - 1) (basicScope false) s' cf fp'
               rnv sv hprev steps Hwf' Hin
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
               (fun h => by have h1 := h.1; simp [Hs] at h1)
@@ -333,13 +347,16 @@ local macro "step_tail" : tactic => `(tactic| (
         · ipureintro
           rw [Htrm]
           exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
-        ipureintro; intro h; cases h
+        ipureintro; intro md h; cases h
       have e1 := Href.keep (by not_net) Hs (fun h => absurd h (by not_net)); subst e1
       have e2 := Hcc (fun h => absurd h (by not_net)); subst c'
       icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s' $$ Hphys with ⟨%Hip1, Hphys⟩
       icases ownRaftPhysC_cq cf rnv.raft' id s' $$ Hphys with ⟨#Hcq1, Hphys⟩
       icombine Hcq0 Hcq1 gives %Hcqe
       have Hcq' : s'.cq = s.cq := by first | exact Hcqe.symm | exact Hcqe
+      icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
+      icombine Hsd0 Hsd1 gives %Hsde
+      have Hsdr' : s'.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
       have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } := by
         by_cases hx : m.Type' = MsgTransferLeader
         · exact ⟨(Hxwf hx).1, (Hxwf hx).2.1⟩
@@ -387,8 +404,9 @@ local macro "step_tail" : tactic => `(tactic| (
       · rw [Hsn]; iexact Hsloc
       -- in the scope: the exact effect, the in-progress boundary, the scope kept
       have Hlifted : sc = true →
-          (∀ ty, mtypeOf m.Type' = some ty →
-            RecvEnd {} (rnCfg γ) id (toPState s) (absMsg ty m ents ctx) (toPState s')) ∧
+          (∀ ty, mtypeOf m.Type' = some ty → ∀ Adm,
+            RecvEndR Adm rs.k id (toRState rs fp s) (absMsg ty m ents ctx)
+              (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')) ∧
           s'.rd.pend = s.rd.pend ∧
           uint.nat s'.logst.inprogress - 1 = min ip (lcpLen (toPState s).log (toPState s').log) ∧
           ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []) := by
@@ -396,11 +414,13 @@ local macro "step_tail" : tactic => `(tactic| (
         obtain ⟨Hl, -⟩ := Hlift h
         obtain ⟨hant, hctx, -⟩ := Hscp h
         have h0 : m.Term' ≠ W64 0 := (Hok.2.1 (antStep_stamped hant)).2.1
-        have HR := recvEnd_of_stepEnd_net (k := {}) Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
-        have HC := HCf h
+        have HR := recvEnd_of_stepEnd_net (k := rs.k) Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
+        have Hbk := bk_of_stepEnd_net Hl (antStep_disj hant) h0 hctx (Hx h).1
+        have Hcfe : rs.cfg.cfg = cf := Hcfm.2 (Hcin h).2.2.2.1
         obtain ⟨ty0, hty0⟩ := antStep_mtype hant
-        refine ⟨fun ty hty => (HR ty hty).1.of_halves HC.1 HC.2.1 (HC.ids ((Hcin h).learners Hcfm)) (HR ty hty).2, ?_, ?_,
-          recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1⟩
+        refine ⟨fun ty hty Adm => recvEndR_of_bk (by rw [Hcfe]; exact (HR ty hty).1) Hbk Hsn Hpv ⟨rfl, rfl⟩
+            (by rw [absMsg_ty_eq]; rcases (HR ty hty).2 with e | e | e | e | e | e <;> rw [e] <;> decide),
+          ?_, ?_, recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1⟩
         · rw [← toPState_rd_pend s', ← toPState_rd_pend s]
           exact recvEnd_rd_pend (HR ty0 hty0).2 (HR ty0 hty0).1
         · have hlo : 1 ≤ uint.Z s.logst.inprogress := by
@@ -426,16 +446,19 @@ local macro "step_tail" : tactic => `(tactic| (
                 | (simp [mtypeOf, MsgTransferLeader] at hty0)
             obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
               Hfr Hs (by not_net) hx (fun h => absurd h (by not_net))
-            rw [a8])) Hsg $$ Hsc
+            rw [a8])) Hsg (fun _ => Hsdr') $$ Hsc
       iclear Hrntr
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgx]; exact Hgtr.trans HtrG)
       wp_auto
-      iapply HΦ $$ %err %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
+      iapply HΦ $$ %err %s'.term
+        %(toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')
+        %(uint.nat s'.logst.inprogress - 1)
       isplitl
       · iapply ownRawNodeAt_intro γ rn id
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) }
-            (toPState s') qs (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp
+            (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')
+            qs (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp
             rnv sv hprev steps Hwf' Hin
             Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
             (fun h => by rw [Hsn]; exact Hsnap ⟨Hps' h.1, h.2⟩)
@@ -456,8 +479,9 @@ local macro "step_tail" : tactic => `(tactic| (
         rw [Htrm]
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
       ipureintro
-      intro h
-      rw [← Hps]
+      intro md hmd
+      have h := hsct md hmd
+      subst Hps
       exact ⟨(Hlifted h).1, (Hlifted h).2.2.1⟩))
 
 set_option maxHeartbeats 1000000 in
@@ -472,9 +496,14 @@ theorem RawNode.Step.wp_absProof
     RawNode.Step.absSpec (GF := GF) (hG := hG) := by
   have wp_raft_StepNs := raft.Step.untracedNs wp_raft_Step
   have wp_raft_Step := raft.Step.untraced wp_raft_Step
-  intro sc γ rn id rs ps qs ip ml st Hok Hscp Hmtc Htn Hflw HtrG
+  intro sc γ rn id rs ps qs ip ml st Hok Hscp0 Hmtc Htn Hflw HtrG
+  have hsct : ∀ md, basicScope sc = some md → sc = true := fun md h => by
+    cases sc
+    · cases h
+    · rfl
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hok Hscp Hmtc Htn ⊢
+  simp only at Hok Hscp0 Hmtc Htn ⊢
+  have Hscp := fun h : sc = true => Hscp0 {} (by subst h; rfl)
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
@@ -498,6 +527,7 @@ theorem RawNode.Step.wp_absProof
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom0, Hphys⟩
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
+  icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
   icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩

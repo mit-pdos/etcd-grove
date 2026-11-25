@@ -71,7 +71,7 @@ abbrev RawNode.acceptReady.spec : Prop :=
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReadyS γ rn id rs rd ce es ms true L s ∗
-      "Hsc" ∷ rnScopeAt γ id sc rs s ∗
+      "Hsc" ∷ rnScopeAt γ id (basicScope sc) rs s ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending) (ss : Option (w64 × StateType)) (qs' : List Msg) (ip' : Nat), RET #();
@@ -81,12 +81,16 @@ abbrev RawNode.acceptReady.spec : Prop :=
       "%Hssn" ∷ ⌜rd.SoftState' = null → ss = none⌝ ∗
       -- (#33 S4; until then `ownRawNode`) at `s`'s protocol reading, the outbox and the read states
       -- cleared
-      "Hrn" ∷ ownRawNodeAt γ rn id
+      -- (antithesis parity B1) over `RState`: `s`'s reading at some ghost prefix `fp`, the outbox and
+      -- the read states cleared
+      "Hrn" ∷ (∃ fp : List EntryM, ownRawNodeAt γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
                   slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
                   role := roleAfter rs.role ss }
-        { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } qs' ip' sc ∗
+        { toRState rs fp s with
+            p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } }
+        qs' ip' (basicScope sc)) ∗
       -- (2026-11-11, slice 28n) the handed-out messages' tokens (`readyTok`: nothing untraced; the
       -- `Ready` line's `recvTokOf` traced, `trCap_fire_ready`)
       "Htoks" ∷ ([∗list] q ∈ ms, readyTok γ q.st) ∗

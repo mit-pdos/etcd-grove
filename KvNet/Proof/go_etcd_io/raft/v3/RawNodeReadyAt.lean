@@ -226,11 +226,20 @@ theorem softStateIs_null (p : Loc) (ss : Option (w64 × StateType)) :
   · iintro -; ipureintro; intro _; rfl
   · unfold softStateIs; iintro ⟨%Hn, -⟩; ipureintro; intro h; exact absurd h Hn
 
-/-- The scope kept, at every mode, by a step that keeps what it reads (`RnScope md`) and the storage. -/
+/-- (antithesis parity B1) `KTie` across a step that keeps the flags and the node constant. -/
+theorem KTie.keep {rs rs' : RNState} {s s' : NState} (H : KTie rs s)
+    (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr) (hk : rs'.k = rs.k) :
+    KTie rs' s' := by
+  unfold KTie at *; rw [hk, ← H, hfl.1, hfl.2.1, hfl.2.2]
+
+/-- The scope kept, at every mode, by a step that keeps what it reads (`RnScope md`), the storage,
+the `Config` flags and the node constant. -/
 theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs rs' : RNState)
     (s s' : NState) (H : ∀ md, RnScope md rs s → RnScope md rs' s')
     (Hst : s'.logst.storage = s.logst.storage)
-    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
+    (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
+    (hk : rs'.k = rs.k := by rfl) :
     rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
   cases sc with
   | none => unfold rnScopeAt; iintro _; iempintro
@@ -239,13 +248,16 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
     iintro ⟨%Hs, #Hc⟩
     rw [Hst]
     isplitr
-    · ipureintro; exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2⟩
+    · ipureintro; exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.keep hfl hk⟩
     · imodintro; iexact Hc
 
-/-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`) and the storage. -/
+/-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`), the storage, the
+`Config` flags and the node constant. -/
 theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)
     (H : RnScopeBasic rs s → RnScopeBasic rs' s') (Hst : s'.logst.storage = s.logst.storage)
-    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
+    (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
+    (hk : rs'.k = rs.k := by rfl) :
     rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢ rnScopeAt γ id (basicScope sc) rs' s' := by
   cases sc with
   | false =>
@@ -256,7 +268,8 @@ theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState
     rw [Hst]
     isplitr
     · ipureintro
-      exact ⟨(RnScope_empty rs' s').2 (H ((RnScope_empty rs s).1 Hs.1)), RnCfgIn.keep hcf Hs.2⟩
+      exact ⟨(RnScope_empty rs' s').2 (H ((RnScope_empty rs s).1 Hs.1)), RnCfgIn.keep hcf Hs.2.1,
+        Hs.2.2.keep hfl hk⟩
     · imodintro; iexact Hc
 
 end sep

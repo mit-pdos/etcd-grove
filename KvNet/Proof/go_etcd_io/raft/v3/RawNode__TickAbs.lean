@@ -24,6 +24,7 @@ public import KvNet.Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
 public import KvNet.Proof.go_etcd_io.raft.v3.RawNodeAtScope
 public import KvNet.Proof.go_etcd_io.raft.v3.UntracedStepEnd
 public import KvNet.Proof.go_etcd_io.raft.v3.InputEndIp
+public import KvNet.Proof.go_etcd_io.raft.v3.StepEndIp
 -- the traced instances (`raft.tickElection.traced`, `raft.tickHeartbeat.traced`) and `rnTrace_some`
 public import KvNet.Proof.go_etcd_io.raft.v3.TracedRawNode
 -- `Step.commit_mono`
@@ -43,34 +44,49 @@ section pure
 variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
+/-- (antithesis parity B1) `BkStep` of no step. -/
+theorem BkStep.refl (s : NState) : BkStep s s := ⟨rfl, fun h => .inl ⟨h, rfl⟩⟩
+
+/-- (antithesis parity B1) `BkStep` from a state agreeing with `s` on what it reads. -/
+theorem BkStep.congr_left {s s2 s' : NState} (h : BkStep s2 s') (ha : s2.logst = s.logst)
+    (hr : s2.role = s.role) (hp : s2.pci = s.pci) : BkStep s s' := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨h1.trans (by rw [ha]), fun hl => ?_⟩
+  rcases h2 hl with ⟨a, b⟩ | ⟨a, b⟩
+  · exact .inl ⟨by rw [← hr]; exact a, b.trans hp⟩
+  · exact .inr ⟨by rw [← hr]; exact a, by rw [b, ha]⟩
+
 /-- **`tickElection`'s end state, at the protocol level** (in the lifting lemmas' scope): `TickEnd`,
 the log's state kept. -/
 theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
     (h : TickElEnd c id s s') :
-    TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
+    TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst ∧ BkStep s s' := by
   rcases h with rfl | ⟨he, -⟩
-  · exact ⟨Or.inl rfl, rfl⟩
-  · exact ⟨tickEnd_of_stepEnd_hup hsc rfl rfl he, logst_of_stepEnd_hup rfl rfl he⟩
+  · exact ⟨Or.inl rfl, rfl, BkStep.refl _⟩
+  · exact ⟨tickEnd_of_stepEnd_hup hsc rfl rfl he, logst_of_stepEnd_hup rfl rfl he,
+      bk_of_stepEnd_hup hsc rfl rfl he⟩
 
 /-- **`tickHeartbeat`'s end state, at the protocol level** (in the lifting lemmas' scope, so with
 check-quorum off: no quorum check): `TickEnd`, the log's state kept; the transfer abort is invisible
 to `toPState`. -/
 theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
     (hro : (toPState s).rd.ro.pending = []) (h : TickHbEnd c id s s') :
-    TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
+    TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst ∧ BkStep s s' := by
   have hcq := hsc.2.1
   rcases h with ⟨s1, h1, h2⟩ | ⟨s1, s2, h1, -, -, h3, he⟩
   · rw [TickCqEnd.of_cq hcq h1] at h2
     rcases h2 with rfl | rfl
-    · exact ⟨Or.inl rfl, rfl⟩
-    · exact ⟨Or.inl rfl, rfl⟩
+    · exact ⟨Or.inl rfl, rfl, BkStep.congr_left (BkStep.refl _) rfl rfl rfl⟩
+    · exact ⟨Or.inl rfl, rfl, BkStep.congr_left (BkStep.refl _) rfl rfl rfl⟩
   · rw [TickCqEnd.of_cq hcq h1] at h3
-    have hs2 : toPState s2 = toPState s ∧ s2.logst = s.logst ∧ LiftScope c id s2 := by
+    have hs2 : toPState s2 = toPState s ∧ s2.logst = s.logst ∧ LiftScope c id s2 ∧
+        s2.role = s.role ∧ s2.pci = s.pci := by
       rcases h3 with rfl | rfl
-      · exact ⟨rfl, rfl, hsc⟩
-      · exact ⟨rfl, rfl, hsc⟩
-    obtain ⟨hp, hl, hsc2⟩ := hs2
-    refine ⟨?_, (logst_of_stepEnd_beat hsc2 rfl rfl he.1).trans hl⟩
+      · exact ⟨rfl, rfl, hsc, rfl, rfl⟩
+      · exact ⟨rfl, rfl, hsc, rfl, rfl⟩
+    obtain ⟨hp, hl, hsc2, hr2, hpc2⟩ := hs2
+    refine ⟨?_, (logst_of_stepEnd_beat hsc2 rfl rfl he.1).trans hl,
+      (bk_of_stepEnd_beat hsc2 rfl rfl he.1).congr_left hl hr2 hpc2⟩
     rw [← hp]; exact tickEnd_of_stepEnd_beat hsc2 rfl rfl (by rw [hp]; exact hro) he.1
 
 /-- A message a traced node may hand out is no `MsgSnap`. -/
@@ -105,6 +121,7 @@ theorem RawNode.Tick.wp_absProof
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
+  icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
   icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
@@ -117,7 +134,7 @@ theorem RawNode.Tick.wp_absProof
     have Hv : cf.voters = γ.reCfg := HC.voters
     exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid),
       by rw [Hv, rnCfg_voters], HC.ids ((Hcin h).learners Hcfm)⟩
-  have Hipl : sc = true → ip ≤ ps.log.length := fun h => by
+  have Hipl : sc = true → ip ≤ ps.p.log.length := fun h => by
     rw [← Hps]
     exact ip_le_log Hip (by rw [(Hscope h).2.2.2.2.2.1]; rfl) Hipf.1.2
   wp_auto
@@ -153,27 +170,29 @@ theorem RawNode.Tick.wp_absProof
       ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) Hip4 $$ Hstrecs
       -- in the scope, the tick's exact effect, the log's state kept
       have Hlifted : sc = true →
-          TickEnd {} (rnCfg γ) id (toPState s) (toPState s') ∧ s'.logst = s.logst := fun h => by
-        obtain ⟨hl, hv, hd⟩ := Hlift h
+          TickEnd rs.k cf id (toPState s) (toPState s') ∧ s'.logst = s.logst ∧ BkStep s s' := fun h => by
+        obtain ⟨hl, -, -⟩ := Hlift h
         first
-          | exact ⟨(tickElEnd_lift (k := {}) hl Hend).1.of_voters hv hd, (tickElEnd_lift (k := {}) hl Hend).2⟩
-          | exact ⟨(tickHbEnd_lift (k := {}) hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).1.of_voters hv hd,
-              (tickHbEnd_lift (k := {}) hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend).2⟩
+          | exact tickElEnd_lift (k := rs.k) hl Hend
+          | exact tickHbEnd_lift (k := rs.k) hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend
+      icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
+      icombine Hsd0 Hsd1 gives %Hsde
+      have Hsdr' : s'.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         (fun h Hs => by
           have hro := tickEnd_rd_out (Hlifted h).1
           exact RnScopeBasic.keep Hs rfl rfl Hpre Hcq' hro.1 Hpv Hsn hro.2
-            (tickEnd_ro (Hlifted h).1)) Hsg $$ Hsc
+            (tickEnd_ro (Hlifted h).1)) Hsg (fun _ => Hsdr') $$ Hsc
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgh]; exact Hgtr.trans HtrG)
-      iapply HΦ $$ %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
+      iapply HΦ $$ %s'.term %(toRState { rs with term := s'.term } fp s') %(uint.nat s'.logst.inprogress - 1)
       isplitl
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
         (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
         (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
-      · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toPState s') qs
+      · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toRState { rs with term := s'.term } fp s') qs
           (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp rnv sv hprev steps
           Hwf' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
@@ -192,13 +211,18 @@ theorem RawNode.Tick.wp_absProof
         rw [Htrm]
         exact ⟨Ht1, Ht2⟩
       ipureintro
-      intro h _
-      have hl := (Hlifted h).2
-      have hlog : (toPState s').log = ps.log := by
+      intro md hmd _
+      have h : sc = true := by cases sc <;> first | rfl | cases hmd
+      have hl := (Hlifted h).2.1
+      have hlog : (toPState s').log = ps.p.log := by
         rw [← Hps]
         show s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents
         rw [hl]
-      refine ⟨by rw [← Hps]; exact (Hlifted h).1, ?_⟩
+      refine ⟨by
+        rw [← Hps]
+        exact tickEndR_of_bk (by rw [Hcfm.2 (Hcin h).2.2.2.1]; exact (Hlifted h).1) (Hlifted h).2.2
+          Hsn ⟨rfl, rfl⟩, ?_⟩
+      show uint.nat s'.logst.inprogress - 1 = min ip (lcpLen ps.p.log (toPState s').log)
       rw [hl, Hip, Nat.add_sub_cancel]
       exact ip_eq_min_of_eq (Hipl h) hlog)
   · -- traced: the ticks' traced instances, the capability opened from `rnTrace` and closed at the end
@@ -243,7 +267,8 @@ theorem RawNode.Tick.wp_absProof
       have Hcq' : s'.cq = s.cq := by first | exact Hcqe.symm | exact Hcqe
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         -- (2026-11-24) the scope's cluster is untraced (`RnCfgInBasic`): this branch is outside it
-        (fun h _ => by have := (Hcin h).2.2.1; rw [HtrG] at this; cases this) Hsg $$ Hsc
+        (fun h _ => by have := (Hcin h).2.2.1; rw [HtrG] at this; cases this) Hsg
+        (fun h => by have := (Hcin h).2.2.1; rw [HtrG] at this; cases this) $$ Hsc
       ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [Hcap]
       · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
         isplitr
@@ -261,14 +286,14 @@ theorem RawNode.Tick.wp_absProof
         · ipureintro; exact fun h => Hmono (Hbt h)
         rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
         iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ Hcap
-      iapply HΦ $$ %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
+      iapply HΦ $$ %s'.term %(toRState { rs with term := s'.term } fp s') %(uint.nat s'.logst.inprogress - 1)
       isplitl
       ihave #Hhist' := restoredSnapHistory_keep γ id Hsd $$ Hhist
       ihave Hledger' := restoreLedger_keep γ id rs.sn (s := s) (s' := s')
         (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
         (logStoreRec_ksn Hsd) Hcv.commit Hcv.queue $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
-      · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toPState s') qs
+      · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toRState { rs with term := s'.term } fp s') qs
           (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp rnv sv hprev steps
           Hwf' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
@@ -289,7 +314,7 @@ theorem RawNode.Tick.wp_absProof
         exact ⟨Ht1, Ht2⟩
       -- the exact effect is claimed at an untraced node only
       ipureintro
-      intro _ hn
+      intro _ _ hn
       rw [HtrG] at hn; cases hn)
 
 end proof

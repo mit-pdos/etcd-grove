@@ -18,6 +18,7 @@ module
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeReadyAt
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAtScope
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__acceptReady
 -- (2026-11-01, durability stage II (k)) *enter* (`raft_enter`)
@@ -43,16 +44,17 @@ theorem RawNode.Ready.wp_absProof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.absSpec (GF := GF) (hG := hG) := by
-  intro sc γ rn id x rs ps qs ip q g Hsteps0 Hunp0 HtrG
+  intro sc γ rn id x rs r qs ip q g Hsteps0 Hunp0 HtrG
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs ps qs ip sc Hsteps0 Hunp0 $$ [$Hrn]
+  -- (antithesis parity B1) in the scope the ghost prefix is empty, before and after
+  icases ownRawNodeAt_fp_nil γ rn id rs r qs ip sc $$ Hrn with ⟨%Hfp1, Hrn⟩
+  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs r qs ip sc Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
   icases Hrn with ⟨%s, Hrn, Hsc, %Hrw, %ss1, #Hss1, %Hrole1⟩
   obtain ⟨Hps, Hip, Hmsperm, Hto, Hscf⟩ := Hrw
-  subst Hps
   ihave %Hssn1 := softStateIs_null rd.SoftState' ss1 $$ Hss1
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`, at `s`
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
@@ -70,6 +72,8 @@ theorem RawNode.Ready.wp_absProof
     (fun h => absurd HtrG h) $$ [$Hrn $Hsc $HhardO]
     as %steps %ss %qs' %ip' H
   iNamed H
+  icases Hrn with ⟨%fp2, Hrn⟩
+  icases ownRawNodeAt_fp_nil γ rn id _ _ qs' ip' sc $$ Hrn with ⟨%Hfp2, Hrn⟩
   -- the soft state the node records is the cut's, and the one `readyWithoutAccept` read
   ihave %Hsseq := softStateIs_agree rd.SoftState' ss0 ss Hssn0 Hssn $$ [Hss0 Hss]
   · iframe Hss0 Hss
@@ -77,7 +81,9 @@ theorem RawNode.Ready.wp_absProof
   ihave %Hsseq1 := softStateIs_agree rd.SoftState' ss1 ss0 Hssn1 Hssn0 $$ [Hss1 Hss0]
   · iframe Hss1 Hss0
   subst Hsseq1
-  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss1 %W %qs' %ip'
+  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L %ss1 %W
+    %({ toRState rs fp2 s with
+        p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } }) %qs' %ip'
   iframe Hss Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hcr Happ Hrs Hrs_ok Hhard Hhsw
     Hsnapz Hfrz Hdk Hlive
   isplitl [Hrn]
@@ -98,10 +104,16 @@ theorem RawNode.Ready.wp_absProof
   isplitr
   · iexact Hsrcs
   ipureintro
-  refine ⟨Hmsgs_term, Hpsn, fun hsc => ?_⟩
+  refine ⟨Hmsgs_term, Hpsn, fun md hmd => ?_⟩
+  have hsc : sc = true := by cases sc <;> first | rfl | cases hmd
   obtain ⟨Hq, Hhs, Hdur, Hes, Hip', HL⟩ := Hout hsc
   obtain ⟨Hrole, Hdpre, Hdlen, Htyped⟩ := Hscf hsc
-  refine ⟨Hq, ⟨Hrole1.trans Hrole.symm, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
+  have Hr0 := Hps
+  rw [(Hfp1 hsc).1] at Hr0
+  subst Hr0
+  have Hf2 : fp2 = [] := (Hfp2 hsc).1
+  subst Hf2
+  refine ⟨rfl, Hq, ⟨Hrole1.trans Hrole.symm, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
     Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew, Htyped⟩
 

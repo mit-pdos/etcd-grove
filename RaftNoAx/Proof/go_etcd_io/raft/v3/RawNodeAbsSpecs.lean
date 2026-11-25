@@ -9,11 +9,18 @@ its function's proof file (`RawNode.<F>.wp_absProof`, phase 2); the old `RawNode
 unchanged, is its corollary (`RawNode.<F>.spec_of_abs.law`, stated here, proved with them).
 
 **One text, two predicates.** A triple is written once, as `RawNode.<F>.form R S`, over the node's
-predicate `R γ rn id rs ps qs ip` and a proposition `S` guarding the new post conjuncts:
-- `RawNode.<F>.absSpec := ∀ sc, form (ownRawNodeAt · · · · · · (basicScope sc)) (sc = true)`: in the
+predicate `R γ rn id rs r qs ip` (antithesis parity B1, design §4: over the node's `RState` `r`, until
+then its `PState` `ps`) and a predicate `S : RnMode → Prop` of the scope's modes guarding the new post
+conjuncts (`∀ md, S md → End`):
+- `RawNode.<F>.absSpec := ∀ sc, form (ownRawNodeAt · · · · · · (basicScope sc)) (fun md => basicScope sc = some md)`: in the
   harness's basic scope (`sc = true`, the scope `some {}`) the exact effect, outside it (`sc = false`, what `ownRawNode_at` gives any
   `ownRawNode`) the old spec's content, which makes `spec_of_abs` provable;
-- the API form (`RawNodeApi.lean`): `form rawNode True`.
+- the API form (`RawNodeApi.lean`): `form rawNode (fun md => md = {})`.
+
+**The ends over `RState`** (antithesis parity B1, design §4): `Step` and `Propose` give `RecvEndR` (at
+every `Adm`: no snapshot in the scope, so the ghost prefix is kept), `Tick` `TickEndR`, `Advance` (interim)
+`AdvanceEnd` on the protocol reading, all at the node constant `rs.k`, the
+configuration the node's `r.cfg.cfg` (until then the names' `rnCfg γ`); `HasReady`, `Ready` read `r.p`.
 `HasReady` (whose old false arm is `ownRawNodeIdle`, internal) and the start spec are written out.
 
 Deviations from the design's table (§2.6 of the design): the pre is at any queue `qs` (not `[]`:
@@ -79,6 +86,15 @@ abbrev pInit : PState := initPState
 def pAccepted (ps : PState) : PState :=
   { ps with outbox := [], rd := { ps.rd with states := [] } }
 
+/-- (antithesis parity B1) `pAccepted` over `RState`: the bookkeeping fields kept. -/
+def rAccepted (r : RState) : RState := { r with p := pAccepted r.p }
+
+/-- (antithesis parity B1) **A fresh node's `RState`** (`NewRawNode` at an empty storage): the initial
+protocol state, nothing applied, no pending conf index, no snapshot, the configuration `cs` at index
+`0`, no ghost prefix (the Sim's `PInitR` at a run without boot). -/
+def rInit (cs : CCState) : RState :=
+  { p := pInit, applied := W64 0, pci := W64 0, snap := false, cidx := 0, cfg := cs, fp := [] }
+
 /-- **`HasReady`'s `false`, at the protocol level** (design §2.2, revision 2-3): nothing queued
 (Go's `HasReady` is true on any message, self-addressed or not, `rawnode.go:460`); the hard state the
 last reported one (`prevHardSt`'s record `rs.phs`: the zero one at a fresh node); the role the last
@@ -120,23 +136,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `RawNode.Step.spec`'s triple over the node predicate `R`, at a queue `qs` kept, and (under `S`)
 for a message of the harness's types, the exact end state `RecvEnd` from the protocol state `ps` at
 the call to the one `ps'` after, at the message's abstraction. -/
-abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF)
-    (S : Prop) : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (ml : Loc) (st : MsgSt),
   NetMsgOk id st →
   -- (#33 S3c) in the scope, a message of the harness's network, a heartbeat response with no
   -- read-index context (`recvEnd_of_stepEnd_heartbeatResp`'s premise), from a voter (2026-11-24: a
   -- response from a sender outside the progress map returns `errStepPeer` with the state unchanged,
   -- not `RecvEnd`'s step-down to a higher term; notes/specs-only/ledger.md)
-  (S → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
+  (∀ md, S md → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
     st.msg.From' ∈ γ.reCfg) →
   uint.Z st.msg.Term' ≤ uint.Z rs.tc →
   (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
   rs.flw = false →
   γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ R γ rn id rs ps qs ip ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
       "Hm" ∷ (∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
         ⌜c.model = st ∧ c.csUfNil ∧
           (∀ b, γ.maxData = some b → st.msg.Type' ≠ MsgSnap → msgSizeOk c)⌝) ∗
@@ -154,23 +170,23 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → PState �
            snapLocal γ id sv.Metadata'.Index') ∗
       "Hcred" ∷ rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))
-  {{ (err : GoInterface) (t : w64) (ps' : PState) (ip' : Nat), RET #err;
+  {{ (err : GoInterface) (t : w64) (r' : RState) (ip' : Nat), RET #err;
       "Hrn" ∷ R γ rn id
-        { rs with term := t, psnap := rs.psnap || decide (st.msg.Type' = MsgSnap) } ps' qs ip' ∗
+        { rs with term := t, psnap := rs.psnap || decide (st.msg.Type' = MsgSnap) } r' qs ip' ∗
       "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.tc ∧
                (st.msg.Type' ≠ MsgPreVoteResp →
                  uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
                    (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ ∗
       -- (#33 S3c) the exact effect (`Protocol/InputEnd.lean`)
-      "%Hend" ∷ ⌜S → (∀ ty, mtypeOf st.msg.Type' = some ty →
-        RecvEnd {} (rnCfg γ) id ps (absMsg ty st.msg st.ents st.ctx) ps') ∧
-        ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
+      "%Hend" ∷ ⌜∀ md, S md → (∀ ty, mtypeOf st.msg.Type' = some ty → ∀ Adm,
+        RecvEndR Adm rs.k id r (absMsg ty st.msg st.ents st.ctx) r') ∧
+        ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
 
 /-- **`RawNode.Step`, strengthened** (design §2.2's table). -/
 abbrev RawNode.Step.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Step.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc))
-    (sc = true)
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc))
+    (fun md => basicScope sc = some md)
 
 /-- The old spec, its text unchanged, from the strengthened one (`ownRawNode_at` in at `sc = false`,
 `ownRawNodeAt_ownRawNode` out). -/
@@ -180,28 +196,28 @@ abbrev RawNode.Step.spec_of_abs.law : Prop :=
 /-! ### `RawNode.Tick` -/
 
 /-- `RawNode.Tick.spec`'s triple over `R`, and (under `S`) the tick's exact effect `TickEnd`. -/
-abbrev RawNode.Tick.form (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF)
-    (S : Prop) : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
+abbrev RawNode.Tick.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
   uint.Z rs.term + 1 ≤ uint.Z rs.tc →
   rs.flw = false →
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ R γ rn id rs ps qs ip }}
+      "Hrn" ∷ R γ rn id rs r qs ip }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))
-  {{ (t : w64) (ps' : PState) (ip' : Nat), RET #();
-      "Hrn" ∷ R γ rn id { rs with term := t } ps' qs ip' ∗
+  {{ (t : w64) (r' : RState) (ip' : Nat), RET #();
+      "Hrn" ∷ R γ rn id { rs with term := t } r' qs ip' ∗
       "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
       -- (the scope's exact effect at an untraced node only: the traced tick carries no `StepEnd`;
       -- the harness's cluster is untraced, `NewRawNode.emptyStartForm`)
-      "%Hend" ∷ ⌜S → γ.reTrace = none → TickEnd {} (rnCfg γ) id ps ps' ∧
-        ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
+      "%Hend" ∷ ⌜∀ md, S md → γ.reTrace = none → TickEndR rs.k id r r' ∧
+        ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
 
 /-- **`RawNode.Tick`, strengthened**. -/
 abbrev RawNode.Tick.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Tick.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc))
-    (sc = true)
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc))
+    (fun md => basicScope sc = some md)
 
 abbrev RawNode.Tick.spec_of_abs.law : Prop :=
   RawNode.Tick.absSpec (GF := GF) (hG := hG) → RawNode.Tick.spec (GF := GF) (hG := hG)
@@ -211,29 +227,29 @@ abbrev RawNode.Tick.spec_of_abs.law : Prop :=
 /-- `RawNode.Propose.spec`'s triple over `R`, and (under `S`) the proposal's exact effect
 `ProposeEnd`, at the message `Propose` steps (`pb.Message{Type: MsgProp, From: r.id, Entries:
 [{Data: data}]}`); a dropped proposal (`ErrProposalDropped`) is `ProposeEnd`'s `ps' = ps` arm. -/
-abbrev RawNode.Propose.form (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF)
-    (S : Prop) : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+abbrev RawNode.Propose.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (data_sl : GoSlice) (data : List w8),
   γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ R γ rn id rs ps qs ip ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
       "%Hmd" ∷ ⌜∀ b, γ.maxData = some b → data.length ≤ b⌝ ∗
       "#Hent" ∷ propData γ (propEntryM data) ∗
       "Htk" ∷ entTk γ (propEntryM data) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Propose")) (Val #data_sl))
-  {{ (err : GoInterface) (ps' : PState) (ip' : Nat), RET #err;
-      "Hrn" ∷ R γ rn id rs ps' qs ip' ∗
+  {{ (err : GoInterface) (r' : RState) (ip' : Nat), RET #err;
+      "Hrn" ∷ R γ rn id rs r' qs ip' ∗
       "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) ∗
-      "%Hend" ∷ ⌜S → ProposeEnd (rnCfg γ) id ps
-        (absMsg .propose { propMsgM with From' := id } [propEntryM data]) ps' ∧
-        ip' = min ip (lcpLen ps.log ps'.log)⌝ }}
+      "%Hend" ∷ ⌜∀ md, S md → (∀ Adm, RecvEndR Adm rs.k id r
+        (absMsg .propose { propMsgM with From' := id } [propEntryM data]) r') ∧
+        ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
 
 /-- **`RawNode.Propose`, strengthened**. -/
 abbrev RawNode.Propose.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Propose.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc)) (sc = true)
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc)) (fun md => basicScope sc = some md)
 
 abbrev RawNode.Propose.spec_of_abs.law : Prop :=
   RawNode.Propose.absSpec (GF := GF) (hG := hG) → RawNode.Propose.spec (GF := GF) (hG := hG)
@@ -245,44 +261,44 @@ the scope, the protocol-level idle fact `PIdle` and the in-progress boundary at 
 (`hasNextUnstableEnts` false), and both views of the node: the old spec's
 `ownRawNodeIdle` and `ownRawNodeAt` (an Iris conjunction: either, of the same resources). -/
 abbrev RawNode.HasReady.absSpec : Prop :=
-  ∀ (sc : Bool) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg)
+  ∀ (sc : Bool) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg)
     (ip : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc) }}
+      "Hrn" ∷ ownRawNodeAt γ rn id rs r qs ip (basicScope sc) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc)) ∨
-      (⌜b = false⌝ ∗ ⌜sc = true → PIdle rs ps ∧ ip = ps.log.length⌝ ∗
-        (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs ps qs ip (basicScope sc))) }}
+      (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs r qs ip (basicScope sc)) ∨
+      (⌜b = false⌝ ∗ ⌜sc = true → PIdle rs r.p ∧ ip = r.p.log.length⌝ ∗
+        (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs r qs ip (basicScope sc))) }}
 
 abbrev RawNode.HasReady.spec_of_abs.law : Prop :=
   RawNode.HasReady.absSpec (GF := GF) (hG := hG) → RawNode.HasReady.spec (GF := GF) (hG := hG)
 
 /-! ### `RawNode.Ready` -/
 
-/-- `RawNode.Ready.spec`'s triple over `R`: the node after at `pAccepted ps`, its queue `qs'`, its
+/-- `RawNode.Ready.spec`'s triple over `R`: the node after at `r'` (`rAccepted r` under `S`), its queue `qs'`, its
 in-progress boundary `ip'`; and (under `S`) the queue the outbox's self-addressed messages, the
 `Ready`'s fields `ReadyOut`, the first entry at the boundary `ip + 1` and the boundary moved to the
 log's end. -/
-abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF)
-    (S : Prop) : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (ps : PState)
+abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (r : RState)
     (qs : List Msg) (ip : Nat) (q : Qp) (g : Nat),
   rs.steps = [] →
   rs.unpersisted = [] →
   γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ R γ rn id rs ps qs ip ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
       "Hlive" ∷ genView γ id x q g ∗ "Hfree" ∷ slotFree γ id g }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
       (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan)
-      (ss : Option (w64 × StateType)) (W : DurMaps) (qs' : List Msg) (ip' : Nat), RET #rd;
+      (ss : Option (w64 × StateType)) (W : DurMaps) (r' : RState) (qs' : List Msg) (ip' : Nat), RET #rd;
       "Hrn" ∷ R γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
                   slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
-                  role := roleAfter rs.role ss, bw := W } (pAccepted ps) qs' ip' ∗
+                  role := roleAfter rs.role ss, bw := W } r' qs' ip' ∗
       "Hlive" ∷ genView γ id x q g ∗
       "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ notCrashed -∗
         ownDurGhost γ id rs.dur ∗ genView γ id x q' g ={E}=∗
@@ -313,10 +329,12 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
       "#Hdk" ∷ dlvKeysAt rs.sn rs.delivered.length
         ((dlvAfter rs.delivered ce L).drop rs.delivered.length) ∗
       -- (#33 S3c) the queue `Advance` steps, and the `Ready` against the protocol state
-      "%Hout" ∷ ⌜S → qs' ≡ₚ ps.outbox.filter (fun m => decide (m.dst = id)) ∧
-        ReadyOut id rs ps h es ce ms ss L ∧
+      -- (antithesis parity B1) the node after at `rAccepted r` (in the scope: outside it the ghost prefix
+      -- below the log's boundary is not pinned across the call)
+      "%Hout" ∷ ⌜∀ md, S md → r' = rAccepted r ∧ qs' ≡ₚ r.p.outbox.filter (fun m => decide (m.dst = id)) ∧
+        ReadyOut id rs r.p h es ce ms ss L ∧
         -- (decision 3) the entries from the in-progress boundary on; the boundary to the end
-        (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = ps.log.length ∧
+        (∀ e0 ∈ es.head?, uint.nat e0.Index' = ip + 1) ∧ ip' = r.p.log.length ∧
         -- (#33 S4, 2026-11-24) a non-empty hard state differs from the last one handed out
         -- (`rd.HardState` is set only when `!isHardStateEqual(hardSt, prevHardSt)`; ledger)
         (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs) ∧
@@ -327,7 +345,7 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → PState 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Ready.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc)) (sc = true)
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc)) (fun md => basicScope sc = some md)
 
 abbrev RawNode.Ready.spec_of_abs.law : Prop :=
   RawNode.Ready.absSpec (GF := GF) (hG := hG) → RawNode.Ready.spec (GF := GF) (hG := hG)
@@ -336,24 +354,24 @@ abbrev RawNode.Ready.spec_of_abs.law : Prop :=
 
 /-- `RawNode.Advance.spec`'s triple over `R`: the queue empty after; and (under `S`) the queued
 messages `qs` stepped in order (`AdvanceEnd`). -/
-abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF)
-    (S : Prop) : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (rd : Ready),
   (rs.slent = none → rs.unpersisted = []) →
   rs.unst = false →
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none) →
   -- (#33 S4, 2026-11-24) in the scope, no queued pre-vote response: a self `MsgPreVoteResp` of the
   -- next term has no `RecvEnd` (ledger); the harness's queue is `QsOk`'s
-  (S → ∀ q ∈ qs, q.ty ≠ .preVoteResp) →
+  (∀ md, S md → ∀ q ∈ qs, q.ty ≠ .preVoteResp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ R γ rn id rs ps qs ip ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
       "Hret" ∷ loanRet rs ∗
       "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
       "#Hbw" ∷ durFrags γ id rs.bw }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
-  {{ (t : w64) (ca : Nat) (ps' : PState) (ip' : Nat), RET #();
-      R γ rn id (advRS rs t ca) ps' [] ip' ∗
+  {{ (t : w64) (ca : Nat) (r' : RState) (ip' : Nat), RET #();
+      R γ rn id (advRS rs t ca) r' [] ip' ∗
       ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
       ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
       ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
@@ -363,24 +381,28 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → PStat
       -- (#33 S3c) the exact effect
       -- (#33 S4, 2026-11-24) the boundary's fact at a boundary at the log's end (the harness's, after a
       -- `Ready`): in general an acknowledgement can raise it past `min ip lcp` (ledger)
-      ⌜S → γ.reTrace = none → AdvanceEnd {} (rnCfg γ) id ps qs ps' ∧
-        (ip = ps.log.length → ip' = min ip (lcpLen ps.log ps'.log))⌝ }}
+      -- (antithesis parity B1, interim) the protocol reading's `AdvanceEnd` at the node's configuration;
+      -- `AdvanceEndR` needs a storage acknowledgement to keep `pendingConfIndex`, which `raft.Step`'s
+      -- spec does not say (`LocalStepOk`): reported to the lead
+      ⌜∀ md, S md → γ.reTrace = none → AdvanceEnd rs.k r.cfg.cfg id r.p qs r'.p ∧
+        (ip = r.p.log.length → ip' = min ip (lcpLen r.p.log r'.p.log))⌝ }}
 
 /-- **`RawNode.Advance`, strengthened**. -/
 abbrev RawNode.Advance.absSpec : Prop :=
   ∀ sc : Bool, RawNode.Advance.form
-    (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope sc)) (sc = true)
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc)) (fun md => basicScope sc = some md)
 
 abbrev RawNode.Advance.spec_of_abs.law : Prop :=
   RawNode.Advance.absSpec (GF := GF) (hG := hG) → RawNode.Advance.spec (GF := GF) (hG := hG)
 
 /-! ### `NewRawNode` at an empty storage -/
 
-/-- `NewRawNode.emptyStartSpec`'s triple, the post's node over `R` at `pInit` with nothing queued,
+/-- `NewRawNode.emptyStartSpec`'s triple, the post's node over `R` at `rInit` (the initial protocol
+state `pInit`; antithesis parity B1: with the node constant the `Config`'s flags, `cfgK cv`) with nothing queued,
 with the harness's scope as premises: pre-vote and check-quorum off (F6), the names' voters the
 cluster's (`vs`) with the node among them, and the storage never compacted past `0` (`storCapF`: the harness never calls `Compact`; the
 storage's contract states it). -/
-abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → PState → List Msg → Nat → IProp GF) :
+abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF) :
     Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (vs : List w64)
     (F : GName → IProp GF),
@@ -419,8 +441,9 @@ abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → 
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       ⌜err = interface.nil⌝ ∗
       ∃ (sn : StorNames) (g : Nat) (K : GName),
-        R γ.raftNames rn cv.ID' (rawNodeRestarted γ [] (interface.ok si) sn hsZero RaftState.init
-          (Membership.simple (GMap.listToSet vs)) 0) pInit [] 0 ∗
+        R γ.raftNames rn cv.ID' { rawNodeRestarted γ [] (interface.ok si) sn hsZero RaftState.init
+          (Membership.simple (GMap.listToSet vs)) 0 with k := cfgK cv }
+          (rInit (ApiImpl.stOf (Membership.simple (GMap.listToSet vs)))) [] 0 ∗
         genView γ.raftNames cv.ID' x 1 g ∗ slotFree γ.raftNames cv.ID' g ∗
         raftState γ cv.ID' RaftState.init ∗ F K }}
 
@@ -428,7 +451,7 @@ abbrev NewRawNode.emptyStartForm (R : RaftNames → Loc → w64 → RNState → 
 in the scope (`sc = true`) at the initial protocol state. (No `spec_of_abs`: its premises are
 stronger than `emptyStartSpec`'s, which keeps its own proof.) -/
 abbrev NewRawNode.emptyStartAbsSpec : Prop :=
-  NewRawNode.emptyStartForm (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (some {}))
+  NewRawNode.emptyStartForm (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (some {}))
 
 end spec
 

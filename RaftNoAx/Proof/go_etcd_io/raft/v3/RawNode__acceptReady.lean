@@ -200,6 +200,21 @@ theorem toPState_ready (s : NState) (L : Option SnapLoan) (ce : List EntryM) (sz
   rw [h1, h2, h3, h4]
   by_cases h : s.role = .leader <;> simp [readyNstate, h, rdNL] <;> exact ⟨rfl, rfl⟩
 
+/-- (antithesis parity B1) `Ready` over `RState`: the protocol reading as `toPState_ready`, the
+bookkeeping (`applied`, `pendingConfIndex`, the pending snapshot) kept. -/
+theorem toRState_ready (rs rs' : RNState) (fp : List EntryM) (s : NState) (L : Option SnapLoan)
+    (ce : List EntryM) (sz : w64) {dk : Nat} (hc : rs'.capplied = rs.capplied ∧ rs'.cfg = rs.cfg) :
+    toRState rs' fp (readyNstate s L ce sz dk) =
+      { toRState rs fp s with
+          p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } } := by
+  have e : (readyNstate s L ce sz dk).logst.applied = s.logst.applied ∧
+      (readyNstate s L ce sz dk).logst.snap = s.logst.snap := by
+    unfold readyNstate logAcceptApplying logAcceptUnstable rdyLs lendLog
+    split <;> split <;> exact ⟨rfl, rfl⟩
+  unfold toRState
+  rw [toPState_ready, e.1, e.2, hc.1, hc.2]
+  rfl
+
 end helpers
 
 section proof
@@ -1342,8 +1357,10 @@ theorem RawNode.acceptReady.wp_proof
   isplitl
   rotate_left
   · ipureintro; exact Hfacts
+  iexists fp
   iapply ownRawNodeAt_intro γ rn id rsN
-    { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } }
+    { toRState rs fp s with
+        p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } }
     ((selfmsgs id ms2).filterMap (fun q => absMsgOf q.st))
     (uint.nat (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.inprogress - 1)
     (basicScope sc)
@@ -1365,7 +1382,7 @@ theorem RawNode.acceptReady.wp_proof
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2.1, Hpvoff.2.2.1, Hpvoff.2.2.2.1,
       readyNstate_snapFol Hpvoff.2.2.2.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    HsdtN HroleN HphsN HpsN (by omega) $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' Hhist' Hledger' HdurN Hrntr Hsc
+    HsdtN HroleN HphsN (toRState_ready rs rsN fp s L ce sz ⟨rfl, rfl⟩) (by omega) $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc' Hhist' Hledger' HdurN Hrntr Hsc
 
 end proof
 

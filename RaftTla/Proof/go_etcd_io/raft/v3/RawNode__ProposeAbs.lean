@@ -9,7 +9,7 @@ corollary (`RawNode.Propose.spec_of_abs`, `RawNodeSpecOfAbs.lean`). The proof is
   node's non-joint configuration, `ownRaftPhysC_ackScope`), whose post gives `StepEnd`, read through
   `toPState` as `ProposeEnd` (`proposeEnd_of_stepEnd`, `InputEndLift.lean`), and the log only appended
   to with the in-progress boundary kept (`logGrow_of_stepEnd_prop`, `StepEndIp.lean`); the scope kept
-  (`RnScope.keep`: the read-index state, `proposeEnd_rd`; no `MsgSnap` queued);
+  (`RnScopeBasic.keep`: the read-index state, `proposeEnd_rd`; no `MsgSnap` queued);
 - outside it, untraced as before (`raft.Step.untraced`).
 
 A sibling of the function's proof file, which `RawNode__Propose.lean` applies.
@@ -95,6 +95,14 @@ local macro "prop_frame" : tactic => `(tactic| (
     isplitl [Hcr]
     · rw [ite_eq_right (by msg_ne)]; iexact Hcr))
 
+/-- (antithesis parity B1) A proposal's entry is no conf change. -/
+theorem propEntryM_noConf [GooseExts] (data : List w8) : ∀ e ∈ [propEntryM data], ¬ IsConfEnt e := by
+  have h : ¬ (W32 0 = W32 1 ∨ W32 0 = W32 2) := by decide
+  intro e he
+  rw [List.mem_singleton] at he
+  subst he
+  simpa only [IsConfEnt, propEntryM] using h
+
 set_option hygiene false in
 /-- After `raft.Step` (either instance, the end state in the scope as `Hx`): `ownRawNodeAt` at the
 end state, the exact effect in the scope. -/
@@ -113,23 +121,28 @@ local macro "prop_tail" : tactic => `(tactic| (
     ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr.1]; exact Int.le_refl _)
       Hfr.2.2.2.2.1 Hfr.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.1 $$ Hstrecs
     -- in the scope, the proposal's exact effect, the log only appended to
+    have hnc : ∀ e ∈ [propEntryM data], ¬ IsConfEnt e := propEntryM_noConf data
     have Hlifted : sc = true →
         ProposeEnd cf id (toPState s)
           (absMsg .propose ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
-            [propEntryM data] []) (toPState s') ∧ LogGrow s.logst s'.logst := fun h =>
+            [propEntryM data] []) (toPState s') ∧ LogGrow s.logst s'.logst ∧ BkStep s s' := fun h =>
       ⟨proposeEnd_of_stepEnd (Hlift h).1 rfl rfl (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1,
-        logGrow_of_stepEnd_prop (Hlift h).1 rfl rfl (Hx h).1⟩
+        logGrow_of_stepEnd_prop (Hlift h).1 rfl rfl (Hx h).1,
+        bk_of_stepEnd_prop (Hlift h).1 rfl rfl hnc (Hx h).1⟩
+    icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
+    icombine Hsd0 Hsd1 gives %Hsde
+    have Hsdr' : s'.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
     ihave Hsc := rnScopeAt_keepIf sc rs rs s s'
       (fun h Hs => by
         have hrd : s'.rd.pend = s.rd.pend := by
           rw [← toPState_rd_pend s', ← toPState_rd_pend s, proposeEnd_rd (Hlifted h).1]
-        exact RnScope.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
+        exact RnScopeBasic.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
           (fun m hm => .inr ((Hx h).2 m hm))
           (fun h0 => by rw [proposeEnd_rd (Hlifted h).1]; exact h0)
-          (hxs := congrArg NGhost.xs Hfr.2.2.2.2.2.2.2.2.1)) Hfr.2.2.2.2.2.2.1 $$ Hsc
+          (hxs := congrArg NGhost.xs Hfr.2.2.2.2.2.2.2.2.1)) Hfr.2.2.2.2.2.2.1 (fun _ => Hsdr') $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
       (by rw [LocalFrame.ns Hfr]; exact Hgtr.trans HtrG)
-    iapply HΦ $$ %err %(toPState s') %(uint.nat s'.logst.inprogress - 1)
+    iapply HΦ $$ %err %(toRState rs fp s') %(uint.nat s'.logst.inprogress - 1)
     simp only [named]
     isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpend Hledger Hrntr Hsc]
     ihave #Hhist' := restoredSnapHistory_keep γ id Hfr.2.2.2.2.2.1 $$ Hhist
@@ -137,7 +150,7 @@ local macro "prop_tail" : tactic => `(tactic| (
       (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
       (logStoreRec_ksn Hfr.2.2.2.2.2.1) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
-    · iapply ownRawNodeAt_intro γ rn id rs (toPState s') qs (uint.nat s'.logst.inprogress - 1) sc
+    · iapply ownRawNodeAt_intro γ rn id rs (toRState rs fp s') qs (uint.nat s'.logst.inprogress - 1) (basicScope sc)
         s' cf fp rnv sv hprev steps Hwf' Hin Hasync
         (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
         (by rw [Hfr.2.2.2.1]; exact Hsnap)
@@ -160,9 +173,14 @@ local macro "prop_tail" : tactic => `(tactic| (
       · ileft; ipureintro; exact Herr
       · iright; iexact Hd
     ipureintro
-    intro h
-    have Hg := (Hlifted h).2
-    refine ⟨by rw [← Hps]; exact (Hlifted h).1.of_ids (Hlift h).2.2, ?_⟩
+    intro md hmd
+    have h : sc = true := by cases sc <;> first | rfl | cases hmd
+    have Hg := (Hlifted h).2.1
+    refine ⟨fun Adm => by
+      rw [← Hps]
+      exact recvEndR_of_prop (by simp [absMsg, absMsgFrom, Msg.mkV]) rfl
+        (by rw [Hcfm.2 (Hcin h).2.2.2.1]; exact (Hlifted h).1) (Hlifted h).2.2 Hfr.2.2.2.1
+        Hfr.2.2.2.2.1 ⟨rfl, rfl⟩ hnc, ?_⟩
     have := ip_of_logGrow Hg (by
       have := Hipf.1.2; rw [Hp0 h] at this; rw [List.length_append]; push_cast; omega)
     rw [Hip, Nat.add_sub_cancel] at this
@@ -187,6 +205,7 @@ theorem RawNode.Propose.wp_absProof
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom, Hphys⟩
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
+  icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
   icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩

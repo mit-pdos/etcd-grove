@@ -9,7 +9,7 @@ each queued message through `raft.Step` at the no-snapshot flag (`wp_step_pendin
 - the queue's states named (`pendAt`'s `sts`) and its protocol messages still to step (`advQ` of the
   rest), with the prefix already stepped as `AdvanceEnd` from `ps` (a continuation: whatever ends the
   rest from the current reading ends `qs` from `ps`);
-- the scope (`RnScope`) at the current state, kept by each step (`advStep_pure`: a self-addressed
+- the scope (`RnScopeBasic`) at the current state, kept by each step (`advStep_pure`: a self-addressed
   response's `StepEnd` read as `RecvEnd` at the harness's configuration, `recvEnd_of_stepEnd_net`; a
   storage acknowledgement's `AckEnd`, the protocol reading unchanged).
 The in-progress boundary is read off the end state (`adv_ip_end`): with the boundary at the log's end at
@@ -44,6 +44,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section pure
+variable {k : NodeK}
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The protocol message a queued step carries (`PendAbs`'s): a self-addressed response's reading. -/
@@ -80,7 +81,7 @@ theorem absMsg_ty (ty : MsgType) (m : MessageM) (ents : List EntryM) (ctx : List
 theorem AdvAbs.handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : HandleEnd c id s m s') : s'.rd.pend = s.rd.pend := by
+    (h : HandleEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
   unfold HandleEnd at h
   rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
   · split at h
@@ -106,7 +107,7 @@ theorem AdvAbs.handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s
 theorem AdvAbs.recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : RecvEnd c id s m s') : s'.rd.pend = s.rd.pend := by
+    (h : RecvEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
   rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hp, h⟩
   · exact AdvAbs.handleEnd_rd_pend hty h
   · rfl
@@ -123,8 +124,8 @@ theorem advStep_pure {C cf : CfgM} {id : w64} {s1 s2 : NState} {st : MsgSt} {p :
     (Hnpv : ∀ q ∈ advHead st p, q.ty ≠ .preVoteResp)
     (Hend : StepEnd cf id st.msg st.ents st.ctx s1 s2) (Hack : AckEnd st.msg s1 s2)
     (Hns : NoSnapL s2.outbox) :
-    (∀ rest pe, AdvanceEnd C id (toPState s2) rest pe →
-      AdvanceEnd C id (toPState s1) (advHead st p ++ rest) pe) ∧
+    (∀ rest pe, AdvanceEnd k C id (toPState s2) rest pe →
+      AdvanceEnd k C id (toPState s1) (advHead st p ++ rest) pe) ∧
     s2.rd.pend = s1.rd.pend ∧
     ((toPState s1).rd.ro.pending = [] → (toPState s2).rd.ro.pending = []) := by
   cases p with
@@ -148,7 +149,7 @@ theorem advStep_pure {C cf : CfgM} {id : w64} {s1 s2 : NState} {st : MsgSt} {p :
       rcases Hty' with h | h
       · exact ⟨.appResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl⟩
       · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl⟩
-    have HR := recvEnd_of_stepEnd_net Hl hant Hnz (fun _ => Hcx)
+    have HR := recvEnd_of_stepEnd_net (k := {}) Hl hant Hnz (fun _ => Hcx)
       (noSnapSent_of_noSnapL Hns) Hend ty hty
     have HR' := HR.1.of_halves HC.1 HC.2.1 HC.2.2 HR.2
     refine ⟨fun rest pe H => ?_, ?_, recvEnd_ro HR.2 HR.1⟩
@@ -204,6 +205,7 @@ theorem adv_ip_end {ls ls1 : LogState} {ip : Nat}
 end pure
 
 section ghost
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -245,8 +247,8 @@ theorem pendAt_steps_nil (γ : RaftNames) (id : w64) (W : DurMaps) (o : Option S
   | some lo => simp only [pendAt]; exact .rfl
 
 /-- `ownRawNodeAt` at an empty queue has no queued protocol message. -/
-theorem ownRawNodeAt_steps_nil (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
-    (qs : List Msg) (ip : Nat) (sc : Bool) (h : rs.steps = []) :
+theorem ownRawNodeAt_steps_nil (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : RState)
+    (qs : List Msg) (ip : Nat) (sc : Option RnMode) (h : rs.steps = []) :
     ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc ⊢ ownRawNodeAt γ rn id rs ps [] ip sc := by
   iintro H
   iNamed H
@@ -271,6 +273,7 @@ theorem pendingRel_pure (γ : RaftNames) (id : w64) (W : DurMaps) (st : MsgSt) (
 end ghost
 
 section proof
+variable {k : NodeK}
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
@@ -280,29 +283,31 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- Outside the harness's scope: the old proof. -/
 theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.form (GF := GF) (hG := hG)
-      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip false) (false = true) := by
+      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope false))
+      (fun md => basicScope false = some md) := by
   intro γ rn id rs ps qs ip rd H1 H2 H3 _
   wp_start_folded as H
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip false $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip (basicScope false) $$ Hrn
   wp_apply RawNode.Advance.tracedSpec_proof wp_raft_Step γ rn id rs rd H1 H2 H3
     $$ [$Hrn $Hret $HA1 $Hbw] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca, %Hca2⟩
   icases ownRawNode_at γ rn id (advRS rs t ca) $$ Hrn with ⟨%ps', %qs', %ip', Hrn⟩
-  ihave Hrn := ownRawNodeAt_steps_nil γ rn id (advRS rs t ca) ps' qs' ip' false
+  ihave Hrn := ownRawNodeAt_steps_nil γ rn id (advRS rs t ca) ps' qs' ip' none
     (by unfold advRS; split <;> rfl) $$ Hrn
   iapply HΦ $$ %t %ca %ps' %ip'
   iframe Hrn
   ipureintro
-  exact ⟨Ht1, Ht2, Hca, Hca2, fun h => absurd h (by simp)⟩
+  exact ⟨Ht1, Ht2, Hca, Hca2, fun md h => by cases h⟩
 
 
 set_option maxHeartbeats 2000000 in
 /-- In the harness's scope (see the file header). -/
 theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.form (GF := GF) (hG := hG)
-      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip true) (true = true) := by
+      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope true))
+      (fun md => basicScope true = some md) := by
   intro γ rn id rs ps qs ip rd Hunp0 Hunst0 _ Hnq0
-  have Hnq := Hnq0 rfl
+  have Hnq := Hnq0 {} rfl
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -321,16 +326,18 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   have Hal : AckScope cf := Hal0 HC.2.1
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
+  icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
+  have Hcfe : rs.cfg.cfg = cf := Hcfm.2 Hcin.2.2.2.1
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   have Hprev0 : uint.Z s.logst.prev.index' = 0 := by rw [Hscope.2.2.2.2.2.1]; rfl
   have Hsnn : s.logst.snap = none := Hscope.2.2.2.2.2.2.1
   have Hid : id ∈ cf.voters := by rw [HC.voters]; exact Hcin.1
   -- the storage holds the whole log when the boundary is at the log's end
-  have Hst0 : ip = ps.log.length → s.logst.stored = s.logst.sents ++ s.logst.uents := by
+  have Hst0 : ip = ps.p.log.length → s.logst.stored = s.logst.sents ++ s.logst.uents := by
     intro hl
     apply Hipf.2 Hsnn
     rw [← Hps] at hl
-    simp only [toPState, List.length_append] at hl
+    simp only [toRState_p, toPState, List.length_append] at hl
     have := uint_nat_eq s.logst.inprogress
     rw [Hprev0]; omega
   -- no snapshot `Ready`: the queue holds no snapshot acknowledgement
@@ -390,11 +397,11 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       "%Hsf1" ∷ ⌜SnapFol s1⌝ ∗
       -- (#33 S4) the protocol messages still to step, a suffix of `qs`, and the prefix stepped
       "%Hae1" ∷ ⌜advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n)) <:+ qs ∧
-        ∀ pe, AdvanceEnd (rnCfg γ) id (toPState s1)
+        ∀ pe, AdvanceEnd rs.k rs.cfg.cfg id (toPState s1)
           (advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n))) pe →
-          AdvanceEnd (rnCfg γ) id ps qs pe⌝ ∗
+          AdvanceEnd rs.k rs.cfg.cfg id ps.p qs pe⌝ ∗
       -- (#33 S4) the scope at the current state
-      "%Hsc1" ∷ ⌜RnScope rs s1⌝ ∗
+      "%Hsc1" ∷ ⌜RnScopeBasic rs s1⌝ ∗
       "Hpend" ∷ ([∗list] l;x ∈ steps.drop (sint.nat n);(sts.drop (sint.nat n)).zip
           (rs.steps.drop (sint.nat n)),
         msgIn l DFrac.discard x.1 ∗ pendingRel γ id rs.bw x.1 x.2))
@@ -553,10 +560,10 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     have Hcqv : s2.cq = s1.cq := by
       rw [Hsc1.2.2.1]; rw [Hscope.2.2.1] at Hcqe
       first | exact Hcqe.symm | exact Hcqe
-    have HP := advStep_pure (C := rnCfg γ) ⟨HC.1, HC.2.1, HC.ids (Hcin.learners Hcfm)⟩ Hlift1 Hpst
+    have HP := advStep_pure (k := rs.k) (C := rs.cfg.cfg) ⟨by rw [Hcfe], by rw [Hcfe], by rw [Hcfe]⟩ Hlift1 Hpst
       (fun q hq => Hnq q (Hae1.1.subset (List.mem_append_left _ hq))) Hend2 HAk2 HNs2
-    have Hsc2 : RnScope rs s2 :=
-      RnScope.keep Hsc1 rfl rfl Hsg2.2.1 Hcqv HP.2.1 Hpv2 Hsn2 (fun x hx => .inr (HNs2 x hx)) HP.2.2
+    have Hsc2 : RnScopeBasic rs s2 :=
+      RnScopeBasic.keep Hsc1 rfl rfl Hsg2.2.1 Hcqv HP.2.1 Hpv2 Hsn2 (fun x hx => .inr (HNs2 x hx)) HP.2.2
     -- `stepsOnAdvance[i] = nil`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
     wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (null : Loc)
@@ -680,17 +687,23 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     icases ownRaftPhysC_ipFacts cf rnv.raft' id s1 $$ Hphys with ⟨%Hipf1, Hphys⟩
     icases ownRaftPhysC_ipStored cf rnv.raft' id s1 $$ Hphys with ⟨%Hips1, Hphys⟩
     icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s1 $$ Hphys with ⟨%Hipp1, Hphys⟩
+    icases ownRaftPhysC_sdr cf rnv.raft' id s1 $$ Hphys with ⟨#Hsd1, Hphys⟩
+    icombine Hsd0 Hsd1 gives %Hsde
+    have Hsdr1 : s1.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
     ihave Hsc' := rnScopeAt_keepIf true rs
       { rs with steps := [], term := s1.term, capplied := ca, flw := false } s s1
-      (fun _ _ => Hsc1) Hsg1.1 $$ Hsc
+      (fun _ _ => Hsc1) Hsg1.1 (fun _ => Hsdr1) $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s1
       (by rw [Hsg1.2.2]; exact HtrS)
-    iapply HΦ $$ %s1.term %ca %(toPState s1) %(uint.nat s1.logst.inprogress - 1)
+    iapply HΦ $$ %s1.term %ca
+      %(toRState { rs with steps := [], term := s1.term, capplied := ca, flw := false } fp s1)
+      %(uint.nat s1.logst.inprogress - 1)
     rw [advRS_none s1.term ca hsl]
     isplitl
     · iapply ownRawNodeAt_intro γ rn id
-        { rs with steps := [], term := s1.term, capplied := ca, flw := false } (toPState s1) []
-        (uint.nat s1.logst.inprogress - 1) true s1
+        { rs with steps := [], term := s1.term, capplied := ca, flw := false }
+        (toRState { rs with steps := [], term := s1.term, capplied := ca, flw := false } fp s1) []
+        (uint.nat s1.logst.inprogress - 1) (basicScope true) s1
         cf fp
         { rnv with stepsOnAdvance' :=
             slice.slice rnv.stepsOnAdvance' Loc (W64 0) (W64 0) }
@@ -722,7 +735,9 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     isplitr
     · ipureintro; exact fun _ => Hcmax
     ipureintro
-    intro _ _
+    intro _ _ _
+    have Hpcfg : ps.cfg = rs.cfg := by rw [← Hps]; rfl
+    rw [Hpcfg]
     refine ⟨Hae1.2 _ ?_, fun hl => ?_⟩
     · rw [Hdrop, Hdrop', advQ_nil_left]; exact .nil _
     · have Hpz1 : uint.Z s1.logst.prev.index' = 0 := by rw [Hs1.2.2.2.1]; exact Hprev0

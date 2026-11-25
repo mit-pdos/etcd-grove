@@ -78,26 +78,27 @@ snapshot pending** too, until then a premise `rs.psnap = false`: the `Ready` the
 to it, the loan `L` (`SnapLoan`); no committed entries -- and with no snapshot restored since the
 last `Ready` (`rs.psnap = false`) none, as until then.) -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (sc : Bool),
   rs.steps = [] →
   rs.unpersisted = [] →
   -- (2026-11-09 to 2026-11-11, Q8 stage 0 to slice 28n: `γ.reTrace = none`, an untraced node; the
   -- function logs nothing, and the node's logger is handed on in either mode, `TraceLoggerOkS`)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeAt γ rn id rs ps qs ip sc }}
+      "Hrn" ∷ ownRawNodeAt γ rn id rs r qs ip (basicScope sc) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
       (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan), RET #rd;
-      -- (#33 S4) at a named state `s`, which reads as `ps`, with the scope kept
+      -- (#33 S4) at a named state `s`, which reads as `r` (antithesis parity B1: at `r`'s ghost
+      -- prefix; until then as `ps`), with the scope kept
       "Hrn" ∷ (∃ s : NState, ownRawNodeReadyS γ rn id rs rd ce es ms false L s ∗
-        rnScopeAt γ id sc rs s ∗
-        ⌜toPState s = ps ∧ uint.nat s.logst.inprogress = ip + 1 ∧
+        rnScopeAt γ id (basicScope sc) rs s ∗
+        ⌜toRState rs r.fp s = r ∧ uint.nat s.logst.inprogress = ip + 1 ∧
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
-          (sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
-            (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
+          (sc = true → roleGo r.p.role = stateW64 s.role ∧ rs.delivered ++ ce <+: r.p.log ∧
+            (rs.delivered ++ ce).length ≤ uint.nat r.p.commit ∧
             -- (#33 S4, 2026-11-24) every message reads as a protocol message: of a type the model
             -- describes (no transfer request stepped in the scope, `NGhost.xs`: `XfOk`'s last clause)
             ∀ q ∈ ms, (absMsgOf q.st).isSome)⌝ ∗

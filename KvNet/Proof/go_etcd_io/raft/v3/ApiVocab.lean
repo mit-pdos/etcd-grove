@@ -29,6 +29,7 @@ public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 public import KvNet.Proof.go_etcd_io.raft.v3.InvStorage
 public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.Protocol.RnMode
 public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.Refinement
 public import KvNet.Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import KvNet.Spec.google_golang_org.protobuf.proto.MarshalConfChange
@@ -280,6 +281,11 @@ structure RNState [GooseExts] where
   tc : w64 := W64 0
   /-- The ghost state's mode (2026-10-14, reconfiguration stage B7 part 2), constant. -/
   mode : RNMode := .static
+  /-- (antithesis parity B1, 2026-11-25) The node's `Config` flags the end relations read (`NodeK`:
+  `PreVote`, `CheckQuorum`, `StepDownOnRemoval`), constant: `newRaft` copies them and nothing writes
+  them. Only the RawNode scope reads it (`rnScopeAt` ties it to the raft state's flags); the start
+  spec takes it from the `Config`. -/
+  k : NodeK := {}
   /-- In the dynamic mode, the configuration in use (with the learner flags; `confchange`'s
   state) and its *configuration index*: the configuration is that of the committed log's
   first `capplied` entries -- every conf entry below has been applied with `ApplyConfChange`.

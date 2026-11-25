@@ -789,11 +789,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- (#33 S4) the facts at `s`: the messages' readings (`readyMsgs_perm`), and in the scope the role
   -- and the committed log handed out
   have Hmsperm := (readyMsgs_perm id s.outbox ms1 ms2 Houtbox (fun q h => (HmsgsAA_ok.2 q h).1)).1
-  have Hscf0 : sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
-      (rs.delivered ++ ce).length ≤ uint.nat ps.commit := by
+  have Hscf0 : sc = true → roleGo ps.p.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.p.log ∧
+      (rs.delivered ++ ce).length ≤ uint.nat ps.p.commit := by
     intro hsc
     obtain ⟨-, Hpv, -, -, -, Hprev, Hsn, -⟩ := Hscope hsc
     subst Hps
+    simp only [toRState_p]
     refine ⟨?_, ?_⟩
     · simp only [toPState]
       cases hr : s.role with
@@ -816,8 +817,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
       unfold uint.nat; unfold uint.Z at this; omega
   -- (#33 S4, 2026-11-24) and every message handed out typed: no transfer request stepped in the
   -- scope (`RnScopeBasic`'s `NGhost.xs`), so `XfOk`'s last clause
-  have Hscf : sc = true → roleGo ps.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.log ∧
-      (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
+  have Hscf : sc = true → roleGo ps.p.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.p.log ∧
+      (rs.delivered ++ ce).length ≤ uint.nat ps.p.commit ∧
       ∀ q ∈ ms1 ++ nonself id ms2, (absMsgOf q.st).isSome := fun hsc =>
     ⟨(Hscf0 hsc).1, (Hscf0 hsc).2.1, (Hscf0 hsc).2.2,
       fun q hq => absMsgOf_isSome_of_rel Houtbox q (Hsub q hq)
@@ -828,7 +829,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     rotate_left
     · iframe Hsc
       isplitr
-      · ipureintro; exact ⟨Hps, Hip, Hmsperm, Hto, Hscf⟩
+      · ipureintro; exact ⟨by subst Hps; rfl, Hip, Hmsperm, Hto, Hscf⟩
       · iexact Hssr
     iexists cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]

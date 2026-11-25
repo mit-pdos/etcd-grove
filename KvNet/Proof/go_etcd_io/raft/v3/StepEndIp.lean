@@ -17,6 +17,7 @@ module
 public import KvNet.Proof.go_etcd_io.raft.v3.InputEndLift
 public import KvNet.Proof.go_etcd_io.raft.v3.InputEndIp
 public import KvNet.Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
+public import KvNet.Proof.go_etcd_io.raft.v3.StepEndBk
 
 @[expose] public section
 
@@ -471,6 +472,109 @@ theorem proposeEnd_rd {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
   split at h
   · rcases h with rfl | ⟨es, ms, -, -, rfl⟩ <;> rfl
   · split at h <;> (subst h; rfl)
+
+/-! ### The `RState` ends (antithesis parity B1, design §4): the bookkeeping from `BkStep` -/
+
+/-- `logLast` is the protocol reading's last index (`TracedRaftStepPropBundle.lean`'s, restated: that
+module is in the traced cone). -/
+theorem logLast_eq_plastIndex' (s : NState) : logLast s.logst = plastIndex (toPState s) := by
+  simp only [plastIndex, plogLastIndexZ, logLast, toPState, List.length_append]
+  congr 1; push_cast; omega
+
+/-- `pendingConfIndex` after a step as `PciNext` reads it, from `BkStep`. -/
+theorem pciR_of_bk {rs : RNState} {fp : List EntryM} {s s' : NState} (h : BkStep s s') :
+    pciR s' = PciNext (toRState rs fp s) (toPState s') := by
+  have e' : (toPState s').role = .leader ↔ s'.role = .leader := proleRole_leader _
+  have e : (toPState s).role = .leader ↔ s.role = .leader := proleRole_leader _
+  show pciR s' = (if (toPState s').role = .leader then
+      (if (toPState s).role = .leader then pciR s
+       else W64 (plogLastIndexZ (toPState s).base (toPState s).log)) else W64 0)
+  unfold pciR
+  by_cases h1 : s'.role = .leader
+  · rw [if_pos h1, if_pos (e'.2 h1)]
+    rcases h.2 h1 with ⟨h2, h3⟩ | ⟨h2, h3⟩
+    · rw [if_pos (e.2 h2), if_pos h2, h3]
+    · rw [if_neg (fun h => h2 (e.1 h)), h3, logLast_eq_plastIndex']; rfl
+  · rw [if_neg h1, if_neg (fun h => h1 (e'.1 h))]
+
+/-- **A received message's `RState` end** (not a proposal): `RecvEnd` at the node's configuration,
+the bookkeeping from `BkStep`, the log's boundary and the pending snapshot kept (`FpNext`'s first
+arm, at every `Adm`). -/
+theorem recvEndR_of_bk {Adm : List EntryM → CCState → Prop} {id : w64}
+    {rs rs' : RNState} {fp : List EntryM} {s s' : NState} {m : Msg}
+    (hR : RecvEnd k rs.cfg.cfg id (toPState s) m (toPState s')) (hbk : BkStep s s')
+    (hsn : s'.logst.snap = s.logst.snap) (hprev : s'.logst.prev = s.logst.prev)
+    (hcf : rs'.capplied = rs.capplied ∧ rs'.cfg = rs.cfg) (hnp : m.ty ≠ .propose) :
+    RecvEndR Adm k id (toRState rs fp s) m (toRState rs' fp s') := by
+  refine ⟨hR, ⟨hbk.1, hcf.1, hcf.2⟩, .inl ⟨hprev, rfl, by simp only [toRState_snap, hsn]⟩,
+    fun h => absurd h.1 hnp, fun _ => pciR_of_bk hbk⟩
+
+/-- **A tick's `RState` end**: `TickEnd` at the node's configuration, the bookkeeping from `BkStep`. -/
+theorem tickEndR_of_bk {id : w64} {rs rs' : RNState} {fp : List EntryM} {s s' : NState}
+    (hT : TickEnd k rs.cfg.cfg id (toPState s) (toPState s')) (hbk : BkStep s s')
+    (hsn : s'.logst.snap = s.logst.snap) (hcf : rs'.capplied = rs.capplied ∧ rs'.cfg = rs.cfg) :
+    TickEndR k id (toRState rs fp s) (toRState rs' fp s') :=
+  ⟨hT, ⟨hbk.1, hcf.1, hcf.2⟩, rfl, by simp only [toRState_snap, hsn], pciR_of_bk hbk⟩
+
+/-- `PropRepl` with no conf-change entry is the identity. -/
+theorem PropRepl.eq_of_noConf {es es' : List EntryM} (h : PropRepl es es')
+    (hnc : ∀ e ∈ es, ¬ IsConfEnt e) : es' = es := by
+  induction h with
+  | nil => rfl
+  | @cons e e' es es' h1 _ ih =>
+    rcases h1 with rfl | ⟨hc, -⟩
+    · rw [ih (fun x hx => hnc x (List.mem_cons_of_mem _ hx))]
+    · exact absurd hc (hnc e List.mem_cons_self)
+
+/-- No conf-change entry: the conf-change loop returns the batch and `pendingConfIndex`. -/
+theorem propBatch_noConf (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM))
+    (hct : CCTypesOk ents cs) (hnc : ∀ e ∈ ents, ¬ IsConfEnt e) :
+    propBatch r ents cs = (ents, r.pci) := by
+  unfold propBatch propConf
+  rw [bk_propConf_noConf_fold _ _ _ ents cs hct hnc]
+  simp
+
+/-- The all-`none` decoding is well typed for a batch with no conf-change entry. -/
+theorem cctypesOk_none (ents : List EntryM) (hnc : ∀ e ∈ ents, ¬ IsConfEnt e) :
+    CCTypesOk ents (ents.map fun _ => none) := by
+  induction ents with
+  | nil => exact List.Forall₂.nil
+  | cons e es ih =>
+    refine List.Forall₂.cons ?_ (ih fun x hx => hnc x (List.mem_cons_of_mem _ hx))
+    simp only [Option.isSome_none]
+    exact (decide_eq_false (hnc e List.mem_cons_self)).symm
+
+/-- **A proposal's `RState` end** (no conf-change entry): `ProposeEnd` at the node's configuration,
+the bookkeeping from `BkStep`; a leader's appended batch is the conf-change loop's (`propBatch`, at
+the all-`none` decoding) and keeps `pendingConfIndex`. -/
+theorem recvEndR_of_prop {Adm : List EntryM → CCState → Prop} {id : w64}
+    {rs rs' : RNState} {fp : List EntryM} {s s' : NState} {m : Msg}
+    (hty : m.ty = .propose) (h0 : m.term = W64 0)
+    (hP : ProposeEnd rs.cfg.cfg id (toPState s) m (toPState s')) (hbk : BkStep s s')
+    (hsn : s'.logst.snap = s.logst.snap) (hprev : s'.logst.prev = s.logst.prev)
+    (hcf : rs'.capplied = rs.capplied ∧ rs'.cfg = rs.cfg) (hnc : ∀ e ∈ m.entries, ¬ IsConfEnt e) :
+    RecvEndR Adm k id (toRState rs fp s) m (toRState rs' fp s') := by
+  have hR : RecvEnd k rs.cfg.cfg id (toPState s) m (toPState s') :=
+    Or.inl ⟨h0, by unfold HandleEnd; rw [hty]; exact hP⟩
+  refine ⟨hR, ⟨hbk.1, hcf.1, hcf.2⟩, .inl ⟨hprev, rfl, by simp only [toRState_snap, hsn]⟩,
+    fun ⟨_, hl, hne⟩ => ?_, fun _ => pciR_of_bk hbk⟩
+  simp only [toRState_p] at hl hne ⊢
+  unfold ProposeEnd at hP
+  rw [if_pos hl] at hP
+  rcases hP with he | ⟨es, ms, hrep, -, he⟩
+  · exact absurd (by rw [he]) hne
+  have hes := hrep.eq_of_noConf hnc
+  subst hes
+  refine ⟨m.entries.map fun _ => none, cctypesOk_none _ hnc, ?_, ?_⟩
+  · rw [propBatch_noConf _ _ _ (cctypesOk_none _ hnc) hnc, he]; rfl
+  · rw [propBatch_noConf _ _ _ (cctypesOk_none _ hnc) hnc]
+    have hl' : s'.role = .leader := by
+      have : (toPState s').role = .leader := by rw [he]; exact hl
+      exact (proleRole_leader _).1 this
+    have hsl : s.role = .leader := (proleRole_leader _).1 hl
+    rcases hbk.2 hl' with ⟨-, h3⟩ | ⟨h2, -⟩
+    · simp only [toRState_pci, pciR, if_pos hl', if_pos hsl, h3]
+    · exact absurd hsl h2
 
 end pure
 
