@@ -20,6 +20,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.time.Assumptions]
 
 /-- Perennial's linked result, at the hypothesis' statement (the file header). -/
 theorem raxos.hyp.time.Time.UTC.wp_proof : raxos.hyp.time.Time.UTC.spec (GF := GF) (hG := hG) :=
