@@ -140,7 +140,7 @@ theorem antSim_init : antSim_init.stmt := by
       · rw [htold]; intro h; cases h
       · rw [hcause]; intro m h; cases h
       · refine ⟨?_, ?_⟩
-        · intro _; rw [hlead]; exact (nodeId_ne_zero n).symm
+        · exact ⟨fun _ => by rw [hlead]; exact (nodeId_ne_zero n).symm, .inl hlead⟩
         · intro h; rw [hrole] at h; exact absurd rfl h
   · intro G hG
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩

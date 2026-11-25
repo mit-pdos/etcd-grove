@@ -231,7 +231,7 @@ record against the view, `RsView`; no committed entries left to report; the in-p
 the common prefix of the view's log and the node's), with the boundary fact of its first entry, its
 queue, the log's shape (`base0`, its indices its positions), log matching between the view's log and
 the node's (`hmatch`, from raft's laws: both are certified logs) and the messages' destinations
-(`hvot`, `ReadyMsgsToVoters`: not yet a raft fact). -/
+(`hvot`, `ReadyMsgsToVoters`: `msgShape.stmt`'s). -/
 theorem readyOutP_of {id : w64} {v : AntSim.NodeView} {rs : RNState} {ps : PState} {h : HardStateM}
     {es ce : List EntryM} {ms : List QMsg} {ss : Option (w64 × StateType)} {L : Option SnapLoan}
     {qs : List Msg} {ip : Nat}

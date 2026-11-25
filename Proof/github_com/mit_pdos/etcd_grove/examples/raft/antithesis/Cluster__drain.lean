@@ -7,10 +7,10 @@ the `ready` report and the write if the hard state, the entries or the role chan
 `readyStep`; `Append`, `SetHardState`, `rawNode_appended`), or the silent `Ready` (`quiet_upd`,
 `Quiet.silentReady`); the rest of the iteration is `DrainPhases.lean`'s `drainSend.stmt` and
 `drainAdvance.stmt`. Each of the iteration's `if`s is proved under `wp_bind` and `wp_wand` with a
-postcondition both arms meet, so the rest of the iteration is proved once. One interim premise waits
-for raft's law: `readyMsgsOk.law` (a `Ready`'s messages go to voters; that they are read is `Ready`'s
-post since 2026-11-24). `rawNode_phsTerm.law` (the last hard state handed out is at most the node's
-term) is raft's, `RawNodeApi.lean`.
+postcondition both arms meet, so the rest of the iteration is proved once. A `Ready`'s messages are
+read (`Ready`'s post) and go to the nodes (`msgShape.stmt`, from raft's sends to the configuration's
+peers). `rawNode_phsTerm.law` (the last hard state handed out is at most the node's term) is raft's,
+`RawNodeApi.lean`.
 -/
 module
 
@@ -94,15 +94,6 @@ theorem evReady_numsOk {id : w64} {b : AntCheck.Str} {r : Role} {ps : PState} {v
 theorem evReady_weight (id : w64) (b : AntCheck.Str) (r : Role) (t vo c : w64) (es : List EntryM) :
     (AntSim.evReady id b r t vo c es).weight = es.length + 2 := by
   simp [AntSim.evReady, AntCheck.Event.weight, AntCheck.Event.size, AntSim.logOf]
-
-/-- **(interim) A `Ready`'s messages go to voters**: `drainReady_pure`'s `hvot`, until raft's `Ready`
-post states it (`To' ∈ γ.reCfg`: the raft helper's pass); then this premise goes. (2026-11-24: that
-they are read, `habs`, is `Ready`'s post, `%Hout`.) -/
-abbrev readyMsgsOk.law : Prop :=
-  ∀ (id : w64) (rs : RNState) (ps : PState) (h : HardStateM) (es ce : List EntryM) (ms : List QMsg)
-    (ss : Option (w64 × StateType)),
-  ReadyOut id rs ps h es ce ms ss none →
-    ∀ q ∈ ms.filterMap (fun q => absMsgOf q.st), ∃ j : Fin 3, q.dst = AntSim.nodeId j
 
 /-- `Reach` does not read `told` (the drain's `reportCause` sets it). -/
 theorem reach_told {id : w64} {net : List Msg} {v : AntSim.NodeView} {ps : PState} (b : Bool)
@@ -249,7 +240,7 @@ theorem Cluster.drain.wp_proof
     (h_commit : rawNode_commit.law (GF := GF) (hG := hG))
     (h_committed : rawNode_committed.law (GF := GF) (hG := hG))
     (h_leader : rawNode_leader.law (GF := GF) (hG := hG))
-    (h_rdm : readyMsgsOk.law) (hshape : AntSim.msgShape.stmt)
+    (hshape : AntSim.msgShape.stmt)
     (wp_roleOf : roleOf.spec (GF := GF) (hG := hG))
     (wp_IsEmptyHardState : IsEmptyHardState.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
@@ -362,8 +353,7 @@ theorem Cluster.drain.wp_proof
       word
     ihave #Hext := readyExt γ (AntSim.nodeId j) ps Hγ.2.2.2.2 $$ Hsrc
     obtain ⟨Sx, netx, hnet, hnok, hpre⟩ := Hpeek
-    have hvot := h_rdm _ _ _ _ _ _ _ _ hro
-    have hpure := drainReady_pure hshape hrv hR hip hro hqs' hfirst Hns.1 hidx hmatch habs hvot hnet hnok
+    have hpure := drainReady_pure hshape hrv hR hip hro hqs' hfirst Hns.1 hidx hmatch habs hnet hnok
       hpre HN Hsn Hmsgs_term
     imodintro
     iframe Hnc

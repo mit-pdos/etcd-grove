@@ -26,6 +26,7 @@ open AntCheck go_etcd_io.raft.v3 GMap
 
 section prop
 variable [GooseExts]
+variable {cf : CfgM}
 
 /-! ## Helpers -/
 
@@ -77,7 +78,7 @@ theorem prop_matched {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
       have h' : (go!"propose" : Str) ≠ go!"tick" := by decide
       rw [hby] at hbe; exact absurd hbe h'
     | propose d =>
-      have hs' : ProposeEnd id v.ps (propMsg id d) ps₁ := hs
+      have hs' : ProposeEnd cfgM3 id v.ps (propMsg id d) ps₁ := hs
       unfold ProposeEnd at hs'
       rw [if_pos hvl] at hs'
       rcases hs' with rfl | ⟨es, ms, -, -, rfl⟩
@@ -121,7 +122,7 @@ theorem ready_prop (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
   have hqsS : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-  have hso := selfOut_reach hr d7 hlo hin hqsS
+  have hso := selfOut_reach hr d7 hlo.1 hin hqsS
   -- the entries
   have hEne : rd.ents ≠ [] := by
     rw [hents]; intro h; exact hne (List.mapIdx_eq_nil_iff.mp h)
@@ -334,7 +335,7 @@ theorem ready_prop (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
         omega
       · exact absurd (hc'.symm.trans hpl) (by decide)
     drain := ⟨rfl, rfl⟩
-    hlead := fun h => absurd hpl h
+    hlead := ⟨fun h => absurd hpl h, (reach_leadOk hnet (hno n) hr).2⟩
     hvself := fun _ => by show ps₁.vote = nodeId n; rw [hpv]; exact hvsN (by rw [hvl]; decide)
     rnf := fun _ _ => by rw [hrole]; decide
     tlMono := fun _ => Int.le_refl _

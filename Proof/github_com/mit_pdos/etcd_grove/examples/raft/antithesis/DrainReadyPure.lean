@@ -6,11 +6,10 @@ the invariant (`drain_peek`: `NetOk`, `NodeOk` over a sent list past the loop he
 numbers (`StateNums`) and the view's normality:
 - `drainReady_pure`: the `Ready` at the protocol level (`ReadyOutP`, `readyOutP_of`), the node's log
   normal and each message the view's pending one in order (`DrainMsgOk`: its reading, of the drain's
-  shape, `msgShape.stmt`; its numbers within `2 ^ 61`, `readyMsgNums`; to a voter; its term within
-  the ceiling).
-Its premises not yet facts of the drain (`habs`: every message read by `absMsgOf`; `hvot`: each to
-a voter) are the caller's; the handled message's numbers and type (`readyMsgNums`' premise) are
-`ViewNormal`'s.
+  shape, `msgShape.stmt`; its numbers within `2 ^ 61`, `readyMsgNums`; to a node, `msgShape.stmt`;
+  its term within the ceiling).
+Its premise `habs` (every message read by `absMsgOf`, `Ready`'s post) is the caller's; the handled
+message's numbers and type (`readyMsgNums`' premise) are `ViewNormal`'s.
 -/
 module
 
@@ -57,7 +56,6 @@ theorem drainReady_pure (hshape : AntSim.msgShape.stmt) {S : AntCheck.State} {ne
     (hmatch : ∀ (k : Nat) (e f : EntryM), v.ps.log[k]? = some e → ps.log[k]? = some f →
       e.Term' = f.Term' → e = f)
     (habs : ∀ q ∈ rms, (absMsgOf q.st).isSome)
-    (hvot : ∀ q ∈ rms.filterMap (fun q => absMsgOf q.st), ∃ j : Fin 3, q.dst = AntSim.nodeId j)
     (hnet : AntSim.NetOk S net') (hv : AntSim.NodeOk S net' j v) (hpre : net <+: net')
     (hN : ViewNormal v) (hsn : AntSim.StateNums (2 ^ 61) ps)
     (hterm : ∀ q ∈ rms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) :
@@ -66,10 +64,13 @@ theorem drainReady_pure (hshape : AntSim.msgShape.stmt) {S : AntCheck.State} {ne
       AllNormal ps.log ∧
       List.Forall₂ (DrainMsgOk (AntSim.nodeId j) rs.tc) rms
         (rms.filterMap (fun q => absMsgOf q.st)) := by
-  have hro := readyOutP_of hrv (reach_ce hR) hip hout hfirst hqs hbase hidx hmatch hvot
   have hR' := hR.mono hpre
-  obtain ⟨hlogN, hsh⟩ := hshape S net' j v ps _ hnet hv hR' hro hN.1
+  have hmsgs : (readyDOf ps es (rms.filterMap (fun q => absMsgOf q.st)) qs ce).msgs ≡ₚ
+      ps.outbox.filter (fun q => decide (q.dst ≠ AntSim.nodeId j)) := hout.2.2.2.2.1
+  obtain ⟨hlogN, hsh, hvot⟩ := hshape S net' j v ps
+    (readyDOf ps es (rms.filterMap (fun q => absMsgOf q.st)) qs ce) hnet hv hR' hmsgs hN.1
     (fun m hm => ⟨(hN.2 m hm).1, (hN.2 m hm).2.1⟩)
+  have hro := readyOutP_of hrv (reach_ce hR) hip hout hfirst hqs hbase hidx hmatch hvot
   have hnums := AntSim.readyMsgNums hnet hv hR' hro hsn (fun m hm => (hN.2 m hm).2.2)
   refine ⟨hro, hlogN, forall₂_filterMap _ _ rms ?_ habs⟩
   intro q hq m hm

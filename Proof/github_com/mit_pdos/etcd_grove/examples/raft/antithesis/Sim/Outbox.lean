@@ -28,6 +28,7 @@ open GMap
 
 section outbox
 variable [GooseExts]
+variable {cf : CfgM}
 
 /-! ## `PendOk` per message type -/
 
@@ -90,34 +91,34 @@ theorem mem_psend {X : PState} {ms : List Msg} {q : Msg} (hX : X.outbox = [])
 /-- `MsgApp`s judged at a leader's state `X` (`SendsEnd`'s, the broadcast after a win or a
 proposal). -/
 theorem outOk_apps {id : w64} {w : NodeView} {X : PState} {ms : List Msg} (hX : X.outbox = [])
-    (hr : X.role = .leader) (hms : ∀ x ∈ ms, x.dst ≠ id → AppSendOk id X x) :
+    (hr : X.role = .leader) (hms : ∀ x ∈ ms, x.dst ≠ id → AppSendOk cf id X x) :
     OutOk id w (psendMsgs X ms) := by
   intro q hq hne hd
   exact pendOk_app hne hd hr (hms q (mem_psend hX hq) hne).1
 
 theorem outOk_sends {id : w64} {w : NodeView} {X s' : PState} (hX : X.outbox = [])
-    (hr : X.role = .leader) (h : SendsEnd id X s') : OutOk id w s' := by
+    (hr : X.role = .leader) (h : SendsEnd cf id X s') : OutOk id w s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   exact outOk_apps hX hr fun x hx _ => hms x hx
 
 theorem pselfAck_dst (id : w64) (s : PState) : (pselfAck id s).dst = id := rfl
 
 theorem outOk_win {id : w64} {w : NodeView} {X s' : PState} (hX : X.outbox = [])
-    (h : WinEnd id X s') : OutOk id w s' := by
+    (h : WinEnd cf id X s') : OutOk id w s' := by
   obtain ⟨mt, ms, -, hms, rfl⟩ := h
-  refine outOk_apps hX rfl fun x hx hne => ?_
+  refine outOk_apps (cf := cf) hX rfl fun x hx hne => ?_
   rcases List.mem_append.mp hx with hx | hx
   · rw [List.mem_singleton] at hx; subst hx; exact absurd (pselfAck_dst id _) hne
   · exact hms x hx
 
 theorem outOk_propose {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : X.outbox = [])
-    (h : ProposeEnd id X m s') : OutOk id w s' := by
+    (h : ProposeEnd cf id X m s') : OutOk id w s' := by
   unfold ProposeEnd at h
   split at h
   · rename_i hr
     rcases h with rfl | ⟨es, ms, -, hms, rfl⟩
     · exact outOk_nil hX
-    · refine outOk_apps hX hr fun x hx hne => ?_
+    · refine outOk_apps (cf := cf) hX hr fun x hx hne => ?_
       rcases List.mem_append.mp hx with hx | hx
       · rw [List.mem_singleton] at hx; subst hx; exact absurd (pselfAck_dst id _) hne
       · exact hms x hx
@@ -315,7 +316,7 @@ theorem adv_handle {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : 
           exact ⟨AppOk.mono (s := s) rfl rfl rfl hcn hao, hyc⟩
         · have hy' := hms y hy
           refine ⟨hr, fun _ => ⟨hy'.1, ?_⟩, fun he => absurd he hy'.1.2.2.2.1⟩
-          rw [hy'.2 hy'.1.1]; show uint.Z c₀ ≤ uint.Z n; omega
+          rw [hy'.2.1 hy'.1.1]; show uint.Z c₀ ≤ uint.Z n; omega
     · subst h; exact hi
   · split at h
     · rename_i hr
@@ -329,7 +330,7 @@ theorem adv_handle {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : 
           exact ⟨rfl, fun hne => absurd rfl hne, fun _ => rfl⟩
         · have hy' := hms y hy
           refine ⟨rfl, fun _ => ⟨hy'.1, ?_⟩, fun he => absurd he hy'.1.2.2.2.1⟩
-          rw [hy'.2 hy'.1.1]; exact hc
+          rw [hy'.2.1 hy'.1.1]; exact hc
       · exact advInv_nil ht hc hX
     · subst h; exact hi
 

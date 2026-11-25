@@ -853,7 +853,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-  have hso := selfOut_reach hr d7 hlo hin hqs
+  have hso := selfOut_reach hr d7 hlo.1 hin hqs
   have hlh := reach_leadOk hnet (hno n) hr
   have hbyE := reach_byE hr hro hrep
   have hk := ready_kind hr hro hrep d8 (nodeId_ne_zero n) hvs hin hqs d7
@@ -1223,7 +1223,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-  have hso := selfOut_reach hr d7 hlo hin hqs
+  have hso := selfOut_reach hr d7 hlo.1 hin hqs
   have hlh := reach_leadOk hnet (hno n) hr
   unfold ReadyGoal
   rw [hm.1]

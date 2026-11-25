@@ -135,7 +135,7 @@ theorem qs_noPreVote {S : AntCheck.State} {net net' : List Msg} {j : Fin 3} {v :
   have hqsS : ∀ q ∈ v.qs, AntSim.SelfMsg (AntSim.nodeId j) v.ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-  have hso := AntSim.selfOut_reach (hR.mono hpre) hX hlo hin hqsS
+  have hso := AntSim.selfOut_reach (hR.mono hpre) hX hlo.1 hin hqsS
   intro q hq
   obtain ⟨hmem, hd'⟩ := List.mem_filter.1 (hqs.mem_iff.1 hq)
   rcases hso q hmem (of_decide_eq_true hd') with ⟨-, rfl⟩ | ⟨-, rfl⟩

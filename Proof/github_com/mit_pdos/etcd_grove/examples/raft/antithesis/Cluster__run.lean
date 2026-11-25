@@ -268,7 +268,7 @@ theorem Cluster.run.wp_proof
             ⟨Hraw, Herr, %Hend⟩
         · ipureintro; exact Hmd
         obtain ⟨hPE, hip⟩ := Hend trivial
-        rw [absMsg_propose] at hPE
+        rw [absMsg_propose, rnCfg_cfgM3 Hstat.2.1] at hPE
         ihave #Hsw : □ (∀ m, ⌜AntSim.Input.propose data = .recv m⌝ -∗ sentW (GF := GF) γ m) $$ []
         · imodintro; iintro %m %h; cases h
         imod view_input γ j v (.propose data) hI (fun m h => by cases h) $$ [Hv Hl] with

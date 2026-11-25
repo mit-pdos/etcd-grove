@@ -68,7 +68,7 @@ def propMsg (id : w64) (data : List w8) : Msg :=
 def InputStep (id : w64) (ps : PState) : Input → PState → Prop
   | .recv m, ps' => RecvEnd cfgM3 id ps m ps'
   | .tick, ps' => TickEnd cfgM3 id ps ps'
-  | .propose d, ps' => ProposeEnd id ps (propMsg id d) ps'
+  | .propose d, ps' => ProposeEnd cfgM3 id ps (propMsg id d) ps'
 
 /-- The view once the node has taken an input (before any report): the drain's `by` and cause; its
 `recv` not reported yet (`Cluster.run` sets `n.cause`). -/
@@ -107,8 +107,8 @@ structure ReadyD where
   qs : List Msg
   ce : List EntryM
 
-/-- A `Ready`'s messages to others are to voters (raft's side provides it: every message a node
-queues is to a member of its configuration). -/
+/-- A `Ready`'s messages to others are to voters (`msgShape.stmt` concludes it: every message a
+node queues is to a member of its configuration, its leader hint or the sender it answers). -/
 def ReadyMsgsToVoters (rd : ReadyD) : Prop := ∀ q ∈ rd.msgs, ∃ j : Fin 3, q.dst = nodeId j
 
 /-- **The `Ready` binding at the protocol level** (`ReadyOut`, §2.2, over `PState`): a `Ready` taken

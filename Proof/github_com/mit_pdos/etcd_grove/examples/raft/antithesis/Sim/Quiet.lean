@@ -78,6 +78,7 @@ theorem granted_self {S : State} (hc : S.cfg = cfg3) {n : Fin 3}
 
 section quiet
 variable [GooseExts]
+variable {cf : CfgM}
 
 /-! ## What a quiet step keeps -/
 
@@ -306,7 +307,7 @@ theorem quiet_tick {c : CfgM} {id : w64} {S : State} {n : Fin 3} {s s' : PState}
 
 /-- A proposal that keeps the log: dropped, an empty batch, or forwarded. -/
 theorem quiet_propose {id : w64} {S : State} {n : Fin 3} {s s' : PState} {m : Msg}
-    (h : ProposeEnd id s m s') (hl : s'.log = s.log) : QKeep S n s s' := by
+    (h : ProposeEnd cf id s m s') (hl : s'.log = s.log) : QKeep S n s s' := by
   unfold ProposeEnd at h
   split at h
   · rcases h with rfl | ⟨es, ms, -, -, rfl⟩
@@ -423,27 +424,35 @@ theorem quiet_reach {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps�
 
 /-! ## The leader hint along `Reach` -/
 
-/-- Raft's leader hint at `s` (C1's `LeadOk`): a node that does not lead does not name itself. -/
-def LeadHint (id : w64) (s : PState) : Prop := s.role ≠ .leader → s.lead ≠ id
+/-- Raft's leader hint at `s` (C1's `LeadOk`): a node that does not lead does not name itself; the
+hint is no node or one of the three (`LeadIn`). -/
+def LeadHint (id : w64) (s : PState) : Prop := (s.role ≠ .leader → s.lead ≠ id) ∧ LeadIn s
 
 theorem leadHint_pre {id : w64} {s s1 : PState} {m : Msg} (h : LeadHint id s) (hid : id ≠ W64 0)
-    (hsrc : fromLeader m.ty = true → m.src ≠ id) (hp : PreEnd s m s1) : LeadHint id s1 := by
+    (hsrc : fromLeader m.ty = true → m.src ≠ id)
+    (hsn : fromLeader m.ty = true → ∃ j : Fin 3, m.src = nodeId j) (hp : PreEnd s m s1) :
+    LeadHint id s1 := by
   rcases hp with ⟨-, rfl⟩ | ⟨-, rfl⟩
-  · intro _
-    show (if fromLeader m.ty then m.src else W64 0) ≠ id
-    split
-    · rename_i hfl; exact hsrc hfl
-    · exact Ne.symm hid
+  · refine ⟨fun _ => ?_, ?_⟩
+    · show (if fromLeader m.ty then m.src else W64 0) ≠ id
+      split
+      · rename_i hfl; exact hsrc hfl
+      · exact Ne.symm hid
+    · show (if fromLeader m.ty then m.src else W64 0) = W64 0 ∨
+        ∃ j : Fin 3, (if fromLeader m.ty then m.src else W64 0) = nodeId j
+      split
+      · rename_i hfl; exact .inr (hsn hfl)
+      · exact .inl rfl
   · exact h
 
 theorem leadHint_propose {id : w64} {s s' : PState} {m : Msg} (h : LeadHint id s)
-    (hp : ProposeEnd id s m s') : LeadHint id s' := by
+    (hp : ProposeEnd cf id s m s') : LeadHint id s' := by
   unfold ProposeEnd at hp
   split at hp
   · rename_i hr
     rcases hp with rfl | ⟨es, ms, -, -, rfl⟩
     · exact h
-    · intro h'; exact absurd hr h'
+    · exact ⟨fun h' => absurd hr h', h.2⟩
   · split at hp
     · subst hp; exact h
     · subst hp; exact h
@@ -451,10 +460,11 @@ theorem leadHint_propose {id : w64} {s s' : PState} {m : Msg} (h : LeadHint id s
 /-- The type switch keeps the leader hint: the sender adopted as leader (`MsgApp`, `MsgHeartbeat`)
 is another node; a lost election clears `lead`; a win makes the node leader. -/
 theorem leadHint_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadHint id s)
-    (hid : id ≠ W64 0)
+    (hid : id ≠ W64 0) (hin : ∃ j : Fin 3, id = nodeId j)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
     (hsrc : m.src ≠ id ∨ m.ty = .appResp ∨ m.ty = .voteResp)
+    (hsn : ∃ j : Fin 3, m.src = nodeId j)
     (hh : HandleEnd c id s m s') : LeadHint id s' := by
   unfold HandleEnd at hh
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at hh <;> simp only at hh
@@ -462,13 +472,14 @@ theorem leadHint_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : Lea
   · split at hh
     · rcases hh with ⟨-, rfl⟩ | ⟨-, mt, ms, -, -, rfl⟩ | ⟨-, rfl⟩
       · exact h
-      · intro h'; exact absurd rfl h'
-      · exact fun _ => Ne.symm hid
+      · exact ⟨fun h' => absurd rfl h', .inr hin⟩
+      · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
     · subst hh; exact h
   · have hs : m.src ≠ id := hsrc.resolve_right (by rw [hty]; simp)
     split at hh
     · subst hh; exact h
-    · rcases hh with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;> exact fun _ => hs
+    · rcases hh with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;>
+        exact ⟨fun _ => hs, .inr hsn⟩
   · split at hh
     · unfold AppRespEnd at hh
       rcases hh with ⟨-, rfl⟩ | ⟨-, -, ms, -, rfl⟩ | ⟨-, x, k, -, -, ms, -, rfl⟩ <;> exact h
@@ -476,22 +487,24 @@ theorem leadHint_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : Lea
   · have hs : m.src ≠ id := hsrc.resolve_right (by rw [hty]; simp)
     split at hh
     · subst hh; exact h
-    · subst hh; exact fun _ => hs
+    · subst hh; exact ⟨fun _ => hs, .inr hsn⟩
   · split at hh
     · obtain ⟨ms, -, rfl⟩ := hh; exact h
     · subst hh; exact h
   · exact leadHint_propose h hh
 
 theorem leadHint_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadHint id s)
-    (hid : id ≠ W64 0)
+    (hid : id ≠ W64 0) (hin : ∃ j : Fin 3, id = nodeId j)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
     (hsrc : m.src ≠ id ∨ m.ty = .appResp ∨ m.ty = .voteResp)
+    (hsn : ∃ j : Fin 3, m.src = nodeId j)
     (hr : RecvEnd c id s m s') : LeadHint id s' := by
   rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
-  · exact leadHint_handle h hid hsc hsrc hh
+  · exact leadHint_handle h hid hin hsc hsrc hsn hh
   · exact h
-  · refine leadHint_handle (leadHint_pre h hid (fun hfl => ?_) hpre) hid hsc hsrc hh
+  · refine leadHint_handle (leadHint_pre h hid (fun hfl => ?_) (fun _ => hsn) hpre) hid hin hsc
+      hsrc hsn hh
     rcases hsrc with hs | hty | hty
     · exact hs
     · exact absurd hfl (by simp [hty, fromLeader])
@@ -501,11 +514,12 @@ theorem leadHint_tick {c : CfgM} {id : w64} {s s' : PState} (h : LeadHint id s) 
     (ht : TickEnd c id s s') : LeadHint id s' := by
   rcases ht with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
   · exact h
-  · exact fun _ => Ne.symm hid
+  · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
   · exact h
 
 theorem leadHint_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (h : LeadHint id s)
-    (hid : id ≠ W64 0) (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
+    (hid : id ≠ W64 0) (hin : ∃ j : Fin 3, id = nodeId j)
+    (hq : ∀ q ∈ qs, (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = id)
     (ha : AdvanceEnd c id s qs s') : LeadHint id s' := by
   induction ha with
   | nil => exact h
@@ -513,19 +527,21 @@ theorem leadHint_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (h : 
     have hq0 := hq q (List.mem_cons_self ..)
     have hsc : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨
         q.ty = .heartbeat ∨ q.ty = .heartbeatResp ∨ q.ty = .propose := by
-      rcases hq0 with h0 | h0
+      rcases hq0.1 with h0 | h0
       · exact .inr (.inr (.inr (.inl h0)))
       · exact .inr (.inl h0)
-    exact ih (leadHint_recv h hid hsc (.inr hq0) hr) (fun x hx => hq x (List.mem_cons_of_mem _ hx))
+    exact ih (leadHint_recv h hid hin hsc (.inr hq0.1) (hq0.2 ▸ hin) hr)
+      (fun x hx => hq x (List.mem_cons_of_mem _ hx))
 
 /-- **The leader hint is kept along `Reach`** (C1's `LeadOk` at the state a `Ready` is taken at): a
-received message is from another node (C4's `NetShape`), `Advance` steps only acknowledgements and
-vote responses. -/
+received message is from another node (C4's `NetShape`), one of the three (`NetOk`), `Advance`
+steps only the node's own acknowledgements and vote responses. -/
 theorem reach_leadOk {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps₁ : PState}
     (hnet : NetOk S net) (hv : NodeOk S net n v) (hr : Reach (nodeId n) net v ps₁) :
     LeadHint (nodeId n) ps₁ := by
   obtain ⟨-, -, -, -, hqs, -, -, hlo, -⟩ := hv
   have hid := nodeId_ne_zero n
+  have hin : ∃ j : Fin 3, nodeId n = nodeId j := ⟨n, rfl⟩
   cases hr with
   | stay _ => exact hlo
   | input inp _ _ _ _ hm hs =>
@@ -533,13 +549,14 @@ theorem reach_leadOk {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps
     | recv m =>
       obtain ⟨hmn, hmd, -⟩ := hm m rfl
       have hsd : m.src ≠ nodeId n := hmd ▸ (hnet.2.2.1 m hmn).2.1
-      exact leadHint_recv hlo hid (hnet.1 m hmn).1 (.inl hsd) hs
+      obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1
+      exact leadHint_recv hlo hid hin (hnet.1 m hmn).1 (.inl hsd) ⟨i, hi⟩ hs
     | tick => exact leadHint_tick hlo hid hs
     | propose d => exact leadHint_propose hlo hs
   | advance _ _ _ _ ha =>
-    refine leadHint_adv hlo hid (fun q hq => ?_) ha
-    obtain ⟨-, -, -, -, h5⟩ := hqs q hq
-    exact h5.imp (fun h => h.1) (fun h => h.1)
+    refine leadHint_adv hlo hid hin (fun q hq => ?_) ha
+    obtain ⟨h1, -, -, -, h5⟩ := hqs q hq
+    exact ⟨h5.imp (fun h => h.1) (fun h => h.1), h1⟩
 
 /-! ## No self-addressed message at a quiet step's state -/
 
@@ -558,7 +575,7 @@ theorem selfFree_one {id : w64} {s : PState} {q : Msg} (hX : SelfFree id s) (hq 
     SelfFree id (psendMsgs s [q]) :=
   selfFree_psend hX fun x hx => by rw [List.mem_singleton.mp hx]; exact hq
 
-theorem selfFree_sends {id : w64} {s s' : PState} (h : SendsEnd id s s') (hX : SelfFree id s) :
+theorem selfFree_sends {id : w64} {s s' : PState} (h : SendsEnd cf id s s') (hX : SelfFree id s) :
     SelfFree id s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   exact selfFree_psend hX fun x hx => (hms x hx).1.2.2.2.1
@@ -630,7 +647,7 @@ theorem selfFree_tick {c : CfgM} {id : w64} {s s' : PState} (hX : SelfFree id s)
 empty, a forward goes to the leader (another node, the leader hint). -/
 theorem selfFree_propose {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id s)
     (hlead : LeadHint id s) (hne : m.entries ≠ []) (hl : s'.log = s.log)
-    (h : ProposeEnd id s m s') : SelfFree id s' := by
+    (h : ProposeEnd cf id s m s') : SelfFree id s' := by
   unfold ProposeEnd at h
   split at h
   · rcases h with rfl | ⟨es, ms, hrep, -, rfl⟩
@@ -642,7 +659,7 @@ theorem selfFree_propose {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id 
   · split at h
     · rename_i hc
       subst h
-      exact selfFree_one hX (hlead (by rw [hc.1]; decide))
+      exact selfFree_one hX (hlead.1 (by rw [hc.1]; decide))
     · subst h; exact hX
 
 /-- What `Advance`'s steps keep from a state of role `r0`: the candidate role only from a
@@ -652,7 +669,7 @@ def AdvSelf (id : w64) (r0 : Role) (s : PState) : Prop :=
   (s.role = .candidate → r0 = .candidate) ∧
   ∀ q ∈ s.outbox, q.dst = id → r0 = .candidate ∧ s.role ≠ .candidate
 
-theorem advSelf_sends {id : w64} {r0 : Role} {s s' : PState} (h : SendsEnd id s s')
+theorem advSelf_sends {id : w64} {r0 : Role} {s s' : PState} (h : SendsEnd cf id s s')
     (hi : AdvSelf id r0 s) : AdvSelf id r0 s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   refine ⟨hi.1, fun q hq hd => ?_⟩

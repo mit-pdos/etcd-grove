@@ -306,7 +306,7 @@ theorem ready_cmt (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : L
       rw [List.mem_filter] at hq'
       exact (hns q hq'.1 (of_decide_eq_true hq'.2)).elim
     drain := ⟨rfl, rfl⟩
-    hlead := fun h => absurd hpl h
+    hlead := ⟨fun h => absurd hpl h, (reach_leadOk hnet (hno n) hr).2⟩
     hvself := fun _ => by show ps₁.vote = nodeId n; rw [hpv]; exact hvsN (by rw [hvl]; decide)
     rnf := fun _ _ => by rw [hrole]; decide
     tlMono := fun T' => by

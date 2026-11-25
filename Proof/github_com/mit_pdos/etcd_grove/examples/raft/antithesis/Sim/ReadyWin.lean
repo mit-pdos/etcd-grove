@@ -178,7 +178,7 @@ theorem ready_win (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : L
   have hqsS : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-  have hso := selfOut_reach hr d7 hlo hin hqsS
+  have hso := selfOut_reach hr d7 hlo.1 hin hqsS
   -- `LeadC` from the won state
   obtain ⟨hpl, hpt, hpv, -, hplog, hmatch, hcmt⟩ := hL
   have hpt' : ps₁.term = (V n).ps.term := hpt
@@ -532,7 +532,7 @@ theorem ready_win (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : L
         omega
       · exact absurd (hc'.symm.trans hpl) (by decide)
     drain := ⟨rfl, rfl⟩
-    hlead := fun h => absurd hpl h
+    hlead := ⟨fun h => absurd hpl h, (reach_leadOk hnet (hno n) hr).2⟩
     hvself := fun _ => by show ps₁.vote = nodeId n; rw [hpv']; exact hvn
     rnf := fun _ _ => by rw [d5, hvc]; decide
     tlMono := fun _ => Int.le_refl _

@@ -46,6 +46,7 @@ open GMap go_etcd_io.raft.v3
 
 section kind
 variable [GooseExts]
+variable {cf : CfgM}
 
 /-! ## The `Ready`'s entries from its log -/
 
@@ -542,7 +543,7 @@ theorem kind_tick {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {r
 append (a drop, a forward change nothing reported). -/
 theorem kind_propose {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     {d : List w8} (hro : ReadyOutP id v ps₁ rd) (hrep : Reported v rd)
-    (hby : v.byE = go!"propose") (h : ProposeEnd id v.ps (propMsg id d) ps₁) :
+    (hby : v.byE = go!"propose") (h : ProposeEnd cf id v.ps (propMsg id d) ps₁) :
     ReadyKind id net v ps₁ rd := by
   unfold ProposeEnd at h
   split at h
@@ -807,7 +808,7 @@ theorem selfOut_ack {id : w64} {X : PState} {ms : List Msg} (hX : X.outbox = [])
   · rw [List.mem_singleton] at hq; exact .inl ⟨hr, hq⟩
   · exact absurd hd (h q hq)
 
-theorem selfOut_sends {id : w64} {X s' : PState} (hX : X.outbox = []) (h : SendsEnd id X s') :
+theorem selfOut_sends {id : w64} {X s' : PState} (hX : X.outbox = []) (h : SendsEnd cf id X s') :
     SelfOut id s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   exact selfOut_none hX fun x hx => (hms x hx).1.2.2.2.1
@@ -893,7 +894,7 @@ theorem selfOut_reach {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState
           exact h1.2 hd
       · exact selfOut_none hX fun x hx => (hms x hx).1.2.2.2.1
     | propose d =>
-      have hs' : ProposeEnd id v.ps (propMsg id d) ps₁ := hs
+      have hs' : ProposeEnd cfgM3 id v.ps (propMsg id d) ps₁ := hs
       unfold ProposeEnd at hs'
       split at hs'
       · rename_i hlead

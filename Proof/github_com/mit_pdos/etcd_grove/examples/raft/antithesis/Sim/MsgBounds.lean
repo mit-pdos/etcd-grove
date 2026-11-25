@@ -33,6 +33,7 @@ open GMap
 
 section bounds
 variable [GooseExts]
+variable {cf : CfgM}
 
 /-- A message's numbers the binding reads, below `K`: its index, log term and commit, its entries'
 terms and indices. (Its term is bounded by raft's term budget, `Hmsgs_term`.) -/
@@ -101,12 +102,12 @@ theorem outNums_apps {K : Int} {id : w64} {X : PState} {ms : List Msg} (hX : X.o
   fun q hq hne => appOk_nums hs (hms q (mem_psend hX hq) hne)
 
 theorem outNums_sends {K : Int} {id : w64} {X s' : PState} (hX : X.outbox = [])
-    (hs : StateNums K s') (h : SendsEnd id X s') : OutNums K id s' := by
+    (hs : StateNums K s') (h : SendsEnd cf id X s') : OutNums K id s' := by
   obtain ⟨ms, hms, rfl⟩ := h
   exact outNums_apps hX hs fun x hx _ => (hms x hx).1
 
 theorem outNums_win {K : Int} {id : w64} {X s' : PState} (hX : X.outbox = [])
-    (hs : StateNums K s') (h : WinEnd id X s') : OutNums K id s' := by
+    (hs : StateNums K s') (h : WinEnd cf id X s') : OutNums K id s' := by
   obtain ⟨mt, ms, -, hms, rfl⟩ := h
   refine outNums_apps hX hs fun x hx hne => ?_
   rcases List.mem_append.mp hx with hx | hx
@@ -127,7 +128,7 @@ theorem msgNums_propMsg {K : Int} (hK : 0 < K) (id : w64) (d : List w8) :
 /-- A proposal's step: its replication (`AppOk`), or its forwarding (the proposal's numbers,
 `hm`). -/
 theorem outNums_propose {K : Int} {id : w64} {X s' : PState} {m : Msg} (hX : X.outbox = [])
-    (hs : StateNums K s') (hm : MsgNums K m) (h : ProposeEnd id X m s') : OutNums K id s' := by
+    (hs : StateNums K s') (hm : MsgNums K m) (h : ProposeEnd cf id X m s') : OutNums K id s' := by
   unfold ProposeEnd at h
   split at h
   · rcases h with rfl | ⟨es, ms, -, hms, rfl⟩
