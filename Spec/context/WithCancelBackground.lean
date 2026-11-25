@@ -52,9 +52,12 @@ instance context.errIsCanceled_persistent (ctx : GoInterfaceOk) :
 
 /-- **`WithCancel(Background())`, with what its `cancel()` leaves** (`spec` and more): calling `cancel`
 closes the context (`cancelSpec`'s `ContextClosed`) and makes its `Err()` return `Canceled`'s value for
-good (`errIsCanceled`). True of Go: `cancel` runs `c.cancel(true, Canceled, nil)`, which stores
-`Canceled` in `c.err` if it is unset, and nothing else sets it, `Background()` never being done
-(`propagateCancel` returns at once); `Err()` returns `c.err`. -/
+good (`errIsCanceled`); the context is a `*cancelCtx` (`isCancelCtxCtx`, which Perennial's
+`wp_WithCancel_Background` also gives, for the same call). True of Go (1.27.3 `context.go`): `cancel`
+runs `c.cancel(true, Canceled, nil)`, which stores `Canceled` in `c.err` if it is unset, and nothing else
+sets it: `Background()`'s `Done()` is `nil`, so `propagateCancel` returns at once (no parent can cancel
+the child), `Background()` keeps no children, and `removeChild` only deletes; `Err()` returns `c.err`;
+`context.Canceled` itself is never reassigned (Perennial's `context.isInit`: `Canceled ↦□`). -/
 abbrev context.WithCancelBackground.spec_canceled : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
     (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(GoInterface.ok context.backgroundCtxVal)))
@@ -63,6 +66,7 @@ abbrev context.WithCancelBackground.spec_canceled : Prop :=
       context.cancelSpec cancel γ' iprop(True) ∗
       context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
       context.bgCancelChild ctx' ∗
+      context.isCancelCtxCtx ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
       □ (∀ Φ : val → IProp GF, ▷ (context.errIsCanceled ctx' -∗ Φ #()) -∗
         WP (App (Val #cancel) (Val #())) {{ Φ }}) }}
 

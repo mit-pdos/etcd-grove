@@ -75,3 +75,18 @@ the model queues `io.EOF` only at `frameClose` (`model_transport.go:895-900`), e
 status" missed the unconverted second read of a non-client-streaming method (text fixed); partial
 messages are unreachable in the model; `Server.ServeHTTP`'s transport returns `io.EOF` at a body's end
 and is outside the axiom (noted in the docstring).
+
+## `context.WithCancelBackground.wp_proof_canceled` (interim; 2026-11-25)
+
+`Proof/context/WithCancelBackgroundCanceled.lean`, statement `context.WithCancelBackground.spec_canceled`
+(`Spec/context/WithCancelBackground.lean`): `WithCancel(Background())`'s post plus, after `cancel()`, that the
+context's `Err()` returns `context.Canceled`'s value (`context.errIsCanceled`). Retired by the Perennial change in
+`notes/perennial-changes.md` ("`context.WithCancel`'s `cancel` does not say `Err()` returns `Canceled`").
+
+Independent axiom-skill review (2026-11-25, the trusted agent): **sound**, no counterexample; checked against Go
+1.27.3's `context.go` (`cancelCtx.cancel` stores `Canceled` only if `err` is unset; `Background()`'s `Done()` is
+`nil`, so `propagateCancel` returns at line 481; `Background()` keeps no children map; `removeChild` only deletes;
+`Canceled` is never reassigned, Perennial's `context.isInit`). One fix, applied: the post also gives
+`context.isCancelCtxCtx ctx' …` (over-weak before: a proof uses one triple per call, so it could not get it from
+Perennial's `wp_WithCancel_Background` for the same context; it adds no trust, Perennial proves it). Docstring now
+names why nothing else sets `c.err`.
