@@ -76,7 +76,8 @@ theorem _Driver_ServerStream_Handler.wp_proof
     wp_auto
     iunfold ssMethodOk at Hh
     ihave HRt : iprop(srvRecvTok (Req := strmT (GF := GF)) γ [v]) $$ [HRt]
-    · iexact HRt
+    · isimp only [List.nil_append] at HRt
+      iexact HRt
     wp_bind (App (App (Val #(methods srv.ty go!"ServerStream" srv.v)) _) _)
     iapply Hh $$ %γ %Dn %ci %cd %_ %_ %v %_ HSpec HS Hst Hrv HRt HSt
     inext

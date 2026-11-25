@@ -60,6 +60,10 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
     wp_auto
     iunfold srvRecvTok at HRt
     icases HRt with ⟨HRt, #Hlb⟩
+    ihave HRt : iprop(srvRecvTok (Req := strmMsg (GF := GF)) γ (R ++ [m])) $$ [HRt]
+    · iunfold srvRecvTok
+      iframe
+      iframe #
     ihave Hat : iprop(upAt (Req := strmMsg (GF := GF)) γ R.length m) $$ []
     · iapply (upLb_at (Req := strmMsg (GF := GF)) γ (R ++ [(m : GoString)]) R.length m (by simp))
       unfold upLb
@@ -71,6 +75,7 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
       isplitl [Hm]
       · iexact Hm
       iapply Hdn
+      unfold biDn
       iexact Hat
     iintro !> %err2 Hres2
     icases Hres2 with (⟨%He2, HSt⟩ | ⟨%Hne2, #Hse2, #Hso2, %L', -, -⟩)
@@ -80,9 +85,6 @@ theorem server.Bidi.wp_proof : server.Bidi.spec (GF := GF) (hG := hG) := by
       iframe
       iexists (R ++ [(m : GoString)])
       iframe
-      iunfold srvRecvTok
-      iframe
-      iframe #
     · cases err2 with
       | nil => exact absurd rfl Hne2
       | ok e2 =>

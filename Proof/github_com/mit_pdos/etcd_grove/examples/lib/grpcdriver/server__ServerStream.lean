@@ -39,7 +39,8 @@ theorem server.ServerStream.wp_proof
   subst Hsi
   iunfold srvRecvTok at HRt
   icases HRt with ⟨-, #Hlb⟩
-  isimp only [stringValueSend, stringValueSendB] at Hr
+  iunfold stringValueSend at Hr
+  iunfold stringValueSendB at Hr
   icases Hr with ⟨%sv, Hsv, %Hsvp⟩
   obtain ⟨hval, -, hlen⟩ := Hsvp
   subst hval

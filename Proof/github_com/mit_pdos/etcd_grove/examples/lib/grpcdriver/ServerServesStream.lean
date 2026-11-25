@@ -246,6 +246,7 @@ theorem serverStream_servesEnt (wp_M : server.ServerStream.spec (GF := GF) (hG :
   isplitr
   · iintro !> %md %γ %j %m H
     iexact H
+  rw [show (pbStringValueST (GF := GF)).toStreamMsg = strmMsg (GF := GF) from rfl]
   iapply serverStream_runOk wp_M wp_H s
   iframe #
 
@@ -282,6 +283,7 @@ theorem clientStream_servesEnt (wp_M : server.ClientStream.spec (GF := GF) (hG :
   isplitr
   · iintro !> %md %γ %j %m H
     iexact H
+  rw [show (pbStringValueST (GF := GF)).toStreamMsg = strmMsg (GF := GF) from rfl]
   iapply clientStream_runOk wp_M wp_H s
   iframe #
 
@@ -318,6 +320,7 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
   isplitr
   · iintro !> %md %γ %j %m H
     iexact H
+  rw [show (pbStringValueST (GF := GF)).toStreamMsg = strmMsg (GF := GF) from rfl]
   iapply bidi_runOk wp_M wp_H s
   iframe #
 
