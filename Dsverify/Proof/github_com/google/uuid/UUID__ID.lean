@@ -1,6 +1,7 @@
 /-
 **Trust-boundary axiom** (dsv-fix4, mit-pdos/etcd-grove#49 fix 4; google/uuid v1.3.1, translated
-names only in the part): `u.ID()` on a `UUID` value returns some `uint32`
+names only in the part until dsv-retire-2, 2026-11-25, since then with bodies from its model
+`models/uuid`; not provable from it as stated, `notes/axiom-review/dsv-fix4/google-uuid.md`, last section): `u.ID()` on a `UUID` value returns some `uint32`
 (`github_com.google.uuid.UUID.ID.spec`, `Dsverify/Proof/github_com/imdea_software/swiftpaxos/lib/
 LibSpecs.lean`). Go's `dce.go`: `func (uuid UUID) ID() uint32 { return
 binary.BigEndian.Uint32(uuid[0:4]) }`: a `UUID` is a `[16]byte` value, so the slice is in range; no

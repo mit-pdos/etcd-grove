@@ -236,7 +236,6 @@ trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 trunc Perennial.encoding.gob.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.proto.wp_initialize'
-trunc Perennial.github_com.google.uuid.wp_initialize'
 trunc Perennial.github_com.rs.zerolog.wp_initialize'
 trunc Perennial.gopkg_in.yaml_v2.wp_initialize'
 

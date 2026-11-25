@@ -28,7 +28,6 @@ axiom Perennial.github_com.gogo.protobuf.proto.RegisterType.wp_proof
 axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
 axiom Perennial.github_com.google.uuid.New.wp_proof
 axiom Perennial.github_com.google.uuid.UUID.ID.wp_proof
-axiom Perennial.github_com.google.uuid.wp_initialize'
 axiom Perennial.github_com.rs.zerolog.Event.Bool.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Float64.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Int.wp_proof
