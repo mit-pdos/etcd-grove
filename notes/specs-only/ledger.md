@@ -7105,4 +7105,6 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `walParked_putTmps0`); the lending laws take `walIncQ I` rather than the lock token (the purge round holds only
   the handle's quarter); `walReadFailed_lockedTok` becomes `walReadFailed_lockedTokI` (at the incarnation);
   `walOpenWF_lend` (no users) is removed. No exported spec changes beyond the approved entries.
-- **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13).
+- **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13); approved
+  (coordinator, 2026-11-25, P6b session 14 brief).
+
