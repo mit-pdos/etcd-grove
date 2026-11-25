@@ -42572,7 +42572,9 @@ godebugFips140 = "" ∨ … = "off"`), over a concrete reading of the environmen
   deployment, as `GODEBUG`; a process environment in `os`'s semantics is deferred.
 - `def EtcdVerifyOff : Prop := etcdVerifyOffValue etcdVerifyEnv`; `etcdVerifyOffValue_unset`: the
   unset value satisfies it (the premise is satisfiable).
-- `os.Getenv`'s post: `⌜key = "ETCD_VERIFY" → v = etcdVerifyEnv⌝` (no token). Sound only if every read of
+- `os.Getenv`'s post: `⌜key = "ETCD_VERIFY" → EtcdVerifyOff → etcdVerifyOffValue v⌝` (no token; offness only:
+  a first draft `v = etcdVerifyEnv` was refuted across processes, `notes/axiom-review/getenv-etcd-verify.md`,
+  since one opaque value let a proof equate two machines' reads). The draft was sound only if every read of
   the variable in a run returns the same value: no code of the run sets it; no verified code can
   (`os.Setenv`/`Unsetenv`/`Clearenv` have no spec), stated in the spec's docstring
   (`Spec/os/Getenv.lean`). Stronger than the old post in naming the value (it was "given the token,

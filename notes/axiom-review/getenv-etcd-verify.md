@@ -81,7 +81,7 @@ strengthened.
 
 ## 2026-11-25: restated over the run's value (the owner's decision)
 
-`os.Getenv`'s post is now `⌜key = "ETCD_VERIFY" → v = etcdVerifyEnv⌝`, with `etcdVerifyEnv` an opaque
+`os.Getenv`'s post was first restated as `⌜key = "ETCD_VERIFY" → v = etcdVerifyEnv⌝` (weakened the same day to offness, below), with `etcdVerifyEnv` an opaque
 `GoString` (the run's value, `""` when unset) and the closed theorems' premise `EtcdVerifyOff :=
 etcdVerifyOffValue etcdVerifyEnv`; the token `envVerifyOff` and the axiomatized `verifyEnvOff` are gone
 (`notes/decisions.md`, "`ETCD_VERIFY` as an environment premise over its value"). Checked against the
