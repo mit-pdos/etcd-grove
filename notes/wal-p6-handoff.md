@@ -228,6 +228,60 @@
   `os.RemoveAll.specSubS` as `Create`'s, U, `os.Rename.specDirSnc` with R, `syncDir.spec`, S) → `etc/gen-link.py
   --walfs` → builds (wal.Link, tester, server consumers, P8 crash modules, then `etc/importers.py --git 5a1c41d945
   --leaves`). Estimate: A 400-800 lines, B 300-600, C 600-1000, spec+proof 300-500: three to five sessions.
+- **2026-11-25, P6b session 8 (WIP, `etcd-safe-p6b-wip`): fix A's core; its borrowers left.** Ledger entry
+  "wal.DiscardUnsaved" marked approved (coordinator brief; P5 asked about the two-update shape).
+  **Done, each lean-checked with 0 errors** (Ghost, Inv, NameClaims, NameSplit, Crash, CreateAu, CreateSplit,
+  AreaPath; no `lake build` yet, `wal.Link` does not build):
+  * `Ghost.lean`: `structure NmSt := ⟨reg, disc, loans : List (GoString × Qp)⟩` (countable); `walNamesFragS`/
+    `walNamesAuthS st` the ghost variable's halves; `walNamesFrag o`/`walNamesAuth o` are now **abbrevs** of
+    `…S ⟨o, none, []⟩` (so every existing use is unchanged); `walNamesS_agree`/`walNamesS_set`; `loanSum Lo nm : Rat`.
+  * `Inv.lean`: `shareLs Wn Lo k nm := if Wn.idxOf nm = k then loanSum Lo nm else 0` — **the loans of a name count
+    at its first index in `Wn`** (decision: this avoids a `Wn.Nodup` invariant, whose upkeep at boot and
+    registration would need the claims' disjointness); lemmas `loanSum_{nil,cons_eq,cons_ne,perm}`,
+    `shareLs_{nil,perm,cons_ne,cons_eq,reg_tail,reg_head}`, `idxOf_getElem?`. `nameShare jr Ls nm ls` is exact:
+    `q.val + ls = ((1:Qp).half).val`. `walNamesRes` is over `st : NmSt` with a new pure conjunct
+    `⌜st.disc = none ∧ ∀ x ∈ st.loans, x.1 ∈ Wn⌝` (after `hun`: destructs become `⟨%o, %Wn, Ha, Hs, %hf, %hun,
+    %hst, Hsp, Hl⟩`), the shares `[∗list] k ↦ nm ∈ Wn, nameShare jr Ls nm (shareLs Wn st.loans k nm)`;
+    `walNamesRes_noneL` (any loans; `walNamesRes_none` its `[]` case). Update a share with
+    `BigSepL.bigSepL_lookup_acc_impl` (used as `icases BigSepL.bigSepL_lookup_acc_impl hi $$ Hl with ⟨Hn, Hl⟩`,
+    then `iapply Hl $$ [] [Hn]` with the `shareLs_cons_ne` side condition).
+  * `NameClaims.lean`: `walInvBody_dirPath`/`walInv_dirPath … Lo`: input `walNamesFragS ⟨none, none, Lo⟩`, output
+    `∃ nm q, ⌜dir = child r nm⌝ ∗ walNamesFragS ⟨none, none, (nm, q) :: Lo⟩ ∗ osPathS R dir (own q) j` (the share
+    keeps `q.half + a`, lends `e`); `walInvBody_dirPathRet`/`walInv_dirPathRet … (hx : (nm, q) ∈ Lo)`: the path
+    `osPathS R (child r nm) (own q) j` back (unchilded through the invariant's area spine), frag `Lo.erase (nm, q)`;
+    `walInv_dirPathRet0` (`[(nm, q)]` → `walNamesFrag none`). Local copies `nc_osSpine_unsnoc`/`nc_osPathS_unchild`
+    (`os.osPathS_unchild` drags `go.Semantics`/`os.Assumptions`/`FieldAssumptions` in as section instances).
+  * `NameSplit.lean`: `walNamesRes_lendAt … Lo` is now `==∗` and records `(nm, q1)`; `walNamesRes_returnName`
+    returns an `osNames jr (.only [nm]) (own q) hn'` fraction (`(nm, q) ∈ Lo`). The area spine fraction lent
+    beside it is not counted (the discard gets its parent's spine from its caller).
+  * `CreateSplit.lean`: `walInvBody_register`/`walInv_register`/`walInv_registerL` take `Lo` with
+    `hLo : q.val + loanSum Lo nm = ½` and `hLn : ∀ x ∈ Lo, x.1 = nm` and return `walNamesFragS ⟨none, none, Lo⟩`
+    (was `walNamesFrag none`): the registrant's own fractions of the name's program half (beyond the `q` given)
+    become its loans. `Crash.lean`: `names_split_start` at `nameShare … 0` (shares at ½), `walInv_alloc` at
+    `⟨none, none, []⟩`. `CreateAu.lean`: the new destruct.
+  **Next (in order; scope found this session):**
+  1. **Holders' bundle** (recommended, in `NameClaims`/`NameSplit`): `walLoanP R jr r x := (∃ j, osPathS R
+     (child r x.1) (own x.2) j) ∨ (∃ hn, osNames jr (.only [x.1]) (own x.2) hn)` and `walInv_returnAll :
+     walNamesFragS ⟨none, none, Lh⟩ ∗ [∗list] x ∈ Lh, walLoanP R jr r x ={⊤}=∗ walNamesFrag none` (induction on
+     `Lh`, head by `walInvBody_dirPathRet`/`walNamesRes_returnName`; at `walInv` level with `notCrashed`), so each
+     borrower keeps `[∗list] walLoanP` beside its frag and returns all at its exit.
+  2. **The pins** (`walNamesFrag none` out of `walParked_lock`): `ExistPin` (`existPin`'s output frag
+     `⟨none, none, [(nm, q1)]⟩`; `existUnpin`/`walInv_existEnd` take it with `Hn1` back; `Exist.lean` keeps `Hn1`
+     past `ReadDir`), `ReadAllCommit:91` and `ReadAllRegCommit:250` (`walInvBody_nameClaim`: the lendAt pattern;
+     `ReadAllNamed` keeps the claim), `Unsaved` (`unsaved_putback` returns the path first), `ValidSnapshotEntries`,
+     `openLast`, `openAtIndex`, `WAL__ReadAll` (2), `WAL__CloseFailed` (3; `walCloseLeft` carries its loan,
+     `Repair.specHeld` returns it).
+  3. **The handles** (the larger part): `Open`'s handle keeps its directory path (`walOpeningF`: `iexists f, fd, j,
+     X` frames `Hpd`), `Create`'s keeps two pinned paths of fraction `d` and a claim `c.half`/`b1 + b1` (see
+     `create_qp_twice`: `d + (d + (b1 + b1)) = ½`; register calls at `Create.lean` 180, 221, 439, 1381 must pass
+     `Lo` = those kept fractions). So the handle's frag (`walReadH`'s `walNamesFrag none`, `ReadDefs` 121/243;
+     `Handle.lean:620` `walNamesFrag nf`; `HandleUnnamed` 64/92/116/139; `OpenAtSteps`/`OpenAtPin`/`OpenLastDefs`;
+     `CloseHandle:127`; `Parked` 272/292) becomes `walNamesFragS ⟨nf, none, Lh⟩` with `[∗list] x ∈ Lh, walLoanP`
+     held in the handle (the paths it uses are those loans: keep them inside `walLoanP`'s left disjunct, or keep the
+     path in the handle and the loan's record beside it), and `Close`/`CloseHandle` returns them before
+     `walLockedTok_unlock`. `walNamesRes_noneL` serves the naming steps with the handle's loans.
+  Then `lake build` of `wal.Link`, push WIP, and B, C, the spec, the proof as session 7's plan.
+
 - **Resume here (session 1's plan, superseded by the line above)**: the swap, in `Ghost.lean` first (see the design's "Next"); then `HandleAlloc`, `NamedView`,
   `TailSync*`/`TailLenLb`/`CutAuLemmas` (the files that unfold `walGhost` or the facts), then the specs
   bottom-up (`etc/importers.py --uses walSyncedLb ...`), the tester, `Crash.lean`/`CrashS.lean`'s crash
