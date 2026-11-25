@@ -469,6 +469,7 @@ discard) + `d49d01a07` (bbolt `replace` and its backend test). Tests (go1.27.3):
 `etcdutl/...` passes; bbolt `go test -short .` passes (`tests/failpoint` fails the same at v1.5.0: it
 needs a gofail build).
 Not bumped in `etc/goose.py`.
+
 ### C-I1 finished (2026-11-25, branch `etcd-safe-crash/2026-11-24`)
 
 * **`BoltCrashWhole` written out** (a definition, still a premise on `Q`, `dbCrash`'s `hQ`): for a file of `I` whose
@@ -493,6 +494,8 @@ Not bumped in `etc/goose.py`.
 * Reviews: fifth (whole final set: no refutation, `_close` suspect, fixed) and sixth (`_close`: survives), in
   `notes/axiom-review/c-i1-bbolt-crash.md`. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`,
   `dbCrash`, over `dbOpts` (opaque, produced), `dbCrashKeep` (opaque), `BoltCrashWhole` (defined).
-* **Not done**: a full rebuild of everything above `GooseLang/Ext/Fs/Impl.lean` (22k modules): the VM built the Fs
-  layer, `CrashInterim`, `P1Sat`, `OpenSnapshotBackend`, `bootstrapBackend`; the land queue's build is the check of
-  record. Interfaces (`etc/gen-interface.py etc/api/backend.txt`) not regenerated (needs a local build).
+* **Build**: a full VM `lake build` at `37a88a324f` (28052 jobs): every module built but one,
+  `SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.membership` (`failed to synthesize IsPkgInit …
+  pkg_id.encoding.binary`), a generated SpecPlan package initializer that imports nothing this change touched (by
+  inspection; not rebuilt at the base). Not done: interfaces (`etc/gen-interface.py etc/api/backend.txt`, new
+  `DbOpts`) not regenerated (needs a local build); `etc/tcb-report.py --check` not run (axiom names unchanged).
