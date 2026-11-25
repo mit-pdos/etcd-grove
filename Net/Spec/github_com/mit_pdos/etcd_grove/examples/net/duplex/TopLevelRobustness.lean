@@ -42,9 +42,8 @@ hypotheses: in every execution, of any length, no thread of any machine is stuck
 unrecovered panic. -/
 def duplex_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
+    [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions]
+    (σs σc : state) (g : GlobalState) (bound : Nat),
     Robustness.Robust (system σs σc) [] g (threads := bound + 1) (bound := bound)
 
 end adequacy

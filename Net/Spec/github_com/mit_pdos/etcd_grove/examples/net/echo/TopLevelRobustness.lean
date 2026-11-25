@@ -43,8 +43,7 @@ unrecovered panic. -/
 def echo_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [srv_sem : cmd.server.Assumptions]
     [cli_sem : cmd.client.Assumptions] [junk_sem : cmd.junk.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σs σc σj : state) (g : GlobalState)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
+    [field_sem : net.FieldAssumptions] (σs σc σj : state) (g : GlobalState) (bound : Nat),
     Robustness.Robust (system σs σc σj) [] g (threads := bound + 1) (bound := bound)
 
 end adequacy

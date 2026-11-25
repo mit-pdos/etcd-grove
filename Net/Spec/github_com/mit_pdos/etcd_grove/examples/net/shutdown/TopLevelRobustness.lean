@@ -44,8 +44,7 @@ hypotheses: in every execution, of any length, no thread of any machine is stuck
 unrecovered panic. -/
 def shutdown_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : cmd.node.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σ0 : state) (g : GlobalState)
-    (Hconns : (extGlobal netExt g.globalWorld).conns = ∅) (bound : Nat),
+    [field_sem : net.FieldAssumptions] (σ0 : state) (g : GlobalState) (bound : Nat),
     Robustness.Robust (system σ0) [] g (threads := bound + 1) (bound := bound)
 
 end adequacy
