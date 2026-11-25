@@ -681,18 +681,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           have hwrT : lay.wr = (tailStream Mr d0.H d0.metadata lay.cuts).length := by
             rw [tailStream_eq]; exact hwr
           have hwrS : lay.wr ≤ gl.om.size := by have := hgsz gl hglm; omega
-          -- the length word at `wr` is zero (`ZeroToEnd`'s premise once `wal-tc16` restates it)
-          have hzw : ∀ j, j < 8 → (gl.bs.getD (lay.wr + j) (0, [])).1 = 0 := by
-            by_cases hp0 : pend = []
-            · have hoff' : off' = lay.wr := by rw [← hoffE, if_pos hp0]
-              refine readAll_tailZeroWord walCodec (c := 0#32) hglast ?_ ?_
-              · rw [← hgs, ← hR0eq]; exact hR0s
-              · rw [← hgs, ← hR0eq, ← hoff']; exact hR0o
-            · -- a pending run at `wr` (a torn `Save`'s entry records): `ZeroToEnd`'s premise to restate
-              -- (item 2, `notes/wal-p6-handoff.md`)
-              fail "P6 E3 item 2: no zero length word at wr with a pending run" 
           rw [hold]
-          ihave Htw := walTailP_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay gl.om.size lol lkl hfdl htm hzw hszb
+          ihave Htw := walTailP_ofRead fl fdl (child dir gl.name) dir γt gl d0 lay gl.om.size lol lkl hfdl htm hszb
             $$ [Hfl Hfdl Hlksl Hoffl Htk Hml Hbyl Htv]
           · iframe
           wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
