@@ -45,17 +45,14 @@ abbrev Client.OptimisticDelete.spec : Prop :=
     (key : GoString) (rev : w64)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (Q : KVState → IProp GF),
   key.length ≤ opKeyMax →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce kc.Client' (ms.map client.SrvAt.addr) ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (optDelTxn key rev opts.GetOnFailure')) Q) }}
+      ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (optDelTxn key rev opts.GetOnFailure')) Q)) }}
     (App (App (App (App (Val (kc @!! go_etcd_io.etcd.client.v3.kubernetes.Client.ty @!!
       go!"OptimisticDelete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #rev)) (Val #opts))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (err : GoInterface),
-      RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, Q σ ∗
+      RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, Q σ ∗
         ⌜resp.Succeeded' = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
             (optDelTxn key rev opts.GetOnFailure')).1 ∧
           resp.Revision' =
@@ -65,7 +62,7 @@ abbrev Client.OptimisticDelete.spec : Prop :=
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨
       ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-        go_etcd_io.etcd.cache.v3.errCellOk err }}
+        go_etcd_io.etcd.cache.v3.errCellOk err) }}
 
 end spec
 

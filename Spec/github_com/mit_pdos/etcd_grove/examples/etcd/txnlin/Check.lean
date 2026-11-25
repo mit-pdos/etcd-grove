@@ -38,8 +38,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev Check.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (γ : LinkvNames) (cl : Loc) (ep : GoString)
     (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
     (clients ops dur : w64),

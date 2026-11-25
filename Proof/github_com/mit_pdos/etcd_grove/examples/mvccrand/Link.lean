@@ -9,13 +9,16 @@ hand.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MainAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.absent
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.checkRange
 public import Proof.context.TODO
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.copyState
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.dirFits
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
 public import Proof.container.heap.Pop
@@ -118,6 +121,7 @@ public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.time.Link
+public import Proof.errors.IsPathErrnoNotExist
 public import Spec.sort.Slice
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
@@ -412,6 +416,14 @@ theorem watcher.wp_advance :
     EtcdGrove.mvccrand.watcher.advance.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.watcher.advance.wp_proof
 
+theorem wp_dirFits :
+    EtcdGrove.mvccrand.dirFits.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.dirFits.wp_proof
+
+theorem wp_absent :
+    EtcdGrove.mvccrand.absent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.absent.wp_proof _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -595,6 +607,10 @@ theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.mvccrand.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.mvccrand.Main.wp_proof (wp_Run h_sort_Slice)
+
+theorem wp_MainAt [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.mvccrand.MainAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccrand.MainAt.wp_proof wp_dirFits wp_absent (wp_Run h_sort_Slice)
 
 end links_pending
 

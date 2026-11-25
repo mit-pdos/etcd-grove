@@ -27,16 +27,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 /-- **`newKey(kv, key, leaseID)`**: `newKV(kv, key, "", leaseID)`. -/
 abbrev newKey.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx key : GoString) (lease lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ ⌜pfx <+: key ∧ key.length ≤ recipesStrMax⌝) }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.newKey))
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #lease))
-  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, ownRemoteKV rk ⟨GoInterface.ok kv, key, r, []⟩ ∗
+  {{ (rk : Loc) (err : GoInterface), RET (PairV #rk #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, ownRemoteKV rk ⟨GoInterface.ok kv, key, r, []⟩ ∗
         etcdReached r ∗ keyCreatedAt pfx key [] lease r ∗
         ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ⌜rk = null⌝ ∗ ∃ r : w64, etcdReached r ∗
         etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ rk = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ rk = null⌝) }}
 
 end spec
 

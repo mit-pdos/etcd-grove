@@ -43,7 +43,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 
 /-- **The driver's `startCluster(k)`** (stage A of `notes/k8s-7f6-scope.md`), over the examples'
 shared start's linked `Members`, `StartMembers`, `Serve`, cluster3's `StartBridge` and the kubernetes

@@ -33,7 +33,7 @@ theorem stmSerializable.commit.wp_proof
     (hAdd : readSet.add.spec (GF := GF) (hG := hG)) :
     stmSerializable.commit.spec (GF := GF) (hG := hG) := by
   intro lvl p pfx st lo
-  wp_start as ⟨Hst, #Hlo, %Hser⟩
+  wp_start as ⟨Hlt, Hst, #Hlo, %Hser⟩
   have hb : stmBase lvl p = structFieldRef stmSerializable go!"stm" p := by simp [stmBase, Hser]
   unfold stmState stmStale
   rw [hb]
@@ -90,8 +90,9 @@ theorem stmSerializable.commit.wp_proof
     intro k hk
     obtain ⟨e, he⟩ := Option.isSome_iff_exists.1 ((Hksl.2 k).1 hk)
     exact Hru k e he
-  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro
+  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
+  · (try iframe Hlt)
+    ipureintro
     exact ⟨stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (keyOps_under pfx ks hks),
       stmCommit_size Hsz Hms Hops.2 (.inr ⟨ks, Hksl, rfl⟩)⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
@@ -104,6 +105,7 @@ theorem stmSerializable.commit.wp_proof
     (try wp_auto)
     wp_apply wp_panic
     iapply HΦ
+    iframe Hlt
     iapply stmRet_abort _ (by simp)
   subst Heq
   have hm : ({ model := { cmps := ms, thenOps := ops, elseOps := (ks.map keyOp).map TxnOp.get }, cif := true, cthen := true, celse := true } : TxnBuild).model =
@@ -142,6 +144,7 @@ theorem stmSerializable.commit.wp_proof
     wp_apply hAdd rm2 pfx rsMap2 st.reads ksl ks resp rsl ps es $$ [$Hpkg $Hrm $Hreads2 $Hks $HRs $Hps $Hrd] as ⟨%rsMap3, Hrm, #Hreads3⟩
     · ipureintro; omega
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     isplitl
     · iunfold stmWsetOwn at Hws
@@ -168,6 +171,7 @@ theorem stmSerializable.commit.wp_proof
     rw [hok']
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     isplitl
     · iunfold stmRsetOwn at Hrs

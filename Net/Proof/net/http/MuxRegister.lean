@@ -578,7 +578,7 @@ theorem freshNode_rep (c : Loc) :
   ihave %hcn := typedPointsto_not_null _ _ _ $$ Hc
   iStructNamed Hc
   iunfold nodeRep
-  simp only [freshNode, mapRep, ↓reduceIte]
+  simp only [freshNode, mapRep, pfrac, ↓reduceIte]
   iframe
   isplitl []
   · isplitr
@@ -701,13 +701,26 @@ theorem wp_set (d : NodeSt) (l pp : Loc) (h : GoInterface) (hl : d.l = l)
   unfold nodeRep
   obtain ⟨hp0, hh0⟩ := hnil
   subst hl
+  rw [show pfrac (DFrac.own 1) d.pat = DFrac.own 1 by simp [pfrac, hp0]]
   wp_start as ⟨Hp, Hh, Hc, Hm, He⟩
+  iapply wp_fupd
   wp_auto
   rw [hp0, hh0]
   wp_auto
-  iapply HΦ
   simp only [setPat]
-  iframe
+  by_cases hpp : pp = null
+  · simp only [pfrac, hpp, ↓reduceIte]
+    imodintro
+    iapply HΦ
+    iframe
+  · simp only [pfrac, hpp, ↓reduceIte]
+    imod (typedPointsto_dfractional (GF := GF) _ pp).dfractional_persist (DFrac.own 1) $$ Hp
+      with #HpP
+    imod (typedPointsto_dfractional (GF := GF) _ h).dfractional_persist (DFrac.own 1) $$ Hh
+      with #HhP
+    imodintro
+    iapply HΦ
+    iframe; iframe #
 
 /-- `n.addSegments(segs, pp, h)` at the node `kc`, `segs` the rest of `p`'s keys. -/
 theorem wp_addSegments (root : Loc) (P : List (List w8 × Loc × GoInterface)) (p : List w8)

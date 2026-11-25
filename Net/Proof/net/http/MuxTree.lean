@@ -373,10 +373,15 @@ theorem wp_firstSegment (wp_PathUnescape : net.url.PathUnescape.spec (GF := GF) 
     iapply HΦ
     ipureintro; trivial
 
-/-- A node's fields at `dq` (see the file header). -/
+/-- The fraction of a node's `pattern` and `handler` fields: `dq` while unset (`pat` nil), discarded
+once set. `set` writes them once (on an unset node), and `findHandler` reads them after the lock is
+released. -/
+def pfrac (dq : DFrac) (pat : Loc) : DFrac := if pat = null then dq else DFrac.discard
+
+/-- A node's fields at `dq` (see the file header; its `pattern` and `handler` at `pfrac dq d.pat`). -/
 def nodeRep (dq : DFrac) (d : NodeSt) : IProp GF :=
-  iprop(structFieldRef net.http.routingNode go!"pattern" d.l ↦{dq} d.pat ∗
-    structFieldRef net.http.routingNode go!"handler" d.l ↦{dq} d.h ∗
+  iprop(structFieldRef net.http.routingNode go!"pattern" d.l ↦{pfrac dq d.pat} d.pat ∗
+    structFieldRef net.http.routingNode go!"handler" d.l ↦{pfrac dq d.pat} d.h ∗
     mapRep dq (structFieldRef net.http.routingNode go!"children" d.l) d.ms d.kids ∗
     structFieldRef net.http.routingNode go!"multiChild" d.l ↦{dq} d.multi ∗
     structFieldRef net.http.routingNode go!"emptyChild" d.l ↦{dq} d.empty)

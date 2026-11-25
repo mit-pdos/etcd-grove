@@ -51,14 +51,13 @@ abbrev kv.Do.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (op : go_etcd_io.etcd.client.v3.Op) (op_m : OpFull)
     (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv kv γ dup ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKv kv γ dup ∗
       ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ opFullAt op op_m ∗ doRunOk γ dup op_m Q ∗
-      ⌜opSizeOk op_m⌝ }}
+      ⌜opSizeOk op_m⌝) }}
     (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
       (Val #(GoInterface.ok ctx))) (Val #op))
-  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-      doOut op_m (putStOk γ (putWireOf op_m) Q) (rangeStOk (rangeWireOf op_m) Q)
-        (delStOk (deleteWireOf op_m) Q) r err }}
+  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err); levelTok 0 ∗ (doOut op_m (putStOk γ (putWireOf op_m) Q) (rangeStOk (rangeWireOf op_m) Q)
+        (delStOk (deleteWireOf op_m) Q) r err) }}
 
 end spec
 

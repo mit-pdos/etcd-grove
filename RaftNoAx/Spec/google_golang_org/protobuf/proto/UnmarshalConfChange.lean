@@ -29,7 +29,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `proto.Unmarshal(d, cc)` into a `*pb.ConfChange` (any value: `Unmarshal` resets it) computes `ccDecodeV1`
-(which names what it does, `CCModel.lean`): on bytes it decodes it returns `nil` and the message
+(`CCModel.lean`; since 2026-11-24 the function `cc1DecodeRaw`, checked against protobuf-go by
+`ConfChangeWireVectors.lean`): on bytes it decodes it returns `nil` and the message
 holds the content, owned (its `Context` a fresh slice, read-only from then on, its hidden fields
 its own invariant); on any other bytes a non-`nil` error, leaving the message some value. It
 never panics and never retains `d`.

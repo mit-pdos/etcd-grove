@@ -133,7 +133,7 @@ theorem Main.wp_proof
     (wp_run : run.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
+  intro CS ES FS RS N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
     Hms hAs
   wp_start as ⟨Hs₁, Hs₂, Hs₃, Htok, #Hprem⟩
   iunfold premises at Hprem

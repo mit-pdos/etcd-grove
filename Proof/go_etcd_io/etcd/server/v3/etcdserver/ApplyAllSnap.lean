@@ -232,7 +232,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
     · iframe #; iframe Hbr
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
-    ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
+    ihave #Hvoff := srvBeRO_etcdVerifyOff dB $$ HbRO
     wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
     · iframe #; iframe Hlr
     (try wp_auto)
@@ -744,7 +744,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, %dB, -, #HbRO⟩
   · iframe #; iframe Hbr
   -- (sweep repairs 1, B4) `ETCD_VERIFY` off, the backend's
-  ihave #Hvoff := srvBeRO_envVerifyOff dB $$ HbRO
+  ihave #Hvoff := srvBeRO_etcdVerifyOff dB $$ HbRO
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr
   (try wp_auto)

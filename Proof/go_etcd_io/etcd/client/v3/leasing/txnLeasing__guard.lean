@@ -32,12 +32,12 @@ theorem txnLeasing.guard.wp_proof
     (hGR : txnLeasing.guardRanges.spec (GF := GF) (hG := hG)) :
     txnLeasing.guard.spec (GF := GF) (hG := hG) := by
   intro txn lkv γ pfx ctx cs dq sl os
-  wp_start as ⟨Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hops, %Hos⟩
+  wp_start as ⟨Hlt, Hlkvf, Hctxf, #HLKV, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hops, %Hos⟩
   wp_auto
   wp_apply hGK $$ [$Hlkvf $HLKV $Hrd $Hops] as %c1 ⟨Hlkvf, Hrd, %ms1, #Hc1, Hcap1, %Hg1⟩
   (try wp_auto)
-  wp_apply hGR $$ [$Hlkvf $Hctxf $HLKV $Hrd $Hsr $Hctx $HctxC $Hcc $Hops] as %c2 %err
-    ⟨Hlkvf, Hctxf, Hrd, Hres⟩
+  wp_apply hGR $$ [$Hlt $Hlkvf $Hctxf $HLKV $Hrd $Hsr $Hctx $HctxC $Hcc $Hops] as %c2 %err
+    ⟨Hlt, Hlkvf, Hctxf, Hrd, Hres⟩
   · ipureintro; exact Hos
   ihave #Hc1' := (cmpsAt_listRel _ _).1 $$ Hc1
   icases Hc1' with ⟨%cs1, #Hcs1, #Hrel1⟩
@@ -48,6 +48,7 @@ theorem txnLeasing.guard.wp_proof
       (DFrac.own 1)) $$ [$Hcs1 $Hcap1] as %c3 ⟨#Hc3, -, -⟩
     · iapply ownSlice_nil
     iapply HΦ
+    iframe Hlt
     iframe
     ileft; ipureintro; exact Herr
   · ihave #Hc2' := (cmpsAt_listRel _ _).1 $$ Hc2
@@ -56,6 +57,7 @@ theorem txnLeasing.guard.wp_proof
     wp_apply (wp_slice_append_persistent c1 cs1 c2 cs2 DFrac.discard) $$ [$Hcs1 $Hcap1 $Hcs2]
       as %c3 ⟨#Hc3, -, -⟩
     iapply HΦ
+    iframe Hlt
     iframe
     iright
     isplitr

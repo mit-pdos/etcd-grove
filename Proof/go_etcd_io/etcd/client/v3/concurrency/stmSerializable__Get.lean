@@ -37,7 +37,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     (hWS : EtcdGrove.WithSerializable.spec (GF := GF) (hG := hG)) :
     stmSerializable.Get.spec (GF := GF) (hG := hG) := by
   intro lvl p pfx st ksl ks
-  wp_start as ⟨Hst, #Hks, %Hsp, %Hc⟩
+  wp_start as ⟨Hlt, Hst, #Hks, %Hsp, %Hc⟩
   obtain ⟨Hser, Hpk⟩ := Hsp
   ihave %Hlen := ownSlice_len $$ Hks
   unfold stmState
@@ -51,6 +51,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       exact List.length_eq_zero_iff.1 (by rw [h1]; rfl)
     subst Hks0
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists st
     isplitl
@@ -80,6 +81,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     wp_auto
     obtain ⟨Hk, Hwk, Hv⟩ := Hw
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists ({ reads := st.reads, writes := st.writes, n := st.n + ks.length } : STMSt)
     isplitl
@@ -192,7 +194,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
     · unfold stmRsetOwn
       iexists rm, rsMap'
       iframe Hrf Hrm Hrat
-    wp_apply hF (structFieldRef stmSerializable go!"stm" p) pfx reads' gs ksl ks $$ [$Hpkg $Henv $Hrs $Hopts $Hks] as %r Hr
+    wp_apply hF (structFieldRef stmSerializable go!"stm" p) pfx reads' gs ksl ks $$ [$Hpkg $Hlt $Henv $Hrs $Hopts $Hks] as %r ⟨Hlt, Hr⟩
     · ipureintro; exact ⟨Hgs', Hpk, by have := Hc.1; omega, Hc.2.1⟩
     iunfold stmRet at Hr
     icases Hr with (⟨%rp, %Hrp', %reads'', Hrs, Hopts, %Hgrow, Hrp⟩ | %Hab)
@@ -201,6 +203,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       unfold stmAbort
       wp_auto
       iapply HΦ
+      iframe Hlt
       iapply stmRet_abort _ Hne
     subst Hrp'
     icases Hrp with (%Hnil | ⟨%k, %e, %e', %Hke, #He⟩)
@@ -211,6 +214,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       wp_apply hRV rp e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
+      iframe Hlt
       iapply stmRet_ret
       iexists ({ reads := reads'', writes := st.writes, n := st.n + ks.length } : STMSt)
       iunfold stmRsetOwn at Hrs
@@ -268,6 +272,7 @@ theorem stmSerializable.Get.wp_proof (hWG : writeSet.get.spec (GF := GF) (hG := 
       wp_apply hRV rp e.value $$ [$Hpkg]
       · iright; iexists pfx, k, e; iframe He; ipureintro; rfl
       iapply HΦ
+      iframe Hlt
       iapply stmRet_ret
       iexists ({ reads := reads'', writes := st.writes, n := st.n + ks.length } : STMSt)
       iunfold stmRsetOwn at Hrs

@@ -938,14 +938,13 @@ def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw γr : ReadNames) (_cid _mid : w
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ txn.txnReadonly (txnWireOf b.model) = false ∧
       ¬ TxnModel.leaseFree b.model⌝ -∗
     ((□ ∀ (lo : w64) (pfx : GoString), ⌜b.model.Under pfx⌝ -∗
-      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
+      {{ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
-          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }}) ∗
-     {{ txnObjAt tp addr ci cd b }}
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
+          (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝)) }}) ∗
+     {{ levelTok 0 ∗ txnObjAt tp addr ci cd b }}
        (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
+     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnAnyResult resp err) }}))
 
 instance kvLeasedCommitTodo_persistent (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
     (addr : List GoString) : Persistent (kvLeasedCommitTodo E γw γr cid mid addr) := by
@@ -962,16 +961,16 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (b : TxnBuild) (F lf : mvcc.Log) (hp : TxnModel.plain b.model) (hx : b.model.exactGets)
     (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model)
     (hsz : txnSizeOk b.model) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ txnObjAt tp addr ci cd b ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         srvApi.kvLogLb E.γs F ∗ nxOrNil E lf ∗ kvAnyAu E γr }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (Q : KVState → IProp GF), txnRespMsg resp m ∗
             txnReplied E γr γr (W64 0) F (txnWireOf b.model) Q cid mid m ∗
             □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) ∨
-          ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, Hcl, #Hr⟩ HΦ
+          ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hrpc, #HF, Hcl, #Hr⟩ HΦ
   ihave #Hw : kvAnyAu E γr $$ []
   · iexact Hr
   have hser := txnSerializable_wire b.model
@@ -1029,8 +1028,9 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     · imodintro; iunfold txnUpdAt; iright; ileft; iframe Ha; ipureintro; exact H
     · imodintro; iunfold txnUpdAt; iright; iright; iframe Ha; ipureintro; exact H
   ihave #Hus := txnUpd_srvsAt addr E γr cid mid (txnWireOf b.model) Q $$ Hu
-  iapply (v3.txn.wp_CommitM tp (srvsAt addr E γr cid mid) ci cd b (W64 0) F Q) $$ [Hobj]
+  iapply (v3.txn.wp_CommitM tp (srvsAt addr E γr cid mid) ci cd b (W64 0) F Q) $$ [Hlt Hobj]
   · rw [srvsAt_addr]
+    iframe Hlt
     iframe
     iframe #
     isplitl []
@@ -1045,8 +1045,9 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     inext
     iexact Hus
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   iunfold txnCallOut at Hout
   icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, -⟩)
   · ihave Hq := txnAns_srvsAt addr E γr (W64 0) cid mid F _ Q m $$ Hq
@@ -1088,13 +1089,13 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
         kvAnyAu E γr ∗ kvLeasedCommitTodo E γr γr cid mid addr ⊢
-      {{ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
+      {{ levelTok 0 ∗ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
           txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
     intro b lo hu hx hsz
-    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hnr, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
+    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hnr, #Hlc⟩ !> %Φ ⟨Hlt, HB, #Hlo⟩ HΦ
     iunfold txnB at HB
     icases HB with ⟨Hobj, %hp⟩
     by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
@@ -1108,20 +1109,21 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       iunfold kvLeasedCommitTodo at Hlc
       ihave ⟨#Ht, -⟩ := Hlc $$ %tp %todoCtxVal %cd %b %(⟨hp, hx, hk1, hk2⟩)
       ihave #Ht' := Ht $$ %lo %pfx %hu
-      iapply Ht' $$ [Hobj] HΦ
-      iframe Hobj Hlo
+      iapply Ht' $$ [Hlt Hobj] HΦ
+      iframe Hlt Hobj Hlo
     -- the floor (unit W-M3): a certified log longer than `lo`, the update's result at the state
     -- the transaction linearized at
     ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hsrd
     ihave %HNx := srvKVInvs_nx E γr $$ Hinvs
     imod (nx_of_reached E γr lo) $$ [$Hinvs $Hlo] with ⟨%lf, Hcl, %Hll⟩
     ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
-    iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk hsz) $$ [Hobj Hcl]
+    iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk hsz) $$ [Hlt Hobj Hcl]
     · iframe
       iframe #
     inext
-    iintro %resp %err Hout
+    iintro %resp %err ⟨Hlt, Hout⟩
     iapply HΦ
+    iframe Hlt
     icases Hout with (⟨%Herr, %m, %Q, #Hm, Hq, #Himp⟩ | %Herr)
     · subst Herr
       isplitl
@@ -1186,14 +1188,15 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
         · exact hp.2 op h
         · exact h2 op h⟩
     isplitl []
-    · iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hnr $Hlc] [HB]
+    · iintro !> %b %lo %Φ' !> ⟨Hlt, HB, #Hlo, %hux⟩ HΦ'
+      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hnr $Hlc] [Hlt HB]
       · iframe; iframe #
       inext
-      iintro %resp %err ⟨Hr, -⟩
+      iintro %resp %err ⟨Hlt, Hr, -⟩
       iapply HΦ'
+      iframe Hlt
       iexact Hr
-    · iintro !> %b %Φ' !> ⟨HB, %hxs⟩ HΦ'
+    · iintro !> %b %Φ' !> ⟨Hlt, HB, %hxs⟩ HΦ'
       obtain ⟨hx, hsz⟩ := hxs
       iunfold txnB at HB
       icases HB with ⟨Hobj, %hp⟩
@@ -1207,17 +1210,18 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
         have hk2 : ¬ TxnModel.leaseFree b.model := fun h => hk (Or.inr h)
         iunfold kvLeasedCommitTodo at Hlc
         ihave ⟨-, #Ht⟩ := Hlc $$ %tp %todoCtxVal %cd %b %(⟨hp, hx, hk1, hk2⟩)
-        iapply Ht $$ [Hobj] HΦ'
-        iexact Hobj
+        iapply Ht $$ [Hlt Hobj] HΦ'
+        iframe Hlt Hobj
       ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
       ihave Hcl : iprop(nxOrNil E ([] : mvcc.Log)) $$ []
       · iunfold nxOrNil; ileft; ipureintro; rfl
-      iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F [] hp hx hk hsz) $$ [Hobj Hcl]
+      iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F [] hp hx hk hsz) $$ [Hlt Hobj Hcl]
       · iframe
         iframe #
       inext
-      iintro %resp %err Hout
+      iintro %resp %err ⟨Hlt, Hout⟩
       iapply HΦ'
+      iframe Hlt
       unfold txnAnyResult
       icases Hout with (⟨%Herr, %m, %Q, #Hm, -⟩ | %Herr)
       · iright
@@ -1229,12 +1233,13 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
         iframe Hh Hok
       · ileft; ipureintro; exact Herr.1
   · unfold txnCommitErrTodo
-    iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hnr $Hlc] [HB]
+    iintro !> %b %lo %Φ' !> ⟨Hlt, HB, #Hlo, %hux⟩ HΦ'
+    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hnr $Hlc] [Hlt HB]
     · iframe; iframe #
     inext
-    iintro %resp %err ⟨Hr, Herr⟩
+    iintro %resp %err ⟨Hlt, Hr, Herr⟩
     iapply HΦ'
+    iframe Hlt
     iframe Hr
     icases Herr with (%He | %He)
     · ileft; ipureintro; exact He

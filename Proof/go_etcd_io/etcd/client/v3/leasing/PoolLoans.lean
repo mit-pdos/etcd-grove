@@ -10,6 +10,9 @@ they are **Perennial changes**, kept here until they land in `ThreadPool.lean`
   its count with it.
 * `threadPool.init_named`: `init`, for a name allocated beforehand (`ownTokAuth γ 0`), so that the
   name can be part of the ghost names the pooled resource is defined over.
+* `threadPool.loansL_lt`, `threadPool.init_namedL`: the same for a pool at a level
+  (`isThreadPoolL`; the leasing KV's is at level 1, so that a borrower keeps its level-0 token for
+  the client's calls, decision 1b, 2026-11-24).
 -/
 module
 
@@ -65,6 +68,44 @@ theorem init_named (N : Namespace) (γ : GName) (R : IProp GF) (E : CoPset) (n :
     · ipureintro; omega
   imodintro
   unfold isThreadPool
+  iexact Hinv
+
+/-- **`k` loans of a level-`l` pool are fewer than the live threads** (`loans_lt` at a level): the
+pool holds a level-`l` token for each loan. -/
+theorem loansL_lt (N : Namespace) (l : Nat) (γ : GName) (R : IProp GF) (E : CoPset) (HN : ↑N ⊆ E)
+    (k : Nat) :
+    isThreadPoolL N l γ R ∗ ownToks γ k ⊢ |={E}=> ⌜k < threadBound GF⌝ ∗ ownToks γ k := by
+  iintro ⟨#Hinv, Hk⟩
+  unfold isThreadPoolL
+  iinv Hinv with Hi Hclose
+  unfold poolInvL
+  icases Hi with ⟨%b, %m, >Hauth, >Htoks, HRs, >%Hle⟩
+  icombine Hauth Hk gives %Hkb
+  icases persistent_entails_left (levelToks_lt l b) $$ Htoks with ⟨Htoks, %Hlt⟩
+  imod Hclose $$ [Hauth Htoks HRs] with _
+  · inext
+    iexists b, m
+    iframe
+    ipureintro; exact Hle
+  imodintro
+  iframe
+  ipureintro; omega
+
+/-- **A level-`l` pool under a name allocated beforehand** (`initL`, with `ownTokAuth γ 0` given). -/
+theorem init_namedL (N : Namespace) (l : Nat) (γ : GName) (R : IProp GF) (E : CoPset) (n : Nat)
+    (Hn : threadBound GF ≤ n + 1) :
+    ownTokAuth γ 0 ∗ ([∗list] _x ∈ List.replicate n (), R) ⊢ |={E}=> isThreadPoolL N l γ R := by
+  iintro ⟨Hauth, HR⟩
+  imod inv_alloc N E (poolInvL l γ R) $$ [Hauth HR] with #Hinv
+  · inext
+    unfold poolInvL
+    iexists 0, n
+    iframe
+    isplitr
+    · iapply levelToks_zero l
+    · ipureintro; omega
+  imodintro
+  unfold isThreadPoolL
   iexact Hinv
 
 end pool

@@ -55,14 +55,13 @@ abbrev kv.Do.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (c : w64) (F : mvcc.Log)
     (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗ doRunM api ms o c F Q ∗
-      ⌜opSizeOk o⌝ }}
+      ⌜opSizeOk o⌝) }}
     (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
       (Val #(GoInterface.ok ci))) (Val #opv))
-  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-      doOut o (putAns ms F (putWireOf o) Q) (rangeAns ms c F (rangeWireOf o) Q)
-        (delAns ms F (deleteWireOf o) Q) r err }}
+  {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err); levelTok 0 ∗ (doOut o (putAns ms F (putWireOf o) Q) (rangeAns ms c F (rangeWireOf o) Q)
+        (delAns ms F (deleteWireOf o) Q) r err) }}
 
 /-- `kv.Put(ctx, key, val, opts...)` on a `*kv` of the members `ms` (`isKV`, D44): `kv.Do` of
 `OpPut(key, val, opts...)` (options with transformers `gs` that do not make `OpPut` panic nor
@@ -75,17 +74,16 @@ abbrev kv.Put.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
     (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 ∧
         (putWireOf (opPutModel key val gs)).leaseID = W64 0⌝ ∗
       floorsAt ms F ∗
       kvReqPre api (ms.map SrvAt.addr) (putUpd ms (putWireOf (opPutModel key val gs)) Q) ∗
-      ⌜opSizeOk (opPutModel key val gs)⌝ }}
+      ⌜opSizeOk (opPutModel key val gs)⌝) }}
     (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      putCallOut (putAns ms F (putWireOf (opPutModel key val gs)) Q) resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (putCallOut (putAns ms F (putWireOf (opPutModel key val gs)) Q) resp err) }}
 
 /-- `kv.Get(ctx, key, opts...)` on a `*kv` of the members `ms` (`isKV`, D44): `OpGet(key,
 opts...)` (options that do not panic, keep the range type, and may need a resource `R`, given
@@ -100,18 +98,17 @@ abbrev kv.Get.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF) (c : w64)
     (F : mvcc.Log) (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
       sortNamesIf (opGetModel key gs).base.sortSet ∗
       ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
       knownAt ms c F ∗ □ rangeUpd ms (rangeWireOf (opGetModel key gs)) Q ∗
-      ⌜opSizeOk (opGetModel key gs)⌝ }}
+      ⌜opSizeOk (opGetModel key gs)⌝) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      R ∗ rangeCallOut (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q) resp err ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (R ∗ rangeCallOut (rangeAns ms c F (rangeWireOf (opGetModel key gs)) Q) resp err ∗
       (⌜sortValid (opGetModel key gs) = true⌝ →
-        rangeErrOut ms c F (rangeWireOf (opGetModel key gs)) Q err) }}
+        rangeErrOut ms c F (rangeWireOf (opGetModel key gs)) Q err)) }}
 
 /-- `kv.Delete(ctx, key, opts...)` on a `*kv` of the members `ms` (`isKV`, D44): `kv.Do` of
 `OpDelete(key, opts...)` (options with transformers `gs` that do not make `OpDelete` panic nor
@@ -124,17 +121,16 @@ abbrev kv.Delete.specM : Prop :=
   ∀ (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
     (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKV api ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isKV api ms ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3 ∧
         (deleteWireOf (opDeleteModel key gs)).base.rangeEnd ≠ [W8 0]⌝ ∗
       floorsAt ms F ∗
       kvReqPre api (ms.map SrvAt.addr) (delUpd ms (deleteWireOf (opDeleteModel key gs)) Q) ∗
-      ⌜opSizeOk (opDeleteModel key gs)⌝ }}
+      ⌜opSizeOk (opDeleteModel key gs)⌝) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      deleteCallOut (delAns ms F (deleteWireOf (opDeleteModel key gs)) Q) resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (deleteCallOut (delAns ms F (deleteWireOf (opDeleteModel key gs)) Q) resp err) }}
 
 /-- `t.Commit()` on a builder at `b` over a `*kv` of the members `ms` (its registrations
 `kvRegs`, D44): the request `&pb.TxnRequest{Compare: cmps, Success: sus, Failure: fas}` (the
@@ -148,15 +144,13 @@ The builder is spent (its slices are now the request's). The request fits a gRPC
 abbrev txn.Commit.specM : Prop :=
   ∀ (tp : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      txnObjAt tp (ms.map SrvAt.addr) ci cd b ∗ kvRegs ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (txnObjAt tp (ms.map SrvAt.addr) ci cd b ∗ kvRegs ms ∗
       ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗ knownAt ms c F ∗
       txnReqPre tp (ms.map SrvAt.addr) (txnUpd ms (txnWireOf b.model) Q) ∗
-      ⌜txnSizeOk (txnWireOf b.model)⌝ }}
+      ⌜txnSizeOk (txnWireOf b.model)⌝) }}
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      txnCallOut (txnAns ms c F (txnWireOf b.model) Q) resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCallOut (txnAns ms c F (txnWireOf b.model) Q) resp err) }}
 
 /-- **What `kv.Do` needs of its `Op`, for specs `Sp`, `Sr`, `Sd` registered at the connection**
 (the transport's terms, as the retry client's specs take them; `kv.Do.wp_proof` instantiates
@@ -194,17 +188,16 @@ abbrev kv.Do.specG : Prop :=
       (Sr : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)
       (Sd : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
       (Qd : DelRespM → IProp GF) (Ψr : GoString → IProp GF),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
         metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ opFullAt opv o ∗
         doRunGen api conn addr om o Sp Qp Sr Qr Sd Qd Ψr ∗
-      ⌜opSizeOk o⌝ }}
+      ⌜opSizeOk o⌝) }}
       (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
         (Val #(GoInterface.ok ci))) (Val #opv))
-    {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-        (go_etcd_io.etcd.cache.v3.ctxErrIs err ∨
+    {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err); levelTok 0 ∗ ((go_etcd_io.etcd.cache.v3.ctxErrIs err ∨
           (⌜o.t = W64 1 ∧ err ≠ GoInterface.nil ∧ sortValid o = true⌝ -∗
             ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err)) ∗
-        doOut o Qp Qr Qd r err }}
+        doOut o Qp Qr Qd r err) }}
 
 /-- **`kv.Put(ctx, key, val, opts...)` for any spec registered for `Put` at the connection** (the
 auth plan's E3zc; `kv.Put.specM`'s, in the transport's terms: the caller's request precondition at
@@ -215,16 +208,16 @@ abbrev kv.Put.specG : Prop :=
     (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (Sp : GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse)
     (Qp : PutRespM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.KV/Put" Sp ∗
       kvReqPre api addr
         (attemptPre conn om Sp (putWireOf (opPutModel key val gs)) Qp) ∗
-      ⌜opSizeOk (opPutModel key val gs)⌝ }}
+      ⌜opSizeOk (opPutModel key val gs)⌝) }}
     (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putCallOut Qp resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (putCallOut Qp resp err) }}
 
 /-- **`kv.Get(ctx, key, opts...)` for any spec registered for `Range` at the connection** (the
 auth plan's E3zc; `kv.Get.specM`'s, in the transport's terms): `R` back, `rangeCallOut Qr`, an error
@@ -236,20 +229,19 @@ abbrev kv.Get.specG : Prop :=
     (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Sr : GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)
     (Ψr : GoString → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
       sortNamesIf (opGetModel key gs).base.sortSet ∗
       ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.KV/Range" Sr ∗
       □ ▷ attemptPre conn om Sr (rangeWireOf (opGetModel key gs)) Qr Ψr ∗
-      ⌜opSizeOk (opGetModel key gs)⌝ }}
+      ⌜opSizeOk (opGetModel key gs)⌝) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err ≠ GoInterface.nil ∧ sortValid (opGetModel key gs) = true⌝ -∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err ≠ GoInterface.nil ∧ sortValid (opGetModel key gs) = true⌝ -∗
         (ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err ∨
           ⌜∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝)) ∗
-      R ∗ rangeCallOut Qr resp err }}
+      R ∗ rangeCallOut Qr resp err) }}
 
 /-- **`kv.Delete(ctx, key, opts...)` for any spec registered for `DeleteRange` at the connection**
 (the auth plan's E3zc; `kv.Delete.specM`'s, in the transport's terms): `deleteCallOut Qd`. The
@@ -260,16 +252,16 @@ abbrev kv.Delete.specG : Prop :=
     (gs : List (OpFull → OpFull))
     (Sd : GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Qd : DelRespM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAtC api conn addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3⌝ ∗
       isGrpcRpcsMd addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
       kvReqPre api addr
         (attemptPre conn om Sd (deleteWireOf (opDeleteModel key gs)) Qd) ∗
-      ⌜opSizeOk (opDeleteModel key gs)⌝ }}
+      ⌜opSizeOk (opDeleteModel key gs)⌝) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); deleteCallOut Qd resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (deleteCallOut Qd resp err) }}
 
 /-- **`t.Commit()` for any spec registered for `Txn` at the connection** (the auth plan's E3zc;
 `txn.Commit.specM`'s, in the transport's terms: the builder's `*kv` `api` over `conn`, the caller's
@@ -280,15 +272,15 @@ abbrev txn.Commit.specG : Prop :=
       (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (b : TxnBuild) (Spec : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse)
       (Q : TxnRespM → IProp GF),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (txnObjAt tp addr ci cd b ∗
         metadata.outMD ci om ∗
         txnKvIs tp api ∗ kvObjAtC api conn addr ∗
         isGrpcRpcsMd addr go!"/etcdserverpb.KV/Txn" Spec ∗
         txnReqPre tp addr (attemptPre conn om Spec (txnWireOf b.model) Q) ∗
-      ⌜txnSizeOk (txnWireOf b.model)⌝ }}
+      ⌜txnSizeOk (txnWireOf b.model)⌝) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnCallOut Q resp err }}
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCallOut Q resp err) }}
 
 end spec
 

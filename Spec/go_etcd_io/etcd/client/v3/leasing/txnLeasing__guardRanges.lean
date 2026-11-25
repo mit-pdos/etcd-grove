@@ -29,17 +29,16 @@ error (and a nil slice), or comparisons. The context must be cancelable. -/
 abbrev txnLeasing.guardRanges.spec : Prop :=
   ∀ (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (dq : DFrac) (sl : GoSlice) (os : List OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ levelTok 0 ∗ (structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗
       sessionReady γ ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗ opsAt sl os ∗
-      ⌜∀ o ∈ os, o.key.length ≤ opKeyMax ∧ o.base.rangeEnd.length ≤ opKeyMax⌝ }}
+      ⌜∀ o ∈ os, o.key.length ≤ opKeyMax ∧ o.base.rangeEnd.length ≤ opKeyMax⌝) }}
     (App (Val (txn @!! go.GoType.PointerType txnLeasing.ty @!! go!"guardRanges")) (Val #sl))
-  {{ (cmps : GoSlice) (err : GoInterface), RET (PairV #cmps #err);
-      structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
+  {{ (cmps : GoSlice) (err : GoInterface), RET (PairV #cmps #err); levelTok 0 ∗ (structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv ∗
       structFieldRef txnLeasing go!"ctx" txn ↦{dq} GoInterface.ok ctx ∗ lkvReader lkv γ pfx ∗
       (⌜err ≠ GoInterface.nil ∧ cmps = slice.nil⌝ ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ ms : List CmpModel, cmpsAt cmps ms ∗
-        ⌜ms.length ≤ 2 * os.length ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝)) }}
+        ⌜ms.length ≤ 2 * os.length ∧ ∀ c ∈ ms, guardOf pfx os c.key c.rangeEnd c.val⌝))) }}
 
 end spec
 

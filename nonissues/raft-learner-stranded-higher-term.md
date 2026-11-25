@@ -19,7 +19,7 @@ behind for good. Raft's own comment there assumes the stuck node is a voter: "if
 false, this will be handled by incrementing term numbers in response to MsgVote with a higher term"
 holds only for a node that campaigns.
 
-Seen in `examples/raft/kvnet`'s test (2026-11-15, raft at the fork's `565c2bd`, options PreVote and
+Seen in `examples/raft/kvraft`'s test (2026-11-15, raft at the fork's `565c2bd`, options PreVote and
 CheckQuorum off): voters {2, 7} and learner 8 at term 147, leader 2 at index 405; replica 6, removed
 at its applied index 346 where it is still a voter of {3, 6, 8}, campaigning at term 2232; learner 8
 at term 2232, no leader, applied 371, forever.
@@ -35,7 +35,7 @@ no: liveness; no adequacy result claims the cluster converges.
 
 ## Notes
 
-`examples/raft/kvnet`'s convergence check tolerates such a stranded learner in that option combination
+`examples/raft/kvraft`'s convergence check tolerates such a stranded learner in that option combination
 (`driver.agree`). A fix would be for a follower that is not promotable to answer a lower-term
 `MsgApp`/`MsgHeartbeat` with its term, as the CheckQuorum/PreVote branch does, so the leader steps
 down and a new election catches the term up. Upstream searched 2026-11-15 (etcd-io/raft: "learner",

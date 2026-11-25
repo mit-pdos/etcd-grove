@@ -30,12 +30,12 @@ transaction `If(conflicts...).Then(puts...)`; nil if it failed, otherwise its re
 that the transaction fits a gRPC message, `stmCommit_size`). -/
 abbrev stm.commit.spec : Prop :=
   ∀ (lvl : w64) (b : Loc) (pfx : GoString) (st : STMSt) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
-      stmConflictsAt lvl pfx b ∗ etcdReached lo ∗ ⌜STMSizeOk st⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (stmEnv pfx b ∗ stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
+      stmConflictsAt lvl pfx b ∗ etcdReached lo ∗ ⌜STMSizeOk st⌝) }}
     (App (Val (b @!! go.GoType.PointerType stm.ty @!! go!"commit")) (Val #()))
-  {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(
+  {{ (r : val), RET r; levelTok 0 ∗ (stmRet r fun resp : Loc => iprop(
       stmRsetOwn pfx b st.reads ∗ stmWsetOwn pfx b st.writes ∗
-      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}
+      (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp))) }}
 
 end spec
 

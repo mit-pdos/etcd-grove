@@ -120,3 +120,119 @@ Per-packet resume notes of the helpers (their last state, logs named there are o
   `Robustness.PremiseSat Robustness.FsStart` + all 24 `*TopLevelWitness` modules: exit 0, 5351 jobs, no
   `sorry` outside GeneratedProof (pre-existing). Nothing needed fixing. Source gates (api, import-all,
   tier, premise-witness --check) ok. Land-queue request sent through the pickup report (not queued here).
+
+State after the pickup (2026-11-24 ~18:10Z). Every packet branch merged `premise-witness` `378b5e9ac8`
+(lean `366ab8486d`, Perennial pin `2cadd30c2`); goose `--check` of each changed project and
+`gen-init --check` pass at the new pin (`PERENNIAL_DIR`= a Perennial worktree at `2cadd30c2`);
+PkgTable merge conflicts (P3, P4/P5) resolved by rerunning `gen-init`.
+
+| Branch | Head | Built (VM) | Axioms | NV (rerun here) |
+|---|---|---|---|---|
+| P2 `premise-kvN-range` | `10319e40b3` | 13 leaves (kv, kvreconf, kvdurable, noax, KvNet kvnet): exit 0 | (unchanged statements' theorems) | kvdurable: MainN(0),(1001) return; MainN(1),(2),(3),(2) pass porcupine; the 5th run (k=3) **stalled** 78 min in `lintest.RunLin2`'s WaitGroup (clients never finish; no panic) until the 90 m timeout. noax (run inside its own module): MainN(1),(2),(3),(3) pass; the 5th run (k=4) stalled the same way (55 min in `RunLin2`) until the 60 m timeout. kv/kvreconf: passed on the old machine |
+| P6 `premise-leaseexpiryN-range` | `ae3f0ce26d` | TopLevelRobustness + Results: exit 0 (10766 jobs) | = `etc/tcb-collections/leaseexpiryN-single-process.txt` (210 + 3 std) | `TestMainRange`, `TestMainRun`: pass |
+| P1 `premise-tracecheck-nodes` (**trusted**) | `285c4859a2` | full `lake build`: exit 0 (28068 jobs; only `sorry`: MemstorageApi:92, as on lean) | `tcb-report --check`: matches `etc/tcb-baseline.txt` (331, 0 sorries) | `TestMainRandomNodes` (`-tags with_tla`, in its own module): sizes 1..5 ×3 pass TLC; `TestConfChangeWireVectors` pass |
+| P4/P5 `premise-etcd-params` | `d9e4df44d2` | both TopLevelRobustness/Results, cluster3.Link, 5 Results leaves: exit 0 (12721 jobs) | = `etc/tcb-collections/{etcd,k8s}-all-single-process.txt` | etcd `TestParamsOk`, `TestMainCheckedRun` (`ETCDALL_CHECKED=1`, 32 s); k8s `TestParamsOk` (run in `examples/k8s/all`, its own module) |
+| P3 `premise-mvcc-mainat` | `3693cd70fa` | LstatAnyS, RootClaim, StartFiles, both MainAt/TopLevelRobustness/TopLevelWitness/Results: exit 0 (6810 jobs) | `mvccrand_robust`, `mvccfull_robust`: identical to lean's (46 each); LstatAnyS/RootClaim lemmas: Lean's 3 standard axioms only | mvccfull `TestMainAt`: pass (2242 s); mvccrand: passed on the old machine |
+
+P4/P5 fixes: the "unknown tactic" was not reproduced (ParamsOk's local macros work); real errors were
+`mulBelow` (wp_auto already resolves `b == 0` when `b` is substituted: split with `wp_if_destruct`
+first, then rewrite the result), missing `Decidable` instances for `etcdCountsOk`/`k8sCountsOk`, and
+k8s ParamsOk's two `omega`s (kernel deep recursion; replaced by `Int.add_lt_of_lt_sub_left`,
+`Int.lt_sub_left_of_add_lt`). P3 fixes: names moved on lean (`slashB`, `NameOk` unqualified,
+`List.dropLast_concat_getLast`, `List.pairwise_singleton`), loop conditions arriving as
+`#(decide P) = #true` (`go.intoVal_inj`), and mvccfull `MainAt`'s kernel check (~9 min,
+`maxHeartbeats 0`, commented in the file).
+
+Pitfalls found here: `by_contra` does not exist (no Mathlib): `Classical.byContradiction`. `word` on
+mvccfull's 12002-name context fails ("unknown free variable"): state arithmetic as small lemmas.
+Never write out `FilePaths`' slice `s ↦* names.map …` in mvccfull: a second instance path makes the
+kernel time out; let `wp_load_slice_index` take `_` from `Hs`. Fast iteration without a build slot:
+copy a module to an untracked `scratch/X.lean` (drop `module`/`public`/`@[expose]`) and run
+`VMLAKE_KEY=… vmlake env lean scratch/X.lean`; delete scratch before gates (tier-check reads it).
+`tracecheck`, `kvdurablenoax`, `k8s/all` are Go modules of their own: run `go test` inside them.
+
+Next: Upamanyu's review of P1 (trusted), P2, P6, P3, P4/P5 (statement changes; messages in the
+pickup report); land-queue of premise-witness (untrusted). Then step 5 (Fs witnesses for osfs, kvnet,
+etcd `HWal`, `etcd_wal_safe`; P7). Open question for the raft lead: kvdurable's intermittent
+liveness stall (kvdurable k=3 twice, on two machines; kvdurablenoax k=4 once): every size ran and passed porcupine in other runs, so the NV point holds, but `TestMainNRange` as written does not finish reliably.
+
+## Step 5: Fs witnesses (2026-11-24, third pickup), branch `premise-witness-fs/2026-11-24`
+Off `premise-witness/2026-11-24` `b3ead60186` (lean `366ab8486d`), untrusted and additive; VM key
+`f7ad316f5f81b2a4` (fresh). The packet branches (P1-P6) are untouched.
+- `Robustness/FsStart.lean`: `lookup_root_or_none` (with every directory empty, a path names something
+  only if it is a root), `fsOneRoot_lookup_append`/`_joinPath`, `fsOneRoot_root_mem`; the multi-root
+  state `fsRoots rs` (`rootsFrom`, `emptyDirs`) with `fsInit_fsRoots` (premises: `rs.Nodup`, each a
+  `RootForm`, none `IsUnder` another), `fsRoots_entry`, `fsRoots_mem`, `fsRoots_root`,
+  `fsRoots_lookup_none`.
+- `Robustness/PremiseSat.lean`: `premise_sat%` now substitutes a `let` of the statement (kvnet's
+  `let addrs := …`); before, it stopped there ("conclusion is not `Robust`").
+- Witnesses (baseline lines removed, 20 -> 13): osfs `walfs` `dirswap_crash_robust`, `crash_robust`;
+  `crashlog` `crash_robust`; `bboltfs` `bootCrashRobust`; KvNet `raft_kvnet_robust` (lean's statement:
+  one replica, `{ exampleConfig with voters := 1 }`, root `/var/lib/kvnet`) and
+  `raft_kvnet_robust_example`; WalTester `etcd_wal_safe` (roots `/w`, `/o`; `Hopen` left out as an Iris
+  contract).
+- `HWal`: `Proof/.../lib/etcdstart/WalAreasInitSat.lean`, `etcdWalAreasInit_fsRoots`: `etcdWalAreasInit`
+  holds of `fsRoots (etcdAreaRoots Ds)` when each `d ∈ Ds` is `memberDataDir n`. Not yet: `FsInit` of that
+  state for the concrete `etcdDirs` (needs `RootsOk`: each `walAreaOf d`/`d` a `RootForm`, none under
+  another). No baseline line goes with it: the etcd statements stay `pending-b` for `BootFacts` and the
+  opaque environment props.
+- lean (`4da2e64008`, 316 commits ahead) changes none of these statements' premises (bboltfs's step
+  bound only), so the witnesses should survive the land queue's merge.
+- Built on the VM: `Robustness.PremiseSat`, `Robustness.FsStart`, `WalAreasInitSat` and all 29
+  `*TopLevelWitness` modules, exit 0 (5530 jobs), no `sorry` (`b5.log`); source gates ok
+  (premise-witness --check, import-all, tier). No axiom, no statement touched. Next: land queue (untrusted).
+- Merged origin/lean `1e895c05ce` (clean, no generated-file conflicts). lean had added
+  `craq_remote_robust` and `gryff_remote_robust` (dsverify) with no witness: both added to the baseline as
+  `pending` (their library hypothesis bundles `rs`/`H` are data binders that would have to be built or
+  left out; their deployment part is witnessable as counter's). Baseline: 15 lines.
+  lean's `wal-safe-review` dropped `etcd_wal_safe`'s `Hopen`, `hf`, `hpaths`, `hfit` (checked in Go now):
+  the WalTester witness shrank to match. VM build of the merged tree (PremiseSat, FsStart,
+  WalAreasInitSat, all 28 TopLevelWitness modules): exit 0, 5565 jobs, no `sorry` (`b7.log`).
+- 2026-11-25: merged origin/lean `e1ab967ea2` (the gate itself is on lean now, via premise-etcd-params;
+  kvnet-single's P8 dropped kvnet's `cl.Ok`/length/`Nodup`/`addrOk` premises; raft-retire deleted
+  some statements and their witnesses). Baseline conflict resolved by taking lean's and re-running
+  `--check --update`. kvnet witness shrunk to the new statement; new witnesses for kvudp's
+  `raft_kvudp_robust` and `_example` (Net + Fs + Udp, all fresh). VM: PremiseSat, FsStart,
+  WalAreasInitSat and all 26 TopLevelWitness modules, exit 0 (5203 jobs), no `sorry` (`b8.log`).
+  Gate: 44 statements, 31 witnessed.
+- Pitfall: `omega` ignores atoms of type `Ino` (an abbrev of `Nat`): state arithmetic lemmas over `Nat`.
+- Pitfall: `Option.noConfusion h` no longer elaborates to `False` here (its type is `_ ≍ _ → …`):
+  use `absurd h (by simp)`. `decide` refuses goals with free variables (the intro'd instances inside
+  `freshState`): `show` the closed goal first, or `simp`.
+- Pitfall: vmlake's gc deleted this sync dir while idle; the next sync retried and the build restarted
+  from scratch (~1 h with the cache).
+- Not done (as asked): P7 putget (question to the coordinator), P8 kvnet.
+
+## Landing prep of the approved packets (2026-11-25, handoff pickup; stopped at the usage limit)
+Upamanyu approved P2, P3, P4/P5 and P6 (#8 comment 7144979282). P2 is superseded by `raft-retire`
+(landed on lean, ade596ff07): not merged, not built, not to land. The other three merged origin/lean up to
+`c28e266cb4` (raft-retire + math-rand-isinit). Generated files were rechecked at Perennial `fce59af75`
+(goose of each packet's projects, gen-init, gen-specs-pkginit, gen-link, gen-raft-tla, copy-part).
+Changes made while merging:
+- lean's new `[os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]` binders added to the packets'
+  intro lines and to P4/P5's `wp_MainChecked`/`*_MainChecked`. The approved statement deltas are unchanged.
+- premise-witness baseline lines (`pending`) for `craq_remote_robust` and `gryff_remote_robust`, which are
+  new on lean.
+- the witnesses of the retired kv/kvreconf/kvdurable/kvdurablenoax statements deleted: they imported
+  deleted statements.
+Locally, `etc/gen-link.py` `--bbolt`/`--kvnet`/`--wal-tester`/`--walfs` differ from the checked-in Links.
+On the VM they match, so this is a local environment artifact.
+
+| Packet | Branch @ head | Built on lean c28e266cb4 | Axioms |
+|---|---|---|---|
+| P6 | `premise-leaseexpiryN-range/2026-11-24` @ `898dde871d` | yes: TopLevelRobustness, Results, PremiseSat, FsStart, 20 witnesses; 12208 jobs, exit 0, no sorry | 218 + 3 std = `leaseexpiryN-single-process` collection |
+| P4/P5 | `premise-etcd-params/2026-11-24` @ `fe32d1af34` | yes: cluster3.Link, etcd/all and k8s/all TopLevelRobustness/Results, 5 leaf Results; 12932 jobs, exit 0, no sorry | etcd 252 + 3 = `etcd-all-single-process`; k8s 270 + 3 = `k8s-all-single-process` |
+| P3 | `premise-mvcc-mainat/2026-11-24` @ this commit | NOT confirmed: the build was still running at the stop. The previous head `f137d73e8f` (lean 73d38b3f05) built: 6931 jobs, exit 0, no sorry | (on 73d38b3f05) mvccrand_robust, mvccfull_robust, mvccfull_safe: 46 each, all in the `mvccfull` collection; helpers: Lean's 3 standard axioms only |
+
+Land-queue lines:
+- `land-queue: premise-leaseexpiryN-range/2026-11-24 898dde871d`
+- `land-queue: premise-etcd-params/2026-11-24 fe32d1af34`
+- P3: queue this branch's head only after a VM build exits 0 on it. The modules: Proof.os.LstatAnyS,
+  Proof.runtime.RootClaim, Proof.runtime.StartFiles, mvccrand/mvccfull MainAt, TopLevelRobustness,
+  TopLevelWitness and Results, and SpecPlan PkgInit of mvccrand/mvccfull. P3 still touches `mvccrand`:
+  #49's deletion is not on lean.
+Each packet carries the premise-witness gate (`premise-witness/2026-11-24`, untrusted, not on lean). The
+first packet to land brings it in.
+
+Update (2026-11-25, after the limit reset): P6 and P4/P5 landed (lean 17b17466f8). P3 merged lean e1ab967ea2; its MainAt specs take ETCD_VERIFY's offness as the pure `EtcdVerifyOff`, as lean's Main.spec now does (8b424fdae9). VM build of the P3 modules: 6978 jobs, exit 0, no sorry. #print axioms: mvccrand_robust, mvccfull_robust, mvccfull_safe 44 each (lean's ETCD_VERIFY change removed 2), all in etc/tcb-collections/mvccfull.txt; helper lemmas std only. Statement delta vs lean: only Hrfit and Habs dropped. mvccrand's deletion (#49) is still not on lean.
+Then merged lean 2fa4c36fd7 (premise-witness-fs; handoff note conflict resolved by keeping both sections); P3 modules rebuilt: 6978 jobs, exit 0, no sorry; axioms unchanged (44 each, within the mvccfull collection; witnesses and helpers std only).

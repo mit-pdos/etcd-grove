@@ -39,7 +39,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
     RWMutex.waitOnLastRev.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx bp ek st lo
   unfold rwMyKey
-  wp_start as ⟨#Hm, ⟨Hmk, Hek, #Hkv, %Hk⟩, #Hlo, %Hp⟩
+  wp_start as ⟨Hlt, #Hm, ⟨Hmk, Hek, #Hkv, %Hk⟩, #Hlo, %Hp⟩
   ihave #Hm' := Hm
   iunfold isRWMutex at Hm'
   icases Hm' with ⟨#Hms, #Hmctx, #Hmpfx, %Hpfx, #Hsess, #Hcl, #Hclosed⟩
@@ -96,8 +96,9 @@ theorem RWMutex.waitOnLastRev.wp_proof
     intro h; subst h; exact Hpfx.1 (List.prefix_nil.1 Hp.1)
   ihave #HG := HKV $$ %bp %gsl %(withTopM (W64 3) (W64 2) ++ [withMaxModRevM (st.rev - W64 1)])
     %iprop(True) %lo
-  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
-  · iframe Hopts' Hlo
+  wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, -, #Hgres, -⟩
+  · (try iframe Hlt)
+    iframe Hopts' Hlo
     ipureintro
     exact ⟨lastRevOp_not_panics _, lastRevOp_t bp _, by
       simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide)),
@@ -113,6 +114,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     simp only
     iframe Hmk Hek Hkv
     isplitr
@@ -140,6 +142,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
       rw [← Hgl, Hgsl.1, Hif]; rfl
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     simp only
     iframe Hmk Hek Hkv
     isplitr
@@ -199,6 +202,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
       | ok e => exact ⟨e, rfl⟩
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     simp only
     iframe Hmk Hek Hkv
     isplitr
@@ -207,6 +211,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   subst Hwnil
   (try wp_auto)
   iapply HΦ
+  iframe Hlt
   simp only
   iframe Hmk Hek Hkv
   isplitr

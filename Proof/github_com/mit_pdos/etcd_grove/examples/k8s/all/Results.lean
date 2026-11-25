@@ -64,7 +64,6 @@ variable [NaInvG GF]
 theorem k8s_all_MainChecked [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ContextReadErrs (GF := GF) (hG := hG)]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
   k8s_all.wp_MainChecked h_After
@@ -72,7 +71,7 @@ theorem k8s_all_MainChecked [_root_.Perennial.net.FieldAssumptions]
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
 theorem k8s_all_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.wp_Main h_After
@@ -95,8 +94,6 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members
@@ -117,7 +114,7 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
       (k8sProgAddrs k₁ k₂))
     (HDs : dataDirsAbsent (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂)
       (k8sProgDirs k₁ k₂))
-    (HEnv : verifyEnvOff (k8sProgram k₁ clients ops watchers wops n₁ k₂ n₂))
+    (HEnv : EtcdVerifyOff)
     (n : Nat)
     (Hprem₁ : ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) (uint.nat k₁) n ids ps ctxs boot)
@@ -135,7 +132,7 @@ theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  k8s_adequate Hctx Hcec Hafter k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf'
+  k8s_adequate Hafter k₁ ids ps ctxs boot Hlen Hbf k₂ ids' ps' ctxs' boot' Hlen' Hbf'
     Haf Hbuq Hrf Hdbo clients ops watchers wops n₁ n₂ HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 

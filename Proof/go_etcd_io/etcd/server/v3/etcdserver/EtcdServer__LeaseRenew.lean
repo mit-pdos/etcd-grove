@@ -30,6 +30,7 @@ public import Spec.go_opentelemetry_io.otel.attribute.Int64
 public import Spec.errors.Is
 public import Spec.errors.IsCtxErr
 public import Spec.errors.IsStatusErr
+public import Proof.errors.CtxErr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
@@ -133,7 +134,7 @@ set_option hygiene false in
 logging. -/
 local macro "renew_switch_weak" : tactic => `(tactic| (
   -- `case errorspkg.Is(err, context.DeadlineExceeded): return -1, errors.ErrTimeout`
-  wp_apply (hIsS cerr (GoInterface.ok eD) none (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩))) $$ [] as %b1 -
+  wp_apply (hIsS cerr (GoInterface.ok eD) none (Or.inr (Or.inr HvD))) $$ [] as %b1 -
   · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
   (try wp_auto)
   cases b1 with
@@ -208,6 +209,9 @@ local macro "renew_forward" : tactic => `(tactic| (
     iunfold errVarLeaf at HCan
     icases HCan with ⟨%eC, #HeC, %HlC, -⟩
     icases HDE with ⟨%eD, #HeD, %HlD, -⟩
+    ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave %HvD := deadlineExceeded_value _ $$ Pctx HeD
     icases HsEV with ⟨-, -, -, #HECan, #HETo, -⟩
     ihave ⟨%eCan, #HeCan, #HeCanE⟩ := errVarLeaf_get _ $$ HECan
     ihave ⟨%eTo, #HeTo, #HeToE⟩ := errVarLeaf_get _ $$ HETo
