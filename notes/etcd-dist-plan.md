@@ -1608,6 +1608,9 @@ link from `etcdFsSem`'s step premise `etcdSQ` (`NoIoErr allIo` ∧ `NoMapLockErr
 Bounds: the 17 new matches (NewServer's pattern restated in `NewServerCrash`, `NewServerDist`,
 `PeerServeDist`, `StartMemberDist`, and one stock match in `Proof/.../NewServerRAt.lean`, the crash
 branch's restart proof) are owner allows in `etc/bounds-allow.txt`; `--check` at 400.
+Checked: the dependents (`applySnapshot`, the server `Link`, dist `TopLevelRobustness`, `BootBad`), then a
+full VM build of the branch (29155 jobs, green); `etc/tcb-report.py --check` (through `vmlake env`) matches
+the baseline (337 axioms, 0 `sorry`): no axiom added or removed.
 
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
