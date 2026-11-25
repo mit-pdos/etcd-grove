@@ -488,6 +488,54 @@
   `UH := fun x => createUK … x`, arm 4 destructs `createUK`), and the leaves.
   **Then** (unchanged from the brief): the pin bump to `251a430ce` (commit alone), state C, the `Discard` spec
   (ledger first) and proof, `etc/gen-link.py --walfs`, the builds.
+- **2026-11-25, P6b session 15 (WIP, `etcd-safe-p6b-wip`): `Discard` approved; a spec defect found; state C started
+  (the invariant's relaxation only).** Ledger "wal.Discard" marked approved (coordinator: as written; P5's condition 2
+  met because the client chooses `Q₁`, written into the entry).
+  **Spec defect (ledger 2026-11-25, "wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)`", pending; applied
+  on this branch):** the approved post gives `∃ d, Q₁ d` in every arm, i.e. says `RemoveAll(dir.tmp)` cannot fail, but
+  `os.RemoveAll.specSubS` allows an error under `FsNoErrAt` (only `nil ⇒ gone`), and `Discard` returns it before the
+  rename. New first arm: `err ≠ nil ∗ walAreaRes jr ∗ walUnlockedTok ∗ AU₁ ∗ AU₂` (nothing committed; `Create`'s
+  `create_abortTmp` gives exactly the token and `walAreaRes` back). The spec file builds.
+  **`walNamesRes` relaxed** (`Inv.lean`): conjunct A's second part `… → st.reg ≠ some dir → st.disc ≠ some dir → lay.nm
+  ∈ Wn` (the discarded WAL is the one present layout not registered); the disc conjunct is now `(st.disc ≠ none →
+  st.reg = none) ∧ loans registered`. Sites fixed: `walNamesRes_addWal`/`_insert` (Inv), `NameSplit` (`split_present`'s
+  `hW` takes the extra `none ≠ some dir`), `NameClaims`, `CreateSplit` (`walInv_register`), `Crash` (`walInv_alloc`'s
+  construction). `lake build` of `wal.Link` + `Spec...wal.Discard` on fk-lean1 at `3177f4b87d` (the commit before these
+  notes): 3848 jobs, exit 0, no `sorry` (`/shared/tmp/p6b-s15-b2.log`). Not yet built: the tester and the leaves.
+  **Refined plan for C (found reading `Create`; replaces session 7's U):** the rename needs ONE claim holding `nm` and
+  `nm.tmp` (`os.Rename.specDirSnc`: `N.Mem bs ∧ N.Mem bt`, the program's fraction `q`, the update's `r`). Do it as
+  `Create` does, with `Create`'s creating-claim shape `.only [nm, tmp]`, not by merging into the area claim:
+  1. `walInv_drop` (`CreateSteps.lean`) of `tmpName nm` off the program's area claim `(jr, N, h)`: it needs a WAL name
+     `b ∈ N` to find the invariant's half; `nm` is registered (not in `N`), so add a fresh-name lemma `∃ b, walNameOk b ∧
+     b ∉ Wn` (`walNameOk` = nonempty, no `/`, no `.`: a string of `a`s longer than every name of `Wn`), then `N.Mem b` by
+     `walAreaRes`'s first fact. Then `area_takeTmp`, `wp_removeAllTmp` (`CreateTmp.lean`) with `os.RemoveAll.specSubS`;
+     on its error `create_abortTmp` (`CreateAbort.lean`) → the new first arm.
+  2. **U'** (`DiscardSteps.lean`, `walInvBody` level, then `walInv`): open the invariant, peek `AU₁` (open at
+     `walAuMask`, abort) for `s.wal !! dir = some d` (the view's `walOptLe` into `s.wal`), `WalsOk` → `lay`, `InArea r dir
+     nm`, `lay.nm = nm`; with `walNamesFrag none` (from `walUnlockedTok`) `walNamesRes` gives `nm ∈ Wn` and, loans `[]`,
+     `nameShare` at exactly `½`: the program half of `(jr, .only [nm], hn)` with `hn.cur !! nm = some (.dir lay.j)`.
+     The invariant half is in `cl` (`osClaims_keys` + `WalsCreateOk` at `nm`, as `walInvBody_merge2`'s `hm1`). Merge it
+     (both halves, `osNames_halves`) with the whole `.only [tmp]` claim (`osNames_merge`) into `(jr, .only [nm, tmp], hC)`,
+     halve it (one in `cl` in place of nm's: `CoverOk` by `coverOk_merge`-style; the facts by the `*_cover` lemmas of
+     `CreateMerge.lean`), the other half to the program; `Wn' := Wn.erase nm` in both `walSplit` halves
+     (`walSplitFrag` is `walAreaRes`'s; `shareLs` over `Wn.erase nm`: loans `[]` so every share is `0`, a re-index of the
+     big sep); frag `⟨none, some dir, []⟩` (`walNamesS_set`). Creating map empty: `walCreating_empty` with `T :=
+     walUnlockedTokX`, `walUnlockedTokX_exclX`. Template: `walInvBody_mint` (`CreateMint.lean`), whose `nm` comes off the
+     area claim instead of a registered claim.
+  3. **R**: the rename's `osAUnc` as `cleanAU` (`CleanupAu.lean`) with `brk := tmpName nm` (`tmpName_not_walName`,
+     `tmpName_areaSlot`, `tmpName_ne`), the claim `.only [nm, tmp]` found by its record (no pin needed if U' records it:
+     simplest, keep it `ClaimOnce` and found by `osClaims_keys`), but the real state changes: `s' := s` with `dir`'s
+     `named := false`, `I` bumped (`walLeI_bump`), and `AU₁` committed in the same commit (the client's quarter in
+     `walDiskAtI`, the ghost's half, the lock's quarter from `walUnlockedTokX`'s `walIncAny`). `CleanupMoved`'s
+     `walsOk_moved`/`absentNone_moved`/`walsNamed_moved`/`dirKeysOk_moved`/`walsAt_moved` take `hun : ∀ d, s.wal !! dir =
+     some d → d.named = false`: true of `s'`; check each also holds across `s → s'` (`walsBounded_upd`, `DirsRoots.upd`,
+     `walNamesRes_congr`).
+  4. **S** as session 7's (the commit lb from `syncDir.spec`'s `osCommitLb n`; `walLeI_bump` again; `AU₂`; `Ls.delete
+     dir`; the WAL directory's claim and the tmp halves out to `walAreaRes`'s `cl` tagged `tmpName nm`; `disc := none`).
+     Then the program's half of `.only [nm, tmp]` (now holding `nm` absent, `tmp` the directory) merged back into the
+     area claim: `walInv_mergeIn`/`walInvBody_merge2` with `T := walUnlockedTokX`, then `area_give` (`CreateArea.lean`).
+  5. The proof file, the crash lemma (P5 condition 1), the docstrings naming `DiscardUnsaved`, `gen-link --walfs`, the
+     builds: unchanged from the brief.
 - **2026-11-25, P6b session 14 (WIP, `etcd-safe-p6b-wip`): tester built, pin bumped, `Discard` specified; state C
   not started.** Ledger "fix B's lemma-level signatures" marked approved (`6413ef7702`). **Tester**: built on fk-lean1
   (the coordinator allowed a seed there: worktree `/home/ubuntu/eg/wt/etcd-safe-p6b-wip`, `FKLEAN_HOST=fk-lean1`)
