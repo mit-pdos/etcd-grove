@@ -2,6 +2,12 @@
 
 ## START HERE
 
+- **P6b item 1: approved (incarnation = the directory inode `j`); design in `notes/wal-p6b-design.md`,
+  not started in Lean.** Found while designing: `walDirKey` (persistent, keyed by `dir`, "fixed for the
+  generation") also blocks a re-`Create`, and `walLenLb` reads past states too; the design moves the three
+  lower-bound facts to per-incarnation persistent maps so that `absLe`/`walGhost`'s signatures and
+  `Crash.lean` stay until the last step (merge `etcd-safe-p8` first there).
+
 - **2026-11-25 (after the re-pin): the WAL builds at `2c17304ea8`** on fk-lean2 (`fklean1-check.sh`,
   targets `wal.Link`, WalTester's `Link`, `Adequacy`, `TopLevelRobustness`: 4260 jobs, exit 0).
   `tcb-report --collection wal-fsext.txt --check` not run (it needs every root up to date: the packet's
