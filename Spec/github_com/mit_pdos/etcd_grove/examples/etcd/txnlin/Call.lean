@@ -38,16 +38,14 @@ abbrev Call.spec : Prop :=
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
       ([∗list] sv ∈ ms, client.kvRegsAt sv) ∗
-      ([∧list] sv ∈ ms, callUpd sv.γr.kv i Q) }}
+      ([∧list] sv ∈ ms, callUpd sv.γr.kv i Q)) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Call)) (Val #cl))
       (Val #(boxIn x)))
-  {{ (v : GoInterface), RET #v; ⌜v = boxOut errOut⌝ ∨
+  {{ (v : GoInterface), RET #v; levelTok 0 ∗ (⌜v = boxOut errOut⌝ ∨
       ∃ (y : Output) (σ : KVState), callRes i Q σ ∗
-        ⌜v = boxOut y ∧ y.Err' = false ∧ kvRevFits σ.rev ∧ (GoodKV σ → y = outAt i σ)⌝ }}
+        ⌜v = boxOut y ∧ y.Err' = false ∧ kvRevFits σ.rev ∧ (GoodKV σ → y = outAt i σ)⌝) }}
 
 end spec
 

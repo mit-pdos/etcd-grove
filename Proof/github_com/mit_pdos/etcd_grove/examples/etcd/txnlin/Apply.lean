@@ -67,7 +67,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     $$ Hinvs
   iintro %i
   imodintro
-  iintro %Φ %Hin HAU
+  iintro %Φ ⟨%Hin, Hlt⟩ HAU
   obtain ⟨x, rfl, Hgen⟩ := Hin
   obtain ⟨ix, hx, hkeys⟩ := Hgen.1
   have hi := inKeys_keysIn ix hkeys
@@ -112,8 +112,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Hau := hau $$ []
       · iframe #
       (try wp_auto)
-      wp_apply (wp_call cl ms V hAs x ix (readQ γc (rs.headD (W64 0))) hx Hgen) $$ [Hau]
-        as %y Hy
+      wp_apply (wp_call cl ms V hAs x ix (readQ γc (rs.headD (W64 0))) hx Hgen) $$ [$Hlt Hau]
+        as %y ⟨Hlt, Hy⟩
       · iframe #
         iexact Hau
       unfold callRes
@@ -159,6 +159,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         · iframe
         rw [hy']
         iapply HΦ
+        iframe Hlt
         simp only [linkvtxnS]
         ipureintro; exact ⟨x, _, rfl, rfl, Hgen.1⟩
     · -- the prophecy says error: commit now
@@ -180,8 +181,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         · itrivial
         iexact Hinvs
       (try wp_auto)
-      wp_apply (wp_call cl ms V hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [Hau]
-        as %y Hy
+      wp_apply (wp_call cl ms V hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [$Hlt Hau]
+        as %y ⟨Hlt, Hy⟩
       · iframe #
         iexact Hau
       icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
@@ -194,6 +195,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
         · iframe
         iapply HΦ
+        iframe Hlt
         simp only [linkvtxnS]
         ipureintro; exact ⟨x, _, rfl, rfl, Hgen.1⟩
       · obtain ⟨herr, -, -⟩ := Hy
@@ -222,7 +224,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Hau := hau $$ [HAU]
       · iframe Hinvs; iunfold linU; iexact HAU
       (try wp_auto)
-      wp_apply (wp_call cl ms V hAs x ix (wQ x ix Φ) hx Hgen) $$ [Hau] as %y Hy
+      wp_apply (wp_call cl ms V hAs x ix (wQ x ix Φ) hx Hgen) $$ [$Hlt Hau] as %y ⟨Hlt, Hy⟩
       · iframe #
         iexact Hau
       unfold callRes
@@ -256,6 +258,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           · iframe
           rw [hy']
           iapply HΦ
+          iframe Hlt
           simp only [linkvtxnS]
           ipureintro; exact ⟨x, _, rfl, rfl, Hgen.1⟩
         · exfalso
@@ -279,8 +282,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       · iframe Htok Hinvs
       imodintro
       (try wp_auto)
-      wp_apply (wp_call cl ms V hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [Hau]
-        as %y Hy
+      wp_apply (wp_call cl ms V hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [$Hlt Hau]
+        as %y ⟨Hlt, Hy⟩
       · iframe #
         iexact Hau
       icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
@@ -293,6 +296,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           rp_ptr _ rp rs _) $$ [rp Hrp] as %rs' ⟨%Hrs, -, -⟩
         · iframe
         iapply HΦ
+        iframe Hlt
         simp only [linkvtxnS]
         ipureintro; exact ⟨x, _, rfl, rfl, Hgen.1⟩
       · obtain ⟨herr, -, -⟩ := Hy

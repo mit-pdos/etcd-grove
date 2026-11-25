@@ -102,9 +102,11 @@ theorem Check.wp_proof
       iintro %i
       imodintro
       iintro %Φ' ⟨Hin, Htt⟩ HAU
+      icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
       wp_auto
       wp_bind (App (App (Val _) (Val _)) (Val _))
-      iapply HA $$ %i Hin
+      iapply HA $$ %i [Hin Hlt]
+      · iframe
       inext
       imod HAU with ⟨%S, Hs, Hc⟩
       imodintro
@@ -113,7 +115,9 @@ theorem Check.wp_proof
       iintro %S' %o Hb
       imod Hc $$ Hb with HQ
       imodintro
-      iintro Hio
+      iintro ⟨Hio, Hlt⟩
+      ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+      · iframe
       ihave HQ := HQ $$ %o [Hio Htt]
       · iframe
         ipureintro

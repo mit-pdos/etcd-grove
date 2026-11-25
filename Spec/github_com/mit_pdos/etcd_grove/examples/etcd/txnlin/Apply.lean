@@ -5,7 +5,7 @@
 `lintest`'s `applySpec` (`Proof/.../lintest/Defs.lean`) takes for the closure `Check` passes,
 `func(input any) any { return Apply(cli, input) }`:
 
-  `{{ linkvInOk i }} <<{ ∀∀ S, linkvState γ S }>> Apply(cli, i) @@ linkvE
+  `{{ linkvInOk i ∗ levelTok 0 }} <<{ ∀∀ S, linkvState γ S }>> Apply(cli, i) @@ linkvE
      <<{ ∃∃ S' o, linkvState γ S' ∗ ⌜linkvtxnS.M.step S (i, o) = some S'⌝ }>>
      {{ RET #o; ioOk i o }}`
 
@@ -58,11 +58,11 @@ abbrev Apply.spec : Prop :=
     ([∗list] sv ∈ ms, client.kvRegsAt sv) -∗
     ([∗list] sv ∈ ms, linkvInv γ sv.γr.kv) -∗
     iprop(∀ i : GoInterface,
-      {{ linkvInOk i }} <<{ ∀∀ S, linkvState γ S }>>
+      {{ linkvInOk i ∗ levelTok 0 }} <<{ ∀∀ S, linkvState γ S }>>
         (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Apply)) (Val #cl))
           (Val #i)) @@ linkvE
       <<{ ∃∃ S' o, linkvState γ S' ∗ ⌜(linkvtxnS (GF := GF)).M.step S (i, o) = some S'⌝ }>>
-      {{ RET #o; linkvtxnS.ioOk i o }})
+      {{ RET #o; linkvtxnS.ioOk i o ∗ levelTok 0 }})
 
 end spec
 
