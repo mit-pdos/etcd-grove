@@ -1,6 +1,6 @@
 /-
 `examples/etcd/dist/kvremote`'s linked results: every proved function's proof applied to its callees'
-linked proofs (`enc`'s, `EtcdGrove.enc`; txnlin's `IsWrite`, `EtcdGrove.etcd_txnlin.wp_IsWrite`).
+linked proofs (`enc`'s, `EtcdGrove.enc`; txnlin's `IsWrite`, from its proofs: txnlin's `Link` reaches the whole server).
 Hand-written, as `enc`'s (`etc/gen-link.py` has no mode for it).
 -/
 module
@@ -21,7 +21,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.E
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.DecOutput
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Codec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.IsWrite
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.isWrite
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.thenOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.elseOf
 
 @[expose] public section
 
@@ -37,12 +40,14 @@ open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 open EtcdGrove.enc
 
 section linked
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
-variable [NaInvG GF]
 
+theorem wp_IsWrite : EtcdGrove.etcd_txnlin.IsWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_txnlin.IsWrite.wp_proof (EtcdGrove.etcd_txnlin.isWrite.wp_proof
+    EtcdGrove.etcd_txnlin.thenOf.wp_proof EtcdGrove.etcd_txnlin.elseOf.wp_proof)
 theorem wp_encCmp : encCmp.spec (GF := GF) (hG := hG) := encCmp.wp_proof Enc.wp_Int Enc.wp_Str
 theorem wp_decCmp : decCmp.spec (GF := GF) (hG := hG) := decCmp.wp_proof Dec.wp_Int Dec.wp_Str
 theorem wp_encTOp : encTOp.spec (GF := GF) (hG := hG) := encTOp.wp_proof Enc.wp_Int Enc.wp_Str
@@ -64,7 +69,7 @@ theorem wp_EncOutput : EncOutput.spec (GF := GF) (hG := hG) :=
 theorem wp_DecOutput : DecOutput.spec (GF := GF) (hG := hG) :=
   DecOutput.wp_proof Dec.wp_Bool wp_decVR Dec.wp_Int wp_decTRes wp_decKV wp_NewDec Dec.wp_Done
 theorem wp_Codec : Codec.spec (GF := GF) (hG := hG) :=
-  Codec.wp_proof wp_EncInput wp_DecInput wp_EncOutput wp_DecOutput EtcdGrove.etcd_txnlin.wp_IsWrite
+  Codec.wp_proof wp_EncInput wp_DecInput wp_EncOutput wp_DecOutput wp_IsWrite
 
 end linked
 
