@@ -174,7 +174,7 @@ end alloc
 proofs of `strings.Cut`/`TrimLeft` (`Link.lean`'s `rpcClientSpecs`). -/
 theorem craq_remote_robust : craq_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hri hhi hlog rs hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 σ g
+    hlog rs hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT
     (GF := remoteGF) craqKitAddrs [] (system σ) g (2 ^ 31) (2 ^ 63) List.Pairwise.nil
     (fun _ _ _ h => by simp at h) ?_
@@ -267,8 +267,6 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     dsimp only at hGG hctx hT
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
-    letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : LogHyp remoteGF := hlog G' hG.goose_localGS
     letI : RpcHttpServe remoteGF := rs G' hG.goose_localGS π
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega

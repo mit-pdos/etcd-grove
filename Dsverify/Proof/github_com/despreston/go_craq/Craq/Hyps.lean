@@ -24,7 +24,7 @@ public import Net.Spec.net.rpc.Client__Call
 public import Net.Spec.net.rpc.Client__Close
 public import Net.Spec.net.rpc.DialHTTP
 public import Net.Proof.models_lab.Errors
-public import Dsverify.Proof.net.rpc.Init
+public import Net.Proof.net.rpc.Init
 
 @[expose] public section
 

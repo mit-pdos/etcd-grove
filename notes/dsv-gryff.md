@@ -1118,6 +1118,9 @@ The kit's net/rpc and net/http are `Net/`'s: their package facts (`rpcInit`, `ht
   swiftpaxos's commands net/rpc's initializer runs before anything initializes net/http, so
   net/http's first run happens inside net/rpc's; `Net/`'s `net.rpc.wp_init_first` then gives no
   `muxOwn DefaultServeMux []` (it requires nothing of net/http but gives only net/rpc's resources),
-  and `net.http.wp_init_first` cannot be applied inside it. Their net/rpc premises need a joint
-  first-run axiom (net/rpc's first run on a machine where net/http has not run: both packages'
-  resources) or a different initialization order; they keep `Dsverify/Proof/net/{rpc,http}/Init.lean`.
+  and `net.http.wp_init_first` cannot be applied inside it. They are on `Net/`'s package facts and
+  `wp_initialize'` axioms too (their `net.rpc`/`net.http` `InitHyp`s gone: `Dsverify/Proof/net/{rpc,http}/Init.lean`
+  deleted, since the TCB report loads every kit in one environment and the two facts' declarations
+  clash) and keep their other net/rpc premises (`RpcHttpHyp`, `RpcFirstInit`, `RpcBoot`,
+  `RpcHttpServe`) until net/rpc's first run is proved (dsv-fix2b: `net.rpc.wp_init_first` from net/rpc's
+  translated initializer, covering both orders).

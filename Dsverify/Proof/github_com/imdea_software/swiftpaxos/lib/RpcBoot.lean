@@ -34,8 +34,8 @@ this premise goes.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
-public import Dsverify.Proof.net.rpc.Init
-public import Dsverify.Proof.net.http.Init
+public import Net.Proof.net.rpc.Init
+public import Net.Proof.net.http.Init
 
 @[expose] public section
 

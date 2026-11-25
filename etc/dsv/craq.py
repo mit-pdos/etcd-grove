@@ -29,9 +29,9 @@ GOOSE = dict(
     std_models=["net/rpc", "net/http"],
 )
 
-# etc/gen-init.py: go-craq's packages, the kit and its twelve machines' commands. The net/rpc and
-# net/http models' initializations are not proved yet (plan phase 5.2, item 5): hypotheses
-# (`Dsverify/Proof/net/{rpc,http}/Init.lean`'s `InitHyp`).
+# etc/gen-init.py: go-craq's packages, the kit and its twelve machines' commands.
+# net/rpc's and net/http's initializers are `Net/`'s (external; their `wp_initialize'` and
+# first-run `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`)
 CRAQ = 'github_com.despreston.go_craq'
 CRAQ_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
 PKGS = [f'{CRAQ}.{p}' for p in ['transport', 'store', 'store.kv', 'node', 'coordinator',
@@ -41,9 +41,8 @@ PKGS = [f'{CRAQ}.{p}' for p in ['transport', 'store', 'store.kv', 'node', 'coord
 PROGRAMS = {f'{CRAQ}.examples.craqnet.cmd.{n}':
             f'Proof/{CRAQ.replace(".", "/")}/examples/craqnet/cmd/{n}/PkgTable.lean'
             for n in CRAQ_NODES}
-HYP_INITS = ['net.rpc', 'net.http']
-# their imports: all of them (the default `HYP_IMPORTS`, 'all': dsv-inithyp-fix), with the main
-# tree's packages net/http's closure needs added to `NET_MAIN` (as EPaxos)
+HYP_INITS = []
+# the main tree's packages net/http's closure needs, added to `NET_MAIN` (as EPaxos)
 MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 MAIN_GEN = ['bufio']
 
