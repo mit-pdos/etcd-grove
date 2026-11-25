@@ -100,7 +100,7 @@ the resource-free `grpcInvokerDone` could not be met. `grpcInvokerDone conn Ok i
 implies the new one (frame `R`), so the axioms giving `grpcInvokerOk` promise no more than before; the
 driver's `plain_Invoke_done` uses it at `R := True` (`anyRes`).
 
-## T9 `grpcRepliesBounded` rekeyed for the model-param gate (2026-11-25; the lead's decision, not yet reviewed)
+## T9 `grpcRepliesBounded` rekeyed for the model-param gate (2026-11-25; reviewed; approved by Upamanyu via coordinator-E)
 
 Each arm's atom `R e.Wp.ty = some Rep` (`grpcRepModelOf`, `streamRepModelOf`) is now `R Rep.ty = some Rep ∧
 Rep.ty = e.Wp.ty`, keyed on the model's own type: the gate's rule 2 accepts a received atom only so keyed (its
@@ -110,3 +110,15 @@ precondition) it asks Serve's caller for less, a slight strengthening of `Serve`
 premise. Sound: the only replies `Serve` marshals are those a handler sends through `grpcServesEnt`'s `Rep`, which
 has `e.Wp = Rep.wire` (so `Rep.ty = e.Wp.ty`) and `R Rep.ty = some Rep`, so the new `∀` covers every one of them;
 on every entry `grpcServes` serves the two forms are equal.
+
+**Independent review (axiom skill, 2026-11-25): sound.** (1) The registries are opaque with no type law, but
+every registration has the shape `R X.ty = some pbXT` (checked: the four `StringValue` registrations,
+`PerTypeStringValue.lean`; `pbPutResponse`, `kVClient__Put.lean`, `rfl`); only unregistered keys are
+unconstrained. (2) No reply escapes the new form: a unary reply is sent only through `grpcRunOkMd`'s post
+(`mkOk (PointerType Rep.ty) l ∗ Rep.send l m'`, `InvGrpcBase.lean`) at `grpcServesEnt`'s `Rep`; a stream reply
+only through `srvRawStreamIs … Rep`'s `SendMsg` (`msgAny Rep.ty l`, `InvGrpcStream.lean`) at the same `Rep`;
+the forms differ only at names with no registered handler, answered `Unimplemented` with no reply message
+(`models/grpc/server.go`); `UnknownServiceHandler` has no spec, uncovered by either form. (3) Formally stronger,
+substantively equal with `grpcServes` beside it. (4) The old form plus a pair entry is not possible without a
+checker change (`judge_pairs` accepts only keyed receives; selftest `st_pret_unkeyed`). Wording fixes applied:
+"every entry with a registered handler"; `Server__Serve.lean` names `grpcRunOkMd` (not `grpcRunOut`).
