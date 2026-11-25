@@ -2,20 +2,20 @@
 `os.Getenv(key)` (names-only in Perennial): the value of the environment variable `key`, or
 `""`; the spec says it returns some string (the environment is the deployment's), and (2026-11-25, the
 owner's decision; from etcdstorage, 2026-11-20, under the token `envVerifyOff`) that for
-`ETCD_VERIFY` it returns exactly the run's value `etcdVerifyEnv`
-(`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`). Go's `os.Getenv` reads the process's
-environment (`syscall.Getenv`, the copy of `envs` taken at start, `syscall/env_unix.go`), which only
+`ETCD_VERIFY`, under the premise `EtcdVerifyOff`, the value it returns enables no check
+(`etcdVerifyOffValue`; `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`). Go's `os.Getenv` reads the
+process's environment (`syscall.Getenv`, the copy of `envs` taken at start, `syscall/env_unix.go`), which only
 `os.Setenv`/`Unsetenv`/`Clearenv` change (`notes/axiom-review/getenv-etcd-verify.md`).
 
-**What makes the post sound.** It names one value for every call, in every run of the model and on
-every machine, so it holds only if every read of `ETCD_VERIFY` in a run returns the same value: no
-code of the run sets the variable. No verified code can (`os.Setenv`, `Unsetenv` and `Clearenv` have
-no spec here, so a proof cannot call them); unverified code of a deployment that did would falsify
-it. The value is per run: `etcdVerifyEnv` is the value of the run the theorem is about (a theorem
-over its value, `EtcdVerifyOff`, quantifies over no other run's environment), and is the same on
-every machine of a deployment, as `GODEBUG`'s `godebugFips140` (a process environment in `os`'s
-semantics is deferred). Stronger than the previous post (which said only, given `envVerifyOff`, that
-the value enabled no check) in naming the value, and weaker in needing no token.
+**Only offness, never the value** (2026-11-25, review: `notes/axiom-review/getenv-etcd-verify.md`). An
+earlier draft returned `v = etcdVerifyEnv`, one opaque value for every read on every machine and boot; a
+proof could then show two processes read equal values, which is false (process A unset, process B
+`ETCD_VERIFY=0`: both off, but different; Go: a program checking equality panics). Read over every value
+of the opaque `etcdVerifyEnv`, the premise `EtcdVerifyOff` with this post covers exactly the deployments in
+which every process's value is off (instantiate the value at `""`, `etcdVerifyOffValue_unset`): no code of
+a process sets the variable (`os.Setenv`, `Unsetenv`, `Clearenv` have no spec, so no verified code can),
+so each read returns that process's own value. A process environment in `os`'s semantics is deferred
+(with `GODEBUG`).
 
 The trust boundary: an axiom, `Proof/os/Getenv.lean`. (2026-11-04) Stated for any `hlc`
 (it was for `HasLC.hasLC` only), so that bbolt's specs, which are, can call it (`internal/common`'s
@@ -49,7 +49,7 @@ abbrev os.Getenv.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (Val (@! os.Getenv)) (Val #key))
   {{ (v : GoString), RET #v;
-      ⌜key = go!"ETCD_VERIFY" → v = etcdVerifyEnv⌝ }}
+      ⌜key = go!"ETCD_VERIFY" → EtcdVerifyOff → etcdVerifyOffValue v⌝ }}
 
 end spec
 

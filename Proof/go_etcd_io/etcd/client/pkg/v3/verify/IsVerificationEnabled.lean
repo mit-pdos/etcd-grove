@@ -43,7 +43,7 @@ theorem verify.IsVerificationEnabled.wp_proof (hGetenv : os.Getenv.spec (GF := G
     iapply HΦ
     ipureintro
     intro Hv
-    obtain ⟨h1, -, -⟩ : etcdVerifyOffValue v := by rw [Hoff (by first | rfl | trivial)]; exact Hv
+    obtain ⟨h1, -, -⟩ : etcdVerifyOffValue v := Hoff (by first | rfl | trivial) Hv
     have := (Hlv go!"all" (by decide)).1 hall
     simp [h1] at this
   · rw [decide_eq_false hall]
@@ -52,7 +52,7 @@ theorem verify.IsVerificationEnabled.wp_proof (hGetenv : os.Getenv.spec (GF := G
     iapply HΦ
     ipureintro
     intro Hv
-    obtain ⟨-, h2, h3⟩ : etcdVerifyOffValue v := by rw [Hoff (by first | rfl | trivial)]; exact Hv
+    obtain ⟨-, h2, h3⟩ : etcdVerifyOffValue v := Hoff (by first | rfl | trivial) Hv
     intro ht
     simp only [decide_eq_false_iff_not]
     intro heq
