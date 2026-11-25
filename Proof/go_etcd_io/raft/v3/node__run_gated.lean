@@ -1133,7 +1133,7 @@ theorem node.run.gated_of
     ihave Hsc0 := rnScopeAt_none (GF := GF) (γ := γ.raft) (id := id) { rs with bw := W } s0
     wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L s0 false
       (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $Hsc0 $HhhO]
-      as %steps %ss2 %qs' %ip' ⟨#Hss2, %Hssn2, Hrn, Htoks, -⟩
+      as %steps %ss2 %qs' %ip' ⟨#Hss2, %Hssn2, ⟨%fp0, Hrn⟩, Htoks, -⟩
     ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
     -- (step 4) the deposit: the `Ready`'s tokens into the escrow, `run`'s half back at `none`
     imod rtk_depositG γ.raft γ.esc ms ⊤ (by solve_ndisj) $$ Hrtki Hrtk Htoks with Hrtk

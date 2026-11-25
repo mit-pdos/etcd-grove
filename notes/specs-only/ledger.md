@@ -5821,6 +5821,35 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   of assuming it (sync, no batch/split/parallel: no `mem` report, so no queued write; `apply`'s
   `memCommit` and `boot` read the queue empty, which S4's `BindingOk` stated directly).
 
+## 2026-11-25 — antithesis parity B1 stage 3: the RawNode forms over `RState`, the node constant `rs.k` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/{ApiVocab,RawNodeAt,RawNodeAtLemmas,RawNodeAtScope,RawNodeReadyAt,
+  RawNodeAbsSpecs,RawNodeStartSpec,RawNodeStart,RawNodeApi,RawNodeApiLinked,RawNodeSpecOfAbs,StepEndIp,
+  RawNode__{Step,Tick,Propose,HasReady,Ready,Advance}Abs,RawNode__{acceptReady,readyWithoutAccept}}.lean`,
+  `Spec/go_etcd_io/raft/v3/RawNode__{acceptReady,readyWithoutAccept}.lean`, new `StepEndBk.lean`.
+- **Change (design §1.1, §4, §5).** `toRState rs fp s` (RawNodeAt); `ownRawNodeAt`'s index `ps : PState`
+  becomes `r : RState` (`"%Hps" : toRState rs fp s = r`). The forms take `R … rs r qs ip` and
+  `S : RnMode → Prop` (`∀ md, S md → End`; absSpec at `fun md => basicScope sc = some md`, the API at
+  `fun md => md = {}`). Ends: `Step` `∀ Adm, RecvEndR Adm rs.k id r m r'`, `Propose` the same at the
+  proposal message, `Tick` `TickEndR rs.k id r r'`, `HasReady`/`Ready` read `r.p` (`Ready`'s node after at
+  an `r'` with `r' = rAccepted r` under `S`), `NewRawNode` at `rInit (stOf …)` with `k := cfgK cv`.
+  `restartAtSpec (sc : Option RnMode)` with per-flag premises (`RestartScopeOk`) and post at `restartR`.
+  The rawNode laws read `r.p`. `rnCfg γ` is gone from the forms (the node's `r.cfg.cfg`).
+- **The node constant (lead's decision, 2026-11-25).** `RNState.k : NodeK := {}` (constant), tied by
+  `KTie rs s := NodeK.mk s.prevote s.cq s.sdr = rs.k`. **Placement deviation:** the tie is a conjunct of
+  `rnScopeAt` (the scope part of `ownRawNodeAt`), not of `ownRawNodeAt`'s body: `ownRawNode_at.law` makes
+  every `ownRawNode` an `ownRawNodeAt` at `none`, and an `ownRawNode`'s `rs.k` is unconstrained.
+  The start spec exports `rs.k = cfgK cv`.
+- **`pci` deviation.** `toRState`'s `pci` is `pciR s` (the code's at a leader, `0` elsewhere:
+  `StepLemmasR`'s existing reading, `rOf`), not `s.pci`: no new raft invariant ("a non-leader's
+  `pendingConfIndex` is 0") is needed.
+- **Interim (open).** `Advance`'s end stays the protocol reading's `AdvanceEnd rs.k r.cfg.cfg id r.p qs r'.p`:
+  `AdvanceEndR`'s `AckEndR` needs a storage acknowledgement to keep `pendingConfIndex`, which
+  `raft.Step.spec` does not state (`LocalStepOk`/`AckEnd` give the role, the protocol reading, `applied`,
+  not `pci`). Proposed raft spec change (to the lead): `LocalStepOk` (Spec/…/raft__Step.lean) adds
+  `(m.Type' = MsgStorageAppendResp ∨ m.Type' = MsgStorageApplyResp) → s'.pci = s.pci`.
+- **Decision.** Stage 3 per the lead's brief; the `k` field approved; no new axiom or top-level premise.
+
 ## 2026-11-25 — antithesis parity B1, Sim step 3c: three NodeOk facts and Advance without a snapshot (#33)
 
 - **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/{Rel,Stmts,MsgShapeStmt,Scope}.lean`.

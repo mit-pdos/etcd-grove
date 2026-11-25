@@ -1,7 +1,8 @@
 /-
 Lean-first (#33 S3c step 4, `notes/antithesis-rawnode-design.md` §2.1, §2.6). **The `RawNode` client
-API, as statements**: the sealed node predicate `rawNode γ rn id rs ps qs ip` (a `RawNode` in the
-Antithesis harness's scope, at the client's record `rs`, its protocol state `ps` and the protocol
+API, as statements**: the sealed node predicate `rawNode γ rn id rs r qs ip` (a `RawNode` in the
+Antithesis harness's scope, at the client's record `rs`, its `RState` `r` (antithesis parity B1:
+until then its protocol state `ps`) and the protocol
 messages `qs` queued for `Advance`), the specs of the functions the harness calls over it
 (`RawNode.<F>.apiSpec`: `RawNodeAbsSpecs.lean`'s forms at `rawNode`; `ip` its in-progress boundary), the laws a client reads out
 of it, and the term budget under sealed names. Every law is a `.law : Prop`, proved with the
@@ -43,31 +44,31 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A `RawNode` in the harness's scope** (design §2.1): closed in the cluster `γ`, at the client's
-record `rs`, the protocol state `ps` (`PState`, the protocol's own record), the protocol messages
+record `rs`, the state `r` (`RState`: the protocol's own record `r.p` with the bookkeeping), the protocol messages
 `qs` queued for `Advance` (a leader's self-acknowledgement, a candidate's self-vote) and the
 in-progress boundary `ip` (the log's entries the `Ready`s have handed out); static mode,
 pre-vote and check-quorum off, never compacted. Sealed. -/
-@[no_expose] def rawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
+@[no_expose] def rawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)
     (qs : List Msg) (ip : Nat) : IProp GF :=
-  ownRawNodeAt γ rn id rs ps qs ip (some {})
+  ownRawNodeAt γ rn id rs r qs ip (some {})
 
 /-! ### The specs, over `rawNode` -/
 
-abbrev RawNode.Step.apiSpec : Prop := RawNode.Step.form (rawNode (GF := GF)) True
-abbrev RawNode.Tick.apiSpec : Prop := RawNode.Tick.form (rawNode (GF := GF)) True
-abbrev RawNode.Propose.apiSpec : Prop := RawNode.Propose.form (rawNode (GF := GF)) True
-abbrev RawNode.Ready.apiSpec : Prop := RawNode.Ready.form (rawNode (GF := GF)) True
-abbrev RawNode.Advance.apiSpec : Prop := RawNode.Advance.form (rawNode (GF := GF)) True
+abbrev RawNode.Step.apiSpec : Prop := RawNode.Step.form (rawNode (GF := GF)) (fun md => md = {})
+abbrev RawNode.Tick.apiSpec : Prop := RawNode.Tick.form (rawNode (GF := GF)) (fun md => md = {})
+abbrev RawNode.Propose.apiSpec : Prop := RawNode.Propose.form (rawNode (GF := GF)) (fun md => md = {})
+abbrev RawNode.Ready.apiSpec : Prop := RawNode.Ready.form (rawNode (GF := GF)) (fun md => md = {})
+abbrev RawNode.Advance.apiSpec : Prop := RawNode.Advance.form (rawNode (GF := GF)) (fun md => md = {})
 
 /-- `rn.HasReady()`, read-only; on `false` the protocol-level idle fact `PIdle`, the in-progress
 boundary at the log's end. -/
 abbrev RawNode.HasReady.apiSpec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ rawNode γ rn id rs ps qs ip }}
+      "Hrn" ∷ rawNode γ rn id rs r qs ip }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      rawNode γ rn id rs ps qs ip ∗ ⌜b = false → PIdle rs ps ∧ ip = ps.log.length⌝ }}
+      rawNode γ rn id rs r qs ip ∗ ⌜b = false → PIdle rs r.p ∧ ip = r.p.log.length⌝ }}
 
 /-- `NewRawNode` at an empty storage: the node at `pInit`, nothing queued. -/
 abbrev NewRawNode.emptyStartApiSpec : Prop := NewRawNode.emptyStartForm (rawNode (GF := GF))
@@ -76,53 +77,53 @@ abbrev NewRawNode.emptyStartApiSpec : Prop := NewRawNode.emptyStartForm (rawNode
 
 /-- The log well formed from `base0`, the commit index within it, the term the client's. -/
 abbrev rawNode_wf.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ⌜PlogWf base0 ps.log ∧ uint.Z ps.commit ≤ plogLastIndexZ base0 ps.log ∧ ps.term = rs.term⌝ ∗
-    rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ⌜PlogWf base0 r.p.log ∧ uint.Z r.p.commit ≤ plogLastIndexZ base0 r.p.log ∧ r.p.term = rs.term⌝ ∗
+    rawNode γ rn id rs r qs ip
 
 /-- No snapshot: the log's boundary `base0`, none lent, no `MsgSnap` queued (§2.5). -/
 abbrev rawNode_noSnap.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ⌜ps.base = base0 ∧ rs.slent = none ∧ ∀ m ∈ ps.outbox, m.ty ≠ .snap⌝ ∗
-    rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ⌜r.p.base = base0 ∧ rs.slent = none ∧ ∀ m ∈ r.p.outbox, m.ty ≠ .snap⌝ ∗
+    rawNode γ rn id rs r qs ip
 
 /-- (#33 S4, drain) The log's terms at most the node's term (raft's ghost `TermsLe`). -/
 abbrev rawNode_logTerms.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ⌜∀ e ∈ ps.log, uint.Z e.Term' ≤ uint.Z ps.term⌝ ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ⌜∀ e ∈ r.p.log, uint.Z e.Term' ≤ uint.Z r.p.term⌝ ∗ rawNode γ rn id rs r qs ip
 
 /-- (#33 S4, drain) The last hard state handed out (`prevHardSt`'s record) at a term at most the
 node's (`PhsOk`'s `HsLe`: terms never decrease). -/
 abbrev rawNode_phsTerm.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ⌜uint.Z rs.phs.Term' ≤ uint.Z ps.term⌝ ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ⌜uint.Z rs.phs.Term' ≤ uint.Z r.p.term⌝ ∗ rawNode γ rn id rs r qs ip
 
 /-- The harness's configuration (the scope's part a client sees; 2026-11-24, either mode, until then
 the static mode only): the node one of the names' voters, the cluster untraced, and in the dynamic
 mode the node's configuration simple over the names' voters. -/
 abbrev rawNode_scope.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
     ⌜id ∈ γ.reCfg ∧ γ.reTrace = none ∧
       (rs.mode.isDyn = true → rs.cfg.cfg.incoming = γ.reCfg ∧ rs.cfg.cfg.outgoing = ∅)⌝ ∗
-    rawNode γ rn id rs ps qs ip
+    rawNode γ rn id rs r qs ip
 
 /-- The log's records (`ownLogGhost`'s `Hrecs`): each entry created by its term's leader. -/
 abbrev rawNode_logRecs.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗ logRecs γ base0 ps.log ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗ logRecs γ base0 r.p.log ∗ rawNode γ rn id rs r qs ip
 
 /-- A leader's witness (`leaderWit`) and its campaign log, a prefix of its log (`leadLogOwn`). -/
 abbrev rawNode_leader.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    □ (⌜ps.role = .leader⌝ -∗
-      isLeader γ id ps.term ∗ ∃ F0 : List EntryM, isCamp γ id ps.term F0 ∗ ⌜F0 <+: ps.log⌝) ∗
-    rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    □ (⌜r.p.role = .leader⌝ -∗
+      isLeader γ id r.p.term ∗ ∃ F0 : List EntryM, isCamp γ id r.p.term F0 ∗ ⌜F0 <+: r.p.log⌝) ∗
+    rawNode γ rn id rs r qs ip
 
 /-- The vote of the client's durable state `S` at its term (`VoteHistOkD`, the vote table). Of the
 durable state, not of `rawNode`'s protocol state: a vote a `Step` grants is a promise in the node's
@@ -137,59 +138,59 @@ abbrev rawNode_vote.law : Prop :=
 
 /-- The tally's grants, each a vote for the node at its term (`Htally`). -/
 abbrev rawNode_tally.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ([∗map] v ↦ _u ∈ toMap (granted ps.votes), isVote γ v ps.term id) ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ([∗map] v ↦ _u ∈ toMap (granted r.p.votes), isVote γ v r.p.term id) ∗ rawNode γ rn id rs r qs ip
 
 /-- The commit index's witness as known in the node's term (`ownLogGhost`'s `Hcommit`). -/
 abbrev rawNode_commit.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    commitIn γ ps.log ps.commit ps.term ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    commitIn γ r.p.log r.p.commit r.p.term ∗ rawNode γ rn id rs r qs ip
 
 /-- The log up to the commit index is committed (`isCommitted`): through the commit invariant
 (`commitIn`'s quorum `cq` is within the committed log, `committedJust`, and agrees with the log by
 the records), so under an update at raft's namespace. -/
 abbrev rawNode_committed.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip ={↑(raftN γ)}=∗
-    isCommitted γ (ps.log.take (uint.nat ps.commit)) ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip ={↑(raftN γ)}=∗
+    isCommitted γ (r.p.log.take (uint.nat r.p.commit)) ∗ rawNode γ rn id rs r qs ip
 
 /-- The cluster's commit invariant (what `commitIn_camp` opens). -/
 abbrev rawNode_commitInv.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗ raftCommitInv γ ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗ raftCommitInv γ ∗ rawNode γ rn id rs r qs ip
 
 /-- (review S6) Every entry of the log is a filler or a proposal a client deposited (`entData`:
 its key `deposited`, its bytes decoding as its type says). -/
 abbrev rawNode_entries.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ([∗list] e ∈ ps.log, entData γ e) ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ([∗list] e ∈ r.p.log, entData γ e) ∗ rawNode γ rn id rs r qs ip
 
 /-- The term within the ceiling (`ownRawNode_term_tc`). -/
 abbrev rawNode_term_tc.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat),
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗
-    ⌜uint.Z ps.term ≤ uint.Z rs.tc⌝ ∗ rawNode γ rn id rs ps qs ip
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗
+    ⌜uint.Z r.p.term ≤ uint.Z rs.tc⌝ ∗ rawNode γ rn id rs r qs ip
 
 /-- The ceiling raised (`ownRawNode_raise_tc`): a ghost step, the protocol state unchanged. -/
 abbrev rawNode_raise_tc.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat) (tc : w64),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat) (tc : w64),
   uint.Z rs.tc ≤ uint.Z tc →
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗ rawNode γ rn id { rs with tc := tc } ps qs ip
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗ rawNode γ rn id { rs with tc := tc } r qs ip
 
 /-- The storage handshake (`ownRawNode_appended`): the receipt of the client's append of the entries
 the last `Ready` handed out (`rs.unpersisted`; `appendReceipt`, for the node's storage) is absorbed;
 afterwards nothing is unpersisted. A ghost step: the protocol state, the queue and the in-progress
 boundary unchanged. `a`, the batch's frozen prefix, within the committed log handed out. -/
 abbrev rawNode_appended.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (a : List EntryM), rs.slent = none →
   (a ≠ [] → ∀ e0, rs.unpersisted.head? = some e0 →
      uint.nat e0.Index' - 1 + a.length ≤ rs.delivered.length) →
-  ⊢ rawNode (GF := GF) γ rn id rs ps qs ip -∗ appendReceipt rs.storage rs.unpersisted a ==∗
-    rawNode γ rn id { rs with unpersisted := [] } ps qs ip
+  ⊢ rawNode (GF := GF) γ rn id rs r qs ip -∗ appendReceipt rs.storage rs.unpersisted a ==∗
+    rawNode γ rn id { rs with unpersisted := [] } r qs ip
 
 /-! ### The term budget, sealed (decision 2; `InvNodeChan.lean`'s) -/
 

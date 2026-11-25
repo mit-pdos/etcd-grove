@@ -155,14 +155,30 @@ theorem rnScopeAt_cfgIn {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (
     unfold rnScopeAt basicScope
     iintro ⟨%H, #Hc⟩
     isplitr
-    · ipureintro; intro _; exact (RnCfgIn_empty γ id rs).1 H.2
+    · ipureintro; intro _; exact (RnCfgIn_empty γ id rs).1 H.2.1
+    · isplitr
+      · ipureintro; exact H
+      · imodintro; iexact Hc
+
+/-- (antithesis parity B1) The node constant's tie in the basic scope (`KTie`), read out. -/
+theorem rnScopeAt_ktie {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState) :
+    rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢
+      ⌜sc = true → KTie rs s⌝ ∗ rnScopeAt γ id (basicScope sc) rs s := by
+  cases sc with
+  | false =>
+    iintro H; iframe H; ipureintro; intro h; cases h
+  | true =>
+    unfold rnScopeAt basicScope
+    iintro ⟨%H, #Hc⟩
+    isplitr
+    · ipureintro; intro _; exact H.2.2
     · isplitr
       · ipureintro; exact H
       · imodintro; iexact Hc
 
 /-- Closing `ownRawNodeAt`: `ownRawNode_intro_tr`'s premises and resources, the queue as `pendAt`, and
 the protocol reading, the in-progress boundary and the scope. -/
-theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
+theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)
     (qs : List Msg) (ip : Nat) (sc : Option RnMode)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
@@ -177,7 +193,7 @@ theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
     (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) (Hsdt : SdtTie rs s)
     (Hrole : rs.role = sv.RaftState') (Hphs : PhsOk rs s)
-    (Hps : toPState s = ps) (Hip : uint.nat s.logst.inprogress = ip + 1)
+    (Hps : toRState rs fp s = r) (Hip : uint.nat s.logst.inprogress = ip + 1)
     (Hgtr : s.gh.tr = γ.reTrace := by tr_keep) (Hglq : s.gh.lq = [] := by tr_keep) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s -∗
@@ -194,7 +210,7 @@ theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       durTie γ rs s -∗
       rnTrace γ rnv.raft' id c rs.delivered s -∗
       rnScopeAt γ id sc rs s -∗
-      ownRawNodeAt γ rn id rs ps qs ip sc := by
+      ownRawNodeAt γ rn id rs r qs ip sc := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hhist
     Hledger #Hdur Hrntr Hsc
   unfold ownRawNodeAt
@@ -206,9 +222,13 @@ theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
     Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hsdt, Hrole, Hphs, Hgtr, Hglq, Hps, Hip⟩
 
+/-- (antithesis parity B1) `ownRawNode` does not read the node constant `rs.k`. -/
+theorem ownRawNode_with_k (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (k : NodeK) :
+    ownRawNode (GF := GF) γ rn id { rs with k := k } = ownRawNode γ rn id rs := rfl
+
 /-- **`ownRawNodeAt_ownRawNode.law`**: forgetting the protocol state. -/
 theorem ownRawNodeAt_ownRawNode : ownRawNodeAt_ownRawNode.law (GF := GF) := by
-  intro γ rn id rs ps qs ip sc
+  intro γ rn id rs r qs ip sc
   iintro H
   iNamed H
   ihave Hpend := pendAt_lentPend γ id rs.bw rs.slent steps rs.steps qs $$ Hpend
@@ -240,8 +260,8 @@ theorem ownRawNode_at : ownRawNode_at.law (GF := GF) := by
   icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s $$ Hphys with ⟨%Hip1, Hphys⟩
   icases lentPend_pendAt γ id rs.bw rs.slent steps rs.steps $$ Hpend with ⟨%qs, Hpend⟩
   ihave Hsc := rnScopeAt_none (GF := GF) (γ := γ) (id := id) rs s
-  iexists toPState s, qs, uint.nat s.logst.inprogress - 1
-  iapply ownRawNodeAt_intro γ rn id rs (toPState s) qs (uint.nat s.logst.inprogress - 1) none s cf fp
+  iexists toRState rs fp s, qs, uint.nat s.logst.inprogress - 1
+  iapply ownRawNodeAt_intro γ rn id rs (toRState rs fp s) qs (uint.nat s.logst.inprogress - 1) none s cf fp
     rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs rfl (by omega) Hgtr Hglq
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist

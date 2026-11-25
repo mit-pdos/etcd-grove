@@ -50,11 +50,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A persistent fact of `rawNode`'s ghost state**: any `Q` that `ownRaftGhost` at the protocol
 reading gives, with the scope's facts, the term and its ceiling. -/
-theorem rawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
+theorem rawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)
     (qs : List Msg) (ip : Nat) (Q : IProp GF) [Persistent Q]
-    (HQ : ∀ (s : NState) (md : Bool), toPState s = ps → RnScopeBasic rs s → rs.term = s.term →
-      uint.Z rs.term ≤ uint.Z rs.tc → ownRaftGhost γ id ps md ⊢ Q) :
-    rawNode γ rn id rs ps qs ip ⊢ Q ∗ rawNode γ rn id rs ps qs ip := by
+    (HQ : ∀ (s : NState) (md : Bool), toPState s = r.p → RnScopeBasic rs s → rs.term = s.term →
+      uint.Z rs.term ≤ uint.Z rs.tc → ownRaftGhost γ id r.p md ⊢ Q) :
+    rawNode γ rn id rs r qs ip ⊢ Q ∗ rawNode γ rn id rs r qs ip := by
   refine persistent_entails_right ?_
   unfold rawNode ownRawNodeAt
   iintro H
@@ -62,13 +62,14 @@ theorem rawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps 
   icases rnScopeAt_scope true rs s $$ Hsc with ⟨%Hscope, -⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hg, -⟩
-  subst Hps
+  have Hp : toPState s = r.p := by rw [← Hps]; rfl
+  rw [← Hp] at HQ
   iapply HQ s _ rfl (Hscope rfl) Htrm (by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1) $$ Hg
 
 /-- The scope's log boundary, at the protocol reading. -/
-theorem rnScope_base {rs : RNState} {s : NState} {ps : PState} (Hps : toPState s = ps)
-    (H : RnScopeBasic rs s) : ps.base = base0 := by
-  subst Hps; exact H.2.2.2.2.2.1
+theorem rnScope_base {rs : RNState} {s : NState} {r : RState} (Hps : toPState s = r.p)
+    (H : RnScopeBasic rs s) : r.p.base = base0 := by
+  rw [← Hps]; exact H.2.2.2.2.2.1
 
 /-- The full log before the boundary `base0` is empty. -/
 theorem fullOk_base0 {fp : List EntryM} (H : FullOk base0 fp) : fp = [] := by
@@ -87,13 +88,13 @@ theorem logRecs_entData (γ : RaftNames) (b : entryID) (es : List EntryM) (Hwf :
   iapply isEntryR_data γ e pt $$ He
 
 theorem rawNode_wf : rawNode_wf.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc Htrm _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc Htrm _ => ?_)
   have Hb := rnScope_base Hps Hsc
   iintro Hg
-  icases (entails_wand (persistent_entails_left (ownRaftGhost_logOk γ id ps))) $$ Hg
+  icases (entails_wand (persistent_entails_left (ownRaftGhost_logOk γ id r.p))) $$ Hg
     with ⟨Hg, %Hlo⟩
-  icases ownRaftGhost_logRecs γ id ps md $$ Hg with ⟨%Hw, -⟩
+  icases ownRaftGhost_logRecs γ id r.p md $$ Hg with ⟨%Hw, -⟩
   ipureintro
   have h2 := Hlo.2.2
   rw [Hb] at Hw h2
@@ -101,28 +102,28 @@ theorem rawNode_wf : rawNode_wf.law (GF := GF) := by
   rw [Htrm, ← Hps]; rfl
 
 theorem rawNode_noSnap : rawNode_noSnap.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   iintro -
   ipureintro
   obtain ⟨-, -, -, -, Hsl, Hprev, -, Hout, -⟩ := Hsc
-  subst Hps
+  rw [← Hps]
   exact ⟨Hprev, Hsl, Hout⟩
 
 theorem rawNode_logTerms : rawNode_logTerms.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   iintro Hg
-  icases ownRaftGhost_terms_le γ id ps $$ Hg with ⟨%Ht, Hg⟩
-  icases ownRaftGhost_logRecs γ id ps md $$ Hg with ⟨%Hw, -⟩
+  icases ownRaftGhost_terms_le γ id r.p $$ Hg with ⟨%Ht, Hg⟩
+  icases ownRaftGhost_logRecs γ id r.p md $$ Hg with ⟨%Hw, -⟩
   ipureintro
   intro e he
   obtain ⟨k, hk, hke⟩ := List.getElem_of_mem he
-  have hk' : ps.log[k]? = some e := by rw [List.getElem?_eq_getElem hk, hke]
-  exact Ht e.Index' e.Term' (plogTermAt_lookup ps.base ps.log e.Index' k e hk' (Hw k e hk'))
+  have hk' : r.p.log[k]? = some e := by rw [List.getElem?_eq_getElem hk, hke]
+  exact Ht e.Index' e.Term' (plogTermAt_lookup r.p.base r.p.log e.Index' k e hk' (Hw k e hk'))
 
 theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
+  intro γ rn id rs r qs ip
   refine entails_wand (persistent_entails_right ?_)
   unfold rawNode ownRawNodeAt
   iintro H
@@ -134,7 +135,7 @@ theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
   exact ⟨H1, H3, fun h => ⟨H2 h, (Hscope rfl).1 h⟩⟩
 
 theorem rawNode_phsTerm : rawNode_phsTerm.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
+  intro γ rn id rs r qs ip
   refine entails_wand (persistent_entails_right ?_)
   unfold rawNode ownRawNodeAt
   iintro H
@@ -144,32 +145,32 @@ theorem rawNode_phsTerm : rawNode_phsTerm.law (GF := GF) := by
   exact Hphs.1.1
 
 theorem rawNode_logRecs : rawNode_logRecs.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   have Hb := rnScope_base Hps Hsc
   rw [← Hb]
   iintro Hg
-  icases ownRaftGhost_logRecs γ id ps md $$ Hg with ⟨-, #Hr⟩
+  icases ownRaftGhost_logRecs γ id r.p md $$ Hg with ⟨-, #Hr⟩
   iexact Hr
 
 theorem rawNode_leader : rawNode_leader.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   have Hb := rnScope_base Hps Hsc
-  by_cases hr : ps.role = .leader
+  by_cases hr : r.p.role = .leader
   · iintro Hg
     icases (entails_wand (persistent_entails_left (wand_entails
-      (ownRaftGhost_isLeader (md := md) γ id ps hr)))) $$ Hg with ⟨Hg, #Hl⟩
+      (ownRaftGhost_isLeader (md := md) γ id r.p hr)))) $$ Hg with ⟨Hg, #Hl⟩
     iunfold ownRaftGhost at Hg
     icases Hg with ⟨%γs, %V, %πc, %kl, H⟩
     iNamed H
-    icases ownLogGhost_lead_full γ id ps kl (virt V πc) hr $$ Hl Hlg with ⟨⟨%fp, #Hp, #Hpf, -⟩, -⟩
-    icases lpfull_fp γ id ps.term ps.base ps.log fp $$ Hpf with ⟨-, %Hfp⟩
+    icases ownLogGhost_lead_full γ id r.p kl (virt V πc) hr $$ Hl Hlg with ⟨⟨%fp, #Hp, #Hpf, -⟩, -⟩
+    icases lpfull_fp γ id r.p.term r.p.base r.p.log fp $$ Hpf with ⟨-, %Hfp⟩
     have hfp : fp = [] := by rw [Hb] at Hfp; exact fullOk_base0 Hfp.1
     subst hfp
-    ihave #Hf := leadFull_intro γ id ps.term ps.base ps.log [] $$ Hp Hpf
-    icases leadFull_camp γ ps.term ([] ++ ps.log) $$ Hf with ⟨%ldr, %F0, #Hl2, #Hc, %Hpre⟩
-    icases isLeader_unique γ id ldr ps.term $$ Hl Hl2 with %Heq
+    ihave #Hf := leadFull_intro γ id r.p.term r.p.base r.p.log [] $$ Hp Hpf
+    icases leadFull_camp γ r.p.term ([] ++ r.p.log) $$ Hf with ⟨%ldr, %F0, #Hl2, #Hc, %Hpre⟩
+    icases isLeader_unique γ id ldr r.p.term $$ Hl Hl2 with %Heq
     subst Heq
     iintro !> -
     iframe Hl
@@ -226,8 +227,8 @@ theorem rawNode_vote : rawNode_vote.law (GF := GF) := by
   iframe Hsh Hp Hslot HI1
 
 theorem rawNode_tally : rawNode_tally.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   iintro Hg
   iunfold ownRaftGhost at Hg
   icases Hg with ⟨%γs, %V, %πc, %kl, H⟩
@@ -235,27 +236,27 @@ theorem rawNode_tally : rawNode_tally.law (GF := GF) := by
   iexact Htally
 
 theorem rawNode_commit : rawNode_commit.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   have Hb := rnScope_base Hps Hsc
   iintro Hg
   iunfold ownRaftGhost at Hg
   icases Hg with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
-  icases ownLogGhost_commitIn γ id ps kl (virt V πc) $$ Hlg with ⟨%fp, %Hfp, -, -, #Hc⟩
+  icases ownLogGhost_commitIn γ id r.p kl (virt V πc) $$ Hlg with ⟨%fp, %Hfp, -, -, #Hc⟩
   have hfp : fp = [] := by rw [Hb] at Hfp; exact fullOk_base0 Hfp.1
   subst hfp
   iExactEq Hc
   rw [List.nil_append]
 
 theorem rawNode_committed : rawNode_committed.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
+  intro γ rn id rs r qs ip
   iintro H
-  icases rawNode_ghost γ rn id rs ps qs ip (isCommitted γ (ps.log.take (uint.nat ps.commit)))
+  icases rawNode_ghost γ rn id rs r qs ip (isCommitted γ (r.p.log.take (uint.nat r.p.commit)))
     (fun s md Hps Hsc _ _ => by
       have Hb := rnScope_base Hps Hsc
       iintro Hg
-      icases ownRaftGhost_cmt γ id ps $$ Hg with ⟨%fp, %Hfp, -, #Hc⟩
+      icases ownRaftGhost_cmt γ id r.p $$ Hg with ⟨%fp, %Hfp, -, #Hc⟩
       have hfp : fp = [] := by rw [Hb] at Hfp; exact fullOk_base0 Hfp
       subst hfp
       iExactEq Hc
@@ -264,20 +265,20 @@ theorem rawNode_committed : rawNode_committed.law (GF := GF) := by
   iframe Hc H
 
 theorem rawNode_commitInv : rawNode_commitInv.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
-  exact wand_entails (ownRaftGhost_inv_md (md := md) γ id ps)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
+  exact wand_entails (ownRaftGhost_inv_md (md := md) γ id r.p)
 
 theorem rawNode_entries : rawNode_entries.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc _ _ => ?_)
   iintro Hg
-  icases ownRaftGhost_logRecs γ id ps md $$ Hg with ⟨%Hw, #Hr⟩
-  iapply logRecs_entData γ ps.base ps.log Hw $$ Hr
+  icases ownRaftGhost_logRecs γ id r.p md $$ Hg with ⟨%Hw, #Hr⟩
+  iapply logRecs_entData γ r.p.base r.p.log Hw $$ Hr
 
 theorem rawNode_term_tc : rawNode_term_tc.law (GF := GF) := by
-  intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc Htrm Htc => ?_)
+  intro γ rn id rs r qs ip
+  refine entails_wand (rawNode_ghost γ rn id rs r qs ip _ fun s md Hps Hsc Htrm Htc => ?_)
   iintro -
   ipureintro
   rw [← Hps]; show uint.Z s.term ≤ _; rw [← Htrm]; exact Htc
@@ -285,10 +286,10 @@ theorem rawNode_term_tc : rawNode_term_tc.law (GF := GF) := by
 /-- **The term ceiling raised, at the protocol state** (`ownRawNode_raise_tc`'s proof, through
 `ownRawNodeAt_intro`): only the ghost ceiling moves, so the protocol reading, the queue, the
 in-progress boundary and the scope are the same. -/
-theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
+theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)
     (qs : List Msg) (ip : Nat) (sc : Option RnMode) (tc : w64) (Hle : uint.Z rs.tc ≤ uint.Z tc) :
-    ⊢ ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc -∗
-      ownRawNodeAt γ rn id { rs with tc := tc } ps qs ip sc := by
+    ⊢ ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc -∗
+      ownRawNodeAt γ rn id { rs with tc := tc } r qs ip sc := by
   iintro H
   iNamed H
   have Hle' : uint.Z s.gh.tc ≤ uint.Z tc := by rw [← Hpvoff.2.1]; exact Hle
@@ -298,7 +299,7 @@ theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
   ihave Hsc := rnScopeAt_keepAll sc rs { rs with tc := tc } s { s with gh := { s.gh with tc := tc } }
     (fun _ h => h) rfl $$ Hsc
   obtain ⟨H1, -, H3, H4, H5⟩ := Hpvoff
-  iapply ownRawNodeAt_intro γ rn id { rs with tc := tc } ps qs ip sc
+  iapply ownRawNodeAt_intro γ rn id { rs with tc := tc } r qs ip sc
     { s with gh := { s.gh with tc := tc } } cf fp
     rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
@@ -312,19 +313,19 @@ theorem ownRawNodeAt_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
       rfl rfl $$ Hrntr
 
 theorem rawNode_raise_tc : rawNode_raise_tc.law (GF := GF) := by
-  intro γ rn id rs ps qs ip tc Hle
+  intro γ rn id rs r qs ip tc Hle
   unfold rawNode
-  exact ownRawNodeAt_raise_tc γ rn id rs ps qs ip (some {}) tc Hle
+  exact ownRawNodeAt_raise_tc γ rn id rs r qs ip (some {}) tc Hle
 
 /-- **The storage handshake, at the protocol state** (`ownRawNode_appended`'s proof, through
 `ownRawNodeAt_intro`): only the log's unpersisted entries move, which neither the protocol reading,
 the in-progress boundary nor the scope reads. -/
-theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState)
+theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)
     (qs : List Msg) (ip : Nat) (sc : Option RnMode) (Hsl : rs.slent = none) (a : List EntryM)
     (Ha : a ≠ [] → ∀ e0, rs.unpersisted.head? = some e0 →
       uint.nat e0.Index' - 1 + a.length ≤ rs.delivered.length) :
-    ⊢ ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc -∗ appendReceipt rs.storage rs.unpersisted a ==∗
-      ownRawNodeAt γ rn id { rs with unpersisted := [] } ps qs ip sc := by
+    ⊢ ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc -∗ appendReceipt rs.storage rs.unpersisted a ==∗
+      ownRawNodeAt γ rn id { rs with unpersisted := [] } r qs ip sc := by
   iintro H Htok
   iNamed H
   ihave Htok : appendReceipt s.logst.storage s.logst.unpersisted a $$ [Htok]
@@ -342,7 +343,7 @@ theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
   ihave Hsc := rnScopeAt_keepAll sc rs { rs with unpersisted := [] } s
     { s with logst := { s.logst with unpersisted := [] } } (fun _ h => h) rfl $$ Hsc
   imodintro
-  iapply ownRawNodeAt_intro γ rn id { rs with unpersisted := [] } ps qs ip sc
+  iapply ownRawNodeAt_intro γ rn id { rs with unpersisted := [] } r qs ip sc
     { s with logst := { s.logst with unpersisted := [] } } cf fp rnv sv hprev steps Hwf Hin Hasync
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
@@ -357,9 +358,9 @@ theorem ownRawNodeAt_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSta
       (s' := { s with logst := { s.logst with unpersisted := [] } }) rfl rfl rfl rfl rfl $$ Hrntr
 
 theorem rawNode_appended : rawNode_appended.law (GF := GF) := by
-  intro γ rn id rs ps qs ip a Hsl Ha
+  intro γ rn id rs r qs ip a Hsl Ha
   unfold rawNode
-  exact ownRawNodeAt_appended γ rn id rs ps qs ip (some {}) Hsl a Ha
+  exact ownRawNodeAt_appended γ rn id rs r qs ip (some {}) Hsl a Ha
 
 /-! ### The term budget -/
 
@@ -424,8 +425,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The scope's guard at `sc = true`. -/
-private theorem true_eq_true_eq : (true = true) = True := propext ⟨fun _ => trivial, fun _ => rfl⟩
+/-- The scope's guard at `sc = true`: the mode `{}`. -/
+private theorem true_eq_true_eq : (fun md : RnMode => basicScope true = some md) = (fun md => md = {}) := by
+  funext md; apply propext; simp only [basicScope, Option.some.injEq]; exact eq_comm
 
 theorem RawNode.Step.apiSpec_of_abs (H : RawNode.Step.absSpec (GF := GF) (hG := hG)) :
     RawNode.Step.apiSpec (GF := GF) (hG := hG) := by
@@ -449,11 +451,11 @@ theorem RawNode.Advance.apiSpec_of_abs (H : RawNode.Advance.absSpec (GF := GF) (
 
 theorem RawNode.HasReady.apiSpec_of_abs (H : RawNode.HasReady.absSpec (GF := GF) (hG := hG)) :
     RawNode.HasReady.apiSpec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ps qs ip
+  intro γ rn id rs r qs ip
   wp_start_folded as H'
   iNamed H'
   iunfold rawNode at Hrn
-  wp_apply H true γ rn id rs ps qs ip $$ [$Hrn] as %b Hb
+  wp_apply H true γ rn id rs r qs ip $$ [$Hrn] as %b Hb
   iapply HΦ
   icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, %Hid, ⟨-, Hrn⟩⟩)
   · unfold rawNode; iframe Hrn; ipureintro; intro h; rw [Hb] at h; cases h

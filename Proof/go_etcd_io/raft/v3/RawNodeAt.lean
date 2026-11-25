@@ -1,7 +1,8 @@
 /-
 Lean-first (#33 S3c step 3, `notes/antithesis-rawnode-design.md` §2.1, §2.5, §2.6). **A `RawNode` at
-its protocol state**: `ownRawNodeAt γ rn id rs ps qs ip sc` is `ownRawNode γ rn id rs` with the
-node's protocol reading named (`toPState s = ps`), the protocol messages of the queue `Advance` will
+its protocol state**: `ownRawNodeAt γ rn id rs r qs ip sc` is `ownRawNode γ rn id rs` with the
+node's `RState` reading named (`toRState rs fp s = r`; antithesis parity stage 3: until then its
+protocol reading `toPState s = ps`), the protocol messages of the queue `Advance` will
 step named (`qs`, `PendAbs`), the in-progress boundary named (`ip`: the entries the last `Ready`s
 handed out, `unstable.offsetInProgress - 1`), and, at a scope `sc = some md`, the Antithesis
 harness's scope (`RnScope`, `storCapF … 0`). Statements only: the two entailments with `ownRawNode` are `.law`s,
@@ -60,6 +61,40 @@ def roleGo : Role → StateType
   | .follower => StateFollower
   | .candidate => StateCandidate
   | .leader => StateLeader
+
+/-- **The `RState` reading of a node** (antithesis parity, design §1.1; `ownRawNodeAt`'s `"%Hps"`):
+the protocol reading `toPState`, raft's `applied`, `pendingConfIndex` as the dynamic model reads it
+(`pciR`: the code's at a leader, `0` elsewhere -- Go clears it in `reset`, and the model reads it only at
+a leader; design §1.1 has `s.pci`, which would need the code invariant "a non-leader's
+`pendingConfIndex` is `0`"), whether a restored snapshot is pending, and the `RawNode`'s configuration
+index and configuration (`rs.capplied`, `rs.cfg`) with the ghost prefix `fp`. It is `rOf` at the
+`RawNode`'s ghost part (`toRState_eq_rOf`). -/
+def toRState (rs : RNState) (fp : List EntryM) (s : NState) : RState :=
+  { p := toPState s, applied := s.logst.applied, pci := pciR s, snap := s.logst.snap.isSome,
+    cidx := rs.capplied, cfg := rs.cfg, fp := fp }
+
+theorem toRState_eq_rOf (rs : RNState) (fp : List EntryM) (s : NState) (ds : DecMap) :
+    toRState rs fp s = rOf s ⟨rs.capplied, rs.cfg, fp, ds⟩ := rfl
+
+@[simp] theorem toRState_p (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).p = toPState s := rfl
+@[simp] theorem toRState_applied (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).applied = s.logst.applied := rfl
+@[simp] theorem toRState_pci (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).pci = pciR s := rfl
+@[simp] theorem toRState_snap (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).snap = s.logst.snap.isSome := rfl
+@[simp] theorem toRState_cidx (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).cidx = rs.capplied := rfl
+@[simp] theorem toRState_cfg (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).cfg = rs.cfg := rfl
+@[simp] theorem toRState_fp (rs : RNState) (fp : List EntryM) (s : NState) :
+    (toRState rs fp s).fp = fp := rfl
+
+/-- **The node constant tied to the raft state** (antithesis parity B1, 2026-11-25; the lead's
+decision): the `RawNode`'s `rs.k` is its raft state's `Config` flags (`preVote`, `checkQuorum`,
+`stepDownOnRemoval`, which `newRaft` copies and nothing writes). -/
+def KTie (rs : RNState) (s : NState) : Prop := NodeK.mk s.prevote s.cq s.sdr = rs.k
 
 /-- **The queue's protocol messages** (design §2.1, F4): `qs` is, in the queue's order, the reading
 (`absMsgOf`) of each queued self-addressed response (`Pending.self`: a leader's self-acknowledgement,
@@ -173,19 +208,20 @@ theorem RnCfgIn.keep {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState
 
 /-- **The harness's scope, owned part**: at `some md` `RnScope md`, the node in the harness's
 configuration (`RnCfgIn md`) and, without `snapshots`, the storage never compacted past `0`
-(`storCapF`, persistent); nothing at `none`. -/
+(`storCapF`, persistent), and the node constant `rs.k` the raft state's flags (`KTie`: outside the
+scope an `ownRawNode`'s `rs.k` is unconstrained, `ownRawNode_at`); nothing at `none`. -/
 def rnScopeAt (γ : RaftNames) (id : w64) (sc : Option RnMode) (rs : RNState) (s : NState) :
     IProp GF :=
   match sc with
   | none => iprop(emp)
-  | some md => iprop(⌜RnScope md rs s ∧ RnCfgIn md γ id rs⌝ ∗
+  | some md => iprop(⌜RnScope md rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s⌝ ∗
                      □ (⌜md.snapshots = false⌝ -∗ storCapF s.logst.storage 0))
 
 /-- **A `RawNode` at its protocol state** (see the file header): `ownRawNode`'s body, conjunct for
 conjunct, but `"Hpend"` with the queued states named (`pendAt`), and three conjuncts more: the
-protocol reading `toPState s = ps`, the in-progress boundary `ip + 1 = offsetInProgress`, and the
+`RState` reading `toRState rs fp s = r`, the in-progress boundary `ip + 1 = offsetInProgress`, and the
 harness's scope at `sc` (`rnScopeAt`). -/
-def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg)
+def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg)
     (ip : Nat) (sc : Option RnMode) : IProp GF :=
   iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (ds : DecMap) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM) (steps : List Loc),
@@ -228,24 +264,24 @@ def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PSt
   "%Hglq" ∷ ⌜s.gh.lq = []⌝ ∗
   "Hrntr" ∷ rnTrace γ rnv.raft' id cf rs.delivered s ∗
   -- (#33 S3c) the protocol reading, and the harness's scope at `sc`
-  "%Hps" ∷ ⌜toPState s = ps⌝ ∗
+  "%Hps" ∷ ⌜toRState rs fp s = r⌝ ∗
   "%Hip" ∷ ⌜uint.nat s.logst.inprogress = ip + 1⌝ ∗
   "Hsc" ∷ rnScopeAt γ id sc rs s)
 
 /-- **Forgetting the protocol state** (design §2.1, `ownRawNodeAt_ownRawNode`): at any scope.
 By unfolding: `pendAt` gives `pendList`, the rest is `ownRawNode`'s body. -/
 abbrev ownRawNodeAt_ownRawNode.law : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat)
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (sc : Option RnMode),
-    ownRawNodeAt (GF := GF) γ rn id rs ps qs ip sc ⊢ ownRawNode γ rn id rs
+    ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc ⊢ ownRawNode γ rn id rs
 
 /-- **Naming the protocol state** (design §2.1, `ownRawNode_at`): every `ownRawNode` is an
-`ownRawNodeAt` outside the harness's scope (`sc = none`), at its node's protocol reading, its
+`ownRawNodeAt` outside the harness's scope (`sc = none`), at its node's `RState` reading, its
 queue's messages and its in-progress boundary (`offsetInProgress ≥ 1`: `Hipb`'s `offset ≤`). -/
 abbrev ownRawNode_at.law : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
     ownRawNode (GF := GF) γ rn id rs ⊢
-      ∃ (ps : PState) (qs : List Msg) (ip : Nat), ownRawNodeAt γ rn id rs ps qs ip none
+      ∃ (r : RState) (qs : List Msg) (ip : Nat), ownRawNodeAt γ rn id rs r qs ip none
 
 end rawnode_at
 

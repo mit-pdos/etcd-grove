@@ -100,6 +100,10 @@ def rawNodeRestarted (γ : Cluster) (l : List EntryM) (st : Storage) (sn : StorN
     tc := S.term, mode := γ.rnMode, cfg := ApiImpl.stOf m, capplied := a, phs := hs, dur := S,
     role := StateFollower }
 
+/-- (antithesis parity B1) **The node constant of a `Config`**: its `PreVote`, `CheckQuorum` and
+`StepDownOnRemoval` flags, which `newRaft` copies (`RNState.k`). -/
+def cfgK (cv : Config) : NodeK := ⟨cv.PreVote', cv.CheckQuorum', cv.StepDownOnRemoval'⟩
+
 /-- **The client's durable state, opened** (for a `RawNode` client: `RawNode.Ready.spec`'s
 *enter* moves raft's durable half `ownDurGhost`): the durable half, the term budget's lower bound
 at its term, and the budget's invariant. (`raftState` is sealed for the node API's clients, whose

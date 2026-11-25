@@ -119,6 +119,7 @@ theorem RawNode.Ready.traced
     (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $Hsc0 $HhardO]
     as %steps %ss %qs' %ip' H
   iNamed H
+  icases Hrn with ⟨%fp0, Hrn⟩
   ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
   ihave %Hsseq := softStateIs_agree rd.SoftState' ss0 ss Hssn0 Hssn $$ [Hss0 Hss]
   · iframe Hss0 Hss

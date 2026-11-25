@@ -286,11 +286,77 @@ theorem ownRaftPhysC_trkDoms (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   · ipureintro; exact ⟨Hd, Hp.2.1⟩
   iapply Hback $$ %tv %s.votes Hf Htrk
 
+/-- (antithesis parity B1) **The ghost prefix in the dynamic mode at the boundary `base0`**: empty
+(the dynamic model's invariant `RInv`, `full`: `FullOk base0 fp`). -/
+theorem ownStepGhost_fp_nil (γ : RaftNames) (rs : RNState) (fp : List EntryM) (ds : DecMap)
+    (c : CfgM) (id : w64) (s : NState) (hd : rs.mode.isDyn = true) (hb : s.logst.prev = base0) :
+    ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s ⊢
+      ⌜fp = []⌝ ∗ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s := by
+  cases hm : rs.mode with
+  | static => rw [hm] at hd; cases hd
+  | dyn dec c0 h0 h1 =>
+    iintro H
+    iunfold ownStepGhost at H
+    icases H with ⟨Hg, Hr⟩
+    iunfold ghostRest at Hr
+    icases Hr with ⟨Hn, Hm, Hr⟩
+    simp only [RNMode.toG, ghostRestM]
+    icases Hm with ⟨%HC, Hm⟩
+    isplitr
+    · ipureintro
+      have Hf := HC.2.2.full
+      have h1 := Hf.1
+      simp only [rOf] at h1
+      rw [show (toPState s).base = s.logst.prev from rfl, hb, base0_index] at h1
+      exact List.eq_nil_of_length_eq_zero (by omega)
+    iunfold ownStepGhost
+    iframe Hg
+    iunfold ghostRest
+    iframe Hn Hr
+    simp only [ghostRestM]
+    iframe Hm
+    ipureintro; exact HC
+
+/-- (antithesis parity B1) **In the basic scope, the `RState`'s ghost prefix is empty** (and its log's
+boundary `base0`): `ownStepGhost_fp_nil` at the scope's boundary and dynamic mode. -/
+theorem ownRawNodeAt_fp_nil (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)
+    (qs : List Msg) (ip : Nat) (sc : Bool) :
+    ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc) ⊢
+      ⌜sc = true → r.fp = [] ∧ r.p.base = base0⌝ ∗ ownRawNodeAt γ rn id rs r qs ip (basicScope sc) := by
+  cases sc with
+  | false => iintro H; iframe H; ipureintro; intro h; cases h
+  | true =>
+    iintro H
+    iNamed H
+    icases rnScopeAt_scope true rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+    icases rnScopeAt_cfgIn true rs s $$ Hsc with ⟨%Hcin, Hsc⟩
+    icases ownStepGhost_fp_nil γ rs fp ds cf id s (Hcin rfl).2.2.2.1 (Hscope rfl).2.2.2.2.2.1
+      $$ Hghost with ⟨%Hfp, Hghost⟩
+    isplitr
+    · ipureintro; intro _; subst Hps Hfp
+      exact ⟨rfl, (Hscope rfl).2.2.2.2.2.1⟩
+    unfold ownRawNodeAt
+    iexists s, cf, fp, ds, rnv, sv, hprev, steps
+    iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
+      Hledger Hdur Hrntr Hsc
+    ipureintro
+    exact ⟨Hwf, Hin, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
+      Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hsdt, Hrole, Hphs, Hgtr, Hglq, Hps, Hip⟩
+
+/-- (antithesis parity B1) The node constant's tie across a step in the basic scope: pre-vote and
+check-quorum off at both ends, `stepDownOnRemoval` kept (`hsdr`), the constant kept (`hk`). -/
+theorem KTie.keep_basic {rs rs' : RNState} {s s' : NState} (H : KTie rs s) (Hs : RnScopeBasic rs s)
+    (Hs' : RnScopeBasic rs' s') (hsdr : s'.sdr = s.sdr) (hk : rs'.k = rs.k) : KTie rs' s' := by
+  unfold KTie at *
+  rw [hk, ← H, hsdr, Hs.2.1, Hs.2.2.1, Hs'.2.1, Hs'.2.2.1]
+
 /-- **The basic scope's owned part at the end state**: the scope's facts carried (`H`), the storage
-the same. -/
+the same, and (antithesis parity B1) `stepDownOnRemoval` and the node constant kept (`hsdr`, `hk`). -/
 theorem rnScopeAt_keepIf {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)
     (H : sc = true → RnScopeBasic rs s → RnScopeBasic rs' s') (hst : s'.logst.storage = s.logst.storage)
-    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
+    (hsdr : sc = true → s'.sdr = s.sdr)
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
+    (hk : rs'.k = rs.k := by rfl) :
     rnScopeAt (GF := GF) γ id (basicScope sc) rs s ⊢ rnScopeAt γ id (basicScope sc) rs' s' := by
   cases sc with
   | false => unfold basicScope; iintro -; iapply rnScopeAt_none
@@ -300,7 +366,10 @@ theorem rnScopeAt_keepIf {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNSta
     rw [hst]
     isplitr
     · ipureintro
-      exact ⟨(RnScope_empty rs' s').2 (H rfl ((RnScope_empty rs s).1 Hs.1)), RnCfgIn.keep hcf Hs.2⟩
+      have H0 := (RnScope_empty rs s).1 Hs.1
+      have H1 := H rfl H0
+      exact ⟨(RnScope_empty rs' s').2 H1, RnCfgIn.keep hcf Hs.2.1,
+        Hs.2.2.keep_basic H0 H1 (hsdr rfl) hk⟩
     · imodintro; iexact Hc
 
 end ghost

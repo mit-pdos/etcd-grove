@@ -143,8 +143,8 @@ local macro "finish_false" : tactic => `(tactic| (
         | exact Hif
         | (apply Classical.byContradiction; intro h; exact Hif h)
     rw [Hz]; rfl
-  have Hpi : sc = true → PIdle rs ps ∧ ip = ps.log.length := fun h =>
-    pidle_of_hasReady rs ps ip s sv Hps Hip (Hscope h) Hpre Hob Hhsi Hphs Hsofteq Hrole Hnu Hipf.1
+  have Hpi : sc = true → PIdle rs ps.p ∧ ip = ps.p.log.length := fun h =>
+    pidle_of_hasReady rs ps.p ip s sv (by rw [← Hps]; rfl) Hip (Hscope h) Hpre Hob Hhsi Hphs Hsofteq Hrole Hnu Hipf.1
       (Hipf.2 (Hscope h).2.2.2.2.2.2.1) (Hdurf h)
   close_view
   iapply HΦ

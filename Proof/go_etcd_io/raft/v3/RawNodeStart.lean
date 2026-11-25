@@ -64,12 +64,33 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (antithesis parity B1) **The `RState` a node restarts at**: the restarted protocol state
+`restartP`, the applied index `ap`, no pending conf index, no snapshot, the configuration `cs` at the
+configuration index `a`, the ghost prefix `fp`. -/
+def restartR (S : RaftState) (σ : StorContents) (ap a : Nat) (cs : CCState) (fp : List EntryM) :
+    RState :=
+  { p := restartP S σ.base σ.hs.Commit', applied := W64 ap, pci := W64 0, snap := false, cidx := a,
+    cfg := cs, fp := fp }
+
+/-- (antithesis parity B1) **The restart's scope premises at the mode `md`**, one per flag: pre-vote
+and check-quorum off unless `md` lifts them, the node among the names' voters unless `nonVoters`,
+the configuration simple over the names' voters with no learners unless `confChanges`, the log's
+boundary `base0` unless `snapshots`. -/
+def RestartScopeOk (γ : Cluster) (cv : Config) (σ : StorContents) (m : Membership) (md : RnMode) :
+    Prop :=
+  (md.prevote = false → cv.PreVote' = false) ∧ (md.cq = false → cv.CheckQuorum' = false) ∧
+  (md.nonVoters = false → cv.ID' ∈ γ.raftNames.reCfg) ∧
+  (md.confChanges = false → m.voters = γ.raftNames.reCfg ∧ m.votersOutgoing = ∅ ∧ m.learners = ∅) ∧
+  (md.snapshots = false → σ.base = base0)
+
 /-- **`NewRawNode.restartSpec` at the node's protocol state** (#33 S4): its text, the post's node
-`ownRawNodeAt` at the restarted protocol state `restartP S σ.base σ.hs.Commit'`, nothing queued, the
-in-progress boundary at the stored log's end (`offsetInProgress = σ.b + |σ.ents| + 1`), at the scope
-flag `sc`; at `sc = true` the scope's premises (pre-vote and check-quorum off, the static mode, the
-log's boundary `base0`, no learners) and its resource (`storCapF … 0`, under `⌜sc = true⌝`). -/
-abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
+`ownRawNodeAt` at the restarted state `restartR` (antithesis parity B1: an `RState`, at the applied
+index `max b A`, the configuration point `a` and a ghost prefix `fp` below the log's boundary, empty at
+`base0`; the node constant the `Config`'s flags, `cfgK cv`), nothing queued, the in-progress boundary
+at the stored log's end (`offsetInProgress = σ.b + |σ.ents| + 1`), at the scope `sc`; at `sc = some md`
+the scope's premises per flag (`RestartScopeOk`) and its resource (`storCapF … 0`, without
+`snapshots`). (Until antithesis parity B1 a flag `sc : Bool`, `true` the scope `some {}`.) -/
+abbrev NewRawNode.restartAtSpec (sc : Option RnMode) : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorContents) (csm : ConfStateM) (a : Nat) (m : Membership) (S : RaftState)
     (F : GName → IProp GF),
@@ -95,22 +116,23 @@ abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
   StorageHolds S σ →
   -- (2026-11-24) the configuration simple over the names' voters, the node one of them (until then
   -- `γ.rnMode = .static`, which `isCluster` contradicts: the scope was empty)
-  (sc = true → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧
-    (m.voters = γ.raftNames.reCfg ∧ m.votersOutgoing = ∅ ∧ cv.ID' ∈ γ.raftNames.reCfg) ∧
-    σ.base = base0 ∧ m.learners = ∅) →
+  (∀ md, sc = some md → RestartScopeOk γ cv σ m md) →
   ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacantA γ cv.ID' x ∗ readyFits γ N ∗
       raftState γ cv.ID' S ∗
       confAt γ a m ∗
       restartStorage γ (interface.ok si) σ csm (uint.nat cv.Applied') F SV ∗
-      □ (⌜sc = true⌝ -∗ storCapF (interface.ok si) 0) }}
+      □ (∀ md, ⌜sc = some md⌝ -∗ ⌜md.snapshots = false⌝ -∗ storCapF (interface.ok si) 0) }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       ⌜err = interface.nil⌝ ∗
-      ∃ (l : List EntryM) (sn : StorNames) (g : Nat) (K : GName),
-        ownRawNodeAt γ.raftNames rn cv.ID' (rawNodeRestarted γ l (interface.ok si) sn σ.hs S m a)
-          (restartP S σ.base σ.hs.Commit') [] (σ.b + σ.ents.length) (basicScope sc) ∗
+      ∃ (l : List EntryM) (sn : StorNames) (g : Nat) (K : GName) (fp : List EntryM),
+        ownRawNodeAt γ.raftNames rn cv.ID'
+          { rawNodeRestarted γ l (interface.ok si) sn σ.hs S m a with k := cfgK cv }
+          (restartR S σ (max σ.b (uint.nat cv.Applied')) a (ApiImpl.stOf m) fp) []
+          (σ.b + σ.ents.length) sc ∗
+        ⌜σ.base = base0 → fp = []⌝ ∗
         isCommitted γ.raftNames l ∗
         ⌜l.length = max σ.b (uint.nat cv.Applied') ∧ l.drop σ.b = σ.ents.take (l.length - σ.b)⌝ ∗
         genView γ.raftNames cv.ID' x 1 g ∗ slotFree γ.raftNames cv.ID' g ∗
@@ -425,21 +447,22 @@ private theorem pendAt_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
     iempintro
 
 /-- The basic scope's owned part at the start: its facts, the storage's cap from the pre. -/
-private theorem rnScopeAt_start {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState)
-    (st : Storage) (Hst : s.logst.storage = st)
-    (H : sc = true → RnScopeBasic rs s ∧ RnCfgInBasic γ id rs) :
-    □ (⌜sc = true⌝ -∗ storCapF (GF := GF) st 0) ⊢ rnScopeAt γ id (basicScope sc) rs s := by
+private theorem rnScopeAt_start {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs : RNState)
+    (s : NState) (st : Storage) (Hst : s.logst.storage = st)
+    (H : ∀ md, sc = some md → RnScope md rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s) :
+    □ (∀ md, ⌜sc = some md⌝ -∗ ⌜md.snapshots = false⌝ -∗ storCapF (GF := GF) st 0) ⊢
+      rnScopeAt γ id sc rs s := by
   cases sc with
-  | false => unfold basicScope; iintro -; iapply rnScopeAt_none
-  | true =>
-    unfold rnScopeAt basicScope
+  | none => iintro -; iapply rnScopeAt_none
+  | some md =>
+    unfold rnScopeAt
     iintro #Hc
     rw [Hst]
     isplitr
-    · ipureintro; exact ⟨(RnScope_empty rs s).2 (H rfl).1, (RnCfgIn_empty γ id rs).2 (H rfl).2⟩
-    · imodintro; iintro _; iapply Hc; ipureintro; trivial
+    · ipureintro; exact H md rfl
+    · imodintro; iintro %h; iapply Hc $$ %md; ipureintro; rfl; ipureintro; exact h
 
-theorem NewRawNode_restartAt_impl (sc : Bool)
+theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
     NewRawNode.restartAtSpec (GF := GF) (hG := hG) sc := by
   unfold NewRawNode.restartAtSpec
@@ -942,27 +965,32 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     unfold StorContents.b
     have := uint_nat_eq σ.base.index'; have := uint_nat_eq s.logst.inprogress
     omega
-  have HscR : sc = true → RnScopeBasic rs0 s1 := by
-    intro hsc
-    obtain ⟨Hpv0, Hcq0, ⟨-, Hmo, -⟩, Hb0, -⟩ := Hsc hsc
-    refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_, ?_, ?_⟩
-    · intro _; exact Hmo
-    · show s.prevote = false; rw [Hpvoff, Hpv0]
-    · show s.cq = false; rw [Hcq, Hcq0]
-    · show s.logst.prev = base0; rw [Hlp, ← Hb0]
-    · intro m' hm; change m' ∈ s.outbox at hm; rw [Ho] at hm; cases hm
+  let rsK : RNState := { rs0 with k := cfgK cv }
+  have HscR : ∀ md, sc = some md → RnScope md rsK s1 := by
+    intro md hsc
+    obtain ⟨Hpv0, Hcq0, -, Hmo, Hb0⟩ := Hsc md hsc
+    refine ⟨fun h _ => (Hmo h).2.1, fun h => ?_, fun h => ?_, fun _ => ⟨Hpd, ?_⟩,
+      fun h => ⟨rfl, ?_, Hsn0, ?_⟩, fun _ => ?_⟩
+    · show s.prevote = false; rw [Hpvoff, Hpv0 h]
+    · show s.cq = false; rw [Hcq, Hcq0 h]
     · intro hl; exact absurd (Hr.symm.trans hl) (by decide)
+    · show s.logst.prev = base0; rw [Hlp, ← Hb0 h]
+    · intro m' hm; change m' ∈ s.outbox at hm; rw [Ho] at hm; cases hm
     · show s.gh.xs = false; rw [Hgh]
-  have HcinR : sc = true → RnCfgInBasic γ.raft cv.ID' rs0 := by
-    intro hsc
-    obtain ⟨-, -, ⟨Hmv, -, Hid⟩, -, Hlr⟩ := Hsc hsc
-    exact ⟨Hid, fun _ => Hmv, HtrG, by show (γ.mode inferInstance).isDyn = true; rw [Hmd]; rfl, Hlr⟩
-  ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
-      (σ.b + σ.ents.length) (basicScope sc) $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
-  · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
-      (σ.b + σ.ents.length) (basicScope sc) s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
+  have HcinR : ∀ md, sc = some md → RnCfgIn md γ.raft cv.ID' rsK := by
+    intro md hsc
+    obtain ⟨-, -, Hid, Hmv, -⟩ := Hsc md hsc
+    exact ⟨Hid, fun h => ⟨fun _ => (Hmv h).1, (Hmv h).2.2⟩, HtrG,
+      by show (γ.mode inferInstance).isDyn = true; rw [Hmd]; rfl⟩
+  have HkR : KTie rsK s1 := by
+    show NodeK.mk s.prevote s.cq s.sdr = cfgK cv
+    rw [Hpvoff, Hcq, Hsdr]; rfl
+  ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rsK (toRState rsK fp s1) []
+      (σ.b + σ.ents.length) sc $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
+  · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rsK (toRState rsK fp s1) []
+      (σ.b + σ.ents.length) sc s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
       (Hglq := by show s.gh.lq = []; rw [Hgh])
-      Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
+      Hrel.2 (fun h => by simp only [rsK, rs0] at h; rw [Hmd] at h; cases h) Hasync
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
       Hun.symm (fun _ => Hsn0) trivial Ht.symm ⟨Hsg.symm, Hlsn.symm⟩
       ⟨fun _ => preGuardF_fol Hr, rfl, by show uint.Z s.term ≤ uint.Z S.term; rw [Ht, HsT]; exact Int.le_refl _,
@@ -980,9 +1008,9 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
           rw [HDlen] at hi1; rw [Hdtk1] at hi2
           obtain ⟨t, ht, -⟩ := restartCt_complete HcF (by omega) hi2
           exact ⟨hi2, t, ht⟩⟩
-      Hsvr.1.symm HphsR HtoP1 HipR
+      Hsvr.1.symm HphsR rfl HipR
       (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
-      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] Hdurt [] []
+      $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] [] [Hhistory] [Hdurt] [] []
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendAt_nil
     · iapply ackInv_none; intro _ _ _ _ h; cases h
@@ -990,8 +1018,10 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     · rw [show s1.logst.snap = none from Hsn0]; iapply snapLocOk_none
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
     · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) Ho $$ Hhistory
+    · iapply durTie_congr γ.raft (rs := rs0) (s := s1) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdurt
     · iapply rnTrace_none (GF := GF) γ.raft rnv.raft' cv.ID' _ _ s1 (by show s.gh.tr = none; rw [Hgh])
-    · iapply rnScopeAt_start sc rs0 s1 (interface.ok si) Hsg (fun h => ⟨HscR h, HcinR h⟩) $$ Hscp
+    · iapply rnScopeAt_start sc rsK s1 (interface.ok si) Hsg
+        (fun md h => ⟨HscR md h, HcinR md h, HkR⟩) $$ Hscp
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- the post: the node at `rawNodeRestarted`, its committed log, the slot's generation, the
@@ -999,10 +1029,28 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
   imodintro
   iapply HΦ
   isplitr; · ipureintro; rfl
-  iexists (fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')), sn, gen, K
+  iexists (fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied')), sn, gen, K, fp
+  have HrR : toRState rsK fp s1 =
+      restartR S σ (max σ.b (uint.nat cv.Applied')) a (stOf m) fp := by
+    have hap : s.logst.applied = W64 ((max σ.b (uint.nat cv.Applied') : Nat) : Int) := by
+      rw [Hap, ← Happn, w64_to_nat_id]
+    have hpci : pciR s1 = W64 0 := by
+      show (if s.role = .leader then s.pci else W64 0) = W64 0; rw [Hr]; rfl
+    have hsn : s1.logst.snap.isSome = false := by
+      show s.logst.snap.isSome = false; rw [Hsn0]; rfl
+    simp only [toRState, restartR, RState.mk.injEq]
+    refine ⟨HtoP1, hap, hpci, hsn, ?_⟩
+    simp [rsK, rs0]
   isplitl [Hrn]
-  · iExactEq Hrn
-    simp only [rs0, rawNodeRestarted, Hhp, Cluster.rnMode]
+  · rw [← HrR]
+    iExactEq Hrn
+    simp only [rsK, rs0, rawNodeRestarted, Hhp, Cluster.rnMode]
+  isplitr
+  · ipureintro
+    intro hb
+    have h1 := Hfp'.1
+    rw [hb, base0_index] at h1
+    exact List.eq_nil_of_length_eq_zero (by omega)
   isplitr; · iexact HcD
   isplitr
   · ipureintro
@@ -1023,17 +1071,18 @@ theorem NewRawNode_restart_impl
   intro γ N c cv lok si σ csm a m S F Cert hpCert hCert H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2
     Hboot Hcs Hnsm Htlk HtrC HSh x
   wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs⟩
-  wp_apply (NewRawNode_restartAt_impl false wp_NewRawNode γ N c cv lok si σ csm a m S F Cert hCert
+  wp_apply (NewRawNode_restartAt_impl none wp_NewRawNode γ N c cv lok si σ csm a m S F Cert hCert
       H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh
-      (fun h => by cases h) x)
+      (fun _ h => by cases h) x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
-    as %rn %err ⟨%Herr, %l, %sn, %g, %K, Hrn, #Hcm, %Hl, Hgen, Hfree, HrS, HF⟩
+    as %rn %err ⟨%Herr, %l, %sn, %g, %K, %fp, Hrn, -, #Hcm, %Hl, Hgen, Hfree, HrS, HF⟩
   · iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs
-    iintro !> %h; cases h
+    iintro !> %md %h; cases h
   iapply HΦ
   isplitr; · ipureintro; exact Herr
   iexists l, sn, g, K
   ihave Hrn := ownRawNodeAt_ownRawNode (GF := GF) _ _ _ _ _ _ _ _ $$ Hrn
+  rw [ownRawNode_with_k]
   iframe Hrn Hcm Hgen Hfree HrS HF
   ipureintro; exact Hl
 
@@ -1135,17 +1184,20 @@ theorem NewRawNode.wp_proofEmptyStartAbs
   have HAn : uint.nat cv.Applied' = 0 := by rw [HA0]; rfl
   have Hb : emptyStorContents.b = 0 := rfl
   wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs, #Hcap⟩
-  wp_apply (ApiImpl.RawNodeStart.NewRawNode_restartAt_impl true wp_NewRawNode γ N c cv lok si
+  wp_apply (ApiImpl.RawNodeStart.NewRawNode_restartAt_impl (some {}) wp_NewRawNode γ N c cv lok si
       emptyStorContents (votersConfState vs) 0 (Membership.simple (GMap.listToSet vs)) RaftState.init
       F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx (.inl HAn) (by rw [Hb, HAn]; omega) (Nat.zero_le _)
       (by rw [Hb0]; exact Nat.zero_le _) (votersConfState_is vs Hnd) Hnsm Htlk HtrC
-      emptyStorContents_holds (fun _ => ⟨Hpq.1, Hpq.2,
-        ⟨Hmd.1.symm, rfl, by rw [Hmd.1]; exact (GMap.elem_of_list_to_set _ _).2 Hmd.2⟩, rfl, rfl⟩) x)
+      emptyStorContents_holds (fun md h => by
+        cases h
+        exact ⟨fun _ => Hpq.1, fun _ => Hpq.2,
+          fun _ => by rw [Hmd.1]; exact (GMap.elem_of_list_to_set _ _).2 Hmd.2,
+          fun _ => ⟨Hmd.1.symm, rfl, rfl⟩, fun _ => rfl⟩) x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
-    as %rn %err ⟨%Herr, %l, %sn, %g, %K, Hrn, -, %Hl, Hgen, Hfree, HrS, HF⟩
+    as %rn %err ⟨%Herr, %l, %sn, %g, %K, %fp, Hrn, %Hfp, -, %Hl, Hgen, Hfree, HrS, HF⟩
   · rw [HAn]
     iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs
-    iintro !> -; iexact Hcap
+    iintro !> %md %h %hs; iexact Hcap
   have Hl0 : l = [] := by
     apply List.eq_nil_of_length_eq_zero
     rw [Hl.1, Hb, HAn]; rfl
@@ -1154,7 +1206,9 @@ theorem NewRawNode.wp_proofEmptyStartAbs
   isplitr; · ipureintro; exact Herr
   iexists sn, g, K
   iframe Hgen Hfree HrS HF
+  obtain rfl : fp = [] := Hfp rfl
   iExactEq Hrn
+  simp only [restartR, rInit, Hb, HAn]
   rfl
 
 end proof2
