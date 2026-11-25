@@ -157,7 +157,7 @@ func nameOk(n string) bool {
 	return true
 }
 
-// addrOk is the net extension's addrOk (kvnet.AddrOk's, copied: kvnet is a module of its own): a
+// addrOk is the net extension's addrOk (kvraft.AddrOk's, copied: kvraft is a module of its own): a
 // canonical a.b.c.d:p, the first octet 1-223, the port outside Linux's ephemeral range.
 func addrOk(a string) bool {
 	host, port, ok := strings.Cut(a, ":")

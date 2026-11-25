@@ -22,6 +22,12 @@ under `/shared/tmp/ps2/s5/muxtest/`), against Go 1.27.3. Two statements found fa
    "http: nil handler" (the review's test program).
    **Fix:** the premise `h ≠ interface.mkOk net.http.HandlerFunc.ty #func.nil`. `Server.HandleHTTP`'s two
    calls discharge it: their handlers are a `*Server` and a `debugHTTP`.
+   **2026-11-25: still false over the model** (S5, proving `register`; coordinator-E, #24 7152572897): a
+   `HandlerFunc` interface holding a value `v` that is not a function value (`mkOk HandlerFunc.ty v`, `v ≠ #fv`)
+   meets the premise, but `registerErr`'s `f == nil` (`GoOp GoEquals` on a function type) is stuck on it, so the
+   axiom asserted a WP of a stuck program (adequacy: `False`). **Fix:** the premise `∀ v, h = mkOk HandlerFunc.ty
+   v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil` (ledger, 2026-11-25). The callers' handlers are pointer-typed, so
+   it is vacuous for them.
 3. **`wp_init_first` needs the thread bound of the mux's `RWMutex` reader-slot pools**
    (`threadBound_le_actualMaxReaders`). **Fix:** the premise `⌜threadBound GF ≤ 2 ^ 30⌝`.
    rpcdriver's boot discharges it. Its statement's step bound `rpcStepBound` was lowered from

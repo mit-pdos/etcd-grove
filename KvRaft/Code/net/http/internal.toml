@@ -1,0 +1,8 @@
+# The copy for the part `KvRaft/` of `Net/Code/net/http/internal.toml` (etc/copy-part.py; rerun it, do not edit).
+# Project models-net (etc/goose.py): Go 1.27.3's `net/http/internal` (the toolchain's, not a model):
+# the chunked transfer coding's writer (`NewChunkedWriter`, `chunkedWriter`, `FlushAfterChunkWriter`),
+# with its bodies, for the Transport's chunked request bodies (phase 7 S5, notes/phase7-plan.md,
+# "S5 draft signatures"). The rest: types and names.
+translate = ["!*", "NewChunkedWriter", "chunkedWriter.*", "FlushAfterChunkWriter"]
+imports = ["!*", "bufio", "errors", "fmt", "io"]
+translate_types = true

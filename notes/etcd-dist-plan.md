@@ -39,7 +39,7 @@ crash relation keeps. `clients d σc` are the client machines, each running `cli
 the proofs (the bound counts every machine's steps together).
 
 The extensions are any list holding the net extension, the Linux file extension and the request
-ids' issue record (`[HasExt Net.netExt] [HasExt Fs.fsExt] [HasExt idIssueExt]`), as `kvnetRobust`.
+ids' issue record (`[HasExt Net.netExt] [HasExt Fs.fsExt] [HasExt idIssueExt]`), as `kvraftRobust`.
 
 ## 2. Machines and programs
 
@@ -98,7 +98,7 @@ form: a proof cannot exploit clients that share a process (a prophecy cannot cro
 The harness pieces are ours (etcd-grove#24, 2026-11-21 22:22Z: phase 6 has not started and moved them to this
 claim). Most need no port: porcupine is verified here (`Proof/github_com/anishathalye/porcupine/`, no axiom), so
 dsverify's porcupine axiom is replaced by that proof; the driver and recorder are `examples/lib/lintest`
-(proved: `Run` never returns `Illegal` when `apply` is logically atomic), and `examples/raft/kvnet/kvcheck` (#22)
+(proved: `Run` never returns `Illegal` when `apply` is logically atomic), and `examples/raft/kvraft/kvcheck` (#22)
 is the closest existing `ServeClient`-like node. So the port is the orchestration (`RunRemote`, `ServeClient`)
 over `lintest`/`kvcheck` and the net extension, in a neutral home, `examples/lib/remote`, which phase 6's kits
 will reuse.
@@ -135,7 +135,7 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   result). `DIST_LOG` makes the server log to standard error.
 - **`examples/etcd/dist`** (`deploy.go`, `run.go`, `dist_test.go`): the deployment test (`TestDist`, `TestWellFormed`; see "The
   harness" below).
-- **`examples/lib/robust`** (shared with kvnet's driver, additive): the **bridge variant** of the
+- **`examples/lib/robust`** (shared with kvraft's driver, additive): the **bridge variant** of the
   namespace mode and `RerunInUserns`. This machine's root has no `CAP_NET_ADMIN`, a read-only
   `/proc/sys` (no `ip_forward` in the router), no iptables and no device mapper; inside a user
   namespace of its own (`unshare -Urnm`) it has veths, bridges and tc. There `NewNetwork` makes a
@@ -182,7 +182,7 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
 | `RunLeaseRead`, `leaseReadCheck` | `leaseN.run`, `check` | `run` serves its members; `check` unexported |
 | `RunLeaseCatchup`, `leaseGrant`, `leaseList`, `listed` | `leasecatchup.run` and helpers | `run` starts the cluster and cuts with `PeerStep`; helpers unexported |
 | `RunLeaseExpiry`, `gone` | `leaseexpiryN.run`, `gone` | `run` serves its members; unexported |
-| harness `addrOk` | `kvnet.AddrOk` | kvnet is a Go module of its own |
+| harness `addrOk` | `kvraft.AddrOk` | kvraft is a Go module of its own |
 | `server.serverConfig` | `etcdstart.newServerMode`, `StartMemberAuth` | unexported, and the snapshot and token-provider settings are fixed there |
 
 Changes from the drivers made in the copies (none weakens a check): a step's error that ended the
@@ -521,7 +521,7 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 | `addrsUnclaimed`, `dataDirsAbsent`, `HWal` over 2,210 dirs | gone / per machine | closed deployment over the net extension; each machine's files its own | — | no world assumption about other processes |
 | one-process caveat (141 GB, millions of fds) | per machine: one member | — | — | — |
 | `k8s_safe` | later, the same shape: members on `server` machines, API servers and the compactor's checkers as further machine kinds | `Deployment` gains machine kinds | — | the members' crashes |
-| raft rows (kv, kvdurable, kvreconf) | `kvnetRobust`'s shape (replicas crash, one checking client) | kvnet is raft's distributed row | — | — |
+| raft rows (kv, kvdurable, kvreconf) | `kvraftRobust`'s shape (replicas crash, one checking client) | kvraft is raft's distributed row | — | — |
 | `RaftTla`, `RaftWitness`, `RaftNoAx`, WAL tester | stay single-process | — | — | — |
 
 ## 7. What the proof needs, and what exists
@@ -534,7 +534,7 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
    (the server cannot avoid it without bypassing `v3rpc.Server`).
 2. **Crash and restart**: Perennial's distributed adequacy with some machines crashing and others
    stable (`notes/robustness.md`, "Next": a Perennial change, not started); the `[net, fs, idIssue]`
-   bundle's crash interpretation (`kvnet_dist_crash_adequacy` has `[net, fs]`); generations that start
+   bundle's crash interpretation (`kvraft_dist_crash_adequacy` has `[net, fs]`); generations that start
    in the file extension's shared mode (branch `wal-safe`'s blocker (1), option (b)); the WAL's boot
    after a crash (`walFoRes`, blocker (2)); the server's restart from its files (C6: `NewServer` and
    `NewServerR` as one spec chosen by `haveWAL`, over `ReadAll`, `walCrashKeeps`); the backend after a
@@ -617,7 +617,7 @@ For upamanyus:
 - **U3:** no cmux; keep plain `grpc.Server.Serve`.
 - **U4:** the mixed adequacy already exists in Perennial at `d648cfe22`: `goose_dist_mixed_crash_adequacy` (`GooseLang/DistAdequacy.lean:852`) and `_init` (`InitAdequacy.lean:196`).
   - Missing: our bridge to `Robust crashing stable`. `robust_of_distBoot` covers the all-stable case only.
-  - kvnet's claim #22 is building the crashing bridge for `[netExt, fsExt]` (`GooseLang/Ext/NetFs/Adequacy.lean`). **D3 extends that; coordinate on #22.**
+  - kvraft's claim #22 is building the crashing bridge for `[netExt, fsExt]` (`GooseLang/Ext/NetFs/Adequacy.lean`). **D3 extends that; coordinate on #22.**
 - **U5:** nothing from the transport side; the extensions need only commute with the net extension's per-machine crash semantics.
 - **Extra:** rafthttp's client uses `http.ProxyFromEnvironment`, and S5 treats a non-nil proxy as `NotModelled`, so Q10's `clearProxyEnv` is what it needs. The environment as machine-local state is an `os` model question: entry for `notes/perennial-changes.md`.
 - **Order:** `v3rpc.Server` with one keepalive option (S1), then `Serve` (S2); the raft handler's `http.Server.Serve` is S5's server side.
@@ -660,7 +660,7 @@ A predicate defined in a `[hG : HeapGS]` section whose body reads only `hG.goose
 content but not in Lean: the start cannot name it. Two ways to name it at the start: **re-section** its
 definition over the global classes (`[AllG GF] [ReceiptGS GF] [InvGS GF]`, as raft's `api` sections are;
 at a heap the instances resolve to `hG.goose_globalGS`'s, so every existing use reads the same term), or a
-global twin equal by `rfl` (kvnet's `kvFactsG`/`kvFacts_eq`, `KvNet/.../kvnet/TopStart.lean`). Twins cascade
+global twin equal by `rfl` (kvraft's `kvFactsG`/`kvFacts_eq`, `KvRaft/.../kvraft/TopStart.lean`). Twins cascade
 (a twin's body needs its callees' twins), so **D7 re-sections** in place, as the audit's "retype only".
 
 **Where the single-process proof already splits.** `allocN` (`etcdstart/AllocN.lean`) is the cluster's part
@@ -753,7 +753,7 @@ record (`idIssueExt`) keyed by incarnation is D4's. The start resources that are
 **Disagreements with the audit.**
 - **`nodeBootU` is not G**: it holds `bootMarshal` (`InvApiBoot.lean:63`), a persistent WP of
   `proto.Marshal` at the holder's heap. Its split is a raft API change: `nodeBootG` (the rest, global) and the
-  law `nodeBootG ∗ bootMarshal ⊢ nodeBoot` (heap); `cluster_alloc_bootG` gives `nodeBootG`. kvnet never met
+  law `nodeBootG ∗ bootMarshal ⊢ nodeBoot` (heap); `cluster_alloc_bootG` gives `nodeBootG`. kvraft never met
   this: its cluster has no bootstrap log (`cluster_alloc_nb`, already global).
 - **The server's G items are heap-sectioned in Lean** (`srvRaftLogInv`, `kvInv`, `idClusterInv`,
   `srvPropMint`, `srvRdCtxInv`, `idKeyFactAt`, `idWaitTokAt`, `newServerStoreFreshA`, `netNames`, and their
@@ -767,7 +767,7 @@ record (`idIssueExt`) keyed by incarnation is D4's. The start resources that are
 
 **Order of work.** (a) the S2 start for `k` members over `S2Draft` (cheap, global, no rebuild of the tree);
 (b) `clusterAllocN`/`memberBoot_of` factoring of `allocN` (etcdstart only, 31 modules); (c) raft's `nodeBootG`,
-`cluster_alloc_bootG` and the law (raft API; interfaces, the `RaftTla`/`RaftNoAx`/`KvNet` copies regenerated;
+`cluster_alloc_bootG` and the law (raft API; interfaces, the `RaftTla`/`RaftNoAx`/`KvRaft` copies regenerated;
 a 2639-module rebuild); (d) the server re-sectioning (935 modules) and `clusterAllocN` at the global classes;
 (e) `etcdClusterStart` = (d) + (a), and a `k`-member boot skeleton `EtcdBootsS2` as putget's `BootsS2`. (c)
 and (d) are mechanical but rebuild most of the tree: to schedule with the coordinator (build slots).
@@ -815,7 +815,7 @@ test of the gate), hence `idCluster_alloc`, `srvClusterBoot_alloc`, `clusterFact
 `cluster_alloc_boot_impl_tr` now its corollary (statement unchanged). The node API (`InvNodeRule`, sealed):
 `nodeBootG γ N vs ctxs id bl` (`@[no_expose]`, persistent), `cluster_alloc_bootG` (`cluster_alloc_ns`'s boot case over
 the global classes, each voter's `nodeBootG` at `toEntries boot 0`), and the law `nodeBoot_of_G : nodeBootG … bl ∗
-bootMarshal vs ctxs bl ⊢ nodeBoot …` at a heap. Additive: no statement changed; `RaftTla`/`RaftNoAx`/`KvNet` copies
+bootMarshal vs ctxs bl ⊢ nodeBoot …` at a heap. Additive: no statement changed; `RaftTla`/`RaftNoAx`/`KvRaft` copies
 regenerated; heap-free roots, `nodeBoot` a negative test. `srvClusterBoot_alloc` can now take the raft part from
 `cluster_alloc_bootG`; it stays at a heap until the idutil split.
 
@@ -1041,7 +1041,7 @@ examples, bridge, etcd-all, k8s-all, ...) gets those four explicitly and `net=Ne
 - **Parts**: RaftNoAx (13 modules), RaftTla (12), RaftWitness (12) and WalTester (4) reach `Code.net`
   through main-tree modules (cache's `Base`, etcdstart's `Adequacy`/`TopLevelDefs`/`DurableExt`, the WAL's
   `Init`/`Link`); afterwards they reach Net's `net` and `GooseLang/Ext/Net` instead: no clash (none declares
-  `net`'s names), no axiom added. KvNet keeps its own `net` (`net=KvNet`) and never reaches the main tree's.
+  `net`'s names), no axiom added. KvRaft keeps its own `net` (`net=KvRaft`) and never reaches the main tree's.
   `Net/` stops being closed to the main tree: `CLAUDE.md`'s layout and `Net/Code/net.toml`'s header say so.
 - **Left after the swap, for kvremote**: (1) Net's own `net/http`, `net/textproto`, `net/rpc` (project
   `models-net`) still declare the main tree's names-only `Code/net/{http,textproto}`'s names until S5.
@@ -1050,7 +1050,7 @@ examples, bridge, etcd-all, k8s-all, ...) gets those four explicitly and `net=Ne
   reaches none today). (2) Net's copies of the main tree's initializers (gen-init's `NET_MAIN`: `os`,
   `syscall`, `internal/poll`, `io/fs`, `internal/syscall/unix`, porcupine, lintest and its two instances,
   and `PkgInitExt`) clash with the main tree's in a closure holding both remote's and clientv3's: they are
-  retired, `Net/` importing the main tree's (step 5); `etc/copy-part.py --check` then checks that KvNet,
+  retired, `Net/` importing the main tree's (step 5); `etc/copy-part.py --check` then checks that KvRaft,
   which copies `Net/`, still gets only its own.
 
 **The main tree: what each closed statement becomes.** Keeping `net.Listen.wp_proof` an axiom is not an
@@ -1099,7 +1099,7 @@ run over the net extension.
     restated. Trusted code added to the etcd collections: `Net/TrustedCode/net.lean` and the net
     extension's semantics (`GooseLang/Ext/Net/Impl.lean`).
 - **(ii), considered and not recommended.** (a) Keep the main tree's names-only `net` and put kvremote in a
-  part that copies what it imports (KvNet's way): the copy is every module reaching `Code.net`, 9,900. (b)
+  part that copies what it imports (KvRaft's way): the copy is every module reaching `Code.net`, 9,900. (b)
   Retire the three listening theorems until `etcd_safe` replaces them (D5 alone is 60-110k lines). (c)
   Go to one machine per member now (`goose_dist_adequacy`): that is D9's interim theorem; it needs D7 and
   phase 7's transport, which D2 is meant to unblock.

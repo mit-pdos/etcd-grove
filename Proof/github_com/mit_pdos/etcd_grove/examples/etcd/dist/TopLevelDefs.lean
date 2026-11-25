@@ -334,7 +334,7 @@ end programs
 section start
 variable [GooseExts] [ElemExt Net.netExt] [ElemExt Fs.fsExt]
 
-/-- The network at the start: no connection (`DistDeploy`'s, `kvnetRobust`'s `FreshNet`). -/
+/-- The network at the start: no connection (`DistDeploy`'s, `kvraftRobust`'s `FreshNet`). -/
 def NetStart (g : GlobalState) : Prop := (extGlobal Net.netExt g.globalWorld).init
 
 /-- **A member's machine at the start** (`Robust` states the fresh Go process itself): no

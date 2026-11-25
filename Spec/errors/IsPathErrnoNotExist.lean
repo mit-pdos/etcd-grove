@@ -2,7 +2,7 @@
 `errors.Is(err, os.ErrNotExist)` of a `*PathError` of a nonzero errno (`os.errnoPathErr err e`, what the
 `os` models return on a failed system call): it answers `e = ENOENT`. Moved out of
 `Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean` (2026-11-22, unchanged), so that
-`durable`'s `tryRead`, and kvnet's part through it, take it without the WAL's `fileutil` specs.
+`durable`'s `tryRead`, and kvraft's part through it, take it without the WAL's `fileutil` specs.
 
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable).

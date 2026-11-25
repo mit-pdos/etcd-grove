@@ -9,7 +9,7 @@ bootstrap log's bytes (`bootWire`). Lean-first.
 module
 
 public import Proof.go_etcd_io.raft.v3.ApiVocab
-public import Proof.google_golang_org.protobuf.proto.BootWire
+public import Proof.go_etcd_io.raft.v3.CCModel
 
 @[expose] public section
 
@@ -42,7 +42,8 @@ varints (`protowire.AppendVarint`), then the unknown fields (none here, `pbMsg â
 optional field (`Id`, a `nil` `*uint64`; `Context`, a `nil` `[]byte`) is not written, a set one is,
 even when it is `0` (proto2 explicit presence). So the bytes are `type` (`0x10 0x00`), `node_id`
 (`0x18` and its varint) and, for a non-empty context, `context` (`0x22`, its length, its bytes): what
-`ccBootWire` states. Go: `examples/premisefix/confchange`, `TestBootWireVectors` (the bytes, against
+`ccBootWire` states (`ccBootWire_bytes`; `ccBootWire` itself is `proto.Marshal`'s encoder `cc1EncRaw`
+at these fields, `CCModel.lean`, checked against protobuf-go by `ConfChangeWireVectors.lean`). Go: `examples/premisefix/confchange`, `TestBootWireVectors` (the bytes, against
 this formula, for ids from `0` to `2^64 - 1` and contexts absent, of 1, 81 and 300 bytes) and
 `TestBootBytesDependOnPresence` (an `Id` set to `0`, a `Type` unset, an unknown field or an empty
 non-`nil` context give other bytes: what `bootConfChange` excludes). The message is untouched but for

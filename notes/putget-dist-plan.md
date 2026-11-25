@@ -230,7 +230,7 @@ question for every distributed etcd theorem (D2/S4).
 
 **What exists now (proved, this branch).** `Net/Statement/DistBridgeExts.lean`: the all-stable bridge over any
 list of extensions with the net extension, `robust_of_distBootI` (`DistBridge.lean`'s net-only theorems are now
-its corollaries at `netExts`, statements unchanged; kvnet's #22 `NetFsBridge.lean` untouched). A machine's
+its corollaries at `netExts`, statements unchanged; kvraft's #22 `NetFsBridge.lean` untouched). A machine's
 obligation is `DistBootWpS bound e σ P`: from its share `P`, **its extensions' local start resources**
 (`extsLocalStart σ.world`: its files' `osStart`, its listeners), no package initialized, **the main thread's
 token** `threadTok`, and the logic's bounds (`receiptBound ≤ bound`, `threadBound = receiptBound + 1`), its

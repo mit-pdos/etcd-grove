@@ -12,7 +12,7 @@ The trace check's results (`examples/raft/tracecheck`, the closed program of
   token, `trTok_type`, `isReadyChan_recvAu.tracedSpec_proof`, the linked `node.Advance.tracedSpec`,
   `TracedLinked.lean`).
 * **`raft_tracecheck_safe_of`**: §1.2's `raft_tracecheck_safe` (no execution of the package's
-  initialization then `Main()`, of `n + 4 ≤ 2^61` steps along which fewer than `2^31` threads are
+  initialization then `Main()`, of `n + 6 ≤ 2^61` steps along which fewer than `2^31` threads are
   live at once, panics or gets stuck; the main thread's
   result is `#()`), given the bootstrap log's facts and premises (`Defs.lean`). Everything `Main`
   calls is proved, over raft's linked results (`Proof/go_etcd_io/raft/v3/Linked.lean`, `Link.lean`)
@@ -156,9 +156,9 @@ package initialized and the premises, returns a cluster `c` on which `c.Events()
 holding a trace `L` whose converted events satisfy `TraceAccepts` (TLC's verdict on raft's TLA+
 trace specification). -/
 theorem raft_tracecheck_accepts_of (h : HarnessOpen) [ThreadBoundLe GF (2 ^ 31)]
-    (Hrb : receiptBound GF + 3 ≤ 2 ^ 61) (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot) :
+    (Hrb : receiptBound GF + 5 ≤ 2 ^ 61) (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts 3 boot) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
-        context.isClosedchanInit ∗ tracecheck.premises boot }}
+        context.isClosedchanInit ∗ tracecheck.premises 3 boot }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.RunConcurrent))
         (Val #defaultCConfig))
     {{ (c : Loc), RET (PairV #c #interface.nil);
@@ -168,7 +168,7 @@ theorem raft_tracecheck_accepts_of (h : HarnessOpen) [ThreadBoundLe GF (2 ^ 31)]
           {{ v, ∃ (sl : GoSlice) (L : List TraceEv), ⌜v = #sl⌝ ∗ traceEventsRep sl L ∗
                 ⌜Etcdraft.TraceAccepts (L.map TraceSim.evConv) false false⌝ }} }} := by
   iintro %Φ ⟨#Hpkg, #Hcc, #Hprem⟩ HΦ
-  iapply (tc_wp_RunConcurrent h (tcRunFits.intro Hrb) boot Hbf defaultCConfig workload_defaultCConfig) $$ [Hcc Hprem]
+  iapply (tc_wp_RunConcurrent h (tcRunFits.intro Hrb) 3 boot Hbf defaultCConfig workload_defaultCConfig) $$ [Hcc Hprem]
   · iframe Hpkg Hcc Hprem
   inext
   iintro %c Hrun
@@ -184,9 +184,9 @@ theorem raft_tracecheck_accepts_of (h : HarnessOpen) [ThreadBoundLe GF (2 ^ 31)]
 /-- **Every run's trace is accepted** (`notes/trace-check-design.md` §1.3; 2026-11-12, trace-check step 5:
 `raft_tracecheck_accepts_of` at the discharged obligation, `harnessOpen`). -/
 theorem raft_tracecheck_accepts [ThreadBoundLe GF (2 ^ 31)]
-    (Hrb : receiptBound GF + 3 ≤ 2 ^ 61) (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot) :
+    (Hrb : receiptBound GF + 5 ≤ 2 ^ 61) (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts 3 boot) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
-        context.isClosedchanInit ∗ tracecheck.premises boot }}
+        context.isClosedchanInit ∗ tracecheck.premises 3 boot }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.RunConcurrent))
         (Val #defaultCConfig))
     {{ (c : Loc), RET (PairV #c #interface.nil);
@@ -209,32 +209,32 @@ variable [go_gctx : GoGlobalContext]
 checker, linked. -/
 theorem tcMainSpec_of (h : HarnessOpen) : tcMainSpec := by
   intro hG _ _
-  exact Main.wp_proof DefaultCConfig.wp_proof (tc_wp_RunConcurrent h)
+  exact Main.wp_proof DefaultCConfig.wp_proof below.wp_proof (tc_wp_RunConcurrent h)
     (Cluster.Events.wp_proof (SyncRecorder.Events.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock))
     ConvertEvents.wp_proof Etcdraft.wp_NewTrace Etcdraft.wp_CheckTrace Etcdraft.Result.wp_TLCOK
 
 /-- **The trace check never fails, from `HarnessOpen`** (`raft_tracecheck_safe`,
 `notes/trace-check-design.md` §1.2, given `HarnessOpen`): every real execution of
-`tracecheckProgram` -- the tracecheck package's initialization, then `Main()`: a three-voter raft
-cluster run concurrently (`RunConcurrent(DefaultCConfig())`: proposals, drops, delays and
+`tracecheckProgram` -- the tracecheck package's initialization, then `Main()`: a raft cluster of
+`1 + below(5)` voters run concurrently (`RunConcurrent(cfg)`, `DefaultCConfig()` with `Nodes` drawn: proposals, drops, delays and
 reordering, isolations), its trace converted and checked against raft's TLA+ trace specification
 (`CheckTrace(tr, true)`), and a panic unless TLC would accept it -- from a fresh state with one
-thread, of `n` steps with `n + 4 ≤ 2^61` along which fewer than `2^31` threads are ever live at
-once (`RealNstepsBelow`), given the bootstrap log's facts and premises, has no
+thread, of `n` steps with `n + 6 ≤ 2^61` along which fewer than `2^31` threads are ever live at
+once (`RealNstepsBelow`), given the bootstrap log's premise (at `tracecheck.bootLog nv`, every `nv` `Main` can draw), has no
 stuck thread and no thread that ended in a panic. -/
 theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
-    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hbw : tracecheck.BootWireFacts boot)
+    (Hprem : ∀ nv : Nat, 1 ≤ nv → nv ≤ tracecheck.maxNodes → ∀ hG : HeapGS .hasLC tcGF,
+      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) nv (tracecheck.bootLog nv))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n + 6 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  tracecheck_adequate_of (tcMainSpec_of h) boot Hbf Hbw σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
+  tracecheck_adequate_of (tcMainSpec_of h) Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
     Hsteps
 
 /-- **The trace check never fails** (`notes/trace-check-design.md` §1.2; 2026-11-12, trace-check step 5:
@@ -242,16 +242,16 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
 theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
-    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hbw : tracecheck.BootWireFacts boot)
+    (Hprem : ∀ nv : Nat, 1 ≤ nv → nv ≤ tracecheck.maxNodes → ∀ hG : HeapGS .hasLC tcGF,
+      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) nv (tracecheck.bootLog nv))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
-    (n : Nat) (Hn : n + 4 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (n : Nat) (Hn : n + 6 ≤ 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow (2 ^ 31) n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  raft_tracecheck_safe_of harnessOpen boot Hbf Hbw σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+  raft_tracecheck_safe_of harnessOpen Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end closed
 
