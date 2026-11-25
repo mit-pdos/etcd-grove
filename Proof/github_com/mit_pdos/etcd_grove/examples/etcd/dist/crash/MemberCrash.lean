@@ -19,11 +19,16 @@ directory it makes, `fileutil.go:49-85`, F-N2, so the entries naming `member` an
   roots `R0` of any shared invariant and is a plain wand, which cannot see that `R0 = R` (two shared
   invariants agree only under an update): the restatement at `R` is proposed (`notes/specs-only/ledger.md`,
   2026-11-25, "T7"), with `crashRest_roots` (below), which gives `old_dir` its `R0 = R`.
+
+And, for the assembly's `Keep` (decision D-T7-3 of the plan): `rnTakenK_stop`, T2's crash law's second case
+(the stop took the records) is refuted by the stop's token, which the member's run keeps (it never stops its
+server).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.MemberGen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapDirCrash
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.FileDur
 public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedCoh
@@ -311,6 +316,40 @@ theorem osPathDur_child (L : GooseLocalGS GF) (R : Roots) (d b : GoString) (j J 
   ipureintro; exact hc
 
 end laws
+
+/-! ## The stop excluded (D-T7-3) -/
+
+section stop
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver in
+/-- **A run that keeps the stop's token was not stopped**: the stop's mark (`rnTakenK`, the second case of
+T2's crash law `rnDurK_crash.law`) contradicts the invariant once the stop's token is held elsewhere. -/
+theorem rnTakenK_stop (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset)
+    (hE : ↑rnDurKN ⊆ E) :
+    letI := srvStor (GF := GF) γn;
+    ⊢ rnDurInvK γn id νk h -∗ rnTakenK νk -∗ token νk.ν.stop -∗ £ 1 ={E}=∗ False := by
+  intro _
+  iintro #Hinv #Htk Hst Hlc
+  iunfold rnDurInvK at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  icases Hi with (Hb | ⟨Hst', -, -, -⟩)
+  · iunfold rnDurBodyK at Hb
+    icases Hb with ⟨%vk, %σ, %Hs, %n, -, -, Htn, -⟩
+    iunfold rnTakenK at Htk
+    ihave %Hbad := dghostVar_valid_2 νk.tkn _ _ _ _ $$ Htn Htk
+    exfalso
+    have h1 := DFrac.valid_own_op Hbad.1
+    exact absurd h1 (by decide)
+  · iexfalso; iapply token_exclusive $$ Hst Hst'
+
+end stop
 
 end memberCrash
 end EtcdGrove
