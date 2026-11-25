@@ -5,6 +5,7 @@ vocabulary is `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvGrpcStart
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.google_golang_org.grpc.InvGrpcProm
 
 @[expose] public section
 

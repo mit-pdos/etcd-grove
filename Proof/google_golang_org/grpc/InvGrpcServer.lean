@@ -51,13 +51,9 @@ in such a run, so the trusted `Serve` model's leaves (`respond`'s size claim), r
 yields `grpcRepliesFit` or, since T9, `grpcRepliesBounded` (a disjunct of `grpcServeTok`), which holds wherever the token is made:
 it is `grpc.start'`'s premise.
 
-**The health service** (`grpcHealthSrv hs`, persistent, axiomatized): grpc's `*health.Server`
-`hs` (`health.NewServer()`), whose `SetServingStatus` is safe from any goroutine.
-
-**grpc-prometheus's server metrics** (`promSrvMetrics m`, persistent, axiomatized): a
-`*ServerMetrics` `m` made by `NewServerMetrics` (its counters and histograms, safe from any
-goroutine), whose interceptors are transparent. (Its options, `promSrvMetricsOpt`, are defined in
-`Proof/github_com/grpc_ecosystem/go_grpc_middleware/providers/prometheus/Defs.lean`.)
+The health server (`grpcHealthSrv`), grpc-prometheus's server metrics (`promSrvMetrics`) and the
+stats handlers' property (`grpcStatsHandlerOk`) are in `InvGrpcHealth.lean`, `InvGrpcProm.lean` and
+`InvGrpcStats.lean`.
 -/
 module
 
@@ -104,13 +100,6 @@ codec's; what the wire models (`ProtoMsg`) presume. etcd's `v3rpc.codec` is one
 (`v3rpc.codec_proto`). -/
 axiom grpcProtoCodec [GooseExts] (c : GoInterface) : Prop
 
-/-- **The `stats.Handler` `h` adds no value under etcd's context keys and lets every call run**
-(an axiomatized property, introduced by `otelgrpc.NewServerHandler`'s spec): what `grpcRunCtx`
-presumes of the stats handlers in front of a method's handler. Since 2026-11-06 (`grpcRunCtx`'s
-`trace.spanCtxOk`), also: the span it stores under otel's span key, if any, is a span (otelgrpc's:
-its tracer's, `End`, `AddEvent`, `RecordError` returning). -/
-axiom grpcStatsHandlerOk [GooseExts] (h : GoInterface) : Prop
-
 /-- **The server being built** (exclusive; see the file header). A handler in `regs`/`sregs` is
 Go's `MethodDesc.Handler`/`StreamDesc.Handler`, a `GoFunc`. **Invariant every producer upholds**
 (per-type stage B, B1b): every `sregs` entry comes from a stream descriptor setting `ClientStreams`
@@ -133,22 +122,6 @@ property of the table's entries). -/
 axiom grpcSrvAtLis {GF : BundledGFunctors} [GooseExts] (gs : Loc) (lis : GoInterface) (addr : GoString)
   (ics sics : List GoFunc) (svcs : List GoString) (regs sregs : List (GoString × GoFunc × GoInterface)) :
   IProp GF
-
-/-- **grpc's health server `hs`** (persistent; see the file header). -/
-axiom grpcHealthSrv {GF : BundledGFunctors} [GooseExts] (hs : Loc) : IProp GF
-
-axiom grpcHealthSrv_persistent {GF : BundledGFunctors} [GooseExts] (hs : Loc) :
-  Persistent (grpcHealthSrv (GF := GF) hs)
-
-attribute [instance] grpcHealthSrv_persistent
-
-/-- **grpc-prometheus's server metrics `m`** (persistent; see the file header). -/
-axiom promSrvMetrics {GF : BundledGFunctors} [GooseExts] (m : Loc) : IProp GF
-
-axiom promSrvMetrics_persistent {GF : BundledGFunctors} [GooseExts] (m : Loc) :
-  Persistent (promSrvMetrics (GF := GF) m)
-
-attribute [instance] promSrvMetrics_persistent
 
 section pure
 variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
