@@ -478,39 +478,41 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
   · imod rnTakenK_stop (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E hE $$ Hinv Htaken Hst with %hF
     exact hF.elim
 
-/-- **The WAL area's crash** (`walInv_crash` at the member's WAL, first of the crash lemmas: no file
-taken before it): from `memberWalKeep` at the old generation `L`, its `crashed` and the crash rest
+/-- **The WAL area's crash** (`walInv_crash` at the member's WAL; the files `D` taken before it, none in
+the area's directories): from `memberWalKeep` at the old generation `L`, its `crashed` and the crash rest
 (whose premise `Q` gives W1, `hQ`), a new generation `W'` of the WAL's names with the crash view and
 its lock token (`memberWalCrashW`, at `L'`), the crashed tree well formed, and the crash rest with the
 area's files taken. (The new generation's area resources, `walStart` and its boot files, are dropped:
 `memberGen`'s restart case holds only the files, `srvFilesC`; the restarted server's WAL area is
 `bootstrap`'s crash contract's.) -/
 theorem memberWal_crash (L L' : GooseLocalGS GF) (h : WalH GF) (Q : Fs.OsState → Fs.OsState → Prop)
-    (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st') (V' : Fs.Hist) (E : CoPset)
+    (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st') (V' : Fs.Hist) (D : List Fs.Ino)
+    (hD : ∀ i ∈ D, ¬ WalFs.InAreaDir V'.now h.jr i) (E : CoPset)
     (hE : ↑WalFs.walN ⊆ E) (hE' : ↑Fs.osShN ⊆ E) :
     letI := h.ext; letI := h.semOk; letI := h.has;
     ⊢ memberWalKeep (hG := ⟨G, etcd_dist.atCtx L⟩) h -∗
       crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗
       Fs.crashRest Q (Fs.gooseOsGS (L := etcd_dist.atCtx L)) (Fs.gooseOsGS (L := etcd_dist.atCtx L'))
-        [] false V' ={E}=∗
-      ∃ (W' : WalFs.WalGS GF) (D : List Fs.Ino),
-        memberWalCrashW (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ∗ ⌜W'.roots = h.R ∧ Fs.TreeWf h.R V'.now⌝ ∗
+        D false V' ={E}=∗
+      ∃ (W' : WalFs.WalGS GF) (D' : List Fs.Ino),
+        memberWalCrashW (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' ∗
+        ⌜W'.roots = h.R ∧ Fs.TreeWf h.R V'.now ∧ ∀ i ∈ D', WalFs.InAreaDir V'.now h.jr i⌝ ∗
         Fs.crashRest Q (Fs.gooseOsGS (L := etcd_dist.atCtx L)) (Fs.gooseOsGS (L := etcd_dist.atCtx L'))
-          D false V' := by
+          (D' ++ D) false V' := by
   letI := h.ext; letI := h.semOk; letI := h.has
   iintro Hk Hcr Hrest
   iunfold memberWalKeep at Hk
   icases Hk with ⟨Hinv, Hct, #Hsh⟩
   imod WalFs.walInv_crash walCodec walCodec_ok walSrvMr Q hQ ⟨G.gooseAllG⟩ (etcd_dist.atCtx L)
-    (etcd_dist.atCtx L') h.W h.R h.jr h.r V' [] (fun _ h => absurd h (List.not_mem_nil)) E hE hE' $$
+    (etcd_dist.atCtx L') h.W h.R h.jr h.r V' D hD E hE hE' $$
     Hinv Hcr Hct Hsh Hrest with ⟨%W', %s', %D', Hcw, %hp, -, -, Hu, -, -, Hrest⟩
   imodintro
-  iexists W', D' ++ []
+  iexists W', D'
   iframe Hrest
   isplitl [Hcw Hu]
   · iunfold memberWalCrashW
     iframe Hcw Hu
-  · ipureintro; exact ⟨hp.1, hp.2.2.2.2.2.1⟩
+  · ipureintro; exact ⟨hp.1, hp.2.2.2.2.2.1, hp.2.2.2.2.2.2.2.2⟩
 
 /-- **The cluster's facts are the same at any generation** (persistent ghost and invariant facts). -/
 theorem memberClusterFacts_gen (L L' : GooseLocalGS GF) (C : etcd_dist.MemberCl) :
@@ -637,6 +639,132 @@ theorem snapDir_split (R : Roots) (sd : GoString) (J : Ino) (V : Hist) (q qc : Q
 
 end slots
 
+/-! ## The snapshot directory's geometry after the crash (T7, session 5)
+
+The member's snapshot directory `J` is `snap` in `member` in the data directory (a root `jd`): the keep holds that
+spine durably (`osSpineDur jd [member, snap] J`), so the crashed tree has it (`walk_two`). Then (pure) no file of
+`J` is in the WAL area's directories (`notInArea`: `J`'s parent is no root, the area `jr` is one), and the three
+directories are distinct members of the tree (`spineDirs`); at the new generation their whole claims give the
+path's spine at the fraction `1` and `J`'s whole claim (`snapClaims_new`). -/
+
+section geom
+variable [GooseExts]
+
+theorem walk_two {m : Tree} {j J : Ino} {a b : GoString}
+    (h : walk m (.dir j) [a, b] = some (.dir J)) :
+    ∃ jm, m.entry j a = some (.dir jm) ∧ m.entry jm b = some (.dir J) := by
+  simp only [walk] at h
+  split at h
+  · rename_i n hn
+    cases n with
+    | dir jm =>
+      simp only [walk] at h
+      split at h
+      · rename_i n' hn'
+        simp only [walk, Option.some.injEq] at h
+        subst h
+        exact ⟨jm, hn, hn'⟩
+      · cases h
+    | file f => simp [walk] at h
+  · cases h
+
+/-- **No file of the snapshot directory is in a WAL area's directory**: `J` is `b` in `jm`, itself a
+child, and the area `jr` is a root. -/
+theorem notInArea {R : Roots} {m : Tree} (hwf : TreeWf R m) {jd jm J jr x : Ino} {rw a b c : GoString}
+    (h1 : m.entry jd a = some (.dir jm)) (h2 : m.entry jm b = some (.dir J)) (hr : (rw, jr) ∈ R)
+    (hx : m.entry J c = some (.file x)) : ¬ WalFs.InAreaDir m jr x := by
+  rintro ⟨J', b', a', he, hj⟩
+  obtain ⟨rfl, -⟩ := hwf.2.2.2.2 J c J' b' _ hx he
+  obtain ⟨hjm, -⟩ := hwf.2.2.2.2 jm b jr a' _ h2 hj
+  subst hjm
+  exact hwf.2.2.2.1 jd a jm h1 rw hr
+
+/-- A directory of the tree is in `dirsOf`. -/
+theorem mem_dirsOf {V : Hist} {j : Ino} (hm : j ∈ V.now) : j ∈ dirsOf V := by
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hm
+  exact List.mem_map.2 ⟨(j, v), (GMap.mem_toList _ _ _).2 hv, rfl⟩
+
+/-- **The spine's directories**: in the tree and pairwise distinct. -/
+theorem spineDirs {R : Roots} {m : Tree} (hwf : TreeWf R m) {jd jm J : Ino} {rd a b : GoString}
+    (hd : (rd, jd) ∈ R) (h1 : m.entry jd a = some (.dir jm)) (h2 : m.entry jm b = some (.dir J)) :
+    jd ∈ m ∧ jm ∈ m ∧ J ∈ m ∧ jd ≠ jm ∧ jd ≠ J ∧ jm ≠ J := by
+  have hjd : jd ∈ m := hwf.1 jd (.root rd jd hd)
+  have hjm : jm ∈ m := (hwf.2.2.1 jd a _ h1).2 jm (by simp [Node.dirIno])
+  have hJ : J ∈ m := (hwf.2.2.1 jm b _ h2).2 J (by simp [Node.dirIno])
+  refine ⟨hjd, hjm, hJ, ?_, ?_, ?_⟩
+  · intro e; subst e; exact hwf.2.2.2.1 jd a jd h1 rd hd
+  · intro e; subst e; exact hwf.2.2.2.1 jm b jd h2 rd hd
+  · intro e; subst e
+    obtain ⟨e, -⟩ := hwf.2.2.2.2 jd a jm b _ h1 h2
+    subst e; exact hwf.2.2.2.1 jd a jd h1 rd hd
+
+/-- The cur of a fresh claim on one name is the tree's entry. -/
+theorem namesOf_only_cur (V : Hist) (j : Ino) (b : GoString) :
+    (namesOf V j (.only [b])).cur !! b = V.now.entry j b := by
+  unfold namesOf
+  simp only
+  rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), entsOf_lookup]
+
+end geom
+
+section newClaims
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+theorem nameOk_member : NameOk go!"member" := by unfold NameOk; decide
+
+/-- **The new generation's claims on the snapshot directory's spine** (D-T7-4): out of the whole claims of
+`osShared`, the path `dd/member/snap` at the fraction `1` and the snapshot directory's whole claim. -/
+theorem snapClaims_new (R : Roots) (V : Hist) (dd : GoString) (jd jm J : Ino) (E : CoPset)
+    (hE : ↑osShN ⊆ E) (hwf : TreeWf R V.now) (hR : RootsOk R) (hd : (dd, jd) ∈ R)
+    (h1 : V.now.entry jd go!"member" = some (.dir jm)) (h2 : V.now.entry jm go!"snap" = some (.dir J)) :
+    ⊢ osSharedInv R -∗
+      ([∗list] j ∈ dirsOf V, osNames j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
+      osPathS R (joinPath dd [go!"member", go!"snap"]) (DFrac.own 1) J ∗
+      osNames J (.except []) (DFrac.own 1) (namesOf V J (.except [])) := by
+  obtain ⟨hjd, hjm, hJ, hne1, hne2, hne3⟩ := spineDirs hwf hd h1 h2
+  iintro #Hsh Hall
+  icases (BigSepL.bigSepL_perm (List.perm_cons_erase (mem_dirsOf hjd))).1 $$ Hall with Hall
+  icases BigSepL.bigSepL_cons.1 $$ Hall with ⟨Hd, Hall⟩
+  icases (BigSepL.bigSepL_perm (List.perm_cons_erase
+    ((List.mem_erase_of_ne (Ne.symm hne1)).2 (mem_dirsOf hjm)))).1 $$ Hall with Hall
+  icases BigSepL.bigSepL_cons.1 $$ Hall with ⟨Hm, Hall⟩
+  icases (BigSepL.bigSepL_perm (List.perm_cons_erase
+    ((List.mem_erase_of_ne (Ne.symm hne3)).2
+      ((List.mem_erase_of_ne (Ne.symm hne2)).2 (mem_dirsOf hJ))))).1 $$ Hall with Hall
+  icases BigSepL.bigSepL_cons.1 $$ Hall with ⟨HJ, -⟩
+  imod WalFs.osNames_split_only _ R V jd E hE [go!"member"] [] (by simp) (by simp) $$ Hsh Hd
+    with ⟨-, Hd⟩
+  icases BigSepL.bigSepL_singleton.1 $$ Hd with Hd
+  imod WalFs.osNames_split_only _ R V jm E hE [go!"snap"] [] (by simp) (by simp) $$ Hsh Hm
+    with ⟨-, Hm⟩
+  icases BigSepL.bigSepL_singleton.1 $$ Hm with Hm
+  imodintro
+  iframe HJ
+  unfold osPathS
+  iexists dd, jd, [go!"member", go!"snap"]
+  isplitl []
+  · ipureintro
+    refine ⟨hR, hd, ?_, rfl⟩
+    intro c hc
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
+    rcases hc with rfl | rfl
+    · exact nameOk_member
+    · exact bootSnap.nameOk_snap
+  rw [osSpine_cons, osSpine_cons, osSpine_nil]
+  iexists _, jm
+  iframe Hd
+  isplitl []
+  · ipureintro; rw [namesOf_only_cur]; exact h1
+  iexists _, J
+  iframe Hm
+  isplitl [] <;> ipureintro
+  · rw [namesOf_only_cur]; exact h2
+  · rfl
+
+end newClaims
+
 /-! ## The member's keep and the named hypotheses (T7, session 4)
 
 `memberKeep`: what a run keeps for its crash. Its restart case (`memberKeepR`) is over the run's names
@@ -664,6 +792,8 @@ structure MemberKN (GF : BundledGFunctors) where
   J : Ino
   γd : GName
   γm : GName
+  /-- the data directory's root inode (the snapshot directory's spine starts there) -/
+  jd : Ino
 
 end kn
 
@@ -685,17 +815,24 @@ abbrev memberSnapKeep (k : MemberKN GF) (dd : GoString) : IProp GF :=
 /-- **What a restartable run of member `id` keeps for a crash** (the restart case of `memberKeep`): the
 restart's facts at the run's names, raft's durability (`memberDurKeep`, with the stop's token: D-T7-3),
 the WAL area (`memberWalKeep`), the backend file's crash record (`dbCrashKeep`, A1), the snapshot
-directory's invariant with its token (`snapDirKeep`), the snapshot directory's durable path
-(`osPathDur`, D-T7-4: T8's boot makes it), the program's file-system context (B7: `snapDir_crash.law`
-and `onFs` are at `theFs`), and the abstract piece `KeepB k` (B1). -/
+directory's invariant with its token (`snapDirKeep`), the snapshot directory's durable spine
+`member/snap` from the data directory's root `jd` (`osSpineDur`, D-T7-4: T8's boot makes it after the two
+`TouchDirAll`s, as `osPathDur_child` does; session 5: the spine and not `osPathDur`, so that the crash law
+knows `J`'s parent is no root), the program's file-system context (B7: `snapDir_crash.law` and `onFs` are at
+`theFs`), and the abstract piece `KeepB k` (B1). Pure geometry (session 5, T8's from the boot's roots):
+the data directory `dd` is a root at `jd`, the WAL area `h.r` a root at `h.jr`, other than `dd`, the WAL
+directory below it, and `snapDirOf dd` the path `dd/member/snap`. -/
 def memberKeepR (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
     (KeepB : MemberKN GF → IProp GF) : IProp GF :=
   iprop(∃ k : MemberKN GF,
     ⌜(∃ r : GName, k.γ = { C.γ with reg := r }) ∧ k.h.dir = srvWalDirOf cfg.DataDir' ∧
-      k.h.md = walMetaEnc id k.cid ∧ k.γ.snapLoc id = some k.γd ∧ (∃ c, theFs GF = some c)⌝ ∗
+      k.h.md = walMetaEnc id k.cid ∧ k.γ.snapLoc id = some k.γd ∧ (∃ c, theFs GF = some c) ∧
+      (cfg.DataDir', k.jd) ∈ k.h.R ∧ (k.h.r, k.h.jr) ∈ k.h.R ∧ k.h.r ≠ cfg.DataDir' ∧
+      IsUnder k.h.r k.h.dir ∧
+      config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"]⌝ ∗
     etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
     backend.dbCrashKeep k.γb (config.backendPathOf cfg.DataDir') k.i0 k.Dl k.Dn k.pd ∗
-    memberSnapKeep k cfg.DataDir' ∗ osPathDur k.h.R (config.snapDirOf cfg.DataDir') k.J ∗ KeepB k)
+    memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepB k)
 
 /-- **The image rows the backend owes** (B1's output; `srvCrashImageAt`'s backend rows at the run's names):
 a committed prefix `A` reaching the backend's index `i`, the backend's data `D` its image (`imageRestAt`,
@@ -775,6 +912,20 @@ abbrev memberImage.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id
       ∃ (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership),
         memberImageRows (hG := ⟨G, etcd_dist.atCtx L'⟩) k cfg.DataDir' i A D m ∗
         ⌜memberImageB σ i ∧ memberImageBoot k.γ i⌝
+
+/-- **B1's durable name of the backend file** (named hypothesis; T10's, with `memberImage.law`; session 5's
+decision: in B1's keep `KeepB`, not in `memberKeepR`): every crash leaves the snapshot directory's name `db`
+naming the record's inode `i0` (`dbCrash`'s premise `Named V'.now i0`, and where the file is for the
+snapshot directory's crash). The backend's record `dbCrashKeep` holds the claim on `db` (`bPath`), so no
+`nameCrash` can be kept beside it; the name's commits are the backend's run's (bbolt's `Open`, the
+snapshot's rename `OpenSnapshotBackend` with `renamedDur`), which T10's invariant tracks. -/
+abbrev memberDbNamed.law (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (k : MemberKN GF) (Q : OsState → OsState → Prop) (D : List Ino)
+    (tt : Bool) (V' : Hist),
+    ⊢ KeepB L k -∗
+      crashRest Q (gooseOsGS (L := etcd_dist.atCtx L)) (gooseOsGS (L := etcd_dist.atCtx L')) D tt V' ={⊤}=∗
+      ⌜V'.now.entry k.J go!"db" = some (.file k.i0)⌝ ∗ KeepB L k ∗
+      crashRest Q (gooseOsGS (L := etcd_dist.atCtx L)) (gooseOsGS (L := etcd_dist.atCtx L')) D tt V'
 
 /-- **B6, the prefix generators' invariant at the new generation** (named hypothesis; ledger 2026-11-25,
 "`memberGen`'s restart case asks for the old incarnation's `idPfxInv`"): `idPfxInv` is heap-level, so the
