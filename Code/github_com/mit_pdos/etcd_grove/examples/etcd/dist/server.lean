@@ -3,6 +3,7 @@ module
 
 public import Net.Code.net
 public import Code.net.http
+public import Code.os
 public import Perennial.Code.time
 public import Code.go_uber_org.zap
 public import Code.google_golang_org.grpc
@@ -59,6 +60,9 @@ noncomputable def MainDeploymentLogger [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def serverConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/server.serverConfig"
 
+noncomputable def proxyEnvSet [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/server.proxyEnvSet"
+
 noncomputable def inCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/server.inCluster"
 
@@ -70,7 +74,7 @@ noncomputable def MainLogger [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- holdForever keeps the process alive: a member runs until its machine crashes.
 
-    go: server.go:70:6 -/
+    go: server.go:71:6 -/
 noncomputable def holdForever.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -85,7 +89,7 @@ noncomputable def holdForever.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ConfigOf is member i's configuration in the deployment d (0 <= i < len(d.Members)).
 
-    go: server.go:77:6 -/
+    go: server.go:78:6 -/
 noncomputable def ConfigOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "i"
@@ -140,7 +144,7 @@ noncomputable def ConfigOf.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MainDeployment is member i's machine of the deployment d (Lean: serverProg d i), with no logging
     (MainDeploymentLogger).
 
-    go: server.go:90:6 -/
+    go: server.go:91:6 -/
 noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "i"
@@ -158,7 +162,7 @@ noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
     formed (deployment.WellFormed) and has a member i, MainLogger of member i's configuration
     (ConfigOf); otherwise it returns at once.
 
-    go: server.go:97:6 -/
+    go: server.go:98:6 -/
 noncomputable def MainDeploymentLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "i"
@@ -186,7 +190,7 @@ noncomputable def MainDeploymentLogger.impl [GooseExts] [GoGlobalContext] : val 
 /-- serverConfig is the member's etcd configuration: c's, with the examples' fixed values for the
     rest (etcdstart's newServerMode and StartMemberAuth).
 
-    go: server.go:106:6 -/
+    go: server.go:107:6 -/
 noncomputable def serverConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "lg"
@@ -276,9 +280,31 @@ noncomputable def serverConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Pair (Var "cluster") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "$res0"))))))
 
+/-- proxyEnvSet says whether the environment names an HTTP proxy: one of the variables net/http's
+    ProxyFromEnvironment reads a proxy from (golang.org/x/net/http/httpproxy's FromEnvironment:
+    HTTP_PROXY or http_proxy for http URLs, HTTPS_PROXY or https_proxy for https URLs) nonempty.
+    NO_PROXY and REQUEST_METHOD only ever turn a proxy off, so they are not read.
+
+    go: server.go:147:6 -/
+noncomputable def proxyEnvSet.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (Val #(go!"HTTP_PROXY"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getenv []))) (Val #())) (Var "$a0"))) (Val #(go!""))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (Val #(go!"http_proxy"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getenv []))) (Val #())) (Var "$a0"))) (Val #(go!"")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (Val #(go!"HTTPS_PROXY"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getenv []))) (Val #())) (Var "$a0"))) (Val #(go!"")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Let "$a0" (Val #(go!"https_proxy"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Getenv []))) (Val #())) (Var "$a0"))) (Val #(go!""))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 /-- inCluster says whether c's own name and peer address are an entry of its initial cluster.
 
-    go: server.go:143:6 -/
+    go: server.go:153:6 -/
 noncomputable def inCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -315,7 +341,7 @@ noncomputable def inCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs one member with no logging (MainLogger).
 
-    go: server.go:153:6 -/
+    go: server.go:163:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -330,13 +356,14 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
     (and the process) without a panic: the theorem then has nothing to say about this member's
     later behavior, and its peers see it as a member that never answers.
 
-    go: server.go:160:6 -/
+    go: server.go:170:6 -/
 noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "lg"
   (Seq (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "c" (App (Val (GoInstruction (GoAlloc Config.ty))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Config.ty))) (Var "c"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -348,6 +375,7 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -363,11 +391,10 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "pl"))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.http.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.http.Server.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.ServerPeerV2.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.NewPeerHandler []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.net.http.Server.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Handler")) (ElementExpression _root_.Perennial.net.http.Handler.ty (Var "$v0")))])))))
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Serve []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
@@ -413,10 +440,8 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"ReadyNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))
-  (App (Val doExecute)
   (Fork
-  (App (Var "$go") (Var "$a0")))))))))
+  (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val #()))
@@ -426,6 +451,8 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "pl") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val #()))
@@ -440,11 +467,16 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
+  (Val #()))))))
+  (If (App (App (Val (GoInstruction (FuncResolve proxyEnvSet []))) (Val #())) (Val #()))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
   (Val #())))))))
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.os, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -463,10 +495,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.os.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -630,11 +665,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MainDeployment_unfold : FuncUnfold MainDeployment [] MainDeployment.impl
   MainDeploymentLogger_unfold : FuncUnfold MainDeploymentLogger [] MainDeploymentLogger.impl
   serverConfig_unfold : FuncUnfold serverConfig [] serverConfig.impl
+  proxyEnvSet_unfold : FuncUnfold proxyEnvSet [] proxyEnvSet.impl
   inCluster_unfold : FuncUnfold inCluster [] inCluster.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   MainLogger_unfold : FuncUnfold MainLogger [] MainLogger.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
+  import_os_Assumption : _root_.Perennial.os.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
@@ -655,11 +692,13 @@ attribute [instance] Assumptions.Peer_instance
   Assumptions.MainDeployment_unfold
   Assumptions.MainDeploymentLogger_unfold
   Assumptions.serverConfig_unfold
+  Assumptions.proxyEnvSet_unfold
   Assumptions.inCluster_unfold
   Assumptions.Main_unfold
   Assumptions.MainLogger_unfold
   Assumptions.import_net_Assumption
   Assumptions.import_http_Assumption
+  Assumptions.import_os_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_grpc_Assumption

@@ -15,6 +15,7 @@ public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.keepalive
 public import Net.GeneratedProof.net
 public import GeneratedProof.net.http
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server

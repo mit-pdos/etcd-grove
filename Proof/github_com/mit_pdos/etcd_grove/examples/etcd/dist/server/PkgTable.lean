@@ -992,7 +992,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h190 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h19, h21, h6, h46, h56, h48, h61, h103, h180, h181, h186, h177, h187, h189, True.intro⟩
+    exact ⟨h19, h21, h18, h6, h46, h56, h48, h61, h103, h180, h181, h186, h177, h187, h189, True.intro⟩
   exact h190
 
 end table

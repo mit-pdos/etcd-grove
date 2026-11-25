@@ -146,6 +146,7 @@ theorem StartMember.wp_proof
   subst Herr
   wp_auto
   -- `net.Listen("tcp", client)`: the member's client address, before the server starts
+  icases netAddrFree_split _ $$ Hcaddr with ⟨Hcaddr, Hcpend⟩
   wp_apply (wp_Listen go!"tcp" client) $$ [Hcaddr] as %clis %cerr Hclis
   · iframe; ipureintro; rfl
   icases Hclis with (⟨%Hcerr, Hclis, Hcleft⟩ | %Hcerr)
@@ -156,6 +157,8 @@ theorem StartMember.wp_proof
     wp_auto
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Hcerr
+  ihave Hcleft := netAddrLeft_intro _ $$ [Hcpend Hcleft]
+  · iframe
   wp_auto
   -- `s.Start()`
   wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm Hrb48) $$ [Hmb Htok] as Hup
