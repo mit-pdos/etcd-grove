@@ -34,12 +34,12 @@ variable [sem : go.Semantics]
 def walLastOpen (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (dir : GoString) (lf : Loc) :
     IProp GF :=
   iprop(∃ (d : WalDur) (lay : WalLay) (X : List GoString) (hj : NamesH) (gL : SegG) (f : Loc)
-      (fd : w64) (qd : Qp) (lo lk : Option Bool),
+      (fd : w64) (qd : Qp) (lo lk : Option Bool) (I : GMap GoString Nat),
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ TailIdle C Mr d lay ∧
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧ lay.segs.getLast? = some gL ∧
       0 ≤ fd.toInt ∧ NameOk gL.name⌝ ∗
-    walDirKey (W := W) dir lay.j X ∗ walLockedTok (W := W) ∗
+    walDirKey (W := W) dir (incOf I dir) lay.j X ∗ walLockedTokI (W := W) I ∗
     (walTailsFrag (W := W) ∅ ∗ walHLoans (W := W) dir none [qd]) ∗
     walOutFrag (W := W) ⟨[gL.ino], [(lay.j, .except X)], []⟩ ∗
     segRes (L := hG.goose_localGS) gL ∗ osNames (L := hG.goose_localGS) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗

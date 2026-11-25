@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: openAtIndex (read mode's post), WAL.Close (`.opening`'s pre) -- the read handle's key must name its incarnation
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean` (post, both modes) and
+  `WAL__Close.lean` (the `.opening` arm's pre), through `walReadH`/`walReadTie` (`Proof/.../wal/ReadDefs.lean`).
+  Internal; no `SpecPlan/` counterpart.
+- **Defect.** Fix B (entries below): `walReadTie` holds the WAL's key, which is now `walDirKey dir i j X`; a
+  key with no incarnation tied to the holder's cannot be looked up. `walReadH write w dir s` names none, and
+  the read mode's post gives `walLockedTok` (its incarnations hidden), so `ReadAll`/`Close` over a read handle
+  cannot show the key current.
+- **Evidence.** `ReadDefs.lean:123` (P6b session 12 build); `walDirKey_lookup` needs `incOf I dir = i` of the
+  holder's share.
+- **Proposed change.** `walReadTie`/`walReadH` take the incarnation `i` (the key at `i`). `openAtIndex`'s post:
+  write mode `walOpening w dir s ic ∗ walReadH true w dir s ic`; read mode `(∃ I, walLockedTokI I ∗
+  ⌜incOf I dir = ic⌝) ∗ walReadH false w dir s ic` in place of `walLockedTok ∗ walReadH false w dir s`.
+  `WAL.Close`'s `.opening` arm: `∃ i, walOpening w dir s i ∗ walReadH true w dir s i`. The sealed
+  `walReadOnlyF w dir s := ∃ I, walLockedTokI I ∗ walReadH false w dir s (incOf I dir) ∗ …` and `walOpeningF`
+  (already at `i`) follow; no client-visible predicate changes.
+- **Decision.** Applied (P6b session 12, under the coordinator's rule for further internal spec changes);
+  reported for review.
+
 ## 2026-11-25: WAL.renameWAL (`RenameWALOk`'s spine law, `renameWALPost`'s committed arms) -- the spine law cannot give the pipeline its eighth of the incarnations and return the update's result unchanged
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`: `RenameWALOk`'s spine law

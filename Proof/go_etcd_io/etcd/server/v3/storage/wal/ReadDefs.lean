@@ -115,12 +115,12 @@ def walReadFallback (w : Loc) (dir : GoString) (allNames selected : List GoStrin
         PathFits dir ∧ names = allNames ∧ names.drop (sint.nat v.first') = selected⌝))
 
 /-- See the file header. -/
-def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (qs : List Qp) (fs : List (DecFile GF))
+def walReadTie (dir : GoString) (i : Nat) (write : Bool) (s : w64 × w64) (j : Ino) (qs : List Qp) (fs : List (DecFile GF))
     (lfs : List Loc) (w : Loc) : IProp GF :=
   iprop(∃ (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
-    (walTailsFrag (W := W) ∅ ∗ walHLoans (W := W) dir none qs) ∗ walDirKey (W := W) dir j X ∗
+    (walTailsFrag (W := W) ∅ ∗ walHLoans (W := W) dir none qs) ∗ walDirKey (W := W) dir i j X ∗
     ⌜gs ≠ [] ∧ (gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
       (∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1) ∧
       (write = true → (∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name) ∧
@@ -144,14 +144,14 @@ def walOpenIn (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
     walSnapIdTerm sp s)
 
 /-- See the file header. -/
-def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
+def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) : IProp GF :=
   iprop(walOpenIn w dir s ∗
     ∃ (dec : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface) (fs : List (DecFile GF))
       (locks : GoSlice) (lfs : List Loc) (fp : Loc) (rc : GoFunc) (j : Ino) (qs : List Qp),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.decoder.ty) #dec ∗
     ownDecoder dec IoE eof fs 0 0#32 true ∗ (decEnv IoE eof ueof ∗ ⌜¬ IoE GoInterface.nil⌝) ∗
-    walReadTie dir write s j qs fs lfs w ∗
+    walReadTie dir i write s j qs fs lfs w ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
@@ -181,16 +181,16 @@ directory fd's inode `j` is the WAL's directory key's (`walDirKey dir j X`, pers
 `j` by the keys' agreement, `walDirKey_agree`), which `ReadAll` needs for the handle's `walDirH`
 (W3/W5 log, twenty-sixth session, obligation (f)). -/
 @[no_expose] def walOpeningF (w : Loc) (dir : GoString) (s : w64 × w64) (i : Nat) : IProp GF :=
-  iprop(walOpening (W := W) w dir s i ∗ walReadH true w dir s ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
+  iprop(walOpening (W := W) w dir s i ∗ walReadH true w dir s i ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
     ∃ (df : Loc) (dfd : w64) (j : Ino) (X : List GoString),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
-    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle ∗ walDirKey (W := W) dir j X)
+    os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle ∗ walDirKey (W := W) dir i j X)
 
 /-- **`w` is the WAL `OpenForRead` opened in `dir` at `s`** (read mode, sealed): the lock token,
 taken (`walLockedTok`: the reader holds the program's halves of the files as `Open`'s does),
 `openAtIndex`'s fields in read mode, no `dirFile`. -/
 @[no_expose] def walReadOnlyF (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
-  iprop(walLockedTok (W := W) ∗ walReadH false w dir s ∗
+  iprop(∃ I : GMap GoString Nat, walLockedTokI (W := W) I ∗ walReadH false w dir s (incOf I dir) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc))
 
 /-- The layout facts `wal.Repair.specHeld` takes of the directory's names `hj`, the names `X` the claim leaves
@@ -229,7 +229,7 @@ def walFailLent (Mr : WalMarshal) (w : Loc) (dir : GoString) (X : List GoString)
       walTailPE (W := W) Mr ft fdt (child dir gL.name) dir γt gL.ino H md cuts o0 k))
 
 /-- **The fields of a failed handle** (see `walReadFailedF`). -/
-def walFailH (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
+def walFailH (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) : IProp GF :=
   iprop(∃ (lg : Loc) (locks : GoSlice) (ls : List Loc) (lt fp : Loc) (j : Ino) (X : List GoString) (hj : NamesH)
       (gs0 : List SegG) (gL : SegG) (fls : List Loc) (df : Loc) (dfd : w64) (ph : DirPhS) (qp : Qp),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"lg" w ↦ lg ∗ zapLoggerOk lg ∗
@@ -245,7 +245,7 @@ def walFailH (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
     os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j ph ∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨(gs0 ++ [gL]).map (·.ino), [(j, .except X)], [dir]⟩ ∗
-    walHLoans (W := W) dir none [qp] ∗ walDirKey (W := W) dir j X ∗
+    walHLoans (W := W) dir none [qp] ∗ walDirKey (W := W) dir i j X ∗
     ⌜ls.length = gs0.length ∧ (walNames hj.cur).getLast? = some gL.name ∧
       hj.cur !! gL.name = some (.file gL.ino) ∧ (∀ t ∈ walTmps, t ∈ X) ∧
       ∀ g ∈ gs0, g.om.size = g.bs.length⌝ ∗
@@ -262,7 +262,7 @@ record, the program's halves of the segments (the non-tail ones in `segRes`), an
 (`walFailIdle`: the exits before `ZeroToEnd` and after its fdatasync unregister it) or lent
 (`walFailLent`: `ZeroToEnd`'s and its fdatasync's errors). -/
 @[no_expose] def walReadFailedF (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
-  iprop(walReadFailed (W := W) w dir ∗ walFailH Mr w dir)
+  iprop(∃ i : Nat, walHandlePI (W := W) w dir i .failed ∗ walFailH Mr w dir i)
 
 end handle
 

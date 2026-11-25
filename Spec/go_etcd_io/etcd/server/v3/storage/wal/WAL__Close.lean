@@ -78,7 +78,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
       | .failed => iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           walReadFailedF Mr w dir)
       | .opening s => iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-          (∃ i : Nat, WalFs.walOpening w dir s i) ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+          (∃ i : Nat, WalFs.walOpening w dir s i ∗ walReadH true w dir s i) ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc))
       | .unnamed Rp qp tf i => iprop(walOpenWFUI P Mr w dir Rp qp tf i ∗ WalFs.walPurgeW w dir) }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
