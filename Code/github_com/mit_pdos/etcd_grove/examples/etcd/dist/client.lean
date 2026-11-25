@@ -320,7 +320,7 @@ noncomputable def checkGet [GooseExts] [GoGlobalContext] : GoString :=
     password pw (clientv3.New calls Authenticate when it dials; the token is sent with every
     request). No proxy (grpc.WithNoProxy), as etcdstart.NewClients: every connection goes to addr
     itself, never through an HTTP CONNECT proxy the process environment names (notes/etcd-dist-plan.md
-    §18.7, item 4; notes/putget-dist-plan.md section 12, finding F1).
+    §18.8, item 4; notes/putget-dist-plan.md section 12, finding F1).
 
     go: auth.go:28:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=

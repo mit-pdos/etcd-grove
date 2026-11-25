@@ -2194,14 +2194,14 @@ whose server names would have to be `Γ`'s); the compaction revision's facts (`E
 permit, e.g. from `rlog`/`cret`); progress notifications' revision; resumption at another endpoint after a fault
 (`WatchResume`, multi-endpoint); restart-stability of all of it (D6).
 
-### 18.6 Changes to etcd-grove-03's two drafts
+### 18.7 Changes to etcd-grove-03's two drafts
 
 Bodies unchanged. Under B: `etcdAddrAt ep γE mid` → `etcdAddrAtV svc ep Γ mid` (inside `leaseClientV`), and `levelTok 0`
 threaded through pre and post (as `lessor.Leases.spec`/`lessor.TimeToLive.spec`). Their proofs (`leaseList`,
 `leaseReadCheck`, `RunLeaseRead`) need only that rename and the token (their `RunLeaseRead.spec` already keeps
 `levelTok 0`). Under A they stay as they are.
 
-### 18.7 Open questions
+### 18.8 Open questions
 
 1. **O1: A, B or C** (recommended B). With B: the re-indexing of A1-A5 is a trusted change (re-reviews), and A4/A5 become
    theorems.

@@ -181,10 +181,10 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
   icases BigSepL.bigSepL_cons.1 $$ Hsl with ⟨Hsl, -⟩
   -- the client's invariant, from the cluster's `etcdKV`
   ihave Hetcd' : etcdKV (GF := putgetGF)
-      ({ Classical.choice readNames_nonempty with kv := γk } : ReadNames).kv
+      (⟨default, default, default, default, default, default, ⟨γ, [], W64 0⟩, γk⟩ : ReadNames).kv
       (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0))) $$ [Hetcd]
   · iexact Hetcd
-  imod (putGetInv_alloc_all (GF := putgetGF) { Classical.choice readNames_nonempty with kv := γk }
+  imod (putGetInv_alloc_all (GF := putgetGF) (⟨default, default, default, default, default, default, ⟨γ, [], W64 0⟩, γk⟩ : ReadNames)
       (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v") $$ Hetcd'
     with ⟨%γf, #Hinv⟩
   imod (putget_addr peer client
@@ -208,7 +208,7 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     · iexact Hat
     isplitr
     · ipureintro; rfl
-    iexists { Classical.choice readNames_nonempty with kv := γk }, γf
+    iexists (⟨default, default, default, default, default, default, ⟨γ, [], W64 0⟩, γk⟩ : ReadNames), γf
     isplitr
     · ipureintro; rfl
     iexact Hinv

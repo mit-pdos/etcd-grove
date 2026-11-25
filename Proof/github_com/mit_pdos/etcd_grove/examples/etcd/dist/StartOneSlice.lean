@@ -110,7 +110,7 @@ theorem wp_StartServer1_slice (wp_StartServer : StartServer.spec (GF := GF) (hG 
   · iright
     isplitr
     · ipureintro; exact Herr
-    iexists ρ, _, γn
+    iexists ρ, env₀ γm (c.idx id) (c.rev id) (srvApi.kvNx ρ.rd false) false, γn
     iframe Hup
     ipureintro; exact Hρ.2.2.2.2.2
 
