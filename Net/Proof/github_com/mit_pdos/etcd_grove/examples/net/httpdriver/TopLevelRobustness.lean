@@ -70,7 +70,9 @@ theorem httpdriver_robust : httpdriver_robust.spec := by
   iintro Hs
   unfold httpAddrs
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Ha, -⟩
-  ihave Hla := addrUnset_lisUnset addrS (by decide) $$ Ha
+  ihave Hla : lisUnset (GF := netGF) addrS $$ [Ha]
+  · iapply addrUnset_lisUnset addrS (by decide)
+    iexact Ha
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
   imod ghost_map_alloc_empty (GF := netGF) (K := Nat) (V := GName) with ⟨%γr, Hm⟩
   let hπ : net.http.HttpProtoGS := ⟨γr⟩

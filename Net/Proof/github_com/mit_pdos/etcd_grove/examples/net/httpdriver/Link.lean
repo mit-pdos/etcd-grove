@@ -30,7 +30,8 @@ public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.net.Conn__Read
 public import Proof.bufio.NewReader
-public import Proof.bufio.NewReaderE
+public import Proof.bufio.NewReaderSize
+public import Proof.bufio.NewReaderOk
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.io.Link
