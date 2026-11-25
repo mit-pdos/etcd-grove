@@ -248,7 +248,8 @@ variable {A : Type} [Pos.Countable A]
 
 /-- **The file after a crash under the premise `Q`**, from the old generation's `csInvI` (open: the
 caller's `csDone γc` says so): what the crash left of the file of inode `i` (`metaRes_take`), for
-a value `a` the invariant held with some state `s` (`Ok a s`), which is `G a` if the file is there
+a value `a` the invariant held with some state `s` (`Ok a s`; the file's size one `s` allows,
+`CSt.CrashSize`: one of the crash sizes its `OsMeta` knows), which is `G a` if the file is there
 (by `FileOkS Q (G a)` of each `Ok a` state), and there if the new tree names `i`; the restart's
 resources with `i` taken. The invariant is closed again as it was. -/
 theorem csInvI_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
@@ -258,7 +259,8 @@ theorem csInvI_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
     ⊢ csInvI (L := L) N i γ γa γc Ok -∗ csDone (GF := GF) γc -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ={E}=∗
       ∃ (a : A) (fo : Option OsFile),
-        ⌜(∃ s, Ok a s) ∧ (Named V'.now i → fo.isSome) ∧ ∀ f, fo = some f → Gd a (some f)⌝ ∗
+        ⌜(∃ s, Ok a s ∧ ∀ f, fo = some f → s.CrashSize f.size) ∧ (Named V'.now i → fo.isSome) ∧
+          ∀ f, fo = some f → Gd a (some f)⌝ ∗
         osFileStartO (L := L') i fo ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i :: D) tt V' ∗ csDone γc := by
   iintro #Hinv Hd Hr
@@ -279,7 +281,8 @@ theorem csInvI_crash_keep (Q : OsState → OsState → Prop) (L L' : GooseLocalG
     iexists a, fo
     iframe Hf Hr Hd
     ipureintro
-    exact ⟨⟨s, Hok.1⟩, hnm, fun f hf => by subst hf; exact hok a s Hok.1 Hok.2 f hfc hseen⟩
+    exact ⟨⟨s, Hok.1, crashSeen_crashSize hseen⟩, hnm,
+      fun f hf => by subst hf; exact hok a s Hok.1 Hok.2 f hfc hseen⟩
   · iexfalso
     iapply csDone_excl γc $$ Hd Hd'
 

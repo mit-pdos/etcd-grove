@@ -84,7 +84,7 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     (hcand : ∀ b, ¬ (lo ≤ b ∧ b < hi) → f'.cand b = f.cand b)
     (hmaps : ∀ b len, m.maps !! b = some len ↔ st'.proc.maps !! b = some ⟨i, len⟩)
     (htg : ∀ t c, st'.proc.inflight !! t = some c → c.ino = i → c.target = tg)
-    (hrz : ∀ s ∈ f.rzs, s ∈ f'.rzs) :
+    (hrz : ∀ s ∈ f.rzs, s ∈ f'.rzs) (hsc : ∀ s, f'.szCrash s → f.szCrash s) :
     MetaOk st' i (m.announce lo hi tg) f' := by
   refine ⟨by simp [hmo.size, hsz.1], by simp; have := hmo.lo; omega,
     by simp; have := hmo.hi; omega, by simpa using hmaps, fun t c ht hc => ?_, ?_, ?_, ?_,
@@ -92,7 +92,12 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
       rw [announce_cz] at hbz
       rw [hcache b]; exact hmo.cz b (by rw [← hsz.1]; exact hb) hbz,
     fun s hs => hrz s (hmo.rz s (by simpa using hs)), fun z hz b hb => ?_,
-    fun b hb => by rw [hcache b]; exact hmo.ce b (by rw [← hsz.1]; exact hb)⟩
+    fun b hb => by rw [hcache b]; exact hmo.ce b (by rw [← hsz.1]; exact hb),
+    fun l hl s hs => hmo.xs l (by simpa using hl) s (by
+      rcases hs with h | h | h
+      · exact .inl (h.trans hsz.1)
+      · exact .inr (.inl (h.trans hsz.2.1))
+      · exact .inr (.inr (hsc s h)))⟩
   rotate_right
   · simp only [announce_zf, Option.map_eq_some_iff] at hz
     obtain ⟨z0, hz0, rfl⟩ := hz
@@ -530,14 +535,14 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
         (fun s hs => by
           simp only [f', OsFile.announce]; split
           · exact List.mem_cons_of_mem _ hs
-          · exact hs)
+          · exact hs) (fun _ h => h)
       rw [TokInfo.meta]; exact this
     · rename_i hne
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, by simp only [startState, OsState.addInflight, OsState.stampFile,
         GMap.lookup_insert_eq_iff, if_neg hne]; exact h1, ?_⟩
       refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail, hm1.cz,
-        hm1.rz, hm1.zc, hm1.ce⟩
+        hm1.rz, hm1.zc, hm1.ce, hm1.xs⟩
       by_cases he : t = t'
       · subst he; simp only [startState, OsState.addInflight, GMap.lookup_insert] at h1'
         cases h1'; exact absurd (hcp.symm.trans h2') hne
@@ -905,7 +910,7 @@ theorem MetaOk.mono_infl {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hin : ∀ t c, st'.proc.inflight !! t = some c → st.proc.inflight !! t = some c)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, fun t c ht => h.targets t c (hin t c ht), h.dur,
-    h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
+    h.zf, h.tail, h.cz, h.rz, h.zc, h.ce, h.xs⟩
 
 theorem doneInflight_sub (st : OsState) (t : Nat) :
     ∀ t' c', (st.doneInflight t).proc.inflight !! t' = some c' → st.proc.inflight !! t' = some c' := by
@@ -1011,11 +1016,13 @@ theorem pwCz_raise {m : OsMeta} {off n z : Nat} (hz : m.zf = some z) (hn : 0 < n
   unfold pwCz; rw [hz]; dsimp only; rw [if_pos ⟨hn, rfl, hzk⟩]; omega
 
 /-- The `OsMeta` after a `pwrite` of `n` bytes at `off` that wrote `k`: as its first step left it,
-with the size it leaves, and the page cache known zero past it (`pwCz`). -/
+with the size it leaves, and the page cache known zero past it (`pwCz`); the crash sizes known kept
+if the write is inside the file (its landing adds none), else forgotten. -/
 def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
   { m.announce (min off m.size) (off + n) (max m.size (off + n)) with
     size := pwSize m.size off k
-    cz := pwCz m off n k }
+    cz := pwCz m off n k
+    xs := if off + n ≤ m.size then m.xs else none }
 
 /-- The candidates known past the size after a `pwrite` of `data` at `off` (inside the file),
 announced as change `n`: each byte of its range past the old size with the data's byte as a new
@@ -1427,7 +1434,8 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
         size := pwSize m.size off k,
         tc := cond keep (pwTailG m off data n)
           (m.announce (min off m.size) (off + data.length) (max m.size (off + data.length))).tc,
-        cz := pwCz m off data.length k } := by
+        cz := pwCz m off data.length k,
+        xs := if off + data.length ≤ m.size then m.xs else none } := by
     simp only [pwPostKG, pwPost]
   have hcoh2 : OsCoh (pwState st t c.ino f c off k) (insertBytes c.ino (min off m.size) ys Γb)
       (<[c.ino := pwPostKG keep m off data k n]> Γm) Γf (GMap.delete t Γt) := by
@@ -1445,7 +1453,14 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
           exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
         fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs), fun z hz b hzb => ?_,
-        fun b hb => ?_⟩
+        fun b hb => ?_, fun l hl s hs => by
+          dsimp only at hl
+          split at hl
+          · rename_i heq
+            exact hmo.xs l (by rw [OsMeta.announce_xs]; exact hl) s
+              (OsFile.crashSz_land_same (hsz2.trans (by
+                rw [← hmsz]; unfold pwSize; split <;> omega)) hs)
+          · cases hl⟩
       rotate_right 1
       · -- the page cache past the new size's last page: not written, past the old one's
         rw [hsz2] at hb

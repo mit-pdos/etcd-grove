@@ -185,6 +185,32 @@ theorem crashSeen_max {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
   obtain ⟨sz, img, -, hmx, -, rfl⟩ := hcf
   exact hmx
 
+/-- **The size a crash leaves is one `m` knows** (`OsMeta.xs`), or that of a change in flight on the
+file (any one for a `pwrite` or `fallocate`, its target for an `ftruncate`). -/
+theorem crashSeen_xs {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
+    {rs : List (Nat × DFrac × List ByteG)} {ts : List (Nat × TokInfo)} {fo : Option OsFile}
+    (h : CrashSeenR Q i m rs ts fo) : ∀ f', fo = some f' → ∀ l, m.xs = some l →
+      f'.size ∈ l ∨ ∃ x ∈ ts, x.2.kind.isTrunc = true → f'.size = x.2.target := by
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, -, hcoh, hc, -, hfo, hm, -, hts, -⟩ := h
+  intro f' hf' l hl
+  subst hfo
+  obtain ⟨f, hf, hok⟩ := hcoh.meta_some i m hm
+  have hn : Named st'.fs.treeDur i := by
+    apply Classical.byContradiction; intro hn
+    rw [(hc.2.2.2.2.2.2.2 i).2 hn] at hf'; cases hf'
+  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨-, -, hsz⟩, -, -, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
+  rw [hf] at hf0; cases hf0
+  rw [hf'] at hf1; cases hf1
+  show sz ∈ l ∨ ∃ x ∈ ts, x.2.kind.isTrunc = true → sz = x.2.target
+  rcases hsz with h | h | h | ⟨t, c, ht, hci, htr⟩
+  · exact .inl (hok.xs l hl sz (.inl h))
+  · exact .inl (hok.xs l hl sz (.inr (.inl h)))
+  · exact .inl (hok.xs l hl sz (.inr (.inr h)))
+  · obtain ⟨ti, hti⟩ := Option.isSome_iff_exists.1 (by rw [hcoh.toks t, ht]; rfl)
+    obtain ⟨hino, hk, -, -, htg, -⟩ := hcoh.tok_is t ti c hti ht
+    refine .inr ⟨(t, ti), hts t ti hti (hino.symm.trans hci), fun hk' => ?_⟩
+    rw [← htg]; exact htr (by rw [hk]; exact hk')
+
 end Fs
 end Perennial
 

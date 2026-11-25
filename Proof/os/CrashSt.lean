@@ -152,6 +152,19 @@ def toks (p : Ino) (s : CSt) : List (Nat × TokInfo) :=
 theorem vmeta_cut (s : CSt) : s.vmeta.cut = s.m.cut := by
   unfold CSt.vmeta; split <;> simp [cfMeta, OsMeta.announce]
 
+/-- What a crash sees of a state's `OsMeta` knows its crash sizes. -/
+theorem vmeta_xs (s : CSt) : s.vmeta.xs = s.m.xs := by
+  unfold CSt.vmeta; split <;> simp [cfMeta]
+
+/-- **A size a crash may leave the file in the state `s` at**, as the ghost state knows it: one of
+the crash sizes `s.m` knows (`OsMeta.xs`), if it knows them, or, with an `ftruncate` in flight,
+its target, or, with a `pwrite` in flight, any. -/
+def CrashSize (s : CSt) (n : Nat) : Prop :=
+  ∀ l, s.m.xs = some l → n ∈ l ∨ match s.busy with
+    | .idle => False
+    | .write .. => True
+    | .trunc _ sz _ => n = sz
+
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
 misses them (and so does what it appends, which starts at the size), a truncate grows. -/
 def Wf (s : CSt) : Prop :=
@@ -194,6 +207,21 @@ def FileOkS (Q : OsState → OsState → Prop) (Good : Option OsFile → Prop) (
     Prop :=
   s.m.cut = none → ∀ f, FileCrashedR s.vmeta s.vruns (some f) → CrashSeenR Q i s.vmeta s.vruns (s.toks i) (some f) →
     Good (some f)
+
+/-- **The size a crash leaves is a `CrashSize` of the state** (`crashSeen_xs`). -/
+theorem crashSeen_crashSize {Q : OsState → OsState → Prop} {i : Ino} {s : CSt}
+    {fo : Option OsFile} (h : CrashSeenR Q i s.vmeta s.vruns (s.toks i) fo) :
+    ∀ f, fo = some f → s.CrashSize f.size := by
+  intro f hf l hl
+  rcases crashSeen_xs h f hf l (by rw [CSt.vmeta_xs]; exact hl) with h | ⟨x, hx, hxt⟩
+  · exact .inl h
+  · right
+    rcases hb : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩
+    · simp [CSt.toks, hb] at hx
+    · trivial
+    · simp only [CSt.toks, hb, List.mem_singleton] at hx
+      subst hx
+      exact hxt (by simp [rsKind, OsChangeKind.isTrunc])
 
 /-! ## What a crash sees does not depend on fractions -/
 
