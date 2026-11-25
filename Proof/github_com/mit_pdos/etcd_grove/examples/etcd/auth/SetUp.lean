@@ -84,8 +84,8 @@ theorem SetUp.wp_proof
     iintro %i %f %g %Hf %Hg
     simp at Hf
   ihave HI : (∃ (j : w64) (w0 : GoString),
-      "i" ∷ i_ptr ↦ j ∗ "who" ∷ who_ptr ↦ w0 ∗ "Hpsl" ∷ psl ↦* principals ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z psl.len⌝ : IProp GF) $$ [i who Hpsl]
+      "i" ∷ i_ptr ↦ j ∗ "who" ∷ who_ptr ↦ w0 ∗ "Hpsl" ∷ psl ↦* principals ∗ "Hlt" ∷ levelTok 0 ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z psl.len⌝ : IProp GF) $$ [i who Hpsl Hlt]
   · iexists W64 0, _
     iframe
     ipureintro
@@ -110,8 +110,8 @@ theorem SetUp.wp_proof
     (try wp_auto)
     rename_i oi_ptr
     ihave HJ : (∃ (n : w64) (x0 : GoString),
-        "i" ∷ i_ptr ↦ n ∗ "x" ∷ x_ptr ↦ x0 ∗ "Hxsl" ∷ _ ↦* keyParts ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝ : IProp GF) $$ [i x Hxsl]
+        "i" ∷ i_ptr ↦ n ∗ "x" ∷ x_ptr ↦ x0 ∗ "Hxsl" ∷ _ ↦* keyParts ∗ "Hlt" ∷ levelTok 0 ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ 2⌝ : IProp GF) $$ [i x Hxsl Hlt]
     · iexists W64 0, _
       iframe
       ipureintro
@@ -140,7 +140,7 @@ theorem SetUp.wp_proof
           go!"setup" slice.nil (fun _ => iprop(True)) []
           (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
             ((show ∀ k ∈ setupKeys, k.length ≤ 2 ^ 28 by decide) _ hk) (by decide) (by decide)))
-        $$ [] as %resp %err Hout
+        $$ [$Hlt] as %resp %err ⟨Hlt, Hout⟩
       · iframe #
         iintro !>
         iapply Hkv

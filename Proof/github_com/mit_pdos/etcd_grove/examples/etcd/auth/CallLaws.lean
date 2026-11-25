@@ -37,22 +37,20 @@ abbrev client_Put_on.law : Prop :=
       (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
       (hsz : opSizeOk (opPutModel key val [])),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
             (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
           isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
           srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-          □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q }}
+          □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q) }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
               putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
               ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
                 v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }}
+            (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }}
 
 /-- `client_Get_on`'s statement (`ClientOn.lean`, a linking module), as a hypothesis of the proofs
 that use it (the import tiers); `client_Get_on_law_holds` proves it. -/
@@ -61,8 +59,7 @@ abbrev client_Get_on.law : Prop :=
       (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
       (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opGetModel key gs)),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
             (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
@@ -72,15 +69,15 @@ abbrev client_Get_on.law : Prop :=
           sortNamesIf (opGetModel key gs).base.sortSet ∗
           ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
           □ (⌜Q = fun _ => iprop(True)⌝ ∨
-            (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) }}
+            (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q))) }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (R ∗
           ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
               rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
               ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
                 v3rpc.rangeAuthed (srvTLSId s) E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
-            (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
+            (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err))) }}
 
 /-- `client_Txn_on`'s statement (`ClientOn.lean`, a linking module), as a hypothesis of the proofs
 that use it (the import tiers); `client_Txn_on_law_holds` proves it. -/
