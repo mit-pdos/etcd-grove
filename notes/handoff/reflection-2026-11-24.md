@@ -861,3 +861,18 @@ Reach (every proof that used either rule): no proof names them. Implicitly (inst
 conversions, two to the named `WatchChan`, and unnamed-pointer conversions such as
 `*pb.RangeResponse`→`*GetResponse`); list: `convert-narrow/scan/eg-proofs.tsv`. None converts
 between named pointers or from a directional channel, so every one keeps its step.
+
+**Round 7 state (2026-11-25, done):**
+- Perennial `convert-narrow` @ `dcf940ea5` (pushed). Targeted VM build (Tests.ConvertRules +
+  Theory.Reflect): 1,492 jobs ok. Full chunked build (convert-narrow/pmods-full.*): 3 chunks exit 0
+  (3,485 + 3,427 + 2,567 jobs), `sorry` warnings only under GeneratedProof. `#print axioms`
+  (AxCheckConvert.lean, untracked in wt/p-convert: Round 6's 15 + sync `RWMutex.wp_RLocker`,
+  `rlocker.wp_Lock/Unlock`, context `cancelCtx.wp_Done`, `wp_parentCancelCtx`, testdata
+  `wp_SearchReplace`): Lean's three only. `go test ./goose/...` ok; harness (gen.sh; `GOWORK=off go
+  test ./...`) ok. `etc/trusted-delta.py 93d6825d7..dcf940ea5`: exactly the planned step-rule signals
+  (Chan.lean: one removed, two added; PostLang.lean: the pointer rule's tag).
+- etcd-grove `reflect-s05-convert/2026-11-25` (pin `dcf940ea5`, VM key 57f5311f8c5be617; no regeneration
+  needed: goose unchanged). Full VM build 28,219 jobs ok. Gates (convert-narrow/gates.log): all ok but
+  `merge-status` (VM sync dir not a git repo); tcb 324 axioms / 0 sorries (baseline), axiom-tok ok,
+  collections 61/0, goose 73 projects up to date.
+- Left: Upamanyu's look, with item 1. Nothing lands or is queued before it.
