@@ -257,3 +257,30 @@ Full build 2 (`tmp/egnet7/full2.log`, before the second merge of main, which bri
   backend.curAt), backend__Close/newBackend parse errors at `,` (FsCtx binder syntax?), os
   Rename.lean:135 (`And.ok`), k8s clock RealClock__*/real*__Stop (Perennial time spec change at the
   re-pin), RaftWitness kvwitness Adequacy.lean:183, Proof/os/OffEnd (fixed on main, re-check).
+
+## Session 8 (2026-11-25, worktree ho-gmr, VM key c61dd42e08d7d686)
+Builds (logs in `tmp/egnet8/`): full1 (head d087fb0bd7) exit 1, 16 modules; full2 exit 1, 8; full3
+(after commit 2) exit 1, ONE module: `Dsverify...swiftpaxos.swift.SyncTail`. probe4 (SyncTail's
+`swift.wp_PrintlnT` stubbed locally, never committed, reverted) exit 0: every other default target,
+including the 17 modules downstream of SyncTail and swiftnet TopLevelRobustness, builds.
+OffEnd / fileutil preallocExtendTrunc: fixed by main's 659b2fff8b (no error).
+Fixes (commits on this branch, see their messages): FsCtx rcases patterns (4 fields), empty `∀,`
+binders, ReadResponse wp_MIME reader dropped, BufioNet connAt_poll, OrchSend/AwaitConf/ServeProof
+netDistGF, TCPAddr.String after wp_start, quepaxanet/k8s clock over Perennial's time Link,
+kvwitness pkgInitTable (+4 packages), mvccrand/mvccfull/putget TLR proof intros (binder counts of
+the already-changed statements). No statement changed.
+EtcdGrove.net.Listen.spec's `isPkgInit net`: its callers (cluster3 StartBridge/StartMember, etcdstart
+NewMember/StartMemberAuth/Serve, restart(N)/auth3 newMember/startMember) `wp_apply wp_Listen ...`
+inside a function whose spec has `isPkgInit <its package>`; the package imports net
+(Code/.../cluster3.lean imports Net.Code.net), so wp_apply's package-fact discharge derives
+`isPkgInit net`; no top-level premise (the TLRs build, full3/probe4).
+BLOCKED (needs Perennial / lead): SyncTail `swift.wp_PrintlnT` — `log.Println` is now Perennial's Go
+model (`if Choose { fmt.Fprintln(modelDiscard{}, v...) }`), whose spec needs `fmt.ArgsWf`
+(`printArgOk`). HandleSyncProof:1318 prints `log.Println("FQ:", r.FQ, "SQ:", r.SQ)`
+(swiftpaxos recovery.go:704): `SQ`/`FQ` may be a `replica.Quorum` (`map[int32]struct{}`), which
+fmt's model does not follow (`visitKind`: `notModelled()` for non-int/string kinds; Go prints it
+by reflection, reading the map). Options: (a) Perennial fmt model: visitKind follows a map whose
+keys/values are int kinds/empty structs (reads it: the spec then needs the map's points-to, which
+HandleSyncProof has from quorumIs), plus `printArgOk`/`ArgWf` case; (b) lead decision otherwise.
+Do not weaken: no sorry. Next: decide (a), then prove wp_PrintlnT over `log.wp_Println`
+(callers with ArgsWf already: NewLeaderProof 670-682, HandleSyncProof 1279-1342).
