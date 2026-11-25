@@ -678,7 +678,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of ErrGRPCNotSupportedForLearner))
   try wp_auto
-  wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %rErrGRPCNotSupportedForLearner ⟨%NErrGRPCNotSupportedForLearner, #OErrGRPCNotSupportedForLearner, #DRErrGRPCNotSupportedForLearner, %TErrGRPCNotSupportedForLearner, %LErrGRPCNotSupportedForLearner⟩
+  wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %rErrGRPCNotSupportedForLearner ⟨%NErrGRPCNotSupportedForLearner, #OErrGRPCNotSupportedForLearner, #DRErrGRPCNotSupportedForLearner, %TErrGRPCNotSupportedForLearner, %LErrGRPCNotSupportedForLearner, -⟩
   · ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)
   obtain ⟨eErrGRPCNotSupportedForLearner, rfl⟩ : ∃ e, rErrGRPCNotSupportedForLearner = GoInterface.ok e := match rErrGRPCNotSupportedForLearner, NErrGRPCNotSupportedForLearner with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h
   ihave #EErrGRPCNotSupportedForLearner : (go_etcd_io.etcd.cache.v3.errorStringSpec eErrGRPCNotSupportedForLearner : IProp GF) $$ []

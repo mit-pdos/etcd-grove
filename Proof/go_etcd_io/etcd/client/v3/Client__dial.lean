@@ -149,13 +149,10 @@ theorem Client.dial.wp_proof
     simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, _root_.Perennial.fmt.render]
   have Hdok0 : dialOk ([GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
-    refine ⟨?_, ?_, by simp, si, by simp⟩
-    · intro si' h
-      simp at h
-      rw [h]; exact Hsi
-    · intro rbs h
-      simp at h
-      exact h
+    refine ⟨?_, by simp⟩
+    intro rbs h
+    simp at h
+    exact h
   -- (2026-10-21, D28) the keepalive option, if any, first
   have Hdok1 : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
       [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) rb := by
@@ -172,7 +169,9 @@ theorem Client.dial.wp_proof
   · have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) rb := by
       rw [List.append_nil]; exact Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) $$ [$Hgrpc]
+    wp_apply wp_NewClient tgt o2 (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) rb etcdScheme (ep :: rest)
+        anyRes (tokMdOk P) $$ [$Hgrpc Hrb]
       as %conn %err Hres
     · isplitr
       · iunfold dialOptsAt
@@ -217,7 +216,9 @@ theorem Client.dial.wp_proof
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
         [GrpcDialOpt.perRPCCreds pc]) rb :=
       dialOk_perRPCCreds _ rb pc Hdok1
-    wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) $$ [$Hgrpc]
+    wp_apply wp_NewClient tgt o2 (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ [GrpcDialOpt.perRPCCreds pc]) rb
+        etcdScheme (ep :: rest) anyRes (tokMdOk P) $$ [$Hgrpc Hrb]
       as %conn %err Hres
     · isplitr
       · iunfold dialOptsAt

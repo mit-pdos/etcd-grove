@@ -2799,7 +2799,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 # `ErrGRPCNotSupportedForLearner`, whose fact says its value is a pointer (`errors.IsPointerError`,
 # `ptr`: from the spec's dynamic type and pointer value).
 def status_steps(x, desc=None, ptr=False):
-    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
+    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
              f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
