@@ -2585,6 +2585,9 @@ Gain a premise:
 - Net http: `readErr_msgOk` takes `net.edTyped (some ed)` (from `internal/poll`'s fact); `crErrId` (an
   internal predicate) carries the `*OpError`'s `netOwnErr`/`addrOrNil` parts, so `reqErr_opErr` gives
   `net.opErrOk v`, what Go's `OpError.Timeout` needs (`net.OpError.Timeout.spec`, egnet's).
+- `net.opErrOk v ∗ syscall.errnoOk`: Net http `opError_argOk`, `wp_logf_accept` (`Server.Serve`'s accept
+  error: its caller gets `opErrOk` from `Accept`'s `resErr`, `net.kindErr_netOwnErr`/`opErr_opErrOk`, which
+  `OpError.Temporary.spec` also needs, and `errnoOk` from the listener's `lisAt_errnoOk`).
 - Net http `wp_Fprintf_noVerb` and `conn.serve.wp_proof` take fmt's Go-model callees
   (`fmt.newPrinter`, `fmt.buffer.writeString`, `fmt.pp.free`, `internal.gomodel.Choose`/`ChooseUint64`
   specs), linked in `Net/Proof/net/http/Results.lean` (`conn.serve.wp` unchanged).

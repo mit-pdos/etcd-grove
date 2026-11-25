@@ -97,7 +97,7 @@ theorem conn.serve.wp_proof
   wp_call
   try wp_auto
   wp_apply net.wp_extAnyString as %rmt
-  wp_auto
+  try wp_auto
   ipersist Hrma
   wp_apply wp_LocalAddr $$ [$Hca]
   subst Hlaeq
