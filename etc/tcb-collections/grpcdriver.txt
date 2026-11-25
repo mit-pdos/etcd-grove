@@ -1,0 +1,15 @@
+# grpcdriver (examples/lib/grpcdriver, notes/library-drivers.md): gRPC's driver, the executable
+# specification of what the proofs rely on from grpc-go: its top-level robustness theorem
+# `grpcdriver_robust` (Proof/.../lib/grpcdriver/TopLevelRobustness.lean: two machines, Robust [] under
+# DistDeploy, grpcThreads = 2^31 threads, grpcSteps = 2^63 - 1 steps). The library is done when this
+# collection is empty but for the models' trusted claims and the net extension's semantics.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/grpcdriver.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/grpcdriver.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/grpcdriver.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Each axiom's docstring names what retires it: grpc's interim
+# trust-boundary specs (#37's S3/S4), the `StringValue` registrations (#37's S3), the context axiom
+# `WithCancelBackground.wp_proof_canceled` (a Perennial change, notes/perennial-changes.md).
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/TopLevelRobustness\.lean$
