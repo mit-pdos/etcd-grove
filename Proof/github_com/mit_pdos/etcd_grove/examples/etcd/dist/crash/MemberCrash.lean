@@ -374,12 +374,12 @@ certificates, a committed log they agree with, and the new generation's WAL file
 theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) (νk : WalNamesK GF)
     (h : WalH GF) (W' : WalFs.WalGS GF) (hmd : h.md = walMetaEnc id cid) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) (hE' : ↑srvClusterN ⊆ E \ ↑rnDurKN) :
-    letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩
-    letI := srvStor (GF := GF) γn
+    letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩;
+    letI := srvStor (GF := GF) γn;
     ⊢ rnDurInvK γn id νk h -∗ isCluster γn.cl srvClusterN -∗ £ 1 -∗ £ 1 -∗
       crashed (hC := (etcd_dist.atCtx L).goose_crashGS) -∗ token νk.tk -∗ nodeCrashTok γn.cl id νk.x -∗
       token νk.ν.stop -∗
-      (letI := h.ext; letI := h.semOk; letI := h.has
+      (letI := h.ext; letI := h.semOk; letI := h.has;
        iprop(WalFs.walCrashWal h.W W' ∗ WalFs.walUnlockedTok (W := W') ∗
         Fs.osCallPerm (L := etcd_dist.atCtx L') (Fs.callKey h.R h.dir) (1 : Qp).half)) ={E}=∗
       ∃ (S : RaftState) (σ : StorContents) (l : List LogEntry),
