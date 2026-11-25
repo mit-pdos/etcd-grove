@@ -4671,3 +4671,29 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `Spec/cmp/Compare.lean`).
 - **Proposed change.** Move both (`cmp.Less` and `cmp.Compare` at `int64`, with `lessImplements_int64`
   beside `lessImplements_uint64`) to Perennial, and drop the local copies.
+
+## `TrustedCode/log.lean`'s no-op `Printf`/`Println` has no argument condition, and a proof here steps it with one too wide (2026-11-25, dsv-fix6)
+
+- **Limitation.** Perennial models the package-level `log.Printf`/`log.Println` as `λ: "format" "vs", #()` /
+  `λ: "vs", #()`: the model returns whatever the arguments are, while Go formats them through `fmt`, which calls an
+  operand's `Format` (every verb), `GoString` (`%#v`), `Error`/`String` (method verbs, every `Println` operand), and
+  the same methods of the exported fields, elements and top-level pointee it visits. Perennial's own
+  `Spec/log/Printf` asks for `fmt.ArgsWf`, but the trusted body is what a proof unfolds, so the spec's condition
+  does not bind a proof that steps the body. etcd-grove#56 records the model's gap and the rule ("every new proof
+  that reaches `log.Print*` must take a spec with `fmt.ArgsWf` or an equivalent no-method premise, never the bare
+  no-op") and says no proved path passes such an argument.
+- **What #56 misses.** craq does: `LogHyp.wp_Printf`/`LogHyp.wp_Println`
+  (`Dsverify/Proof/github_com/despreston/go_craq/Craq/LogHyp.lean`) are proved by `wp_start; wp_end` over the
+  no-op, for craq's `argOk` arguments, whose third disjunct admits any type with neither `Error` nor `String`
+  (so a `Formatter` or `GoStringer`) and whose `errAny` disjunct admits an error type with a `Format`
+  method. They are used by the coordinator's `log.Printf("...: %v", ..., err)` calls. The axiom review of the
+  same `argOk` for `*Logger`'s methods (`notes/axiom-review/dsv-fix4/log-logger.md`, "Also reached without these
+  axioms") exhibits the program: `log.Printf("%v", T{p: x})` with `T.Format` writing `*x`, then a check of `*x`,
+  is provably safe from the trusted model alone and panics in Go. No bug in go-craq (its arguments have no such
+  methods); the gap is in the trust base of `craq_remote_robust`.
+- **Work-around here (dsv-fix6, planned).** craq's restated `argOk` (`notes/dsv-fix6.md`) excludes
+  `Format`/`GoString` recursively; `LogHyp.wp_Printf`/`wp_Println` then take the narrowed condition, so the
+  no-op is stepped only where it is faithful.
+- **Proposed (general).** The model is stuck (or the spec is the only entry: the body sealed) outside `fmt`'s
+  argument condition (`fmt/Args.lean`'s `argOk`, which requires `Format = none`); or `log.Printf`/`Println`
+  over the real `fmt.Appendf`/`Appendln` once #56's plan lands. **Status.** Not filed (no post: dsv-fix6 brief).

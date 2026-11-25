@@ -245,32 +245,30 @@ has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchest
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows.
 
-**Premises** (at the bundle `remoteGF` the proof uses, for every machine's heap): go-redis v8's
+**Premise** (at the bundle `remoteGF` the proof uses, for every machine's heap): go-redis v8's
 initializer runs without panicking (`InitHyp`; its axiom review refuted it as an axiom,
-`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`), and zerolog's logger
-(`zerolog.Hyps`: `New`, a logger's five non-panicking levels on a non-`nil` logger, an exclusive
-event token through the field methods and `Msg`; kept a premise because its `axiom`-skill review
-refuted `New` with `Msg` as axioms: `notes/axiom-review/dsv-fix4/zerolog.md`). Not premises: gogo
-`proto`'s `Register*` calls in `message`'s initialization, math/rand's
-`NewSource`/`New`/`(*rngSource).Int63`, and the environment claim that nobody sends SIGINT or
-SIGTERM to the deployment's processes (`signal.Notify(c, SIGINT, SIGTERM)` registers a channel that
-never receives) are per-function trust-boundary axioms, and so are the initializers of zerolog,
-gogo `proto`, `gogoproto` and `os/signal` (their `wp_initialize'`); every axiom the result rests on
-is listed in `etc/tcb-collections/dsv-rabia.txt`. `log.Println` is proved from Perennial's trusted
-model of `log`; `math/rand`'s initializer, package-level `Intn` and `(*Rand).Intn` from Perennial's
-code.
+`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`). Not premises: the functions of the
+libraries translated with names only (zerolog's `New(nil)`, a logger's levels, events and `Msg`; gogo `proto`'s
+`Register*` calls in `message`'s initialization; math/rand's `NewSource`/`New`/`(*rngSource).Int63`)
+and the environment claim that nobody sends SIGINT or SIGTERM to the deployment's processes
+(`signal.Notify(c, SIGINT, SIGTERM)` registers a channel that never receives) are per-function
+trust-boundary axioms, and so are the initializers of zerolog, gogo `proto`, `gogoproto` and
+`os/signal` (their `wp_initialize'`); every axiom the result rests on is listed in
+`etc/tcb-collections/dsv-rabia.txt`. `log.Println` is proved from Perennial's trusted model of
+`log`; `math/rand`'s initializer, package-level `Intn` and `(*Rand).Intn` from Perennial's code.
 Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.''',
-        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init', 'public import Dsverify.Proof.github_com.rs.zerolog.Spec'],
+        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init'],
         opens=['open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         heap_at='spec',
         heap_at_doc='''A machine's heap over `remoteGF` at the deployment's Go local context `lctx` (the heaps the
 proof makes, one per machine): the global ghost state `G` and the local `L`, its local context
 `lctx`. The premises below hold of every such heap.''',
         addrs='rabiaKitAddrs', steps='remoteStepBound',
-        premises=[('hri', 'github_com.go_redis.redis.v8.InitHyp'), ('hz', 'github_com.rs.zerolog.Hyps')],
+        premises=[('hri', 'github_com.go_redis.redis.v8.InitHyp')],
         # (dsv-fix4) the library classes the proof discharges from per-function axioms
         discharged=[('github_com.gogo.protobuf.proto.Hyps', 'github_com.gogo.protobuf.proto.hyps_holds'),
+                    ('github_com.rs.zerolog.Hyps', 'github_com.rs.zerolog.hyps_holds'),
                     ('math.rand.Hyps', 'math.rand.rng.hyps_holds'),
                     ('os.signal.NoSignals os.signal.quietSigs', '⟨os.signal.Notify.wp_proofQuietSigs⟩')],
     ),
@@ -296,7 +294,7 @@ addresses still unset), remote's map of operations, the client machines' address
 state, and each machine's boot program from its share, through `robust_of_distProtoRB`. The boot
 (`wp_boot`) hands `main` the machine's package state after the initialization (`ownGoState`, out
 of `ownInitializing`): the clients and servers claim `config.Conf` with it.''',
-        imports=['public import Dsverify.Proof.rabia.examples.rabianet.Linked', 'public import Dsverify.Proof.rabia.examples.rabianet.CodecProof', 'public import Dsverify.Proof.rabia.Core.Start', 'public import Net.Statement.DistBridge', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.HypsHoldLinked', 'public import Dsverify.Proof.math.rand.RandsLinked', 'public import Dsverify.Proof.os.signal.Notify'],
+        imports=['public import Dsverify.Proof.rabia.examples.rabianet.Linked', 'public import Dsverify.Proof.rabia.examples.rabianet.CodecProof', 'public import Dsverify.Proof.rabia.Core.Start', 'public import Net.Statement.DistBridge', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.HypsHoldLinked', 'public import Dsverify.Proof.github_com.rs.zerolog.HypsHoldLinked', 'public import Dsverify.Proof.math.rand.RandsLinked', 'public import Dsverify.Proof.os.signal.Notify'],
         options=['set_option linter.unusedSectionVars false', 'set_option maxRecDepth 100000'],
         opens=['open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote rabia', 'open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         boot='gostate',

@@ -10,7 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Init
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
