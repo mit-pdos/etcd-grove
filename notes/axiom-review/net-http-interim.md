@@ -6,6 +6,15 @@
 `muxRoute`, `muxRpc`). All interim: retired by phase 7's S5 (`Handle`, `Serve`) and L2 step 6 (the
 initializer).
 
+**2026-11-25: `Handle.wp_proof` and `Serve.wp_proof_rpc` are theorems** (S5). `Handle.wp_proof` over the real
+`ServeMux` (`MuxServe.lean`'s `wp_Handle_lit`); `Serve.wp_proof_rpc` from `Serve.specHandler` with the `nil`
+handler (`ServeRpc.lean`'s `srvAddrH_nil_rpc`: `DefaultServeMux`'s routed `CONNECT` dispatch,
+`wp_ServeMux_ServeHTTP_connect`, to the `rpcHjHandler` that `muxRpc` names; the address's protocols, head law
+and `400` from `rpcLisP`), linked as `net.http.Serve.wp_rpc` over the two interim context axioms
+(`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`,
+`notes/axiom-review/context-interim-hypotheses.md`). Neither spec's statement changed. Only `wp_init_first`
+(restated, reviewed: `/shared/tmp/ps2/revinit/review.md`, #24 7150317814, 7153375148) stays an axiom here.
+
 **2026-11-24: review by zeldovich-proving-2 (S5's owner) (#24 issuecomment-7135914632; Go test programs
 under `/shared/tmp/ps2/s5/muxtest/`), against Go 1.27.3. Two statements found false, one premise missing.**
 

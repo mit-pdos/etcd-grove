@@ -6800,3 +6800,16 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   wPools ∗ rPool`, produced at the boot by `wp_init_first_mux` from the restated `wp_init_first`
   (`notes/axiom-review/net-http-interim.md`); rpcdriver's boot passes it in `bootRes`.
 - **Decision.** Approved by coordinator-E (#24 7153375148, "widening `httpSrvEnv` to match is fine").
+
+## 2026-11-25: gryff's net/http premises widened to `httpSrvEnv` (s5)
+
+- **Spec.** dsv-gryff's internal specs over net/http's server: `httpInitRes` (`Dsverify/Proof/gryff/Rpc/RpcHttp.lean`,
+  part of `serverBoot`), `masterOkDef` (`Server/MasterDefs.lean`), `wp_NewMaster'` (`Server/MasterNew.lean`),
+  `NewMaster.wp_req`, `Serve.wp_req` (`Server/SpecsReq.lean`), `wp_Serve'` (`Server/ServeProof.lean`).
+- **Defect.** They carried `net.http.httpEnv` to `http.Serve`'s `Serve.spec_rpc`, whose premise is `httpSrvEnv`
+  (widened the same day, entry above), so they no longer prove once `Serve.spec_rpc` is proved over the real code.
+- **Evidence.** The build of the batch that proves `Serve.spec_rpc` (`Net/Proof/net/http/Serve.lean`).
+- **Proposed change.** `httpEnv` → `httpSrvEnv` in each (it holds `httpEnv`); `serverBoot`'s comes from the boot's
+  `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
+  `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
+- **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).

@@ -32,7 +32,10 @@ and `conn.readRequest` itself (`section server`), over them, Perennial's `time.N
 `context.WithCancel`, the net extension's `Conn.SetReadDeadline`, bufio's `Writer.Reset` and
 `NewWriterSize`. The accept loop (2026-11-24, phase 7 S5): `Server.Serve` (over `conn.serve`, the
 net extension's `Listener.Accept`/`Close`, `OpError.Temporary`) and `http.Serve` with a handler's
-contract (`Serve.specHandler`), both over the two interim context hypotheses.
+contract (`Serve.specHandler`), both taking the two interim context specs as hypotheses; and
+`http.Serve(l, nil)` on an rpc listener (`Serve.wp_rpc`, `section serve_rpc`, 2026-11-25; an interim
+axiom before), over `Serve.wpHandler` given the two context axioms (`context.WithValue.wp_proofPtr`,
+`context.WithCancel.wp_proofValBg`, `Net/Proof/context/`) and `DefaultServeMux`'s dispatch.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
 `ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape`,

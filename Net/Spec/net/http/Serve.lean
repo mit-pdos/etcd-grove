@@ -11,8 +11,9 @@ handler at every address `l` takes (`muxRpc (globalAddr net.http.defaultServeMux
 thread bound (`threadBound GF ≤ 2 ^ 31`, net/rpc's server's wait group, which the handler runs) and the
 calling goroutine's thread token, given back when it returns (`go http.Serve(...)`'s goroutine ends
 with it).
-The shared rpc-over-HTTP design (L2) and its amendment 4 (agreed with phase 7's S5): S5's one
-`Serve.spec`, over both an HTTP address and an rpc address, will imply it. Lean-first.
+The shared rpc-over-HTTP design (L2) and its amendment 4 (agreed with phase 7's S5). Proved
+(`Net/Proof/net/http/Serve.lean`, since 2026-11-25; an interim axiom before) from `http.Serve`'s spec
+with a handler (`Serve.specHandler`, the `nil` handler) and `DefaultServeMux`'s dispatch. Lean-first.
 -/
 module
 

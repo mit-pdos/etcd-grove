@@ -212,7 +212,10 @@ theorem wp_serve_replica (γ : GryffNames GF) (k : Nat) (hk : k < 3) (addrs : Go
   unfold rpcBootRes
   icases Hboot with ⟨#Hsync, #Hmu, Hun, #Hinvreq⟩
   ihave #Hde : dialEnv (GF := GF) $$ []
-  · unfold dialEnv; iframe #; ipureintro; exact Hb.2
+  · ihave #Hhe0 := Hhe
+    iunfold net.http.httpSrvEnv at Hhe0
+    icases Hhe0 with ⟨#Hhe1, -⟩
+    unfold dialEnv; iframe #; ipureintro; exact Hb.2
   wp_auto
   wp_apply (wp_kit_Register wp_SetCodec) $$ [Hun] as #Hcs
   · unfold rpcBootRes
@@ -330,7 +333,10 @@ theorem wp_serve_master (γ : GryffNames GF) (addrs : GoSlice) :
   unfold rpcBootRes
   icases Hboot with ⟨#Hsync, #Hmu, Hun, #Hinvreq⟩
   ihave #Hde : dialEnv (GF := GF) $$ []
-  · unfold dialEnv; iframe #; ipureintro; exact Hb.2
+  · ihave #Hhe0 := Hhe
+    iunfold net.http.httpSrvEnv at Hhe0
+    icases Hhe0 with ⟨#Hhe1, -⟩
+    unfold dialEnv; iframe #; ipureintro; exact Hb.2
   wp_auto
   wp_apply (wp_kit_Register wp_SetCodec) $$ [Hun] as #Hcs
   · unfold rpcBootRes

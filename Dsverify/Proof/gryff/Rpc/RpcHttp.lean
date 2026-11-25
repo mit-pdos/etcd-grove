@@ -123,10 +123,12 @@ def rpcInitRes : IProp GF :=
     net.rpc.cliEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus)
 
 /-- What net/http's first initialization leaves on a machine: the right to register on
-`DefaultServeMux`, nothing registered (`muxOwn`), and its package fact `httpEnv`. -/
+`DefaultServeMux`, nothing registered (`muxOwn`), and the package variables its server reads
+(`httpSrvEnv`: its package fact `httpEnv` and what the first initialization leaves; until 2026-11-25
+`httpEnv` alone). -/
 def httpInitRes : IProp GF :=
   iprop(net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
-    net.http.httpEnv)
+    net.http.httpSrvEnv)
 
 /-- A server machine's boot resources: what net/http's and net/rpc's first initializations leave. -/
 def serverBoot : IProp GF :=
@@ -153,13 +155,12 @@ theorem rpcInitRes_of_first :
   iexists γs, γf
   iframe Hds Hown
 
-/-- net/http's first initialization's results give `httpInitRes`. -/
+/-- net/http's first initialization's results (`net.http.wp_init_first_mux`'s) give `httpInitRes`. -/
 theorem httpInitRes_of_first :
-    isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-      net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ⊢
+    net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
+      net.http.httpSrvEnv (GF := GF) ⊢
       httpInitRes (GF := GF) := by
-  iintro ⟨#Hpk, Hmux⟩
-  ihave #He := net.http.httpEnv_access $$ Hpk
+  iintro ⟨Hmux, #He⟩
   unfold httpInitRes
   iframe Hmux He
 

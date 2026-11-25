@@ -6,7 +6,7 @@ RemoteAddr`, `Listener.Accept`, `Listen`, `Dial`, `DialTimeout`) and dsv-bufio's
 `instance`); the RPC layer's codec laws (`gryffCodecLaws`, `gryffRcvLaws`); Net's net/rpc
 (`Client.Call`, `SetCodec`, `NewServer`, `Server.Register` and the package-level `Register` on
 owned registries, `Server.HandleHTTP`, `HandleHTTP`) and net/http's `Serve` and `Handle` (Net's
-interim axioms `Serve.wp_proof_rpc`, `Handle.wp_proof`); `io.ReadFull`'s
+`Serve.wp_rpc`, over the interim context axioms, and `Handle.wp`, proved); `io.ReadFull`'s
 every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_proof`); remote's
 `Check`/`ServeClient`. `encoding/binary`'s varints (`binaryVarintHyps`, Perennial's proofs). What is not proved stays
 a premise (the statement's): `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`; `RpcHttpAddr` is Net's
@@ -64,6 +64,7 @@ public import Net.Proof.net.rpc.HandleHTTP
 public import Net.Proof.net.rpc.Server__HandleHTTP
 public import Net.Proof.net.http.Handle
 public import Net.Proof.net.http.Serve
+public import Net.Proof.net.http.Results
 
 @[expose] public section
 
@@ -147,9 +148,9 @@ variable [randA : lib.RandSeedHyp GF] [mA : gryff.src.masterlib.Assumptions]
 variable [sA : gryff.src.serverlib.Assumptions] [bufio.Assumptions] [sync.Assumptions]
 variable [errors.Assumptions]
 
-/-- `Server.HandleHTTP`, over net/http's `Handle` (Net's interim axiom). -/
+/-- `Server.HandleHTTP`, over net/http's `Handle` (Net's `Handle.wp`, proved over the real `ServeMux`). -/
 theorem wp_SHandleHTTP : net.rpc.Server.HandleHTTP.spec (GF := GF) (hG := hG) :=
-  net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp_proof net.rpc.Server.ServeHTTP.wp
+  net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp
 
 /-- `HandleHTTP` (on `DefaultServer`). -/
 theorem wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG) :=
@@ -162,7 +163,7 @@ theorem wp_Server : Server.spec (GF := GF) (hG := hG) := by
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
     net.rpc.DialHTTP.wp SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt)
     net.rpc.Register.wp_fresh net.rpc.NewServer.wp_owned net.rpc.Server.Register.wp_fresh
-    wp_SHandleHTTP wp_HandleHTTP net.http.Serve.wp_proof_rpc
+    wp_SHandleHTTP wp_HandleHTTP net.http.Serve.wp_rpc
 
 end server
 

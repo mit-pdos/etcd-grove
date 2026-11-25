@@ -132,6 +132,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `reflect-s05`); `isParentCtx` widened to `ctxBg` chains (then `specValBg` is a corollary of `wp_WithCancel_gen`).
   Adversarial review (`axiom` skill, 2026-11-24): both sound, no counterexample
   (`notes/axiom-review/context-interim-hypotheses.md`); evidence moved to `examples/stdlib/ctxhyp/`.
+  **2026-11-25: made per-function trust-boundary axioms** (Upamanyu's option (a), #18 7144816148):
+  `context.WithValue.wp_proofPtr` (`Net/Proof/context/WithValuePtr.lean`) and
+  `context.WithCancel.wp_proofValBg` (`Net/Proof/context/WithCancelValBg.lean`), so that `http.Serve`'s
+  rpc spec is a closed linked result (`net.http.Serve.wp_rpc`); retired the same way.
   **Constraint on `reflect-s05` (and any later `reflect` spec):** a `*valueCtx`'s embedded `Context` field is
   exported, so Go's reflection can write it from outside `context` (`Elem().Field(0).Set`,
   `TestReflectWritesEmbeddedContext`). `specPtr`'s `↦□` on it is sound only because every write needs full
