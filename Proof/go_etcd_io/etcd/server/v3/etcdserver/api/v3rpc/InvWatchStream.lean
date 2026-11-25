@@ -488,7 +488,7 @@ the stream's dispatch (`streamDispIs γ a md`, with `Md a md`; phase 7's switch,
 abbrev cliWatchStreamIs (cs : GoInterface) (γ : StreamNames) (Up : Nat → WatchReqM → IProp GF)
     (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → WatchRespM → IProp GF)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Md Dn cd anyRes
+  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Md Dn cd clientRes
 
 end defs
 

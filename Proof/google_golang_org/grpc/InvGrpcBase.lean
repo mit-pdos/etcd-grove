@@ -1158,6 +1158,20 @@ connection whose per-RPC credentials need no resource of their caller (none, or 
 contract holds at every `R`) takes any, `True` included. -/
 abbrev anyRes {GF : BundledGFunctors} : IProp GF → Prop := fun _ => True
 
+section clientRes
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+
+/-- **The etcd client connection's resource family** (prove-ps2-clientrdlock, 2026-11-24; decision
+1b, 2026-11-23): the resource every call on an etcd client's connection is given, and gives back,
+is a level-0 thread token (`grpcConn … clientRes`, `perRPCCredsOk pc clientRes`): with it the
+client's credentials (`GetRequestMetadata`) and its retry interceptor (`Endpoints`) borrow a reader
+slot of their `RWMutex`. Every caller of a client operation holds one: a live thread has one token
+at each level (`threadTok`). -/
+abbrev clientRes : IProp GF → Prop := fun R => R = levelTok 0
+
+end clientRes
+
 /-- **The client's connection `conn` reaches the servers at `addrs`, with the unary interceptors
 `ics` and the default call options `dopts`** (persistent; an axiomatized predicate: a fact about
 grpc's `*ClientConn` dialed to a resolver of the addresses `addrs`; unit P3a, it was

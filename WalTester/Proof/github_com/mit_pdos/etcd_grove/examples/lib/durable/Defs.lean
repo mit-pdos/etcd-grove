@@ -253,9 +253,9 @@ def durHandle (γ : DurGS) (f : DFile) (R : Roots) : IProp GF :=
 /-- The second update of a `Write`: the directory's sync, `alt := none`. It may use the generation's
 `notCrashed` (given before the update, returned with its result): the sync is a ghost step after
 `Sync` returns, where `Write`'s proof holds the token (`durInv_commit`), and a client whose own
-update needs it there (kvnet's `persist`, firing raft's batch *enter*, `readyEnter`, at the sync: a
+update needs it there (kvraft's `persist`, firing raft's batch *enter*, `readyEnter`, at the sync: a
 crash before it may keep the old file) gets it. A client that needs no token gives a plain atomic
-update (`durWriteSync_of_au`). (2026-11-22, notes/kvnet-part.md, "`persist`".) -/
+update (`durWriteSync_of_au`). (2026-11-22, notes/kvraft-part.md, "`persist`".) -/
 abbrev durWriteSync (γ : DurGS) (Ψ : IProp GF) : IProp GF :=
   iprop(notCrashed (hC := L.goose_crashGS) -∗ AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
     <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM notCrashed (hC := L.goose_crashGS) ∗ Ψ }>)

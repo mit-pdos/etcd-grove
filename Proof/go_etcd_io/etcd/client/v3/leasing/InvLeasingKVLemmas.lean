@@ -171,29 +171,44 @@ theorem leasingWg_ctr_bound {k d n : Nat} {T : Nat} (Hbound : T + leasingWgOwedM
 
 /-- The leasing KV's pool of its cache's reader slots. -/
 theorem isLeasingKV_pool (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
-    isLeasingKV (GF := GF) lkv γ pfx ⊢ threadPool.isThreadPool leasingPoolN γ.rp (lkvReader lkv γ pfx) := by
+    isLeasingKV (GF := GF) lkv γ pfx ⊢ threadPool.isThreadPoolL leasingPoolN 1 γ.rp (lkvReader lkv γ pfx) := by
   iintro #Hlkv
   iunfold isLeasingKV at Hlkv
   icases Hlkv with ⟨%_, %_, %_, %_, %_, %_, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hpool, -⟩
   iexact Hpool
 
-/-- **A thread borrows a reader slot** of the leasing KV's cache with its thread token. -/
+/-- **A thread borrows a reader slot** of the leasing KV's cache with its thread token: the pool
+takes the token's level 1 (`isThreadPoolL leasingPoolN 1`); the thread keeps its level 0, for the
+client's calls (decision 1b, 2026-11-24), and its levels from 2, which `lkv_giveBack` takes back. -/
 theorem lkv_borrow (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
     isLeasingKV (GF := GF) lkv γ pfx ∗ threadTok ⊢
-      |={⊤}=> ▷ lkvReader lkv γ pfx ∗ threadPool.ownThreadLoan γ.rp := by
+      |={⊤}=> ▷ lkvReader lkv γ pfx ∗ threadPool.ownThreadLoan γ.rp ∗ levelTok 0 ∗
+        threadTokFrom 2 := by
   iintro ⟨#Hlkv, Htok⟩
   ihave #Hpool := isLeasingKV_pool lkv γ pfx $$ Hlkv
-  iapply threadPool.borrow leasingPoolN γ.rp (lkvReader lkv γ pfx) ⊤ (fun _ _ => CoPset.mem_full)
-  iframe #; iframe
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Ht1 with ⟨H1, H2⟩
+  imod threadPool.borrowL leasingPoolN 1 γ.rp (lkvReader lkv γ pfx) ⊤ (fun _ _ => CoPset.mem_full)
+    $$ [H1] with ⟨Hrd, Hloan⟩
+  · iframe #; iframe
+  imodintro
+  iframe
 
-/-- **A borrowed reader slot given back**, for the thread token. -/
+/-- **A borrowed reader slot given back**, for the thread token (with the levels the thread kept). -/
 theorem lkv_giveBack (lkv : Loc) (γ : LeasingNames) (pfx : GoString) :
-    isLeasingKV (GF := GF) lkv γ pfx ∗ threadPool.ownThreadLoan γ.rp ∗ lkvReader lkv γ pfx ⊢
+    isLeasingKV (GF := GF) lkv γ pfx ∗ threadPool.ownThreadLoan γ.rp ∗ lkvReader lkv γ pfx ∗
+        levelTok 0 ∗ threadTokFrom 2 ⊢
       |={⊤}=> threadTok := by
-  iintro ⟨#Hlkv, Hloan, Hrd⟩
+  iintro ⟨#Hlkv, Hloan, Hrd, H0, H2⟩
   ihave #Hpool := isLeasingKV_pool lkv γ pfx $$ Hlkv
-  iapply threadPool.giveBack leasingPoolN γ.rp (lkvReader lkv γ pfx) ⊤ (fun _ _ => CoPset.mem_full)
-  iframe #; iframe
+  imod threadPool.giveBackL leasingPoolN 1 γ.rp (lkvReader lkv γ pfx) ⊤ (fun _ _ => CoPset.mem_full)
+    $$ [Hloan Hrd] with H1
+  · iframe #; iframe
+  imodintro
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe H0
+  iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+  iframe
 
 /-- A transaction being built names its leasing KV. -/
 theorem ownTxnLeasing_lkv (txn lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
@@ -215,11 +230,11 @@ theorem leasingPool_mask : (↑leasingPoolN : CoPset) ⊆ ⊤ \ ↑leasingWgN :=
 pool (`R` its resource), with a fraction of the "open" token (no `Close` waits meanwhile): the
 receipt is deposited for a running token (the monitor keeps the borrowed slot; the caller receives a
 fresh thread token at its `go` statement, `wp_fork_tok_self`). The counter's bound: the deposited
-receipts and this one are fewer than the live threads (`threadPool.loans_lt`). -/
+receipts and this one are fewer than the live threads (`threadPool.loansL_lt`). -/
 theorem wp_leasingWg_Add (lkv : Loc) (γ : LeasingNames) (q : Qp) (R : IProp GF)
     (Hbound : threadBound GF + leasingWgOwedMax ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (lkvWg lkv) γ.wg leasingWgWGN ∗
-        inv leasingWgN (leasingWgInv γ) ∗ threadPool.isThreadPool leasingPoolN γ.rp R ∗
+        inv leasingWgN (leasingWgInv γ) ∗ threadPool.isThreadPoolL leasingPoolN 1 γ.rp R ∗
         leasingOpen γ q ∗ threadPool.ownThreadLoan γ.rp }}
       (App (Val (lkvWg lkv @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
     {{ RET #(); leasingWgRunning γ ∗ leasingOpen γ q }} := by
@@ -232,7 +247,7 @@ theorem wp_leasingWg_Add (lkv : Loc) (γ : LeasingNames) (q : Qp) (R : IProp GF)
     >%Hctr, >%Hkd, Hwn⟩
   unfold threadPool.ownThreadLoan
   icombine Hk Hloan as Hk
-  imod threadPool.loans_lt leasingPoolN γ.rp R _ leasingPool_mask (k + 1) $$ [Hpool Hk]
+  imod threadPool.loansL_lt leasingPoolN 1 γ.rp R _ leasingPool_mask (k + 1) $$ [Hpool Hk]
     with ⟨%Hlt, Hk⟩
   · iframe #; iexact Hk
   iapply fupd_mask_intro leasingWg_mask

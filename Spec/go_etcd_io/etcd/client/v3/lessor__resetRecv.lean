@@ -28,17 +28,16 @@ send end given to a new `sendKeepAliveLoop`; the caller gets the client end with
 or a client error and a `nil` stream. -/
 abbrev lessor.resetRecv.spec : Prop :=
   ∀ (l : Loc) (addr : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
-      leaseKAStreamOk addr }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (lessorAt l [addr] ∗
+      leaseKAStreamOk addr) }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"resetRecv")) (Val #()))
-  {{ (st err : GoInterface), RET (PairV #st #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
+  {{ (st err : GoInterface), RET (PairV #st #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
           (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → (w64 × w64) → IProp GF)
           (cd : context.ContextDesc (IProp GF)),
-        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Md Dn cd anyRes ∗
+        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Md Dn cd clientRes ∗
         kaUpZero Up ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
-      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err) }}
+      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
 
 end spec
 

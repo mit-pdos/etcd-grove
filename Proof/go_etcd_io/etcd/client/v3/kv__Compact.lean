@@ -32,7 +32,7 @@ theorem kv.Compact.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Compact.spec (GF := GF) (hG := hG) := by
   intro api γ dup ci cd rev Hr1 Hcmp
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hrv⟩
+  wp_start as ⟨Hlt, #Hkv, #Hctx, #Hce, #Hrv⟩
   ihave #HctxO := ctxOk_outgoingC ci cd $$ Hctx
   iunfold metadata.outgoingCtxOkC at HctxO
   icases HctxO with ⟨%om, #Hom⟩
@@ -83,7 +83,7 @@ theorem kv.Compact.wp_proof
         itrivial))
     iframe HC HR
   wp_apply wp_retry_Compact rkv conn (ms.map SrvAt.addr) (GrpcSpec.md (kvCompactSpec ms))
-      (fun _ => iprop(True)) ci om cd p req sl vs $$ [Hreq Hrun] as %resp %err ⟨-, Hres⟩
+      (fun _ => iprop(True)) ci om cd p req sl vs $$ [Hlt Hreq Hrun] as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     isplitl []
@@ -94,6 +94,7 @@ theorem kv.Compact.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     isplitl []
     · ipureintro; rfl
@@ -109,6 +110,7 @@ theorem kv.Compact.wp_proof
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl
       iapply HΦ
+      iframe Hlt
       iright
       unfold kvErr
       iframe #

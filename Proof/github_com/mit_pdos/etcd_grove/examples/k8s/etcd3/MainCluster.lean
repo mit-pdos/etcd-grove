@@ -56,7 +56,7 @@ theorem MainCluster.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainCluster.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA CR CE k N ids ps ctxs boot clients ops watchers wops ThB RcB RcN HLv hk1 hk
+  intro CS EK RT SC ST VA k N ids ps ctxs boot clients ops watchers wops ThB RcB RcN HLv hk1 hk
     Hlen Hbf HwbN Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 Hw0 H31 Hops Hwops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -120,10 +120,13 @@ theorem MainCluster.wp_proof
   ihave #Hsis := seedInvs_of_same γs γk ms hsame $$ Hsi
   imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
   -- `newStore(kc)`: the seed, the features, `etcd3.New`
-  wp_apply (wp_newStore kc cl ms V γs γh hAs hmsne (by omega)) $$ [Hs] as %s %st0 %h0 %ok Hns
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok⟩
+  wp_apply (wp_newStore kc cl ms V γs γh hAs hmsne (by omega)) $$ [$Hlt Hs] as %s %st0 %h0 %ok ⟨Hlt, Hns⟩
   · rw [Hsva]
     iframe #
     iframe Hs
+  ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok]
+  · iframe
   icases Hns with (%Hok | ⟨%Hok, Hs, Hst0, ⟨%hs, #Hh0, Hhs⟩, #Hrs, #Hwl, %sp, %mt, %lt, %Hsp,
     #Hstore, #Hsw⟩)
   · subst Hok

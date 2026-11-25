@@ -77,17 +77,20 @@ theorem stmMethods_stm
   isplitr
   · imodintro
     iintro %st %sl %ks
-    wp_start_folded as ⟨⟨#Henv, Hr, Hw, ⟨%gs, Ho, %Hgs⟩, #Hcf, -, %Hsz⟩, #Hks, %Hk, %Hc⟩
-    wp_apply hGet p pfx st gs sl ks $$ [$Hpkg $Henv $Hr $Hw $Ho $Hks] as %r Hres
+    wp_start_folded as ⟨Hlt, Hpre0⟩
+    icases Hpre0 with ⟨⟨#Henv, Hr, Hw, ⟨%gs, Ho, %Hgs⟩, #Hcf, -, %Hsz⟩, #Hks, %Hk, %Hc⟩
+    wp_apply hGet p pfx st gs sl ks $$ [$Hpkg $Hlt $Henv $Hr $Hw $Ho $Hks] as %r ⟨Hlt, Hres⟩
     · ipureintro; exact ⟨readOptsOk_of_getOptsOk lvl gs Hgs, Hk, Hc⟩
     iunfold stmRet at Hres
     icases Hres with (⟨%v, %Hv, %reads', Hr, Hw, Ho, %Hpost⟩ | %Hab)
     rotate_left
     · iapply HΦ
+      iframe Hlt
       unfold stmRet
       iright; ipureintro; exact Hab
     subst Hv
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists { reads := reads', writes := st.writes, n := st.n + ks.length }
     iframe
@@ -108,17 +111,19 @@ theorem stmMethods_stm
   isplitr
   · imodintro
     iintro %st %k
-    wp_start_folded as ⟨⟨#Henv, Hr, Hw, ⟨%gs, Ho, %Hgs⟩, #Hcf, -, %Hsz⟩, %Hk, %Hc⟩
-    wp_apply hRev p pfx st.reads gs k $$ [$Hpkg $Henv $Hr $Ho] as %r' Hres
+    wp_start_folded as ⟨Hlt, ⟨#Henv, Hr, Hw, ⟨%gs, Ho, %Hgs⟩, #Hcf, -, %Hsz⟩, %Hk, %Hc⟩
+    wp_apply hRev p pfx st.reads gs k $$ [$Hpkg $Hlt $Henv $Hr $Ho] as %r' ⟨Hlt, Hres⟩
     · ipureintro; exact ⟨readOptsOk_of_getOptsOk lvl gs Hgs, Hk, Hc.2.1 k (List.mem_singleton_self _)⟩
     iunfold stmRet at Hres
     icases Hres with (⟨%r, %Hr', %reads', Hr, Ho, %Hpost⟩ | %Hab)
     rotate_left
     · iapply HΦ
+      iframe Hlt
       unfold stmRet
       iright; ipureintro; exact Hab
     subst Hr'
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iexists { reads := reads', writes := st.writes, n := st.n + 1 }
     iframe
@@ -139,13 +144,14 @@ theorem stmMethods_stm
   isplitr
   · imodintro
     iintro %st %lo
-    wp_start_folded as ⟨⟨#Henv, Hr, Hw, Ho, #Hcf, -, %Hsz⟩, #Hlo⟩
-    wp_apply hCommit lvl p pfx st lo $$ [$Hpkg $Henv $Hr $Hw $Hcf $Hlo] as %r Hres
+    wp_start_folded as ⟨Hlt, ⟨#Henv, Hr, Hw, Ho, #Hcf, -, %Hsz⟩, #Hlo⟩
+    wp_apply hCommit lvl p pfx st lo $$ [$Hpkg $Hlt $Henv $Hr $Hw $Hcf $Hlo] as %r ⟨Hlt, Hres⟩
     · ipureintro; exact Hsz
     iunfold stmRet at Hres
     icases Hres with (⟨%resp, %Hresp, Hr, Hw, Hres⟩ | %Hab)
     rotate_left
     · iapply HΦ
+      iframe Hlt
       unfold stmRet
       iright; ipureintro; exact Hab
     subst Hresp
@@ -153,6 +159,7 @@ theorem stmMethods_stm
     icases Hr with ⟨%m1, %rm, Hr, -⟩
     icases Hw with ⟨%m2, %wm, Hw, -⟩
     iapply HΦ
+    iframe Hlt
     iapply stmRet_ret
     iframe
     iframe #
@@ -186,10 +193,10 @@ theorem stmMethods_ser
   isplitr
   · imodintro
     iintro %st %sl %ks
-    wp_start_folded as ⟨Hst, #Hks, %Hk, %Hc⟩
-    wp_apply hSGet lvl p pfx st sl ks $$ [$Hpkg $Hst $Hks] as %v Hres
+    wp_start_folded as ⟨Hlt, Hst, #Hks, %Hk, %Hc⟩
+    wp_apply hSGet lvl p pfx st sl ks $$ [$Hpkg $Hlt $Hst $Hks] as %v ⟨Hlt, Hres⟩
     · ipureintro; exact ⟨⟨hlvl, Hk⟩, Hc⟩
-    iapply HΦ; iexact Hres
+    iapply HΦ; iframe Hlt; iexact Hres
   isplitr
   · imodintro
     iintro %st %k %v %sl %gs
@@ -213,10 +220,10 @@ theorem stmMethods_ser
   isplitr
   · imodintro
     iintro %st %k
-    wp_start_folded as ⟨Hst, %Hk, %Hc⟩
-    wp_apply hSRev lvl p pfx st k $$ [$Hpkg $Hst] as %r Hres
+    wp_start_folded as ⟨Hlt, Hst, %Hk, %Hc⟩
+    wp_apply hSRev lvl p pfx st k $$ [$Hpkg $Hlt $Hst] as %r ⟨Hlt, Hres⟩
     · ipureintro; exact ⟨⟨hlvl, Hk⟩, Hc⟩
-    iapply HΦ; iexact Hres
+    iapply HΦ; iframe Hlt; iexact Hres
   isplitr
   · imodintro
     iintro %st %k
@@ -239,10 +246,10 @@ theorem stmMethods_ser
   isplitr
   · imodintro
     iintro %st %lo
-    wp_start_folded as ⟨Hst, #Hlo⟩
-    wp_apply hSCommit lvl p pfx st lo $$ [$Hpkg $Hst $Hlo] as %resp Hres
+    wp_start_folded as ⟨Hlt, Hst, #Hlo⟩
+    wp_apply hSCommit lvl p pfx st lo $$ [$Hpkg $Hlt $Hst $Hlo] as %resp ⟨Hlt, Hres⟩
     · ipureintro; exact hlvl
-    iapply HΦ; iexact Hres
+    iapply HΦ; iframe Hlt; iexact Hres
   · imodintro
     wp_start_folded as Hst
     unfold stmState stmStale

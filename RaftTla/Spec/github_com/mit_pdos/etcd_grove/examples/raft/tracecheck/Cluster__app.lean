@@ -45,7 +45,7 @@ def appDone (c : Loc) (W : TcW) (r : Loc) (id : w64) (q : Qp) : IProp GF :=
 abbrev Cluster.app.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (W : TcW) (r : Loc) (n : NodeH) (ms : Loc) (γs : MemStorNames) (id : w64)
     (st : NodeDriverState) (v : ConfigView) (hs0 : HardStateM) (q : Qp),
-  st.handling = none → st.storage = memStorIface ms → ViewOk st.delivered v →
+  st.handling = none → st.storage = memStorIface ms → ViewOk W.nv st.delivered v →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
       tcWorld c W ∗ repInfo W.cl r id n ms γs ∗ repOwn r ∗ memStorMeta ms γs hs0 ∗
       nodeDriver n W.cl tcRaftN st ∗ raftState W.cl id st.durable ∗ nodeConfig n W.cl tcRaftN v ∗

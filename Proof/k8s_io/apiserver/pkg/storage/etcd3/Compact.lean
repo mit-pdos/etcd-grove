@@ -95,21 +95,21 @@ theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions]
     (γk : KVNames) (hsame : ∀ x ∈ ms, kvSame x.γr.kv γk) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
     (Q : KVState → IProp GF) (hb : b.model = casClientTxn ev rev) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, client.srvStart x) ∗
         client.txnWriteOnce tp (ms.map client.SrvAt.addr) ∗
         ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (casTxn ev rev)) Q) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗ Q σ ∗
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗ Q σ ∗
           ⌜m.succeeded = casWins ev rev σ ∧
             client.opRespsRel false ((casTxn ev rev).branch m.succeeded)
               (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (casTxn ev rev)).2.2 m.resps ∧
             0 < sint.Z m.hdr.revision⌝ ∗ kvRevLb γk m.hdr.revision) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }} := by
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = casTxn ev rev := by rw [hb, txnWireOf_clientTxn]
   have hp : client.TxnModel.plain b.model := by rw [hb]; exact clientTxn_plain _ _ _
   have hin : client.txnModelIn (txnWireOf b.model) := by rw [hw]; exact txnModelIn_txnOf _ _ _
@@ -131,7 +131,7 @@ theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions]
       rw [hw]
       iexact H
   ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-  iapply (wp_CommitM tp ms ci cd b (W64 0) [] Q) $$ [Hobj Hau' Hone]
+  iapply (wp_CommitM tp ms ci cd b (W64 0) [] Q) $$ [$Hlt Hobj Hau' Hone]
   · iframe Hobj
     iframe #
     isplitl []
@@ -151,8 +151,9 @@ theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions]
     inext
     iexact Hau'
   inext
-  iintro %resp %err Hout
+  iintro %resp %err ⟨Hlt, Hout⟩
   iapply HΦ
+  iframe Hlt
   iunfold txnCallOut at Hout
   icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · ileft
@@ -222,7 +223,7 @@ theorem Compact.wp_proof
     (h_client_Compact_kv : client.client_Compact_kv.law (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
-  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
   ihave #Psc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
   rw [show k8s_io.apiserver.pkg.storage.etcd3.compactRevKey = #compactRevKey from rfl]
@@ -340,8 +341,8 @@ theorem Compact.wp_proof
   iunfold casOk at Hcas'
   ihave Hau := Hcas' $$ %ev %rev Hev Hrev
   wp_apply (cas_commit wp_CommitM tp ms γk hsame ci cd ⟨casClientTxn ev rev, true, true, true⟩ ev rev
-      (casPost γk Seen recorded ev rev) rfl) $$ [Hobj Hau Htwo]
-    as %resp %err Hout
+      (casPost γk Seen recorded ev rev) rfl) $$ [$Hlt Hobj Hau Htwo]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ, #Hrvl⟩ | ⟨%Herr, #Hke⟩)
@@ -352,6 +353,7 @@ theorem Compact.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe #
     isplitr
     · unfold recRevOk; ileft; ipureintro; rfl
@@ -452,6 +454,7 @@ theorem Compact.wp_proof
     obtain ⟨rfl, rfl⟩ := Hp c hv0 rfl rfl
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe #
     isplitr
     · unfold recRevOk
@@ -471,6 +474,7 @@ theorem Compact.wp_proof
     · -- `rev = 0`: the first round, no compaction
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iframe #
       isplitr
       · unfold recRevOk; ileft; ipureintro; rfl
@@ -485,8 +489,8 @@ theorem Compact.wp_proof
     ihave #Hko' := Hko
     iunfold clientKvOk at Hko'
     icases Hko' with ⟨%api', %dup, #Hkvf', #HkvOk⟩
-    wp_apply (h_client_Compact_kv cl api' γk dup ci cd rev (by word) hcmp) $$ []
-      as %cresp %cerr Hcout
+    wp_apply (h_client_Compact_kv cl api' γk dup ci cd rev (by word) hcmp) $$ [$Hlt]
+      as %cresp %cerr ⟨Hlt, Hcout⟩
     · iframe #
       rw [hcret]
       iExactEq Hrlb
@@ -496,7 +500,7 @@ theorem Compact.wp_proof
       (try wp_auto)
       ihave #Pkl : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 $$ []
       · iPkgInit
-      wp_apply wp_Endpoints cl $$ [] as %esl ⟨%eps, Hesl, -⟩
+      wp_apply wp_Endpoints cl $$ [$Hlt] as %esl ⟨Hlt, %eps, Hesl, -⟩
       · iframe #
       (try wp_auto)
       wp_apply wp_slice_literal
@@ -515,6 +519,7 @@ theorem Compact.wp_proof
         itrivial
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iframe #
       isplitl [HQ]
       · unfold recRevOk; iright
@@ -530,6 +535,7 @@ theorem Compact.wp_proof
       | ok ei => ?_
       wp_auto
       iapply HΦ
+      iframe Hlt
       iframe #
       isplitr
       · unfold recRevOk; ileft; ipureintro; rfl

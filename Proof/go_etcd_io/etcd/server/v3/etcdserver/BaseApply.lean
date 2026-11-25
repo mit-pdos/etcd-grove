@@ -281,16 +281,18 @@ the read package states, as the server states its foreign errors in `srvErrVars`
 request path's unit 4a: `LinearizableReadNotify` returns a done context's `Err()`, which is
 `Canceled` or `DeadlineExceeded`, `context.ErrDone`): Go's `deadlineExceededError{}` (an empty
 struct, not a pointer: `context.go`'s `var DeadlineExceeded error = deadlineExceededError{}`), whose
-method set is `Error`, `Timeout`, `Temporary` (no `Is`, `As` or `Unwrap`: a leaf), comparable (an
-empty struct: `==` on it does not panic, a safe map key), and whose `Error()` returns; no `GRPCStatus`
-either (k8s etcd3 7c, HS-7, DRAFT). Method sets
-are uninterpreted in the semantics, so this is stated, as `srvErrVars`' `errLeaf`. -/
+method set is `Error`, `Timeout`, `Temporary` (no `Is`, `As` or `Unwrap`: a leaf), a key of
+`togRPCError`'s map (`errKeyOk`: `deadlineExceededError{}` itself; until ctx-leaf-fix, 2026-11-25, a
+`SafeMapKey` at Perennial's interface keys, which no non-pointer is since P8c:
+`notes/axiom-review/ctx-readerrs-vacuity.md`), and whose `Error()` returns; no `GRPCStatus` either
+(k8s etcd3 7c, HS-7). All of it from Perennial's `context.isInit` and the method set goose emits
+(`EtcdGrove.ContextReadErrs.errs`). -/
 abbrev ctxDeadlineLeaf : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.isLeafError e ∧
       methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
       (∀ T, e.ty ≠ go.GoType.PointerType T) ∧
-      SafeMapKey (GF := GF) go.error (GoInterface.ok e) ∧
+      EtcdGrove.errKeyOk (GoInterface.ok e) ∧
       -- (k8s etcd3 7c, HS-7, DRAFT) no `GRPCStatus` method (grpc's `status.FromError` accepts it)
       methodSet e.ty !! go!"GRPCStatus" = none ∧
       -- (premise-fixes-4) no `Format` method (`fmt` prints it with its `Error`); (fmt soundness 2)
@@ -299,15 +301,15 @@ abbrev ctxDeadlineLeaf : IProp GF :=
         methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))⌝ ∗
     EtcdGrove.errMsgOk e)
 
-/-- `ctxDeadlineLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
-`EtcdGrove.ContextReadErrs` states, unchanged; the `Format` fact follows from Perennial's
-`context.isInit` (`ContextReadErrs.errs_strong`). -/
+/-- `ctxDeadlineLeaf` without the `Format` conjunct (premise-fixes-4): what
+`EtcdGrove.ContextReadErrs.errs` proves (a premise until ctx-leaf-fix, 2026-11-25); with the
+`Format` fact, `ContextReadErrs.errs_strong`. -/
 abbrev ctxDeadlineLeafW : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.isLeafError e ∧
       methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
       (∀ T, e.ty ≠ go.GoType.PointerType T) ∧
-      SafeMapKey (GF := GF) go.error (GoInterface.ok e) ∧
+      EtcdGrove.errKeyOk (GoInterface.ok e) ∧
       methodSet e.ty !! go!"GRPCStatus" = none⌝ ∗
     EtcdGrove.errMsgOk e)
 

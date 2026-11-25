@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types

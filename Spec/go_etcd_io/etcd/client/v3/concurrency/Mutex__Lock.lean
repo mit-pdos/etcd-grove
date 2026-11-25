@@ -37,17 +37,16 @@ takes one: Perennial's `wp_WithCancel`), knowing etcd has reached `lo`:
 abbrev Mutex.Lock.spec : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isMutex m s γ client id pfx ∗ mutexState m st ∗
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗ etcdReached lo) }}
     (App (Val (m @!! go.GoType.PointerType Mutex.ty @!! go!"Lock")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc),
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev R : w64) (hdr : Loc),
         mutexState m ⟨key, rev, hdr⟩ ∗ hdrRevAt hdr R ∗ etcdReached R ∗
         (lockedAt pfx key rev R ∨ keyRecreated pfx key rev R) ∗
         ⌜pfx <+: key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
       (isPkgErr ErrSessionExpired err ∗ ∃ (st' : MutexSt) (R : w64), mutexState m st' ∗
         etcdReached R ∗ etcdAbsent pfx st'.key R ∗ ⌜pfx <+: st'.key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : MutexSt, mutexState m st') }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ st' : MutexSt, mutexState m st')) }}
 
 end spec
 

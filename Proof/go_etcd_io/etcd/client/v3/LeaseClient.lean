@@ -65,21 +65,23 @@ theorem isEtcdLease_of_lessor
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, -, -, -, -, -, -, -, #Hrem, -, -⟩
   unfold isEtcdLease
   isplitl
-  · iintro !> %ctx %cs %ttl %Φ !> ⟨#Hctx, #HctxO⟩ HΦ
+  · iintro !> %ctx %cs %ttl %Φ !> ⟨Hlt, #Hctx, #HctxO⟩ HΦ
     ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
     iapply (wp_Grant l [addr] etcdLeaseGrantSpecAny
-      (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗ etcdReached m.hdr.revision)) ctx cs ttl) $$ []
+      (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗ etcdReached m.hdr.revision)) ctx cs ttl) $$ [Hlt]
     · iframe #
+      iframe Hlt
       unfold etcdLeaseGrantSpecAny etcdLeaseGrantSpecAnyW
       iintro !> !> %m %Hid #Hr
       simp only
       iframe #
       ipureintro; exact Hid
     inext
-    iintro %resp %err Hres
+    iintro %resp %err ⟨Hlt, Hres⟩
     iapply HΦ
+    iframe Hlt
     icases Hres with (⟨%Herr, %m, %h, #Hhf, #Hhdr, #Hid, -, %Hidnn, #Hr⟩ | ⟨%Herr, -⟩)
     · iright
       isplitr
@@ -98,19 +100,21 @@ theorem isEtcdLease_of_lessor
     iintro %ch %err Hres
     iapply HΦ
     iexact Hres
-  · iintro !> %ctx %cs %id %Φ !> ⟨#Hctx, #HctxO⟩ HΦ
+  · iintro !> %ctx %cs %id %Φ !> ⟨Hlt, #Hctx, #HctxO⟩ HΦ
     ihave #Hok := ctxOk_of_isContext ctx cs $$ [$Hctx $HctxO]
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
     iapply (wp_Revoke l [addr] etcdLeaseRevokeSpec
-      (fun m => iprop(etcdReached m.hdr.revision)) ctx cs id) $$ []
+      (fun m => iprop(etcdReached m.hdr.revision)) ctx cs id) $$ [Hlt]
     · iframe #
+      iframe Hlt
       unfold etcdLeaseRevokeSpec etcdLeaseRevokeSpecW
       iintro !> !> %m #Hr
       iexact Hr
     inext
-    iintro %resp %err Hres
+    iintro %resp %err ⟨Hlt, Hres⟩
     iapply HΦ
+    iframe Hlt
     icases Hres with (⟨%Herr, %m, #Hm, #Hr⟩ | ⟨%Herr, -⟩)
     · iright
       isplitr

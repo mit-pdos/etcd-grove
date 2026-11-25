@@ -38,12 +38,11 @@ The value is at most `2 ^ 28` bytes (2026-10-30: the request carrying it fits a 
 abbrev Election.Proclaim.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : ElectionSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (val : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
-      electionState e s st ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo ∗ ⌜val.length ≤ concStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isElection e s γ client id pfx ∗
+      electionState e s st ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo ∗ ⌜val.length ≤ concStrMax⌝) }}
     (App (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Proclaim"))
       (Val #(GoInterface.ok ctx))) (Val #val))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil ∧ st.sess ≠ null⌝ ∗ ∃ hdr : Loc,
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil ∧ st.sess ≠ null⌝ ∗ ∃ hdr : Loc,
         electionState e s { st with hdr := hdr } ∗
         (⌜¬ pfx <+: st.key⌝ ∨ ∃ r : w64, hdrRevAt hdr r ∗ etcdReached r ∗
           proclaimedAt pfx st.key st.rev val id r ∗ ⌜sint.Z lo ≤ sint.Z r⌝)) ∨
@@ -52,7 +51,7 @@ abbrev Election.Proclaim.spec : Prop :=
          (⌜st.sess ≠ null⌝ ∗ electionState e s { st with key := [] } ∗
           (⌜¬ pfx <+: st.key⌝ ∨ ∃ r : w64, etcdReached r ∗ notLeaderAt pfx st.key st.rev r ∗
             ⌜sint.Z lo ≤ sint.Z r⌝)))) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ electionState e s st) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ electionState e s st)) }}
 
 end spec
 

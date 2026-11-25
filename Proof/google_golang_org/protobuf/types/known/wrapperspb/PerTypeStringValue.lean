@@ -162,6 +162,7 @@ message: `recv` is `send`). -/
 abbrev pbStringValueS : StreamMsg GF where
   ty := wrapperspb.StringValue.ty
   M := GoString
+  tree := stringValueTree
   cnt := inferInstance
   send := stringValueSend
   wireLen := stringValueWireLen
@@ -170,7 +171,7 @@ abbrev pbStringValueS : StreamMsg GF where
 
 /-- **`pbStringValueS` with its store.** -/
 def pbStringValueST : StreamMsgT GF :=
-  { pbStringValueS with tree := stringValueTree }
+  { pbStringValueS with }
 
 /-- **`pbStringValueST`'s store gives its decoded model** (with or without the request's bound). -/
 theorem pbStringValueST_store (ls l : Loc) (m : GoString) :

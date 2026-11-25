@@ -35,9 +35,9 @@ theorem Client.getToken.wp_proof
     (wp_Is : errors.IsStatusErr.spec (GF := GF) (hG := hG)) :
     Client.getToken.spec (GF := GF) (hG := hG) := by
   intro c conn eps ctx cd
-  wp_start as ⟨#Hrc, #Hready, Hconn, #Hctx⟩
+  wp_start as ⟨Hlt, #Hrc, #Hready, Hconn, #Hctx⟩
   iunfold retryClientOk at Hrc
-  icases Hrc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb⟩
+  icases Hrc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb, -⟩
   iunfold clientReady at Hready
   icases Hready with ⟨%api, %P, #Hauth, #HapiS, #Hca, -⟩
   iunfold clientAuthAt at Hca
@@ -65,6 +65,7 @@ theorem Client.getToken.wp_proof
     wp_apply wp_UpdateAuthToken b P tok $$ [Hb Htokp]
     · iframe Hb Htokp
     iapply HΦ
+    iframe Hlt
     isplitl
     · iapply clientErrOk_nil
     iintro !> -; ipureintro; rfl
@@ -73,6 +74,7 @@ theorem Client.getToken.wp_proof
   · rw [decide_eq_true hu]
     wp_auto
     iapply HΦ
+    iframe Hlt
     isplitl
     · iapply clientErrOk_nil
     iintro !> -; ipureintro; rfl
@@ -82,6 +84,7 @@ theorem Client.getToken.wp_proof
   · rw [decide_eq_true hp]
     wp_auto
     iapply HΦ
+    iframe Hlt
     isplitl
     · iapply clientErrOk_nil
     iintro !> -; ipureintro; rfl
@@ -118,9 +121,10 @@ theorem Client.getToken.wp_proof
       rw [ctxErrClient_eq_errs]; iunfold ctxErrs at He; icases He with ⟨-, #He, -, -⟩; iexact He
   imod Hcd with ⟨%cd', #Hok', #Hce⟩
   wp_apply wp_Authenticate api eps ctx cd' u pw Spec
-      (fun (t : (pbAuthenticateResponse (GF := GF)).M) => iprop(□ P t)) $$ []
-    as %resp %err Hres
+      (fun (t : (pbAuthenticateResponse (GF := GF)).M) => iprop(□ P t)) $$ [Hlt]
+    as %resp %err ⟨Hlt, Hres⟩
   · iframe #
+    iframe Hlt
     ipureintro; exact Hsz
   ihave #Hb' := Hb
   iunfold tokenBundleInv at Hb'
@@ -147,6 +151,7 @@ theorem Client.getToken.wp_proof
     · iframe Hb
       iright; iexact Hq
     iapply HΦ
+    iframe Hlt
     isplitl
     · iapply clientErrOk_nil
     iintro !> -; ipureintro; rfl
@@ -161,6 +166,7 @@ theorem Client.getToken.wp_proof
       · -- another error: returned
         wp_auto
         iapply HΦ
+        iframe Hlt
         isplitl
         · unfold clientErrOk
           iframe #
@@ -174,6 +180,7 @@ theorem Client.getToken.wp_proof
         · iframe Hb
           ileft; ipureintro; rfl
         iapply HΦ
+        iframe Hlt
         isplitl
         · iapply clientErrOk_nil
         iintro !> -; ipureintro; rfl

@@ -43,6 +43,19 @@ abbrev types.URLs.StringSlice.spec : Prop :=
         ∀ (j : Nat) (u : _root_.Perennial.net.url.URL), us[j]? = some u → http.urlRootPlain u →
           ss[j]? = some (go!"http://" ++ u.Host')⌝ }}
 
+/-- **`us.StringSlice()` of plain URLs** (claim #34, stage 2, 2026-11-25: `computeMemberID`'s and
+`newMember`'s, whose ids and members name the strings): as `spec`, the strings `http://` and each
+URL's host (`url.URL.String`'s of a plain URL, `http.urlRootPlain`). -/
+abbrev types.URLs.StringSlice.specP : Prop :=
+  ∀ (p : Loc) (dq : DFrac) (sl : GoSlice) (us : List _root_.Perennial.net.url.URL),
+  (∀ u ∈ us, http.urlRootPlain u) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types ∗
+      p ↦{dq} sl ∗ sl ↦*□ us }}
+    (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.types.URLs.ty @!!
+      go!"StringSlice")) (Val #()))
+  {{ (out : GoSlice), RET #out; p ↦{dq} sl ∗
+      out ↦* us.map (fun u => go!"http://" ++ u.Host') }}
+
 end spec
 
 end EtcdGrove

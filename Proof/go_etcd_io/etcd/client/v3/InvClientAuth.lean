@@ -306,7 +306,7 @@ header): on a connection `conn` to `eps` whose one interceptor `ic` is, with `cl
 eps`, the contract in both modes. -/
 def etcdInterceptorOkG (c : Loc) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (eps : List GoString),
-    clientReady c conn eps -∗ grpcConn conn eps [ic] [] anyRes -∗
+    clientReady c conn eps -∗ grpcConn conn eps [ic] [] clientRes -∗
       etcdInterceptorOk ic ∗ etcdInterceptorOkW ic)
 
 instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
@@ -316,7 +316,7 @@ instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
 /-- **The dial's connection of the client `c`** (persistent; see the file header): `isEtcdConn`,
 its interceptor's contract gated on `clientReady`. -/
 def isEtcdConnG (c conn : Loc) (eps : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] anyRes ∗ etcdInterceptorOkG c ic ∗
+  iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] clientRes ∗ etcdInterceptorOkG c ic ∗
     -- (grpc-trusted-T, T7, 2026-11-24) dialed with etcd's stream interceptor
     etcdConnStream conn)
 

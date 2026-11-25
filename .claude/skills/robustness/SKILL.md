@@ -68,11 +68,13 @@ what we rely on. Write it as a spec, not as a test:
   gate refuses a statement without one), and the package-assumption classes of the translations
   (`<pkg>.Assumptions`, field layouts) listed as trusted.
 - **The thread and step bounds.** `Robust crashing stable g threads bound` takes them separately.
-  `threads` is a named constant from the code's real limit (goroutines it can have live per
-  machine); `bound` as high as the proof allows (`2^63 - 1` through `goose_dist_adequacy_below`).
-  Never `threads := bound + 1` with a lowered `bound`. No bare literals anywhere in the statement:
-  name constants or use abstract facts (`maxAddr`).
-- **Fix the extensions** (an instance list such as `kvnetExts`), and state their environment
+  `bound` (steps) is as high as the proof allows (`2^63 - 1` through `goose_dist_adequacy_below`,
+  or the proof's own cap, e.g. raft's `readyFits` at `2^61`), and the header says what caps it.
+  Never lower `bound` to get a thread cap. `threads` is a cap only when the proof needs one, a named
+  constant from the real limit (net/http's `2^30` reader slots); otherwise `threads := bound + 1`
+  (no execution under `bound` steps reaches it, so it excludes nothing), still named. No bare
+  literals anywhere in the statement: name constants or use abstract facts (`maxAddr`).
+- **Fix the extensions** (an instance list such as `kvraftExts`), and state their environment
   assumptions (closed world, one process per file system, ...) in the header's prose.
 - **Reuse audited definitions.** Prefer premises and vocabulary already reviewed over new ones.
 - **Check the statement is not vacuous.** Besides the Go non-vacuity tests, every premise bundle
@@ -81,7 +83,7 @@ what we rely on. Write it as a spec, not as a test:
   extensions and their environment assumptions, what is trusted. Technical, present tense: no
   history ("adapted here", "added on ..."), no narrative; those go in `notes/`. The same for every
   trusted file's documentation.
-- **Example:** `examples/kvnet.md` (a decent statement, with what to improve).
+- **Example:** `examples/kvraft.md` (a decent statement, with what to improve).
 
 ## Checklist before the statement packet
 
@@ -96,8 +98,8 @@ what we rely on. Write it as a spec, not as a test:
    - *a function contract* (a triple, a WP, a class carrying a body or contract) — not allowed: an
      axiom in `Proof/<pkg>/<fn>.lean`;
    - *an Iris assumption* (any `⊢ …`, any entailment over ghost or package state) — not allowed.
-2. **Bounds:** `threads` a named constant from the code's real limit; `bound` the highest the proof
-   allows (`2^63 - 1`); never `threads := bound + 1`.
+2. **Bounds:** `bound` the highest the proof allows, never lowered to cap threads; `threads` a cap
+   only if the proof needs one (from the real limit), else `bound + 1`; both named, each with why.
 3. **No bare literals:** every size, count and bound a named constant or abstract fact.
 4. **Non-vacuity:** the Go test (validation passes, every assertion reached, many seeds) and the Lean
    satisfiability witness of the premises; plus a concrete example instance.

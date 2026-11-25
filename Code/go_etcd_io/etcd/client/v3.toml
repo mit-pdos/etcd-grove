@@ -163,14 +163,16 @@ translate = [
   # `filterCallOptions`, `withMax`, `withBackoff`); `retry.go`'s `isSafeRetryImmutableRPC`,
   # `isSafeRetryMutableRPC`, `retryPolicy.String`; (2026-11-22, prove-ps2-wrb) `waitRetryBackoff`
   # (the backoff's timer and `select`) and `contextErrToGRPCErr`. Names only (axioms):
-  # `withVersion` (grpc's metadata), `getToken` (the auth client), `Endpoints` (a read under the
-  # client's `RWMutex`, whose reader slots a persistent interceptor cannot hold).
+  # `withVersion` (grpc's metadata), `getToken` (the auth client). (prove-ps2-clientrdlock,
+  # 2026-11-24) `Endpoints` with its body (a read under the client's `RWMutex`: a reader slot of
+  # `retryClientOk`'s level-0 pool, borrowed with the caller's `levelTok 0`).
   # The interceptor allocates a grpc `peer.Peer`: hence the import of grpc's `peer`.
   "Client.unaryClientInterceptor",
   "isContextError",
   "Client.shouldRefreshToken",
   "Client.refreshToken",
   "isSafeRetry",
+  "Client.Endpoints",
   "isSafeRetryImmutableRPC",
   "isSafeRetryMutableRPC",
   "retryPolicy.String",

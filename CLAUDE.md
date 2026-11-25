@@ -150,23 +150,25 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `RaftTla/` alone has the hooks' helpers and the trace check's specs and proofs (its `Init` and
   `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
   `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
-- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), for a closed
-  kvdurable theorem whose trust base has no axiom of this repository: raft of project `raft-noax` and
-  kvdurable of project `kvdurable-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`, `KVDURABLE_NOAX_*`; with
-  kvreconf and walpb translated into it as parts of their projects), and copies of every main-tree
-  module of kvdurable's `Results` closure that reaches them, written by `etc/copy-part.py` (a first
-  line naming it; `--check` in CI; a file without that line is the part's own); its initializers
-  from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
-  Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
+- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), the raft of
+  `KvRaft/`'s closed theorem, whose trust base has no axiom of this repository: raft of project
+  `raft-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`; with walpb translated into it as a part of its project),
+  and copies of every main-tree module of raft's closure (its `Link` and the modules `etc/api/raft.txt`
+  lists as importable) that reaches them, written by `etc/copy-part.py` (a first line naming it;
+  `--check` in CI; a file without that line is the part's own); its initializers from
+  `etc/gen-init.py`'s `PARTS`, its Link from `etc/gen-link.py --raft-noax`. Nothing outside it imports
+  it; trust base: `etc/tcb-collections/raft-noax.txt`. (Until 2026-11-24 it also held kvdurable's closed
+  theorem, project `kvdurable-noax`: retired with kv, kvreconf and kvdurable's, which `kvraft_robust`
+  and kvraft-udp subsume.)
 - `Net/` is another: the net extension's `net` and the programs over it (`examples/net`, `examples/lib/remote`,
   the models' codecs and `net/{http,rpc}`). Since the net swap (etcd-dist D2, 2026-11-22) its `net` is also the
   main tree's (`net=Net` in every project; `Proof/net/InvNet.lean` defines the address predicates over it):
   the main tree imports `Net/`'s `net` modules, never the part's other modules.
-- `KvNet/` is another: kvnet's proof (`notes/kvnet-part.md`), over raft-noax's raft, `Net/`'s `net` and
-  `WalTester/`'s bodied `durable` in one closure: project `kvnet` and parts of projects raft-noax, net,
+- `KvRaft/` is another: kvraft's proof (`notes/kvraft-part.md`), over raft-noax's raft, `Net/`'s `net` and
+  `WalTester/`'s bodied `durable` in one closure: project `kvraft` and parts of projects raft-noax, net,
   durable and etcd translated into it, copies of those parts' (and the main tree's) modules its own
-  modules reach written by `etc/copy-part.py --part KvNet` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
-  main), its initializers by `etc/gen-init.py` (`KVNET_INITS`). Nothing outside it imports it.
+  modules reach written by `etc/copy-part.py --part KvRaft` (sources `Net/`, `WalTester/`, `RaftNoAx/`,
+  main), its initializers by `etc/gen-init.py` (`KVRAFT_INITS`). Nothing outside it imports it.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
@@ -174,10 +176,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
 - `WalTester/` is another: etcd's WAL tester (`examples/etcd/wal`, project `etcd-wal`) and the library it
   keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
   and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
-  `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
+  `durableExt` for kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
   two translations", decided 2026-11-15). Its modules declare the main `durable`'s names, so nothing outside it imports it;
-  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
-  ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
+  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once `durableExt`'s
+  users are ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
@@ -200,8 +202,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   file to audit) and `Proof/<example>/TopLevelRobustness.lean` proves it (`theorem <name> :
   <name>.spec`, from the example's closed theorem); the program and the other definitions the
   statement names are in `Proof/<example>/TopLevelDefs.lean` (a defs module, so the Spec file
-  imports no proof); a new example gets all three. (kvnet's statement,
-  not proved yet: `Proof/.../examples/raft/kvnet/Robust.lean`.)
+  imports no proof); a new example gets all three. (kvraft's statement,
+  not proved yet: `Proof/.../examples/raft/kvraft/Robust.lean`.)
 - `models/`: our trusted models of real libraries (executable stand-ins: verified where they are code,
   trusted only in their claim to behave like the library), the Go module `models.lab` (a path naming no
   project, as the part `Net/` is exported to dsverify-lab), each with its evidence (`models/README.md`):

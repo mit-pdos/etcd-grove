@@ -38,14 +38,12 @@ abbrev Cache.Get.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat) (r0 : w64)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ metadata.outgoingCtxOkC ctx ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ levelTok 0 ∗ (isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗ metadata.outgoingCtxOkC ctx ∗
       optsAt sl gs ∗
-      ⌜¬ opGetPanics gs⌝ ∗ cacheReader cf ∗ storeRevLb cf.γs r0 }}
+      ⌜¬ opGetPanics gs⌝ ∗ cacheReader cf ∗ storeRevLb cf.γs r0) }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"Get"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      cacheReader cf ∗ cacheGetResult cf r0 s key (opGetModel key gs).base resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (cacheReader cf ∗ cacheGetResult cf r0 s key (opGetModel key gs).base resp err) }}
 
 end spec
 

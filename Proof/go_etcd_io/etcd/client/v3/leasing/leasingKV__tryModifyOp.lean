@@ -39,7 +39,7 @@ theorem leasingKV.tryModifyOp.wp_proof
     (hEvict : leaseCache.Evict.spec (GF := GF) (hG := hG)) :
     leasingKV.tryModifyOp.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o top lo
-  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hop, #Hlo, %Hpre⟩
+  wp_start as ⟨Hlt, #Hlkv, #Hctx, #HctxC, #Hop, #Hlo, %Hpre⟩
   obtain ⟨Htop, Hot, Hsh⟩ := Hpre
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
@@ -117,8 +117,9 @@ theorem leasingKV.tryModifyOp.wp_proof
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := ⟨[compareM (cmpKeyM .create (pfx ++ o.key)) .lt (.num (rv + W64 1))], [top], []⟩, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
-  · ipureintro
+  wp_apply HCommit $$ %_ %lo [$Hlt $HB $Hlo] as %resp %err ⟨Hlt, Hres⟩
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨TxnModel.under_nil _, ?_⟩
     have hw := txnOpOf_wireLen_le Htop
     obtain ⟨h1, h2, h3⟩ := Hsh
@@ -144,10 +145,12 @@ theorem leasingKV.tryModifyOp.wp_proof
     · subst Hwc
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft; ipureintro; exact ⟨rfl, rfl⟩
     · (try wp_auto)
       wp_if_destruct
       · iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact ⟨rfl, rfl⟩
       · unfold waitcClose
         icases Hwc with ⟨%γch, Hwc⟩
@@ -155,6 +158,7 @@ theorem leasingKV.tryModifyOp.wp_proof
         · unfold waitQ; imodintro; itrivial
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact ⟨rfl, rfl⟩
   subst Heq
   have Hlin : (TxnModel.linearizable ⟨[compareM (cmpKeyM .create (pfx ++ o.key)) .lt (.num (rv + W64 1))], [top], []⟩) = true := by
@@ -167,10 +171,12 @@ theorem leasingKV.tryModifyOp.wp_proof
     · subst Hwc
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft; ipureintro; exact ⟨rfl, rfl⟩
     · (try wp_auto)
       wp_if_destruct
       · iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact ⟨rfl, rfl⟩
       · unfold waitcClose
         icases Hwc with ⟨%γch, Hwc⟩
@@ -178,10 +184,12 @@ theorem leasingKV.tryModifyOp.wp_proof
         · unfold waitQ; imodintro; itrivial
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact ⟨rfl, rfl⟩
   · simp only [↓reduceIte]
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; rfl

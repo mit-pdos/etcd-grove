@@ -35,13 +35,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.authlease.A
 abbrev foreign.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cli : Loc) (who addr : GoString) (id : w64) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γa : auth.AuthNames) (n m : Nat) (Qr : KVState → IProp GF) (R : IProp GF),
   who = go!"u" ∨ who = go!"v" → E.authOn = true →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
-      clientTokAt cli [addr] (akTokP γa who) ∗ etcdstart.etcdLeaseServedOn addr s E ρ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗ levelTok 0 ∗ (clientTokAt cli [addr] (akTokP γa who) ∗ etcdstart.etcdLeaseServedOn addr s E ρ ∗
       auth.authPubLbM E.authMode n ∗ lease.lessorLb (mvcc.api.mvccLeases E.γ) m ∗ R ∗
       □ (∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
           ⌜ctx = akOut who⌝ -∗ clientOpAuOn (srvTLSId s) E ρ conn ctx (.leaseRevoke id) Qr) ∗
@@ -54,10 +52,10 @@ abbrev foreign.spec : Prop :=
           lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) i ids -∗
           leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id' ∈ ids,
             leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) i id' .read)) -∗
-          R ={⊤}=∗ False) }}
+          R ={⊤}=∗ False)) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.foreign)) (Val #cli))
       (Val #who)) (Val #id))
-  {{ RET #(); R }}
+  {{ RET #(); levelTok 0 ∗ (R) }}
 
 end spec
 

@@ -23,11 +23,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `withBackoff(bf)` of a backoff function that returns (`backoffOk`) returns a `retryOption`
-whose closure writes `backoffFunc` (`optApplyOk`). -/
+/-- `withBackoff(bf)` of a backoff function that returns (`backoffOkT`: lent a level-0 thread token;
+since 2026-11-24, prove-ps2-clientrdlock, it took `backoffOk`'s, which implies it) returns a
+`retryOption` whose closure writes `backoffFunc` (`optApplyOk`). -/
 abbrev withBackoff.spec : Prop :=
   ∀ (bf : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ backoffOk bf }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ backoffOkT bf }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withBackoff)) (Val #bf))
   {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyKeep ro.applyFunc' true }}
 

@@ -56,7 +56,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     (h_txn_Commit_st : etcd_txnlin.txn_Commit_st.law (GF := GF) (hG := hG)) :
     Client.OptimisticPut.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd key vsl val rev opts Q hlease hk hv
-  wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hv, Hau⟩
+  wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hv, Hau⟩
   wp_auto
   wp_apply wp_bytes_to_string vsl val DFrac.discard $$ [Hv] as -
   · iexact Hv
@@ -160,8 +160,8 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     (try wp_auto)
     wp_apply (h_txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.put key val] [], true, true, false⟩
         Q [.mod key rev] [.put key val] [] rfl (by simp)
-        (clientTxn_size rev rfl (Or.inl rfl) (Or.inl rfl) hk hv)) $$ [Hobj Hau Htwo]
-      as %resp %err Hout
+        (clientTxn_size rev rfl (Or.inl rfl) (Or.inl rfl) hk hv)) $$ [Hlt Hobj Hau Htwo]
+      as %resp %err ⟨Hlt, Hout⟩
     · iframe #
       iframe
       done
@@ -176,6 +176,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       rw [hg]
       wp_auto
       iapply HΦ
+      iframe Hlt
       ileft
       isplitl []
       · ipureintro; rfl
@@ -193,6 +194,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       | ok ei => ?_
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iunfold kvErr at Hke
       icases Hke with ⟨%Hce, #Hse, #Hcl⟩
@@ -239,8 +241,8 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     wp_apply (h_txn_Commit_st tp ms ci cd
         ⟨clientTxn [.mod key rev] [.put key val] [.get key], true, true, true⟩
         Q [.mod key rev] [.put key val] [.get key] rfl (by simp)
-        (clientTxn_size rev rfl (Or.inl rfl) (Or.inr rfl) hk hv)) $$ [Hobj Hau Htwo]
-      as %resp %err Hout
+        (clientTxn_size rev rfl (Or.inl rfl) (Or.inr rfl) hk hv)) $$ [Hlt Hobj Hau Htwo]
+      as %resp %err ⟨Hlt, Hout⟩
     · iframe #
       iframe
     icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
@@ -281,6 +283,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
           · iframe #
           wp_auto
           iapply HΦ
+          iframe Hlt
           ileft
           isplitl []
           · ipureintro; rfl
@@ -296,6 +299,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       · -- the comparison held: no `KV`
         wp_auto
         iapply HΦ
+        iframe Hlt
         ileft
         isplitl []
         · ipureintro; rfl
@@ -313,6 +317,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       | ok ei => ?_
       wp_auto
       iapply HΦ
+      iframe Hlt
       iright
       iunfold kvErr at Hke
       icases Hke with ⟨%Hce, #Hse, #Hcl⟩

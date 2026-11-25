@@ -29,7 +29,7 @@ machine and the shared state start in their extensions' initial states** (Perenn
 extension's no listener and no connection, `Net.net_semantics`, and the Linux file extension's files
 as on disk, `Fs.fs_semantics`, both stated by the extensions since 2026-11-22; an extension that
 states none starts anywhere, Perennial's default `True`; premises inside `Robust` too, 2026-11-21,
-for kvnet's statement). What an instance needs beyond them (a directory
+for kvraft's statement). What an instance needs beyond them (a directory
 that is empty, its addresses) stays the instance's.
 
 The statement says nothing of what the programs compute. A property of a system (its clients'

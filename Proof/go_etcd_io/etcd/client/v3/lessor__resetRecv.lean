@@ -36,7 +36,7 @@ theorem lessor.resetRecv.wp_proof
     (wp_send : lessor.sendKeepAliveLoop.spec (GF := GF) (hG := hG)) :
     lessor.resetRecv.spec (GF := GF) (hG := hG) := by
   intro l addr
-  wp_start as ⟨#Hl, #Hstr⟩
+  wp_start as ⟨Hlt, #Hl, #Hstr⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
@@ -81,7 +81,7 @@ theorem lessor.resetRecv.wp_proof
   (try wp_auto)
   ihave #HsctxO := metadata.outgoingCtxOkC_from sc sctx $$ [$HsFrom $HscO]
   ihave #Hctxok := ctxOk_of_isContext sctx _ $$ [$Hsctx $HsctxO]
-  wp_apply wp_retry rlc conn addr sctx _ copts (vs ++ [interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro]) $$ [Hcocap] as %st %err Hres
+  wp_apply wp_retry rlc conn addr sctx _ copts (vs ++ [interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro]) $$ [Hlt Hcocap] as %st %err ⟨Hlt, Hres⟩
   · iframe #
     iframe
   (try wp_auto)
@@ -95,16 +95,20 @@ theorem lessor.resetRecv.wp_proof
     cases stv with
     | nil =>
       (try wp_auto)
-      wp_apply wp_fork $$ [HSt]
-      · wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [HSt]
+      wp_apply wp_fork_level0 $$ [HSt]
+      · iintro Hl0
+        wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
         · iframe #; iframe
-        itrivial
+        isplitr
+        · itrivial
+        iexact Hl0
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
       · inext; unfold lessorInv; iexists mref, mm, st, cancel, e; iframe; iframe #
         iright; unfold cancelAny; iexists γs; iexact Hcancel
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft
       isplitr
       · ipureintro; rfl
@@ -116,16 +120,20 @@ theorem lessor.resetRecv.wp_proof
       by_cases hsc : scf = func.nil
       · subst hsc
         (try wp_auto)
-        wp_apply wp_fork $$ [HSt]
-        · wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [HSt]
+        wp_apply wp_fork_level0 $$ [HSt]
+        · iintro Hl0
+          wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
           · iframe #; iframe
-          itrivial
+          isplitr
+          · itrivial
+          iexact Hl0
         (try wp_auto)
         wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
         · inext; unfold lessorInv; iexists mref, mm, st, cancel, e; iframe; iframe #
           iright; unfold cancelAny; iexists γs; iexact Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft
         isplitr
         · ipureintro; rfl
@@ -142,16 +150,20 @@ theorem lessor.resetRecv.wp_proof
         wp_apply Hc0 $$ [] as -
         · itrivial
         (try wp_auto)
-        wp_apply wp_fork $$ [HSt]
-        · wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [HSt]
+        wp_apply wp_fork_level0 $$ [HSt]
+        · iintro Hl0
+          wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
           · iframe #; iframe
-          itrivial
+          isplitr
+          · itrivial
+          iexact Hl0
         (try wp_auto)
         wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hkas Hm HM Hstf Hscf Herr Hreg]
         · inext; unfold lessorInv; iexists mref, mm, st, cancel, e; iframe; iframe #
           iright; unfold cancelAny; iexists γs; iexact Hcancel
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft
         isplitr
         · ipureintro; rfl
@@ -171,6 +183,7 @@ theorem lessor.resetRecv.wp_proof
       · itrivial
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       iframe #
       ipureintro; rfl

@@ -17,7 +17,6 @@ roots \brecipes\.(recipes_kv_of_km|recipes_client_of_km|queue_vertical)$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom context.WithValue.wp_proof
-axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpcConn

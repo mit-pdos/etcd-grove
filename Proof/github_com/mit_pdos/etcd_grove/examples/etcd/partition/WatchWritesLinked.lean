@@ -36,7 +36,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF)) (V : client.WEnv GF)
     (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
     (sl : GoSlice) (Q : KVState → IProp GF) (hsz : opSizeOk (opPutModel key val [])) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         isNewClient cl (ms.map client.SrvAt.addr) V ∗
         client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
         ([∗list] x ∈ ms, memberPut γk x) ∗
@@ -44,12 +44,12 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
         kvOpAu1 γk (.put (client.putKeyOp key val)) Q }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
           ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.compacted = 0 ∧ 1 ≤ σ.rev ∧
             σ.rev + 4 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hms, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
+          ⌜err ≠ GoInterface.nil⌝) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hone, #Hms, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   ihave #Hregs : ([∗list] x ∈ ms, client.kvRegsAt x) $$ [Hms]
   · iapply (BigSepL.bigSepL_mono (Φ := fun _ x => memberPut (GF := GF) γk x) fun _ => by
       iintro #H; iunfold memberPut at H; icases H with ⟨#H1, -⟩; iexact H1) $$ Hms
@@ -67,9 +67,10 @@ theorem client_Put_km [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : Li
       iexact Hk)
   ihave Hau := hau $$ [Hau Hms]
   · iframe Hau; iframe #
-  wp_apply (client.client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [Hau] as %resp %err Hout
+  wp_apply (client.client_Put_rep cl ms V ci cd key val sl Q hsz) $$ [$Hlt Hau] as %resp %err ⟨Hlt, Hout⟩
   · iframe #; iexact Hau
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
   · ileft
     isplitl []

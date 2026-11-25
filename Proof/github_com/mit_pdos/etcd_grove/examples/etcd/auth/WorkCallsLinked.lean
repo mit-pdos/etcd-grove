@@ -39,13 +39,13 @@ theorem work_put (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     (cd : context.ContextDesc (IProp GF)) (k v : GoString) (hγa : E.authMode = .on γa)
     (hop : akOpGranted who (.put (putKeyOp k v)) → opHistOk (.put (putKeyOp k v)))
     (hsz : opSizeOk (opPutModel k v [])) :
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+    {{ levelTok 0 ∗ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #v)) (Val #slice.nil))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        ⌜err = GoInterface.nil → akOpGranted who (.put (putKeyOp k v))⌝ }} := by
-  iintro %Φ ⟨#Henv, #Hom, #Hctx, #Hce⟩ HΦ
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
+        ⌜err = GoInterface.nil → akOpGranted who (.put (putKeyOp k v))⌝) }} := by
+  iintro %Φ ⟨Hlt, #Henv, #Hom, #Hctx, #Hce⟩ HΦ
   iunfold akCallEnv at Henv
   icases Henv with ⟨#Pc, #Hkvf, #Hobj, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
   ihave #Hau := akWriteAu s E γa ρ Lset n who conn (.put (putKeyOp k v))
@@ -53,10 +53,11 @@ theorem work_put (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
   · iframe #
   iunfold akKVOn at Hkv
   icases Hkv with ⟨#Hput, -, -, -⟩
-  wp_apply (client_Put_onG cl api conn _ s E ρ cid mid ci (akOut who) cd k v slice.nil _ [] hsz) $$ []
-    as %resp %err Hout
+  wp_apply (client_Put_onG cl api conn _ s E ρ cid mid ci (akOut who) cd k v slice.nil _ [] hsz) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, -, Hr, -⟩ | ⟨%Herr, -⟩)
   · ihave %Hq := putReplied_Q _ _ _ _ _ _ _ _ $$ Hr
     ipureintro; intro _; exact Hq
@@ -73,13 +74,13 @@ theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.A
     (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) →
       opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
     (hsz : opSizeOk (opDeleteModel k [])) :
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+    {{ levelTok 0 ∗ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #slice.nil))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        ⌜err = GoInterface.nil → akOpGranted who (.deleteRange (txn.deleteOpOf k [] false))⌝ }} := by
-  iintro %Φ ⟨#Henv, #Hom, #Hctx, #Hce⟩ HΦ
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
+        ⌜err = GoInterface.nil → akOpGranted who (.deleteRange (txn.deleteOpOf k [] false))⌝) }} := by
+  iintro %Φ ⟨Hlt, #Henv, #Hom, #Hctx, #Hce⟩ HΦ
   iunfold akCallEnv at Henv
   icases Henv with ⟨#Pc, #Hkvf, #Hobj, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
   ihave #Hau := akWriteAu s E γa ρ Lset n who conn
@@ -87,10 +88,11 @@ theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.A
   · iframe #
   iunfold akKVOn at Hkv
   icases Hkv with ⟨-, -, #Hdel, -⟩
-  wp_apply (client_Delete_on cl api conn _ s E ρ cid mid ci (akOut who) cd k slice.nil _ [] hk hsz) $$ []
-    as %resp %err Hout
+  wp_apply (client_Delete_on cl api conn _ s E ρ cid mid ci (akOut who) cd k slice.nil _ [] hk hsz) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, -, Hr, -⟩ | ⟨%Herr, -⟩)
   · ihave %Hq := deleteReplied_Q _ _ _ _ _ _ _ _ $$ Hr
     ipureintro; intro _; exact Hq
@@ -108,12 +110,12 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     (gs : List (OpFull → OpFull)) (hγa : E.authMode = .on γa)
     (hg : ¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1)
     (hs : (opGetModel key gs).base.sortSet = false) (hsz : opSizeOk (opGetModel key gs)) :
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+    {{ levelTok 0 ∗ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd ∗
         optsAt sl gs }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         ⌜err ≠ GoInterface.nil⌝ ∨
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
           ⌜(∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
@@ -122,8 +124,8 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
               auth.granted (setupSt r) (auth.authInfoM info) (rangeWireOf (opGetModel key gs)).key
                 e .read) ∧
             ∀ kv ∈ m.kvs, inRange (rangeWireOf (opGetModel key gs)).key
-              (rangeWireOf (opGetModel key gs)).base.rangeEnd kv.key = true⌝) }} := by
-  iintro %Φ ⟨#Henv, #Hom, #Hctx, #Hce, #Hopts⟩ HΦ
+              (rangeWireOf (opGetModel key gs)).base.rangeEnd kv.key = true⌝)) }} := by
+  iintro %Φ ⟨Hlt, #Henv, #Hom, #Hctx, #Hce, #Hopts⟩ HΦ
   iunfold akCallEnv at Henv
   icases Henv with ⟨#Pc, #Hkvf, #Hobj, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
   iunfold akKVOn at Hkv
@@ -142,7 +144,7 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
   ihave Hres := optsAt_res sl gs iprop(True) $$ Hopts
   iapply wp_fupd
   wp_apply (client_Get_on cl api conn _ s E ρ.rd cid mid (W64 0) n ci (akOut who) cd key sl gs iprop(True)
-      (fun _ => iprop(True)) [] hsz) $$ [Hres] as %resp %err Hout
+      (fun _ => iprop(True)) [] hsz) $$ [$Hlt Hres] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     isplitl []
     · itrivial
@@ -160,6 +162,7 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     · iframe #
     imodintro
     iapply HΦ
+    iframe Hlt
     iunfold rangeReplyOk at Hok
     icases Hok with ⟨%log, -, -, %Hl, -⟩
     iright
@@ -171,6 +174,7 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     exact ⟨Hg, srvRangeOk_keys _ _ _ _ Hl.2.2.2.2.2.2.2.1⟩
   · imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     ipureintro; exact Herr.1
 
@@ -190,19 +194,19 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     (hro : txn.txnReadonly (txnWireOf b.model) = false)
     (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
     (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))) :
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ txnObjAt tp [addr] ci cd b ∗
+    {{ levelTok 0 ∗ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ txnObjAt tp [addr] ci cd b ∗
           metadata.outMD ci (akOut who) ∗
         txnKvIs tp api }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (
         ⌜err = GoInterface.nil → akOpGranted who (.txn (txnWireOf b.model))⌝ ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ m : TxnRespM, txnRespMsg resp m ∗
           ⌜∃ (r : w64) (s0 : List EtcdKv) (skip : Bool),
             m.succeeded = (txn.srvRunTxn r s0 (txnWireOf b.model)).1 ∧
             opRespsRel skip ((txnWireOf b.model).branch m.succeeded)
-              (txn.srvRunTxn r s0 (txnWireOf b.model)).2.2 m.resps⌝) }} := by
-  iintro %Φ ⟨#Henv, Hobj, #Hom, #Hkt⟩ HΦ
+              (txn.srvRunTxn r s0 (txnWireOf b.model)).2.2 m.resps⌝)) }} := by
+  iintro %Φ ⟨Hlt, #Henv, Hobj, #Hom, #Hkt⟩ HΦ
   iunfold akCallEnv at Henv
   icases Henv with ⟨#Pc, #Hkvf, #Hobjc, #Hat, #Hkv, #Htls, #Hinv, #Hf, #HF, #Hnil⟩
   ihave #Hau := akWriteAu s E γa ρ Lset n who conn
@@ -223,7 +227,7 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     iexact H0
   wp_apply (client_txn_on tp api conn _ (srvTLSId s) E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd b
       (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] (fun _ => hin) hsz
-      (fun _ => hsh)) $$ [Hobj] as %resp %err Hout
+      (fun _ => hsh)) $$ [$Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe Hobj
     ileft
@@ -235,6 +239,7 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
     · ipureintro; exact ⟨hro, Or.inl hpl.1, hpl.2, txnNestOk_of_plain _ hp hin⟩
     iexact Hau
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)
   · ihave %Hq := txnReplied_facts _ _ _ _ _ _ _ _ _ _ hro hpl.2 $$ Hr
     isplitl []
@@ -268,7 +273,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
         (Val #sl))
     {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp :
           GoInterface);
-        ∀ Φ, (∀ (resp : Loc) (err : GoInterface), ⌜err ≠ GoInterface.nil⌝ -∗
+        ∀ Φ, levelTok 0 -∗ (∀ (resp : Loc) (err : GoInterface), levelTok 0 -∗ ⌜err ≠ GoInterface.nil⌝ -∗
             Φ (PairV #resp #err)) -∗
           WP (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!!
             go!"Commit")) (Val #())) {{ Φ }} }} := by
@@ -293,7 +298,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
   · iExactEq Hobj
     simp [TxnModel.empty, t4M]
   iapply HΦ
-  iintro %Φ' HΦ'
+  iintro %Φ' Hlt HΦ'
   have hw := t4M_wire (keyOfK go!"c" who go!"t3") go!"vt"
   have hro : txn.txnReadonly (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) = false := by
     rw [hw]; exact t4M_ro _ _
@@ -327,7 +332,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
       ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩
       (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")))⌝))
       [] (fun h => absurd h (by rw [hro]; decide)) hsz
-      (fun _ tw htw => t4M_shape _ _ hk tw (htw.trans hw))) $$ [Hobj] as %resp %err Hout
+      (fun _ tw htw => t4M_shape _ _ hk tw (htw.trans hw))) $$ [$Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     iframe Hobj
     ileft
@@ -342,7 +347,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
   icases Hout with (⟨%Herr, %m, #Hm, Hr, -⟩ | ⟨%Herr, -⟩)
   · ihave %Hq := txnReplied_Q _ _ _ _ _ _ _ _ _ _ hro $$ Hr
     exact absurd Hq hng
-  · iapply HΦ'
+  · iapply HΦ' $$ Hlt
     ipureintro; exact Herr.1
 
 theorem then_commit_nested_refused_law_holds : then_commit_nested_refused.law (GF := GF) (hG := hG) :=

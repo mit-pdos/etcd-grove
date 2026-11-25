@@ -39,14 +39,11 @@ returned (a transparent retry may re-pick both): the requests' content is every 
 abbrev watchGRPCStream.openWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (wgs : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (om : GrpcMd) (callSl : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outMD ci om ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outMD ci om ∗
       wgsF wgs go!"remote" ↦□ wcIface V.wc ∗ wgsF wgs go!"callOpts" ↦□ callSl ∗
-      callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V }}
+      callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V) }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))
-  {{ (ws err : GoInterface), RET (PairV #ws #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γs : StreamNames)
+  {{ (ws err : GoInterface), RET (PairV #ws #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (γs : StreamNames)
           (Dn : GoString → GrpcMd → Nat → v3rpc.WatchRespM → IProp GF)
           (cd' : context.ContextDesc (IProp GF)),
         -- (SW1, R2) at the member and the metadata each response tells
@@ -55,7 +52,7 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
         □ (∀ a md, watchMdW V om a md -∗
           v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md))) ∨
-      (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err) }}
+      (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ closeErrOk err)) }}
 
 end spec
 

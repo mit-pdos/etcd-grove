@@ -59,11 +59,12 @@ MAIN = ['bufio', 'google_golang_org.protobuf.proto',
         'google_golang_org.protobuf.runtime.protoimpl', 'google_golang_org.protobuf.internal.impl',
         'google_golang_org.protobuf.internal.pragma']
 # the packages whose `wp_initialize'` is a hypothesis (`Dsverify/Proof/<pkg>/Init.lean`'s class
-# `InitHyp`): the names-only libraries, whose variables' initializers are untranslated, and math/rand
-# (Perennial's translation leaves its initializers untranslated: the main tree's trust-boundary
-# axiom `opaqueInitsOk`)
+# `InitHyp`): the names-only libraries, whose variables' initializers are untranslated. Not
+# math/rand (math-rand-isinit, 2026-11-24): Perennial proves its `wp_initialize'`
+# (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so neither here nor
+# in `MAIN`
 HYP_INITS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encoding.gob',
-             'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'math.rand']
+             'google_golang_org.grpc', 'google_golang_org.grpc.codes']
 # the part's own names-only translations of packages the main tree translates otherwise (grpc's):
 # the main tree's configurations (`SPECIAL`) do not apply
 OWN = {'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'google_golang_org.grpc.status'}

@@ -121,7 +121,7 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
+  intro CS ES FS RS N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
     HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
@@ -541,8 +541,9 @@ theorem MainWatch.wp_proof
       $$ [Hwg] as ⟨Hwg, Hdone⟩
     · iframe; ipureintro; word
     ipersist lo
-    wp_apply wp_fork $$ [Hdone]
-    · (try wp_auto)
+    wp_apply wp_fork_level0 $$ [Hdone]
+    · iintro Hlt
+      (try wp_auto)
       wp_apply (wp_writer clis [cl₁, cl₂, cl₃] ms (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx) γ «$r0_ptr»
           tsl trs (k * nops) (k * nops + nops) (trs.map pairOf) hAs hγW rfl (by simp) (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
           (by
@@ -554,13 +555,13 @@ theorem MainWatch.wp_proof
               rw [hmul]; exact Int.mul_nonneg H0 Hops
             have e : ((sint.nat (nw * nops) : Nat) : Int) = sint.Z (nw * nops) := by word
             rw [e, hmul]
-            omega) hsz) $$ []
+            omega) hsz) $$ [$Hlt] as ⟨Hlt, -⟩
       · iframe #
       (try wp_auto)
       wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr)
         $$ [Hdone]
       · iframe
-      itrivial
+      iframe Hlt; try itrivial
     wp_for_post
     iframe
     iexists (k + W64 1), (na + W32 1)
