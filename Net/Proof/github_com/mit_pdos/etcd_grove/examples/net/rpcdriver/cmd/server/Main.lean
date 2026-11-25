@@ -45,7 +45,7 @@ theorem wp_main
     {{ RET #(); True }} := by
   wp_start as ⟨Hres, %Hb, #Htl, #Hhl⟩
   iunfold github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.bootRes at Hres
-  icases Hres with ⟨Hmux, Hrf, #Hf⟩
+  icases Hres with ⟨Hmux, #Hse, Hrf, #Hf⟩
   iunfold net.rpc.rpcFirstRes at Hrf
   icases Hrf with ⟨Hunset, %γs, %γf, #Hds, Hown⟩
   ihave #Hrpc : (isPkgInit (PROP := IProp GF) pkg_id.net.rpc) $$ []
@@ -61,11 +61,10 @@ theorem wp_main
   ihave #Hri := net.rpc.rpcInit_access $$ Hrpc
   iunfold net.rpc.rpcInit at Hri
   icases Hri with ⟨-, #Henv, #Hcon, #Hmu⟩
-  ihave #Hhe := net.http.httpEnv_access $$ Hhttp
   try wp_auto
   wp_apply wp_Register $$ [$Hsync $Hmu $Hunset] as #Hset
   wp_apply wp_Server γid reg γs γf $$ [Hown Hmux]
-  · iframe Hf Hset Hhttp Hlog Hsvcp Henv Hcon Hhe Hds Hown Hmux Htl Hhl
+  · iframe Hf Hset Hhttp Hlog Hsvcp Henv Hcon Hse Hds Hown Hmux Htl Hhl
     ipureintro; exact Hb
   iapply HΦ
   itrivial

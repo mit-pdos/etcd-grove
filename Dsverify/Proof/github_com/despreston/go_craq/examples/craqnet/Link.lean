@@ -32,6 +32,7 @@ public import Net.Proof.net.rpc.Results
 public import Net.Proof.net.rpc.HandleHTTP
 public import Net.Proof.net.rpc.Server__HandleHTTP
 public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Results
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
@@ -107,7 +108,7 @@ theorem wp_Server [LogHyp GF] [RpcHttpServe GF] :
     Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof net.rpc.RegisterName.wp_fresh
     (net.rpc.HandleHTTP.wp_proof
-      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp_proof net.rpc.Server.ServeHTTP.wp))
+      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp))
     net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
     (coordinator.coord_svc assign.holds collect.holds) factory kvp.wp_New node.wp_New
     (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf

@@ -1,6 +1,7 @@
 /-
-**Interim pending hypothesis** (not an axiom: a hypothesis of the linked results that use it, until
-its retirement below; approved as interim on #24, 2026-11-24, subject to an adversarial review).
+**Interim trust-boundary spec**, assumed by the axiom `context.WithCancel.wp_proofValBg` (`Net/Proof/context/WithCancelValBg.lean`; until
+2026-11-25 a hypothesis of the linked results that used it, approved as interim on #24, 2026-11-24,
+and adversarially reviewed: sound), until its retirement below.
 
 `context.WithCancel(parent)` (go1.27.3 `src/context/context.go`) for a `parent` that is `Background()`
 or a chain of `*valueCtx`s over it (`context.ctxBg`, `Net/Proof/context/CtxBg.lean`: what
@@ -29,7 +30,7 @@ counterexample) `TestWithCancelChainConcurrent` (under `-race`: concurrent cance
 `Deadline`, `Cause`; children `WithCancel`, `WithTimeout`, `AfterFunc`), `TestWithCancelChainSequential`,
 `TestDeepChain` (depth 100000).
 
-**Why a hypothesis.** Perennial's `WithCancel` specs take a parent that satisfies `isParentCtx`
+**Why assumed.** Perennial's `WithCancel` specs take a parent that satisfies `isParentCtx`
 (`Background()`, `TODO()` or an `isContext`); a `*valueCtx` chain over `Background()` is none of them
 (its `Done()` is `nil`, which no `isContextDone` describes). **Retired by** Perennial's `isParentCtx`
 widened to such chains (with `WithValue`'s spec giving `ctxBg`), and this triple proved from

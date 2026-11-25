@@ -1,5 +1,10 @@
 # Adversarial review: `context.WithValue.specPtr`, `context.WithCancel.specValBg`
 
+**2026-11-25:** no longer hypotheses: the per-function trust-boundary axioms
+`context.WithValue.wp_proofPtr` (`Net/Proof/context/WithValuePtr.lean`) and
+`context.WithCancel.wp_proofValBg` (`Net/Proof/context/WithCancelValBg.lean`), over the same specs (Upamanyu's
+option (a), #18 7144816148), so that `net.http.Serve.wp_rpc` is closed. The review below applies unchanged.
+
 Reviewed: worktree `/shared/etcd-grove-wt/ps2-s5srv-b9`, branch `prove-ps2-s5srv-b11/2026-11-24`, commit
 `f6b2e39cbc`: `Net/Spec/context/WithValuePtr.lean`, `Net/Spec/context/WithCancelValBg.lean`,
 `Net/Proof/context/CtxBg.lean`; Perennial's `Proof/context/{Base,CtxValue,WithCancelGen}.lean`,

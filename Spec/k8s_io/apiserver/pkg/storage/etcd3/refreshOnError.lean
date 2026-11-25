@@ -38,18 +38,17 @@ abbrev refreshOnError.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (c : StoreCfg GF Obj) (st : Loc) (s : OState Obj)
     (err : GoInterface) (f : GoFunc) (x : GoInterface) (key : GoString) (ign : Bool)
     (R : w64 → w64 → KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ ownStateX c st s x ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (ownStateX c st s x ∗
       (if s.current then iprop(True) else iprop(getStateOk c key ign R f ∗
         ∀ R0 m, |==> □ [∧list] y ∈ c.ms, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
-          kvReadAu y.γr.kv (R R0 m))) }}
+          kvReadAu y.γr.kv (R R0 m)))) }}
     (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.refreshOnError)) (Val #st))
       (Val #err)) (Val #f))
-  {{ (st' : Loc) (err' : GoInterface), RET (PairV #st' #err');
-      if s.current then iprop(⌜st' = st ∧ err' = err⌝ ∗ ownStateX c st s x)
+  {{ (st' : Loc) (err' : GoInterface), RET (PairV #st' #err'); levelTok 0 ∗ (if s.current then iprop(⌜st' = st ∧ err' = err⌝ ∗ ownStateX c st s x)
       else iprop(unkErr c err' ∨ ∃ (σ : KVState) (e0 : GoInterface),
         □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
         ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key ign σ st' e0 ∗
-        ⌜err' = if e0 = GoInterface.nil ∧ kubernetes.modAt key σ = s.rev then err else e0⌝) }}
+        ⌜err' = if e0 = GoInterface.nil ∧ kubernetes.modAt key σ = s.rev then err else e0⌝)) }}
 
 end spec
 

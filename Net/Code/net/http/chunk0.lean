@@ -4035,6 +4035,38 @@ noncomputable def combineRelationships.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))
   (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0"))))))
 
+/-- If p1 has relationship `r` to p2, then
+    p2 has inverseRelationship(r) to p1.
+
+    go: pattern.go:386:6 -/
+noncomputable def inverseRelationship.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc relationship.ty))) (App (Val (GoInstruction (GoZeroVal relationship.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc relationship.ty))) (Var "r"))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r"))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val moreSpecific)))
+  (Let "$r0" (Val moreGeneral)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals relationship.ty))) (Pair (Var "$sw") (Val moreGeneral)))
+  (Let "$r0" (Val moreSpecific)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore relationship.ty))) (Pair (Var "$res0") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad relationship.ty))) (Var "$res0")))))
+
 /-- go: request.go:97:6 -/
 noncomputable def badStringError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "what"

@@ -26,6 +26,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.InvClient
+public import Perennial.Proof.sync.RWMutexThreads
 
 @[expose] public section
 
@@ -63,8 +64,30 @@ theorem clientErrOk_nil : ⊢ clientErrOk (GF := GF) GoInterface.nil := by
     · iapply statusErrOk_nil
     · iapply errCellOk_nil
 
-/-- **The interceptor's options value** `ov`: its backoff function returns. -/
-def optionsOk (ov : go_etcd_io.etcd.client.v3.options) : IProp GF := backoffOk ov.backoffFunc'
+/-- **A backoff function that returns, lent a level-0 thread token** (persistent;
+prove-ps2-clientrdlock, 2026-11-24, decision 1b): `backoffOk`'s, given and giving back the caller's
+`levelTok 0` (the client's `roundRobinQuorumBackoff` reads `c.Endpoints()`, a reader slot of
+`epMu`). Every `backoffOk` function is one (`backoffOkT_of`). -/
+def backoffOkT (bf : GoFunc) : IProp GF :=
+  iprop(□ ∀ (a : w64) (Φ : val → IProp GF), levelTok 0 -∗ ▷ (∀ d : w64, levelTok 0 -∗ Φ #d) -∗
+    WP (App (Val #bf) (Val #a)) {{ Φ }})
+
+instance backoffOkT_persistent (bf : GoFunc) : Persistent (backoffOkT (GF := GF) bf) := by
+  unfold backoffOkT; infer_instance
+
+theorem backoffOkT_of (bf : GoFunc) : backoffOk (GF := GF) bf ⊢ backoffOkT bf := by
+  iintro #H
+  unfold backoffOkT
+  iintro !> %a %Φ Htok HΦ
+  iunfold backoffOk at H
+  iapply H
+  inext
+  iintro %d
+  iapply HΦ $$ Htok
+
+/-- **The interceptor's options value** `ov`: its backoff function returns, lent the caller's
+`levelTok 0` (`backoffOkT`, since 2026-11-24). -/
+def optionsOk (ov : go_etcd_io.etcd.client.v3.options) : IProp GF := backoffOkT ov.backoffFunc'
 
 instance optionsOk_persistent (ov : go_etcd_io.etcd.client.v3.options) :
     Persistent (optionsOk (GF := GF) ov) := by
@@ -245,14 +268,35 @@ theorem streamCallOptsOk_singleton (v : GoInterface) :
   iapply BigSepL.bigSepL_singleton.2
   iexact H
 
+/-- The namespace of the pool of `Client.epMu`'s reader slots. -/
+def clientEpN : Namespace := nroot.@"etcd_client_epmu"
+
+/-- **The client `c`'s endpoints and their lock** (persistent; prove-ps2-clientrdlock, 2026-11-24,
+decision 1b): its `endpoints` field, read-only once `newClient` has set it (`SetEndpoints`), a slice
+of `eps`, read-only; its `epMu`, a non-nil `*RWMutex` whose guard protects nothing (the endpoints
+are read-only: `SetEndpoints` runs before the client is shared), with every reader slot in a
+level-0 pool (`threadPool.isThreadPoolL`): `Endpoints()` borrows one with its caller's `levelTok 0`
+and gives it back after `RUnlock`. -/
+def clientEpPool (c : Loc) : IProp GF :=
+  iprop(∃ (mu : Loc) (γe : GName) (esl : GoSlice) (eps : List GoString),
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"epMu" c ↦□ mu ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"endpoints" c ↦□ esl ∗ esl ↦*□ eps ∗
+    sync.isRWMutexGuard mu (fun _ => iprop(True)) ∗
+    threadPool.isThreadPoolL clientEpN 0 γe (sync.ownRWMutex mu (fun _ => iprop(True))))
+
+instance clientEpPool_persistent (c : Loc) : Persistent (clientEpPool (GF := GF) c) := by
+  unfold clientEpPool; infer_instance
+
 /-- **What the retry interceptor reads of the `*Client` `c`** (persistent; see the file header):
-non-nil, its logger, its `Token` and `authTokenBundle` (read-only; a bundle whenever a token). -/
+non-nil, its logger, its `Token` and `authTokenBundle` (read-only; a bundle whenever a token), and
+(prove-ps2-clientrdlock, 2026-11-24) its endpoints and their lock's reader pool (`clientEpPool`:
+`Endpoints()`, which the retry path calls, `isSafeRetry` and the backoff). -/
 def retryClientOk (c : Loc) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗ isClientLogger c ∗
     ∃ (tok : GoString) (atb : GoInterface),
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"Token" c ↦□ tok ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" c ↦□ atb ∗
-      ⌜tok ≠ go!"" → atb ≠ GoInterface.nil⌝)
+      ⌜tok ≠ go!"" → atb ≠ GoInterface.nil⌝ ∗ clientEpPool c)
 
 instance retryClientOk_persistent (c : Loc) : Persistent (retryClientOk (GF := GF) c) := by
   unfold retryClientOk; infer_instance

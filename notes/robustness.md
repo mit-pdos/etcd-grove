@@ -3,7 +3,7 @@
 **Goal** (the user's): one framework, reused across programs, for (1) testing a distributed program
 the way it runs for real -- real processes, a real network, real file systems -- with every fault made
 by the environment, never by hooks in the program; and (2) stating what a proof of the program
-establishes about exactly those runs. First user: `examples/raft/kvnet`. Branch `robustness`.
+establishes about exactly those runs. First user: `examples/raft/kvraft`. Branch `robustness`.
 
 ## The two halves
 
@@ -15,7 +15,7 @@ establishes about exactly those runs. First user: `examples/raft/kvnet`. Branch 
 | crashes | `Proc.Kill` (SIGKILL) then `SyncFS`, or `Disk.PowerLoss` (dm-flakey) | `DistCrashStep.crash`: any machine of `crashing`, any step, restart with its program from a state the extensions' crash relations allow (the file extension's power loss; a kill plus sync is one by its "Restarts" assumption) |
 | network faults | the kernel, in a router namespace: iptables partitions (both ways or one way, drops or resets), tc netem (delay, jitter, loss, duplication, reordering); `NetNemesis` | the plugged-in extension's nondeterminism (TCP: a direction cut at any read or write, any delay, a dial failing) |
 | scheduling | the OS | any interleaving (a machine started late is one not scheduled before) |
-| what is checked | the driver's (kvnet: porcupine on the clients' history, convergence, the final whole-cluster crash) | no thread of any machine stuck or with a top-level panic; so whatever a program checks before panicking |
+| what is checked | the driver's (kvraft: porcupine on the clients' history, convergence, the final whole-cluster crash) | no thread of any machine stuck or with a top-level panic; so whatever a program checks before panicking |
 
 ## The Lean statement (`Robustness/Statement.lean`)
 
@@ -35,7 +35,7 @@ in the top-level theorem, no reading bytes off the network):
           ∀ e ∈ tp, RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e
 
 - **Every machine and the network start in their extensions' initial states** (2026-11-21, for
-  kvnet's statement): Perennial's trusted `ExtSemantics.initLocal`/`initGlobal` (Perennial
+  kvraft's statement): Perennial's trusted `ExtSemantics.initLocal`/`initGlobal` (Perennial
   `c0ec40070`, `extsInitLocal`/`extsInitGlobal`), premises inside `Robust` as `Fresh` is, so that no
   instance states an extension's start conditions itself. The bridges (`of_single`,
   `of_single_crashing`, `of_all`, `of_all_crashing`, the kits') take the same hypotheses as before
@@ -55,7 +55,7 @@ in the top-level theorem, no reading bytes off the network):
   user's: the hypotheses `Hlctx` and `Hinit` of every closed theorem are generic, fold them in; the
   agent added `Hthreads`, as generic): the Go context the theorem's `go.Semantics` is about (the
   instance `[GoLocalContext]`, one for all machines, as echo's), no package initialized, one thread.
-  An instance states only what is its own (kvdurable: none of its files exists; kvnet: no listener,
+  An instance states only what is its own (kvdurable: none of its files exists; kvraft: no listener,
   the plan, the directories).
 - **A machine that never crashes is one with no boot program**: `DistCrashStep`'s crash needs
   `boots[i]? = some e`, and the boot list is `crashing`'s, so the machines of `stable`, listed after
@@ -64,7 +64,7 @@ in the top-level theorem, no reading bytes off the network):
   not only "no top-level panic". An invalid operation is stuck in GooseLang (its builtin `Panic`,
   which the TCP extension's invalid uses step to), so without `RealNotStuck` those would be allowed.
 - **The step bound stays** (the agent's): kv's and kvdurable's closed theorems hold below `2^61`
-  steps, and kvnet's proof reuses theirs.
+  steps, and kvraft's proof reuses theirs.
 - Proved, not trusted: `Robust.of_all_crashing` (robust with every machine crashing implies robust
   with only some: what `goose_dist_crash_adequacy` gives as it stands).
 
@@ -160,22 +160,22 @@ under an `Assume` on their events and a `Guarantee` on the trace. Version 2 (202
 no world, use GooseLang's relation) put it over `DistCrashStep` but kept `Assume`/`Guarantee`, with
 the events read off the TCP extension's state (`Stream.lean`) and `Linearizability.lean`
 (`LinearizableTrace`). Version 3 (this one) deleted both files and everything but `Robust`: the
-trusted Lean went from about 430 lines of definitions (plus kvnet's wire decoders, model and
+trusted Lean went from about 430 lines of definitions (plus kvraft's wire decoders, model and
 `ClientsOk`) to one definition.
 
-## kvnet's statement (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean`)
+## kvraft's statement (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Robust.lean`)
 
-`kvnetRobust replica client : Prop`, a `def` (no proof, no `sorry`, no axiom): for every deployment
+`kvraftRobust replica client : Prop`, a `def` (no proof, no `sorry`, no axiom): for every deployment
 of replica machines, which may crash, each running `replica cfg` (`ReplicaStart`: fresh directory,
 no listener, no package initialized), and one client machine, which never crashes, running
 `client addrs` on another host (`ClientStart`), on a fresh network (`FreshNet`: a well-formed plan,
 `Tcp.PlanWellFormed`, that puts each replica's address at its host, and no connection),
 `Robust … (2^61)`.
 
-- **Both programs are parameters**: kvnet is not translated, and the checking client does not exist
+- **Both programs are parameters**: kvraft is not translated, and the checking client does not exist
   as a program of its own (the driver runs the clients inside the harness that kills processes and
-  partitions the network). The theorem to prove is `kvnetRobust` of the two translations.
-- **Gone with version 2**: the wire decoders in Lean (`frame`, `kvProto`, a second copy of kvnet's
+  partitions the network). The theorem to prove is `kvraftRobust` of the two translations.
+- **Gone with version 2**: the wire decoders in Lean (`frame`, `kvProto`, a second copy of kvraft's
   codec to trust), `kvModel`, `OpKey`, and the environment's discipline `ClientsOk` (`NoPeerClaim`,
   `ReadSeqsFresh`): the deployment is closed, every machine runs a given program, so nobody forges
   peer messages and the client's own code picks its sequence numbers.
@@ -193,9 +193,9 @@ namespace. Root: a test or command re-executes itself with `sudo -n` (`RerunAsRo
 (drop partitions stall, reset partitions refuse at once, one-way blocks, heal, a netem delay delays);
 `TestPowerLoss` the disks.
 
-kvnet: `go run ./raft/kvnet/cmd/kvnet check -rounds N` (from `examples/`; `-net auto` is namespaces when
-`sudo -n` works, `-crash auto` mixed kills and power losses); `KVNET_NETNS=1 go test
-./raft/kvnet/driver -run TestNetns`. The transport's random drops, delays, duplicates and cuts
+kvraft: `go run ./raft/kvraft/cmd/kvraft check -rounds N` (from `examples/`; `-net auto` is namespaces when
+`sudo -n` works, `-crash auto` mixed kills and power losses); `KVRAFT_NETNS=1 go test
+./raft/kvraft/driver -run TestNetns`. The transport's random drops, delays, duplicates and cuts
 (`Faults`) are gone. What stays in the program: the choices raft leaves the application, made at
 random (durability orderings, snapshot and compaction points, `Config.Applied` at a restart, the tick):
 they are the program's own nondeterminism, which the proof covers, not fault injection.
@@ -206,7 +206,7 @@ machine, 27 by resets) and 47 link-fault episodes.
 
 ## Next
 
-- The checking client as a Go program (`examples/raft/kvnet/cmd/...`): the clients' traffic and
+- The checking client as a Go program (`examples/raft/kvraft/cmd/...`): the clients' traffic and
   configuration changes, the history, porcupine, a panic unless `Ok`; no fault injection. Then
   translate it and the replica (`net` through the TCP extension, `Net/`).
 - Adequacy for machines that never crash: `goose_dist_crash_adequacy` lets every node crash, so
@@ -215,7 +215,7 @@ machine, 27 by resets) and 47 link-fault episodes.
   is a general Perennial change, to propose there on its own (`notes/perennial-changes.md`).
   The no-crash bridge (`Net/Statement/DistBridge.lean`, 2026-11-19) covers only the case where **every**
   machine is stable (`Robust [] nodes`: no boot program, so the executions are `DistNsteps` and
-  `goose_dist_adequacy` applies); a deployment with both kinds (kvnet's) still needs that change.
+  `goose_dist_adequacy` applies); a deployment with both kinds (kvraft's) still needs that change.
   (2026-11-22: Perennial has it, `goose_dist_mixed_crash_adequacy`; its bridge for `[netExt, fsExt]`,
   `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`, etcd-dist D3, `notes/dist-crash-bridge.md`),
   with echo's server crashing and its client stable as the instance, branch `dist-crash-bridge`.)

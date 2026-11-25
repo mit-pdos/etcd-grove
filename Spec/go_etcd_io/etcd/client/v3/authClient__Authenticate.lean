@@ -33,13 +33,13 @@ abbrev authClient.Authenticate.spec : Prop :=
     (name pw : GoString)
     (Spec : GrpcSpec (GF := GF) pbAuthenticateRequest pbAuthenticateResponse)
     (Q : GoString → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ authObjAt api addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (authObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ isGrpcRpcs addr authnMethod Spec ∗
       □ ▷ Spec (name, pw) Q ∗
-      ⌜strsSizeOk [name, pw]⌝ }}
+      ⌜strsSizeOk [name, pw]⌝) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!!
       go!"Authenticate")) (Val #(GoInterface.ok ci))) (Val #name)) (Val #pw))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authnCallOut Q resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (authnCallOut Q resp err) }}
 
 end spec
 

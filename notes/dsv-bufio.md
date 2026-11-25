@@ -118,7 +118,7 @@ Verdict "revise before landing"; every item done except R5's `ReadString` (below
 - **W6.** Recorded as a Perennial-wide question (`notes/perennial-changes.md`, "`make([]byte, size)`").
 - **C1.** `ConnIo.lean`'s header corrected: `io.ReadFull` over a connection works through a
   `*bufio.Reader`, not directly. (a) (making `net.Conn.Read`'s `ReadOut` exact) is not in this branch's
-  files (Upamanyu's `Net/Spec/net/Conn__Read.lean`, 64 importers, the `KvNet/` copies), so (b): Perennial
+  files (Upamanyu's `Net/Spec/net/Conn__Read.lean`, 64 importers, the `KvRaft/` copies), so (b): Perennial
   branch `readatleast-prefix` (`d5cdfc558`, pushed, not landed) asks `Pre` only at `ys.length < min`;
   entry in `notes/perennial-changes.md`.
 - **C2.** `recvTokL_proto` in `GooseLang/Ext/Net/Proto.lean`; `net.connReader_proto` in `ConnIo.lean`

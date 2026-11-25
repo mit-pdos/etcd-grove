@@ -1276,7 +1276,13 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
-  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve DefaultCConfig []))) (Val #())) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve DefaultCConfig []))) (Val #())) (Val #()))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc CConfig.ty))) (App (Val (GoInstruction (GoZeroVal CConfig.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (Let "$a0" (Val #(W64 5))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad CConfig.ty))) (Var "cfg"))
   (App (App (Val (GoInstruction (FuncResolve RunConcurrent []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1325,7 +1331,11 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Cluster.ty)))) (Pair (Var "c") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Cluster.ty)))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef CConfig.ty go!"Nodes"))) (Var "cfg")) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore CConfig.ty))) (Pair (Var "cfg") (Var "$r0"))))))))
   (Val #())))
 
 /-- ConvertEvents is raft's events as the checker reads them: what their NDJSON (WriteNDJSON, the
@@ -1334,7 +1344,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
     change's change list and new configuration) are absent (nil) when empty here too; of the
     properties, only the configuration change (cc) is kept, the only one the specification reads.
 
-    go: main.go:35:6 -/
+    go: main.go:37:6 -/
 noncomputable def ConvertEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "events"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Event.ty)))) (Val #())))

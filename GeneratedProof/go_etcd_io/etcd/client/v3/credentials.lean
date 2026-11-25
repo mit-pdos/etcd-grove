@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory

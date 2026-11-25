@@ -1,7 +1,7 @@
 # Raft without hand-written axioms (notes/raft-noax-part.md; the part RaftNoAx/): every linked result
 # of the part's raft Link.lean (since 2026-11-24; until then of its kvdurable Link.lean and Results.lean,
 # raft_kvdurable_porcupine_safe on the noax raft fork and examples/raft/kvdurablenoax, retired in favour
-# of raft_kvnet_robust and kvudp). The goal is no axiom and no sorry here.
+# of kvraft_robust and kvraft-udp). The goal is no axiom and no sorry here.
 # Baseline (2026-11-18, stage 2) written by hand from `#print axioms` of raft_kvdurable_porcupine_safe and
 # the sorry users its closure reaches (the eight raftpb noax functions' proofs); rerun `--check --update`
 # after a full build. Stage 3a (2026-11-18): the clones' and EntrySize's sorries gone (by hand, as above).
@@ -9,5 +9,5 @@
 # Checked 2026-11-18 by `etc/tcb-report.py --collection ... --check` after a full build: 0 axioms, 0 sorries
 # (the axioms Goose emits for untranslatable declarations are not counted: `#print axioms` lists 331 of them,
 # each declared in a generated `Code` module).
-# (2026-11-24) Raft's own linked results in the part (its Link.lean; raft_kvnet_robust's raft is the part's).
+# (2026-11-24) Raft's own linked results in the part (its Link.lean; kvraft_robust's raft is the part's).
 roots ^RaftNoAx/Proof/go_etcd_io/raft/v3/Link\.lean$

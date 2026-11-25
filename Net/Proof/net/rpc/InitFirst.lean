@@ -204,7 +204,8 @@ theorem wp_init_first (wp_NewServer : NewServer.spec_owned (GF := GF) (hG := hG)
 /-- **net/rpc's and net/http's first initializations** (see the file header): neither is
 initialized (`hnot`, `hnoth`); on a machine of at most `2 ^ 30` threads (net/http's,
 `net.http.wp_init_first`), it also returns net/http's fact and the right to register on
-`DefaultServeMux`, no pattern registered. -/
+`DefaultServeMux`, no pattern registered, and the server's variables (`httpSrvEnv`;
+`net.http.wp_init_first_mux`). -/
 theorem wp_init_first_http (wp_NewServer : NewServer.spec_owned (GF := GF) (hG := hG))
     (g g' : GoString → IProp GF)
     (hnot : g pkg_id.net.rpc ⊢ iprop(False)) (hnoth : g pkg_id.net.http ⊢ iprop(False))
@@ -213,7 +214,7 @@ theorem wp_init_first_http (wp_NewServer : NewServer.spec_owned (GF := GF) (hG :
     {{ ownInitializing g ∗ ⌜threadBound GF ≤ 2 ^ 30⌝ }} (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing g' ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ rpcFirstRes ∗
         isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-        net.http.muxOwn (globalAddr net.http.defaultServeMux) [] }} := by
+        net.http.muxOwn (globalAddr net.http.defaultServeMux) [] ∗ net.http.httpSrvEnv (GF := GF) }} := by
   let gB : GoString → IProp GF := fun p => if p = pkg_id.net.http then iprop(False) else g' p
   have hAB : ∀ p, g p ⊢ gB p := fun p => by
     by_cases h : p = pkg_id.net.http
@@ -241,19 +242,19 @@ theorem wp_init_first_http (wp_NewServer : NewServer.spec_owned (GF := GF) (hG :
   have Hhttp : {{ ownInitializing gB }} (App (Val net.http.initialize') (Val #()))
       {{ RET #(); ownInitializing g' ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
           iprop(isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-            net.http.muxOwn (globalAddr net.http.defaultServeMux) []) }} := by
+            net.http.muxOwn (globalAddr net.http.defaultServeMux) [] ∗ net.http.httpSrvEnv (GF := GF)) }} := by
     iintro %Ψ Hown HΨ
-    iapply (net.http.wp_init_first gB g' (by simp only [gB, ↓reduceIte]; exact .rfl)
+    iapply (net.http.wp_init_first_mux gB g' (by simp only [gB, ↓reduceIte]; exact .rfl)
       Hinit.2.2.2.2.2.2.1 (fun p hp => by simp only [gB, hp, ↓reduceIte])) $$ [Hown]
     · iframe Hown; ipureintro; exact hT
-    iintro !> ⟨Hown, #Hht, Hmux⟩
+    iintro !> ⟨Hown, #Hht, Hmux, #Hse⟩
     iapply HΨ
-    iframe Hown Hht Hmux
+    iframe Hown Hht Hmux Hse
   iapply (wp_init_core wp_NewServer g gB g' _ hnot hAB Hinit.1 Htoken Hsync Hhttp
     Hinit.2.2.2.2.2.1 Hinit.2.2.2.2.1 Hinit.2.2.2.1 Hinit.2.2.1 Hinit.2.1) $$ Hown
-  iintro !> ⟨Hown, #Hpk, Hres, #Hht, Hmux⟩
+  iintro !> ⟨Hown, #Hpk, Hres, #Hht, Hmux, #Hse⟩
   iapply HΦ
-  iframe Hown Hpk Hres Hht Hmux
+  iframe Hown Hpk Hres Hht Hmux Hse
 
 end init
 

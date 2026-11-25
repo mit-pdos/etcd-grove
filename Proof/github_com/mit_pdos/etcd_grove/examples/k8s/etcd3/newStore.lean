@@ -67,7 +67,7 @@ theorem newStore.wp_proof
   intro _ _ _ kc cl ms V γs γh hAs hmsne Htb
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk objTyOk_holds)
-  wp_start as ⟨#Hkc, #Hnc, #Hone, #Hregs, #Hsis, Hs⟩
+  wp_start as ⟨Hlt, #Hkc, #Hnc, #Hone, #Hregs, #Hsis, Hs⟩
   ihave #Hpd : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -75,20 +75,20 @@ theorem newStore.wp_proof
   ihave #Hkc' := Hkc
   iStructNamed Hkc'
   (try wp_auto)
-  wp_apply (wp_seed cl ms V γs hAs hmsne) $$ [Hs] as %st0 %h0 %ok Hsd
+  wp_apply (wp_seed cl ms V γs hAs hmsne) $$ [$Hlt Hs] as %st0 %h0 %ok ⟨Hlt, Hsd⟩
   · iframe #
     iframe Hs
   icases Hsd with (%Hok | ⟨%Hok, Hs, Hst0, Hh0⟩)
   · subst Hok
     wp_auto
-    iapply HΦ; ileft; ipureintro; rfl
+    iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
   subst Hok
   wp_auto
   wp_apply wp_noStreaming as %b Hb
   cases b with
   | false =>
     wp_auto
-    iapply HΦ; ileft; ipureintro; rfl
+    iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
   | true =>
   ihave #Hrs : (k8s.rangeStreamOff : IProp GF) $$ [Hb]
   · iExactEq Hb; rfl
@@ -97,7 +97,7 @@ theorem newStore.wp_proof
   cases b2 with
   | false =>
     wp_auto
-    iapply HΦ; ileft; ipureintro; rfl
+    iapply HΦ; iframe Hlt; ileft; ipureintro; rfl
   | true =>
   wp_auto
   haveI : go.UnderlyingEq k8s_io.apimachinery.pkg.runtime.Codec.ty
@@ -140,6 +140,7 @@ theorem newStore.wp_proof
   ihave #Hwc := watchContractOk_driver wp_Decode wp_cDecode wp_Annotate wp_GetAnn wp_SetAnn $$ Hpd
   ihave #Hni := newItemOk_driver wp_newObj
   iapply HΦ
+  iframe Hlt
   iright
   isplitr
   · ipureintro; rfl

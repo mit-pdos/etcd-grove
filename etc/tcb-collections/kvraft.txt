@@ -1,0 +1,14 @@
+# kvraft (examples/raft/kvraft, notes/kvraft-part.md; the part KvRaft/): the top-level robustness theorem
+# `kvraft_robust`, its example `kvraft_robust_example` and the example's
+# premises' non-vacuity `kvraft_example_premises`
+# (KvRaft/Proof/.../raft/kvraft/TopLevelRobustness.lean), with no hypothesis: `RobustOfNetFsBootG` (the
+# bridge over mit-pdos/perennial#683) was one until the file extension's single shared view
+# (2026-11-23, notes/fs-interp-state-determined.md); `errors.IsPathErrnoNotExist.spec`, a hypothesis
+# until 2026-11-23, is proved (`Proof/errors/IsPathErrnoNotExist.lean`). `#print axioms`:
+# Lean's three only (2026-11-22, after `path.filepath.opaqueInitsOk`, which the bodied `durable`'s
+# initializer reached, was retired on `lean`).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/kvraft.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/kvraft.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/kvraft.txt --check --update
+roots ^KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/TopLevelRobustness\.lean$

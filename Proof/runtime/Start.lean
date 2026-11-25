@@ -55,9 +55,13 @@ effects. The verified code's first `bootstrap` of `dd` consumes the right. So ea
 of `Ds` is bootstrapped fresh at most once in a run, over an empty backend, which `bootstrap`'s
 contract needs (`wal.Exist(dir)` false: `bootstrapNewWAL`; no backend file: `HD`, `HmEmpty`).
 (Sweep repairs 1, W5) The addresses of `As` are numeric loopback literals (`hAsLit`, decidable; loopback since 2026-11-14, so no proxy), so each
-names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4) For a program of
-which `verifyEnvOff e` holds (`ETCD_VERIFY` off for the run), it also receives `envVerifyOff`,
-which the backend's lock checks and `VerifyBackendConsistency` take.
+names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4, to 2026-11-25)
+For a program of which `verifyEnvOff e` held (`ETCD_VERIFY` off for the run), it also received
+`envVerifyOff`, which the backend's lock checks and `VerifyBackendConsistency` took: removed (the
+owner's decision, 2026-11-25). The axiom now says nothing about the environment: it is the previous
+one with `verifyEnvOff` and `envVerifyOffTok` read as `True` (the reading its satisfiability argument
+already took), the other premises and rights unchanged; `ETCD_VERIFY` off is now the pure environment premise `EtcdVerifyOff` of the closed theorems
+(`Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean`), which no start axiom hands out.
 Why it is once only: nothing else produces `nameFree`, `netAddrFree` or `httpProtoFree` (axiomatized
 predicates, `Registry.lean`, `InvNet.lean`; no axiom or definition gives one), so the rights exist
 only where this axiom's premise hands them out: once, to the one WP proof of one execution, under
@@ -190,13 +194,11 @@ of `As` the program's claim on it (`addrClaim`; until the net swap, 2026-11-22, 
 listening token is now the net extension's) and the right to fix its HTTP protocol (`httpProtoFree`,
 D39a, 2026-10-23; the address part removed at the swap and restored 2026-11-23 for the single-process
 theorems); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
-(`dataDirFresh`), which a member's first start consumes; and (sweep repairs 1, B4) `ETCD_VERIFY` off
-for the run (`envVerifyOff`, persistent). -/
+(`dataDirFresh`), which a member's first start consumes. (Sweep repairs 1, B4, to 2026-11-25: also
+`ETCD_VERIFY` off for the run, the token `envVerifyOff`; now the pure premise `EtcdVerifyOff`.) -/
 def startRights {GF : BundledGFunctors} [GooseExts] (As Ds : List GoString) : IProp GF :=
   iprop(([∗list] a ∈ As, addrClaim a) ∗
-    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
-    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
-    envVerifyOff)
+    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d))
 
 section adequacy
 variable [GooseExts] [GooseInterp]
@@ -214,14 +216,17 @@ thread bound is one of this execution (`RealNstepsBelow T n`), not of every exec
 (`RealThreadsBelow`), as Perennial's `goose_adequacy` became `goose_adequacy_below`
 (`AdequacyAlong.lean`), whose proof shows the bound was only ever used along the given
 execution; the satisfiability argument of the file header carries over (rights read as `True`:
-`goose_adequacy_below`, a theorem). The previous statement is `goose_adequacy_start_all`. -/
+`goose_adequacy_below`, a theorem). The previous statement is `goose_adequacy_start_all`.
+(2026-11-25) Without its `ETCD_VERIFY` part (the premise `hEnv : verifyEnvOff e` and `envVerifyOff`
+in `startRights`): the previous axiom with both read as `True`, so it claims nothing about the
+environment. -/
 axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
     (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hAsLit : ∀ a ∈ As, netAddrLit a = true)
     (hAsFree : addrsUnclaimed e As)
-    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (hDsFree : dataDirsAbsent e Ds)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
       threadBound GF = T →
@@ -244,7 +249,7 @@ theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
     (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hAsLit : ∀ a ∈ As, netAddrLit a = true)
     (hAsFree : addrsUnclaimed e As)
-    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (hDsFree : dataDirsAbsent e Ds)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
       threadBound GF = T →
@@ -260,7 +265,7 @@ theorem goose_adequacy_start_all [hPre : GooseGpreS GF] (N T : Nat)
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   goose_adequacy_start N T e σ g φ hφ Hinitg Hinit As Ds hAs hDs hAsLit hAsFree
-    hDsFree hEnv Hwp n κs t2 σ2 (RealNstepsBelow.of_threadsBelow Hsteps Hlive) Hbound Hthreads
+    hDsFree Hwp n κs t2 σ2 (RealNstepsBelow.of_threadsBelow Hsteps Hlive) Hbound Hthreads
 
 end adequacy
 

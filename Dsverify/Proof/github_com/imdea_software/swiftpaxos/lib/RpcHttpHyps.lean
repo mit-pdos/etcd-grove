@@ -64,13 +64,21 @@ section env
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [net.http.Assumptions]
 
-/-- A dialer's package state: `DialHTTP.spec`'s premises besides the address (net/http's
-`httpEnv`, net/rpc's `connected`), which a machine's boot gives (`rpcBootRes`). -/
+/-- A machine's net/rpc-over-HTTP package state: net/http's server variables (`httpSrvEnv`, which
+`Serve.spec_rpc` takes and which holds `DialHTTP.spec`'s `httpEnv`, `httpSrvEnv_env`) and net/rpc's
+`connected`; a machine's boot gives it (`rpcBootRes`). -/
 def dialEnv : IProp GF :=
-  iprop(net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ connectedStatus)
+  iprop(net.http.httpSrvEnv ∗ globalAddr net.rpc.connected ↦□ connectedStatus)
 
 instance dialEnv_persistent : Persistent (dialEnv (GF := GF)) := by
   unfold dialEnv; infer_instance
+
+/-- `DialHTTP.spec`'s `httpEnv`, from net/http's server variables. -/
+theorem httpSrvEnv_env : net.http.httpSrvEnv (GF := GF) ⊢ net.http.httpEnv (GF := GF) := by
+  iintro #H
+  iunfold net.http.httpSrvEnv at H
+  icases H with ⟨#He, -⟩
+  iexact He
 
 end env
 
@@ -155,7 +163,7 @@ variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.F
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 /-- What `rpc.DialHTTP("tcp", a)` needs (persistent): the client's bounds and package state
-(`dialEnv`: net/http's `httpEnv` and net/rpc's `connected`), and `a` serving `W` over HTTP
+(`dialEnv`: net/http's `httpSrvEnv` and net/rpc's `connected`), and `a` serving `W` over HTTP
 at `DefaultRPCPath`. -/
 def rpcHttp (W : RpcWorld GF) (a : GoString) : IProp GF :=
   iprop(⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ dialEnv ∗
@@ -176,7 +184,8 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
   iunfold rpcHttp at Hp
   icases Hp with ⟨%Hb, #Hc, Hd, #Ha⟩
   iunfold dialEnv at Hd
-  icases Hd with ⟨#He, #Hcon⟩
+  icases Hd with ⟨#Hse, #Hcon⟩
+  ihave #He := httpSrvEnv_env $$ Hse
   ihave #Ha' := RpcHttpAddr.rpcAddrP_net W a _ _ $$ Ha
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
   iframe Hc He Hcon Ha'

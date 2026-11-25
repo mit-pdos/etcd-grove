@@ -58,7 +58,6 @@ def startBundle (k₁ k₂ k₃ k₄ k₅ : w64) : IProp GF :=
 abbrev MainChecked.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat)
     (k₁ : w64) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8)) (boot₁ : List LogEntry)
     (pid₁ pid₂ pid₃ : w64) (psP : List w64) (ctxsP : List (List w8)) (bootP : List LogEntry)

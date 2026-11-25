@@ -29,7 +29,7 @@ theorem authClient.RoleAdd.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     authClient.RoleAdd.spec (GF := GF) (hG := hG) := by
   intro api conn addr ci om cd name Spec Q
-  wp_start as ⟨#Hapi, #Hctx, #Hce, #Hrpc, #Hom, #Hpre, %Hsz⟩
+  wp_start as ⟨Hlt, #Hapi, #Hctx, #Hce, #Hrpc, #Hom, #Hpre, %Hsz⟩
   iunfold authObjAtC at Hapi
   icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
@@ -40,8 +40,8 @@ theorem authClient.RoleAdd.wp_proof
     ipureintro; exact ⟨rfl, rfl⟩
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
-  wp_apply wp_retry rac conn addr Spec Q ci om cd «$a1_ptr» name sl vs $$ [Hsend]
-    as %resp %err ⟨-, Hres⟩
+  wp_apply wp_retry rac conn addr Spec Q ci om cd «$a1_ptr» name sl vs $$ [Hlt Hsend]
+    as %resp %err ⟨Hlt, -, Hres⟩
   · iframe #
     iframe
     try (ipureintro; exact strsSizeOk.lt_1 Hsz)
@@ -55,6 +55,7 @@ theorem authClient.RoleAdd.wp_proof
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
+    iframe Hlt
     unfold authCallOut
     ileft
     iframe
@@ -65,6 +66,7 @@ theorem authClient.RoleAdd.wp_proof
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
+    iframe Hlt
     unfold authCallOut
     iright
     iframe #

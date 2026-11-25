@@ -76,17 +76,14 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- `Main`'s configuration (`Run(Config{Path: "mvccrand.db", Seed: 1, Ops: 1000, Readers: 4,
-Reads: 200, Watchers: 8})`), with the file `b` of the directory `r` (S3e). -/
-def mvccrandCfg (r : GoString) : github_com.mit_pdos.etcd_grove.examples.mvccrand.Config :=
-  ⟨Fs.child r go!"mvccrand.db", W64 1, W64 1000, W64 4, W64 200, W64 8, W64 0⟩
-
-/-- The program: `mvccrand`'s initialization, then `Run` of `Main`'s configuration with the file
-`r/mvccrand.db`, its report dropped, as `Main` does (S3e; until then `Main()`, whose `mvccrand.db`
-is relative). -/
+/-- The program: `mvccrand`'s initialization, then `MainAt(r)`: `Main`'s run with its database in
+the directory `r` (`r/mvccrand.db`), after the program's own checks that `r` fits and that nothing is
+at the database's path (P3 of the pure-premise plan, 2026-11-24; S3e to then: `Run` of `Main`'s
+configuration at `r/mvccrand.db`, those two facts premises of the statement; until S3e `Main()`,
+whose `mvccrand.db` is relative). -/
 def mvccrandProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccrand.initialize' #() ;;
-  ((@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Run) #(mvccrandCfg r) ;; #())
+  (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.MainAt) #r
 
 end adequacy
 end EtcdGrove

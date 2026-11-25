@@ -37,22 +37,20 @@ abbrev client_Put_on.law : Prop :=
       (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
       (hsz : opSizeOk (opPutModel key val [])),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
             (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
           isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
           srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-          □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q }}
+          □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q) }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
               putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
               ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
                 v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
-            (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }}
+            (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }}
 
 /-- `client_Get_on`'s statement (`ClientOn.lean`, a linking module), as a hypothesis of the proofs
 that use it (the import tiers); `client_Get_on_law_holds` proves it. -/
@@ -61,8 +59,7 @@ abbrev client_Get_on.law : Prop :=
       (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
       (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
       (Q : KVState → IProp GF) (F : mvcc.Log) (hsz : opSizeOk (opGetModel key gs)),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
             (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
@@ -72,15 +69,15 @@ abbrev client_Get_on.law : Prop :=
           sortNamesIf (opGetModel key gs).base.sortSet ∗
           ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
           □ (⌜Q = fun _ => iprop(True)⌝ ∨
-            (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) }}
+            (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q))) }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (R ∗
           ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
               rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
               ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
                 v3rpc.rangeAuthed (srvTLSId s) E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
-            (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
+            (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err))) }}
 
 /-- `client_Txn_on`'s statement (`ClientOn.lean`, a linking module), as a hypothesis of the proofs
 that use it (the import tiers); `client_Txn_on_law_holds` proves it. -/
@@ -126,12 +123,11 @@ abbrev work_put.law : Prop :=
       (hγa : E.authMode = .on γa)
       (hop : akOpGranted who (.put (putKeyOp k v)) → opHistOk (.put (putKeyOp k v)))
       (hsz : opSizeOk (opPutModel k v [])),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
-          ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ levelTok 0 ∗ (akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+          ctxOk ci cd ∗ ctxErrClient ci cd) }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Put")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #v)) (Val #slice.nil))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ⌜err = GoInterface.nil → akOpGranted who (.put (putKeyOp k v))⌝ }}
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (⌜err = GoInterface.nil → akOpGranted who (.put (putKeyOp k v))⌝) }}
 
 /-- `work_delete`'s statement (`WorkCallsLinked.lean`, a linking module), as a hypothesis of the
 proofs that use it (the import tiers); `work_delete_law_holds` proves it. -/
@@ -142,12 +138,11 @@ abbrev work_delete.law : Prop :=
       (hγa : E.authMode = .on γa)
       (hop : akOpGranted who (.deleteRange (txn.deleteOpOf k [] false)) → opHistOk (.deleteRange (txn.deleteOpOf k [] false)))
       (hsz : opSizeOk (opDeleteModel k [])),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
-          ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ levelTok 0 ∗ (akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+          ctxOk ci cd ∗ ctxErrClient ci cd) }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Delete")) (Val #(GoInterface.ok ci))) (Val #k)) (Val #slice.nil))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ⌜err = GoInterface.nil → akOpGranted who (.deleteRange (txn.deleteOpOf k [] false))⌝ }}
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (⌜err = GoInterface.nil → akOpGranted who (.deleteRange (txn.deleteOpOf k [] false))⌝) }}
 
 /-- `work_get`'s statement (`WorkCallsLinked.lean`, a linking module), as a hypothesis of the proofs
 that use it (the import tiers); `work_get_law_holds` proves it. -/
@@ -159,13 +154,12 @@ abbrev work_get.law : Prop :=
      
       (hg : ¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1)
       (hs : (opGetModel key gs).base.sortSet = false) (hsz : opSizeOk (opGetModel key gs)),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
+    {{ levelTok 0 ∗ (akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ metadata.outMD ci (akOut who) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd ∗
-          optsAt sl gs }}
+          optsAt sl gs) }}
         (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (⌜err ≠ GoInterface.nil⌝ ∨
           (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             ⌜(∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
                 akUser who info.Username' ∧
@@ -173,7 +167,7 @@ abbrev work_get.law : Prop :=
                 auth.granted (setupSt r) (auth.authInfoM info) (rangeWireOf (opGetModel key gs)).key
                   e .read) ∧
               ∀ kv ∈ m.kvs, inRange (rangeWireOf (opGetModel key gs)).key
-                (rangeWireOf (opGetModel key gs)).base.rangeEnd kv.key = true⌝) }}
+                (rangeWireOf (opGetModel key gs)).base.rangeEnd kv.key = true⌝)) }}
 
 /-- `work_commit`'s statement (`WorkCallsLinked.lean`, a linking module), as a hypothesis of the
 proofs that use it (the import tiers); `work_commit_law_holds` proves it. -/
@@ -188,18 +182,17 @@ abbrev work_commit.law : Prop :=
       (hro : txn.txnReadonly (txnWireOf b.model) = false)
       (hpl : txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model))
       (hop : akOpGranted who (.txn (txnWireOf b.model)) → opHistOk (.txn (txnWireOf b.model))),
-    {{ akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ txnObjAt tp [addr] ci cd b ∗
+    {{ levelTok 0 ∗ (akCallEnv cl api conn addr s E ρ cid mid γa Lset n who ∗ txnObjAt tp [addr] ci cd b ∗
           metadata.outMD ci (akOut who) ∗
-          txnKvIs tp api }}
+          txnKvIs tp api) }}
         (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
           (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ⌜err = GoInterface.nil → akOpGranted who (.txn (txnWireOf b.model))⌝ ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (⌜err = GoInterface.nil → akOpGranted who (.txn (txnWireOf b.model))⌝ ∗
           (⌜err ≠ GoInterface.nil⌝ ∨ ∃ m : TxnRespM, txnRespMsg resp m ∗
             ⌜∃ (r : w64) (s0 : List EtcdKv) (skip : Bool),
               m.succeeded = (txn.srvRunTxn r s0 (txnWireOf b.model)).1 ∧
               opRespsRel skip ((txnWireOf b.model).branch m.succeeded)
-                (txn.srvRunTxn r s0 (txnWireOf b.model)).2.2 m.resps⌝) }}
+                (txn.srvRunTxn r s0 (txnWireOf b.model)).2.2 m.resps⌝)) }}
 
 /-- `then_commit_nested_refused`'s statement (`WorkCallsLinked.lean`, a linking module), as a
 hypothesis of the proofs that use it (the import tiers); `then_commit_nested_refused_law_holds`
@@ -218,8 +211,8 @@ abbrev then_commit_nested_refused.law : Prop :=
         (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Then"))
           (Val #sl))
       {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp :
-            GoInterface);
-          ∀ Φ, (∀ (resp : Loc) (err : GoInterface), ⌜err ≠ GoInterface.nil⌝ -∗
+            GoInterface); ∀ Φ, levelTok 0 -∗
+            (∀ (resp : Loc) (err : GoInterface), levelTok 0 -∗ ⌜err ≠ GoInterface.nil⌝ -∗
               Φ (PairV #resp #err)) -∗
             WP (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!!
               go!"Commit")) (Val #())) {{ Φ }} }}

@@ -31,7 +31,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem watchGRPCStream.serveWatchClient.wp_proof :
     watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) := by
   intro V G callSl wc γs Dn cd' e γc i sent0 tok
-  wp_start as ⟨#Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
+  wp_start as ⟨Hlt, #Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
   icases Hwgs' with ⟨%Hwnn, -, #Hfacts, -, -, -, -, -, -, -, -, #Frespc, #Fdonec, #Ferrc, -, -,
@@ -48,20 +48,20 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   ihave HI : iprop(∃ (L : List v3rpc.WatchRespM) (sent : List Loc),
       "Htok" ∷ cliRecvTok (Rep := v3rpc.pbWatchResponse) γs L ∗ "Hprod" ∷ sspscProducer G.γr sent ∗
       "Hcnt" ∷ monoNatAuthOwn γc 1 sent.length ∗
-      "%Hlen" ∷ ⌜sent.length = sent0.length + L.length⌝) $$ [Htok Hprod Hcnt]
+      "%Hlen" ∷ ⌜sent.length = sent0.length + L.length⌝ ∗ "Hlt" ∷ levelTok 0) $$ [Htok Hprod Hcnt Hlt]
   · iexists [], sent0
     iframe
     ipureintro; rfl
   wp_for HI
   wp_bind (App (Val #(methods ci.ty go!"Recv" ci.v)) (Val #()))
-  iapply HRecv $$ %L %iprop(True) [Htok]
+  iapply HRecv $$ %L %(levelTok 0) [Htok Hlt]
   · isplitr
-    · ipureintro; trivial
-    isplitr
-    · itrivial
+    · ipureintro; rfl
+    isplitl [Hlt]
+    · iexact Hlt
     iexact Htok
   inext
-  iintro %resp %err ⟨-, Hr⟩
+  iintro %resp %err ⟨Hlt, Hr⟩
   icases Hr with (⟨%Herr0, %m, Hm, HDn, Htok⟩ | ⟨%Hrn, #Heofe, %Hen, Htok, -⟩ | ⟨%Hrn, #Hse, Htok⟩)
   · subst Herr0
     ihave ⟨Htok, #Hlb⟩ := cliRecvTok_lb $$ Htok
@@ -124,7 +124,8 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       (try wp_auto)
       wp_for_post
       iapply HΦ
-      itrivial
+      iframe Hlt
+      try itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · cases err with
@@ -163,7 +164,8 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       (try wp_auto)
       wp_for_post
       iapply HΦ
-      itrivial
+      iframe Hlt
+      try itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
@@ -177,7 +179,8 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       (try wp_auto)
       wp_for_post
       iapply HΦ
-      itrivial
+      iframe Hlt
+      try itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
   · ihave #Hse' := Hse
@@ -213,7 +216,8 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       (try wp_auto)
       wp_for_post
       iapply HΦ
-      itrivial
+      iframe Hlt
+      try itrivial
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
@@ -227,7 +231,8 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       (try wp_auto)
       wp_for_post
       iapply HΦ
-      itrivial
+      iframe Hlt
+      try itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial
 

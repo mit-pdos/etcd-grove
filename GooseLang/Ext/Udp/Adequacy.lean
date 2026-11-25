@@ -1,6 +1,6 @@
 /-
 The crash interpretation of the UDP extension, for a program whose closed list of extensions has
-`udpExt` (with others: the list and its ghost state are the program's, as kvnet's `NetFs`).
+`udpExt` (with others: the list and its ghost state are the program's, as kvraft's `NetFs`).
 
 **A crash** keeps the network's ghost state, as the network itself (it is global). A node's local
 ghost state after a crash (`udp_crash_interp`) has the same universal camera and a fresh ghost map

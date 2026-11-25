@@ -49,7 +49,7 @@ def isBackendNH (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (h : GoI
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     isDB db γ.db ∗ ⌜P.Wf⌝ ∗ (∃ path : GoString, bDBAt γ db path ∗ dbFile db γ.db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
-    envVerifyOff ∗
+    ⌜EtcdVerifyOff⌝ ∗
     -- (backend-snapshot B1) the commit invariant
     cmtInv γ P W Pk)
 

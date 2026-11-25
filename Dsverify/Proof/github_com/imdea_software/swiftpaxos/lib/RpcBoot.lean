@@ -12,7 +12,7 @@ initialized yet (the initialization table `g` is `False` at both: in the kit's c
 initializer is the first to reach net/http's), ends in a table `g'` that agrees with `g` elsewhere
 and meets net/rpc's `GetIsPkgInitProp`, and returns those resources. Proved from `Net/`'s
 `net.rpc.wp_init_first_http` (net/rpc's initializer, proved; net/http's first run inside it, Net's
-interim axiom `net.http.wp_init_first`, on a machine of at most `2 ^ 30` threads), given
+`net.http.wp_init_first_mux`, over the interim axiom `net.http.wp_init_first`, on a machine of at most `2 ^ 30` threads), given
 `NewServer`'s spec with an owned registry (which the linking modules pass).
 -/
 module
@@ -57,11 +57,10 @@ theorem wp_rpc_first (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG
   iintro %Φ Hown HΦ
   iapply (net.rpc.wp_init_first_http wp_NewServer g g' hr hh Hr hsame) $$ [Hown]
   · iframe Hown; ipureintro; exact hT
-  iintro !> ⟨Hown, #Hpk, Hres, #Hht, Hmux⟩
+  iintro !> ⟨Hown, #Hpk, Hres, #Hht, Hmux, #Hse⟩
   iapply HΦ
   iframe Hown Hpk
   ihave #Hri := net.rpc.rpcInit_access $$ Hpk
-  ihave #He := net.http.httpEnv_access $$ Hht
   iunfold net.rpc.rpcInit at Hri
   icases Hri with ⟨-, #Hsrv, #Hcon, #Hmu⟩
   iunfold net.rpc.rpcFirstRes at Hres
@@ -69,7 +68,7 @@ theorem wp_rpc_first (wp_NewServer : net.rpc.NewServer.spec_owned (GF := GF) (hG
   iunfold rpcBootRes
   iframe Hmu Hcu Hsrv Hmux Hds Hht
   iunfold dialEnv
-  iframe He Hcon
+  iframe Hse Hcon
 
 /-- net/rpc's first initialization in the shape the kit's boot (`BootLinked.lean`) takes, as a
 class: the top-level proof gives it from `wp_rpc_first` on a machine of at most `2 ^ 30` threads

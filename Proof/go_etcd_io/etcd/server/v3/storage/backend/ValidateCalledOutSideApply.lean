@@ -1,6 +1,6 @@
 /-
 `backend.ValidateCalledOutSideApply`'s proof (`verify.go`; etcdstorage, 2026-11-20, until then the trust boundary, an
-axiom): with `ETCD_VERIFY` off (`envVerifyOff`), `verifyLockEnabled` (`verify.IsVerificationEnabled`
+axiom): with `ETCD_VERIFY` off (`EtcdVerifyOff`), `verifyLockEnabled` (`verify.IsVerificationEnabled`
 of `lock`) is false and it returns before reading the stack.
 -/
 module
@@ -31,15 +31,13 @@ theorem backend.ValidateCalledOutSideApply.wp_proof
     (hEnabled : verify.IsVerificationEnabled.spec (GF := GF) (hG := hG)) :
     backend.ValidateCalledOutSideApply.spec (GF := GF) (hG := hG) := by
   intro lg
-  wp_start as #Hvoff
+  wp_start as %Hvoff
   wp_auto
   wp_func_call
   wp_call
   wp_auto
-  wp_apply hEnabled as %b Hb
-  ispecialize Hb $$ Hvoff
-  icases Hb with %Hb
-  obtain rfl : b = false := Hb (Or.inr (by first | rfl | trivial))
+  wp_apply hEnabled as %b %Hb
+  obtain rfl : b = false := Hb Hvoff (Or.inr (by first | rfl | trivial))
   wp_auto
   iapply HΦ
   itrivial

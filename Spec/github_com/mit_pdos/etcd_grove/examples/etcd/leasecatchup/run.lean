@@ -24,7 +24,7 @@ the server's named workload and effect premises), at the monotone lease mode: no
 the program creates (granted, or reloaded by `Recover`) expires while the program runs
 (`lease.leasesNoExpiry`, which gives `lease.runCfg .mono .mono`; leases are granted with etcd's
 `MaxLeaseTTL`, about 285 years, so it holds however long the process runs) and the lease reads' deployment premise (`leasePeersOk`); the client's context
-premises (`ContextReadErrs`, `ContextErrsClient`, instances, and `errors.As`'s target), as
+premises (instances and `errors.As`'s target), as
 leasegrant's `Main`.
 -/
 module
@@ -53,8 +53,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchu
 /-- See the file header. -/
 abbrev run.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-    [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (lg : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗

@@ -65,7 +65,7 @@ theorem store.updateOnce.wp_proof
     store.updateOnce.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl v p ign pre f o' W Φu
     hk hkl hpre hok hosz hw
-  wp_start as ⟨#Hst, #Hctx, #Hce, %Hspn, Hos, #Hfrom, %Hign, #Hdsl, Hout, %Hv, HW, #Hau⟩
+  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, %Hspn, Hos, #Hfrom, %Hign, #Hdsl, Hout, %Hv, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -133,9 +133,10 @@ theorem store.updateOnce.wp_proof
     (try wp_auto)
     wp_apply (wp_kPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
-          #c.kc)) c.ms c.V ci cd key vsl val s.rev ⟨true, zero_val _⟩ _ rfl hkl (hosz val Hval)) $$ [Hau']
-      as %resp %perr Hput
+          #c.kc)) c.ms c.V ci cd key vsl val s.rev ⟨true, zero_val _⟩ _ rfl hkl (hosz val Hval)) $$ [Hlt Hau']
+      as %resp %perr ⟨Hlt, Hput⟩
     · iframe #
+      iframe Hlt
       iexact Hau'
     (try wp_auto)
     icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split perr _ _ _) $$ Hput with ⟨#Hse0, Hput⟩
@@ -209,6 +210,7 @@ theorem store.updateOnce.wp_proof
               ipureintro; exact Hspn
             (try wp_auto)
             iapply HΦ
+            iframe Hlt
             iright
             iright
             isplitr
@@ -231,6 +233,7 @@ theorem store.updateOnce.wp_proof
           subst Hep Hst0
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           iright
           iright
           isplitr
@@ -259,6 +262,7 @@ theorem store.updateOnce.wp_proof
             ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
+          iframe Hlt
           iright
           iright
           isplitr
@@ -306,6 +310,7 @@ theorem store.updateOnce.wp_proof
           ipureintro; exact Hspn
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         iright
         ileft
         isplitr
@@ -338,6 +343,7 @@ theorem store.updateOnce.wp_proof
           ipureintro; exact Hspn
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft
         isplitl []
         · iapply (unkErr_client c _ (by nofun) Hpce) $$ Hpcl
@@ -369,6 +375,7 @@ theorem store.updateOnce.wp_proof
         iexact Hes
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       ileft
       isplitl []
       · iapply (unkErr_internal _ _ (by rw [Hie]; exact Htre))

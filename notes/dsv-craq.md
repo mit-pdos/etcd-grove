@@ -107,8 +107,8 @@ kitgen `boot=`, `etc/dsv/craq.py`; `BootLinked.lean`'s `boot_netrpc`, `boot_craq
 initializer runs net/rpc's, the machine's first run of net/rpc and net/http, Net's
 `net.rpc.wp_init_first_http`). The thread bound is `2^30` (net/http's first initialization, `Threads30`;
 Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`: Net's interim
-`net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'`,
-`net.http.Handle.wp_proof`, besides Lean's three.
+`net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'`, besides Lean's three
+(`net.http.Handle` proved by S5, lean `676aede0a1`; merged into dsv-fix2b 2026-11-25).
 
 ## Hypotheses (model pieces the port needs that are not proved)
 

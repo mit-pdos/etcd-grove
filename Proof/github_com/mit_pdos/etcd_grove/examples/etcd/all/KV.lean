@@ -38,7 +38,7 @@ theorem KV.wp_proof
     (wp_c : etcd_compacted.Main.spec (GF := GF) (hG := hG))
     (wp_cache : etcd_cache.Main.spec (GF := GF) (hG := hG)) :
     KV.spec (GF := GF) (hG := hG) := by
-  intro CS ER FM RT CRE CEC N k₁ ids₁ ps₁ ctxs₁ boot₁ pid₁ pid₂ pid₃ psP ctxsP bootP cwId ctxsCW
+  intro CS ER FM RT N k₁ ids₁ ps₁ ctxs₁ boot₁ pid₁ pid₂ pid₃ psP ctxsP bootP cwId ctxsCW
     bootCW cId ctxsC bootC kvId ctxsK bootK clients ops nw nops cnw cnops sched₁ sched₂ steps₁ steps₂
     TB RB48 RBN HLv hk1 hk hlen Hbf HbfP HbfCW HbfC HbfK Hwb Haf Hbuq Hrf Hdbo Hms Hat
     Hc0 Hc31 Hops Hmul Hnw0 Hnw31 Hnops Hnmul Hcnw0 Hcnw31 Hcnops Hcmul

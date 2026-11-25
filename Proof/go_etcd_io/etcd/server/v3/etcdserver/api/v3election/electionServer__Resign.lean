@@ -36,7 +36,7 @@ theorem electionServer.Resign.wp_proof
     (hEH : concurrency.Election.Header.spec (GF := GF) (hG := hG)) :
     electionServer.Resign.spec (GF := GF) (hG := hG) := by
   intro es c req lk name key rev lease ctx cs maxReq
-  wp_start as ⟨#Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hctx, #HctxC, #Hcc⟩
+  wp_start as ⟨Hlt, #Hes, #Hok, %Hcfg, #Hlf, Hlk, #Hctx, #HctxC, #Hcc⟩
   ihave #Hok' : iprop(v3lock.lockClientOk c) $$ []
   · iexact Hok
   iunfold v3lock.lockClientOk at Hok'
@@ -51,6 +51,7 @@ theorem electionServer.Resign.wp_proof
     icases Hfact with ⟨%e0, #He0⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     ileft
     iframe He0
     ipureintro
@@ -62,7 +63,7 @@ theorem electionServer.Resign.wp_proof
   wp_auto
   simp only [hlk, decide_false]
   (try wp_auto)
-  wp_apply hSess es c lease ctx cs $$ [$Hes $Hok $Hctx $HctxC $Hcc] as %s %err Hs
+  wp_apply hSess es c lease ctx cs $$ [$Hlt $Hes $Hok $Hctx $HctxC $Hcc] as %s %err ⟨Hlt, Hs⟩
   icases Hs with (⟨%Hs, %γ, %id, #Hss, %Hid⟩ | %Hs)
   rotate_left
   · obtain ⟨rfl, Herr⟩ := Hs
@@ -71,6 +72,7 @@ theorem electionServer.Resign.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright; iright
       ipureintro
       exact ⟨rfl, Herr⟩
@@ -88,7 +90,7 @@ theorem electionServer.Resign.wp_proof
   (try wp_auto)
   ihave #Hlo := etcdReached_zero (GF := GF)
   wp_apply hER e s γ c id name { key := key, rev := rev, sess := s, hdr := null } ctx cs (W64 0) $$
-      [$Hcpkg $He $Hest $Hctx $HctxC $Hlo] as %err Hp
+      [$Hcpkg $Hlt $He $Hest $Hctx $HctxC $Hlo] as %err ⟨Hlt, Hp⟩
   icases Hp with (⟨%Hc, -⟩ | ⟨%Hok2, %hdr, Hest, Hfacts⟩ | ⟨%Hne', -⟩)
   · exact absurd Hc.1 Hsn
   · obtain ⟨-, rfl⟩ := Hok2
@@ -99,6 +101,7 @@ theorem electionServer.Resign.wp_proof
     generalize «$r0_ptr» = r0 at *
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright; ileft
     isplitr
     · ipureintro; rfl
@@ -117,6 +120,7 @@ theorem electionServer.Resign.wp_proof
     | ok e =>
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright; iright
       ipureintro
       exact ⟨rfl, Hne'⟩

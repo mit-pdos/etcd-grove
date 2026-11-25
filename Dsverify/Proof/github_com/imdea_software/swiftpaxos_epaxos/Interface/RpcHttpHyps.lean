@@ -69,13 +69,21 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 `httpEnv`. -/
 abbrev httpEnv : IProp GF := net.http.httpEnv (GF := GF)
 
-/-- A dialer's package state: `DialHTTP.spec`'s premises besides the address (net/http's
-`httpEnv`, net/rpc's `connected`), which a server machine's boot gives (`rpcBootRes`). -/
+/-- A machine's net/rpc-over-HTTP package state: net/http's server variables (`httpSrvEnv`, which
+`Serve.spec_rpc` takes and which holds `DialHTTP.spec`'s `httpEnv`, `httpSrvEnv_env`) and net/rpc's
+`connected`; a server machine's boot gives it (`rpcBootRes`). -/
 def dialEnv : IProp GF :=
-  iprop(httpEnv ∗ globalAddr net.rpc.connected ↦□ connectedStatus)
+  iprop(net.http.httpSrvEnv ∗ globalAddr net.rpc.connected ↦□ connectedStatus)
 
 instance dialEnv_persistent : Persistent (dialEnv (GF := GF)) := by
   unfold dialEnv; infer_instance
+
+/-- `DialHTTP.spec`'s `httpEnv`, from net/http's server variables. -/
+theorem httpSrvEnv_env : net.http.httpSrvEnv (GF := GF) ⊢ httpEnv (GF := GF) := by
+  iintro #H
+  iunfold net.http.httpSrvEnv at H
+  icases H with ⟨#He, -⟩
+  iexact He
 
 /-- The rpc addresses' and listeners' protocols, over the global state only (every machine's heap
 sees the same ones): Net's (`netRpcHttpAddr`, `RpcHttpAddrNet.lean`), which the statement gives the
@@ -150,16 +158,18 @@ resource). -/
 def defaultSrvFresh : IProp GF :=
   iprop(∃ γs γf : GName, net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅)
 
-/-- `rpc.DialHTTP("tcp", a)` over the kit's `httpEnv` and `RpcHttpAddr`'s `rpcAddrP`. -/
+/-- `rpc.DialHTTP("tcp", a)` over net/http's server variables (`dialEnv`'s) and `RpcHttpAddr`'s
+`rpcAddrP`. -/
 theorem DialHTTP_kit [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] (W : RpcWorld GF) (a : GoString) :
-    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ httpEnv ∗
+    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpSrvEnv (GF := GF) ∗
         globalAddr net.rpc.connected ↦□ connectedStatus ∗
         RpcHttpAddr.rpcAddrP W a (connectReq defaultRPCPath) connectAns }}
       (App (App (Val (@! net.rpc.DialHTTP)) (Val #(go!"tcp"))) (Val #a))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }} := by
-  iintro %Φ ⟨%Hb, #Hc, #He, #Hcon, #Ha⟩ HΦ
+  iintro %Φ ⟨%Hb, #Hc, #Hse, #Hcon, #Ha⟩ HΦ
+  ihave #He := httpSrvEnv_env $$ Hse
   ihave #Ha' := RpcHttpAddr.rpcAddrP_net W a _ _ $$ Ha
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
   iframe Hc He Hcon Ha'

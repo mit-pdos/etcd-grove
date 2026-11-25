@@ -140,7 +140,7 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
         net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
-        net.http.httpEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
+        net.http.httpSrvEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
         RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
           net.rpc.connectAns ∗
         dialEnv (GF := GF) ∗ (□ [∗list] k ∈ [0, 1, 2], replicaRpcOk γ k) ∗

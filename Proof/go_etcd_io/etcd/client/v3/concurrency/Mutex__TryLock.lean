@@ -32,9 +32,9 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
     (hCl : Session.Client.spec (GF := GF) (hG := hG)) :
     Mutex.TryLock.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
-  wp_start as ⟨#Hm, Hst, #Hctx, #HctxC, #Hlo⟩
+  wp_start as ⟨Hlt, #Hm, Hst, #Hctx, #HctxC, #Hlo⟩
   wp_auto
-  wp_apply hTA m s γ client id pfx st ctx cs lo $$ [$Hm $Hst $Hctx $HctxC $Hlo] as %resp %err Hr
+  wp_apply hTA m s γ client id pfx st ctx cs lo $$ [$Hlt $Hm $Hst $Hctx $HctxC $Hlo] as %resp %err ⟨Hlt, Hr⟩
   icases Hr with (⟨%Hne, %key, Hst⟩ | ⟨%Heq, %key, %rev, %r, %hdr, Hst, #Hr, #Hacq, %Hp⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
@@ -42,6 +42,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; iright
     iframe
     ipureintro; exact Hne
@@ -97,6 +98,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
   wp_auto
   wp_if_destruct
   · iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -119,8 +121,9 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
   wp_auto
   ihave #Hnil := optsAt_nil (GF := GF)
   iunfold isEtcdDeleteKV at HDel
-  wp_apply HDel $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %r [$Hctx $HctxC $Hnil $Hr] as %dresp %derr #Hd
-  · ipureintro
+  wp_apply HDel $$ %ctx %cs %key %slice.nil %([] : List (OpFull → OpFull)) %r [$Hlt $Hctx $HctxC $Hnil $Hr] as %dresp %derr ⟨Hlt, #Hd⟩
+  · (try iframe Hlt)
+    ipureintro
     refine ⟨deleteOp_not_panics key, ?_⟩
     rw [(deleteOp_fields key).1, (deleteOp_fields key).2]
     exact ⟨keyRangeUnder_key pfx key Hp.1, deleteOp_size Hkln⟩
@@ -132,6 +135,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; iright
     isplitr
     · ipureintro; exact Hne
@@ -145,6 +149,7 @@ theorem Mutex.TryLock.wp_proof (hTA : Mutex.tryAcquire.spec (GF := GF) (hG := hG
   icases Hci with ⟨⟨%eL, #HeL⟩, -, -⟩
   wp_auto
   iapply HΦ
+  iframe Hlt
   iright; ileft
   isplitr
   · unfold isPkgErr

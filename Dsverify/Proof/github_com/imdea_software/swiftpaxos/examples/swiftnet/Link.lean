@@ -56,6 +56,7 @@ public import Net.Proof.net.rpc.Results
 public import Net.Proof.net.rpc.HandleHTTP
 public import Net.Proof.net.rpc.Server__HandleHTTP
 public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.Results
 public import Net.Proof.net.http.Serve
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Dial
@@ -389,13 +390,13 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- `RpcHttpHyp` holds: `Net/`'s specs of the net/rpc-over-HTTP calls, from `Net/`'s proofs
-(`HandleHTTP` over net/http's `Handle`, and net/http's `Serve`: Net's interim axioms
-`Handle.wp_proof`, `Serve.wp_proof_rpc`). -/
+(`HandleHTTP` over net/http's `Handle`, and net/http's `Serve`: `Handle.wp` and `Serve.wp_rpc`,
+proved; `Serve` over the interim context axioms). -/
 theorem netRpcHttpHyp : RpcHttpHyp netDistGF :=
   ⟨net.rpc.DialHTTP.wp,
     net.rpc.HandleHTTP.wp_proof
-      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp_proof net.rpc.Server.ServeHTTP.wp),
-    net.rpc.Register.wp_fresh, net.http.Serve.wp_proof_rpc⟩
+      (net.rpc.Server.HandleHTTP.wp_proof net.http.Handle.wp net.rpc.Server.ServeHTTP.wp),
+    net.rpc.Register.wp_fresh, net.http.Serve.wp_rpc⟩
 
 end rpchttp
 

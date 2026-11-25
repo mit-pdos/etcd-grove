@@ -32,15 +32,13 @@ created if absent (`putNewKV`'s transaction):
 * another error. -/
 abbrev Barrier.Hold.spec : Prop :=
   ∀ (b client : Loc) (key : GoString) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-      isBarrier b client key ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isBarrier b client key ∗ etcdReached lo) }}
     (App (Val (b @!! go.GoType.PointerType Barrier.ty @!! go!"Hold")) (Val #()))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ keyCreatedAt key key [] (W64 0) r ∗
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗ keyCreatedAt key key [] (W64 0) r ∗
         ⌜sint.Z lo ≤ sint.Z r⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ∃ r : w64, etcdReached r ∗ etcdPresent key key r ∗
         ⌜sint.Z lo ≤ sint.Z r⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec
 

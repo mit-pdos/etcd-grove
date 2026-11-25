@@ -32,7 +32,10 @@ and `conn.readRequest` itself (`section server`), over them, Perennial's `time.N
 `context.WithCancel`, the net extension's `Conn.SetReadDeadline`, bufio's `Writer.Reset` and
 `NewWriterSize`. The accept loop (2026-11-24, phase 7 S5): `Server.Serve` (over `conn.serve`, the
 net extension's `Listener.Accept`/`Close`, `OpError.Temporary`) and `http.Serve` with a handler's
-contract (`Serve.specHandler`), both over the two interim context hypotheses.
+contract (`Serve.specHandler`), both taking the two interim context specs as hypotheses; and
+`http.Serve(l, nil)` on an rpc listener (`Serve.wp_rpc`, `section serve_rpc`, 2026-11-25; an interim
+axiom before), over `Serve.wpHandler` given the two context axioms (`context.WithValue.wp_proofPtr`,
+`context.WithCancel.wp_proofValBg`, `Net/Proof/context/`) and `DefaultServeMux`'s dispatch.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
 `ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape`,
@@ -135,6 +138,12 @@ public import Net.Proof.net.http.ServeHandler
 public import Net.Proof.net.Listener__Accept
 public import Net.Proof.net.Listener__Close
 public import Net.Proof.net.OpError__Temporary
+public import Net.Proof.net.http.Handle
+public import Perennial.Proof.sort.Link
+public import Perennial.Proof.runtime.Link
+public import Net.Proof.net.http.Serve
+public import Net.Proof.context.WithValuePtr
+public import Net.Proof.context.WithCancelValBg
 
 @[expose] public section
 
@@ -373,6 +382,42 @@ theorem URL.EscapedPath.wp : URL.EscapedPath.spec (GF := GF) (hG := hG) :=
 end url
 
 end net.url
+
+namespace net.http
+
+section mux
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt Net.netExt]
+
+/-- `http.Handle`, over the real `ServeMux` (until 2026-11-25 an interim axiom). -/
+theorem Handle.wp : Handle.spec (GF := GF) (hG := hG) :=
+  Handle.wp_proof sort.wp_Search strings.wp_IndexAny strings.wp_IndexByte net.url.PathUnescape.wp
+    runtime.wp_Caller fmt.wp_Sprintf
+
+end mux
+
+section serve_rpc
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [bufio_sem : bufio.Assumptions]
+
+/-- `http.Serve(l, nil)` on an rpc listener, over `Serve.wpHandler` with the two context axioms
+(`context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`: interim, pending Perennial's
+`internal/reflectlite` model and a wider `isParentCtx`) and `DefaultServeMux`'s dispatch (until
+2026-11-25 an interim axiom). -/
+theorem Serve.wp_rpc [log.Assumptions] : Serve.spec_rpc (GF := GF) (hG := hG) :=
+  Serve.wp_proof_rpc (Serve.wpHandler context.WithValue.wp_proofPtr context.WithCancel.wp_proofValBg)
+    net.url.PathUnescape.wp strings.wp_IndexByte strings.wp_Count net.url.URL.EscapedPath.wp
+
+end serve_rpc
+
+end net.http
 end Perennial
 
 #print axioms Perennial.net.http.internal.NewChunkedWriter.wp
@@ -413,3 +458,5 @@ end Perennial
 #print axioms Perennial.net.url.URL.EscapedPath.wp
 #print axioms Perennial.net.http.Server.Serve.wp
 #print axioms Perennial.net.http.Serve.wpHandler
+#print axioms Perennial.net.http.Handle.wp
+#print axioms Perennial.net.http.Serve.wp_rpc

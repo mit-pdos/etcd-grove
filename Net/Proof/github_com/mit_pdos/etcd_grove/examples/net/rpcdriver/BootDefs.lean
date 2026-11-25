@@ -26,10 +26,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : Assumptions] [net.FieldAssumptions]
 
-/-- A machine's boot resources: net/http's and net/rpc's first-run state, and the driver's
-variables. -/
+/-- A machine's boot resources: net/http's and net/rpc's first-run state (net/http's: the right to
+register on `DefaultServeMux` and its server's variables), and the driver's variables. -/
 def bootRes : IProp GF :=
-  iprop(net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗ net.rpc.rpcFirstRes (GF := GF) ∗ drvFacts)
+  iprop(net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗ net.http.httpSrvEnv (GF := GF) ∗
+    net.rpc.rpcFirstRes (GF := GF) ∗ drvFacts)
 
 end boot
 
