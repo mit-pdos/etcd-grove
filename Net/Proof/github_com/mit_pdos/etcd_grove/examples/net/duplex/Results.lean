@@ -26,8 +26,7 @@ every generation's proof guarantees the next one's precondition. (The client's e
 The conclusion, `duplex_crash_safety`, mentions no ghost state and no bounds: in every execution of
 the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so the
 client's check (the bytes 1..n, n from 1 to 64 drawn at random, its reader reads come back in
-order) never fails, however its
-writer and reader interleave, however much each read returns, however the connections fail or
+order) never fails, however its writer and reader interleave, however much each read returns, however the connections fail or
 the nodes crash, and however a failed dial leaves its connection (abandoned, D16: the server may
 accept it and read EOF). The theorems assume the deployment of `Impl.lean` D13 (a closed world, the
 target configuration) and take its well-formed plan (D20: addresses that do not alias, ports
