@@ -213,3 +213,27 @@ The lead's O1/N2 design (#50, 2026-11-25T15:52:14Z; `notes/etcd-dist-plan.md` §
 
 Nothing else: `Lease_Grant_dist`/`Lease_LeasesGranted_dist` suffice for leaseCatchup as drafted, and
 `Lease_GrantLive_dist`/`Lease_LeasesLive_dist` for leaseExpiry with the law above.
+
+### Handoff (2026-11-25, end of session; branch `etcd-safe-n9b`)
+
+**Built on fk-lean1 with no error and no `sorry`** (`wt/etcd-safe-n9b`, `/shared/tmp/fklean1-check.sh`): `ClientViewDist`
+(the lead's file, unchanged), `client.LeaseDefs`, `leaseList` (3 proofs), `leaseGrant` (2), `listed`, `gone`,
+`leaseReadCheck`, `RunLeaseRead`, **`RunLeaseCatchup`** (all at the view, over the drafts as callee hypotheses).
+
+**`RunLeaseExpiry`: not finished.** `Proof/.../dist/client/RunLeaseExpiry.lean` (spec in `Spec/.../RunLeaseExpiry.lean`).
+- Build b7 (commit before the last) compiled it with no error, but with `declaration uses sorry` at
+  `RunLeaseExpiry.wp_proof` (line 87), `wp_Close` unused, and "tactic never executed" in the grant loop's `defer`
+  bullet. The cause was the bullet `· iexists _; iframe` (proving the new `defer` chain's triple): `iframe` closed it
+  without the `Close` step. A `sorry` that no error reports has to come from a `try` that swallowed an elaboration
+  error. The likely suspect is the check loop's `(try (· iframe #; ipureintro; rw [hnz]; exact Hx_lookup))` after
+  `(try wp_apply wp_load_slice_index eps …)` (around line 355).
+- Build b8 (this commit) replaced the bullet with `iexists _; iframe defer` (no error there now, so `wp_Close` is
+  used). It also joined the two `try`s into one, `(try (wp_apply … as -;\n focus (…)))`, which is a **parse error**
+  (line 357: "unexpected identifier; expected ')'"). The errors at 337 and 97 follow from it.
+- **Next step:** fix that line, e.g. drop both `try`s and see whether the forRange loads `eps[j]` at all (if it
+  does: `wp_apply wp_load_slice_index eps … as -` then `· iframe #; ipureintro; rw [hnz]; exact Hx_lookup`; if
+  not: delete the two lines). Then rebuild `client.RunLeaseExpiry` and check that no `declaration uses sorry` and no
+  "never executed" warning remain in our files.
+  Then: `etc/tier-check.py --check` (it passed for the leaseRead files on the earlier base; not rerun this
+  session), the `#print axioms` check of the three Run* theorems, and STATUS.md.
+- No `Link.lean` for `dist/client`: the drafts and the law `lessorAbsentStays_dist.law` are callee hypotheses.
