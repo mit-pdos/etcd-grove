@@ -80,6 +80,24 @@ theorem fsInit_fsOneRoot (r : GoString) (hr : RootForm r) : FsInit (fsOneRoot r)
 theorem rootForm_one (c : GoString) (hc : NameOk c) : RootForm (slashB :: c) :=
   ⟨[c], by simp, by simpa using hc, by simp [joinPath]⟩
 
+/-- In `fsOneRoot r`, nothing is in the root: a path one component below it names nothing. -/
+theorem fsOneRoot_lookup_child (r c : GoString) :
+    (fsOneRoot r).lookup (joinPath r [c]) = none := by
+  unfold OsState.lookup
+  split
+  · rename_i h
+    obtain ⟨hm, -, hp⟩ := h.choose_spec.choose_spec
+    generalize h.choose_spec.choose = cs at hp ⊢
+    generalize h.choose = rj at hm hp ⊢
+    simp only [fsOneRoot, List.mem_singleton] at hm
+    subst hm
+    cases cs with
+    | nil => simp [joinPath] at hp
+    | cons c' cs' =>
+      have ht : (fsOneRoot r).tree = (fsOneRoot r).fs.treeDur := rfl
+      simp [walk, ht, fsOneRoot_entry]
+  · rfl
+
 end Robustness
 end Perennial
 

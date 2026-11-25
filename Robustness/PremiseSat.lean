@@ -20,6 +20,7 @@ statement. Walking `X.spec`'s `∀` binders in order:
 * data binders (`σ`, `g`, `k`, `dir`, …) become `∃`;
 * premises (binders whose type is a `Prop`) become conjuncts;
 * the conclusion `Robust crashing stable g threads bound` becomes `RobustStart crashing stable g`.
+* a `let` between them (`let addrs := …`) is substituted.
 
 Some binders are **left out** (with every binder whose type depends on one left out; a binder
 kept may not depend on one left out):
@@ -129,6 +130,9 @@ meta partial def premiseSatOf (drop : List Name) (dropped : Array FVarId) (e : E
           throwError "premise_sat%: what follows the premise {n} depends on its proof"
         return (mkAnd t rest, names)
       return (← mkAppM ``Exists #[← mkLambdaFVars #[x] rest], names)
+  | .letE _ _ v b _ =>
+    -- a `let` of the statement (`let addrs := …`): its value substituted
+    premiseSatOf drop dropped (b.instantiate1 v)
   | _ =>
     unless e.isAppOf ``Perennial.Robustness.Robust do
       throwError "premise_sat%: the statement's conclusion is not `Robust …`:{indentExpr e}"
