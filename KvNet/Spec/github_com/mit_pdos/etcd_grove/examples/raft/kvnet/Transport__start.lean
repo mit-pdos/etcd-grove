@@ -35,7 +35,8 @@ abbrev Transport.start.spec : Prop :=
       t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"id"] ↦□ id ∗
       t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"stats"] ↦□ sp ∗
       (∃ v : GoInterface, t.[github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport, go!"node"] ↦ v) ∗
-      isStats sp ∗ isPeers F t ∗ isNode n γ N id ∗ stepLaw F γ N id ∗ ⌜Cluster.trace γ = none⌝ ∗
+      isStats sp ∗ isPeers F t ∗ isNode n γ N id ∗ ⌜Cluster.trace γ = none⌝ ∗
+      (∃ (sc : Loc) (γsc : ChanNames), isTransportStop t sc γsc) ∗
       globalAddr net.errTimeout ↦□ et ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
     (App (Val (t @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Transport.ty
       @!! go!"start")) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n.loc)))

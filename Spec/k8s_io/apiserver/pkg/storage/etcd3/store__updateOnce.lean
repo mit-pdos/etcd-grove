@@ -56,22 +56,21 @@ abbrev store.updateOnce.spec : Prop :=
   pre s.o (uint.nat s.rev) = true →
   f s.o (uint.nat s.rev) = .ok o' → c.S.storedSizeOk o' →
   (!s.stale && decide (c.S.encode o' = s.data)) = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜span ≠ null⌝ ∗ ownStateX c st s x ∗ stFrom c key s ∗
       ⌜s.rev = W64 0 → ign = true⌝ ∗
       dsl ↦*□ c.S.encode o' ∗ c.S.objAt dest o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key ign c.S.zero pre f) W Φ) }}
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key ign c.S.zero pre f) W Φ)) }}
     (App (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"updateOnce")) (Val #(GoInterface.ok ci)))
       (Val #span)) (Val #key)) (Val #dest)) (Val #st)) (Val #dsl)) (Val #(W64 0))) (Val #v))
       (Val #ign))
-  {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err);
-      (unkErr c err ∗ ∃ o rv, c.S.objAt dest o rv) ∨
+  {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err); levelTok 0 ∗ ((unkErr c err ∗ ∃ o rv, c.S.objAt dest o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).update key ign c.S.zero pre f).2 err dest) ∨
       (⌜ok = false⌝ ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdFacts c σ ∗
         ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key ign σ st' err ∗
-        (if stepHand c (updStep key ign c.S.zero pre f) σ then Φ σ else W)) }}
+        (if stepHand c (updStep key ign c.S.zero pre f) σ then Φ σ else W))) }}
 
 end spec
 

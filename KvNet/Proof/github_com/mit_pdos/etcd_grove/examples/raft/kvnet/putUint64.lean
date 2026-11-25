@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/putUint64.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/putUint64.lean`. Lean-first (no
 Rocq counterpart): `putBytes`'s first half (Perennial's `LittleEndian.PutUint64` into a fresh array,

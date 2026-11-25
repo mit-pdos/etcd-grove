@@ -32,6 +32,14 @@ abbrev Client.Close.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∨ models_lab.errAny err }}
 
+/-- `Client.Close.spec`, which also says the client is closing for good afterwards (`cliClosed`:
+whichever branch ran, `closing` is set). Proved in `Net/Proof/net/rpc/Client__CloseClosed.lean`. -/
+abbrev Client.Close.spec_closed : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a : GoString),
+  {{ isClient c W a }}
+    (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; (⌜err = interface.nil⌝ ∨ models_lab.errAny err) ∗ cliClosed c }}
+
 end spec
 
 end net.rpc

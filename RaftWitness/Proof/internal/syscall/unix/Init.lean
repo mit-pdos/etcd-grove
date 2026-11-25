@@ -11,7 +11,7 @@ module
 
 public import Proof.internal.syscall.unix.PkgInit
 public import RaftWitness.Proof.syscall.Init
-public import RaftWitness.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

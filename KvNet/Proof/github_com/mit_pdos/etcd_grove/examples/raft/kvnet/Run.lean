@@ -1,17 +1,14 @@
 /-
-The proof of `KvNet/Spec/.../kvnet/Run.lean`: `listen`, `StartNode`, then the accept loop over
+The proof of `KvNet/Spec/.../kvnet/Run.lean`: `listen`, `StartNode`, then `Node.accept` (2026-11-24, G5: the accept loop over
 `Listener.Accept` (its update from the address's protocols, `accept_au`), each connection served by a
-forked `Node.serve`, a failed `Accept` followed by `time.Sleep`.
+forked `Node.serve`, a failed `Accept` followed by `time.Sleep`).
 -/
 module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Run
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.StartNode
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.listen
-public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__serve
-public import KvNet.Spec.net.Listener__Accept
-public import Perennial.Proof.time.Link
-public import KvNet.Proof.net.AtAddr
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__accept
 
 @[expose] public section
 
@@ -33,12 +30,11 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 theorem Run.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
-    (cf : GoInterface → List w8 → IProp GF)
+    (cf : GoInterface → List w8 → IProp GF) (stp : NodeStopper GF)
     (S : w64 → GoString → github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Options → GMap w64 GoString → IProp GF)
     (wp_listen : listen.spec (GF := GF) (hG := hG))
-    (wp_StartNode : StartNode.spec (GF := GF) (hG := hG) F rep cf S)
-    (wp_serve : Node.serve.spec (GF := GF) (hG := hG) F rep cf)
-    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG)) :
+    (wp_StartNode : StartNode.spec (GF := GF) (hG := hG) F rep cf stp S)
+    (wp_accept : Node.accept.spec (GF := GF) (hG := hG) F rep stp cf) :
     Run.spec (GF := GF) (hG := hG) F rep cf S := by
   intro cfg M a eof ed Hma
   wp_start as ⟨#HM, #Ha, HS, #Heof, #Hed, #Hcc⟩
@@ -50,40 +46,12 @@ theorem Run.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
   try wp_auto
   wp_apply wp_listen a (kvP F cfg.ID') (kvQ F cfg.ID') $$ [$Hpkg $Ha] as %li ⟨%l, #Hli, Hlis, #Hla⟩
   try wp_auto
-  wp_apply wp_StartNode cfg M $$ [$Hpkg $HM $HS] as %nd ⟨%γ, %N, %n, #Hnd, #Hcl⟩
+  wp_apply wp_StartNode cfg M $$ [$Hpkg $HM $HS] as %nd ⟨%γ, %N, #Hnd, #Hcl⟩
   try wp_auto
-  unfold net.isListener
-  icases Hli with ⟨%t, %xl, %Ht, #Hlt⟩
-  subst Ht
+  wp_apply wp_accept nd γ N cfg.ID' li l a eof ed $$ [$Hpkg $Hnd $Hcl $Ha $Hli $Hlis $Hla $Heof $Hed $Hcc]
   try wp_auto
-  ihave HI : ("Hlis" ∷ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true :
-    IProp GF) $$ [Hlis]
-  · iexact Hlis
-  wp_for HI
-  wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l xl a
-      (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
-      (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
-        connEnd cn true (kvQ F cfg.ID') (kvP F cfg.ID') [] [] ∗ connFresh cn true)) $$ [Hlis]
-    as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hce, -⟩ | ⟨%k, Hlis, #HE⟩)
-  · iframe Hlt Hla
-    iapply accept_au a (kvP F cfg.ID') (kvQ F cfg.ID') _ l true $$ Ha Hlis
-  · -- a connection: served in a goroutine of its own
-    subst Herr
-    try wp_auto
-    wp_apply wp_fork $$ [Hce]
-    · wp_apply wp_serve nd γ N cfg.ID' n c cn a eof ed $$ [$Hpkg $Hnd $Hcl $Hc $Heof $Hed $Hcc $Hce]
-      itrivial
-    try wp_auto
-    wp_for_post
-    iframe
-  · -- a failure: wait, then go on
-    icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
-    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
-    try wp_auto
-    wp_apply time.wp_Sleep
-    try wp_auto
-    wp_for_post
-    iframe
+  iapply HΦ
+  itrivial
 
 end proof
 

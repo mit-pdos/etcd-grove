@@ -7,7 +7,8 @@ and of `raft_kvnet_robust_example` hold together with `Robust`'s antecedents. Ev
 with no listener (the net extension's initial state) and a file system whose only root is
 `/var/lib/kvnet`, an empty directory (`Robustness/FsStart.lean`), so nothing is below it
 (`fsOneRoot_lookup_joinPath`); the network has no connection. For `raft_kvnet_robust`: one replica at
-`10.0.0.1:7001`, the example's options with one bootstrap voter (`ClusterConfig.Ok 1`, by evaluation).
+`10.0.0.1:7001`, the example's options with one bootstrap voter (the cluster's options and addresses
+are checked in Go since P8, so the statement has no premise on them).
 Checked by `etc/premise-witness.py`.
 -/
 module
@@ -43,15 +44,12 @@ theorem raft_kvnet_robust.premisesSat : premise_sat% raft_kvnet_robust.spec := b
     [(go!"10.0.0.1:7001", freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvnet", ())))],
     freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvnet", ())),
     (⟨((default : Net.NetGlobal), ((), ())), ∅⟩ : GlobalState),
-    by show oneVoterConfig.Ok 1; unfold ClusterConfig.Ok oneVoterConfig exampleConfig; decide,
-    by simp, by decide, by simp,
     ?_, robustStart_same (σ := freshState ((default : Net.NetLocal), (fsOneRoot go!"/var/lib/kvnet", ())))
       ?_ (fresh_freshState _) (by exts_init) ?_⟩
   · intro a σ h
     simp only [List.mem_singleton, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    exact ⟨by decide, fsOneRoot_root_mem _,
-      fun c => fsOneRoot_lookup_joinPath _ _ (List.cons_ne_nil _ _)⟩
+    exact ⟨fsOneRoot_root_mem _, fun c => fsOneRoot_lookup_joinPath _ _ (List.cons_ne_nil _ _)⟩
   · intro m hm
     simp at hm
     rcases hm with h | h <;> subst h <;> rfl

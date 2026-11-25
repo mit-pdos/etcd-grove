@@ -73,7 +73,7 @@ abbrev startMember.specRestart : Prop :=
       etcdstart.bootPremiseR N [id] bootLog ctxs (dir id) name name urlsOk id ∗
       etcdstart.commonPremises ∗ context.isClosedchanInit ∗ netHttpOk γn id ∗
       etcdstart.memberRestartRes name {} γn γ ρ id ∗
-      etcdstart.memberRestartFacts γ ρ id ∗ envVerifyOff }}
+      etcdstart.memberRestartFacts γ ρ id ∗ ⌜EtcdVerifyOff⌝ }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart1.startMember)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨

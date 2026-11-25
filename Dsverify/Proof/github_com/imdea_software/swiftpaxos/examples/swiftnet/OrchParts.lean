@@ -10,6 +10,7 @@ module
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Interface
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.fmt
+public import Dsverify.Proof.math.rand.IntnPos
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchPartsDefs
 public import Proof.fmt.SprintfPure
 public import Perennial.Proof.fmt.Link
@@ -48,7 +49,7 @@ set_option goose.wp.extras true
 theorem choose.wp_proof : choose.spec := by
   wp_start
   wp_auto
-  wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 2) (by decide) as %x1 %Hx1
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 2) (by decide) as %x1 %Hx1
   wp_join iprop(∃ nv : w64, n_ptr ↦ nv ∗ ⌜nv = W64 3 ∨ nv = W64 5⌝) with [n] as ⟨%nv, n, %Hnv⟩
   · iexists _; iframe; ipureintro; right; rfl
   · iexists _; iframe; ipureintro; left; rfl
@@ -60,9 +61,9 @@ theorem choose.wp_proof : choose.spec := by
   · ipureintro; rfl
   iintro %dsl ⟨Hdsl, -⟩
   wp_auto
-  wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 2) (by decide) as %x2 %Hx2
-  wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 3) (by decide) as %x3 %Hx3
-  wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 3) (by decide) as %x4 %Hx4
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 2) (by decide) as %x2 %Hx2
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 3) (by decide) as %x3 %Hx3
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 3) (by decide) as %x4 %Hx4
   rw [show go.arrayLiteralSize
       [KeyedElement none (ElementExpression go.uint64 #(W64 0)),
         KeyedElement none (ElementExpression go.uint64 #(W64 2)),
@@ -94,7 +95,7 @@ theorem choose.wp_proof : choose.spec := by
 theorem plan.wp_proof : plan.spec := fun c hc => by
   wp_start
   wp_auto
-  wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 2) (by decide) as %x1 %Hx1
+  wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 2) (by decide) as %x1 %Hx1
   have hcn : c.n = 3 ∨ c.n = 5 := hc.1
   ihave Hnil := ownSlice_nil (V := examples.swiftnet.change) (GF := netDistGF) (DFrac.own 1)
   ihave Hcap := ownSliceCap_nil (V := examples.swiftnet.change) (GF := netDistGF)
@@ -112,11 +113,11 @@ theorem plan.wp_proof : plan.spec := fun c hc => by
     word
   wp_for HI
   wp_if_destruct
-  · wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 6) (by decide) as %x2 %Hx2
+  · wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 6) (by decide) as %x2 %Hx2
     have hcn' : 0 < sint.Z (W64 (c.n : Int)) := by
       rcases hcn with h | h <;> rw [h] <;> decide
-    wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 (c.n : Int)) hcn' as %x3 %Hx3
-    wp_apply (math.rand.Hyps.Intn (GF := netDistGF)) (W64 8 - W64 1) (by decide) as %x4 %Hx4
+    wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 (c.n : Int)) hcn' as %x3 %Hx3
+    wp_apply (_root_.Perennial.math.rand.wp_Intn_pos (GF := netDistGF)) (W64 8 - W64 1) (by decide) as %x4 %Hx4
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType examples.swiftnet.change.ty))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := examples.swiftnet.change) (t := examples.swiftnet.change.ty)

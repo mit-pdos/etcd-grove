@@ -39,19 +39,17 @@ fact"). -/
 abbrev electionServer.Campaign.spec : Prop :=
   ∀ (es c req : Loc) (nsl vsl : GoSlice) (name val : GoString) (lease : w64) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (maxReq : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗
-      isElectionServer es c ∗ electionClientOk c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election ∗ levelTok 0 ∗ (isElectionServer es c ∗ electionClientOk c ∗
       ⌜v3rpc.etcdMaxRequestBytesOk maxReq⌝ ∗
       structFieldRef v3electionpb.CampaignRequest go!"Name" req ↦□ nsl ∗ nsl ↦*□ name ∗
       structFieldRef v3electionpb.CampaignRequest go!"Lease" req ↦□ lease ∗
       structFieldRef v3electionpb.CampaignRequest go!"Value" req ↦□ vsl ∗ vsl ↦*□ val ∗
       ⌜v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) name ∧
         v3rpc.grpcRecvBytesOk (v3rpc.etcdMaxRecvMsgSize maxReq) val⌝ ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs }}
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs) }}
     (App (App (Val (es @!! go.GoType.PointerType electionServer.ty @!! go!"Campaign"))
       (Val #(GoInterface.ok ctx))) (Val #req))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R id : w64) (hdr lk : Loc)
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r rv R id : w64) (hdr lk : Loc)
           (ksl : GoSlice) (v : v3electionpb.CampaignResponse) (lv : v3electionpb.LeaderKey),
         resp ↦ v ∗ lk ↦ lv ∗ ksl ↦* key ∗
         ⌜v.Header' = hdr ∧ v.Leader' = lk ∧ lv.Name' = nsl ∧ lv.Key' = ksl ∧ lv.Rev' = rev ∧
@@ -59,7 +57,7 @@ abbrev electionServer.Campaign.spec : Prop :=
         hdrRevAt hdr r ∗ etcdReached R ∗ keyValAt (name ++ go!"/") key rev val rv ∗
         (leaderAt (name ++ go!"/") key rev R ∨ campaignLost (name ++ go!"/") key rev R) ∗
         ⌜(name ++ go!"/") <+: key⌝) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

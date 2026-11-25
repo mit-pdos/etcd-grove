@@ -11,8 +11,8 @@ axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
 facts), and `context.Canceled` a
-pointer error (from the read package's premise `EtcdGrove.ContextReadErrs`: Perennial's `context`
-fact lacks it). Its precondition has the registration rights of the metric
+pointer error (`EtcdGrove.ContextReadErrs.errs_strong`, from Perennial's `context.isInit`).
+Its precondition has the registration rights of the metric
 names of its import closure (`namesFree initNames`, decision D16; mustreg, 2026-11-20), which it
 passes on to its imports' initializers.
 (D19j, 2026-10-18) And what `watch.go` reads but `io.EOF` (`watchPkgVars`): `auth`'s and `mvcc`'s
@@ -30,6 +30,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
@@ -70,7 +71,6 @@ public import Proof.google_golang_org.grpc.health.Init
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.status.Init
-public import Proof.math.rand.Init
 public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry

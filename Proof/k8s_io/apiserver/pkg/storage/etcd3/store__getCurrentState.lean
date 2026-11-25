@@ -60,7 +60,7 @@ theorem store.getCurrentState.wp_proof
   iapply HΦ
   iunfold getStateOk
   imodintro
-  iintro %Ψ Hmk HΨ
+  iintro %Ψ Hlt Hmk HΨ
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -87,9 +87,10 @@ theorem store.getCurrentState.wp_proof
   (try wp_auto)
   wp_apply (kubernetes.Client.Get.latest wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci cd key (zero_val _) R rfl) $$ [Hmk]
-    as %resp %gerr Hget
+      c.ms c.V ci cd key (zero_val _) R rfl) $$ [Hlt Hmk]
+    as %resp %gerr ⟨Hlt, Hget⟩
   · iframe #
+    iframe Hlt
     iexact Hmk
   (try wp_auto)
   icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split gerr _ _ _) $$ Hget with ⟨#Hse, Hget⟩
@@ -107,7 +108,7 @@ theorem store.getCurrentState.wp_proof
     · iframe #
       ipureintro; exact Hv
     (try wp_auto)
-    iapply HΨ
+    iapply HΨ $$ Hlt
     iright
     iexists σ
     iframe HR
@@ -120,7 +121,7 @@ theorem store.getCurrentState.wp_proof
     | nil => exact absurd rfl Hgerr
     | ok ei =>
       (try wp_auto)
-      iapply HΨ
+      iapply HΨ $$ Hlt
       ileft
       iapply (unkErr_client c _ (by nofun) Hgce) $$ Hgcl
       iexact Hgse

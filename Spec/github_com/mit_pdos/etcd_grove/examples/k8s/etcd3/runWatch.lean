@@ -60,22 +60,20 @@ abbrev runWatch.spec : Prop :=
   (∀ m ∈ c.ms, noRefusalAt m.addr) → threadBound GF ≤ 2 ^ 30 - 1 →
   (x.Skip' = false → prepareKeyM c.resourcePrefix x.WKey' x.Recursive' = some k ∧
     (c.pathPrefix ++ k).length ≤ opKeyMax ∧ c.S.parseRV x.MinRV' = some n ∧ uint.Z n < 2 ^ 63 - 1) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ k8s.isStore sp c ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (k8s.isStore sp c ∗
       storeWatchOk sp c driverW γk ∗ watchListOn ∗ rangeStreamOff ∗
-      (|==> readAus c γk (Q 0)) ∗ (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev)) }}
+      (|==> readAus c γk (Q 0)) ∗ (□ ∀ lb σ, □ Q lb σ -∗ |==> readAus c γk (Q σ.rev))) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.runWatch))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
         #sp))) (Val #x))
-  {{ (y : Output) (o : Obj) (ok : Bool), RET (PairV (PairV #y #o) #ok);
-      (⌜y = wFailedOut ∧ ok = false ∧ (x.Skip' = true ∨ (sieOfL x = some false ∧ uint.nat n = 0))⌝) ∨
+  {{ (y : Output) (o : Obj) (ok : Bool), RET (PairV (PairV #y #o) #ok); levelTok 0 ∗ ((⌜y = wFailedOut ∧ ok = false ∧ (x.Skip' = true ∨ (sieOfL x = some false ∧ uint.nat n = 0))⌝) ∨
       (∃ (wes : List WEv) (kes : List (KWEv DObj)) (rs : List k8s_correctness.REv) (rsl : GoSlice),
         ⌜x.Skip' = false ∧ y = wEventsRawOut (encWEventsL wes) rsl ∧
           wes = rs.map k8s_correctness.toWEvL ∧
           lastObjL wes = (if ok then some o else none) ∧ List.Forall₂ kWEvRel kes wes ∧
           ∀ w ∈ wes, (encodeWith tagV1 w.o).length < 2 ^ 63⌝ ∗
         k8s_correctness.evsRO rsl rs ∗ kSeen c (selD x) (predEmptyL x) (kScopeOf c k x.Recursive')
-          (kModeOf (sieOfL x) x.Bookmarks' n) Q kes) }}
+          (kModeOf (sieOfL x) x.Bookmarks' n) Q kes)) }}
 
 end spec
 

@@ -9,8 +9,8 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Base
 public import Perennial.Proof.log.Link
-public import Net.Proof.os.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.os.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

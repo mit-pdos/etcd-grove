@@ -2,9 +2,10 @@
 # kvnet's checking client's program, safe (2026-11-22)
 
 The stable machine of kvnet's top-level theorem runs `kvcheckProgram cl addrs` (kvcheck's package
-initialization, then `Check(addrs, voters)`). `kvcheck_wp_program`: from the store's global pieces
-(`TopStart.lean`: its invariant, the client's half of its state at the empty map, the checker's
-counters at `0`, the replicas' addresses' protocols) and the empty package state, the program returns
+initialization, then `Check(addrs, voters)`). `kvcheck_wp_program`: from the empty package state
+and, if the addresses are valid (`validAddrs`; otherwise `Check` returns at once), the store's global
+pieces (`TopStart.lean`: its invariant, the client's half of its state at the empty map, the checker's
+counters at `0`, the replicas' addresses' protocols), the program returns
 `#()`: kvcheck's `wp_initialize'` over its program's table (`kvcheck/PkgTable.lean`), the package
 facts `Check` reads (`TopPkg.lean`), then kvnet's linked `Check` (`kvnetLink.raft_kvcheck.wp_Check`).
 
@@ -58,15 +59,15 @@ variable [log.NewModel]
 
 /-- **The checking client's program returns** (see the file header). -/
 theorem kvcheck_wp_program (γ : KdNames) (cl : ClusterConfig) (addrs : GoString)
-    (hv : validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true)
     (hrb : receiptBound GF ≤ 2 ^ 63) :
-    ⊢ rkvInv γ -∗ rkvVal γ raft_kvreconf.kvEmpty -∗
-      raft_kvcheck.kvCnt γ (splitAddrs addrs).length false (W64 0) -∗
-      raft_kvcheck.kvCnt γ (splitAddrs addrs).length true (W64 0) -∗
-      raft_kvcheck.addrsProto (kvFacts γ (fun _ => True)) (splitAddrs addrs) -∗
+    ⊢ (⌜validAddrs (splitAddrs addrs) (uint.nat cl.voters) = true⌝ -∗
+        rkvInv γ ∗ rkvVal γ raft_kvreconf.kvEmpty ∗
+        raft_kvcheck.kvCnt γ (splitAddrs addrs).length false (W64 0) ∗
+        raft_kvcheck.kvCnt γ (splitAddrs addrs).length true (W64 0) ∗
+        raft_kvcheck.addrsProto (kvFacts γ (fun _ => True)) (splitAddrs addrs)) -∗
       ownGoState ∅ -∗
       WP (kvcheckProgram cl addrs) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
-  iintro #Hinv Hval Hc1 Hc2 #Haddrs Hgs
+  iintro Hres Hgs
   unfold kvcheckProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.wp_initialize' _
       github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.getIsPkgInit_wf) $$ [Hgs]
@@ -83,8 +84,8 @@ theorem kvcheck_wp_program (γ : KdNames) (cl : ClusterConfig) (addrs : GoString
   ihave #Hcg := connGlobals_of_net $$ Hnet
   ihave #Hcc := context.isClosedchanInit_of_init $$ Hctx
   wp_pures
-  wp_apply (kvnetLink.raft_kvcheck.wp_Check γ addrs cl.voters hv hrb) $$ [Hval Hc1 Hc2]
-  · iframe Hcc Hcg Hinv Hval Hc1 Hc2 Haddrs
+  wp_apply (kvnetLink.raft_kvcheck.wp_Check γ addrs cl.voters hrb) $$ [Hres]
+  · iframe Hcc Hcg Hres
   ipureintro; rfl
 
 end client

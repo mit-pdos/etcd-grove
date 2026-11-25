@@ -15,6 +15,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__runCompactLoop
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__runWatchLoop
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 import all Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
@@ -112,19 +113,22 @@ theorem NewCompactor.wp_proof
   ihave Hadd := sync.join.ownAdder_wand iprop(True) _ _ _ $$ [] Hadd
   · iintro _; itrivial
   (try wp_auto)
-  wp_apply wp_fork $$ [Hone Hregs Hdone]
-  · (try wp_auto)
+  -- the loops call the client: their fresh thread tokens' level 0 (`wp_fork_level0`)
+  wp_apply wp_fork_level0 $$ [Hone Hregs Hdone]
+  · iintro Hlt
+    (try wp_auto)
     wp_apply wp_with_defer as %defer defer
     (try wp_auto)
     wp_apply (wp_runCompactLoop c cl ms V γk Seen recorded γc sc γs hsame hcmp hcret)
-      $$ [Hone Hregs]
+      $$ [$Hlt Hone Hregs] as ⟨Hlt, -⟩
     · iframe #
       iframe
     (try wp_auto)
     wp_apply sync.join.WaitGroup.wp_Done iprop(True) _ $$ [Hdone]
     · iframe #; iframe
     (try wp_auto)
-    (try itrivial)
+    iframe Hlt
+    (try (ipureintro; exact isPanic_intoVal _))
   (try wp_auto)
   have hnp : k8s_io.apiserver.pkg.features.ListFromCacheSnapshot.isPanic = false := by
     simp [k8s_io.apiserver.pkg.features.ListFromCacheSnapshot]
@@ -169,17 +173,20 @@ theorem NewCompactor.wp_proof
     · iintro _; itrivial
     imod Hfin $$ Hadd Hpend stopOnce with #Hc
     (try wp_auto)
-    wp_apply wp_fork $$ [Hdone]
-    · (try wp_auto)
+    wp_apply wp_fork_level0 $$ [Hdone]
+    · iintro Hlt
+      (try wp_auto)
       wp_apply wp_with_defer as %defer defer
       (try wp_auto)
-      wp_apply (wp_runWatchLoop c cl (ms.map client.SrvAt.addr) V γk recorded γc sc γs) $$ []
+      wp_apply (wp_runWatchLoop c cl (ms.map client.SrvAt.addr) V γk recorded γc sc γs) $$ [$Hlt]
+        as ⟨Hlt, -⟩
       · iframe #
       (try wp_auto)
       wp_apply sync.join.WaitGroup.wp_Done iprop(True) _ $$ [Hdone]
       · iframe #; iframe
       (try wp_auto)
-      (try itrivial)
+      iframe Hlt
+      (try (ipureintro; exact isPanic_intoVal _))
     (try wp_auto)
     iapply HΦ
     iframe #

@@ -34,12 +34,19 @@ theorem newTransport.wp_proof : newTransport.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#HM, #Hpr⟩
   try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %pm Hpm
+  -- (2026-11-24, G5) the stop channel, a broadcast: its closer goes to `stop`
+  wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hsc, %_, Hsoc⟩
+  imod alloc_broadcast_chan (E := ⊤) (iprop(True) : IProp GF) γsc sc $$ Hsc Hsoc with Hpend
+  icases ownBroadcastChan_open _ _ _ _ $$ Hpend with ⟨%γbi, #Hbi, Hpend⟩
+  ihave #Hunk := ownBroadcastChan_close sc γsc iprop(True) Broadcast.Unknown γbi $$ [$Hbi]
+  ihave Hpend := ownBroadcastChan_close sc γsc iprop(True) Broadcast.Pending γbi $$ [$Hbi $Hpend]
   try wp_auto
   irename : id_ptr ↦ id => Hidv
   iStructNamed «$r0»
   ipersist id
   ipersist stats
   ipersist peers
+  ipersist stopc
   try wp_auto
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -121,10 +128,14 @@ theorem newTransport.wp_proof : newTransport.spec (GF := GF) (hG := hG) := by
   iframe #
   isplitl [node]
   · iexists _; iexact node
-  unfold isPeers
-  iexists pm, Mp
-  iframe #
-  iexact Hps
+  isplitl [Hps]
+  · unfold isPeers
+    iexists pm, Mp
+    iframe #
+    iexact Hps
+  iexists sc, γsc
+  unfold isTransportStop transportStopper
+  iframe stopc Hunk Hpend
 
 end proof
 

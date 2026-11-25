@@ -8,7 +8,7 @@ variable).
 module
 
 public import Net.Proof.models_lab.pbcodec.Base
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

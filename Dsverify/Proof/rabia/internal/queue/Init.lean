@@ -9,7 +9,7 @@ module
 
 public import Dsverify.Proof.rabia.internal.queue.Base
 public import Dsverify.Proof.rabia.internal.message.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 

@@ -406,7 +406,7 @@ instance watchDescOk_persistent : Persistent (watchDescOk (GF := GF)) := by
 `Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn j m`. -/
 abbrev cliWatchStreamIs (cs : GoInterface) (γ : StreamNames) (Up : Nat → WatchReqM → IProp GF)
     (Dn : Nat → WatchRespM → IProp GF) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd anyRes
+  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd clientRes
 
 end defs
 

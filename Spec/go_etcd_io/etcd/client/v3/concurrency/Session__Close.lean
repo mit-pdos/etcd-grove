@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 session's TTL): some error, and the session has ended. -/
 abbrev Session.Close.spec : Prop :=
   ∀ (s : Loc) (γ : SessionNames) (client : Loc) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isSession s γ client id }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isSession s γ client id) }}
     (App (Val (s @!! go.GoType.PointerType Session.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; sessionDone s γ }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ (sessionDone s γ) }}
 
 end spec
 

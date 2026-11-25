@@ -34,7 +34,7 @@ theorem txnLeasing.Commit.wp_proof (heval : txnLeasing.eval.spec (GF := GF) (hG 
   wp_start as ⟨Htxn, Htok, #Hcc, #Hlo, %Hbnd⟩
   icases ownTxnLeasing_lkv txn lkv γ pfx ctx cs b $$ Htxn with ⟨Htxn, #Hlkv⟩
   iapply fupd_wp
-  imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan⟩
+  imod lkv_borrow lkv γ pfx $$ [Hlkv Htok] with ⟨Hrd, Hloan, Hlt, Hrest⟩
   · iframe #; iframe
   imodintro
   iapply wp_fupd
@@ -46,9 +46,9 @@ theorem txnLeasing.Commit.wp_proof (heval : txnLeasing.eval.spec (GF := GF) (hG 
     cases err with
     | nil =>
       wp_auto
-      wp_apply hsrv $$ [$Htxn $Hrd $Hcc $Hlo] as %resp %err ⟨Hrd, %tops, %eops, %Hops, Hres⟩
+      wp_apply hsrv $$ [$Hlt $Htxn $Hrd $Hcc $Hlo] as %resp %err ⟨Hlt, Hrd, %tops, %eops, %Hops, Hres⟩
       · ipureintro; exact Hbnd.2
-      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
       · iframe #; iframe
       imodintro
       iapply HΦ
@@ -62,7 +62,7 @@ theorem txnLeasing.Commit.wp_proof (heval : txnLeasing.eval.spec (GF := GF) (hG 
       wp_auto
       ihave %Hops := ownTxnLeasing_ops $$ Htxn
       obtain ⟨tops, eops, h1, h2⟩ := Hops
-      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+      imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
       · iframe #; iframe
       imodintro
       iapply HΦ
@@ -77,7 +77,7 @@ theorem txnLeasing.Commit.wp_proof (heval : txnLeasing.eval.spec (GF := GF) (hG 
   · obtain ⟨Hn, rfl⟩ := Hn
     simp only [Hn, decide_false]
     wp_auto
-    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd] with Htok
+    imod lkv_giveBack lkv γ pfx $$ [Hlkv Hloan Hrd Hlt Hrest] with Htok
     · iframe #; iframe
     imodintro
     iapply HΦ

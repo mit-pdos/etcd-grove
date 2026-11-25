@@ -35,17 +35,16 @@ positive mod revision, knowing etcd has reached `lo`: claims them in order (`del
 abbrev claimFirstKey.spec : Prop :=
   ∀ (kv : GoInterfaceOk) (pfx : GoString) (sl : GoSlice) (ps : List Loc) (vs : List EtcdKv)
     (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ sl ↦*□ ps ∗
-      kvPtrsAt ps vs ∗ ⌜∀ v ∈ vs, pfx <+: v.key ∧ 0 < sint.Z v.modRev ∧ v.key.length ≤ recipesStrMax⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isRecipesKV (GoInterface.ok kv) pfx ∗ etcdReached lo ∗ sl ↦*□ ps ∗
+      kvPtrsAt ps vs ∗ ⌜∀ v ∈ vs, pfx <+: v.key ∧ 0 < sint.Z v.modRev ∧ v.key.length ≤ recipesStrMax⌝) }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.claimFirstKey))
       (Val #(GoInterface.ok kv))) (Val #sl))
-  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ n : Nat, claimedBefore pfx lo vs n ∗
+  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ n : Nat, claimedBefore pfx lo vs n ∗
         ((⌜p = null ∧ n = vs.length⌝) ∨
          (∃ (v : EtcdKv) (r : w64), ⌜ps[n]? = some p ∧ vs[n]? = some v⌝ ∗ kvValAt p v ∗
            etcdReached r ∗ revKeyDeleted pfx v.key v.modRev r ∗ etcdRevToken r ∗
            ⌜sint.Z lo ≤ sint.Z r⌝))) ∨
-      ⌜err ≠ GoInterface.nil ∧ p = null⌝ }}
+      ⌜err ≠ GoInterface.nil ∧ p = null⌝) }}
 
 end spec
 

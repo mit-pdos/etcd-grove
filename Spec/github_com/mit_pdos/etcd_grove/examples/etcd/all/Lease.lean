@@ -36,7 +36,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumpt
 /-- See the file header. -/
 abbrev Lease.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat)
     (k₄ : Nat) (ids₄ ps₄ : List w64) (ctxs₄ : List (List w8)) (boot₄ : List LogEntry)
     (lid₁ lid₂ lid₃ : w64) (psL : List w64) (ctxsL : List (List w8)) (bootL : List LogEntry)

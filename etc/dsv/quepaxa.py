@@ -51,20 +51,20 @@ PKGS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encodi
     [f'{QP}.examples.quepaxanet.cmd.{n}' for n in QP_NODES]
 PROGRAMS = {f'{QP}.examples.quepaxanet.cmd.{n}':
             f'Proof/{QP}/examples/quepaxanet/cmd/{n}/PkgTable.lean' for n in QP_NODES}
-# the main tree's packages they import beside `NET_MAIN`'s (their `Init.lean` are made here, in the
-# part, as `NET_MAIN`'s in `Net/`: the main tree's import the main tree's `PkgInitExt`, and
-# protobuf's facts live in modules that import the main tree's `net`; their facts here:
-# `Dsverify/Proof/google_golang_org/protobuf/Base.lean`)
+# the main tree's packages they import beside `NET_MAIN`'s (their `Init.lean` the main tree's where
+# it generates the same, etc/gen-init.py's `shared_inits` (L1, 2026-11-24: all but `proto`'s, which
+# the main tree takes from raft's); protobuf's facts: `Proof/google_golang_org/protobuf/PkgInit.lean`)
 MAIN = ['bufio', 'google_golang_org.protobuf.proto',
         'google_golang_org.protobuf.reflect.protoreflect',
         'google_golang_org.protobuf.runtime.protoimpl', 'google_golang_org.protobuf.internal.impl',
         'google_golang_org.protobuf.internal.pragma']
 # the packages whose `wp_initialize'` is a hypothesis (`Dsverify/Proof/<pkg>/Init.lean`'s class
-# `InitHyp`): the names-only libraries, whose variables' initializers are untranslated, and math/rand
-# (Perennial's translation leaves its initializers untranslated: the main tree's trust-boundary
-# axiom `opaqueInitsOk`)
+# `InitHyp`): the names-only libraries, whose variables' initializers are untranslated. Not
+# math/rand (math-rand-isinit, 2026-11-24): Perennial proves its `wp_initialize'`
+# (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so neither here nor
+# in `MAIN`
 HYP_INITS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encoding.gob',
-             'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'math.rand']
+             'google_golang_org.grpc', 'google_golang_org.grpc.codes']
 # the part's own names-only translations of packages the main tree translates otherwise (grpc's):
 # the main tree's configurations (`SPECIAL`) do not apply
 OWN = {'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'google_golang_org.grpc.status'}

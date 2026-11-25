@@ -8,8 +8,8 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
-public import Dsverify.Proof.bufio.Init
-public import Net.Proof.os.Init
+public import Proof.bufio.Init
+public import Proof.os.Init
 
 @[expose] public section
 

@@ -32,15 +32,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 abbrev Election.Leader.spec : Prop :=
   ∀ (e s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isElection e s γ client id pfx ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isElection e s γ client id pfx ∗
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo) }}
     (App (Val (e @!! go.GoType.PointerType Election.ty @!! go!"Leader")) (Val #(GoInterface.ok ctx)))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (kp : Loc) (v : EtcdKv), getRespRev resp R ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (R : w64) (kp : Loc) (v : EtcdKv), getRespRev resp R ∗
         etcdReached R ∗ getRespOneKv resp kp v ∗ leaderKvAt pfx v R ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
       (⌜resp = null⌝ ∗ isPkgErr ErrElectionNoLeader err ∗ ∃ R : w64, etcdReached R ∗
         □ etcdState R pfx [] ∗ ⌜sint.Z lo ≤ sint.Z R⌝) ∨
-      ⌜resp = null ∧ err ≠ GoInterface.nil⌝ }}
+      ⌜resp = null ∧ err ≠ GoInterface.nil⌝) }}
 
 end spec
 

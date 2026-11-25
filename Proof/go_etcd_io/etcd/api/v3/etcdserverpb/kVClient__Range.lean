@@ -31,7 +31,7 @@ theorem kVClient.Range.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Range.spec (GF := GF) (hG := hG) := by
   intro kc conn addr Spec Q ctx om cd inp req k e opts vs Ψe
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
+  wp_start as ⟨Hlt, #Hstub, #Hconn, #Hrpc, #Hom, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok, %Hsz⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -61,7 +61,7 @@ theorem kVClient.Range.wp_proof
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,
     show (pbRangeResponse (GF := GF)).ty = etcdserverpb.RangeResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre
-  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
+  wp_apply hI $$ [Hlt Hsend Hblank Hpre'] as %err ⟨Hlt, Hin', Hres⟩
   · iframe #
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
@@ -70,6 +70,7 @@ theorem kVClient.Range.wp_proof
   · subst Herr
     wp_auto
     iapply HΦ
+    iframe Hlt
     iframe
     isplitl
     · unfold rangeCallOut
@@ -86,6 +87,7 @@ theorem kVClient.Range.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hlt
       isplitl [Hin']
       · iframe
       isplitr [Heo]

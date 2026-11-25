@@ -32,11 +32,11 @@ abbrev leasingKV.delete.spec : Prop :=
   ∀ (lkv : Loc) (γ : LeasingNames) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
-      opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 3 ∧ OpShape opKeyMax opKeyMax opValMax o⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.leasing ∗ levelTok 0 ∗ (isLeasingKV lkv γ pfx ∗ lkvReader lkv γ pfx ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ context.isCancelCtxCtx ctx cs ∗
+      opFullAt opv o ∗ etcdReached lo ∗ ⌜o.t = W64 3 ∧ OpShape opKeyMax opKeyMax opValMax o⌝) }}
     (App (App (Val (lkv @!! go.GoType.PointerType leasingKV.ty @!! go!"delete")) (Val #(GoInterface.ok ctx))) (Val #opv))
-  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); lkvReader lkv γ pfx ∗
-      (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o dr)) }}
+  {{ (dr : Loc) (err : GoInterface), RET (PairV #dr #err); levelTok 0 ∗ (lkvReader lkv γ pfx ∗
+      (⌜err ≠ GoInterface.nil ∧ dr = null⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ deleteCommitted lo o dr))) }}
 
 end spec
 

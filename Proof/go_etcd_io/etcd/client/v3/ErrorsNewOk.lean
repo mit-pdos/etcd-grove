@@ -5,10 +5,11 @@ until then the premise `ctxErrClientAllW`). Lean-first (no Rocq counterpart).
 
 `ctxErrClientAllW_of`: from Go's contract of `Context.Err` (`context.ErrAny`, the trust boundary:
 `nil`, or the value of `context.Canceled` or `context.DeadlineExceeded`) and those two errors'
-facts: leaf errors without `Is` whose `Error()` returns (`ContextReadErrs`, the read package's
-premise), of types other than `rpctypes.EtcdError` and without `GRPCStatus` (`ContextErrsClient`:
-Go's `*errorString` and `deadlineExceededError`, whose methods are `Error`, `Timeout`,
-`Temporary`).
+facts: leaf errors without `Is` whose `Error()` returns (`ContextReadErrs.errs_strong`, the read
+package's), of types other than `rpctypes.EtcdError` and without `GRPCStatus`
+(`ContextErrsClient.errs`: Go's `*errorString` and `deadlineExceededError`, whose methods are
+`Error`, `Timeout`, `Temporary`); both from Perennial's `context.isInit` (premises until
+ctx-leaf-fix, 2026-11-25).
 
 `errorsNewOk_of`: from Perennial's `errors.New` (a fresh `*errorString` whose `Error()` returns the
 message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString` (theorems of the
@@ -69,12 +70,39 @@ def ctxErrTyOk (g : GoString) : IProp GF :=
           [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) ∧
       e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝)
 
-/-- **`context.Canceled`'s and `context.DeadlineExceeded`'s types** (a premise, as
-`ContextReadErrs`: Go's `*errorString` and `deadlineExceededError`, neither `rpctypes.EtcdError`,
-neither with a `GRPCStatus` method; method sets are uninterpreted in the semantics). -/
-class ContextErrsClient : Prop where
-  errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
-    ctxErrTyOk _root_.Perennial.context.Canceled ∗ ctxErrTyOk _root_.Perennial.context.DeadlineExceeded
+/-- **`context.Canceled`'s and `context.DeadlineExceeded`'s types** (a premise, the class
+`ContextErrsClient`, until ctx-leaf-fix, 2026-11-25): Go's `*errorString` and
+`deadlineExceededError`, neither `rpctypes.EtcdError`, neither with a `GRPCStatus` method; from
+Perennial's `context.isInit` (`"#HCanceledCell"`, `"#HDeadlineExceededTy"`) and the method sets
+goose emits. -/
+theorem ContextErrsClient.errs [_root_.Perennial.context.Assumptions]
+    [_root_.Perennial.errors.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+      ctxErrTyOk _root_.Perennial.context.Canceled ∗
+        ctxErrTyOk _root_.Perennial.context.DeadlineExceeded := by
+  iintro #Hp
+  ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+  · iapply _root_.Perennial.context.isInit_access $$ Hp
+  iNamed Hci
+  icases HCanceledCell with ⟨%x, #Hx, -⟩
+  isplitl
+  · iunfold ctxErrTyOk
+    iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+    iframe Hx
+    ipureintro
+    refine ⟨ErrorStringNoGRPCStatus.noGRPCStatus, ?_⟩
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
+  · iunfold ctxErrTyOk
+    iexists ⟨_root_.Perennial.context.deadlineExceededError.ty,
+      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩
+    iframe HDeadlineExceededTy
+    ipureintro
+    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"GRPCStatus"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+    refine ⟨by simp [h], ?_⟩
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
+      _root_.Perennial.context.deadlineExceededError.ty
+    intro h; cases h
 
 end ctxClass
 
@@ -262,7 +290,6 @@ theorem errorMsgIs_deadline [_root_.Perennial.context.Assumptions] :
 /-- **Every context's `Err()` returns client errors** (see the file header). -/
 theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrClientAllW := by
   iintro #Hp

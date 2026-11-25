@@ -36,7 +36,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumpt
 abbrev Auth.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat)
     (k₂ : Nat) (ids₂ ps₂ : List w64) (ctxs₂ : List (List w8)) (boot₂ : List LogEntry)
     (k₃ : Nat) (ids₃ ps₃ : List w64) (ctxs₃ : List (List w8)) (boot₃ : List LogEntry)

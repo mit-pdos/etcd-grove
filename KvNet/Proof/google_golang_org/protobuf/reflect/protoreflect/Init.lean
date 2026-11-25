@@ -8,7 +8,7 @@ initializers of its variables (`X.init`, models in `TrustedCode/` that do nothin
 module
 
 public import KvNet.Proof.go_etcd_io.raft.v3.Base
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

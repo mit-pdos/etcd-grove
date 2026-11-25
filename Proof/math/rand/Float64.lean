@@ -1,5 +1,6 @@
 /-
-The trust boundary: `rand.Float64` (`math/rand` is names-only in Perennial).
+The trust boundary: `rand.Float64` (names only in Perennial 47ec64a9d, which translates and proves
+only `math/rand`'s integer functions: `Int63n`, `Intn`, ...).
 -/
 module
 

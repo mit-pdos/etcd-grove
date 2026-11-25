@@ -32,7 +32,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 theorem Transport.start.wp_proof (wp_runPeer : Transport.runPeer.spec (GF := GF) (hG := hG)) :
     Transport.start.spec (GF := GF) (hG := hG) := by
   intro F t γ N id n sp et ed
-  wp_start as ⟨#Hid, #Hsp, ⟨%v0, Hnode⟩, #Hstats, #Hps, #HisNode, #Hstep, %Htr, #Het, #Hed⟩
+  wp_start as ⟨#Hid, #Hsp, ⟨%v0, Hnode⟩, #Hstats, #Hps, #HisNode, %Htr, ⟨%sc, %γsc, #Hstop⟩, #Het, #Hed⟩
   ihave #Hps' := Hps
   iunfold isPeers at Hps'
   icases Hps' with ⟨%pm, %M, #Hpm, #HM, #Hpeers⟩
@@ -40,7 +40,7 @@ theorem Transport.start.wp_proof (wp_runPeer : Transport.runPeer.spec (GF := GF)
   ipersist Hnode
   ihave #Hcore : isTransportCore F t γ N id n $$ []
   · unfold isTransportCore
-    iexists sp
+    iexists sp, sc, γsc
     iframe #
     ipureintro; exact Htr
   try wp_auto
