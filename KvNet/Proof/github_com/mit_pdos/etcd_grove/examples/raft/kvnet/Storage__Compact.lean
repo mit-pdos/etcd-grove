@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__Compact.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Storage__Compact.lean`. Lean-first
 (no Rocq counterpart): the image's compaction, then the `MemoryStorage`'s (its triple, the premise).
