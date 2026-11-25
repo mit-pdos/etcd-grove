@@ -16,6 +16,7 @@ public import Spec.encoding.json.Codec.Decoder__fetch_conn
 public import Spec.encoding.json.Codec.getCodec
 public import Spec.encoding.json.Codec.skipSpace
 public import Spec.encoding.json.Codec.endsInNumber
+public import Spec.encoding.json.Codec.NewDecoder
 public import Proof.encoding.json.DecoderModel
 public import Proof.encoding.json.NetInit
 
@@ -607,6 +608,32 @@ theorem events.Decoder.Decode_frame.wp_proof
     iexists fr
     iframe Hp
     iexact He
+
+set_option warn.classDefReducibility false in
+attribute [local instance] encoding.json.decRepModel in
+/-- `events.newDecoder.spec` at the model's decoder (`decRepModel`), from `NewDecoder.spec`: a
+connection is not nil, and a fresh decoder of the stream stands where nothing was read. -/
+theorem events.newDecoder.wp_proof
+    (wp_NewDecoder : encoding.json.NewDecoder.spec (GF := GF) (hG := hG)) :
+    events.newDecoder.spec (GF := GF) (hG := hG) := by
+  intro γ c cn s a
+  wp_start_folded as ⟨#Hc, Htok⟩
+  ihave #Hc2 := Hc
+  iunfold net.isConn at Hc2
+  icases Hc2 with ⟨%t, %la, %ra, %hc, -⟩
+  wp_apply wp_NewDecoder c (recvTok (Gg := hG.goose_globalGS) cn s (VsrWire.protoOf γ)) $$ [Htok]
+  · iframe
+    ipureintro; rw [hc]; intro h; cases h
+  iintro %dec Hok
+  iapply HΦ
+  iunfold events.rstream
+  iexists c, cn, s, a
+  iframe Hc Hpkg2
+  iright
+  iexists [], [], [], none
+  iframe Hok
+  ipureintro
+  exact ⟨[], [], Or.inl rfl, rfl, rfl⟩
 
 end proof
 
