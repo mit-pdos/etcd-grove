@@ -114,10 +114,11 @@ theorem walGhost_handleAuth (s : AbsDiskState) :
     walGhost (W := W) s ⊣⊢ walHandleAuth (W := W) ∗
       (walHandleAuth (W := W) -∗ walGhost (W := W) s) := by
   constructor
-  · unfold walGhost
-    iintro ⟨Hs, HP, ⟨Hh, Hlk⟩, %hk, #Hst⟩
+  · unfold walGhost walGhostI
+    iintro ⟨%I, Hs, HP, ⟨Hh, Hlk⟩, %hk, #Hst⟩
     iframe Hh
     iintro Hh
+    iexists I
     iframe Hs HP Hh Hlk Hst
     ipureintro; exact hk
   · iintro ⟨Hh, Hw⟩

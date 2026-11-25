@@ -225,17 +225,204 @@ theorem walStepsLb_at (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.w
 
 end steps
 
+/-! ## Incarnations (P6b v2, `notes/wal-p6b-design.md`; not yet used by `walGhost`)
+
+A WAL directory's incarnation is a ghost counter, bumped when its WAL is discarded
+(`DiscardUnsaved`), so that the persistent facts of a discarded WAL (keyed by the incarnation) say
+nothing of a WAL `Create` makes later at the same directory. The past states are paired with the
+incarnations (`walPastI`), ordered by `walLeI`: a WAL may go (or anything happen to it) only where its
+incarnation grows; where it stays, the WAL stays and grows as `absLe` has it. -/
+
+/-- **The incarnation of `dir`** in `I` (0 where `I` has none). -/
+def incOf (I : GMap GoString Nat) (dir : GoString) : Nat := (I !! dir).getD 0
+
+/-- **The order on past states with incarnations**: the area and the durable directories kept,
+every incarnation at least as high, and every WAL whose incarnation is unchanged kept and grown. -/
+def walLeI (p p' : AbsDiskState × GMap GoString Nat) : Prop :=
+  p'.1.area = p.1.area ∧
+  (∀ d, p.1.dirs !! d = some () → p'.1.dirs !! d = some ()) ∧
+  (∀ dir, incOf p.2 dir ≤ incOf p'.2 dir) ∧
+  ∀ dir d, p.1.wal !! dir = some d → incOf p'.2 dir = incOf p.2 dir →
+    ∃ d', p'.1.wal !! dir = some d' ∧
+      d.m ≤ d'.m ∧ d.H.length ≤ d'.H.length ∧ (d.named = true → d'.named = true)
+
+theorem walLeI_refl (p : AbsDiskState × GMap GoString Nat) : walLeI p p :=
+  ⟨rfl, fun _ h => h, fun _ => Nat.le_refl _, fun _ d h _ => ⟨d, h, Nat.le_refl _, Nat.le_refl _, id⟩⟩
+
+theorem walLeI_trans {p1 p2 p3 : AbsDiskState × GMap GoString Nat} (h12 : walLeI p1 p2)
+    (h23 : walLeI p2 p3) : walLeI p1 p3 := by
+  refine ⟨h23.1.trans h12.1, fun d h => h23.2.1 d (h12.2.1 d h),
+    fun dir => Nat.le_trans (h12.2.2.1 dir) (h23.2.2.1 dir), fun dir d h he => ?_⟩
+  have e12 : incOf p2.2 dir = incOf p1.2 dir :=
+    Nat.le_antisymm (he ▸ h23.2.2.1 dir) (h12.2.2.1 dir)
+  have e23 : incOf p3.2 dir = incOf p2.2 dir := by rw [he, e12]
+  obtain ⟨d2, h2, hm2, hl2, hn2⟩ := h12.2.2.2 dir d h e12
+  obtain ⟨d3, h3, hm3, hl3, hn3⟩ := h23.2.2.2 dir d2 h2 e23
+  exact ⟨d3, h3, Nat.le_trans hm2 hm3, Nat.le_trans hl2 hl3, fun x => hn3 (hn2 x)⟩
+
+/-- A step of `absLe`, the incarnations unchanged. -/
+theorem walLeI_of_absLe {s s' : AbsDiskState} (I : GMap GoString Nat) (h : absLe s s') :
+    walLeI (s, I) (s', I) :=
+  ⟨h.1, h.2.1, fun _ => Nat.le_refl _, fun dir d hd _ => h.2.2 dir d hd⟩
+
+/-- **The discard of `dir`'s WAL** (`DiscardUnsaved`'s commit): the WAL gone, its incarnation bumped. -/
+theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
+    walLeI (s, I) ({ s with wal := GMap.delete dir s.wal }, <[dir := incOf I dir + 1]> I) := by
+  have hinc : ∀ k, incOf (<[dir := incOf I dir + 1]> I) k =
+      if k = dir then incOf I dir + 1 else incOf I k := by
+    intro k
+    unfold incOf
+    by_cases e : k = dir
+    · subst e; rw [GMap.lookup_insert_eq]; simp
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; simp [e]
+  refine ⟨rfl, fun _ h => h, fun k => ?_, fun k d hd he => ?_⟩
+  · show incOf I k ≤ _
+    rw [hinc k]
+    by_cases e : k = dir
+    · subst e; simp
+    · simp [e]
+  · rw [hinc k] at he
+    by_cases e : k = dir
+    · simp [e] at he
+    · simp only [e, ite_false] at he
+      refine ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩
+      show (GMap.delete dir s.wal) !! k = some d
+      rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hd
+
+instance : DecidableEq (AbsDiskState × GMap GoString Nat) := fun a b => Classical.propDecidable (a = b)
+
+
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
 
 /-- The universal camera. -/
 abbrev walAllG : AllG GF := W.hA.absDiskAllG
 
+/-- **The WAL state was `p.1` with incarnations `p.2` at some point of this generation**
+(persistent; with its area, the generation's one, `walArea_agree`). -/
+def walPastI (p : AbsDiskState × GMap GoString Nat) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(p ↪[W.γpi]□ () ∗ () ↪[W.hA.γa]□ p.1.area)
+
+instance walPastI_persistent (p : AbsDiskState × GMap GoString Nat) :
+    Persistent (walPastI (W := W) p) := by unfold walPastI; infer_instance
+
+instance walPastI_timeless (p : AbsDiskState × GMap GoString Nat) :
+    Timeless (walPastI (W := W) p) := by unfold walPastI; infer_instance
+
+/-- **The authority of the past states with incarnations**, all below `p` (`walLeI`), and `p`'s
+area. -/
+def walPastIAuth (p : AbsDiskState × GMap GoString Nat) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(∃ F : GMap (AbsDiskState × GMap GoString Nat) Unit, ghostMapAuth W.γpi 1 F ∗
+    ([∗map] q ↦ _u ∈ F, q ↪[W.γpi]□ ()) ∗ ⌜∀ q, F !! q = some () → walLeI q p⌝ ∗
+    () ↪[W.hA.γa]□ p.1.area)
+
+instance walPastIAuth_timeless (p : AbsDiskState × GMap GoString Nat) :
+    Timeless (walPastIAuth (W := W) p) := by unfold walPastIAuth; infer_instance
+
+/-- What a past state says of the present one. -/
+theorem walPastI_le (p q : AbsDiskState × GMap GoString Nat) :
+    ⊢@{IProp GF} walPastIAuth (W := W) p -∗ walPastI (W := W) q -∗ ⌜walLeI q p⌝ := by
+  letI := walAllG (W := W)
+  unfold walPastIAuth walPastI
+  iintro ⟨%F, HA, -, %Hle, -⟩ ⟨Hq, -⟩
+  icases ghost_map_lookup $$ HA Hq with %Hl
+  ipureintro; exact Hle q Hl
+
+/-- The authority at a bigger present. -/
+theorem walPastI_grow (p p' : AbsDiskState × GMap GoString Nat) (hle : walLeI p p') :
+    ⊢@{IProp GF} walPastIAuth (W := W) p -∗ walPastIAuth (W := W) p' := by
+  letI := walAllG (W := W)
+  unfold walPastIAuth
+  iintro ⟨%F, HA, HE, %Hle, #Ha⟩
+  iexists F
+  iframe HA HE
+  isplitr
+  · ipureintro; exact fun q hq => walLeI_trans (Hle q hq) hle
+  · rw [hle.1]; iexact Ha
+
+/-- The present's fact. -/
+theorem walPastI_snap (p : AbsDiskState × GMap GoString Nat) :
+    ⊢@{IProp GF} walPastIAuth (W := W) p ==∗ walPastIAuth (W := W) p ∗ walPastI (W := W) p := by
+  letI := walAllG (W := W)
+  unfold walPastIAuth walPastI
+  iintro ⟨%F, HA, #HE, %Hle, #Ha⟩
+  cases hF : F !! p with
+  | some u =>
+    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := F)
+      (Φ := fun q _ => iprop(q ↪[W.γpi]□ ())) hF).1 $$ HE with ⟨#Hs, -⟩
+    imodintro
+    isplitl [HA]
+    · iexists F; iframe HA HE Ha; ipureintro; exact Hle
+    · iframe Hs Ha
+  | none =>
+    imod ghost_map_insert_persist p () hF $$ HA with ⟨HA, #Hs⟩
+    imodintro
+    isplitl [HA]
+    · iexists (F.insert p ())
+      iframe HA Ha
+      isplitl
+      · iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := F)
+          (Φ := fun q _ => iprop(q ↪[W.γpi]□ ())) hF).2
+        iframe HE; iexact Hs
+      · ipureintro
+        intro q hq
+        rw [GMap.lookup_insert_eq_iff] at hq
+        by_cases hqp : p = q
+        · subst hqp; exact walLeI_refl p
+        · simp only [hqp, ite_false] at hq; exact Hle q hq
+    · iframe Hs Ha
+
+/-- **A quarter of the incarnations** (`WalGS.γI`): the views' (`walDirIs`, `walDirIsI`) and the lock
+token's (`walIncAny` in `walUnlockedTok`, `walIncCur` in an open handle); `walGhost` holds the half. The
+incarnations change only with all three (the discard), so neither under the program's view nor under an
+open handle. -/
+def walIncQ (I : GMap GoString Nat) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γI (1 : Qp).half.half I
+
+instance walIncQ_timeless (I : GMap GoString Nat) : Timeless (walIncQ (W := W) I) := by
+  unfold walIncQ; infer_instance
+
+/-- The lock's quarter of the incarnations, at some value (the free lock token's). -/
+def walIncAny : IProp GF := iprop(∃ I : GMap GoString Nat, walIncQ (W := W) I)
+
+instance walIncAny_timeless : Timeless (walIncAny (W := W)) := by
+  unfold walIncAny; infer_instance
+
+/-- **`dir`'s incarnation is `i`**, the lock's quarter (an open handle's, whose record says `i`). -/
+def walIncCur (dir : GoString) (i : Nat) : IProp GF :=
+  iprop(∃ I : GMap GoString Nat, walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝)
+
+instance walIncCur_timeless (dir : GoString) (i : Nat) : Timeless (walIncCur (W := W) dir i) := by
+  unfold walIncCur; infer_instance
+
+theorem walIncCur_any (dir : GoString) (i : Nat) :
+    walIncCur (W := W) dir i ⊢ walIncAny (W := W) := by
+  unfold walIncCur walIncAny
+  iintro ⟨%I, H, -⟩
+  iexists I; iexact H
+
+/-- Two shares of the incarnations agree. -/
+theorem walIncQ_agree (I I' : GMap GoString Nat) (q : Qp) :
+    ⊢@{IProp GF} walIncQ (W := W) I -∗ (letI := walAllG (W := W); ghostVar W.γI q I') -∗ ⌜I = I'⌝ := by
+  unfold walIncQ
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_agree $$ H1 H2
+
+/-- **A fact `P` of incarnation `i` of `dir`, read at incarnations `I`**: `I`'s incarnation of `dir` is
+`i` and `P` holds, or `i` is retired (`I`'s is higher): a fact about a discarded WAL says nothing of a
+later one, and one about the current incarnation holds of it (`walIncFact_cur`). -/
+def walIncFact (I : GMap GoString Nat) (dir : GoString) (i : Nat) (P : Prop) : Prop :=
+  (incOf I dir = i ∧ P) ∨ i < incOf I dir
+
 /-- **The program owns the WAL map, which is `M`** (half of the ghost variable, and the token). -/
 def walOwn (M : GMap GoString WalDur) : IProp GF := walOwnAt W.hA M
 
-/-- **The WAL state was `s` at some point of this generation** (persistent). -/
-def walPast (s : AbsDiskState) : IProp GF := absPastAt W.hA s
+/-- **The WAL state was `s` at some point of this generation** (persistent), at some incarnations. -/
+def walPast (s : AbsDiskState) : IProp GF := iprop(∃ I : GMap GoString Nat, walPastI (W := W) (s, I))
 
 instance walPast_persistent (s : AbsDiskState) : Persistent (walPast (W := W) s) := by
   unfold walPast; infer_instance
@@ -244,7 +431,7 @@ instance walPast_persistent (s : AbsDiskState) : Persistent (walPast (W := W) s)
 proofs allocate a handle or change its mode (`walHandle_alloc`, `walHandleP_set`). -/
 @[no_expose] def walHandleAuth : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ (n : Nat) (Hh : GMap GName WalMode) (Hd : GMap GName (Loc × GoString))
+  iprop(∃ (n : Nat) (Hh : GMap GName WalMode) (Hd : GMap GName (Loc × GoString × Nat))
       (Hp : GMap GName Unit),
     ghostMapAuth W.γh 1 Hh ∗ ghostMapAuth W.γhd 1 Hd ∗ ghostMapAuth W.γhp 1 Hp ∗
     ⌜∀ k, n ≤ k → Hh !! k = none ∧ Hd !! k = none ∧ Hp !! k = none⌝)
@@ -256,44 +443,70 @@ instance walHandleAuth_timeless : Timeless (walHandleAuth (W := W)) := by
 def walArea (r : GoString) : IProp GF :=
   iprop(∃ s : AbsDiskState, walPast (W := W) s ∗ ⌜s.area = r⌝)
 
-/-- **The WAL directory `dir` holds `o`** (the whole map's ownership; the mark and `named` lower
-bounds). -/
+/-- **The WAL directory `dir` holds `o`** (the whole map's ownership, with the program's half of the
+incarnations; the mark and `named` lower bounds). -/
 def walDirIs (dir : GoString) (o : Option WalDur) : IProp GF :=
-  iprop(∃ M : GMap GoString WalDur, walOwn (W := W) M ∗ ⌜walOptLe o (M !! dir)⌝)
+  iprop(∃ (M : GMap GoString WalDur) (I : GMap GoString Nat), walOwn (W := W) M ∗ walIncQ (W := W) I ∗
+    ⌜walOptLe o (M !! dir)⌝)
+
+/-- **The WAL directory `dir`, at incarnation `i`, holds `o`.** -/
+def walDirIsI (dir : GoString) (i : Nat) (o : Option WalDur) : IProp GF :=
+  iprop(∃ (M : GMap GoString WalDur) (I : GMap GoString Nat), walOwn (W := W) M ∗ walIncQ (W := W) I ∗
+    ⌜walOptLe o (M !! dir)⌝ ∗ ⌜incOf I dir = i⌝)
 
 /-- **The WAL in `dir` is in the durable state `d`.** -/
 def walDiskAt (dir : GoString) (d : WalDur) : IProp GF := walDirIs (W := W) dir (some d)
 
+/-- **The WAL in `dir`, at incarnation `i`, is in the durable state `d`.** -/
+def walDiskAtI (dir : GoString) (i : Nat) (d : WalDur) : IProp GF := walDirIsI (W := W) dir i (some d)
+
 /-- **`dir` names no WAL.** -/
 def walAbsent (dir : GoString) : IProp GF := walDirIs (W := W) dir none
 
-/-- **The first `n` operations of `dir`'s history are synced** (persistent). -/
-def walSyncedLb (dir : GoString) (n : Nat) : IProp GF :=
-  iprop(∃ (s : AbsDiskState) (d : WalDur), walPast (W := W) s ∗ ⌜s.wal !! dir = some d ∧ n ≤ d.m⌝)
+/-- **`dir`, at incarnation `i`, names no WAL.** -/
+def walAbsentI (dir : GoString) (i : Nat) : IProp GF := walDirIsI (W := W) dir i none
 
-/-- **`dir`'s WAL entry, and its ancestors', are durable** (persistent). -/
-def walNamed (dir : GoString) : IProp GF :=
-  iprop(∃ (s : AbsDiskState) (d : WalDur), walPast (W := W) s ∗
-    ⌜s.wal !! dir = some d ∧ d.named = true⌝)
+/-- **The first `n` operations of the history of `dir`'s WAL of incarnation `i` are synced, or `i` is
+retired** (persistent; `walIncFact`). -/
+def walSyncedLb (dir : GoString) (i n : Nat) : IProp GF :=
+  iprop(∃ (s : AbsDiskState) (I : GMap GoString Nat), walPastI (W := W) (s, I) ∗
+    ⌜walIncFact I dir i (∃ d, s.wal !! dir = some d ∧ n ≤ d.m)⌝)
+
+/-- **The entry of `dir`'s WAL of incarnation `i`, and its ancestors', are durable, or `i` is retired**
+(persistent). -/
+def walNamed (dir : GoString) (i : Nat) : IProp GF :=
+  iprop(∃ (s : AbsDiskState) (I : GMap GoString Nat), walPastI (W := W) (s, I) ∗
+    ⌜walIncFact I dir i (∃ d, s.wal !! dir = some d ∧ d.named = true)⌝)
 
 /-- **`d`'s entry and its ancestors' are durable** (persistent). -/
 def dirDurable (d : GoString) : IProp GF :=
   iprop(∃ s : AbsDiskState, walPast (W := W) s ∗ ⌜s.dirs !! d = some ()⌝)
 
+/-- **The handle named `γ` is of the `*wal.WAL` `w`, which writes the WAL in `dir` of incarnation
+`i`** (persistent). -/
+def walHandleDirI (w : Loc) (dir : GoString) (i : Nat) (γ : GName) : IProp GF :=
+  letI := walAllG (W := W)
+  γ ↪[W.γhd]□ (w, dir, i)
+
 /-- **The handle named `γ` is of the `*wal.WAL` `w`, which writes the WAL in `dir`** (persistent). -/
 def walHandleDir (w : Loc) (dir : GoString) (γ : GName) : IProp GF :=
+  iprop(∃ i : Nat, walHandleDirI (W := W) w dir i γ)
+
+/-- **`w` is a handle of the WAL in `dir` of incarnation `i`, in mode `m`** (exclusive). -/
+def walHandleStI (w : Loc) (dir : GoString) (i : Nat) (m : WalMode) : IProp GF :=
   letI := walAllG (W := W)
-  γ ↪[W.γhd]□ (w, dir)
+  iprop(∃ γ : GName, walHandleDirI (W := W) w dir i γ ∗ γ ↪[W.γh] m)
 
 /-- **`w` is a handle of the WAL in `dir`, in mode `m`** (exclusive). -/
 def walHandleSt (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
-  letI := walAllG (W := W)
-  iprop(∃ γ : GName, walHandleDir (W := W) w dir γ ∗ γ ↪[W.γh] m)
+  iprop(∃ i : Nat, walHandleStI (W := W) w dir i m)
 
-/-- **The open WAL `w` has written its directory `dir`'s history up to length `n`** (persistent). -/
-def walLenLb (w : Loc) (dir : GoString) (n : Nat) : IProp GF :=
-  iprop(∃ (γ : GName) (s : AbsDiskState) (d : WalDur),
-    walHandleDir (W := W) w dir γ ∗ walPast (W := W) s ∗ ⌜s.wal !! dir = some d ∧ n ≤ d.H.length⌝)
+/-- **The open WAL `w` has written the history of its directory `dir`'s WAL of incarnation `i` up to
+length `n`, or `i` is retired** (persistent). -/
+def walLenLb (w : Loc) (dir : GoString) (i n : Nat) : IProp GF :=
+  iprop(∃ (γ : GName) (s : AbsDiskState) (I : GMap GoString Nat),
+    walHandleDir (W := W) w dir γ ∗ walPastI (W := W) (s, I) ∗
+    ⌜walIncFact I dir i (∃ d, s.wal !! dir = some d ∧ n ≤ d.H.length)⌝)
 
 /-- The program's half of the parking flag (`WalGS.γpk`). -/
 def walParkFrag (b : Bool) : IProp GF :=
@@ -397,7 +610,8 @@ built, `NameClaims.lean`; the taker likewise; G-spine, W1 log). -/
 def walUnlockedTok : IProp GF :=
   letI := walAllG (W := W)
   iprop(token W.hA.γu ∗ walParkFrag (W := W) true ∗ walCutFrag (W := W) none ∗
-    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none)
+    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none ∗
+    walIncAny (W := W))
 
 /-- **The free lock token but its names fragment** (`walUnlockedTok` less `walNamesFrag none`): what
 `Close.spec` (state `unnamed`) returns of the handle before naming, whose names fragment is `Create`'s pending
@@ -406,15 +620,15 @@ free token (`walUnlockedTokX_join`). -/
 def walUnlockedTokX : IProp GF :=
   letI := walAllG (W := W)
   iprop(token W.hA.γu ∗ walParkFrag (W := W) true ∗ walCutFrag (W := W) none ∗
-    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅)
+    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walIncAny (W := W))
 
 theorem walUnlockedTokX_join :
     walUnlockedTokX (W := W) ∗ walNamesFrag (W := W) none ⊣⊢ walUnlockedTok (W := W) := by
   unfold walUnlockedTokX walUnlockedTok
   constructor
-  · iintro ⟨⟨H1, H2, H3, H4, H5⟩, H6⟩
+  · iintro ⟨⟨H1, H2, H3, H4, H5, H7⟩, H6⟩
     iframe
-  · iintro ⟨H1, H2, H3, H4, H5, H6⟩
+  · iintro ⟨H1, H2, H3, H4, H5, H6, H7⟩
     iframe
 
 /-- **The lock token as an open handle holds it**: the parking flag at `false` (the handle may hold
@@ -445,8 +659,8 @@ theorem walCrashTok_excl :
 /-- **`w` is a handle of `dir` in mode `m`, with its purge right and the lock token.** Sealed. -/
 @[no_expose] def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(∃ γ : GName, walHandleDir (W := W) w dir γ ∗ γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗
-    walLockedTok (W := W))
+  iprop(∃ (γ : GName) (i : Nat), walHandleDirI (W := W) w dir i γ ∗ γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗
+    walLockedTok (W := W) ∗ walIncCur (W := W) dir i)
 
 /-- **The key of the cleanup's pin in the creating map** (`walCreatingAuth`'s third case; W4,
 `notes/wal-units/create.md`, session 4): no WAL directory (`child r nm` is not empty). `Create`'s
@@ -632,9 +846,13 @@ theorem walTailKey_excl (dir : GoString) (γ γ' : GName) :
   exfalso
   exact dfrac_own_one_op_invalid _ h.1
 
-/-- **`w` is the WAL opened in `dir`, ready to append.** Sealed. -/
+/-- **`w` is the WAL opened in `dir`, of incarnation `i` (the current one), ready to append.** Sealed. -/
+@[no_expose] def walOpenWI (w : Loc) (dir : GoString) (i : Nat) : IProp GF :=
+  iprop(walHandleStI (W := W) w dir i .append ∗ walLockedTok (W := W) ∗ walIncCur (W := W) dir i)
+
+/-- **`w` is the WAL opened in `dir`, ready to append** (at some incarnation, the current one). Sealed. -/
 @[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
-  iprop(walHandleSt (W := W) w dir .append ∗ walLockedTok (W := W))
+  iprop(∃ i : Nat, walOpenWI (W := W) w dir i)
 
 /-- **`w` is the WAL opened in `dir` for reading at the snapshot `s`.** Sealed. -/
 @[no_expose] def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
@@ -646,29 +864,39 @@ theorem walTailKey_excl (dir : GoString) (γ γ' : GName) :
 
 instance walArea_persistent (r : GoString) : Persistent (walArea (W := W) r) := by
   unfold walArea; infer_instance
-instance walSyncedLb_persistent (dir : GoString) (n : Nat) :
-    Persistent (walSyncedLb (W := W) dir n) := by unfold walSyncedLb; infer_instance
-instance walNamed_persistent (dir : GoString) : Persistent (walNamed (W := W) dir) := by
+instance walSyncedLb_persistent (dir : GoString) (i n : Nat) :
+    Persistent (walSyncedLb (W := W) dir i n) := by unfold walSyncedLb; infer_instance
+instance walNamed_persistent (dir : GoString) (i : Nat) : Persistent (walNamed (W := W) dir i) := by
   unfold walNamed; infer_instance
 instance dirDurable_persistent (d : GoString) : Persistent (dirDurable (W := W) d) := by
   unfold dirDurable; infer_instance
+instance walHandleDirI_persistent (w : Loc) (dir : GoString) (i : Nat) (γ : GName) :
+    Persistent (walHandleDirI (W := W) w dir i γ) := by unfold walHandleDirI; infer_instance
 instance walHandleDir_persistent (w : Loc) (dir : GoString) (γ : GName) :
     Persistent (walHandleDir (W := W) w dir γ) := by unfold walHandleDir; infer_instance
-instance walLenLb_persistent (w : Loc) (dir : GoString) (n : Nat) :
-    Persistent (walLenLb (W := W) w dir n) := by unfold walLenLb; infer_instance
+instance walLenLb_persistent (w : Loc) (dir : GoString) (i n : Nat) :
+    Persistent (walLenLb (W := W) w dir i n) := by unfold walLenLb; infer_instance
 
 instance walPast_timeless (s : AbsDiskState) : Timeless (walPast (W := W) s) := by
-  unfold walPast absPastAt; infer_instance
+  unfold walPast; infer_instance
 instance walArea_timeless (r : GoString) : Timeless (walArea (W := W) r) := by
   unfold walArea; infer_instance
-instance walSyncedLb_timeless (dir : GoString) (n : Nat) :
-    Timeless (walSyncedLb (W := W) dir n) := by unfold walSyncedLb; infer_instance
-instance walNamed_timeless (dir : GoString) : Timeless (walNamed (W := W) dir) := by
+instance walSyncedLb_timeless (dir : GoString) (i n : Nat) :
+    Timeless (walSyncedLb (W := W) dir i n) := by unfold walSyncedLb; infer_instance
+instance walNamed_timeless (dir : GoString) (i : Nat) : Timeless (walNamed (W := W) dir i) := by
   unfold walNamed; infer_instance
+instance walLenLb_timeless (w : Loc) (dir : GoString) (i n : Nat) :
+    Timeless (walLenLb (W := W) w dir i n) := by unfold walLenLb walHandleDir walHandleDirI; infer_instance
 instance dirDurable_timeless (d : GoString) : Timeless (dirDurable (W := W) d) := by
   unfold dirDurable; infer_instance
 instance walOwn_timeless (M : GMap GoString WalDur) : Timeless (walOwn (W := W) M) := by
   unfold walOwn walOwnAt; infer_instance
+instance walDirIsI_timeless (dir : GoString) (i : Nat) (o : Option WalDur) :
+    Timeless (walDirIsI (W := W) dir i o) := by unfold walDirIsI; infer_instance
+instance walDiskAtI_timeless (dir : GoString) (i : Nat) (d : WalDur) :
+    Timeless (walDiskAtI (W := W) dir i d) := by unfold walDiskAtI; infer_instance
+instance walAbsentI_timeless (dir : GoString) (i : Nat) : Timeless (walAbsentI (W := W) dir i) := by
+  unfold walAbsentI; infer_instance
 instance walDirIs_timeless (dir : GoString) (o : Option WalDur) :
     Timeless (walDirIs (W := W) dir o) := by unfold walDirIs; infer_instance
 instance walDiskAt_timeless (dir : GoString) (d : WalDur) : Timeless (walDiskAt (W := W) dir d) := by
@@ -677,6 +905,8 @@ instance walAbsent_timeless (dir : GoString) : Timeless (walAbsent (W := W) dir)
   unfold walAbsent; infer_instance
 instance walUnlockedTok_timeless : Timeless (walUnlockedTok (W := W)) := by
   unfold walUnlockedTok walParkFrag walCutFrag walOutFrag walTailsFrag walNamesFrag; infer_instance
+instance walUnlockedTokX_timeless : Timeless (walUnlockedTokX (W := W)) := by
+  unfold walUnlockedTokX walParkFrag walCutFrag walOutFrag walTailsFrag; infer_instance
 instance walLockedTok_timeless : Timeless (walLockedTok (W := W)) := by
   unfold walLockedTok walParkFrag walCutFrag; infer_instance
 
@@ -685,9 +915,28 @@ instance walLockedTok_timeless : Timeless (walLockedTok (W := W)) := by
 theorem walDiskAt_weaken (dir : GoString) (d d' : WalDur) (h : walDurLe d d') :
     ⊢@{IProp GF} walDiskAt (W := W) dir d' -∗ walDiskAt (W := W) dir d := by
   unfold walDiskAt walDirIs
-  iintro ⟨%M, HM, %HMd⟩
-  iexists M; iframe HM; ipureintro
+  iintro ⟨%M, %I, HM, HI, %HMd⟩
+  iexists M, I; iframe HM HI; ipureintro
   exact walOptLe_trans (o2 := some d') h HMd
+
+theorem walDiskAtI_weaken (dir : GoString) (i : Nat) (d d' : WalDur) (h : walDurLe d d') :
+    ⊢@{IProp GF} walDiskAtI (W := W) dir i d' -∗ walDiskAtI (W := W) dir i d := by
+  unfold walDiskAtI walDirIsI
+  iintro ⟨%M, %I, HM, HI, %HMd, %hi⟩
+  iexists M, I; iframe HM HI; ipureintro
+  exact ⟨walOptLe_trans (o2 := some d') h HMd, hi⟩
+
+/-- The view at its incarnation. -/
+theorem walDirIs_inc (dir : GoString) (o : Option WalDur) :
+    walDirIs (W := W) dir o ⊣⊢ ∃ i, walDirIsI (W := W) dir i o := by
+  unfold walDirIs walDirIsI
+  constructor
+  · iintro ⟨%M, %I, HM, HI, %h⟩; iexists incOf I dir, M, I; iframe HM HI; ipureintro; exact ⟨h, rfl⟩
+  · iintro ⟨%i, %M, %I, HM, HI, %h, -⟩; iexists M, I; iframe HM HI; ipureintro; exact h
+
+theorem walDirIsI_dirIs (dir : GoString) (i : Nat) (o : Option WalDur) :
+    walDirIsI (W := W) dir i o ⊢ walDirIs (W := W) dir o :=
+  .trans (by iintro H; iexists i; iexact H) (walDirIs_inc dir o).2
 
 theorem walOwn_excl (M M' : GMap GoString WalDur) :
     ⊢@{IProp GF} walOwn (W := W) M -∗ walOwn (W := W) M' -∗ False := by
@@ -699,7 +948,7 @@ theorem walOwn_excl (M M' : GMap GoString WalDur) :
 theorem walDirIs_excl (dir dir' : GoString) (o o' : Option WalDur) :
     ⊢@{IProp GF} walDirIs (W := W) dir o -∗ walDirIs (W := W) dir' o' -∗ False := by
   unfold walDirIs
-  iintro ⟨%M, H1, -⟩ ⟨%M', H2, -⟩
+  iintro ⟨%M, %I, H1, -⟩ ⟨%M', %I', H2, -⟩
   iapply walOwn_excl $$ H1 H2
 
 theorem walDiskAt_excl (dir dir' : GoString) (d d' : WalDur) :
@@ -755,13 +1004,14 @@ of the tails' authority, empty (`walTailsFrag`), and the pending registration, `
 theorem walUnlockedTok_lock (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walUnlockedTok (W := W) ==∗
       ⌜b = true⌝ ∗ walParkAuth (W := W) false ∗ walLockedTok (W := W) ∗
-        walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none := by
+        walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none ∗
+        walIncAny (W := W) := by
   unfold walUnlockedTok walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf, Hn⟩
+  iintro Ha ⟨Ht, Hf, Hc, Ho, Htf, Hn, Hi⟩
   icases walPark_agree (W := W) b true $$ Ha Hf with %hb
   imod walPark_set (W := W) b true false $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf Hn
+  iframe Ha Ht Hf Hc Ho Htf Hn Hi
   ipureintro; exact hb
 
 /-- **Releasing the lock** (`Close`, an `Open` that failed after taking it): the flag back to `true`,
@@ -769,27 +1019,28 @@ with the empty record of what is out (everything put back first), no tail regist
 claim's program half out. -/
 theorem walLockedTok_unlock (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) -∗
-      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none ==∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none -∗
+      walIncAny (W := W) ==∗
       ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTok (W := W) := by
   unfold walUnlockedTok walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf Hn
+  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf Hn Hi
   icases walPark_agree (W := W) b false $$ Ha Hf with %hb
   imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf Hn
+  iframe Ha Ht Hf Hc Ho Htf Hn Hi
   ipureintro; exact hb
 
 /-- `walLockedTok_unlock` without the names fragment (`walUnlockedTokX`). -/
 theorem walLockedTok_unlockX (b : Bool) :
     ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) -∗
-      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ ==∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ -∗ walIncAny (W := W) ==∗
       ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTokX (W := W) := by
   unfold walUnlockedTokX walLockedTok
-  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf
+  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf Hi
   icases walPark_agree (W := W) b false $$ Ha Hf with %hb
   imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
-  iframe Ha Ht Hf Hc Ho Htf
+  iframe Ha Ht Hf Hc Ho Htf Hi
   ipureintro; exact hb
 
 /-- The halves of the pending registration agree. -/
@@ -1112,42 +1363,160 @@ theorem walDirKeysAuth_get (K : GMap GoString (Fs.Ino × List GoString)) (dir : 
       iprop(k ↪[W.γdk]□ x)) hK) $$ Hm
   · ipureintro; exact hX
 
-theorem walSyncedLb_mono (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
-    ⊢@{IProp GF} walSyncedLb (W := W) dir n -∗ walSyncedLb (W := W) dir n' := by
-  unfold walSyncedLb
-  iintro ⟨%s, %d, Hs, %Hd⟩
-  iexists s, d; iframe Hs; ipureintro; exact ⟨Hd.1, Nat.le_trans h Hd.2⟩
+theorem walIncFact.mono {I : GMap GoString Nat} {dir : GoString} {i : Nat} {P Q : Prop}
+    (h : walIncFact I dir i P) (hPQ : P → Q) : walIncFact I dir i Q :=
+  h.imp (fun h => ⟨h.1, hPQ h.2⟩) id
 
-theorem walLenLb_mono (w : Loc) (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
-    ⊢@{IProp GF} walLenLb (W := W) w dir n -∗ walLenLb (W := W) w dir n' := by
+/-- **A fact of the current incarnation holds**: read at a past state `p` below `(s, I)`, where `dir`'s
+incarnation is `i`. -/
+theorem walIncFact.cur {p : AbsDiskState × GMap GoString Nat} {s : AbsDiskState}
+    {I : GMap GoString Nat} {dir : GoString} {P : Prop}
+    (h : walIncFact p.2 dir (incOf I dir) P) (hle : walLeI p (s, I)) :
+    incOf p.2 dir = incOf I dir ∧ P := by
+  rcases h with h | h
+  · exact h
+  · exact absurd (hle.2.2.1 dir) (Nat.not_le.2 h)
+
+/-- **A retired incarnation's fact**: any fact of an incarnation below the current one. -/
+theorem walIncFact.retired {I : GMap GoString Nat} {dir : GoString} {i : Nat} (P : Prop)
+    (h : i < incOf I dir) : walIncFact I dir i P := Or.inr h
+
+theorem walSyncedLb_mono (dir : GoString) (i n n' : Nat) (h : n' ≤ n) :
+    ⊢@{IProp GF} walSyncedLb (W := W) dir i n -∗ walSyncedLb (W := W) dir i n' := by
+  unfold walSyncedLb
+  iintro ⟨%s, %I, Hs, %Hd⟩
+  iexists s, I; iframe Hs; ipureintro
+  exact Hd.mono fun ⟨d, hd, hn⟩ => ⟨d, hd, Nat.le_trans h hn⟩
+
+theorem walLenLb_mono (w : Loc) (dir : GoString) (i n n' : Nat) (h : n' ≤ n) :
+    ⊢@{IProp GF} walLenLb (W := W) w dir i n -∗ walLenLb (W := W) w dir i n' := by
   unfold walLenLb
-  iintro ⟨%γ, %s, %d, Hw, Hs, %Hd⟩
-  iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨Hd.1, Nat.le_trans h Hd.2⟩
+  iintro ⟨%γ, %s, %I, Hw, Hs, %Hd⟩
+  iexists γ, s, I; iframe Hw Hs; ipureintro
+  exact Hd.mono fun ⟨d, hd, hn⟩ => ⟨d, hd, Nat.le_trans h hn⟩
+
+/-- **A synced lower bound from a past state**, of the incarnation there. -/
+theorem walSyncedLb_intro (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (d : WalDur)
+    (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.m) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walSyncedLb (W := W) dir (incOf I dir) n := by
+  unfold walSyncedLb
+  iintro #Hs
+  iexists s, I; iframe Hs; ipureintro; exact Or.inl ⟨rfl, d, hd, hn⟩
+
+/-- **Named, from a past state**, of the incarnation there. -/
+theorem walNamed_intro (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (d : WalDur)
+    (hd : s.wal !! dir = some d) (hn : d.named = true) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walNamed (W := W) dir (incOf I dir) := by
+  unfold walNamed
+  iintro #Hs
+  iexists s, I; iframe Hs; ipureintro; exact Or.inl ⟨rfl, d, hd, hn⟩
+
+/-- **Every fact of a retired incarnation** `i` (below the past state's). -/
+theorem walSyncedLb_retired (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (i n : Nat)
+    (h : i < incOf I dir) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walSyncedLb (W := W) dir i n := by
+  unfold walSyncedLb
+  iintro #Hs
+  iexists s, I; iframe Hs; ipureintro; exact Or.inr h
+
+theorem walNamed_retired (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (i : Nat)
+    (h : i < incOf I dir) :
+    ⊢@{IProp GF} walPastI (W := W) (s, I) -∗ walNamed (W := W) dir i := by
+  unfold walNamed
+  iintro #Hs
+  iexists s, I; iframe Hs; ipureintro; exact Or.inr h
+
+/-- A past state with its incarnations, as a past state. -/
+theorem walPastI_past (p : AbsDiskState × GMap GoString Nat) :
+    walPastI (W := W) p ⊢ walPast (W := W) p.1 := by
+  unfold walPast
+  iintro #H; iexists p.2; iexact H
+
+theorem walHandleDirI_agree (w w' : Loc) (dir dir' : GoString) (i i' : Nat) (γ : GName) :
+    ⊢@{IProp GF} walHandleDirI (W := W) w dir i γ -∗ walHandleDirI (W := W) w' dir' i' γ -∗
+      ⌜w = w' ∧ dir = dir' ∧ i = i'⌝ := by
+  unfold walHandleDirI
+  letI := walAllG (W := W)
+  iintro #H1 #H2
+  icases ghostMapElem_agree $$ H1 H2 with %H
+  ipureintro
+  simp only [Prod.mk.injEq] at H
+  exact H
 
 theorem walHandleDir_agree (w w' : Loc) (dir dir' : GoString) (γ : GName) :
     ⊢@{IProp GF} walHandleDir (W := W) w dir γ -∗ walHandleDir (W := W) w' dir' γ -∗
       ⌜w = w' ∧ dir = dir'⌝ := by
   unfold walHandleDir
-  letI := walAllG (W := W)
-  iintro #H1 #H2
-  icases ghostMapElem_agree $$ H1 H2 with %H
-  ipureintro; exact Prod.mk.inj H
+  iintro ⟨%i, #H1⟩ ⟨%i', #H2⟩
+  icases walHandleDirI_agree $$ H1 H2 with %H
+  ipureintro; exact ⟨H.1, H.2.1⟩
 
-theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur) (n : Nat)
-    (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
-    ⊢@{IProp GF} walOpenW (W := W) w dir -∗ walPast (W := W) s -∗
-      walOpenW (W := W) w dir ∗ walLenLb (W := W) w dir n := by
-  unfold walOpenW walHandleSt walLenLb
-  iintro ⟨⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
+/-- **An open handle's incarnation is current**: its quarter agrees with any other share `I` of the
+incarnations (the view's, `walGhost`'s). -/
+theorem walIncCur_agree (dir : GoString) (i : Nat) (q : Qp) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walIncCur (W := W) dir i -∗ (letI := walAllG (W := W); ghostVar W.γI q I) -∗
+      ⌜incOf I dir = i⌝ ∗ walIncCur (W := W) dir i ∗ (letI := walAllG (W := W); ghostVar W.γI q I) := by
+  unfold walIncCur walIncQ
+  letI := walAllG (W := W)
+  iintro ⟨%I', H1, %h⟩ H2
+  icases ghostVar_agree $$ H1 H2 with %e
+  subst e
+  iframe H2
+  isplitr
+  · ipureintro; exact h
+  iexists I'; iframe H1; ipureintro; exact h
+
+/-- The open handle at its incarnation. -/
+theorem walOpenW_inc (w : Loc) (dir : GoString) :
+    walOpenW (W := W) w dir ⊣⊢ ∃ i, walOpenWI (W := W) w dir i := by
+  unfold walOpenW; exact .rfl
+
+theorem walOpenWI_openW (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWI (W := W) w dir i ⊢ walOpenW (W := W) w dir := by
+  unfold walOpenW; iintro H; iexists i; iexact H
+
+/-- **An open handle's incarnation is current** against a share `I`. -/
+theorem walOpenWI_cur (w : Loc) (dir : GoString) (i : Nat) (q : Qp) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walOpenWI (W := W) w dir i -∗ (letI := walAllG (W := W); ghostVar W.γI q I) -∗
+      ⌜incOf I dir = i⌝ ∗ walOpenWI (W := W) w dir i ∗ (letI := walAllG (W := W); ghostVar W.γI q I) := by
+  unfold walOpenWI
+  iintro ⟨Hs, Hl, Hc⟩ HI
+  icases walIncCur_agree dir i q I $$ Hc HI with ⟨%h, Hc, HI⟩
+  iframe Hs Hl Hc HI
+  ipureintro; exact h
+
+theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (I : GMap GoString Nat)
+    (d : WalDur) (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
+    ⊢@{IProp GF} walOpenW (W := W) w dir -∗ walPastI (W := W) (s, I) -∗
+      walOpenW (W := W) w dir ∗ walLenLb (W := W) w dir (incOf I dir) n := by
+  unfold walOpenW walOpenWI walHandleStI walLenLb walHandleDir
+  iintro ⟨%i, ⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
   isplitl [Hm Hu]
-  · iframe Hu; iexists γ; iframe Hw Hm
-  · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
+  · iexists i; iframe Hu; iexists γ; iframe Hw Hm
+  · iexists γ, s, I; iframe Hs
+    isplitl
+    · iexists i; iexact Hw
+    ipureintro; exact Or.inl ⟨rfl, d, hd, hn⟩
+
+/-- A handle's length bound of a retired incarnation. -/
+theorem walOpenW_lenLb_retired (w : Loc) (dir : GoString) (s : AbsDiskState) (I : GMap GoString Nat)
+    (i n : Nat) (h : i < incOf I dir) :
+    ⊢@{IProp GF} walOpenW (W := W) w dir -∗ walPastI (W := W) (s, I) -∗
+      walOpenW (W := W) w dir ∗ walLenLb (W := W) w dir i n := by
+  unfold walOpenW walOpenWI walHandleStI walLenLb walHandleDir
+  iintro ⟨%i', ⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
+  isplitl [Hm Hu]
+  · iexists i'; iframe Hu; iexists γ; iframe Hw Hm
+  · iexists γ, s, I; iframe Hs
+    isplitl
+    · iexists i'; iexact Hw
+    ipureintro; exact Or.inr h
 
 /-- **`walOpenW` without its flags** (sealed): what a cut holds of the ghost handle while its rename
 is pending (`walOpenW_cut`). -/
 @[no_expose] def walOpenWC (w : Loc) (dir : GoString) : IProp GF :=
   letI := walAllG (W := W)
-  iprop(walHandleSt (W := W) w dir .append ∗ token W.hA.γu)
+  iprop(∃ i : Nat, walHandleStI (W := W) w dir i .append ∗ token W.hA.γu ∗ walIncCur (W := W) dir i)
 
 /-- **The parking and pending-cut flags out of the ghost handle** (W2's `cut`: the parking flag
 `false` tells the rename's update that the handle has taken its WAL's halves out of `walParked`;
@@ -1155,26 +1524,30 @@ is pending (`walOpenW_cut`). -/
 theorem walOpenW_cut (w : Loc) (dir : GoString) :
     walOpenW (W := W) w dir ⊣⊢
       walOpenWC (W := W) w dir ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none := by
-  unfold walOpenW walOpenWC walLockedTok
+  unfold walOpenW walOpenWI walOpenWC walLockedTok
   constructor
-  · iintro ⟨Hs, Ht, Hf, Hc⟩; iframe Hs Ht Hf Hc
-  · iintro ⟨⟨Hs, Ht⟩, Hf, Hc⟩; iframe Hs Ht Hf Hc
+  · iintro ⟨%i, Hs, ⟨Ht, Hf, Hc⟩, Hi⟩; iframe Hf Hc; iexists i; iframe Hs Ht Hi
+  · iintro ⟨⟨%i, Hs, Ht, Hi⟩, Hf, Hc⟩; iexists i; iframe Hs Ht Hf Hc Hi
 
-theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState) (d : WalDur)
+theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState)
+    (I : GMap GoString Nat) (d : WalDur)
     (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
-    ⊢@{IProp GF} walOpening (W := W) w dir sn -∗ walPast (W := W) s -∗
-      walOpening (W := W) w dir sn ∗ walLenLb (W := W) w dir n := by
-  unfold walOpening walHandleP walLenLb
-  iintro ⟨%γ, #Hw, Hm, Hp, Hu⟩ #Hs
+    ⊢@{IProp GF} walOpening (W := W) w dir sn -∗ walPastI (W := W) (s, I) -∗
+      walOpening (W := W) w dir sn ∗ walLenLb (W := W) w dir (incOf I dir) n := by
+  unfold walOpening walHandleP walLenLb walHandleDir
+  iintro ⟨%γ, %i, #Hw, Hm, Hp, Hu⟩ #Hs
   isplitl [Hm Hp Hu]
-  · iexists γ; iframe Hw Hm Hp Hu
-  · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
+  · iexists γ, i; iframe Hw Hm Hp Hu
+  · iexists γ, s, I; iframe Hs
+    isplitl
+    · iexists i; iexact Hw
+    ipureintro; exact Or.inl ⟨rfl, d, hd, hn⟩
 
 theorem walArea_agree (r r' : GoString) :
     ⊢@{IProp GF} walArea (W := W) r -∗ walArea (W := W) r' -∗ ⌜r = r'⌝ := by
-  unfold walArea walPast absPastAt
+  unfold walArea walPast walPastI
   letI := walAllG (W := W)
-  iintro ⟨%p, ⟨-, #Hp⟩, %hp⟩ ⟨%q, ⟨-, #Hq⟩, %hq⟩
+  iintro ⟨%p, ⟨%I, -, #Hp⟩, %hp⟩ ⟨%q, ⟨%I', -, #Hq⟩, %hq⟩
   icases ghostMapElem_agree $$ Hp Hq with %H
   ipureintro; rw [← hp, ← hq]; exact H
 
@@ -1278,181 +1651,156 @@ theorem walLks_set (s : AbsDiskState) (T : GMap GoString GName) (Lk Lk' : GMap G
 
 end ghost
 
-/-! ## Incarnations (P6b v2, `notes/wal-p6b-design.md`; not yet used by `walGhost`)
-
-A WAL directory's incarnation is a ghost counter, bumped when its WAL is discarded
-(`DiscardUnsaved`), so that the persistent facts of a discarded WAL (keyed by the incarnation) say
-nothing of a WAL `Create` makes later at the same directory. The past states are paired with the
-incarnations (`walPastI`), ordered by `walLeI`: a WAL may go (or anything happen to it) only where its
-incarnation grows; where it stays, the WAL stays and grows as `absLe` has it. -/
-
-/-- **The incarnation of `dir`** in `I` (0 where `I` has none). -/
-def incOf (I : GMap GoString Nat) (dir : GoString) : Nat := (I !! dir).getD 0
-
-/-- **The order on past states with incarnations**: the area and the durable directories kept,
-every incarnation at least as high, and every WAL whose incarnation is unchanged kept and grown. -/
-def walLeI (p p' : AbsDiskState × GMap GoString Nat) : Prop :=
-  p'.1.area = p.1.area ∧
-  (∀ d, p.1.dirs !! d = some () → p'.1.dirs !! d = some ()) ∧
-  (∀ dir, incOf p.2 dir ≤ incOf p'.2 dir) ∧
-  ∀ dir d, p.1.wal !! dir = some d → incOf p'.2 dir = incOf p.2 dir →
-    ∃ d', p'.1.wal !! dir = some d' ∧
-      d.m ≤ d'.m ∧ d.H.length ≤ d'.H.length ∧ (d.named = true → d'.named = true)
-
-theorem walLeI_refl (p : AbsDiskState × GMap GoString Nat) : walLeI p p :=
-  ⟨rfl, fun _ h => h, fun _ => Nat.le_refl _, fun _ d h _ => ⟨d, h, Nat.le_refl _, Nat.le_refl _, id⟩⟩
-
-theorem walLeI_trans {p1 p2 p3 : AbsDiskState × GMap GoString Nat} (h12 : walLeI p1 p2)
-    (h23 : walLeI p2 p3) : walLeI p1 p3 := by
-  refine ⟨h23.1.trans h12.1, fun d h => h23.2.1 d (h12.2.1 d h),
-    fun dir => Nat.le_trans (h12.2.2.1 dir) (h23.2.2.1 dir), fun dir d h he => ?_⟩
-  have e12 : incOf p2.2 dir = incOf p1.2 dir :=
-    Nat.le_antisymm (he ▸ h23.2.2.1 dir) (h12.2.2.1 dir)
-  have e23 : incOf p3.2 dir = incOf p2.2 dir := by rw [he, e12]
-  obtain ⟨d2, h2, hm2, hl2, hn2⟩ := h12.2.2.2 dir d h e12
-  obtain ⟨d3, h3, hm3, hl3, hn3⟩ := h23.2.2.2 dir d2 h2 e23
-  exact ⟨d3, h3, Nat.le_trans hm2 hm3, Nat.le_trans hl2 hl3, fun x => hn3 (hn2 x)⟩
-
-/-- A step of `absLe`, the incarnations unchanged. -/
-theorem walLeI_of_absLe {s s' : AbsDiskState} (I : GMap GoString Nat) (h : absLe s s') :
-    walLeI (s, I) (s', I) :=
-  ⟨h.1, h.2.1, fun _ => Nat.le_refl _, fun dir d hd _ => h.2.2 dir d hd⟩
-
-/-- **The discard of `dir`'s WAL** (`DiscardUnsaved`'s commit): the WAL gone, its incarnation bumped. -/
-theorem walLeI_discard (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
-    walLeI (s, I) ({ s with wal := GMap.delete dir s.wal }, <[dir := incOf I dir + 1]> I) := by
-  have hinc : ∀ k, incOf (<[dir := incOf I dir + 1]> I) k =
-      if k = dir then incOf I dir + 1 else incOf I k := by
-    intro k
-    unfold incOf
-    by_cases e : k = dir
-    · subst e; rw [GMap.lookup_insert_eq]; simp
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; simp [e]
-  refine ⟨rfl, fun _ h => h, fun k => ?_, fun k d hd he => ?_⟩
-  · show incOf I k ≤ _
-    rw [hinc k]
-    by_cases e : k = dir
-    · subst e; simp
-    · simp [e]
-  · rw [hinc k] at he
-    by_cases e : k = dir
-    · simp [e] at he
-    · simp only [e, ite_false] at he
-      refine ⟨d, ?_, Nat.le_refl _, Nat.le_refl _, id⟩
-      show (GMap.delete dir s.wal) !! k = some d
-      rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hd
-
-instance : DecidableEq (AbsDiskState × GMap GoString Nat) := fun a b => Classical.propDecidable (a = b)
-
-section pastI
-variable {GF : BundledGFunctors} [W : WalGS GF]
-
-/-- **The WAL state was `p.1` with incarnations `p.2` at some point of this generation**
-(persistent). -/
-def walPastI (p : AbsDiskState × GMap GoString Nat) : IProp GF :=
-  letI := walAllG (W := W)
-  p ↪[W.γpi]□ ()
-
-instance walPastI_persistent (p : AbsDiskState × GMap GoString Nat) :
-    Persistent (walPastI (W := W) p) := by unfold walPastI; infer_instance
-
-instance walPastI_timeless (p : AbsDiskState × GMap GoString Nat) :
-    Timeless (walPastI (W := W) p) := by unfold walPastI; infer_instance
-
-/-- **The authority of the past states with incarnations**, all below `p` (`walLeI`). -/
-def walPastIAuth (p : AbsDiskState × GMap GoString Nat) : IProp GF :=
-  letI := walAllG (W := W)
-  iprop(∃ F : GMap (AbsDiskState × GMap GoString Nat) Unit, ghostMapAuth W.γpi 1 F ∗
-    ([∗map] q ↦ _u ∈ F, q ↪[W.γpi]□ ()) ∗ ⌜∀ q, F !! q = some () → walLeI q p⌝)
-
-instance walPastIAuth_timeless (p : AbsDiskState × GMap GoString Nat) :
-    Timeless (walPastIAuth (W := W) p) := by unfold walPastIAuth; infer_instance
-
-/-- What a past state says of the present one. -/
-theorem walPastI_le (p q : AbsDiskState × GMap GoString Nat) :
-    ⊢@{IProp GF} walPastIAuth (W := W) p -∗ walPastI (W := W) q -∗ ⌜walLeI q p⌝ := by
-  letI := walAllG (W := W)
-  unfold walPastIAuth walPastI
-  iintro ⟨%F, HA, -, %Hle⟩ Hq
-  icases ghost_map_lookup $$ HA Hq with %Hl
-  ipureintro; exact Hle q Hl
-
-/-- The authority at a bigger present. -/
-theorem walPastI_grow (p p' : AbsDiskState × GMap GoString Nat) (hle : walLeI p p') :
-    ⊢@{IProp GF} walPastIAuth (W := W) p -∗ walPastIAuth (W := W) p' := by
-  letI := walAllG (W := W)
-  unfold walPastIAuth
-  iintro ⟨%F, HA, HE, %Hle⟩
-  iexists F
-  iframe HA HE
-  ipureintro; exact fun q hq => walLeI_trans (Hle q hq) hle
-
-/-- The present's fact. -/
-theorem walPastI_snap (p : AbsDiskState × GMap GoString Nat) :
-    ⊢@{IProp GF} walPastIAuth (W := W) p ==∗ walPastIAuth (W := W) p ∗ walPastI (W := W) p := by
-  letI := walAllG (W := W)
-  unfold walPastIAuth walPastI
-  iintro ⟨%F, HA, #HE, %Hle⟩
-  cases hF : F !! p with
-  | some u =>
-    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := F)
-      (Φ := fun q _ => iprop(q ↪[W.γpi]□ ())) hF).1 $$ HE with ⟨#Hs, -⟩
-    imodintro
-    isplitl [HA]
-    · iexists F; iframe HA HE; ipureintro; exact Hle
-    · iexact Hs
-  | none =>
-    imod ghost_map_insert_persist p () hF $$ HA with ⟨HA, #Hs⟩
-    imodintro
-    isplitl [HA]
-    · iexists (F.insert p ())
-      iframe HA
-      isplitl
-      · iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := F)
-          (Φ := fun q _ => iprop(q ↪[W.γpi]□ ())) hF).2
-        iframe HE; iexact Hs
-      · ipureintro
-        intro q hq
-        rw [GMap.lookup_insert_eq_iff] at hq
-        by_cases hqp : p = q
-        · subst hqp; exact walLeI_refl p
-        · simp only [hqp, ite_false] at hq; exact Hle q hq
-    · iexact Hs
-
-end pastI
 
 section ghostInv
 variable {GF : BundledGFunctors} [W : WalGS GF] {hlc : HasLC} [GooseExts] [GooseInterp]
   [G : GooseGlobalGS hlc GF]
 
-/-- **What the WAL invariant holds of the ghost state, the real WAL state being `s`**: the map's
-other half, below `s`'s (`walMapLe`), the past states' authority, the handles' authorities, every
-WAL key in the area, and the WALs' step bound (`walStepsLb`). -/
-def walGhost (s : AbsDiskState) : IProp GF :=
+/-- **What the WAL invariant holds of the ghost state, the real WAL state being `s` and the
+incarnations `I`**: the map's other half, below `s`'s (`walMapLe`), the past states' authority (with
+their incarnations, below `(s, I)`) and half of the incarnations (the views hold the other,
+`walIncQ`), the handles' authorities, every WAL key in the area, and the WALs' step bound
+(`walStepsLb`). -/
+def walGhostI (s : AbsDiskState) (I : GMap GoString Nat) : IProp GF :=
   letI := walAllG (W := W)
   iprop((∃ G : GMap GoString WalDur, ghostVar W.hA.γs (1 : Qp).half G ∗ ⌜walMapLe G s.wal⌝) ∗
-    absPastAuth W.hA s ∗ (walHandleAuth (W := W) ∗ walLksAuth (W := W) s) ∗ ⌜walKeysInArea s⌝ ∗
-    walStepsLb s)
+    (walPastIAuth (W := W) (s, I) ∗ ghostVar W.γI (1 : Qp).half I) ∗
+    (walHandleAuth (W := W) ∗ walLksAuth (W := W) s) ∗ ⌜walKeysInArea s⌝ ∗ walStepsLb s)
+
+/-- **What the WAL invariant holds of the ghost state, the real WAL state being `s`** (at some
+incarnations). -/
+def walGhost (s : AbsDiskState) : IProp GF :=
+  iprop(∃ I : GMap GoString Nat, walGhostI (W := W) s I)
+
+instance walGhostI_timeless (s : AbsDiskState) (I : GMap GoString Nat) :
+    Timeless (walGhostI (W := W) s I) := by
+  letI := walAllG (W := W)
+  unfold walGhostI walPastIAuth walLksAuth; infer_instance
 
 instance walGhost_timeless (s : AbsDiskState) : Timeless (walGhost (W := W) s) := by
+  unfold walGhost; infer_instance
+
+theorem walGhostI_ghost (s : AbsDiskState) (I : GMap GoString Nat) :
+    walGhostI (W := W) s I ⊢ walGhost (W := W) s := by
+  unfold walGhost; iintro H; iexists I; iexact H
+
+/-- **`walGhost` at the view's incarnations** (the halves agree). -/
+theorem walGhost_inc (s : AbsDiskState) (I' : GMap GoString Nat) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walIncQ (W := W) I' -∗
+      walGhostI (W := W) s I' ∗ walIncQ (W := W) I' := by
+  unfold walGhost walGhostI walIncQ
   letI := walAllG (W := W)
-  unfold walGhost absPastAuth walLksAuth; infer_instance
+  iintro ⟨%I, Hm, ⟨Hp, Hi⟩, Hr⟩ Hq
+  icases ghostVar_agree $$ Hi Hq with %e
+  subst e
+  iframe Hm Hp Hi Hr Hq
+
+/-- **`walGhost` at a view's incarnation**: the view's `i` is the ghost's. -/
+theorem walGhost_dirIsI (s : AbsDiskState) (dir : GoString) (i : Nat) (o : Option WalDur) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walDirIsI (W := W) dir i o -∗
+      ∃ I, ⌜incOf I dir = i⌝ ∗ walGhostI (W := W) s I ∗ walDirIsI (W := W) dir i o := by
+  unfold walDirIsI
+  iintro Hg ⟨%M, %I, HM, HI, %h, %hi⟩
+  icases walGhost_inc s I $$ Hg HI with ⟨Hg, HI⟩
+  iexists I; iframe Hg
+  isplitr
+  · ipureintro; exact hi
+  iexists M, I; iframe HM HI; ipureintro; exact ⟨h, hi⟩
+
+/-- **An open handle's incarnation is the ghost's.** -/
+theorem walGhostI_openWI (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (dir : GoString) (i : Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walOpenWI (W := W) w dir i -∗
+      ⌜incOf I dir = i⌝ ∗ walGhostI (W := W) s I ∗ walOpenWI (W := W) w dir i := by
+  unfold walGhostI
+  iintro ⟨Hm, ⟨Hp, Hi⟩, Hr⟩ Hw
+  icases walOpenWI_cur w dir i _ I $$ Hw Hi with ⟨%h, Hw, Hi⟩
+  iframe Hm Hp Hi Hr Hw
+  ipureintro; exact h
 
 /-- What the program's WAL map says of the invariant's: it is below the real one. -/
 theorem walOwn_agree (s : AbsDiskState) (M : GMap GoString WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walOwn (W := W) M -∗ ⌜walMapLe M s.wal⌝ := by
-  unfold walGhost walOwn walOwnAt
+  unfold walGhost walGhostI walOwn walOwnAt
+  letI := walAllG (W := W)
+  iintro ⟨%I, ⟨%G, Hs, %HG⟩, -⟩ ⟨HM, -⟩
+  icases ghostVar_agree $$ HM Hs with %HMG
+  ipureintro; subst HMG; exact HG
+
+/-- `walOwn_agree` at `walGhostI`. -/
+theorem walGhostI_own_agree (s : AbsDiskState) (I : GMap GoString Nat) (M : GMap GoString WalDur) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walOwn (W := W) M -∗ ⌜walMapLe M s.wal⌝ := by
+  unfold walGhostI walOwn walOwnAt
   letI := walAllG (W := W)
   iintro ⟨⟨%G, Hs, %HG⟩, -⟩ ⟨HM, -⟩
   icases ghostVar_agree $$ HM Hs with %HMG
   ipureintro; subst HMG; exact HG
 
-/-- What a past state says of the present one. -/
+/-- What a past state (with its incarnations) says of the present one. -/
+theorem walPastI_ghost_le (s : AbsDiskState) (I : GMap GoString Nat) (p : AbsDiskState × GMap GoString Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walPastI (W := W) p -∗ ⌜walLeI p (s, I)⌝ := by
+  unfold walGhostI
+  iintro ⟨-, ⟨HP, -⟩, -⟩ Hp
+  iapply walPastI_le $$ HP Hp
+
+/-- What a past state says of the present one: the area and the durable directories. -/
 theorem walPast_ghost_le (s p : AbsDiskState) :
-    ⊢@{IProp GF} walGhost (W := W) s -∗ walPast (W := W) p -∗ ⌜absLe p s⌝ := by
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walPast (W := W) p -∗
+      ⌜s.area = p.area ∧ ∀ d, p.dirs !! d = some () → s.dirs !! d = some ()⌝ := by
   unfold walGhost walPast
-  iintro ⟨-, HP, -⟩ Hp
-  iapply absPast_le $$ HP Hp
+  iintro ⟨%I, Hg⟩ ⟨%I', Hp⟩
+  icases walPastI_ghost_le s I (p, I') $$ Hg Hp with %h
+  ipureintro; exact ⟨h.1, h.2.1⟩
+
+/-- **A synced lower bound of the current incarnation holds of the present WAL.** -/
+theorem walSyncedLb_ghost (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) (n : Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walSyncedLb (W := W) dir (incOf I dir) n -∗
+      ⌜∃ d, s.wal !! dir = some d ∧ n ≤ d.m⌝ := by
+  unfold walSyncedLb
+  iintro Hg ⟨%p, %I0, Hp, %hp⟩
+  icases walPastI_ghost_le s I (p, I0) $$ Hg Hp with %h
+  ipureintro
+  obtain ⟨he, d0, hd0, hn⟩ := hp.cur h
+  obtain ⟨d, hd, hm, -, -⟩ := h.2.2.2 dir d0 hd0 he.symm
+  exact ⟨d, hd, Nat.le_trans hn hm⟩
+
+/-- **Named, of the current incarnation, holds of the present WAL.** -/
+theorem walNamed_ghost (s : AbsDiskState) (I : GMap GoString Nat) (dir : GoString) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walNamed (W := W) dir (incOf I dir) -∗
+      ⌜∃ d, s.wal !! dir = some d ∧ d.named = true⌝ := by
+  unfold walNamed
+  iintro Hg ⟨%p, %I0, Hp, %hp⟩
+  icases walPastI_ghost_le s I (p, I0) $$ Hg Hp with %h
+  ipureintro
+  obtain ⟨he, d0, hd0, hn⟩ := hp.cur h
+  obtain ⟨d, hd, -, -, hn'⟩ := h.2.2.2 dir d0 hd0 he.symm
+  exact ⟨d, hd, hn' hn⟩
+
+/-- **A written length of the current incarnation holds of the present WAL.** -/
+theorem walLenLb_ghost (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (dir : GoString) (n : Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walLenLb (W := W) w dir (incOf I dir) n -∗
+      ⌜∃ d, s.wal !! dir = some d ∧ n ≤ d.H.length⌝ := by
+  unfold walLenLb
+  iintro Hg ⟨%γ, %p, %I0, -, Hp, %hp⟩
+  icases walPastI_ghost_le s I (p, I0) $$ Hg Hp with %h
+  ipureintro
+  obtain ⟨he, d0, hd0, hn⟩ := hp.cur h
+  obtain ⟨d, hd, -, hl, -⟩ := h.2.2.2 dir d0 hd0 he.symm
+  exact ⟨d, hd, Nat.le_trans hn hl⟩
+
+/-- **A written length's incarnation is not above the current one**: it is the current one or
+retired. -/
+theorem walLenLb_ghost_le (s : AbsDiskState) (I : GMap GoString Nat) (w : Loc) (dir : GoString)
+    (i n : Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walLenLb (W := W) w dir i n -∗ ⌜i ≤ incOf I dir⌝ := by
+  unfold walLenLb
+  iintro Hg ⟨%γ, %p, %I0, -, Hp, %hp⟩
+  icases walPastI_ghost_le s I (p, I0) $$ Hg Hp with %h
+  ipureintro
+  have := h.2.2.1 dir
+  simp only at this
+  rcases hp with ⟨he, -⟩ | hlt
+  · omega
+  · omega
 
 theorem walArea_ghost (s : AbsDiskState) (r : GoString) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walArea (W := W) r -∗ ⌜s.area = r⌝ := by
@@ -1467,21 +1815,26 @@ theorem walGhost_lksSet (s : AbsDiskState) (T : GMap GoString GName) (Lk Lk' : G
     (h : LksOk s Lk') :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walTailsFrag (W := W) T Lk ==∗
       walGhost (W := W) s ∗ walTailsFrag (W := W) T Lk' := by
-  unfold walGhost
-  iintro ⟨Hm, Hp, ⟨Hh, Hl⟩, Hk, Hs⟩ Hf
+  unfold walGhost walGhostI
+  iintro ⟨%I, Hm, Hp, ⟨Hh, Hl⟩, Hk, Hs⟩ Hf
   imod walLks_set s T Lk Lk' h $$ Hl Hf with ⟨Hl, Hf⟩
   imodintro
-  iframe Hf Hm Hp Hh Hl Hk Hs
+  iframe Hf
+  iexists I
+  iframe Hm Hp Hh Hl Hk Hs
 
 /-- **The locked ranges agree, from `walGhost`.** -/
 theorem walGhost_lksAgree (s : AbsDiskState) (T : GMap GoString GName) (Lk : GMap GoString Nat) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walTailsFrag (W := W) T Lk -∗
       ⌜LksOk s Lk⌝ ∗ walGhost (W := W) s ∗ walTailsFrag (W := W) T Lk := by
-  unfold walGhost
-  iintro ⟨Hm, Hp, ⟨Hh, Hl⟩, Hk, Hs⟩ Hf
+  unfold walGhost walGhostI
+  iintro ⟨%I, Hm, Hp, ⟨Hh, Hl⟩, Hk, Hs⟩ Hf
   icases walLks_agree s T Lk $$ Hl Hf with ⟨%h, Hl, Hf⟩
-  iframe Hf Hm Hp Hh Hl Hk Hs
-  ipureintro; exact h
+  iframe Hf
+  isplitr
+  · ipureintro; exact h
+  iexists I
+  iframe Hm Hp Hh Hl Hk Hs
 
 /-- One registered range, at most its WAL's `unl`. -/
 theorem LksOk.single {s : AbsDiskState} {dir : GoString} {d : WalDur} {b : Nat}
@@ -1493,25 +1846,28 @@ theorem LksOk.single {s : AbsDiskState} {dir : GoString} {d : WalDur} {b : Nat}
 
 theorem walGhost_keys (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ ⌜walKeysInArea s⌝ := by
-  unfold walGhost
-  iintro ⟨-, -, -, %hk, -⟩
+  unfold walGhost walGhostI
+  iintro ⟨%I, -, -, -, %hk, -⟩
   ipureintro; exact hk
 
 /-- **One purge right per handle.** -/
 theorem walGhost_keys_keep (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walGhost (W := W) s ∗ ⌜walKeysInArea s⌝ := by
-  unfold walGhost
-  iintro ⟨Hs, HP, Hh, %hk, #Hst⟩
-  iframe Hs HP Hh Hst
-  isplitl <;> ipureintro <;> exact hk
+  unfold walGhost walGhostI
+  iintro ⟨%I, Hs, HP, Hh, %hk, #Hst⟩
+  isplitl
+  · iexists I; iframe Hs HP Hh Hst; ipureintro; exact hk
+  · ipureintro; exact hk
 
 /-- **The WALs' step bound, read off the ghost state** (persistent). -/
 theorem walGhost_steps (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walGhost (W := W) s ∗ walStepsLb s := by
-  unfold walGhost
-  iintro ⟨Hs, HP, Hh, %hk, #Hst⟩
-  iframe Hs HP Hh Hst
-  ipureintro; exact hk
+  unfold walGhost walGhostI
+  iintro ⟨%I, Hs, HP, Hh, %hk, #Hst⟩
+  isplitl
+  · iexists I; iframe Hs HP Hh Hst
+    ipureintro; exact hk
+  · iexact Hst
 
 theorem walPurgeW_excl (γ : GName) :
     ⊢@{IProp GF} (letI := walAllG (W := W); γ ↪[W.γhp] ()) -∗
@@ -1521,9 +1877,40 @@ theorem walPurgeW_excl (γ : GName) :
   icases ghostMapElem_valid_2 γ _ (DFrac.own 1) (DFrac.own 1) () () $$ H1 H2 with %Hv
   exact absurd Hv.1 (dfrac_own_one_op_invalid _)
 
-/-- **The ghost state at a bigger real state, a counted step's receipt `⧖ n'` deposited** (an
-append's commit: the WAL's history one longer, within `n'`): the map set to the new state's, the past
-states kept, and the new state's fact. -/
+/-- **The ghost state at a bigger real state, the incarnations `I` kept, a counted step's receipt
+`⧖ n'` deposited** (an append's commit: the WAL's history one longer, within `n'`): the map set to the
+new state's, the past states kept, and the new state's fact with its incarnations. -/
+theorem walGhostI_updR (s s' : AbsDiskState) (I : GMap GoString Nat) (M : GMap GoString WalDur)
+    (hle : absLe s s')
+    (hk : walKeysInArea s → walKeysInArea s') (n' : Nat)
+    (hst : ∀ n, WalsStepped s n → WalsStepped s' (max n n'))
+    (hu : UnlMono s s') :
+    ⊢@{IProp GF} ⧖ n' -∗ walGhostI (W := W) s I -∗ walOwn (W := W) M ==∗
+      ⌜walMapLe M s.wal⌝ ∗ walGhostI (W := W) s' I ∗ walOwn (W := W) s'.wal ∗
+        walPastI (W := W) (s', I) := by
+  iintro #Hn' Hc HM
+  unfold walGhostI walOwn walOwnAt
+  letI := walAllG (W := W)
+  icases Hc with ⟨⟨%G, Hs, %HG⟩, ⟨HP, HI⟩, ⟨Hh, Hlk⟩, %Hk, #Hst⟩
+  icases HM with ⟨HM, Ht⟩
+  icases ghostVar_agree $$ HM Hs with %HMG
+  subst HMG
+  imod ghostVar_update_halves s'.wal _ _ _ $$ Hs HM with ⟨Hs, HM⟩
+  ihave HP := walPastI_grow _ (s', I) (walLeI_of_absLe I hle) $$ HP
+  imod walPastI_snap (s', I) $$ HP with ⟨HP, Hp⟩
+  ihave Hlk := walLksAuth_mono s s' hu $$ Hlk
+  imodintro
+  iframe HM Ht HP HI Hh Hlk Hp Hs
+  isplitr
+  · ipureintro; exact HG
+  isplitr
+  · ipureintro; exact walMapLe_refl _
+  isplitr
+  · ipureintro; exact hk Hk
+  iapply walStepsLb_upd s s' n' hst $$ Hn' Hst
+
+/-- **The ghost state at a bigger real state, a counted step's receipt `⧖ n'` deposited**
+(`walGhostI_updR` at the ghost's incarnations). -/
 theorem walGhost_updR (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absLe s s')
     (hk : walKeysInArea s → walKeysInArea s') (n' : Nat)
     (hst : ∀ n, WalsStepped s n → WalsStepped s' (max n n'))
@@ -1531,24 +1918,30 @@ theorem walGhost_updR (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : ab
     ⊢@{IProp GF} ⧖ n' -∗ walGhost (W := W) s -∗ walOwn (W := W) M ==∗
       ⌜walMapLe M s.wal⌝ ∗ walGhost (W := W) s' ∗ walOwn (W := W) s'.wal ∗ walPast (W := W) s' := by
   iintro #Hn' Hc HM
-  icases walOwn_agree $$ Hc HM with %HMs
-  unfold walGhost walOwn walOwnAt walPast
-  letI := walAllG (W := W)
-  icases Hc with ⟨⟨%G, Hs, -⟩, HP, ⟨Hh, Hlk⟩, %Hk, #Hst⟩
-  icases HM with ⟨HM, Ht⟩
-  imod ghostVar_update_halves s'.wal _ _ _ $$ Hs HM with ⟨Hs, HM⟩
-  ihave HP := absPast_grow _ s s' hle $$ HP
-  imod absPast_snap _ s' $$ HP with ⟨HP, Hp⟩
-  ihave Hlk := walLksAuth_mono s s' hu $$ Hlk
+  unfold walGhost walPast
+  icases Hc with ⟨%I, Hc⟩
+  imod walGhostI_updR s s' I M hle hk n' hst hu $$ Hn' Hc HM with ⟨%h, Hc, HM, #Hp⟩
   imodintro
-  iframe HM Ht HP Hh Hlk Hp Hs
+  iframe HM
   isplitr
-  · ipureintro; exact HMs
-  isplitr
-  · ipureintro; exact walMapLe_refl _
-  isplitr
-  · ipureintro; exact hk Hk
-  iapply walStepsLb_upd s s' n' hst $$ Hn' Hst
+  · ipureintro; exact h
+  isplitl [Hc]
+  · iexists I; iexact Hc
+  · iexists I; iexact Hp
+
+/-- **The ghost state at a bigger real state, the incarnations kept** (a step's update, no WAL's
+history longer than the bound). -/
+theorem walGhostI_upd (s s' : AbsDiskState) (I : GMap GoString Nat) (M : GMap GoString WalDur)
+    (hle : absLe s s')
+    (hk : walKeysInArea s → walKeysInArea s') (hst : ∀ n, WalsStepped s n → WalsStepped s' n)
+    (hu : UnlMono s s') :
+    ⊢@{IProp GF} walGhostI (W := W) s I -∗ walOwn (W := W) M ==∗
+      ⌜walMapLe M s.wal⌝ ∗ walGhostI (W := W) s' I ∗ walOwn (W := W) s'.wal ∗
+        walPastI (W := W) (s', I) := by
+  iintro Hc HM
+  imod preceipt_zero (GF := GF) with #H0
+  iapply walGhostI_updR s s' I M hle hk 0 (fun n hn => by rw [Nat.max_zero]; exact hst n hn) hu
+    $$ H0 Hc HM
 
 /-- **The ghost state at a bigger real state** (a step's update, no WAL's history longer than the
 bound): the map set to the new state's, the past states kept, and the new state's fact. -/
@@ -1561,6 +1954,27 @@ theorem walGhost_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : abs
   imod preceipt_zero (GF := GF) with #H0
   iapply walGhost_updR s s' M hle hk 0 (fun n hn => by rw [Nat.max_zero]; exact hst n hn) hu $$ H0 Hc HM
 
+/-- **The ghost state at a bigger real state, the program's map and the incarnations unchanged.** -/
+theorem walGhostI_upd_lag (s s' : AbsDiskState) (I : GMap GoString Nat)
+    (hlag : ∀ G, walMapLe G s.wal → walMapLe G s'.wal)
+    (hle : absLe s s') (hk : walKeysInArea s → walKeysInArea s')
+    (hst : ∀ n, WalsStepped s n → WalsStepped s' n)
+    (hu : UnlMono s s') :
+    ⊢@{IProp GF} walGhostI (W := W) s I ==∗ walGhostI (W := W) s' I ∗ walPastI (W := W) (s', I) := by
+  iintro Hc
+  unfold walGhostI
+  icases Hc with ⟨⟨%G, Hs, %HG⟩, ⟨HP, HI⟩, ⟨Hh, Hlk⟩, %Hk, #Hst⟩
+  ihave HP := walPastI_grow _ (s', I) (walLeI_of_absLe I hle) $$ HP
+  imod walPastI_snap (s', I) $$ HP with ⟨HP, Hp⟩
+  ihave Hlk := walLksAuth_mono s s' hu $$ Hlk
+  imodintro
+  iframe HP HI Hh Hlk Hp
+  isplitl [Hs]
+  · iexists G; iframe Hs; ipureintro; exact hlag G HG
+  isplitr
+  · ipureintro; exact hk Hk
+  iapply walStepsLb_mono s s' hst $$ Hst
+
 /-- **The ghost state at a bigger real state, the program's map unchanged.** -/
 theorem walGhost_upd_lag (s s' : AbsDiskState) (hlag : ∀ G, walMapLe G s.wal → walMapLe G s'.wal)
     (hle : absLe s s') (hk : walKeysInArea s → walKeysInArea s')
@@ -1569,27 +1983,34 @@ theorem walGhost_upd_lag (s s' : AbsDiskState) (hlag : ∀ G, walMapLe G s.wal �
     ⊢@{IProp GF} walGhost (W := W) s ==∗ walGhost (W := W) s' ∗ walPast (W := W) s' := by
   iintro Hc
   unfold walGhost walPast
-  icases Hc with ⟨⟨%G, Hs, %HG⟩, HP, ⟨Hh, Hlk⟩, %Hk, #Hst⟩
-  ihave HP := absPast_grow _ s s' hle $$ HP
-  imod absPast_snap _ s' $$ HP with ⟨HP, Hp⟩
-  ihave Hlk := walLksAuth_mono s s' hu $$ Hlk
+  icases Hc with ⟨%I, Hc⟩
+  imod walGhostI_upd_lag s s' I hlag hle hk hst hu $$ Hc with ⟨Hc, #Hp⟩
   imodintro
-  iframe HP Hh Hlk Hp
-  isplitl [Hs]
-  · iexists G; iframe Hs; ipureintro; exact hlag G HG
-  isplitr
-  · ipureintro; exact hk Hk
-  iapply walStepsLb_mono s s' hst $$ Hst
+  isplitl [Hc]
+  · iexists I; iexact Hc
+  · iexists I; iexact Hp
+
+/-- A past state's fact (with the incarnations), from the authority. -/
+theorem walGhostI_past (s : AbsDiskState) (I : GMap GoString Nat) :
+    ⊢@{IProp GF} walGhostI (W := W) s I ==∗ walGhostI (W := W) s I ∗ walPastI (W := W) (s, I) := by
+  iintro Hc
+  unfold walGhostI
+  icases Hc with ⟨Hs, ⟨HP, HI⟩, Hh, Hk⟩
+  imod walPastI_snap (s, I) $$ HP with ⟨HP, Hp⟩
+  imodintro
+  iframe Hs HP HI Hh Hk Hp
 
 /-- A past state's fact, from the authority. -/
 theorem walGhost_past (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s ==∗ walGhost (W := W) s ∗ walPast (W := W) s := by
   iintro Hc
   unfold walGhost walPast
-  icases Hc with ⟨Hs, HP, Hh, Hk⟩
-  imod absPast_snap _ s $$ HP with ⟨HP, Hp⟩
+  icases Hc with ⟨%I, Hc⟩
+  imod walGhostI_past s I $$ Hc with ⟨Hc, #Hp⟩
   imodintro
-  iframe Hs HP Hh Hk Hp
+  isplitl [Hc]
+  · iexists I; iexact Hc
+  · iexists I; iexact Hp
 
 end ghostInv
 
@@ -1603,7 +2024,7 @@ invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and t
 WALs' step bound carried over (`walStepsLb`: a crash keeps a prefix of each history). -/
 theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} walStepsLb s -∗ |==> ∃ W : WalGS GF, ⌜W.roots = R⌝ ∗ walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
-      walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
+      walIncQ (W := W) ∅ ∗ walPastI (W := W) (s, ∅) ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true ∗
       walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ walOutAuth (W := W) WalOut.empty ∗
       walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗ walSplitFrag (W := W) [] ∗
@@ -1612,7 +2033,7 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
-  imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Loc × GoString)) with ⟨%γhd, Hhd⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Loc × GoString × Nat)) with ⟨%γhd, Hhd⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Unit)) with ⟨%γhp, Hhp⟩
   imod token_alloc (GF := GF) with ⟨%γc, Hc⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Fs.NameSet × Fs.NamesH × Fs.Ino))
@@ -1627,9 +2048,17 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
   imod (ghostVar_alloc (GF := GF) ([] : List GoString)) with ⟨%γnw, Hnw⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName × Nat × Bool)) with ⟨%γl, Hl⟩
   imod (ghostVar_alloc (GF := GF) (∅ : GMap GoString Nat)) with ⟨%γlk, Hlk⟩
-  imod (ghostVar_alloc (GF := GF) (∅ : GMap GoString Nat)) with ⟨%γI, -⟩
-  imod (ghost_map_alloc_empty (GF := GF) (K := AbsDiskState × GMap GoString Nat) (V := Unit))
-    with ⟨%γpi, -⟩
+  imod (ghostVar_alloc (GF := GF) (∅ : GMap GoString Nat)) with ⟨%γI, HI⟩
+  icases (ghostVar_split_half (GF := GF) γI 1 (∅ : GMap GoString Nat)).1 $$ HI with ⟨HI1, HI2⟩
+  icases (ghostVar_split_half (GF := GF) γI (1 : Qp).half (∅ : GMap GoString Nat)).1 $$ HI2 with ⟨HI2, HI3⟩
+  have hsing : (GMap.singleton ((s, ∅) : AbsDiskState × GMap GoString Nat) () :
+      GMap (AbsDiskState × GMap GoString Nat) Unit) = (∅ : GMap _ _).insert (s, ∅) () := rfl
+  imod (ghost_map_alloc (GF := GF) (GMap.singleton ((s, ∅) : AbsDiskState × GMap GoString Nat) ()))
+    with ⟨%γpi, HF, HFe⟩
+  rw [hsing]
+  icases (BigSepM.bigSepM_insert (PROP := IProp GF) (m := (∅ : GMap (AbsDiskState × GMap GoString Nat) Unit))
+    (Φ := fun p v => iprop(p ↪[γpi] v)) rfl).1 $$ HFe with ⟨Hse, -⟩
+  imod ghostMapElem_persist $$ Hse with #Hse
   iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw, γl, γlk, γI, γpi, R⟩
   icases (ghostVar_split_half (GF := GF) γlk 1 (∅ : GMap GoString Nat)).1 $$ Hlk with ⟨Hlk1, Hlk2⟩
   icases (ghostVar_split_half (GF := GF) γnm 1 (none : Option GoString)).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
@@ -1641,27 +2070,50 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (
   imodintro
   iunfold absDiskCtx at Hctx
   icases Hctx with ⟨Hs, HP, -, -⟩
+  iunfold absPastAuth at HP
+  icases HP with ⟨%F0, -, -, -, #Ha⟩
   iunfold absDiskStart at Hst
-  icases Hst with ⟨HM, Hp, Hu⟩
-  unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
+  icases Hst with ⟨HM, -, Hu⟩
+  unfold walGhost walGhostI walPastIAuth walPastI walOwn walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
     walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walOutFrag walOutAuth walTailsFrag
-    walNamesFrag walNamesAuth walSplitFrag walSplitAuth walLentAuth walLksAuth walAllG
-  iframe Hs HP HM Hp Hu Hc Hcr Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2 Hl Hlk1 Hlk2
+    walNamesFrag walNamesAuth walSplitFrag walSplitAuth walLentAuth walLksAuth walIncAny walIncQ walAllG
+  iframe Hs HM Hu Hc Hcr HI2 Hse Ha Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2 Hl Hlk1 Hlk2
+  icases (ghostVar_split_half (GF := GF) γI (1 : Qp).half (∅ : GMap GoString Nat)).1 $$ HI1 with ⟨HI1, HI4⟩
   isplitr
   · ipureintro; rfl
-  isplitl [Hh Hhd Hhp]
-  · isplitl [Hh Hhd Hhp]
+  isplitl [Hh Hhd Hhp HF HI1]
+  · isplitl [HF HI1]
+    · iframe HI1
+      iexists ((∅ : GMap (AbsDiskState × GMap GoString Nat) Unit).insert (s, ∅) ())
+      iframe HF
+      isplitl
+      · iapply (BigSepM.bigSepM_insert (PROP := IProp GF)
+          (m := (∅ : GMap (AbsDiskState × GMap GoString Nat) Unit))
+          (Φ := fun p _ => iprop(p ↪[γpi]□ ())) rfl).2
+        iframe Hse
+        iapply BigSepM.bigSepM_empty.2; itrivial
+      · ipureintro
+        intro p hp
+        rw [GMap.lookup_insert_eq_iff] at hp
+        by_cases hq : ((s, ∅) : AbsDiskState × GMap GoString Nat) = p
+        · subst hq; exact walLeI_refl _
+        · simp only [hq, ite_false, GMap.lookup_empty] at hp; cases hp
+    isplitl [Hh Hhd Hhp]
     · isplitl [Hh Hhd Hhp]
       · iexists 0, ∅, ∅, ∅
         iframe Hh Hhd Hhp
         ipureintro; intro k _; exact ⟨rfl, rfl, rfl⟩
       · ipureintro; exact LksOk.empty s
-    · isplitr
-      · ipureintro; exact hk
-      · iexact Hstp
-  · isplitr
-    · ileft; ipureintro; rfl
-    · iapply BigSepM.bigSepM_empty.2; iempintro
+    isplitr
+    · ipureintro; exact hk
+    · iexact Hstp
+  isplitl [HI4]
+  · iexact HI4
+  isplitl [HI3]
+  · iexists ∅; iexact HI3
+  isplitr
+  · ileft; ipureintro; rfl
+  · iapply BigSepM.bigSepM_empty.2; iempintro
 
 end init
 
