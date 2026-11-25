@@ -219,7 +219,7 @@ def lin (i : I) (Φ : O → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (st : St), R.sysState st }> @ ⊤ \ R.Eop, ∅
     <{ R.sysState (R.B.step (R.mi i) st).1, COMM Φ (R.B.step (R.mi i) st).2 }>)
 
-omit π ρ in
+omit π ρ [Pos.Countable I] [Pos.Countable O] in
 /-- An atomic update fired once. -/
 theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := by
   unfold lin linF
@@ -235,7 +235,7 @@ theorem lin_linF (i : I) (Φ : O → IProp GF) : lin R i Φ ⊢ linF R i Φ := b
   icases H with ⟨-, H⟩
   iapply H $$ Hs
 
-omit π ρ in
+omit π ρ [Pos.Countable I] [Pos.Countable O] in
 /-- **A read's update, persistently, is an atomic update**: aborting it fires it at the same state
 (`reads_stay`). -/
 theorem linF_read_lin {i : I} {Φ : O → IProp GF} (hw : R.B.isWrite (R.mi i) = false) :
