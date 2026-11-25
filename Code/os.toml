@@ -53,7 +53,12 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "fileWithoutWriteTo.Read", "fileWithoutWriteTo.SyscallConn", "fileWithoutReadFrom.Write",
   # (2026-11-24, S5) Go's code over the model (the [model] table below)
   "fileStat", "File.Fd", "File.fd", "File.readFrom", "File.spliceToFile",
-  "rawConn.Control", "rawConn.Read", "rawConn.Write",
+  # (2026-11-25, perennial#692 decision (b), etcd-grove#8 7166757537) `rawConn.Control`/`Read`/`Write`
+  # stay names-only (no model, no trusted body): Go's bodies call `poll.FD.RawControl`/`RawRead`/
+  # `RawWrite`, names-only here, so no proof could pass them anyway, and their `runtime.KeepAlive`
+  # would make `os` import `runtime`, whose initializer rests on the trust-boundary axioms of
+  # Proof/runtime/Init.lean (every program importing `os` would then rest on them). With `runtime`
+  # out of the imports goose also leaves out `Process` (its `cleanup runtime.Cleanup` field).
   "MkdirAll", "Mkdir", "Remove", "fixLongPath", "ignoringEINTR", "syscallMode",
   "supportsCreateWithStickyBit",
   "ModeDir", "ModeSymlink", "ModeSetuid", "ModeSetgid", "ModeSticky",
@@ -63,7 +68,7 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "Exit"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll", "sync/atomic", "time",
-  "runtime", "internal/filepathlite", "internal/gomodel",
+  "internal/filepathlite", "internal/gomodel",
   # (zap-z2) what `Exit` calls (`testlog.PanicOnExit0`)
   "internal/testlog"]
 # (2026-11-24, Go-model overlays S5, perennial#692) The functions and methods minibolt, the WAL and
@@ -97,8 +102,8 @@ translate_types = true
 
 # (2026-11-24, S5) Go's code over the model: the real `fileStat` (its layout: `modTime` and `sys` are
 # left zero by the models, so `ModTime`, `Sys` and `sameFile` stay untranslated), `File.Fd`, the
-# zero-copy dispatch's `readFrom`/`spliceToFile` (`pollSplice` and `rawConn`'s `poll.FD.Raw*` are
-# names only: no proof passes them), `MkdirAll` (over `internal/filepathlite`), and `Mkdir`/`Remove`
+# zero-copy dispatch's `readFrom`/`spliceToFile` (`pollSplice` and `rawConn`'s methods are names
+# only: no proof passes them), `MkdirAll` (over `internal/filepathlite`), and `Mkdir`/`Remove`
 # over syscall's models of `Mkdir`, `Unlink` and `Rmdir` (Code/syscall.toml).
 [model]
 dir = "models/os"

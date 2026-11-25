@@ -10,7 +10,6 @@ public import GeneratedProof.internal.poll
 public import Perennial.GeneratedProof.internal.testlog
 public import Perennial.GeneratedProof.io
 public import GeneratedProof.io.fs
-public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import GeneratedProof.syscall
@@ -186,101 +185,12 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance Process_typed_pointsto :
-    TypedPointsto (GF := GF) os.Process where
-  typedPointstoDef l v dq := iprop(
-    "Pid" ∷ typedPointsto (structFieldRef os.Process go!"Pid" l) v.Pid' dq ∗
-    "state" ∷ typedPointsto (structFieldRef os.Process go!"state" l) v.state' dq ∗
-    "sigMu" ∷ typedPointsto (structFieldRef os.Process go!"sigMu" l) v.sigMu' dq ∗
-    "handle" ∷ typedPointsto (structFieldRef os.Process go!"handle" l) v.handle' dq ∗
-    "cleanup" ∷ typedPointsto (structFieldRef os.Process go!"cleanup" l) v.cleanup' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
+    TypedPointsto (GF := GF) os.Process :=
+  sorry -- axiomatized type
 
 noncomputable instance Process_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.Process os.Process.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance Process_access_load_Pid (l : Loc) (v : os.Process) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"Pid" l) v.Pid' dq)
-      (typedPointsto (structFieldRef os.Process go!"Pid" l) v.Pid' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_store_Pid (l : Loc) (v : os.Process) (Pid' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"Pid" l) v.Pid' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.Process go!"Pid" l) Pid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pid' := Pid' } : os.Process) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_load_state (l : Loc) (v : os.Process) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef os.Process go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_store_state (l : Loc) (v : os.Process) (state' : _root_.Perennial.sync.atomic.Uint32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.Process go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : os.Process) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_load_sigMu (l : Loc) (v : os.Process) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"sigMu" l) v.sigMu' dq)
-      (typedPointsto (structFieldRef os.Process go!"sigMu" l) v.sigMu' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_store_sigMu (l : Loc) (v : os.Process) (sigMu' : _root_.Perennial.sync.RWMutex) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"sigMu" l) v.sigMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.Process go!"sigMu" l) sigMu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sigMu' := sigMu' } : os.Process) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_load_handle (l : Loc) (v : os.Process) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"handle" l) v.handle' dq)
-      (typedPointsto (structFieldRef os.Process go!"handle" l) v.handle' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_store_handle (l : Loc) (v : os.Process) (handle' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"handle" l) v.handle' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.Process go!"handle" l) handle' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with handle' := handle' } : os.Process) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_load_cleanup (l : Loc) (v : os.Process) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"cleanup" l) v.cleanup' dq)
-      (typedPointsto (structFieldRef os.Process go!"cleanup" l) v.cleanup' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Process_access_store_cleanup (l : Loc) (v : os.Process) (cleanup' : _root_.Perennial.runtime.Cleanup) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.Process go!"cleanup" l) v.cleanup' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.Process go!"cleanup" l) cleanup' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cleanup' := cleanup' } : os.Process) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
+    IntoValTypedUnderlying (GF := GF) os.Process os.Process.underlying :=
+  sorry -- axiomatized type
 
 end def_
 end Process

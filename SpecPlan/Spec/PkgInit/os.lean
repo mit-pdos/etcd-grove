@@ -7,7 +7,6 @@ public import Perennial.Proof.internal.gomodel.Base
 public import SpecPlan.Spec.PkgInit.internal.filepathlite
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.io.fs
-public import Perennial.Proof.runtime.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.syscall
 public import Perennial.Proof.internal.testlog.Base

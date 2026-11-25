@@ -5,7 +5,6 @@ public import Perennial.Code.internal.gomodel
 public import Code.internal.filepathlite
 public import Perennial.Code.io
 public import Code.io.fs
-public import Perennial.Code.runtime
 public import Perennial.Code.sync
 public import Code.syscall
 public import Perennial.Code.internal.testlog
@@ -171,6 +170,8 @@ attribute [irreducible] fileStat.ty
 
 @[reducible] noncomputable def syscallErrorType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.syscall.Errno.ty
+
+opaque Process.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def sysfdType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
@@ -3879,132 +3880,6 @@ noncomputable def Exit.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Val #())))
 
-/-- go: rawconn.go:18:19 -/
-noncomputable def rawConn.Control.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "c"
-  (Lam "f"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType rawConn.ty)))) (Var "c"))
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))))) (Var "f"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))))) (Var "f"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty) go!"RawControl"))) (App (Val (GoInstruction (StructFieldRef file.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType file.ty)))) (App (Val (GoInstruction (StructFieldRef File.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c")))))))) (Var "$a0")))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType File.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.runtime.KeepAlive []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
-  (Let "$r0" (Let "$a0" (Val #(go!"SyscallConn.Control"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c"))))) (Var "$a0")))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
-
-/-- go: rawconn.go:27:19 -/
-noncomputable def rawConn.Read.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "c"
-  (Lam "f"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType rawConn.ty)))) (Var "c"))
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))))) (Var "f"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))))) (Var "f"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty) go!"RawRead"))) (App (Val (GoInstruction (StructFieldRef file.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType file.ty)))) (App (Val (GoInstruction (StructFieldRef File.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c")))))))) (Var "$a0")))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType File.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.runtime.KeepAlive []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
-  (Let "$r0" (Let "$a0" (Val #(go!"SyscallConn.Read"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c"))))) (Var "$a0")))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
-
-/-- go: rawconn.go:36:19 -/
-noncomputable def rawConn.Write.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "c"
-  (Lam "f"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType rawConn.ty)))) (Var "c"))
-  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))))) (Var "f"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))))) (Var "f"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty) go!"RawWrite"))) (App (Val (GoInstruction (StructFieldRef file.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType file.ty)))) (App (Val (GoInstruction (StructFieldRef File.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c")))))))) (Var "$a0")))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType File.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.runtime.KeepAlive []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
-  (Let "$r0" (Let "$a0" (Val #(go!"SyscallConn.Write"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (StructFieldRef rawConn.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "c"))))) (Var "$a0")))
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
-  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
-
 /-- go: rawconn.go:45:6 -/
 noncomputable def newRawConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "file"
@@ -6193,13 +6068,12 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"os.modelDirNamesMu", "The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read\nand written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's\nDirReadNext).", "var modelDirNamesMu sync.Mutex"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.os where
-  pkgImportedPkgs := [pkg_id.internal.gomodel, pkg_id.internal.filepathlite, pkg_id.io, pkg_id.io.fs, pkg_id.runtime, pkg_id.sync, pkg_id.syscall, pkg_id.internal.testlog, pkg_id.internal.poll, pkg_id.errors, pkg_id.sync.atomic, pkg_id.time]
+  pkgImportedPkgs := [pkg_id.internal.gomodel, pkg_id.internal.filepathlite, pkg_id.io, pkg_id.io.fs, pkg_id.sync, pkg_id.syscall, pkg_id.internal.testlog, pkg_id.internal.poll, pkg_id.errors, pkg_id.sync.atomic, pkg_id.time]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.os)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6357,8 +6231,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.fs.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.runtime.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6556,62 +6428,22 @@ attribute [instance] processStatus.TypeAssumptions.underlying
   processStatus.TypeAssumptions.method_set
   processStatus.TypeAssumptions.ptr_method_set
 
-structure Process [GooseExts] where
-  mk ::
-  Pid' : w64
-  state' : _root_.Perennial.sync.atomic.Uint32
-  sigMu' : _root_.Perennial.sync.RWMutex
-  handle' : Loc
-  cleanup' : _root_.Perennial.runtime.Cleanup
-
-noncomputable instance Process.zero_val [GooseExts] : ZeroVal Process :=
-  ⟨Process.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def Process.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Pid" go.int),
-(go.field_decl.FieldDecl go!"state" _root_.Perennial.sync.atomic.Uint32.ty),
-(go.field_decl.FieldDecl go!"sigMu" _root_.Perennial.sync.RWMutex.ty),
-(go.field_decl.FieldDecl go!"handle" (go.GoType.PointerType processHandle.ty)),
-(go.field_decl.FieldDecl go!"cleanup" _root_.Perennial.runtime.Cleanup.ty)]
-
-@[irreducible] noncomputable def Process.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  Process.fieldsUnsealed
-
-noncomputable instance equals_unfold_Process [GooseExts] [GoGlobalContext] :
-    EqualsUnfold Process.fields Process.fieldsUnsealed :=
-  ⟨by unfold Process.fields; rfl⟩
-
-@[reducible] noncomputable def Process.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType Process.fields)
+opaque Process.nonempty_type : NonemptyType.{0}
+def Process : Type := Process.nonempty_type.type
+instance Process.nonempty : Nonempty Process := Process.nonempty_type.property
+opaque Process.zero_val : ZeroVal Process := ⟨Classical.ofNonempty⟩
+attribute [instance] Process.zero_val
 
 class Process.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Process.underlying Process
   underlying : go.UnderlyingDirectedEq Process.ty Process.underlying
-  get_Pid : ∀ (x : Process), go.IsGoStepPureDetTagged under (StructFieldGet Process.underlying go!"Pid") #x (Val #(x.Pid'))
-  set_Pid : ∀ (x : Process) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Process.underlying go!"Pid") (PairV #x #y) (Val #(({ x with Pid' := y } : Process)))
-  get_state : ∀ (x : Process), go.IsGoStepPureDetTagged under (StructFieldGet Process.underlying go!"state") #x (Val #(x.state'))
-  set_state : ∀ (x : Process) (y : _root_.Perennial.sync.atomic.Uint32), go.IsGoStepPureDetTagged under (StructFieldSet Process.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Process)))
-  get_sigMu : ∀ (x : Process), go.IsGoStepPureDetTagged under (StructFieldGet Process.underlying go!"sigMu") #x (Val #(x.sigMu'))
-  set_sigMu : ∀ (x : Process) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Process.underlying go!"sigMu") (PairV #x #y) (Val #(({ x with sigMu' := y } : Process)))
-  get_handle : ∀ (x : Process), go.IsGoStepPureDetTagged under (StructFieldGet Process.underlying go!"handle") #x (Val #(x.handle'))
-  set_handle : ∀ (x : Process) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Process.underlying go!"handle") (PairV #x #y) (Val #(({ x with handle' := y } : Process)))
-  get_cleanup : ∀ (x : Process), go.IsGoStepPureDetTagged under (StructFieldGet Process.underlying go!"cleanup") #x (Val #(x.cleanup'))
-  set_cleanup : ∀ (x : Process) (y : _root_.Perennial.runtime.Cleanup), go.IsGoStepPureDetTagged under (StructFieldSet Process.underlying go!"cleanup") (PairV #x #y) (Val #(({ x with cleanup' := y } : Process)))
+  isUnderlying : go.IsUnderlying Process.underlying Process.underlying
   method_set : go.MethodSetIs Process.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Process.ty) [(go!"Kill", (some (go.signature.Signature [] false [go.error]))), (go!"Release", (some (go.signature.Signature [] false [go.error]))), (go!"Signal", (some (go.signature.Signature [Signal.ty] false [go.error]))), (go!"Wait", (some (go.signature.Signature [] false [(go.GoType.PointerType ProcessState.ty), go.error]))), (go!"WithHandle", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error]))), (go!"os.blockUntilWaitable", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"os.doRelease", (some (go.signature.Signature [processStatus.ty] false [processStatus.ty]))), (go!"os.handleTransientAcquire", (some (go.signature.Signature [] false [go.uintptr, processStatus.ty]))), (go!"os.handleTransientRelease", (some (go.signature.Signature [] false []))), (go!"os.kill", (some (go.signature.Signature [] false [go.error]))), (go!"os.pidSignal", (some (go.signature.Signature [_root_.Perennial.syscall.Signal.ty] false [go.error]))), (go!"os.pidStatus", (some (go.signature.Signature [] false [processStatus.ty]))), (go!"os.pidWait", (some (go.signature.Signature [] false [(go.GoType.PointerType ProcessState.ty), go.error]))), (go!"os.pidfdSendSignal", (some (go.signature.Signature [_root_.Perennial.syscall.Signal.ty] false [go.error]))), (go!"os.pidfdWait", (some (go.signature.Signature [] false [(go.GoType.PointerType ProcessState.ty), go.error]))), (go!"os.signal", (some (go.signature.Signature [Signal.ty] false [go.error]))), (go!"os.wait", (some (go.signature.Signature [] false [(go.GoType.PointerType ProcessState.ty), go.error]))), (go!"os.withHandle", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error])))]
 
 attribute [instance] Process.TypeAssumptions.type_repr
   Process.TypeAssumptions.underlying
-  Process.TypeAssumptions.get_Pid
-  Process.TypeAssumptions.set_Pid
-  Process.TypeAssumptions.get_state
-  Process.TypeAssumptions.set_state
-  Process.TypeAssumptions.get_sigMu
-  Process.TypeAssumptions.set_sigMu
-  Process.TypeAssumptions.get_handle
-  Process.TypeAssumptions.set_handle
-  Process.TypeAssumptions.get_cleanup
-  Process.TypeAssumptions.set_cleanup
+  Process.TypeAssumptions.isUnderlying
   Process.TypeAssumptions.method_set
   Process.TypeAssumptions.ptr_method_set
 
@@ -7180,9 +7012,6 @@ class rawConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_file : ∀ (x : rawConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet rawConn.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : rawConn)))
   method_set : go.MethodSetIs rawConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawConn.ty) [(go!"Control", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error])))]
-  ptr_Control_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Control" rawConn.Control.impl
-  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Read" rawConn.Read.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Write" rawConn.Write.impl
 
 attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.underlying
@@ -7190,9 +7019,6 @@ attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.set_file
   rawConn.TypeAssumptions.method_set
   rawConn.TypeAssumptions.ptr_method_set
-  rawConn.TypeAssumptions.ptr_Control_unfold
-  rawConn.TypeAssumptions.ptr_Read_unfold
-  rawConn.TypeAssumptions.ptr_Write_unfold
 
 structure Root [GooseExts] where
   mk ::
@@ -7559,7 +7385,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_filepathlite_Assumption : _root_.Perennial.internal.filepathlite.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
-  import_runtime_Assumption : _root_.Perennial.runtime.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
   import_testlog_Assumption : _root_.Perennial.internal.testlog.Assumptions
@@ -7664,7 +7489,6 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.import_filepathlite_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_fs_Assumption
-  Assumptions.import_runtime_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_syscall_Assumption
   Assumptions.import_testlog_Assumption

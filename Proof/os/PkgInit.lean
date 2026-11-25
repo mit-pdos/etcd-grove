@@ -18,7 +18,6 @@ public import Proof.internal.poll.PkgInit
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.sync.atomic.Base
-public import Perennial.Proof.runtime.Base
 public import Proof.internal.filepathlite.PkgInit
 public import Perennial.Proof.internal.gomodel.Base
 public import Perennial.Proof.internal.oserror.Base
