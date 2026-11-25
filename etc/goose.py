@@ -227,7 +227,9 @@ PROJECTS = [
         # Then (bbolt crash safety P13, 2026-11-25) ea5656d (branch `goose-lean-init-crashsafe`): a writable
         # `Open` initializes again a file of at most four pages whose every byte is zero or `initImage`'s,
         # unless it is that whole image (the etcd fork's 19e0771; issues/bbolt-init-not-crash-safe.md).
-        rev="ea5656d07684d720b464c200eaa1e7a1e1079891",
+        # Then (P13b) 2f6fcff (branch `goose-lean-open-sync-early`): `Open`'s `fdatasync` (c5a6065) runs before
+        # the file is mapped, right after `init` or `getPageSize`, so the file is whole and synced at one point.
+        rev="2f6fcfff7e4bdafc900114428d7657bacbfa41b4",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[

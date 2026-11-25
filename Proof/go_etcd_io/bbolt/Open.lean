@@ -1,13 +1,13 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/Open.lean` (U11g, `notes/bbolt-proof-plan.md`; design §3.11
 "Open"): the fields `Open` sets, the file opened and locked, initialized when empty (`DB.init`)
-or its page size read (`getPageSize`), the page pool, the mapping (`mmapUnlocked`, owned), the
-freelist loaded (`DB.loadFreelist.spec_open`: the core phase, `Open/Core`), the writer phase
-(`Open/Core.open_writer`), unless `NoSync` the file synced (`fdatasync`, bbolt `ea4cab52`:
-issues/bbolt-open-unsynced-meta-kill-then-power-loss.md; the writer side's file metadata changes,
-`Open/SyncAcc.wdbCore_file_acc`; on an error, `db.Close()` over the database the writer phase
-made), and, for a file with no synced freelist, a write transaction committed unchanged (`Begin`,
-`Commit`, over the client's `boltState` it then returns).
+or its page size read (`getPageSize`), unless `NoSync` the whole file synced with its bytes
+(`fdatasync.specS`; bbolt `c5a6065`, before the mapping since `2f6fcff`:
+issues/bbolt-open-unsynced-meta-kill-then-power-loss.md; on an error, `db.close()`), the page pool,
+the mapping (`mmapUnlocked`, owned), the freelist loaded (`DB.loadFreelist.spec_open`: the core
+phase, `Open/Core`), the writer phase (`Open/Core.open_writer`), and, for a file with no synced
+freelist, a write transaction committed unchanged (`Begin`, `Commit`, over the client's
+`boltState` it then returns).
 
 Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once the transaction
 began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
@@ -334,6 +334,16 @@ private abbrev openFileDb.spec [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] {X 
        ⌜err ≠ interface.nil ∧ f = null ∧ Ek⌝) ∗
       fmtErrorOkOrNil err }}
 
+/-- An opened file's facts hold of it synced: a sync changes no byte's value (each becomes
+`durB` of it) and not the size. -/
+theorem openOK_synced [ExtSemantics fsExt] [FsSemOk] (C : CommitSt) (D : Data) (m : OsMeta)
+    (xs : List ByteG) (h : openOK C D m xs) : openOK C D m.synced (xs.map fun x => durB x.1) := by
+  have e : (xs.map fun x => durB x.1).map Prod.fst = xs.map Prod.fst := by
+    rw [List.map_map]; rfl
+  unfold openOK at *
+  rw [e]
+  exact h
+
 set_option maxHeartbeats 4000000 in
 private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
@@ -347,7 +357,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     (hMmap : DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
     (hLoad : DB.loadFreelist.spec_open (GF := GF) (hG := hG))
     (hSync : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (hFds : fdatasync.specW (GF := GF) (hG := hG))
+    (hFds : fdatasync.specS (GF := GF) (hG := hG))
     (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
     (hCommit : Tx.Commit_err.spec (GF := GF) (hG := hG))
     (hClose : DB.Close.specTok (GF := GF) (hG := hG))
@@ -823,11 +833,97 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     iright; ipureintro; exact ⟨hne, hk⟩
   subst Hv
   ipersist pageSize
+  ipersist NoSync
+  try wp_auto
+  -- `if !db.readOnly && !db.NoSync { fdatasync(db) }` (bbolt `c5a6065`, moved before the mapping
+  -- by `2f6fcff`): the whole file synced, its bytes with it (`fdatasync.specS`); on an error,
+  -- `db.close()` (no lock or mapping is held yet)
+  obtain ⟨hmaps', hxl', hsz', hC, hBm'⟩ := HC
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗
+      ∃ (m2 : OsMeta) (xs2 : List ByteG),
+        osMeta p.ino (DFrac.own 1) m2 ∗ osBytes p.ino 0 (DFrac.own 1) xs2 ∗
+        ⌜m2.maps = ∅ ∧ xs2.length = m2.size ∧ (m2.size < 2 ^ 62 ∧ m2.size % 4096 = 0) ∧
+          openOK C D m2 xs2 ∧ (Ek ∨ m2.size ≤ 0xFFFFFFFFFFFF) ∧
+          (nos = false → m2 = m'.synced ∧ xs2 = xs'.map (fun x => durB x.1))⌝ ∗
+        dbl.[DB, go!"file"] ↦ f ∗
+        (dbl.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
+          methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
+        fileOwn f fd p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (dbFd p.ino) ∗
+        dbl.[DB, go!"readOnly"] ↦ false ∗ dbl.[DB, go!"opened"] ↦ true ∗
+        dbl.[DB, go!"freelist"] ↦ GoInterface.nil ∗ dbPathLk dbl p fd ∗
+        mapFields dbl (DFrac.own 1) none ∗ dbl.[DB, go!"datasz"] ↦ W64 0 ∗
+        err_ptr ↦ GoInterface.nil ∗ db_ptr ↦ dbl ∗ defer ↦ dv) ∨
+    (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ GoInterface.nil ∧ Ek⌝ ∗ err_ptr ↦ e ∗
+      fmtErrorOkOrNil e ∗ db_ptr ↦ null ∗ defer ↦ dv)))
+    at next with [Hfm Hxs file writeAt Hf Hfdo readOnly opened freelist path Hmf datasz err db
+      Hdefer]
+  · try wp_auto
+    cases nos
+    · -- `NoSync` false: the sync
+      try wp_auto
+      wp_apply hFds dbl f fd p p.ino m' xs' (DFrac.own 1) (DFrac.own 1)
+        (OsMeta.covers_whole m' hxl') $$ [file Hf Hfdo Hfm Hxs]
+        as %serr ⟨file, Hf, Hfdo, Hsr⟩
+      · iframe file Hf Hfdo Hfm Hxs; iframe #
+      icases Hsr with (⟨%Hse, Hfm, Hxs⟩ | ⟨%Hse, #Hek, Hfm, Hxs⟩)
+      · subst Hse
+        try wp_auto
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists m'.synced, xs'.map (fun x => durB x.1)
+        iframe Hfm Hxs file writeAt Hf Hfdo readOnly opened freelist path Hmf datasz err db Hdefer
+        ipureintro
+        refine ⟨hmaps', by simp only [List.length_map]; exact hxl', hsz', openOK_synced C D m' xs' hC,
+          hBm', fun _ => ⟨rfl, rfl⟩⟩
+      · have hk : Ek := hFs Hse.2
+        cases serr with
+        | nil => exact absurd rfl Hse.1
+        | ok ei =>
+        try wp_auto
+        iunfold dbPathLk at path
+        icases path with ⟨path, Htok⟩
+        wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
+          [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
+        · iframe; iframe #
+          isplitr
+          · unfold closeMapRes; iempintro
+          iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
+        open_exit_j fmtVerbs_syncErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
+    · -- `NoSync` true: no sync
+      try wp_auto
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iexists m', xs'
+      iframe Hfm Hxs file writeAt Hf Hfdo readOnly opened freelist path Hmf datasz err db Hdefer
+      ipureintro
+      exact ⟨hmaps', hxl', hsz', hC, hBm', fun h => nomatch h⟩
+  -- **the file synced** (unless `NoSync`): `Hfm`/`Hxs` the whole file, with `hsync` (`m'.synced`,
+  -- every byte `durB`, when `nos = false`); nothing has carved it yet (W1 allocates its crash
+  -- invariant here)
+  iintro (⟨%Hv, %m', %xs', Hfm, Hxs, %HC, file, writeAt, Hf, Hfdo, readOnly, opened, freelist,
+    path, Hmf, datasz, err, db, Hdefer⟩ | ⟨%e, %He, err, #Hek, db, Hdefer⟩)
+  rotate_left
+  · obtain ⟨rfl, hne, hk⟩ := He
+    try wp_auto
+    wp_bind (App (Val #dv) (Val #()))
+    iapply Hdef $$ [err]
+    · iexact err
+    · iexact Hek
+    iintro err
+    try wp_auto
+    iapply HΦ
+    iframe Hopts HW
+    iexists V'
+    iframe Ht
+    iright; ipureintro; exact ⟨hne, hk⟩
+  subst Hv
+  obtain ⟨hmaps', hxl', hsz', hC, hBm', hsync⟩ := HC
   try wp_auto
   rw [recv_eq_func_mk BAnon BAnon]
   try wp_auto
   -- the mapping
-  obtain ⟨hmaps', hxl', hsz', hC, hBm'⟩ := HC
   icases (optsAt_int_rd opts dq o go!"InitialMmapSize" (by decide)) $$ Hopts with
     ⟨%dqx, %minsz, Hx, Hback⟩
   icases persistent_entails_left (hWms dqx minsz) $$ [HW Hx] with ⟨⟨HW, Hx⟩, %hms⟩
@@ -882,7 +978,6 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   ipersist stats
   ipersist readOnly
   ipersist StrictMode
-  ipersist NoSync
   ipersist NoGrowSync
   ipersist NoFreelistSync
   ipersist PreLoadFreelist
@@ -984,84 +1079,16 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   generalize lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli = W
     at Hwok hWC hWms hWfl hWfli ⊢
   try wp_auto
-  -- `if !db.NoSync { fdatasync(db) }` (bbolt `ea4cab52`): on an error, `db.Close()` (the
-  -- database is shared with its locks by now, as for the transaction's error exit)
-  cases nos
-  case' false =>
-    try wp_auto
-    icases wdbCore_file_acc (GF := GF) B dbl p W $$ Hw with ⟨Hf, Hfo, Hfd, Hosm, Hwb⟩
-    wp_apply hFds dbl W.f W.fd p p.ino W.m (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) $$ [Hf Hfo Hfd Hosm]
-      as %serr ⟨Hf, Hfo, Hfd, ⟨%m2, Hosm, %hm2⟩, Hsr⟩
+  -- the writer side `W`
+  try wp_auto
+  cases nfs
+  · exact absurd hnfs (by decide)
+  · -- `NoFreelistSync` (`Open.spec`'s options): done, no `hasSyncedFreelist()` call
+    have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok
+    rw [hWC, hWfl, hWfli] at hOW
+    imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
     · iframe; iframe #
-    ihave Hw := Hwb $$ %m2 %hm2.1 Hf Hfo Hfd Hosm
-    have Hwok2 := wdbOK_withMeta W m2 hm2.1 hm2.2 Hwok
-    have hWC2 : ({ W with m := m2 } : WDb).C = C := hWC
-    have hWms2 : ({ W with m := m2 } : WDb).ms = some (base, L) := hWms
-    have hWfl2 : ({ W with m := m2 } : WDb).fl = fl := hWfl
-    have hWfli2 : ({ W with m := m2 } : WDb).fli = fli := hWfli
-    clear Hwok hWC hWms hWfl hWfli hm2
-    generalize ({ W with m := m2 } : WDb) = W at Hwok2 hWC2 hWms2 hWfl2 hWfli2 ⊢
-    icases Hsr with (%Hse | ⟨%Hse, #Hek⟩)
-    rotate_left
-    · have hk : Ek := hFs Hse.2
-      cases serr with
-      | nil => exact absurd rfl Hse.1
-      | ok ei =>
-      try wp_auto
-      have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok2
-      rw [hWC2, hWfl2, hWfli2] at hOW
-      imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
-      · iframe; iframe #
-      ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
-      · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
-      wp_apply hClose dbl ⟨mkGs B, N⟩ $$ [Hclo]
-      · unfold isBolt boltCloser; rw [bnsOf_mkGs]; iframe Hclo; iexact Hbolt
-      iintro %cerr -
-      try wp_auto
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl ⟨Hsl, -⟩
-      simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, List.set]
-      try wp_auto
-      -- (`+noauto`: `open_step` takes the step before the write of `db`)
-      wp_apply +noauto wp_boltLog li _ _ _ _ [interface.mkOk go.string #(p.path), GoInterface.ok ei] _
-        iprop(True) _ errorf_mem' fmtVerbs_syncErr rfl $$ Hlgok [Hsl] [] [] as Hsl -
-      · iexact Hsl
-      · open_args
-      ihave ⟨-, Hlk⟩ := open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs Hst']
-      · iframe; iframe #
-      open_step
-      try wp_auto
-      wp_bind (App (Val #dv) (Val #()))
-      iapply Hdef $$ [err]
-      · iexact err
-      · simp only [fmtErrorOkOrNil]; iexact Hek
-      iintro err
-      try wp_auto
-      iapply HΦ
-      iframe Hopts HW
-      iexists V'
-      iframe Ht
-      iright; ipureintro; exact ⟨(fun h => by cases h), by assumption⟩
-    subst Hse
-    have Hwok := Hwok2
-    have hWC := hWC2
-    have hWms := hWms2
-    have hWfl := hWfl2
-    have hWfli := hWfli2
-    clear Hwok2 hWC2 hWms2 hWfl2 hWfli2
-  -- both branches: the writer side `W`
-  all_goals
-    try wp_auto
-    cases nfs
-    · exact absurd hnfs (by decide)
-    · -- `NoFreelistSync` (`Open.spec`'s options): done, no `hasSyncedFreelist()` call
-      have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok
-      rw [hWC, hWfl, hWfli] at hOW
-      imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
-      · iframe; iframe #
-      open_ok
+    open_ok
 
 /-! ## The shared mode's open, and `Open.spec` (session S3f: the one spec of `Open`) -/
 
@@ -1252,7 +1279,7 @@ theorem Open.wp_proof [sync.Assumptions]
     (hMmap : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
     (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
     (hSync : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.specW (GF := GF) (hG := hG))
+    (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.specS (GF := GF) (hG := hG))
     (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
     (hCommit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
     (hClose : DB.Close.specTok (GF := GF) (hG := hG))
