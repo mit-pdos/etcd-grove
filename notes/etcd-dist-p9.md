@@ -211,6 +211,20 @@ and `hinj` follow from `encInput`/`encOutput`'s injectivity (the `_append_inj` l
 
 ## Handoff
 
+**First (coordinator, #50 16:48Z): P9 is on M1's critical path and must be free of crash-line dependencies (T4,
+T7, P5, r4).** This branch's base `5a1c41d945` (`etcd-safe-main-r3`) carries crash merges (`etcd-safe-crash/
+2026-11-24`, P7 `b52d021983`, P8 `6c0d8129ab`, the crash skeleton `0765ff0b09`). P9's own commits
+(`5a1c41d945..HEAD`) touch only `remote`, the counter, the dsverify kits, `dist/enc`, `dist/kvremote`, notes and the
+ledger: replay them (cherry-pick, in order) onto the no-crash line (`lean` + lit, transport, putgetK, bootax, N2,
+N5) as a new branch, and rebuild `/shared/tmp/p9-targets-lin2.txt` there. M1's start and theorem (step 6,
+`dist/kvremote/TopLevelRobustness.lean`) are ours too; N7-kv (`client.MainDeployment`'s kv arms) is another
+agent's (`etcd-safe-n7kv`).
+
+**Steps 4-6 status: not started.** Step 4 (`Orch`, `Run.spec` at `kvR γk`) needs nothing new (unchanged by the
+`lin` change). Step 5 (the start: `pendCtx` at `pInit`, `mapCtx_alloc`, `remoteAddr` per client machine, and the
+members' facts at the view `Γ`) and step 6 (the theorem) wait on the Node (steps 1-2 below), which waits on `Call`
+across machines (the lead's N2 drafts).
+
 Done: §11.3 steps 1-2; `remote.lin` abortable (above, needs the coordinator's review); the Node's update
 conversion (`NodeUpd.lean`). Next, in order, each spec first:
 1. **`Call` across machines** (`Spec/.../dist/kvremote/CallDist.lean`, `txnlin_Call_dist.spec svc`, `svc` the
@@ -222,5 +236,7 @@ conversion (`NodeUpd.lean`). Next, in order, each spec first:
    interface.mk (ptr Client) #cl⌝ ∗ levelTok 0` plus the persistent client facts in the context; the op: `wp_auto_lc
    1`, allocate `token γt`, `slotUpd_callUpd`, `CallDist`, then `nodeQ_out` / `nodeRQ_out` (+ the credit).
 3. Step 4 (`Orch`: `Run.spec` at `kvR γk`, unchanged by the `lin` change), then steps 5-6.
+Build evidence (fifth session): the 14 leaves of `/shared/tmp/p9-targets-lin2.txt` (every `remote` leaf, the dsverify
+TopLevelRobustness and NonVacuityLinked, the counter, `kvremote.Link`, `NodeUpd`) built at `1683bfc437`, exit 0.
 Edit loop: `/shared/tmp/p9-chk.sh FILE -q -a`; builds `/shared/tmp/p9-build.sh TARGETS` (pushes HEAD to fk-lean2);
 the `remote` leaves: `/shared/tmp/p9-targets-lin.txt`.
