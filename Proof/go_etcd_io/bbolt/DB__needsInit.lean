@@ -36,7 +36,7 @@ theorem DB.needsInit.wp_proof
     (hImage : DB.initImage.spec (GF := GF) (hG := hG)) :
     DB.needsInit.spec (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d ro xs hrd hp hx
-  rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp
+  rcases p with ⟨pp, pi, pcs⟩; dsimp only at hp ⊢; subst hp
   wp_start as ⟨#Hos, Hf, Hps, Hro, Hfo, Hfd, Hb⟩
   by_cases h0 : xs.length = 0
   · rw [h0]

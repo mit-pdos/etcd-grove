@@ -319,7 +319,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rw [← hclen]
     have hcne : c.2.2 ≠ [] := List.ne_nil_of_length_pos (by omega)
     icases Read.bytesPointsto_bounds _ _ _ hcne $$ Hpb with ⟨Hpb, %Hcb⟩
-    ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
+    ihave Hd1 : bBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) [] $$ []
     · iapply (osBytes_nil' (GF := GF) K.p _ _).2; iempintro
     ihave Hd2 : bytesPointsto (GF := GF) (b +ₗ ((4096 * c.1.toNat : Nat) : Int))
         (DFrac.own (1 : Qp).half) (c.2.2.take 0) $$ []
@@ -329,7 +329,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         "offset" ∷ offset_ptr ↦ W64 ((4096 * c.1.toNat + w : Nat) : Int) ∗
         "written" ∷ written_ptr ↦ W64 ((w : Nat) : Int) ∗ "Hst" ∷ statsTok r sm q ∗
         "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om2 ∗
-        "Hd1" ∷ osBytes K.p.ino (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
+        "Hd1" ∷ bBytes K.p (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
         "Hd2" ∷ bytesPointsto (b +ₗ ((4096 * c.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half)
           (c.2.2.take w) ∗
         "Hro" ∷ oAny K.p (4096 * c.1.toNat + w) (c.2.2.length - w) ∗
@@ -413,6 +413,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have h0 : 0 ≤ (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toInt := by
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+      ihave Hxs := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).1 $$ Hxs
       wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
         (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) (dbFd K.p.ino) om2 xs rfl h0
         (by rw [hcl, htn]; omega_only [hcin', hsz, Hcs, Hwlt]) (by rw [hcl]; omega)
@@ -421,6 +422,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · iframe #
         rw [htn, hmin2, ← fileOwn_eq]
         iframe
+      ihave Hys := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).2 $$ Hys
       obtain ⟨hjja, hale, -, -, -, hysp, -, hres⟩ := Hjj
       have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
@@ -519,8 +521,8 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           have := congrArg List.length Hysd; simp only [List.length_map, List.length_take] at this
           omega
         ihave Hpb := Hpbb $$ Hck
-        ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys) $$ [Hd1 Hys]
-        · iapply (osBytes_take_drop (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys)
+        ihave Hd1 : bBytes (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys) $$ [Hd1 Hys]
+        · iapply (bBytes_take_drop (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys)
             ysd.length (by simp)).2
           rw [List.take_left, List.drop_left, hyd]
           iframe

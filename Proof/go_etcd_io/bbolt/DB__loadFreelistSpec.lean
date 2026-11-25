@@ -74,7 +74,7 @@ def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) 
       mapFields db (DFrac.own 1) (some (b, L)) ∗
       osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) (dbFd p.ino) ∗ Ps sp 1 ∗
-      osBytes p.ino 0 (DFrac.own 1) xs ∗
+      bBytes p 0 (DFrac.own 1) xs ∗
       bytesPointsto b (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
       ∃ vf, cellsR b xs.length (L - xs.length) vf)
 
@@ -99,7 +99,7 @@ abbrev DB.loadFreelist.spec_open : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq : GName) (N : Namespace)
     (db sp f : Loc) (fd : w64) (p : BFile)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
-  lfOK N db C b L m xs → 0 ≤ fd.toInt →
+  lfOK N db C b L m xs → 0 ≤ fd.toInt → p.cs = none →
   {{ lfPre (GF := GF) γbq N db sp f fd p b L m xs ∗
       db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))

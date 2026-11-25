@@ -389,6 +389,7 @@ theorem DB.Close.wp_proof
     (fun s hs => Hwok.2.2.2.2.2.2.2.2.2.2.1 s (Or.inr hs)) Hwok.2.2.2.2.2.1
   have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
   rw [hsz4] at hfok
+  ihave Hxs := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).1 $$ Hxs
   unfold fileHoldsM fileHoldsMDef
   iexists m, xs
   iframe Hm Hxs

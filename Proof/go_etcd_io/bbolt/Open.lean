@@ -570,7 +570,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     | ok ei =>
     ihave #Hek := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Herrok
     try wp_auto
-    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none ⟨path, 0⟩ null Hdbnn $$
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none { path := path, ino := 0 } null Hdbnn $$
       [readOnly opened freelist writeAt path Hmf datasz file] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #
       isplitr
@@ -580,7 +580,8 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   -- the file opened
   obtain ⟨rfl, hfd0, hl⟩ := Hfd
   -- the database's file: its path and inode
-  obtain ⟨p, rfl, rfl⟩ : ∃ p : BFile, p.path = path ∧ p.ino = i := ⟨⟨path, i⟩, rfl, rfl⟩
+  obtain ⟨p, rfl, rfl, hpcs⟩ : ∃ p : BFile, p.path = path ∧ p.ino = i ∧ p.cs = none :=
+    ⟨{ path := path, ino := i }, rfl, rfl, rfl⟩
   unfold openedF
   icases Hop with ⟨%m, %xs, Hfm, Hxs, %Hm, %HBm, #Hrcf⟩
   have hBm := hB _ HBm
@@ -957,9 +958,11 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     · ipureintro; exact hmf'
     ipureintro; exact Hlgty
   iclear HNFS
-  -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
+  -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`); the file's bytes
+  -- as bbolt's invariants hold them (W1)
+  ihave Hxs := (bBytes_none (GF := GF) hpcs 0 (DFrac.own 1) xs').2 $$ Hxs
   wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
-    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 $$
+    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 hpcs $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
       Hxs Hbp Hcells freelistLoad Hbq HrcC] as Hlf
   · unfold lfPre

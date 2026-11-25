@@ -52,6 +52,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     DB.grow.spec (GF := GF) (hG := hG) := by
   intro fr K tx v w sz hsz0 hszmax hszal
   wp_start as ⟨#Hcore, Hdb⟩
+  ihave %hcs := BC.core_cs K $$ Hcore
   icases BC.core_growFields K $$ Hcore with ⟨#Hpkg, #Hos, %Hdbnn, #Hps, #Has, ⟨%lg, #Hlg, #Hlgok⟩,
     #Hro, #Hml, ⟨%ngs, #Hngs⟩⟩
   ihave %hgoos : ⌜goosLinux⌝ $$ []
@@ -195,7 +196,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · rw [hmaps, Nat.min_eq_left hSge, grow_rsHi _ _ hSge hSal]; iexact Htail
   ihave Hnil : osBytes (GF := GF) K.p.ino
       (min w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) (DFrac.own 1) [] $$ []
-  · iapply growBytes_nil
+  · iapply (bBytes_none (GF := GF) hcs _ _ _).1; iapply growBytes_nil
   wp_apply hTruncate w.f w.fd K.p.path (DFrac.own (1 : Qp).half) (growSizeOf (W64 (mapLen w.ms : Int)) sz)
     (DFrac.own (1 : Qp).half) (dbFd K.p.ino) w.m [] (wdbOK'_fd fr w hok) rfl hS0
     (by simp only [List.length_nil]; omega)
@@ -214,6 +215,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         (mapLen w.ms - min w.m.size (mapLen w.ms)) vf := by
     unfold os.ftDone
     iintro ⟨⟨%zs, %hzs, Hm, Hz, Hc⟩, Hr⟩
+    ihave Hz := (bBytes_none (GF := GF) hcs _ _ _).2 $$ Hz
     iframe Hm
     isplitl [Hz]
     · unfold zBytes; iexists _; iframe Hz; ipureintro

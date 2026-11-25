@@ -10,6 +10,7 @@ synced), each over the whole of what the file held. Its spec is internal (`init`
 module
 
 public import Proof.go_etcd_io.bbolt.Open.InitImage
+public import Proof.go_etcd_io.bbolt.Inv.FileHolds
 public import Spec.go_etcd_io.bbolt.DB__initImage
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.Mmap.Logger

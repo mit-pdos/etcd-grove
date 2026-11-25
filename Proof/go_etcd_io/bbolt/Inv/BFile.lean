@@ -328,14 +328,14 @@ theorem bBytes_agree (p : BFile) (dq1 dq2 : DFrac) :
 /-! ## The writer's share of the `OsMeta` -/
 
 /-- **The file's crash invariant**, if any (persistent; `isBoltCoreP` holds it). -/
-def bInv (p : BFile) : IProp GF :=
+def bCsInv (p : BFile) : IProp GF :=
   match p.cs with
   | none => iprop(True)
   | some c => csInvI c.N p.ino c.g c.ga c.gc bCsOk
 
 omit go_gctx in
-instance bInv_persistent (p : BFile) : Persistent (bInv (GF := GF) p) := by
-  unfold bInv; cases p.cs <;> dsimp only <;> infer_instance
+instance bCsInv_persistent (p : BFile) : Persistent (bCsInv (GF := GF) p) := by
+  unfold bCsInv; cases p.cs <;> dsimp only <;> infer_instance
 
 /-- The exclusivity tokens' keys of a file of `n` bytes. -/
 def exMap (n : Nat) : GMap Nat Unit := (List.range n).foldr (fun k m => m.insert k ()) ∅
@@ -343,7 +343,7 @@ def exMap (n : Nat) : GMap Nat Unit := (List.range n).foldr (fun k m => m.insert
 /-- **The writer's whole share of the file's `OsMeta` `m`, the committed state being `C`** (see the
 file header): `osMeta 1`, or (in the crash invariant) the invariant, half of the `OsMeta` and the
 caller's token of the invariant's state `⟨m, bs, 0, 0, .idle⟩` (the file's bytes `bs`, nothing
-frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`, idle at `C` (the invariant itself is `bInv p`). -/
+frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`, idle at `C` (the invariant itself is `bCsInv p`). -/
 def bMeta (p : BFile) (C : CommitSt) (m : OsMeta) : IProp GF :=
   match p.cs with
   | none => osMeta p.ino (DFrac.own 1) m

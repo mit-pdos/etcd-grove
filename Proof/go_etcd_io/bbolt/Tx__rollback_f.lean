@@ -411,7 +411,7 @@ theorem Tx.rollback_f.wp_proof
         icases Hwb with ⟨Hwb, Heb⟩
         rw [hXw]
         ihave Heb : [∗list] s ∈ List.range' f (1 + pageOverflow (w'.wb f)),
-            ∃ xs : List ByteG, osBytes K.p.ino (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
+            ∃ xs : List ByteG, bBytes K.p (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
               ⌜xs.map Prod.fst = w'.wb s⌝ $$ [Heb]
         · iapply BigSepL.bigSepL_mono (Φ := fun _ s => osSlotH (GF := GF) K.p s (w'.wb s)) ?_ $$ Heb
           intro k x _; unfold osSlotH; exact .rfl

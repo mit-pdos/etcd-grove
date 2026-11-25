@@ -63,12 +63,12 @@ the writer side's receipts) with the persistent receipt `⧖ m` the first half g
 `metalock`'s resource and `Ψ j`. -/
 def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (Ψ : Nat → IProp GF) : IProp GF :=
   iprop(metaR K.B K.db K.p ={⊤}=∗ ∃ (m : Nat) (xs : List ByteG) (old : List w8), ⧖ m ∗
-    osBytes K.p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
+    bBytes K.p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.length = 4096 ∧ old.length = 4096⌝ ∗
     bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) old ∗
     ∀ (j : Nat) (ys : List ByteG),
       ⌜(j = 0 ∨ j = 4096) ∧ (FsNoErr → j = 4096) ∧
         ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else buf)⌝ -∗
-      osBytes K.p.ino (4096 * s) (DFrac.own 1) ys -∗
+      bBytes K.p (4096 * s) (DFrac.own 1) ys -∗
       bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (ys.map Prod.fst) -∗
       receipt 1 -∗ ⧖ (m + 1) ={⊤}=∗ metaR K.B K.db K.p ∗ Ψ j)
 
@@ -231,6 +231,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   -- the write
   have h0 : 0 ≤ ((mv.txid' % W64 2) * W64 4096).toInt := by
     rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
+  ihave Hxs := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).1 $$ Hxs
   wp_apply hWriteAt f fd K.p.path dqf sl (metaBuf mv) (DFrac.own 1)
     ((mv.txid' % W64 2) * W64 4096) dqf (dbFd K.p.ino) om xs rfl h0
     (by rw [hoff]; omega) (by rw [metaBuf_length, hoff]; omega)
@@ -240,6 +241,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe #
     rw [← fileOwn_eq, hoff]
     iframe
+  ihave Hys := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).2 $$ Hys
   obtain ⟨hjle, hpo, hcut, hres⟩ := Hj
   simp only [metaBuf_length, hoff] at hcut hjle
   have hj01 : j = 0 ∨ j = 4096 := by
