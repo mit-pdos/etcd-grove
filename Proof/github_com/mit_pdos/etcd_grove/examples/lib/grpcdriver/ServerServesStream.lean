@@ -211,7 +211,7 @@ theorem serverStream_servesEnt (wp_M : server.ServerStream.spec (GF := GF) (hG :
     (regs sregs : List (GoString × GoFunc × GoInterface))
     (hr : serverStreamName ∉ regs.map Prod.fst)
     (hreg : ∀ mh srv, (serverStreamName, mh, srv) ∈ sregs →
-      mh = functions svc._Driver_ServerStream_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_ServerStream_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) (ics : List GoFunc) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -222,7 +222,8 @@ theorem serverStream_servesEnt (wp_M : server.ServerStream.spec (GF := GF) (hG :
   isplitr
   · ipureintro; exact hr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), ssUp, ssDn, strmSpec, ssUp,
     drvStrmSpec ssDn, ssDn
   isplitr
@@ -246,7 +247,7 @@ theorem clientStream_servesEnt (wp_M : server.ClientStream.spec (GF := GF) (hG :
     (regs sregs : List (GoString × GoFunc × GoInterface))
     (hr : clientStreamName ∉ regs.map Prod.fst)
     (hreg : ∀ mh srv, (clientStreamName, mh, srv) ∈ sregs →
-      mh = functions svc._Driver_ClientStream_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_ClientStream_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) (ics : List GoFunc) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -257,7 +258,8 @@ theorem clientStream_servesEnt (wp_M : server.ClientStream.spec (GF := GF) (hG :
   isplitr
   · ipureintro; exact hr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), csUp, csDn, strmSpec, csUp,
     drvStrmSpec csDn, csDn
   isplitr
@@ -281,7 +283,7 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
     (regs sregs : List (GoString × GoFunc × GoInterface))
     (hr : bidiName ∉ regs.map Prod.fst)
     (hreg : ∀ mh srv, (bidiName, mh, srv) ∈ sregs →
-      mh = functions svc._Driver_Bidi_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_Bidi_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) (ics : List GoFunc) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -292,7 +294,8 @@ theorem bidi_servesEnt (wp_M : server.Bidi.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueST (GF := GF)), (pbStringValueST (GF := GF)), biUp, biDn, strmSpec, biUp,
     drvStrmSpec biDn, biDn
   isplitr

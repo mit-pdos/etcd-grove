@@ -241,7 +241,7 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
     (sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
     (hsr : echoName ∉ sregs.map Prod.fst)
     (hreg : ∀ mh srv, (echoName, mh, srv) ∈ regs →
-      mh = functions svc._Driver_Echo_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_Echo_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) :
     isDrvServer γid s ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -252,7 +252,8 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hsr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), echoSpec γid
   isplitr
   · ipureintro
@@ -267,7 +268,7 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
     (sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
     (hsr : failName ∉ sregs.map Prod.fst)
     (hreg : ∀ mh srv, (failName, mh, srv) ∈ regs →
-      mh = functions svc._Driver_Fail_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_Fail_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -278,7 +279,8 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hsr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (failSpec (GF := GF))
   isplitr
   · ipureintro
@@ -337,7 +339,7 @@ theorem meta_servesEnt (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
     (sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
     (hsr : metaName ∉ sregs.map Prod.fst)
     (hreg : ∀ mh srv, (metaName, mh, srv) ∈ regs →
-      mh = functions svc._Driver_Meta_Handler [] ∧
+      (#mh : val) = (@! svc._Driver_Meta_Handler) ∧
         srv = interface.mkOk (go.GoType.PointerType server.ty) #s) :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc ⊢
@@ -348,7 +350,8 @@ theorem meta_servesEnt (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact hsr
   iintro %mh %srv %hin
-  obtain ⟨rfl, rfl⟩ := hreg mh srv hin
+  obtain ⟨hmh, rfl⟩ := hreg mh srv hin
+  rw [hmh]
   iexists (pbStringValueT (GF := GF)), (pbStringValueRT (GF := GF)), (metaSpec (GF := GF))
   isplitr
   · ipureintro
