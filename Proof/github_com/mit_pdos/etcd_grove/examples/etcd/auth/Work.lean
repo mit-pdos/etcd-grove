@@ -107,7 +107,7 @@ theorem Work.wp_proof
     Work.spec (GF := GF) (hG := hG) := by
   intro CS EA FA RA CRE CEC cl who addr V s E ρ cid mid γa Lset n hwho hγa hV hAs
   obtain ⟨hVa, hVm, hVw, hVn, hVs, hVE, hVk⟩ := hV
-  wp_start as ⟨#Hnc, #Hwf, #Htok, #Hkv, #Htls, #Hinv, #Hf, #Htag⟩
+  wp_start as ⟨Hlt, #Hnc, #Hwf, #Htok, #Hkv, #Htls, #Hinv, #Hf, #Htag⟩
   ihave #Htok0 := Htok
   iunfold clientTokAt at Htok0
   icases Htok0 with ⟨%api, %conn, #Hkvf, #Hobj, #Hat, -, -⟩
@@ -131,7 +131,7 @@ theorem Work.wp_proof
   wp_apply (h_work_put cl api conn addr s E ρ cid mid γa Lset n who ci cd (keyOfK go!"a" who go!"0")
       go!"v0" hγa
       (opHistOk_put_a who go!"0" go!"v0" (by decide))
-      (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
+      (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [$Hlt] as %resp %err ⟨Hlt, %Herr⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -167,7 +167,7 @@ theorem Work.wp_proof
       go!"v0" hγa
       (fun h => absurd (akOpGranted_put who _ go!"v0" (keyOfK_ne_nil _ _ _ (by decide)) h)
         (not_permitted_c who _))
-      (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [] as %resp %err %Herr
+      (akPut_sizeOk hwho (by decide) (by decide) (by decide))) $$ [$Hlt] as %resp %err ⟨Hlt, %Herr⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -191,8 +191,8 @@ theorem Work.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM hi] hγa get_ab_ok.1 get_ab_ok.2.1
-      (akRange_sizeOk (by decide) (by decide))) $$ []
-    as %resp %err Hres
+      (akRange_sizeOk (by decide) (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hres⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -239,8 +239,8 @@ theorem Work.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd go!"c/" _ [withPrefixM] hγa get_c_ok.1 get_c_ok.2.1
-      (akPrefix_sizeOk (by decide))) $$ []
-    as %resp %err Hres
+      (akPrefix_sizeOk (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hres⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -267,8 +267,8 @@ theorem Work.wp_proof
   · iframe #
   (try wp_auto)
   wp_apply (h_work_get cl api conn addr s E ρ cid mid γa Lset n who ci cd lo _ [withRangeM go!"d"] hγa get_past_ok.1 get_past_ok.2.1
-      (akRange_sizeOk (by decide) (by decide))) $$ []
-    as %resp %err Hres
+      (akRange_sizeOk (by decide) (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hres⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -344,7 +344,7 @@ theorem Work.wp_proof
       ⟨t1M (keyOfK go!"a" who go!"t") go!"vt", false, true, false⟩ hγa hp1 hin1
       (t1M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)) hsh1
       hro1 hpl1 hop1)
-    $$ [Hobj] as %resp %err ⟨%Herr, Hres⟩
+    $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, Hres⟩
   · iframe #
     iframe Hobj
   (try wp_auto)
@@ -441,7 +441,7 @@ theorem Work.wp_proof
       (t2M_size _ _ _ (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
       hsh2 hro2 hpl2 (fun h => absurd h hng2))
-    $$ [Hobj] as %resp %err ⟨%Herr, -⟩
+    $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, -⟩
   · iframe #
     iframe Hobj
   (try wp_auto)
@@ -551,7 +551,7 @@ theorem Work.wp_proof
         (keyOfK_principal_le hwho (by decide) (by decide))
         (keyOfK_principal_le hwho (by decide) (by decide)) (by decide))
       hsh3 hro3 hpl3 (fun h => absurd h hng3))
-    $$ [Hobj] as %resp %err ⟨%Herr, -⟩
+    $$ [$Hlt Hobj] as %resp %err ⟨Hlt, %Herr, -⟩
   · iframe #
     iframe Hobj
   (try wp_auto)
@@ -600,7 +600,7 @@ theorem Work.wp_proof
     iframe Hobj
     ipureintro; exact Htsl
   (try wp_auto)
-  wp_apply HC as %resp %err %Hne
+  wp_apply HC $$ [$Hlt] as %resp %err Hlt %Hne
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
@@ -621,7 +621,7 @@ theorem Work.wp_proof
         exact opHistOk_delete_point _
           (by rw [show writerK (keyOfK go!"a" go!"u" go!"d") = go!"u" by decide]; exact ⟨rfl, hr⟩))
       (akDelete_sizeOk hwho (by decide) (by decide)))
-    $$ [] as %resp %err %Herr
+    $$ [$Hlt] as %resp %err ⟨Hlt, %Herr⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -660,7 +660,7 @@ theorem Work.wp_proof
       hkc hγa
       (fun h => absurd (akOpGranted_delete who _ hkc h) (not_permitted_c who _))
       (akDelete_sizeOk hwho (by decide) (by decide)))
-    $$ [] as %resp %err %Herr
+    $$ [$Hlt] as %resp %err ⟨Hlt, %Herr⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -775,7 +775,7 @@ theorem Work.wp_proof
     wp_for_post
     wp_apply Hwcancel
     (try wp_auto)
-    iapply HΦ; itrivial
+    iapply HΦ; iframe Hlt; try itrivial
   simp only [↓reduceIte]
   icases Hv with ⟨Hel, Hcons⟩
   ihave Hel := watchStateElemP_elem _ _ _ _ _ _ _ $$ Hel
