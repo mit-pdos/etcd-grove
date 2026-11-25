@@ -1601,6 +1601,21 @@ Since no table content was added, A3's re-review (step 6) has nothing new to rev
     (`lease/leasehttp/http.go:123`, before any lock), `net/http`'s `conn.serve` recovers (`http: panic serving`), the
     client gets `EOF`; afterwards `LeaseGrant`, `LeaseRenew`, `LeaseTimeToLive`, `RenewHTTP` to `/leases` and `Range`
     succeed. 3/3 runs. Next: widen `ccApplyOk` to admit rejected promotes and re-prove its consumers.
+  - **Route B, stopped before the widening (2026-11-25): it needs an axiom's statement changed.** With `v3`,
+    `ValidateConfigurationChange` of a promote (`membership/cluster.go:324-330`) reads `membersMap[id].IsLearner`, and
+    the member is present (every `cfg` id is a boot member in the `members` bucket), so the load is reached. The only
+    source of `membersMap` is the trust-boundary axiom `schema.membershipBackend.MustReadMembersFromBackend.wp_proof`,
+    whose post `membership.membersRead` gives each record's `PeerURLs` only (`memberURLsAt`), and its model
+    `membership.membersOf` (opaque, with the axioms `membersOf_decode`, `membersOfBk_empty`) has codomain
+    `GMap w64 (List GoString) × GMap w64 Bool`, no learner flag; so the promote branch has no proof and `ccValidM`
+    cannot state Go's verdict (member present and a learner). Needed, for the owner: `membersOf`'s members carry
+    `IsLearner` (`membersOf_decode` gives `(mm.peerURLs, mm.isLearner)`: `json.Unmarshal` of `json.Marshal` keeps a
+    bool) and `membersRead` gives `mIsLearnerAddr l ↦ b` (`readMembersFromBackend` unmarshals the whole `Member`), or
+    a new axiom on a separate opaque. Also: without `v3` (a replayed promote at restart, whose rejection set the
+    consistent index) Go calls `RaftCluster.PromoteMember(id, false)`, names-only today (`membership.toml`): translate
+    it and prove it (lock, `isLearner.Set(0)` for the local id, a log line, unlock). The rest is as planned:
+    `ccApplyOk`'s promote disjunct, `ccValidM`'s promote branch, an invariant that every saved member is a voter
+    (from `ccApplyOk`'s `isLearner = false` and `membersOf_decode`), then the consumers.
 
 None of these axioms is in a top-level result's cone yet (no proof of `server.MainLogger` exists): they are not in
 `etc/tcb-baseline.txt`; they join it, and `notes/audit.md`, with the first proof that uses them.
