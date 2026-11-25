@@ -9,8 +9,8 @@
 # The trust boundary and the callees linked elsewhere: zap's `NewNop` (an axiom), `context.TODO`,
 # traceutil's `TODO` (proved), the backend's `New`, `SetTxPostLockInsideApplyHook` and `BatchTx`
 # (`@`, the backend's `Link.lean`), `sort.StringSlice.Sort` (an axiom), schema's lease bucket's,
-# Perennial's `sort.Strings` (`=`), and `sort.Slice` (`?`: specified, no proof; a hypothesis of
-# the results reaching it, `Spec/sort/Slice.lean`).
+# Perennial's `sort.Strings` (`=`), and `cmp.Less` at `int64` (proved here, `Proof/cmp/Less.lean`;
+# `genLease`'s `slices.Sort`, Perennial's `slices.wp_Sort`, is used directly).
 zap_NewNop:
 context_TODO:
 traceutil_TODO:
@@ -19,7 +19,7 @@ backend__SetTxPostLockInsideApplyHook: @
 backend__Close: @
 backend__BatchTx: @
 sort_StringSlice__Sort:
-sort_Slice: ?
+cmp_Less:
 #
 # the lessor (server/v3/lease), as the server's `Link.lean` links it (`etc/link-lean-first-server.txt`)
 lease_lessor__GetLease:
@@ -120,7 +120,7 @@ writer__newVal: itoa
 writer__view: history__snapshot
 writer__begin: check history__snapshot writer__cur copyState
 writer__end: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds check history__appendRev
-writer__genLease: rng__intn sort_Slice
+writer__genLease: rng__intn cmp_Less
 writer__put: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__begin writer__checkHook writer__view writer__end rng__genKey writer__newVal writer__genLease pending__put checkRange traceutil_TODO context_TODO
 writer__deleteRange: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__begin writer__checkHook writer__view writer__end rng__genKey rng__genEnd pending__del checkRange traceutil_TODO context_TODO
 writer__writeOp: =mvcc.api.mvccApi_shapes_law check rng__intn rng__genKey rng__genEnd rng__genRange writer__newVal writer__genLease pending__put pending__del writer__view checkRange context_TODO

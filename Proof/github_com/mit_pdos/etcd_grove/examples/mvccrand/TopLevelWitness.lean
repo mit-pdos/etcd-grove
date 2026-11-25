@@ -10,7 +10,7 @@ free are no longer premises, the program checks them; the etcd file semantics `e
 `FsInit`: `Hfs` is a premise of its own here, witnessed by `fsInit_fsOneRoot`). Left out:
 `HEnv` (`EtcdVerifyOff`, over the opaque value `etcdVerifyEnv`: no Lean proof can establish it, but its
 value predicate holds of the unset variable, `etcdVerifyOffValue_unset`; `etc/premise-witness-baseline.txt`);
-`Hsort`, an Iris contract, is left out by `premise_sat%` itself. Checked by `etc/premise-witness.py`.
+(until 2026-11-25 also `Hsort`, an Iris contract, which `premise_sat%` left out). Checked by `etc/premise-witness.py`.
 -/
 module
 

@@ -32,6 +32,7 @@ package mvccrand
 
 import (
 	"context"
+	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -379,7 +380,7 @@ func (w *writer) genLease() int64 {
 	for id := range w.leases {
 		ids = append(ids, id)
 	}
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	slices.Sort(ids)
 	return ids[w.r.intn(len(ids))]
 }
 

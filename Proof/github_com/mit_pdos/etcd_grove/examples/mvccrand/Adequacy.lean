@@ -57,8 +57,9 @@ the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two a
 * (S3e) the file extension's initial state: `FsInit` (the files as on disk), `r` a root (`j0` its
   directory) (until P3, 2026-11-24, also with no entry `mvccrand.db`, and `Fs.DirFits r`: `MainAt`
   checks both; until S3e the axiomatized `dbFilesAbsent`);
-* at every ghost-state instance: `sort.Slice`'s spec (`Spec/sort/Slice.lean`: specified, neither
-  proved nor assumed; the writer's lease checks sort with it). (Premise fixes 5, 2026-11-10) Until
+* (sortslice2, 2026-11-25) no longer, at every ghost-state instance, `sort.Slice`'s spec
+  (`Spec/sort/Slice.lean`, deleted: unbounded, probably unprovable, `notes/specs-only/ledger.md`): the
+  writer's `genLease` sorts with `slices.Sort`, proved. (Premise fixes 5, 2026-11-10) Until
   then also the store's key-count premise `keySized` (the backend's read states hold fewer than
   `2 ^ 62` keys), now proved (`mvcc.keySized_all`, from bbolt's address-space bound
   `backend.rtxSnap_size`).
@@ -142,8 +143,6 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
-      sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
     (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -169,7 +168,6 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   subst HL
   letI : HeapGS .hasLC mvccrandGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
   -- the hypotheses at this instance (`heapWith` of it, definitionally)
-  have Hsort' : sort.Slice.spec (GF := mvccrandGF) := Hsort _
   unfold IsInit at Hinit
   rw [Hinit]
   haveI : ThreadBoundLe mvccrandGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
@@ -196,7 +194,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ [Hown Hregs] as ⟨-, #Hpkg⟩
   · iframe Hown Hregs
-  wp_apply (mvccrand.wp_MainAt Hsort' r) $$ [Hroot Htok]
+  wp_apply (mvccrand.wp_MainAt r) $$ [Hroot Htok]
   · iframe Hroot Htok Hvoff
   (try wp_auto)
   ipureintro
@@ -212,8 +210,6 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
-      sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     (r : GoString)
     (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -226,7 +222,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  mvccrand_adequate_below Hsort r HEnv σ g Hlctx Hinit Hfs j0 Hr Hthreads (n + 2)
+  mvccrand_adequate_below r HEnv σ g Hlctx Hinit Hfs j0 Hr Hthreads (n + 2)
     (by omega) n κs t2 σ2 (RealNstepsBelow.of_one Hsteps Hthreads) (by omega)
 
 end adequacy

@@ -6,7 +6,7 @@ mode) at exactly the writer's revision, checked (`Rev`, `FirstRev() == -1`, a ra
 change, `End`), or, ended, a write transaction at the read's revision (the hook ran with the index
 `i`; one to three `writeOp`s; its changes non-empty iff the model's) and `end`. The writer, between
 operations (`writerOwn`), ends between operations; the hook saved `i` if the transaction wrote
-(`hookPost`), else nothing ran (`hookPre`, unchanged); at most three values drawn (`vals`).
+(`hookPost`), else nothing ran (`hookPre`, unchanged); at most three values drawn (`vals`). Every live lease id is in `(0, 2^62]` (`genLease`'s premise).
 -/
 module
 
@@ -35,6 +35,7 @@ abbrev writer.txn.spec : Prop :=
   ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : GoFunc) (q : Qp) (σ : MvccState)
     (Hs : List HRev) (L : List w64) (i s n : w64),
   0 ≤ sint.Z n → sint.Z n + 3 < 2 ^ 63 →
+  (∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ 2 ^ 62) →
   {{ writerCtx w wv γ B f ∗ writerOwn wv γ B q σ Hs L ∗ hookPre wv i s ∗ wF go!"vals" w ↦ n }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"txn")) (Val #i))
   {{ RET #(); (∃ (σ' : MvccState) (Hs' : List HRev), writerOwn (GF := GF) wv γ B q σ' Hs' L) ∗

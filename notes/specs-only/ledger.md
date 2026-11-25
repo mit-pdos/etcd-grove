@@ -6909,3 +6909,28 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `net.http.wp_init_first_mux` (`Boot/Defs.lean`'s `wp_http_own`), so every caller discharges it. `dialEnv` keeps
   `httpEnv`. The top-level statement (`gryff_remote_robust`, its Spec file and `TopLevelDefs`) is unchanged.
 - **Decision.** Applied with the batch (consequence of the approved `httpSrvEnv` widening, #24 7153375148).
+
+## 2026-11-25: `sort.Slice.spec` has no length bound; mvccrand moves to `slices.Sort` (sortslice2)
+
+- **Spec.** `sort.Slice.spec` (`Spec/sort/Slice.lean`), a hypothesis (no proof, no axiom) of mvccrand's linked
+  results and of its top-level statement `mvccrand_robust` (`Hsort`); `writer.genLease.spec`, its one user.
+- **Defect.** Probably unprovable, and likely false, over the model: it takes any `s ↦* xs`, of any length, and a
+  `less` specified only on in-range indices. Past `2^62` elements, `pdqsort_func`'s heapsort fallback
+  (`siftDown_func`: `child := 2*root + 1` with `root < hi`) overflows `int`, so pdqsort can call `less` (and the
+  swapper) on a negative index, where a `less` like `genLease`'s (`ids[i] < ids[j]`) panics. A `less` answering
+  anything (the spec allows it) can drive pdqsort into that fallback. Every Perennial sort spec needs
+  `len ≤ 2^62` for this reason (`sort.Sort.spec`, `slices.Sort.spec`, `slices.SortFunc.spec`,
+  `sort.Sort.anyLessSpec`). Not proved false. If it is false, `mvccrand_robust` is vacuous: `Hsort` must hold at
+  every ghost-state instance. mvccfull's theorems do not take it.
+- **Evidence.** `zsortfunc.go` (go1.26.11) and Perennial's `sort.Sort.spec` docstring ("past that, the heapsort
+  fallback's `2*root+1` overflows `int`"). Real Go never reaches it, since such a slice cannot be allocated.
+- **Proposed change.** Do not fix the spec; drop it. `genLease` (our own tester, `examples/mvccrand/mvccrand.go`)
+  sorts with `slices.Sort(ids)` instead of `sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })`,
+  which is the same order, Go's recommended form, and needs no reflection. It is proved over Perennial's
+  `slices.wp_Sort` and a local `cmp.Less` at `int64`. Its `2^62` bound comes from a new premise on
+  `genLease`, `put`, `writeOp`, `txn` and `revoke`: every live lease id lies in `(0, 2^62]`. `run` discharges it
+  from `writerLe` (live ids in `(0, nextID]`), with its own premise strengthened from
+  `nid + ops < 2^63` to `nid + ops ≤ 2^62`, which `runChecks` meets (`nid = 0`, `Ops < 2^38`).
+  `Spec/sort/Slice.lean` is deleted, and `Hsort` leaves `mvccrand_robust` (a strengthening).
+- **Decision.** coordinator-E, 2026-11-25 (option 1, within Upamanyu's direction on #18 7119112205: rewrite
+  `sort.Slice` call sites to `slices.Sort`/`SortFunc` rather than add a reflection primitive).

@@ -12,6 +12,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.os
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
