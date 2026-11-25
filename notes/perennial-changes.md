@@ -4718,3 +4718,19 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed (general).** `wp_apply` (or the `ihave … [defer]` machinery under it) must fail with an error when it
   cannot discharge a deferred goal, never elaborate it to `sorry`; a minimal reproduction is the first step.
   **Status.** Not filed (no post: dsv-fix6 brief); no reproduction outside `RunLeaseExpiry.lean` yet.
+
+## goose emits a negative literal constant as an expression, so `wp_auto` cannot step a large table (2026-11-25, dsv-retire-2, #49 step 2)
+
+- **Limitation.** goose translates a negative integer constant in a composite literal (`rngCooked`, math/rand's
+  607-entry `[rngLen]int64` table, `rng.go`) as `Convert go.untypedInt go.int64 (GoUnOp GoNeg go.untypedInt
+  #(n : Int))`, an expression to evaluate, where a positive one is the value `#(W64 n)`. The initializer is then
+  hundreds of `Let`s over pure steps, and a plain `wp_auto` over `math/rand`'s initializer reached 41 GB.
+- **Who needs it.** Perennial's own `math/rand` initializer proof (branch `retire2-codes-uuid-rand`, `e609d80e7`),
+  now that `rngCooked` is translated for `New(NewSource(seed))` (dsverify's `math.rand.NewSource`/`New`/
+  `rngSource.Int63` axioms).
+- **Workaround.** A lemma path for the chain of lets (`Perennial/Proof/math/rand/LetChain.lean` on that branch),
+  not `wp_auto`.
+- **Proposed change.** goose folds a constant expression to its typed value (`#(W64 (2^64 - n))`), as Go's type
+  checker already has it (`types.TypeAndValue.Value`), so a table of constants is a list of values whatever
+  their signs. A goose change, reviewed on its own.
+- **Status.** Open.
