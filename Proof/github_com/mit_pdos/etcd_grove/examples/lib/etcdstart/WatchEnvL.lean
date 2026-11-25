@@ -97,7 +97,6 @@ theorem isGrpcStreamsMd_of_big {Req Rep : StreamMsg GF} (name : GoString)
 /-- **The watcher's facts at every connection to the members' addresses** (see the file header). -/
 theorem watchEnvL_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (m0 : WMem GF) (ms : List (WMem GF)) (γr : ReadNames) (pfx : GoString) (hp : pfx ≠ [])
@@ -110,7 +109,7 @@ theorem watchEnvL_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.f
         (fun md => v3rpc.watchSpec m.2.1 m.2.2 (auth.mdTokenOf md))) ∗
       (□ ∀ i : Nat, ⌜i < ms.length⌝ -∗ client.watchMemberFacts ((watchEnvL m0 ms γr pfx).atIdx i)) ⊢
       □ ∀ (conn : Loc) (ics : List GoFunc),
-        grpcConn (GF := GF) conn (ms.map (·.1)) ics [] anyRes -∗
+        grpcConn (GF := GF) conn (ms.map (·.1)) ics [] clientRes -∗
           client.watchConnFacts { watchEnvL m0 ms γr pfx with conn := conn, ics := ics } := by
   iintro ⟨#P1, #P2, #P3, #Heof, #Hs, #Hm⟩
   iintro !> %conn %ics #Hc

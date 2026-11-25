@@ -42,7 +42,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 /-- **The start bundle of a member that listens on no address** (`memberStartRes_intro` at one member and
 no address): `ETCD_VERIFY` off, its data directory and its WAL area fresh. -/
 theorem memberStartRes_one (n : GoString) :
-    envVerifyOff (GF := GF) ∗ dataDirFresh (GF := GF) (memberDataDir n) ∗
+    ⌜EtcdVerifyOff⌝ ∗ dataDirFresh (GF := GF) (memberDataDir n) ∗
         memberAreasFresh (GF := GF) (memberDataDir n) ⊢
       memberStartRes (GF := GF) n {} := by
   iintro ⟨#Hv, Hd, Hw⟩
@@ -98,7 +98,7 @@ theorem wp_StartServer1 (wp_StartServer : StartServer.spec (GF := GF) (hG := hG)
           etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))))) }} := by
   iintro %Φ ⟨#Hpkg, #Hlgz, Htok, #Hprem, #Hcci, Hstart⟩ HΦ
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd⟩
   ihave #Hb := bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (dir1 peer id) name name
       (urls1 name peer client) id (cfgOk name name) (urls1 name peer client)
       (fun _ h => h) (fun _ h => h) $$ Hboot

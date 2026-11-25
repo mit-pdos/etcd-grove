@@ -10,6 +10,7 @@ definitions'. Pure.
 module
 
 public import Net.Proof.models_lab.jsoncodec.Base
+public import Net.Proof.models_lab.jsoncodec.Scan.Lits
 
 @[expose] public section
 
@@ -281,6 +282,58 @@ theorem decU64_small (x : w64) (h : x.toNat < 10) :
   unfold decU64
   rw [decNat, digit_w64, Nat.mod_eq_of_lt h]
   simp only [h, ↓reduceIte]
+
+/-! ## Bridges to the decoders' vocabulary (`JsonScan`, `Scan/Lits.lean`) -/
+
+/-- `decNat` is the scanner's `decN` (the same digits). -/
+theorem decNat_eq_decN (n : Nat) : decNat n = JsonScan.decN n := by
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    rw [decNat, JsonScan.decN_eq]
+    split
+    · rfl
+    · rw [ih (n / 10) (by omega)]; rfl
+
+theorem decU64_eq_decN (x : w64) : decU64 x = JsonScan.decN (uint.nat x) := by
+  unfold decU64; rw [decNat_eq_decN]
+
+/-- A byte of `JsonScan.plainEnc` is written as it is. -/
+theorem escASCII_plain (c : w8) (h : JsonScan.plainEnc c) : escASCII c = [c] := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  have n34 : c ≠ W8 34 := by intro e; apply h3; rw [e]; rfl
+  have n92 : c ≠ W8 92 := by intro e; apply h4; rw [e]; rfl
+  have n60 : c ≠ W8 60 := by intro e; apply h5; rw [e]; rfl
+  have n62 : c ≠ W8 62 := by intro e; apply h6; rw [e]; rfl
+  have n38 : c ≠ W8 38 := by intro e; apply h7; rw [e]; rfl
+  have n8 : c ≠ W8 8 := by intro e; rw [e] at h1; exact absurd h1 (by decide)
+  have n12 : c ≠ W8 12 := by intro e; rw [e] at h1; exact absurd h1 (by decide)
+  have n10 : c ≠ W8 10 := by intro e; rw [e] at h1; exact absurd h1 (by decide)
+  have n13 : c ≠ W8 13 := by intro e; rw [e] at h1; exact absurd h1 (by decide)
+  have n9 : c ≠ W8 9 := by intro e; rw [e] at h1; exact absurd h1 (by decide)
+  have hlt : ¬ c.toNat < 0x20 := by omega
+  unfold escASCII htmlB
+  simp only [n34, n92, n8, n12, n10, n13, n9, n60, n62, n38, hlt, or_self, decide_false,
+    Bool.false_eq_true, ↓reduceIte]
+
+theorem quoteFrom_plain (s : List w8) (h : ∀ c ∈ s, JsonScan.plainEnc c) (i : Nat) :
+    quoteFrom s i = s.drop i := by
+  induction hk : s.length - i generalizing i with
+  | zero => rw [quoteFrom_end s i (by omega)]; simp; omega
+  | succ k ih =>
+    have hi : i < s.length := by omega
+    have hc : JsonScan.plainEnc (s.getD i (W8 0)) := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
+      exact h _ (List.getElem_mem hi)
+    have hlt : (s.getD i (W8 0)).toNat < 0x80 := by have := hc.2.1; omega
+    rw [quoteFrom_ascii s i hi hlt, escASCII_plain _ hc, ih (i + 1) (by omega)]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
+    rw [List.drop_eq_getElem_cons hi]; rfl
+
+/-- **A plain string** (`JsonScan.plainEnc` bytes: what the decoders' `okB` and the scanner take)
+is written between quotes as it is. -/
+theorem jsonQuote_plain (s : List w8) (h : ∀ c ∈ s, JsonScan.plainEnc c) :
+    jsonQuote s = 34#8 :: (s ++ [34#8]) := by
+  unfold jsonQuote; rw [quoteFrom_plain s h 0]; rfl
 
 section leaves
 open Iris Iris.BI Iris.ProofMode

@@ -89,19 +89,21 @@ theorem PutStatus.wp_proof
     ipureintro; constructor <;> word
   (try wp_auto)
   -- the counters' count, then the stats' array
-  wp_apply wp_putUint64 bv B (W64 23) $$ [$Hpkg $Hb $Hc] as %b4 ⟨Hb4, Hc4⟩
+  wp_apply wp_putUint64 bv B (W64 numStats) $$ [$Hpkg $Hb $Hc] as %b4 ⟨Hb4, Hc4⟩
   try wp_auto
   ihave IH2 : iprop(∃ (k : w64) (bv : GoSlice) (B : List w8) (x0 : w64),
       "i" ∷ i_ptr ↦ k ∗ "buf" ∷ buf_ptr ↦ bv ∗ "Hb" ∷ bv ↦* B ∗
       "Hc" ∷ ownSliceCap w8 bv (DFrac.own 1) ∗ "x" ∷ x_ptr ↦ x0 ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 23⌝) $$ [i buf Hb4 Hc4 x]
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ numStats⌝) $$ [i buf Hb4 Hc4 x]
   · iexists W64 0, b4, _, _
     simp only [named]
     iframe
     ipureintro; constructor <;> word
   wp_for IH2
   wp_if_destruct
-  · have Hlt : sint.nat k < s.Stats'.arr.length := by rw [HSt]; word
+  · have Hlt : sint.nat k < s.Stats'.arr.length := by
+      have h2 : sint.Z k < numStats := by word
+      rw [HSt]; exact (Int.toNat_lt_toNat (by decide)).2 h2
     obtain ⟨v, Hv⟩ : ∃ v, s.Stats'.arr[sint.nat k]? = some v := ⟨_, List.getElem?_eq_getElem Hlt⟩
     rw [if_pos Hk.1, Hv]
     (try wp_auto)

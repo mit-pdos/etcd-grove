@@ -29,13 +29,11 @@ state, or `0` and the client's (non-nil) error. -/
 abbrev Cache.serverRevision.spec : Prop :=
   ∀ (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames) (cap : Nat)
     (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗
-      isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗
-      metadata.outgoingCtxOkC ctx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ levelTok 0 ∗ (isCacheFields c cf γr γd cap ∗ context.isContext ctx s ∗
+      metadata.outgoingCtxOkC ctx) }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"serverRevision")) (Val #(GoInterface.ok ctx)))
-  {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
-      (⌜err = GoInterface.nil⌝ ∗ etcdHasState r cf.pfx) ∨
-      ⌜err ≠ GoInterface.nil ∧ r = W64 0⌝ }}
+  {{ (r : w64) (err : GoInterface), RET (PairV #r #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ etcdHasState r cf.pfx) ∨
+      ⌜err ≠ GoInterface.nil ∧ r = W64 0⌝) }}
 
 end spec
 

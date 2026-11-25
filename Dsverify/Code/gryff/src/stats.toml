@@ -1,0 +1,6 @@
+# (project dsv-gryff, notes/dsv-gryff.md) `StatsMap.Export` names only: it writes the statistics as
+# JSON to a file (encoding/json, io/ioutil), which Perennial does not translate. The kit runs no
+# replica with a statistics file (gryff.NewReplica's statsFile ""), so it is never called
+# (genericsmr's `len(r.statsFile) > 0`); a proof that reaches its opaque constant is stuck there.
+translate = ["*", "!StatsMap.Export"]
+imports = ["*", "!encoding/json", "!io/ioutil"]

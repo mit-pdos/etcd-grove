@@ -31,13 +31,12 @@ deleted by the caller. The key's `KV` may become nil (its `Delete`). -/
 abbrev DoubleBarrier.Leave.spec : Prop :=
   ∀ (b s : Loc) (γ : concurrency.SessionNames) (client : Loc) (id : w64) (key : GoString)
     (count : w64) (ek : Loc) (st : RemoteKVSt) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ isDoubleBarrier b s γ client id key count ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗ levelTok 0 ∗ (isDoubleBarrier b s γ client id key count ∗
       dbMyKey b (key ++ go!"/") (some (ek, st)) ∗ etcdReached lo ∗
-      ⌜key ++ go!"/waiters" <+: st.key⌝ }}
+      ⌜key ++ go!"/waiters" <+: st.key⌝) }}
     (App (Val (b @!! go.GoType.PointerType DoubleBarrier.ty @!! go!"Leave")) (Val #()))
-  {{ (err : GoInterface), RET #err;
-      (∃ kv' : GoInterface, dbMyKey b (key ++ go!"/") (some (ek, { st with kv := kv' }))) ∗
-      leaveResult (key ++ go!"/") st lo err }}
+  {{ (err : GoInterface), RET #err; levelTok 0 ∗ ((∃ kv' : GoInterface, dbMyKey b (key ++ go!"/") (some (ek, { st with kv := kv' }))) ∗
+      leaveResult (key ++ go!"/") st lo err) }}
 
 end spec
 

@@ -14,7 +14,7 @@ public import KvNet.Proof.internal.filepathlite.Init
 public import KvNet.Proof.io.fs.Init
 public import KvNet.Proof.os.Init
 public import Perennial.Proof.errors.NewVar
-public import KvNet.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

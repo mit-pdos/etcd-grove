@@ -33,7 +33,7 @@ abbrev service.call.spec : Prop :=
   ∀ (svc s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (sc t : Loc)
     (cn : Nat) (la ra : GoInterface) (sending wg mt req : Loc) (rqv : net.rpc.Request)
     (argv replyv : GoInterface) (k : Nat) (Φ : List w8 → GoString → IProp GF),
-  {{ isServer s γs ∗ srvEnv ∗ codecSet C ∗ srvCodecAt sc t cn a la ra ∗
+  {{ isServerAny s γs ∗ srvEnv ∗ codecSet C ∗ srvCodecAt sc t cn a la ra ∗
       sync.isMutex sending (srvSendInv W a cn sc) ∗ req ↦ rqv ∗ ⌜rqv.Seq' = W64 k ∧ wg ≠ null⌝ ∗
       ansPend W a cn k rqv.ServiceMethod' Φ ∗ callReady C svc mt argv replyv Φ ∗
       sync.tokJoin.ownDone srvWgN iprop(False) wg iprop(True) }}

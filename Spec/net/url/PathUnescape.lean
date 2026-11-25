@@ -1,5 +1,5 @@
 /-
-`url.PathUnescape(s)` (Go 1.27.3, `url.go`): `unescape(s, encodePathSegment)` (`unescRes`), under `unescape`'s premise. Proved in `Proof/net/url/PathUnescape.lean`.
+`url.PathUnescape(s)` (Go 1.27.3, `url.go`): `unescape(s, encodePathSegment)` (`unescRes`). Proved in `Proof/net/url/PathUnescape.lean`.
 -/
 module
 
@@ -23,7 +23,7 @@ variable [package_sem : net.url.Assumptions]
 
 /-- See the file header. -/
 abbrev PathUnescape.spec : Prop :=
-  ∀ (s : GoString), s.length + 1 < 2 ^ 63 →
+  ∀ (s : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.net.url }}
     (App (Val (@! net.url.PathUnescape)) (Val #s))
   {{ RET (PairV #(unescRes s mPathSegment).1 #(unescRes s mPathSegment).2); True }}

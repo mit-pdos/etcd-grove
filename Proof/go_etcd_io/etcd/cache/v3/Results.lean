@@ -181,7 +181,6 @@ its `Watcher` etcd's client watcher, a client watcher of `γ.kv` (`isNewClient_w
 watch server's facts at `ep`, `watchAddrFacts V`, at `γ.kv`'s state, `V.kst`). -/
 theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (γ : client.KMNames) (hV : V.addr = ep)
@@ -286,7 +285,7 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     #Hws, #HWok, #Hims, #His, #Hkf, #Heof, #Honce⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
     hregs Hrf hnd hrd HL) $$ [Hgs Hlis Hleft]
-    with ⟨%γ, Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+    with ⟨%γ, Htok', #Hss, -, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
   subst hs hE
   imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγ Htb HL hset hwreg)

@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem newUniqueEphemeralKV.wp_proof (hNEKV : newEphemeralKV.spec (GF := GF) (hG := hG)) :
     newUniqueEphemeralKV.spec (GF := GF) (hG := hG) := by
   intro s γ client id pfx kp val lo
-  wp_start as ⟨#Hsess, #Hcl, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hsess, #Hcl, #Hlo, %Hk⟩
   ihave Hri : (recipesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨⟨%eK, #HeK, %HeKl⟩, -, -, -⟩
@@ -65,7 +65,7 @@ theorem newUniqueEphemeralKV.wp_proof (hNEKV : newEphemeralKV.spec (GF := GF) (h
   have Hkey' : key = kp ++ go!"/" ++ _root_.Perennial.fmt.decimal (sint.Z x) := by
     simp (config := { decide := true }) [_root_.Perennial.fmt.dirOutFn, Hkey, _root_.Perennial.fmt.render, _root_.Perennial.fmt.decimalPad_zero]
   have Hpk : pfx <+: key := Hk.1.trans (by rw [Hkey', List.append_assoc]; exact List.prefix_append _ _)
-  wp_apply hNEKV s γ client id pfx key val lo $$ [$Hpkg $Hsess $Hcl $Hlo] as %ek %err Hres
+  wp_apply hNEKV s γ client id pfx key val lo $$ [$Hlt $Hpkg $Hsess $Hcl $Hlo] as %ek %err ⟨Hlt, Hres⟩
   · ipureintro; exact ⟨Hpk, uniqueKey_length_le x Hk.2.1 Hkey', Hk.2.2⟩
   icases Hres with (⟨%Heq, %kv, %r, #HKV, Hek', #Hr, #Hc, %Hrr⟩ | ⟨#HerrK, %Hek, -⟩ |
     ⟨⟨%Hne, %Hek⟩, #Hce⟩)
@@ -75,6 +75,7 @@ theorem newUniqueEphemeralKV.wp_proof (hNEKV : newEphemeralKV.spec (GF := GF) (h
     wp_for_post
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -110,6 +111,7 @@ theorem newUniqueEphemeralKV.wp_proof (hNEKV : newEphemeralKV.spec (GF := GF) (h
       wp_for_post
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       ipureintro; exact ⟨Hne, Hek⟩
     · (try wp_auto)

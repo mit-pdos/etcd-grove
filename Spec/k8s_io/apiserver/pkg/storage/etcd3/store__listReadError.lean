@@ -39,14 +39,13 @@ abbrev store.listReadError.spec : Prop :=
     (Q : w64 → KVState → IProp GF),
   (∃ k, prepareKeyM c.resourcePrefix c.resourcePrefix false = some k ∧
     (c.pathPrefix ++ k).length ≤ opKeyMax) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ readErrIs c withRev Q err }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ readErrIs c withRev Q err) }}
     (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"listReadError")) (Val #(GoInterface.ok ci)))
       (Val #err)) (Val #withRev)) (Val #false)) (Val #ck)) (Val #kp))
-  {{ (e : GoInterface), RET #e;
-      (apierrors.tooLargeErrIs e ∗ ∃ (R : w64) (σ : KVState), □ Q R σ ∗
-        ⌜σ.rev < sint.nat withRev⌝) ∨ listErr c e }}
+  {{ (e : GoInterface), RET #e; levelTok 0 ∗ ((apierrors.tooLargeErrIs e ∗ ∃ (R : w64) (σ : KVState), □ Q R σ ∗
+        ⌜σ.rev < sint.nat withRev⌝) ∨ listErr c e) }}
 
 end spec
 

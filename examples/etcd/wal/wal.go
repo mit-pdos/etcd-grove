@@ -661,9 +661,50 @@ func Boot(area string, orDir string, seed uint64, nOps uint64) uint64 {
 	return StatusRan
 }
 
+// maxName is the longest path component Linux accepts (NAME_MAX).
+const maxName uint64 = 255
+
+// maxDir bounds the length of the area's and the oracle directory's paths: below PATH_MAX (4096)
+// with room for the names the WAL and the oracle make under them (wal.tmp, a segment's
+// wal/0000000000000000-0000000000000000.wal, .durable-state).
+const maxDir int = 4000
+
+// compOk reports whether a path component of n bytes, all of them '.' if dots, is one dirOk
+// accepts: nonempty, neither "." nor "..", at most maxName bytes.
+func compOk(n uint64, dots bool) bool {
+	return n != 0 && n <= maxName && !(dots && n <= 2)
+}
+
+// dirOk reports whether p is a directory path Boot takes: clean and absolute, "/c1/.../cn" with
+// n >= 1 and each ci nonempty, without '/', neither "." nor "..", at most maxName bytes; and
+// shorter than maxDir bytes.
+func dirOk(p string) bool {
+	if len(p) == 0 || len(p) >= maxDir || p[0] != '/' {
+		return false
+	}
+	ok := true
+	n := uint64(0) // the current component's length
+	dots := true   // the current component is all '.'
+	for i := 1; i < len(p); i++ {
+		if p[i] == '/' {
+			ok = ok && compOk(n, dots)
+			n = 0
+			dots = true
+		} else {
+			n = n + 1
+			dots = dots && p[i] == '.'
+		}
+	}
+	return ok && compOk(n, dots)
+}
+
 // Main is the program: incarnations of Boot on the WAL area and the oracle's directory, every
 // choice any value. The crash and restart between incarnations are the machine's (the adequacy
-// theorem's crash semantics).
+// theorem's crash semantics). Main returns at once unless both directories are paths dirOk
+// accepts.
 func Main(area string, orDir string) {
+	if !dirOk(area) || !dirOk(orDir) {
+		return
+	}
 	Boot(area, orDir, 0, 40)
 }

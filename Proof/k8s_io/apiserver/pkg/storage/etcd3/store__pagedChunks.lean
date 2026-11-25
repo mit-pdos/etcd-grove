@@ -335,8 +335,11 @@ theorem store.pagedChunks.wp_proof
         (try wp_auto)
         wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len with %-
         (try wp_auto)
-        wp_apply (wp_listReadError Obj sp c ci cd _ rev0 _ _ Q hrk) $$ [] as %e He
+        icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
+        wp_apply (wp_listReadError Obj sp c ci cd _ rev0 _ _ Q hrk) $$ [$Hlt] as %e ⟨Hlt, He⟩
         · iframe #
+        ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+        · iframe
         (try wp_auto)
         wp_bind (App (App (Val #y) _) _)
         iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ' #()))))
@@ -557,8 +560,11 @@ theorem store.pagedChunks.wp_proof
         (try wp_auto)
         wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len with %-
         (try wp_auto)
-        wp_apply (wp_listReadError Obj sp c ci cd _ R _ _ (fun _ => P σ) hrk) $$ [] as %e He
+        icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨Hlt, Htt⟩
+        wp_apply (wp_listReadError Obj sp c ci cd _ R _ _ (fun _ => P σ) hrk) $$ [$Hlt] as %e ⟨Hlt, He⟩
         · iframe #
+        ihave Htt := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htt]
+        · iframe
         (try wp_auto)
         wp_bind (App (App (Val #y) _) _)
         iapply (wp_wand (Φ := fun v => iprop(∃ b : Bool, ⌜v = #b⌝ ∗ (threadTok -∗ Φ' #()))))

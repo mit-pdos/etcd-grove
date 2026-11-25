@@ -1,8 +1,9 @@
 /-
 The instances goose's proofgen emits for a translated struct (typed points-to, field access,
 `IntoValTyped`), stated for the structs whose layouts are trusted in
-`Net/TrustedCode/net.lean` (`conn`, `TCPConn`, `TCPListener`), of which goose emits
-none. Proved, from the hand-stated field facts `net.FieldAssumptions` (an instance hypothesis).
+`Net/TrustedCode/net.lean` (`conn`, `TCPConn`, `TCPListener`; `UDPConn`), of which goose emits
+none. Proved, from the hand-stated field facts `net.FieldAssumptions` (`net.UdpFieldAssumptions`
+for `UDPConn`; instance hypotheses).
 -/
 module
 
@@ -210,7 +211,76 @@ instance TCPListener_into_val_typed :
     IntoValTypedUnderlying (GF := GF) TCPListener TCPListener.underlying := by
   solve_into_val_typed_struct
 
+/-! ### `UDPConn` (`notes/net-udp.md`), from the hand-stated `net.UdpFieldAssumptions` -/
+
 end def_
+
+section udp
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions] [udp_field_sem : net.UdpFieldAssumptions]
+
+instance UDPConn_typed_pointsto : TypedPointsto (GF := GF) UDPConn where
+  typedPointstoDef l v dq := iprop(
+    "uid" ∷ typedPointsto (structFieldRef UDPConn go!"uid" l) v.id' dq ∗
+    "laddr" ∷ typedPointsto (structFieldRef UDPConn go!"laddr" l) v.laddr' dq ∗
+    "net" ∷ typedPointsto (structFieldRef UDPConn go!"net" l) v.net' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance UDPConn_access_load_uid (l : Loc) (v : UDPConn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef UDPConn go!"uid" l) v.id' dq)
+      (typedPointsto (structFieldRef UDPConn go!"uid" l) v.id' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance UDPConn_access_store_uid (l : Loc) (v : UDPConn) (id' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef UDPConn go!"uid" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef UDPConn go!"uid" l) id' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with id' := id' } : UDPConn) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
+instance UDPConn_access_load_laddr (l : Loc) (v : UDPConn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef UDPConn go!"laddr" l) v.laddr' dq)
+      (typedPointsto (structFieldRef UDPConn go!"laddr" l) v.laddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance UDPConn_access_store_laddr (l : Loc) (v : UDPConn) (laddr' : GoInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef UDPConn go!"laddr" l) v.laddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef UDPConn go!"laddr" l) laddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with laddr' := laddr' } : UDPConn) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
+instance UDPConn_access_load_net (l : Loc) (v : UDPConn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef UDPConn go!"net" l) v.net' dq)
+      (typedPointsto (structFieldRef UDPConn go!"net" l) v.net' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance UDPConn_access_store_net (l : Loc) (v : UDPConn) (net' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef UDPConn go!"net" l) v.net' (DFrac.own 1))
+      (typedPointsto (structFieldRef UDPConn go!"net" l) net' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with net' := net' } : UDPConn) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
+instance UDPConn_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) UDPConn UDPConn.underlying := by
+  solve_into_val_typed_struct
+
+end udp
 
 end net
 end Perennial

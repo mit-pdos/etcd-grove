@@ -165,7 +165,7 @@ theorem canceledOk_of_init
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
 header): `ctxOk` (its third case, `ctxErrs`: since premise fixes 5 also `Done()`, which returns
 `sc`, whose done flag is `chanCd γi`'s closed flag) and `ctxErrClient`, at `chanCd γi`. -/
-theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+theorem chanCtx_ok
     [wait_sem : k8s_io.apimachinery.pkg.util.wait.Assumptions]
     (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))

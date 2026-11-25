@@ -31,16 +31,15 @@ a client error), the panic `panic(err)`, with the mutex unchanged. -/
 abbrev lockerMutex.Unlock.spec : Prop :=
   ∀ (lm m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (cctx : GoInterfaceOk) (ccs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗
-      structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
       structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" client ↦□ GoInterface.ok cctx ∗
-      context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx ∗ etcdReached lo }}
+      context.isContext cctx ccs ∗ metadata.outgoingCtxOkC cctx ∗ etcdReached lo) }}
     (App (Val (lm @!! go.GoType.PointerType lockerMutex.ty @!! go!"Unlock")) (Val #()))
-  {{ (r : val), RET r; structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
+  {{ (r : val), RET r; levelTok 0 ∗ (structFieldRef lockerMutex go!"Mutex" lm ↦ m ∗
       ((⌜r = #()⌝ ∗ ∃ R : w64, mutexState m (MutexSt.released st.hdr) ∗
         etcdReached R ∗ etcdAbsent pfx st.key R ∗
         ⌜¬ st.noKey ∧ pfx <+: st.key ∧ sint.Z lo ≤ sint.Z R⌝) ∨
-      (∃ err : GoInterface, ⌜err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗ mutexState m st)) }}
+      (∃ err : GoInterface, ⌜err ≠ GoInterface.nil ∧ r = PanicV #err⌝ ∗ mutexState m st))) }}
 
 end spec
 

@@ -95,6 +95,12 @@ attribute [irreducible] member.ty
 @[reducible] noncomputable def readFail [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
+@[reducible] noncomputable def maxName [GooseExts] [GoGlobalContext] : val :=
+  #(W64 255)
+
+@[reducible] noncomputable def maxDir [GooseExts] [GoGlobalContext] : val :=
+  #(W64 4000)
+
 noncomputable def freshOracle [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/wal.freshOracle"
 
@@ -226,6 +232,12 @@ noncomputable def purgeRound [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def Boot [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/wal.Boot"
+
+noncomputable def compOk [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/wal.compOk"
+
+noncomputable def dirOk [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/wal.dirOk"
 
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/wal.Main"
@@ -4627,23 +4639,131 @@ noncomputable def Boot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType member.ty)))) (Pair (Var "m") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))))
 
+/-- compOk reports whether a path component of n bytes, all of them '.' if dots, is one dirOk
+    accepts: nonempty, neither "." nor "..", at most maxName bytes.
+
+    go: wal.go:674:6 -/
+noncomputable def compOk.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "dots"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "dots" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "dots"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "n"))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (Val #(W64 0))))) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (Val maxName))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "dots")) (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (Val #(W64 2)))) (Val #false))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- dirOk reports whether p is a directory path Boot takes: clean and absolute, "/c1/.../cn" with
+    n >= 1 and each ci nonempty, without '/', neither "." nor "..", at most maxName bytes; and
+    shorter than maxDir bytes.
+
+    go: wal.go:681:6 -/
+noncomputable def dirOk.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc go.string))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (Let "dots" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "dots"))
+  (App (App (App (Val (GoInstruction (FuncResolve compOk []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 47)))))
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "dots"))
+  (App (App (App (Val (GoInstruction (FuncResolve compOk []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "dots") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "dots")) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 46)))) (Val #false))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "dots") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "dots") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val maxDir)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "p")) (Val #(W64 0)))) (Val #(W8 47)))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 /-- Main is the program: incarnations of Boot on the WAL area and the oracle's directory, every
     choice any value. The crash and restart between incarnations are the machine's (the adequacy
-    theorem's crash semantics).
+    theorem's crash semantics). Main returns at once unless both directories are paths dirOk
+    accepts.
 
-    go: wal.go:667:6 -/
+    go: wal.go:705:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "area"
   (Lam "orDir"
   (Seq (App (Val exceptionDo)
   (Let "orDir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "orDir"))
   (Let "area" (App (Val (GoInstruction (GoAlloc go.string))) (Var "area"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "area"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "orDir"))
   (Let "$a2" (Val #(W64 0))
   (Let "$a3" (Val #(W64 40))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve Boot []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve Boot []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "area"))
+  (App (App (Val (GoInstruction (FuncResolve dirOk []))) (Val #())) (Var "$a0")))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "orDir"))
+  (App (App (Val (GoInstruction (FuncResolve dirOk []))) (Val #())) (Var "$a0")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal where
@@ -5287,6 +5407,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkRestart_unfold : FuncUnfold checkRestart [] checkRestart.impl
   purgeRound_unfold : FuncUnfold purgeRound [] purgeRound.impl
   Boot_unfold : FuncUnfold Boot [] Boot.impl
+  compOk_unfold : FuncUnfold compOk [] compOk.impl
+  dirOk_unfold : FuncUnfold dirOk [] dirOk.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   import_durable_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions
   import_os_Assumption : _root_.Perennial.os.Assumptions
@@ -5351,6 +5473,8 @@ attribute [instance] Assumptions.oracle_instance
   Assumptions.checkRestart_unfold
   Assumptions.purgeRound_unfold
   Assumptions.Boot_unfold
+  Assumptions.compOk_unfold
+  Assumptions.dirOk_unfold
   Assumptions.Main_unfold
   Assumptions.import_durable_Assumption
   Assumptions.import_os_Assumption

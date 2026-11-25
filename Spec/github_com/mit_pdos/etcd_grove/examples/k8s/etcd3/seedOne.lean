@@ -38,16 +38,13 @@ abbrev seedOne.spec : Prop :=
     (k : GoString) (rv : w64) (σ : KVState),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   k.length < 256 → g.items.length + 1 < 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl (ms.map (·.addr)) V ∗ client.clientWriteOnce cl (ms.map (·.addr)) ∗
-      ([∗list] y ∈ ms, client.kvRegsAt y) ∗ ([∗list] y ∈ ms, seedInv γs y.γr.kv) ∗ ghostVar γs (1 : Qp).half σ ∗ storeOwn s0 g }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map (·.addr)) V ∗ client.clientWriteOnce cl (ms.map (·.addr)) ∗
+      ([∗list] y ∈ ms, client.kvRegsAt y) ∗ ([∗list] y ∈ ms, seedInv γs y.γr.kv) ∗ ghostVar γs (1 : Qp).half σ ∗ storeOwn s0 g) }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seedOne)) (Val #cl)) (Val #s0)) (Val #k)) (Val #rv))
-  {{ (s' : mstore) (ok : Bool), RET (PairV #s' #ok);
-      ⌜ok = false⌝ ∨
+  {{ (s' : mstore) (ok : Bool), RET (PairV #s' #ok); levelTok 0 ∗ (⌜ok = false⌝ ∨
       (⌜ok = true⌝ ∗ ghostVar γs (1 : Qp).half (kvOpStep (seedOp k) σ) ∗
         storeOwn s' ⟨setItemL g.items (seedItem k rv), rv⟩ ∗
-        ⌜rv = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1)⌝) }}
+        ⌜rv = W64 ((σ.rev + 1 : Nat) : Int) ∧ kvRevFits (σ.rev + 1)⌝)) }}
 
 end spec
 

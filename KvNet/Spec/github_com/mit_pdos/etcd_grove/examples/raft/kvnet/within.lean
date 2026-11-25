@@ -1,4 +1,3 @@
--- The copy for the part `KvNet/` of `RaftNoAx/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/within.lean` (etc/copy-part.py; rerun it, do not edit).
 /- kvreconf's (the same Go text), ported. Lean-first (no Rocq counterpart).
 
 `within(a, b)` (check.go): whether every key of `a` has the same value in `b` (`""` if `b`

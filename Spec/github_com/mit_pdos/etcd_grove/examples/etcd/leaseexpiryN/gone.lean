@@ -34,16 +34,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 
 /-- See the file header. -/
 abbrev gone.spec : Prop :=
-  ∀ [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+  ∀
     (cl : Loc) (eps : List GoString) (V : client.WEnv GF) (γl : GName) (m : Nat) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗
-      isNewClient cl eps V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN ∗ levelTok 0 ∗ (isNewClient cl eps V ∗
       isGrpcRpcs eps go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive γl) ∗
       lease.lessorLb γl m ∗
-      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ }}
+      ⌜errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.gone)) (Val #cl))
       (Val #id))
-  {{ (b : Bool), RET #b; if b then lease.leaseAbsentFrom γl m id else True }}
+  {{ (b : Bool), RET #b; levelTok 0 ∗ (if b then lease.leaseAbsentFrom γl m id else True) }}
 
 end spec
 

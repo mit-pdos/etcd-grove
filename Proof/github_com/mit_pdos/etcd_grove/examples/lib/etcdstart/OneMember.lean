@@ -102,7 +102,7 @@ def premises (name peer client : GoString)
         γ.boot = LogEntry.toEntries boot 0⌝ -∗
       letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (dir1 peer id)) ∗
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
+    rnLoggerZapOk ∗ rnTimeoutDetectorOk)
 
 instance premises_persistent (name peer client : GoString) (N : Nat) (id : w64)
     (ctxs : List (List w8)) (boot : List LogEntry) :

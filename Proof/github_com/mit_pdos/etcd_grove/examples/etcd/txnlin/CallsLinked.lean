@@ -44,19 +44,19 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (Q : KVState → IProp GF)
     (hsz : opSizeOk (opGetModel listFrom [withRangeM listTo])) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         isNewClient cl (ms.map client.SrvAt.addr) V ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [withRangeM listTo] ∗
         □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #listFrom)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
           □ Q σ ∗ ⌜m.kvs = σ.kvs.filter (fun v => inRange listFrom listTo v.key) ∧
             m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hregs, #Hst, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+          ⌜err ≠ GoInterface.nil⌝) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hcl, #Hregs, #Hst, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Hopts' := optsAt_res sl [withRangeM listTo] iprop(True) $$ Hopts
@@ -77,8 +77,8 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   wp_auto
   iapply wp_fupd
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
-      iprop(True) Q [] hsz) $$ [] as %resp %err ⟨-, Hout, -⟩
-  · iframe #
+      iprop(True) Q [] hsz) $$ [Hlt] as %resp %err ⟨Hlt, -, Hout, -⟩
+  · iframe Hlt; iframe #
     isplitl []
     · rw [show (opGetModel listFrom [withRangeM listTo]).base.sortSet = false from rfl]
       iapply sortNamesIf_false
@@ -90,6 +90,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
     imodintro
     iapply HΦ
+    iframe Hlt
     ileft
     isplitl []
     · ipureintro; exact Herr
@@ -102,6 +103,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     exact ⟨(srvRangeOk_list _ _ _ hsel).1, hrev, hb⟩
   · imodintro
     iapply HΦ
+    iframe Hlt
     iright
     ipureintro; exact Herr.1
 
@@ -115,15 +117,15 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     (b : TxnBuild) (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)
     (hne : t ++ e ≠ []) (hsz : txnSizeOk (txnWireOf b.model)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
         client.txnWriteOnce tp (ms.map client.SrvAt.addr) ∗
         ([∧list] x ∈ ms, callUpd x.γr.kv (.txn cs t e) Q) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
           callRes (.txn cs t e) Q σ ∗
           ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
               (linkv.txnOf cs t e)).1 ∧
@@ -135,8 +137,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
             kvRevFits σ.rev ∧
             -- (2026-10-31, `notes/vallen.md`) the state's values are short (the reply's log's)
             ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }} := by
+  iintro %Φ ⟨#Pc, Hlt, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = linkv.txnOf cs t e := by rw [hb, txnWireOf_clientTxn]
   have hp : client.TxnModel.plain b.model := by rw [hb]; exact clientTxn_plain cs t e
   have hin : client.txnModelIn (txnWireOf b.model) := by rw [hw]; exact txnModelIn_txnOf cs t e
@@ -164,11 +166,12 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
       exact intuitionistic_alias.trans (intuitionistically_mono (BigAndL.bigAndL_mono hm))
     ihave #Hau' := hbox $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz) $$ [Hobj]
-      as %resp %err Hout
-    · iframe Hobj
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz) $$ [Hlt Hobj]
+      as %resp %err ⟨Hlt, Hout⟩
+    · iframe Hlt Hobj
       iframe #
     iapply HΦ
+    iframe Hlt
     icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
     · ileft
       isplitl []
@@ -212,14 +215,15 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         iExactEq H; rfl
     ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
     wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin hsz)
-      $$ [Hobj Hau' Hone]
-      as %resp %err Hout
-    · iframe Hobj
+      $$ [Hlt Hobj Hau' Hone]
+      as %resp %err ⟨Hlt, Hout⟩
+    · iframe Hlt Hobj
       iframe #
       iright
       iframe Hone
       iexact Hau'
     iapply HΦ
+    iframe Hlt
     icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
     · ileft
       isplitl []

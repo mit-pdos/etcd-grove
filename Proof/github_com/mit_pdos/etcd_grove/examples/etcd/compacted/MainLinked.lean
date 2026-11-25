@@ -46,7 +46,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.A
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/Main.lean`), under the semantic premise of
 its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
-theorem etcd_compacted.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_compacted.wp_Main [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_compacted.Main.spec (GF := GF) (hG := hG) :=
   etcd_compacted.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartPeriodicServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof

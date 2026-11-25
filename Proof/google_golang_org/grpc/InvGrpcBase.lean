@@ -1122,11 +1122,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **One server per address string.** True: `netAddrFree` allows one `Listen` per address in a run
-(`Proof/net/InvNet.lean`), `grpc.start` consumes the listener, and `bridge.New` consumes the
-bridge's own listener. Addresses are compared as strings (`grpcAddrIsRaw`): the law is used only at
-one string, never to identify two spellings of one socket. (Restart's S10 must revisit this if a
-`Stop` spec ever frees an address.) -/
+/-- **One server per address string.** True: `grpcAddrIs` is made only by `grpc.start` and
+`bridge.New`, each consuming a `netListenerAt l addr`, whose `addrClaim addr` is exclusive and given
+once per address by program start (`Proof/net/InvNet.lean`); `grpc.start` consumes the listener (and
+its claim) for good, and `bridge.New` consumes the bridge's own. (Not because the address is listened
+on once: after `grpc.start'` the address's protocols, persistent, let `listen_au` lend its listening
+token again, but such a listener has no claim, and none can be started or bridged; the extension's
+`Listen` fails with one open at the address, and the started server's listener is never closed by a
+spec, 2026-11-24, `notes/axiom-review/norefusal-link.md`.) Addresses are compared as strings
+(`grpcAddrIsRaw`): the law is used only at one string, never to identify two spellings of one socket.
+(Restart's S10 must revisit this if a `Stop` spec ever frees an address.) -/
 axiom grpcAddrIs_agree (addr : GoString) (γ γ' : GName) :
   grpcAddrIs (GF := GF) addr γ ∗ grpcAddrIs addr γ' ⊢ ⌜γ = γ'⌝
 
@@ -1204,6 +1209,20 @@ end run
 connection whose per-RPC credentials need no resource of their caller (none, or ones whose
 contract holds at every `R`) takes any, `True` included. -/
 abbrev anyRes {GF : BundledGFunctors} : IProp GF → Prop := fun _ => True
+
+section clientRes
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+
+/-- **The etcd client connection's resource family** (prove-ps2-clientrdlock, 2026-11-24; decision
+1b, 2026-11-23): the resource every call on an etcd client's connection is given, and gives back,
+is a level-0 thread token (`grpcConn … clientRes`, `perRPCCredsOk pc clientRes`): with it the
+client's credentials (`GetRequestMetadata`) and its retry interceptor (`Endpoints`) borrow a reader
+slot of their `RWMutex`. Every caller of a client operation holds one: a live thread has one token
+at each level (`threadTok`). -/
+abbrev clientRes : IProp GF → Prop := fun R => R = levelTok 0
+
+end clientRes
 
 /-- **The client's connection `conn` reaches the servers at `addrs`, with the unary interceptors
 `ics` and the default call options `dopts`** (persistent; an axiomatized predicate: a fact about

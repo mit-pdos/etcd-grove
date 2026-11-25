@@ -40,7 +40,7 @@ theorem waitRetryBackoff.wp_proof
     (wp_ctxErr : contextErrToGRPCErr.spec (GF := GF) (hG := hG)) :
     waitRetryBackoff.spec (GF := GF) (hG := hG) := by
   intro ctx cd attempt o
-  wp_start as ⟨#Hctx, #Hro⟩
+  wp_start as ⟨Htok, #Hctx, #Hro⟩
   iunfold retryOptsAt at Hro
   icases Hro with ⟨%ov, #Ho, #Hbk⟩
   ihave ⟨-, -, #Hbf, -⟩ := options_fields_ro o ov $$ Ho
@@ -118,33 +118,34 @@ theorem waitRetryBackoff.wp_proof
       iapply HΨ
       iapply ctxErrLeaf_of_errs err Hne $$ [Hm]
       iframe Hs Hcell Hm
-  ihave #Hbt : iprop({{ True }} (App (Val #ov.backoffFunc') (Val #attempt))
-      {{ (d : w64), RET #d; True }}) $$ []
-  · iintro !> %Φ' - HΦ'
+  ihave #Hbt : iprop({{ levelTok 0 }} (App (Val #ov.backoffFunc') (Val #attempt))
+      {{ (d : w64), RET #d; levelTok 0 }}) $$ []
+  · iintro !> %Φ' Htok HΦ'
     iunfold optionsOk at Hbk
-    iunfold go_etcd_io.etcd.cache.v3.backoffOk at Hbk
-    iapply Hbk
+    iunfold backoffOkT at Hbk
+    iapply Hbk $$ Htok
     inext
-    iintro %d
-    iapply HΦ'
-    itrivial
+    iintro %d Htok
+    iapply HΦ' $$ Htok
   wp_auto
   wp_if_destruct
   rotate_left
   · -- `attempt == 0`: no wait
     (try wp_auto)
     iapply HΦ
+    iframe Htok
     isplitl
     · iapply clientErrOk_nil
     ileft; ipureintro; rfl
   (try wp_auto)
-  wp_apply Hbt as %d -
+  wp_apply Hbt $$ [$Htok] as %d Htok
   (try wp_auto)
   wp_if_destruct
   rotate_left
   · -- no wait
     (try wp_auto)
     iapply HΦ
+    iframe Htok
     isplitl
     · iapply clientErrOk_nil
     ileft; ipureintro; rfl
@@ -176,6 +177,7 @@ theorem waitRetryBackoff.wp_proof
       iintro %tm -
       (try wp_auto)
       iapply HΦ
+      iframe Htok
       isplitl
       · iapply clientErrOk_nil
       ileft; ipureintro; rfl
@@ -201,7 +203,7 @@ theorem waitRetryBackoff.wp_proof
       · iframe #
       (try wp_auto)
       iapply HΦ
-      iframe Hok
+      iframe Htok Hok
       iright; iexact Hnh
     iapply BigAndL.bigAndL_cons.2
     isplit
@@ -218,6 +220,7 @@ theorem waitRetryBackoff.wp_proof
       iintro %tm -
       (try wp_auto)
       iapply HΦ
+      iframe Htok
       isplitl
       · iapply clientErrOk_nil
       ileft; ipureintro; rfl

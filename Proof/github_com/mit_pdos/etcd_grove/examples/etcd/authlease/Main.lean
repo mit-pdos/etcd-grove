@@ -83,7 +83,7 @@ theorem Main.wp_proof
     (hbcfg : ∀ (dir : w64 → List GoString) (ps : List w64), (∀ f, dir f ≠ [] ↔ f ∈ ps) →
       ps.length ≤ 1000 → rafthttp.bootCfg dir ps) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC k N ids ps ctxs boot hk1 hk Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq
+  intro CS ES FS RS k N ids ps ctxs boot hk1 hk Hlen Hbf Hap Htb HLv Hrb48 HrbN HwbN Haf Hbuq
     Hrf Hdbo Hlp Hlne Hms hAs
   wp_start as ⟨Hss, Htok, #Hprem⟩
   iunfold premises at Hprem

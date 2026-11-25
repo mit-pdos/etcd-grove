@@ -178,7 +178,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- **The producer's `sendError`** (then it returns): `kProdExited` set first (`kCancelPD`'s producer
@@ -350,10 +349,13 @@ theorem watchChan.startWatching.wp_proof
     wp_auto
     wp_bind (App (Val #crv) (Val _))
     iapply Hcrv
-    wp_apply (wp_GetCRV Obj sp c ctx (kCdw γ cd) c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ []
-      as %n %err Hout
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok⟩
+    wp_apply (wp_GetCRV Obj sp c ctx (kCdw γ cd) c.resourcePrefix (fun _ _ => Q 0) Hrp hrpl) $$ [$Hlt]
+      as %n %err ⟨Hlt, Hout⟩
     · iframe #
       iapply readAus_crv $$ Hra
+    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok]
+    · iframe
     iexists n, err
     isplitr
     · ipureintro; rfl
@@ -480,10 +482,13 @@ theorem watchChan.startWatching.wp_proof
         all_goals (intro h; simp [hf] at h)
     · -- `sync()`
       wp_auto
+      icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, Htok⟩
       wp_apply (wp_sync Obj wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf 1 hQ hH hR
-          hf (Hlbf hf)) $$ [Hir Hps Hpe] as %err ⟨Hpe, Hout⟩
+          hf (Hlbf hf)) $$ [$Hlt Hir Hps Hpe] as %err ⟨Hlt, Hpe, Hout⟩
       · iframe #
         iframe
+      ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Hlt Htok]
+      · iframe
       icases Hout with (⟨%Herr, %lb0, %σ0, #HQ0, %Hσ0, Hir, Hps⟩ | ⟨#Hok, %r', Hir⟩)
       · subst Herr
         obtain ⟨hst0, hfit⟩ := Hσ0

@@ -136,6 +136,10 @@ jobs:
       # stage 2, D2): no new match on a mode, off/on twin or literal mode. Reads the sources only.
       - name: Check the auth-mode baseline
         run: ./etc/mode-check.py --check
+      # No top-level statement takes a new Iris premise (a binder over `HeapGS`) without a
+      # satisfiability witness (etc/iris-premise-baseline.txt). Reads the sources only.
+      - name: Check the Iris premises' witnesses
+        run: ./etc/iris-premise-check.py --check
       # Every registration on etcd's client port has a row in `etc/auth-table.txt`, with the specs
       # that carry its access check, no row weaker than its baseline (stage M0 of
       # `notes/auth-mediation-scope.md`). Reads the Go sources (`.lake/goose/etcd`, cloned by the

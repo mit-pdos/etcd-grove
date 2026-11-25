@@ -1,5 +1,5 @@
 /-
-`s.add(i)` (`examples/raft/kvnet/stats.go`): one more of the counter `i` (one of the 23), under the
+`s.add(i)` (`examples/raft/kvnet/stats.go`): one more of the counter `i` (one of the `numStats`), under the
 counters' mutex (`isStats`, `TransportDefs.lean`). The counters are for the tests' coverage report;
 no proof reads them, so the post says nothing of them.
 -/
@@ -27,7 +27,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev Stats.add.spec : Prop :=
-  ∀ (s : Loc) (i : w64), 0 ≤ sint.Z i → sint.Z i < 23 →
+  ∀ (s : Loc) (i : w64), 0 ≤ sint.Z i → sint.Z i < numStats →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
       isStats s }}
     (App (Val (s @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats.ty

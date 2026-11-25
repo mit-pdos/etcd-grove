@@ -1,7 +1,7 @@
 /-
 # kvnet's top level: the pure facts its proof needs of the statement's premises (2026-11-22)
 
-`notes/kvnet-part.md`, the last sections. From the premises of `raft_kvnet_robust.spec`
+`notes/kvnet-part.md`, the last sections. From the premises of `raft_kvnet_robust.spec` and the checks of its programs
 (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`):
 
 * the replica's file (`kvDFile dir J id`, `durable`'s `DFile` of `dir`'s root inode `J`): `durable`
@@ -9,8 +9,9 @@
   is the program's (`kvDFile_name`);
 * the first generation's directory is empty (`fsInit_entry_none`: from `FsInit` and the statement's
   "nothing at `dir/c`", nothing at any valid name of `dir`'s root directory in the durable tree);
-* `RunNode`'s and `Check`'s pure premises: the addresses joined then split (`splitAddrs_intercalate`),
-  `validAddrs`, `validCluster`, the replica's id and address (`replica_id`), the options raft's
+* what `RunNode`'s and `Check`'s checks give: the machines' addresses joined then split are at least
+  as many as the machines (`splitAddrs_intercalate_length`), `validCluster`'s `validAddrs` and
+  options (`clOk_of_validCluster`), the replica's id and address (`replica_id`), the options raft's
   `RestartNode` takes (`kvOptsOk_of_clOk`).
 -/
 module
@@ -150,58 +151,63 @@ theorem fsInit_entry_none {st : OsState} (hst : FsInit st) {dir : GoString} {J :
   | none => rfl
   | some n => simp [walk, he] at h
 
-/-! ## `RunNode`'s and `Check`'s premises -/
+/-! ## What `RunNode`'s and `Check`'s checks give -/
 
-/-- A valid address has no comma. -/
-theorem addrOk_noComma {a : GoString} (h : addrOk a = true) : (44 : w8) ∉ a := by
-  unfold addrOk at h
-  split at h
-  · rename_i n1 n2 n3 n4 p hp
-    obtain ⟨ip, ps, x1, x2, x3, x4, hs, hs', d1, d2, d3, d4, d5⟩ := parseAddr_some hp
-    obtain ⟨ha, -⟩ := splitBy_shape0 58 a
-    obtain ⟨hip, -⟩ := splitBy_shape0 46 ip
-    rw [hs] at ha
-    rw [hs'] at hip
-    have ha' : a = x1 ++ 46 :: (x2 ++ 46 :: (x3 ++ 46 :: (x4 ++ 58 :: ps))) := by
-      rw [ha, hip]
-      simp [List.intercalate_cons_cons, List.append_assoc]
-    have f := fun {x : GoString} {n : Nat} (d : decNat x = some n) =>
-      digits_free (decNat_digits d) (44 : w8) (by decide)
-    rw [ha']
-    simp only [List.mem_append, List.mem_cons, not_or]
-    exact ⟨f d1, by decide, f d2, by decide, f d3, by decide, f d4, by decide, f d5⟩
-  · cases h
+/-- `splitBy` gives one piece more than the separators in the string. -/
+theorem splitBy_length (sep : w8) : ∀ (s cur : GoString),
+    (splitBy sep s cur).length = s.count sep + 1
+  | [], cur => by simp [splitBy]
+  | c :: s, cur => by
+    unfold splitBy
+    split
+    · rename_i hc
+      have hc' : c = sep := (w8_toNat_eq_iff _ _).mp hc
+      subst hc'
+      simp [splitBy_length c s []]
+    · rename_i hc
+      have hc' : c ≠ sep := fun e => hc ((w8_toNat_eq_iff _ _).mpr e)
+      rw [splitBy_length sep s (c :: cur), List.count_cons]
+      simp [hc']
 
-/-- **The addresses joined by commas, split back.** -/
-theorem splitAddrs_intercalate (rs : List GoString) (hne : rs ≠ [])
-    (hok : ∀ a ∈ rs, addrOk a = true) : splitAddrs (List.intercalate go!"," rs) = rs :=
-  splitAddrs_joinAddrs rs hne (fun a ha => addrOk_noComma (hok a ha))
+/-- A list joined by a separator holds at least one separator fewer than it has elements. -/
+theorem intercalate_count (sep : w8) : ∀ (l : List GoString),
+    l.length ≤ (List.intercalate [sep] l).count sep + 1
+  | [] => by simp
+  | [_] => by simp
+  | x :: y :: r => by
+    have ih := intercalate_count sep (y :: r)
+    rw [List.intercalate_cons_cons, List.count_append, List.count_append]
+    simp only [List.length_cons, List.count_singleton_self] at ih ⊢
+    omega
 
-/-- **The addresses are valid** (`ValidAddrs`). -/
-theorem validAddrs_of (rs : List GoString) (cl : ClusterConfig) (hnd : rs.Nodup)
-    (hok : ∀ a ∈ rs, addrOk a = true) (hlen : rs.length < 2 ^ 32) (hcl : cl.Ok rs.length) :
-    validAddrs rs (uint.nat cl.voters) = true := by
-  unfold validAddrs
-  obtain ⟨h1, h2, -⟩ := hcl
-  exact decide_eq_true ⟨hok, hnd, hlen, h1, h2⟩
+/-- **The machines' addresses joined by commas, split back, are at least as many** (the programs
+see the split: a machine's address with a comma in it is several): so fewer than `2^32` machines
+whenever `ValidAddrs` holds of the split. -/
+theorem splitAddrs_intercalate_length (l : List GoString) :
+    l.length ≤ (splitAddrs (List.intercalate go!"," l)).length := by
+  have e : (go!"," : GoString) = [(44 : w8)] := by decide
+  unfold splitAddrs
+  rw [e, splitBy_length]
+  exact intercalate_count 44 l
 
-/-- **The cluster is valid** (`ValidCluster`). -/
-theorem validCluster_of (rs : List GoString) (cl : ClusterConfig) (hnd : rs.Nodup)
-    (hok : ∀ a ∈ rs, addrOk a = true) (hlen : rs.length < 2 ^ 32) (hcl : cl.Ok rs.length) :
-    validCluster rs (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
-      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true := by
-  unfold validCluster
-  rw [validAddrs_of rs cl hnd hok hlen hcl]
-  obtain ⟨-, -, h3, h4, h5⟩ := hcl
-  have h3' : ¬ (uint.nat cl.maxSizePerMsg = 0 ∧ uint.nat cl.maxCommittedSizePerReady = 0) := by
-    rintro ⟨a, b⟩
-    exact h3 ⟨BitVec.eq_of_toNat_eq (by simpa using a), BitVec.eq_of_toNat_eq (by simpa using b)⟩
-  simp only [Bool.true_and, Bool.and_eq_true, Bool.not_eq_true', decide_eq_true_eq]
-  refine ⟨⟨?_, h4⟩, h5⟩
-  apply Bool.eq_false_iff.2
-  intro hab
-  simp only [Bool.and_eq_true, decide_eq_true_eq] at hab
-  exact h3' hab
+/-- `ValidCluster` checks `ValidAddrs`. -/
+theorem validAddrs_of_validCluster {l : List GoString} {v msz mcs mif : Nat}
+    (h : validCluster l v msz mcs mif = true) : validAddrs l v = true := by
+  unfold validCluster at h
+  simp only [Bool.and_eq_true] at h
+  exact h.1.1.1
+
+/-- **`ValidCluster` checks the options raft and kvnet accept** (`ClusterConfig.Ok`). -/
+theorem clOk_of_validCluster (rs : List GoString) (cl : ClusterConfig)
+    (h : validCluster rs (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
+      (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true) :
+    cl.Ok rs.length := by
+  simp only [validCluster, validAddrs, Bool.and_eq_true, decide_eq_true_eq] at h
+  obtain ⟨⟨⟨⟨-, -, -, h1, h2⟩, h3⟩, h4⟩, h5⟩ := h
+  refine ⟨h1, h2, ?_, h4, h5⟩
+  rintro ⟨ha, hb⟩
+  rw [ha, hb] at h3
+  simp at h3
 
 /-- **Replica `i + 1`'s id and address**: the id is in range and the `i`-th address is its. -/
 theorem replica_id (rs : List GoString) (i : Nat) (hi : i < rs.length) (hlen : rs.length < 2 ^ 32) :

@@ -16,7 +16,6 @@ public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.math.rand.Init
 public import Dsverify.Code.rabia.internal.message
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Base
 public import Dsverify.Proof.github_com.rs.zerolog.Base
@@ -188,13 +187,6 @@ abbrev math.rand.Rand.Intn.spec (ownRand : Loc → IProp GF) : Prop :=
       (App (Val (r @!! go.GoType.PointerType math.rand.Rand.ty @!! go!"Intn")) (Val #n))
     {{ (x : w64), RET #x; ownRand r ∗ ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
 
-/-- The package-level `Intn(n)` for `n > 0`: some `x` in `[0, n)`. -/
-abbrev math.rand.Intn.spec : Prop :=
-  ∀ (n : w64), 0 < sint.Z n →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! math.rand.Intn)) (Val #n))
-    {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
-
 end spec
 
 /-- The specs of a `Rand` and its source, for the tokens `isSource` and `ownRand` (the header). -/
@@ -210,7 +202,6 @@ class math.rand.Hyps [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext
     (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   rands : ∃ (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF),
     math.rand.RandSpecs GF isSource ownRand
-  Intn : math.rand.Intn.spec (GF := GF)
 
 end rnd
 
@@ -255,7 +246,6 @@ class KitLibs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [Go
   gogoproto_init : github_com.gogo.protobuf.gogoproto.InitHyp GF
   redis_init : github_com.go_redis.redis.v8.InitHyp GF
   signal_init : os.signal.InitHyp GF
-  rand_init : math.rand.InitHyp GF
   zerolog : zl.Hyps GF
   rand : rnd.math.rand.Hyps GF
   no_signals : sig.NoSignals sig.quietSigs GF

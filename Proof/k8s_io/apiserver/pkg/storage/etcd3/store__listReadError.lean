@@ -40,7 +40,7 @@ theorem store.listReadError.wp_proof
     store.listReadError.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd err withRev ck kp Q hk
   obtain ⟨k, hk, hkl⟩ := hk
-  wp_start as ⟨#Hst, #Hctx, #Hce, #Herr⟩
+  wp_start as ⟨Hlt, #Hst, #Hctx, #Hce, #Herr⟩
   ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
@@ -62,6 +62,7 @@ theorem store.listReadError.wp_proof
     wp_auto
     wp_apply (wp_interpretListError Obj c err false ck kp (by simp)) $$ [$Hke] as %e #He
     iapply HΦ
+    iframe Hlt
     iright
     iapply listErrF_listErr $$ He
   · -- a future revision: the state below `withRev`, and the too-large error
@@ -73,7 +74,7 @@ theorem store.listReadError.wp_proof
       · ipureintro; exact h
     ihave #HQ := Hfut $$ %hd %((hb rfl).2 ⟨x, hx⟩)
     wp_auto
-    wp_apply (wp_GetCRV Obj sp c ci cd k (fun _ _ _ => iprop(True)) hk hkl) $$ [] as %n %e2 -
+    wp_apply (wp_GetCRV Obj sp c ci cd k (fun _ _ _ => iprop(True)) hk hkl) $$ [$Hlt] as %n %e2 ⟨Hlt, -⟩
     · iframe #
       iintro %R %m
       imodintro
@@ -88,6 +89,7 @@ theorem store.listReadError.wp_proof
       wp_apply wp_TooLarge as %e ⟨He0, -⟩
       ihave #He := He0 $$ %(by trivial)
       iapply HΦ
+      iframe Hlt
       ileft
       iframe He HQ
 

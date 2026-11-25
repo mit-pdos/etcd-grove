@@ -35,15 +35,14 @@ abbrev etcdserverpb.authClient.RoleGrantPermission.spec : Prop :=
     (Spec : GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse) (Φ : Unit → IProp GF) (ctx : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (inp : Loc) (m : (pbAuthRoleGrantPermissionRequest (GF := GF)).M)
     (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ authStubAt ac conn ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗ (authStubAt ac conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗
       metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec m Φ ∗ ctxOk ctx cd ∗
       (pbAuthRoleGrantPermissionRequest (GF := GF)).send inp m ∗ opts ↦*□ vs ∗ callOptsOk vs ∗
-      ⌜(pbAuthRoleGrantPermissionRequest (GF := GF)).wireLen m < grpcMsgMax⌝ }}
+      ⌜(pbAuthRoleGrantPermissionRequest (GF := GF)).wireLen m < grpcMsgMax⌝) }}
     (App (App (App (Val (ac @!! go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.authClient.ty @!! go!"RoleGrantPermission"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (pbAuthRoleGrantPermissionRequest (GF := GF)).send inp m ∗ authCallOut Φ resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((pbAuthRoleGrantPermissionRequest (GF := GF)).send inp m ∗ authCallOut Φ resp err) }}
 
 end spec
 

@@ -62,7 +62,7 @@ theorem run.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_PeerStep : cluster3.PeerStep.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot lg
+  intro CS N id₁ id₂ id₃ ps ctxs boot lg
   wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, #Hzlg, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   obtain ⟨Htb, HLv, Hrb48, HrbN, HwbN⟩ := Hp₂
@@ -99,6 +99,7 @@ theorem run.wp_proof
   -- members 1 and 3: the grant and the listing at their lessors' histories, at their bridges
   ihave ⟨#HG₁b, -⟩ := cluster3.memberAt_mono _ _ _ _ _ _ _ _ _ _ _ _ $$ Hm₁
   ihave ⟨#HG₃b, #HL₃b⟩ := cluster3.memberAt_mono _ _ _ _ _ _ _ _ _ _ _ _ $$ Hm₃
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
   -- `c3, err := etcdstart.NewClients([]string{cfg.Bridge3}, lg)`
   wp_apply wp_slice_literal (V := GoString) (l := [clusterCfg.Bridge3'])
   try (isplitr; (ipureintro; rfl))
@@ -108,7 +109,7 @@ theorem run.wp_proof
   imod ownSlice_persist _ _ _ $$ Heps3 with #Heps3
   wp_apply (wp_NewClients _ [clusterCfg.Bridge3'] lg
       (EtcdGrove.client.srvWEnv R₃ (etcdstart.srvWOf R₃.E ρ₃.rd false) ρ₃.rd clusterCfg.Bridge3' [] null null [] null default) (by omega)
-      (plainEndpoints_singleton _ clusterCfg_ok.bp3)) $$ [] as %c3 %cerr Hc3
+      (plainEndpoints_singleton _ clusterCfg_ok.bp3)) $$ [$Hlt] as %c3 %cerr ⟨Hlt, Hc3⟩
   · iframe #
   icases Hc3 with (⟨%Hc3err, #Hnc3, -⟩ | %Hc3fail)
   rotate_left
@@ -129,7 +130,7 @@ theorem run.wp_proof
   imod ownSlice_persist _ _ _ $$ Heps1 with #Heps1
   wp_apply (wp_NewClients _ [clusterCfg.Bridge1'] lg
       (EtcdGrove.client.srvWEnv R₁ (etcdstart.srvWOf R₁.E ρ₁.rd false) ρ₁.rd clusterCfg.Bridge1' [] null null [] null default) (by omega)
-      (plainEndpoints_singleton _ clusterCfg_ok.bp1)) $$ [] as %c1 %cerr Hc1
+      (plainEndpoints_singleton _ clusterCfg_ok.bp1)) $$ [$Hlt] as %c1 %cerr ⟨Hlt, Hc1⟩
   · iframe #
   icases Hc1 with (⟨%Hc1err, #Hnc1, -⟩ | %Hc1fail)
   rotate_left
@@ -144,7 +145,7 @@ theorem run.wp_proof
   -- 1. `g1, err := grant(c3)`, `Q`: `g1` granted at an index of member 3's lessor history
   wp_apply (wp_grant c3 [clusterCfg.Bridge3'] _
       (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₃ ρ₃.rd false) (mvcc.api.mvccLeases E₃.γ))
-      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E₃.γ) i m.id))) as %g1 %gerr Hg1
+      (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E₃.γ) i m.id))) $$ [$Hlt] as %g1 %gerr ⟨Hlt, Hg1⟩
   · iframe #
     isplitl; rotate_left; · ipureintro; exact hAs
     imodintro; inext
@@ -199,7 +200,7 @@ theorem run.wp_proof
       exact h
     wp_apply (wp_grant c1 [clusterCfg.Bridge1'] _
         (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E₁ ρ₁.rd false) (mvcc.api.mvccLeases E₁.γ))
-        (fun _ => iprop(True))) as %f %ferr Hf
+        (fun _ => iprop(True))) $$ [$Hlt] as %f %ferr ⟨Hlt, Hf⟩
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
@@ -251,7 +252,7 @@ theorem run.wp_proof
       have h : sint.Z q < sint.Z (W64 60) := by simpa using Hif
       exact h
     wp_apply (wp_leases c3 [clusterCfg.Bridge3'] _ (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E₃.γ))
-        (fun m => iprop(⌜mg.id ∈ m.ids⌝))) as %ls %lerr Hls
+        (fun m => iprop(⌜mg.id ∈ m.ids⌝))) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext

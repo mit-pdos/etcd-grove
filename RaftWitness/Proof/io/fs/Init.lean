@@ -19,7 +19,7 @@ public import Perennial.Proof.time.Link
 public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrorStringOk
-public import RaftWitness.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

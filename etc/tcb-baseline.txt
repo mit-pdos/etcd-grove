@@ -1,6 +1,5 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom Client.Close.wp_proof
-axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
@@ -28,7 +27,11 @@ axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
+axiom Perennial.net.http.Handle.wp_proof
+axiom Perennial.net.http.Serve.wp_proof_rpc
 axiom Perennial.net.http.initFuncsOk
+axiom Perennial.net.http.wp_init_first
+axiom Perennial.net.rpc.wp_init_first
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -65,21 +68,16 @@ axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof
 axiom corev1.Resource.wp_proof
-axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
-axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
-axiom fmt.SprintfSlice.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -257,6 +255,7 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
+axiom proto.UnmarshalWalRecordE.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
@@ -326,7 +325,6 @@ axiom v3rpc.pbWatchResponseT_reg
 axiom v3rpc.wp_WithTimeout_weak
 axiom validation.IsDNS1123Subdomain.wp_proof
 axiom validation.IsDomainPrefixedKey.wp_proof
-axiom verifyEnvOff
 axiom wait.Jitter.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof

@@ -35,7 +35,7 @@ theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_run : run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot
+  intro CS N id₁ id₂ id₃ ps ctxs boot
   wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

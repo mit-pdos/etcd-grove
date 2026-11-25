@@ -12,7 +12,7 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.time.Link
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
