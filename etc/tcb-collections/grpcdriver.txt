@@ -13,3 +13,33 @@
 # trust-boundary specs (#37's S3/S4), the `StringValue` registrations (#37's S3), the context axiom
 # `WithCancelBackground.wp_proof_canceled` (a Perennial change, notes/perennial-changes.md).
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/TopLevelRobustness\.lean$
+axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
+axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
+axiom Perennial.google_golang_org.grpc.initFuncsOk
+axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
+axiom Perennial.google_golang_org.grpc.opaqueInitsOk
+axiom context.WithCancelBackground.wp_proof_canceled
+axiom grpc.ClientConn.Close.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
+axiom grpc.NewClient.wp_proof
+axiom grpc.NewServer.wp_proof
+axiom grpc.Server.RegisterService.wp_proof
+axiom grpc.Server.Serve.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcResolverAt
+axiom grpcSrvAtLis
+axiom grpcSrvNew
+axiom grpcWrotePeer
+axiom metadata.AppendToOutgoingContext.wp_proof
+axiom metadata.FromIncomingContext.wp_proof
+axiom pbStringValueRT_repReg
+axiom pbStringValueST_repReg
+axiom pbStringValueST_reqReg
+axiom pbStringValueT_reqReg
+axiom status.Code.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom streamIcMdIs
+axiom strings.ToLower.wp_proof

@@ -62,6 +62,7 @@ axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
+axiom context.WithCancelBackground.wp_proof_canceled
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -85,6 +86,7 @@ axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
+axiom grpc.ClientConn.Close.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
@@ -212,6 +214,10 @@ axiom pbRangeRequestT_reg
 axiom pbRangeResponseT_reg
 axiom pbRecordC_reg
 axiom pbSnapC_reg
+axiom pbStringValueRT_repReg
+axiom pbStringValueST_repReg
+axiom pbStringValueST_reqReg
+axiom pbStringValueT_reqReg
 axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
