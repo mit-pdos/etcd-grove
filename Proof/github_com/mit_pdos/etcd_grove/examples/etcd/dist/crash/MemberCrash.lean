@@ -754,7 +754,7 @@ theorem snapClaims_new (R : Roots) (V : Hist) (dd sd : GoString) (jd jm J : Ino)
     rcases hc with rfl | rfl
     · exact nameOk_member
     · exact bootSnap.nameOk_snap
-  rw [osSpine_cons, osSpine_cons, osSpine_nil]
+  simp only [osSpine]
   iexists _, jm
   iframe Hd
   isplitl []
