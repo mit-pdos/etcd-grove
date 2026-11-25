@@ -13,7 +13,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.ConnRead
 public import Dsverify.Proof.rabia.roles.server.Spec
 public import Dsverify.Proof.rabia.internal.config.Spec
 public import Dsverify.Proof.math.rand.Spec
-public import Net.Spec.log.Println
+public import Perennial.Spec.log.Println
 public import Net.Spec.net.Dial
 public import Net.Spec.net.Listen
 public import Net.Spec.net.Listener__Accept
