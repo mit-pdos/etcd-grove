@@ -48,8 +48,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   and `walAreaRes` lost; the WAL unnamed at `dir.tmp`, as `Create`'s arm 3). Full text: `notes/wal-p6-handoff.md`,
   P6b session 7. A client with an owned view instantiates both updates trivially. (2) `walDirKey dir i j X`, the
   map keyed by `(dir, i)`; the four internal specs take the handle's incarnation (`h.inc`). Internal, no trusted text.
-- **Decision.** Pending (coordinator; internal specs, the brief's after-the-fact approval if proved). `bootstrap`'s
-  owner (P5) should confirm the two-update shape suits its crash invariant.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 8 brief; after the fact if proved and untrusted): the
+  plan as written (fix A, loans in γnm; fix B, `walDirKey` by `(dir, i)` with the four internal specs; state C; the
+  two-update spec, `true` ⇒ `walAbsentI dir (ic+2)`, the fsync failure losing the lock token and `walAreaRes`).
+  P5 (`bootstrap`'s owner) is asked whether the two-update shape fits its crash invariant; pending its answer.
 
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
