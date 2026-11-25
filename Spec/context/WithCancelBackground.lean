@@ -40,6 +40,36 @@ abbrev context.WithCancelBackground.spec : Prop :=
       context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
       context.bgCancelChild ctx' }}
 
+/-- **`ctx`'s `Err()` returns `context.Canceled`'s value** (persistent): what a context cancelled by its
+own `cancel()`, under a parent that is never done, answers from then on. -/
+def context.errIsCanceled (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
+    □ ∀ Φ : val → IProp GF, ▷ Φ #e -∗ WP (App (Val #(methods ctx.ty go!"Err" ctx.v)) (Val #())) {{ Φ }})
+
+instance context.errIsCanceled_persistent (ctx : GoInterfaceOk) :
+    Persistent (context.errIsCanceled (GF := GF) ctx) := by
+  unfold context.errIsCanceled; infer_instance
+
+/-- **`WithCancel(Background())`, with what its `cancel()` leaves** (`spec` and more): calling `cancel`
+closes the context (`cancelSpec`'s `ContextClosed`) and makes its `Err()` return `Canceled`'s value for
+good (`errIsCanceled`); the context is a `*cancelCtx` (`isCancelCtxCtx`, which Perennial's
+`wp_WithCancel_Background` also gives, for the same call). True of Go (1.27.3 `context.go`): `cancel`
+runs `c.cancel(true, Canceled, nil)`, which stores `Canceled` in `c.err` if it is unset, and nothing else
+sets it: `Background()`'s `Done()` is `nil`, so `propagateCancel` returns at once (no parent can cancel
+the child), `Background()` keeps no children, and `removeChild` only deletes; `Err()` returns `c.err`;
+`context.Canceled` itself is never reassigned (Perennial's `context.isInit`: `Canceled ↦□`). -/
+abbrev context.WithCancelBackground.spec_canceled : Prop :=
+  {{ isPkgInit (PROP := IProp GF) pkg_id.context }}
+    (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(GoInterface.ok context.backgroundCtxVal)))
+  {{ (ctx' : GoInterfaceOk) (γ' : context.ContextNames) (cancel : GoFunc),
+      RET (PairV #(interface.ok ctx') #cancel);
+      context.cancelSpec cancel γ' iprop(True) ∗
+      context.isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
+      context.bgCancelChild ctx' ∗
+      context.isCancelCtxCtx ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
+      □ (∀ Φ : val → IProp GF, ▷ (context.errIsCanceled ctx' -∗ Φ #()) -∗
+        WP (App (Val #cancel) (Val #())) {{ Φ }}) }}
+
 end spec
 
 end EtcdGrove

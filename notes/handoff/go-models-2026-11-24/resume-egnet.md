@@ -536,3 +536,18 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   FieldAssumptions binders (removal). net-operr-error: closed (packet-rest.md, last section; argued).
 - STATE: `go-models-rest-egnet/2026-11-24` fast-forwarded to this branch's head (pushed). LEFT: the #8
   message (diff for etcd-grove-03, in the session report); merge newer lean when it moves.
+
+## Session 15 (2026-11-26, successor) — merge of lean `5c036beb77` (grpc-driver)
+- Worktree `eg-lmerge`, NEW branch `go-models-rest-egnet-lmerge3/2026-11-26` (off 661702e0cb), VM key
+  c61dd42e08d7d686; scratch `tmp/gm15/` (merge.log, conflicts.txt, changed.txt, strip.log, regen1.log,
+  goose-check.log, full*.log).
+- lean's Perennial pin is still d5eb93cb5 (an ancestor of ours): kept ours, 09bd3826c.
+- Merge: ONE conflict, auth/Results.lean `authkv_Main` (lean renamed the docstring's `grpc.start` to
+  `grpcServeTok`; ours had dropped the FA binders): lean's docstring, our binders. strip_fa.py over the 265
+  .lean files the merge added/changed: 4 files (grpcdriver Link, ListenSet, Server, TLR spec); the TLR
+  proof's intro loses `field_sem`. Regenerated (regen.sh: gen-init rewrote grpcdriver cmd/{client,server}
+  PkgTables for our Go-model closure; others unchanged) and genlink-all (0 differ).
+- grpc-driver needed no design merge: it adds no trusted net assumption (its trusted part is grpc's model
+  and wrapperspb's `String`); it calls Net's `net.Listen.spec` as a hypothesis. Port: `drv_listen`
+  (ListenSet.lean) takes `isPkgInit pkg_id.net` in its precondition (ours `Listen.specAddrOk` needs it;
+  internal lemma, listed in packet-rest.md); `Server.wp_proof` obtains it by `iPkgInit`.

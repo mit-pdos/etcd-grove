@@ -136,37 +136,9 @@ theorem memberOf_of_gOk (γ : SrvRaft) (γk : KVNames) (g g0 : MemberG GF)
   refine ⟨?_, by rw [hc, hc0], by rw [hch, hch0], by rw [hlog, hlog0]⟩
   rw [hr, hr0, hg, hg0]
 
-/-- **A member's watch registration at its bridge's address** (D32): the `Watch` stream at the
-member's client address `c`, forwarded to the bridge's `b` (`cluster3.isGrpcStream_forwards`). -/
-theorem watchRegAt_forwards (b c : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
-    (R : v3rpc.WSrv GF) :
-    cluster3.forwards (GF := GF) b c ∗ etcdstart.watchRegAt c s E γr R ⊢
-      etcdstart.watchRegAt b s E γr R := by
-  iintro ⟨#Hfw, #Hr⟩
-  unfold etcdstart.watchRegAt
-  icases Hr with ⟨#Hs, #Hw, #Hl, %h⟩
-  isplitr
-  · iapply cluster3.isGrpcStream_forwards $$ [Hfw Hs]; iframe #
-  iframe #
-  ipureintro; exact h
-
-/-- **etcd's KV calls at a bridge's address** (D27): a member's registrations at its client address
-`c`, forwarded to the bridge's address `b` (`cluster3.isGrpcRpc_forwards`). -/
-theorem kvRegs_forwards (b c : GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    cluster3.forwards (GF := GF) b c ∗ client.kvRegsAt (⟨c, E, γr, cid, mid⟩ : client.SrvAt GF) ⊢
-      client.kvRegsAt (⟨b, E, γr, cid, mid⟩ : client.SrvAt GF) := by
-  iintro ⟨#Hfw, #Hr⟩
-  unfold client.kvRegsAt
-  icases Hr with ⟨#HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  isplitr
-  · iapply cluster3.isGrpcRpc_forwards $$ [Hfw HPut]; iframe #
-  isplitr
-  · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw HRange]; iframe #
-  isplitr
-  · iapply cluster3.isGrpcRpc_forwards $$ [Hfw HDel]; iframe #
-  isplitr
-  · iapply cluster3.isGrpcRpc_forwards $$ [Hfw HTxn]; iframe #
-  iapply cluster3.isGrpcRpc_forwards $$ [Hfw HCmp]; iframe #
+/-! (Phase 7's switch, SW1, 2026-11-24) `watchRegAt_forwards` and `kvRegs_forwards` are gone with
+`cluster3.forwards`: a bridge serves what its member serves at the member's table
+(`etcdstart.tableAt`, `cluster3.StartBridge`). -/
 
 end lemmas
 

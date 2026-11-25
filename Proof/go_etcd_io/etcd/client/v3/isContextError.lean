@@ -14,7 +14,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk errorStringSpec)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil statusErrOk_code backoffOk errorStringSpec)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,10 +31,11 @@ theorem isContextError.wp_proof
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_Code err $$ [$Hst $Hse] as %c1 -
+  ihave ⟨%c, #Hc⟩ := statusErrOk_code err $$ Hse
+  wp_apply wp_Code err c $$ [$Hst $Hse $Hc]
   wp_if_destruct
   · iapply HΦ; itrivial
-  · wp_apply wp_Code err $$ [$Hst $Hse] as %c2 -
+  · wp_apply wp_Code err c $$ [$Hst $Hse $Hc]
     iapply HΦ; itrivial
 
 end proof

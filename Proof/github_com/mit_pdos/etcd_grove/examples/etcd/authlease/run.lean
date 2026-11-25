@@ -144,9 +144,9 @@ theorem serve_member_lease [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumpt
     #HKV, #HSA, #HAu, #HWF, #Htag, #HLR⟩)
   · imodintro; iapply HΦ; ileft; ipureintro; exact Herr
   iunfold leaseReady at HLR
-  icases HLR with ⟨%A, %il, %im, %iu, %regs, %γ, %HA, #Hreq, #Hrd', #Hlb, #Hlr, #Hlu, #Hil, #Him,
+  icases HLR with ⟨%A, %il, %im, %iu, %regs, %sms, %HA, #Hreq, #Hrd', #Hlb, #Hlr, #Hlu, #Hil, #Him,
     #Hiu, #Hat, #Hb, #Hrp⟩
-  imod (etcdstart.lease_served_on addr s E { ρ with wait := γw } A il im iu regs γ γa HR.1 hlm HA
+  imod (etcdstart.lease_served_on addr s E { ρ with wait := γw } A il im iu regs sms γa HR.1 hlm HA
       (by omega) (by omega) hLp HLv) $$ [] with #HLS
   · iframe #
     iintro !>
@@ -825,9 +825,8 @@ theorem run.wp_proof
       by_cases hil : id = lz
       · subst hil
         iunfold client.clientGrant at HG
-        icases HG with ⟨%md, %Hmd, HG⟩
-        ihave #Hs := akTokSeen_attempt wu.γa go!"u" conn md
-          (by unfold clientAttemptMd at Hmd; rw [hout, ← hau] at Hmd; exact Hmd) $$ Htk
+        icases HG with ⟨%md, #Hmd, HG⟩
+        ihave #Hs := akTokSeen_md wu.γa go!"u" conn ctx md (hout.trans hau.symm) $$ Hmd Htk
         iunfold v3rpc.opGrantT at HG
         imod (grantG_refuted su wu.E wu.γa { xu.2.ρ with wait := wu.γw } Lset i₂ go!"u" _
             (irrPut (leasePutOp aK id)) σ' zK id HR₂.1 hz hlz0

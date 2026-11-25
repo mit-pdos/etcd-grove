@@ -9,7 +9,6 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/experimental/recipes/(Link|Results)\.lean$
 axiom fmt.Sscanf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
-axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcWrotePeer
@@ -24,3 +23,4 @@ axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom streamIcMdIs

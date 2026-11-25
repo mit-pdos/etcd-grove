@@ -236,7 +236,7 @@ theorem newClient.wp_proof
     ipersist conn
     ihave #HconnG' := HconnG
     iunfold isEtcdConnG at HconnG'
-    icases HconnG' with ⟨%ic, #Hgc, -⟩
+    icases HconnG' with ⟨%ic, #Hgc, -, #Hcs⟩
     ihave #Hcore : clientCoreAt (GF := GF) «$r0_ptr» $$ []
     · iunfold clientCoreAt
       iframe HcLg'
@@ -275,7 +275,7 @@ theorem newClient.wp_proof
     ihave #Hready : clientReady (GF := GF) «$r0_ptr» conn eps $$ []
     · unfold clientReady
       iexists ap, P
-      iframe Auth HapS
+      iframe Auth HapS Hcs
       unfold clientAuthAt
       iexists un, pw, _, atb
       iframe Username Password Token authTokenBundle Htb
@@ -373,7 +373,9 @@ theorem newClient.wp_proof
       isplitl []
       · iexists w, conn, wc, wlg, [ic]
         subst Hwi
-        iframe Watcher Hgc Hcw
+        iframe Watcher Hcw
+        unfold etcdWatchConn
+        iframe Hgc Hcs
       isplitl []
       · iexists lp
         iframe Lease Hlp

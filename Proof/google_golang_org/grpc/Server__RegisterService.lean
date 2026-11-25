@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 
 /-- **Trust boundary** (item 4, the server start): grpc's `RegisterService` checks `ss` against
 `sd.HandlerType` (`logger.Fatalf` if it does not implement it), then `register`: `logger.Fatalf` if
-the server serves already (excluded: `grpcSrvNew` is given up by `grpc.start`) or the service name
+the server serves already (excluded: `grpcSrvNew` is given up by the start, `grpc.start'`) or the service name
 is registered; otherwise it records `services[sd.ServiceName]` with `methods[d.MethodName] = d` for
 each method and `streams[d.StreamName] = d` for each stream, and the server's `handleStream`
 dispatches a call's path `/<service>/<method>` to them (a method's name before a stream's: the names

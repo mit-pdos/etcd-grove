@@ -102,14 +102,14 @@ and drops it; authlease's `serve_member_lease` serves it from this. -/
 def leaseReady (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (m : lease.Mode) :
     IProp GF :=
   iprop(∃ (A : v3rpc.KVAns GF) (il im iu : GoFunc) (regs : List (GoString × GoFunc × GoInterface))
-      (γ : GName),
+      (sms : List (GrpcStreamMethod GF)),
     ⌜A.revR = mvcc.api.mvccReaders E.γ 1⌝ ∗
     isServerReqM true s E ρ ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗ srvLeaseRd s E m ∗
     grpcLeaseUp s A regs ∗
     srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
     srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
-    grpcServerAt addr [il, im, iu] regs etcdTys γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
+    grpcServerAt addr [il, im, iu] regs etcdTys sms ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
 
 instance leaseReady_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (m : lease.Mode) : Persistent (leaseReady addr s E ρ m) := by
@@ -230,24 +230,33 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     imod (etcdstart.kvServeStocks_pools s E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
     rw [HCA]
+    -- (R9) the watch path's server facts, with auth on
+    ihave %hkv := etcdstart.kv_wsIface_of_cfg s E cfg C $$ [Hsf Hgc]
+    · iframe #
+    haveI := v3rpc.srvWOk_persistent hP (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN
+    ihave #HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
+    · rw [hRw, hRE]
+      iapply (etcdstart.srvWOk_of_readOn hP hR s E ρ.rd C.wsl hkv (by omega))
+      rw [← hon]; iexact Hrd0
+    -- (phase 7's switch, SW1) the `Watch` stream's run contract, which the start registers
+    ihave #Hwr := v3rpc.etcd_watch_served_chain pw R (etcdstart.srvWOf R.E ρ.rd true) ims is ρ.rd rfl
+      (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv Hms.watch_impl $$ []
+    · rw [hRs, hRE]
+      iframe #
     imod (ak_served_kv addr gs q p pa s lis E { ρ with wait := γw } cid mid C.n
-        il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
+        il im iu ims is svcs regs sregs [v3rpc.watchMethod pw R (etcdstart.srvWOf R.E ρ.rd true)]
+        γa HEo Hregs1 HregsA
+        (by intro m hm; simp only [List.mem_singleton] at hm; subst hm; exact Hregs2) (by simp)
+        wp_BcryptCost Hrf Hnd HLv)
+      $$ [Hgsn Hlis Hleft] with ⟨Hserv, #Hss, #HKV, #HSA, #HAu, #Hsat⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
-    ihave %hkv := etcdstart.kv_wsIface_of_cfg s E cfg C $$ [Hsf Hgc]
-    · iframe #
-    ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd true) R.wsl v3rpc.wsN $$ []
-    · rw [hRw, hRE]
-      iapply (etcdstart.srvWOk_of_readOn hP hR s E ρ.rd C.wsl hkv (by omega))
-      rw [← hon]; iexact Hrd0
-    imod (ak_served_watch hP (akV addr ρ R) addr pw s E ρ.rd ims is sregs γ rfl hRE hRs rfl
-        (by simp) (kvSame_refl _) hlog (by omega) Hms.watch_impl Hregs2 rfl rfl rfl rfl
-        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [HWok] with ⟨#HWF, #Htag⟩
+    imod (ak_served_watch hP (akV addr ρ R) addr pw s E ρ.rd rfl hRE hRs
+        (by simp) (kvSame_refl _) hlog (by omega) rfl rfl rfl rfl)
+      $$ [] with ⟨#HWF, #Htag⟩
     · iframe; iframe #
     -- what serving the Lease service in lease mode `m` takes (`leaseReady`)
     ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
@@ -258,7 +267,7 @@ theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
     · rw [← hon]; iexact Hrd0
     ihave #HLS : leaseReady addr s E { ρ with wait := γw } m $$ []
     · iunfold leaseReady
-      iexists C.A, il, im, iu, regs, γ
+      iexists C.A, il, im, iu, regs, _
       isplitl []
       · ipureintro; rw [HCA]; rfl
       rw [HCA]
