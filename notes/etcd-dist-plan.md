@@ -2673,3 +2673,17 @@ ported to Γ). One conflict, in the notes: both appended sections are kept.
 5. `EtcdKvBootNC` from steps 2-4 (`netProto_alloc`, the empty-workload case separately), then
    `etcd_kv_safe_nocrash := etcd_kv_safe_nocrash_of_boot …`. Then the full VM build, the gates and
    `tcb-report --check --update` (etcdhttp's two init axioms enter the baselines).
+
+**Probe result (step 3).** `GooseLocalGS GF` is a class with six fields:
+- the extensions' `Exts.LocalGS`;
+- `goose_go_local_context`;
+- `NaHeapGS Loc val GF`;
+- `GoStateGS GF`;
+- `ThreadGS GF`;
+- `CrashGS GF`.
+
+These carry the functors' inclusions, not only names. So it has no `default`, and `Nonempty` is not
+automatic. An `L₀` for `etcdDistGF` could still be put together by hand: `etcdDistGF_gooseGpreS` supplies the
+inclusions, and any names will do. But every `kvOrchPre`/`kvR` reading only `hG.goose_globalGS` would then
+have to be checked defeq across `L`s. Option (a) avoids both: etcd-grove-03 restates `kvOrchPre`, `kvNodePre`,
+`kvR`, `kv_start` and `kv_start_deployment` at `[Gg : GooseGlobalGS]`, as N5's `memberShareD` is.
