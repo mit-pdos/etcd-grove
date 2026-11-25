@@ -677,12 +677,15 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icombine Hst' Hst2 gives %hsteq
   subst hsteq
   -- (wal-link L3) the WAL's files at its directory, (P2) the data directory's dedicated one (`srvFiles`' form)
+  -- (P8, 2026-11-25) as the image takes them (`srvFilesC`: the WAL's files without the synced mark)
   ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗
-      walFiles a C.rn.id cid σ true) $$ [Hw]
+      walFilesC a C.rn.id cid σ true) $$ [Hw]
   · icases Hw with ⟨%cidw, Hw⟩
     iexists C.rn.wal.h.toWalA, cidw
-    iframe Hw
-    ipureintro; exact hwd
+    isplitr
+    · ipureintro; exact hwd
+    iapply walFiles_walFilesC
+    iexact Hw
   -- the backend's file
   iunfold srvDataDir at Hdd
   icases Hdd with ⟨#Hdd1, -⟩
@@ -701,7 +704,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iexists S, σ, ai, G, D, Membership.simple C.γr.raft.raft.cfg, M
   iunfold srvDiskImageAt
   rw [hρ] at *
-  iunfold srvFiles
+  iunfold srvFilesC
   rw [← hγ]
   have h1 := hp.2.2.2.2.2.1
   have h2 := hσ.2.1

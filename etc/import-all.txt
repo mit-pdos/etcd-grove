@@ -26,6 +26,12 @@ allow Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend Proof.go_etcd_i
 # with `import all`.
 sealed Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+# (etcd-dist D6 T5, 2026-11-25) the WAL's files after a crash (`walFilesC`) are made from the WAL's crash
+# view and the old generation's state (`walFilesC_crash`), and the graceful files forget their synced
+# mark into them (`walFiles_walFilesC`): definitions over the real WAL since L3, no trusted token opened
+allow Proof.go_etcd_io.etcd.server.v3.storage.WalRecs Proof.go_etcd_io.etcd.server.v3.storage.WalRecsCrash
+# (etcd-dist D6 T2, 2026-11-24) the records with their history (`walRecsH`), and their crash (`walRecsH_crash`, P8)
+allow Proof.go_etcd_io.etcd.server.v3.storage.WalRecs Proof.go_etcd_io.etcd.server.v3.storage.WalRecsH
 
 # The boot hub's slots (the slot convention, `notes/spec-first-plan.md`; 2026-11-03, the final
 # whole-`bootOk` review's S2 and M2): the raft node's configuration slot and the transport's

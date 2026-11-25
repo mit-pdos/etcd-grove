@@ -58,7 +58,7 @@ def bootstrapAtR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : Boot
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         ⌜EtcdVerifyOff⌝ ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
-        srvFiles cfg.DataDir' id σ D }}
+        srvFilesC cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }}))
