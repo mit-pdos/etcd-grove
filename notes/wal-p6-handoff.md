@@ -6,12 +6,11 @@
 - **Done before this session**: the fork fix (`goose-lean-fmt1c-tornsave` @ `2bd3048d7`), the retranslation
   (`Code/.../storage/wal.lean`, `etcdserver.lean`), `examples/` go.mod, `etc/goose.py --check` green.
 - **This session**: see "Progress" below (kept current at each milestone).
-- **State (2026-11-25, session 4)**: E3's `WAL__ReadAll.lean` is ported to the Go loop's `pending`
-  (commits `02067e4964`, `f8518a494c`; see "Session 4" below). Two errors remain in it: the zero length
-  word at `wr` with a pending run (line ~693, a deliberate `fail` marking item 2) and `w.state`'s
-  provenance at the handle (`iframe … P.hsIn p' st.hs`, line ~1214: the `CloneStLaw` item). **Next:
-  item 2 (`TailPend` with a pending run, restating `ZeroToEnd.specWalTail`/`walTailP_ofRead`), then the
-  provenance/`CloneStLaw`, then E4 (`RepairReg`), `SavePure:252`, `WAL__cut:484`.**
+- **State (2026-11-25, session 5)**: `WAL__ReadAll` builds (item 2 and `CloneStLaw` done, see "Session 5");
+  `wal.Link` regenerated (`etc/gen-link.py --walfs`); its build fails only in `RepairReg.lean` (E4: the
+  repaired tail with a pending run, "Repair with a pending run" below). **Next: that design (truncate at
+  `wr + |pend|`), then `OpenForRead`, `Unsaved`/`DiscardUnsaved`, E5; once `wal.Link` builds, a real
+  `lake build` of it and `etc/tcb-report.py --check`.**
 - **Build**: every lake command takes `--packages=/shared/tmp/manifest-fce59af7.json`; builds through
   `/shared/tmp/build-slot.sh`; `export TMPDIR=/shared/tmp`.
 
@@ -224,6 +223,36 @@ zero-word premise (`TailLast.repOld` instead of `lenZ_of_tailLast`).
 3. `TailSyncLayP`: `hlw` → that `PendStop`; `crashOk_syncP` over `crashTo_tailR` (not `crashTo_tailP`).
 4. `GrowSup`: `TailRK (some (k, false))` for the grown layouts: `RepOld` kept by a growth (new lemmas).
 5. `specWalTail`'s pre drops the zero word; `walTailP_ofRead` drops `hz`; `WAL__ReadAll`'s marker goes.
+
+## Session 5 (2026-11-25): item 2, `CloneStLaw`, the Link
+
+- **Item 2 done** (`c18dbe98ed`): `TailPend` is `RepOld`'s formula; the failure path's handle carries
+  `PendStop` (`TailMetaE Mr c`, `walTailPE Mr`); growth keeps `RepOld` (`repOld_rzGrow`, `repOld_rzLandG`).
+  **Removed premise** (ours, proved spec): `ZeroToEnd.specWalTail`'s pre no longer takes the zero length
+  word at `wr` (`walTailP … k true TailMetaR`); `walTailP_ofRead` drops `hz`.
+- **`CloneStLaw`** (`e1bd2afbaa`): `WalPbIn.CloneStLaw P Mr HsO` (`ReadAllCallees.lean`): `proto.Clone` of
+  an owned hard state (`HsO`) gives both pointers frozen at `h`, the clone non-nil and `walStMarsh`. It
+  replaces `CloneHsLaw` as `ReadAll`'s hypothesis (`CloneHsLaw` stays, unused by `ReadAll`). Proved for the
+  raftpb instance: `walRaftP_cloneSt` (`RaftModel/LawsHsMarshal.lean`) over `proto.ClonePb.spec` and
+  `proto.MarshalPb.spec` (the owned source is canonical, `walRaftHsO`). No loop-invariant tracking was
+  needed: `HsO` is already canonical. A law hypothesis, no axiom.
+- `5054fab591`: `Link.lean` regenerated (`h_WalPbIn_CloneStLaw`, `h_WalPbIn_ZeroStLaw`, `wp_encodeState*`);
+  `SavePure:252` was a struct-instance continuation line left of its first field (`checkColGe`);
+  `WAL__cut`: `saveState.specPre` takes `P.hsIn` (out of `walStIn`), and `h1.stNil = h.stNil`.
+
+### Repair with a pending run (E4, next)
+
+`walRepairFile` now returns the pending run `es`: `(recFrames rs).length = lay.wr + |pendFrames es|`
+(`es ≠ [] → z0 = wr`). `Repair` truncates at the decoder's `lastOffset` = `|recFrames rs|` (repair.go:86),
+which is past the stream's end `wr` when the torn frame follows a pending run: the run stays in the file.
+So `repair_register` cannot state the tail record at `|recFrames rs|`. Plan:
+1. `repair_register`: the record at `lay'.wr` (the stream's end) and `wr ≤ |recFrames rs|`, the bytes
+   between a pending run (`RepOld`/`PendStop`).
+2. `os.File.Truncate.specRepTail`/`fileutil.Fsync.specRepTail` (ours): truncate at `sz` with
+   `wr ≤ sz ≤ size`, the tail at `wr`; `walTail_truncSup` generalized from the target `wr` to `sz` (`rzSeg g0
+   true sz n`, `rzStart_pureK`/`rzLand_pure` with `sz`: the bytes `[wr, sz)` kept, `RepOld` there).
+3. `RepairSync`: the synced tail `sz` long, F-Z replaced by `RepOld` (no zeros past `wr`); `untailR`: `TailIdle`
+   with `m.size = sz` (post-crash layouts already have `old` past `wr`).
 
 ## The hard stop: `proto.Marshal` of an empty hard state (needs a trusted-spec change)
 

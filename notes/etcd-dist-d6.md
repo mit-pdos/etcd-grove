@@ -438,3 +438,8 @@ real WAL) is the natural report if the lead wants one.
   `pendOff = wr`, `pendCRC` the chain's CRC), the flush as an inline range loop, the write-mode exit's
   `endOff`/`endCRC`. Left in the file: `ZeroToEnd`'s zero word at `wr` with a pending run (item 2, `TailPend`
   with a pending run) and `w.state`'s provenance (`CloneStLaw`).
+- 2026-11-25 (session 5): item 2 (`TailPend` := `RepOld`; **premise removed** from our `ZeroToEnd.specWalTail`:
+  the zero length word at `wr`) and `WalPbIn.CloneStLaw` (proved for raftpb over `proto.ClonePb.spec` and
+  `proto.MarshalPb.spec`; no axiom): `WAL__ReadAll` builds. `wal.Link` regenerated; it fails only in
+  `RepairReg` (E4: `Repair` truncates at `wr + |pending run|`, the specs `*.specRepTail` and
+  `walTail_truncSup` to generalize; `notes/wal-p6-handoff.md`, "Repair with a pending run").
