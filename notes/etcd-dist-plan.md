@@ -1502,6 +1502,37 @@ What the merges needed (all on this line only; the source branches untouched):
   `errors.AsNoMatch`, `fmt.ErrorfSlice`, `fmt.SprintfSlice`, `fmt.SprintfWalName`, `slices.ContainsFunc`
   (`lean`). 337 axioms, no `sorry` reached (`NewServer.wp_proofC`'s is unlinked).
 
+### 16.1 Round 2 (2026-11-25): the crash and transport branches; the pin bump held back
+
+Merged onto `c370ac2d30`: `etcd-safe-crash/2026-11-24` @ `05926dc6af` (P11, the crash bridge on `Robust`'s thread
+bound, so `etcd_robust.spec` is at `etcdThreads`/`etcdSteps`; P10 `EtcdBootCBad`; C-I1; the fs extension's
+`szCrash`/`ftruncate`; `dbOpts`; D6 notes) and `etcd-safe-transport/2026-11-24` @ `f152a3be06` (S5's interim axioms
+and the proxy check; route B: the members read with `IsLearner`, `PromoteMember`, the wide `ccApplyOk`,
+`clusterImageOk_restModel` split). What the merges needed:
+- **`http.reserve`**: the transport branch's narrowing (`netAddrPend`, `89cfadf10c`) and `lean`'s fix of the same
+  hole (`httpAddrNet`, `501e3fa84d`, on this line since round 1) both spend the address's pending set and do not
+  compose; `lean`'s kept, the branch's `netAddrRsv`/`netAddrPend` split and its re-proofs dropped
+  (`notes/axiom-review/http-reserve-pend.md`, superseded).
+- **`etcd_robust.spec`**: the first merge kept round 1's `2 ^ 28` bounds silently (only this line had changed those
+  lines); restored to the crash branch's `etcdThreads`/`etcdSteps`.
+- `NewServer_dist`'s pre lost `rnLoggerZapOk`/`rnTimeoutDetectorOk`/`rnNewStorageOk` (gone from `specG`, which the
+  axiom mirrors: hprem-axioms, wal-nostorageok); `bootstrapAtR_of_crash` gives C-I2's new `bootLen ≤ σ.commit` from
+  the restart contract's `i ≤ σ.commit`; the transport branch's §16 is §17 here.
+- SpecPlan's PkgInit: `lib/remote` is the part `Net`'s translation (`etc/gen-specs-pkginit.py`'s `NET_PART`), so the
+  dist modules generate and build; `nonissues/bbolt-init-not-crash-safe.md` moved to `issues/`.
+
+**The pin bump to `e94f33b50` (`goose-lean-fmt1c-crashfixes`) is on `etcd-safe-main-pin/2026-11-24`, not here**: it
+leaves proofs broken that need new specs, not merge work. With P6 (`etcd-safe-walfix-p6` @ `2c17304ea8`, applied
+there as its diff against `lean`: P6 also carries 309 `lean` commits, among them `EtcdVerifyOff` in place of the
+`envVerifyOff` token this line uses some 120 times, a separate integration) the WAL builds; what still fails there:
+`storage.OpenSnapshotBackend` (the new `syncDir` after the rename: no spec of a directory sync in the backend's
+file model), and, without a failure today because `bootstrap`'s restart branch is a law, the new unsaved-WAL branch
+of `bootstrap` (`wal.Unsaved`, `removeBackendDurably`, `wal.DiscardUnsaved`: the latter deferred to P6b) and
+`finishDefrag`'s `syncParentDir`. Retranslation at the pin: `etcdserver` (bootstrap), `storage` (`syncDir`),
+`storage/backend` (`syncParentDir`), `storage/wal` (the torn-Save fix, `Unsaved`, `DiscardUnsaved`,
+`encodeState`); the bbolt `replace` in etcd's `go.mod` changes no translation (bbolt is project `bbolt`'s, from its
+own fork pin; the etcd project names it only).
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
