@@ -35,6 +35,11 @@ change of the semantics' claim, with its own pass of the experiments below.
   held back by `dm-delay` (the interleaving where metadata committed before its data); scenarios
   `append-new`, `empty-write`, `append-end`, `keep-size`, `shrink-grow` (the outcome the crash
   rule allows is in the script's header).
+- `trunc-size.sh WORKDIR [N]` (2026-11-25): `N` power losses (the device frozen by `dmsetup suspend
+  --nolockfs`, copied, recovered by a mount) during a loop of `ftruncate`s of a synced file to
+  non-page-aligned targets; exits 1 unless every recovered size is the synced size or a target
+  (`examples/osfs/semantics/data_truncate_size_exact.go`). Result on C, 2026-11-25: 40 crashes, every
+  size a target or 16384 (all 8 seen), exit 0.
 
 ## Results on C (2026-11-09)
 

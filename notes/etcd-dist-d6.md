@@ -469,3 +469,30 @@ discard) + `d49d01a07` (bbolt `replace` and its backend test). Tests (go1.27.3):
 `etcdutl/...` passes; bbolt `go test -short .` passes (`tests/failpoint` fails the same at v1.5.0: it
 needs a gofail build).
 Not bumped in `etc/goose.py`.
+### C-I1 finished (2026-11-25, branch `etcd-safe-crash/2026-11-24`)
+
+* **`BoltCrashWhole` written out** (a definition, still a premise on `Q`, `dbCrash`'s `hQ`): for a file of `I` whose
+  size has not changed since its last sync and with nothing in flight past its end, a meta page of the crash image that
+  validates (`boltMetaValidates`: magic, version, FNV-64a checksum, on the raw little-endian bytes, not importing
+  bbolt's internal `Model/Meta`) is, on its 56 checksummed bytes, the slot as of one change (`valAt`): only the FNV-64a collision, as
+  minibolt's P1. Satisfiable from every reachable state with a crash (`boltCrashWhole_exists`, over `Tests.durCrash`,
+  moved from `P1Sat.lean` into `GooseLang/Ext/Fs/Tests.lean`).
+* **The size part moved into the file extension** (trusted change, **pending the user's review**): `OsFile.szCrash`
+  (the sizes a crash may leave: the synced size, an `ftruncate`'s/`O_TRUNC`'s target exactly, every size a `pwrite` or
+  `fallocate` passed through) and `CrashFile`'s third size clause (with a change in flight, an `ftruncate`'s target).
+  ext4 sets a truncate's `i_disksize` in one journal handle. Example `examples/osfs/semantics/data_truncate_size_exact.go`
+  (indexed in `doc.go`; `data_resize_chunks.go` narrowed to `fallocate`), measured on C by
+  `notes/axiom-review/fs-config/trunc-size.sh` (40 power losses, every size a target) and by the reviewer (a mix with
+  appends, 40 more). Test `Tests.crash_trunc_size_exact`. It removes behaviours only: no proof constructing a crash
+  broke but the tests' witnesses (`crashFile_of` takes the new clause, by default from `sz = f.size`/`f.sizeLo`).
+* **`dbOpts`' producer**: `storage.OpenBackend.spec`'s post (an axiom) gains `⌜cfg.UnsafeNoFsync' = false⌝ -∗
+  backend.dbOpts γ.db`; `dbOpts` moved to `backend/DbOpts.lean` (importable). Not yet in `OpenSnapshotBackend`'s spec
+  (the snapshot install's reopen): for T7.
+* **`dbCrashKeep_close`** now also takes (and gives back) a live write transaction begun at `Dn`, any pending changes
+  (`wView Dn S G`; fifth review: suspect without it; sixth: survives, and proposed `wView` over `wr Dn` for defrag).
+* Reviews: fifth (whole final set: no refutation, `_close` suspect, fixed) and sixth (`_close`: survives), in
+  `notes/axiom-review/c-i1-bbolt-crash.md`. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`,
+  `dbCrash`, over `dbOpts` (opaque, produced), `dbCrashKeep` (opaque), `BoltCrashWhole` (defined).
+* **Not done**: a full rebuild of everything above `GooseLang/Ext/Fs/Impl.lean` (22k modules): the VM built the Fs
+  layer, `CrashInterim`, `P1Sat`, `OpenSnapshotBackend`, `bootstrapBackend`; the land queue's build is the check of
+  record. Interfaces (`etc/gen-interface.py etc/api/backend.txt`) not regenerated (needs a local build).

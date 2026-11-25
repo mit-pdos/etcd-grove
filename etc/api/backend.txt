@@ -33,6 +33,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 # (prove-ps2-v3alarm, 2026-11-24) the idle-read law: a reader of an idle unclaimed tracked bucket sees the writer's contents

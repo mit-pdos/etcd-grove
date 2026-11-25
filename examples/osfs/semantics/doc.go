@@ -39,7 +39,9 @@
 //	data_mixed_writeback.go       a rewrite during writeback (B)     CrashFile (measured)
 //	data_failed_fsync.go          a failed fsync changes nothing     Fsync
 //	data_sizes_since_sync.go      any size in [sizeLo, sizeHi]       OsFile.sizeLo/sizeHi, CrashFile
-//	data_resize_chunks.go         partial resize (F5)                CrashFile (targets), FallocFinish
+//	data_resize_chunks.go         partial fallocate (F5)             CrashFile (targets), FallocFinish
+//	data_truncate_size_exact.go   an ftruncate's size is exact       OsFile.szCrash, OsChangeKind.isTrunc, CrashFile
+//	                              (pending review)
 //	data_durable_zeros.go         pages past a durable size: zeros   diskByte, OsFile.ofDisk, OsFile.synced
 //	data_append_old_block.go      the end's block is not ordered     diskByte (the end's page), CrashFile
 //	data_writeback_tail_zeros.go  writeback zeroes the end's tail    CrashFile (zero at or past sizeLo)

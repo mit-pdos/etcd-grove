@@ -76,7 +76,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     subst Hr
     wp_auto
     ihave Hf := backend.fileAt_fileHolds _ _ $$ Hf
-    wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo⟩
+    wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo, -⟩
     iapply HΦ
     iframe Hmdp Hsm
     ileft

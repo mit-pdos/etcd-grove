@@ -2,20 +2,19 @@
 
 # C-I1: bbolt's file after a power loss, at the backend's interface (interim axiom, etcd-dist D6)
 
-`notes/etcd-dist-d6.md`, "Crash interim axioms" (A1 of §7). **Trusted**: three laws over two opaque
-predicates, retired by a crash proof of bbolt over the file extension (`osfs/bboltfs`'s minibolt is the
+`notes/etcd-dist-d6.md`, "Crash interim axioms" (A1 of §7). **Trusted**: six laws over two opaque
+predicates (`dbOpts`, `dbCrashKeep`) and the crash premise `BoltCrashWhole`, retired by a crash proof of bbolt over the file extension (`osfs/bboltfs`'s minibolt is the
 start: `DBCrash.lean`, `BootP1.lean`). No proof uses them yet: the member's crash law
 (`memberGen_crash.law`, task T7) is their consumer.
 
 **The predicates.**
-* `dbOpts γ` (persistent; formerly `dbSyncs`, whose name-durability part is gone: `dbCrash` now speaks of
-  the inode, and the caller reads the name from the file extension's crash facts): the database `γ` was opened with `NoSync = false` and
-  `NoGrowSync = false` (etcd's backend: `UnsafeNoFsync = false`, `backend.go:227-228`; not defrag's
-  temporary database, opened with `NoSync = true`), and nothing about names. Its producer is not stated yet (tied to bbolt's persistent fields and the
-  directory sync, to be reviewed with T7); until then nothing produces it and the laws below cannot be
-  used (they hold vacuously).
-* `BoltCrashWhole` (a crash premise, opaque, `dbCrash`'s hypothesis on the run's crash relation `Q`):
-  bbolt files come back at whole-page sizes and with no checksum-validating torn meta.
+* `dbOpts γ` (persistent, `DbOpts.lean`): the database `γ` was opened with `NoSync = false` and
+  `NoGrowSync = false`; produced by `storage.OpenBackend`'s post when the configuration's
+  `UnsafeNoFsync` is `false` (etcd's default), so the laws below are usable for etcd's backend.
+* `BoltCrashWhole I` (a crash premise, a definition, `dbCrash`'s hypothesis on the run's crash relation
+  `Q`): a meta page of a file of `I` with no size change since its last sync that validates after a
+  crash is not a torn mix (FNV-64a, probabilistic). The crash's size is the file extension's rule
+  (`CrashFile`: an `ftruncate`'s target exactly, so whole pages for bbolt's files).
 * `dbCrashKeep γ path i0 Dl Dn pd` (exclusive): the crash record of the open database `γ`, whose file is at
   `path`: `Dn` is its committed data (the commit invariant's half, `dbHalf γ Dn`, is inside it), `Dl` the
   data its file falls back to if the commit that made `Dn` did not reach the disk; `pd` the commit
@@ -38,6 +37,10 @@ file extension's crash (`OsCrash`, `GooseLang/Ext/Fs/Impl.lean`).**
   transactions after it: the pages the in-flight commit writes were free at the previous commit). `Open`
   validates both metas (magic, version, checksum) and takes the valid one with the larger txid: the new
   one if whole, else the previous one. So the file holds `Dn` or `Dl`.
+* The size: bbolt never shrinks its file; `DB.grow` (in `Commit`, before any page is written) truncates
+  it up to a page-aligned size and `fsync`s (`!NoGrowSync`); the file extension's crash leaves a size
+  among those since the last sync, an `ftruncate`'s exactly (`CrashFile`'s `szCrash`), so a page-aligned
+  size at least the synced high-water mark's (`fileHoldsM`'s whole pages).
 * `dbCrashKeep_half`'s put-back: a change of the committed data (`S ≠ Dn`) is a commit point (the half
   combines with `ownDB`'s into `boltState γ 1`, which only bbolt's `Commit` updates), so the fallback
   becomes the previous committed data `Dn`; a put-back of the same data (a reader's access, an empty
@@ -54,8 +57,9 @@ file extension's crash (`OsCrash`, `GooseLang/Ext/Fs/Impl.lean`).**
   unsynced metas zero or new), after which `Open` finds no valid meta and fails (etcd's `newBackend`
   then panics). That window is outside this axiom; the member's first start must handle it (C-I3).
 
-**Known limits.** The torn-meta checksum collision and the torn `Truncate` are the crash premise
-`BoltCrashWhole`'s (review 2026-11-24, `notes/axiom-review/c-i1-bbolt-crash.md`). The receipt inside
+**Known limits.** The torn-meta checksum collision is the crash premise `BoltCrashWhole`'s; the size a
+crash leaves inside `DB.grow` is the file extension's (an `ftruncate`'s target exactly, 2026-11-25:
+until then a second clause of the premise; reviews in `notes/axiom-review/c-i1-bbolt-crash.md`). The receipt inside
 `fileHoldsM` (`fileRcpt`, the txid's time receipt) is asserted at the new generation: sound only if
 receipts persist across generations (not checked by the review). A kill without `sync`
 (`nonissues/bbolt-restart-reuses-pages-of-unsynced-commit.md`) is outside the model.
@@ -64,6 +68,9 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 public import GooseLang.Ext.Fs.CrashTok
+public import GooseLang.Ext.Fs.Tests
+public import Spec.hash.fnv.Model
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
 
 @[expose] public section
 
@@ -80,31 +87,63 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors}
 
-/-- (C-I1) **The database `γ` syncs** (persistent by its form): `γ` was opened with `NoSync = false` and
-`NoGrowSync = false` (bbolt's fields `db.NoSync`, `db.NoGrowSync`, fixed at `Open`, `Inv/Bolt.lean`; etcd's
-backend: `UnsafeNoFsync = false`, `backend.go:227-228`; never defrag's temporary database, opened with
-`NoSync = true`). Producer pending: `Open`'s postcondition behind γ's ghost names (not an entailment from
-persistent field cells, which a fresh heap could satisfy), with `UnsafeNoFsync = false` from the Go
-configuration; until then every result over these laws is vacuous. -/
-opaque dbOptsRaw [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := iprop(False)
+/-- A little-endian number. -/
+def leNat (l : List w8) : Nat := l.foldr (fun b acc => b.toNat + 256 * acc) 0
 
-/-- (C-I1) `dbOptsRaw`, persistent. -/
-def dbOpts [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := iprop(<pers> dbOptsRaw γ)
+/-- What bbolt's `Meta.Validate` checks of the 64 bytes `r` of a meta (the page's bytes 16 to 80, after
+its header, `Page.Meta()`): the magic `0xED0CDAED`, the version `2`, and the checksum (bytes 56 to 64)
+the FNV-64a of the first 56 (`Meta.Sum64`; bbolt's model `Model/Meta.lean`'s `metaValid`, stated here on
+the raw little-endian bytes so as not to import bbolt's internals). -/
+def boltMetaValidates (r : List w8) : Prop :=
+  leNat (r.take 4) = 0xED0CDAED ∧ leNat ((r.drop 4).take 4) = 2 ∧
+    leNat (r.drop 56) = (hash.fnv.fnv64a (r.take 56)).toNat
 
-/-- (C-I1) **A crash premise under which the files `I` come back whole enough for bbolt** (a world premise
-on the run's crash relation, opaque until defined, as the WAL's `W1`; for the owner's packet, which needs
-it written out with a check that some `Q` refining `OsCrash` satisfies it, and a configuration-C example in
-`examples/osfs/semantics/`): a machine crash leaves each file of `I` at a size it had at a sync, or the
-target of a `Truncate` completed or in flight (the file extension's `CrashFile` allows any size in range:
-`DB.grow`'s `Truncate`); and a meta page (bbolt's pages 0 and 1) that validates (magic, version, FNV-64
-checksum) equals, on its checksummed bytes, the contents of one write (old or new): torn meta pages happen
-on Linux and stay allowed; only a torn mixture that validates is excluded (a probabilistic assumption on
-FNV-64). Only while the file is an open bbolt database with no extending write since its last sync (a
-received snapshot file before its rename grows by appends: not covered); the meta clause then reads "equals
-the page's page-cache contents at some moment since the last sync" (a meta page split across two `pwrite`s).
-The size part is a kernel fact that belongs in the file extension's `CrashFile` (an extending `ftruncate`
-crashes to the old or the target size), leaving here only the FNV-64 clause. Reviews 2026-11-24/25. -/
-opaque BoltCrashWhole : (Fs.Ino → Prop) → Fs.OsState → Fs.OsState → Prop := fun _ _ _ => False
+/-- (C-I1) **The crash premise: a meta page that validates after a crash is not torn** (a premise on
+the run's crash relation, `dbCrash`'s `hQ`; trusted, a probabilistic assumption on FNV-64a). For each
+file `i` of `I` (`dbCrash`: the open database's inode) whose size has not changed since its last
+successful sync and which has no change in flight past its end (bbolt's file at every moment but
+`DB.grow`'s window between its `Truncate` and its `Sync`, during which no meta page has been written
+since the sync), at a crash from `st` to `st'`: if meta page `j < 2` of the crash image, as its page
+cache holds it, validates (`boltMetaValidates`: magic, version, and the FNV-64a checksum of the meta's
+first 56 bytes, `Meta.Validate`), then those 56 bytes are the slot as of one change `n` (each its value as of
+`n`, `valAt`). The file extension's crash (`CrashFile`) keeps each byte any one of its candidates,
+independently (measured on Linux: a page can reach the disk torn mid-sector, or any mix of two writes,
+`notes/axiom-review/fs-v2-r6/e2e/`), so a crash can tear a meta page being written; the premise says
+only that a torn mix does not collide on its checksum, bbolt's own assumption (its `Open` takes the
+valid meta with the larger txid). bbolt writes a meta page with one page-aligned `WriteAt` of the
+whole page (`Tx.writeMeta`) and the extension's writes land page-aligned prefixes, so each state "as
+of one change" of a slot is a whole meta that bbolt wrote (or the synced one). The size a crash
+leaves is not part of the premise: the extension's own rule gives it (`CrashFile`'s `szCrash`: an
+`ftruncate`'s target exactly, so `DB.grow`'s page-aligned truncate leaves a page-aligned size,
+`examples/osfs/semantics/data_truncate_size_exact.go`). Satisfiable from every reachable state with a
+crash (`boltCrashWhole_exists`); the same as minibolt's P1 (`BootP1.lean`) on bbolt's meta layout,
+restricted to `I` and to files with no size change since their last sync (reviews 2026-11-24/25,
+`notes/axiom-review/c-i1-bbolt-crash.md`). -/
+def BoltCrashWhole (I : Fs.Ino → Prop) (st st' : Fs.OsState) : Prop :=
+  ∀ (i : Fs.Ino) (f f' : Fs.OsFile), I i → st.fs.files !! i = some f → st'.fs.files !! i = some f' →
+    f.sizeLo = f.size → f.sizeHi = f.size →
+    (∀ t c, st.proc.inflight !! t = some c → c.ino = i → c.target ≤ f.size) →
+    ∀ j < 2, 4096 * j < f'.size →
+      boltMetaValidates ((List.range 64).map fun k => f'.cache (4096 * j + 16 + k)) →
+      ∃ n, ∀ k < 56, f'.cache (4096 * j + 16 + k) = Fs.valAt (f.cand (4096 * j + 16 + k)) n
+
+/-- **`BoltCrashWhole` is never vacuous at a crash**: from every reachable state (`CacheOk`) with a
+machine crash, the crash that leaves every named file as of its last sync (`Tests.durCrash`) is a
+crash satisfying it (every byte its candidate of stamp 0). -/
+theorem boltCrashWhole_exists (I : Fs.Ino → Prop) {st st' : Fs.OsState} (hok : Fs.Tests.CacheOk st)
+    (hc : Fs.MachineCrash st st') : ∃ st'', Fs.OsCrash st st'' ∧ BoltCrashWhole I st st'' := by
+  refine ⟨Fs.Tests.durCrash st st', Fs.Tests.durCrash_machine hok hc, ?_⟩
+  intro i f f' _ hf hf' _ _ _ j _ hsz _
+  refine ⟨0, fun k _ => ?_⟩
+  rw [Fs.Tests.durCrash_files, hf] at hf'
+  split at hf'
+  · simp only [Option.map_some, Option.some.injEq] at hf'
+    subst hf'
+    simp only [Fs.Tests.durFile, Fs.OsFile.ofDisk] at hsz ⊢
+    rw [Fs.diskByte, if_pos]
+    simp only [Fs.pageIn, decide_eq_true_eq]
+    omega
+  · cases hf'
 
 /-- (C-I1) **The crash record of the open database `γ`, whose file is at `path`** (exclusive): its
 committed data `Dn` (with the commit invariant's half), the data `Dl` its file falls back to, and the
@@ -160,13 +199,16 @@ axiom dbCrashKeep_clear [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : 
     ⊢ dbCrashKeep γ path i0 Dl Dn pd -∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn) ==∗
       dbCrashKeep γ path i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn)
 
-/-- (C-I1, trusted) **The record closed**, with nothing announced (review 2026-11-25: closing with a stale
-announcement would let a commit of an unannounced change land while the record claimed the announced
-one): the claim on the name and the half back (to close the database, or to rename another file onto
-`path`). -/
+/-- (C-I1, trusted) **The record closed**, with nothing announced and holding a live write transaction
+begun at the committed `Dn` (any pending changes `S`: no commit is in flight while it is live, it holds
+`rwlock` and `Commit` consumes it; reviews 2026-11-25: closing with a stale announcement, or without the
+transaction, inside `Commit`'s atomic update after the new meta's `pwrite` started, would let a commit of
+an unannounced change land while the record claimed less): the claim on the name and the half back (to
+close the database, or to rename another file onto `path`), and the transaction. -/
 axiom dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames) (path : GoString)
-    (i0 : Fs.Ino) (Dl Dn : Data) :
-    dbCrashKeep γ path i0 Dl Dn none ⊢ bPath (GF := GF) γ path ∗ dbHalf γ Dn
+    (i0 : Fs.Ino) (Dl Dn S : Data) (G : GoString → Nat) (tx : Loc) :
+    dbCrashKeep γ path i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ⊢
+      bPath (GF := GF) γ path ∗ dbHalf γ Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G)
 
 /-- (C-I1, trusted) **bbolt's file after a power loss**: under the crash premise `BoltCrashWhole` for the
 database's inode `i0`, from the old generation's record `(i0, Dl, Dn, pd)`, its `crashed`, and the file

@@ -67,3 +67,36 @@ of Linux for files growing by appends, e.g. a received snapshot before its renam
 `pwrite`s): its docstring now restricts it to an open database with no extending write since its last sync and
 says the size part belongs in the file extension's `CrashFile`; to be written out for the packet. `dbOpts`:
 acceptable shape; produce it in `Open`'s postcondition behind γ's ghost names.
+
+## Fifth review (2026-11-25, a fifth fresh agent, the final set with `BoltCrashWhole` written out)
+
+Given the axioms, `DbOpts.lean`, `storage.OpenBackend`'s new post, the file extension's change (`szCrash`) and
+the Go code (bbolt pin `ca88bb6a`, etcd's backend), not the author's conclusions. **No refutation.**
+
+- `dbCrashKeep_new`, `_announce`, `_half`, `_clear` (first review), `dbCrash`: **survive** (sizes: `DB.grow`'s
+  page-aligned targets, writes never extend the file, `maxBytes` below `maxMapSize`; meta pages stamp-0 durable in
+  `grow`'s window; the in-flight txid's receipt consistent with Perennial's global receipts).
+- `dbCrashKeep_close` (`pd = none` only): **suspect** (not exploitable alone): a proof could close the record inside
+  `Commit`'s atomic update, after the new meta's `pwrite` started, without ever announcing; the disk could then hold
+  the commit while a record closed a moment before claimed `{Dl, Dn}`. Saved only because no law covers a closed
+  database. **Fixed**: `_close` takes (and gives back) a fresh write transaction at `Dn`, as `_clear`, so no commit
+  is in flight when the record closes.
+- `BoltCrashWhole` (now a definition: a validating meta of a file of `I` with no size change since its last sync and
+  nothing in flight past its end is the slot as of one change, on its 56 checksummed bytes) and
+  `boltCrashWhole_exists`: **survive** (whole-page meta writes; a torn mix of an appended file zeroes the magic
+  number; the residue is the FNV-64a collision it states).
+- `dbOpts` and its producer (`OpenBackend`'s post under `UnsafeNoFsync = false`): **survive** (`backend.go:227-228`,
+  bbolt `db.go:191-192`; defrag reopens with `b.bopts`; only its temporary database has `NoSync`).
+- The file extension's change (an `ftruncate`'s crash size exact): **survives** (`ext4_setattr` in one handle;
+  `i_disksize` moves through intermediate sizes only for writeback and `fallocate`; the range from `i_disksize` to
+  `i_size` stays inside `szCrash`). The reviewer measured on C a loop mixing delayed-allocation appends, an in-place
+  write and truncates up, down and to the same size, 40 power losses: every recovered size in the model's set
+  (besides `notes/axiom-review/fs-config/trunc-size.sh`, 40 crashes of pure truncates, all targets).
+
+**Re-review of the `_close` fix** (2026-11-25, a sixth fresh agent): **survives**. A live write transaction at fraction 1
+cannot coexist with a commit in flight (`Tx.Commit.spec` consumes `boltTx … 1`, gives back only `txDone`; `Rollback`
+likewise; a read transaction is `TxView.ro`; the next writer exists only after `close` releases `rwlock`, after the
+meta's `fdatasync`, `tx.go:613/621`); the closed halves cannot re-create a record over data the disk lacks (`_new` needs a
+fresh writer). It notes the old form was likely sound too (a closed record claims nothing), and that `wr Dn` would block
+defrag's and `CommitAndStop`'s consumers (a pending batch committed by `unsafeCommit`); **applied its proposal**: `_close`
+takes any live write transaction begun at `Dn` (`wView Dn S G`), by the same argument (`_clear` keeps `wr Dn`).
