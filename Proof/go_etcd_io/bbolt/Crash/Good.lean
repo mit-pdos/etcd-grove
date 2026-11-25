@@ -75,7 +75,7 @@ def bGoodInit (f : OsFile) : Prop :=
 /-- **A reference image `X` of the committed state `C`**: `fileOK`'s facts, and zero meta tails. -/
 structure RefImg (X : List w8) (C : CommitSt) : Prop where
   img : fileImage X C
-  meta : C.metaOk
+  mok : C.metaOk
   tree : treeOK C
   fl : flFileOK X C
   len : C.hwm * 4096 ≤ X.length
@@ -230,7 +230,7 @@ theorem treePages_transfer (X ys : List w8) (C : CommitSt) (hR : RefImg X C)
     rw [← hfp]
     refine filePage_congr X ys id pg.length ?_ (by have := hR.len; omega) (by omega)
       (fun b h1 h2 => hag b (.inl ⟨id, pg, hp, h1, h2⟩))
-    rw [hl, ← cr_filePage_overflow, hfp]
+    rw [hl, ← cr_filePage_overflow, hfp]; exact Nat.le_refl _
   have hle : pagesLe C.pages (filePages ys C.hwm) := by
     intro id pg hpg
     obtain ⟨-, -, -, he⟩ := refImg_page hR hpg
@@ -262,10 +262,9 @@ theorem filePage_fl_transfer (X ys : List w8) (C : CommitSt) (hR : RefImg X C)
   obtain ⟨-, hfh, -⟩ := hR.fl f hf
   have hend : 4096 * f + (1 + pageOverflow (filePage X f)) * 4096 ≤ C.hwm * 4096 := by
     have := Nat.mul_le_mul_right 4096 hfh; rw [Nat.add_mul] at this; omega
-  refine filePage_congr X ys f _ ?_ (by have := hR.len; omega) (by omega)
-    (fun b h1 h2 => hag b (.inr ⟨f, hf, h1, by rw [Nat.mul_add, Nat.mul_comm 4096
-      (1 + _)]; omega⟩))
-  rw [cr_filePage_overflow]
+  refine filePage_congr X ys f ((1 + pageOverflow (filePage X f)) * 4096) ?_
+    (by have := hR.len; omega) (by omega) (fun b h1 h2 => hag b (.inr ⟨f, hf, h1, by omega⟩))
+  rw [cr_filePage_overflow]; exact Nat.le_refl _
 
 /-- **The transfer** (see the file header). -/
 theorem fileOK_transfer (X ys : List w8) (C : CommitSt) (hR : RefImg X C)
@@ -305,13 +304,14 @@ theorem tails_drop1024 (ys : List w8) (h : metaTailsZero ys) :
     ∀ b ∈ (bytesAt ys 0 4096).drop 1024, b = 0 := by
   intro b hb
   obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
-  have hk' : k + 1024 < (bytesAt ys 0 4096).length := by simp at hk; omega
+  have hlen : (bytesAt ys 0 4096).length ≤ 4096 := by simp [bytesAt]
+  have hk1 : 1024 + k < (bytesAt ys 0 4096).length := by simp only [List.length_drop] at hk; omega
   have e : ((bytesAt ys 0 4096).drop 1024)[k] = (bytesAt ys 0 4096)[1024 + k] := by
     simp only [List.getElem_drop]
-  rw [e]
   have h2 := bytesAt_getElem? ys 0 4096 (1024 + k) (by omega)
-  rw [List.getElem?_eq_getElem (by omega)] at h2
-  exact h 0 (by omega) (1024 + k) (by omega) (by omega) _ (by rw [Nat.zero_add] at h2; simpa using h2)
+  rw [List.getElem?_eq_getElem hk1] at h2
+  rw [e]
+  exact h 0 (by omega) (1024 + k) (by omega) (by omega) _ (by simpa using h2.symm)
 
 /-- **`metaOk` from its parts**: two 4096-byte slots, the current meta valid and the record's,
 page size 4096, the other slot's meta, if valid, of page size 4096 and an older txid, and slot 0
@@ -355,8 +355,8 @@ theorem metaSlot_raw (f : OsFile) (j : Nat) (h : 4096 * j + 80 ≤ f.size) :
   apply List.ext_getElem?
   intro k
   by_cases hk : k < 64
-  · rw [bytesAt_getElem? _ _ _ _ hk, bytesAt_getElem? _ _ _ _ (by omega),
-      contents_getElem? _ _ (by omega)]
+  · rw [bytesAt_getElem? _ 16 64 k hk, bytesAt_getElem? f.contents (4096 * j) 4096 (16 + k) (by omega),
+      contents_getElem? f (4096 * j + (16 + k)) (by omega)]
     simp [rawMeta, hk, Nat.add_assoc]
   · rw [List.getElem?_eq_none (by simp [bytesAt]; omega),
       List.getElem?_eq_none (by simp [rawMeta]; omega)]

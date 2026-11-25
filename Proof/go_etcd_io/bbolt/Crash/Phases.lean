@@ -135,7 +135,7 @@ theorem bDur_trunc_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
     cases hR with
     | refl => exact ⟨rfl, Nat.le_refl _, hhi, hsz, hal0, hl, fun _ _ => rfl⟩
     | ann =>
-      simp only [announce_lo, announce_hi, announce_size]
+      rw [announce_lo, announce_hi, announce_size]
       exact ⟨by omega, Nat.le_refl _, by omega, hsz, hal0, hl, fun _ _ => rfl⟩
     | grown n zs hzs =>
       rw [rsPost_lo, rsPost_size, rsPost_hi]
@@ -212,12 +212,12 @@ theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
     have h' : bs[b]? = some (durB v) := h
     rw [hout b (hprot b hb)]; exact h'
   have hd : (data.drop nn).length = data.length - nn := List.length_drop
-  refine ⟨⟨⟨by rw [hs]; exact hl', trivial, by show m'.lo ≤ m'.size; omega,
+  refine ⟨⟨⟨by show bs'.length = m'.size; rw [hs]; exact hl', trivial, by show m'.lo ≤ m'.size; omega,
       by show m'.size ≤ m'.hi; omega⟩,
     idleOk_mono hI (fun b v hb h => hbs b v hb h) (fun _ _ _ _ _ _ h => by cases h)
       (by show m.lo ≤ m'.lo; omega)
       (by show m'.size % 4096 = 0; rw [hs]; exact hal) (fun _ _ _ _ h => by cases h)⟩,
-    fun hlt t n _ => ⟨⟨by rw [hs]; exact hl', by show off + nn ≤ m'.size; omega,
+    fun hlt t n _ => ⟨⟨by show bs'.length = m'.size; rw [hs]; exact hl', by show off + nn ≤ m'.size; omega,
       by show m'.lo ≤ m'.size; omega, by show m'.size ≤ m'.hi; omega⟩,
     idleOk_mono hI (fun b v hb h => hbs b v hb h) (fun b hb t' off' data' n' he => by
         cases he; have := hprot b hb; rw [hd]; omega)
@@ -322,10 +322,10 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
       BDur a ⟨m', bs', fa, fb, .write t (4096 * (a.cur.txid % 2) + nn)
         ((a.cur.slot a.cur.txid).drop nn) n⟩) := by
   simp only [bDur_commit_iff ha] at h ⊢
-  generalize a.cur = C at *
-  generalize a.prev = P at *
-  generalize a.xcur = Xc at *
-  generalize a.xprev = Xp at *
+  generalize a.cur = C at h hR ⊢
+  generalize a.prev = P at h ⊢
+  generalize a.xcur = Xc at h ⊢
+  generalize a.xprev = Xp at h ⊢
   obtain ⟨hW, hRp, hRc, htx, hsl, hpre, hslotp, ⟨N, hfl⟩, hdp, hdc, hhp, hhc, hal, hvlo, hvhi, -⟩ := h
   have hl : bs.length = m.size := hW.1
   have hlo : m.lo ≤ m.size := hW.2.2.1
@@ -338,8 +338,8 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
   have h3 := refImg_hwm hRc
   have hlen : (C.slot C.txid).length = 4096 := by
     unfold CommitSt.slot; split
-    · exact hRc.meta.1
-    · exact hRc.meta.2.1
+    · exact hRc.mok.1
+    · exact hRc.mok.2.1
   have hj2 : C.txid % 2 < 2 := Nat.mod_lt _ (by omega)
   have hin : 4096 * (C.txid % 2) + (C.slot C.txid).length ≤ m.size := by
     rw [hlen]; have := Nat.mul_le_mul_right 4096 h3; omega
@@ -373,12 +373,12 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
   have hslot : ∃ N' : Option Nat, (N' = none → nn = 0) ∧ ∀ k < 4096, ∃ x,
       bs'[4096 * (C.txid % 2) + k]? = some x ∧
       CandOV x.2 (xb Xp (4096 * (C.txid % 2) + k)) (xb Xc (4096 * (C.txid % 2) + k)) N' := by
-    clear hout hs hlo' hhi' hl' hnn
+    clear hpsync hout hs hlo' hhi' hl' hnn
     induction hR with
     | refl =>
       refine ⟨N, fun _ => rfl, fun k hk => ?_⟩
       obtain ⟨c, hc, hov⟩ := hfl k hk
-      rw [crashCands_lt _ rfl _ (by show _ < m.size; omega)] at hc
+      rw [crashCands_lt ⟨m, bs, fa, fb, .idle⟩ rfl _ (by show _ < m.size; omega)] at hc
       obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.1 hc
       exact ⟨x, hx, hov⟩
     | @step nn0 m0 bs0 k nn' n zs hW0 hnn hk hnn' hzs hZ hPF ih =>
@@ -390,7 +390,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
           (by rw [hlen] at hnn; exact hnn) hk hdat hN' hPF hsl'⟩
   obtain ⟨N', hN', hsl'⟩ := hslot
   have hd : ((C.slot C.txid).drop nn).length = 4096 - nn := by simp [hlen]
-  refine ⟨⟨⟨by rw [hs]; exact hl', trivial, by show m'.lo ≤ m'.size; omega,
+  refine ⟨⟨⟨by show bs'.length = m'.size; rw [hs]; exact hl', trivial, by show m'.lo ≤ m'.size; omega,
       by show m'.size ≤ m'.hi; omega⟩, hRp, hRc, htx, hsl, hpre,
     fun k hk => hpsync _ _ (.inr (.inr ⟨by omega, by omega⟩)) (hslotp k hk) _
       (fun _ _ _ _ h => by cases h),
@@ -400,7 +400,7 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
     by show _ ≤ m'.lo; omega, by show _ ≤ m'.lo; omega,
     by show m'.size % 4096 = 0; rw [hs]; exact hal',
     by show m'.lo = m'.size; omega, by show m'.hi = m'.size; omega, fun _ _ _ _ h => by cases h⟩,
-    fun hlt t n hPF => ⟨⟨by rw [hs]; exact hl', by show _ ≤ m'.size; omega,
+    fun hlt t n hPF => ⟨⟨by show bs'.length = m'.size; rw [hs]; exact hl', by show _ ≤ m'.size; omega,
       by show m'.lo ≤ m'.size; omega, by show m'.size ≤ m'.hi; omega⟩, hRp, hRc, htx, hsl, hpre,
     fun k hk => hpsync _ _ (.inr (.inr ⟨by omega, by omega⟩)) (hslotp k hk) _
       (fun _ _ _ _ he => by cases he; rw [hd]; omega),
@@ -416,12 +416,12 @@ theorem bDur_write_meta (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (bs
       cases he; show _ + ((C.slot C.txid).drop nn).length ≤ m'.size; rw [hd]; omega⟩⟩
   · obtain ⟨x, hx, hov⟩ := hsl' k hk
     refine ⟨x.2, ?_, hov⟩
-    rw [crashCands_lt _ rfl _ (by show _ < m'.size; omega)]
+    rw [crashCands_lt ⟨m', bs', fa, fb, .idle⟩ rfl _ (by show _ < m'.size; omega)]
     show (bs'[_]?).map Prod.snd = _
     rw [hx]; rfl
   · obtain ⟨x, hx, hov⟩ := hsl' k hk
     have hbase : crashCands ⟨m', bs', fa, fb, .idle⟩ (4096 * (C.txid % 2) + k) = some x.2 := by
-      rw [crashCands_lt _ rfl _ (by show _ < m'.size; omega)]
+      rw [crashCands_lt ⟨m', bs', fa, fb, .idle⟩ rfl _ (by show _ < m'.size; omega)]
       show (bs'[_]?).map Prod.snd = _
       rw [hx]; rfl
     rw [crashCands_write, hbase]
@@ -468,16 +468,17 @@ theorem bDur_sync_commit (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (H
   rw [bDur_commit_iff ha] at h
   rw [bDur_idle_iff rfl]
   show BWf _ ∧ IdleOk a.cur a.xcur _
-  generalize a.cur = C at *
-  generalize a.prev = P at *
-  generalize a.xcur = Xc at *
-  generalize a.xprev = Xp at *
+  generalize a.cur = C at h hw ⊢
+  generalize a.prev = P at h ⊢
+  generalize a.xcur = Xc at h hw ⊢
+  generalize a.xprev = Xp at h ⊢
   obtain ⟨hW, hRp, hRc, htx, hsl, hpre, hslotp, -, hdp, hdc, hhp, hhc, hal, hvlo, hvhi, -⟩ := h
   have hl : (H ++ (F ++ T)).length = m.size := hW.1
   have hvlo' : m.lo = m.size := hvlo
   have hhc' : C.hwm * 4096 ≤ m.lo := hhc
   have hal' : m.size % 4096 = 0 := hal
   have h3 := refImg_hwm hRc
+  have hP3 := refImg_hwm hRp
   have hXcl := hRc.len
   have hXpl := hRp.len
   have hpj : (C.txid + 1) % 2 = P.txid % 2 := by rw [htx]; omega
@@ -491,7 +492,7 @@ theorem bDur_sync_commit (a : BAbs) (ha : a.phase = .committing) (m : OsMeta) (H
     have e2 := bytesAt_getD Xc (4096 * (P.txid % 2)) (b - 4096 * (P.txid % 2)) (by omega) (by omega)
     rw [show 4096 * (P.txid % 2) + (b - 4096 * (P.txid % 2)) = b by omega] at e1 e2
     rw [← e1, ← e2, e]
-  have hPm := hRp.meta
+  have hPm := hRp.mok
   obtain ⟨-, -, hPps, -, -, hPv, hPis, -⟩ := hPm
   refine ⟨csSynced_bwf m H F T fa fb hl, hRc, ?_, fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩,
     fun b hb => ⟨?_, fun _ _ _ _ h => by cases h⟩, by show _ ≤ m.size; omega, hal',
@@ -524,6 +525,7 @@ theorem initOk_inflight {m0 : OsMeta} {bs0 : List ByteG} {fa fb off nn0 t n : Na
       InitOk ⟨m0, bs0, fa, fb, .write t (off + nn0) (data.drop nn0) n⟩ := by
   obtain ⟨hc, hcache, hvhi⟩ := hI
   have hmhi : m0.hi ≤ 16384 := hvhi
+  have hhi0 : m0.size ≤ m0.hi := hW.2.2.2
   have hd : (data.drop nn0).length = data.length - nn0 := List.length_drop
   refine ⟨⟨hW.1, hon, hW.2.2.1, hW.2.2.2⟩, fun b hb => ?_, hcache, ?_⟩
   · obtain ⟨c, hcb, hq⟩ := hc b hb
@@ -614,7 +616,7 @@ theorem bDur_sync_init (a : BAbs) (ha : a.phase = .init) (m : OsMeta) (H F T : L
   · have hbl : b < (H ++ (F ++ T)).length := by omega
     obtain ⟨y, hy⟩ : ∃ y, (H ++ (F ++ T))[b]? = some y := ⟨_, List.getElem?_eq_getElem hbl⟩
     refine ⟨[(y.1, 0)], ?_, fun q hq => ?_⟩
-    · rw [crashCands_lt _ rfl _ (by show b < m.size; omega), hsb, hy]; rfl
+    · rw [crashCands_lt (csSynced m H F T fa fb) rfl _ (by show b < m.size; omega), hsb, hy]; rfl
     · simp only [List.mem_singleton] at hq; rw [hq]; exact hcache' b y hy
   · rw [hsb] at hx
     obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.1 hx

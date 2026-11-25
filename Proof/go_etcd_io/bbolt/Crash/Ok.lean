@@ -36,6 +36,7 @@ variable [GooseExts]
 
 omit [GooseExts] in
 theorem xb_some (X : List w8) (b : Nat) (hb : b < X.length) : some (xb X b) = X[b]? := by
+  show some (X.getD b 0) = _
   rw [List.getElem?_eq_getElem hb, List.getD_eq_getElem _ _ hb]
 
 theorem maxBytes_bounds (n : Nat) (h : n ≤ maxBytes) : n < 2 ^ 62 ∧ n ≤ 0xFFFFFFFFFFFF := by
@@ -74,7 +75,7 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
   have hm1 : bytesAt f.contents 4096 4096 = C.m1 := by
     rw [hR.img.2.1]; exact bytesAt_congr X _ 4096 4096 (by omega) (by omega)
       (fun b _ h2 => hagm b (by omega))
-  have hok := fileOK_transfer X f.contents C hR (by omega) hag (by rw [hm0, hm1]; exact hR.meta)
+  have hok := fileOK_transfer X f.contents C hR (by omega) hag (by rw [hm0, hm1]; exact hR.mok)
   rw [hyl] at hok
   have htz : metaTailsZero f.contents := by
     intro j hj k hk1 hk2 v hv
@@ -82,7 +83,7 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
     exact hR.tails j hj k hk1 hk2 v hv
   obtain ⟨hb1, hb2⟩ := maxBytes_bounds _ hV.max
   refine ⟨⟨hok, hb1, hb2, htz⟩, fun he => ?_⟩
-  have := hV.hi; have := size_le_vmeta_hi s hW
+  have := hV.hi; have := size_le_vmeta_hi s hW; have := hW.2.2.1
   have : f.size = s.m.size := by omega
   rw [this]; exact hal
 
@@ -115,7 +116,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
   have hagsp : ∀ k < 4096, f.contents[4096 * (P.txid % 2) + k]? =
       Xp[4096 * (P.txid % 2) + k]? := by
     intro k hk
-    rw [view_psync hW hV (hslotp k hk) (by omega), xb_some Xp _ (by omega)]
+    rw [view_psync hW hV (hslotp k hk) (by omega), xb_some Xp (4096 * (P.txid % 2) + k) (by omega)]
   -- the slot being written
   have hpgj : ∀ k < 4096, pageIn f.size (4096 * (C.txid % 2) + k) = true := by
     intro k hk; simp only [pageIn, decide_eq_true_eq]
@@ -136,7 +137,8 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
     have hcase : j = P.txid % 2 ∨ j = C.txid % 2 := by omega
     rcases hcase with rfl | rfl
     · have e := hagsp k hk2
-      rw [contents_getElem? f _ (by omega), ← xb_some Xp _ (by omega),
+      rw [contents_getElem? f (4096 * (P.txid % 2) + k) (by omega),
+        ← xb_some Xp (4096 * (P.txid % 2) + k) (by omega),
         refImg_tail hRp hp2 hk1 hk2, Option.some.injEq] at e
       exact e
     · rcases hsj k hk2 with e | e
@@ -152,7 +154,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
     exact bytesAt_congr Xp _ _ 4096 (by omega) (by omega) (fun b h1 h2 => by
       have := hagsp (b - 4096 * (P.txid % 2)) (by omega)
       rwa [show 4096 * (P.txid % 2) + (b - 4096 * (P.txid % 2)) = b by omega] at this)
-  have hPm := hRp.meta
+  have hPm := hRp.mok
   obtain ⟨-, -, hPps, -, -, hPv, hPis, -⟩ := hPm
   have hlen0 : (bytesAt f.contents 0 4096).length = 4096 := bytesAt_length' _ _ _ (by omega)
   have hlen1 : (bytesAt f.contents 4096 4096).length = 4096 := bytesAt_length' _ _ _ (by omega)
@@ -200,14 +202,14 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       rcases N with _ | N0
       · left; intro k hk
         obtain ⟨c, hc, hov⟩ := hk' k hk
-        rw [hn k hk c hc, valAt_candOV hov]
+        rw [hn k hk c hc]; exact valAt_candOV hov
       · by_cases hN : N0 ≤ n
         · right; intro k hk
           obtain ⟨c, hc, hov⟩ := hk' k hk
-          rw [hn k hk c hc, valAt_candOV hov]; dsimp only; rw [if_pos hN]
+          rw [hn k hk c hc, valAt_candOV hov]; exact if_pos hN
         · left; intro k hk
           obtain ⟨c, hc, hov⟩ := hk' k hk
-          rw [hn k hk c hc, valAt_candOV hov]; dsimp only; rw [if_neg hN]
+          rw [hn k hk c hc, valAt_candOV hov]; exact if_neg hN
     have htk : (encode (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))).take 56 =
         (List.range 56).map fun k => f.cache (4096 * (C.txid % 2) + 16 + k) := by
       unfold metaOf; rw [hraw]; exact rawMeta_take56 f _
@@ -216,9 +218,10 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       refine Or.inr (hgoodP fun hv2 => ?_)
       have hmold : (encode (metaOf (P.slot (P.txid + 1)))).take 56 =
           (List.range 56).map fun k => xb Xp (4096 * (C.txid % 2) + 16 + k) := by
-        rw [refImg_slot hRp, hjp, metaOf_take56 _ (by rw [bytesAt_length' _ _ _ (by omega)]; omega)]
+        rw [refImg_slot hRp, hjp, metaOf_take56 _ (by
+          rw [bytesAt_length' Xp (4096 * (C.txid % 2)) 4096 (by omega)]; omega)]
         apply List.map_congr_left; intro k hk; rw [List.mem_range] at hk
-        rw [bytesAt_getD _ _ _ (by omega) (by omega)]; congr 1; omega
+        rw [bytesAt_getD Xp (4096 * (C.txid % 2)) (16 + k) (by omega) (by omega)]; congr 1; omega
       have heq : (encode (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))).take 56 =
           (encode (metaOf (P.slot (P.txid + 1)))).take 56 := by
         rw [htk, hmold]; apply List.map_congr_left; intro k hk; rw [List.mem_range] at hk
@@ -228,14 +231,15 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       left
       have hmnew : (encode (metaOf (C.slot C.txid))).take 56 =
           (List.range 56).map fun k => xb Xc (4096 * (C.txid % 2) + 16 + k) := by
-        rw [refImg_slot hRc, metaOf_take56 _ (by rw [bytesAt_length' _ _ _ (by omega)]; omega)]
+        rw [refImg_slot hRc, metaOf_take56 _ (by
+          rw [bytesAt_length' Xc (4096 * (C.txid % 2)) 4096 (by omega)]; omega)]
         apply List.map_congr_left; intro k hk; rw [List.mem_range] at hk
-        rw [bytesAt_getD _ _ _ (by omega) (by omega)]; congr 1; omega
+        rw [bytesAt_getD Xc (4096 * (C.txid % 2)) (16 + k) (by omega) (by omega)]; congr 1; omega
       have heq : (encode (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))).take 56 =
           (encode (metaOf (C.slot C.txid))).take 56 := by
         rw [htk, hmnew]; apply List.map_congr_left; intro k hk; rw [List.mem_range] at hk
         exact hnew k hk
-      have hCm := hRc.meta
+      have hCm := hRc.mok
       obtain ⟨-, -, hCps, -, -, hCv, hCis, -⟩ := hCm
       have hmeq : metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096) = metaOf (C.slot C.txid) :=
         meta_eq_of_valid _ _ heq hv hCv

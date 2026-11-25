@@ -246,7 +246,7 @@ theorem metaOf_take56 (pg : List w8) (h : 80 ≤ pg.length) :
   apply List.ext_getElem?
   intro k
   by_cases hk : k < 56
-  · rw [List.getElem?_take, if_pos hk, bytesAt_getElem? _ _ _ _ (by omega)]
+  · rw [List.getElem?_take, if_pos hk, bytesAt_getElem? pg 16 64 k (by omega)]
     simp [hk, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show 16 + k < pg.length by omega)]
   · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by simp; omega)]
 
@@ -269,13 +269,14 @@ theorem bytesAt_getD (X : List w8) (a k : Nat) (hk : k < 4096) (hX : a + 4096 �
 /-! ## The value of a slot's byte as of a stamp -/
 
 omit [GooseExts] in
-theorem getLast?_map_of (a : w8 × Nat) (v : w8) :
-    ∀ (l : List (w8 × Nat)), l ≠ [] → (∀ q ∈ l, q.1 = v) → ((a :: l).getLast?.map (·.1)) = some v
-  | [], h, _ => absurd rfl h
-  | [x], _, hv => by simp [hv x (by simp)]
-  | x :: y :: t, _, hv => by
+theorem getLast?_map_of (v : w8) :
+    ∀ (a : w8 × Nat) (l : List (w8 × Nat)), l ≠ [] → (∀ q ∈ l, q.1 = v) →
+      ((a :: l).getLast?.map (·.1)) = some v
+  | _, [], h, _ => absurd rfl h
+  | _, [x], _, hv => by simp [hv x (by simp)]
+  | _, x :: y :: t, _, hv => by
     rw [List.getLast?_cons_cons]
-    exact getLast?_map_of x v (y :: t) (by simp) (fun q hq => hv q (List.mem_cons_of_mem _ hq))
+    exact getLast?_map_of v x (y :: t) (by simp) (fun q hq => hv q (List.mem_cons_of_mem _ hq))
 
 /-- **The value as of stamp `n` of a slot byte being written**: the old one before the first new
 stamp, the new one from it on. -/
@@ -292,7 +293,7 @@ theorem valAt_candOV {c : Cands} {o v : w8} {N : Option Nat} (h : CandOV c o v N
     dsimp only
     by_cases hn : N0 ≤ n
     · rw [if_pos hn]
-      rw [getLast?_map_of (o, 0) v (L.filter (·.2 ≤ n)) ?_ ?_]
+      rw [getLast?_map_of v (o, 0) (L.filter (·.2 ≤ n)) ?_ ?_]
       · rfl
       · intro he
         have : (v, N0) ∈ L.filter (·.2 ≤ n) := List.mem_filter.2 ⟨hmem, by simp [hn]⟩

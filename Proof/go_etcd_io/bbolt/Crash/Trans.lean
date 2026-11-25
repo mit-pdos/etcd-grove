@@ -202,9 +202,9 @@ theorem finBytes_val {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8}
           rw [show off + (b - off) - off = b - off by omega, cfRange_getD hl hoff hj]
           exact ⟨_, List.getElem?_eq_getElem (by omega), by simp only [show off + (b - off) = b by omega]⟩
         · right; right
-          rw [show off + (b - off) - off = b - off by omega, List.getD_eq_getElem?_getD,
-            List.getElem?_eq_none (by omega)]
-          rfl
+          have hnone : (cfRange m bs off data.length).getD (b - off) (0, []) = (0, []) := by
+            rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+          rw [show off + (b - off) - off = b - off by omega, hnone]
     · exact .inl ⟨x, hx, rfl⟩
 
 /-! ## A sync -/
