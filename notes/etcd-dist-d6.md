@@ -1971,7 +1971,7 @@ trivial (a key is `(p, inc)`), and `Gp` with its heap points-to can go, if `Ip` 
   take it only if T8 prefers no token. (a') costs the most and changes five specs. Under all three, clause 3's
   restriction and `Ip`'s incarnation tag are the same first step (`NewGenerator`, `Next`), doable before deciding.
 
-**Build (unfinished at handoff):** fk-lean1, worktree `~/eg/wt/etcd-safe-t10` (moved from `etcd-safe-n7kv-nc2`), targets `MemberCrash`, `BackendImage`, `NewServerCrash`, `backend.CrashInterim` at `6887489844`, started 23:2xZ via `/shared/tmp/fklean1-check.sh`; log `/shared/tmp/t10-s4-build.log` (at job 4291/4521, no error yet, when the session stopped at the context limit). Next session: read the log's end (`EXIT n`); if it was cut off, rerun the same command with `FKLEAN_HOST=fk-lean1` (incremental) and fix what fails.
+**Build (unfinished at handoff):** fk-lean1, worktree `~/eg/wt/etcd-safe-t10` (moved from `etcd-safe-n7kv-nc2`), targets `MemberCrash`, `BackendImage`, `NewServerCrash`, `backend.CrashInterim` at `6887489844`, started 23:2xZ via `/shared/tmp/fklean1-check.sh`; log `/shared/tmp/t10-s4-build.log` (exit 1: one error, `BackendImage.lean:83` `Decidable (S = Dn)` in `kbStep.law`; fixed after the build with `open Classical in`, as C-I1 opens `Classical`, not rebuilt). Next session: rerun the same command with `FKLEAN_HOST=fk-lean1` (incremental) and fix what fails.
 
 **Next session:** after the lead's B6 decision, that change; P5's certificate route and the `consInv` image row as in
 session 3's handoff, the image row now at `kbStep.law`'s commit point (inside `Tx.Commit`'s update, C-I1's

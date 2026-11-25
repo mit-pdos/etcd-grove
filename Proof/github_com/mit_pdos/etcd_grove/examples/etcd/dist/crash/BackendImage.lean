@@ -79,6 +79,7 @@ fallback to `Dn` (or kept, when the commit kept the data), the committed data to
 mvcc's `mvccImage_commit.law` (proposed) plus the batch lock's image row (T10's row of `consInv`).
 (Restated 2026-11-25 with C-I1's record laws, bbolt-crash: no announcement, so the image of `S` is given at
 the commit point itself, not at the hook step.) -/
+open Classical in
 abbrev kbStep.law (KB : Data → Data → IProp GF) (CV : Data → IProp GF) : Prop :=
   ∀ (Dl Dn S : Data), ⊢ KB Dl Dn -∗ CV S ==∗ KB (if S = Dn then Dl else Dn) S ∗ CV S
 
