@@ -326,7 +326,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
                       iapply HΦ
                       itrivial
               · -- all received: close, and the section is done
-                try simp only [decide_eq_false Hif, decide_true, eq_self_iff_true, ↓reduceIte]
+                try simp only [Hif, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
                 try wp_auto
                 wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
                 iapply HClose $$ %T %iprop(True) [HSt]
@@ -363,7 +363,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
       simp only [hc, Bool.false_eq_true, ↓reduceIte]
       try wp_auto
       generalize hs : S.flatten = s
-      have HTs : S.flatten <+: s := by rw [hs]
+      have HTs : S.flatten <+: s := by rw [hs]; exact List.prefix_refl _
       generalize hT : S = T at HTs ⊢
       ihave IH2 : iprop(∃ (L : List GoString) (g : GoString), "got" ∷ got_ptr ↦ g ∗
           "HRt" ∷ cliRecvTok (Rep := strmMsg (GF := GF)) γ L ∗
@@ -489,7 +489,7 @@ theorem bidi.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG := hG))
               iapply HΦ
               itrivial
       · -- all received: close, and the section is done
-        try simp only [decide_eq_false Hif, decide_true, eq_self_iff_true, ↓reduceIte]
+        try simp only [Hif, decide_false, decide_true, eq_self_iff_true, Bool.false_eq_true, ↓reduceIte, ite_false, ite_true]
         try wp_auto
         wp_bind (App (Val #(methods ci.ty go!"CloseSend" ci.v)) _)
         iapply HClose $$ %T %iprop(True) [HSt]

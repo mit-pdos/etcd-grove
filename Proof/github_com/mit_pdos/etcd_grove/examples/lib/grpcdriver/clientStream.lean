@@ -223,11 +223,8 @@ theorem clientStream.wp_proof (wp_randomWord : randomWord.spec (GF := GF) (hG :=
           · wp_auto
             wp_apply wp_checkErr _ $$ []
             · iframe #
-              isplitr
-              · iapply svc.eof_statusErrOk
-                iframe #
-              iright
-              iexact Heof
+              iapply svc.eof_statusErrOk
+              iframe #
             try wp_auto
             iapply HΦ
             itrivial
