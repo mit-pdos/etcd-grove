@@ -3,7 +3,7 @@
 # `etcd/dist/putgetk`: the client machine's boot (`notes/putget-dist-plan.md` §13b, plan item 4)
 
 `client_bootK`: the client's boot program (`putgetk.initialize' #()`, then `putgetk.Client(ep)`, its result
-discarded) is safe from its share of the start (`⌜ep ≠ ""⌝ -∗ ⌜plainEndpoint ep⌝ ∗ clientShare ep γE mid
+discarded) is safe from its share of the start (`⌜ep ≠ ""⌝ -∗ ⌜addrOk ep⌝ ∗ clientShare ep γE mid
 putgetPub`) and its whole start, as putget's `client_boot` (`dist/putget/AdequacyClient.lean`): `Client.wp_proof`
 at `AddrOK`'s proof and putget's `Client.wp_proof` at its linked callees and the interim axioms
 `Client_Put_dist`, `Client_Get_dist`.
@@ -47,7 +47,7 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (ep : GoString) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient ep) σc
-      (iprop(⌜ep ≠ []⌝ -∗ ⌜plainEndpoint ep⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))) := by
+      (iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL

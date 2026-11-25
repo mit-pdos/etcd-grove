@@ -166,7 +166,7 @@ def memberPK (S5 : etcd_dist.S5Draft putgetGF) (peers clients : List GoString) (
 
 /-- The client machine's share (`client_bootK`'s). -/
 def clientPK (ep : GoString) (γE : GName) (mid : w64) : IProp putgetGF :=
-  iprop(⌜ep ≠ []⌝ -∗ ⌜plainEndpoint ep⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))
+  iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))
 
 /-- The machines' shares: member `i`'s for `i < n`, then the client's. -/
 def sharesK (S5 : etcd_dist.S5Draft putgetGF) (peers clients : List GoString) (ps : List w64)
@@ -367,7 +367,7 @@ theorem putgetKBoot_of
       iintro %-
       isplitr
       · ipureintro
-        exact etcd_dist.addrOk_plainEndpoint (Hok c0 (by simp [addrs]))
+        exact Hok c0 (by simp [addrs])
       iunfold clientShare
       isplitl
       · iexact Hat0
@@ -431,7 +431,7 @@ theorem putgetKBoot_of
         iintro %-
         isplitr
         · ipureintro
-          exact etcd_dist.addrOk_plainEndpoint (Hok c0 (by simp [addrs]))
+          exact Hok c0 (by simp [addrs])
         iunfold clientShare
         isplitl
         · iexact Hat

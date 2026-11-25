@@ -7,6 +7,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Client
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.AddrOK
+public import GooseLang.Ext.Net.Deploy
 
 @[expose] public section
 
@@ -44,10 +45,14 @@ theorem Client.wp_proof
     iapply HΦ; itrivial
   | true =>
   have Hne : ep ≠ [] := fun h => absurd (Hb h) (by decide)
-  ihave ⟨%Hpe, Hcs⟩ := Hsh $$ %Hne
+  ihave ⟨%Hok, Hcs⟩ := Hsh $$ %Hne
   wp_auto
-  wp_apply (wp_Client ep γE mid Hpe Hat) $$ [Hcs] as %r -
-  · iframe
+  have Hlen : ep.length + 1 < 2 ^ 63 := by have := Net.addrOk_length Hok; omega
+  wp_apply (wp_Client ep γE mid Hlen Hat) $$ [Hcs] as %r -
+  · isplitr
+    · iexact Hpg
+    · iintro %-
+      iexact Hcs
   iapply HΦ; itrivial
 
 end proof
