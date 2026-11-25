@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.google_golang_org.grpc.connectivity
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.internal
 
@@ -15,25 +17,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.grpc.internal
-
-namespace HealthChecker
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.internal.Assumptions]
-
-noncomputable instance HealthChecker_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.internal.HealthChecker :=
-  sorry -- axiomatized type
-
-noncomputable instance HealthChecker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.HealthChecker google_golang_org.grpc.internal.HealthChecker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end HealthChecker
 
 end google_golang_org.grpc.internal
 end

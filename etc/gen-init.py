@@ -3784,8 +3784,10 @@ _GI = 'google_golang_org.grpc.internal'
 _GI_ANY = ['FromOutgoingContextRaw', 'CanonicalString', 'AddGlobalDialOptions',
            'AddGlobalPerTargetDialOptions', 'JoinDialOptions', 'DisableGlobalDialOptions',
            'AcceptCompressors', 'GetServerCredentials', 'IsRegisteredMethod', 'ServerFromContext',
-           'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption']
-_GI_FUNC = ['ClearGlobalDialOptions', 'ClearGlobalPerTargetDialOptions', 'ClearGlobalServerOptions']
+           'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption',
+           'RegisterClientHealthCheckListener']
+_GI_FUNC = ['ClearGlobalDialOptions', 'ClearGlobalPerTargetDialOptions', 'ClearGlobalServerOptions',
+            'HealthCheckFunc', 'BalancerUnregister']
 _GI_BASE = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal'
 
 
@@ -3890,6 +3892,70 @@ trust-boundary axiom `initFuncsOk` says returns.''',
     before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
         f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
 )
+# (phase7-inits batch 2, 2026-11-25) `grpclog`'s fact: `cache`'s map in an init-time invariant, for
+# `Component` (translated), which the `logger`s of grpc, `credentials`, `health` and `connectivity` call
+_GLB = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog'
+SPECIAL[_GL]['doc'] = '''Its fact (`grpclogInit`, `cache/v3/Base.lean`; phase7-inits batch 2, 2026-11-25, until then
+`True`): `cache` holds a map for good, whose contents are in an init-time invariant (`initInv`), for
+`Component`, which package initializers call (`Spec/google_golang_org/grpc/grpclog/Component.lean`). Its
+initializer initializes its imports, allocates `cache` and runs its translated initializer, an empty map
+literal (prove-grpcext, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its
+untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the trust-boundary axiom
+`initFuncsOk` says returns.'''
+SPECIAL[_GL]['imports'] = ['Proof.google_golang_org.grpc.internal.Hooks']
+SPECIAL[_GL]['finish'] = [
+    'ipersist Hcache',
+    f'imod (EtcdGrove.grpcInternal.initInv_alloc (hG := hG) {_GLB}.cacheN ⊤ iprop(∃ M : GMap GoString Loc, (mHc ↦$ M : IProp GF))) $$ [Hc] with ⟨%γC, #HC⟩',
+    '· inext; iexists _; iexact Hc'] + FIN_PRE[:6] + [
+    'try imodintro', f'unfold {_GLB}.grpclogInit', 'iexists mHc, γC', 'iframe #']
+
+
+def logger_steps():
+    """A `logger`'s translated initializer, `grpclog.Component(name)`: through `Component`'s proof."""
+    return ['try wp_auto',
+            'wp_apply (EtcdGrove.grpclog.Component.wp_proof (hG := hG) _ _ _) $$ [Hown] as %llogger ⟨Hown, -⟩',
+            '· iframe Hown; try iexact {Hd:google_golang_org.grpc.grpclog}',
+            'try wp_auto']
+
+
+_LOGGER_DOC = '''runs its translated initializer of `logger`, `grpclog.Component(...)` (phase7-inits batch 2,
+2026-11-25, until then the trust-boundary axiom `opaqueInitsOk`; `Component`'s proof, through
+`grpclog`'s fact)'''
+for _p in ['google_golang_org.grpc', 'google_golang_org.grpc.credentials', 'google_golang_org.grpc.health',
+           'google_golang_org.grpc.connectivity', 'google_golang_org.grpc.balancer']:
+    _c = SPECIAL.setdefault(_p, {})
+    _c.setdefault('alloc_types', {})['logger'] = 'GoInterface'
+    _c.setdefault('before', {})['logger'] = logger_steps()
+    _c.setdefault('imports', []).append('Proof.google_golang_org.grpc.grpclog.Component')
+    if 'doc' in _c:
+        _c['doc'] = _c['doc'].rstrip('.') + '; it ' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.credentials']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports, allocates `logger` and ''' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.balancer']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports (`grpclog`, grpc's `internal`), allocates `logger`, ''' + _LOGGER_DOC + ''', and runs its translated
+`init` (`balancer.go:77`), which stores `unregisterForTesting` in `internal.BalancerUnregister`, through
+`internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+SPECIAL['google_golang_org.grpc.balancer']['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+SPECIAL['google_golang_org.grpc.balancer']['after'] = {
+    'init.«0»': hook_fact_steps() + hook_store_steps(['BalancerUnregister'])}
+SPECIAL['google_golang_org.grpc.connectivity']['doc'] = '''Its fact is `True`. Its initializer initializes its
+import (`grpclog`), allocates `logger` and ''' + _LOGGER_DOC + '.'
+# `health`: its `logger` and its two `init`s (until then `initFuncsOk`): `client.go`'s stores
+# `clientHealthCheck` in `internal.HealthCheckFunc`; `producer.go`'s sets `producerBuilderSingleton` (its
+# own variable) and stores `registerClientSideHealthCheckListener` in `internal.RegisterClientHealthCheckListener`
+_GH = SPECIAL['google_golang_org.grpc.health']
+_GH['doc'] = '''Its fact is `True`. Its initializer initializes its imports, allocates `logger` and
+`producerBuilderSingleton`, ''' + _LOGGER_DOC + ''', and runs its two translated `init`s (phase7-inits
+batch 2, 2026-11-25; until then the trust-boundary axiom `initFuncsOk`): `client.go`'s stores
+`clientHealthCheck` in `internal.HealthCheckFunc` and `producer.go`'s sets `producerBuilderSingleton` to a
+new `producerBuilder` and stores `registerClientSideHealthCheckListener` in
+`internal.RegisterClientHealthCheckListener`, both through `internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+_GH['alloc_types']['producerBuilderSingleton'] = 'Loc'
+_GH['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+_GH.setdefault('after', {}).update({
+    'init.«0»': hook_fact_steps() + hook_store_steps(['HealthCheckFunc']),
+    'init.«1»': hook_fact_steps() + ['try wp_auto'] + hook_store_steps(['RegisterClientHealthCheckListener']),
+})
 # (prove-http3, 2026-11-21) net/textproto: `CanonicalMIMEHeaderKey`'s interned keys
 _TP = 'net.textproto'
 def _tp_lit(x, n):

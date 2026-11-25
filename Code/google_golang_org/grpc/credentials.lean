@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.context
 public import Net.Code.net
+public import Code.google_golang_org.grpc.grpclog
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -128,8 +129,6 @@ opaque alpnFailureHelpMessage [GooseExts] [GoGlobalContext] : val
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.logger"
 
-opaque logger.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def RequestInfoFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.RequestInfoFromContext"
 
@@ -181,7 +180,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc/credentials.tls12ForbiddenCipherSuites", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var tls12ForbiddenCipherSuites = map[uint16]struct{}{ tls.TLS_RSA_WITH_AES_128_CBC_SHA: {}, tls.TLS_RSA_WITH_AES_256_CBC … [sha256:72e235067be72921]"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.net]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.google_golang_org.grpc.grpclog]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -191,12 +190,20 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"credentials"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.grpclog.Component []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
-  (App (Val logger.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.grpclog.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc logger _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty)) (Val #()))))))))
 
 abbrev PerRPCCredentials [GooseExts] : Type := GoInterface
 
@@ -618,6 +625,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   TLSChannelzSecurityValue_instance : TLSChannelzSecurityValue.TypeAssumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
+  import_grpclog_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.Assumptions
 
 attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.SecurityLevel_instance
@@ -638,6 +646,7 @@ attribute [instance] Assumptions.PerRPCCredentials_instance
   Assumptions.TLSChannelzSecurityValue_instance
   Assumptions.import_context_Assumption
   Assumptions.import_net_Assumption
+  Assumptions.import_grpclog_Assumption
 
 end google_golang_org.grpc.credentials
 

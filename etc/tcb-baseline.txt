@@ -18,6 +18,9 @@ axiom Perennial.encoding.gob.wireBytes_exists
 axiom Perennial.encoding.gob.wireBytes_peel
 axiom Perennial.encoding.gob.wireFits_of
 axiom Perennial.encoding.gob.wp_initialize'
+axiom Perennial.github_com.despreston.go_craq.LogDefault.wp_proof
+axiom Perennial.github_com.despreston.go_craq.LoggerPrintf.wp_proof
+axiom Perennial.github_com.despreston.go_craq.LoggerPrintln.wp_proof
 axiom Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
 axiom Perennial.github_com.gogo.protobuf.proto.RegisterEnum.wp_proofMsgType
 axiom Perennial.github_com.gogo.protobuf.proto.RegisterFile.wp_proof
@@ -49,11 +52,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_in
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.wp_initialize'
-axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
-axiom Perennial.google_golang_org.grpc.health.initFuncsOk
-axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
-axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
@@ -72,6 +71,8 @@ axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.os.signal.Notify.wp_proofQuietSigs
 axiom Perennial.os.signal.Notify.wp_proofUsr1Sigs
 axiom Perennial.raxos.hyp.fmt.Println.wp_proof
+axiom Perennial.raxos.hyp.proto.Marshal.wp_proof
+axiom Perennial.raxos.hyp.proto.Unmarshal.wp_proof
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk

@@ -26,7 +26,7 @@ namespace NodeP
 section reqprop
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 instance itemPtr_persistent_rp (p : Loc) (k : GoString) (v : w64) (x : GoString) :
@@ -245,7 +245,7 @@ theorem wp_writePropagated (cfg : Cfg GF) (n : Loc) (a : GoString) (st : GoInter
         nodeFields cfg n a st γs nbM latM ∗ lockedState cfg γs n nbM latM h t nbrs lat S ∗
         respPtr rp resp ∗ respItems cfg.γ resp) -∗
       (∀ err : GoInterface, (∃ S' : StoreS, lockedState cfg γs n nbM latM h t nbrs lat S') -∗
-        (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+        (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"writePropagated" #n))
         (Val #rp)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hctx, #Hf, Hls, Hresp, #Hitems⟩ HΦ
@@ -353,7 +353,7 @@ theorem wp_commitPropagated (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a :
           ⌜err = interface.nil → ∀ (k : GoString) (j : Nat) (x : GoString) (v : w64),
             ((resp !! k).getD [])[j]? = some (x, v) →
             uint.Z v ≤ uint.Z (S'.maxCommitted k)⌝) -∗
-        (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+        (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType node.Node.ty) go!"commitPropagated" #n))
         (Val #rp)) {{ Φ }} := by
   iintro %Φ ⟨#Hpkg, #Hctx, #Hf, Hls, Hresp, #Hitems, #Hcomm⟩ HΦ
@@ -566,11 +566,11 @@ theorem wp_requestFwdPropagation (HL : Laws (GF := GF)) :
     iintro %err2 Hls Herr2
     wp_auto
     iapply HΦ $$ Hls Herr2
-  · ihave %Hok := errAny_ok err $$ Herr
+  · ihave %Hok := errPlain_ok err $$ Herr
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     wp_log [GoInterface.ok ei]
-    · iapply argOks1; iapply argOk_err $$ Herr
+    · iapply argOks1; iapply argOk_errPlain $$ Herr
     iapply HΦ $$ [Hls]
     · iexists S; iexact Hls
     iright; iexact Herr
@@ -636,11 +636,11 @@ theorem wp_requestBackPropagation (HL : Laws (GF := GF)) :
         rw [hk0, hv0] at hm
         have := Hmono k
         omega
-  · ihave %Hok := errAny_ok err $$ Herr
+  · ihave %Hok := errPlain_ok err $$ Herr
     obtain ⟨ei, rfl⟩ := Hok
     wp_auto
     wp_log [GoInterface.ok ei]
-    · iapply argOks1; iapply argOk_err $$ Herr
+    · iapply argOks1; iapply argOk_errPlain $$ Herr
     iapply HΦ $$ [Hls]
     · iexists lat, S
       iframe
