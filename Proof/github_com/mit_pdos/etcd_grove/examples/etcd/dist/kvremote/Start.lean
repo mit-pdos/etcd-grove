@@ -20,7 +20,8 @@ the boot state (`(kvR γk).sysState (kvR γk).B.init`: `etcdKV γk σ₀` with `
   `etcdClusterStart`'s client facts) and the members' own shares `MS Γ`. `membersAt_of_members`
   turns them into `membersAt` at the members' client addresses.
 
-No axiom, no `sorry`: `member_boot_dist` is a hypothesis of `kv_start_deployment`, discharged by N5.
+No axiom, no `sorry`: `member_boot_dist` is a hypothesis of `kv_start_deployment`, discharged by N5. All of it is
+at the global ghost state (`[Gg : GooseGlobalGS]`, as N5's `memberShareD`): the machines' boot shares.
 -/
 module
 
@@ -46,7 +47,7 @@ open github_com.mit_pdos.etcd_grove.examples.lib.remote
 section start
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
 variable [π : NetProtoGS]
@@ -57,7 +58,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 address of the members, any list of them (a client machine's endpoints, rotated). -/
 theorem membersAt_sub (Γ : DistView)
     {eps eps' : List GoString} (h : ∀ a ∈ eps', a ∈ eps) :
-    membersAt (Gg := hG.goose_globalGS) eps Γ ⊢ membersAt (Gg := hG.goose_globalGS) eps' Γ := by
+    membersAt (Gg := Gg) eps Γ ⊢ membersAt (Gg := Gg) eps' Γ := by
   unfold membersAt
   refine intuitionistically_of_intuitionistic.2.trans (BigSepL.bigSepL_intro fun k x hx => ?_)
   obtain ⟨j, hj⟩ := List.getElem?_of_mem (h x (List.mem_of_getElem? hx))
@@ -69,19 +70,19 @@ addresses `ns` unset and the cluster's KV at the boot state, the orchestrator's 
 theorem kv_start (γk : KVNames) (ns : List GoString) (ops : w64) (hnd : ns.Nodup)
     (hb : receiptBound GF ≤ 2 ^ 63 ∧ ns.length < 2 ^ 31 ∧ 0 ≤ sint.Z ops ∧
       (ns.length : Int) * sint.Z ops < 2 ^ 60) :
-    ⊢ regCtx (Gg := hG.goose_globalGS) -∗
-      ([∗list] a ∈ ns, addrUnset (Gg := hG.goose_globalGS) a) -∗
+    ⊢ regCtx (Gg := Gg) -∗
+      ([∗list] a ∈ ns, addrUnset (Gg := Gg) a) -∗
       (kvR (GF := GF) γk).sysState (kvR (GF := GF) γk).B.init ={⊤}=∗
       ∃ ρ : RemoteGS, kvOrchPre (ρ := ρ) ns ops ∗
-        [∗list] a ∈ ns, remoteAddr (Gg := hG.goose_globalGS) (kvR (GF := GF) γk) a := by
+        [∗list] a ∈ ns, remoteAddr (Gg := Gg) (kvR (GF := GF) γk) a := by
   iintro #Hreg Hs Hsys
-  imod mapCtx_alloc (Gg := hG.goose_globalGS) (I := VIn) ⊤ ns (sint.nat ops * readTries) hnd
+  imod mapCtx_alloc (Gg := Gg) (I := VIn) ⊤ ns (sint.nat ops * readTries) hnd
     with ⟨%ρ, -, #Hm, Hu⟩
-  imod pend_alloc (Gg := hG.goose_globalGS) (kvR (GF := GF) γk) ⊤ (linkvtxnS (GF := GF)) rfl $$ Hsys
+  imod pend_alloc (Gg := Gg) (kvR (GF := GF) γk) ⊤ (linkvtxnSG (GF := GF)) rfl $$ Hsys
     with ⟨%γ, #Hp, Hl⟩
-  imod addrs_set_proto (Gg := hG.goose_globalGS) ⊤
-      (fun a => reqP (Gg := hG.goose_globalGS) (kvR (GF := GF) γk).svc a)
-      (fun _ => repP (Gg := hG.goose_globalGS) (kvR (GF := GF) γk).svc) ns $$ Hreg Hs with #Ha
+  imod addrs_set_proto (Gg := Gg) ⊤
+      (fun a => reqP (Gg := Gg) (kvR (GF := GF) γk).svc a)
+      (fun _ => repP (Gg := Gg) (kvR (GF := GF) γk).svc) ns $$ Hreg Hs with #Ha
   imodintro
   iexists ρ
   unfold kvOrchPre
@@ -105,13 +106,13 @@ def clusterMembersOf (d : Deployment) : List ClusterMember :=
 /-- **The members' client address facts (`clientSvcFacts`) give `membersAt`** at their client
 addresses. -/
 theorem membersAt_of_members (Γ : DistView) (d : Deployment) :
-    clientSvcFacts (G := hG.goose_globalGS) (clusterMembersOf d) Γ ⊢
-      membersAt (Gg := hG.goose_globalGS) (d.members.map Member.client) Γ := by
+    clientSvcFacts (G := Gg) (clusterMembersOf d) Γ ⊢
+      membersAt (Gg := Gg) (d.members.map Member.client) Γ := by
   unfold clientSvcFacts clusterMembersOf membersAt
   rw [BigSepL.bigSepL_map, BigSepL.bigSepL_map]
   refine BigSepL.bigSepL_mono ?_
   intro k m hm
-  exact exists_intro (Ψ := fun mid : w64 => etcdAddrAt (Gg := hG.goose_globalGS) m.client Γ mid)
+  exact exists_intro (Ψ := fun mid : w64 => etcdAddrAt (Gg := Gg) m.client Γ mid)
     (memberIdIn d m)
 
 /-- **The members' boot, as the start needs it** (`member_boot_dist`, proved by N5, the lead's; a
@@ -121,28 +122,28 @@ cluster's view `Γ` (auth off), its KV at the boot state (`kvSys Γ.kv` at the m
 (`etcdClusterStart`'s `clientSvcFacts`, at the view, of `clusterMembersOf d`), and the members' own shares `MS Γ`. -/
 abbrev member_boot_dist.law (d : Deployment)
     (MS : DistView → IProp GF) : Prop :=
-  ⊢ regCtx (Gg := hG.goose_globalGS) -∗
-    ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset (Gg := hG.goose_globalGS) a)
+  ⊢ regCtx (Gg := Gg) -∗
+    ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset (Gg := Gg) a)
     ={⊤}=∗ ∃ Γ : DistView, ⌜Γ.auth = false⌝ ∗
       (kvR (GF := GF) Γ.kv).sysState (kvR (GF := GF) Γ.kv).B.init ∗
-      clientSvcFacts (G := hG.goose_globalGS) (clusterMembersOf d) Γ ∗
+      clientSvcFacts (G := Gg) (clusterMembersOf d) Γ ∗
       MS Γ
 
 /-- **The start of a deployment with one kv workload** (see the file header): from the registry and
 every address of the deployment unset, over the members' boot (`member_boot_dist`): the view `Γ`, the
 members' shares, the orchestrator's share at the workload's client machines and operation count, and
 each client machine's part of its share (the members' address facts, its `remoteAddr` at the cluster's
-store; `levelTok 0` and the pure facts of `kvNodePre` come from the machine's boot). -/
+store; the pure facts of `kvNodePre` and `kvNodePreL`'s level token and thread bound come from the machine's boot). -/
 theorem kv_start_deployment (d : Deployment) (w : Workload)
     (ns : List GoString) (_hw : d.workloads = [w]) (hn : d.nodes = [ns]) (hnd : d.addrs.Nodup)
     (hb : receiptBound GF ≤ 2 ^ 63 ∧ ns.length < 2 ^ 31 ∧ 0 ≤ sint.Z w.ops ∧
       (ns.length : Int) * sint.Z w.ops < 2 ^ 60)
     (MS : DistView → IProp GF) (member_boot_dist : member_boot_dist.law d MS) :
-    ⊢ regCtx (Gg := hG.goose_globalGS) -∗
-      ([∗list] a ∈ d.addrs, addrUnset (Gg := hG.goose_globalGS) a) ={⊤}=∗
+    ⊢ regCtx (Gg := Gg) -∗
+      ([∗list] a ∈ d.addrs, addrUnset (Gg := Gg) a) ={⊤}=∗
       ∃ (Γ : DistView) (ρ : RemoteGS), ⌜Γ.auth = false⌝ ∗ MS Γ ∗ kvOrchPre (ρ := ρ) ns w.ops ∗
-        membersAt (Gg := hG.goose_globalGS) (d.members.map Member.client) Γ ∗
-        [∗list] a ∈ ns, remoteAddr (Gg := hG.goose_globalGS) (kvR (GF := GF) Γ.kv) a := by
+        membersAt (Gg := Gg) (d.members.map Member.client) Γ ∗
+        [∗list] a ∈ ns, remoteAddr (Gg := Gg) (kvR (GF := GF) Γ.kv) a := by
   have hns : ns.Nodup := by
     have := hnd
     simp only [Deployment.addrs, hn, List.flatten_cons, List.flatten_nil, List.append_nil] at this

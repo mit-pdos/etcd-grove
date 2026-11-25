@@ -63,6 +63,17 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremo
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
+/-- `pendCtx` at `linkvtxnSG` (the orchestrator's share, global) is `pendCtx` at `linkvtxnS`: it reads only
+the model. -/
+theorem pendCtx_linkvtxnSG (γk : KVNames) (γ : PendNames) :
+    pendCtx (Gg := hG.goose_globalGS) (kvR (GF := GF) γk) (linkvtxnSG (GF := GF)) γ ⊢
+      pendCtx (Gg := hG.goose_globalGS) (kvR (GF := GF) γk) (linkvtxnS (GF := GF)) γ := .rfl
+
+/-- `pendLib` at `linkvtxnSG`'s start is `pendLib` at `linkvtxnS`'s: it reads only the model. -/
+theorem pendLib_linkvtxnSG (γ : PendNames) :
+    pendLib (Gg := hG.goose_globalGS) (linkvtxnSG (GF := GF)) γ (linkvtxnSG (GF := GF)).M.init ⊢
+      pendLib (Gg := hG.goose_globalGS) (linkvtxnS (GF := GF)) γ (linkvtxnS (GF := GF)).M.init := .rfl
+
 theorem Orch.wp_proof
     (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_Codec : Codec.spec (GF := GF) (hG := hG))
@@ -73,6 +84,8 @@ theorem Orch.wp_proof
   wp_start as ⟨#Hnodes, Hpre⟩
   iunfold kvOrchPre at Hpre
   icases Hpre with ⟨%γk, %γ, %Hb, #Hra, #Hmap, #Hpend, Hlib, Hbud⟩
+  ihave #Hpend := pendCtx_linkvtxnSG γk γ $$ Hpend
+  ihave Hlib := pendLib_linkvtxnSG γ $$ Hlib
   obtain ⟨hrb, hlen, hops, hprod⟩ := Hb
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init

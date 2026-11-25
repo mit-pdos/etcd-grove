@@ -66,7 +66,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem callGet_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_vrOf : vrOf.spec (GF := GF) (hG := hG))
-    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law) :
+    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
@@ -172,7 +172,7 @@ theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :
     (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
     (wp_withKVs : withKVs.spec (GF := GF) (hG := hG))
     (wp_WithRange : EtcdGrove.WithRange.spec (GF := GF) (hG := hG))
-    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law) :
+    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
@@ -256,7 +256,7 @@ theorem callList_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :
 /-- `callPut` across machines (txnlin's `callPut.spec` at the view), auth off. -/
 theorem callPut_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law) :
+    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     Γ.auth = false →
@@ -319,7 +319,7 @@ theorem callPut_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
 /-- `callDel` across machines (txnlin's `callDel.spec` at the view), auth off. -/
 theorem callDel_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law) :
+    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     Γ.auth = false →
@@ -388,11 +388,11 @@ theorem callTxn_dist (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG :=
     (wp_opsOf : opsOf.spec (GF := GF) (hG := hG)) (wp_thenOf : thenOf.spec (GF := GF) (hG := hG))
     (wp_elseOf : elseOf.spec (GF := GF) (hG := hG)) (wp_txnRes : txnRes.spec (GF := GF) (hG := hG))
     (wp_withRes : withRes.spec (GF := GF) (hG := hG))
-    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law)
+    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law (GF := GF) (hG := hG))
     (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
     (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
-    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law) :
+    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law (GF := GF) (hG := hG)) :
     ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
       (cl api : Loc) (eps : List GoString) (V : client.WEnv GF) (Γ : DistView),
     Γ.auth = false →
@@ -776,13 +776,13 @@ theorem Call_dist.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) 
     (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
     (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
-    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law)
-    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law)
-    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law)
-    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law)
-    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law)
-    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law) :
-    Call_dist.spec := by
+    (h_Get : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Get_dist.law (GF := GF) (hG := hG))
+    (h_List : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_List_dist.law (GF := GF) (hG := hG))
+    (h_Put : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Put_dist.law (GF := GF) (hG := hG))
+    (h_Delete : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Delete_dist.law (GF := GF) (hG := hG))
+    (h_Txn : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], client_Txn_dist.law (GF := GF) (hG := hG))
+    (h_Commit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions], txn_Commit_dist.law (GF := GF) (hG := hG)) :
+    Call_dist.spec (GF := GF) (hG := hG) := by
   intro _ π cl api eps V Γ hauth hAs x i Q hx hgen
   have wp_call := call_dist
     (callGet_dist hWT wp_ErrAny wp_vrOf h_Get)
