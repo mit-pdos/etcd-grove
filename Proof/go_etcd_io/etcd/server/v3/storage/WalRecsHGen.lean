@@ -25,13 +25,16 @@ open Iris Iris.BI
 section gen
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
+variable [lctx : GoLocalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The records at one generation are the records at any other.** -/
+/-- **The records at one generation are the records at any other** (both at the Go context `lctx`, which
+the program's instances are over). -/
 theorem walRecsH_gen (L L' : GooseLocalGS GF) (h : WalH GF) (σ : StorContents) (Hs : WalHist)
     (sized : Bool) :
-    walRecsH (hG := ⟨G, L⟩) h σ Hs sized ⊣⊢ walRecsH (hG := ⟨G, L'⟩) h σ Hs sized := by
+    walRecsH (hG := ⟨G, { L with goose_go_local_context := lctx }⟩) h σ Hs sized ⊣⊢
+      walRecsH (hG := ⟨G, { L' with goose_go_local_context := lctx }⟩) h σ Hs sized := by
   unfold walRecsH; exact .rfl
 
 end gen
