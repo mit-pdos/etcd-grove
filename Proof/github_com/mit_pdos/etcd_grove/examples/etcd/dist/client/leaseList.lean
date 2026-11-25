@@ -128,7 +128,7 @@ theorem leaseList.wp_proofGranted (svc : DistView → w64 → GrpcSvc GF)
     as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
   (try wp_auto)
   wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd G hlm) $$ [$Hlt HG] as %resp %err ⟨Hlt, Hres⟩
-  · iframe
+  · iframe #; iexact HG
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
