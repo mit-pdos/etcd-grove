@@ -144,6 +144,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
 # theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
 # and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
+# (#33 S4) the Antithesis harness (examples/raft/antithesis) and its checker (`check`), for the
+# closed theorem: no package variables, their facts `True` (`Base.lean`, `check/Base.lean`), so no
+# `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is for the adequacy proof
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.raft.antithesis')
 # (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
 # `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -4992,6 +4996,9 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
+# (#33 S4) the Antithesis harness, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.raft.antithesis'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

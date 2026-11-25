@@ -11,6 +11,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Proof.runtime.Threads
+public import Proof.log.NewModel
 public import Code.github_com.mit_pdos.etcd_grove.examples.raft.antithesis
 
 @[expose] public section
@@ -43,6 +44,21 @@ def antGF : BundledGFunctors := fun i =>
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
+
+/-! ## The bounds of the top-level statement -/
+
+/-- **The thread bound**: executions along which fewer than `2 ^ 31` threads are live at once.
+A cap the proof needs: the network's goroutines are counted in a `sync.WaitGroup`
+(`Cluster.send`, `isNetJoin`), whose counter is an `int32` in Go, so it panics past `2 ^ 31`;
+the harness's specs take `[ThreadBoundLe GF (2 ^ 31)]`, which the adequacy proves from this bound. -/
+def antThreadBound : Nat := 2 ^ 31
+
+/-- **The step bound**: executions of fewer than `2 ^ 61 - 3` steps, the most the proof allows.
+An execution of `n` steps gets `n + 1` time receipts (`receiptBound`), and the harness takes
+`antRunFits` (`receiptBound + 3 ≤ 2 ^ 61`): raft's `readyFits` (every index raft hands
+`MemoryStorage.Append` below `2 ^ 61`) and the checker's number bound (`Stream.Bounded`: every
+number of the stream below `2 ^ 61`, the binding's `numBound`). -/
+def antStepBound : Nat := 2 ^ 61 - 3
 
 section adequacy
 
