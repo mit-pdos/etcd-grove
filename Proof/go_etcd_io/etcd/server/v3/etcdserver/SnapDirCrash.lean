@@ -291,7 +291,7 @@ theorem fileAtCrashF_mono (L : GooseLocalGS GF) (p : GoString) (D : Data)
 theorem old_dir (L : GooseLocalGS GF) (R : Roots) (V' : Hist) (sd d b : GoString) (i : w64)
     (J j : Ino) (dq : DFrac) (hJ : lookupH R V' sd = some (.dir J)) (hb : NameOk b)
     (hp : snap.snapDBPath sd i = child d b) :
-    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗ osSharedInv (L := L) R -∗
+    ⊢ snapDirKeptF (hG := ⟨G, L⟩) R V' sd -∗
       osPathS (L := L) R d dq j -∗ ⌜d = sd ∧ b = snap.snapDBName i ∧ j = J⌝ := by
   rw [bootSnap.snapDBPath_child] at hp
   obtain ⟨rfl, rfl⟩ := child_inj (snap.snapDBName_nameOk i) hb hp
@@ -328,7 +328,7 @@ theorem step_file (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D
   icases Hf with ⟨%R0, %d, %b, %dq, %j, %qc, %h, %x, %hp, -, #Hsh, Hp, -, Hn, #Hnc, Hfh⟩
   obtain ⟨hpe, hb, -, -⟩ := hp
   imod crashRest_roots Q L L' Dl tt V' R R0 ⊤ (by simp) $$ HshR Hsh Hcr with ⟨%hR0, Hcr⟩
-  subst hR0
+  subst R0
   ihave %hdj := old_dir L R V' sd d b i J j dq hJ hb hpe $$ Hk Hp
   obtain ⟨hd, hbn, hjJ⟩ := hdj
   subst d b j
@@ -402,7 +402,7 @@ theorem step_free (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D
   icases Hf with ⟨%R0, %d, %b, %dq, %j, %qc, %h, %hp, -, #Hsh, Hp, -, Hn, #Hnc⟩
   obtain ⟨hpe, hb, -, -⟩ := hp
   imod crashRest_roots Q L L' Dl tt V' R R0 ⊤ (by simp) $$ HshR Hsh Hcr with ⟨%hR0, Hcr⟩
-  subst hR0
+  subst R0
   ihave %hdj := old_dir L R V' sd d b i J j dq hJ hb hpe $$ Hk Hp
   obtain ⟨hd, hbn, hjJ⟩ := hdj
   subst d b j
