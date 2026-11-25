@@ -3,8 +3,7 @@ The kit's configuration helpers (`kit.go`), shared by the orchestrator's and the
 the address lists (`CfgAddrs`, `ClientAddrs`, `Addrs`, `RecAddrs`: `portAddr`s), the configuration's
 Go value (`goConf`) and its functions `choose` (any valid configuration: `rand.Intn` is
 arbitrary, `RandHyp`), `encode` (`encConf`), `decode` (its inverse on valid configurations),
-`String` (the log's text), `log.Println` of a string (Perennial's model of `log.Println` does
-nothing), and the configuration's protocols from the shared facts (`confProto_of_shared`).
+`String` (the log's text), `log.Println` of a string (Perennial's `log.wp_Println`), and the configuration's protocols from the shared facts (`confProto_of_shared`).
 -/
 module
 
@@ -13,6 +12,7 @@ public import Dsverify.Proof.raxos.Proposer.Strings
 public import Dsverify.Proof.raxos.Hyp
 public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.log.Base
+public import Perennial.Proof.log.Link
 public import Perennial.Proof.strings.Base
 
 @[expose] public section
@@ -378,14 +378,16 @@ theorem wp_decode (c : QConf) (hc : c.ok) (b : GoSlice) :
       · exact Hif h
   done
 
-/-- `log.Println(s)` of a string (Perennial's model of `log.Println` does nothing; Go formats a
-string operand without calling any method). -/
+/-- `log.Println(s)` of a string (Perennial's `log.wp_Println`: a string argument is `fmt.ArgsWf`;
+Go formats a string operand without calling any method). -/
 theorem wp_log_Println [log.Assumptions] (s : GoString) (sl : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ sl ↦* [interface.mkOk go.string #s] }}
       (App (Val (@! Perennial.log.Println)) (Val #sl))
     {{ RET #(); True }} := by
-  wp_start as -
-  wp_end
+  wp_start as Hsl
+  wp_apply _root_.Perennial.log.wp_Println _ _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
+    $$ [$Hsl] as -
+  iapply HΦ; itrivial
 
 end wps
 
