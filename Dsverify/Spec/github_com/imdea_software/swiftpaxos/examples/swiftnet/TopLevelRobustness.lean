@@ -37,14 +37,15 @@ and the start's net protocol names `π`):
 * `l`, the libraries' representation choice (`SwiftNetPkgState`/`SwiftLibs`, `Base.lean`): gob's
   encoder/decoder predicates and gob's wire format (`GobFmt`, the field `gobFmt`), each argued true
   of the real library in its docstring;
-* the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): encoding/gob's,
-  os/signal's, google/uuid's (encoding/json's is the main tree's proved `wp_initialize'`, math/rand's
-  is Perennial's, net/rpc's and net/http's are `Net/`'s);
 * the library specs (`SwiftHyps`, `Hyps.lean`: gob, bufio's lab lemmas, uuid's `ID`;
   `math.rand.Hyps`, dsv-rabia's `math/rand` specs of `NewSource`/`New`/`Rand.Intn`; the
   package-level `Intn` is Perennial's proved spec), the environment (`os.signal.NoSignals usr1Sigs`,
   dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
   fail, uuid's `New`).
+
+The package initializers without a proof here (encoding/gob's, os/signal's, google/uuid's) are
+per-package trust-boundary axioms (their `wp_initialize'`, `etc/dsv/README.md`), not premises;
+encoding/json's is the main tree's proved `wp_initialize'`, math/rand's is Perennial's.
 
 net/rpc and net/http (the client over HTTP, the server, `DefaultServeMux`, the packages' first
 initializations) are `Net/`'s proved specs, over the interim trust-boundary axioms listed in
@@ -59,9 +60,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swift
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
-public import Dsverify.Proof.encoding.gob.Init
-public import Dsverify.Proof.os.signal.Init
-public import Dsverify.Proof.github_com.google.uuid.Init
 public import Dsverify.Proof.math.rand.Spec
 public import Dsverify.Proof.os.signal.Spec
 
@@ -99,9 +97,6 @@ def swiftpaxos_remote_robust.spec : Prop :=
     [server6_sem : cmd.server6.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (l : SwiftNetPkgState netDistGF),
-    (∀ G L, letI := heapAt G L; encoding.gob.InitHyp netDistGF) →
-    (∀ G L, letI := heapAt G L; os.signal.InitHyp netDistGF) →
-    (∀ G L, letI := heapAt G L; github_com.google.uuid.InitHyp netDistGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftHyps netDistGF) →
     (∀ G L, letI := heapAt G L; math.rand.Hyps netDistGF) →
     (∀ G L, letI := heapAt G L; os.signal.NoSignals usr1Sigs netDistGF) →

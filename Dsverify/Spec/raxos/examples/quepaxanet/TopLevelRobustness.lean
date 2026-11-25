@@ -14,9 +14,6 @@ this says porcupine accepts every history, under every fault the net extension a
 
 **Premises** (visible; each a hypothesis class of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepaxa.md, "Hypotheses"):
-* the initializers of the libraries with no translation or model here (`InitHyp`: yaml.v2, go-redis
-  v8, io/ioutil, encoding/gob, grpc, grpc/codes: each runs without panicking; math/rand's is
-  Perennial's proved `wp_initialize'`);
 * `qv : hyp.QpVocab remoteGF`, the abstract vocabulary of the gRPC and `sync.Map` hypotheses (any:
   the premises below are about it);
 * protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages (`hyp.PbHyp`), math/rand's `Seed`
@@ -27,6 +24,10 @@ machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepax
   `sync.Map` over `qv.map` (`hyp.sync.MapHyp`);
 * the translation's `Assumptions` of the twelve commands (with, by their instances, those of every
   package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
+The initializers of the libraries with no translation or model here (yaml.v2, go-redis v8, io/ioutil,
+encoding/gob, grpc, grpc/codes) are per-package trust-boundary axioms (their `wp_initialize'`,
+`etc/tcb-collections/dsv-quepaxa.txt`), not premises; math/rand's is Perennial's proved
+`wp_initialize'`.
 Proved in `Dsverify/Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean`.
 -/
 module
@@ -36,12 +37,6 @@ public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
 public import Dsverify.Proof.raxos.Hyp
-public import Dsverify.Proof.gopkg_in.yaml_v2.Init
-public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.io.ioutil.Init
-public import Dsverify.Proof.encoding.gob.Init
-public import Dsverify.Proof.google_golang_org.grpc.Init
-public import Dsverify.Proof.google_golang_org.grpc.codes.Init
 
 @[expose] public section
 
@@ -82,12 +77,6 @@ def quepaxa_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; gopkg_in.yaml_v2.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; io.ioutil.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; encoding.gob.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; google_golang_org.grpc.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; google_golang_org.grpc.codes.InitHyp remoteGF) →
     ∀ (qv : raxos.hyp.QpVocab remoteGF),
     (∀ G L, letI := heapAt G L; raxos.hyp.PbHyp remoteGF) →
     (∀ G L, letI := heapAt G L; raxos.hyp.RandHyp remoteGF) →

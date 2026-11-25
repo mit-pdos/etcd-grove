@@ -74,8 +74,8 @@ PKGS = [f'github_com.emirpasic.gods.{p}' for p in
 # mit-pdos/etcd-grove#24), no longer an `InitHyp`
 MAIN = ['bufio', 'encoding.hex', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
-# initializers that are hypotheses of the part's proofs (the `InitHyp` class of their hand-written
-# `Init.lean`; notes/dsv-swiftpaxos.md, "Hypotheses"): os/signal (dsv-rabia's), and the
+# initializers whose `wp_initialize'` is a trust-boundary axiom (their hand-written `Init.lean`;
+# dsv-fix3, #8 2026-11-25T02:20:53Z: until then the class `InitHyp`, a premise of the statement): os/signal (dsv-rabia's), and the
 # names-only encoding/gob, github.com/google/uuid. Their imports: all (the default). Not
 # net/rpc's and net/http's: `Net/`'s (external; their `wp_initialize'` and first-run
 # `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`), whose
@@ -151,8 +151,6 @@ first, through `swiftnet`'s (`BootLinked.lean`, `boot_swiftnet`), at the command
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]''',
         returns="returns the machine's boot resources.",
         q='bootRes',

@@ -54,9 +54,9 @@ PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
 # instances of `container.heap` and `path` the main tree's `Proof/<pkg>/PkgInit.lean` (L1,
 # 2026-11-24); `internal.bytealg` is Perennial's)
 MAIN = ['bufio', 'container.heap', 'path']
-# the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a hypothesis
-# (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem initializing
-# them takes as an instance. Not math/rand (math-rand-isinit, 2026-11-24): Perennial proves its
+# the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a
+# trust-boundary axiom (`Dsverify/Proof/<pkg>/Init.lean`; dsv-fix3, #8 2026-11-25T02:20:53Z: until
+# then the class `InitHyp`, a premise of the statement). Not math/rand (math-rand-isinit, 2026-11-24): Perennial proves its
 # `wp_initialize'` (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so
 # neither here nor in `MAIN`
 HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
@@ -241,25 +241,26 @@ porcupine accepts the history, this says porcupine accepts every history, under 
 net extension allows.
 
 **Premises** (visible, each a hypothesis class of the proof, at the bundle `remoteGF` the proof
-uses, for every machine's heap): the libraries translated with names only, whose initializers
-(`InitHyp`: zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`: each runs
-without panicking) and functions (`zerolog.Hyps`: a logger's five non-panicking levels on a
+uses, for every machine's heap): the libraries translated with names only, whose functions
+(`zerolog.Hyps`: a logger's five non-panicking levels on a
 non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
 `message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
 `NewSource`/`New`/`Rand.Intn` with exclusive tokens) have no model here,
 and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
 deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
 `log.Println` is proved from Perennial's trusted model of `log`; `math/rand`'s initializer and
-package-level `Intn` from Perennial's proofs. Proved in
+package-level `Intn` from Perennial's proofs. The initializers of those libraries (zerolog, gogo `proto`, `gogoproto`,
+go-redis v8, `os/signal`) are per-package trust-boundary axioms (their `wp_initialize'`,
+`etc/tcb-collections/dsv-rabia.txt`), not premises. Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.''',
-        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.rs.zerolog.Init', 'public import Dsverify.Proof.github_com.rs.zerolog.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init', 'public import Dsverify.Proof.os.signal.Init', 'public import Dsverify.Proof.os.signal.Spec', 'public import Dsverify.Proof.math.rand.Spec'],
+        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.rs.zerolog.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec', 'public import Dsverify.Proof.os.signal.Spec', 'public import Dsverify.Proof.math.rand.Spec'],
         opens=['open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         heap_at='spec',
         heap_at_doc='''A machine's heap over `remoteGF` at the deployment's Go local context `lctx` (the heaps the
 proof makes, one per machine): the global ghost state `G` and the local `L`, its local context
 `lctx`. The premises below hold of every such heap.''',
         addrs='rabiaKitAddrs', steps='2 ^ 63',
-        premises=[('hzi', 'github_com.rs.zerolog.InitHyp'), ('hpi', 'github_com.gogo.protobuf.proto.InitHyp'), ('hph', 'github_com.gogo.protobuf.proto.Hyps'), ('hgpi', 'github_com.gogo.protobuf.gogoproto.InitHyp'), ('hri', 'github_com.go_redis.redis.v8.InitHyp'), ('hsi', 'os.signal.InitHyp'), ('hz', 'github_com.rs.zerolog.Hyps'), ('hmr', 'math.rand.Hyps'), ('hns', 'os.signal.NoSignals os.signal.quietSigs')],
+        premises=[('hph', 'github_com.gogo.protobuf.proto.Hyps'), ('hz', 'github_com.rs.zerolog.Hyps'), ('hmr', 'math.rand.Hyps'), ('hns', 'os.signal.NoSignals os.signal.quietSigs')],
     ),
     defs=dict(
         doc='''The rabia kit's deployment (notes/dsv-rabia.md): its twelve machines' boot programs and addresses,

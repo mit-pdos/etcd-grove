@@ -14,16 +14,17 @@ porcupine accepts the history, this says porcupine accepts every history, under 
 net extension allows.
 
 **Premises** (visible, each a hypothesis class of the proof, at the bundle `remoteGF` the proof
-uses, for every machine's heap): the libraries translated with names only, whose initializers
-(`InitHyp`: zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`: each runs
-without panicking) and functions (`zerolog.Hyps`: a logger's five non-panicking levels on a
+uses, for every machine's heap): the libraries translated with names only, whose functions
+(`zerolog.Hyps`: a logger's five non-panicking levels on a
 non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
 `message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
 `NewSource`/`New`/`Rand.Intn` with exclusive tokens) have no model here,
 and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
 deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
 `log.Println` is proved from Perennial's trusted model of `log`; `math/rand`'s initializer and
-package-level `Intn` from Perennial's proofs. Proved in
+package-level `Intn` from Perennial's proofs. The initializers of those libraries (zerolog, gogo `proto`, `gogoproto`,
+go-redis v8, `os/signal`) are per-package trust-boundary axioms (their `wp_initialize'`,
+`etc/tcb-collections/dsv-rabia.txt`), not premises. Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
 -/
 module
@@ -32,13 +33,8 @@ public import Dsverify.Proof.rabia.examples.rabianet.TopLevelDefs
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
-public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.rs.zerolog.Spec
-public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec
-public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
-public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.os.signal.Spec
 public import Dsverify.Proof.math.rand.Spec
 
@@ -81,12 +77,7 @@ def rabia_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; github_com.rs.zerolog.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.Hyps remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.gogoproto.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; os.signal.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; os.signal.NoSignals os.signal.quietSigs remoteGF) →
