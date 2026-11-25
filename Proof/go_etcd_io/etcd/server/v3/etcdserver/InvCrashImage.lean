@@ -22,12 +22,15 @@ leaves. A crash leaves a different one, in four ways (each a row of `notes/etcd-
   name: the old generation's `MemoryStorage` locations died with its heap).
 
 The rest is `srvDiskImageAt`'s: the backend's image of a committed prefix, the membership at `i`,
-the files (`srvFiles`: the closed WAL's files and the bbolt file, now made by the crash lemma from the
+the files (`srvFilesC`, `SrvCrash.lean`: since P8, 2026-11-25, the WAL's files as a crash leaves them,
+`walFilesC`, `srvFiles` without the WAL's synced mark, which a crash does not raise; the graceful
+`srvFiles` gives it, `srvFiles_srvFilesC`; the bbolt file; made by the crash lemma from the
 file extension's crash rest), and the snapshot directory's invariant at the new generation.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvCrash
 
 @[expose] public section
 
@@ -71,7 +74,7 @@ def srvCrashImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     wal.crashImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
-    srvFiles dd id σ D ∗
+    srvFilesC dd id σ D ∗
     (∃ (γd γm : GName) (c : Nat),
       ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
       inv snapDirN (snapDirInv (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
@@ -124,7 +127,7 @@ def bootstrapCrashContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
         (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
         envVerifyOff ∗
         bootCfgRO cfg U ∗ memStorRegAuth M ∗
-        srvFiles cfg.DataDir' id σ D }}
+        srvFilesC cfg.DataDir' id σ D }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }})

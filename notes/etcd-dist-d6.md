@@ -1011,3 +1011,25 @@ real WAL) is the natural report if the lead wants one.
   (`goose-lean-fmt1c-crashfixes`; its WAL identical to `2bd3048d7`'s): no WAL proof changes; `bootstrap`,
   `applySnapshot`, `OpenSnapshotBackend` bodies change (integration round 2). W1: the crash facts rest on it
   alone; no `Save` frame over stale bytes (`notes/wal-p6-handoff.md` START HERE).
+
+
+### P8 progress (T5, branch `etcd-safe-p8`; `notes/wal-p8-handoff.md`)
+
+- 2026-11-25 (session 1): the T5 lemmas are built. `storage/WalCrashRead.lean` proves I1-I4 of any read
+  `walRead I` from `walIdxLe (2^61-1) I` and `walCommitLe I`, and that both conditions pass to prefixes.
+  `storage/wal/CrashS.lean` adds the crash view with whole operations (`walCrashWalS`, `walImgS`) and its keep
+  lemma, plus **`walInv_crashS.law`** (statement only). `storage/WalRecsCrash.lean` adds `walFilesC` and
+  `walFilesC_crash`. `etcdserver/SrvCrash.lean` adds `walReadFacts_of_read`/`_of_take`, `srvFilesC` and
+  `srvFiles_srvFilesC`. No axiom and no `sorry`.
+  Three proposals to T2/T4 are in the handoff: the crash image takes `srvFilesC`, because a crash keeps the
+  abstract synced mark; T2's crash callback returns `j` and a wand from `walRead … = some σ`; and T2's
+  invariant keeps `walIdxLe`/`walCommitLeFrom`.
+  One P6 change discharges the law: `crashTo_start`/`CrashGood`/`walCrash_pure` return `walImgS`, which
+  they already construct.
+- 2026-11-25 (session 2): the coordinator's decisions (1)-(3) are done as commits on `etcd-safe-p8`. (1)
+  `8244ae66c1`+`1dce32d84a`: `walCrashWal` is over `walStCrashS`, so `walInv_crash` gives whole-operation
+  images and `walInv_crashS.law` is gone (pushed alone first, for P6b). (2) `cb9d0ce180`: `srvFilesC` in
+  `srvCrashImageAt`, `bootstrapCrashContract` and C-I2 (copies of `etcd-safe-crash`'s files). (3)
+  `64aa0b94eb`: T2's crash law over `walRecsH_crash`, with `HistReadOk` (per-prefix `walCommitLe`) in
+  `rnDurBodyK` and `walReadFacts σ` in the post (copies of `etcd-safe-d6t2`'s files). All of it builds, with
+  no axiom and no `sorry`. Left for T2: maintain `HistReadOk` in its steps and at allocation.

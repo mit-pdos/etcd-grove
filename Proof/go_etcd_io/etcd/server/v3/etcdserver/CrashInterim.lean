@@ -123,7 +123,9 @@ branch). Retired by #34's
 `walReadFacts σ` of a crash image, and the claim that `ReadAll` reads back exactly `σ`, rest on the WAL's
 `W1` (`etcdFsSem`'s crash premise `etcdCQ`; target: no CRC-32C collision on the `Data` of a frame whose bytes
 under it were zero, `nonissues/etcd-wal-record-type-outside-crc.md`), through `walInv_crash` (T5); the fixed
-`Save` writes no frame over stale bytes (`notes/etcd-dist-d6.md`, "The WAL crash facts rest on `W1`"). -/
+`Save` writes no frame over stale bytes (`notes/etcd-dist-d6.md`, "The WAL crash facts rest on `W1`"). (P8, 2026-11-25) The
+contract's files are `srvFilesC` (the WAL's files without their synced mark, what a crash leaves:
+`SrvCrash.lean`); `bootstrap`'s `Open` and `ReadAll` take no synced mark, and write-mode `ReadAll` syncs. -/
 abbrev bootstrapCrashContract.law : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) (ps : List w64),
