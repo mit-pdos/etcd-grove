@@ -53,3 +53,17 @@ sync or a `Truncate` completed or in flight); still to be defined, checked satis
 configuration-C example before the owner packet. `dbOpts`: acceptable if produced from `isBolt`'s read-only
 field facts. Open: `fileHoldsM`'s receipt of the in-flight txid (the record should carry it). These last fixes
 are not re-reviewed.
+
+## Fourth review (2026-11-25, a fourth fresh agent, the inode-based set at `f1c92c5af1`)
+
+**No refutation**: no panicking program, no axiom false in a state a proof can use, no `False`. `_new`,
+`_announce`/`_half`, `_close`, `dbCrash` survive (duplicate records blocked by `bPath`; inode reuse impossible,
+`nextIno` grows; grow syncs before writing past the old size; the receipt survives: receipts are global and each
+commit costs a counted step). One gap in how the laws are stated: a **stale announcement** (announce `S`, `Put`
+more, commit `S'`, the commit landing through `_close`) leaves a window where the disk holds `S'` and the record
+claims `{Dl, Dn, S}`. **Fixed** (not re-reviewed): `_close` now needs `pd = none`, and `dbCrashKeep_clear` drops an
+announcement only with a fresh write transaction at `Dn`. `BoltCrashWhole`: **suspect as stated** (opaque; false
+of Linux for files growing by appends, e.g. a received snapshot before its rename; a meta page split across two
+`pwrite`s): its docstring now restricts it to an open database with no extending write since its last sync and
+says the size part belongs in the file extension's `CrashFile`; to be written out for the packet. `dbOpts`:
+acceptable shape; produce it in `Open`'s postcondition behind γ's ghost names.

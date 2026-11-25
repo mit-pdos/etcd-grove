@@ -363,3 +363,10 @@ extension's crash facts). `BoltCrashWhole` stays opaque, with the weak forms in 
 defined for the owner packet). Open: the in-flight txid's receipt. Final C-I1: `dbCrashKeep_new`,
 `dbCrashKeep_announce`, `dbCrashKeep_half`, `dbCrashKeep_close`, `dbCrash`; opaque `dbOpts`, `dbCrashKeep`,
 `BoltCrashWhole`. `notes/axiom-review/c-i1-bbolt-crash.md`.
+
+### Fourth review of C-I1 (2026-11-25)
+
+No refutation. A stale-announcement gap fixed (`_close` only with nothing announced; `dbCrashKeep_clear` with a
+fresh write transaction); `BoltCrashWhole` restricted in its docstring (open database, no extending write since
+the last sync; the size part to move into the file extension); `dbOpts`' producer: `Open`'s postcondition. The
+last fix is not re-reviewed. Final C-I1: `dbCrashKeep_new`, `_announce`, `_half`, `_clear`, `_close`, `dbCrash`.

@@ -83,7 +83,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors}
 /-- (C-I1) **The database `γ` syncs** (persistent by its form): `γ` was opened with `NoSync = false` and
 `NoGrowSync = false` (bbolt's fields `db.NoSync`, `db.NoGrowSync`, fixed at `Open`, `Inv/Bolt.lean`; etcd's
 backend: `UnsafeNoFsync = false`, `backend.go:227-228`; never defrag's temporary database, opened with
-`NoSync = true`). Producer pending (T7: from the persistent field facts). -/
+`NoSync = true`). Producer pending: `Open`'s postcondition behind γ's ghost names (not an entailment from
+persistent field cells, which a fresh heap could satisfy), with `UnsafeNoFsync = false` from the Go
+configuration; until then every result over these laws is vacuous. -/
 opaque dbOptsRaw [hG : HeapGS hlc GF] (γ : DBNames) : IProp GF := iprop(False)
 
 /-- (C-I1) `dbOptsRaw`, persistent. -/
@@ -97,7 +99,11 @@ target of a `Truncate` completed or in flight (the file extension's `CrashFile` 
 `DB.grow`'s `Truncate`); and a meta page (bbolt's pages 0 and 1) that validates (magic, version, FNV-64
 checksum) equals, on its checksummed bytes, the contents of one write (old or new): torn meta pages happen
 on Linux and stay allowed; only a torn mixture that validates is excluded (a probabilistic assumption on
-FNV-64). Reviews 2026-11-24. -/
+FNV-64). Only while the file is an open bbolt database with no extending write since its last sync (a
+received snapshot file before its rename grows by appends: not covered); the meta clause then reads "equals
+the page's page-cache contents at some moment since the last sync" (a meta page split across two `pwrite`s).
+The size part is a kernel fact that belongs in the file extension's `CrashFile` (an extending `ftruncate`
+crashes to the old or the target size), leaving here only the FNV-64 clause. Reviews 2026-11-24/25. -/
 opaque BoltCrashWhole : (Fs.Ino → Prop) → Fs.OsState → Fs.OsState → Prop := fun _ _ _ => False
 
 /-- (C-I1) **The crash record of the open database `γ`, whose file is at `path`** (exclusive): its
@@ -147,11 +153,20 @@ axiom dbCrashKeep_half [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : D
       (dbHalf γ Dn ={E}=∗ ∃ S, dbHalf γ S ∗ ⌜S = Dn ∨ pd = some S⌝ ∗ R S) ={E}=∗
       ∃ S, dbCrashKeep γ path i0 (if S = Dn then Dl else Dn) S (if S = Dn then pd else none) ∗ R S
 
-/-- (C-I1, trusted) **The record closed**: the claim on the name and the half back (to close the
-database, or to rename another file onto `path`). -/
+/-- (C-I1, trusted) **An announcement cleared**: holding a fresh write transaction at the committed `Dn`
+(no change made, so no commit in flight), the announcement is dropped. -/
+axiom dbCrashKeep_clear [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
+    (path : GoString) (i0 : Fs.Ino) (Dl Dn : Data) (pd : Option Data) (tx : Loc) :
+    ⊢ dbCrashKeep γ path i0 Dl Dn pd -∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn) ==∗
+      dbCrashKeep γ path i0 Dl Dn none ∗ txLive (GF := GF) tx γ 1 (bbolt.TxView.wr Dn)
+
+/-- (C-I1, trusted) **The record closed**, with nothing announced (review 2026-11-25: closing with a stale
+announcement would let a commit of an unannounced change land while the record claimed the announced
+one): the claim on the name and the half back (to close the database, or to rename another file onto
+`path`). -/
 axiom dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames) (path : GoString)
-    (i0 : Fs.Ino) (Dl Dn : Data) (pd : Option Data) :
-    dbCrashKeep γ path i0 Dl Dn pd ⊢ bPath (GF := GF) γ path ∗ dbHalf γ Dn
+    (i0 : Fs.Ino) (Dl Dn : Data) :
+    dbCrashKeep γ path i0 Dl Dn none ⊢ bPath (GF := GF) γ path ∗ dbHalf γ Dn
 
 /-- (C-I1, trusted) **bbolt's file after a power loss**: under the crash premise `BoltCrashWhole` for the
 database's inode `i0`, from the old generation's record `(i0, Dl, Dn, pd)`, its `crashed`, and the file
