@@ -69,8 +69,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   current records `walRead Hs`, with `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's
   certificate. (b) touches `storage/WalRecsH.lean`, `RnNewStorage`'s contract proofs and every step law of
   `rnDurInvK`.
-- **Decision.** Pending (coordinator-E / the etcd_safe lead). P5 stopped before editing: the approved
-  restatement alone does not discharge P5-RESTART, and (a) changes the restart hub's statements beyond it.
+- **Decision.** **(b) approved, (a) approved through the restart slot** (coordinator-E, #50 2026-11-25
+  15:33:36Z): (b) first, the WAL contract over the history (`walRecsH` without the fold row; `WalSaveOk
+  (walRead Hs) es`; `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's certificate); then
+  (a), `wal.restartOk` gaining the cluster and `sd` and holding `walHistCerts cl sd Hs`, **not** through
+  the stop or crash images (`srvCrashImageAt` is being restated by T10; `raftNode.stop`'s post feeds T4).
+  Applied so far (session 3): (b)'s first piece, `walHistH` (`storage/WalRecsH.lean`: the history without
+  the fold, its `Save`/`SaveSnap` updates, crash and synced-mark lemmas, `walRecsH_iff_hist`), additive.
+  **(a) through the restart slot cannot be supplied** (session 3, found while scoping, no statement
+  changed): `wal.restartOk` is produced by no proof but by the interim axiom `bootstrapCrashContract.law`
+  (C-I2, `CrashInterim.lean`; and by `bootstrapRestartContract` on the graceful path), inside `bootOkR`,
+  from its pre `srvFilesC cfg.DataDir' id σ D`, whose `walFilesC` hides the files' history (`∃ i d`,
+  `walRead (walSrvHist d.H) = some σ`). T7's `memberGen_crash_law_holds` produces the image, not the
+  slot. Certificates put in `wal.restartOk` without a source in the contract's pre would be new trusted
+  text (`bootstrap` makes no `snapshotValid`). What it needs: (1) `walFilesC` (or a `walFilesCH a id cid σ
+  Hs`) naming the files' history `Hs = walSrvHist d.H`; (2) the crash image (`srvCrashImageAt`, its
+  `srvFilesC` row) holding `walHistCerts γ.cl sd Hs` for that history, with `sd` the snapshot directory's
+  durable indices (T6's), given by T7 from `rnDurK_crash.law` extended to give `walHistCerts γn.cl νk.sd
+  (Hs.take j)`; (3) both contracts' posts (`wal.restartOk … cl sd`) stating the opened WAL's history is the
+  files' `Hs` and returning the certificates; (4) on the graceful path, the stop image (`wal.stopImage`,
+  `raftNode.stop`'s post, `rnDurK_take.law`) the same, or `bootstrapRestartContract`'s restart slot
+  keeping the old certificate-free form. Waiting for the lead's choice (P5 stopped on (a)).
 
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
@@ -7031,7 +7050,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** Approved by coordinator-E on #50 (2026-11-25 07:04Z), for the etcd_safe branches, listed as
   its own line in the final packet. (2026-11-25 15:22Z, #50 item 1: `wal.restartOk` and the post-restart
   contract to be restated over the reader's fold `walRead Hs`, approved; not yet applied: see the entry
-  "`wal.restartOk` over the reader's fold -- not enough for P5-RESTART" above.)
+  "`wal.restartOk` over the reader's fold -- not enough for P5-RESTART" above.) (2026-11-25 15:33Z, #50: that entry's
+  proposals (b), the contract over the history, and (a), the certificates through the restart slot,
+  approved; (a) found not suppliable through the slot alone: that entry's Decision.)
 ## 2026-11-25: `fileutil.TouchDirAll.spec`'s post did not say the new directory's names are committed (P7, D6-T6)
 
 - **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).

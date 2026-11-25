@@ -2,7 +2,7 @@
 
 ## START HERE
 
-- **Date**: 2026-11-25 (session 1). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
+- **Date**: 2026-11-25 (session 1; session 3 the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
 - **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7`, then its P7 update `5a1c41d945` merged in
   (`fd7630f9da`) (posted green on #50 07:18Z; same Perennial pin
   `fce59af75`), with `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4` merged (`97ef57a342`: P8's
@@ -10,6 +10,26 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-25, session 3, after #50 15:33Z: (b) then (a) approved, (a) through the restart slot):
+  **(a) stopped, (b) begun.** (a) cannot go through `wal.restartOk` alone: the slot is the post of the
+  interim axiom `bootstrapCrashContract.law` (C-I2) / `bootstrapRestartContract`, from `srvFilesC`, whose
+  `walFilesC` hides the history; T7's producer makes the image, not the slot. Fields needed: ledger entry
+  "`wal.restartOk` over the reader's fold", Decision. Waiting for the lead. P5-RESTART stays (`sorry` in
+  `rnRestartAllocK_law_holds`; not in `etc/tcb-baseline.txt`, whose `sorry` lines it lists none of: whether a root reaches it needs `etc/tcb-report.py --check` on a full build, not run). **(b) done so far**: `walHistH h Hs
+  sized` (`storage/WalRecsH.lean`, additive: `walRecsH` without the fold row; `walRecsH_iff_hist`,
+  `walRecs_iff_hist`, `walHistH_{synced0,crash,saveAU,saveSnapAU}`). **(b) next, in order**: (1) the
+  contract (`isWalStorage`, `RnNewStorage.lean`'s `walSave_law`/`walSaveSnap_law`, `walSaveH.law`/
+  `walSaveSnapH.law`) over `walHistH` with the AU's pure premise `∃ σ, walRead Hs = some σ ∧ WalSaveOk σ es`
+  (or none: layer 1 needs none, `walHistH_saveAU`); (2) `rnDurBodyK`: `walHistH h Hs true` with
+  `walRead Hs = some σ` (σ the reader's records; `recsOf vk.1 σ` only for the pending received snapshot),
+  `HistOkK` without `walCommitLeFrom walFresh Hs`; (3) a K form of `ViewOk`/`ImgOk` whose base may exceed
+  the handed log when a certified snapshot record (`walHistCerts`, in the body) gives a committed log of
+  length `m` (`snapshotValid` → `isCommittedLogLb` at `m`; find the lemma `walSnapCert` users take); (4) the
+  step laws' proofs (`InvWalCrashPure`, `InvWalCrashSteps`, `InvWalCrashLaws`) and `wal.restartOk`'s body
+  (`walHistH`, `walRead Hs = some σ`; `wal.restartOk_startK`, `rnRestartWal`); `raftNode__start`'s call
+  sites if the laws' AU shapes change; (5) delete `walRecsH` once unused. Then (a) as the lead decides;
+  then merge `etcd-safe-p6b` @ `9615f76264` (P6b done: `wal.Discard.spec`, `walDiskAt_crash_blank_keep`;
+  `storage/wal/` caution lifted) and use them in bootstrap's contract.
 - **State** (2026-11-25, session 2, after #50 15:22Z item 1): **stopped, no Lean changed.** The approved
   restatement (`wal.restartOk` and the post-restart contract over `walRead Hs`) does not discharge P5-RESTART:
   (1) the `sorry` is `walHistCerts` of the restart's history, and a snapshot record dropped at the restart
