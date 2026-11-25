@@ -62,7 +62,8 @@ theorem does not cover forwarding (mit-pdos/etcd-grove#44).
 includes `antithesis.check.Assumptions`) and `log.NewModel` (the model of `log.New`, which raft's
 package initializer calls), both trusted.
 
-**Extensions.** None (`trivialExts`): the program touches no file and no network.
+**Extensions.** `trivialExts` (`[idIssueExt]`, the request ids' issue record, whose one operation
+the program never runs), in any initial state: the program touches no file and no network.
 
 **Bounds.** `antStepBound` is the most the proof allows: the run's time receipts bound the indices
 raft hands its storage (raft's `readyFits`) and the stream's numbers (`check`'s `numBound`, `2 ^ 61`).
