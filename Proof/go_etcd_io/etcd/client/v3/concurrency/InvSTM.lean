@@ -572,13 +572,15 @@ gets the delete; `commit()`: `nil` (failed) or a response with `stmOutcome`, lea
 stale; `reset()`: from a stale state, a fresh attempt. A client error aborts `Get`, `Rev` and
 `commit` (`stmRet`: the panic `runSTM` recovers). Each of `Get`, `Put`, `Rev`, `Del` takes a call
 that fits the attempt (`STMCallOk`: keys and values within `stmKeyMax`, the count within
-`stmCallMax`) and advances the count by the keys it names. -/
+`stmCallMax`) and advances the count by the keys it names. `Get`, `Rev` and `commit` call the
+connection: they take a level-0 thread token and give it back (decision 1b, 2026-11-24). -/
 def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
   iprop(
     (□ ∀ (st : STMSt) (sl : GoSlice) (ks : List GoString),
-      {{ stmState lvl pfx p st ∗ sl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗ ⌜STMCallOk st ks []⌝ }}
+      {{ levelTok 0 ∗ stmState lvl pfx p st ∗ sl ↦*□ ks ∗ ⌜∀ k ∈ ks, pfx <+: k⌝ ∗
+          ⌜STMCallOk st ks []⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Get" (stmIface lvl p).v)) (Val #sl))
-      {{ (r : val), RET r; stmRet r fun v : GoString => iprop(
+      {{ (r : val), RET r; levelTok 0 ∗ stmRet r fun v : GoString => iprop(
           ∃ st', stmState lvl pfx p st' ∗ ⌜GetPost ks st v st'⌝) }}) ∗
     (□ ∀ (st : STMSt) (k v : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)),
       {{ stmState lvl pfx p st ∗ optsAt sl gs ∗ ⌜pfx <+: k ∧ PutOptsOk k v gs⌝ ∗
@@ -589,9 +591,9 @@ def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
           { st with writes := GMap.insert k (.put v (opPutModel k v gs).leaseID) st.writes,
                     n := st.n + 1 } }}) ∗
     (□ ∀ (st : STMSt) (k : GoString),
-      {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ ∗ ⌜STMCallOk st [k] []⌝ }}
+      {{ levelTok 0 ∗ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ ∗ ⌜STMCallOk st [k] []⌝ }}
         (App (Val #(methods (stmIface lvl p).ty go!"Rev" (stmIface lvl p).v)) (Val #k))
-      {{ (r : val), RET r; stmRet r fun rev : w64 => iprop(
+      {{ (r : val), RET r; levelTok 0 ∗ stmRet r fun rev : w64 => iprop(
           ∃ st', stmState lvl pfx p st' ∗ ⌜RevPost k st rev st'⌝) }}) ∗
     (□ ∀ (st : STMSt) (k : GoString),
       {{ stmState lvl pfx p st ∗ ⌜pfx <+: k⌝ ∗ ⌜STMCallOk st [k] []⌝ }}
@@ -599,9 +601,9 @@ def stmMethods (lvl : w64) (pfx : GoString) (p : Loc) : IProp GF :=
       {{ RET #(); stmState lvl pfx p
           { st with writes := GMap.insert k .del st.writes, n := st.n + 1 } }}) ∗
     (□ ∀ (st : STMSt) (lo : w64),
-      {{ stmState lvl pfx p st ∗ etcdReached lo }}
+      {{ levelTok 0 ∗ stmState lvl pfx p st ∗ etcdReached lo }}
         (App (Val #(methods (stmIface lvl p).ty go!"commit" (stmIface lvl p).v)) (Val #()))
-      {{ (r : val), RET r; stmRet r fun resp : Loc => iprop(stmStale lvl pfx p ∗
+      {{ (r : val), RET r; levelTok 0 ∗ stmRet r fun resp : Loc => iprop(stmStale lvl pfx p ∗
           (⌜resp = null⌝ ∨ ⌜resp ≠ null⌝ ∗ stmOutcome pfx lvl lo st resp)) }}) ∗
     (□ {{ stmStale lvl pfx p }}
         (App (Val #(methods (stmIface lvl p).ty go!"reset" (stmIface lvl p).v)) (Val #()))
@@ -616,12 +618,13 @@ attempt): on any STM with the methods' triples, from any state, it returns an er
 some state, and `nil` means the attempt's reads and writes satisfy `Q`; or it aborts, by a
 method's abort (`stmRet`), which it does not recover. It may only use the STM through `Get`,
 `Put`, `Rev`, `Del` (it has no triple of `commit`/`reset`). It starts from an attempt whose count is
-at most `P` (`NewSTM`'s `WithPrefetch` keys are fetched in the attempt before the closure runs). -/
+at most `P` (`NewSTM`'s `WithPrefetch` keys are fetched in the attempt before the closure runs).
+It is lent the caller's level-0 thread token, for the methods (decision 1b, 2026-11-24). -/
 def applySpec (pfx : GoString) (P : Nat) (apply : GoFunc) (Q : STMSt → Prop) : IProp GF :=
   iprop(□ ∀ (lvl : w64) (p : Loc) (st : STMSt), stmMethods lvl pfx p -∗
-    {{ stmState lvl pfx p st ∗ ⌜st.n ≤ P⌝ }}
+    {{ levelTok 0 ∗ stmState lvl pfx p st ∗ ⌜st.n ≤ P⌝ }}
       (App (Val #apply) (Val #(GoInterface.ok (stmIface lvl p))))
-    {{ (r : val), RET r; stmRet r fun err : GoInterface => iprop(
+    {{ (r : val), RET r; levelTok 0 ∗ stmRet r fun err : GoInterface => iprop(
         ∃ st', stmState lvl pfx p st' ∗ ⌜err = GoInterface.nil → Q st'⌝) }})
 
 instance applySpec_persistent (pfx : GoString) (P : Nat) (apply : GoFunc) (Q : STMSt → Prop) :

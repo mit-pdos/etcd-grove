@@ -93,7 +93,7 @@ theorem boot_netrpc :
   wp_apply (net.rpc.wp_init_first_http net.rpc.NewServer.wp_owned (gOff bootSR G) G
       (gOff_off _ _ _ (by decide)) (gOff_off _ _ _ (by decide)) (wf_net_rpc hk)
       (fun p h1 h2 => (gOff_ne _ _ _ (by simp [bootSR, h1, h2])).symm)) $$ [Hown]
-    as ⟨Hown, #Hrp, Hres, #Hht, Hmux⟩
+    as ⟨Hown, #Hrp, Hres, #Hht, Hmux, -⟩
   · iframe Hown; ipureintro; exact Threads30.le
   try wp_auto
   wp_apply github_com.despreston.go_craq.transport.wp_initialize' _ (wf_github_com_despreston_go_craq_transport hk) $$ Hown as ⟨Hown, #Hc0⟩

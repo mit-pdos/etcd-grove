@@ -130,8 +130,10 @@ net/rpc's, the machine's first run of net/rpc and net/http). The master and the 
 `DefaultServer`'s owned, empty registry (`defaultSrvFresh`, `Register.spec_fresh`) and run `http.Serve`
 with the main thread's token (`robust_of_distProtoLisRBTT`, `wp_bootRT`). The thread bound is `2^30`
 (net/http's first initialization; Upamanyu approved `2^31 → 2^30` on #8, 2026-11-25). `#print axioms`:
-Net's interim `net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'`,
-`net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`, besides Lean's three.
+Net's interim `net.http.wp_init_first`, `net.http.wp_initialize'`, `net.rpc.wp_initialize'` and the
+interim context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`, besides
+Lean's three (`Handle` and `Serve` on an rpc listener proved by S5, lean `676aede0a1`; `Serve` takes
+net/http's server variables `httpSrvEnv`, which `dialEnv` now holds).
 
 ## Step bound 2^63 (2026-11-24, dsv-steps63)
 

@@ -51,15 +51,18 @@ variable [package_sem : _root_.Perennial.errors.Assumptions]
 /-- `errors.Is(err, target)` with `err` an error grpc's `status` accepts (`statusErrOk`: a leaf
 error whose `Is` method, if any, returns) and `target` an `rpctypes.EtcdError` value, a pointer
 error or (2026-10-18, item 1, the client lease: `canceledByCaller` compares with
-`context.DeadlineExceeded`, a `deadlineExceededError{}`) a non-nil error whose `==` does not panic
-(`SafeMapKey`: Go's `Is` compares `err == target` first, which for a comparable target compares the
-dynamic types, then the values of an equal type, the target's), returns some boolean. -/
+`context.DeadlineExceeded`) `deadlineExceededError{}` (Go's `Is` compares `err == target` first, which
+for this comparable target compares the dynamic types, then the values of an equal type, a field-less
+struct), returns some boolean. (ctx-leaf-fix, 2026-11-25) The last case was "a non-nil `SafeMapKey`",
+which since Perennial's P8c only `nil` and pointers are (so it added nothing to the pointer case):
+`notes/axiom-review/ctx-readerrs-vacuity.md`. -/
 abbrev errors.IsStatusErr.spec : Prop :=
   ∀ (err target : GoInterface) (dm : _root_.Option (GoString × GoString)),
   ((∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       target = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∨
     (∃ tii, target = GoInterface.ok tii ∧ _root_.Perennial.errors.IsPointerError tii) ∨
-    ∃ tii, target = GoInterface.ok tii ∧ SafeMapKey (GF := GF) go.error target) →
+    target = interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
+      #(zero_val _root_.Perennial.context.deadlineExceededError)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err ∗ isDescs err target dm }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
   {{ (b : Bool), RET #b; ⌜b = true → (∀ m m', dm = some (m, m') → err = target ∨ m = m') ∧

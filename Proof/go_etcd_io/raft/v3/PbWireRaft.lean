@@ -117,6 +117,62 @@ def cc2DecodeRaw (bs : List w8) : Option (w32 × List (w32 × w64) × List w8) :
 theorem cc2DecodeRaw_nil : cc2DecodeRaw [] = some (0, [], []) := by
   simp [cc2DecodeRaw, decode_nil, allLen, lastVarint, lastLen]
 
+/-! ## `ConfChange` (2026-11-24, the trace check's bootstrap log)
+
+The legacy conf change, `raft.proto`'s `ConfChange` (proto2): `id` 1 (`uint64`), `type` 2 (enum),
+`node_id` 3 (`uint64`), `context` 4 (`bytes`), each `optional`; declared in the order `type`,
+`node_id`, `context`, `id`, but protobuf-go writes the fields in field-number order. `ccDecodeV1`
+(`CCModel.lean`) is `cc1DecodeRaw` at the model record (until 2026-11-24 opaque); the vectors module
+`Proof/google_golang_org/protobuf/proto/ConfChangeWireVectors.lean` checks both functions below
+against protobuf-go. -/
+
+/-- A `ConfChange`'s records, in field-number order (`id`, `type`, `node_id`, `context`), each iff
+present. -/
+def cc1Recs (id : Option w64) (type : Option w32) (nodeId : Option w64) (ctx : Option (List w8)) :
+    List (Nat × FVal) :=
+  optF 1 (fun v => .varint v.toNat) id ++ optF 2 (fun t => .varint (enumVarint t)) type ++
+    optF 3 (fun v => .varint v.toNat) nodeId ++ optF 4 .len ctx
+
+/-- **`proto.Marshal` of a `ConfChange`** of these fields' presence and values and these unknown
+fields. -/
+def cc1EncRaw (id : Option w64) (type : Option w32) (nodeId : Option w64) (ctx : Option (List w8))
+    (uf : List w8) : List w8 :=
+  encode (cc1Recs id type nodeId ctx) uf
+
+/-- **`proto.Unmarshal` into a `ConfChange`**: what `GetId()`, `GetType()`, `GetNodeId()`,
+`GetContext()` then return, or `none` where it returns an error. -/
+def cc1DecodeRaw (bs : List w8) : Option (w64 × w32 × w64 × List w8) :=
+  (decode ccSchema bs).map fun p =>
+    (BitVec.ofNat 64 ((lastVarint p.1 1).getD 0), BitVec.ofNat 32 ((lastVarint p.1 2).getD 0),
+      BitVec.ofNat 64 ((lastVarint p.1 3).getD 0), (lastLen p.1 4).getD [])
+
+theorem cc1Recs_ok (id : Option w64) (type : Option w32) (nodeId : Option w64)
+    (ctx : Option (List w8)) (hc : ∀ c, ctx = some c → c.length < 2 ^ 64) :
+    ∀ p ∈ cc1Recs id type nodeId ctx, RecOk ccSchema p := by
+  intro p hp
+  simp only [cc1Recs, optF, List.mem_append] at hp
+  rcases hp with ((hp | hp) | hp) | hp
+  · cases id <;> simp at hp; subst hp
+    exact ⟨by simp, by simp, rfl, BitVec.isLt _⟩
+  · cases type <;> simp at hp; subst hp
+    exact ⟨by simp, by simp, rfl, enumVarint_lt _⟩
+  · cases nodeId <;> simp at hp; subst hp
+    exact ⟨by simp, by simp, rfl, BitVec.isLt _⟩
+  · cases h : ctx <;> simp [h] at hp; subst hp
+    exact ⟨by simp, by simp, rfl, hc _ h⟩
+
+/-- **The `ConfChange` round trip**: `Unmarshal(Marshal(cc))` reads the fields as set (an absent
+one as zero, an absent context as the empty bytes), for unknown fields as the decoder leaves them. -/
+theorem cc1DecodeRaw_enc (id : Option w64) (type : Option w32) (nodeId : Option w64)
+    (ctx : Option (List w8)) (uf : List w8) (hu : ufWire ccSchema uf)
+    (hc : ∀ c, ctx = some c → c.length < 2 ^ 64) :
+    cc1DecodeRaw (cc1EncRaw id type nodeId ctx uf) =
+      some (id.getD 0, type.getD 0, nodeId.getD 0, ctx.getD []) := by
+  unfold cc1DecodeRaw cc1EncRaw
+  rw [decode_encode (cc1Recs_ok id type nodeId ctx hc) hu]
+  cases id <;> cases type <;> cases nodeId <;> cases ctx <;>
+    simp [cc1Recs, optF, lastVarint, lastLen, ofNat_enumVarint]
+
 
 /-! ## Repeated scalars and merged sub-messages -/
 

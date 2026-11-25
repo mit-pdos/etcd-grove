@@ -4,8 +4,9 @@
 > `… SortSliceHyp, MathPowHyp, RandSeedHyp → ∀ σ g, DistDeploy … → Robust [] (system σ) g (2 ^ 30) (2 ^ 63)`:
 > no net/rpc or net/http premise (`RpcHttpHyp`, `RpcBootHyp`, the `net.rpc`/`net.http` `InitHyp`s
 > gone, section "dsv-fix2"). `#print axioms`: Lean's three and `Net/`'s interim axioms
-> `net.rpc.wp_initialize'`, `net.http.wp_init_first`,
-> `net.http.wp_initialize'`, `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`.
+> `net.rpc.wp_initialize'`, `net.http.wp_init_first`, `net.http.wp_initialize'`, and the interim
+> context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg` (2026-11-25:
+> net/rpc's first run, `net.http.Handle` and `Serve.wp_proof_rpc` proved).
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:

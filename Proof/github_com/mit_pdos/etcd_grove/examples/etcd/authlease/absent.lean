@@ -37,8 +37,8 @@ theorem absent.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithTimeout : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     absent.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC root k why addr s E γr cid mid c n F P Q hsz hAs
-  wp_start as ⟨#Htk, #Hrange, #Hc, #HF, #Hn, #HQ, #Hnone⟩
+  intro CS ES FS RS root k why addr s E γr cid mid c n F P Q hsz hAs
+  wp_start as ⟨Hlt, #Htk, #Hrange, #Hc, #HF, #Hn, #HQ, #Hnone⟩
   ihave #Htk0 := Htk
   iunfold clientTokAt at Htk0
   icases Htk0 with ⟨%api, %conn, #Hkvf, #Hobj, -, -, -⟩
@@ -55,7 +55,7 @@ theorem absent.wp_proof
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave Hres := optsAt_res slice.nil [] iprop(True) $$ Hnil
   wp_apply (client_Get_on root api conn addr s E γr cid mid c n ectx eom ecd k slice.nil []
-      iprop(True) Q F hsz) $$ [Hres] as %resp %err Hout
+      iprop(True) Q F hsz) $$ [$Hlt Hres] as %resp %err ⟨Hlt, Hout⟩
   · iframe #
     isplitl []
     · itrivial
@@ -79,7 +79,7 @@ theorem absent.wp_proof
     | nil => exact absurd rfl Herr.1
     | ok e =>
       (try wp_auto)
-      iapply HΦ; itrivial
+      iapply HΦ; iframe Hlt; try itrivial
   subst Herr
   (try wp_auto)
   wp_apply Hecancel
@@ -98,7 +98,7 @@ theorem absent.wp_proof
   (try wp_auto)
   simp only [Hz]
   (try wp_auto)
-  iapply HΦ; itrivial
+  iapply HΦ; iframe Hlt; try itrivial
 
 end proof
 

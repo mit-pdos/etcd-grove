@@ -238,7 +238,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 open Perennial.gryff in
-/-- net/http's first initialization (`net.http.wp_init_first`, Net's interim axiom) in a table
+/-- net/http's first initialization (`net.http.wp_init_first_mux`, over Net's interim axiom) in a table
 `gEx S0 g` with `S0 = net/http :: S`, on a machine of at most `2 ^ 30` threads. -/
 theorem wp_http_own (hT : threadBound GF ≤ 2 ^ 30) (S0 S : List GoString)
     (hS : S0 = pkg_id.net.http :: S) (g : GoString → IProp GF)
@@ -248,14 +248,14 @@ theorem wp_http_own (hT : threadBound GF ≤ 2 ^ 30) (S0 S : List GoString)
         httpInitRes (GF := GF) }} := by
   subst hS
   iintro %Φ Hown HΦ
-  iapply (net.http.wp_init_first (gEx (pkg_id.net.http :: S) g) (gEx S g)
+  iapply (net.http.wp_init_first_mux (gEx (pkg_id.net.http :: S) g) (gEx S g)
     (gEx_no _ _ _ List.mem_cons_self) hwf (fun p hp => gEx_cons_ne _ _ _ _ hp)) $$ [Hown]
   · iframe Hown; ipureintro; exact hT
-  iintro !> ⟨Hown, #Hpk, Hmux⟩
+  iintro !> ⟨Hown, #Hpk, Hmux, #Hse⟩
   iapply HΦ
   iframe Hown Hpk
   iapply httpInitRes_of_first
-  iframe Hpk Hmux
+  iframe Hmux Hse
 
 open Perennial.gryff in
 /-- net/rpc's first initialization (`net.rpc.wp_init_first`, given `NewServer`'s spec with an owned

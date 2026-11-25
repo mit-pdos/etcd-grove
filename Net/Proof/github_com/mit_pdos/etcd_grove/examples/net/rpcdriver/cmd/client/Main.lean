@@ -46,7 +46,7 @@ theorem wp_main
     {{ RET #(); threadTok }} := by
   wp_start as ⟨Hres, %Hb, %Hrb, Htok, #Htcp, #Hha, Hauth⟩
   iunfold github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.bootRes at Hres
-  icases Hres with ⟨-, Hrf, #Hf⟩
+  icases Hres with ⟨-, -, Hrf, #Hf⟩
   iunfold net.rpc.rpcFirstRes at Hrf
   icases Hrf with ⟨Hunset, -⟩
   ihave #Hrpc : (isPkgInit (PROP := IProp GF) pkg_id.net.rpc) $$ []

@@ -36,19 +36,17 @@ abbrev client_Put_km.law : Prop :=
       (V : client.WEnv GF) (γk : KVNames) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF)
       (hsz : opSizeOk (opPutModel key val [])),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-          isNewClient cl (ms.map client.SrvAt.addr) V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient cl (ms.map client.SrvAt.addr) V ∗
           client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
           ([∗list] x ∈ ms, memberPut γk x) ∗
           ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-          kvOpAu1 γk (.put (client.putKeyOp key val)) Q }}
+          kvOpAu1 γk (.put (client.putKeyOp key val)) Q) }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
             go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
             ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.compacted = 0 ∧ 1 ≤ σ.rev ∧
               σ.rev + 4 < 2 ^ 63⌝) ∨
-            ⌜err ≠ GoInterface.nil⌝ }}
+            ⌜err ≠ GoInterface.nil⌝) }}
 
 end laws1
 

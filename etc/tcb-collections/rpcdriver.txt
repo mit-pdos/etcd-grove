@@ -11,10 +11,11 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline. Proved 2026-11-24 over these interim axioms, each with a
 # docstring naming what retires it: net/rpc's and net/http's first-run initializers
-# (Net/Proof/net/{rpc,http}/InitFirst.lean, L2 step 6), net/http's Handle and Serve (the rpc
-# handler's case; Net/Proof/net/http/{Handle,Serve}.lean, S5).
+# (Net/Proof/net/{rpc,http}/InitFirst.lean, L2 step 6), and (since 2026-11-25, when net/http's
+# Handle and Serve were proved, S5) context's WithValue on a pointer key and WithCancel on a
+# valueCtx chain (Net/Proof/context/, retired by reflect-s05 and a wider isParentCtx).
 roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness\.lean$
-axiom Perennial.net.http.Handle.wp_proof
-axiom Perennial.net.http.Serve.wp_proof_rpc
+axiom Perennial.context.WithCancel.wp_proofValBg
+axiom Perennial.context.WithValue.wp_proofPtr
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'

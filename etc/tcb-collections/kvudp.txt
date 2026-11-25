@@ -1,9 +1,0 @@
-# kvudp (examples/raft/kvnet's UDP transport, cmd/kvudp; notes/kvudp-proof-plan.md; the part KvNet/): the
-# top-level robustness theorem `raft_kvudp_robust` and its example `raft_kvudp_robust_example`
-# (KvNet/Proof/.../raft/kvnet/cmd/kvudp/TopLevelRobustness.lean), over the extensions
-# [netExt, fsExt, udpExt] (GooseLang/Ext/NetFsUdp/Adequacy.lean; the UDP semantics, notes/net-udp.md).
-#
-#   etc/tcb-report.py --collection etc/tcb-collections/kvudp.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/kvudp.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/kvudp.txt --check --update
-roots ^KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/cmd/kvudp/TopLevelRobustness\.lean$

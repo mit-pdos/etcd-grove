@@ -14,9 +14,9 @@ names).
 
 | dir | was | what it is | headline result |
 |---|---|---|---|
-| `raft/kv` | `kv` | a minimal replicated key-value store (Put, Get, Append through the log), checked by porcupine | – (retired 2026-11-24: `raft_kvnet_robust` and kvudp subsume it; the directory with it, at `33f981390b`) |
-| `raft/kvreconf` | `kvreconf` | the store with snapshots, configuration changes, a lossy network, leadership disruptions, reads by read index | – (retired 2026-11-24: `raft_kvnet_robust` and kvudp subsume it; the package stays, translated into `KvNet/`, whose store proofs stand on its) |
-| `raft/kvdurable` | `kvdurable` | `kvreconf` made durable: replicas crash and restart from their files | – (retired 2026-11-24: `raft_kvnet_robust` and kvudp subsume it; the directory with it, and `raft/kvdurablenoax`, its axiom-free twin in `RaftNoAx/`, at `33f981390b`) |
+| `raft/kv` | `kv` | a minimal replicated key-value store (Put, Get, Append through the log), checked by porcupine | – (retired 2026-11-24: `kvraft_robust` and kvraft-udp subsume it; the directory with it, at `33f981390b`) |
+| `raft/kvreconf` | `kvreconf` | the store with snapshots, configuration changes, a lossy network, leadership disruptions, reads by read index | – (retired 2026-11-24: `kvraft_robust` and kvraft-udp subsume it; the package stays, translated into `KvRaft/`, whose store proofs stand on its) |
+| `raft/kvdurable` | `kvdurable` | `kvreconf` made durable: replicas crash and restart from their files | – (retired 2026-11-24: `kvraft_robust` and kvraft-udp subsume it; the directory with it, and `raft/kvdurablenoax`, its axiom-free twin in `RaftNoAx/`, at `33f981390b`) |
 | `raft/kvfile` | `durablekv` | `kv` made durable in one file per replica (translated, not yet proved) | – |
 | `raft/kvwitness` | `kvwitness` | `kv` with a witness replica (raft with witness support; the part `RaftWitness/`) | `raft_kvwitness_porcupine_safe` |
 

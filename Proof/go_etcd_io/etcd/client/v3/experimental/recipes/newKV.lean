@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     newKV.spec (GF := GF) (hG := hG) := by
   intro kv pfx key val lease lo
-  wp_start as ⟨#Hkv, #Hlo, %Hk⟩
+  wp_start as ⟨Hlt, #Hkv, #Hlo, %Hk⟩
   wp_auto
-  wp_apply hPNK kv pfx key val lease lo $$ [$Hpkg $Hkv $Hlo] as %rev %err Hres
+  wp_apply hPNK kv pfx key val lease lo $$ [$Hlt $Hpkg $Hkv $Hlo] as %rev %err ⟨Hlt, Hres⟩
   · ipureintro; exact Hk
   icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#Herr, %Hrev, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
@@ -38,6 +38,7 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
     irename «$r0» => Hrk
     generalize «$r0_ptr» = rk at *
     iapply HΦ
+    iframe Hlt
     ileft
     isplitr
     · ipureintro; rfl
@@ -53,6 +54,7 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; ileft
     iframe Herr
     isplitr
@@ -67,6 +69,7 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     iapply HΦ
+    iframe Hlt
     iright; iright
     iframe Hce
     ipureintro; exact ⟨Hne, rfl⟩

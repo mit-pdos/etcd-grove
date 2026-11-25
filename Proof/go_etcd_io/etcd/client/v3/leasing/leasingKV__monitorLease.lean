@@ -150,7 +150,7 @@ local macro "monitor_watch" : tactic => `(tactic| (
         · wp_apply hRes lkv γ pfx cctx
             ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
                PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key e.rev
-            $$ [$(frameH `Hpkg) $(frameH `Hlkv) $(frameH `Hcctx) $(frameH `HcctxC)]
+            $$ [$(frameH `Hlt) $(frameH `Hpkg) $(frameH `Hlkv) $(frameH `Hcctx) $(frameH `HcctxC)] as ⟨Hlt, -⟩
           · ipureintro; assumption
           (try wp_auto)
           wp_for_post
@@ -160,7 +160,8 @@ local macro "monitor_watch" : tactic => `(tactic| (
           · imodintro; itrivial
           (try wp_auto)
           iapply HΦ
-          itrivial
+          iframe Hlt
+          try itrivial
         wp_for_post
         wp_for_post
         wp_for_post
@@ -168,7 +169,8 @@ local macro "monitor_watch" : tactic => `(tactic| (
         · imodintro; itrivial
         (try wp_auto)
         iapply HΦ
-        itrivial
+        iframe Hlt
+        try itrivial
       -- not `"REVOKE"`: the next event
       wp_for_post
       iframe
@@ -190,7 +192,7 @@ theorem leasingKV.monitorLease.wp_proof
     (hRes : leasingKV.rescind.spec (GF := GF) (hG := hG)) :
     leasingKV.monitorLease.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs key rev
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, %Hrev⟩
+  wp_start as ⟨Hlt, #Hlkv, Hrd, #Hsr, #Hctx, #HctxC, %Hrev⟩
   have Hkl := Hrev.2.2
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
@@ -229,7 +231,8 @@ theorem leasingKV.monitorLease.wp_proof
     · imodintro; itrivial
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iframe Hlt
+    try itrivial
   | nil =>
   wp_auto
   rw [ite_eq_left (by simp)]
@@ -241,8 +244,9 @@ theorem leasingKV.monitorLease.wp_proof
     ihave #H0 : etcdReached (GF := GF) (W64 0) $$ []
     · iapply etcdReached_zero
     ihave #HG := HKV' $$ %ctx %cs %(pfx ++ key) %slice.nil %([] : List (OpFull → OpFull)) %(W64 0)
-    wp_apply HG $$ [] as %gresp %gerr #Hgres
-    · iframe Hctx HctxC Hnil H0
+    wp_apply HG $$ [Hlt] as %gresp %gerr ⟨Hlt, #Hgres⟩
+    · (try iframe Hlt)
+      iframe Hctx HctxC Hnil H0
       ipureintro
       exact ⟨concurrency.keyOp_not_panics, (concurrency.keyOp_t (pfx ++ key)).1,
         opSizeOk_opGetModel (K := 2 ^ 27 + 2 ^ 26) (E := 0) (V := 0) (optsKeep_nil _ _ _)
@@ -288,15 +292,17 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply hRes lkv γ pfx cctx
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
-        $$ [$Hpkg $Hlkv $Hcctx $HcctxC]
-      · ipureintro; exact Hkl
+        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC] as ⟨Hlt, -⟩
+      · (try iframe Hlt)
+        ipureintro; exact Hkl
       (try wp_auto)
       wp_for_post
       wp_apply Hcancel'
       · imodintro; itrivial
       (try wp_auto)
       iapply HΦ
-      itrivial
+      iframe Hlt
+      try itrivial
     have Hglen : 0 < sint.Z gsl.len := by
       have h1 : gsl.len ≠ W64 0 := fun h => Hif (by rw [h])
       have h2 := Hgsl'.2
@@ -320,14 +326,16 @@ theorem leasingKV.monitorLease.wp_proof
       wp_apply hRes lkv γ pfx cctx
         ({ Values := lcs.Values, Deadline := lcs.Deadline, Done_gn := γc,
            PDone := iprop(lcs.PDone ∨ True) } : context.ContextDesc (IProp GF)) key r
-        $$ [$Hpkg $Hlkv $Hcctx $HcctxC]
-      · ipureintro; exact Hkl
+        $$ [$Hlt $Hpkg $Hlkv $Hcctx $HcctxC] as ⟨Hlt, -⟩
+      · (try iframe Hlt)
+        ipureintro; exact Hkl
       (try wp_auto)
       wp_for_post
       wp_apply Hcancel'
       · imodintro; itrivial
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       itrivial
     (try wp_auto)
     monitor_watch

@@ -140,6 +140,12 @@ runChecks: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =
 # the top level (2026-11-08, for the closed theorem): `Run` closes what `runChecks` opened
 Run: runChecks lease_lessor__Stop backend__Close check
 Main: Run
+# (P3 of the pure-premise plan, 2026-11-24) `MainAt(r)`: the run in the directory `r`, after its own
+# checks of `r` (`dirFits`) and of the database's name (`absent`: `os.Lstat`, then `errors.Is` of its
+# error against `os.ErrNotExist`, `errors.IsPathErrnoNotExist.spec`, proved in `Proof/errors/`)
+dirFits:
+absent: =_root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
+MainAt: dirFits absent Run
 # (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
 # `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
 pool_Pool__Put:

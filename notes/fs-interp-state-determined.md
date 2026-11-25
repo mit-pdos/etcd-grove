@@ -24,7 +24,7 @@ These are updated off-step:
 
 A crash can come before a generation's first step, so a crash frame that owns the shared invariants
 needs the switch before the WP. That needs the interpretation, which is why `CrashAdequacyAcc.lean`,
-`AdequacyShared.lean` and kvnet's `TopBridge.lean` (perennial#683 part 2) exist. Per-call and
+`AdequacyShared.lean` and kvraft's `TopBridge.lean` (perennial#683 part 2) exist. Per-call and
 per-file annotations (call fractions, `Γg`, `OsMeta`'s ghost fields) are not modes. They change only
 in step proofs, and they stay (§5).
 
@@ -87,7 +87,7 @@ stay as they are. No top-level statement changes, and these stay as they are:
 - the osfs/netfs/bbolt `Results` statements (all execution-level);
 - `etcd_wal_*`.
 
-kvnet's top level gets stronger: it loses `Hb`.
+kvraft's top level gets stronger: it loses `Hb`.
 
 | Client | Rewrite | Size (touched lines) |
 |---|---|---|
@@ -100,7 +100,7 @@ kvnet's top level gets stronger: it loses `Hb`.
 | **WalTester** | `fsSQ_crash_adequacyShared` renamed to the one `fsSQ_crash_adequacy` (same shape); `durable`'s copies unchanged | ~20 |
 | **`etcdstart/WalAreas`, `runtime/StartFiles`** | drop `wp_osShareE`; take `osShared` from `fs_start` | ~60 |
 | **osfs/netfs `Results`, `Net/Statement/NetFsBridge`** | `fsStartRes` holds `osShared`; `CrashBootWp`'s frame gains `£ 1`; the Results' proofs adapt to the new adequacy shape | ~150 |
-| **kvnet** | `kvGen` holds `osShared`; `kvGen_boot` loses its `localCtx σ` argument and its switch; `kvRep_gen` proves `CrashBootWp` (plain adequacy plus `£ 1`); delete `TopBridge.lean`, `TopCrash.lean` (the pre-switch window no longer exists) and `Hb` in `TopLevelRobustness` | −400 / +80; 3 days |
+| **kvraft** | `kvGen` holds `osShared`; `kvGen_boot` loses its `localCtx σ` argument and its switch; `kvRep_gen` proves `CrashBootWp` (plain adequacy plus `£ 1`); delete `TopBridge.lean`, `TopCrash.lean` (the pre-switch window no longer exists) and `Hb` in `TopLevelRobustness` | −400 / +80; 3 days |
 | `GooseLang/Ext/OsFs/*` (`osFsExt`) | has no tree ghost; unaffected | 0 |
 
 Total: about 7k lines touched, net about −6k. Roughly 8 agent-weeks, which can run in parallel after
@@ -116,7 +116,7 @@ stage 1.
    needs `legacyHolds` gone, so this stage also makes the interpretation's shared half
    state-determined. The legacy half is not removed yet.
 2. **Clients, in parallel, each landing alone** on the new API:
-   - kvnet (needs stage 0);
+   - kvraft (needs stage 0);
    - WalTester, `etcdstart`, `StartFiles`, the WAL proofs;
    - `Proof/os`'s crash-aware layer, then crashlog and bboltfs;
    - walfs.
@@ -139,7 +139,7 @@ stage 1.
   steps that already open `osN`. `osShN_sub` (`TreeSharedSwitch.lean:241`) handles this for the
   existing shared specs. Each `CrashStOps` spec needs `↑osShN ⊆ E`.
 - **Credits:** `osSharedInv`'s body is timeless, so it needs no credit. The one `£ 1` per crash
-  covers kvnet's `kdFileInvK`. A frame that must open non-timeless invariants under nested laters
+  covers kvraft's `kdFileInvK`. A frame that must open non-timeless invariants under nested laters
   would need more; #683's argument allows any fixed number.
 - **Strictness:** per-call fractions, `Γg` and the `OsMeta` ghost fields remain under `∃`, and are
   only ever updated at steps. Making them literal functions of `st` is not sized here.
@@ -155,8 +155,8 @@ stage 1.
 - **#24/#28 (`Net/`, `lib/remote`, `putget-dist`, `net-swap`).** Stage 0's and stage 2's edits to
   `NetFsBridge.lean` (`£ 1`, `fsStartRes`) can conflict. Land them as small commits and announce them
   on #28.
-- **kvnet.** Its stage-2 edits (`TopBoot`, `ReplicaLinked`, `TopLevelRobustness`; deleting
-  `TopBridge`, `TopCrash`) should go after any kvnet relink in flight.
+- **kvraft.** Its stage-2 edits (`TopBoot`, `ReplicaLinked`, `TopLevelRobustness`; deleting
+  `TopBridge`, `TopCrash`) should go after any kvraft relink in flight.
 - **The real bbolt proof** (`Proof/go_etcd_io/bbolt`) is already shared. It imports only
   `CrashFile`'s pure parts, which stay.
 
@@ -293,10 +293,10 @@ runs over plain `goose_crash_adequacy`. `fsSQ_crash_adequacyShared`, `AdequacySh
    `CrashRegion`, plus the deletions.
 3. **Clients**, each in its own files against the scaffold: `Proof/os` (crash-aware layer); walfs
    (`DSClaims` grows into `DirSwap`; `Boot`/`SegLog` the same way); crashlog; bboltfs/minibolt; the
-   WAL, WalTester, `etcdstart` and `StartFiles`; osfs/netfs `Results` and `NetFsBridge`; kvnet, last.
+   WAL, WalTester, `etcdstart` and `StartFiles`; osfs/netfs `Results` and `NetFsBridge`; kvraft, last.
 
 Landing stays as in §4, with stage 1 (the new adequacy, `fs_start` and `crashRest_treeS'`
 alongside legacy) landing first. The one open choice is whether keeping the legacy half alongside
 in stage 1 (shared names filled at init, legacy mode kept) costs more than it saves. If it does,
 stages 1 and 3 merge into one core stage with every client that imports a deleted name, and
-kvnet's relink follows. That is decided when the scaffold builds, and reported before any landing.
+kvraft's relink follows. That is decided when the scaffold builds, and reported before any landing.

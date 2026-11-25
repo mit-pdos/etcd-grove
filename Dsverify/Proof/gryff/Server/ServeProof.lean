@@ -70,7 +70,7 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗
         net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗
-        isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ net.http.httpEnv ∗
+        isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ net.http.httpSrvEnv ∗
         globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗
         net.rpc.defaultServerAny γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
         RA.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)

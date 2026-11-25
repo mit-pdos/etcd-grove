@@ -44,18 +44,15 @@ abbrev Client.OptimisticPut.spec : Prop :=
     (key : GoString) (vsl : GoSlice) (val : GoString) (rev : w64)
     (opts : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (Q : KVState → IProp GF),
   opts.LeaseID' = W64 0 → key.length ≤ opKeyMax → val.length ≤ opValMax →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce kc.Client' (ms.map client.SrvAt.addr) ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ vsl ↦*□ val ∗
-      ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (optPutTxn key val rev opts.GetOnFailure')) Q) }}
+      ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.txn (optPutTxn key val rev opts.GetOnFailure')) Q)) }}
     (App (App (App (App (App (Val (kc @!! go_etcd_io.etcd.client.v3.kubernetes.Client.ty @!!
       go!"OptimisticPut")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #vsl)) (Val #rev))
       (Val #opts))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (err : GoInterface),
-      RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, Q σ ∗
+      RET (PairV #resp #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ σ : KVState, Q σ ∗
         ⌜resp.Succeeded' = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
             (optPutTxn key val rev opts.GetOnFailure')).1 ∧
           resp.Revision' =
@@ -65,7 +62,7 @@ abbrev Client.OptimisticPut.spec : Prop :=
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨
       ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-        go_etcd_io.etcd.cache.v3.errCellOk err }}
+        go_etcd_io.etcd.cache.v3.errCellOk err) }}
 
 end spec
 

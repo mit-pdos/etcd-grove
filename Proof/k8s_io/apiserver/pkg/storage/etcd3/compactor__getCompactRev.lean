@@ -51,25 +51,25 @@ private theorem client_Get_nil [go_etcd_io.etcd.client.v3.Assumptions]
     (wp_Get : EtcdGrove.kv.Get.spec (GF := GF) (hG := hG)) (cl api : Loc)
     (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (Q : KVState → IProp GF) (hsz : opSizeOk (opGetModel key [])) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
           GoInterface.ok (client.kvIfaceOf api) ∗
         client.isKv api γ dup ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ kvReadAu γ Q }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #slice.nil))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
           □ Q σ ∗ ⌜m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧
             m.kvs = σ.kvs.filter (fun v => decide (v.key = key))⌝) ∨
-          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
-  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hau⟩ HΦ
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
+  iintro %Φ ⟨#Pc, Hlt, #Hkvf, #Hkv, #Hctx, #Hce, #Hau⟩ HΦ
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave #Hopts' := optsAt_res slice.nil [] iprop(True) $$ Hnil
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (wp_Get api γ dup ci cd key slice.nil [] iprop(True) Q) $$ []
-    as %resp %err ⟨-, Hout⟩
+  wp_apply (wp_Get api γ dup ci cd key slice.nil [] iprop(True) Q) $$ [$Hlt]
+    as %resp %err ⟨Hlt, -, Hout⟩
   · iframe #
     isplitl []
     · itrivial
@@ -90,6 +90,7 @@ private theorem client_Get_nil [go_etcd_io.etcd.client.v3.Assumptions]
       iexact Hau
     ipureintro; exact hsz
   iapply HΦ
+  iframe Hlt
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
@@ -136,7 +137,7 @@ theorem compactor.getCompactRev.wp_proof
     (wp_Get : EtcdGrove.kv.Get.spec (GF := GF) (hG := hG)) :
     compactor.getCompactRev.spec (GF := GF) (hG := hG) := by
   intro _ _ c cl γk recorded γc ci cd
-  wp_start as ⟨#Hc, #Hko, #Hctx, #Hce, #Hread⟩
+  wp_start as ⟨Hlt, #Hc, #Hko, #Hctx, #Hce, #Hread⟩
   iunfold compactorCore at Hc
   icases Hc with ⟨%Hpers, #Hclf, -, -, -, -, -⟩
   haveI := Hpers
@@ -149,8 +150,8 @@ theorem compactor.getCompactRev.wp_proof
   iunfold keyReadOk at Hread'
   wp_apply (client_Get_nil wp_Get cl api γk dup ci cd compactRevKey (keyHistOk γk recorded)
       (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0) (optsKeep_nil _ _ _)
-        (by simp [compactRevKey]) (by decide))) $$ []
-    as %resp %err Hout
+        (by simp [compactRevKey]) (by decide))) $$ [$Hlt]
+    as %resp %err ⟨Hlt, Hout⟩
   · iframe #
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | ⟨%Herr, #Hke⟩)
   rotate_left
@@ -179,6 +180,7 @@ theorem compactor.getCompactRev.wp_proof
     · iframe #
       fmt_args_ok
     iapply HΦ
+    iframe Hlt
     ileft
     isplitl
     · -- `fmt.Errorf`'s error: `fmt.argOk` by its `Error()`
@@ -217,6 +219,7 @@ theorem compactor.getCompactRev.wp_proof
     all_goals try (exfalso; first | exact Hhn rfl | exact Hhn Hif; done)
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; exact ⟨rfl, hcur⟩
@@ -256,6 +259,7 @@ theorem compactor.getCompactRev.wp_proof
     all_goals try (exfalso; first | exact Hhn rfl | exact Hhn Hif; done)
     (try wp_auto)
     iapply HΦ
+    iframe Hlt
     iright
     isplitr
     · ipureintro; exact ⟨rfl, hcur⟩

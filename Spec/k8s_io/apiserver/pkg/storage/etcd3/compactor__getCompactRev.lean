@@ -37,15 +37,12 @@ abbrev compactor.getCompactRev.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [sync.Assumptions]
     (c cl : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γc : CompactorNames)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      compactorCore c cl γk recorded γc ∗ clientKvOk cl γk ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ keyReadOk γk recorded }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (compactorCore c cl γk recorded γc ∗ clientKvOk cl γk ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ keyReadOk γk recorded) }}
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"getCompactRev")) (Val #(GoInterface.ok ci)))
-  {{ (cr cur : w64) (err : GoInterface), RET (PairV (PairV #cr #cur) #err);
-      (fmt.argOk err ∗ ⌜err ≠ GoInterface.nil⌝) ∨
-        (⌜err = GoInterface.nil ∧ 1 ≤ sint.Z cur⌝ ∗ recRevOk γk recorded cr) }}
+  {{ (cr cur : w64) (err : GoInterface), RET (PairV (PairV #cr #cur) #err); levelTok 0 ∗ ((fmt.argOk err ∗ ⌜err ≠ GoInterface.nil⌝) ∨
+        (⌜err = GoInterface.nil ∧ 1 ≤ sint.Z cur⌝ ∗ recRevOk γk recorded cr)) }}
 
 end spec
 

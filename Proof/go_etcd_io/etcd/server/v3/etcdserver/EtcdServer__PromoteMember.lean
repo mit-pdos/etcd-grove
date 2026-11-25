@@ -13,6 +13,7 @@ public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__Wi
 public import Spec.errors.Is
 public import Spec.errors.IsCtxErr
 public import Spec.errors.IsStatusErr
+public import Proof.errors.CtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
@@ -241,6 +242,9 @@ theorem EtcdServer.PromoteMember.wp_proof
     · iapply isPkgInit_access $$ Prd
     icases Hri with ⟨-, -, -, -, -, -, -, -, #HDE⟩
     icases HDE with ⟨%eD, #HeD, %HlD, -⟩
+    ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave %HvD := deadlineExceeded_value _ $$ Pctx HeD
     icases HsEV with ⟨-, -, -, #HECan, #HETo, -⟩
     ihave ⟨%eCan, #HeCan, #HeCanE⟩ := errVarLeaf_get _ $$ HECan
     ihave ⟨%eTo, #HeTo, #HeToE⟩ := errVarLeaf_get _ $$ HETo
@@ -260,7 +264,7 @@ theorem EtcdServer.PromoteMember.wp_proof
       rotate_left
       · ihave #Hso : go_etcd_io.etcd.cache.v3.statusErrOk (GF := GF) GoInterface.nil $$ []
         · iunfold go_etcd_io.etcd.cache.v3.statusErrOk; iintro !> %e %h; cases h
-        wp_apply (hIsS GoInterface.nil (GoInterface.ok eD) none (Or.inr (Or.inr ⟨eD, rfl, HlD.2.2.2.1⟩)))
+        wp_apply (hIsS GoInterface.nil (GoInterface.ok eD) none (Or.inr (Or.inr HvD)))
           $$ [] as %b1 -
         · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
         (try wp_auto)

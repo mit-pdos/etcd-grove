@@ -32,7 +32,7 @@ theorem watchChan.sync.wp_proof
     watchChan.sync.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
-  wp_start as ⟨#Hoff, #Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
+  wp_start as ⟨Hlt, #Hoff, #Hst, #Hsw, #Hwc, Hir, #Hra, #Hre, Hps, Hpe⟩
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
   ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featuresInit : IProp GF) $$ []
@@ -51,8 +51,8 @@ theorem watchChan.sync.wp_proof
   cases recur
   · wp_auto
     wp_apply (wp_syncPaginated Obj wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp false r0 lbf q
-      hQ hH hR hf hle) $$ [$Hst $Hsw $Hwc $Hir $Hra $Hre $Hps $Hpe] as %err Hpost
-    iapply HΦ $$ Hpost
+      hQ hH hR hf hle) $$ [$Hlt $Hst $Hsw $Hwc $Hir $Hra $Hre $Hps $Hpe] as %err ⟨Hlt, Hpost⟩
+    iapply HΦ; iframe Hlt; iexact Hpost
   · wp_auto
     wp_apply Hen as %b Hb
     · ipureintro; decide
@@ -61,8 +61,8 @@ theorem watchChan.sync.wp_proof
     subst hb
     wp_auto
     wp_apply (wp_syncPaginated Obj wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp true r0 lbf q
-      hQ hH hR hf hle) $$ [$Hst $Hsw $Hwc $Hir $Hra $Hre $Hps $Hpe] as %err Hpost
-    iapply HΦ $$ Hpost
+      hQ hH hR hf hle) $$ [$Hlt $Hst $Hsw $Hwc $Hir $Hra $Hre $Hps $Hpe] as %err ⟨Hlt, Hpost⟩
+    iapply HΦ; iframe Hlt; iexact Hpost
 
 end proof
 

@@ -46,7 +46,7 @@ theorem Client.shouldRefreshToken.wp_proof
   icases options_fields_ro o ov $$ Hov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   generalize ov.retryAuth' = ra
   iunfold retryClientOk at Hc
-  icases Hc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb⟩
+  icases Hc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb, -⟩
   wp_auto
   wp_if_destruct
   rotate_left

@@ -33,16 +33,15 @@ create revision otherwise. -/
 abbrev Mutex.tryAcquire.spec : Prop :=
   ∀ (m s : Loc) (γ : SessionNames) (client : Loc) (id : w64) (pfx : GoString) (st : MutexSt)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (lo : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ isMutex m s γ client id pfx ∗ mutexState m st ∗
-      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.concurrency ∗ levelTok 0 ∗ (isMutex m s γ client id pfx ∗ mutexState m st ∗
+      context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ etcdReached lo) }}
     (App (Val (m @!! go.GoType.PointerType Mutex.ty @!! go!"tryAcquire")) (Val #(GoInterface.ok ctx)))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ key : GoString, mutexState m { st with key := key }) ∨
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ ((⌜err ≠ GoInterface.nil⌝ ∗ ∃ key : GoString, mutexState m { st with key := key }) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (rev r : w64) (hdr : Loc),
         mutexState m { st with key := key, rev := rev } ∗ etcdReached r ∗
         acquireResp resp pfx key rev r hdr ∗
         ⌜pfx <+: key ∧ sint.Z lo ≤ sint.Z r ∧ 0 < sint.Z rev ∧ sint.Z rev ≤ sint.Z r ∧
-          sint.Z r < 2 ^ 63 - 1⌝) }}
+          sint.Z r < 2 ^ 63 - 1⌝)) }}
 
 end spec
 

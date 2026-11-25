@@ -28,7 +28,6 @@ axiom backend.newBoltLoggerZap.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
-axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom httpProtoFree
@@ -50,5 +49,4 @@ axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strings.ToLower.wp_proof
-axiom verifyEnvOff
 axiom zap.Stack.wp_proof

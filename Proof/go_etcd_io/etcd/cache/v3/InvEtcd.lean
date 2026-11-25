@@ -946,13 +946,12 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
+    {{ levelTok 0 ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
         etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        kvGetResult pfx lo (opGetModel key gs) resp err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (kvGetResult pfx lo (opGetModel key gs) resp err) }})
 
 instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKV (GF := GF) kv pfx) := by
@@ -971,15 +970,14 @@ encoded-size bound at grpc's send side"). -/
 def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
-    {{ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
+    {{ levelTok 0 ∗ context.isContext ctx cs ∗ metadata.outgoingCtxOkC ctx ∗ optsAt sl gs ∗
         etcdReached lo ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact ∧
           (opGetModel key gs).base.sortSet = false ∧
           (opGetModel key gs).base.serializable = false ∧ opSizeOk (opGetModel key gs)⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        kvGetResultC pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (kvGetResultC pfx lo (opGetModel key gs) resp err ∗ errStrOk err) }})
 
 instance isEtcdKVE_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKVE (GF := GF) kv pfx) := by

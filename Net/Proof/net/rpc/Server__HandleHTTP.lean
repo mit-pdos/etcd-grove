@@ -35,15 +35,15 @@ theorem Server.HandleHTTP.wp_proof (wp_Handle : net.http.Handle.spec (GF := GF) 
   wp_auto
   have h1 : interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s ≠ interface.nil := by
     simp [interface.mkOk]
-  have h2 : interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s ≠
-      interface.mkOk net.http.HandlerFunc.ty #(func.nil : GoFunc) := by
-    unfold net.http.HandlerFunc.ty; simp [interface.mkOk]
+  have h2 : ∀ v, interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s =
+      interface.mkOk net.http.HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil := by
+    intro v hv; unfold net.http.HandlerFunc.ty at hv; simp [interface.mkOk] at hv
   wp_apply wp_Handle Ps rp _ hrp hrpP h1 h2
       $$ [$Hhttp $Hmux]
     as ⟨Hmux, #Hroute⟩
   try wp_auto
   wp_apply wp_Handle (rp :: Ps) dp _ hdp (by simp [hdpP, Ne.symm hne])
-    (by simp [interface.mkOk]) (by unfold net.http.HandlerFunc.ty net.rpc.debugHTTP.ty; simp [interface.mkOk])
+    (by simp [interface.mkOk]) (by intro v hv; unfold net.http.HandlerFunc.ty net.rpc.debugHTTP.ty at hv; simp [interface.mkOk] at hv)
     $$ [$Hhttp $Hmux] as ⟨Hmux, -⟩
   try wp_auto
   iapply HΦ

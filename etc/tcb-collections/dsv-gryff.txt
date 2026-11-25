@@ -14,8 +14,8 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline (`--check --update`).
 roots ^Dsverify/Proof/gryff/
-axiom Perennial.net.http.Handle.wp_proof
-axiom Perennial.net.http.Serve.wp_proof_rpc
+axiom Perennial.context.WithCancel.wp_proofValBg
+axiom Perennial.context.WithValue.wp_proofPtr
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'

@@ -48,7 +48,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 abbrev Work.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (cl : Loc) (who addr : GoString) (V : WEnv GF) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat),
   who ∈ principals → E.authMode = .on γa →
@@ -56,14 +55,13 @@ abbrev Work.spec : Prop :=
     V.nm = 1 ∧ V.R.s = s ∧
     V.R.E = E ∧ V.kst = ρ.kv.st →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
-      isNewClient cl [addr] V ∗ watchAddrFacts V ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗ levelTok 0 ∗ (isNewClient cl [addr] V ∗ watchAddrFacts V ∗
       clientTokAt cl [addr] (akTokP γa who) ∗
       akKVOn addr s E ρ cid mid ∗ □ (srvTLSId s -∗ False) ∗
-      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ auth.modeTag V.R.tag (.on γa) }}
+      akHistInv ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ auth.modeTag V.R.tag (.on γa)) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.auth.Work)) (Val #cl))
       (Val #who))
-  {{ RET #(); True }}
+  {{ RET #(); levelTok 0 ∗ (True) }}
 
 end spec
 

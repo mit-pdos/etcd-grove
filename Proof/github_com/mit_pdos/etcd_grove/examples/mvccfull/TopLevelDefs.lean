@@ -12,8 +12,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.PkgTable
 public import Proof.runtime.StartFiles
 public import Proof.runtime.Threads
-public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
-public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
 
 @[expose] public section
 
@@ -33,16 +31,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-namespace mvccfull
-
-open github_com.mit_pdos.etcd_grove.examples.mvccfull
-
-/-- **`Main`'s files, by name** (`FilePaths(MainConfig("mvccfull"))`): the members' `mvccfull-0.db`,
-`mvccfull-1.db` and the builders' `mvccfull-b<n>.db`. -/
-def mvccfullNames [GooseExts] [GoGlobalContext] : List GoString :=
-  filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix))
-
-end mvccfull
 end EtcdGrove
 end Perennial
 
@@ -69,12 +57,14 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- The program: `mvccfull`'s initialization, then `Run(MainConfig(r/mvccfull))`: `Main`'s run with
-its files in the directory `r`, its report dropped, as `Main` does (S3e; until then `Main()`, whose prefix `mvccfull` is relative). -/
+/-- The program: `mvccfull`'s initialization, then `MainAt(r)`: `Main`'s run with its files in the
+directory `r` (`Run(MainConfig(r/mvccfull))`), after the program's own checks that `r` fits and that
+nothing is at any of the run's file paths (P3 of the pure-premise plan, 2026-11-24; S3e to then:
+`Run(MainConfig(r/mvccfull))`, those two facts premises of the statement; until S3e `Main()`, whose
+prefix `mvccfull` is relative). -/
 def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
-  ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)
-    ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig) #(Fs.child r go!"mvccfull")) ;; #())
+  (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt) #r
 
 end adequacy
 end EtcdGrove

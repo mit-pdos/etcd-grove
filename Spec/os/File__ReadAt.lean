@@ -52,7 +52,7 @@ abbrev os.File.ReadAt.spec : Prop :=
         fmtErrorOkOrNil err }}
 
 /-- **`spec` for a buffer of any length** (2026-11-22, for `durable`'s files past 1 GiB:
-`notes/kvnet-part.md`, "`persist`" item 2): the model reads in `pread`s of at most `maxRW` bytes, each
+`notes/kvraft-part.md`, "`persist`" item 2): the model reads in `pread`s of at most `maxRW` bytes, each
 followed by the next from where it stopped (`File.ReadAt.impl`), so the loop is the same. `spec` is its
 instance. -/
 abbrev os.File.ReadAt.specLong : Prop :=

@@ -13,7 +13,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results\.lean$
 axiom Client.Close.wp_proof
-axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
@@ -47,12 +46,10 @@ axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom context.WithValue.wp_proof
-axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom endpoint.RequiresCredentials.wp_proof
-axiom envVerifyOffTok
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -226,6 +223,5 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom verifyEnvOff
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof
