@@ -367,8 +367,6 @@ opaque Perennial.encoding.gob.wireBytes
 opaque Perennial.encoding.gob.wireFits
 opaque Perennial.encoding.json.tokJson
 opaque Perennial.github_com.despreston.go_craq.StdLogger
-opaque Perennial.github_com.rs.zerolog.eventTok
-opaque Perennial.github_com.rs.zerolog.loggerMade
 opaque Perennial.net.http.godebugHttpmuxgo121
 opaque Perennial.raxos.msg.clientMI
 opaque Perennial.raxos.msg.replicaMI
