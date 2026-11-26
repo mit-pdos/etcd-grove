@@ -1191,3 +1191,50 @@ since `setupSt` has auth enabled), `foreign` (callees as they are; premises: the
 per member, `barriers`' `barrierFloor` + `authFloorD_frozen` give `noAuth`'s refutation; then the root
 `dist/client/auth/Results.lean`, the collection `etc/tcb-collections/etcd-dist-auth.txt`, `tcb-report --check`
 (base diff = the auth axioms the root reaches), `--check --update`, tier-check, lease-order.
+
+### Handoff S5-3 (2026-11-26; `RunAuthLease` blocked: no per-member lessor law at the view)
+
+**Nothing new in Lean** (branch `etcd-safe-f7`; no `sorry`, no new axiom, no statement changed). No `RunAuthLease`
+spec, no `dist/client/auth/Results.lean`, no `etc/tcb-collections/etcd-dist-auth.txt` (a collection whose pattern
+matches no root fails `tcb-report`, Handoff S3-1 item 5), so no tcb or axiom-tok run either.
+
+**The blocker (for the lead).** `foreign`'s spec takes the caller's refutations of two lessor reads at the
+principal's member `mid`: TimeToLive with keys (`leaseCheckD … (leaseKeysVerdictFrom … (Γ.ls mid) j id .read)`) and
+Leases (`leaseIdsAt (Γ.ls mid) j ids` with the verdict over each listed lease). The check's info arm is `∃ info,
+⌜P = some info.Username'⌝ ∗ (admin ∨ K info)`; u and v are not admin (the frozen floor), so `K info` must be refuted,
+and `leaseKeysVerdictFrom` is `leaseAbsentFrom (Γ.ls mid) j id ∨ ∃ l, leaseOfKeysVerdictFrom …`. Refuting it needs
+the lessor of **another member than the granting one** (`Lz` is granted through `eps[0]`, read by u at `eps[1 mod k]`;
+`Lu` granted through `eps[1 mod k]`, read by v at `eps[2 mod k]`) to hold the lease with its key from some index on.
+In one process that was `cell_holds` over `lessor_keys_of_read` (`LessorFollows.lean`), from barrier 2's
+member-local floor `srvApi.kvLogLb E.γs F`. At the view there is nothing to replace it:
+1. no law ties `Γ.ls mid` to `etcdKV Γ.kv` (the dist lease facts are the granting member's `leaseLiveFrom`,
+   `Lease_GrantLive_dist`, and `lessorAbsentStays_dist.law`);
+2. no member-local applied floor is published: `KV_GetOn_dist`/`barriers` give `authFloorD` and `srvReqLogLb γR L`
+   (cluster-level), not the member's applied log;
+3. **the dist cluster is not in raft's no-snapshot mode** (`ClusterOk`: `¬ clusterNoSnap c.γ.cl`,
+   `dist/ClusterStart.lean:107`), and `lessor_keys_of_read` is stated false outside it (its docstring, L1;
+   `nonissues/etcd-lease-keys-mid-apply.md`, "A second window: after a snapshot": `Recover` loads leases with empty
+   key sets, so a TimeToLive with keys at a member applying a snapshot can pass the check over an empty set, and the
+   Go workload would then panic "was not refused"). A dist copy of the law would be false in this deployment, not
+   only unproved.
+
+`noAuth`'s refutations need only the frozen floor (`authFloorD_frozen`, `leaseCheckD_none_frozen`), and u's and
+v's Revoke refutations only the cell and `writeCheckedD`: those are not blocked.
+
+**Options.**
+- (a) Start the dist cluster in no-snapshot mode (L1 for the dist start: `ClusterOk`'s `¬ clusterNoSnap` flipped,
+  the bootstrap log and the start's allocation as in one process), publish a member-local floor at the view (a
+  strengthened `KV_GetOn_dist` post or a barrier-only read contract), and add a per-member lessor law at `Γ.ls mid`
+  (an interim axiom, reviewed, or proved through `Serve_dist`/`NewServer_dist`'s internals). New trust and statement
+  changes: the lead's and the user's call.
+- (b) Narrow the workload: the dist `foreign` keeps the Revoke check and drops (or stops panicking on) TimeToLive
+  with keys and Leases (`examples/etcd/dist/client/authlease.go`; `Spec/.../dist/client/foreign.lean` loses the two
+  refutation premises). `RunAuthLease` is then provable from what exists (Handoff S3-1 item 4, with the spec taking
+  `kvInvOn γR Γ.kv srvAuthSt0` beside `etcdKV Γ.kv σ0`, `authHistView Γ.kv [srvAuthSt0]`, `srvReqLogLb γR []`, the
+  distinct-names premises, `Γ.auth = true`, `Γ.kv.lm = .revocable`, `findKey "a/x" σ0.kvs = none`). A narrower claim
+  than the single-process `etcd_authlease`'s.
+- (c) Keep the Go and wait for (a).
+
+**Next, once decided:** the cell (`authlease/Cell.lean` is over `γk` and reusable except `cell_grantAu`, which takes
+the single-process `E`/`ρ`; at the view the grant's offer is `writeAuD Γ.kv P (.leaseGrant …) L₀`), then
+`RunAuthLease` as Handoff S3-1 items 4-5.
