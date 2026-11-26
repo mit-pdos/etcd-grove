@@ -24,11 +24,11 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist_client
 
-open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic Iris.Std go_etcd_io.etcd.server.v3.etcdserver client
+open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic Iris.Std Net go_etcd_io.etcd.server.v3.etcdserver client
 open etcd_dist etcd_dist.authd etcd_authlease
 
 section cell
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
