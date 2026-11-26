@@ -54,9 +54,10 @@ is about the asked lease (`ID`; stated 2026-11-02 for the closed lease example,
 date, `notes/axiom-review/f7fork-leasettl-keys-contract.md`) The response's keys are owned (`w.Keys' ↦* kbs` and
 each key's bytes, of a length below `2 ^ 63 - 1`): on the leader `kbs := make([][]byte, len(ks))` and `kbs[i] =
 []byte(ks[i])`, fresh copies of the lessor's key strings, or, without `Keys`, `nil` (`v3_server.go:652-659`); on a
-follower they are decoded by `proto.Unmarshal` into a fresh `LeaseInternalResponse` (`http.go:268-271`), whose
+follower they are decoded by `proto.Unmarshal` into a fresh `LeaseInternalResponse` (`http.go:269-271`), whose
 repeated `bytes` field protobuf-go copies out of the body (`consumeBytesSlice`, `internal/impl/codec_gen.go:5577`:
-`append(emptyBuf[:], v...)`; `notes/etcd-dist-f7-fork/unmarshal_alias_test.go`), and nothing else keeps the decoded
+`append(emptyBuf[:], v...)`, whatever the `AliasBuffer` flag, which `proto.Unmarshal` never sets; an empty key is
+`emptyBuf[:]`, of capacity 0, owning nothing; `notes/etcd-dist-f7-fork/unmarshal_alias_test.go`), and nothing else keeps the decoded
 message; a key is at most a request's size. Nothing is stated of its TTL or which keys: on the leader it looks the lease up again (`Lookup`,
 `Remaining`, `TTL`, `Keys`, `Demoted`, after `waitAppliedIndex`), on a follower it asks the leader
 (`waitLeader`, `leasehttp.TimeToLiveHTTP` to each of its peer URLs, until the request's timeout),

@@ -207,3 +207,7 @@ only trusted text changes are the two approved ones (change 1 `EtcdServer.leaseT
 - **g. Not started**: full build, `etc/gates.sh` in full (with `LAKE_OPTS=--packages=.lake/package-overrides.json`
   on fk-lean2), `axiom-tok-check.py --check` (the two changed axioms' keys), `tcb-report --check` (names
   unchanged expected; `foreignReads.law` is a hypothesis, not an axiom), then push.
+- **Review 1 done** (after K-2): `notes/axiom-review/f7fork-leasettl-keys-contract.md`, SOUND (tests in
+  `f7fork-leasettl-keys-gotest/`, all pass: no key aliases the body, even with `UnmarshalAliasBuffer`); its one nit
+  (a docstring line range, 268 → 269) applied. Rows in `notes/axiom-review/README.md`/`notes/audit.md` not added
+  yet. Next: review 2.
