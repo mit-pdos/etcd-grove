@@ -2688,7 +2688,7 @@ inclusions, and any names will do. But every `kvOrchPre`/`kvR` reading only `hG.
 have to be checked defeq across `L`s. Option (a) avoids both: etcd-grove-03 restates `kvOrchPre`, `kvNodePre`,
 `kvR`, `kv_start` and `kv_start_deployment` at `[Gg : GooseGlobalGS]`, as N5's `memberShareD` is.
 
-### 21.2 Session 2 (2026-11-26, from `5a3055d5dc`): (A) to (D) written, UNBUILT (VM build queued)
+### 21.2 Session 2 (2026-11-26, from `5a3055d5dc`): (A) to (D), `etcd_kv_safe_nocrash` proved
 
 **Merged:** etcd-grove-03's `etcd-safe-m1` @ `9e1045a209`, which brings the CallDist fix, the shares at
 `[Gg : GooseGlobalGS]` (option (a): `kvR`, `kvOrchPre` over `linkvtxnSG`, `kvNodePre` global plus a local
@@ -2726,3 +2726,24 @@ non-atomic invariants (`NaInvF`), and the instance `etcdDistGF_naInvG`, because 
   - `kvShares`: the machines' shares.
   - `etcdKvBootNC_holds : EtcdKvBootNC`.
   - `theorem etcd_kv_safe_nocrash : etcd_kv_safe_nocrash.spec`.
+
+**Also merged:** etcd-grove-03's `etcd-safe-m1` @ `11242953f7` and `etcd-safe-m1-fin` @ `e19748b443`, which carry
+dsv-vr's `Kit`/`OrchProofDefs` for P9's `remote` and `KvDefs.kvOnly_bounds` by statement (theirs kept). The
+`WellFormed` conjuncts of `compactorCfg_of_wf` and `kvOnly_shape` are also taken by statement (`grind`), not by
+position. `etc/bounds-allow.txt` gains kvremote's two machine preconditions: `kvOrchPre`'s receipt bound and
+`kvNodePreL`'s thread bound.
+
+**Checkpoint (2026-11-26 ~01:40Z): green.**
+- **Build:** the full VM build passes (`lake build`, 1189 s), as do the gen-link modes and `tier-check`,
+  `premise-witness` and `bounds-check` (`--check`).
+- **Trust base:** `tcb-report --check` passes at the updated `etc/tcb-baseline.txt` (373 axioms, 0 sorries).
+  It gains 9 axioms, which no root reached before M1:
+  - etcdhttp's `initFuncsOk` and `opaqueInitsOk`;
+  - N2's `KV_Delete_dist` and `Txn_Commit_dist`;
+  - N5's `NewServer_dist`, `NewPeerHandler_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist` and
+    `os.Getenv.wp_proofEnv`. These are reached through `member_boot_dist`, whose `AdequacyMember` had no
+    `Link` root.
+- **etcd-dist collection:** passes at its first baseline (0 → 132 axioms).
+- **`#print axioms etcd_kv_safe_nocrash`:** `propext`, `Classical.choice`, `Quot.sound` and the same 132
+  repository axioms.
+- **Not done:** the merge of `lean` and the landing; the lead decides.
