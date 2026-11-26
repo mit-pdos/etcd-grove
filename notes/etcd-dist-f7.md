@@ -209,3 +209,11 @@ calls and the proposed `NewServer`/`Serve`). The coordinator decided the fixes, 
 - `Auth_UserAdd_dist`'s `um` premise is still `um.name = name ∧ um.noPassword = false` (no `um.pwSure`, which the
   mirror `etcdUserAddSpecW` has). That asks more of the caller, which is sound. Relax it to the mirror's only if
   a caller needs it (`SetupInv`'s `hj` takes `pwSure`).
+- **Build (running at handoff, 2026-11-26)**: the fixes' build was started on fk-lean2 at `b16ade2108`
+  (`~/eg/wt/etcd-safe-f7`, through `/shared/tmp/fklean1-check.sh` with `FKLEAN_HOST=fk-lean2`). Its targets are
+  the importers' leaves of `S2Interim`/`MemberLessor`, in `/shared/tmp/f7-leaves.txt`: `AuthServeProposed`,
+  `AuthViewDist`, `KVCompactDist`, `TopLevelWitness`, `kvremote.TopLevelRobustness`, `kvremote.TopLevelWitness`,
+  `putget.TopLevelRobustness`, `putgetk.Start`. The client log is `/shared/tmp/f7-build2.log`. The result was
+  not seen before the handoff. Next session: read the log, fix any error, and rebuild the same targets.
+  Possible risks: `ofKV`'s `⟨0, …⟩` literal (12 fields) and `memberUpOnL`'s names (`mvcc.api.mvccLeases`, the
+  instance variables).
