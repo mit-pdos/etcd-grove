@@ -96,7 +96,7 @@ theorem fixZD (γk : KVNames) (γc : CellNames) (P : Option GoString) (L₀ : Li
     cellInv (GF := GF) γk γc ∗ monoListLbOwn γc.ps ([] : List Nat) ⊢
       ∀ id : w64, ⌜id ≠ W64 0⌝ -∗ (∃ σ, gsHas γc id σ) -∗ monoListAuthOwn γc.ids (1 : Qp).half ([] : List w64)
         ={⊤}=∗ (monoListAuthOwn γc.ids (1 : Qp).half [id] ∗ monoListLbOwn γc.ids [id] ∗ ⌜id ≠ W64 0⌝) ∗
-          writeAuD γk P (.put (grantPutOp zK id)) L₀ (fun _ => psAtLeast γc 1) := by
+          writeAuD γk P (.put (putWireOf (opPutModel zK go!"v" [withLeaseM id]))) L₀ (psAtLeast γc 1) := by
   iintro ⟨#Hinv, #Hp0⟩ %id %hid ⟨%σ, Hg⟩ HR
   iunfold gsHas at Hg
   icases Hg with ⟨%gs, #Hgs, %hgs⟩
@@ -111,7 +111,7 @@ theorem fixZD (γk : KVNames) (γc : CellNames) (P : Option GoString) (L₀ : Li
     iframe Hlb1
     ipureintro; exact hid
   iunfold writeAuD
-  simp only [grantPutOp, leasePut_wire]
+  simp only [leasePut_wire]
   ihave #Hpz := cell_putZAu γk γc id gs hgs (opGrantD γk P (.put (leasePutOp zK id)) L₀) $$ [Hlb1]
   · iframe #
   iexact Hpz
@@ -126,7 +126,8 @@ theorem fixAD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : List auth.Au
       ∀ id : w64, ⌜id ≠ W64 0⌝ -∗ (∃ σ, gsHas γc id σ) -∗ monoListAuthOwn γc.ids (1 : Qp).half [Lz]
         ={⊤}=∗ (monoListAuthOwn γc.ids (1 : Qp).half [Lz, id] ∗ monoListLbOwn γc.ids [Lz, id] ∗
             ⌜id ≠ W64 0⌝) ∗
-          writeAuD γk (some go!"u") (.put (grantPutOp aK id)) Lset (fun _ => psAtLeast γc 2) := by
+          writeAuD γk (some go!"u") (.put (putWireOf (opPutModel aK go!"v" [withLeaseM id]))) Lset
+            (psAtLeast γc 2) := by
   iintro ⟨#Hinv, #Hps1, #Hz⟩ %id %hid ⟨%σ, Hg⟩ HR
   iunfold gsHas at Hg
   icases Hg with ⟨%gs, #Hgs, %hgs⟩
@@ -141,7 +142,7 @@ theorem fixAD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : List auth.Au
     iframe Hlb1
     ipureintro; exact hid
   iunfold writeAuD
-  simp only [grantPutOp, leasePut_wire]
+  simp only [leasePut_wire]
   ihave #Hne := uPutA_neqD γk γz hs Lset r hadm hst Lz id hLz $$ Hz
   ihave #Hpa := cell_putAAu γk γc Lz id gs ps1 hgs h1 (opGrantD γk (some go!"u") (.put (leasePutOp aK id)) Lset)
     $$ [Hlb1]
