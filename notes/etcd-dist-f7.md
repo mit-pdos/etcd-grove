@@ -1780,3 +1780,55 @@ Next session: take `threadTok`/the owner's handle instead (CLAUDE.md "Bounds"), 
 - Linked in `PrincipalsLinked`: `wp_newClientA`, `wp_newUserClient` (over `New_user_dist`), `wp_principalClient`,
   `wp_Work_dist`, `wp_principalOp`, `wp_NodeMainAuth`. Built on fk-lean1; tier, lease-order, bounds, dist-axiom-diff ok.
 - Next: link `RunAuth` at `principalsShare`; the lead's approval of the widening.
+
+### Handoff W-6 (2026-11-26; S12: `RunAuth` linked; the auth boot planned, `MainReady`'s auth arm proved)
+
+- **Linked** (`client/RunAuthLinked.lean`, linking): `RunAuth.spec := RunAuth.specWith principalsShare` (Spec
+  `RunAuth.lean`); `wp_SetUpDist` (`SetUp.wp_proof_dist` over `KV_PutOn_dist` and the five `Auth_*_dist` interim
+  axioms), `wp_barriersA` (over `KV_GetOn_dist`), `wp_RunAuth` (over `wp_remotePrincipals`, `WatchOn_dist` the lead's
+  interim axiom). Built on fk-lean1; tier, lease-order, bounds (389/389) ok.
+- **New, in reach** (`client/AuthShares.lean`, defs): `authShare eps ns` (RunAuth's precondition minus its
+  machine-local parts, at `Gg`) and `authNodePre addr eps` (`nodeAuthPre` minus its token and pure machine facts),
+  `nodeAuthPre_of`; `MainReadyAuth.spec`/`.wp_proof` (MainReady's kind-5 arm from `authShare`, over `NodeCount` and
+  `RunAuth.spec`), linked as `wp_MainReadyAuth`.
+
+**What `EtcdAuthBootNC` still needs** (the auth-off boot `etcdBootNCOff_holds` as the template: start, members'
+`member_boot_dist`, `orchBoot`/`nodeBoot` over the full dispatch):
+1. **Members**: nothing. `server.member_boot_dist` already takes any `lmOf d` with `lmOf_auth_revocable` (F7 S2's
+   `MainLogger` covers auth-on members); the auth class reuses it unchanged.
+2. **The auth-on start** (`etcd_start` takes `ha : auth = false`; an `etcd_startAuth` for `[auth]`):
+   a. **Contract gap (blocking): the rlog tie.** `RunAuth.spec` (and `akDistEnv`) need `γR.raft.log = Γ.kv.rlog`.
+      With auth on nothing states it: `kvInvOn` does not mention `rlog` (auth off, `kvInv`'s pure part has
+      `γk.rlog = γ.raft.log`), and `srvClusterBootOn_allocG` builds `γk0` with `rlog := γ.log` but does not export
+      it. Minimal change: add `γk.rlog = γ.log` (`rfl`) to `srvClusterBootOn_alloc`/`_allocG`'s pure post
+      (`NewServerAllocOn.lean`), carry it in `clusterAllocN`'s auth arm (`⌜γk.rlog = γ.log⌝ ∗ etcdKV … ∗
+      authHistView …`), and have `clusterStartDC` keep that arm (it drops it, `ite_drop_left`). Cost: a statement
+      change under `NewServerAllocOn` rebuilds ~1120 modules (`importers.py --count`); callers to adapt
+      (`AllocNOn`, `AllocN`, `MainAlloc`, `Alloc3On`, `ClusterStartD`'s three).
+   b. Then, at `c` from `clusterStartDC`, `Γ := c.view true`, `γR := ⟨c.γ, [], W64 0⟩`: `kvInvOn` from
+      `clusterFactsOf c true` (`kvInvM_true`), `srvReqLogLb γR []` (`srvReqLogLb_nil`), `leaseMember`s
+      (`leaseMembers_of`), `σ₀ := kvStateOf (kvModelOn c.γk srvAuthSt0 (bootEntries …))` with every change empty (a
+      `bootSt_facts` for `kvModelOn`, to prove), au injective (`c.NamesInj.2`).
+   c. **The principals** (as `watch_start`): `mapCtx_alloc` over `ns` (one call each, `budUnits_one`),
+      `addrs_set_proto` at `principalSvcG Γ γR eps` for every `a ∈ ns`, `ns.length = 4` from `WellFormed`
+      (`nodeCount` of `Auth`). Gives `authShare eps ns` and every `authNodePre a eps` (persistent `svcAddr`).
+3. **The dispatch shares (the lead's `Shares.lean`; proposed, not edited)**:
+   a. `wlShare`'s kind 5 `False` → `authShare (Gg := Gg) eps ns` (law `wlShare_auth` changes accordingly).
+   b. **Contract gap (rotation)**: `NodeMain.spec` gives `wlNodeShare w c addr (rotateL epsL c)`, but the auth arm
+      hands `principalOp` its `eps` unrotated (`nodes.go`), and `principalSvcG Γ γR eps` is at the unrotated list
+      (the orchestrator's `principalsShare` is at `d.Endpoints()`). Proposed: `wlNodeShare` takes the unrotated
+      endpoints and rotates inside its kv/writer arms (`kvNodePre c addr (rotateL eps c)`, `writerNodePre addr
+      (rotateL eps c)`), kind 5 `authNodePre addr eps`; `nodeShareF` and `NodeMain.spec` pass `epsL` (the kv and
+      writer arms then `rw` once); `plainEndpoints eps` (unrotated) from `members_plain`.
+4. **The orchestrator's arm**: `MainReady.wp_proof`'s kind-5 bullet becomes `MainReadyAuth.wp_proof`'s
+   (`rw [wlShare_auth hk]; exact`-style). **Contract gap (instances)**: `RunAuth.spec` (and `MainReadyAuth.spec`)
+   bind `[errors.Assumptions] [fmt.Assumptions] [rpctypes.Assumptions]`; `MainReady.spec`, `MainDeployment.spec`,
+   `Orchestrator.spec` do not. Proposed: the three as `∀`-binders of `MainReady.spec` (threaded through
+   `MainDeployment`/`Orchestrator` and `orchBoot`, which has them from `EtcdBootNCAt`). Same for `RunAuthLease`.
+5. **The principal machines' arm**: `NodeMain.wp_proof`'s kind-5 bullet from `NodeMainAuth.spec` (linked,
+   `wp_NodeMainAuth`) and `nodeAuthPre_of` once 3b lands; `DispatchLinked` passes `wp_NodeMainAuth`,
+   `wp_MainReadyAuth`.
+6. **Assembly**: `etcdAuthBootNC_holds` as `etcdBootNCOff_holds` with `etcd_startAuth`; `etcd_safe_nocrash`
+   loses `Hauth`.
+
+Order: 2a is the risk and the cost (a server-level statement change); 3 and 4 are the lead's definitions.

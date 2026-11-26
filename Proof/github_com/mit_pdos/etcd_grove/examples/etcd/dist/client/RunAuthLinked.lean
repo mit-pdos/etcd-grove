@@ -4,12 +4,13 @@
 
 `RunAuth.spec` (`RunAuth.specWith` at `principalsShare`) from `RunAuth.wp_proof`, over `PrincipalsLinked`'s
 `wp_remotePrincipals` and `wp_newClientA`/`wp_newUserClient`, the dist set-up (`SetUp.wp_proof_dist` over the
-auth-on interim contracts), the barriers and the history checks. `WatchOn_dist` stays the lead's interim axiom.
+auth-on interim contracts), the barriers and the history checks; and `MainReady`'s auth arm (`wp_MainReadyAuth`). `WatchOn_dist` stays the lead's interim axiom.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.MainReadyAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.barrier
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.barriers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.collectFor
@@ -76,6 +77,10 @@ theorem wp_RunAuth : RunAuth.spec (GF := GF) (hG := hG) :=
     (WithPrefix.wp_proof getPrefix.wp_proof) WithRev.wp_proof WithRange.wp_proof
     (collectFor.wp_proof _root_.Perennial.time.wp_AfterFunc _root_.Perennial.time.Timer.wp_Stop etcdstart.wp_Collect)
     etcd_auth.wp_CheckHistory etcd_auth.wp_LastIn etcd_auth.wp_Permitted
+
+/-- **`MainReady`'s auth arm, linked** (from `authShare`; W-6: `wlShare`'s kind-5 candidate). -/
+theorem wp_MainReadyAuth : MainReadyAuth.spec (GF := GF) (hG := hG) :=
+  MainReadyAuth.wp_proof wp_NodeCount wp_RunAuth
 
 end links
 
