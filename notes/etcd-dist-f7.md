@@ -238,3 +238,96 @@ calls and the proposed `NewServer`/`Serve`). The coordinator decided the fixes, 
 - Combined proposals: `NewServer.specG_dist_proposed` at
   `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthServeProposed.lean:104`, `Serve_dist_proposed.spec` at
   `:283` (same file).
+
+## F2/F7 start side: the gate, L1, L2 (2026-11-26; the coordinator's widened brief)
+
+**Done** (branch `etcd-safe-f7`):
+- **The ordering gate** (first, as the lead asked): `etc/lease-order-check.py`, in `etc/gates.sh`'s source section with
+  its self-test. Rule: every `axiom … .wp_proof` whose `.spec` serves etcd's table (`etcdAddrAt` with
+  `etcdstart.memberUp`/`memberUpOn`) must mention `Γ.ls mid`; while one does not, no module may import (directly or
+  not) a module declaring one of the six `Γ.ls`-reading lease axioms. An import is a link: the six are imported by
+  nothing today (their users take their specs as hypotheses). Source only, ~6 s. Today: `Serve_dist` does not tie,
+  nothing imports the six, so `lease-order: ok`; the self-test checks that a synthetic link fires it.
+- **L2:** `lease.lessorSlot_alloc E used` (`LessorSlot.lean`): a lessor name outside `used` (strong allocation, for the
+  start's injective `ls`), its half at `∅` and its slot. `newLessor_alloc` now calls it.
+- **L1:** `etcd_dist.authNamesFreshG_alloc` (`dist/MemberNames.lean`): fresh auth names with their authorities, from
+  `authHist_alloc`, `tokAlloc`, the rights' empty map and a mono-nat. `authNamesFreshG` is `authNamesFreshD`'s body at
+  `[AllG GF]` (the proposal's is at a `HeapGS`, which the start, over `GooseGlobalGS`, does not have);
+  `authNamesFreshG_iff` proves them equal at a `HeapGS`. When the proposal is adopted, state `NewServer_dist`'s
+  `"Hγa"` with `authNamesFreshG` (or define `authNamesFreshD` at `AllG`) so that `memberShareD` can carry it.
+- Built on fk-lean2 (`MemberNames`, `NewLessorAlloc`: exit 0).
+- Packet rows: `notes/etcd-dist-f9-f2f7-rows.md`.
+
+### Replacing the two axioms: the conflict (not done; for the lead)
+
+Replacing `Serve_dist` by `Serve_dist_proposed` and deleting the current one breaks two other results on the branch,
+which serve through `Serve_dist` with `memberUp` from an **in-process** start:
+- **putget** (`putget/Member.lean:53`, `wp_Serve_dist`; `putget/AdequacyMember.lean:161` passes
+  `etcd_dist.Serve_dist.wp_proof`): its member gets `memberUp` from `etcdstart.StartServer.spec` (proved, over the
+  in-process `NewServer.specG`, whose lessor name is `NewServer`'s own: `∃` in the post).
+- **putgetk** (`putgetk/Member.lean:221`; `AdequacyMember.lean:213`): its member gets `memberUp` from the hypothesis
+  `etcd_dist.StartMember_dist.spec` (`Spec/.../dist/StartMemberDist.lean:90`, the post
+  `∃ γn, memberUp s ρ E₀ lg γn id lm`), a premise of putgetk's results (`putgetk/Start.lean:152,196`).
+The proposed `Serve_dist` needs `memberUpL … (Γ.ls mid)`, i.e. `mvccLeases E.γ = Γ.ls mid` for a name the start fixed in
+the view before the member ran. Neither in-process route gives that:
+- putget needs the in-process `NewServer.specG` carried to a caller's `γl` (f7-combined.md §1's retirement obligation:
+  a `specG` variant whose proof calls `lease.NewLessor.specAt`, through `NewServerAlloc`/`StartServer`), plus the slot
+  in putget's start (`memberShare`);
+- putgetk needs `StartMember_dist.spec`'s post changed to `memberUpL … γl` with the slot in its pre: a change to a
+  premise of putgetk's top-level results.
+M1 is not affected this way: its member (`server/MainLogger.lean`) calls `NewServer_dist`, whose proposed post gives
+`mvccLeases E.γ = γl`. **Options:** (a) carry the in-process `specG` to the name and change `StartMember_dist`'s text
+(putgetk's statement changes); (b) retire putget/putgetk's results (superseded by M1's) in the replacement commit;
+(c) keep them on a branch that does not take the replacement. Stopped here for the lead's choice.
+
+### L3/L4: the plan (not started)
+
+- `ClusterNames` gains `ls : w64 → GName` and `au : w64 → auth.AuthNames`; `ClusterNames.view := ⟨c.γk, c.ls, false,
+  c.au⟩` (`Γ.kv = c.γk` and `Γ.auth = false` stay `rfl`, which is all `MainLogger`/`MembersStart` use:
+  `MembersStart.lean:102`, `MainLogger.lean:155`). Every anonymous constructor `⟨γ, γk, …, reg⟩` (ClusterStart,
+  ClusterStartD, putget/putgetk starts, StartOneSlice) gains the two fields; the starts that do not allocate (putget,
+  putgetk, `etcdClusterStart`) may pass constants as `ofKV` does, since nothing they link reads them.
+- `memberShareD` gains `ghostMapAuth (c.ls id) ½ ∅ ∗ lease.lessorSlot (c.ls id) ∗ authNamesFreshG (c.au id)` and the
+  pure facts `(∀ a b, c.ls a = c.ls b → a = b) ∧ (∀ a b, c.au a = c.au b → a = b)` (the lease axioms' premise and
+  the proposed `Serve_dist`'s guarded one). Not `memberSliceOf`: putget and StartOneSlice use it too.
+- `clusterStartD` allocates them after `clusterAllocN`, by induction over `d.ids` (nodup): `lessorSlot_alloc` with
+  `used` the names so far, `authNamesFreshG_alloc`; distinct `hist` names from exclusivity
+  (`monoListAuthOwn_exclusive`). Injective over all `w64` by padding: for a non-member `x`,
+  `ls x = B + uint.nat x` with `B` above every member's name (e.g. one plus their sum), and `au x` the record with
+  every field `B' + uint.nat x` (`hist` decides `au`'s injectivity).
+- `MainLogger` passes `"Hlslot"` to `NewServer_dist` (once replaced) and drops `authNamesFreshG` (auth off: `"Hγa"` is
+  `True`); with the post's `mvccLeases E.γ = γl` it builds `memberUpL` (`MemberLessor.lean`) for `Serve_dist`.
+- M1's statement (`Spec/.../kvremote/TopLevelRobustness.lean`) names none of these (`∃ c, memberShareD …` is in the
+  proof file): it stays unchanged.
+
+### L5: the auth-on deployment path (design only)
+
+What the start and the member need for `d.cfg.auth = true`:
+1. **Configuration.** `AdequacyMember`'s `Hauth : d.cfg.auth = false` and `memberCfg_off` get an auth-on counterpart
+   `memberCfg_on`: `memberCfg` already sets `AuthToken' := "simple"`, `TokenTTL' := 300` when `Auth'`
+   (`MemberDefs.lean`), which meets `NewServer_dist`'s `on = true → AuthToken = "simple" ∧ 0 < TTL < 2^32`.
+2. **The KV names at `on = true`.** `clusterAllocN` allocates `kvInvM false …` and `ch0 = alarmChain false false false`;
+   with auth on it must allocate `kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0` with `ch0 = alarmChain true …`, and one
+   cluster history name `Γ.kv.hist` that every member's `ρ.rd.kv.hist` equals (`Serve_dist_proposed`'s
+   `Γ.auth = false ∨ ρ.rd.kv.hist = Γ.kv.hist`; `kvCongr` leaves `hist` out). `ClusterOk` then takes `on`.
+3. **The member's auth names.** `authNamesFreshG (c.au id)` from `memberShareD` (L1/L4), turned into `authNamesFreshD`
+   (`authNamesFreshG_iff`) for `"Hγa"`; `c.au` injective (L4's padding) for the guarded premise. The view's `auth` field
+   becomes the deployment's: `ClusterNames.view` takes `d.cfg.auth` (or `ClusterNames` gets an `auth` field).
+4. **No TLS identity.** `memberUpOnL` needs `□ (srvTLSId s -∗ False)`: from `NewServer_dist`'s post
+   `srvCfgFieldAddr srv "ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled'` and the deployment's configuration
+   setting it `false`.
+5. **`memberUpOnL`** built as authkv's `startServer` does (`memberUpOn_intro`'s parts), plus `mvccLeases E.γ = γl`.
+Statements: no `TopLevelRobustness` statement changes. M1's (`kvremote`) keeps `Hscope : KvOnly d ∧ d.cfg.auth = false`;
+the full `etcd_safe_nocrash` statement has no auth scope, and L5 is what lets its proof drop `Hauth`. The auth-on
+workloads' statements (`auth`, `authLease`) are F7's new ones.
+
+### Handoff (2026-11-26, this session; context limit)
+
+- Head: see `git log -1 etcd-safe-f7`. Built: the gate (source-only, ok), L1, L2.
+- Next: the lead's choice on the conflict above; then the replacement commit (both axioms, the current `Serve_dist`
+  deleted, `axiom-tok-allow.txt`'s `Serve_dist` entries re-keyed to the new spec, `tcb-baseline.txt` unchanged in
+  names), L3/L4 as planned, the M1 member (`MainLogger`) fixed; then link leaseRead/leaseCatchup/leaseExpiry as
+  N7-kv linked kv (the gate then passes because `Serve_dist` ties `Γ.ls mid`), and `etc/tcb-report.py --check --update`
+  plus the collections for exactly the six lease axioms.
+- Build: fk-lean2, `~/eg/wt/etcd-safe-f7` (detached at the pushed head), script `~/eg/logs/f7l-build.sh MODULES…`
+  (flock, MemoryMax=55G), log `~/eg/logs/f7l-build.log`.
