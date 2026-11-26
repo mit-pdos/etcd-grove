@@ -4383,6 +4383,13 @@ When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` b
   among them are M1's KV/Serve/NewServer/PeerServe entries and several grpc/etcdserver trust axioms whose walks changed
   in the merges (F7's replaced `Serve_dist`/`NewServer_dist`; wenv's `isNewClient`). Each entry is to be re-derived
   from its walk and triaged, never copied (open item; the F9 packet's).
+  - **Resolved on `etcd-safe-full-atok/2026-11-26`** (`notes/axiom-review/full-line-axiom-tok.md`). Only nine axioms
+    are roots, all new: `KV_Compact_dist` and F2's six (`8/1`, the key of `KV_Put_dist`'s entry), and `Watch_dist`
+    and `RequestProgress_dist` (`8/0`, traced by hand: the stream's goroutine calls the connection with its own fork
+    token; for an independent triage).
+  - The other 40 (38 plus the capped `NewServer_dist`/`Serve_dist`) were only the rule-5 cascade of their taint. No
+    existing entry's walk changed: no re-key.
+  - Plain lean `93687cba82` is green.
 - gen-link: every other Link matches; five Links of other projects (bbolt, kvraft, WAL) differ
   from what `gen-link` prints in this worktree with no `.lake`. They are identical to `lean`'s files, so the difference
   comes from this environment.
