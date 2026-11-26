@@ -6710,3 +6710,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** The proofs read `Adm` only through `ReachIn.toP` and `nodeOk_quiet`, both `Adm`-generic: no proof edit
   beyond the binder.
 - **Decision.** The Antithesis lead (S1, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S4, part 1): `RawNode.Ready`'s post gains the pre-candidate's pre-vote flag and the read states (#33)
+- **Spec.** RawNodeAbsSpecs.lean, `RawNode.Ready.form`'s `%Hout` (under `∀ md, S md`) gains
+  `(roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states` (a strengthening).
+  Spec/…/RawNode__readyWithoutAccept.lean: the named state's pure facts gain `sts = s.rd.states ∧
+  (s.role = .preCandidate → s.prevote = true)` (a strengthening of the internal spec; readers other than
+  RawNode__ReadyAbs drop the conjunction with `-`, unchanged).
+- **Defect.** The drain's `ReadyOutP` (Sim) needs a reported pre-candidate's pre-vote flag on (`R.k n`, via
+  `RsView`'s `rs.k`) and the `Ready`'s read states to be the node's; the post said neither (`ReadyOut` has no
+  read clause).
+- **Evidence.** readyWithoutAccept already instantiated `sts := s.rd.states` and had `Hprecand`
+  (`ownRaftPhysC_precand`) in scope; RawNode__ReadyAbs reads `rs.k.prevote = s.prevote` off the scope's `KTie`.
+- **Decision.** The Antithesis lead (S4 (a)(b), approved). No axiom, no top-level premise.

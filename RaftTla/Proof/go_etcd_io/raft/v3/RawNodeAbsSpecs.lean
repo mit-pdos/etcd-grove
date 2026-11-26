@@ -438,7 +438,8 @@ abbrev RawNode.HasReady.spec_of_abs.law : Prop :=
 /-- `RawNode.Ready.spec`'s triple over `R`: the node after at `r'` (`rAccepted r` under `S`), its queue `qs'`, its
 in-progress boundary `ip'`; and (under `S`) the queue the outbox's self-addressed messages, the
 `Ready`'s fields `ReadyOut`, the first entry at the boundary `ip + 1` and the boundary moved to the
-log's end. -/
+log's end; (antithesis parity B1) a reported pre-candidate's pre-vote flag on, the read states handed out
+the node's. -/
 abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
     (S : RnMode → Prop) : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (r : RState)
@@ -500,7 +501,10 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState 
         -- (#33 S4, 2026-11-24) every message handed out reads as a protocol message or (antithesis
         -- parity B1, Q3) as a transfer message (`xmsgOf`), each of those against the node (`XReadyOk`)
         (∀ q ∈ ms, (absMsgOf q.st).isSome ∨ (xmsgOf q.st).isSome) ∧
-        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ id r.p x)⌝ }}
+        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ id r.p x) ∧
+        -- (antithesis parity B1, group E's S4) the role reported a pre-candidate only with the node
+        -- constant's pre-vote on, and the read states handed out the node's
+        (roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states⌝ }}
 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=

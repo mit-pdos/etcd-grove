@@ -824,7 +824,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     rotate_left
     · iframe Hsc
       isplitr
-      · ipureintro; exact ⟨by subst Hps; rfl, Hip, Hmsperm, Hto, Hscf⟩
+      · ipureintro; exact ⟨by subst Hps; rfl, Hip, Hmsperm, Hto, rfl, Hprecand, Hscf⟩
       · iexact Hssr
     iexists cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]

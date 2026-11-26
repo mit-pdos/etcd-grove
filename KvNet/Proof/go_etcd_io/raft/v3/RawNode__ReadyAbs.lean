@@ -177,7 +177,7 @@ theorem RawNode.Ready.wp_absProof
     cases ht : md.transfer
     · exact absurd (mtypeOf_none_of_xmsgOf hx) (h4 ((Hscope1 md h).1.2.2.2.2.2.1 ht))
     · exact xReadyOk_of h1 h3 ((Hscope1 md h).2.2.2 ht).2.1 hx
-  obtain ⟨Hps, Hip, Hmsperm, Hto, Hscf⟩ := Hrw
+  obtain ⟨Hps, Hip, Hmsperm, Hto, Hsts, Hpc, Hscf⟩ := Hrw
   ihave %Hssn1 := softStateIs_null rd.SoftState' ss1 $$ Hss1
   -- (2026-11-01, durability stage II (k)) the hand-out is the cut: the batch queued in `g`, at `s`
   ihave #HhardO := hsOptC_hsOpt _ _ $$ Hhard
@@ -242,7 +242,14 @@ theorem RawNode.Ready.wp_absProof
     fun h => toPState_lead_of_stateW64 s (Hrole1 ▸ h)⟩, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
     Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew,
-    Hty1, Hxr'⟩
+    Hty1, Hxr', fun h => ?_, by rw [Hsts, toRState_p, toPState_rd_states]⟩
+  -- (antithesis parity B1, group E's S4) the node constant's pre-vote flag the raft state's (`KTie`)
+  have hk : NodeK.mk s.prevote s.cq s.sdr = rs.k := (Hscope1 md hmd).2.2.1
+  rw [← hk]
+  exact Hpc (by
+    rw [Hrole1] at h
+    cases hr : s.role <;> simp_all [stateW64, StateFollower, StateCandidate, StateLeader,
+      StatePreCandidate])
 
 end proof
 

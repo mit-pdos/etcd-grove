@@ -101,6 +101,9 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
         ⌜toRState rs r.fp s = r ∧ uint.nat s.logst.inprogress = ip + 1 ∧
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
+          -- (antithesis parity B1, group E's S4) the read states handed out the node's, and a
+          -- pre-candidate's pre-vote on (`ownRaftPhysC_precand`)
+          sts = s.rd.states ∧ (s.role = .preCandidate → s.prevote = true) ∧
           (∀ md, sc = some md → rs.delivered ++ ce <+: r.p.log ∧
             (rs.delivered ++ ce).length ≤ uint.nat r.p.commit ∧
             -- (#33 S4, 2026-11-24) every message reads as a protocol message: of a type the model
