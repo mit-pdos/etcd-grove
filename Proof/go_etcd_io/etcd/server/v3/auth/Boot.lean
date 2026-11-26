@@ -108,6 +108,7 @@ theorem authBoot_given (γa : AuthNames) :
       capNext (.on γa) [bootState] (bump bootState) ∗
       (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
       authPubQ γa (1 : Qp).half 0 := by
+  unfold authBootFresh
   iintro ⟨Hh0, Hc, Hp, He, Hk, Hcap, Hbk, Hsucc, Hrt⟩
   icases (authHist_full γa [bootState]).1 $$ Hh0 with ⟨Hh0, Hq⟩
   icases (ghostVar_split_half γa.cur 1 bootState).1 $$ Hc with ⟨Hc1, Hc2⟩
