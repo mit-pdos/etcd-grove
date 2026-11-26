@@ -2902,11 +2902,30 @@ N9 piece) would own `cw/` the same way; its `Compact` must keep the other prefix
 current key-value). A deployment with a sole writer (kv, watch, cache, auth) gives that workload the half whole
 (M1's `kvR` sysState).
 
-### 23.5 State
+### 23.5 State (2026-11-26)
 
-See the commits on the branch for the build state of each module (the VM was held for M1's build; proofs
-written, building in this order: `KVPfxDist`, `KVWorkDefs`, `KVCallsDist`, the helper proofs, `RunPutGet`,
-`RunDurable`, `KVWorkLinked`).
+**Proved, built on the VM (targeted builds), no `sorry`, no new axiom:** `KVPfxDist`, `KVWorkDefs`,
+`KVCallsDist` (`wp_cliPut`; the get is F5's `CompactCallsDist.wp_cliGetR`, `at_readRev_zero` converts its
+selection to the latest state's), `newClient`/`checked`/`ended` (N10a's copies, verbatim), `durableKey`,
+`durableValue`, `RunPutGet.wp_proof`, `RunDurable.wp_proof`, and `KVWorkLinked` (`wp_RunPutGet`, `wp_RunDurable`
+at `KV_Put_dist.wp_proof`, `KV_Get_dist.wp_proof`, `Client.Close.wp_proof`: axioms already in the baseline).
+`etc/tier-check.py --check` ok; `etc/bounds-check.py --check` ok (390; `etc/bounds-allow.txt` lists the three
+`threadBound` premises of `dist/client`'s `newClient`/`RunPutGet`/`RunDurable`, discharged by the machine's boot).
+
+**Merged in:** `etcd-safe-f5/2026-11-26` @ `ae9e3d338e` (F5's compact, its history-carrying `KVPfxDist` additions,
+`clientCore_of_new`, `wp_cliGetR`); N9a's own `wp_cliGet` is gone (one copy).
+
+**Proof notes.** The orchestrators allocate their invariants inside the WP, so the allocation lemmas
+(`pgInv_alloc`, `durInv_alloc`, `durFiredAll_none`, `durFiredAll_mono`) are stated at `HeapGS` (a global
+invariant's fupd is no modality of the WP, as F5's `cwInv_alloc`). `word` fails ("unknown free variable") in
+`RunDurable`'s loop contexts; its arithmetic is in standalone lemmas (`w_nat_lt`, `w_nat_succ`, ...). A loop
+nested in a loop shadows `Hif`: the outer one is saved (`HifR`).
+
+**Left:** the `tcb-report`/collection check (needs a full build of the roots; not run, per the build
+budget), STATUS; at F8's merge the adaptations its line has (newClient's extra `cfg` conjunct, F7's
+`clientCoreAt_of_new` for `clientCore_of_new`, `DialWithBalancerBody` gone from `KVWorkLinked`), and
+`etcd-safe-kvgete`'s `KV_Get_dist` error arm (`statusErrOk`), which `wp_cliGetR`'s callers drop. N7's per-kind
+dispatch passes `putgetShare`/`durableShare` and `levelTok 0`; N6's start allocates them (§23.4).
 
 ## 26. F5: compact (2026-11-26, branch `etcd-safe-f5/2026-11-26`)
 
