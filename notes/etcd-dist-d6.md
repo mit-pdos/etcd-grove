@@ -2069,6 +2069,65 @@ top-level change. Nobody applies `memberGen_crash.law` yet; whoever does passes 
 
 **Next T10 items** (not started): P5's certificate route and the `consInv` image row (session 3's approvals).
 
+### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
+
+**The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
+"Decision", with an "Applied" line).
+
+**Step 1 (row-agnostic users generic over the row): written, build pending** (`/shared/tmp/t10-s10-build3.log`, targets
+`/shared/tmp/t10s10-targets2.txt`: the 100 modules naming a changed name, `etc/importers.py --uses`). `isServerCI s γ ci
+(IR := trivial)`; section `variable {IR} [hIR : ∀ a b, Timeless (IR a b)]` in `InvServer` (`ci_get_au`, `wp_ci_*`),
+`CindexBackend` (hook section), `BuildLemmas`, `SnapSendBranch` (`commitReq_freeze`), `SnapApplyOpen` (`snap_create`;
+new `wp_ci_swapR` taking `□ IR s'.eff s'.p`, `wp_ci_swap` its trivial-row corollary), `Results` (backend section);
+`InvApply.commit_save_au` generic (it only forgets the row); the boot packets `bootBackendRows`, `bootOk`, `bootOkR`
+take `(IR := trivial)` last. **Caveat found**: the instance argument `hIR` cannot be synthesized while `IR` is an
+unassigned metavariable, and `iapply`/`wp_apply(_core)` with goal specs (`$$ [..] [..]`) turn it into a first goal
+(`istart: ∀ a b, Timeless (?m a b) is not an emp valid`). So the call sites name the row: `(IR := IR)` in the generic
+sections, `(IR := fun _ _ => iprop(True))` at the 22 trivial callers (`wp_ci_get`, `wp_ci_advance`, `wp_ci_unsafeGet`,
+`wp_ci_hookSet`, `snap_create`, `hooksOk_server_fut`, `commitReq_freeze`). Step 3 changes those to the server's row.
+*Alternative to weigh before step 3* (avoids naming the row at every call): bundle the row with its timelessness,
+`structure TRow GF where IR : w64 → w64 → IProp GF; tl : ∀ a b, Timeless (IR a b)`, `consInv γ (R : TRow GF :=
+TRow.triv)`, lemmas over `{R}`: then `R` unifies from `inv applyN (consInv γ R)` and no instance goal is left (a
+mechanical change of `InvApply`, `IR` to `R.IR`).
+
+**Step 2 (the no-lock outcomes' model fact): started.**
+- `applyConfChange` (done, in build 3): its no-lock path is the failed validation, and the skip happens inside the
+  caller's wand `Pre -∗ WP SetConsistentIndex {Adv}` (where `EtcdServer.apply` runs `skip_done`, before `Adv`
+  exists), so the wand takes `⌜membership.ccValidOn rs.bk m = false⌝` (spec and proof; the caller's two wands
+  `iintro … %_Hcv`). From it `ccRest true m rs = rs` (as `fail_tail`'s `hcr`), so the entry's `restModel` step is
+  the identity; the conf-change entry has no KV effect (`EtcdServer__apply.lean` line 76).
+- The applier (`apply.Apply.specRec`, ~40 files): its no-lock outcome is `cPost`'s `Pre` disjunct
+  (`apply/Contracts.lean:102`, `if v3 then Post ∨ Pre else Pre`), produced in `uberApplier__Apply` (`.rejected`,
+  `.skipped`), `uberApplier__dispatch`, `Dispatch{KVL,Admin}`, `ApplyFn*`, `Apply{KVL,Admin,AdminL}`, the lease
+  methods (`LeaseGrant`/`Revoke`/`Checkpoint`, `Compaction`) and the auth store's (`authReqContract`, `Post ∨ Pre`),
+  and below them in lease/mvcc (`csContractA`, `lease/MvccShapes.lean:89`). Design: the `Pre` disjunct gains a pure
+  "no effect" fact on the step, `o.logAfter log = log` and `dispatchCrev … = crev` (KV, `applyStep`'s
+  `.dispatched` case; `.skipped`/`.rejected` already have `x' = x`), the lease table and rest state unchanged
+  (`revokeIds…/grantIds…`, `revokeRest/grantRest/restAfter`); the server then gets `srvImgModel (A ++ [m]) =
+  srvImgModel A` from its existing ties (`kvModel_snoc_*`, `hmod`, `restModel_append`). Note `restAfter` does not
+  depend on the outcome (`ClusterVersionSet`/`MemberAttrSet` change `RestM` whenever dispatched): those paths must
+  take the lock, or they are a finding. **Audit of every `Pre` path** (a read-only subagent, 2026-11-26): **no finding**, no v3 path
+  returns `Pre` with a model changed. The paths: `.skipped` (no waiter, `noSideEffect`) and `.rejected` (admin check;
+  auth/corrupt/no-space) have `x' = x` and the `*A` functions the identity; `DowngradeVersionTest` (pre-v3 kind,
+  `restAfter_other`); Range and read-only txn (`commitLog log [] = log` by `backendStep`'s `txnReadonly` conjunct,
+  `applierV3backend__Txn.lean:234`); put with its lease missing and `checkTxn` errors (`.rejected .backend`,
+  `applierV3backend__Put.lean:186`, `Txn.lean:179`); `LeaseGrant` errors (`.rejected`, `LeaseGrant.lean:70`);
+  `LeaseRevoke` of a lease not live (`LeaseRevoke.lean:219`: `revokeLog` the identity by the lessor contract's `Hnd`,
+  the table filter by `Hnf`); `Compaction`'s `ErrCompacted` (`Compaction.lean:207`: `cmpRevAfter crev rev = crev`
+  from `rev ≤ crev` in `cmpAnswerIs`); the auth store's early returns and checkpoint/alarm paths are not admitted by
+  `rqOk`. Where the fact lives: only the read-only-txn one is inside `applyStep`; `Hnd`, `Hnf` and `rev ≤ crev` stay in
+  component posts or are consumed inside the proofs, so step 2 exports them up to `cPost`'s `Pre`. **Spec looseness
+  (not a Go bug, to tighten with it)**: the cluster contract `isCluster`/`isClusterRest` (`apply/Contracts.lean:593-614`,
+  `clusterApplyRest`, unproved rows of `bootClusterRows.spec`) gives `cPost b Pre Post ∗ RO (restSetVersion b s r)`,
+  allowing `Pre` with `RO` changed at `b = true`; Go always writes under the lock there (`cluster.go:473,613`), so the
+  rows should tie `Pre` to `b = false`. Also: `lessor.Revoke` with `le.rd == nil` returns without the lock and the
+  lease live (`lessor.go:339`); the contract's `rdHeld` premise excludes it and the server sets `rd`.
+- Mode `on`: not started (the row's `M` at `kvModelOn`, passed where the mode is known: `isServerM`).
+
+**Step 3**: not started.
+
+No axiom, `sorry`, trusted text, top-level premise or top-level statement changed.
+
 ### T10 status and handoff, session 9 (2026-11-26, branch `etcd-safe-t10`)
 
 **Build 4 (session 8's)**: green, exit 0 (`/shared/tmp/t10-s8-build4.log`: the 23 users of the protocol and
