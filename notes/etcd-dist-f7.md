@@ -1515,3 +1515,53 @@ fk-lean1 note: the seed copy left cache-restored `.ilean` files read-only (hard 
 rebuild of such a module fails with `permission denied` on its `.ilean`, and two concurrent Lake runs (lean-check
 opening several files) trigger it. Fix used: stop the lean-check server, delete the read-only `.ilean` files restored
 today (`find .lake/build/lib/lean -name '*.ilean' ! -writable -newermt … -delete`), check one file at a time.
+
+### Handoff PS-1 (2026-11-26; S7: the principal service, ported from the writers' pattern; WRITTEN, UNBUILT)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 as in RA-1. No `sorry`, no new
+axiom, no top-level statement changed. The session stopped at the context limit.
+
+**Merged:** the lead's `etcd-safe-full/2026-11-26` @ `8b31f9f926` into this branch (merge `28a07479c3`; clean, only
+STATUS/status-history auto-merged; one copy of each STATUS entry, history appended). **Build of the merge:** a full
+`/shared/tmp/f7ra-rb.sh` (no targets: `lake build` on fk-lean1, flock, MemoryMax=50G) was started before the pieces
+below were written (so it does not contain them); log `/shared/tmp/f7ra-full1.log` (ends `EXIT n`; at handoff it was at
+~15030/15666 jobs, no error seen). First step: read that log; rerun if it did not end `EXIT 0`.
+
+**Written, none checked by Lean** (check one file at a time, `CHECK=1 /shared/tmp/f7ra-rb.sh <file>`, in this order;
+mind the read-only `.ilean` problem of "RA-2 built"):
+1. `Proof/.../dist/client/PrincipalWire.lean` (defs): `principalWire : RWire GF GoString Bool` (one wire: its
+   values are pure, `x = mkOk go.string #w`, `v = mkOk go.bool #b`, so the share and the machine share it; the
+   writers need two); `strBytes_dec`; the global-ghost-state bodies `akHistInvG`, `authHistMarkG`,
+   `authHistFrozenG`, `authFloorDG`, `watchFloorsDG`, `akDistEnvG`; `prP Γ γR addrs w` (`akDistEnvG ∗ ⌜w ∈
+   principals⌝`), `prQ := True`; `principalSvcG Γ γR addrs := reportSvc principalWire prP prQ`; `principalsShare
+   Γ γR addrs ns` (mapCtx at `I := GoString`, `ns.length = 4`, per address `svcAddr ∗ budUnit`); `akDistEnv_eq_G`
+   (`rfl`: the step most likely to fail; if so, check which hG-section body differs, e.g. the fupd instance in
+   `authFloorD`); `principalTok Γ addrs sys` (level token, `sys` the `[]string` of `addrs`, `membersAt addrs Γ`).
+   No ghost names in the request: `akDistEnv`'s run-time names are existentials; `γR`, `addrs` are fixed with the
+   share (the start's).
+2. `Spec/.../principalCodec.lean`, `Proof/.../principalCodec.lean` (writerCodec's pattern over `Enc.Str/Bool`,
+   `NewDec`, `Dec.Str/Bool/Done`).
+3. `Spec/.../principalOp.lean`: `reportOp`'s triple unfolded (as `writerOp.spec`) at `principalWire`/`prP`/`prQ`/
+   `principalTok`; NOT proved (its proof is `etcd_auth.Work`'s dist proof).
+4. `remotePrincipals.specWith`/`RunAuth.specWith`: `PS` now `∀ [NetProtoGS] [RemoteGS], DistView →
+   ServerRaftNames → List GoString → List GoString → IProp GF` (`PS Γ γR addrs ns`; the share must name the
+   members' addresses the floors are at), both specs quantify `[ρ : RemoteGS]`; `RunAuth.wp_proof` adjusted
+   (`intro π ρ …`). New `remotePrincipals.spec := specWith (principalsShare at hG.goose_globalGS)`.
+5. `Proof/.../remotePrincipals.lean`: `remotePrincipals.wp_proof (wp_Principals) (wp_reportAll)
+   (wp_principalCodec) : remotePrincipals.spec` (two `forRange` loops as `remoteWriters`' and `auth/Run.lean`'s;
+   `reportAll` at `principalSvcG`, inputs `prIn c`, `Φ := True`; the count loop's `outs[c].(bool)` from the wire).
+   Likely fix points: the loop IH's `c`/`i` names, the `ins[c] = ps[c]` store's bounds `simp`, `simp only
+   [principalWire] at Hq` (an Iris hypothesis: use `isimp`/`iunfold` instead), the `If (oks[c]) (TypeAssert)`
+   short-circuit after `wp_auto`.
+6. `Proof/.../PrincipalsLinked.lean` (linking): `wp_principalCodec`, `wp_remotePrincipals`.
+
+**Not done:** build and fix the above; `tier-check`, `lease-order`, `bounds-check` (`remotePrincipals.lean`'s
+`threadBound` premise may need the `spec-thread` allow line of `etc/bounds-allow.txt`, as `remoteWriters`');
+NodeMain's auth arm (`NodeMainWatch` as template: `ServeClient` with `principalOp`, `principalCodec`, `principalTok`);
+`etcd_auth.Work`'s dist proof; `RunAuth` linked at `principalsShare`.
+
+**Contract gap found:** none against the Go code: `principalOp`/`remotePrincipals` match the writer pattern
+(`Report`/`reportAll`/`ServeClient`), except that the principal's client is made per call from `sys = eps`
+(`principalClient`), not once by `NodeMain`, so `principalTok` holds the addresses, not a client; and
+`remotePrincipals` sends `auth.Principals()` (4) to `nodes`, so `reportAll`'s `xs.length = ns.length` needs
+`ns.length = 4`, which `principalsShare` carries (the deployment's `NodeCount(Auth) = 4`).

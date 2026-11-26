@@ -121,7 +121,8 @@ set_option maxHeartbeats 6400000 in
 set_option maxRecDepth 10000 in
 /-- See the file header. -/
 theorem RunAuth.wp_proof
-    (PS : ∀ [NetProtoGS], DistView → ServerRaftNames → List GoString → IProp GF)
+    (PS : ∀ [NetProtoGS] [github_com.mit_pdos.etcd_grove.examples.lib.remote.RemoteGS],
+      DistView → ServerRaftNames → List GoString → List GoString → IProp GF)
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
     (wp_SetUp : etcd_auth.SetUp.spec_dist (GF := GF) (hG := hG))
     (wp_barriers : barriers.spec (GF := GF) (hG := hG))
@@ -141,7 +142,7 @@ theorem RunAuth.wp_proof
     (wp_LastIn : etcd_auth.LastIn.spec (GF := GF) (hG := hG))
     (wp_Permitted : etcd_auth.Permitted.spec (GF := GF) (hG := hG)) :
     RunAuth.specWith (GF := GF) (hG := hG) PS := by
-  intro π _ _ _ Γ eps nodes addrs ns ready γR σ0 hV Htb hAs hne hauth hγR hau hσ0
+  intro π ρ _ _ _ Γ eps nodes addrs ns ready γR σ0 hV Htb hAs hne hauth hγR hau hσ0
   wp_start as ⟨Hlt, #Heps, #Hnodes, #Hms, #Hready, #HkvI, #HL0, HkV, Hview, HPS⟩
   ihave %Hlen := ownSlice_len $$ Heps
   have hpos : 0 < addrs.length := List.length_pos_iff.2 hne

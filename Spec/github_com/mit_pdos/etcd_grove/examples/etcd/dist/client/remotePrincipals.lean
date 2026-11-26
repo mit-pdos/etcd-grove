@@ -5,15 +5,15 @@ machines** (F7 stage S6, `notes/etcd-dist-f7.md`, "Handoff RA-1"): each principa
 to its client machine `nodes[c]` (`remote.Report` with `principalCodec`, all at once, `reportAll`), which runs
 `auth.Work` through a client of its own (`principalOp`); the result counts the machines that answered.
 
-**The triple, over the principal service's share `PS`** (`specWith`; not yet defined: the principal service, its
-wire and `principalsShare` are this spec's open piece, as `writersShare` is `remoteWriters`'): from the share at
-the addresses `ns` and the principals' environment `akDistEnv addrs Γ γR` (persistent; what each machine is given
-with its call), `remotePrincipals` returns, the level token threaded. The orchestrator needs nothing of the
+**The triple, over the principal service's share `PS`** (`specWith`; its instance is `remotePrincipals.spec`, at
+`principalsShare`, `PrincipalWire.lean`, as `writersShare` is `remoteWriters`'): from the share at the members'
+client addresses `addrs` and the machines' addresses `ns`, and the principals' environment `akDistEnv addrs Γ γR`
+(persistent; what each machine is given with its call), `remotePrincipals` returns, the level token threaded. The orchestrator needs nothing of the
 answers: the history check rests on `akHistInv`, which every principal's write keeps.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthRunDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalWire
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Base
 
 @[expose] public section
@@ -26,6 +26,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Net client go_etcd_io.etcd.server.v3.etcdserver
 open etcd_dist
+open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -39,13 +40,18 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev remotePrincipals.specWith
-    (PS : ∀ [NetProtoGS], DistView → ServerRaftNames → List GoString → IProp GF) : Prop :=
-  ∀ [π : NetProtoGS] (nodes : GoSlice) (ns addrs : List GoString) (Γ : DistView) (γR : ServerRaftNames),
+    (PS : ∀ [NetProtoGS] [RemoteGS], DistView → ServerRaftNames → List GoString → List GoString → IProp GF) :
+    Prop :=
+  ∀ [π : NetProtoGS] [ρ : RemoteGS] (nodes : GoSlice) (ns addrs : List GoString) (Γ : DistView) (γR : ServerRaftNames),
   threadBound GF ≤ 2 ^ 30 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      levelTok 0 ∗ nodes ↦*□ ns ∗ PS Γ γR ns ∗ akDistEnv addrs Γ γR }}
+      levelTok 0 ∗ nodes ↦*□ ns ∗ PS Γ γR addrs ns ∗ akDistEnv addrs Γ γR }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.remotePrincipals)) (Val #nodes))
   {{ (n : w64), RET #n; levelTok 0 }}
+
+/-- **The triple at the principal service's share** (`principalsShare`, at the machine's global ghost state). -/
+abbrev remotePrincipals.spec : Prop :=
+  remotePrincipals.specWith (fun Γ γR addrs ns => principalsShare (Gg := hG.goose_globalGS) Γ γR addrs ns)
 
 end spec
 
