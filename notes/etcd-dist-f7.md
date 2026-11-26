@@ -386,3 +386,56 @@ Targets: `dist.server.ClusterStartD`, `dist.server.MainLogger`, `dist.kvremote.T
    - `axiom-tok-allow.txt` is re-keyed.
 4. Link leaseRead, leaseCatchup and leaseExpiry. Update the tcb baseline and collections for exactly the new axioms. Run
    `etc/lease-order-check.py`, `etc/tier-check.py --check` and `etc/tcb-report.py --check`.
+
+### Handoff 3 (2026-11-26, L3/L4 built; step 2's NewServer layer written; context limit)
+
+**Done:**
+- **Step 1, built** (`b676473728`, fk-lean2, EXIT 0 on `ClusterStartD`, `MainLogger`, the three dist `TopLevelRobustness`):
+  `ClusterStartD`'s fixes. `GName` is `abbrev Nat`, and `omega` drops an `Eq GName` hypothesis, so `lsPad_inj`/`auPad_inj` go
+  through `lt_add_one_add` and `Nat.add_left_cancel`. `iunfold` takes one name (`iunfold A at H`, then `iunfold B at H`).
+  `hists_ne` uses `subst hx`. The allocation's induction step decides `a = x`/`b = x` with `by_cases` (no `rcases … rfl`,
+  which re-introduced the shadowed `ha`). No `Spec/` file changed since `9e7c7a4442`, so M1's `etcd_kv_safe_nocrash` statement
+  is untouched. `etc/tier-check.py --check` ok; `etc/lease-order-check.py` ok.
+- **Step 2, NewServer layer (`d3c3a29b87`):**
+  - `NewServer.specGAt` (Spec `NewServer.lean`, after `specG`): `specG`'s text with its comments dropped, the binder `γl` after
+    `m`, `"Hlslot" ∷ (ghostMapAuth γl ½ ∅ ∗ lease.lessorSlot γl)` FIRST in the pre (so that `pre_At = Hlslot ∗ pre_G`), and
+    `mvcc.api.mvccLeases E.γ = γl` as the post's last pure conjunct.
+  - `NewServer.wp_proofGAt` (was `wp_proofG`): `h24 : lease.NewLessor.specAt`, called at `γl` with `Hlslot`; the post's pure
+    adds `Hγl` (mvcc `New`'s `mvccLeases γm = γl`).
+  - `NewServer.wp_proofG`: derived (`lease.lessorSlot_alloc ⊤ []`, then `wp_proofGAt`). Its `h24`, and `wp_proofM`'s and
+    `wp_proof`'s, is now `lease.NewLessor.specAt`.
+  - Link: `lease_NewLessor+At: lease_newLessor+At` and `lease_newLessor+At: …` in `etc/link-lean-first-server.txt`, and
+    `etcdserver_NewServer` takes `lease_NewLessor+At`. `Link.lean` regenerated (`etc/gen-link.py --server`).
+  - Build: the first build of `d3c3a29b87` failed in the derivation only (a docstring before `set_option … in`; `imod` of
+    `lessorSlot_alloc (Gg := hG.goose_globalGS)` under the WP is "not a modality": the `fupd` instances differ, so the
+    allocation is first restated at the section's instances, `have hA : ⊢ |={⊤}=> … := lease.lessorSlot_alloc (Gg := …) ⊤ []`;
+    the pre's `Hpkg` is split off by `wp_start_folded`). Fixed in the head commit; `etc/lean-check.py --fast` reports the
+    derivation clean, but `wp_proofGAt`'s body and the Link are NOT yet built. **First thing next:** on fk-lean2,
+    `~/eg/logs/f7l-build.sh Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`
+    plus the three dist `TopLevelRobustness` (sync the worktree to the branch first: fetch into `~/eg/etcd-grove.git`,
+    `git checkout -f --detach etcd-safe-f7` in `~/eg/wt/etcd-safe-f7`). Likely spots in `wp_proofGAt`: the `h24` call's
+    `$$ [Hopen Hwl Hrbo Hlslot]` and the new `isplitr … iexact Hlslot` at its pre's end, and `⟨hγs, HM.1, HM.2.1, Hγl⟩`.
+
+**Next, step 2's remaining layers** (no statement of putget's results changes):
+- `etcdstart.newServerMode` (`Proof/.../lib/etcdstart/newServerMode.lean:87`, `wpNS : NewServer.specG false cmp`) →
+  a `newServerMode.specAt` over `NewServer.specGAt`, its post's built member carrying `mvccLeases E.γ = γl`.
+- `etcdstart.newServer` (`newServer.lean`) → `specAt`, the same.
+- `wp_Start_built` (used by `StartServer.wp_proof`) → its result `memberUpL … γl` from a built member carrying the fact
+  (`memberUpL` is `memberUp` plus `mvccLeases E.γ = γl`, `dist/MemberLessor.lean`).
+- `etcdstart.StartServer.specAt` (pre plus the half and the slot at `γl`; post `memberUpL … lm γl`), its proof as
+  `StartServer.wp_proof`; then `wp_StartServer1`/`etcd_dist.wp_StartServer1_slice` At variants.
+- putget: `memberShare` (`putget/Defs.lean:67`) carries `memberNamesShare (c.ls id) (c.au id)`; `putget_shares` allocates with
+  `memberNames_alloc [id]`; `putget/Member.lean` calls the At start and gets `memberUpL … (c.ls id)`.
+- Link entries for each `+At` (gen-link's `<fn>+At` → `<fn>.specAt`/`wp_proofAt`, the etcdstart list).
+
+**Then steps 3 and 4 as in Handoff 2**, with the lead's request of #50 03:09Z (via the coordinator):
+- The replacement `NewServer_dist` carries `specG`'s `etcdURLsFit U.peer → etcdURLsFit U.client →` (after `peerURLsDir`), which
+  `specG_dist` and the proposed text dropped; discharge them at the start from `addrFits` and one URL per member, as M1 does
+  (take M1's version if it is pushed by then; `etcdstart.etcdURLsFit_httpURL`, `etcd_dist.addrOk_addrFits`).
+- The mechanical diff of every new or replaced dist axiom against its in-process spec: `notes/axiom-review/f7-diff-vs-inprocess.md`
+  (written, uncommitted review aid, in the head commit). Its findings: (1) `NewServer_dist` and the proposed text drop
+  `etcdURLsFit U.peer/U.client` (to be carried, above); (2) `StartMember_dist` (putgetk's placeholder hypothesis) also drops
+  `addrFits peerAddr → addrFits client →`, unlisted in its "What changes": carry it in step 3's `StartMember_dist` edit;
+  (3) the current `Serve_dist` ties nothing to `Γ.ls mid` (known, F2; the proposed text fixes it). Docstring nits in
+  `AuthServeProposed.lean`: "the in-process `NewServer.specG` is not yet carried to the name" is stale (`specGAt`), and
+  "distinct-names premises (kept here too)" holds only of the auth names.

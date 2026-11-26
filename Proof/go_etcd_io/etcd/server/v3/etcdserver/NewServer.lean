@@ -2784,9 +2784,9 @@ theorem NewServer.wp_proofGAt (on cmp : Bool)
   · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   · simp only [↓reduceIte]; iframe Hlt1
 
+set_option maxHeartbeats 0 in
 /-- **`NewServer.specG` from `specGAt`** (F7 step 2): the lessor's slot allocated first (`lease.lessorSlot_alloc`),
 at a fresh name. -/
-set_option maxHeartbeats 0 in
 theorem NewServer.wp_proofG (on cmp : Bool)
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h1 : zap.Error.spec (GF := GF) (hG := hG))
@@ -2934,12 +2934,23 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hscum Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb
   letI : MemStorReg GF := ⟨γ.reg⟩
   wp_start_folded as Hpre
-  imod (lease.lessorSlot_alloc (GF := GF) ⊤ []) with ⟨%γl, -, Hl, Hslot⟩
+  -- at this section's instances (the WP's `fupd`), not `GooseGlobalGS`'s
+  have hA : ⊢ |={⊤}=> ∃ γl : GName, ⌜γl ∉ ([] : List GName)⌝ ∗
+      ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl :=
+    lease.lessorSlot_alloc (Gg := hG.goose_globalGS) ⊤ []
+  imod hA with ⟨%γl, -, Hl, Hslot⟩
   wp_apply (NewServer.wp_proofGAt on cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18 h19 h20 h21 h22 h23 h24 hTP hKit h26 Hp Hr hsh hfresh hopen hrest hRS hCR hSR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 hRCV h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hBSC hLSR hUSR hUP hCmpS hNodeStart
       cfg U γ id ctxs ρ E₀ N Φs γn dir γd m γl HρRaft Hrule Hscum Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc Hdirs Hauthcfg Hlbc Hbco Hbcf Hbwb) $$ [Hl Hslot Hpre]
     as %srv %err Hpost
   · isplitl [Hl Hslot]
-    · iframe Hl Hslot
+    · ihave Hls : ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl
+          $$ [Hl Hslot]
+      · isplitl [Hl]
+        · iexact Hl
+        iexact Hslot
+      iexact Hls
+    isplitr
+    · iexact Hpkg
     iexact Hpre
   (try wp_auto)
   iapply HΦ
