@@ -18,6 +18,8 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.InputEndLift
 public import RaftTla.Proof.go_etcd_io.raft.v3.InputEndIp
 public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 public import RaftTla.Proof.go_etcd_io.raft.v3.StepEndBk
+-- `noConfIn_of_unapplied`
+public import RaftTla.Proof.go_etcd_io.raft.v3.StepLemmasR
 
 @[expose] public section
 
@@ -575,6 +577,45 @@ theorem recvEndR_of_prop {Adm : List EntryM → CCState → Prop} {id : w64}
     rcases hbk.2 hl' with ⟨-, h3⟩ | ⟨h2, -⟩
     · simp only [toRState_pci, pciR, if_pos hl', if_pos hsl, h3]
     · exact absurd hsl h2
+
+
+/-- (antithesis parity B1, phase 2) **`RawNode.Campaign`'s `RState` end** (`MsgHup`, pre-vote off, in the
+lifting lemmas' scope, no ghost prefix at the boundary `0`): `hup`'s guard (`HupGuard`) read as
+`CampaignEndR`'s, nothing done or an election (`∃ cl`: `HupGuard` does not pin the context), with
+`hasUnappliedConfChanges`' answer on the full log (`noConfIn_of_unapplied`), the log kept. -/
+theorem campaignEndR_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {rs rs' : RNState} {s s' : NState} (hsc : LiftScope c id s) (hk : k.prevote = false)
+    (hc : rs.cfg.cfg = c) (hty : m.Type' = MsgHup) (h0 : m.Term' = W64 0)
+    (hprev : uint.Z s.logst.prev.index' = 0)
+    (hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed)
+    (hnw : uint.Z s.logst.committed + 1 < 2 ^ 64)
+    (h : StepEnd c id m ents ctx s s') (hcf : rs'.capplied = rs.capplied ∧ rs'.cfg = rs.cfg) :
+    CampaignEndR k id (toRState rs [] s) (toRState rs' [] s') := by
+  have hl := logst_of_stepEnd_hup hty h0 h
+  have hbk := bk_of_stepEnd_hup hsc hty h0 h
+  have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty)
+  obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
+  refine ⟨?_, ⟨hbk.1, hcf.1, hcf.2⟩, rfl, by simp only [toRState_snap, hl], pciR_of_bk hbk⟩
+  rcases hg with ⟨-, rfl⟩ | ⟨⟨hnl, hv, hsn, hno⟩, pre, peers, pvs, cl, hpre, hperm, rfl⟩
+  · left
+    unfold toRState
+    rw [hcf.1, hcf.2]
+  · right
+    refine ⟨by rw [toRState_p, toPState_role]; exact proleRole_not_leader _ hnl, ?_,
+      by simp only [toRState_snap, hsn, Option.isSome_none], ?_⟩
+    · rintro ⟨kk, e, h1, h2, h3, h4⟩
+      exact noConfIn_of_unapplied s.logst [] (by simp [hprev])
+        (by rw [hprev]; exact uint_Z_nonneg _) hac hnw hno kk e h1 h2 h3 h4
+    · cases pre
+      · refine Or.inl ⟨hk, cl, by rw [toRState_cfg, hc]; exact hv, peers,
+          by rw [toRState_cfg, hc]; exact hperm, ?_⟩
+        rw [toRState_p, toRState_p,
+          toPState_prvals_nl _ _ (by simp [campaignState, sendMsgs, becomeCandidate])]
+        simp only [campaignState, Bool.false_eq_true, ↓reduceIte]
+        rw [toPState_sendMsgs, toPState_becomeCandidate]
+        rfl
+      · exact absurd (hpre rfl) (by rw [hsc.1]; decide)
 
 end pure
 

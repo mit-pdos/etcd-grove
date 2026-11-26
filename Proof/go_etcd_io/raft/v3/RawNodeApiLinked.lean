@@ -26,6 +26,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__ReadyAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReadyAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__StepAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__TickAbs
+public import Proof.go_etcd_io.raft.v3.RawNode__CampaignAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__ProposeAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__AdvanceAbs
 import all Proof.go_etcd_io.raft.v3.InvRawnode
@@ -437,6 +438,10 @@ theorem RawNode.Tick.apiSpec_of_abs (H : RawNode.Tick.absSpec (GF := GF) (hG := 
     RawNode.Tick.apiSpec (GF := GF) (hG := hG) := by
   have h := H true; rw [true_eq_true_eq] at h; exact h
 
+theorem RawNode.Campaign.apiSpec_of_abs (H : RawNode.Campaign.absSpec (GF := GF) (hG := hG)) :
+    RawNode.Campaign.apiSpec (GF := GF) (hG := hG) := by
+  have h := H true; rw [true_eq_true_eq] at h; exact h
+
 theorem RawNode.Propose.apiSpec_of_abs (H : RawNode.Propose.absSpec (GF := GF) (hG := hG)) :
     RawNode.Propose.apiSpec (GF := GF) (hG := hG) := by
   have h := H true; rw [true_eq_true_eq] at h; exact h
@@ -516,6 +521,13 @@ theorem RawNode.Tick.wp_apiProof
     (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
     RawNode.Tick.apiSpec (GF := GF) (hG := hG) :=
   RawNode.Tick.apiSpec_of_abs (RawNode.Tick.wp_absProof wp_tickElection wp_tickHeartbeat)
+
+/-- **`RawNode.Campaign`, over `rawNode`** (`RawNode.Campaign.wp_absProof`'s hypotheses). -/
+theorem RawNode.Campaign.wp_apiProof
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    RawNode.Campaign.apiSpec (GF := GF) (hG := hG) :=
+  RawNode.Campaign.apiSpec_of_abs (RawNode.Campaign.wp_absProof wp_raft_Step wp_MessageType_Enum)
 
 /-- **`RawNode.Propose`, over `rawNode`** (`RawNode.Propose.wp_absProof`'s hypotheses). -/
 theorem RawNode.Propose.wp_apiProof

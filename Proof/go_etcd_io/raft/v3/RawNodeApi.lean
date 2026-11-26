@@ -56,6 +56,7 @@ pre-vote and check-quorum off, never compacted. Sealed. -/
 
 abbrev RawNode.Step.apiSpec : Prop := RawNode.Step.form (rawNode (GF := GF)) (fun md => md = {})
 abbrev RawNode.Tick.apiSpec : Prop := RawNode.Tick.form (rawNode (GF := GF)) (fun md => md = {})
+abbrev RawNode.Campaign.apiSpec : Prop := RawNode.Campaign.form (rawNode (GF := GF)) (fun md => md = {})
 abbrev RawNode.Propose.apiSpec : Prop := RawNode.Propose.form (rawNode (GF := GF)) (fun md => md = {})
 abbrev RawNode.Ready.apiSpec : Prop := RawNode.Ready.form (rawNode (GF := GF)) (fun md => md = {})
 abbrev RawNode.Advance.apiSpec : Prop := RawNode.Advance.form (rawNode (GF := GF)) (fun md => md = {})

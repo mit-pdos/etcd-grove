@@ -47,6 +47,7 @@ public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAt
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.Protocol.InputEnd
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__Step
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__Tick
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__Campaign
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__Propose
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__HasReady
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.RawNode__Ready
@@ -221,6 +222,32 @@ abbrev RawNode.Tick.absSpec : Prop :=
 
 abbrev RawNode.Tick.spec_of_abs.law : Prop :=
   RawNode.Tick.absSpec (GF := GF) (hG := hG) → RawNode.Tick.spec (GF := GF) (hG := hG)
+
+/-! ### `RawNode.Campaign` -/
+
+/-- (antithesis parity B1, phase 2; design §4) `RawNode.Campaign.spec`'s triple over `R`, and (under `S`) the
+campaign's exact effect `CampaignEndR` (`hup`'s guards, then nothing or an election; the node's log kept, so
+the in-progress boundary too). (No `spec_of_abs`: the old spec keeps its own proof.) -/
+abbrev RawNode.Campaign.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
+  uint.Z rs.term + 1 ≤ uint.Z rs.tc →
+  rs.flw = false →
+  γ.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Campaign")) (Val #()))
+  {{ (err : GoInterface) (t : w64) (r' : RState) (ip' : Nat), RET #err;
+      "Hrn" ∷ R γ rn id { rs with term := t } r' qs ip' ∗
+      "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
+      "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+      "%Hend" ∷ ⌜∀ md, S md → CampaignEndR rs.k id r r' ∧ ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
+
+/-- **`RawNode.Campaign`, strengthened**. -/
+abbrev RawNode.Campaign.absSpec : Prop :=
+  ∀ sc : Bool, RawNode.Campaign.form
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc))
+    (fun md => basicScope sc = some md)
 
 /-! ### `RawNode.Propose` -/
 
