@@ -25,6 +25,35 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: `rnDurBodyK` and its step laws -- the body keeps the WAL's records as the eager fold (`walRecsH`) of the history, which a restart's history does not have (D6-T2 / P5 (b) steps 2-5, etcd-safe-p5)
+
+- **Spec.** `rnDurBodyK`/`HistOkK` (`etcdserver/InvWalCrash.lean`) and the laws over them: `rnDurK_alloc.law`,
+  `rnDurK_save.law`, `rnDurK_saveSnap.law`, `rnDurK_ownSnap.law`, `rnDurK_enter.law`, `rnDurK_crash.law`,
+  `rnRestartWal`/`rnRestartAllocK.law`; the pending batch's image condition `crashOk`.
+- **Defect.** The body holds `walRecsH h (recsOf vk.1 σ) Hs true`: the history's *eager* fold, and
+  `HistOkK` asks `walCommitLeFrom walFresh Hs`. A restarted WAL whose history holds a snapshot record the
+  reader dropped (`walKeep`) has no eager fold equal to what it read (ledger entry "`wal.restartOk` over the
+  reader's fold", defect 2), so `rnRestartAllocK.law` cannot allocate the body at a restart. And the pending
+  batch's images ask `ImgOk vk.1.S vk.1.l σ` at the `Save`, with the handed log `vk.1.l` raft gave at the
+  `Save`, which a crash image above the old commit need not agree with (session 5's finding: the agreement
+  lives in `run`'s state until *enter*).
+- **Evidence.** Step 1 (the entry below) put the contract's `Save`/`SaveSnap` over `walHistH`; the body is
+  the only remaining user of the eager fold besides the derived `walSaveSized_spec`/`walSaveSnapH_spec`.
+  `raftState_logViewE` (`raft/v3/DurableLogView.lean`) gives, at a mask containing raft's, a committed log
+  `L` the entered durable state agrees with up to its commit.
+- **Proposed change.** (2) the body's records `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝`, `recsOf` kept
+  only for a pending received snapshot (`walSnapCert` over `recsOf vk.1 σ`), `HistOkK` without
+  `walCommitLeFrom walFresh Hs`; (3) `crashOk`'s pending case, for `j > pos`: for every committed log `L`
+  that `vk.1.S` agrees with up to its commit (`DurAgrees`, `|L|` its commit) and that has the read's snapshot
+  term, `ImgOk vk.1.S L σ` (pure, quantified over `L`), discharged with `L` from `raftState_logViewE` at
+  *enter* (the view moves to `{v' with l := L}`) and in `rnDurK_crash.law` after the crash's enter; (4) the
+  step laws' updates over `walHistH` (`rnDurK_save.law`/`rnDurK_saveSnap.law`/`rnDurK_ownSnap.law` take the
+  contract's history update, no `WalSaveOk` premise), their proofs and `wal.restartOk`'s body
+  (`rnRestartWal` over `walHistH` and the read); (5) `walRecsH` deleted once unused. No top-level
+  statement, premise or axiom moves.
+- **Decision.** Accepted under the lead's approval of (b) and its server-side alternative (#50 2026-11-25
+  15:33Z, 2026-11-25T18:04:00Z); internal to the server. Applied step by step on `etcd-safe-p5`.
+
 ## 2026-11-26: the WAL contract's `Save`/`SaveSnap` -- their atomic updates are over the eager fold (`walRecsH`), which no restarted WAL's history keeps (D6-T2 / P5 (b) step 1, etcd-safe-p5)
 
 - **Spec.** `isWalStorage`'s `Save` and `SaveSnap` (`etcdserver/WalApi.lean`; proved by `walSave_law`/
