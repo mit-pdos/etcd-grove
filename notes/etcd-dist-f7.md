@@ -778,3 +778,7 @@ specs (exact texts above). (3) Step 2 in order: global auth-on cluster allocatio
 `d.cfg.auth`, one `Γ.kv.hist`), `memberBoot_of_slice` on, the auth-on member chain ending in `memberUpOnL`, MainLogger
 split on `d.cfg.auth`. (4) Step 3 (`RunAuthLease` plan): not started.
 
+**Addendum to Handoff S2-1:** the P-A1 build of `e2b163b6b9` finished **EXIT 0** (fk-lean2: `etcdserver.Results`,
+`etcdserver.Link`, `dist.MemberNames`; no error). Next is unchanged except item (1): run `etc/tier-check.py --check`
+and `etc/lease-order-check.py`, and build the dist `TopLevelRobustness` leaves (`NewServer.specGAt`'s users are unchanged).
+
