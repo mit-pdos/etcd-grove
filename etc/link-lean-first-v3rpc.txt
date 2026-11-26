@@ -8,7 +8,7 @@
 # (proved, the server's spec file). The error map, the checks' rpctypes errors, the sort-name maps
 # and `context.Canceled`'s pointer error are the package's facts (Base.lean), not axioms.
 status_Error:
-status_Errorf:
+status_Errorf: =_root_.Perennial.fmt.wp_Sprintf status_Error
 errors_Is:
 errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 errors_IsDeadlineExceeded: =_root_.Perennial.errors.wp_Is
@@ -155,7 +155,8 @@ time_Duration__Seconds_ptr:
 verify_Assert:
 rand_Int63n:
 isClientCtxErr: status_FromError strings_HasSuffix
-status_FromError:
+rpctypes_EtcdError__Error:
+status_FromError: rpctypes_EtcdError__Error
 strings_HasSuffix:
 IsCreateEvent:
 context_TODO:

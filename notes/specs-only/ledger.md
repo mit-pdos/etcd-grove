@@ -7025,3 +7025,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
   no longer a premise since dsv-fix4).
 - **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
+
+## 2026-11-25: grpc `status` over its bodies: a `GRPCStatus` error is a structural `*status.Error`; `Errorf` stated for etcd's calls (status-bodies)
+
+- **Spec.** The vocabulary in `Proof/go_etcd_io/etcd/cache/v3/Base.lean` that `status.FromError`/`Code`/`Error`'s
+  specs are written in (`grpcErrMethodsOk`'s `GRPCStatus` clause, `descIs`'s and `statusCodeIs`'s third
+  disjunct); `status.statusAtRaw` (`Proof/google_golang_org/grpc/status/StatusRO.lean`); `status.Errorf.spec`.
+- **Defect.** (1) Unprovable over the bodies: for an error with `GRPCStatus()`, `descIs err m` and
+  `statusCodeIs err c` each named a status by its own persistent WP of `GRPCStatus()`, and `FromError` calls it
+  once; Iris cannot merge two WPs of one call, so no proof gives the returned status both `c` and `m` (the
+  axioms claimed it, by Go's determinism). (2) `statusAtRaw` was a trusted opaque. (3) `Errorf.spec` took any
+  `format` and an unowned `args`, which `fmt.Sprintf` reads (unprovable), and posted only `err ≠ nil`.
+- **Evidence.** The proof attempts on `status-bodies/2026-11-25` (`FromError`, `Code`); grpc v1.84.0
+  `status/status.go:96-146`, `internal/status/status.go:76-230`; `models/grpc`: `*internal/status.Error` is the
+  only type with `GRPCStatus() *Status` (in the model, etcd's translated tree and the k8s code translated here).
+- **Proposed change.** (1) The `GRPCStatus` case is `status.grpcStatusIs e s c m`: `e` is a `*status.Error`
+  whose field `s` holds `s` read-only, and `statusAt s c m`; two agree (`grpcStatusIs_agree`), and the WP form
+  follows (`status.grpcStatusIs_wp`). A strengthening of every trusted post that gives these (`status.Error`'s
+  axiom, grpc's `InvGrpc*` errors), true of the model. (2) `statusAtRaw` is a definition: `s.[Status,"s"] ↦□ p`,
+  `p ≠ null`, `p.[spb.Status,"Code"] ↦□ c`, `p.[spb.Status,"Message"] ↦□ m` (the read-only claim checked
+  against `RawStatusProto`'s two callers in the model, which only read `GetDetails()` and `proto.Marshal`).
+  (3) `Errorf.spec` is SpecPlan's: `args = nil` and `W8 37 ∉ format` (a premise its one caller,
+  `checkRangeStreamRequest`, meets), and `status.Error`'s post with the format as the message (a strengthening).
+  `FromError.specNE`/`Code.specNE` (an error that is no `EtcdError` value) for gRPC's robustness driver, whose
+  programs have no `rpctypes` (no fact of `EtcdError.Error()`); its three proofs take them, discharging the
+  premise from `statusCodeIs` (`statusCodeIs_notEtcd`).
+- **Decision.** (1) #24 7175612915 (asked), (2) and the do-nothing genproto/anypb `init`s: coordinator-E,
+  #24 7175520513; (3) within the user's rule (a trust-boundary spec may change when every caller still proves).

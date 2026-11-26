@@ -37,6 +37,7 @@ public import Proof.go_uber_org.zap.PkgInit
 public import Proof.math.rand.Base
 public import Net.Proof.net.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
+public import Proof.google_golang_org.genproto.googleapis.rpc.status.Base
 public import Proof.crypto.tls.PkgInit
 public import Proof.google_golang_org.protobuf.PkgInit
 
@@ -573,8 +574,9 @@ instance ctxErrIs_persistent (err : GoInterface) : Persistent (ctxErrIs (GF := G
 `status.FromError(err).Message()` and `rpctypes.ErrorDesc(err)` return. `nil`: `""`; an
 `rpctypes.EtcdError` value: its `desc` (`EtcdError.Error` returns it, and it has no `GRPCStatus`; a pure
 fact of a pointer-free value, the same in every run); an error of another type with grpc's
-`GRPCStatus() *Status`: the message of the read-only status it stably returns (`status.statusAt`);
-otherwise the string its `Error()` stably returns (`errorMsgIs`; grpc v1.84.0 `status.go:96-127`:
+`GRPCStatus() *Status`: the message of the read-only status it stably returns (`status.statusAt`; since
+status-bodies, 2026-11-25, the status its `*status.Error` holds, `status.grpcStatusIs`, on which two
+descriptions agree); otherwise the string its `Error()` stably returns (`errorMsgIs`; grpc v1.84.0 `status.go:96-127`:
 `FromError` returns the status of an error with `GRPCStatus` directly, and for every other error a status
 whose message is `err.Error()`, wrapping or not). A relation, not a function: no law makes two of them on
 one error agree (`notes/errdesc-ghost-plan.md`, the rule (I1)-(I4)); a fact about the description comes
@@ -591,9 +593,7 @@ def descIs (err : GoInterface) (m : GoString) : IProp GF :=
           [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗ errorMsgIs e m) ∨
         ∃ (s : Loc) (c : w32), ⌜methodSet e.ty !! go!"GRPCStatus" = some (go.Signature [] false
           [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗
-          (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-            WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-          EtcdGrove.status.statusAt s c m))
+          EtcdGrove.status.grpcStatusIs e s c m))
 
 instance descIs_persistent (err : GoInterface) (m : GoString) :
     Persistent (descIs (GF := GF) err m) := by
@@ -748,14 +748,17 @@ unexported fields); the fact is a guarantee of the producer that built `s` (with
 and never writes it after, as grpc and etcd do (`examples/premisefix/grpcstatusro`;
 `notes/k8s-7f5a-draft.md` §11.2); a status may be shared (package-level `status.Error` values).
 (errdesc stage 2a, 2026-11-20) Read-only with some code `c` and message `m`, the per-run relation
-`status.statusAt s c m` (until then `grpcStatusRO s (statusCode e)`, the pure `statusCode`). -/
+`status.statusAt s c m` (until then `grpcStatusRO s (statusCode e)`, the pure `statusCode`).
+(status-bodies, 2026-11-25, #24 7175612915) An error with `GRPCStatus() *Status` is a `*status.Error`
+holding that status (`status.grpcStatusIs`: its field `s`, read-only), not one whose `GRPCStatus()` has a
+WP returning it: one WP per fact, which no proof calling `GRPCStatus()` once can make agree
+(`status.FromError`'s code and message); the WP follows (`grpcStatusIs_wp`). True of grpc and of the
+code translated here, where `*status.Error` is the only type with that method. -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    ∃ (s : Loc) (c : w32) (m : GoString), (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-      WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-      EtcdGrove.status.statusAt s c m) ∗
+    ∃ (s : Loc) (c : w32) (m : GoString), EtcdGrove.status.grpcStatusIs e s c m) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
     □ ∀ (target : GoInterface) (m m' : GoString) (Φ : val → IProp GF),
       descIs (GoInterface.ok e) m -∗ descIs target m' -∗
@@ -836,7 +839,8 @@ instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (G
 /-- **The gRPC status code of `err` is `c`** (persistent; errdesc stage 2a, 2026-11-20: until then the
 pure `statusCode err`): what `status.FromError(err).Code()` and `status.Code(err)` return. `nil`:
 `OK`; an error without grpc's `GRPCStatus() *Status`: `Unknown` (grpc v1.84.0 `status.go:96-127`);
-one with it: the code of the read-only status it stably returns (`grpcErrMethodsOk`). -/
+one with it: the code of the read-only status it stably returns (`grpcErrMethodsOk`; since status-bodies,
+2026-11-25, the status its `*status.Error` holds, `status.grpcStatusIs`). -/
 def statusCodeIs (err : GoInterface) (c : w32) : IProp GF :=
   iprop(⌜err = GoInterface.nil ∧ c = W32 0⌝ ∨
     (∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" ≠
@@ -845,9 +849,7 @@ def statusCodeIs (err : GoInterface) (c : w32) : IProp GF :=
     ∃ (e : GoInterfaceOk) (s : Loc) (m : GoString), ⌜err = GoInterface.ok e ∧
       methodSet e.ty !! go!"GRPCStatus" = some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗
-      (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-        WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-      EtcdGrove.status.statusAt s c m)
+      EtcdGrove.status.grpcStatusIs e s c m)
 
 instance statusCodeIs_persistent (err : GoInterface) (c : w32) :
     Persistent (statusCodeIs (GF := GF) err c) := by
@@ -875,7 +877,7 @@ theorem statusErrOk_descIs (err : GoInterface) :
     icases Hg with ⟨Hg, -⟩
     by_cases hg : methodSet e0.ty !! go!"GRPCStatus" = some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
-    · ihave ⟨%s, %c, %m', #Hs, #Hst⟩ := Hg $$ %hg
+    · ihave ⟨%s, %c, %m', #Hst⟩ := Hg $$ %hg
       iexists m'
       unfold descIs
       iright; iright
@@ -884,7 +886,7 @@ theorem statusErrOk_descIs (err : GoInterface) :
       · ipureintro; exact ⟨rfl, hx⟩
       iright
       iexists s, c
-      iframe Hs Hst
+      iframe Hst
       ipureintro; exact hg
     · iexists m
       unfold descIs
@@ -1427,12 +1429,12 @@ theorem statusErrOk_code (err : GoInterface) :
     icases Hm with ⟨Hg, -⟩
     by_cases hg : methodSet e0.ty !! go!"GRPCStatus" = some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
-    · ihave ⟨%s, %c, %m, #Hs, #Hst⟩ := Hg $$ %hg
+    · ihave ⟨%s, %c, %m, #Hst⟩ := Hg $$ %hg
       iexists c
       unfold statusCodeIs
       iright; iright
       iexists e0, s, m
-      iframe Hs Hst
+      iframe Hst
       ipureintro; exact ⟨rfl, hg⟩
     · iexists W32 2
       unfold statusCodeIs

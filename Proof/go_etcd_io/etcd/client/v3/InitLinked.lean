@@ -34,7 +34,7 @@ public import Proof.google_golang_org.grpc.credentials.insecure.InitLinked
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.InitLinked
 public import Proof.google_golang_org.grpc.peer.InitLinked
-public import Proof.google_golang_org.grpc.status.Init
+public import Proof.google_golang_org.grpc.status.InitLinked
 public import Proof.time.Unix
 public import Proof.math.rand.Float64
 public import Proof.go_etcd_io.etcd.client.v3.jitterUp

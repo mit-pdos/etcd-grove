@@ -131,6 +131,7 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.leasing.txnLeasing__Commit
@@ -439,9 +440,13 @@ theorem v3.wp_WithLease :
     EtcdGrove.WithLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLease.wp_proof
 
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.FromError.wp_proof
+  EtcdGrove.status.FromError.wp_proof rpctypes.EtcdError.wp_Error
 
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=

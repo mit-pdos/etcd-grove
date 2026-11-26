@@ -22,6 +22,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ListDefs
 public import Spec.errors.AsLeafTy
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
 public import Spec.google_golang_org.grpc.status.Status__Code
+public import Proof.google_golang_org.grpc.internal.status.Methods
 
 @[expose] public section
 
@@ -242,7 +243,9 @@ theorem kErrOk_clientP [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
         have := go.MethodSetIs.method_set_is
           (t := go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty) go!"GRPCStatus"
         simpa [go.methodSetLookup_cons, go.methodSetLookup_nil] using this
-      ihave ⟨%s, %sc, %sm, #Hw, #Hro⟩ := Hgs $$ %hm
+      ihave ⟨%s, %sc, %sm, #Hgi⟩ := Hgs $$ %hm
+      ihave #Hw := EtcdGrove.status.grpcStatusIs_wp _ _ _ _ $$ Hgi
+      ihave #Hro := EtcdGrove.status.grpcStatusIs_statusAt _ _ _ _ $$ Hgi
       iexists s
       isplitr
       · iintro %Φ HΦ
