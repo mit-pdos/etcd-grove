@@ -146,7 +146,7 @@ theorem member_crash_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Se
     (c : ClusterNames) (i : Nat) (m : Member) (hm : d.members[i]? = some m)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS]
     (KeepF : GooseLocalGS etcdDistGF → IProp etcdDistGF)
-    (KeepB KeepBc : GooseLocalGS etcdDistGF → memberCrash.MemberKN etcdDistGF → IProp etcdDistGF)
+    (KeepB KeepBc : GooseLocalGS etcdDistGF → SrvKN etcdDistGF → IProp etcdDistGF)
     (hboot : ∀ L : GooseLocalGS etcdDistGF, memberGen_boot.law (GF := etcdDistGF) (hG := ⟨G, atCtx L⟩)
       (memberClD c d boot) (memberCfgD d i) (memberIdD d i))
     (hstop : memberCrash.memberStop.law (memberClD c d boot) (memberCfgD d i) (memberIdD d i) KeepF KeepB KeepBc)

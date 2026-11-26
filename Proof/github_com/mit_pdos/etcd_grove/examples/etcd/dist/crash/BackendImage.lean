@@ -103,7 +103,7 @@ open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 /-- **The image rows T10 owes T7** (`memberCrash.memberImageRows` restated): the image facts
 (`bkImg`), the backend file holding `D` under its name, and the snapshot counter's authority with B2's
 row. -/
-def memberImageRowsR (k : memberCrash.MemberKN GF) (dd : GoString) (σ : StorContents) (i : w64)
+def memberImageRowsR (k : SrvKN GF) (dd : GoString) (σ : StorContents) (i : w64)
     (A : List EntryModel) (D : backend.Data) (m : Membership) : IProp GF :=
   iprop(bkImg k.γ k.ρo i A D m ∗ backend.fileHolds (config.backendPathOf dd) D ∗
     (∃ c : Nat, snapRowB2 k.γ dd σ i k.γd c ∗ monoNatAuthOwn k.γm 1 c))
@@ -128,8 +128,8 @@ with the new generation's claim on `db` and shares of the snapshot directory's p
 the inode `i0` the crashed tree names `db`, taken out of the crash rest (bbolt's `dbCrash` inside, under
 the crash premise), and the image rows at some index `i`. -/
 abbrev memberBackend.law (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepB : GooseLocalGS GF → memberCrash.MemberKN GF → IProp GF) : Prop :=
-  ∀ (L L' : GooseLocalGS GF) (V' : Hist) (k : memberCrash.MemberKN GF) (Q : OsState → OsState → Prop)
+    (KeepB : GooseLocalGS GF → SrvKN GF → IProp GF) : Prop :=
+  ∀ (L L' : GooseLocalGS GF) (V' : Hist) (k : SrvKN GF) (Q : OsState → OsState → Prop)
     (S : RaftState) (σ : StorContents) (l : List LogEntry) (q qc : Qp),
     (∀ i0 st st', Q st st' → BoltCrashWhole (· = i0) st st') →
     ⊢ KeepB L k -∗ crashed (hC := L.goose_crashGS) -∗

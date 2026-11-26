@@ -366,3 +366,26 @@ def memberKeepS (C) (cfg) (id) (γd) (KeepB KeepBc : GooseLocalGS GF → SrvKN G
 * `memberStop.law` moves the phase from `.restart true` to `.stopped` at `DB.Close`'s commit point. For a
   first generation's stop, the move from `.first true true true` to `.stopped` needs the restart facts `Xr`
   and the spine, which the stop has: `srvStopReq`'s boot evidence, and the persistent spine.
+## Handoff B4M-1 (2026-11-26, branch `etcd-safe-crash-b4move/2026-11-26`, worktree `/shared/etcd-grove-b4move`)
+
+The §9 move, with Revision 1's slot (§R1.3, branch `etcd-safe-crash-b4r/2026-11-26` at `b0478f37e0`).
+
+* **New** `Proof/go_etcd_io/etcd/server/v3/etcdserver/SrvKeep.lean` (defs tier; imports nothing under `examples/`):
+  `osSpineDur`/`osPathDur` (+ `osNames_discard_persistent`, `Persistent` instances, `_nil`/`_cons`), `srvDurKeep`,
+  `srvWalKeep`, `SrvKN`, `srvSnapKeepK`, `srvKNOk`, `SrvKeepPh` (+ `Pos.Countable`), `srvKeepPh`, `SrvKeepKey`,
+  `srvKeyF`, `srvKeyR`, `srvKeepAt`, `srvKeepN`, `srvKeepInv` (R1.3's text verbatim).
+* **No abbrevs left**: the old definitions are deleted from `dist/crash/MemberCrash.lean`, and every user was renamed
+  (`MemberKN`→`SrvKN`, `memberDurKeep`→`srvDurKeep`, `memberWalKeep`→`srvWalKeep`, `memberSnapKeep`→`srvSnapKeepK`;
+  `osSpineDur`/`osPathDur` keep their names, now `EtcdGrove.*`) in `MemberCrash`, `MemberBoot`, `MemberCrashBoot`,
+  `BackendImage` and a docstring of `InvCrashImage`. `memberKeepR`'s and `memberKeepRc`'s pure rows are now
+  `⌜srvKNOk C.γ id cfg.DataDir' k⌝`.
+* **Not done (beyond a move):** `memberKeepS`, the `memberKeepR`/`Rc` → `srvKeepAt` restatement, and
+  `memberFirstCrash.law`/`memberGen_boot.law`/`memberGen_crash.law`/`memberStop.law` restated over the slot (§9's and
+  R1.3's "restated over them" blocks): S0/T7 statement changes, for their owner.
+* **Build** (not yet checked; Perennial built from scratch at `/shared/perennial-a706aeb9a`, no seed on this pin):
+  `/shared/tmp/b4move-build.sh /shared/tmp/b4move-b1.log <SrvKeep MemberCrash MemberBoot MemberCrashBoot BackendImage>`
+  (lake with `--packages=/shared/tmp/b4move-manifest.json`, flock + `systemd-run --scope -p MemoryMax=60G`); it
+  started before the slot definitions were appended to `SrvKeep.lean`.
+  tier-check: ok; api-check: ok.
+* **Next:** rebuild the five modules (fix any error: likely `srvKNOk` destructuring/`SrvKeepPh.countable`'s
+  `rintro`), then the full `lake build`, then `etc/gates.sh` in full (tcb `--check` unchanged), push.

@@ -111,21 +111,16 @@ backend keep, P6's) in place of `KeepB k`. **Its intended instance** (the lead's
 trust): the durable file `backend.fileHoldsMDur k.i0 k.Dn` (`FileDur.lean:114`), which the crash-mode `DB.Close`
 gives (bbolt-crash's atomic `<<dbCrashKeep γ i0 Dl Dn>> db.Close() <<fileHoldsMDur i0 Dn>>`, commit point at
 `bfile_out`), with T10's image payload of `k.Dn` (`bkPayload`'s `□ bkImgAny`) and the name's crash promise. Raft's durability
-(`memberDurKeep`, with the stop's token: the crash-aware stop leaves the records inside `rnDurInvK`, so D-T7-3's
-`rnTakenK_stop` still refutes the stop case), the WAL area (`memberWalKeep`, across `WAL.Close`) and the snapshot
+(`srvDurKeep`, with the stop's token: the crash-aware stop leaves the records inside `rnDurInvK`, so D-T7-3's
+`rnTakenK_stop` still refutes the stop case), the WAL area (`srvWalKeep`, across `WAL.Close`) and the snapshot
 directory are unchanged by the stop. (Once T10 moves the open record into `KeepB`, as BackendImage.lean's header
 plans, `memberKeepRc C cfg id KeepBc` is `memberKeepR C cfg id KeepBc` and this definition goes.) -/
 def memberKeepRc (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepBc : MemberKN GF → IProp GF) : IProp GF :=
-  iprop(∃ k : MemberKN GF,
-    ⌜(∃ r : GName, k.γ = { C.γ with reg := r }) ∧ k.h.dir = srvWalDirOf cfg.DataDir' ∧
-      k.h.md = walMetaEnc id k.cid ∧ k.γ.snapLoc id = some k.γd ∧ (∃ c, theFs GF = some c) ∧
-      (cfg.DataDir', k.jd) ∈ k.h.R ∧ (k.h.r, k.h.jr) ∈ k.h.R ∧ k.h.r ≠ cfg.DataDir' ∧
-      IsUnder k.h.r k.h.dir ∧
-      config.snapDirOf cfg.DataDir' = joinPath cfg.DataDir' [go!"member", go!"snap"] ∧
-      ∀ i, PathFits (snap.snapDBPath (config.snapDirOf cfg.DataDir') i)⌝ ∗
-    etcdstart.memberRestartFacts k.γ k.ρo id ∗ memberDurKeep k.γ id k.νk k.h ∗ memberWalKeep k.h ∗
-    memberSnapKeep k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepBc k)
+    (KeepBc : SrvKN GF → IProp GF) : IProp GF :=
+  iprop(∃ k : SrvKN GF,
+    ⌜srvKNOk C.γ id cfg.DataDir' k⌝ ∗
+    etcdstart.memberRestartFacts k.γ k.ρo id ∗ srvDurKeep k.γ id k.νk k.h ∗ srvWalKeep k.h ∗
+    srvSnapKeepK k cfg.DataDir' ∗ osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ KeepBc k)
 
 end keepDefs
 
@@ -144,7 +139,7 @@ generation's `KeepF L`, or a running restartable run's `memberKeepR` with the op
 stopped run's (`memberKeepRc` with the closed backend keep `KeepBc L`), with the cluster's facts and the second
 later credit as `memberKeep`'s. -/
 def memberKeepS (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → SrvKN GF → IProp GF)
     (L : GooseLocalGS GF) : IProp GF :=
   letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩
   iprop(memberKeep C cfg id KeepF KeepB L ∨
@@ -158,7 +153,7 @@ holds `memberKeepS` at every step of the run. The run updates it in place (atomi
 `NewServer`'s, the backend's commits and close); the crash obligation of `CrashBootWpGT` opens it with its credit
 and passes `memberKeepS … L` to the crash law. -/
 def memberKeepInv (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → SrvKN GF → IProp GF)
     (L : GooseLocalGS GF) : IProp GF :=
   letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩
   inv memberKeepN (memberKeepS C cfg id KeepF KeepB KeepBc L)
@@ -174,7 +169,7 @@ and `dbCrash`, after it the durable file). To be proved over `StopApi`/`StopShut
 (the in-process shutdown) with the crash-aware invariants. The post is `True`: the member's process exits after
 the stop (R-A), and the next generation gets the image through the crash (`memberGenS_crash_law_holds`). -/
 abbrev memberStop.law (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → SrvKN GF → IProp GF) : Prop :=
   ∀ (L : GooseLocalGS GF) (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (dd : GoString),
     L.goose_go_local_context = lctx →
     letI : HeapGS HasLC.hasLC GF := ⟨G, etcd_dist.atCtx L⟩;
@@ -201,11 +196,11 @@ open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 `hB1n`) for `memberKeep`'s cases, and for the stopped case T10's `memberBackend.law` at the closed backend keep
 `KeepBc` (`hBc`: the closed-backend case of design §4.4, `BackendImage.lean:130`, proved by P6 at `KeepBc`'s
 instance through the proved `fileHoldsMDur_crash`, `FileDur.lean:244`: no axiom). The stopped case is T7's restart case
-with `hBc` in place of `dbCrash` and `hB1`: the same `memberDurKeep`, `memberWalKeep`, snapshot directory and
+with `hBc` in place of `dbCrash` and `hB1`: the same `srvDurKeep`, `srvWalKeep`, snapshot directory and
 spine steps (`memberDur_crash`, `memberWal_crash`, `snapDir_crash`), then `crashImage_of`. -/
 theorem memberGenS_crash_law_holds (C : etcd_dist.MemberCl)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
-    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → MemberKN GF → IProp GF)
+    (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → SrvKN GF → IProp GF)
     (Q : OsState → OsState → Prop)
     (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st')
     (hA1 : ∀ i0 st st', Q st st' → backend.BoltCrashWhole (· = i0) st st')
