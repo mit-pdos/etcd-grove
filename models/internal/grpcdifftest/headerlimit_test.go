@@ -6,7 +6,9 @@ package grpcdifftest_test
 // several ways, by where the limit falls in the HTTP/2 frames (measured here, against grpc-go):
 //
 //	client metadata just over the limit:  Internal "stream terminated by RST_STREAM with error code: FRAME_SIZE_ERROR"
-//	a metadata value over the limit:      Unavailable "error reading from server: EOF"
+//	a metadata value over the limit:      Unavailable "error reading from server: EOF" (or, by timing,
+//	                                      the server's RST as a read's "connection reset by peer" or a
+//	                                      write's "broken pipe": headRefused)
 //	a server header or trailer over it:   Unavailable "error reading from server: connection error: COMPRESSION_ERROR"
 //
 // and never runs the handler of a call whose head is refused. The model, which writes no block
@@ -47,8 +49,7 @@ func TestHeaderListLimit(t *testing.T) {
 	ctx = metadata.AppendToOutgoingContext(ctx5(t), "big", strings.Repeat("v", headerLimit-200))
 	_, err := c.Unary(ctx, svc.M(id+" echo x"))
 	if m := status.Convert(err).Message(); !(status.Code(err) == codes.Internal &&
-		m == "stream terminated by RST_STREAM with error code: FRAME_SIZE_ERROR" ||
-		status.Code(err) == codes.Unavailable && m == "error reading from server: EOF") {
+		m == "stream terminated by RST_STREAM with error code: FRAME_SIZE_ERROR" || headRefused(err)) {
 		t.Fatalf("just over the limit: %v", err)
 	}
 	if srv.Runs(id) != 0 {
@@ -60,7 +61,9 @@ func TestHeaderListLimit(t *testing.T) {
 		id = fresh()
 		ctx = metadata.AppendToOutgoingContext(ctx5(t), "big", strings.Repeat("v", n))
 		_, err = c.Unary(ctx, svc.M(id+" echo x"))
-		wantStatus(t, err, codes.Unavailable, "error reading from server: EOF")
+		if !headRefused(err) {
+			t.Fatalf("over the limit: %v", err)
+		}
 		if srv.Runs(id) != 0 {
 			t.Fatalf("runs %d", srv.Runs(id))
 		}
@@ -77,7 +80,9 @@ func TestHeaderListLimit(t *testing.T) {
 		t.Fatalf("Send: %v", err)
 	}
 	_, err = st.Recv()
-	wantStatus(t, err, codes.Unavailable, "error reading from server: EOF")
+	if !headRefused(err) {
+		t.Fatalf("stream over the limit: %v", err)
+	}
 	if srv.Runs(id) != 0 {
 		t.Fatalf("runs %d", srv.Runs(id))
 	}
@@ -106,4 +111,14 @@ func TestHeaderListLimit(t *testing.T) {
 			}
 		}
 	}
+}
+
+// headRefused: the error of a call whose head the server refused by closing the connection
+// (Unavailable; grpc-go's reader sees the EOF, or the server's RST as a reset, or a write fails
+// with a broken pipe, by timing: the model's modelChooseMessage).
+func headRefused(err error) bool {
+	m := status.Convert(err).Message()
+	return status.Code(err) == codes.Unavailable && (m == "error reading from server: EOF" ||
+		strings.HasPrefix(m, "error reading from server: ") && strings.HasSuffix(m, ": connection reset by peer") ||
+		strings.HasSuffix(m, ": write: broken pipe\""))
 }

@@ -1089,6 +1089,9 @@ noncomputable def modelChooseN [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def modelChooseLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.modelChooseLength"
 
+noncomputable def modelChooseMessage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelChooseMessage"
+
 noncomputable def modelChooseAddr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.modelChooseAddr"
 
@@ -1885,7 +1888,7 @@ noncomputable def encodeMetadataHeader.impl [GooseExts] [GoGlobalContext] : val 
 /-- createHeaderFields is http2Client.createHeaderFields (with getTrAuthData and getCallAuthData
     inlined from http2_client.go): the request's header fields.
 
-    go: model_transport.go:292:6 -/
+    go: model_transport.go:298:6 -/
 noncomputable def createHeaderFields.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "cc"

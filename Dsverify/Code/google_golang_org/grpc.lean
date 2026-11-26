@@ -943,6 +943,11 @@ noncomputable def errMalformedFrame [GooseExts] [GoGlobalContext] : GoString :=
 
 opaque errMalformedFrame.init [GooseExts] [GoGlobalContext] : val
 
+noncomputable def errHeaderListTooLarge [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.errHeaderListTooLarge"
+
+opaque errHeaderListTooLarge.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def http2ErrCodeNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.http2ErrCodeNames"
 
@@ -1221,6 +1226,9 @@ noncomputable def modelChooseN [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def modelChooseLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.modelChooseLength"
 
+noncomputable def modelChooseMessage [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.modelChooseMessage"
+
 noncomputable def modelChooseAddr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.modelChooseAddr"
 
@@ -1295,6 +1303,12 @@ noncomputable def readFull [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def readFrameKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.readFrameKind"
+
+noncomputable def headerListTooLarge [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.headerListTooLarge"
+
+noncomputable def appendOversizedBlock [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.appendOversizedBlock"
 
 noncomputable def appendHeaderBlock [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.appendHeaderBlock"
@@ -1705,6 +1719,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
@@ -1745,6 +1760,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val http2ErrConvTab.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val http2ErrCodeNames.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val errHeaderListTooLarge.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val errMalformedFrame.init) (Val #()))))))
   (App (Val doExecute)
@@ -2693,7 +2710,7 @@ class clientTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq clientTransportStream.ty clientTransportStream.underlying
   isUnderlying : go.IsUnderlying clientTransportStream.underlying clientTransportStream.underlying
   method_set : go.MethodSetIs clientTransportStream.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" []), go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" []), go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.headerListTooLarge", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] clientTransportStream.TypeAssumptions.type_repr
   clientTransportStream.TypeAssumptions.underlying
@@ -2712,7 +2729,7 @@ class serverTransport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq serverTransport.ty serverTransport.underlying
   isUnderlying : go.IsUnderlying serverTransport.underlying serverTransport.underlying
   method_set : go.MethodSetIs serverTransport.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransport.ty) [(go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Drain", (some (go.signature.Signature [go.string] false []))), (go!"HandleStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))] false []))), (go!"Peer", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/peer.Peer" []))]))), (go!"google.golang.org/grpc.drainReads", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType headerField.ty)] false [(go.GoType.PointerType serverTransportStream.ty), go.bool]))), (go!"google.golang.org/grpc.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.writeEarlyAbort", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), go.uint32] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransport.ty) [(go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Drain", (some (go.signature.Signature [go.string] false []))), (go!"HandleStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))] false []))), (go!"Peer", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/peer.Peer" []))]))), (go!"google.golang.org/grpc.drainReads", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType headerField.ty)] false [(go.GoType.PointerType serverTransportStream.ty), go.bool]))), (go!"google.golang.org/grpc.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.writeEarlyAbort", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), go.uint32] false []))), (go!"google.golang.org/grpc.writeHeaderBlock", (some (go.signature.Signature [go.byte, (go.GoType.SliceType headerField.ty)] false [go.error])))]
 
 attribute [instance] serverTransport.TypeAssumptions.type_repr
   serverTransport.TypeAssumptions.underlying

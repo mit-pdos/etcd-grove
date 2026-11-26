@@ -24,6 +24,8 @@ unchecked until the build.
   a goose skip), `RegisterService`/`register`/`printf`/`wrapUnaryHandler`, `CustomCodec`,
   `newCodecV0Bridge`, `grpcsync.NewEvent`, `internal/stats.NewCombinedHandler` (a new package, fact
   `True`).
+- (Trusted, §2.4) the merged core branch made `metadata.builtRawMDRaw` a definition (was a trusted
+  opaque): its five producers now claim its contents.
 - `origin/grpc-neutral-narrow/2026-11-26` (`dac450d58b`) merged: the narrowed `.neutral` (its own review,
   `notes/axiom-review/grpc-neutral-narrow.md`).
 
@@ -264,6 +266,52 @@ trusted producer of a server option, `grpc.StatsHandler.wp_proof`: its `.stats h
 non-whitelisted field. That is true of the model, whose closure sets only `statsHandlers` or, for a nil
 `h`, nothing.
 
+### 2.4 `metadata.builtRawMDRaw`: trusted opaque → definition (merged from `phase7-s2-core`, `56a8b77dfe`)
+
+Old (`Proof/context/LibKeys.lean`): `opaque metadata.builtRawMDRaw (v : GoInterface) (f : GoString →
+Option (List GoString)) : IProp GF`, trusted, with no law: "`v` is a `rawMD` grpc's `metadata` made, whose
+`FromOutgoingContext` view is `f`". New (`LibKeys.lean:159`):
+
+```lean
+def metadata.builtRawMDRaw (v : GoInterface) (f : GoString → Option (List GoString)) : IProp GF :=
+  iprop(∃ (M : GMap GoString (List GoString)) (rows : List (List GoString)),
+    metadata.rawMDAt v M rows ∗ ⌜f = metadata.rawView M rows⌝)
+```
+
+`rawMDAt v M rows` is persistent. It says `v` is a `rawMD` whose map (nil and empty, or read-only) has
+`M`'s keys, each key's slice read-only at its values. Its `added` slice is read-only at the rows, each row
+read-only. `rawOk M rows` holds: lower-case keys in the map and the rows, and every row of even length.
+`rawView` merges them as `FromOutgoingContext` does (`metadata.go:331-361`): a key's map values, then
+its rows' values in order.
+
+**The claims that grow.** Every statement that produces `builtRawMDRaw` (through
+`metadata.outgoingHeld`/`outMD`) now claims these contents. There are five, all trust-boundary axioms:
+1. `metadata.AppendToOutgoingContext` (grpc's `metadata`, names only);
+2. `clientv3.withVersion` (etcd, names only);
+3. `clientv3.WithRequireLeader` (etcd, names only);
+4. `context.WithCancelValCtx` (passes `inctx`'s value at grpc's key through);
+5. the grpc model's server contexts (the run contexts `Serve`'s model gives a handler).
+
+**Why the contents hold** (grpc-go v1.84.0 `metadata/metadata.go`; etcd's callers):
+- `NewOutgoingContext(ctx, md)` stores `rawMD{md: md}`.
+- `AppendToOutgoingContext(ctx, kv...)` stores `rawMD{md: md.md, added: added}`. `added` is a fresh
+  copy of the old rows plus the new one, with each key lower-cased (`strings.ToLower`), and a panic on an
+  odd length. So every row has even length and lower-case keys. `ToLower` is Unicode's, and
+  `rawKeyLower` asks for ASCII, so this rests on the spec's premise `metadata.lowerKey k` (ASCII, no
+  upper case: `ToLower` is then the identity).
+- Every `MD` etcd's code passes to `NewOutgoingContext` is built by `metadata.Pairs`, `New` or
+  `MD.Set`, which lower-case keys, or by `FromOutgoingContext`, which returns a copy with lower-case keys.
+  This covers `withVersion`, `WithRequireLeader` and the client's interceptors.
+- Each such map is fresh, and no caller writes it after storing it. `rawMD` is stored by value, and grpc
+  never writes the stored maps or slices; the program can't reach them, since `mdOutgoingKey{}` is
+  unexported.
+- So reading the map and rows only (`↦□`), and the merged view as `FromOutgoingContext` computes it, is
+  exact for what grpc-go stores.
+- The reviewer spot-checked `metadata.go` at v1.84.0 and etcd's callers: fresh maps, lower-case keys,
+  never written after.
+
+This needs the full review the coordinator plans; it was a spot check.
+
 ## 3. Step 3 (`grpcSrvNew` defined; `NewServer`, `RegisterService` proved): status and design
 
 **`grpcSrvNew` is a definition** (commit `0e7177cb0c`; −1 axiom). `NewServer` and `RegisterService` are
@@ -364,11 +412,29 @@ any proof that holds its parts can assemble it. Two arguments say this changes n
    Inside grpc, the translated code that writes these fields is `NewServer`'s literal and the
    `chain*ServerInterceptors`, `register` (`services`, under `mu`) and, in the model, `Serve`/`Stop`. All
    but `Serve`/`Stop` are proved here against the definition. `Serve` consumes it (`grpcServeTok`) and
-   never gives it back, so after `Serve` no `grpcSrvNew` exists for the server. `Stop`/`GracefulStop`
-   have no spec, so no proof can call them.
+   never gives it back, so after `Serve` no `grpcSrvNew` exists for the server. `Serve`, `Stop` and
+   `GracefulStop` are not translated (names only), so no proof steps through their bodies.
+
+   **A copy of the struct.** Go code outside `grpc` can copy a whole server, `*p = *gs` (the fields are
+   unexported, but a struct assignment copies them). The copy does not satisfy the definition at `p`.
+   Its `cv` is the same `*sync.Cond`, whose `L` is `&gs.mu`, and `grpcSrvNew` at `p` asks
+   `sync.isCond cv (&p.mu)`. `isCond` pins `L`: `sync.isCondDef` holds `c.L ↦□ m` (`typedPointsto
+   (structFieldRef Cond "L" c) (interface.ok m) DFrac.discard`, Perennial's `CondDefs.lean`). Two
+   persistent points-tos at one location agree, and `&p.mu ≠ &gs.mu` for distinct allocations. The
+   copy also shares `services`, `lis` and `conns`, whose `ownMap`s are exclusive and held by `gs`'s
+   predicate.
 
    So the statements are only ever applied to servers grpc's own code built, as before. Argument 1 is
    the one their truth rests on; argument 2 shows that nothing new is reachable either.
+
+3. **`etcd_noRefusal`/`etcd_noOtherRefusal` and other worlds.** These two axioms take `grpcSrvNew gs …
+   ∗ netListenerAt lis addr` and conclude `noRefusalAt addr`, a fact about the address string. With
+   `grpcSrvNew` a definition, its premise can be met by any server state grpc's code built, so what keeps
+   a server certified in one program from vouching for `addr` in another (the cross-world attack) is
+   `netListenerAt`'s `addrClaim addr`, now alone. `addrClaim` is an opaque axiom (`Proof/net/InvNet.lean`)
+   produced only by `goose_adequacy_start` (`Proof/runtime/Start.lean`), once per address of the
+   deployment. This is a known limitation, recorded in `addrClaim`'s docstring: a later change that
+   gives `addrClaim` a definition, a law or another producer must re-review these two axioms.
 
 ## 4. Files SW2 also edits
 

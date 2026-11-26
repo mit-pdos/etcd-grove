@@ -263,12 +263,18 @@ func newClientTransportStream(ctx context.Context, cc *ClientConn, conn net.Conn
 		// ends as grpc-go's does when its server refuses the list: a FRAME_SIZE_ERROR reset (a list
 		// truncated in its last frame) or the end of the connection (the server's connection error,
 		// measured for a field over the limit), the model's choice; never retried (in grpc-go the
-		// server has read the head).
+		// server has read the head). The connection error's message is any string
+		// (modelChooseMessage): the server closes with the head unread, so Linux resets the
+		// connection, and grpc-go reports EOF, a reset or a broken pipe by timing.
 		var st *status.Status
 		if modelChoose() {
 			st = status.New(codes.Internal, "stream terminated by RST_STREAM with error code: FRAME_SIZE_ERROR")
 		} else {
-			st = transportFailure("error reading from server: EOF")
+			st = transportFailure(modelChooseMessage("error reading from server: EOF",
+				"error reading from server: read tcp "+conn.LocalAddr().String()+"->"+
+					conn.RemoteAddr().String()+": read: connection reset by peer",
+				"connection error: desc = \"transport: failed to write: write tcp "+
+					conn.LocalAddr().String()+"->"+conn.RemoteAddr().String()+": write: broken pipe\""))
 		}
 		s.closeStream(st.Err(), false, st, nil)
 		return s, nil
