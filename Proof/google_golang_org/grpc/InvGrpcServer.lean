@@ -69,6 +69,7 @@ stats handlers' property (`grpcStatsHandlerOk`) are in `InvGrpcHealth.lean`, `In
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcStream
+public import Proof.google_golang_org.grpc.InvGrpcStats
 public import Proof.net.InvNet
 
 @[expose] public section
