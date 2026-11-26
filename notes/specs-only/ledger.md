@@ -5937,3 +5937,12 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `RawNode.Campaign.spec` keeps its own proof (no `spec_of_abs`).
 - **Decision.** Approved by the lead (B1 phase 2, item 2). No new axiom, no new top-level premise; `#print axioms
   RawNode.Campaign.wp_absProof` std only.
+
+## 2026-11-26 — antithesis parity B1: `node.sendMsg.spec` at a frozen message (#33)
+
+- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/node__sendMsg.lean`.
+- **Correction (lead's decision).** The statement took and gave back `msgPtsC ml dq DFrac.discard cap st`
+  for any `dq`, but `sendMsg`'s `proto.Clone` (`proto.ClonePb.spec`) needs the persistent `msgRoC`, which
+  exists only at `dq = DFrac.discard`. **Now:** `msgPtsC ml DFrac.discard DFrac.discard cap st` (no `dq`);
+  the drain's Ready messages are frozen.
+- **Decision.** No new axiom, no new top-level premise (a driver-internal spec).

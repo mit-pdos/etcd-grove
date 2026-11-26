@@ -29,13 +29,13 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 
 /-- See the file header. -/
 abbrev node.sendMsg.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNames) (n : Loc) (j : Fin γ.R.N) (ml : Loc) (dq : DFrac)
+  ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNames) (n : Loc) (j : Fin γ.R.N) (ml : Loc)
     (cap : Bool) (st : MsgSt) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antCluster c γ ∗ nodeRO c γ n j ∗ emitOk n ∗ netAdder c γ q ∗ threadTok ∗
-      msgPtsC ml dq DFrac.discard cap st ∗ sendFacts γ st ∗ ⌜γ.mode.SnapStatus' = false⌝ }}
+      msgPtsC ml DFrac.discard DFrac.discard cap st ∗ sendFacts γ st ∗ ⌜γ.mode.SnapStatus' = false⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"sendMsg")) (Val #ml))
-  {{ RET #(); emitOk n ∗ netAdder c γ q ∗ threadTok ∗ msgPtsC ml dq DFrac.discard cap st }}
+  {{ RET #(); emitOk n ∗ netAdder c γ q ∗ threadTok ∗ msgPtsC ml DFrac.discard DFrac.discard cap st }}
 
 end spec
 
