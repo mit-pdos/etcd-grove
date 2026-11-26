@@ -39,17 +39,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   machine's client.
 - **Evidence.** `notes/etcd-dist-n9b.md` §10 ("What the lead's drafts lack", item 1); leaseexpiryN's `run.lean:452`.
 - **Proposed change (applied, F2).** A heap-free history slot, allocated by the start for each member's lessor
-  name `Γ.ls mid` (P-L1), `lease.lessorSlot γl := inv lessorSlotN (ghostMapAuth γl ½ ∅ ∨ □ lessorRdInvAt γl)`
-  (`Proof/go_etcd_io/etcd/server/v3/lease/LessorSlot.lean`), with `lessorRdInvAt γl := ∃ L : GooseLocalGS GF,
-  lessorRdInv (hG := ⟨Gg, L⟩) γl`: the reader invariant at the member's local state, a proposition over the
-  global state only, so any machine can hold it. Until the member's `NewLessor` runs, the slot holds half of
-  `γl`'s ghost-map authority at `∅`; the member holds the other half. P-L1's `NewLessor` variant
-  (`newLessor_alloc` at a given `γl`) opens the slot in its one allocation step. The right disjunct is excluded
-  there, because the member's half at `∅` contradicts the pin that `lessorRdInvAt` holds. The variant joins the
-  halves, inserts the lessor's two keys (`lessorGhost`), allocates `lessorRdInv` as today and closes the slot
-  with `□ lessorRdInvAt γl`. A client holding the slot and any `lessorAt γl i σ` (which holds a pin of `γl`) is
-  in the second case (`lessorAt_not_empty`). So the law, restated with `lessorSlot (Γ.ls mid)` in place of the
-  address fact, is a theorem (`lessorAbsentStays_dist.law_holds`, via `lease.lessorSlot_absent_stays`).
+  name `Γ.ls mid` (P-L1), `lease.lessorSlot γl := inv lessorSlotN (ghostMapAuth γl ½ ∅ ∨ lessorHistOk γl)`
+  (`Proof/go_etcd_io/etcd/server/v3/lease/LessorSlot.lean`), where `lessorHistOk γl` is the law itself over
+  `lessorAt` alone (`□ ∀ i k j σ ρ τ id, ⌜…⌝ -∗ lessorAt … -∗ … ={⊤ ∖ lessorSlotN}=∗ ⌜τ.1.lookup id = none⌝`):
+  persistent and heap-free, so any machine can hold it. (A first try put `∃ L : GooseLocalGS GF,
+  lessorRdInv (hG := ⟨Gg, L⟩) γl` there; it does not elaborate, `lessorRdInv`'s `go.Semantics` instance is at
+  the member's local context.) Until the member's `NewLessor` runs, the slot holds half of `γl`'s ghost-map
+  authority at `∅`; the member holds the other half. P-L1's `NewLessor` variant (`newLessor_alloc` at a given
+  `γl`) opens the slot in its one allocation step. The right disjunct is excluded there, because the member's
+  half at `∅` contradicts the pin it holds (`lessorAt_not_empty`). The variant joins the halves, inserts the
+  lessor's two keys (`lessorGhost`), allocates `lessorRdInv` as today, proves `lessorHistOk γl` from it
+  (`lessorAt_absent_stays` at `⊤ ∖ lessorSlotN`) and closes the slot with it. A client holding the slot and
+  any `lessorAt γl i σ` (which holds a pin of `γl`) is in the second case. So the law, restated with
+  `lessorSlot (Γ.ls mid)` in place of the address fact, is a theorem (`lessorAbsentStays_dist.law_holds`, via
+  `lease.lessorSlot_absent_stays`).
   The clients' `leaseMember`/`memberCli` carry the slot of the member's lessor name; the orchestrator's share at
   the start carries it for every member.
   - *Moves:* the start allocates, for each member `mid`, `γl := Γ.ls mid` as a ghost map

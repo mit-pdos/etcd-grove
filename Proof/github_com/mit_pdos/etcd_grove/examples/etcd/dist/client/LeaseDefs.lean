@@ -149,7 +149,7 @@ abbrev lessorAbsentStays_dist.law : Prop :=
 
 theorem lessorAbsentStays_dist.law_holds : lessorAbsentStays_dist.law (GF := GF) (hG := hG) :=
   fun Γ mid i k j σ ρ τ id hσ hik hρ hkj =>
-    lease.lessorSlot_absent_stays (Γ.ls mid) i k j σ ρ τ id ⊤ (by simp) (by simp) hσ hik hρ hkj
+    lease.lessorSlot_absent_stays (Γ.ls mid) i k j σ ρ τ id hσ hik hρ hkj
 
 end view
 
