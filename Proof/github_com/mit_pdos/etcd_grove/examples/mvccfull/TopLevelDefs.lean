@@ -66,6 +66,18 @@ def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt) #r
 
+/-- **The thread bound** (`mvccfull_robust`'s `threads`): fewer than `2 ^ 28` live threads along the
+execution. A cap the proof needs, not a limit of the code: the backend's reader-slot pool
+(`backend.rdPoolN`) and the stores' reader tokens are sized for it (`Run.spec`'s
+`ThreadBoundLe GF (2 ^ 28)`). -/
+abbrev mvccfullThreads : Nat := 2 ^ 28
+
+/-- **The step bound** (`mvccfull_robust`'s `bound`): fewer than `2 ^ 48` steps. The proof's cap: an
+execution of `n` steps runs at `n + 1` receipts, and the run's receipt budget is `2 ^ 48`
+(`Run.spec`'s `ReceiptBoundLe GF (2 ^ 48)`: the backends' write-back tokens and mvcc's receipt-paid
+supplies). -/
+abbrev mvccfullSteps : Nat := 2 ^ 48
+
 end adequacy
 end EtcdGrove
 end Perennial

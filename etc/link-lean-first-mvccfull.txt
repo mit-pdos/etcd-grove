@@ -5,7 +5,7 @@
 # every proof but the glue (`notes/mvccfull-proof-plan.md`, "Draft: the glue list") is `sorry`.
 #
 # mvcc, through its API: the API's laws and specs, given as terms (`=`), from mvcc's
-# `ApiResults.lean` (an extra import of the mode), as mvccrand's.
+# `ApiResults.lean` (an extra import of the mode).
 #
 # (mvccfull's Freeze, 2026-11-10: the side-by-side candidates `api.New.specR` and
 # `lease.NewLessor.specR`, hypotheses here until then, are now `New.spec` and `NewLessor.spec`.)
@@ -30,7 +30,7 @@ heap_Pop: heap_down
 lease_lessor__checkpointScheduledLeases: lease_lessor__isPrimary lease_lessor__findDueScheduledCheckpoints
 lease_lessor__findDueScheduledCheckpoints:
 #
-# The trust boundary and the callees linked elsewhere (as mvccrand's): zap's `NewNop` (an axiom),
+# The trust boundary and the callees linked elsewhere: zap's `NewNop` (an axiom),
 # `context.TODO`, traceutil's `TODO`, the backend's (`@`, the backend's `Link.lean`), Perennial's
 # `time.Sleep` and `sort.Strings` (`=`).
 zap_NewNop:

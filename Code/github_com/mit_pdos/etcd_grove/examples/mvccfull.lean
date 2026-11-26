@@ -204,7 +204,7 @@ noncomputable def MainAt [GooseExts] [GoGlobalContext] : GoString :=
     past mvcc's internal thresholds (mvccfull.go, "Auditing"), batch limits small enough that
     commits and compactions go by count, and a mix weighed toward the log's operations.
 
-    go: config.go:89:6 -/
+    go: config.go:91:6 -/
 noncomputable def MainConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -277,7 +277,7 @@ noncomputable def MainConfig.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- normalize clamps cfg into the range the tester runs in.
 
-    go: config.go:107:6 -/
+    go: config.go:109:6 -/
 noncomputable def normalize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -314,7 +314,7 @@ noncomputable def normalize.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- choose returns any number in [0, n) (0 if n ≤ 0).
 
-    go: config.go:121:6 -/
+    go: config.go:123:6 -/
 noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -340,7 +340,7 @@ noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick returns any alternative in [0, n), weighed by w (above).
 
-    go: config.go:129:6 -/
+    go: config.go:131:6 -/
 noncomputable def pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "n"
@@ -425,7 +425,7 @@ noncomputable def pick.impl [GooseExts] [GoGlobalContext] : val :=
 /-- hashing says whether a reader's pick over the weights w (readOne's six reads) can choose the
     hashes (the last): its weight positive, or every weight 0 (a uniform pick).
 
-    go: config.go:153:6 -/
+    go: config.go:155:6 -/
 noncomputable def hashing.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -463,7 +463,7 @@ noncomputable def hashing.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "any") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: mvccfull.go:141:6 -/
+/-- go: mvccfull.go:146:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ok"
   (Lam "msg"
@@ -481,7 +481,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 /-- walkKeys appends the strings over a, b, c that extend p, up to length depth, in increasing
     order (p first).
 
-    go: mvccfull.go:149:6 -/
+    go: mvccfull.go:154:6 -/
 noncomputable def walkKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ks"
   (Lam "p"
@@ -540,7 +540,7 @@ noncomputable def walkKeys.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- itoa is strconv.Itoa of a non-negative number.
 
-    go: mvccfull.go:162:6 -/
+    go: mvccfull.go:167:6 -/
 noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -579,7 +579,7 @@ noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: mvccfull.go:205:19 -/
+/-- go: mvccfull.go:210:19 -/
 noncomputable def history.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam BAnon
@@ -608,7 +608,7 @@ noncomputable def history.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef history.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Var "$res0"))))))
 
-/-- go: mvccfull.go:211:19 -/
+/-- go: mvccfull.go:216:19 -/
 noncomputable def history.appendRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "st"
@@ -640,7 +640,7 @@ noncomputable def history.appendRev.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- changesAt returns revision r's changes; r must be in the history.
 
-    go: mvccfull.go:219:19 -/
+    go: mvccfull.go:224:19 -/
 noncomputable def history.changesAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "r"
@@ -673,7 +673,7 @@ noncomputable def history.changesAt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef history.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h")))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType change.ty)))) (Var "$res0"))))))
 
-/-- go: mvccfull.go:226:19 -/
+/-- go: mvccfull.go:231:19 -/
 noncomputable def history.addComp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "c"
@@ -697,7 +697,7 @@ noncomputable def history.addComp.impl [GooseExts] [GoGlobalContext] : val :=
 /-- compPrev says whether c is a revision the log compacted at, and the compaction revision before
     it (-1 for the first).
 
-    go: mvccfull.go:234:19 -/
+    go: mvccfull.go:239:19 -/
 noncomputable def history.compPrev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "c"
@@ -763,7 +763,7 @@ noncomputable def history.compPrev.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef history.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h")))) (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: mvccfull.go:247:6 -/
+/-- go: mvccfull.go:252:6 -/
 noncomputable def copyState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string kvRec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string kvRec.ty)))) (Val #())))
@@ -802,7 +802,7 @@ noncomputable def copyState.impl [GooseExts] [GoGlobalContext] : val :=
 /-- inRange says whether key k is in the range [key, end): end nil is the key alone, end empty
     every key from key on.
 
-    go: mvccfull.go:257:6 -/
+    go: mvccfull.go:262:6 -/
 noncomputable def inRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "end"
@@ -841,7 +841,7 @@ noncomputable def inRange.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
-/-- go: mvccfull.go:274:19 -/
+/-- go: mvccfull.go:279:19 -/
 noncomputable def pending.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "k"
@@ -895,7 +895,7 @@ noncomputable def pending.put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- del deletes the range's keys, in key order, and returns how many it deleted.
 
-    go: mvccfull.go:285:19 -/
+    go: mvccfull.go:290:19 -/
 noncomputable def pending.del.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "keys"
@@ -965,7 +965,7 @@ noncomputable def pending.del.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkRangeAt checks a range read's result (res, err) in a transaction at revision cur of a
     store compacted at cmp, against the states (states[r] at revision r, for r up to cur).
 
-    go: mvccfull.go:306:6 -/
+    go: mvccfull.go:311:6 -/
 noncomputable def checkRangeAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "keys"
   (Lam "states"
@@ -1151,7 +1151,7 @@ noncomputable def checkRangeAt.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))))))
   (Val #())))))))))
 
-/-- go: mvccfull.go:352:6 -/
+/-- go: mvccfull.go:357:6 -/
 noncomputable def checkKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kv"
   (Lam "k"
@@ -1199,7 +1199,7 @@ noncomputable def checkKV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
   (Val #()))))))
 
-/-- go: mvccfull.go:398:18 -/
+/-- go: mvccfull.go:403:18 -/
 noncomputable def noCluster.Version.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -1216,7 +1216,7 @@ noncomputable def noCluster.Version.impl [GooseExts] [GoGlobalContext] : val :=
 /-- memberPath is the file of member id (0 the leader, 1 the follower), buildPath the file of the
     n-th snapshot builder (restore): FilePaths lists them.
 
-    go: mvccfull.go:460:6 -/
+    go: mvccfull.go:465:6 -/
 noncomputable def memberPath.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Lam "id"
@@ -1233,7 +1233,7 @@ noncomputable def memberPath.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: mvccfull.go:462:6 -/
+/-- go: mvccfull.go:467:6 -/
 noncomputable def buildPath.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Lam "n"
@@ -1253,7 +1253,7 @@ noncomputable def buildPath.impl [GooseExts] [GoGlobalContext] : val :=
 /-- FilePaths is every file a run of cfg may create (absent at its start): the two members' and one
     per snapshot install, at most one per writer step.
 
-    go: mvccfull.go:466:6 -/
+    go: mvccfull.go:471:6 -/
 noncomputable def FilePaths.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -1299,7 +1299,7 @@ noncomputable def FilePaths.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- openBackend opens a backend on path, with the configuration's batch settings.
 
-    go: mvccfull.go:475:18 -/
+    go: mvccfull.go:480:18 -/
 noncomputable def runner.openBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "path"
@@ -1343,7 +1343,7 @@ noncomputable def runner.openBackend.impl [GooseExts] [GoGlobalContext] : val :=
 /-- open opens m's backend, lessor and store on its file, as the server does, and checks the store
     against the model.
 
-    go: mvccfull.go:489:18 -/
+    go: mvccfull.go:494:18 -/
 noncomputable def runner.«open».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1416,7 +1416,7 @@ noncomputable def runner.«open».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- shut closes m's store, lessor and backend.
 
-    go: mvccfull.go:506:18 -/
+    go: mvccfull.go:511:18 -/
 noncomputable def runner.shut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1439,7 +1439,7 @@ noncomputable def runner.shut.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newMember opens a member over a fresh file.
 
-    go: mvccfull.go:513:18 -/
+    go: mvccfull.go:518:18 -/
 noncomputable def runner.newMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "id"
@@ -1507,7 +1507,7 @@ noncomputable def runner.newMember.impl [GooseExts] [GoGlobalContext] : val :=
     process restarting: its requests in flight end with it), closes m and opens it again on its
     file, and starts them again.
 
-    go: mvccfull.go:531:18 -/
+    go: mvccfull.go:536:18 -/
 noncomputable def runner.restart.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1548,7 +1548,7 @@ noncomputable def runner.restart.impl [GooseExts] [GoGlobalContext] : val :=
     then closed (the file then holds an image of that history, as a leader's backend snapshot
     does; Restore takes any image of a history extending the store's).
 
-    go: mvccfull.go:547:18 -/
+    go: mvccfull.go:552:18 -/
 noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "l"
@@ -1706,7 +1706,7 @@ noncomputable def runner.restore.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkLeases checks m's lessor against the model: each key's lease, each live lease's keys, and
     no other lease.
 
-    go: mvccfull.go:581:18 -/
+    go: mvccfull.go:586:18 -/
 noncomputable def runner.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -1851,7 +1851,7 @@ noncomputable def runner.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string kvRec.ty)))) (Pair (Var "st") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: mvccfull.go:612:18 -/
+/-- go: mvccfull.go:617:18 -/
 noncomputable def runner.genKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1870,7 +1870,7 @@ noncomputable def runner.genKey.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genEnd returns a range end: nil (one key), empty (from the key on), past every key, or a key.
 
-    go: mvccfull.go:615:18 -/
+    go: mvccfull.go:620:18 -/
 noncomputable def runner.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -1913,7 +1913,7 @@ noncomputable def runner.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
     (compacted, past, current, future), any limit up to past the number of keys (0: none), any
     count-only, keys-only and total-count options.
 
-    go: mvccfull.go:632:18 -/
+    go: mvccfull.go:637:18 -/
 noncomputable def runner.genRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "cur"
@@ -1981,7 +1981,7 @@ noncomputable def runner.genRange.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newVal returns a new value, of any length up to MaxVal.
 
-    go: mvccfull.go:652:18 -/
+    go: mvccfull.go:657:18 -/
 noncomputable def runner.newVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -2020,7 +2020,7 @@ noncomputable def runner.newVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genLease returns no lease half the time, else a live lease of m, if any.
 
-    go: mvccfull.go:662:18 -/
+    go: mvccfull.go:667:18 -/
 noncomputable def runner.genLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2053,7 +2053,7 @@ noncomputable def runner.genLease.impl [GooseExts] [GoGlobalContext] : val :=
 /-- genSubs returns a write transaction's operations, as etcd's checkIntervals allows them: the
     puts' keys distinct, and none in a delete's range.
 
-    go: mvccfull.go:671:18 -/
+    go: mvccfull.go:676:18 -/
 noncomputable def runner.genSubs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2225,7 +2225,7 @@ noncomputable def runner.genSubs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- gen returns the next operation of the log, made for the leader l.
 
-    go: mvccfull.go:715:18 -/
+    go: mvccfull.go:720:18 -/
 noncomputable def runner.gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "l"
@@ -2416,7 +2416,7 @@ noncomputable def runner.gen.impl [GooseExts] [GoGlobalContext] : val :=
 /-- apply applies the operation o to m (lead: m is the leader, which appends o's revision to the
     history; the follower finds it there), checking every result.
 
-    go: mvccfull.go:766:18 -/
+    go: mvccfull.go:771:18 -/
 noncomputable def runner.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2757,7 +2757,7 @@ noncomputable def runner.apply.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- begin returns the model of a write transaction on m, and raises m's revision bound.
 
-    go: mvccfull.go:836:18 -/
+    go: mvccfull.go:841:18 -/
 noncomputable def runner.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2788,7 +2788,7 @@ noncomputable def runner.begin.impl [GooseExts] [GoGlobalContext] : val :=
 /-- end appends the pending revision to the history (the leader, if it changed anything), runs
     the store's End, checks the store's revision and publishes it.
 
-    go: mvccfull.go:844:18 -/
+    go: mvccfull.go:849:18 -/
 noncomputable def runner.«end».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2857,7 +2857,7 @@ noncomputable def runner.«end».impl [GooseExts] [GoGlobalContext] : val :=
 /-- view returns the states as a read in the write transaction sees them (the pending revision
     appended once it has a change) and the revision it is at.
 
-    go: mvccfull.go:863:18 -/
+    go: mvccfull.go:868:18 -/
 noncomputable def runner.view.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "p"
@@ -2903,7 +2903,7 @@ noncomputable def runner.view.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Pair (Var "st") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res1"))))))))
 
-/-- go: mvccfull.go:871:18 -/
+/-- go: mvccfull.go:876:18 -/
 noncomputable def runner.writeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -2960,7 +2960,7 @@ noncomputable def runner.writeRange.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- writeSub runs one operation of a write transaction, checked.
 
-    go: mvccfull.go:878:18 -/
+    go: mvccfull.go:883:18 -/
 noncomputable def runner.writeSub.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3041,7 +3041,7 @@ noncomputable def runner.writeSub.impl [GooseExts] [GoGlobalContext] : val :=
     in a concurrent read transaction made a read-only write transaction. Then the branch's
     operations.
 
-    go: mvccfull.go:902:18 -/
+    go: mvccfull.go:907:18 -/
 noncomputable def runner.txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3276,7 +3276,7 @@ noncomputable def runner.txn.impl [GooseExts] [GoGlobalContext] : val :=
     closed once the compactions before are done), ErrFutureRev past its revision; waits for the
     compaction if o.wait.
 
-    go: mvccfull.go:943:18 -/
+    go: mvccfull.go:948:18 -/
 noncomputable def runner.compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3402,7 +3402,7 @@ noncomputable def runner.compact.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkHook checks that the post-lock hook ran with the index being applied.
 
-    go: mvccfull.go:973:18 -/
+    go: mvccfull.go:978:18 -/
 noncomputable def runner.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3417,7 +3417,7 @@ noncomputable def runner.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- go: mvccfull.go:980:6 -/
+/-- go: mvccfull.go:985:6 -/
 noncomputable def inBounds.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lo"
   (Lam "v"
@@ -3442,7 +3442,7 @@ noncomputable def inBounds.impl [GooseExts] [GoGlobalContext] : val :=
 /-- startReaders starts cfg.Readers readers on each member, each running up to cfg.Reads reads
     until stopReaders (between two restarts: a reader belongs to the members' current incarnations).
 
-    go: mvccfull.go:987:18 -/
+    go: mvccfull.go:992:18 -/
 noncomputable def runner.startReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -3508,7 +3508,7 @@ noncomputable def runner.startReaders.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- stopReaders stops the readers and waits for them.
 
-    go: mvccfull.go:1005:18 -/
+    go: mvccfull.go:1010:18 -/
 noncomputable def runner.stopReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -3522,7 +3522,7 @@ noncomputable def runner.stopReaders.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef runner.ty go!"readStop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType runner.ty)))) (Var "x")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: mvccfull.go:1010:18 -/
+/-- go: mvccfull.go:1015:18 -/
 noncomputable def runner.readOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3770,7 +3770,7 @@ noncomputable def runner.readOne.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkStoreRange checks the store's own Range (its own read transaction: a revision in
     [lo, revHi], a compaction revision in [clo, cmpHi]).
 
-    go: mvccfull.go:1054:18 -/
+    go: mvccfull.go:1059:18 -/
 noncomputable def runner.checkStoreRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -3831,7 +3831,7 @@ noncomputable def runner.checkStoreRange.impl [GooseExts] [GoGlobalContext] : va
     and equal when they are of the same revision and compaction revision; and the members'
     compaction hashes, equal when of the same revisions.
 
-    go: mvccfull.go:1069:18 -/
+    go: mvccfull.go:1074:18 -/
 noncomputable def runner.hashes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -4005,7 +4005,7 @@ noncomputable def runner.hashes.impl [GooseExts] [GoGlobalContext] : val :=
     equal, unless the state at that revision is empty (the restriction:
     issues/etcd-mvcc-compact-hash-empty-keyspace.md).
 
-    go: mvccfull.go:1104:18 -/
+    go: mvccfull.go:1109:18 -/
 noncomputable def runner.sameHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "a"
@@ -4041,7 +4041,7 @@ noncomputable def runner.sameHash.impl [GooseExts] [GoGlobalContext] : val :=
     below the compaction revision, else the hash of r (0: the current revision) at the compaction
     revision; or the hash a compaction at r stored, at the compaction revision before it.
 
-    go: mvccfull.go:1118:18 -/
+    go: mvccfull.go:1123:18 -/
 noncomputable def runner.checkHash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4151,7 +4151,7 @@ noncomputable def runner.checkHash.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))))))
   (Val #()))))))))))
 
-/-- go: mvccfull.go:1165:19 -/
+/-- go: mvccfull.go:1170:19 -/
 noncomputable def watcher.«matches».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ch"
@@ -4193,7 +4193,7 @@ noncomputable def watcher.«matches».impl [GooseExts] [GoGlobalContext] : val :
 /-- startEpoch opens m's watch streams, each with its receiving goroutine and its registering one,
     which acts until the writer stops it.
 
-    go: mvccfull.go:1193:18 -/
+    go: mvccfull.go:1198:18 -/
 noncomputable def runner.startEpoch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4280,7 +4280,7 @@ noncomputable def runner.startEpoch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- endEpoch stops registering on m's streams, waits until every watcher has every event up to m's
     revision (or was cancelled or compacted), and closes the streams.
 
-    go: mvccfull.go:1219:18 -/
+    go: mvccfull.go:1224:18 -/
 noncomputable def runner.endEpoch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -4391,7 +4391,7 @@ noncomputable def runner.endEpoch.impl [GooseExts] [GoGlobalContext] : val :=
     progress or the stream's, check the stream's revision, or watch an empty range (which must
     fail).
 
-    go: mvccfull.go:1244:18 -/
+    go: mvccfull.go:1249:18 -/
 noncomputable def stream.act.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4479,7 +4479,7 @@ noncomputable def stream.act.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pick returns a watcher not cancelled, if any (s.mu held).
 
-    go: mvccfull.go:1270:18 -/
+    go: mvccfull.go:1275:18 -/
 noncomputable def stream.pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4541,7 +4541,7 @@ noncomputable def stream.pick.impl [GooseExts] [GoGlobalContext] : val :=
 /-- watch registers a watcher (the stream picks its id, as etcd's client asks): from revision 0
     or any revision up to two past the member's, over any non-empty range, with any filter.
 
-    go: mvccfull.go:1285:18 -/
+    go: mvccfull.go:1290:18 -/
 noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4710,7 +4710,7 @@ noncomputable def stream.watch.impl [GooseExts] [GoGlobalContext] : val :=
 /-- cancel cancels a watcher not cancelled (marked first, so that the receiver stops counting on
     the stream's progress responses for it), and cancels it again, which may fail.
 
-    go: mvccfull.go:1329:18 -/
+    go: mvccfull.go:1334:18 -/
 noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -4773,7 +4773,7 @@ noncomputable def stream.cancel.impl [GooseExts] [GoGlobalContext] : val :=
 /-- expect returns w's next expected change at or after its position, up to revision upto (false if
     there is none).
 
-    go: mvccfull.go:1347:18 -/
+    go: mvccfull.go:1352:18 -/
 noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4857,7 +4857,7 @@ noncomputable def stream.expect.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- covered checks that w has received every change up to P.
 
-    go: mvccfull.go:1364:18 -/
+    go: mvccfull.go:1369:18 -/
 noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
@@ -4899,7 +4899,7 @@ noncomputable def stream.covered.impl [GooseExts] [GoGlobalContext] : val :=
     sendLoop drains its channel down to a new watcher's stamp the same way): a stream progress
     response received later was sent after the watcher registered, and covers it.
 
-    go: mvccfull.go:1374:18 -/
+    go: mvccfull.go:1379:18 -/
 noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5010,7 +5010,7 @@ noncomputable def stream.recvOne.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- receive checks a response of the stream (s.mu held).
 
-    go: mvccfull.go:1402:18 -/
+    go: mvccfull.go:1407:18 -/
 noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "resp"
@@ -5317,7 +5317,7 @@ noncomputable def stream.receive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- complete says whether every watcher not cancelled or compacted has every change up to upto.
 
-    go: mvccfull.go:1483:18 -/
+    go: mvccfull.go:1488:18 -/
 noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "upto"
@@ -5397,7 +5397,7 @@ noncomputable def stream.complete.impl [GooseExts] [GoGlobalContext] : val :=
 /-- write is the writer: the log's operations on the leader, the follower catching up, snapshots
     installed on the follower, restarts; then the follower caught up.
 
-    go: mvccfull.go:1503:18 -/
+    go: mvccfull.go:1508:18 -/
 noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
@@ -5485,7 +5485,7 @@ noncomputable def runner.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkAll reads every revision of m not compacted, in full.
 
-    go: mvccfull.go:1534:18 -/
+    go: mvccfull.go:1539:18 -/
 noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "m"
@@ -5609,7 +5609,7 @@ noncomputable def runner.checkAll.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Run runs the tester; it panics if a check fails.
 
-    go: mvccfull.go:1555:6 -/
+    go: mvccfull.go:1560:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
@@ -5743,7 +5743,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
     (one per possible snapshot install, at most one per writer step), FilePaths(MainConfig("mvccfull")).
     None of them may exist at the start.
 
-    go: mvccfull.go:1587:6 -/
+    go: mvccfull.go:1592:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

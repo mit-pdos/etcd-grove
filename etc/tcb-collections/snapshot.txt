@@ -75,7 +75,6 @@ axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom strings.Contains.wp_proof
 axiom strings.ToLower.wp_proof
 axiom types.NewURLs.wp_proof
 axiom zap.Stack.wp_proof

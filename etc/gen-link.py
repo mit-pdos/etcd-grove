@@ -73,7 +73,6 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --wal-tester > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Link.lean
        etc/gen-link.py --kvraft > KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Link.lean
        etc/gen-link.py --kvraft-udp > KvRaft/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/cmd/kvraft_udp/Link.lean
-       etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
@@ -782,11 +781,6 @@ if sys.argv[1:2] == ["--bbolt"]:
     link_bbolt.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], results_file="--results" in sys.argv[2:])
     sys.exit(0)
-# mvcc's randomized tester (examples/mvccrand; its other tables below, R10)
-LEAN_FIRST["--mvccrand"] = ("link-lean-first-mvccrand.txt",
-                            "github_com.mit_pdos.etcd_grove.examples.mvccrand",
-                            "github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions",
-                            "mvcc's randomized tester's proofs (`examples/mvccrand`)", [""])
 # mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09; its other tables below)
 LEAN_FIRST["--mvccfull"] = ("link-lean-first-mvccfull.txt",
                             "github_com.mit_pdos.etcd_grove.examples.mvccfull",
@@ -848,19 +842,12 @@ PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.Field
 EXTRA_VARS = {# (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
               "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
               "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
-# mvcc's randomized tester (examples/mvccrand, R10, 2026-11-07): its functions over mvcc's API
+# mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): its functions over mvcc's API
 # (`=mvcc.api.*` callees, from mvcc's `ApiResults`), the lessor's (as the server's Link links them)
-# and the backend's (`@`); its `runChecks` and the lessor's specs take the server's assumptions
-# (`lessorApplyOk`, `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above)
-NAMESPACED["--mvccrand"] = "mvccrand"
-EXTRA_IMPORTS["--mvccrand"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
-                               "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
-                               # (P3, 2026-11-24) `absent`'s `errors.Is` (an `=` callee)
-                               "Proof.errors.IsPathErrnoNotExist"]
-EXTRA_VARS["--mvccrand"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
-                            "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
-# mvcc's full tester (examples/mvccfull, F1 Draft, 2026-11-09): as mvccrand's, and the lessor's
-# `Leases` (`sort.Sort` for any `Less`, `=EtcdGrove.sort.«Sort».wp_anyLess`) and `time.Sleep`
+# and the backend's (`@`); the lessor's specs take the server's assumptions (`lessorApplyOk`,
+# `etcdserver/SnapRO.lean`), a section variable (its `LEAN_FIRST` entry above); the lessor's
+# `Leases` (`sort.Sort` for any `Less`, `=EtcdGrove.sort.«Sort».wp_anyLess`) and `time.Sleep`.
+# (Until 2026-11-25 as mvcc's randomized tester's, examples/mvccrand, retired: #49.)
 NAMESPACED["--mvccfull"] = "mvccfull"
 EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults",
                                "Perennial.Proof.sort.Link", "Perennial.Proof.time.Link",
@@ -869,7 +856,8 @@ EXTRA_IMPORTS["--mvccfull"] = ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api
                                "Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults",
                                # (P3, 2026-11-24) `absent`'s `errors.Is` (an `=` callee)
                                "Proof.errors.IsPathErrnoNotExist"]
-EXTRA_VARS["--mvccfull"] = EXTRA_VARS["--mvccrand"]
+EXTRA_VARS["--mvccfull"] = ("variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]\n"
+                            "variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]\n")
 # (prom-registry, route (b), 2026-11-22) prometheus's `Register` is proved over the real registry's
 # `(*Registry).Register` (`=` callee of v3rpc's `prometheus_Register`)
 EXTRA_IMPORTS.setdefault("--v3rpc", []).append(

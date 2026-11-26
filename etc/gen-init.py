@@ -144,8 +144,7 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
 # notes/trace-validation-plan.md; it runs raft's `with_tla` build and is in the tree `RaftTla/`
 # since the split of raft's two builds, so its `Init.lean` and `PkgTable.lean` are no longer
 # generated here)
-# (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
-ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
+# (R10, 2026-11-07 to 2026-11-25) mvcc's randomized tester (examples/mvccrand), retired (#49)
 # (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
@@ -2194,24 +2193,6 @@ trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.''',
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
 )
 
-# (R10, 2026-11-07) mvcc's randomized tester: its two string-slice literals, persisted
-SPECIAL['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = dict(
-    doc='''Its fact (`mvccrandInit`, `Base.lean`): `keys` and `extraEnds` hold read-only slices of
-`keyList` and `extraEndList`. Its initializer allocates them, initializes its imports and runs their
-translated initializers, two slice literals (`mvccrand.go`), whose slices are made persistent.''',
-    alloc_types={'keys': 'GoSlice', 'extraEnds': 'GoSlice'},
-    before={'keys': ['try wp_auto',
-                     'wp_apply (wp_slice_literal (l := [go!"a", go!"aa", go!"b", go!"ba", go!"c", go!"d"])); isplitr; (· ipureintro; rfl); iintro %pK ⟨SK, -⟩',
-                     'try wp_auto'],
-            'extraEnds': ['try wp_auto',
-                          'wp_apply (wp_slice_literal (l := [go!"bb", go!"z"])); isplitr; (· ipureintro; rfl); iintro %pE ⟨SE, -⟩',
-                          'try wp_auto'],
-            '$end': ['try wp_auto']},
-    finish=['ipersist Hkeys', 'ipersist HextraEnds', 'imod ownSlice_persist $$ SK with #SK',
-            'imod ownSlice_persist $$ SE with #SE'] + FIN_PRE[:6] +
-           ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
-)
-
 # (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
 # `drvFacts` (`Base.lean`, 2026-11-25; `True` until then): `reached`, a function value, is allocated and
 # stored, and its calls return
@@ -3819,6 +3800,31 @@ the trust-boundary axiom `opaqueInitsOk`).''',
     alloc_types={'codeToStr': 'Loc', 'strToCode': 'Loc'},
     before={'codeToStr': map_lit_steps('Hcs', 'w32', 'GoString', f'{_OC}.Code.ty', 'go.string', 3),
             'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_OC}.Code.ty', 3)},
+)
+# (prove-otel-encoderid, 2026-11-25) otel's `attribute`: its `init` (the fork's `id := NewEncoderID();
+# defaultEncoderID = id`, etc/goose.py's `module_forks`; until then `defaultEncoderID`'s initializer, the
+# trust-boundary axiom `opaqueInitsOk`), through `NewEncoderID`'s proof on the freshly allocated counter
+_OA = 'go_opentelemetry_io.otel.«attribute»'
+_OAQ = _OA
+SPECIAL[_OA] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `encoderIDCounter` and `defaultEncoderID`,
+initializes its import (`sync/atomic`) and runs its translated `init` (prove-otel-encoderid,
+2026-11-25: the fork's `id := NewEncoderID(); defaultEncoderID = id`, in place of `defaultEncoderID =
+NewEncoderID()`, which goose's modelcheck refuses and was the trust-boundary axiom `opaqueInitsOk`):
+`NewEncoderID`'s proof, on the counter at zero, returns the ID 1, which it stores.''',
+    alloc_types={'encoderIDCounter': '_root_.Perennial.sync.atomic.Uint64',
+                 'defaultEncoderID': f'{_OAQ}.EncoderID'},
+    after={'init.«0»': [
+        f'ihave Hc : _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr {_OAQ}.encoderIDCounter) (DFrac.own 1) (W64 0) $$ [HencoderIDCounter]',
+        '· rw [_root_.Perennial.sync.atomic.ownUint64_unseal]',
+        '  unfold _root_.Perennial.sync.atomic.ownUint64Def',
+        "  have e : (zero_val _root_.Perennial.sync.atomic.Uint64) =",
+        "      ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : _root_.Perennial.sync.atomic.Uint64) := rfl",
+        '  rw [← e]; iexact HencoderIDCounter',
+        'wp_apply (EtcdGrove.«attribute».NewEncoderID.wp_proof (hG := hG) (W64 0)) $$ [Hc] as -',
+        '· iexact Hc',
+        'try wp_auto']},
+    imports=['Proof.go_opentelemetry_io.otel.attribute.NewEncoderID'],
 )
 # (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4; the mechanism of phase 7 S2 core's
 # `FromOutgoingContextRaw`, 2026-11-23, for every hook) grpc's `internal`: names only but its hook
@@ -5551,9 +5557,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
-# (R10, 2026-11-07) mvcc's randomized tester
-PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
-    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'

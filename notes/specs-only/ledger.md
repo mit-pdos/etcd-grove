@@ -6959,6 +6959,49 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** coordinator-E, 2026-11-25 (option 1, within Upamanyu's direction on #18 7119112205: rewrite
   `sort.Slice` call sites to `slices.Sort`/`SortFunc` rather than add a reflection primitive).
 
+## 2026-11-25: `mvccfull_robust.spec` -- `HEnv : EtcdVerifyOff` is a premise the program could check (mvcc-retire, #49)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean`,
+  `mvccfull_robust.spec`'s `(HEnv : EtcdVerifyOff)`; `MainAt.spec` (`Spec/.../mvccfull/MainAt.lean`),
+  `Run.spec`'s `⌜EtcdVerifyOff⌝`.
+- **Defect.** Not wrong: an environment premise with a witness (`etcdVerifyOffValue_unset`). But the
+  program can read the variable itself (`os.Getenv`'s spec, an existing axiom, returns
+  `etcdVerifyEnv`), so the theorem need not assume it (#49's etcd report, item 8, and cross-cutting 2).
+- **Evidence.** `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean` (`EtcdVerifyOff` is
+  `etcdVerifyOffValue etcdVerifyEnv`); `Spec/os/Getenv.lean`.
+- **Proposed change.** `MainAt` (`examples/mvccfull/start.go`) returns at once when
+  `verifyOn(os.Getenv("ETCD_VERIFY"))`, a local function that lower-cases the value
+  (`strings.ToLower`) and compares it with `all`, `assert`, `lock` (as `verify.getEnvVerify` does);
+  else as now. `MainAt.spec` drops `⌜EtcdVerifyOff⌝` (its proof gets it from the check's `else`
+  branch through `os.Getenv`'s spec and `strings.lowersTo`); `mvccfull_robust.spec` drops `HEnv`
+  (a strengthening; no new axiom: `os.Getenv.wp_proof` is already in mvccfull's collection,
+  `etc/tcb-collections/mvccfull.txt`). A Go test: `MainAt` with
+  `ETCD_VERIFY=all` returns without creating a file, unset runs (`start_test.go`).
+  `etc/premise-witness-baseline.txt` loses mvccfull's `HEnv` line.
+- **Decision.** Pending: a change of the top-level statement, Upamanyu's (#8, via coordinator-E).
+
+## 2026-11-25: `mvccfull_robust.spec` -- one configuration, `MainConfig`, while the package doc spoke of every `Config` (mvcc-retire, #49)
+
+- **Spec.** `mvccfull_robust.spec` (`Spec/.../mvccfull/TopLevelRobustness.lean`), over
+  `mvccfullProgram r` (`TopLevelDefs.lean`: `MainAt(r)`, so `Run(MainConfig(r/mvccfull))`).
+- **Defect.** The package doc (`examples/mvccfull/mvccfull.go`, "Coverage") described a theorem for
+  every `Config`; the statement covers `MainConfig` only, whose `Mix.Read` gives the
+  corruption checker's hashes weight 0 (#49's etcd report, item 8). Fixed as documentation on
+  `mvcc-retire`: the statement's docstring and the Go docs (`mvccfull.go`, `config.go`) now say exactly
+  what is covered (MainConfig's sizes; of its four zero weights, three exclude nothing, the hashes are
+  excluded).
+- **Evidence.** `examples/mvccfull/config.go` (`MainConfig`, `Read: {1, 1, 2, 1, 1, 0}`); `Run.spec`'s
+  `runCfgOk` requires `readMixOk` (no hash read: `HashByRev`, `Hashes` have no spec until F2).
+- **Proposed change** (beyond the docs). `MainAt` draws the configuration: each size and each weight from
+  `primitive.RandomUint64` within `runCfgOk`'s bounds (`Ops < 2^38`, `2·Readers + 4·Streams + 3 ≤ 2^28`,
+  batch limits, `MaxVal ≤ 2^20`, `Depth` with `keysOf` below `2^60`), returning when a drawn value is out
+  of range, with `Read`'s hash weight forced to 0 until F2 proves the hashes; then checks the drawn
+  configuration's `FilePaths` absent and runs `Run(cfg)`. The statement's text is unchanged, its program
+  covers every configuration `Run.spec` admits (a strengthening). `MainAt.spec`'s proof over a drawn
+  `cfg` (`Run.spec` already holds for every `cfg` with `runCfgOk`); a Go non-vacuity test (many seeds:
+  the validation passes, `Run`'s checks are reached). The hashes remain outside until F2.
+- **Decision.** Pending: the program the top-level statement is about changes, Upamanyu's (#8, via
+  coordinator-E).
 ## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
 
 - **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
