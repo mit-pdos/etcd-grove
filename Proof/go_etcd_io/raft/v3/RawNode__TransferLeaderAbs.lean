@@ -183,6 +183,45 @@ theorem transferEndR_of {rs : RNState} {fp : List EntryM} {c : CfgM} {id to : w6
     rw [hr]; rfl
 
 
+/-- (antithesis parity B1, phase 2) **A stale received `MsgTransferLeader`** (`StepEnd.xstale`): ignored, but
+for the transfer's ghost record, which `toRState` does not read: `TransferRecvEndR`'s first arm. -/
+theorem transferRecvEndR_of_stale {rs : RNState} {fp : List EntryM} {c : CfgM} {id : w64} {m : MessageM}
+    {ents : List EntryM} {ctx : List w8} {s s' : NState} {x : XMsg} (hty : m.Type' = MsgTransferLeader)
+    (hst : StaleMsg s m) (hxt : x.term = m.Term') (h : StepEnd c id m ents ctx s s') :
+    TransferRecvEndR id (toRState rs fp s) x (toRState rs fp s') := by
+  obtain ⟨X, Y, b, rfl⟩ := h.xstale hst hty
+  exact .inl ⟨by rw [hxt]; exact hst.1, by rw [hxt]; exact hst.2, rfl⟩
+
+set_option maxHeartbeats 1000000 in
+/-- (antithesis parity B1, phase 2) **A received `MsgTransferLeader`** (`x` its transfer reading: the
+sender `x.src`, the term `x.term`), `TransferRecvEndR` at the `RState` reading: stale
+(`transferRecvEndR_of_stale`), of a higher term (`transferEnd_of_stepEnd_gt`), else of the node's term or
+term `0` (`transferEnd_of_stepEnd_cur`, `transferEndR_of`). -/
+theorem transferRecvEndR_of_stepEnd {rs : RNState} {fp : List EntryM} {c : CfgM} {id : w64}
+    {m : MessageM} {ents : List EntryM} {ctx : List w8} {s s' : NState} {x : XMsg}
+    (hc : rs.cfg.cfg = c) (hty : m.Type' = MsgTransferLeader) (hpc : domSet s.progress = c.ids)
+    (hns : NoSnapL s'.outbox) (hxs : x.src = m.From') (hxt : x.term = m.Term')
+    (h : StepEnd c id m ents ctx s s') :
+    TransferRecvEndR id (toRState rs fp s) x (toRState rs fp s') := by
+  by_cases hst : StaleMsg s m
+  · exact transferRecvEndR_of_stale hty hst hxt h
+  by_cases hb : PreBF m s
+  · obtain ⟨g, pvs, rfl⟩ := transferEnd_of_stepEnd_gt hty hst hb h
+    rw [← hxt]
+    exact transferRecvEndR_of_gt (by rw [hxt]; exact hb.1)
+  · obtain ⟨g, l, o, pvs, rfl, -, hp⟩ := transferEnd_of_stepEnd_cur hty hst hb hpc hns h
+    refine .inr (.inl ⟨?_, ?_⟩)
+    · rw [hxt]
+      by_cases h0 : m.Term' = W64 0
+      · exact .inl h0
+      · right
+        have h1 : ¬ uint.Z m.Term' < uint.Z s.term := fun h' => hst ⟨h0, h'⟩
+        have h2 : ¬ uint.Z s.term < uint.Z m.Term' := fun h' => hb ⟨h', fun h => by tl_absurd,
+          fun ⟨h, _⟩ => by tl_absurd⟩
+        show m.Term' = s.term
+        word
+    · rw [hxs]; exact transferEndR_of hc hp
+
 /-- A premise of `Step` about another message type. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum, MsgSnap,
