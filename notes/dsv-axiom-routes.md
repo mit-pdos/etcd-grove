@@ -398,3 +398,6 @@ same command then copies `etc/tcb-baseline.txt` and `etc/tcb-collections/dsv-rab
    numbers in `notes/STATUS.md`'s dsv-retire-3 entry ("the level methods' removal pending the build").
 2. `etc/gates.sh` once, in the background on fk-lean1, logged; fix and re-check.
 3. `notes/axiom-review/dsv-zerolog-remaining.md` is updated (7 left) and ready for the coordinator's review.
+(Correction, same session: the trust-base run finished before the handoff commit, and `b15cc31bb4` already
+holds its result: exactly the five `Logger.*.wp_proof` removed, base 356, `dsv-rabia` 16, `dsv-quepaxa`
+unchanged (6), axiom-tok ok. Item 1 is done but for the numbers in `notes/STATUS.md`; next is `etc/gates.sh`.)
