@@ -217,6 +217,10 @@ importable Proof.go_etcd_io.raft.v3.Protocol.InputEnd
 # `RawNodeApi` publicly imports, and the campaign facts `InputEnd` publicly imports
 importable Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 importable Proof.go_etcd_io.raft.v3.Protocol.CommitCamp
+# (2026-11-26) the antithesis run's cluster allocation (cluster_alloc_run: any server count, a one-entry normal boot log)
+importable Proof.go_etcd_io.raft.v3.ClusterAllocRun
+importable Proof.go_etcd_io.raft.v3.Protocol.RnMode
+importable Spec.go_etcd_io.raft.v3.RawNode__Campaign
 importable Spec.go_etcd_io.raft.v3.raft__appendEntry
 importable Spec.go_etcd_io.raft.v3.raft__bcastAppend
 importable Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
