@@ -364,7 +364,7 @@ theorem MainLogger.wp_proof
   · solve_pkg_init
   wp_apply (wp_ListenProto go!"tcp" m.peer (httpPeerSvc (GF := GF) c.γ.cl idm).1
       (httpPeerSvc (GF := GF) c.γ.cl idm).2) $$ [] as %pl %lerr Hl
-  · isplitr; · iexact HnetPk
+  · (try iframe HnetPk)
     isplitr
     · ipureintro; rfl
     iExactEq Hown; rfl

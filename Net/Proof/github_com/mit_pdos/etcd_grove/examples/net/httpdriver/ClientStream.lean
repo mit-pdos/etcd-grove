@@ -417,7 +417,8 @@ theorem hcStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
             (net.http.httpRespP (Gg := hG.goose_globalGS) drvP) r ∗
           ⌜res.got = [] ∧ (p.len.toNat ≠ 0 → ∀ bs, res ≠ .bytes bs)⌝)) $$ [Hp HrL]
       as %k %err ⟨%res, %bs', ⟨HrL, %Hres⟩, Hp, %Hout, HE, -⟩
-    · iframe Hio Hpoll Hconn Hp Hxe Hed
+    · (try iframe Hio); (try iframe Hpoll)
+      iframe Hconn Hp Hxe Hed
       imod read_after_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat $$ [$HrL $Hdead]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -485,7 +486,8 @@ theorem hcStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
           (⌜res = .eof ∨ res = .err .sys ∨ res = .err .closed⌝ -∗
             readDead (Gg := hG.goose_globalGS) cn false))) $$ [Hp HrL Hrdl]
       as %k %err ⟨%res, %bs', ⟨HrL, Hrdl, %Hro, Hdead⟩, Hp, %Hout, HE, Hlc1, -⟩
-    · iframe Hio Hpoll Hconn Hp Hxe Hed
+    · (try iframe Hio); (try iframe Hpoll)
+      iframe Hconn Hp Hxe Hed
       imod read_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat false $$ [$HrL $Hrdl]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
