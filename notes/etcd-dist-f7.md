@@ -1285,3 +1285,35 @@ Callers are unaffected (a weaker premise). Not done.
   authlease `run.lean`'s `leaseTxn_ok`/`txnOpOf_leasePut` (a proof module: copy into a defs module).
 
 **Next:** the lead's decision on `Txn_CommitOn_dist`; then `RunAuthLease.lean` (no file yet) as above.
+
+### Handoff S5-5 (2026-11-26; widening done, defs ported; `RunAuthLease.wp_proof` not started)
+
+**Done** (branch `etcd-safe-f7`; no `sorry`, no new axiom, no top-level statement changed):
+- `0ebea22657`: `Txn_CommitOn_dist`'s write arm widened to `txn.txnPlain t ∨ (Γ.kv.lm = .revocable ∧ txnPlainL t)`
+  (the lead's approval #50 07:36Z; "widened before approval" in its docstrings and F9 row; built). Review targets:
+  `/shared/tmp/coord-03/f7-txn-review-targets.md` (the coordinator runs the review).
+- `923e2417e1`: `Proof/.../dist/client/AuthLeaseTxn.lean` (defs, built on fk-lean2 EXIT 0): `leaseTxnD_ok k L
+  (hkl : k.length ≤ 2^20)` gives `txnReadonly = false ∧ txnSizeOk ∧ txnPlainL ∧ txnNoZeroEnd` of
+  `txnWireOf (leaseTxn k L)` (the widened arm's right disjunct with `Γ.kv.lm = .revocable` from the spec), and
+  `txnOpOf_leasePutD` (`OpPut(k,"v",WithLease(L))`'s `.put k "v" L`). Ports of authlease `run.lean`'s
+  `leaseTxn_ok`/`txnOpOf_leasePut`, minus `kvShapeAll`/`txnNestOk` (not asked by the dist contract).
+
+**Next: `RunAuthLease.lean`** (new proof module `Proof/.../dist/client/RunAuthLease.lean`; not linked into any
+`Link`/`Results` while `foreignReads.law` stands). Signature (callees as hypotheses, as `RunLeaseExpiry.wp_proof`):
+`wp_newClient : newClient.spec`, `wp_SetUp : etcd_auth.SetUp.spec_dist` (`Spec/.../auth/SetUpDist.lean`),
+`wp_barriers : barriers.spec`, `wp_newUserClient : newUserClient.spec`, `wp_grantPut : grantPut.spec`,
+`wp_noAuth : noAuth.spec`, `wp_foreign : foreign.spec`, `wp_absent : absent.spec`, `wp_refused : refused.spec`,
+`wp_ended : ended.spec`, `wp_checked : checked.spec`, `wp_WithTimeout : context.WithTimeoutBackgroundMd.spec`,
+`wp_WithLease : WithLease.spec`, `wp_OpPut : OpPut.spec`, `wp_Txn : kv.Txn.spec` (via
+`client_Txn_dist_law_holds`'s shape, `kvremote/CallDistLinked.lean:225`), `wp_Then : txn.Then.specPlain`
+(`client/v3/TxnPlainSpec.lean`), `wp_Commit : Txn_CommitOn_dist.spec`, `wp_Put : KV_PutOn_dist.spec`,
+`wp_Get : KV_GetOn_dist.spec`, `wp_Revoke : Lease_RevokeOn_dist.spec`, and `hlaw : foreignReads.law`.
+Skeleton: the single-process `authlease/run.lean` from l.623 (the clients) on, its serve loop replaced by the
+spec's `leaseMember`s (`membersAt_of_leaseMembers`, `addrOk_of_leaseMembers`, `leaseMember_member`); the cell
+allocated at `Γ.kv` over `σ0` (`cell_alloc`, `etcdKV Γ.kv σ0` and `authHistView` from the precondition), the
+set-up through `cell_setupAuD`; then Handoff S5-4's plan, item by item (members from barrier 1's
+`barrierFloor`s; u's txn: `Txn_CommitOn_dist`'s write arm, right disjunct, `leaseTxnD_ok`, update
+`cell_txnTAu` as in `run.lean` l.843; the refused txn: `refused_updateD … opChecksLeaseD_txn`).
+Size: the single-process body is ~1060 lines; expect ~800 here. Write it as a few independently proved lemmas
+(e.g. the checks phase after barrier 2 as its own lemma over the persistent facts), each green before the next,
+since every file under `Proof/` is globbed by the `EtcdGrove` lib: a WIP file must build.
