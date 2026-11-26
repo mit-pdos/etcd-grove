@@ -3884,6 +3884,9 @@ noncomputable def node.step.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "snap" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 2))))
+  (Let "prop" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef node.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Mode.ty go!"Nodes"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"mode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"c"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n")))))))
@@ -3907,7 +3910,7 @@ noncomputable def node.step.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (Val #(go!"recv"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "ents"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"input"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0")) (Var "$a1"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 2)))) (Val #false)))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "prop")) (Val #false))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetEntries"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "ents") (Var "$r0")))))
@@ -3935,6 +3938,8 @@ noncomputable def node.step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"cause"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (Pair (Var "cause") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "prop") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "batch")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "snap")) (Val #false))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"flush"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Val #())))
@@ -3948,7 +3953,7 @@ noncomputable def node.step.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- input follows an input: the Readies, or (batching) the report of what raft has in memory.
 
-    go: node.go:376:16 -/
+    go: node.go:377:16 -/
 noncomputable def node.input.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "by"
@@ -3975,7 +3980,7 @@ noncomputable def node.input.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- alone follows a Ready a batching node took as one that does not batch.
 
-    go: node.go:385:16 -/
+    go: node.go:386:16 -/
 noncomputable def node.alone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -4004,7 +4009,7 @@ noncomputable def node.alone.impl [GooseExts] [GoGlobalContext] : val :=
     changed it or was a request to append. ents is what the input asked a leader to append, if raft
     did not refuse.
 
-    go: node.go:398:16 -/
+    go: node.go:399:16 -/
 noncomputable def node.note.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "by"
@@ -4173,7 +4178,7 @@ noncomputable def node.note.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- flushes reports that the oldest k `mem` reports not yet written are part of the next write.
 
-    go: node.go:446:16 -/
+    go: node.go:447:16 -/
 noncomputable def node.flushes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "k"
@@ -4202,7 +4207,7 @@ noncomputable def node.flushes.impl [GooseExts] [GoGlobalContext] : val :=
 /-- flush takes raft's Ready in a batching node: everything that followed from the inputs since the
     last one.
 
-    go: node.go:454:16 -/
+    go: node.go:455:16 -/
 noncomputable def node.flush.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -4436,7 +4441,7 @@ noncomputable def node.flush.impl [GooseExts] [GoGlobalContext] : val :=
 /-- applyCommitted hands committed entries to the state machine (`apply`), telling raft of each
     change of membership among them.
 
-    go: node.go:524:16 -/
+    go: node.go:525:16 -/
 noncomputable def node.applyCommitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "by"
@@ -4486,7 +4491,7 @@ noncomputable def node.applyCommitted.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))))))
   (Val #())))))
 
-/-- go: node.go:537:16 -/
+/-- go: node.go:538:16 -/
 noncomputable def node.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -4501,7 +4506,7 @@ noncomputable def node.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty) go!"Tick"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"rn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))) (Val #()))))))
   (Val #()))))
 
-/-- go: node.go:542:16 -/
+/-- go: node.go:543:16 -/
 noncomputable def node.campaign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
@@ -4519,7 +4524,7 @@ noncomputable def node.campaign.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- propose: an error means raft did not append it; a follower passes it on to its leader.
 
-    go: node.go:548:16 -/
+    go: node.go:549:16 -/
 noncomputable def node.propose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "data"
@@ -4551,7 +4556,7 @@ noncomputable def node.propose.impl [GooseExts] [GoGlobalContext] : val :=
     RawNode.ProposeConfChange does (marshal, then Step a local proposal) with the message kept, as
     rawnode does: raft puts the entry it appends instead, if it refuses the change, in the message.
 
-    go: node.go:560:16 -/
+    go: node.go:561:16 -/
 noncomputable def node.proposeConfChange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "cc"
@@ -4633,7 +4638,7 @@ noncomputable def node.proposeConfChange.impl [GooseExts] [GoGlobalContext] : va
 /-- switchConf tells raft that a change of membership is applied, if e is one, and reports the
     configuration raft counts with from here on (`conf`).
 
-    go: node.go:582:16 -/
+    go: node.go:583:16 -/
 noncomputable def node.switchConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "e"
@@ -4710,7 +4715,7 @@ noncomputable def node.switchConf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- confState is the configuration as of an index the node has applied.
 
-    go: node.go:608:16 -/
+    go: node.go:609:16 -/
 noncomputable def node.confState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "index"
@@ -4752,7 +4757,7 @@ noncomputable def node.confState.impl [GooseExts] [GoGlobalContext] : val :=
 /-- readIndex asks raft for a read index (`readreq`); raft's answer is a ReadState of a later Ready
     (`read`, reads).
 
-    go: node.go:620:16 -/
+    go: node.go:621:16 -/
 noncomputable def node.readIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "ctx"
@@ -4776,7 +4781,7 @@ noncomputable def node.readIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType node.ty) go!"emit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: node.go:626:16 -/
+/-- go: node.go:627:16 -/
 noncomputable def node.reads.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "rd"
@@ -4808,7 +4813,7 @@ noncomputable def node.reads.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- unreachable tells raft that a message to a peer was not delivered.
 
-    go: node.go:635:16 -/
+    go: node.go:636:16 -/
 noncomputable def node.unreachable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "id"
@@ -4825,7 +4830,7 @@ noncomputable def node.unreachable.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty) go!"ReportUnreachable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.RawNode.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"rn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "n"))))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: node.go:640:16 -/
+/-- go: node.go:641:16 -/
 noncomputable def node.transferLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "to"
@@ -4844,7 +4849,7 @@ noncomputable def node.transferLeader.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- snapshotStatus tells raft whether a snapshot it sent to `to` was delivered.
 
-    go: node.go:646:16 -/
+    go: node.go:647:16 -/
 noncomputable def node.snapshotStatus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "to"
@@ -4881,7 +4886,7 @@ noncomputable def node.snapshotStatus.impl [GooseExts] [GoGlobalContext] : val :
     (raft does not start on a snapshot beyond it), nothing being applied, and no leader's snapshot
     waiting to be written (it could reach the disk after this one).
 
-    go: node.go:659:16 -/
+    go: node.go:660:16 -/
 noncomputable def node.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "index"
@@ -5000,7 +5005,7 @@ noncomputable def node.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
 /-- sent follows every message handed to the network: unless the program reports how snapshots
     fare (Mode.SnapStatus), raft is told at once that a snapshot it sent arrived.
 
-    go: node.go:686:16 -/
+    go: node.go:687:16 -/
 noncomputable def node.sent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "m"
@@ -5020,7 +5025,7 @@ noncomputable def node.sent.impl [GooseExts] [GoGlobalContext] : val :=
     then made, as one step, or in Mode.Split's parts), the messages, the read states, the committed
     entries, Advance. A leader's snapshot replaces the log (one write) and then the state machine.
 
-    go: node.go:698:16 -/
+    go: node.go:699:16 -/
 noncomputable def node.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "by"
@@ -5284,7 +5289,7 @@ noncomputable def node.drain.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- restored replaces the state machine by a snapshot (`restore`; later: with Async, a = 1).
 
-    go: node.go:769:16 -/
+    go: node.go:770:16 -/
 noncomputable def node.restored.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "snap"
@@ -5313,7 +5318,7 @@ noncomputable def node.restored.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event.ty)))) (Pair (Var "ev") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: node.go:777:6 -/
+/-- go: node.go:778:6 -/
 noncomputable def isRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -5330,7 +5335,7 @@ noncomputable def isRequest.impl [GooseExts] [GoGlobalContext] : val :=
 /-- parallel is a leader's Ready with Mode.Parallel, up to its write: the report of what raft did
     (`mem`), the requests to append and heartbeats, and then the write (`write`, `wrote`).
 
-    go: node.go:783:16 -/
+    go: node.go:784:16 -/
 noncomputable def node.parallel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "by"
@@ -5451,7 +5456,7 @@ noncomputable def node.parallel.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- parts is the writes a Ready's state is made in: one, or several in Mode.Split's order.
 
-    go: node.go:821:16 -/
+    go: node.go:822:16 -/
 noncomputable def node.parts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "hs"
@@ -5647,7 +5652,7 @@ noncomputable def node.parts.impl [GooseExts] [GoGlobalContext] : val :=
     rawnode sends it: it changes no term and asks for nothing durable. Config.NoHoldVote (tests
     only: TestE1Reproducer, E1=1) turns the hold off.
 
-    go: node.go:876:16 -/
+    go: node.go:877:16 -/
 noncomputable def node.drainAsync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "by"
@@ -5943,7 +5948,7 @@ noncomputable def node.drainAsync.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- runWrite announces the oldest queued write and makes it (rawnode's NextWrite and RunWrite).
 
-    go: node.go:971:16 -/
+    go: node.go:972:16 -/
 noncomputable def node.runWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "w"
@@ -6033,7 +6038,7 @@ noncomputable def node.runWrite.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- doneWrite sends the messages that waited for the write and tells raft it is made.
 
-    go: node.go:1000:16 -/
+    go: node.go:1001:16 -/
 noncomputable def node.doneWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "w"
@@ -6158,7 +6163,7 @@ noncomputable def node.doneWrite.impl [GooseExts] [GoGlobalContext] : val :=
 /-- runApply hands the entries to the state machine (`apply` with a = 1), or replaces it by a
     leader's snapshot (`restore`).
 
-    go: node.go:1042:16 -/
+    go: node.go:1043:16 -/
 noncomputable def node.runApply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "a"
@@ -6197,7 +6202,7 @@ noncomputable def node.runApply.impl [GooseExts] [GoGlobalContext] : val :=
 /-- doneApply tells raft the entries are applied, after telling it of each change of membership
     among them.
 
-    go: node.go:1056:16 -/
+    go: node.go:1057:16 -/
 noncomputable def node.doneApply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "a"
@@ -6272,7 +6277,7 @@ noncomputable def node.doneApply.impl [GooseExts] [GoGlobalContext] : val :=
     can come next (rawnode's simulator's `work`): the next write is made; the messages that waited
     for the made one leave; the next committed entries are applied; raft is told they are.
 
-    go: node.go:1079:16 -/
+    go: node.go:1080:16 -/
 noncomputable def node.work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon

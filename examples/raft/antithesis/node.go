@@ -355,6 +355,7 @@ func (n *node) step(m *pb.Message) {
 	if batch && snap {
 		n.flush() // a snapshot from a leader is handled alone
 	}
+	prop := m.GetType() == pb.MessageType_MsgProp // read before Step, which may keep m (a forward)
 	cause := msgOf(m, n.id, n.c.mode.Nodes)
 	n.cause = &cause
 	err := n.rn.Step(m)
@@ -365,7 +366,7 @@ func (n *node) step(m *pb.Message) {
 		return
 	}
 	var ents []*pb.Entry
-	if err == nil && m.GetType() == pb.MessageType_MsgProp {
+	if err == nil && prop {
 		ents = m.GetEntries()
 	}
 	n.input("recv", ents)
