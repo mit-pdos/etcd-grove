@@ -102,7 +102,8 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   · inext
     iexists I, (C.insert γi.key (([] : List w64), some gp)), R, Fm
     iframe HI HC HR HF HFs
-    obtain ⟨h1, h2, h4, h5, h6⟩ := Hok
+    have h1 := Hok.issued; have h2 := Hok.pfx; have h4 := Hok.gen; have h5 := Hok.domR
+    have h6 := Hok.domF
     have hsome : ∀ k', ((C.insert γi.key (([] : List w64), some gp)) !! k').isSome = (C !! k').isSome := by
       intro k'
       by_cases hk : γi.key = k'
@@ -110,8 +111,8 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
       · rw [GMap.lookup_insert_ne _ _ hk]
     isplitr
     · ipureintro
-      refine ⟨fun id => ?_, fun k e hke => ?_, fun k e hke hne => ?_,
-        fun k => by rw [hsome]; exact h5 k, fun k => by rw [hsome]; exact h6 k⟩
+      refine idClusterOk.mk (fun id => ?_) (fun k e hke => ?_) (fun k e hke hne => ?_)
+        (fun k => by rw [hsome]; exact h5 k) (fun k => by rw [hsome]; exact h6 k)
       · rw [h1 id]
         apply or_congr Iff.rfl
         constructor

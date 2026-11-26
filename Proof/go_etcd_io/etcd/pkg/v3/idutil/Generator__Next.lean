@@ -83,13 +83,14 @@ theorem idClusterOk_issue {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap 
     (k : IdKey) (nid : w64) (L : List w64) (g : Loc) (Hok : idClusterOk I C R Fm)
     (HC : C !! k = some (L, some g)) (Hpn : idPfx nid = k.1) (HIn : I !! nid = none) :
     idClusterOk (I.insert nid none) (C.insert k (nid :: L, some g)) R Fm := by
-  obtain ⟨h1, h2, h4, h5, h6⟩ := Hok
+  have h1 := Hok.issued; have h2 := Hok.pfx; have h4 := Hok.gen; have h5 := Hok.domR
+  have h6 := Hok.domF
   have hsome : ∀ k', ((C.insert k (nid :: L, some g)) !! k').isSome = (C !! k').isSome := by
     intro k'
     by_cases hk : k = k'
     · subst hk; rw [GMap.lookup_insert, HC]; rfl
     · rw [GMap.lookup_insert_ne _ _ hk]
-  refine ⟨?_, ?_, ?_, fun k' => by rw [hsome]; exact h5 k', fun k' => by rw [hsome]; exact h6 k'⟩
+  refine idClusterOk.mk ?_ ?_ ?_ (fun k' => by rw [hsome]; exact h5 k') (fun k' => by rw [hsome]; exact h6 k')
   · intro id
     rw [GMap.lookup_insert_is_Some]
     by_cases h : nid = id
@@ -298,7 +299,7 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
     have HlkP' : P' !! nid = some () := HlkP
     -- the id is not yet issued: in no key's list, so in no map
     have HnL : nid ∉ L' := fun h => by rw [(Hdom' nid).2.2 h] at HlkP'; cases HlkP'
-    have Hpok := (Hok.2.1 γi.key (L', some g) HlkC').1
+    have Hpok := (Hok.pfx γi.key (L', some g) HlkC').1
     ihave ⟨%HIn, HIp⟩ : iprop(⌜I !! nid = none⌝ ∧ ghostMapAuth γip 1 Ip) $$ [HIp]
     · isplit
       rotate_left
@@ -306,11 +307,11 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
       cases hI : I !! nid with
       | none => ipureintro; rfl
       | some v =>
-        rcases (Hok.1 nid).1 (by simp [hI]) with h0 | ⟨k2, e2, hk2, hin⟩
+        rcases (Hok.issued nid).1 (by simp [hI]) with h0 | ⟨k2, e2, hk2, hin⟩
         · exfalso
           rw [← hid] at h0
           exact idutil_or_ne_zero γi.pfx _ Hpok.1 h0
-        · have hg2 := Hok.2.2.1 k2 e2 hk2 (List.ne_nil_of_mem hin)
+        · have hg2 := Hok.gen k2 e2 hk2 (List.ne_nil_of_mem hin)
           rcases e2 with ⟨L2, og2⟩
           cases og2 with
           | none => simp at hg2
@@ -323,7 +324,7 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
             ihave #He2 := (BigSepL.bigSepL_lookup (PROP := IProp GF)
               (Φ := fun _ id => iprop(id ↪[γip2]□ ((k2.2, g2) : Nat × Loc))) hn) $$ Hl2
             -- `k2` is of `nid`'s prefix, the key's: its names the prefix's
-            have hp2 : k2.1 = γi.pfx := ((Hok.2.1 k2 (L2, some g2) hk2).2 nid hin).symm.trans Hpn
+            have hp2 : k2.1 = γi.pfx := ((Hok.pfx k2 (L2, some g2) hk2).2 nid hin).symm.trans Hpn
             ihave #Hgn' : k2.1 ↪[γi.gen]□ γip $$ []
             · rw [hp2]; iexact Hgn
             ihave %Hag := ghostMapElem_agree k2.1 γi.gen DFrac.discard DFrac.discard _ _ $$ Hgn' Hgn2

@@ -503,6 +503,39 @@ def idClusterOk {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKe
   (∀ k e, C !! k = some e → e.1 ≠ [] → e.2.isSome) ∧
   (∀ k, (C !! k).isSome ↔ (R !! k).isSome) ∧ (∀ k, (C !! k).isSome ↔ (Fm !! k).isSome)
 
+/-! `idClusterOk`'s clauses by name (T10, 2026-11-26): a proof outside this file reads a clause through
+these, never by its position, so that adding or dropping a clause breaks only this file. -/
+
+theorem idClusterOk.issued {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdKey IdKeyEntry}
+    {R : GMap IdKey GName} {Fm : GMap IdKey X} (h : idClusterOk I C R Fm) :
+    ∀ id, (I !! id).isSome ↔ id = W64 0 ∨ ∃ k e, C !! k = some e ∧ id ∈ e.1 := h.1
+
+theorem idClusterOk.pfx {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdKey IdKeyEntry}
+    {R : GMap IdKey GName} {Fm : GMap IdKey X} (h : idClusterOk I C R Fm) :
+    ∀ k e, C !! k = some e → idPfxOk k.1 ∧ ∀ id ∈ e.1, idPfx id = k.1 := h.2.1
+
+theorem idClusterOk.gen {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdKey IdKeyEntry}
+    {R : GMap IdKey GName} {Fm : GMap IdKey X} (h : idClusterOk I C R Fm) :
+    ∀ k e, C !! k = some e → e.1 ≠ [] → e.2.isSome := h.2.2.1
+
+theorem idClusterOk.domR {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdKey IdKeyEntry}
+    {R : GMap IdKey GName} {Fm : GMap IdKey X} (h : idClusterOk I C R Fm) :
+    ∀ k, (C !! k).isSome ↔ (R !! k).isSome := h.2.2.2.1
+
+theorem idClusterOk.domF {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdKey IdKeyEntry}
+    {R : GMap IdKey GName} {Fm : GMap IdKey X} (h : idClusterOk I C R Fm) :
+    ∀ k, (C !! k).isSome ↔ (Fm !! k).isSome := h.2.2.2.2
+
+/-- `idClusterOk` from its clauses by name. -/
+theorem idClusterOk.mk {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdKey IdKeyEntry}
+    {R : GMap IdKey GName} {Fm : GMap IdKey X}
+    (issued : ∀ id, (I !! id).isSome ↔ id = W64 0 ∨ ∃ k e, C !! k = some e ∧ id ∈ e.1)
+    (pfx : ∀ k e, C !! k = some e → idPfxOk k.1 ∧ ∀ id ∈ e.1, idPfx id = k.1)
+    (gen : ∀ k e, C !! k = some e → e.1 ≠ [] → e.2.isSome)
+    (domR : ∀ k, (C !! k).isSome ↔ (R !! k).isSome)
+    (domF : ∀ k, (C !! k).isSome ↔ (Fm !! k).isSome) : idClusterOk I C R Fm :=
+  ⟨issued, pfx, gen, domR, domF⟩
+
 end ghost
 
 section ghostG3
@@ -1030,11 +1063,11 @@ theorem idIncarnation_alloc {X : Type} [Pos.Countable X] (issued cnt wn fs gen :
   have hR : R !! (p, n) = none := by
     cases h : R !! (p, n) with
     | none => rfl
-    | some _ => have := (Hok.2.2.2.1 (p, n)).2 (by simp [h]); simp [hC] at this
+    | some _ => have := (Hok.domR (p, n)).2 (by simp [h]); simp [hC] at this
   have hF : Fm !! (p, n) = none := by
     cases h : Fm !! (p, n) with
     | none => rfl
-    | some _ => have := (Hok.2.2.2.2 (p, n)).2 (by simp [h]); simp [hC] at this
+    | some _ => have := (Hok.domF (p, n)).2 (by simp [h]); simp [hC] at this
   imod (idKey_insert cnt wn fs C R Fm (p, n) x hC hR hF) $$ HC HR HF
     with ⟨%γp, HC, HR, HF, Hk, Hw, Hf⟩
   imod Hclose $$ [HI HC HR HF] with -
