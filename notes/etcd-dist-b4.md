@@ -777,3 +777,19 @@ delta is in Today / With this change form.
 - **`NewServer_dist`:** the binder `γbk`, `"Hbk"`, and `srvStop.keep (bk := γbk)`, as changes to the approved axiom.
 - **`NewServerC_dist`:** `"Hdata"`, `"Hbk"`, and B.3's K-4 argument.
 - **Untrusted, lighter:** srvkeep §2's rev-3 edits (the evidence rows, A-4′, the `γbk` existentials).
+
+## Revision 4 (2026-11-26): review D5r3 applied
+
+The input is review D5r3, `coordinator-notes/plans/review-d5r3-newserver-slot.md`: nothing unsound, and C-I2-K
+sound with fixes. The scratch texts are updated in place, with the rev-3 copies kept as `*.rev3.md`.
+
+| D5r3 | Resolution | Where |
+|---|---|---|
+| D-1 (must fix: `srvDataProg` took the data root's whole call permission; the slot's `snapDirKeep` and `srvKbc` hold shares of the same root key `callKey R (dd/member/snap) = dd`, so the preconditions were unsatisfiable) | `∃ qc, osCallPerm (callKey h.R dd) qc`, a share. `TouchDirAll`/`IsDirWriteable`/`CreateTmp` take any share. `srvWalProg`'s whole area-root permission stays: `walInv` holds none of it while the WAL is closed | srvkeep §1.3; c-i2 §3.2 |
+| D-2 (coordinator's decision: the one-shot `γbk` cannot follow a backend swap, and `(bk := γbk)` would write that limit into the approved axiom's post) | `γbk` is a ghost variable: `srvKbVar γbk q (oB : Option DBNames)`, with `srvKbPend γbk := srvKbVar γbk 1 none`. At the commit point it becomes `some k.γb`, with one half in the slot's open arms and the other with the backend's holder (`srvStop.keep (bk := γbk)`, `bootOkRK`). A swap moves both halves. Choosing `γbk` before the call stays sound, because the precondition holds the whole. Condition: `Pos.Countable (Option backend.DBNames)` for `ghostVar`; otherwise T10's `bkKeepInvK` current-backend record replaces it, with the same shape | srvkeep §1.5; scratch §A, §B; c-i2 §3.3 |
+| D-3 (T2's condition) | recorded: `srvLoopViewInit` is exactly `rnWalViewK νk vk0` at `rnDurK_alloc`'s initial view, with nothing keyed by `h.w`/`h.γ.γ`/`h.γ.γl`; `rnDurInvK`'s body turns `vk = vk0` into "no state record" (`HistOkK` at the empty history) | srvkeep §1.5; scratch §A.9 item 6 |
+| D-4 (arm (F) needs `¬ clusterNoSnap`) | already a premise: `memberClOk C`'s last conjunct is `¬ clusterNoSnap C.γ.cl`, stated before `⊢` in `memberGen_boot.law` (and `{C.γ with reg := r}.cl = C.γ.cl`). The arm's comment and the notes now name it. The closed crash theorem takes it as its own premise (§R2.5 Q7) | srvkeep §2.4 |
+
+**Still open:** the countability of `Option backend.DBNames`, or else `bkKeepInvK` (T10); and §R3.2's items 1–5.
+
+**For review:** D-2's ghost variable (§1.5) and D-1's share (§1.3). Both are small.
