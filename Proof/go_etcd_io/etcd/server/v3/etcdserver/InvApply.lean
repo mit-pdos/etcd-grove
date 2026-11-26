@@ -361,7 +361,7 @@ def consInv (γ : ApplyNames) (IR : w64 → w64 → IProp GF := fun _ _ => iprop
     (consInvAt (γ.withPh π) s mi w ∨ consFrozen (γ.withPh π) s mi w) ∗
     consRest (γ.withPh π) l (ciEff (γ.withPh π) s.k) ∗ □ IR s.eff s.p)
 
-/-- (T10 session 8) The protocol's image row `IR`, read at the state's `(eff, p)`; timeless (the row
+/- (T10 session 8) The protocol's image row `IR`, read at the state's `(eff, p)`; timeless (the row
 `∃ A, srvRLogLb A ∗ ⌜…⌝` is). -/
 variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
 
