@@ -25,6 +25,48 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: `lessorAbsentStays_dist.law` (N9b's draft law) -- a premise no client can hold; proved over a heap-free lessor slot
+
+- **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/LeaseDefs.lean`,
+  `lessorAbsentStays_dist.law` (a callee hypothesis of `RunLeaseExpiry.wp_proof` on `etcd-safe-n9b`), and its
+  single-process form `lease.lessorAt_absent_stays` (`Proof/go_etcd_io/etcd/server/v3/lease/LessorHist.lean`).
+  No `SpecPlan/` counterpart (the dist workloads are not in the spec plan). Not a trust-boundary spec: untrusted
+  proof design (the lead, #50 2026-11-26T01:14:58Z: "decide it yourselves ... record it in the ledger").
+- **Defect.** The draft law took only the address fact `etcdAddrAt a Γ mid` and three `lessorAt (Γ.ls mid)`
+  snapshots. The address fact is over the opaque table `etcdSvc` (no law), so nothing could prove the law from
+  it: it would have had to become an axiom. Its single-process form takes `lessorRdInv γl`, which is over the
+  member's heap (`lessorRdBody`'s `lsF … ↦□`, `ttlTie`), so it cannot appear in a statement about another
+  machine's client.
+- **Evidence.** `notes/etcd-dist-n9b.md` §10 ("What the lead's drafts lack", item 1); leaseexpiryN's `run.lean:452`.
+- **Proposed change (applied, F2).** A heap-free history slot, allocated by the start for each member's lessor
+  name `Γ.ls mid` (P-L1), `lease.lessorSlot γl := inv lessorSlotN (ghostMapAuth γl ½ ∅ ∨ □ lessorRdInvAt γl)`
+  (`Proof/go_etcd_io/etcd/server/v3/lease/LessorSlot.lean`), with `lessorRdInvAt γl := ∃ L : GooseLocalGS GF,
+  lessorRdInv (hG := ⟨Gg, L⟩) γl`: the reader invariant at the member's local state, a proposition over the
+  global state only, so any machine can hold it. Until the member's `NewLessor` runs, the slot holds half of
+  `γl`'s ghost-map authority at `∅`; the member holds the other half. P-L1's `NewLessor` variant
+  (`newLessor_alloc` at a given `γl`) opens the slot in its one allocation step. The right disjunct is excluded
+  there, because the member's half at `∅` contradicts the pin that `lessorRdInvAt` holds. The variant joins the
+  halves, inserts the lessor's two keys (`lessorGhost`), allocates `lessorRdInv` as today and closes the slot
+  with `□ lessorRdInvAt γl`. A client holding the slot and any `lessorAt γl i σ` (which holds a pin of `γl`) is
+  in the second case (`lessorAt_not_empty`). So the law, restated with `lessorSlot (Γ.ls mid)` in place of the
+  address fact, is a theorem (`lessorAbsentStays_dist.law_holds`, via `lease.lessorSlot_absent_stays`).
+  The clients' `leaseMember`/`memberCli` carry the slot of the member's lessor name; the orchestrator's share at
+  the start carries it for every member.
+  - *Moves:* the start allocates, for each member `mid`, `γl := Γ.ls mid` as a ghost map
+    `GMap Bool LessorGV` at `∅` (two halves) and the slot (`ClusterNames.ls`, replacing `DistView.ofKV`'s
+    constant). The member's boot passes its half to `NewServer.specG` (P-L1), down to `NewLessor`'s variant.
+    No interim axiom's text changes: the lease drafts already read `Γ.ls mid`, and `etcdAddrAt`/`etcdSvc` are
+    untouched.
+  - *Not taken:* (b) the law as an interim axiom (trust where a proof exists); (c) a stronger
+    `Lease_LeasesLive_dist` post (an axiom's text change); a real split of `lessorRdBody` with a fraction of
+    the history's authority in a heap-free invariant (every append in the lessor package, Grant, Revoke,
+    Recover, Attach and Detach, would have to open it; the slot needs only the allocation step).
+  - *Crash (D6, not this line):* a restarted member's lessor would need a slot that survives the restart. The
+    one-shot slot is for `etcd_safe_nocrash`.
+- **Decision.** Accepted (etcd-grove-03, under the lead's delegation of 2026-11-26T01:14:58Z). The slot and the
+  law's proof are on `etcd-safe-f2`; P-L1 (the `NewLessor`/`NewServer` variants and the start's allocation) is
+  F2's item 4.
+
 ## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
