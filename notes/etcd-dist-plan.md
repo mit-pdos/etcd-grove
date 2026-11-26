@@ -2787,7 +2787,26 @@ precondition would make an axiom stronger).
   them is reached by an exported result through this definition change: `tcb-report --check` is unchanged
   (364 axioms; the `etcd-dist` collection has 0).
 - **Review**: a fresh `axiom`-skill review of all of them under the new definition,
-  `notes/axiom-review/wenv-isnewclient.md`. Verdict: (pending; recorded here when it lands).
+  `notes/axiom-review/wenv-isnewclient.md` (Go evidence in `wenv-isnewclient/`). **Verdict: all sound,
+no counterexample.**
+  - `Watch_dist`, `RequestProgress_dist`: sound. `wgsGuard` exposes less than the old lock did. Off
+    `V.addrs = eps` the guard holds outright, and at `V.addrs = eps` the conjunct is the old one.
+    `isNewClient` is weaker nowhere usable: only `New`, proved for every `V`, establishes it.
+  - The five KV and txn axioms are sound and unaffected: they read `V` only through the watcher conjunct,
+    which neither their code nor their arguments use. `Client_Put/Get_dist` are theorems.
+    `Client.Close.wp_proof` is unaffected.
+  - Findings, all in trusted docstrings, so not applied here: they go with the adoption commit in the F9
+    batch.
+    - F2: the watch axioms' soundness premise "no cross-machine program has `watchSrvFacts`" (also N3's
+      section B) is false: 25.4's program, measured in W1 and W2. They are sound because such an address
+      is never served: `grpcServes` of the opaque `etcdSvc` cannot hold with a `Watch` registration, an
+      address has one table, and a second `Listen` fails.
+    - F1: the stale "∀ V form", margin and `watchClientAt` docstrings.
+    - F3: the standing trigger restated: a `wgsGuard` change, any `etcdSvc` `Watch`-entry law, a spec
+      freeing a consumed listener, a new axiom locking `w.mu`.
+    - F4: `Client.Close`'s wording.
+    - F5: "the statements do not change" on retirement is unsupported at `V.addrs = eps`, so the
+      retirement may have to narrow the statement (a user decision at that point).
 - **Landing**: after M1 lands, not into M1's landing line (the lead, 2026-11-26).
 
 ### 25.6 Not done here (follow-ups)
@@ -2808,4 +2827,4 @@ precondition would make an axiom stronger).
   violations, none new); `bounds-check --check` ok (390, baseline 390); `tcb-report --check` matches
   `etc/tcb-baseline.txt` (364 axioms, 0 sorries); every collection matches, `etcd-dist` with 0 axioms
   and 0 sorries. The watch, cache and compact theorems are in the full build.
-- Next: the review (25.5).
+- The review is in (25.5): all sound; the docstring findings go to the F9 batch.
