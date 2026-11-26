@@ -9,8 +9,8 @@ update is `akWriteAuD` at `L₀ := Lset` (its result: the write granted to `who`
 (`readCheckedD`) is read at the frozen history (`readCheckedD_granted`: `setupSt r`'s grant to a user of
 `who`'s), as `work_get`'s `akRead_granted`.
 
-T4's commit (`commit_t4D.law`) is a hypothesis: `Txn_CommitOn_dist` takes `TxnModel.plain b.model`, which T4's
-nested transaction is not (`notes/etcd-dist-f7.md`, "Handoff W-3"). Lean-first.
+T4's commit (`then_commit_nested_refusedD`): `Then` of a nested `OpTxn` and its refused `Commit`, over
+`Txn_CommitOn_dist`'s write arm widened to nested transactions (F7 S11, `notes/etcd-dist-f7.md`). Lean-first.
 -/
 module
 
@@ -22,6 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVDeleteOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitOnDist
+public import Spec.go_etcd_io.etcd.client.v3.txn__Then
 
 @[expose] public section
 
@@ -431,11 +432,9 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **T4 at the cluster view, refused** (`then_commit_nested_refused.law` at `akCallEnvD`): `t.Then(OpTxn(nil,
-[OpPut(c/who/t3, "vt")], nil))` returns the builder, whose `Commit` replies with an error. Not provable from
-the auth-on contracts: `Txn_CommitOn_dist` takes `TxnModel.plain b.model`, and T4's then branch is a nested
-transaction (`t4M`), not plain (the in-process `client_txn_on` has no such premise). A hypothesis of
-`Work.wp_proof_dist` until the contract admits nested writing transactions (`notes/etcd-dist-f7.md`,
-"Handoff W-3"). -/
+[OpPut(c/who/t3, "vt")], nil))` returns the builder, whose `Commit` replies with an error (no principal may
+write `c/...`: `t4M_not_granted`). Proved by `then_commit_nested_refusedD` over `Txn_CommitOn_dist`'s write arm,
+which admits nested transactions (`txnNestOk`, F7 S11). -/
 abbrev then_commit_nested_refusedD.law : Prop :=
   ∀ [NetProtoGS] (cl api tp : Loc) (a : GoString) (V : WEnv GF) (Γ : DistView)
       (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (who : GoString) (γz : GName)
@@ -455,6 +454,74 @@ abbrev then_commit_nested_refusedD.law : Prop :=
               Φ (PairV #resp #err)) -∗
             WP (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!!
               go!"Commit")) (Val #())) {{ Φ }} }}
+
+
+set_option maxHeartbeats 800000 in
+/-- **T4 at the cluster view is refused** (`then_commit_nested_refused`'s proof at `akCallEnvD`): the nested
+transaction `t4M` through `Then`, and its `Commit` over `Txn_CommitOn_dist`'s write arm with the update
+`akWriteAuD` told the grant, which `t4M_not_granted` refutes: only the error arm remains. -/
+theorem then_commit_nested_refusedD (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
+    (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG)) :
+    then_commit_nested_refusedD.law (GF := GF) (hG := hG) := by
+  intro _ cl api tp a V Γ cfg γR who γz hs Lset r ci cd sl tsl op hwho
+  iintro %Φ ⟨#Henv, Hobj, #Hom, #Hkt, #Hsl, #Hof, #Hcm, %Hs, #Hops⟩ HΦ
+  ihave #Hts := opsAt_leaves (GF := GF) tsl [opPutModel (keyOfK go!"c" who go!"t3") go!"vt" []]
+      [.put (keyOfK go!"c" who go!"t3") go!"vt" (W64 0)] (by simp [txnOpOf_put]) $$ Hops
+  ihave #Hnil := opsTAt_nil (GF := GF)
+  ihave #Htop := opTAtC_opTxn (GF := GF) op [] tsl slice.nil _ [] Hs $$ [Hof Hcm Hts Hnil]
+  · iframe #
+  ihave #Hsl1 := opsTAt_one (GF := GF) sl op _ $$ [Hsl Htop]
+  · iframe #
+  iunfold akCallEnvD at Henv
+  icases Henv with ⟨#Pc, #Huc, #HkvI, #Hinv, #Hfz, #HL, %Hf⟩
+  obtain ⟨hadm, hst, hγR, hauth, hau, hP⟩ := Hf
+  wp_apply (wp_Then tp _ ci cd TxnBuild.empty sl _
+      [.txn [] [.put (keyOfK go!"c" who go!"t3") go!"vt" (W64 0)] []]) $$ [Hobj] as Hobj
+  · iframe #
+    iframe Hobj
+    ipureintro
+    exact ⟨by simp [OpT.txnOps, OpT.txnOp, txnOpOf_put], rfl, rfl⟩
+  ihave Hobj : txnObjAt (GF := GF) tp [a] ci cd
+      ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩ $$ [Hobj]
+  · iExactEq Hobj
+    simp [TxnModel.empty, t4M]
+  iapply HΦ
+  iintro %Φ' Hlt HΦ'
+  have hw := t4M_wire (keyOfK go!"c" who go!"t3") go!"vt"
+  have hro : txn.txnReadonly (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) = false := by
+    rw [hw]; exact t4M_ro _ _
+  have hin : txnModelIn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) := by
+    rw [hw]; intro o ho; simp [t4M] at ho
+  have hsz : txnSizeOk (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) := by
+    rw [hw]; exact t4M_size _ _ (keyOfK_principal_le hwho (by decide) (by decide)) (by decide)
+  have hng : ¬ akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt"))) := by
+    rw [hw]; exact t4M_not_granted who go!"t3" go!"vt"
+  have hupd : txn.txnPlain (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) ∧
+      txnNoZeroEnd (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) ∧
+      txnNestOk (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")) := by
+    rw [hw]; exact t4M_upd _ _
+  ihave #Hw := akWriteAuD Γ.kv γz hs Lset Lset r (principalOf cfg) who
+    (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")))
+    (List.prefix_refl _) hadm hst (akPrin_user hP) (fun h => absurd h hng) $$ [Hinv Hfz]
+  · iframe #
+  wp_apply (wp_Commit cl api tp [a] V Γ cfg γR Lset ci cd (akOut who)
+      ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩
+      (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")))⌝))
+      hau hauth hγR (outTokOk_reqMd _ who (akPrin_bad hP))) $$ [Hlt Hobj] as %resp %err ⟨Hlt, Hout⟩
+  · iframe Hlt Hobj
+    iframe #
+    isplitl []
+    · ipureintro; exact hin
+    isplitl []
+    · iright
+      ipureintro; exact ⟨hro, Or.inl hupd.1, hupd.2.1, hupd.2.2⟩
+    ipureintro; exact hsz
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs', -⟩ | %Herr)
+  · isimp only [hro, Bool.false_eq_true, ↓reduceIte] at HQ
+    icases HQ with %HQ
+    exact absurd HQ hng
+  · iapply HΦ' $$ Hlt
+    ipureintro; exact Herr.1
 
 end law
 

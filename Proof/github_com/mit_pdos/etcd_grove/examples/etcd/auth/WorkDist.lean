@@ -3,8 +3,8 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkDist.lean` 
 `Work.wp_proof`'s text (`Work.lean`) at the cluster view, each call through `WorkCallsDist.lean`'s dist laws
 (`work_putD`, `work_deleteD`, `work_getD`, `work_commitD`, over the auth-on contracts), `cli.Txn` through
 `client_Txn_dist.law`, and the watch of `c/` through `WatchOn_dist`: its events' check `watchCheckedD` is refuted
-at the frozen history (`akDistEnv_watch`). T4's commit is the hypothesis `then_commit_nested_refusedD.law`
-(`Txn_CommitOn_dist` does not cover nested transactions; `WorkCallsDist.lean`'s header). Lean-first.
+at the frozen history (`akDistEnv_watch`). T4's commit through `then_commit_nested_refusedD` (over
+`Txn_CommitOn_dist`'s write arm widened to nested transactions, F7 S11). Lean-first.
 -/
 module
 
@@ -134,8 +134,7 @@ theorem Work.wp_proof_dist
     (wp_Delete : KV_DeleteOn_dist.spec (GF := GF) (hG := hG))
     (wp_Get : KV_GetOn_dist.spec (GF := GF) (hG := hG))
     (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG))
-    (wp_WatchOn : WatchOn_dist.spec (GF := GF) (hG := hG))
-    (h_t4 : then_commit_nested_refusedD.law (GF := GF) (hG := hG)) :
+    (wp_WatchOn : WatchOn_dist.spec (GF := GF) (hG := hG)) :
     Work.spec_dist (GF := GF) (hG := hG) := by
   intro CS EA FA RA π cl api w who a addrs V Γ cfg γR hwho ha hauth hau hP hAs
   wp_start as ⟨Hlt, #Huc, #Hwc, #Henv⟩
@@ -627,7 +626,7 @@ theorem Work.wp_proof_dist
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (h_t4 cl api tp a V Γ cfg γR who γz hs Lset r ci cd _ _ top hwho) $$ [Hobj] as HC
+  wp_apply (then_commit_nested_refusedD wp_Then wp_Commit cl api tp a V Γ cfg γR who γz hs Lset r ci cd _ _ top hwho) $$ [Hobj] as HC
   · iframe #
     iframe Hobj
     ipureintro; exact Htsl
