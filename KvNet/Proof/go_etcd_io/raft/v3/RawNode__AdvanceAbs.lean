@@ -7,11 +7,15 @@ the old proof (`RawNode.Advance.tracedSpec_proof`) between `ownRawNodeAt_ownRawN
 each queued message through `raft.Step` at the no-snapshot flag (`wp_step_pending_ns`,
 `AdvanceAbsStep.lean`), the loop invariant gaining:
 - the queue's states named (`pendAt`'s `sts`) and its protocol messages still to step (`advQ` of the
-  rest), with the prefix already stepped as `AdvanceEnd` from `ps` (a continuation: whatever ends the
-  rest from the current reading ends `qs` from `ps`);
+  rest), with the prefix already stepped as `AdvanceEndR` from `ps` (a continuation: whatever ends the
+  rest from the current reading ends `qs` from `ps`); the current reading is `toRState` with `applied`
+  frozen at the start's (`advR`: antithesis parity B1 stage 3b);
 - the scope (`RnScopeBasic`) at the current state, kept by each step (`advStep_pure`: a self-addressed
-  response's `StepEnd` read as `RecvEnd` at the harness's configuration, `recvEnd_of_stepEnd_net`; a
-  storage acknowledgement's `AckEnd`, the protocol reading unchanged).
+  response's `StepEnd` read as `RecvEndR` at the node's configuration, `recvEnd_of_stepEnd_net` and
+  `bk_of_stepEnd_net`; a storage acknowledgement's `AckEnd`, the protocol reading and
+  `pendingConfIndex` unchanged).
+At the end the acknowledgements' `applied` is `AckEndR`'s second arm (`StepR.advance`), at the
+caller's no-undecided-conf-entry premise.
 The in-progress boundary is read off the end state (`adv_ip_end`): with the boundary at the log's end at
 the start, the storage holds the whole log (`ownRaftPhysC_ipFacts`); no step moves what it holds, nor the
 boundary back; and the log up to the boundary is a prefix of what it holds (`ownRaftPhysC_ipStored`), so
@@ -114,18 +118,61 @@ theorem AdvAbs.recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' 
   · rw [AdvAbs.handleEnd_rd_pend hty h]
     rcases hp with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> rfl
 
+/-- (antithesis parity B1 stage 3b) **The loop's `RState` reading**: `toRState` with `applied` frozen
+at `a` (the start's), which the storage acknowledgements move only at the end (`AckEndR`). -/
+def advR (rs : RNState) (fp : List EntryM) (a : w64) (s : NState) : RState :=
+  { toRState rs fp s with applied := a }
+
+/-- A received message's `RState` end at a frozen `applied` (`recvEndR_of_bk`'s). -/
+theorem recvEndR_advR {Adm : List EntryM → CCState → Prop} {id : w64} {rs : RNState}
+    {fp : List EntryM} {a : w64} {s s' : NState} {m : Msg}
+    (hR : RecvEnd k rs.cfg.cfg id (toPState s) m (toPState s')) (hbk : BkStep s s')
+    (hsn : s'.logst.snap = s.logst.snap) (hprev : s'.logst.prev = s.logst.prev)
+    (hnp : m.ty ≠ .propose) :
+    RecvEndR Adm k id (advR rs fp a s) m (advR rs fp a s') :=
+  ⟨hR, ⟨rfl, rfl, rfl⟩,
+    .inl ⟨hprev, rfl, show s'.logst.snap.isSome = s.logst.snap.isSome by rw [hsn]⟩,
+    fun h => absurd h.1 hnp, fun _ => by
+      have h := pciR_of_bk (rs := rs) (fp := fp) hbk
+      unfold PciNext at h ⊢
+      exact h⟩
+
+/-- A storage acknowledgement's end (`AckEnd`, with the pending snapshot kept) leaves the loop's
+reading as it is: the protocol reading, the role with it, and `pendingConfIndex`. -/
+theorem advR_ack {rs : RNState} {fp : List EntryM} {a : w64} {s s' : NState}
+    (h : toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci)
+    (hsn : s'.logst.snap = s.logst.snap) : advR rs fp a s' = advR rs fp a s := by
+  have e : proleRole s'.role = proleRole s.role := congrArg PState.role h.1
+  have hl : s'.role = .leader ↔ s.role = .leader := by
+    constructor
+    · intro h1; have h2 := (proleRole_leader s'.role).2 h1; rw [e] at h2
+      exact (proleRole_leader _).1 h2
+    · intro h1; have h2 := (proleRole_leader s.role).2 h1; rw [← e] at h2
+      exact (proleRole_leader _).1 h2
+  have hp : pciR s' = pciR s := by
+    unfold pciR
+    rw [h.2.2.2]
+    by_cases h1 : s.role = .leader
+    · rw [if_pos h1, if_pos (hl.2 h1)]
+    · rw [if_neg h1, if_neg (fun h2 => h1 (hl.1 h2))]
+  unfold advR toRState
+  rw [h.1, hp, hsn]
+
 /-- **One queued step at the protocol level** (in the lifting lemmas' scope): a self-addressed
-response of the harness's (no pre-vote response) is `RecvEnd` at a configuration of the same halves,
-a storage acknowledgement keeps the protocol reading; both keep the read-index requests and an empty
-read-only queue. -/
-theorem advStep_pure {C cf : CfgM} {id : w64} {s1 s2 : NState} {st : MsgSt} {p : Pending}
-    (HC : cf.incoming = C.incoming ∧ cf.outgoing = C.outgoing ∧ cf.ids = C.ids)
+response of the harness's (no pre-vote response) is `RecvEndR` at the node's configuration (a
+configuration of the same halves as the step's), `applied` frozen; a storage acknowledgement keeps
+the loop's reading (`advR_ack`); both keep the read-index requests and an empty read-only queue. -/
+theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id : w64}
+    {s1 s2 : NState} {st : MsgSt} {p : Pending}
+    (HC : cf.incoming = rs.cfg.cfg.incoming ∧ cf.outgoing = rs.cfg.cfg.outgoing ∧ cf.ids = rs.cfg.cfg.ids)
     (Hl : LiftScope cf id s1) (Hpst : pendSt id st p)
     (Hnpv : ∀ q ∈ advHead st p, q.ty ≠ .preVoteResp)
     (Hend : StepEnd cf id st.msg st.ents st.ctx s1 s2) (Hack : AckEnd st.msg s1 s2)
-    (Hns : NoSnapL s2.outbox) :
-    (∀ rest pe, AdvanceEnd k C id (toPState s2) rest pe →
-      AdvanceEnd k C id (toPState s1) (advHead st p ++ rest) pe) ∧
+    (Hns : NoSnapL s2.outbox) (Hsn : s2.logst.snap = s1.logst.snap)
+    (Hpv : s2.logst.prev = s1.logst.prev) :
+    (∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) rest re,
+      AdvanceEndR Adm dec k id (advR rs fp a s2) rest re →
+      AdvanceEndR Adm dec k id (advR rs fp a s1) (advHead st p ++ rest) re) ∧
     s2.rd.pend = s1.rd.pend ∧
     ((toPState s1).rd.ro.pending = [] → (toPState s2).rd.ro.pending = []) := by
   cases p with
@@ -144,31 +191,37 @@ theorem advStep_pure {C cf : CfgM} {id : w64} {s1 s2 : NState} {st : MsgSt} {p :
     have hant : st.msg.Type' ∈ antStepTypes := by
       unfold antStepTypes
       rcases Hty' with h | h <;> rw [h] <;> simp
-    obtain ⟨ty, hty, hq⟩ : ∃ ty, mtypeOf st.msg.Type' = some ty ∧
-        absMsgOf st = some (absMsg ty st.msg st.ents st.ctx) := by
+    obtain ⟨ty, hty, hq, hnp⟩ : ∃ ty, mtypeOf st.msg.Type' = some ty ∧
+        absMsgOf st = some (absMsg ty st.msg st.ents st.ctx) ∧ ty ≠ .propose := by
       rcases Hty' with h | h
-      · exact ⟨.appResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl⟩
-      · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl⟩
+      · exact ⟨.appResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, fun h => by cases h⟩
+      · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, fun h => by cases h⟩
     have HR := recvEnd_of_stepEnd_net (k := {}) Hl hant Hnz (fun _ => Hcx)
       (noSnapSent_of_noSnapL Hns) Hend ty hty
-    have HR' := HR.1.of_halves HC.1 HC.2.1 HC.2.2 HR.2
-    refine ⟨fun rest pe H => ?_, ?_, recvEnd_ro HR.2 HR.1⟩
+    have HR' : RecvEnd k rs.cfg.cfg id (toPState s1) (absMsg ty st.msg st.ents st.ctx) (toPState s2) :=
+      HR.1.of_halves HC.1 HC.2.1 HC.2.2 HR.2
+    have Hbk : BkStep s1 s2 := bk_of_stepEnd_net Hl
+      (by rcases Hty' with h | h
+          · exact .inr (.inl h)
+          · exact .inr (.inr (.inr (.inl h))))
+      Hnz (fun _ => Hcx) Hend
+    refine ⟨fun Adm dec rest re H => ?_, ?_, recvEnd_ro HR.2 HR.1⟩
     · simp only [advHead, hq, Option.toList_some, List.singleton_append]
-      exact .cons _ _ _ _ _ HR' H
+      exact .cons _ _ _ _ _ (recvEndR_advR HR' Hbk Hsn Hpv (by rw [absMsg_ty]; exact hnp)) H
     · rw [← toPState_rd_pend s2, ← toPState_rd_pend s1]
       exact AdvAbs.recvEnd_rd_pend HR.2 HR.1
   | appendAck t b e sn =>
     have Hst : st = ⟨appendAckM id t (e.getD (entryID.mk (W64 0) (W64 0))), [], sn, [], []⟩ := Hpst
     have Ha := Hack (by rw [Hst]; exact .inl rfl)
-    refine ⟨fun rest pe H => ?_, by rw [Ha.2.2], fun h => by rw [Ha.1]; exact h⟩
+    refine ⟨fun Adm dec rest re H => ?_, by rw [Ha.2.2.1], fun h => by rw [Ha.1]; exact h⟩
     simp only [advHead, List.nil_append]
-    rw [← Ha.1]; exact H
+    rw [← advR_ack Ha Hsn]; exact H
   | applyAck ce =>
     have Hst : st = ⟨applyAckM id, ce, none, [], []⟩ := Hpst
     have Ha := Hack (by rw [Hst]; exact .inr rfl)
-    refine ⟨fun rest pe H => ?_, by rw [Ha.2.2], fun h => by rw [Ha.1]; exact h⟩
+    refine ⟨fun Adm dec rest re H => ?_, by rw [Ha.2.2.1], fun h => by rw [Ha.1]; exact h⟩
     simp only [advHead, List.nil_append]
-    rw [← Ha.1]; exact H
+    rw [← advR_ack Ha Hsn]; exact H
 
 /-- **The in-progress boundary after the queue**: at the log's end at the start (the storage then
 holding the whole log), not moved back, what the storage holds not moved, and the log up to it a
@@ -396,10 +449,12 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       "%Hpg1" ∷ ⌜∀ fp, PreGuardF fp s → PreGuardF fp s1⌝ ∗
       "%Hsf1" ∷ ⌜SnapFol s1⌝ ∗
       -- (#33 S4) the protocol messages still to step, a suffix of `qs`, and the prefix stepped
+      -- (antithesis parity B1 stage 3b) over `RState`, `applied` frozen at the start's (`advR`)
       "%Hae1" ∷ ⌜advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n)) <:+ qs ∧
-        ∀ pe, AdvanceEnd rs.k rs.cfg.cfg id (toPState s1)
-          (advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n))) pe →
-          AdvanceEnd rs.k rs.cfg.cfg id ps.p qs pe⌝ ∗
+        ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) re,
+          AdvanceEndR Adm dec rs.k id (advR rs fp s.logst.applied s1)
+            (advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n))) re →
+          AdvanceEndR Adm dec rs.k id ps qs re⌝ ∗
       -- (#33 S4) the scope at the current state
       "%Hsc1" ∷ ⌜RnScopeBasic rs s1⌝ ∗
       "Hpend" ∷ ([∗list] l;x ∈ steps.drop (sint.nat n);(sts.drop (sint.nat n)).zip
@@ -419,7 +474,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       AdvAbs.stepsOk_selfBound s rs.steps Hstok, ⟨Int.le_refl _, by omega, fun _ _ => rfl,
       Hpvoff.2.2.1, Hpvoff.2.2.2.1⟩, ?_, fun _ h => h, Hpvoff.2.2.2.2,
       ⟨by rw [← pendAbs_advQ Hpa]; exact List.suffix_refl _,
-        fun pe h => by rw [← Hps, pendAbs_advQ Hpa]; exact h⟩, Hscope⟩
+        fun Adm dec re h => by rw [← Hps, pendAbs_advQ Hpa]; exact h⟩, Hscope⟩
     exact ⟨trivial, Int.le_refl _, Hrnfl.2⟩
   wp_for IH
   wp_if_destruct
@@ -560,8 +615,9 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     have Hcqv : s2.cq = s1.cq := by
       rw [Hsc1.2.2.1]; rw [Hscope.2.2.1] at Hcqe
       first | exact Hcqe.symm | exact Hcqe
-    have HP := advStep_pure (k := rs.k) (C := rs.cfg.cfg) ⟨by rw [Hcfe], by rw [Hcfe], by rw [Hcfe]⟩ Hlift1 Hpst
-      (fun q hq => Hnq q (Hae1.1.subset (List.mem_append_left _ hq))) Hend2 HAk2 HNs2
+    have HP := advStep_pure (k := rs.k) (rs := rs) (fp := fp) (a := s.logst.applied)
+      ⟨by rw [Hcfe], by rw [Hcfe], by rw [Hcfe]⟩ Hlift1 Hpst
+      (fun q hq => Hnq q (Hae1.1.subset (List.mem_append_left _ hq))) Hend2 HAk2 HNs2 Hsn2 Hpv2
     have Hsc2 : RnScopeBasic rs s2 :=
       RnScopeBasic.keep Hsc1 rfl rfl Hsg2.2.1 Hcqv HP.2.1 Hpv2 Hsn2 (fun x hx => .inr (HNs2 x hx)) HP.2.2
     -- `stepsOnAdvance[i] = nil`
@@ -588,7 +644,8 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       AdvAbs.termInv_step s s1 s2 p _ Hok1 Hsb1 Hti1 Ht2 Hps2 Hrl2,
       ⟨Hfl2.trans Hfl1.1, Int.le_trans Hfl1.2.1 Hap2, ?_⟩, fun fp h => Hpg2 fp (Hpg1 fp h),
       Hsf1.step Hsrb2,
-      ⟨(List.suffix_append _ _).trans Hae1.1, fun pe h => Hae1.2 pe (HP.1 _ pe h)⟩, Hsc2⟩
+      ⟨(List.suffix_append _ _).trans Hae1.1,
+        fun Adm dec re h => Hae1.2 Adm dec re (HP.1 Adm dec _ re h)⟩, Hsc2⟩
     · rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
         Hsteps1.2]
     · -- the configuration index stays at most the committed log handed out
@@ -646,6 +703,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       ⟨fun _ => by have := Hflb1.1; rw [Hs1.1] at this; omega,
        fun h => absurd Hge (by rw [Hs1.1] at h; omega)⟩
     icases ownRaftPhysC_applying cf rnv.raft' id s1 $$ Hphys with ⟨%Hac1, Hphys⟩
+    icases ownRaftPhysC_logwf cf rnv.raft' id s1 $$ Hphys with ⟨%HlwE, Hphys⟩
     have HcapA : CapOk { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1 := by
       have H4 := Hloan.2.2.2
       have Hdc : (rs.delivered.length : Int) ≤ uint.Z s1.logst.committed := by
@@ -736,10 +794,23 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     · ipureintro; exact fun _ => Hcmax
     ipureintro
     intro _ _ _
-    have Hpcfg : ps.cfg = rs.cfg := by rw [← Hps]; rfl
-    rw [Hpcfg]
-    refine ⟨Hae1.2 _ ?_, fun hl => ?_⟩
-    · rw [Hdrop, Hdrop', advQ_nil_left]; exact .nil _
+    refine ⟨fun Adm dec Hnu => Hae1.2 Adm dec _ ?_, fun hl => ?_⟩
+    · -- the queue stepped; the acknowledgements' `applied` (`StepR.advance`), with the configuration
+      -- index at the entries handed out, which `applied` reached
+      rw [Hdrop, Hdrop', advQ_nil_left]
+      have Hcae : ca = max rs.capplied (uint.nat s1.logst.applied) := by
+        rw [Hcmax Hcin.2.2.2.1]
+        congr 1
+        have h1 : uint.Z s1.logst.applied = uint.Z s.logst.applying :=
+          Int.le_antisymm (by rw [← Hs1.1]; exact HlwE.1) Hge
+        have h3 : (rs.delivered.length : Int) = (uint.nat s1.logst.applied : Int) := by
+          rw [uint_nat_eq, h1, Hdlen, Int.toNat_of_nonneg (uint_Z_nonneg _)]
+        exact_mod_cast h3
+      subst Hcae
+      refine .nil _ _ (.inr (.inl ⟨s1.logst.applied, .advance _ _ Hfl1.2.1
+        (Int.le_trans HlwE.1 HlwE.2) ?_, rfl⟩))
+      rw [← Hps] at Hnu
+      exact Hnu
     · have Hpz1 : uint.Z s1.logst.prev.index' = 0 := by rw [Hs1.2.2.2.1]; exact Hprev0
       have hlen : ip = (s.logst.sents ++ s.logst.uents).length := by rw [hl, ← Hps]; rfl
       obtain ⟨h1, h2⟩ := adv_ip_end Hpz1 Hip hlen (Hst0 hl) (logStoreRec_stored Hs1.2.2.2.2)

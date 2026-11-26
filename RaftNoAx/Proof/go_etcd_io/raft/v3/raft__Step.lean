@@ -1081,7 +1081,7 @@ theorem raft.Step.wp_proof
                    isLearner := il } (plogLastIndexZ (toPState s).base (toPState s).log) []
           (fun h => by rw [Htr0] at h; cases h) (by end_ty) (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP)
           (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
-        (fun _ _ => ⟨Hps, rfl, rfl⟩) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, -⟩
+        (fun _ _ => ⟨Hps, rfl, rfl, rfl⟩) $$ Hclose HGo with ⟨Hghost, Hrest, HGq, -⟩
       -- the node at the snapshot's configuration: statically `SnapAckOk`, (2026-10-28, stage U3)
       -- dynamically `SnapAckDyn` (`StepR.applySnap`)
       obtain ⟨Hsa1, Hsa2⟩ := ackSnapLog_snapAck s.logst m s.term sv
