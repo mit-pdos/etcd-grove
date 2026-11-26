@@ -186,6 +186,18 @@ entry Perennial.EtcdGrove.etcd_dist.KV_Put_dist.wp_proof 2:L:0:handedtoacallback
 entry Perennial.EtcdGrove.etcd_dist.KV_Delete_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `DeleteRange`
 entry Perennial.EtcdGrove.etcd_dist.KV_Get_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Put_dist's, for `Range`; `Q`: the pure `Q = fun _ => True` disjunct (section header)
 entry Perennial.EtcdGrove.etcd_dist.Txn_Commit_dist.wp_proof 2:L:0:handedtoacallback10/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Put_dist's, for `Txn`, with the builder's fifth connection (`txnObjAt`'s `kvObjAt`, +2) and its context; `Q`: the pure read-only disjunct (section header)
+# F2/F7's six auth-off lease axioms (2026-11-26; Proof/.../examples/etcd/dist/{LeaseGrant,LeaseGrantLive,
+# LeaseLeasesGranted,LeaseLeasesLive,ClientLeaseLeases,ClientLeaseTTL}Dist.lean): the walk reports KV_Put_dist's keys
+# and truncations exactly. Go: `lessor.Grant`/`TimeToLive`/`Leases` (client/v3/lease.go:222-263) -> `l.remote.X`
+# (`retryLeaseClient`, retry.go:141-151) -> the stub's `c.cc.Invoke` -> grpc's one `unaryInt` call on the caller's
+# goroutine, as for KV: the one `levelTok 0` is lent to one interceptor call at a time and given back, none minted;
+# rule 7's `P` is the caller's context's Done proposition (`isCancelCtxOf`), passed down unchanged.
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseGrant`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseGrant`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseLeases`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseLeases`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
+entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseLeases`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
+entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseTimeToLive`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
 # The same branch's two other new axioms, which the queue's run listed as `rule 3,7 (2)` and which taint
 # `builtRawMDRaw`/`transportMDRaw`/`statusAtRaw` (the selftest's `real-pass EtcdServer.leaseTimeToLive`
 # failure); their findings are the established patterns of the entries above, keys unchanged:
@@ -298,6 +310,12 @@ trunc Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proof_dist
 trunc Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
 # `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
