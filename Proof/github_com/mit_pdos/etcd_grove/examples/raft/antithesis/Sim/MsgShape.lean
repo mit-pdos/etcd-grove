@@ -12,14 +12,14 @@ leader's empty entry (normal) or a received append's entries (the cause's, norma
 message carries no entries, the log's (an append, `AppOk`), or the cause's (a forwarded proposal).
 
 `msgShape_of`: `msgShape.stmt` from `TickHbCtx`, a tick's heartbeats carry no context, which
-`TickEndO` (`Protocol/InputEnd.lean`) says in its heartbeat arm (`x.ctx = []`, lifted from
+`TickEnd` (`Protocol/InputEnd.lean`) says in its heartbeat arm (`x.ctx = []`, lifted from
 `stepLeader`'s exact context, `hbCtx`, `[]` with no read request pending, the RawNode scope's):
 `tickHbCtx`, and `msgShape := msgShape_of tickHbCtx`.
 
 `dst_reach` (#33 S4, destinations): every message of the state a `Ready` is taken at to another
 node is to one of the three (`DstIn`): a response to the handled message's sender (a node,
 `NetOk`), a leader's appends and heartbeats to the configuration's peers (`AppSendOk`'s and
-`TickEndO`'s `c.ids`, `cfgM3`'s the three), a campaign's requests to the voters, a forwarded proposal
+`TickEnd`'s `c.ids`, `cfgM3`'s the three), a campaign's requests to the voters, a forwarded proposal
 to the leader hint (`LeadIn`, a node or none). `msgShape_of` concludes `ReadyMsgsToVoters` from it.
 -/
 module
@@ -105,8 +105,8 @@ theorem entsNormal_win {id : w64} {s : PState} {mt : GMap w64 w64} (hl : EntsNor
 them (an append, a proposal); the read arms keep the log (`PKeep`). -/
 theorem entsNormal_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hsc : RdTy m.ty)
     (hent : m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) (hl : EntsNormal s.log)
-    (h : HandleEndO kk c id s m s') : EntsNormal s'.log := by
-  unfold HandleEndO at h
+    (h : HandleEnd kk c id s m s') : EntsNormal s'.log := by
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h; rw [(readIdxEnd_keep h).log]; exact hl
@@ -158,19 +158,19 @@ theorem entsNormal_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hsc :
 
 theorem entsNormal_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hsc : RdTy m.ty)
     (hent : m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) (hl : EntsNormal s.log)
-    (h : RecvEndO kk c id s m s') : EntsNormal s'.log := by
-  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (h : RecvEnd kk c id s m s') : EntsNormal s'.log := by
+  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact entsNormal_handle hsc hent hl hh
-  · exact hl
-  · obtain ⟨-, -, hl1, -, -⟩ := preEnd_facts hpre
-    exact entsNormal_handle hsc hent (hl1 ▸ hl) hh
+  all_goals try exact hl
+  obtain ⟨-, -, hl1, -, -⟩ := preEnd_facts (not_preTy hsc) hpre
+  exact entsNormal_handle hsc hent (hl1 ▸ hl) hh
 
 theorem entsNormal_tick {c : CfgM} {id : w64} {s s' : PState} (hl : EntsNormal s.log)
-    (h : TickEndO kk c id s s') : EntsNormal s'.log := by
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩ <;> exact hl
+    (h : TickEnd kk c id s s') : EntsNormal s'.log := by
+  rw [(tickEnd_keep h).1]; exact hl
 
 theorem entsNormal_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg}
-    (h : AdvanceEndO kk c id s qs s') (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
+    (h : AdvanceEnd kk c id s qs s') (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
     (hl : EntsNormal s.log) : EntsNormal s'.log := by
   induction h with
   | nil => exact hl
@@ -249,8 +249,8 @@ theorem roOk_readAck {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : ReadAc
 the role, makes the node a follower, or makes it leader (`pbecomeLeader` resets the queue); a
 commit's release and a read acknowledgement find no request. -/
 theorem roOk_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s)
-    (hsc : RdTy m.ty) (hnr : m.ty ≠ .readIndex) (h : HandleEndO kk c id s m s') : RoOk s' := by
-  unfold HandleEndO at h
+    (hsc : RdTy m.ty) (hnr : m.ty ≠ .readIndex) (h : HandleEnd kk c id s m s') : RoOk s' := by
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · exact absurd hty hnr
@@ -289,24 +289,27 @@ theorem roOk_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s
   · exact roOk_propose h hs
 
 theorem roOk_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s)
-    (hsc : RdTy m.ty) (hnr : m.ty ≠ .readIndex) (h : RecvEndO kk c id s m s') : RoOk s' := by
-  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (hsc : RdTy m.ty) (hnr : m.ty ≠ .readIndex) (h : RecvEnd kk c id s m s') : RoOk s' := by
+  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact roOk_handle hs hsc hnr hh
+  all_goals try exact hs
+  refine roOk_handle ?_ hsc hnr hh
+  rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
+  · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
   · exact hs
-  · refine roOk_handle ?_ hsc hnr hh
-    rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
-    · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
-    · exact hs
+  · exact hs
 
-theorem roOk_tick {c : CfgM} {id : w64} {s s' : PState} (hs : RoOk s) (h : TickEndO kk c id s s') :
+theorem roOk_tick {c : CfgM} {id : w64} {s s' : PState} (hs : RoOk s) (h : TickEnd kk c id s s') :
     RoOk s' := by
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+  rcases h with rfl | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
   · exact hs
   · exact ⟨hs.1, fun h => by simp [psendMsgs, pbecomeCandidate] at h⟩
+  · exact ⟨hs.1, fun h => by simp [psendMsgs] at h⟩
   · exact hs
+  · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
 
 theorem roOk_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (hs : RoOk s)
-    (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp) (h : AdvanceEndO kk c id s qs s') :
+    (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp) (h : AdvanceEnd kk c id s qs s') :
     RoOk s' := by
   induction h with
   | nil => exact hs
@@ -316,28 +319,19 @@ theorem roOk_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (hs : RoO
     · exact roOk_recv hs (by simp [RdTy, S4Ty, h]) (by rw [h]; decide) hr
     · exact roOk_recv hs (by simp [RdTy, S4Ty, h]) (by rw [h]; decide) hr
 
-/-- `RecvEndP` keeps `RoOk`: the answers keep the state, a step-down or a campaign leaves no
-leader. -/
+/-- A received pre-vote request or response keeps `RoOk`: the answers keep the state, a
+step-down or a campaign leaves no leader. -/
 theorem roOk_recvP {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s)
-    (h : RecvEndP kk c id s m s') : RoOk s' := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · exact hs
+    (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk c id s m s') : RoOk s' := by
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact hs
   · exact hs
   · exact hs
   · exact hs
   · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
-  · exact hs
   · obtain ⟨peers, -, rfl⟩ := hcs
     exact ⟨hs.1, fun h => by simp [psendMsgs, pbecomeCandidate] at h⟩
-
-/-- `TickEndP` keeps `RoOk`: a pre-candidate and a stepped-down leader are followers. -/
-theorem roOk_tickP {c : CfgM} {id : w64} {s s' : PState} (hs : RoOk s) (h : TickEndP kk c id s s') :
-    RoOk s' := by
-  rcases h with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
-  · exact ⟨hs.1, fun h => by simp [psendMsgs] at h⟩
-  · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
 
 /-- **`RoOk` along `ReachP`** with no read request received (`hnrm`) or taken (`hnr`: a read
 request's drain reached the view's own state). -/
@@ -348,9 +342,8 @@ theorem roOk_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v
   cases hr with
   | stay _ => exact hs
   | recv m _ _ _ _ hmn _ _ hty h => exact roOk_recv hs hty (hnrm m hmn) h
-  | recvP m _ _ _ _ _ _ _ _ h => exact roOk_recvP hs h
+  | recvP m _ _ _ _ _ _ _ hpt _ h => exact roOk_recvP hs hpt h
   | tick _ _ _ h => exact roOk_tick hs h
-  | tickP _ _ _ h => exact roOk_tickP hs h
   | propose d _ _ _ hh => exact roOk_propose hh hs
   | read d _ hi hbe _ => rw [hnr hi hbe]; exact hs
   | advance _ _ _ _ hno h => exact roOk_adv hs (fun q hq => hqs q hq (hno q hq)) h
@@ -361,7 +354,7 @@ theorem roOk_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v
       exact ⟨hs.1, fun h => by simp [psendMsgs, pbecomeCandidate] at h⟩
   | sends _ _ _ _ h => exact roOk_sends h hs
   | adoptX x _ _ _ _ _ _ => exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
-  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ hc =>
     obtain ⟨-, peers, -, rfl⟩ := hc
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;>
       exact ⟨hs.1, fun h => by simp [psendMsgs, pbecomeCandidate] at h⟩
@@ -520,8 +513,8 @@ theorem outShape_handle {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} 
     (hca : m.ty = .heartbeat → cm = some m)
     (hrd : md.reads = false → RoOk s) (hrs : ReadSrc N false s)
     (hrdm : m.ty = .readIndex → md.reads = true)
-    (h : HandleEndO kk c id s m s') : OutShape md id cm s' := by
-  unfold HandleEndO at h
+    (h : HandleEnd kk c id s m s') : OutShape md id cm s' := by
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h; exact outShape_readIdx hX (hrdm hty) (hent (.inr hty)) h
@@ -584,13 +577,14 @@ normal, no read request without reads, the requests' sources and entries (`ReadS
 def StepShape (md : RnMode) (N : Nat) (id : w64) (cm : Option Msg) (s : PState) : Prop :=
   OutShape md id cm s ∧ EntsNormal s.log ∧ (md.reads = false → RoOk s) ∧ ReadSrc N false s
 
-/-- A received message's step (`RecvEndO`) keeps `StepShape`. -/
+/-- A received message's step (`RecvEnd`, a type `RdTy`) keeps `StepShape`: the stale
+`MsgApp`/`MsgHeartbeat`'s empty answer, the type switch's messages. -/
 theorem stepShape_recv {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} {m : Msg}
     (hI : StepShape md N id cm s) (hsc : RdTy m.ty)
     (hent : m.ty = .app ∨ m.ty = .propose ∨ m.ty = .readIndex → EntsNormal m.entries)
     (hca : m.ty = .heartbeat → cm = some m) (hrdm : m.ty = .readIndex → md.reads = true)
     (hsrc : m.ty = .readIndex → m.src = W64 0 ∨ ∃ j : Fin N, m.src = nodeId j)
-    (h : RecvEndO kk c id s m s') : StepShape md N id cm s' := by
+    (h : RecvEnd kk c id s m s') : StepShape md N id cm s' := by
   obtain ⟨hX, hl, hrd, hrs⟩ := hI
   have hl' := entsNormal_recv hsc (fun h' => hent (h'.elim .inl (fun h'' => .inr (.inl h'')))) hl h
   refine ⟨?_, hl', fun h0 => roOk_recv (hrd h0) hsc (fun hty => by
@@ -598,41 +592,28 @@ theorem stepShape_recv {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} {
     readSrc_recv hrs hsc (fun hty => ⟨hsrc hty, fun _ => hent (.inr (.inr hty))⟩) h⟩
   have hent' : m.ty = .propose ∨ m.ty = .readIndex → EntsNormal m.entries :=
     fun h' => hent (.inr h')
-  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact outShape_handle hX hl' hsc hent' hca hrd hrs hrdm hh
   · exact hX
-  · have ho := (preEnd_facts hpre).1
+  · exact outShape_one hX (mshape_mk (by simp [NetTy]) (by decide) (by decide))
+  · exact absurd (.inl hpv) (not_preTy hsc)
+  · exact hX
+  · have ho := (preEnd_facts (not_preTy hsc) hpre).1
     refine outShape_handle (N := N) (fun q hq => hX q (ho ▸ hq)) hl' hsc hent' hca ?_ ?_ hrdm hh
     · intro h0
-      rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+      rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
       · exact ⟨(hrd h0).1, fun h => by simp [pbecomeFollower] at h⟩
       · exact hrd h0
-    · rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+      · exact hrd h0
+    · rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
       · exact hrs.nl rfl (by simp [pbecomeFollower])
       · exact hrs
-
-/-- A tick's messages: vote requests, a leader's heartbeats (their context `hbCtx` of the read-only
-queue, empty without reads: no read request is pending at a leader, `hro`). -/
-theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
-    (hro : md.reads = false → s.role = .leader → s.rd.ro.pending = []) (hX : s.outbox = [])
-    (h : TickEndO kk c id s s') : OutShape md id cm s' := by
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨hr, ms, hms, rfl⟩
-  · exact outShape_nil hX
-  · intro q hq hne
-    rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
-    · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
-    · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
-      exact ⟨fun _ => rfl, .inl (by simp [NetTy, pvoteReq]), (fun e he => by simp [pvoteReq] at he),
-        (fun h => by simp [pvoteReq] at h), (fun _ h => by simp [pvoteReq] at h)⟩
-  · intro q hq _
-    obtain ⟨hh, -, -, he, hc, -⟩ := hms q (mem_psend hX hq)
-    exact ⟨fun _ => hh.2.1, .inl (by simp [NetTy, hh.1]), (by rw [he]; exact entsNormal_nil),
-      (fun h => by rw [hh.1] at h; cases h), fun h0 _ => by rw [hc]; simp [hbCtx, hro h0 hr]⟩
+      · exact hrs
 
 /-- `Advance`'s steps (the node's own acknowledgements and votes) keep `StepShape`. -/
 theorem stepShape_adv {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} {qs : List Msg}
     (hI : StepShape md N id cm s) (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
-    (h : AdvanceEndO kk c id s qs s') : StepShape md N id cm s' := by
+    (h : AdvanceEnd kk c id s qs s') : StepShape md N id cm s' := by
   induction h with
   | nil => exact hI
   | cons s s1 s' q qs hr _ ih =>
@@ -657,34 +638,43 @@ theorem outShape_campaignSends {c : CfgM} {id : w64} {cm : Option Msg} {X s' : P
     exact ⟨fun _ => rfl, .inl (by simp [NetTy, pvoteReq]), (fun e he => by simp [pvoteReq] at he),
       (fun h => by simp [pvoteReq] at h), (fun _ h => by simp [pvoteReq] at h)⟩
 
-/-- A received message's new arm (`RecvEndP`): the stale empty answer, a pre-vote request's answer
-(pre-vote on: the request is on the network, `hpv`), a campaign's requests. -/
+/-- A received pre-vote request or response's messages (`recvEnd_pre`): a stale request's
+rejection, a request's answer (pre-vote on: the request is on the network, `hpv`), a campaign's
+requests. -/
 theorem outShape_recvP {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} {m : Msg}
     (hX : s.outbox = []) (hpv : m.ty = .preVote → md.prevote = true)
-    (h : RecvEndP kk c id s m s') : OutShape md id cm s' := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, hty, rfl⟩ | ⟨-, rfl⟩ | ⟨hty, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · exact outShape_one (outShape_nil hX) (mshape_mk (by simp [NetTy]) (by decide) (by decide))
-  · exact outShape_one (outShape_nil hX) (mshape_plain (by simp [NetTy, hpv hty]) (by decide) (by decide))
+    (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk c id s m s') :
+    OutShape md id cm s' := by
+  rcases recvEnd_pre hty h with rfl | ⟨-, hpt, rfl⟩ | ⟨hpt, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact outShape_nil hX
-  · exact outShape_one (outShape_nil hX) (mshape_plain (by simp [NetTy, hpv hty]) (by decide) (by decide))
-  · exact outShape_one (outShape_nil hX) (mshape_plain (by simp [NetTy, hpv hty]) (by decide) (by decide))
+  · exact outShape_one (outShape_nil hX) (mshape_plain (by simp [NetTy, hpv hpt]) (by decide) (by decide))
+  · exact outShape_one (outShape_nil hX) (mshape_plain (by simp [NetTy, hpv hpt]) (by decide) (by decide))
+  · exact outShape_one (outShape_nil hX) (mshape_plain (by simp [NetTy, hpv hpt]) (by decide) (by decide))
   · exact outShape_nil (s := pbecomeFollower s _ _) hX
-  · exact outShape_nil hX
   · exact outShape_campaignSends hX hcs
 
-/-- A tick's new arm (`TickEndP`): a pre-campaign's pre-vote requests (pre-vote on at the node,
-so in the run, `hpv`). -/
-theorem outShape_tickP {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
-    (hX : s.outbox = []) (hpv : kk.prevote = true → md.prevote = true) (h : TickEndP kk c id s s') :
-    OutShape md id cm s' := by
-  rcases h with ⟨-, hk, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
+/-- A tick's messages (`TickEnd`): a campaign's vote requests, a pre-campaign's pre-vote requests
+(pre-vote on at the node, so in the run, `hpv`), a leader's heartbeats (their context `hbCtx` of
+the read-only queue, empty without reads: no read request is pending at a leader, `hro`); nothing
+at a check-quorum step-down. -/
+theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
+    (hro : md.reads = false → s.role = .leader → s.rd.ro.pending = [])
+    (hpv : kk.prevote = true → md.prevote = true) (hX : s.outbox = [])
+    (h : TickEnd kk c id s s') : OutShape md id cm s' := by
+  rcases h with rfl | ⟨-, -, hce⟩ | ⟨-, hk, -, peers, -, rfl⟩ | ⟨hr, ms, hms, rfl⟩ | ⟨-, -, rfl⟩
+  · exact outShape_nil hX
+  · exact outShape_campaignSends hX hce.sends
   · intro q hq hne
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
       exact ⟨fun _ => rfl, .inl (by simp [NetTy, hpv hk]), (fun e he => by simp [pvoteReq] at he),
         (fun h => by simp at h), (fun _ h => by simp at h)⟩
+  · intro q hq _
+    obtain ⟨hh, -, -, he, hc, -⟩ := hms q (mem_psend hX hq)
+    exact ⟨fun _ => hh.2.1, .inl (by simp [NetTy, hh.1]), (by rw [he]; exact entsNormal_nil),
+      (fun h => by rw [hh.1] at h; cases h), fun h0 _ => by rw [hc]; simp [hbCtx, hro h0 hr]⟩
   · exact outShape_nil (s := pbecomeFollower s _ _) hX
 
 /-- **The log and the messages along `ReachP`**: the log normal, every message to another node
@@ -707,10 +697,9 @@ theorem shape_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {
     obtain ⟨ho, hl', -, -⟩ := stepShape_recv (cm := v.cause) ⟨outShape_nil hX, hl, hrd, hrs⟩ hty
       (fun _ => hcm m hca) (fun _ => hca) (hrdm m hmn) (fun _ => .inr (hsn m hmn)) h
     exact ⟨hl', ho⟩
-  | recvP m _ _ _ _ hmn _ _ _ h =>
-    exact ⟨by rw [(recvEndP_keep h).1]; exact hl, outShape_recvP hX (hpvm m hmn) h⟩
-  | tick _ _ _ h => exact ⟨entsNormal_tick hl h, outShape_tick (fun h0 => (hrd h0).2) hX h⟩
-  | tickP _ _ _ h => exact ⟨by rw [(tickEndP_keep h).1]; exact hl, outShape_tickP hX hpvk h⟩
+  | recvP m _ _ _ _ hmn _ _ hpt _ h =>
+    exact ⟨by rw [(recvPre_keep hpt h).1]; exact hl, outShape_recvP hX (hpvm m hmn) hpt h⟩
+  | tick _ _ _ h => exact ⟨entsNormal_tick hl h, outShape_tick (fun h0 => (hrd h0).2) hpvk hX h⟩
   | propose d _ _ _ hh =>
     have hpe : EntsNormal (propMsg id d).entries := by
       intro e he; simp only [propMsg, List.mem_singleton] at he; rw [he]
@@ -734,7 +723,7 @@ theorem shape_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {
     have hl' : EntsNormal ps₁.log := by obtain ⟨ms, -, rfl⟩ := h; exact hl
     exact ⟨hl', outShape_sends (outShape_nil hX) hl' h⟩
   | adoptX x _ _ _ _ _ _ => exact ⟨hl, outShape_nil (s := pbecomeFollower v.ps _ _) hX⟩
-  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ hc =>
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;>
       exact ⟨by rw [(campaignSends_keep hc.sends).1]; exact hl, outShape_campaignSends (by exact hX) hc.sends⟩
 
@@ -963,8 +952,8 @@ the configuration's peers, a forwarded proposal or read request to the leader (a
 `LeadIn`), a read request's answer to its source (`ReadSrc`). -/
 theorem dstIn_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} {cc : Bool} (hc : CfgIn N c)
     (hX : DstIn N id s) (hl : LeadIn N s) (hrs : ReadSrc N cc s) (hsn : ∃ j : Fin N, m.src = nodeId j)
-    (hsc : RdTy m.ty) (h : HandleEndO kk c id s m s') : DstIn N id s' := by
-  unfold HandleEndO at h
+    (hsc : RdTy m.ty) (h : HandleEnd kk c id s m s') : DstIn N id s' := by
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h; exact dstIn_readIdx hc hX hl (.inr hsn) h
@@ -1016,13 +1005,22 @@ theorem dstIn_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} {cc : Bool}
 
 theorem dstIn_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} {cc : Bool} (hc : CfgIn N c)
     (hX : DstIn N id s) (hl : LeadIn N s) (hrs : ReadSrc N cc s) (hsn : ∃ j : Fin N, m.src = nodeId j)
-    (hsc : RdTy m.ty) (h : RecvEndO kk c id s m s') : DstIn N id s' := by
-  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (hsc : RdTy m.ty) (h : RecvEnd kk c id s m s') : DstIn N id s' := by
+  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact dstIn_handle hc hX hl hrs hsn hsc hh
   · exact hX
-  · have ho := (preEnd_facts hpre).1
+  · exact dstIn_one rfl hX rfl hsn
+  · exact absurd (.inl hpv) (not_preTy hsc)
+  · exact hX
+  · have hk := not_preTy hsc
+    have ho := (preEnd_facts hk hpre).1
+    have hpre' : s1 = pbecomeFollower s m.term (if fromLeader m.ty then m.src else W64 0) ∨ s1 = s := by
+      rcases hpre with ⟨-, -, h⟩ | ⟨-, h⟩ | ⟨-, hpk, -⟩
+      · exact .inl h
+      · exact .inr h
+      · exact absurd hpk hk
     have hl1 : LeadIn N s1 := by
-      rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+      rcases hpre' with rfl | rfl
       · show (if fromLeader m.ty then m.src else W64 0) = W64 0 ∨
           ∃ j : Fin N, (if fromLeader m.ty then m.src else W64 0) = nodeId j
         split
@@ -1030,24 +1028,10 @@ theorem dstIn_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} {cc : Bool} (
         · exact .inl rfl
       · exact hl
     have hrs1 : ReadSrc N cc s1 := by
-      rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+      rcases hpre' with rfl | rfl
       · exact hrs.nl rfl (by simp [pbecomeFollower])
       · exact hrs
     exact dstIn_handle hc (fun q hq => hX q (ho ▸ hq)) hl1 hrs1 hsn hsc hh
-
-theorem dstIn_tick {c : CfgM} {id : w64} {s s' : PState} (hc : CfgIn N c) (hX : s.outbox = [])
-    (h : TickEndO kk c id s s') : DstIn N id s' := by
-  rcases h with rfl | ⟨-, -, peers, cl, hp, rfl⟩ | ⟨-, ms, hms, rfl⟩
-  · exact dstIn_nil hX
-  · intro q hq hne
-    rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
-    · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
-    · obtain ⟨d, hd, rfl⟩ := List.mem_map.mp hq
-      have hd' : d ∈ elements (c.voters \ {[id]}) := hp.mem_iff.mp hd
-      rw [GMap.elem_of_elements, GMap.elem_of_difference] at hd'
-      exact hc _ ((GMap.elem_of_union _ _ _).2 (.inl hd'.1))
-  · intro q hq _
-    exact hc _ (hms q (mem_psend hX hq)).2.2.2.2.2
 
 /-- `Advance`'s steps (the node's own acknowledgements and vote responses) keep `DstIn`, the
 leader hint and `ReadSrc`. -/
@@ -1055,7 +1039,7 @@ theorem dstIn_adv {c : CfgM} {R : RunCfg} {n : Fin R.N} {s s' : PState} {qs : Li
     (hc : CfgIn R.N c) (hX : DstIn R.N (nodeId n) s) (hl : LeadHint R.N (nodeId n) s)
     (hrs : ReadSrc R.N cc s)
     (hq : ∀ q ∈ qs, (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = nodeId n)
-    (ha : AdvanceEndO kk c (nodeId n) s qs s') : DstIn R.N (nodeId n) s' := by
+    (ha : AdvanceEnd kk c (nodeId n) s qs s') : DstIn R.N (nodeId n) s' := by
   induction ha with
   | nil => exact hX
   | cons s s1 s' q qs hr _ ih =>
@@ -1081,25 +1065,28 @@ theorem dstIn_campaignSends {c : CfgM} {id : w64} {X s' : PState} {cl : List w8}
     rw [GMap.elem_of_elements, GMap.elem_of_difference] at hd'
     exact hc _ ((GMap.elem_of_union _ _ _).2 (.inl hd'.1))
 
-/-- `RecvEndP`'s answers go to the sender (a server), a campaign's requests to the voters. -/
+/-- A received pre-vote request or response's answers go to the sender (a server), a campaign's
+requests to the voters. -/
 theorem dstIn_recvP {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hc : CfgIn N c)
-    (hX : s.outbox = []) (hsn : ∃ j : Fin N, m.src = nodeId j) (h : RecvEndP kk c id s m s') :
+    (hX : s.outbox = []) (hsn : ∃ j : Fin N, m.src = nodeId j)
+    (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk c id s m s') :
     DstIn N id s' := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · exact dstIn_one rfl (dstIn_nil hX) rfl hsn
-  · exact dstIn_one rfl (dstIn_nil hX) rfl hsn
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact dstIn_nil hX
+  · exact dstIn_one rfl (dstIn_nil hX) rfl hsn
   · exact dstIn_one rfl (dstIn_nil hX) rfl hsn
   · exact dstIn_one rfl (dstIn_nil hX) rfl hsn
   · exact dstIn_nil (s := pbecomeFollower s _ _) hX
-  · exact dstIn_nil hX
   · exact dstIn_campaignSends hc hX hcs
 
-/-- `TickEndP`'s pre-vote requests go to the configuration's voters. -/
-theorem dstIn_tickP {c : CfgM} {id : w64} {s s' : PState} (hc : CfgIn N c) (hX : s.outbox = [])
-    (h : TickEndP kk c id s s') : DstIn N id s' := by
-  rcases h with ⟨-, -, -, peers, hp, rfl⟩ | ⟨-, -, rfl⟩
+/-- A tick's messages: a campaign's vote requests and a pre-campaign's pre-vote requests to the
+configuration's voters, a leader's heartbeats to its peers. -/
+theorem dstIn_tick {c : CfgM} {id : w64} {s s' : PState} (hc : CfgIn N c) (hX : s.outbox = [])
+    (h : TickEnd kk c id s s') : DstIn N id s' := by
+  rcases h with rfl | ⟨-, -, hce⟩ | ⟨-, -, -, peers, hp, rfl⟩ | ⟨-, ms, hms, rfl⟩ | ⟨-, -, rfl⟩
+  · exact dstIn_nil hX
+  · exact dstIn_campaignSends hc hX hce.sends
   · intro q hq hne
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
@@ -1107,6 +1094,8 @@ theorem dstIn_tickP {c : CfgM} {id : w64} {s s' : PState} (hc : CfgIn N c) (hX :
       have hd' : d ∈ elements (c.voters \ {[id]}) := hp.mem_iff.mp hd
       rw [GMap.elem_of_elements, GMap.elem_of_difference] at hd'
       exact hc _ ((GMap.elem_of_union _ _ _).2 (.inl hd'.1))
+  · intro q hq _
+    exact hc _ (hms q (mem_psend hX hq)).2.2.2.2.2
   · exact dstIn_nil (s := pbecomeFollower s _ _) hX
 
 /-- **The destinations along `ReachP`**: every message to another node is to a server (a read
@@ -1120,9 +1109,8 @@ theorem dst_reachP {R : RunCfg} {n : Fin R.N} {c : CfgM} {net : List Msg} {xnet 
   cases hr with
   | stay _ => exact dstIn_nil hX
   | recv m _ _ _ _ hmn _ _ hty h => exact dstIn_recv hc (dstIn_nil hX) hlo.2 hrs (hsn m hmn) hty h
-  | recvP m _ _ _ _ hmn _ _ _ h => exact dstIn_recvP hc hX (hsn m hmn) h
+  | recvP m _ _ _ _ hmn _ _ hpt _ h => exact dstIn_recvP hc hX (hsn m hmn) hpt h
   | tick _ _ _ h => exact dstIn_tick hc hX h
-  | tickP _ _ _ h => exact dstIn_tickP hc hX h
   | propose d _ _ _ hh => exact dstIn_propose hc hlo.2 hh (dstIn_nil hX)
   | read d _ _ _ hh => exact dstIn_readIdx hc (dstIn_nil hX) hlo.2 (.inl rfl) hh
   | advance _ _ _ _ hno h =>
@@ -1133,7 +1121,7 @@ theorem dst_reachP {R : RunCfg} {n : Fin R.N} {c : CfgM} {net : List Msg} {xnet 
     · exact dstIn_campaignSends hc hX hcs
   | sends _ _ _ _ h => exact dstIn_sends hc h (dstIn_nil hX)
   | adoptX x _ _ _ _ _ _ => exact dstIn_nil (s := pbecomeFollower v.ps _ _) hX
-  | campX x p1 _ _ _ _ _ _ _ hp1 h' =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ h' =>
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact dstIn_campaignSends hc (by exact hX) h'.sends
 
 /-- **The destinations of the messages of the state a `Ready` is taken at** (`dst_reachP`): every

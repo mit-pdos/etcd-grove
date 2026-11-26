@@ -178,10 +178,10 @@ theorem QKeep.of_pkeep {S : State} {n : Fin R.N} {s t : PState} (h : PKeep s t) 
 
 /-! ## A received message's step -/
 
-/-- The type switch keeps the term (`HandleEndO`: no arm changes it). -/
+/-- The type switch at a type `RdTy` keeps the term (`HandleEnd`: no arm changes it). -/
 theorem handle_term {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hsc : RdTy m.ty)
-    (h : HandleEndO kk c id s m s') : s'.term = s.term := by
-  unfold HandleEndO at h
+    (h : HandleEnd kk c id s m s') : s'.term = s.term := by
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h; exact (readIdxEnd_keep h).term
@@ -231,13 +231,13 @@ theorem quiet_handle {S : State} {net : List Msg} {n : Fin R.N} {s s' : PState} 
     (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hm : m ∈ net) (hmd : m.dst = nodeId n)
     (hsd : m.ty ≠ .readIndex → m.src ≠ m.dst) (hct : S.currentTerm[n.val]! = uint.Z s.term)
     (hmt : m.term = s.term) (hsc : RdTy m.ty)
-    (h : HandleEndO kk cf (nodeId n) s m s') (hr : s'.role = s.role) (hl : s'.log = s.log) :
+    (h : HandleEnd kk cf (nodeId n) s m s') (hr : s'.role = s.role) (hl : s'.log = s.log) :
     QKeep S n s s' := by
   obtain ⟨-, ⟨i, hsi, -⟩, j, hdj, hj⟩ := hnet.1 m hm
   have hjn : j = n := nodeId_inj (hdj.symm.trans hmd)
   subst hjn
   have hf := hj (by rw [hct, hmt]; exact Int.le_refl _)
-  unfold HandleEndO at h
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h; exact QKeep.of_pkeep (readIdxEnd_keep h)
@@ -311,25 +311,30 @@ theorem quiet_handle {S : State} {net : List Msg} {n : Fin R.N} {s s' : PState} 
       · subst h; exact QKeep.same rfl rfl rfl rfl rfl
       · subst h; exact QKeep.refl
 
-/-- **A received message's step (`RecvEndO`, its term not `0`) that keeps the role, the term and
-the log keeps `QKeep`**: a higher term's preamble would change the term (the type switch keeps the
-preamble's), so the message is at the node's term. -/
+/-- **A received message's step (`RecvEnd`, a type `RdTy`, its term not `0`) that keeps the role,
+the term and the log keeps `QKeep`**: a stale message's answer keeps the state; a higher term's
+preamble would change the term (the type switch keeps the preamble's), so the message is at the
+node's term. -/
 theorem quiet_recv {S : State} {net : List Msg} {n : Fin R.N} {s s' : PState} {m : Msg}
     (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hm : m ∈ net) (hmd : m.dst = nodeId n)
     (hsd : m.ty ≠ .readIndex → m.src ≠ m.dst) (hm0 : m.ty ≠ .readIndex → m.term ≠ W64 0)
     (hct : S.currentTerm[n.val]! = uint.Z s.term) (hsc : RdTy m.ty)
-    (h : RecvEndO kk cf (nodeId n) s m s') (hr : s'.role = s.role) (ht : s'.term = s.term)
+    (h : RecvEnd kk cf (nodeId n) s m s') (hr : s'.role = s.role) (ht : s'.term = s.term)
     (hl : s'.log = s.log) : QKeep S n s s' := by
-  rcases h with ⟨h0, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  rcases h with ⟨h0, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · have hty : m.ty = .readIndex := Classical.byContradiction fun hne => hm0 hne h0
-    unfold HandleEndO at hh; rw [hty] at hh; simp only at hh
+    unfold HandleEnd at hh; rw [hty] at hh; simp only at hh
     exact QKeep.of_pkeep (readIdxEnd_keep hh)
   · exact QKeep.refl
+  · exact QKeep.same rfl rfl rfl rfl rfl
+  · exact absurd (.inl hpv) (not_preTy hsc)
+  · exact QKeep.refl
   · have ht' := handle_term hsc hh
-    rcases hpre with ⟨hlt, rfl⟩ | ⟨hmt, rfl⟩
+    rcases hpre with ⟨hlt, -, rfl⟩ | ⟨hmt, rfl⟩ | ⟨-, hpk, -⟩
     · have : s'.term = m.term := ht'
       rw [this] at ht; rw [ht] at hlt; exact absurd hlt (Int.lt_irrefl _)
     · exact quiet_handle hc hnet hm hmd hsd hct hmt hsc hh hr hl
+    · exact absurd hpk (not_preTy hsc)
 
 /-! ## A tick, a proposal, `Advance` -/
 
@@ -339,13 +344,16 @@ theorem w64_succ_ne (x : w64) : x + W64 1 ≠ x := by
   have := uint_Z_nonneg x
   word
 
-/-- A tick that keeps the term: nothing, or a leader's heartbeats. -/
+/-- A tick that keeps the term: nothing, a leader's heartbeats, a pre-candidate (a follower), a
+check-quorum step-down (a follower); a campaign would change the term. -/
 theorem quiet_tick {c : CfgM} {id : w64} {S : State} {n : Fin R.N} {s s' : PState}
-    (h : TickEndO kk c id s s') (ht : s'.term = s.term) : QKeep S n s s' := by
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+    (h : TickEnd kk c id s s') (ht : s'.term = s.term) : QKeep S n s s' := by
+  rcases h with rfl | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
   · exact QKeep.refl
   · exact absurd ht (w64_succ_ne _)
+  · exact ⟨rfl, rfl, fun h => by simp [psendMsgs] at h, fun h => by simp [psendMsgs] at h⟩
   · exact QKeep.same rfl rfl rfl rfl rfl
+  · exact ⟨rfl, rfl, fun h => by simp [pbecomeFollower] at h, fun h => by simp [pbecomeFollower] at h⟩
 
 /-- A proposal that keeps the log: dropped, an empty batch, or forwarded. -/
 theorem quiet_propose {id : w64} {S : State} {n : Fin R.N} {s s' : PState} {m : Msg}
@@ -359,27 +367,19 @@ theorem quiet_propose {id : w64} {S : State} {n : Fin R.N} {s s' : PState} {m : 
     · subst h; exact QKeep.same rfl rfl rfl rfl rfl
     · subst h; exact QKeep.refl
 
-/-- `RecvEndP` keeps `QKeep` when it keeps the term: the answers keep the state, a step-down makes a
-follower; a campaign would change the term. -/
+/-- A received pre-vote request or response keeps `QKeep` when it keeps the term: the answers keep
+the state, a step-down makes a follower; a campaign would change the term. -/
 theorem quiet_recvP {c : CfgM} {id : w64} {S : State} {n : Fin R.N} {s s' : PState} {m : Msg}
-    (ht : s'.term = s.term) (h : RecvEndP kk c id s m s') : QKeep S n s s' := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · exact QKeep.same rfl rfl rfl rfl rfl
-  · exact QKeep.same rfl rfl rfl rfl rfl
+    (ht : s'.term = s.term) (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk c id s m s') :
+    QKeep S n s s' := by
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact QKeep.refl
+  · exact QKeep.same rfl rfl rfl rfl rfl
   · exact QKeep.same rfl rfl rfl rfl rfl
   · exact QKeep.same rfl rfl rfl rfl rfl
   · exact ⟨rfl, ht, fun h => by simp [pbecomeFollower] at h, fun h => by simp [pbecomeFollower] at h⟩
-  · exact QKeep.refl
   · obtain ⟨peers, -, rfl⟩ := hcs; exact absurd ht (w64_succ_ne _)
-
-/-- `TickEndP` keeps `QKeep`: a pre-candidate and a stepped-down leader are followers. -/
-theorem quiet_tickP {c : CfgM} {id : w64} {S : State} {n : Fin R.N} {s s' : PState}
-    (h : TickEndP kk c id s s') : QKeep S n s s' := by
-  rcases h with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
-  · exact ⟨rfl, rfl, fun h => by simp [psendMsgs] at h, fun h => by simp [psendMsgs] at h⟩
-  · exact ⟨rfl, rfl, fun h => by simp [pbecomeFollower] at h, fun h => by simp [pbecomeFollower] at h⟩
 
 /-- What `QsOk` says of a self-addressed message `Advance` steps at term `T`. -/
 def QMsg (S : State) (n : Fin R.N) (T : w64) (q : Msg) : Prop :=
@@ -392,21 +392,14 @@ def QMsg (S : State) (n : Fin R.N) (T : w64) (q : Msg) : Prop :=
 kept (the self-acknowledgement's ack fact and the self-vote are `QsOk`'s). -/
 theorem quiet_adv_step {S : State} {n : Fin R.N} {T : w64} {s s1 : PState} {q : Msg}
     (hc : S.cfg = R.cfg) (hT : s.term = T) (hct : S.currentTerm[n.val]! = uint.Z T)
-    (hq : QMsg S n T q) (h : RecvEndO kk cf (nodeId n) s q s1) :
+    (hq : QMsg S n T q) (h : RecvEnd kk cf (nodeId n) s q s1) :
     s1.term = s.term ∧ (s.role ≠ .candidate → s1.role = s.role) ∧
       (s1.role = s.role → QKeep S n s s1) := by
   obtain ⟨⟨hqs, -, hqt, hrj, hty⟩, hack, hvote⟩ := hq
-  have hqt' : q.term = s.term := hqt.trans hT.symm
-  have hh : HandleEndO kk cf (nodeId n) s q s1 := by
-    rcases h with ⟨-, hh⟩ | ⟨-, hlt, -⟩ | ⟨-, s2, hpre, hh⟩
-    · exact hh
-    · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
-    · rcases hpre with ⟨hlt, -⟩ | ⟨-, rfl⟩
-      · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
-      · exact hh
+  have hh : HandleEnd kk cf (nodeId n) s q s1 := recvEnd_self hty (hqt.trans hT.symm) h
   have hrefl : s1 = s → s1.term = s.term ∧ (s.role ≠ .candidate → s1.role = s.role) ∧
       (s1.role = s.role → QKeep S n s s1) := fun h => by subst h; exact ⟨rfl, fun _ => rfl, fun _ => QKeep.refl⟩
-  unfold HandleEndO at hh
+  unfold HandleEnd at hh
   rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
   · split at hh
     · rcases hh with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, c, hx, -, ms, -, rfl⟩ |
@@ -454,7 +447,7 @@ theorem QsOk.qmsg {S : State} {n : Fin R.N} {v : NodeView} {q : Msg} (h : QsOk R
 same at the end (a candidate that won or lost stays a leader or follower). -/
 theorem quiet_adv_run {S : State} {n : Fin R.N} {T : w64} {s s' : PState} {qs : List Msg}
     (hc : S.cfg = R.cfg) (hct : S.currentTerm[n.val]! = uint.Z T)
-    (hqs : ∀ q ∈ qs, QMsg S n T q) (h : AdvanceEndO kk cf (nodeId n) s qs s') (hT : s.term = T) :
+    (hqs : ∀ q ∈ qs, QMsg S n T q) (h : AdvanceEnd kk cf (nodeId n) s qs s') (hT : s.term = T) :
     s'.term = s.term ∧ (s.role ≠ .candidate → s'.role = s.role) ∧
       (s'.role = s.role → QKeep S n s s') := by
   induction h with
@@ -535,8 +528,8 @@ arm queueing a self-acknowledgement, besides a proposal) changes the role. -/
 theorem selfFree_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id s)
     (hsc : RdTy m.ty) (hnp : m.ty ≠ .propose) (hsrc' : m.ty ≠ .readIndex → m.src ≠ id)
     (hlead : s.role ≠ .leader → s.lead ≠ id) (hro : s'.role = s.role)
-    (hh : HandleEndO kk c id s m s') : SelfFree id s' := by
-  unfold HandleEndO at hh
+    (hh : HandleEnd kk c id s m s') : SelfFree id s' := by
+  unfold HandleEnd at hh
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at hh; simp only at hh; exact selfFree_readIdx hX hlead hh
@@ -584,23 +577,20 @@ theorem selfFree_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : Se
 theorem selfFree_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id s)
     (hsc : RdTy m.ty) (hnp : m.ty ≠ .propose) (hsrc : m.ty ≠ .readIndex → m.src ≠ id)
     (hlead : s.role ≠ .leader → s.lead ≠ id)
-    (hro : s'.role = s.role) (ht : s'.term = s.term) (hr : RecvEndO kk c id s m s') :
+    (hro : s'.role = s.role) (ht : s'.term = s.term) (hr : RecvEnd kk c id s m s') :
     SelfFree id s' := by
-  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, hty, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact selfFree_handle hX hsc hnp hsrc hlead hro hh
   · exact hX
+  · exact selfFree_one hX (hsrc (by rcases hty with h' | h' <;> rw [h'] <;> decide))
+  · exact absurd (.inl hpv) (not_preTy hsc)
+  · exact hX
   · have ht' := handle_term hsc hh
-    rcases hpre with ⟨hlt, rfl⟩ | ⟨-, rfl⟩
+    rcases hpre with ⟨hlt, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, hpk, -⟩
     · have : s'.term = m.term := ht'
       rw [this] at ht; rw [ht] at hlt; exact absurd hlt (Int.lt_irrefl _)
     · exact selfFree_handle hX hsc hnp hsrc hlead hro hh
-
-theorem selfFree_tick {c : CfgM} {id : w64} {s s' : PState} (hX : SelfFree id s)
-    (ht : s'.term = s.term) (h : TickEndO kk c id s s') : SelfFree id s' := by
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, hms, rfl⟩
-  · exact hX
-  · exact absurd ht (w64_succ_ne _)
-  · exact selfFree_psend hX fun x hx => (hms x hx).1.2.2.2.1
+    · exact absurd hpk (not_preTy hsc)
 
 /-- A proposal that keeps the log queues nothing to the node itself: a leader's batch is never
 empty, a forward goes to the leader (another node, the leader hint). -/
@@ -621,17 +611,17 @@ theorem selfFree_propose {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id 
       exact selfFree_one hX (hlead.1 (by rw [hc.1]; decide))
     · subst h; exact hX
 
-/-- `RecvEndP` at a kept term queues nothing to the node itself: its answers go to the sender. -/
+/-- A received pre-vote request or response at a kept term queues nothing to the node itself: its
+answers go to the sender. -/
 theorem selfFree_recvP {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id s)
-    (hsrc : m.src ≠ id) (ht : s'.term = s.term) (h : RecvEndP kk c id s m s') : SelfFree id s' := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · exact selfFree_one hX hsrc
-  · exact selfFree_one hX hsrc
+    (hsrc : m.src ≠ id) (ht : s'.term = s.term) (hty : m.ty = .preVote ∨ m.ty = .preVoteResp)
+    (h : RecvEnd kk c id s m s') : SelfFree id s' := by
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact hX
   · exact selfFree_one hX hsrc
   · exact selfFree_one hX hsrc
-  · exact hX
+  · exact selfFree_one hX hsrc
   · exact hX
   · obtain ⟨peers, -, rfl⟩ := hcs; exact absurd ht (w64_succ_ne _)
 
@@ -644,10 +634,15 @@ def SelfPre (id T : w64) (c : CfgM) (kk : NodeK) (s : PState) : Prop :=
 theorem SelfFree.pre {id T : w64} {c : CfgM} {s : PState} (h : SelfFree id s) : SelfPre id T c kk s :=
   fun q hq hd => absurd hd (h q hq)
 
-/-- A pre-campaign queues to the node itself only its self pre-vote; a step-down nothing. -/
-theorem selfPre_tickP {c : CfgM} {id : w64} {s s' : PState} (hX : s.outbox = [])
-    (h : TickEndP kk c id s s') : SelfPre id s.term c kk s' := by
-  rcases h with ⟨-, hk, hid, peers, hp, rfl⟩ | ⟨-, -, rfl⟩
+/-- A tick at a kept term queues to the node itself at most a pre-campaign's self pre-vote: a
+leader's heartbeats go to its peers, a step-down queues nothing, a campaign would change the term. -/
+theorem selfPre_tick {c : CfgM} {id : w64} {s s' : PState} (hX : s.outbox = [])
+    (ht : s'.term = s.term) (h : TickEnd kk c id s s') : SelfPre id s.term c kk s' := by
+  have hXf : SelfFree id s := fun q hq => by rw [hX] at hq; cases hq
+  rcases h with rfl | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, hk, hid, peers, hp, rfl⟩ | ⟨-, ms, hms, rfl⟩ |
+      ⟨-, -, rfl⟩
+  · exact hXf.pre
+  · exact absurd ht (w64_succ_ne _)
   · intro q hq hd
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq]; exact ⟨rfl, rfl, rfl, rfl, hid, hk⟩
@@ -656,6 +651,7 @@ theorem selfPre_tickP {c : CfgM} {id : w64} {s s' : PState} (hX : s.outbox = [])
       have hd' : d ∈ elements (c.voters \ {[id]}) := hp.mem_iff.mp hdm
       rw [GMap.elem_of_elements, GMap.elem_of_difference] at hd'
       exact hd'.2 ((GMap.elem_of_singleton _ _).mpr (by simpa [pvoteReq] using hd))
+  · exact (selfFree_psend hXf fun x hx => (hms x hx).1.2.2.2.1).pre
   · exact SelfFree.pre (fun q hq => by
       have hq' : q ∈ s.outbox := hq
       rw [hX] at hq'; cases hq')
@@ -689,8 +685,8 @@ theorem advSelf_release {c : CfgM} {id : w64} {r0 : Role} {X s2 : PState} (hi : 
 
 theorem advSelf_handle {c : CfgM} {id : w64} {r0 : Role} {s s' : PState} {q : Msg}
     (hi : AdvSelf id r0 s) (hty : q.ty = .appResp ∨ q.ty = .voteResp)
-    (hh : HandleEndO kk c id s q s') : AdvSelf id r0 s' := by
-  unfold HandleEndO at hh
+    (hh : HandleEnd kk c id s q s') : AdvSelf id r0 s' := by
+  unfold HandleEnd at hh
   rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
   · split at hh
     · rcases hh with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, k, -, -, hs⟩ | ⟨-, x, k, s2, -, -, hrel, hs⟩
@@ -713,11 +709,13 @@ theorem advSelf_handle {c : CfgM} {id : w64} {r0 : Role} {s s' : PState} {q : Ms
 
 theorem advSelf_step {c : CfgM} {id : w64} {r0 : Role} {s s1 : PState} {q : Msg}
     (hi : AdvSelf id r0 s) (hty : q.ty = .appResp ∨ q.ty = .voteResp)
-    (h : RecvEndO kk c id s q s1) : AdvSelf id r0 s1 := by
-  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s2, hpre, hh⟩
-  · exact advSelf_handle hi hty hh
+    (h : RecvEnd kk c id s q s1) : AdvSelf id r0 s1 := by
+  rcases recvEnd_resp hty h with rfl | ⟨-, hh⟩ | ⟨-, hk, s2, hpre, hh⟩
   · exact hi
-  · rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · exact advSelf_handle hi hty hh
+  · rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, hpk, -⟩
+    rotate_right
+    · exact absurd hpk hk
     · have hi' : AdvSelf id r0
           (pbecomeFollower s q.term (if fromLeader q.ty then q.src else W64 0)) :=
         ⟨fun h => absurd h (by simp [pbecomeFollower]),
@@ -726,7 +724,7 @@ theorem advSelf_step {c : CfgM} {id : w64} {r0 : Role} {s s1 : PState} {q : Msg}
     · exact advSelf_handle hi hty hh
 
 theorem advSelf_run {c : CfgM} {id : w64} {r0 : Role} {s s' : PState} {qs : List Msg}
-    (h : AdvanceEndO kk c id s qs s') (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
+    (h : AdvanceEnd kk c id s qs s') (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
     (hi : AdvSelf id r0 s) : AdvSelf id r0 s' := by
   induction h with
   | nil => exact hi
@@ -750,9 +748,8 @@ theorem quiet_reachP {S : State} {net : List Msg} {xnet : List XMsg} {n : Fin R.
   | stay _ => exact QKeep.refl
   | recv m _ _ _ _ hmn hmd hm0 hty h =>
     exact quiet_recv hc hnet hmn hmd (hnet.2.2.1 m hmn).2.1 hm0 hct hty h hro ht hl
-  | recvP m _ _ _ _ _ _ _ _ h => exact quiet_recvP ht h
+  | recvP m _ _ _ _ _ _ _ hpt _ h => exact quiet_recvP ht hpt h
   | tick _ _ _ h => exact quiet_tick h ht
-  | tickP _ _ _ h => exact quiet_tickP h
   | propose d _ _ _ hh => exact quiet_propose hh hl
   | read d _ _ _ hh => exact QKeep.of_pkeep (readIdxEnd_keep hh)
   | advance _ _ _ _ hno h =>
@@ -765,7 +762,7 @@ theorem quiet_reachP {S : State} {net : List Msg} {xnet : List XMsg} {n : Fin R.
   | adoptX x _ _ _ _ _ hlt =>
     have h' : x.term = v.ps.term := ht
     exact absurd hlt (by rw [h']; exact Int.lt_irrefl _)
-  | campX x p1 _ _ _ _ hxn hxd hty hp1 hc =>
+  | campX x p1 _ _ _ _ hxn hxd hty hp1 _ hc =>
     rcases hp1 with ⟨hlt, -⟩ | ⟨-, rfl⟩
     · exact absurd (hxt x hxn hty hxd) (by omega)
     · obtain ⟨-, peers, -, rfl⟩ := hc; exact absurd ht (w64_succ_ne _)
@@ -806,14 +803,11 @@ theorem selfPre_reachP {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : No
   | recv m _ _ _ _ hmn hmd hm0 hty h =>
     exact (selfFree_recv hXf hty (fun hp => hm0 (by rw [hp]; decide) (hnp m hmn hp)) (hsd m hmn hmd)
       hlo.1 hro ht h).pre
-  | recvP m _ _ _ _ hmn hmd _ _ h =>
+  | recvP m _ _ _ _ hmn hmd _ hpt _ h =>
     have hri : m.ty ≠ .readIndex := by
-      intro he
-      rcases h with ⟨-, -, h1 | h1, -⟩ | ⟨-, h1, -⟩ | ⟨⟨-, h1 | h1, -⟩, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ <;>
-        rw [he] at h1 <;> cases h1
-    exact (selfFree_recvP hXf (hsd m hmn hmd hri) ht h).pre
-  | tick _ _ _ h => exact (selfFree_tick hXf ht h).pre
-  | tickP _ _ _ h => exact selfPre_tickP hX h
+      intro he; rcases hpt with h1 | h1 <;> rw [he] at h1 <;> cases h1
+    exact (selfFree_recvP hXf (hsd m hmn hmd hri) ht hpt h).pre
+  | tick _ _ _ h => exact selfPre_tick hX ht h
   | propose d _ _ _ hh => exact (selfFree_propose hXf hlo (by simp [propMsg]) hl hh).pre
   | read d _ _ _ hh => exact (selfFree_readIdx hXf hlo.1 hh).pre
   | advance _ _ _ _ hno h =>
@@ -828,7 +822,7 @@ theorem selfPre_reachP {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : No
   | adoptX x _ _ _ _ _ hlt =>
     have h' : x.term = v.ps.term := ht
     exact absurd hlt (by rw [h']; exact Int.lt_irrefl _)
-  | campX x p1 _ _ _ _ hxn hxd hty hp1 hc =>
+  | campX x p1 _ _ _ _ hxn hxd hty hp1 _ hc =>
     rcases hp1 with ⟨hlt, -⟩ | ⟨-, rfl⟩
     · exact absurd (hxt x hxn hty hxd) (by omega)
     · obtain ⟨-, peers, -, rfl⟩ := hc; exact absurd ht (w64_succ_ne _)

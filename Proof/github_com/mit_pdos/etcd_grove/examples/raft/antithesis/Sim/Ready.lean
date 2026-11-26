@@ -159,7 +159,6 @@ theorem reach_byE {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} 
   | recv m _ _ hbe => exact .inr ⟨.recv m, hbe⟩
   | recvP m _ _ hbe => exact .inr ⟨.recv m, hbe⟩
   | tick _ _ hbe => exact hbe.elim (fun h => .inr ⟨.tick, h⟩) (fun h => .inr ⟨.campaign, h⟩)
-  | tickP _ _ hbe => exact hbe.elim (fun h => .inr ⟨.tick, h⟩) (fun h => .inr ⟨.campaign, h⟩)
   | propose d _ _ hbe => exact .inr ⟨.propose d, hbe⟩
   | read d _ _ hbe => exact .inr ⟨.readIndex d, hbe⟩
   | advance _ _ _ hb => exact hb

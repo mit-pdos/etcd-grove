@@ -81,12 +81,6 @@ theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {xnet 
     rcases hbe with hbe | hbe <;> rw [hby] at hbe
     · exact absurd hbe h'
     · exact absurd hbe h''
-  | tickP _ _ hbe =>
-    have h' : (go!"propose" : Str) ≠ go!"tick" := by decide
-    have h'' : (go!"propose" : Str) ≠ go!"campaign" := by decide
-    rcases hbe with hbe | hbe <;> rw [hby] at hbe
-    · exact absurd hbe h'
-    · exact absurd hbe h''
   | propose d _ _ _ hs =>
     unfold ProposeEnd at hs
     rw [if_pos hvl] at hs

@@ -8,7 +8,7 @@ The raft side of `antSim_ready` (`notes/antithesis-rawnode-design.md` §3.3, "gu
 (`Reach`) into the kinds `OnDisk`/`InMemory` are evaluated for (`ReadyKind`), each with the
 protocol facts its evaluation reads: a campaign (a tick's, or a won pre-vote's; the next term and
 the node's own vote); a vote granted, at the node's term or with the request's term adopted; a term
-adopted only (`PreEndO`'s or a rejected pre-vote response's, at the message's term); a follower at
+adopted only (the preamble's, `PreEnd`, or a rejected pre-vote response's, at the message's term); a follower at
 the node's term (`follow`: a lost election, `padoptLeader`, a pre-campaign, a check-quorum step-down,
 or the pre-candidate flag only); a follower's store and/or commit on a `MsgApp` (its
 entries from the first conflict on, `plogMaybeAppend`, its commit within `min(m.commit,
@@ -20,7 +20,7 @@ What the classification shows on the way (the design's hand-checked claims): a t
 by a campaign (`camp`, the next term) or by the preamble (`grant`, `adopt`,
 `store`, `hb`: the handled message's term, higher than the node's); a win is at the node's own
 term (so no term change and a win in one input); `Reach.stay` is never reported (`stay_quiet`); a
-drain's later `Ready` (`Reach.advance`) changes no term or vote (`AdvanceEndO` steps only
+drain's later `Ready` (`Reach.advance`) changes no term or vote (`AdvanceEnd` steps only
 self-addressed messages of the node's term) but on queued self pre-votes, a campaign.
 
 `selfOut_reach`: the self-addressed messages in the outbox at a `Ready`'s state are a leader's
@@ -305,7 +305,7 @@ theorem readIdx_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : ReadId
       exact hld hnl
     · subst h; exact ⟨RdKeep.refl _, fun _ => OutOther.refl _ _⟩
 
-/-- A read-index response (`HandleEndO`'s arm): a follower's read state recorded, or nothing. -/
+/-- A read-index response (`HandleEnd`'s arm): a follower's read state recorded, or nothing. -/
 theorem readResp_keep {s s' : PState} {m : Msg}
     (h : if s.role = .follower then
       (∃ e, m.entries = [e] ∧
@@ -319,7 +319,7 @@ theorem readResp_keep {s s' : PState} {m : Msg}
     · exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
   · subst h; exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
 
-/-- A leader's heartbeat response (`HandleEndO`'s arm at a leader): the appends, then maybe the
+/-- A leader's heartbeat response (`HandleEnd`'s arm at a leader): the appends, then maybe the
 read acknowledgement. -/
 theorem hbResp_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (h : ∃ s2, SendsEnd c id s s2 ∧
@@ -344,13 +344,13 @@ def InMsg (m : Msg) : Prop :=
   RdTy m.ty ∧ (m.ty = .app → AppPayloadOk m) ∧ (m.ty ≠ .readIndex → m.src ≠ m.dst) ∧
     ((m.ty = .propose ∨ m.ty = .readIndex) → m.term = W64 0)
 
-/-- The readings' types, in `HandleEndO`'s order. -/
+/-- The types `ReachP.recv` steps, in `HandleEnd`'s order. -/
 theorem RdTy.cases {t : MsgType} (h : RdTy t) :
     t = .vote ∨ t = .voteResp ∨ t = .app ∨ t = .appResp ∨ t = .heartbeat ∨ t = .heartbeatResp ∨
       t = .propose ∨ t = .readIndex ∨ t = .readIndexResp := by
   rcases h with (h | h | h | h | h | h | h) | h | h <;> simp [h]
 
-/-- A message the readings read keeps no term (`PreTermKeep`: a pre-vote message). -/
+/-- A message of these types keeps no term (`PreTermKeep`: a pre-vote message). -/
 theorem InMsg.notPre {m : Msg} (h : InMsg m) : ¬ PreTermKeep m := not_preTy h.1
 
 /-- The message a drain caused by a `recv` handles (`Reach.input`'s): the drain's cause, sent to
@@ -412,7 +412,7 @@ inductive ReadyKind (cf : CfgM) (id : w64) (net : List Msg) (xnet : List XMsg) (
       plogUpToDate v.ps.base v.ps.log (entryID.mk m.logterm m.index) = true →
       ps₁.term = m.term → ps₁.vote = m.src → ps₁.role = .follower → ps₁.log = v.ps.log →
       ps₁.commit = v.ps.commit → rd.ents = [] → ReadyKind cf id net xnet v ps₁ rd
-  /-- A term adopted only (`PreEndO`, or a rejected pre-vote response's, the message's higher
+  /-- A term adopted only (the preamble's, `PreEnd`, or a rejected pre-vote response's, the message's higher
   term): a follower with no vote. -/
   | adopt (m : Msg) : RecvAt id net v m → uint.Z v.ps.term < uint.Z m.term → ps₁.term = m.term →
       ps₁.vote = W64 0 → ps₁.role = .follower → ps₁.log = v.ps.log → ps₁.commit = v.ps.commit →
@@ -532,7 +532,7 @@ theorem raise_ge (x i : w64) : uint.Z x ≤ uint.Z (if uint.Z x < uint.Z i then 
 
 /-! ## A received message -/
 
-/-- What the preamble leaves (`PreEndO`): a higher term adopted (a follower with no vote), or the
+/-- What the preamble leaves (`PreEnd`, a message it reads the term of): a higher term adopted (a follower with no vote), or the
 node's own state. -/
 def PreFacts (s : PState) (m : Msg) (s1 : PState) : Prop :=
   (uint.Z s.term < uint.Z m.term ∧ s1.vote = W64 0 ∧ s1.role = .follower) ∨ (m.term = s.term ∧ s1 = s)
@@ -581,7 +581,7 @@ theorem commitTo_min (c mc ln : w64) :
     · rename_i h2; exact .inr ⟨h2, by omega, Int.le_refl _⟩
     · exact .inl rfl
 
-/-- **The type switch of a received message** (`HandleEndO`, at the state `s1` after the preamble),
+/-- **The type switch of a received message** (`HandleEnd`, at the state `s1` after the preamble),
 reported: its kind. -/
 theorem kind_handle {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {s1 ps₁ : PState} {rd : ReadyD}
     {m : Msg} (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd) (hb : v.ps.base = base0)
@@ -589,13 +589,13 @@ theorem kind_handle {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView
     (hat : RecvAt id net v m) (hm : InMsg m)
     (ht1 : s1.term = m.term) (hl1 : s1.log = v.ps.log) (hc1 : s1.commit = v.ps.commit)
     (hb1 : s1.base = v.ps.base) (hpre : PreFacts v.ps m s1) (hX : s1.outbox = [])
-    (h : HandleEndO kk cf id s1 m ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
+    (h : HandleEnd kk cf id s1 m ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
   have hnp := hm.notPre
   obtain ⟨hsc, hpay, -, hprop⟩ := hm
   have hkeep : RdKeep s1 ps₁ → ReadyKind cf id net xnet v ps₁ rd := fun hk =>
     kind_of_s1 hro hrep hat hnp ht1 hl1 hc1 hpre hk.1 hk.2.1 hk.2.2.2.1 hk.2.2.2.2.2.2.1
       hk.2.2.2.2.2.2.2.1
-  unfold HandleEndO at h
+  unfold HandleEnd at h
   rcases hsc.cases with hty | hty | hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;>
     simp only at h
   · -- a vote request
@@ -732,48 +732,57 @@ theorem kind_handle {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView
   · exact hkeep (readIdx_keep h).1
   · exact hkeep (readResp_keep h id).1
 
-/-- **A received message's step** (`RecvEndO`, its term not `0`), reported: its kind. -/
+/-- **A received message's step** (`RecvEnd` of a type `ReachP.recv` steps, its term not `0` but a
+forwarded read request's), reported: its kind (a stale message's answer, a request in the lease
+and a forwarded read request change nothing reported). -/
 theorem kind_recv {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     {m : Msg} (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd) (hb : v.ps.base = base0)
     (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hat : RecvAt id net v m) (hm : InMsg m) (h : RecvEndO kk cf id v.ps m ps₁) (hX : v.ps.outbox = []) :
+    (hat : RecvAt id net v m) (hm : InMsg m) (h : RecvEnd kk cf id v.ps m ps₁) (hX : v.ps.outbox = []) :
     ReadyKind cf id net xnet v ps₁ rd := by
-  rcases h with ⟨h0, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  rcases h with ⟨h0, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · by_cases hri : m.ty = .readIndex
-    · unfold HandleEndO at hh; rw [hri] at hh; simp only at hh
+    · unfold HandleEnd at hh; rw [hri] at hh; simp only at hh
       exact ((readIdx_keep hh).1.not_rep hro hrep).elim
     · exact absurd h0 (hat.2.2.2.2 hri)
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
-  · rcases hpre with ⟨hlt, rfl⟩ | ⟨hmt, rfl⟩
+  · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
+  · exact absurd (.inl hpv) hm.notPre
+  · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
+  · rcases hpre with ⟨hlt, -, rfl⟩ | ⟨hmt, rfl⟩ | ⟨-, hpk, -⟩
     · have hne : m.term ≠ v.ps.term := fun h => by rw [h] at hlt; exact Int.lt_irrefl _ hlt
       exact kind_handle (s1 := pbecomeFollower v.ps m.term _) hro hrep hb hid0 hvs hat hm rfl rfl
         rfl rfl (.inl ⟨hlt, by simp [pbecomeFollower, hne], rfl⟩) hX hh
     · exact kind_handle (s1 := v.ps) hro hrep hb hid0 hvs hat hm hmt.symm rfl rfl rfl
         (.inr ⟨hmt, rfl⟩) hX hh
+    · exact absurd hpk hm.notPre
 
 
 /-! ## A tick, a proposal -/
 
-/-- **A tick's step** (`TickEndO`), reported: a campaign (nothing, or a leader's heartbeats, change
-nothing reported). -/
+/-- **A tick's step** (`TickEnd`), reported: a campaign; a follower at the node's term (a
+pre-campaign, a leader's check-quorum step-down); nothing, or a leader's heartbeats, change
+nothing reported. -/
 theorem kind_tick {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
-    (h : TickEndO kk cf id v.ps ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
-  rcases h with rfl | ⟨hnl, hvo, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+    (h : TickEnd kk cf id v.ps ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
+  rcases h with rfl | ⟨-, -, hvo, peers, -, rfl⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · exact .camp rfl rfl rfl rfl rfl (ents_nil_of_log hro rfl) rfl hvo
+  · exact .follow rfl rfl rfl rfl rfl (ents_nil_of_log hro rfl)
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
+  · exact .follow rfl rfl (by simp [pbecomeFollower]) rfl rfl (ents_nil_of_log hro rfl)
 
-/-- **A pre-vote or check-quorum arm of a received message** (`RecvEndP`), reported: a rejected
-pre-vote response's higher term adopted, or the campaign on a won pre-vote (the answers, a stale
-message's and a pre-vote request's, change nothing reported). -/
+/-- **A received pre-vote request or response** (`recvEnd_pre`), reported: a rejected pre-vote
+response's higher term adopted, or the campaign on a won pre-vote (the answers, a stale request's
+and a request's, change nothing reported). -/
 theorem kind_recvP {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     {m : Msg} (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd) (hat : RecvAt id net v m)
     (hvo : m.ty = .preVoteResp → m.reject = false → id ∈ cf.voters)
-    (h : RecvEndP kk cf id v.ps m ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨hty, hrj, hlt, rfl⟩ | ⟨hty, rfl | ⟨hfl, -, hgr, peers, -, rfl⟩⟩
-  · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
+    (hpt : m.ty = .preVote ∨ m.ty = .preVoteResp)
+    (h : RecvEnd kk cf id v.ps m ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
+  rcases recvEnd_pre hpt h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
+      ⟨hty, hrj, hlt, rfl⟩ | ⟨hty, -, -, hgr, peers, -, rfl⟩
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
@@ -783,16 +792,7 @@ theorem kind_recvP {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView}
     rintro (h1 | ⟨-, h1⟩)
     · rw [hty] at h1; cases h1
     · rw [hrj] at h1; cases h1
-  · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · exact .camp rfl rfl rfl rfl rfl (ents_nil_of_log hro rfl) rfl (hvo hty hgr)
-
-/-- **A pre-vote or check-quorum arm of a tick** (`TickEndP`), reported: a follower at the node's
-term (a pre-campaign, a leader's step-down). -/
-theorem kind_tickP {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
-    (hro : ReadyOutO N id v ps₁ rd) (h : TickEndP kk cf id v.ps ps₁) : ReadyKind cf id net xnet v ps₁ rd := by
-  rcases h with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
-  · exact .follow rfl rfl rfl rfl rfl (ents_nil_of_log hro rfl)
-  · exact .follow rfl rfl (by simp [pbecomeFollower]) rfl rfl (ents_nil_of_log hro rfl)
 
 /-- **A proposal's step** (`ProposeEnd` of `RawNode.Propose`'s message), reported: a leader's
 append (a drop, a forward change nothing reported). -/
@@ -844,9 +844,9 @@ theorem leadC_refl {id : w64} {s : PState} (h : s.role = .leader) : LeadC cf id 
 raises only its own `Match` and commits only by `PCommitOk`; a vote response is ignored. -/
 theorem leadC_step {id : w64} {y s s' : PState} {q : Msg} (hL : LeadC cf id y s) (hqs : q.src = id)
     (hrj : q.reject = false) (hty : q.ty = .appResp ∨ q.ty = .voteResp)
-    (h : HandleEndO kk cf id s q s') : LeadC cf id y s' := by
+    (h : HandleEnd kk cf id s q s') : LeadC cf id y s' := by
   obtain ⟨hr, ht, hv, hb, hl, hm, hc⟩ := hL
-  unfold HandleEndO at h
+  unfold HandleEnd at h
   rcases hty with hty | hty <;> rw [hty] at h <;> simp only at h
   · rw [if_pos hr] at h
     have hyc : uint.Z y.commit ≤ uint.Z s.commit := by
@@ -878,8 +878,8 @@ theorem leadC_step {id : w64} {y s s' : PState} {q : Msg} (hL : LeadC cf id y s)
 /-- A leader's step of a self-addressed message queues nothing to itself. -/
 theorem noSelf_step {id : w64} {s s' : PState} {q : Msg} (hr : s.role = .leader) (hn : NoSelf id s)
     (hrj : q.reject = false) (hty : q.ty = .appResp ∨ q.ty = .voteResp)
-    (h : HandleEndO kk cf id s q s') : NoSelf id s' := by
-  unfold HandleEndO at h
+    (h : HandleEnd kk cf id s q s') : NoSelf id s' := by
+  unfold HandleEnd at h
   rcases hty with hty | hty <;> rw [hty] at h <;> simp only at h
   · rw [if_pos hr] at h
     rcases h with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, c, -, -, ms, hms, rfl⟩ | ⟨-, x, c, s2, -, -, hrel, hse⟩
@@ -900,17 +900,10 @@ theorem noSelf_step {id : w64} {s s' : PState} {q : Msg} (hr : s.role = .leader)
 /-- One step of `Advance` keeps `AdvP`. -/
 theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : AdvP cf id s₀ W s)
     (hX0 : s₀.outbox = []) (hq : SelfMsg id s₀.term q) (hW : q.ty = .voteResp → W)
-    (hC : s₀.role = .candidate → q.ty = .voteResp) (h : RecvEndO kk cf id s q s') :
+    (hC : s₀.role = .candidate → q.ty = .voteResp) (h : RecvEnd kk cf id s q s') :
     AdvP cf id s₀ W s' := by
   obtain ⟨hqs, -, hqt, hrj, hty⟩ := hq
-  have hqt' : q.term = s.term := hqt.trans hi.term.symm
-  have hh : HandleEndO kk cf id s q s' := by
-    rcases h with ⟨-, hh⟩ | ⟨-, hlt, -⟩ | ⟨-, s2, hpre, hh⟩
-    · exact hh
-    · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
-    · rcases hpre with ⟨hlt, -⟩ | ⟨-, rfl⟩
-      · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
-      · exact hh
+  have hh : HandleEnd kk cf id s q s' := recvEnd_self hty (hqt.trans hi.term.symm) h
   have hlead : ∀ y, LeadC cf id y s → LeadC cf id y s' := fun y hL => leadC_step hL hqs hrj hty hh
   have hns : s.role = .leader → NoSelf id s → NoSelf id s' := fun hr hn => noSelf_step hr hn hrj hty hh
   rcases hi with (heq | ⟨hc, heq⟩) | ⟨hl0, hL, hn0⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ |
@@ -918,7 +911,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
   · rw [heq] at hh hlead hns
     by_cases hl0 : s₀.role = .leader
     · exact .inr (.inl ⟨hl0, hlead _ (leadC_refl hl0), hns hl0 (fun x hx => by rw [hX0] at hx; cases hx)⟩)
-    · unfold HandleEndO at hh
+    · unfold HandleEnd at hh
       rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
       · rw [if_neg hl0] at hh; subst hh; exact .inl (.inl rfl)
       · split at hh
@@ -932,7 +925,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
           · exact .inr (.inr (.inl ⟨hc, rfl, rfl, by simp [pbecomeFollower], rfl, rfl⟩))
         · subst hh; exact .inl (.inl rfl)
   · rw [heq] at hh
-    unfold HandleEndO at hh
+    unfold HandleEnd at hh
     rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
     · rw [if_neg (by rw [hc]; decide)] at hh; subst hh; exact .inl (.inr ⟨hc, rfl⟩)
     · rw [if_pos hc] at hh
@@ -947,7 +940,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
           ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩, rfl⟩))
       · exact .inr (.inr (.inl ⟨hc, rfl, rfl, by simp [pbecomeFollower], rfl, rfl⟩))
   · exact .inr (.inl ⟨hl0, hlead _ hL, hns hL.1 hn0⟩)
-  · unfold HandleEndO at hh
+  · unfold HandleEnd at hh
     rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
     · rw [if_neg (by rw [hf]; decide)] at hh; subst hh
       exact .inr (.inr (.inl ⟨hc, hf, ht, hv, hl, hcm⟩))
@@ -955,13 +948,13 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
       exact .inr (.inr (.inl ⟨hc, hf, ht, hv, hl, hcm⟩))
   · -- won: the message is a self-vote (`hC`), which a leader ignores
     have hv : q.ty = .voteResp := hC hc
-    unfold HandleEndO at hh
+    unfold HandleEnd at hh
     rw [hv] at hh; simp only at hh
     rw [if_neg (by rw [hL.1]; decide)] at hh; subst hh
     exact .inr (.inr (.inr ⟨hc, hw, mt, hq, hlm, hL, hcm⟩))
 
 theorem advP_run {id : w64} {s₀ s s' : PState} {qs : List Msg} {W : Prop}
-    (hX0 : s₀.outbox = []) (h : AdvanceEndO kk cf id s qs s') (hq : ∀ q ∈ qs, SelfMsg id s₀.term q)
+    (hX0 : s₀.outbox = []) (h : AdvanceEnd kk cf id s qs s') (hq : ∀ q ∈ qs, SelfMsg id s₀.term q)
     (hW : ∀ q ∈ qs, q.ty = .voteResp → W) (hC : ∀ q ∈ qs, s₀.role = .candidate → q.ty = .voteResp)
     (hi : AdvP cf id s₀ W s) : AdvP cf id s₀ W s' := by
   induction h with
@@ -978,7 +971,7 @@ theorem kind_advance {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeVie
     (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
     (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
     (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty = .voteResp)
-    (h : AdvanceEndO kk cf id v.ps v.qs ps₁) (hX : v.ps.outbox = []) :
+    (h : AdvanceEnd kk cf id v.ps v.qs ps₁) (hX : v.ps.outbox = []) :
     ReadyKind cf id net xnet v ps₁ rd := by
   have hP : AdvP cf id v.ps (∃ q ∈ v.qs, q.ty = .voteResp) ps₁ :=
     advP_run hX h hqs (fun q hq hty => ⟨q, hq, hty⟩) (fun q hq hc => hqc hc q hq) (.inl (.inl rfl))
@@ -1021,10 +1014,9 @@ theorem ready_kind {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView}
   | stay _ _ => exact absurd hrep (stay_quiet hro)
   | recv m _ _ hbe hca hmn hmd hm0 h4 hs =>
     exact kind_recv hro hrep hb hid0 hvs ⟨hbe, hca, hmn, hmd, hm0⟩ (hin m hmn h4) hs hX
-  | recvP m _ _ hbe hca hmn hmd hm0 hvo hs =>
-    exact kind_recvP hro hrep ⟨hbe, hca, hmn, hmd, fun _ => hm0⟩ hvo hs
+  | recvP m _ _ hbe hca hmn hmd hm0 hpt hvo hs =>
+    exact kind_recvP hro hrep ⟨hbe, hca, hmn, hmd, fun _ => hm0⟩ hvo hpt hs
   | tick _ _ _ hs => exact kind_tick hro hrep hs
-  | tickP _ _ _ hs => exact kind_tickP hro hs
   | propose d _ _ hbe hs => exact kind_propose hro hrep hbe hs
   | read d _ _ _ hs => exact ((readIdx_keep hs).1.not_rep hro hrep).elim
   | advance _ _ _ _ hno ha =>
@@ -1035,7 +1027,7 @@ theorem ready_kind {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView}
     have hne : x.term ≠ v.ps.term := fun h => by rw [h] at hlt; exact Int.lt_irrefl _ hlt
     exact .adoptX x hbe hxc hxn hxd hlt rfl (by simp [pbecomeFollower, hne]) rfl rfl rfl
       (ents_nil_of_log hro rfl)
-  | campX x p1 _ _ _ hxc hxn hxd hty hp1 hc =>
+  | campX x p1 _ _ _ hxc hxn hxd hty hp1 _ hc =>
     obtain ⟨hvo, peers, -, rfl⟩ := hc
     rcases hp1 with ⟨hlt, -⟩ | ⟨-, rfl⟩
     · exact .campX x hxc hxn hxd hty hlt rfl
@@ -1115,8 +1107,8 @@ theorem selfOut_handle {id : w64} {s1 s' : PState} {m : Msg} (hX : s1.outbox = [
     (hne : m.src ≠ id)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .readIndexResp)
-    (h : HandleEndO kk cf id s1 m s') : SelfOut cf kk id s' := by
-  unfold HandleEndO at h
+    (h : HandleEnd kk cf id s1 m s') : SelfOut cf kk id s' := by
+  unfold HandleEnd at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · exact selfOut_one (X := { s1 with vote := m.src }) hX hne
@@ -1178,17 +1170,17 @@ theorem selfOut_preCampaign {id : w64} {s s' : PState} (hX : s.outbox = []) (hk 
     rw [GMap.elem_of_difference, GMap.elem_of_singleton] at h1
     exact h1.2 hd
 
-/-- `RecvEndP`'s messages: answers to the sender, or a campaign's. -/
+/-- A received pre-vote request or response's messages (`recvEnd_pre`): answers to the sender, or
+a campaign's. -/
 theorem selfOut_recvP {id : w64} {s s' : PState} {m : Msg} (hX : s.outbox = []) (hne : m.src ≠ id)
-    (h : RecvEndP kk cf id s m s') : SelfOut cf kk id s' := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · exact selfOut_one hX hne
-  · exact selfOut_one hX hne
+    (hpt : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk cf id s m s') :
+    SelfOut cf kk id s' := by
+  rcases recvEnd_pre hpt h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact selfOut_nil hX
   · exact selfOut_one hX hne
   · exact selfOut_one hX hne
-  · exact selfOut_nil hX
+  · exact selfOut_one hX hne
   · exact selfOut_nil hX
   · exact selfOut_campaignSends hX hcs
 
@@ -1206,11 +1198,10 @@ theorem selfOut_reach {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeVi
   | recv m _ _ _ _ hmn hmd hm0 h4 hs =>
     obtain ⟨hsc, -, hsd', hprop⟩ := hin m hmn h4
     by_cases hri : m.ty = .readIndex
-    · rcases hs with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
-      · unfold HandleEndO at hh; rw [hri] at hh; simp only at hh
+    · rcases hs with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      · unfold HandleEnd at hh; rw [hri] at hh; simp only at hh
         exact selfOut_out hX ((readIdx_keep hh).2 hlo)
-      · exact absurd (hprop (.inr hri)) h0
-      · exact absurd (hprop (.inr hri)) h0
+      all_goals exact absurd (hprop (.inr hri)) h0
     have hne : m.src ≠ id := hmd ▸ hsd' hri
     have hm0' := hm0 hri
     have hsc' : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨
@@ -1225,24 +1216,23 @@ theorem selfOut_reach {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeVi
       · exact absurd (hprop (.inl h)) hm0'
       · exact absurd h hri
       · exact .inr (.inr (.inr (.inr (.inr (.inr h)))))
-    rcases hs with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    rcases hs with ⟨h0, -⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
     · exact absurd h0 hm0'
     · exact selfOut_nil hX
-    · exact selfOut_handle ((preEnd_facts hpre).1.trans hX) hne hsc' hh
-  | recvP m _ _ _ _ hmn hmd _ _ hs =>
-    have hne : m.src ≠ id := hmd ▸ hsd m hmn (by
-      rcases hs with ⟨-, -, h1 | h1, -⟩ | ⟨-, h1, -⟩ | ⟨⟨-, h1 | h1, -⟩, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ <;>
-        rw [h1] <;> decide)
-    exact selfOut_recvP hX hne hs
+    · exact selfOut_one hX hne
+    · exact absurd (.inl hpv) (not_preTy hsc)
+    · exact selfOut_nil hX
+    · exact selfOut_handle ((preEnd_facts (not_preTy hsc) hpre).1.trans hX) hne hsc' hh
+  | recvP m _ _ _ _ hmn hmd _ hpt _ hs =>
+    have hne : m.src ≠ id := hmd ▸ hsd m hmn (by rcases hpt with h1 | h1 <;> rw [h1] <;> decide)
+    exact selfOut_recvP hX hne hpt hs
   | read d _ _ _ hs => exact selfOut_out hX ((readIdx_keep hs).2 hlo)
   | tick _ _ _ hs =>
-    rcases hs with rfl | ⟨-, -, peers, cl, hperm, rfl⟩ | ⟨-, ms, hms, rfl⟩
+    rcases hs with rfl | ⟨-, -, hce⟩ | ⟨-, hk, hpc⟩ | ⟨-, ms, hms, rfl⟩ | ⟨-, -, rfl⟩
     · exact selfOut_nil hX
-    · exact selfOut_campaignSends (cl := cl) hX ⟨peers, hperm, rfl⟩
-    · exact selfOut_none hX fun x hx => (hms x hx).1.2.2.2.1
-  | tickP _ _ _ hs =>
-    rcases hs with ⟨-, hk, hpc⟩ | ⟨-, -, rfl⟩
+    · exact selfOut_campaignSends hX hce.sends
     · exact selfOut_preCampaign hX hk hpc
+    · exact selfOut_none hX fun x hx => (hms x hx).1.2.2.2.1
     · exact selfOut_nil hX
   | propose d _ _ _ hs =>
     have hs' : ProposeEnd cf id v.ps (propMsg id d) ps₁ := hs
@@ -1270,7 +1260,7 @@ theorem selfOut_reach {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeVi
     · exact selfOut_campaignSends hX hcs
   | sends _ _ _ _ h => exact selfOut_sends hX h
   | adoptX x _ _ _ _ _ _ => exact selfOut_nil (show (pbecomeFollower v.ps _ _).outbox = [] from hX)
-  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ hc =>
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact selfOut_campaignSends (by exact hX) hc.sends
 
 /-- **A non-follower `Ready`'s queued self-messages** (`ReadyOutP`'s `qs`): `SelfMsg`s at its

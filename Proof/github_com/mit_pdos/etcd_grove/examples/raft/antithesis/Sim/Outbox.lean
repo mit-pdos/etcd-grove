@@ -359,13 +359,15 @@ theorem outOk_propose {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : 
       exact pendOk_propose hne hd rfl rfl rfl
     · subst h; exact outOk_nil hX
 
-/-- What the preamble keeps (`PreEndO`): the outbox, base, log and commit; its term is the message's. -/
-theorem preEnd_facts {s s1 : PState} {m : Msg} (h : PreEndO kk s m s1) :
+/-- What the preamble keeps (`PreEnd`, a message whose term it reads: not `PreTermKeep`): the
+outbox, base, log and commit; its term is the message's. -/
+theorem preEnd_facts {s s1 : PState} {m : Msg} (hk : ¬ PreTermKeep m) (h : PreEnd kk s m s1) :
     s1.outbox = s.outbox ∧ s1.base = s.base ∧ s1.log = s.log ∧ s1.commit = s.commit ∧
       s1.term = m.term := by
-  rcases h with ⟨-, rfl⟩ | ⟨ht, rfl⟩
+  rcases h with ⟨-, -, rfl⟩ | ⟨ht, rfl⟩ | ⟨-, hpk, -⟩
   · exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   · exact ⟨rfl, rfl, rfl, rfl, ht.symm⟩
+  · exact absurd hpk hk
 
 /-- `handleAppendEntries`'s answer (`AppEnd`) at `X` (the state after the preamble, the sender
 adopted): an acknowledgement of the handled `MsgApp` at the node's term, accepting at the batch's
@@ -424,14 +426,14 @@ theorem ty7_of_s4 {t : MsgType}
       t = .propose := by
   rcases h with h | h | h | h | h | h | h <;> simp [h]
 
-/-- The type switch's messages (`HandleEndO`) at the state after the preamble, for a message of a
+/-- The type switch's messages (`HandleEnd`) at the state after the preamble, for a message of a
 type the readings read (a read request's source a node or local). -/
 theorem outOk_handle {c : CfgM} {id : w64} {w : NodeView} {s1 s' : PState} {m : Msg}
     (hX : s1.outbox = []) (hb : s1.base = base0) (ht : s1.term = m.term)
     (hby : w.byE = go!"recv") (hca : w.cause = some m) (hpay : m.ty = .app → AppPayloadOk m)
     (hid : ∃ j : Fin N, id = nodeId j) (hsrc : m.src = W64 0 ∨ ∃ j : Fin N, m.src = nodeId j)
-    (hsc : RdTy m.ty) (h : HandleEndO kk c id s1 m s') : OutOk N id w s' := by
-  unfold HandleEndO at h
+    (hsc : RdTy m.ty) (h : HandleEnd kk c id s1 m s') : OutOk N id w s' := by
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h; exact outOk_readIdx hX hid hsrc h
@@ -479,35 +481,29 @@ theorem outOk_handle {c : CfgM} {id : w64} {w : NodeView} {s1 s' : PState} {m : 
     · subst h; exact outOk_nil hX
   · exact outOk_propose hX h
 
-/-- A received message's step (`RecvEndO`), its term not `0` but a forwarded read request's
-(`RawNode.Step`'s `NetMsgOk`; `send` stamps no term on a `MsgReadIndex`). -/
+/-- A received message's step (`RecvEnd`, a type `RdTy`), its term not `0` but a forwarded read
+request's (`RawNode.Step`'s `NetMsgOk`; `send` stamps no term on a `MsgReadIndex`): the stale
+`MsgApp`/`MsgHeartbeat`'s empty answer, or the type switch's. -/
 theorem outOk_recv {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {m : Msg}
     (hX : s.outbox = []) (hb : s.base = base0) (hm0 : m.ty ≠ .readIndex → m.term ≠ W64 0)
     (hby : w.byE = go!"recv") (hca : w.cause = some m) (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : RdTy m.ty) (hid : ∃ j : Fin N, id = nodeId j)
     (hsrc : m.src = W64 0 ∨ ∃ j : Fin N, m.src = nodeId j)
-    (h : RecvEndO kk c id s m s') : OutOk N id w s' := by
-  rcases h with ⟨h0, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (h : RecvEnd kk c id s m s') : OutOk N id w s' := by
+  rcases h with ⟨h0, hh⟩ | ⟨-, hlt, hst⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · have hty : m.ty = .readIndex := Classical.byContradiction fun hne => hm0 hne h0
-    unfold HandleEndO at hh; rw [hty] at hh; simp only at hh
+    unfold HandleEnd at hh; rw [hty] at hh; simp only at hh
     exact outOk_readIdx hX hid hsrc hh
+  · rcases hst with rfl | ⟨-, hty, rfl⟩ | ⟨hpv, -⟩
+    · exact outOk_nil hX
+    · intro q hq hne hd
+      rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
+      unfold PendOk
+      exact ⟨hne, hd, rfl, hby, .inr ⟨m, hca, hty, rfl, hlt, rfl⟩⟩
+    · exact absurd (.inl hpv) (not_preTy hsc)
   · exact outOk_nil hX
-  · obtain ⟨ho, hb1, -, -, ht⟩ := preEnd_facts hpre
+  · obtain ⟨ho, hb1, -, -, ht⟩ := preEnd_facts (not_preTy hsc) hpre
     exact outOk_handle (ho.trans hX) (hb1.trans hb) ht hby hca hpay hid hsrc hsc hh
-
-/-- A tick's messages (`TickEndO`): a campaign's vote requests, a leader's heartbeats. -/
-theorem outOk_tick {c : CfgM} {id : w64} {w : NodeView} {s s' : PState}
-    (hX : s.outbox = []) (hb : s.base = base0) (h : TickEndO kk c id s s') : OutOk N id w s' := by
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨hr, ms, hms, rfl⟩
-  · exact outOk_nil hX
-  · intro q hq hne hd
-    rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
-    · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
-    · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
-      exact pendOk_vote (w := w.withP _) hne hd rfl rfl rfl rfl rfl rfl rfl
-  · intro q hq hne hd
-    obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
-    exact pendOk_heartbeat (w := w.withP _) hne hd hr hh hi hlt he
 
 /-! ## The pre-vote and check-quorum arms' messages (below `mskB1`) -/
 
@@ -532,43 +528,43 @@ theorem outOk_campaignSends {c : CfgM} {id : w64} {w : NodeView} {X s' : PState}
   · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
     exact pendOk_vote (w := w.withP _) hne hd rfl rfl rfl rfl rfl rfl rfl
 
-/-- A received message's new arm (`RecvEndP`): the stale `MsgApp`/`MsgHeartbeat`'s empty answer,
-a pre-vote request's answer (a grant to the handled request's sender), a campaign's requests. -/
+/-- A received pre-vote request or response's messages (`recvEnd_pre`): a stale request's
+rejection, a request's answer (a grant to the handled request's sender), a campaign's requests. -/
 theorem outOk_recvP {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {m : Msg}
-    (hX : s.outbox = []) (hby : w.byE = go!"recv") (hca : w.cause = some m)
-    (h : RecvEndP kk c id s m s') : OutOk N id w s' := by
-  rcases h with ⟨hlt, -, hty, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨hty, hpv⟩ | ⟨-, -, -, rfl⟩ |
-      ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · intro q hq hne hd
-    rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
-    unfold PendOk
-    exact ⟨hne, hd, rfl, hby, .inr ⟨m, hca, hty, rfl, hlt, rfl⟩⟩
+    (hX : s.outbox = []) (hca : w.cause = some m) (hty : m.ty = .preVote ∨ m.ty = .preVoteResp)
+    (h : RecvEnd kk c id s m s') : OutOk N id w s' := by
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨hpv, hpe⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, -, hcs⟩
+  · exact outOk_nil hX
   · intro q hq hne hd
     rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
     exact pendOk_preVoteResp hne hd rfl rfl (fun h => absurd h (by simp [Msg.plain])) fun _ => rfl
-  · exact outOk_nil hX
-  · rcases hpv with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
+  · rcases hpe with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · intro q hq hne hd
       rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
-      exact pendOk_preVoteResp hne hd rfl rfl (fun _ => ⟨m, hca, hty, rfl⟩)
+      exact pendOk_preVoteResp hne hd rfl rfl (fun _ => ⟨m, hca, hpv, rfl⟩)
         fun h => absurd h (by simp [Msg.plain])
     · intro q hq hne hd
       rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
       exact pendOk_preVoteResp hne hd rfl rfl (fun h => absurd h (by simp [Msg.plain])) fun _ => rfl
   · exact outOk_nil (s := pbecomeFollower s _ _) hX
-  · exact outOk_nil hX
   · exact outOk_campaignSends hX hcs
 
-/-- A tick's new arm (`TickEndP`): a pre-campaign's pre-vote requests (a voter's, at the view's
-configuration), nothing at a check-quorum step-down. -/
-theorem outOk_tickP {c : CfgM} {id : w64} {w : NodeView} {s s' : PState}
-    (hX : s.outbox = []) (hc : c = w.r.cfg.cfg) (h : TickEndP kk c id s s') : OutOk N id w s' := by
-  rcases h with ⟨-, -, hid, peers, -, rfl⟩ | ⟨-, -, rfl⟩
+/-- A tick's messages (`TickEnd`): a campaign's vote requests or a pre-campaign's pre-vote requests
+(a voter's, at the view's configuration), a leader's heartbeats; nothing at a check-quorum
+step-down. -/
+theorem outOk_tick {c : CfgM} {id : w64} {w : NodeView} {s s' : PState}
+    (hX : s.outbox = []) (hc : c = w.r.cfg.cfg) (h : TickEnd kk c id s s') : OutOk N id w s' := by
+  rcases h with rfl | ⟨-, -, hce⟩ | ⟨-, -, hid, peers, -, rfl⟩ | ⟨hr, ms, hms, rfl⟩ | ⟨-, -, rfl⟩
+  · exact outOk_nil hX
+  · exact outOk_campaignSends hX hce.sends
   · intro q hq hne hd
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
       exact pendOk_preVote (w := w.withP _) hne hd rfl rfl (hc ▸ hid)
+  · intro q hq hne hd
+    obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
+    exact pendOk_heartbeat (w := w.withP _) hne hd hr hh hi hlt he
   · exact outOk_nil (s := pbecomeFollower s _ _) hX
 
 /-! ## `Advance`'s messages -/
@@ -690,10 +686,10 @@ theorem advInv_release {id T c₀ : w64} {X s2 : PState} (hi : AdvInv id T c₀ 
 
 /-- One step of `Advance` (the type switch at the state itself: the message is at its term). -/
 theorem adv_handle {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : AdvInv id T c₀ s)
-    (hq : SelfMsg id T q) (h : HandleEndO kk c id s q s1) :
+    (hq : SelfMsg id T q) (h : HandleEnd kk c id s q s1) :
     AdvInv id T c₀ s1 := by
   obtain ⟨-, -, -, hrj, hty⟩ := hq
-  unfold HandleEndO at h
+  unfold HandleEnd at h
   rcases hty with hty | hty <;> rw [hty] at h <;> simp only at h
   · split at h
     · rename_i hr
@@ -725,20 +721,14 @@ theorem adv_handle {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : 
       · exact advInv_nil ht hc hX
     · subst h; exact hi
 
-/-- One step of `Advance` (`RecvEndO` of a self-addressed message at the node's term). -/
+/-- One step of `Advance` (`RecvEnd` of a self-addressed message at the node's term). -/
 theorem adv_step {c : CfgM} {id T c₀ : w64} {s s1 : PState} {q : Msg} (hi : AdvInv id T c₀ s)
-    (hq : SelfMsg id T q) (h : RecvEndO kk c id s q s1) :
-    AdvInv id T c₀ s1 := by
-  have hqt : q.term = s.term := hq.2.2.1.trans hi.1.symm
-  rcases h with ⟨-, hh⟩ | ⟨-, hlt, -⟩ | ⟨-, s2, hpre, hh⟩
-  · exact adv_handle hi hq hh
-  · rw [hqt] at hlt; exact absurd hlt (Int.lt_irrefl _)
-  · rcases hpre with ⟨hlt, -⟩ | ⟨-, rfl⟩
-    · rw [hqt] at hlt; exact absurd hlt (Int.lt_irrefl _)
-    · exact adv_handle hi hq hh
+    (hq : SelfMsg id T q) (h : RecvEnd kk c id s q s1) :
+    AdvInv id T c₀ s1 :=
+  adv_handle hi hq (recvEnd_self hq.2.2.2.2 (hq.2.2.1.trans hi.1.symm) h)
 
 theorem adv_run {c : CfgM} {id T c₀ : w64} {s s' : PState} {qs : List Msg}
-    (h : AdvanceEndO kk c id s qs s') (hq : ∀ q ∈ qs, SelfMsg id T q) (hi : AdvInv id T c₀ s) :
+    (h : AdvanceEnd kk c id s qs s') (hq : ∀ q ∈ qs, SelfMsg id T q) (hi : AdvInv id T c₀ s) :
     AdvInv id T c₀ s' := by
   induction h with
   | nil => exact hi
@@ -746,10 +736,10 @@ theorem adv_run {c : CfgM} {id T c₀ : w64} {s s' : PState} {qs : List Msg}
     exact ih (fun x hx => hq x (List.mem_cons_of_mem _ hx))
       (adv_step hi (hq q (List.mem_cons_self ..)) hr)
 
-/-- `Advance`'s messages (`AdvanceEndO` of self-addressed messages from a state with nothing
+/-- `Advance`'s messages (`AdvanceEnd` of self-addressed messages from a state with nothing
 queued): a leader's `MsgApp`s, `AppOk` at the end. -/
 theorem outOk_advance {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {qs : List Msg}
-    (hX : s.outbox = []) (hq : ∀ q ∈ qs, SelfMsg id s.term q) (h : AdvanceEndO kk c id s qs s') :
+    (hX : s.outbox = []) (hq : ∀ q ∈ qs, SelfMsg id s.term q) (h : AdvanceEnd kk c id s qs s') :
     OutOk N id w s' := by
   have hinv : AdvInv id s.term s.commit s' := adv_run h hq (advInv_nil rfl (Int.le_refl _) hX)
   intro x hx hne hd
@@ -774,9 +764,8 @@ theorem outOk_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {
   | stay _ => exact outOk_nil hX
   | recv m _ _ hbe hca hmn _ hm0 hty h =>
     exact outOk_recv hX hb hm0 hbe hca (hpay m hmn) hty hid (.inr (hsn m hmn)) h
-  | recvP m _ _ hbe hca _ _ _ _ h => exact outOk_recvP hX hbe hca h
-  | tick _ _ _ h => exact outOk_tick hX hb h
-  | tickP _ _ _ h => exact outOk_tickP hX hc h
+  | recvP m _ _ _ hca _ _ _ hpt _ h => exact outOk_recvP hX hca hpt h
+  | tick _ _ _ h => exact outOk_tick hX hc h
   | propose d _ _ _ h => exact outOk_propose hX h
   | read d _ _ _ h => exact outOk_readIdx hX hid (.inl rfl) h
   | advance _ _ _ _ hno h => exact outOk_advance hX (fun q hq => hqs q hq (hno q hq)) h
@@ -786,7 +775,7 @@ theorem outOk_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {
     · exact outOk_campaignSends hX hcs
   | sends _ _ _ hl h => exact outOk_sends hX hl h
   | adoptX x _ _ _ _ _ _ => exact outOk_nil (show (pbecomeFollower v.ps _ _).outbox = [] from hX)
-  | campX x p1 _ _ _ _ _ _ _ hp1 h =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ h =>
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩
     · exact outOk_campaignSends (show (pbecomeFollower v.ps _ _).outbox = [] from hX) h.sends
     · exact outOk_campaignSends hX h.sends
@@ -817,9 +806,9 @@ def LeadHint (N : Nat) (id : w64) (s : PState) : Prop := (s.role ≠ .leader →
 
 theorem leadHint_pre {id : w64} {s s1 : PState} {m : Msg} (h : LeadHint N id s) (hid : id ≠ W64 0)
     (hsrc : fromLeader m.ty = true → m.src ≠ id)
-    (hsn : fromLeader m.ty = true → ∃ j : Fin N, m.src = nodeId j) (hp : PreEndO kk s m s1) :
+    (hsn : fromLeader m.ty = true → ∃ j : Fin N, m.src = nodeId j) (hp : PreEnd kk s m s1) :
     LeadHint N id s1 := by
-  rcases hp with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  rcases hp with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
   · refine ⟨fun _ => ?_, ?_⟩
     · show (if fromLeader m.ty then m.src else W64 0) ≠ id
       split
@@ -830,6 +819,7 @@ theorem leadHint_pre {id : w64} {s s1 : PState} {m : Msg} (h : LeadHint N id s) 
       split
       · rename_i hfl; exact .inr (hsn hfl)
       · exact .inl rfl
+  · exact h
   · exact h
 
 theorem leadHint_propose {id : w64} {s s' : PState} {m : Msg} (h : LeadHint N id s)
@@ -859,8 +849,8 @@ theorem leadHint_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : Lea
     (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j) (hsc : RdTy m.ty)
     (hsrc : m.src ≠ id ∨ m.ty = .appResp ∨ m.ty = .voteResp ∨ m.ty = .readIndex)
     (hsn : ∃ j : Fin N, m.src = nodeId j)
-    (hh : HandleEndO kk c id s m s') : LeadHint N id s' := by
-  unfold HandleEndO at hh
+    (hh : HandleEnd kk c id s m s') : LeadHint N id s' := by
+  unfold HandleEnd at hh
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at hh; simp only at hh; exact h.keep (readIdxEnd_keep hh)
@@ -906,9 +896,12 @@ theorem leadHint_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadH
     (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j) (hsc : RdTy m.ty)
     (hsrc : m.src ≠ id ∨ m.ty = .appResp ∨ m.ty = .voteResp ∨ m.ty = .readIndex)
     (hsn : ∃ j : Fin N, m.src = nodeId j)
-    (hr : RecvEndO kk c id s m s') : LeadHint N id s' := by
-  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (hr : RecvEnd kk c id s m s') : LeadHint N id s' := by
+  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact leadHint_handle h hid hin hsc hsrc hsn hh
+  · exact h
+  · exact h.keep (pkeep_psend _ _)
+  · exact h.keep (pkeep_psend _ _)
   · exact h
   · refine leadHint_handle (leadHint_pre h hid (fun hfl => ?_) (fun _ => hsn) hpre) hid hin hsc
       hsrc hsn hh
@@ -916,17 +909,10 @@ theorem leadHint_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadH
     · exact hs
     all_goals exact absurd hfl (by simp [hty, fromLeader])
 
-theorem leadHint_tick {c : CfgM} {id : w64} {s s' : PState} (h : LeadHint N id s) (hid : id ≠ W64 0)
-    (ht : TickEndO kk c id s s') : LeadHint N id s' := by
-  rcases ht with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
-  · exact h
-  · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
-  · exact h
-
 theorem leadHint_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (h : LeadHint N id s)
     (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j)
     (hq : ∀ q ∈ qs, (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = id)
-    (ha : AdvanceEndO kk c id s qs s') : LeadHint N id s' := by
+    (ha : AdvanceEnd kk c id s qs s') : LeadHint N id s' := by
   induction ha with
   | nil => exact h
   | cons s s1 s' q qs hr _ ih =>
@@ -942,26 +928,28 @@ theorem leadHint_campaignSends {c : CfgM} {id : w64} {s s' : PState} {cl : List 
   obtain ⟨peers, -, rfl⟩ := h
   exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
 
-/-- `RecvEndP` keeps the leader hint: the answers keep the state, a step-down or a campaign clears
-`lead`. -/
+/-- A received pre-vote request or response keeps the leader hint: the answers keep the state, a
+step-down or a campaign clears `lead`. -/
 theorem leadHint_recvP {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : LeadHint N id s)
-    (hid : id ≠ W64 0) (hr : RecvEndP kk c id s m s') : LeadHint N id s' := by
-  rcases hr with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
+    (hid : id ≠ W64 0) (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (hr : RecvEnd kk c id s m s') :
+    LeadHint N id s' := by
+  rcases recvEnd_pre hty hr with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   · exact h
-  · exact h
-  · exact h
-  · exact h
-  · exact h
+  · exact h.keep (pkeep_psend _ _)
+  · exact h.keep (pkeep_psend _ _)
+  · exact h.keep (pkeep_psend _ _)
   · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
-  · exact h
   · exact leadHint_campaignSends hid hcs
 
-/-- `TickEndP` keeps the leader hint: a pre-campaign and a step-down clear `lead`. -/
-theorem leadHint_tickP {c : CfgM} {id : w64} {s s' : PState} (hid : id ≠ W64 0)
-    (ht : TickEndP kk c id s s') : LeadHint N id s' := by
-  rcases ht with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
+/-- A tick keeps the leader hint: a campaign, a pre-campaign and a step-down clear `lead`. -/
+theorem leadHint_tick {c : CfgM} {id : w64} {s s' : PState} (h : LeadHint N id s) (hid : id ≠ W64 0)
+    (ht : TickEnd kk c id s s') : LeadHint N id s' := by
+  rcases ht with rfl | ⟨-, -, hce⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
+  · exact h
+  · exact leadHint_campaignSends hid hce.sends
   · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
+  · exact h.keep (pkeep_psend _ _)
   · exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
 
 /-- **The leader hint along `ReachP`**: a received message is from another node, one of the
@@ -980,9 +968,8 @@ theorem leadHint_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg
     by_cases hri : m.ty = .readIndex
     · exact .inr (.inr (.inr hri))
     · exact .inl (hmd ▸ hsd m hmn hri)
-  | recvP m _ _ _ _ _ _ _ _ hP => exact leadHint_recvP h hid hP
+  | recvP m _ _ _ _ _ _ _ hpt _ hP => exact leadHint_recvP h hid hpt hP
   | tick _ _ _ ht => exact leadHint_tick h hid ht
-  | tickP _ _ _ ht => exact leadHint_tickP hid ht
   | propose d _ _ _ hh => exact leadHint_propose h hh
   | read d _ _ _ hh => exact h.keep (readIdxEnd_keep hh)
   | advance _ _ _ _ hno ha => exact leadHint_adv h hid hin (fun q hq => hqs q hq (hno q hq)) ha
@@ -992,7 +979,7 @@ theorem leadHint_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg
     · exact leadHint_campaignSends hid hcs
   | sends _ _ _ _ hs => obtain ⟨ms, -, rfl⟩ := hs; exact h.keep (pkeep_psend _ _)
   | adoptX x _ _ _ _ _ _ => exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
-  | campX x p1 _ _ _ _ _ _ _ _ hc => exact leadHint_campaignSends hid hc.sends
+  | campX x p1 _ _ _ _ _ _ _ _ _ hc => exact leadHint_campaignSends hid hc.sends
 
 /-- **The leader hint is kept along `Reach`** (C1's `LeadOk` at the state a `Ready` is taken at,
 `leadHint_reachP`): a received message is from another node (C4's `NetShape`) but a forwarded read
@@ -1029,17 +1016,19 @@ theorem campaignSends_keep {c : CfgM} {id : w64} {s s' : PState} {cl : List w8}
     (h : CampaignSends c id s cl s') : s'.log = s.log ∧ s'.base = s.base ∧ s'.commit = s.commit := by
   obtain ⟨peers, -, rfl⟩ := h; exact ⟨rfl, rfl, rfl⟩
 
-/-- `RecvEndP` keeps the log, the base and the commit index. -/
-theorem recvEndP_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : RecvEndP kk c id s m s') :
+/-- A received pre-vote request or response keeps the log, the base and the commit index. -/
+theorem recvPre_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
+    (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk c id s m s') :
     s'.log = s.log ∧ s'.base = s.base ∧ s'.commit = s.commit := by
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
   all_goals first | exact ⟨rfl, rfl, rfl⟩ | exact campaignSends_keep hcs
 
-/-- `TickEndP` keeps the log, the base and the commit index. -/
-theorem tickEndP_keep {c : CfgM} {id : w64} {s s' : PState} (h : TickEndP kk c id s s') :
+/-- A tick keeps the log, the base and the commit index. -/
+theorem tickEnd_keep {c : CfgM} {id : w64} {s s' : PState} (h : TickEnd kk c id s s') :
     s'.log = s.log ∧ s'.base = s.base ∧ s'.commit = s.commit := by
-  rcases h with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩ <;> exact ⟨rfl, rfl, rfl⟩
+  rcases h with rfl | ⟨-, -, hce⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
+  all_goals first | exact ⟨rfl, rfl, rfl⟩ | exact campaignSends_keep hce.sends
 
 /-! ## The read requests' sources along `Reach` (`NodeFacts.readSrc`) -/
 
@@ -1167,8 +1156,8 @@ theorem readSrc_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : Read
     (hsc : RdTy m.ty)
     (hsrc : m.ty = .readIndex → (m.src = W64 0 ∨ ∃ j : Fin N, m.src = nodeId j) ∧
       (cc = false → EntsNormal m.entries))
-    (hh : HandleEndO kk c id s m s') : ReadSrc N cc s' := by
-  unfold HandleEndO at hh
+    (hh : HandleEnd kk c id s m s') : ReadSrc N cc s' := by
+  unfold HandleEnd at hh
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at hh; simp only at hh; exact readSrc_readIdx h (hsrc hty) hh
@@ -1216,17 +1205,21 @@ theorem readSrc_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : ReadSr
     (hsc : RdTy m.ty)
     (hsrc : m.ty = .readIndex → (m.src = W64 0 ∨ ∃ j : Fin N, m.src = nodeId j) ∧
       (cc = false → EntsNormal m.entries))
-    (hr : RecvEndO kk c id s m s') : ReadSrc N cc s' := by
-  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (hr : RecvEnd kk c id s m s') : ReadSrc N cc s' := by
+  rcases hr with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact readSrc_handle h hsc hsrc hh
   · exact h
+  · exact h
+  · exact h
+  · exact h
   · refine readSrc_handle ?_ hsc hsrc hh
-    rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+    rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
     · exact h.nl rfl (by simp [pbecomeFollower])
+    · exact h
     · exact h
 
 theorem readSrc_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (h : ReadSrc N cc s)
-    (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp) (ha : AdvanceEndO kk c id s qs s') :
+    (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp) (ha : AdvanceEnd kk c id s qs s') :
     ReadSrc N cc s' := by
   induction ha with
   | nil => exact h
@@ -1248,25 +1241,21 @@ theorem readSrc_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg}
   cases hr with
   | stay _ => exact h
   | recv m _ _ _ _ hmn _ _ hty hO => exact readSrc_recv h hty (fun _ => ⟨.inr (hsn m hmn), hen m hmn⟩) hO
-  | recvP m _ _ _ _ _ _ _ _ hP =>
-    rcases hP with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-        ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-    · exact h
+  | recvP m _ _ _ _ _ _ _ hpt _ hP =>
+    rcases recvEnd_pre hpt hP with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+        ⟨-, -, -, -, hcs⟩
     · exact h
     · exact h
     · exact h
     · exact h
     · exact h.nl rfl (by simp [pbecomeFollower])
-    · exact h
     · obtain ⟨peers, -, rfl⟩ := hcs; exact h.nl rfl (by simp [psendMsgs, pbecomeCandidate])
   | tick _ _ _ ht =>
-    rcases ht with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+    rcases ht with rfl | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
     · exact h
     · exact h.nl rfl (by simp [psendMsgs, pbecomeCandidate])
-    · exact h
-  | tickP _ _ _ ht =>
-    rcases ht with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
     · exact h.nl rfl (by simp [psendMsgs])
+    · exact h
     · exact h.nl rfl (by simp [pbecomeFollower])
   | propose d _ _ _ hh =>
     unfold ProposeEnd at hh
@@ -1283,7 +1272,7 @@ theorem readSrc_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg}
     · obtain ⟨peers, -, rfl⟩ := hcs; exact h.nl rfl (by simp [psendMsgs, pbecomeCandidate])
   | sends _ _ _ _ hs => exact readSrc_sends h hs
   | adoptX x _ _ _ _ _ _ => exact h.nl rfl (by simp [pbecomeFollower])
-  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ hc =>
     obtain ⟨-, peers, -, rfl⟩ := hc
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact h.nl rfl (by simp [psendMsgs, pbecomeCandidate])
 

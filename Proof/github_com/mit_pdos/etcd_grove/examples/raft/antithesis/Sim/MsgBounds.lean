@@ -265,9 +265,9 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
     (hX : s1.outbox = []) (hb : s1.base = base0) (hs : StateNums K s') (hm : InNums K m)
     (hpay : m.ty = .app → AppPayloadOk m) (hsc : RdTy m.ty)
     (hmp : m.ty = .propose ∨ m.ty = .readIndex → MsgNums K m) (hrq : ReadNums K s1)
-    (h : HandleEndO kk c id s1 m s') : OutNums K id s' := by
+    (h : HandleEnd kk c id s1 m s') : OutNums K id s' := by
   have hK := hs.1
-  unfold HandleEndO at h
+  unfold HandleEnd at h
   rcases hsc with hs4 | hty | hty
   rotate_left
   · rw [hty] at h; simp only at h
@@ -321,52 +321,28 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
     · subst h; exact outNums_nil hX
   · exact outNums_propose hX hs (hmp (.inl hty)) h
 
-/-- A received message's step (`RecvEndO`), its term not `0` but a forwarded read request's. -/
+/-- A received message's step (`RecvEnd`, a type `RdTy`), its term not `0` but a forwarded read
+request's: the stale `MsgApp`/`MsgHeartbeat`'s empty answer, or the type switch's. -/
 theorem outNums_recv {K : Int} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s')
     (hm : InNums K m) (hpay : m.ty = .app → AppPayloadOk m) (hsc : RdTy m.ty)
     (hmp : m.ty = .propose ∨ m.ty = .readIndex → MsgNums K m) (hrq : ReadNums K s)
-    (h : RecvEndO kk c id s m s') : OutNums K id s' := by
-  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+    (h : RecvEnd kk c id s m s') : OutNums K id s' := by
+  have hz : uint.Z (W64 0) < K := hs.1
+  rcases h with ⟨-, hh⟩ | ⟨-, -, rfl | ⟨-, -, rfl⟩ | ⟨hpv, -⟩⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact outNums_handle hX hb hs hm hpay hsc hmp hrq hh
   · exact outNums_nil hX
-  · obtain ⟨ho, hb1, -, -, -⟩ := preEnd_facts hpre
+  · intro q hq _
+    rw [List.mem_singleton.mp (mem_psend hX hq)]
+    exact ⟨hz, hz, hz, fun e he => by cases he⟩
+  · exact absurd (.inl hpv) (not_preTy hsc)
+  · exact outNums_nil hX
+  · obtain ⟨ho, hb1, -, -, -⟩ := preEnd_facts (not_preTy hsc) hpre
     refine outNums_handle (ho.trans hX) (hb1.trans hb) hs hm hpay hsc hmp ?_ hh
-    rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+    rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
     · exact ⟨hrq.1, fun h' => by simp [pbecomeFollower] at h'⟩
     · exact hrq
-
-/-- A tick's messages: a campaign's vote requests (the last entry id), a leader's heartbeats. -/
-theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
-    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s') (h : TickEndO kk c id s s') :
-    OutNums K id s' := by
-  have hK := hs.1
-  have h0 : uint.Z (W64 0) = 0 := rfl
-  rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, hms, rfl⟩
-  · exact outNums_nil hX
-  · intro q hq hne
-    rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
-    · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
-    · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
-      -- the log is the tick's state's (`pbecomeCandidate` keeps it)
-      have hl : ∀ e ∈ s.log, uint.Z e.Term' < K ∧ uint.Z e.Index' < K := hs.2.2.2.2
-      unfold MsgNums pvoteReq
-      simp only [List.not_mem_nil, false_implies, implies_true, and_true, h0, hK]
-      rw [hb]
-      unfold plogLast
-      split
-      · rename_i e he
-        have := hl e (List.mem_of_getLast? he)
-        exact ⟨this.2, this.1⟩
-      · exact ⟨hK, hK⟩
-  · intro q hq _
-    obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
-    obtain ⟨-, -, -, -, hc, -⟩ := hh
-    refine ⟨by rw [hi, h0]; exact hK, by rw [hlt, h0]; exact hK, ?_, by rw [he]; simp⟩
-    have := hs.2.2.2.1
-    show uint.Z q.commit < K
-    simp only [psendMsgs] at this
-    omega
+    · exact hrq
 
 /-- A (pre-)vote request carries the last entry id of a log within `K`. -/
 theorem msgNums_voteReq {K : Int} {id d t : w64} {s : PState} {cl : List w8} (hK : 0 < K)
@@ -394,40 +370,49 @@ theorem outNums_campaignSends {K : Int} {c : CfgM} {id : w64} {X s' : PState} {c
   · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
     exact msgNums_voteReq hs.1 hb hs.2.2.2.2
 
-/-- A received message's new arm (`RecvEndP`): empty answers, pre-vote answers with no payload, a
-campaign's requests. -/
-theorem outNums_recvP {K : Int} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
-    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s') (h : RecvEndP kk c id s m s') :
+/-- A tick's messages: a campaign's vote requests or a pre-campaign's pre-vote requests (the last
+entry id), a leader's heartbeats; nothing at a check-quorum step-down. -/
+theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
+    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s') (h : TickEnd kk c id s s') :
     OutNums K id s' := by
   have hK := hs.1
-  have hz : uint.Z (W64 0) < K := hK
-  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
-      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
-  · intro q hq _
-    rw [List.mem_singleton.mp (mem_psend hX hq)]
-    exact ⟨hz, hz, hz, fun e he => by cases he⟩
-  · intro q hq _
-    rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
+  have h0 : uint.Z (W64 0) = 0 := rfl
+  rcases h with rfl | ⟨-, -, hce⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, hms, rfl⟩ | ⟨-, -, rfl⟩
   · exact outNums_nil hX
-  · intro q hq _
-    rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
-  · intro q hq _
-    rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
-  · exact outNums_nil (s := pbecomeFollower s _ _) hX
-  · exact outNums_nil hX
-  · exact outNums_campaignSends hX hb hs hcs
-
-/-- A tick's new arm (`TickEndP`): a pre-campaign's pre-vote requests (the last entry id). -/
-theorem outNums_tickP {K : Int} {c : CfgM} {id : w64} {s s' : PState}
-    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s') (h : TickEndP kk c id s s') :
-    OutNums K id s' := by
-  rcases h with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
+  · exact outNums_campaignSends hX hb hs hce.sends
   · intro q hq hne
     rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
     · rw [List.mem_singleton.mp hq] at hne; exact absurd rfl hne
     · obtain ⟨d, -, rfl⟩ := List.mem_map.mp hq
       exact msgNums_voteReq (id := id) (d := d) (t := s.term + W64 1) (cl := []) hs.1 hb hs.2.2.2.2
+  · intro q hq _
+    obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
+    obtain ⟨-, -, -, -, hc, -⟩ := hh
+    refine ⟨by rw [hi, h0]; exact hK, by rw [hlt, h0]; exact hK, ?_, by rw [he]; simp⟩
+    have := hs.2.2.2.1
+    show uint.Z q.commit < K
+    simp only [psendMsgs] at this
+    omega
   · exact outNums_nil (s := pbecomeFollower s _ _) hX
+
+/-- A received pre-vote request or response's messages (`recvEnd_pre`): pre-vote answers with no
+payload, a campaign's requests. -/
+theorem outNums_recvP {K : Int} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
+    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s')
+    (hty : m.ty = .preVote ∨ m.ty = .preVoteResp) (h : RecvEnd kk c id s m s') :
+    OutNums K id s' := by
+  have hK := hs.1
+  rcases recvEnd_pre hty h with rfl | ⟨-, -, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ | ⟨-, -, -, rfl⟩ |
+      ⟨-, -, -, -, hcs⟩
+  · exact outNums_nil hX
+  · intro q hq _
+    rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
+  · intro q hq _
+    rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
+  · intro q hq _
+    rw [List.mem_singleton.mp (mem_psend hX hq)]; exact msgNums_plain hK _ _ _ _ _
+  · exact outNums_nil (s := pbecomeFollower s _ _) hX
+  · exact outNums_campaignSends hX hb hs hcs
 
 /-- What `Advance`'s steps keep within `K`: the read answers queued (a release's, at the commit
 index then) and the deferred requests' entries. -/
@@ -454,19 +439,12 @@ theorem advNums_sends {K : Int} {id : w64} {X s' : PState} (hX : AdvNums K id X)
 raised at most, and `AdvNums` kept when the step's commit is within `K` (a release's answers are
 at it). -/
 theorem advNums_step {K : Int} {c : CfgM} {id T : w64} {s s1 : PState} {q : Msg} (hK : 0 < K)
-    (hT : s.term = T) (hq : SelfMsg id T q) (h : RecvEndO kk c id s q s1) :
+    (hT : s.term = T) (hq : SelfMsg id T q) (h : RecvEnd kk c id s q s1) :
     uint.Z s.commit ≤ uint.Z s1.commit ∧
       (AdvNums K id s → uint.Z s1.commit < K → AdvNums K id s1) := by
-  have hqt' : q.term = s.term := hq.2.2.1.trans hT.symm
-  have hh : HandleEndO kk c id s q s1 := by
-    rcases h with ⟨-, hh⟩ | ⟨-, hlt, -⟩ | ⟨-, s2, hpre, hh⟩
-    · exact hh
-    · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
-    · rcases hpre with ⟨hlt, -⟩ | ⟨-, rfl⟩
-      · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
-      · exact hh
+  have hh : HandleEnd kk c id s q s1 := recvEnd_self hq.2.2.2.2 (hq.2.2.1.trans hT.symm) h
   obtain ⟨-, -, -, -, hty⟩ := hq
-  unfold HandleEndO at hh
+  unfold HandleEnd at hh
   rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
   · split at hh
     · rcases hh with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, hn, hs⟩ | ⟨-, x, n, s2, -, hn, hrel, hs⟩
@@ -507,7 +485,7 @@ theorem advNums_step {K : Int} {c : CfgM} {id T : w64} {s s1 : PState} {q : Msg}
     · subst hh; exact ⟨Int.le_refl _, fun hi _ => hi⟩
 
 theorem advNums_run {K : Int} {c : CfgM} {id T c₀ : w64} {s s' : PState} {qs : List Msg}
-    (hK : 0 < K) (h : AdvanceEndO kk c id s qs s') (hq : ∀ q ∈ qs, SelfMsg id T q)
+    (hK : 0 < K) (h : AdvanceEnd kk c id s qs s') (hq : ∀ q ∈ qs, SelfMsg id T q)
     (hv : AdvInv id T c₀ s) :
     uint.Z s.commit ≤ uint.Z s'.commit ∧ (AdvNums K id s → uint.Z s'.commit < K → AdvNums K id s') := by
   induction h with
@@ -518,13 +496,13 @@ theorem advNums_run {K : Int} {c : CfgM} {id T c₀ : w64} {s s' : PState} {qs :
     obtain ⟨c2, f2⟩ := ih (fun x hx => hq x (List.mem_cons_of_mem _ hx)) (adv_step hv hq0 hr)
     exact ⟨Int.le_trans c1 c2, fun ha hc => f2 (f1 ha (Int.lt_of_le_of_lt c2 hc)) hc⟩
 
-/-- `Advance`'s messages (`AdvanceEndO` of self-addressed messages from a state with nothing
+/-- `Advance`'s messages (`AdvanceEnd` of self-addressed messages from a state with nothing
 queued): a leader's `MsgApp`s (`AppOk` at the end), heartbeats, and the deferred requests'
 answers (`AdvNums`). -/
 theorem outNums_advance {K : Int} {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg}
     (hX : s.outbox = []) (hs : StateNums K s') (hp : ∀ p ∈ s.rd.pend, EntNums K p.2)
     (hq : ∀ q ∈ qs, SelfMsg id s.term q)
-    (h : AdvanceEndO kk c id s qs s') : OutNums K id s' := by
+    (h : AdvanceEnd kk c id s qs s') : OutNums K id s' := by
   have hinv : AdvInv id s.term s.commit s' := adv_run h hq (advInv_nil rfl (Int.le_refl _) hX)
   have hn := (advNums_run hs.1 h hq (advInv_nil rfl (Int.le_refl _) hX)).2
     ⟨(fun q hq' => by rw [hX] at hq'; cases hq'), hp⟩ hs.2.2.2.1
@@ -563,9 +541,8 @@ theorem outNums_reachP {K : Int} {c : CfgM} {id : w64} {net : List Msg} {xnet : 
   | recv m _ _ _ hca hmn _ _ hty h =>
     exact outNums_recv hX hb hs (hm m hca).1 (hpay m hmn) hty
       (fun hp => hp.elim (fun hp => absurd hp (hm m hca).2.1) (hm m hca).2.2) hrq h
-  | recvP m _ _ _ _ _ _ _ _ h => exact outNums_recvP hX hb hs h
+  | recvP m _ _ _ _ _ _ _ hpt _ h => exact outNums_recvP hX hb hs hpt h
   | tick _ _ _ h => exact outNums_tick hX hb hs h
-  | tickP _ _ _ h => exact outNums_tickP hX hb hs h
   | propose d _ _ _ h => exact outNums_propose hX hs (msgNums_propMsg hs.1 _ d) h
   | read d _ _ _ hh =>
     refine outNums_readIdx (outNums_nil hX) hs.1 ?_ (msgNums_readMsg hs.1 d) hh
@@ -578,7 +555,7 @@ theorem outNums_reachP {K : Int} {c : CfgM} {id : w64} {net : List Msg} {xnet : 
     · exact outNums_campaignSends hX hb hs hcs
   | sends _ _ _ _ h => exact outNums_sends hX hs h
   | adoptX x _ _ _ _ _ _ => exact outNums_nil (s := pbecomeFollower v.ps _ _) hX
-  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+  | campX x p1 _ _ _ _ _ _ _ hp1 _ hc =>
     rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;>
       exact outNums_campaignSends (by exact hX) (by exact hb) hs hc.sends
 
