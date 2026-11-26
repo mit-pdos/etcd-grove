@@ -21,7 +21,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.check Proof.github_co
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.check Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.put  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.check Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.put  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Server__watch Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Server__list  # proof->proof
-Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Run Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.newHistory  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pick Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.pickW  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitCrash Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commit  # proof->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitCrash Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmapCrash  # proof->proof

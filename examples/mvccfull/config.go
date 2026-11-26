@@ -10,7 +10,8 @@ import (
 // is valid (out-of-range values are clamped, normalize), and the tester's checks hold for every
 // one: what a Config changes is how large the executions are and which are likely (or, with a
 // weight of 0, possible), never what a check says. Engineered Configs (mvccfull_test.go) make the executions behind a class of
-// bugs likely; Main's reaches past mvcc's internal thresholds.
+// bugs likely; Main's reaches past mvcc's internal thresholds. The proved theorem is about Main's
+// (MainConfig, through MainAt) only: other Configs are tested, not proved.
 //
 //   - Prefix: the files are Prefix-0.db and Prefix-1.db (the members') and Prefix-b<n>.db (the
 //     n-th snapshot's), FilePaths(cfg), absent at the start.
@@ -45,8 +46,9 @@ type Config struct {
 // alternative listed with the field (an entry that is missing, zero or negative counts as 0). An
 // alternative of positive weight can always be chosen; one of weight 0 is never chosen unless
 // every weight of the field is 0, in which case the choice is uniform. So a Mix can rule an
-// alternative out, but the theorem for every Config covers each one (the all-zero Mix chooses
-// every alternative), and a Mix changes which checks run, never what a check says. Several alternatives
+// alternative out, but a theorem for every Config would cover each one (the all-zero Mix chooses
+// every alternative), and a Mix changes which checks run, never what a check says. MainConfig's
+// Mix rules out one alternative that no other covers, the hashes (Read's last). Several alternatives
 // pick from a subset of another's values (a revision equal to the compaction revision is also
 // "any revision"): they exist only to be weighed.
 //

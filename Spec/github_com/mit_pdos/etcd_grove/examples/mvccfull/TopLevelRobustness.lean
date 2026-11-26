@@ -40,13 +40,34 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 variable [go_gctx : GoGlobalContext]
 
 /-- **`mvccfull_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `mvccfull_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, no thread
-is stuck and none has an unrecovered panic. The directory `r` is only a root of the machine's file
-system: the program (`MainAt`) checks that it fits and that none of its run's file names is taken,
-and returns otherwise (P3 of the pure-premise plan, 2026-11-24; until then the premises
-`Hrfit : Fs.DirFits r` and `Habs`, no entry at any of `mvccfull.mvccfullNames` in `r`). -/
+`Robustness/Statement.lean`): the program alone on one machine that never crashes, a fresh Go
+process (`Robust`'s premise): in every execution of fewer than `mvccfullSteps` (`2 ^ 48`) steps along
+which fewer than `mvccfullThreads` (`2 ^ 28`) threads are live, no thread is stuck and none has an
+unrecovered panic, so none of the tester's checks fails.
+
+**The program** (`mvccfullProgram r`, `TopLevelDefs.lean`): `mvccfull`'s initialization, then
+`MainAt(r)`, which returns at once unless the directory `r` fits (`dirFits`) and nothing is at any
+of the run's file paths, and otherwise runs `Run(MainConfig(r + "/mvccfull"))`.
+
+**What it covers: one configuration, `MainConfig`** (`examples/mvccfull/config.go`), not every
+`Config`. Its sizes: 12000 log operations, the keys of length 1 to 4 over `a`, `b`, `c`, values up to
+5000 bytes, 2 readers and 2 watch streams per member, 4000 reads per reader and 64 watchers on a
+member's streams between two restarts, the backend's batch limit 3, the store's compaction batch
+limit 2. Its
+`Mix`: every alternative of positive weight is among the executions; of the four of weight 0, three
+pick from values another alternative also picks (`CompactAt`'s current revision, `RangeRev`'s and
+`Start`'s compaction revision) and exclude nothing; the fourth, the readers' **corruption-checker
+hashes** (`Read`'s last: `HashByRev`, `Hashes`), is excluded, and so is `Run`'s final `hashes()`
+(`hashing(Mix.Read)` is false).
+
+**The bounds.** `mvccfullThreads`: a cap the proof needs (the backend's reader-slot pool and the
+stores' reader tokens are sized for `2 ^ 28` threads), not a limit of the code. `mvccfullSteps`: the
+proof's cap, the run's receipt budget (`n` steps take `n + 1` receipts).
+
+**The premises.** The package assumptions of the translations (`mvccfull`'s, the server's, the
+cache's) and the `os` structs' field layouts, trusted; `HEnv`: `ETCD_VERIFY` off (an environment
+fact); the file system at start (`Hfs`, `Fs.FsInit`) with `r` one of its roots (`Hr`). The extensions
+are the etcd examples' (`etcdFsExts`), with no file I/O error (`etcdFsNoErr`). -/
 def mvccfull_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
@@ -56,8 +77,8 @@ def mvccfull_robust.spec : Prop :=
     (HEnv : EtcdVerifyOff)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots),
-    Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := 2 ^ 28)
-      (bound := 2 ^ 48)
+    Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := mvccfullThreads)
+      (bound := mvccfullSteps)
 
 end adequacy
 end EtcdGrove
