@@ -1135,7 +1135,11 @@ since `setupSt` has auth enabled), `foreign` (callees as they are; premises: the
   handoff** on fk-lean2 (`~/eg/logs/f7l-build.log`, ends `EXIT n`; targets `lib.cluster3.Link`,
   `lib.etcdstart.Link`, `etcd.txnlinfaultsN.startCluster`, `etcd.dist.client.Results`, `etcd.dist.kvremote.Link`,
   `etcd.leasecatchup.run`, `k8s.compactor.MainPartition`, under `Proof.github_com.mit_pdos.etcd_grove.examples.`).
-  Check its result first; the risky lines are `NewClients.lean`'s new `ipureintro` (`first | exact ⟨rfl, rfl, rfl⟩ |
+  **Result (came in at handoff): EXIT 1**, `NewClients.lean:99:4`: `iexists` finds a pure goal
+  `⌜{ Endpoints' := eps, … }…⌝`: the preceding `iframe #` already framed `Hcfg` into the existential, leaving only the
+  pure facts. Fix: replace the lines after `iframe #` (`isplitr …` through `first | …`) by `ipureintro` and the pure
+  proof (`refine ⟨rfl, ?_⟩; first | exact ⟨rfl, rfl, rfl⟩ | simp`, or `simp` alone), then rebuild the same targets.
+  The rest of the build was not reached past that module. Before it: the risky lines are `NewClients.lean`'s new `ipureintro` (`first | exact ⟨rfl, rfl, rfl⟩ |
   simp`) and `dist/client/newClient.lean`'s `iframe Hnc Hnp Hcfg`. The other importers (every `Results` of the
   etcd examples, `etc/importers.py --leaves` of the two spec files) rebuild at the final full build.
 
