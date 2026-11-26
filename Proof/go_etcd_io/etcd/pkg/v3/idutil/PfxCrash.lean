@@ -52,7 +52,10 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
     icases Hd with ⟨%Mg', HA'⟩
     letI := (gooseIdIssueGS (L := L)).idIssueAllG
     ihave %H := ghostMapAuth_valid_2 _ 1 1 Mg Mg' $$ HA HA'
-    exact absurd H.1 (by decide)
+    exfalso
+    have h1 : ((1 : Qp) + 1).val ≤ 1 := H.1
+    simp at h1
+    grind
   -- every id of the map is in the old record
   ihave %Hall : ⌜∀ id, (Ip !! id).isSome → (Mg !! id).isSome⌝ $$ [HA]
   · iapply (pure_forall (PROP := IProp GF)

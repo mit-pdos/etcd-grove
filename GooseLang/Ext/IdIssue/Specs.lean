@@ -108,7 +108,10 @@ theorem idIssueCtx_dead (hL : IdIssueGS GF) (M : IdIssueState) :
   iunfold idIssueDeadAt at Hd
   icases Hd with ⟨%Mg', HA'⟩
   ihave %H := ghostMapAuth_valid_2 hL.idIssueName 1 1 Mg Mg' $$ HA HA'
-  exact absurd H.1 (by decide)
+  exfalso
+  have h1 : ((1 : Qp) + 1).val ≤ 1 := H.1
+  simp at h1
+  grind
 
 theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) :
     ⊢@{IProp GF} |==> ∃ hL : IdIssueGS GF, idIssueCtx hL M ∗ iprop(True) := by
