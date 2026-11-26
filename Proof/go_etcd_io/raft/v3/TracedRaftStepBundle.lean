@@ -209,7 +209,7 @@ theorem stepBundle_traced_storAck : stepBundle_traced.onA (GF := GF) (hG := hG) 
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne hnP)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %_ %hack Hout
-    obtain ⟨hps, hlt, hrd⟩ := hack (Or.inl (by rw [htr]; rfl)) hp.1
+    obtain ⟨hps, hlt, hrd, -⟩ := hack (Or.inl (by rw [htr]; rfl)) hp.1
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := simIdleS_congr hps
     have ho : s'.outbox = s.outbox := congrArg PState.outbox hps
     have hty' : OutTyStep s s' :=

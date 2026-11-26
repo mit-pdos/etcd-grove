@@ -178,9 +178,11 @@ def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyRe
 protocol reading unchanged (`stableTo`, `appliedTo`; no snapshot, no automatic leave at a traced node),
 the outbox with it. `StepEnd` says nothing of these types; the closing wand learns this instead.
 (2026-11-12, trace-check implementation step 2) And the leader transfer and the read state unchanged,
-which `toPState` does not read: the traced scope's (`TrScope`) through an acknowledgement. -/
+which `toPState` does not read: the traced scope's (`TrScope`) through an acknowledgement.
+(#33 parity B1 stage 3b) And the pending configuration index (`pendingConfIndex`), which only an
+automatic leave moves (`AckScope`, or traced): `Advance`'s end over `RState` (`AdvanceEndR`). -/
 def AckEnd (m : MessageM) (s s' : NState) : Prop :=
-  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd
+  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci
 
 /-- (#33 S3c design §2.4) **The untraced scope in which a storage acknowledgement leaves the protocol
 reading unchanged**: no automatic leave of a joint configuration. -/

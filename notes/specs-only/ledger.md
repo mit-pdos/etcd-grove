@@ -5885,3 +5885,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   with reads off no read request is queued. Leader-only so that the initial and restarted states
   (`PInitR`, `RestartR`: followers, `rd` unconstrained) need nothing new; no harness obligation.
 - `msgShape_in` (`Sim/MsgShape.lean`): `msgShape.stmt`'s conclusion over `ReachIn` at `msk ≤ mskS4`.
+
+## 2026-11-26 — antithesis parity B1 stage 3b: `RawNode.Advance` ends in `AdvanceEndR`; `AckEnd` keeps `pendingConfIndex` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/{LemmasStepGates,raft__Step,raft__Step/MsgStorageAppendResp,
+  raft__Step/MsgStorageApplyResp,TracedRaftStepBundle,RawNodeAbsSpecs,RawNode__AdvanceAbs}.lean` (Proof's
+  `raft__Step.lean`: the snapshot acknowledgement's close, one `rfl`), and the part copies (RaftTla,
+  RaftNoAx, KvNet; regenerated, `--check` clean, not built yet).
+- **Raft statement strengthening (lead's decision, 2026-11-26).** `AckEnd m s s'` (a storage
+  acknowledgement's end, claimed traced or in `AckScope`, i.e. `autoLeave = false`) gains
+  `∧ s'.pci = s.pci`; so do the `Hack` conjuncts of `wp_Step_MsgStorageAppendResp_none` and
+  `wp_Step_MsgStorageApplyResp` (each constructs `s'` as `s` or `{ s with logst := … }`: `rfl`).
+  **Withdrawn:** the earlier-approved `LocalStepOk` conjunct `(MsgStorageAppendResp ∨ MsgStorageApplyResp)
+  → s'.pci = s.pci` (Spec/…/raft__Step.lean) is false: at a leader of a joint configuration with
+  `autoLeave`, `appliedTo` proposes the empty `ConfChangeV2` and moves `pendingConfIndex`. `LocalStepOk`
+  and `Spec/…/raft__Step.lean` are unchanged.
+- **Form change (design §4).** `RawNode.Advance.form`'s end (under `S`, untraced): `∀ Adm dec,
+  NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied) → AdvanceEndR Adm dec rs.k id r qs r'`
+  (replaces the interim `AdvanceEnd rs.k r.cfg.cfg id r.p qs r'.p`). The premise is `StepR.advance`'s,
+  the caller's: no undecided conf entry among the entries applied. The end's storage acknowledgements
+  are `AckEndR`'s second arm (`applied` moved to the end state's, `cidx := max r.cidx applied`).
+- **Proof.** The loop reads the node as `advR rs fp a s1 = { toRState rs fp s1 with applied := a }`
+  (`applied` frozen at the start's); a self-addressed response is `RecvEndR` there (`recvEndR_advR`, the
+  bookkeeping from `bk_of_stepEnd_net`), an acknowledgement leaves it (`advR_ack`, from `AckEnd`).
+- **Decision.** No new axiom, no new top-level premise; `#print axioms RawNode.*.wp_apiProof` std only.

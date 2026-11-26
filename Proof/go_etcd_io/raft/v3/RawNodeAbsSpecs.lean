@@ -17,8 +17,8 @@ conjuncts (`∀ md, S md → End`):
 - the API form (`RawNodeApi.lean`): `form rawNode (fun md => md = {})`.
 
 **The ends over `RState`** (antithesis parity B1, design §4): `Step` and `Propose` give `RecvEndR` (at
-every `Adm`: no snapshot in the scope, so the ghost prefix is kept), `Tick` `TickEndR`, `Advance` (interim)
-`AdvanceEnd` on the protocol reading, all at the node constant `rs.k`, the
+every `Adm`: no snapshot in the scope, so the ghost prefix is kept), `Tick` `TickEndR`, `Advance`
+`AdvanceEndR` (stage 3b; given no undecided conf entry among those applied), all at the node constant `rs.k`, the
 configuration the node's `r.cfg.cfg` (until then the names' `rnCfg γ`); `HasReady`, `Ready` read `r.p`.
 `HasReady` (whose old false arm is `ownRawNodeIdle`, internal) and the start spec are written out.
 
@@ -352,7 +352,7 @@ abbrev RawNode.Ready.spec_of_abs.law : Prop :=
 /-! ### `RawNode.Advance` -/
 
 /-- `RawNode.Advance.spec`'s triple over `R`: the queue empty after; and (under `S`) the queued
-messages `qs` stepped in order (`AdvanceEnd`). -/
+messages `qs` stepped in order and the acknowledgements' `applied` (`AdvanceEndR`). -/
 abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
     (S : RnMode → Prop) : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
@@ -380,10 +380,12 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RStat
       -- (#33 S3c) the exact effect
       -- (#33 S4, 2026-11-24) the boundary's fact at a boundary at the log's end (the harness's, after a
       -- `Ready`): in general an acknowledgement can raise it past `min ip lcp` (ledger)
-      -- (antithesis parity B1, interim) the protocol reading's `AdvanceEnd` at the node's configuration;
-      -- `AdvanceEndR` needs a storage acknowledgement to keep `pendingConfIndex`, which `raft.Step`'s
-      -- spec does not say (`LocalStepOk`): reported to the lead
-      ⌜∀ md, S md → γ.reTrace = none → AdvanceEnd rs.k r.cfg.cfg id r.p qs r'.p ∧
+      -- (antithesis parity B1 stage 3b) `AdvanceEndR`: the queue stepped in order, then the storage
+      -- acknowledgements' `applied` (`AckEndR`'s second arm, `StepR.advance`), whose premise is the
+      -- caller's: no undecided conf entry among the entries applied
+      ⌜∀ md, S md → γ.reTrace = none →
+        (∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec),
+          NoUndecConfIn dec r'.full r.cidx (uint.nat r'.applied) → AdvanceEndR Adm dec rs.k id r qs r') ∧
         (ip = r.p.log.length → ip' = min ip (lcpLen r.p.log r'.p.log))⌝ }}
 
 /-- **`RawNode.Advance`, strengthened**. -/
