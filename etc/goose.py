@@ -44,10 +44,12 @@ out at the pinned revision, otherwise a clone in `.lake/goose/perennial`.  A
 project's source is cloned into `.lake/goose/<name>` at its pinned revision, except
 for a project in this repository (`local`), whose source is that directory.
 
-Every `go` command runs with `GOTOOLCHAIN` set to the pinned GO_TOOLCHAIN (Go fetches it if
-absent): the translation of a standard-library package (names-only `net/http`, `encoding/json`,
-...) is of the toolchain's own source, which changes between patch releases (go1.27.1's
-`net/http` gives a different translation from go1.27.3's).
+Every `go` command runs on the pinned GO_TOOLCHAIN (Go fetches it if absent): the translation
+of a standard-library package (names-only `net/http`, `encoding/json`, ...) is of the toolchain's
+own source, which changes between patch releases (go1.27.1's `net/http` gives a different
+translation from go1.27.3's). It runs from a copy of the toolchain outside the Go module cache,
+`.lake/goose/goroot-<GO_TOOLCHAIN>` (`GOROOT` set to it, `GOTOOLCHAIN=local`; pinned_goroot says
+why).
 """
 
 import argparse
@@ -2357,6 +2359,71 @@ def host_env():
     return {k: v for k, v in os.environ.items() if k not in target}
 
 
+def pinned_goroot():
+    """The GOROOT every `go` command (and goose, proofgen) runs with: a copy of the pinned
+    GO_TOOLCHAIN's GOROOT at `.lake/goose/goroot-<GO_TOOLCHAIN>`, made once (its files hard links
+    to the toolchain's where the file system allows, else copies).
+
+    Not the toolchain's own GOROOT: `GOTOOLCHAIN=<GO_TOOLCHAIN>` runs the toolchain Go fetched
+    into the module cache (`$GOMODCACHE/golang.org/toolchain@v0.0.1-go1.27.3.linux-amd64`), and
+    the go command refuses an overlay that replaces a file there ("go: overlay contains a
+    replacement for .../src/hash/crc32/crc32_amd64.go. Files beneath GOMODCACHE (...) must not
+    be replaced."), which Perennial's Go models of standard-library packages are (since go-models
+    da0a82c26: the models of `os` and `syscall` replace `hash/crc32/crc32_amd64.go`). The go
+    command compares the overlay's paths with GOMODCACHE as strings, so a GOROOT outside it
+    suffices; a copy rather than a symbolic link keeps the paths outside it for a tool that
+    resolves links. The copy is renamed into place only when complete, so its `bin/go` marks a
+    finished one."""
+    d = os.path.join(WORK, "goroot-" + GO_TOOLCHAIN)
+    if os.path.isfile(os.path.join(d, "bin", "go")):
+        return d
+    env = {k: v for k, v in os.environ.items() if k != "GOROOT"}
+    env["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    r = subprocess.run(["go", "env", "GOROOT", "GOVERSION"], capture_output=True, text=True,
+                       env=env)
+    if r.returncode != 0:
+        sys.exit(f"goose.py: go env GOROOT (GOTOOLCHAIN={GO_TOOLCHAIN}) failed: {r.stderr.strip()}")
+    src, version = r.stdout.split()
+    if version != GO_TOOLCHAIN:
+        sys.exit(f"goose.py: GOTOOLCHAIN={GO_TOOLCHAIN} runs {version} ({src})")
+
+    def link_or_copy(a, b):
+        try:
+            os.link(a, b)
+        except OSError:
+            shutil.copy2(a, b)
+
+    os.makedirs(WORK, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="goroot-" + GO_TOOLCHAIN + ".", dir=WORK)
+    new = os.path.join(tmp, "goroot")
+    # the directories are made writable (the module cache's are read-only), so that a copy can
+    # be deleted; the files keep their modes (a hard link shares the module cache's file)
+    for dp, dns, fns in os.walk(src):
+        rel = os.path.relpath(dp, src)
+        out = os.path.normpath(os.path.join(new, rel))
+        os.makedirs(out, mode=0o755)
+        for n in list(dns):
+            if os.path.islink(os.path.join(dp, n)):
+                os.symlink(os.readlink(os.path.join(dp, n)), os.path.join(out, n))
+                dns.remove(n)
+        for n in fns:
+            a = os.path.join(dp, n)
+            if os.path.islink(a):
+                os.symlink(os.readlink(a), os.path.join(out, n))
+            else:
+                link_or_copy(a, os.path.join(out, n))
+    try:
+        os.rename(new, d)
+    except OSError:
+        if not os.path.isfile(os.path.join(d, "bin", "go")):
+            raise
+        # another goose.py made it first: ours is left in `tmp`
+        print(f"goose.py: {d} made meanwhile; {tmp} is a spare copy to delete", file=sys.stderr)
+        return d
+    os.rmdir(tmp)
+    return d
+
+
 def git_head(d):
     r = subprocess.run(["git", "-C", d, "rev-parse", "HEAD"], capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else None
@@ -2738,7 +2805,11 @@ def main():
     ap.add_argument("--src", action="append", default=[], metavar="NAME=DIR")
     ap.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     args = ap.parse_args()
-    os.environ["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    # the pinned toolchain from its copy outside the module cache (pinned_goroot says why), for
+    # every go command: the translator's build, the translations, the prophecy patches' checks
+    goroot = pinned_goroot()
+    os.environ.update(GOROOT=goroot, GOTOOLCHAIN="local",
+                      PATH=os.path.join(goroot, "bin") + os.pathsep + os.environ.get("PATH", ""))
     # The checked-in translations are linux/amd64's with cgo (the standard library's
     # cgo-processed packages, e.g. `net`, translate differently per target): translate for that
     # target on any host unless told otherwise (an arm64 host needs amd64's C cross-compiler for

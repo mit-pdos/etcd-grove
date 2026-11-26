@@ -58,11 +58,9 @@ theorem grpcdriver_robust : grpcdriver_robust.spec := by
   icases Ha with ⟨Hp, #Ht, Htk⟩
   imod inv_alloc (lisTokN drvAddr) ⊤ (netLisTok (NG (Gg := G)) drvAddr) $$ [Htk] with #Htok
   · inext; iexact Htk
-  imod addr_set_proto_tok ⊤ drvAddr (grpcCliPI (drvSvcG (Gg := G) γid))
-      (grpcSrvPI (drvSvcG (Gg := G) γid)) $$ Hreg Hp Ht [] with #Hpr
+  imod grpc_addr_set_tok (Gg := G) (π := π) (σ := σ) ⊤ drvAddr (drvSvcG (Gg := G) γid)
+      $$ Hreg Hsl Hp Ht [] with #Haddr
   · unfold lisTokInv; ileft; iexact Htok
-  ihave #Haddr : grpcAddrAt (Gg := G) (π := π) (σ := σ) drvAddr (drvSvcG (Gg := G) γid) $$ []
-  · unfold grpcAddrAt; iframe #
   imodintro
   let Pl : IProp netGF := iprop(inv (lisTokN drvAddr) (netLisTok (NG (Gg := G)) drvAddr) ∗
     grpcAddrAt (Gg := G) (π := π) (σ := σ) drvAddr (drvSvcG (Gg := G) γid))

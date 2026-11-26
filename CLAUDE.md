@@ -515,8 +515,10 @@ produces, or if the examples' Go modules (`examples/go.mod`, one for every examp
 pins (bump both together), and CI runs that check before the build. `--src NAME=DIR` (or
 `$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the project instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
-and `--check` then requires the checkout to be at the pinned revision. It runs `go` with
-`GOTOOLCHAIN` set to its pinned `GO_TOOLCHAIN` (Go fetches it if absent): the standard-library
+and `--check` then requires the checkout to be at the pinned revision. It runs `go` on its
+pinned `GO_TOOLCHAIN` (Go fetches it if absent), from a copy of it outside the Go module cache,
+`.lake/goose/goroot-go1.27.3` (Go refuses an overlay that replaces a file beneath GOMODCACHE,
+as the Go models of standard-library packages do): the standard-library
 packages are translated from the toolchain's source, which differs between patch releases
 (go1.27.1's `net/http` broke `--check` against go1.27.3's). To try a translator change before it is in Perennial,
 `etc/goose.py --perennial ../perennial` regenerates with that checkout's translator, and
