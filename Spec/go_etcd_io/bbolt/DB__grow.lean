@@ -38,6 +38,8 @@ grows after the old freelist page's free; `wdbW_wdbW'`/`wdbW'_wdbW` convert at `
 abbrev DB.grow.spec : Prop :=
   ∀ (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (sz : w64),
   0 ≤ sint.Z sz → sint.Z sz + 0x1000000 ≤ 0xFFFFFFFFFFFF → sint.Z sz % 4096 = 0 →
+  -- interim (W1): removed when the CrashIL Truncate covers a target past `maxBytes`
+  (K.p.cs ≠ none → sint.Z sz + 0x1000000 ≤ (maxBytes : Int)) →
   {{ K.core (GF := GF) ∗ wdbW' fr K tx v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"grow")) (Val #sz))
   {{ (err : GoInterface), RET #err; ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ ∗

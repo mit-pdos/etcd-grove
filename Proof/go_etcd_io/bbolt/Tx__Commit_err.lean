@@ -790,7 +790,7 @@ theorem Tx.Commit_err.wp_proof'
           have hz2 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) + 0x1000000 ≤ 0xFFFFFFFFFFFF := by
             word
           have hz3 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) % 4096 = 0 := by word
-          wp_apply wp_grow fr K tx Xt.v wt _ hz1 hz2 hz3 $$ [Hwdb]
+          wp_apply wp_grow fr K tx Xt.v wt _ hz1 hz2 hz3 (fun h => absurd Ht0.2.2.2 h) $$ [Hwdb]
             as %err3 ⟨%wg, Hwdb, %Hgr, Hres⟩
           · iframe #; iframe
           icases (cm_keep_pure (cm_wdbW'_ok fr K tx Xt.v wg)) $$ Hwdb with ⟨Hwdb, %Hwgok⟩

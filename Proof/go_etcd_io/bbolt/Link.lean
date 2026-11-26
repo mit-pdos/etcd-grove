@@ -1214,13 +1214,21 @@ theorem os.File.wp_Truncate :
     _root_.Perennial.EtcdGrove.os.File.Truncate.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof
 
+theorem os.File.wp_TruncateCrashIL :
+    _root_.Perennial.EtcdGrove.os.File.Truncate.specCrashIL (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof_crashIL
+
 theorem os.File.wp_SyncB :
     _root_.Perennial.EtcdGrove.os.File.Sync.specB (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.Sync.wp_proofB
 
+theorem os.File.wp_SyncCrashIL :
+    _root_.Perennial.EtcdGrove.os.File.Sync.specCrashIL (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.Sync.wp_proof_crashIL
+
 theorem DB.wp_grow :
     _root_.Perennial.EtcdGrove.bbolt.DB.grow.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.grow.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_fileSize _root_.Perennial.EtcdGrove.bbolt.DB.wp_growSize _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Truncate _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncB _root_.Perennial.EtcdGrove.fmt.wp_Errorf
+  _root_.Perennial.EtcdGrove.bbolt.DB.grow.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_fileSize _root_.Perennial.EtcdGrove.bbolt.DB.wp_growSize _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Truncate _root_.Perennial.EtcdGrove.bbolt.os.File.wp_TruncateCrashIL _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncB _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncCrashIL _root_.Perennial.EtcdGrove.fmt.wp_Errorf
 
 theorem internal.common.Meta.wp_Freelist :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.Freelist.spec (GF := GF) (hG := hG) :=

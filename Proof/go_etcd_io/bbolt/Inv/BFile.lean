@@ -363,20 +363,31 @@ frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`
 bytes outside the ranges `L` written since the last successful sync are durable (`DurOut`; between
 the writer's operations `L = []`), the file system does not fail (`FsNoErr`: crash mode is chosen
 only then, so every error arm of a call in crash mode is refuted), and the crash size bounds agree
-(`lo = hi`: `DB.grow` syncs its truncate) (the invariant itself is `bCsInv p`). -/
-def bMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
+(`lo = hi`: `DB.grow` syncs its truncate; `lh`, see `bMeta`/`bMetaT`) (the invariant itself is
+`bCsInv p`). -/
+def bMetaG (lh : Bool) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
   match p.cs with
   | none => osMeta p.ino (DFrac.own 1) m
   | some c => iprop(osMeta p.ino (DFrac.own (1 : Qp).half) m ∗
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
         ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
-          FsNoErr ∧ m.lo = m.hi⌝)
+          FsNoErr ∧ (lh = true → m.lo = m.hi)⌝)
+
+/-- **The writer's whole share of the file's `OsMeta` `m`** (`bMetaG`, the crash size bounds agreeing:
+what the writer's state holds and every operation but `DB.grow`'s truncate keeps). -/
+def bMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
+  bMetaG true p C L m
+
+/-- **The share right after a growing truncate**, before its sync (`bMetaG`, the crash size bounds
+apart: a crash may leave the old size or the new one). -/
+def bMetaT (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
+  bMetaG false p C L m
 
 omit go_gctx in
 instance bMeta_timeless (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
     Timeless (bMeta (GF := GF) p C L m) := by
-  unfold bMeta
+  unfold bMeta bMetaG
   cases p.cs with
   | none => dsimp only; unfold osMeta; infer_instance
   | some c => dsimp only; unfold osMeta csTokI; infer_instance
@@ -384,7 +395,7 @@ instance bMeta_timeless (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : 
 omit go_gctx in
 theorem bMeta_none {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
     bMeta (GF := GF) p C L m = osMeta p.ino (DFrac.own 1) m := by
-  unfold bMeta; rw [h]
+  unfold bMeta bMetaG; rw [h]
 
 omit go_gctx in
 theorem bMeta_to_os {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat))
@@ -401,7 +412,7 @@ omit go_gctx in
 the file is not in a crash invariant (crash mode records `FsNoErr`), and `bMeta` is `osMeta 1`. -/
 theorem bMeta_err (p : BFile) (C C' : CommitSt) (L L' : List (Nat × Nat)) (m : OsMeta)
     (hne : ¬ FsNoErr) : bMeta (GF := GF) p C L m ⊢ bMeta p C' L' m := by
-  unfold bMeta
+  unfold bMeta bMetaG
   cases p.cs with
   | none => exact .rfl
   | some c =>
@@ -414,7 +425,7 @@ crash-free specs that take any fraction: `Stat`, the mapped cells' reads). -/
 theorem bMeta_osMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
     bMeta (GF := GF) p C L m ⊢ ∃ q : Qp, osMeta p.ino (DFrac.own q) m ∗
       (osMeta p.ino (DFrac.own q) m -∗ bMeta p C L m) := by
-  unfold bMeta
+  unfold bMeta bMetaG
   cases p.cs with
   | none =>
     dsimp only

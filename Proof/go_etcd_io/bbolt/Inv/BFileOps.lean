@@ -48,7 +48,40 @@ theorem bMeta_own (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
     bMeta (GF := GF) p C L m ⊢ ∃ (bs : List ByteG) (a : BAbs),
       csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a ∗
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗ ⌜bMetaF C L m bs a⌝ := by
-  unfold bMeta; rw [hc]; dsimp only
+  unfold bMeta bMetaG; rw [hc]; dsimp only
+  iintro ⟨Hm, Ha, %bs, %a, Ht, %Hf⟩
+  iexists bs, a
+  iframe Ha
+  isplitl [Ht Hm]
+  · unfold csOwnIL csOwnL; iframe; ipureintro; exact ⟨Hf.1, rfl, rfl, rfl⟩
+  ipureintro; exact ⟨Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, Hf.2.2.2.2.2 rfl⟩
+
+omit go_gctx in
+theorem bMeta_of_own (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG) (a : BAbs) (hf : bMetaF C L m bs a) :
+    csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a ∗
+      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ⊢ bMeta p C L m := by
+  unfold bMeta bMetaG; rw [hc]; dsimp only
+  unfold csOwnIL csOwnL
+  iintro ⟨⟨Ht, Hm, %Hl⟩, Ha⟩
+  iframe Hm Ha
+  iexists bs, a
+  iframe Ht
+  ipureintro; exact ⟨Hl.1, hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, fun _ => hf.2.2.2.2⟩
+
+/-- `bMetaF` but the crash size bounds (`bMetaG`'s facts at `lh`). -/
+def bMetaFG (lh : Bool) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG)
+    (a : BAbs) : Prop :=
+  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ FsNoErr ∧ (lh = true → m.lo = m.hi)
+
+omit go_gctx in
+/-- **`bMetaG` in crash mode** as the local caller's part (`bMeta_own`, any `lh`). -/
+theorem bMetaG_own (lh : Bool) (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) :
+    bMetaG (GF := GF) lh p C L m ⊢ ∃ (bs : List ByteG) (a : BAbs),
+      csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a ∗
+      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗ ⌜bMetaFG lh C L m bs a⌝ := by
+  unfold bMetaG; rw [hc]; dsimp only
   iintro ⟨Hm, Ha, %bs, %a, Ht, %Hf⟩
   iexists bs, a
   iframe Ha
@@ -57,17 +90,49 @@ theorem bMeta_own (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
   ipureintro; exact Hf.2
 
 omit go_gctx in
-theorem bMeta_of_own (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
-    (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG) (a : BAbs) (hf : bMetaF C L m bs a) :
+theorem bMetaG_of_own (lh : Bool) (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG) (a : BAbs) (hf : bMetaFG lh C L m bs a) :
     csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a ∗
-      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ⊢ bMeta p C L m := by
-  unfold bMeta; rw [hc]; dsimp only
+      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ⊢ bMetaG lh p C L m := by
+  unfold bMetaG; rw [hc]; dsimp only
   unfold csOwnIL csOwnL
   iintro ⟨⟨Ht, Hm, %Hl⟩, Ha⟩
   iframe Hm Ha
   iexists bs, a
   iframe Ht
   ipureintro; exact ⟨Hl.1, hf⟩
+
+omit go_gctx in
+theorem bMetaT_none {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    bMetaT (GF := GF) p C L m = osMeta p.ino (DFrac.own 1) m := by
+  unfold bMetaT bMetaG; rw [h]
+
+omit go_gctx in
+/-- `bMetaT` after a failure is `bMeta` (crash mode records `FsNoErr`). -/
+theorem bMetaT_err (p : BFile) (C : CommitSt) (L L' : List (Nat × Nat)) (m : OsMeta)
+    (hne : ¬ FsNoErr) : bMetaT (GF := GF) p C L m ⊢ bMeta p C L' m := by
+  unfold bMetaT bMeta bMetaG
+  cases p.cs with
+  | none => exact .rfl
+  | some c =>
+    dsimp only
+    iintro ⟨-, -, %bs, %a, -, %Hf⟩
+    iexfalso; ipureintro; exact hne Hf.2.2.2.2.1
+
+omit go_gctx in
+theorem bMeta_T (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    bMeta (GF := GF) p C L m ⊢ bMetaT p C L m := by
+  unfold bMetaT bMeta bMetaG
+  cases p.cs with
+  | none => exact .rfl
+  | some c =>
+    dsimp only
+    iintro ⟨Hm, Ha, %bs, %a, Ht, %Hf⟩
+    iframe Hm Ha
+    iexists bs, a
+    iframe Ht
+    ipureintro
+    exact ⟨Hf.1, Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, fun h => nomatch h⟩
 
 theorem bCsInv_some (p : BFile) (c : CsN) (hc : p.cs = some c) :
     bCsInv (GF := GF) p ⊢ csInvI c.N p.ino c.g c.ga c.gc bCsOk := by

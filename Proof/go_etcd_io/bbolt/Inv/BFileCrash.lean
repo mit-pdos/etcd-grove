@@ -85,12 +85,12 @@ theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C 
   unfold csOwnIL csOwnL
   icases Hown with ⟨Ht, Hm, %Hlok⟩
   isplitl [Ht Hm Hauth]
-  · unfold bMeta; dsimp only
+  · unfold bMeta bMetaG; dsimp only
     iframe Hm Hauth
     iexists xs, a
     iframe Ht
     ipureintro
-    exact ⟨hwf, ha.1, ha.2, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hne, hlh⟩
+    exact ⟨hwf, ha.1, ha.2, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hne, fun _ => hlh⟩
   · unfold bBytes bGhost BFile.dq; dsimp only [dhalf]
     rw [hl]
     iframe Hb Hfr
@@ -109,8 +109,8 @@ theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
         ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
-          FsNoErr ∧ m.lo = m.hi⌝) by
-    unfold bMeta; rw [hc]) $$ Hm
+          FsNoErr ∧ (true = true → m.lo = m.hi)⌝) by
+    unfold bMeta bMetaG; rw [hc]) $$ Hm
   icases Hm with ⟨Hm, -, %bs, %a, Ht, %Hf⟩
   icases (bBytes_os p 0 (DFrac.own 1) xs).1 $$ Hb with ⟨Hb, -⟩
   have hdq : p.dq (DFrac.own 1) = DFrac.own (1 : Qp).half := by unfold BFile.dq; rw [hc]; rfl
