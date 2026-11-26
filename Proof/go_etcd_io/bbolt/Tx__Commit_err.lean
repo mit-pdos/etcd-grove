@@ -790,11 +790,11 @@ theorem Tx.Commit_err.wp_proof'
           have hz2 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) + 0x1000000 ≤ 0xFFFFFFFFFFFF := by
             word
           have hz3 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) % 4096 = 0 := by word
-          wp_apply wp_grow fr K tx Xt.v wt _ hz1 hz2 hz3 (fun h => absurd Ht0.2.2.2 h) $$ [Hwdb]
+          wp_apply wp_grow fr K tx Xt.v wt _ hz1 hz2 hz3 $$ [Hwdb]
             as %err3 ⟨%wg, Hwdb, %Hgr, Hres⟩
           · iframe #; iframe
           icases (cm_keep_pure (cm_wdbW'_ok fr K tx Xt.v wg)) $$ Hwdb with ⟨Hwdb, %Hwgok⟩
-          icases Hres with (%He3 | ⟨%He3, #Hfe3⟩)
+          icases Hres with (⟨%He3, Hgsz⟩ | ⟨%He3, #Hfe3⟩)
           · subst He3
             ihave Hw := Hwb $$ Hdbp
             try wp_auto
@@ -980,6 +980,7 @@ theorem Tx.Commit_err.wp_proof'
             (mapLen wg.ms) γ.ns ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' Pg T.cur Q P hA Fb hms
             (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m, Hm'.2.2.1]; exact Hwgok.1.1 _ _ hms)
             hroot hflp haddr (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m]; omega) (by omega) hcp hC'flX hfreedX hhwmbX
+            (fun h => absurd Ht0.2.2.2 h) (fun h => absurd Ht0.2.2.2 h)
             $$ [Hw Hwl Hstq HS Hau Hfb] as %err5 ⟨%m'', %Hm'', Hw, Herr, Hpost⟩
           · iframe
           icases Herr with (%He5 | ⟨%He5, #Hfe5⟩)

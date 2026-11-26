@@ -223,7 +223,7 @@ theorem DB.Close.wp_proof
     with ⟨%bs, Hcur, Hgfl, Hgwv, Hcls, Hcls', Hgmap, HS, HX, %hS⟩
   · iframe; iframe #
   iunfold dbPathLk at Hpath
-  icases Hpath with ⟨Hpath, Htok⟩
+  icases Hpath with ⟨Hpath, Htok, -⟩
   iunfold fileOwn at Hfo
   icases Hfo with ⟨%inner, #Hfi, Hfdf, #Hfnm, #Hsysf⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hfi with ⟨-, %hfnn⟩

@@ -157,12 +157,19 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       (∀ b' l', (some (b, l) : MapSt) = some (b', l') → s < l' / 4096) ∧ 2 ≤ s)
     (hC'fl : (C.publish (metaBuf mv) (metaSummed mv) pages).flpg = none)
     (hfreed : ∀ f, C.flpg = some f → f ∈ pendSlots fl)
-    (hhwmb : (C.publish (metaBuf mv) (metaSummed mv) pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF) :
+    (hhwmb : (C.publish (metaBuf mv) (metaSummed mv) pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF)
+    (om : OsMeta)
+    -- W1, crash mode: the new tree inside the file (`DB.grow`), the crash size bounds agreeing
+    -- (`Tx.write`'s sync, `m.synced`)
+    (hin : K.p.cs ≠ none → (C.publish (metaBuf mv) (metaSummed mv) pages).hwm * 4096 ≤ om.size ∧
+      ∀ x ∈ S, 4096 * (x + 1) ≤ om.size)
+    (hlh : K.p.cs ≠ none → om.lo = om.hi) :
     K.core (GF := GF) ∗ cpRes K C fl b l v (C.txid + 1) false wl (treeData C) ∗
       slotsOwn (some (b, l)) K.p S bs ∗
       fbTok K.B C fl ((some v, some (C.txid + 1), false, wl) : WSt) Fb ∗
       A ⊢
-    commitStep K (mv.txid'.toNat % 2) b (metaBuf mv)
+    commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) C
+      (C.publish (metaBuf mv) (metaSummed mv) pages) om
       (cpPost K C (C.publish (metaBuf mv) (metaSummed mv) pages) fl b l v wl S bs Fb Dn Q A) := by
   have hs2 : mv.txid'.toNat % 2 < 2 := Nat.mod_lt _ (by omega)
   have hsl : ∀ i, (C.publish (metaBuf mv) (metaSummed mv) pages).slot i =
@@ -170,9 +177,14 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     intro i; rw [publish_slot, metaSummed_txid]
   have hother : (mv.txid'.toNat % 2 + 1) % 2 ≠ mv.txid'.toNat % 2 := by omega
   have hself : mv.txid'.toNat % 2 % 2 = mv.txid'.toNat % 2 := Nat.mod_mod _ _
+  have hmtx : (C.publish (metaBuf mv) (metaSummed mv) pages).txid = mv.txid'.toNat := by
+    simp only [CommitSt.publish, metaSummed_txid]
+  have htx' : (C.publish (metaBuf mv) (metaSummed mv) pages).txid = C.txid + 1 := hmtx.trans htx
   iintro ⟨#Hcore, Hres, HS, Hfb, Hau⟩
+  icases BC.core_bfile K $$ Hcore with ⟨#Hci, -⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
+  ihave %Hrcpt := isBoltCoreP_receipts K.B K.N K.db K.p K.sp K.t0 $$ Hcore'
   unfold isBoltCoreP
   icases Hcore' with ⟨-, -, -, -, -, -, -, -, -, #Hpi, -⟩
   iunfold cpRes at Hres
@@ -202,18 +214,35 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     intro i; unfold CommitSt.slot; split
     · exact hmok.1
     · exact hmok.2.1
-  -- the early commit point: under `FsNoErr` the update fires here, before the `pwrite`
+  have hmeta : (C.publish (metaBuf mv) (metaSummed mv) pages).metaOk :=
+    metaOk_parity_write C (metaBuf mv) (metaSummed mv) pages hmok (metaBuf_length mv)
+      (metaOf_metaBuf mv) hval (by rw [metaSummed_txid]; exact htx) hps (metaBuf_probes mv)
+  have hcur' : (C.publish (metaBuf mv) (metaSummed mv) pages).slot
+      (C.publish (metaBuf mv) (metaSummed mv) pages).txid = metaBuf mv := by
+    rw [hsl, hmtx, if_pos rfl]
+  imodintro
+  iexists C.txid
+  iframe Hrcm
+  iintro #Hrc1 Hm
+  -- the early commit point, before the `pwrite` (after the step that raised the receipt): in crash
+  -- mode the file's value moves to committing (W1); under `FsNoErr` the update fires
+  ihave %hrb := preceipt_lt _ $$ Hrc1
+  imod bMeta_commit K.p C (C.publish (metaBuf mv) (metaSummed mv) pages) om (some (b, l)) S bs htx'
+    (by have := Hrcpt.2; omega)
+    (fun i hi => by rw [hsl, if_neg (by rw [← hmtx]; exact hi)]) hmeta htree hC'fl
+    (fun k hk1 hk2 => by rw [hcur']; exact metaBuf_tail mv k hk1 hk2) hbytes
+    (fun x hx => (hSb x hx).1) hin hlh $$ Hci Hm HS with ⟨Hm, HS⟩
   imod cpFired_intro K N' (treeData C) Dn C.txid Q A hA $$ [Hst Hstw Hau] with Hpt
   · iframe
   imodintro
-  iexists C.txid, xa, C.slot (mv.txid'.toNat % 2)
-  iframe Hrcm Hxa Hold
+  iexists xa, C.slot (mv.txid'.toNat % 2)
+  iframe Hxa Hold Hm
   isplitr
   · ipureintro
     have := congrArg List.length hxab.1
     simp only [List.length_map] at this
-    exact ⟨this.trans (hslotlen _), hslotlen _⟩
-  iintro %j %ys %hj Hys Hnew Hrc #Hrc1
+    exact ⟨this.trans (hslotlen _), hslotlen _, fun _ => ⟨by rw [hmtx], hcur'⟩⟩
+  iintro %j %ys %hj Hnew Hrc
   obtain ⟨hj01, hne, hys⟩ := hj
   rcases hj01 with rfl | rfl
   · -- nothing written (so the file system can fail): everything back, the update unfired
@@ -221,9 +250,6 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     icases Hpt with (⟨%hfs, -, -, -⟩ | ⟨-, Hst, Hstw, Hau⟩)
     · exact absurd (hne hfs) (by decide)
     simp only [↓reduceIte] at hys
-    icases metaOsBytes_put K.p C _ hs2 hmok.1 hmok.2.1 ys xb (hys.trans hxab.1) hxab.2
-      $$ [Hys Hxb] with Hobw
-    · iframe
     ihave Hnew : bytesPointsto (b +ₗ ((4096 * (mv.txid'.toNat % 2) : Nat) : Int))
         (DFrac.own (1 : Qp).half) (C.slot (mv.txid'.toNat % 2)) $$ [Hnew]
     · rw [hys, hxab.1]; iexact Hnew
@@ -240,6 +266,10 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       iframe Hrcm
       iframe
       ipureintro; exact ⟨fun _ => ⟨hmok, htok, htx1, hhwm0⟩, HF⟩
+    iintro %ys' %hys' Hys
+    icases metaOsBytes_put K.p C _ hs2 hmok.1 hmok.2.1 ys' xb (hys'.trans (hys.trans hxab.1)) hxab.2
+      $$ [Hys Hxb] with Hobw
+    · iframe
     unfold cpPost
     iright
     isplitr
@@ -248,11 +278,6 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     iframe
   · -- the page written whole: the commit point
     simp only [show (4096 : Nat) ≠ 0 from by decide, ↓reduceIte] at hys
-    have hmeta : (C.publish (metaBuf mv) (metaSummed mv) pages).metaOk :=
-      metaOk_parity_write C (metaBuf mv) (metaSummed mv) pages hmok (metaBuf_length mv)
-        (metaOf_metaBuf mv) hval (by rw [metaSummed_txid]; exact htx) hps (metaBuf_probes mv)
-    have htx' : (C.publish (metaBuf mv) (metaSummed mv) pages).txid = C.txid + 1 := by
-      simp only [CommitSt.publish, metaSummed_txid]; exact htx
     imod store_publish K.B K.N K.p ⊤ CoPset.subseteq_top C _ fl (some (b, l)) v (C.txid + 1) wl S bs
       Fb htx' hmeta htree hhwm hdrop hS hbytes hfl hnp hSb (by simp) hC'fl hfreed
       $$ [Hpi Hcur Hcurq Hfl Hmap Hwv HS Hout Hfb] with ⟨Hcur, Hcurq, Hfl, Hmap, Hwv, Hout⟩
@@ -274,10 +299,6 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · rw [hsl, ite_eq_right hother]; iexact Hoth
     have hm0' : (C.publish (metaBuf mv) (metaSummed mv) pages).m0.length = 4096 := hmeta.1
     have hm1' : (C.publish (metaBuf mv) (metaSummed mv) pages).m1.length = 4096 := hmeta.2.1
-    icases metaOsBytes_put K.p _ _ hs2 hm0' hm1' ys xb
-      (by rw [hsl, ite_eq_left hself]; exact hys) (by rw [hsl, ite_eq_right hother]; exact hxab.2)
-      $$ [Hys Hxb] with Hobw
-    · iframe
     icases metaCells_put _ b l _ hs2 $$ [Hnew Hoth] with ⟨Hmcw, Hmcl⟩
     · iframe
     imod meta_put K.B K.N K.p ⊤ CoPset.subseteq_top _ (some (b, l)) $$ [Hpi Hout Hmcl Hcurq Hmap]
@@ -295,6 +316,12 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       refine ⟨fun _ => ⟨hmeta, htree, by omega, hhwmb⟩, fun k t h => ?_⟩
       have := HF k t h
       omega
+    iintro %ys' %hys' Hys
+    icases metaOsBytes_put K.p _ _ hs2 hm0' hm1' ys' xb
+      (by rw [hsl, ite_eq_left hself, hys']; exact hys)
+      (by rw [hsl, ite_eq_right hother]; exact hxab.2)
+      $$ [Hys Hxb] with Hobw
+    · iframe
     unfold cpPost
     ileft
     isplitr

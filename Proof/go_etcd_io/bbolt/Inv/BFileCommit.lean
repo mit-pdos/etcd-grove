@@ -65,6 +65,29 @@ theorem bMetaCm_none {p : BFile} (h : p.cs = none) (C' C : CommitSt) (L : List (
     (m : OsMeta) : bMetaCm (GF := GF) p C' C L m = osMeta p.ino (DFrac.own 1) m := by
   unfold bMetaCm; rw [h]
 
+omit go_gctx sem in
+theorem bMetaCm_to_os {p : BFile} (h : p.cs = none) (C' C : CommitSt) (L : List (Nat × Nat))
+    (m : OsMeta) : bMetaCm (GF := GF) p C' C L m ⊢ osMeta p.ino (DFrac.own 1) m := by
+  rw [bMetaCm_none h]
+
+omit go_gctx sem in
+/-- A fraction of the extension's `OsMeta` (`bMeta_osMeta`'s, for the crash-free specs that take
+any fraction). -/
+theorem bMetaCm_osMeta (p : BFile) (C' C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    bMetaCm (GF := GF) p C' C L m ⊢ ∃ q : Qp, osMeta p.ino (DFrac.own q) m ∗
+      (osMeta p.ino (DFrac.own q) m -∗ bMetaCm p C' C L m) := by
+  unfold bMetaCm
+  cases p.cs with
+  | none =>
+    dsimp only
+    iintro Hm
+    iexists 1; iframe; iintro H; iexact H
+  | some c =>
+    dsimp only
+    iintro ⟨Hm, Ha, Ht⟩
+    iexists (1 : Qp).half; iframe Hm
+    iintro Hm; iframe
+
 /-- The facts `bMetaCm` keeps beside the token, in crash mode. -/
 def bMetaCmF (C' C : CommitSt) (L : List (Nat × Nat)) (bs : List ByteG) (a : BAbs) : Prop :=
   a.phase = .committing ∧ a.cur = C' ∧ a.prev = C ∧ DurOut L bs ∧ FsNoErr
@@ -160,7 +183,9 @@ theorem bMeta_commit (p : BFile) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
       ((∀ j < 1 + pageOverflow pg, id + j ∈ S) ∧
         pg = (List.range' id (1 + pageOverflow pg)).flatMap g))
     (hS : ∀ x ∈ S, (g x).length = 4096)
-    (hin : p.cs ≠ none → C'.hwm * 4096 ≤ m.size ∧ ∀ x ∈ S, 4096 * (x + 1) ≤ m.size) :
+    (hin : p.cs ≠ none → C'.hwm * 4096 ≤ m.size ∧ ∀ x ∈ S, 4096 * (x + 1) ≤ m.size)
+    -- the crash size bounds agree (the commit's first `fdatasync`, `m.synced`)
+    (hlh : p.cs ≠ none → m.lo = m.hi) :
     ⊢ bCsInv (GF := GF) p -∗ bMeta p C [] m -∗ slotsOwn ms p S g ={⊤}=∗
       bMetaCm p C' C [] m ∗ slotsOwn ms p S g := by
   iintro #Hinv Hm HS
@@ -172,7 +197,8 @@ theorem bMeta_commit (p : BFile) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
     obtain ⟨hhwm, hSin⟩ := hin (by rw [hc]; exact fun h => nomatch h)
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C [] m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
-    obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
+    obtain ⟨hph, hcur, hdur, hfs, -⟩ := Hf
+    have hlh := hlh (by rw [hc]; exact fun h => nomatch h)
     imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     ihave %hlo := csOwnL_locOk (csTokI c.g c.ga a) p.ino ⟨m, bs, 0, 0, .idle⟩ $$ Hown
@@ -393,7 +419,7 @@ theorem wp_bFdatasyncC (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := h
   isplitl [Hown Ha]
   · iapply bMeta_of_own p c hc C' [] m.synced (bs.map (fun x => durB x.1)) a'
       ⟨rfl, hcur, fun k x hk _ => by
-        obtain ⟨y, -, rfl⟩ := List.mem_map.1 (List.mem_of_getElem? hk); rfl, hfs, rfl⟩
+        obtain ⟨y, -, rfl⟩ := List.mem_map.1 (List.mem_of_getElem? hk); rfl, hfs, xsOne_synced m⟩
       $$ [Hown Ha]
     iframe
   isplitl [HR HG]

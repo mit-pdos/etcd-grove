@@ -156,7 +156,12 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     -- session S4: no synced freelist page published (`NoFreelistSync`), the old one freed, the new
     -- high-water mark's pages inside `maxMapSize` (`metaR`'s)
     (hC'fl : (pubC w.C X.t.mv pages).flpg = none) (hfreed : ∀ f, w.C.flpg = some f → f ∈ pendSlots w.fl)
-    (hhwmb : (pubC w.C X.t.mv pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF) :
+    (hhwmb : (pubC w.C X.t.mv pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF)
+    -- W1, crash mode: the new tree inside the file (`DB.grow`), the crash size bounds agreeing
+    -- (`Tx.write`'s sync)
+    (hin : K.p.cs ≠ none → (pubC w.C X.t.mv pages).hwm * 4096 ≤ w.m.size ∧
+      ∀ x ∈ S, 4096 * (x + 1) ≤ w.m.size)
+    (hlh : K.p.cs ≠ none → w.m.lo = w.m.hi) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx (wLive v w.C) w ∗
         ghostVar K.B.st (1 : Qp).half.half (treeData w.C, w.C.txid) ∗
         slotsOwn (some (b, l) : MapSt) K.p S bs ∗ A ∗
@@ -183,12 +188,13 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
       $$ [Hout Hcur Hfl Hmap Hwv Hopn Hmc Hmb Hstq]
   · unfold cpRes; rw [← hms]; iframe
   ihave Hcp := commitStep_commit K N' w.C w.fl b l v true S bs Fb X.t.mv pages Dn Q A hA htx hval hps
-    hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb $$ [Hres HS Hfb Hau]
+    hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb w.m hin hlh $$ [Hres HS Hfb Hau]
   · iframe; iframe #
+  icases dbPathLk_syncs _ _ _ $$ Hpath with ⟨Hpath, #Hsy⟩
   wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.C
     (pubC w.C X.t.mv pages) w.m b l
     (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) _ hroot hflp haddr hsz hmaps hl
-    $$ [Hst Hdb Hme Hmv Hfile Hwa Hfo Hfd Hom Hcp]
+    $$ [Hst Hdb Hme Hmv Hfile Hwa Hfo Hfd Hom Hsy Hcp]
     as %err ⟨Hst, Hdb, Hme, Hmv, Hfile, Hwa, Hfo, Hfd, %j, ⟨%om', Hom, %Hom'⟩, Hpost, %Hj, Herr⟩
   · iframe; iframe #
   have hX1 : flxS w.C w.fl w.wb = [] := by

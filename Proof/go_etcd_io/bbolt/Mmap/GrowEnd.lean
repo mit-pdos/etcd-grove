@@ -153,7 +153,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
     (∃ vf, cellsR (GF := GF) b (min w.m.size L) (L - min w.m.size L) vf) -∗
     wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
     zBytes K.p w.m.size (S - w.m.size) -∗
-    ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
+    ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w' ∧ w'.m = m'⌝ := by
   subst hSz
   unfold growCloser
   iintro Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
@@ -197,7 +197,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
       Hwc Hwb]
     · ipureintro; exact ⟨hok', fun s hs => hag s (by omega)⟩
     · unfold growRes; rw [hXg]; iframe
-  · ipureintro; exact wdbGrown_grown fr w hok m' _ hsz hmaps hag
+  · ipureintro; exact ⟨wdbGrown_grown fr w hok m' _ hsz hmaps hag, rfl⟩
 
 /-- **The writer side after `File.Truncate` failed leaving the size** (the `OsMeta` `m'`, the same
 size and mappings): the cells back. -/

@@ -49,11 +49,12 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hGrowSize : DB.growSize.spec (GF := GF) (hG := hG))
     (hTruncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (hTruncateC : os.File.Truncate.specCrashIL (GF := GF) (hG := hG))
+    (hTruncateB : os.File.Truncate.specCrashILBig (GF := GF) (hG := hG))
     (hSync : os.File.Sync.specB (GF := GF) (hG := hG))
     (hSyncC : os.File.Sync.specCrashIL (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     DB.grow.spec (GF := GF) (hG := hG) := by
-  intro fr K tx v w sz hsz0 hszmax hszal hmaxB
+  intro fr K tx v w sz hsz0 hszmax hszal
   wp_start as ⟨#Hcore, Hdb⟩
   icases BC.core_bfile K $$ Hcore with ⟨#Hci, %hns⟩
   icases BC.core_growFields K $$ Hcore with ⟨#Hpkg, #Hos, %Hdbnn, #Hps, #Has, ⟨%lg, #Hlg, #Hlgok⟩,
@@ -132,7 +133,9 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · unfold growRes; iframe
     isplitr
     · ipureintro; exact hrefl
-    ileft; ipureintro; rfl
+    ileft; isplitr
+    · ipureintro; rfl
+    iintro #-; ipureintro; show min _ _ ≤ w.m.size; omega
   rw [decide_eq_false hle]
   wp_auto
   wp_apply hGrowSize K.db (W64 (mapLen w.ms : Int)) sz $$ []
@@ -151,7 +154,11 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · unfold growRes; iframe
     isplitr
     · ipureintro; exact hrefl
-    ileft; ipureintro; rfl
+    ileft; isplitr
+    · ipureintro; rfl
+    iintro #Hf
+    ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ Hngs Hf
+    exact absurd h (by decide)
   simp only [Bool.not_false]
   wp_auto
   try rw [hgoos]
@@ -185,6 +192,25 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have e2 : (sz + W64 0x1000000).toInt = sint.Z sz + 0x1000000 := by word
       refine ⟨by omega, by omega, by omega, fun h => absurd h hA, by omega, by omega⟩
   obtain ⟨hS0, hSge, hSal, hS10, hS63, hSsz⟩ := hfacts
+  -- W1 (step 4): the new size covers `sz` or the mapping
+  have hSmin : min (sint.Z sz).toNat (mapLen w.ms) ≤
+      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat := by
+    have hLz : sint.Z (W64 (mapLen w.ms : Int)) = (mapLen w.ms : Int) := by word
+    unfold growSizeOf
+    rw [hLz]
+    by_cases hA : mapLen w.ms ≤ 0x1000000
+    · have hA' : ((mapLen w.ms : Nat) : Int) ≤ sint.Z (W64 0x1000000) := by
+        have : sint.Z (W64 0x1000000) = 0x1000000 := by word
+        omega
+      simp only [hA', ↓reduceIte]
+      have e : (W64 (mapLen w.ms : Int)).toNat = mapLen w.ms := by word
+      omega
+    · have hA' : ¬ ((mapLen w.ms : Nat) : Int) ≤ sint.Z (W64 0x1000000) := by
+        have : sint.Z (W64 0x1000000) = 0x1000000 := by word
+        omega
+      simp only [hA', ↓reduceIte]
+      have e : (sz + W64 0x1000000).toNat = (sint.Z sz).toNat + 0x1000000 := by word
+      omega
   -- the mapping's cells past the file's end, lent to `Truncate`
   have hmaps : w.m.maps = GMap.singleton v.base (mapLen w.ms) := hok.1 _ _ hms
   ihave Hwc : wCells (GF := GF) (some (v.base, mapLen w.ms)) w.W $$ [Hwc]
@@ -199,10 +225,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   ihave Htail : mcellsAny (GF := GF) w.m.maps w.m.size
       (rsHi true w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) $$ [Htail]
   · rw [hmaps, grow_rsHi _ _ hSge hSal]; iexact Htail
-  wp_apply wp_bTruncate hTruncate hTruncateC w.f w.fd K.p.path (DFrac.own (1 : Qp).half)
+  wp_apply wp_bTruncate hTruncate hTruncateC hTruncateB w.f w.fd K.p.path (DFrac.own (1 : Qp).half)
     (growSizeOf (W64 (mapLen w.ms : Int)) sz) (DFrac.own (1 : Qp).half) (dbFd K.p.ino) K.p w.C []
     w.m rfl (wdbOK'_fd fr w hok) rfl hS0 hSge hns
-    (fun h => ⟨hSal, by have := hmaxB h; omega⟩)
+    (fun _ => hSal)
     $$ [Hfo Hfd Hosm Htail] as %e ⟨Hfo, Hfd, Htr, #HeOk⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) $$ [Hfo]
@@ -272,8 +298,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       iexists w'
       iframe Hw'
       isplitr
-      · ipureintro; exact hg
-      ileft; ipureintro; rfl
+      · ipureintro; exact hg.1
+      ileft; isplitr
+      · ipureintro; rfl
+      iintro #-; ipureintro; rw [hg.2, hh.1, hm'.1]; exact hSmin
     cases e2 with
     | nil => exact absurd rfl he2.1
     | ok ii =>
@@ -317,7 +345,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iexists w'
     iframe Hw'
     isplitr
-    · ipureintro; exact hg
+    · ipureintro; exact hg.1
     iright
     isplitr
     · ipureintro; intro h; cases h
@@ -365,7 +393,9 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · icases Htr with (⟨%m', %hm', Hm', Hz, Hcm⟩ | ⟨%m', %hm', Hm', Htail⟩)
       · icases hcells $$ [Hcm Hrest] with Htail
         · iframe
-        iapply hfin m' hm'.1 hm'.2 $$ Hclose Hfile Hfo Hfd Hm' Hdsz Hlow Hpart Htail Hwb Hz
+        icases hfin m' hm'.1 hm'.2 $$ Hclose Hfile Hfo Hfd Hm' Hdsz Hlow Hpart Htail Hwb Hz
+          with ⟨%w', Hw', %hg⟩
+        iexists w'; iframe; ipureintro; exact hg.1
       · ihave Htail : mcellsAny (GF := GF) (GMap.singleton v.base (mapLen w.ms)) w.m.size S.toNat
           $$ [Htail]
         · rw [hmaps, grow_rsHi _ _ hSge hSal]; iexact Htail

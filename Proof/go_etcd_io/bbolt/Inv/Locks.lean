@@ -123,11 +123,38 @@ theorem fileOwn_eq [os.Assumptions] (f : Loc) (fd : w64) (name : GoString) (dq :
 file-lock semantics of 2026-11-15): readable, writable, no OFD lock, `flock`'s exclusive lock. -/
 abbrev dbFd (i : Ino) : OsFd := ⟨i, true, true, none, some true⟩
 
+/-- **The sync options crash mode rests on** (W1): in a crash invariant (`p.cs = some _`), `NoSync`
+and `NoGrowSync` are off (`Open` chooses crash mode only then), so every commit and `grow` syncs. -/
+def bSyncs (db : Loc) (p : BFile) : IProp GF :=
+  match p.cs with
+  | none => iprop(True)
+  | some _ => iprop(db.[DB, go!"NoSync"] ↦□ false ∗ db.[DB, go!"NoGrowSync"] ↦□ false)
+
+omit go_gctx hos sem in
+instance bSyncs_persistent (db : Loc) (p : BFile) : Persistent (bSyncs (GF := GF) db p) := by
+  unfold bSyncs; cases p.cs <;> dsimp only <;> infer_instance
+
+theorem bSyncs_none {p : BFile} (h : p.cs = none) (db : Loc) : ⊢ bSyncs (GF := GF) db p := by
+  unfold bSyncs; rw [h]; exact true_intro
+
+theorem bSyncs_some (db : Loc) {p : BFile} {c : CsN} (h : p.cs = some c) :
+    bSyncs (GF := GF) db p ⊢
+      db.[DB, go!"NoSync"] ↦□ false ∗ db.[DB, go!"NoGrowSync"] ↦□ false := by
+  unfold bSyncs; rw [h]
+
 /-- The `path` field, with the token of the exclusive `flock` lock the database's descriptor `fd`
 holds (`Open`'s `flock`), which `close` gives back to `funlock` and `File.Close` (`lockToks`). The
-token rides with the field, which only `Open`, `close` and the remaps touch. -/
+token rides with the field, which only `Open`, `close` and the remaps touch; so do the sync options
+of crash mode (`bSyncs`, W1), for the writer side's commits and `grow`. -/
 def dbPathLk (db : Loc) (p : BFile) (fd : w64) : IProp GF :=
-  iprop(db.[DB, go!"path"] ↦ p.path ∗ osLock .flock p.ino fd)
+  iprop(db.[DB, go!"path"] ↦ p.path ∗ osLock .flock p.ino fd ∗ bSyncs db p)
+
+/-- The sync options, from the writer side's `path` field. -/
+theorem dbPathLk_syncs (db : Loc) (p : BFile) (fd : w64) :
+    dbPathLk (GF := GF) db p fd ⊢ dbPathLk db p fd ∗ bSyncs db p := by
+  unfold dbPathLk
+  iintro ⟨Hp, Ht, #Hs⟩
+  iframe; iframe #
 
 /-- The tokens of `dbFd`'s locks are the `flock` token. -/
 theorem dbFd_lockToks (i : Ino) (fd : w64) :

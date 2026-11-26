@@ -644,7 +644,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   ihave Htok : osLock .flock p.ino fd $$ [Htok]
   · iapply (lockTok_some .flock fd (dbFd p.ino) rfl).1 $$ Htok
   ihave path : dbPathLk dbl p fd $$ [path Htok]
-  · unfold dbPathLk; iframe
+  · unfold dbPathLk; iframe; iapply bSyncs_none hpcs
   try wp_auto
   -- the page size
   icases (optsAt_pageSize_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
@@ -672,7 +672,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     | ok ei =>
     try wp_auto
     iunfold dbPathLk at path
-    icases path with ⟨path, Htok⟩
+    icases path with ⟨path, Htok, -⟩
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
       [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #
@@ -698,7 +698,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     | ok ei =>
     try wp_auto
     iunfold dbPathLk at path
-    icases path with ⟨path, Htok⟩
+    icases path with ⟨path, Htok, -⟩
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
       [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #
@@ -760,7 +760,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         | ok ei =>
         try wp_auto
         iunfold dbPathLk at path
-        icases path with ⟨path, Htok⟩
+        icases path with ⟨path, Htok, -⟩
         wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
           [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
         · iframe; iframe #
@@ -807,7 +807,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         | ok ei =>
         try wp_auto
         iunfold dbPathLk at path
-        icases path with ⟨path, Htok⟩
+        icases path with ⟨path, Htok, -⟩
         wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
           [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
         · iframe; iframe #
@@ -882,7 +882,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         | ok ei =>
         try wp_auto
         iunfold dbPathLk at path
-        icases path with ⟨path, Htok⟩
+        icases path with ⟨path, Htok, -⟩
         wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
           [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
         · iframe; iframe #
@@ -964,7 +964,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     | ok ei =>
     try wp_auto
     iunfold dbPathLk at path
-    icases path with ⟨path, Htok⟩
+    icases path with ⟨path, Htok, -⟩
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
       [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #

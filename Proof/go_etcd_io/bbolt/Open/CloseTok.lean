@@ -307,7 +307,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the `flock` token (`dbPathLk`), for `close`'s `funlock` and `File.Close`
   iunfold dbPathLk at Hpath
-  icases Hpath with ⟨Hpath, Htok⟩
+  icases Hpath with ⟨Hpath, Htok, -⟩
   wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
     Hres Hfile Hfo Hfd Htok]
     as %err ⟨%hq, -, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩

@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.bbolt.Inv.BFileSync
 public import Proof.go_etcd_io.bbolt.Mmap.GrowRes
 public import Spec.os.File__Truncate
 public import Spec.os.File__Sync
+public import Spec.os.CrashStILLong
 
 @[expose] public section
 
@@ -70,13 +71,12 @@ variable [os.Assumptions] in
 /-- **A growing `File.Truncate` of bbolt's file**, in either mode (see the file header). -/
 theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
     (hTC : os.File.Truncate.specCrashIL (GF := GF) (hG := hG))
+    (hTB : os.File.Truncate.specCrashILBig (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
     (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
     (hd : d.ino = p.ino) (hfd : 0 ≤ fd.toInt) (hwr : d.writable = true) (hsz0 : 0 ≤ sz.toInt)
     (hge : m.size ≤ sz.toNat) (hns : bNsOk p)
-    (hcr : p.cs ≠ none → sz.toNat % 4096 = 0 ∧
-      -- interim: removed when the CrashIL Truncate covers a target past `maxBytes`
-      sz.toNat ≤ maxBytes) :
+    (hcr : p.cs ≠ none → sz.toNat % 4096 = 0) :
     {{ osInv (GF := GF) ∗ bCsInv p ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
         bMeta p C L m ∗ mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
@@ -144,7 +144,7 @@ theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
       rw [hmin]
       iframe
   | some c =>
-    obtain ⟨hal, hmax⟩ := hcr (by rw [hc]; exact fun h => nomatch h)
+    have hal := hcr (by rw [hc]; exact fun h => nomatch h)
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
@@ -152,6 +152,39 @@ theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
       $$ Hci Hown with ⟨Hown, %Hok⟩
     have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
     have hbl : bs.length = m.size := hD.1.1
+    by_cases hmax : sz.toNat ≤ maxBytes
+    rotate_left
+    · -- past `maxBytes`: the truncate fails (`EFBIG`), the file as its first attempt announced it
+      have hobl : ∀ m', (m' = m ∨ m' = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat)
+          sz.toNat) → bCsOk a ⟨m', bs, 0, 0, .idle⟩ ∧ ∀ t n, bCsOk a ⟨m', bs, 0, 0, .trunc t sz.toNat n⟩ := by
+        intro m' hm'
+        have hR : TReach m bs sz.toNat m' bs := by
+          rcases hm' with rfl | rfl
+          · exact .refl
+          · exact .ann
+        exact ⟨fun _ => (bDur_trunc_idle a hph m bs 0 0 sz.toNat hD hge hal m' bs hR).1,
+          fun t n _ => (bDur_trunc_idle a hph m bs 0 0 sz.toNat hD hge hal m' bs hR).2 t n⟩
+      iapply (hTB f fd name dqf sz dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs hd hfd hwr hsz0 hge
+        (by omega) (hns c hc) hobl) $$ [Hf Hfd Hown Hc]
+      · iframe; iframe #
+      inext
+      iintro %err ⟨Hf, Hfd, %hne, #Herr, Hown, Hc⟩
+      iapply HΦ $$ %err
+      iframe Hf Hfd
+      isplitl [Hown Ha Hc]
+      · iright
+        isplitr
+        · ipureintro; exact hne
+        iright
+        iexists m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat
+        isplitr
+        · ipureintro; exact ⟨announce_size _ _ _ _, announce_maps _ _ _ _⟩
+        isplitl [Hown Ha]
+        · iapply bMeta_of_own p c hc C L _ bs a ⟨hph, hcur, hdur, hfs, xsOne_announce hlh _ _ _⟩
+            $$ [Hown Ha]
+          rw [announce_size]; iframe
+        iexact Hc
+      iapply fmtErrorOkOrNil_of $$ Herr
     imod exMap_grow c.ex m.size (sz.toNat - m.size) $$ Ha with ⟨Ha, Hex⟩
     iapply (hTC f fd name dqf sz dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs hd hfd hwr hsz0 hge hmax
       (hns c hc) (fun m' bs' hR =>

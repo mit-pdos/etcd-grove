@@ -5,7 +5,8 @@ bbolt's `WriteAt` of its file over its shares (`bMeta`, `bBytes`), in either mod
 `wp_bWriteAt` has `os.File.WriteAt.specExt`'s shape (its `OsMeta` named only by its size and
 mappings): outside a crash invariant it is `specExt`; inside one, the write lies inside the file and
 its bytes are past the meta pages and no protected data of the committed state (`hcr`), and it is the
-local crash spec (`os.File.WriteAt.specCrashIL`), the obligation from `bDur_write_idle`; every error
+local crash spec for data of any length (`os.File.WriteAt.specCrashILLong`, in chunks of at most
+1 GiB), the obligation from `bDur_write_idleC`; every error
 arm is refuted (crash mode records `FsNoErr`). The range written joins the ranges since the last
 sync.
 -/
@@ -14,6 +15,8 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.BFileOps
 public import Proof.go_etcd_io.bbolt.Commit.PwMeta
 public import Spec.os.File__WriteAt
+public import Spec.os.CrashStILLong
+public import Proof.go_etcd_io.bbolt.Crash.PhasesC
 
 @[expose] public section
 
@@ -47,7 +50,7 @@ theorem wrote_vals (bs' : List ByteG) (off : Nat) (data : List w8) (h : off + da
 variable [os.Assumptions] in
 /-- **`File.WriteAt` of bbolt's file**, in either mode (see the file header). -/
 theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
-    (hWC : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG))
+    (hWC : os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt)
     (L : List (Nat × Nat)) (m : OsMeta) (xs : List ByteG)
@@ -55,8 +58,6 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     (hlt : off.toNat + data.length < 2 ^ 63) (hpos : 0 < data.length)
     (hxl : xs.length = min (off.toNat + data.length) m.size - min off.toNat m.size) (hns : bNsOk p)
     (hcr : p.cs ≠ none → off.toNat + data.length ≤ m.size ∧
-      -- interim: removed when CrashIL WriteAt covers long writes
-      data.length ≤ 0x40000000 ∧
       ∀ k, off.toNat ≤ k → k < off.toNat + data.length → ∀ X, RefImg X C →
         8192 ≤ k ∧ ¬ protData X C k) :
     {{ osInv (GF := GF) ∗ bCsInv p ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
@@ -98,7 +99,7 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := Hj
     exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, rfl, by simp only [os.pwPostE, pwPost, announce_maps]⟩
   | some c =>
-    obtain ⟨hin, hlen, hun⟩ := hcr (by rw [hc]; exact fun h => nomatch h)
+    obtain ⟨hin, hun⟩ := hcr (by rw [hc]; exact fun h => nomatch h)
     have hmin : min off.toNat m.size = off.toNat := by omega
     have hxl' : xs.length = data.length := by rw [hxl]; omega
     rw [hmin]
@@ -122,9 +123,9 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     · unfold csOwnIL csOwnL; iframe; ipureintro; exact Hlo
     have hunp : ∀ k, off.toNat ≤ k → k < off.toNat + data.length → 8192 ≤ k ∧ ¬ protData a.xcur a.cur k :=
       fun k h1 h2 => by rw [hcur]; exact hun k h1 h2 a.xcur (hcur ▸ hI.1)
-    have hobl := bDur_write_idle a hph m bs 0 0 off.toNat data hD hin hunp hlh
+    have hobl := bDur_write_idleC a hph m bs 0 0 off.toNat data hD hin hunp hlh
     iapply (hWC f fd name dqf sl data dqs off dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs xs hd hwr h0
-      hin (by omega) hlt hpos hlen hxl' (hns c hc)
+      hin (by omega) hlt hpos hxl' (hns c hc)
       (fun nn m' bs' hR => ⟨fun _ => (hobl nn m' bs' hR).1,
         fun hl t n hfr _ => (hobl nn m' bs' hR).2 hl t n hfr⟩)) $$ [Hf Hsl Hfd Hown Hxs Hc]
     · iframe; iframe #
@@ -138,8 +139,8 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     iapply HΦ $$ %(W64 data.length) %interface.nil
     iframe Hf Hsl Hfd
     have hbl' : bs'.length = m'.size :=
-      (wreach_inside hR hin hbl hW0.2.2.1 hW0.2.2.2).2.2.2.1.trans hsz.symm
-    obtain ⟨hs', -, -, -, -, hout, hxs'⟩ := wreach_inside hR hin hbl hW0.2.2.1 hW0.2.2.2
+      (wreachC_inside hR hin hbl hW0.2.2.1 hW0.2.2.2).2.2.2.1.trans hsz.symm
+    obtain ⟨hs', -, -, -, -, hout, hxs'⟩ := wreachC_inside hR hin hbl hW0.2.2.1 hW0.2.2.2
     have hyl : ((bs'.drop off.toNat).take data.length).length = data.length := by
       simp only [List.length_take, List.length_drop]; omega
     have hdo : DurOut ((off.toNat, data.length) :: L) bs' := by

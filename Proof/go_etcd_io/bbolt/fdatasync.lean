@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.bbolt.fdatasync
 public import Spec.os.File__Fd
 public import Spec.syscall.Fdatasync
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
+public import Spec.os.CrashStILA
 
 @[expose] public section
 
@@ -61,6 +62,27 @@ theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; simp only [errnoErr, he.1, ↓reduceIte]; exact fun h => nomatch h
       · iapply hErr e he.1 $$ Hsys
+
+/-- `fdatasync.specC`'s proof: `os.File.Fd`, then `wp_bFdatasyncC` (the crash-mode sync whose
+value moves to idle, `syscall.Fdatasync.specCrashILA`). -/
+theorem fdatasync.wp_proofC (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := hG)) :
+    fdatasync.specC (GF := GF) (hG := hG) := by
+  intro db f fd p c C' C m o ys dqf dq hc hns ho hys
+  wp_start as ⟨#Hos, #Hinv, Hf, Hfo, Hfd, Hm, Hys⟩
+  wp_auto
+  wp_apply hFd f fd p.path dq $$ [Hfo] as Hfo
+  · rw [← fileOwn_eq]; iexact Hfo
+  try wp_auto
+  wp_apply wp_bFdatasyncC hSA fd dq (dbFd p.ino) p c hc C' C m o ys rfl hns ho hys
+    $$ [Hfd Hm Hys] as %e ⟨Hfd, %he, Hr⟩
+  · iframe; iframe #
+  subst he
+  ihave Hfo : fileOwn f fd p.path dq $$ [Hfo]
+  · rw [fileOwn_eq]; iexact Hfo
+  iapply HΦ
+  iframe Hf Hfd Hfo Hr
+  ipureintro; simp [errnoErr]
 
 end proof
 
