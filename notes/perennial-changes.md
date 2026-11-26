@@ -4831,3 +4831,32 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   precondition changed. Here only the callers' `wp_apply … as %b -` change (the result is no longer an
   existential; `generalize` where the proof cases on it), on branch `time-compare/2026-11-26`.
 - **Status.** Proposed (the pin bump waits for the coordinator).
+
+## `strconv.AppendInt`/`AppendUint`/`AppendBool`/`AppendFloat` are names only (2026-11-26, dsv-retire-3, #49 step 3)
+
+- **Limitation.** Perennial's `strconv.toml` translates `FormatInt`/`FormatUint`/`FormatBool` (over
+  `internal/strconv`'s `formatBits`, `small`) but not the `Append*` forms, so no spec exists for them.
+  zerolog's JSON encoder (`internal/json/types.go`: `AppendInt`, `AppendInts`, `AppendInt64`, `AppendUint32`,
+  `AppendBool`, and `appendFloat` → `strconv.AppendFloat(dst, val, 'f', -1, 64)`) calls them, so six of the
+  sixteen zerolog function axioms (`Event.{Int,Ints,Int64,Uint32,Bool,Float64}.wp_proof`) cannot be proved
+  from zerolog's translation.
+- **Workaround.** None: the six stay trust-boundary axioms (`Dsverify/Proof/github_com/rs/zerolog/Event__*.lean`).
+- **Proposed change.** Translate and prove `AppendInt`, `AppendUint` (over the translated `formatBits` with
+  `append_ = true`, and `small`) and `AppendBool` (two `append`s): small. `AppendFloat` is `genericFtoa`
+  (Ryu, `%e`/`%f`/`%g` formatting, the decimal fallback): large; a spec "appends some bytes" over a model of
+  it, or its translation, reviewed on its own.
+- **Status.** Open.
+
+## `io.isInit` hides `io.Discard`'s value (2026-11-26, dsv-retire-3, #49 step 3)
+
+- **Limitation.** Perennial's `io.isInit` holds `∃ w : GoInterface, Discard ↦□ w`, not
+  `Discard ↦□ interface.mk discard.ty #discard.mk` (what io's initializer stores), and Perennial has no spec of
+  `discard.Write`/`WriteString`. A client that writes to `io.Discard` (or to `io/ioutil.Discard`, which copies
+  it) therefore cannot prove the call: zerolog's `Event.Msg` writes the event to its logger's writer, which
+  for `New(nil)` is `levelWriterAdapter{ioutil.Discard}`, so `Event.Msg.wp_proof` cannot be proved from
+  zerolog's translation (its `New(nil)` and the level methods only copy the writer: provable).
+- **Workaround.** None: `Event.Msg.wp_proof` stays an axiom.
+- **Proposed change.** `io.isInit`'s `"#HDiscard"` names the value (`Discard ↦□ interface.mk discard.ty
+  #(discard.mk)`; raft's initializer, which loads it, is unaffected), and specs of `discard.Write`,
+  `WriteString` and `ReadFrom` (`Write` returns `(len p, nil)` and reads nothing of `p`).
+- **Status.** Open.

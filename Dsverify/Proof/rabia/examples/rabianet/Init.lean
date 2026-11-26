@@ -22,7 +22,6 @@ public import Dsverify.Proof.rabia.internal.message.Init
 public import Dsverify.Proof.rabia.internal.tcp.Init
 public import Dsverify.Proof.rabia.roles.server.Init
 public import Proof.runtime.PkgInitExt
-public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init

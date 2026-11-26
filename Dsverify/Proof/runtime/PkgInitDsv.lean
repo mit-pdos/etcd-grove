@@ -14,7 +14,6 @@ public import Dsverify.Code.encoding.gob
 public import Dsverify.Code.github_com.go_redis.redis.v8.chunk0
 public import Dsverify.Code.github_com.gogo.protobuf.gogoproto
 public import Dsverify.Code.github_com.gogo.protobuf.proto
-public import Dsverify.Code.github_com.rs.zerolog
 public import Dsverify.Code.google_golang_org.grpc
 public import Dsverify.Code.gopkg_in.yaml_v2
 public import Net.Code.net.http.chunk0
@@ -39,8 +38,6 @@ theorem ExternalInit.github_com_gogo_protobuf_gogoproto [GooseExts] [GoGlobalCon
     ExternalInit pkg_id.github_com.gogo.protobuf.gogoproto _root_.Perennial.github_com.gogo.protobuf.gogoproto.initialize' := ⟨⟩
 theorem ExternalInit.github_com_gogo_protobuf_proto [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.github_com.gogo.protobuf.proto _root_.Perennial.github_com.gogo.protobuf.proto.initialize' := ⟨⟩
-theorem ExternalInit.github_com_rs_zerolog [GooseExts] [GoGlobalContext] :
-    ExternalInit pkg_id.github_com.rs.zerolog _root_.Perennial.github_com.rs.zerolog.initialize' := ⟨⟩
 theorem ExternalInit.google_golang_org_grpc [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.google_golang_org.grpc _root_.Perennial.google_golang_org.grpc.initialize' := ⟨⟩
 theorem ExternalInit.gopkg_in_yaml_v2 [GooseExts] [GoGlobalContext] :

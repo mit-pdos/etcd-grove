@@ -29,20 +29,8 @@ axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
 axiom Perennial.github_com.rs.zerolog.Event.Bool.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Float64.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Int.wp_proof
-axiom Perennial.github_com.rs.zerolog.Event.Int64.wp_proof
-axiom Perennial.github_com.rs.zerolog.Event.Ints.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Msg.wp_proof
-axiom Perennial.github_com.rs.zerolog.Event.Str.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Uint32.wp_proof
-axiom Perennial.github_com.rs.zerolog.Logger.Debug.wp_proof
-axiom Perennial.github_com.rs.zerolog.Logger.Error.wp_proof
-axiom Perennial.github_com.rs.zerolog.Logger.Info.wp_proof
-axiom Perennial.github_com.rs.zerolog.Logger.Trace.wp_proof
-axiom Perennial.github_com.rs.zerolog.Logger.Warn.wp_proof
-axiom Perennial.github_com.rs.zerolog.New.wp_proof
-axiom Perennial.github_com.rs.zerolog.ParseLevel.wp_proofWarn
-axiom Perennial.github_com.rs.zerolog.SetGlobalLevel.wp_proof
-axiom Perennial.github_com.rs.zerolog.wp_initialize'
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initFuncsOk
@@ -158,7 +146,6 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
-axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
@@ -399,8 +386,6 @@ opaque Perennial.encoding.gob.wireBytes
 opaque Perennial.encoding.gob.wireFits
 opaque Perennial.encoding.json.tokJson
 opaque Perennial.github_com.despreston.go_craq.StdLogger
-opaque Perennial.github_com.rs.zerolog.eventTok
-opaque Perennial.github_com.rs.zerolog.loggerMade
 opaque Perennial.net.http.godebugHttpmuxgo121
 opaque Perennial.raxos.msg.clientMI
 opaque Perennial.raxos.msg.replicaMI
