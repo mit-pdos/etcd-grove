@@ -265,7 +265,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : raxos.examples.quepaxanet.Assumptions]
 variable [π : NetProtoGS] [qv : hyp.QpVocab GF]
-variable [net.Assumptions] [net.FieldAssumptions] [_root_.Perennial.bufio.Assumptions]
+variable [net.Assumptions] [_root_.Perennial.bufio.Assumptions]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
 variable [QpBufioDeps GF]
 
@@ -326,11 +326,14 @@ theorem wp_connect (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   ihave %Hok2 := addrTok_ok (proxyAddr k) $$ [Hpr]
   · iapply addrProto_tok $$ Hpr
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp (proxyAddr k) iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (proxyInProto γ k) silentProto [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %cv %err (⟨%Herr, %cn, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Hok2
     isplit
     · itrivial

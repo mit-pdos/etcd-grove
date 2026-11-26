@@ -8,6 +8,7 @@ hijacks; either way the deferred calls (the context's cancel, the recover closur
 -/
 module
 
+public import Net.Proof.net.Errors
 public import Net.Spec.net.http.conn__serve
 public import Net.Spec.net.http.conn__readRequest
 public import Net.Spec.net.http.conn__hijacked
@@ -43,7 +44,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
 variable [package_sem : context.Assumptions] [bufio.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [net.Assumptions]
 
 set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 20000 in
@@ -66,7 +67,12 @@ theorem conn.serve.wp_proof
     (wp_RReset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG))
     (wp_NewReader : EtcdGrove.bufio.NewReader.specFresh (GF := GF) (hG := hG))
     (wp_WReset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
-    (wp_NewWriterSize : EtcdGrove.bufio.NewWriterSize.specRep (GF := GF) (hG := hG)) :
+    (wp_NewWriterSize : EtcdGrove.bufio.NewWriterSize.specRep (GF := GF) (hG := hG))
+    (wp_newPrinter : fmt.newPrinter.spec (GF := GF) (hG := hG))
+    (wp_writeString : fmt.buffer.writeString.spec (GF := GF) (hG := hG))
+    (wp_free : fmt.pp.free.spec (GF := GF) (hG := hG))
+    (wp_Choose : internal.gomodel.Choose.spec (GF := GF) (hG := hG))
+    (wp_ChooseUint64 : internal.gomodel.ChooseUint64.spec (GF := GF) (hG := hG)) :
     conn.serve.spec (GF := GF) (hG := hG) := by
   intro c s t cn a la ra P Q Z path ctx hc hp hlen hQ
   wp_start as ⟨#Henv, #Hrenv, #Hctxi, #Hsc, #Hsd, #Hss, #Hkeys, #Hpools, #Hrpool, ⟨%tm, #Htm⟩, #Hbg, Hc,
@@ -88,12 +94,10 @@ theorem conn.serve.wp_proof
   subst Hraeq
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType net.TCPAddr.ty) (m := go!"String")]
-  unfold net.TCPAddr.String.impl
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %rmt
-  wp_auto
+  wp_call
+  try wp_auto
+  wp_apply net.wp_extAnyString as %rmt
+  try wp_auto
   ipersist Hrma
   wp_apply wp_LocalAddr $$ [$Hca]
   subst Hlaeq
@@ -242,7 +246,7 @@ theorem conn.serve.wp_proof
     all_goals try simp only [decide_true, decide_false, Bool.true_eq_false]
     all_goals wp_auto
     all_goals try (
-      wp_apply wp_Fprintf_noVerb ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ _ rfl (sendTok (Gg := hG.goose_globalGS) cn true Q [])
+      wp_apply wp_Fprintf_noVerb wp_newPrinter wp_writeString wp_free wp_Choose wp_ChooseUint64 ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ _ rfl (sendTok (Gg := hG.goose_globalGS) cn true Q [])
           (fun _ _ => iprop(True)) $$ [$Hsend] as %n0 %e0 -
       · iintro %sl %Ψ Hs Hsl HΨ
         simp only [net.connIface]

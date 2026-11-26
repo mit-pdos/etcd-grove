@@ -103,8 +103,7 @@ theorem etcd_authlease.wp_foreign [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 /-- **authlease's `run`** (`run.lean`), over authkv's linked `SetUp` (`auth/Link.lean`) and the per-member
 lessor law. -/
-theorem etcd_authlease.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem etcd_authlease.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_authlease.run.spec (GF := GF) (hG := hG) :=
   etcd_authlease.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authlease.wp_newUserClient etcd_authlease.wp_barriers
@@ -115,8 +114,7 @@ theorem etcd_authlease.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_i
 
 /-- **authlease's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/Main.lean`). -/
-theorem etcd_authlease.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_authlease.wp_Main :
     etcd_authlease.Main.spec (GF := GF) (hG := hG) :=
   etcd_authlease.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     (etcdstart.StartMembersAuth.wp_proof (etcdstart.StartMemberAuth.wp_proof

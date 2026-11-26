@@ -28,7 +28,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [net.Assumptions]
 
 theorem Dial.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
@@ -82,7 +82,10 @@ theorem Dial.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · ipureintro; intro h; cases h
-    iapply errAny_resErr $$ HE
+    ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ [Hpkg]
+    · iPkgInit
+    ihave #Hsys := net.errnoOk_of_poll $$ Hpoll
+    iapply errAny_resErr $$ Hsys HE
 
 end proof
 

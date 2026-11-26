@@ -159,7 +159,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- The stream's state after accepting `out` (the file header). -/
 def os.fileW (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m0 : OsMeta)

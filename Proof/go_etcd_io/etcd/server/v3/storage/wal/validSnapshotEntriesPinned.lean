@@ -53,7 +53,7 @@ variable [errs_sem : _root_.Perennial.errors.Assumptions]
 
 /-- See the spec file's header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinned
-    [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+ [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr) (hUs : U.SnapCoh)
     (HsO : Loc → HardStateM → IProp GF) (hHs : WalHsOwn P U HsO)
     (hEnv : WalDecEnvSupply (GF := GF))

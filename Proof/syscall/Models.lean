@@ -9,6 +9,7 @@ module
 public import Code.syscall
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.fmt.SprintfModel
+public import Perennial.Proof.arbitraryString
 
 @[expose] public section
 

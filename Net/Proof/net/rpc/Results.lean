@@ -2,8 +2,9 @@
 The results of the net/rpc model (`models/net/rpc`, project models-net; phase 5.2 of
 `notes/dsverify-net-port-plan.md`, the Lean half): each proved spec with its callees' proofs
 plugged in (the net extension's `Conn.Read` for the reads, Perennial's `sync.Mutex`), restated, with
-`#print axioms` of each (none beyond Lean's; the translation's trusted code, `go/token.IsExported`
-and the model's stuck point `stuck`, `Net/TrustedCode/net/rpc.lean`, is not an axiom: the proofs
+`#print axioms` of each (none beyond Lean's; `go/token.IsExported` is a Go model,
+`models/go/token/model.go`, since 2026-11-24, translated and proved like the rest; the model's
+stuck point `stuck`, trusted code in `Net/TrustedCode/net/rpc.lean`, is not an axiom: the proofs
 show `stuck` is never reached).
 
 * the wire's helpers: `putU64`, `getU64`, `putString`, `putFrame`, `getString`;
@@ -150,7 +151,7 @@ theorem getCodec.wp [sync.Assumptions] : getCodec.spec (GF := GF) (hG := hG) :=
 theorem SetCodec.wp [sync.Assumptions] : SetCodec.spec (GF := GF) (hG := hG) :=
   SetCodec.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock
 
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 
 theorem readFull.wp : readFull.spec (GF := GF) (hG := hG) :=
   readFull.wp_proof net.Conn.Read.wp_proof
@@ -182,7 +183,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 theorem Call.done.wp : Call.done.spec (GF := GF) (hG := hG) := Call.done.wp_proof
@@ -234,7 +235,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 theorem serverCodec.ReadRequestHeader.wp :
@@ -365,7 +366,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [HasExt netExt] [net.Assumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [NetProtoGS]
 
 /-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`

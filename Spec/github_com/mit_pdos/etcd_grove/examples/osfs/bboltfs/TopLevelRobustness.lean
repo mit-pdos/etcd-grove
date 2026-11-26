@@ -52,7 +52,7 @@ needs), no thread is stuck and none has an unrecovered panic. (Until 2026-11-24 
 step count bounded; Perennial's `goose_crash_adequacy_below` takes it along the execution.) -/
 def bootCrashRobust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (dir : GoString)
+    (dir : GoString)
     (σ : state) (g : GlobalState)
     (Hinit : FsInit (extLocal fsExt σ.world))
     (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)

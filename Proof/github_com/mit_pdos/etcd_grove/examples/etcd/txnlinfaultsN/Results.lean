@@ -60,9 +60,8 @@ variable [NaInvG GF]
 
 /-- **`Main(k, clients, ops, sched)` does not panic, for every schedule** (`MainLinked.lean`'s
 `etcd_txnlinfaultsN.wp_Main`). -/
-theorem txnlinfaultsN_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem txnlinfaultsN_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_txnlinfaultsN.Main.spec (GF := GF) (hG := hG) :=
   etcd_txnlinfaultsN.wp_Main
 

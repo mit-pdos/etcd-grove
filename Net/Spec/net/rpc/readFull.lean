@@ -36,7 +36,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 
 /-- What `readFull` and `readFrame` return on a failure, besides `nil`: `io.EOF` (`eof`), only with
 nothing read (`got = []`) when `first`; `io.ErrUnexpectedEOF` (`ueof`); or the `Read`'s error, the

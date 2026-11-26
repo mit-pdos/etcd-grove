@@ -104,7 +104,7 @@ end hyp
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [π : NetProtoGS]
 
 /-- **The codec's per-machine boot resource** (the file header): what net/rpc's package
 initialization leaves on a machine for `SetCodec` and the server: `codecMu`'s mutex, the

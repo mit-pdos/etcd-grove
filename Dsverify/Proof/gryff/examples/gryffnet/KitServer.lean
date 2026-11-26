@@ -170,7 +170,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
 variable [strconvA : strconv.Assumptions]
-variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
+variable [io.Assumptions] [net.Assumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
 variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions] [randA : lib.RandSeedHyp GF]
 variable [mA : gryff.src.masterlib.Assumptions] [sA : gryff.src.serverlib.Assumptions]

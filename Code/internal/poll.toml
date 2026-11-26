@@ -15,6 +15,10 @@ translate = ["!*",
   # (2026-11-14, `io.Copy` of two files: notes/wal-fsext-plan.md, "io.Copy log") what os's trusted
   # `File.copyFileRange` (its inlined `CopyFileRange` loop) calls: the errno dispatch, Go's body
   "handleCopyFileRangeErr", "maxCopyFileRangeRound",
+  # (2026-11-24, Go-model overlays S6) the methods of the two error types net's models return, with
+  # Go's bodies (what net's translated `OpError.Error`/`Timeout`/`Temporary` call)
+  "errNetClosing.Error", "errNetClosing.Timeout", "errNetClosing.Temporary",
+  "DeadlineExceededError.Error", "DeadlineExceededError.Timeout", "DeadlineExceededError.Temporary",
 ]
 
 imports = ["!*", "errors", "sync", "syscall", "internal/syscall/unix"]

@@ -40,7 +40,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.client0
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.client0.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.client0.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -82,7 +82,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.client1
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.client1.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.client1.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -124,7 +124,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.client2
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.client2.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.client2.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -166,7 +166,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.client3
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.client3.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.client3.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -208,7 +208,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.client4
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.client4.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.client4.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -250,7 +250,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.server1
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server1.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server1.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -292,7 +292,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.server2
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server2.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server2.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -334,7 +334,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.server3
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server3.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server3.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -376,7 +376,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.server4
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server4.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server4.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -418,7 +418,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.server5
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server5.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server5.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
@@ -460,7 +460,7 @@ namespace github_com.despreston.go_craq.examples.craqnet.cmd.server6
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server6.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server6.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 

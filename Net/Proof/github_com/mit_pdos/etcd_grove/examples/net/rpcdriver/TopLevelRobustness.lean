@@ -63,7 +63,7 @@ theorem addrUnset_lisUnset (a : GoString) (h : addrOk a = true) :
 end start
 
 theorem rpcdriver_robust : rpcdriver_robust.spec := by
-  intro _ lctx sem srv_sem cli_sem field_sem _ σs σc g hd
+  intro _ lctx sem srv_sem cli_sem _ σs σc g hd
   refine robust_of_distBootIT (GF := netGF) rpcAddrs (system σs σc) g rpcThreads rpcSteps
     (fun hg hl => ⟨extsInitgP_of_init ⟨net_init_compat, trivial⟩ hg,
       fun m hm => extsInitP_of_init ⟨net_init_compat, trivial⟩ (hl m hm)⟩) ?_ hd.1 hd.2.1

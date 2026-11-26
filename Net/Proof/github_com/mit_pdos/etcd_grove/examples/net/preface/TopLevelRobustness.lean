@@ -35,7 +35,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `preface_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/preface/TopLevelRobustness.lean`). -/
 theorem preface_crash_robust : preface_crash_robust.spec := by
-  intro lctx sem package_s package_c package_j field_sem σs σc σj g bound hf hig
+  intro lctx sem package_s package_c package_j σs σc σj g bound hf hig
   -- `Robust`'s premise `extsInitGlobal g` is, for `netExts = [netExt]`, no connection
   -- (`NetGlobal.init`, `GooseLang/Ext/Net/Impl.lean`)
   have Hconns : (extGlobal netExt g.globalWorld).conns = ∅ := hig.1

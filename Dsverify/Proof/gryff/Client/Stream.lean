@@ -144,7 +144,7 @@ end req
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

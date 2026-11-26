@@ -88,9 +88,10 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_math_rand : G pkg_id.math.rand = isPkgInit (PROP := IProp GF) pkg_id.math.rand
   e_time : G pkg_id.time = isPkgInit (PROP := IProp GF) pkg_id.time
   e_context : G pkg_id.context = isPkgInit (PROP := IProp GF) pkg_id.context
+  e_internal_filepathlite : G pkg_id.internal.filepathlite = isPkgInit (PROP := IProp GF) pkg_id.internal.filepathlite
   e_internal_oserror : G pkg_id.internal.oserror = isPkgInit (PROP := IProp GF) pkg_id.internal.oserror
-  e_syscall : G pkg_id.syscall = isPkgInit (PROP := IProp GF) pkg_id.syscall
   e_io_fs : G pkg_id.io.fs = isPkgInit (PROP := IProp GF) pkg_id.io.fs
+  e_syscall : G pkg_id.syscall = isPkgInit (PROP := IProp GF) pkg_id.syscall
   e_internal_testlog : G pkg_id.internal.testlog = isPkgInit (PROP := IProp GF) pkg_id.internal.testlog
   e_internal_syscall_unix : G pkg_id.internal.syscall.unix = isPkgInit (PROP := IProp GF) pkg_id.internal.syscall.unix
   e_internal_poll : G pkg_id.internal.poll = isPkgInit (PROP := IProp GF) pkg_id.internal.poll
@@ -236,17 +237,21 @@ theorem wf_context {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.context G :=
   And.intro h.e_context ⟨wf_errors h, wf_sync h, wf_sync_atomic h, wf_time h, True.intro⟩
 
+theorem wf_internal_filepathlite {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.filepathlite G :=
+  And.intro h.e_internal_filepathlite ⟨wf_errors h, wf_internal_stringslite h, True.intro⟩
+
 theorem wf_internal_oserror {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.oserror G :=
   And.intro h.e_internal_oserror ⟨wf_errors h, True.intro⟩
 
-theorem wf_syscall {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.syscall G :=
-  And.intro h.e_syscall ⟨wf_sync h, wf_errors h, wf_internal_strconv h, wf_internal_oserror h, True.intro⟩
-
 theorem wf_io_fs {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io.fs G :=
   And.intro h.e_io_fs ⟨wf_time h, wf_internal_oserror h, wf_errors h, wf_io h, True.intro⟩
+
+theorem wf_syscall {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.syscall G :=
+  And.intro h.e_syscall ⟨wf_sync h, wf_errors h, wf_internal_strconv h, wf_internal_gomodel h, wf_internal_oserror h, True.intro⟩
 
 theorem wf_internal_testlog {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.testlog G :=
@@ -262,11 +267,11 @@ theorem wf_internal_poll {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_os {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.os G :=
-  And.intro h.e_os ⟨wf_io h, wf_io_fs h, wf_sync h, wf_syscall h, wf_internal_testlog h, wf_internal_poll h, wf_errors h, True.intro⟩
+  And.intro h.e_os ⟨wf_internal_gomodel h, wf_internal_filepathlite h, wf_io h, wf_io_fs h, wf_sync h, wf_syscall h, wf_internal_testlog h, wf_internal_poll h, wf_errors h, wf_sync_atomic h, wf_time h, True.intro⟩
 
 theorem wf_net {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net G :=
-  And.intro h.e_net ⟨wf_context h, wf_errors h, wf_syscall h, wf_os h, wf_time h, wf_io h, wf_internal_poll h, True.intro⟩
+  And.intro h.e_net ⟨wf_context h, wf_errors h, wf_os h, wf_internal_poll h, wf_syscall h, wf_time h, wf_io h, True.intro⟩
 
 theorem wf_crypto_tls {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.crypto.tls G :=
@@ -346,7 +351,7 @@ theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_go_token {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.go.token G :=
-  And.intro h.e_go_token True.intro
+  And.intro h.e_go_token ⟨wf_internal_gomodel h, True.intro⟩
 
 theorem wf_net_rpc {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.rpc G :=
@@ -582,20 +587,25 @@ theorem wfO_context {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.context ∉ ownedPkgs) (hS _ hm))).trans
     h.e_context) ⟨wfO_errors h S hS, wfO_sync h S hS, wfO_sync_atomic h S hS, wfO_time h S hS, True.intro⟩
 
+theorem wfO_internal_filepathlite {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.filepathlite (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.filepathlite ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_filepathlite) ⟨wfO_errors h S hS, wfO_internal_stringslite h S hS, True.intro⟩
+
 theorem wfO_internal_oserror {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.oserror (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.oserror ∉ ownedPkgs) (hS _ hm))).trans
     h.e_internal_oserror) ⟨wfO_errors h S hS, True.intro⟩
 
-theorem wfO_syscall {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.syscall (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.syscall ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_syscall) ⟨wfO_sync h S hS, wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_oserror h S hS, True.intro⟩
-
 theorem wfO_io_fs {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.io.fs (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.io.fs ∉ ownedPkgs) (hS _ hm))).trans
     h.e_io_fs) ⟨wfO_time h S hS, wfO_internal_oserror h S hS, wfO_errors h S hS, wfO_io h S hS, True.intro⟩
+
+theorem wfO_syscall {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.syscall (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.syscall ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_syscall) ⟨wfO_sync h S hS, wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_gomodel h S hS, wfO_internal_oserror h S hS, True.intro⟩
 
 theorem wfO_internal_testlog {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.testlog (gOff S G) :=
@@ -615,12 +625,12 @@ theorem wfO_internal_poll {G : GoString → IProp GF} (h : KitG G) (S : List GoS
 theorem wfO_os {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.os (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.os ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_os) ⟨wfO_io h S hS, wfO_io_fs h S hS, wfO_sync h S hS, wfO_syscall h S hS, wfO_internal_testlog h S hS, wfO_internal_poll h S hS, wfO_errors h S hS, True.intro⟩
+    h.e_os) ⟨wfO_internal_gomodel h S hS, wfO_internal_filepathlite h S hS, wfO_io h S hS, wfO_io_fs h S hS, wfO_sync h S hS, wfO_syscall h S hS, wfO_internal_testlog h S hS, wfO_internal_poll h S hS, wfO_errors h S hS, wfO_sync_atomic h S hS, wfO_time h S hS, True.intro⟩
 
 theorem wfO_net {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.net (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.net ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_net) ⟨wfO_context h S hS, wfO_errors h S hS, wfO_syscall h S hS, wfO_os h S hS, wfO_time h S hS, wfO_io h S hS, wfO_internal_poll h S hS, True.intro⟩
+    h.e_net) ⟨wfO_context h S hS, wfO_errors h S hS, wfO_os h S hS, wfO_internal_poll h S hS, wfO_syscall h S hS, wfO_time h S hS, wfO_io h S hS, True.intro⟩
 
 theorem wfO_crypto_tls {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.crypto.tls (gOff S G) :=
@@ -715,7 +725,7 @@ theorem wfO_runtime {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
 theorem wfO_go_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.go.token (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.go.token ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_go_token) True.intro
+    h.e_go_token) ⟨wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_github_com_anishathalye_porcupine {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine (gOff S G) :=

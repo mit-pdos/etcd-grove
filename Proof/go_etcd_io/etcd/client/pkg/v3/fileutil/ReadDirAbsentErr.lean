@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 theorem fileutil.ReadDir.wp_proofAbsentErr
     (wp_Strings : sort.Strings.spec (GF := GF) (hG := hG))
@@ -75,7 +75,7 @@ theorem fileutil.ReadDir.wp_proofAbsentErr
     iintro Hf %hF
     exact hF.elim
   wp_apply (fileutil.ReadDir.wp_core wp_Strings wp_Ext (child d b) sl gs es dqs _ _ _
-    (fun _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝)) (fun _ => False) Er Er
+    (fun _ _ => iprop(⌜False⌝)) (fun _ => iprop(⌜False⌝)) (fun _ => False) Er Er
     hlen (fun _ h => h.elim) wpOpen wpRead wpClose) $$ [Hp Hperm Hn Hsl]
     as %r %err ⟨Hsl, ⟨Hp, Hperm, Hn⟩, Hr⟩
   · iframe

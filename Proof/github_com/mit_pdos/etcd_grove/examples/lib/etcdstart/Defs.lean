@@ -827,7 +827,7 @@ theorem tableAt_mono (c : GoString) (P Q : GoString → IProp GF) :
 open Iris.ProofMode Net in
 /-- **A bridge's address set to its target's table** (phase 7's switch, SW1): what `Listen` left at
 `b` (`netAddrLeft`) sets `b`'s protocols to those of the table term `c` serves, at `c`'s net names
-(`addr_set_proto_tok`, the registry from `c`'s protocols, `addrProto_regCtx`): `b` serves the term
+(`grpc_addr_set_tok`, the registry and slot map from `c`'s, `grpcAddrAt_regCtx`, `grpcAddrAt_slots`): `b` serves the term
 (`grpcServerAt`), and both addresses serve one table, what `bridge.New` takes. -/
 theorem grpcServerAt_bridge (b c : GoString) (ics : List GoFunc)
     (regs : List (GoString × GoFunc × GoInterface))
@@ -844,22 +844,15 @@ theorem grpcServerAt_bridge (b c : GoString) (ics : List GoFunc)
   icases Hleft with ⟨%hX', Hp, #Hv, #Hti⟩
   have h : hX' = hX := proof_irrel _ _
   subst h
-  iunfold grpcAddrAt at Ha
-  icases Ha with ⟨#Hpr, #Hsl⟩
-  ihave #Hreg := addrProto_regCtx (Gg := hG.goose_globalGS) c _ _ $$ Hpr
-  imod addr_set_proto_tok (Gg := hG.goose_globalGS) ⊤ b (grpcCliPI (grpcStartSvc ics regs tys sms))
-    (grpcSrvPI (grpcStartSvc ics regs tys sms)) $$ Hreg Hp Hv Hti with #Hpb
-  ihave #Hb : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) b
-      (grpcStartSvc ics regs tys sms) $$ []
-  · unfold grpcAddrAt; iframe Hpb Hsl
-  ihave #Hc' : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) c
-      (grpcStartSvc ics regs tys sms) $$ []
-  · unfold grpcAddrAt; iframe Hpr Hsl
+  ihave #Hreg := grpcAddrAt_regCtx (Gg := hG.goose_globalGS) c _ $$ Ha
+  ihave #Hsl := grpcAddrAt_slots (Gg := hG.goose_globalGS) c _ $$ Ha
+  imod grpc_addr_set_tok (Gg := hG.goose_globalGS) (π := π) (σ := σ) ⊤ b
+    (grpcStartSvc ics regs tys sms) $$ Hreg Hsl Hp Hv Hti with #Hb
   imodintro
   isplitl []
   · unfold grpcServerAt; iexists _, π, σ; iexact Hb
   iexists _, π, σ
-  iframe Hb Hc'
+  iframe Hb Ha
 
 /-- **The level-0 token of a member's `GoAttach` resources, lent out** (decision 1b, 2026-11-24): the
 thread holding `srvGoRes` (its own thread token, given to `Start`) borrows its level 0 for its client

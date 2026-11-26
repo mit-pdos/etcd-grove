@@ -36,7 +36,7 @@ theorem frame_walRecEnc_lt (x : WalRec) (h : recSize (recOf x) < 2 ^ 47) :
   omega
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofTail [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofTail
     (Mr : WalMarshal)
     (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (W := W) Mr := by

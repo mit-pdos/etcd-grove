@@ -46,7 +46,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.FieldAssumptions] [replica.defs.Assumptions]
+variable [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean)
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
@@ -387,7 +387,9 @@ theorem master.Master.run.wp_proof
     rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nodesS0.len by have := Hj.2.2.1; word)]
     ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => rpcHttp W a) hra $$ Haddrs
     wp_auto
-    wp_apply DialHTTP_tcp W _ $$ [$Hra] as %c %derr Hd
+    ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply DialHTTP_tcp W _ $$ [$HnetPk $Hra] as %c %derr Hd
     wp_apply wp_store_slice_index $$ [$Hns] as Hns
     · ipureintro; have := Hj.2.2.1; word
     icases Hd with (⟨%Hd, #Hc⟩ | ⟨%Hd, #He⟩)

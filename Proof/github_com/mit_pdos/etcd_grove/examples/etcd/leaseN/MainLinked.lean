@@ -46,14 +46,13 @@ theorem etcd_leaseN.wp_check :
     client.v3.lessor.wp_Leases
 
 /-- **leaseN's `run` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/run.lean`). -/
-theorem etcd_leaseN.wp_run [_root_.Perennial.net.FieldAssumptions] :
+theorem etcd_leaseN.wp_run :
     etcd_leaseN.run.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.run.wp_proof etcdstart.wp_Serve etcd_leaseN.wp_check
 
 /-- **leaseN's `Main(k)` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseN/Main.lean`),
 under the semantic premises of its callees' linked results (putgetN's). -/
-theorem etcd_leaseN.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_leaseN.wp_Main :
     etcd_leaseN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcd_leaseN.wp_run mvcc.api.mvccApi_names_nonempty_law_holds

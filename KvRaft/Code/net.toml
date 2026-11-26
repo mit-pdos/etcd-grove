@@ -4,47 +4,67 @@
 # swap (etcd-dist D2, 2026-11-22) also the main tree's `net` (every project's `net=Net`; until then a
 # names-only translation, Code/net.toml).
 #
-# `net`'s package variables are trusted too, each with an initializer that does nothing (as
-# LinuxFs's `os.Stdin`, `Stdout`): the variables are not allocated, so code that reads one is stuck;
-# but for `errTimeout` (translated: `&timeoutError{}`, which DialTimeout's model returns), `ErrClosed`
-# (translated: `errClosed`) and `errClosed` (trusted: it holds `poll.ErrNetClosing`'s value,
-# Net/TrustedCode/net.lean).
+# (2026-11-24, Go-model overlays S6) Go's code is translated down to the socket: the types `conn`,
+# `TCPConn`, `TCPListener`, `netFD` and their methods (`ok()`, the `OpError`s), the interfaces,
+# `OpError` (with `Unwrap`), `timeoutError`, `TCPAddr`, `IP`. The Go model (`[model]` below,
+# models/net/model.go) replaces the layer under them: `netFD`'s methods, the socket options, the
+# listener's `accept`/`close`, `Listen`, `Dial`, `DialTimeout` and `TCPAddr.String`, over primitive
+# stubs (`trusted`: one net-extension operation each, Net/TrustedCode/net.lean). `OpError.Error`,
+# `Timeout` and `Temporary` are Go's (with `isConnError` and the interfaces `timeout`, `temporary`);
+# their specs take the precondition that the error is one net's models make (Upamanyu, D2). (`TCPConn.Read`, ...:
+# `conn`'s methods promoted to `*TCPConn`, so that goose emits their `MethodUnfold` facts.)
 #
-# Translated: the interfaces (`Conn`, `Listener`, `Addr`, `Error`); the error types `OpError` (with
-# `Unwrap`, so that `errors.Is` walks into its `Err`) and `timeoutError` (with its methods); the
-# address types `TCPAddr` (with `Network`) and `IP`. Trusted (Net/TrustedCode/net.lean): `conn`,
-# `TCPConn` (Go's `struct{ conn }`, so `*TCPConn`'s method set is Go's, with `conn`'s methods
-# promoted) and `TCPListener` with the layouts the models need (their instances in
-# Net/ManualProof/net.lean), and the functions and methods the examples (examples/net/) call.
-# (`TCPConn.Read`, ...: `conn`'s methods promoted to `*TCPConn`, so that goose emits their
-# `MethodUnfold` facts, Go's promotion through the embedded field: a `Conn` holding a `*TCPConn`.)
+# The verified build is `-tags netgo` (etc/goose.py's BUILD_TAGS: the splice needs a package
+# without cgo files). etcd's release builds use CGO_ENABLED=0 (scripts/build_lib.sh), which selects
+# the same files but `netgo_off.go` for `netgo_on.go` (the constant `netGoBuildTag`, read only by
+# the resolver's configuration, which the model replaces).
 translate = ["!*", "Conn", "Listener", "Addr", "Error",
-  "OpError", "OpError.Unwrap",
+  "OpError", "OpError.Unwrap", "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  "timeout", "temporary", "isConnError",
   "timeoutError", "timeoutError.Error", "timeoutError.Timeout", "timeoutError.Temporary",
   "timeoutError.Is", "errTimeout", "ErrClosed",
   "TCPAddr", "IP", "TCPAddr.Network",
-  "TCPConn.Read", "TCPConn.Write", "TCPConn.Close",
+  "conn", "conn.ok", "conn.Read", "conn.Write", "conn.Close",
+  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
+  "conn.LocalAddr", "conn.RemoteAddr", "conn.SetReadBuffer", "conn.SetWriteBuffer",
+  "TCPConn", "TCPConn.ok", "TCPConn.Read", "TCPConn.Write", "TCPConn.Close",
   "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline",
   "TCPConn.LocalAddr", "TCPConn.RemoteAddr",
   "TCPConn.SetReadBuffer", "TCPConn.SetWriteBuffer",
+  "TCPConn.CloseWrite", "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay",
+  "TCPConn.SetLinger",
+  "TCPListener", "TCPListener.ok", "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
+  "netFD", "ListenConfig", "KeepAliveConfig", "mptcpStatusListen",
   "IP.To4", "isZeros",
   # UDP (notes/net-udp.md): the address type, translated; `UDPConn` and its modeled calls trusted
   "UDPAddr"]
 imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/poll"]
-trusted = ["conn", "TCPConn", "TCPListener",
-  "Listen", "Dial", "DialTimeout",
-  "conn.Read", "conn.Write", "conn.Close",
-  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
-  "conn.LocalAddr", "conn.RemoteAddr",
-  "conn.SetReadBuffer", "conn.SetWriteBuffer",
-  "TCPConn.CloseWrite",
-  "TCPConn.SetKeepAlive", "TCPConn.SetKeepAlivePeriod", "TCPConn.SetNoDelay", "TCPConn.SetLinger",
-  "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
-  "OpError.Error", "OpError.Timeout", "OpError.Temporary",
-  "UDPConn", "ListenUDP", "UDPConn.WriteToUDP", "UDPConn.ReadFromUDP",
-  "TCPAddr.String",
-  # (the package variables: their initializers do nothing, below, but `errClosed`, `ErrClosed`)
-  "rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
+# The primitive stubs of the model (models/net/model.go; Net/TrustedCode/net.lean) and `errClosed`'s
+# initializer (it holds `poll.ErrNetClosing`'s value, the only value of its type).
+trusted = ["extListen", "extDial", "extAccept", "extRead", "extWrite", "extClose", "extLisClose",
+  "extCloseWrite", "extSetDeadline", "extSetSockopt",
+  "extAnyString", "extAnyW64", "extAnyBool", "extAnyErrno", "netClosingErr", "stuck",
+  "errClosed",
+  # UDP (notes/net-udp.md): lean's trusted `UDPConn` and its models, unchanged (etcd-grove#8, (a))
+  "UDPConn", "ListenUDP", "UDPConn.WriteToUDP", "UDPConn.ReadFromUDP"]
+
+[model]
+dir = "models/net"
+replaces = ["netFD.Read", "netFD.Write", "netFD.Close", "netFD.closeWrite",
+  "netFD.SetDeadline", "netFD.SetReadDeadline", "netFD.SetWriteDeadline", "netFD.accept",
+  "setReadBuffer", "setWriteBuffer", "setKeepAlive", "setLinger", "setNoDelay",
+  "setKeepAliveIdle",
+  "TCPListener.accept", "TCPListener.close",
+  "Listen", "Dial", "DialTimeout", "TCPAddr.String"]
+
+# `net`'s other package variables (the DNS configuration, the error values, the address constants,
+# the test hooks, the system-call hooks) are not translated. Their
+# initializers allocate a value or store a constant, a function value, an `errors.New` error or a
+# `godebug.New` setting (`&Setting{name: name}`); none panics (the `netip.MustParsePrefix` and
+# `IPv4`/`IPv4Mask` arguments are constants Go's own tests parse) and none has an effect beyond its
+# variable. The code the model translates reads none of them.
+[[skip]]
+names = ["rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
   "errCannotUnmarshalDNSMessage", "errCannotMarshalDNSMessage", "errServerMisbehaving",
   "errInvalidDNSResponse", "errNoAnswerFromDNSServer", "errServerTemporarilyMisbehaving",
   "netedns0", "distantFuture", "lookupOrderName", "defaultNS", "getHostname", "testHookLookupIP",
@@ -55,11 +75,13 @@ trusted = ["conn", "TCPConn", "TCPListener",
   "IPv4bcast", "IPv4allsys", "IPv4allrouter", "IPv4zero", "IPv6zero", "IPv6unspecified",
   "IPv6loopback", "IPv6interfacelocalallnodes", "IPv6linklocalallnodes",
   "IPv6linklocalallrouters", "classAMask", "classBMask", "classCMask", "protocols", "services",
-  "DefaultResolver", "_", "errMalformedDNSRecordsDetail", "readProtocolsOnce",
+  "DefaultResolver", "errMalformedDNSRecordsDetail", "readProtocolsOnce",
   "errNoSuitableAddress", "errMissingAddress", "errCanceled", "ErrWriteToConnected",
   "aLongTimeAgo", "noDeadline", "noCancel", "errNoSuchHost", "errUnknownPort",
-  "errClosed", "pollSplice", "_cgo_77133bf98b3a_C2func_getaddrinfo",
-  "_cgo_77133bf98b3a_C2func_getnameinfo", "_cgo_77133bf98b3a_Cfunc_free",
-  "_cgo_77133bf98b3a_Cfunc_freeaddrinfo", "_cgo_77133bf98b3a_Cfunc_gai_strerror",
-  "_cgo_77133bf98b3a_Cfunc_getaddrinfo", "_cgo_77133bf98b3a_Cfunc_getnameinfo",
-  "_cgo_77133bf98b3a_Cfunc_res_search", "_cgo_77133bf98b3a_Cfunc__Cmalloc"]
+  "pollSplice"]
+reason = "allocates or stores a constant, function value, errors.New error or godebug setting; cannot panic; no effect beyond the variable"
+
+# The blank variables: compile-time interface checks, a conversion of nil or of a constant.
+[[skip]]
+names = ["_@lookup.go:283", "_@net.go:609", "_@net.go:843", "_@net.go:844"]
+reason = "a conversion of a nil pointer or a constant to an interface: cannot panic; no effect"

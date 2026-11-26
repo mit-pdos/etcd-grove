@@ -109,7 +109,7 @@ theorem merged_cur {jr : Ino} {N : NameSet} {h h' : NamesH} {nm : GoString}
   rw [restrictN_lookup _ _ _ hN1, restrictN_lookup _ _ _ hb]
 
 /-- **The cleanup's rename law** (see the file header). -/
-theorem create_cleanupLaw [os.fileStat.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (qa : Qp)
+theorem create_cleanupLaw (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (qa : Qp)
     (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (Wn : List GoString) (c d : Qp)
     (hn : NamesH) (J : Ino) (f : Loc)
     (hok : AreaOk N h cl Wn) (hnm : walNameOk nm) (hNnm : N.Mem nm) (hnmO : NameOk nm)

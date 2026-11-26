@@ -132,28 +132,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
-/-- A `textproto.ProtocolError`'s `Error()` returns its message. -/
-theorem protocolError_msg (msg : GoString) :
-    ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-      WP (App (Val #(methods net.textproto.ProtocolError.ty go!"Error" #msg)) (Val #())) {{ Φ }}) := by
-  iintro !>
-  iintro %Φ HΦ
-  rw [method_unfold (t := net.textproto.ProtocolError.ty) (m := go!"Error")]
-  wp_auto
-  iapply HΦ
-
-/-- The header reader's errors have an `Error()` method. -/
-theorem mimeErr_msg (E : List w8 → GoInterface → IProp GF) (err : GoInterface) :
-    (□ ∀ (r : List w8) (e : GoInterface), E r e -∗ errMsgOk e) ∗ mimeErr E err ⊢ errMsgOk err := by
-  iintro ⟨#Herrs, #Hm⟩
-  iunfold mimeErr at Hm
-  icases Hm with (⟨%r, #HE⟩ | %Hp)
-  · iapply Herrs $$ HE
-  · obtain ⟨msg, rfl, hp⟩ := Hp
-    iapply errMsgOk_of ⟨net.textproto.ProtocolError.ty, #msg⟩ msg
-      (fun h => by subst h; exact absurd hp (by decide))
-    iapply protocolError_msg
-
 /-- `r.isH2Upgrade()` on a request whose method is not `PRI`: `false`. -/
 theorem wp_isH2Upgrade (r : Loc) (rq : net.http.Request) (h : rq.Method' ≠ go!"PRI") :
     {{ (r ↦ rq : IProp GF) }}

@@ -46,8 +46,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.
 its callees' linked results. (Until the lease-expiry plan's
 S2–S4, 2026-11-05, also the open snapshot case of `run` in a cluster that grants leases,
 `srvGrantOpen_open`, a `sorry`.) -/
-theorem etcd_leasegrant.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_leasegrant.wp_Main :
     etcd_leasegrant.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasegrant.Main.wp_proof zap.NewNop.wp_proof etcd_leasegrant.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof

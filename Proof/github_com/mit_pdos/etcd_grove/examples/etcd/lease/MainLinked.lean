@@ -44,8 +44,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.lease.Assum
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/lease/Main.lean`), over
 its callees' linked results. -/
-theorem etcd_lease.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_lease.wp_Main :
     etcd_lease.Main.spec (GF := GF) (hG := hG) :=
   etcd_lease.Main.wp_proof zap.NewNop.wp_proof etcd_lease.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof

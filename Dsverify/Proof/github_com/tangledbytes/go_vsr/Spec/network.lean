@@ -38,7 +38,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- Every configured address's protocols are `protoOf γ` both ways (persistent; the wire's
@@ -136,7 +136,7 @@ end defs
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 variable [models_lab.jsoncodec.JsonCodec GF]
 

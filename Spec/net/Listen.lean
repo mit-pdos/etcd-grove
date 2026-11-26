@@ -27,10 +27,11 @@ variable [sem : go.Semantics]
 
 /-- `net.Listen("tcp", addr)` with the right to listen at `addr` (`netAddrFree`, consumed) returns a
 listener open at `addr` (`netListenerAt`), what sets the address's protocols (`netAddrLeft`; phase 7
-S2's interface, 2026-11-24) and `nil`, or a non-nil error. -/
+S2's interface, 2026-11-24) and `nil`, or a non-nil error. It takes `net`'s package fact (egnet,
+2026-11-25: `Net/`'s `Listen` does, its listener's `netFD` keeps it). -/
 abbrev net.Listen.spec : Prop :=
   ∀ (network addr : GoString),
-  {{ ⌜network = go!"tcp"⌝ ∗ netAddrFree (GF := GF) addr }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜network = go!"tcp"⌝ ∗ netAddrFree (GF := GF) addr }}
     (App (App (Val (@! net.Listen)) (Val #network)) (Val #addr))
   {{ (l err : GoInterface), RET (PairV #l #err);
       (⌜err = GoInterface.nil⌝ ∗ netListenerAt l addr ∗ netAddrLeft addr) ∨

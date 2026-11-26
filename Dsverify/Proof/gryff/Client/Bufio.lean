@@ -139,7 +139,7 @@ end
 section conn
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
 
 /-- What a connection's buffered reader has returned is a prefix of an allowed stream
 (`net.connReader_proto`). -/

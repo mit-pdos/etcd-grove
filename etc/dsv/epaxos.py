@@ -122,7 +122,7 @@ initialization from the machine's empty package state, its first, through `epaxo
         attributes=['attribute [local instance] GooseGlobalGS.gooseInvGS'],
         variables='''variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.{n}.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]''',
         returns="returns the machine's net/rpc boot resources.",

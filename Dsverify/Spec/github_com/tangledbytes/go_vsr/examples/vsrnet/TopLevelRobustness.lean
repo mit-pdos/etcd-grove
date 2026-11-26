@@ -59,7 +59,7 @@ def vr_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy vrKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g threads remoteStepBound

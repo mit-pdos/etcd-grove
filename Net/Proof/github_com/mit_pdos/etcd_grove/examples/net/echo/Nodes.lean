@@ -56,7 +56,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : echo.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : echo.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
@@ -154,9 +154,12 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hpl, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hpl
+  · (try iframe HnetPk)
+    iframe %Hpl
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -229,9 +232,12 @@ theorem wp_Call
   wp_apply wp_RandomBytes (W64 5) as %req ⟨%rq, Hreq, %Hrq⟩
   · ipureintro; decide
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply echo_dial_au γm $$ HaddrInv HechoInv
@@ -353,9 +359,12 @@ theorem wp_SendJunk
     have h11 : sint.Z (W64 11) = 11 := rfl
     word
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply echo_dial_au γm $$ HaddrInv HechoInv

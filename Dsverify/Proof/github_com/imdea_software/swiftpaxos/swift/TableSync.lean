@@ -42,7 +42,7 @@ section entries
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 

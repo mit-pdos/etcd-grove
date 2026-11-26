@@ -40,7 +40,7 @@ section
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
-variable [net.Assumptions] [net.FieldAssumptions] [nS : NetSpecs GF] [strA : StringsIndexHyp GF]
+variable [net.Assumptions] [nS : NetSpecs GF] [strA : StringsIndexHyp GF]
 
 
 /-- The higher peers. -/
@@ -172,11 +172,12 @@ theorem ed_of_poll' :
       ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll).trans ?_
   show iprop((∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType internal.poll.DeadlineExceededError.ty) #x) DFrac.discard) ∗
     (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrFileClosing)
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) ⊢ _
   iintro ⟨-, ⟨%ed, #Hd⟩, -⟩
-  iexists ed
+  iexists _
   iexact Hd
 
 theorem logArgs_of_wf (xs : List GoInterface) (h : fmt.ArgsWf xs) :
@@ -197,14 +198,13 @@ theorem logArgs_of_wf (xs : List GoInterface) (h : fmt.ArgsWf xs) :
 /-- A `net` error result is a non-nil error with an `Error()` (an `*OpError`). -/
 theorem resErr_errAny (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ⊢
+    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ∗ syscall.errnoOk (GF := GF) ⊢
       ⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err := by
-  unfold Perennial.net.resErr Perennial.net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
-  subst Herr
+  iintro ⟨#Hre, #Hsys⟩
   isplitr
-  · ipureintro; simp [interface.mkOk]
-  iapply opErrPtr_errAny $$ Hpe
+  · ihave #HA := resErr_errAny_sys _ _ _ _ _ _ _ $$ [$Hre $Hsys]
+    iapply models_lab.errAny_ne_nil $$ HA
+  iapply resErr_errAny_sys _ _ _ _ _ _ _ $$ [$Hre $Hsys]
 
 /-- `bufio.NewReader(conn)` of a connection (`wire.wp_NewReader` at the conn's interface value). -/
 theorem wp_NewReader_conn (tc : Loc) (eof la ra ed : GoInterface) (I : List w8 → IProp GF)
@@ -353,6 +353,7 @@ theorem waitForPeerConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
   · iPkgInit
   ihave ⟨%ed, #Hed⟩ := ed_of_poll' $$ Hpoll
+  ihave #Hsys := Perennial.net.errnoOk_of_poll $$ Hpoll
   ihave #Hdl : isPkgInit (PROP := IProp GF) pkg_id.gryff.src.dlog $$ []
   · iPkgInit
   ihave #Hdlog := replica.dlog_init_access $$ Hdl
@@ -378,7 +379,7 @@ theorem waitForPeerConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   · iexists lv, err0; iframe
     icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
     · ileft; iframe Hl; ipureintro; exact He
-    · iright; iapply resErr_errAny $$ Hre
+    · iright; iapply resErr_errAny $$ [$Hre $Hsys]
   wp_for IHL
   icases Hl with (⟨%He, %l, #Hli, Hnl, #Hon⟩ | ⟨%He, #HeA⟩)
   rotate_left
@@ -417,7 +418,7 @@ theorem waitForPeerConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
     iframe
     icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
     · ileft; iframe Hl; ipureintro; exact He
-    · iright; iapply resErr_errAny $$ Hre
+    · iright; iapply resErr_errAny $$ [$Hre $Hsys]
   subst He
   wp_auto
   rw [if_neg (by simpa using (show (#false : val) ≠ #true from fun h => absurd (go.intoVal_inj h) (by decide))), if_pos (by simp)]
@@ -486,7 +487,7 @@ theorem waitForPeerConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   icases Hres with (⟨%Haerr, %cid, %a, %Hacc, #Hcc, Hnl, Hend, Hfresh⟩ | ⟨%kk, Hnl, #Hre⟩)
   rotate_left
   · -- `Accept` failed
-    ihave ⟨%Hne, #HeA⟩ := resErr_errAny _ _ _ _ _ _ _ $$ Hre
+    ihave ⟨%Hne, #HeA⟩ := resErr_errAny _ _ _ _ _ _ _ $$ [$Hre $Hsys]
     obtain ⟨ie, rfl⟩ : ∃ ie, aerr = interface.ok ie := by
       cases aerr with
       | nil => exact absurd rfl Hne

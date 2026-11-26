@@ -113,7 +113,6 @@ def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : Goos
 /-- `crash_safety` for executions of fewer than `N` steps along which fewer than `T` threads are
 live. -/
 theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [hPre : GooseGpreS GF]
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -243,7 +242,6 @@ the 8 bytes of data at offset 0, and the size below `2^62`): the boot program's 
 thread is stuck and no thread has an unrecovered panic, so `Boot`'s panics never fire, however many
 times the node crashes. (`crash_safety_bounded` with the ghost state `fsGF`.) -/
 theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))

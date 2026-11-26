@@ -507,7 +507,7 @@ variable [sem : go.Semantics]
 variable [github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
 variable [github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
 variable [net.Assumptions]
-variable [net.FieldAssumptions] [net.UdpFieldAssumptions]
+variable [net.UdpFieldAssumptions]
 variable [go_etcd_io.raft.v3.Assumptions]
 variable [github_com.mit_pdos.gokv.trusted_proph.Assumptions]
 variable [github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
@@ -517,8 +517,6 @@ variable [NaInvG GF]
 variable [_root_.Perennial.internal.filepathlite.Assumptions]
 variable [_root_.Perennial.path.filepath.Assumptions]
 variable [os.Assumptions]
-variable [os.fileStat.FieldAssumptions]
-variable [os.file.FieldAssumptions]
 variable [syscall.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.log.NewModel]
@@ -768,8 +766,7 @@ def kvraftUdpClient (γ : KdNames) (rs : List GoString) : IProp GF :=
 
 variable [lctx : GoLocalContext] [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-variable [field_sem : net.FieldAssumptions] [udp_field_sem : net.UdpFieldAssumptions]
-variable [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
+variable [udp_field_sem : net.UdpFieldAssumptions]
 variable [log_sem : log.NewModel] [NaInvG GF]
 
 /-- **Every generation of replica `i + 1`** (`CrashBootWpU`, as kvraft's `kvPc_crashBoot`). -/
@@ -980,7 +977,7 @@ the programs see the addresses split (`splitAddrs addrs`), at least as many as t
 * both pass: the store, the addresses' protocols, kvraft-udp's names and address invariants, every
   replica's generations and the client. -/
 theorem kvraft_udp_robust : kvraft_udp_robust.spec := by
-  intro lctx sem package_sem field_sem udp_field_sem os_file_sem os_stat_sem log_sem cl dir replicas
+  intro lctx sem package_sem udp_field_sem log_sem cl dir replicas
     σc g hrep addrs hfresh hig hil
   have hm : replicas.length ≤ (splitAddrs addrs).length := by
     have h := splitAddrs_intercalate_length (replicas.map (·.1))
@@ -1133,9 +1130,9 @@ its premise on the file systems passed through (as kvraft's; kvraft's `kvraft_ex
 shows the example's configuration passes `RunNode`'s check, which is `RunNodeUDP`'s). -/
 theorem kvraft_udp_robust_example_of (H : kvraft_udp_robust.spec) :
     kvraft_udp_robust_example.spec := by
-  intro lctx sem package_sem field_sem udp_field_sem os_file_sem os_stat_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅
+  intro lctx sem package_sem udp_field_sem log_sem σ₁ σ₂ σ₃ σ₄ σ₅
     σc g hfs
-  have h := @H lctx sem package_sem field_sem udp_field_sem os_file_sem os_stat_sem log_sem
+  have h := @H lctx sem package_sem udp_field_sem log_sem
     exampleConfig go!"/var/lib/kvraft"
     [(go!"10.0.0.1:7001", σ₁), (go!"10.0.0.2:7001", σ₂), (go!"10.0.0.3:7001", σ₃),
      (go!"10.0.0.4:7001", σ₄), (go!"10.0.0.5:7001", σ₅)] σc g

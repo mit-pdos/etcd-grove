@@ -125,7 +125,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
 variable [strconvA : strconv.Assumptions] -- N-5
-variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
+variable [io.Assumptions] [net.Assumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
 
 /-! ## The H1 callee classes, closed (`H1/PartiSpecs.lean`, `H1/CoordSpecs.lean`)

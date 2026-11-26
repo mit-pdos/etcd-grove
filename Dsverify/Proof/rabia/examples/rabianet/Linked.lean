@@ -45,7 +45,7 @@ variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [srv_sem : rabia.roles.server.Assumptions]
 variable [tcp_sem : rabia.internal.tcp.Assumptions] [msg_sem : rabia.internal.message.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj] [sync.Assumptions]
+variable [net.Assumptions] [go.BasicIntoValInj] [sync.Assumptions]
 variable [math.rand.Hyps GF]
 
 -- the configuration protocol

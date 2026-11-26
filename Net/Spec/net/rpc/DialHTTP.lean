@@ -20,13 +20,13 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev DialHTTP.spec : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a : GoString),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗
       rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq defaultRPCPath) connectAns }}
     (App (App (Val (@! net.rpc.DialHTTP)) (Val #nw)) (Val #a))
@@ -38,7 +38,7 @@ abbrev DialHTTP.spec : Prop :=
 `Net/Proof/net/rpc/DialHTTP.lean`. -/
 abbrev DialHTTP.spec_plain : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a : GoString),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗
       rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq defaultRPCPath) connectAns }}
     (App (App (Val (@! net.rpc.DialHTTP)) (Val #nw)) (Val #a))

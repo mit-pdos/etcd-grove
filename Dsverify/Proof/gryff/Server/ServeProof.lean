@@ -33,7 +33,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [sA : gryff.src.serverlib.Assumptions]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF]
 variable [nS : netN.NetSpecs GF]
 variable (wp_HandleHTTP : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG))
 variable (wp_Serve : net.http.Serve.spec_rpc (GF := GF) (hG := hG))
@@ -130,7 +130,11 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
   · iexists lv, err; iframe
     icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
     · ileft; iframe Hl; ipureintro; exact He
-    · iright; ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ Hre
+    · iright
+      ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+      · iPkgInit
+      ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsy
+      ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ [$Hre $Hsys]
       ihave %Hne := models_lab.errAny_ne_nil _ $$ Ha
       iframe Ha; ipureintro; exact Hne
   wp_for IHL
@@ -179,7 +183,11 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     iframe
     icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
     · ileft; iframe Hl; ipureintro; exact He
-    · iright; ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ Hre
+    · iright
+      ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+      · iPkgInit
+      ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsy
+      ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ [$Hre $Hsys]
       ihave %Hne := models_lab.errAny_ne_nil _ $$ Ha
       iframe Ha; ipureintro; exact Hne
   subst He

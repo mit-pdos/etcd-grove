@@ -64,7 +64,7 @@ theorem replica_BeTheLeader_wp (rep gR ap pp : Loc) :
   wp_auto
   wp_end
 
-variable [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [net.rpc.Assumptions]
 
 theorem ping_zero_pt (p : Loc) :
     (p ↦ zero_val src.genericsmrproto.PingArgs : IProp GF) ⊢

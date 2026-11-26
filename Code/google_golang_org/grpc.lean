@@ -2123,6 +2123,43 @@ noncomputable def ChainStreamInterceptor.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "$res0")))))
 
+/-- StatsHandler returns a ServerOption that sets the stats handler for the server.
+
+    go: server.go:544:6 -/
+noncomputable def StatsHandler.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.stats.Handler.ty))) (Var "h"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcServerOption.ty) ServerOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serverOptions.ty)))) (Var "o"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.stats.Handler.ty)))) (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"statsHandlers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverOptions.ty)))) (Var "o"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.stats.Handler.ty))) (Var "h"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.stats.Handler.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.stats.Handler.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.stats.Handler.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.stats.Handler.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"statsHandlers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.stats.Handler.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.stats.Handler.ty))) (Var "h")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.stats.Handler.ty))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!"ignoring nil parameter in grpc.StatsHandler ServerOption")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty go!"Error"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())))) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncServerOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "$res0")))))
+
 /-- Send pushes one message into the stream of requests to be consumed by the
     server. The type of message which can be sent is determined by the Req type
     parameter of the GenericClientStream receiver.
@@ -7207,6 +7244,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MaxConcurrentStreams_unfold : FuncUnfold MaxConcurrentStreams [] MaxConcurrentStreams.impl
   ChainUnaryInterceptor_unfold : FuncUnfold ChainUnaryInterceptor [] ChainUnaryInterceptor.impl
   ChainStreamInterceptor_unfold : FuncUnfold ChainStreamInterceptor [] ChainStreamInterceptor.impl
+  StatsHandler_unfold : FuncUnfold StatsHandler [] StatsHandler.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
@@ -7370,6 +7408,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.MaxConcurrentStreams_unfold
   Assumptions.ChainUnaryInterceptor_unfold
   Assumptions.ChainStreamInterceptor_unfold
+  Assumptions.StatsHandler_unfold
   Assumptions.import_time_Assumption
   Assumptions.import_context_Assumption
   Assumptions.import_io_Assumption

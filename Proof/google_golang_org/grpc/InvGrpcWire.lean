@@ -38,6 +38,11 @@ parse laws are a library no address uses; set once from `addrUnset a` (`grpc_add
 (persistent, heap-free): the table `a` serves has an entry for `name` at the wire parts `Wq`, `Wp`,
 and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`).
 
+**Sealed** (`@[no_expose]`, decision A of `notes/phase7-endstate.md`): `grpcAddrAt`, `grpcSvcAt` and
+`grpcStreamSvcAt`; outside this module they are used through their laws only (`grpc_addr_set`,
+`grpc_addr_set_tok`, `grpcAddrAt_regCtx`, `grpcAddrAt_slots`, `grpc_listen_au`, `grpcSvcAt_of_addr`,
+`grpcSvcAt_mono_upd`, `grpcStreamSvcAt_of_addr`, `grpcStreamSvcAt_mono`).
+
 **Parsing.** A well-formed head (`headOk`: its block's length fits its `uint32`; the model's
 check before it writes a block, `headerListOk`, gives it: `headOk_of_listOk`, F1 of §0a) and a data
 frame of a message below `2 ^ 32` bytes are determined by their bytes (`head_prefix_inj`,
@@ -480,13 +485,13 @@ variable [π : NetProtoGS] [σ : NetSlotGS]
 interface states them (the opaque `grpcCliPI`/`grpcSrvPI`, so that a program other than grpc's
 transport cannot use the address's protocols: a raw dialer writing a head and no data frame, a raw
 reader expecting `settingsBytes` of real HTTP/2), and the slot map exists. -/
-def grpcAddrAt (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
+@[no_expose] def grpcAddrAt (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
   iprop(addrProto (Gg := Gg) a (grpcCliPI Svc) (grpcSrvPI Svc) ∗ depSlotsCtx (Gg := Gg))
 
 /-- **The method `name` at `a` meets `Spec`** (persistent, no heap): the table `a` serves has an
 entry for `name` at the wire parts `Wq`, `Wp`, and a caller of `Spec` meets that entry's spec after an
 update. -/
-def grpcSvcAt (a name : GoString) (Wq Wp : ProtoWire)
+@[no_expose] def grpcSvcAt (a name : GoString) (Wq Wp : ProtoWire)
     (Spec : GrpcMd → Wq.M → (Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ (Svc : GrpcSvc GF) (Spec₀ : GrpcMd → Wq.M → (Wp.M → IProp GF) →
       (GoString → IProp GF) → IProp GF),
@@ -497,7 +502,7 @@ def grpcSvcAt (a name : GoString) (Wq Wp : ProtoWire)
 serves has a stream entry for `name` at the wire parts `Wq`, `Wp`, whose
 specification holds of every stream at its own content (`spec₀ md γ (dn₀ md γ)`), whose request
 content a client of `Up` meets after an update, and whose specification gives `Spec`. -/
-def grpcStreamSvcAt (a name : GoString) (Wq Wp : ProtoWire) (Up : Nat → Wq.M → IProp GF)
+@[no_expose] def grpcStreamSvcAt (a name : GoString) (Wq Wp : ProtoWire) (Up : Nat → Wq.M → IProp GF)
     (Spec : GrpcMd → StreamNames → (Nat → Wp.M → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ (Svc : GrpcSvc GF) (up₀ : Nat → Wq.M → IProp GF)
       (dn₀ : GrpcMd → StreamNames → Nat → Wp.M → IProp GF)
@@ -538,6 +543,39 @@ theorem grpc_addr_set (E : CoPset) (a : GoString) (Svc : GrpcSvc GF) :
   imodintro
   unfold grpcAddrAt
   iframe Hp Hs
+
+/-- **The start law, from the listening token's invariant**: an address whose pending set is empty
+and whose listening token is in an invariant (`lisTokInv`: what `net.Listen` left, `netAddrLeft`) is
+set to serve `Svc` (`addr_set_proto_tok`). -/
+theorem grpc_addr_set_tok (E : CoPset) (a : GoString) (Svc : GrpcSvc GF) :
+    ⊢ regCtx (Gg := Gg) -∗ depSlotsCtx (Gg := Gg) -∗ netPend NG a ∅ -∗ addrTok a -∗ lisTokInv a ={E}=∗
+      grpcAddrAt (Gg := Gg) a Svc := by
+  iintro #Hreg #Hs Hp #Ht #Htok
+  imod addr_set_proto_tok E a (grpcCliPI Svc) (grpcSrvPI Svc) $$ Hreg Hp Ht Htok with #Hpr
+  imodintro
+  unfold grpcAddrAt
+  iframe Hpr Hs
+
+/-- The net library's registry, from an address serving a table. -/
+theorem grpcAddrAt_regCtx (a : GoString) (Svc : GrpcSvc GF) :
+    grpcAddrAt (Gg := Gg) a Svc ⊢ regCtx (Gg := Gg) := by
+  unfold grpcAddrAt
+  iintro ⟨#Hp, -⟩
+  iapply addrProto_regCtx $$ Hp
+
+/-- The slot map, from an address serving a table. -/
+theorem grpcAddrAt_slots (a : GoString) (Svc : GrpcSvc GF) :
+    grpcAddrAt (Gg := Gg) a Svc ⊢ depSlotsCtx (Gg := Gg) := by
+  unfold grpcAddrAt
+  iintro ⟨-, $⟩
+
+/-- `Listen` of an address serving a table (a member's own `net.Listen`, `net.Listen.spec`'s
+update): its listening token, given at the step and put back (`listen_au`). -/
+theorem grpc_listen_au (a : GoString) (Svc : GrpcSvc GF) :
+    grpcAddrAt (Gg := Gg) a Svc ⊢ |={⊤,∅}=> netLisTok NG a ∗ (netLisTok NG a ={∅,⊤}=∗ True) := by
+  unfold grpcAddrAt
+  iintro ⟨#Hp, -⟩
+  iapply Net.listen_au $$ Hp
 
 /-- An entry of the table `a` serves is a registration of its method. -/
 theorem grpcSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry GF)

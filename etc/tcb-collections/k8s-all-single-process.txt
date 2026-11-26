@@ -70,7 +70,6 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
-axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent

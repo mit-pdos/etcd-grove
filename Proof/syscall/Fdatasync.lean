@@ -30,16 +30,24 @@ theorem syscall.Fdatasync.wp_proof : syscall.Fdatasync.spec (GF := GF) (hG := hG
   wp_start as ⟨#Hinv, Hfd, Hm, Hbs⟩
   by_cases hne : FsNoErrIno
   · obtain ⟨Sio, hSio, hs1, -, -⟩ := hne
+    try wp_auto
+    wp_stub syscall.fsFsync.impl
     wp_apply wp_osFsyncNE (Sio := Sio) hSio fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs
       as Hm Hbs Hfd
-    iapply wp_errno
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iframe Hfd
     ileft
     iframe
     ipureintro; rfl
-  · wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
-    iapply wp_errno
+  · try wp_auto
+    wp_stub syscall.fsFsync.impl
+    wp_apply wp_osFsync fd dq d m lo xs hcov CoPset.subseteq_top $$ Hinv Hfd Hm Hbs as %e Hr Hfd
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iframe Hfd
     icases Hr with (H | ⟨%he, Hm, Hbs⟩)
@@ -52,16 +60,24 @@ theorem syscall.Fdatasync.wp_proofB : syscall.Fdatasync.specB (GF := GF) (hG := 
   by_cases hne : FsNoErr
   · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
     haveI := hs1
+    try wp_auto
+    wp_stub syscall.fsFsync.impl
     wp_apply wp_osFsyncBNE hSio fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %c Hm Hfd
-    iapply wp_errno
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iframe Hfd
     ileft
     isplitr
     · ipureintro; rfl
     iexists c; iexact Hm
-  · wp_apply wp_osFsyncB fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %e Hr Hfd
-    iapply wp_errno
+  · try wp_auto
+    wp_stub syscall.fsFsync.impl
+    wp_apply wp_osFsyncB fd dq d m CoPset.subseteq_top $$ Hinv Hfd Hm as %e Hr Hfd
+    try wp_auto
+    wp_apply wp_errnoErr
+    try wp_auto
     iapply HΦ
     iframe Hfd
     icases Hr with (H | ⟨%he, Hm⟩)

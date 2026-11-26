@@ -36,7 +36,7 @@ theorem leAcc_snoc (bs : List w8) (x : w8) :
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions] [field_sem : net.FieldAssumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
 
 /-- The bytes of a client's stream are zeros up to its fifth byte (`PROPOSE`, `CommandId 0`). -/
 theorem proposeBytes_zeros (c : w64) (i : KvI) (first : List w8) (h : first <+: proposeBytes c i)

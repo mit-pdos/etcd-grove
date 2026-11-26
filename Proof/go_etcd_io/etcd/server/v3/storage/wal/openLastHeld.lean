@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (wp_names : go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec (GF := GF) (hG := hG))
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))

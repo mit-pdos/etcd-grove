@@ -31,7 +31,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : _root_.Perennial.net.Assumptions]
-variable [_root_.Perennial.net.FieldAssumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -40,14 +39,16 @@ listener at `a`, or an error. -/
 theorem drv_listen
     (wp_Listen : ∀ [HasExt netExt], _root_.Perennial.net.Listen.spec (GF := GF) (hG := hG))
     [hX : HasExt netExt] (addr : GoString) (hok : addrOk addr = true) :
-    {{ inv (lisTokN addr) (netLisTok (NG (Gg := hG.goose_globalGS)) addr) }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗
+        inv (lisTokN addr) (netLisTok (NG (Gg := hG.goose_globalGS)) addr) }}
       (App (App (Val (@! _root_.Perennial.net.Listen)) (Val #(go!"tcp"))) (Val #addr))
     {{ (l err : GoInterface), RET (PairV #l #err);
         (⌜err = GoInterface.nil⌝ ∗ netListenerOpen l addr) ∨ ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ #Hinv HΦ
+  iintro %Φ ⟨#Hnet, #Hinv⟩ HΦ
   have hA := _root_.Perennial.net.Listen.spec_addrOk (GF := GF) (hG := hG) wp_Listen
   iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ []
-  · isplitr
+  · iframe Hnet
+    isplitr
     · ipureintro; exact hok
     · iinv Hinv with >Ht Hclose
       iapply fupd_mask_intro Std.LawfulSet.empty_subset

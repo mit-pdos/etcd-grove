@@ -21,7 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [os.file.FieldAssumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 theorem OsMeta.announce_maps (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg).maps = m.maps := by
   simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl

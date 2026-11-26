@@ -356,6 +356,106 @@ noncomputable def handleCopyFileRangeErr.impl [GooseExts] [GoGlobalContext] : va
   (Val #())))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
+/-- Error returns the error message for ErrNetClosing.
+    Keep this string consistent because of issue #4373:
+    since historically programs have not been able to detect
+    this error, they look for the string.
+
+    go: fd.go:24:24 -/
+noncomputable def errNetClosing.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc errNetClosing.ty))) (Var "e"))
+  (Let "$r0" (Val #(go!"use of closed network connection"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: fd.go:26:24 -/
+noncomputable def errNetClosing.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc errNetClosing.ty))) (Var "e"))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: fd.go:27:24 -/
+noncomputable def errNetClosing.Temporary.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc errNetClosing.ty))) (Var "e"))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- Implement the net.Error interface.
+    The string is "i/o timeout" because that is what was returned
+    by earlier Go versions. Changing it may break programs that
+    match on error strings.
+
+    go: fd.go:60:33 -/
+noncomputable def DeadlineExceededError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeadlineExceededError.ty)))) (Var "e"))
+  (Let "$r0" (Val #(go!"i/o timeout"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: fd.go:61:33 -/
+noncomputable def DeadlineExceededError.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeadlineExceededError.ty)))) (Var "e"))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: fd.go:62:33 -/
+noncomputable def DeadlineExceededError.Temporary.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeadlineExceededError.ty)))) (Var "e"))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.internal.poll where
   pkgImportedPkgs := [pkg_id.internal.syscall.unix, pkg_id.sync, pkg_id.syscall, pkg_id.errors]
 
@@ -538,11 +638,26 @@ class errNetClosing.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq errNetClosing.ty errNetClosing.underlying
   method_set : go.MethodSetIs errNetClosing.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType errNetClosing.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  Error_unfold : MethodUnfold errNetClosing.ty go!"Error" errNetClosing.Error.impl
+  Temporary_unfold : MethodUnfold errNetClosing.ty go!"Temporary" errNetClosing.Temporary.impl
+  Timeout_unfold : MethodUnfold errNetClosing.ty go!"Timeout" errNetClosing.Timeout.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType errNetClosing.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve errNetClosing.ty go!"Error"))) (App (Val (GoInstruction (GoLoad errNetClosing.ty))) (Var "$r"))))
+  ptr_Temporary_unfold : MethodUnfold (go.GoType.PointerType errNetClosing.ty) go!"Temporary" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve errNetClosing.ty go!"Temporary"))) (App (Val (GoInstruction (GoLoad errNetClosing.ty))) (Var "$r"))))
+  ptr_Timeout_unfold : MethodUnfold (go.GoType.PointerType errNetClosing.ty) go!"Timeout" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve errNetClosing.ty go!"Timeout"))) (App (Val (GoInstruction (GoLoad errNetClosing.ty))) (Var "$r"))))
 
 attribute [instance] errNetClosing.TypeAssumptions.type_repr
   errNetClosing.TypeAssumptions.underlying
   errNetClosing.TypeAssumptions.method_set
   errNetClosing.TypeAssumptions.ptr_method_set
+  errNetClosing.TypeAssumptions.Error_unfold
+  errNetClosing.TypeAssumptions.Temporary_unfold
+  errNetClosing.TypeAssumptions.Timeout_unfold
+  errNetClosing.TypeAssumptions.ptr_Error_unfold
+  errNetClosing.TypeAssumptions.ptr_Temporary_unfold
+  errNetClosing.TypeAssumptions.ptr_Timeout_unfold
 
 structure DeadlineExceededError [GooseExts] where
   mk ::
@@ -568,11 +683,17 @@ class DeadlineExceededError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq DeadlineExceededError.ty DeadlineExceededError.underlying
   method_set : go.MethodSetIs DeadlineExceededError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeadlineExceededError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType DeadlineExceededError.ty) go!"Error" DeadlineExceededError.Error.impl
+  ptr_Temporary_unfold : MethodUnfold (go.GoType.PointerType DeadlineExceededError.ty) go!"Temporary" DeadlineExceededError.Temporary.impl
+  ptr_Timeout_unfold : MethodUnfold (go.GoType.PointerType DeadlineExceededError.ty) go!"Timeout" DeadlineExceededError.Timeout.impl
 
 attribute [instance] DeadlineExceededError.TypeAssumptions.type_repr
   DeadlineExceededError.TypeAssumptions.underlying
   DeadlineExceededError.TypeAssumptions.method_set
   DeadlineExceededError.TypeAssumptions.ptr_method_set
+  DeadlineExceededError.TypeAssumptions.ptr_Error_unfold
+  DeadlineExceededError.TypeAssumptions.ptr_Temporary_unfold
+  DeadlineExceededError.TypeAssumptions.ptr_Timeout_unfold
 
 abbrev String [GooseExts] : Type := GoString
 

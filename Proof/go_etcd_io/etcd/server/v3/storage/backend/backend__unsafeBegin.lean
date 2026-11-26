@@ -33,8 +33,8 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `DB.Begin_kv`). -/
-private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
   ∀ (db : Loc) (γ : DBNames) (D : backend.Data) (w : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ (if w then wrTok γ else threadTok) }}
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Begin")) (Val #w))
@@ -43,7 +43,7 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
        (⌜err = GoInterface.nil⌝ ∗ backend.txDB tx γ db ∗
         (if w then ownWTx tx γ D D else txLive tx γ 1 (bbolt.TxView.ro D)))) }} := by
   intro db γ D w
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
@@ -86,8 +86,8 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
         itrivial
 
 theorem backend.backend.unsafeBegin.wp_proof
-    (hBegin : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG))
+    (hBegin : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Begin.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.backend.unsafeBegin.spec (GF := GF) (hG := hG) := by

@@ -69,7 +69,7 @@ class Threads30 [GooseExts] [GooseSemantics] [GooseInterp] {GF : BundledGFunctor
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [examples.craqnet.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [examples.craqnet.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [Threads30 (GF := GF)]
 
