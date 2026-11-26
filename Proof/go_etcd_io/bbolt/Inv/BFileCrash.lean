@@ -8,7 +8,8 @@ Lean-first, no Rocq counterpart).
   bbolt's `B.bq`), the writer's share of the `OsMeta` (`bMeta`, idle at `C`) and bbolt's share of
   every byte (`bBytes`, with fresh exclusivity tokens).
 * `bfile_close`: back, with the closing token `csDone gc` (`ghostVar B.bq 1 ()`, from the
-  `boltState γ 1` that `DB.Close` consumes): the file whole again, as `fileHoldsM` holds it.
+  `boltState γ 1` that `DB.Close` consumes): the file whole again, as `fileHoldsM` holds it
+  (`bfile_close_dur`: with its bytes outside the unsynced ranges durable).
 -/
 module
 
@@ -132,13 +133,14 @@ theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C 
   iframe Hcv2
   unfold histE; iexact Hh
 
-/-- **The file out of its crash invariant**: the writer's share of the `OsMeta`, bbolt's share of
-every byte and the closing token give the file whole back (see the file header). -/
-theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+/-- **The file out of its crash invariant**, with its bytes outside the ranges `L` durable (`bMeta`'s
+`DurOut`; with `L = []` every byte): `bfile_close` with that fact (W5: what `DB.Close.specC`'s
+`fileHoldsMDur` needs). -/
+theorem bfile_close_dur (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
     (L : List (Nat × Nat)) (m : OsMeta)
     (xs : List ByteG) (E : CoPset) (hE : ↑c.N ⊆ E) (hl : xs.length = m.size) :
     ⊢ bCsInv (GF := GF) p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗ csDone c.gc ={E}=∗
-      osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs := by
+      osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗ ⌜DurOut L xs⌝ := by
   iintro #Hinv Hm Hb Hd
   ihave #Hinv := (show bCsInv (GF := GF) p ⊢ csInvIR c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) by
     unfold bCsInv; rw [hc]) $$ Hinv
@@ -168,4 +170,20 @@ theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
   · iframe
   imod csInvIR_close (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, xs, 0, 0, .idle⟩ a E hE rfl
     (Nat.le_refl _) $$ Hinv Hown Hd with ⟨Hm, Hb, -⟩
+  imodintro
+  isplitl [Hm]
+  · iexact Hm
+  isplitl [Hb]
+  · iexact Hb
+  ipureintro; exact Hf.2.2.2.1
+
+/-- **The file out of its crash invariant**: the writer's share of the `OsMeta`, bbolt's share of
+every byte and the closing token give the file whole back (see the file header). -/
+theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta)
+    (xs : List ByteG) (E : CoPset) (hE : ↑c.N ⊆ E) (hl : xs.length = m.size) :
+    ⊢ bCsInv (GF := GF) p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗ csDone c.gc ={E}=∗
+      osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs := by
+  iintro #Hinv Hm Hb Hd
+  imod bfile_close_dur p c hc C L m xs E hE hl $$ Hinv Hm Hb Hd with ⟨Hm, Hb, -⟩
   imodintro; iframe

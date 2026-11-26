@@ -134,6 +134,14 @@ theorem bMode_cnReg (B : BNs) (N : Namespace) (db : Loc) (p : BFile) :
   | none => dsimp only [Option.map]; iintro ⟨-, #H⟩; iexact H
   | some c => dsimp only [Option.map]; iintro ⟨-, -, -, #H⟩; iexact H
 
+/-- **The mode's sync options** (W5): in crash mode `NoSync` and `NoGrowSync` are off (`bSyncs`). -/
+theorem bMode_bSyncs (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) :
+    bMode (GF := GF) gbq gcn N db p ⊢ bSyncs db p := by
+  unfold bMode
+  cases hc : p.cs with
+  | none => dsimp only; iintro -; iapply (bSyncs_none (GF := GF) hc db)
+  | some c => dsimp only; iintro ⟨-, -, #Hs, -⟩; iexact Hs
+
 /-- The mode outside crash mode: the registry is `none`. -/
 theorem bMode_none (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (hc : p.cs = none) :
     bMode (GF := GF) B.bq B.cn N db p ⊢ cnReg B none := by
@@ -149,27 +157,42 @@ theorem bMode_some (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (c : CsN) (h
   iintro ⟨%h, -, -, #H⟩
   iframe H; ipureintro; exact h
 
-/-- **The file out of its mode** (`Close`): the writer's share of the `OsMeta`, bbolt's share of
-every byte and the closing token (`ghostVar gbq 1 ()`, from the `boltState γ 1` that `DB.Close`
-consumes) give the file whole back; in crash mode by closing the crash invariant
-(`bfile_close`). -/
-theorem bfile_out (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) (C : CommitSt)
-    (L : List (Nat × Nat)) (m : OsMeta) (xs : List ByteG) (hl : xs.length = m.size) :
+/-- **The file out of its mode** (`Close`), at any mask holding its crash invariant's: the writer's
+share of the `OsMeta`, bbolt's share of every byte and the closing token (`ghostVar gbq 1 ()`, the
+two halves of `bq`: the closer's and the committed data's other half) give the file whole back; in
+crash mode by closing the crash invariant, with the bytes outside the ranges `L` durable
+(`bfile_close_dur`; with `L = []`, every byte). -/
+theorem bfile_out_dur (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (xs : List ByteG) (hl : xs.length = m.size) (E : CoPset)
+    (hE : (↑(N .@ "crash") : CoPset) ⊆ E) :
     ⊢ bMode (GF := GF) gbq gcn N db p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗
-      ghostVar gbq 1 () ={⊤}=∗ osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs := by
+      ghostVar gbq 1 () ={E}=∗ osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
+        ⌜p.cs ≠ none → DurOut L xs⌝ := by
   iintro #Hmd Hm Hb Hq
   unfold bMode
   cases hc : p.cs with
   | none =>
     rw [bMeta_none hc]
     ihave Hb := (bBytes_none hc 0 (DFrac.own 1) xs).1 $$ Hb
-    imodintro; iframe
+    imodintro
+    isplitl [Hm]
+    · iexact Hm
+    isplitl [Hb]
+    · iexact Hb
+    ipureintro; intro h; exact absurd rfl h
   | some c =>
     dsimp only
     icases Hmd with ⟨%hcn, #Hci, -⟩
     ihave Hd : csDone (GF := GF) c.gc $$ [Hq]
     · unfold csDone; rw [hcn.1]; iexact Hq
-    iapply bfile_close p c hc C L m xs ⊤ CoPset.subseteq_top hl $$ Hci Hm Hb Hd
+    imod bfile_close_dur p c hc C L m xs E (by rw [hcn.2.1]; exact hE) hl $$ Hci Hm Hb Hd
+      with ⟨Hm, Hb, %hd⟩
+    imodintro
+    isplitl [Hm]
+    · iexact Hm
+    isplitl [Hb]
+    · iexact Hb
+    ipureintro; intro _; exact hd
 
 /-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
 statistics pointer `sp` and receipts' base `t0`; its namespace disjoint from OsFs's (batch 37:
