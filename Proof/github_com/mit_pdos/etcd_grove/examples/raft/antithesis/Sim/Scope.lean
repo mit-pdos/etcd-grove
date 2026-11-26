@@ -467,6 +467,12 @@ def mskB1p : SimMask :=
   { md := { prevote := true, cq := true, nonVoters := true },
     k := { prevote := true, cq := true, sdr := true }, campaign := true }
 
+/-- A mask below `mskB1a` is below `mskB1p`. -/
+theorem SimMask.le_b1p {msk : SimMask} (h : msk ≤ mskB1a) : msk ≤ mskB1p := by
+  obtain ⟨⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩, ⟨k1, k2, k3⟩, c1, c2, c3, c4, c5, c6⟩ := h
+  refine ⟨⟨?_, ?_, a3, a4, a5, a6, a7, a8, a9⟩, ⟨?_, ?_, ?_⟩, c1, c2, c3, c4, c5, c6⟩ <;>
+    intro _ <;> rfl
+
 /-- Below `mskB1p`, the mask admits only recv, tick, propose and campaign. -/
 theorem Input.inMask_b1p {msk : SimMask} (hmsk : msk ≤ mskB1p) {inp : Input} (h : inp.InMask msk) :
     (∃ m, inp = .recv m) ∨ inp = .tick ∨ (∃ d, inp = .propose d) ∨ inp = .campaign := by
@@ -558,17 +564,18 @@ theorem handleEnd_preVoteResp {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} 
 read request) is the reading `RecvEndO` or a new arm (`RecvEndP`). -/
 theorem recvEnd_split {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hty : B1pTy m.ty) (hctx : m.ty = .heartbeatResp → m.ctx = []) (hp : s.rd.pend = [])
-    (h : RecvEnd k c id s m s') : RecvEndO k c id s m s' ∨ RecvEndP k c id s m s' := by
+    (h : RecvEnd k c id s m s') :
+    (RecvEndO k c id s m s' ∧ (S4Ty m.ty ∨ s' = s)) ∨ RecvEndP k c id s m s' := by
   rcases hty with hty | hpv | hpr
   · rcases h with ⟨h0, hh⟩ | ⟨h0, hlt, hst⟩ | ⟨-, hli, rfl⟩ | ⟨h0, s1, hpre, hh⟩
-    · exact .inl (.inl ⟨h0, handleEndO_of hty hctx hp hh⟩)
+    · exact .inl ⟨.inl ⟨h0, handleEndO_of hty hctx hp hh⟩, .inl hty⟩
     · rcases hst with rfl | ⟨hc, happ, rfl⟩ | ⟨hpv, -⟩
-      · exact .inl (.inr (.inl ⟨h0, hlt, rfl⟩))
+      · exact .inl ⟨.inr (.inl ⟨h0, hlt, rfl⟩), .inl hty⟩
       · exact .inr (.inl ⟨hlt, hc, happ, rfl⟩)
       · rcases hty with h' | h' | h' | h' | h' | h' | h' <;> rw [h'] at hpv <;> cases hpv
     · exact .inr (.inr (.inr (.inl ⟨hli, rfl⟩)))
-    · exact .inl (.inr (.inr ⟨h0, s1, preEndO_of hty hpre,
-        handleEndO_of hty hctx ((preEnd_pend hpre).trans hp) hh⟩))
+    · exact .inl ⟨.inr (.inr ⟨h0, s1, preEndO_of hty hpre,
+        handleEndO_of hty hctx ((preEnd_pend hpre).trans hp) hh⟩), .inl hty⟩
   · have hpre_s : ∀ {s1 : PState}, PreEnd k s m s1 → s1 = s := by
       intro s1 hpre
       rcases hpre with ⟨-, hk, -⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
@@ -580,7 +587,7 @@ theorem recvEnd_split {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {m : Msg
     rcases h with ⟨-, hh⟩ | ⟨h0, hlt, hst⟩ | ⟨-, hli, rfl⟩ | ⟨-, s1, hpre, hh⟩
     · exact .inr (.inr (.inr (.inr (.inl ⟨hpv, hhd hh⟩))))
     · rcases hst with rfl | ⟨-, happ, -⟩ | ⟨-, rfl⟩
-      · exact .inl (.inr (.inl ⟨h0, hlt, rfl⟩))
+      · exact .inl ⟨.inr (.inl ⟨h0, hlt, rfl⟩), .inr rfl⟩
       · rw [hpv] at happ; rcases happ with h' | h' <;> cases h'
       · exact .inr (.inr (.inl ⟨hlt, hpv, rfl⟩))
     · exact .inr (.inr (.inr (.inl ⟨hli, rfl⟩)))
@@ -589,7 +596,7 @@ theorem recvEnd_split {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {m : Msg
   · rcases h with ⟨-, hh⟩ | ⟨h0, hlt, hst⟩ | ⟨-, hli, rfl⟩ | ⟨-, s1, hpre, hh⟩
     · exact .inr (.inr (.inr (.inr (.inr (.inr ⟨hpr, handleEnd_preVoteResp hpr hh⟩)))))
     · rcases hst with rfl | ⟨-, happ, -⟩ | ⟨hpv, -⟩
-      · exact .inl (.inr (.inl ⟨h0, hlt, rfl⟩))
+      · exact .inl ⟨.inr (.inl ⟨h0, hlt, rfl⟩), .inr rfl⟩
       · rw [hpr] at happ; rcases happ with h' | h' <;> cases h'
       · rw [hpr] at hpv; cases hpv
     · obtain ⟨-, h1 | h1, -⟩ := hli <;> rw [hpr] at h1 <;> cases h1
@@ -608,19 +615,19 @@ theorem recvEnd_split {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {m : Msg
 
 /-- **`TickEnd`'s pre-vote and check-quorum arms** (beyond `TickEndO`): a pre-campaign at a
 non-leader, a leader's check-quorum step-down to a follower with no leader at its term. -/
-def TickEndP (c : CfgM) (id : w64) (s s' : PState) : Prop :=
-  (s.role ≠ .leader ∧ PreCampaignEnd c id s s') ∨
-  (s.role = .leader ∧ s' = pbecomeFollower s s.term (W64 0))
+def TickEndP (k : NodeK) (c : CfgM) (id : w64) (s s' : PState) : Prop :=
+  (s.role ≠ .leader ∧ k.prevote = true ∧ PreCampaignEnd c id s s') ∨
+  (s.role = .leader ∧ k.cq = true ∧ s' = pbecomeFollower s s.term (W64 0))
 
 /-- **`TickEnd`** is the reading `TickEndO` or a new arm (`TickEndP`). -/
 theorem tickEnd_split {k : NodeK} {c : CfgM} {id : w64} {s s' : PState}
-    (h : TickEnd k c id s s') : TickEndO k c id s s' ∨ TickEndP c id s s' := by
-  rcases h with h | ⟨hnl, -, hid, peers, hperm, heq⟩ | ⟨hnl, -, hpc⟩ | h4 | ⟨hl, -, h5⟩
+    (h : TickEnd k c id s s') : TickEndO k c id s s' ∨ TickEndP k c id s s' := by
+  rcases h with h | ⟨hnl, -, hid, peers, hperm, heq⟩ | ⟨hnl, hk, hpc⟩ | h4 | ⟨hl, hk, h5⟩
   · exact .inl (.inl h)
   · exact .inl (.inr (.inl ⟨hnl, hid, peers, [], hperm, heq⟩))
-  · exact .inr (.inl ⟨hnl, hpc⟩)
+  · exact .inr (.inl ⟨hnl, hk, hpc⟩)
   · exact .inl (.inr (.inr h4))
-  · exact .inr (.inr ⟨hl, h5⟩)
+  · exact .inr (.inr ⟨hl, hk, h5⟩)
 
 /-- `RecvEnd` of a self-acknowledgement or a self-vote (whatever the node's flags: no stale answer,
 no lease for these types) is the reading. -/
@@ -630,7 +637,7 @@ theorem recvEndO_of_resp {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {m : 
   have hty : S4Ty m.ty := by rcases hq with h | h <;> simp [S4Ty, h]
   rcases recvEnd_split (.inl hty) (fun h => by rcases hq with h' | h' <;> rw [h'] at h <;> cases h) hp h
     with h | h
-  · exact h
+  · exact h.1
   · exfalso
     rcases h with ⟨-, -, h1 | h1, -⟩ | ⟨-, h1, -⟩ | ⟨⟨-, h1 | h1, -⟩, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ <;>
       rcases hq with h' | h' <;> rw [h'] at h1 <;> cases h1
@@ -691,6 +698,136 @@ theorem advanceEnd_pre {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {qs : L
         · exact h'
         · rw [hc] at h'; cases h'
       rw [this]; exact hcs
+
+/-! ## `Advance` and `Reach` read on the protocol state below `mskB1p` -/
+
+/-- **`QsOk` of a message other than a pre-vote response**: the S4 shape, a self-acknowledgement
+or a self-vote at the node's term. -/
+theorem QsOk.notPre {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : NodeView} {q : Msg}
+    (h : QsOk R S n v q) (hq : q.ty ≠ .preVoteResp) :
+    q.src = nodeId n ∧ q.dst = nodeId n ∧ q.term = v.ps.term ∧ q.reject = false ∧
+    ((q.ty = .appResp ∧ v.ps.role = .leader ∧
+        AckIn S (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z q.index)) ∨
+     (q.ty = .voteResp ∧
+        { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes)) := by
+  obtain ⟨h1, h2, h3, ⟨h4, h5⟩ | ⟨h6, -⟩⟩ := h
+  · exact ⟨h1, h2, h4, h3, h5⟩
+  · exact absurd h6 hq
+
+/-- `Advance` over `RState` is `Advance` over the protocol state at the node's configuration (the
+received messages keep the configuration, the storage acknowledgements the protocol state). -/
+theorem advanceEndR_toP {Adm : List EntryM → CCState → Prop} {dec : CCDec} {k : NodeK} {id : w64}
+    {r r' : RState} {qs : List Msg} (h : AdvanceEndR Adm dec k id r qs r') :
+    AdvanceEnd k r.cfg.cfg id r.p qs r'.p := by
+  induction h with
+  | nil r r' ha =>
+    have : r'.p = r.p := by
+      rcases ha with rfl | ⟨a, -, rfl⟩ | ⟨j, sn, cs', -, rfl⟩ <;> rfl
+    rw [this]; exact .nil _
+  | cons r r1 r' q qs hr _ ih =>
+    have hc : r1.cfg = r.cfg := hr.2.1.2.2
+    rw [hc] at ih
+    exact .cons _ _ _ q qs hr.1 ih
+
+/-- **`Advance` of a view's queue** (`QsOk`, homogeneous): of self-acknowledgements and self-votes,
+the reading `AdvanceEndO`; of a pre-candidate's self pre-votes (a voter's, pre-vote on), nothing or
+the campaign at a follower with no leader (`advanceEnd_pre`). -/
+theorem AdvanceEnd.split {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : NodeView} {k : NodeK}
+    {c : CfgM} {s' : PState} (hqs : ∀ q ∈ v.qs, QsOk R S n v q) (hp : v.ps.rd.pend = [])
+    (h : AdvanceEnd k c (nodeId n) v.ps v.qs s') :
+    (AdvanceEndO k c (nodeId n) v.ps v.qs s' ∧ ∀ q ∈ v.qs, q.ty ≠ .preVoteResp) ∨
+    ((∀ q ∈ v.qs, q.ty = .preVoteResp ∧ q.reject = false) ∧ nodeId n ∈ v.r.cfg.cfg.voters ∧
+      (R.k n).prevote = true ∧
+      (s' = v.ps ∨ (v.ps.role = .follower ∧ v.ps.lead = W64 0 ∧ CampaignSends c (nodeId n) v.ps [] s'))) := by
+  by_cases hex : ∃ q ∈ v.qs, q.ty = .preVoteResp
+  · obtain ⟨q, hq, hty⟩ := hex
+    obtain ⟨-, -, -, ⟨-, h1 | h1⟩ | ⟨-, -, hvt, hpv, hall⟩⟩ := hqs q hq
+    · rw [hty] at h1; cases h1.1
+    · rw [hty] at h1; cases h1.1
+    have hpr : ∀ q ∈ v.qs, q.ty = .preVoteResp ∧ q.reject = false :=
+      fun q' hq' => ⟨hall q' hq', (hqs q' hq').2.2.1⟩
+    exact .inr ⟨hpr, hvt, hpv, advanceEnd_pre hpr h⟩
+  · have hno : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp := fun q hq hty => hex ⟨q, hq, hty⟩
+    refine .inl ⟨advanceEndO_of' (fun q hq => ?_) hp h, hno⟩
+    exact ((hqs q hq).notPre (hno q hq)).2.2.2.2.imp (fun h => h.1) (fun h => h.1)
+
+/-- The `by` of a drain whose input steps as a tick (`TickEnd`): a tick, or `Campaign`
+(`tickEndR_of_campaignEndR'`). -/
+def TickBy (b : AntCheck.Str) : Prop := b = go!"tick" ∨ b = go!"campaign"
+
+/-- **`Reach` read on the protocol state** (below `mskB1p`: the inputs a message received, a tick
+or a proposal, the configuration `c` fixed): no input; a received message (sent to the node, of a
+nonzero term) of an S4 type stepped as the reading (`RecvEndO`) or a pre-vote/check-quorum arm (`RecvEndP`; a
+granted pre-vote response to a voter); a tick stepped as the reading (`TickEndO`) or a pre-campaign
+or check-quorum step-down (`TickEndP`); a proposal (`ProposeEnd`); `Advance` stepping the queued
+self-acknowledgements and self-votes (`AdvanceEndO`), or a voter's queued self pre-votes: nothing or
+the campaign (`AdvanceEnd.split`). -/
+inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) : NodeView → PState → Prop
+  | stay (v : NodeView) : v.Idle → ReachP kk c id net v v.ps
+  | recv (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
+      m ∈ net → m.dst = id → m.term ≠ W64 0 → S4Ty m.ty → RecvEndO kk c id v.ps m ps₁ →
+      ReachP kk c id net v ps₁
+  | recvP (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
+      m ∈ net → m.dst = id → m.term ≠ W64 0 → (m.ty = .preVoteResp → m.reject = false → id ∈ c.voters) →
+      RecvEndP kk c id v.ps m ps₁ → ReachP kk c id net v ps₁
+  | tick (v : NodeView) (ps₁ : PState) : v.Idle → TickBy v.byE → TickEndO kk c id v.ps ps₁ →
+      ReachP kk c id net v ps₁
+  | tickP (v : NodeView) (ps₁ : PState) : v.Idle → TickBy v.byE → TickEndP kk c id v.ps ps₁ →
+      ReachP kk c id net v ps₁
+  | propose (v : NodeView) (d : List w8) (ps₁ : PState) : v.Idle → v.byE = go!"propose" →
+      ProposeEnd c id v.ps (propMsg id d) ps₁ → ReachP kk c id net v ps₁
+  | advance (v : NodeView) (ps₁ : PState) : v.pend = [] → v.ce = [] → DrainBy v.byE →
+      (∀ q ∈ v.qs, q.ty ≠ .preVoteResp) → AdvanceEndO kk c id v.ps v.qs ps₁ → ReachP kk c id net v ps₁
+  | advP (v : NodeView) (ps₁ : PState) : v.pend = [] → v.ce = [] → DrainBy v.byE →
+      (∀ q ∈ v.qs, q.ty = .preVoteResp ∧ q.reject = false) → id ∈ c.voters → kk.prevote = true →
+      (ps₁ = v.ps ∨ (v.ps.role = .follower ∧ v.ps.lead = W64 0 ∧ CampaignSends c id v.ps [] ps₁)) →
+      ReachP kk c id net v ps₁
+
+/-- A proposal's step is the reading (no new arm reads a proposal). -/
+theorem recvEndO_of_prop {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {d : List w8}
+    (hp : s.rd.pend = []) (h : RecvEnd k c id s (propMsg id d) s') :
+    RecvEndO k c id s (propMsg id d) s' := by
+  rcases recvEnd_split (.inl (by simp [S4Ty, propMsg])) (fun h => by simp [propMsg] at h) hp h
+    with h | h
+  · exact h.1
+  · exfalso
+    rcases h with ⟨-, -, h1 | h1, -⟩ | ⟨-, h1, -⟩ | ⟨⟨-, h1 | h1, -⟩, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ <;>
+      simp [propMsg] at h1
+
+/-- **`ReachIn` below `mskB1p` is its protocol reading** at the node's configuration. -/
+theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {net : List Msg} {xnet : List XMsg} {n : Fin R.N}
+    {S : AntCheck.State} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
+    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) : ReachP (R.k n) v.r.cfg.cfg (nodeId n) net v r₁.p := by
+  obtain ⟨hmd, -, -, -, -, -, hty⟩ := hin.b1p hmsk
+  have hrd : R.md.reads = false := by rw [hmd]
+  have hcc : R.md.confChanges = false := by rw [hmd]
+  have hp := hv.facts.pend0 hrd
+  cases hr with
+  | stay hi => exact .stay _ hi
+  | input inp _ hinp hi hbe hca _ hm _ hs =>
+    rcases Input.step_b1p hmsk hinp hs with ⟨m, rfl⟩ | ⟨hti, hs⟩ | ⟨d, rfl⟩
+    · obtain ⟨hmn, hmd', hm0⟩ := hm m rfl
+      rcases recvEnd_split (hty m hmn) (fun h1 => (hnet.2.2.2.2.1 m hmn).2.2.2 hrd (.inr h1)) hp hs.1
+        with ⟨h, h4 | he⟩ | h
+      · exact .recv _ m _ hi hbe hca hmn hmd' hm0 h4 h
+      · rw [he]; exact .stay _ hi
+      · refine .recvP _ m _ hi hbe hca hmn hmd' hm0 (fun h1 h2 => ?_) h
+        have := ((hnet.2.2.2.2.2 m hmn) hcc).2 h1 h2
+        rw [(hv.facts.conf0 hcc).1, CfgM.voters_simple, ← hmd']; exact this
+    · have hti' : TickBy v.byE := by rcases hti with rfl | rfl <;> simp [hbe, Input.byE, TickBy]
+      rcases tickEnd_split hs.1 with h | h
+      · exact .tick _ _ hi hti' h
+      · exact .tickP _ _ hi hti' h
+    · rcases recvEndO_of_prop hp hs.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      · exact .propose _ d _ hi hbe hh
+      · exact absurd rfl h0
+      · exact absurd rfl h0
+  | advance _ hpd _ hce _ hb ha _ =>
+    rcases AdvanceEnd.split hv.qs hp (advanceEndR_toP ha) with ⟨h, hno⟩ | ⟨hpr, hvt, hpv, h⟩
+    · exact .advance _ _ hpd hce hb hno h
+    · exact .advP _ _ hpd hce hb hpr hvt hpv h
 
 end inputs
 

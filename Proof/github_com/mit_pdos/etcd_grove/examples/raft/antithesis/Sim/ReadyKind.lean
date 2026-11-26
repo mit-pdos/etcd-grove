@@ -100,44 +100,6 @@ theorem reportedO_of {v : NodeView} {rd : ReadyD} (h : Reported v rd) (hdur : v.
   · exact absurd hsn h
   · exact .inr (.inr (.inr (.inr fun he => h (by rw [he]))))
 
-/-- The `by` of a drain whose input steps as a tick (`TickEndO`): a tick, or `Campaign` (pre-vote
-off: `tickEndR_of_campaignEndR`). -/
-def TickBy (b : AntCheck.Str) : Prop := b = go!"tick" ∨ b = go!"campaign"
-
-/-- **`Reach` read on the protocol state** (below `mskB1a`: the node flags off, the inputs a
-message received, a tick or a proposal, the configuration `c` fixed): no input; a received
-message (sent to the node, of a nonzero term), a tick or a proposal stepped (`RecvEndO`,
-`TickEndO`, `ProposeEnd`); `Advance` stepping the queued self-messages. -/
-inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) : NodeView → PState → Prop
-  | stay (v : NodeView) : v.Idle → ReachP kk c id net v v.ps
-  | recv (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
-      m ∈ net → m.dst = id → m.term ≠ W64 0 → RecvEndO kk c id v.ps m ps₁ → ReachP kk c id net v ps₁
-  | tick (v : NodeView) (ps₁ : PState) : v.Idle → TickBy v.byE → TickEndO kk c id v.ps ps₁ →
-      ReachP kk c id net v ps₁
-  | propose (v : NodeView) (d : List w8) (ps₁ : PState) : v.Idle → v.byE = go!"propose" →
-      ProposeEnd c id v.ps (propMsg id d) ps₁ → ReachP kk c id net v ps₁
-  | advance (v : NodeView) (ps₁ : PState) : v.pend = [] → v.ce = [] → DrainBy v.byE →
-      AdvanceEndO kk c id v.ps v.qs ps₁ → ReachP kk c id net v ps₁
-
-/-- `ReachIn` below `mskB1a` is its protocol reading at the node's configuration. -/
-theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
-    {Adm : List EntryM → CCState → Prop} {net : List Msg} {xnet : List XMsg} {n : Fin R.N}
-    {S : AntCheck.State} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
-    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁) : ReachP (R.k n) v.r.cfg.cfg (nodeId n) net v r₁.p := by
-  cases hr with
-  | stay hi => exact .stay _ hi
-  | input inp _ hinp hi hbe hca _ hm _ hs =>
-    rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨hti, hs⟩ | ⟨d, rfl⟩
-    · obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      exact .recv _ m _ hi hbe hca hmn hmd hm0 (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
-    · exact .tick _ _ hi (by rcases hti with rfl | rfl <;> simp [hbe, Input.byE, TickBy]) (TickEnd.toO_in hmsk hin hs.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
-      · exact .propose _ d _ hi hbe hh
-      · exact absurd rfl h0
-      · exact absurd rfl h0
-  | advance _ hp _ hce _ hb ha _ => exact .advance _ _ hp hce hb (advanceEndR_toO hmsk hin hv ha)
-
 /-! ## The `Ready`'s entries from its log -/
 
 theorem getElem?_take_append_lt {L Y : List EntryM} {k j : Nat} (hj : j < k) (hk : k ≤ L.length) :
@@ -252,6 +214,43 @@ def InMsg (m : Msg) : Prop :=
   (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
     m.ty = .heartbeatResp ∨ m.ty = .propose) ∧
   (m.ty = .app → AppPayloadOk m) ∧ m.src ≠ m.dst ∧ (m.ty = .propose → m.term = W64 0)
+
+/-! ## `Reach` read on the protocol state with the node flags off -/
+
+/-- **`ReachP` with the node flags off** (stage A's reading; the `Ready` proofs are still over it):
+no input; a received message stepped (`RecvEndO`), a tick (`TickEndO`), a proposal; `Advance`
+stepping the queued self-messages (`AdvanceEndO`). -/
+inductive ReachO (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) : NodeView → PState → Prop
+  | stay (v : NodeView) : v.Idle → ReachO kk c id net v v.ps
+  | recv (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
+      m ∈ net → m.dst = id → m.term ≠ W64 0 → RecvEndO kk c id v.ps m ps₁ → ReachO kk c id net v ps₁
+  | tick (v : NodeView) (ps₁ : PState) : v.Idle → TickBy v.byE → TickEndO kk c id v.ps ps₁ →
+      ReachO kk c id net v ps₁
+  | propose (v : NodeView) (d : List w8) (ps₁ : PState) : v.Idle → v.byE = go!"propose" →
+      ProposeEnd c id v.ps (propMsg id d) ps₁ → ReachO kk c id net v ps₁
+  | advance (v : NodeView) (ps₁ : PState) : v.pend = [] → v.ce = [] → DrainBy v.byE →
+      AdvanceEndO kk c id v.ps v.qs ps₁ → ReachO kk c id net v ps₁
+
+/-- With the node flags off and the S4 types only (`InMsg`), `ReachP` is `ReachO`: no new arm. -/
+theorem ReachP.toO {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
+    (hin : ∀ m ∈ net, InMsg m) (h : ReachP {} c id net v ps₁) : ReachO {} c id net v ps₁ := by
+  cases h with
+  | stay hi => exact .stay _ hi
+  | recv m _ h1 h2 h3 h4 h5 h6 _ h7 => exact .recv _ m _ h1 h2 h3 h4 h5 h6 h7
+  | recvP m _ _ _ _ hm _ _ _ hp =>
+    exfalso
+    have ht := (hin m hm).1
+    rcases hp with ⟨-, h1 | h1, -⟩ | ⟨-, h1, -⟩ | ⟨⟨h1, -⟩, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩
+    all_goals first
+      | cases h1
+      | (rcases ht with h' | h' | h' | h' | h' | h' | h' <;> rw [h'] at h1 <;> cases h1)
+  | tick _ h1 h2 h3 => exact .tick _ _ h1 h2 h3
+  | tickP _ _ _ hp =>
+    exfalso
+    rcases hp with ⟨-, h1, -⟩ | ⟨-, h1, -⟩ <;> cases h1
+  | propose d _ h1 h2 h3 => exact .propose _ d _ h1 h2 h3
+  | advance _ h1 h2 h3 _ h4 => exact .advance _ _ h1 h2 h3 h4
+  | advP _ _ _ _ _ _ hk _ => cases hk
 
 /-- The message a drain caused by a `recv` handles (`Reach.input`'s): the drain's cause, sent to
 the node, of a nonzero term. -/
@@ -827,7 +826,7 @@ theorem kind_advance {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
 reaching `ps₁` (`Reach`; the messages sent of a type in scope and `MsgShape`), a `Ready` at `ps₁`
 (`ReadyOutP`) that the harness reports (`Reported`) is one of `ReadyKind`'s. -/
 theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
-    (hr : ReachP kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
+    (hr : ReachO kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
     (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
     (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty = .voteResp) (hX : v.ps.outbox = []) :
@@ -863,7 +862,7 @@ theorem voteSelf_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState
 
 /-- Any `Ready` (reported or not) keeps it. -/
 theorem voteSelf_ready {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
-    (hr : ReachP kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd)
+    (hr : ReachO kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
     (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
     (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty = .voteResp) (hX : v.ps.outbox = []) :
@@ -957,7 +956,7 @@ theorem selfOut_handle {id : w64} {s1 s' : PState} {m : Msg} (hX : s1.outbox = [
 self-acknowledgement or a candidate's self-vote. From the view (nothing queued, C1; the leader
 hint `LeadOk`; its queued self-messages at its term) and the messages sent (`InMsg`). -/
 theorem selfOut_reach {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
-    (hr : ReachP kk cf id net v ps₁) (hX : v.ps.outbox = [])
+    (hr : ReachO kk cf id net v ps₁) (hX : v.ps.outbox = [])
     (hlo : v.ps.role ≠ .leader → v.ps.lead ≠ id) (hin : ∀ m ∈ net, InMsg m)
     (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) : SelfOut id ps₁ := by
   cases hr with

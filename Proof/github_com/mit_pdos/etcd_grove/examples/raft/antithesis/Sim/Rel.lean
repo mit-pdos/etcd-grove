@@ -397,7 +397,8 @@ def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
 (queued only while it leads: a node that steps down drops its outbox), its ack fact already recorded
 by the `ready` of its write (B 407), a candidate's self-vote, recorded by the campaign's (B 418), or
 a pre-candidate's self pre-vote at the next term (`PreCampaignEnd`, a voter's with pre-vote on: its win campaigns,
-`CampaignSends`, with no promotability test; unrecorded, `isUnmodelled`). -/
+`CampaignSends`, with no promotability test; unrecorded, `isUnmodelled`), in a queue of self pre-votes only
+(one `Ready`'s queue is one input's, and a pre-campaign queues only its own pre-vote). -/
 def QsOk (R : RunCfg) (S : AntCheck.State) (n : Fin R.N) (v : NodeView) (q : Msg) : Prop :=
   q.src = nodeId n ∧ q.dst = nodeId n ∧ q.reject = false ∧
   ((q.term = v.ps.term ∧
@@ -406,7 +407,7 @@ def QsOk (R : RunCfg) (S : AntCheck.State) (n : Fin R.N) (v : NodeView) (q : Msg
      (q.ty = .voteResp ∧
         { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes))) ∨
    (q.ty = .preVoteResp ∧ q.term = v.ps.term + W64 1 ∧ nodeId n ∈ v.r.cfg.cfg.voters ∧
-      (R.k n).prevote = true))
+      (R.k n).prevote = true ∧ ∀ q' ∈ v.qs, q'.ty = .preVoteResp))
 
 /-- **C1, the leader hint**: a node that does not lead does not name itself as leader (raft's
 `LeadOk`): every step that sets `lead` to the node itself makes it leader, and a leader that steps

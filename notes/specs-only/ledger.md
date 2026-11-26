@@ -6360,3 +6360,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   one mode (the read state grows, which a mode without reads excludes).
 - **Not yet.** `RawNode.ReadIndex.apiSpec`: the sealed `rawNode` is at `some {}` (reads off) until item 4's step D.
 - **Decision.** Design §4 (lead-approved row). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `QsOk`'s self pre-votes are the whole queue (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`QsOk`); the Sim proofs follow
+  (Scope, Outbox, MsgBounds, MsgShape, Quiet, ReadyKind, Ready).
+- **Change.** `QsOk`'s third disjunct (a pre-candidate's self pre-vote) gains `∧ ∀ q' ∈ v.qs, q'.ty = .preVoteResp`.
+  Why: `Advance` of a mixed queue (a self-vote at `T` and a self pre-vote at `T + 1`, which a per-message `QsOk`
+  allowed) is not a no-op at the end (at `T = 0` the term-0 vote is tallied; at `T = 2^64 - 1` the wrap adopts a term);
+  the queue is one `Ready`'s `msgsAfterAppend`, one input's, and a pre-campaign queues only its own pre-vote, so the
+  conjunct is true. `Scope.AdvanceEnd.split` reads it: a queue of acknowledgements and self-votes steps as stage A's
+  reading, a queue of self pre-votes does nothing or campaigns (`advanceEnd_pre`).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise; an invariant strengthening.
+- **Proof-internal (not a statement).** `Quiet.reach_selfFree` (nothing self-addressed at an unchanged role, term and
+  log) is false at `mskB1p` (a pre-candidate's repeat pre-campaign queues its self pre-vote); replaced by
+  `reach_selfPre` (every self-addressed message a granted self pre-vote at the next term, from a voter with pre-vote on),
+  used only by `nodeOk_quiet`.

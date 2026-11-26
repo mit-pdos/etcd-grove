@@ -113,16 +113,16 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
     rcases hv.confLag with h | ⟨h, -⟩
     · exact h
     · rw [hsnap0.2.2] at h; cases h
-  obtain ⟨⟨hcfg, hfp, hsnap⟩, -, -⟩ := reach_keep hmsk hin hv hr
+  obtain ⟨⟨hcfg, hfp, hsnap⟩, -, -⟩ := reach_keep (SimMask.le_b1p hmsk) hin hv hr
   have hro' := hro
   obtain ⟨hR, hpre, -, -, -, -, -, -, hsync, -, hxm, hpfx, hlen, -, hsnapC, hidx, -⟩ := hro
   obtain ⟨hb0, -, hnosnap⟩ := hsnapC hsn
   have hmsg := (hsync (by rw [hmd])).2
   have hcm : ∀ m, (V n).cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries :=
     fun m hm => (hnet.2.2.2.2.1 m (hv.cause m hm).1).1 hcc
-  obtain ⟨hfl, hms⟩ := msgShape_core hmsk hin hnet hv hr hmsg hfn (hv.facts.roPend (by rw [hmd])) hcm
+  obtain ⟨hfl, hms⟩ := msgShape_core (SimMask.le_b1p hmsk) hin hnet hv hr hmsg hfn (hv.facts.roPend (by rw [hmd])) hcm
   have f3 := hv.facts.conf0
-  have hroOk := reach_roOk hmsk hin hnet hv hr
+  have hroOk := reach_roOk (SimMask.le_b1p hmsk) hin hnet hv hr
   refine {
     hdel := rfl
     hfp := hfp.trans hsnap0.2.1
@@ -140,10 +140,10 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
       fun q hq => ?_, Int.le_refl _,
       (fun h => by change rd.pre = true at h; show r₁.p.role = .follower; rw [← hR]; exact (hpre h).1),
       (fun _ => hroOk), (fun h => (hpre h).2)⟩
-    hpend := by have h := pendOk_of_reach hmsk hin hnet hv hr hro'; exact h
+    hpend := by have h := pendOk_of_reach (SimMask.le_b1p hmsk) hin hnet hv hr hro'; exact h
     hxpend := fun x hx => hxm x hx
     drain := ⟨rfl, rfl, rfl⟩
-    hlead := by have h := reach_leadOk hmsk hin hnet hv hr; exact h }
+    hlead := by have h := reach_leadOk (SimMask.le_b1p hmsk) hin hnet hv hr; exact h }
   have hmq := hms q hq
   obtain ⟨-, h2', h3', -, -⟩ := id hmq
   have hqo : q ∈ r₁.p.outbox := (List.mem_filter.mp ((hmsg.mem_iff).mp hq)).1
@@ -152,7 +152,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
 /-! ## The drain's `by` and the campaign -/
 
 theorem reach_byE {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
-    (hr : ReachP kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd) :
+    (hr : ReachO kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd) :
     DrainBy v.byE := by
   cases hr with
   | stay _ => exact absurd hrep (stay_quiet hro)
@@ -164,7 +164,7 @@ theorem reach_byE {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {r
 /-- A campaign's tally is empty (`pbecomeCandidate`) and the node a voter of its configuration: the
 campaign is `TickEndO`'s (an `Advance` keeps the term, a leader's tick its role). -/
 theorem camp_votes {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
-    (hr : ReachP kk cf id net v ps₁) (hX : v.ps.outbox = []) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
+    (hr : ReachO kk cf id net v ps₁) (hX : v.ps.outbox = []) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
     (hbe : TickBy v.byE) (ht : ps₁.term = v.ps.term + W64 1) (hc : ps₁.role = .candidate) :
     ps₁.votes = ∅ ∧ id ∈ cf.voters := by
   cases hr with
@@ -240,7 +240,7 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   hsn : rd.snap = none
   hfl : r₁.full = r₁.p.log
   hrf : ReadyFacts G (nodeId n) r₁
-  hr : ReachP {} (CfgM.simple R.voters0 ∅) (nodeId n) net (V n) r₁.p
+  hr : ReachO {} (CfgM.simple R.voters0 ∅) (nodeId n) net (V n) r₁.p
   hro : ReadyOutO R.N (nodeId n) (V n) r₁.p rd
   hrep : ReportedO (V n) rd
   htold : (V n).byE = go!"recv" → (V n).told = true
@@ -304,8 +304,8 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCD
   have hroO := readyOutO_of hro (by rw [hmd]) (by rw [hmd]) hdl hfp
   have hrepO := reportedO_of hrep hdur hsnr hpf hvp
   have hcf : (V n).r.cfg.cfg = CfgM.simple R.voters0 ∅ := (hv.facts.conf0 (by rw [hmd])).1
-  have hrP := ReachIn.toP hmsk hin hnet hv hr
-  rw [hk n, hcf] at hrP
+  have hrP0 := ReachIn.toP (SimMask.le_b1p hmsk) hin hnet hv hr
+  rw [hk n, hcf] at hrP0
   obtain ⟨e1, e2, e3, e4⟩ := hv.disk
   obtain ⟨m1, -, m3, -⟩ := hv.mem
   have hcv : (V n).conf = (V n).r.cfg := by
@@ -315,6 +315,7 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCD
   have d7 : (V n).ps.outbox = [] := hv.facts.outbox
   have d8 : (V n).ps.base = base0 := hsn0.1
   have hin' : ∀ m ∈ net, InMsg m := fun m hm => ⟨ty7_of_s4 (hty m hm), hnet.2.2.1 m hm⟩
+  have hrP := hrP0.toO hin'
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := (hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩

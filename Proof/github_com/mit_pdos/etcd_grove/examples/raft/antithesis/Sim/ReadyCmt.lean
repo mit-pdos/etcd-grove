@@ -210,7 +210,7 @@ theorem quietP_reach {R : RunCfg} {kk : NodeK} {c : CfgM} {S : State} {net : Lis
     {n : Fin R.N} {v : NodeView} {ps₁ : PState}
     (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hqs : ∀ q ∈ v.qs, QsOk R S n v q)
     (hkp : (R.k n).prevote = false) (hct : S.currentTerm[n.val]! = uint.Z v.ps.term) (hin : ∀ m ∈ net, InMsg m)
-    (hr : ReachP kk c (nodeId n) net v ps₁)
+    (hr : ReachO kk c (nodeId n) net v ps₁)
     (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
     QKeep S n v.ps ps₁ := by
   cases hr with

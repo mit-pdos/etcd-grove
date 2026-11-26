@@ -58,7 +58,7 @@ theorem logIdx_len_lt {l : List EntryM} (hl : LogIdx l) (hne : l ≠ []) : (l.le
 /-- A proposal's state keeps the `Match` values (`ProposeEnd`: `pappend` and `psendMsgs`). -/
 theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
     {ents : List EntryM}
-    (hr : ReachP kk cf id net v ps₁) (hby : v.byE = go!"propose") (hvl : v.ps.role = .leader)
+    (hr : ReachO kk cf id net v ps₁) (hby : v.byE = go!"propose") (hvl : v.ps.role = .leader)
     (hne : ents ≠ []) (hplog : ps₁.log = v.ps.log ++ ents)
     (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
     ps₁.matched = v.ps.matched := by

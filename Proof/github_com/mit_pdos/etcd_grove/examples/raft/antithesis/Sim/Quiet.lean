@@ -8,8 +8,8 @@ Lean-first (no Rocq counterpart).
 acknowledgement that commits nothing, its ack fact in `msgs` by C4 at the leader's term) and a
 candidate's tally (a grant, its fact in `msgs` by C4; its own vote, in `votes` by `QsOk`): this file
 shows `LeaderPart`'s and `CandPart`'s facts survive those steps (`MatchOk`, `VotesOk`), that a
-silent `Ready` queues nothing for `Advance` (`reach_selfFree`), and proves `antSim_quiet_in` (parity
-B1: over `QuietIn` for the masks below `mskB1a`; the leader hint along `Reach` is `Outbox.lean`'s
+silent `Ready` queues for `Advance` at most a pre-candidate's self pre-vote (`reach_selfPre`), and
+proves `antSim_quiet_in` (parity B1: over `QuietIn` for the masks below `mskB1p`; the leader hint along `Reach` is `Outbox.lean`'s
 `reach_leadOk`, the configuration, ghost prefix and a leader's read-only queue `MsgShape.lean`'s
 `reach_keep`, `reach_roOk`).
 -/
@@ -324,6 +324,28 @@ theorem quiet_propose {id : w64} {S : State} {n : Fin R.N} {s s' : PState} {m : 
     · subst h; exact QKeep.same rfl rfl rfl rfl rfl
     · subst h; exact QKeep.refl
 
+/-- `RecvEndP` keeps `QKeep` when it keeps the term: the answers keep the state, a step-down makes a
+follower; a campaign would change the term. -/
+theorem quiet_recvP {c : CfgM} {id : w64} {S : State} {n : Fin R.N} {s s' : PState} {m : Msg}
+    (ht : s'.term = s.term) (h : RecvEndP kk c id s m s') : QKeep S n s s' := by
+  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
+      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
+  · exact QKeep.same rfl rfl rfl rfl rfl
+  · exact QKeep.same rfl rfl rfl rfl rfl
+  · exact QKeep.refl
+  · exact QKeep.same rfl rfl rfl rfl rfl
+  · exact QKeep.same rfl rfl rfl rfl rfl
+  · exact ⟨rfl, ht, fun h => by simp [pbecomeFollower] at h, fun h => by simp [pbecomeFollower] at h⟩
+  · exact QKeep.refl
+  · obtain ⟨peers, -, rfl⟩ := hcs; exact absurd ht (w64_succ_ne _)
+
+/-- `TickEndP` keeps `QKeep`: a pre-candidate and a stepped-down leader are followers. -/
+theorem quiet_tickP {c : CfgM} {id : w64} {S : State} {n : Fin R.N} {s s' : PState}
+    (h : TickEndP kk c id s s') : QKeep S n s s' := by
+  rcases h with ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, rfl⟩
+  · exact ⟨rfl, rfl, fun h => by simp [psendMsgs] at h, fun h => by simp [psendMsgs] at h⟩
+  · exact ⟨rfl, rfl, fun h => by simp [pbecomeFollower] at h, fun h => by simp [pbecomeFollower] at h⟩
+
 /-- What `QsOk` says of a self-addressed message `Advance` steps at term `T`. -/
 def QMsg (S : State) (n : Fin R.N) (T : w64) (q : Msg) : Prop :=
   SelfMsg (nodeId n) T q ∧
@@ -374,6 +396,18 @@ theorem quiet_adv_step {S : State} {n : Fin R.N} {T : w64} {s s1 : PState} {q : 
       · exact ⟨rfl, fun h => absurd hcand h, fun hr => absurd (hr.trans hcand)
           (by simp [pbecomeFollower])⟩
     · exact hrefl hh
+
+/-- A queued message other than a self pre-vote is `QMsg` at the view's term (`QsOk.notPre`). -/
+theorem QsOk.qmsg {S : State} {n : Fin R.N} {v : NodeView} {q : Msg} (h : QsOk R S n v q)
+    (hne : q.ty ≠ .preVoteResp) : QMsg S n v.ps.term q := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h.notPre hne
+  refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
+  · rcases h5 with h5 | h5
+    · exact h5.2.2
+    · rw [h5.1] at hty; cases hty
+  · rcases h5 with h5 | h5
+    · rw [h5.1] at hty; cases hty
+    · exact h5.2
 
 /-- `Advance`'s run: the term kept, a non-candidate's role kept, and `QKeep` when the role is the
 same at the end (a candidate that won or lost stays a leader or follower). -/
@@ -504,6 +538,45 @@ theorem selfFree_propose {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id 
       exact selfFree_one hX (hlead.1 (by rw [hc.1]; decide))
     · subst h; exact hX
 
+/-- `RecvEndP` at a kept term queues nothing to the node itself: its answers go to the sender. -/
+theorem selfFree_recvP {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : SelfFree id s)
+    (hsrc : m.src ≠ id) (ht : s'.term = s.term) (h : RecvEndP kk c id s m s') : SelfFree id s' := by
+  rcases h with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, rfl⟩⟩ |
+      ⟨-, -, -, rfl⟩ | ⟨-, rfl | ⟨-, -, -, hcs⟩⟩
+  · exact selfFree_one hX hsrc
+  · exact selfFree_one hX hsrc
+  · exact hX
+  · exact selfFree_one hX hsrc
+  · exact selfFree_one hX hsrc
+  · exact hX
+  · exact hX
+  · obtain ⟨peers, -, rfl⟩ := hcs; exact absurd ht (w64_succ_ne _)
+
+/-- Every message of `s`'s outbox to the node itself is a pre-candidate's self pre-vote at the
+next term `T + 1` (`QsOk`'s third arm): granted, the node a voter of `c` with pre-vote on. -/
+def SelfPre (id T : w64) (c : CfgM) (kk : NodeK) (s : PState) : Prop :=
+  ∀ q ∈ s.outbox, q.dst = id → q.ty = .preVoteResp ∧ q.src = id ∧ q.reject = false ∧
+    q.term = T + W64 1 ∧ id ∈ c.voters ∧ kk.prevote = true
+
+theorem SelfFree.pre {id T : w64} {c : CfgM} {s : PState} (h : SelfFree id s) : SelfPre id T c kk s :=
+  fun q hq hd => absurd hd (h q hq)
+
+/-- A pre-campaign queues to the node itself only its self pre-vote; a step-down nothing. -/
+theorem selfPre_tickP {c : CfgM} {id : w64} {s s' : PState} (hX : s.outbox = [])
+    (h : TickEndP kk c id s s') : SelfPre id s.term c kk s' := by
+  rcases h with ⟨-, hk, hid, peers, hp, rfl⟩ | ⟨-, -, rfl⟩
+  · intro q hq hd
+    rcases List.mem_append.mp (mem_psend hX hq) with hq | hq
+    · rw [List.mem_singleton.mp hq]; exact ⟨rfl, rfl, rfl, rfl, hid, hk⟩
+    · obtain ⟨d, hdm, rfl⟩ := List.mem_map.mp hq
+      exfalso
+      have hd' : d ∈ elements (c.voters \ {[id]}) := hp.mem_iff.mp hdm
+      rw [GMap.elem_of_elements, GMap.elem_of_difference] at hd'
+      exact hd'.2 ((GMap.elem_of_singleton _ _).mpr (by simpa [pvoteReq] using hd))
+  · exact SelfFree.pre (fun q hq => by
+      have hq' : q ∈ s.outbox := hq
+      rw [hX] at hq'; cases hq')
+
 /-- What `Advance`'s steps keep from a state of role `r0`: the candidate role only from a
 candidate's start, and a message to the node itself queued only once a candidate's start has
 left the candidate role (its win's self-acknowledgement). -/
@@ -568,89 +641,101 @@ theorem advSelf_run {c : CfgM} {id : w64} {r0 : Role} {s s' : PState} {qs : List
 
 /-! ## Quiet steps along `Reach` -/
 
+/-- **A quiet step's state along `ReachP`** (to a state with the view's role, term and log):
+`QKeep` from the view's state (received messages from another node: C4's `NetShape`; the new arms
+keep the state, make a follower, or change the term). -/
+theorem quiet_reachP {S : State} {net : List Msg} {n : Fin R.N} {v : NodeView} {ps₁ : PState}
+    (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hct : S.currentTerm[n.val]! = uint.Z v.ps.term)
+    (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → QMsg S n v.ps.term q)
+    (hr : ReachP kk cf (nodeId n) net v ps₁)
+    (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
+    QKeep S n v.ps ps₁ := by
+  cases hr with
+  | stay _ => exact QKeep.refl
+  | recv m _ _ _ _ hmn hmd hm0 hs4 h =>
+    exact quiet_recv hc hnet hmn hmd (hnet.2.2.1 m hmn).2.1 hm0 hct (ty7_of_s4 hs4) h hro ht hl
+  | recvP m _ _ _ _ _ _ _ _ h => exact quiet_recvP ht h
+  | tick _ _ _ h => exact quiet_tick h ht
+  | tickP _ _ _ h => exact quiet_tickP h
+  | propose d _ _ _ hh => exact quiet_propose hh hl
+  | advance _ _ _ _ hno h =>
+    exact (quiet_adv_run hc hct (fun q hq => hqs q hq (hno q hq)) h rfl).2.2 hro
+  | advP _ _ _ _ _ _ _ h =>
+    rcases h with rfl | ⟨-, -, hcs⟩
+    · exact QKeep.refl
+    · obtain ⟨peers, -, rfl⟩ := hcs; exact absurd ht (w64_succ_ne _)
+
 /-- **A quiet step's state** (`Reach` to a state with the view's role, term and log): `QKeep` from
-the view's state (received messages from another node: C4's `NetShape`). For the runs a mask below
-`mskB1a` admits. -/
-theorem quiet_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
+the view's state (`quiet_reachP`). For the runs a mask below `mskB1p` admits. -/
+theorem quiet_reach {msk : SimMask} (hmsk : msk ≤ mskB1p) {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁)
     (hro : r₁.p.role = v.ps.role) (ht : r₁.p.term = v.ps.term) (hl : r₁.p.log = v.ps.log) :
     QKeep S n v.ps r₁.p := by
-  obtain ⟨hmd, _, hbt, hpar, hspl, _, _, hty⟩ := hin.b1a hmsk
+  obtain ⟨hmd, hbt, hpar, hspl, -, -, -⟩ := hin.b1p hmsk
   have hdur : v.dur = durOf v.r := (hv.sync (by rw [hmd]) hbt hspl hpar).2.1
   have hct : S.currentTerm[n.val]! = uint.Z v.ps.term := by rw [hv.disk.1, hdur]; rfl
-  have hqs := hv.qs
-  cases hr with
-  | stay _ => exact QKeep.refl
-  | input inp _ hinp _ _ _ _ hm _ hs =>
-    rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
-    · obtain ⟨hmn, hmd', hm0⟩ := hm m rfl
-      exact quiet_recv hc hnet hmn hmd' (hnet.2.2.1 m hmn).2.1 hm0 hct (ty7_of_s4 (hty m hmn))
-        (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1) hro ht hl
-    · exact quiet_tick (TickEnd.toO_in hmsk hin hs.1) ht
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
-      · exact quiet_propose hh hl
-      · exact absurd rfl h0
-      · exact absurd rfl h0
-  | advance _ _ _ _ _ _ ha _ =>
-    refine (quiet_adv_run hc hct (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha) rfl).2.2 hro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
-    refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
-    · rcases h5 with h5 | h5
-      · exact h5.2.2
-      · rw [h5.1] at hty; cases hty
-    · rcases h5 with h5 | h5
-      · rw [h5.1] at hty; cases hty
-      · exact h5.2
+  exact quiet_reachP hc hnet hct (fun q hq hne => (hv.qs q hq).qmsg hne)
+    (ReachIn.toP hmsk hin hnet hv hr) hro ht hl
 
-/-- **A quiet step's state queues nothing for `Advance`** (`SelfFree`): a received message's answer
-is to its sender (another node), a campaign changes the term, a win the role, a proposal the log;
-a forward goes to the leader (the leader hint); `Advance` queues a self-acknowledgement only at a
-candidate's win. -/
-theorem reach_selfFree {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
+/-- **A quiet step's state queues for `Advance` at most a pre-candidate's self pre-vote**
+(`SelfPre`, along `ReachP`): a received message's answer is to its sender (another node), a
+campaign changes the term, a win the role, a proposal the log; a forward goes to the leader (the
+leader hint); a pre-campaign queues its self pre-vote; `Advance` queues a self-acknowledgement only
+at a candidate's win. -/
+theorem selfPre_reachP {net : List Msg} {n : Fin R.N} {v : NodeView} {ps₁ : PState}
+    (hX : v.ps.outbox = []) (hlo : LeadHint R.N (nodeId n) v.ps)
+    (hsd : ∀ m ∈ net, m.dst = nodeId n → m.src ≠ nodeId n)
+    (hnp : ∀ m ∈ net, m.ty = .propose → m.term = W64 0)
+    (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → q.ty = .appResp ∨ q.ty = .voteResp)
+    (hr : ReachP kk cf (nodeId n) net v ps₁)
+    (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
+    SelfPre (nodeId n) v.ps.term cf kk ps₁ := by
+  have hXf : SelfFree (nodeId n) v.ps := fun q hq => by rw [hX] at hq; cases hq
+  cases hr with
+  | stay _ => exact hXf.pre
+  | recv m _ _ _ _ hmn hmd hm0 hs4 h =>
+    exact (selfFree_recv hXf (ty7_of_s4 hs4) (fun hp => hm0 (hnp m hmn hp)) (hsd m hmn hmd) hm0
+      hro ht h).pre
+  | recvP m _ _ _ _ hmn hmd _ _ h => exact (selfFree_recvP hXf (hsd m hmn hmd) ht h).pre
+  | tick _ _ _ h => exact (selfFree_tick hXf ht h).pre
+  | tickP _ _ _ h => exact selfPre_tickP hX h
+  | propose d _ _ _ hh => exact (selfFree_propose hXf hlo (by simp [propMsg]) hl hh).pre
+  | advance _ _ _ _ hno h =>
+    have hfin := advSelf_run h (fun q hq => hqs q hq (hno q hq))
+      (⟨fun h => h, fun q hq => by rw [hX] at hq; cases hq⟩ : AdvSelf (nodeId n) v.ps.role v.ps)
+    exact SelfFree.pre (fun q hq hdq => (hfin.2 q hq hdq).2 (hro.trans (hfin.2 q hq hdq).1))
+  | advP _ _ _ _ _ _ _ h =>
+    rcases h with rfl | ⟨-, -, hcs⟩
+    · exact hXf.pre
+    · obtain ⟨peers, -, rfl⟩ := hcs; exact absurd ht (w64_succ_ne _)
+
+/-- **A quiet step's state queues for `Advance` at most a pre-candidate's self pre-vote**
+(`selfPre_reachP`). For the runs a mask below `mskB1p` admits. -/
+theorem reach_selfPre {msk : SimMask} (hmsk : msk ≤ mskB1p) {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁)
     (hro : r₁.p.role = v.ps.role) (ht : r₁.p.term = v.ps.term) (hl : r₁.p.log = v.ps.log) :
-    SelfFree (nodeId n) r₁.p := by
-  obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
-  have hX0 : v.ps.outbox = [] := hv.facts.outbox
-  have hX : SelfFree (nodeId n) v.ps := fun q hq => by rw [hX0] at hq; cases hq
-  have hlo : LeadHint R.N (nodeId n) v.ps := hv.leadOk
-  have hqs := hv.qs
-  cases hr with
-  | stay _ => exact hX
-  | input inp _ hinp _ _ _ _ hm _ hs =>
-    rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
-    · obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      obtain ⟨-, hsd, hpt⟩ := hnet.2.2.1 m hmn
-      have hsd' : m.src ≠ nodeId n := hmd ▸ hsd
-      exact selfFree_recv hX (ty7_of_s4 (hty m hmn)) (fun hp => hm0 (hpt hp)) hsd' hm0 hro ht (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
-    · exact selfFree_tick hX ht (TickEnd.toO_in hmsk hin hs.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
-      · exact selfFree_propose hX hlo (by simp [propMsg]) hl hh
-      · exact absurd rfl h0
-      · exact absurd rfl h0
-  | advance _ _ _ _ _ _ ha _ =>
-    have hty : ∀ q ∈ v.qs, q.ty = .appResp ∨ q.ty = .voteResp := fun q hq => by
-      obtain ⟨-, -, -, -, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
-      exact h5.imp (fun h => h.1) (fun h => h.1)
-    have hfin := advSelf_run (advanceEndR_toO hmsk hin hv ha) hty
-      (⟨fun h => h, fun q hq => by rw [hX0] at hq; cases hq⟩ : AdvSelf (nodeId n) v.ps.role v.ps)
-    exact fun q hq hdq => (hfin.2 q hq hdq).2 (hro.trans (hfin.2 q hq hdq).1)
+    SelfPre (nodeId n) v.ps.term v.r.cfg.cfg (R.k n) r₁.p :=
+  selfPre_reachP hv.facts.outbox hv.leadOk (fun m hmn hmd => hmd ▸ (hnet.2.2.1 m hmn).2.1)
+    (fun m hmn => (hnet.2.2.1 m hmn).2.2) (fun q hq hne => ((hv.qs q hq).self hne).2.2.2.2)
+    (ReachIn.toP hmsk hin hnet hv hr) hro ht hl
 
 /-! ## `antSim_quiet` -/
 
-/-- A reported role that is not a pre-candidate's names the role. -/
-theorem roleStr_false_eq {p : Bool} {r r' : Role} (h : roleStr false r = roleStr p r') :
-    p = false ∧ r = r' := by
-  cases p
+/-- Two reported roles agree when each pre-candidate is a follower: the same pre flag and role. -/
+theorem roleStr_eq {p p' : Bool} {r r' : Role} (h : roleStr p r = roleStr p' r')
+    (hp : p = true → r = .follower) (hp' : p' = true → r' = .follower) : p = p' ∧ r = r' := by
+  cases p <;> cases p'
   · refine ⟨rfl, ?_⟩
     cases r <;> cases r' <;> first | rfl | simp [roleStr, roleOf] at h
   · cases r <;> simp [roleStr, roleOf] at h
+  · cases r' <;> simp [roleStr, roleOf] at h
+  · exact ⟨rfl, (hp rfl).trans (hp' rfl).symm⟩
 
 theorem leaderPart_of {S : State} {n : Fin R.N} {v w : NodeView} (h : LeaderPart S n v)
     (hr : w.ps.role = v.ps.role) (ht : w.ps.term = v.ps.term) (hf : w.r.full = v.r.full)
@@ -681,13 +766,14 @@ the drain's `by` and cause (the message sent to it); a state with no `Ready` or 
 the disk, the role, term, vote, commit and full log, `QKeep` the leader's and candidate's parts, the
 leader hint and a leader's empty read-only queue are kept along `Reach`, the silent `Ready`'s
 messages are `PendOk` (`pendOk_of_reach`) and under the mask (`msgShape_core`), and none is to the
-node itself (`reach_selfFree`: `qs` empty). For the runs a mask below `mskB1a` admits. -/
-theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
+node itself but a pre-candidate's self pre-vote (`reach_selfPre`: `qs` is `QsOk`'s third arm). For the
+runs a mask below `mskB1p` admits. -/
+theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1p) {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v v' : NodeView} (hin : InMask msk R net xnet) (hcf : S.cfg = R.cfg)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hq : QuietIn msk R dec Adm net xnet n v v') : NodeOk R dec S net n v' := by
-  obtain ⟨hmd, hk, hbt, hpar, hspl, _, _, _⟩ := hin.b1a hmsk
+  obtain ⟨hmd, hbt, hpar, hspl, _, _, _⟩ := hin.b1p hmsk
   have hsy := hv.sync (by rw [hmd]) hbt hspl hpar
   have hdur : v.dur = durOf v.r := hsy.2.1
   have hcc : R.md.confChanges = false := by rw [hmd]
@@ -707,12 +793,12 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
     · intro q hq; have hq' : q ∈ v.qs := hq; rw [hidle.1] at hq'; cases hq'
     · intro h; simp [NodeView.noteInput] at h
     · intro m hm0
-      rcases Input.inMask_b1a hmsk hinp with ⟨m', rfl⟩ | rfl | ⟨d, rfl⟩ | rfl
+      rcases Input.inMask_b1p hmsk hinp with ⟨m', rfl⟩ | rfl | ⟨d, rfl⟩ | rfl
       · have : m' = m := Option.some.inj hm0
         subst this; exact hm m' rfl
       all_goals simp [NodeView.noteInput, Input.cause] at hm0
     · intro x hx0
-      rcases Input.inMask_b1a hmsk hinp with ⟨m', rfl⟩ | rfl | ⟨d, rfl⟩ | rfl <;>
+      rcases Input.inMask_b1p hmsk hinp with ⟨m', rfl⟩ | rfl | ⟨d, rfl⟩ | rfl <;>
         simp [NodeView.noteInput, Input.xcause] at hx0
   | noReady r₁ hr hX _ ht hvo hc hro hfl =>
     obtain ⟨⟨hcfg, hfp, hsnap⟩, hpe, hxpe⟩ := reach_keep hmsk hin hv hr
@@ -753,17 +839,13 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
     obtain ⟨hb0, hsn0, hnosnap⟩ := hsnapC hsn
     have hfull : r₁.full = v.dur.log := hnil hsn0 h4
     have hfl : r₁.full = v.r.full := by rw [hfull, hdur]; rfl
-    have hpf : rd.pre = false := by
-      cases hp : rd.pre
-      · rfl
-      · have := (hpre hp).2; rw [hk n] at this; cases this
-    rw [hpf] at h6
-    have hRole : r₁.p.role = v.ps.role := hR.symm.trans (roleStr_false_eq h6).2
+    have hpe := roleStr_eq h6 (fun h => (hpre h).1) hv.facts.preRole
+    have hRole : r₁.p.role = v.ps.role := hR.symm.trans hpe.2
     have ht : r₁.p.term = v.ps.term := hT.symm.trans (h1.trans (by rw [hdur]; rfl))
     have hvo : r₁.p.vote = v.ps.vote := hV.symm.trans (h2.trans (by rw [hdur]; rfl))
     have hl : r₁.p.log = v.ps.log := log_of_full hfl hfp
     have hkp := quiet_reach hmsk hin hcf hnet hv hr hRole ht hl
-    have hsf := reach_selfFree hmsk hin hnet hv hr hRole ht hl
+    have hsp := reach_selfPre hmsk hin hnet hv hr hRole ht hl
     have hpend := pendOk_of_reach hmsk hin hnet hv hr hrop'
     have hlead := reach_leadOk hmsk hin hnet hv hr
     have hroOk := reach_roOk hmsk hin hnet hv hr
@@ -771,10 +853,10 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       fun m hm => (hnet.2.2.2.2.1 m (hv.cause m hm).1).1 hcc
     have hmsg := (hsync (by rw [hmd])).2
     obtain ⟨-, hms⟩ := msgShape_core hmsk hin hnet hv hr hmsg hfn (hv.facts.roPend (by rw [hmd])) hcm
-    have hf : r₁.p.outbox.filter (fun q => decide (q.dst = nodeId n)) = [] :=
-      List.filter_eq_nil_iff.mpr fun q hq => by simpa using hsf q hq
-    rw [hf] at hqp
-    have hqs : rd.qs = [] := hqp.eq_nil
+    have hqq : ∀ q ∈ rd.qs, q ∈ r₁.p.outbox ∧ q.dst = nodeId n := fun q hq => by
+      have h' := (hqp.mem_iff).mp hq
+      rw [List.mem_filter] at h'
+      exact ⟨h'.1, of_decide_eq_true h'.2⟩
     obtain ⟨d1, d2, d3, d4, d5, d6, -, d8, d9, d10, -, -, -, d14, d15, d16, -, d18⟩ := hv
     obtain ⟨-, -, f3, f4, -, -, -, f8, -, -⟩ := d8
     have hcm' : (accepted r₁).p.commit = v.dur.commit := hC.symm.trans h3
@@ -784,8 +866,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
           (f3 h).2.2⟩, f4, by show v.delivered ++ rd.ce <+: v.dur.log; rw [← hfull]; exact hpfx,
         by show (v.delivered ++ rd.ce).length ≤ uint.nat v.dur.commit; rw [← hcm']; exact hlen,
         fun q hq => ?_, by show uint.Z v.dur.term ≤ uint.Z r₁.p.term; rw [← hT, h1]; exact Int.le_refl _,
-        (fun h => by change rd.pre = true at h; rw [hpf] at h; cases h), fun _ => hroOk,
-        fun h => by change rd.pre = true at h; rw [hpf] at h; cases h⟩,
+        (fun h => hR.symm.trans (hpre h).1), fun _ => hroOk, fun h => (hpre h).2⟩,
       leaderPart_of d9 hRole ht hfl (fun hr' hm => hkp.2.2.1 (hRole.trans hr') hm),
       candPart_of d10 hRole (fun hr' hm => hkp.2.2.2 (hRole.trans hr') hm),
       hpend, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hRole.trans h'))⟩
@@ -802,11 +883,16 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       have hqo : q ∈ r₁.p.outbox := (List.mem_filter.mp ((hmsg.mem_iff).mp hq)).1
       exact ⟨fun _ _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (d15 m hm).1) hmq⟩
     · exact hxm
-    · intro q hq; have hq' : q ∈ rd.qs := hq; rw [hqs] at hq'; cases hq'
+    · intro q hq
+      obtain ⟨hqo, hqd⟩ := hqq q hq
+      obtain ⟨hty, hsrc, hrj, hterm, hvt, hpv⟩ := hsp q hqo hqd
+      refine ⟨hsrc, hqd, hrj, .inr ⟨hty, ?_, ?_, hpv, fun q' hq' => (hsp q' (hqq q' hq').1 (hqq q' hq').2).1⟩⟩
+      · show q.term = r₁.p.term + W64 1; rw [ht]; exact hterm
+      · show nodeId n ∈ r₁.cfg.cfg.voters; rw [hcfg]; exact hvt
 
-/-- **`antSim_quiet` for the runs a mask below `mskB1a` admits**: the steps that report nothing keep
+/-- **`antSim_quiet` for the runs a mask below `mskB1p` admits**: the steps that report nothing keep
 the relation, `S` unchanged. -/
-theorem antSim_quiet_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
+theorem antSim_quiet_in (msk : SimMask) (hmsk : msk ≤ mskB1p) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (v' : NodeView),
       InMask msk R net xnet → AntSim R dec S V net xnet → RaftLaws G → GlobalOk R S net G →
