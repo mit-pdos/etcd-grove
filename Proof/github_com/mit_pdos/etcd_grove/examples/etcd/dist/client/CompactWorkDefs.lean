@@ -223,6 +223,33 @@ theorem rangeEvents_cw (σ : KVState) (o : OpFull) (hk : compactPfx <+: o.key)
   obtain ⟨k, l', hput⟩ := hok cs hcs c hccs (by rw [← hck, hkey]; exact hk)
   exact hcv k compactVal l' hput
 
+/-- A watch of `key` from revision 2: its request's facts (`Watch_dist`'s premise). -/
+theorem cw_watch_ok (key : GoString) (hkl : key.length ≤ 70) :
+    (opWatchModel key ([withRevM (W64 2)] : List (OpFull → OpFull))).isRangeWatchP (W64 2) = true ∧
+      ¬ opWatchPanics key ([withRevM (W64 2)] : List (OpFull → OpFull)) ∧ 1 ≤ sint.Z (W64 2) ∧
+      watchSizeOk (opWatchModel key ([withRevM (W64 2)] : List (OpFull → OpFull))) := by
+  refine ⟨?_, ?_, by decide, ?_⟩
+  · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatchP, OpFull.newOp,
+      OpModel.zero]
+  · simp [opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit, withRevM,
+      OpFull.newOp, OpModel.zero]
+  · unfold watchSizeOk
+    simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.newOp, OpModel.zero]
+    omega
+
+/-- A key under `cw/` is not empty. -/
+theorem cw_ne_nil {key : GoString} (h : compactPfx <+: key) : key ≠ [] := by
+  intro hk
+  rw [hk, List.prefix_nil] at h
+  exact absurd h (by decide)
+
+/-- The watch's normalized request is the key alone (no range end). -/
+theorem cw_watchNorm (key : GoString) (hk : key ≠ []) :
+    (opWatchModel key ([withRevM (W64 2)] : List (OpFull → OpFull))).watchNorm.key = key ∧
+      (opWatchModel key ([withRevM (W64 2)] : List (OpFull → OpFull))).watchNorm.base.rangeEnd = [] := by
+  constructor <;>
+    simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.newOp, OpModel.zero, OpFull.watchNorm, hk]
+
 end pure
 
 /-! ## The invariant and the updates -/
@@ -269,20 +296,6 @@ instance cwPutQ_persistent (γF γh : GName) (σ₀ : KVState) (k : GoString) (�
 compact's discipline, and the fired `k` reads `v`. -/
 def cwSeen (σ₀ : KVState) (l0 : List (List mvcc.Change)) (k : GoString) (σ : KVState) : Prop :=
   l0 <+: σ.changes ∧ KVExt σ₀ σ ∧ PfxChOk compactPfx cwOk σ.changes ∧ cwReadOk k σ
-
-/-- **compact's invariant, allocated** from the owner's half at `[]`. -/
-theorem cwInv_alloc (γ : GName) (E : CoPset) :
-    ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗ ∃ γF, cwInv γ γF := by
-  iintro Hh
-  imod (mono_list_own_alloc (GF := GF) ([] : List GoString)) with ⟨%γF, Ha, -⟩
-  imod (inv_alloc (client.kvClientN .@ "cw") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
-      cwW γF v)) $$ [Hh Ha] with #Hinv
-  · inext; iexists []; iframe Hh
-    iunfold cwW; iexists []; iframe Ha; ipureintro; exact cwOk_nil
-  imodintro
-  iexists γF
-  iunfold cwInv
-  iexact Hinv
 
 /-- **A put's update** of `k ↦ v` (fired at most once), result `cwPutQ`. -/
 theorem cwPutAu (γk : KVNames) (γ γF γh : GName) (σ₀ : KVState) (k : GoString)
@@ -350,6 +363,55 @@ theorem cwReadAu (γk : KVNames) (γ γF γh : GName) (σ₀ : KVState) (l0 : Li
     exact ⟨Hh.1, Hh.2.1, Hh.2.2, cwReadOk_of hk Hok (Hpre.2.subset Hkl)⟩
 
 end ghost
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **compact's invariant, allocated** from the owner's half at `[]`. -/
+theorem cwInv_alloc (γ : GName) (E : CoPset) :
+    ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗
+      ∃ γF, cwInv (Gg := hG.goose_globalGS) γ γF := by
+  iintro Hh
+  imod (mono_list_own_alloc (GF := GF) ([] : List GoString)) with ⟨%γF, Ha, -⟩
+  imod (inv_alloc (client.kvClientN .@ "cw") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
+      cwW γF v)) $$ [Hh Ha] with #Hinv
+  · inext; iexists []; iframe Hh
+    iunfold cwW; iexists []; iframe Ha; ipureintro; exact cwOk_nil
+  imodintro
+  iexists γF
+  iunfold cwInv
+  iexact Hinv
+
+/-- **What `Client.Close` reads of a client, from `New`'s result** (the same as F2's
+`LeaseDefs.clientCoreAt_of_new`, on `etcd-safe-f2`; one of them goes when the branches meet):
+`retryClientOk` gives it non-nil with its logger, `clientKVAt` its connection and call options,
+`clientNoProxy` its configuration. -/
+theorem clientCore_of_new [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ∗ clientNoProxy cl ⊢ clientCoreAt cl := by
+  iintro ⟨#Hnc, #Hnp⟩
+  iunfold isNewClient at Hnc
+  icases Hnc with ⟨#Hkv, #Hrc, -⟩
+  iunfold clientKVAt at Hkv
+  icases Hkv with ⟨%Hnn, %conn, %sl, #Hconn, -, #Hco, -⟩
+  iunfold retryClientOk at Hrc
+  icases Hrc with ⟨-, #Hlg, -⟩
+  iunfold clientNoProxy at Hnp
+  icases Hnp with ⟨%cfg, %n, -, #Hcfg, -⟩
+  iunfold clientCoreAt
+  iframe Hlg
+  isplitr
+  · ipureintro; exact Hnn
+  isplitr
+  · iexists conn; iexact Hconn
+  isplitr
+  · iexists sl; iexact Hco
+  iexists cfg; iexact Hcfg
+
+end alloc
 
 /-! ## The orchestrator's share (global) -/
 
