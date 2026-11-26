@@ -90,7 +90,7 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF)
       (Φ := fun id ig => iprop(idPfxIdFact (hG := ⟨Gg, L⟩) γgp id ig ∗ id ↪[γip]□ ig)) hI).1
       $$ HIps with ⟨⟨-, #Hel⟩, -⟩
     iframe Hel
-    have hs : (Mg !! id).isSome := Hall id (by simp [hI])
+    have hs : (Mg !! id).isSome := Hall id (Option.isSome_iff_exists.2 ⟨ig, hI⟩)
     have hc : idIssueCrash Mg !! id = some none := by
       cases hm : Mg !! id with
       | none => simp [hm] at hs
