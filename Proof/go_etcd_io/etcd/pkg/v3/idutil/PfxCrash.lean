@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProofMode
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
 variable [sem : go.Semantics]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -71,11 +71,11 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
       letI := (gooseIdIssueGS (L := L)).idIssueAllG
       icases Hf with (⟨#Hf, -⟩ | #Hf)
       · rw [idIssueFragD_eq (L := L) id ig.2]
-        iunfold idIssueFrag idIssueFragAt idIssueElemAt at Hf
+        iunfold idIssueFrag, idIssueFragAt, idIssueElemAt at Hf
         ihave %Hl := ghost_map_lookup $$ HA Hf
         ipureintro; intro _; simp [show Mg.lookup id = _ from Hl]
       · rw [idIssuePastD_eq (L := L) id]
-        iunfold idIssuePast idIssuePastAt idIssueElemAt at Hf
+        iunfold idIssuePast, idIssuePastAt, idIssueElemAt at Hf
         ihave %Hl := ghost_map_lookup $$ HA Hf
         ipureintro; intro _; simp [show Mg.lookup id = _ from Hl]
   -- the new generation's generators' map, fresh
@@ -101,7 +101,7 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
     iunfold idPfxIdFact
     iright
     rw [idIssuePastD_eq (L := L') id]
-    iunfold idIssuePast idIssuePastAt
+    iunfold idIssuePast, idIssuePastAt
     iexact Hpast
   -- the new generation's invariant: the same ids' map, every id past, and the fresh generators' map
   imod (inv_alloc idPfxN (⊤ \ ↑idPfxN) (idPfxBody (hG := ⟨Gg, L'⟩) γip γgp')) $$ [HIp Hg] with #Hinv'
