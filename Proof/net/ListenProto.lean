@@ -33,13 +33,14 @@ theorem net.Listen.wp_proofProto
     (wp_Listen : ∀ [HasExt netExt], _root_.Perennial.net.Listen.spec (GF := GF) (hG := hG)) :
     net.Listen.specProto (GF := GF) (hG := hG) := by
   intro hX π network addr P Q
-  iintro %Φ ⟨%Hnw, #Hp⟩ HΦ
+  iintro %Φ ⟨#Hnet, %Hnw, #Hp⟩ HΦ
   subst Hnw
   ihave %Hok := addrTok_ok (GF := GF) addr $$ [Hp]
   · iapply addrProto_tok $$ Hp
   have hA := _root_.Perennial.net.Listen.spec_addrOk (GF := GF) (hG := hG) wp_Listen
   iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ []
-  · isplitr
+  · isplitr; · iexact Hnet
+    isplitr
     · ipureintro; exact Hok
     · iapply listen_au $$ Hp
   iintro !> %li %err Hpost

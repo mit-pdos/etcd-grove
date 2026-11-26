@@ -387,11 +387,11 @@ theorem hcSt_init (cn : Nat) (γ : GName) :
 /-- The client's end of `cn` is a stream reader over `hcSt` (see the file header). -/
 theorem hcStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
     (cn : Nat) (γ γe : GName) (t : Loc) (la ra : GoInterface) (ed : GoInterface) :
-    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
-      net.connAt (GF := GF) t cn false addrS la ra ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ net.connAt (GF := GF) t cn false addrS la ra ⊢
     EtcdGrove.io.readerStreamNE (net.connIface t) (hcSt cn γ γe) (hcErr γe) := by
   unfold net.connIface
-  iintro ⟨#Hio, #Hed, #Hconn⟩
+  iintro ⟨#Hio, #Hpoll, #Hed, #Hconn⟩
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, -, -⟩
   unfold errors.newVar
@@ -417,7 +417,7 @@ theorem hcStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
             (net.http.httpRespP (Gg := hG.goose_globalGS) drvP) r ∗
           ⌜res.got = [] ∧ (p.len.toNat ≠ 0 → ∀ bs, res ≠ .bytes bs)⌝)) $$ [Hp HrL]
       as %k %err ⟨%res, %bs', ⟨HrL, %Hres⟩, Hp, %Hout, HE, -⟩
-    · iframe Hconn Hp Hxe Hed
+    · iframe Hio Hpoll Hconn Hp Hxe Hed
       imod read_after_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat $$ [$HrL $Hdead]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -485,7 +485,7 @@ theorem hcStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
           (⌜res = .eof ∨ res = .err .sys ∨ res = .err .closed⌝ -∗
             readDead (Gg := hG.goose_globalGS) cn false))) $$ [Hp HrL Hrdl]
       as %k %err ⟨%res, %bs', ⟨HrL, Hrdl, %Hro, Hdead⟩, Hp, %Hout, HE, Hlc1, -⟩
-    · iframe Hconn Hp Hxe Hed
+    · iframe Hio Hpoll Hconn Hp Hxe Hed
       imod read_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat false $$ [$HrL $Hrdl]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro

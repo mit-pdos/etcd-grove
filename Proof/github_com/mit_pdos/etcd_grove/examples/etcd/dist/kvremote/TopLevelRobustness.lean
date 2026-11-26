@@ -47,7 +47,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 `etcd_kv_safe_nocrash`. The proof applies the full statement to M1's arguments and drops the scope, so it
 fails to compile if the two statements differ in anything but `Hscope`. -/
 theorem etcd_kv_safe_nocrash_of_full (H : etcd_robust_nocrash.spec) : etcd_kv_safe_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d _Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d _Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   exact H d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
 
 /-- **The machines' boot WPs, for a well-formed deployment of M1's scope**: `EtcdBootNC` with the scope
@@ -72,7 +72,7 @@ def EtcdKvBootNC : Prop :=
 `etcd_safe_nocrash_of_boot`'s bridge, with the scope passed to `EtcdKvBootNC` and the malformed case from
 `etcdBootNCBad_holds`. -/
 theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -337,7 +337,7 @@ end shares
   `memberShareD` (`kvMemberBoot`), the orchestrator's from `kvOrchPre` (`kvOrchBoot`), each client machine's from its
   `kvNodePre` (`kvNodeBoot`), built from the members' address facts and its address's `remoteAddr`. -/
 theorem etcdKvBootNC_holds : EtcdKvBootNC := by
-  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd Hscope σs σc σn Hp Hfips G hb
+  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA d Hd Hscope σs σc σn Hp Hfips G hb
   obtain ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ := Hp
   have hrb : receiptBound etcdDistGF ≤ 2 ^ 60 := by unfold etcdSteps at hb; omega
   have hsl : (servers d σs).length = d.members.length := by simp [servers, Hσs.1]

@@ -83,6 +83,8 @@ theorem session.wp_proof
     session.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hf, #Haddr⟩
   ihave ⟨#Hhenv, #Hio, #Hbufio, ⟨%ed, #Hed⟩, ⟨%eof, #Heof⟩⟩ := drv_env $$ Hpkg
+  ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
+  · iPkgInit
   ihave #Hf' := Hf
   iunfold drvFacts at Hf'
   icases Hf' with ⟨%fr, #Hrg, #Hrf⟩
@@ -120,7 +122,7 @@ theorem session.wp_proof
     -- the reader's stream
     ihave HS0 := hcSt_init cn γ $$ [$Hrecv $Hrdl $Hhc $Hml1]
     imod HS0 with ⟨%γe, HS0⟩
-    ihave #Hstream := hcStream wp_ReadLc cn γ γe t la ra ed $$ [$Hio $Hed $Hca]
+    ihave #Hstream := hcStream wp_ReadLc cn γ γe t la ra ed $$ [$Hio $Hpoll $Hed $Hca]
     ihave #Hstream0 := EtcdGrove.io.readerStreamNE_readerStream _ _ _ $$ Hstream
     ihave #Hbound : (□ ∀ r0, hcSt cn γ γe r0 -∗ ⌜r0.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
     · imodintro
