@@ -268,7 +268,9 @@ instance notCtxTree_persistent (err : GoInterface) : Persistent (notCtxTree (GF 
 the tree at that value holds. -/
 theorem notCtxTree_isCtxErr (err : GoInterface) :
     notCtxTree (GF := GF) err ⊢ context.isCtxErr err -∗ False := by
-  iintro ⟨#Hc, #Hd⟩ #He
+  iintro #Hn0 #He
+  iunfold notCtxTree at Hn0
+  icases Hn0 with ⟨#Hc, #Hd⟩
   unfold context.isCtxErr
   icases He with (⟨#Hv, %x, %hx, -⟩ | ⟨#Hv, %hx⟩)
   · ihave #Hn := Hc $$ %err Hv

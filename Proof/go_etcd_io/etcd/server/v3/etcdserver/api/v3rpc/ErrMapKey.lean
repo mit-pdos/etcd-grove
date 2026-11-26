@@ -156,6 +156,11 @@ theorem v3rpc.wp_eq_ic (c c' : w64) (s : Stuckness) (E : CoPset) (Φ : val → I
   v3rpc.wp_eq_same _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
     GoGlobalContext.intoVal_inj_w64 c c' s E Φ
 
+/-- `errInvalidUTF8` (a field-less struct) has one value, so equality on it is decidable. -/
+instance v3rpc.errInvalidUTF8_decEq :
+    DecidableEq google_golang_org.protobuf.internal.impl.errInvalidUTF8 :=
+  fun a b => isTrue (by cases a; cases b; rfl)
+
 omit ctx_sem bc_sem in
 /-- `==` at `error` of `errInvalidUTF8{}` with itself: `true` (nonleaf-status-errs, 2026-11-26; a
 field-less struct, as `wp_eq_de`). -/
