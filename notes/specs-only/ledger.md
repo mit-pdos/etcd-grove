@@ -6120,3 +6120,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `_in` theorems are at `msk ≤ mskB1a` (`mskS4` with Campaign and non-voters), via interim readings of the end
   relations below that mask (`Sim/Scope.lean`, retired by stage B).
 - **Decision.** Lead's decisions (Q1, Q2, PInitR, the `xs` arms), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3 item 1): `XfOk` gains the untyped messages' facts (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/InvRaftPhys.lean` (`XQOk`, `XfOk`'s last conjunct, the queue accessors'
+  premise), `Proof/go_etcd_io/raft/v3/raft__send.lean` (the producer), `RawNode__acceptReady.lean` (a projection).
+- **Change (raft invariant strengthening, untrusted).** `XQOk id s st`: a queued `MsgTimeoutNow` is from `id` at a term
+  past `0`; a `MsgTimeoutNow` or a stamped `MsgTransferLeader` is not self-addressed and of a term at most the node's.
+  `XfOk` gains `∀ m ∈ l, XQOk id s m.st`; `ownRaftPhysC_msgs`/`_msgsAA` take it of the appended message, which
+  `raft.send` proves from `SendOk`'s transfer clause (no `Spec` text change); a term raised keeps it (`XQOk.mono`).
+- **Decision.** Lead's decision (Q3 approved), 2026-11-26. No new axiom, no new top-level premise.
