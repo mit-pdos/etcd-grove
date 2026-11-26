@@ -3352,3 +3352,169 @@ with `ownSlice_persist`). Draft: `notes/remote-wire/WriterCodec.lean` (28.7).
   matches. One full VM build: green (29343 jobs). `tcb-report --check`: matches the baseline (380 axioms, 0 `sorry`), and
   all 68 collections match. `KitLibsCheckTest` (a test lib outside `defaultTargets`) fails on retired `InitHyp` names
   (`math-rand-isinit`'s), unrelated to this branch and untouched.
+
+## 23. N9a: the putget and durable workloads across machines (2026-11-25, branch `etcd-safe-n9a/2026-11-25`)
+
+#50's N9a (coordinator-E's brief): `RunPutGet` and `RunDurable` of `examples/etcd/dist/client`, for the full
+`etcd_safe_nocrash` (after M1, kv only; M1's files untouched). Base `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca`.
+No new axiom, `sorry`, top-level premise or Go change.
+
+### 23.1 The cluster's KV shared by prefix (`dist/KVPfxDist.lean`, defs)
+
+putget, durable and compact may run in one deployment (`Compatible`: a key prefix each), each with its own
+orchestrator writing the cluster's one KV. M1's kv instance takes the client half `etcdKV Γ.kv σ₀` whole (one
+`pendCtx`), which a second writer cannot share. So the start puts it into one invariant `kvPfxInv γk ps` with,
+for each owned prefix `(p, γ) ∈ ps` (`PfxsApart`: none a prefix of another), half of a ghost variable holding
+`pfxView p σ` (the state's key-values under `p`); the owner holds the other half. A write by the owner of `p`
+of keys under `p` (`PfxLocal`, `pfxLocal_putKey`) leaves every other prefix's view unchanged
+(`filter_putKv_other`), so the owner's workload invariant can state facts of its prefix that the other
+workloads' writes keep. Laws: `kvPfx_au1` (an owner's one-shot update, `KV_Put_dist`'s AU, from its invariant
+over its half and a step of its own predicate `W`), `kvPfx_readAu` (`kvReadAu`, `KV_Get_dist`'s), and
+`kvPfx_alloc` (the start's allocation). Only the masks are new: owners' invariants at `kvClientN.@s`, the shared
+one at `kvClientN.@"share"` (`kvShareN_mask`).
+
+### 23.2 The workloads' invariants (`dist/client/KVWorkDefs.lean`, defs)
+
+- **putget** (compacted's check in rounds; `client.putGetInv`'s argument per key): `pgInv γ γP` keeps `pg/`'s
+  key-values with: each key-value's value is its key's (`pgVal k`: `v` and what follows `pg/k`), and each key
+  of the monotone list `P` at `γP` (the puts that fired) has one. Round `s`'s put (`pg/k<s> ↦ v<s>`) appends its
+  key (`pgPutAu_round`, result `pgFired`); the get after it reads `pgReadOk` (`pgGetAu`): the key has a
+  key-value, each of value `v<s>`. A failed round's put may fire later: it writes its own key with its key's
+  value, so no later round's check breaks (keys need not be distinct: the value is a function of the key).
+- **durable** (restart1/restartN's `r1Ok` argument, with unknown outcomes): `durInv γ γF γs n` keeps `du/`'s
+  key-values with: each is `durKey j ↦ durVal j` at version 1 for a fired `j < n` (monotone list `F` at `γF`),
+  and each fired `j` has its key-value. Put `j`'s update holds the token `γs[j]` and gives it to the invariant
+  when it fires (`durPutAu`): a second firing would need it twice, so the key is absent before (version 1:
+  `putKvNew_version`). The range's read update (`durGetAu`) gives `durReadOk`: every key-value under `du/` is a
+  put's, and every fired put the caller knows of (`durFiredAll`) has its key-value.
+- `durRange_eq`: `Get("du/", WithPrefix())`'s selection is exactly `pfxView du/` (`inRange_prefix`).
+
+### 23.3 The specs (`Spec/.../dist/client/`), in the shape N7's dispatch consumes
+
+`RunPutGet.spec` and `RunDurable.spec` (Go names): `{isPkgInit client ∗ levelTok 0 ∗ eps ↦*□ addrs ∗ S addrs}
+Run…(eps[, n]) {r. levelTok 0}` (no panic: every check holds), `S` the orchestrator's share, global (at
+`GooseGlobalGS`, as `DistBootWpSLT`'s shares): `putgetShare addrs` / `durableShare addrs` =
+`kvPfxShare pfx addrs` := `∃ Γ γ, ⌜Γ.auth = false⌝ ∗ membersAt addrs Γ ∗ kvPfx Γ.kv pfx γ ∗ ghostVar γ ½ []`.
+Pure premises (facts of the deployment and the logic, as `kvNodePre`'s): `Nonempty (WEnv GF)`, `threadBound GF ≤
+2^30`, `plainEndpoints addrs`, `errors.AsTarget rpctypes.EtcdError`; durable also `0 ≤ n` (`make` panics on a
+negative length; `WellFormed` bounds a durable workload's `Clients` to `[0, MaxDurable]`). `levelTok 0` is the
+machine's (from `threadTok` at boot), not the share's. Helpers: `newClient`, `checked`, `ended` (N9b's
+statements verbatim), `durableKey`, `durableValue`; `KVCallsDist.lean` (`wp_cliPut`/`wp_cliGet`: the promoted
+`cli.Put`/`cli.Get` from the interim contracts, as `Client_Put_dist`/`Client_Get_dist`).
+
+### 23.4 What the start (N6) must supply
+
+At a deployment whose workloads include putget and/or durable (with compact or lease workloads beside them),
+from the cluster's client half `etcdKV Γ.kv σ₀` at the boot state (no key-value: `σ₀.kvs = []`):
+`kvPfx_alloc Γ.kv σ₀ h0 pfxs hap ⊤` with `pfxs` the deployment's writing workloads' prefixes (`pg/`, `du/`,
+`cw/`; apart: no one a prefix of another) gives `kvPfx Γ.kv p γ_p ∗ ghostVar γ_p ½ []` per prefix; each
+orchestrator's share is `kvPfxShare p (members' client addresses)` with the members' `membersAt` (from
+`clientSvcFacts`, as `kv_start_deployment`). Nothing else: each orchestrator allocates its own invariant
+(`pgInv_alloc`, `durInv_alloc` with `n` tokens) and fired-list ghost state at run time; no budget (the
+workloads issue a bounded number of calls, each one-shot or a persistent read). The compact workload (another
+N9 piece) would own `cw/` the same way; its `Compact` must keep the other prefixes' views (it changes no
+current key-value). A deployment with a sole writer (kv, watch, cache, auth) gives that workload the half whole
+(M1's `kvR` sysState).
+
+### 23.5 State
+
+See the commits on the branch for the build state of each module (the VM was held for M1's build; proofs
+written, building in this order: `KVPfxDist`, `KVWorkDefs`, `KVCallsDist`, the helper proofs, `RunPutGet`,
+`RunDurable`, `KVWorkLinked`).
+
+## 26. F5: compact (2026-11-26, branch `etcd-safe-f5/2026-11-26`)
+
+#50's F5 (`etcd-nocrash-plan.md`): `RunCompact` of `examples/etcd/dist/client` across machines. Base
+`etcd-safe-wenv/2026-11-26` @ `bd5984c79e`, with `etcd-safe-n9a/2026-11-25` @ `943a376ab5` merged (KVPfxDist).
+Untrusted proof work: no new axiom, `sorry`, top-level premise or Go change.
+
+### 26.1 What compact needs that N9a's shared KV did not give
+
+compactwatch's argument (`compactwatch/Rounds.lean`) is over the whole KV: the rounds' invariant holds `etcdKV`
+and reads the state's past (a get at an old revision, the watch's events) and a revision counter. In a
+deployment compact shares the cluster's KV with putget and durable (`kvPfxShare`), and an owner's view there
+(`pfxView`, the current key-values under its prefix) says nothing of the past. So `KVPfxDist`'s invariant now
+also keeps (`KVPfxDist.lean`'s header, "The history"):
+- the list of the state's changes (`monoListAuthOwn γh`, append-only): every update is an owner's, local to its
+  prefix (`PfxLocal` now includes the history: it keeps the compaction revision and base, every state extending
+  the start's, `KVExt σ₀`, and appends changes, all of keys under the owner's prefix);
+- each prefix's discipline over its keys' changes (`ok p`, `PfxChOk`): compact's `cwOk` (every change of a
+  `cw/` key is a put of `v`); `fun _ => True` for putget and durable.
+
+`kvPfxH γk p γ okp γh σ₀` is the owner's fact with the discipline and the history's names; `kvPfx` (N9a's) is
+`kvPfxH` at no discipline. New laws: `kvPfx_au1H` (the step learns `KVExt σ₀ σ`, the discipline, and gets a
+lower bound of the changes after the update), `kvPfx_readAuH` (the same for a read, from the caller's lower
+bound `l0`), `kvPfx_seen` (with `kvInv`, outside every update: a revision the cluster reached, `kvRevLbZ`,
+bounds a lower bound of the changes; `kv_revLbZ_le` over the shared invariant). N9a's `kvPfx_au1` and
+`kvPfx_readAu` keep their statements (`kvPfx_au1` is `kvPfx_au1H` at no discipline), so putget's and durable's
+proofs are unchanged; `kvPfx_alloc` takes the disciplines and a start with no change, and returns `kvPfxH`.
+
+### 26.2 Specs (`Spec/.../dist/client/`)
+
+- `RunCompact.spec`: `{isPkgInit client ∗ levelTok 0 ∗ eps ↦*□ addrs ∗ compactShare addrs} RunCompact(eps)
+  {r. levelTok 0}` (no panic: every check holds), the pure premises `RunPutGet.spec`'s (`Nonempty (WEnv GF)`,
+  `threadBound GF ≤ 2^30`, `plainEndpoints addrs`, `errors.AsTarget rpctypes.EtcdError`).
+- `checkCompactRev.spec`: from `RunCompact`'s client (`isNewClient`, `clientNoProxy`, `membersAt eps Γ`),
+  `Γ.kv.cret = 1`, `kvInv`, compact's `kvPfxH` and `cwInv`, a fired key under `cw/` and a lower bound of the
+  history: returns with the token.
+- `compactShare eps` (`CompactWorkDefs.lean`, global): `∃ Γ γr γ γh σ₀, ⌜Γ.auth = false ∧ Γ.kv.cmp = true ∧
+  Γ.kv.cret = 1 ∧ 1 ≤ σ₀.rev⌝ ∗ membersAt eps Γ ∗ kvInv γr Γ.kv ∗ kvPfxH Γ.kv cw/ γ cwOk γh σ₀ ∗ ghostVar γ ½ []`.
+
+### 26.3 The proofs
+
+`CompactWorkDefs.lean`: compact's invariant `cwInv` (the `cw/` view: every value `v`, every fired key
+present: putget's argument at a constant value), `cwPutAu` (the put's one-shot update over `kvPfx_au1H`,
+result `cwPutQ`: fired, the state it met extending the start's, the history's bound after it), `cwReadAu`
+(the read update over `kvPfx_readAuH`, result `cwSeen`: the bound, `KVExt`, the discipline, the fired key reads
+`v`); pure: `KVExt.at_eq` (two extensions agree at the shorter one's revisions: the get at the previous put's
+revision reads that put's state, `cwAt_put`), `evsOfRevM_of`/`rangeEvents_cw` (an event's key and value are its
+change's, so under `cwOk` a watch of a `cw/` key sees only `v`). `CompactCallsDist.lean`: `cli.Put`/`cli.Get`/
+`cli.Compact` over `KV_Put_dist`/`KV_Get_dist`/`KV_Compact_dist` (hypotheses), keeping the replies' revisions
+and the put's `kvRevLb`. `checkCompactRev.lean`, `RunCompact.lean`: compactwatch's proofs at the view, the
+checks as there: the latest get's revision from the put's history bound, the old get's value from
+`cwAt_put`, the watch's values from `resp_cw`, the compaction revision's permit (`cmpOkOf_permit`: its
+revision plus the retention reached) through `kvPfx_seen`. The compaction `Compact(rev - 1)` is allowed by
+`KV_Compact_dist` because the put's reply reached `rev` and the retention is `1`. `CompactLinked.lean`: both at
+the linked callees and the interim axioms `KV_Put_dist`, `KV_Get_dist`, `KV_Compact_dist`, `Watch_dist`; with it,
+`Serve_dist`'s docstring names the watch streams (the N3 review's F4, §22.7).
+
+### 26.4 What the start (F8) must allocate
+
+- At the cluster's boot state `σ₀` (no key-value, every change empty: `[[]]`, revision 1):
+  `kvPfx_alloc Γ.kv σ₀ h0 hc0 [pg/, du/, cw/] hap ok` with `ok cw/ = cwOk` and `True` for the others
+  (`kvPfx_of_H` gives putget's and durable's `kvPfx`); compact's `kvPfxH` and the `cw/` half.
+- `kvInv ⟨c.γ, [], 0⟩ c.γk` from `clusterFacts` (persistent), `membersAt` from `clientSvcFacts`.
+- The cluster's compaction mode on and retention 1 (`ClusterOk`'s `c.γk.cmp = true`, `c.γk.cret = 1`) when
+  the deployment has a compact workload. `NewServer`'s `v3compactor.bootCfg` allows it at every compactor
+  `WellFormed` allows with compact: off (any `cret`), revision mode at a retention `r ≥ 1` (`Supported`) with
+  `cret = 1 ≤ r`; the periodic compactor is excluded with compact (`WellFormed`, review F5). So no Go change:
+  `cret ≥ 1` is the start's choice, and Go's `deployment.WellFormed` (and Lean's) already rules out the only
+  compactor that would forbid it.
+- **Open for F7/F8**: `NewServer`'s `cmp = true → on = false`. With M1's `d.cfg.auth = false` it holds. Go's
+  `WellFormed` allows a compact workload with the token provider on (`Cfg.Auth = true`, compact needs no auth and
+  is not alone); if F7 lets `on` follow `d.cfg.auth`, such a deployment cannot run in compaction mode, and
+  `KV_Compact_dist` needs it. Either `WellFormed` excludes compact under the token provider (a Go+Lean check,
+  like review F10's lease one; not done here, not approved yet) or the auth-on server gains a compaction mode.
+
+### 26.5 Checkpoints
+
+- `2e335fc137`: specs, `CompactWorkDefs`, `KVPfxDist`'s history; built on the VM (with `KVWorkDefs`).
+- `75df6cbc69`: `CompactCallsDist`, `checkCompactRev.wp_proof`, `RunCompact.wp_proof` (callee hypotheses), VM-built.
+- Linking commit (this section's last edit): `CompactLinked.lean` and `Serve_dist`'s F4 text; VM-built (with
+  `ServeDist`). `#print axioms etcd_dist_client.wp_RunCompact` (73 lines, `sorryAx` absent): of this
+  repository's interim ones exactly `etcdSvc`, `KV_Put_dist`, `KV_Get_dist`, `KV_Compact_dist`, `Watch_dist` and
+  `Client.Close.wp_proof`, plus the existing package/trust-boundary ones. `tier-check --check` ok (208 known);
+  `bounds-check --check` ok (390) after `etc/bounds-allow.txt`'s dist/client `spec-thread` line gains `RunCompact`
+  (the machine's thread bound, as putget's). `tcb-report` not rerun: no exported result imports `CompactLinked`
+  yet (F8's dispatch will; `KV_Compact_dist` and `Watch_dist` then enter the baseline and the `etcd-dist`
+  collection).
+
+### 26.6 Notes for the other pieces
+
+- N9a's `RunPutGet`/`RunDurable` call `clientCoreAt_of_new` (F2's `LeaseDefs.lean`, not on N9a's branch) and
+  `KVCallsDist.wp_cliGet`'s `isimp … at HQ` uses `hser` at `rangeWireOf`'s form where `HQ` has `opGetModel`'s
+  (the fix is `CompactCallsDist.wp_cliGetR`'s `hser'`). This branch has `clientCore_of_new` (the same lemma,
+  another name); one goes when F2 and this branch meet.
+- `prevOk`/`resp_cw` are `RunCompact`'s; the watch request lemmas (`cw_watch_ok`, `cw_watchNorm`) are in
+  `CompactWorkDefs` (shared by both proofs).
+
