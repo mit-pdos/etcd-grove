@@ -295,3 +295,28 @@ and `loggerMade` are concrete (step 4) their preconditions narrow but their post
 method gives back `e ↦` an event with its buffer), so they must be re-reviewed with the `axiom` skill over the
 concrete tokens before that lands. So at most 9 of the 16 function axioms
 plus the initializer retire on this route.
+
+**Session 4 (2026-11-26).** The rabia/quepaxa roots built green at `150c26d79a` (session 3's build). Done since:
+- zerolog's fact `zerologInit` (`Base.lean`; `zerologInit_access`): `gLevel ↦□ p ∗ inv gLevelN (∃ v, p ↦ v)`,
+  `LevelFieldName ↦□ "level"`, `LevelFieldMarshalFunc ↦□ f ∗ marshalSpec f` (on `fiveLevels`, `f lv` returns
+  `levelString lv`), `enc ↦□ Encoder{}`, `eventPool ↦□ ep ∗ sync.isPool ep f True eventElem` (`f ≠ nil`),
+  `ioutil.Discard ↦□ w`. Proved by the generated `Init.lean` (`rabia.py`: `ZL_FACT` at the end of `init.«0»`'s
+  `after`, while the goal is still a WP; `ZL_FIN` after `FIN_PRE[:6]`). `Level.String` needs a local
+  `go.NotInterface go.int8` (`haveI`, as Perennial's `time.Duration` proofs do for `int64`).
+- `loggerMade lg := ∃ w, Discard ↦□ w ∗ ⌜lg = newLogger w⌝` (`Spec.lean` now imports `NewNil`).
+- Proved, axioms gone: `New.wp_proof` (`wp_New_nil`), `SetGlobalLevel.wp_proof` (the invariant),
+  `ParseLevel.wp_proofWarn` (`marshalSpec`; the switch comes first, `fmt.Errorf` is not reached).
+- `notes/axiom-review/dsv-zerolog-remaining.md`: the 13 left, for a fresh review.
+
+**Not done: `eventTok` is still opaque**, deliberately: a definition changes what all 13 remaining axioms claim,
+so it goes in with the proofs of the level methods and `Str` (and the review redone over it). Next, in order:
+1. `Event.Str` (riskiest): `AppendKey` (`dst[len(dst)-1]`) and `internal/json.AppendString` with
+   `appendStringComplex`'s loop over `utf8.DecodeRuneInString`; `internal/json`'s fact has `noEscapeTable ↦□`.
+2. Define `eventTok e := ⌜e = null⌝ ∨ ∃ v bs, e ↦ v ∗ v.buf' ↦* bs ∗ ownSliceCap ∗ ⌜bs ≠ []⌝ ∗ (∃ w, Discard ↦□ w ∗
+   ⌜v.w' = newLevelWriter w⌝) ∗ ⌜v.done' = func.nil ∧ v.ch' = slice.nil ∧ v.stack' = false ∧ v.level' ∈ fiveLevels⌝`
+   (`Msg`'s axiom needs all of it; check its body). The pool gives `eventElem` (buffer owned, any contents):
+   `newEvent` truncates it and appends `{`.
+3. `Logger.{Trace,..,Error}`: `should` (`l.level` is Trace, `GlobalLevel()` through the invariant; disabled →
+   `nil`), `newEvent` (`eventPool.Get`: `isPool`; `.(*Event)` from `eventElem`), `e.Str(LevelFieldName,
+   LevelFieldMarshalFunc(level))` (`marshalSpec`).
+4. Re-review the 7 blocked event axioms over the defined `eventTok`; tcb baselines; gates.

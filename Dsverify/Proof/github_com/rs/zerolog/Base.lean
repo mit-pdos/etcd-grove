@@ -32,7 +32,7 @@ public import Perennial.Proof.unsafe.Base
 public import Perennial.Proof.runtime.Base
 public import Proof.encoding.json.Base
 public import Proof.os.Base
-public import Proof.path.filepath.Base
+public import Proof.path.filepath.PkgInit
 public import Dsverify.Proof.io.ioutil.Base
 public import Dsverify.Proof.github_com.rs.zerolog.internal.json.Base
 public import Perennial.Proof.sync.PoolDefs
