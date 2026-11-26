@@ -1376,3 +1376,29 @@ yet). Decisions taken while reading the specs (not yet compiled):
   possible, or to split the prefix (set-up, barriers, clients, the two grantPuts) into its own proved lemma
   whose conclusion is the persistent facts the checks use. Next step: write the set-up through barrier 1 and
   the four clients.
+
+### Handoff S5-7 (2026-11-26; `RunAuthLease.wp_proof` proved, not linked)
+
+**Done** (branch `etcd-safe-f7`; no `sorry`, no new axiom, no top-level statement changed):
+- `Proof/.../dist/client/RunAuthLease.lean`: `RunAuthLease.wp_proof`, over its callees' specs as hypotheses (Handoff
+  S5-5's list, with `wp_Txn : etcd_txnlin.client_Txn_dist.law`, `wp_Then : txn.Then.specPlain`,
+  `wp_ErrAny : context.ErrAny.spec`) and `hlaw : foreignReads.law`, exactly as Handoff S5-4/S5-6 planned. Proved as
+  one theorem (~800 lines) rather than split into phase lemmas: the remote `etc/lean-check.py` loop re-elaborated only
+  from the edit, so each phase (set-up through barrier 1 and the four clients; grants, txn, barrier 2, `noAuth`,
+  refused put/txn; `absent`, the two `foreign`s, root's Get, u's revocation, the final `absent`s) was checked green
+  before the next, and the whole file checks in ~40 s with the kernel. Helper lemmas in the file:
+  `mod_len_sintD` (authN's `mod_len_sint` without its 1000 bound), `srem_eq_umodD` (Go's `1 % k` now steps to
+  `BitVec.srem`), `anonCli_of_new`, `authClientAt_persistent`, `authClientAt_of_userCli`.
+- Notes for whoever touches it: an `IndexRef` bound `if` appears only after `wp_auto` steps the index (simp it then);
+  `kvReadAu` unfolds to `kvAu`, which is `□ AU …` (`icases … with #H` before `iexact`); `userClientAt` is ambiguous
+  with `client.userClientAt` (write `etcd_dist.authd.userClientAt`).
+- `Txn_CommitOn_dist`'s widening reviewed SOUND (`notes/axiom-review/f7-txn-review.md`, Go tests in
+  `notes/axiom-review/f7-txn-gotest/`), cited in its docstrings and F9 row.
+
+**Build of record:** a full `lake build` of `9ae10bbb6b` was started on fk-lean2 (`/shared/tmp/f7sync.sh`, no targets: the
+whole lib, since `TxnCommitOnDist`'s docstring change rebuilds its importers); log `~/eg/logs/f7l-build.log` (ends
+`EXIT n`). Not awaited at handoff: check that it ends `EXIT 0` first; the file itself checked clean (kernel on) with
+`etc/lean-check.py -a` on fk-lean2. tier-check and lease-order-check: ok.
+
+**Left:** linking (`RunAuthLease` into a `Results` root) waits on `foreignReads.law` (Upamanyu; the side branch drops
+the two lessor reads instead); then Handoff S3-1 item 5 (the `etcd-dist-auth` tcb collection, axiom-tok).
