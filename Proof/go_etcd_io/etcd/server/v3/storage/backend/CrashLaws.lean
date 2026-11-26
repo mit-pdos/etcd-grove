@@ -1,17 +1,26 @@
 /- Lean-first (no Rocq counterpart).
 
-# C-I1's laws as theorems (W3 of `plans/bbolt-crash-plan.md`; in progress)
+# C-I1: bbolt's file after a power loss, at the backend's interface (proved)
 
-`CrashInterim.lean`'s opaque `dbCrashKeep`/`dbCrashHole` as definitions over bbolt's sealed crash record
-(`Spec/go_etcd_io/bbolt/ApiCrash.lean`: `boltCrashRec`, `boltCrashHole`), and its laws proved with their
-statements unchanged (namespace `backend.crashLaws`, so that the text is the axioms'; the swap moves
-them into `backend` and deletes the axioms). Done: `dbCrashKeep_take`, `_putSame`, `_putStep`,
-`_close`, `_new` (with the axiom's text since W7: crash mode is on for every file `Open` accepts, whose
-meta tails `fileOK` gives) and `dbCrash` (the crash invariant's crash lemma `csInvIR_crash_keep`, the
-version agreement and the crashed file's receipt). **Statement issue**: the definitions are over
-`onFs`, which needs `go.Semantics` (`FsCtx`'s field facts mention `GoSemanticsFunctions`); the
-opaque `dbCrashKeep` takes none, and `dbCrash`'s statement has none in scope, so `dbCrash` needs
-`[sem : go.Semantics]` added (its one caller, `MemberCrash.lean`, has it).
+The crash record `dbCrashKeep γ i0 Dl Dn` of the open database `γ` (its file the inode `i0`, its committed
+data `Dn`, the data `Dl` its file falls back to if the commit that made `Dn` did not reach the disk) and
+the hole `dbCrashHole` it leaves while its half is lent to `Tx.Commit`'s update, defined as bbolt's
+sealed crash record (`Spec/go_etcd_io/bbolt/ApiCrash.lean`: `boltCrashRec`, `boltCrashHole`) under
+`onFs`; and the six laws of it, theorems from bbolt's crash proof over the file extension:
+`dbCrashKeep_new` (a record from a fresh write transaction, under `dbOpts`), `_take`, `_putSame`,
+`_putStep` (the half lent for one update and put back at the same or the next version), `_close`, and
+`dbCrash` (after a power loss, the inode holds `Dl` or `Dn`, every byte durable: `bbolt.fileHoldsMDur`).
+
+**What it rests on.** The crash premise `BoltCrashWhole` (`dbCrash`'s `hQ`, one definition,
+`Spec/go_etcd_io/bbolt/CrashPremise.lean`: a torn meta page that validates is one change's, FNV-64a
+collision aside), `dbOpts`'s producer (the axiom `storage.OpenBackend`, `DbOpts.lean`), and the file
+extension's crash semantics. A record exists only for a database past `Open` (`init`'s window is outside
+it: `issues/bbolt-init-not-crash-safe.md`). Reviews of the laws' statements:
+`notes/axiom-review/c-i1-bbolt-crash.md`, `c-i1-takeput.md`, `c-i1-nopath.md`, `c-i1-monotone.md`.
+
+**Statements.** Each law is the former interim axiom's text, except `dbCrash`, which takes
+`[sem : go.Semantics]` at the old generation's context (the record is over `onFs`, which needs it) and
+concludes `fileHoldsMDur` (`bbolt.fileHoldsMDur_holds` gives the axiom's `fileHoldsM`).
 -/
 module
 
@@ -28,11 +37,12 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace backend
-namespace crashLaws
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- (C-I1) The crash premise (as in `CrashInterim.lean`). -/
+/-- (C-I1) **The crash premise** (`dbCrash`'s `hQ`): bbolt's `BoltCrashWhole`
+(`Spec/go_etcd_io/bbolt/CrashPremise.lean`, which states it and its evidence; one definition). The
+checksum bytes are as of a change no later than the fields' (review `notes/axiom-review/c-i1-monotone.md`). -/
 abbrev BoltCrashWhole (I : Fs.Ino → Prop) (st st' : Fs.OsState) : Prop :=
   bbolt.BoltCrashWhole I st st'
 
@@ -41,12 +51,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors}
 
-/-- (C-I1) **The crash record of the open database `γ`, whose file is the inode `i0`**: bbolt's
-`boltCrashRec` at the program's file-extension instances. -/
+/-- (C-I1) **The crash record of the open database `γ`, whose file is the inode `i0`** (exclusive): its
+committed data `Dn` (with the commit invariant's half) and the data `Dl` its file falls back to; it claims
+no name (`notes/axiom-review/c-i1-nopath.md`). bbolt's `boltCrashRec` at the program's file-extension
+instances. -/
 def dbCrashKeep [hG : HeapGS hlc GF] [sem : go.Semantics] (γ : DBNames) (i0 : Fs.Ino) (Dl Dn : Data) : IProp GF :=
   onFs (GF := GF) iprop(bbolt.boltCrashRec γ i0 Dl Dn)
 
-/-- (C-I1) **The record with its half lent at version `ν`**: bbolt's `boltCrashHole`. -/
+/-- (C-I1) **The record with its half lent at version `ν`** (`dbCrashKeep_take`), for one update of
+`Tx.Commit`: bbolt's `boltCrashHole`. -/
 def dbCrashHole [hG : HeapGS hlc GF] [sem : go.Semantics] (γ : DBNames) (i0 : Fs.Ino) (Dl Dn : Data) (ν : Nat) :
     IProp GF :=
   onFs (GF := GF) iprop(bbolt.boltCrashHole γ i0 Dl Dn ν)
@@ -59,6 +72,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors}
 
+/-- (C-I1) **The half lent for `Tx.Commit`'s update**: the half at its version `ν`, and the hole that
+remembers `ν`. -/
 theorem dbCrashKeep_take [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn : Data) :
     dbCrashKeep (GF := GF) γ i0 Dl Dn ⊢ ∃ ν, dbHalfV γ Dn ν ∗ dbCrashHole γ i0 Dl Dn ν := by
@@ -69,6 +84,8 @@ theorem dbCrashKeep_take [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ :
     exact bbolt.boltCrashRec_take γ i0 Dl Dn
   · iintro %h; exact h.elim
 
+/-- (C-I1) **The half back unchanged** (the update aborted): the same version, so no commit took
+place. -/
 theorem dbCrashKeep_putSame [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn : Data) (ν : Nat) :
     dbCrashHole (GF := GF) γ i0 Dl Dn ν ∗ dbHalfV γ Dn ν ⊢ dbCrashKeep γ i0 Dl Dn := by
@@ -80,6 +97,9 @@ theorem dbCrashKeep_putSame [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (�
   · iintro ⟨%h, -⟩; exact h.elim
 
 open Classical in
+/-- (C-I1) **The half back after one commit** (`Tx.Commit.spec`'s update giving the data `S` at version
+`ν + 1`): exactly one commit took place, from `Dn`; the fallback becomes `Dn` (or stays `Dl` when the
+commit kept the data). -/
 theorem dbCrashKeep_putStep [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn S : Data) (ν : Nat) :
     dbCrashHole (GF := GF) γ i0 Dl Dn ν ∗ dbHalfV γ S (ν + 1) ⊢
@@ -91,8 +111,10 @@ theorem dbCrashKeep_putStep [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (�
     exact bbolt.boltCrashRec_putStep γ i0 Dl Dn S ν
   · iintro ⟨%h, -⟩; exact h.elim
 
-/-- (C-I1, `dbCrashKeep_new`) **A crash record from a fresh write transaction** (crash mode is on,
-`bbolt.crashMode_on`). -/
+/-- (C-I1) **A crash record from a fresh write transaction**: with the database opened syncing
+(`dbOpts`), its file the inode `i0` (`boltIno`), the commit invariant's half at the committed data `D`
+and a live write transaction begun at `D`, the record at `(D, D)` (crash mode is on for every database
+`Open` accepts, `bbolt.crashMode_on`; the writer carries the committed version's `synced` fact). -/
 theorem dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (D : Data) (tx : Loc) :
     ⊢ dbOpts (hlc := HasLC.hasLC) (GF := GF) γ -∗ onFs (GF := GF) iprop(bbolt.boltIno γ i0) -∗
@@ -121,18 +143,21 @@ theorem dbCrashKeep_dbHalf [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ
     exact bbolt.boltCrashRec_close γ i0 Dl Dn
   · exact .rfl
 
+/-- (C-I1) **The record closed**, holding a live write transaction begun at the committed `Dn`: the
+half back (to close the database), and the transaction. -/
 theorem dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn S : Data) (G : GoString → Nat) (tx : Loc) :
     dbCrashKeep γ i0 Dl Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ⊢
       dbHalf γ Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) :=
   sep_mono_left (dbCrashKeep_dbHalf γ i0 Dl Dn)
 
-/-- (C-I1, `dbCrash`) **bbolt's file after a power loss** (the axiom's statement, with
-`[sem : go.Semantics]` among its binders, at the old generation's local context `L`: the record is
-over `onFs`, which needs it; approved for the swap), concluding (W6) the stronger `fileHoldsMDur`: the
-file at the new generation every byte durable and its size settled, as a crash leaves every file (the axiom
-says `fileHoldsM`, which `fileHoldsMDur_holds` gives; the C-I1 swap moves this statement there): from
-bbolt's `boltCrashRec_crash`, the record's instances being the program's (`HasExt.sem_eq`). -/
+/-- (C-I1) **bbolt's file after a power loss**: under the crash premise `BoltCrashWhole` for the
+database's inode `i0`, from the old generation's record `(i0, Dl, Dn)`, its `crashed`, and the file
+system's crash rest (with the files `Dx` other crash lemmas took, not `i0`) of a crash whose durable tree
+still names `i0` (`Named`): the inode `i0` holds `Dl` or `Dn` at the new generation, whole, with its
+txid's receipt, every byte durable and its size settled (`bbolt.fileHoldsMDur`), and the crash rest with
+`i0` taken. The mask holds bbolt's crash invariant's namespace (`hE`). From bbolt's
+`boltCrashRec_crash`, the record's instances being the program's (`HasExt.sem_eq`). -/
 theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt] [G : GooseGlobalGS HasLC.hasLC GF]
     (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF)
     [sem : @go.Semantics _ L.goose_go_local_context _] (γ : DBNames)
@@ -157,7 +182,6 @@ theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.f
 
 end laws
 
-end crashLaws
 end backend
 end EtcdGrove
 end Perennial
