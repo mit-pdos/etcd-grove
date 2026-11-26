@@ -1415,7 +1415,9 @@ Branch `etcd-safe-f7-runauth` (off `etcd-safe-f7` @ `3e36f7cbd9`, with the lead'
 `/shared/tmp/f7ra-rb.sh` on the four modules below (`Proof...dist.client.AuthWatchRefusal`, `...AuthRunDefs`,
 `Spec...dist.client.remotePrincipals`, `...RunAuth`); log `/shared/tmp/f7ra-build1.log` (ends `EXIT n`). First step
 of the next session: check it ends `EXIT 0` (if the job was killed, rerun the same `f7ra-rb.sh` command once the
-copy is done), fix forward any error. No module has a `sorry`; none is imported by anything else.
+copy is done), fix forward any error. **Outcome:** the job's wait step's ssh exited 255 (connection lost), so the
+build never ran (`f7ra-build1.log` holds only `EXIT 255`); the seed copy itself finished. Rerun
+`/shared/tmp/f7ra-rb.sh` on the four modules. No module has a `sorry`; none is imported by anything else.
 
 **Written, unbuilt:**
 - `Proof/.../dist/client/AuthWatchRefusal.lean` (defs), the riskiest pieces of the lead's discharge list (#50,
