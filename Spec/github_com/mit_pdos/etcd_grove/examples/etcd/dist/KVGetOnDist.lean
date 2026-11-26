@@ -39,7 +39,11 @@ cluster-level `readAuthedD`). Serializable reads are not covered (no workload se
 `serializable = false` is a premise.
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
-`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetOnDist.lean`). Reviews (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C), with precision note N1 on `readAuthedD`. **Changed since**: N1 applied (`readCheckedD` gives `srvReqLogLb γR L` at the permitted prefix `L`; a stronger post), not yet reviewed (`f7-changed-since-review.md`). -/
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetOnDist.lean`). Reviews (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C), with precision note N1 on `readAuthedD`. **Changed since**: N1 applied (`readCheckedD` gives `srvReqLogLb γR L` at the permitted prefix `L`; a stronger post), not yet reviewed (`f7-changed-since-review.md`). **Re-reviewed** `f7-getOn-n1.md` (2026-11-26): SOUND with N1, given `serializable = false` (keep that
+premise). **Retirement obligation R1** (from that review): a lemma that derives the committed `L` from
+`authHistTie E ρ srvAuthSt0`: from `authStateAt γa i (srvAuthAtLog L')`, `i ≤ j` and `authStateAt γa j st`,
+`∃ L ⊒ L', srvReqLogLb ρ.raft L ∗ ⌜st = srvAuthAtLog L⌝` (generalizing `authStateAt_setup`, `AuthTieRead.lean`,
+via `srvReqLogLb_of_rlogLb` and `kvRaftOfOn_eqv`). -/
 abbrev KV_GetOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)

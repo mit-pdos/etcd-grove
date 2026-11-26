@@ -47,7 +47,13 @@ applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 **Reviews** (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C), with precision note N1 on `readAuthedD`. **Changed since**: N1 applied (`readCheckedD` gives `srvReqLogLb γR L` at the permitted prefix `L`; a stronger post), not yet reviewed (`f7-changed-since-review.md`).
 
 Retired by #24's S2 client side (`etcdSvc` defined, `Invoke` over the net model). The statement does not
-change. -/
+change.
+
+**Re-reviewed** `f7-getOn-n1.md` (2026-11-26): SOUND with N1, given `serializable = false` (keep that
+premise). **Retirement obligation R1** (from that review): a lemma that derives the committed `L` from
+`authHistTie E ρ srvAuthSt0`: from `authStateAt γa i (srvAuthAtLog L')`, `i ≤ j` and `authStateAt γa j st`,
+`∃ L ⊒ L', srvReqLogLb ρ.raft L ∗ ⌜st = srvAuthAtLog L⌝` (generalizing `authStateAt_setup`, `AuthTieRead.lean`,
+via `srvReqLogLb_of_rlogLb` and `kvRaftOfOn_eqv`). -/
 axiom KV_GetOn_dist.wp_proof : KV_GetOn_dist.spec (GF := GF) (hG := hG)
 
 end proof

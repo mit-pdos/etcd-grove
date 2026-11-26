@@ -46,7 +46,8 @@ applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 
 **Reviews** (`notes/axiom-review/`): `f7-c.md` (`d946f6cbda`: UNSOUND as written; F1 the member names bound to `Γ.au`, F2 the lessor name `Γ.ls mid` tied by Serve), then `f7-rerev-c.md` (`6d9d9fd662`): SOUND given the proposed Serve, adopted as `Serve_dist` (`f7-combined.md`, F7 step 3 `eb138f6f8c`). Since then a comment only (`f7-changed-since-review.md`). **Generalized before approval** (2026-11-26, F7 S4: was
 `Lease_TimeToLiveKeysOn_dist`, keys only; now any options; without keys the check is `requireAuthInfo`'s,
-the info's user the principal, as `etcdLeaseTTLSpecMdW`'s `else` under `principalBound`): needs a fresh review.
+the info's user the principal, as `etcdLeaseTTLSpecMdW`'s `else` under `principalBound`): needs a fresh review. **Reviewed** `f7-getOn-n1.md` (2026-11-26): SOUND as drafted. It must keep claiming nothing about
+`TTL`, `GrantedTTL` or `Keys` (a `ttl = -1` claim would be false for an expired, not yet revoked lease).
 
 Retired by #24's S2 client side (`etcdSvc` defined, `Invoke` over the net model). The statement does not
 change. -/
