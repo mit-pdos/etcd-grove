@@ -79,6 +79,38 @@ theorem durCheck_kv {N : Nat} (hN : N ≤ 256) {σ : KVState} {S : Nat → Prop}
   refine ⟨j, hj, hk, hv, hver, fun j' hj' hk' => ?_⟩
   exact durKey_inj (by omega) (by omega) (hk'.symm.trans hk)
 
+/-! Word facts for the loops (stated apart: `word` in the loops' large contexts fails). -/
+
+theorem w_nat_lt {t l : w64} (h0 : 0 ≤ sint.Z t) (h : sint.Z t < sint.Z l) : sint.nat t < sint.nat l := by
+  word
+
+theorem w_nat_succ {t l : w64} (h0 : 0 ≤ sint.Z t) (h : sint.Z t < sint.Z l) :
+    sint.nat (t + W64 1) = sint.nat t + 1 := by
+  word
+
+theorem w_succ_nonneg {t l : w64} (h0 : 0 ≤ sint.Z t) (h : sint.Z t < sint.Z l) : 0 ≤ sint.Z (t + W64 1) := by
+  word
+
+theorem w_succ_le {t l : w64} (h0 : 0 ≤ sint.Z t) (h : sint.Z t < sint.Z l) : sint.Z (t + W64 1) ≤ sint.Z l := by
+  word
+
+theorem w_nat_le {t l : w64} (hl : 0 ≤ sint.Z l) (h : ¬ sint.Z t < sint.Z l) : sint.nat l ≤ sint.nat t := by
+  word
+
+theorem w_Z_lt {t l : w64} (h0 : 0 ≤ sint.Z t) (hl : 0 ≤ sint.Z l) (h : sint.nat t < sint.nat l) :
+    sint.Z t < sint.Z l := by
+  word
+
+theorem w_not_neg {t : w64} (h0 : 0 ≤ sint.Z t) : ¬ sint.Z t < sint.Z (W64 0) := by
+  word
+
+theorem w_nat_zero : sint.nat (W64 0) = 0 := by
+  word
+
+theorem w_Z_lt_nat {t l : w64} (h0 : 0 ≤ sint.Z t) (hl : 0 ≤ sint.Z l) (h : sint.nat t < sint.nat l) :
+    sint.Z t < ((sint.nat l : Nat) : Int) := by
+  word
+
 set_option maxHeartbeats 3200000 in
 theorem RunDurable.wp_proof
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
@@ -290,9 +322,15 @@ theorem RunDurable.wp_proof
   ihave #Hgau := durGetAu (Gg := hG.goose_globalGS) Γ.kv γ γF γs (sint.nat m)
     (fun j' => acks[j']? = some true) $$ [Hfa]
   · iframe #
+  have hser : (rangeWireOf (opGetModel durablePfx [withPrefixM])).base.serializable = false := by
+    first
+    | (rw [durGetOp_eq]; done)
+    | (rw [durGetOp_eq]; rfl)
+    | simp [durGetOp_eq, txn.rangeOpOf]
+  have hsz := (dur_sizes 0).2
   wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx _ [withPrefixM]
       iprop(True) (fun σ => iprop(⌜durReadOk (sint.nat m) (fun j' => acks[j']? = some true) σ⌝))
-      durGet_ok (by rw [durGetOp_eq]) (dur_sizes 0).2)
+      durGet_ok hser hsz)
     $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
   · iframe Hlt
     iframe #
@@ -318,10 +356,13 @@ theorem RunDurable.wp_proof
   icases HQ with %Hrd
   have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel durablePfx [withPrefixM])) σ.kvs mr.kvs mr.more := by
     have h := Hsel.1
-    have e : (σ.at (σ.readRev (W64 0))).kvs = σ.kvs := by
-        have hrr : σ.readRev (W64 0) = σ.rev := by simp [KVState.readRev]
-        rw [hrr]; rfl
-    first | (rw [e] at h; exact h) | (rw [at_readRev_zero σ _ (by rw [durGetOp_eq])] at h; exact h)
+    have e : ∀ r : w64, r = W64 0 → (σ.at (σ.readRev r)).kvs = σ.kvs := by
+      intro r hr
+      subst hr
+      have hrr : σ.readRev (W64 0) = σ.rev := by simp [KVState.readRev]
+      rw [hrr]; rfl
+    rw [e OpModel.zero.rev rfl] at h
+    exact h
   have hview : mr.kvs = pfxView durablePfx σ := durRange_eq σ.kvs mr.kvs mr.more Hsel'
   (try wp_auto)
   -- `seen := make([]bool, n)`
@@ -347,19 +388,20 @@ theorem RunDurable.wp_proof
     ipureintro
     refine ⟨by decide, by simp, by simp, ?_⟩
     intro j' _ ⟨x, hx, _⟩
+    rw [w_nat_zero] at hx
     simp at hx
   wp_for IR
   wp_if_destruct
   · -- the `t`th key-value
+    have HifR := Hif
     have htl : sint.nat t < mr.kvs.length := by
-      have := Hsll.1; rw [Hplen] at this; unfold sint.nat at Ht ⊢; word
+      have h1 := Hsll.1; rw [Hplen] at h1; have h2 := w_nat_lt Ht.1 Hif; omega
     obtain ⟨x, hx⟩ : ∃ x, mr.kvs[sint.nat t]? = some x := ⟨_, List.getElem?_eq_getElem htl⟩
     obtain ⟨p, hp⟩ : ∃ p, ps[sint.nat t]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
     ihave #Hx := Hall $$ %(sint.nat t) %p %x %hp %hx
     have hxv : x ∈ pfxView durablePfx σ := by rw [← hview]; exact List.mem_of_getElem? hx
     obtain ⟨jx, hjx, hkx, hvx, hverx, huniq⟩ := durCheck_kv hmN Hrd hxv
-    have Hbt : 0 ≤ sint.Z t ∧ sint.Z t < sint.Z sl.len := by
-      have := Hsll.1; rw [Hplen] at this; constructor <;> word
+    have Hbt : 0 ≤ sint.Z t ∧ sint.Z t < sint.Z sl.len := ⟨Ht.1, Hif⟩
     (try simp only [Hbt, _root_.and_self, ↓reduceIte])
     wp_apply wp_load_slice_index _ (sint.Z t) _ DFrac.discard p Ht.1 $$ [Hsl] as -
     · iframe Hsl; ipureintro; rw [show (sint.Z t).toNat = sint.nat t from rfl]; exact hp
@@ -369,14 +411,16 @@ theorem RunDurable.wp_proof
     -- the inner loop: `i` is the last `j < n` with `durableKey(j)` the key
     ihave IJ : (∃ (jj iv : w64), "j" ∷ j_ptr ↦ jj ∗ "i" ∷ i_ptr ↦ iv ∗
         "%Hjj" ∷ ⌜0 ≤ sint.Z jj ∧ sint.Z jj ≤ sint.Z m ∧
-          (sint.nat jx < sint.nat jj → 0 ≤ sint.Z iv ∧ sint.nat iv < sint.nat m ∧
+          (jx < sint.nat jj → 0 ≤ sint.Z iv ∧ sint.nat iv < sint.nat m ∧
             x.key = durKey (sint.nat iv))⌝ : IProp GF) $$ [j i]
     · iexists W64 0, _
       simp only [named]
       iframe
       ipureintro
       refine ⟨by decide, Hm.1, ?_⟩
-      intro h; simp [sint.nat] at h
+      intro h
+      have := w_nat_zero
+      omega
     wp_for IJ
     wp_if_destruct
     · (try wp_auto)
@@ -395,7 +439,7 @@ theorem RunDurable.wp_proof
         simp only [named]
         iframe
         ipureintro
-        refine ⟨by word, by word, fun _ => ⟨Hjj.1, by unfold sint.nat; word, heq⟩⟩
+        refine ⟨w_succ_nonneg Hjj.1 Hif, w_succ_le Hjj.1 Hif, fun _ => ⟨Hjj.1, w_nat_lt Hjj.1 Hif, heq⟩⟩
       · rw [decide_eq_false heq]
         (try wp_auto)
         wp_for_post
@@ -404,23 +448,22 @@ theorem RunDurable.wp_proof
         simp only [named]
         iframe
         ipureintro
-        refine ⟨by word, by word, fun h => ?_⟩
-        by_cases hlt : sint.nat jx < sint.nat jj
+        refine ⟨w_succ_nonneg Hjj.1 Hif, w_succ_le Hjj.1 Hif, fun h => ?_⟩
+        by_cases hlt : jx < sint.nat jj
         · exact Hjj.2.2 hlt
         · exfalso
-          have : sint.nat jx = sint.nat jj := by
-            have : sint.nat (jj + W64 1) = sint.nat jj + 1 := by unfold sint.nat; word
+          have : jx = sint.nat jj := by
+            have := w_nat_succ Hjj.1 Hif
             omega
           exact heq (by rw [← this]; exact hkx)
     -- after the inner loop: `i` is `jx`
-    have hjjm : ¬ (sint.Z jj < sint.Z m) := by assumption
-    have hdone : sint.nat jx < sint.nat jj := by
-      have h3 : sint.nat m ≤ sint.nat jj := by word
+    have hdone : jx < sint.nat jj := by
+      have h3 := w_nat_le Hm.1 Hif
       omega
     obtain ⟨hiv0, hivm, hkiv⟩ := Hjj.2.2 hdone
     have hivx : sint.nat iv = jx := huniq _ hivm hkiv
     (try wp_auto)
-    have hnneg : ¬ (sint.Z iv < sint.Z (W64 0)) := by word
+    have hnneg : ¬ (sint.Z iv < sint.Z (W64 0)) := w_not_neg hiv0
     (try simp only [hnneg, decide_false, Bool.false_eq_true, ↓reduceIte])
     (try wp_auto)
     wp_apply wp_bytes_to_string vSl x.value DFrac.discard $$ [HvS] as -
@@ -433,11 +476,12 @@ theorem RunDurable.wp_proof
     rw [hverx]
     (try wp_auto)
     -- `seen[i] = true`
-    have Hbs : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z ssl.len := by
-      have := Hssllen.1; constructor <;> word
+    have Hbs : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z ssl.len :=
+      ⟨hiv0, w_Z_lt hiv0 Hssllen.2 (by have h := Hssllen.1; simp at h; omega)⟩
     (try simp only [Hbs, _root_.and_self, ↓reduceIte])
     wp_apply (wp_store_slice_index ssl (sint.Z iv) _ true) $$ [Hssl] as Hssl
-    · iframe Hssl; ipureintro; rw [Ht.2.2.1]; constructor <;> word
+    · iframe Hssl; ipureintro; rw [Ht.2.2.1]
+      exact ⟨hiv0, w_Z_lt_nat hiv0 Hm.1 hivm⟩
     (try wp_auto)
     wp_for_post
     iframe
@@ -445,8 +489,8 @@ theorem RunDurable.wp_proof
     simp only [named]
     iframe
     ipureintro
-    have htt : sint.nat (t + W64 1) = sint.nat t + 1 := by unfold sint.nat; word
-    refine ⟨by word, by rw [htt]; omega, by simp [Ht.2.2.1], ?_⟩
+    have htt : sint.nat (t + W64 1) = sint.nat t + 1 := w_nat_succ Ht.1 HifR
+    refine ⟨w_succ_nonneg Ht.1 HifR, by rw [htt]; omega, by simp [Ht.2.2.1], ?_⟩
     intro j' hj' ⟨y, hy, hyk⟩
     rw [htt, List.take_succ, hx] at hy
     rcases List.mem_append.1 hy with hy | hy
@@ -458,11 +502,11 @@ theorem RunDurable.wp_proof
     · simp at hy
       subst hy
       have hj'x : j' = jx := huniq j' hj' hyk
-      have hij : (sint.Z iv).toNat = j' := by rw [hj'x, ← hivx]; rfl
+      have hij : (sint.Z iv).toNat = j' := by rw [hj'x, ← hivx]; (try rfl)
       rw [List.getElem?_set, if_pos hij, if_pos (by rw [Ht.2.2.1]; omega)]
   -- after the check loop: every key-value checked
   have htall : sint.nat t = mr.kvs.length := by
-    have := Hsll.1; rw [Hplen] at this; unfold sint.nat at Ht ⊢; word
+    have h1 := Hsll.1; rw [Hplen] at h1; have h2 := Ht.2.1; have h3 := w_nat_le Hsll.2 Hif; omega
   (try wp_auto)
   -- the last loop: every acknowledged put is seen
   ihave IA : (∃ (q : w64), "i" ∷ i_ptr ↦ q ∗ "%Hq" ∷ ⌜0 ≤ sint.Z q⌝ : IProp GF) $$ [i]
@@ -472,9 +516,10 @@ theorem RunDurable.wp_proof
     ipureintro; decide
   wp_for IA
   wp_if_destruct
-  · have hqm : sint.nat q < sint.nat m := by word
-    have Hbq : 0 ≤ sint.Z q ∧ sint.Z q < sint.Z asl.len := by
-      have := Haslen.1; simp at this; constructor <;> word
+  · have HifQ : sint.Z q < sint.Z m := Hif
+    have hqm : sint.nat q < sint.nat m := w_nat_lt Hq HifQ
+    have Hbq : 0 ≤ sint.Z q ∧ sint.Z q < sint.Z asl.len :=
+      ⟨Hq, w_Z_lt Hq Haslen.2 (by have h := Haslen.1; simp at h; omega)⟩
     obtain ⟨b, hb⟩ : ∃ b, (acks ++ List.replicate (sint.nat m - acks.length) false)[sint.nat q]? = some b :=
       ⟨_, List.getElem?_eq_getElem (by simp; omega)⟩
     (try simp only [Hbq, _root_.and_self, ↓reduceIte])
@@ -488,7 +533,7 @@ theorem RunDurable.wp_proof
       iexists q + W64 1
       simp only [named]
       iframe
-      ipureintro; word
+      ipureintro; exact w_succ_nonneg Hq HifQ
     · -- acknowledged: seen
       have hack : acks[sint.nat q]? = some true := by
         rwa [List.getElem?_append_left (by omega)] at hb
@@ -498,8 +543,9 @@ theorem RunDurable.wp_proof
         refine ⟨y, ?_, hyk⟩
         rw [htall, List.take_length, hview]
         exact hy
-      have Hbq' : 0 ≤ sint.Z q ∧ sint.Z q < sint.Z ssl.len := by
-        have := Hssllen.1; constructor <;> word
+      have Hbq' : 0 ≤ sint.Z q ∧ sint.Z q < sint.Z ssl.len :=
+        ⟨Hq, w_Z_lt Hq Hssllen.2 (by have h := Hssllen.1; simp at h; omega)⟩
+      (try wp_auto)
       (try simp only [Hbq', _root_.and_self, ↓reduceIte])
       wp_apply wp_load_slice_index ssl (sint.Z q) _ _ true Hq $$ [Hssl] as Hssl
       · iframe Hssl; ipureintro; exact hseen
@@ -509,7 +555,7 @@ theorem RunDurable.wp_proof
       iexists q + W64 1
       simp only [named]
       iframe
-      ipureintro; word
+      ipureintro; exact w_succ_nonneg Hq HifQ
   (try wp_auto)
   wp_apply wp_checked as %r -
   (try wp_auto)
