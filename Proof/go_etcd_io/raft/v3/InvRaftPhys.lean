@@ -455,7 +455,8 @@ def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   -- `MsgTransferLeader`: `raft.send.spec`'s traced premise), so that none drops out of the abstract
   -- outbox (`msgAbs`'s `none` arm), which a `Ready`'s `TrSent` reads (`acceptReady`)
   (s.gh.tr.isSome → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧
-  -- (2026-11-24, the lifetime law) the attachment's term floor (`LifeOk`)
+  -- (2026-11-24, the lifetime law) the attachment's term floor (`LifeOk`). Kept last, and read only
+  -- through `XfOk.life` (2026-11-26): a new conjunct goes before it and changes only this file
   LifeOk s l
 
 /-- No queued message has responses (`SentMsgShape`'s last clause): what `isRaftMsg` and a
@@ -479,13 +480,15 @@ theorem XfOk.nil {id : w64} {s : NState}
 theorem XfOk.life {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) : LifeOk s l :=
   H.2.2.2.2.2
 
-/-- (2026-11-24) The queues drained (a `Ready`'s hand-out). -/
-theorem XfOk.drain {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) : XfOk id s [] :=
-  XfOk.nil H.2.2.2.1 H.life.1 H.life.2.1
-
 /-- (2026-11-12, implementation step 3) A leader or candidate is past term `0`. -/
 theorem XfOk.term_nz {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
     (s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0 := H.2.2.2.1
+
+/-- (2026-11-24) The queues drained (a `Ready`'s hand-out). Through the named accessors and `nil`'s
+named arguments, as every use outside this file, so that a new conjunct of `XfOk` changes only this
+file. -/
+theorem XfOk.drain {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) : XfOk id s [] :=
+  XfOk.nil (ht := H.term_nz) (h0 := H.life.1) (h1 := H.life.2.1)
 
 /-- (2026-11-12, implementation step 3) At a traced node, every queued message of a described type. -/
 theorem XfOk.typed {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
@@ -526,7 +529,7 @@ theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk
     (Hr : (ro = .leader ∨ ro = .candidate) → s.term ≠ W64 0)
     (Hr0 : (ro = .leader ∨ ro = .candidate) → uint.Z s.gh.sn.t0 < uint.Z s.term) :
     XfOk id { s with role := ro } l :=
-  ⟨H.1, H.2.1, H.2.2.1, Hr, H.2.2.2.2.1, H.life.1, Hr0, H.life.2.2⟩
+  ⟨H.1, H.2.1, H.2.2.1, Hr, H.typed, H.life.1, Hr0, H.life.2.2⟩
 
 /-- A record added (`ownRaftPhysC_xw_record`). -/
 theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
