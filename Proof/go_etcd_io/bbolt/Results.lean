@@ -28,6 +28,7 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.bbolt.Cursor.wp_Seek
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Begin
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Close
+#print axioms Perennial.EtcdGrove.bbolt.DB.wp_CloseC
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Info
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Stats
 #print axioms Perennial.EtcdGrove.bbolt.Options.wp_String
