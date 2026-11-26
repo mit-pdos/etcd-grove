@@ -58,7 +58,7 @@ def expiryAt [π : NetProtoGS] (Γ : DistView) (c : Loc) (id : w64)
      else True))
 
 instance expiryAt_persistent [π : NetProtoGS] (Γ : DistView) (c : Loc)
-    (id : w64) (b : Bool) : Persistent (expiryAt Γ c id b) := by
+    (id : w64) (b : Bool) : Persistent (expiryAt (GF := GF) Γ c id b) := by
   unfold expiryAt; cases b <;> infer_instance
 
 /-- A slice's model where the grant loop does not store: the default value appended. -/
@@ -415,6 +415,8 @@ theorem RunLeaseExpiry.wp_proof
       iframe
       ipureintro; constructor <;> word
     subst Hlerr
+    -- a later credit for the slot's law (an invariant whose published law is not timeless)
+    wp_pure_lc Hlc
     imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     (try wp_auto)
     -- the listing is a snapshot where the lease is still absent
@@ -422,8 +424,8 @@ theorem RunLeaseExpiry.wp_proof
     icases Hids with ⟨%τ, %Hτ, #Hτat⟩
     iunfold memberCli at Hmcj
     icases Hmcj with ⟨-, -, -, #Hslotj⟩
-    imod lessorAbsentStays_dist.law_holds (GF := GF) (hG := hG) Γ midj i ka jj σ ρa τ idj Hσ Hρa.1 Hρa.2 Hkj $$ [Hslotj Hσat Hρat Hτat] with %Hτn
-    · iframe #
+    imod lessorAbsentStays_dist.law_holds (GF := GF) (hG := hG) Γ midj i ka jj σ ρa τ idj Hσ Hρa.1 Hρa.2 Hkj $$ [Hlc Hslotj Hσat Hρat Hτat] with %Hτn
+    · iframe Hlc Hslotj Hσat Hρat Hτat
     have Hnot : idj ∉ ids := by
       intro h
       have := (Hτ.2 idj).1 h
