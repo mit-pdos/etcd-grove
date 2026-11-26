@@ -189,7 +189,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG))
-    (hWC : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG))
+    (hWC : os.File.WriteAt.specCrashILR (GF := GF) (hG := hG))
     (hSyncC : fdatasync.specC (GF := GF) (hG := hG)) :
     Tx.writeMeta.spec (GF := GF) (hG := hG) := by
   intro K tx r sm q dq mp mv f fd C C' om b l dqf dqw Ψ hroot hfl hmp hsz hmaps hl

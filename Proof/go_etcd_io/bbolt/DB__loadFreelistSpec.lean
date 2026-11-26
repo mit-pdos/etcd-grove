@@ -62,7 +62,7 @@ not yet carved (the file's bytes at a half, the rest any cells). -/
 def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) (C : CommitSt)
     (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed γbq N db sp ∗
-      ghostVar γbq 1 () ∗
+      ghostVar γbq 1 () ∗ cpart (p.cs.map CsN.cg) 1 (treeData C) C.txid ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
       db.[DB, go!"statlock"] ↦ (zero_val sync.RWMutex) ∗
@@ -96,12 +96,12 @@ def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile)
 
 /-- **`db.loadFreelist()` at `Open`**. -/
 abbrev DB.loadFreelist.spec_open : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq : GName) (N : Namespace)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq γcn : GName) (N : Namespace)
     (db sp f : Loc) (fd : w64) (p : BFile)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
   lfOK N db C b L m xs → 0 ≤ fd.toInt →
   {{ lfPre (GF := GF) γbq N db sp f fd p C b L m xs ∗
-      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid ∗ bMode γbq N db p }}
+      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid ∗ bMode γbq γcn N db p }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))
   {{ RET #(); lfPost γbq N db sp f fd p C b L m xs }}
 

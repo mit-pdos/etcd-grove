@@ -190,7 +190,7 @@ theorem DB.Close.wp_proof
   subst hC
   -- the committed data is the caller's
   unfold boltState boltStateDef boltStateVDef
-  icases Hst with ⟨%ν, Hs1, Hbq⟩
+  icases Hst with ⟨%ν, Hs1, Hbq, -⟩
   icombine Hs1 Hst' gives % ⟨_, hD⟩
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj hD
   iunfold Pm at HP
@@ -379,7 +379,7 @@ theorem DB.Close.wp_proof
   have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
   rw [hsz4] at hfok
   -- the file out of its mode (crash mode: the crash invariant closed with `boltState`'s `bq`)
-  imod bfile_out _ _ _ p w.C [] m xs (by rw [hm.2]; exact hxs.2) $$ Hmode Hm Hxs Hbq
+  imod bfile_out _ _ _ _ p w.C [] m xs (by rw [hm.2]; exact hxs.2) $$ Hmode Hm Hxs Hbq
     with ⟨Hm, Hxs⟩
   -- the file given back; the caller's validity token kept by the closed database
   wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur

@@ -171,7 +171,7 @@ theorem bMetaP_osMeta (P : Nat → Prop) (p : BFile) (C : CommitSt) (L : List (N
 variable [os.Assumptions] in
 /-- **`File.WriteAt` of bbolt's file**, in either mode (see the file header). -/
 theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
-    (hWC : os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG))
+    (hWC : os.File.WriteAt.specCrashILLongR (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt)
     (L : List (Nat × Nat)) (m : OsMeta) (xs : List ByteG)
@@ -232,7 +232,7 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMetaP_own P p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨⟨hph, hcur, hdur, hfs, hlh⟩, hpr⟩ := Hf
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
     have hI : IdleOk a.cur a.xcur ⟨m, bs, 0, 0, .idle⟩ := ((bDur_idle_iff hph).1 hD).2
@@ -250,7 +250,7 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     have hunp : ∀ k, off.toNat ≤ k → k < off.toNat + data.length → 8192 ≤ k ∧ ¬ protData a.xcur a.cur k :=
       fun k h1 h2 => ⟨(hun k h1 h2).1, fun hk => hpr k hk (hun k h1 h2).2⟩
     have hobl := bDur_write_idleC a hph m bs 0 0 off.toNat data hD hin hunp hlh
-    iapply (hWC f fd name dqf sl data dqs off dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs xs hd hwr h0
+    iapply (hWC f fd name dqf sl data dqs off dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs xs hd hwr h0
       hin (by omega) hlt hpos hxl' (hns c hc)
       (fun nn m' bs' hR => ⟨fun _ => (hobl nn m' bs' hR).1,
         fun hl t n hfr _ => (hobl nn m' bs' hR).2 hl t n hfr⟩)) $$ [Hf Hsl Hfd Hown Hxs Hc]

@@ -4,7 +4,7 @@ Lean-first, no Rocq counterpart).
 
 * `bfile_alloc`: the file whole and idle (as `Open` holds it, its `OsMeta` and every byte) becomes
   the crash-mode record `{ path, ino := i, cs := some c }`'s resources: the invariant
-  (`bCsInv`, `csInvI` with the obligation `bCsOk` and the closing name `gc` the caller chooses:
+  (`bCsInv`, `csInvIR` with the obligation `bCsOk`, the client resource `bR` and the closing name `gc` the caller chooses:
   bbolt's `B.bq`), the writer's share of the `OsMeta` (`bMeta`, idle at `C`) and bbolt's share of
   every byte (`bBytes`, with fresh exclusivity tokens).
 * `bfile_close`: back, with the closing token `csDone gc` (`ghostVar B.bq 1 ()`, from the
@@ -14,6 +14,8 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.BFile
 public import Proof.os.CrashStIL
+public import Proof.os.CrashStIR
+public import Proof.go_etcd_io.bbolt.Inv.State
 
 @[expose] public section
 
@@ -58,26 +60,58 @@ theorem exMap_frags (γ : GName) : ∀ n : Nat,
     · iapply exMap_frags γ n $$ Hm
     · iapply BigSepL.bigSepL_singleton.2; iexact Hn
 
-/-- **The file whole and idle into its crash invariant** (see the file header). -/
+/-- **The file whole and idle into its crash invariant** (see the file header): its client
+resource (`bR`) at the history `{C.txid ↦ treeData C}` and the synced mark `C.txid`, from `C`'s
+receipt; out come the version variable's other half and the history's element of `C`, for the
+committed data (`boltStateVDef`). -/
 theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C : CommitSt)
     (m : OsMeta) (xs : List ByteG) (a : BAbs) (E : CoPset) (hl : xs.length = m.size)
-    (hcut : m.cut = none) (ha : a.phase = .idle ∧ a.cur = C)
+    (hcut : m.cut = none) (ha : a.phase = .idle ∧ a.cur = C ∧ a.prev = C)
     (hok : bCsOk a ⟨m, xs, 0, 0, .idle⟩) (hdur : ∀ x ∈ xs, x = durB x.1)
     (hne : FsNoErr) (hone : XsOne m) :
-    ⊢ osMeta (GF := GF) i (DFrac.own 1) m -∗ osBytes i 0 (DFrac.own 1) xs ={E}=∗
+    ⊢ osMeta (GF := GF) i (DFrac.own 1) m -∗ osBytes i 0 (DFrac.own 1) xs -∗ ⧖ C.txid ={E}=∗
       ∃ c : CsN, ⌜c.gc = gc ∧ c.N = N⌝ ∗
         bCsInv (GF := GF) { path := path, ino := i, cs := some c } ∗
         bMeta { path := path, ino := i, cs := some c } C [] m ∗
-        bBytes { path := path, ino := i, cs := some c } 0 (DFrac.own 1) xs := by
-  iintro Hm Hb
+        bBytes { path := path, ino := i, cs := some c } 0 (DFrac.own 1) xs ∗
+        ghostVar c.cg.cv (1 : Qp).half (treeData C, C.txid) ∗ histE c.cg C.txid (treeData C) := by
+  iintro Hm Hb #Hrc
   have hwf : (⟨m, xs, 0, 0, .idle⟩ : CSt).Wf := ⟨hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
-  imod csInvI_alloc_c N i gc bCsOk ⟨m, xs, 0, 0, .idle⟩ a E rfl
-    (Nat.le_refl _) hwf hcut hok $$ Hm Hb with ⟨%γ, %γa, #Hinv, Hown⟩
+  -- the client resource's ghost state
+  imod ghostVar_alloc (GF := GF) (treeData C, C.txid) with ⟨%γcv, Hcv⟩
+  icases (ghostVar_split_half γcv 1 (treeData C, C.txid)).1 $$ Hcv with ⟨Hcv1, Hcv2⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat Data) with ⟨%γhs, Hhs, -⟩
+  imod ghost_map_insert_persist C.txid (treeData C) (by rfl) $$ Hhs with ⟨Hhs, #Hh⟩
+  imod mono_nat_own_alloc (GF := GF) C.txid with ⟨%γsy, Hsy, -⟩
+  let g : CsG := ⟨γcv, γhs, γsy⟩
+  let H0 : GMap Nat Data := (∅ : GMap Nat Data).insert C.txid (treeData C)
+  have hH0 : H0 !! C.txid = some (treeData C) := GMap.lookup_insert _ _ _
+  have hval : bRFacts H0 C.txid a := by
+    obtain ⟨hph, hcur, hprev⟩ := ha
+    refine ⟨by rw [hcur]; exact hH0, by rw [hprev]; exact hH0, ?_, by rw [hprev]; exact Nat.le_refl _,
+      .inr (hprev.trans hcur.symm), by rw [hph]; intro h; cases h⟩
+    intro k d hk
+    rw [hcur]
+    by_cases hkc : k = C.txid
+    · omega
+    · have hk' : H0 !! k = some d := hk
+      simp only [H0] at hk'
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hkc)] at hk'
+      cases hk'
+  ihave HR : bR (GF := GF) g a $$ [Hcv1 Hhs Hsy]
+  · unfold bR
+    rw [ha.2.1]
+    iframe Hcv1 Hrc
+    iexists H0, C.txid
+    iframe
+    ipureintro; exact hval
+  imod csInvIR_alloc_c (bR g) N i gc bCsOk ⟨m, xs, 0, 0, .idle⟩ a E rfl
+    (Nat.le_refl _) hwf hcut hok $$ Hm Hb HR with ⟨%γ, %γa, #Hinv, Hown⟩
   icases (csOwnI_split i γ γa ⟨m, xs, 0, 0, .idle⟩ a rfl rfl rfl).1 $$ Hown with ⟨Hown, Hb⟩
   imod ghost_map_alloc (GF := GF) (exMap m.size) with ⟨%γe, Hauth, Hfr⟩
   ihave Hfr := exMap_frags γe m.size $$ Hfr
   imodintro
-  iexists ⟨γ, γa, gc, N, γe⟩
+  iexists ⟨γ, γa, gc, N, γe, g⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   isplitr
@@ -90,10 +124,13 @@ theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C 
     iexists xs, a
     iframe Ht
     ipureintro
-    exact ⟨hwf, ha.1, ha.2, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hne, fun _ => hone⟩
+    exact ⟨hwf, ha.1, ha.2.1, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hne, fun _ => hone⟩
+  isplitl [Hb Hfr]
   · unfold bBytes bGhost BFile.dq; dsimp only [dhalf]
     rw [hl]
     iframe Hb Hfr
+  iframe Hcv2
+  unfold histE; iexact Hh
 
 /-- **The file out of its crash invariant**: the writer's share of the `OsMeta`, bbolt's share of
 every byte and the closing token give the file whole back (see the file header). -/
@@ -103,7 +140,7 @@ theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
     ⊢ bCsInv (GF := GF) p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗ csDone c.gc ={E}=∗
       osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs := by
   iintro #Hinv Hm Hb Hd
-  ihave #Hinv := (show bCsInv (GF := GF) p ⊢ csInvI c.N p.ino c.g c.ga c.gc bCsOk by
+  ihave #Hinv := (show bCsInv (GF := GF) p ⊢ csInvIR c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) by
     unfold bCsInv; rw [hc]) $$ Hinv
   ihave Hm := (show bMeta (GF := GF) p C L m ⊢ iprop(osMeta p.ino (DFrac.own (1 : Qp).half) m ∗
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
@@ -121,7 +158,7 @@ theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
       csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a from
     csOwnL_intro _ _ _ m rfl ⟨Hf.1, rfl, rfl, rfl⟩) $$ [Ht Hm]
   · iframe
-  imod csOwnIL_agree c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a E hE 0
+  imod csOwnILR_agree (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a E hE 0
     (DFrac.own (1 : Qp).half) xs (by show 0 + xs.length ≤ bs.length; omega) $$ Hinv Hown Hb
     with ⟨Hown, Hb, %he⟩
   have hxb : xs = bs := by
@@ -129,5 +166,6 @@ theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
   subst hxb
   ihave Hown := (csOwnI_split p.ino c.g c.ga ⟨m, xs, 0, 0, .idle⟩ a rfl rfl rfl).2 $$ [Hown Hb]
   · iframe
-  iapply csInvI_close c.N p.ino c.g c.ga c.gc bCsOk ⟨m, xs, 0, 0, .idle⟩ a E hE rfl
-    (Nat.le_refl _) $$ Hinv Hown Hd
+  imod csInvIR_close (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, xs, 0, 0, .idle⟩ a E hE rfl
+    (Nat.le_refl _) $$ Hinv Hown Hd with ⟨Hm, Hb, -⟩
+  imodintro; iframe

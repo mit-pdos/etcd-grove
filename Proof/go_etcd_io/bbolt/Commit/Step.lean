@@ -88,18 +88,21 @@ def cpFired (K : BC) (D Dn : Data) (ν : Nat) (Q A : IProp GF) : IProp GF :=
 
 omit package_sem in
 /-- **The early commit point** (`writeMeta`'s first half, under `metalock`, before the meta
-page's `pwrite`): under `FsNoErr` the update fires now. -/
+page's `pwrite`), outside crash mode (no crash part to move, `cnReg K.B none`): under `FsNoErr` the
+update fires now. -/
 theorem cpFired_intro (K : BC) (N' : Namespace) (D Dn : Data) (ν : Nat) (Q A : IProp GF)
     (hA : A ⊢ commitAU K N' D Dn Q) :
-    ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗ ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗ A ⊢
+    cnReg K.B none ∗ ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗
+      ghostVar K.B.st (1 : Qp).half.half (D, ν) ∗ A ⊢
       |={⊤}=> cpFired K D Dn ν Q A := by
-  iintro ⟨H1, H2, Hau⟩
+  iintro ⟨#Hn, H1, H2, Hau⟩
   unfold cpFired
   by_cases hne : FsNoErr
   · ihave Hau := hA $$ Hau
     iunfold commitAU at Hau
-    imod au_commit_fire K.B N' D Dn ν Q $$ [H1 H2 Hau] with ⟨H1, H2, HQ⟩
-    · iframe
+    imod au_commit_fire K.B N' D Dn ν Q iprop(emp) ⊤ CoPset.subseteq_top
+      $$ [H1 H2 Hau] with ⟨H1, H2, HQ, -⟩
+    · iframe; iapply cpart_none_upd K.B D Dn ν $$ Hn
     imodintro
     ileft
     isplitr
@@ -113,22 +116,103 @@ theorem cpFired_intro (K : BC) (N' : Namespace) (D Dn : Data) (ν : Nat) (Q A : 
 
 omit package_sem in
 /-- **The commit point at the landing** (the meta page written whole): the update has fired, in
-the first half (`FsNoErr`) or now. -/
+the first half (`FsNoErr`) or now (then outside crash mode, which records `FsNoErr`: `Hn`). -/
 theorem cpFired_land (K : BC) (N' : Namespace) (D Dn : Data) (ν : Nat) (Q A : IProp GF)
     (hA : A ⊢ commitAU K N' D Dn Q) :
-    cpFired K D Dn ν Q A ⊢
+    (⌜FsNoErr⌝ ∨ cnReg K.B none) ∗ cpFired K D Dn ν Q A ⊢
       |={⊤}=> ghostVar K.B.st (1 : Qp).half.half (Dn, ν + 1) ∗
         ghostVar K.B.st (1 : Qp).half.half (Dn, ν + 1) ∗ Q := by
   unfold cpFired
-  iintro Hf
-  icases Hf with (⟨-, H1, H2, HQ⟩ | ⟨-, H1, H2, Hau⟩)
+  iintro ⟨Hn, Hf⟩
+  icases Hf with (⟨-, H1, H2, HQ⟩ | ⟨%hne, H1, H2, Hau⟩)
   · imodintro; iframe
-  · ihave Hau := hA $$ Hau
+  · icases Hn with (%hfs | #Hn)
+    · exact absurd hfs hne
+    ihave Hau := hA $$ Hau
     iunfold commitAU at Hau
-    imod au_commit_fire K.B N' D Dn ν Q $$ [H1 H2 Hau] with ⟨H1, H2, HQ⟩
-    · iframe
+    imod au_commit_fire K.B N' D Dn ν Q iprop(emp) ⊤ CoPset.subseteq_top
+      $$ [H1 H2 Hau] with ⟨H1, H2, HQ, -⟩
+    · iframe; iapply cpart_none_upd K.B D Dn ν $$ Hn
     imodintro
     iframe
+
+omit package_sem in
+/-- **The early commit point in crash mode** (W3): inside the crash invariant's opening
+(`bMeta_commit`'s `U`), its client resource moves from the committed state `C` (data `D`, txid `ν`)
+to the new one `C'` (data `Dn`, txid `ν + 1`, previous `C`) as the update fires: the version variable's
+two halves (the invariant's and the committed data's crash part) move together, the history gains
+`ν + 1 ↦ Dn` (a fresh key: the history stops at `ν`), and `C'`'s receipt is `ν + 1`'s. -/
+theorem cp_fire_crash (K : BC) (N' : Namespace) (c : CsN) (hcN : (↑c.N : CoPset) ⊆ ↑N')
+    (D Dn : Data) (ν : Nat) (Q A : IProp GF) (hA : A ⊢ commitAU K N' D Dn Q) (hfs : FsNoErr)
+    (C C' : CommitSt) (hC : treeData C = D ∧ C.txid = ν) (hC' : treeData C' = Dn ∧ C'.txid = ν + 1) :
+    ⊢ cnReg K.B (some c.cg) -∗ ghostVar K.B.st (1 : Qp).half.half (D, ν) -∗
+      ghostVar K.B.st (1 : Qp).half.half (D, ν) -∗ A -∗ ⧖ (ν + 1) -∗
+      iprop(∀ a, ∀ a', ⌜a.cur = C ∧ a.phase = .idle ∧ a'.cur = C' ∧ a'.prev = C ∧
+          a'.phase = .committing⌝ -∗ bR c.cg a ={⊤ \ ↑c.N}=∗ bR c.cg a' ∗ cpFired K D Dn ν Q A) := by
+  iintro #Hreg H1 H2 Hau #Hrc1 %a %a' %Hf HR
+  obtain ⟨hcur, -, hcur', hprev', hph'⟩ := Hf
+  obtain ⟨hCD, hCt⟩ := hC
+  obtain ⟨hCD', hCt'⟩ := hC'
+  unfold bR
+  icases HR with ⟨Hcv, ⟨%H, %y, Hh, Hy, %Hfacts⟩, -⟩
+  obtain ⟨hHc, hHp, hHle, hy, hpc, -⟩ := Hfacts
+  rw [hcur, hCD, hCt] at hHc
+  have hfresh : H !! (ν + 1) = none := by
+    rcases hk : H !! (ν + 1) with _ | d
+    · rfl
+    · have := hHle (ν + 1) d hk; rw [hcur, hCt] at this; omega
+  imod ghost_map_insert_persist (ν + 1) Dn hfresh $$ Hh with ⟨Hh, #Hnew⟩
+  ihave Hau := hA $$ Hau
+  iunfold commitAU at Hau
+  ihave Hcv : ghostVar c.cg.cv (1 : Qp).half (D, ν) $$ [Hcv]
+  · rw [← hCD, ← hCt, ← hcur]; iexact Hcv
+  imod au_commit_fire K.B N' D Dn ν Q (ghostVar c.cg.cv (1 : Qp).half (Dn, ν + 1)) (⊤ \ ↑c.N)
+    (fun x hx => CoPset.in_diff.2 ⟨CoPset.subseteq_top x (CoPset.in_diff.1 hx).1,
+      fun h => (CoPset.in_diff.1 hx).2 (hcN x h)⟩) $$ [H1 H2 Hcv Hau] with ⟨H1, H2, HQ, Hcv⟩
+  · iframe H1 H2 Hau
+    iintro %o #Hr Hc
+    ihave %ho := cnReg_agree K.B (some c.cg) o $$ [Hreg Hr]
+    · iframe #
+    subst ho
+    icases (cpart_some c.cg 1 D ν).1 $$ Hc with ⟨Hcv', -⟩
+    imod ghostVar_update_halves (Dn, ν + 1) c.cg.cv _ _ $$ Hcv Hcv' with ⟨Hcv, Hcv'⟩
+    imodintro
+    iframe Hcv'
+    iapply (cpart_some c.cg 1 Dn (ν + 1)).2
+    iframe Hcv
+    unfold histE; iexact Hnew
+  imodintro
+  isplitr [H1 H2 HQ]
+  · rw [hcur', hCD', hCt']
+    iframe Hcv
+    isplitl
+    · iexists (H.insert (ν + 1) Dn), y
+      iframe Hh Hy
+      ipureintro
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+      · rw [hcur', hCt', GMap.lookup_insert, hCD']
+      · rw [hprev', hCt, GMap.lookup_insert_ne _ _ (by omega)]
+        rw [hCD]; exact hHc
+      · intro k d hk
+        rw [hcur', hCt']
+        by_cases hkν : k = ν + 1
+        · omega
+        · rw [GMap.lookup_insert_ne _ _ (Ne.symm hkν)] at hk
+          have := hHle k d hk; rw [hcur, hCt] at this; omega
+      · rw [hprev', hCt]
+        rcases hpc with h | h
+        · have : a.cur.txid = ν := by rw [hcur, hCt]
+          omega
+        · have : a.prev.txid = ν := by rw [h, hcur, hCt]
+          omega
+      · left; rw [hprev', hcur', hCt, hCt']
+      · rw [hph']; intro h; cases h
+    · iexact Hrc1
+  unfold cpFired
+  ileft
+  isplitr
+  · ipureintro; exact hfs
+  iframe
 
 omit package_sem in
 /-- **`writeMeta`'s commit step for a commit** (see the file header). The premises are
@@ -163,7 +247,9 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     -- (`Tx.write`'s sync, `m.synced`)
     (hin : K.p.cs ≠ none → (C.publish (metaBuf mv) (metaSummed mv) pages).hwm * 4096 ≤ om.size ∧
       ∀ x ∈ S, 4096 * (x + 1) ≤ om.size)
-    (hlh : K.p.cs ≠ none → om.lo = om.hi) :
+    (hlh : K.p.cs ≠ none → om.lo = om.hi)
+    -- W3: the crash invariant's namespace is inside the update's (it opens around the fire)
+    (hN' : (↑(K.N .@ "crash") : CoPset) ⊆ ↑N') :
     K.core (GF := GF) ∗ cpRes K C fl b l v (C.txid + 1) false wl (treeData C) ∗
       slotsOwn (some (b, l)) K.p S bs ∗
       fbTok K.B C fl ((some v, some (C.txid + 1), false, wl) : WSt) Fb ∗
@@ -227,13 +313,36 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
   -- the early commit point, before the `pwrite` (after the step that raised the receipt): in crash
   -- mode the file's value moves to committing (W1); under `FsNoErr` the update fires
   ihave %hrb := preceipt_lt _ $$ Hrc1
-  imod bMeta_commit K.p C (C.publish (metaBuf mv) (metaSummed mv) pages) om (some (b, l)) S bs htx'
-    (by have := Hrcpt.2; omega)
-    (fun i hi => by rw [hsl, if_neg (by rw [← hmtx]; exact hi)]) hmeta htree hC'fl
-    (fun k hk1 hk2 => by rw [hcur']; exact metaBuf_tail mv k hk1 hk2) hbytes
-    (fun x hx => (hSb x hx).1) hin hlh $$ Hci Hm HS with ⟨Hm, HS⟩
-  imod cpFired_intro K N' (treeData C) Dn C.txid Q A hA $$ [Hst Hstw Hau] with Hpt
-  · iframe
+  ihave #Hmd := BC.core_mode K $$ Hcore
+  ihave #Hn : (⌜FsNoErr⌝ ∨ cnReg K.B none) $$ []
+  · cases hc : K.p.cs with
+    | none => iright; iapply bMode_none K.B K.N K.db K.p hc $$ Hmd
+    | some c =>
+      ileft
+      icases bMode_some K.B K.N K.db K.p c hc $$ Hmd with ⟨%hcm, -⟩
+      ipureintro; exact hcm.2.2
+  ihave Hstep : (|={⊤}=> bMetaCm K.p (C.publish (metaBuf mv) (metaSummed mv) pages) C [] om ∗
+      slotsOwn (some (b, l)) K.p S bs ∗ cpFired K (treeData C) Dn C.txid Q A) $$ [Hm HS Hst Hstw Hau]
+  · cases hc : K.p.cs with
+    | none =>
+      rw [bMeta_none hc, bMetaCm_none hc]
+      ihave #Hreg := bMode_none K.B K.N K.db K.p hc $$ Hmd
+      imod cpFired_intro K N' (treeData C) Dn C.txid Q A hA $$ [Hst Hstw Hau] with Hpt
+      · iframe; iframe #
+      imodintro; iframe
+    | some c =>
+      icases bMode_some K.B K.N K.db K.p c hc $$ Hmd with ⟨%hcm, #Hreg⟩
+      have hcN : (↑c.N : CoPset) ⊆ ↑N' := by rw [hcm.2.1]; exact hN'
+      imod bMeta_commit K.p c hc C (C.publish (metaBuf mv) (metaSummed mv) pages) om (some (b, l)) S
+        bs htx' (by have := Hrcpt.2; omega)
+        (fun i hi => by rw [hsl, if_neg (by rw [← hmtx]; exact hi)]) hmeta htree hC'fl
+        (fun k hk1 hk2 => by rw [hcur']; exact metaBuf_tail mv k hk1 hk2) hbytes
+        (fun x hx => (hSb x hx).1) hin hlh (cpFired K (treeData C) Dn C.txid Q A)
+        $$ Hci Hm HS [Hst Hstw Hau] with ⟨Hm, HS, Hpt⟩
+      · iapply cp_fire_crash K N' c hcN (treeData C) Dn C.txid Q A hA hcm.2.2 C
+          (C.publish (metaBuf mv) (metaSummed mv) pages) ⟨rfl, rfl⟩ ⟨hDn, htx'⟩ $$ Hreg Hst Hstw Hau Hrc1
+      imodintro; iframe
+  imod Hstep with ⟨Hm, HS, Hpt⟩
   imodintro
   iexists xa, C.slot (mv.txid'.toNat % 2)
   iframe Hxa Hold Hm
@@ -284,7 +393,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · iframe; iframe #
       iapply (ghostVar_split_half K.B.cur (1 : Qp).half C).1 $$ Hcur
     imod cpFired_land K N' (treeData C) Dn C.txid Q A hA $$ [Hpt] with ⟨Hst, Hstw, HQ⟩
-    · iframe
+    · iframe; iframe #
     have hlen' : ∀ i, ((C.publish (metaBuf mv) (metaSummed mv) pages).slot i).length = 4096 := by
       intro i; rw [hsl]; split
       · exact metaBuf_length mv

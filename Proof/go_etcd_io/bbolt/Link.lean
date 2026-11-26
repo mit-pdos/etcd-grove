@@ -806,13 +806,13 @@ theorem golang_org.x.sys.unix.wp_Munmap :
     _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proof
 
-theorem golang_org.x.sys.unix.wp_MunmapCrashIL :
-    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proof_crashIL
+theorem golang_org.x.sys.unix.wp_MunmapCrashILR :
+    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proof_crashILR
 
 theorem wp_munmapM :
     _root_.Perennial.EtcdGrove.bbolt.munmapM.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proof _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapCrashIL
+  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proof _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapCrashILR
 
 theorem DB.wp_munmap :
     _root_.Perennial.EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
@@ -820,7 +820,7 @@ theorem DB.wp_munmap :
 
 theorem wp_munmapMNoErr :
     _root_.Perennial.EtcdGrove.bbolt.munmapM.specNoErr (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proofNoErr _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapCrashIL
+  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proofNoErr _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapCrashILR
 
 theorem DB.wp_munmapNoErr :
     _root_.Perennial.EtcdGrove.bbolt.DB.munmap.specNoErr (GF := GF) (hG := hG) :=
@@ -838,9 +838,9 @@ theorem golang_org.x.sys.unix.wp_Mmap :
     _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.wp_proof
 
-theorem golang_org.x.sys.unix.wp_MmapCrashIL :
-    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.wp_proof_crashIL
+theorem golang_org.x.sys.unix.wp_MmapCrashILR :
+    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.wp_proof_crashILR
 
 theorem golang_org.x.sys.unix.wp_Madvise :
     _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG) :=
@@ -848,7 +848,7 @@ theorem golang_org.x.sys.unix.wp_Madvise :
 
 theorem wp_mmapF :
     _root_.Perennial.EtcdGrove.bbolt.mmapF.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.mmapF.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Mmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MmapCrashIL _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Madvise _root_.Perennial.EtcdGrove.fmt.wp_Errorf _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
+  _root_.Perennial.EtcdGrove.bbolt.mmapF.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Mmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MmapCrashILR _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Madvise _root_.Perennial.EtcdGrove.fmt.wp_Errorf _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
 theorem DB.wp_page :
     _root_.Perennial.EtcdGrove.bbolt.DB.page.spec (GF := GF) (hG := hG) :=
@@ -1215,25 +1215,25 @@ theorem os.File.wp_Truncate :
     _root_.Perennial.EtcdGrove.os.File.Truncate.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof
 
-theorem os.File.wp_TruncateCrashIL :
-    _root_.Perennial.EtcdGrove.os.File.Truncate.specCrashIL (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof_crashIL
+theorem os.File.wp_TruncateCrashILR :
+    _root_.Perennial.EtcdGrove.os.File.Truncate.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof_crashILR
 
-theorem os.File.wp_TruncateCrashILBig :
-    _root_.Perennial.EtcdGrove.os.File.Truncate.specCrashILBig (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof_crashILBig
+theorem os.File.wp_TruncateCrashILBigR :
+    _root_.Perennial.EtcdGrove.os.File.Truncate.specCrashILBigR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.Truncate.wp_proof_crashILBigR
 
 theorem os.File.wp_SyncB :
     _root_.Perennial.EtcdGrove.os.File.Sync.specB (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.Sync.wp_proofB
 
-theorem os.File.wp_SyncCrashIL :
-    _root_.Perennial.EtcdGrove.os.File.Sync.specCrashIL (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.Sync.wp_proof_crashIL
+theorem os.File.wp_SyncCrashILR :
+    _root_.Perennial.EtcdGrove.os.File.Sync.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.Sync.wp_proof_crashILR
 
 theorem DB.wp_grow :
     _root_.Perennial.EtcdGrove.bbolt.DB.grow.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.grow.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_fileSize _root_.Perennial.EtcdGrove.bbolt.DB.wp_growSize _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Truncate _root_.Perennial.EtcdGrove.bbolt.os.File.wp_TruncateCrashIL _root_.Perennial.EtcdGrove.bbolt.os.File.wp_TruncateCrashILBig _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncB _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncCrashIL _root_.Perennial.EtcdGrove.fmt.wp_Errorf
+  _root_.Perennial.EtcdGrove.bbolt.DB.grow.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_fileSize _root_.Perennial.EtcdGrove.bbolt.DB.wp_growSize _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Truncate _root_.Perennial.EtcdGrove.bbolt.os.File.wp_TruncateCrashILR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_TruncateCrashILBigR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncB _root_.Perennial.EtcdGrove.bbolt.os.File.wp_SyncCrashILR _root_.Perennial.EtcdGrove.fmt.wp_Errorf
 
 theorem internal.common.Meta.wp_Freelist :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.Freelist.spec (GF := GF) (hG := hG) :=
@@ -1411,17 +1411,17 @@ theorem os.File.wp_WriteAtExt :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.specExt (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proofExt
 
-theorem os.File.wp_WriteAtCrashILLong :
-    _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_crashILLong
+theorem os.File.wp_WriteAtCrashILLongR :
+    _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashILLongR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_crashILLongR
 
-theorem syscall.wp_FdatasyncCrashIL :
-    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashIL
+theorem syscall.wp_FdatasyncCrashILR :
+    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashILR
 
 theorem wp_fdatasyncR :
     _root_.Perennial.EtcdGrove.bbolt.fdatasync.specR (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashIL _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
+  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashILR _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
 theorem TxStats.wp_IncWrite :
     _root_.Perennial.EtcdGrove.bbolt.TxStats.IncWrite.spec (GF := GF) (hG := hG) :=
@@ -1429,7 +1429,7 @@ theorem TxStats.wp_IncWrite :
 
 theorem Tx.wp_write_ext :
     _root_.Perennial.EtcdGrove.bbolt.Tx.write_ext.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.write_ext.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Overflow _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_UnsafeByteSlice _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtExt _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtCrashILLong _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncR _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite
+  _root_.Perennial.EtcdGrove.bbolt.Tx.write_ext.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Overflow _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_UnsafeByteSlice _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtExt _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtCrashILLongR _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncR _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite
 
 theorem internal.common.Meta.wp_Write :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.Write.spec (GF := GF) (hG := hG) :=
@@ -1439,21 +1439,21 @@ theorem wp_fdatasync :
     _root_.Perennial.EtcdGrove.bbolt.fdatasync.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
-theorem os.File.wp_WriteAtCrashIL :
-    _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashIL (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_crashIL
+theorem os.File.wp_WriteAtCrashILR :
+    _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_crashILR
 
-theorem syscall.wp_FdatasyncCrashILA :
-    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashILA (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashILA
+theorem syscall.wp_FdatasyncCrashILAR :
+    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashILAR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashILAR
 
 theorem wp_fdatasyncC :
     _root_.Perennial.EtcdGrove.bbolt.fdatasync.specC (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofC _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashILA
+  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofC _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashILAR
 
 theorem Tx.wp_writeMeta :
     _root_.Perennial.EtcdGrove.bbolt.Tx.writeMeta.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.writeMeta.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_pageInBuffer _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Write _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAt _root_.Perennial.EtcdGrove.bbolt.wp_fdatasync _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtCrashIL _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncC
+  _root_.Perennial.EtcdGrove.bbolt.Tx.writeMeta.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.DB.wp_pageInBuffer _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Write _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAt _root_.Perennial.EtcdGrove.bbolt.wp_fdatasync _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtCrashILR _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncC
 
 theorem TxStats.wp_GetRebalance :
     _root_.Perennial.EtcdGrove.bbolt.TxStats.GetRebalance.spec (GF := GF) (hG := hG) :=

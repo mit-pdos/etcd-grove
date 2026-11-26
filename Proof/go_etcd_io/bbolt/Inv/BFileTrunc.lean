@@ -70,8 +70,8 @@ theorem rsPost_maps' (m : OsMeta) (sz : Nat) : (rsPost true m sz sz).maps = m.ma
 variable [os.Assumptions] in
 /-- **A growing `File.Truncate` of bbolt's file**, in either mode (see the file header). -/
 theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
-    (hTC : os.File.Truncate.specCrashIL (GF := GF) (hG := hG))
-    (hTB : os.File.Truncate.specCrashILBig (GF := GF) (hG := hG))
+    (hTC : os.File.Truncate.specCrashILR (GF := GF) (hG := hG))
+    (hTB : os.File.Truncate.specCrashILBigR (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
     (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
     (hd : d.ino = p.ino) (hfd : 0 ≤ fd.toInt) (hwr : d.writable = true) (hsz0 : 0 ≤ sz.toInt)
@@ -148,7 +148,7 @@ theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
     have hbl : bs.length = m.size := hD.1.1
@@ -164,7 +164,7 @@ theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
           · exact .ann
         exact ⟨fun _ => (bDur_trunc_idle a hph m bs 0 0 sz.toNat hD hge hal m' bs hR).1,
           fun t n _ => (bDur_trunc_idle a hph m bs 0 0 sz.toNat hD hge hal m' bs hR).2 t n⟩
-      iapply (hTB f fd name dqf sz dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs hd hfd hwr hsz0 hge
+      iapply (hTB f fd name dqf sz dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs hd hfd hwr hsz0 hge
         (by omega) (hns c hc) hobl) $$ [Hf Hfd Hown Hc]
       · iframe; iframe #
       inext
@@ -186,7 +186,7 @@ theorem wp_bTruncate (hT : os.File.Truncate.spec (GF := GF) (hG := hG))
         iexact Hc
       iapply fmtErrorOkOrNil_of $$ Herr
     imod exMap_grow c.ex m.size (sz.toNat - m.size) $$ Ha with ⟨Ha, Hex⟩
-    iapply (hTC f fd name dqf sz dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs hd hfd hwr hsz0 hge hmax
+    iapply (hTC f fd name dqf sz dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs hd hfd hwr hsz0 hge hmax
       (hns c hc) (fun m' bs' hR =>
         ⟨fun _ => (bDur_trunc_idle a hph m bs 0 0 sz.toNat hD hge hal m' bs' hR).1,
          fun t n _ => (bDur_trunc_idle a hph m bs 0 0 sz.toNat hD hge hal m' bs' hR).2 t n⟩))
@@ -257,7 +257,7 @@ variable [os.Assumptions] in
 /-- **`File.Sync` of bbolt's file after a growing truncate**, in either mode (`wp_bFdatasync`'s
 shape, from `bMetaT`). -/
 theorem wp_bSync (hS : os.File.Sync.specB (GF := GF) (hG := hG))
-    (hSC : os.File.Sync.specCrashIL (GF := GF) (hG := hG))
+    (hSC : os.File.Sync.specCrashILR (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt)
     (L : List (Nat × Nat)) (m : OsMeta) (R : List (Nat × List ByteG)) (hd : d.ino = p.ino)
     (hns : bNsOk p) (hcov : RCov R L m.size) (hdisj : RDisj R)
@@ -299,14 +299,14 @@ theorem wp_bSync (hS : os.File.Sync.specB (GF := GF) (hG := hG))
     iunfold bMetaT at Hm
     icases bMetaG_own false p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, -⟩ := Hf
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     ihave %hlo := csOwnL_locOk (csTokI c.g c.ga a) p.ino ⟨m, bs, 0, 0, .idle⟩ $$ Hown
     have hbl : bs.length = m.size := hlo.1.1
     have hdq : p.dq (DFrac.own 1) = DFrac.own (1 : Qp).half := by unfold BFile.dq; rw [hc]; rfl
     icases (bRanges_os p R).1 $$ HR with ⟨HR, HG⟩
     rw [hdq]
-    imod ranges_agree c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod ranges_agree c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       (DFrac.own (1 : Qp).half) R (fun r hr => by show _ ≤ bs.length; rw [hbl]; exact hin r hr)
       $$ Hci Hown HR with ⟨Hown, HR, %hag⟩
     have hruns : ∀ r ∈ R, r.1 + r.2.length ≤ bs.length ∧ r.2 = (bs.drop r.1).take r.2.length :=
@@ -325,7 +325,7 @@ theorem wp_bSync (hS : os.File.Sync.specB (GF := GF) (hG := hG))
         refine hdur b bs[b] (List.getElem?_eq_getElem hb') fun r hr => ?_
         apply Classical.byContradiction; intro hn
         exact hL ⟨r, hr, by omega, by omega⟩
-    iapply (hSC f fd name dqf dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs (rMask R) hd (hns c hc)
+    iapply (hSC f fd name dqf dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs (rMask R) hd (hns c hc)
       hcov' hok) $$ [Hf Hfd Hown HR]
     · iframe; iframe #
     inext

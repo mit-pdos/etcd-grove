@@ -5,9 +5,10 @@ write's crash branch; Lean-first, no Rocq counterpart).
 * `bMetaCm p C' C L m`: the writer's whole share from the commit point to the commit's second
   `fdatasync`, the crash invariant's value committing from `C` to `C'` (`bMeta`'s, phase
   `committing`). Outside a crash invariant, `osMeta 1`.
-* `bMeta_commit`: **the commit point** (`Tx.Commit`, under `metalock`, before the meta page's
-  `pwrite`): from `bMeta p C [] m` (every byte durable: after the first `fdatasync`) and the new
-  tree's slots, the value moves to committing (`bDur_commit_of`, `csOwnIL_setA`).
+* `bMeta_commit`: **the commit point** in crash mode (`Tx.Commit`, under `metalock`, before the meta
+  page's `pwrite`): from `bMeta p C [] m` (every byte durable: after the first `fdatasync`) and the
+  new tree's slots, the value moves to committing (`bDur_commit_of`, `csOwnILR_upd`), its client
+  resource with it by the caller's update (W3: the client's `Commit` update fires there).
 * `wp_bWriteMetaC`: the meta page's `WriteAt` in crash mode (`os.File.WriteAt.specCrashIL`, the
   obligation from `bDur_write_meta`); it lands whole (crash mode records `FsNoErr`).
 * `wp_bFdatasyncC`: the commit's second `fdatasync` in crash mode
@@ -126,7 +127,7 @@ theorem bMetaCm_of_own (p : BFile) (c : CsN) (hc : p.cs = some c) (C' C : Commit
 theorem slots_agree (p : BFile) (c : CsN) (hc : p.cs = some c) (s : CSt) (a : BAbs)
     (ms : MapSt) (g : Nat → List w8) :
     ∀ S : List Nat, (∀ x ∈ S, 4096 * (x + 1) ≤ s.bs.length ∧ (g x).length = 4096) →
-    ⊢ csInvI (GF := GF) c.N p.ino c.g c.ga c.gc bCsOk -∗
+    ⊢ csInvIR (GF := GF) c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) -∗
       csOwnIL (GF := GF) p.ino c.g c.ga s a -∗ slotsOwn ms p S g ={⊤}=∗
       csOwnIL (GF := GF) p.ino c.g c.ga s a ∗ slotsOwn ms p S g ∗
         ⌜∀ x ∈ S, ∀ k < 4096, (s.bs[4096 * x + k]?).map Prod.fst = (g x)[k]?⌝
@@ -144,7 +145,7 @@ theorem slots_agree (p : BFile) (c : CsN) (hc : p.cs = some c) (s : CSt) (a : BA
       have := congrArg List.length hxs; simp only [List.length_map] at this
       rw [this]; exact (h x List.mem_cons_self).2
     icases (bBytes_os p (4096 * x) (DFrac.own 1) xs).1 $$ Hx with ⟨Hx, Hg⟩
-    imod csOwnIL_agree c.N p.ino c.g c.ga c.gc bCsOk s a ⊤ CoPset.subseteq_top (4096 * x) _ xs
+    imod csOwnILR_agree (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk s a ⊤ CoPset.subseteq_top (4096 * x) _ xs
       (by have := (h x List.mem_cons_self).1; omega) $$ Hinv Hown Hx with ⟨Hown, Hx, %he⟩
     imod slots_agree p c hc s a ms g S (fun y hy => h y (List.mem_cons_of_mem _ hy)) $$ Hinv Hown
       [HS] with ⟨Hown, HS, %hS⟩
@@ -171,9 +172,11 @@ theorem slots_agree (p : BFile) (c : CsN) (hc : p.cs = some c) (s : CSt) (a : BA
         List.getElem?_drop]
     · exact hS y hy k hk
 
-/-- **The commit point** (see the file header): the premises are `bDur_commit_of`'s, the new
-pages either `C`'s or in whole slots of `S` (held, `slotsOwn`), inside the file. -/
-theorem bMeta_commit (p : BFile) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
+/-- **The commit point in crash mode** (see the file header): the premises are `bDur_commit_of`'s,
+the new pages either `C`'s or in whole slots of `S` (held, `slotsOwn`), inside the file. The crash
+invariant's client resource moves with the value by the caller's `U` (W3: `Commit`'s update fires
+there, `Commit/Step.lean`'s `cp_fire_crash`), which also gives `Q`. -/
+theorem bMeta_commit (p : BFile) (c : CsN) (hc : p.cs = some c) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
     (S : List Nat) (g : Nat → List w8)
     (htx : C'.txid = C.txid + 1) (htx2 : C'.txid < 2 ^ 62)
     (hsl : ∀ i, i % 2 ≠ C'.txid % 2 → C'.slot i = C.slot i)
@@ -185,21 +188,18 @@ theorem bMeta_commit (p : BFile) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
     (hS : ∀ x ∈ S, (g x).length = 4096)
     (hin : p.cs ≠ none → C'.hwm * 4096 ≤ m.size ∧ ∀ x ∈ S, 4096 * (x + 1) ≤ m.size)
     -- the crash size bounds agree (the commit's first `fdatasync`, `m.synced`)
-    (hlh : p.cs ≠ none → m.lo = m.hi) :
-    ⊢ bCsInv (GF := GF) p -∗ bMeta p C [] m -∗ slotsOwn ms p S g ={⊤}=∗
-      bMetaCm p C' C [] m ∗ slotsOwn ms p S g := by
-  iintro #Hinv Hm HS
-  cases hc : p.cs with
-  | none =>
-    rw [bMeta_none hc, bMetaCm_none hc]
-    imodintro; iframe
-  | some c =>
-    obtain ⟨hhwm, hSin⟩ := hin (by rw [hc]; exact fun h => nomatch h)
+    (hlh : p.cs ≠ none → m.lo = m.hi) (Q : IProp GF) :
+    ⊢ bCsInv (GF := GF) p -∗ bMeta p C [] m -∗ slotsOwn ms p S g -∗
+      iprop(∀ a, ∀ a', ⌜a.cur = C ∧ a.phase = .idle ∧ a'.cur = C' ∧ a'.prev = C ∧
+          a'.phase = .committing⌝ -∗ bR c.cg a ={⊤ \ ↑c.N}=∗ bR c.cg a' ∗ Q) ={⊤}=∗
+      bMetaCm p C' C [] m ∗ slotsOwn ms p S g ∗ Q := by
+  iintro #Hinv Hm HS HU
+  · obtain ⟨hhwm, hSin⟩ := hin (by rw [hc]; exact fun h => nomatch h)
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C [] m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, -⟩ := Hf
     have hlh := hlh (by rw [hc]; exact fun h => nomatch h)
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     ihave %hlo := csOwnL_locOk (csTokI c.g c.ga a) p.ino ⟨m, bs, 0, 0, .idle⟩ $$ Hown
     have hbl : bs.length = m.size := hlo.1.1
@@ -215,10 +215,14 @@ theorem bMeta_commit (p : BFile) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
         · left; rw [hcur]; exact h
         · right
           exact ⟨fun j hj' => ⟨hS _ (hj j hj'), hag _ (hj j hj')⟩, he⟩)
-    imod csOwnIL_setA c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a
-      (⟨C', a.cur, cpImg ⟨m, bs, 0, 0, .idle⟩ C', a.xcur, .committing⟩ : BAbs) ⊤ CoPset.subseteq_top (fun _ => hD) $$ Hci Hown with Hown
+    imod csOwnILR_upd (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a
+      (⟨C', a.cur, cpImg ⟨m, bs, 0, 0, .idle⟩ C', a.xcur, .committing⟩ : BAbs) ⊤ CoPset.subseteq_top
+      (fun _ _ => hD) Q $$ Hci Hown [HU] with ⟨Hown, HQ⟩
+    · iintro HR
+      iapply HU $$ %a %(⟨C', a.cur, cpImg ⟨m, bs, 0, 0, .idle⟩ C', a.xcur, .committing⟩ : BAbs) [] HR
+      ipureintro; exact ⟨hcur, hph, rfl, hcur, rfl⟩
     imodintro
-    iframe HS
+    iframe HS HQ
     iapply bMetaCm_of_own p c hc C' C [] m bs
       (⟨C', a.cur, cpImg ⟨m, bs, 0, 0, .idle⟩ C', a.xcur, .committing⟩ : BAbs)
       ⟨rfl, rfl, hcur, fun k x h _ => hdur' k x h, hfs⟩ $$ [Hown Ha]
@@ -229,7 +233,7 @@ theorem bMeta_commit (p : BFile) (C C' : CommitSt) (m : OsMeta) (ms : MapSt)
 variable [os.Assumptions] in
 /-- **The meta page's `WriteAt` in crash mode** (see the file header): `C'`'s current meta at its
 slot, inside the file; it lands whole, the range joining the ranges since the last sync. -/
-theorem wp_bWriteMetaC (hWC : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG))
+theorem wp_bWriteMetaC (hWC : os.File.WriteAt.specCrashILR (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (p : BFile) (c : CsN) (hc : p.cs = some c)
     (C' C : CommitSt) (m : OsMeta) (xs : List ByteG)
@@ -252,7 +256,7 @@ theorem wp_bWriteMetaC (hWC : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG))
   ihave #Hci := bCsInv_some p c hc $$ Hinv
   icases bMetaCm_own p c hc C' C [] m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
   obtain ⟨hph, hcur, hprev, hdur, hfs⟩ := Hf
-  imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+  imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
     $$ Hci Hown with ⟨Hown, %Hok⟩
   have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
   have hW0 : BWf ⟨m, bs, 0, 0, .idle⟩ := hD.1
@@ -283,7 +287,7 @@ theorem wp_bWriteMetaC (hWC : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG))
     have e2 : a.cur.slot a.cur.txid = data := by rw [hcur, hdata]
     have := hw.2 (by rw [e2]; exact hl) t n (by rw [e1, e2]; exact hfr)
     rw [e1, e2] at this; exact this
-  iapply (hWC f fd name dqf sl data dqs off dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs xs hd hwr h0
+  iapply (hWC f fd name dqf sl data dqs off dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs xs hd hwr h0
       hin (by have : maxBytes = 0xffffffff000 := rfl; omega) (by omega) (by omega) (by omega)
       (by omega) (hns c hc) hobl) $$ [Hf Hsl Hfd Hown Hxs Hc]
   · iframe; iframe #
@@ -323,7 +327,7 @@ theorem wp_bWriteMetaC (hWC : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG))
 
 /-- **The commit's second `fdatasync` in crash mode** (see the file header): the meta page's bytes
 (its slot, written whole) the only ones not durable; the value moves to idle at `C'`. -/
-theorem wp_bFdatasyncC (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := hG))
+theorem wp_bFdatasyncC (hSA : syscall.Fdatasync.specCrashILAR (GF := GF) (hG := hG))
     (fd : w64) (dq : DFrac) (d : OsFd) (p : BFile) (c : CsN) (hc : p.cs = some c)
     (C' C : CommitSt) (m : OsMeta) (o : Nat) (ys : List ByteG) (hd : d.ino = p.ino)
     (hns : bNsOk p) (ho : o = 4096 * (C'.txid % 2)) (hys : ys.map Prod.fst = C'.slot C'.txid) :
@@ -337,7 +341,7 @@ theorem wp_bFdatasyncC (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := h
   ihave #Hci := bCsInv_some p c hc $$ Hinv
   icases bMetaCm_own p c hc C' C [(o, 4096)] m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
   obtain ⟨hph, hcur, hprev, hdur, hfs⟩ := Hf
-  imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+  imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
     $$ Hci Hown with ⟨Hown, %Hok⟩
   have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
   have hbl : bs.length = m.size := hD.1.1
@@ -361,7 +365,7 @@ theorem wp_bFdatasyncC (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := h
   · unfold bRanges; simp only [R]; iapply BigSepL.bigSepL_singleton.2; iexact Hys
   icases (bRanges_os p R).1 $$ HR with ⟨HR, HG⟩
   rw [hdq]
-  imod ranges_agree c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+  imod ranges_agree c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
     (DFrac.own (1 : Qp).half) R (fun r hr => by show _ ≤ bs.length; rw [hbl]; exact hin r hr)
     $$ Hci Hown HR with ⟨Hown, HR, %hag⟩
   have hdisj : RDisj R := List.pairwise_singleton _ _
@@ -397,7 +401,9 @@ theorem wp_bFdatasyncC (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := h
       refine ⟨bs[b], List.getElem?_eq_getElem hb', ?_⟩
       refine hdur b bs[b] (List.getElem?_eq_getElem hb') fun r hr => ?_
       simp only [List.mem_singleton] at hr; subst hr; omega
-  iapply (hSA fd dq d c.N p.ino c.g c.ga c.gc bCsOk a a' m bs (rMask R) hd (hns c hc) hcov' hok)
+  have hni : a.phase ≠ .init := by rw [hph]; intro h; cases h
+  iapply (hSA fd dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a a' m bs (rMask R) hd (hns c hc) hcov' hok
+    (bR_phase c.cg a a' rfl rfl hni (by intro h; cases h)))
     $$ [Hfd Hown HR]
   · iframe; iframe #
   inext

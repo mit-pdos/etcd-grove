@@ -89,7 +89,7 @@ theorem bMeta_prot (K : BC) (C : CommitSt) (fl : FLPg) (ms : MapSt) (m : OsMeta)
     ihave #Hci := bCsInv_some K.p c hc $$ Hci
     icases bMeta_own K.p c hc C [] m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
-    imod csOwnIL_ok c.N K.p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N K.p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
     obtain ⟨hW0, hI⟩ := (bDur_idle_iff hph).1 hD
@@ -168,7 +168,7 @@ theorem bMeta_prot (K : BC) (C : CommitSt) (fl : FLPg) (ms : MapSt) (m : OsMeta)
       have hdq : K.p.dq (DFrac.own 1) = DFrac.own (1 : Qp).half := by
         unfold BFile.dq; rw [hc]; rfl
       rw [hdq]
-      imod csOwnIL_agree c.N K.p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a (⊤ \ ↑(pagesN K.N))
+      imod csOwnILR_agree (bR c.cg) c.N K.p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a (⊤ \ ↑(pagesN K.N))
         (hN c hc) (4096 * f) (DFrac.own (1 : Qp).half) xs (by show _ ≤ bs.length; omega)
         $$ Hci Hown Hxo with ⟨Hown, Hxo, %hag⟩
       -- the store's bytes back

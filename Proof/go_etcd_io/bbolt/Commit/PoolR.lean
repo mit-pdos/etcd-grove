@@ -40,7 +40,7 @@ theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (Q
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%D', %ν, Hx, -⟩
   unfold boltStateVDef
-  icases Hx with ⟨-, Hbq'⟩
+  icases Hx with ⟨-, Hbq', -⟩
   ihave %h := ghostVar_valid_2 B.bq () 1 () 1 $$ Hbq Hbq'
   exfalso
   have h1 := h.1

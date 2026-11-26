@@ -12,6 +12,9 @@ public import Proof.go_etcd_io.bbolt.Inv.Names
 public import GeneratedProof.go_etcd_io.bbolt
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.DGhostVar
+public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.MonoNat
 public import Iris.BI.Lib.Atomic
 public import GooseLang.Ext.Fs.Specs
 
@@ -34,11 +37,99 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-! ## The crash part (W3 of `plans/bbolt-crash-plan.md`) -/
+
+/-- **The crash invariant's client names**, `none` outside crash mode (persistent: `B.cn`'s discarded
+value, `bMode` records it). -/
+def cnReg (B : BNs) (o : Option CsG) : IProp GF := dghostVar B.cn DFrac.discard o
+
+/-- A version's committed data (persistent): the crash invariant's history's element. -/
+def histE (g : CsG) (k : Nat) (D : Data) : IProp GF := iprop(k ↪[g.hs]□ D)
+
+/-- The version `k` finished its commit's second `fdatasync` (persistent): the synced mark's lower
+bound. -/
+def syncedE (g : CsG) (k : Nat) : IProp GF := monoNatLbOwn g.sy k
+
+/-- **The committed data's crash part at the names `o`**, at fraction `q`: in crash mode the version
+variable at `q`'s half (the crash invariant's client resource `bR` holds the other half of all of
+it, so the two agree: the invariant's value is at the committed state) and the history's element of
+the version; outside crash mode nothing. -/
+def cpart (o : Option CsG) (q : Qp) (D : Data) (ν : Nat) : IProp GF :=
+  match o with
+  | none => iprop(emp)
+  | some g => iprop(ghostVar g.cv q.half (D, ν) ∗ histE g ν D)
+
+/-- **The committed data's crash part** (`cpart` at the registered names). -/
+def crashPart (B : BNs) (q : Qp) (D : Data) (ν : Nat) : IProp GF :=
+  iprop(∃ o : Option CsG, cnReg B o ∗ cpart o q D ν)
+
+instance cnReg_persistent (B : BNs) (o : Option CsG) : Persistent (cnReg (GF := GF) B o) := by
+  unfold cnReg; infer_instance
+
+instance histE_persistent (g : CsG) (k : Nat) (D : Data) : Persistent (histE (GF := GF) g k D) := by
+  unfold histE; infer_instance
+
+instance syncedE_persistent (g : CsG) (k : Nat) : Persistent (syncedE (GF := GF) g k) := by
+  unfold syncedE; infer_instance
+
+instance cpart_timeless (o : Option CsG) (q : Qp) (D : Data) (ν : Nat) :
+    Timeless (cpart (GF := GF) o q D ν) := by
+  unfold cpart histE; cases o <;> dsimp only <;> infer_instance
+
+instance crashPart_timeless (B : BNs) (q : Qp) (D : Data) (ν : Nat) :
+    Timeless (crashPart (GF := GF) B q D ν) := by
+  unfold crashPart cnReg; infer_instance
+
+theorem cpart_some (g : CsG) (q : Qp) (D : Data) (ν : Nat) :
+    cpart (GF := GF) (some g) q D ν ⊣⊢ ghostVar g.cv q.half (D, ν) ∗ histE g ν D := .rfl
+
+theorem cnReg_agree (B : BNs) (o1 o2 : Option CsG) :
+    cnReg (GF := GF) B o1 ∗ cnReg B o2 ⊢ ⌜o1 = o2⌝ := by
+  unfold cnReg
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  ipureintro; exact h.2
+
+theorem cpart_fractional (o : Option CsG) (D : Data) (ν : Nat) :
+    Fractional (fun q => cpart (GF := GF) o q D ν) := by
+  unfold cpart
+  cases o with
+  | none => dsimp only; exact ⟨fun _ _ => emp_sep.symm⟩
+  | some g =>
+    dsimp only
+    have h1 := ghostVar_half_fractional (GF := GF) g.cv (D, ν)
+    refine ⟨fun p q => ⟨?_, ?_⟩⟩
+    · iintro ⟨Hv, #He⟩
+      icases (h1.fractional p q).1 $$ Hv with ⟨H1, H2⟩
+      iframe; iframe #
+    · iintro ⟨⟨H1, #He⟩, ⟨H2, -⟩⟩
+      iframe He
+      iapply (h1.fractional p q).2; iframe
+
+theorem crashPart_fractional (B : BNs) (D : Data) (ν : Nat) :
+    Fractional (fun q => crashPart (GF := GF) B q D ν) := by
+  unfold crashPart
+  refine ⟨fun p q => ⟨?_, ?_⟩⟩
+  · iintro ⟨%o, #Hr, Hc⟩
+    icases ((cpart_fractional (GF := GF) o D ν).fractional p q).1 $$ Hc with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexists o; iframe; iframe #
+    · iexists o; iframe; iframe #
+  · iintro ⟨⟨%o1, #Hr1, H1⟩, ⟨%o2, #Hr2, H2⟩⟩
+    ihave %ho := cnReg_agree B o1 o2 $$ [Hr1 Hr2]
+    · iframe #
+    subst ho
+    iexists o1
+    iframe Hr1
+    iapply ((cpart_fractional (GF := GF) o1 D ν).fractional p q).2; iframe
+
 /-- **The committed data is `D` at version `ν`**, at fraction `q` (`boltStateV γ q D ν`, with
 `B = bnsOf γ.gs`): the version is the committed state's txid (`metaR`'s and the writer's quarters
-hold `(treeData C, C.txid)`), so it moves by exactly one at each commit point. -/
+hold `(treeData C, C.txid)`), so it moves by exactly one at each commit point; with the crash part
+(W3: in crash mode the version variable the crash invariant's client resource agrees with, and the
+history's element of the version). -/
 def boltStateVDef (B : BNs) (q : Qp) (D : Data) (ν : Nat) : IProp GF :=
-  iprop(ghostVar B.st q.half (D, ν) ∗ ghostVar B.bq q ())
+  iprop(ghostVar B.st q.half (D, ν) ∗ ghostVar B.bq q () ∗ crashPart B q D ν)
 
 /-- **The committed data is `D`**, at fraction `q` (`boltState γ q D`, with `B = bnsOf γ.gs`), at
 some version. -/
@@ -58,7 +149,10 @@ theorem boltStateVDef_fractional (B : BNs) (D : Data) (ν : Nat) :
   unfold boltStateVDef
   have h1 := ghostVar_half_fractional (GF := GF) B.st (D, ν)
   have h2 := ghostVar_fractional (GF := GF) B.bq ()
-  exact ⟨fun p q => (sep_congr (h1.fractional p q) (h2.fractional p q)).trans sep_sep_sep_comm⟩
+  have h3 := crashPart_fractional (GF := GF) B D ν
+  exact ⟨fun p q => (sep_congr (h1.fractional p q)
+    ((sep_congr (h2.fractional p q) (h3.fractional p q)).trans sep_sep_sep_comm)).trans
+    sep_sep_sep_comm⟩
 
 theorem boltStateVDef_agree (B : BNs) (q1 q2 : Qp) (D1 D2 : Data) (ν1 ν2 : Nat) :
     boltStateVDef (GF := GF) B q1 D1 ν1 ∗ boltStateVDef B q2 D2 ν2 ⊢ ⌜D1 = D2 ∧ ν1 = ν2⌝ := by
@@ -96,7 +190,7 @@ theorem boltStateDef_agree (B : BNs) (q1 q2 : Qp) (D1 D2 : Data) :
 theorem boltStateVDef_valid (B : BNs) (q : Qp) (D : Data) (ν : Nat) :
     boltStateVDef (GF := GF) B q D ν ⊢ ⌜q ≤ 1⌝ := by
   unfold boltStateVDef
-  iintro ⟨-, H⟩
+  iintro ⟨-, H, -⟩
   ihave ⟨H1, H2⟩ := (ghostVar_split_half B.bq q ()).1 $$ H
   icombine H1 H2 gives %h
   ipureintro; rw [Qp.half_add_half] at h; exact h.1
@@ -125,27 +219,6 @@ theorem boltStateDef_agree_lib (B : BNs) (q : Qp) (D D' : Data) (ν' : Nat) :
   ihave %h := boltStateVDef_agree_lib B q D D' ν ν' $$ [H1 H2]
   · iframe
   ipureintro; exact h.1
-
-/-- **The three-way update at the commit point** (design §3.11, `writeMeta`): the client's whole
-(`boltStateV 1`), `metaR`'s quarter and the writer's quarter of `st` move together from `(D, ν)` to
-`(D', ν')`. -/
-theorem st_update (B : BNs) (D D' : Data) (ν ν1 ν2 ν' : Nat) (D1 D2 : Data) :
-    boltStateVDef (GF := GF) B 1 D ν ∗ ghostVar B.st (1 : Qp).half.half (D1, ν1) ∗
-      ghostVar B.st (1 : Qp).half.half (D2, ν2) ⊢
-    |==> (boltStateVDef B 1 D' ν' ∗ ghostVar B.st (1 : Qp).half.half (D', ν') ∗
-      ghostVar B.st (1 : Qp).half.half (D', ν')) := by
-  unfold boltStateVDef
-  iintro ⟨⟨H, Hb⟩, H1, H2⟩
-  icombine H1 H2 gives %h
-  obtain ⟨-, h⟩ := h
-  cases h
-  icombine H1 H2 as H12
-  ihave Hu := ghostVar_update_halves (D', ν') B.st _ _ $$ H H12
-  imod Hu
-  icases Hu with ⟨H, H12⟩
-  imodintro
-  iframe H Hb
-  iapply (ghostVar_split_half B.st _ (D', ν')).1 $$ H12
 
 /-- `boltState_read_au` over the definition. -/
 theorem boltState_read_au' (B : BNs) (N : Namespace) (D : Data) :

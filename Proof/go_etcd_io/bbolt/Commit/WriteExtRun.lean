@@ -128,7 +128,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))
     (hWriteAt : os.File.WriteAt.specExt (GF := GF) (hG := hG))
-    (hWC : os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG))
+    (hWC : os.File.WriteAt.specCrashILLongR (GF := GF) (hG := hG))
     (hSyncR : fdatasync.specR (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) := by

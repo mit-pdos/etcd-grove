@@ -64,7 +64,7 @@ theorem BC.core_bfile (K : BC) : K.core (GF := GF) ⊢ bCsInv K.p ∗ ⌜bNsOk K
   isBoltCoreP_bfile K.B K.N K.db K.p K.sp K.t0
 
 /-- **The database's file's mode** (`bMode`, W1). -/
-theorem BC.core_mode (K : BC) : K.core (GF := GF) ⊢ bMode K.B.bq K.N K.db K.p :=
+theorem BC.core_mode (K : BC) : K.core (GF := GF) ⊢ bMode K.B.bq K.B.cn K.N K.db K.p :=
   isBoltCoreP_mode K.B K.N K.db K.p K.sp K.t0
 
 /-- **Crash mode's facts** from the core: the file system does not fail, the crash invariant's
@@ -84,7 +84,7 @@ theorem BC.core_crash (K : BC) : K.core (GF := GF) ⊢
     iapply bSyncs_none hc
   | some c =>
     dsimp only
-    icases Hm with ⟨%hcn, -, #Hs⟩
+    icases Hm with ⟨%hcn, -, #Hs, -⟩
     isplitl
     · ipureintro; exact fun _ => hcn.2.2
     isplitl

@@ -14,6 +14,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.BFileCrash
 public import Proof.go_etcd_io.bbolt.Crash.Phases
 public import Spec.os.CrashStIL
+public import Spec.os.CrashStILR
 public import Spec.golang_org.x.sys.unix.Munmap
 public import Spec.golang_org.x.sys.unix.Mmap
 
@@ -135,7 +136,7 @@ theorem bMeta_T (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) 
     exact ⟨Hf.1, Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, fun h => nomatch h⟩
 
 theorem bCsInv_some (p : BFile) (c : CsN) (hc : p.cs = some c) :
-    bCsInv (GF := GF) p ⊢ csInvI c.N p.ino c.g c.ga c.gc bCsOk := by
+    bCsInv (GF := GF) p ⊢ csInvIR c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) := by
   unfold bCsInv; rw [hc]
 
 theorem bCsOk_maps (a : BAbs) (m : OsMeta) (bs : List ByteG) (mp : GMap Loc Nat)
@@ -145,7 +146,7 @@ theorem bCsOk_maps (a : BAbs) (m : OsMeta) (bs : List ByteG) (mp : GMap Loc Nat)
 variable [golang_org.x.sys.unix.Assumptions] in
 /-- **`unix.Munmap` of a mapping of bbolt's file**, in either mode (as `Munmap.spec`). -/
 theorem wp_bMunmap (hM : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
-    (hMC : golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG))
+    (hMC : golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG))
     (base : Loc) (len : w64) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
     (vf : Nat → val) (hlen : 0 < len.toInt) (hmap : m.maps !! base = some len.toNat)
     (hns : bNsOk p) :
@@ -168,9 +169,9 @@ theorem wp_bMunmap (hM : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)
   | some c =>
     ihave #Hinv := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hinv Hown with ⟨Hown, %Hok⟩
-    iapply (hMC base len p.ino c.N c.g c.ga c.gc bCsOk a m bs vf hlen hmap (hns c hc)
+    iapply (hMC base len p.ino c.N c.g c.ga c.gc bCsOk (bR c.cg) a m bs vf hlen hmap (hns c hc)
       (bCsOk_maps a m bs _ Hok.1)) $$ [Hown Hc]
     · iframe; iframe #
     inext
@@ -193,7 +194,7 @@ theorem wp_bMunmap (hM : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)
 variable [golang_org.x.sys.unix.Assumptions] in
 /-- **`unix.Mmap` of bbolt's file**, in either mode (as `Mmap.spec`). -/
 theorem wp_bMmap (hM : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
-    (hMC : golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG))
+    (hMC : golang_org.x.sys.unix.Mmap.specCrashILR (GF := GF) (hG := hG))
     (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt)
     (L : List (Nat × Nat)) (m : OsMeta) (hd : d.ino = p.ino) (hr : d.readable = true)
     (hoff : off = 0) (hlen : 0 < len.toInt) (hprot : prot.toNat = PROT_READ)
@@ -222,9 +223,9 @@ theorem wp_bMmap (hM : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
   | some c =>
     ihave #Hinv := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hinv Hown with ⟨Hown, %Hok⟩
-    iapply (hMC fd off len prot fl dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs hd hr hoff hlen
+    iapply (hMC fd off len prot fl dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs hd hr hoff hlen
       hprot hfl (hns c hc) (fun _ => bCsOk_maps a m bs _ Hok.1)) $$ [Hfd Hown]
     · iframe; iframe #
     inext

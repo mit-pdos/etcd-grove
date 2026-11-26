@@ -48,10 +48,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hFileSize : DB.fileSize.spec (GF := GF) (hG := hG))
     (hGrowSize : DB.growSize.spec (GF := GF) (hG := hG))
     (hTruncate : os.File.Truncate.spec (GF := GF) (hG := hG))
-    (hTruncateC : os.File.Truncate.specCrashIL (GF := GF) (hG := hG))
-    (hTruncateB : os.File.Truncate.specCrashILBig (GF := GF) (hG := hG))
+    (hTruncateC : os.File.Truncate.specCrashILR (GF := GF) (hG := hG))
+    (hTruncateB : os.File.Truncate.specCrashILBigR (GF := GF) (hG := hG))
     (hSync : os.File.Sync.specB (GF := GF) (hG := hG))
-    (hSyncC : os.File.Sync.specCrashIL (GF := GF) (hG := hG))
+    (hSyncC : os.File.Sync.specCrashILR (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     DB.grow.spec (GF := GF) (hG := hG) := by
   intro fr K tx v w sz hsz0 hszmax hszal

@@ -130,9 +130,10 @@ theorem ranges_mask (i : Ino) (dq : DFrac) (bs : List ByteG) :
 
 /-- **The caller's ranges are the state's bytes** (`csOwnIL_agree`, range by range). -/
 theorem ranges_agree {A : Type} [Pos.Countable A] (N : Namespace) (i : Ino) (γ γa γc : GName)
-    (Ok : A → CSt → Prop) (s : CSt) (a : A) (E : CoPset) (hE : ↑N ⊆ E) (dq : DFrac) :
+    (Ok : A → CSt → Prop) (RR : A → IProp GF) [∀ a, Timeless (RR a)] (s : CSt) (a : A) (E : CoPset)
+    (hE : ↑N ⊆ E) (dq : DFrac) :
     ∀ R : List (Nat × List ByteG), (∀ r ∈ R, r.1 + r.2.length ≤ s.bs.length) →
-    ⊢ csInvI (GF := GF) N i γ γa γc Ok -∗ csOwnIL (GF := GF) i γ γa s a -∗
+    ⊢ csInvIR (GF := GF) N i γ γa γc Ok RR -∗ csOwnIL (GF := GF) i γ γa s a -∗
       ([∗list] r ∈ R, osBytes (GF := GF) i r.1 dq r.2) ={E}=∗
       csOwnIL (GF := GF) i γ γa s a ∗ ([∗list] r ∈ R, osBytes (GF := GF) i r.1 dq r.2) ∗
         ⌜∀ r ∈ R, r.2 = (s.bs.drop r.1).take r.2.length⌝
@@ -143,9 +144,9 @@ theorem ranges_agree {A : Type} [Pos.Countable A] (N : Namespace) (i : Ino) (γ 
   | r :: R, h => by
     iintro #Hinv Hown Hb
     icases BigSepL.bigSepL_cons.1 $$ Hb with ⟨Hr, HR⟩
-    imod csOwnIL_agree N i γ γa γc Ok s a E hE r.1 dq r.2 (h r List.mem_cons_self) $$ Hinv Hown Hr
+    imod csOwnILR_agree RR N i γ γa γc Ok s a E hE r.1 dq r.2 (h r List.mem_cons_self) $$ Hinv Hown Hr
       with ⟨Hown, Hr, %he⟩
-    imod ranges_agree N i γ γa γc Ok s a E hE dq R (fun r' hr' => h r' (List.mem_cons_of_mem _ hr'))
+    imod ranges_agree N i γ γa γc Ok RR s a E hE dq R (fun r' hr' => h r' (List.mem_cons_of_mem _ hr'))
       $$ Hinv Hown HR with ⟨Hown, HR, %hR⟩
     imodintro
     iframe Hown
@@ -180,7 +181,7 @@ theorem RDisj_rDur (R : List (Nat × List ByteG)) (h : RDisj R) : RDisj (rDur R)
 variable [syscall.Assumptions] in
 /-- **`syscall.Fdatasync` of bbolt's file**, in either mode (see the file header). -/
 theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
-    (hSC : syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG))
+    (hSC : syscall.Fdatasync.specCrashILR (GF := GF) (hG := hG))
     (fd : w64) (dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt) (L : List (Nat × Nat))
     (m : OsMeta) (R : List (Nat × List ByteG)) (hd : d.ino = p.ino) (hns : bNsOk p)
     (hcov : p.cs ≠ none → RCov R L m.size) (hdisj : p.cs ≠ none → RDisj R)
@@ -224,14 +225,14 @@ theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
-    imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod csOwnILR_ok (bR c.cg) c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     ihave %hlo := csOwnL_locOk (csTokI c.g c.ga a) p.ino ⟨m, bs, 0, 0, .idle⟩ $$ Hown
     have hbl : bs.length = m.size := hlo.1.1
     have hdq : p.dq (DFrac.own 1) = DFrac.own (1 : Qp).half := by unfold BFile.dq; rw [hc]; rfl
     icases (bRanges_os p R).1 $$ HR with ⟨HR, HG⟩
     rw [hdq]
-    imod ranges_agree c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
+    imod ranges_agree c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       (DFrac.own (1 : Qp).half) R (fun r hr => by show _ ≤ bs.length; rw [hbl]; exact hin r hr)
       $$ Hci Hown HR with ⟨Hown, HR, %hag⟩
     have hruns : ∀ r ∈ R, r.1 + r.2.length ≤ bs.length ∧ r.2 = (bs.drop r.1).take r.2.length :=
@@ -250,7 +251,7 @@ theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
         refine hdur b bs[b] (List.getElem?_eq_getElem hb') fun r hr => ?_
         apply Classical.byContradiction; intro hn
         exact hL ⟨r, hr, by omega, by omega⟩
-    iapply (hSC fd dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs (rMask R) hd (hns c hc) hcov' hok)
+    iapply (hSC fd dq d c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg) a m bs (rMask R) hd (hns c hc) hcov' hok)
       $$ [Hfd Hown HR]
     · iframe; iframe #
     inext

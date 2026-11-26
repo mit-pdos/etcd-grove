@@ -146,7 +146,7 @@ variable [sem : go.Semantics]
 theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (X : WX) (v : View) (w : WDb) (b : Loc) (l : Nat)
     (N' : Namespace) (S : List Nat) (bs : Nat → List w8) (pages : Pages) (Dn : Data) (Q A : IProp GF)
-    (hA : A ⊢ commitAU K N' (treeData w.C) Dn Q)
+    (hA : A ⊢ commitAU K N' (treeData w.C) Dn Q) (hN' : (↑(K.N .@ "crash") : CoPset) ⊆ ↑N')
     (Fb : GMap Nat (List w8)) (hms : w.ms = some (b, l)) (hmaps : w.m.maps = GMap.singleton b l)
     (hroot : uint.Z X.t.mv.root'.root' < uint.Z X.t.mv.pgid')
     (hflp : uint.Z X.t.mv.freelist' < uint.Z X.t.mv.pgid' ∨
@@ -188,7 +188,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
       $$ [Hout Hcur Hfl Hmap Hwv Hopn Hmc Hmb Hstq]
   · unfold cpRes; rw [← hms]; iframe
   ihave Hcp := commitStep_commit K N' w.C w.fl b l v true S bs Fb X.t.mv pages Dn Q A hA htx hval hps
-    hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb w.m hin hlh $$ [Hres HS Hfb Hau]
+    hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb w.m hin hlh hN' $$ [Hres HS Hfb Hau]
   · iframe; iframe #
   icases dbPathLk_syncs _ _ _ $$ Hpath with ⟨Hpath, #Hsy⟩
   wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.C

@@ -49,7 +49,7 @@ abbrev munmapM.spec : Prop :=
          (bMeta p C L m ∗ cellsR base 0 len.toNat vf)))) }}
 
 theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
-    (hMunmapC : golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG)) :
+    (hMunmapC : golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG)) :
     munmapM.spec (GF := GF) (hG := hG) := by
   intro db base len data dsz p C L m vf hlen hmap hns
   wp_start as ⟨#Hos, #Hinv, Hdr, Hd, Hsz, Hm, Hc⟩

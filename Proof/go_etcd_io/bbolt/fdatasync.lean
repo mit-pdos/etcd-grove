@@ -67,7 +67,7 @@ theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
 /-- `fdatasync.specC`'s proof: `os.File.Fd`, then `wp_bFdatasyncC` (the crash-mode sync whose
 value moves to idle, `syscall.Fdatasync.specCrashILA`). -/
 theorem fdatasync.wp_proofC (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hSA : syscall.Fdatasync.specCrashILA (GF := GF) (hG := hG)) :
+    (hSA : syscall.Fdatasync.specCrashILAR (GF := GF) (hG := hG)) :
     fdatasync.specC (GF := GF) (hG := hG) := by
   intro db f fd p c C' C m o ys dqf dq hc hns ho hys
   wp_start as ⟨#Hos, #Hinv, Hf, Hfo, Hfd, Hm, Hys⟩
@@ -170,7 +170,7 @@ theorem slotRel_disj (g : Nat → List w8) :
 /-- `fdatasync.specR`'s proof: `os.File.Fd`, then `wp_bFdatasync` with the slots as ranges. -/
 theorem fdatasync.wp_proofR (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     (hSync : syscall.Fdatasync.specB (GF := GF) (hG := hG))
-    (hSC : syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG))
+    (hSC : syscall.Fdatasync.specCrashILR (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     fdatasync.specR (GF := GF) (hG := hG) := by
   intro db f fd p C L m S g dqf dq hns hcr

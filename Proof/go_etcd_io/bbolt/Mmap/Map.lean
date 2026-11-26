@@ -77,7 +77,7 @@ abbrev mmapF.spec : Prop :=
 
 theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     (hMmap : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
-    (hMmapC : golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG))
+    (hMmapC : golang_org.x.sys.unix.Mmap.specCrashILR (GF := GF) (hG := hG))
     (hMadvise : golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :

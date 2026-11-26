@@ -4,8 +4,9 @@ no Rocq counterpart).
 
 `BFile` is the file's record: its path, its inode, and its **crash names** `cs`: `none` while the
 file is outside a crash invariant (bbolt holds every byte whole, as before W1), `some c` once
-`Open` put it in the inode-keyed crash invariant `csInvI c.N p.ino c.g c.ga c.gc bCsOk`
-(`Proof/os/CrashStI.lean`), which holds half of the file's `OsMeta` and of each byte.
+`Open` put it in the inode-keyed crash invariant `csInvIR c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg)`
+(`Proof/os/CrashStIR.lean`), which holds half of the file's `OsMeta` and of each byte, and the client
+resource `bR` (W3: the link between the invariant's value and the committed data's version).
 
 bbolt's invariants hold the file through two resources whose laws do not depend on `cs`:
 * `bBytes p off dq xs`: the bytes from `off` at `dq` of bbolt's share, that is `osBytes` at `dq`
@@ -21,7 +22,9 @@ file the invariant holds is durable for the abstract state `a` if the file syste
 module
 
 public import Proof.go_etcd_io.bbolt.Crash.Dur
-public import Proof.os.CrashStI
+public import Proof.os.CrashStIR
+public import Proof.go_etcd_io.bbolt.Inv.Names
+public import Perennial.Ghost.MonoNat
 public import GooseLang.Ext.Fs.FsNoErr
 public import Perennial.Ghost.GhostMap
 
@@ -52,6 +55,18 @@ instance BAbs.countable : Pos.Countable BAbs :=
 the file system fails. -/
 def bCsOk [GooseExts] [ExtSemantics fsExt] (a : BAbs) (s : CSt) : Prop := FsNoErr → BDur a s
 
+/-! ## The crash invariant's client resource (W3) -/
+
+/-- **The facts of the crash invariant's value** that its client resource keeps (`bR`), the same
+in both phases (so the second sync's move keeps them): the history holds the current and the
+previous state's data at their txids and nothing past the current one; the synced mark is at most
+the previous state's txid; the previous state is the current one or one commit before it; never
+the `init` phase (the file enters the invariant after `init`). -/
+def bRFacts [GooseExts] (H : GMap Nat Data) (y : Nat) (a : BAbs) : Prop :=
+  H !! a.cur.txid = some (treeData a.cur) ∧ H !! a.prev.txid = some (treeData a.prev) ∧
+    (∀ k d, H !! k = some d → k ≤ a.cur.txid) ∧ y ≤ a.prev.txid ∧
+    (a.prev.txid + 1 = a.cur.txid ∨ a.prev = a.cur) ∧ a.phase ≠ .init
+
 /-! ## The file's record -/
 
 /-- The names of a file's crash invariant: its state (`g`), its value (`ga`), its closing token
@@ -64,6 +79,7 @@ structure CsN where
   gc : GName
   N : Namespace
   ex : GName
+  cg : CsG
   deriving Inhabited, DecidableEq
 
 /-- **The database's file** (the port onto the per-byte extension, 2026-11-12): its path (`db.path`,
@@ -331,11 +347,40 @@ theorem bBytes_agree (p : BFile) (dq1 dq2 : DFrac) :
 
 /-! ## The writer's share of the `OsMeta` -/
 
-/-- **The file's crash invariant**, if any (persistent; `isBoltCoreP` holds it). -/
+/-- **The crash invariant's client resource at the value `a`** (W3): half of the version variable at
+the current state's data and txid (its other half is in the committed data, `boltStateVDef`, so the
+two agree), the history's and the synced mark's authorities (`bRFacts`), and the current txid's time
+receipt (what a crashed file's `fileRcpt` needs). It reads `a.cur`, `a.prev` and that the phase is not
+`init`: the second sync's move from committing to idle keeps it (`bR_idle`). -/
+def bR (g : CsG) (a : BAbs) : IProp GF :=
+  iprop(ghostVar g.cv (1 : Qp).half (treeData a.cur, a.cur.txid) ∗
+    (∃ (H : GMap Nat Data) (y : Nat), ghostMapAuth g.hs 1 H ∗ monoNatAuthOwn g.sy 1 y ∗
+      ⌜bRFacts H y a⌝) ∗ ⧖ a.cur.txid)
+
+omit go_gctx in
+instance bR_timeless (g : CsG) (a : BAbs) : Timeless (bR (GF := GF) g a) := by
+  unfold bR; infer_instance
+
+omit go_gctx in
+/-- **`bR` reads only the states and that the phase is not `init`.** -/
+theorem bR_phase (g : CsG) (a a' : BAbs) (hc : a'.cur = a.cur) (hp : a'.prev = a.prev)
+    (hi : a.phase ≠ .init) (hi' : a'.phase ≠ .init) : bR (GF := GF) g a ⊣⊢ bR g a' := by
+  unfold bR bRFacts
+  rw [hc, hp]
+  constructor
+  · iintro ⟨Hv, ⟨%H, %y, Hh, Hy, %Hf⟩, Hr⟩
+    iframe Hv Hr
+    iexists H, y; iframe; ipureintro; exact ⟨Hf.1, Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, hi'⟩
+  · iintro ⟨Hv, ⟨%H, %y, Hh, Hy, %Hf⟩, Hr⟩
+    iframe Hv Hr
+    iexists H, y; iframe; ipureintro; exact ⟨Hf.1, Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, hi⟩
+
+/-- **The file's crash invariant**, if any (persistent; `isBoltCoreP` holds it), with its client
+resource `bR` (W3). -/
 def bCsInv (p : BFile) : IProp GF :=
   match p.cs with
   | none => iprop(True)
-  | some c => csInvI c.N p.ino c.g c.ga c.gc bCsOk
+  | some c => csInvIR c.N p.ino c.g c.ga c.gc bCsOk (bR c.cg)
 
 omit go_gctx in
 instance bCsInv_persistent (p : BFile) : Persistent (bCsInv (GF := GF) p) := by

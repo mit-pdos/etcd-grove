@@ -100,15 +100,17 @@ theorem wp_open_mode (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp
     (C : CommitSt) (m : OsMeta) (xs : List ByteG) (nos ngs : Bool) (hxl : xs.length = m.size)
     (hcr : FsNoErr → metaTailsZero (xs.map Prod.fst) → nos = false → ngs = false →
       m.dhi ≤ m.dlo ∧ (∀ y ∈ xs, y = durB y.1) ∧ XsOne m ∧
-      BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨{ m with cut := none }, xs, 0, 0, .idle⟩) :
+      BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨{ m with cut := none }, xs, 0, 0, .idle⟩)
+    (hfo : ∃ D, fileOK (xs.map Prod.fst) (xs.map Prod.fst).length D) :
     db.[DB, go!"NoSync"] ↦□ nos ∗ db.[DB, go!"NoGrowSync"] ↦□ ngs ∗ dbPathLk (GF := GF) db p fd ∗
-      osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
-      (∀ (cs : Option CsN) (m' : OsMeta), ⌜m'.size = m.size ∧ m'.maps = m.maps⌝ -∗
-        bMode gbq N db { p with cs := cs } -∗ dbPathLk db { p with cs := cs } fd -∗
+      osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗ ⧖ C.txid ∗
+      (∀ (cs : Option CsN) (gcn : GName) (m' : OsMeta), ⌜m'.size = m.size ∧ m'.maps = m.maps⌝ -∗
+        bMode gbq gcn N db { p with cs := cs } -∗ cpart (cs.map CsN.cg) 1 (treeData C) C.txid -∗
+        dbPathLk db { p with cs := cs } fd -∗
         bMeta { p with cs := cs } C [] m' -∗ bBytes { p with cs := cs } 0 (DFrac.own 1) xs -∗
         WP e @ s; E {{ Φ }}) ⊢
     WP e @ s; E {{ Φ }} := by
-  iintro ⟨#Hns, #Hngs, Hpath, Hm, Hb, Hk⟩
+  iintro ⟨#Hns, #Hngs, Hpath, Hm, Hb, #Hrc, Hk⟩
   iunfold dbPathLk at Hpath
   icases Hpath with ⟨Hp, Htok, -⟩
   by_cases hc : FsNoErr ∧ metaTailsZero (xs.map Prod.fst) ∧ nos = false ∧ ngs = false
@@ -120,29 +122,37 @@ theorem wp_open_mode (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp
     iframe Hm Hb
     iintro Hm Hb
     imod bfile_alloc p.path p.ino gbq (N .@ "crash") C { m with cut := none } xs
-      ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ E hxl rfl ⟨rfl, rfl⟩ (fun _ => hD) hdur hfs
-      (fun l hl x hx => hone l hl x hx) $$ Hm Hb with ⟨%c, %hcn, #Hci, Hm, Hb⟩
+      ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ E hxl rfl ⟨rfl, rfl, rfl⟩ (fun _ => hD) hdur hfs
+      (fun l hl x hx => hone l hl x hx) $$ Hm Hb Hrc with ⟨%c, %hcn, #Hci, Hm, Hb, Hcv, #Hh⟩
     ihave #Hsy : bSyncs (GF := GF) db { p with cs := some c } $$ []
     · unfold bSyncs; dsimp only; iframe #
-    iapply Hk $$ %(some c) %{ m with cut := none } [] [] [Hp Htok] Hm Hb
+    imod dghostVar_alloc (GF := GF) (some c.cg) with ⟨%gcn, Hreg⟩
+    imod dghostVar_persist gcn 1 (some c.cg) $$ Hreg with #Hreg
+    iapply Hk $$ %(some c) %gcn %{ m with cut := none } [] [] [Hcv] [Hp Htok] Hm Hb
     · ipureintro; exact ⟨rfl, rfl⟩
     · unfold bMode; dsimp only
-      iframe Hci Hsy
+      iframe Hci Hsy Hreg
       ipureintro; exact ⟨hcn.1, hcn.2, hfs⟩
+    · dsimp only [Option.map]; iapply (cpart_some c.cg 1 _ _).2; iframe Hcv Hh
     · unfold dbPathLk; iframe; iframe #
   · -- outside a crash invariant
-    iapply Hk $$ %none %m [] [] [Hp Htok] [Hm] [Hb]
+    imod dghostVar_alloc (GF := GF) (none : Option CsG) with ⟨%gcn, Hreg⟩
+    imod dghostVar_persist gcn 1 (none : Option CsG) $$ Hreg with #Hreg
+    iapply Hk $$ %none %gcn %m [] [] [] [Hp Htok] [Hm] [Hb]
     · ipureintro; exact ⟨rfl, rfl⟩
     · unfold bMode; dsimp only
+      iframe Hreg
       iexists nos, ngs, xs.map Prod.fst
       iframe #
       ipureintro
+      refine ⟨?_, hfo⟩
       intro hfs htz
       rcases nos with _ | _
       · rcases ngs with _ | _
         · exact absurd ⟨hfs, htz, rfl, rfl⟩ hc
         · exact Or.inr rfl
       · exact Or.inl rfl
+    · unfold cpart; dsimp only [Option.map]; iempintro
     · unfold dbPathLk; iframe; iapply bSyncs_none (p := { p with cs := none }) rfl
     · rw [bMeta_none (p := { p with cs := none }) rfl]; iexact Hm
     · iapply (bBytes_none (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).2; iexact Hb

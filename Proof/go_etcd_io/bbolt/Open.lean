@@ -200,14 +200,15 @@ theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : N
     (dp db : Loc) :
     dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 0 ∗
       boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
-    (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν)) ∗ (|={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
+    (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν) ∗ crashPart B 1 D ν) ∗
+      (|={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
       ghostVar γs (1 : Qp).half 1 ∗ dp ↦{DFrac.own (1 : Qp).half} db) := by
   iintro ⟨#Hinv, Hs, Hst⟩
   unfold boltState boltStateDef boltStateVDef
   rw [bnsOf_mkGs]
-  icases Hst with ⟨%ν, Hst, Hbq⟩
-  isplitl [Hst]
-  · iexists ν; iexact Hst
+  icases Hst with ⟨%ν, Hst, Hbq, Hcp⟩
+  isplitl [Hst Hcp]
+  · iexists ν; iframe
   iapply dp_lock N γs B.bq dp db $$ [Hinv Hs Hbq]
   iframe; iframe #
 
@@ -215,9 +216,9 @@ theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : N
 theorem open_unlock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
     (dp db : Loc) :
     dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
-      (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν)) ⊢
+      (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν) ∗ crashPart B 1 D ν) ⊢
     |={⊤}=> dp ↦□ db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D := by
-  iintro ⟨#Hinv, Hs, Hdp, ⟨%ν, Hst⟩⟩
+  iintro ⟨#Hinv, Hs, Hdp, ⟨%ν, Hst, Hcp⟩⟩
   imod dp_unlock N γs B.bq dp db $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
   · iframe; iframe #
   imodintro
@@ -1072,14 +1073,17 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
       exact open_bDur C D m' _ xs' hC rfl htz hxl' HL.2.2.2.1 hdur
         (by show m'.lo = m'.size; rw [hms]; rfl) (by show m'.hi = m'.size; rw [hms]; rfl)
         (by show m'.xs = some [m'.size]; rw [hms]; rfl) hsz'.2)
-  iframe NoSync Hngs path Hfm Hxs
-  iintro %cs %m'' %Hm'' #Hmode path Hfm Hxs
+    ⟨D, .inr ⟨C, hC.1, hC.2.1, hC.2.2.1, hC.2.2.2.1,
+      by rw [List.length_map, hxl']; exact hC.2.2.2.2.1, hC.2.2.2.2.2.1, hC.2.2.2.2.2.2.1,
+      hC.2.2.2.2.2.2.2⟩⟩
+  iframe NoSync Hngs path Hfm Hxs HrcC
+  iintro %cs %gcn %m'' %Hm'' #Hmode Hseed path Hfm Hxs
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
-  wp_apply hLoad γbq N dbl sp f fd { p with cs := cs } C base L m'' xs'
+  wp_apply hLoad γbq gcn N dbl sp f fd { p with cs := cs } C base L m'' xs'
     (lfOK_congr (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn)
       Hm''.1 Hm''.2) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
-      Hxs Hbp Hcells freelistLoad Hbq HrcC Hmode] as Hlf
+      Hxs Hbp Hcells freelistLoad Hbq Hseed HrcC Hmode] as Hlf
   · unfold lfPre
     rw [← hxl']
     iframe; iframe #

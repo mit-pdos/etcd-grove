@@ -46,7 +46,7 @@ abbrev munmapM.specNoErr : Prop :=
 
 theorem munmapM.wp_proofNoErr
     (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG))
-    (hMunmapC : golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG)) :
+    (hMunmapC : golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG)) :
     munmapM.specNoErr (GF := GF) (hG := hG) := by
   intro hfs db base len data dsz p C L m vf hlen hmap hns
   wp_start as ⟨#Hos, #Hinv, Hdr, Hd, Hsz, Hm, Hc⟩

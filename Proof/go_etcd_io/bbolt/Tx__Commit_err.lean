@@ -1018,7 +1018,8 @@ theorem Tx.Commit_err.wp_proof'
             unfold metaSummed; simp only [WX.clearPages_mv]
             exact Nat.le_trans hmapl (Nat.le_trans hszw.2.1 (by decide))
           wp_apply cm_meta_step wp_writeMeta K tx r (Xt.clearPages pml) Xt.v ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)) Xt.v.base
-            (mapLen wg.ms) γ.ns ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' Pg T.cur Q P hA Fb hms
+            (mapLen wg.ms) γ.ns ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' Pg T.cur Q P hA
+            (by first | exact nclose_subseteq _ _ | (rw [hN]; exact nclose_subseteq _ _)) Fb hms
             (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m, Hm'.2.2.1]; exact Hwgok.1.1 _ _ hms)
             hroot hflp haddr (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m]; omega) (by omega) hcp hC'flX hfreedX hhwmbX
             (fun h => by
