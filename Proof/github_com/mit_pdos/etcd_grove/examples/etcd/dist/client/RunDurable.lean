@@ -125,7 +125,7 @@ theorem RunDurable.wp_proof
       (try iexists n)
       (try iframe)
       (try (ipureintro; constructor <;> word))
-  have hmN : sint.nat m ≤ 256 := by unfold sint.nat; omega
+  have hmN : sint.nat m ≤ 256 := by have h := Hm.2; word
   -- `cli, err := newClient(eps)`
   wp_apply (wp_newClient eps addrs (Classical.choice hV) Htb hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
@@ -146,9 +146,9 @@ theorem RunDurable.wp_proof
   · iframe #
   ihave #Hnil := optsAt_nil (GF := GF)
   -- durable's invariant, with the `n` puts' tokens
-  imod (durInv_alloc (Gg := hG.goose_globalGS) γ (sint.nat m) ⊤) $$ Hhalf
+  imod (durInv_alloc γ (sint.nat m) ⊤) $$ Hhalf
     with ⟨%γF, %γs, %Hγs, #Hdi, Htoks⟩
-  ihave Hfa := durFiredAll_none (Gg := hG.goose_globalGS) γF
+  ihave Hfa := durFiredAll_none (GF := GF) γF
   imod Hfa with #Hfa
   (try wp_auto)
   -- `acked := make([]bool, n)`
@@ -167,12 +167,12 @@ theorem RunDurable.wp_proof
     simp only [named, List.length_nil, Nat.sub_zero, List.nil_append, List.drop_zero]
     iframe
     isplitl []
-    · iapply (durFiredAll_mono (Gg := hG.goose_globalGS) γF _ _ ?_) $$ Hfa
+    · iapply (durFiredAll_mono γF _ _ ?_) $$ Hfa
       intro j' hj'; simp at hj'
     ipureintro; refine ⟨by decide, by omega, by decide⟩
   wp_for IP
   wp_if_destruct
-  · have hjm : sint.nat j < sint.nat m := by unfold sint.nat; omega
+  · have hjm : sint.nat j < sint.nat m := by word
     have hjl : acks.length < γs.length := by omega
     obtain ⟨g, hg⟩ : ∃ g, γs[acks.length]? = some g := ⟨_, List.getElem?_eq_getElem hjl⟩
     icases toks_next γs acks.length g hg $$ Htoks with ⟨Hg, Htoks⟩
@@ -208,7 +208,7 @@ theorem RunDurable.wp_proof
     have hset : ∀ b : Bool, (acks ++ List.replicate (sint.nat m - acks.length) false).set (sint.Z j).toNat b =
         (acks ++ [b]) ++ List.replicate (sint.nat m - (acks ++ [b]).length) false := by
       intro b
-      rw [show (sint.Z j).toNat = acks.length by rw [← Hj.1]; rfl]
+      rw [show (sint.Z j).toNat = acks.length by rw [← Hj.1]; (try rfl)]
       exact acks_set acks (sint.nat m) b (by omega)
     have hlenA : ((acks ++ List.replicate (sint.nat m - acks.length) false)).length = sint.nat m := by
       simp; omega
@@ -231,7 +231,7 @@ theorem RunDurable.wp_proof
       · rw [List.length_append, List.length_singleton]
         iexact Htoks
       isplitl []
-      · iapply (durFiredAll_mono (Gg := hG.goose_globalGS) γF _ _ ?_) $$ Hfa2
+      · iapply (durFiredAll_mono γF _ _ ?_) $$ Hfa2
         intro j' hj'
         rcases acks_snoc_true hj' with h | h
         · exact Or.inl h
@@ -258,14 +258,18 @@ theorem RunDurable.wp_proof
       · rw [List.length_append, List.length_singleton]
         iexact Htoks
       isplitl []
-      · iapply (durFiredAll_mono (Gg := hG.goose_globalGS) γF _ _ ?_) $$ Hfa
+      · iapply (durFiredAll_mono γF _ _ ?_) $$ Hfa
         intro j' hj'
         exact acks_snoc_false hj'
       ipureintro
       simp only [List.length_append, List.length_singleton]
       refine ⟨by word, by omega, by word⟩
   -- all puts sent
-  have hall : acks.length = sint.nat m := by unfold sint.nat at Hj ⊢; omega
+  have hall : acks.length = sint.nat m := by
+    have h1 := Hj.1
+    have h2 := Hj.2.1
+    have h3 : sint.nat m ≤ sint.nat j := by word
+    omega
   (try wp_auto)
   -- `resp, err := cli.Get(ctx, durablePrefix, clientv3.WithPrefix())`
   wp_apply wp_Background
@@ -286,14 +290,12 @@ theorem RunDurable.wp_proof
   ihave #Hgau := durGetAu (Gg := hG.goose_globalGS) Γ.kv γ γF γs (sint.nat m)
     (fun j' => acks[j']? = some true) $$ [Hfa]
   · iframe #
-  wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx osl [withPrefixM]
+  wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx _ [withPrefixM]
       iprop(True) (fun σ => iprop(⌜durReadOk (sint.nat m) (fun j' => acks[j']? = some true) σ⌝))
       durGet_ok (by rw [durGetOp_eq]) (dur_sizes 0).2)
     $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
   · iframe Hlt
     iframe #
-    isplitl []
-    · itrivial
     rw [show (opGetModel durablePfx [withPrefixM]).base.sortSet = false by
       first | rfl | simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero]]
     iapply sortNamesIf_false
@@ -316,7 +318,10 @@ theorem RunDurable.wp_proof
   icases HQ with %Hrd
   have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel durablePfx [withPrefixM])) σ.kvs mr.kvs mr.more := by
     have h := Hsel.1
-    rwa [at_readRev_zero σ _ (by rw [durGetOp_eq])] at h
+    have e : (σ.at (σ.readRev (W64 0))).kvs = σ.kvs := by
+        have hrr : σ.readRev (W64 0) = σ.rev := by simp [KVState.readRev]
+        rw [hrr]; rfl
+    first | (rw [e] at h; exact h) | (rw [at_readRev_zero σ _ (by rw [durGetOp_eq])] at h; exact h)
   have hview : mr.kvs = pfxView durablePfx σ := durRange_eq σ.kvs mr.kvs mr.more Hsel'
   (try wp_auto)
   -- `seen := make([]bool, n)`
@@ -409,7 +414,9 @@ theorem RunDurable.wp_proof
           exact heq (by rw [← this]; exact hkx)
     -- after the inner loop: `i` is `jx`
     have hjjm : ¬ (sint.Z jj < sint.Z m) := by assumption
-    have hdone : sint.nat jx < sint.nat jj := by unfold sint.nat at hjx ⊢; omega
+    have hdone : sint.nat jx < sint.nat jj := by
+      have h3 : sint.nat m ≤ sint.nat jj := by word
+      omega
     obtain ⟨hiv0, hivm, hkiv⟩ := Hjj.2.2 hdone
     have hivx : sint.nat iv = jx := huniq _ hivm hkiv
     (try wp_auto)
@@ -465,7 +472,7 @@ theorem RunDurable.wp_proof
     ipureintro; decide
   wp_for IA
   wp_if_destruct
-  · have hqm : sint.nat q < sint.nat m := by unfold sint.nat; omega
+  · have hqm : sint.nat q < sint.nat m := by word
     have Hbq : 0 ≤ sint.Z q ∧ sint.Z q < sint.Z asl.len := by
       have := Haslen.1; simp at this; constructor <;> word
     obtain ⟨b, hb⟩ : ∃ b, (acks ++ List.replicate (sint.nat m - acks.length) false)[sint.nat q]? = some b :=
