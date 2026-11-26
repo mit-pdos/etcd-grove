@@ -31,12 +31,23 @@ diverges after the call give any code. True of grpc v1.84.0 (`status/status.go:1
 otherwise `Convert(err).Code()`, `FromError`'s status: the error's own stably returned, read-only one
 (`statusAt s c m`) when it has `GRPCStatus() *Status`, else `New(Unknown, err.Error())`. A caller with
 only `statusErrOk err` gets its `c` from `statusErrOk_code`. -/
-abbrev status.Code.spec : Prop :=
-  ∀ (err : GoInterface) (c : w32),
+abbrev status.Code.triple (err : GoInterface) (c : w32) : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
       statusCodeIs err c }}
     (App (Val (@! google_golang_org.grpc.status.Code)) (Val #err))
   {{ RET #c; True }}
+
+/-- The spec: `triple` of every error. -/
+abbrev status.Code.spec : Prop :=
+  ∀ (err : GoInterface) (c : w32), status.Code.triple (GF := GF) err c
+
+/-- (status-bodies, 2026-11-25) The spec of an error that is no `rpctypes.EtcdError` value
+(`FromError.specNE`'s). -/
+abbrev status.Code.specNE : Prop :=
+  ∀ (err : GoInterface) (c : w32),
+    (∀ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      err ≠ interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) →
+    status.Code.triple (GF := GF) err c
 
 end spec
 

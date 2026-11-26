@@ -17,7 +17,6 @@ axiom context.WithCancelValCtx.wp_proof
 axiom conversion.EnforcePtr.wp_proof
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
@@ -66,10 +65,7 @@ axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom status.Code.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
-axiom status.Status.Code.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof

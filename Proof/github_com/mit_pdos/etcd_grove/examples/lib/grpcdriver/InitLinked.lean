@@ -19,7 +19,7 @@ public import Proof.google_golang_org.grpc.InitLinked
 public import Proof.google_golang_org.grpc.codes.InitLinked
 public import Proof.google_golang_org.grpc.credentials.insecure.InitLinked
 public import Proof.google_golang_org.grpc.metadata.InitLinked
-public import Proof.google_golang_org.grpc.status.Init
+public import Proof.google_golang_org.grpc.status.InitLinked
 public import Proof.google_golang_org.protobuf.types.known.wrapperspb.Init
 public import Proof.net.Init
 public import Proof.runtime.PkgInitExt

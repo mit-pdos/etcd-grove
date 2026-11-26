@@ -542,7 +542,7 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] [_root_.Perennial.er
         go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
     go_etcd_io.etcd.cache.v3.statusErrOk
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
-  obtain ⟨-, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
+  obtain ⟨hp, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
   iintro !> %e %he
@@ -555,7 +555,8 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] [_root_.Perennial.er
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact ⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
+  · ipureintro; exact ⟨⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩,
+      go_etcd_io.etcd.cache.v3.stTypedErr_ptr _ hp⟩
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h

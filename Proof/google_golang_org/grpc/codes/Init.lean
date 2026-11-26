@@ -14,6 +14,7 @@ initializer's package state (`grpc/internal/Hooks.lean`, `wp_store_hookAny`).
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Perennial.Proof.strconv.Link
 public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.Hooks
 

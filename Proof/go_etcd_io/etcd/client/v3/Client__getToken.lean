@@ -50,6 +50,10 @@ theorem Client.getToken.wp_proof
   ihave #Hpr : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   ihave ⟨%xan, #Han⟩ := errAuthNotEnabled_of_init $$ Hpr
+  -- (#45) the target's description, which `errors.Is` takes
+  ihave #Htdxan : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF)
+      (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #xan) m') $$ []
+  · iexists _; iapply go_etcd_io.etcd.cache.v3.descIs_etcdError
   wp_auto_lc 1
   imod lc_fupd_elim_later $$ Hlc1 Hconn with #Hconn
   wp_if_destruct
@@ -160,7 +164,7 @@ theorem Client.getToken.wp_proof
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply (wp_Is (GoInterface.ok ei) _ none (Or.inl ⟨xan, rfl⟩)) $$ [$Hpe $Hse] as %bi %Hbi
+      wp_apply (wp_Is (GoInterface.ok ei) _ none (Or.inl ⟨xan, rfl⟩)) $$ [$Hpe $Hse $Htdxan] as %bi %Hbi
       · iapply go_etcd_io.etcd.cache.v3.isDescs_none
       cases bi
       · -- another error: returned

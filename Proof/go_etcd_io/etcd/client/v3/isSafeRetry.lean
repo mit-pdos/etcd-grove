@@ -76,7 +76,10 @@ theorem isSafeRetry.wp_proof
     iapply HΦ; iframe Htok; ipureintro; intro h; cases h
   wp_auto
   wp_apply (wp_Is err (GoInterface.ok eL) (some (m, _)) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 %Hb2
-  · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hm HdL
+  · -- (#45) and the target's description
+    isplitr
+    · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hm HdL
+    · iexists _; iexact HdL
   cases b2
   rotate_left
   · wp_auto

@@ -31,7 +31,6 @@ roots \bclient\.watchClient_Watch$
 roots \bv3rpc\.(new_stream_interceptor|etcd_watch_served_etcd_chain)$
 roots \bclient\.(client_watcher_rangeWatcher|client_newWatcher_rangeWatcher|client_watcher_etcdWatcher|client_watcher_progressNotifier)$
 axiom context.WithCancelValCtx.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcConn
@@ -46,7 +45,6 @@ axiom rand.Int63n.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.ToLower.wp_proof

@@ -160,6 +160,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer__LeaseGrant
 public import Proof.math.rand.Int63n
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__isWatchPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStream__newResponseHeader
@@ -244,9 +245,13 @@ theorem header.wp_fill :
     EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
 
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.FromError.wp_proof
+  EtcdGrove.status.FromError.wp_proof rpctypes.EtcdError.wp_Error
 
 theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
@@ -354,7 +359,7 @@ theorem wp_checkRangeRequest :
 
 theorem status.wp_Errorf :
     EtcdGrove.status.Errorf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Errorf.wp_proof
+  EtcdGrove.status.Errorf.wp_proof _root_.Perennial.fmt.wp_Sprintf status.wp_Error
 
 theorem wp_checkRangeStreamRequest :
     EtcdGrove.v3rpc.checkRangeStreamRequest.spec (GF := GF) (hG := hG) :=
@@ -885,7 +890,7 @@ theorem errors.wp_IsCtxErr :
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsStatusErr.wp_proof
+  EtcdGrove.errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem wp_filterNoDelete :
     EtcdGrove.v3rpc.filterNoDelete.spec (GF := GF) (hG := hG) :=

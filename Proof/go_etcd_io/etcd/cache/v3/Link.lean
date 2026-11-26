@@ -390,17 +390,17 @@ theorem wp_WithCreatedNotify :
     WithCreatedNotify.spec (GF := GF) (hG := hG) :=
   WithCreatedNotify.wp_proof
 
+theorem rpctypes.EtcdError.wp_Error :
+    rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  rpctypes.EtcdError.Error.wp_proof
+
 theorem status.wp_FromError :
     status.FromError.spec (GF := GF) (hG := hG) :=
-  status.FromError.wp_proof
+  status.FromError.wp_proof rpctypes.EtcdError.wp_Error
 
 theorem rpctypes.wp_ErrorDesc :
     rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
   rpctypes.ErrorDesc.wp_proof status.wp_FromError
-
-theorem rpctypes.EtcdError.wp_Error :
-    rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
-  rpctypes.EtcdError.Error.wp_proof
 
 theorem rpctypes.wp_Error :
     rpctypes.Error.spec (GF := GF) (hG := hG) :=
