@@ -66,8 +66,8 @@ theorem wp_Step_MsgVote_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
@@ -141,7 +141,7 @@ theorem wp_Step_MsgVote_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro
-  exact ⟨StepEnd.stale ⟨Hterm, Hlt0⟩ (.inl rfl), Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
+  exact ⟨StepEndG.stale ⟨Hterm, Hlt0⟩ (.inl rfl), Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
     keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof

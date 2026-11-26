@@ -73,6 +73,8 @@ theorem wp_Step_MsgPreVote_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1 (ii)) the end state (`StepEnd`'s `prevote`)
+        "%Hpv" ∷ ⌜¬ StaleMsg s m → PreVoteStepEnd id m ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -115,13 +117,15 @@ theorem wp_Step_MsgPreVote_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
   rw [Hty]
   wp_auto
   -- `canVote`, whatever it is; the evaluation is joined
-  wp_join (Q := fun v => iprop(⌜∃ b : Bool, v = #b⌝ ∗ ownRaftPhysCV c c.voters r id s ∗
+  -- (#33 parity B1 (ii)) with its value: `canVote`'s first two disjuncts (the third, a higher term, is false)
+  wp_join (Q := fun v => iprop(⌜∃ b : Bool, v = #b ∧
+        (b = true ↔ (s.vote = m.From' ∨ (s.vote = W64 0 ∧ s.lead = W64 0)))⌝ ∗ ownRaftPhysCV c c.voters r id s ∗
       r_ptr ↦ r ∗ m_ptr ↦ ml ∗
       msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap m) ⟨m, ents, sn, ctx, rs⟩)) at (if: _ then _ else _)
     with [Hphys r m Hm] as ⟨%Hv, Hphys, r, m, Hm⟩
   · repeat (any_goals cv_step)
-    all_goals (iframe; ipureintro; exact ⟨_, rfl⟩)
-  obtain ⟨cv, rfl⟩ := Hv
+    all_goals (iframe; ipureintro; exact ⟨_, rfl, by first | simp_all | (constructor <;> intro <;> simp_all)⟩)
+  obtain ⟨cv, rfl, Hcv⟩ := Hv
   wp_auto
   wp_gets
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -134,21 +138,26 @@ theorem wp_Step_MsgPreVote_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
   · -- cannot vote: reject at `r.Term`
     try wp_auto
     wp_gets
-    prevote_resp_tail false
+    prevote_resp_tail false (Perennial.EtcdGrove.PreVoteEnd.reject' Hty (fun h =>
+      h.1.elim (fun h1 => Bool.false_ne_true (Hcv.2 (.inl h1)))
+        (fun h1 => h1.elim (fun h1 => Bool.false_ne_true (Hcv.2 (.inr h1)))
+          (fun h1 => absurd h1.2 (by rw [Heq0]; exact Int.lt_irrefl _)))))
   try wp_auto
   wp_gets
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_gets
-  wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, -⟩
+  wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
   ihave Hphys := Hback $$ Hlog
   cases uptodate
   · -- behind: reject
     try wp_auto
-    prevote_resp_tail false
+    prevote_resp_tail false (Perennial.EtcdGrove.PreVoteEnd.reject' Hty (fun h =>
+      absurd h.2 (by first | (rw [← Hutd]; decide) | (rw [Hutd]; decide) | simp_all)))
   -- grant at `m.Term`, recording nothing
   try wp_auto
-  prevote_resp_tail true
+  prevote_resp_tail true (Perennial.EtcdGrove.PreVoteEnd.grant' Hty
+    ⟨Or.imp_right Or.inl (Hcv.1 rfl), by first | exact Hutd.symm | exact Hutd | simp_all⟩)
 
 end StepProof
 

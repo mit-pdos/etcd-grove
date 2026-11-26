@@ -66,6 +66,8 @@ theorem wp_Step_MsgPreVote {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1 (ii)) the end state (`StepEnd`'s `prevote`)
+        "%Hpv" ∷ ⌜¬ StaleMsg s m → PreVoteStepEnd id m ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗

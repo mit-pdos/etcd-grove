@@ -89,8 +89,8 @@ theorem wp_Step_MsgReadIndex {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (#33 parity B1) the end state on the path (`StepEndG`): the role's step function's result
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .readIndex m ents ctx) ∧
             recv.length ≤ 1 ∧ StepCD c id B m s recv s'⌝ ∗
@@ -140,7 +140,7 @@ theorem wp_Step_MsgReadIndex {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (
       (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgReadIndex) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.follower Hrole Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.follower Hrole Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_readIndex _ _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -198,7 +198,7 @@ theorem wp_Step_MsgReadIndex {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm Hmb $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgReadIndex) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inl Hrole) Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inl Hrole) Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inl Hty) Hres
     subst s1
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -233,7 +233,7 @@ theorem wp_Step_MsgReadIndex {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (
       · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgReadIndex) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     ihave HG := stepOut_leader R _ _ _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.leader Hrole Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.leader Hrole Hres)
     unfold LeaderStepResultC at Hres
     rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
     obtain ⟨rfl, Hres⟩ := Hres
@@ -339,7 +339,7 @@ theorem wp_Step_MsgReadIndex {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm Hmb $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgReadIndex) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
     ihave HG := stepOut_or R _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inr Hrole) Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inr Hrole) Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inl Hty) Hres
     subst s1
     simp only [Bool.false_eq_true, ↓reduceIte]

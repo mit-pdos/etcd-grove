@@ -121,9 +121,9 @@ node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s 
 for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing).
 (#33 parity B1, 2026-11-26) And the types an untraced node of the Antithesis scope steps besides: the
 read-index pair, `MsgTimeoutNow`, the quorum check and the pre-vote response, each its step function's
-result. The traced statements' types are `TrStepTy` (the ten above). Not yet `MsgTransferLeader`:
-`Step` runs its step function at the state with the transfer's ghost record (`gh.xw`, `gh.xs`), not
-at `s`, so its end is that function's result from another state than `StepEnd`'s `s`. -/
+result. The traced statements' types are `TrStepTy` (the ten above). Not `MsgTransferLeader`: `Step`
+runs its step function at the state with the transfer's ghost record (`gh.xw`, `gh.xs`), not at `s`
+(`StepEnd`'s `xfer`); nor `MsgPreVote`, which `Step` answers itself (`StepEnd`'s `prevote`). -/
 def StepEndTy (ty : w32) : Prop :=
   ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
     ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable ∨
@@ -194,16 +194,65 @@ def VoteEnd (id : w64) (s1 : NState) (m : MessageM) (s' : NState) : Prop :=
   (VoteGrant s1 m ∧ s' = { sendMsgs s1 [vrespMsgOf id s1 m false] with vote := m.From' }) ∨
   (¬ VoteGrant s1 m ∧ s' = sendMsgs s1 [vrespMsgOf id s1 m true])
 
-/-- **`Step`'s end state** `s'` from `s` on `m` (see above); nothing on the other types. -/
-def StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8) (s s' : NState) :
-    Prop :=
-  StepEndTy m.Type' →
+/-- **`Step`'s end state on the types `StepEndTy` lists**, its four arms: a stale message, `MsgHup`,
+`MsgVote` and the step function. (#33 parity B1 (ii)) `MsgVote`'s ignored arm carries `Step`'s lease
+check (`inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout`, `force` the
+transfer marker): check-quorum on, a leader known, a request of a higher term, not forced. The timer
+`electionElapsed` is outside the model, so the arm stays a disjunction. -/
+abbrev StepEndBody (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s s' : NState) : Prop :=
   (StaleMsg s m → s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) ∧
   (¬ StaleMsg s m → m.Type' = MsgHup → HupOkC c id (hupType s) s s') ∧
   (¬ StaleMsg s m → m.Type' = MsgVote →
-    (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') ∧
+    (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
+      ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') ∧
   (¬ StaleMsg s m → m.Type' ≠ MsgHup → m.Type' ≠ MsgVote →
     ∃ pvs : GMap w64 Progress, StepFnEnd c id (preState s m pvs) m ents ctx s')
+
+/-- (#33 parity B1 (ii)) The types a branch of `Step` gives `StepEndBody` for: `StepEndTy`'s, and
+`MsgTransferLeader` at the state its step function runs from (the transfer's ghost record, `StepEnd`'s
+`xfer`). -/
+def StepEndTyB (ty : w32) : Prop := StepEndTy ty ∨ ty = MsgTransferLeader
+
+/-- A `StepEndTy` type is a branch type (`StepEndTyB`), as a coercion: a branch's `StepEndG` applies to a
+`StepEndTy` premise. -/
+instance StepEndTy.coeB {ty : w32} : Coe (StepEndTy ty) (StepEndTyB ty) := ⟨Or.inl⟩
+
+/-- **A branch's end state**: `StepEndBody` on the types `StepEndTyB` lists (`StepEnd` until #33 parity
+B1 (ii)); `raft.Step.wp_proof`'s close sites make a `StepEnd` of it. -/
+abbrev StepEndG (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s s' : NState) : Prop :=
+  StepEndTyB m.Type' → StepEndBody c id m ents ctx s s'
+
+/-- (#33 parity B1 (ii)) A `MsgPreVote`'s answer at `s` (no step-down for a pre-vote request): granted,
+the answer queued at the request's term; declined, the rejection at the node's. No vote recorded. -/
+def PreVoteEnd (id : w64) (s : NState) (m : MessageM) (s' : NState) : Prop :=
+  (VoteGrant s m ∧ s' = sendMsgs s [vrespMsgOf id s m false]) ∨
+  (¬ VoteGrant s m ∧ s' = sendMsgs s [vrespMsgOf id s m true])
+
+/-- (#33 parity B1 (ii)) **A `MsgPreVote`'s end state** (not stale): ignored within the lease, as a
+`MsgVote` is (`Step`'s `inLease` check, the timer outside the model), or answered. -/
+abbrev PreVoteStepEnd (id : w64) (m : MessageM) (ctx : List w8) (s s' : NState) : Prop :=
+  (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
+    PreVoteEnd id s m s'
+
+/-- **`Step`'s end state** `s'` from `s` on `m`: on the types `StepEndTy` lists (`gated`, applied as a
+function through the coercion below, so its readers write `h hty`), and (#33 parity B1 (ii)) on a
+`MsgPreVote` (`prevote`: ignored within the lease as a `MsgVote` is, else answered) and a
+`MsgTransferLeader` (`xfer`: the step function's result at the transfer's ghost record, `gh.xw` and
+`gh.xs`, which `Step` writes before it). Nothing on the other types. -/
+structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
+    (s s' : NState) : Prop where
+  gated : StepEndTy m.Type' → StepEndBody c id m ents ctx s s'
+  prevote : ¬ StaleMsg s m → m.Type' = MsgPreVote → PreVoteStepEnd id m ctx s s'
+  xfer : ¬ StaleMsg s m → m.Type' = MsgTransferLeader →
+    ∃ (X : GMap (w64 × w64) Unit) (b : Bool) (pvs : GMap w64 Progress),
+      StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xs := b } } m pvs) m ents ctx s'
+
+instance StepEnd.coeFun {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} :
+    CoeFun (StepEnd c id m ents ctx s s') (fun _ => StepEndTy m.Type' → StepEndBody c id m ents ctx s s') :=
+  ⟨StepEnd.gated⟩
 
 /-- (2026-11-11, slice 30c; slice 28n's design) **The storage acknowledgements**, which `Advance` steps. -/
 def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyResp
@@ -225,33 +274,35 @@ def AckScope (c : CfgM) : Prop := c.autoLeave = false
 theorem AckEnd.of_ty {m : MessageM} {s s' : NState} (h : ¬ AckTy m.Type') : AckEnd m s s' :=
   fun h' => absurd h' h
 
-theorem StepEnd.of_ty {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} (h : ¬ StepEndTy m.Type') : StepEnd c id m ents ctx s s' :=
-  fun h' => absurd h' h
+theorem StepEndG.of_ty {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (h : ¬ StepEndTy m.Type') (hx : m.Type' ≠ MsgTransferLeader) :
+    StepEndG c id m ents ctx s s' :=
+  fun h' => h'.elim (fun h' => absurd h' h) (fun h' => absurd h' hx)
 
-theorem StepEnd.stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hst : StaleMsg s m)
     (h : s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) :
-    StepEnd c id m ents ctx s s' :=
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun _ => h, fun h' => absurd hst h', fun h' => absurd hst h', fun h' => absurd hst h'⟩
 
-theorem StepEnd.hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hty : m.Type' = MsgHup) (hns : ¬ StaleMsg s m) (h : HupOkC c id (hupType s) s s') :
-    StepEnd c id m ents ctx s s' :=
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ _ => h,
     fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word), fun _ h' => absurd hty h'⟩
 
-theorem StepEnd.vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hty : m.Type' = MsgVote) (hns : ¬ StaleMsg s m)
-    (h : (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') :
-    StepEnd c id m ents ctx s s' :=
+    (h : (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
+      ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') :
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word),
     fun _ _ => h, fun _ _ h' => absurd hty h'⟩
 
-theorem StepEnd.fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hns : ¬ StaleMsg s m) (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
     (pvs : GMap w64 Progress) (h : StepFnEnd c id (preState s m pvs) m ents ctx s') :
-    StepEnd c id m ents ctx s s' :=
+    StepEndG c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ h' => absurd h' hh, fun _ h' => absurd h' hv,
     fun _ _ _ => ⟨pvs, h⟩⟩
 
@@ -283,12 +334,12 @@ theorem StepFnEnd.leader {c : CfgM} {id : w64} {s1 : NState} {m : MessageM} {ent
 /-- (2026-11-11, slice 27n, Q27 (a)) **`StepEnd` of a local report** (`MsgForgetLeader`,
 `MsgUnreachable`, `MsgSnapStatus`, term zero, no preamble): the step function's result at `s` for
 `MsgUnreachable`, the one of the three `StepEnd` describes. -/
-theorem StepEnd.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState}
     (hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
     (hT0 : m.Term' = W64 0) (hnbf : ¬ PreBF m s)
     (h : m.Type' = MsgUnreachable → StepFnEnd c id s m ents ctx s') :
-    StepEnd c id m ents ctx s s' := by
+    StepEndG c id m ents ctx s s' := by
   by_cases hu : m.Type' = MsgUnreachable
   · have hpre : preState s m s.prvals = s := by simp [preState, hnbf]
     have hh : m.Type' ≠ MsgHup := fun e => absurd (hu.symm.trans e)
@@ -297,14 +348,15 @@ theorem StepEnd.localRep {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
       (by simp only [MsgUnreachable, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word)
     have hns : ¬ StaleMsg s m := fun h' => h'.1 hT0
     have hfn : StepFnEnd c id (preState s m s.prvals) m ents ctx s' := by rw [hpre]; exact h hu
-    exact StepEnd.fn hns hh hv s.prvals hfn
-  · apply StepEnd.of_ty
-    have hnf : ¬ StepEndTy MsgForgetLeader := by unfold StepEndTy; decide
+    exact StepEndG.fn hns hh hv s.prvals hfn
+  · have hnf : ¬ StepEndTy MsgForgetLeader := by unfold StepEndTy; decide
     have hns : ¬ StepEndTy MsgSnapStatus := by unfold StepEndTy; decide
     rcases hty with h' | h' | h'
-    · rw [h']; exact hnf
+    · exact StepEndG.of_ty (by rw [h']; exact hnf) (fun e => absurd (h'.symm.trans e)
+        (by simp only [MsgForgetLeader, MsgTransferLeader, ne_eq]; first | exact of_decide_eq_true rfl | word))
     · exact absurd h' hu
-    · rw [h']; exact hns
+    · exact StepEndG.of_ty (by rw [h']; exact hns) (fun e => absurd (h'.symm.trans e)
+        (by simp only [MsgSnapStatus, MsgTransferLeader, ne_eq]; first | exact of_decide_eq_true rfl | word))
 
 end pure
 

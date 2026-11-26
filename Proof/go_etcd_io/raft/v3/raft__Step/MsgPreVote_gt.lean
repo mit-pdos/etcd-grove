@@ -80,6 +80,8 @@ theorem wp_Step_MsgPreVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1 (ii)) the end state (`StepEnd`'s `prevote`)
+        "%Hpv" ∷ ⌜¬ StaleMsg s m → PreVoteStepEnd id m ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -168,10 +170,12 @@ theorem wp_Step_MsgPreVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
       rw [← Hutd] at this
       exact Bool.false_ne_true this
     try wp_auto
-    prevote_resp_tail false
+    prevote_resp_tail false (Perennial.EtcdGrove.PreVoteEnd.reject' Hty (fun h =>
+      absurd h.2 (by first | (rw [← Hutd]; decide) | (rw [Hutd]; decide) | simp_all)))
   -- up to date: grant at `m.Term`, recording nothing
   try wp_auto
-  prevote_resp_tail true
+  prevote_resp_tail true (Perennial.EtcdGrove.PreVoteEnd.grant' Hty
+    ⟨.inr (.inr ⟨Hty, Hgt0⟩), by first | exact Hutd.symm | exact Hutd | simp_all⟩)
 
 end StepProof
 

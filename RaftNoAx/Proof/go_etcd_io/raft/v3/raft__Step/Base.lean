@@ -194,9 +194,9 @@ macro "bf_gate" : tactic => `(tactic| (
   ihave Hgb := Perennial.EtcdGrove.preGate_bf c r id s m R.G0 R.G1 _ hbf hlead $$ Hgpre HG))
 
 set_option hygiene false in
-/-- (Q8 stage 1 slice 13) `StepEnd` of a step function's arm at the node's term, no step-down
+/-- (Q8 stage 1 slice 13) `StepEndG` of a step function's arm at the node's term, no step-down
 (`hnbf`, `Hteq`, `Hty`, the role `Hrole` and the step function's result `Hres` in context). -/
-macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_nobf hnbf
+macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEndG.fn_nobf hnbf
   (by first
     | exact Perennial.EtcdGrove.notStale_of_le (by rw [Hteq]; exact Int.le_refl _)
     | exact Perennial.EtcdGrove.notStale_of_zero Hterm)
@@ -213,9 +213,9 @@ macro "end_nobf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_nobf
        | exact Perennial.EtcdGrove.StepFnEnd.candidate (.inr Hrole) Hres)))
 
 set_option hygiene false in
-/-- (Q8 stage 1 slice 13) `StepEnd` of a step function's arm after the preamble's step-down (`hbf`,
+/-- (Q8 stage 1 slice 13) `StepEndG` of a step function's arm after the preamble's step-down (`hbf`,
 `hlead` of `bf_gate`, `Hty`, the step-down's `pvs` and the follower's result `Hres` in context). -/
-macro "end_bf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEnd.fn_bf hbf hlead
+macro "end_bf" : tactic => `(tactic| exact Perennial.EtcdGrove.StepEndG.fn_bf hbf hlead
   (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs (Perennial.EtcdGrove.StepFnEnd.follower rfl Hres))
 
 set_option hygiene false in
@@ -310,7 +310,7 @@ macro "rframe" : tactic =>
 section stepEnd
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- (Q8 stage 1 slice 13) A message no older than the node's term is not stale (`StepEnd`). -/
+/-- (Q8 stage 1 slice 13) A message no older than the node's term is not stale (`StepEndG`). -/
 theorem notStale_of_le {s : NState} {m : MessageM} (h : uint.Z s.term ≤ uint.Z m.Term') :
     ¬ StaleMsg s m := fun h' => by unfold StaleMsg at h'; omega
 
@@ -335,19 +335,37 @@ theorem VoteEnd.reject' {id : w64} {s1 : NState} {m : MessageM} (hty : m.Type' =
     VoteEnd id s1 m (sendMsgs s1 [Msg.plain .voteResp id m.From' s1.term true]) :=
   .inr ⟨h, by rw [vrespMsgOf_vote hty]; rfl⟩
 
+/-- (#33 parity B1 (ii)) A `MsgPreVote`'s answer, as `vrespMsgOf` builds it. -/
+theorem vrespMsgOf_prevote {id : w64} {s1 : NState} {m : MessageM} {rej : Bool} (h : m.Type' = MsgPreVote) :
+    vrespMsgOf id s1 m rej = Msg.plain .preVoteResp id m.From' (if rej then s1.term else m.Term') rej := by
+  have hv : m.Type' ≠ MsgVote := by rw [h]; w32_ne
+  simp [vrespMsgOf, hv]
+
+/-- (#33 parity B1 (ii)) A granted `MsgPreVote`'s end state: nothing recorded. -/
+theorem PreVoteEnd.grant' {id : w64} {s : NState} {m : MessageM} (hty : m.Type' = MsgPreVote)
+    (h : VoteGrant s m) :
+    PreVoteEnd id s m (sendMsgs s [Msg.plain .preVoteResp id m.From' m.Term' false]) :=
+  .inl ⟨h, by rw [vrespMsgOf_prevote hty]; rfl⟩
+
+/-- (#33 parity B1 (ii)) A declined `MsgPreVote`'s end state. -/
+theorem PreVoteEnd.reject' {id : w64} {s : NState} {m : MessageM} (hty : m.Type' = MsgPreVote)
+    (h : ¬ VoteGrant s m) :
+    PreVoteEnd id s m (sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]) :=
+  .inr ⟨h, by rw [vrespMsgOf_prevote hty]; rfl⟩
+
 /-- The step function's end state, without a step-down (`preState` is `s`). -/
-theorem StepEnd.fn_nobf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.fn_nobf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hnbf : ¬ PreBF m s) (hns : ¬ StaleMsg s m) (hh : m.Type' ≠ MsgHup)
-    (hv : m.Type' ≠ MsgVote) (h : StepFnEnd c id s m ents ctx s') : StepEnd c id m ents ctx s s' :=
-  StepEnd.fn hns hh hv ∅ (by rw [preState_nobf hnbf]; exact h)
+    (hv : m.Type' ≠ MsgVote) (h : StepFnEnd c id s m ents ctx s') : StepEndG c id m ents ctx s s' :=
+  StepEndG.fn hns hh hv ∅ (by rw [preState_nobf hnbf]; exact h)
 
 /-- The step function's end state, after the preamble's step-down. -/
-theorem StepEnd.fn_bf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+theorem StepEndG.fn_bf {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} {lead : w64} (hbf : PreBF m s) (hl : preLead m = lead) (hh : m.Type' ≠ MsgHup)
     (hv : m.Type' ≠ MsgVote) (pvs : GMap w64 Progress)
     (h : StepFnEnd c id { becomeFollower s m.Term' lead with prvals := pvs } m ents ctx s') :
-    StepEnd c id m ents ctx s s' :=
-  StepEnd.fn (notStale_of_le (Int.le_of_lt hbf.1)) hh hv pvs (by rw [preState_bf' hbf hl]; exact h)
+    StepEndG c id m ents ctx s s' :=
+  StepEndG.fn (notStale_of_le (Int.le_of_lt hbf.1)) hh hv pvs (by rw [preState_bf' hbf hl]; exact h)
 
 end stepEnd
 

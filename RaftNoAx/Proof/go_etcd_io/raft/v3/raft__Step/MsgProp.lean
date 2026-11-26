@@ -325,8 +325,8 @@ theorem wp_Step_MsgProp {nc : Bool}
           B < 2 ^ 64⌝ ∗
         "Hrcb" ∷ (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗
           ⧖ (k0 + ents.length)) ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- what `RawNode` keeps track of is untouched (2026-10-09)
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
@@ -420,7 +420,7 @@ theorem wp_Step_MsgProp {nc : Bool}
         isplitr
         · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
         isplitr
-        · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+        · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
             (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0)
         isplitr
         · ipureintro; exact Hwf
@@ -450,7 +450,7 @@ theorem wp_Step_MsgProp {nc : Bool}
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.follower Hrole Hres0)
       isplitr
       · ipureintro; exact nstateWf_sendMsgs _ _ Hwf
@@ -510,7 +510,7 @@ theorem wp_Step_MsgProp {nc : Bool}
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inl Hrole) Hres0)
       isplitr
       · ipureintro; exact Hwf
@@ -585,7 +585,7 @@ theorem wp_Step_MsgProp {nc : Bool}
       isplitr
       · iintro -; iexact Hrc2
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0)
       isplitr
       · ipureintro; exact nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf)
@@ -708,7 +708,7 @@ theorem wp_Step_MsgProp {nc : Bool}
         isplitr
         · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
         isplitr
-        · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+        · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
             (by rw [Hty]; w32_ne) (StepFnEnd.leader Hrole Hres0)
         isplitr
         · ipureintro; exact Hwf
@@ -770,7 +770,7 @@ theorem wp_Step_MsgProp {nc : Bool}
       isplitr
       · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
       isplitr
-      · ipureintro; exact StepEnd.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
+      · ipureintro; exact StepEndG.fn_nobf hnbf (notStale_of_zero Hterm) (by rw [Hty]; w32_ne)
           (by rw [Hty]; w32_ne) (StepFnEnd.candidate (.inr Hrole) Hres0)
       isplitr
       · ipureintro; exact Hwf

@@ -96,8 +96,8 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (#33 parity B1) the end state on the path (`StepEndG`): the role's step function's result
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -149,7 +149,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.follower Hrole Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.follower Hrole Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1] at Hend
     rw [Hs1]
@@ -180,7 +180,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inl Hrole) Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inl Hrole) Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1] at Hend
     rw [Hs1]
@@ -212,7 +212,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     ihave HG := stepOut_leader R _ _ _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.leader Hrole Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.leader Hrole Hres)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
       leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -242,7 +242,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
-    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inr Hrole) Hres)
+    have Hend := StepEndG.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inr Hrole) Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1] at Hend
     rw [Hs1]

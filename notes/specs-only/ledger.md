@@ -6050,3 +6050,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Change.** The conjunct gains `rs.k = γ.R.k j`. `node.start` gets it from `NewRawNode`'s post (`k := cfgK cv`) and
   `ModeRun` (`R.k n = modeK m`); every `RawNode` post keeps `rs.k`.
 - **Decision.** Lead's decision (group D, Q1), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (ii): `StepEnd` a structure with the pre-vote and transfer ends; the lease facts (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/LemmasStepGates.lean` (`StepEndBody`, `StepEndTyB`, `StepEndG`, `PreVoteEnd`,
+  `PreVoteStepEnd`, `structure StepEnd`, `StepEnd.coeFun`), `Proof/go_etcd_io/raft/v3/raft__Step.lean` (close sites:
+  `end_mk`, `end_ty`, the pre-vote and transfer closes), `raft__Step/*.lean` (branch posts at `StepEndG`; `MsgPreVote*`
+  posts' `"%Hpv"`; `ElectionLemmas` `wp_lease_check`, `prevote_resp_tail`; `Base` `PreVoteEnd.grant'/reject'`).
+- **Change (strengthening of the `stepClose` premise of `raft.Step.spec`; its text is unchanged; lead's route (S)).**
+  `StepEnd c id m ents ctx s s'` is now a `Prop` structure: `gated : StepEndTy m.Type' → StepEndBody …` (the four arms
+  as before), `prevote : ¬ StaleMsg s m → m.Type' = MsgPreVote → PreVoteStepEnd id m ctx s s'` (ignored within the
+  lease, or `PreVoteEnd`: granted iff `VoteGrant s m`, the answer queued, no vote recorded) and `xfer : ¬ StaleMsg s m →
+  m.Type' = MsgTransferLeader → ∃ X b pvs, StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xs := b } } m
+  pvs) m ents ctx s'` (the step function's result at the transfer's ghost record, which `Step` writes before it). A
+  `CoeFun` onto `gated` keeps every reader's `h hty` as it was: no Traced* file changes.
+  `MsgVote`'s ignored arm (and `prevote`'s) carries `Step`'s lease check (raft.go `inLease`, `force`): `s.cq = true ∧
+  s.lead ≠ 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ "CampaignTransfer" ∧ s' = s` (was `s.cq = true ∧ s' = s`); a
+  disjunction still, `electionElapsed` being outside the model (design R1). Branch posts give `StepEndG` (the body on
+  `StepEndTyB` = `StepEndTy` or `MsgTransferLeader`); the close sites build the structure.
+- **Decision.** Lead's decision (route (S), PreVote + (ii)), 2026-11-26. No new axiom, no new top-level premise.

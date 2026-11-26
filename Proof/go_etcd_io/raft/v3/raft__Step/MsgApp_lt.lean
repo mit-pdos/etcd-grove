@@ -64,8 +64,8 @@ theorem wp_Step_MsgApp_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -114,7 +114,7 @@ theorem wp_Step_MsgApp_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG 
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨StepEnd.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
+    exact ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
       and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩
   all_goals -- with pre-vote or `checkQuorum` on, a stale leader message is answered with a
     -- bare `MsgAppResp` at the node's term (2026-10-04, 2026-10-17)
@@ -149,7 +149,7 @@ theorem wp_Step_MsgApp_lt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG 
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.stale ⟨Hterm, Hlt⟩ (.inr ⟨MsgAppResp, absMsgFrom .appResp ack id s.term [],
+    refine ⟨StepEndG.stale ⟨Hterm, Hlt⟩ (.inr ⟨MsgAppResp, absMsgFrom .appResp ack id s.term [],
       .inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inr Hty, rfl⟩, rfl⟩),
       nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl,
       and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩

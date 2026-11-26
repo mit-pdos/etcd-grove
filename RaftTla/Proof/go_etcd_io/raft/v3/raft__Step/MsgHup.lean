@@ -65,8 +65,8 @@ theorem wp_Step_MsgHup {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -145,7 +145,7 @@ theorem wp_Step_MsgHup {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := 
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
-    exact ⟨StepEnd.hup Hty (notStale_of_zero Hterm)
+    exact ⟨StepEndG.hup Hty (notStale_of_zero Hterm)
       (by first | (rw [hupType_pre Hpv]; exact Hok0) | (rw [hupType_el Hpv]; exact Hok0)), Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
       fun h => absurd (Hty.symm.trans h) (by w32_ne), Hpcs⟩

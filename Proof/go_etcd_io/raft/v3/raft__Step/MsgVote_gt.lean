@@ -75,8 +75,8 @@ theorem wp_Step_MsgVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
-        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
-        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEndG`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEndG c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         -- `recv` is whatever this branch consumed -- nothing, or the incoming message
         -- once or twice. Naming its elements rather than the list lets
@@ -251,7 +251,7 @@ theorem wp_Step_MsgVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
+    refine ⟨StepEndG.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
         rw [preState_bf' hbf hlead pvs, ← Hs1]
         exact VoteEnd.reject' Hty (fun h => absurd (Hutd.trans h.2) (by decide))⟩),
       nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
@@ -315,7 +315,7 @@ theorem wp_Step_MsgVote_gt {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨StepEnd.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
+    refine ⟨StepEndG.vote Hty (notStale_of_le (Int.le_of_lt Hgt0)) (.inr ⟨pvs, by
         rw [preState_bf' hbf hlead pvs, ← Hs1]
         exact VoteEnd.grant' Hty ⟨.inr (.inl ⟨Hv1, Hl1⟩), Hutd.symm⟩⟩),
       Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
