@@ -35,8 +35,18 @@ translate = ["!*", "Conn", "Listener", "Addr", "Error",
   "TCPListener", "TCPListener.ok", "TCPListener.Accept", "TCPListener.Close", "TCPListener.Addr",
   "netFD", "ListenConfig", "KeepAliveConfig", "mptcpStatusListen",
   "IP.To4", "isZeros",
-  # UDP (notes/net-udp.md): the address type, translated; `UDPConn` and its modeled calls trusted
-  "UDPAddr"]
+  # UDP (etcd-grove#58, notes/net-udp.md): Go's `UDPConn` (`struct{ conn }`) and its calls down to
+  # the model's `sysListener.listenUDP`, `UDPConn.readFrom`, `UDPConn.writeTo` ([model] below), over
+  # the UDP extension's stubs; `conn`'s methods promoted to `*UDPConn` (so that goose emits their
+  # `MethodUnfold` facts: each reaches a `netFD` model stuck on a datagram socket, U12)
+  "UDPAddr", "UDPAddr.opAddr", "UDPAddr.Network",
+  "UnknownNetworkError", "UnknownNetworkError.Error", "UnknownNetworkError.Timeout",
+  "UnknownNetworkError.Temporary",
+  "sysListener", "ListenUDP", "newUDPConn",
+  "UDPConn", "UDPConn.ok", "UDPConn.ReadFromUDP", "UDPConn.readFromUDP", "UDPConn.WriteToUDP",
+  "UDPConn.Read", "UDPConn.Write", "UDPConn.Close",
+  "UDPConn.SetDeadline", "UDPConn.SetReadDeadline", "UDPConn.SetWriteDeadline",
+  "UDPConn.LocalAddr", "UDPConn.RemoteAddr", "UDPConn.SetReadBuffer", "UDPConn.SetWriteBuffer"]
 imports = ["!*", "io", "time", "errors", "context", "os", "syscall", "internal/poll"]
 # The primitive stubs of the model (models/net/model.go; Net/TrustedCode/net.lean) and `errClosed`'s
 # initializer (it holds `poll.ErrNetClosing`'s value, the only value of its type).
@@ -44,8 +54,9 @@ trusted = ["extListen", "extDial", "extAccept", "extRead", "extWrite", "extClose
   "extCloseWrite", "extSetDeadline", "extSetSockopt",
   "extAnyString", "extAnyW64", "extAnyBool", "extAnyErrno", "netClosingErr", "stuck",
   "errClosed",
-  # UDP (notes/net-udp.md): lean's trusted `UDPConn` and its models, unchanged (etcd-grove#8, (a))
-  "UDPConn", "ListenUDP", "UDPConn.WriteToUDP", "UDPConn.ReadFromUDP"]
+  # UDP (etcd-grove#58): one UDP-extension operation each (GooseLang/Ext/Udp/Impl.lean)
+  "extUdpListen", "extUdpSend", "extUdpRecv", "extUdpAnyString", "extUdpAnyW64", "extUdpAnyBool",
+  "extUdpAnyErrno"]
 
 [model]
 dir = "models/net"
@@ -54,7 +65,8 @@ replaces = ["netFD.Read", "netFD.Write", "netFD.Close", "netFD.closeWrite",
   "setReadBuffer", "setWriteBuffer", "setKeepAlive", "setLinger", "setNoDelay",
   "setKeepAliveIdle",
   "TCPListener.accept", "TCPListener.close",
-  "Listen", "Dial", "DialTimeout", "TCPAddr.String"]
+  "Listen", "Dial", "DialTimeout", "TCPAddr.String",
+  "sysListener.listenUDP", "UDPConn.readFrom", "UDPConn.writeTo", "UDPAddr.String"]
 
 # `net`'s other package variables (the DNS configuration, the error values, the address constants,
 # the test hooks, the system-call hooks) are not translated. Their

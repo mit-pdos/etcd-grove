@@ -91,6 +91,103 @@ noncomputable def init.«1».impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType producerBuilder.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr producerBuilderSingleton))) (Val #())) (Var "$r0")))))))
   (Val #())))
 
+/-- NewServer returns a new Server.
+
+    go: server.go:53:6 -/
+noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Server.ty))) (Let "$v0" (Let "$k0" (Val #(go!""))
+  (Let "$v1" (Val #(W32 1))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty (Var "$v1")))]))))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.string (go.GoType.MapType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Server.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"statusMap")) (ElementExpression (go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"updates")) (ElementExpression (go.GoType.MapType go.string (go.GoType.MapType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "$res0")))))
+
+/-- SetServingStatus is called when need to reset the serving status of a service
+    or insert a new service entry into the statusMap.
+
+    go: server.go:136:18 -/
+noncomputable def Server.SetServingStatus.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "service"
+  (Lam "servingStatus"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "servingStatus" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "servingStatus"))
+  (Let "service" (App (Val (GoInstruction (GoAlloc go.string))) (Var "service"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "service"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "servingStatus"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"setServingStatusLocked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"shutdown"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"health: status changing for %s to %v is ignored because health service is shutdown"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "service")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "servingStatus")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty go!"Infof"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())))) (Var "$a0")) (Var "$a1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s")))) (Val #())))))))))
+  (Val #())))))
+
+/-- go: server.go:147:18 -/
+noncomputable def Server.setServingStatusLocked.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "service"
+  (Lam "servingStatus"
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (Var "s"))
+  (Let "servingStatus" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "servingStatus"))
+  (Let "service" (App (Val (GoInstruction (GoAlloc go.string))) (Var "service"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "servingStatus"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (App (Val (map.lookup1 go.string (go.GoType.MapType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.MapType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"updates"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "service")))
+  (Let "update" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (Var "update"))
+  (Let "$v" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))) (Var "servingStatus"))
+  (App (App (Val (chan.send _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)) (Var "$chan")) (Var "$v")))))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (Var "update"))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (RecvCase _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty (Var "$ch0")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #()))))]))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (Pair (Var "update") (Var "$value"))))))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"statusMap"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "service"))) (Var "$r0")))))))))
+  (Val #())))))
+
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
@@ -248,6 +345,12 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_updates : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"updates") (PairV #x #y) (Val #(({ x with updates' := y } : Server)))
   method_set : go.MethodSetIs Server.ty [(go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.ty), go.error]))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"SetServingStatus", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty), _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty] false [go.error]))), (go!"google.golang.org/grpc/health.setServingStatusLocked", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  testEmbeddedByValue_unfold : MethodUnfold Server.ty go!"testEmbeddedByValue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer.ty go!"testEmbeddedByValue"))) (App (Val (GoInstruction (StructFieldGet Server.ty go!"UnimplementedHealthServer"))) (Var "$r"))))
+  ptr_SetServingStatus_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"SetServingStatus" Server.SetServingStatus.impl
+  ptr_setServingStatusLocked_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"setServingStatusLocked" Server.setServingStatusLocked.impl
+  ptr_testEmbeddedByValue_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"testEmbeddedByValue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer.ty) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"UnimplementedHealthServer"))) (Var "$r"))))
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
@@ -263,6 +366,10 @@ attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.set_updates
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
+  Server.TypeAssumptions.testEmbeddedByValue_unfold
+  Server.TypeAssumptions.ptr_SetServingStatus_unfold
+  Server.TypeAssumptions.ptr_setServingStatusLocked_unfold
+  Server.TypeAssumptions.ptr_testEmbeddedByValue_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   producerBuilder_instance : producerBuilder.TypeAssumptions
@@ -270,6 +377,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Server_instance : Server.TypeAssumptions
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_connectivity_Assumption : _root_.Perennial.google_golang_org.grpc.connectivity.Assumptions
   import_grpc_health_v1_Assumption : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions
@@ -283,6 +391,7 @@ attribute [instance] Assumptions.producerBuilder_instance
   Assumptions.Server_instance
   Assumptions.«init.0_unfold»
   Assumptions.«init.1_unfold»
+  Assumptions.NewServer_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_connectivity_Assumption
   Assumptions.import_grpc_health_v1_Assumption

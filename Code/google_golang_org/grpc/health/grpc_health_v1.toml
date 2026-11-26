@@ -2,7 +2,12 @@
 # (`v3rpc.Server` registers grpc's `*health.Server` with `RegisterHealthServer`) and the serving
 # status the health notifier sets (`HealthCheckResponse_SERVING`, its `String`).
 # The constant is translated (its value), so that the notifier's call steps.
-translate = ["!*", "HealthCheckResponse_SERVING"]
+# (grpc-health, 2026-11-26) with their bodies: `RegisterHealthServer` and the method it calls on a
+# `*health.Server`, `UnimplementedHealthServer.testEmbeddedByValue` (`health_grpc.pb.go`; until then the
+# trust-boundary axiom `RegisterHealthServer.wp_proof`), and `Health_ServiceDesc` with its initializer
+# (until then skipped), the package's fact.
+translate = ["!*", "HealthCheckResponse_SERVING", "RegisterHealthServer",
+  "UnimplementedHealthServer.testEmbeddedByValue", "Health_ServiceDesc"]
 imports = ["!*", "context", "google.golang.org/grpc"]
 
 # translate the definitions of all type declarations goose supports
@@ -21,8 +26,7 @@ trusted = ["init.0"]
 [[skip]]
 names = ["HealthCheckResponse_ServingStatus_name", "HealthCheckResponse_ServingStatus_value",
   "file_grpc_health_v1_health_proto_enumTypes", "file_grpc_health_v1_health_proto_msgTypes",
-  "file_grpc_health_v1_health_proto_goTypes", "file_grpc_health_v1_health_proto_depIdxs",
-  "Health_ServiceDesc"]
+  "file_grpc_health_v1_health_proto_goTypes", "file_grpc_health_v1_health_proto_depIdxs"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.

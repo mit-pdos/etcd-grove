@@ -113,6 +113,9 @@ noncomputable def file_grpc_health_v1_health_proto_rawDescOnce [GooseExts] [GoGl
 noncomputable def file_grpc_health_v1_health_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_rawDescData"
 
+noncomputable def Health_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc/health/grpc_health_v1.Health_ServiceDesc"
+
 noncomputable def file_grpc_health_v1_health_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_rawDescGZIP"
 
@@ -136,6 +139,47 @@ noncomputable def _Health_List_Handler [GooseExts] [GoGlobalContext] : GoString 
 
 noncomputable def _Health_Watch_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health/grpc_health_v1._Health_Watch_Handler"
+
+/-- go: health_grpc.pb.go:199:34 -/
+noncomputable def UnimplementedHealthServer.testEmbeddedByValue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #()))))
+
+/-- go: health_grpc.pb.go:208:6 -/
+noncomputable def RegisterHealthServer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (Seq (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc HealthServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr Health_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert HealthServer.ty go.any))) (App (Val (GoInstruction (GoLoad HealthServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad HealthServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0"))))))))))))))))
+  (Val #()))))
 
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
@@ -166,10 +210,6 @@ has no effect beyond its variable.
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
 has no effect beyond its variable.
-- `Health_ServiceDesc` (`var Health_ServiceDesc = grpc.ServiceDesc{ ServiceName: "grpc.health.v1.Health", HandlerType: (*HealthServer)(nil), Meth … [sha256:ef8bdb981cc6503a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable.
 -/
 noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var HealthCheckResponse_ServingStatus_name = map[int32]string{ 0: \"UNKNOWN\", 1: \"SERVING\", 2: \"NOT_SERVING\", 3: \"SERVICE … [sha256:15b3107d20667d58]"⟩,
@@ -177,8 +217,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_enumTypes = make([]protoimpl.EnumInfo, 1)"⟩,
   ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_msgTypes = make([]protoimpl.MessageInfo, 5)"⟩,
   ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_goTypes = []any{ (HealthCheckResponse_ServingStatus)(0), (*HealthCheckRequest)(nil) … [sha256:2240068ad22f2d1e]"⟩,
-  ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_depIdxs = []int32{ 0, 5, 2, 1, 3, 1, 2, 4, 2, 6, 3, 3, 3, 0, }"⟩,
-  ⟨"google.golang.org/grpc/health/grpc_health_v1.Health_ServiceDesc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Health_ServiceDesc = grpc.ServiceDesc{ ServiceName: \"grpc.health.v1.Health\", HandlerType: (*HealthServer)(nil), Meth … [sha256:ef8bdb981cc6503a]"⟩]
+  ⟨"google.golang.org/grpc/health/grpc_health_v1.file_grpc_health_v1_health_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_grpc_health_v1_health_proto_depIdxs = []int32{ 0, 5, 2, 1, 3, 1, 2, 4, 2, 6, 3, 3, 3, 0, }"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health.grpc_health_v1 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.google_golang_org.grpc]
@@ -191,12 +230,31 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"grpc.health.v1.Health"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType HealthServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (Let "$v0" (Val #(go!"Check"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Health_Check_Handler []))) (Val #()))
+  (Let "$v2" (Val #(go!"List"))
+  (Let "$v3" (App (Val (GoInstruction (FuncResolve _Health_List_Handler []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v1")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v3")))]))]))))))
+  (Let "$v3" (Let "$v0" (Val #(go!"Watch"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _Health_Watch_Handler []))) (Val #()))
+  (Let "$v2" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"StreamName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.google_golang_org.grpc.ServerStream.ty] false [go.error])) (Var "$v1"))), (KeyedElement (some (KeyField go!"ServerStreams")) (ElementExpression go.bool (Var "$v2")))]))])))))
+  (Let "$v4" (Val #(go!"grpc/health/v1/health.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType HealthServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Health_ServiceDesc))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Health_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 
 abbrev HealthCheckResponse_ServingStatus [GooseExts] : Type := w32
 
@@ -375,11 +433,16 @@ class UnimplementedHealthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [G
   underlying : go.UnderlyingDirectedEq UnimplementedHealthServer.ty UnimplementedHealthServer.underlying
   method_set : go.MethodSetIs UnimplementedHealthServer.ty [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty)] false [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty)] false [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType HealthCheckRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)] false [go.error]))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedHealthServer.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty)] false [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty)] false [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType HealthCheckRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)] false [go.error]))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  testEmbeddedByValue_unfold : MethodUnfold UnimplementedHealthServer.ty go!"testEmbeddedByValue" UnimplementedHealthServer.testEmbeddedByValue.impl
+  ptr_testEmbeddedByValue_unfold : MethodUnfold (go.GoType.PointerType UnimplementedHealthServer.ty) go!"testEmbeddedByValue" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve UnimplementedHealthServer.ty go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad UnimplementedHealthServer.ty))) (Var "$r"))))
 
 attribute [instance] UnimplementedHealthServer.TypeAssumptions.type_repr
   UnimplementedHealthServer.TypeAssumptions.underlying
   UnimplementedHealthServer.TypeAssumptions.method_set
   UnimplementedHealthServer.TypeAssumptions.ptr_method_set
+  UnimplementedHealthServer.TypeAssumptions.testEmbeddedByValue_unfold
+  UnimplementedHealthServer.TypeAssumptions.ptr_testEmbeddedByValue_unfold
 
 abbrev UnsafeHealthServer [GooseExts] : Type := GoInterface
 
@@ -407,6 +470,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnimplementedHealthServer_instance : UnimplementedHealthServer.TypeAssumptions
   UnsafeHealthServer_instance : UnsafeHealthServer.TypeAssumptions
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  RegisterHealthServer_unfold : FuncUnfold RegisterHealthServer [] RegisterHealthServer.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
 
@@ -421,6 +485,7 @@ attribute [instance] Assumptions.HealthCheckResponse_ServingStatus_instance
   Assumptions.UnimplementedHealthServer_instance
   Assumptions.UnsafeHealthServer_instance
   Assumptions.«init.0_unfold»
+  Assumptions.RegisterHealthServer_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_grpc_Assumption
 

@@ -63,8 +63,6 @@ axiom grpc.Server.Serve.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcHealthSrv
-axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvAtLis
@@ -72,14 +70,11 @@ axiom grpcSrvNew
 axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
-axiom grpc_health_v1.RegisterHealthServer.wp_proof
 axiom grpc_prometheus.NewServerMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.InitializeMetrics.wp_proof
 axiom grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
-axiom health.NewServer.wp_proof
-axiom health.Server.SetServingStatus.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok

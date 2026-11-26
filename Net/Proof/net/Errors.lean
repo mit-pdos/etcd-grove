@@ -425,8 +425,11 @@ theorem wp_modelFD (id : w64) (nw : GoString) (la ra : GoInterface) (Φ : val �
   unfold fdAt
   iexists _
   iframe «$r0» Hnet
+  isplitr
+  · ipureintro
+    exact ⟨rfl, rfl, rfl, rfl⟩
   ipureintro
-  exact ⟨rfl, rfl, rfl, rfl⟩
+  exact (by decide : (0 : w64) ≠ W64 2)
 
 /-- A new `*TCPConn` for the end `s` of `cn` on the network `nw`, with new addresses. -/
 theorem wp_newConn (cn : Nat) (s : Bool) (a nw : GoString) (Φ : val → IProp GF) :
@@ -528,11 +531,13 @@ theorem wp_fd_Close (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : 
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Close" #fd)) (Val #())) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_method_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extClose cn s a Q $$ Hat HAU as %res HQ %hres
@@ -574,11 +579,13 @@ theorem wp_fd_SetDeadline (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"SetDeadline" #fd)) (Val #tm)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_method_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extSetDeadline cn s a (W64 0) tm Q $$ Hat HAU as %res HQ %hres
@@ -597,11 +604,13 @@ theorem wp_fd_SetReadDeadline (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString)
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"SetReadDeadline" #fd)) (Val #tm)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_method_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extSetDeadline cn s a (W64 1) tm Q $$ Hat HAU as %res HQ %hres
@@ -620,11 +629,13 @@ theorem wp_fd_SetWriteDeadline (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"SetWriteDeadline" #fd)) (Val #tm)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_method_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extSetDeadline cn s a (W64 2) tm Q $$ Hat HAU as %res HQ %hres
@@ -642,11 +653,13 @@ theorem wp_setReadBuffer (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la 
     WP (App (App (Val (@! net.setReadBuffer)) (Val #fd)) (Val #bytes)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_func_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extSetSockopt cn s a (W64 0) (W64 0) Q $$ Hat [HAU] as %res HQ %hres
@@ -665,11 +678,13 @@ theorem wp_setWriteBuffer (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la
     WP (App (App (Val (@! net.setWriteBuffer)) (Val #fd)) (Val #bytes)) {{ Φ }} := by
   iintro #Hfd #Hat HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_func_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extSetSockopt cn s a (W64 0) (W64 0) Q $$ Hat [HAU] as %res HQ %hres
@@ -822,11 +837,13 @@ theorem wp_fd_Read (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : G
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Read" #fd)) (Val #b)) {{ Φ }} := by
   iintro #Hfd #Hat Hsl #Heof #Hed HAU HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   wp_method_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   rw [hid]
   wp_apply wp_extRead cn s a b.len Q $$ Hat HAU as %r HQ %hr
@@ -884,7 +901,7 @@ theorem wp_fd_accept (fd : Loc) (l : w64) (nw : GoString) (x ra : GoInterface) (
       {{ Φ }} := by
   iintro #Hfd Hon HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, #Hnet⟩
+  icases Hfd with ⟨%v, %hv, #Hv, #Hnet, -⟩
   obtain ⟨hid, hnw, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
@@ -948,13 +965,15 @@ theorem wp_fd_Write (fd : Loc) (cn : Nat) (s : Bool) (a nw : GoString) (la ra : 
     WP (App (Val #(methods (go.GoType.PointerType netFD.ty) go!"Write" #fd)) (Val #b)) {{ Φ }} := by
   iintro #Hfd #Hat Hsl #Hed HP #Hacc HΦ
   unfold fdAt
-  icases Hfd with ⟨%v, %hv, #Hv, -⟩
+  icases Hfd with ⟨%v, %hv, #Hv, -, %hso⟩
   obtain ⟨hid, -, -, -⟩ := hv
   iStructNamed Hv
   iStructNamed pfd
   icases ownSlice_len b dq bs $$ Hsl with %Hlen
   icases ownSlice_wf b dq bs $$ Hsl with %Hwf
   wp_method_call; wp_call
+  wp_auto
+  rw [decide_eq_false hso]
   wp_auto
   have hslz : sint.Z b.len = bs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2

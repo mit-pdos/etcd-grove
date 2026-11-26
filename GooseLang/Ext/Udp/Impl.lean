@@ -1,8 +1,8 @@
 /-
 The UDP extension of GooseLang [Trusted definitions!]: the semantics of Go's UDP sockets
 (`net.ListenUDP("udp4", …)`, `(*UDPConn).WriteToUDP`, `(*UDPConn).ReadFromUDP`) for distributed
-programs (Perennial's `DistLang`). The trusted models of those calls (`Net/TrustedCode/net.lean`,
-section "UDP") are written with the operations below.
+programs (Perennial's `DistLang`). `net`'s Go model (`models/net/model.go`) calls the operations
+below, one per stub (`extUdp*`, `Net/TrustedCode/net.lean`).
 
 **Approach.** The network holds, for each address, every datagram sent to it. A send adds a
 datagram; a receive returns any datagram sent to its socket's address and leaves it there. Loss,

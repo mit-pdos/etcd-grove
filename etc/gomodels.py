@@ -155,6 +155,25 @@ TESTS = [
      "blocking Go bodies do not serve); lib/remote/counter is left out: it reads a listener's port "
      "back through Addr().String(), and the model's addresses are arbitrary (D18: anyTCPAddr, "
      "TCPAddr.String), the stubs' Go bodies answering the empty string and port 0"),
+    # (etcd-grove#58) net's UDP model over the UDP extension's stubs (their Go bodies: plain blocking
+    # sockets)
+    ("net-udp", os.path.join("Net", "Code"), "models", ["net"],
+     ["-run", "^TestUDP", "./internal/udpdifftest"],
+     "the UDP difftest (the same tests pass against Go's net: ListenUDP, WriteToUDP, ReadFromUDP, "
+     "short reads, a zero UDPConn, an unknown network, a second bind; shapes where the model is "
+     "arbitrary). Go's own net tests of UDP are left out: each closes its sockets (Close on a "
+     "*UDPConn is not modelled, U12: stuck, which blocks forever in gc builds) and most use what the "
+     "model makes stuck (the networks udp and udp6, wildcard addresses, ListenPacket's and DialUDP's "
+     "connected sockets); kvraft's in-process UDP tests (examples/raft/kvraft, udp_restart_test.go) close "
+     "their sockets too (the next row runs kvraft-udp's processes, which never close theirs)"),
+    # (etcd-grove#58) the real use: kvraft-udp's replicas (kvraft.RunNodeUDP: ListenUDP once,
+    # WriteToUDP, ReadFromUDP, never Close) as processes over the model, killed and restarted, the
+    # checking client's history through porcupine
+    ("net-udp-kvraft", os.path.join("KvRaft", "Code"), "project:kvraft", ["net"],
+     ["-timeout", "300s", "-run", "^TestUDPKill$", "./driver"],
+     "kvraft's driver's TestUDPKill (5 replicas over UDP through the model's ListenUDP/WriteToUDP/"
+     "ReadFromUDP, kills, porcupine; the client over TCP through the TCP model). Left out: "
+     "TestUDPNetns (needs sudo: network namespaces, tc; its faults are the network's, not net's)"),
 ]
 TAGS = "goose,netgo"
 

@@ -7275,3 +7275,35 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
   lands, only the docstring is corrected: it said every protobuf error is a pointer.
 - **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.
+## 2026-11-26: grpc's health specs take their package's `isPkgInit` (grpc-health)
+
+- **Spec.** `health.Server.SetServingStatus.spec` (`Spec/google_golang_org/grpc/health/`) and
+  `grpc_health_v1.RegisterHealthServer.spec` (`Spec/google_golang_org/grpc/health/grpc_health_v1/`),
+  until today the axioms of their `wp_proof`s (`health.NewServer.spec` is unchanged).
+- **Defect.** Neither premised its package's `isPkgInit`, which the proofs over the real code need:
+  `SetServingStatus` takes the server's lock (Perennial's `RWMutex.wp_Lock_guard` takes `sync`'s), and
+  `RegisterHealthServer` reads `Health_ServiceDesc`, which the package's fact (`healthDescs`) describes.
+- **Evidence.** The proofs (`Proof/google_golang_org/grpc/health/`); `health/server.go`,
+  `health/grpc_health_v1/health_grpc.pb.go` (grpc v1.84, `models/grpc`).
+- **Proposed change.** Premise `isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health`
+  (`SetServingStatus`) and `pkg_id.google_golang_org.grpc.health.grpc_health_v1`
+  (`RegisterHealthServer`). The posts are unchanged. Every caller discharges it with `iPkgInit` from
+  `v3rpc`'s `isPkgInit`: `v3rpc.Server` and `v3rpc.healthNotifier.startServe`. No top-level statement
+  changes.
+- **Decision.** Within the approved class (a premise every caller discharges; the user, 2026-11-21).
+- **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction. Fixed 2026-11-26 by nonleaf-status-errs (next entry).
+## 2026-11-26: `proto.MarshalIRR.spec`'s error arm made true (nonleaf-status-errs)
+
+- **Spec.** `applyErrIs` (`Proof/.../etcdserver/apply/Base.lean`), and with it the error arm of `proto.MarshalIRR.spec`;
+  `errKeyOk`.
+- **Defect.** The entry above: Go's invalid-UTF-8 errors are neither leaves (`srvErrOk`) nor, for
+  `errInvalidUTF8{}`, keys (`errKeyOk`).
+- **Evidence.** `notes/axiom-review/nonleaf-status-errs.md` (protobuf-go v1.36.12 file:line; etcd `util.go:98-108`).
+- **Change.** `applyErrIs`'s third conjunct `srvErrOk` → `srvErrOk ∨ notCtxTree` (no context error, the shape of
+  `leasehttp.notLeaseNotFound`, shared as `errors.noMatchTree`): `togRPCError` passes on only context errors, so a
+  `notCtxTree` error never reaches grpc's server as it is. `errInvalidUTF8` translated as its struct
+  (`impl.toml`), and `errKeyOk` gains `errInvalidUTF8{}`. Posts that give `applyErrIs` weaken; the axioms whose
+  preconditions hold contracts posting it are checked against Go one by one in the review note. `statusErrOk`,
+  `srvErrOk` and their receivers are unchanged; no UTF-8 premise.
+- **Decision.** Design (2) approved by the dsverify-net lead and coordinator-E (2026-11-26, in place of widening
+  `statusErrOk`); independent axiom review pending before landing.
