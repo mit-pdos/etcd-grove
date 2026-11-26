@@ -63,8 +63,7 @@ def prRes [π : NetProtoGS] (Γ : DistView) (γR : ServerRaftNames) (addrs : Lis
     typedPointsto (sliceIndexRef GoInterface ((c : Nat) : Int) outs) v (DFrac.own 1) ∗
     typedPointsto (sliceIndexRef Bool ((c : Nat) : Int) oks) ok (DFrac.own 1) ∗
     (⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗
-      ((∃ o, (principalSvcG (Gg := hG.goose_globalGS) Γ γR addrs).ovAt v o ∗ iprop(True)) ∨
-        ⌜(principalSvcG (Gg := hG.goose_globalGS) Γ γR addrs).unkAns (prIn c) v⌝))))
+      ((∃ o : Bool, ⌜v = interface.mkOk go.bool #o⌝ ∗ iprop(True)) ∨ iprop(False)))))
 
 theorem remotePrincipals.wp_proof
     (wp_Principals : etcd_auth.Principals.spec (GF := GF) (hG := hG))
@@ -79,6 +78,7 @@ theorem remotePrincipals.wp_proof
   have hP4 : etcd_auth.principals.length = 4 := rfl
   ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth $$ []
   · iPkgInit
+  (try wp_auto)
   wp_apply wp_Principals as %psl Hpsl
   imod ownSlice_persist _ _ _ $$ Hpsl with #Hpsl
   ihave %Hpl := ownSlice_len _ _ _ $$ Hpsl
@@ -154,9 +154,8 @@ theorem remotePrincipals.wp_proof
   (try wp_auto)
   ihave Hl := bigSepL_range_of ns (fun _ a => iprop(svcAddr (Gg := hG.goose_globalGS)
     (principalSvcG (Gg := hG.goose_globalGS) Γ γR addrs) a ∗ budUnit (Gg := hG.goose_globalGS) a)) $$ Hl
-  rw [akDistEnv_eq_G] at Henv
   wp_apply (wp_reportAll (principalSvcG (Gg := hG.goose_globalGS) Γ γR addrs) nodes insl ns xsL prIn
-      (fun _ _ => iprop(True)) cd _ Htb (by rw [Hk.2.2, Hn4]))
+      (fun _ _ => iprop(True)) cd (W64 180000000000) Htb (by rw [Hk.2.2, Hn4]; try rfl))
       $$ [Htok Hl] as %outs %oks ⟨Htok', %Hlo, Hres⟩
   · iframe #
     iframe Htok
@@ -172,11 +171,17 @@ theorem remotePrincipals.wp_proof
     rw [prIn_eq hw]
     simp only [principalWire]
     isplitr
-    · ipureintro; exact ⟨rfl, principals_small w (List.mem_of_getElem? hw)⟩
+    · ipureintro
+      first
+        | exact ⟨trivial, principals_small w (List.mem_of_getElem? hw)⟩
+        | exact ⟨rfl, principals_small w (List.mem_of_getElem? hw)⟩
+        | exact principals_small w (List.mem_of_getElem? hw)
     isplitr
     · iunfold prP
-      iframe Henv
-      ipureintro; exact List.mem_of_getElem? hw
+      isplitr
+      · rw [← akDistEnv_eq_G]
+        iexact Henv
+      · ipureintro; exact List.mem_of_getElem? hw
     · iintro %o -
       itrivial
   -- the answers counted: `if oks[c] && outs[c].(bool) { n++ }`
@@ -217,7 +222,6 @@ theorem remotePrincipals.wp_proof
     (try simp only [hbo, _root_.and_self, ↓reduceIte])
     (try wp_auto)
     have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
-    simp only [principalWire] at Hq
     icases Hq with (%Hf | ⟨%Ht, (⟨%o, %Ho, -⟩ | %Hu)⟩)
     · -- no answer
       subst Hf
@@ -234,7 +238,9 @@ theorem remotePrincipals.wp_proof
       subst Ho
       (try simp only [hbu, _root_.and_self, ↓reduceIte])
       (try wp_auto)
-      wp_if_destruct
+      (try simp only [hbu, _root_.and_self, ↓reduceIte])
+      (try wp_auto)
+      (try wp_if_destruct)
       all_goals
         (try wp_auto)
         wp_for_post
