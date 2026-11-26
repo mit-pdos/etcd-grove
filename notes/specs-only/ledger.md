@@ -6106,3 +6106,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `Ready`'s untyped messages are read off its queue instead (`xmsgOf`, `XReadyOk`, Q3 item 4). `TransferEndR`'s protocol
   part is now `r'.p = r.p ∨ (leader ∧ to ∈ voters ∧ to ≠ id ∧ SendsEnd)` (the arms that differed only in `xs` merged).
 - **Decision.** Lead's decision (Q3 approved), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim phase 2, stage A): the Sim at `mskB1a` (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean`, `Sim/Stmts.lean` (and the
+  Sim proofs).
+- **Change.** `NodeFacts`' read conjunct is `R.md.reads = false → v.ps.rd.pend = [] ∧ (v.ps.role = .leader →
+  v.ps.rd.ro.pending = [])` (was the leader half only; RnScope's reads conjunct: no deferred read request, which
+  `AppRespEnd`'s new `ReleaseEnd` arm would release). `MsgMask` gains `R.md.reads = false → (m.ty = .heartbeat ∨
+  m.ty = .heartbeatResp) → m.ctx = []` (no read acknowledgement, `HandleEnd .heartbeatResp`'s `ReadAckEnd` arm).
+  `PInitR` gains `r.p.rd.pend = []` (a fresh node, raft's `rInit`). `InputStep`'s `.recvX` transfer arm and `.transfer`
+  arm are `TransferRecvEndR … ∧ xs = []` / `TransferEndR … ∧ xs = []` (48f500bd1e: the relations lost `xs`). The
+  `_in` theorems are at `msk ≤ mskB1a` (`mskS4` with Campaign and non-voters), via interim readings of the end
+  relations below that mask (`Sim/Scope.lean`, retired by stage B).
+- **Decision.** Lead's decisions (Q1, Q2, PInitR, the `xs` arms), 2026-11-26. No new axiom, no new top-level premise.

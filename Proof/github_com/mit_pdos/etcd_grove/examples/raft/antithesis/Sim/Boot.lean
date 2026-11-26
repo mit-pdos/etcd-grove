@@ -94,7 +94,7 @@ theorem antSim_boot : antSim_boot.stmt := by
   have hc : S1.cfg = R.cfg := hsh.1
   have hd := (hno n).disk
   have hm := (hno n).mem
-  obtain ⟨⟨hterm, hvote, _, hrole, _, _, _, hlog, hcommit, _, _, _, _, _, _, hfp⟩, hdel, hdur, hundo, hmems,
+  obtain ⟨⟨hterm, hvote, _, hrole, _, _, _, hlog, hcommit, _, _, _, _, _, _, hfp, -⟩, hdel, hdur, hundo, hmems,
     hcv, hca, hpre, hreads, _, _, htold, _, _⟩ := hfv
   have hct : S1.currentTerm[n.val]! = bootT R := by
     rw [hd.1, hdur]; simp only [durOf]; rw [hterm]; unfold bootT; cases R.boot <;> rfl

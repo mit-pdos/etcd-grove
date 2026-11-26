@@ -160,7 +160,7 @@ variable {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs : List Eve
 theorem RdCtx.rlen (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) : S1.role.length = R.N :=
   hx.hs1.1.2.2.2.2.2.2.1
 
-/-- The new view's binding role: raft's (no pre-candidate below `mskS4`). -/
+/-- The new view's binding role: raft's (no pre-candidate below `mskB1a`). -/
 theorem RdCtx.roleS_w (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) :
     roleS ((V n).afterReady r₁ rd) = roleOf r₁.p.role := by
   show roleStr rd.pre r₁.p.role = _; rw [hx.hpf]; rfl
@@ -549,7 +549,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
     rw [hpr] at hok
     exact hx.finish (ready_of hq0 hm rfl (queued_ready ..) hod) hok
   | camp hbe hnl0 hpt hpv hpr hpl hpc hen =>
-    rw [hen, hbe, hpv, hpr]
+    rw [hen, hpv, hpr]
     have htz : uint.Z r₁.p.term = uint.Z (V n).ps.term + 1 := by
       rw [hpt]; have := htb; word
     have hbtl : S1.bootTerm < uint.Z r₁.p.term := by
@@ -560,9 +560,9 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       rcases (GMap.elem_of_union _ _ _).mp hvo0 with h | h
       · exact h
       · exact absurd h (GMap.not_elem_of_empty _)
-    have hm := inMemory_nl_eq n hc go!"tick" (hbe ▸ hbyE) .candidate (by decide) r₁.p.term (nodeId n)
+    have hm := inMemory_nl_eq n hc (V n).byE hbyE .candidate (by decide) r₁.p.term (nodeId n)
       r₁.p.commit [] (fun _ => by rw [hx.hconf]; exact cin_has_voter n hvo hx.hcf)
-    obtain ⟨p, hpm, hod⟩ := onDisk_camp n hc r₁.p.term r₁.p.commit (S1.role.set n.val (roleOf .candidate))
+    obtain ⟨p, hpm, hod⟩ := onDisk_camp n hc (V n).byE r₁.p.term r₁.p.commit (S1.role.set n.val (roleOf .candidate))
       S1.leaders S1.ledLog S1.chain S1.termLen S1.viol (by rw [htz, d1]) (by rw [hpc, d4])
       (get!_set_self _ hn3)
     have hok := readyOk_plain hx (vo := some (nameOf (nodeId n)))
@@ -597,7 +597,8 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
           rw [rS_votes]; exact mem_lset_add.mpr (.inr rfl))
       (fun h ht => by rw [ht] at htz; omega)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm rfl (queued_other _ _ _ _ _ _ _ _ _ (by decide)) hod) hok
+    exact hx.finish (ready_of hq0 hm rfl (queued_other _ _ _ _ _ _ _ _ _
+      (by rcases hbe with h | h <;> rw [h] <;> decide)) hod) hok
   | adopt m hm hlt hpt hpv hpr hpl hpc hen =>
     rw [hen, hm.1, hpv, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1

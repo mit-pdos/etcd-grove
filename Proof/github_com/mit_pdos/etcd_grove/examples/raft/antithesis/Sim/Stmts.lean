@@ -109,14 +109,14 @@ def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop
     (r : RState) : Input → RState → List XMsg → Prop
   | .recv m, r', xs => RecvEndR Adm (R.k n) (nodeId n) r m r' ∧ xs = []
   | .recvX x, r', xs => (x.ty = .timeoutNow ∧ TimeoutNowEndR (nodeId n) r x r' ∧ xs = []) ∨
-                        (x.ty = .transferLeader ∧ TransferEndR (nodeId n) r x.src r' xs)
+                        (x.ty = .transferLeader ∧ TransferRecvEndR (nodeId n) r x r' ∧ xs = [])
   | .tick, r', xs => TickEndR (R.k n) (nodeId n) r r' ∧ xs = []
   | .propose d, r', xs => RecvEndR Adm (R.k n) (nodeId n) r (propMsg (nodeId n) d) r' ∧ xs = []
   | .proposeConf ty d, r', xs =>
       R.md.confChanges = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r' ∧ xs = []
   | .readIndex c, r', xs => RecvEndR Adm (R.k n) (nodeId n) r (readMsg (nodeId n) c) r' ∧ xs = []
   | .campaign, r', xs => CampaignEndR (R.k n) (nodeId n) r r' ∧ xs = []
-  | .transfer to, r', xs => TransferEndR (nodeId n) r to r' xs
+  | .transfer to, r', xs => TransferEndR (nodeId n) r to r' ∧ xs = []
   | .snapStatus to ok, r', xs => SnapStatusEndR (nodeId n) r r' ∧ xs = []
   | .unreachable _, r', xs => r' = r ∧ xs = []
   | .applyConf _, _, _ => False

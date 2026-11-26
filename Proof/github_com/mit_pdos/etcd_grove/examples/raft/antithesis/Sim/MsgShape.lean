@@ -12,14 +12,14 @@ leader's empty entry (normal) or a received append's entries (the cause's, norma
 message carries no entries, the log's (an append, `AppOk`), or the cause's (a forwarded proposal).
 
 `msgShape_of`: `msgShape.stmt` from `TickHbCtx`, a tick's heartbeats carry no context, which
-`TickEnd` (`Protocol/InputEnd.lean`) says in its heartbeat arm (`x.ctx = []`, lifted from
+`TickEndO` (`Protocol/InputEnd.lean`) says in its heartbeat arm (`x.ctx = []`, lifted from
 `stepLeader`'s exact context, `hbCtx`, `[]` with no read request pending, the RawNode scope's):
 `tickHbCtx`, and `msgShape := msgShape_of tickHbCtx`.
 
 `dst_reach` (#33 S4, destinations): every message of the state a `Ready` is taken at to another
 node is to one of the three (`DstIn`): a response to the handled message's sender (a node,
 `NetOk`), a leader's appends and heartbeats to the configuration's peers (`AppSendOk`'s and
-`TickEnd`'s `c.ids`, `cfgM3`'s the three), a campaign's requests to the voters, a forwarded proposal
+`TickEndO`'s `c.ids`, `cfgM3`'s the three), a campaign's requests to the voters, a forwarded proposal
 to the leader hint (`LeadIn`, a node or none). `msgShape_of` concludes `ReadyMsgsToVoters` from it.
 -/
 module
@@ -107,8 +107,8 @@ theorem entsNormal_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
     (hent : m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) (hl : EntsNormal s.log)
-    (h : HandleEnd kk c id s m s') : EntsNormal s'.log := by
-  unfold HandleEnd at h
+    (h : HandleEndO kk c id s m s') : EntsNormal s'.log := by
+  unfold HandleEndO at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> exact hl
   · split at h
@@ -125,7 +125,7 @@ theorem entsNormal_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
       · exact entsNormal_maybeAppend hma hl (hent (.inl hty))
       · exact hl
   · split at h
-    · unfold AppRespEnd at h
+    · unfold AppRespEndO at h
       rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩
       · exact hl
       · obtain ⟨ms, -, rfl⟩ := hs; exact hl
@@ -151,7 +151,7 @@ theorem entsNormal_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
     (hent : m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) (hl : EntsNormal s.log)
-    (h : RecvEnd kk c id s m s') : EntsNormal s'.log := by
+    (h : RecvEndO kk c id s m s') : EntsNormal s'.log := by
   rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact entsNormal_handle hsc hent hl hh
   · exact hl
@@ -159,11 +159,11 @@ theorem entsNormal_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     exact entsNormal_handle hsc hent (hl1 ▸ hl) hh
 
 theorem entsNormal_tick {c : CfgM} {id : w64} {s s' : PState} (hl : EntsNormal s.log)
-    (h : TickEnd kk c id s s') : EntsNormal s'.log := by
+    (h : TickEndO kk c id s s') : EntsNormal s'.log := by
   rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩ <;> exact hl
 
 theorem entsNormal_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg}
-    (h : AdvanceEnd kk c id s qs s') (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
+    (h : AdvanceEndO kk c id s qs s') (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp)
     (hl : EntsNormal s.log) : EntsNormal s'.log := by
   induction h with
   | nil => exact hl
@@ -181,6 +181,17 @@ def MShape (md : RnMode) (id : w64) (c : Option Msg) (q : Msg) : Prop :=
   q.src = id ∧ (NetTy md q.ty ∨ q.ty = .propose) ∧ EntsNormal q.entries ∧
   (q.ty = .heartbeatResp → ∃ m, c = some m ∧ m.ty = .heartbeat ∧ q.ctx = m.ctx) ∧
   (q.ty = .heartbeat → q.ctx = [])
+
+/-- Without reads an `MShape` heartbeat or response has no context: a response echoes the handled
+heartbeat's, which (on the network) has none (`MsgMask`). -/
+theorem mshape_ctx {R : RunCfg} {S : AntCheck.State} {net : List Msg} {id : w64} {c : Option Msg}
+    {q : Msg} (hnet : NetOk R S net) (hc : ∀ m, c = some m → m ∈ net) (hq : MShape R.md id c q) :
+    R.md.reads = false → (q.ty = .heartbeat ∨ q.ty = .heartbeatResp) → q.ctx = [] := by
+  intro hrd hh
+  rcases hh with hh | hh
+  · exact hq.2.2.2.2 hh
+  · obtain ⟨m, hcm, hmt, hx⟩ := hq.2.2.2.1 hh
+    rw [hx]; exact (hnet.2.2.2.2 m (hc m hcm)).2.2.2 hrd (.inl hmt)
 
 /-- Every message of `s`'s outbox to another node is `MShape`. -/
 def OutShape (md : RnMode) (id : w64) (c : Option Msg) (s : PState) : Prop :=
@@ -252,8 +263,8 @@ theorem outShape_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
     (hent : m.ty = .propose → EntsNormal m.entries)
-    (h : HandleEnd kk c id s m s') : OutShape md id (some m) s' := by
-  unfold HandleEnd at h
+    (h : HandleEndO kk c id s m s') : OutShape md id (some m) s' := by
+  unfold HandleEndO at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · exact outShape_single hX (mshape_plain (by simp [NetTy]) (by decide) (by decide))
@@ -269,7 +280,7 @@ theorem outShape_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.
     · rcases h with ⟨-, rfl⟩ | ⟨-, lastnewi, es', -, rfl⟩ | ⟨-, -, hint, hintterm, -, -, rfl⟩ <;>
         exact outShape_single hX (mshape_mk (by simp [NetTy]) (by decide) (by decide))
   · split at h
-    · unfold AppRespEnd at h
+    · unfold AppRespEndO at h
       rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩
       · exact outShape_nil hX
       · exact outShape_sends hX hl hs
@@ -291,7 +302,7 @@ theorem outShape_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.ou
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
     (hent : m.ty = .propose → EntsNormal m.entries)
-    (h : RecvEnd kk c id s m s') : OutShape md id (some m) s' := by
+    (h : RecvEndO kk c id s m s') : OutShape md id (some m) s' := by
   rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact absurd h0 hm0
   · exact outShape_nil hX
@@ -301,7 +312,7 @@ theorem outShape_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hX : s.ou
 /-- A tick's messages: vote requests, a leader's heartbeats (their context `hbCtx` of the read-only
 queue, empty when no read request is pending at a leader, `hro`). -/
 theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
-    (hro : s.role = .leader → s.rd.ro.pending = []) (hX : s.outbox = []) (h : TickEnd kk c id s s') :
+    (hro : s.role = .leader → s.rd.ro.pending = []) (hX : s.outbox = []) (h : TickEndO kk c id s s') :
     OutShape md id cm s' := by
   rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨hr, ms, hms, rfl⟩
   · exact outShape_nil hX
@@ -319,7 +330,7 @@ theorem outShape_tick {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState}
 /-- `Advance`'s messages: a leader's `MsgApp`s of the end log (`adv_run`). -/
 theorem outShape_advance {c : CfgM} {id : w64} {cm : Option Msg} {s s' : PState} {qs : List Msg}
     (hX : s.outbox = []) (hl : EntsNormal s'.log) (hq : ∀ q ∈ qs, SelfMsg id s.term q)
-    (h : AdvanceEnd kk c id s qs s') : OutShape md id cm s' := by
+    (h : AdvanceEndO kk c id s qs s') : OutShape md id cm s' := by
   have hinv : AdvInv id s.term s.commit s' := adv_run h hq (advInv_nil rfl (Int.le_refl _) hX)
   intro x hx hne
   exact mshape_app hl ((hinv.2.2 x hx).2.1 hne).1
@@ -344,18 +355,18 @@ theorem advanceEndR_fp {Adm : List EntryM → CCState → Prop} {dec : CCDec} {k
     exact (ih (fun x hx => hq x (List.mem_cons_of_mem _ hx))).trans
       (recvEndR_fp hr (hq q (List.mem_cons_self ..)))
 
-/-- **The ghost prefix is kept along `Reach`** (for the runs a mask below `mskS4` admits: no
+/-- **The ghost prefix is kept along `Reach`** (for the runs a mask below `mskB1a` admits: no
 snapshot is received). -/
-theorem reach_fp {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+theorem reach_fp {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
     (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) :
     r₁.fp = v.r.fp := by
-  obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   cases hr with
   | stay _ => rfl
   | input inp _ _ hinp _ _ _ _ hm _ hs =>
-    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, -⟩ := hm m rfl
       exact recvEndR_fp hs.1 (by rcases hty m hmn with h | h | h | h | h | h | h <;> rw [h] <;> decide)
     · exact hs.1.2.2.1
@@ -371,8 +382,8 @@ theorem entsNormal_full {r : RState} (h : EntsNormal r.full) : EntsNormal r.fp �
 
 /-- **The log and the messages of the state a `Ready` is taken at**: the full log normal, every
 message to another node `MShape` (the cause's context for a heartbeat response). For the runs a mask
-below `mskS4` admits; a leader with no read request pending (`hro`). -/
-theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+below `mskB1a` admits; a leader with no read request pending (`hro`). -/
+theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
@@ -380,7 +391,7 @@ theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : C
     (hro : v.ps.role = .leader → v.ps.rd.ro.pending = [])
     (hcm : ∀ m, v.cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) :
     EntsNormal r₁.full ∧ OutShape R.md (nodeId n) v.cause r₁.p := by
-  obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hX := hv.facts.outbox
   have hqs := hv.qs
   have hfp := reach_fp hmsk hin hv hr
@@ -390,24 +401,24 @@ theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : C
   cases hr with
   | stay _ => exact ⟨hfl, outShape_nil hX⟩
   | input inp _ _ hinp _ hbe hca _ hmm _ hst =>
-    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, hm0⟩ := hmm m rfl
       have hsc := ty7_of_s4 (hty m hmn)
       have hme := hcm m hca
-      have hl' := entsNormal_recv hsc hme hl hst.1.1
+      have hl' := entsNormal_recv hsc hme hl (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)
       rw [hca]
-      exact ⟨hfull hl', outShape_recv hX hm0 hl' hsc (fun h => hme (.inr h)) hst.1.1⟩
-    · exact ⟨hfull (entsNormal_tick hl hst.1.1), outShape_tick hro hX hst.1.1⟩
+      exact ⟨hfull hl', outShape_recv hX hm0 hl' hsc (fun h => hme (.inr h)) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)⟩
+    · exact ⟨hfull (entsNormal_tick hl (TickEnd.toO_in hmsk hin hst.1.1)), outShape_tick hro hX (TickEnd.toO_in hmsk hin hst.1.1)⟩
     · have hpe : EntsNormal (propMsg (nodeId n) d).entries := by
         intro e he; simp only [propMsg, List.mem_singleton] at he; rw [he]
-      rcases hst.1.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      rcases (RecvEnd.toO_prop hmsk hin hv hst.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · have hl' := entsNormal_handle (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr rfl))))))
           (fun _ => hpe) hl hh
         exact ⟨hfull hl', outShape_propose hX hl' hpe hh⟩
       · exact absurd rfl h0
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
-    have ha' := advanceEndR_toP ha
+    have ha' := advanceEndR_toO hmsk hin hv ha
     have hl' := entsNormal_adv ha'
       (fun q hq => (hqs q hq).2.2.2.2.imp (fun h => h.1) (fun h => h.1)) hl
     refine ⟨hfull hl', outShape_advance hX hl' (fun q hq => ?_) ha'⟩
@@ -490,8 +501,8 @@ theorem dstIn_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hc : CfgIn
     (hX : DstIn N id s) (hl : LeadIn N s) (hsn : ∃ j : Fin N, m.src = nodeId j)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
-    (h : HandleEnd kk c id s m s') : DstIn N id s' := by
-  unfold HandleEnd at h
+    (h : HandleEndO kk c id s m s') : DstIn N id s' := by
+  unfold HandleEndO at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · exact dstIn_one rfl hX rfl hsn
@@ -509,7 +520,7 @@ theorem dstIn_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hc : CfgIn
       · exact dstIn_one rfl hX rfl hsn
       · exact dstIn_one rfl hX rfl hsn
   · split at h
-    · unfold AppRespEnd at h
+    · unfold AppRespEndO at h
       rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩
       · exact hX
       · exact dstIn_sends hc hs hX
@@ -527,7 +538,7 @@ theorem dstIn_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hc : CfgIn N
     (hX : DstIn N id s) (hl : LeadIn N s) (hsn : ∃ j : Fin N, m.src = nodeId j)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
-    (h : RecvEnd kk c id s m s') : DstIn N id s' := by
+    (h : RecvEndO kk c id s m s') : DstIn N id s' := by
   rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact dstIn_handle hc hX hl hsn hsc hh
   · exact hX
@@ -543,7 +554,7 @@ theorem dstIn_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hc : CfgIn N
     exact dstIn_handle hc (fun q hq => hX q (ho ▸ hq)) hl1 hsn hsc hh
 
 theorem dstIn_tick {c : CfgM} {id : w64} {s s' : PState} (hc : CfgIn N c) (hX : s.outbox = [])
-    (h : TickEnd kk c id s s') : DstIn N id s' := by
+    (h : TickEndO kk c id s s') : DstIn N id s' := by
   rcases h with rfl | ⟨-, -, peers, cl, hp, rfl⟩ | ⟨-, ms, hms, rfl⟩
   · exact dstIn_nil hX
   · intro q hq hne
@@ -561,7 +572,7 @@ leader hint. -/
 theorem dstIn_adv {c : CfgM} {R : RunCfg} {n : Fin R.N} {s s' : PState} {qs : List Msg} (hc : CfgIn R.N c)
     (hX : DstIn R.N (nodeId n) s) (hl : LeadHint R.N (nodeId n) s)
     (hq : ∀ q ∈ qs, (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = nodeId n)
-    (ha : AdvanceEnd kk c (nodeId n) s qs s') : DstIn R.N (nodeId n) s' := by
+    (ha : AdvanceEndO kk c (nodeId n) s qs s') : DstIn R.N (nodeId n) s' := by
   induction ha with
   | nil => exact hX
   | cons s s1 s' q qs hr _ ih =>
@@ -576,13 +587,13 @@ theorem dstIn_adv {c : CfgM} {R : RunCfg} {n : Fin R.N} {s s' : PState} {qs : Li
       (fun x hx => hq x (List.mem_cons_of_mem _ hx))
 
 /-- **The destinations of the messages of the state a `Ready` is taken at**: every one to another
-node is to a server. For the runs a mask below `mskS4` admits (the initial configuration). -/
-theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+node is to a server. For the runs a mask below `mskB1a` admits (the initial configuration). -/
+theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : DstIn R.N (nodeId n) r₁.p := by
-  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hX := hv.facts.outbox
   have hqs := hv.qs
   have hlo : LeadHint R.N (nodeId n) v.ps := hv.leadOk
@@ -591,17 +602,17 @@ theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCD
   cases hr with
   | stay _ => exact dstIn_nil hX
   | input inp _ _ hinp _ _ _ _ hm _ hs =>
-    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, -⟩ := hm m rfl
       obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1
-      exact dstIn_recv hc (dstIn_nil hX) hlo.2 ⟨i, hi⟩ (ty7_of_s4 (hty m hmn)) hs.1.1
-    · exact dstIn_tick hc hX hs.1.1
-    · rcases hs.1.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact dstIn_recv hc (dstIn_nil hX) hlo.2 ⟨i, hi⟩ (ty7_of_s4 (hty m hmn)) (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1)
+    · exact dstIn_tick hc hX (TickEnd.toO_in hmsk hin hs.1.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact dstIn_propose hc hlo.2 hh (dstIn_nil hX)
       · exact absurd rfl h0
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
-    refine dstIn_adv hc (dstIn_nil hX) hlo (fun q hq => ?_) (advanceEndR_toP ha)
+    refine dstIn_adv hc (dstIn_nil hX) hlo (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha)
     obtain ⟨h1, -, -, -, h5⟩ := hqs q hq
     exact ⟨h5.imp (fun h => h.1) (fun h => h.1), h1⟩
 
@@ -609,7 +620,7 @@ theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCD
 nodes, `ReadyOutP`): the full log normal; every message to another node from the node, of a type the
 network carries or a proposal, its entries normal, a heartbeat response's context the handled
 heartbeat's. -/
-theorem msgShape_core {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+theorem msgShape_core {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {ms : List Msg}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
@@ -624,10 +635,10 @@ theorem msgShape_core {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec :
   rw [List.mem_filter] at hq'
   exact ho q hq'.1 (of_decide_eq_true hq'.2)
 
-/-- **`msgShape.stmt`'s conclusion over `ReachIn`**, for the runs a mask below `mskS4` admits, a
+/-- **`msgShape.stmt`'s conclusion over `ReachIn`**, for the runs a mask below `mskB1a` admits, a
 leader with no read request pending (`hro`): a heartbeat response echoes the handled heartbeat's
 context, `[]` by the premise; the destinations by `dst_reach`. -/
-theorem msgShape_in_of {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+theorem msgShape_in_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
@@ -652,9 +663,9 @@ theorem msgShape_in_of {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec 
   · obtain ⟨m, hc, hmt, hx⟩ := h4 hh
     rw [hx]; exact (hcm m hc).2 hrd hmt
 
-/-- **`msgShape.stmt` over `ReachIn`**, for the runs a mask below `mskS4` admits: `msgShape_in_of`,
+/-- **`msgShape.stmt` over `ReachIn`**, for the runs a mask below `mskB1a` admits: `msgShape_in_of`,
 a leader having no read request pending without reads (`NodeFacts.roPend`). -/
-theorem msgShape_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
+theorem msgShape_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
     ∀ (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (S : AntCheck.State)
       (net : List Msg) (xnet : List XMsg) (n : Fin R.N) (v : NodeView) (r₁ : RState)
       (xs : List XMsg) (rd : ReadyD),
@@ -666,20 +677,23 @@ theorem msgShape_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
       EntsHarness r₁.full ∧ (∀ q ∈ rd.msgs ++ rd.resp, ReadyMsgShape R.md (nodeId n) q) ∧
       ReadyMsgsToVoters R.N rd := by
   intro R dec Adm S net xnet n v r₁ xs rd hin hnet hv hr hmsg hfl hcm
-  have hrd : R.md.reads = false := by rw [(hin.s4 hmsk).1]
+  have hrd : R.md.reads = false := by rw [(hin.b1a hmsk).1]
   exact msgShape_in_of hmsk hin hnet hv hr hmsg hfl (hv.facts.roPend hrd) hcm
 
 
-/-! ## What `Reach` keeps (the masks below `mskS4`) -/
+/-! ## What `Reach` keeps (the masks below `mskB1a`) -/
 
-/-- A leader has no read request pending (`NodeFacts.roPend`'s body at a protocol state). -/
-def RoOk (s : PState) : Prop := s.role = .leader → s.rd.ro.pending = []
+/-- No read request deferred, and a leader has none pending (`NodeFacts.roPend`'s body at a
+protocol state). -/
+def RoOk (s : PState) : Prop := s.rd.pend = [] ∧ (s.role = .leader → s.rd.ro.pending = [])
 
-theorem roOk_win {id : w64} {s : PState} {mt : GMap w64 w64} : RoOk (pwinState id s mt) :=
-  fun _ => rfl
+theorem roOk_win {id : w64} {s : PState} {mt : GMap w64 w64} (hp : s.rd.pend = []) :
+    RoOk (pwinState id s mt) :=
+  ⟨hp, fun _ => rfl⟩
 
-theorem roOk_winEnd {c : CfgM} {id : w64} {X s' : PState} (h : WinEnd c id X s') : RoOk s' := by
-  obtain ⟨mt, ms, -, -, rfl⟩ := h; exact fun _ => rfl
+theorem roOk_winEnd {c : CfgM} {id : w64} {X s' : PState} (h : WinEnd c id X s')
+    (hp : X.rd.pend = []) : RoOk s' := by
+  obtain ⟨mt, ms, -, -, rfl⟩ := h; exact ⟨hp, fun _ => rfl⟩
 
 theorem roOk_sends {c : CfgM} {id : w64} {X s' : PState} (h : SendsEnd c id X s') (hX : RoOk X) :
     RoOk s' := by
@@ -697,30 +711,30 @@ theorem roOk_propose {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : Propos
     · subst h; exact hs
 
 theorem roOk_appEnd {id : w64} {X s' : PState} {m : Msg} (h : AppEnd id X m s')
-    (hX : X.role = .follower) : RoOk s' := by
+    (hX : X.role = .follower) (hp : X.rd.pend = []) : RoOk s' := by
   rcases h with ⟨-, rfl⟩ | ⟨-, lastnewi, es', -, rfl⟩ | ⟨-, -, hint, hintterm, -, -, rfl⟩ <;>
-    exact fun h => by simp [psendMsgs, hX] at h
+    exact ⟨hp, fun h => by simp [psendMsgs, hX] at h⟩
 
 /-- The type switch keeps `RoOk`: every arm keeps the read-only queue and the role, makes the node
 a follower, or makes it leader (`pbecomeLeader` resets the queue). -/
 theorem roOk_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
-    (h : HandleEnd kk c id s m s') : RoOk s' := by
-  unfold HandleEnd at h
+    (h : HandleEndO kk c id s m s') : RoOk s' := by
+  unfold HandleEndO at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> exact hs
   · split at h
     · rcases h with ⟨-, rfl⟩ | ⟨-, hw⟩ | ⟨-, rfl⟩
       · exact hs
-      · exact roOk_winEnd hw
-      · exact fun h => by simp [pbecomeFollower] at h
+      · exact roOk_winEnd hw hs.1
+      · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
     · subst h; exact hs
   · split at h
     · subst h; exact hs
-    · exact roOk_appEnd h rfl
+    · exact roOk_appEnd h rfl hs.1
   · split at h
-    · unfold AppRespEnd at h
+    · unfold AppRespEndO at h
       rcases h with ⟨-, rfl⟩ | ⟨-, -, hs'⟩ | ⟨-, x, n, -, -, hs'⟩
       · exact hs
       · exact roOk_sends hs' hs
@@ -728,7 +742,7 @@ theorem roOk_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s
     · subst h; exact hs
   · split at h
     · subst h; exact hs
-    · subst h; exact fun h => by simp [psendMsgs, padoptLeader] at h
+    · subst h; exact ⟨hs.1, fun h => by simp [psendMsgs, padoptLeader] at h⟩
   · split at h
     · exact roOk_sends h hs
     · subst h; exact hs
@@ -737,24 +751,24 @@ theorem roOk_handle {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s
 theorem roOk_recv {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (hs : RoOk s)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose)
-    (h : RecvEnd kk c id s m s') : RoOk s' := by
+    (h : RecvEndO kk c id s m s') : RoOk s' := by
   rcases h with ⟨-, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact roOk_handle hs hsc hh
   · exact hs
   · refine roOk_handle ?_ hsc hh
     rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
-    · exact fun h => by simp [pbecomeFollower] at h
+    · exact ⟨hs.1, fun h => by simp [pbecomeFollower] at h⟩
     · exact hs
 
-theorem roOk_tick {c : CfgM} {id : w64} {s s' : PState} (hs : RoOk s) (h : TickEnd kk c id s s') :
+theorem roOk_tick {c : CfgM} {id : w64} {s s' : PState} (hs : RoOk s) (h : TickEndO kk c id s s') :
     RoOk s' := by
   rcases h with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
   · exact hs
-  · exact fun h => by simp [psendMsgs, pbecomeCandidate] at h
+  · exact ⟨hs.1, fun h => by simp [psendMsgs, pbecomeCandidate] at h⟩
   · exact hs
 
 theorem roOk_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (hs : RoOk s)
-    (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp) (h : AdvanceEnd kk c id s qs s') :
+    (hq : ∀ q ∈ qs, q.ty = .appResp ∨ q.ty = .voteResp) (h : AdvanceEndO kk c id s qs s') :
     RoOk s' := by
   induction h with
   | nil => exact hs
@@ -765,26 +779,27 @@ theorem roOk_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (hs : RoO
 
 /-- **A leader has no read request pending along `Reach`** (`NodeFacts.roPend` at the state a
 `Ready` is taken at). -/
-theorem reach_roOk {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+theorem reach_roOk {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
-    (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : RoOk r₁.p := by
-  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
-  have hs : RoOk v.ps := hv.facts.roPend (by rw [hmd])
+    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) :
+    RoOk r₁.p := by
+  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
+  have hs : RoOk v.ps := ⟨hv.facts.pend0 (by rw [hmd]), hv.facts.roPend (by rw [hmd])⟩
   cases hr with
   | stay _ => exact hs
   | input inp _ _ hinp _ _ _ _ hm _ hst =>
-    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, -⟩ := hm m rfl
-      exact roOk_recv hs (ty7_of_s4 (hty m hmn)) hst.1.1
-    · exact roOk_tick hs hst.1.1
-    · rcases hst.1.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact roOk_recv hs (ty7_of_s4 (hty m hmn)) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)
+    · exact roOk_tick hs (TickEnd.toO_in hmsk hin hst.1.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hst.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact roOk_propose hh hs
       · exact absurd rfl h0
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     exact roOk_adv hs (fun q hq => ((hv.qs q hq).2.2.2.2).imp (fun h => h.1) (fun h => h.1))
-      (advanceEndR_toP ha)
+      (advanceEndR_toO hmsk hin hv ha)
 
 /-- A received message other than a snapshot keeps the configuration, the ghost prefix and the
 restored flag. -/
@@ -808,24 +823,24 @@ theorem advanceNoSnap_keep {Adm : List EntryM → CCState → Prop} {dec : CCDec
 
 /-- **`Reach` keeps the configuration, the ghost prefix and the restored flag**, queues no transfer
 message, and starts with nothing pending. -/
-theorem reach_keep {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+theorem reach_keep {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
     (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) :
     (r₁.cfg = v.r.cfg ∧ r₁.fp = v.r.fp ∧ r₁.snap = v.r.snap) ∧ xs = [] ∧ v.pend = [] ∧
       v.xpend = [] := by
-  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   cases hr with
   | stay hi => exact ⟨⟨rfl, rfl, rfl⟩, rfl, hi.2.1, hi.2.2.1⟩
   | input inp _ _ hinp hi _ _ _ hm _ hst =>
     refine ⟨?_, ?_, hi.2.1, hi.2.2.1⟩
-    · rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    · rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
       · obtain ⟨hmn, -, -⟩ := hm m rfl
         exact recvEndR_keep hst.1
           (by rcases hty m hmn with h | h | h | h | h | h | h <;> rw [h] <;> decide)
       · exact ⟨hst.1.2.1.2.2, hst.1.2.2.1, hst.1.2.2.2.1⟩
       · exact recvEndR_keep hst.1 (by simp [propMsg])
-    · rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    · rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
       · exact hst.2
       · exact hst.2
       · exact hst.2

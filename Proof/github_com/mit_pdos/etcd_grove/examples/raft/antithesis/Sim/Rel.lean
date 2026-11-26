@@ -188,12 +188,13 @@ def PInit (ps : PState) : Prop :=
 /-- **A node of the run `R` at its start** (`NewRawNode` on the fresh storage, or on the bootstrapped
 one: `HardState{Term: 1}` and the boot entry): term 0 or 1, no vote, no leader, follower, no tally,
 empty outbox, the log `bootLog R` from `base0`, commit 0, no `Match`; nothing applied, no pending
-conf index, no snapshot, at the initial configuration, no ghost prefix. -/
+conf index, no snapshot, at the initial configuration, no ghost prefix, no deferred read request. -/
 def PInitR (R : RunCfg) (r : RState) : Prop :=
   r.p.term = W64 (if R.boot then 1 else 0) ∧ r.p.vote = W64 0 ∧ r.p.lead = W64 0 ∧
   r.p.role = .follower ∧ r.p.votes = ∅ ∧ r.p.outbox = [] ∧ r.p.base = base0 ∧
   r.p.log = bootLog R ∧ r.p.commit = W64 0 ∧ r.p.matched = ∅ ∧
-  r.applied = W64 0 ∧ r.pci = W64 0 ∧ r.snap = false ∧ r.cidx = 0 ∧ r.cfg = R.c0 ∧ r.fp = []
+  r.applied = W64 0 ∧ r.pci = W64 0 ∧ r.snap = false ∧ r.cidx = 0 ∧ r.cfg = R.c0 ∧ r.fp = [] ∧
+  r.p.rd.pend = []
 
 /-- A log from index 1 whose entries carry their positions as indices (`PlogWf`'s index part): the
 binding's positions (`TermAt`, `SubSeq`, an `apply`'s `first`) are raft's indices. -/
@@ -281,10 +282,12 @@ def NetTy (md : RnMode) (ty : MsgType) : Prop :=
 
 /-- **A message under the run's mask** (`MsgMask`): without conf changes an append's or a
 proposal's entries are normal; without snapshots it is no snapshot; it is of a type the network
-carries under the run's features, or a (forwarded) proposal. -/
+carries under the run's features, or a (forwarded) proposal; without reads a heartbeat or its
+response carries no context (a leader's queue is empty, `hbCtx`, and a response echoes it). -/
 def MsgMask (R : RunCfg) (m : Msg) : Prop :=
   (R.md.confChanges = false → (m.ty = .app ∨ m.ty = .propose) → EntsNormal m.entries) ∧
-  (R.md.snapshots = false → m.ty ≠ .snap) ∧ (NetTy R.md m.ty ∨ m.ty = .propose)
+  (R.md.snapshots = false → m.ty ≠ .snap) ∧ (NetTy R.md m.ty ∨ m.ty = .propose) ∧
+  (R.md.reads = false → (m.ty = .heartbeat ∨ m.ty = .heartbeatResp) → m.ctx = [])
 
 /-- **C1, raft's side**: the outbox empty between `Ready`s (taken by the last one); without
 snapshots the log from `base0`, no ghost prefix and no snapshot restored; without conf changes the
@@ -293,7 +296,7 @@ positions; what was handed out (`delivered`, and in a drain `ce`) a prefix of th
 its commit; the `Ready`'s messages not yet sent under the mask (`MsgMask`); the disk's term within
 raft's (a write is of a state raft had, and terms only grow: what `GC` needs to keep a leader's and a
 candidate's records at raft's term); a reported pre-candidate is a follower to raft (`toPState`), so
-that a leader's binding role is `leader`; without reads a leader has no read request pending (it
+that a leader's binding role is `leader`; without reads no read request is deferred (`rd.pend`, which only `MsgReadIndex` fills) and a leader has none pending (it
 becomes leader with the read-only queue reset, `pbecomeLeader`, and none is queued without reads:
 a tick's heartbeats carry no context, `hbCtx`); a reported pre-candidate is at a node with
 pre-vote on (a `Ready` reports `PreCandidate` only when raft campaigned with pre-vote). -/
@@ -305,7 +308,7 @@ def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit ∧
   (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term ∧
   (v.pre = true → v.ps.role = .follower) ∧
-  (R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = []) ∧
+  (R.md.reads = false → v.ps.rd.pend = [] ∧ (v.ps.role = .leader → v.ps.rd.ro.pending = [])) ∧
   (v.pre = true → (R.k n).prevote = true)
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
@@ -575,7 +578,11 @@ theorem NodeFacts.preRole {R : RunCfg} {n : Fin R.N} {v : NodeView}
 theorem NodeFacts.roPend {R : RunCfg} {n : Fin R.N} {v : NodeView}
     (h : NodeFacts R n v) :
     R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = [] :=
-  h.2.2.2.2.2.2.2.2.2.1
+  fun hr => (h.2.2.2.2.2.2.2.2.2.1 hr).2
+
+theorem NodeFacts.pend0 {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) : R.md.reads = false → v.ps.rd.pend = [] :=
+  fun hr => (h.2.2.2.2.2.2.2.2.2.1 hr).1
 
 theorem NodeFacts.preVote {R : RunCfg} {n : Fin R.N} {v : NodeView}
     (h : NodeFacts R n v) :

@@ -190,9 +190,9 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
     (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose) (hmp : m.ty = .propose → MsgNums K m)
-    (h : HandleEnd kk c id s1 m s') : OutNums K id s' := by
+    (h : HandleEndO kk c id s1 m s') : OutNums K id s' := by
   have hK := hs.1
-  unfold HandleEnd at h
+  unfold HandleEndO at h
   rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · intro q hq _
@@ -209,7 +209,7 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
     · subst h; exact outNums_nil hX
     · exact outNums_appEnd (X := padoptLeader s1 m.src) hX hb hs hm (hpay hty) h
   · split at h
-    · unfold AppRespEnd at h
+    · unfold AppRespEndO at h
       rcases h with ⟨-, rfl⟩ | ⟨-, -, hs'⟩ | ⟨-, x, n, -, -, hs'⟩
       · exact outNums_nil hX
       · exact outNums_sends hX hs hs'
@@ -226,13 +226,13 @@ theorem outNums_handle {K : Int} {c : CfgM} {id : w64} {s1 s' : PState} {m : Msg
     · subst h; exact outNums_nil hX
   · exact outNums_propose hX hs (hmp hty) h
 
-/-- A received message's step (`RecvEnd`), its term not `0`. -/
+/-- A received message's step (`RecvEndO`), its term not `0`. -/
 theorem outNums_recv {K : Int} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hX : s.outbox = []) (hb : s.base = base0) (hm0 : m.term ≠ W64 0) (hs : StateNums K s')
     (hm : InNums K m) (hpay : m.ty = .app → AppPayloadOk m)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose) (hmp : m.ty = .propose → MsgNums K m)
-    (h : RecvEnd kk c id s m s') : OutNums K id s' := by
+    (h : RecvEndO kk c id s m s') : OutNums K id s' := by
   rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact absurd h0 hm0
   · exact outNums_nil hX
@@ -241,7 +241,7 @@ theorem outNums_recv {K : Int} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
 
 /-- A tick's messages: a campaign's vote requests (the last entry id), a leader's heartbeats. -/
 theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
-    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s') (h : TickEnd kk c id s s') :
+    (hX : s.outbox = []) (hb : s.base = base0) (hs : StateNums K s') (h : TickEndO kk c id s s') :
     OutNums K id s' := by
   have hK := hs.1
   have h0 : uint.Z (W64 0) = 0 := rfl
@@ -274,7 +274,7 @@ theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
 /-- `Advance`'s messages: a leader's `MsgApp`s, `AppOk` at the end (`adv_run`). -/
 theorem outNums_advance {K : Int} {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg}
     (hX : s.outbox = []) (hs : StateNums K s') (hq : ∀ q ∈ qs, SelfMsg id s.term q)
-    (h : AdvanceEnd kk c id s qs s') : OutNums K id s' := by
+    (h : AdvanceEndO kk c id s qs s') : OutNums K id s' := by
   have hinv : AdvInv id s.term s.commit s' := adv_run h hq (advInv_nil rfl (Int.le_refl _) hX)
   intro x hx hne
   exact appOk_nums hs ((hinv.2.2 x hx).2.1 hne).1
@@ -282,44 +282,44 @@ theorem outNums_advance {K : Int} {c : CfgM} {id : w64} {s s' : PState} {qs : Li
 /-- **The numbers of the messages of the state a `Ready` is taken at**: every message to another
 node but a forwarded proposal is within any bound `K` the state's numbers (`StateNums`) and the
 handled message's index and log term (`InNums`, of the drain's cause, which is no proposal: the
-network carries none, `NetFacts`) are within. For the runs a mask below `mskS4` admits. -/
-theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+network carries none, `NetFacts`) are within. For the runs a mask below `mskB1a` admits. -/
+theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {K : Int}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hs : StateNums K r₁.p)
     (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose) : OutNums K (nodeId n) r₁.p := by
-  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.s4 hmsk
+  obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hX := hv.facts.outbox
   have hb := (hv.facts.snap0 (by rw [hmd])).1
   have hqs := hv.qs
   cases hr with
   | stay _ => exact outNums_nil hX
   | input inp _ _ hinp _ hbe hca _ hmm _ hst =>
-    rcases Input.inMask_s4 hmsk hinp with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩
+    rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, hm0⟩ := hmm m rfl
       exact outNums_recv hX hb hm0 hs (hm m hca).1 (hnet.2.2.1 m hmn).1 (ty7_of_s4 (hty m hmn))
-        (fun hp => absurd hp (hm m hca).2) hst.1.1
-    · exact outNums_tick hX hb hs hst.1.1
-    · rcases hst.1.1 with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+        (fun hp => absurd hp (hm m hca).2) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)
+    · exact outNums_tick hX hb hs (TickEnd.toO_in hmsk hin hst.1.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hst.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact outNums_propose hX hs (msgNums_propMsg hs.1 _ d) hh
       · exact absurd rfl h0
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
-    refine outNums_advance hX hs (fun q hq => ?_) (advanceEndR_toP ha)
+    refine outNums_advance hX hs (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha)
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
 
 /-- **The `Ready`'s messages within `K`** (`ReadyOutP`: in sync mode they are the outbox's to other
 nodes). -/
-theorem readyMsgNums {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDec}
+theorem readyMsgNums {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {rd : ReadyD} {K : Int}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hro : ReadyOutP R n v r₁ xs rd)
     (hs : StateNums K r₁.p) (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose) :
     ∀ q ∈ rd.msgs ++ rd.resp, MsgNums K q := by
-  have hasync : R.md.async = false := by rw [(hin.s4 hmsk).1]
+  have hasync : R.md.async = false := by rw [(hin.b1a hmsk).1]
   obtain ⟨hresp, hmsg⟩ := hro.2.2.2.2.2.2.2.2.1 hasync
   intro q hq
   rw [hresp, List.append_nil] at hq

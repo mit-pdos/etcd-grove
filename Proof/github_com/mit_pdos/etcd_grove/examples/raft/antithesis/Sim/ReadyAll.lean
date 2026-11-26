@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The refinement to Antithesis's binding: `antSim_ready` (#33 S4, the invariant phase; parity B1)
 
-Below `mskS4`: `rdCtx_of` (the context after `GC`), then `ready_nonleader` (every kind but a
+Below `mskB1a`: `rdCtx_of` (the context after `GC`), then `ready_nonleader` (every kind but a
 leader's) with its leader premises discharged: a win (`ready_win`), a proposal (`ready_prop`), a
 commit (`ready_cmt`).
 -/
@@ -23,9 +23,9 @@ namespace AntSim
 
 open AntCheck go_etcd_io.raft.v3
 
-/-- **`antSim_ready` below `mskS4`**: a reported `Ready` is a step of the binding, keeping the
+/-- **`antSim_ready` below `mskB1a`**: a reported `Ready` is a step of the binding, keeping the
 relation (`antSim_ready.stmt` over `ReachIn msk`, for the runs `msk` admits; `R.boot` either way). -/
-theorem antSim_ready_in [GooseExts] (msk : SimMask) (hmsk : msk ≤ mskS4) :
+theorem antSim_ready_in [GooseExts] (msk : SimMask) (hmsk : msk ≤ mskB1a) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
       (xs : List XMsg) (rd : ReadyD),
