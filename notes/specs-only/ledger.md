@@ -7113,3 +7113,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
   translation and the two axioms deleted.
 - **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).
+## 2026-11-26: `status.statusAtRaw` gains the read-only rest of the `*spb.Status`; `proto.Equal` (Status) (prove-statuserror)
+
+- **Spec.** The trusted vocabulary `status.statusAtRaw` (`Proof/google_golang_org/grpc/status/StatusRO.lean`),
+  through which every trusted post giving `statusAt`, `grpcStatusIs`, `descIs`, `statusCodeIs` or `statusErrOk`
+  claims a read-only status; the new trust-boundary spec `proto.EqualStatus.spec`
+  (`Spec/google_golang_org/protobuf/proto/EqualStatus.lean`).
+- **Defect.** `status.Error.wp_proof` could not be proved over grpc's body: `grpcErrMethodsOk`'s `Is` clause needs
+  `(*internal/status.Error).Is`'s `proto.Equal(e.s.s, tse.s.s)` (`internal/status/status.go:222-228`), which has
+  no spec, and an honest spec of `Equal` reads every populated field (protobuf-go v1.36.12 `proto/equal.go:39-64`,
+  `internal/impl/equal.go:22-133`: `Code`, `Message`, `Details` and each `*anypb.Any`'s `TypeUrl`, `Value`,
+  unknown fields, then `unknownFields`), while `statusAtRaw` held `↦□` only of `Code` and `Message`: nothing
+  could discharge a read permission on the rest of the target's status, and a spec without one would hide a race
+  with a writer of `Details`.
+- **Evidence.** The translated `Error.Is` (`Code/google_golang_org/grpc/internal/status.lean`); protobuf-go's
+  `Equal`; `notes/axiom-review/proto-equal-status.md`.
+- **Proposed change.** `statusAtRaw s c m` is `s.[Status,"s"] ↦□ p ∗ status.pbStatusRO p c m`: `p ≠ null`,
+  `Code`/`Message` `↦□` as before, and `status.pbStatusRestRO p`, `↦□` of `unknownFields` and its bytes,
+  `Details` and its elements, and each non-nil element's `TypeUrl`, `Value` (and bytes) and `unknownFields`
+  (and bytes) (`status.pbAnyRO`; `anypb.Any`'s struct translated for it). Not `sizeCache` (`proto.Marshal`
+  writes it) nor `state` (only atomic accesses). `proto.EqualStatus.spec`: for non-nil `p, q` with
+  `pbStatusRO p c m ∗ pbStatusRO q c' m'`, `Equal` returns some `b` with `b = true → c = c' ∧ m = m'`, nothing
+  about `false` or `Details`. Then `status.Error.wp_proof` is proved over grpc's body (with `codes.Code.String`
+  proved over `code_string.go` and `fmt.Sprintf`), net −`status.Error.wp_proof` +`proto.EqualStatus.wp_proof`.
+- **Decision.** Approved by coordinator-E, 2026-11-26 (#37 7180330705: the narrow `Equal` spec, conditions 1-5;
+  7183375670: `pbStatusRestRO` in `statusAtRaw`, conditions 1-4), subject to the fresh review. The review
+  (`notes/axiom-review/proto-equal-status.md`) found `Equal` panics on invalid unknown-field bytes of equal length:
+  both unknown-field lists (the status's, each `Any`'s) are now `ufWire` of their schema, as the decoder leaves them.

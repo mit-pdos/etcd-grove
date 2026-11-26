@@ -69,7 +69,7 @@ public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.google_golang_org.grpc.WithTransportCredentials
 public import Proof.google_golang_org.grpc.credentials.insecure.NewCredentials
 public import Proof.google_golang_org.grpc.status.Code
-public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.ErrorLinked
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.google_golang_org.grpc.metadata.AppendToOutgoingContext
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
@@ -194,7 +194,7 @@ theorem wp_sEcho : server.Echo.spec (GF := GF) (hG := hG) :=
   server.Echo.wp_proof _root_.Perennial.strconv.wp_FormatUint wp_String
 
 theorem wp_sFail : server.Fail.spec (GF := GF) (hG := hG) :=
-  server.Fail.wp_proof _root_.Perennial.strings.wp_HasPrefix status.Error.wp_proof
+  server.Fail.wp_proof _root_.Perennial.strings.wp_HasPrefix status.Error.wp_linked
 
 theorem wp_sMeta : server.Meta.spec (GF := GF) (hG := hG) :=
   server.Meta.wp_proof metadata.FromIncomingContext.wp_proof

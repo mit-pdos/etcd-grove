@@ -52,6 +52,7 @@ axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom peer.Peer.String.wp_proof
 axiom proto.Clone.wp_proof
+axiom proto.EqualStatus.wp_proof
 axiom rand.Float64.wp_proof
 axiom reflect.New.wp_proof
 axiom reflect.Type.Elem.wp_proof
@@ -65,7 +66,6 @@ axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom status.Error.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof

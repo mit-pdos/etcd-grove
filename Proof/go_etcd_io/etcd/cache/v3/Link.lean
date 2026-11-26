@@ -78,6 +78,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSerializable
 public import Proof.go_etcd_io.etcd.cache.v3.WithWaitTimeout
 public import Proof.go_etcd_io.etcd.cache.v3.New
+public import Proof.google_golang_org.grpc.codes.Code__String
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__add
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__remove
 public import Proof.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__run
@@ -113,6 +114,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.newStore
 public import Proof.go_etcd_io.etcd.cache.v3.newWatcher
 public import Proof.go_etcd_io.etcd.cache.v3.notifier__wait
 public import Proof.go_etcd_io.etcd.cache.v3.probeItemFromKey
+public import Proof.google_golang_org.protobuf.proto.EqualStatus
 public import Proof.go_etcd_io.etcd.cache.v3.ready__Ready
 public import Proof.go_etcd_io.etcd.cache.v3.ready__Reset
 public import Proof.go_etcd_io.etcd.cache.v3.ready__Set
@@ -406,9 +408,17 @@ theorem rpctypes.wp_Error :
     rpctypes.Error.spec (GF := GF) (hG := hG) :=
   rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
+theorem codes.Code.wp_String :
+    codes.Code.String.spec (GF := GF) (hG := hG) :=
+  codes.Code.String.wp_proof _root_.Perennial.strconv.wp_FormatInt
+
+theorem proto.wp_EqualStatus :
+    proto.EqualStatus.spec (GF := GF) (hG := hG) :=
+  proto.EqualStatus.wp_proof
+
 theorem status.wp_Error :
     status.Error.spec (GF := GF) (hG := hG) :=
-  status.Error.wp_proof
+  status.Error.wp_proof _root_.Perennial.fmt.wp_Sprintf codes.Code.wp_String proto.wp_EqualStatus
 
 theorem WatchResponse.wp_Err :
     WatchResponse.Err.spec (GF := GF) (hG := hG) :=

@@ -163,7 +163,11 @@ Client__unaryClientInterceptor: reuseOrNewWithCallOptions withVersion filterCall
 # `Time.IsZero`, `context.WithCancel` over etcd's `valCtx` (`context_WithCancelValCtx`, Perennial's
 # WithCancel takes a cancelCtx-chain parent only), the names-only `streamKeyFromCtx`.
 OpWatch: Op__applyOpts
-status_Error:
+# (prove-statuserror, 2026-11-26) `status.Error` over grpc's bodies: `fmt.Sprintf`, `codes.Code.String`
+# (over `strconv.FormatInt`) and the trust boundary `proto.Equal` of two `*spb.Status`
+codes_Code__String: =_root_.Perennial.strconv.wp_FormatInt
+proto_EqualStatus:
+status_Error: =_root_.Perennial.fmt.wp_Sprintf codes_Code__String proto_EqualStatus
 WatchResponse__Err: rpctypes_Error status_Error rpctypes_EtcdError__Error
 ResponseHeader__GetRevision:
 WatchResponse__IsProgressNotify: ResponseHeader__GetRevision
