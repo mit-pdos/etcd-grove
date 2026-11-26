@@ -728,3 +728,52 @@ owner, and the closed theorem discharges it.
 - No Lean is changed on this branch. `SrvKeep.lean`'s additions (srvkeep §1) are ready for kaashoek's move branch as
   a delta. The member restatements (srvkeep §2) are for their owner, after the bbolt-crash lead's C-I1 swap lands in
   `MemberCrash.lean`.
+
+## Revision 3 (2026-11-26): review D5r2 applied
+
+The input is review D5r2, `coordinator-notes/plans/review-d5r2-newserver-slot.md`: nothing UNSOUND, every item
+SOUND WITH FIXES. The scratch texts are updated in place, with the rev-2 copies kept as `*.rev2.md`. Every trusted
+delta is in Today / With this change form.
+
+### R3.1 Each finding, and how it was resolved
+
+| D5r2 | Resolution | Where |
+|---|---|---|
+| K-4 (`0 < bootLen` unsupplied) | premise `γ.cl.bootLen = γ.boot.length →` in C-I2-K's law **and C-I2's**. It can be met: `srvClusterOk` (in `srvRaftLogInv`, which `#Hsrl` and `memberRestartFacts` hold) has the equation, and `srvBootLogOk ps γ.boot` with `ps ≠ []` gives `γ.boot.length > 0`. `NewServerC_dist` needs no premise: its B.3 argument derives it from `#Hsrl` | c-i2 §3.2, §3.4; scratch §B.3 |
+| K-5 (program side incomplete) | `srvWalProg h` widened to `Open.spec`'s inputs (lock token, `osCallPerm (callKey h.R h.r) 1`, `∃ q, osPathS h.R h.r (own q) h.jr`, `walAreaRes h.jr`). New `srvDataProg h dd`: the data root's path share and whole permission, and `DataDir`'s and `member/`'s name claims less the spine's (exact name sets are T8's). In C-I2-K, `NewServerC_dist` (`"Hdata"`) and arm (R). K-3's bullet corrected: `member/` belongs to no piece, and the WAL area (`walAreaOf dd`) lies outside `DataDir` | srvkeep §1.2–§1.3; c-i2 §3.2; scratch §B.5; srvkeep §2.4 |
+| S-1 (unpinned `k.γ`) | `srvKeyF γ ρ`, `srvKeyR γ ρo νk h γm D` add `k.γ = γ` (trusted, `SrvKeep.lean`) | srvkeep §1.4; all texts |
+| S-1′ (contradictory evidence) | fixed by S-1. Arms (F)/(R) state `memberRestartFacts` at the run's names; `memberKeepS`'s `□ ∀` form follows from it | srvkeep §2.1, §2.4 |
+| K-6 (O-w false) | restated over `walHEq` (equal except `w`, `γ.γ`, `γ.γl`): the readers of `νk.ν.h` take the open handle `h'` with `walHEq νk.ν.h h'`. The alternative is `WalNames.h` as a durable descriptor; T2 chooses | c-i2 §3.3 |
+| A-4 (error arm after `newRaftNode`) | **(a), kept in the slot.** `srvKeepAt`'s `.first n s e` arm, at `e = false ∧ n = true`, holds `srvLoopViewInit γ id νk h`, the loop's view half at its initial value. Reasons: a crash law reads only the slot, so a half returned to the caller would not help; the success path never visits `.first true _ false` (`be` precedes `n`); it records the Go fact (`raftNode.start` never ran) from which the crash law gets "no `Save`". (b) would need the crash-mode `Close` and the image payload at a first start, plus a split on durable `Save`s. `NewServer_dist`'s error-arm text is unchanged | srvkeep §1.5; scratch §A.0 |
+| A-4′ | `memberFirstCrash.law` is provable at `.first true s false` with the new conjunct | srvkeep §2.3 |
+| K-7 (`Hs` rows empty) | dropped from `wal.restartOkK`. New obligation O-hist (T2/T5): `specCK` gets the history's facts from `rnDurInvK` | c-i2 §3.3 |
+| K-8 (placeholders) | rule recorded: `srvDurLoop` and `srvLoopViewInit` hold nothing keyed by `h.w`, `h.γ.γ`, `h.γ.γl`; `srvKb`/`srvKbc` read no `k.h`/`k.νk` | c-i2 §3.3 |
+| K-9 (backend names not tied) | decided in the text: a one-shot name `γbk`. The precondition holds `srvKbPend γbk`, the commit point sets it, and the slot's open-backend arms hold `srvKbName γbk k.γb`. `bootOkRK` and the stop keep (`srvStop.keep (bk := γbk)`, P5's argument) expose `srvKbName γbk B`, so `kbClose.law` gets `B = k.γb` by agreement. It may be pre-chosen because pending excludes any caller-owned shot. This also closes §R2.5 Q2 (the first start's stop) | srvkeep §1.5; c-i2 §3.2–§3.3; scratch §A.10, §B |
+| K-10 (commit point) | "the crash-mode open's commit point, the first write transaction (`dbCrashKeep_new`); before it `srvKbc` holds the closed file through the crash-mode `Open`'s atomic steps" | c-i2 §3.2 |
+| T10 note | `memberBackend.law` uses only `dbCrash`'s output and `KB`, and drops the rest of `cmtBody` (`fkRd`, `cmtRegs … Dc`, the absorbed `dbHalf`). The tracked `cmtBody` keeps no old `dbHalf` beside the record's | scratch §A.9 item 7 |
+| §R2.5 Q1 (incarnation) | closed by D5r2 (`Open`/`Repair` keep `ic`; K-4 excludes `Discard`) | c-i2 §3.3 |
+
+### R3.2 Still open
+
+1. `srvLoopViewInit` (T2): its exact text, `rnWalViewK`'s half at `rnDurK_alloc`'s initial view.
+2. `srvDataProg`'s name sets (T8): `.except [member]`/`.except [snap]` against the spine's discarded claims, and the
+   tie `osSpineDur jd [member] Jm` to the slot's `osSpineDur k.jd [member, snap] k.J`.
+3. The one-shot resource for `srvKbPend`/`srvKbName` (an agreement over `backend.DBNames`), and P5's
+   `(bk := γbk)` argument of `srvStop.keep`/`srvStopReq`.
+4. O-w over `walHEq`, or `WalNames.h` as the durable descriptor (T2's choice); O-hist; O-vac; O-Kb; O-pure.
+5. Carried: arm (W) coverage (§R2.5 Q7), F-B1's converse (Q8), `memberFirstCrash.law`'s `idIssueCrashStart` (Q5),
+   the elaboration check (Q6), and the placeholders.
+
+### R3.3 What needs a fresh delta review
+
+- **Trusted, new in rev 3:**
+  - `srvDataProg`, `srvKbPend`/`srvKbName`, and the widened `srvWalProg`;
+  - the keys with `k.γ = γ`;
+  - `srvKeepAt`'s two new conjuncts (`srvLoopViewInit` at `.first true _ false`; `srvKbName` at the open arms);
+  - `srvKeepInv`'s new parameter.
+  Check above all whether `srvLoopViewInit` and `srvKbName` can outlive a real crash or contradict a caller.
+- **C-I2-K rev 3:** K-4's premise (also in C-I2), the narrowed `wal.restartOkK` (K-7), the precondition and error
+  arm with `srvDataProg`/`srvKbPend`, and the K-10 commit-point wording.
+- **`NewServer_dist`:** the binder `γbk`, `"Hbk"`, and `srvStop.keep (bk := γbk)`, as changes to the approved axiom.
+- **`NewServerC_dist`:** `"Hdata"`, `"Hbk"`, and B.3's K-4 argument.
+- **Untrusted, lighter:** srvkeep §2's rev-3 edits (the evidence rows, A-4′, the `γbk` existentials).
