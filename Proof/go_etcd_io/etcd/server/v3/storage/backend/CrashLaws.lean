@@ -1,4 +1,4 @@
-/- Lean-first (no Rocq counterpart).
+/- TRIAL ONLY (swap trial, branch bbolt-crash-w3-swaptrial; never to be merged). Lean-first.
 
 # C-I1's laws as theorems (W3 of `plans/bbolt-crash-plan.md`; in progress)
 
@@ -28,7 +28,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace backend
-namespace crashLaws
 
 open Iris Iris.BI Iris.ProofMode
 
@@ -93,7 +92,7 @@ theorem dbCrashKeep_putStep [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (�
 
 /-- (C-I1, `dbCrashKeep_new`) **A crash record from a fresh write transaction**, from
 `bbolt.TailsZeroOnOpen` (its one hypothesis: crash mode is on, `bbolt.crashMode_on`). -/
-theorem dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+theorem dbCrashKeep_new_of_tails [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
     (hT : bbolt.TailsZeroOnOpen) (γ : DBNames) (i0 : Fs.Ino) (D : Data) (tx : Loc) :
     ⊢ dbOpts (hlc := HasLC.hasLC) (GF := GF) γ -∗ onFs (GF := GF) iprop(bbolt.boltIno γ i0) -∗
       dbHalf γ D -∗ txLive tx γ 1 (bbolt.TxView.wr D) ==∗
@@ -155,7 +154,6 @@ theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.f
 
 end laws
 
-end crashLaws
 end backend
 end EtcdGrove
 end Perennial

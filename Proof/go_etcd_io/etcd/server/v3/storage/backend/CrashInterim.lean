@@ -86,6 +86,7 @@ public import GooseLang.Ext.Fs.CrashTok
 public import GooseLang.Ext.Fs.Tests
 public import Spec.go_etcd_io.bbolt.CrashPremise
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashLaws
 
 @[expose] public section
 
@@ -102,29 +103,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors}
 
-/-- (C-I1) **The crash premise** (`dbCrash`'s `hQ`): bbolt's `BoltCrashWhole`
-(`Spec/go_etcd_io/bbolt/CrashPremise.lean`, which states it and its evidence; one definition). Restated
-2026-11-25: the checksum bytes are as of a change no later than the fields' (the 56-byte form let a
-double crash revive a dead commit, so `dbCrash` was false of the model; review
-`notes/axiom-review/c-i1-monotone.md`). -/
-abbrev BoltCrashWhole (I : Fs.Ino → Prop) (st st' : Fs.OsState) : Prop :=
-  bbolt.BoltCrashWhole I st st'
-
 /-- **`BoltCrashWhole` is never vacuous at a crash** (`bbolt.boltCrashWhole_exists`). -/
 theorem boltCrashWhole_exists (I : Fs.Ino → Prop) {st st' : Fs.OsState} (hok : Fs.Tests.CacheOk st)
     (hc : Fs.MachineCrash st st') : ∃ st'', Fs.OsCrash st st'' ∧ BoltCrashWhole I st st'' :=
   bbolt.boltCrashWhole_exists I hok hc
-
-/-- (C-I1) **The crash record of the open database `γ`, whose file is the inode `i0`** (exclusive): its
-committed data `Dn` (with the commit invariant's half) and the data `Dl` its file falls back to (see the
-file header). It claims no name. -/
-opaque dbCrashKeep [hG : HeapGS hlc GF] (γ : DBNames) (i0 : Fs.Ino) (Dl Dn : Data) : IProp GF :=
-  iprop(False)
-
-/-- (C-I1) **The record with its half lent at version `ν`** (`dbCrashKeep_take`), for one update of
-`Tx.Commit`. -/
-opaque dbCrashHole [hG : HeapGS hlc GF] (γ : DBNames) (i0 : Fs.Ino) (Dl Dn : Data) (ν : Nat) :
-    IProp GF := iprop(False)
 
 end preds
 
@@ -134,7 +116,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors}
 
-/-- (C-I1, trusted) **A crash record from a fresh write transaction**: with the database opened syncing
+/-- **TRIAL ONLY** (swap trial; never to be merged): the interim axiom over the concrete record.
+(C-I1, trusted) **A crash record from a fresh write transaction**: with the database opened syncing
 (`dbOpts`), its file the inode `i0` (`boltIno`), the commit invariant's half at the committed data `D` and a
 live write transaction begun at `D`, the record at `(D, D)` (no claim on the file's name: the argument is
 about the inode, which a rename does not change). Why the file on disk is `D`'s: the transaction excludes
@@ -147,57 +130,6 @@ axiom dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DB
     ⊢ dbOpts (hlc := HasLC.hasLC) (GF := GF) γ -∗ onFs (GF := GF) iprop(bbolt.boltIno γ i0) -∗
       dbHalf γ D -∗ txLive tx γ 1 (bbolt.TxView.wr D) ==∗
       dbCrashKeep γ i0 D D ∗ txLive tx γ 1 (bbolt.TxView.wr D)
-
-/-- (C-I1, trusted) **The half lent for `Tx.Commit`'s update** (its accessor's first phase): the half at
-its version `ν`, and the hole that remembers `ν`. -/
-axiom dbCrashKeep_take [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
-    (i0 : Fs.Ino) (Dl Dn : Data) :
-    dbCrashKeep (GF := GF) γ i0 Dl Dn ⊢ ∃ ν, dbHalfV γ Dn ν ∗ dbCrashHole γ i0 Dl Dn ν
-
-/-- (C-I1, trusted) **The half back unchanged** (the update aborted): the same version, so no commit
-took place. -/
-axiom dbCrashKeep_putSame [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
-    (i0 : Fs.Ino) (Dl Dn : Data) (ν : Nat) :
-    dbCrashHole (GF := GF) γ i0 Dl Dn ν ∗ dbHalfV γ Dn ν ⊢ dbCrashKeep γ i0 Dl Dn
-
-/-- (C-I1, trusted) **The half back after one commit** (the update committed, `Tx.Commit.spec`'s update
-giving the data `S` at version `ν + 1`): the version moves by one only at a commit point, so exactly one
-commit took place, from `Dn`; the fallback becomes `Dn` (or stays `Dl` when the commit kept the data).
-(Review 2026-11-24 found a put-back wand without the version unsound: put back after two commits, the
-fallback would be wrong.) -/
-axiom dbCrashKeep_putStep [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
-    (i0 : Fs.Ino) (Dl Dn S : Data) (ν : Nat) :
-    dbCrashHole (GF := GF) γ i0 Dl Dn ν ∗ dbHalfV γ S (ν + 1) ⊢
-      dbCrashKeep γ i0 (if S = Dn then Dl else Dn) S
-
-/-- (C-I1, trusted) **The record closed**, holding a live write transaction begun at the committed `Dn`
-(any pending changes `S`: no commit is in flight while it is live, it holds `rwlock` and `Commit`
-consumes it): the half back (to close the database), and the transaction. -/
-axiom dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
-    (i0 : Fs.Ino) (Dl Dn S : Data) (G : GoString → Nat) (tx : Loc) :
-    dbCrashKeep γ i0 Dl Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ⊢
-      dbHalf γ Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G)
-
-/-- (C-I1, trusted) **bbolt's file after a power loss**: under the crash premise `BoltCrashWhole` for the
-database's inode `i0`, from the old generation's record `(i0, Dl, Dn)`, its `crashed`, and the file
-system's crash rest (with the files `Dx` other crash lemmas took, not `i0`) of a crash whose durable tree
-still names `i0` (`Named`: the caller learns which inode a name holds from the file extension's own crash
-facts; a name not made durable by a directory sync may name another inode, review 2026-11-24): the inode
-`i0` holds a database with the data `Dl` or `Dn` (bbolt's `fileHoldsM`: whole, every byte durable), and
-the crash rest with `i0` taken. The mask holds bbolt's crash invariant's namespace (`hE`, by default
-`simp`: the proof opens that invariant, where the old generation's file resources sit while bbolt writes
-the file). Open item (review 2026-11-24): `fileHoldsM`'s receipt of the txid is asserted here. -/
-axiom dbCrash [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [G : GooseGlobalGS HasLC.hasLC GF]
-    (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF) (γ : DBNames)
-    (i0 : Fs.Ino) (Dl Dn : Data)
-    (hQ : ∀ st st', Q st st' → BoltCrashWhole (· = i0) st st')
-    (Dx : List Fs.Ino) (hi : i0 ∉ Dx) (V' : Fs.Hist) (hN : Fs.Named V'.now i0) (E : CoPset)
-    (hE : (↑(bbolt.crashN γ.ns) : CoPset) ⊆ E := by simp) :
-    ⊢ dbCrashKeep (hG := ⟨G, L⟩) γ i0 Dl Dn -∗ crashed (hC := L.goose_crashGS) -∗
-      Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) Dx false V' ={E}=∗
-      ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗
-        bbolt.fileHoldsM (hG := ⟨G, L'⟩) i0 D' ∗
-        Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) (i0 :: Dx) false V'
 
 end laws
 
