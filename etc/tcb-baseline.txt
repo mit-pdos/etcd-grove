@@ -100,7 +100,6 @@ axiom bridge.bridgeAt
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
 axiom contention.NewTimeoutDetector.wp_proof
-axiom context.WithCancelBackground.wp_proof_canceled
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
