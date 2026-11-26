@@ -25,6 +25,56 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
+
+- **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`: `New_user_dist.spec`,
+  `KV_GetOn_dist.spec`, `Txn_CommitOn_dist.spec` (read-only branch), `Lease_{GrantOn,RevokeOn,TimeToLiveKeysOn,
+  LeasesOn}_dist.spec` (drafts, `.spec` only, no axiom); `AuthServeProposed.lean`, `Serve_dist_proposed.spec`.
+  No `SpecPlan/` counterpart.
+- **Defect.** Unsound (reviews A and C). Each draft quantified `A : w64 → auth.AuthNames` with only
+  `∀ a b, A a = A b → a = b`, and its success arm stated facts at `A mid` (`passwordChecked`, `enabledVerdict`,
+  `authFloorD`, `rangeClassFrom`, `txnClassFrom`, `leaseCheckD`). Injectivity is over the whole record, so a
+  caller can share one `hist` name it owns across all members and refute every success arm.
+- **Evidence.** `notes/axiom-review/f7-a.md` (a `New` with a real user and password that panics on success;
+  the same for `Get` and a read-only `Txn`), `notes/axiom-review/f7-c.md` F1 (the lease reads).
+- **Proposed change.** `DistView` gains `au : w64 → auth.AuthNames` (`S2Interim.lean`; `ofKV` sets a constant
+  until P-A1's start). The binder `A` is dropped and every `A mid` becomes `Γ.au mid`; the distinct-names
+  premises are kept, now over `Γ.au`. `Serve_dist_proposed` takes no `A` and requires, with auth on,
+  `etcdstart.memberUpOnL … (Γ.au mid) …` (`memberUpOn`'s body, `E.authMode = .on (Γ.au mid)`), so the
+  member's exclusive resources tie `Γ.au mid` to the real member. `etcdAddr_set` mints address facts for any
+  `Γ`, so Serve's premise is the only possible tie.
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`. Re-review with the S2 batch.
+
+## 2026-11-26: F7 proposed `Serve_dist` -- `Γ.ls mid` not tied to the serving member's lessor
+
+- **Spec.** `AuthServeProposed.lean`, `Serve_dist_proposed.spec`; `AuthViewDist.lean`,
+  `Lease_TimeToLiveKeysOn_dist.spec`.
+- **Defect.** Unsound (review C, F2). A start could publish a `Γ` whose `ls` names it owns. The proposed Serve's
+  `memberUpOn` used lease mode `.none` and said nothing of `Γ.ls`. The TTL draft also had no `Γ.kv.lm` premise.
+- **Evidence.** `notes/axiom-review/f7-c.md`, F2: Grant, Put with that lease, and `TimeToLive(WithAttachedKeys)`
+  as root, then a panic on success, with every disjunct of the success arm refuted.
+- **Proposed change.** `Serve_dist_proposed` requires `etcdstart.memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)` with
+  auth on, and F2's `etcdstart.memberUpL … Γ.kv.lm (Γ.ls mid)` with auth off. Both say `mvccLeases E.γ = Γ.ls mid`
+  at the lease mode `Γ.kv.lm`. `MemberLessor.lean` is copied verbatim from `etcd-safe-f2`. F2 owns P-L1, and its
+  `Serve_dist.spec_proposed` has the same lessor part, so the two are reviewed together.
+  `Lease_TimeToLiveKeysOn_dist` gains `Γ.kv.lm = .revocable`, as `Lease_LeasesOn_dist` has.
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`.
+
+## 2026-11-26: F7 `Auth_UserAdd_dist` -- the server's name bound dropped
+
+- **Spec.** `AuthViewDist.lean`, `Auth_UserAdd_dist.spec`; it mirrors `etcdUserAddSpecW`
+  (`v3rpc/AuthService.lean:121`).
+- **Defect.** The precondition is too weak. It omitted `name.length ≤ backend.maxKeySize`, which the mirror and
+  the three sibling drafts ask for. With a longer name every member that applies the entry calls `lg.Fatal`
+  (bbolt's `ErrKeyTooLarge`, `batch_tx.go:183`), yet the history model counts the entry as an applied `UserAdd`.
+  The update was `∀ um, ⌜…⌝ -∗ …` where the mirror has `□ (∀ um, ⌜…⌝ → …)`. The two are equivalent, so this is
+  only style.
+- **Evidence.** `notes/axiom-review/f7-b.md`; `issues/etcd-auth-useradd-long-name-fatal.md`.
+- **Proposed change.** The pure precondition is now `⌜strsSizeOk [name, pw] ∧ name.length ≤ backend.maxKeySize⌝`,
+  and the update is `□ (∀ um, ⌜um.name = name ∧ um.noPassword = false⌝ → histAu …)`. The driver meets the bound
+  ("root", "u", "v").
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`.
+
 ## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
