@@ -253,7 +253,7 @@ Build: the remote worktree `~/eg/wt/dsv-retire-3` on fk-lean1 was being seeded (
 `Dsverify.GeneratedProof.github_com.rs.zerolog Dsverify.GeneratedProof.github_com.rs.zerolog.internal.json
 Dsverify.Proof.github_com.rs.zerolog.Spec` at `04c16d3753` (log `/shared/tmp/dsvr3-seed.log`; remote log
 `~/eg/logs/dsv-retire-3-*.log`). For iteration after it: `/shared/tmp/dsvr3-rb.sh <targets>`
-tars the local changed files into the remote worktree and runs `lake build` there under the
+(The seed finished: the worktree exists; its build at `04c16d3753` failed, as expected, in zerolog's `Base.lean` (`failed to synthesize`, lines 27/29: no `internal/json` instance at that commit, which `ca1e516109` adds).) It tars the local changed files into the remote worktree and runs `lake build` there under the
 build lock and `MemoryMax=50G`.
 
 Next, in order: build `...internal.json.InitLoop` and finish `wp_init0`; build json's and zerolog's
