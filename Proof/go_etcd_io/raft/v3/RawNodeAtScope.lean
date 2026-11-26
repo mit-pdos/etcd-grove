@@ -38,7 +38,7 @@ theorem rnCfg_voters (γ : RaftNames) : (rnCfg γ).voters = γ.reCfg :=
 /-- `TickEnd` reads the configuration's voters and ids only. -/
 theorem TickEnd.of_voters {c c' : CfgM} {id : w64} {s s' : PState} (hv : c.voters = c'.voters)
     (hd : c.ids = c'.ids) (h : TickEnd k c id s s') : TickEnd k c' id s s' := by
-  unfold TickEnd at h ⊢; rwa [← hv, ← hd]
+  unfold TickEnd CampaignEnd PreCampaignEnd at h ⊢; rwa [← hv, ← hd]
 
 /-- **`LiftScope` from the pieces**: `RnScopeBasic`'s flags, no pre-candidate with pre-vote off, a
 follower's tally empty, the progress map's halves, and the node in the configuration. -/
@@ -87,17 +87,68 @@ theorem RnScopeBasic.keep {rs rs' : RNState} {s s' : NState} (H : RnScopeBasic r
 heartbeats touch no read state. -/
 theorem tickEnd_ro {c : CfgM} {id : w64} {s s' : PState} (hT : TickEnd k c id s s')
     (h : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
-  rcases hT with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+  rcases hT with rfl | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
   · exact h
   · rfl
   · exact h
+  · exact h
+  · rfl
+
+/-- (antithesis parity) Answering read requests keeps the read-only object and the deferred
+requests. -/
+theorem preadRespondAll_ro_pend (id : w64) (s : PState) (qs : List ReadReq) :
+    (preadRespondAll id s qs).rd.ro = s.rd.ro ∧ (preadRespondAll id s qs).rd.pend = s.rd.pend := by
+  unfold preadRespondAll
+  induction qs generalizing s with
+  | nil => exact ⟨rfl, rfl⟩
+  | cons q qs ih =>
+    rw [List.foldl_cons]
+    have h1 : (preadRespond id s q).rd.ro = s.rd.ro ∧ (preadRespond id s q).rd.pend = s.rd.pend := by
+      unfold preadRespond
+      split
+      · split <;> exact ⟨rfl, rfl⟩
+      · exact ⟨rfl, rfl⟩
+    obtain ⟨a, b⟩ := ih (preadRespond id s q)
+    exact ⟨a.trans h1.1, b.trans h1.2⟩
+
+/-- (antithesis parity) A read acknowledgement keeps the deferred requests, and an empty read-only
+queue empty. -/
+theorem ReadAckEnd.rd {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (h : ReadAckEnd c id s m s') :
+    s'.rd.pend = s.rd.pend ∧ (s.rd.ro.pending = [] → s'.rd.ro.pending = []) := by
+  have hra : (readonlyRecvAck s.rd.ro m.src m.ctx).pending = s.rd.ro.pending := by
+    unfold readonlyRecvAck; split <;> rfl
+  rcases h with ⟨-, rfl⟩ | ⟨N, -, rfl⟩
+  · exact ⟨rfl, fun hp => hra.trans hp⟩
+  · obtain ⟨h1, h2⟩ := preadRespondAll_ro_pend id
+      { s with rd := { s.rd with ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } }
+      (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
+    refine ⟨h2, fun hp => ?_⟩
+    rw [h1]
+    show (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1.pending = []
+    unfold readonlyAdvance
+    split
+    · exact hra.trans hp
+    · simp only [hra, hp, List.drop_nil]
+
+/-- (antithesis parity) The commit's release, with no request deferred: the read-only object kept,
+none deferred after. -/
+theorem ReleaseEnd.rd {c : CfgM} {id : w64} {s s' : PState} (h : ReleaseEnd c id s s')
+    (hpd : s.rd.pend = []) : s'.rd.pend = [] ∧ s'.rd.ro = s.rd.ro := by
+  rcases h with ⟨-, hb, -, rfl⟩ | ⟨-, rfl⟩
+  · refine ⟨rfl, ?_⟩
+    show readonlyRelease s.rd.ro id s.commit s.rd.pend = s.rd.ro
+    rw [hpd]; rfl
+  · exact ⟨(preadRespondAll_ro_pend id _ _).2, (preadRespondAll_ro_pend id _ _).1⟩
 
 /-- (#33 S4, msgShape) A message of the harness's types keeps the read-only queue empty (no read
-index; a new leader's `reset` installs a fresh one, `rdNL`). -/
+index; a new leader's `reset` installs a fresh one, `rdNL`); (antithesis parity) with no read
+request deferred (a commit's release). -/
 theorem handleEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : HandleEnd k c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
+    (h : HandleEnd k c id s m s') (hpd : s.rd.pend = []) (hp : s.rd.ro.pending = []) :
+    s'.rd.ro.pending = [] := by
   unfold HandleEnd at h
   rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
   · split at h
@@ -106,7 +157,13 @@ theorem handleEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
       rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;> exact hp
   · split at h
     · unfold AppRespEnd SendsEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, -, _, -, rfl⟩ | ⟨-, _, _, -, -, _, -, rfl⟩ <;> exact hp
+      rcases h with ⟨-, rfl⟩ | ⟨-, -, _, -, rfl⟩ | ⟨-, _, _, -, -, _, -, rfl⟩ |
+        ⟨-, _, _, s2, -, -, hrel, _, -, rfl⟩
+      · exact hp
+      · exact hp
+      · exact hp
+      · show s2.rd.ro.pending = []
+        rw [(hrel.rd hpd).2]; exact hp
     · subst h; exact hp
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> exact hp
   · split at h
@@ -118,21 +175,81 @@ theorem handleEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     · subst h; exact hp
   · split at h <;> (subst h; first | exact hp | rfl)
   · split at h
-    · unfold SendsEnd at h
-      obtain ⟨_, -, rfl⟩ := h; exact hp
+    · obtain ⟨s2, ⟨_, -, rfl⟩, ⟨-, rfl⟩ | ⟨-, ha⟩⟩ := h
+      · exact hp
+      · exact ha.rd.2 hp
     · subst h; exact hp
+
+/-- (antithesis parity) The handled step of a message of the harness's types keeps the read-index
+requests, with none deferred (a commit's release). -/
+theorem handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp)
+    (h : HandleEnd k c id s m s') (hpd : s.rd.pend = []) : s'.rd.pend = s.rd.pend := by
+  unfold HandleEnd at h
+  rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
+  · split at h
+    · subst h; rfl
+    · unfold AppEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;> rfl
+  · split at h
+    · unfold AppRespEnd SendsEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, -, _, -, rfl⟩ | ⟨-, _, _, -, -, _, -, rfl⟩ |
+        ⟨-, _, _, s2, -, -, hrel, _, -, rfl⟩
+      · rfl
+      · rfl
+      · rfl
+      · show s2.rd.pend = s.rd.pend
+        rw [(hrel.rd hpd).1, hpd]
+    · subst h; rfl
+  · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+  · split at h
+    · unfold WinEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+    · subst h; rfl
+  · split at h <;> (subst h; rfl)
+  · split at h
+    · obtain ⟨s2, ⟨_, -, rfl⟩, ⟨-, rfl⟩ | ⟨-, ha⟩⟩ := h
+      · rfl
+      · exact ha.rd.1
+    · subst h; rfl
+
+/-- `Step`'s preamble keeps the deferred read requests. -/
+theorem PreEnd.rd_pend {s : PState} {m : Msg} {s1 : PState} (hp : PreEnd k s m s1) :
+    s1.rd.pend = s.rd.pend := by
+  rcases hp with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩ <;> rfl
+
+/-- A stale message's end keeps the read state. -/
+theorem StaleEnd.rd {id : w64} {s : PState} {m : Msg} {s' : PState} (h : StaleEnd k id s m s') :
+    s'.rd = s.rd := by
+  rcases h with rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
 
 theorem recvEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
-    (h : RecvEnd k c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
-  rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
-  · exact handleEnd_ro hty h hp
+    (h : RecvEnd k c id s m s') (hpd : s.rd.pend = []) (hp : s.rd.ro.pending = []) :
+    s'.rd.ro.pending = [] := by
+  rcases h with ⟨-, h⟩ | ⟨-, -, hs⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
+  · exact handleEnd_ro hty h hpd hp
+  · rw [hs.rd]; exact hp
   · exact hp
-  · refine handleEnd_ro hty h ?_
-    rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+  · refine handleEnd_ro hty h (by rw [hpre.rd_pend]; exact hpd) ?_
+    rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
     · rfl
     · exact hp
+    · exact hp
+
+/-- **The read-index requests kept** by a received message of the harness's types, with none
+deferred. -/
+theorem recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp)
+    (h : RecvEnd k c id s m s') (hpd : s.rd.pend = []) : s'.rd.pend = s.rd.pend := by
+  rcases h with ⟨-, h⟩ | ⟨-, -, hs⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
+  · exact handleEnd_rd_pend hty h hpd
+  · rw [hs.rd]
+  · rfl
+  · rw [handleEnd_rd_pend hty h (by rw [hpre.rd_pend]; exact hpd), hpre.rd_pend]
 
 /-- (2026-11-24) **The harness's configuration at a node in the scope**: the incoming voters the
 names', no outgoing half (`CfgStatic`'s first two conjuncts, in either mode). -/
@@ -173,7 +290,7 @@ theorem tickEnd_rd_out {c : CfgM} {id : w64} {s s' : NState}
   have ho : s'.outbox = (toPState s').outbox := rfl
   have ho0 : s.outbox = (toPState s).outbox := rfl
   rw [← toPState_rd_pend s', ← toPState_rd_pend s, ho, ho0]
-  rcases hT with h | ⟨-, -, peers, cl, -, h⟩ | ⟨-, ms, hms, h⟩
+  rcases hT with h | ⟨-, -, -, peers, -, h⟩ | ⟨-, -, -, peers, -, h⟩ | ⟨-, ms, hms, h⟩ | ⟨-, -, h⟩
   · rw [h]; exact ⟨rfl, fun m hm => .inl hm⟩
   · rw [h]
     refine ⟨rfl, fun m hm => ?_⟩
@@ -190,7 +307,18 @@ theorem tickEnd_rd_out {c : CfgM} {id : w64} {s s' : NState}
     rw [psendMsgs_outbox, List.mem_append] at hm
     rcases hm with hm | hm
     · exact .inl hm
+    · right
+      rw [List.mem_append] at hm
+      rcases hm with hm | hm
+      · rw [List.mem_singleton] at hm; subst hm; simp [Msg.plain]
+      · obtain ⟨d, -, rfl⟩ := List.mem_map.1 hm; simp [pvoteReq]
+  · rw [h]
+    refine ⟨rfl, fun m hm => ?_⟩
+    rw [psendMsgs_outbox, List.mem_append] at hm
+    rcases hm with hm | hm
+    · exact .inl hm
     · right; rw [(hms m hm).1.1]; decide
+  · rw [h]; exact ⟨rfl, fun m hm => .inl hm⟩
 
 end pure
 

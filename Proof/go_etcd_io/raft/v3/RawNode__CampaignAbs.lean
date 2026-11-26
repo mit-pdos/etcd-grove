@@ -89,7 +89,7 @@ local macro "hup_tail" : tactic => `(tactic| (
     ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
     -- in the scope, the campaign read as a tick's `TickEnd` (for the scope), the log's state kept
     have Hlifted : sc = true → TickEnd rs.k cf id (toPState s) (toPState s') ∧ s'.logst = s.logst :=
-      fun h => ⟨tickEnd_of_stepEnd_hup (Hlift h).1 rfl rfl (Hx h).1,
+      fun h => ⟨tickEnd_of_stepEnd_hup (by rw [← Hkt h]) rfl rfl (Hx h).1,
         logst_of_stepEnd_hup rfl rfl (Hx h).1⟩
     ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
       (fun h Hs => by

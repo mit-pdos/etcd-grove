@@ -80,42 +80,7 @@ theorem antStep_mtype {t : w32} (h : t ∈ antStepTypes) : ∃ ty, mtypeOf t = s
   simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at h
   rcases h with rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
-/-- The handled step of a message of the harness's types keeps the read-index requests. -/
-theorem handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
-    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp)
-    (h : HandleEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
-  unfold HandleEnd at h
-  rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
-  · split at h
-    · subst h; rfl
-    · unfold AppEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;> rfl
-  · split at h
-    · unfold AppRespEnd SendsEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, -, _, -, rfl⟩ | ⟨-, _, _, -, -, _, -, rfl⟩ <;> rfl
-    · subst h; rfl
-  · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
-  · split at h
-    · unfold WinEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
-    · subst h; rfl
-  · split at h <;> (subst h; rfl)
-  · split at h
-    · unfold SendsEnd at h
-      obtain ⟨_, -, rfl⟩ := h; rfl
-    · subst h; rfl
-
-/-- **The read-index requests kept** by a received message of the harness's types. -/
-theorem recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
-    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp)
-    (h : RecvEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
-  rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hp, h⟩
-  · exact handleEnd_rd_pend hty h
-  · rfl
-  · rw [handleEnd_rd_pend hty h]
-    rcases hp with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+-- (antithesis parity) `handleEnd_rd_pend`, `recvEnd_rd_pend`: `RawNodeAtScope.lean`'s
 
 end pure
 
@@ -419,9 +384,11 @@ local macro "step_tail" : tactic => `(tactic| (
         obtain ⟨ty0, hty0⟩ := antStep_mtype hant
         refine ⟨fun ty hty Adm => recvEndR_of_bk (by rw [Hcfe]; exact (HR ty hty).1) Hbk Hsn Hpv ⟨rfl, rfl⟩
             (by rw [absMsg_ty_eq]; rcases (HR ty hty).2 with e | e | e | e | e | e <;> rw [e] <;> decide),
-          ?_, ?_, recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1⟩
+          ?_, ?_, recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1
+            (by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1)⟩
         · rw [← toPState_rd_pend s', ← toPState_rd_pend s]
           exact recvEnd_rd_pend (HR ty0 hty0).2 (HR ty0 hty0).1
+            (by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1)
         · have hlo : 1 ≤ uint.Z s.logst.inprogress := by
             have h1 := Hipf.1.1; have := uint_Z_nonneg s.logst.prev.index'; omega
           have hhi : uint.Z s.logst.inprogress ≤ ((s.logst.sents ++ s.logst.uents).length : Int) + 1 := by

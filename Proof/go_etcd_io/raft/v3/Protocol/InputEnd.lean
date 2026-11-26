@@ -28,7 +28,7 @@ code or `StepEnd` says:
   pins it (`[]` for a `MsgHup`).
 
 (antithesis parity B1, `notes/antithesis-parity-design.md` §1.2) The relations take the node's flags
-`k : NodeK` and have the arms of pre-vote (`PreKeep`, `PreVoteEndP`, `PreCampaignEnd`), check-quorum
+`k : NodeK` and have the arms of pre-vote (`PreTermKeep`, `PreVoteEndP`, `PreCampaignEnd`), check-quorum
 (`LeaseIgnore`, `StaleEnd`, `TickEnd`'s step-down), reads (`ReadIdxEnd`, `ReadAckEnd`, `ReleaseEnd`,
 the response) and transfer (`TransferEndR`, `TransferRecvEndR`, `TimeoutNowEndR`). Where they depart
 from the design's sketch, the definition's comment says why (each because of the fork's code or the
@@ -121,21 +121,21 @@ def PreCampaignEnd (c : CfgM) (id : w64) (s : PState) (s' : PState) : Prop :=
 
 /-- (antithesis parity, design §1.2) **The types `Step`'s preamble does not turn into a follower at a
 higher term** (`raft.go:1063-1090`): a pre-vote request, a granted pre-vote response. -/
-def PreKeep (m : Msg) : Prop := m.ty = .preVote ∨ (m.ty = .preVoteResp ∧ m.reject = false)
+def PreTermKeep (m : Msg) : Prop := m.ty = .preVote ∨ (m.ty = .preVoteResp ∧ m.reject = false)
 
 /-- **`Step`'s term preamble** (`raft.go:1063-1090`, `Step`'s `m.Term > r.Term` arm): a message of a
 higher term makes the node a follower at that term (`becomeFollower(m.Term, lead)`, the sender
 its leader for a leader's message: `MsgApp`, `MsgHeartbeat`, `MsgSnap`); one of the node's term
 leaves it as it is. (A lower term is `RecvEnd`'s second arm.) (antithesis parity, design §1.2) A
-pre-vote request or a granted pre-vote response of a higher term leaves it too (`PreKeep`, the third
+pre-vote request or a granted pre-vote response of a higher term leaves it too (`PreTermKeep`, the third
 arm). Unlike the design's sketch the third arm has no `k.prevote = true` guard: `Step` keeps the term
 for these types whatever the node's own `PreVote` (`switch { case m.Type == pb.MsgPreVote: ... }`
 reads no flag), so with the guard a node with pre-vote off would have no end state for them. -/
 def PreEnd (_k : NodeK) (s : PState) (m : Msg) (s1 : PState) : Prop :=
-  (uint.Z s.term < uint.Z m.term ∧ ¬ PreKeep m ∧
+  (uint.Z s.term < uint.Z m.term ∧ ¬ PreTermKeep m ∧
     s1 = pbecomeFollower s m.term (if fromLeader m.ty then m.src else W64 0)) ∨
   (m.term = s.term ∧ s1 = s) ∨
-  (uint.Z s.term < uint.Z m.term ∧ PreKeep m ∧ s1 = s)
+  (uint.Z s.term < uint.Z m.term ∧ PreTermKeep m ∧ s1 = s)
 
 /-- (antithesis parity, design §1.2) **The lease check** (`raft.go:1066-1078`): with `CheckQuorum` on,
 a vote or pre-vote request of a higher term at a node that knows a leader is ignored when the node is

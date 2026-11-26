@@ -430,7 +430,7 @@ theorem HandleEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' 
   unfold HandleEnd at h ⊢
   rcases hty with e | e | e | e | e | e <;> rw [e] at h ⊢ <;>
     simpa only [AppRespEnd, PCommitOk, JQuorum, JLost, hi, ho, SendsEnd.iff_of_ids hd,
-      WinEnd.iff_of_ids hd] using h
+      WinEnd.iff_of_ids hd, ReleaseEnd, HbSendOk, CfgSingle, ReadAckEnd, JQuorumAcked, hd] using h
 
 /-- `RecvEnd` reads the configuration's halves and ids only, at the harness's types. -/
 theorem RecvEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
@@ -438,10 +438,11 @@ theorem RecvEnd.of_halves {c c' : CfgM} {id : w64} {s : PState} {m : Msg} {s' : 
     (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp)
     (h : RecvEnd k c id s m s') : RecvEnd k c' id s m s' := by
-  rcases h with ⟨h1, h2⟩ | h | ⟨h1, s1, h2, h3⟩
+  rcases h with ⟨h1, h2⟩ | h | h | ⟨h1, s1, h2, h3⟩
   · exact .inl ⟨h1, h2.of_halves hi ho hd hty⟩
   · exact .inr (.inl h)
-  · exact .inr (.inr ⟨h1, s1, h2, h3.of_halves hi ho hd hty⟩)
+  · exact .inr (.inr (.inl h))
+  · exact .inr (.inr (.inr ⟨h1, s1, h2, h3.of_halves hi ho hd hty⟩))
 
 /-- **The exact effect of a `Step` of the harness's network types** (in the lifting lemmas'
 scope; a heartbeat response with no context; nothing queued but no `MsgSnap`): `RecvEnd` at the

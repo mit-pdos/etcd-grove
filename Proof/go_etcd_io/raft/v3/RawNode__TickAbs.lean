@@ -58,11 +58,11 @@ theorem BkStep.congr_left {s s2 s' : NState} (h : BkStep s2 s') (ha : s2.logst =
 /-- **`tickElection`'s end state, at the protocol level** (in the lifting lemmas' scope): `TickEnd`,
 the log's state kept. -/
 theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope c id s)
-    (h : TickElEnd c id s s') :
+    (hk : k.prevote = s.prevote) (h : TickElEnd c id s s') :
     TickEnd k c id (toPState s) (toPState s') ∧ s'.logst = s.logst ∧ BkStep s s' := by
   rcases h with rfl | ⟨he, -⟩
   · exact ⟨Or.inl rfl, rfl, BkStep.refl _⟩
-  · exact ⟨tickEnd_of_stepEnd_hup hsc rfl rfl he, logst_of_stepEnd_hup rfl rfl he,
+  · exact ⟨tickEnd_of_stepEnd_hup hk rfl rfl he, logst_of_stepEnd_hup rfl rfl he,
       bk_of_stepEnd_hup hsc rfl rfl he⟩
 
 /-- **`tickHeartbeat`'s end state, at the protocol level** (in the lifting lemmas' scope, so with
@@ -116,6 +116,7 @@ theorem RawNode.Tick.wp_absProof
   iNamed Hrn
   -- the scope's facts at the start state
   icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  icases rnScopeAt_ktie sc rs s $$ Hsc with ⟨%Hkt, Hsc⟩
   icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpre0, Hphys⟩
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom, Hphys⟩
@@ -172,7 +173,7 @@ theorem RawNode.Tick.wp_absProof
           TickEnd rs.k cf id (toPState s) (toPState s') ∧ s'.logst = s.logst ∧ BkStep s s' := fun h => by
         obtain ⟨hl, -, -⟩ := Hlift h
         first
-          | exact tickElEnd_lift (k := rs.k) hl Hend
+          | exact tickElEnd_lift (k := rs.k) hl (by rw [← Hkt h]) Hend
           | exact tickHbEnd_lift (k := rs.k) hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2.1) Hend
       icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
       icombine Hsd0 Hsd1 gives %Hsde

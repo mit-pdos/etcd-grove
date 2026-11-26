@@ -80,43 +80,6 @@ theorem absMsg_ty (ty : MsgType) (m : MessageM) (ents : List EntryM) (ctx : List
     (absMsg ty m ents ctx).ty = ty := by
   simp [absMsg, absMsgFrom, Msg.mkV]
 
-/-- (`RawNode__StepAbs.lean`'s) The handled step of a message of the harness's types keeps the read-index requests. -/
-theorem AdvAbs.handleEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
-    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp)
-    (h : HandleEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
-  unfold HandleEnd at h
-  rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
-  · split at h
-    · subst h; rfl
-    · unfold AppEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;> rfl
-  · split at h
-    · unfold AppRespEnd SendsEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, -, _, -, rfl⟩ | ⟨-, _, _, -, -, _, -, rfl⟩ <;> rfl
-    · subst h; rfl
-  · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
-  · split at h
-    · unfold WinEnd at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
-    · subst h; rfl
-  · split at h <;> (subst h; rfl)
-  · split at h
-    · unfold SendsEnd at h
-      obtain ⟨_, -, rfl⟩ := h; rfl
-    · subst h; rfl
-
-/-- **The read-index requests kept** by a received message of the harness's types. -/
-theorem AdvAbs.recvEnd_rd_pend {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
-    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp)
-    (h : RecvEnd k c id s m s') : s'.rd.pend = s.rd.pend := by
-  rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hp, h⟩
-  · exact AdvAbs.handleEnd_rd_pend hty h
-  · rfl
-  · rw [AdvAbs.handleEnd_rd_pend hty h]
-    rcases hp with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> rfl
-
 /-- (antithesis parity B1 stage 3b) **The loop's `RState` reading**: `toRState` with `applied` frozen
 at `a` (the start's), which the storage acknowledgements move only at the end (`AckEndR`). -/
 def advR (rs : RNState) (fp : List EntryM) (a : w64) (s : NState) : RState :=
@@ -195,7 +158,7 @@ theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id
       rcases Hty' with h | h
       · exact ⟨.appResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, fun h => by cases h⟩
       · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, fun h => by cases h⟩
-    have HR := recvEnd_of_stepEnd_net (k := {}) Hl hant Hnz (fun _ => Hcx)
+    have HR := recvEnd_of_stepEnd_net (k := k) Hl hant Hnz (fun _ => Hcx)
       (noSnapSent_of_noSnapL Hns) Hend ty hty
     have HR' : RecvEnd k rs.cfg.cfg id (toPState s1) (absMsg ty st.msg st.ents st.ctx) (toPState s2) :=
       HR.1.of_halves HC.1 HC.2.1 HC.2.2 HR.2
@@ -204,11 +167,12 @@ theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id
           · exact .inr (.inl h)
           · exact .inr (.inr (.inr (.inl h))))
       Hnz (fun _ => Hcx) Hend
-    refine ⟨fun Adm dec rest re H => ?_, ?_, recvEnd_ro HR.2 HR.1⟩
+    have Hpd : (toPState s1).rd.pend = [] := by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1
+    refine ⟨fun Adm dec rest re H => ?_, ?_, recvEnd_ro HR.2 HR.1 Hpd⟩
     · simp only [advHead, hq, Option.toList_some, List.singleton_append]
       exact .cons _ _ _ _ _ (recvEndR_advR HR' Hbk Hsn Hpv (by rw [absMsg_ty]; exact hnp)) H
     · rw [← toPState_rd_pend s2, ← toPState_rd_pend s1]
-      exact AdvAbs.recvEnd_rd_pend HR.2 HR.1
+      exact recvEnd_rd_pend HR.2 HR.1 Hpd
   | appendAck t b e sn =>
     have Hst : st = ⟨appendAckM id t (e.getD (entryID.mk (W64 0) (W64 0))), [], sn, [], []⟩ := Hpst
     have Ha := Hack (by rw [Hst]; exact .inl rfl)
