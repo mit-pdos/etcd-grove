@@ -147,7 +147,7 @@ theorem wp_cliGet (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : Net
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt HR
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, -⟩)
   · try isimp only [hser, Bool.false_eq_true, ↓reduceIte] at HQ
     ileft
     isplitl []

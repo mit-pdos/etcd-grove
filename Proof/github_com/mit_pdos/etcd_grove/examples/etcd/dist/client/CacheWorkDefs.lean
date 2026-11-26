@@ -12,13 +12,10 @@ cluster's KV `Γ.kv` (the watch workload's adapter, `WatchWorkDefs.lean`) instea
   `client.isEtcdClient_of_km` in one process:
   - its watches by `Watch_dist` (`kvWatcherW_of_dist`, `isEtcdWatcher_of_kmW`: N10a's);
   - its progress requests by `RequestProgress_dist` (`isEtcdProgressNotifier_of_dist`);
-  - its gets by the get contract `KV_GetE_dist` (`kv_get_km_dist`, `isEtcdKVE_of_dist`): `client.kv_get_km`'s
-    proof over it, at any context (`ctxErrClientAllW_of`).
-* **`KV_GetE_dist.spec`** is `KV_Get_dist.spec` with the error arm's `statusErrOk err` (`kv.Get.spec`'s `kvErr`
-  gives it in one process). The cache needs it: its watch loop prints `get`'s error with `fmt.Printf`'s `%v`
-  (`getWatchLoop`, `isEtcdKVE`'s `errStrOk`), and the interim axiom `KV_Get_dist` claims nothing of a
-  remote error. It is a statement, not an axiom: `RunCache` is proved over it as a hypothesis, and adopting it
-  (`KV_Get_dist.wp_proof`'s statement strengthened to it) is a trust decision (plan §29.3).
+  - its gets by `KV_Get_dist` (`kv_get_km_dist`, `isEtcdKVE_of_dist`): `client.kv_get_km`'s proof over it,
+    at any context (`ctxErrClientAllW_of`). The cache needs the error arm's `statusErrOk err`: its watch loop
+    prints `get`'s error with `fmt.Printf`'s `%v` (`getWatchLoop`, `isEtcdKVE`'s `errStrOk`); `KV_Get_dist`
+    claims it since 2026-11-26 (plan §29.7; `kv.Get.spec`'s `kvErr` gives it in one process).
 * `wkW_eq`: the writers' plan property (`etcd_partition.wkW`, the writer wire's `kmOf`) is the cache example's
   (`etcd_watch.wkW`, which its helpers' specs name): the same definition, copied.
 * `cacheShare addrs ns`: the orchestrator's share, the watch workload's (`watchShare writersShare`): the cache
@@ -135,48 +132,6 @@ theorem ck_watch_opts :
 
 end pure
 
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-
-/-- **`KV_Get_dist` with its error's status shape** (see the file header): `KV_Get_dist.spec`, the error
-arm with `statusErrOk err` (an error whose `Error()` gives a string, as `kv.Get.spec`'s `kvErr` says in one
-process: clientv3's `toErr` builds it at the caller's machine, from a context error or grpc's status of the
-call). -/
-abbrev KV_GetE_dist.spec : Prop :=
-  ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
-    (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString)
-    (opts_sl : GoSlice) (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
-      kvClientAt cl api eps V Γ ∗
-      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ optsAtRes opts_sl opts R ∗ R ∗
-      sortNamesIf (opGetModel key opts).base.sortSet ∗
-      ⌜¬ opGetPanics opts ∧ (opGetModel key opts).t = W64 1⌝ ∗
-      □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf (opGetModel key opts)).base.serializable = false⌝ ∗
-        AU <{ ∃∃ (σ : KVState), etcdKV Γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV Γ.kv σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>)) ∗
-      ⌜opSizeOk (opGetModel key opts)⌝ }}
-    (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
-        go!"Get")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (R ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
-          (if (rangeWireOf (opGetModel key opts)).base.serializable then iprop(True) else iprop(□ Q σ)) ∗
-          ⌜sint.Z (rangeWireOf (opGetModel key opts)).base.rev ≤ (σ.rev : Int) ∧
-            txn.srvRangeOk (rangeWireOf (opGetModel key opts))
-              (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
-            m.count = txn.srvCount (rangeWireOf (opGetModel key opts))
-              (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs true ∧
-            m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
-        (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ statusErrOk err))) }}
-
-end spec
-
 section client
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
@@ -188,8 +143,8 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A KV client of the view's linearizable exact get at the adapter's model** (`client.kv_get_km` over
-`KV_GetE_dist`, a hypothesis; see the file header). -/
-theorem kv_get_km_dist (wp_Get : KV_GetE_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
+`KV_Get_dist`; see the file header). -/
+theorem kv_get_km_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
     (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (γ : KMNames) (hγ : γ.kv = Γ.kv)
     (pfx : GoString) (hpfx : pfx ≠ [])
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
@@ -332,7 +287,7 @@ theorem kv_get_km_dist (wp_Get : KV_GetE_dist.spec (GF := GF) (hG := hG)) [π : 
 /-- **A KV client of the view meets the cache's get contract** (`isEtcdKVE`) at the adapter's model
 (`client.isEtcdKVE_of_km` over `kv_get_km_dist`): any context (`ctxErrClientAllW`), no resource for the
 options, no sort enumerations. -/
-theorem isEtcdKVE_of_dist (wp_Get : KV_GetE_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
+theorem isEtcdKVE_of_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
     (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (γ : KMNames) (hγ : γ.kv = Γ.kv)
     (pfx : GoString) (hpfx : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvClientAt cl api eps V Γ ∗
@@ -381,9 +336,9 @@ theorem isEtcdProgressNotifier_of_dist (wp_RP : RequestProgress_dist.spec (GF :=
 
 /-- **`New`'s client of endpoints serving the view is the cache's client** at the adapter's model (see the
 file header; `client.isEtcdClient_of_km` across machines): its `KV` a KV client of the view
-(`KV_GetE_dist`), its `Watcher` a watch client of it (`Watch_dist`, `RequestProgress_dist`), for a non-empty
+(`KV_Get_dist`), its `Watcher` a watch client of it (`Watch_dist`, `RequestProgress_dist`), for a non-empty
 prefix not all `0xff`. -/
-theorem isEtcdClient_of_dist (wp_Get : KV_GetE_dist.spec (GF := GF) (hG := hG))
+theorem isEtcdClient_of_dist (wp_Get : KV_Get_dist.spec (GF := GF) (hG := hG))
     (wp_Watch : Watch_dist.spec (GF := GF) (hG := hG))
     (wp_RP : RequestProgress_dist.spec (GF := GF) (hG := hG)) [π : NetProtoGS]
     (cl api w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) (γ : KMNames) (hγ : γ.kv = Γ.kv)

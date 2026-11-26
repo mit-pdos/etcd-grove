@@ -136,7 +136,7 @@ theorem wp_cliGetR (wp_KV_Get : KV_Get_dist.spec (GF := GF) (hG := hG)) [π : Ne
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt HR
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, -⟩)
   · have hser' : (opGetModel key opts).base.serializable = false := by
       first
       | exact hser

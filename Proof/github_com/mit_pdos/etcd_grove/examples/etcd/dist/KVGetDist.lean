@@ -40,7 +40,8 @@ behaviour is the grpc model itself (the same gap), and a trusted stand-in for cl
 need the wire proof and trust more than a contract per function (`notes/etcd-dist-plan.md` §18.4).
 
 **Why it is true.** It is `kv.Get.spec` with `isKv api Γ.kv _` replaced by `kvClientAt` (the address
-facts at `Γ`) and the error arm without `kvErr`, in any auth mode:
+facts at `Γ`) and the error arm's `kvErr err` weakened to `statusErrOk err` (2026-11-26, F6: the cache's
+watch loop prints `Get`'s error with `fmt`'s `%v`), in any auth mode:
 * *Who answers.* The client dials the endpoints themselves: `clientNoProxy` (`grpc.WithNoProxy()` in its
   configuration: grpc-go never wraps the resolver in its proxy-resolving `delegatingresolver` nor dials
   through an HTTP `CONNECT` proxy named by `HTTPS_PROXY`; review F1, `TestProxyRogue`, `TestWithNoProxyFix`).
@@ -50,10 +51,23 @@ facts at `Γ`) and the error arm without `kvErr`, in any auth mode:
   serves the opaque table without its handlers) answers no call successfully: the error arm. So every reply is a real member's handler, at KV names `kvSame` to `Γ.kv` (what `isKv_intro`
   asks of each member), and the handler's spec is the one its in-process proof meets.
 * *Errors, timeouts, retries are the error arm.* A deadline, a partition or a crashed member is
-  `err ≠ nil` with no claim. A range is retried on `Unavailable` at the next endpoint
+  `err ≠ nil`, of which only `statusErrOk` is claimed. A range is retried on `Unavailable` at the next endpoint
   (`isSafeRetryImmutableRPC`), and also after a per-attempt context error, a learner's refusal or a token
   refresh; the read update is persistent (`□`), as in `kv.Get.spec`, so a retried or repeated read fires it
   again harmlessly. A serializable range carries no update (its post `True`).
+* *Why a remote call's error is `statusErrOk`.* No error value crosses the network: every error `Get`
+  returns is built at the caller's machine, by the same client code as in one process, where `kv.Get.spec`
+  proves it. `kv.Get` returns `ContextError(ctx, err)` of `kv.Do`'s error: `nil`; `rpctypes.Error`'s
+  `EtcdError` (a value of etcd's own leaf type, chosen by the status message among etcd's fixed error
+  strings) or the error itself; for a status of code `DeadlineExceeded` or `Canceled`, `ctx.Err()` when
+  it is non-nil (`ctxErrClient`: the caller's context's errors are `statusErrOk`). `kv.Do`'s error is
+  `rpctypes.ErrInvalidSortOption` (an `EtcdError`, a package variable) or the stub's `Invoke` error through the
+  client's interceptors: grpc-go's `*status.Error`, built at the caller from a status code and message only
+  (the reply's trailers, or the transport's or the context's failure, `status.Error`/`FromContextError`),
+  or the retry interceptor's own: `waitRetryBackoff`'s `status.Error` of `ctx.Err()`'s message, or a token
+  refresh's `Authenticate` error (itself a `ContextError` of a call of these kinds). All are leaves (no `Unwrap`/`As`) with a fixed `Error()` and no `Format`,
+  as `statusErrOk` asks; the remote member's handler only chooses the code and message bytes. Not claimed:
+  `kvErr`'s `clientErr` and `errCellOk` (review `notes/axiom-review/kv-get-dist-statuserr.md`).
 * *What a success claims* is `kv.Get.spec`'s post, which the in-process proof derives from the member's
   handler spec at its names through `kvSame`: the reply's fields as functions of the state the update fired
   at, the selection, count and header revision of the state the read linearized at (a linearizable range), or of some state (serializable).
