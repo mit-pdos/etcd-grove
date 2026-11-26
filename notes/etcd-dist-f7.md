@@ -1317,3 +1317,62 @@ set-up through `cell_setupAuD`; then Handoff S5-4's plan, item by item (members 
 Size: the single-process body is ~1060 lines; expect ~800 here. Write it as a few independently proved lemmas
 (e.g. the checks phase after barrier 2 as its own lemma over the persistent facts), each green before the next,
 since every file under `Proof/` is globbed by the `EtcdGrove` lib: a WIP file must build.
+
+### Handoff S5-6 (2026-11-26; `RunAuthLease`'s check lemmas built; `RunAuthLease.wp_proof` not started)
+
+**Done** (branch `etcd-safe-f7`, head `92d1a8e508`; no `sorry`, no new axiom, no statement changed): the defs
+module `Proof/.../dist/client/AuthLeaseRunLemmas.lean`, built on fk-lean2 (EXIT 0):
+- `leaseTxnD_model k L`: `TxnModel.plain (leaseTxn k L) ∧ txnModelIn (txnWireOf (leaseTxn k L))` (the
+  `Txn_CommitOn_dist` premise `leaseTxnD_ok` does not give);
+- `noAuth_refutesD Γ γR mid Lset m γz hs r hadm hst : ⊢ kvInvOn γR Γ.kv srvAuthSt0 -∗ authHistFrozen Γ.kv γz hs
+  -∗ authFloorD Γ γR mid Lset m -∗ □ ∀ n K, ⌜m ≤ n⌝ -∗ leaseCheckD (Γ.au mid) none n K ={⊤}=∗ False`
+  (`noAuth`'s last premise with `n₀ := m`, the floor of barrier 1 at the member);
+- `uPutA_neqD` (`cell_putAAu`'s premise at `G := opGrantD γk (some "u") (.put (leasePutOp aK id)) Lset`);
+- `fixZD γk γc P L₀ : cellInv ∗ monoListLbOwn γc.ps [] ⊢ ∀ id, …` and `fixAD γk γc γz hs Lset r hadm hst Lz hLz
+  ps1 h1 : cellInv ∗ monoListLbOwn γc.ps ps1 ∗ authHistFrozen ⊢ ∀ id, …`: exactly `grantPut.spec`'s last
+  premise (the Fix step) for root's `grantPut(root, zKey)` (`R := monoListAuthOwn γc.ids ½ []`, `R' id :=
+  auth [id] ∗ lb [id] ∗ ⌜id ≠ 0⌝`, `Qp := fun _ => psAtLeast γc 1`) and u's `grantPut(ucli, aKey)` (`R :=
+  auth [Lz]`, `R' id := auth [Lz, id] ∗ lb [Lz, id] ∗ ⌜id ≠ 0⌝`, `Qp := fun _ => psAtLeast γc 2`, `P := some
+  "u"`, `L₀ := Lset`). They are stated over `putWireOf (opPutModel k "v" [withLeaseM id])` (`grantPutOp`'s body:
+  the abbrev lives in the Spec module, not imported there). `Qg := fun id => gsHas γc id` with the grant offers
+  `cell_grantWriteAuD Γ.kv γc P (W64 9000000000) L₀ (by decide?) hlm` (single-process used `grantTTLv`).
+
+**Left: `RunAuthLease.wp_proof`** (new proof module `Proof/.../dist/client/RunAuthLease.lean`, nothing written
+yet). Decisions taken while reading the specs (not yet compiled):
+- Signature as Handoff S5-5, except: take `wp_Txn : client_Txn_dist.law` (`kvremote/ClientCallDistLaws.lean`,
+  a defs module; the linker passes `client_Txn_dist_law_holds client.v3.kv.wp_Txn`) instead of `kv.Txn.spec`
+  (`client_Txn_dist_law_holds` is in a linking module); it takes `kvClientAt cl api eps V Γ` (from
+  `userClientAt`, `iunfold userClientAt` as `grantPut.lean` l.72). Also needs `wp_ErrAny : context.ErrAny.spec`
+  (for `client.wp_WithTimeout_bgMd`, as `grantPut.wp_proof`).
+- Calls go as in `grantPut.lean` (l.60-140): `membersAt_one`, `userClientAt_of_userCli`,
+  `leaseUserAt_of_userCli`; `context.wp_Background`, `client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _`;
+  `optsAt` of `[withLeaseM L]` built inline (l.115-127); `rw [...Client.TypeAssumptions.ptr_Put_unfold.method_unfold]`
+  before `wp_Put`; outTokOk via `outTokOk_none _` (om := none).
+- The anonymous `cli` of `newClient([a0])` is a `userCli cl a0 V cfg` directly (newClient's post: `isNewClient`,
+  `clientNoProxy`, `cfg` with `Token' = []`, `Username' = ""`), `principalOf cfg = none` by `simp [principalOf, h]`;
+  same for `bcli`. `SetUp.spec_dist` takes `userClientAt`/`authClientAt` of it (find the `authClientAt` lemma:
+  `grep -rn "authClientAt_of" Proof/.../dist`).
+- The cell: `cell_alloc Γ.kv σ0 hx` on the precondition's `etcdKV Γ.kv σ0` (hx: the spec's `findKey "a/x" σ0.kvs
+  = none`; `xK = "a/x"`), the set-up offers `cell_setupAuD Γ.kv γc L₀` (L₀ := [] with `srvReqLogLb γR []`).
+- Members: barrier 1's `[∗list] a ∈ addrs, barrierFloor Γ γR Lset a` (`BigSepL.bigSepL_lookup` at indexes 0,
+  `1 % k`, `2 % k`; `eps[i%k]` index arithmetic as `run.lean` l.380-400, with `addrs` for `xs`) gives `mid`, `m`,
+  `etcdAddrAt`, `authFloorD … Lset m` per address: use these mids everywhere (grantPut, noAuth, foreign, hlaw).
+  `newUserClient` needs `membersAt [addr] Γ` (`membersAt_one`), `plainEndpoint` (`addrOk_of_leaseMembers` +
+  `etcd_dist.addrOk_plainEndpoint`).
+- grantPut's `auth.authPubLbM (.on (Γ.au mid)) n₀`: the floor's first conjunct (`iunfold authFloorD`).
+- noAuth's `lessorLb (Γ.ls mid) m₀`: from that member's grantPut's `leaseLiveFrom` (`lease.leaseLiveFrom_lb`):
+  anon at a0 from root's, bad at au from u's.
+- u's txn: `wp_Txn` (law) → `txn.Then.specPlain` (`wp_Then`, ops `[.put tK "v" lu]`, `txnOpOf_leasePutD`) →
+  `wp_Commit` with `b := ⟨leaseTxn tK lu, false, true, false⟩` (as `run.lean` l.870-905), right disjunct of the
+  write arm `⟨hro, Or.inr ⟨hlm, htpl⟩, htnz⟩` from `leaseTxnD_ok` and `leaseTxnD_model`; the update
+  `cell_txnTAu Γ.kv γc lz lu ps2 hps2 (opGrantD Γ.kv (some "u") (.txn …) Lset)` (unfold `writeAuD`). The
+  post's `Q σ` gives `psAtLeast γc 3`.
+- The rest exactly as Handoff S5-4's plan (refused put/txn via `refused_updateD`, `absent` with `cell_readAu`,
+  `foreign` with `hlaw` + `cell_seen_now`, root's Get with `seenD_z`, u's revoke via `cell_permit` /
+  `cell_revokeUAu`, final `absent`s with `seenD_gone`).
+- Order of work: no local `.lake/build` in this worktree, so every check is a remote build (one cycle is
+  ~10 min). A file under `Proof/` is always built, and a committed WIP proof must build without `sorry`: the
+  practical loop is to push the WIP file and fix forward, keeping the branch red for as short a time as
+  possible, or to split the prefix (set-up, barriers, clients, the two grantPuts) into its own proved lemma
+  whose conclusion is the persistent facts the checks use. Next step: write the set-up through barrier 1 and
+  the four clients.
