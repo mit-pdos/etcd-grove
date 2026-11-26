@@ -101,8 +101,8 @@ theorem MainLogger.wp_proof
   -- the share of the start
   icases Hshare with ⟨%c, Hshare⟩
   iunfold memberShareD at Hshare
-  icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, #Hat⟩
-  obtain ⟨Hcok, Hbcfg⟩ := Hsh
+  icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, #Hat, -⟩
+  obtain ⟨Hcok, Hbcfg, -⟩ := Hsh
   obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, -⟩ := Hcok
   rw [members_getD d i m Hm]
   generalize hidm : d.ids.getD i (W64 0) = idm

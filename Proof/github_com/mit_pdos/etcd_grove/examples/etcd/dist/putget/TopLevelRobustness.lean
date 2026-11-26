@@ -183,10 +183,12 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
   imod (putGetInvK_alloc (GF := putgetGF) γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))
       go!"k" go!"v") $$ Hetcd with ⟨%γf, #Hinv⟩
   imod (putget_addr peer client
-      (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩) id)
+      (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, etcd_dist.ClusterNames.lsNone,
+        etcd_dist.ClusterNames.auNone⟩) id)
     $$ Hreg Hs with #Ha
   imodintro
-  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩
+  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, etcd_dist.ClusterNames.lsNone,
+        etcd_dist.ClusterNames.auNone⟩
   iunfold memberShareIf
   iunfold clientShareIf
   isplitl [Hsl]
@@ -205,7 +207,8 @@ theorem putget_shares [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS]
     isplitr
     · ipureintro; rfl
     iexists γf
-    rw [show (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩).kv = γk
+    rw [show (etcd_dist.ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, etcd_dist.ClusterNames.lsNone,
+        etcd_dist.ClusterNames.auNone⟩).kv = γk
       from rfl]
     iexact Hinv
 

@@ -22,6 +22,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDe
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Repr
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClusterStart
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberNames
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Interim
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Defs
@@ -171,20 +172,29 @@ instance peerAddrFactsAt_persistent (γ : SrvRaft) (ms : List ClusterMember) :
     Persistent (peerAddrFactsAt (GF := GF) γ ms) := by
   unfold peerAddrFactsAt; infer_instance
 
+/-- **A member's lessor and auth names as the start hands them over** (#50 F7, L4;
+`notes/axiom-review/f7-combined.md` §2): half of the lessor name `γl`'s ghost map's authority at `∅` with its slot
+(`lease.lessorSlot_alloc`), and the auth names `γa` with their fresh authorities (`authNamesFreshG_alloc`): what the
+proposed `NewServer_dist` takes (`Hlslot`, and `Hγa` with auth on). -/
+def memberNamesShare (γl : GName) (γa : EtcdGrove.auth.AuthNames) : IProp GF :=
+  iprop(ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl ∗ authNamesFreshG γa)
+
 /-- **Member `i`'s share of the cluster's start** (of the deployment `d`, at the cluster's names `c`): the
 names as the start chose them (`ClusterOk`, lease mode `none`, at a compaction mode `cmp` and retention `cret`
 whose compactor slot the deployment's configuration meets), the cluster's facts, every member's peer address fact
 (`peerAddrFactsAt`, of `c`'s cluster), member `i`'s slice, and its client address set to serve etcd's table for its
-id at the cluster's view (`etcdAddrAt … c.view …`; O1 option B, `notes/etcd-dist-plan.md` §18.3, no publication).
-putgetK's `memberShareK` at the deployment's members. -/
+id at the cluster's view (`etcdAddrAt … c.view …`; O1 option B, `notes/etcd-dist-plan.md` §18.3, no publication),
+and (#50 F7, L4) its lessor and auth names (`memberNamesShare` at `c.ls id`, `c.au id`), distinct per member
+(`ClusterNames.NamesInj`). putgetK's `memberShareK` at the deployment's members. -/
 def memberShareD (c : ClusterNames) (d : Deployment) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) (i : Nat) : IProp GF :=
   iprop(∃ (cmp : Bool) (cret : Nat),
     ⌜ClusterOk c ps boot .none cmp cret d.ids ∧
-      v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret⌝ ∗
+      v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret ∧ c.NamesInj⌝ ∗
     clusterFactsOf c ∗ peerAddrFactsAt c.γ (cmsD d) ∗
     memberSliceOf c d.ids ps ctxs (LogEntry.toEntries boot 0) (d.ids.getD i (W64 0)) ∗
-    etcdAddrAt ((d.members.getD i ⟨go!"", go!"", go!""⟩).client) c.view (d.ids.getD i (W64 0)))
+    etcdAddrAt ((d.members.getD i ⟨go!"", go!"", go!""⟩).client) c.view (d.ids.getD i (W64 0)) ∗
+    memberNamesShare (c.ls (d.ids.getD i (W64 0))) (c.au (d.ids.getD i (W64 0))))
 
 end share
 
