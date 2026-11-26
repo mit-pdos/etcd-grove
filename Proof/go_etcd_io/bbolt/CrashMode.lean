@@ -69,18 +69,16 @@ theorem crashMode_of (db : Loc) (γ : BoltName) :
     ipureintro
     exact Or.inl ⟨c, rfl, hcn.2.1, hcn.1⟩
 
-/-- **The one interim hypothesis of C-I1's laws (W3): every database image `Open` accepts has zero
-meta tails** (`metaTailsZero`: bytes 80 to 4096 of pages 0 and 1). Not true of every file `fileOK`
-accepts (`plans/bbolt-crash-plan.md` §8: a foreign file's tails), so it is a hypothesis, named here
-and used only by `crashMode_on`, until the pending decision makes `Open`'s crash branch need no
-condition on the tails (option (iii): `Open` zeroes them) or the tails come from `Open`'s premise
-(option (i)); then `crashMode_on` holds without it and it goes. -/
-def TailsZeroOnOpen : Prop := ∀ (X0 : List w8) (D : Data), fileOK X0 X0.length D → metaTailsZero X0
+/-- `TailsZeroOnOpen` (`Spec/go_etcd_io/bbolt/ApiCrash.lean`, the one interim hypothesis of C-I1's
+laws, W3) over `fileOK`: every database image `Open` accepts has zero meta tails. -/
+def tailsZeroOnOpenI : Prop :=
+  ∀ (X0 : List w8) (D : Data), fileOK X0 X0.length D → X0.length < 2 ^ 62 →
+    X0.length % 4096 = 0 → metaTailsZero X0
 
 /-- **Crash mode is on** (`crashMode_of` without its interim disjunct), from `TailsZeroOnOpen`: a
 database that syncs, in a run where the file system does not fail, has its file in the crash
-invariant `crashN γ.ns` with bbolt's closing token. The one use of `TailsZeroOnOpen`. -/
-theorem crashMode_on (hT : TailsZeroOnOpen) (B : BNs) (N : Namespace) (db db' : Loc) (p : BFile)
+invariant `crashN γ.ns` with bbolt's closing token. The one use of the tails hypothesis. -/
+theorem crashMode_on (hT : tailsZeroOnOpenI) (B : BNs) (N : Namespace) (db db' : Loc) (p : BFile)
     (sp : Loc) (t0 : Nat) :
     dblAt (GF := GF) B db' ∗ db'.[DB, go!"NoSync"] ↦□ false ∗ db'.[DB, go!"NoGrowSync"] ↦□ false ∗
       ⌜FsNoErr⌝ ∗ isBoltCoreP B N db p sp t0 ⊢
@@ -101,8 +99,8 @@ theorem crashMode_on (hT : TailsZeroOnOpen) (B : BNs) (N : Namespace) (db db' : 
     ihave %e1 := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hns'
     ihave %e2 := typedPointsto_agree_wand _ _ _ _ _ $$ Hngs Hngs'
     subst e1 e2
-    obtain ⟨D, hD⟩ := hm.2
-    rcases hm.1 hfs (hT X0 D hD) with h | h <;> cases h
+    obtain ⟨D, hD, hl1, hl2⟩ := hm.2
+    rcases hm.1 hfs (hT X0 D hD hl1 hl2) with h | h <;> cases h
   | some c =>
     dsimp only
     icases Hm with ⟨%hcn, -, -⟩

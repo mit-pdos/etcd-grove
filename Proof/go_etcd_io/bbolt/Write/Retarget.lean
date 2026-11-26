@@ -130,6 +130,7 @@ theorem txs_open_rt (B : BNs) (N : Namespace) (p : BFile) (sp : Loc) (t0 : Nat) 
   unfold txsInv
   icases Hi with ⟨%M, >Hauth, Hm⟩
   unfold reg
+  icases Hreg with ⟨#Hreg, -⟩
   icombine Hauth Hreg gives %Hlk
   ihave Hm := (later_mono (BigSepM.bigSepM_lookup_acc
     (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) Hlk).1) $$ Hm

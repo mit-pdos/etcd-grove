@@ -4,7 +4,7 @@
 counterpart).
 
 * `wp_bTruncate`: a growing truncate to a whole number of pages: outside a crash invariant
-  `File.Truncate.spec`; inside one the local crash spec (`os.File.Truncate.specCrashIL`), the
+  `File.Truncate.spec`; inside one the local crash spec (`os.File.Truncate.specCrashILR`), the
   obligation from `bDur_trunc_idle`, the new bytes' exclusivity tokens added to the authority
   (`exMap_grow`). Grown, the share is `bMetaT` (the crash sizes the old size and the new one until the sync), the grown
   range joining the ranges since the last sync.

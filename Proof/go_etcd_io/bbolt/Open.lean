@@ -1075,7 +1075,8 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         (by show m'.xs = some [m'.size]; rw [hms]; rfl) hsz'.2)
     ⟨D, .inr ⟨C, hC.1, hC.2.1, hC.2.2.1, hC.2.2.2.1,
       by rw [List.length_map, hxl']; exact hC.2.2.2.2.1, hC.2.2.2.2.2.1, hC.2.2.2.2.2.2.1,
-      hC.2.2.2.2.2.2.2⟩⟩
+      hC.2.2.2.2.2.2.2⟩, by rw [List.length_map, hxl']; exact hsz'.1,
+      by rw [List.length_map, hxl']; exact hsz'.2⟩
   iframe NoSync Hngs path Hfm Hxs HrcC
   iintro %cs %gcn %m'' %Hm'' #Hmode Hseed path Hfm Hxs
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)

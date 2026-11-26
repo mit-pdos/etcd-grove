@@ -58,6 +58,8 @@ theorem delKey_keyR [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (tx 
       iintro -
       iexact Hk
     · iunfold reg at Hreg Hreg'
+      icases Hreg with ⟨#Hreg, #Hreg_x⟩
+      icases Hreg' with ⟨#Hreg', -⟩
       icombine Hreg Hreg' gives %hr
       obtain ⟨-, rfl⟩ := hr
       ihave %Hvv := viewOf_agree r v v' $$ [Hvo Hvo']

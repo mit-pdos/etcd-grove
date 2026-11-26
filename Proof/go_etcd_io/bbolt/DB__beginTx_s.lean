@@ -140,9 +140,11 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [reduceCtorEq, ↓reduceIte]
       iframe
-    · iunfold readerHandles
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iexists ∅; iexact Hrbk
+    · isplitl [Hrbk]
+      · iunfold readerHandles
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexists ∅; iexact Hrbk
+      · iapply regX_ro; rfl
   simp only [initMeta, Bool.false_eq_true, ↓reduceIte]
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit

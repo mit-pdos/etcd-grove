@@ -72,6 +72,8 @@ theorem rdCur_open (B : BNs) (N : Namespace) (tx c : Loc) (q : Qp) (T : TxView)
   obtain ⟨hKB, hKN⟩ := HK
   rw [hKB]
   iunfold reg at Hreg Hreg0
+  icases Hreg with ⟨#Hreg, #Hreg_x⟩
+  icases Hreg0 with ⟨#Hreg0, -⟩
   icombine Hreg Hreg0 gives %hr
   obtain ⟨-, rfl⟩ := hr
   simp only [Hro, Bool.false_eq_true, ite_false]

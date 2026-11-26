@@ -50,13 +50,53 @@ theorem refImg_tail {X : List w8} {C : CommitSt} (hR : RefImg X C) {j k : Nat} (
   have hb : 4096 * j + k < X.length := by omega
   exact hR.tails j hj k hk1 hk2 _ (xb_some X _ hb).symm
 
+/-! ## The crashed file's txid -/
+
+/-- **Every committed state a file's metas name has txid at most `t`** (what `fileRcpt` needs). -/
+def txidLe (f : OsFile) (t : Nat) : Prop :=
+  ∀ C', fileImage f.contents C' → C'.metaOk → C'.txid ≤ t
+
+/-- Two committed states with the same metas, both `metaOk`, have the same txid. -/
+theorem metaOk_txid_eq {C1 C2 : CommitSt} (h1 : C1.metaOk) (h2 : C2.metaOk) (e0 : C1.m0 = C2.m0)
+    (e1 : C1.m1 = C2.m1) : C1.txid = C2.txid := by
+  have hs : ∀ i, C1.slot i = C2.slot i := fun i => by unfold CommitSt.slot; rw [e0, e1]
+  have key : ∀ i j, i % 2 = j % 2 → C1.slot i = C1.slot j := by
+    intro i j h; unfold CommitSt.slot; rw [h]
+  have key2 : ∀ i j, i % 2 = j % 2 → C2.slot i = C2.slot j := by
+    intro i j h; unfold CommitSt.slot; rw [h]
+  obtain ⟨-, -, -, -, -, hv1, hm1, ho1⟩ := h1
+  obtain ⟨-, -, -, -, -, hv2, hm2, ho2⟩ := h2
+  by_cases hp : C1.txid % 2 = C2.txid % 2
+  · have e : C1.slot C1.txid = C2.slot C2.txid := by rw [key _ _ hp, hs]
+    have a1 := hm1.1
+    have a2 := hm2.1
+    rw [e] at a1
+    omega
+  · have e : C2.slot C2.txid = C1.slot (C1.txid + 1) := by rw [← hs]; exact key _ _ (by omega)
+    have e' : C1.slot C1.txid = C2.slot (C2.txid + 1) := by rw [hs]; exact key2 _ _ (by omega)
+    have l1 := ho1 (e ▸ hv2)
+    have l2 := ho2 (e' ▸ hv1)
+    have a1 := hm1.1
+    have a2 := hm2.1
+    rw [← e] at l1
+    rw [← e'] at l2
+    omega
+
+/-- `txidLe` from a `metaOk` state with the file's metas. -/
+theorem txidLe_of (f : OsFile) (C0 : CommitSt) {t : Nat}
+    (hm : ({ C0 with m0 := bytesAt f.contents 0 4096, m1 := bytesAt f.contents 4096 4096 } :
+      CommitSt).metaOk) (ht : C0.txid ≤ t) : txidLe f t := by
+  intro C' hi hm'
+  have := metaOk_txid_eq hm' hm hi.1 hi.2.1
+  rw [this]; exact ht
+
 /-! ## Idle -/
 
 /-- **An idle state's crash image is an image of `cur`'s data**, of whole pages if the size has
 not moved since the last sync. -/
 theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf s)
     (hI : IdleOk C X s) (hV : BView s f) :
-    bGoodU (treeData C) f ∧ (s.CrashSize f.size → f.size % 4096 = 0) := by
+    bGoodU (treeData C) f ∧ (s.CrashSize f.size → f.size % 4096 = 0) ∧ txidLe f C.txid := by
   obtain ⟨hR, hmeta, hdata, hhwm, hal, hwr, hxa⟩ := hI
   have h3 := refImg_hwm hR
   have hXl := hR.len
@@ -83,7 +123,8 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
     rw [hagm _ (by omega)] at hv
     exact hR.tails j hj k hk1 hk2 v hv
   obtain ⟨hb1, hb2⟩ := maxBytes_bounds _ hV.max
-  refine ⟨⟨hok, hb1, hb2, htz⟩, fun hcs => ?_⟩
+  refine ⟨⟨hok, hb1, hb2, htz⟩, fun hcs => ?_,
+    txidLe_of f C (by rw [hm0, hm1]; exact hR.mok) (Nat.le_refl _)⟩
   obtain ⟨l, hl, hla, htr, hwone⟩ := hxa
   rcases hcs l hl with hin | hb
   · exact hla _ hin
@@ -100,7 +141,7 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
 /-- **A committing state's crash image is an image of `cur`'s or `prev`'s data**, of whole pages. -/
 theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (hW : BWf s)
     (hC : CommitOk C P Xc Xp s) (hV : BView s f) :
-    (bGoodU (treeData C) f ∨ bGoodU (treeData P) f) ∧ f.size % 4096 = 0 := by
+    (bGoodU (treeData C) f ∨ bGoodU (treeData P) f) ∧ f.size % 4096 = 0 ∧ txidLe f C.txid := by
   obtain ⟨hRp, hRc, htx, hsl, hslotp, ⟨N, hfl⟩, hdp, hdc, hhp, hhc, hal, hvlo, hvhi, -⟩ := hC
   have h3 := refImg_hwm hRp
   have hC3 := refImg_hwm hRc
@@ -156,7 +197,8 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
   -- the size bounds
   obtain ⟨hb1, hb2⟩ := maxBytes_bounds _ hV.max
   have hal' : f.size % 4096 = 0 := by rw [hfsz, ← hlo, hvlo]; exact hal
-  refine ⟨?_, hal'⟩
+  suffices hsuf : (bGoodU (treeData C) f ∨ bGoodU (treeData P) f) ∧ txidLe f C.txid from
+    ⟨hsuf.1, hal', hsuf.2⟩
   -- slot `p` holds `prev`'s current meta
   have hslp : bytesAt f.contents (4096 * (P.txid % 2)) 4096 = P.slot P.txid := by
     rw [refImg_slot hRp]
@@ -171,7 +213,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
   have hgoodP : (metaValid (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096)) →
       (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096)).pageSize'.toNat = 4096 ∧
         (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096)).txid'.toNat < P.txid) →
-      bGoodU (treeData P) f := by
+      bGoodU (treeData P) f ∧ txidLe f C.txid := by
     intro hoth
     have hm : ({ P with m0 := bytesAt f.contents 0 4096, m1 := bytesAt f.contents 4096 4096 } :
         CommitSt).metaOk := by
@@ -187,7 +229,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       · exact tails_drop1024 _ htz
     have hok := fileOK_transfer Xp f.contents P hRp (by rw [hyl, hfsz]; exact hhp) hagp hm
     rw [hyl] at hok
-    exact ⟨hok, hb1, hb2, htz⟩
+    exact ⟨⟨hok, hb1, hb2, htz⟩, txidLe_of f P hm (by omega)⟩
   -- the meta of the slot being written
   have hraw := metaSlot_raw f (C.txid % 2) (by omega)
   by_cases hv : metaValid (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))
@@ -235,7 +277,7 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       unfold metaOf; rw [hraw]; exact rawMeta_take56 f _
     rcases hall with hold | hnew
     · -- the old slot, whole: `prev`'s `metaOk` makes it older
-      refine Or.inr (hgoodP fun hv2 => ?_)
+      refine (fun h => ⟨Or.inr h.1, h.2⟩) (hgoodP fun hv2 => ?_)
       have hrawold : rawMeta f (C.txid % 2) = bytesAt (bytesAt Xp (4096 * (C.txid % 2)) 4096) 16 64 := by
         apply List.ext_getElem?
         intro k
@@ -254,7 +296,6 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
       rw [hmc] at hv2 ⊢
       exact ⟨hPps _ hv2, hPoth hv2⟩
     · -- the new meta: the image is `cur`'s
-      left
       have hmnew : (encode (metaOf (C.slot C.txid))).take 56 =
           (List.range 56).map fun k => xb Xc (4096 * (C.txid % 2) + 16 + k) := by
         rw [refImg_slot hRc, metaOf_take56 _ (by
@@ -288,8 +329,8 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
         · exact tails_drop1024 _ htz
       have hok := fileOK_transfer Xc f.contents C hRc (by rw [hyl, hfsz]; exact hhc) hagc hm
       rw [hyl] at hok
-      exact ⟨hok, hb1, hb2, htz⟩
-  · exact Or.inr (hgoodP (fun h => absurd h hv))
+      exact ⟨Or.inl ⟨hok, hb1, hb2, htz⟩, txidLe_of f C hm (Nat.le_refl _)⟩
+  · exact (fun h => ⟨Or.inr h.1, h.2⟩) (hgoodP (fun h => absurd h hv))
 
 /-! ## Init -/
 
@@ -371,9 +412,9 @@ theorem bDur_view_al {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s)
   unfold bCrash
   revert hP
   cases a.phase <;> intro hP <;> dsimp only at hP ⊢
-  · obtain ⟨h1, h2⟩ := idle_view hW hP hV
+  · obtain ⟨h1, h2, -⟩ := idle_view hW hP hV
     exact bGoodU_bGood h1 (h2 hcs)
-  · obtain ⟨h1, h2⟩ := commit_view hW hP hV
+  · obtain ⟨h1, h2, -⟩ := commit_view hW hP hV
     rcases h1 with h1 | h1
     · exact .inl (bGoodU_bGood h1 h2)
     · exact .inr (bGoodU_bGood h1 h2)
@@ -393,6 +434,29 @@ theorem bDur_okSU (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s) :
   intro hcut f hfc hseen g hg
   cases hg
   exact bDur_view h (bview_of h.1.1 hcut h.1.2.1 hfc hseen)
+
+/-- **The crash images' txid** (idle and committing): every state their metas name is at most the
+current one's. -/
+theorem bDur_view_txid {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s) (hni : a.phase ≠ .init)
+    (hV : BView s f) : txidLe f a.cur.txid := by
+  obtain ⟨hW, hP⟩ := h
+  revert hP hni
+  cases a.phase <;> intro hni hP <;> (try dsimp only at hP)
+  · exact (idle_view hW hP hV).2.2
+  · exact (commit_view hW hP hV).2.2
+  · exact absurd rfl hni
+
+/-- `bOk` with the crash images' txid bound (outside `init`). -/
+def bOkT (a : BAbs) (fo : Option OsFile) : Prop :=
+  ∀ f, fo = some f → bCrash a f ∧ (a.phase ≠ .init → txidLe f a.cur.txid)
+
+/-- **bbolt's crash obligation with the txid bound** (`bDur_okS`, and `bDur_view_txid`). -/
+theorem bDur_okST (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s) :
+    FileOkS (BoltCrashWhole (· = i)) (bOkT a) i s := by
+  intro hcut f hfc hseen g hg
+  cases hg
+  have hV := bview_of h.1.1 hcut h.1.2.1 hfc hseen
+  exact ⟨bDur_view_al h (crashSeen_crashSize hseen f rfl) hV, fun hni => bDur_view_txid h hni hV⟩
 
 end ok
 

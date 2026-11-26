@@ -5,7 +5,7 @@ bbolt's `WriteAt` of its file over its shares (`bMeta`, `bBytes`), in either mod
 `wp_bWriteAt` has `os.File.WriteAt.specExt`'s shape (its `OsMeta` named only by its size and
 mappings): outside a crash invariant it is `specExt`; inside one, the write lies inside the file and
 its bytes are past the meta pages and no protected data of the committed state (`hcr`), and it is the
-local crash spec for data of any length (`os.File.WriteAt.specCrashILLong`, in chunks of at most
+local crash spec for data of any length (`os.File.WriteAt.specCrashILLongR`, in chunks of at most
 1 GiB), the obligation from `bDur_write_idleC`; every error
 arm is refuted (crash mode records `FsNoErr`). The range written joins the ranges since the last
 sync.

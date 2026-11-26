@@ -65,7 +65,7 @@ theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
       · iapply hErr e he.1 $$ Hsys
 
 /-- `fdatasync.specC`'s proof: `os.File.Fd`, then `wp_bFdatasyncC` (the crash-mode sync whose
-value moves to idle, `syscall.Fdatasync.specCrashILA`). -/
+value moves to idle, `syscall.Fdatasync.specCrashILAR`). -/
 theorem fdatasync.wp_proofC (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     (hSA : syscall.Fdatasync.specCrashILAR (GF := GF) (hG := hG)) :
     fdatasync.specC (GF := GF) (hG := hG) := by

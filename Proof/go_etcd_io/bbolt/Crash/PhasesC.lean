@@ -4,7 +4,7 @@
 
 `bDur_write_idle` and `wreach_inside` (`Crash/Phases.lean`) for the states a `WriteAt` past `maxRW`
 (1 GiB) reaches, each attempt of the next chunk (`WReachC`, `wchunk`: `Spec/os/CrashStILLong.lean`),
-for `os.File.WriteAt.specCrashILLong`.
+for `os.File.WriteAt.specCrashILLongR`.
 -/
 module
 
@@ -56,7 +56,7 @@ theorem wreachC_inside {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w
 /-- **A write of unprotected bytes inside the file keeps the idle facts** (`Tx.write`'s dirty pages,
 `commitFreelist`'s page: pages free for the committed state, not a meta slot), the crash sizes the
 size alone (`XsOne`: `DB.grow` syncs its truncate first), in every state of `WReachC` (a write of
-any length, in chunks of at most `maxRW`, `os.File.WriteAt.specCrashILLong`), idle and with the next
+any length, in chunks of at most `maxRW`, `os.File.WriteAt.specCrashILLongR`), idle and with the next
 attempt's chunk in flight (`bDur_write_idle` for `WReachC`). -/
 theorem bDur_write_idleC (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : List ByteG)
     (fa fb off : Nat) (data : List w8) (h : BDur a ⟨m, bs, fa, fb, .idle⟩)

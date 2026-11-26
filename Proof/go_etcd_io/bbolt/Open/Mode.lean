@@ -101,7 +101,8 @@ theorem wp_open_mode (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp
     (hcr : FsNoErr → metaTailsZero (xs.map Prod.fst) → nos = false → ngs = false →
       m.dhi ≤ m.dlo ∧ (∀ y ∈ xs, y = durB y.1) ∧ XsOne m ∧
       BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨{ m with cut := none }, xs, 0, 0, .idle⟩)
-    (hfo : ∃ D, fileOK (xs.map Prod.fst) (xs.map Prod.fst).length D) :
+    (hfo : ∃ D, fileOK (xs.map Prod.fst) (xs.map Prod.fst).length D ∧
+      (xs.map Prod.fst).length < 2 ^ 62 ∧ (xs.map Prod.fst).length % 4096 = 0) :
     db.[DB, go!"NoSync"] ↦□ nos ∗ db.[DB, go!"NoGrowSync"] ↦□ ngs ∗ dbPathLk (GF := GF) db p fd ∗
       osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗ ⧖ C.txid ∗
       (∀ (cs : Option CsN) (gcn : GName) (m' : OsMeta), ⌜m'.size = m.size ∧ m'.maps = m.maps⌝ -∗

@@ -4,7 +4,7 @@ bbolt's `fdatasync` of its file over its shares (`bMeta`, `bBytes`), in either m
 
 * `bRanges p R`: bbolt's whole share of the ranges `R` (offset, bytes) of the file.
 * `wp_bFdatasync`: `syscall.Fdatasync` of the file. Outside a crash invariant, the byte-less
-  `specB`; inside one, the local crash spec (`syscall.Fdatasync.specCrashIL`), its mask made of the
+  `specB`; inside one, the local crash spec (`syscall.Fdatasync.specCrashILR`), its mask made of the
   ranges `R` the caller holds, which cover the ranges `L` written since the last sync (`RCov`: every
   other byte is durable, `bMeta`'s `DurOut`); the obligation from `bDur_sync_idle`. On success the
   ranges written are synced (`L = []`) and the bytes keep their values.

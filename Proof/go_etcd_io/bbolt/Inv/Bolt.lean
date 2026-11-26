@@ -116,7 +116,8 @@ def bMode (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) : IProp GF :=
   match p.cs with
   | none => iprop((∃ (ns ngs : Bool) (X0 : List w8), db.[DB, go!"NoSync"] ↦□ ns ∗
       db.[DB, go!"NoGrowSync"] ↦□ ngs ∗
-      ⌜(FsNoErr → metaTailsZero X0 → ns = true ∨ ngs = true) ∧ ∃ D, fileOK X0 X0.length D⌝) ∗
+      ⌜(FsNoErr → metaTailsZero X0 → ns = true ∨ ngs = true) ∧
+        ∃ D, fileOK X0 X0.length D ∧ X0.length < 2 ^ 62 ∧ X0.length % 4096 = 0⌝) ∗
       dghostVar gcn DFrac.discard (none : Option CsG))
   | some c => iprop(⌜c.gc = gbq ∧ c.N = N .@ "crash" ∧ FsNoErr⌝ ∗ bCsInv p ∗ bSyncs db p ∗
       dghostVar gcn DFrac.discard (some c.cg))

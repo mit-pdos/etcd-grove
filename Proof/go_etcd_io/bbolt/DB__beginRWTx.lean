@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.bbolt.Txn.Txs
 public import Proof.go_etcd_io.bbolt.Txn.WInitH
 public import Proof.go_etcd_io.bbolt.Txn.WRelease
 public import Proof.go_etcd_io.bbolt.Txn.Begin
+public import Proof.go_etcd_io.bbolt.Inv.BFileSynced
 public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Model
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
@@ -204,6 +205,9 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   iunfold wdbCoreG at Hcg
   icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
     Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩
+  -- W3: the synced mark of the committed version, for the writer's registration (`regX`)
+  ihave #Hmd := BC.core_mode K $$ Hcore
+  imod bMeta_syncedB K.B K.N K.db K.p w.C [] w.m $$ Hmd Hosm with ⟨Hosm, #Hsyncd⟩
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
   obtain ⟨hok, htree, htx1⟩ := Hok rfl
@@ -363,9 +367,15 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       htree⟩
   ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ [Hvwo]
   · iunfold readerHandles; simp only [↓reduceIte]; iexact Hvwo
+  ihave #HrX : regX (GF := GF) K.B (⟨K.db, n, true, .loan⟩ : TxReg) $$ []
+  · unfold regX viewOf
+    simp only [↓reduceIte]
+    iexists (View.ofC b w.C)
+    simp only [View.ofC.proj_txid]
+    iframe #
   imod txs_register K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top «$r0_ptr»
     ⟨K.db, n, true, .loan⟩ _ $$ [Hti Hdb stats Hx Hd2 Hrh] with ⟨#Hreg, Hdb⟩
-  · iframe Hti Hdb stats Hd2 Hx Hrh
+  · iframe Hti Hdb stats Hd2 Hx Hrh; iframe #
   -- `metalock` unlocked (deferred), the transaction returned
   ihave Hro : flRoOpt w.fli F $$ [Hrol]
   · iunfold flRoOpt; simp only [Hfln, ↓reduceIte]

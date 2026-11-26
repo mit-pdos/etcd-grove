@@ -18,6 +18,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
 public import Spec.go_etcd_io.bbolt.ApiCrash
+public import Spec.go_etcd_io.bbolt.CrashPremise
+public import GooseLang.Ext.Fs.CrashTok
 
 @[expose] public section
 
@@ -29,6 +31,10 @@ namespace backend
 namespace crashLaws
 
 open Iris Iris.BI Iris.ProofMode
+
+/-- (C-I1) The crash premise (as in `CrashInterim.lean`). -/
+abbrev BoltCrashWhole (I : Fs.Ino → Prop) (st st' : Fs.OsState) : Prop :=
+  bbolt.BoltCrashWhole I st st'
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -85,6 +91,26 @@ theorem dbCrashKeep_putStep [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (�
     exact bbolt.boltCrashRec_putStep γ i0 Dl Dn S ν
   · iintro ⟨%h, -⟩; exact h.elim
 
+/-- (C-I1, `dbCrashKeep_new`) **A crash record from a fresh write transaction**, from
+`bbolt.TailsZeroOnOpen` (its one hypothesis: crash mode is on, `bbolt.crashMode_on`). -/
+theorem dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+    (hT : bbolt.TailsZeroOnOpen) (γ : DBNames) (i0 : Fs.Ino) (D : Data) (tx : Loc) :
+    ⊢ dbOpts (hlc := HasLC.hasLC) (GF := GF) γ -∗ onFs (GF := GF) iprop(bbolt.boltIno γ i0) -∗
+      dbHalf γ D -∗ txLive tx γ 1 (bbolt.TxView.wr D) ==∗
+      dbCrashKeep γ i0 D D ∗ txLive tx γ 1 (bbolt.TxView.wr D) := by
+  unfold dbOpts dbOptsRaw dbCrashKeep dbHalf txLive onFs
+  split
+  · rename_i c _
+    letI := c.S; letI := c.ok; letI := c.has
+    obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := c.ne.ok
+    have hfs : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath
+    iintro #Hsy #Hino Hh Ht
+    imodintro
+    iapply bbolt.boltCrashRec_new hT hfs γ i0 D tx $$ [Hh Ht]
+    iframe; iframe #
+  · iintro #H
+    iexfalso; iexact H
+
 /-- The record's half. -/
 theorem dbCrashKeep_dbHalf [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
     (i0 : Fs.Ino) (Dl Dn : Data) : dbCrashKeep (GF := GF) γ i0 Dl Dn ⊢ dbHalf γ Dn := by
@@ -100,6 +126,32 @@ theorem dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ 
     dbCrashKeep γ i0 Dl Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) ⊢
       dbHalf γ Dn ∗ txLive (GF := GF) tx γ 1 (wView Dn S G) :=
   sep_mono_left (dbCrashKeep_dbHalf γ i0 Dl Dn)
+
+/-- (C-I1, `dbCrash`) **bbolt's file after a power loss** (the axiom's statement, with
+`[sem : go.Semantics]` among its binders, at the old generation's local context `L`: the record is
+over `onFs`, which needs it; approved for the swap): from bbolt's `boltCrashRec_crash`, the record's instances being the program's
+(`HasExt.sem_eq`). -/
+theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt] [G : GooseGlobalGS HasLC.hasLC GF]
+    (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF)
+    [sem : @go.Semantics _ L.goose_go_local_context _] (γ : DBNames)
+    (i0 : Fs.Ino) (Dl Dn : Data)
+    (hQ : ∀ st st', Q st st' → BoltCrashWhole (· = i0) st st')
+    (Dx : List Fs.Ino) (hi : i0 ∉ Dx) (V' : Fs.Hist) (hN : Fs.Named V'.now i0) (E : CoPset)
+    (hE : (↑(bbolt.crashN γ.ns) : CoPset) ⊆ E := by simp) :
+    ⊢ dbCrashKeep (hG := ⟨G, L⟩) γ i0 Dl Dn -∗ crashed (hC := L.goose_crashGS) -∗
+      Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) Dx false V' ={E}=∗
+      ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗
+        bbolt.fileHoldsM (hG := ⟨G, L'⟩) i0 D' ∗
+        Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) (i0 :: Dx) false V' := by
+  unfold dbCrashKeep onFs
+  split
+  · rename_i c _
+    obtain ⟨cS, cok, chas, -, -, -⟩ := c
+    have e : cS = S := chas.sem_eq.symm.trans has.sem_eq
+    subst e
+    iintro H -
+    iapply bbolt.boltCrashRec_crash Q L L' γ i0 Dl Dn hQ Dx hi V' hN E hE $$ H
+  · iintro %h; exact h.elim
 
 end laws
 

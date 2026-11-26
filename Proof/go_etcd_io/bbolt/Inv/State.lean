@@ -63,6 +63,17 @@ def cpart (o : Option CsG) (q : Qp) (D : Data) (ν : Nat) : IProp GF :=
 def crashPart (B : BNs) (q : Qp) (D : Data) (ν : Nat) : IProp GF :=
   iprop(∃ o : Option CsG, cnReg B o ∗ cpart o q D ν)
 
+/-- `syncedE` at the names `o` (`True` outside crash mode). -/
+def syncedM (o : Option CsG) (ν : Nat) : IProp GF :=
+  match o with
+  | none => iprop(True)
+  | some g => syncedE g ν
+
+/-- **The version `ν` finished its commit's second `fdatasync`**, at the registered names
+(persistent; `True` outside crash mode): what a writer's registration carries (`reg`, W3). -/
+def syncedB (B : BNs) (ν : Nat) : IProp GF :=
+  iprop(∃ o : Option CsG, cnReg B o ∗ syncedM o ν)
+
 instance cnReg_persistent (B : BNs) (o : Option CsG) : Persistent (cnReg (GF := GF) B o) := by
   unfold cnReg; infer_instance
 
@@ -71,6 +82,18 @@ instance histE_persistent (g : CsG) (k : Nat) (D : Data) : Persistent (histE (GF
 
 instance syncedE_persistent (g : CsG) (k : Nat) : Persistent (syncedE (GF := GF) g k) := by
   unfold syncedE; infer_instance
+
+instance syncedM_persistent (o : Option CsG) (ν : Nat) : Persistent (syncedM (GF := GF) o ν) := by
+  unfold syncedM syncedE; cases o <;> dsimp only <;> infer_instance
+
+instance syncedM_timeless (o : Option CsG) (ν : Nat) : Timeless (syncedM (GF := GF) o ν) := by
+  unfold syncedM syncedE; cases o <;> dsimp only <;> infer_instance
+
+instance syncedB_persistent (B : BNs) (ν : Nat) : Persistent (syncedB (GF := GF) B ν) := by
+  unfold syncedB; infer_instance
+
+instance syncedB_timeless (B : BNs) (ν : Nat) : Timeless (syncedB (GF := GF) B ν) := by
+  unfold syncedB cnReg; infer_instance
 
 instance cpart_timeless (o : Option CsG) (q : Qp) (D : Data) (ν : Nat) :
     Timeless (cpart (GF := GF) o q D ν) := by

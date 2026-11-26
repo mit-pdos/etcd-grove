@@ -9,10 +9,10 @@ write's crash branch; Lean-first, no Rocq counterpart).
   page's `pwrite`): from `bMeta p C [] m` (every byte durable: after the first `fdatasync`) and the
   new tree's slots, the value moves to committing (`bDur_commit_of`, `csOwnILR_upd`), its client
   resource with it by the caller's update (W3: the client's `Commit` update fires there).
-* `wp_bWriteMetaC`: the meta page's `WriteAt` in crash mode (`os.File.WriteAt.specCrashIL`, the
+* `wp_bWriteMetaC`: the meta page's `WriteAt` in crash mode (`os.File.WriteAt.specCrashILR`, the
   obligation from `bDur_write_meta`); it lands whole (crash mode records `FsNoErr`).
 * `wp_bFdatasyncC`: the commit's second `fdatasync` in crash mode
-  (`syscall.Fdatasync.specCrashILA`: the value moves to idle at `C'` as the sync lands,
+  (`syscall.Fdatasync.specCrashILAR`: the value moves to idle at `C'` as the sync lands,
   `bDur_sync_commit`), back to `bMeta p C' [] m'`.
 -/
 module
