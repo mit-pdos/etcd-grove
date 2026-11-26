@@ -69,6 +69,27 @@ theorem bigSepL_fupd_mono {A : Type} (E : CoPset) (l : List A) :
     iapply BigSepL.bigSepL_cons.2
     iframe H1 H2
 
+/-- `bigSepL_fupd_mono` for the elements of the list only. -/
+theorem bigSepL_fupd_mono_mem {A : Type} (E : CoPset) (l : List A) :
+    ∀ (Φ Ψ : Nat → A → IProp GF), (∀ k x, x ∈ l → Φ k x ⊢ |={E}=> Ψ k x) →
+      ([∗list] k ↦ x ∈ l, Φ k x) ⊢ |={E}=> [∗list] k ↦ x ∈ l, Ψ k x := by
+  induction l with
+  | nil =>
+    intro Φ Ψ _
+    iintro _
+    imodintro
+    iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons y ys ih =>
+    intro Φ Ψ h
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H2⟩
+    imod (h 0 y List.mem_cons_self) $$ H1 with H1
+    imod (ih (fun k x => Φ (k + 1) x) (fun k x => Ψ (k + 1) x)
+      (fun k x hx => h (k + 1) x (List.mem_cons_of_mem _ hx))) $$ H2 with H2
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe H1 H2
+
 /-- A slice's elements, one points-to each. -/
 theorem ownSlice_elems {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (s : GoSlice) (dq : DFrac)
     (vs : List V) :

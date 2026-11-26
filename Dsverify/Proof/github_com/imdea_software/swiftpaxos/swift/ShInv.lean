@@ -135,19 +135,18 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable [swift.Assumptions]
 
-/-- A lock's cell is never owned whole (the lock invariant holds a quarter of it). -/
-theorem swift.isLock_own_false (m : Loc) (R : IProp netDistGF) (b : Bool) :
-    isLock m R ∗ typedPointsto m b (DFrac.own 1) ⊢ |={⊤}=> False := by
+/-- A lock's `state` cell is never owned whole (the lock invariant holds a quarter of it). (Ported
+2026-11-24 to Perennial's `internal/sync` Go model: the cell is the `Mutex`'s `state`, a `w32`.) -/
+theorem swift.isLock_own_false (m : Loc) (R : IProp netDistGF) (v : w32) :
+    isLock m R ∗
+      typedPointsto (structFieldRef _root_.Perennial.internal.sync.Mutex go!"state" m) v (DFrac.own 1)
+      ⊢ |={⊤}=> False := by
   iintro ⟨#Hm, Hp⟩
   rw [isLock_unseal]; unfold isLockDef
-  icases Hm with ⟨#Hinv, -⟩
+  iNamed Hm
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%b', >Hq, -⟩
-  rw [typedPointsto_unseal]; unfold typedPointstoWrap
-  icases Hq with ⟨Hq, _⟩
-  icases Hp with ⟨Hp, _⟩
-  simp only [typedPointstoDef_heap]
-  icombine Hq Hp gives % ⟨Hbad, _⟩
+  icases Hi with ⟨%v', >Hq, -⟩
+  icases typedPointsto_w32_frac_valid _ _ _ _ _ $$ Hq Hp with %Hbad
   exfalso
   have h : (Qp.quarter : Rat) + (1 : Qp) ≤ 1 := Hbad
   simp at h
@@ -159,9 +158,10 @@ theorem swift.isMutex_own_false (m : Loc) (R : IProp netDistGF) (v : sync.Mutex)
     sync.isMutex m R ∗ typedPointsto m v (DFrac.own 1) ⊢ |={⊤}=> False := by
   iintro ⟨#Hm, Hp⟩
   iStructNamed Hp
+  iStructNamed mu
   rw [sync.isMutex_unseal]; unfold sync.isMutexDef
-  iapply swift.isLock_own_false $$ [Hm mu]
-  iframe Hm mu
+  iapply swift.isLock_own_false $$ [Hm state]
+  iframe Hm state
 
 /-- **A fresh descriptor enters the share map** (its first use: `allocDesc`'s fresh
 `&commandDesc{}`): it owns `successorsL` whole (so it is not a key: `isMutex_own_false`); its

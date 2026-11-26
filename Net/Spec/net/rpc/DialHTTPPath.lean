@@ -44,6 +44,20 @@ abbrev DialHTTPPath.spec : Prop :=
       (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
       (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
 
+/-- `DialHTTPPath.spec` whose error is `errPlain` (`Net/Proof/models_lab/ErrFmt.lean`): the dial's
+`*OpError`, or the `"dial-http"` `*OpError` wrapping an `errLeaf` error (the answer's read error,
+`http.ReadResponse.spec_errs`, or an `errors.New` error). Proved in
+`Net/Proof/net/rpc/DialHTTPPath.lean`; `DialHTTPPath.spec` follows from it. -/
+abbrev DialHTTPPath.spec_plain : Prop :=
+  ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
+  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+      globalAddr net.rpc.connected ↦□ connectedStatus ∗
+      rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq path) connectAns }}
+    (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))
+  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
+      (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
+      (⌜err ≠ interface.nil⌝ ∗ models_lab.errPlain err) }}
+
 end spec
 
 end net.rpc

@@ -11,6 +11,8 @@ the lock's guard and reader-slot pool; the owner's half of the matcher's state).
   `Ps` (the patterns' owner: one goroutine at a time; net/rpc's `HandleHTTP` and the program's own
   `Handle`s, at the boot). From net/http's first initialization at `DefaultServeMux` (`muxOwn (globalAddr defaultServeMux) []`,
   `Net/Proof/net/http/InitFirst.lean`).
+* `muxAt m Ps` (persistent): `m` frozen with the patterns `Ps` (`muxOwn m Ps` given up into an
+  invariant; httpdriver's `ServeMux.ServeHTTP.spec`).
 * `muxRoute m p h` (persistent): `m` sends a request for the literal path `p` to the handler `h`.
 * `litPattern p`: a literal path pattern: `/`-initial, every byte one the model's request parser
   leaves alone in a path (`pathByte`, the model's `modelPathByte`: letters, digits and
@@ -59,8 +61,10 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 /-- The right to register on `m`, its patterns `Ps` (exclusive; see the file header): the owner's half
-of the state of the matcher `use121` chooses (`muxOwnS`, `MuxServe.lean`). -/
-def muxOwn (m : Loc) (Ps : List GoString) : IProp GF := muxOwnS (GF := GF) (hG := hG) m Ps
+of the state of the matcher `use121` chooses (`muxOwnS`, `MuxServe.lean`), and `serveEnv`
+(`DefaultServeMux = &defaultServeMux`, which `http.Handle` reads). -/
+def muxOwn (m : Loc) (Ps : List GoString) : IProp GF :=
+  iprop(muxOwnS (GF := GF) (hG := hG) m Ps ∗ serveEnv (GF := GF))
 
 /-- `m` routes `p` to `h` (persistent): `muxRouteS`, `MuxServe.lean`. -/
 def muxRoute (m : Loc) (p : GoString) (h : GoInterface) : IProp GF := muxRouteS (GF := GF) (hG := hG) m p h
@@ -68,6 +72,21 @@ def muxRoute (m : Loc) (p : GoString) (h : GoInterface) : IProp GF := muxRouteS 
 instance muxRoute_persistent (m : Loc) (p : GoString) (h : GoInterface) :
     Persistent (muxRoute (GF := GF) (hG := hG) m p h) := by
   unfold muxRoute; infer_instance
+
+/-- The namespace of a frozen mux's invariant. -/
+def muxFrozenN (m : Loc) : Namespace := (nroot.@"net.http.muxfrozen").@m
+
+attribute [local instance] GooseGlobalGS.gooseInvGS in
+/-- The mux `m` frozen with the patterns `Ps` (persistent): the right to register, `muxOwn m Ps`, given
+up for good into an invariant (`muxOwn_freeze`), so that its patterns are exactly `Ps` from now on,
+what `ServeMux.ServeHTTP.spec` needs to answer `404` for the others (httpdriver, 2026-11-25; S5's
+`muxAt`). -/
+def muxAt (m : Loc) (Ps : List GoString) : IProp GF :=
+  inv (muxFrozenN m) (muxOwn m Ps)
+
+instance muxAt_persistent (m : Loc) (Ps : List GoString) :
+    Persistent (muxAt (GF := GF) (hG := hG) m Ps) := by
+  unfold muxAt; infer_instance
 
 /-- What net/http's server reads of the package variables: `httpEnv` (its package fact), `readEnv`
 (io's and internal/poll's errors, from net/http's `isPkgInit`), and what net/http's first

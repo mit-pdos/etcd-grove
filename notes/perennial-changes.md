@@ -17,6 +17,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `context.WithCancel`'s `cancel` does not say `Err()` returns `Canceled` (2026-11-24, grpc-trusted-T, T4)
+
+- **Limitation.** Perennial's `context.WithCancel.spec` gives the cancel function's post `ContextClosed γ'`
+  only, and `isContext`'s `Err()` contract says a done context's error is `Canceled`'s or
+  `DeadlineExceeded`'s value (`isCtxErr`), never which. A call grpc fails with `codes.Canceled` because
+  its context's `Err()` is `context.Canceled` (`toRPCErr`), not `DeadlineExceeded`.
+- **Who needs it.** The gRPC driver's `ctx-canceled` section (`ctx, cancel := WithCancel(Background());
+  cancel(); c.Echo(ctx, …)` must fail with `Canceled`), through `grpcInvokerDone`'s premise
+  `ctxCanceledIs ctx` (`Proof/google_golang_org/grpc/InvGrpc.lean`: a `*cancelCtx` whose `Err()` stably
+  returns `Canceled`'s value).
+- **Workaround here.** The interim axiom `context.WithCancelBackground.wp_proof_canceled`
+  (`Proof/context/WithCancelBackgroundCanceled.lean`, spec `context.WithCancelBackground.spec_canceled`):
+  `WithCancel(Background())`'s post adds that the context is a `*cancelCtx` (`isCancelCtxCtx`) and that its
+  `cancel()` leaves `Err()` returning `Canceled`'s value for good (`errIsCanceled`). Reviewed sound
+  (`notes/axiom-review/grpc-driver-interim.md`; the `isCancelCtxCtx` fix applied).
+- **Proposed change.** Perennial's `cancelCtxInv` records which errors `err` may take: e.g. a ghost set of
+  the errors allowed per context (for a child of `Background()` cancelled only by its own `cancel`, just
+  `Canceled`), from which `cancel()`'s post proves `errIsCanceled`. With only `isCtxErr` and the invariant's
+  full ownership of `err`, the theorem is not provable as stated: a GooseLang-only call of the internal
+  `c.cancel(false, DeadlineExceeded, nil)` would store `DeadlineExceeded` and contradict `errIsCanceled`.
+  That call is not reachable from Go (`cancelCtx` is unexported; `WithCancel`'s callers get only the
+  `CancelFunc`, which passes `Canceled`), so the axiom is true of Go; the ghost set is what makes the
+  invariant say so. General: any program that tells a cancelled context from an expired one needs it.
+- **Status.** Workaround in place (the interim axiom); the Perennial change is not started.
+- **Workaround here.** None yet: the premise is stated; the driver cannot produce it until Perennial does.
+- **Proposed change.** `cancel()`'s post also gives that the new context's `Err()` returns `Canceled`'s
+  value on every call when the parent was not done first (for instance a parent whose `PDone` is `False`,
+  `Background()`'s): `cancelCtx.cancel` stores `Canceled` only if `err` is unset, and `propagateCancel`
+  sets the parent's error only if the parent finishes first. General: any program that tells a cancelled
+  context from an expired one needs it.
+- **Status.** Open (not started).
 ### goose passes a non-`int` size to `make` unconverted, which makes the call stuck (2026-11-24, kvraft-udp)
 ### `bag_nb_send_au(_now)`: a bag channel's non-blocking send (2026-11-24, branch `raft-retire/2026-11-24`)
 
@@ -1033,7 +1064,13 @@ Two related gaps of this repository's own translations, not Perennial's: the mai
 (`Code/os.toml`, names only) has no body for `(*SyscallError).Unwrap` (nor `Error`, `Timeout`), so
 `errors.Is` on a `sys` error is stuck at its `Err`; and `internal/poll`'s package fact
 (`Proof/internal/poll/PkgInit.lean`) says only that `ErrDeadlineExceeded` holds some error, not
-`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise.
+`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise. (Now Perennial's
+`Proof/internal/poll/Base.lean`, `isInit`'s `∃ e`; its initializer proof could keep the
+`*DeadlineExceededError`.) dsv-fix6 (2026-11-25) meets it again: `models_lab.errFmt`
+(`Net/Proof/models_lab/ErrFmt.lean`) needs a timeout's `*OpError` `Err` to have no `Format`/`GoString`
+and to be printed as an address, which its type would give; without it, `errFmt`'s `*OpError` case
+admits for `Err` the variable's own points-to (`globalAddr poll.ErrDeadlineExceeded ↦□ Err`) beside
+`errLeaf`. With the stronger package fact that disjunct goes.
 
 ### `copy`'s count is only `sint.nat n = min …` (2026-11-14, branch `net-tcp`)
 
@@ -4671,3 +4708,77 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   `Spec/cmp/Compare.lean`).
 - **Proposed change.** Move both (`cmp.Less` and `cmp.Compare` at `int64`, with `lessImplements_int64`
   beside `lessImplements_uint64`) to Perennial, and drop the local copies.
+
+## `TrustedCode/log.lean`'s no-op `Printf`/`Println` has no argument condition, and a proof here steps it with one too wide (2026-11-25, dsv-fix6)
+
+- **Limitation.** Perennial models the package-level `log.Printf`/`log.Println` as `λ: "format" "vs", #()` /
+  `λ: "vs", #()`: the model returns whatever the arguments are, while Go formats them through `fmt`, which calls an
+  operand's `Format` (every verb), `GoString` (`%#v`), `Error`/`String` (method verbs, every `Println` operand), and
+  the same methods of the exported fields, elements and top-level pointee it visits. Perennial's own
+  `Spec/log/Printf` asks for `fmt.ArgsWf`, but the trusted body is what a proof unfolds, so the spec's condition
+  does not bind a proof that steps the body. etcd-grove#56 records the model's gap and the rule ("every new proof
+  that reaches `log.Print*` must take a spec with `fmt.ArgsWf` or an equivalent no-method premise, never the bare
+  no-op") and says no proved path passes such an argument.
+- **What #56 misses.** craq does: `LogHyp.wp_Printf`/`LogHyp.wp_Println`
+  (`Dsverify/Proof/github_com/despreston/go_craq/Craq/LogHyp.lean`) are proved by `wp_start; wp_end` over the
+  no-op, for craq's `argOk` arguments, whose third disjunct admits any type with neither `Error` nor `String`
+  (so a `Formatter` or `GoStringer`) and whose `errAny` disjunct admits an error type with a `Format`
+  method. They are used by the coordinator's `log.Printf("...: %v", ..., err)` calls. The axiom review of the
+  same `argOk` for `*Logger`'s methods (`notes/axiom-review/dsv-fix4/log-logger.md`, "Also reached without these
+  axioms") exhibits the program: `log.Printf("%v", T{p: x})` with `T.Format` writing `*x`, then a check of `*x`,
+  is provably safe from the trusted model alone and panics in Go. No bug in go-craq (its arguments have no such
+  methods); the gap is in the trust base of `craq_remote_robust`.
+- **Work-around here (dsv-fix6, planned).** craq's restated `argOk` (`notes/dsv-fix6.md`) excludes
+  `Format`/`GoString` recursively; `LogHyp.wp_Printf`/`wp_Println` then take the narrowed condition, so the
+  no-op is stepped only where it is faithful.
+- **Proposed (general).** The model is stuck (or the spec is the only entry: the body sealed) outside `fmt`'s
+  argument condition (`fmt/Args.lean`'s `argOk`, which requires `Format = none`); or `log.Printf`/`Println`
+  over the real `fmt.Appendf`/`Appendln` once #56's plan lands. **Status.** Not filed (no post: dsv-fix6 brief).
+
+## `wp_apply Hdv` on a wand from an `ihave … $$ [defer]` chain silently replaces a bullet's proof by `sorry` (2026-11-25, etcd-safe-n9b, recorded by dsv-fix6)
+
+- **Limitation.** In `etcd-safe-n9b`'s `RunLeaseExpiry.lean` (before `598eedecc1`), `Hdv` was a wand obtained
+  through an `ihave … $$ [defer]` chain, and `wp_apply Hdv` in a bullet closed the bullet with no error: the
+  bullet's proof became `sorry`. The only traces were Lean's "declaration uses sorry" on the theorem and a
+  "never executed" linter warning on the tactic after it. No error, no unsolved goal: a reader of the build log
+  who does not look for the warning takes the proof as complete (the TCB report catches the `sorryAx`, a
+  `lake build` does not fail).
+- **Work-around.** `iapply Hdv; iexact HΨ` (apply the wand by hand, then discharge its premise) works and leaves
+  no `sorry`. A proof that uses `wp_apply` on a hypothesis from a deferred `ihave` should be checked with
+  `#print axioms` (or `etc/tcb-report.py --check`).
+- **Proposed (general).** `wp_apply` (or the `ihave … [defer]` machinery under it) must fail with an error when it
+  cannot discharge a deferred goal, never elaborate it to `sorry`; a minimal reproduction is the first step.
+  **Status.** Not filed (no post: dsv-fix6 brief); no reproduction outside `RunLeaseExpiry.lean` yet.
+
+## goose emits a negative literal constant as an expression, so `wp_auto` cannot step a large table (2026-11-25, dsv-retire-2, #49 step 2)
+
+- **Limitation.** goose translates a negative integer constant in a composite literal (`rngCooked`, math/rand's
+  607-entry `[rngLen]int64` table, `rng.go`) as `Convert go.untypedInt go.int64 (GoUnOp GoNeg go.untypedInt
+  #(n : Int))`, an expression to evaluate, where a positive one is the value `#(W64 n)`. The initializer is then
+  hundreds of `Let`s over pure steps, and a plain `wp_auto` over `math/rand`'s initializer reached 41 GB.
+- **Who needs it.** Perennial's own `math/rand` initializer proof (branch `retire2-codes-uuid-rand`, `e609d80e7`),
+  now that `rngCooked` is translated for `New(NewSource(seed))` (dsverify's `math.rand.NewSource`/`New`/
+  `rngSource.Int63` axioms).
+- **Workaround.** A lemma path for the chain of lets (`Perennial/Proof/math/rand/LetChain.lean` on that branch),
+  not `wp_auto`.
+- **Proposed change.** goose folds a constant expression to its typed value (`#(W64 (2^64 - n))`), as Go's type
+  checker already has it (`types.TypeAndValue.Value`), so a table of constants is a list of values whatever
+  their signs. A goose change, reviewed on its own.
+- **Status.** Open.
+
+## `go.slice_array_step` is untagged, so no named array type can be sliced (2026-11-25, dsv-retire-2, #49 step 2)
+
+- **Limitation.** `ArraySemantics.slice_array_step` (`Perennial/Golang/Defn/Array.lean`) gives the step of
+  `Slice (ArrayType n t)` untagged (`⤳`), where `index_ref_array` is tagged `⤳[under]`. `go.slice_underlying`
+  (`PostLang.lean`) gives `Slice t` for a named `t` only from a `⤳[under]` step of its underlying type, so
+  slicing an addressable value of a named array type (Go's `uuid[0:4]` on `type UUID [16]byte`) has no step:
+  `wp_auto` stops at `Slice UUID.ty`, and no instance of `⟦Slice UUID.ty, …⟧ ⤳ _` is found.
+- **Who needs it.** dsverify's `github.com/google/uuid` (its model `models/uuid`: `NewRandom` slices
+  `uuid[0:8]`, `uuid[8:16]`, `UUID.ID` slices `uuid[0:4]`), to prove `uuid.New` and `UUID.ID`.
+- **Workaround.** A local instance `slice_array_step_under` (`Dsverify/Proof/github_com/google/uuid/Base.lean`),
+  the same step tagged `under`, built from `go.slice_array_step` (a theorem: the tag is a label for instance
+  search only; nothing is assumed).
+- **Proposed change.** Tag `slice_array_step` and `fullSlice_array_step_pure` `⤳[under]`, as `index_ref_array`,
+  so that named array types slice as their underlying type (with a goose example slicing a named array).
+  A Perennial change, reviewed on its own.
+- **Status.** Open.

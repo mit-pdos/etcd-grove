@@ -10,7 +10,7 @@ public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Init
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.runtime.PkgInitExt

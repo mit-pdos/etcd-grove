@@ -382,11 +382,10 @@ theorem isGrpcRpc_mono_with {Req Rep : ProtoMsg GF} (addr name : GoString) (P : 
   iintro ⟨#HP, #H⟩
   unfold isGrpcRpc
   iunfold isGrpcRpcMd at H
-  icases H with ⟨%a₀, %hX, %π, %σ, #Hr, #Hs⟩
+  icases H with ⟨%hX, %π, %σ, #Hs⟩
   unfold isGrpcRpcMd
-  iexists a₀, hX, π, σ
-  iframe Hr
-  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) a₀ name Req.wire Rep.wire
+  iexists hX, π, σ
+  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr name Req.wire Rep.wire
     (GrpcSpec.md Spec) (GrpcSpec.md Spec')) $$ [] Hs
   imodintro
   iintro %md %m %Φ %Ψe HS

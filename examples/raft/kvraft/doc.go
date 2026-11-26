@@ -40,8 +40,11 @@
 // loss only"), or its machine's disk losing power (an ext4 filesystem of its own on a dm-flakey
 // device that drops what was not durable). At the end, the whole cluster crashes at once.
 //
-// Not yet verified: the proof waits for a semantics of the network (net.Listen, Accept,
-// DialTimeout, a Conn's Read, Write, deadlines and Close; branch net-tcp). Its statement is
-// stated: Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/Robust.lean's kvraftRobust,
-// over the Lean library Robustness (notes/robustness.md).
+// Verified: kvraft_robust, an instance of the Lean library Robustness's statement
+// (notes/robustness.md), says that no replica and no client of the deployment panics, the
+// checking client (kvcheck.Check) included, which panics unless porcupine accepts the history,
+// in every run over the net and Linux file extensions with any replica crashing and restarting.
+// Stated in KvRaft/Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvraft/TopLevelRobustness.lean,
+// proved in KvRaft/Proof/.../kvraft/TopLevelRobustness.lean (the part KvRaft, notes/kvraft-part.md);
+// over UDP (cmd/kvraft_udp), kvraft_udp_robust.
 package kvraft

@@ -1,10 +1,13 @@
 /-
-The package fact of grpc/codes's names: `True` (notes/dsv-quepaxa.md).
+The package fact of grpc/codes: `True` (notes/dsv-quepaxa.md). (dsv-retire-2, 2026-11-25: translated as
+the main tree's, its `strToCode` and `init` with their bodies, importing grpc's `internal`, whose instance
+is `../internal/Base.lean`.)
 -/
 module
 
 public import Dsverify.GeneratedProof.google_golang_org.grpc.codes
 public import Net.Proof.net.Base
+public import Dsverify.Proof.google_golang_org.grpc.internal.Base
 
 @[expose] public section
 

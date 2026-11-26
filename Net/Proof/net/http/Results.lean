@@ -46,6 +46,10 @@ The chunked writer (2026-11-24, phase 7 S5): `net/http/internal`'s `NewChunkedWr
 `chunkedWriter.Write` (over Perennial's `fmt.Fprintf`) and `chunkedWriter.Close`; both methods call
 `io.WriteString`, names only at the pin (`notes/perennial-changes.md`): linked over its spec
 (`Spec/io/WriteString.lean`) as a hypothesis `h_WriteString` (`section chunked`).
+
+A program's own mux (2026-11-25, httpdriver): `NewServeMux`, `ServeMux.HandleFunc` (over the real
+`ServeMux`, as `http.Handle`; an interim axiom before), `HandlerFunc.ServeHTTP`, and `Header.Get`
+(`hdrOwn` and `hdrRO`) and `Header.Set` over textproto's `MIMEHeader.Get`/`MIMEHeader.Set`.
 No axiom, no `sorry`.
 -/
 module
@@ -139,6 +143,13 @@ public import Net.Proof.net.Listener__Accept
 public import Net.Proof.net.Listener__Close
 public import Net.Proof.net.OpError__Temporary
 public import Net.Proof.net.http.Handle
+public import Net.Proof.net.http.ServeMux__HandleFunc
+public import Net.Proof.net.http.NewServeMux
+public import Net.Proof.net.http.HandlerFunc__ServeHTTP
+public import Net.Proof.net.http.Header__Get
+public import Net.Proof.net.http.Header__Set
+public import Net.Proof.net.textproto.MIMEHeader__Get
+public import Net.Proof.net.textproto.MIMEHeader__Set
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.runtime.Link
 public import Net.Proof.net.http.Serve
@@ -176,6 +187,16 @@ theorem modelReadMIMEHeader.wp : modelReadMIMEHeader.spec (GF := GF) (hG := hG) 
 theorem Header.Del.wp : Header.Del.spec (GF := GF) (hG := hG) :=
   Header.Del.wp_proof
     (net.textproto.MIMEHeader.Del.wp_proof net.textproto.CanonicalMIMEHeaderKey.wp_proof)
+
+theorem Header.Set.wp : Header.Set.spec (GF := GF) (hG := hG) :=
+  Header.Set.wp_proof
+    (net.textproto.MIMEHeader.Set.wp_proof net.textproto.CanonicalMIMEHeaderKey.wp_proof)
+
+theorem NewServeMux.wp : NewServeMux.spec (GF := GF) (hG := hG) :=
+  NewServeMux.wp_proof
+
+theorem HandlerFunc.ServeHTTP.wp : HandlerFunc.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  HandlerFunc.ServeHTTP.wp_proof
 
 theorem modelHeaderValuesContainsToken.wp : modelHeaderValuesContainsToken.spec (GF := GF) (hG := hG) :=
   modelHeaderValuesContainsToken.wp_proof
@@ -232,6 +253,11 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
   ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp strings.wp_Cut
+    strings.wp_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
+    fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
+
+theorem ReadResponse.wp_errs : ReadResponse.spec_errs (GF := GF) (hG := hG) :=
+  ReadResponse.wp_proof_errs modelReadLine.wp modelReadMIMEHeader.wp strings.wp_Cut
     strings.wp_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
     fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
 
@@ -397,6 +423,19 @@ theorem Handle.wp : Handle.spec (GF := GF) (hG := hG) :=
   Handle.wp_proof sort.wp_Search strings.wp_IndexAny strings.wp_IndexByte net.url.PathUnescape.wp
     runtime.wp_Caller fmt.wp_Sprintf
 
+/-- `mux.HandleFunc`, over the real `ServeMux` (until 2026-11-25 an interim axiom). -/
+theorem ServeMux.HandleFunc.wp : ServeMux.HandleFunc.spec (GF := GF) (hG := hG) :=
+  ServeMux.HandleFunc.wp_proof sort.wp_Search strings.wp_IndexAny strings.wp_IndexByte
+    net.url.PathUnescape.wp runtime.wp_Caller fmt.wp_Sprintf
+
+theorem Header.Get.wp : Header.Get.spec (GF := GF) (hG := hG) :=
+  Header.Get.wp_proof
+    (net.textproto.MIMEHeader.Get.wp_proof net.textproto.CanonicalMIMEHeaderKey.wp_proof)
+
+theorem Header.Get.wp_ro : Header.Get.spec_ro (GF := GF) (hG := hG) :=
+  Header.Get.wp_proof_ro
+    (net.textproto.MIMEHeader.Get.wp_proof net.textproto.CanonicalMIMEHeaderKey.wp_proof)
+
 end mux
 
 section serve_rpc
@@ -424,6 +463,7 @@ end Perennial
 #print axioms Perennial.net.http.internal.chunkedWriter.Write.wp
 #print axioms Perennial.net.http.internal.chunkedWriter.Close.wp
 #print axioms Perennial.net.http.ReadResponse.wp
+#print axioms Perennial.net.http.ReadResponse.wp_errs
 #print axioms Perennial.net.http.modelReadMIMEHeader.wp
 #print axioms Perennial.net.http.connReader.backgroundRead.wp
 #print axioms Perennial.net.http.response.Hijack.wp
@@ -459,4 +499,10 @@ end Perennial
 #print axioms Perennial.net.http.Server.Serve.wp
 #print axioms Perennial.net.http.Serve.wpHandler
 #print axioms Perennial.net.http.Handle.wp
+#print axioms Perennial.net.http.ServeMux.HandleFunc.wp
+#print axioms Perennial.net.http.NewServeMux.wp
+#print axioms Perennial.net.http.HandlerFunc.ServeHTTP.wp
+#print axioms Perennial.net.http.Header.Get.wp
+#print axioms Perennial.net.http.Header.Get.wp_ro
+#print axioms Perennial.net.http.Header.Set.wp
 #print axioms Perennial.net.http.Serve.wp_rpc

@@ -119,8 +119,8 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_net_rpc : G pkg_id.net.rpc = isPkgInit (PROP := IProp GF) pkg_id.net.rpc
   e_github_com_anishathalye_porcupine : G pkg_id.github_com.anishathalye.porcupine = isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine
   e_github_com_goose_lang_primitive : G pkg_id.github_com.goose_lang.primitive = isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive
-  e_github_com_google_uuid : G pkg_id.github_com.google.uuid = isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid
   e_encoding_binary : G pkg_id.encoding.binary = isPkgInit (PROP := IProp GF) pkg_id.encoding.binary
+  e_github_com_google_uuid : G pkg_id.github_com.google.uuid = isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid
   e_encoding_hex : G pkg_id.encoding.hex = isPkgInit (PROP := IProp GF) pkg_id.encoding.hex
   e_github_com_emirpasic_gods_utils : G pkg_id.github_com.emirpasic.gods.utils = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.utils
   e_github_com_emirpasic_gods_containers : G pkg_id.github_com.emirpasic.gods.containers = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.containers
@@ -190,7 +190,7 @@ theorem wf_sync_atomic {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_internal_sync {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.sync G :=
-  And.intro h.e_internal_sync True.intro
+  And.intro h.e_internal_sync ⟨wf_sync_atomic h, wf_internal_gomodel h, True.intro⟩
 
 theorem wf_internal_race {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.race G :=
@@ -202,7 +202,7 @@ theorem wf_internal_synctest {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_sync {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sync G :=
-  And.intro h.e_sync ⟨wf_sync_atomic h, wf_internal_sync h, wf_internal_race h, wf_internal_synctest h, True.intro⟩
+  And.intro h.e_sync ⟨wf_sync_atomic h, wf_internal_sync h, wf_internal_gomodel h, wf_internal_race h, wf_internal_synctest h, True.intro⟩
 
 theorem wf_io {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.io G :=
@@ -230,7 +230,7 @@ theorem wf_math_rand {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_time {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.time G :=
-  And.intro h.e_time ⟨wf_errors h, True.intro⟩
+  And.intro h.e_time ⟨wf_errors h, wf_internal_gomodel h, wf_sync_atomic h, True.intro⟩
 
 theorem wf_context {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.context G :=
@@ -338,7 +338,7 @@ theorem wf_internal_runtime_atomic {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_runtime {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.runtime G :=
-  And.intro h.e_runtime ⟨wf_internal_runtime_sys h, wf_internal_runtime_atomic h, True.intro⟩
+  And.intro h.e_runtime ⟨wf_internal_runtime_sys h, wf_internal_runtime_atomic h, wf_internal_gomodel h, True.intro⟩
 
 theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.http G :=
@@ -360,13 +360,13 @@ theorem wf_github_com_goose_lang_primitive {G : GoString → IProp GF} (h : KitG
     GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive G :=
   And.intro h.e_github_com_goose_lang_primitive True.intro
 
-theorem wf_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.github_com.google.uuid G :=
-  And.intro h.e_github_com_google_uuid True.intro
-
 theorem wf_encoding_binary {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.binary G :=
   And.intro h.e_encoding_binary ⟨wf_errors h, wf_io h, wf_math h, wf_reflect h, wf_slices h, wf_sync h, True.intro⟩
+
+theorem wf_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.github_com.google.uuid G :=
+  And.intro h.e_github_com_google_uuid ⟨wf_encoding_binary h, wf_github_com_goose_lang_primitive h, True.intro⟩
 
 theorem wf_encoding_hex {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.hex G :=
@@ -446,7 +446,7 @@ theorem wf_github_com_orcaman_concurrent_map {G : GoString → IProp GF} (h : Ki
 
 theorem wf_os_signal {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.os.signal G :=
-  And.intro h.e_os_signal True.intro
+  And.intro h.e_os_signal ⟨wf_os h, wf_sync h, True.intro⟩
 
 theorem wf_github_com_imdea_software_swiftpaxos_hook {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.hook G :=
@@ -525,7 +525,7 @@ theorem wfO_sync_atomic {G : GoString → IProp GF} (h : KitG G) (S : List GoStr
 theorem wfO_internal_sync {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.sync (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.sync ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_sync) True.intro
+    h.e_internal_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_internal_race {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.race (gOff S G) :=
@@ -540,7 +540,7 @@ theorem wfO_internal_synctest {G : GoString → IProp GF} (h : KitG G) (S : List
 theorem wfO_sync {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sync (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.sync ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_sync h S hS, wfO_internal_race h S hS, wfO_internal_synctest h S hS, True.intro⟩
+    h.e_sync) ⟨wfO_sync_atomic h S hS, wfO_internal_sync h S hS, wfO_internal_gomodel h S hS, wfO_internal_race h S hS, wfO_internal_synctest h S hS, True.intro⟩
 
 theorem wfO_io {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.io (gOff S G) :=
@@ -575,7 +575,7 @@ theorem wfO_math_rand {G : GoString → IProp GF} (h : KitG G) (S : List GoStrin
 theorem wfO_time {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.time (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.time ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_time) ⟨wfO_errors h S hS, True.intro⟩
+    h.e_time) ⟨wfO_errors h S hS, wfO_internal_gomodel h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_context {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.context (gOff S G) :=
@@ -710,7 +710,7 @@ theorem wfO_internal_runtime_atomic {G : GoString → IProp GF} (h : KitG G) (S 
 theorem wfO_runtime {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.runtime (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.runtime ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_runtime) ⟨wfO_internal_runtime_sys h S hS, wfO_internal_runtime_atomic h S hS, True.intro⟩
+    h.e_runtime) ⟨wfO_internal_runtime_sys h S hS, wfO_internal_runtime_atomic h S hS, wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_go_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.go.token (gOff S G) :=
@@ -727,15 +727,15 @@ theorem wfO_github_com_goose_lang_primitive {G : GoString → IProp GF} (h : Kit
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.goose_lang.primitive ∉ ownedPkgs) (hS _ hm))).trans
     h.e_github_com_goose_lang_primitive) True.intro
 
-theorem wfO_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.google.uuid (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.google.uuid ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_github_com_google_uuid) True.intro
-
 theorem wfO_encoding_binary {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.binary (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.encoding.binary ∉ ownedPkgs) (hS _ hm))).trans
     h.e_encoding_binary) ⟨wfO_errors h S hS, wfO_io h S hS, wfO_math h S hS, wfO_reflect h S hS, wfO_slices h S hS, wfO_sync h S hS, True.intro⟩
+
+theorem wfO_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.google.uuid (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.google.uuid ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_github_com_google_uuid) ⟨wfO_encoding_binary h S hS, wfO_github_com_goose_lang_primitive h S hS, True.intro⟩
 
 theorem wfO_encoding_hex {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.hex (gOff S G) :=
@@ -820,7 +820,7 @@ theorem wfO_crypto_sha256 {G : GoString → IProp GF} (h : KitG G) (S : List GoS
 theorem wfO_os_signal {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.os.signal (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.os.signal ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_os_signal) True.intro
+    h.e_os_signal) ⟨wfO_os h S hS, wfO_sync h S hS, True.intro⟩
 
 theorem wfO_github_com_imdea_software_swiftpaxos_hook {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.hook (gOff S G) :=

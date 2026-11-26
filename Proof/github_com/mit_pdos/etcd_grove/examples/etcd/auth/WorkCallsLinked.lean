@@ -156,8 +156,8 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     iintro !>
     ileft
     ipureintro; rfl
-  icases Hout with ⟨-, (⟨%Herr, %m, #Hm, #Hok, %md, %Hmd, #Hauth⟩ | ⟨%Herr, -⟩)⟩
-  · ihave #Hseen := akTokSeen_attempt γa who conn md Hmd $$ Hat
+  icases Hout with ⟨-, (⟨%Herr, %m, #Hm, #Hok, %md, #Hmd, #Hauth⟩ | ⟨%Herr, -⟩)⟩
+  · ihave #Hseen := akTokSeen_attempt γa who conn md $$ Hmd Hat
     imod (akRead_granted s E γa ρ ρ.rd Lset n who (W64 0) _ _ hγa) $$ [] Hauth with %Hg
     · iframe #
     imodintro

@@ -230,17 +230,17 @@ theorem wp_updateStateMachine (γ : QNames) (γs : GName) (cf : QConf) (pr cb bm
         rw [Hcongr]
         repeat' (first | wp_auto | simp only [Hb, _root_.and_self, ↓reduceIte])
         wp_apply wp_executeClientBatches γ γs pr cb bm ebm s.decidedBatch' ids Bn _ E HE HBn.2.2.2
-          HBn.2.1 HBn.2.2.1 $$ [Hm Hkv] as %rs %outs ⟨%E', Hm, %HE', Hkv, Hrs, Houts⟩
+          HBn.2.1 HBn.2.2.1 $$ [Hm Hkv] as %rs %outs ⟨%E', Hm, %HE', Hkv, Hrs, Houts, %Hsto⟩
         · iframe Hcb Hst Hbm Hebm Hm Hkv Hids Hhas HknownN
         wp_apply (lc := 2) wp_time_Now as %tn _
         -- the ghost commit of the slot
         -- the answers, shared with the writer goroutines that marshal them (`&batches[i]`)
         ihave %Hrslen := ownSlice_len $$ Hrs
         ihave Hrs := ownSlice_elems _ _ _ $$ Hrs
-        imod (bigSepL_fupd_mono ⊤ outs
+        imod (bigSepL_fupd_mono_mem ⊤ outs
           (fun k o => typedPointsto (sliceIndexRef raxos.proto.client.ClientBatch (k : Int) rs) o (DFrac.own 1))
           (fun k o => ptCB (GF := GF) (sliceIndexRef raxos.proto.client.ClientBatch (k : Int) rs) .discard o)
-          (fun k o => ptCB_share ⊤ _ _)) $$ Hrs with #Hrs
+          (fun k o ho => ptCB_share ⊤ _ _ (Hsto o ho))) $$ Hrs with #Hrs
         imod (bigSepL_fupd_mono ⊤ outs _ (fun k o => iprop(∃ x b r,
             ⌜(freshIds (execLog (fun y => Bn !! y) D').done ids)[k]? = some x ∧ Bn !! x = some b ∧
               (execIds (fun y => Bn !! y) (execLog (fun y => Bn !! y) D') ids).results x = some r⌝ ∗

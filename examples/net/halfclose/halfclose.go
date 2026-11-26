@@ -8,25 +8,30 @@
 //
 // Two nodes, each a process (cmd/server, cmd/client): the server listens at
 // SrvAddr and serves each connection in turn: it reads until EOF, writes
-// everything it read back, and closes the connection; the client dials, writes
-// its request, shuts its write side, reads until EOF and checks that the
-// response is a prefix of its request. Only a prefix: EOF does not mean the
-// writer finished. When a process dies its kernel sends a FIN (or a reset whose
-// error another call may take), so a server killed after reading the request
-// and before writing its reply gives the client EOF with an empty response
-// (examples/net/semantics, TestServerKilledBeforeReply). What the stream does
-// guarantee is that the bytes read are the bytes written, in order, with none
-// invented; this is the weakness of close-delimited bodies that HTTP's Content-
-// Length avoids.
+// everything it read back, and closes the connection; the client draws a
+// request of 0 to maxReq random bytes, dials, writes it, shuts its write side,
+// reads until EOF and checks that the response is a prefix of its request. Only
+// a prefix: EOF does not mean the writer finished. When a process dies its
+// kernel sends a FIN (or a reset whose error another call may take), so a
+// server killed after reading the request and before writing its reply gives
+// the client EOF with an empty response (examples/net/semantics,
+// TestServerKilledBeforeReply). What the stream does guarantee is that the
+// bytes read are the bytes written, in order, with none invented; this is the
+// weakness of close-delimited bodies that HTTP's Content-Length avoids.
 package halfclose
 
 import (
 	"io"
 	"net"
+
+	"github.com/mit-pdos/etcd-grove/examples/net/wire"
 )
 
 // SrvAddr is the server's address.
 const SrvAddr = "127.0.0.1:7105"
+
+// maxReq is the longest request.
+const maxReq = 255
 
 // readAll reads c until EOF. It returns the bytes read, and whether EOF was
 // reached (false: an error).
@@ -71,14 +76,15 @@ func Serve() {
 	}
 }
 
-// Call sends the request "hello", shuts its write side, and checks that the
-// response read until EOF is the request.
+// Call sends a request of 0 to maxReq random bytes, shuts its write side, and
+// checks that the response read until EOF is a prefix of the request.
 func Call() {
+	req := wire.RandomBytes(wire.RandomInt(maxReq))
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	if _, err := c.Write([]byte("hello")); err != nil {
+	if _, err := c.Write(req); err != nil {
 		c.Close()
 		return
 	}
@@ -87,7 +93,7 @@ func Call() {
 		return
 	}
 	resp, ok := readAll(c)
-	if ok && !prefixOf(resp, []byte("hello")) {
+	if ok && !prefixOf(resp, req) {
 		panic("halfclose: the response is not a prefix of the request")
 	}
 	c.Close()

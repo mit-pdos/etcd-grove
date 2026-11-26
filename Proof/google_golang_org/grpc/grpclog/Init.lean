@@ -2,15 +2,19 @@
 Package initialization of `google_golang_org.grpc.grpclog`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, allocates `cache` and runs its
-translated initializer, an empty map literal (prove-grpcext, 2026-11-20; until then the trust-boundary
-axiom `opaqueInitsOk`), and its untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the
-trust-boundary axiom `initFuncsOk` says returns.
+Its fact (`grpclogInit`, `cache/v3/Base.lean`; phase7-inits batch 2, 2026-11-25, until then
+`True`): `cache` holds a map for good, whose contents are in an init-time invariant (`initInv`), for
+`Component`, which package initializers call (`Spec/google_golang_org/grpc/grpclog/Component.lean`). Its
+initializer initializes its imports, allocates `cache` and runs its translated initializer, an empty map
+literal (prove-grpcext, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its
+untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the trust-boundary axiom
+`initFuncsOk` says returns.
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.google_golang_org.grpc.grpclog.internal.Init
+public import Proof.google_golang_org.grpc.internal.Hooks
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -69,6 +73,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Loc) cache _ as Hcache
   wp_apply (_root_.Perennial.google_golang_org.grpc.grpclog.internal.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of cache))
@@ -76,8 +81,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string (go.GoType.PointerType google_golang_org.grpc.grpclog.componentData.ty)) as %mHc Hc
   try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  ipersist Hcache
+  imod (EtcdGrove.grpcInternal.initInv_alloc (hG := hG) _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog.cacheN ⊤ iprop(∃ M : GMap GoString Loc, (mHc ↦$ M : IProp GF))) $$ [Hc] with ⟨%γC, #HC⟩
+  · inext; iexists _; iexact Hc
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try imodintro
+  unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog.grpclogInit
+  iexists mHc, γC
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -581,7 +581,7 @@ theorem isWGS_atIdx (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (i : Nat) (
   iintro #H
   have e1 : reqP (V.atIdx i) = reqP V := rfl
   have e2 : closingP (V.atIdx i) G = closingP V G := rfl
-  have e3 : respcE (V.atIdx i) G.γep = respcE V G.γep := rfl
+  have e3 : respcE (V.atIdx i) G.omd G.γep = respcE V G.omd G.γep := rfl
   unfold isWGS
   rw [e1, e2, e3]
   icases H with ⟨%H1, #H2, #Hsf, #H4, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14,
@@ -610,6 +610,36 @@ theorem wsElem_recon_at (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNam
   rw [wsRest_atIdx V i γs _ P ph hnr]
   iframe HP Hid Hnc Hlife Hrest
   ipureintro; exact ⟨HPws, Hph, Hkey⟩
+
+/-- **A substream at any member before the epoch's first response** (phase 7's switch, SW1, R2):
+with no response taken (`S.Dm = []`) no substream is registered (`phOk`'s `idLive`), and the other
+phases' states read no member. -/
+theorem wsElem_atIdx_nil (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames)
+    (S : RunSt) (ws : Loc) (i : Nat) (hD : S.Dm = []) :
+    wsElem V G n γs S ws ⊢ wsElem (V.atIdx i) G n γs S ws := by
+  unfold wsElem
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph, %Hkey⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+  iexists P, ph
+  rw [wsIs_atIdx, wsLife_atIdx]
+  have hnr : ∀ X, ph ≠ .reg X := by
+    intro X hX; subst hX
+    have hl : v3rpc.idLive S.Dm X := by simp only [phOk] at Hph; exact Hph.2.2.2.2.2.2.2
+    rw [hD] at hl
+    simp [v3rpc.idLive] at hl
+  rw [wsRest_atIdx V i γs _ P ph hnr]
+  iframe HP Hid Hnc Hlife Hrest
+  ipureintro; exact ⟨HPws, Hph, Hkey⟩
+
+/-- **`run`'s substreams at the member of the epoch's dispatch** (SW1, R2): at the first response
+(`S.Dm = []`, `wsElem_atIdx_nil`), or at the member already known (`V.atIdx i = V`). -/
+theorem wsElems_atIdx_sw (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames)
+    (S : RunSt) (U : GMap Loc Unit) (i : Nat) (h : S.Dm = [] ∨ V.atIdx i = V) :
+    ([∗map] ws ↦ _u ∈ U, wsElem V G n γs S ws) ⊢
+      [∗map] ws ↦ _u ∈ U, wsElem (V.atIdx i) G n γs S ws := by
+  rcases h with hD | hV
+  · iintro H
+    iapply (BigSepM.bigSepM_mono (fun {ws _} _ => wsElem_atIdx_nil V G n γs S ws i hD)) $$ H
+  · rw [hV]
 
 /-- **A substream neither registered nor queued across a reconnection** (server-cancelled, refused,
 or closed): its state of the next generation (`closedRun` becomes `closed`). -/

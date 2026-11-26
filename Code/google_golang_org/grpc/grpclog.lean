@@ -125,6 +125,58 @@ noncomputable def NewLoggerV2WithVerbosity [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def newLoggerV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.newLoggerV2"
 
+/-- Component creates a new component and returns it for logging. If a component
+    with the name already exists, nothing will be created and it will be
+    returned. SetLoggerV2 will panic if it is called with a logger created by
+    Component.
+
+    go: component.go:108:6 -/
+noncomputable def Component.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "componentName"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc DepthLoggerV2.ty))) (App (Val (GoInstruction (GoZeroVal DepthLoggerV2.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "componentName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "componentName"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc componentData.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "componentName"))
+  (App (Val (GoInstruction (CompositeLiteral componentData.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))]))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType componentData.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType componentData.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType componentData.ty)))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType componentData.ty) DepthLoggerV2.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType componentData.ty)))) (Var "c")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DepthLoggerV2.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType componentData.ty))))) (App (Val (GoInstruction (GlobalVarAddr cache))) (Val #())))) (App (Val (GoInstruction (GoLoad go.string))) (Var "componentName"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType componentData.ty)))) (Pair (Var "c") (Var "$r0")))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.PointerType componentData.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType componentData.ty))))) (App (Val (GoInstruction (GlobalVarAddr cache))) (Val #())))) (App (Val (GoInstruction (GoLoad go.string))) (Var "componentName")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "cData" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType componentData.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType componentData.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType componentData.ty) DepthLoggerV2.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType componentData.ty)))) (Var "cData")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore DepthLoggerV2.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType componentData.ty)))) (Pair (Var "cData") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad DepthLoggerV2.ty))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.grpclog where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.grpclog.internal]
 
@@ -229,12 +281,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Logger_instance : Logger.TypeAssumptions
   LoggerV2_instance : LoggerV2.TypeAssumptions
   DepthLoggerV2_instance : DepthLoggerV2.TypeAssumptions
+  Component_unfold : FuncUnfold Component [] Component.impl
   import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Assumptions
 
 attribute [instance] Assumptions.componentData_instance
   Assumptions.Logger_instance
   Assumptions.LoggerV2_instance
   Assumptions.DepthLoggerV2_instance
+  Assumptions.Component_unfold
   Assumptions.import_internal_Assumption
 
 end google_golang_org.grpc.grpclog

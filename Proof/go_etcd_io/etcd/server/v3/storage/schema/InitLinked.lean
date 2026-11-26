@@ -11,7 +11,7 @@ public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init

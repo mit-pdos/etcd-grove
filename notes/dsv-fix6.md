@@ -1,0 +1,223 @@
+# dsv-fix6: the three refuted premises, restated narrowly as per-function axioms (#49)
+
+2026-11-25. Upamanyu's decision (coordinator-E on #8, 2026-11-25T16:05:44Z, items 1-3): craq's `LogHyp`,
+rabia's `zerolog.Hyps` and QuePaxa's `PbHyp`, refuted as stated (`notes/axiom-review/dsv-fix4/
+{log-logger,zerolog,quepaxa-pb}.md`), are restated narrowly, reviewed again by the `axiom` skill, and become
+per-function interim axioms as in fix 4 (`etc/dsv/README.md`, "Per-function axioms"). grpc's initializer
+(item 4) and go-redis's (item 5) are not touched.
+
+**State (2026-11-25, fifth session): rabia done; QuePaxa done, reviewed, gates passed; craq: route revised (below), `ErrFmt.lean` drafted, nothing else.**
+- **Gates: all passed** at `eb7cf0b3fd` (rabia only) and at `ebd1ac09ab` (rabia + QuePaxa; 386 axioms, 64
+  collections match, `pb-init: ok`). So `ebd1ac09ab` can be queued as it stands; craq is the next session's.
+- **Next session: craq** (item 1 below, option 1), from `ebd1ac09ab`. The check script lives in `etc/`, not
+  `etc/dsv/`: `etc/goose.py` loads every `etc/dsv/*.py` as a kit (it broke gen-link's output once).
+- **rabia (item 2 below): done.** `a28755b089`'s 16 zerolog axiom files and `HypsHoldLinked.lean` restored;
+  `Spec.lean`'s `New.spec` is `New(interface.nil)` with post `loggerOk lg`, `Logger.level.spec` takes
+  `l ↦{dq} lg ∗ loggerOk lg` and gives the points-to back. Review: `notes/axiom-review/dsv-fix6/zerolog.md`,
+  **survives** with conditions; doc bug `nonissues/rabia-getloglevel-doc-panics.md`. TCB: +16 axioms, one
+  premise fewer.
+- **QuePaxa (item 3): done.** `3a6222e221`: the owned case of a message representation asks
+  `⌜stateOk mi v.state'⌝` (unset or the type's own `MessageInfo`), the shared case's invariant content `rt*`
+  is sealed (closing the fix-4 review's A and B). Its review (`notes/axiom-review/dsv-fix6/quepaxa-pb.md`)
+  refuted it with counterexample C (a `Marshal` from the message package's own initializer, before its
+  generated `init` fills `file_*_msgTypes`). `c7b8cc6ee7`: each kind of `msg.marshalPre`/`unmarshalPre`
+  asks `isPkgInit` of its declaring package (`raxos.replica.src` for the six consensus kinds,
+  `raxos.proto.client` for `ClientBatch`; both defs now in `section codec` with `[HasExt Net.netExt]`,
+  as are `Hyp.lean`'s `pb` section, `PbHyp` and the two axiom files), proved at the 15 construction sites
+  by `iPkgInit`; `replicaMI`/`clientMI` are `opaque` tags. The statement text is unchanged; its
+  `GrpcHyp (cd := qpCodec)` premise only weakens (the codec's obligations, all the program's, ask more).
+  Fresh review `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md` (reviewer given only the Go and the
+  statement): **survives with a condition**: inside a declaring package `isPkgInit` can be assembled
+  before the generated `init` (its fact is `True`/`srcState`), so no hand-written package-level `var` or
+  `init()` may exist in `raxos/replica/src`, `raxos/proto/client`; today none does. Checked by the new
+  `etc/pb-init-check.py`, run in `etc/gates.sh` (section goose). The review's stronger alternative,
+  not done: a persistent token produced by the trusted `init.«0»` model inside the two packages'
+  `isPkgInitDef` (touches `TrustedCode` and `etc/gen-init.py`). TCB: +2 axioms
+  (`raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof`, exactly), baselines updated (`etc/tcb-baseline.txt`,
+  `etc/tcb-collections/dsv-quepaxa.txt`); reviews indexed in `notes/axiom-review/README.md`;
+  `etc/dsv/README.md`'s fix-4 section updated. Full `lake build` passes.
+- **craq (item 1): started (fifth session, design only).** Coordinator-E chose option 1 (errAny's fact in `Net/`, proved at its
+  producers; stop if a `TopLevelRobustness` text changes).
+  **Fifth session's finding: `errAny` itself must NOT gain the fact.** `models_lab.errAny` is also what
+  premises and axioms say of real libraries' errors: `raxos.hyp.proto.{Marshal,Unmarshal}.wp_proof` (axioms,
+  `Dsverify/Proof/raxos/Hyp.lean`: their posts give `errAny err` of protobuf-go's own error types: a stronger
+  `errAny` would make those axioms claim `*errorString`/`*OpError` shapes they do not have, i.e. unsound), the
+  statement premises `RpcHttpHyp` of swiftpaxos and swiftpaxos-epaxos (`.../RpcHttpHyps.lean`: a stronger
+  `errAny` in their posts changes the meaning of two `TopLevelRobustness` statements, which the brief forbids),
+  `PbCodec`/`JsonCodec`'s obligations (premise `GrpcHyp (cd := qpCodec)` of QuePaxa) and
+  `raxos.hyp.fmt.Println.wp_proof`'s precondition (narrowing: harmless). Its size was also misjudged: `errMsg`
+  (73 files, etcd's server included) feeds `errAny` through `errMsg_errAny` (31 uses), so the fact would have
+  to go into `errMsg`/`errNE`/`errSrv`/`inErr` too.
+  **Revised route (same option 1: the fact lives in `Net/`, proved where the errors are made):** a new module
+  `Net/Proof/models_lab/ErrFmt.lean` (written and built alone, with `noFmt_*` of the five types by `go_type_set`; nothing imports it yet) with `NoFmtMeth t`
+  (`t` implements neither `fmt.Formatter` nor `fmt.GoStringer`), `errLeaf i` (an interface value `%#v` reaches
+  at depth 2: `nil`, or a pointer type / `poll.errNetClosing` without those methods), `errFmt e` (`NoFmtMeth
+  e.ty` and one of the net world's shapes with the memory `%#v` reads persistent: `ServerError`;
+  `*errorString` with `x.s ↦□ s`; `*pbcodec.Error`/`*jsoncodec.Error` with `x ↦□ v`; `*OpError` with
+  `pe ↦□ v` and `errLeaf` of `Source`/`Addr`/`Err`) and `errPlain err := errAny err ∗ ∃ e, ⌜err = ok e⌝ ∗
+  errFmt e`. `errAny`, `errMsg` and every premise/axiom stay as they are. Steps left:
+  1. Net's own proved specs that craq's errors come from return `errPlain` where they returned `errAny`:
+     `net.rpc.Client.Call.spec`'s third branch (`Net/Spec/net/rpc/Client__Call.lean`; its producers in
+     `Net/Proof/net/rpc/Client__input.lean`'s `inErr`, `ClientGhost`, `Errs.lean`: `errAny_newVar`,
+     `errAny_errorString` (+ the `x.s ↦□` from `wp_errors_New'`/`newVar`), `errAny_opErr`/`resErr`/`opErrPtr`
+     (`kindErr`'s `Err`: `closedErr` = `errNetClosing{}`, the deadline variable's `*DeadlineExceededError`,
+     `sysErr`'s `*SyscallError`: `errLeaf`), `DialHTTP.spec`/`Dial.spec`'s error (DialHTTPPath's `"dial-http"`
+     `*OpError` wraps an `errAny` `Err`: needs that `Err` to be `errLeaf`, i.e. its producer's type). Either
+     strengthen these specs in place (their consumers in other kits then weaken with `errPlain_errAny`;
+     `icases` patterns change) or add `Client.Call.spec_plain` etc. beside them (no other kit touched;
+     preferred). The `ServerError` branch needs no Net change: `errMsg err msg ∗ ⌜err = serverErr msg⌝ ⊢
+     errPlain err` is provable from the type alone.
+  2. craq: `Craq/Iface.lean`'s specs say `errPlain` where they say `errAny` (`Craq/Netrpc/*` bindings over the
+     `_plain` Net specs; `NodeClient`/`CoordClient`'s `errMsg_errAny` uses become the `ServerError` lemma);
+     the store's `errNotFound` (`errors.newVar`) gives `errPlain` from `newVar`'s `x.s ↦□`.
+  3. `argOk` narrowed (`Craq/LogHyp.lean`): `nil ∨ ⌜fmt.ArgWf ii⌝ ∨ ⌜FmtPlain ii.ty⌝ (+ the persistent
+     pointee for `*store.Item`/`*transport.NodeMeta`) ∨ errPlain v`; `argOk_err` takes `errPlain`.
+  4. `LogHyp` → per-function axioms (`log.Default`, `Logger.Printf`, `Logger.Println`, as rabia's), the class and
+     the premise removed from `craqnet/TopLevelRobustness.lean` (removal only), fresh `axiom` review in
+     `notes/axiom-review/dsv-fix6/log-logger-2.md`, `etc/tcb-report.py --check --update`, `etc/gates.sh`.
+
+- **craq (item 1): steps 1-4 done (sixth session, 2026-11-25).** Net: `Client.Call.spec_plain`,
+  `DialHTTPPath`/`DialHTTP.spec_plain` (`wp_plain`, rpc `Results`), `ReadResponse.spec_errs`, `errPlain_*`
+  lemmas (old specs derived; internal `callPost`/`sendInv`'s `w0`/`inErr`/`decErr`/`crErr`/`wp_errors_New'`'s
+  post say more; `errFmt`'s `*OpError` `Err` also admits `poll.ErrDeadlineExceeded`'s value by
+  `globalAddr … ↦□`, Perennial's poll fact lacking its type, `perennial-changes.md`; `errLeaf` admits
+  `textproto.ProtocolError`). craq: `RpcClientSpecs` over the `_plain` specs, `Iface`/`Netrpc` error posts
+  `errPlain`; `LogHyp` → `Craq/LogAx.lean`'s three axioms (`LogDefault`, `LoggerPrintf`, `LoggerPrintln`),
+  class `LogSpecs` made by `logSpecs_holds`, premise removed from `craq_remote_robust`. The restatement
+  went through three fresh reviews: `log-logger-2` refuted the receiver `l ≠ null` (`new(log.Logger)`
+  panics: now opaque `StdLogger`, from `LogDefault`), `log-logger-3` refuted `Printf` under `%t` of an
+  `errLeaf` pointer (now `FmtVerbsOk msg`: verbs `v s q x X d`), `log-logger-4` refuted `FmtVerbsOk`'s
+  character-set check (`%1+v`: a flag after the width is the verb); `FmtVerbsOk` now follows Go's order
+  (flags, width, `.`precision, verb; `decide` examples at the end of `LogHyp.lean`).
+  **Handoff (head after this commit):** (1) build `…go_craq.examples.craqnet.TopLevelRobustness` (the node's
+  formats are checked by `decide` in `wp_log`); (2) a FRESH `axiom` review of the statement as it now stands
+  (`notes/axiom-review/dsv-fix6/log-logger-5.md`, row in the README), given only the Go and LogAx/LogHyp/
+  ErrFmt; (3) on survival: tcb collection `etc/tcb-collections/dsv-craq.txt` gains the three `LogAx`
+  axioms (`etc/tcb-report.py --collection … --check --update`, then `etc/tcb-report.py --check --update`),
+  `etc/dsv/README.md`'s fix-4 section, `notes/STATUS.md`; (4) `etc/gates.sh`.
+  Spec weakening: craq's `isNodeSvc` Update post gives back `∃ dq', metaPtr ptr dq' m` (the log lends a
+  fraction; its only consumer discards it). Open findings: `StdLogger` is a pure opaque `Prop`
+  (log-logger-3 suggests a per-execution `IProp` against a future concrete semantics); Net's trusted
+  `(*OpError).Error` model (`Net/TrustedCode/net.lean`) calls nothing where Go calls
+  `Err.Error()`/`Addr.String()`: needs its own review (log-logger-3, "Related finding").
+
+- **craq (item 1): done (seventh session, 2026-11-25).** Built `craqnet.TopLevelRobustness` and `Link` at `38dbbc96bf`. The fresh fifth review (`notes/axiom-review/dsv-fix6/log-logger-5.md`, reviewer given only the Go and the statement) **survives**; the three `LogAx` axioms are in `etc/tcb-collections/dsv-craq.txt` (6 axioms) and `etc/tcb-baseline.txt` (386 → 389). The `(*OpError).Error` model finding is recorded on its own, open, for its owner: `notes/axiom-review/dsv-fix6/net-operr-error.md` (with the review's two further programs). `StdLogger` stays a pure opaque `Prop`.
+
+## 1. craq: `log.(*Logger).Printf`/`Println` (and the package-level `log.Printf`/`Println`)
+
+**Old premise** (`Craq/LogHyp.lean`, `LogHyp`): `l ≠ null →
+{{ isPkgInit log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }} l.Printf msg arg {{ RET #(); arg ↦*{dq} xs }}`
+(and `Println`), with `argOk v` = `nil`, or `fmt.ArgWf`, or a type with neither `Error` nor `String`, or
+`models_lab.errAny v`. `log.Default` survived its review and is restated unchanged.
+
+**Restated** (the same triples over a narrower `argOk`; nothing else changes, so on every argument list the
+new condition admits, the old one did too):
+
+    /-- The types fmt formats calling no `Format`/`GoString` at any place it visits: least fixpoint. -/
+    inductive FmtPlain : go.GoType → Prop
+      | basic   : IsBasicType t → FmtPlain t
+      | named   : methodSet t !! "Format" = none → methodSet t !! "GoString" = none →
+                  methodSet t !! "Error" = none → methodSet t !! "String" = none →
+                  FmtPlain (underlying t) → FmtPlain t          -- a named type, its underlying type
+      | struct  : (∀ f ∈ fields, exported f → FmtPlain f.ty) → FmtPlain (StructType fields)
+      | ptr     : FmtPlain t → FmtPlain (PointerType t)          -- the pointee, at depth 0
+      | slice/array/map : FmtPlain of the element (and key) types
+      -- no constructor for an interface-typed field: its dynamic value is not known
+
+    def argOk (v : GoInterface) : IProp GF :=
+      nil ∨ ⌜fmt.ArgWf ii⌝ ∨ ⌜FmtPlain ii.ty⌝ ∨
+      (models_lab.errAny v ∗ ⌜ErrFmtPlain e.ty⌝)   -- `Format = none ∧ GoString = none`, and under `%#v`
+                                                    -- the visited fields `FmtPlain` (as `FmtPlain` minus
+                                                    -- the `Error = none` of the top type)
+
+(Perennial's `fmt/Args.lean` `argOk` requires `Format = none` and a `stringMethodSpec`; this adds the
+recursion it does not need, as its `fmt` model never visits fields.) The review's attack 9 (fmt reads a
+top-level pointee with no permission) is closed by asking, in the `ptr` case at the top level, a persistent
+points-to of the pointee (craq's `*store.Item` is `itemPtr`, persistent; `*transport.NodeMeta` is
+`metaPtr p dq m`, so that one site keeps a fraction and gets it back).
+
+`LogHyp.wp_Printf`/`wp_Println` (the package-level functions, proved over Perennial's no-op model) take the
+same narrowed `argOk`: today they step the no-op over the wide one (the Perennial finding,
+`notes/perennial-changes.md`, "`TrustedCode/log.lean`'s no-op ...": #56 records the model's gap but says no
+proved path passes such an argument; craq's coordinator does).
+
+**The blocker found.** The errors craq logs are mostly `errAny` values whose type the proof does not know:
+the node's `Read` (tail's `LatestVersion`), `Start`, `Write` (×2), `CommitM`, `ReqProp` (×2) and
+the coordinator's `AddNode` (×3) and `RemoveNode` (×3) log an error from an RPC (Net's `callPost`, third
+disjunct: `models_lab.errAny err`) or one passed up from it. `errAny` says only "some `Error()`", so
+`ErrFmtPlain` is unprovable there. The producers are concrete (`Net/Proof/net/rpc/Errs.lean`: `errors.New`'s
+`*errorString`, the net extension's `*OpError`, the codecs' `errors.New` errors), so the route is:
+**`models_lab.errAny` gains `⌜ErrFmtPlain e.ty⌝`** (`Net/Proof/models_lab/Errors.lean`), proved at its
+producers (`errAny_newVar`, `errAny_errorString`, `errAny_resErr`, `opErr_errAny`, the generated codecs'
+`dec` obligations via `pbgen`/`jsongen`'s templates), and the `icases`/`unfold errAny` sites adjusted (95
+mentions in `Net/`; every Net kit rebuilds). Smaller alternatives, each needing coordinator-E's word: a
+craq-local `errLog` returned by craq's `Iface` specs (still needs Net's `callPost` to carry the fact), or
+the kit's Go logging `err.Error()` at those sites (as `node.go:135` and `coordinator.go:161` already do), a
+program change.
+
+**Retirement route** (`notes/dsv-axiom-routes.md`'s style): `*Logger`'s methods are **Perennial-trusted
+code** first (`TrustedCode/log.lean`: `Logger.Printf`/`Println` beside its `Printf`/`Println`, with #56's
+condition), then **translate** with #56's plan (Go models of `log` over `fmt.Appendf`/`Appendln` once the
+reflection stages S0+S0.5 land); the axiom's argument condition becomes the `fmt` model's.
+
+## 2. rabia: `zerolog`
+
+**Old premise** (`Dsverify/Proof/github_com/rs/zerolog/Spec.lean`, `Hyps`): `∃ ownEvent, EventSpecs`;
+`Logger.level.spec`: `l ≠ null → {{ isPkgInit }} l.M() {{ e, RET #e; ownEvent e }}`, no resource of `l`;
+`New.spec`: every `w`, `{{ isPkgInit }} New(w) {{ lg, RET #lg; True }}`; `Msg`, the field methods,
+`ParseLevel("warn")`, `SetGlobalLevel` as in the file.
+
+**Restated: `New` restricted to `nil`** (the simpler of the two the decision allows, and all rabia calls:
+`internal/logger/logger.go:95`, `zerolog.New(nil)`; `New` replaces a `nil` writer by `ioutil.Discard`,
+whose `Write` never panics; the other choice, a recorded writer with its `Write` spec, would need a
+writer-spec vocabulary rabia never uses):
+
+    opaque loggerOk : Logger → IProp GF            -- persistent (a law, axiom)
+    axiom New.wp_proof : {{ isPkgInit zerolog }} New(interface.nil) {{ lg, RET #lg; loggerOk lg }}
+    axiom Logger.<M>.wp_proof (M ∈ Trace Debug Info Warn Error) : ∀ l lg dq,
+      {{ isPkgInit zerolog ∗ l ↦{dq} lg ∗ loggerOk lg }} l.M() {{ e, RET #e; l ↦{dq} lg ∗ eventTok e }}
+
+(`l ≠ null` follows from the points-to and is dropped.) The field methods, `Msg`, `ParseLevel("warn")` and
+`SetGlobalLevel` are the old fields verbatim (they survived the review, with its conditions 1-9). Each
+claims no more than `Hyps` on rabia: `New` at `nil` is an instance of `New` at every `w`, with a post
+`loggerOk lg` that only the level methods consume; the level methods ask more. Proof changes:
+`InitLogger.spec`'s post becomes `loggerOk lg` (`internal/logger/{Spec,InitLogger}.lean`);
+`Server__TerminalLogger.lean` stores `lg` in `tLogger` (owned: pass `dq = 1`); `KVSExecutor.lean` reads
+the logger through `Proxy`'s field (`proxyFields`' `HLogNN`): `proxyFields` gains
+`structFieldRef Proxy "Logger" p ↦□ lg ∗ loggerOk lg`, established where the `Proxy` is built from
+`InitLogger`; `HypsHoldLinked.lean` (from `a28755b089`) builds the class from the axioms; `etc/dsv/rabia.py`'s
+`discharged` as in `a28755b089`.
+
+**Retirement route:** **translate** zerolog v1.23.0 with bodies (`notes/dsv-axiom-routes.md`, §1's
+zerolog row: goose takes it but `ch = newCallerHook(...)`, `[[skip]]`); `loggerOk` becomes the logger's
+representation and the 16 axioms theorems.
+
+## 3. QuePaxa: `proto.Marshal`/`Unmarshal`
+
+**Old premise** (`Dsverify/Proof/raxos/Hyp.lean`, `PbHyp`): `Marshal` over `msg.marshalPre m Ψ`,
+`Unmarshal` over `msg.unmarshalPre bs m Ψ`, whose representations (`msg.pt*`) own or share the whole
+message struct, runtime fields `state`/`sizeCache` included, with any value.
+
+**Restated (the representation, not a gate):** the message representations split each struct into its
+program fields and protobuf's runtime fields; the runtime fields are held only by a sealed protobuf token
+`pbRt l` (`@[no_expose]`, opaque: no law lets a client open it or store through it), with `state` zero or
+the type's own `MessageInfo` (`file_…_msgTypes[i]`) and, in the shared case, `sizeCache ∈ {0, size v + 1}`
+for the immutable value. The program's representation never hands out `state`/`sizeCache`; `Marshal` and
+`Unmarshal` take and give back the token; a whole-struct copy of a same-typed message keeps it (a law).
+Proof changes: the `msg.pt*` representations and `msg.pbRtN` (QuePaxa's `Proposer`/`Recorder` message
+proofs), every construction of a message (it gets the token from the allocation, zero runtime fields).
+Claims no more on QuePaxa: the old precondition held for every runtime-field value, this one for the two
+the representation allows.
+
+**Retirement route:** **Go model**, the protobuf-go registry/runtime model of #37 (`7166942039`), where
+`state`/`sizeCache` are the model's own fields; until then the axiom.
+
+## What remains, in order
+
+1. ~~rabia~~ (done, above).
+2. craq, option 1 (decided).
+3. QuePaxa's representation refactor.
+4. For each: a fresh `axiom`-skill review given only the axiom and its Go (`notes/axiom-review/dsv-fix6/`),
+   the statement's premise removed (`TopLevelRobustness` only loses a premise), `etc/tcb-report.py
+   --check --update` and the kits' collections, `etc/dsv/README.md`'s fix-4 section ("a refuted axiom stays
+   a premise") updated, then `etc/gates.sh`.

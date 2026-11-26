@@ -65,6 +65,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.client',
          # putgetK_safe (2026-11-24, notes/putget-dist-plan.md §13): the k members' and the client's package
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk',
+         # gRPC's robustness driver (notes/library-drivers.md): its two machines' commands
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server',
+         'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -2209,6 +2212,36 @@ translated initializers, two slice literals (`mvccrand.go`), whose slices are ma
            ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
 )
 
+# (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
+# `drvFacts` (`Base.lean`, 2026-11-25; `True` until then): `reached`, a function value, is allocated and
+# stored, and its calls return
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver'] = dict(
+    doc='''Its fact (`drvFacts`, `Base.lean`): its variable `reached`, read-only, holds a function whose calls
+return. Its initializer allocates `reached`, initializes its imports and stores `reached`'s function value.''',
+    alloc_types={'reached': 'GoFunc'},
+    before={'reached': ['try wp_auto']},
+    finish=['ipersist Hreached',
+            'iframe Hown', 'is_pkg_init_finish', 'try imodintro',
+            'isplitr', '· ipureintro; exact isPanic_intoVal _',
+            'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.drvFacts',
+            'try imodintro', 'try imodintro',
+            'iexists _', 'iframe Hreached', 'imodintro', 'iintro %s', 'wp_auto', 'ipureintro; rfl'])
+# (grpcdriver server, 2026-11-25) its fact `drvDescs` (`svc/Base.lean`): the descriptor's fields, its
+# methods and streams exactly, as etcdserverpb's
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc'] = dict(
+    doc='''Its fact (`drvDescs`, `svc/Base.lean`): its service descriptor `Driver_ServiceDesc`, read-only, with
+its methods and streams exactly. Its initializer allocates and sets the descriptor (a `grpc.ServiceDesc`
+literal) and initializes its imports.''',
+    alloc_types={'Driver_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
+    finish=['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pm ⟨Sm, -⟩; wp_auto',
+            'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %ps ⟨Ss, -⟩; wp_auto',
+            'ipersist Sm', 'ipersist Ss', 'ipersist HDriver_ServiceDesc',
+            'iStructNamed HDriver_ServiceDesc', 'iframe Hown', 'is_pkg_init_finish'] +
+           ['try imodintro', 'unfold github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.drvDescs go_etcd_io.etcd.cache.v3.pbDescIs',
+            'iframe #',
+            'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
+            'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩'])
+
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
 descriptors (`KV_ServiceDesc`, ...: `grpc.ServiceDesc` literals), initializes its imports and
@@ -2788,7 +2821,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 # `ErrGRPCNotSupportedForLearner`, whose fact says its value is a pointer (`errors.IsPointerError`,
 # `ptr`: from the spec's dynamic type and pointer value).
 def status_steps(x, desc=None, ptr=False):
-    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
+    pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
              f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
@@ -3796,8 +3829,10 @@ _GI = 'google_golang_org.grpc.internal'
 _GI_ANY = ['FromOutgoingContextRaw', 'CanonicalString', 'AddGlobalDialOptions',
            'AddGlobalPerTargetDialOptions', 'JoinDialOptions', 'DisableGlobalDialOptions',
            'AcceptCompressors', 'GetServerCredentials', 'IsRegisteredMethod', 'ServerFromContext',
-           'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption']
-_GI_FUNC = ['ClearGlobalDialOptions', 'ClearGlobalPerTargetDialOptions', 'ClearGlobalServerOptions']
+           'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption',
+           'RegisterClientHealthCheckListener']
+_GI_FUNC = ['ClearGlobalDialOptions', 'ClearGlobalPerTargetDialOptions', 'ClearGlobalServerOptions',
+            'HealthCheckFunc', 'BalancerUnregister']
 _GI_BASE = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal'
 
 
@@ -3902,6 +3937,70 @@ trust-boundary axiom `initFuncsOk` says returns.''',
     before={'cache': map_lit_steps('Hc', 'GoString', 'Loc', 'go.string',
         f'(go.GoType.PointerType {_GL}.componentData.ty)', 0)},
 )
+# (phase7-inits batch 2, 2026-11-25) `grpclog`'s fact: `cache`'s map in an init-time invariant, for
+# `Component` (translated), which the `logger`s of grpc, `credentials`, `health` and `connectivity` call
+_GLB = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.grpclog'
+SPECIAL[_GL]['doc'] = '''Its fact (`grpclogInit`, `cache/v3/Base.lean`; phase7-inits batch 2, 2026-11-25, until then
+`True`): `cache` holds a map for good, whose contents are in an init-time invariant (`initInv`), for
+`Component`, which package initializers call (`Spec/google_golang_org/grpc/grpclog/Component.lean`). Its
+initializer initializes its imports, allocates `cache` and runs its translated initializer, an empty map
+literal (prove-grpcext, 2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its
+untranslated `init` function (`SetLoggerV2(newLoggerV2())`), which the trust-boundary axiom
+`initFuncsOk` says returns.'''
+SPECIAL[_GL]['imports'] = ['Proof.google_golang_org.grpc.internal.Hooks']
+SPECIAL[_GL]['finish'] = [
+    'ipersist Hcache',
+    f'imod (EtcdGrove.grpcInternal.initInv_alloc (hG := hG) {_GLB}.cacheN ⊤ iprop(∃ M : GMap GoString Loc, (mHc ↦$ M : IProp GF))) $$ [Hc] with ⟨%γC, #HC⟩',
+    '· inext; iexists _; iexact Hc'] + FIN_PRE[:6] + [
+    'try imodintro', f'unfold {_GLB}.grpclogInit', 'iexists mHc, γC', 'iframe #']
+
+
+def logger_steps():
+    """A `logger`'s translated initializer, `grpclog.Component(name)`: through `Component`'s proof."""
+    return ['try wp_auto',
+            'wp_apply (EtcdGrove.grpclog.Component.wp_proof (hG := hG) _ _ _) $$ [Hown] as %llogger ⟨Hown, -⟩',
+            '· iframe Hown; try iexact {Hd:google_golang_org.grpc.grpclog}',
+            'try wp_auto']
+
+
+_LOGGER_DOC = '''runs its translated initializer of `logger`, `grpclog.Component(...)` (phase7-inits batch 2,
+2026-11-25, until then the trust-boundary axiom `opaqueInitsOk`; `Component`'s proof, through
+`grpclog`'s fact)'''
+for _p in ['google_golang_org.grpc', 'google_golang_org.grpc.credentials', 'google_golang_org.grpc.health',
+           'google_golang_org.grpc.connectivity', 'google_golang_org.grpc.balancer']:
+    _c = SPECIAL.setdefault(_p, {})
+    _c.setdefault('alloc_types', {})['logger'] = 'GoInterface'
+    _c.setdefault('before', {})['logger'] = logger_steps()
+    _c.setdefault('imports', []).append('Proof.google_golang_org.grpc.grpclog.Component')
+    if 'doc' in _c:
+        _c['doc'] = _c['doc'].rstrip('.') + '; it ' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.credentials']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports, allocates `logger` and ''' + _LOGGER_DOC + '.'
+SPECIAL['google_golang_org.grpc.balancer']['doc'] = '''Its fact is `True`. Its initializer initializes its
+imports (`grpclog`, grpc's `internal`), allocates `logger`, ''' + _LOGGER_DOC + ''', and runs its translated
+`init` (`balancer.go:77`), which stores `unregisterForTesting` in `internal.BalancerUnregister`, through
+`internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+SPECIAL['google_golang_org.grpc.balancer']['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+SPECIAL['google_golang_org.grpc.balancer']['after'] = {
+    'init.«0»': hook_fact_steps() + hook_store_steps(['BalancerUnregister'])}
+SPECIAL['google_golang_org.grpc.connectivity']['doc'] = '''Its fact is `True`. Its initializer initializes its
+import (`grpclog`), allocates `logger` and ''' + _LOGGER_DOC + '.'
+# `health`: its `logger` and its two `init`s (until then `initFuncsOk`): `client.go`'s stores
+# `clientHealthCheck` in `internal.HealthCheckFunc`; `producer.go`'s sets `producerBuilderSingleton` (its
+# own variable) and stores `registerClientSideHealthCheckListener` in `internal.RegisterClientHealthCheckListener`
+_GH = SPECIAL['google_golang_org.grpc.health']
+_GH['doc'] = '''Its fact is `True`. Its initializer initializes its imports, allocates `logger` and
+`producerBuilderSingleton`, ''' + _LOGGER_DOC + ''', and runs its two translated `init`s (phase7-inits
+batch 2, 2026-11-25; until then the trust-boundary axiom `initFuncsOk`): `client.go`'s stores
+`clientHealthCheck` in `internal.HealthCheckFunc` and `producer.go`'s sets `producerBuilderSingleton` to a
+new `producerBuilder` and stores `registerClientSideHealthCheckListener` in
+`internal.RegisterClientHealthCheckListener`, both through `internal`'s invariants (`grpc/internal/Hooks.lean`).'''
+_GH['alloc_types']['producerBuilderSingleton'] = 'Loc'
+_GH['imports'].append('Proof.google_golang_org.grpc.internal.Hooks')
+_GH.setdefault('after', {}).update({
+    'init.«0»': hook_fact_steps() + hook_store_steps(['HealthCheckFunc']),
+    'init.«1»': hook_fact_steps() + ['try wp_auto'] + hook_store_steps(['RegisterClientHealthCheckListener']),
+})
 # (prove-http3, 2026-11-21) net/textproto: `CanonicalMIMEHeaderKey`'s interned keys
 _TP = 'net.textproto'
 def _tp_lit(x, n):
@@ -5472,6 +5571,11 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.client'] = \
 # distributed theorem (notes/putget-dist-plan.md §13)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putgetk/PkgTable.lean'
+# (grpcdriver, 2026-11-24) gRPC's robustness driver's two commands (each machine's boot program runs its
+# command's initializer), for grpcdriver_robust
+for _c in ['server', 'client']:
+    PROGRAMS[f'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.{_c}'] = \
+        f'Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/cmd/{_c}/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
@@ -5898,7 +6002,8 @@ NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
             'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
-            'shutdown': ['node'], 'rpcdriver': ['server', 'client']}
+            'shutdown': ['node'], 'rpcdriver': ['server', 'client'],
+            'httpdriver': ['server', 'client']}
 # (2026-11-24) net/rpc's driver (notes/library-drivers.md): its package and its service's
 NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver',
              'github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service']
@@ -5914,6 +6019,14 @@ and net/http's by their interim axioms, `Net/Proof/net/{rpc,http}/Init.lean`) an
                          'wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"]));'
                          ' isplitr; (· ipureintro; rfl); iintro %sf -',
                          'try wp_auto']})
+# (2026-11-24) net/http's driver (notes/library-drivers.md): its fact is `True`; its one variable,
+# `reached`, a function value, is allocated and stored
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.httpdriver']
+NET_SPECIAL['github_com.mit_pdos.etcd_grove.examples.net.httpdriver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variable, initializes its imports (net/http's by
+its interim axiom, `Net/Proof/net/http/Init.lean`) and stores `reached`'s function value.''',
+    alloc_types=_ALLOC_ANY,
+    before={'reached': ['try wp_auto']})
 # (rpc-driver, 2026-11-24) The part's packages whose `wp_initialize'` is an interim trust-boundary
 # axiom (`Net/Proof/<pkg>/Init.lean`, hand-written; its fact in `PkgInit.lean`): net/rpc's and
 # net/http's models, whose closures reach initializers not translated (retired by L2 step 6,
@@ -6171,6 +6284,12 @@ def dsv_special():
     g = types.SimpleNamespace(**globals())
     for k in DSV_KITS:
         for p, cfg in (k.special(g) if hasattr(k, 'special') else {}).items():
+            if p in SPECIAL and p in getattr(k, 'OWN', ()):
+                # (dsv-retire-2, 2026-11-25) the kit's own translation of a package the main tree
+                # configures too (grpc's `codes` and `internal`): the kit's configuration, for its
+                # own generation only
+                DSV_OWN_CFG[(k.KIT, p)] = cfg
+                continue
             if p in SPECIAL:
                 sys.exit(f'gen-init: etc/dsv/{k.KIT}.py configures {p}, which already has a configuration')
             SPECIAL[p] = cfg
@@ -6178,6 +6297,7 @@ def dsv_special():
 
 
 DSV_CFG = {}  # a kit-configured package -> its kit
+DSV_OWN_CFG = {}  # (kit, package) -> the kit's configuration of its own translation of a main-tree package
 dsv_special()
 
 
@@ -6249,7 +6369,8 @@ def dsv_kit_raw(k, base):
         need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
         inst.update(dsv_inst)
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
-               for path, txt in gen(p, None if p in own and DSV_CFG.get(p) != k.KIT
+               for path, txt in gen(p, DSV_OWN_CFG[(k.KIT, p)] if (k.KIT, p) in DSV_OWN_CFG
+                                    else None if p in own and DSV_CFG.get(p) != k.KIT
                                     else SPECIAL.get(p))]
         for p, path in programs.items():
             path, txt = gen_table(p, path)

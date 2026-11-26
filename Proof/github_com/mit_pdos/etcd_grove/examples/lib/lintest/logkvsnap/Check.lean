@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 The proof of `Check`: `Run`'s premises, met by the fresh server (`New`), its method value
 `s.Apply` (`Server.Apply.spec`, no invariant of its own: `Eapp = ∅`), its model (`Model`), the
-generator closure (`genSpec`: for a client's index `id ≥ 0`, `vals[id%4]` is in bounds, and it
+generator closure (`genSpec`: `vals[RandomUint64() % 8]` is in bounds (`randIndex_bounds`), and it
 returns a boxed `Op`, `regInOk`; the slice `vals` it reads is made read-only for it) and the
 caller's clock.
 -/
@@ -14,6 +14,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Server__Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
+public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.RandCount
 
 @[expose] public section
 
@@ -28,17 +30,6 @@ namespace logkvsnap
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.anishathalye.porcupine
-
-/-- `id % 4` (Go's signed remainder) of a non-negative `id` is an index of `vals`. -/
-theorem srem4_bounds (id : w64) (h : 0 ≤ sint.Z id) :
-    0 ≤ sint.Z (BitVec.srem id (W64 4)) ∧ sint.Z (BitVec.srem id (W64 4)) < sint.Z (W64 4) := by
-  have h4 : sint.Z (W64 4) = 4 := rfl
-  rw [h4]
-  show 0 ≤ (BitVec.srem id (W64 4)).toInt ∧ (BitVec.srem id (W64 4)).toInt < 4
-  rw [BitVec.toInt_srem, show (W64 4).toInt = 4 from rfl]
-  have h' : 0 ≤ id.toInt := h
-  rw [Int.tmod_eq_emod_of_nonneg h']
-  omega
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -57,12 +48,13 @@ theorem Check.wp_proof
   wp_start as ⟨#Hcc, #Hclk, Ht0⟩
   wp_auto
   wp_apply wp_New as %s ⟨%γ, #Hs, Hst⟩
-  wp_apply wp_slice_literal (V := GoString) [go!"a", go!"b", go!"c", go!"d"]
+  wp_apply wp_slice_literal (V := GoString)
+    [go!"a", go!"b", go!"c", go!"d", go!"e", go!"f", go!"g", go!"h"]
   isplitr
   · ipureintro; rfl
   iintro %vp ⟨Hvals, -⟩
   simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd,
-    show max (max (4 : Int) 0) 0 = 4 from rfl]
+    show max (max (8 : Int) 0) 0 = 8 from rfl]
   wp_auto
   ipersist vals
   imod ownSlice_persist $$ Hvals with #Hvals
@@ -77,13 +69,17 @@ theorem Check.wp_proof
     iintro %id
     iintro !> %Φ' %Hid HΦ'
     wp_auto
-    have Hr := srem4_bounds id Hid
+    wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %rb _
+    wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %rv _
+    have Hr : 0 ≤ sint.Z (rv % W64 8) ∧ sint.Z (rv % W64 8) < sint.Z (W64 8) :=
+      randIndex_bounds rv 8 (by decide) (by decide)
     simp only [Hr, and_self, ite_true]
-    have Hi : (sint.Z (BitVec.srem id (W64 4))).toNat < 4 := by
-      have := Hr.2; simp only [show sint.Z (W64 4) = 4 from rfl] at this; omega
-    wp_apply wp_load_slice_index _ (sint.Z (BitVec.srem id (W64 4)))
-      [go!"a", go!"b", go!"c", go!"d"] _ ([go!"a", go!"b", go!"c", go!"d"][
-        (sint.Z (BitVec.srem id (W64 4))).toNat]'(by simpa using Hi)) Hr.1 $$ [$Hvals] as _
+    have Hi : (sint.Z (rv % W64 8)).toNat < 8 := by
+      have := Hr.2; simp only [show sint.Z (W64 8) = 8 from rfl] at this; omega
+    wp_apply wp_load_slice_index _ (sint.Z (rv % W64 8))
+      [go!"a", go!"b", go!"c", go!"d", go!"e", go!"f", go!"g", go!"h"] _
+      ([go!"a", go!"b", go!"c", go!"d", go!"e", go!"f", go!"g", go!"h"][
+        (sint.Z (rv % W64 8)).toNat]'(by simpa using Hi)) Hr.1 $$ [$Hvals] as _
     · ipureintro; exact List.getElem?_eq_getElem _
     iapply HΦ'
     imodintro

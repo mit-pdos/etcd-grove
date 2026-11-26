@@ -3,13 +3,15 @@ The `use121` glue of net/http's `ServeMux` on literal path patterns: the mux's s
 matchers (Go 1.22's `tree`/`index`, `Mux22.lean`, and `serveMux121`, `Mux121.lean`), chosen by
 `use121` (fixed by net/http's `init` from `GODEBUG`), and `http.Handle` over it.
 
-* `muxSh m b γ` (persistent): `use121 ↦□ b`, `DefaultServeMux ↦□ m`, and the chosen matcher's lock
-  guard and reader-slot pool (`muxPoolN m`).
+* `muxSh m b γ` (persistent): `use121 ↦□ b`, and the chosen matcher's lock guard and reader-slot
+  pool (`muxPoolN m`). Any mux, `DefaultServeMux` or one of the program's (`NewServeMux`; until
+  2026-11-25 it also held `DefaultServeMux ↦□ m`, which only `http.Handle` reads: `wp_Handle_lit` takes it).
 * `muxOwnS m Ps` (the registering owner): `muxSh`, `maxSlice ↦□`, and the owner's half of the chosen
   matcher's state (for Go 1.22, its index too), whose patterns are `Ps`.
 * `muxRouteS m p h` (persistent): `muxSh`, and `p`'s route to `h` in the chosen matcher.
-* `muxOwnS_init`: from the zero `ServeMux` at `m` (owned) and the three variables, `muxOwnS m []`.
-* `wp_Handle_lit`: `http.Handle(p, h)` of a literal pattern not yet registered, by the owner.
+* `muxOwnS_init`: from the zero `ServeMux` at `m` (owned) and the two variables, `muxOwnS m []`.
+* `wp_Handle_lit`: `http.Handle(p, h)` of a literal pattern not yet registered, by the owner
+  (`DefaultServeMux ↦□ m`).
 * `wp_ServeMux_ServeHTTP_connect`: `mux.ServeHTTP(w, r)` of a `CONNECT` request for a registered
   literal path (the request net/http's parser makes of `CONNECT p HTTP/1.x`): a reader slot from the
   chosen matcher's pool for the lookup (Go 1.22: `findHandler` → `matchOrRedirect` twice, an exact
@@ -67,7 +69,7 @@ abbrev muxIdx [GoGlobalContext] [GoSemanticsFunctions] (m : Loc) : Loc := struct
 
 /-- The mux's shared part (see the file header). -/
 def muxSh (m : Loc) (b : Bool) (γ : MuxAllNames) : IProp GF :=
-  iprop(globalAddr net.http.use121 ↦□ b ∗ globalAddr net.http.DefaultServeMux ↦□ m ∗
+  iprop(globalAddr net.http.use121 ↦□ b ∗
     if b then
       sync.isRWMutexGuard (mux121Mu m) (mux121P (GF := GF) (hG := hG) γ.n121 (mux121Loc m)) ∗
       threadPool.isThreadPool (muxPoolN m) γ.p121
@@ -100,13 +102,13 @@ instance muxRouteS_persistent (m : Loc) (p : GoString) (h : GoInterface) :
     intro b γ; cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
   infer_instance
 
-/-- **A fresh mux** (see the file header): the zero `ServeMux` at `m`, owned, with `use121`, `DefaultServeMux`
-and `maxSlice`'s values, gives the right to register on it, no pattern registered. -/
+/-- **A fresh mux** (see the file header): the zero `ServeMux` at `m`, owned, with `use121`'s and
+`maxSlice`'s values, gives the right to register on it, no pattern registered. -/
 theorem muxOwnS_init {E : CoPset} (m : Loc) (b : Bool) (ms : w64) (Hb : threadBound GF ≤ 2 ^ 30) :
     ⊢ m ↦ (zero_val net.http.ServeMux) -∗ globalAddr net.http.use121 ↦□ b -∗
-      globalAddr net.http.DefaultServeMux ↦□ m -∗ globalAddr net.http.maxSlice ↦□ ms ={E}=∗
+      globalAddr net.http.maxSlice ↦□ ms ={E}=∗
       muxOwnS (GF := GF) (hG := hG) m [] := by
-  iintro Hm #Hu #Hd #Hms
+  iintro Hm #Hu #Hms
   iStructNamed Hm
   cases b
   · imod mux22_init (GF := GF) (hG := hG) (E := E) (muxPoolN m) m Hb $$ mu tree index
@@ -149,14 +151,15 @@ theorem wp_Handle_lit (wp_Search : sort.Search.spec (GF := GF) (hG := hG))
     (hfn : ∀ v, h = interface.mkOk net.http.HandlerFunc.ty v → ∃ fv : GoFunc, v = #fv ∧ fv ≠ func.nil) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.sort ∗
         isPkgInit (PROP := IProp GF) pkg_id.strings ∗ isPkgInit (PROP := IProp GF) pkg_id.net.url ∗
-        isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ muxOwnS (GF := GF) (hG := hG) m Ps }}
+        isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
+        (globalAddr net.http.DefaultServeMux ↦□ m ∗ muxOwnS (GF := GF) (hG := hG) m Ps) }}
       (App (App (Val (@! net.http.Handle)) (Val #p)) (Val #h))
     {{ RET #(); muxOwnS (GF := GF) (hG := hG) m (p :: Ps) ∗ muxRouteS (GF := GF) (hG := hG) m p h }} := by
   unfold muxOwnS
   wp_start as Hown
-  icases Hown with ⟨%b, %γ, %ms, Hsh, #Hms, Hst⟩
+  icases Hown with ⟨#Hd, %b, %γ, %ms, Hsh, #Hms, Hst⟩
   iunfold muxSh at Hsh
-  icases Hsh with ⟨#Hu, #Hd, Hshb⟩
+  icases Hsh with ⟨#Hu, Hshb⟩
   wp_auto
   cases b
   · irevert Hshb Hst
@@ -417,7 +420,7 @@ theorem wp_ServeMux_ServeHTTP_connect
   iunfold muxRouteS at Hrt
   icases Hrt with ⟨%b, %γ, #Hsh, #Hel⟩
   iunfold muxSh at Hsh
-  icases Hsh with ⟨#Hu121, #Hd, #Hshb⟩
+  icases Hsh with ⟨#Hu121, #Hshb⟩
   subst hhe
   have hpstar : p ≠ go!"*" := by
     intro h0; have := hp.1; rw [h0] at this; simp at this
