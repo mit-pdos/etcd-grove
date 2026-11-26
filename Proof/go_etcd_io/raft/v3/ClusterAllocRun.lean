@@ -9,7 +9,8 @@ run's `node.start` writes one normal entry `{Term: 1, Index: 1, Data: d}` and th
   leaves (`bootDurState`: term `1`, no vote, the bootstrap log from `base0`, commit `0`), given the
   bootstrap log's records. Nothing of the entered maps changes; their histories over the empty log
   are of no entry, so they hold of any log.
-- `cluster_alloc_normBoot`: `cluster_alloc_boot_implG_tr` (untraced, snapshots on) at a bootstrap log
+- `cluster_alloc_normBoot`: `cluster_alloc_boot_implG_tr` (untraced, snapshots on, the caller's
+  `dup`: the harness's driver duplicates deliveries, forwarded `MsgProp`s too) at a bootstrap log
   of normal entries (`NormBoot`) instead of `BootLog`, for every id of `ids` (the voters `vs` among
   them; non-voters too, since a cluster with a bootstrap log has no join authority), each at
   `bootDurState` (`ownDurGhost_boot`), with the bootstrap log's records and its commitment.
@@ -365,13 +366,14 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF
 /-- **A cluster with a client-written bootstrap log** (see the file header): of the voters `vs`,
 with every id of `ids` (non-voters too) at the durable state the client's write leaves
 (`bootDurState`; `RaftState.init` without a bootstrap log), untraced, snapshots on, no data bound,
-no duplicate proposals, with the bootstrap log's records and its commitment. -/
+duplicated proposals as the caller chooses (`dup`), with the bootstrap log's records and its
+commitment. -/
 private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot : List LogEntry)
-    (E : CoPset) (HE : (↑(N .@ "raft") : CoPset) ⊆ E) :
+    (dup : Bool) (E : CoPset) (HE : (↑(N .@ "raft") : CoPset) ⊆ E) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ids.Nodup → W64 0 ∉ ids → NormBoot boot →
     ⊢ |={E}=> ∃ γ : Cluster,
-        ⌜γ.raft.dup = false ∧ γ.raft.reBoot = LogEntry.toEntries boot 0 ∧ γ.raft.reTrace = none ∧
+        ⌜γ.raft.dup = dup ∧ γ.raft.reBoot = LogEntry.toEntries boot 0 ∧ γ.raft.reTrace = none ∧
           γ.raft.maxData = none ∧ γ.raft.reNoSnap = false ∧ γ.raft.reCfg = GMap.listToSet vs ∧
           γ.raft.reNs = N .@ "raft"⌝ ∗
         ownCommittedOps (GF := GF) γ boot ∗ isClusterU γ N ∗
@@ -401,7 +403,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     (fun _ _ => True) (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud md tab) none
     (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
-    (N .@ "raft") N (some g) (some gd) false none none (fun _ h => by cases h)
+    (N .@ "raft") N (some g) (some gd) dup none none (fun _ h => by cases h)
     (fun _ h => by cases h)
     Hcne Hinz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
@@ -494,16 +496,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF]
 
 /-- **`cluster_alloc_normBoot` over the node API's names** (`cluster_alloc_names`' form): the
-cluster's facts (no duplicate proposals, the bootstrap log's length, no data bound, snapshots on,
+cluster's facts (duplicated proposals as `dup` says, the bootstrap log's length, no data bound, snapshots on,
 untraced) and its raft names' (the voters, the bootstrap log, raft's namespace `N.@"raft"`); the
 committed operations at the bootstrap log, the cluster, the configuration of no entry; the bootstrap
 log committed with its records; every id of `ids` at its durable state with its vacant slot. -/
-theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEntry) (E : CoPset)
+theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEntry) (dup : Bool)
+    (E : CoPset)
     (HE : (↑(N .@ "raft") : CoPset) ⊆ E) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ids.Nodup → W64 0 ∉ ids → NormBoot boot →
     ⊢ |={E}=> ∃ γ : Cluster,
-      ⌜γ.dup = false ∧ γ.bootLen = boot.length ∧ γ.maxData = none ∧ ¬ clusterNoSnap γ ∧
+      ⌜γ.dup = dup ∧ γ.bootLen = boot.length ∧ γ.maxData = none ∧ ¬ clusterNoSnap γ ∧
         Cluster.trace γ = none⌝ ∗
       ⌜γ.raftNames.reCfg = GMap.listToSet vs ∧ γ.raftNames.reBoot = LogEntry.toEntries boot 0 ∧
         γ.raftNames.reNs = N.@"raft" ∧ γ.raftNames.reTrace = none ∧ γ.raftNames.maxData = none⌝ ∗
@@ -515,7 +518,7 @@ theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEn
   intro Hrb Hne Hnd Hnz Hlen Hind Hinz HB
   unfold ownCommittedOps isCluster confAt Cluster.dup Cluster.bootLen Cluster.trace Cluster.maxData
     raftState nodeVacant clusterNoSnap Cluster.raftNames
-  imod ApiImpl.cluster_alloc_normBoot (GF := GF) N vs ids boot E HE Hrb Hne Hnd Hnz Hlen Hind Hinz HB
+  imod ApiImpl.cluster_alloc_normBoot (GF := GF) N vs ids boot dup E HE Hrb Hne Hnd Hnz Hlen Hind Hinz HB
     with ⟨%γ, %Hd, Hops, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
   imodintro
   iexists γ

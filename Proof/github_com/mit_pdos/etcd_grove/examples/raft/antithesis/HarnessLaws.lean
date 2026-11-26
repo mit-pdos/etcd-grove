@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart). #33 parity B1: the proofs of `HarnessRun.lean`'s two laws of the
 node tokens and views (`nodeLive_over.law`, `view_update.law`): ghost-state facts over the
-invariant's list `[∗list] k ∈ List.finRange R.N`, node `j` its element at position `j.val`.
+invariant's list `[∗list] k ∈ List.finRange R.N`, node `j` its element at position `j.val`; and
+`drainB1_of_inScope.law` (`InScope b1Scope` gives every off bit `DrainB1` tests).
 -/
 module
 
@@ -27,6 +28,20 @@ theorem finRange_getElem?_val {N : Nat} {k : Nat} {y : Fin N} (h : (List.finRang
   rw [List.getElem?_eq_some_iff] at h
   obtain ⟨hk, hy⟩ := h
   rw [← hy]; simp
+
+/-- **B1's mask gives the off bits** (`drainB1_of_inScope.law`). -/
+theorem drainB1_of_inScope [GooseExts] : drainB1_of_inScope.law := by
+  intro m h
+  obtain ⟨-, -, -, -, -, -, -, -, hA, hB, hP, hS, -, -, hR, hSn, -, hSS, -, -, -⟩ := h
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, rfl, rfl⟩
+  · cases hb : m.Batch' <;> simp_all [b1Scope]
+  · cases hb : m.Async' <;> simp_all [b1Scope]
+  · cases hb : m.Parallel' <;> simp_all [b1Scope]
+  · rcases hS with hS | ⟨hS, -⟩
+    · exact hS
+    · simp [b1Scope] at hS
+  · cases hb : m.SnapStatus' <;> simp_all [b1Scope]
+  · cases hb : m.Restarts' <;> simp_all [b1Scope]
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]

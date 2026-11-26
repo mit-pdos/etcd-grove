@@ -102,17 +102,30 @@ theorem ops_au (γ : Cluster) (N : Namespace) (data : List w8)
     imodintro
     iempintro
 
+/-- **A proposal's update, persistent** (`□?b`, any `b`): `ops_au` under `□`, since `opsInv` is
+persistent; the form a cluster with duplicated proposals (`dup`) takes. -/
+theorem ops_au_if (γ : Cluster) (N : Namespace) (data : List w8) (b : Bool)
+    (Hdisj : (↑antOpsN : CoPset) ⊆ ⊤ \ ↑N) :
+    ⊢ opsInv (GF := GF) γ -∗
+      □?b (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }>) := by
+  iintro #Hinv
+  cases b
+  · iapply ops_au γ N data Hdisj $$ Hinv
+  · rw [intuitionisticallyIf_true]
+    imodintro
+    iapply ops_au γ N data Hdisj $$ Hinv
+
 /-- **A proposal's raft resources, minted** (`propOk`): through raft's law, at the update built from
-`opsInv`, in a cluster of single updates (`dup` off) with no bound on proposed data. -/
+`opsInv` (under `□`: the run's cluster has `dup` on, the update is persistent), with no bound on
+proposed data. -/
 theorem propOk_mint (Hlaw : propMint.law (GF := GF)) (γ : AntNames) (N : Namespace)
     (data : List w8) (E : CoPset) (HN : ↑N ⊆ E) (Hdisj : (↑antOpsN : CoPset) ⊆ ⊤ \ ↑N)
-    (Hdup : γ.raft.dup = false) (Hmd : γ.raft.raftNames.maxData = none) :
+    (Hmd : γ.raft.raftNames.maxData = none) :
     ⊢ isCluster (GF := GF) γ.raft N -∗ opsInv γ.raft ={E}=∗ propOk γ data := by
   iintro #Hcl #Hops
-  ihave Hau := ops_au γ.raft N data Hdisj $$ Hops
-  have Hl := Hlaw γ.raft N data E HN
-  rw [Hdup] at Hl
-  imod Hl $$ Hcl Hau with ⟨#Hd, Htk⟩
+  ihave Hau := ops_au_if γ.raft N data γ.raft.dup Hdisj $$ Hops
+  imod Hlaw γ.raft N data E HN $$ Hcl Hau with ⟨#Hd, Htk⟩
   imodintro
   unfold propOk
   iframe Hd Htk

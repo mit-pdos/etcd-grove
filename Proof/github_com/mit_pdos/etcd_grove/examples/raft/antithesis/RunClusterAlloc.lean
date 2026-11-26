@@ -277,7 +277,7 @@ theorem nodeIds_ok (R : AntSim.RunCfg) :
 /-- **Raft's cluster at the run's `R`** (see the file header). -/
 theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
     ⊢ |={⊤}=> ∃ γr : Cluster,
-      ⌜γr.dup = false ∧ ¬ clusterNoSnap γr ∧ Cluster.trace γr = none ∧ γr.maxData = none ∧
+      ⌜γr.dup = true ∧ ¬ clusterNoSnap γr ∧ Cluster.trace γr = none ∧ γr.maxData = none ∧
         γr.bootLen = (AntSim.bootLog R).length ∧
         γr.raftNames.reTrace = none ∧ γr.raftNames.reCfg = R.voters0 ∧
         γr.raftNames.maxData = none ∧ γr.raftNames.reBoot = AntSim.bootLog R ∧
@@ -290,7 +290,7 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
   obtain ⟨Hvne, Hvnd, Hvnz, Hvlen⟩ := votersL_ok R
   obtain ⟨Hind, Hinz⟩ := nodeIds_ok R
   imod cluster_alloc_run (GF := GF) antRaftN (votersL R) ((List.finRange R.N).map AntSim.nodeId)
-      (bootOps R) ⊤ (fun _ _ => CoPset.mem_full) Hrb Hvne Hvnd Hvnz Hvlen Hind Hinz (bootOps_norm R)
+      (bootOps R) true ⊤ (fun _ _ => CoPset.mem_full) Hrb Hvne Hvnd Hvnz Hvlen Hind Hinz (bootOps_norm R)
     with ⟨%γr, %Hd, %Hnm, Hops, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
   obtain ⟨Hdup, Hbl, Hmd, Hns, Htr⟩ := Hd
   obtain ⟨Hcfg, Hboot, HreNs, HreTr, HreMd⟩ := Hnm
@@ -338,17 +338,16 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
   rw [Hdd]
   iexact Hrs
 
-/-- **The proposer's minting** (`propMinter`), from the cluster and the client log's invariant, in a
-cluster of single updates with no bound on proposed data (raft's `rawNode_prop_mint`). -/
-theorem propMinter_intro (γ : AntNames) (Hdup : γ.raft.dup = false)
-    (Hmd : γ.raft.raftNames.maxData = none) :
+/-- **The proposer's minting** (`propMinter`), from the cluster and the client log's invariant, with
+no bound on proposed data (raft's `rawNode_prop_mint`; any `dup`: the run's is on). -/
+theorem propMinter_intro (γ : AntNames) (Hmd : γ.raft.raftNames.maxData = none) :
     ⊢ isCluster (GF := GF) γ.raft antRaftN -∗ opsInv γ.raft -∗ propMinter γ := by
   iintro #Hcl #Hops
   unfold propMinter
   imodintro
   iintro %data
   iapply propOk_mint (fun γ N data E HE => rawNode_prop_mint γ N data E HE) γ antRaftN data ⊤
-    (fun _ _ => CoPset.mem_full) antOpsNs_mask Hdup Hmd $$ Hcl Hops
+    (fun _ _ => CoPset.mem_full) antOpsNs_mask Hmd $$ Hcl Hops
 
 end raftAlloc
 
