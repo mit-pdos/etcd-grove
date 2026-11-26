@@ -156,13 +156,20 @@ instance (w : Workload) : Decidable w.BoundsOk := by
 
 /-- **The workloads can run at once on one cluster** (review F1): at most one of each kind; a
 workload that enables auth alone; a workload that reads revisions as its own beside no other
-workload that writes keys; never an expiring lease beside a workload that needs none to expire. -/
+workload that writes keys; never an expiring lease beside a workload that needs none to expire;
+a workload that grants leases beside no other workload that writes keys (decided 2026-11-26,
+`notes/etcd-dist-plan.md` §27.7 Q2: in a cluster that grants leases the KV invariant keeps the store's
+ghost state whole, so no client holds the share a key writer's proof needs; the single-process
+`etcd_safe` ran every driver on a cluster of its own, so no lease grant met another's key writes;
+`leaseRead` grants nothing and runs beside anything). -/
 def Compatible (ws : List Workload) : Prop :=
   (ws.map Workload.kind).Nodup ∧
   ((∃ w ∈ ws, w.alone = true) → ws.length = 1) ∧
   (∀ w ∈ ws, w.needsSoleWriter = true →
     ∀ w' ∈ ws, w' ≠ w → w'.writesKeys = false) ∧
-  ¬ (Workload.leaseExpiry ∈ ws ∧ ∃ w ∈ ws, w.needsNoExpiry = true)
+  ¬ (Workload.leaseExpiry ∈ ws ∧ ∃ w ∈ ws, w.needsNoExpiry = true) ∧
+  (∀ w ∈ ws, w.grantsLeases = true →
+    ∀ w' ∈ ws, w' ≠ w → w'.writesKeys = false)
 
 instance (ws : List Workload) : Decidable (Compatible ws) := by
   unfold Compatible; infer_instance
@@ -226,8 +233,13 @@ def nameOk (n : GoString) : Bool :=
    `issues/etcd-lease-id-mask-member-prefix.md`);
 4. the token is nonempty, and the server configuration is in the supported set;
 5. the workloads are compatible (`Compatible`) and within their bounds, and a workload that
-   needs the token provider has it; `compact` not under the periodic compactor (review F5); no token
-   provider beside expiring leases (review F10);
+   needs the token provider has it; the token provider only with a workload that needs it (decided
+   2026-11-26, `notes/etcd-dist-plan.md` §27.7 Q1: since such a workload runs alone, auth is on only in
+   `[auth]` and `[authLease]`; the other workloads are proved with auth off, as in the single-process
+   `etcd_safe`, where auth was on only in the auth drivers' own clusters; it also keeps `compact`
+   from auth, which `NewServer`'s `cmp = true → on = false` excludes, §26.4); `compact` not under the periodic
+   compactor (review F5); no token provider beside expiring leases (review F10, now implied by the
+   clause before: kept as the Go check is);
 6. at most `maxMembers` members, every member name of at most `maxNameLen` bytes (its data directory and WAL
    area fit), and every address and the token of at most `maxLen` bytes (so that `strings.Join` of a member's
    URLs, or of all members', stays in bounds). -/
@@ -241,6 +253,8 @@ def Deployment.WellFormed (d : Deployment) : Prop :=
   d.token ≠ [] ∧ d.cfg.Supported ∧
   Compatible d.workloads ∧ (∀ w ∈ d.workloads, w.BoundsOk) ∧
   (∀ w ∈ d.workloads, w.needsAuth = true → d.cfg.auth = true) ∧
+  -- §27.7 Q1: the token provider only with a workload that needs it
+  (d.cfg.auth = true → ∃ w ∈ d.workloads, w.needsAuth = true) ∧
   -- review F5: compactwatch's checks hold under the revision compactor (or none), not the periodic
   (Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false) ∧
   -- review F10: the revocable lease mode with the token provider needs `leasesNoExpiry`
@@ -317,7 +331,7 @@ theorem Deployment.WellFormed.members {d : Deployment} (h : d.WellFormed) :
       d.members.length ≤ typed.maxMembers ∧ ∀ m ∈ d.members, m.name.length ≤ typed.maxNameLen := by
   obtain ⟨t, he, hw⟩ := h
   have hm : t.members = d.members := he.1
-  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
+  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
   rw [← hm]
   exact ⟨h1, h2, h3, h18, h19⟩
 
@@ -343,7 +357,7 @@ theorem Deployment.WellFormed.urlBounds {d : Deployment} (h : d.WellFormed) :
   obtain ⟨t, he, hw⟩ := h
   have e := typed.Deployment.addrs_encodes he
   have hm : t.members = d.members := he.1
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
   intro m hmem
   have hp : m.peer ∈ t.addrs := by
     rw [typed.Deployment.addrs, hm]

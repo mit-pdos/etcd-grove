@@ -55,7 +55,7 @@ theorem satD_wf : satD.WellFormed := by
     unfold typed.Deployment.WellFormed leaseIdsApart typed.maxMembers typed.maxLen typed.maxNameLen
     rw [e, ha]
     refine ⟨by simp [satD], by simp [satD], ?_, ?_, ?_, rfl, by simp, by simp, ?_, ?_, by simp, ?_, ?_, ?_,
-      by simp, by simp, by simp, by simp, by simp [satD], ?_, ?_, ?_⟩
+      by simp, by simp, by simp, by simp, by simp, by simp [satD], ?_, ?_, ?_⟩
     · intro m hm
       simp only [satD, List.mem_singleton] at hm
       subst hm

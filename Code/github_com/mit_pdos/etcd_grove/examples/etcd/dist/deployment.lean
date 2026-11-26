@@ -546,9 +546,13 @@ noncomputable def needsNoExpiry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- compatible is Lean's Compatible (the kinds known: WellFormed checks them first).
+/-- compatible is Lean's Compatible (the kinds known: WellFormed checks them first). A kind that
+    needs a sole writer (review F1), or grants leases, runs beside no workload that writes keys (the
+    latter decided 2026-11-26, notes/etcd-dist-plan.md §27.7 Q2: a cluster that grants leases keeps the
+    store's ghost state whole, so no client holds a share of it to write with; the single-process
+    etcd_safe ran every driver on a cluster of its own, so no lease grant met another's key writes).
 
-    go: deployment.go:188:6 -/
+    go: deployment.go:192:6 -/
 noncomputable def compatible.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -602,8 +606,9 @@ noncomputable def compatible.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$key")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Workload.ty))) (Pair (Var "x") (Var "$value")))))))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w")))
-  (App (App (Val (GoInstruction (FuncResolve needsSoleWriter []))) (Val #())) (Var "$a0"))))
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w")))
+  (App (App (Val (GoInstruction (FuncResolve needsSoleWriter []))) (Val #())) (Var "$a0")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w")))
+  (App (App (Val (GoInstruction (FuncResolve grantsLeases []))) (Val #())) (Var "$a0")))) (Val #false))
   (App (Val doContinue) (Val #()))
   (App (Val doExecute)
   (Val #()))))))
@@ -672,7 +677,7 @@ noncomputable def compatible.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- boundsOk is Lean's Workload.BoundsOk (Lean's parameters are naturals: none negative here).
 
-    go: deployment.go:220:6 -/
+    go: deployment.go:224:6 -/
 noncomputable def boundsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -723,7 +728,7 @@ noncomputable def boundsOk.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- nameOk is Lean's nameOk: nonempty, ASCII letters, digits and '-'.
 
-    go: deployment.go:234:6 -/
+    go: deployment.go:238:6 -/
 noncomputable def nameOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -772,7 +777,7 @@ noncomputable def nameOk.impl [GooseExts] [GoGlobalContext] : val :=
     1-223, the port 1-65535 outside Linux's ephemeral range. kvnet.AddrOk's code, copied (kvnet is a
     module of its own), with its decimal helper, so that its proof is reused.
 
-    go: deployment.go:249:6 -/
+    go: deployment.go:253:6 -/
 noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -882,7 +887,7 @@ noncomputable def AddrOk.impl [GooseExts] [GoGlobalContext] : val :=
 /-- decimal is the value of s as a canonical decimal numeral (digits, at least one, no leading
     zero), at most max; false otherwise.
 
-    go: deployment.go:279:6 -/
+    go: deployment.go:283:6 -/
 noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "max"
@@ -958,7 +963,7 @@ noncomputable def decimal.impl [GooseExts] [GoGlobalContext] : val :=
     membership.NewMember's, from the member's one peer URL as server.Config builds it (http://Peer)
     and the token, as bootstrap does; in the members' order.
 
-    go: deployment.go:296:6 -/
+    go: deployment.go:300:6 -/
 noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.uint64)))) (Val #())))
@@ -1007,7 +1012,7 @@ noncomputable def memberIDs.impl [GooseExts] [GoGlobalContext] : val :=
     (math.MaxUint64-1), and StartNode panics on its error. (Exported for TestWellFormed: a deployment
     with such a member id would need a SHA-1 preimage.)
 
-    go: deployment.go:309:6 -/
+    go: deployment.go:313:6 -/
 noncomputable def RaftIdOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1025,7 +1030,7 @@ noncomputable def RaftIdOk.impl [GooseExts] [GoGlobalContext] : val :=
     workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart); every id one raft
     accepts (RaftIdOk).
 
-    go: deployment.go:316:6 -/
+    go: deployment.go:320:6 -/
 noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1126,7 +1131,7 @@ noncomputable def IdsOk.impl [GooseExts] [GoGlobalContext] : val :=
     int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
     needs.)
 
-    go: deployment.go:338:6 -/
+    go: deployment.go:342:6 -/
 noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1184,6 +1189,10 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "needed" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1191,6 +1200,17 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ServerCfg.ty go!"Auth"))) (Var "c"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "needed"))) (Val #false))
+  (Let "$r0" (Let "$a0" (Val #(go!"the token provider without a workload that needs it"))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Workload.ty)))) (App (Val (GoInstruction (StructFieldRef Deployment.ty go!"Workloads"))) (Var "d")))
   (Let "w" (App (Val (GoInstruction (GoAlloc Workload.ty))) (App (Val (GoInstruction (GoZeroVal Workload.ty))) (Val #())))
   (App (App (Val (slice.forRange Workload.ty)) (Var "$range"))
@@ -1222,8 +1242,13 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w")))
-  (App (App (Val (GoInstruction (FuncResolve NeedsAuth []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ServerCfg.ty go!"Auth"))) (Var "c")))) (Val #false))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w")))
+  (App (App (Val (GoInstruction (FuncResolve NeedsAuth []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "needed") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef ServerCfg.ty go!"Auth"))) (Var "c"))))
   (Let "$r0" (Let "$a0" (Val #(go!"workload kind %d needs the token provider"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad Kind.ty))) (App (Val (GoInstruction (StructFieldRef Workload.ty go!"Kind"))) (Var "w"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
@@ -1234,11 +1259,15 @@ noncomputable def WellFormed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Workload.ty))) (Pair (Var "w") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "needed") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Workload.ty)))) (App (Val (GoInstruction (StructFieldRef Deployment.ty go!"Workloads"))) (Var "d")))
   (App (App (Val (GoInstruction (FuncResolve compatible []))) (Val #())) (Var "$a0"))))
   (Let "$r0" (Let "$a0" (Val #(go!"workloads not compatible"))
