@@ -1,27 +1,22 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist`: the proof skeleton of `etcd_safe_nocrash` (`notes/etcd-dist-plan.md`, D9)
+# `etcd/dist`: `etcd_safe_nocrash` (`notes/etcd-dist-plan.md` §27, §30)
 
-Not closed: `etcd_safe_nocrash_of_boot` proves `etcd_robust_nocrash.spec` from two named hypotheses,
-`EtcdBootNC` (a well-formed deployment: the start update from its addresses unset to a share per machine,
-each machine's boot program safe from its share) and `EtcdBootNCBad` (a malformed one: every program
-checks the deployment and returns), by the all-stable bridge over `etcdNetExts` with `Robust`'s thread
-bound (`Net.robust_of_distBootILT`): each boot program is safe at the thread bound `etcdThreads` (which
-gives the served member's `srvLevels`) and every receipt bound up to `etcdSteps` (`notes/etcd-dist-plan.md`
-§14). No axiom and no `sorry`.
-
-What discharges `EtcdBootNC`, in later steps: the start from S2's names (`S2Holds etcdDistGF`, the members'
-client addresses at the cluster's view: `members_svc_start`, O1 option B, `notes/etcd-dist-plan.md` §18.3), S5's (`S5Holds etcdDistGF`, the members' peer addresses:
-`S5Draft.http_addr_set`) and D7's cluster start (`etcdClusterStart`, after the idutil split); the k-member
-boot; the workloads' starts and boots (D8). The reduction from S2's and S5's names is written once the
-interim S2 interface (the member's and client's shares, `notes/putget-dist-plan.md`) is fixed.
+The full no-crash theorem over every workload kind, from the skeleton (`BootSkel.lean`:
+`etcd_safe_nocrash_of_boot`; `BootBad.lean`: the malformed case) and the well-formed deployments' boot
+`EtcdBootNC`, split by the token provider (`auth_class`, Q1 of §27.7: auth is on exactly when the one
+workload is `auth` or `authLease`):
+- auth off (`EtcdBootNCAt (·.cfg.auth = false)`): every class but A and AL, by the general start
+  (`Start.lean`) and the machines' boots (`server.member_boot_dist` at `lmOf d`, `AdequacyClient.lean`'s
+  `orchBoot`/`nodeBoot` over the full dispatch);
+- `[auth]` and `[authLease]`: the named hypotheses `EtcdAuthBootNC` and `EtcdAuthLeaseBootNC` (F7 S3/S4 close
+  them: their starts, `RunAuth`, the principal arm; `RunAuthLease` is proved over `foreignReads.law`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentDefs
-public import Net.Statement.DistBridgeExts
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RevokeLevels
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootBad
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentClass
 
 @[expose] public section
 
@@ -35,42 +30,20 @@ namespace EtcdGrove
 namespace etcd_dist
 
 open Iris Iris.BI Iris.ProgramLogic Robustness go_etcd_io.raft.v3 Net
+open github_com.mit_pdos.etcd_grove.examples.etcd.dist
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
   etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
 
-/-- Every machine of a deployment starts with its files as on disk. -/
-theorem machines_fsInit [GoGlobalContext] [GoSemanticsFunctions] {d : Deployment} {σs σc σn : List state} {m : Expr × state}
-    (Hσs : ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) (Hσc : ∀ σ ∈ σc, ClientStart σ)
-    (Hσn : ∀ σ ∈ σn, ClientStart σ) (Hl : σs.length = d.members.length)
-    (hm : m ∈ machines d σs σc σn) : Fs.FsInit (extLocal Fs.fsExt m.2.world) := by
-  simp only [machines, servers, clients, nodeMachines, List.mem_append, List.mem_mapIdx] at hm
-  rcases hm with (⟨i, hi, rfl⟩ | ⟨i, hi, rfl⟩) | ⟨i, hi, rfl⟩
-  · have hi' : i < d.members.length := Hl ▸ hi
-    exact (Hσs (d.members[i], σs[i]) (List.mem_iff_getElem.mpr
-      ⟨i, by simp [List.length_zip]; omega, by simp [List.getElem_zip]⟩)).1
-  · exact Hσc _ (List.getElem_mem hi)
-  · exact Hσn _ (List.getElem_mem hi)
-
-/-- The statement's premises except the deployment's well-formedness, as one hypothesis's binders. -/
-abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
-    Prop :=
-  ∃ boot : List LogEntry, BootFacts d boot ∧ EtcdEnv d ∧
-    (σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) ∧
-    (σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ) ∧
-    (σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ) ∧
-    EtcdVerifyOff
-
-/-- **The machines' boot WPs, for a well-formed deployment** (see the file header): at
-`etcd_robust_nocrash.spec`'s premises, the start update from the deployment's addresses unset to a share
-per machine from which its boot program is safe. -/
-def EtcdBootNC : Prop :=
+/-- **`EtcdBootNC` at the well-formed deployments of a class `P`**: the same start update and boot WPs,
+with `P d` one more hypothesis. -/
+def EtcdBootNCAt (P : Deployment → Prop) : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel] [net.FieldAssumptions]
-    (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
+    (d : Deployment) (_Hd : d.WellFormed) (_HP : P d) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
@@ -80,51 +53,32 @@ def EtcdBootNC : Prop :=
             Net.DistBootWpSLT etcdThreads 0 etcdSteps m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ machines d σs σc σn, Ps i
 
-/-- **The machines' boot WPs, for a malformed deployment**: every program checks the deployment first
-(Go's `deployment.WellFormed`) and returns, so the start allocates nothing (no address) and each machine's
-boot WP holds from `True`. Discharged after D2 from the validator's spec (`WellFormed(d) == nil` only if
-`d.WellFormed`). -/
-def EtcdBootNCBad : Prop :=
-  ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
-    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
-    (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
-    (_Hfips : crypto.fips140.GodebugFips140Off),
-    ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
-      ∀ (i : Nat) (m : Expr × state), (machines d σs σc σn)[i]? = some m →
-        Net.DistBootWpSLT etcdThreads 0 etcdSteps m.1 m.2 (iprop(True) : IProp etcdDistGF)
+/-- **Named hypothesis (F7 S3): the `auth` workload's deployments boot** — `EtcdBootNC` at the deployments whose
+one workload is `auth` (kind 5; with auth on, by `auth_class`). -/
+abbrev EtcdAuthBootNC : Prop :=
+  EtcdBootNCAt (fun d => d.workloads.map (·.kind) = [W64 5])
 
-/-- **`etcd_safe_nocrash` from the machines' boot WPs** (see the file header), by the all-stable bridge
-over `etcdNetExts` (`Net.robust_of_distBootILT`, at no receipt floor): on a well-formed deployment at its addresses (valid and
-distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` from the statement's
-`ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
-theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
-    etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
-  have HI := etcdNetExts_initP g (machines d σs σc σn)
-    (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
-  intro hfresh hg hl
-  have Hnet : (extGlobal Net.netExt g.globalWorld).init ∧
-      ∀ m ∈ machines d σs σc σn, (extLocal Net.netExt m.2.world).init :=
-    ⟨hg.2.2.1, fun m hm => (hl m (by simpa using hm)).2.2.1⟩
-  by_cases Hd : d.WellFormed
-  · exact Net.robust_of_distBootILT (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
-      etcdThreads etcdSteps 0 (Nat.zero_le _) HI
-      (fun _ hb => HS d Hd σs σc σn ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
-      ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
-  · refine Net.robust_of_distBootILT (GF := etcdDistGF) [] (machines d σs σc σn) g
-      etcdThreads etcdSteps 0 (Nat.zero_le _) HI
-      (fun _ hb => ?_) ⟨List.nodup_nil, by simp, Hnet.1, Hnet.2⟩ hfresh hg hl
-    iintro -
-    imodintro
-    iexists (fun _ => (iprop(True) : IProp etcdDistGF))
-    isplitr
-    · ipureintro
-      exact HB d Hd σs σc σn Hfips hb
-    · iapply (BigSepL.bigSepL_intro (P := (iprop(emp) : IProp etcdDistGF)) (fun _ _ _ => BI.true_intro))
-      iempintro
+/-- **Named hypothesis (F7 S4): the `authLease` workload's deployments boot** — `EtcdBootNC` at the deployments
+whose one workload is `authLease` (kind 6). -/
+abbrev EtcdAuthLeaseBootNC : Prop :=
+  EtcdBootNCAt (fun d => d.workloads.map (·.kind) = [W64 6])
+
+/-- **`EtcdBootNC` by the token provider**: auth off from `Hoff`; auth on, the deployment's one workload is
+`auth` or `authLease` (`auth_class`), from `Ha` or `Hal`. -/
+theorem etcdBootNC_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = false))
+    (Ha : EtcdAuthBootNC) (Hal : EtcdAuthLeaseBootNC) : EtcdBootNC := by
+  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd σs σc σn Hp Hfips G hb
+  cases h : d.cfg.auth
+  · exact Hoff d Hd h σs σc σn Hp Hfips hb
+  · rcases auth_class Hd h with h5 | h6
+    · exact Ha d Hd h5 σs σc σn Hp Hfips hb
+    · exact Hal d Hd h6 σs σc σn Hp Hfips hb
+
+/-- **`etcd_safe_nocrash` from the auth-off boot and the two auth classes' boots** (`etcdBootNC_of_split`, the
+skeleton's bridge and malformed case). -/
+theorem etcd_safe_nocrash_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = false))
+    (Ha : EtcdAuthBootNC) (Hal : EtcdAuthLeaseBootNC) : etcd_robust_nocrash.spec :=
+  etcd_safe_nocrash_of_bootWF (etcdBootNC_of_split Hoff Ha Hal)
 
 end etcd_dist
 end EtcdGrove
