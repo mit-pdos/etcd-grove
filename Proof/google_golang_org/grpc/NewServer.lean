@@ -251,7 +251,8 @@ theorem grpc.NewServer.wp_proof
   wp_if_destruct
   · -- an iteration: `o.apply(&opts)`
     obtain ⟨Hn0, Hnle, Hok, Hhk⟩ := Hn
-    have Hif : sint.Z n < sint.Z sl.len := (first | exact Hif | (have := go.intoVal_inj Hif; simpa using this))
+    have Hif : sint.Z n < sint.Z sl.len
+      := by first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
     have Hlt : sint.nat n < vs.length := by rw [Hvl]; word
     obtain ⟨v, Hv⟩ : ∃ v, vs[sint.nat n]? = some v := ⟨_, List.getElem?_eq_getElem Hlt⟩
     obtain ⟨k, Hk⟩ : ∃ k, ks[sint.nat n]? = some k :=
@@ -289,7 +290,8 @@ theorem grpc.NewServer.wp_proof
     · exact Hso'.2.2 h hh
   -- every option applied: the chains are the options' (`srvOptsUnary ks`, `srvOptsStream ks`)
   obtain ⟨Hn0, Hnle, Hok, Hhk⟩ := Hn
-  have Hif : ¬ sint.Z n < sint.Z sl.len := (first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h]))
+  have Hif : ¬ sint.Z n < sint.Z sl.len
+      := by first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h])
   have Hnl : sint.nat n = ks.length := by rw [← Hvk]; rw [Hvl] at Hnle ⊢; word
   rw [Hnl, List.take_length]
   icases Hown with ⟨Hu, -, Hs, -, Hh, -⟩

@@ -27,6 +27,7 @@ variable [package_sem : google_golang_org.grpc.internal.grpcsync.Assumptions]
 
 theorem grpcsync.NewEvent.wp_proof : grpcsync.NewEvent.spec (GF := GF) (hG := hG) := by
   wp_start
+  wp_auto
   wp_apply (chan.wp_make1 (V := Unit)
     (ct := go.ChannelType go.sendrecv (go.StructType []))) as %ch %γ ⟨#Hch, %Hcap, Hoc⟩
   iapply HΦ

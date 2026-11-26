@@ -218,7 +218,8 @@ theorem grpc.Server.register.wp_proof
   wp_if_destruct
   · -- an iteration: `info.streams[sd.Streams[i].StreamName] = &sd.Streams[i]`
     obtain ⟨Hn0, Hnle, HM2⟩ := Hn
-    have Hif : sint.Z n < sint.Z ssl.len := (first | exact Hif | (have := go.intoVal_inj Hif; simpa using this))
+    have Hif : sint.Z n < sint.Z ssl.len
+      := by first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
     have Hk : sint.nat n < sds.length := by rw [Hsdl.1]; word
     obtain ⟨dv, Hdv⟩ : ∃ dv, sds[sint.nat n]? = some dv := ⟨_, List.getElem?_eq_getElem Hk⟩
     icases ownSlice_elem_acc (sint.Z n) dv ssl DFrac.discard sds Hn0 Hdv $$ Hsds with ⟨#Hel, -⟩
@@ -248,7 +249,8 @@ theorem grpc.Server.register.wp_proof
       Int.toNat_of_nonneg Hn0]
   -- every stream entered: the streams' half of `srvStreamsL`
   obtain ⟨Hn0, Hnle, HM2⟩ := Hn
-  have Hif : ¬ sint.Z n < sint.Z ssl.len := (first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h]))
+  have Hif : ¬ sint.Z n < sint.Z ssl.len
+      := by first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h])
   have Hsn2 : sint.nat n = sds.length := by rw [Hsdl.1] at Hnle ⊢; word
   have HM2' : ∀ x : GoString, M2 !! x = map.lookupL x (grpcReg_streamsPart sds ssl) := by
     intro x
@@ -280,7 +282,8 @@ theorem grpc.Server.register.wp_proof
   wp_if_destruct
   · -- an iteration: `info.streams[d.MethodName] = &StreamDesc{d.MethodName, s.wrapUnaryHandler(d), ...}`
     obtain ⟨Hn0, Hnle, Hmlen, HM3⟩ := Hn
-    have Hif : sint.Z n < sint.Z msl.len := (first | exact Hif | (have := go.intoVal_inj Hif; simpa using this))
+    have Hif : sint.Z n < sint.Z msl.len
+      := by first | exact Hif | (have := go.intoVal_inj Hif; simpa using this)
     have Hk : sint.nat n < mds.length := by rw [Hmdl.1]; word
     obtain ⟨dv, Hdv⟩ : ∃ dv, mds[sint.nat n]? = some dv := ⟨_, List.getElem?_eq_getElem Hk⟩
     icases ownSlice_elem_acc (sint.Z n) dv msl DFrac.discard mds Hn0 Hdv $$ Hmds with ⟨#Hel, -⟩
@@ -327,7 +330,8 @@ theorem grpc.Server.register.wp_proof
       grpcReg_lookupL_snoc _ _ _ _ hfresh, GMap.lookup_insert_eq_iff, HM3 x]
   -- every method entered; `s.services[sd.ServiceName] = info`, then the deferred `Unlock`
   obtain ⟨Hn0, Hnle, Hmlen, HM3⟩ := Hn
-  have Hif : ¬ sint.Z n < sint.Z msl.len := (first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h]))
+  have Hif : ¬ sint.Z n < sint.Z msl.len
+      := by first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h])
   have Hmn : mls.length = mds.length := by rw [Hmlen]; rw [Hmdl.1] at Hnle ⊢; word
   wp_apply (wp_mapInsert go.string svm M sn il) $$ [$Hsvm] as Hsvm
   wp_apply (sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF)) $$ [$Hmu $Hlk]
