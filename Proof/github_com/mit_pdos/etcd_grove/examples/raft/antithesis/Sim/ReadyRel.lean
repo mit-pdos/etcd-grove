@@ -279,7 +279,7 @@ structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeVi
   pre : PreOk S n.val L1 p
   -- facts, votes, leaders
   msub : ∀ f ∈ S.msgs, f ∈ M
-  mnew : ∀ f ∈ M, f ∉ S.msgs → f.type = go!"vote" ∨
+  mnew : ∀ f ∈ M, f ∉ S.msgs → (f.type = go!"vote" ∧ S.bootTerm < f.term) ∨
     (f.type = go!"ack" ∧ f.src = nameOf (nodeId n) ∧ (∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
       f.term = t1 ∧ ((cf.term = f.term ∧ f.index ≤ cf.index) ∨ f.index ≤ c))
   vsub : ∀ y ∈ S.votes, y ∈ Vs
@@ -460,7 +460,7 @@ theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net
   have hllm := rr_ll hok
   obtain ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩, hb, -, -, -⟩ := hs
   obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
-  refine ⟨hok.hviol, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hok.tlSort⟩
+  refine ⟨hok.hviol, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hok.tlSort, ?_⟩
   · -- commits within chain
     intro k
     by_cases hk : k = n
@@ -516,7 +516,7 @@ theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net
           · exact .inl ⟨e1.trans hterm.symm, Int.le_trans o2 (e3 (o1.trans hterm))⟩
           · exact .inr (Int.le_trans o hok.cge)
       · rw [rr_ct_o hk] at hterm; rw [rr_cf_o hk, rr_cm_o hk]; exact hb6 k a hm hty hsrc hterm
-    · rcases hok.mnew a ha hm with hvt | ⟨-, hsrc', -, ht', hcov⟩
+    · rcases hok.mnew a ha hm with ⟨hvt, -⟩ | ⟨-, hsrc', -, ht', hcov⟩
       · rw [hvt] at hty; exact absurd hty rr_vote_ne_ack
       · have hkn : k = n := name_inj (hsrc.symm.trans hsrc')
         rw [hkn, rr_cf_n sh10, rr_cm_n sh5]; exact hcov
@@ -556,7 +556,7 @@ theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net
     change f ∈ M at hf
     by_cases hm : f ∈ S.msgs
     · exact hb9 f hm hty
-    · rcases hok.mnew f hf hm with h | ⟨-, h1, h2, -⟩
+    · rcases hok.mnew f hf hm with ⟨h, -⟩ | ⟨-, h1, h2, -⟩
       · exact absurd h hty
       · exact ⟨⟨n, h1⟩, h2⟩
   · -- votes' voters
@@ -575,7 +575,7 @@ theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net
     change a ∈ M at ha
     by_cases hm : a ∈ S.msgs
     · exact Int.le_trans (hb12 k a hm hty hsrc) (hge k)
-    · rcases hok.mnew a ha hm with hvt | ⟨-, hsrc', -, ht', -⟩
+    · rcases hok.mnew a ha hm with ⟨hvt, -⟩ | ⟨-, hsrc', -, ht', -⟩
       · rw [hvt] at hty; exact absurd hty rr_vote_ne_ack
       · have hkn : k = n := name_inj (hsrc.symm.trans hsrc')
         rw [hkn, rr_ct_n sh1, ht']; exact Int.le_refl _
@@ -622,6 +622,14 @@ theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net
         · omega
   · -- LedConfOk
     exact hok.lconf
+  · -- BootTermOk
+    refine ⟨fun k => Int.le_trans (hb17.2.1 k) (hge k), fun f hf hty => ?_⟩
+    change f ∈ M at hf
+    by_cases hm : f ∈ S.msgs
+    · exact hb17.2.2 f hm hty
+    · rcases hok.mnew f hf hm with ⟨-, h⟩ | ⟨h, -⟩
+      · exact h
+      · rw [h] at hty; exact absurd hty.symm rr_vote_ne_ack
 
 /-- C4 at the new state. -/
 theorem rr_net (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :

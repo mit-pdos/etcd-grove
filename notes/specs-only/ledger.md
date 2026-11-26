@@ -5984,3 +5984,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   which `diskOwn d w` does not give. `node.start`'s caller discharges them (trivially for an empty disk; B2's
   restarts carry the log-indices fact with the view). Proof: `Proof/.../antithesis/memoryOf.lean`.
 - **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1 (Sim): `BindingOk` bounds terms and vote requests by the boot term (#33)
+
+- **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`BootTermOk`, `BindingOk`),
+  `Sim/ReadyRel.lean` (`ReadyOk.mnew`).
+- **Change (strengthening of an invariant).** `BindingOk R dec S` gains an 18th conjunct `BootTermOk R.N S`:
+  `∀ n : Fin R.N, S.bootTerm ≤ S.currentTerm[n.val]!` and `∀ f ∈ S.msgs, f.type = "vote" → S.bootTerm < f.term`
+  (`BindingOk.bootTermOk`). The nodes start at `bootTerm`, terms only grow, and only `elect` adds vote facts, at
+  `currentTerm + 1`. `State.voteOf` ignores votes at a term `≤ bootTerm`, so with `R.boot = true` (`bootTerm = 1`)
+  a campaign's and a grant's recorded vote need it (`ReadyOk.hvote`'s `S.bootTerm < t1`). `ReadyOk.mnew`'s vote arm
+  now carries the bound (`f.type = "vote" ∧ S.bootTerm < f.term`). Construction sites follow: `Init` (terms at
+  `bootT R`, no facts), `GC` (facts a subset), `SendRel` (a send adds no vote fact), `ReadyRel.rr_binding`.
+- **Decision.** Approved by the lead (2026-11-26, the general form, so B1's ready result covers `R.boot = true`).
+  No new axiom, no new top-level premise.

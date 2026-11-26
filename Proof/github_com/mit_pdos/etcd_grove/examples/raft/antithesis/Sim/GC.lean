@@ -554,7 +554,8 @@ theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List 
     hb19⟩ := hb
   refine ⟨⟨hsh, ?_, ?_, hxn, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19⟩
+    refine ⟨hb1, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_, hb19.1,
+      hb19.2.1, fun f hf hty => hb19.2.2 f (gcRes_msgs_sub hf) hty⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha

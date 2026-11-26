@@ -166,7 +166,9 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
   refine ⟨⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, hok.clen, by simpa [sendS] using sh11,
     sh12, sh13, sh14⟩, ?_, ?_, hxn, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, ?_, ?_, hb7, hb8, ?_, hb10, hb11, ?_, hb13, ?_, hb15, hb16, hb17⟩
+    refine ⟨hb1, hb2, hb3, hb4, ?_, ?_, hb7, hb8, ?_, hb10, hb11, ?_, hb13, ?_, hb15, hb16, hb17.1,
+      hb17.2.1, fun f hf ht => (Classical.em (f ∈ S.msgs)).elim (fun hm => hb17.2.2 f hm ht)
+        (fun hm => absurd ht (hok.new f hf hm).1)⟩
     · intro k l hl
       by_cases hk : k = n
       · subst hk; exact hok.conf l hl

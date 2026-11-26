@@ -650,6 +650,14 @@ candidate's commit recorded under its own term is then within `tlOld` at that te
 `TermLenOk` bounds (a win's `cmt` guard, B 252). -/
 def TlSorted (S : AntCheck.State) : Prop := S.termLen.Pairwise (fun a b => a.1 < b.1)
 
+/-- **C3, the boot term**: every node's term at least `bootTerm`, every vote request's term above it.
+The nodes start at `bootTerm` (`BootInit`, B 733-753) and terms only grow; a vote request is
+`elect`'s, at its candidate's `currentTerm + 1`. `State.voteOf` ignores a vote at a term not above
+`bootTerm`, so a vote recorded at a campaign or a grant needs its term above it. -/
+def BootTermOk (N : Nat) (S : AntCheck.State) : Prop :=
+  (∀ n : Fin N, S.bootTerm ≤ S.currentTerm[n.val]!) ∧
+  ∀ f ∈ S.msgs, f.type = go!"vote" → S.bootTerm < f.term
+
 /-- **C3**: facts about `S` alone, kept by every step and by `GC` (§3.2): no violation (the queue, the reads and the announced write
 are per node: `QueueIs`, `ReadsIs`, `UndoIs`); `termLen` within `chain`; each node's commit within `chain`
 and agreeing with it (`subSeq`'s domain, B 434, 600), recorded under a term it has reached
@@ -661,7 +669,7 @@ only while it leads it (but `BootInit`'s leader of term 1, B 733-753, a follower
 `votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540);
 the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
 (`ConfirmedOk`) within the nodes' terms; the terms' recorded commits (`TermLenOk`); the leader configurations (`LedConfOk`); `termLen` sorted
-(`TlSorted`). -/
+(`TlSorted`); the nodes' terms and the vote requests' within the boot term (`BootTermOk`). -/
 def BindingOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
   (∀ p ∈ S.termLen, p.2 ≤ S.chain.length) ∧
@@ -686,7 +694,7 @@ def BindingOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
   (∀ n : Fin R.N, S.vote n.val ≠ [] →
     { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes) ∧
   AckTermsOk R.N S ∧ VoteTermOk R.N S ∧ ConfirmedOk R.N S ∧ TermLenOk R.N S ∧ LedConfOk R dec S ∧
-  TlSorted S
+  TlSorted S ∧ BootTermOk R.N S
 
 theorem BindingOk.termLenOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h : BindingOk R dec S) :
     TermLenOk R.N S :=
@@ -698,7 +706,11 @@ theorem BindingOk.ledConfOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h :
 
 theorem BindingOk.tlSorted {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h : BindingOk R dec S) :
     TlSorted S :=
-  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem BindingOk.bootTermOk {R : RunCfg} {dec : CCDec} {S : AntCheck.State} (h : BindingOk R dec S) :
+    BootTermOk R.N S :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C4: the network -/
 

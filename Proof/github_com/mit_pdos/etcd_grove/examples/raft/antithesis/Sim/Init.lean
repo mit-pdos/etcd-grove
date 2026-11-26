@@ -165,7 +165,8 @@ theorem antSim_init : antSim_init.stmt := by
   · exact ⟨rfl, rep_length _, rep_length _, rep_length _, rep_length _, rep_length _,
       rep_length _, rep_length _, rep_length _, rep_length _, rep_length _, rep_length _,
       rep_length _, rep_length _, rep_length _⟩
-  · refine ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, List.Pairwise.nil⟩
+  · refine ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, List.Pairwise.nil,
+      ⟨fun n => Int.le_of_eq (by rw [hct, hbt]), fun f hf => by cases hf⟩⟩
     · intro p hp; cases hp
     · intro n
       have h0 : (initS R).commitIndex[n.val]! = 0 := rep_get _ n
