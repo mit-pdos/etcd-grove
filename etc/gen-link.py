@@ -767,12 +767,11 @@ EXTRA_IMPORTS["--antithesis"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.t
                                  # (2026-11-24) raft's `RawNode` API (its `wp_apiProof`s and laws)
                                  # and its start, `proto.Clone` at the message type
                                  "Proof.go_etcd_io.raft.v3.RawNodeApiLinked",
-                                 "Proof.go_etcd_io.raft.v3.RawNodeStartSpec",
-                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.CloneMsgLaw",
-                                 # the drain's phases and the simulation's statements, proved
-                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainAdvWp",
-                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgShape",
-                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReadyAll"]
+                                 # (parity B1) the harness's laws and the simulation's statements at
+                                 # B1's mask, proved
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessLaws",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunInMaskB1",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet"]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
@@ -863,7 +862,17 @@ LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"],
 # The modes whose blocked results take only the pending hypotheses they reach (k8s 7e-2,
 # 2026-11-10: the etcd3 store's list path pends specs the compactor, linked into a closed
 # result, does not reach); the others take every pending hypothesis
-PER_FN_PENDING = {"--k8s-etcd3"}
+PER_FN_PENDING = {"--k8s-etcd3", "--antithesis"}
+# (2026-11-26, the Antithesis harness, parity B1) the specs over the harness's storage registry
+# (`[AntStor GF]`, `AntStorage.lean`) take it as a binder, beside the storage model; a result whose
+# proof holds only at the registry's model (`attribute [local instance] antStorageModelNC`:
+# `node.start`, over `NewRawNode`'s restart at that model), and every result linking one, is stated
+# at that model (`letI : StorageModel GF := antStorageModelNC`), as `RunCluster`'s hypotheses take
+# it (a caller taking such a hypothesis passes `=(fun [AntHarness.AntStor GF] => letI : … ; <result>)`);
+# a pending spec over the registry is a hypothesis at every storage model and registry
+ANT_STOR = "[AntStor GF]"
+ANT_STOR_BINDER = "[AntHarness.AntStor GF]"
+ANT_NC = "AntHarness.antStorageModelNC"
 # The modes whose `@` callees with no Link of their own package are looked up in every imported Link
 # (k8s 7e-4: the driver's `storage`/`labels`/`fields` callees, linked in the k8s etcd3 store's Link)
 EXT_ANY_LINK = {"--k8setcd3"}
@@ -1304,7 +1313,15 @@ variable [sem : go.Semantics]
         if c.startswith("="):
             # a term given as is (`=http.respWrite_ok`): a boundary statement's axiom, or another
             # library's linked result, which no spec file of a mode names
-            return c[1:]
+            t = c[1:]
+            if sys.argv[1] in PER_FN_PENDING:
+                # (parity B1) a result of `links_pending` the term names, applied to the pending
+                # hypotheses it reaches
+                for f in eq_refs(c):
+                    if f in blocked and f not in pending and reach.get(f):
+                        t = re.sub(r"(?<![\w.])" + re.escape(result(f)) + r"(?![\w.])",
+                                   "(" + result(f) + " " + " ".join(hyp(p) for p in sorted(reach[f])) + ")", t)
+            return t
         if c in pending:
             return hyp(c)
         if c in blocked:
@@ -1358,6 +1375,14 @@ variable [sem : go.Semantics]
         body = f"{specref(fn)}.wp_proof{sfx(fn)}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
+        if fn in ant_nc:
+            allg = (" [AllG GF]" if "[AllG GF]" in src and fn not in blocked else "") + " " + ANT_STOR_BINDER
+            allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
+            return (f"theorem {result(fn)}{allg} :\n"
+                    f"    letI : StorageModel GF := {ANT_NC}\n"
+                    f"    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) := by\n"
+                    f"  letI : StorageModel GF := {ANT_NC}\n"
+                    f"  exact ({body} :\n      {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))\n")
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
         # the key-value store's specs take its storage registry
         allg += "".join(" " + r for r in STOR_REGS if r in src)
@@ -1382,6 +1407,8 @@ variable [sem : go.Semantics]
         # storage is a `MemoryStorage`, `memStorageModel` under the registry's name)
         elif "[MemStorReg GF]" in src:
             allg += " [MemStorReg GF]"
+        if sys.argv[1] == "--antithesis" and ANT_STOR in src:
+            allg += " " + ANT_STOR_BINDER
         allg += "".join(" " + premise_binder(p) for p in SEM_PREMISES if p in premises[fn])
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
@@ -1483,9 +1510,24 @@ variable [sem : go.Semantics]
     reach = {fn: {fn} for fn in pending}
     for fn in order:
         if fn in blocked and fn not in pending:
-            reach[fn] = set().union(*(reach.get(c, set()) for c in callees[fn]))
+            reach[fn] = set().union(*(reach.get(c, set()) for c in callees[fn]),
+                                    # (parity B1) and those of the results an `=` term names
+                                    *(reach.get(f, set()) for c in callees[fn]
+                                      if c.startswith("=") for f in eq_refs(c)))
     if sys.argv[1] not in PER_FN_PENDING:
         reach = {fn: set(pending) for fn in reach}
+    # the results stated at the harness registry's storage model (`ANT_NC`): a proof stated only
+    # there, and every result linking one
+    ant_nc = set()
+    if sys.argv[1] == "--antithesis":
+        for fn in order:
+            if fn in external or fn in pending or fn in reused:
+                continue
+            pf = proof_file(fn)
+            if ((os.path.exists(pf) and "attribute [local instance] antStorageModelNC" in open(pf).read())
+                    or any(c in ant_nc for c in callees[fn])):
+                ant_nc.add(fn)
+
     generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked
                and fn not in reused]
     special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked
@@ -1516,6 +1558,8 @@ variable [sem : go.Semantics]
         hyps = ("variable [AllG GF]\n" if pend_allg else "") + "\n".join(
             [f"variable ({hyp(fn)} : "
              + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
+             + (f"∀ [StorageModel GF] {ANT_STOR_BINDER}, " if sys.argv[1] == "--antithesis"
+                and ANT_STOR in pend_src(fn) else "")
              + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
              for fn in sorted(pending)]
             + [f"variable {pending_laws[n]}" for n in sorted(pending_laws)])

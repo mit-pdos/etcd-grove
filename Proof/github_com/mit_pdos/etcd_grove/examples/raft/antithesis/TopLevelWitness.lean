@@ -2,7 +2,7 @@
 
 # `raft/antithesis`: its top-level statement's premises are satisfiable
 
-`premise_sat%` (`Robustness/PremiseSat.lean`): `raft_antithesis_robust_basic`
+`premise_sat%` (`Robustness/PremiseSat.lean`): `raft_antithesis_robust_msgs`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/TopLevelRobustness.lean`) has no
 premise beyond its instance binders (the package assumptions, `log.NewModel`), so it holds with
 `Robust`'s antecedents: one fresh machine, its extension `idIssueExt` in its initial state. Checked
@@ -25,7 +25,7 @@ attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp tr
 
 open Robustness
 
-theorem raft_antithesis_robust_basic.premisesSat : premise_sat% raft_antithesis_robust_basic.spec := by
+theorem raft_antithesis_robust_msgs.premisesSat : premise_sat% raft_antithesis_robust_msgs.spec := by
   intros
   exact ⟨freshState ((∅ : IdIssueState), ()), ⟨((), ()), ∅⟩,
     (robustStart_one (fresh_freshState _) (by exts_init) (by exts_init)).1⟩

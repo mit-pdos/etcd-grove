@@ -6,7 +6,7 @@ initial voters (a fresh `ConfState`, frozen).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__storeBase
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.StoreJust
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__storeConf
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot

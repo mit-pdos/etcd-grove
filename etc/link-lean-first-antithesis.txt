@@ -33,83 +33,84 @@ raftpb_Message__GetTo: @
 raftpb_Message__GetType: @
 raftpb_SnapshotMetadata__GetIndex: @
 raftpb_Snapshot__GetMetadata: @
-# the driver (examples/raft/antithesis, parity B1: `?` = specified, not proved yet; the S4 proofs
-# kept are those whose specs did not change)
-antithesis_Cluster__CheckConfig: ?
-antithesis_Cluster__Events: ?
-antithesis_Cluster__campaigner: ?
-antithesis_Cluster__deliver: ?
-antithesis_Cluster__handle: ?
-antithesis_Cluster__node: ?
-antithesis_Cluster__pick: ?
-antithesis_Cluster__proposer: ?
-antithesis_Cluster__reader: ?
-antithesis_Cluster__run: ?
-antithesis_Cluster__running: ?
+# the driver (examples/raft/antithesis, parity B1; `?` = specified, not proved yet: the spec is a
+# hypothesis `h_antithesis_<fn>` of each result reaching it)
+antithesis_Cluster__CheckConfig: antithesis_names check_SetOf
+antithesis_Cluster__Events: antithesis_Recorder__Events
+antithesis_Cluster__campaigner: antithesis_Cluster__running antithesis_Cluster__pick antithesis_Cluster__deliver
+antithesis_Cluster__deliver:
+antithesis_Cluster__handle: antithesis_node__step antithesis_node__propose antithesis_node__readIndex antithesis_node__transferLeader antithesis_node__campaign antithesis_node__unreachable
+antithesis_Cluster__node:
+antithesis_Cluster__pick: antithesis_below
+antithesis_Cluster__proposer: =_root_.Perennial.strconv.wp_FormatUint antithesis_Cluster__running antithesis_Cluster__pick antithesis_Cluster__deliver
+antithesis_Cluster__reader: =_root_.Perennial.strconv.wp_FormatUint antithesis_Cluster__running antithesis_Cluster__pick antithesis_Cluster__deliver
+antithesis_Cluster__run: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop =_root_.Perennial.sync.WaitGroup.wp_Done antithesis_node__start antithesis_node__tick antithesis_Cluster__handle
+antithesis_Cluster__running: =_root_.Perennial.time.wp_Sleep
 antithesis_Cluster__send: ?
-antithesis_Cluster__spawn: ?
-antithesis_Cluster__transferer: ?
-antithesis_DefaultConfig: ?
-antithesis_DrawMode: ?
-antithesis_Main: ?
-antithesis_MainScope: ?
+antithesis_Cluster__spawn: =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Done
+antithesis_Cluster__transferer: antithesis_below antithesis_Cluster__running antithesis_Cluster__pick antithesis_Cluster__deliver
+antithesis_DefaultConfig:
+antithesis_DrawMode: antithesis_below antithesis_coin antithesis_may
+antithesis_Main: antithesis_DefaultConfig antithesis_MainScope antithesis_DrawMode antithesis_RunCluster antithesis_Cluster__CheckConfig antithesis_Cluster__Events check_Run
+antithesis_MainScope:
 antithesis_Name: =_root_.Perennial.strconv.wp_FormatUint
 antithesis_Recorder__Events: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
 antithesis_Recorder__record: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
-antithesis_RunCluster: ?
+antithesis_RunCluster: antithesis_Name =(fun [AntHarness.AntStor GF] => letI : StorageModel GF := AntHarness.antStorageModelNC; AntHarness.Cluster.wp_run) =(fun [AntHarness.AntStor GF] => letI : StorageModel GF := AntHarness.antStorageModelNC; AntHarness.Cluster.wp_spawn) =(fun [AntHarness.AntStor GF] => letI : StorageModel GF := AntHarness.antStorageModelNC; AntHarness.Cluster.wp_proposer) =(fun [AntHarness.AntStor GF] => letI : StorageModel GF := AntHarness.antStorageModelNC; AntHarness.Cluster.wp_campaigner) =(fun [AntHarness.AntStor GF] => letI : StorageModel GF := AntHarness.antStorageModelNC; AntHarness.Cluster.wp_reader) =(fun [AntHarness.AntStor GF] => letI : StorageModel GF := AntHarness.antStorageModelNC; AntHarness.Cluster.wp_transferer) =_root_.Perennial.time.wp_Sleep =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Wait =AntHarness.drainB1_of_inScope
 antithesis_below:
-antithesis_bootData: ?
+antithesis_bootData:
 antithesis_bootStorage__Entries: MemoryStorage__Entries
 antithesis_bootStorage__FirstIndex: MemoryStorage__FirstIndex
 antithesis_bootStorage__InitialState: MemoryStorage__InitialState MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 antithesis_bootStorage__LastIndex: MemoryStorage__LastIndex
 antithesis_bootStorage__Snapshot: MemoryStorage__Snapshot
 antithesis_bootStorage__Term: MemoryStorage__Term
-antithesis_coin: ?
-antithesis_disk__base: ?
-antithesis_disk__save: ?
-antithesis_entriesOf: ?
-antithesis_entryOf: ?
-antithesis_firstIndex: ?
-antithesis_idNames: ?
-antithesis_may: ?
-antithesis_memoryOf: ?
-antithesis_msgOf: ?
+antithesis_coin: antithesis_below
+antithesis_copyHardState: antithesis_u64p =raftpb.HardState.wp_GetTerm =raftpb.HardState.wp_GetVote =raftpb.HardState.wp_GetCommit
+antithesis_disk__base: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+antithesis_disk__save: antithesis_copyHardState antithesis_disk__base =raftpb.Entry.wp_GetIndex
+antithesis_entriesOf: antithesis_entryOf
+antithesis_entryOf: raftpb_Entry__GetType raftpb_Entry__GetData raftpb_Entry__GetTerm =raftpb.Entry.wp_GetIndex antithesis_bootData
+antithesis_firstIndex: =raftpb.Entry.wp_GetIndex
+antithesis_idNames: antithesis_Name
+antithesis_may: antithesis_coin
+antithesis_memoryOf: NewMemoryStorage =MemoryStorage.wp_SetHardState =MemoryStorage.wp_Append
+antithesis_msgOf: antithesis_msgType antithesis_Name antithesis_entriesOf raftpb_Message__GetIndex raftpb_Message__GetLogTerm raftpb_Message__GetType raftpb_Message__GetFrom raftpb_Message__GetTerm raftpb_Message__GetEntries raftpb_Message__GetCommit raftpb_Message__GetReject raftpb_Message__GetRejectHint
 antithesis_msgType:
 antithesis_names: antithesis_Name
-antithesis_nodeLogger__Infof: ?
-antithesis_node__alone: ?
-antithesis_node__announce: ?
-antithesis_node__applyCommitted: ?
-antithesis_node__campaign: ?
+antithesis_nodeLogger__Infof: =_root_.Perennial.sync.atomic.wp_AddUint64
+antithesis_node__alone:
+antithesis_node__announce: antithesis_node__emit
+antithesis_node__applyCommitted: antithesis_node__reportCause antithesis_node__emit antithesis_node__entries antithesis_node__switchConf =raftpb.Entry.wp_GetIndex
+antithesis_node__campaign: =(RawNode.Campaign.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) antithesis_node__input =rawNode_wf =rawNode_term_tc =rawNode_raise_tc =rnBudget_persistent =rnBudget_spend =AntHarness.view_update =AntHarness.nodeLive_over =AntSim.mskB1 =(AntSim.antSim_quiet_in AntSim.mskB1 AntHarness.mskB1_le) =AntHarness.runInMask_b1 =rfl
 antithesis_node__drain: ?
-antithesis_node__emit: ?
-antithesis_node__entries: ?
-antithesis_node__input: ?
-antithesis_node__msg: ?
-antithesis_node__parts: ?
-antithesis_node__propose: ?
+antithesis_node__emit: antithesis_Recorder__record
+antithesis_node__entries: antithesis_entriesOf
+antithesis_node__input: antithesis_node__drain
+antithesis_node__msg: antithesis_msgOf raftpb_Message__GetTo
+antithesis_node__parts:
+antithesis_node__propose: =(RawNode.Propose.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) antithesis_node__input =rnBudget_persistent =AntHarness.view_update =AntHarness.nodeLive_over =AntSim.mskB1 =(AntSim.antSim_quiet_in AntSim.mskB1 AntHarness.mskB1_le) =AntHarness.runInMask_b1
 antithesis_node__readIndex: ?
-antithesis_node__reads: ?
-antithesis_node__reportCause: ?
-antithesis_node__saveDisk: ?
-antithesis_node__sendEv: ?
+antithesis_node__reads: antithesis_node__reportCause antithesis_node__emit
+antithesis_node__reportCause: antithesis_node__emit
+antithesis_node__saveDisk: antithesis_disk__save
+antithesis_node__sendEv: antithesis_node__msg
 antithesis_node__sendMsg: ?
-antithesis_node__sent: ?
-antithesis_node__start: ?
-antithesis_node__stateEv: ?
+antithesis_node__sent: raftpb_Message__GetType
+antithesis_node__start: antithesis_disk__save antithesis_u64p antithesis_bootData =wp_IsEmptyHardState antithesis_memoryOf antithesis_copyHardState =_root_.Perennial.sync.atomic.wp_StoreUint64 antithesis_node__storeBase antithesis_node__storeConf MemoryStorage__LastIndex MemoryStorage__Term =raftpb.HardState.wp_GetTerm =raftpb.HardState.wp_GetVote =raftpb.HardState.wp_GetCommit antithesis_Name antithesis_idNames =raftpb.ConfState.wp_GetVoters =raftpb.ConfState.wp_GetVotersOutgoing antithesis_node__emit antithesis_bootStorage__InitialState antithesis_bootStorage__Snapshot antithesis_bootStorage__LastIndex antithesis_bootStorage__FirstIndex antithesis_bootStorage__Term antithesis_bootStorage__Entries =(NewRawNode.wp_proofRestartAtApi wp_NewRawNode) antithesis_nodeLogger__Infof antithesis_quietLogger__Debugf antithesis_quietLogger__Warningf antithesis_quietLogger__Errorf antithesis_node__drain antithesis_node__alone =AntHarness.view_update =AntHarness.nodeLive_over =raftState_open_rn
+antithesis_node__stateEv: antithesis_node__entries antithesis_firstIndex antithesis_Name =raftpb.HardState.wp_GetTerm =raftpb.HardState.wp_GetVote =raftpb.HardState.wp_GetCommit
 antithesis_node__step: ?
-antithesis_node__storeBase: ?
-antithesis_node__storeConf: ?
-antithesis_node__storeSave: ?
-antithesis_node__switchConf: ?
-antithesis_node__tick: ?
-antithesis_node__transferLeader: ?
-antithesis_node__unreachable: ?
-antithesis_quietLogger__Debugf: ?
-antithesis_quietLogger__Errorf: ?
-antithesis_quietLogger__Infof: ?
-antithesis_quietLogger__Warningf: ?
+antithesis_node__storeBase: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+antithesis_node__storeConf: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+antithesis_node__storeSave: =MemoryStorage.wp_SetHardState =MemoryStorage.wp_Append
+antithesis_node__switchConf: raftpb_Entry__GetType
+antithesis_node__tick: =(RawNode.Tick.wp_apiProof raft.wp_tickElection raft.wp_tickHeartbeat) antithesis_node__input =rawNode_wf =rawNode_term_tc =rawNode_raise_tc =rnBudget_persistent =rnBudget_spend =AntHarness.view_update =AntHarness.nodeLive_over =AntSim.mskB1 =(AntSim.antSim_quiet_in AntSim.mskB1 AntHarness.mskB1_le) =AntHarness.runInMask_b1
+antithesis_node__transferLeader: =(RawNode.TransferLeader.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) antithesis_node__input =rnBudget_persistent =AntHarness.view_update =AntHarness.nodeLive_over =AntSim.mskB1 =(AntSim.antSim_quiet_in AntSim.mskB1 AntHarness.mskB1_le) =AntHarness.runInMask_b1 =rfl
+antithesis_node__unreachable: =(RawNode.ReportUnreachable.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) antithesis_node__input =rnBudget_persistent =AntHarness.view_update =AntHarness.nodeLive_over =AntSim.mskB1 =(AntSim.antSim_quiet_in AntSim.mskB1 AntHarness.mskB1_le) =AntHarness.runInMask_b1 =rfl
+antithesis_quietLogger__Debugf:
+antithesis_quietLogger__Errorf:
+antithesis_quietLogger__Infof:
+antithesis_quietLogger__Warningf:
 antithesis_roleOf:
-antithesis_u64p: ?
-antithesis_withByRole: ?
+antithesis_u64p:
+antithesis_withByRole:

@@ -6,6 +6,7 @@ storage's snapshot (`MemoryStorage.Snapshot`) is at index `0`.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__storeBase
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.StoreJust
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
@@ -29,16 +30,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- Justifications nothing reads (the detached `Snapshot` call names none). -/
-def storeJ : MemJust GF where
-  SV _ := iprop(True)
-  B _ := iprop(True)
-  DL _ := iprop(True)
-  SV_pers _ := inferInstance
-  B_pers _ := inferInstance
-  B_timeless _ := inferInstance
-  DL_pers _ := inferInstance
 
 theorem node.storeBase.wp_proof (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
