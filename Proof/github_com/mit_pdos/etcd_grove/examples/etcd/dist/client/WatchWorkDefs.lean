@@ -27,8 +27,8 @@ cluster's KV `Γ.kv` instead of the members' server facts:
   (`km_put_au0`: `client.km_write_au` at `[[]]`, the plan's property kept, `wkW_put`), and a
   successful Put's reply gives `etcdstart.okFactKM` (`okFactKM_of_write`), which is
   `etcd_partition.okFactK` (`okFactK_of_KM`: the same definition), the fact the check reads.
-* `wsInvT w OkF γt`: the writer machine's log's lock invariant, `wsInvF` or, after the call has
-  read the log out of it, the token `γt` (`writerOp` returns the log it read under the lock, so it
+* `wsInvT w OkF γt γn`: the writer machine's log's lock invariant, the log with its length at `γn`, or,
+  after the call has read the log out of it, the token `γt` (`writerOp` returns the log it read under the lock, so it
   keeps the slice: the lock gets the token in its place).
 * `checkOkK_of`: `Check`'s premise from what `Collect` returns and the Puts' facts
   (`partition/MainWatch.lean`'s, copied: that file is a proof module).
@@ -201,14 +201,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The writer machine's log's lock invariant** (`Writer_dist`'s): `etcdstart.wsInvF`, or, once the
-call's owner of the token `γt` has taken the log out (`writerOp` reads it after the lock), only the
-field and the token. The token's owner while `Writer` runs is `Writer` itself, so it always finds the
-log. -/
-def wsInvT (w : Loc) (OkF : wrec → IProp GF) (γt : GName) : IProp GF :=
-  iprop(wsInvF w OkF ∨ ∃ sl : GoSlice,
-    structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Ok" w ↦ sl ∗
-    token γt)
+/-- **The writer machine's log's lock invariant** (`Writer_dist`'s): the log with its records' facts and
+its length in the ghost variable `γn` (half; `Writer` holds the other half while it runs, so its caller
+learns a bound on the log), or, once the call's owner of the token `γt` has taken the log out
+(`writerOp` returns the log it read after the lock), only the field and the token. `Writer` holds the
+token while it runs, so it always finds the log. -/
+def wsInvT (w : Loc) (OkF : wrec → IProp GF) (γt γn : GName) : IProp GF :=
+  iprop((∃ (sl : GoSlice) (oks : List wrec),
+      structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Ok" w ↦ sl ∗
+      sl ↦* oks ∗ ownSliceCap wrec sl (DFrac.own 1) ∗ (□ [∗list] p ∈ oks, OkF p) ∗
+      ghostVar γn (1 : Qp).half oks.length) ∨
+    ∃ sl : GoSlice,
+      structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Ok" w ↦ sl ∗
+      token γt)
 
 /-- **A writer's update for the put of `k ↦ v` of the plan**, after the start's changes `[[]]`
 (`etcd_partition.km_put_au` at the start's lower bound: what `okFactKM_of_write` reads). -/

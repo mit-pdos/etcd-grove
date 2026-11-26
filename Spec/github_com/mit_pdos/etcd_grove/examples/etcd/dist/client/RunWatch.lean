@@ -13,18 +13,20 @@ revision `2`). A failed connection or a watch that ended first ends the workload
 **The triple:** from the package's `isPkgInit`, the level token (the machine's), the endpoints `eps`
 and the writer machines' addresses `nodes` (read-only), a `ready` safe to call, and the orchestrator's
 share `watchShare WS addrs ns` (global, the start's: the cluster's view, every endpoint serving a
-member of it, the cluster's client half at the boot's state, the writer machines' share `WS`;
-`WatchWorkDefs.lean`), `RunWatch` returns (no panic: the check holds), the token given back. `WS` is
-the parameter of `remoteWriters.specWith`, which the proof takes as a hypothesis.
+member of it, the cluster's client half at the boot's state, the writer machines' share
+`writersShare`: each writer address's service and one call's budget; `WatchWorkDefs.lean`,
+`WriterWire.lean`), `RunWatch` returns (no panic: the check holds), the token given back.
 
 **The pure premises** (facts of the deployment or of the logic): a watch environment (`newClient`'s
 client; the watch contract reads none of it), the logic's thread bound and plain endpoints
 (`newClient`'s), and the writers' count fits (`0 ≤ nops`, `len(nodes) * nops < 2 ^ 63`: `WellFormed`'s
-bounds).
+bounds); and (2026-11-26) `nops < 2 ^ 56`, so that a writer's Puts and log encode in one message (the
+writer's wire, `WriterWire.lean`): **stronger than `WellFormed`'s bound for Watch** (`nops ≤ (2^62-1)/clients`),
+so the dispatch needs `boundsOk` tightened (`notes/etcd-dist-plan.md` §24.7).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWorkDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WriterWire
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Base
 
 @[expose] public section
@@ -36,6 +38,7 @@ namespace EtcdGrove
 namespace etcd_dist_client
 
 open Iris Iris.BI Net client
+open github_com.mit_pdos.etcd_grove.examples.lib.remote
 open etcd_dist etcdstart
 
 section spec
@@ -47,14 +50,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- See the file header. -/
-abbrev RunWatch.spec (WS : DistView → List GoString → IProp GF) : Prop :=
-  ∀ [π : NetProtoGS] (eps nodes : GoSlice) (addrs ns : List GoString) (nops : w64) (ready : GoFunc),
+abbrev RunWatch.spec : Prop :=
+  ∀ [π : NetProtoGS] [ρ : RemoteGS] (eps nodes : GoSlice) (addrs ns : List GoString) (nops : w64) (ready : GoFunc),
   Nonempty (WEnv GF) → threadBound GF ≤ 2 ^ 30 → plainEndpoints addrs →
-  0 ≤ sint.Z nops → ns.length * sint.Z nops < 2 ^ 63 →
+  0 ≤ sint.Z nops → sint.Z nops < 2 ^ 56 → ns.length * sint.Z nops < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ eps ↦*□ addrs ∗ nodes ↦*□ ns ∗
       ({{ True }} (App (Val #ready) (Val #())) {{ RET #(); True }}) ∗
-      watchShare (Gg := hG.goose_globalGS) WS addrs ns }}
+      watchShare (Gg := hG.goose_globalGS) (writersShare (Gg := hG.goose_globalGS)) addrs ns }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunWatch))
       (Val #eps)) (Val #nodes)) (Val #nops)) (Val #ready))
   {{ (r : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Result), RET #r; levelTok 0 }}

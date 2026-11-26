@@ -8,10 +8,11 @@ cluster's members at other machines (`kvClientAt cl api eps V Γ`, `KVClientDist
 verbatim: the Puts `tried[lo:hi]` in order, each with the caller's write update (one of its persistent
 family, fired at most once, its result `QW k v σ`) in a context with the request timeout, each that
 returned no error logged in `w` (`wsInvF`) with the caller's fact `OkF` of its record (from `QW` and the
-reply's facts: its revision is `σ`'s next, `kvLogOk σ`). One more difference: the log's lock invariant
-is `wsInvT w OkF γt` (`wsInvF`, or the token `γt` once the caller has taken the log out), and `Writer`
-holds the token `γt` while it runs (so it finds the log): its caller, `writerOp`, returns the log it
-reads after `Writer`, which `wsInvF` alone would keep in the lock.
+reply's facts: its revision is `σ`'s next, `kvLogOk σ`). The other differences: the log's lock
+invariant is `wsInvT w OkF γt γn` (the log with its length at `γn`, or the token `γt` once the caller has
+taken the log out), and `Writer` holds the token `γt` while it runs (so it finds the log) and the other half
+of `γn`, returned with at most `hi - lo` more records (its caller, `writerOp`, returns the log it reads
+after `Writer`, which must fit a message); the conversion to `OkF` is told the Put is one of `tried`'s.
 -/
 module
 
@@ -44,24 +45,25 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 abbrev Writer_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (QW : GoString → GoString → KVState → IProp GF) (OkF : wrec → IProp GF) (w : Loc)
-    (γt : GName) (tsl : GoSlice) (tried : List wkv) (lo hi : w64),
+    (γt γn : GName) (c0 : Nat) (tsl : GoSlice) (tried : List wkv) (lo hi : w64),
   Γ.auth = false → (∀ p, Persistent (OkF p)) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length → (∀ x ∈ tried, wkvSizeOk x) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ token γt ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ token γt ∗ ghostVar γn (1 : Qp).half c0 ∗
       kvClientAt cl api eps V Γ ∗ tsl ↦*□ tried ∗
       (□ ∀ (k v : GoString), ⌜(k, v) ∈ tried.map pairOf⌝ -∗
         AU <{ ∃∃ (σ : KVState), etcdKV Γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
           <{ etcdKV Γ.kv (kvOpStep (.put (putWireOf (opPutModel k v []))) σ) ∗ ⌜kvRoom σ⌝,
             COMM QW k v σ }>) ∗
-      (□ ∀ (k v : GoString) (σ : KVState), QW k v σ -∗ ⌜kvRevFits (σ.rev + 1) ∧ kvLogOk σ⌝ -∗
+      (□ ∀ (k v : GoString) (σ : KVState), ⌜(k, v) ∈ tried.map pairOf⌝ -∗ QW k v σ -∗ ⌜kvRevFits (σ.rev + 1) ∧ kvLogOk σ⌝ -∗
         OkF ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩) ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" w)
-        (wsInvT w OkF γt) }}
+        (wsInvT w OkF γt γn) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer))
       (Val #cl)) (Val #w)) (Val #tsl)) (Val #lo)) (Val #hi))
-  {{ RET #(); levelTok 0 ∗ token γt }}
+  {{ RET #(); levelTok 0 ∗ token γt ∗
+      ∃ c : Nat, ghostVar γn (1 : Qp).half c ∗ ⌜c ≤ c0 + (sint.nat hi - sint.nat lo)⌝ }}
 
 end spec
 
