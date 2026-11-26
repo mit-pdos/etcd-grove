@@ -252,8 +252,8 @@ Build: the remote worktree `~/eg/wt/dsv-retire-3` on fk-lean1 was being seeded (
 `/shared/tmp/fklean1-check.sh /shared/etcd-grove-dsvr3 dsv-retire-3` with targets
 `Dsverify.GeneratedProof.github_com.rs.zerolog Dsverify.GeneratedProof.github_com.rs.zerolog.internal.json
 Dsverify.Proof.github_com.rs.zerolog.Spec` at `04c16d3753` (log `/shared/tmp/dsvr3-seed.log`; remote log
-`~/eg/logs/dsv-retire-3-*.log`). For iteration after it: the session's helper (copy it if the scratchpad
-is gone) tars the local changed files into the remote worktree and runs `lake build` there under the
+`~/eg/logs/dsv-retire-3-*.log`). For iteration after it: `/shared/tmp/dsvr3-rb.sh <targets>`
+tars the local changed files into the remote worktree and runs `lake build` there under the
 build lock and `MemoryMax=50G`.
 
 Next, in order: build `...internal.json.InitLoop` and finish `wp_init0`; build json's and zerolog's
