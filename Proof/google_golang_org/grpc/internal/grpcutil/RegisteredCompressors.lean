@@ -37,7 +37,10 @@ theorem grpcutil.RegisteredCompressors.wp_proof
   wp_auto
   ihave Hnil := ownSlice_nil (V := GoString) (GF := GF) (DFrac.own 1)
   wp_apply (wp_Join slice.nil [] (DFrac.own 1) go!",") $$ [Hs Hnil] as -
-  · iexact Hnil
+  · isplitl [Hnil]
+    · iexact Hnil
+    ipureintro
+    simp
   simp only [List.intercalate_nil]
   iapply HΦ
   itrivial
