@@ -1,7 +1,7 @@
 /-
 `(*watcher).Watch(ctx, key, opts...)` by a client of auth-on members at other machines, at the cluster view,
-with the auth row: an interim trust-boundary axiom (`notes/etcd-dist-plan.md` §29; `Watch_dist`'s route,
-§22.6 (b)). Lean-first (no Rocq counterpart).
+with the auth row: an interim trust-boundary axiom (`notes/etcd-dist-watchon.md`; `Watch_dist`'s route,
+`notes/etcd-dist-plan.md` §22.6 (b)). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -65,10 +65,25 @@ row, which etcd's watch server gives:
 * *The state.* The check reads the member's auth store at that time, at an index at least the member's
   published index when the call began (as in one process, `watchClassFrom` at `authPubLbM`); `watchFloorsD`
   gives that index's floor above `L₀`, and every state from the floor on is the history's after a committed
-  prefix extending `L₀` (`authFloorD`). A member that lags, or that applies a snapshot, moves forward only.
+  prefix extending `L₀` (`authFloorD`). Across machines a lagging member may also apply a snapshot, which no
+  single-process run does (`applySnapshot`: `kv.Restore`, then `authStore.Recover`, which sets the backend, the
+  revision and the permission cache before the enabled flag). A check that interleaves reads the pre-snapshot
+  state or the snapshot's, piece by piece. Its pass is still witnessed by one of them: a disabled flag, a root
+  user, or a cache entry that covers the range (and so a user that exists at that state). The snapshot's state
+  is the leader's at its applied index, ahead of the member's, so both are at or after the floor. The window
+  between `kv.Restore` and `Recover` (KV new, auth old) checks at the old state, and the row claims only the
+  create's check (`notes/axiom-review/watchon-dist.md` §2, Go test [b]). The floor must be the serving
+  member's own: a member that lags across `AuthEnable` passes an anonymous create at its old state and then
+  streams post-enable events (Go test [lag]). So `watchFloorsD` asks for one at every endpoint, as the
+  workload's per-member barriers give.
 * *Which member.* The floor at endpoint `a` names some `mid` with `etcdAddrAt a Γ mid`; an address's table is
   set once, and `etcdSvc Γ mid` differs per member (its entries are at the member's names `Γ.au mid`, distinct
   by the premise), so the floor is the serving member's.
+
+**Review** `notes/axiom-review/watchon-dist.md` (2026-11-26, fresh `axiom`-skill review with a Go test on a
+3-member auth-on cluster, `notes/axiom-review/watchon-dist/`): SOUND WITH FIXES, the statement unchanged; F1–F3
+applied (docstrings); F4 (`Watch_dist`'s "Any auth mode" bullet, stale since F7 step 3) and F5 (`Serve_dist`'s
+docstring names `WatchOn_dist`'s streams) go with the adoption commit (`notes/etcd-dist-watchon.md`).
 
 **Margin.** The row is cluster-level only (no member-local check at `Γ.au mid`): what the auth workload's
 refused watch needs. The watcher's lock: as `Watch_dist` (this axiom locks `w.mu` and says nothing of it in
