@@ -152,7 +152,7 @@ set_option maxRecDepth 10000 in
 /-- **The commit point's committing facts** (`bDur_commit_point` with `cpImg`; see the file
 header): from the idle facts of `a`, the file's bytes all durable (the commit's first `fdatasync`)
 with the crash size bounds agreeing (`DB.grow`'s sync), and the new committed state `C'` (its txid
-one more and below `2 ^ 62`, its other slot `a.cur`'s, its meta well formed with zero tail, its
+one more and below `2 ^ 62`, its other slot `a.cur`'s, its meta well formed (zero tails), its
 tree well formed, no synced freelist page, its pages inside the file, each one of `a.cur`'s or, in
 whole slots of `g`, the file's bytes). -/
 theorem bDur_commit_of (a : BAbs) (s : CSt) (hb : s.busy = .idle) (hD : BDur a s)
@@ -162,7 +162,6 @@ theorem bDur_commit_of (a : BAbs) (s : CSt) (hb : s.busy = .idle) (hD : BDur a s
     (hsl : ∀ i, i % 2 ≠ C'.txid % 2 → C'.slot i = a.cur.slot i)
     (hmok : C'.metaOk) (htree : treeOK C') (hfl : C'.flpg = none)
     (hhwm : C'.hwm * 4096 ≤ s.m.size)
-    (htail : ∀ k, 80 ≤ k → k < 4096 → (C'.slot C'.txid)[k]? = some 0)
     (hnew : ∀ id pg, C'.pages !! id = some pg → a.cur.pages !! id = some pg ∨
       ((∀ j < 1 + pageOverflow pg, (g (id + j)).length = 4096 ∧ ∀ k < 4096,
           (s.bs[4096 * (id + j) + k]?).map Prod.fst = (g (id + j))[k]?) ∧
@@ -234,22 +233,13 @@ theorem bDur_commit_of (a : BAbs) (s : CSt) (hb : s.busy = .idle) (hD : BDur a s
       rw [← hpg] at hc
       rw [e, (hg (k / 4096) hj).2 (k % 4096) (Nat.mod_lt _ (by omega)), hc]
   have hRc : RefImg (cpImg s C') C' := by
-    refine ⟨⟨?_, ?_, ?_⟩, hmok, htree, ?_, ?_, ?_, htx2, ?_⟩
+    refine ⟨⟨?_, ?_, ?_⟩, hmok, htree, ?_, ?_, ?_, htx2⟩
     · have := hslot 0 (by omega); rw [Nat.mul_zero] at this; rw [this]; rfl
     · have := hslot 1 (by omega); rw [Nat.mul_one] at this; rw [this]; rfl
     · exact (treePages_of_agree _ C' htree (by rw [hXlen]; exact hhwm) hag).symm
     · intro f hf; rw [hfl] at hf; cases hf
     · rw [hXlen]; exact hhwm
     · rw [htx]; exact Nat.succ_pos _
-    · intro j hj k hk1 hk2 v hv
-      by_cases hj' : j = C'.txid % 2
-      · subst hj'
-        rw [hX, if_pos (by omega), show 4096 * (C'.txid % 2) + k - 4096 * (C'.txid % 2) = k by omega,
-          htail k hk1 hk2] at hv
-        exact (Option.some.inj hv).symm
-      · rw [hoth _ (by omega) (by omega)] at hv
-        rw [← Option.some.inj hv]
-        exact refImg_tail hR hj hk1 hk2
   have hdc : ∀ b, protData (cpImg s C') C' b → PSync s b (xb (cpImg s C') b) := by
     intro b hpb
     obtain ⟨hb1, hb2⟩ := protData_range hRc hpb

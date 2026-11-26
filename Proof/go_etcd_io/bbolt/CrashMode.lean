@@ -3,9 +3,8 @@
 Rocq counterpart): what C-I1's `dbCrashKeep_new` will open. A database `γ` whose options are
 `NoSync = NoGrowSync = false` (`boltSyncs γ`, C-I1's `dbOpts`), in a run where the file system does
 not fail (`FsNoErr`), has its file in the crash invariant `crashN γ.ns` closed by `boltState`'s
-token (`isBoltCoreP`'s `bMode`, `Open/Mode.lean`) — but for one interim case: `Open` enters crash
-mode only for a file whose meta tails are zero (the crash invariant's reference image needs them),
-which the opened file is not yet known to have (the second disjunct, which goes once it is).
+token (`isBoltCoreP`'s `bMode`, `Open/Mode.lean`). The crash invariant's reference image needs the
+opened file's meta tails zero: every file `Open` accepts has them (`fileOK_tails`, W7).
 -/
 module
 
@@ -36,8 +35,7 @@ variable [sem : go.Semantics]
 theorem crashMode_of (db : Loc) (γ : BoltName) :
     boltSyncs (GF := GF) γ ∗ ⌜FsNoErr⌝ ∗ isBolt db γ ⊢
       ∃ (p : BFile) (sp : Loc) (t0 : Nat), isBoltP (bnsOf γ.gs) γ.ns db p sp t0 ∗
-        ⌜(∃ c, p.cs = some c ∧ c.N = crashN γ.ns ∧ c.gc = (bnsOf γ.gs).bq) ∨
-          (p.cs = none ∧ ∃ X0 : List w8, ¬ metaTailsZero X0)⌝ := by
+        ⌜∃ c, p.cs = some c ∧ c.N = crashN γ.ns ∧ c.gc = (bnsOf γ.gs).bq⌝ := by
   unfold boltSyncs isBolt isBoltDef
   iintro ⟨⟨%db', Hdl', Hns, Hngs⟩, %hfs, %p, %sp, %t0, Hb⟩
   iunfold isBoltP at Hb
@@ -60,25 +58,18 @@ theorem crashMode_of (db : Loc) (γ : BoltName) :
     ihave %e1 := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hns'
     ihave %e2 := typedPointsto_agree_wand _ _ _ _ _ $$ Hngs Hngs'
     subst e1 e2
-    ipureintro
-    refine Or.inr ⟨rfl, X0, fun htz => ?_⟩
-    rcases hm.1 hfs htz with h | h <;> cases h
+    obtain ⟨D, hD, -, -⟩ := hm.2
+    rcases hm.1 hfs (fileOK_tails X0 D hD) with h | h <;> cases h
   | some c =>
     dsimp only
     icases Hm with ⟨%hcn, -, -⟩
     ipureintro
-    exact Or.inl ⟨c, rfl, hcn.2.1, hcn.1⟩
+    exact ⟨c, rfl, hcn.2.1, hcn.1⟩
 
-/-- `TailsZeroOnOpen` (`Spec/go_etcd_io/bbolt/ApiCrash.lean`, the one interim hypothesis of C-I1's
-laws, W3) over `fileOK`: every database image `Open` accepts has zero meta tails. -/
-def tailsZeroOnOpenI : Prop :=
-  ∀ (X0 : List w8) (D : Data), fileOK X0 X0.length D → X0.length < 2 ^ 62 →
-    X0.length % 4096 = 0 → metaTailsZero X0
-
-/-- **Crash mode is on** (`crashMode_of` without its interim disjunct), from `TailsZeroOnOpen`: a
-database that syncs, in a run where the file system does not fail, has its file in the crash
-invariant `crashN γ.ns` with bbolt's closing token. The one use of the tails hypothesis. -/
-theorem crashMode_on (hT : tailsZeroOnOpenI) (B : BNs) (N : Namespace) (db db' : Loc) (p : BFile)
+/-- **Crash mode is on** (`crashMode_of` over the core): a database that syncs, in a run where the
+file system does not fail, has its file in the crash invariant `crashN γ.ns` with bbolt's closing
+token. -/
+theorem crashMode_on (B : BNs) (N : Namespace) (db db' : Loc) (p : BFile)
     (sp : Loc) (t0 : Nat) :
     dblAt (GF := GF) B db' ∗ db'.[DB, go!"NoSync"] ↦□ false ∗ db'.[DB, go!"NoGrowSync"] ↦□ false ∗
       ⌜FsNoErr⌝ ∗ isBoltCoreP B N db p sp t0 ⊢
@@ -99,8 +90,8 @@ theorem crashMode_on (hT : tailsZeroOnOpenI) (B : BNs) (N : Namespace) (db db' :
     ihave %e1 := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hns'
     ihave %e2 := typedPointsto_agree_wand _ _ _ _ _ $$ Hngs Hngs'
     subst e1 e2
-    obtain ⟨D, hD, hl1, hl2⟩ := hm.2
-    rcases hm.1 hfs (hT X0 D hD hl1 hl2) with h | h <;> cases h
+    obtain ⟨D, hD, -, -⟩ := hm.2
+    rcases hm.1 hfs (fileOK_tails X0 D hD) with h | h <;> cases h
   | some c =>
     dsimp only
     icases Hm with ⟨%hcn, -, -⟩

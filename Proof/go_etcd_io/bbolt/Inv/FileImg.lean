@@ -198,6 +198,67 @@ theorem fileImage_nil_not (C : CommitSt) (h : fileImage [] C) : ¬ C.metaOk := b
 
 end holds
 
+/-! ## Meta tails (W7 of the bbolt-crash plan) -/
+
+section tails
+variable [GooseExts]
+
+/-- **The tails of the two meta pages (their bytes 80 to 4096) are zero** (moved from
+`Crash/Good.lean` by W7, text unchanged): of an image of a well-formed committed state, by `metaOk`'s
+slot tails (`fileImage_tails`), so of every file `fileOK` accepts (`fileOK_tails`). -/
+def metaTailsZero (xs : List w8) : Prop :=
+  ∀ j < 2, ∀ k, 80 ≤ k → k < 4096 → ∀ v, xs[4096 * j + k]? = some v → v = 0
+
+omit [GooseExts] in
+theorem bytesAt_getElem? (xs : List w8) (a L j : Nat) (hj : j < L) :
+    (bytesAt xs a L)[j]? = xs[a + j]? := by
+  unfold bytesAt; rw [List.getElem?_take, if_pos hj, List.getElem?_drop]
+
+/-- Meta page `j` of bytes with zero meta tails has a zero tail. -/
+theorem metaTailsZero_slot (xs : List w8) (h : metaTailsZero xs) (j : Nat) (hj : j < 2) :
+    metaTailZero (bytesAt xs (4096 * j) 4096) := by
+  intro b hb
+  obtain ⟨k, e⟩ := List.mem_iff_getElem?.1 hb
+  rw [List.getElem?_drop] at e
+  have hk : 80 + k < 4096 := by
+    obtain ⟨hl, -⟩ := List.getElem?_eq_some_iff.1 e
+    simp only [bytesAt, List.length_take] at hl
+    omega
+  rw [bytesAt_getElem? xs _ 4096 _ hk] at e
+  exact h j hj (80 + k) (by omega) hk b e
+
+/-- Bytes whose two meta pages have zero tails have zero meta tails. -/
+theorem metaTailsZero_of_slots (xs : List w8)
+    (h : ∀ j < 2, metaTailZero (bytesAt xs (4096 * j) 4096)) : metaTailsZero xs := by
+  intro j hj k hk1 hk2 v hv
+  have h2 := bytesAt_getElem? xs (4096 * j) 4096 k hk2
+  rw [hv] at h2
+  apply h j hj
+  refine List.mem_iff_getElem?.2 ⟨k - 80, ?_⟩
+  rw [List.getElem?_drop, show 80 + (k - 80) = k by omega]
+  exact h2
+
+/-- **An image of a well-formed committed state has zero meta tails** (`metaOk`'s slot tails). -/
+theorem fileImage_tails (xs : List w8) (C : CommitSt) (h : fileImage xs C) (hm : C.metaOk) :
+    metaTailsZero xs := by
+  apply metaTailsZero_of_slots
+  intro j hj
+  rcases (show j = 0 ∨ j = 1 by omega) with rfl | rfl
+  · rw [show (4096 : Nat) * 0 = 0 from rfl, ← h.1]; exact hm.2.2.2.1
+  · rw [show (4096 : Nat) * 1 = 4096 from rfl, ← h.2.1]; exact hm.2.2.2.2.1
+
+/-- **A file `fileOK` accepts, of its bytes' length, has zero meta tails** (W7 of the bbolt-crash
+plan: what `Open`'s crash branch needs of the opened file; `metaOk`'s slot tails). -/
+theorem fileOK_tails (xs : List w8) (D : Data) (h : fileOK xs xs.length D) : metaTailsZero xs := by
+  rcases h with ⟨hl, -⟩ | ⟨C, himg, hm, -⟩
+  · have e := List.eq_nil_of_length_eq_zero hl
+    subst e
+    intro j _ k _ _ v hv
+    simp at hv
+  · exact fileImage_tails xs C himg hm
+
+end tails
+
 end bbolt
 end EtcdGrove
 end Perennial

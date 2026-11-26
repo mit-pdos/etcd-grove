@@ -1,8 +1,7 @@
 /-
 `writeMeta`'s buffer (U10 of `notes/bbolt-proof-plan.md`): the page `tx.meta.Write` lays out in a
 zeroed 4096-byte buffer (`metaBuf`): the header with id `txid % 2` and the meta flag, the meta
-with its checksum, zeros after; its meta (`metaOf_metaBuf`), and no valid meta at
-`getPageSize`'s probes (`metaBuf_probes`).
+with its checksum, zeros after; its meta (`metaOf_metaBuf`), and its zero tail (`metaBuf_tail`).
 -/
 module
 
@@ -42,31 +41,20 @@ theorem metaOf_metaBuf (mv : Meta) : metaOf (metaBuf mv) = metaSummed mv := by
   rw [List.append_assoc, List.drop_left' (ByteEncoding.encode_length _),
     List.take_left' (ByteEncoding.encode_length _), ByteEncoding.decode_encode]
 
-theorem decode_zero_meta : (decode (List.replicate 64 (W8 0)) : Meta).magic' = W32 0 := rfl
+theorem metaBuf_drop80 (mv : Meta) : (metaBuf mv).drop 80 = List.replicate 4016 (W8 0) := by
+  unfold metaBuf
+  have hab : (encode (metaHdr mv) ++ encode (metaSummed mv)).length = 80 := by
+    simp only [List.length_append, ByteEncoding.encode_length]
+  rw [List.drop_append, (List.drop_eq_nil_of_le (by omega) :
+    List.drop 80 (encode (metaHdr mv) ++ encode (metaSummed mv)) = []), List.nil_append, hab]
+  rfl
 
-theorem not_metaValid_zero (xs : List w8) (h : bytesAt xs 16 64 = List.replicate 64 (W8 0)) :
-    ¬ metaValid (metaOf xs) := by
-  unfold metaValid metaOf
-  rw [h, decode_zero_meta]
-  simp [boltMagic]
-
-omit [GooseExts] in
-theorem bytesAt_zeros (a b : List w8) (n k : Nat) (ha : a.length = 16) (hb : b.length = 64)
-    (hk : 80 ≤ k) (hn : k + 80 ≤ 80 + n) :
-    bytesAt ((a ++ b ++ List.replicate n (W8 0)).drop k) 16 64 = List.replicate 64 (W8 0) := by
-  unfold bytesAt
-  have hab : (a ++ b).length = 80 := by simp only [List.length_append, ha, hb]
-  rw [List.drop_append, (List.drop_eq_nil_of_le (by omega) : List.drop k (a ++ b) = []), List.nil_append, hab,
-    List.drop_replicate, List.drop_replicate, List.take_replicate]
-  congr 1; omega
-
-/-- No valid meta at offsets 1024 and 2048 of the buffer (zeros there). -/
-theorem metaBuf_probes (mv : Meta) :
-    ¬ metaValid (metaOf ((metaBuf mv).drop 1024)) ∧
-      ¬ metaValid (metaOf ((metaBuf mv).drop 2048)) := by
-  constructor <;> apply not_metaValid_zero <;> unfold metaBuf <;>
-    exact bytesAt_zeros _ _ _ _ (ByteEncoding.encode_length _) (ByteEncoding.encode_length _)
-      (by omega) (by omega)
+/-- **The buffer's tail is zero** (its bytes after the header and the meta). -/
+theorem metaBuf_tail (mv : Meta) : metaTailZero (metaBuf mv) := by
+  unfold metaTailZero
+  rw [metaBuf_drop80]
+  intro b hb
+  exact List.eq_of_mem_replicate hb
 
 end metabuf
 

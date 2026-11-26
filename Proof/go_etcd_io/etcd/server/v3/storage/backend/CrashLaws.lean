@@ -6,8 +6,8 @@
 (`Spec/go_etcd_io/bbolt/ApiCrash.lean`: `boltCrashRec`, `boltCrashHole`), and its laws proved with their
 statements unchanged (namespace `backend.crashLaws`, so that the text is the axioms'; the swap moves
 them into `backend` and deletes the axioms). Done: `dbCrashKeep_take`, `_putSame`, `_putStep`,
-`_close`. Open: `_new` (needs the writer's synced mark in `boltTx`, and `bbolt.TailsZeroOnOpen`, its
-one extra hypothesis) and `dbCrash` (the crash invariant's crash lemma `csInvIR_crash_keep`, the
+`_close`, `_new` (with the axiom's text since W7: crash mode is on for every file `Open` accepts, whose
+meta tails `fileOK` gives) and `dbCrash` (the crash invariant's crash lemma `csInvIR_crash_keep`, the
 version agreement and the crashed file's receipt). **Statement issue**: the definitions are over
 `onFs`, which needs `go.Semantics` (`FsCtx`'s field facts mention `GoSemanticsFunctions`); the
 opaque `dbCrashKeep` takes none, and `dbCrash`'s statement has none in scope, so `dbCrash` needs
@@ -91,10 +91,10 @@ theorem dbCrashKeep_putStep [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (�
     exact bbolt.boltCrashRec_putStep γ i0 Dl Dn S ν
   · iintro ⟨%h, -⟩; exact h.elim
 
-/-- (C-I1, `dbCrashKeep_new`) **A crash record from a fresh write transaction**, from
-`bbolt.TailsZeroOnOpen` (its one hypothesis: crash mode is on, `bbolt.crashMode_on`). -/
-theorem dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-    (hT : bbolt.TailsZeroOnOpen) (γ : DBNames) (i0 : Fs.Ino) (D : Data) (tx : Loc) :
+/-- (C-I1, `dbCrashKeep_new`) **A crash record from a fresh write transaction** (crash mode is on,
+`bbolt.crashMode_on`). -/
+theorem dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ : DBNames)
+    (i0 : Fs.Ino) (D : Data) (tx : Loc) :
     ⊢ dbOpts (hlc := HasLC.hasLC) (GF := GF) γ -∗ onFs (GF := GF) iprop(bbolt.boltIno γ i0) -∗
       dbHalf γ D -∗ txLive tx γ 1 (bbolt.TxView.wr D) ==∗
       dbCrashKeep γ i0 D D ∗ txLive tx γ 1 (bbolt.TxView.wr D) := by
@@ -106,7 +106,7 @@ theorem dbCrashKeep_new [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
     have hfs : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath
     iintro #Hsy #Hino Hh Ht
     imodintro
-    iapply bbolt.boltCrashRec_new hT hfs γ i0 D tx $$ [Hh Ht]
+    iapply bbolt.boltCrashRec_new hfs γ i0 D tx $$ [Hh Ht]
     iframe; iframe #
   · iintro #H
     iexfalso; iexact H

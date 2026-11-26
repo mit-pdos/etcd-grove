@@ -302,7 +302,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · exact hmok.2.1
   have hmeta : (C.publish (metaBuf mv) (metaSummed mv) pages).metaOk :=
     metaOk_parity_write C (metaBuf mv) (metaSummed mv) pages hmok (metaBuf_length mv)
-      (metaOf_metaBuf mv) hval (by rw [metaSummed_txid]; exact htx) hps (metaBuf_probes mv)
+      (metaOf_metaBuf mv) hval (by rw [metaSummed_txid]; exact htx) hps (metaBuf_tail mv)
   have hcur' : (C.publish (metaBuf mv) (metaSummed mv) pages).slot
       (C.publish (metaBuf mv) (metaSummed mv) pages).txid = metaBuf mv := by
     rw [hsl, hmtx, if_pos rfl]
@@ -336,7 +336,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       imod bMeta_commit K.p c hc C (C.publish (metaBuf mv) (metaSummed mv) pages) om (some (b, l)) S
         bs htx' (by have := Hrcpt.2; omega)
         (fun i hi => by rw [hsl, if_neg (by rw [← hmtx]; exact hi)]) hmeta htree hC'fl
-        (fun k hk1 hk2 => by rw [hcur']; exact metaBuf_tail mv k hk1 hk2) hbytes
+        hbytes
         (fun x hx => (hSb x hx).1) hin hlh (cpFired K (treeData C) Dn C.txid Q A)
         $$ Hci Hm HS [Hst Hstw Hau] with ⟨Hm, HS, Hpt⟩
       · iapply cp_fire_crash K N' c hcN (treeData C) Dn C.txid Q A hA hcm.2.2 C

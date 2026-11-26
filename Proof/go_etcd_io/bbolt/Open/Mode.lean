@@ -43,7 +43,7 @@ theorem open_bDur (C : CommitSt) (D : Data) (m0 m : OsMeta) (xs : List ByteG)
     BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨m, xs, 0, 0, .idle⟩ := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, -⟩ := hok
   have hR : RefImg (xs.map Prod.fst) C :=
-    ⟨h1, h2, h3, h4, by rw [List.length_map, hl, hsz]; exact h5, h6, h7, htz⟩
+    ⟨h1, h2, h3, h4, by rw [List.length_map, hl, hsz]; exact h5, h6, h7⟩
   have hps : ∀ b, b < m.size →
       PSync ⟨m, xs, 0, 0, .idle⟩ b (xb (xs.map Prod.fst) b) := by
     intro b hb

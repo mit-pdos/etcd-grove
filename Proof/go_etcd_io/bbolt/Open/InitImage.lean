@@ -205,7 +205,7 @@ theorem initC_metaOk : initC.metaOk := by
   have hs : ∀ i, initC.slot i = metaBuf (initMv (i % 2)) := by
     intro i; unfold CommitSt.slot initC
     rcases Nat.mod_two_eq_zero_or_one i with h | h <;> simp [h]
-  refine ⟨metaBuf_length _, metaBuf_length _, ?_, (metaBuf_probes _).1, (metaBuf_probes _).2,
+  refine ⟨metaBuf_length _, metaBuf_length _, ?_, metaBuf_tail _, metaBuf_tail _,
     ?_, ?_, ?_⟩
   · intro i _; rw [hs, metaOf_metaBuf]; rfl
   · rw [hs, metaOf_metaBuf]; exact initMv_valid _

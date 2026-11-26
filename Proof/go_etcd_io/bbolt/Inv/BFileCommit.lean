@@ -180,7 +180,6 @@ theorem bMeta_commit (p : BFile) (c : CsN) (hc : p.cs = some c) (C C' : CommitSt
     (htx : C'.txid = C.txid + 1) (htx2 : C'.txid < 2 ^ 62)
     (hsl : ∀ i, i % 2 ≠ C'.txid % 2 → C'.slot i = C.slot i)
     (hmok : C'.metaOk) (htree : treeOK C') (hfl : C'.flpg = none)
-    (htail : ∀ k, 80 ≤ k → k < 4096 → (C'.slot C'.txid)[k]? = some 0)
     (hpg : ∀ id pg, C'.pages !! id = some pg → C.pages !! id = some pg ∨
       ((∀ j < 1 + pageOverflow pg, id + j ∈ S) ∧
         pg = (List.range' id (1 + pageOverflow pg)).flatMap g))
@@ -209,7 +208,7 @@ theorem bMeta_commit (p : BFile) (c : CsN) (hc : p.cs = some c) (C C' : CommitSt
       fun k x h => hdur k x h (fun r hr => by cases hr)
     have hD := bDur_commit_of a ⟨m, bs, 0, 0, .idle⟩ rfl (Hok.1 hfs) hph hdur' hlh C' g
       (by rw [hcur]; exact htx) htx2 (fun i hi => by rw [hcur]; exact hsl i hi) hmok htree hfl
-      hhwm htail (fun id pg hp => by
+      hhwm (fun id pg hp => by
         rcases hpg id pg hp with h | ⟨hj, he⟩
         · left; rw [hcur]; exact h
         · right

@@ -3,14 +3,14 @@
 # The files a crash may leave of bbolt's database file
 
 * `bGood D f`: the crashed file `f` is a bbolt image of the data `D` with `fileHoldsMDef`'s pure
-  facts (`fileOK`, whole pages, below `2 ^ 62`, mappable), and its meta pages' tails (bytes 80 to
-  4096) are zero (`metaTailsZero`: every meta page bbolt writes is a zeroed buffer with a header and a
-  meta; the next generation's crash invariant needs it, `metaOk`'s probes at offsets 1024 and 2048 of
-  slot 0 being read from bytes a commit rewrites). `bGoodU` is the same without whole pages.
+  facts (`fileOK`, whole pages, below `2 ^ 62`, mappable). Its meta pages' tails (bytes 80 to 4096)
+  are zero by `fileOK`'s `metaOk` (`fileOK_tails`: every meta page bbolt writes is a zeroed buffer
+  with a header and a meta; the next generation's crash invariant needs them). `bGoodU` is the same
+  without whole pages.
 * `bGoodInit f`: a file `needsInit` accepts (fork `db.go`, `needsInit`, after the init fix): at most
   four pages, every byte it holds (and every byte of the page holding its end, which a crash that
   grows it may bring back) zero or `init`'s byte (`initImg`), and not `init`'s whole image.
-* `RefImg X C`: `X` is a reference image of the committed state `C` (`fileOK`'s facts and zero meta
+* `RefImg X C`: `X` is a reference image of the committed state `C` (`fileOK`'s facts, so zero meta
   tails); `protData X C` its bytes a crash must keep: the extents of `C`'s tree pages and of its
   synced freelist page.
 * `fileOK_transfer`: bytes `ys` that agree with a reference image `X` of `C` on `protData X C` are an
@@ -42,27 +42,22 @@ variable [GooseExts]
 
 /-! ## The predicates -/
 
-/-- The tails of the two meta pages (their bytes 80 to 4096) are zero. -/
-def metaTailsZero (xs : List w8) : Prop :=
-  ∀ j < 2, ∀ k, 80 ≤ k → k < 4096 → ∀ v, xs[4096 * j + k]? = some v → v = 0
-
 /-- **A good crash image of the data `D`, but for whole pages.** -/
 def bGoodU (D : Data) (f : OsFile) : Prop :=
-  fileOK f.contents f.size D ∧ f.size < 2 ^ 62 ∧ f.size ≤ 0xFFFFFFFFFFFF ∧
-    metaTailsZero f.contents
+  fileOK f.contents f.size D ∧ f.size < 2 ^ 62 ∧ f.size ≤ 0xFFFFFFFFFFFF
 
 /-- **A good crash image of the data `D`** (see the file header): `fileHoldsMDef`'s pure facts
-(`Inv/FileImg.lean`), and zero meta tails. -/
+(`Inv/FileImg.lean`). -/
 def bGood (D : Data) (f : OsFile) : Prop :=
   fileOK f.contents f.size D ∧ (f.size < 2 ^ 62 ∧ f.size % 4096 = 0) ∧
-    f.size ≤ 0xFFFFFFFFFFFF ∧ metaTailsZero f.contents
+    f.size ≤ 0xFFFFFFFFFFFF
 
 theorem bGood_bGoodU {D : Data} {f : OsFile} (h : bGood D f) : bGoodU D f :=
-  ⟨h.1, h.2.1.1, h.2.2.1, h.2.2.2⟩
+  ⟨h.1, h.2.1.1, h.2.2⟩
 
 theorem bGoodU_bGood {D : Data} {f : OsFile} (h : bGoodU D f) (ha : f.size % 4096 = 0) :
     bGood D f :=
-  ⟨h.1, ⟨h.2.1, ha⟩, h.2.2.1, h.2.2.2⟩
+  ⟨h.1, ⟨h.2.1, ha⟩, h.2.2⟩
 
 /-- `init`'s byte at `b`. -/
 def initByte (b : Nat) : w8 := initImg.getD b 0
@@ -72,7 +67,8 @@ def bGoodInit (f : OsFile) : Prop :=
   f.size ≤ 16384 ∧ (∀ b, pageIn f.size b = true → f.cache b = 0 ∨ f.cache b = initByte b) ∧
     ¬ (f.size = 16384 ∧ ∀ b < 16384, f.cache b = initByte b)
 
-/-- **A reference image `X` of the committed state `C`**: `fileOK`'s facts, and zero meta tails. -/
+/-- **A reference image `X` of the committed state `C`**: `fileOK`'s facts (its zero meta tails among
+them, `RefImg.tails`). -/
 structure RefImg (X : List w8) (C : CommitSt) : Prop where
   img : fileImage X C
   mok : C.metaOk
@@ -81,7 +77,10 @@ structure RefImg (X : List w8) (C : CommitSt) : Prop where
   len : C.hwm * 4096 ≤ X.length
   tx1 : 1 ≤ C.txid
   tx2 : C.txid < 2 ^ 62
-  tails : metaTailsZero X
+
+/-- A reference image has zero meta tails (`metaOk`'s slot tails, `fileImage_tails`). -/
+theorem RefImg.tails {X : List w8} {C : CommitSt} (h : RefImg X C) : metaTailsZero X :=
+  fileImage_tails X C h.img h.mok
 
 /-- Byte `b` is in the extent of one of `C`'s tree pages. -/
 def protPg (C : CommitSt) (b : Nat) : Prop :=
@@ -108,11 +107,6 @@ theorem bytesAt_congr (xs ys : List w8) (a L : Nat) (hx : a + L ≤ xs.length)
   split
   · exact h _ (by omega) (by omega)
   · rfl
-
-omit [GooseExts] in
-theorem bytesAt_getElem? (xs : List w8) (a L j : Nat) (hj : j < L) :
-    (bytesAt xs a L)[j]? = xs[a + j]? := by
-  unfold bytesAt; rw [List.getElem?_take, if_pos hj, List.getElem?_drop]
 
 theorem cr_pageOverflow_take (pg : List w8) (n : Nat) (h : 16 ≤ n) :
     pageOverflow (pg.take n) = pageOverflow pg := by
@@ -281,41 +275,8 @@ theorem fileOK_transfer (X ys : List w8) (C : CommitSt) (hR : RefImg X C)
 
 /-! ## `metaOk` from its parts -/
 
-omit [GooseExts] in
-theorem bytesNat_zero (l : List w8) (h : ∀ b ∈ l, b = 0) : bytesNat l = 0 := by
-  induction l with
-  | nil => rfl
-  | cons b l ih =>
-    simp only [bytesNat]
-    rw [h b List.mem_cons_self, ih (fun x hx => h x (List.mem_cons_of_mem _ hx))]; rfl
-
-/-- A zero meta is not valid. -/
-theorem metaOf_zeros_invalid (pg : List w8) (hz : ∀ b ∈ pg, b = 0) : ¬ metaValid (metaOf pg) := by
-  intro hv
-  have h1 := hv.1
-  unfold metaOf at h1
-  rw [decode_meta_magic, decode_w32, BitVec.toNat_ofNat, bytesNat_zero] at h1
-  · simp [boltMagic] at h1
-  · intro b hb
-    exact hz b (List.mem_of_mem_drop (List.mem_of_mem_take (List.mem_of_mem_take hb)))
-
-/-- The first meta page of bytes with zero meta tails is zero from byte 1024 on. -/
-theorem tails_drop1024 (ys : List w8) (h : metaTailsZero ys) :
-    ∀ b ∈ (bytesAt ys 0 4096).drop 1024, b = 0 := by
-  intro b hb
-  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
-  have hlen : (bytesAt ys 0 4096).length ≤ 4096 := by simp [bytesAt]; omega
-  have hk1 : 1024 + k < (bytesAt ys 0 4096).length := by simp only [List.length_drop] at hk; omega
-  have e : ((bytesAt ys 0 4096).drop 1024)[k] = (bytesAt ys 0 4096)[1024 + k] := by
-    simp only [List.getElem_drop]
-  have h2 := bytesAt_getElem? ys 0 4096 (1024 + k) (by omega)
-  rw [List.getElem?_eq_getElem hk1] at h2
-  rw [e]
-  exact h 0 (by omega) (1024 + k) (by omega) (by omega) _ (by simpa using h2.symm)
-
-/-- **`metaOk` from its parts**: two 4096-byte slots, the current meta valid and the record's,
-page size 4096, the other slot's meta, if valid, of page size 4096 and an older txid, and slot 0
-zero from byte 1024 on. -/
+/-- **`metaOk` from its parts**: two 4096-byte slots with zero tails, the current meta valid and the
+record's, page size 4096, the other slot's meta, if valid, of page size 4096 and an older txid. -/
 theorem metaOk_mk (C : CommitSt) (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096)
     (hcv : metaValid (metaOf (C.slot C.txid)))
     (hcps : (metaOf (C.slot C.txid)).pageSize'.toNat = 4096)
@@ -323,22 +284,17 @@ theorem metaOk_mk (C : CommitSt) (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4
     (hoth : metaValid (metaOf (C.slot (C.txid + 1))) →
       (metaOf (C.slot (C.txid + 1))).pageSize'.toNat = 4096 ∧
         (metaOf (C.slot (C.txid + 1))).txid'.toNat < C.txid)
-    (hz : ∀ b ∈ C.m0.drop 1024, b = 0) : C.metaOk := by
-  refine ⟨h0, h1, ?_, metaOf_zeros_invalid _ hz, metaOf_zeros_invalid _ ?_, hcv, hcm,
-    fun h => (hoth h).2⟩
-  · intro i hi
-    have hs : C.slot i = C.slot C.txid ∨ C.slot i = C.slot (C.txid + 1) := by
-      unfold CommitSt.slot
-      rcases Nat.mod_two_eq_zero_or_one i with a | a <;>
-      rcases Nat.mod_two_eq_zero_or_one C.txid with b | b <;>
-      simp [a, b, show (C.txid + 1) % 2 = 1 - C.txid % 2 by omega]
-    rcases hs with e | e <;> rw [e] at hi ⊢
-    · exact hcps
-    · exact (hoth hi).1
-  · intro b hb
-    exact hz b (by
-      rw [show C.m0.drop 2048 = (C.m0.drop 1024).drop 1024 by rw [List.drop_drop]] at hb
-      exact List.mem_of_mem_drop hb)
+    (hz0 : metaTailZero C.m0) (hz1 : metaTailZero C.m1) : C.metaOk := by
+  refine ⟨h0, h1, ?_, hz0, hz1, hcv, hcm, fun h => (hoth h).2⟩
+  intro i hi
+  have hs : C.slot i = C.slot C.txid ∨ C.slot i = C.slot (C.txid + 1) := by
+    unfold CommitSt.slot
+    rcases Nat.mod_two_eq_zero_or_one i with a | a <;>
+    rcases Nat.mod_two_eq_zero_or_one C.txid with b | b <;>
+    simp [a, b, show (C.txid + 1) % 2 = 1 - C.txid % 2 by omega]
+  rcases hs with e | e <;> rw [e] at hi ⊢
+  · exact hcps
+  · exact (hoth hi).1
 
 /-! ## A file's bytes -/
 
