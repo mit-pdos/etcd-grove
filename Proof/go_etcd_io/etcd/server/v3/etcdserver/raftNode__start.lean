@@ -671,7 +671,7 @@ theorem raftNode.start.wp_proof
             omega
           ihave #HSaveSnap := walSaveSnapCH_spec _ γ.wal.h γ.ss si rfl (1 : Qp).half _ _ _ _ true uf1 _ true HF2z
             HF2i (HF2e true) $$ Hsti
-          wp_apply HSaveSnap $$ [$Hwo $Hrd $HM1 $Hm1 $HAU] as %err ⟨%Herr, Hwo, Hrd, -, %Hs0, ⟨Hwv, #Hwblb⟩, -, #Hwrec⟩
+          wp_apply HSaveSnap $$ [$Hwo $Hrd $HM1 $Hm1 $HAU] as %err ⟨%Herr, Hwo, Hrd, -, %Hs0, Hwv, -, #Hwrec⟩
           subst Herr
           ihave Hwt : rnWalTok γ r (1 : Qp).half $$ [Hwo]
           · iunfold rnWalTok; iexists _; iframe Hst Hwo

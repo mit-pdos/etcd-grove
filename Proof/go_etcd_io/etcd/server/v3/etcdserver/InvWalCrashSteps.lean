@@ -70,34 +70,25 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
   icombine Hv Hv0 gives %Hag
   have Hvv : (v, none) = vk := Hag.2
   subst Hvv
-  obtain ⟨Hview, -, Hho⟩ := Hp
+  obtain ⟨Hview, -, Hho, Hrk⟩ := Hp
   obtain ⟨Hsok, Hview'⟩ := Hstep σ Hview
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
-  icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf0⟩
-  have hlast : walLastHS Hs = v.hs := by
-    rw [← walFoldChkFrom_fresh_hs Hf0, ← Hview.2.1]
-    unfold recsOf
-    split
-    · rfl
-    · unfold walSaveSnap; split <;> rfl
-  iexists recsOf v σ, Hs
+  have hlast : walLastHS Hs = v.hs := by rw [histReadsK_hs Hrk, Hview.2.1]
+  iexists Hs
   iframe Hr
-  isplitr
-  · ipureintro; exact Hsok
   isplit
-  · iintro ⟨Hr, -⟩
+  · iintro Hr
     imod Hmask with -
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       iexists (v, none), σ, Hs, n
       iframe Hv0 Hcm Htn Hr Hsc Hsy Hhc Hlb Hraft
-      ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho⟩
+      ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho, Hrk⟩
     imodintro
     iframe Hv Hok Hrec
   · iintro Hr
-    icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf⟩
     imod Hmask with -
     let vk' : WalViewK := (v', some (v, γb, Hs.length))
     imod (ghostVar_update_halves vk' νk.ν.view (v, none) (v, none)) $$ Hv Hv0 with ⟨Hv, Hv0⟩
@@ -107,8 +98,10 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
     have Hh' := Hview'.1
     have hb' : (walSave (recsOf v σ) hs es).b ≤ (walSave (recsOf v σ) hs es).commit := Hh'.2.2.2.2.2.1
     have hcl' := storageHolds_commit_le_last Hh' Hcl
+    have Hrk' := histReads_save Hrk Hview Hpn Hsok Hview' hcl' (by rw [hlast]; exact Hcmono)
+    obtain ⟨hrd', hcle'⟩ := histReadsK_read Hrk' Hview'
     have Hho' : HistOkK vk' (Hs ++ [WalOpG.save hs es]) n :=
-      histOk_save Hho Hf hb' hcl' ⟨Hh', Hview'.2.2.1⟩ Hidx (by rw [hlast]; exact Hcmono)
+      histOk_save Hho hrd' hcle' ⟨Hh', Hview'.2.2.1⟩ Hidx (by rw [hlast]; exact Hcmono)
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft Hrec] with -
     · inext; ileft; iunfold rnDurBodyK
       ihave #Hhc' := walHistCerts_snoc γn.cl νk.sd Hs (WalOpG.save hs es) $$ [Hhc]
@@ -125,7 +118,7 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
       · ipureintro
         exact ⟨Hview', fun v0 γ0 pos hp => by
           simp only [vk', Option.some.injEq, Prod.mk.injEq] at hp
-          obtain ⟨rfl, -, -⟩ := hp; exact Hda, Hho'⟩
+          obtain ⟨rfl, -, -⟩ := hp; exact Hda, Hho', Hrk'⟩
       icases Hraft with (⟨HrS, -⟩ | Hc)
       · ileft
         simp only [vk', durOf]
@@ -140,7 +133,7 @@ theorem rnDurK_save_law_holds : rnDurK_save.law (GF := GF) := by
     isplitr
     · iunfold walCommitLb; iexact Hcl'
     ipureintro
-    exact ⟨⟨_, walRead_of_fold Hf hb'⟩, hlast⟩
+    exact ⟨⟨_, hrd'⟩, hlast⟩
 
 /-- (P5) **The loop's idle view describes the records** (`rnDur_viewOk`'s, the crash-aware invariant): some
 records `σ` it is within (`ViewOk`), the half given back. -/
@@ -180,8 +173,8 @@ invariant; `walRelease_spec`): with the apply thread's token (which rules out th
 the records and their history read and left unchanged. -/
 theorem rnDurK_read_au (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) :
     rnDurInvK γn id νk h -∗ token νk.ν.app -∗
-      AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
-        <{ walRecsH h σ Hs s, COMM token νk.ν.app }> := by
+      AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }> @ WalFs.walAuMask, ∅
+        <{ walHistH h Hs s, COMM token νk.ν.app }> := by
   iintro #Hinv Ha
   iauintro
   unfold atomic_acc
@@ -201,7 +194,7 @@ theorem rnDurK_read_au (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
-  iexists recsOf vk.1 σ, Hs, true
+  iexists Hs, true
   iframe Hr
   isplit
   · iintro Hr
@@ -251,42 +244,37 @@ theorem rnDurK_saveSnap_law_holds : rnDurK_saveSnap.law (GF := GF) := by
   icombine Hv Hv0 gives %Hag
   have Hvv : (v, none) = vk := Hag.2
   subst Hvv
-  obtain ⟨Hview, -, Hho⟩ := Hp
-  obtain ⟨Hpre, Hview1⟩ := Hstep σ Hview
-  have hr0 : recsOf v σ = σ := by unfold recsOf; rw [Hpn]
-  icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf⟩
-  rw [hr0] at Hf
+  obtain ⟨Hview, -, Hho, Hrk⟩ := Hp
+  obtain ⟨-, Hview1⟩ := Hstep σ Hview
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
-  iexists recsOf v σ, Hs
+  iexists Hs
   iframe Hr
-  isplitr
-  · ipureintro; rw [hr0]; exact Hpre
   isplit
-  · iintro ⟨Hr, -⟩
+  · iintro Hr
     imod Hmask with -
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       iexists (v, none), σ, Hs, n
       iframe Hv0 Hcm Htn Hr Hsc Hsy Hhc Hlb Hraft
-      ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho⟩
+      ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho, Hrk⟩
     imodintro
     iframe Hv Hok
   · iintro Hr
+    have hr0 : recsOf v σ = σ := by unfold recsOf; rw [Hpn]
     rw [hr0]
-    icases walRecsH_saveSnap_baseLb h σ m _ true $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     let v2 : WalView := { v with pend := some m }
     imod (ghostVar_update_halves ((v2, none) : WalViewK) νk.ν.view (v, none) (v, none)) $$ Hv Hv0
       with ⟨Hv, Hv0⟩
     have hab : uint.nat (walLastHS Hs).Commit' < uint.nat m.Index' := by
       have h1 := Hview1.2.2.2.2.2 m rfl
-      have h2 := walFoldChkFrom_fresh_hs Hf
       simp only [StorContents.commit] at h1
-      rw [h2] at h1; exact h1
+      rw [histReadsK_hs Hrk]; exact h1
     have Hho' : HistOkK (v2, none) (Hs ++ [WalOpG.snap m al]) n :=
-      histOk_snapAbove Hho Hf hab rfl rfl Hm61
+      histOk_snapAbove Hho hab rfl rfl Hm61
+    have Hrk' : HistReadsK v2 σ (Hs ++ [WalOpG.snap m al]) := histReads_snapAbove Hrk Hpn
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       ihave #Hhc' := walHistCerts_snoc γn.cl νk.sd Hs (WalOpG.snap m al) $$ [Hhc]
@@ -300,14 +288,44 @@ theorem rnDurK_saveSnap_law_holds : rnDurK_saveSnap.law (GF := GF) := by
       rw [hl2]
       iframe Hv0 Hcm Htn Hr Hsc' Hsy Hhc' Hlb
       isplitr
-      · ipureintro; exact ⟨Hview1, fun _ _ _ hp => by simp at hp, Hho'⟩
+      · ipureintro; exact ⟨Hview1, fun _ _ _ hp => by simp at hp, Hho', Hrk'⟩
       have hd2 : durOf ((v2, none) : WalViewK) = durOf (v, none) := rfl
       have hp2 : rnPendK (GF := GF) γn id νk.x (v2, none) = rnPendK γn id νk.x (v, none) := rfl
       rw [hd2, hp2]
       iexact Hraft
     imodintro
     iunfold rnWalViewK
-    iframe Hv Hok Hblb
+    iframe Hv Hok
+
+/-- (P5 (b)) **The apply thread's own snapshot is a WAL step, the records moving** (`walOwnSnapStep` with
+the records before a pending received snapshot moved too: the reads at the commits below it see the
+snapshot): `walSaveSnap σ md` describes the view, and the records it describes are the old ones with the
+snapshot applied. -/
+theorem walOwnSnapStepK (v : WalView) (σ : StorContents) (md : SnapshotMetadataM)
+    (l : List LogEntry) (e : LogEntry) (Hpfx : l <+: v.l) (Hpos : 0 < uint.nat md.Index')
+    (He : l[uint.nat md.Index' - 1]? = some e) (Ht : e.term = md.Term') (Hv : ViewOk v σ) :
+    recsOf v (walSaveSnap σ md) = walSaveSnap (recsOf v σ) md ∧ ViewOk v (walSaveSnap σ md) := by
+  let v0 : WalView := { v with pend := none }
+  have Hv0 : ViewOk v0 σ :=
+    ⟨Hv.1, Hv.2.1, Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1, fun m hm => by simp [v0] at hm⟩
+  obtain ⟨-, σ', hσ', hv'⟩ := walOwnSnapStep v0 σ md l e Hpfx Hpos He Ht Hv0
+  have hσ'' : σ' = walSaveSnap σ md := by simpa [recsOf, v0] using hσ'
+  subst hσ''
+  have hlen : l.length ≤ v.l.length := Hpfx.length_le
+  have hil : uint.nat md.Index' - 1 < l.length := (List.getElem?_eq_some_iff.1 He).1
+  have hmc : uint.nat md.Index' ≤ σ.commit := by have := Hv.2.2.2.1; omega
+  have hc2 : (walSaveSnap σ md).commit = σ.commit := by
+    simp only [StorContents.commit, walSaveSnap_hs]
+  refine ⟨?_, hv'.1, hv'.2.1, hv'.2.2.1, hv'.2.2.2.1, hv'.2.2.2.2.1, ?_⟩
+  · cases hm : v.pend with
+    | none => simp only [recsOf, hm]
+    | some m =>
+      obtain ⟨e1, e2⟩ := walSaveSnap_own_pend (σ := σ) (md := md) (m := m) Hv.1.2.2.2.2.2.1 hmc
+        (Hv.2.2.2.2.2 m hm)
+      simp only [recsOf, hm]
+      rw [e1, e2]
+  · intro m hm
+    rw [hc2]; exact Hv.2.2.2.2.2 m hm
 
 /-- **The apply thread's own `SaveSnap`** (`rnDurK_ownSnap.law`). -/
 theorem rnDurK_ownSnap_law_holds : rnDurK_ownSnap.law (GF := GF) := by
@@ -328,30 +346,26 @@ theorem rnDurK_ownSnap_law_holds : rnDurK_ownSnap.law (GF := GF) := by
   imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%Hs, Hb⟩
   imod (later_exists_except0 (PROP := IProp GF)) $$ Hb with ⟨%n, Hb⟩
   icases Hb with ⟨>Hv0, >Hcm, >Htn, >Hr, #Hsc, #Hsy, #Hhc, #Hlb, >%Hp, Hraft⟩
-  obtain ⟨Hview, Hpo, Hho⟩ := Hp
+  obtain ⟨Hview, Hpo, Hho, Hrk⟩ := Hp
   iunfold walCommitLb at Hlbc
   ihave %Hpv := mono_list_auth_lb_valid νk.ν.cm 1 vk.1.l l $$ Hcm Hlbc
-  obtain ⟨Hpre, σ', Hσ', Hok1⟩ := walOwnSnapStep vk.1 σ md l e Hpv.2 Hpos He Ht Hview
-  icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf⟩
+  obtain ⟨Hσ', Hok1⟩ := walOwnSnapStepK vk.1 σ md l e Hpv.2 Hpos He Ht Hview
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
-  iexists recsOf vk.1 σ, Hs
+  iexists Hs
   iframe Hr
-  isplitr
-  · ipureintro; exact Hpre
   isplit
-  · iintro ⟨Hr, -⟩
+  · iintro Hr
     imod Hmask with -
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       iexists vk, σ, Hs, n
       iframe Hv0 Hcm Htn Hr Hsc Hsy Hhc Hlb Hraft
-      ipureintro; exact ⟨Hview, Hpo, Hho⟩
+      ipureintro; exact ⟨Hview, Hpo, Hho, Hrk⟩
     imodintro
     iframe Ha
   · iintro Hr
-    icases walRecsH_saveSnap_baseLb h _ md _ true $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     have hil : uint.nat md.Index' - 1 < l.length := (List.getElem?_eq_some_iff.1 He).1
     have He' : vk.1.l[uint.nat md.Index' - 1]? = some e := by
@@ -359,29 +373,26 @@ theorem rnDurK_ownSnap_law_holds : rnDurK_ownSnap.law (GF := GF) := by
       rw [← ht, List.getElem?_append_left hil]; exact He
     have hlen : l.length ≤ vk.1.l.length := Hpv.2.length_le
     have hc : uint.nat md.Index' ≤ uint.nat (walLastHS Hs).Commit' := by
-      have h2 := walFoldChkFrom_fresh_hs Hf
-      have h3 : (recsOf vk.1 σ).hs = σ.hs := by
-        unfold recsOf; split
-        · rfl
-        · exact walSaveSnap_hs _ _
-      rw [← h2, h3]
+      rw [histReadsK_hs Hrk]
       have := Hview.2.2.2.1
       simp only [StorContents.commit] at this
       omega
     have Hho' : HistOkK vk (Hs ++ [WalOpG.snap md al]) n :=
-      histOk_ownSnap Hho Hf hc Hview.2.2.2.2.1 Hpos He' Ht Hm61
+      histOk_ownSnap Hho hc Hview.2.2.2.2.1 Hpos He' Ht Hm61
+    have Hrk' : HistReadsK vk.1 (walSaveSnap σ md) (Hs ++ [WalOpG.snap md al]) :=
+      histReads_ownSnap Hrk Hview hc
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       ihave #Hhc' := walHistCerts_snoc γn.cl νk.sd Hs (WalOpG.snap md al) $$ [Hhc]
       · iframe Hhc; simp only [walOpCert]; iframe Hsv Hsd
       ihave #Hsc' := walSnapCert_saveSnap γn.cl _ md $$ [Hsc]
       · iframe Hsc Hsv
-      iexists vk, σ', Hs ++ [WalOpG.snap md al], n
+      iexists vk, walSaveSnap σ md, Hs ++ [WalOpG.snap md al], n
       rw [Hσ']
       iframe Hv0 Hcm Htn Hr Hsc' Hsy Hhc' Hlb Hraft
-      ipureintro; exact ⟨Hok1, Hpo, Hho'⟩
+      ipureintro; exact ⟨Hok1, Hpo, Hho', Hrk'⟩
     imodintro
-    iframe Ha Hblb
+    iframe Ha
 
 /-- **The loop's *enter*** (`rnDurK_enter.law`). -/
 theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
@@ -402,14 +413,8 @@ theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
   icombine Hv Hv0 gives %Hag
   have Hvv : (v', some (v, γb, pos)) = vk := Hag.2
   subst Hvv
-  obtain ⟨Hview, -, Hho⟩ := Hp
-  icases walRecsH_fold h _ _ true $$ Hr with ⟨Hr, %Hf0⟩
-  have hlast : walLastHS Hs = v'.hs := by
-    rw [← walFoldChkFrom_fresh_hs Hf0, ← Hview.2.1]
-    unfold recsOf
-    split
-    · rfl
-    · unfold walSaveSnap; split <;> rfl
+  obtain ⟨Hview, -, Hho, Hrk⟩ := Hp
+  have hlast : walLastHS Hs = v'.hs := by rw [histReadsK_hs Hrk, Hview.2.1]
   icases Hraft with (⟨HrS, Hpend⟩ | ⟨Hcr, -⟩)
   try dsimp only [durOf]
   rotate_left
@@ -452,7 +457,7 @@ theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
         icases Hlb with ⟨#Hl, -⟩
         iframe Hl
       isplitr
-      · ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho'⟩
+      · ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho', Hrk⟩
       ileft; simp only [durOf]; iframe HrS
       rw [rnPendK_none]; itrivial
     imodintro
@@ -469,7 +474,7 @@ theorem rnDurK_enter_law_holds : rnDurK_enter.law (GF := GF) := by
         icases Hlb with ⟨#Hl, -⟩
         iframe Hl
       isplitr
-      · ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho'⟩
+      · ipureintro; exact ⟨Hview, fun _ _ _ hp => by simp at hp, Hho', Hrk⟩
       ileft; simp only [durOf]; iframe HrS
       rw [rnPendK_none]; itrivial
     imodintro
@@ -495,7 +500,7 @@ theorem rnDurK_take_law_holds : rnDurK_take.law (GF := GF) := by
   icombine Hv Hv0 gives %Hag
   have Hvv : (v, none) = vk := Hag.2
   subst Hvv
-  obtain ⟨Hview, -, -⟩ := Hp
+  obtain ⟨Hview, -, -, Hrk⟩ := Hp
   icases Hraft with (⟨HrS, -⟩ | ⟨Hcr, -⟩)
   try dsimp only [durOf]
   rotate_left
@@ -513,14 +518,15 @@ theorem rnDurK_take_law_holds : rnDurK_take.law (GF := GF) := by
   rw [hr]
   iframe Hsc
   isplitl [Hr]
-  · iapply walRecsH_walRecs; iexact Hr
+  · iapply walHistH_walRecs h σ Hs true
+    iframe Hr; ipureintro; exact histReadsK_fold Hrk Hpn
   ipureintro
   obtain ⟨Hh, Hhs, Hb, Hc, Hag, -⟩ := Hview
   exact ⟨Hh, Hb, Hc, Hhs, Hag⟩
 
 /-- **The allocation** (`rnDurK_alloc.law`). -/
 theorem rnDurK_alloc_law_holds : rnDurK_alloc.law (GF := GF) := by
-  intro γn id x sd h σ Hs n v Hv Hpn Hda Hho
+  intro γn id x sd h σ Hs n v Hv Hpn Hda Hho Hrd
   iintro Hr #Hsc #Hsy #Hhc #Hl HrS
   imod (ghostVar_alloc (GF := GF) ((v, none) : WalViewK)) with ⟨%γv, Hvw⟩
   imod (mono_list_own_alloc (GF := GF) v.l) with ⟨%γc, Hca, #Hcl⟩
@@ -544,7 +550,7 @@ theorem rnDurK_alloc_law_holds : rnDurK_alloc.law (GF := GF) := by
     isplitr
     · iunfold rnLogLbsK; iframe Hl
     isplitr
-    · ipureintro; exact ⟨Hv, fun _ _ _ hp => by simp at hp, Hho⟩
+    · ipureintro; exact ⟨Hv, fun _ _ _ hp => by simp at hp, Hho, histReadsK_of_none Hpn Hrd⟩
     ileft
     simp only [durOf]
     isplitl [HrS]
@@ -565,7 +571,7 @@ theorem rnDurK_alloc_law_holds : rnDurK_alloc.law (GF := GF) := by
 /-- (P5) **The crash-aware durability's allocation at a first start** (`rnDurK_alloc.law` at `walFresh`,
 the empty history, `walView0`): the invariant over the fresh records, raft's state at `RaftState.init`. -/
 theorem rnDurK_alloc_fresh (γn : SrvRaft) (id : w64) (x : CrashNames) (sd : w64 → IProp GF) (h : WalH GF) :
-    ⊢ walRecsH h walFresh [] true -∗ raftState γn.cl id RaftState.init ={⊤}=∗
+    ⊢ walHistH h [] true -∗ raftState γn.cl id RaftState.init ={⊤}=∗
       ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd ∧ νk.ν.h = h⌝ ∗ rnDurInvK γn id νk h ∗
         rnWalViewK νk (walView0, none) ∗ token νk.ν.stop ∗ token νk.ν.app ∗ walCommitLb νk.ν [] := by
   have hv : ViewOk walView0 walFresh :=
@@ -573,12 +579,12 @@ theorem rnDurK_alloc_fresh (γn : SrvRaft) (id : w64) (x : CrashNames) (sd : w64
       fun m hm => by simp at hm⟩
   have hok : HistOkK (walView0, none) [] 0 := histOk_fresh ⟨hv.1, Nat.le_refl _⟩
   iintro Hr HrS
-  icases walRecsH_synced0 h _ _ _ $$ Hr with ⟨Hr, #Hsy⟩
+  icases walHistH_synced0 h _ _ $$ Hr with ⟨Hr, #Hsy⟩
   ihave #Hc := walSnapCert_fresh (GF := GF) γn.cl
   ihave #Hhc : walHistCerts γn.cl sd [] $$ []
   · iunfold walHistCerts; iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   ihave #Hl := isCommittedLogLb_nil (GF := GF) γn.cl
-  imod rnDurK_alloc_law_holds γn id x sd h walFresh [] 0 walView0 hv rfl hv.2.2.2.2.1 hok
+  imod rnDurK_alloc_law_holds γn id x sd h walFresh [] 0 walView0 hv rfl hv.2.2.2.2.1 hok histReads_fresh
     $$ Hr Hc Hsy Hhc Hl HrS with ⟨%νk, %Hx, #Hinv, Hv, Hst, Hap, #Hlb, -⟩
   ihave #Hinv' := Hinv
   iunfold rnDurInvK at Hinv'
@@ -604,6 +610,7 @@ theorem wal.restartOk_startRK (cfg : go_etcd_io.etcd.server.v3.config.ServerConf
   iintro ⟨Hro, Hsi, #Hl0⟩
   icases wal.restartOk_startK cfg id cid w σ $$ Hro with ⟨%h, %Hs, %Hw, Hr, #Hsy, %Hp, Ho, Hm, Hpg, %Hd⟩
   obtain ⟨hidx, heag, hf, hrf⟩ := Hp
+  have hrd : HistReads σ Hs := histReads_of_fold hf hrf.2.2.1 heag
   icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%HsI, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩
   icases isCommittedLogLb_agree cl l₀ l' $$ [$Hl0 $Hl'] with %Hpre
   have hpre : l₀ <+: l' := by
@@ -627,7 +634,7 @@ theorem wal.restartOk_startRK (cfg : go_etcd_io.etcd.server.v3.config.ServerConf
   · iunfold rnRestartWal
     iexists Hs
     iframe Hr Hsy
-    ipureintro; exact ⟨hidx, heag, hf, hrf.2.2.1⟩
+    ipureintro; exact ⟨hidx, hrd⟩
   isplitr
   · ipureintro; exact hv
   iframe Hsi2 Ho Hm Hpg
@@ -643,13 +650,13 @@ theorem rnRestartAllocK_law_holds : rnRestartAllocK.law (GF := GF) := by
   iintro Hw #Hc #Hl HrS
   iunfold rnRestartWal at Hw
   icases Hw with ⟨%Hs, Hr, #Hsy, %Hp⟩
-  obtain ⟨hidx, heag, hf, hb⟩ := Hp
+  obtain ⟨hidx, hrd⟩ := Hp
   have hok : HistOkK ((⟨S, σ.hs, none, l₀⟩ : WalView), none) Hs Hs.length :=
-    histOk_restart hf hb hidx heag ⟨hv.1, hv.2.2.1⟩
+    histOk_restart hrd hidx ⟨hv.1, hv.2.2.1⟩
   -- P5-RESTART hole: the history's snapshot certificates (see the docstring)
   ihave #Hhc : walHistCerts γn.cl sd Hs $$ []
   · sorry
-  imod rnDurK_alloc_law_holds γn id x sd h σ Hs Hs.length ⟨S, σ.hs, none, l₀⟩ hv rfl hv.2.2.2.2.1 hok
+  imod rnDurK_alloc_law_holds γn id x sd h σ Hs Hs.length ⟨S, σ.hs, none, l₀⟩ hv rfl hv.2.2.2.2.1 hok hrd
     $$ Hr Hc Hsy Hhc Hl HrS with ⟨%νk, %Hx, #Hinv, Hv, Hst, Hap, #Hlb, -⟩
   ihave #Hinv' := Hinv
   iunfold rnDurInvK at Hinv'

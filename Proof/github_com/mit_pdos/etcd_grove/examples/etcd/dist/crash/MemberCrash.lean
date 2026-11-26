@@ -350,13 +350,13 @@ def memberWalKeep (h : WalH GF) : IProp GF :=
   iprop(WalFs.walInv (W := h.W) walCodec walSrvMr h.R h.jr h.r ∗ WalFs.walCrashTok (W := h.W) ∗
     Fs.osSharedInv h.R)
 
-/-- **The WAL's crash view** (`walInv_crash`'s outputs T5's `walRecsH_crash` takes, but the call
+/-- **The WAL's crash view** (`walInv_crash`'s outputs T5's `walHistH_crash` takes, but the call
 permission): the crash view from the WAL names `h.W` to `W'`, `W'`'s lock token. -/
 def memberWalCrashW (h : WalH GF) (W' : WalFs.WalGS GF) : IProp GF :=
   letI := h.ext; letI := h.semOk; letI := h.has
   iprop(WalFs.walCrashWal h.W W' ∗ WalFs.walUnlockedTok (W := W'))
 
-/-- **The WAL's crash at the new generation** (all of `walRecsH_crash`'s inputs but the records):
+/-- **The WAL's crash at the new generation** (all of `walHistH_crash`'s inputs but the history):
 `memberWalCrashW` and the WAL directory's call permission's half at the generation. -/
 def memberWalCrash (h : WalH GF) (W' : WalFs.WalGS GF) : IProp GF :=
   letI := h.ext; letI := h.semOk; letI := h.has
@@ -395,8 +395,8 @@ theorem memberDurOut_gen (L L' : GooseLocalGS GF) (γn : SrvRaft) (id : w64) (ν
 assembly): from the old generation `L`'s `memberDurKeep`, the cluster, a later credit, `crashed`, and
 the WAL's crash at the new generation `L'` (`memberWalCrash`, from `walInv_crash`; both at the
 statement's Go context, `atCtx`): raft's durable state `memberDurOut` and the new generation's WAL files
-holding its records (`walFilesC`). T2's callback runs T5's `walRecsH_crash` at the new generation
-(`walRecsH_gen`); T2's stop case is refuted by the stop's token (`rnTakenK_stop`). -/
+holding its records (`walFilesC`). T2's callback runs T5's `walHistH_crash` at the new generation
+(`walHistH_gen`); T2's stop case is refuted by the stop's token (`rnTakenK_stop`). -/
 theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) (νk : WalNamesK GF)
     (h : WalH GF) (W' : WalFs.WalGS GF) (hmd : h.md = walMetaEnc id cid) (E : CoPset)
     (hE : ↑rnDurKN ⊆ E) (hE' : ↑srvClusterN ⊆ E \ ↑rnDurKN) :
@@ -413,16 +413,16 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
   imod rnDurK_crash_law_holds (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E
     (fun _ σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
     Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, %Hc, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl, -⟩ | Htaken)
-  · iintro %σr %Hs %n Hr Hsy
-    ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).1 $$ Hr
+  · iintro %Hs %n Hr Hsy
+    ihave Hr := (walHistH_gen (G := G) L L' h Hs true).1 $$ Hr
     iunfold memberWalCrash at Hw
     icases Hw with ⟨Hw, Hc⟩
     iunfold memberWalCrashW at Hw
     icases Hw with ⟨Hcw, Hu⟩
-    icases walRecsH_crash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' σr Hs n id cid hmd $$
+    icases walHistH_crash (hG := ⟨G, etcd_dist.atCtx L'⟩) h W' Hs n id cid hmd $$
       [Hcw Hr Hsy Hu Hc] with ⟨Hr, %j, %hj, Hf⟩
     · iframe Hcw Hr Hsy Hu Hc
-    ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).2 $$ Hr
+    ihave Hr := (walHistH_gen (G := G) L L' h Hs true).2 $$ Hr
     imodintro
     iframe Hr
     iexists j

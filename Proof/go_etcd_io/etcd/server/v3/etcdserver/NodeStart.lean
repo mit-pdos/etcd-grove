@@ -785,9 +785,9 @@ abbrev NodeStartSpec : Prop :=
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
         "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- (P5, 2026-11-25: until then the WAL's durability `rnDurInv` allocated by the caller,
-        -- `wal.bootOk_start`) the open WAL's fresh records (`wal.bootOk_startK`): the crash-aware
+        -- `wal.bootOk_start`) the open WAL's empty history (`wal.bootOk_startK`): the crash-aware
         -- durability is allocated in `bootstrappedRaft.newRaftNode`, once the node is started
-        "Hwrec" ∷ walRecsH hw walFresh [] true }}
+        "Hwrec" ∷ walHistH hw [] true }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;

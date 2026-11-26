@@ -393,7 +393,7 @@ theorem EtcdServer.snapshot.wp_proof
         omega
       ihave #HSaveSnap := walSaveSnapCH_spec _ γn.wal.h γn.ss si Hsieq q snap' pm DFrac.discard
         (memSnapMade ai at' c []).Metadata' al ufm
-        (fun _ => iprop(token γn.wal.app ∗ walBaseLb γn.wal.h (uint.nat (memSnapMade ai at' c []).Metadata'.Index')))
+        (fun _ => iprop(token γn.wal.app))
         true HF2z HF2i (HF2e al) $$ Hsave
       have Hsieq0 := Hsieq
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
@@ -440,7 +440,7 @@ theorem EtcdServer.snapshot.wp_proof
       iapply HSaveSnap $$ [Hwo Hrdw HAU]
       · iframe Hwo Hrdw HAU; iframe #
       inext
-      iintro %serr ⟨%Hserr, Hwo, Hrdw, -, %Hsw, ⟨Hwap, #Hwblb⟩, -, #Hwrec⟩
+      iintro %serr ⟨%Hserr, Hwo, Hrdw, -, %Hsw, Hwap, -, #Hwrec⟩
       subst Hserr
       (try wp_auto)
       -- (wal-link L3) `Release`, the WAL contract's law: the records read (`rnDur_read_au`)
