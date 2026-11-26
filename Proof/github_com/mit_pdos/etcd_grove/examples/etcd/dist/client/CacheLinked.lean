@@ -66,6 +66,8 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+variable [field_sem : net.FieldAssumptions]
+variable [NaInvG GF]
 
 /-- **The cache workload's orchestrator, linked** but at the writers' codec (`writerCodec.spec`, N10a's; see
 the file header). -/

@@ -3684,3 +3684,48 @@ does not move.
 - Linking commit (this section's last edit): `CacheLinked` VM-built. `tier-check --check` ok (207 known).
   `bounds-check --check`: `RunCache` added to dist/client's `spec-thread` allow line (the machine's thread bound, as
   putget's); the check still fails by N10a's two (`RunWatch.spec`, `remoteWriters.spec`: §24.5, theirs to settle).
+
+### 29.7 KV_Get_dist strengthened (2026-11-26, branch `etcd-safe-kvgete/2026-11-26`)
+
+Trusted text: one interim axiom's statement strengthened (§29.3's recommendation). No other axiom, no `sorry`, no
+top-level premise, no Go change. Nothing lands before Upamanyu's F9 approval.
+
+- **Today (on `lean`, M1):** `KV_Get_dist.spec`'s error arm is `⌜err ≠ GoInterface.nil ∧ resp = null⌝`: nothing
+  claimed of a remote `Get`'s error. The cache's client contract (`isEtcdKVE`) needs `errStrOk` of it (its watch loop
+  prints the error with `%v`), so `CacheLinked` took the stand-in `KV_GetE_dist.spec` as a hypothesis.
+- **With this change:** the error arm is `(⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ statusErrOk err)`, `kv.Get.spec`'s
+  `kvErr err` weakened to its `statusErrOk` part (as `RequestProgress_dist` claims of its error); `clientErr` and
+  `errCellOk` are not claimed. The docstring says why it holds across machines: no error value crosses the network;
+  `Get`'s error is built at the caller by clientv3 (`ContextError`, `rpctypes.Error`, the retry interceptor) and
+  grpc-go from the status code, message and details received, or from a local transport or context failure.
+  `KV_GetE_dist` is deleted; `CacheWorkDefs`/`RunCache` take `KV_Get_dist.spec`; the five consumers of the error arm
+  (`ClientGetDist`, `CallDistLinked` twice, `CompactCallsDist`, `KVCallsDist`) drop the new conjunct (`⟨%Herr, -⟩`).
+- **Review** (`notes/axiom-review/kv-get-dist-statuserr.md`, a fresh `axiom`-skill review + re-review): **survives.**
+  (a) caller-side construction: holds (F1: the `grpc-status-details-bin` proto supplies message and details too;
+  docstring fixed); (b) Go check, 44 cases with the deployment's client config (fake KV/Auth servers, raw gRPC/HTTP/2
+  and TCP peers, closed port, DNS failure, server stopped mid-call, `WithTimeout`/`WithCancel`/`WithCancelCause`/
+  `WithTimeoutCause`): every error a leaf `*status.Error`, `rpctypes.EtcdError`, `context.Canceled` or
+  `DeadlineExceeded` with a stable `Error()`, no `Format`, 0 violations; (c) no non-leaf error is reachable from
+  `Get` in this configuration (`transport.ConnectionError` is converted to a status first; the wrapping sites in
+  `toRPCErr`/picker/retry-throttling/`NewClient` are unreachable), and under today's `statusErrOk` a non-leaf would
+  make the claim false. `statusErrOk` itself is unchanged: dsverify-net's final fix of `proto.MarshalIRR` (#18)
+  widens `applyErrIs` (`∨ notCtxTree err`), not `statusErrOk`/`srvErrOk`.
+- **Gates:** `dist-axiom-diff`: `KV_Get_dist`'s two `dev` lines (`∗ kvErr err )` dropped, a layout parenthesis)
+  replaced by one, `kvErr ||| statusErrOk`; the gate's only remaining failures are `Watch_dist`/`RequestProgress_dist`
+  (N3's, no `pair`/`nosource` line yet: not this branch's). `axiom-tok` (`etc/AxiomTokCheck.lean` on the VM over
+  `KVGetDist`/`KVPutDist`, judged with `--reuse-raw`): `KV_Get_dist` passes at its existing entry, key unchanged
+  (rules 2, 3, 7; the scenarios' opaque atoms are `KV_Put_dist`'s); no new taint or mint. `tier-check`, `bounds-check` ok.
+- **Linking:** N10a's `etcd-safe-n10a2/2026-11-26` @ `d628c89361` merged (`remoteWriters.wp_proof` over `reportAll`,
+  `CallAll`, `writerCodec`, `writerAttempt`; bounds-allow: both `spec-thread` lines kept). `CacheLinked`:
+  `wp_RunCache (wp_writerCodec : writerCodec.spec) : RunCache.spec` = `RunCache.wp_proof … KV_Get_dist.wp_proof …
+  (remoteWriters.wp_proof (reportAll.wp_proof CallAll.wp_proof remote.wp_Report) wp_writerCodec writerAttempt.wp_proof)`;
+  RunCache's own `threadBound GF ≤ 2 ^ 30` discharges `remoteWriters`'. New section instances `[net.FieldAssumptions]`,
+  `[NaInvG GF]` (`remote.wp_Report`'s; the top-level results already carry both, as kvremote's `Link`). The one
+  remaining hypothesis: `writerCodec.spec` (N10a, not proved on `d628c89361`). `#print axioms wp_RunCache`: no
+  `sorryAx`; interim dist axioms `etcdSvc`, `KV_Get_dist`, `Watch_dist`, `RequestProgress_dist`, plus existing
+  package/trust-boundary axioms (`Client.Close`, grpc's, `status.Error`, ...).
+- **Builds (VM):** `KVGetDist` (Spec, Proof), `ClientGetDist`, `CallDistLinked`, `kvremote.Link`, `CompactCallsDist`,
+  `CompactLinked`, `CacheLinked`, putget's and putgetk's `AdequacyClient`/`TopLevelRobustness`, `putgetk.Start`,
+  kvremote's `TopLevelRobustness`: green. `KVCallsDist` and so `KVWorkLinked` still fail by the known §26.6 items
+  (`KVCallsDist.lean:156` `hser`, `durableKey`/`durableValue`); the edited pattern at line 150 reports no error.
+- **F9 row:** strengthened approved axiom: KV_Get_dist error arm + statusErrOk.

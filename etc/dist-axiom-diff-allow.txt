@@ -41,8 +41,7 @@ dev KV_Get_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`
 dev KV_Get_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
 dev KV_Get_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
 dev KV_Get_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
-dev KV_Get_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
-dev KV_Get_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Get_dist.wp_proof <<< kvErr ||| statusErrOk >>> the error arm's `kvErr` weakened to its `statusErrOk` (2026-11-26, F6: the error is built at the caller's machine, as in one process; `clientErr`/`errCellOk` not claimed; notes/axiom-review/kv-get-dist-statuserr.md)
 dev KV_Get_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
 dev KV_Get_dist.wp_proof <<< ) |||  >>> the closing parenthesis of `isKv`'s group, or of `□?dup (…)` (layout)
 

@@ -57,16 +57,19 @@ watch loop prints `Get`'s error with `fmt`'s `%v`), in any auth mode:
   again harmlessly. A serializable range carries no update (its post `True`).
 * *Why a remote call's error is `statusErrOk`.* No error value crosses the network: every error `Get`
   returns is built at the caller's machine, by the same client code as in one process, where `kv.Get.spec`
-  proves it. `kv.Get` returns `ContextError(ctx, err)` of `kv.Do`'s error: `nil`; `rpctypes.Error`'s
+  proves it. `kv.Get` returns `ContextError(ctx, err)` of `kv.Do`'s error (itself already a `ContextError`
+  of the stub's error or of `ErrInvalidSortOption`: the same set of results): `nil`; `rpctypes.Error`'s
   `EtcdError` (a value of etcd's own leaf type, chosen by the status message among etcd's fixed error
   strings) or the error itself; for a status of code `DeadlineExceeded` or `Canceled`, `ctx.Err()` when
   it is non-nil (`ctxErrClient`: the caller's context's errors are `statusErrOk`). `kv.Do`'s error is
   `rpctypes.ErrInvalidSortOption` (an `EtcdError`, a package variable) or the stub's `Invoke` error through the
-  client's interceptors: grpc-go's `*status.Error`, built at the caller from a status code and message only
-  (the reply's trailers, or the transport's or the context's failure, `status.Error`/`FromContextError`),
+  client's interceptors: grpc-go's `*status.Error`, built at the caller from a status code, message and
+  details (the reply's trailers, whose `grpc-status-details-bin` proto, if its code agrees, supplies the
+  message and details; or the transport's or the context's failure, `status.Error`/`FromContextError`),
   or the retry interceptor's own: `waitRetryBackoff`'s `status.Error` of `ctx.Err()`'s message, or a token
   refresh's `Authenticate` error (itself a `ContextError` of a call of these kinds). All are leaves (no `Unwrap`/`As`) with a fixed `Error()` and no `Format`,
-  as `statusErrOk` asks; the remote member's handler only chooses the code and message bytes. Not claimed:
+  as `statusErrOk` asks (`Error()` reads only the code and message); the remote member's handler only
+  chooses the code, message and status details. Not claimed:
   `kvErr`'s `clientErr` and `errCellOk` (review `notes/axiom-review/kv-get-dist-statuserr.md`).
 * *What a success claims* is `kv.Get.spec`'s post, which the in-process proof derives from the member's
   handler spec at its names through `kvSame`: the reply's fields as functions of the state the update fired
