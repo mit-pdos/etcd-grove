@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 public import Proof.go_etcd_io.raft.v3.RaftStepNoSnap
 public import Proof.go_etcd_io.raft.v3.RawNodeAtScope
 public import Proof.go_etcd_io.raft.v3.StepEndIp
+public import Proof.go_etcd_io.raft.v3.StepEndRole
 
 @[expose] public section
 
@@ -150,13 +151,13 @@ set_option hygiene false in
 `MsgSnap`); in the scope this path is not taken (`scope_absurd`). -/
 local macro "early_return" e:term : tactic => `(tactic| (
   try wp_auto
-  ihave Hsc := rnScopeAt_keepIf sc rs
+  ihave Hsc := rnScopeAt_keepOpt sc rs
     { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s s
-    (fun _ H => H) rfl (fun _ => rfl) $$ Hsc
+    (fun _ _ H => H) rfl (hx := fun _ _ _ H => H) $$ Hsc
   iapply HΦ $$ %$e %rs.term %ps %ip
   isplitl
   · iapply ownRawNodeAt_intro γ rn id
-      { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } ps qs ip (basicScope sc)
+      { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } ps qs ip sc
       s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
       (fun h => Hsnap ⟨Hps' h.1, h.2⟩) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
@@ -172,11 +173,10 @@ local macro "early_return" e:term : tactic => `(tactic| (
     split <;> omega
   ipureintro
   intro md hmd
-  have h := hsct md hmd
   exfalso
   first
-  | exact antStep_not_local (Hscp h).1 (of_decide_eq_true Hb1.symm)
-  | exact HnnF h Hif))
+  | exact netTypesK_not_local (Hscp md hmd).1 (of_decide_eq_true Hb1.symm)
+  | exact HnnF ⟨md, hmd⟩ Hif))
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type `RawNode.Step` does not take: vacuous. -/
@@ -232,10 +232,10 @@ local macro "step_tail" : tactic => `(tactic| (
       have Htc0 := Hpvoff.2.2.1
       by_cases Hs : m.Type' = MsgSnap
       · -- a snapshot: outside the scope
-        obtain rfl : sc = false := by
-          cases sc
-          · rfl
-          · exact absurd Hs (antStep_ne_snap (Hscp rfl).1)
+        obtain rfl : sc = none := by
+          cases sc with
+          | none => rfl
+          | some md => exact absurd Hs (netTypesK_ne_snap (Hscp md rfl).1)
         obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hsl⟩ := Hsfr Hs
         have e2 := Hcc (fun h => by rw [Hs] at h; simp [MsgSnap, MsgStorageAppendResp] at h); subst c'
         icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s' $$ Hphys with ⟨%Hip1, Hphys⟩
@@ -281,8 +281,9 @@ local macro "step_tail" : tactic => `(tactic| (
         iclear Hrntr Hsc
         ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
           (by rw [Hgh]; exact Hgtr.trans HtrG)
-        ihave Hsc := rnScopeAt_basicFalse (GF := GF) (γ := γ) (id := id)
-          { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s'
+        ihave Hsc : rnScopeAt (GF := GF) γ id none
+            { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' $$ []
+        · unfold rnScopeAt; iempintro
         wp_auto
         iapply HΦ $$ %err %s'.term
           %(toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp' s')
@@ -291,7 +292,7 @@ local macro "step_tail" : tactic => `(tactic| (
         · iapply ownRawNodeAt_intro γ rn id
               { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) }
               (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp' s')
-              qs (uint.nat s'.logst.inprogress - 1) (basicScope false) s' cf fp'
+              qs (uint.nat s'.logst.inprogress - 1) none s' cf fp'
               rnv sv hprev steps Hwf' Hin
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
               (fun h => by have h1 := h.1; simp [Hs] at h1)
@@ -384,52 +385,132 @@ local macro "step_tail" : tactic => `(tactic| (
       ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
       · rw [Hsn]; iexact Hsloc
       -- in the scope: the exact effect, the in-progress boundary, the scope kept
-      have Hlifted : sc = true →
+      icases ownRaftPhysC_trkDoms cf rnv.raft' id s' $$ Hphys with ⟨%Hdom1, Hphys⟩
+      icases ownStepGhost_leadNz γ _ cf id s' $$ Hghost with ⟨%Hlt', Hghost⟩
+      have HX : ∀ md, sc = some md → ∀ x, xmsgOf ⟨m, ents, sn, ctx, rsp⟩ = some x →
+          (x.ty = .timeoutNow ∧ TimeoutNowEndR id (toRState rs fp s) x
+            (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')) ∨
+          (x.ty = .transferLeader ∧ TransferRecvEndR id (toRState rs fp s) x
+            (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')) := by
+        intro md h x hx
+        obtain ⟨Hl, -⟩ := Hlift md h
+        have Hcfe := (HCf md h).2.2
+        unfold xmsgOf at hx
+        by_cases e1 : m.Type' = MsgTimeoutNow
+        · rw [if_pos e1] at hx
+          obtain rfl := Option.some.inj hx
+          exact .inl ⟨rfl, timeoutNowEndR_of_stepEnd Hl Hcfe e1
+            (Hok.timeoutNow_term e1) rfl (Hx md h).2 Hsn ⟨rfl, rfl⟩
+            (Hx md h).1⟩
+        · rw [if_neg e1] at hx
+          by_cases e2 : m.Type' = MsgTransferLeader
+          · rw [if_pos e2] at hx
+            obtain rfl := Option.some.inj hx
+            exact .inr ⟨rfl, transferRecvEndR_of_stepEnd Hcfe e2 Hdom0.2 (Hx md h).2 rfl rfl (Hx md h).1⟩
+          · rw [if_neg e2] at hx; cases hx
+      have Hlifted : ∀ md, sc = some md →
           (∀ ty, mtypeOf m.Type' = some ty → ∀ Adm,
             RecvEndR Adm rs.k id (toRState rs fp s) (absMsg ty m ents ctx)
               (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')) ∧
-          s'.rd.pend = s.rd.pend ∧
           uint.nat s'.logst.inprogress - 1 = min ip (lcpLen (toPState s).log (toPState s').log) ∧
-          ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []) := by
-        intro h
-        obtain ⟨Hl, -⟩ := Hlift h
-        obtain ⟨hant, hctx, -⟩ := Hscp h
-        have h0 : m.Term' ≠ W64 0 := (Hok.2.1 (antStep_stamped hant)).2.1
-        have HR := recvEnd_of_stepEnd_net (k := rs.k) Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
-        have Hbk := bk_of_stepEnd_net Hl (antStep_disj hant) h0 hctx (Hx h).1 (Hnx h)
-        have Hcfe : rs.cfg.cfg = cf := Hcfm.2 (Hcin h).2.2.2.1
-        obtain ⟨ty0, hty0⟩ := antStep_mtype hant
-        refine ⟨fun ty hty Adm => recvEndR_of_bk (by rw [Hcfe]; exact (HR ty hty).1) Hbk Hsn Hpv ⟨rfl, rfl⟩
-            (by rw [absMsg_ty_eq]; rcases (HR ty hty).2 with e | e | e | e | e | e <;> rw [e] <;> decide),
-          ?_, ?_, recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1
-            (by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1)⟩
-        · rw [← toPState_rd_pend s', ← toPState_rd_pend s]
-          exact recvEnd_rd_pend (HR ty0 hty0).2 (HR ty0 hty0).1
-            (by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1)
+          (md.reads = false → s'.rd.pend = s.rd.pend ∧ (toPState s').rd.ro.pending = []) ∧
+          ((toPState s').lead = (toPState s).lead ∨ (toPState s').lead = W64 0 ∨
+            (toPState s').lead = m.From' ∨ ((toPState s').lead = id ∧ (toPState s').role = .leader)) := by
+        intro md h
+        obtain ⟨Hl, -⟩ := Hlift md h
+        obtain ⟨hnk, hst, -⟩ := Hscp md h
+        obtain ⟨Hs0, -, -, -⟩ := Hscope md h
+        have Hcfe := (HCf md h).2.2
+        have hq := preCand_noQuorum_of (hsc0 md h).2.1 Hs0 Hcfe Hpre0
+        have h0r : m.Type' = MsgReadIndex → m.Term' = W64 0 := fun e => Hok.readIndex_term e
+        have HR := recvEnd_of_stepEnd_netK Hl hq hnk (fun hu => (Hok.2.1 hu).2.1) h0r
+          (noSnapSent_of_noSnapL (Hx md h).2) (Hx md h).1
+        have Hbk := (bkLog_of_stepEnd_netK Hl hnk (Hx md h).2 (Hx md h).1).1
+        -- a message of no protocol reading: its transfer reading's end
+        have HXn : mtypeOf m.Type' = none →
+            (toPState s').rd.pend = (toPState s).rd.pend ∧
+            ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []) ∧
+            ((toPState s').lead = (toPState s).lead ∨ (toPState s').lead = W64 0) := by
+          intro hmt
+          have hxs : ∃ x, xmsgOf ⟨m, ents, sn, ctx, rsp⟩ = some x := by
+            unfold xmsgOf
+            rcases netTypesK_untyped hnk hmt with e | e
+            · by_cases e1 : m.Type' = MsgTimeoutNow
+              · rw [if_pos e1]; exact ⟨_, rfl⟩
+              · rw [if_neg e1, if_pos e]; exact ⟨_, rfl⟩
+            · rw [if_pos e]; exact ⟨_, rfl⟩
+          obtain ⟨x, hx⟩ := hxs
+          rcases HX md h x hx with ⟨-, H⟩ | ⟨-, H⟩
+          · exact H.rd_lead
+          · exact H.rd_lead
+        refine ⟨fun ty hty Adm => recvEndR_of_bk (by rw [Hcfe]; exact HR ty hty) Hbk Hsn Hpv ⟨rfl, rfl⟩
+            (by rw [absMsg_ty_eq]; exact (netTypesK_mtype hnk hty).1), ?_, fun hr => ?_, ?_⟩
         · have hlo : 1 ≤ uint.Z s.logst.inprogress := by
             have h1 := Hipf.1.1; have := uint_Z_nonneg s.logst.prev.index'; omega
           have hhi : uint.Z s.logst.inprogress ≤ ((s.logst.sents ++ s.logst.uents).length : Int) + 1 := by
-            have h1 := Hipf.1.2; rw [Hp0 h] at h1; rw [List.length_append]; push_cast; omega
-          have := ipEnd_of_stepEnd Hl hant h0 hctx Hwfa (Hp0 h) hlo hhi (Hx h).1 (Hnx h)
+            have h1 := Hipf.1.2; rw [Hp0 md h] at h1; rw [List.length_append]; push_cast; omega
+          have := ipEnd_of_stepEnd_netK Hl hnk (Hx md h).2 Hwfa (Hp0 md h) hlo hhi (Hx md h).1
           rw [Hip, Nat.add_sub_cancel] at this
           exact this
-      ihave Hsc := rnScopeAt_keepIf sc rs
+        · obtain ⟨hpd, hp⟩ := Hs0.2.2.2.1 hr
+          have hp' := (roEmpty_iff s).1 hp
+          have hnr := (stepTypes_off hst).1 hr
+          rw [← toPState_rd_pend s', ← toPState_rd_pend s]
+          cases hmt : mtypeOf m.Type' with
+          | some ty =>
+            obtain ⟨r1, r2⟩ := netTypesK_mtype_rd hnk hmt hnr.1 hnr.2
+            obtain ⟨p1, p2⟩ := netTypesK_mtype hnk hmt
+            exact recvEnd_rd_nr (k := rs.k) (by rw [absMsg_ty_eq]; exact ⟨r1, r2, p1, p2⟩) (HR ty hmt)
+              (by rw [toPState_rd_pend]; exact hpd) hp'
+          | none =>
+            obtain ⟨e1, e2, -⟩ := HXn hmt
+            exact ⟨e1, e2 hp'⟩
+        · cases hmt : mtypeOf m.Type' with
+          | some ty =>
+            have := recvEnd_lead (k := rs.k) (by rw [absMsg_ty_eq]; exact netTypesK_mtype hnk hmt) (HR ty hmt)
+            rw [absMsg_src_eq] at this
+            exact this
+          | none =>
+            rcases (HXn hmt).2.2 with e | e
+            · exact .inl e
+            · exact .inr (.inl e)
+      have HroleF : ∀ md, sc = some md → RoleFn cf id s s' := fun md h =>
+        roleFn_of_stepEnd (Hscp md h).1 Hdom0.2 (Hx md h).2 (Hx md h).1
+      have Hxs : ∀ md, sc = some md → md.transfer = false → s'.gh.xs = s.gh.xs := fun md h ht => by
+        have hx : m.Type' ≠ MsgTransferLeader := ((stepTypes_off (Hscp md h).2.1).2 ht).1
+        obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
+          Hfr Hs (by not_net) hx (fun h => absurd h (by not_net)) (fun _ _ => Hlt0 md h ht)
+        rw [a8]
+      ihave Hsc := rnScopeAt_keepOpt sc rs
         { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s s'
-        (fun h Hs0 => RnScopeBasic.keep Hs0 rfl rfl Hpre Hcq' (Hlifted h).2.1 Hpv Hsn
-          (fun x hx => .inr ((Hx h).2 x hx)) (Hlifted h).2.2.2
-          -- (#33 S4) a message of the harness's types is no transfer request: the ghost state framed
-          (hxs := by
-            obtain ⟨hant, -, -⟩ := Hscp h
-            have hx : m.Type' ≠ MsgTransferLeader := by
-              intro hx
-              obtain ⟨ty0, hty0⟩ := antStep_mtype hant
-              rw [hx] at hty0
-              first
-                | (rw [show mtypeOf MsgTransferLeader = none from rfl] at hty0; cases hty0)
-                | (simp [mtypeOf, MsgTransferLeader] at hty0)
-            obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
-              Hfr Hs (by not_net) hx (fun h => absurd h (by not_net)) (fun _ _ => Hlt0 h)
-            rw [a8])) Hsg (fun _ => Hsdr') $$ Hsc
+        (fun md h Hs0 => RnScope.step (hsc0 md h).2.1 Hs0 (Hscope md h).2.1 (HCf md h).1 (HCf md h).2.1
+          (HCf md h).2.2 ⟨rfl, rfl, rfl⟩ Hpre Hcq'
+          (fun hr => ⟨((Hlifted md h).2.2.1 hr).1, fun _ => ((Hlifted md h).2.2.1 hr).2⟩)
+          (fun _ => ⟨Hpv, Hsn, (Hx md h).2⟩) (Hxs md h) (HroleF md h) Hdom0 Hdom1)
+        Hsg (hfl := ⟨Hpre, Hcq', Hsdr'⟩)
+        (hx := fun md h _ HX0 => by
+          obtain ⟨hl0, hw0, -⟩ := HX0
+          refine ⟨?_, fun p hp => ?_, Hlt'⟩
+          · rcases (Hlifted md h).2.2.2 with e | e | e | ⟨e, hr⟩
+            · rw [e]; exact hl0
+            · exact .inl e
+            · rw [e]; exact .inr (Hscp md h).2.2
+            · rw [e]; right
+              refine id_mem_of_roleFn (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 (HCf md h).1
+                (HCf md h).2.1 (HroleF md h) Hdom0 (fun hf => ?_)
+              rw [toPState_role, hf] at hr; cases hr
+          · by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
+            · obtain ⟨-, -, -, Hgrow⟩ := Hxwf hx
+              rcases Hgrow p hp with hp' | ⟨rfl, hr, hl0'⟩
+              · exact hw0 _ hp'
+              · have hld : (toPState s).lead = s.lead := toPState_lead_nonpre s (by rw [hr]; decide)
+                rcases hl0 with h' | h'
+                · exact absurd (hld.symm.trans h') hl0'
+                · rw [hld] at h'; exact h'
+            · obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
+                Hfr Hs (by not_net) (fun h => hx (.inl h)) (fun h => absurd h (by not_net))
+                  (fun h1 h2 => Classical.byContradiction fun h3 => hx (.inr ⟨h1, h2, h3⟩))
+              rw [a8] at hp; exact hw0 p hp) $$ Hsc
       iclear Hrntr
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgx]; exact Hgtr.trans HtrG)
@@ -441,7 +522,7 @@ local macro "step_tail" : tactic => `(tactic| (
       · iapply ownRawNodeAt_intro γ rn id
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) }
             (toRState { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } fp s')
-            qs (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp
+            qs (uint.nat s'.logst.inprogress - 1) sc s' cf fp
             rnv sv hprev steps Hwf' Hin
             Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
             (fun h => by rw [Hsn]; exact Hsnap ⟨Hps' h.1, h.2⟩)
@@ -463,12 +544,8 @@ local macro "step_tail" : tactic => `(tactic| (
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
       ipureintro
       intro md hmd
-      have h := hsct md hmd
       subst Hps
-      refine ⟨(Hlifted h).1, ?_, (Hlifted h).2.2.1⟩
-      intro x hx
-      rw [antStep_xmsg_none (st := ⟨m, ents, sn, ctx, rsp⟩) (Hscp h).1] at hx
-      cases hx))
+      exact ⟨(Hlifted md hmd).1, HX md hmd, (Hlifted md hmd).2.1⟩))
 
 set_option maxHeartbeats 1000000 in
 /-- **`RawNode.Step`, strengthened** (`RawNode.Step.absSpec`). -/
@@ -482,17 +559,14 @@ theorem RawNode.Step.wp_absProof
     RawNode.Step.absSpec (GF := GF) (hG := hG) := by
   have wp_raft_StepNs := raft.Step.untracedNs wp_raft_Step
   have wp_raft_Step := raft.Step.untraced wp_raft_Step
-  intro sc γ rn id rs ps qs ip ml st Hok Hscp0 Hmtc Htn Hflw HtrG
-  have hsct : ∀ md, basicScope sc = some md → sc = true := fun md h => by
-    cases sc
-    · cases h
-    · rfl
+  intro sc hsc0 γ rn id rs ps qs ip ml st Hok Hscp0 Hmtc Htn Hflw HtrG
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hscp0 Hmtc Htn ⊢
-  have Hscp : sc = true → m.Type' ∈ antStepTypes ∧ (m.Type' = MsgHeartbeatResp → ctx = []) ∧
-      m.From' ∈ γ.reCfg := fun h => by
-    obtain ⟨h1, h2, h3⟩ := Hscp0 {} (by subst h; rfl)
-    rw [stepTypes_empty] at h1; exact ⟨h1, h2 rfl, h3⟩
+  have Hscp : ∀ md, sc = some md → m.Type' ∈ netTypesK ∧ m.Type' ∈ stepTypes md ∧
+      m.From' ∈ γ.reCfg := fun md h => by
+    obtain ⟨h1, -, h3⟩ := Hscp0 md h
+    obtain ⟨hs, -, hf, ha⟩ := hsc0 md h
+    exact ⟨stepTypes_sub hs hf ha h1, h1, h3⟩
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
@@ -510,13 +584,13 @@ theorem RawNode.Step.wp_absProof
   ihave #HI := isInitialized_access $$ Hpkg
   iNamed HI
   -- the scope's facts at the start state
-  icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
-  -- (antithesis parity B1, option (b)) no transferee in the scope (no transfer request stepped,
-  -- `XfOk`): no append response `Step` records first
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  -- (antithesis parity B1, option (b)) at transfer off no transferee (no transfer request stepped,
+  -- `XfOk`)
   icases ownRaftPhysC_xs_of_lt cf rnv.raft' id s $$ Hphys with ⟨%Hxsl, Hphys⟩
-  have Hlt0 : sc = true → s.lt = W64 0 := fun h => Classical.byContradiction fun hc =>
-    absurd (Hxsl hc) (by rw [(Hscope h).2.2.2.2.2.2.2.2.2]; decide)
-  have Hnx : sc = true → ¬ XtRec id m s := fun h => XtRec.of_lt (Hlt0 h)
+  have Hlt0 : ∀ md, sc = some md → md.transfer = false → s.lt = W64 0 := fun md h ht =>
+    Classical.byContradiction fun hc =>
+      absurd (Hxsl hc) (by rw [(Hscope md h).1.2.2.2.2.2.1 ht]; decide)
   icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpre0, Hphys⟩
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom0, Hphys⟩
@@ -524,20 +598,17 @@ theorem RawNode.Step.wp_absProof
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
-  icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
-  have HCf : sc = true → CfgScope γ cf := fun h => (cfgScope_of (Hscope h) (Hcin h) Hcfm).1
-  have Hlift : sc = true → LiftScope cf id s ∧ AckScope cf := fun h => by
-    have Hs := Hscope h
-    have HC := HCf h
-    have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom0.1 Hdom0.2 (by rw [Hv]; exact (Hcin h).1),
-      Hal0 HC.2.1⟩
-  have Hp0 : sc = true → uint.Z s.logst.prev.index' = 0 := fun h => by
-    rw [(Hscope h).2.2.2.2.2.1]; rfl
-  have HfromIds : sc = true → m.From' ∈ cf.ids := fun h => by
-    have Hv : cf.voters = γ.reCfg := (HCf h).voters
-    exact GMap.elem_of_union_l cf.learners (by rw [Hv]; exact (Hscp h).2.2)
+  have HCf : ∀ md, sc = some md → CfgScope γ cf ∧ cf.learners = ∅ ∧ rs.cfg.cfg = cf := fun md h =>
+    cfgScope_ofMd (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 Hcfm
+  have Hlift : ∀ md, sc = some md → LiftScopeK rs.k cf id s ∧ AckScope cf := fun md h => by
+    obtain ⟨Hs, Hc, Hk, -⟩ := Hscope md h
+    obtain ⟨HC, -, -⟩ := HCf md h
+    exact ⟨liftScopeK_of (hsc0 md h).2.1 Hs Hc Hk HC Hpre0 Hfv Hdom0.1 Hdom0.2, Hal0 HC.2.1⟩
+  have Hp0 : ∀ md, sc = some md → uint.Z s.logst.prev.index' = 0 := fun md h => by
+    rw [((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.1]; rfl
+  have HfromIds : (∃ md, sc = some md) → m.From' ∈ cf.ids := fun ⟨md, h⟩ =>
+    GMap.elem_of_union_l cf.learners (by rw [(HCf md h).1.voters]; exact (Hscp md h).2.2)
   ihave %Hwfa : ⌜m.Type' = MsgApp → PlogWf (entryID.mk m.LogTerm' m.Index') ents⌝ $$ []
   · by_cases Happ : m.Type' = MsgApp
     · ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Happ]; exact mtypeOf_MsgApp) %(by decide)
@@ -560,7 +631,7 @@ theorem RawNode.Step.wp_absProof
   all_goals try (
     icases ownRaftPhysC_tracker_same cf rnv.raft' id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-    icases ownTrackerC_getD_nn cf tv _ m.From' (sc = true) HfromIds Hdom $$ Htrk with ⟨%HnnF, Htrk⟩
+    icases ownTrackerC_getD_nn cf tv _ m.From' (∃ md, sc = some md) HfromIds Hdom $$ Htrk with ⟨%HnnF, Htrk⟩
     try wp_auto
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _ m.From' _
@@ -596,27 +667,28 @@ theorem RawNode.Step.wp_absProof
       iunfold certLink at Hlink
       icases Hlink with ⟨-, -, %Hszl, -⟩
       ihave #Hsnap' := Hsnap
-      by_cases hsc : sc = true
-      · icases rnScopeAt_cap hsc rs s $$ Hsc with ⟨#Hcap, Hsc⟩
+      by_cases hsc : ∃ md, sc = some md
+      · obtain ⟨md0, hmd0⟩ := hsc
+        icases rnScopeAt_capOpt hmd0 (hsc0 md0 hmd0).1 rs s $$ Hsc with ⟨#Hcap, Hsc⟩
         wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1t (Hrnfl.1 Hflw)
             (wp_raft_StepNs cf _ γ _ id s ml m ents ctx sn rsp) Hwf
           (RNMode.pre_net Hpf (by not_net)) Hnsm
-          (by tr_none) (Hlift hsc).2 $$ [$Hphys $Hghost $Hlc1 Hm Hmb Hcred]
+          (by tr_none) (Hlift md0 hmd0).2 $$ [$Hphys $Hghost $Hlc1 Hm Hmb Hcred]
         · step_frame
           isplitr
           · imodintro
             iintro %h
-            exact absurd h (antStep_ne_snap (Hscp hsc).1)
+            exact absurd h (netTypesK_ne_snap (Hscp md0 hmd0).1)
           isplitr
           · iexact Hcap
           isplitr
-          · ipureintro; exact Hp0 hsc
-          · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2.1
+          · ipureintro; exact Hp0 md0 hmd0
+          · ipureintro; exact ((Hscope md0 hmd0).1.2.2.2.2.1 (hsc0 md0 hmd0).1).2.2.2
         simp only [HnP]
         iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Hxwf, %Htm, %Hresp,
           %Hsfr, %Htrc, -, %Hend, -, %Hns', -⟩
-        have Hx : sc = true → StepEnd cf id m ents ctx s s' ∧ NoSnapL s'.outbox :=
-          fun _ => ⟨Hend, Hns'⟩
+        have Hx : ∀ md, sc = some md → StepEnd cf id m ents ctx s s' ∧ NoSnapL s'.outbox :=
+          fun _ _ => ⟨Hend, Hns'⟩
         step_tail
       · wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1t (Hrnfl.1 Hflw)
             (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp) Hwf
@@ -632,8 +704,8 @@ theorem RawNode.Step.wp_absProof
         simp only [HnP]
         iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Hxwf, %Htm, %Hresp,
           %Hsfr, %Htrc, -⟩
-        have Hx : sc = true → StepEnd cf id m ents ctx s s' ∧ NoSnapL s'.outbox :=
-          fun h => absurd h hsc
+        have Hx : ∀ md, sc = some md → StepEnd cf id m ents ctx s s' ∧ NoSnapL s'.outbox :=
+          fun md h => absurd ⟨md, h⟩ hsc
         step_tail)
 
 end proof

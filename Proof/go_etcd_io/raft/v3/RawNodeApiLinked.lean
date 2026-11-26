@@ -434,7 +434,10 @@ private theorem true_eq_true_eq : (fun md : RnMode => basicScope true = some md)
 
 theorem RawNode.Step.apiSpec_of_abs (H : RawNode.Step.absSpec (GF := GF) (hG := hG)) :
     RawNode.Step.apiSpec (GF := GF) (hG := hG) := by
-  have h := H true; rw [true_eq_true_eq] at h; exact h
+  have h := H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩)
+  have e : (fun md : RnMode => (some {} : Option RnMode) = some md) = (fun md => md = {}) := by
+    funext md; apply propext; simp only [Option.some.injEq]; exact eq_comm
+  rw [e] at h; exact h
 
 theorem RawNode.Tick.apiSpec_of_abs (H : RawNode.Tick.absSpec (GF := GF) (hG := hG)) :
     RawNode.Tick.apiSpec (GF := GF) (hG := hG) := by

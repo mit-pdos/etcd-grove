@@ -240,5 +240,377 @@ theorem roleFn_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
 
 end proof
 
+/-! ### The scope across a B1 network step (antithesis parity B1, step C1)
+
+What `RawNode.Step` at a mode `md` (snapshots, configuration changes, forwarding and asynchronous storage
+off) needs to keep `RnScope md` and the transfer scope's facts (`XScopeOk`): the read state at reads off
+(no read-index type among the mode's), the protocol leader (kept, cleared, the sender, or the node itself
+as leader), the configuration and the node's membership. -/
+
+section scope
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+variable {k : NodeK}
+
+/-- At reads off the mode's types hold no read-index type; at transfer off no transfer type. -/
+theorem stepTypes_off {md : RnMode} {t : w32} (h : t ∈ stepTypes md) :
+    (md.reads = false → t ≠ MsgReadIndex ∧ t ≠ MsgReadIndexResp) ∧
+    (md.transfer = false → t ≠ MsgTransferLeader ∧ t ≠ MsgTimeoutNow) := by
+  unfold stepTypes antStepTypes at h
+  simp only [List.mem_append, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
+  refine ⟨fun hr => ⟨fun e => ?_, fun e => ?_⟩, fun ht => ⟨fun e => ?_, fun e => ?_⟩⟩
+  all_goals
+    subst e; revert h
+    first | rw [hr] | rw [ht]
+    simp only [Bool.false_eq_true, ↓reduceIte, List.not_mem_nil, _root_.or_false, _root_.false_or]
+    repeat' split
+    all_goals simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
+      MsgPreVote, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgTransferLeader, MsgTimeoutNow,
+      MsgProp, MsgSnap, MsgStorageAppendResp, MsgStorageApplyResp]
+
+/-- No B1 network type is local (`IsLocalMsg`'s table). -/
+theorem netTypesK_not_local {t : w32} (h : t ∈ netTypesK) : t ∉ localMsgTypes := by
+  rcases netTypesK_cases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    decide
+
+/-- No B1 network type is a snapshot. -/
+theorem netTypesK_ne_snap {t : w32} (h : t ∈ netTypesK) : t ≠ MsgSnap := by
+  rcases netTypesK_cases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    decide
+
+/-- A B1 network type's protocol reading is no proposal and no snapshot. -/
+theorem netTypesK_mtype {t : w32} (h : t ∈ netTypesK) {ty : MsgType} (hty : mtypeOf t = some ty) :
+    ty ≠ .propose ∧ ty ≠ .snap := by
+  rcases netTypesK_cases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    cases hty <;> exact ⟨by decide, by decide⟩
+
+/-- A B1 network type without a protocol reading is a transfer type. -/
+theorem netTypesK_untyped {t : w32} (h : t ∈ netTypesK) (hty : mtypeOf t = none) :
+    t = MsgTransferLeader ∨ t = MsgTimeoutNow := by
+  rcases netTypesK_cases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    first | exact .inl rfl | exact .inr rfl | cases hty
+
+/-- A network `MsgReadIndex` is unstamped (term `0`, `NetMsgOk`). -/
+theorem NetMsgOk.readIndex_term {id : w64} {st : MsgSt} (Hok : NetMsgOk id st)
+    (e : st.msg.Type' = MsgReadIndex) : st.msg.Term' = W64 0 :=
+  Hok.2.2.1 (by rw [e]; nk_tyclose MsgReadIndex) (by rw [e]; nk_tyclose MsgReadIndex)
+
+/-- A network `MsgTimeoutNow` is stamped (a term past `0`, `NetMsgOk`). -/
+theorem NetMsgOk.timeoutNow_term {id : w64} {st : MsgSt} (Hok : NetMsgOk id st)
+    (e : st.msg.Type' = MsgTimeoutNow) : st.msg.Term' ≠ W64 0 :=
+  (Hok.2.1 (by rw [e]; nk_tyclose MsgTimeoutNow)).2.1
+
+theorem preadRespondAll_lead (id : w64) (s : PState) (qs : List ReadReq) :
+    (preadRespondAll id s qs).lead = s.lead := by
+  obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
+  rw [h]
+
+theorem SendsEnd.lead {c : CfgM} {id : w64} {s s' : PState} (h : SendsEnd c id s s') :
+    s'.lead = s.lead := by
+  obtain ⟨ms, -, rfl⟩ := h; rfl
+
+theorem ReleaseEnd.lead {c : CfgM} {id : w64} {s s' : PState} (h : ReleaseEnd c id s s') :
+    s'.lead = s.lead := by
+  rcases h with ⟨-, hb, -, rfl⟩ | ⟨-, rfl⟩
+  · rfl
+  · exact preadRespondAll_lead id _ _
+
+theorem ReadAckEnd.lead {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (h : ReadAckEnd c id s m s') : s'.lead = s.lead := by
+  rcases h with ⟨-, rfl⟩ | ⟨N, -, rfl⟩
+  · rfl
+  · exact preadRespondAll_lead id _ _
+
+/-- **The protocol leader after a handled message** (not a proposal, not a snapshot): kept, cleared,
+the sender (an append or heartbeat adopts it), or the node itself as a new leader (`WinEnd`). -/
+theorem handleEnd_lead {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty ≠ .propose ∧ m.ty ≠ .snap) (h : HandleEnd k c id s m s') :
+    s'.lead = s.lead ∨ s'.lead = W64 0 ∨ s'.lead = m.src ∨ (s'.lead = id ∧ s'.role = .leader) := by
+  unfold HandleEnd at h
+  cases e : m.ty <;> rw [e] at h <;> simp only at h
+  · left; rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+  · split at h
+    · rcases h with ⟨-, rfl⟩ | ⟨-, mt, ms, -, -, rfl⟩ | ⟨-, rfl⟩
+      · exact .inl rfl
+      · exact .inr (.inr (.inr ⟨rfl, rfl⟩))
+      · exact .inr (.inl rfl)
+    · subst h; exact .inl rfl
+  · split at h
+    · subst h; exact .inl rfl
+    · right; right; left
+      unfold AppEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, l, es, -, rfl⟩ | ⟨-, -, hi, ht, -, -, rfl⟩ <;> rfl
+  · split at h
+    · left
+      unfold AppRespEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩ | ⟨-, x, n, s2, -, -, hr, hs⟩
+      · rfl
+      · exact hs.lead
+      · exact hs.lead
+      · exact hs.lead.trans hr.lead
+    · subst h; exact .inl rfl
+  · split at h
+    · subst h; exact .inl rfl
+    · subst h; exact .inr (.inr (.inl rfl))
+  · split at h
+    · obtain ⟨s2, hs, ⟨-, rfl⟩ | ⟨-, ha⟩⟩ := h
+      · exact .inl hs.lead
+      · exact .inl (ha.lead.trans hs.lead)
+    · subst h; exact .inl rfl
+  · exact absurd e hty.1
+  · exact absurd e hty.2
+  · left; unfold PreVoteEndP at h; rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+  · split at h
+    · rcases h with rfl | ⟨-, peers, -, rfl⟩
+      · exact .inl rfl
+      · exact .inr (.inl rfl)
+    · subst h; exact .inl rfl
+  · left; unfold ReadIdxEnd at h
+    split at h
+    · rcases h with ⟨-, pm, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, ms, -, rfl⟩
+      · rfl
+      · exact preadRespondAll_lead id _ _
+      · rfl
+    · split at h <;> (subst h; rfl)
+  · left; split at h
+    · rcases h with ⟨e, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+    · subst h; rfl
+
+/-- **The protocol leader after a received message** (`RecvEnd`; not a proposal, not a snapshot): kept,
+cleared, the sender, or the node itself as a new leader. -/
+theorem recvEnd_lead {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty ≠ .propose ∧ m.ty ≠ .snap) (h : RecvEnd k c id s m s') :
+    s'.lead = s.lead ∨ s'.lead = W64 0 ∨ s'.lead = m.src ∨ (s'.lead = id ∧ s'.role = .leader) := by
+  rcases h with ⟨-, h⟩ | ⟨-, -, hs⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
+  · exact handleEnd_lead hty h
+  · left; rcases hs with rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+  · exact .inl rfl
+  · have h1 : s1.lead = s.lead ∨ s1.lead = W64 0 ∨ s1.lead = m.src := by
+      rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
+      · show (if fromLeader m.ty then m.src else W64 0) = s.lead ∨ _
+        split
+        · exact .inr (.inr rfl)
+        · exact .inr (.inl rfl)
+      · exact .inl rfl
+      · exact .inl rfl
+    rcases handleEnd_lead hty h with h2 | h2 | h2 | h2
+    · rw [h2]
+      rcases h1 with h1 | h1 | h1
+      · exact .inl h1
+      · exact .inr (.inl h1)
+      · exact .inr (.inr (.inl h1))
+    · exact .inr (.inl h2)
+    · exact .inr (.inr (.inl h2))
+    · exact .inr (.inr (.inr h2))
+
+/-- **The read state after a handled message of no read-index type** (not a proposal, not a snapshot),
+with no read request deferred and the read-only queue empty: both kept (a commit's release has nothing
+to release; a new role's `reset` installs a fresh read-only object). -/
+theorem handleEnd_rd_nr {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty ≠ .readIndex ∧ m.ty ≠ .readIndexResp ∧ m.ty ≠ .propose ∧ m.ty ≠ .snap)
+    (h : HandleEnd k c id s m s') (hpd : s.rd.pend = []) (hp : s.rd.ro.pending = []) :
+    s'.rd.pend = s.rd.pend ∧ s'.rd.ro.pending = [] := by
+  have hold : (m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp) → s'.rd.pend = s.rd.pend ∧ s'.rd.ro.pending = [] := fun ho =>
+    ⟨handleEnd_rd_pend ho h hpd, handleEnd_ro ho h hpd hp⟩
+  cases e : m.ty
+  all_goals first
+    | exact absurd e hty.1
+    | exact absurd e hty.2.1
+    | exact absurd e hty.2.2.1
+    | exact absurd e hty.2.2.2
+    | (apply hold; simp [e]; done)
+    | skip
+  · unfold HandleEnd at h; rw [e] at h; simp only at h
+    unfold PreVoteEndP at h
+    rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> exact ⟨rfl, hp⟩
+  · unfold HandleEnd at h; rw [e] at h; simp only at h
+    split at h
+    · rcases h with rfl | ⟨-, peers, -, rfl⟩
+      · exact ⟨rfl, hp⟩
+      · exact ⟨rfl, rfl⟩
+    · subst h; exact ⟨rfl, hp⟩
+
+/-- `handleEnd_rd_nr` through `RecvEnd` (the preamble's `becomeFollower` installs a fresh read-only
+object; a stale message's answer keeps the read state). -/
+theorem recvEnd_rd_nr {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty ≠ .readIndex ∧ m.ty ≠ .readIndexResp ∧ m.ty ≠ .propose ∧ m.ty ≠ .snap)
+    (h : RecvEnd k c id s m s') (hpd : s.rd.pend = []) (hp : s.rd.ro.pending = []) :
+    s'.rd.pend = s.rd.pend ∧ s'.rd.ro.pending = [] := by
+  rcases h with ⟨-, h⟩ | ⟨-, -, hs⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
+  · exact handleEnd_rd_nr hty h hpd hp
+  · rw [hs.rd]; exact ⟨rfl, hp⟩
+  · exact ⟨rfl, hp⟩
+  · have hp1 : s1.rd.ro.pending = [] := by
+      rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
+      · rfl
+      · exact hp
+      · exact hp
+    obtain ⟨h1, h2⟩ := handleEnd_rd_nr hty h (by rw [hpre.rd_pend]; exact hpd) hp1
+    exact ⟨h1.trans hpre.rd_pend, h2⟩
+
+/-- **A received `MsgTimeoutNow`'s read state and leader** (`TimeoutNowEndR`): the read requests kept,
+an empty read-only queue kept empty, the leader kept or cleared. -/
+theorem TimeoutNowEndR.rd_lead {id : w64} {r : RState} {x : XMsg} {r' : RState}
+    (h : TimeoutNowEndR id r x r') :
+    r'.p.rd.pend = r.p.rd.pend ∧ (r.p.rd.ro.pending = [] → r'.p.rd.ro.pending = []) ∧
+      (r'.p.lead = r.p.lead ∨ r'.p.lead = W64 0) := by
+  rcases h with ⟨-, rfl⟩ | ⟨-, ⟨p1, hp1, hr⟩, -⟩
+  · exact ⟨rfl, fun hp => hp, .inl rfl⟩
+  · rcases hr with e | ⟨-, ms, -, e⟩ | ⟨-, -, peers, -, e⟩ <;>
+      rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> rw [e] <;>
+      first | exact ⟨rfl, fun _ => rfl, .inr rfl⟩ | exact ⟨rfl, fun hp => hp, .inl rfl⟩
+
+/-- **A received `MsgTransferLeader`'s read state and leader** (`TransferRecvEndR`): as
+`TimeoutNowEndR.rd_lead`. -/
+theorem TransferRecvEndR.rd_lead {id : w64} {r : RState} {x : XMsg} {r' : RState}
+    (h : TransferRecvEndR id r x r') :
+    r'.p.rd.pend = r.p.rd.pend ∧ (r.p.rd.ro.pending = [] → r'.p.rd.ro.pending = []) ∧
+      (r'.p.lead = r.p.lead ∨ r'.p.lead = W64 0) := by
+  rcases h with ⟨-, -, rfl⟩ | ⟨-, -, -, -, -, -, -, hp'⟩ | ⟨-, rfl⟩
+  · exact ⟨rfl, fun hp => hp, .inl rfl⟩
+  · rcases hp' with e | ⟨-, -, -, ms, -, e⟩ <;> rw [e]
+    · exact ⟨rfl, fun hp => hp, .inl rfl⟩
+    · exact ⟨rfl, fun hp => hp, .inl rfl⟩
+  · exact ⟨rfl, fun _ => rfl, .inr rfl⟩
+
+/-- A B1 network type of no read-index type has no read-index protocol reading. -/
+theorem netTypesK_mtype_rd {t : w32} (h : t ∈ netTypesK) {ty : MsgType} (hty : mtypeOf t = some ty)
+    (h1 : t ≠ MsgReadIndex) (h2 : t ≠ MsgReadIndexResp) : ty ≠ .readIndex ∧ ty ≠ .readIndexResp := by
+  rcases netTypesK_cases h with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    cases hty <;> first | exact ⟨by decide, by decide⟩ | exact absurd rfl h1 | exact absurd rfl h2
+
+theorem absMsg_src_eq (ty : MsgType) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
+    (absMsg ty m ents ctx).src = m.From' := by
+  simp [absMsg, absMsgFrom, Msg.mkV]
+
+/-- (antithesis parity B1, step C1) **The scope's configuration at a mode without configuration
+changes**: `CfgScope`, no learners, the node's configuration the step's. -/
+theorem cfgScope_ofMd {md : RnMode} {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM}
+    (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs)
+    (Hm : (rs.mode.isDyn = false → CfgStatic γ c) ∧ (rs.mode.isDyn = true → rs.cfg.cfg = c)) :
+    CfgScope γ c ∧ c.learners = ∅ ∧ rs.cfg.cfg = c := by
+  have hd := Hc.2.2.2
+  have hcf := Hm.2 hd
+  subst hcf
+  exact ⟨⟨(Hc.2.1 hcc).1 hd, Hs.1 hcc hd, trivial⟩, (Hc.2.1 hcc).2, rfl⟩
+
+/-- A member of a configuration without learners is a voter. -/
+theorem CfgM.voter_of_ids {c : CfgM} {i : w64} (hl : c.learners = ∅) (h : i ∈ c.ids) : i ∈ c.voters := by
+  unfold CfgM.ids at h; rw [hl, GMap.union_empty_r_L] at h; exact h
+
+/-- (step C1) **`LiftScopeK` from the scope at a mode** without configuration changes: the node constant
+from `KTie`, a pre-candidate's leader none (`RnScope`), a non-follower in the progress map (with
+non-voters off a member of the names' voters, `RnCfgIn`; on, `RnScope`'s last conjunct). -/
+theorem liftScopeK_of {md : RnMode} {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM}
+    (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs) (Hk : KTie rs s)
+    (HC : CfgScope γ c) (Hpre : s.role = .preCandidate → s.prevote = true)
+    (Hfv : FollowerVotesOk (toPState s)) (Hd1 : domSet s.prvals = domSet s.progress)
+    (Hd2 : domSet s.progress = c.ids) : LiftScopeK rs.k c id s := by
+  obtain ⟨-, h2, -, -, -, -, -, h8, h9⟩ := Hs
+  refine ⟨by rw [← Hk], by rw [← Hk], fun hr => ?_, Hfv, Hd1, fun hf => ?_, Hd2⟩
+  · cases hp : md.prevote
+    · have := Hpre hr; rw [h2 hp] at this; cases this
+    · exact h8 hp hr
+  · cases hnv : md.nonVoters
+    · rw [Hd1, Hd2]; exact GMap.elem_of_union_l c.learners (by rw [HC.voters]; exact Hc.1 hnv)
+    · exact h9 hcc hnv hf
+
+/-- (step C1) A pre-candidate's tally is not a quorum (`RnScope`; at pre-vote off no pre-candidate). -/
+theorem preCand_noQuorum_of {md : RnMode} {id : w64} {rs : RNState} {s : NState} {c : CfgM}
+    (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (hc : rs.cfg.cfg = c)
+    (Hpre : s.role = .preCandidate → s.prevote = true) :
+    s.role = .preCandidate → ¬ JQuorum c (granted s.votes) := by
+  intro hr
+  cases hp : md.prevote
+  · have := Hpre hr; rw [Hs.2.1 hp] at this; cases this
+  · rw [← hc]; exact Hs.2.2.2.2.2.2.1 hcc hp hr
+
+/-- (step C1) **A non-follower after a step is a member of the names' voters** (with non-voters off by
+`RnCfgIn`; on, a follower became one only as a voter, `RoleFn`, else it was in the progress map before). -/
+theorem id_mem_of_roleFn {md : RnMode} {γ : RaftNames} {id : w64} {rs : RNState} {s s' : NState}
+    {c : CfgM} (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs)
+    (HC : CfgScope γ c) (hl : c.learners = ∅) (hrole : RoleFn c id s s')
+    (Hd : domSet s.prvals = domSet s.progress ∧ domSet s.progress = c.ids)
+    (hnf : s'.role ≠ .follower) : id ∈ γ.reCfg := by
+  cases hnv : md.nonVoters
+  · exact Hc.1 hnv
+  · rw [← HC.voters]
+    by_cases hf : s.role = .follower
+    · exact hrole.2 hf hnf
+    · have h := Hs.2.2.2.2.2.2.2.2 hcc hnv hf
+      rw [Hd.1, Hd.2] at h
+      exact CfgM.voter_of_ids hl h
+
+/-- (step C1) **`RnScope md` after a B1 network step**: the configuration and the flags kept; the read
+state at reads off (`hrd`); no snapshot (`hsn`); no transfer request stepped at transfer off (`hxs`); the
+pre-candidate facts and the node's membership from the role facts (`RoleFn`) and the progress maps' domains
+before and after. -/
+theorem RnScope.step {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState} {s s' : NState}
+    {c : CfgM} (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs)
+    (HC : CfgScope γ c) (hl : c.learners = ∅) (hc : rs.cfg.cfg = c)
+    (hm : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg ∧ rs'.slent = rs.slent)
+    (hpv : s'.prevote = s.prevote) (hcq : s'.cq = s.cq)
+    (hrd : md.reads = false → s'.rd.pend = s.rd.pend ∧
+      ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []))
+    (hsn : md.snapshots = false → s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
+      NoSnapL s'.outbox)
+    (hxs : md.transfer = false → s'.gh.xs = s.gh.xs)
+    (hrole : RoleFn c id s s')
+    (Hd : domSet s.prvals = domSet s.progress ∧ domSet s.progress = c.ids)
+    (Hd' : domSet s'.prvals = domSet s'.progress ∧ domSet s'.progress = c.ids) :
+    RnScope md id rs' s' := by
+  have Hs0 := Hs
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := Hs
+  obtain ⟨hmo, hcf, hsl⟩ := hm
+  refine ⟨fun a b => by rw [hcf]; exact h1 a (by rw [← hmo]; exact b), fun a => hpv.trans (h2 a),
+    fun a => hcq.trans (h3 a), fun a => ?_, fun a => ?_, fun a => (hxs a).trans (h6 a),
+    fun a b hr => ?_, fun a hr => ?_, fun a b hnf => ?_⟩
+  · obtain ⟨hp1, hp2⟩ := h4 a
+    obtain ⟨e1, e2⟩ := hrd a
+    exact ⟨e1.trans hp1, (roEmpty_iff s').2 (e2 ((roEmpty_iff s).1 hp2))⟩
+  · obtain ⟨q1, q2, q3, q4⟩ := h5 a
+    obtain ⟨e1, e2, e3⟩ := hsn a
+    exact ⟨hsl.trans q1, e1.trans q2, e2.trans q3, e3⟩
+  · obtain ⟨hr0, -, hv⟩ := hrole.1 hr
+    rw [hcf, hc]
+    rcases hv with hv | hv
+    · rw [hv, ← hc]; exact h7 a b hr0
+    · exact hv
+  · obtain ⟨hr0, hl0, -⟩ := hrole.1 hr
+    rw [hl0]; exact h8 a hr0
+  · rw [Hd'.1, Hd'.2]
+    exact GMap.elem_of_union_l c.learners
+      (by rw [HC.voters]; exact id_mem_of_roleFn a Hs0 Hc HC hl hrole Hd hnf)
+
+end scope
+
+section ghostK
+open Iris.ProofMode
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (step C1) **A known leader's term is past `0`** (`ownStepGhost_lead`, `isLeader_term_nz`; a
+pre-candidate reads as knowing none). -/
+theorem ownStepGhost_leadNz (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ⌜(toPState s).lead ≠ W64 0 → s.term ≠ W64 0⌝ ∗ ownStepGhost γ md c id s := by
+  by_cases hr : s.role = .preCandidate
+  · iintro H; iframe H; ipureintro
+    show (if s.role = .preCandidate then W64 0 else s.lead) ≠ W64 0 → _
+    rw [if_pos hr]; intro h; exact absurd rfl h
+  · iintro H
+    icases ownStepGhost_lead γ md c id s hr $$ H with ⟨#Hl, H⟩
+    rw [toPState_lead_nonpre s hr]
+    by_cases hl : s.lead = W64 0
+    · iframe H; ipureintro; intro h; exact absurd hl h
+    · ihave Hi := Hl $$ %hl
+      ihave %Hnz := isLeader_term_nz γ s.lead s.term $$ Hi
+      iframe H; ipureintro; intro _; exact Hnz
+
+end ghostK
+
 end EtcdGrove
 end Perennial

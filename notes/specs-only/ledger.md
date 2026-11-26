@@ -6602,3 +6602,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Use.** StepEndRole.lean (new): `RoleFn` (a pre-candidate after a B1 network step was one before, its leader kept, its
   tally kept or not a quorum; a follower leaves the follower role only as a voter), `roleFn_of_stepEnd`.
 - **Decision.** The Antithesis lead (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C1: `RawNode.Step.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (the lead's statement, decision 1).** RawNodeAbsSpecs.lean: `RawNode.Step.absSpec := ∀ sc : Option RnMode,
+  (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧ md.forwarding = false ∧ md.async = false) →
+  RawNode.Step.form (ownRawNodeAt … sc) (fun md => sc = some md)` (was `∀ sc : Bool` at `basicScope sc`, i.e. only
+  `md = {}`). The premise names the four features B1 does not turn on: forwarding (a network `MsgProp` is in
+  `stepTypes md` and has no proof yet) and async (the storage acknowledgements) besides the lead's "snapshots and
+  configuration changes off". `spec_of_abs` instantiates `none` (premise vacuous), `apiSpec_of_abs` `some {}`.
+- **Proof.** RawNode__StepAbs.lean at `sc = some md`: `RecvEndR` by `recvEnd_of_stepEnd_netK` over `LiftScopeK`, the
+  transfer arm by `timeoutNowEndR_of_stepEnd` / `transferRecvEndR_of_stepEnd`, the boundary by `ipEnd_of_stepEnd_netK`,
+  the scope kept by `RnScope.step` (StepEndRole.lean: the pre-candidate and membership conjuncts from `RoleFn`; the
+  reads-off conjunct now for every B1 type, `recvEnd_rd_nr` and the transfer relations' `rd_lead`) and `XScopeOk`
+  (the leader kept, cleared, the sender or the node itself, `recvEnd_lead`; a known leader's term past `0`,
+  `ownStepGhost_leadNz`; `xw` grown only by a forward to a known leader).
+- **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.

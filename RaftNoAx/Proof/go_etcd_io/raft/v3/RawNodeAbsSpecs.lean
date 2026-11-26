@@ -221,11 +221,15 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState �
           (x.ty = .transferLeader ∧ TransferRecvEndR id r x r')) ∧
         ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
 
-/-- **`RawNode.Step`, strengthened** (design §2.2's table). -/
+/-- **`RawNode.Step`, strengthened** (design §2.2's table), at every scope `sc` (antithesis parity B1,
+step C1: at a mode without snapshots, configuration changes, forwarding or asynchronous storage, the
+features B1 does not turn on; `none` the old spec's content). -/
 abbrev RawNode.Step.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Step.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc))
-    (fun md => basicScope sc = some md)
+  ∀ sc : Option RnMode, (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+    RawNode.Step.form
+      (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc)
+      (fun md => sc = some md)
 
 /-- The old spec, its text unchanged, from the strengthened one (`ownRawNode_at` in at `sc = false`,
 `ownRawNodeAt_ownRawNode` out). -/
