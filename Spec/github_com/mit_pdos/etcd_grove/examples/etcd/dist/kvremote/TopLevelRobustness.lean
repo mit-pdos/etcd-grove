@@ -54,7 +54,7 @@ def etcd_kv_safe_nocrash.spec : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment)
     -- M1's scope (the only premise beyond `etcd_robust_nocrash.spec`'s)
     (Hscope : KvOnly d ∧ d.cfg.auth = false)

@@ -23,7 +23,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
@@ -55,7 +54,7 @@ theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [_root_.Perennial.errors.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (client : GoString) (hlc : client.length + 1 < 2 ^ 63) (σc : state)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (Γ : etcd_dist.DistView) (mid : w64) :
     DistBootWpST putgetThreads putgetSteps (bootClient client) σc (clientShareIf (GF := putgetGF) client Γ mid) := by

@@ -62,7 +62,6 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.TopLevelDefs
 public import Proof.runtime.Start
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Init
 public import Proof.log.NewModel
@@ -88,7 +87,7 @@ def putgetK_safe.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     -- the configuration: any members' peer and client addresses
     (peers clients : List GoString)
     -- bootstrap's log at the ids etcd computes (the peers in bootstrap's order, their contexts, the log)

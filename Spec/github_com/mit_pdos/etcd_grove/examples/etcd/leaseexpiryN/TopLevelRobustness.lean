@@ -25,7 +25,6 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.TopLevelDefs
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
@@ -64,7 +63,7 @@ def etcd_leaseexpiryN_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (k : w64) (ids : List w64) (ps : List w64) (ctxs : List (List w8))

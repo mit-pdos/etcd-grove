@@ -51,7 +51,6 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
 public import Spec.k8s_io.utils.clock.RealClock__After
@@ -90,7 +89,7 @@ def k8s_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
