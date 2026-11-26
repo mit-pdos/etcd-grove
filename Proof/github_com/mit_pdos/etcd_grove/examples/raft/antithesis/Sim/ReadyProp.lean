@@ -166,7 +166,8 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   obtain ⟨lp1, lp2, lp3, lp4, -⟩ := hv.leader hvl
   rw [hfullL] at lp2
   rw [hx.d8] at lp3
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, hbase, hidx, -⟩ := id hx.hro
+  have hbase := hx.base1
+  have hidx := hx.logIdx1
   have hqsS := hx.hqs
   have d7 := hx.d7
   -- the entries

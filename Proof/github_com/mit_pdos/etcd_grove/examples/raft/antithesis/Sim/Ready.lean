@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart).
 
 A reported `Ready` (`notes/antithesis-rawnode-design.md` §3.3, "`antSim_ready`, guard by guard";
 `notes/antithesis-parity-design.md` §3.5), for the runs a mask below `mskB1` admits: `antSim_gc` to
-`S1`; the protocol readings (`ReachP`, `ReadyOutO`, `ReportedO`) and the old disk facts of the node
+`S1`; the protocol reading `ReachP`, `ReadyOutP` and the old disk facts of the node
 collected in `RdCtx` (`rdCtx_of`); the kind-independent fields of the new view (`AfterOk`); the
 `Ready`'s kind (`ready_kind`); per kind, `InMemory` and `OnDisk` of its `ready` report evaluated
 (`ReadyEval`, `ReadyLeader`, `ReadyOD`, `ReadyOD2`) to `readyS`, its side conditions `ReadyOk`
@@ -167,37 +167,39 @@ theorem reach_byE {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} 
   | adoptX x _ hbe => exact .inr ⟨.recvX x, hbe⟩
   | campX x p1 _ _ hbe => exact .inr ⟨.recvX x, hbe⟩
 
-/-- **A reported `Ready` with the view's hard state, entries and role** (not `ReportedO`): only
-the pre-candidate flag changed, which only a follower has (`ReadyOutP`, `NodeFacts.preRole`). -/
-theorem kind_preFlag {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
-    (hro : ReadyOutO N id v ps₁ rd) (hrO : ¬ ReportedO v rd) (hrep : Reported v rd)
-    (hdur : v.dur = durOf v.r) (hsn : rd.snap = none)
-    (hpf : rd.pre = true → rd.role = .follower) (hvp : v.pre = true → v.ps.role = .follower) :
-    ReadyKind cf id net xnet v ps₁ rd := by
-  have ht : rd.term = v.ps.term := Classical.byContradiction fun h => hrO (.inl h)
-  have hv : rd.vote = v.ps.vote := Classical.byContradiction fun h => hrO (.inr (.inl h))
-  have hc : rd.commit = v.ps.commit := Classical.byContradiction fun h => hrO (.inr (.inr (.inl h)))
-  have he : rd.ents = [] := Classical.byContradiction fun h => hrO (.inr (.inr (.inr (.inl h))))
-  have hr : rd.role = v.ps.role :=
-    Classical.byContradiction fun h => hrO (.inr (.inr (.inr (.inr h))))
-  obtain ⟨hR, hT, hV, hC, hnil, -⟩ := hro
-  have hfol : rd.role = .follower := by
+/-- **A reported `Ready` at an unchanged state** (not `Changed`): only the pre-candidate flag
+changed, which only a follower has (`ReadyOutP`, `NodeFacts.preRole`). -/
+theorem kind_preFlag {R : RunCfg} {n : Fin R.N} {r : RState} {id : w64} {net : List Msg}
+    {xnet : List XMsg} {v : NodeView} {rd : ReadyD}
+    (hro : ReadyOutP R n v r rd) (hfu : r.full = r.p.log) (hdl : v.dur.log = v.ps.log)
+    (hch : ¬ Changed v r.p) (hrep : Reported v rd) (hdur : v.dur = durOf v.r) (hsn : rd.snap = none)
+    (hvp : v.pre = true → v.ps.role = .follower) :
+    ReadyKind cf id net xnet v r.p rd := by
+  have ht : r.p.term = v.ps.term := Classical.byContradiction fun h => hch (.inl h)
+  have hv : r.p.vote = v.ps.vote := Classical.byContradiction fun h => hch (.inr (.inl h))
+  have hc : r.p.commit = v.ps.commit := Classical.byContradiction fun h => hch (.inr (.inr (.inl h)))
+  have hl : r.p.log = v.ps.log :=
+    Classical.byContradiction fun h => hch (.inr (.inr (.inr (.inl h))))
+  have hr : r.p.role = v.ps.role :=
+    Classical.byContradiction fun h => hch (.inr (.inr (.inr (.inr h))))
+  have he : rd.ents = [] := ents_nil_of_log hro hfu hdl hl
+  obtain ⟨hR, hpf, hT, hV, hC, -⟩ := hro
+  have hfol : r.p.role = .follower := by
     cases hp : rd.pre
     · cases hq : v.pre
       · exfalso
         unfold Reported at hrep; rw [hdur] at hrep
-        unfold roleS at hrep; rw [hp, hq, hr] at hrep
+        unfold roleS at hrep; rw [hp, hq, hR, hr] at hrep
         rcases hrep with h | h | h | h | h | h
-        · exact h ht
-        · exact h hv
-        · exact h hc
+        · exact h (hT.trans ht)
+        · exact h (hV.trans hv)
+        · exact h (hC.trans hc)
         · exact h he
         · exact h hsn
         · exact h rfl
       · rw [hr]; exact hvp hq
-    · exact hpf hp
-  exact .follow (hR.symm.trans hfol) (hT.symm.trans ht) (hV.symm.trans hv) (hnil he)
-    (hC.symm.trans hc) he
+    · exact hR.symm.trans (hpf hp).1
+  exact .follow hfol ht hv hl hc he
 
 /-- A voter of the run's initial configuration is in the binding's view of it. -/
 theorem cin_has_voter {R : RunCfg} (n : Fin R.N) (h : nodeId n ∈ R.voters0) {cs : CCState}
@@ -254,13 +256,14 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   hconf : S1.config[n.val]! = confView R.N (V n).r.cfg
   hcf : (V n).r.cfg.cfg = CfgM.simple R.voters0 ∅
   hcc : R.md.confChanges = false
+  hsnf : R.md.snapshots = false
   hq0 : S1.queue[n.val]! = []
   hpre : rd.pre = true → r₁.p.role = .follower
   hsn : rd.snap = none
   hfl : r₁.full = r₁.p.log
   hrf : ReadyFacts G (nodeId n) r₁
   hr : ReachP (R.k n) (CfgM.simple R.voters0 ∅) (nodeId n) net xnet (V n) r₁.p
-  hro : ReadyOutO R.N (nodeId n) (V n) r₁.p rd
+  hro : ReadyOutP R n (V n) r₁ rd
   htold : (V n).byE = go!"recv" → (V n).told = true
   htb : uint.Z (V n).ps.term + 1 < 2 ^ 64
   hin : ∀ m ∈ net, RdTy m.ty → InMsg m
@@ -283,6 +286,21 @@ theorem RdCtx.boot1 {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
   have e1 : S1.bootTerm = 1 := by
     unfold State.bootTerm; rw [hx.hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hb]
   rw [hx.d1] at h1; omega
+
+/-- The `Ready`'s state keeps the base `base0` (`ReadyOutP`, snapshots off). -/
+theorem RdCtx.base1 {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
+    {xnet : List XMsg} {evs : List Event} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
+    {S1 : State} (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) : r₁.p.base = base0 := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, hsnapC, -⟩ := hx.hro
+  exact (hsnapC hx.hsnf).1
+
+/-- The `Ready`'s log's indices are its positions (`ReadyOutP`'s `LogIdx`, no ghost prefix). -/
+theorem RdCtx.logIdx1 {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView}
+    {net : List Msg} {xnet : List XMsg} {evs : List Event} {G : RaftFacts} {n : Fin R.N}
+    {r₁ : RState} {rd : ReadyD} {S1 : State} (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) :
+    LogIdx r₁.p.log := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hidx, -⟩ := hx.hro
+  rw [hx.hfl] at hidx; exact hidx
 
 /-- **`RdCtx` from `antSim_ready`'s premises** below `mskB1`. -/
 theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec} {S : State}
@@ -312,7 +330,6 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDe
   obtain ⟨hR, hpre', -, -, -, -, -, -, -, -, -, -, -, -, hsnapC, -, -⟩ := hro'
   have hpf : rd.pre = true → rd.role = .follower := fun h => (hpre' h).1
   have hsnr : rd.snap = none := (hsnapC (by rw [hmd])).2.1
-  have hroO := readyOutO_of hro (by rw [hmd]) (by rw [hmd]) hdl hfp
   have hcf : (V n).r.cfg.cfg = CfgM.simple R.voters0 ∅ := (hv.facts.conf0 (by rw [hmd])).1
   have hrP := ReachIn.toP hmsk hin hnet hv hr
   rw [hcf] at hrP
@@ -333,9 +350,9 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDe
       · rw [hc] at hl; cases hl
       · exact h
   have hkd : ReadyKind (CfgM.simple R.voters0 ∅) (nodeId n) net xnet (V n) r₁.p rd := by
-    by_cases hrO : ReportedO (V n) rd
-    · exact ready_kind hrP hroO hrO d8 (nodeId_ne_zero n) hv.voteSelf hin' hqs hqc d7
-    · exact kind_preFlag hroO hrO hrep hdur hsnr hpf hv.facts.preRole
+    by_cases hch : Changed (V n) r₁.p
+    · exact ready_kind hrP hro hfl hdl hsnr hch d8 (nodeId_ne_zero n) hv.voteSelf hin' hqs hqc d7
+    · exact kind_preFlag hro hfl hdl hch hrep hdur hsnr hv.facts.preRole
   refine ⟨S1, {
     hp := hp, hgc := hgc, hs1 := hs1, hgo1 := hgo1, hl := hl, hc := hsh.1
     hdk := fun k => ((hs1.2.2.2.2 k).sync (by rw [hmd]) hbt hspl hpar).2.1
@@ -352,9 +369,10 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDe
     hconf := by rw [m3, hcv]
     hcf := hcf
     hcc := by rw [hmd]
+    hsnf := by rw [hmd]
     hq0 := by rw [hv.queue, hsy.1]; rfl
     hpre := fun h => hR.symm.trans (hpf h)
-    hsn := hsnr, hfl := hfl, hrf := hrf, hr := hrP, hro := hroO
+    hsn := hsnr, hfl := hfl, hrf := hrf, hr := hrP, hro := hro
     htold := htold, htb := htb, hin := hin', hqs := hqs, hqc := hqc
     hso := selfOut_reach hrP d7 hv.leadOk.1 hin' (fun m hm => (hnet.2.2.1 m hm).2.1) hqs
     hvs := hv.voteSelf
@@ -384,7 +402,7 @@ theorem RdCtx.finish {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Nod
       rw [ready_pre_eq]; exact h
   exact ready_finish hx.hp hx.hgc hx.hs1 hx.hgo1 hx.hl h' hok
 
-/-- What `antSim_ready` concludes, the `Ready`'s fields read off its state (`ReadyOutO`). -/
+/-- What `antSim_ready` concludes, the `Ready`'s fields read off its state (`ReadyOutP`). -/
 def ReadyGoal (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (net : List Msg) (xnet : List XMsg)
     (evs : List Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState) (rd : ReadyD) : Prop :=
   SimStep R dec evs G (evReady (nodeId n) (V n).byE (roleStr rd.pre r₁.p.role) r₁.p.term r₁.p.vote r₁.p.commit rd.ents)

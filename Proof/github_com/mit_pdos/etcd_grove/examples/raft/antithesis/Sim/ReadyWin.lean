@@ -177,7 +177,8 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hbE := reach_byE hx.hr
   obtain ⟨hb1, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
     hb19, -⟩ := id hb
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, hbase, hidx, -⟩ := id hx.hro
+  have hbase := hx.base1
+  have hidx := hx.logIdx1
   have hCP := hv.cand
   have d3 := hx.d3
   -- the configuration: the initial one, nothing applied

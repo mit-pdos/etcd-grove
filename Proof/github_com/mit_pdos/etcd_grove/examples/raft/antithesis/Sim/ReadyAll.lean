@@ -38,7 +38,7 @@ theorem antSim_ready_in [GooseExts] (msk : SimMask) (hmsk : msk ≤ mskB1) :
         (setV V n ((V n).afterReady r₁ rd)) net xnet := by
   intro R dec S V net xnet evs G n r₁ rd hin hpre _ hr hro hrep htold hrf htb
   obtain ⟨S1, hx⟩ := rdCtx_of hmsk hin hpre hr hro hrep htold hrf htb
-  obtain ⟨hR, hT, hVt, hC, -⟩ := hx.hro
+  obtain ⟨hR, -, hT, hVt, hC, -⟩ := hx.hro
   rw [hx.hsn, hR, hT, hVt, hC]
   exact ready_nonleader hx
     (fun src rej mt hvc hsrc hq hlm hL hents hpc =>
