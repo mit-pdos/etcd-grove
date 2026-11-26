@@ -40,6 +40,15 @@ and `UDPAddr.String`, over the stubs `extUdpListen`, `extUdpSend`, `extUdpRecv`,
 UDP-extension operation each. A model UDP socket is a `netFD` with Go's `family` `AF_INET` and
 `sotype` `SOCK_DGRAM`, the extension's id in `pfd.Sysfd`.
 
+**The model's layer: decided at `readFrom`/`writeTo`** (review-trusted criterion 2). The independent
+review-trusted run (2026-11-25) asked for the model one layer lower, at `netFD.readFromInet4`/
+`writeToInet4`, with `UDPConn.readFrom`/`writeTo` translated. That would mean translating and proving
+`zoneCache` (a global `sync.RWMutex` with its package init), `errMissingAddress`, `ipToSockaddrInet4`,
+`IPv4zero`, `AddrError` and the `[4]byte` sockaddr conversion, and it would take only that conversion
+out of the model. Upamanyu decided against it: the go-models rest packet, with this model at
+`readFrom`/`writeTo`, was approved and the lower layer is not required (coordinator-E, etcd-grove#8,
+https://github.com/mit-pdos/etcd-grove/issues/8#issuecomment-7179776557, 2026-11-25).
+
 **`Close` (and every other `conn` method that reaches the socket) is stuck on a UDP socket.** The
 promoted methods are Go's, and reach the TCP models of `netFD`'s methods (`Close`, `Read`, `Write`,
 the deadlines, `setReadBuffer`/`setWriteBuffer`); each of those is stuck (`stuck()`, the shared
