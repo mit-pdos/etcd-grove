@@ -31,6 +31,10 @@ section main
 variable [GooseExts]
 variable {R : RunCfg} {dec : CCDec} {xnet : List XMsg}
 
+/-- A message of the S4 types keeps no term (`PreTermKeep`: a pre-vote message). -/
+theorem InMsg.notPre {m : Msg} (h : InMsg m) : ¬ PreTermKeep m := by
+  rintro (h' | ⟨h', -⟩) <;> rcases h.1 with h1 | h1 | h1 | h1 | h1 | h1 | h1 <;> rw [h1] at h' <;> cases h'
+
 /-- The binding's leader role is raft's (a pre-candidate is reported as `precandidate`). -/
 theorem roleS_leader {v : NodeView} (h : roleS v = leader) : v.ps.role = .leader := by
   unfold roleS roleStr at h
@@ -59,7 +63,7 @@ theorem fol_led {S : State} {V : Fin R.N → NodeView} {net : List Msg} {G : Raf
   rw [toAppendFact_msgOf, eok_bind] at hsd
   have hlm := List.contains_iff_mem.mp (sendable_led hsd)
   refine ⟨⟨_, hlm, rfl⟩, fun k hk hkt => ?_⟩
-  have hvk : (V k).ps.role = .leader := roleS_leader (by rw [← (hno k).mem.1]; exact hk)
+  have hvk : (V k).ps.role = .leader := (roleOf_leader_iff _).mp (by rw [← (hno k).mem.1]; exact hk)
   have hkm := List.contains_iff_mem.mp ((hno k).leader hvk).1
   have hct : S.currentTerm[k.val]! = uint.Z (V k).ps.term := by rw [(hno k).disk.1, hdk k]; rfl
   have hik : m.src = nodeId k := nameOf_inj (hgo.leader_server hl hlm hkm (by
@@ -186,7 +190,7 @@ theorem readyOk_plain (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     (hcp : CandPart (readyS S1 n.val (uint.Z r₁.p.term) vo (S1.log[n.val]!) (uint.Z r₁.p.commit)
       (S1.role.set n.val (roleOf r₁.p.role)) (S1.confirmed[n.val]!) M Vs S1.leaders S1.ledLog p S1.chain
       S1.termLen S1.viol (memNL S1 n.val (roleOf r₁.p.role))) n ((V n).afterReady r₁ rd))
-    (hqs : ∀ q ∈ rd.qs, QsOk (readyS S1 n.val (uint.Z r₁.p.term) vo (S1.log[n.val]!) (uint.Z r₁.p.commit)
+    (hqs : ∀ q ∈ rd.qs, QsOk R (readyS S1 n.val (uint.Z r₁.p.term) vo (S1.log[n.val]!) (uint.Z r₁.p.commit)
       (S1.role.set n.val (roleOf r₁.p.role)) (S1.confirmed[n.val]!) M Vs S1.leaders S1.ledLog p S1.chain
       S1.termLen S1.viol (memNL S1 n.val (roleOf r₁.p.role))) n ((V n).afterReady r₁ rd) q)
     (hrnf : r₁.p.role ≠ .follower → r₁.p.term = (V n).ps.term → (V n).ps.role ≠ .follower) :
@@ -212,7 +216,7 @@ theorem readyOk_plain (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hlog := by rw [hx.d3]; show logOf (V n).ps.log = logOf r₁.p.log; rw [hlog]
     hcommit := rfl
     cge := Int.le_of_eq hcmZ
-    hrole := by rw [get!_set_self _ hn3, hx.roleS_w]
+    hrole := by rw [get!_set_self _ hn3]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
     rstay := by
@@ -335,7 +339,7 @@ theorem readyOk_fol (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hlog := hL1
     hcommit := rfl
     cge := by rw [hx.d4]; exact hcge
-    hrole := by rw [get!_set_self _ hn3, hx.roleS_w]
+    hrole := by rw [get!_set_self _ hn3]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
     rstay := by
@@ -520,7 +524,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       uint.Z m.term ≤ S1.currentTerm[i.val]! := by
     intro m hm
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
-    refine ⟨i, fun h => ?_, hi, hti⟩
+    refine ⟨i, fun h => ?_, hi, hti.resolve_left (hx.hin m hm.2.2.1).notPre⟩
     subst h
     exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
   unfold ReadyGoal
@@ -586,7 +590,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
         obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hro hso q hq
         rcases hk with ⟨h, -⟩ | ⟨-, rfl⟩
         · rw [hpr] at h; cases h
-        · refine ⟨h1, h2, h3, h4, .inr ⟨rfl, ?_⟩⟩
+        · refine ⟨h1, h2, h4, .inl ⟨h3, .inr ⟨rfl, ?_⟩⟩⟩
           rw [rS_votes]; exact mem_lset_add.mpr (.inr rfl))
       (fun h ht => by rw [ht] at htz; omega)
     rw [hpr] at hok
@@ -872,7 +876,7 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
   obtain ⟨i, hin', hsi, hti⟩ : ∃ i : Fin R.N, i ≠ n ∧ m.src = nodeId i ∧
       uint.Z m.term ≤ S1.currentTerm[i.val]! := by
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
-    refine ⟨i, fun h => ?_, hi, hti⟩
+    refine ⟨i, fun h => ?_, hi, hti.resolve_left (hx.hin m hm.2.2.1).notPre⟩
     subst h
     exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
   have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty

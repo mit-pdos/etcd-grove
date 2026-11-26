@@ -34,6 +34,19 @@ variable {cf : CfgM} {N : Nat} {kk : NodeK}
 /-- The view `w` with raft's protocol state `s`. -/
 def NodeView.withP (w : NodeView) (s : PState) : NodeView := { w with r := { w.r with p := s } }
 
+/-- **`QsOk` with pre-vote off** (no self pre-vote): the S4 shape, a self-acknowledgement or a
+self-vote at the node's term. -/
+theorem QsOk.old {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : NodeView} {q : Msg}
+    (h : QsOk R S n v q) (hk : (R.k n).prevote = false) :
+    q.src = nodeId n ∧ q.dst = nodeId n ∧ q.term = v.ps.term ∧ q.reject = false ∧
+    ((q.ty = .appResp ∧ v.ps.role = .leader ∧
+        AckIn S (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z q.index)) ∨
+     (q.ty = .voteResp ∧
+        { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes)) := by
+  obtain ⟨h1, h2, h3, ⟨h4, h5⟩ | ⟨-, -, -, h6⟩⟩ := h
+  · exact ⟨h1, h2, h4, h3, h5⟩
+  · rw [hk] at h6; cases h6
+
 /-! ## `PendOk` per message type -/
 
 /-- `PendOk` reads only the view's role, term, vote, log, base, commit, `Match`, `by` and cause. -/
@@ -41,9 +54,9 @@ theorem PendOk.congr {id : w64} {v w : NodeView} {q : Msg} (hr : w.ps.role = v.p
     (ht : w.ps.term = v.ps.term) (hv : w.ps.vote = v.ps.vote) (hl : w.ps.log = v.ps.log)
     (hb : w.ps.base = v.ps.base) (hc : w.ps.commit = v.ps.commit)
     (hm : w.ps.matched = v.ps.matched) (hbe : w.byE = v.byE) (hca : w.cause = v.cause)
-    (h : PendOk N id v q) : PendOk N id w q := by
+    (hcf : w.r.cfg = v.r.cfg) (h : PendOk N id v q) : PendOk N id w q := by
   unfold PendOk AppOk HeartbeatOk matchOf at *
-  rw [hr, ht, hv, hl, hb, hc, hm, hbe, hca]; exact h
+  rw [hr, ht, hv, hl, hb, hc, hm, hbe, hca, hcf]; exact h
 
 theorem pendOk_app {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
     (hd : ∃ j : Fin N, q.dst = nodeId j) (hr : w.ps.role = .leader) (ha : AppOk id w.ps q) :
@@ -159,7 +172,7 @@ theorem outOk_appEnd {id : w64} {w : NodeView} {X s' : PState} {m : Msg} (hX : X
       q.dst ≠ id → (∃ j : Fin N, q.dst = nodeId j) → PendOk N id (w.withP s'') q := by
     intro q s'' hqt hqs hqd hqtm hst hacc hne hd
     unfold PendOk; rw [hqt]
-    exact ⟨hne, hd, hqs, hby, m, hca, hty, hqd, hqtm, hqtm.trans hst.symm, hacc⟩
+    exact ⟨hne, hd, hqs, hby, .inl ⟨m, hca, hty, hqd, hqtm, hqtm.trans hst.symm, hacc⟩⟩
   rcases h with ⟨hlt, rfl⟩ | ⟨hle, lastnewi, es', hma, rfl⟩ | ⟨hle, -, hint, hintterm, -, -, rfl⟩
   · intro q hq hne hd
     rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
@@ -393,7 +406,7 @@ theorem advanceEndR_toO {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {de
     (hv : NodeOk R dec S net n v) (ha : AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁) :
     AdvanceEndO (R.k n) v.r.cfg.cfg (nodeId n) v.ps v.qs r₁.p :=
   advanceEndO_of ((hin.b1a hmsk).2.1 n)
-    (fun q hq => (hv.qs q hq).2.2.2.2.imp (fun h => h.1) (fun h => h.1))
+    (fun q hq => (((hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])).2.2.2.2).imp (fun h => h.1) (fun h => h.1))
     (hv.facts.pend0 (by rw [(hin.b1a hmsk).1])) (advanceEndR_toP ha)
 
 /-- **Every message to another voter in the outbox of the state a `Ready` is taken at is
@@ -424,24 +437,8 @@ theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : 
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     refine outOk_advance hX (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha)
-    obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
+    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-
-/-- **The `Ready`'s messages to other nodes are `PendOk` at the view after it**
-(`NodeView.drainOf`, sync), each to a voter (`ReadyOutP`'s `ReadyMsgsToVoters`). -/
-theorem pendOk_of_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
-    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD}
-    (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hro : ReadyOutP R n v r₁ rd) :
-    ∀ q ∈ rd.msgs, PendOk R.N (nodeId n) (v.drainOf r₁ rd) q := by
-  intro q hq
-  have hasync : R.md.async = false := by rw [(hin.b1a hmsk).1]
-  have hq' := (((hro.2.2.2.2.2.2.2.2.1 hasync).2).mem_iff).mp hq
-  rw [List.mem_filter] at hq'
-  have hne : q.dst ≠ nodeId n := of_decide_eq_true hq'.2
-  exact PendOk.congr rfl rfl rfl rfl rfl rfl rfl rfl rfl
-    (outOk_reach hmsk hin hnet hv hr q hq'.1 hne (hro.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 q (List.mem_append_left _ hq)))
 
 /-- The S4 network's types (`InMask.s4`'s order) in the order of the per-type lemmas. -/
 theorem ty7_of_s4 {t : MsgType}
@@ -591,7 +588,7 @@ theorem reach_leadOk {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec :
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     refine leadHint_adv hlo hid hin' (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha)
-    obtain ⟨h1, -, -, -, h5⟩ := hqs q hq
+    obtain ⟨h1, -, -, -, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h5.imp (fun h => h.1) (fun h => h.1), h1⟩
 
 end outbox

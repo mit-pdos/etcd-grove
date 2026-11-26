@@ -266,7 +266,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hcommit := rfl
     cge := Int.le_of_eq hcmi
     hrole := by
-      rw [get!_set_self _ hn3]; show leader = roleStr rd.pre r₁.p.role; rw [hx.hpf, hpl]; rfl
+      rw [get!_set_self _ hn3]; show leader = roleOf r₁.p.role; rw [hpl]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
     rstay := fun _ _ => get!_set_self _ hn3
@@ -369,7 +369,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hqs := fun q hq => by
       obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso q hq
       rcases hk with ⟨hlr, rfl⟩ | ⟨hc', -⟩
-      · refine ⟨h1, h2, h3, h4, .inl ⟨rfl, hlr, ?_⟩⟩
+      · refine ⟨h1, h2, h4, .inl ⟨h3, .inl ⟨rfl, hlr, ?_⟩⟩⟩
         refine ⟨_, hackN, rfl, rfl, rfl, rfl, ?_⟩
         show uint.Z (plastIndex r₁.p) ≤ (r₁.p.log.length : Int)
         unfold plastIndex plogLastIndexZ

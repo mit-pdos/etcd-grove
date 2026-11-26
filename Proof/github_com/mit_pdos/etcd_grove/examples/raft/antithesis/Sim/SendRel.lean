@@ -133,8 +133,9 @@ theorem NodeOk.send {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {k n
     exact ⟨fun j hj => granted_mono (s1 := sendS S n.val M C) (s := S) k.val rfl rfl hsub rfl (c1 j hj),
       hsub _ c2⟩
   · intro x hx
-    obtain ⟨a1, a2, a3, a4, a5⟩ := d13 x hx
-    exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, h.2.1, hack h.2.2⟩) id⟩
+    obtain ⟨a1, a2, a3, ⟨a4, a5⟩ | a6⟩ := d13 x hx
+    · exact ⟨a1, a2, a3, .inl ⟨a4, a5.imp (fun h => ⟨h.1, h.2.1, hack h.2.2⟩) id⟩⟩
+    · exact ⟨a1, a2, a3, .inr a6⟩
   · intro m hm
     obtain ⟨h1, h2⟩ := d15 m hm
     exact ⟨List.mem_append_left _ h1, h2⟩
@@ -206,7 +207,8 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
           ∀ i : Fin R.N, (C[k.val]!).term < S.currentTerm[i.val]!) ∧ (C[k.val]!).term ≤ S.currentTerm[k.val]!
         rw [hok.cother k hk]; exact hb14 k
   · -- NetOk
-    refine ⟨fun m hm => ?_, ?_, fun m hm => ?_, fun m hm hty i hsrc hro hct => ?_, fun m hm => ?_⟩
+    refine ⟨fun m hm => ?_, ?_, fun m hm => ?_, fun m hm hty i hsrc hro hct => ?_, fun m hm => ?_,
+      fun m hm => ?_⟩
     · rcases List.mem_append.mp hm with hm | hm
       · obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
         refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩
@@ -217,7 +219,7 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
       · rw [List.mem_singleton] at hm
         subst hm
         obtain ⟨j, hj⟩ := hok.dst
-        exact ⟨hok.tyNet, ⟨n, hok.src⟩, j, hj, fun _ => ⟨hok.req, hok.vote, hok.grant, hok.ack⟩⟩
+        exact ⟨hok.tyNet, ⟨n, hok.src.1, .inr hok.src.2⟩, j, hj, fun _ => ⟨hok.req, hok.vote, hok.grant, hok.ack⟩⟩
     · intro m hm hty j hdst hle
       change ((C[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (C[j.val]!).index) ∨
         uint.Z m.commit ≤ S.commitIndex[j.val]!
@@ -249,8 +251,13 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
         subst hi
         exact hok.lcm hty hro hct
     · rcases List.mem_append.mp hm with hm | hm
-      · exact hn.2.2.2.2 m hm
+      · exact hn.2.2.2.2.1 m hm
       · rw [List.mem_singleton] at hm; subst hm; exact hmask
+    · rcases List.mem_append.mp hm with hm | hm
+      · exact hn.2.2.2.2.2 m hm
+      · rw [List.mem_singleton] at hm; subst hm
+        intro _
+        rcases hok.ty with h | h | h | h | h | h | h <;> rw [h] <;> exact ⟨nofun, nofun⟩
   · -- NodeOk
     intro k
     by_cases hk : k = n

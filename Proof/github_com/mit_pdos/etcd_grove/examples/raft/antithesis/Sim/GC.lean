@@ -664,11 +664,12 @@ theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List 
             (server_of hc n) (Int.le_refl _))
       rw [heq]; exact this
     · intro q hq
-      obtain ⟨q1, q2, q3, q4, q5⟩ := hQ q hq
-      refine ⟨q1, q2, q3, q4, ?_⟩
-      rcases q5 with ⟨h1, h0, h2⟩ | ⟨h1, h2⟩
-      · exact .inl ⟨h1, h0, gcRes_ack_keep hc hg n h2 hct⟩
-      · exact .inr ⟨h1, gcRes_votes_keep hc ho h2 n rfl hct⟩
+      obtain ⟨q1, q2, q4, ⟨q3, q5⟩ | q6⟩ := hQ q hq
+      · refine ⟨q1, q2, q4, .inl ⟨q3, ?_⟩⟩
+        rcases q5 with ⟨h1, h0, h2⟩ | ⟨h1, h2⟩
+        · exact .inl ⟨h1, h0, gcRes_ack_keep hc hg n h2 hct⟩
+        · exact .inr ⟨h1, gcRes_votes_keep hc ho h2 n rfl hct⟩
+      · exact ⟨q1, q2, q4, .inr q6⟩
   · -- GlobalOk
     obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9⟩ := hgo
     refine ⟨fun l hl => g1 l (gcRes_leaders_sub hl), fun v hv => g2 v (gcRes_votes_sub hv), g3,

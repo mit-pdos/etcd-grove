@@ -197,7 +197,7 @@ theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
   have hvk : (V k).ps.role = .leader := by
     have h := hv.mem.1
     rw [hk] at h
-    exact roleS_eq_leader h.symm
+    exact (roleOf_leader_iff _).mp h.symm
   have hkm := List.contains_iff_mem.mp (hv.leader hvk).1
   have hnm := List.contains_iff_mem.mp hn
   have hct : S.currentTerm[k.val]! = uint.Z (V k).ps.term := by rw [hv.disk.1, hdk k]; rfl
@@ -208,8 +208,8 @@ theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
 view's state, for a step that keeps the role, term and log. -/
 theorem quietP_reach {R : RunCfg} {kk : NodeK} {c : CfgM} {S : State} {net : List Msg}
     {n : Fin R.N} {v : NodeView} {ps₁ : PState}
-    (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hqs : ∀ q ∈ v.qs, QsOk S n v q)
-    (hct : S.currentTerm[n.val]! = uint.Z v.ps.term) (hin : ∀ m ∈ net, InMsg m)
+    (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hqs : ∀ q ∈ v.qs, QsOk R S n v q)
+    (hkp : (R.k n).prevote = false) (hct : S.currentTerm[n.val]! = uint.Z v.ps.term) (hin : ∀ m ∈ net, InMsg m)
     (hr : ReachP kk c (nodeId n) net v ps₁)
     (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
     QKeep S n v.ps ps₁ := by
@@ -221,7 +221,7 @@ theorem quietP_reach {R : RunCfg} {kk : NodeK} {c : CfgM} {S : State} {net : Lis
   | propose d _ _ _ hs => exact quiet_propose hs hl
   | advance _ _ _ _ ha =>
     refine (quiet_adv_run hc hct (fun q hq => ?_) ha rfl).2.2 hro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
+    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old hkp
     refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
     · rcases h5 with h5 | h5
       · exact h5.2.2
@@ -283,7 +283,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     have := congrArg List.length hfull
     rw [logOf_length, logOf_length] at this; exact this
   have hMO : MatchOk S1 n r₁.p :=
-    (quietP_reach hc hnet hv.qs hx.d1 hx.hin hx.hr (hpl.trans hvl.symm) hpt hplog).2.2.1 hpl ⟨lp3, lp4⟩
+    (quietP_reach hc hnet hv.qs (by rw [hx.hkn]) hx.d1 hx.hin hx.hr (hpl.trans hvl.symm) hpt hplog).2.2.1 hpl ⟨lp3, lp4⟩
   have hbase : r₁.p.base = base0 := hx.hro.2.2.2.2.2.2.2.2.2.2.1
   have hT : S1.currentTerm[n.val]! = uint.Z r₁.p.term := by rw [hx.d1, hpt]
   have hlogn : S1.log[n.val]! = logOf r₁.p.log := by rw [hx.d3, hplog]
@@ -363,8 +363,8 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     cge := Int.le_of_lt hcmi
     hrole := by
       rw [get!_set_self _ hn3]
-      show leader = roleStr rd.pre r₁.p.role
-      rw [hx.hpf, hpl]; rfl
+      show leader = roleOf r₁.p.role
+      rw [hpl]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
     rstay := fun _ _ => get!_set_self _ hn3

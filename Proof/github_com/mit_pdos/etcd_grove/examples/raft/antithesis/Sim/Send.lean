@@ -145,6 +145,17 @@ theorem send_appResp0_eq (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hrej
     decide_false, hi]
   rfl
 
+/-- A stale `MsgApp`'s or `MsgHeartbeat`'s empty answer (`StaleEnd`, B 553-556: `pending[n]` a request
+of a term below the node's; the answer at index `0` and the node's term) changes nothing. -/
+theorem send_appRespStale_eq (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hrej : q.reject = false)
+    (m : Msg) (hpd : S.pending[n.val]! = [msgOf m (nodeId n)]) (hm : m.ty = .app ∨ m.ty = .heartbeat)
+    (hlt : uint.Z m.term < S.currentTerm[n.val]!) (hi : (uint.Z q.index == 0) = true)
+    (hqt : uint.Z q.term = S.currentTerm[n.val]!) :
+    S.step (evSend (nodeId n) b q) = .ok (some (sendS S n.val S.msgs S.confirmed)) := by
+  rcases hm with hm | hm <;>
+  send_simp [hsrc, hrej, hpd, hm, cons_bne_nil', cons_beq_nil', cons_get0, decide_eq_true hlt, hi, hqt]
+  all_goals rfl
+
 theorem send_ack_eq (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hrej : q.reject = false) (m : Msg)
     (hpd : S.pending[n.val]! = [msgOf m (nodeId n)]) (hm : m.ty = .app)
     (hmt : S.currentTerm[n.val]! = uint.Z m.term) (hi : (uint.Z q.index == 0) = false)
@@ -664,7 +675,7 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
       cases h : (V n).pre
       · rfl
       · have := hf.preRole h; rw [hr] at this; cases this
-    rw [hmem.1]; unfold roleS roleStr; rw [hpf, hr]; rfl
+    rw [hmem.1, hr]; rfl
   cases hty : q.ty <;> simp only [hty] at hcase
   case vote =>
     obtain ⟨h1, h2, h3, -, h5, h6⟩ := hcase
@@ -773,11 +784,26 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
         (fun h => nomatch hty.symm.trans h)
         (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h.1)⟩
   case appResp =>
-    obtain ⟨h1, hby, m, hcm, hmty, hqd, hqt, hqt2, hacc⟩ := hcase
-    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, hqt2]
+    obtain ⟨h1, hby, hcase⟩ := hcase
     have hreq : (q.ty = .app ∨ q.ty = .heartbeat) →
         (toAppendFact (msgOf q q.dst) >>= S1.sendable) = .ok true :=
       fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h)
+    rcases hcase with hcase | ⟨m, hcm, hmty, -, hlt, hqe⟩
+    rotate_left
+    · obtain ⟨m', hcm', hpd⟩ := (hT (htold hby)).resolve_right
+        (fun ⟨x, hx, _⟩ => by rw [((hno n).xcause x hx).2] at hcm; cases hcm)
+      rw [hcm] at hcm'; cases hcm'
+      have hqt2 : q.term = (V n).ps.term := by rw [hqe]
+      have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, hqt2]
+      have hrej : q.reject = false := by rw [hqe]
+      have hi' : (uint.Z q.index == 0) = true := by rw [hqe]; rfl
+      have hlt' : uint.Z m.term < S1.currentTerm[n.val]! := by rw [hterm, hqt2]; exact hlt
+      exact ⟨_, _, send_appRespStale_eq n q _ hc hsrv hne' hty h1 hrej m hpd hmty hlt' hi' hterm.symm,
+        SendOk.plain hsh hb (hlcm := fun h _ _ => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h)) (hhb := fun h => nomatch hty.symm.trans h) (.inr (.inr (.inr (.inl hty)))) ⟨h1, by omega⟩ ⟨j, hj⟩ hreq
+          (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h.1)
+          (fun h => h.2.2 (by rw [hqe]))⟩
+    obtain ⟨m, hcm, hmty, hqd, hqt, hqt2, hacc⟩ := hcase
+    have hterm : S1.currentTerm[n.val]! = uint.Z q.term := by rw [hct, hqt2]
     cases hrej : q.reject
     case true =>
       exact ⟨_, _, send_appRespRej_eq n q _ hc hsrv hne' hty h1 hrej,

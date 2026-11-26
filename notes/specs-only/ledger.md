@@ -6245,3 +6245,36 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (granted (recordVote s.votes from (!reject)))`) needs the raft invariant "a pre-candidate's recorded tally is not a
   quorum" for the rejection case (with a rejection the new tally's grants are the old ones'); not in raft today.
 - **Decision.** Lead's request (2026-11-26). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): the pre-vote facts of the Sim's invariant (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`MemIs`, `PendOk`, `QsOk`,
+  `PreVoterOk` (new), `NetOk`), `Sim/Abs.lean` (`RunCfg.hpv`); the Sim proofs follow (GC, Init, Boot, Outbox, MsgShape,
+  SendRel, Send, Quiet, ReadyRel, Ready, ReadyMain, ReadyCmt, ReadyProp, ReadyWin). Requests S1, S3-S7 of the PreVote/CQ
+  widening (counterexamples in ant4-briefs/b1-sim-widen-resume.md); S2 is raft's (57cff2a9b9).
+- **S1 (`MemIs`, a correction).** The binding's role is `roleOf v.ps.role` (was `roleS v`, i.e. `"precandidate"` when
+  the view's pre flag is set): `inMemory` stores `"follower"` for a reported `"precandidate"` (B 248-249). With pre-vote
+  off the two agree (`v.pre = false`, `NodeFacts.preVote`). `ReadyOk.hrole` follows.
+- **S3 (pre-vote voters).** `PendOk`'s `.preVote` arm gains `id ∈ v.r.cfg.cfg.voters` (`PreCampaignEnd`'s guard), its
+  `.preVoteResp` arm `q.reject = false → ∃ m, v.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src` (a grant answers the
+  handled request); `NetOk` gains a sixth conjunct `∀ m ∈ net, PreVoterOk R m` (without conf changes a pre-vote request
+  from a voter of `R.voters0`, a granted response to one). Why: `HandleEnd`'s pre-vote win is `CampaignSends`, which
+  tests no promotability; the binding's `Unpromotable` rejects a non-voter's candidacy. `PendOk.congr` takes the
+  configuration; `pendOk_of_reach` moved from Outbox to MsgShape (it reads `reach_keep`'s configuration).
+- **S4 (`PendOk .appResp`).** A second disjunct: a stale `MsgApp`/`MsgHeartbeat`'s empty answer (`StaleEnd`,
+  check-quorum or pre-vote on): the cause of a term below the node's, `q = Msg.mk .appResp id m.src v.ps.term false 0 0
+  0 0 []`. The binding accepts it unchanged (B 553-556; `Send.send_appRespStale_eq`), proved in `antSim_send_in`.
+- **S5 (`QsOk`).** Takes the run (`QsOk R S n v q`); the common prefix is `src = dst = id ∧ reject = false`, then
+  either the old two arms at the node's term or a pre-candidate's self pre-vote response (`q.term = v.ps.term + 1`,
+  the node a voter of its configuration, `(R.k n).prevote = true`). `QsOk.old` (Outbox) gives the old shape at
+  `(R.k n).prevote = false`; `RdCtx.hkn : R.k n = {}`.
+- **S6 (`NetOk`'s sender term).** `uint.Z m.term ≤ currentTerm[i]` becomes `PreTermKeep m ∨ …`: a pre-vote request is at
+  its sender's next term, a granted response at the request's; both keep the receiver's term (`PreEnd`'s third arm), so
+  no `adopt` reads it. Below `mskB1a` the S4 types exclude the new disjunct (`InMsg.notPre`).
+- **S7 (`RunCfg.hpv`, a new field).** `∀ n, (k n).prevote = true → md.prevote = true`: the driver draws a node's
+  `PreVote` within the scope (`DrawMode`: `pv = true → s.PreVote' = true`, `ModeRun`'s `R.k n = modeK m` and
+  `R.md = scopeMd s`); `MsgMask`'s `NetTy` for the node's pre-vote messages needs it. A harness obligation where `R` is
+  built from the mode (no such construction yet; `R3` proves it).
+- **Decision.** Lead-approved (2026-11-26: S1, S3-S7 as requested). No new axiom. S7 restricts the runs every Sim
+  statement is over (a `RunCfg` field, which the harness discharges from `DrawMode`); no other premise. Every `_in`
+  theorem keeps its statement (mask `mskB1a`).

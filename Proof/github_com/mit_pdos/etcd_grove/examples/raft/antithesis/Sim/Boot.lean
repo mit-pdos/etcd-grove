@@ -115,7 +115,7 @@ theorem antSim_boot : antSim_boot.stmt := by
       conv => lhs; rw [← this]
       exact set_get!_self (by rw [hsh.2.2.2.2.2.2.2.2.2.2.2.2.2.2]; exact hnN)
     have hro : S1.role.set n.val follower = S1.role := by
-      have : S1.role[n.val]! = follower := by rw [hm.1]; unfold roleS roleStr; rw [hpre, hrole]; rfl
+      have : S1.role[n.val]! = follower := by rw [hm.1, hrole]; rfl
       conv => lhs; rw [← this]
       exact set_get!_self (by rw [hsh.2.2.2.2.2.2.1]; exact hnN)
     have hla : S1.lastApplied.set n.val 0 = S1.lastApplied := by

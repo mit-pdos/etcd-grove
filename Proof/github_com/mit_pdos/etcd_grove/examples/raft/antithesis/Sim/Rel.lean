@@ -220,10 +220,11 @@ def DiskIs (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
   S.currentTerm[n.val]! = uint.Z v.dur.term ∧ S.vote n.val = nameOf v.dur.vote ∧
   S.log[n.val]! = logOf v.dur.log ∧ S.commitIndex[n.val]! = uint.Z v.dur.commit
 
-/-- **C1, the node's in-memory part** (`MemIs`): the binding's role (the last reported one, B 248-249),
-applied index (what was handed out), configuration and its index are the view's. -/
+/-- **C1, the node's in-memory part** (`MemIs`): the binding's role (raft's role of the last reported
+state: `inMemory` stores `"follower"` for a reported `"precandidate"`, B 248-249, so the pre flag is
+not part of it), applied index (what was handed out), configuration and its index are the view's. -/
 def MemIs (N : Nat) (S : AntCheck.State) (n : Fin N) (v : NodeView) : Prop :=
-  S.role[n.val]! = roleS v ∧ S.lastApplied[n.val]! = (v.delivered.length : Int) ∧
+  S.role[n.val]! = roleOf v.ps.role ∧ S.lastApplied[n.val]! = (v.delivered.length : Int) ∧
   S.config[n.val]! = confView N v.conf ∧ S.confAt[n.val]! = (v.confAt : Int)
 
 /-- **C1, sync mode's disk** (not batching, splitting or sending early: those are parity B2's): no
@@ -354,10 +355,13 @@ append or heartbeat is the leader's (`AppOk`: its commit at most the leader's, w
 reads, not `AppSendOk`'s equal one, since an `Advance` stepping two self-messages may leave a first
 batch with a stale commit; `HeartbeatOk`), an acknowledgement answers the
 handled `MsgApp` (accepting: its last index, the log after the write matching it, B 571-575; stale:
-the commit index, B 577-580), a heartbeat response is at the node's term; a forwarded proposal is
+the commit index, B 577-580; or a stale `MsgApp`/`MsgHeartbeat`'s empty answer at the node's term,
+`StaleEnd`), a heartbeat response is at the node's term; a forwarded proposal is
 unchecked (B 524, 586), from the node at term `0` (`ProposeEnd`'s forward); a pre-vote request or
 response, a read-index request (local, forwarded) or response is unchecked (`isUnmodelled`, B 702)
-but for its sender; a snapshot is a leader's (parity B3 states what `snapOk` needs). A heartbeat
+but for its sender, and a pre-vote request is a voter's (`PreCampaignEnd`), a granted pre-vote
+response answers the handled `MsgPreVote` (so that its receiver, which may campaign on it with no
+promotability test, `CampaignSends`, is a voter: the binding's `Unpromotable`); a snapshot is a leader's (parity B3 states what `snapOk` needs). A heartbeat
 carries no index, term or entries (`sendHeartbeat`), which the binding's `Sendable` reads (B 120-124).
 An acknowledgement is of a drain caused by a `recv` (`by = "recv"`, whose `pending[n]` it reads). -/
 def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
@@ -369,31 +373,40 @@ def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
   | .app => v.ps.role = .leader ∧ AppOk id v.ps q
   | .heartbeat => v.ps.role = .leader ∧ HeartbeatOk id v.ps q ∧
       q.index = W64 0 ∧ q.logterm = W64 0 ∧ q.entries = []
-  | .appResp => q.src = id ∧ v.byE = go!"recv" ∧ ∃ m, v.cause = some m ∧ m.ty = .app ∧ q.dst = m.src ∧
-      q.term = m.term ∧ q.term = v.ps.term ∧
-      (q.reject = false →
-        (uint.Z q.index = uint.Z m.index + m.entries.length ∧
-          plogTermAt v.ps.base v.ps.log m.index = some m.logterm ∧
-          ∀ (k : Nat) (e : EntryM), m.entries[k]? = some e →
-            plogTermAt v.ps.base v.ps.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
-        (uint.Z m.index < uint.Z v.ps.commit ∧ q.index = v.ps.commit))
+  | .appResp => q.src = id ∧ v.byE = go!"recv" ∧
+      ((∃ m, v.cause = some m ∧ m.ty = .app ∧ q.dst = m.src ∧
+        q.term = m.term ∧ q.term = v.ps.term ∧
+        (q.reject = false →
+          (uint.Z q.index = uint.Z m.index + m.entries.length ∧
+            plogTermAt v.ps.base v.ps.log m.index = some m.logterm ∧
+            ∀ (k : Nat) (e : EntryM), m.entries[k]? = some e →
+              plogTermAt v.ps.base v.ps.log (m.index + W64 ((k : Int) + 1)) = some e.Term') ∨
+          (uint.Z m.index < uint.Z v.ps.commit ∧ q.index = v.ps.commit))) ∨
+       (∃ m, v.cause = some m ∧ (m.ty = .app ∨ m.ty = .heartbeat) ∧ q.dst = m.src ∧
+        uint.Z m.term < uint.Z v.ps.term ∧
+        q = Msg.mk .appResp id m.src v.ps.term false (W64 0) (W64 0) (W64 0) (W64 0) []))
   | .heartbeatResp => q.src = id ∧ q.term = v.ps.term
   | .propose => q.src = id ∧ q.term = W64 0
-  | .preVote => q.src = id
-  | .preVoteResp => q.src = id
+  | .preVote => q.src = id ∧ id ∈ v.r.cfg.cfg.voters
+  | .preVoteResp => q.src = id ∧ (q.reject = false → ∃ m, v.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src)
   | .readIndex => q.src = id
   | .readIndexResp => q.src = id
   | .snap => q.src = id ∧ v.ps.role = .leader
 
 /-- The self-addressed messages `Advance` steps (`stepsOnAdvance`): a leader's self-acknowledgement
 (queued only while it leads: a node that steps down drops its outbox), its ack fact already recorded
-by the `ready` of its write (B 407), or a candidate's self-vote, recorded by the campaign's (B 418). -/
-def QsOk (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) (q : Msg) : Prop :=
-  q.src = nodeId n ∧ q.dst = nodeId n ∧ q.term = v.ps.term ∧ q.reject = false ∧
-  ((q.ty = .appResp ∧ v.ps.role = .leader ∧
-      AckIn S (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z q.index)) ∨
-   (q.ty = .voteResp ∧
-      { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes))
+by the `ready` of its write (B 407), a candidate's self-vote, recorded by the campaign's (B 418), or
+a pre-candidate's self pre-vote at the next term (`PreCampaignEnd`, a voter's with pre-vote on: its win campaigns,
+`CampaignSends`, with no promotability test; unrecorded, `isUnmodelled`). -/
+def QsOk (R : RunCfg) (S : AntCheck.State) (n : Fin R.N) (v : NodeView) (q : Msg) : Prop :=
+  q.src = nodeId n ∧ q.dst = nodeId n ∧ q.reject = false ∧
+  ((q.term = v.ps.term ∧
+    ((q.ty = .appResp ∧ v.ps.role = .leader ∧
+        AckIn S (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z q.index)) ∨
+     (q.ty = .voteResp ∧
+        { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes))) ∨
+   (q.ty = .preVoteResp ∧ q.term = v.ps.term + W64 1 ∧ nodeId n ∈ v.r.cfg.cfg.voters ∧
+      (R.k n).prevote = true))
 
 /-- **C1, the leader hint**: a node that does not lead does not name itself as leader (raft's
 `LeadOk`): every step that sets `lead` to the node itself makes it leader, and a leader that steps
@@ -433,7 +446,7 @@ def NodeOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n :
   DiskIs S n v ∧ MemIs R.N S n v ∧ SyncDisk R v ∧ UndoIs S n v ∧ QueueIs S n v ∧ ReadsIs S n v ∧
   ConfLag dec R v ∧ NodeFacts R n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
   (∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧ (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) v.ps x) ∧
-  (∀ q ∈ v.qs, QsOk S n v q) ∧
+  (∀ q ∈ v.qs, QsOk R S n v q) ∧
   (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
     (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x])) ∧
   (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n) ∧
@@ -505,7 +518,7 @@ theorem NodeOk.xpend {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List
 
 theorem NodeOk.qs {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
     (h : NodeOk R dec S net n v) :
-    ∀ q ∈ v.qs, QsOk S n v q :=
+    ∀ q ∈ v.qs, QsOk R S n v q :=
   h.2.2.2.2.2.2.2.2.2.2.2.2.1
 
 theorem NodeOk.told {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
@@ -762,20 +775,32 @@ def MsgShape (m : Msg) : Prop :=
 /-- Every message sent has `MsgShape`. -/
 def NetShape (net : List Msg) : Prop := ∀ m ∈ net, MsgShape m
 
+/-- **C4, the pre-vote messages' voters** (without conf changes): a pre-vote request is from a voter
+(`PreCampaignEnd`'s guard) and a granted pre-vote response to one (it answers a request), so that a
+node campaigning on one (`HandleEnd`'s `CampaignSends`, no promotability test) is promotable (the
+binding's `Unpromotable`). -/
+def PreVoterOk (R : RunCfg) (m : Msg) : Prop :=
+  R.md.confChanges = false →
+    (m.ty = .preVote → m.src ∈ R.voters0) ∧
+    (m.ty = .preVoteResp → m.reject = false → m.dst ∈ R.voters0)
+
 /-- **C4**: every message sent (`net`: every `send` so far, delivered, dropped or in flight) is
-between two of the nodes, of a type in scope, of a term its sender has reached, and what the
+between two of the nodes, of a type in scope, of a term its sender has reached (but a pre-vote
+request or a granted pre-vote response, at the next term or the request's: `PreTermKeep`, which
+keeps the receiver's term), and what the
 binding checks at its receipt or of its answer was recorded by its sender's reports (B 546: the
 `send` of a request checked `Sendable`; B 418, 540, 573: the facts of a vote request, a grant, an
 ack) and is kept while its receiver has not passed its term (GC drops only what a term has
 passed, B 696-709); a heartbeat's commit within its receiver's confirmation or commit
 (`HbCommitOk`); every message's shape (`NetShape`); a leader's message's commit within its own
-(`LeadCommitMsgOk`); every message under the run's mask (`MsgMask`). -/
+(`LeadCommitMsgOk`); every message under the run's mask (`MsgMask`); the pre-vote messages'
+voters (`PreVoterOk`). -/
 def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
   (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
       m.ty = .heartbeatResp ∨ m.ty = .propose ∨ m.ty = .preVote ∨ m.ty = .preVoteResp ∨
       m.ty = .readIndex ∨ m.ty = .readIndexResp ∨ m.ty = .snap) ∧
-    (∃ i : Fin R.N, m.src = nodeId i ∧ uint.Z m.term ≤ S.currentTerm[i.val]!) ∧
+    (∃ i : Fin R.N, m.src = nodeId i ∧ (PreTermKeep m ∨ uint.Z m.term ≤ S.currentTerm[i.val]!)) ∧
     ∃ j : Fin R.N, m.dst = nodeId j ∧
       (S.currentTerm[j.val]! ≤ uint.Z m.term →
         ((m.ty = .app ∨ m.ty = .heartbeat) →
@@ -786,7 +811,8 @@ def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
             AntCheck.Fact) ∈ S.msgs) ∧
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
-  HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net ∧ ∀ m ∈ net, MsgMask R m
+  HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net ∧ (∀ m ∈ net, MsgMask R m) ∧
+  ∀ m ∈ net, PreVoterOk R m
 
 /-- **C4, the transfer messages**: every `MsgTransferLeader`/`MsgTimeoutNow` sent (`xnet`) is of a
 term some server has reached (its sender's, at the send: what `OnDisk`'s `adopt` asks of a higher

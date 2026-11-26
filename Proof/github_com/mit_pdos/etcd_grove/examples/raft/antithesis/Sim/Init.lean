@@ -214,7 +214,7 @@ theorem antSim_init : antSim_init.stmt := by
         · rw [initS_ledAt, hb]; simp [TermFn.get]; rfl
         · rw [initS_ledConf, hb]; simp [TermFn.get, confView_c0]; rfl
   · unfold NetOk HbCommitOk NetShape LeadCommitMsgOk
-    refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
   · intro x hx; cases hx
   · intro n
     obtain ⟨⟨hterm, hvote0, hlead, hrole, _, hout, hbase, hlog0, hcommit, _, _, _, hsnap, hcidx, hcfg, hfp, hpd⟩,
@@ -227,7 +227,7 @@ theorem antSim_init : antSim_init.stmt := by
     · rw [hlog, hdur]; simp only [durOf]; rw [hfull]
     · rw [hdur]; simp only [durOf]; rw [hcommit]; exact rep_get _ n
     · rw [show (initS R).role[n.val]! = follower from rep_get _ n]
-      unfold roleS roleStr; rw [hpre, hrole]; rfl
+      rw [hrole]; rfl
     · rw [hdel]; exact rep_get (R := R) (0 : Int) n
     · rw [hcv, confView_c0]; exact rep_get _ n
     · rw [hca]; exact rep_get _ n

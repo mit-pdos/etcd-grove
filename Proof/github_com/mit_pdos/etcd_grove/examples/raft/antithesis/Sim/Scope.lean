@@ -433,7 +433,7 @@ theorem RecvEnd.toO_in {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec
     RecvEndO (R.k n) c (nodeId n) v.ps m s' := by
   obtain ⟨hmd, hk, -, -, -, -, -, hty⟩ := hin.b1a hmsk
   have hrd : R.md.reads = false := by rw [hmd]
-  exact recvEndO_of (hk n) (hty m hm) (fun h1 => (hnet.2.2.2.2 m hm).2.2.2 hrd (.inr h1))
+  exact recvEndO_of (hk n) (hty m hm) (fun h1 => (hnet.2.2.2.2.1 m hm).2.2.2 hrd (.inr h1))
     (hv.facts.pend0 hrd) h
 
 /-- **A proposal below `mskB1a`**: its step from the view is the reading. -/

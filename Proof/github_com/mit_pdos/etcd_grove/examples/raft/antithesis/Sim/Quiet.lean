@@ -596,7 +596,7 @@ theorem quiet_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     refine (quiet_adv_run hc hct (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha) rfl).2.2 hro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
+    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
     · rcases h5 with h5 | h5
       · exact h5.2.2
@@ -636,7 +636,7 @@ theorem reach_selfFree {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     have hty : ∀ q ∈ v.qs, q.ty = .appResp ∨ q.ty = .voteResp := fun q hq => by
-      obtain ⟨-, -, -, -, h5⟩ := hqs q hq
+      obtain ⟨-, -, -, -, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
       exact h5.imp (fun h => h.1) (fun h => h.1)
     have hfin := advSelf_run (advanceEndR_toO hmsk hin hv ha) hty
       (⟨fun h => h, fun q hq => by rw [hX0] at hq; cases hq⟩ : AdvSelf (nodeId n) v.ps.role v.ps)
@@ -730,7 +730,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       leaderPart_of d9 hro ht hfl (fun hr' hm => hkp.2.2.1 (hro.trans hr') hm),
       candPart_of d10 hro (fun hr' hm => hkp.2.2.2 (hro.trans hr') hm),
       ?_, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hro.trans h'))⟩
-    · rw [d2.1]; show roleStr v.pre v.ps.role = roleStr v.pre r₁.p.role; rw [hro]
+    · rw [d2.1]; show roleOf v.ps.role = roleOf r₁.p.role; rw [hro]
     · show v.dur = durOf r₁
       rw [hdur]; simp only [durOf, ht, hvo, hc, hfl]
     · show v.conf = r₁.cfg; rw [hcfg]; exact hconf.1
@@ -768,7 +768,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
     have hlead := reach_leadOk hmsk hin hnet hv hr
     have hroOk := reach_roOk hmsk hin hnet hv hr
     have hcm : ∀ m, v.cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries :=
-      fun m hm => (hnet.2.2.2.2 m (hv.cause m hm).1).1 hcc
+      fun m hm => (hnet.2.2.2.2.1 m (hv.cause m hm).1).1 hcc
     have hmsg := (hsync (by rw [hmd])).2
     obtain ⟨-, hms⟩ := msgShape_core hmsk hin hnet hv hr hmsg hfn (hv.facts.roPend (by rw [hmd])) hcm
     have hf : r₁.p.outbox.filter (fun q => decide (q.dst = nodeId n)) = [] :=
@@ -789,7 +789,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       leaderPart_of d9 hRole ht hfl (fun hr' hm => hkp.2.2.1 (hRole.trans hr') hm),
       candPart_of d10 hRole (fun hr' hm => hkp.2.2.2 (hRole.trans hr') hm),
       hpend, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hRole.trans h'))⟩
-    · rw [d2.1]; show roleS v = roleStr rd.pre r₁.p.role; rw [← hR, hpf]; exact h6.symm
+    · rw [d2.1]; show roleOf v.ps.role = roleOf r₁.p.role; rw [hRole]
     · show v.dur = durOf (accepted r₁)
       have e : durOf (accepted r₁) = ⟨rd.term, rd.vote, rd.commit, r₁.full⟩ := by
         rw [hT, hV, hC]; rfl

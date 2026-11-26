@@ -258,7 +258,7 @@ structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeVi
   hlog : L1 = logOf w.ps.log
   hcommit : c = uint.Z w.ps.commit
   cge : S.commitIndex[n.val]! ≤ c
-  hrole : ro[n.val]! = roleS w
+  hrole : ro[n.val]! = roleOf w.ps.role
   rlen : ro.length = R.N
   rother : ∀ k : Fin R.N, k ≠ n → ro[k.val]! = S.role[k.val]!
   rstay : S.role[n.val]! = leader → t1 = S.currentTerm[n.val]! → ro[n.val]! = leader
@@ -317,7 +317,7 @@ structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeVi
   cpart : CandPart (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w
   hpend : ∀ q ∈ w.pend, PendOk R.N (nodeId n) w q
   hxpend : ∀ x ∈ w.xpend, XPendOk R.N (nodeId n) w.ps x
-  hqs : ∀ q ∈ w.qs, QsOk (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w q
+  hqs : ∀ q ∈ w.qs, QsOk R (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w q
   drain : w.told = (V n).told ∧ w.cause = (V n).cause ∧ w.xcause = (V n).xcause
   hlead : LeadOk n w
   hvself : VoteSelf n w
@@ -650,13 +650,15 @@ theorem rr_net (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n
       obtain ⟨-, ⟨i', hsrc', hti⟩, -⟩ := hn1 m hm
       have hii : i' = i := nodeId_inj (hsrc'.symm.trans hsrc)
       subst hii
+      replace hti : uint.Z m.term ≤ S.currentTerm[i'.val]! := hti.resolve_left (fun h => by
+        rcases h with h | ⟨h, -⟩ <;> rcases hty with h' | h' <;> rw [h'] at h <;> cases h)
       have ht1 : t1 = S.currentTerm[i'.val]! := by have := hok.tge; omega
       exact Int.le_trans (hn4 m hm hty i' hsrc (hok.rnf hro ht1) (ht1 ▸ hct)) hok.cge
     · rw [rr_ct_o hin] at hct; rw [rr_cm_o hin]
       rw [hok.rother i hin] at hro
       exact hn4 m hm hty i hsrc hro hct
   · obtain ⟨hty, ⟨i, hsrc, hti⟩, j, hdst, hj⟩ := hn1 m hm
-    refine ⟨hty, ⟨i, hsrc, Int.le_trans hti (hge i)⟩, j, hdst, fun hle => ?_⟩
+    refine ⟨hty, ⟨i, hsrc, hti.imp id (fun hti => Int.le_trans hti (hge i))⟩, j, hdst, fun hle => ?_⟩
     obtain ⟨h1, h2, h3, h4⟩ := hj (Int.le_trans (hge j) hle)
     refine ⟨fun ht => ?_, fun ht => ?_, fun ht => hok.msub _ (h3 ht), fun ht => AckIn.mono hok.msub (h4 ht)⟩
     · have := h1 ht
@@ -721,8 +723,10 @@ theorem rr_node_other (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G
       unfold State.voteRequest State.lastTerm; rw [rr_log_o hk]; rfl
     rw [hvr]; exact hok.msub _ c2
   · intro q hq
-    obtain ⟨a1, a2, a3, a4, a5⟩ := hQ q hq
-    exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, h.2.1, AckIn.mono hok.msub h.2.2⟩) (fun h => ⟨h.1, hok.vsub _ h.2⟩)⟩
+    obtain ⟨a1, a2, a3, ⟨a4, a5⟩ | a6⟩ := hQ q hq
+    · exact ⟨a1, a2, a3, .inl ⟨a4, a5.imp (fun h => ⟨h.1, h.2.1, AckIn.mono hok.msub h.2.2⟩)
+        (fun h => ⟨h.1, hok.vsub _ h.2⟩)⟩⟩
+    · exact ⟨a1, a2, a3, .inr a6⟩
 
 /-- The node's facts at the new state. -/
 theorem rr_node_self (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :

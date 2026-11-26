@@ -96,7 +96,7 @@ theorem antSim_recv_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
   obtain ⟨_, _, j, hj, hjk⟩ := hn.1 m hm
   have hjn : j = n := nodeId_inj (hj.symm.trans hdst)
   subst hjn
-  have hsnap : m.ty ≠ .snap := (hn.2.2.2.2 m hm).2.1 (by rw [hmd])
+  have hsnap : m.ty ≠ .snap := (hn.2.2.2.2.1 m hm).2.1 (by rw [hmd])
   have hstep := recv_eq j m hc hsnap (fun ht hle => by
     have := (hjk hle).1 ht
     rw [hj] at this; exact this)

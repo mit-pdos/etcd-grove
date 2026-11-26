@@ -119,7 +119,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
   obtain ⟨hb0, -, hnosnap⟩ := hsnapC hsn
   have hmsg := (hsync (by rw [hmd])).2
   have hcm : ∀ m, (V n).cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries :=
-    fun m hm => (hnet.2.2.2.2 m (hv.cause m hm).1).1 hcc
+    fun m hm => (hnet.2.2.2.2.1 m (hv.cause m hm).1).1 hcc
   obtain ⟨hfl, hms⟩ := msgShape_core hmsk hin hnet hv hr hmsg hfn (hv.facts.roPend (by rw [hmd])) hcm
   have f3 := hv.facts.conf0
   have hroOk := reach_roOk hmsk hin hnet hv hr
@@ -233,6 +233,7 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   hconf : S1.config[n.val]! = confView R.N (V n).r.cfg
   hcf : (V n).r.cfg.cfg = CfgM.simple R.voters0 ∅
   hcc : R.md.confChanges = false
+  hkn : R.k n = {}
   hq0 : S1.queue[n.val]! = []
   hvp : (V n).pre = false
   hpf : rd.pre = false
@@ -315,10 +316,10 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCD
   have d8 : (V n).ps.base = base0 := hsn0.1
   have hin' : ∀ m ∈ net, InMsg m := fun m hm => ⟨ty7_of_s4 (hty m hm), hnet.2.2.1 m hm⟩
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
-    obtain ⟨h1, h2, h3, h4, h5⟩ := hv.qs q hq
+    obtain ⟨h1, h2, h3, h4, h5⟩ := (hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
   have hqc : (V n).ps.role = .candidate → ∀ q ∈ (V n).qs, q.ty = .voteResp := fun hc q hq => by
-    rcases (hv.qs q hq).2.2.2.2 with ⟨-, hl, -⟩ | ⟨h, -⟩
+    rcases ((hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])).2.2.2.2 with ⟨-, hl, -⟩ | ⟨h, -⟩
     · rw [hc] at hl; cases hl
     · exact h
   have hkd := ready_kind hrP hroO hrepO d8 (nodeId_ne_zero n) hv.voteSelf hin' hqs hqc d7
@@ -332,12 +333,13 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCD
     d2 := by rw [e2, hdur]; rfl
     d3 := by rw [e3, hdl]
     d4 := by rw [e4, hdur]; rfl
-    d5 := by rw [m1]; unfold roleS roleStr; rw [hvp]; rfl
+    d5 := m1
     d7 := d7, d8 := d8
     d9 := hdl ▸ hv.facts.logIdx
     hconf := by rw [m3, hcv]
     hcf := hcf
     hcc := by rw [hmd]
+    hkn := hk n
     hq0 := by rw [hv.queue, hsy.1]; rfl
     hvp := hvp, hpf := hpf, hsn := hsnr, hfl := hfl, hrf := hrf, hr := hrP, hro := hroO
     hrep := hrepO, htold := htold, htb := htb, hin := hin', hqs := hqs, hqc := hqc

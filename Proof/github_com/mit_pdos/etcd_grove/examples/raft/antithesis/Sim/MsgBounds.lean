@@ -307,7 +307,7 @@ theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec 
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     refine outNums_advance hX hs (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha)
-    obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
+    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
 
 /-- **The `Ready`'s messages within `K`** (`ReadyOutP`: in sync mode they are the outbox's to other

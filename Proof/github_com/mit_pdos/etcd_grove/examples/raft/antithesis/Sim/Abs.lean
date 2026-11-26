@@ -57,7 +57,9 @@ deriving DecidableEq, Inhabited
 `raft1 … raftN`, the first `K` of them the initial voters, bootstrapped (`BootInit` written into each
 node's storage, B 733-753) or not, each node's `Config` flags (`NodeK`, drawn per run), and the
 batch's scope mask (`RnMode`, design R3), and the driver's other modes (`DrvMode`). `N ≤ 9` keeps `setOf (namesL N) = namesL N` (string order
-is numeric order for `raft1`-`raft9`); `K ≤ N` is `Server ⊇ InitVoters`. -/
+is numeric order for `raft1`-`raft9`); `K ≤ N` is `Server ⊇ InitVoters`; a node's `PreVote` only in a
+batch with pre-vote (the driver draws `Config.PreVote` within the scope, `DrawMode`'s `pv = true →
+s.PreVote' = true`), so that its pre-vote messages are of a type the network carries (`NetTy`). -/
 structure RunCfg where
   N : Nat
   K : Nat
@@ -66,6 +68,7 @@ structure RunCfg where
   md : RnMode
   drv : DrvMode := {}
   hK : 1 ≤ K ∧ K ≤ N ∧ N ≤ 9
+  hpv : ∀ n, (k n).prevote = true → md.prevote = true
 
 /-- The binding's constants for the run: `Server = SetOf(names(N))`, `InitVoters = SetOf(names(K))`,
 `Bootstrapped`. -/
@@ -78,7 +81,14 @@ def RunCfg.cfg (R : RunCfg) : AntCheck.Config :=
 def nodeId {N : Nat} (n : Fin N) : w64 := W64 ((n.val : Int) + 1)
 
 /-- The first harness's run (S4): three servers, all voters, not bootstrapped, no flag, scope `{}`. -/
-def R3 : RunCfg := { N := 3, K := 3, boot := false, k := fun _ => {}, md := {}, hK := by decide }
+def R3 : RunCfg where
+  N := 3
+  K := 3
+  boot := false
+  k := fun _ => {}
+  md := {}
+  hK := by decide
+  hpv := fun _ h => nomatch h
 
 /-- `Main`'s configuration in S4: `Server = InitVoters = c.Servers() = check.SetOf(names(3))`,
 `Bootstrapped = FALSE` (`EtcdBindingEmpty.cfg`); `R3`'s (kept while the Sim proofs migrate). -/

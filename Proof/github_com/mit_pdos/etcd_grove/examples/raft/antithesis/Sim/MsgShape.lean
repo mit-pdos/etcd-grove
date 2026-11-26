@@ -191,7 +191,7 @@ theorem mshape_ctx {R : RunCfg} {S : AntCheck.State} {net : List Msg} {id : w64}
   rcases hh with hh | hh
   · exact hq.2.2.2.2 hh
   · obtain ⟨m, hcm, hmt, hx⟩ := hq.2.2.2.1 hh
-    rw [hx]; exact (hnet.2.2.2.2 m (hc m hcm)).2.2.2 hrd (.inl hmt)
+    rw [hx]; exact (hnet.2.2.2.2.1 m (hc m hcm)).2.2.2 hrd (.inl hmt)
 
 /-- Every message of `s`'s outbox to another node is `MShape`. -/
 def OutShape (md : RnMode) (id : w64) (c : Option Msg) (s : PState) : Prop :=
@@ -373,7 +373,8 @@ theorem reach_fp {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCD
     · exact recvEndR_fp hs (by simp [propMsg])
   | advance _ _ _ _ _ _ ha _ =>
     refine advanceEndR_fp ha fun q hq => ?_
-    rcases ((hv.qs q hq).2.2.2.2).imp (fun h => h.1) (fun h => h.1) with h | h <;> rw [h] <;> decide
+    rcases (((hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])).2.2.2.2).imp (fun h => h.1) (fun h => h.1) with h | h <;>
+      rw [h] <;> decide
 
 /-! ## The shape along `Reach` -/
 
@@ -420,9 +421,9 @@ theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : 
   | advance _ _ _ _ _ _ ha _ =>
     have ha' := advanceEndR_toO hmsk hin hv ha
     have hl' := entsNormal_adv ha'
-      (fun q hq => (hqs q hq).2.2.2.2.imp (fun h => h.1) (fun h => h.1)) hl
+      (fun q hq => ((hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])).2.2.2.2.imp (fun h => h.1) (fun h => h.1)) hl
     refine ⟨hfull hl', outShape_advance hX hl' (fun q hq => ?_) ha'⟩
-    obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
+    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
 
 /-! ## The destinations -/
@@ -613,7 +614,7 @@ theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CC
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
     refine dstIn_adv hc (dstIn_nil hX) hlo (fun q hq => ?_) (advanceEndR_toO hmsk hin hv ha)
-    obtain ⟨h1, -, -, -, h5⟩ := hqs q hq
+    obtain ⟨h1, -, -, -, h5⟩ := (hqs q hq).old (by rw [(hin.b1a hmsk).2.1 n])
     exact ⟨h5.imp (fun h => h.1) (fun h => h.1), h1⟩
 
 /-- **`msgShape.stmt` but a heartbeat's context** (the `Ready`'s messages are the outbox's to other
@@ -798,7 +799,7 @@ theorem reach_roOk {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
       · exact absurd rfl h0
       · exact absurd rfl h0
   | advance _ _ _ _ _ _ ha _ =>
-    exact roOk_adv hs (fun q hq => ((hv.qs q hq).2.2.2.2).imp (fun h => h.1) (fun h => h.1))
+    exact roOk_adv hs (fun q hq => (((hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])).2.2.2.2).imp (fun h => h.1) (fun h => h.1))
       (advanceEndR_toO hmsk hin hv ha)
 
 /-- A received message other than a snapshot keeps the configuration, the ghost prefix and the
@@ -841,7 +842,24 @@ theorem reach_keep {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
     · exact recvEndR_keep hst (by simp [propMsg])
   | advance _ hp hxp _ _ _ _ hns =>
     refine ⟨advanceNoSnap_keep (hns (by rw [hmd])) fun q hq => ?_, hp, hxp⟩
-    rcases ((hv.qs q hq).2.2.2.2).imp (fun h => h.1) (fun h => h.1) with h | h <;> rw [h] <;> decide
+    rcases (((hv.qs q hq).old (by rw [(hin.b1a hmsk).2.1 n])).2.2.2.2).imp (fun h => h.1) (fun h => h.1) with h | h <;>
+      rw [h] <;> decide
+
+/-- **The `Ready`'s messages to other nodes are `PendOk` at the view after it**
+(`NodeView.drainOf`, sync), each to a voter (`ReadyOutP`'s `ReadyMsgsToVoters`). -/
+theorem pendOk_of_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
+    {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD}
+    (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hro : ReadyOutP R n v r₁ rd) :
+    ∀ q ∈ rd.msgs, PendOk R.N (nodeId n) (v.drainOf r₁ rd) q := by
+  intro q hq
+  have hasync : R.md.async = false := by rw [(hin.b1a hmsk).1]
+  have hq' := (((hro.2.2.2.2.2.2.2.2.1 hasync).2).mem_iff).mp hq
+  rw [List.mem_filter] at hq'
+  have hne : q.dst ≠ nodeId n := of_decide_eq_true hq'.2
+  exact PendOk.congr (v := v.withP r₁.p) rfl rfl rfl rfl rfl rfl rfl rfl rfl (reach_keep hmsk hin hv hr).1.1
+    (outOk_reach hmsk hin hnet hv hr q hq'.1 hne (hro.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 q (List.mem_append_left _ hq)))
 
 /-- Without conf entries, no conf entry's index (`lastConfIdx` is `0`). -/
 theorem lastConfIdx_normal {l : List EntryM} (h : EntsNormal l) (k : Nat) : lastConfIdx l k = 0 := by
