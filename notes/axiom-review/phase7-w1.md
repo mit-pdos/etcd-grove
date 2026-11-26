@@ -24,8 +24,42 @@ unchecked until the build.
   a goose skip), `RegisterService`/`register`/`printf`/`wrapUnaryHandler`, `CustomCodec`,
   `newCodecV0Bridge`, `grpcsync.NewEvent`, `internal/stats.NewCombinedHandler` (a new package, fact
   `True`).
-- (Trusted, §2.4) the merged core branch made `metadata.builtRawMDRaw` a definition (was a trusted
-  opaque): its five producers now claim its contents.
+- **Trusted change: `metadata.builtRawMDRaw` became a definition.** The merged core branch
+  (`56a8b77dfe`) made it a definition; it was a trusted opaque. Its five producers now claim its
+  contents (old → new and the argument: §2.4). The independent review follows, whole.
+
+#### Review: metadata.builtRawMDRaw as a definition (W1, commit 56a8b77dfe), 2026-11-26, independent axiom-skill reviewer (read-only)
+
+Verdict: sound for all five producers. No other trusted post produces it.
+
+- **The definition** (`Proof/context/LibKeys.lean:136-163`) is persistent. The `rawMD`'s map is either nil or read-only (`ownMap … DFrac.discard`). Its keys are exactly M's, each with a read-only slice. The `added` rows are read-only. Keys are ASCII and not upper-case. Rows have even length. The view is `rawView M rows`.
+- **`AppendToOutgoingContext`** (`models/grpc/metadata/metadata.go:250-262`, identical to v1.84): sound, checked. `added` is fresh (make+copy), and the new row's key is lower-case under the `lowerKey` premise.
+- **`withVersion`** (`client/v3/ctx.go:41-51`): sound, checked. The maps and slices are fresh, and the key `client-api-version` is ASCII.
+- **`WithRequireLeader`** (`ctx.go:28-38`): sound, checked. It relies on `watchCtx`'s `outgoingCtxOkC` (`WatchCtx.lean:73`) for the parent's keys.
+- **`context.WithCancelValCtx`**: sound, inferred. `valCtx` doesn't override `Value`, so the post repeats the premise's `outMD`.
+- **The grpc model's server contexts** (`srvRawStreamIs` via `Serve`): sound. No `rawMD` sits at grpc's key (the `none` case). Neither etcd's server nor the grpc model calls `NewOutgoingContext`. otelgrpc's server `TagRPC` reads only incoming metadata.
+- **Later writes:** none found. `FromOutgoing`/`FromIncomingContext` return copies, `Join` builds a new map, and `fromOutgoingContextRaw`'s callers only read it.
+- **Rests on two premises:** `watchCtx`'s outgoing-metadata clause (`WithRequireLeader`) and `lowerKey` (`AppendToOutgoingContext`).
+
+#### Follow-up: the two inferred verdicts, now checked (2026-11-26)
+- **`context.WithCancelValCtx`: sound, checked.** The axiom is `Proof/context/WithCancelValCtx.lean:38` (spec `Spec/context/WithCancelValCtx.lean:58-71`); its post `outMD ctx' md` repeats the premise's `outMD inctx md`.
+  - etcd's `valCtx` (`client/v3/watch.go:275`) is `struct{ context.Context }` and overrides only Deadline/Done/Err (`watch.go:277-279`).
+  - In the translation (`Code/go_etcd_io/etcd/client/v3/chunk2.lean:1168-1172`), `Value` is the promoted embedded method.
+  - A `*cancelCtx`'s `Value` at another key goes to `value(parent, key)` (`context.go:442-446`), then the default case `c.Value(key)` (`context.go:803-804`). So `ctx'.Value` at grpc's key is `inctx.Value` at it.
+- **The grpc model's server contexts: sound, checked.** The chain starts from `context.Background()` (`server.go:983`). Its links, none of them at `mdOutgoingKey`:
+  - `peer.NewContext` (`:991`);
+  - `TagConn` (otelgrpc returns ctx unchanged, `stats_handler.go:95-96`);
+  - WithTimeout/WithCancel (`model_transport.go:1072/1074`);
+  - `NewIncomingContext` (`:1078`);
+  - `contextWithServer` (`server.go:1298,1503`);
+  - `TagRPC` (reads incoming metadata only: `stats_handler.go:104-105`, `metadata_supplier.go:51-59`);
+  - `SetContext` (`server.go:1328`, `model_transport.go:1226`);
+  - `streamKey` (`server.go:1187,1362`);
+  - `rpcInfoContextKey` (`server.go:1248`, `rpc_util.go:1089`).
+  
+  So `outgoingHeld`'s none case applies. The model's only writers at that key are `stats.SetTags`/`SetTrace` (`stats/stats.go:286,306`), and nothing calls them. On the spec side, `grpcServeTok` (`InvGrpcRun.lean:216`) gives handlers `grpcRunCtx`/`srvRawStreamIs`. These say only `outgoingCtxOk ci` (`LibKeys.lean:340`, in `grpcRunCtx` at `InvGrpcBase.lean:299`) and `libCtxOkC ci` = `∃ md, outMD ci md` (`InvGrpcStream.lean:527`). They name no `rawMD`.
+- **Residual inference, not checked:** the propagator set is TraceContext plus Baggage, and the grpc-prometheus interceptors write no outgoing metadata (that module's source wasn't found; its interceptors are trusted axioms whose posts govern).
+
 - `origin/grpc-neutral-narrow/2026-11-26` (`dac450d58b`) merged: the narrowed `.neutral` (its own review,
   `notes/axiom-review/grpc-neutral-narrow.md`).
 
@@ -310,7 +344,89 @@ its rows' values in order.
 - The reviewer spot-checked `metadata.go` at v1.84.0 and etcd's callers: fresh maps, lower-case keys,
   never written after.
 
-This needs the full review the coordinator plans; it was a spot check.
+Independently reviewed: sound for all five producers (the review is in §1).
+
+### 2.5 The grpc model: a refused client head's message is any string (review finding, 2026-11-26)
+
+Old: the model's `Unavailable` error for a client head over the server's limit said exactly
+`"error reading from server: EOF"`. Real grpc-go on Linux can also report `"connection reset by peer"`
+(a read) or `"broken pipe"` (a write): the server closes the connection with unread data, so Linux sends
+a TCP RST, and which error the client sees depends on timing. That made the model narrower than grpc-go,
+which is unsound.
+
+Now the message is `modelChooseMessage(...)`, a new choice point: an arbitrary string in the model's
+semantics. Its Go body returns the EOF message, or with `GRPC_MODEL_CHOOSE=random` one of the reset and
+broken-pipe variants. No Lean spec or proof reads this message: `newClientTransportStream` and the
+choice points are names-only in every translation, and the choice points have no GooseLang bodies yet.
+The change adds no Lean axiom or premise. The differential test (`models/internal/grpcdifftest/
+headerlimit_test.go`) now accepts any of the three variants (`headRefused`).
+- `run.sh`'s three test runs pass: against real grpc-go, against the model, and the model with its
+  choices random (TestAtMostOnce).
+- Its last step, building `examples/` against the model, failed on this machine's disk quota; it was not
+  rerun.
+
+```diff
+diff --git a/models/grpc/model_choose.go b/models/grpc/model_choose.go
+index 279e34aaaf..95b1630c5b 100644
+--- a/models/grpc/model_choose.go
++++ b/models/grpc/model_choose.go
+@@ -12,7 +12,7 @@
+ 
+ package grpc
+ 
+-// MODEL: the model's choice points. These two functions are the model's only nondeterminism, and
++// MODEL: the model's choice points. These functions are the model's only nondeterminism, and
+ // the only declarations of the package with a hand-written GooseLang body (trusted: any boolean,
+ // any index below n; so the model has every behavior on either side of a choice). In Go they
+ // take the common side (false, 0), so that a real run behaves as grpc-go usually does, unless the
+@@ -68,6 +68,21 @@ func modelChooseLength(n int) int {
+ 	return n
+ }
+ 
++// modelChooseMessage is an arbitrary string (trusted, as modelChooseN: its GooseLang body is any
++// string): the message of a transport failure whose text grpc-go takes from the kernel's error,
++// which varies with timing (a client head over the server's limit: the server closes the
++// connection with the head unread, so Linux sends a RST and grpc-go's reader reports io.EOF,
++// "connection reset by peer" or a write's "broken pipe"). Its Go body is def, or with
++// GRPC_MODEL_CHOOSE=random one of those variants.
++func modelChooseMessage(def string, variants ...string) string {
++	if modelChooseRandom {
++		if i := rand.IntN(len(variants) + 1); i < len(variants) {
++			return variants[i]
++		}
++	}
++	return def
++}
++
+ // modelChooseAddr is the index of the address an attempt dials: an arbitrary index below
+ // len(addrs) (trusted, as modelChooseN: its GooseLang body is any index). Its Go body plays
+ // grpc-go's round_robin, so that a real run spreads its attempts as grpc-go does: in turn, over
+diff --git a/models/grpc/model_transport.go b/models/grpc/model_transport.go
+index 1b503b411b..53521e0f45 100644
+--- a/models/grpc/model_transport.go
++++ b/models/grpc/model_transport.go
+@@ -263,12 +263,18 @@ func newClientTransportStream(ctx context.Context, cc *ClientConn, conn net.Conn
+ 		// ends as grpc-go's does when its server refuses the list: a FRAME_SIZE_ERROR reset (a list
+ 		// truncated in its last frame) or the end of the connection (the server's connection error,
+ 		// measured for a field over the limit), the model's choice; never retried (in grpc-go the
+-		// server has read the head).
++		// server has read the head). The connection error's message is any string
++		// (modelChooseMessage): the server closes with the head unread, so Linux resets the
++		// connection, and grpc-go reports EOF, a reset or a broken pipe by timing.
+ 		var st *status.Status
+ 		if modelChoose() {
+ 			st = status.New(codes.Internal, "stream terminated by RST_STREAM with error code: FRAME_SIZE_ERROR")
+ 		} else {
+-			st = transportFailure("error reading from server: EOF")
++			st = transportFailure(modelChooseMessage("error reading from server: EOF",
++				"error reading from server: read tcp "+conn.LocalAddr().String()+"->"+
++					conn.RemoteAddr().String()+": read: connection reset by peer",
++				"connection error: desc = \"transport: failed to write: write tcp "+
++					conn.LocalAddr().String()+"->"+conn.RemoteAddr().String()+": write: broken pipe\""))
+ 		}
+ 		s.closeStream(st.Err(), false, st, nil)
+ 		return s, nil
+```
 
 ## 3. Step 3 (`grpcSrvNew` defined; `NewServer`, `RegisterService` proved): status and design
 
