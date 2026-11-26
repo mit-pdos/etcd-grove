@@ -74,7 +74,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
   · iframe #
     iframe Hlt
   (try wp_auto)
-  icases Hres with (⟨%Herr, %γ, %Up, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
+  icases Hres with (⟨%Herr, %γ, %Up, %Md, %Dn, %cd', #Hcs, #Hz, HRt⟩ | ⟨%Hst, #Herr⟩)
   · subst Herr
     (try wp_auto)
     ihave #Hcs' := Hcs
@@ -93,7 +93,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
       · iexact Hlt
       iframe
     (try wp_auto)
-    icases Hres with (⟨%Herr, %m, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
+    icases Hres with (⟨%Herr, %a, %md, %m, -, -, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
     · subst Herr
       (try wp_auto)
       wp_apply wp_recvKeepAlive l addr resp m $$ []
@@ -119,6 +119,10 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
           · iPkgInit
           ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
+          -- (#45) the target's description, which `errors.Is` takes
+          ihave #Htdxnl : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF)
+              (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #xnl) m') $$ []
+          · iexists _; iapply go_etcd_io.etcd.cache.v3.descIs_etcdError
           (try wp_auto)
           wp_apply (wp_Is err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
           · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none
@@ -431,6 +435,10 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
           · iPkgInit
           ihave ⟨%xnl, #Hnl⟩ := errNoLeader_of_init $$ Hrp
+          -- (#45) the target's description, which `errors.Is` takes
+          ihave #Htdxnl : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF)
+              (interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #xnl) m') $$ []
+          · iexists _; iapply go_etcd_io.etcd.cache.v3.descIs_etcdError
           (try wp_auto)
           wp_apply (wp_Is err' _ none (Or.inl ⟨xnl, rfl⟩)) $$ [] as %bnl -
           · iframe #; try iapply go_etcd_io.etcd.cache.v3.isDescs_none

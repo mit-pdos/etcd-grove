@@ -9,7 +9,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.credentials.Init
 public import Perennial.Proof.sync.Link
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
-public import Proof.google_golang_org.grpc.credentials.Init
+public import Proof.google_golang_org.grpc.credentials.InitLinked
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

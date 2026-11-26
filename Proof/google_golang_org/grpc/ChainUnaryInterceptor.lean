@@ -49,7 +49,7 @@ theorem grpc.ChainUnaryInterceptor.wp_proof : grpc.ChainUnaryInterceptor.spec (G
   wp_apply (wp_slice_append (V := GoFunc) _ us _ ics _) $$ [$Hus $Hcap $Hsl] as %ns ⟨Hns, Hncap, _⟩
   iapply HΨ $$ Hp Hns Hncap
   ipureintro
-  exact ⟨rfl, rfl⟩
+  exact ⟨(by unfold srvOptsSameBut; rfl), rfl, rfl, rfl⟩
 
 end proof
 

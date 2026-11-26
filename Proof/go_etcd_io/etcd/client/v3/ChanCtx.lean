@@ -149,7 +149,7 @@ theorem canceledOk_of_init
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := client.clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
     ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat
-    EtcdGrove.errorString_errorSig $$ Hm
+    EtcdGrove.errorString_errorSig (go_etcd_io.etcd.cache.v3.stTypedErr_ptr _ hl.1) $$ Hm
   isplitr
   · ipureintro; exact ⟨nofun, Hc⟩
   iframe Hs

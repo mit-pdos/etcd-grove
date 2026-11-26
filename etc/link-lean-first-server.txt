@@ -227,7 +227,7 @@ AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:
-errors_IsStatusErr:
+errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 go_humanize_Bytes:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:

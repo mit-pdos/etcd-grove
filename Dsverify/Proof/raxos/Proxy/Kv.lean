@@ -52,8 +52,9 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       (App (Val (bm @!! go.GoType.PointerType Benchmark.ty @!! go!"residentExecute")) (Val #cs))
     {{ (rs : GoSlice) (outs : List raxos.proto.client.ClientBatch), RET #rs;
         kvOwn bm (runBatches st (bs.map Batch.cmds)).1 ∗ rs ↦* outs ∗
-        [∗list] k ↦ o ∈ outs, ∃ b r, ⌜bs[k]? = some b ∧ (runBatches st (bs.map Batch.cmds)).2[k]? = some r⌝ ∗
-          repCBVal o (DFrac.own 1) ⟨b.id, b.sender, r⟩ }} := by
+        ([∗list] k ↦ o ∈ outs, ∃ b r, ⌜bs[k]? = some b ∧ (runBatches st (bs.map Batch.cmds)).2[k]? = some r⌝ ∗
+          repCBVal o (DFrac.own 1) ⟨b.id, b.sender, r⟩) ∗
+        ⌜∀ o ∈ outs, stateOk (clientMI 0) o.state'⌝ }} := by
   wp_start as ⟨Hkv, #Hcs, Hrep⟩
   iunfold kvOwn at Hkv
   icases Hkv with ⟨%kvm, %M, #Hmode, #Hkl, #Hkvf, Hm, %HM⟩
@@ -65,7 +66,8 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
   · ipureintro; exact Hcslen.2
   ihave HI : (∃ (i : w64) (outs : List raxos.proto.client.ClientBatch) (M' : GMap GoString GoString),
       "i" ∷ clientBatchIndex_ptr ↦ i ∗
-      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z cs.len ∧ outs.length = sint.nat i⌝ ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z cs.len ∧ outs.length = sint.nat i ∧
+        ∀ o ∈ outs, stateOk (clientMI 0) o.state'⌝ ∗
       "Hrs" ∷ rs ↦* (outs ++ List.replicate (sint.nat cs.len - sint.nat i) (zero_val raxos.proto.client.ClientBatch)) ∗
       "Hm" ∷ kvm ↦$ M' ∗
       "%HM'" ∷ ⌜storeRel M' (runBatches st ((bs.take (sint.nat i)).map Batch.cmds)).1⌝ ∗
@@ -77,7 +79,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
     simp only [Nat.sub_zero, List.nil_append, List.take_zero, List.map_nil]
     iframe
     isplitr
-    · ipureintro; refine ⟨by word, by word, rfl⟩
+    · ipureintro; refine ⟨by word, by word, rfl, by simp⟩
     isplitr
     · ipureintro; simpa [runBatches] using HM
     iapply BigSepL.bigSepL_nil.2; iempintro
@@ -241,7 +243,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
             iexists _
             rw [ptCSingle_own]
             iframe Hq
-            ipureintro; refine ⟨rfl, ?_⟩
+            ipureintro; refine ⟨stateOk_zero _, rfl, ?_⟩
             simp [execCmd, Hif, List.append_assoc]
         ipureintro
         intro k
@@ -295,7 +297,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
               iexists _
               rw [ptCSingle_own]
               iframe Hq
-              ipureintro; refine ⟨rfl, ?_⟩
+              ipureintro; refine ⟨stateOk_zero _, rfl, ?_⟩
               simp only [execCmd, Htyp, ↓reduceIte, List.append_assoc]
               rw [← HMk]
               revert Hif; cases M'' !! List.take keyLen (List.drop 1 c) <;> simp
@@ -340,7 +342,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
               iexists _
               rw [ptCSingle_own]
               iframe Hq
-              ipureintro; refine ⟨rfl, ?_⟩
+              ipureintro; refine ⟨stateOk_zero _, rfl, ?_⟩
               simp only [execCmd, Htyp, ↓reduceIte, List.append_assoc]
               rw [← HMk]
               revert Hif; cases M'' !! List.take keyLen (List.drop 1 c) <;> simp
@@ -366,7 +368,11 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       rw [← Hsti]
       iframe
       isplitr
-      · ipureintro; refine ⟨by word, by word, by simp; word⟩
+      · ipureintro
+        refine ⟨by word, by word, by simp; word, fun o ho => ?_⟩
+        rcases List.mem_append.1 ho with h | h
+        · exact Hi.2.2.2 o h
+        · simp only [List.mem_singleton] at h; subst h; exact stateOk_zero _
       isplitr
       · ipureintro; exact HM''
       iapply BigSepL.bigSepL_append.2
@@ -406,10 +412,12 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       List.append_nil]
     iapply HΦ
     iframe Hrs Houts
-    iunfold kvOwn
-    iexists kvm, M'
-    iframe Hmode Hkl Hkvf Hm
-    ipureintro; exact HM'
+    isplitl
+    · iunfold kvOwn
+      iexists kvm, M'
+      iframe Hmode Hkl Hkvf Hm
+      ipureintro; exact HM'
+    · ipureintro; exact Hi.2.2.2
 
 theorem wp_Execute (bm : Loc) (st : pure.Store) (cs : GoSlice)
     (cbs : List raxos.proto.client.ClientBatch) (bs : List Batch)
@@ -419,8 +427,9 @@ theorem wp_Execute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       (App (Val (bm @!! go.GoType.PointerType Benchmark.ty @!! go!"Execute")) (Val #cs))
     {{ (rs : GoSlice) (outs : List raxos.proto.client.ClientBatch), RET #rs;
         kvOwn bm (runBatches st (bs.map Batch.cmds)).1 ∗ rs ↦* outs ∗
-        [∗list] k ↦ o ∈ outs, ∃ b r, ⌜bs[k]? = some b ∧ (runBatches st (bs.map Batch.cmds)).2[k]? = some r⌝ ∗
-          repCBVal o (DFrac.own 1) ⟨b.id, b.sender, r⟩ }} := by
+        ([∗list] k ↦ o ∈ outs, ∃ b r, ⌜bs[k]? = some b ∧ (runBatches st (bs.map Batch.cmds)).2[k]? = some r⌝ ∗
+          repCBVal o (DFrac.own 1) ⟨b.id, b.sender, r⟩) ∗
+        ⌜∀ o ∈ outs, stateOk (clientMI 0) o.state'⌝ }} := by
   wp_start as ⟨Hkv, #Hcs, Hrep⟩
   ihave #Hmode : bm.[Benchmark, go!"mode"] ↦□ W64 0 $$ [Hkv]
   · iunfold kvOwn at Hkv

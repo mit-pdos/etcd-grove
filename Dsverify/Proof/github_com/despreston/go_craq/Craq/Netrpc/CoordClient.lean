@@ -34,7 +34,7 @@ theorem wp_AddNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_NodeMeta.spec
     (cfg : Cfg GF) (c cl : Loc) :
     env cfg ∗ c ↦□ transport.netrpc.CoordinatorClient.mk cl ∗ connected cfg cl cfg.cAddr ⊢
     ∀ (a : GoString) (Φ : val → IProp GF), ⌜a ∈ cfg.chain⌝ -∗ joinTicket cfg.γ a -∗
-      ▷ (∀ (p : Loc) (err : GoInterface), (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗
+      ▷ (∀ (p : Loc) (err : GoInterface), (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗
           Φ (PairV #p #err)) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.CoordinatorClient.ty) go!"AddNode" #c)) (Val #a)) {{ Φ }} := by
   iintro ⟨#Henv, #Hc, #Hcl⟩ %a %Φ %ha Htk HΦ
@@ -85,7 +85,7 @@ theorem wp_AddNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_NodeMeta.spec
   · wp_auto
     iapply HΦ; ileft; ipureintro; exact Herr
   · wp_auto
-    iapply HΦ; iright; iapply errMsg_errAny; iexact Hmsg
+    iapply HΦ; iright; iapply net.rpc.errPlain_serverErr; isplitr; iexact Hmsg; ipureintro; exact Herr
   · wp_auto
     iapply HΦ; iright; iexact Hany
 
@@ -97,7 +97,7 @@ theorem wp_CWrite_fixed (Henc : enc_ClientWriteArgs.spec (GF := GF))
         (Q : KvM.Output → IProp GF) (Φ : val → IProp GF),
       ⌜kvOk k x⌝ -∗ sl ↦*{dq} x -∗ opAU cfg.γ (.put k x) Q -∗
       ▷ (∀ err : GoInterface,
-          (⌜err = interface.nil⌝ ∗ sl ↦*{dq} x ∗ putReceipt k x Q) ∨ models_lab.errAny err -∗
+          (⌜err = interface.nil⌝ ∗ sl ↦*{dq} x ∗ putReceipt k x Q) ∨ models_lab.errPlain err -∗
           Φ #err) -∗
       WP (App (App (Val #(methods (go.GoType.PointerType transport.netrpc.CoordinatorClient.ty) go!"Write" #c)) (Val #k)) (Val #sl)) {{ Φ }} := by
   iintro ⟨#Henv, #Hc, #Hcl⟩ %k %sl %dq %x %Q %Φ %hkx Hsl HAU HΦ
@@ -162,7 +162,7 @@ theorem wp_CWrite_fixed (Henc : enc_ClientWriteArgs.spec (GF := GF))
     iframe
     iapply Hrc; ipureintro; rfl
   · wp_auto
-    iapply HΦ; iright; iapply errMsg_errAny; iexact Hmsg
+    iapply HΦ; iright; iapply net.rpc.errPlain_serverErr; isplitr; iexact Hmsg; ipureintro; exact Herr
   · wp_auto
     iapply HΦ; iright; iexact Hany
 
@@ -171,7 +171,7 @@ theorem wp_CRemoveNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_EmptyRepl
     (cfg : Cfg GF) (c cl : Loc) :
     env cfg ∗ c ↦□ transport.netrpc.CoordinatorClient.mk cl ∗ connected cfg cl cfg.cAddr ⊢
     ∀ (a : GoString) (Φ : val → IProp GF), ⌜a.length < 256⌝ -∗
-      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errAny err) -∗ Φ #err) -∗
+      ▷ (∀ err : GoInterface, (⌜err = interface.nil⌝ ∨ models_lab.errPlain err) -∗ Φ #err) -∗
       WP (App (Val #(methods (go.GoType.PointerType transport.netrpc.CoordinatorClient.ty) go!"RemoveNode" #c)) (Val #a)) {{ Φ }} := by
   iintro ⟨#Henv, #Hc, #Hcl⟩ %a %Φ %hal HΦ
   unfold connected
@@ -221,7 +221,7 @@ theorem wp_CRemoveNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_EmptyRepl
   · wp_auto
     iapply HΦ; ileft; ipureintro; exact Herr
   · wp_auto
-    iapply HΦ; iright; iapply errMsg_errAny; iexact Hmsg
+    iapply HΦ; iright; iapply net.rpc.errPlain_serverErr; isplitr; iexact Hmsg; ipureintro; exact Herr
   · wp_auto
     iapply HΦ; iright; iexact Hany
 

@@ -395,6 +395,7 @@ class ServeMux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   method_set : go.MethodSetIs ServeMux.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServeMux.ty) [(go!"Handle", (some (go.signature.Signature [go.string, Handler.ty] false []))), (go!"HandleFunc", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))] false []))), (go!"Handler", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [Handler.ty, go.string]))), (go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))), (go!"net/http.findHandler", (some (go.signature.Signature [(go.GoType.PointerType Request.ty)] false [Handler.ty, go.string, (go.GoType.PointerType pattern.ty), (go.GoType.SliceType go.string)]))), (go!"net/http.matchOrRedirect", (some (go.signature.Signature [go.string, go.string, go.string, (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)] false [(go.GoType.PointerType routingNode.ty), (go.GoType.SliceType go.string), (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)]))), (go!"net/http.matchingMethods", (some (go.signature.Signature [go.string, go.string] false [(go.GoType.SliceType go.string)]))), (go!"net/http.register", (some (go.signature.Signature [go.string, Handler.ty] false []))), (go!"net/http.registerErr", (some (go.signature.Signature [go.string, Handler.ty] false [go.error])))]
   ptr_Handle_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"Handle" ServeMux.Handle.impl
+  ptr_HandleFunc_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"HandleFunc" ServeMux.HandleFunc.impl
   ptr_Handler_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"Handler" ServeMux.Handler.impl
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"ServeHTTP" ServeMux.ServeHTTP.impl
   ptr_findHandler_unfold : MethodUnfold (go.GoType.PointerType ServeMux.ty) go!"findHandler" ServeMux.findHandler.impl
@@ -415,6 +416,7 @@ attribute [instance] ServeMux.TypeAssumptions.type_repr
   ServeMux.TypeAssumptions.method_set
   ServeMux.TypeAssumptions.ptr_method_set
   ServeMux.TypeAssumptions.ptr_Handle_unfold
+  ServeMux.TypeAssumptions.ptr_HandleFunc_unfold
   ServeMux.TypeAssumptions.ptr_Handler_unfold
   ServeMux.TypeAssumptions.ptr_ServeHTTP_unfold
   ServeMux.TypeAssumptions.ptr_findHandler_unfold
@@ -659,9 +661,15 @@ class Header.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   method_set : go.MethodSetIs Header.ty [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Header.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"WriteSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"net/http.get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"net/http.has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"net/http.sortedKeyValues", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [(go.GoType.SliceType keyValues.ty), (go.GoType.PointerType headerSorter.ty)]))), (go!"net/http.write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error]))), (go!"net/http.writeSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Header.ty) [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Header.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error]))), (go!"WriteSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"net/http.get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"net/http.has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"net/http.sortedKeyValues", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [(go.GoType.SliceType keyValues.ty), (go.GoType.PointerType headerSorter.ty)]))), (go!"net/http.write", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error]))), (go!"net/http.writeSubset", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"net/http/httptrace.ClientTrace" []))] false [go.error])))]
   Del_unfold : MethodUnfold Header.ty go!"Del" Header.Del.impl
+  Get_unfold : MethodUnfold Header.ty go!"Get" Header.Get.impl
+  Set_unfold : MethodUnfold Header.ty go!"Set" Header.Set.impl
   get_unfold : MethodUnfold Header.ty go!"get" Header.get.impl
   ptr_Del_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Del" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Header.ty go!"Del"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Header.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
+  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"Set" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Header.ty go!"Set"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
   ptr_get_unfold : MethodUnfold (go.GoType.PointerType Header.ty) go!"get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Header.ty go!"get"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$r"))))
 
@@ -669,8 +677,12 @@ attribute [instance] Header.TypeAssumptions.underlying
   Header.TypeAssumptions.method_set
   Header.TypeAssumptions.ptr_method_set
   Header.TypeAssumptions.Del_unfold
+  Header.TypeAssumptions.Get_unfold
+  Header.TypeAssumptions.Set_unfold
   Header.TypeAssumptions.get_unfold
   Header.TypeAssumptions.ptr_Del_unfold
+  Header.TypeAssumptions.ptr_Get_unfold
+  Header.TypeAssumptions.ptr_Set_unfold
   Header.TypeAssumptions.ptr_get_unfold
 
 class stringWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -35,6 +35,17 @@ theorem DialHTTP.wp_proof (wp_DialHTTPPath : DialHTTPPath.spec (GF := GF) (hG :=
   iapply HΦ
   iexact Hres
 
+theorem DialHTTP.wp_proof_plain (wp_DialHTTPPath : DialHTTPPath.spec_plain (GF := GF) (hG := hG)) :
+    DialHTTP.spec_plain (GF := GF) (hG := hG) := by
+  intro nw hnw W a
+  wp_start as ⟨%Hbound, #Henv, #Hhenv, #Hcon, #Haddr⟩
+  simp only [net.rpc.DefaultRPCPath, defaultRPCPath] at *
+  wp_auto
+  wp_apply wp_DialHTTPPath nw hnw W a go!"/_goRPC_" $$ [$Henv $Hhenv $Hcon $Haddr] as %c %err Hres
+  · ipureintro; exact Hbound
+  iapply HΦ
+  iexact Hres
+
 end proof
 
 end net.rpc

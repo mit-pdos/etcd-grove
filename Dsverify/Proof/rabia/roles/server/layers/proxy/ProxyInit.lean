@@ -54,7 +54,7 @@ theorem ProxyInit.wp_proof (hLog : rabia.internal.logger.InitLogger.spec (GF := 
     icases Hchans with ⟨-, #Hbc2p, -⟩
     iexact Hbc2p
   wp_auto
-  wp_apply hLog cf $$ [$Hconf] as %lg -
+  wp_apply hLog cf $$ [$Hconf] as %lg #Hlok
   wp_apply hTcp γ cf k γl id ch.c2p hid hk $$ [$Hconf $Haddr $Hbc2p $Hrc] as %t ⟨#Htcp, Htown⟩
   wp_apply wp_map_make1 (K := GoString) (V := GoString) as %kv Hkv
   wp_apply wp_RedisInit cf $$ [$Hconf]
@@ -74,7 +74,7 @@ theorem ProxyInit.wp_proof (hLog : rabia.internal.logger.InitLogger.spec (GF := 
   ipersist executeCmdFunc
   ipersist executeAndReplyFunc
   ipersist Ledger
-  ihave %HLogNN := typedPointsto_not_null _ _ _ $$ Logger
+  ipersist Logger
   imodintro
   iapply HΦ
   isplitl
@@ -86,7 +86,10 @@ theorem ProxyInit.wp_proof (hLog : rabia.internal.logger.InitLogger.spec (GF := 
     · unfold proxyFields
       iexists id
       iframe SvrId Wg Done ClientsIn ToNet NetIn TCP KVStore executeCmdFunc executeAndReplyFunc Ledger
-      ipureintro; exact ⟨hid, HLogNN⟩
+      isplitr
+      · ipureintro; exact hid
+      iexists lg
+      iframe Logger Hlok
     isplitl [CurrSeq]
     · first
         | (rw [show (W32 0 : w32) = zeroValDef from rfl]; iexact CurrSeq)

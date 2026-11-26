@@ -236,6 +236,22 @@ theorem v3rpc.wp_errMap_lookup2_at (mp : Loc) (M : GMap GoInterface GoInterface)
   iapply HΦ
   iexact Hm2
 
+attribute [local instance 1100] v3rpc.errKeys in
+omit ctx_sem bc_sem in
+/-- A read-only map at `v3rpc.errKeys` is persistent. -/
+instance v3rpc.errMap_persistent (mp : Loc) (M : GMap GoInterface GoInterface) :
+    Persistent (letI := v3rpc.errKeys; (mp ↦$□ M : IProp GF)) :=
+  ownMap_discarded_persist mp M
+
+attribute [local instance 1100] v3rpc.errKeys in
+omit ctx_sem bc_sem in
+/-- A map at `v3rpc.errKeys` is made read-only (`ipersist`). -/
+instance v3rpc.errMap_update_into_persistently (mp : Loc) (dq : DFrac)
+    (M : GMap GoInterface GoInterface) :
+    UpdateIntoPersistently (letI := v3rpc.errKeys; (mp ↦${dq} M : IProp GF))
+      (letI := v3rpc.errKeys; (mp ↦$□ M : IProp GF)) :=
+  ownMap_update_into_persistently mp dq M
+
 /-- **`m[k]` (`v, ok := m[k]`) of a read-only `map[error]error` owned at Perennial's interface keys,
 for an `errKeyOk` key** (`togRPCError`'s lookup; its keys are `nil` or pointers, so `errKeyOk`
 ones). -/

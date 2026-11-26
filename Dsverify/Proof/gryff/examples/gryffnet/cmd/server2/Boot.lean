@@ -45,10 +45,15 @@ theorem wf_sync_atomic : GetIsPkgInitProp pkg_id.sync.atomic (getIsPkgInit (GF :
   · rfl
   exact True.intro
 
-theorem wf_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (getIsPkgInit (GF := GF)) := by
+theorem wf_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
   exact True.intro
+
+theorem wf_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_sync_atomic, wf_internal_gomodel, True.intro⟩
 
 theorem wf_internal_race : GetIsPkgInitProp pkg_id.internal.race (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -63,7 +68,7 @@ theorem wf_internal_synctest : GetIsPkgInitProp pkg_id.internal.synctest (getIsP
 theorem wf_sync : GetIsPkgInitProp pkg_id.sync (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_sync_atomic, wf_internal_sync, wf_internal_race, wf_internal_synctest, True.intro⟩
+  exact ⟨wf_sync_atomic, wf_internal_sync, wf_internal_gomodel, wf_internal_race, wf_internal_synctest, True.intro⟩
 
 theorem wf_io : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -74,11 +79,6 @@ theorem wf_bytes : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
   exact ⟨wf_errors, wf_io, True.intro⟩
-
-theorem wf_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (getIsPkgInit (GF := GF)) := by
-  refine And.intro ?_ ?_
-  · rfl
-  exact True.intro
 
 theorem wf_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -108,7 +108,7 @@ theorem wf_bufio : GetIsPkgInitProp pkg_id.bufio (getIsPkgInit (GF := GF)) := by
 theorem wf_math : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact True.intro
+  exact ⟨wf_internal_gomodel, True.intro⟩
 
 theorem wf_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -158,7 +158,7 @@ theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF
 theorem wf_time : GetIsPkgInitProp pkg_id.time (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_errors, True.intro⟩
+  exact ⟨wf_errors, wf_internal_gomodel, wf_sync_atomic, True.intro⟩
 
 theorem wf_context : GetIsPkgInitProp pkg_id.context (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -278,7 +278,7 @@ theorem wf_internal_runtime_atomic : GetIsPkgInitProp pkg_id.internal.runtime.at
 theorem wf_runtime : GetIsPkgInitProp pkg_id.runtime (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_internal_runtime_sys, wf_internal_runtime_atomic, True.intro⟩
+  exact ⟨wf_internal_runtime_sys, wf_internal_runtime_atomic, wf_internal_gomodel, True.intro⟩
 
 theorem wf_net_http : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -420,10 +420,15 @@ theorem wfNo_sync_atomic : GetIsPkgInitProp pkg_id.sync.atomic (gNo (getIsPkgIni
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact True.intro
 
-theorem wfNo_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gNo (getIsPkgInit (GF := GF))) := by
+theorem wfNo_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfNo_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_sync_atomic, wfNo_internal_gomodel, True.intro⟩
 
 theorem wfNo_internal_race : GetIsPkgInitProp pkg_id.internal.race (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -438,7 +443,7 @@ theorem wfNo_internal_synctest : GetIsPkgInitProp pkg_id.internal.synctest (gNo 
 theorem wfNo_sync : GetIsPkgInitProp pkg_id.sync (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_sync_atomic, wfNo_internal_sync, wfNo_internal_race, wfNo_internal_synctest, True.intro⟩
+  exact ⟨wfNo_sync_atomic, wfNo_internal_sync, wfNo_internal_gomodel, wfNo_internal_race, wfNo_internal_synctest, True.intro⟩
 
 theorem wfNo_io : GetIsPkgInitProp pkg_id.io (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -449,11 +454,6 @@ theorem wfNo_bytes : GetIsPkgInitProp pkg_id.bytes (gNo (getIsPkgInit (GF := GF)
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_errors, wfNo_io, True.intro⟩
-
-theorem wfNo_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gNo (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gNo_ne _ _ (by decide)]; rfl
-  exact True.intro
 
 theorem wfNo_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -483,7 +483,7 @@ theorem wfNo_bufio : GetIsPkgInitProp pkg_id.bufio (gNo (getIsPkgInit (GF := GF)
 theorem wfNo_math : GetIsPkgInitProp pkg_id.math (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfNo_internal_gomodel, True.intro⟩
 
 theorem wfNo_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -533,7 +533,7 @@ theorem wfNo_math_rand : GetIsPkgInitProp pkg_id.math.rand (gNo (getIsPkgInit (G
 theorem wfNo_time : GetIsPkgInitProp pkg_id.time (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_errors, True.intro⟩
+  exact ⟨wfNo_errors, wfNo_internal_gomodel, wfNo_sync_atomic, True.intro⟩
 
 theorem wfNo_context : GetIsPkgInitProp pkg_id.context (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -653,7 +653,7 @@ theorem wfNo_internal_runtime_atomic : GetIsPkgInitProp pkg_id.internal.runtime.
 theorem wfNo_runtime : GetIsPkgInitProp pkg_id.runtime (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_internal_runtime_sys, wfNo_internal_runtime_atomic, True.intro⟩
+  exact ⟨wfNo_internal_runtime_sys, wfNo_internal_runtime_atomic, wfNo_internal_gomodel, True.intro⟩
 
 theorem wfNo_net_http : GetIsPkgInitProp pkg_id.net.http (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -780,10 +780,15 @@ theorem wfS2_sync_atomic : GetIsPkgInitProp pkg_id.sync.atomic (gEx noPkgsS2 (ge
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
-theorem wfS2_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+theorem wfS2_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfS2_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS2_sync_atomic, wfS2_internal_gomodel, True.intro⟩
 
 theorem wfS2_internal_race : GetIsPkgInitProp pkg_id.internal.race (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -798,7 +803,7 @@ theorem wfS2_internal_synctest : GetIsPkgInitProp pkg_id.internal.synctest (gEx 
 theorem wfS2_sync : GetIsPkgInitProp pkg_id.sync (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_sync_atomic, wfS2_internal_sync, wfS2_internal_race, wfS2_internal_synctest, True.intro⟩
+  exact ⟨wfS2_sync_atomic, wfS2_internal_sync, wfS2_internal_gomodel, wfS2_internal_race, wfS2_internal_synctest, True.intro⟩
 
 theorem wfS2_io : GetIsPkgInitProp pkg_id.io (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -809,11 +814,6 @@ theorem wfS2_bytes : GetIsPkgInitProp pkg_id.bytes (gEx noPkgsS2 (getIsPkgInit (
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS2_errors, wfS2_io, True.intro⟩
-
-theorem wfS2_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
 
 theorem wfS2_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -843,7 +843,7 @@ theorem wfS2_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS2 (getIsPkgInit (
 theorem wfS2_math : GetIsPkgInitProp pkg_id.math (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS2_internal_gomodel, True.intro⟩
 
 theorem wfS2_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -893,7 +893,7 @@ theorem wfS2_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS2 (getIsP
 theorem wfS2_time : GetIsPkgInitProp pkg_id.time (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_errors, True.intro⟩
+  exact ⟨wfS2_errors, wfS2_internal_gomodel, wfS2_sync_atomic, True.intro⟩
 
 theorem wfS2_context : GetIsPkgInitProp pkg_id.context (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1013,7 +1013,7 @@ theorem wfS2_internal_runtime_atomic : GetIsPkgInitProp pkg_id.internal.runtime.
 theorem wfS2_runtime : GetIsPkgInitProp pkg_id.runtime (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_internal_runtime_sys, wfS2_internal_runtime_atomic, True.intro⟩
+  exact ⟨wfS2_internal_runtime_sys, wfS2_internal_runtime_atomic, wfS2_internal_gomodel, True.intro⟩
 
 theorem wfS2_net_http : GetIsPkgInitProp pkg_id.net.http (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1135,10 +1135,15 @@ theorem wfS1_sync_atomic : GetIsPkgInitProp pkg_id.sync.atomic (gEx noPkgsS1 (ge
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
-theorem wfS1_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+theorem wfS1_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfS1_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS1_sync_atomic, wfS1_internal_gomodel, True.intro⟩
 
 theorem wfS1_internal_race : GetIsPkgInitProp pkg_id.internal.race (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1153,7 +1158,7 @@ theorem wfS1_internal_synctest : GetIsPkgInitProp pkg_id.internal.synctest (gEx 
 theorem wfS1_sync : GetIsPkgInitProp pkg_id.sync (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_sync_atomic, wfS1_internal_sync, wfS1_internal_race, wfS1_internal_synctest, True.intro⟩
+  exact ⟨wfS1_sync_atomic, wfS1_internal_sync, wfS1_internal_gomodel, wfS1_internal_race, wfS1_internal_synctest, True.intro⟩
 
 theorem wfS1_io : GetIsPkgInitProp pkg_id.io (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1164,11 +1169,6 @@ theorem wfS1_bytes : GetIsPkgInitProp pkg_id.bytes (gEx noPkgsS1 (getIsPkgInit (
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS1_errors, wfS1_io, True.intro⟩
-
-theorem wfS1_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
 
 theorem wfS1_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1198,7 +1198,7 @@ theorem wfS1_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS1 (getIsPkgInit (
 theorem wfS1_math : GetIsPkgInitProp pkg_id.math (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS1_internal_gomodel, True.intro⟩
 
 theorem wfS1_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1248,7 +1248,7 @@ theorem wfS1_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS1 (getIsP
 theorem wfS1_time : GetIsPkgInitProp pkg_id.time (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_errors, True.intro⟩
+  exact ⟨wfS1_errors, wfS1_internal_gomodel, wfS1_sync_atomic, True.intro⟩
 
 theorem wfS1_context : GetIsPkgInitProp pkg_id.context (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1368,7 +1368,7 @@ theorem wfS1_internal_runtime_atomic : GetIsPkgInitProp pkg_id.internal.runtime.
 theorem wfS1_runtime : GetIsPkgInitProp pkg_id.runtime (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_internal_runtime_sys, wfS1_internal_runtime_atomic, True.intro⟩
+  exact ⟨wfS1_internal_runtime_sys, wfS1_internal_runtime_atomic, wfS1_internal_gomodel, True.intro⟩
 
 theorem wfS1_net_http : GetIsPkgInitProp pkg_id.net.http (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1480,10 +1480,15 @@ theorem wfS0_sync_atomic : GetIsPkgInitProp pkg_id.sync.atomic (gEx noPkgsS0 (ge
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
-theorem wfS0_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+theorem wfS0_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
+
+theorem wfS0_internal_sync : GetIsPkgInitProp pkg_id.internal.sync (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact ⟨wfS0_sync_atomic, wfS0_internal_gomodel, True.intro⟩
 
 theorem wfS0_internal_race : GetIsPkgInitProp pkg_id.internal.race (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1498,7 +1503,7 @@ theorem wfS0_internal_synctest : GetIsPkgInitProp pkg_id.internal.synctest (gEx 
 theorem wfS0_sync : GetIsPkgInitProp pkg_id.sync (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_sync_atomic, wfS0_internal_sync, wfS0_internal_race, wfS0_internal_synctest, True.intro⟩
+  exact ⟨wfS0_sync_atomic, wfS0_internal_sync, wfS0_internal_gomodel, wfS0_internal_race, wfS0_internal_synctest, True.intro⟩
 
 theorem wfS0_io : GetIsPkgInitProp pkg_id.io (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1509,11 +1514,6 @@ theorem wfS0_bytes : GetIsPkgInitProp pkg_id.bytes (gEx noPkgsS0 (getIsPkgInit (
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact ⟨wfS0_errors, wfS0_io, True.intro⟩
-
-theorem wfS0_internal_gomodel : GetIsPkgInitProp pkg_id.internal.gomodel (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
 
 theorem wfS0_internal_bytealg : GetIsPkgInitProp pkg_id.internal.bytealg (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1543,7 +1543,7 @@ theorem wfS0_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS0 (getIsPkgInit (
 theorem wfS0_math : GetIsPkgInitProp pkg_id.math (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS0_internal_gomodel, True.intro⟩
 
 theorem wfS0_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1593,7 +1593,7 @@ theorem wfS0_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS0 (getIsP
 theorem wfS0_time : GetIsPkgInitProp pkg_id.time (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_errors, True.intro⟩
+  exact ⟨wfS0_errors, wfS0_internal_gomodel, wfS0_sync_atomic, True.intro⟩
 
 theorem wfS0_context : GetIsPkgInitProp pkg_id.context (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1713,7 +1713,7 @@ theorem wfS0_internal_runtime_atomic : GetIsPkgInitProp pkg_id.internal.runtime.
 theorem wfS0_runtime : GetIsPkgInitProp pkg_id.runtime (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_internal_runtime_sys, wfS0_internal_runtime_atomic, True.intro⟩
+  exact ⟨wfS0_internal_runtime_sys, wfS0_internal_runtime_atomic, wfS0_internal_gomodel, True.intro⟩
 
 theorem wfS0_go_token : GetIsPkgInitProp pkg_id.go.token (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

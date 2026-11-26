@@ -447,19 +447,8 @@ instance k8s_io_apiserver_pkg_storage_etcd3_metrics_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   build_get_is_pkg_init_wf
 
-instance google_golang_org_grpc_grpclog_internal_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
-  define_is_pkg_init iprop(True)
-instance google_golang_org_grpc_grpclog_internal_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
-  build_get_is_pkg_init_wf
-
-instance google_golang_org_grpc_grpclog_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
-  define_is_pkg_init iprop(True)
-instance google_golang_org_grpc_grpclog_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
-  build_get_is_pkg_init_wf
+-- grpc's `grpclog` and `grpclog/internal`: their instances are `cache/v3/Base.lean`'s (phase7-inits
+-- batch 2, 2026-11-25: grpc's `logger` calls `grpclog.Component`)
 
 instance iter_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.iter :=
@@ -553,7 +542,7 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] [_root_.Perennial.er
         go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
     go_etcd_io.etcd.cache.v3.statusErrOk
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
-  obtain ⟨-, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
+  obtain ⟨hp, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
   iintro !> %e %he
@@ -566,7 +555,8 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] [_root_.Perennial.er
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact ⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
+  · ipureintro; exact ⟨⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩,
+      go_etcd_io.etcd.cache.v3.stTypedErr_ptr _ hp⟩
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h

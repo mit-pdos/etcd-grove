@@ -196,11 +196,18 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
-# net/rpcdriver's boot table (etc/gen-rpcdriver-boottable.py, from the server command's PkgTable)
-if python3 etc/gen-rpcdriver-boottable.py --check > "$tmp/rpcboot.log" 2>&1; then
-  echo "$(tail -1 "$tmp/rpcboot.log")"
+# QuePaxa's protobuf axioms' condition (notes/axiom-review/dsv-fix6/quepaxa-pb-2.md, finding 1): no
+# hand-written package-level initializer in the packages declaring its message types
+if python3 etc/pb-init-check.py > "$tmp/pbinit.log" 2>&1; then
+  echo "pb-init: ok"
 else
-  echo "gen-rpcdriver-boottable: FAILED"; tail -3 "$tmp/rpcboot.log"; fail=1
+  echo "pb-init: FAILED"; head -10 "$tmp/pbinit.log"; fail=1
+fi
+# the library drivers' boot tables (etc/gen-driver-boottable.py, from each server command's PkgTable)
+if python3 etc/gen-driver-boottable.py --check > "$tmp/driverboot.log" 2>&1; then
+  echo "$(tail -1 "$tmp/driverboot.log")"
+else
+  echo "gen-driver-boottable: FAILED"; tail -3 "$tmp/driverboot.log"; fail=1
 fi
 # the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
 # commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
@@ -434,6 +441,15 @@ if python3 etc/iris-premise-check.py --check > "$tmp/irisprem.log" 2>&1; then
 else
   echo "iris-premise: FAILED"; head -20 "$tmp/irisprem.log"; fail=1
 fi
+# 7d. every distributed interim axiom (`*_dist`) differs from the in-process spec it copies only as
+# etc/dist-axiom-diff-allow.txt lists (notes/axiom-review/dist-axiom-diff.md: a copy that missed its
+# source's later premise); and the gate's selftest. Reads the sources only; under a second.
+if python3 etc/dist-axiom-diff.py --check > "$tmp/dad.log" 2>&1; then
+  echo "$(tail -1 "$tmp/dad.log")"
+else
+  echo "dist-axiom-diff: FAILED"; grep -v "^  [A-Za-z_.]*: [0-9]* difference\|no in-process source" "$tmp/dad.log" | head -20; fail=1
+fi
+python3 etc/dist-axiom-diff.py --selftest > "$tmp/dads.log" 2>&1 || { echo "dist-axiom-diff selftest: FAILED"; grep "FAIL" "$tmp/dads.log" | head -10; fail=1; }
 return $fail
 }
 

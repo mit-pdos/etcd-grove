@@ -102,3 +102,13 @@ package fact of `True`, which no attack can contradict.
 
 No Lean counterexample was attempted (no gap was found to make one from). `InitInstancesLinked` was
 not compiled.
+
+## Retired (2026-11-25, branch `dsv-retire-2`, mit-pdos/etcd-grove#49 step 2)
+
+The axiom is gone: the part translates `codes` as the main tree does (`Dsverify/Code/google_golang_org/
+grpc/codes.toml`: `strToCode`, the codes, `init.0`) and grpc's `internal` (`internal.toml`:
+`CanonicalString` and the seven variables with initializers, constants and function literals, so no
+`[[skip]]`), and `etc/gen-init.py` proves both `wp_initialize'` (kit configuration `etc/dsv/quepaxa.py`'s
+`special`). `internal`'s fact is `CanonicalString`'s hook cell (`Dsverify/Proof/google_golang_org/grpc/
+internal/Base.lean`), over the init-time invariant moved out of the main tree's `cache/v3/Base.lean`
+into `Proof/runtime/InitInv.lean`.

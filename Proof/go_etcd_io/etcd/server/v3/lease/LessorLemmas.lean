@@ -50,7 +50,7 @@ theorem Time.wp_ptr_Before_dq (l : Loc) (t u : _root_.Perennial.time.Time) (dq :
     {{ (b : Bool), RET #b; l ↦{dq} t }} := by
   wp_start as Hl
   wp_auto
-  wp_apply _root_.Perennial.time.Time.wp_Before as %b -
+  wp_apply _root_.Perennial.time.Time.wp_Before
   iapply HΦ $$ Hl
 
 /-- Two halves of a points-to agree and make the whole. -/

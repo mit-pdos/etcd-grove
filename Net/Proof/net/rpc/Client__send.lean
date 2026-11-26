@@ -35,6 +35,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions]
+variable [errors.Assumptions] [fmt.Assumptions] [os.Assumptions] [internal.poll.Assumptions]
 
 theorem uint_nat_W64_lt (n : Nat) (h : n < 2 ^ 64) : uint.nat (W64 n) = n := by
   word
@@ -109,7 +110,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
       isplitr
       · ipureintro; exact ⟨by simp [interface.mkOk], notServerErr_errorString xs⟩
       isplitr
-      · iapply errAny_newVar $$ HesV Hxs
+      · iapply errPlain_newVar $$ HesV Hxs
       ileft; iexact HD
     wp_apply wp_Unlock _ (sendInv γ c cc cn W a) $$ [$Hsync $Hsmu $Hsown Hreq Hwerr Hsend Hreqs Hsq1
         Hd1]
@@ -340,7 +341,15 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
       iunfold sendRes
       ileft
       iexact HR
-    · ihave #HEa := errAny_resErr $$ HE
+    · ihave #Hconn' := Hconn
+      iunfold net.connAt at Hconn'
+      icases Hconn' with ⟨%nw0, -, -, #Hla, #Hra, -⟩
+      ihave %Hl1 := errLeaf_netAddr la $$ Hla
+      ihave %Hl2 := errLeaf_netAddr ra $$ Hra
+      ihave #HEa := errPlain_resErr _ _ _ _ _ _ _ Hl1 Hl2 $$ [$HE]
+      · iintro %ed' %Hed'
+        cases Hed'
+        iexact Hed
       ihave %HEns := notServerErr_resErr $$ HE
       ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
       obtain ⟨-, Hne⟩ := Hnet

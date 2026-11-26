@@ -29,8 +29,9 @@ the dial's resolvers (`getResolver`: the `WithResolvers` builders first) and ret
 `ClientConn` (idle: it connects on the first RPC) or an error; the resolver, built by grpc on
 the first RPC, reports the address `addr`, the one subchannel the RPCs go to (the round-robin
 policy etcd's resolver configures, over one address). What a connection's RPCs do is
-`ClientConn.Invoke`'s and `NewStream`'s axioms (which assume etcd's stream interceptor:
-`dialOk`). -/
+`ClientConn.Invoke`'s and `NewStream`'s axioms (`NewStream`'s from the options it records,
+`grpcConnOpts`; T7). Or, for a `passthrough:///a` target with no resolver option, grpc's global
+`passthrough` builder, which reports `a` (T7). -/
 axiom grpc.NewClient.wp_proof : grpc.NewClient.spec (GF := GF) (hG := hG)
 
 end proof

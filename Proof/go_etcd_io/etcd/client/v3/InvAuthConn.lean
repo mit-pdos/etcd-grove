@@ -53,6 +53,18 @@ structure UserAddW where
   name : GoString
   pw : GoString
 
+instance UserAddW.msgCountable : Pos.Countable UserAddW :=
+  .ofInjective (fun r => Pos.Countable.encode (r.name, r.pw))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance auth.PermW.msgCountable : Pos.Countable auth.PermW :=
+  .ofInjective (fun r => Pos.Countable.encode (r.ty, r.key, r.rangeEnd))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
 end model
 
 section defs

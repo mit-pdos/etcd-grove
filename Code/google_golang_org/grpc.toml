@@ -16,6 +16,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "GenericClientStream.Send", "GenericClientStream.Recv", "GenericServerStream.Send",
   "GenericServerStream.Recv", "GenericClientStream.CloseSend", "GenericClientStream.Context",
   "GenericServerStream.Context",
+  # (grpcdriver, 2026-11-24) the client-streaming wrappers gRPC's robustness driver calls, with their
+  # bodies (`GenericClientStream.CloseAndRecv`: `CloseSend`, then `RecvMsg` into a new reply;
+  # `GenericServerStream.SendAndClose`: `SendMsg`)
+  "GenericClientStream.CloseAndRecv", "GenericServerStream.SendAndClose",
   # (phase 7 S1, 2026-11-21, notes/phase7-plan.md; grpc is the model's since S0) the server
   # option constructors that only store a closure, with their bodies, and the closures' holder (the
   # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
@@ -31,14 +35,22 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # `initFuncsOk`): `dialoptions.go`'s, `rpc_util.go`'s and `server.go`'s, which store function values
   # in `internal`'s hook variables; and the variables their closures append to (no initializers)
   "init.0", "init.1", "init.2", "globalDialOptions", "globalPerTargetDialOptions",
-  "globalServerOptions"]
+  "globalServerOptions",
+  # (phase7-inits, batch 2) `logger` (`grpclog.Component("core")`, `server.go:101`) with its
+  # initializer (until then `opaqueInitsOk`)
+  "logger"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
   "time", "io", "net", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
   "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver",
   # (phase7-inits) the hook variables its `init`s set
-  "google.golang.org/grpc/internal"]
+  "google.golang.org/grpc/internal",
+  # (phase7-inits, batch 2) `logger`'s `grpclog.Component`
+  "google.golang.org/grpc/grpclog",
+  # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) the types of `Server`'s fields (`mu`,
+  # `cv`, `serveWG`, `quit`), so that it is a translated struct
+  "sync", "google.golang.org/grpc/internal/grpcsync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -48,6 +48,29 @@ To reproduce: open a proof whose `word`/`omega` calls produce `_proof_N` auxilia
 before one of them so that the auxiliaries are numbered or stated differently, check again. Until fixed,
 `lake env lean FILE` (or `lake build`) is the check of record for such files.
 
+## The net examples after the robustness review (2026-11-25, branch `libnet-net/2026-11-25`)
+
+The fixes of #49's "lib-net" report for `net/{acceptloop,duplex,echo,framed,halfclose,preface,shutdown}`
+(statements `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/<ex>/TopLevelRobustness.lean`):
+
+- **Premises**: `Hconns` (no connection) and `[go.BasicIntoValInj]` dropped from all seven: the first
+  is `Robust`'s `extsInitGlobal g` for `netExts = [netExt]` (`NetGlobal.init`, the proofs take
+  `hig.1`), the second an instance of `go.Semantics` (`go.CoreSemantics.basic_into_val_inj`). Only
+  strengthenings; nothing added.
+- **Layout and headers**: `TopLevelDefs` imports `Net/GeneratedProof/.../<ex>/cmd/<node>` instead of
+  the `wp_main` proofs; the statements lost the unused `{GF}` and instances; each header states the
+  extension, D13 (closed world, Linux 7.0 / Go 1.27.3, valid addresses), the one-host reading of the
+  `127.0.0.1` addresses, and the trust.
+- **Random drivers**: `wire.RandomInt`/`wire.RandomBytes` (over `primitive.RandomUint64`, with specs
+  and proofs, `wire/RandomLinked.lean`) draw echo's 5-byte request and 5-16-byte junk, framed's 1-4
+  messages of 0-255 bytes and 1-16-byte junk, acceptloop's 1-8 callers (ids 1..N, one `Add(N)`),
+  duplex's n in 1-64, halfclose's 0-255-byte request (its protocol's `HcOk` no longer fixes the
+  dialer's bytes; `client_check` takes the client's writer half), preface's request byte and 0-3
+  junk bytes. A junk node still sends what lets the server move on (echo: at least `reqLen`).
+- **Go controls**: `examples/net/<ex>/control_test.go`: a corrupting server makes each client's
+  check panic; shutdown's test shows `closeConn`'s three checks run after the node's dial of its own
+  listener succeeds, and fire on a mutant connection.
+
 ## The raft examples kv, kvreconf, kvdurable and kvdurablenoax retired (2026-11-24, branch `raft-retire/2026-11-24`; approved by Upamanyu on #22, 2026-11-24)
 
 - **Retired** (subsumed by `kvraft_robust`, TCP, and kvraft-udp, UDP; analysis in the coordinator's
@@ -949,8 +972,8 @@ own check never failed), and the main thread's result, if any, is as stated. The
   random `Put`/`Get`/`Append` on random replicas, porcupine's check -- returns `#()`: porcupine
   always answers `Ok`. Premises: `n < 2^63` steps, the package assumptions, `log.NewModel`. Raft only (no etcd server).
 - **`counter_adequate`** (`examples/lib/lintest/counter/Adequacy.lean`; its `Results.lean` restates
-  `wp_CheckCounterClock`): porcupine's translated checker accepts the traces of a counter (4
-  clients of 10 operations); `n < 2^63`.
+  `wp_CheckCounterClock`): porcupine's translated checker accepts the traces of a counter (1 to 8
+  clients of 1 to 32 random operations, since 2026-11-25); `n < 2^63`.
 - **`logkv_adequate`** (`examples/lib/lintest/logkv/Adequacy.lean`, 2026-10-28): the same for a
   register whose writes go through a log applied by an apply goroutine (`Put` linearizes in the
   apply goroutine: helping through the lock invariant, `notes/logkv-eval.md`); `n < 2^63`.

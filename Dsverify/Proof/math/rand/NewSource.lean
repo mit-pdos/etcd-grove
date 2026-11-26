@@ -1,12 +1,9 @@
 /-
-**Trust-boundary axiom** (dsv-fix4, mit-pdos/etcd-grove#49 fix 4): `NewSource(seed)` returns a
-fresh `*rngSource` with its token (`math.rand.isRngSource`, `RngDefs.lean`). Perennial translates
-`NewSource` names only (`Perennial/Code/math/rand.toml`). Go's `rand.go`: `func NewSource(seed
-int64) Source { return newSource(seed) }`, and `newSource` declares `var rng rngSource`, seeds
-it (`rng.Seed(seed)`, writing only `rng`'s own state: `seed` is reduced modulo `int32max` and the
-array filled from the constant table `rngCooked`) and returns `&rng` (escaping: a fresh heap object): no panic for any seed. The
-field `NewSource` of the statement premise `math.rand.Hyps` (rabia, swiftpaxos) until dsv-fix4,
-there for an unnamed token. Review: `notes/axiom-review/dsv-fix4/math-rand-rng.md`.
+`NewSource(seed)` returns a fresh `*rngSource` with its token (`math.rand.isRngSource`,
+`RngDefs.lean`): `math.rand.NewSource.ownSpec`, from Perennial's linked `math.rand.wp_NewSource`
+(whose post is `isRngSource`'s body). A trust-boundary axiom from dsv-fix4 (mit-pdos/etcd-grove#49
+fix 4) until dsv-retire-2 (#49 step 2), when Perennial translated and proved `NewSource`, `newSource`,
+`rngSource.Seed` and `seedrand` (review of the axiom: `notes/axiom-review/dsv-fix4/math-rand-rng.md`).
 -/
 module
 
@@ -20,13 +17,15 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section ax
+section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : math.rand.Assumptions]
 
-/-- **Trust-boundary axiom** (the file header). -/
-axiom math.rand.NewSource.wp_proof : math.rand.NewSource.spec (GF := GF) math.rand.isRngSource
+/-- `NewSource`'s spec over `isRngSource`: Perennial's. -/
+theorem math.rand.rng.NewSource_rng : math.rand.NewSource.ownSpec (GF := GF) math.rand.isRngSource :=
+  math.rand.wp_NewSource
 
-end ax
+end proof
 
 end Perennial

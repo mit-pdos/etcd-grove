@@ -8,7 +8,7 @@ function values `sprintf`, `sprint`, `sprintln` (`fmt`'s) and `exit` (`os.Exit`)
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.fmt.Link
 public import Proof.os.Init
 public import Proof.runtime.PkgInitExt

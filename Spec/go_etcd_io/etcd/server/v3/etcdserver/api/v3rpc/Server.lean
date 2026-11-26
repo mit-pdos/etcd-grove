@@ -43,7 +43,7 @@ the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` str
 `pa` over the server (`authRegs`, `authServerIs`), and (the lease-src plan, 2026-11-02) the Lease
 service's four methods and its `LeaseKeepAlive` stream on the `*quotaLeaseServer` `ql` over the
 `*LeaseServer` `pl` (`leaseRegs`, `leaseSReg`; `NewQuotaLeaseServer`'s objects), all registrations with distinct full names (stage B: what
-`grpc.start` takes); (auth-mediation M1, 2026-11-20) these registrations **exactly**
+`grpc.start'` takes); (auth-mediation M1, 2026-11-20) these registrations **exactly**
 (`serverRegsOk`): every method and stream of the six services' generated descriptors, on the
 service values above and the `*ClusterServer` `pc` and the `*authMaintenanceServer` `pm`, and grpc's
 health service's, nothing else; given the service values' method sets (`ServerMethodSets`, Go's

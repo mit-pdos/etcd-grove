@@ -245,6 +245,11 @@ theorem EtcdServer.PromoteMember.wp_proof
     ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
     ihave %HvD := deadlineExceeded_value _ $$ Pctx HeD
+    -- (#45) the target's description, which `errors.Is` takes
+    ihave #HtdD : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF) (GoInterface.ok eD) m') $$ []
+    · rw [HvD]
+      iexists _
+      iapply go_etcd_io.etcd.cache.v3.descIs_deadlineZero
     icases HsEV with ⟨-, -, -, #HECan, #HETo, -⟩
     ihave ⟨%eCan, #HeCan, #HeCanE⟩ := errVarLeaf_get _ $$ HECan
     ihave ⟨%eTo, #HeTo, #HeToE⟩ := errVarLeaf_get _ $$ HETo

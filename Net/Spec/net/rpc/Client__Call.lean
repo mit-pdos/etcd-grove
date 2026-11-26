@@ -59,6 +59,27 @@ abbrev Client.Call.spec : Prop :=
         ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
           (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D))) }}
 
+/-- `Client.Call.spec` whose other errors (not `ServerError`s) are `errPlain`
+(`Net/Proof/models_lab/ErrFmt.lean`): besides their `Error()`, `fmt` formats them under any verb
+calling only it (an `errors.New` error, the net extension's `*OpError` of a failed read or write).
+Proved in `Net/Proof/net/rpc/Client__Call.lean`; `Client.Call.spec` follows from it. -/
+abbrev Client.Call.spec_plain : Prop :=
+  ∀ (c : Loc) (W : RpcWorld GF) (a sm svc M : GoString) (S : MethodSpec GF)
+    (args reply : GoInterface) (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF),
+  {{ isClient c W a ∗ ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
+      ⌜sm.length + 16 ≤ maxFrameN⌝ ∗ codecSet C ∗ C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D ∗
+      □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) }}
+    (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
+      (Val #sm)) (Val #args)) (Val #reply))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Θ rep true) ∨
+      (∃ msg : GoString, ⌜msg ≠ [] ∧ err = serverErr msg⌝ ∗ errMsg err msg ∗ Rargs ∗
+        (∃ rep, Φ rep msg) ∗ D) ∨
+      (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errPlain err ∗
+        ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
+          (C.enc args (fun bs => iprop(⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs)) ∗ D))) }}
+
 /-- `c.Call(sm, args, reply)` on a client closing for good (`cliClosed c`, `Client.Close.spec_closed`):
 an error, not a `ServerError` (`ErrShutdown`: `send` refuses the call before encoding anything), for
 any `sm`, `args` and `reply`. Proved in `Net/Proof/net/rpc/Client__CallClosed.lean`. -/

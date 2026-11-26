@@ -5,7 +5,7 @@
 `premise_sat%` (`Robustness/PremiseSat.lean`): the statement of
 `Dsverify/Spec/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean` has premises
 that hold together with `Robust`'s antecedents: thirteen fresh machines with no listener, no
-connection, and `DistDeploy`'s addresses (`craqKitAddrs`, distinct and valid, by evaluation); its premises `LogHyp` and `RpcHttpServe` are Iris contracts, left out by `premise_sat%` itself.
+connection, and `DistDeploy`'s addresses (`craqKitAddrs`, distinct and valid, by evaluation); its premise `RpcHttpServe` is an Iris contract, left out by `premise_sat%` itself.
 Checked by `etc/premise-witness.py`.
 -/
 module
