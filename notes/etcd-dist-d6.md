@@ -2682,6 +2682,26 @@ No axiom, `sorry`, trusted text, top-level premise or top-level statement change
   `permission denied`.
 * Next: once the copy ends, the full build of the head, then gates in full; then item 2 by the lead's choice.
 
+**T10b session 3** (2026-11-26): **(B) built; the P5-RESTART `sorry` is gone.**
+* Fixes: `InvWalCrashPure.walFold_snapFrom`'s save case (`refine ih _ _ hA' ?_ h; exact hτ`: the fold's state after a
+  save is a new record, `SnapFrom` holds by defeq); `InvWalCrashSteps`, both `walHistCertsK_snoc` calls at a snapshot
+  record: `(by rw [walLastHS_snoc_snapP]; exact Nat.le_refl _)`.
+* **`MemberCrash.lean:415`**: the one-token edit, approved by the lead through the coordinator: the trailing `-` pattern
+  for `rnDurK_crash.law`'s dropped `walHistCerts … Hc` conjunct removed (`… #Hsd, #Hl⟩`). Nothing else in MemberCrash,
+  `backend/CrashInterim.lean` or `NewServerCrash.lean` changed. No `Spec/`, `TrustedCode/` or axiom names
+  `rnRestartAllocK.law` or `rnDurK_crash.law` (`git grep`).
+* Full build green on fk-lean1 (29666 jobs). Gates (with `remote-check.sh`'s env: `PERENNIAL_CHECKOUT`, the caches under
+  `~/eg/cache`; without it the Go and gen-init sections fail on the missing `/shared/tmp`): links, copy-part, **tcb (371
+  axioms, 0 sorries: matches the baseline, nothing to update)**, all 69 collections match, goose, gen-init, tier, api,
+  bounds 389, premisefix, k8s ok. `tcb-report --reuse --roots newRaftNode`: 2 roots, no `sorry`. The P5-RESTART
+  `sorry` was in no baseline (none lists a `sorry`), so `--check --update` changes nothing.
+* **Gates still failing, not from this change** (none names a file of it; they come with the merged full/crash lines):
+  `mode` (20 unclassified lit-modes: `NewServerCrash.lean`, `NewServerRAt.lean`, `AuthViewDist`, `MemberLessor`,
+  `MainLogger`, `MemberSplit`, `etcdstart/Start.lean`: entries for `etc/mode-allow.txt`), `featuregate` (the allow list
+  names the etcd fork's old pseudo-version `20261124070122-df6af0c36a6b`, the programs now hit `20261125101634-251a430ce042`),
+  `model-param` (117 rule-1 binders of the dist `wp_proof`s, `etcdInterceptorOk*`/`grpc*SvcAt`), `errdesc-check`
+  (`KVGetDist.lean`, `WatchDist.lean` unreviewed). Owner: whoever lands the integration line.
+
 **Handoff T10b-2** (session 2, 2026-11-26; stopped at the context rule; head = this commit, pushed). **(B) written, UNBUILT.**
 Coordinator chose (B). No `Spec/`, `TrustedCode/`, image, contract or axiom text changed; no new `sorry` or axiom. What changed:
 * `InvWalCrash.lean`: pure defs `SnapFrom σ0 X τ` (the read has `σ0`'s base and snapshot, or a snapshot record of `X` at its
