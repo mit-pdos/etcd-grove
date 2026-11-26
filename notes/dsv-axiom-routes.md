@@ -341,3 +341,6 @@ repository (all three are already in the base baseline): `Perennial.runtime.init
 roots, but hidden behind the one axiom `zerolog.wp_initialize'`, whose statement gave zerolog's `isPkgInit`
 without its dependencies' initializers; zerolog's initializer is now proved, and the proof applies the
 initializers of the runtime packages zerolog imports, so their axioms show in the collection.
+`etc/gates.sh` (fk-lean1, log `~/eg/logs/dsv-retire-3-gates-s6.log`): every check passed but axiom-tok, whose
+`etc/axiom-tok-allow.txt` still had `trunc ...zerolog.wp_initialize'` (a stale entry: now a theorem); removed
+(`ca45e750f0`), and `etc/axiom-tok-check.py --check` is ok.
