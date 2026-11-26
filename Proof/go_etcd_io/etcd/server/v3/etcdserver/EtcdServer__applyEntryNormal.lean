@@ -1477,9 +1477,10 @@ theorem Apply_kvSpecL_win (h : apply.Apply.kvSpecL (GF := GF) (hG := hG)) :
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); apply.applyTok E ∗ apply.bkRTOf E ∗
       RD ∗ E.FS ∗ apply.revokeOwn E rq ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV { E with win := wn } ua x' ∗
+        apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out T) ∗
         E.RO (apply.revokeRestA T rq v3 out (apply.restOut rq v3 out rs)) ∗ apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
