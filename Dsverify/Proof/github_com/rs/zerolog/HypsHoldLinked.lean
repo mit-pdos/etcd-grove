@@ -23,6 +23,7 @@ public import Dsverify.Proof.github_com.rs.zerolog.Event__Msg
 public import Dsverify.Proof.github_com.rs.zerolog.ParseLevel
 public import Dsverify.Proof.github_com.rs.zerolog.SetGlobalLevel
 public import Dsverify.Proof.github_com.rs.zerolog.New
+public import Perennial.Proof.unicode.utf8.Link
 
 @[expose] public section
 
@@ -40,7 +41,7 @@ variable [sem : go.Semantics] [package_sem : github_com.rs.zerolog.Assumptions]
 /-- **`zerolog.Hyps` holds** (a theorem, not an instance): the file header. -/
 theorem hyps_holds : Hyps GF := by
   refine ⟨⟨eventTok, ?_⟩, ParseLevel.wp_proofWarn, SetGlobalLevel.wp_proof, New.wp_proof⟩
-  refine ⟨?_, Event.Str.wp_proof, Event.Int.wp_proof, Event.Ints.wp_proof, Event.Int64.wp_proof,
+  refine ⟨?_, Event.Str.wp_proof unicode.utf8.wp_DecodeRuneInString, Event.Int.wp_proof, Event.Ints.wp_proof, Event.Int64.wp_proof,
     Event.Uint32.wp_proof, Event.Bool.wp_proof, Event.Float64.wp_proof, Event.Msg.wp_proof⟩
   intro m hm
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
