@@ -352,6 +352,22 @@ theorem durTie_scope (γ : RaftNames) (sc : Bool) (rs : RNState) (s : NState)
     ihave %Hf := Hd $$ %(Or.inl Hsn) %([] : List EntryM) %(Hprev ▸ FullOk_base0) Hrecs
     ipureintro; intro _; simpa using Hf
 
+/-- (antithesis parity B1, step C3) `durTie_scope` at an `Option RnMode` scope: at each mode it names, the
+log's boundary at `base0` and no snapshot pending. -/
+theorem durTie_scopeOpt (γ : RaftNames) (sc : Option RnMode) (rs : RNState) (s : NState)
+    (H : ∀ md, sc = some md → s.logst.prev = base0 ∧ s.logst.snap = none) :
+    durTie (GF := GF) γ rs s ⊢ ⌜∀ md, sc = some md → DurFull rs.dur s.logst.stored ∧
+      uint.Z rs.dur.base.index' ≤ uint.Z s.logst.prev.index'⌝ := by
+  cases sc with
+  | none => iintro -; ipureintro; intro md h; cases h
+  | some md0 =>
+    obtain ⟨Hprev, Hsn⟩ := H md0 rfl
+    unfold durTie
+    iintro #Hd
+    ihave Hrecs : logRecs (GF := GF) γ base0 ([] : List EntryM) $$ []
+    · unfold logRecs; iempintro
+    ihave %Hf := Hd $$ %(Or.inl Hsn) %([] : List EntryM) %(Hprev ▸ FullOk_base0) Hrecs
+    ipureintro; intro _ _; simpa using Hf
 
 /-- An empty pair of queues reads as an empty outbox. -/
 theorem outboxRel_empty (sz : Bool) (o : List Msg) (ms1 ms2 : List QMsg) (h1 : ms1 = [])

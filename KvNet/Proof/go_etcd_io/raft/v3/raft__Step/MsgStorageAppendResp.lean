@@ -98,8 +98,9 @@ theorem wp_Step_MsgStorageAppendResp_none {nc : Bool} (_P : raft.Step.Postulates
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-11-11, slice 30c) the protocol reading unchanged (`AckEnd`); (2026-11-12, trace-check
         -- implementation step 2) and the leader transfer and the read state; (#33 parity B1 stage 3b)
-        -- and the pending configuration index
-        "%Hack" ∷ ⌜toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci⌝ ∗
+        -- and the pending configuration index; (#33 parity B1, step C3) and the leader and the tally
+        "%Hack" ∷ ⌜toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+          s'.lead = s.lead ∧ s'.votes = s.votes⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hsn Hle Hstok Hghoff Hwf
   wp_start as H
@@ -157,7 +158,7 @@ theorem wp_Step_MsgStorageAppendResp_none {nc : Bool} (_P : raft.Step.Postulates
       ipureintro
       exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
         rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
-        StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl, rfl⟩
+        StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   -- `Term = 0` or `Term = r.Term`: the switch's case
   have Hmt : m.Term' = W64 0 ∨ m.Term' = s.term := by
     by_cases Hz : m.Term' = W64 0
@@ -196,7 +197,7 @@ theorem wp_Step_MsgStorageAppendResp_none {nc : Bool} (_P : raft.Step.Postulates
     ipureintro
     exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
         rfl, fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩,
-      StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl, rfl⟩
+      StepCD.frame (.refl _) (RFrame.refl _), rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · rw [decide_eq_false Hi0]
     wp_auto
     -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
@@ -232,7 +233,7 @@ theorem wp_Step_MsgStorageAppendResp_none {nc : Bool} (_P : raft.Step.Postulates
       fun _ => ⟨by unfold logStableTo; split <;> rfl, logStableTo_concat _ _, by unfold logStableTo; split <;> rfl, fun h => Hsn'.trans h,
         by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
           by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, ?_, rfl,
-        toPState_logStableTo _ _, rfl, rfl, rfl⟩
+        toPState_logStableTo _ _, rfl, rfl, rfl, rfl, rfl⟩
     refine StepCD.frame ?_ ⟨by unfold logStableTo; split <;> rfl, Hsn', fun h => ⟨h, rfl⟩⟩
     rw [toPState_logStableTo]
     exact .refl _

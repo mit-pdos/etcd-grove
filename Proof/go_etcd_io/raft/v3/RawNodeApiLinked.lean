@@ -463,7 +463,8 @@ theorem RawNode.Ready.apiSpec_of_abs (H : RawNode.Ready.absSpec (GF := GF) (hG :
 
 theorem RawNode.Advance.apiSpec_of_abs (H : RawNode.Advance.absSpec (GF := GF) (hG := hG)) :
     RawNode.Advance.apiSpec (GF := GF) (hG := hG) := by
-  have h := H true; rw [true_eq_true_eq] at h; exact h
+  have h := H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩)
+  rw [some_eq_some_eq] at h; exact h
 
 theorem RawNode.ReportUnreachable.apiSpec_of_abs
     (H : RawNode.ReportUnreachable.absSpec (GF := GF) (hG := hG)) :
@@ -476,11 +477,12 @@ theorem RawNode.HasReady.apiSpec_of_abs (H : RawNode.HasReady.absSpec (GF := GF)
   wp_start_folded as H'
   iNamed H'
   iunfold rawNode at Hrn
-  wp_apply H true γ rn id rs r qs ip $$ [$Hrn] as %b Hb
+  wp_apply H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩) γ rn id rs r qs ip
+    $$ [$Hrn] as %b Hb
   iapply HΦ
   icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, %Hid, ⟨-, Hrn⟩⟩)
   · unfold rawNode; iframe Hrn; ipureintro; intro h; rw [Hb] at h; cases h
-  · unfold rawNode; iframe Hrn; ipureintro; intro _; exact Hid trivial
+  · unfold rawNode; iframe Hrn; ipureintro; intro _; exact Hid {} rfl
 
 theorem NewRawNode.emptyStartApiSpec_of_abs
     (H : NewRawNode.emptyStartAbsSpec (GF := GF) (hG := hG)) :

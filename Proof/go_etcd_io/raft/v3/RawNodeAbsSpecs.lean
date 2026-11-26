@@ -417,15 +417,17 @@ the scope, the protocol-level idle fact `PIdle` and the in-progress boundary at 
 (`hasNextUnstableEnts` false), and both views of the node: the old spec's
 `ownRawNodeIdle` and `ownRawNodeAt` (an Iris conjunction: either, of the same resources). -/
 abbrev RawNode.HasReady.absSpec : Prop :=
-  ∀ (sc : Bool) (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg)
+  ∀ (sc : Option RnMode), (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg)
     (ip : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeAt γ rn id rs r qs ip (basicScope sc) }}
+      "Hrn" ∷ ownRawNodeAt γ rn id rs r qs ip sc }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs r qs ip (basicScope sc)) ∨
-      (⌜b = false⌝ ∗ ⌜sc = true → PIdle rs r.p ∧ ip = r.p.log.length⌝ ∗
-        (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs r qs ip (basicScope sc))) }}
+      (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs r qs ip sc) ∨
+      (⌜b = false⌝ ∗ ⌜∀ md, sc = some md → PIdle rs r.p ∧ ip = r.p.log.length⌝ ∗
+        (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs r qs ip sc)) }}
 
 abbrev RawNode.HasReady.spec_of_abs.law : Prop :=
   RawNode.HasReady.absSpec (GF := GF) (hG := hG) → RawNode.HasReady.spec (GF := GF) (hG := hG)
@@ -519,8 +521,9 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RStat
   rs.unst = false →
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none) →
   -- (#33 S4, 2026-11-24) in the scope, no queued pre-vote response: a self `MsgPreVoteResp` of the
-  -- next term has no `RecvEnd` (ledger); the harness's queue is `QsOk`'s
-  (∀ md, S md → ∀ q ∈ qs, q.ty ≠ .preVoteResp) →
+  -- next term has no `RecvEnd` (ledger); the harness's queue is `QsOk`'s. (antithesis parity B1, step
+  -- C3; design §2 table) only at pre-vote off
+  (∀ md, S md → md.prevote = false → ∀ q ∈ qs, q.ty ≠ .preVoteResp) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ R γ rn id rs r qs ip ∗
       "Hret" ∷ loanRet rs ∗
@@ -548,8 +551,11 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RStat
 
 /-- **`RawNode.Advance`, strengthened**. -/
 abbrev RawNode.Advance.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Advance.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc)) (fun md => basicScope sc = some md)
+  ∀ sc : Option RnMode, (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+    RawNode.Advance.form
+      (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc)
+      (fun md => sc = some md)
 
 abbrev RawNode.Advance.spec_of_abs.law : Prop :=
   RawNode.Advance.absSpec (GF := GF) (hG := hG) → RawNode.Advance.spec (GF := GF) (hG := hG)

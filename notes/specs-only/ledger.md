@@ -6640,3 +6640,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `preCand_of_stepEnd_prop`), `XScopeOk` (`proposeEnd_lead`). Lifting lemmas generalized (no statement of record):
   `proposeEnd_of_stepEnd`/`recvEnd_of_stepEnd_prop` take `FnScope`, `logGrow_of_stepEnd_prop`/`bk_of_stepEnd_prop` no scope.
 - **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C3 (Advance, HasReady): `RawNode.Advance.absSpec` and `RawNode.HasReady.absSpec` at every scope `Option RnMode`; `Advance.form`'s pre-vote premise only at pre-vote off (#33)
+- **Spec (the lead's statements).** RawNodeAbsSpecs.lean: `RawNode.Advance.absSpec` and `RawNode.HasReady.absSpec := ∀ sc :
+  Option RnMode, (∀ md, sc = some md → snapshots, confChanges, forwarding, async off) → …` at `ownRawNodeAt … sc` (were
+  `∀ sc : Bool` at `basicScope sc`; decision 1, as C1/C2); HasReady's idle fact `∀ md, sc = some md → PIdle … ∧ ip = …`
+  (was `sc = true →`). **`RawNode.Advance.form`'s premise weakened** (lead's decision, design §2 table): `∀ md, S md →
+  md.prevote = false → ∀ q ∈ qs, q.ty ≠ .preVoteResp` (was `∀ md, S md → ∀ q ∈ qs, …`): at pre-vote on a queued
+  `MsgPreVoteResp` (the pre-candidate's self answer) is stepped as any self-addressed response, `RecvEnd` at the node's
+  flags (`recvEnd_of_stepEnd_netK`, the pre-candidate's tally below a quorum from `RnScope`). The proof no longer reads the
+  premise. `spec_of_abs` at `none`, `apiSpec_of_abs` at `some {}`.
+- **Proof-internal (no statement of record).** `AckEnd` (LemmasStepGates.lean) gains `s'.lead = s.lead ∧ s'.votes = s.votes`
+  (`toPState` hides both at a pre-candidate; `RnScope`'s pre-candidate conjuncts through `Advance`'s storage
+  acknowledgements), proved by `rfl` in raft__Step/MsgStorageAppendResp.lean, MsgStorageApplyResp.lean and raft__Step.lean's
+  snapshot-acknowledgement close (the end states are `s` with the log, progress and learner maps replaced).
+  RawNode__AdvanceAbs at `some md`: `advStep_pure` over `LiftScopeK` (`RoleFn`, the leader kept, cleared or the node as a
+  new leader: `recvEnd_lead_resp`; storage acknowledgements `roleFn_ack`), the loop's invariant `RnScope md ∧ XScopeOk`.
+  RawNode__HasReadyAbs at `some md` (`durTie_scopeOpt`, `pidle_of_hasReady` reads the log's boundary only).
+- **Decision.** The Antithesis lead (2026-11-26: decision 1; the `Advance.form` premise at pre-vote off). No axiom, no premise
+  added.

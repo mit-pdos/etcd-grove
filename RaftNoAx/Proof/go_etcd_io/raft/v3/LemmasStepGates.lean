@@ -333,9 +333,12 @@ the outbox with it. `StepEnd` says nothing of these types; the closing wand lear
 (2026-11-12, trace-check implementation step 2) And the leader transfer and the read state unchanged,
 which `toPState` does not read: the traced scope's (`TrScope`) through an acknowledgement.
 (#33 parity B1 stage 3b) And the pending configuration index (`pendingConfIndex`), which only an
-automatic leave moves (`AckScope`, or traced): `Advance`'s end over `RState` (`AdvanceEndR`). -/
+automatic leave moves (`AckScope`, or traced): `Advance`'s end over `RState` (`AdvanceEndR`).
+(#33 parity B1, step C3) And the known leader and the tally, which `toPState` does not read at a
+pre-candidate: `RnScope`'s pre-candidate facts through `Advance`'s acknowledgements. -/
 def AckEnd (m : MessageM) (s s' : NState) : Prop :=
-  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci
+  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+    s'.lead = s.lead ∧ s'.votes = s.votes
 
 /-- (#33 S3c design §2.4) **The untraced scope in which a storage acknowledgement leaves the protocol
 reading unchanged**: no automatic leave of a joint configuration. -/

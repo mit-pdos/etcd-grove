@@ -32,7 +32,7 @@ theorem RawNode.HasReady.spec_of_abs : RawNode.HasReady.spec_of_abs.law (GF := G
   wp_start_folded as H
   iNamed H
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-  wp_apply Habs false γ rn id rs ps qs ip $$ [$Hrn] as %b H
+  wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip $$ [$Hrn] as %b H
   icases H with (⟨%Hb, H⟩ | ⟨%Hb, -, ⟨H, -⟩⟩)
   · ihave H := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none $$ H
     iapply HΦ
@@ -86,7 +86,8 @@ theorem RawNode.Advance.spec_of_abs : RawNode.Advance.spec_of_abs.law (GF := GF)
   wp_start_folded as H
   iNamed H
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-  wp_apply Habs false γ rn id rs ps qs ip rd H1 H2 H3 (fun _ h => by cases h) $$ [$Hrn $Hret $HA1 $Hbw]
+  wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip rd H1 H2 H3 (fun _ h => by cases h)
+    $$ [$Hrn $Hret $HA1 $Hbw]
     as %t %ca %ps' %ip' ⟨Hrn, %Ht1, %Ht2, %Hca, %Hca2, -⟩
   ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
   iapply HΦ $$ %t %ca

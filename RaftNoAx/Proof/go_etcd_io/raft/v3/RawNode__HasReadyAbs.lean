@@ -17,6 +17,7 @@ module
 
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeReadyAt
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.SoftState__equal
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.isHardStateEqual
@@ -46,7 +47,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`HasReady`'s `false`, at the protocol level** (pure): the facts the false path has. -/
 theorem pidle_of_hasReady (rs : RNState) (ps : PState) (ip : Nat) (s : NState) (sv : SoftState)
-    (Hps : toPState s = ps) (Hip : uint.nat s.logst.inprogress = ip + 1) (Hsc : RnScopeBasic rs s)
+    (Hps : toPState s = ps) (Hip : uint.nat s.logst.inprogress = ip + 1) (Hprev : s.logst.prev = base0)
     (Hout : s.outbox = [])
     (Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs) (Hphs : PhsOk rs s)
     (Hsoft : stateW64 s.role = sv.RaftState') (Hrole : rs.role = sv.RaftState')
@@ -60,7 +61,6 @@ theorem pidle_of_hasReady (rs : RNState) (ps : PState) (ip : Nat) (s : NState) (
     (Hdur : DurFull rs.dur s.logst.stored ∧
       uint.Z rs.dur.base.index' ≤ uint.Z s.logst.prev.index') :
     PIdle rs ps ∧ ip = ps.log.length := by
-  obtain ⟨-, -, -, -, -, Hprev, -, -⟩ := Hsc
   subst Hps
   have Hp0 : uint.Z s.logst.prev.index' = 0 := by rw [Hprev]; rfl
   -- the boundary at the log's end
@@ -104,7 +104,7 @@ local macro "finish0" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iapply ownRawNodeAt_intro γ rn id rs ps qs ip (basicScope sc) s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
+  iapply ownRawNodeAt_intro γ rn id rs ps qs ip sc s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hps Hip
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
       Hledger Hdur Hrntr Hsc))
@@ -139,9 +139,9 @@ local macro "finish_false" : tactic => `(tactic| (
         | exact Hif
         | (apply Classical.byContradiction; intro h; exact Hif h)
     rw [Hz]; rfl
-  have Hpi : sc = true → PIdle rs ps.p ∧ ip = ps.p.log.length := fun h =>
-    pidle_of_hasReady rs ps.p ip s sv (by rw [← Hps]; rfl) Hip (Hscope h) Hob Hhsi Hphs Hsofteq Hrole Hnu Hipf.1
-      (Hipf.2 (Hscope h).2.2.2.2.2.2.1) (Hdurf h)
+  have Hpi : ∀ md, sc = some md → PIdle rs ps.p ∧ ip = ps.p.log.length := fun md h =>
+    pidle_of_hasReady rs ps.p ip s sv (by rw [← Hps]; rfl) Hip (Hpsn md h).1 Hob Hhsi Hphs Hsofteq Hrole
+      Hnu Hipf.1 (Hipf.2 (Hpsn md h).2) (Hdurf md h)
   close_view
   iapply HΦ
   iright
@@ -156,7 +156,7 @@ local macro "finish_false" : tactic => `(tactic| (
       ⟨Hout0, Hnu, Hrd0, Hsn.2 rfl⟩
       Hrole Hphs Hhsi $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
         Hloanc Hsloc Hhist Hledger Hdur Hrntr
-  · iapply ownRawNodeAt_intro γ rn id rs ps qs ip (basicScope sc) s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
+  · iapply ownRawNodeAt_intro γ rn id rs ps qs ip sc s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen
       Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hps Hip
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hhist
         Hledger Hdur Hrntr Hsc))
@@ -211,13 +211,15 @@ theorem RawNode.HasReady.wp_absProof
     (wp_raft_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_raft_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.absSpec (GF := GF) (hG := hG) := by
-  intro sc γ rn id rs ps qs ip
+  intro sc hsc0 γ rn id rs ps qs ip
   wp_start as H
   iNamed H
   iNamed Hrn
   -- the scope's facts, and the struct's, for the `false` path
-  icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
-  ihave %Hdurf := durTie_scope γ sc rs s Hscope $$ Hdur
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  have Hpsn : ∀ md, sc = some md → s.logst.prev = base0 ∧ s.logst.snap = none := fun md h =>
+    ⟨((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.1, ((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.2.1⟩
+  ihave %Hdurf := durTie_scopeOpt γ sc rs s Hpsn $$ Hdur
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   wp_auto
   wp_apply wp_raft_softState cf rnv.raft' id s $$ Hphys as Hphys

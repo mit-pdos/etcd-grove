@@ -193,7 +193,8 @@ theorem wp_Step_MsgStorageApplyResp {nc : Bool} (_P : raft.Step.Postulates (GF :
         -- leave at a traced node); (#33 S3c design §2.4) and untraced in `AckScope`, where `appliedTo`
         -- leaves no joint configuration; (#33 parity B1 stage 3b) the pending configuration index with it
         "%Hack" ∷ ⌜s.gh.tr.isSome ∨ AckScope c →
-          toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci⌝ ∗
+          toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+          s'.lead = s.lead ∧ s'.votes = s.votes⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
@@ -240,7 +241,7 @@ theorem wp_Step_MsgStorageApplyResp {nc : Bool} (_P : raft.Step.Postulates (GF :
     isplitr
     · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
     ipureintro
-    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => ⟨rfl, rfl, rfl, rfl⟩⟩
+    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -315,7 +316,8 @@ theorem wp_Step_MsgStorageApplyResp {nc : Bool} (_P : raft.Step.Postulates (GF :
       rw [← Hs1]; exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He).1 Hcm.1.2.1
     have Happ1 : s1.logst.applied = w64Max e.Index' s.logst.applied := by rw [← Hs1]; rfl
     have Hps1 : toPState s1 = toPState s := by rw [← Hs1]; rfl
-    have Hlr1 : s1.lt = s.lt ∧ s1.rd = s.rd ∧ s1.pci = s.pci := by rw [← Hs1]; exact ⟨rfl, rfl, rfl⟩
+    have Hlr1 : s1.lt = s.lt ∧ s1.rd = s.rd ∧ s1.pci = s.pci ∧ s1.lead = s.lead ∧ s1.votes = s.votes := by
+      rw [← Hs1]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     have Hrole1 : s1.role = s.role := by rw [← Hs1]
     have Happ2' : uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied) := by
       unfold w64Max

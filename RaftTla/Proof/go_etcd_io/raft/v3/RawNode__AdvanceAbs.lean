@@ -34,6 +34,7 @@ public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 public import RaftTla.Proof.go_etcd_io.raft.v3.RawNodeAtScope
 public import RaftTla.Proof.go_etcd_io.raft.v3.StepEndIp
+public import RaftTla.Proof.go_etcd_io.raft.v3.StepEndRole
 
 @[expose] public section
 
@@ -103,7 +104,8 @@ theorem recvEndR_advR {Adm : List EntryM → CCState → Prop} {id : w64} {rs : 
 /-- A storage acknowledgement's end (`AckEnd`, with the pending snapshot kept) leaves the loop's
 reading as it is: the protocol reading, the role with it, and `pendingConfIndex`. -/
 theorem advR_ack {rs : RNState} {fp : List EntryM} {a : w64} {s s' : NState}
-    (h : toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci)
+    (h : toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+      s'.lead = s.lead ∧ s'.votes = s.votes)
     (hsn : s'.logst.snap = s.logst.snap) : advR rs fp a s' = advR rs fp a s := by
   have e : proleRole s'.role = proleRole s.role := congrArg PState.role h.1
   have hl : s'.role = .leader ↔ s.role = .leader := by
@@ -114,78 +116,76 @@ theorem advR_ack {rs : RNState} {fp : List EntryM} {a : w64} {s s' : NState}
       exact (proleRole_leader _).1 h2
   have hp : pciR s' = pciR s := by
     unfold pciR
-    rw [h.2.2.2]
+    rw [h.2.2.2.1]
     by_cases h1 : s.role = .leader
     · rw [if_pos h1, if_pos (hl.2 h1)]
     · rw [if_neg h1, if_neg (fun h2 => h1 (hl.1 h2))]
   unfold advR toRState
   rw [h.1, hp, hsn]
 
-/-- **One queued step at the protocol level** (in the lifting lemmas' scope): a self-addressed
-response of the harness's (no pre-vote response) is `RecvEndR` at the node's configuration (a
-configuration of the same halves as the step's), `applied` frozen; a storage acknowledgement keeps
-the loop's reading (`advR_ack`); both keep the read-index requests and an empty read-only queue. -/
-theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id : w64}
-    {s1 s2 : NState} {st : MsgSt} {p : Pending}
-    (HC : cf.incoming = rs.cfg.cfg.incoming ∧ cf.outgoing = rs.cfg.cfg.outgoing ∧ cf.ids = rs.cfg.cfg.ids)
-    (Hl : LiftScope cf id s1) (Hpst : pendSt id st p)
-    (Hnpv : ∀ q ∈ advHead st p, q.ty ≠ .preVoteResp)
-    (Hend : StepEnd cf id st.msg st.ents st.ctx s1 s2) (Hack : AckEnd st.msg s1 s2)
-    (Hns : NoSnapL s2.outbox) (Hsn : s2.logst.snap = s1.logst.snap)
-    (Hpv : s2.logst.prev = s1.logst.prev) :
-    (∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) rest re,
-      AdvanceEndR Adm dec k id (advR rs fp a s2) rest re →
-      AdvanceEndR Adm dec k id (advR rs fp a s1) (advHead st p ++ rest) re) ∧
-    s2.rd.pend = s1.rd.pend ∧
-    ((toPState s1).rd.ro.pending = [] → (toPState s2).rd.ro.pending = []) := by
-  cases p with
-  | self pv t =>
-    obtain ⟨⟨Hty, Hfrid, -, Hnz, -, Hcx, -⟩, -, -⟩ := Hpst
-    -- the type: an append or vote response (a pre-vote response is excluded by `Hnpv`)
-    have Hty' : st.msg.Type' = MsgAppResp ∨ st.msg.Type' = MsgVoteResp := by
-      rcases Hty with h | h | h
-      · exact .inl h
-      · exact .inr h
-      · exfalso
-        have hq : absMsgOf st = some (absMsg .preVoteResp st.msg st.ents st.ctx) := by
-          unfold absMsgOf; rw [h]; rfl
-        exact Hnpv (absMsg .preVoteResp st.msg st.ents st.ctx) (by simp [advHead, hq])
-          (absMsg_ty _ _ _ _)
-    have hant : st.msg.Type' ∈ antStepTypes := by
-      unfold antStepTypes
-      rcases Hty' with h | h <;> rw [h] <;> simp
-    obtain ⟨ty, hty, hq, hnp⟩ : ∃ ty, mtypeOf st.msg.Type' = some ty ∧
-        absMsgOf st = some (absMsg ty st.msg st.ents st.ctx) ∧ ty ≠ .propose := by
-      rcases Hty' with h | h
-      · exact ⟨.appResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, fun h => by cases h⟩
-      · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, fun h => by cases h⟩
-    have HR := recvEnd_of_stepEnd_net (k := k) Hl hant Hnz (fun _ => Hcx)
-      (noSnapSent_of_noSnapL Hns) Hend ty hty
-    have HR' : RecvEnd k rs.cfg.cfg id (toPState s1) (absMsg ty st.msg st.ents st.ctx) (toPState s2) :=
-      HR.1.of_halves HC.1 HC.2.1 HC.2.2 HR.2
-    have Hbk : BkStep s1 s2 := bk_of_stepEnd_net Hl
-      (by rcases Hty' with h | h
-          · exact .inr (.inl h)
-          · exact .inr (.inr (.inr (.inl h))))
-      Hnz (fun _ => Hcx) Hend (fun hx => hx.2.1 Hfrid)
-    have Hpd : (toPState s1).rd.pend = [] := by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1
-    refine ⟨fun Adm dec rest re H => ?_, ?_, recvEnd_ro HR.2 HR.1 Hpd⟩
-    · simp only [advHead, hq, Option.toList_some, List.singleton_append]
-      exact .cons _ _ _ _ _ (recvEndR_advR HR' Hbk Hsn Hpv (by rw [absMsg_ty]; exact hnp)) H
-    · rw [← toPState_rd_pend s2, ← toPState_rd_pend s1]
-      exact recvEnd_rd_pend HR.2 HR.1 Hpd
-  | appendAck t b e sn =>
-    have Hst : st = ⟨appendAckM id t (e.getD (entryID.mk (W64 0) (W64 0))), [], sn, [], []⟩ := Hpst
-    have Ha := Hack (by rw [Hst]; exact .inl rfl)
-    refine ⟨fun Adm dec rest re H => ?_, by rw [Ha.2.2.1], fun h => by rw [Ha.1]; exact h⟩
-    simp only [advHead, List.nil_append]
-    rw [← advR_ack Ha Hsn]; exact H
-  | applyAck ce =>
-    have Hst : st = ⟨applyAckM id, ce, none, [], []⟩ := Hpst
-    have Ha := Hack (by rw [Hst]; exact .inr rfl)
-    refine ⟨fun Adm dec rest re H => ?_, by rw [Ha.2.2.1], fun h => by rw [Ha.1]; exact h⟩
-    simp only [advHead, List.nil_append]
-    rw [← advR_ack Ha Hsn]; exact H
+/-- (antithesis parity B1, step C3) **A self-addressed response's handled protocol leader**: kept,
+cleared, or the node as a new leader (no response type records its sender as leader). -/
+theorem handleEnd_lead_resp {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty = .appResp ∨ m.ty = .voteResp ∨ m.ty = .preVoteResp) (h : HandleEnd k c id s m s') :
+    s'.lead = s.lead ∨ s'.lead = W64 0 ∨ (s'.lead = id ∧ s'.role = .leader) := by
+  unfold HandleEnd at h
+  rcases hty with e | e | e <;> rw [e] at h <;> simp only at h
+  · split at h
+    · left
+      unfold AppRespEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩ | ⟨-, x, n, s2, -, -, hr, hs⟩
+      · rfl
+      · exact hs.lead
+      · exact hs.lead
+      · exact hs.lead.trans hr.lead
+    · subst h; exact .inl rfl
+  · split at h
+    · rcases h with ⟨-, rfl⟩ | ⟨-, mt, ms, -, -, rfl⟩ | ⟨-, rfl⟩
+      · exact .inl rfl
+      · exact .inr (.inr ⟨rfl, rfl⟩)
+      · exact .inr (.inl rfl)
+    · subst h; exact .inl rfl
+  · split at h
+    · rcases h with rfl | ⟨-, peers, -, rfl⟩
+      · exact .inl rfl
+      · exact .inr (.inl rfl)
+    · subst h; exact .inl rfl
+
+/-- (step C3) `handleEnd_lead_resp` through `RecvEnd` (the preamble's `becomeFollower` records no leader
+for a response). -/
+theorem recvEnd_lead_resp {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty = .appResp ∨ m.ty = .voteResp ∨ m.ty = .preVoteResp) (h : RecvEnd k c id s m s') :
+    s'.lead = s.lead ∨ s'.lead = W64 0 ∨ (s'.lead = id ∧ s'.role = .leader) := by
+  rcases h with ⟨-, h⟩ | ⟨-, -, hs⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
+  · exact handleEnd_lead_resp hty h
+  · left; rcases hs with rfl | ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> rfl
+  · exact .inl rfl
+  · have h1 : s1.lead = s.lead ∨ s1.lead = W64 0 := by
+      rcases hpre with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, -, rfl⟩
+      · show (if fromLeader m.ty then m.src else W64 0) = s.lead ∨ _
+        rw [if_neg (by rcases hty with e | e | e <;> simp [e, fromLeader])]
+        exact .inr rfl
+      · exact .inl rfl
+      · exact .inl rfl
+    rcases handleEnd_lead_resp hty h with h2 | h2 | h2
+    · rw [h2]; exact h1.elim .inl (fun h => .inr (.inl h))
+    · exact .inr (.inl h2)
+    · exact .inr (.inr h2)
+
+/-- (step C3) **A storage acknowledgement's role facts** (`RoleFn`): the protocol reading, the leader and
+the tally kept (`AckEnd`), a pre-candidate after one before. -/
+theorem roleFn_ack {c : CfgM} {id : w64} {s s' : NState}
+    (h : toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd ∧ s'.pci = s.pci ∧
+      s'.lead = s.lead ∧ s'.votes = s.votes)
+    (hrl : s'.role = .preCandidate → s.role = .preCandidate) : RoleFn c id s s' := by
+  refine ⟨fun hr => ⟨hrl hr, h.2.2.2.2.1, .inl h.2.2.2.2.2⟩, fun hf hnf => ?_⟩
+  have e : proleRole s'.role = proleRole s.role := congrArg PState.role h.1
+  rw [hf] at e
+  cases h2 : s'.role with
+  | follower => exact absurd h2 hnf
+  | preCandidate => have := hrl h2; rw [hf] at this; cases this
+  | candidate => rw [h2] at e; simp [proleRole] at e
+  | leader => rw [h2] at e; simp [proleRole] at e
 
 /-- **The in-progress boundary after the queue**: at the log's end at the start (the storage then
 holding the whole log), not moved back, what the storage holds not moved, and the log up to it a
@@ -297,15 +297,86 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- **One queued step at the protocol level** (antithesis parity B1, step C3: at the node's flags,
+`LiftScopeK`, a pre-candidate's tally not a quorum): a self-addressed response (an append, vote or
+pre-vote response) is `RecvEndR` at the node's configuration, `applied` frozen; a storage
+acknowledgement keeps the loop's reading (`advR_ack`). Both keep the read-index requests and an empty
+read-only queue, give the role facts (`RoleFn`), and keep, clear or take as the node itself the
+protocol leader. -/
+theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id : w64}
+    {s1 s2 : NState} {st : MsgSt} {p : Pending}
+    (Hcfe : rs.cfg.cfg = cf) (Hl : LiftScopeK k cf id s1)
+    (hq : s1.role = .preCandidate → ¬ JQuorum cf (granted s1.votes)) (Hpst : pendSt id st p)
+    (Hend : StepEnd cf id st.msg st.ents st.ctx s1 s2) (Hack : AckEnd st.msg s1 s2)
+    (Hns : NoSnapL s2.outbox) (Hsn : s2.logst.snap = s1.logst.snap)
+    (Hpv : s2.logst.prev = s1.logst.prev)
+    (Hrl : s2.role = .preCandidate → s1.role = .preCandidate) :
+    (∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) rest re,
+      AdvanceEndR Adm dec k id (advR rs fp a s2) rest re →
+      AdvanceEndR Adm dec k id (advR rs fp a s1) (advHead st p ++ rest) re) ∧
+    (s1.rd.pend = [] → (toPState s1).rd.ro.pending = [] →
+      s2.rd.pend = s1.rd.pend ∧ (toPState s2).rd.ro.pending = []) ∧
+    RoleFn cf id s1 s2 ∧
+    ((toPState s2).lead = (toPState s1).lead ∨ (toPState s2).lead = W64 0 ∨
+      ((toPState s2).lead = id ∧ (toPState s2).role = .leader)) := by
+  cases p with
+  | self pv t =>
+    obtain ⟨⟨Hty, Hfrid, -, Hnz, -, Hcx, -⟩, -, -⟩ := Hpst
+    have hnk : st.msg.Type' ∈ netTypesK := by
+      rcases Hty with h | h | h <;> rw [h] <;> simp [netTypesK]
+    obtain ⟨ty, hty, hq', hnp, hresp⟩ : ∃ ty, mtypeOf st.msg.Type' = some ty ∧
+        absMsgOf st = some (absMsg ty st.msg st.ents st.ctx) ∧ ty ≠ .propose ∧
+        (ty = .appResp ∨ ty = .voteResp ∨ ty = .preVoteResp) := by
+      rcases Hty with h | h | h
+      · exact ⟨.appResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, (fun h => by cases h), .inl rfl⟩
+      · exact ⟨.voteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, (fun h => by cases h),
+          .inr (.inl rfl)⟩
+      · exact ⟨.preVoteResp, by rw [h]; rfl, by unfold absMsgOf; rw [h]; rfl, (fun h => by cases h),
+          .inr (.inr rfl)⟩
+    have h0r : st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0 := fun e => by
+      exfalso
+      rcases Hty with h | h | h <;> rw [h] at e <;>
+        simp [MsgAppResp, MsgVoteResp, MsgPreVoteResp, MsgReadIndex] at e
+    have HR := recvEnd_of_stepEnd_netK Hl hq hnk (fun _ => Hnz) h0r (noSnapSent_of_noSnapL Hns) Hend
+      ty hty
+    have HR' : RecvEnd k rs.cfg.cfg id (toPState s1) (absMsg ty st.msg st.ents st.ctx) (toPState s2) := by
+      rw [Hcfe]; exact HR
+    have Hbk : BkStep s1 s2 := (bkLog_of_stepEnd_netK Hl hnk Hns Hend).1
+    have hresp' : (absMsg ty st.msg st.ents st.ctx).ty = .appResp ∨
+        (absMsg ty st.msg st.ents st.ctx).ty = .voteResp ∨
+        (absMsg ty st.msg st.ents st.ctx).ty = .preVoteResp := by rw [absMsg_ty]; exact hresp
+    refine ⟨fun Adm dec rest re H => ?_, fun hpd hp => ?_, roleFn_of_stepEnd hnk Hl.2.2.2.2.2.2 Hns Hend,
+      recvEnd_lead_resp hresp' HR⟩
+    · simp only [advHead, hq', Option.toList_some, List.singleton_append]
+      exact .cons _ _ _ _ _ (recvEndR_advR HR' Hbk Hsn Hpv (by rw [absMsg_ty]; exact hnp)) H
+    · rw [← toPState_rd_pend s2, ← toPState_rd_pend s1]
+      refine recvEnd_rd_nr (k := k) ?_ HR (by rw [toPState_rd_pend]; exact hpd) hp
+      rw [absMsg_ty]
+      rcases hresp with rfl | rfl | rfl <;> exact ⟨by decide, by decide, by decide, by decide⟩
+  | appendAck t b e sn =>
+    have Hst : st = ⟨appendAckM id t (e.getD (entryID.mk (W64 0) (W64 0))), [], sn, [], []⟩ := Hpst
+    have Ha := Hack (by rw [Hst]; exact .inl rfl)
+    refine ⟨fun Adm dec rest re H => ?_, fun _ hp => ⟨by rw [Ha.2.2.1], by rw [Ha.1]; exact hp⟩,
+      roleFn_ack Ha Hrl, .inl (by rw [Ha.1])⟩
+    simp only [advHead, List.nil_append]
+    rw [← advR_ack Ha Hsn]; exact H
+  | applyAck ce =>
+    have Hst : st = ⟨applyAckM id, ce, none, [], []⟩ := Hpst
+    have Ha := Hack (by rw [Hst]; exact .inr rfl)
+    refine ⟨fun Adm dec rest re H => ?_, fun _ hp => ⟨by rw [Ha.2.2.1], by rw [Ha.1]; exact hp⟩,
+      roleFn_ack Ha Hrl, .inl (by rw [Ha.1])⟩
+    simp only [advHead, List.nil_append]
+    rw [← advR_ack Ha Hsn]; exact H
+
 /-- Outside the harness's scope: the old proof. -/
 theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.form (GF := GF) (hG := hG)
-      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope false))
-      (fun md => basicScope false = some md) := by
+      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip none)
+      (fun md => (none : Option RnMode) = some md) := by
   intro γ rn id rs ps qs ip rd H1 H2 H3 _
   wp_start_folded as H
   iNamed H
-  ihave Hrn := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip (basicScope false) $$ Hrn
+  ihave Hrn := ownRawNodeAt_ownRawNode γ rn id rs ps qs ip none $$ Hrn
   wp_apply RawNode.Advance.tracedSpec_proof wp_raft_Step γ rn id rs rd H1 H2 H3
     $$ [$Hrn $Hret $HA1 $Hbw] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca, %Hca2⟩
   icases ownRawNode_at γ rn id (advRS rs t ca) $$ Hrn with ⟨%ps', %qs', %ip', Hrn⟩
@@ -318,37 +389,38 @@ theorem RawNode.Advance.absProofOut (wp_raft_Step : raft.Step.spec (GF := GF) (h
 
 
 set_option maxHeartbeats 2000000 in
-/-- In the harness's scope (see the file header). -/
-theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
+/-- In the harness's scope `some md` (see the file header). (antithesis parity B1, step C3) At every
+mode without snapshots, conf changes, forwarding or async writes: a queued pre-vote response (a
+pre-candidate's self answer) is stepped as any self-addressed response (`advStep_pure`); the scope's
+pre-candidate facts are kept by the storage acknowledgements (`AckEnd`'s leader and tally). -/
+theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (md : RnMode) (hmd : md.snapshots = false ∧ md.confChanges = false ∧ md.forwarding = false ∧
+      md.async = false) :
     RawNode.Advance.form (GF := GF) (hG := hG)
-      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (basicScope true))
-      (fun md => basicScope true = some md) := by
-  intro γ rn id rs ps qs ip rd Hunp0 Hunst0 _ Hnq0
-  have Hnq := Hnq0 {} rfl
+      (fun γ rn id rs ps qs ip => ownRawNodeAt (GF := GF) γ rn id rs ps qs ip (some md))
+      (fun md' => some md = some md') := by
+  intro γ rn id rs ps qs ip rd Hunp0 Hunst0 _ _
   wp_start as H
   iNamed H
   iNamed Hrn
   have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
   -- the scope's facts at the start state
-  icases rnScopeAt_scope true rs s $$ Hsc with ⟨%Hscope0, Hsc⟩
-  icases rnScopeAt_cfgIn true rs s $$ Hsc with ⟨%Hcin0, Hsc⟩
-  icases rnScopeAt_cap (sc := true) rfl rs s $$ Hsc with ⟨#Hcap, Hsc⟩
-  have Hscope := Hscope0 rfl
-  have Hcin := Hcin0 rfl
-  have hsl : rs.slent = none := Hscope.2.2.2.2.1
+  icases rnScopeAt_pureOpt (some md) rs s $$ Hsc with ⟨%Hscope0, Hsc⟩
+  icases rnScopeAt_capOpt (sc := some md) rfl hmd.1 rs s $$ Hsc with ⟨#Hcap, Hsc⟩
+  obtain ⟨Hscope, Hcin, Hkt, Hxs0⟩ := Hscope0 md rfl
+  have Hsn5 := Hscope.2.2.2.2.1 hmd.1
+  have hsl : rs.slent = none := Hsn5.1
   have HtrG : γ.reTrace = none := Hcin.2.2.1
   have HtrS : s.gh.tr = none := Hgtr.trans HtrG
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
-  have HC := (cfgScope_of Hscope Hcin Hcfm).1
+  obtain ⟨HC, HCl, Hcfe⟩ := cfgScope_ofMd hmd.2.1 Hscope Hcin Hcfm
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   have Hal : AckScope cf := Hal0 HC.2.1
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
-  have Hcfe : rs.cfg.cfg = cf := Hcfm.2 Hcin.2.2.2.1
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
-  have Hprev0 : uint.Z s.logst.prev.index' = 0 := by rw [Hscope.2.2.2.2.2.1]; rfl
-  have Hsnn : s.logst.snap = none := Hscope.2.2.2.2.2.2.1
-  have Hid : id ∈ cf.voters := by rw [HC.voters]; exact Hcin.1
+  have Hprev0 : uint.Z s.logst.prev.index' = 0 := by rw [Hsn5.2.1]; rfl
+  have Hsnn : s.logst.snap = none := Hsn5.2.2.1
   -- the storage holds the whole log when the boundary is at the log's end
   have Hst0 : ip = ps.p.log.length → s.logst.stored = s.logst.sents ++ s.logst.uents := by
     intro hl
@@ -419,8 +491,9 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
           AdvanceEndR Adm dec rs.k id (advR rs fp s.logst.applied s1)
             (advQ (sts.drop (sint.nat n)) (rs.steps.drop (sint.nat n))) re →
           AdvanceEndR Adm dec rs.k id ps qs re⌝ ∗
-      -- (#33 S4) the scope at the current state
-      "%Hsc1" ∷ ⌜RnScopeBasic rs s1⌝ ∗
+      -- (#33 S4) the scope at the current state; (antithesis parity B1, step C3) at the mode `md`, with
+      -- the transfer facts
+      "%Hsc1" ∷ ⌜RnScope md id rs s1 ∧ (md.transfer = true → XScopeOk γ s1)⌝ ∗
       "Hpend" ∷ ([∗list] l;x ∈ steps.drop (sint.nat n);(sts.drop (sint.nat n)).zip
           (rs.steps.drop (sint.nat n)),
         msgIn l DFrac.discard x.1 ∗ pendingRel γ id rs.bw x.1 x.2))
@@ -438,7 +511,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       AdvAbs.stepsOk_selfBound s rs.steps Hstok, ⟨Int.le_refl _, by omega, fun _ _ => rfl,
       Hpvoff.2.2.1, Hpvoff.2.2.2.1⟩, ?_, fun _ h => h, Hpvoff.2.2.2.2,
       ⟨by rw [← pendAbs_advQ Hpa]; exact List.suffix_refl _,
-        fun Adm dec re h => by rw [← Hps, pendAbs_advQ Hpa]; exact h⟩, Hscope⟩
+        fun Adm dec re h => by rw [← Hps, pendAbs_advQ Hpa]; exact h⟩, Hscope, Hxs0⟩
     exact ⟨trivial, Int.le_refl _, Hrnfl.2⟩
   wp_for IH
   wp_if_destruct
@@ -558,14 +631,24 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     icases ownRaftPhysC_precand cf rnv.raft' id s1 $$ Hphys with ⟨%Hpc1, Hphys⟩
     icases ownRaftPhysC_trkDoms cf rnv.raft' id s1 $$ Hphys with ⟨%Hdom1, Hphys⟩
     icases ownStepGhost_followerVotes γ _ cf id s1 $$ Hghost with ⟨%Hfv1, Hghost⟩
-    have Hlift1 : LiftScope cf id s1 := liftScope_of Hsc1 Hpc1 Hfv1 Hdom1.1 Hdom1.2 Hid
+    icases ownRaftPhysC_cq cf rnv.raft' id s1 $$ Hphys with ⟨#Hcqs1, Hphys⟩
+    icombine Hcq0 Hcqs1 gives %Hcqe1
+    have Hcq1 : s1.cq = s.cq := by first | exact Hcqe1.symm | exact Hcqe1
+    icases ownRaftPhysC_sdr cf rnv.raft' id s1 $$ Hphys with ⟨#Hsds1, Hphys⟩
+    icombine Hsd0 Hsds1 gives %Hsde1
+    have Hsd1e : s1.sdr = s.sdr := by first | exact Hsde1.symm | exact Hsde1
+    have Hkt1 : KTie rs s1 := by
+      unfold KTie at Hkt ⊢; rw [Hsg1.2.1, Hcq1, Hsd1e]; exact Hkt
+    have Hlift1 : LiftScopeK rs.k cf id s1 :=
+      liftScopeK_of hmd.2.1 Hsc1.1 Hcin Hkt1 HC Hpc1 Hfv1 Hdom1.1 Hdom1.2
+    have hq1 := preCand_noQuorum_of hmd.2.1 Hsc1.1 Hcfe Hpc1
     ihave #Hcap1 : storCapF s1.logst.storage 0 $$ []
     · rw [Hsg1.1]; iexact Hcap
     wp_apply wp_step_pending_ns wp_raft_Step γ cf _ rnv.raft' id s1 mm st p rs.bw Hwf1 Hpok
       Hack (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
       (by rw [Hsg1.2.2]; exact HtrS) Hal (by rw [Hs1.2.2.2.1]; exact Hprev0)
-      Hsc1.2.2.2.2.2.2.2.1
+      (Hsc1.1.2.2.2.2.1 hmd.1).2.2.2
       $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1 $Hbw $Hcap1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
     obtain ⟨⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
       Hpg2, Hfl2, Hap2, Hack2, Hsrb2, Hapa2, Hip2⟩, Hend2, HAk2, HNs2⟩ := Hst2
@@ -577,13 +660,27 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     icases ownRaftPhysC_cq cf rnv.raft' id s2 $$ Hphys with ⟨#Hcqs2, Hphys⟩
     icombine Hcq0 Hcqs2 gives %Hcqe
     have Hcqv : s2.cq = s1.cq := by
-      rw [Hsc1.2.2.1]; rw [Hscope.2.2.1] at Hcqe
+      rw [Hcq1]
       first | exact Hcqe.symm | exact Hcqe
     have HP := advStep_pure (k := rs.k) (rs := rs) (fp := fp) (a := s.logst.applied)
-      ⟨by rw [Hcfe], by rw [Hcfe], by rw [Hcfe]⟩ Hlift1 Hpst
-      (fun q hq => Hnq q (Hae1.1.subset (List.mem_append_left _ hq))) Hend2 HAk2 HNs2 Hsn2 Hpv2
-    have Hsc2 : RnScopeBasic rs s2 :=
-      RnScopeBasic.keep Hsc1 rfl rfl Hsg2.2.1 Hcqv HP.2.1 Hpv2 Hsn2 (fun x hx => .inr (HNs2 x hx)) HP.2.2
+      Hcfe Hlift1 hq1 Hpst Hend2 HAk2 HNs2 Hsn2 Hpv2 (fun h => (Hrl2 h).1)
+    icases ownRaftPhysC_trkDoms cf rnv.raft' id s2 $$ Hphys with ⟨%Hdom2, Hphys⟩
+    icases ownStepGhost_leadNz γ _ cf id s2 $$ Hghost with ⟨%Hlt2, Hghost⟩
+    have Hsc2 : RnScope md id rs s2 ∧ (md.transfer = true → XScopeOk γ s2) := by
+      refine ⟨RnScope.step hmd.2.1 Hsc1.1 Hcin HC HCl Hcfe ⟨rfl, rfl, rfl⟩ Hsg2.2.1 Hcqv
+        (fun hr => ?_) (fun _ => ⟨Hpv2, Hsn2, HNs2⟩) (fun _ => by rw [Hsg2.2.2]) HP.2.2.1 Hdom1 Hdom2,
+        fun ht => ?_⟩
+      · obtain ⟨hpd, hp⟩ := Hsc1.1.2.2.2.1 hr
+        have H := HP.2.1 hpd ((roEmpty_iff s1).1 hp)
+        exact ⟨H.1, fun _ => H.2⟩
+      · obtain ⟨hl0, hw0, -⟩ := Hsc1.2 ht
+        refine ⟨?_, fun p hp => hw0 p (by rw [Hsg2.2.2] at hp; exact hp), Hlt2⟩
+        rcases HP.2.2.2 with e | e | ⟨e, hr⟩
+        · rw [e]; exact hl0
+        · exact .inl e
+        · rw [e]; right
+          refine id_mem_of_roleFn hmd.2.1 Hsc1.1 Hcin HC HCl HP.2.2.1.2 Hdom1 (fun hf => ?_)
+          rw [toPState_role, hf] at hr; cases hr
     -- `stepsOnAdvance[i] = nil`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
     wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (null : Loc)
@@ -712,9 +809,13 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     icases ownRaftPhysC_sdr cf rnv.raft' id s1 $$ Hphys with ⟨#Hsd1, Hphys⟩
     icombine Hsd0 Hsd1 gives %Hsde
     have Hsdr1 : s1.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
-    ihave Hsc' := rnScopeAt_keepIf true rs
+    icases ownRaftPhysC_cq cf rnv.raft' id s1 $$ Hphys with ⟨#Hcqs1, Hphys⟩
+    icombine Hcq0 Hcqs1 gives %Hcqe1
+    have Hcq1 : s1.cq = s.cq := by first | exact Hcqe1.symm | exact Hcqe1
+    ihave Hsc' := rnScopeAt_keepOpt (some md) rs
       { rs with steps := [], term := s1.term, capplied := ca, flw := false } s s1
-      (fun _ _ => Hsc1) Hsg1.1 (fun _ => Hsdr1) $$ Hsc
+      (fun _ h _ => by cases h; exact Hsc1.1) Hsg1.1 (hfl := ⟨Hsg1.2.1, Hcq1, Hsdr1⟩)
+      (hx := fun _ h _ _ => by cases h; exact Hsc1.2 ‹_›) $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s1
       (by rw [Hsg1.2.2]; exact HtrS)
     iapply HΦ $$ %s1.term %ca
@@ -725,7 +826,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     · iapply ownRawNodeAt_intro γ rn id
         { rs with steps := [], term := s1.term, capplied := ca, flw := false }
         (toRState { rs with steps := [], term := s1.term, capplied := ca, flw := false } fp s1) []
-        (uint.nat s1.logst.inprogress - 1) (basicScope true) s1
+        (uint.nat s1.logst.inprogress - 1) (some md) s1
         cf fp
         { rnv with stepsOnAdvance' :=
             slice.slice rnv.stepsOnAdvance' Loc (W64 0) (W64 0) }
@@ -763,7 +864,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       -- index at the entries handed out, which `applied` reached
       rw [Hdrop, Hdrop', advQ_nil_left]
       have Hcae : ca = max rs.capplied (uint.nat s1.logst.applied) := by
-        rw [Hcmax Hcin.2.2.2.1]
+        rw [Hcmax Hcin.2.2.2]
         congr 1
         have h1 : uint.Z s1.logst.applied = uint.Z s.logst.applying :=
           Int.le_antisymm (by rw [← Hs1.1]; exact HlwE.1) Hge
@@ -785,10 +886,10 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
 /-- **`RawNode.Advance`, strengthened** (`RawNode.Advance.absSpec`). -/
 theorem RawNode.Advance.wp_absProof (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.absSpec (GF := GF) (hG := hG) := by
-  intro sc
-  cases sc
-  · exact RawNode.Advance.absProofOut wp_raft_Step
-  · exact RawNode.Advance.absProofIn wp_raft_Step
+  intro sc hsc
+  cases sc with
+  | none => exact RawNode.Advance.absProofOut wp_raft_Step
+  | some md => exact RawNode.Advance.absProofIn wp_raft_Step md (hsc md rfl)
 
 end proof
 
