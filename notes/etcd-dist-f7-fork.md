@@ -127,3 +127,40 @@ step 3's server-side form, so that the dist-axiom-diff pair matches.
 3. The contract change above (ledger entry, `axiom` review, tcb baseline unchanged in names), then steps 3-6 of
    the plan. Build host: fk-lean2 has 18 GB free of 484 GB and the base tree (`~/eg/wt/etcd-safe-f7-rlog`) is
    63 GB, so the brief's `cp -a` copy does not fit; space must be freed (or that tree reused) first.
+
+## Session K (2026-11-26): steps a-d of the approved plan
+
+The lead and the coordinator approved, speculatively and on this branch only, two trusted text changes, each with
+a fresh delta review (`axiom` skill).
+
+- **a. Translation** (`c5f0a53378`): `etcdserver-toml.patch` applied; `etc/goose.py --project etcd --src
+  etcd=/shared/etcd-fork-ttlkeys` (only `Code/.../etcdserver.lean` changes; no other project translates etcd at
+  this pin: `RaftNoAx`/`KvRaft`'s walpb parts are the same run). `etc/goose.py`'s etcd `rev` is `d26dd5da6f38…`;
+  the `examples/go.mod` and `examples/k8s/{all,compactor,dist,etcd3}` replaces are
+  `v3.0.0-20261126150644-d26dd5da6f38` with sums computed from the local fork (`go mod download` with
+  `GOPROXY=direct` and a git `insteadOf` to `/shared/etcd`; the sums are content hashes, so they are what the pushed
+  commit will give); `etc/featuregate-allow.txt`'s module paths bumped likewise. **`etc/goose.py --check` cannot
+  verify an unpushed revision by itself**: it passes with `--src etcd=/shared/etcd-fork-ttlkeys` (and the fork's
+  modules in the Go module cache, as above); CI's plain `--check` fails until the fork commit is pushed.
+- **The avoid route** (none): no proved callee gives the reply's key bytes: `leaseTimeToLive` is names-only (a
+  contract) and the follower's decode, `leasehttp.TimeToLiveHTTP`, is names-only too (only `RenewHTTP` of
+  `leasehttp` is proved), so the bytes `IsRangePermitted` needs can only come from the contract's post.
+- **The `Unmarshal` aliasing**: protobuf-go v1.36.12 (etcd's `go.mod`) has no generated `Unmarshal` for etcd's
+  messages (protobuf-go v2, `protoimpl`); a repeated `bytes` field decodes through `consumeBytesSlice`
+  (`internal/impl/codec_gen.go:5568-5580`): `*sp = append(*sp, append(emptyBuf[:], v...))`, a copy, with no
+  `AliasBuffer` case. Test: `notes/etcd-dist-f7-fork/unmarshal_alias_test.go` (`TestF7forkUnmarshalKeysNoAlias`,
+  the follower's decode exactly; overwriting the body leaves the keys, writing the keys leaves the body): PASS.
+- **b. Ledger** (`notes/specs-only/ledger.md`, 2026-11-26) and **change 1** (`EtcdServer__leaseTimeToLive.lean`):
+  the success arm gains `(∃ kbs : List GoSlice, w.Keys' ↦* kbs ∗ [∗list] kb ∈ kbs, ∃ k : List w8, kb ↦* k ∗
+  ⌜sint.Z kb.len < 2 ^ 63 - 1⌝)`.
+- **c.** `EtcdServer.checkLeaseTimeToLiveKeys` spec and proof (new; linked in `etc/link-lean-first-server.txt`),
+  `EtcdServer.LeaseTimeToLive.wp_proof` re-proved over the new body; its spec's success arm gains, with `v.Keys'`,
+  `∃ kbs ks, w.Keys' ↦* kbs ∗ ([∗list] kb;k ∈ kbs;ks, kb ↦* k) ∗ leaseCheckFrom (srvTLSId s) E tok n (fun info =>
+  [∗list] k ∈ ks, auth.permVerdictFrom E.authMode n info k [] .read GoInterface.nil)`. Callers: only
+  `ServerLeaseRead.raftLeaseRead_of_server` changed (it drops the new conjunct before `ttlAns`). Lean-checked on
+  fk-lean2; server `Link.lean` regenerated (487d74f4ae).
+- **d. Change 2** (`LeaseTimeToLiveOnDist.lean`): the success arm gains, with keys,
+  `∃ ks kbs kss, Keys resp ↦□ ks ∗ ks ↦*□ kbs ∗ ([∗list] kb;k ∈ kbs;kss, kb ↦*□ k) ∗ leaseCheckD (Γ.au mid)
+  (principalOf cfg) n (fun info => [∗list] k ∈ kss, auth.permVerdictFrom (.on (Γ.au mid)) n info k [] .read
+  GoInterface.nil)` (`n` the member's published auth index `≥ n₀`, as the existing keys verdict); dist-axiom-diff's
+  dev lines rewritten (ok). axiom-tok keys: to check after the full build (`axiom-tok-check.py --check`).
