@@ -8,8 +8,9 @@ lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth 7
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth3 6
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/authN 7
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/authlease 1
-lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/dist/server 1
-lit-mode github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 11
+lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/dist 3
+lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/dist/server 4
+lit-mode github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 28
 lit-mode go_etcd_io/etcd/client/v3 24
-lit-mode go_etcd_io/etcd/server/v3/etcdserver 276
+lit-mode go_etcd_io/etcd/server/v3/etcdserver 283
 lit-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 30

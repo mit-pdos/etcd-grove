@@ -45,6 +45,16 @@ REVIEWED = {
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
+    # DRAFT (etcd-safe-gates-draft/2026-11-26, for the lead's review): the etcd_safe dist client axioms
+    'Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetDist.lean':
+        "statusErrOk in KV_Get_dist's error arm only, a weakening of the proved kv.Get.spec's kvErr "
+        "(InvKVConn.lean: clientErr ∗ statusErrOk ∗ errCellOk, proved of the same translated clientv3 "
+        "code); across machines the call's error is still toErr's: a grpc *status.Error (Error.lean "
+        "above), an rpctypes EtcdError (Init.lean above) or a context error, each with a fixed Error()",
+    'Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean':
+        "statusErrOk in RequestProgress_dist's post only, verbatim the proved "
+        "watcher.RequestProgress.spec's post (the same translated watch.go: errors.New, ctx.Err() or "
+        "the stream's closeErr, a toErr'd status/EtcdError); Watch_dist names none of the predicates",
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
         'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '
