@@ -82,12 +82,13 @@ theorem grpcNS_stream_snoc (l : List SrvOptKind) (k : SrvOptKind) :
     srvOptsStream (l ++ [k]) = srvOptsStream l ++ k.stream := by
   simp [srvOptsStream]
 
-/-- **`.stats h` carries `grpcStatsHandlerOk h`**: `grpc-neutral-narrow`'s next commit
-(etcd-grove#60) adds it to `srvOptFnOk`'s `.stats` clause. UNPROVED until that commit is merged
-here; this branch must not land before (`notes/axiom-review/phase7-w1.md` §3.1a.3). -/
+/-- **`.stats h` carries `grpcStatsHandlerOk h`** (`srvOptFnOk`'s `.stats` clause, etcd-grove#60). -/
 theorem grpcNS_stats_ok (f : GoFunc) (h : GoInterface) :
     srvOptFnOk (GF := GF) f (.stats h) ⊢ ⌜grpcStatsHandlerOk h⌝ := by
-  sorry
+  unfold srvOptFnOk
+  iintro ⟨%Hok, -⟩
+  ipureintro
+  exact Hok
 
 /-- **One option applied** (`o.apply(&opts)`'s closure call), uniformly over its kind: the chains and
 the stats handlers grow by what the kind adds, every other field but the whitelist stays
@@ -157,6 +158,7 @@ theorem grpcNS_srvOptFnOk_wp (f : GoFunc) (k : SrvOptKind) (p : Loc)
     wp_start_folded as ⟨#Hf, Hp, Hu, Huc, Hs, Hsc, Hh, Hhc⟩
     ihave %Hok0 := grpcNS_stats_ok f h $$ Hf
     iunfold srvOptFnOk at Hf
+    icases Hf with ⟨-, #Hf⟩
     iapply (Hf $$ %p %so %hs %Φ Hp Hh Hhc)
     inext
     iintro %so' Hp' Hh' Hhc' %Hok
