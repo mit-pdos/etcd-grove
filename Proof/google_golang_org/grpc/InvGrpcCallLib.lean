@@ -1181,8 +1181,8 @@ theorem dataFrames_prefix : ∀ (A B : List (List w8)) (c x : List w8),
     exact (List.prefix_cons_inj a).2 (dataFrames_prefix A B c x
       (fun bs hm => hA bs (by simp [hm])) (fun bs hm => hB bs (by simp [hm])) hc hx h')
 
-/-- **A close a reader read follows all of the writer's data frames.** -/
 set_option linter.unusedSimpArgs false in
+/-- **A close a reader read follows all of the writer's data frames.** -/
 theorem dataFrames_close : ∀ (A B : List (List w8)) (c x : List w8),
     (∀ bs ∈ A, bs.length < 2 ^ 32) → (∀ bs ∈ B, bs.length < 2 ^ 32) →
     (c = [] ∨ c = closeFrame) → (x = [] ∨ x = cancelFrame) →
