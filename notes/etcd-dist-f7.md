@@ -497,3 +497,18 @@ Step 5 (not started): `notes/axiom-review/f7-diff-vs-inprocess.md` and `notes/et
 `icases: threadTok not persistent` in the `wp_start` patterns of `newServer`, `StartServer` and `newServerMode`'s `wp_proofAt`
 (the pre's `isPkgInit` is not stripped when it is not first). Fixed (an explicit `#Hpkg0` after `Hlslot`) in the next
 commit, which is NOT yet built: rebuild the same targets first.
+
+### Handoff 5 (2026-11-26, step 2 built; step 3's preparation built; the replacement held)
+
+- **Step 2 built** (fk-lean2, `1c9bcde64e`, EXIT 0): `etcdserver.Results`, `etcdstart.Link`, the dist `putget`/`kvremote`/
+  `putgetk` `TopLevelRobustness`. `etc/tier-check.py --check` ok (208 known); `etc/lease-order-check.py` ok.
+- **Step 3's preparation, built in the same commit** (`1c9bcde64e` swept it in with the pattern fix: one worktree):
+  - `authNamesFreshD` (namespace `EtcdGrove`) and `etcdstart.memberUpOnL` moved from `AuthServeProposed.lean` to
+    `MemberLessor.lean` (defs; it now also imports `etcdserver.AuthApplyRes`, `auth.Boot`, `lease.LessorSlot`), so the
+    Spec files `ServeDist.lean`/`NewServerDist.lean` can import them; `AuthServeProposed.lean` keeps only the two texts.
+  - `etcd_dist.memberBuiltL_split` and `etcd_dist.memberUpL_req` (`server/MemberSplit.lean`, which imports
+    `MemberLessor`): `memberBuilt_split`/`memberUp_req` over `memberBuiltL`/`memberUpL`, the name kept.
+  - putget's `Member` derives `_Hlm : c.view.kv.lm = .none` from `ClusterOk` (unused until step 3; rename to `Hlm`).
+- **Next (held for the lead's putgetK verdict, relayed by the coordinator):** the replacement texts of
+  `NewServer.specG_dist`/`Serve_dist.spec` (Handoff 4, "Step 3"), `MainLogger` over the L lemmas, putget's `Member`
+  without `memberUpL_memberUp`, and putgetK's (a) or (b).
