@@ -1117,3 +1117,43 @@ no `Spec/.../dist/client/RunAuthLease.lean`). Its single-process counterpart is 
 **Next:** after the lead's decisions: `noAuth` (the five calls; with (1) only "auth disabled" is left, refuted by (2)
 since `setupSt` has auth enabled), `foreign` (callees as they are; premises: the caller's refutations, as
 `authlease/foreign.lean`), `newClient`'s stronger post, then `RunAuthLease` (Handoff S3-1, items 4-5).
+
+### Handoff S5-1 (2026-11-26; S5 items 1-3 done, item 3's build running; `noAuth`, `foreign`, `RunAuthLease` next)
+
+**Done** (the lead's approval #50 06:35Z; drafts of the F9 batch, rows in `etcd-dist-f9-f2f7-rows.md` say
+"strengthened before approval"; no `sorry`, no new axiom):
+- `e8aba773a5` (built on fk-lean2, every importer leaf of `AuthViewDist`, EXIT 0): (1) `leaseCheckD`'s binding
+  `⌜P = some info.Username'⌝` (was `userOk P`), reaching the four `Lease_*On_dist` (statements textually unchanged;
+  `Lease_TimeToLiveOn_dist`'s no-keys `principalOf` clause now redundant, kept); (2) `authFloorD` gains
+  `□ ∀ j st, ⌜i ≤ j⌝ -∗ authStateAt (Γ.au mid) j st -∗ ∃ L', ⌜L₀ <+: L' ∧ st = srvAuthAtLog Γ.kv srvAuthSt0 L'⌝ ∗
+  srvReqLogLb γR L'` (reaches `KV_GetOn_dist`, `Txn_CommitOn_dist`). Docstring paragraph in each of the six specs.
+  Review targets for the coordinator: `/shared/tmp/coord-03/f7-s5-review-targets.md`.
+- `309c71c303` (item 3, a proof): `etcdstart.NewClients.spec`'s post adds `∃ cfg, clientF cl go!"cfg" ↦□ cfg ∗
+  ⌜cfg.Token' = [] ∧ cfg.Username' = go!"" ∧ cfg.Password' = go!""⌝` (from `New`'s proved post; the literal's
+  fields), the dist `newClient.spec` passes it on; callers' `icases` patterns adjusted (etcdstart/cluster3
+  `NewClient`, kvremote `Node`, dist `leaseReadCheck`/`RunLeaseExpiry`/`RunLeaseCatchup`). **Build running at
+  handoff** on fk-lean2 (`~/eg/logs/f7l-build.log`, ends `EXIT n`; targets `lib.cluster3.Link`,
+  `lib.etcdstart.Link`, `etcd.txnlinfaultsN.startCluster`, `etcd.dist.client.Results`, `etcd.dist.kvremote.Link`,
+  `etcd.leasecatchup.run`, `k8s.compactor.MainPartition`, under `Proof.github_com.mit_pdos.etcd_grove.examples.`).
+  Check its result first; the risky lines are `NewClients.lean`'s new `ipureintro` (`first | exact ⟨rfl, rfl, rfl⟩ |
+  simp`) and `dist/client/newClient.lean`'s `iframe Hnc Hnp Hcfg`. The other importers (every `Results` of the
+  etcd examples, `etc/importers.py --leaves` of the two spec files) rebuild at the final full build.
+
+**Next:**
+1. **`noAuth`** (`Spec/.../dist/client/noAuth.lean` + proof), ported from `authlease/noAuth.lean` with the
+   refutation as a premise, as there: `who = "anon" ∨ who = "bad"`, `principalOf cfg = none`; pre `userCli cl addr V
+   cfg`, `etcdAddrAt addr Γ mid`, `srvReqLogLb γR L₀`, `authPubLbM (.on (Γ.au mid)) n₀`, `lessorLb (Γ.ls mid) m₀`,
+   `□ ∀ id', writeAuD … (.leaseGrant id' maxTTL) L₀ (Qg id')`, `writeAuD … (.leaseRevoke id) L₀ Qr`, and
+   `□ ∀ n K, ⌜n₀ ≤ n⌝ -∗ leaseCheckD (Γ.au mid) (principalOf cfg) n K ={⊤}=∗ False`. Each of the five calls:
+   `reqCtx` (`outTokOk_reqMd`), the `Lease_*On_dist` axiom, cancel, success refuted by the premise, error to
+   `refused`. A `newClient` client is a `userCli` with the new `cfg` post; `principalOf cfg = none` by
+   `simp [principalOf, hUser]`.
+2. **`foreign`**: as `authlease/foreign.lean`, premises the caller's refutations of `leaseCheckD` with the keys
+   verdicts (TimeToLive with keys, Leases at `leaseIdsAt (Γ.ls mid) j ids`) and of Revoke's `Qr`/`writeCheckedD`.
+3. **The frozen-floor lemma** (for RunAuthLease's refutations, a defs module beside `AuthLeaseDefs`): from
+   `authFloorD Γ γR mid L₀ m` with `Lset <+: L₀`, `authHistFrozen Γ.kv γz hs`, `admStates … Lset = hs`,
+   `srvAuthAtLog … Lset = setupSt r`: every `authStateAt (Γ.au mid) j st` with `j ≥ i` has `st = setupSt r`
+   (the new `□ ∀` conjunct, then `authHistFrozen_lb`/`authHistFrozen_adm`, `AuthTieRead.lean:76`). With `P = none`
+   `leaseCheckD`'s info arm is false outright; its disabled arm meets `setupSt`'s `enabled = true`.
+4. **`RunAuthLease`**, its `Results` root and the collection: Handoff S3-1, items 4-5. Then `tcb-report --check`
+   (base diff = the auth axioms the root reaches), `--check --update` (base and collection), tier-check, lease-order.
