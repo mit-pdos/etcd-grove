@@ -93,9 +93,14 @@ whose lock invariant owns `c`'s `children` and `cause` fields, and an invariant 
 unexported, and no spec of this repository or of Perennial gives a program a `cancelCtx`'s field
 points-tos, so a verified program cannot build an `isCancelCtx` of a location `context` did not make.
 In Go: a `reflect` copy shares the real one's `children` map, which the real one's lock invariant
-owns (`ownMap`), so both cannot hold; a nil pointer has no fields. -/
-axiom context.madeCancelCtx_of_isCancelCtx (c : Loc) :
-    (_root_.Perennial.context.isCancelCtx c : IProp GF) ⊢ context.madeCancelCtx c
+owns (`ownMap`), so both cannot hold; a nil pointer has no fields.
+The argument is independent of the error index `A` (only `context`'s constructors make a `cancelCtx`,
+the type is unexported, no field points-tos are given out; `madeCancelCtx` says nothing about
+errors): it is stated per index since perennial#705 (`isCancelCtxOf` became `∃ A`), with the same
+meaning as the `isCancelCtx c` form (`isCancelCtx c` is `∃ γ P A, isCancelCtxOfA c γ P A`). -/
+axiom context.madeCancelCtx_of_isCancelCtx (c : Loc) (γ : _root_.Perennial.context.ContextNames)
+    (P : IProp GF) (A : GoInterface → Prop) :
+    (_root_.Perennial.context.isCancelCtxOfA c γ P A : IProp GF) ⊢ context.madeCancelCtx c
 
 /-- `isCancelCtxAny ⊢ madeCancelCtxAny`, by `madeCancelCtx_of_isCancelCtx`. -/
 theorem context.madeCancelCtxAny_of_isCancelCtxAny (v : GoInterface) :
@@ -108,8 +113,11 @@ theorem context.madeCancelCtxAny_of_isCancelCtxAny (v : GoInterface) :
       iexists c
       isplitr
       · ipureintro; exact Hv
-      iapply context.madeCancelCtx_of_isCancelCtx
-      iexact Hc
+      iunfold _root_.Perennial.context.isCancelCtx at Hc
+      icases Hc with ⟨%γ, %P, #Hc⟩
+      ihave ⟨%A, #HA⟩ := _root_.Perennial.context.isCancelCtxOf_A c γ P $$ Hc
+      iapply context.madeCancelCtx_of_isCancelCtx c γ P A
+      iexact HA
     · iintro -; itrivial
   · iintro -; itrivial
 
