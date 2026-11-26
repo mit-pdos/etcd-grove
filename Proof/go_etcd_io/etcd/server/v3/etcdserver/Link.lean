@@ -3368,6 +3368,14 @@ theorem auth.wp_NewTokenProvider :
     auth.NewTokenProvider.spec (GF := GF) (hG := hG) :=
   auth.NewTokenProvider.wp_proof auth.wp_decomposeOpts auth.wp_newTokenProviderSimple auth.wp_newTokenProviderJWT auth.wp_newTokenProviderNop zap.Logger.wp_Warn zap.wp_String zap.wp_Error
 
+theorem auth.wp_newTokenProviderSimpleAt :
+    auth.newTokenProviderSimple.specAt (GF := GF) (hG := hG) :=
+  auth.newTokenProviderSimple.wp_proofAt zap.wp_NewNop
+
+theorem auth.wp_NewTokenProviderAt :
+    auth.NewTokenProvider.specAt (GF := GF) (hG := hG) :=
+  auth.NewTokenProvider.wp_proofAt auth.wp_decomposeOpts auth.wp_newTokenProviderSimpleAt auth.wp_newTokenProviderJWT auth.wp_newTokenProviderNop zap.Logger.wp_Warn zap.wp_String zap.wp_Error
+
 theorem auth.authStore.wp_commitRevision :
     auth.authStore.commitRevision.spec (GF := GF) (hG := hG) :=
   auth.authStore.commitRevision.wp_proof auth.authStore.wp_Revision

@@ -18,6 +18,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 
 @[expose] public section
 
@@ -87,6 +88,18 @@ theorem authNamesFreshG_iff (γa : auth.AuthNames) :
     authNamesFreshG (GF := GF) γa ⊣⊢ authNamesFreshD γa := by
   unfold authNamesFreshG authNamesFreshD authFreshInit
   exact .rfl
+
+/-- **`NewServer_dist`'s auth names are the in-process `NewServer.specGAtA`'s** (#50 F7 S2, P-A1):
+`authNamesFreshD γa` (through `authNamesFreshG`) is `srvAuthNamesFresh γa`, its conjuncts regrouped. -/
+theorem authNamesFreshD_iff_srv (γa : auth.AuthNames) :
+    authNamesFreshD (GF := GF) γa ⊣⊢ srvAuthNamesFresh γa := by
+  refine (authNamesFreshG_iff γa).symm.trans ?_
+  unfold authNamesFreshG srvAuthNamesFresh authNamesFreshTP auth.authBootFresh
+  constructor
+  · iintro ⟨Hh, Hc, Ht, Hf, Hp, Hfen, Hfca, Hcap, Hbk, Hs, Hr, Hy⟩
+    iframe Hy Ht Hf Hh Hc Hp Hfen Hfca Hcap Hbk Hs Hr
+  · iintro ⟨⟨Ht, Hf, Hh, Hc, Hp, Hfen, Hfca, Hcap, Hbk, Hs, Hr⟩, Hy⟩
+    iframe Hy Ht Hf Hh Hc Hp Hfen Hfca Hcap Hbk Hs Hr
 
 end heap
 

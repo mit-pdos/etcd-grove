@@ -2118,7 +2118,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The server's token provider and auth store with auth on** (the auth plan's E2i;
-`authSrvTP_on`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`): `NewTokenProvider`
+`authSrvTPAt_on`, at the caller's auth names since #50 F7 S2, `Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`): `NewTokenProvider`
 with the simple provider gives the auth names allocated over the boot state and `NewAuthStore`'s
 construction in the mode `on γa` (`authStoreKit`): the store from its proofs, not
 `NewAuthStore`'s axiom, its request side and apply contract of its invariant (its admin clauses
@@ -2128,8 +2128,8 @@ vacuous: `apply.adminAdmitted`), its backend's contracts `authSchemaSrv`'s, prov
 caller's, once the server has started (`auth.tpShot`; auth-schema-fix S1 option A, 2026-11-12: no
 longer `isValidSimpleToken`'s spec for any context, `auth.ValidSpec`, which was false). What `NewServer`'s proof takes with auth on (`notes/decisions.md`, "E2i
 of the auth plan"). -/
-theorem srv_auth_tp_on : authSrvTP (GF := GF) (hG := hG) true :=
-  authSrvTP_on auth.wp_NewTokenProvider zap.Logger.wp_Debug zap.String.wp_proof
+theorem srv_auth_tp_on : authSrvTPAt (GF := GF) (hG := hG) true :=
+  authSrvTPAt_on auth.wp_NewTokenProviderAt zap.Logger.wp_Debug zap.String.wp_proof
     auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
@@ -2177,8 +2177,8 @@ theorem srv_auth_tp_on : authSrvTP (GF := GF) (hG := hG) true :=
 
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
-theorem srv_auth_tp_off : authSrvTP (GF := GF) (hG := hG) false :=
-  authSrvTP_off auth.wp_NewTokenProvider auth.wp_NewAuthStore
+theorem srv_auth_tp_off : authSrvTPAt (GF := GF) (hG := hG) false :=
+  authSrvTPAt_off auth.wp_NewTokenProvider auth.wp_NewAuthStore
 
 /-- **`NewServer` with auth on** (the auth plan's E2k): `NewServer.specM true`, the server started with
 the simple token provider and the auth store of `srv_auth_tp_on` (its proofs, not `NewAuthStore`'s

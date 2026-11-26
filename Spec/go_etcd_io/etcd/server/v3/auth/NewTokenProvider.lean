@@ -51,6 +51,22 @@ abbrev auth.NewTokenProvider.spec : Prop :=
           auth.tsF go!"indexWaiter" p ↦□ iw ∗ auth.simpleOk p γt γf ∗ auth.simpleAdmin p ∗
           ghostMapAuth γf 1 (∅ : GMap GoString Unit)) }}
 
+/-- **`NewTokenProvider` at the caller's token names** (#50 F7 S2, P-A1): `spec` with the issued tokens'
+authority `auth.tokAuth γt γf ∅` given (the distributed start's) in place of allocated by the simple provider
+(`newTokenProviderSimple.specAt`); its rights' authority stays the caller's. -/
+abbrev auth.NewTokenProvider.specAt : Prop :=
+  ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration) (γt γf : GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
+      auth.tokAuth γt γf ∅ }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewTokenProvider)) (Val #lg))
+      (Val #opts)) (Val #iw)) (Val #ttl))
+  {{ (tp err : GoInterface), RET (PairV #tp #err);
+      ⌜err = GoInterface.nil → tp ≠ GoInterface.nil⌝ ∗
+      (⌜opts ≠ go!"simple" ∨ sint.Z ttl ≤ 0⌝ ∨
+        ∃ (p : Loc), ⌜err = GoInterface.nil ∧
+          tp = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p⌝ ∗
+          auth.tsF go!"indexWaiter" p ↦□ iw ∗ auth.simpleOk p γt γf ∗ auth.simpleAdmin p) }}
+
 end spec
 
 end EtcdGrove

@@ -87,6 +87,54 @@ theorem authBoot_alloc (γt γf γy : GName) :
     iexists ((null : Loc), 0); iframe Hk
   · simp only [capNext, List.cons_append, List.nil_append]; iexact Hcl
 
+/-- **The auth names' boot authorities, given** (#50 F7 S2, P-A1): what `authHist_alloc` allocates at the boot
+history `[bootState]` and the cap `[bootState, bump bootState]`, under names the caller already holds (the
+distributed start allocates them per member, `authNamesFreshD`): the history's whole authority, the latest
+state's ghost variable, the published index's authority at `0`, the `enabled` field's and permission cache's
+ghost variables, the cap's authority, the current backend's name (unset), the succession token and the
+readers' tickets' authority. Not the token names (`tok`, `fresh`: the provider's) nor the readiness cell
+(`rdy`: the server's). -/
+def authBootFresh (γa : AuthNames) : IProp GF :=
+  iprop(monoListAuthOwn γa.hist 1 [bootState] ∗ ghostVar γa.cur 1 bootState ∗ authPubAuth γa 0 ∗
+    ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) ∗
+    capAuth γa [bootState, bump bootState] ∗
+    (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗ ownTokAuth γa.rdt 0)
+
+/-- **`authBoot_alloc` at given names** (#50 F7 S2, P-A1): its conclusion, from `authBootFresh γa`. -/
+theorem authBoot_given (γa : AuthNames) :
+    authBootFresh (GF := GF) γa ⊢ |==>
+      authOwn (.on γa) [bootState] ∗ authStoreInit γa [bootState] bootState ∗
+      authLockI (.on γa) bootState ∗ capAuth γa [bootState, bump bootState] ∗
+      capNext (.on γa) [bootState] (bump bootState) ∗
+      (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
+      authPubQ γa (1 : Qp).half 0 := by
+  iintro ⟨Hh0, Hc, Hp, He, Hk, Hcap, Hbk, Hsucc, Hrt⟩
+  icases (authHist_full γa [bootState]).1 $$ Hh0 with ⟨Hh0, Hq⟩
+  icases (ghostVar_split_half γa.cur 1 bootState).1 $$ Hc with ⟨Hc1, Hc2⟩
+  icases capAuth_lb γa _ $$ Hcap with ⟨Hcap, #Hcl⟩
+  ihave Hh : authHist γa [bootState] $$ [Hh0]
+  · unfold authHist; iframe Hh0; ipureintro
+    intro st h; rw [List.mem_singleton] at h; subst h; exact bootState_permKeysOk
+  ihave Hc1 : authCurHalf γa bootState $$ [Hc1]
+  · unfold authCurHalf; iexact Hc1
+  ihave Hc2 : authCurHalf γa bootState $$ [Hc2]
+  · unfold authCurHalf; iexact Hc2
+  imodintro
+  ihave HF : authOwnF (.on γa) [bootState] $$ [Hh Hc1]
+  · simp only [authOwnF]
+    iframe Hh
+    iexists bootState; iframe Hc1; ipureintro; rfl
+  icases authOwnF_lockI_split (.on γa) [bootState] bootState rfl $$ HF with ⟨Hown, HI⟩
+  icases authPubAuth_halves γa 0 $$ Hp with ⟨Hp, Hp'⟩
+  iframe Hown HI Hcap Hbk Hsucc Hp'
+  isplitl [Hc2 Hp He Hk Hq Hrt]
+  · iunfold authStoreInit; iframe Hc2 Hp Hq Hrt; isplitr
+    · iapply (capLb_le γa [bootState] (by simp)) $$ Hcl
+    isplitl [He]
+    · iexists false; iframe He
+    iexists ((null : Loc), 0); iframe Hk
+  · simp only [capNext, List.cons_append, List.nil_append]; iexact Hcl
+
 /-- **A right to issue a token, minted** from the rights' authority (`tokenSimple_new` gives it,
 empty, with the provider): one for any token not minted before. The server's apply thread, which
 runs `Authenticate`, would hold the authority and mint the right of the token it is about to issue

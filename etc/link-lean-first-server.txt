@@ -782,9 +782,11 @@ lease_lessor__findDueScheduledCheckpoints:
 # `golang-jwt`: its spec's docstring)
 auth_decomposeOpts: zap_Logger__Error zap_String
 auth_newTokenProviderSimple: zap_NewNop
+auth_newTokenProviderSimple+At: zap_NewNop
 auth_newTokenProviderJWT:
 auth_newTokenProviderNop:
 auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTokenProviderJWT auth_newTokenProviderNop zap_Logger__Warn zap_String zap_Error
+auth_NewTokenProvider+At: auth_decomposeOpts auth_newTokenProviderSimple+At auth_newTokenProviderJWT auth_newTokenProviderNop zap_Logger__Warn zap_String zap_Error
 auth_NewAuthStore:
 # (the spec-first pilot, phase 1, 2026-10-27: notes/compactor-pilot-plan.md) the auto-compactor with
 # its bodies, specified; `New`, `newPeriodic`, `newRevision` and the getters are phase 1's glue
