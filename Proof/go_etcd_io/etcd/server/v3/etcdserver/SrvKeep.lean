@@ -227,18 +227,19 @@ end keepDefs
 
 section slot
 variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- The slot (persistent), at the generation `L`. The specs pass the generation they run in (`hG.goose_localGS`,
-review D5 F-A1). -/
+review D5 F-A1), read at the Go context `lctx` of the section's `go.Semantics`/`Assumptions` (as `MemberGen`'s `atCtx`:
+`L` itself when its context is `lctx`). -/
 def srvKeepInv (γ : SrvRaft) (id : w64) (dd : GoString) (γd : GName) (Kb Kbc : SrvKN GF → IProp GF)
     (kr : SrvKeepKey GF) (γph : GName) (L : GooseLocalGS GF) : IProp GF :=
-  letI : HeapGS HasLC.hasLC GF := ⟨G, L⟩
-  inv srvKeepN (∃ ph, srvKeepPh γph (1 : Qp).half ph ∗ srvKeepAt γ id dd γd Kb Kbc kr ph)
+  letI : HeapGS HasLC.hasLC GF := ⟨G, { L with goose_go_local_context := lctx }⟩
+  inv srvKeepN iprop(∃ ph, srvKeepPh γph (1 : Qp).half ph ∗ srvKeepAt γ id dd γd Kb Kbc kr ph)
 
 end slot
 
