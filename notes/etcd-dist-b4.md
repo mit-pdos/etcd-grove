@@ -389,3 +389,7 @@ The §9 move, with Revision 1's slot (§R1.3, branch `etcd-safe-crash-b4r/2026-1
   tier-check: ok; api-check: ok.
 * **Next:** rebuild the five modules (fix any error: likely `srvKNOk` destructuring/`SrvKeepPh.countable`'s
   `rintro`), then the full `lake build`, then `etc/gates.sh` in full (tcb `--check` unchanged), push.
+* **Build result** (`/shared/tmp/b4move-b1.log`, `6f2de9af62`): the whole cone and the first four sections of `SrvKeep.lean` build; the
+  only errors are in the `slot` section (`SrvKeep.lean:233-241`): `go.Semantics` and `Assumptions` need `GoLocalContext`. Fix: add
+  `variable [lctx : GoLocalContext]` to `section slot` (as `MemberCrash`'s `keep` section has), then rebuild the five modules.
+  The four `examples/` users were not reached yet.
