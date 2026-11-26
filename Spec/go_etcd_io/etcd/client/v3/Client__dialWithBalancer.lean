@@ -1,7 +1,6 @@
 /-
-`c.dialWithBalancer(dopts...)` (`client/v3/client.go`, names only: its body is a trusted unfolding,
-`Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`; item 5). Lean-first (no Rocq
-counterpart).
+`c.dialWithBalancer(dopts...)` (`client/v3/client.go`; item 5; translated with its body since G-dial,
+2026-11-26). Lean-first (no Rocq counterpart).
 -/
 module
 

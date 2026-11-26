@@ -43,7 +43,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.lease.Assum
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_lease.wp_Main`). -/
 theorem leasekv_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcd_lease.Main.spec (GF := GF) (hG := hG) :=
   etcd_lease.wp_Main
 

@@ -2819,7 +2819,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 def status_steps(x, desc=None, ptr=False):
     pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
-             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
+             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_linked as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
              f'obtain ⟨e{x}, rfl⟩ : ∃ e, r{x} = GoInterface.ok e := match r{x}, N{x} with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h',
              f'ihave #E{x} : ({CV3}.errorStringSpec e{x} : IProp GF) $$ []',
@@ -2840,7 +2840,7 @@ for x, desc in _RSTATUS.items():
 del _R['custom']['ErrGRPCNotSupportedForLearner']
 _R.setdefault('before', {})['ErrGRPCNotSupportedForLearner'] = status_steps('ErrGRPCNotSupportedForLearner', ptr=True)
 _R['alloc_types']['ErrGRPCNotSupportedForLearner'] = 'GoInterface'
-_R['imports'].append('Proof.google_golang_org.grpc.status.Error')
+_R['imports'].append('Proof.google_golang_org.grpc.status.ErrorLinked')
 
 # (prove-rpcmap, 2026-11-20) the whole package is translated: its other `ErrGRPC* = status.Error(...)`
 # errors (`status_steps`), the map literal `errStringToError` and the client-side errors

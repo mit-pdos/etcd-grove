@@ -50,7 +50,7 @@ theorem wp_Status_Code_ro (s : Loc) (c : w32) (m : GoString) :
     {{ RET #c; True }} := by
   wp_start as #Hs
   unfold status.statusAt status.statusAtRaw
-  icases Hs with ⟨%hs, #⟨%p, %hp, #Hsp, #Hc, #Hm⟩⟩
+  icases Hs with ⟨%hs, #⟨%p, #Hsp, %hp, #Hc, #Hm, -⟩⟩
   wp_auto
   rw [decide_eq_false hs]
   wp_auto
@@ -78,7 +78,7 @@ theorem wp_Status_Message_ro (s : Loc) (c : w32) (m : GoString) :
     {{ RET #m; True }} := by
   wp_start as #Hs
   unfold status.statusAt status.statusAtRaw
-  icases Hs with ⟨%hs, #⟨%p, %hp, #Hsp, #Hc, #Hm⟩⟩
+  icases Hs with ⟨%hs, #⟨%p, #Hsp, %hp, #Hc, #Hm, -⟩⟩
   wp_auto
   rw [decide_eq_false hs]
   wp_auto
@@ -114,7 +114,13 @@ theorem status.wp_internal_New (c : w32) (msg : GoString) :
   iStructNamed «$r0»
   ipersist Code
   ipersist Message
+  ipersist unknownFields
+  ipersist Details
   ipersist s
+  ihave #Hu : (slice.nil ↦*□ ([] : List w8)) $$ []
+  · iapply ownSlice_nil
+  ihave #Hd : (slice.nil ↦*□ ([] : List Loc)) $$ []
+  · iapply ownSlice_nil
   imodintro
   iapply HΦ
   unfold status.statusAt status.statusAtRaw
@@ -122,8 +128,14 @@ theorem status.wp_internal_New (c : w32) (msg : GoString) :
   · ipureintro; exact hs
   imodintro
   iexists _
-  iframe Code Message s
-  ipureintro; exact hp
+  iframe s Code Message
+  isplitr
+  · ipureintro; exact hp
+  iexists _, _, [], []
+  iframe unknownFields Details Hu Hd
+  isplitr
+  · ipureintro; exact ufWire_nil _
+  iapply BigSepL.bigSepL_nil.2; iempintro
 
 /-- grpc `status.New(c, msg)` is `internal/status.New(c, msg)` (`status/status.go:51-53`). -/
 theorem status.wp_New_statusAt [google_golang_org.grpc.status.Assumptions] (c : w32) (msg : GoString) :

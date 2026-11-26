@@ -48,7 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.As
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_Main`). -/
 theorem k8s_compactor_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_Main h_After
@@ -56,7 +56,6 @@ theorem k8s_compactor_Main [_root_.Perennial.net.FieldAssumptions]
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_MainPartition`). -/
 theorem k8s_compactor_MainPartition [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_MainPartition h_After

@@ -40,7 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Ass
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Main.lean`), under the semantic premises of
 its callees' linked results (putget's). -/
 theorem etcd_putget3.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     :
     etcd_putget3.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget3.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartMember etcdstart.wp_Serve

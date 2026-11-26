@@ -175,11 +175,11 @@ theorem grpc.wp_WithNoProxy :
     EtcdGrove.grpc.WithNoProxy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.WithNoProxy.wp_proof
 
-theorem wp_NewClients [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_NewClients :
     EtcdGrove.etcdstart.NewClients.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewClients.wp_proof client.v3.clientv3.wp_New grpc.wp_WithNoProxy
 
-theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_NewClient :
     EtcdGrove.etcdstart.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewClient.wp_proof wp_NewClients
 

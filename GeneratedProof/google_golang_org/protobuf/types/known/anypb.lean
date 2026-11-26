@@ -27,12 +27,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.protobuf.types.known.anypb.Assumptions]
 
 noncomputable instance Any_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.types.known.anypb.Any :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.protobuf.types.known.anypb.Any where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"state" l) v.state' dq ∗
+    "TypeUrl" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"TypeUrl" l) v.TypeUrl' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"Value" l) v.Value' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Any_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.types.known.anypb.Any google_golang_org.protobuf.types.known.anypb.Any.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.types.known.anypb.Any google_golang_org.protobuf.types.known.anypb.Any.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Any_access_load_state (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_store_state (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : google_golang_org.protobuf.types.known.anypb.Any) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_load_TypeUrl (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"TypeUrl" l) v.TypeUrl' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"TypeUrl" l) v.TypeUrl' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_store_TypeUrl (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (TypeUrl' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"TypeUrl" l) v.TypeUrl' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"TypeUrl" l) TypeUrl' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeUrl' := TypeUrl' } : google_golang_org.protobuf.types.known.anypb.Any) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_load_Value (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"Value" l) v.Value' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_store_Value (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (Value' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"Value" l) Value' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : google_golang_org.protobuf.types.known.anypb.Any) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_load_unknownFields (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_store_unknownFields (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : google_golang_org.protobuf.types.known.anypb.Any) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_load_sizeCache (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Any_access_store_sizeCache (l : Loc) (v : google_golang_org.protobuf.types.known.anypb.Any) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.types.known.anypb.Any go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : google_golang_org.protobuf.types.known.anypb.Any) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Any

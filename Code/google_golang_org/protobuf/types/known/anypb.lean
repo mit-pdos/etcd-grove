@@ -27,8 +27,6 @@ noncomputable def Any.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Any.ty
 
-opaque Any.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque file_google_protobuf_any_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_google_protobuf_any_proto [GooseExts] [GoGlobalContext] : GoString :=
@@ -99,22 +97,62 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
-opaque Any.nonempty_type : NonemptyType.{0}
-def Any : Type := Any.nonempty_type.type
-instance Any.nonempty : Nonempty Any := Any.nonempty_type.property
-opaque Any.zero_val : ZeroVal Any := ⟨Classical.ofNonempty⟩
-attribute [instance] Any.zero_val
+structure Any [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  TypeUrl' : GoString
+  Value' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance Any.zero_val [GooseExts] : ZeroVal Any :=
+  ⟨Any.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Any.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"TypeUrl" go.string),
+(go.field_decl.FieldDecl go!"Value" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def Any.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Any.fieldsUnsealed
+
+noncomputable instance equals_unfold_Any [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Any.fields Any.fieldsUnsealed :=
+  ⟨by unfold Any.fields; rfl⟩
+
+@[reducible] noncomputable def Any.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Any.fields)
 
 class Any.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Any.underlying Any
   underlying : go.UnderlyingDirectedEq Any.ty Any.underlying
-  isUnderlying : go.IsUnderlying Any.underlying Any.underlying
+  get_state : ∀ (x : Any), go.IsGoStepPureDetTagged under (StructFieldGet Any.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : Any) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Any.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Any)))
+  get_TypeUrl : ∀ (x : Any), go.IsGoStepPureDetTagged under (StructFieldGet Any.underlying go!"TypeUrl") #x (Val #(x.TypeUrl'))
+  set_TypeUrl : ∀ (x : Any) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Any.underlying go!"TypeUrl") (PairV #x #y) (Val #(({ x with TypeUrl' := y } : Any)))
+  get_Value : ∀ (x : Any), go.IsGoStepPureDetTagged under (StructFieldGet Any.underlying go!"Value") #x (Val #(x.Value'))
+  set_Value : ∀ (x : Any) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Any.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : Any)))
+  get_unknownFields : ∀ (x : Any), go.IsGoStepPureDetTagged under (StructFieldGet Any.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : Any) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Any.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Any)))
+  get_sizeCache : ∀ (x : Any), go.IsGoStepPureDetTagged under (StructFieldGet Any.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : Any) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Any.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Any)))
   method_set : go.MethodSetIs Any.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Any.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetTypeUrl", (some (go.signature.Signature [] false [go.string]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"MarshalFrom", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" [])] false [go.error]))), (go!"MessageIs", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" [])] false [go.bool]))), (go!"MessageName", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" [])]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalNew", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" []), go.error]))), (go!"UnmarshalTo", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ProtoMessage" [])] false [go.error])))]
 
 attribute [instance] Any.TypeAssumptions.type_repr
   Any.TypeAssumptions.underlying
-  Any.TypeAssumptions.isUnderlying
+  Any.TypeAssumptions.get_state
+  Any.TypeAssumptions.set_state
+  Any.TypeAssumptions.get_TypeUrl
+  Any.TypeAssumptions.set_TypeUrl
+  Any.TypeAssumptions.get_Value
+  Any.TypeAssumptions.set_Value
+  Any.TypeAssumptions.get_unknownFields
+  Any.TypeAssumptions.set_unknownFields
+  Any.TypeAssumptions.get_sizeCache
+  Any.TypeAssumptions.set_sizeCache
   Any.TypeAssumptions.method_set
   Any.TypeAssumptions.ptr_method_set
 

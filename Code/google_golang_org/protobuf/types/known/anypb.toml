@@ -1,6 +1,8 @@
 # (status-bodies, 2026-11-25) Types and names only: the message `Any`, the type of genproto
-# `status.Status`'s field `Details` (no translated code reads it).
-translate = ["!*"]
+# `status.Status`'s field `Details`. (prove-statuserror, 2026-11-26) `Any`'s struct translated, so
+# that `status.statusAtRaw`'s read-only `Details` can name the fields `proto.Equal` reads
+# (`TypeUrl`, `Value`, `unknownFields`); no translated code reads them.
+translate = ["!*", "Any"]
 imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports
