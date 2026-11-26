@@ -3605,3 +3605,56 @@ the linked callees and the interim axioms `KV_Put_dist`, `KV_Get_dist`, `KV_Comp
 - `prevOk`/`resp_cw` are `RunCompact`'s; the watch request lemmas (`cw_watch_ok`, `cw_watchNorm`) are in
   `CompactWorkDefs` (shared by both proofs).
 
+
+## 29. F6: cache (2026-11-26, branch `etcd-safe-f6/2026-11-26`)
+
+#50's F6 (`etcd-nocrash-plan.md`): `RunCache` of `examples/etcd/dist/client` (the cache workload's
+orchestrator) across machines. Base `lean` @ `80545ccc4a` (M1 landed) with `etcd-safe-wenv`, `etcd-safe-rwire`,
+`etcd-safe-f5` and `etcd-safe-n10a2` (@ `157e03e135`, N10a's writers' wire and `remoteWriters.spec`) merged.
+Untrusted proof work: no new axiom, `sorry`, top-level premise or Go change.
+
+### 29.1 The argument
+
+The single-process cache example (`Proof/.../cache/Main.lean`) after its start, over the watch workload's adapter
+(`kmInv` over the cluster's client half, plan property `wkW (trs.map pairOf)`, §24.1) and its writers
+(`remoteWriters`, the same writer service and wire: the writers do not know which workload calls them). What
+differs from one process is only the cache's client: `isEtcdClient_of_dist` (`CacheWorkDefs.lean`) builds
+`isEtcdClient (EM := etcdModelOfKV γ)` from
+- `Watch_dist` (N10a's `kvWatcherW_of_dist`, `isEtcdWatcher_of_kmW`),
+- `RequestProgress_dist` (`isEtcdProgressNotifier_of_dist`: its `statusErrOk` gives `errStrOk`),
+- the gets: `kv_get_km_dist`/`isEtcdKVE_of_dist`, `client.kv_get_km`'s proof over the get contract (any context:
+  `ctxErrClientAllW_of`, hence the premise `errors.AsTarget rpctypes.EtcdError`).
+The cache example's helpers are copied in Go (`watch.go`): their specs and proofs are copies too
+(`dist/client/{cacheCollect,awaitProgress,checkProgress,lastVal,hasKey,checkGet}.lean`). The pure facts of
+`ServerKVGet.lean` (a linking module) moved, unchanged, to the defs module `ServerKVGetDefs.lean`.
+
+### 29.2 Specs
+
+- `RunCache.spec` (`Spec/.../dist/client/RunCache.lean`): `{isPkgInit client ∗ threadTok ∗ eps ↦*□ addrs ∗ nodes ↦*□ ns
+  ∗ {True} ready() {True} ∗ cacheShare addrs ns} RunCache(eps, nodes, nops, ready) {threadTok}`, premises
+  `RunWatch.spec`'s plus `errors.AsTarget rpctypes.EtcdError`. **The machine's whole thread token**, not its
+  `levelTok 0` as the other workloads: `Cache.Watch` takes `threadTok` (the cache's watch goroutines). F8's dispatch
+  (`MainReady.spec`, §27.3) must therefore take `threadTok` and split it for the other arms (`threadTok_level0`).
+- `cacheShare addrs ns := watchShare writersShare addrs ns` (`CacheWorkDefs.lean`, global): the watch workload's.
+
+### 29.3 The gap: `KV_Get_dist`'s error arm (a trust decision, not taken here)
+
+The cache's get contract (`isEtcdKVE`) asks of every error `Get` returns that its `Error()` gives a string
+(`errStrOk`): the cache's `getWatchLoop` prints `get`'s error with `fmt.Printf`'s `%v` (etcd's `cache.go:321`).
+`KV_Get_dist`'s error arm claims nothing (`⌜err ≠ nil ∧ resp = null⌝`, §18.4), so no proof over it gives the cache
+its client. `KV_GetE_dist.spec` (`CacheWorkDefs.lean`) is `KV_Get_dist.spec` with `statusErrOk err` added to the
+error arm: what `kv.Get.spec`'s `kvErr` gives in one process, and what `RequestProgress_dist` already claims of its
+error. Why it is true across machines: the error value is built at the caller's machine by clientv3's `toErr` from a
+context error or grpc's status of the call (the remote side sends only a status code and message bytes), exactly as
+in one process. **Recommendation:** restate `KV_Get_dist.wp_proof` at `KV_GetE_dist.spec` (a strengthening of a
+landed interim axiom: an F9 item with an `axiom`-skill review); then `KV_GetE_dist` goes and `CacheLinked` needs
+no hypothesis for it. `RunCache` is proved over it as a hypothesis meanwhile.
+
+### 29.4 What the start (F8) must allocate
+
+Exactly the watch workload's (§24.3): `cacheShare (members' client addresses) ns` = a view `Γ`, `membersAt`, the
+cluster's client half `etcdKV Γ.kv σ₀` whole at the boot state (`σ₀.changes = [[]]`; a cache deployment's only key
+writer is the cache workload, `needsSoleWriter`), and `writersShare Γ ns` (`mapCtx`, each writer address's
+`svcAddr (writerSvcG Γ)` and one call's budget `budUnit`); the client machines get the watch writers' share
+(`nodeWatchPre`). The orchestrator's boot gives `threadTok` whole (29.2). Nothing else: the adapter, the cache's
+ghost state and the writers' names are allocated at run time.
