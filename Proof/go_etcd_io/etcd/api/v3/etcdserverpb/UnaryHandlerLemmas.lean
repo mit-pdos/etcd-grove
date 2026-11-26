@@ -147,6 +147,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [grpc_sem : google_golang_org.grpc.Assumptions]
 
+/-- A run's answer to the receipt `Got Φ Ψe` of its deposit (`grpcRunOut`'s second arm). -/
+theorem grpcRunOut_got_intro {Rep : ProtoMsg GF} (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF) (resp err : GoInterface)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
+    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ Got Φ Ψe ∗
+      (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+        ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+      handlerErrOut Ψe err ⊢ grpcRunOut D Got resp err := by
+  iintro ⟨#Hse, HG, Hok, He⟩
+  unfold grpcRunOut
+  isplitr
+  · iexact Hse
+  iright
+  iexists Φ
+  iexists Ψe
+  iframe
+
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the metadata-indexed handler spec (`grpcHandlerOwnOkMd`; the auth plan's E3zb), for a method that may write its request** (`grpcHandlerOwnOk`; the auth
 plan's E3za) (the statement of `_KV_Put_Handler.spec`, at any method): for a service
@@ -207,11 +224,8 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       wp_auto
       iapply HΦ
       iframe HS HRs
-      iunfold grpcRunOut
-      iframe Hse
-      iright
-      iexists Φ', Ψe
-      iframe HGot Herrd
+      iapply (grpcRunOut_got_intro D Got _ _ Φ' Ψe)
+      iframe Hse HGot Herrd
       iintro %Hnil
       ihave ⟨%m', Hm', HΦ'⟩ := Hres $$ %Hnil
       iexists resp, m'
@@ -268,11 +282,8 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           wp_auto
           iapply HΦ
           iframe HS HRs
-          iunfold grpcRunOut
-          iframe Hse
-          iright
-          iexists Φ', Ψe
-          iframe HGot Herrd
+          iapply (grpcRunOut_got_intro D Got _ _ Φ' Ψe)
+          iframe Hse HGot Herrd
           iintro %Hnil
           ihave ⟨%m', Hm', HΦ'⟩ := Hres $$ %Hnil
           iexists resp, m'
@@ -283,11 +294,8 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           wp_auto
           iapply HΦ
           iframe HS HRs
-          iunfold grpcRunOut
-          iframe Hse
-          iright
-          iexists Φ', Ψe
-          iframe HGot
+          iapply (grpcRunOut_got_intro D Got _ _ Φ' Ψe)
+          iframe Hse HGot
           isplitl
           · iintro %Hc
             exact absurd Hc Hne'
@@ -300,7 +308,8 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       iapply HΦ
       iframe HS HRs
       iunfold grpcRunOut
-      iframe Hse
+      isplitr
+      · iexact Hse
       ileft
       isplitl [HD]
       · iexact HD

@@ -1255,7 +1255,7 @@ theorem grpcRunPreOkMd_of_run {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterf
       exact absurd Hnil Hne
     · iapply handlerErrOut_not $$ Hnh
   · obtain ⟨rfl, rfl⟩ := Heq
-    iframe
+    iframe; iframe #
 
 end run
 
