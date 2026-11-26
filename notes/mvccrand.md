@@ -1,5 +1,9 @@
 # mvccrand: a randomized tester of mvcc, used as etcd's server uses it
 
+**Retired 2026-11-25** (#49, Upamanyu's decision: mvccfull covers a superset). The example, its proofs and
+`mvccrand_robust` are deleted; what other trees used moved (notes/STATUS.md, 2026-11-25, "mvccrand retired").
+This note is kept as history.
+
 Branch `worktree-mvcc-rand-tester`. 2026-10-30: the user asked for a top-level randomized tester of
 etcd's mvcc package in isolation, its adequacy proved end to end from the existing mvcc specs, or,
 if that is impossible, why the specs are insufficient. The first version (below, "The first

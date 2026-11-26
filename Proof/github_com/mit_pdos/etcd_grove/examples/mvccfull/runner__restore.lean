@@ -331,7 +331,7 @@ theorem runner.restore.wp_proof
       Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1, #Hpool⟩
     iunfold bkKeep at Hbkn
     icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnbp, Hnoh, HnRT, Hntoks, Hncen⟩
-    simp only [mvccrand.rcKB_P]
+    simp only [mvccfull.rcKB_P]
     ihave HEv : (if recs = [] then iprop(True) else lease.leaseEver (mvccLeases v1.ι.kv) v1.U) ∗
         (if recs = [] then lease.leaseEver (mvccLeases v1.ι.kv) v1.U else iprop(True)) $$ [HlEver]
     · split <;> iframe
@@ -374,16 +374,16 @@ theorem runner.restore.wp_proof
       intro x hx; have := hrecs3 x hx
       have h36 : sint.Z (W64 3600) = 3600 := by decide
       simp only []; rw [h36]; exact this
-    wp_apply (wp_Recover v1.lp (mvccLeases v1.ι.kv) v1.bk.be (mvccrand.rcKB γB bnb gx (limOf cfg))
+    wp_apply (wp_Recover v1.lp (mvccLeases v1.ι.kv) v1.bk.be (mvccfull.rcKB γB bnb gx (limOf cfg))
         (mvccW gx) iprop(True) (1 : Qp).half (· = leaseName)
-        (backend.rbData (mvccrand.rcP (limOf cfg)) D) rd rd0 (leasesAfter ks ops v1.ops)
+        (backend.rbData (mvccfull.rcP (limOf cfg)) D) rd rd0 (leasesAfter ks ops v1.ops)
         (pendItems (σOf ks ops v1.ops).log []) false recs v1.U (fun _ => W64 3600)
-        (leasesAfter ks ops v0.ops) rfl (mvccrand.rcP_lease _) hrecs1 (fun h => absurd h (by decide))
+        (leasesAfter ks ops v0.ops) rfl (mvccfull.rcP_lease _) hrecs1 (fun h => absurd h (by decide))
         hUL hreq (by rw [hL']))
       $$ [HEv HbeOn HlOwn HlRevk HrdOwn Hnoh Hwb2' Hrbn]
       as ⟨HbeOn, HlOwn, HEv, #HreqN, HlRevk, HrdOwn, Hnoh, Hrbn, -⟩
     · iframe #; iframe
-      simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+      simp only [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be, mvccfull.rcKB_gx]
       iexact Hnisb
     (try wp_auto)
     -- `check(f.kv.Restore(newbe) == nil)`: the follower's incarnation, at the builder's state
@@ -422,15 +422,15 @@ theorem runner.restore.wp_proof
     · iframe #; iframe
     rw [hkveq]
     (try wp_auto)
-    ihave #Hreq : storageReq (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) iprop(True)
+    ihave #Hreq : storageReq (etcdStorage (mvccfull.rcKB γB bnb gx (limOf cfg))) iprop(True)
         iprop(True) iprop(True) $$ []
     · rw [etcdStorage_req]; iapply backend.commitReq_true
-    have hRst := hKRest v1.ι.kv (etcdStorage v1.bk) (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg)))
+    have hRst := hKRest v1.ι.kv (etcdStorage v1.bk) (etcdStorage (mvccfull.rcKB γB bnb gx (limOf cfg)))
         iprop(True) iprop(True) (σOf ks ops v0.ops) u (leasesAfter ks ops v0.ops)
         (DFrac.own (1 : Qp).half) func.nil iprop(True) iprop(True) iprop(True) iprop(True)
         iprop(True) (fun _ => iprop(ghostVar v1.ι.ret qw1 () ∗
           ghostVar γ.m1.σ (Qp.half 1) (σOf ks ops v0.ops) ∗ ghostVar γ.m1.bnd (Qp.half 1) b2))
-    rw [etcdStorage_val, mvccrand.rcKB_be] at hRst
+    rw [etcdStorage_val, mvccfull.rcKB_be] at hRst
     wp_apply hRst $$ [Hopen1 Hback1 Hsf Hplh HlOwn Hau]
     · iframe #; iframe
       isplitr
@@ -453,7 +453,7 @@ theorem runner.restore.wp_proof
     -- `newbe.SetTxPostLockInsideApplyHook(f.hook)`, the hook frozen
     icases ownToks_add_1 1 ((sint.Z cfg.Ops').toNat) γB.wb $$ Hntoks with ⟨Hntoks, Hw1⟩
     rw [etcdStorage_hook] at *
-    wp_apply (wp_SetHook γB (mvccrand.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
+    wp_apply (wp_SetHook γB (mvccfull.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
         func.nil f1) $$ [Hnoh Hplh Hw1] as ⟨Hnoh, Hplh⟩
     · iframe #; iframe; iapply (backend.wbTok_toks γB).2; iexact Hw1
     imod backend.plHook_persist γB f1 $$ Hplh with #HhkRO
@@ -612,7 +612,7 @@ theorem runner.restore.wp_proof
     icases HhookOk1 with ⟨%Hf1, #Hf1run⟩
     ihave Hrbn' := backend.rbOwnIn_part γB _ _ $$ Hrbn
     ihave Hc1n : memCore ks γ.h ops 1 mp1 γ.m1 f1
-        ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
+        ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccfull.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
         (sint.Z cfg.Ops').toNat $$ [Hpath1 Hbe1 Hle1 Hkv1 Hrev1 Hcmp1 Hlf1 Hlsln Hlcapn Hret1 Hσw1
           Hbw1 Hopen1 Hback1 Hrdrs1 Hr1 Hnbf Hnbp Hnoh HnRT Hntoks Hncen Hlrd HlOwn HlRevk HEvU HrdOwn
           HbeOn Hrbn' Hstop1]
@@ -629,14 +629,14 @@ theorem runner.restore.wp_proof
       isplitl [Hret1 Hσw1 Hbw1]
       · iunfold incW; iframe #; iframe
       isplitr
-      · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact HhkRO
+      · rw [etcdStorage_hookIs]; simp only [mvccfull.rcKB_γB]; iexact HhkRO
       isplitl [Hrdrs1 Hr1]
       · iapply hR1'.2; iframe
       isplitl [Hnbf Hnbp Hnoh HnRT Hntoks Hncen]
       · iunfold bkKeep
         isplitr
         · ipureintro; exact HnP
-        simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+        simp only [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be, mvccfull.rcKB_gx]
         iframe #; iframe
       isplitl
       · iunfold lessorW
@@ -647,7 +647,7 @@ theorem runner.restore.wp_proof
       · ipureintro; exact hU'g
     -- `x.checkLeases(f)`; `x.restores.Add(1)`
     wp_apply (wp_checkLeases x ks cfg wr h γ.h ops 1 mp1 γ.m1 f1
-        ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
+        ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccfull.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
         (sint.Z cfg.Ops').toNat hlogOk) $$ [Hrd Hc1n Htok] as ⟨Hrd, Hc1n, Htok⟩
     · iframe #; iframe
       dsimp only; rw [Hops.1]; iexact Hlb
@@ -671,7 +671,7 @@ theorem runner.restore.wp_proof
     -- the writer between steps, one more build, the follower at the leader's count
     iapply HΦ
     iframe Htok
-    iexists ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩
+    iexists ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccfull.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hkveq, rfl⟩
     iunfold writerOwn
