@@ -1,5 +1,5 @@
 /-
-Lean-first (no Rocq counterpart). #33 S4: the proof of
+Lean-first (no Rocq counterpart). #33 S4 (parity B1: the run's scope, mode and configuration): the proof of
 `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Cluster__Events.lean`.
 -/
 module
@@ -28,16 +28,19 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 
 theorem Cluster.Events.wp_proof (wp_Events : Recorder.Events.spec (GF := GF) (hG := hG)) :
     Cluster.Events.spec (GF := GF) (hG := hG) := by
-  intro c
+  intro c s
   wp_start as Hrun
   iunfold runOver at Hrun
-  icases Hrun with ⟨%r, %γr, %evs, #Hr, #Hrec, Hdone, #HN, %Hacc⟩
+  icases Hrun with ⟨%r, %γr, %evs, %m, %R, #Hr, #Hrec, Hdone, #Hm, %Hacc⟩
   wp_auto
   wp_apply wp_Events γr r evs $$ [$Hpkg $Hrec $Hdone] as %sl ⟨#Hsl, -⟩
   try wp_auto
   iapply HΦ
-  iexists evs
-  iframe Hsl
+  iexists evs, m, R
+  isplitl [Hsl]
+  · iexact Hsl
+  isplitl [Hm]
+  · iexact Hm
   ipureintro; exact Hacc
 
 end proof
