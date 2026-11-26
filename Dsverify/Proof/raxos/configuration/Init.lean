@@ -9,8 +9,8 @@ module
 
 public import Dsverify.Proof.raxos.configuration.Base
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
-public import Dsverify.Proof.io.ioutil.Init
 public import Perennial.Proof.strconv.Link
+public import Dsverify.Proof.io.ioutil.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 
@@ -52,8 +52,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
       EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io.ioutil _root_.Perennial.io.ioutil.initialize'
-      EtcdGrove.ExternalInit.io_ioutil _root_.Perennial.io.ioutil.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.io.ioutil.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.gopkg_in.yaml_v2 _root_.Perennial.gopkg_in.yaml_v2.initialize'
       EtcdGrove.ExternalInit.gopkg_in_yaml_v2 _root_.Perennial.gopkg_in.yaml_v2.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown

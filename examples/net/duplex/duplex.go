@@ -7,9 +7,10 @@
 //
 // Two nodes, each a process (cmd/server, cmd/client): the server listens at
 // SrvAddr and serves each connection in turn by echoing whatever it reads
-// (io.Copy's loop, written out) until an error; the client dials, starts a
-// goroutine that writes the bytes 1..N, one Write per byte, while its main
-// goroutine reads N bytes one at a time and checks that the i-th is i. The
+// (io.Copy's loop, written out) until an error; the client draws n at random,
+// from 1 to maxN, dials, starts a goroutine that writes the bytes 1..n, one
+// Write per byte, while its main goroutine reads n bytes one at a time and
+// checks that the i-th is i. The
 // check holds however the two goroutines interleave and however the server's
 // Reads split the bytes: the bytes arrive in order and intact on their own
 // connection, in both directions, and a failed write stops the writer (a write
@@ -27,8 +28,8 @@ import (
 // SrvAddr is the server's address.
 const SrvAddr = "127.0.0.1:7104"
 
-// n is the number of bytes the client sends.
-const n = 4
+// maxN is the most bytes the client sends (each byte its position, 1..n).
+const maxN = 64
 
 // serveConn writes back whatever it reads of the connection c until an error,
 // then closes it.
@@ -65,7 +66,7 @@ func Serve() {
 }
 
 // writeAll writes the bytes 1..n to c, one Write each, until one fails.
-func writeAll(c net.Conn) {
+func writeAll(c net.Conn, n int) {
 	for i := 1; i <= n; i++ {
 		b := make([]byte, 1)
 		b[0] = byte(i)
@@ -75,14 +76,15 @@ func writeAll(c net.Conn) {
 	}
 }
 
-// Call writes the bytes 1..n from one goroutine while it reads their echo in
-// another, and checks the bytes read.
+// Call writes the bytes 1..n, n from 1 to maxN drawn at random, from one
+// goroutine while it reads their echo in another, and checks the bytes read.
 func Call() {
+	n := 1 + wire.RandomInt(maxN-1)
 	c, err := net.Dial("tcp", SrvAddr)
 	if err != nil {
 		return
 	}
-	go writeAll(c)
+	go writeAll(c, n)
 	for i := 1; i <= n; i++ {
 		b := make([]byte, 1)
 		if !wire.ReadFull(c, b) {

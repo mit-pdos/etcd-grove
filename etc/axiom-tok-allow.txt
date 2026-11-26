@@ -150,6 +150,12 @@ trunc Perennial.net.rpc.wp_initialize'
 entry Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof 2:L:0:handedtoacallbacklen(vs)+len(vs)/supplieddirectly0  see the section header: the `levelTok 0` of the call options' `backoffOkT` contract (`streamCallOptsOk vs`), lent by the backoff's caller, not by this axiom
 entry Perennial.EtcdGrove.Client.streamClientInterceptor.wp_proof 2:L:0:handedtoacallbacklen(ros)+len(ros)/supplieddirectly0  see the section header: the `levelTok 0` of the options' `backoffOkT` contract inside `optApplyOk`, lent by the backoff's caller, not by this axiom
 
+# --- net/http's interim axioms over a user handler and a raw client (httpdriver, 2026-11-25;
+# notes/library-drivers.md, "net/http"; review notes/axiom-review/net-http-interim.md) ---
+entry Perennial.net.http.Serve.wp_proof 2:*:handedtoacallback1/supplieddirectly0  the thread token handed to the handler (`handlerOk`'s `servePre`) is the token of the goroutine net/http's server forks per connection (`Server.Serve`'s `go c.serve(ctx)`: a fork gives its goroutine a token), returned in `serveDone`; `Serve` takes none and mints none
+entry Perennial.net.http.ServeMux.ServeHTTP.wp_proof 2:*:handedtoacallbacklen(L)/supplieddirectly1,3:E:produced1/consumed0,3:S:produced3/consumed2  the caller's `servePre` (its thread token, its body reader's state `S` and errors' evidence `E`) is handed on whole to the one handler `findHandler` routes the request to (each route's `handlerOk` counts as a callback, at most one runs) or, for the mux's own `307`/`404`, kept and given back in `serveDone` (`S`, the token); `E` is the caller's body reader's, passed through, never produced by the mux
+entry Perennial.net.http.ReadResponse.wp_proof_resp 3:E:produced1/consumed0,3:E:produced2/consumed0,3:E:produced2/consumed1,3:Q:produced1/consumed0,3:S:produced5/consumed2,7:EB:Listw8→GoInterface→IPropGF,7:SB:Listw8→IPropGF  `S`, `E` are the caller's stream's state and errors' evidence (`readerStreamNE`, `ownReader`): the axiom reads through the stream's own `Read` contract and gives the reader back in its post, so their productions are the stream's callbacks' posts; `□ Q ρ` comes only from the caller's law over `S` (its conclusion, persistent knowledge the caller supplies for every answer the stream may carry); `SB`, `EB` are the body reader's contract, chosen by the axiom and bound with the body reader it returns (`io.readerOk bi _ SB EB`, rule 7's neutral case)
+
 # --- putget-dist's interim client axioms (dist-putget-interim, 2026-11-25; for the coordinator's review) ---
 # `etcd_dist.Client_Put_dist.wp_proof`, `etcd_dist.Client_Get_dist.wp_proof`
 # (Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/Client{Put,Get}Dist.lean; interim, retired by
@@ -228,7 +234,7 @@ trunc Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
-# `<pkg>.wp_initialize'` of the nine `HYP_INITS` packages whose `axiom`-skill review survived
+# `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at
 # `ownInitializing` (Perennial's initialization ghost state, given and returned with the same map);
 # the post adds only the package's persistent `isPkgInit` (fact `True`, zerolog's with `io`'s). No
@@ -236,12 +242,8 @@ trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 trunc Perennial.encoding.gob.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.proto.wp_initialize'
-trunc Perennial.github_com.google.uuid.wp_initialize'
 trunc Perennial.github_com.rs.zerolog.wp_initialize'
-trunc Perennial.google_golang_org.grpc.codes.wp_initialize'
 trunc Perennial.gopkg_in.yaml_v2.wp_initialize'
-trunc Perennial.io.ioutil.wp_initialize'
-trunc Perennial.os.signal.wp_initialize'
 
 # dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): swiftpaxos's gob axioms
 entry Perennial.encoding.gob.Decoder.Decode.wp_proof 3:E:produced1/consumed0  E is the reader's error predicate, `∃`-bound inside the consumed (persistent) `bufio.readsOk rd I`; it occurs produced only in the post of the reader's own `Read` contract (`io.readerOk ri Pre I E`), which `Decode` calls; the axiom's post holds no `E` (review notes/axiom-review/dsv-fix4/encoding-gob.md)

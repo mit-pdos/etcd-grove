@@ -2,6 +2,7 @@
 module
 
 public import Net.Code.net
+public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -21,14 +22,73 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.wire
 
+noncomputable def RandomInt [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/net/wire.RandomInt"
+
+noncomputable def RandomBytes [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/net/wire.RandomBytes"
+
 noncomputable def ReadFull [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/net/wire.ReadFull"
+
+/-- RandomInt returns a number drawn at random in [0, max]; max must be in
+    [0, 2^31).
+
+    go: wire.go:16:6 -/
+noncomputable def RandomInt.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "max"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "max" (App (Val (GoInstruction (GoAlloc go.int))) (Var "max"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "max")) (Val #(W64 1))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))
+
+/-- RandomBytes returns a new slice of n bytes, each drawn at random; n must be
+    non-negative.
+
+    go: wire.go:22:6 -/
+noncomputable def RandomBytes.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))
 
 /-- ReadFull reads exactly len(buf) bytes from c into buf, as io.ReadFull does:
     it loops over c.Read, which may return fewer bytes than asked. It returns
     false on any error before buf is full (an EOF included).
 
-    go: wire.go:11:6 -/
+    go: wire.go:33:6 -/
 noncomputable def ReadFull.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "buf"
@@ -84,21 +144,30 @@ noncomputable def ReadFull.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire where
-  pkgImportedPkgs := [pkg_id.net]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.github_com.goose_lang.primitive]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #())))))))
+  (App (Val _root_.Perennial.net.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  RandomInt_unfold : FuncUnfold RandomInt [] RandomInt.impl
+  RandomBytes_unfold : FuncUnfold RandomBytes [] RandomBytes.impl
   ReadFull_unfold : FuncUnfold ReadFull [] ReadFull.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
-attribute [instance] Assumptions.ReadFull_unfold
+attribute [instance] Assumptions.RandomInt_unfold
+  Assumptions.RandomBytes_unfold
+  Assumptions.ReadFull_unfold
   Assumptions.import_net_Assumption
+  Assumptions.import_primitive_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.net.wire
 

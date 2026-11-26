@@ -22,8 +22,10 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
+axiom grpcProtoCodec
 axiom grpcResolverAt
 axiom grpcSrvAtLis
+axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof

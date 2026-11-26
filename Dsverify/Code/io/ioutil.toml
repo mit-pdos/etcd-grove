@@ -1,3 +1,7 @@
-# Names only: configuration's `NewInstanceConfig` calls `ioutil.ReadFile`; the kit never reaches it.
-translate = ["!*"]
-imports = ["!*"]
+# Names only but `Discard` (dsv-retire-1-inits, 2026-11-25): configuration's `NewInstanceConfig`
+# calls `ioutil.ReadFile`; the kit never reaches it. `Discard` (`var Discard io.Writer =
+# io.Discard`, the package's only initializer; it has no `init`) is translated, with its import
+# `io` (Perennial's, whose `wp_initialize'` is proved), so that the package's `wp_initialize'` is
+# proved (`Dsverify/Proof/io/ioutil/Init.lean`, generated) instead of a trust-boundary axiom.
+translate = ["!*", "Discard"]
+imports = ["!*", "io"]
