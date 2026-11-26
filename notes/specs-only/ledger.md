@@ -6096,3 +6096,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   received, term-stamped forward: stale ignored, a higher term a step-down to a follower with no leader, or at the node's
   term `TransferEndR` at `x.src`), was `TransferEndR (nodeId n) r x.src r' xs` (which had no arm for the forward's term).
 - **Decision.** Lead's decision, 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3): the transfer ends without their untyped messages (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean`.
+- **Change (weakening).** `TransferEndR id r to r'` and `TransferRecvEndR id r x r'` lose the `xs : List XMsg` argument
+  and its conjuncts (the `MsgTimeoutNow` to the transferee, the follower's forward): the model drops both from the
+  outbox (`raft.sendTimeoutNow.spec`, `FollowerStepResultC`'s `s' = s`), so no RawNode spec can give them there; a
+  `Ready`'s untyped messages are read off its queue instead (`xmsgOf`, `XReadyOk`, Q3 item 4). `TransferEndR`'s protocol
+  part is now `r'.p = r.p ∨ (leader ∧ to ∈ voters ∧ to ≠ id ∧ SendsEnd)` (the arms that differed only in `xs` merged).
+- **Decision.** Lead's decision (Q3 approved), 2026-11-26. No new axiom, no new top-level premise.
