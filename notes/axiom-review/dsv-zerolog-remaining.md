@@ -37,22 +37,24 @@ names-only version, where the package fact was `True`.
 - (session 6) `Event.Str.wp_proof` (`Event__Str.lean`), over the defined `eventTok`, from
   `internal/json`'s `AppendKey`/`AppendString`/`appendStringComplex` lemmas
   (`internal/json/AppendString.lean`) and Perennial's `utf8.DecodeRuneInString` spec.
+- (session 7) `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof` (`Logger__*.lean`), from the lemma
+  `wp_Logger_newEvent` (`LoggerNewEvent.lean`): `should` (the logger's level is Trace; `GlobalLevel()`
+  through the fact's invariant, either outcome: disabled returns `nil`), `newEvent` (`eventPool.Get` by
+  `isPool`, the buffer truncated with `ownSlice_slice_with_cap`, `{` appended), the fields set, then
+  `e.Str(LevelFieldName, LevelFieldMarshalFunc(level))` (`marshalSpec`; `Str` through its statement,
+  passed by `HypsHoldLinked.lean` from `Event.Str.wp_proof`). The level methods' statements are unchanged;
+  each takes `Event.Str.spec eventTok` as a callee hypothesis.
 
-## Remaining (12), statements unchanged
+## Remaining (7), statements unchanged
 
-- `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof` (`Logger__*.lean`):
-  `{{ isPkgInit zerolog ∗ l ↦{dq} lg ∗ loggerOk lg }} l.M() {{ (e : Loc), RET #e; l ↦{dq} lg ∗ eventTok e }}`.
-  The precondition is now concrete and narrower (`lg = newLogger w`: level Trace, no sampler, no context,
-  no stack, so `newEvent` reads `GlobalLevel()`, takes an event from `eventPool` and calls
-  `e.Str(LevelFieldName, LevelFieldMarshalFunc(level))`); the post is over the opaque `eventTok`.
-  Provable now: `eventTok` is defined and `Event.Str` proved (next step).
 - `Event.{Int,Ints,Int64,Uint32,Bool,Float64}.wp_proof`: blocked by Perennial (`strconv.AppendInt`,
   `AppendUint`, `AppendBool`, `AppendFloat` are names only; `notes/perennial-changes.md`, 2026-11-26).
 - `Event.Msg.wp_proof`: blocked by Perennial (writes to `ioutil.Discard`, whose `Write` `io.isInit` hides).
 
-What to attack: whether the five level axioms and the seven event axioms are true real-zerolog
-facts **over the defined `eventTok`** — in particular that no field method or `Msg` needs more of the
-event than the definition holds, and that a client cannot build the token for an event the real
+What to attack: whether the seven event axioms are true real-zerolog facts **over the defined
+`eventTok`** — in particular that no field method or `Msg` needs more of the event than the definition
+holds (the level methods' proofs show the definition is what a `New(nil)` logger's events satisfy, so a
+too-strong token would have failed there), and that a client cannot build the token for an event the real
 methods mishandle (the definition is now public: any owned `Event` with those fields has it), and that a `nil` event (a disabled
 level: `GlobalLevel()` above the level, which `SetGlobalLevel` can now set to anything) is handled by
 every method (`Str`..`Msg` return at once on `nil`).

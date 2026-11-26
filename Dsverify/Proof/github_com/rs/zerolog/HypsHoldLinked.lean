@@ -1,7 +1,9 @@
 /-
 zerolog's specs (`Spec.lean`'s class `Hyps`; until dsv-fix4 a premise of rabia's statement)
-**hold**, from the per-function trust-boundary axioms (`Logger__*.lean`, `Event__*.lean`,
-`ParseLevel.lean`, `SetGlobalLevel.lean`, `New.lean`), the event token the fixed `eventTok`
+**hold**, from the per-function proofs and the trust-boundary axioms left (`Logger__*.lean`,
+`Event__*.lean`, `ParseLevel.lean`, `SetGlobalLevel.lean`, `New.lean`; since dsv-retire-3 the five
+level methods, `Str`, `ParseLevel`, `SetGlobalLevel` and `New` are proved, the level methods over
+`Str`'s proof), the event token the fixed `eventTok`
 (`EventTok.lean`), the logger fact `loggerOk` (`Spec.lean`, fixed since dsv-fix6). A linking module: rabia's top-level proof discharges the former premise with
 `hyps_holds`.
 -/
@@ -43,14 +45,15 @@ theorem hyps_holds : Hyps GF := by
   refine ⟨⟨eventTok, ?_⟩, ParseLevel.wp_proofWarn, SetGlobalLevel.wp_proof, New.wp_proof⟩
   refine ⟨?_, Event.Str.wp_proof unicode.utf8.wp_DecodeRuneInString, Event.Int.wp_proof, Event.Ints.wp_proof, Event.Int64.wp_proof,
     Event.Uint32.wp_proof, Event.Bool.wp_proof, Event.Float64.wp_proof, Event.Msg.wp_proof⟩
+  have wp_Str := Event.Str.wp_proof (GF := GF) unicode.utf8.wp_DecodeRuneInString
   intro m hm
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
   rcases hm with rfl | rfl | rfl | rfl | rfl
-  · exact Logger.Trace.wp_proof
-  · exact Logger.Debug.wp_proof
-  · exact Logger.Info.wp_proof
-  · exact Logger.Warn.wp_proof
-  · exact Logger.Error.wp_proof
+  · exact Logger.Trace.wp_proof wp_Str
+  · exact Logger.Debug.wp_proof wp_Str
+  · exact Logger.Info.wp_proof wp_Str
+  · exact Logger.Warn.wp_proof wp_Str
+  · exact Logger.Error.wp_proof wp_Str
 
 end holds
 

@@ -367,3 +367,34 @@ code (fk-lean1, log `~/eg/logs/dsv-retire-3-gates-s6.log`): all passed but axiom
 (expected: only `github_com.rs.zerolog.Event.Str.wp_proof` removed), copy the files back, commit; `etc/tier-check.py
 --check` (new module `internal/json/AppendString.lean` should be defs tier) and `etc/axiom-tok-check.py --check`;
 then the five level methods (session 4, item 3) and the review of the 12 remaining axioms over the defined token.
+
+**Session 7 (2026-11-26).** Session 6's build was green (29111 jobs). Trust-base files: `Event.Str.wp_proof`
+removed from the base (361) and `dsv-rabia` (21), nothing else (`95d2d3b100`); tier-check and axiom-tok-check
+ok (no allow entry named `Str`). Proved the five level methods: `LoggerNewEvent.lean` (defs tier) has
+`Event.Str.spec ownEvent` (the statement of `Event.Str.wp_proof`, as a callee spec) and `wp_Logger_newEvent`
+(`l.newEvent(lv, nil)` for `lv ∈ fiveLevels` on a `New(nil)` logger gives `eventTok e`); each
+`Logger.M.wp_proof` takes `Event.Str.spec eventTok` and applies it; `HypsHoldLinked` passes
+`Event.Str.wp_proof wp_DecodeRuneInString`. Statements unchanged. Gotchas: `wp_auto` does not load a field
+through the logger's fractional points-to `l ↦{dq} lg` (its `Access` search fails; the generated
+`Logger_access_load_<field>` instance taken by hand with `.access_strict` works); calls into an inlined
+method need a second `wp_call` (`should`); after the struct stores, `simp only` (no lemmas) collapses the
+nested record projections in the event's points-to. `/shared/tmp/dsvr3-lc.sh` syncs `etc/` too: run the tcb
+update and copy its files back before any lean-check, or the sync overwrites them on the remote. The `word`
+cache observation (session 6) was not reproduced: no `notes/perennial-changes.md` entry.
+
+**Session 7 stopped at the context limit (handoff).** Head: this commit. The level methods' proofs and
+`LoggerNewEvent.lean` built green on fk-lean1 (full incremental build, 29112 jobs, log
+`/shared/tmp/dsvr3-build-s7.log`, `BUILD_EXIT 0`); `etc/tier-check.py --check` ok. **Running when stopped**
+(maybe still): on fk-lean1, in `~/eg/wt/dsv-retire-3`, `etc/tcb-report.py --check --update`, then `--reuse
+--collection etc/tcb-collections/dsv-rabia.txt --check --update`, `--reuse --collection
+etc/tcb-collections/dsv-quepaxa.txt --check`, `etc/axiom-tok-check.py --check`; its output goes to
+`/shared/tmp/claude-0/-shared-etcd-grove/7b886a2f-34a1-4069-98ad-c4f614dc605c/tasks/bk73xzaye.output`, and the
+same command then copies `etc/tcb-baseline.txt` and `etc/tcb-collections/dsv-rabia.txt` back into
+`/shared/etcd-grove-dsvr3`. Next, in order:
+1. Check that run's output (or rerun it, `--reuse` is fine once `.lake/tcb.json` is fresh). The expected change
+   is only the removal of `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof` from the base (361 -> 356) and from
+   `dsv-rabia` (21 -> 16). Anything else: stop and report. Copy the two files back **before** any
+   `/shared/tmp/dsvr3-lc.sh` run (it syncs `etc/` to the remote), then commit and push. Update the
+   numbers in `notes/STATUS.md`'s dsv-retire-3 entry ("the level methods' removal pending the build").
+2. `etc/gates.sh` once, in the background on fk-lean1, logged; fix and re-check.
+3. `notes/axiom-review/dsv-zerolog-remaining.md` is updated (7 left) and ready for the coordinator's review.
