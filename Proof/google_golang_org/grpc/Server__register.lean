@@ -306,11 +306,11 @@ theorem grpc.Server.register.wp_proof
     have hj : ((mls.length : Nat) : Int) = sint.Z n := by
       rw [Hmlen]; exact Int.toNat_of_nonneg Hn0
     have hdj : mds[mls.length]? = some dv := by rw [Hmlen]; exact Hdv
+    -- (`iframe` splits the big separating conjunction over `mls ++ [_]` and frames `Hmls`)
     iframe
-    isplitl [Hmls]
-    · iapply BigSepL.bigSepL_snoc.2
-      isplitl [Hmls]
-      · iexact Hmls
+    isplitl []
+    · iapply BigSepL.bigSepL_singleton.2
+      simp only [Nat.zero_add]
       iexists dv, cs, cm
       rw [hj]
       isplitr
@@ -340,6 +340,8 @@ theorem grpc.Server.register.wp_proof
   have Hmn : mls.length = mds.length := by rw [Hmlen]; rw [Hmdl.1] at Hnle ⊢; word
   wp_apply (wp_mapInsert go.string svm M sn il) $$ [$Hsvm] as Hsvm
   wp_apply (sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF)) $$ [$Hmu $Hlk]
+  · (try inext)
+    itrivial
   iapply HΦ
   unfold grpcSrvNew
   iexists so, sh, lis, conns, svm, cv, q, dn,
