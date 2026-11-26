@@ -71,18 +71,18 @@ theorem recvTokOf_untyped (γd : GName) (m : MessageM) (ents : List EntryM) (ctx
   exact absurd hty.1 (by simp)
 
 /-- **The `recvc` arm's premises of `raft.Step.tracedTriple`** from `netP`'s traced gate: the type
-(`StepEndTy`) and the received message's token (vacuous for `MsgUnreachable`). `Campaign`'s `MsgHup`
+(`TrStepTy`) and the received message's token (vacuous for `MsgUnreachable`). `Campaign`'s `MsgHup`
 (`hupP`) is the same by `recvTokOf_untyped`. `StepNodeOk` comes from the guard's `Progress` lookup as
 in `RawNode.Step.traced` (`ownRaftPhysC_prvals_ok`), unchanged. -/
 theorem netGate_step (ρ : RaftNames) (γd : GName) (st : MsgSt) (htr : ρ.reTrace = some γd) :
     netGate (GF := GF) ρ st ⊢
-      ⌜StepEndTy st.msg.Type' ∨ AckTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx := by
+      ⌜TrStepTy st.msg.Type' ∨ AckTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx := by
   unfold netGate
   rw [htr]
   iintro (⟨%Hn, Ht, -, -⟩ | %Hu)
   · iframe Ht; ipureintro; exact .inl Hn.stepEndTy
   · isplitr
-    · ipureintro; left; unfold StepEndTy; simp [Hu]
+    · ipureintro; left; unfold TrStepTy; simp [Hu]
     iapply recvTokOf_untyped γd st.msg st.ents st.ctx (by rw [Hu]; rfl)
 
 end escrow

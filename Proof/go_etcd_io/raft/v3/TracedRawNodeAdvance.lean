@@ -234,7 +234,7 @@ local macro "adv_ne" : tactic => `(tactic| (
          MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc)))
 
 /-- (step 4, `hAdv`) **What a traced `Advance` step needs of its message beyond `raft.Step.spec`'s
-premises** and what the node holds: not a pre-vote response (the traced bundle covers none, `StepEndTy`;
+premises** and what the node holds: not a pre-vote response (the traced bundle covers none, `TrStepTy`;
 `TrSent` of the self token), the node's and the message's terms below the trace's bound, the receipts'
 fit, the message's numbers (`MsgTrOk`, `isRaftMsg_trRecv`), and a self `MsgAppResp`'s sender the node
 (tracked: `StepNodeOk`). -/
@@ -473,7 +473,7 @@ theorem wp_raft_Step_adv (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     icases ownRaftPhysC_stepNode c r id s $$ Hphys with ⟨%Hsn, Hphys⟩
     icases trCapB_idIn γd γ r id c bt _ _ $$ Hcap with ⟨%Hidin, Hcap⟩
     have Hne : m.Type' ≠ MsgSnap := by adv_ne
-    have Hety : StepEndTy m.Type' ∨ AckTy m.Type' := by
+    have Hety : TrStepTy m.Type' ∨ AckTy m.Type' := by
       rcases Hty with h | h | h | h | h
       · exact .inl (.inr (.inl h))
       · exact .inl (.inr (.inr (.inr (.inr (.inr (.inl h))))))

@@ -106,7 +106,7 @@ theorem RawNode.ReportUnreachable.traced
   imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s
       ({ (zero_val MessageM) with Type' := W32 10, From' := to } : MessageM) [] none [] [] γd
       (fun _ => True) bt ⟨rfl, rfl⟩ Htr Hscope.1 Hcqe.symm
-      (by unfold StepEndTy; simp [MsgUnreachable]) Hwf (fun _ => rfl) (fun h => absurd h (by msg_ne))
+      (by unfold TrStepTy; simp [MsgUnreachable]) Hwf (fun _ => rfl) (fun h => absurd h (by msg_ne))
       (fun ty h => by rw [Hmt] at h; cases h)
       (by omega) (by show uint.Z (W64 0) < traceNumBound; unfold traceNumBound; decide)
       (fun ty h => by rw [Hmt] at h; cases h)

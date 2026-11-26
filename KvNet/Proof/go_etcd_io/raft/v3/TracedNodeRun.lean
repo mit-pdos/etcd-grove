@@ -185,10 +185,10 @@ theorem TrRcv.ne {t : w32} (h : TrRcv t) {u : w32}
   · exact TrNetTy.ne h hu
   · rw [h]; exact hu'
 
-theorem TrRcv.stepEndTy {t : w32} (h : TrRcv t) : StepEndTy t := by
+theorem TrRcv.stepEndTy {t : w32} (h : TrRcv t) : TrStepTy t := by
   rcases h with h | h
   · exact h.stepEndTy
-  · unfold StepEndTy; simp [h, MsgUnreachable]
+  · unfold TrStepTy; simp [h, MsgUnreachable]
 
 /-- `TrRcv.ne` at a constant. -/
 local macro "trrcv_ne" h:term:max : tactic =>
@@ -517,7 +517,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   imod hb0 γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s
       ({ (zero_val MessageM) with Type' := W32 0 } : MessageM) [] none [] [] γd
       (fun _ => True) bt Htr Hscope.1 Hcqe.symm
-      (.inl (by unfold StepEndTy; simp [MsgHup])) Hwf (fun _ => rfl) (fun h => absurd h (by hup_ne))
+      (.inl (by unfold TrStepTy; simp [MsgHup])) Hwf (fun _ => rfl) (fun h => absurd h (by hup_ne))
       (fun ty h => by rw [Hmt] at h; cases h)
       (by rw [← Htrm]; omega) (by show uint.Z (W64 0) < traceNumBound; unfold traceNumBound; decide)
       (fun ty h => by rw [Hmt] at h; cases h)

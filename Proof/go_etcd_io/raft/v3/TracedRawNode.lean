@@ -49,8 +49,8 @@ variable [GooseExts]
 -- (2026-11-12, trace-check implementation step 1) `TrNetTy`, `TrNetTy.ne` and `trnet_ne` moved to
 -- `TracedRecvTok.lean` (below `InvNodeChan`, the design's Probe B, P3).
 
-theorem TrNetTy.stepEndTy {t : w32} (h : TrNetTy t) : StepEndTy t := by
-  unfold StepEndTy
+theorem TrNetTy.stepEndTy {t : w32} (h : TrNetTy t) : TrStepTy t := by
+  unfold TrStepTy
   rcases h with h | h | h | h | h | h <;> simp [h]
 
 end pure
@@ -463,7 +463,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s m ents sn ctx rsp γd
       (fun _ => True) bt ⟨⟨Hty, Hne, Hnorm, Hboot⟩, Hsno.1, Hsno.2, fun h => absurd h (by prop_ne)⟩
       Htr Hscope.1 Hcqe.symm
-      (by unfold StepEndTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => absurd h (by prop_ne))
+      (by unfold TrStepTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => absurd h (by prop_ne))
       (fun ty h1 h2 => by rw [Hpu ty h1] at h2; cases h2)
       (by omega) (by rw [Hterm]; unfold traceNumBound; decide)
       (fun ty h => MsgTrOk.of_untraced γ (by

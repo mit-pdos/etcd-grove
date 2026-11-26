@@ -393,7 +393,7 @@ abbrev stepBundle_traced.onRB (Path : NState → MessageM → Prop) : Prop :=
     (Λ : Option TraceEv → Prop) (bt : Bool),
   Path s m →
   s.gh.tr = some γd →
-  s.prevote = false → s.cq = false → StepEndTy m.Type' → NStateWf s →
+  s.prevote = false → s.cq = false → TrStepTy m.Type' → NStateWf s →
   (m.Type' = MsgHup ∨ m.Type' = MsgBeat ∨ m.Type' = MsgProp → m.Term' = W64 0) →
   (m.Type' = MsgHup → s.role ≠ .leader) →
   (∀ ty, mtypeOf m.Type' = some ty → ty.traced = true → m.To' = id) →

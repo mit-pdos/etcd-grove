@@ -429,7 +429,7 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
     have hmt : mtypeOf (tickMsg MsgBeat id).Type' = none := rfl
     ihave Htok := recvTokOf_untraced (GF := GF) γd (tickMsg MsgBeat id) [] [] hmt
     have hgo := stepBundle_traced_beat (GF := GF) (hG := hG) γ md c r id s2 (tickMsg MsgBeat id) [] none [] []
-      γd Λ bt ⟨hb, hrole⟩ htr2 (hpv2.trans hpv) (hcq2.trans hcq) (by unfold StepEndTy; simp)
+      γd Λ bt ⟨hb, hrole⟩ htr2 (hpv2.trans hpv) (hcq2.trans hcq) (by unfold TrStepTy; simp)
       (hwf2.2 Hwf) (fun _ => rfl) (fun h => absurd (h.symm.trans hb) (by
         simp only [MsgHup, MsgBeat]; exact of_decide_eq_true rfl))
       (fun ty h => by rw [hmt] at h; cases h) (by rw [hT2]; exact hT) (by simp; unfold traceNumBound; omega)
