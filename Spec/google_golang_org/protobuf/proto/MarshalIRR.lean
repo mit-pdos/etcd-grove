@@ -26,7 +26,7 @@ has. At the pin (protobuf-go v1.36.12) the generated messages' fast path returns
 `impl.errInvalidUTF8{}` (`internal/impl/codec_gen.go:5041-5049`, `codec_field.go:17-21`); the
 reflective path returns `errors.InvalidUTF8(name)`, a `*prefixError`. `proto.Marshal` passes either
 on unwrapped (`proto/encode.go:105-116, 198-204`). Both have `Unwrap() error`, so neither is a leaf
-error (`statusErrOk`, in `applyErrIs`'s `srvErrOk`). The struct is not a key of `togRPCError`'s map
+error (`errors.isLeafError`, which `applyErrIs`'s `srvErrOk` asks). The struct is not a key of `togRPCError`'s map
 either (`errKeyOk`: `nil`, pointers, `deadlineExceededError{}`, `InvalidCostError`). The docstring
 used to say every protobuf error is a pointer, which is wrong. Real etcd never reaches this arm:
 gRPC's decoding validates every proto3 string, and the auth store's usernames come from such strings.

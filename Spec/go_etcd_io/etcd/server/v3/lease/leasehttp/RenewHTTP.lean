@@ -49,7 +49,7 @@ the libraries it passes on as they are, the marshal's (protobuf's `*prefixError`
 `http.NewRequest`'s and the client's (a `*url.Error`, with an `Unwrap`), `io.ReadAll`'s on the body
 (`readResponse`: unwrapped; over TLS a `tls.RecordHeaderError`, a struct value with fields;
 `*net.OpError`, a context error, ...) and the decode's wrapped by `fmt.Errorf`'s `%w`. These are
-neither leaves (`statusErrOk`) nor keys of `togRPCError`'s map (`errKeyOk`), so `applyErrIs` is false
+neither leaves (`errors.isLeafError`, in `srvErrOk`) nor keys of `togRPCError`'s map (`errKeyOk`), so `applyErrIs` is false
 of them (mapkeys, 2026-11-26: the post claimed it of every error until then, the audit's F2,
 `notes/axiom-review/errkeys-proto-renewhttp.md`); the post says of them only that none is or `Is`
 `ErrLeaseNotFound` (`leasehttp.notLeaseNotFound`), what its one caller `EtcdServer.LeaseRenew`
