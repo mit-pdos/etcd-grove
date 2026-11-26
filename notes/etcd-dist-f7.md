@@ -492,3 +492,8 @@ replacement until the coordinator relays the verdict.
 **Step 4 (not started):** link leaseRead, leaseCatchup and leaseExpiry as N7-kv linked kv; `etc/tcb-report.py --check
 --update` for exactly the new axioms (base and collections); `etc/tier-check.py --check`; `etc/lease-order-check.py`.
 Step 5 (not started): `notes/axiom-review/f7-diff-vs-inprocess.md` and `notes/etcd-dist-f9-f2f7-rows.md` for the final texts.
+
+**Addendum (after the handoff):** the build of `a41e370ee7` finished EXIT 1 with three errors only, all
+`icases: threadTok not persistent` in the `wp_start` patterns of `newServer`, `StartServer` and `newServerMode`'s `wp_proofAt`
+(the pre's `isPkgInit` is not stripped when it is not first). Fixed (an explicit `#Hpkg0` after `Hlslot`) in the next
+commit, which is NOT yet built: rebuild the same targets first.

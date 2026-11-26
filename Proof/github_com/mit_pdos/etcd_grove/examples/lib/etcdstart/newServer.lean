@@ -57,7 +57,7 @@ theorem newServer.wp_proofAt
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
     ρ E₀ Φs γn cmp lm γl Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Hret Haf Hbuq
     Hdbo
-  wp_start as ⟨Hlslot, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨Hlslot, #Hpkg0, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp

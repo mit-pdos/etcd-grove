@@ -20,6 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.Deployment
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadyRecv
 
 @[expose] public section
@@ -310,6 +311,88 @@ theorem memberUp_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
   icases H with ⟨%E, %cfg, %γw, %HE, Hstk, Hrs, #Hreq, Hrest⟩
   isplitl [Hstk Hrs Hrest]
   · iunfold etcdstart.memberUp
+    iexists E, cfg, γw
+    isplitr
+    · ipureintro; exact HE
+    isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hrs]
+    · iexact Hrs
+    isplitr
+    · iexact Hreq
+    iexact Hrest
+  · iexists E, { ρ with wait := γw }
+    rw [isServerReqM_false]
+    iexact Hreq
+
+/-- **`memberBuilt_split` with the lessor at `γl`** (F7 step 3's preparation): the same split of
+`etcdstart.memberBuiltL`, which keeps its lessor name. -/
+theorem memberBuiltL_split (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (N : Nat) (lm : lease.Mode) (γl : GName) :
+    etcdstart.memberBuiltL s ρ E₀ lg γn id N false lm γl ⊢
+      etcdstart.memberBuiltL s ρ E₀ lg γn id N true lm γl ∗ srvReadyRecv s ∗
+      ∃ τ : SrvTr GF, srvNetMember γn s id τ ∗
+        [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ := by
+  iintro H
+  iunfold etcdstart.memberBuiltL at H
+  icases H with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, Hwb, Hsb, Hserve, Hsv, Hoff, Hmr,
+    Hrc, #Hnm, Htokp, Hps, Hlr, Hkeep⟩
+  ihave Hps := memberPeerServeRes_false γn τ $$ Hps
+  iunfold srvReadyCloser at Hrc
+  icases Hrc with ⟨Hrch, Hrc⟩
+  icases srvReadyCh_recv s $$ Hrch with ⟨Hrch, #Hrr⟩
+  isplitl [Hstk Hwb Hsb Hserve Hsv Hoff Hmr Hrch Hrc Htokp Hlr Hkeep]
+  · iunfold etcdstart.memberBuiltL
+    iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
+    isplitr
+    · ipureintro; exact HE
+    isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hwb]
+    · iexact Hwb
+    isplitl [Hsb]
+    · iexact Hsb
+    isplitl [Hserve]
+    · iexact Hserve
+    isplitl [Hsv]
+    · iexact Hsv
+    isplitl [Hoff]
+    · iexact Hoff
+    isplitl [Hmr]
+    · iexact Hmr
+    isplitl [Hrch Hrc]
+    · iunfold srvReadyCloser
+      isplitl [Hrch]
+      · iexact Hrch
+      iexact Hrc
+    isplitr
+    · iexact Hnm
+    isplitl [Htokp]
+    · iexact Htokp
+    isplitr
+    · iapply memberPeerServeRes_true γn τ
+    isplitl [Hlr]
+    · iexact Hlr
+    iexact Hkeep
+  · isplitr
+    · iexact Hrr
+    iexists τ
+    isplitr
+    · iexact Hnm
+    iexact Hps
+
+/-- **`memberUp_req` with the lessor at `γl`** (F7 step 3's preparation): the request view split off
+`etcdstart.memberUpL`, which keeps its lessor name. -/
+theorem memberUpL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (lm : lease.Mode) (γl : GName) :
+    etcdstart.memberUpL s ρ E₀ lg γn id lm γl ⊢
+      etcdstart.memberUpL s ρ E₀ lg γn id lm γl ∗ ∃ (E : apply.AEnv GF) (ρ' : ReqNames),
+        isServerReqM false s E ρ' := by
+  iintro H
+  iunfold etcdstart.memberUpL at H
+  icases H with ⟨%E, %cfg, %γw, %HE, Hstk, Hrs, #Hreq, Hrest⟩
+  isplitl [Hstk Hrs Hrest]
+  · iunfold etcdstart.memberUpL
     iexists E, cfg, γw
     isplitr
     · ipureintro; exact HE

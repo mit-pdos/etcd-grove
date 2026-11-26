@@ -104,7 +104,7 @@ theorem StartServer.wp_proofAt
     StartServer.specAt (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client lg bootLog ctxs dir id γ ρ E₀ Φs γn lm γl Htb Hrb48 HrbN HwbN hvs hrule
     hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 HnL Hpf Hcf Haf Hbuq Hdbo
-  wp_start as ⟨Hlslot, #Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨Hlslot, #Hpkg0, #Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit

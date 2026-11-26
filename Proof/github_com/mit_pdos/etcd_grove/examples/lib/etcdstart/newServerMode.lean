@@ -183,7 +183,7 @@ theorem newServerMode.wp_proofAt
   intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
     bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm γl Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
     HU Hpf Hcf HU8 HnL Hmode Haf Hbuq Hdbo
-  wp_start as ⟨Hlslot, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨Hlslot, #Hpkg0, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   iunfold bootPremise at Hboot
   iunfold memberBoot at Hmb

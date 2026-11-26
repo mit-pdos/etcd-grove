@@ -91,6 +91,11 @@ theorem Member.wp_proof
   icases Hw with ⟨#Hprem, #Hvoff, Hwa, Hshare⟩
   iunfold memberShare at Hshare
   icases Hshare with ⟨%Hcok, #Hcf, Hsl, #Haddr, Hnames⟩
+  -- the cluster's lease mode is `.none` (`ClusterOk`'s): F7 step 3's `Serve_dist` takes the member at the view's
+  -- mode `c.view.kv.lm`, the slice's `.none`
+  have _Hlm : c.view.kv.lm = .none := by
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hlm, -⟩ := Hcok
+    exact hlm
   iunfold etcd_dist.memberNamesShare at Hnames
   icases Hnames with ⟨Hlh, Hlslot, -⟩
   -- the imports' package facts
