@@ -37,14 +37,15 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **A write granted at the view after the frozen set-up is granted at `setupSt`** (the dist
 `akGrantedL_of_writeGrantG`): the grant's prefix `L ⊒ L₀ ⊒ Lset` has the frozen history (`authHistFrozen_prefix`),
-so its auth state is `Lset`'s; the principal `some who` binds the header's user to `who` or the empty one. -/
+so its auth state is `Lset`'s; the principal `P` binds the header's user to one `who` may be bound to
+(`hPw`: `userOk_some_akUser`, `userOk_none_akUser`). -/
 theorem akGrantedL_of_writeGrantGD (γk : KVNames) (γz : GName) (hs : List auth.AuthState)
-    (Lset L₀ : List EntryModel) (r : Nat) (who : GoString) (rq : apply.IRRModel) (σ : KVState)
-    (Em : CoPset) (hE : ↑authHistN ⊆ Em) (hpre : Lset <+: L₀)
+    (Lset L₀ : List EntryModel) (r : Nat) (P : Option GoString) (who : GoString) (rq : apply.IRRModel)
+    (σ : KVState) (Em : CoPset) (hE : ↑authHistN ⊆ Em) (hpre : Lset <+: L₀)
     (hadm : admStates γk srvAuthSt0 Lset = hs) (hst : srvAuthAtLog γk srvAuthSt0 Lset = etcd_auth.setupSt r)
-    (hwho : who = go!"u" ∨ who = go!"v") :
+    (hPw : ∀ u, userOk P u → etcd_auth.akUser who u) :
     authHistFrozen (GF := GF) γk γz hs ⊢
-      writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk (some who) hm.username⌝)) rq L₀ σ ={Em}=∗
+      writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk P hm.username⌝)) rq L₀ σ ={Em}=∗
         ⌜akGrantedL who σ rq⌝ := by
   iintro #Hz Hw
   ihave Hw := writeGrantG_granted γk srvAuthSt0 _ rq L₀ σ $$ Hw
@@ -59,23 +60,37 @@ theorem akGrantedL_of_writeGrantGD (γk : KVNames) (γz : GName) (hs : List auth
     h1.eq_of_length (Nat.le_antisymm h1.length_le Hpf.length_le)
   have hr : srvAuthAtLog γk srvAuthSt0 L = etcd_auth.setupSt r :=
     (srvAuthAtLog_of_admStates γk srvAuthSt0 Lset L (hadm.trans heq)).symm.trans hst
-  refine ⟨r, hm, by rw [← hr]; exact hgr, ?_⟩
+  exact ⟨r, hm, by rw [← hr]; exact hgr, hPw _ Hu⟩
+
+/-- u's and v's principals bind to themselves or the empty user. -/
+theorem userOk_some_akUser (w : GoString) (hw : w = go!"u" ∨ w = go!"v") :
+    ∀ u, userOk (some w) u → etcd_auth.akUser w u := by
+  intro u Hu
   unfold etcd_auth.akUser
   unfold userOk at Hu
   rcases Hu with h | h
   · exact Or.inl h
-  · exact Or.inr ⟨(Option.some.inj h).symm, hwho⟩
+  · exact Or.inr ⟨(Option.some.inj h).symm, hw⟩
+
+/-- The anonymous principal binds to the empty user only. -/
+theorem userOk_none_akUser (who : GoString) : ∀ u, userOk none u → etcd_auth.akUser who u := by
+  intro u Hu
+  unfold etcd_auth.akUser
+  unfold userOk at Hu
+  rcases Hu with h | h
+  · exact Or.inl h
+  · cases h
 
 /-- **An operation's view grant checks the lease `L`** (the dist `opChecksLease`). -/
-def opChecksLeaseD (γk : KVNames) (who : GoString) (op : KVOp) (L : w64) : Prop :=
-  ∀ L₀ σ, opGrantD (GF := GF) γk (some who) op L₀ σ ⊢
+def opChecksLeaseD (γk : KVNames) (P : Option GoString) (op : KVOp) (L : w64) : Prop :=
+  ∀ L₀ σ, opGrantD (GF := GF) γk P op L₀ σ ⊢
     ∃ rq : apply.IRRModel, ⌜∀ r (hm : apply.HeaderModel),
         leaseGrantedM (etcd_auth.setupSt r) (mvcc.leaseItemsOf σ.kvs) (apply.withHeader rq hm) →
           leaseOk (etcd_auth.setupSt r) ⟨hm.username, hm.authRevision⟩ (mvcc.leaseItemsOf σ.kvs) L⌝ ∗
-      writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk (some who) hm.username⌝)) rq L₀ σ
+      writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk P hm.username⌝)) rq L₀ σ
 
-theorem opChecksLeaseD_put (γk : KVNames) (who : GoString) (o : OpFull) :
-    opChecksLeaseD (GF := GF) γk who (.put o) o.leaseID := by
+theorem opChecksLeaseD_put (γk : KVNames) (P : Option GoString) (o : OpFull) :
+    opChecksLeaseD (GF := GF) γk P (.put o) o.leaseID := by
   intro L₀ σ
   iintro H
   iexists irrPut o
@@ -84,8 +99,8 @@ theorem opChecksLeaseD_put (γk : KVNames) (who : GoString) (o : OpFull) :
   iunfold opGrantD at H
   iexact H
 
-theorem opChecksLeaseD_revoke (γk : KVNames) (who : GoString) (id : w64) :
-    opChecksLeaseD (GF := GF) γk who (.leaseRevoke id) id := by
+theorem opChecksLeaseD_revoke (γk : KVNames) (P : Option GoString) (id : w64) :
+    opChecksLeaseD (GF := GF) γk P (.leaseRevoke id) id := by
   intro L₀ σ
   iintro H
   iexists irrLeaseRevoke id
@@ -94,8 +109,8 @@ theorem opChecksLeaseD_revoke (γk : KVNames) (who : GoString) (id : w64) :
   iunfold opGrantD at H
   iexact H
 
-theorem opChecksLeaseD_txn (γk : KVNames) (who : GoString) (k : GoString) (L : w64) :
-    opChecksLeaseD (GF := GF) γk who (.txn (txnWireOf (leaseTxn k L))) L := by
+theorem opChecksLeaseD_txn (γk : KVNames) (P : Option GoString) (k : GoString) (L : w64) :
+    opChecksLeaseD (GF := GF) γk P (.txn (txnWireOf (leaseTxn k L))) L := by
   intro L₀ σ
   iintro H
   iunfold opGrantD at H
@@ -108,26 +123,18 @@ theorem opChecksLeaseD_txn (γk : KVNames) (who : GoString) (k : GoString) (L : 
 /-- **A write of `who`'s refused at every state the cell holds** (the dist `refused_update`): its grant
 checks the lease `L`, held on `k` at those states, which `who` may not write. -/
 theorem refused_updateD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : List auth.AuthState)
-    (Lset L₀ : List EntryModel) (r : Nat) (who : GoString) (op : KVOp) (k : GoString) (L : w64)
-    (pre : List w64) (ps0 : List Nat) (Q : KVState → IProp GF)
+    (Lset L₀ : List EntryModel) (r : Nat) (P : Option GoString) (who : GoString) (op : KVOp) (k : GoString)
+    (L : w64) (pre : List w64) (ps0 : List Nat) (Q : KVState → IProp GF)
     (hpre : Lset <+: L₀) (hadm : admStates γk srvAuthSt0 Lset = hs)
     (hst : srvAuthAtLog γk srvAuthSt0 Lset = etcd_auth.setupSt r)
-    (hop : opChecksLeaseD (GF := GF) γk who op L)
+    (hop : opChecksLeaseD (GF := GF) γk P op L) (hPw : ∀ u, userOk P u → etcd_auth.akUser who u)
     (hcell : ∀ σ ids ps gs d, CellOk σ ids ps gs d → pre <+: ids → ps0.length ≤ ps.length →
       leaseOf k σ.kvs = some L ∧ L ≠ W64 0)
-    (hwho : who = go!"v" ∨ (who = go!"u" ∧ ¬ etcd_auth.inRangeK k)) :
+    (hw2 : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v" ∨ (who = go!"u" ∧ ¬ etcd_auth.inRangeK k)) :
     cellInv γk γc ∗ monoListLbOwn γc.ids pre ∗ monoListLbOwn γc.ps ps0 ∗ authHistFrozen γk γz hs ⊢
-      writeAuD γk (some who) op L₀ Q := by
-  have hw1 : who = go!"u" ∨ who = go!"v" := by
-    rcases hwho with h | ⟨h, -⟩
-    · exact Or.inr h
-    · exact Or.inl h
-  have hw2 : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v" ∨ (who = go!"u" ∧ ¬ etcd_auth.inRangeK k) := by
-    rcases hwho with h | h
-    · exact Or.inr (Or.inr (Or.inl h))
-    · exact Or.inr (Or.inr (Or.inr h))
+      writeAuD γk P op L₀ Q := by
   iintro ⟨#Hinv, #Hi0, #Hp0, #Hz⟩
-  ihave #Hau := cell_refusedAu γk γc op (opGrantD γk (some who) op L₀) Q $$ []
+  ihave #Hau := cell_refusedAu γk γc op (opGrantD γk P op L₀) Q $$ []
   · isplitl []
     · iexact Hinv
     iintro !> %σ %ids %ps %gs %d %HS Hids Ha HG
@@ -138,29 +145,36 @@ theorem refused_updateD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : Li
     obtain ⟨hk, hL⟩ := hcell σ ids ps gs d HS Hpre Hps
     ihave HG := hop L₀ σ $$ HG
     icases HG with ⟨%rq, %hrq, HG⟩
-    imod (akGrantedL_of_writeGrantGD γk γz hs Lset L₀ r who rq σ cellM authHistN_cellM hpre hadm hst hw1)
+    imod (akGrantedL_of_writeGrantGD γk γz hs Lset L₀ r P who rq σ cellM authHistN_cellM hpre hadm hst hPw)
       $$ Hz HG with %Hg
     exact absurd Hg (not_akGrantedL_lease who σ rq k L hk hL hw2 hrq)
   iunfold writeAuD
   imodintro
   iexact Hau
 
-/-- **v's revocation of `Lu` under the cell** (the dist `revokeLu_update`): refuted while `a/lease` holds
-`Lu`, a no-op after u's revocation; it tells `revoked`. -/
+/-- **A revocation of `Lu` by `who`** (v, or the anonymous client) **under the cell** (the dist
+`revokeLu_update`): refuted while `a/lease` holds `Lu`, a no-op after u's revocation; it tells `revoked`. -/
 theorem revokeLu_updateD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : List auth.AuthState)
-    (Lset L₀ : List EntryModel) (r : Nat) (Lz Lu : w64) (ps0 : List Nat) (h3 : 3 ≤ ps0.length)
+    (Lset L₀ : List EntryModel) (r : Nat) (P : Option GoString) (who : GoString) (Lz Lu : w64)
+    (ps0 : List Nat) (h3 : 3 ≤ ps0.length)
     (hLu : Lu ≠ W64 0) (hpre : Lset <+: L₀) (hadm : admStates γk srvAuthSt0 Lset = hs)
-    (hst : srvAuthAtLog γk srvAuthSt0 Lset = etcd_auth.setupSt r) :
+    (hst : srvAuthAtLog γk srvAuthSt0 Lset = etcd_auth.setupSt r)
+    (hPw : ∀ u, userOk P u → etcd_auth.akUser who u)
+    (hwho : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v") :
     cellInv γk γc ∗ monoListLbOwn γc.ids [Lz, Lu] ∗ monoListLbOwn γc.ps ps0 ∗ authHistFrozen γk γz hs ⊢
-      writeAuD (GF := GF) γk (some go!"v") (.leaseRevoke Lu) L₀ (revoked γc) := by
+      writeAuD (GF := GF) γk P (.leaseRevoke Lu) L₀ (revoked γc) := by
   iintro ⟨#Hinv, #Hi0, #Hp0, #Hz⟩
-  ihave #Hau := cell_revokeLuAu γk γc Lz Lu ps0 h3 (opGrantD γk (some go!"v") (.leaseRevoke Lu) L₀) $$ []
+  ihave #Hau := cell_revokeLuAu γk γc Lz Lu ps0 h3 (opGrantD γk P (.leaseRevoke Lu) L₀) $$ []
   · iframe Hinv Hi0 Hp0
     iintro !> %σ %ha HG
     iunfold opGrantD at HG
-    imod (akGrantedL_of_writeGrantGD γk γz hs Lset L₀ r go!"v" (irrLeaseRevoke Lu) σ cellM authHistN_cellM
-      hpre hadm hst (Or.inr rfl)) $$ Hz HG with %Hg
-    exact absurd Hg (not_akGrantedL_lease _ σ _ aK Lu ha hLu (Or.inr (Or.inr (Or.inl rfl)))
+    imod (akGrantedL_of_writeGrantGD γk γz hs Lset L₀ r P who (irrLeaseRevoke Lu) σ cellM authHistN_cellM
+      hpre hadm hst hPw) $$ Hz HG with %Hg
+    exact absurd Hg (not_akGrantedL_lease _ σ _ aK Lu ha hLu
+      (by rcases hwho with h | h | h
+          · exact Or.inl h
+          · exact Or.inr (Or.inl h)
+          · exact Or.inr (Or.inr (Or.inl h)))
       (fun r hm h => leaseGranted_revoke r _ Lu hm h))
   iunfold writeAuD
   imodintro
