@@ -56,7 +56,7 @@ def leaseMember (Γ : DistView) (a : GoString) : IProp GF :=
   iprop(⌜Net.addrOk a = true⌝ ∗ ∃ mid : w64, etcdAddrAt a Γ mid ∗ lease.lessorSlot (Γ.ls mid))
 
 instance leaseMember_persistent (Γ : DistView) (a : GoString) :
-    Persistent (leaseMember Γ a) := by
+    Persistent (leaseMember (GF := GF) Γ a) := by
   unfold leaseMember; infer_instance
 
 end member
