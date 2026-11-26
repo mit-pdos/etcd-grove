@@ -295,8 +295,9 @@ raft's (a write is of a state raft had, and terms only grow: what `GC` needs to 
 candidate's records at raft's term); a reported pre-candidate is a follower to raft (`toPState`), so
 that a leader's binding role is `leader`; without reads a leader has no read request pending (it
 becomes leader with the read-only queue reset, `pbecomeLeader`, and none is queued without reads:
-a tick's heartbeats carry no context, `hbCtx`). -/
-def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
+a tick's heartbeats carry no context, `hbCtx`); a reported pre-candidate is at a node with
+pre-vote on (a `Ready` reports `PreCandidate` only when raft campaigned with pre-vote). -/
+def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
     v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log) ∧
@@ -304,7 +305,8 @@ def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
   v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit ∧
   (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term ∧
   (v.pre = true → v.ps.role = .follower) ∧
-  (R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = [])
+  (R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = []) ∧
+  (v.pre = true → (R.k n).prevote = true)
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -421,7 +423,7 @@ the leader hint (`LeadOk`); a non-follower's vote its own (`VoteSelf`). -/
 def NodeOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n : Fin R.N)
     (v : NodeView) : Prop :=
   DiskIs S n v ∧ MemIs R.N S n v ∧ SyncDisk R v ∧ UndoIs S n v ∧ QueueIs S n v ∧ ReadsIs S n v ∧
-  ConfLag dec R v ∧ NodeFacts R v ∧ LeaderPart S n v ∧ CandPart S n v ∧
+  ConfLag dec R v ∧ NodeFacts R n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
   (∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧ (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) x) ∧
   (∀ q ∈ v.qs, QsOk S n v q) ∧
   (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
@@ -470,7 +472,7 @@ theorem NodeOk.confLag {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : Li
 
 theorem NodeOk.facts {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
     (h : NodeOk R dec S net n v) :
-    NodeFacts R v :=
+    NodeFacts R n v :=
   h.2.2.2.2.2.2.2.1
 
 theorem NodeOk.leader {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
@@ -524,56 +526,61 @@ theorem NodeOk.voteSelf {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : L
     VoteSelf n v :=
   h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
-theorem NodeFacts.outbox {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.outbox {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     v.ps.outbox = [] :=
   h.1
 
-theorem NodeFacts.snap0 {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.snap0 {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false :=
   h.2.1
 
-theorem NodeFacts.conf0 {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.conf0 {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     R.md.confChanges = false →
       v.r.cfg.cfg = CfgM.simple R.voters0 ∅ ∧ EntsNormal v.r.full ∧ EntsNormal v.dur.log :=
   h.2.2.1
 
-theorem NodeFacts.logIdx {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.logIdx {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     LogIdx v.dur.log :=
   h.2.2.2.1
 
-theorem NodeFacts.prefix {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.prefix {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     v.delivered ++ v.ce <+: v.dur.log :=
   h.2.2.2.2.1
 
-theorem NodeFacts.len {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.len {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit :=
   h.2.2.2.2.2.1
 
-theorem NodeFacts.pendMask {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.pendMask {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     ∀ q ∈ v.pend, MsgMask R q :=
   h.2.2.2.2.2.2.1
 
-theorem NodeFacts.durTerm {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.durTerm {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     uint.Z v.dur.term ≤ uint.Z v.ps.term :=
   h.2.2.2.2.2.2.2.1
 
-theorem NodeFacts.preRole {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.preRole {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     v.pre = true → v.ps.role = .follower :=
   h.2.2.2.2.2.2.2.2.1
 
-theorem NodeFacts.roPend {R : RunCfg} {v : NodeView}
-    (h : NodeFacts R v) :
+theorem NodeFacts.roPend {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
     R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = [] :=
-  h.2.2.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeFacts.preVote {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
+    v.pre = true → (R.k n).prevote = true :=
+  h.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 

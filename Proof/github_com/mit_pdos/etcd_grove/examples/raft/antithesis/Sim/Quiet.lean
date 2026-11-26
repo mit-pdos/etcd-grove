@@ -722,12 +722,12 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskS4) {dec : CCDec}
     have hlead := reach_leadOk hmsk hin hnet hv hr
     have hroOk := reach_roOk hmsk hin hv hr
     obtain ⟨d1, d2, d3, d4, d5, d6, -, d8, d9, d10, -, -, -, d14, d15, d16, -, d18⟩ := hv
-    obtain ⟨-, -, f3, f4, f5, f6, f7, f8, f9, -⟩ := d8
+    obtain ⟨-, -, f3, f4, f5, f6, f7, f8, f9, -, f11⟩ := d8
     refine ⟨d1, ⟨?_, d2.2⟩, fun a b c e => ⟨(d3 a b c e).1, ?_, (d3 a b c e).2.2⟩, d4, d5, d6,
       .inl ⟨?_, ?_⟩, ⟨hX, fun _ => ⟨hkp.1.trans hsnap0.1, hfp.trans hsnap0.2.1, hsnap.trans hsnap0.2.2⟩,
         fun h => ⟨by show r₁.cfg.cfg = _; rw [hcfg]; exact (f3 h).1, hfl ▸ (f3 h).2.1, (f3 h).2.2⟩, f4, f5, f6, f7,
         by show uint.Z v.dur.term ≤ uint.Z r₁.p.term; rw [ht]; exact f8,
-        fun h => hro.trans (f9 h), fun _ => hroOk⟩,
+        fun h => hro.trans (f9 h), fun _ => hroOk, f11⟩,
       leaderPart_of d9 hro ht hfl (fun hr' hm => hkp.2.2.1 (hro.trans hr') hm),
       candPart_of d10 hro (fun hr' hm => hkp.2.2.2 (hro.trans hr') hm),
       ?_, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hro.trans h'))⟩
@@ -785,7 +785,8 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskS4) {dec : CCDec}
           (f3 h).2.2⟩, f4, by show v.delivered ++ rd.ce <+: v.dur.log; rw [← hfull]; exact hpfx,
         by show (v.delivered ++ rd.ce).length ≤ uint.nat v.dur.commit; rw [← hcm']; exact hlen,
         fun q hq => ?_, by show uint.Z v.dur.term ≤ uint.Z r₁.p.term; rw [← hT, h1]; exact Int.le_refl _,
-        (fun h => by change rd.pre = true at h; rw [hpf] at h; cases h), fun _ => hroOk⟩,
+        (fun h => by change rd.pre = true at h; rw [hpf] at h; cases h), fun _ => hroOk,
+        fun h => by change rd.pre = true at h; rw [hpf] at h; cases h⟩,
       leaderPart_of d9 hRole ht hfl (fun hr' hm => hkp.2.2.1 (hRole.trans hr') hm),
       candPart_of d10 hRole (fun hr' hm => hkp.2.2.2 (hRole.trans hr') hm),
       hpend, ?_, ?_, d14, d15, d16, hlead, fun h => hvo.trans (d18 fun h' => h (hRole.trans h'))⟩

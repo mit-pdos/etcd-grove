@@ -98,38 +98,38 @@ def w2 : w64 := W64 2
 
 /-- The stream, in the order the harness records it. -/
 def stream : List AntCheck.Event :=
-  [ evBoot i1, evBoot i2, evBoot i3,
+  [ evBoot R3 i1, evBoot R3 i2, evBoot R3 i3,
     -- 2. node 1 campaigns
-    evReady i1 tick .candidate w1 i1 w0 [], evSend i1 tick vote12, evSend i1 tick vote13,
+    evReady i1 tick (roleOf .candidate) w1 i1 w0 [], evSend i1 tick vote12, evSend i1 tick vote13,
     -- 3. the grants
-    evRecv i2 vote12, evReady i2 recv .follower w1 i1 w0 [], evSend i2 recv vr21,
-    evRecv i3 vote13, evReady i3 recv .follower w1 i1 w0 [], evSend i3 recv vr31,
+    evRecv i2 vote12, evReady i2 recv (roleOf .follower) w1 i1 w0 [], evSend i2 recv vr21,
+    evRecv i3 vote13, evReady i3 recv (roleOf .follower) w1 i1 w0 [], evSend i3 recv vr31,
     -- 4. node 1 wins
-    evRecv i1 vr21, evReady i1 recv .leader w1 i1 w0 [e1], evSend i1 recv app12a,
+    evRecv i1 vr21, evReady i1 recv (roleOf .leader) w1 i1 w0 [e1], evSend i1 recv app12a,
     evSend i1 recv app13a,
     -- 5. the followers accept
-    evRecv i2 app12a, evReady i2 recv .follower w1 i1 w0 [e1], evSend i2 recv ar21,
-    evRecv i3 app13a, evReady i3 recv .follower w1 i1 w0 [e1], evSend i3 recv ar31,
+    evRecv i2 app12a, evReady i2 recv (roleOf .follower) w1 i1 w0 [e1], evSend i2 recv ar21,
+    evRecv i3 app13a, evReady i3 recv (roleOf .follower) w1 i1 w0 [e1], evSend i3 recv ar31,
     -- 6. node 1 commits 1; node 3 leaves probing
-    evRecv i1 ar21, evReady i1 recv .leader w1 i1 w1 [], evSend i1 recv app12b,
+    evRecv i1 ar21, evReady i1 recv (roleOf .leader) w1 i1 w1 [], evSend i1 recv app12b,
     evApply i1 recv [e1],
     evRecv i1 ar31, evSend i1 recv app13b,
     -- 7. node 2 commits 1
-    evRecv i2 app12b, evReady i2 recv .follower w1 i1 w1 [], evSend i2 recv ar21b,
+    evRecv i2 app12b, evReady i2 recv (roleOf .follower) w1 i1 w1 [], evSend i2 recv ar21b,
     evApply i2 recv [e1],
     -- 8. a proposal at node 2, forwarded
     evSend i2 propose prop21,
     -- 9. node 1 appends it
-    evRecv i1 prop21, evReady i1 recv .leader w1 i1 w1 [e2], evSend i1 recv app12c,
+    evRecv i1 prop21, evReady i1 recv (roleOf .leader) w1 i1 w1 [e2], evSend i1 recv app12c,
     evSend i1 recv app13c,
     -- 10. heartbeats
     evSend i1 tick hb12, evSend i1 tick hb13,
     -- 11. node 3 commits 1 from its heartbeat
-    evRecv i3 hb13, evReady i3 recv .follower w1 i1 w1 [], evSend i3 recv hr31,
+    evRecv i3 hb13, evReady i3 recv (roleOf .follower) w1 i1 w1 [], evSend i3 recv hr31,
     evApply i3 recv [e1],
     -- 12. node 2 accepts entry 2; node 1 commits 2
-    evRecv i2 app12c, evReady i2 recv .follower w1 i1 w1 [e2], evSend i2 recv ar21c,
-    evRecv i1 ar21c, evReady i1 recv .leader w1 i1 w2 [], evSend i1 recv app12d,
+    evRecv i2 app12c, evReady i2 recv (roleOf .follower) w1 i1 w1 [e2], evSend i2 recv ar21c,
+    evRecv i1 ar21c, evReady i1 recv (roleOf .leader) w1 i1 w2 [], evSend i1 recv app12d,
     evSend i1 recv app13d, evApply i1 recv [e2] ]
 
 /-- info: Except.ok { kind := Perennial.EtcdGrove.AntCheck.Kind.accepted, k := 51, names := [] } -/
@@ -142,7 +142,7 @@ theorem smoke_accepts : AntCheck.Accepts cfg3 stream := by decide +kernel
 /-- A mutant, to see the check is not vacuous: node 3 reports commit 2 at its heartbeat (its log
 has one entry). Rejected at that event (the 41st: `OnDisk`'s commit within the log, B 391). -/
 def mutant : List AntCheck.Event :=
-  stream.set 40 (evReady i3 recv .follower w1 i1 w2 [])
+  stream.set 40 (evReady i3 recv (roleOf .follower) w1 i1 w2 [])
 
 /-- info: Except.ok { kind := Perennial.EtcdGrove.AntCheck.Kind.rejected, k := 41, names := [] } -/
 #guard_msgs in

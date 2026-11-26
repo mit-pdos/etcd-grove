@@ -251,7 +251,8 @@ theorem antSim_init : antSim_init.stmt := by
       · rw [hdel, hce]; exact List.nil_prefix
       · rw [hdel, hce]; exact Nat.zero_le _
       · rw [hpend]; intro q hq; cases hq
-      · exact ⟨by rw [hdur]; exact Int.le_refl _, fun _ => hrole, fun _ h => by rw [hrole] at h; cases h⟩
+      · exact ⟨by rw [hdur]; exact Int.le_refl _, fun _ => hrole, fun _ h => (by rw [hrole] at h; cases h),
+          fun h => (by rw [hpre] at h; cases h)⟩
     · intro h; rw [hrole] at h; cases h
     · intro h; rw [hrole] at h; cases h
     · rw [hpend]; intro q hq; cases hq

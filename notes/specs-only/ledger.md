@@ -5946,3 +5946,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   exists only at `dq = DFrac.discard`. **Now:** `msgPtsC ml DFrac.discard DFrac.discard cap st` (no `dq`);
   the drain's Ready messages are frozen.
 - **Decision.** No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1 (Sim): `NodeFacts` takes the node, a pre-candidate only with pre-vote on (#33)
+
+- **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`NodeFacts`, `NodeOk`).
+- **Change (strengthening of an invariant).** `NodeFacts R v` is now `NodeFacts R n v` (the node `n : Fin R.N`),
+  with an 11th conjunct `v.pre = true → (R.k n).prevote = true` (`NodeFacts.preVote`): the reported role is
+  `precandidate` only at a node with pre-vote on. Init: `pre = false`; a `Ready`'s view takes `pre := rd.pre`, and
+  `ReadyOutP` gives `rd.pre = true → (R.k n).prevote = true`. `ReadyKind`'s `reportedO_of` needs `v.pre = false`,
+  which below `mskS4` (`R.k n = {}`) this gives. Users follow: `Init`, `Quiet`, `ReadyRel` (`ReadyOk.facts`).
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise.

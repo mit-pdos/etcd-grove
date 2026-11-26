@@ -273,7 +273,7 @@ structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeVi
   hreads : w.reads = (V n).reads
   hcfg : w.conf = (V n).conf ∧ w.confAt = (V n).confAt
   confLag : ConfLag dec R w
-  facts : NodeFacts R w
+  facts : NodeFacts R n w
   hmem : r.config = S.config ∧ r.confAt = S.confAt
   hviol : vi = []
   pre : PreOk S n.val L1 p
