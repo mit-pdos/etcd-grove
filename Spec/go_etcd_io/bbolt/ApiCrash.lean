@@ -213,6 +213,36 @@ theorem boltCrashRec_new (hfs : Fs.FsNoErr) (γ : BoltName) (i0 : Ino) (D : Data
 
 end crec
 
+/-! ### A database file every byte of which is durable (W5) -/
+
+section dur
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The file of inode `i` holds `D`, mappable, every byte durable** (see the file header). -/
+def fileHoldsMDur (i : Ino) (D : Data) : IProp GF :=
+  iprop(∃ (m : OsMeta) (bs : List w8), osMeta i (DFrac.own 1) m ∗
+    osBytes i 0 (DFrac.own 1) (bs.map durB) ∗
+    ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = bs.length ∧ m.hi = bs.length ∧ bbolt.boltImage bs D ∧
+      bs.length ≤ bbolt.boltMaxMapSize⌝ ∗ bbolt.boltImageRcpt bs)
+
+/-- A durable file holds its data, mappable (`fileHoldsM_of_image`). -/
+theorem fileHoldsMDur_holds (i : Ino) (D : Data) :
+    fileHoldsMDur (GF := GF) i D ⊢ bbolt.fileHoldsM i D := by
+  unfold fileHoldsMDur
+  iintro ⟨%m, %bs, Hm, Hb, %h, Hr⟩
+  obtain ⟨hmaps, hsize, -, -, himg, hlen⟩ := h
+  have hfst : (bs.map durB).map Prod.fst = bs := by simp [List.map_map, Function.comp_def]
+  iapply bbolt.fileHoldsM_of_image i m (bs.map durB) D hmaps (by simpa using hsize)
+    (by rw [hfst]; exact himg) (by simpa using hlen)
+  iframe Hm Hb
+  rw [hfst]; iexact Hr
+
+end dur
+
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -227,7 +257,8 @@ private theorem fileOkS_mono {Q Q' : OsState → OsState → Prop} {Gd : Option 
 
 /-- **C-I1's `dbCrash`**: under the crash premise `BoltCrashWhole` for the inode `i0`, the old
 generation's record and the crash rest of a crash whose tree names `i0` give the file `i0` holding
-`Dl` or `Dn` (whole, with its txid's receipt) at the new generation, `i0` taken. The crash invariant
+`Dl` or `Dn` (whole, with its txid's receipt) at the new generation, `i0` taken: every byte durable
+and the size settled (`fileHoldsMDur`, W6), since a crash leaves every byte of a file durable. The crash invariant
 (`csInvIR_crash_keep`, open by the record's half of `bq`) reports a value whose client resource agrees
 with the record: its current state is the record's `(Dn, ν)` (the version variable), its previous one's
 data is `Dl` or `Dn` (the history's element of `ν - 1`, or the synced mark of `ν` making the previous
@@ -240,7 +271,7 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
     (hE : (↑(crashN γ.ns) : CoPset) ⊆ E) :
     ⊢ boltCrashRec (hG := ⟨G, L⟩) γ i0 Dl Dn -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dx false V' ={E}=∗
-      ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗ fileHoldsM (hG := ⟨G, L'⟩) i0 D' ∗
+      ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗ fileHoldsMDur (hG := ⟨G, L'⟩) i0 D' ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i0 :: Dx) false V' := by
   unfold boltCrashRec cRecDef boltStateV boltStateVDef
   iintro ⟨%ν, %c, ⟨Hs, Hbq, Hcp⟩, %hc, #Hinv, #Hreg, Hev⟩ Hr
@@ -313,18 +344,14 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
   unfold osFileStartO osFileStart
   icases Hf with ⟨Hm', Hb'⟩
   have hfs' : f.size = f.contents.length := (contents_length' f).symm
-  have hmap : (f.contents.map durB).map Prod.fst = f.contents := by
-    simp only [List.map_map]; exact List.map_id' _ |>.trans rfl
-  unfold fileHoldsM fileHoldsMDef
-  iexists initMeta f, f.contents.map durB
+  unfold fileHoldsMDur boltImage boltImageRcpt
+  iexists initMeta f, f.contents
   iframe Hm' Hb'
   isplitr
   · ipureintro
-    rw [hmap]
-    exact ⟨rfl, by simp only [List.length_map]; exact hfs'.symm, hg.2.1, hg.1⟩
-  isplitr
-  · ipureintro; exact hg.2.2
-  rw [hmap]
+    refine ⟨rfl, hfs', hfs', hfs', ?_, ?_⟩
+    · rw [← hfs']; exact ⟨hg.2.1, hg.1⟩
+    · unfold boltMaxMapSize; rw [← hfs']; exact hg.2.2
   unfold fileRcpt
   iright
   iexists a.cur.txid
@@ -334,35 +361,6 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
 
 end crash
 
-/-! ### A database file every byte of which is durable (W5) -/
-
-section dur
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The file of inode `i` holds `D`, mappable, every byte durable** (see the file header). -/
-def fileHoldsMDur (i : Ino) (D : Data) : IProp GF :=
-  iprop(∃ (m : OsMeta) (bs : List w8), osMeta i (DFrac.own 1) m ∗
-    osBytes i 0 (DFrac.own 1) (bs.map durB) ∗
-    ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = bs.length ∧ m.hi = bs.length ∧ bbolt.boltImage bs D ∧
-      bs.length ≤ bbolt.boltMaxMapSize⌝ ∗ bbolt.boltImageRcpt bs)
-
-/-- A durable file holds its data, mappable (`fileHoldsM_of_image`). -/
-theorem fileHoldsMDur_holds (i : Ino) (D : Data) :
-    fileHoldsMDur (GF := GF) i D ⊢ bbolt.fileHoldsM i D := by
-  unfold fileHoldsMDur
-  iintro ⟨%m, %bs, Hm, Hb, %h, Hr⟩
-  obtain ⟨hmaps, hsize, -, -, himg, hlen⟩ := h
-  have hfst : (bs.map durB).map Prod.fst = bs := by simp [List.map_map, Function.comp_def]
-  iapply bbolt.fileHoldsM_of_image i m (bs.map durB) D hmaps (by simpa using hsize)
-    (by rw [hfst]; exact himg) (by simpa using hlen)
-  iframe Hm Hb
-  rw [hfst]; iexact Hr
-
-end dur
 
 end bbolt
 end EtcdGrove

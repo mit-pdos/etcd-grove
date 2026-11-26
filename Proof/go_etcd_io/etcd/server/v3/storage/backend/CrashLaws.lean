@@ -129,8 +129,10 @@ theorem dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ 
 
 /-- (C-I1, `dbCrash`) **bbolt's file after a power loss** (the axiom's statement, with
 `[sem : go.Semantics]` among its binders, at the old generation's local context `L`: the record is
-over `onFs`, which needs it; approved for the swap): from bbolt's `boltCrashRec_crash`, the record's instances being the program's
-(`HasExt.sem_eq`). -/
+over `onFs`, which needs it; approved for the swap), concluding (W6) the stronger `fileHoldsMDur`: the
+file at the new generation every byte durable and its size settled, as a crash leaves every file (the axiom
+says `fileHoldsM`, which `fileHoldsMDur_holds` gives; the C-I1 swap moves this statement there): from
+bbolt's `boltCrashRec_crash`, the record's instances being the program's (`HasExt.sem_eq`). -/
 theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt] [G : GooseGlobalGS HasLC.hasLC GF]
     (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF)
     [sem : @go.Semantics _ L.goose_go_local_context _] (γ : DBNames)
@@ -141,7 +143,7 @@ theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.f
     ⊢ dbCrashKeep (hG := ⟨G, L⟩) γ i0 Dl Dn -∗ crashed (hC := L.goose_crashGS) -∗
       Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) Dx false V' ={E}=∗
       ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗
-        bbolt.fileHoldsM (hG := ⟨G, L'⟩) i0 D' ∗
+        bbolt.fileHoldsMDur (hG := ⟨G, L'⟩) i0 D' ∗
         Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) (i0 :: Dx) false V' := by
   unfold dbCrashKeep onFs
   split
