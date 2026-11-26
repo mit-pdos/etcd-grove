@@ -183,6 +183,9 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newC
 # principal machine's op, over `newClient`'s premise) take the logic's thread bound (`threadBound GF ≤ 2 ^ 30`),
 # discharged from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(remotePrincipals|principalOp)\.lean$
+# (F7 S12, 2026-11-26) `principalClient`, `principalOp`'s client: its callees `newClient` and `newUserClient` take
+# `threadBound GF ≤ 2 ^ 30`, so it carries the premise `principalOp` already has (same discharge, the machine's boot).
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/principalClient\.lean$ decl=^principalClient\.spec$
 # (F7 S8, 2026-11-26) `RunAuth`, the auth workload's orchestrator (as `RunWatch`, above): its
 # `threadBound GF ≤ 2 ^ 30` (`newClient`'s and `remotePrincipals`' premise) is the orchestrator machine's,
 # discharged from `etcdThreads` by its boot, not a top-level premise.
