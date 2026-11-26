@@ -2,7 +2,7 @@
 
 ## START HERE
 
-- **Date**: 2026-11-25 (session 1; session 6, 2026-11-26, the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
+- **Date**: 2026-11-25 (session 1; session 8, 2026-11-26, the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
 - **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7`, then its P7 update `5a1c41d945` merged in
   (`fd7630f9da`) (posted green on #50 07:18Z; same Perennial pin
   `fce59af75`), with `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4` merged (`97ef57a342`: P8's
@@ -10,6 +10,30 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-26, **P5 session 8**): **(b) step 1 built green; steps 2-5 not started (ledger entry
+  written).** Build of `f0f5ec4d43` on fk-lean2 (`fklean1-check.sh … etcd-safe-p5` over
+  `/shared/tmp/p5-s8-leaves.txt`: `p5-s6-leaves-nonotes.txt` plus `etc/importers.py --leaves --git a601c25a54`,
+  `notes.*` dropped; 157 leaves): **exit 0, 19500 jobs** (log `/shared/tmp/p5-s8-build2.log`). It covers session
+  6's `rnDurK_crash.law`/`walHistCerts_take`/`memberDur_crash`, the r4 merge, step 1 and `raftState_logViewE`
+  (both trees). The one failure (`/shared/tmp/p5-s8-build1.log`) was `isWalStorage_intro`'s `hSave`/`hSnap`
+  hypotheses (`WalApi.lean`), still over `walRecsH` while the contract and `walSave_law` were over `walHistH`:
+  restated over `walHistH` (`f0f5ec4d43`). **copy-part**: `etc/copy-part.py --check` passes (RaftNoAx 0 differ,
+  KvRaft 0 differ), locally and on fk-lean2, with `PERENNIAL_DIR` set to a checkout at the pin
+  (`/shared/perennial-fce59af75`; fk-lean2 `/home/ubuntu/eg/perennial-fce59af75`). The `KeyError:
+  'internal.testlog'` comes from no `etc/` script: without `PERENNIAL_DIR`, gen-init reads the shared
+  `.lake/packages/perennial`, which is at `ddc0f0acc`, not at the pin `fce59af75` (and fk-lean2's worktree has
+  no `.lake/packages`). The hand-made `RaftNoAx/` copy of `DurableLogView` is byte-identical.
+  Ledger entry "`rnDurBodyK` and its step laws" (2026-11-26, `35ce623d08`) covers steps 2-5. **Next: steps 2-4
+  form one change.** Once the body holds `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝`, no law whose update is
+  over `walRecsH` (`rnDurK_save`/`saveSnap`/`ownSnap`, `rnDurK_alloc`, `rnRestartWal`, `rnDurK_crash`'s callback)
+  can be proved, because it must produce the eager fold. So restate them together, with their callers:
+  `raftNode__start`'s, `RaftLoopFreeze.lean:633`, `MemberCrash.lean` (`walRecsH_crash`/`walRecsH_gen`, which need
+  `walHistH` versions), `NodeStart.lean:790` and `InvNodeStart.lean:358` (`walRecsH h walFresh [] true`).
+  The pure crux is a `walRead_snoc_save` (`InvWalCrashPure.lean`, beside `walRead_snoc_snap`). A `Save` that
+  raises the commit re-keeps the snapshot records it now covers, so `walRead (Hs ++ [save hs es])` is
+  `walSave (recsOf v σ) hs es` only under the pending snapshot's facts: `walSnapStep` `m` at or below the new
+  commit, and no other dropped record (by `PendOkK`/`crashOk`). `histOk_save`/`histOk_restart`/`histOk_fresh`
+  are restated over the read (drop `walCommitLeFrom`, the `hf` premises).
 - **State** (2026-11-26, **P5 session 7**, stopped at the context rule): **(b) step 1 and `raftState_logViewE`
   written, UNBUILT** (`0612182c1f`, under session 6's handoff `16fb93b1de`). Step 1: `isWalStorage`'s
   `Save`/`SaveSnap` updates over `walHistH` (no fold, no premise); direct laws `walSaveHist_spec`/
