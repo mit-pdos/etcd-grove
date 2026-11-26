@@ -29,12 +29,12 @@ unchecked until the build.
 
 ## 2. Trusted text, old → new
 
-### 2.1 `grpc.CustomCodec.wp_proof`: axiom → theorem (−1 axiom)
+### 2.1 `grpc.CustomCodec.wp_proof`: stays an axiom (lean's text)
 
-Old: `axiom grpc.CustomCodec.wp_proof : grpc.CustomCodec.spec`. New: a theorem over the model's body
-(`Proof/google_golang_org/grpc/CustomCodec.lean`). The closure stores `newCodecV0Bridge(c)` in `codec` and
-nothing else, so it meets the narrowed `.neutral`: `srvOptsSameBut` by structure eta, and `srvCodecOk`'s
-second disjunct from the premise `grpcProtoCodec c`. The spec's text is unchanged.
+The attempt to prove it over the model's body failed at the first build. Its closure converts
+`codecV0Bridge{c}` to `baseCodec`, a type the translation axiomatizes (its methods name grpc's `mem`, not
+translated): the semantics has no conversion step into it. It is lean's axiom, unchanged, until `mem` is
+translated.
 
 ### 2.2 The grpc model (`models/grpc`): the core branch's three commits
 
@@ -267,7 +267,9 @@ non-whitelisted field. That is true of the model, whose closure sets only `stats
 ## 3. Step 3 (`grpcSrvNew` defined; `NewServer`, `RegisterService` proved): status and design
 
 **`grpcSrvNew` is a definition** (commit `0e7177cb0c`; −1 axiom). `NewServer` and `RegisterService` are
-still axioms, now about this concrete predicate; their proofs are next.
+theorems over the model's bodies (2026-11-26; −2 axioms), with their callees' specs proved over their
+bodies too: `istats.NewCombinedHandler`, `grpcsync.NewEvent`, `chain{Unary,Stream}Interceptors`,
+`chain{Unary,Stream}ServerInterceptors`, `Server.{printf,wrapUnaryHandler,register}`.
 
 ### 3.1 The definition (`InvGrpcServer.lean`)
 
@@ -316,7 +318,7 @@ generated term by a `match`. A build checks that it reduces; if goose's output s
 3. **`.stats` must carry `grpcStatsHandlerOk h`** (`grpc-neutral-narrow`'s next commit, etcd-grove#60).
    Until that commit is merged here, the `NewServer` axiom's post claims `grpcStatsHandlerOk` of every
    handler without a premise for it. That is an over-claim, though not a contradiction (the property is
-   an opaque `Prop`). This branch must not land before that merge.
+   an opaque `Prop`). Done: merged from lean (`4f027dba18`); `NewServer`'s proof takes it from `.stats`.
 
 ### 3.2 Trusted statements that gain content now that `grpcSrvNew` is defined (old text unchanged; meaning changes)
 
