@@ -271,6 +271,43 @@ entry Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof 3:Ψ:produced1/consu
 # - its truncations are in the post's and premises' backend, bbolt, lease and context definitions (`ownMap`, `bbAt`,
 #   `isBolt`, `lessorPin*`, ...), none in the deviations' text.
 entry Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof 2:*:handedtoacallback2/supplieddirectly1,3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Pre:produced1/consumed0,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Wb:produced46/consumed36,3:Y:produced1/consumed0,3:cd.PDone:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:E:apply.AEnvGF,7:GA:w64→IPropGF,7:Hs:auth.BkView→IPropGF,7:K:IPropGF,7:Lk:Bool→IPropGF→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:P:IPropGF,7:Pk:IPropGF,7:Pw:IPropGF,7:Q:IPropGF,7:Q:ListEntryModel→IPropGF,7:R:IPropGF,7:RD:IPropGF,7:RL:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:Rd:IPropGF,7:S:IPropGF,7:Sw:auth.AuthSess→IPropGF,7:T:IPropGF,7:TM:MetaCI→IPropGF,7:TS:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Wb:IPropGF,7:c:TrNGF,7:cd:context.ContextDesc(IPropGF),7:sDoneAny:context.ContextDesc(IPropGF),7:Φ:GoString×GoString→IPropGF,7:Φ:Unit-n>IPropGF,7:γn:NetNamesGF,7:τ:SrvTrGF  see the paragraph above (and the trace and triage notes it cites): capped walk; the 2b tokens are the caller-supplied `revokeExpiredLeases.spec` premise's and `Promote`'s borrow inside it (no mint); every finding of a binder in text shared verbatim with the proved `wp_NewServer`/`server_new_auth_on`, `3:Dep` one definition below their depth cutoff
+# --- the full line's newly reached client axioms (etcd-safe-full, 2026-11-26; traced from the raw walk and an
+# instrumented one whose unfold stack both `walkI` and `walkProp` push: notes/axiom-review/full-line-axiom-tok.md) ---
+# `etcd_safe_nocrash` reaches nine client axioms no landed root reached before. They were the gate's only roots on the
+# line: their uncovered findings tainted `grpcConn`, `credsYieldRaw` and `metadata.builtRawMDRaw`, and the cascade put
+# 38 more axioms (and the capped `NewServer_dist`/`Serve_dist`, whose own keys all match their entries) into the
+# report. With these entries, 0 predicates are tainted.
+# Rule 2b, the seven with `8/1`: the stacks are KV_Put_dist's exactly. The caller's `levelTok 0` is consumed in the
+# pre and produced in the post (`cb=0`). The 8 handed to a callback are the two contracts (`etcdInterceptorOk`,
+# `etcdInterceptorOkW`) of each `isEtcdConn` that `isNewClient` holds (`clientKVAt`, `kvObjAt`, `lessorAt` >
+# `lessorRemoteAt`, `authObjAt`); each is returned by its contract's post. Go: `kv.Compact` -> `kv.remote.Compact`
+# (`retryKVClient.Compact`), `lessor.Grant`/`Leases`/`TimeToLive` -> `l.remote.LeaseGrant`/`LeaseLeases`/
+# `LeaseTimeToLive` (`retryLeaseClient`, `withRepeatablePolicy`) -> the stub's `Invoke` -> one unary interceptor call at
+# a time, on the caller's goroutine, returning before the function does. So the one token is lent and given back.
+# The proved in-process siblings (`client.v3.kv.wp_Compact`, `lessor.wp_Grant`/`wp_Leases`/`wp_TimeToLive`, walked
+# beside them) have `2:L:0:handedtoacallback2/supplieddirectly1`: their pre names one connection, not four.
+# Rule 7 `∃ P : IProp` (naked in `isCancelCtxOf`): the `ctxOk ctx cd` of those contracts' pres, as KV_Put_dist's `P`.
+# Rule 2b, `Watch_dist`/`RequestProgress_dist` with `8/0`: the same 8 contract tokens (the same stacks under
+# `watchClientAt` > `isNewClient`), and no token in their pre or post (none in the source specs either). In Go neither
+# function makes an RPC on the caller's goroutine. `Watch` and `RequestProgress` take the lock, find or create the
+# stream (`newWatcherGRPCStream`, whose `go wgs.run()` is the translation's `Fork`), and exchange messages over
+# `reqc`/`retc`. Only `run`, on the forked goroutine, opens the gRPC stream (`openWatchClient` -> `w.remote.Watch`).
+# The proved `newWatcherGRPCStream` gives `run` the fresh thread token of its `go` (`wp_fork_tok_body`), and
+# `watchGRPCStream.run.spec` takes that `threadTok` and returns it. So a token any contract is called with is the
+# forked goroutine's own, not one taken from or given to the caller. The unary contracts the walk counts are never
+# called by either function. The proved in-process `client.v3.watcher.wp_Watch`/`wp_RequestProgress` walk with no
+# finding (the instrumented walk of `wp_Watch` meets no token). For an independent triage.
+# The six lease axioms are F2's (etcd-grove-03): for etcd-grove-03's confirmation. F7's walk of the auth-on
+# `Lease_*On` axioms read the same key the same way (notes/axiom-review/f7-auth-axiom-tok.md, "Rule 2, 8/1").
+entry Perennial.EtcdGrove.etcd_dist.KV_Compact_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (the section header), for `Compact`: the caller's one `levelTok 0`, lent to one interceptor call at a time and given back; the proved `kv.wp_Compact` has the same pattern on one connection (2/1)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseGrant` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseGrant` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseTimeToLive` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.Watch_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  see the section header: `isNewClient`'s unary contract tokens; in Go the call makes no RPC on the caller's goroutine, and the stream's goroutine (`go wgs.run()`) calls the connection with its own fork token (`wp_fork_tok_body`); `P` the contracts' context, as KV_Put_dist's
+entry Perennial.EtcdGrove.etcd_dist.RequestProgress_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  as Watch_dist's (the section header): it only sends on the stream's `reqc`
 # The ratchet's exception for these four (dist-putget-interim, 2026-11-25; for the coordinator's review):
 # their walks truncate where the walks of the handles they take already do on `lean`, in definitions this
 # branch did not write: the client axioms in `isNewClient`'s contexts (`stuck projection: cd.4`, the
@@ -299,6 +336,18 @@ trunc Perennial.EtcdGrove.bootstrap.wp_proof_dist
 trunc Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
+# (etcd-safe-full, 2026-11-26) the nine client axioms above: their 27 truncation notes are exactly those of
+# KV_Put/Get_dist's and Txn_Commit_dist's walks (`isNewClient`'s contexts, `cd.4`, the models' projections,
+# `isCancelCtxOf`, `isMutex`, `named`, `dghostVar`); none is in their posts.
+trunc Perennial.EtcdGrove.etcd_dist.KV_Compact_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.Watch_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.RequestProgress_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
 # `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at

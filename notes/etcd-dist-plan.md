@@ -3249,6 +3249,34 @@ F4 (`Serve_dist`'s docstring) is not on this branch (it is `etcd-safe-f5`'s).
   remoteWriters, reportAll, CallAll): discharged from `etcdThreads` by the machine's boot, as kvremote's `Node`.
 - `KMWatch` split (§24.1) unchanged; N9a's `newClient`/`checked`/`ended` taken with fixed imports.
 
+### 24.7 The writers' Puts bounded by receipts (2026-11-26, branch `etcd-safe-n10a2/2026-11-26`)
+
+§24.6's `nops < 2^56` is gone: no deployment supplied it (the typed `BoundsOk` allows ~2^62 Watch ops). What
+bounds the Puts is the execution's length: `GenAll`'s loop runs `len(nodes) * nops` iterations, each with a
+counted step (a function resolution), so the proof collects that many exclusive receipts and `receipt_lt` gives
+the count below `receiptBound GF`.
+
+- **`GenAll_receipts.spec`** (`Spec/.../dist/client/GenAllR.lean`; proof `Proof/.../dist/client/GenAllR.lean`
+  over `Gen.spec`, one `wp_take_receipt` per iteration at `append`'s resolution, the invariant holding
+  `⧗ i`): `GenAll.spec`'s pre verbatim, its post
+  `∃ ps, sl ↦* ps ∗ ⌜ps.length = sint.nat n ∧ (∀ p ∈ ps, GenKv ks p) ∧ sint.nat n < receiptBound GF⌝`.
+  `lib/etcdstart`'s `GenAll.spec` is unchanged (its other users keep it).
+- **`RunWatch.spec`**: the pure premises are now
+  `Nonempty (WEnv GF) → threadBound GF ≤ 2 ^ 30 → plainEndpoints addrs →
+  0 ≤ sint.Z nops → ns.length * sint.Z nops < 2 ^ 63 → receiptBound GF ≤ 2 ^ 56 →`
+  (`sint.Z nops < 2 ^ 56` replaced by `receiptBound GF ≤ 2 ^ 56`, the weakest receipt premise that suffices;
+  the boot has `receiptBound ≤ etcdSteps = 2 ^ 48`, so `le_trans h (by decide)`). The proof calls
+  `GenAll_receipts` and gets `trs.length < receiptBound GF ≤ 2 ^ 56`.
+- **`remoteWriters.spec`**: `sint.Z nops < 2 ^ 56` replaced by `trs.length < 2 ^ 56` (all the writers' Puts):
+  `threadBound GF ≤ 2 ^ 30 → 0 ≤ sint.Z nops → (trs.length : Int) = ns.length * sint.Z nops →
+  trs.length < 2 ^ 56 → (∀ p ∈ trs, pairOf p ∈ n.2.2 ∧ wkvSmall p) →`. With no writers (`ns = []`) nothing
+  is asked of `nops`; with one or more, `nops ≤ trs.length < 2 ^ 56` per writer, as `wP` needs (`wP` unchanged).
+- **The cache** (`RunCache.spec`) restates the same way: call `GenAll_receipts` for its Puts, take
+  `receiptBound GF ≤ 2 ^ 56` instead of a pure `nops` bound, and hand its writers `trs.length < 2 ^ 56`.
+- **Bounds**: the two `receiptBound` mentions (`GenAllR`, `RunWatch`) are listed in `etc/bounds-allow.txt`'s
+  dist/client entry as `spec-receipt`: discharged at the machine's boot from `receiptBound ≤ etcdSteps`, not a
+  top-level premise (as kvremote's `Orch`).
+
 ## 25. Watcher-environment refactor (design, 2026-11-26; branch `etcd-safe-wenv/2026-11-26`)
 
 Required by the N3 review's F3 (`notes/axiom-review/n3-watch-dist.md`) before any result rests on
@@ -4257,3 +4285,111 @@ top-level premise, no Go change. Nothing lands before Upamanyu's F9 approval.
   kvremote's `TopLevelRobustness`: green. `KVCallsDist` and so `KVWorkLinked` still fail by the known §26.6 items
   (`KVCallsDist.lean:156` `hser`, `durableKey`/`durableValue`); the edited pattern at line 150 reports no error.
 - **F9 row:** strengthened approved axiom: KV_Get_dist error arm + statusErrOk.
+
+## 30. F8: integration and assembly (2026-11-26, branch `etcd-safe-full/2026-11-26` off `lean` @ `93687cba82`)
+
+The integration line of every workload branch, and `etcd_safe_nocrash`'s assembly (design §27). Untrusted proof
+work; the merged branches' interim axioms are the F9 packet's (nothing lands before F9's approval).
+
+### 30.1 Merged (in order; conflicts as §27.5 predicted)
+- F7 `etcd-safe-f7` @ `3e36f7cbd9` (F2 leases + F7 auth; `Serve_dist`/`NewServer_dist` replaced): clean.
+- kvgete `etcd-safe-kvgete/2026-11-26` @ `dba4cce259` (F6 cache, F5 compact, wenv, N3, rwire, N10a2's writers,
+  `KV_Get_dist` strengthened): `dist/client/{checked,ended,newClient}` (Spec) as F7's (newClient's anonymous-client
+  `cfg` conjunct), importing both `LeaseDefs` and `KVClientDist`; F5's `clientCore_of_new` deleted (F7's
+  `clientCoreAt_of_new` kept); `InvClientNewResult` merged as wenv's (`isNewClient` at `V.atEps eps`);
+  `Serve_dist`'s docstring: the N3 review's F4 sentence merged cleanly onto F7's text; bounds-allow: both lines.
+- N9a `etcd-safe-n9a/2026-11-25` up to @ `1e7ad3dc32` (putget, durable; `KVWorkLinked` green): N9a's files, with the
+  line's adaptations only (newClient's `cfg` conjunct, `clientCoreAt_of_new`).
+- N10a2 `etcd-safe-n10a2/2026-11-26` up to @ `8b8c417009` (writerCodec proved, `WatchLinked` complete, the writers'
+  Puts by receipts, §24.7).
+- F8 design `etcd-safe-f8/2026-11-26` @ `508327e097` (§27).
+- Line adaptations: lean's G-dial deleted the `DialWithBalancerBody` class (its section variables go from the five
+  dist/client linking files); newClient's post patterns (`, -`) in NodeMainWatch, RunWatch, RunCache, RunCompact;
+  `CacheLinked.wp_RunCache` hypothesis-free (watch's linked writers); `RunCache.spec` over receipts as `RunWatch.spec`
+  (`receiptBound GF ≤ 2 ^ 56` in place of `nops < 2 ^ 56`, which no well-formed deployment gives).
+- Generated files (`gen-init`, `gen-specs-pkginit`, `gen-raft-tla --check`, PERENNIAL_DIR at `a706aeb9a`): up to date.
+
+### 30.2 The assembly (decisions)
+- Q3 taken: the skeleton is `dist/BootSkel.lean`; `dist/TopLevelRobustness.lean` holds the theorem, paired with its Spec.
+- **Split by the token provider** (`etcdBootNC_of_split`): by Q1 (`WellFormed`), auth is on exactly when the one
+  workload is `auth` or `authLease` (`DeploymentClass.auth_class`). The auth-off deployments (classes E, Ls, S, P of
+  §27.1) are F8's general start and dispatch; the two auth classes are named hypotheses `EtcdAuthBootNC` and
+  `EtcdAuthLeaseBootNC` (`EtcdBootNCAt` at `[auth]` / `[authLease]`), their shares `False` in `wlShare`/`wlNodeShare`.
+  Why: `RunAuth` has no spec yet (F7 S3), and the auth-on start (the client halves of `etcdKV` and `authHistView` with
+  `kvInvOn`, F7 L5/S4) is not written; `RunAuthLease` is proved over `foreignReads.law`, not linked.
+- M1's `etcd_kv_safe_nocrash` keeps its own proof (no landed top-level theorem may come to rest on a hypothesis);
+  it becomes the one-line corollary `etcd_kv_safe_nocrash_of_full etcd_safe_nocrash` once the hypotheses are gone (Q4),
+  and M1's kv-only dispatch specs (`.specKv`) and boots retire then.
+- The premise `KvOnly ∧ auth = false` of M1's statement stays (F9 trust-shrinking item, the user's call).
+
+### 30.3 What was built (F8 proper; helpers' branches `etcd-safe-full-{dispatch,start}/2026-11-26`, merged, deleted)
+- `dist/client/Shares.lean` (defs): `wlShare`/`wlNodeShare`, an if-chain on `w.kind = W64 k` with one rewrite law per
+  arm (auth, authLease `False`: D2), `writerNodePre`, `orchShareF`/`nodeShareF` and their laws; `rotateL_plain`,
+  `mem_rotateL` moved here from M1.
+- The full dispatch: `MainReady`, `MainDeployment`, `Orchestrator`, `NodeMain`, `NodeDeployment` `.spec` over every
+  kind (M1's kv-only ones renamed `.specKv`/`.wp_proofKv`, D3); `MainReady` takes the whole `threadTok` (RunCache's).
+  `NodeMainWatch.spec` covers kinds 1 and 2. `client/DispatchLinked.lean`: `wp_OrchestratorFull`,
+  `wp_NodeDeploymentFull`, **no hypothesis** (every arm linked: M1's kv, `wp_RunWatch`, `wp_RunCache`, `wp_RunCompact`,
+  `wp_RunPutGet`, `wp_RunDurable`, the three lease runs, `wp_NodeMainWatch`). KVWorkLinked's `wp_newClient` is
+  `wp_newClientKVW` (it clashed with WatchLinked's).
+- `dist/AdequacyClient.lean`: `orchBoot`, `nodeBoot` (any deployment: the program checks it), discharging the
+  machine-level premises (`wenv_nonempty`, `etcdThreads`, `receiptBound ≤ 2 ^ 56` from `etcdSteps`, `AsTarget`).
+- `dist/DeploymentClass.lean` (defs): `lmOf`, `cmpOf` and their side conditions, `class_authOff` (E/Ls/S/P),
+  `auth_class`, `workloads_length_le`, `nodeList_length_lt`. `server/ClusterStartD.lean`: `clusterStartDC` (given
+  compaction mode and retention; `clusterStartDL`/`clusterStartD` its corollaries), `kvInv_of_clusterFacts`.
+- `dist/Start.lean` (defs): `startShares d boot i` and its laws; per class `leaseMembers_of`, `lease_arm`,
+  `watch_start`, `pfx_start` (putget, durable, compact over `kvPfx_alloc` at `[pg/, du/, cw/]`), M1's `kv_start`;
+  `etcd_start` (auth off). At the boot state `σ₀.changes = [[]]`, no key, revision 1 (`bootSt_facts`).
+- `dist/TopLevelRobustness.lean`: `etcdBootNCOff_holds : EtcdBootNCAt (·.cfg.auth = false)` (no hypothesis) and
+
+  ```
+  theorem etcd_safe_nocrash (Hauth : EtcdAuthBootNC) (HauthLease : EtcdAuthLeaseBootNC) : etcd_robust_nocrash.spec
+  ```
+  `#print axioms`: no `sorryAx`; 134 axioms. Of the interim dist ones: N2's `KV_Put/Get/Delete/Compact_dist`,
+  `Txn_Commit_dist`; N3's `Watch_dist`, `RequestProgress_dist`; N5's `NewServer_dist`, `PeerServe_dist`,
+  `NewPeerHandler_dist`, `bootstrap.wp_proof_dist`; `Serve_dist` (F7's replaced text); F2's six lease axioms
+  (`Lease_Grant/GrantLive/LeasesGranted/LeasesLive_dist`, `Client_LeaseLeases/LeaseTimeToLive_dist`). None of F7's
+  auth-on axioms (they are reached only from the auth classes).
+
+### 30.4 The remaining hypotheses and what closes each
+
+| Hypothesis | What it is | Closed by |
+|---|---|---|
+| `EtcdAuthBootNC` | `EtcdBootNCAt` at deployments whose one workload is `auth` (kind 5): start, orchestrator, principal machines | F7 S3 (`etcd-safe-f7`): `RunAuth.spec`+proof, the principal arm (`principalOp`/`principalCodec`), the auth-on start (client halves of `etcdKV`/`authHistView` at `kvInvOn`, F7 L5), the auth-on `Watch_dist`; then `wlShare`/`wlNodeShare`'s kind-5 arms replace `False` |
+| `EtcdAuthLeaseBootNC` | the same at one `authLease` workload (kind 6) | F7 S4: the auth-on start at the revocable lease mode (`authLeaseShare` = `RunAuthLease.spec`'s precondition), `foreignReads.law` (pending Upamanyu's `foreign` decision), linking `RunAuthLease.wp_proof`; then the kind-6 arm |
+
+When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` becomes
+`etcd_kv_safe_nocrash_of_full etcd_safe_nocrash`, and M1's kv-only pieces retire (`EtcdKvBootNC`, `kvShares*`,
+`kvOnly_shape`, `kvMemberBoot`, `etcdKvBootNC_holds`, `kvremote/AdequacyClient`, `KvLinked`, the `.specKv` specs).
+
+### 30.5 F9 items raised here (none new in F8 itself)
+- No new axiom, `sorry` or top-level premise in F8's own files; the trusted text on the line is the merged branches'.
+- Trust-shrinking (the user's call): M1's premise `KvOnly d ∧ d.cfg.auth = false` stays until the full theorem
+  closes; then M1 is a corollary and the premise can go with M1 itself (Q4).
+- Narrowings already in `WellFormed` (F7's Q1/Q2 and auth ⇒ no compactor): the classes of §27.1 rest on them.
+- `Serve_dist`'s docstring carries the N3 review's F4 sentence (watch streams) onto F7's replaced text: re-review item.
+
+### 30.6 Checks at the line's head
+- Full VM build (`lake build`, whole lib) green at `95c5e4343e`; `dist.TopLevelRobustness` green with the theorem.
+- `tcb-report --check`: ok after `--update` (+3, 30.5). Collections `etcd-dist`, `etcd-dist-lease`: rewritten (§30 commit).
+- `premise-witness --check`: ok (49 statements). `tier-check`: ok. `lease-order-check`: ok. Generated files: up to date;
+  `copy-part --check`: 0 differ.
+- `bounds-check`: FAILED, 423 against 389, all carried in from F7 (F7 alone: 420; lean: 385 ok). The line's own new
+  bounds are allow-listed (dist/client spec-thread/spec-receipt lines).
+- `dist-axiom-diff --check`: FAILED (20): F2's and F7's lease and auth-on axioms have no `pair`/`nosource` line yet
+  (F7's F9 rows). N3's `Watch_dist`/`RequestProgress_dist` now pass.
+- `axiom-tok --check`: FAILED, 47 need an entry. Among them are the axioms the theorem reaches for the first time: N3's two,
+  N2's `KV_Compact_dist`, F2's six (rule 2 `8/1` or `8/0` and rule 7 `∃ P`, `Client_Put_dist`'s accepted pattern). Also
+  among them are M1's KV/Serve/NewServer/PeerServe entries and several grpc/etcdserver trust axioms whose walks changed
+  in the merges (F7's replaced `Serve_dist`/`NewServer_dist`; wenv's `isNewClient`). Each entry is to be re-derived
+  from its walk and triaged, never copied (open item; the F9 packet's).
+  - **Resolved on `etcd-safe-full-atok/2026-11-26`** (`notes/axiom-review/full-line-axiom-tok.md`). Only nine axioms
+    are roots, all new: `KV_Compact_dist` and F2's six (`8/1`, the key of `KV_Put_dist`'s entry), and `Watch_dist`
+    and `RequestProgress_dist` (`8/0`, traced by hand: the stream's goroutine calls the connection with its own fork
+    token; for an independent triage).
+  - The other 40 (38 plus the capped `NewServer_dist`/`Serve_dist`) were only the rule-5 cascade of their taint. No
+    existing entry's walk changed: no re-key.
+  - Plain lean `93687cba82` is green.
+- gen-link: every other Link matches; five Links of other projects (bbolt, kvraft, WAL) differ
+  from what `gen-link` prints in this worktree with no `.lake`. They are identical to `lean`'s files, so the difference
+  comes from this environment.

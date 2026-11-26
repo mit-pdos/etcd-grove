@@ -52,18 +52,18 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-theorem wp_newClient : newClient.spec (GF := GF) (hG := hG) :=
+theorem wp_newClientKVW : newClient.spec (GF := GF) (hG := hG) :=
   newClient.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClients
 
 /-- **putget's orchestrator, linked.** -/
 theorem wp_RunPutGet : RunPutGet.spec (GF := GF) (hG := hG) :=
-  RunPutGet.wp_proof wp_newClient checked.wp_proof ended.wp_proof EtcdGrove.strconv.Itoa.wp_proof
+  RunPutGet.wp_proof wp_newClientKVW checked.wp_proof ended.wp_proof EtcdGrove.strconv.Itoa.wp_proof
     context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
     EtcdGrove.Client.Close.wp_proof KV_Put_dist.wp_proof KV_Get_dist.wp_proof
 
 /-- **durable's orchestrator, linked.** -/
 theorem wp_RunDurable : RunDurable.spec (GF := GF) (hG := hG) :=
-  RunDurable.wp_proof wp_newClient checked.wp_proof ended.wp_proof durableKey.wp_proof
+  RunDurable.wp_proof wp_newClientKVW checked.wp_proof ended.wp_proof durableKey.wp_proof
     durableValue.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof context.wp_ErrAny
     (EtcdGrove.WithPrefix.wp_proof EtcdGrove.getPrefix.wp_proof) EtcdGrove.Client.Close.wp_proof
     KV_Put_dist.wp_proof KV_Get_dist.wp_proof
