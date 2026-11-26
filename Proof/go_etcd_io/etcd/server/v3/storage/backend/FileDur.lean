@@ -10,9 +10,9 @@ crash lemmas over the file extension's restart resources (`crashRest`).
   name (`P = (· = cur)`) follows from a commit at or past every entry (`crashLeaves_of_coh`, with the
   claim's coherence `HistCoh`); a generation's fresh claim (nothing logged) is durable at `0`.
   `nameCrash_crash`: after a crash, the new tree's entry satisfies `P`.
-* `fileHoldsMDur i D`: bbolt's `fileHoldsM i D` with every byte durable (`durB`) and the size's crash
-  bounds collapsed (`lo = hi = size`), written over bbolt's public API (`boltImage`, `boltImageRcpt`), so
-  no new bbolt law is needed for it (`fileHoldsMDur_holds`, by `fileHoldsM_of_image`).
+* `fileHoldsMDur i D`: bbolt's `fileHoldsM i D` with every byte durable and the size settled, defined
+  in bbolt's API (`Spec/go_etcd_io/bbolt/ApiCrash.lean`, with `fileHoldsMDur_holds`; moved there by W5,
+  so that bbolt's crash-mode `DB.Close.specC` can give it), the names exported here.
   `fileHoldsMDur_crash`: a file the new tree names comes back whole at the new generation.
 * `fileAtCrash path D P` (`fileAtF` with the name's `nameCrash (P i)` and the file `fileHoldsMDur`):
   `fileAtDur` (the name durable, `P i v := v = some (.file i)`) and `fileAtPend` (linked, the directory
@@ -27,6 +27,7 @@ public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedCoh
 public import GooseLang.Ext.Fs.TreeCommit
 public import Proof.os.CrashFile
+public import Spec.go_etcd_io.bbolt.ApiCrash
 
 @[expose] public section
 
@@ -39,6 +40,9 @@ namespace EtcdGrove
 namespace backend
 
 open Iris Iris.BI Iris.ProofMode Fs
+
+-- bbolt's durable database file (`Spec/go_etcd_io/bbolt/ApiCrash.lean`), under the backend's names.
+export bbolt (fileHoldsMDur fileHoldsMDur_holds)
 
 /-! ### What a crash leaves of a name (pure) -/
 
@@ -109,25 +113,6 @@ def nameCrash (h : NamesH) (j : Ino) (b : GoString) (P : Option Node → Prop) :
 instance nameCrash_persistent (h : NamesH) (j : Ino) (b : GoString) (P : Option Node → Prop) :
     Persistent (nameCrash (GF := GF) h j b P) := by
   unfold nameCrash osCommitLb; infer_instance
-
-/-- **The file of inode `i` holds `D`, mappable, every byte durable** (see the file header). -/
-def fileHoldsMDur (i : Ino) (D : Data) : IProp GF :=
-  iprop(∃ (m : OsMeta) (bs : List w8), osMeta i (DFrac.own 1) m ∗
-    osBytes i 0 (DFrac.own 1) (bs.map durB) ∗
-    ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = bs.length ∧ m.hi = bs.length ∧ bbolt.boltImage bs D ∧
-      bs.length ≤ bbolt.boltMaxMapSize⌝ ∗ bbolt.boltImageRcpt bs)
-
-/-- A durable file holds its data, mappable (`fileHoldsM_of_image`). -/
-theorem fileHoldsMDur_holds (i : Ino) (D : Data) :
-    fileHoldsMDur (GF := GF) i D ⊢ bbolt.fileHoldsM i D := by
-  unfold fileHoldsMDur
-  iintro ⟨%m, %bs, Hm, Hb, %h, Hr⟩
-  obtain ⟨hmaps, hsize, -, -, himg, hlen⟩ := h
-  have hfst : (bs.map durB).map Prod.fst = bs := by simp [List.map_map, Function.comp_def]
-  iapply bbolt.fileHoldsM_of_image i m (bs.map durB) D hmaps (by simpa using hsize)
-    (by rw [hfst]; exact himg) (by simpa using hlen)
-  iframe Hm Hb
-  rw [hfst]; iexact Hr
 
 /-- **A durable file, or one about to be, at `path`** (see the file header), at the instances: the claim
 on the name `b` of the directory `d` (with `d`'s path and a share of its call permission), naming the

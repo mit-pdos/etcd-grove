@@ -12,6 +12,13 @@ the history's element of `ν` (`Dn`), which the next commit's record takes as it
 
 * `boltCrashRec_take`, `boltCrashRec_putSame`, `boltCrashRec_putStep`, `boltCrashRec_close`: the
   repackaging laws (C-I1's `take`, `putSame`, `putStep`, `close`).
+* `fileHoldsMDur i D` (moved here from `backend/FileDur.lean` by W5, text unchanged; the backend's
+  `fileHoldsMDur` is this one): bbolt's `fileHoldsM i D` with every byte durable (`durB`) and the
+  size's crash bounds collapsed (`lo = hi = size`), written over bbolt's public API (`boltImage`,
+  `boltImageRcpt`), so no new bbolt law is needed for it (`fileHoldsMDur_holds`, by
+  `fileHoldsM_of_image`). What the crash-mode `DB.Close` (`DB.Close.specC`) hands over in the record's
+  place; `backend.fileHoldsMDur_crash`: a file the new tree names comes back whole at the new
+  generation.
 -/
 module
 
@@ -341,6 +348,36 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
   exact hrcpt
 
 end crash
+
+/-! ### A database file every byte of which is durable (W5) -/
+
+section dur
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The file of inode `i` holds `D`, mappable, every byte durable** (see the file header). -/
+def fileHoldsMDur (i : Ino) (D : Data) : IProp GF :=
+  iprop(∃ (m : OsMeta) (bs : List w8), osMeta i (DFrac.own 1) m ∗
+    osBytes i 0 (DFrac.own 1) (bs.map durB) ∗
+    ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = bs.length ∧ m.hi = bs.length ∧ bbolt.boltImage bs D ∧
+      bs.length ≤ bbolt.boltMaxMapSize⌝ ∗ bbolt.boltImageRcpt bs)
+
+/-- A durable file holds its data, mappable (`fileHoldsM_of_image`). -/
+theorem fileHoldsMDur_holds (i : Ino) (D : Data) :
+    fileHoldsMDur (GF := GF) i D ⊢ bbolt.fileHoldsM i D := by
+  unfold fileHoldsMDur
+  iintro ⟨%m, %bs, Hm, Hb, %h, Hr⟩
+  obtain ⟨hmaps, hsize, -, -, himg, hlen⟩ := h
+  have hfst : (bs.map durB).map Prod.fst = bs := by simp [List.map_map, Function.comp_def]
+  iapply bbolt.fileHoldsM_of_image i m (bs.map durB) D hmaps (by simpa using hsize)
+    (by rw [hfst]; exact himg) (by simpa using hlen)
+  iframe Hm Hb
+  rw [hfst]; iexact Hr
+
+end dur
 
 end bbolt
 end EtcdGrove
