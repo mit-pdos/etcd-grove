@@ -7,12 +7,19 @@ Lean-first (no Rocq counterpart). #33 parity B1: **what `node.start` needs of a 
 - the `boot` report as the literal builds it (`evBootM`, no node name; `atNode_evBootM`: as `emit`
   records it, `evBoot`), its numbers, names and weight;
 - `boot_hstep`: `report_upd`'s Sim step for the `boot` report, from `antSim_boot`;
-- the boot write's hard state and entry, frozen (`bootHs_hsRO`, `bootEnt_entRO`).
+- the boot write's hard state and entry, frozen (`bootHs_hsRO`, `bootEnt_entRO`);
+- `NewRawNode`'s restart premises at the driver's `raft.Config` (`startConfig`; `startConfig_valid`,
+  `start_storageHolds`, `start_confStateIs`, `start_restartScope`) and the state it restarts at
+  (`restartR_fresh`: a fresh view's);
+- the close into `nodeOwn`'s `.loop` phase with raft's node at the run's mask (`nodeLoopAt`,
+  `startLoop.law`; at `md = {}` it is `nodeOwn`'s own text, `nodeLoopAt_empty`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessReport
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.AntStorageStart
+public import Proof.go_etcd_io.raft.v3.RawNodeStartApi
 
 @[expose] public section
 
@@ -254,6 +261,193 @@ theorem ant_wp_slice_literal_ex {st t : go.GoType} [IntoValTyped (GF := GF) V t]
   · rw [ite_eq_right hlen]; iapply wp_AngelicExit
 
 end slice_ex
+
+section restart
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+
+/-- `node.start`'s `raft.Config` (the literal): node `id`, the mode's flags, the `bootStorage` `s`,
+the logger `&nodeLogger{n}` at `l`. -/
+abbrev startConfig (m : H.Mode) (id : w64) (s l : Loc) : Config :=
+  { ID' := id, ElectionTick' := W64 10, HeartbeatTick' := W64 1,
+    Storage' := interface.mkOk
+      (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty) #s,
+    Applied' := 0, AsyncStorageWrites' := m.Async', MaxSizePerMsg' := m.MaxSizePerMsg',
+    MaxCommittedSizePerReady' := W64 1048576, MaxUncommittedEntriesSize' := 0,
+    MaxInflightMsgs' := m.MaxInflightMsgs', MaxInflightBytes' := 0, CheckQuorum' := m.CheckQuorum',
+    PreVote' := m.PreVote', ReadOnlyOption' := 0,
+    Logger' := interface.mkOk
+      (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.nodeLogger.ty) #l,
+    DisableProposalForwarding' := false, DisableConfChangeValidation' := false,
+    StepDownOnRemoval' := m.StepDownOnRemoval', TraceLogger' := interface.nil }
+
+/-- A mode within its scope draws `MaxInflightMsgs` among `1, 2, 256`. -/
+theorem inScope_inflight {s : H.Scope} {m : H.Mode} (h : InScope s m) :
+    m.MaxInflightMsgs' = W64 1 ∨ m.MaxInflightMsgs' = W64 2 ∨ m.MaxInflightMsgs' = W64 256 := by
+  obtain ⟨-, -, -, -, -, hl, -⟩ := h
+  split at hl
+  · exact hl.1
+  · exact Or.inr (Or.inr hl.1)
+
+theorem startConfig_valid (m : H.Mode) {N : Nat} (j : Fin N) (hN : N ≤ 9) (s l : Loc)
+    (hmi : m.MaxInflightMsgs' = W64 1 ∨ m.MaxInflightMsgs' = W64 2 ∨ m.MaxInflightMsgs' = W64 256) :
+    ConfigValid (startConfig m (AntSim.nodeId j) s l) := by
+  have hj := j.isLt
+  unfold ConfigValid AntSim.nodeId
+  refine ⟨?_, ?_, ?_, ⟨by show (0 : Int) < sint.Z (W64 1); decide,
+    by show sint.Z (W64 1) < sint.Z (W64 10); decide⟩, by simp, ?_, Or.inl rfl, by simp, Or.inl rfl⟩
+  · intro h; have := congrArg (fun w : w64 => uint.Z w) h; simp only at this; word
+  · intro h; have := congrArg (fun w : w64 => uint.Z w) h; simp only at this; word
+  · intro h; have := congrArg (fun w : w64 => uint.Z w) h; simp only at this; word
+  · show (0 : Int) < sint.Z m.MaxInflightMsgs'
+    rcases hmi with h | h | h <;> rw [h] <;> decide
+
+theorem inflight_lt {m : H.Mode}
+    (hmi : m.MaxInflightMsgs' = W64 1 ∨ m.MaxInflightMsgs' = W64 2 ∨ m.MaxInflightMsgs' = W64 256) :
+    sint.Z m.MaxInflightMsgs' < 2 ^ 62 := by
+  rcases hmi with h | h | h <;> rw [h] <;> decide
+
+/-- The restarted storage holds the boot write's state (`downDur`). -/
+theorem start_storageHolds (R : AntSim.RunCfg) (w : AntSim.DurW) (hw : w = startDur R) :
+    StorageHolds (downDur R) (bootContents (HardStateM.mk w.term w.vote w.commit) w.log) := by
+  subst hw
+  unfold StorageHolds downDur startDur bootContents
+  rcases Bool.eq_false_or_eq_true R.boot with hb | hb <;>
+    simp [hb, AntSim.bootLog, StorContents.b, StorContents.commit, RaftState.init, RaftState.entsFrom,
+      base0, plogTermAt]
+
+theorem start_last (R : AntSim.RunCfg) (h : HardStateM) (w : AntSim.DurW) (hw : w = startDur R) :
+    (bootContents h w.log).last = (AntSim.bootLog R).length := by
+  subst hw
+  simp [StorContents.last, StorContents.b, bootContents, startDur, base0]
+
+theorem votersL_nodup (K : Nat) (hK : K ≤ 9) :
+    ((List.range K).map fun (i : Nat) => W64 ((i : Int) + 1)).Nodup := by
+  unfold List.Nodup; rw [List.pairwise_map]
+  refine List.Pairwise.imp_of_mem (fun {a b} ha hb hne hab => hne ?_) List.nodup_range
+  simp only [List.mem_range] at ha hb
+  have : uint.Z (W64 ((a : Int) + 1)) = uint.Z (W64 ((b : Int) + 1)) := by rw [hab]
+  rw [uint_Z_W64 _ (by omega) (by omega), uint_Z_W64 _ (by omega) (by omega)] at this
+  omega
+
+/-- The boot storage's conf state reports the initial voters' simple membership. -/
+theorem start_confStateIs (R : AntSim.RunCfg) :
+    confStateIs (bootConfState ((List.range R.K).map fun (i : Nat) => W64 ((i : Int) + 1)) memSnapEmpty)
+      (Membership.simple R.voters0) := by
+  have hE : ([] : List w64) ≡ₚ GMap.elements (∅ : GSet w64) := by
+    refine (List.perm_ext_iff_of_nodup List.nodup_nil (GMap.NoDup_elements _)).2 ?_
+    intro k
+    rw [GMap.elem_of_elements]
+    simp only [List.not_mem_nil, false_iff]
+    exact GMap.not_elem_of_empty k
+  refine ⟨ApiImpl.perm_elements_listToSet' _ (votersL_nodup R.K (by have := R.hK; omega)), hE, hE, hE, rfl⟩
+
+/-- The restart's scope premises at the run's mask. -/
+theorem start_restartScope (γ : AntNames) (j : Fin γ.R.N) (s l : Loc) (σ : StorContents)
+    (hsc : InScope γ.scope γ.mode) (hrun : ModeRun γ.scope γ.mode γ.R)
+    (hrc : γ.raft.raftNames.reCfg = γ.R.voters0) (hb : σ.base = base0) :
+    RestartScopeOk γ.raft (startConfig γ.mode (AntSim.nodeId j) s l) σ (Membership.simple γ.R.voters0)
+      γ.R.md := by
+  rw [hrun.2.2.2.2.1]
+  obtain ⟨-, hV, -, hpv, hcq, -⟩ := hsc
+  refine ⟨fun h => ?_, fun h => ?_, fun h => ?_, fun _ => ⟨hrc.symm, rfl, rfl⟩, fun _ => hb⟩
+  · show γ.mode.PreVote' = false
+    cases hx : γ.mode.PreVote'
+    · rfl
+    · have := hpv hx; simp only [scopeMd] at h; rw [h] at this; cases this
+  · show γ.mode.CheckQuorum' = false
+    cases hx : γ.mode.CheckQuorum'
+    · rfl
+    · have := hcq hx; simp only [scopeMd] at h; rw [h] at this; cases this
+  · simp only [scopeMd] at h
+    have hVN : γ.mode.Voters' = γ.mode.Nodes' := by
+      rcases hV with hV | ⟨hnv, -⟩
+      · exact hV
+      · rw [h] at hnv; cases hnv
+    have hK : γ.R.K = γ.R.N := by rw [hrun.1, hrun.2.1, hVN]
+    show AntSim.nodeId j ∈ γ.raft.raftNames.reCfg
+    rw [hrc]
+    unfold AntSim.RunCfg.voters0 AntSim.nodeId
+    rw [GMap.elem_of_list_to_set, List.mem_map]
+    exact ⟨j.val, List.mem_range.2 (by have := j.isLt; omega), rfl⟩
+
+/-- **The state `NewRawNode` restarts a fresh node at is the view's** (`PInitR`; the read state
+fresh). -/
+theorem restartR_fresh (R : AntSim.RunCfg) (v : AntSim.NodeView) (hf : AntSim.FreshView R v)
+    (hrd : v.r.p.rd = {}) (ap : Nat) (hap : ap = 0) :
+    restartR (downDur R) (bootContents (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) v.dur.log)
+      ap 0 (ApiImpl.stOf (Membership.simple R.voters0)) [] = v.r := by
+  subst hap
+  rw [fresh_dur hf]
+  obtain ⟨hP, -⟩ := hf
+  generalize v.r = r at hP hrd ⊢
+  obtain ⟨p, applied, pci, snap, cidx, cfg, fp⟩ := r
+  obtain ⟨term, vote, lead, role, votes, outbox, base, log, commit, matched, rd⟩ := p
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, -⟩ := hP
+  simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 hrd
+  subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 hrd
+  have hc : ApiImpl.stOf (Membership.simple R.voters0) = R.c0 := by
+    show cfgStateC (CfgM.simple R.voters0 ∅) = _
+    rw [cfgStateC_simple]; rfl
+  rw [hc]
+  rcases Bool.eq_false_or_eq_true R.boot with hb | hb <;>
+    simp [hb, restartR, restartP, initPState, downDur, startDur, bootContents, AntSim.bootLog,
+      RaftState.init, RaftState.entsFrom, base0, AntSim.RunCfg.c0]
+
+end restart
+
+section loop
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
+
+/-- **`nodeOwn`'s `.loop` phase with raft's node at the mode `md`**: `nodeOwn c γ j n v
+(.loop net₀ xnet₀ r₁ xs₁)`'s text (`HarnessRun.lean`) with `rawNode γ.raft.raftNames {}` replaced by
+`rawNode γ.raft.raftNames md`. (Raft's step D moves `nodeOwn`'s node to `γ.R.md`; this copy goes
+then.) -/
+def nodeLoopAt (md : RnMode) (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc)
+    (v : AntSim.NodeView) (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) :
+    IProp GF :=
+  iprop(∃ (d rn ms hsl cl csl : Loc) (role : GoString) (applied : w64),
+    n.[H.node, go!"disk"] ↦□ d ∗ nodeMemB1 n ∗
+    n.[H.node, go!"rn"] ↦ rn ∗ n.[H.node, go!"store"] ↦ ms ∗ n.[H.node, go!"role"] ↦ role ∗
+    n.[H.node, go!"hs"] ↦ hsl ∗ n.[H.node, go!"cause"] ↦ cl ∗ n.[H.node, go!"applied"] ↦ applied ∗
+    n.[H.node, go!"conf"] ↦ csl ∗
+    viewFrag γ j v ∗ nodeLive γ j ∗ ⌜ViewNormal v⌝ ∗
+    iprop(diskOwn d v.dur ∗ ∃ (si : Loc) (rs : RNState) (qs : List Msg) (ip : Nat) (r : RState),
+      nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1))
+        (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
+      ⌜rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
+      rawNode γ.raft.raftNames md rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
+      ⌜RsView rs v ∧ v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length ∧
+        rs.k = γ.R.k j⌝ ∗
+      hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
+      csPts csl DFrac.discard
+        (ConfStateM.mk ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1)) [] [] [] false) false ∗
+      ⌜v.conf = γ.R.c0⌝ ∗
+      iprop(⌜r = r₁ ∧
+          AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧ qs = [] ∧
+          ip = lcpLen v.r.p.log r₁.p.log ∧ ByOk v.byE⌝ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗
+          causeOwn γ j v cl)))
+
+/-- At `md = {}`, `nodeLoopAt` is `nodeOwn`'s `.loop` phase (the copy is faithful). -/
+theorem nodeLoopAt_empty (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
+    (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) :
+    nodeLoopAt (GF := GF) {} c γ j n v net₀ xnet₀ r₁ xs₁ ⊣⊢ nodeOwn c γ j n v (.loop net₀ xnet₀ r₁ xs₁) := by
+  unfold nodeLoopAt nodeOwn
+  exact .rfl
+
+/-- **`node.start`'s close into `nodeOwn`** (what its `drain "boot"` takes), from raft's node at the
+run's mask (`NewRawNode.restartAtApiSpec` at `γ.R.md`). Holds by `nodeLoopAt_empty` once `nodeOwn`'s
+node is at `γ.R.md` (raft's step D); until then a hypothesis of `node.start.wp_proof`. -/
+abbrev startLoop.law : Prop :=
+  ∀ (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (net₀ : List Msg)
+    (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg),
+    nodeLoopAt (GF := GF) γ.R.md c γ j n v net₀ xnet₀ r₁ xs₁ ⊢ nodeOwn c γ j n v (.loop net₀ xnet₀ r₁ xs₁)
+
+end loop
 
 section names
 variable [GooseExts]
