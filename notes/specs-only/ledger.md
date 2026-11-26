@@ -7178,7 +7178,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `∃ A, srvRLogLb A ∗ ⌜uint.Z s.p = ai0 + |A|⌝ ∗ ⌜∀ m, eff ≤ m ≤ p → models of A's prefix at m are A's⌝`, so that
   `commit_save_au` hands the image index with its prefix to the commit. An internal choice of the apply protocol's
   invariant (no exported statement changes; `consInv_open`/`_close` unchanged, accessor lemmas beside them).
-- **Decision.** **Approved** (coordinator, 2026-11-25, T10 session 3 order). Not applied yet.
+- **Decision.** **Approved** (coordinator, 2026-11-25, T10 session 3 order). First step applied 2026-11-26 (T10
+  session 8): `consInv γ IR` generic over the row (default `True`), the `R` step lemmas; the server's row and the
+  callers not yet (`notes/etcd-dist-d6.md`, "T10 status and handoff, session 8").
 
 ## 2026-11-25: C-I1's record laws restated for bbolt's crash proof (bbolt-crash, D6)
 

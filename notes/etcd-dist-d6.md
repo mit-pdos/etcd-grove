@@ -2068,3 +2068,45 @@ top-level change. Nobody applies `memberGen_crash.law` yet; whoever does passes 
 (`etcdstart/NetExtsCrash.lean`, `etcdNet_crashStart_split`).
 
 **Next T10 items** (not started): P5's certificate route and the `consInv` image row (session 3's approvals).
+
+### T10 status and handoff, session 8 (2026-11-26, branch `etcd-safe-t10`)
+
+**Item 1, the `consInv` image row: first step done** (`InvApply.lean` only; ledger 2026-11-25 "the backend's image row
+lives in the apply protocol's `consInv`", now partly applied). The protocol is generic over the row:
+`consInv γ (IR : w64 → w64 → IProp GF := fun _ _ => True)` holds `□ IR s.eff s.p` beside `consRest` (timeless rows:
+`consInv_timeless` takes `∀ a b, Timeless (IR a b)`). `consInv_open` returns the row, `consInv_close` takes it at `s'`'s
+`(eff, p)` (explicit `e p` and `s'.eff = e ∧ s'.p = p`). New: `writes_doneR` (takes `□ IR k k`), `skip_doneR` (takes
+`□ IR eff p -∗ □ IR eff i`), `ci_swap_auR` (takes `□ IR s'.eff s'.p`), `consInv_allocR` (takes `□ IR 0 m0.1`),
+**`commit_save_auR`**: the commit's `Ψ` gets `□ IR s.eff s.p ∨ ⌜s.k = 0 ∧ s.eff = s.p⌝` with `commitOk s m` (the
+right disjunct is the retired-backend case, where `s` is made of the stored index). This is what `kbStep.law`'s
+commit point consumes: inside `Tx.Commit`'s update the backend's `UnsafeSave` runs `commit_save_auR`, so the row at
+the stored index `m ∈ [eff, p]` is in hand at `_take`/`_putStep`. The old names (`writes_done`, `skip_done`,
+`ci_swap_au`, `consInv_alloc`, `commit_save_au`) are corollaries at the trivial row, so no caller changed. `InvApply`
+built green on fk-lean1 (build 3, `/shared/tmp/t10-s8-build3.log`). **Build 4 running at handoff, result not seen**:
+the 23 modules naming the protocol plus `etcdserver.Results`, log **`/shared/tmp/t10-s8-build4.log`** (ends `EXIT n`),
+list `/shared/tmp/t10s8/b1.txt`. Next session: read it; if unfinished or failed, rerun incrementally with
+`FKLEAN_HOST=fk-lean1 /shared/tmp/fklean1-check.sh /shared/etcd-grove-t10 etcd-safe-t10 $(cat /shared/tmp/t10s8/b1.txt)`
+and fix what fails (likely spots: callers' `iapply commit_save_au … $$` against the corollary's shape, instance
+search for `∀ a b, Timeless ((fun _ _ => True) a b)` at `imod` after `iinv` in the callers). `etc/tier-check.py --check` ok.
+
+**Item 1, left** (in order): (a) the server's row `srvImgRow ρ γ e p := ∃ A, srvRLogLb A ∗ ⌜uint.Z p = ai0 + |A| ∧ ∀ m,
+e ≤ m ≤ p → the KV model and restModel of A's prefix at m are A's⌝` (a defs module beside `InvServer`, timeless),
+and `inv applyN (consInv γ.ap)` → `consInv γ.ap (srvImgRow …)` in the server (`InvServer`, `CindexBackend`,
+`SnapApplyOpen`, `bootstrapBackend`, `EtcdServer__apply`, `applyEntryNormal`: the 23 modules of the list); (b) their
+callers switch to the `R` lemmas: `writes_doneR` from the apply thread's `kvApplied` (the new prefix), `skip_doneR`
+from the no-write paths (an entry that writes nothing keeps the models), `ci_swap_auR` from the snapshot's image,
+`consInv_allocR` at the boot; (c) the retired case of `commit_save_auR`: the retired backend's KB must not need an
+image (its file lost the name `db` at the install), or a persistent retired fact replaces the pure disjunct; (d) the
+backend's crash-aware `cmtInv` with `KB` and `kbStep.law`'s proof at the commit point from (a)'s row plus mvcc's
+`mvccImage_commit.law` (proposed; design §1).
+
+**Item 2, P5's certificate route: not started** (budget). Lead's conditions (#50 2026-11-25T16:06:56Z): `walFilesC`
+(`storage/WalRecsCrash.lean:67`, `@[no_expose]`, 7 users) names `Hs = walSrvHist d.H` in place; the crash image's
+`srvFilesC` row (`InvRestart.lean:128`, `InvCrashImage.lean`) holds `walHistCerts γ.cl sd Hs` (`InvWalCrash.lean:178`);
+`bootstrapCrashContract.law` (`etcdserver/CrashInterim.lean:137`) returns exactly the pre's certificates as a visible
+frame (no fresh claim); `bootstrapRestartContract` and the graceful slot stay certificate-free. **What P5 must
+provide:** `rnDurK_crash.law` (`InvWalCrash.lean`, P5's) extended to return `walHistCerts γ.cl sd Hs` for the
+crashed WAL's history `Hs` (with `sd` the snapshot directory's durable indices, as `WalNamesK.sd`); until then T7's
+`memberGen_crash_law_holds` takes it as a hypothesis.
+
+No axiom, `sorry`, trusted text, top-level premise or top-level statement changed.
