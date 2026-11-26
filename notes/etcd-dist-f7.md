@@ -1630,3 +1630,51 @@ run started on fk-lean2, `/shared/tmp/f7atok.sh` (`etc/axiom-tok-check.py --raw 
   --check --reuse-raw ~/eg/tmp/f7-atok.jsonl` ok; `--selftest` 0 failures. (Locally the five Perennial-dependent modes
   differ only for want of a Perennial build.)
   No Lean file changed since `351641e79f`'s green build, so no build is needed.
+
+### Handoff W-1 (2026-11-26; S8: bounds, NodeMain's auth arm; `etcd_auth.Work`'s dist proof not started)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 (`/shared/tmp/f7ra-rb.sh`). No
+`sorry`, no new axiom, no top-level statement changed, nothing linked into a `Results` root.
+
+**Step 0, bounds (done):** merged `etcd-safe-f7` @ `ce1e357c5a` (conflicts: `etc/bounds-allow.txt`,
+`etc/dist-axiom-diff-allow.txt`, this file: both sides kept; `etc/axiom-tok-allow.txt`: this branch's side, a superset;
+`dist/client/Results.lean`: a docstring's line breaks). Added a scoped allow (`decl=^RunAuth\.`) for `RunAuth`'s
+orchestrator `threadBound`, as `RunWatch`'s. `etc/bounds-check.py --check`: 389 against 389; `--selftest` ok.
+tier-check, lease-order: ok.
+
+**Step 1, NodeMain's auth arm (checked: `etc/lean-check.py -a` on the proof, 0 errors; `lake build` running at handoff):** `Spec/.../dist/client/NodeMainAuth.lean` (`NodeMainAuth.spec`, kind 5, as
+`NodeMainWatch.spec`: from `⌜0 ≤ c < 4 ∧ eps ≠ []⌝ -∗ nodeAuthPre addr eps`), `nodeAuthPre` in `PrincipalWire.lean`
+(level token; an auth-on view `Γ` with distinct `Γ.au`, `γR`; the pure facts `principalOp.spec` takes; `membersAt
+eps Γ`; `svcAddr (principalSvcG Γ γR eps) addr`: the share's protocols as they are, the principals' wire holds no
+values, so no `svcAddr_…` bridge), and `Proof/.../dist/client/NodeMainAuth.lean` (`NodeMainAuth.wp_proof` over
+`NodeCount`, `principalCodec`, `principalOp.spec`, `ServeClient` at `I := GoString`, `O := Bool`). Proof notes: the
+closure `func(int) any { return eps }` reads `eps` through its variable (`ipersist eps` after the arm's `wp_auto`),
+and `HΨ` needs its `sys` given (`ispecialize HΨ $$ %(interface.mkOk (go.GoType.SliceType go.string) #eps)`). Not
+linked (`principalOp` has no proof); F8's `NodeMain.spec` still reaches the arm with a `False` share (D2): replacing
+it needs `wlNodeShare`'s auth case to be `nodeAuthPre` at the UNROTATED endpoints (the arm does not rotate), a
+change to F8's share.
+
+**Step 2, `principalOp.wp_proof` (not started).** What is known:
+- `principalOp`: `principalClient(eps, who)` (u: `newUserClient(eps[1%k], "u", uPw)`, v: `eps[2%k]`, bad:
+  `newClient([eps[1%k]])`, anonymous: `newClient([eps[0]])`), `defer cli.Close()`, `auth.Work(cli, who)`.
+- Needed first: a dist spec of `etcd_auth.Work` (none exists; the in-process `Work.spec` is over `isNewClient`,
+  `clientTokAt`, `akKVOn`, `akAuthFixed`, one member). Its pre, from what the `On_dist` axioms take
+  (`KV_PutOn_dist`: `userClientAt cl api eps V Γ cfg`, `outTokOk (principalOf cfg) om`, `srvReqLogLb γR L₀`,
+  `writeAuD Γ.kv (principalOf cfg) …`; `WatchOn_dist`: `watchClientAt cl w eps V Γ`, `clientF cl "cfg" ↦□ cfg`,
+  `cfg.Token' = []`, `watchFloorsD eps Γ γR L₀`, `outTokOkS (principalOf cfg) om`): the client at one endpoint
+  `[a]`, `a ∈ addrs`, `cfg` with `principalOf cfg` the principal's user (none for `bad` and the anonymous one), and
+  `akDistEnv addrs Γ γR` (from `prP`); `watchFloorsD [a]` from `watchFloorsD addrs` needs a sublist lemma
+  (`RunAuth.lean`'s `watchFloorsD_one` is the barrier's analogue).
+- The client handles: `RunAuth.lean` l.186-300 (`wp_newClient`, `wp_newUserClient` → `userCli` →
+  `watchClient_of_userCli`) is the template; its two `WatchOn_dist` calls (l.383-480) are the template of the
+  refused watch, with `outTokOkS_reqMd` (`bad`'s `token` metadata) for `outTokOkS` and `watchCheckedD_c_refuted`
+  (`AuthWatchRefusal.lean`) for the events case (in-process: `Work.lean` l.671-814, `akWatch_c_refused`).
+- Riskiest step: that refused watch for `bad` (its context's metadata `token: [badtoken]`, `outTokOkS_reqMd`).
+
+**Build at handoff:** `/shared/tmp/f7ra-rb.sh Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMainAuth
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked`, log `/shared/tmp/f7ra-nmab.log` (ends
+`EXIT n`; empty at handoff, possibly waiting on fk-lean1's build lock). First step: read it; rerun if it is not `EXIT 0`
+(the merge of `ce1e357c5a` also changed Lean files, so a full build is due before landing).
+
+**Next:** (1) the build above; (2) `etcd_auth.Work`'s dist spec (design above), then `principalOp.wp_proof`, the
+refused watch first; (3) link `NodeMainAuth`/`principalOp` once `principalOp` is proved.
