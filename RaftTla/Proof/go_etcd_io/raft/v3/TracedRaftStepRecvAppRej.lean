@@ -341,7 +341,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       obtain ⟨ht, hint, hhi, hht, hse⟩ : ∃ ht hint : w64, uint.Z hint ≤ uint.Z m.Index' ∧
           uint.Z ht ≤ uint.Z m.LogTerm' ∧
           s' = sendMsgs { s with lead := m.From' } [appResp id { s with lead := m.From' } m.From' true m.Index' ht hint] := by
-        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -364,7 +364,7 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
     obtain ⟨ht, hint, hhi, hht, hse⟩ : ∃ ht hint : w64, uint.Z hint ≤ uint.Z m.Index' ∧
         uint.Z ht ≤ uint.Z m.LogTerm' ∧
         s' = sendMsgs { s with lead := m.From' } [appResp id { s with lead := m.From' } m.From' true m.Index' ht hint] := by
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

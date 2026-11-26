@@ -1281,7 +1281,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
   · -- the closing wand: the end state is `s`
     have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
-      rcases (hend hty).1 hst with rfl | ⟨ty', mm, hlow, -⟩
+      rcases (hend hty (by xtrec_tac)).1 hst with rfl | ⟨ty', mm, hlow, -⟩
       · exact OutTyStep.refl _
       · exfalso
         rcases hlow with ⟨-, h, -⟩ | ⟨-, h, -⟩
@@ -1293,7 +1293,7 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
     have hs' : s' = s := by
-      have h := (hend hty).1 hst
+      have h := (hend hty (by xtrec_tac)).1 hst
       rcases h with h | ⟨ty', mm, hlow, -⟩
       · exact h
       · exfalso
@@ -1479,7 +1479,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
   · -- the closing wand: the end state is `s`
     have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       rw [ignResp_end hp h]; exact OutTyStep.refl _
     iapply stepClose_anyB_end hoty
@@ -1488,7 +1488,7 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
     have hs' : s' = s := by
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       exact ignResp_end hp h
     subst hs'
@@ -1686,7 +1686,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
     have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       have hve : VoteEnd id s m s' := by
-        rcases (hend hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
+        rcases (hend hty (by xtrec_tac)).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
         · rw [hcq] at h; cases h
         · rw [hpre pvs] at h; exact h
       exact outTyStep_voteEnd hTy hve
@@ -1696,7 +1696,7 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
     have hve : VoteEnd id s m s' := by
-      rcases (hend hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
+      rcases (hend hty (by xtrec_tac)).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
       · rw [hcq] at h; cases h
       · rw [hpre pvs] at h; exact h
     have hI := voteEnd_simIdle tn.voters id s s' m ents a0 ma hR0 hs0 bt bc bl hTy hterm hnpc hma hve

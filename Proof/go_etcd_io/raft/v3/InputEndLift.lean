@@ -633,10 +633,10 @@ theorem ie_preEnd_preState {s : NState} {m : MessageM} {ty : MsgType} {ents : Li
 
 /-- `Step`'s stale arm: ignored, with check-quorum and pre-vote off. -/
 theorem ie_recvEnd_stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} {ty : MsgType} (hsc : LiftScope c id s) (hT : StepEndTy m.Type')
-    (hpv : m.Type' ≠ MsgPreVote) (hst : StaleMsg s m) (h : StepEnd c id m ents ctx s s') :
+    {s s' : NState} {ty : MsgType} (hsc : LiftScope c id s)
+    (hpv : m.Type' ≠ MsgPreVote) (hst : StaleMsg s m) (h : StepEndBody c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
-  obtain ⟨hs, -, -, -⟩ := h hT
+  obtain ⟨hs, -, -, -⟩ := h
   have he : s' = s := by
     rcases hs hst with he | ⟨ty', mm, hlow, -⟩
     · exact he
@@ -650,18 +650,18 @@ theorem ie_recvEnd_stale {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
 /-- A message of a nonzero term handled by the role's step function: stale, or the preamble then
 the step function's result. -/
 theorem ie_recvEnd_fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} {ty : MsgType} (hsc : LiftScope c id s) (hT : StepEndTy m.Type')
+    {s s' : NState} {ty : MsgType} (hsc : LiftScope c id s)
     (hpv : m.Type' ≠ MsgPreVote) (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
     (h0 : m.Term' ≠ W64 0) (hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term')
     (hpl : preLead m = if fromLeader ty then m.From' else W64 0)
     (hpk : ¬ PreTermKeep (absMsg ty m ents ctx))
     (hH : ∀ t : NState, FnScope c id t → (toPState t).outbox = (toPState s).outbox →
       StepFnEnd c id t m ents ctx s' → HandleEnd k c id (toPState t) (absMsg ty m ents ctx) (toPState s'))
-    (h : StepEnd c id m ents ctx s s') :
+    (h : StepEndBody c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
   by_cases hst : StaleMsg s m
-  · exact ie_recvEnd_stale hsc hT hpv hst h
-  obtain ⟨-, -, -, hfn⟩ := h hT
+  · exact ie_recvEnd_stale hsc hpv hst h
+  obtain ⟨-, -, -, hfn⟩ := h
   obtain ⟨pvs, H⟩ := hfn hst hh hv
   exact Or.inr (Or.inr (Or.inr ⟨h0, _, ie_preEnd_preState pvs h0 hst hbf hpl hpk,
     hH _ (FnScope.of_preState hsc pvs) (ie_preState_outbox s m pvs) H⟩))
@@ -669,13 +669,14 @@ theorem ie_recvEnd_fn {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} 
 /-- A local message (term `0`): no preamble, the step function at `s`. -/
 theorem ie_fn_local {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hT : StepEndTy m.Type') (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
-    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : StepFnEnd c id s m ents ctx s' := by
+    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') (hnx : ¬ XtRec id m s := by xtrec_tac) :
+    StepFnEnd c id s m ents ctx s' := by
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
   have hbf : ¬ PreBF m s := fun hb => by
     have h1 := hb.1
     rw [h0] at h1
     word
-  obtain ⟨-, -, -, hfn⟩ := h hT
+  obtain ⟨-, -, -, hfn⟩ := h hT (by xtrec_tac)
   obtain ⟨pvs, H⟩ := hfn hst hh hv
   rwa [ie_preState_nobf hbf] at H
 
@@ -688,28 +689,30 @@ theorem recvEnd_of_stepEnd_stale {c : CfgM} {id : w64} {m : MessageM} {ents : Li
       m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgVote ∨ m.Type' = MsgVoteResp)
     (hst : StaleMsg s m) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') :=
-  ie_recvEnd_stale hsc (by unfold StepEndTy; rcases hty with e | e | e | e | e | e <;> ie_tyclose e)
-    (by rcases hty with e | e | e | e | e | e <;> (rw [e]; ie_tyclose MsgPreVote)) hst h
+  -- (option (b)) the body at `s` but for `gh.xt` (an append response `Step` records first)
+  (h.body_xt (by unfold StepEndTy; rcases hty with e | e | e | e | e | e <;> ie_tyclose e)).elim
+    fun Y hb => ie_recvEnd_stale (s := { s with gh := { s.gh with xt := Y } }) hsc
+      (by rcases hty with e | e | e | e | e | e <;> (rw [e]; ie_tyclose MsgPreVote)) hst hb
 
 /-- **`MsgHeartbeat`**. -/
 theorem recvEnd_of_stepEnd_heartbeat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHeartbeat)
     (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .heartbeat m ents ctx) (toPState s') :=
-  ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fn hsc (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' _ H => ie_handle_heartbeat hsc' hty H) h
+    (fun _ hsc' _ H => ie_handle_heartbeat hsc' hty H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgApp`**. -/
 theorem recvEnd_of_stepEnd_app {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgApp)
     (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .app m ents ctx) (toPState s') :=
-  ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fn hsc (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' _ H => ie_handle_app hsc' hty H) h
+    (fun _ hsc' _ H => ie_handle_app hsc' hty H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgHeartbeatResp`**, with no read-index context (`ctx = []`: no read-index request in the
 scope, so the leader's heartbeats carry none). -/
@@ -718,10 +721,10 @@ theorem recvEnd_of_stepEnd_heartbeatResp {c : CfgM} {id : w64} {m : MessageM} {e
     (h0 : m.Term' ≠ W64 0) (hctx : ctx = []) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .heartbeatResp m ents ctx) (toPState s') :=
-  ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fn hsc (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty hctx (hns.of_outbox ho) H) h
+    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty hctx (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgAppResp`**. -/
 theorem recvEnd_of_stepEnd_appResp {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
@@ -729,10 +732,11 @@ theorem recvEnd_of_stepEnd_appResp {c : CfgM} {id : w64} {m : MessageM} {ents : 
     (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .appResp m ents ctx) (toPState s') :=
-  ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
+  (h.body_xt (by unfold StepEndTy; ie_tyclose hty)).elim fun Y hb =>
+  ie_recvEnd_fn (s := { s with gh := { s.gh with xt := Y } }) hsc (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' ho H => ie_handle_appResp hsc' hty (hns.of_outbox ho) H) h
+    (fun _ hsc' ho H => ie_handle_appResp hsc' hty (hns.of_outbox ho) H) hb
 
 /-- **`MsgVoteResp`**. -/
 theorem recvEnd_of_stepEnd_voteResp {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
@@ -740,10 +744,10 @@ theorem recvEnd_of_stepEnd_voteResp {c : CfgM} {id : w64} {m : MessageM} {ents :
     (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .voteResp m ents ctx) (toPState s') :=
-  ie_recvEnd_fn hsc (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fn hsc (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' ho H => ie_handle_voteResp hsc' hty (hns.of_outbox ho) H) h
+    (fun _ hsc' ho H => ie_handle_voteResp hsc' hty (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgVote`**: `Step`'s own arm (no step function), with check-quorum off (no lease). -/
 theorem recvEnd_of_stepEnd_vote {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
@@ -752,8 +756,8 @@ theorem recvEnd_of_stepEnd_vote {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     RecvEnd k c id (toPState s) (absMsg .vote m ents ctx) (toPState s') := by
   have hT : StepEndTy m.Type' := by unfold StepEndTy; ie_tyclose hty
   by_cases hst : StaleMsg s m
-  · exact ie_recvEnd_stale hsc hT (by rw [hty]; ie_tyclose MsgPreVote) hst h
-  obtain ⟨-, -, hv, -⟩ := h hT
+  · exact ie_recvEnd_stale hsc (by rw [hty]; ie_tyclose MsgPreVote) hst (h hT (by xtrec_tac))
+  obtain ⟨-, -, hv, -⟩ := h hT (by xtrec_tac)
   rcases hv hst hty with ⟨hcq, -⟩ | ⟨pvs, H⟩
   · rw [hsc.2.1] at hcq; cases hcq
   · exact Or.inr (Or.inr (Or.inr ⟨h0, _,
@@ -786,7 +790,7 @@ theorem tickEnd_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') :
     TickEnd k c id (toPState s) (toPState s') := by
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
-  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty)
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac)
   obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
   rcases hg with ⟨-, rfl⟩ | ⟨⟨hnl, hv, -, -⟩, -, peers, pvs, hperm, rfl⟩
   · exact Or.inl rfl
@@ -851,7 +855,7 @@ theorem logst_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List E
     {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgHup) (h0 : m.Term' = W64 0)
     (h : StepEnd c id m ents ctx s s') : s'.logst = s.logst := by
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
-  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty)
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac)
   exact (hhup hst hty).2.2.1.1
 
 /-- (#33 S4) **A tick's `MsgBeat` keeps the log's state**: a leader's heartbeats queue messages

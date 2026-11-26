@@ -161,7 +161,7 @@ theorem propLead_end {γ : RaftNames} {c : CfgM} {id : w64} {m : MessageM} {ents
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
   have hns : ¬ StaleMsg s m := fun h => h.1 hT0
   have hte : StepEndTy m.Type' := by unfold StepEndTy; simp [hty]
-  obtain ⟨pvs, hfn⟩ := (h hte).2.2.2 hns (by rw [hty]; exact msgProp_ne_hup) (by rw [hty]; exact msgProp_ne_vote)
+  obtain ⟨pvs, hfn⟩ := (h hte (by xtrec_tac)).2.2.2 hns (by rw [hty]; exact msgProp_ne_hup) (by rw [hty]; exact msgProp_ne_vote)
   rw [hpre pvs] at hfn
   obtain ⟨d, hres⟩ := hfn.2.2 hlead
   unfold LeaderStepResultC at hres

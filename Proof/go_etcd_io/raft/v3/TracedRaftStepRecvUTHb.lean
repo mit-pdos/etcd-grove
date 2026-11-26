@@ -409,7 +409,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
       obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
           s' = heartbeatResult id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
             lead := m.From' } m ctx := by
-        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
         unfold FollowerStepResultC at hf
@@ -426,7 +426,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress,
         s' = heartbeatResult id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
           lead := m.From' } m ctx := by
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
       unfold FollowerStepResultC at hf

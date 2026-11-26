@@ -101,7 +101,7 @@ theorem RawNode.TransferLeader.wp_proof
   wp_auto
   -- (raft-final phase 2) the forward may record `(lead, term)` in `xw` (`"%Hxwframe"`): `NetFrame` at
   -- the ghost state before the step, which the step changes only in `xw`
-  obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx, -⟩ := Hxwf rfl
+  obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx, -⟩ := Hxwf (.inl rfl)
   simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
   icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   have Hsneq : s'.gh.sn = s.gh.sn := by rw [Hgx]

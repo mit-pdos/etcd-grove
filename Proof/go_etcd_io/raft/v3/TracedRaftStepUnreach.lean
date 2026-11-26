@@ -84,7 +84,7 @@ theorem unreach_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {c
   have hnv : m.Type' ≠ MsgVote := fun h => by unr_absurd
   have hnp : m.Type' ≠ MsgProp := fun h => by unr_absurd
   have hself : s = { sendMsgs s [] with prvals := s.prvals } := by cases s; simp [sendMsgs]
-  obtain ⟨pvs0, hfn⟩ := (h hety).2.2.2 (fun h' => h'.1 hT0) hnh hnv
+  obtain ⟨pvs0, hfn⟩ := (h hety (by xtrec_tac)).2.2.2 (fun h' => h'.1 hT0) hnh hnv
   rw [hpre pvs0] at hfn
   obtain ⟨hf, hc, hl⟩ := hfn
   cases hr : s.role with

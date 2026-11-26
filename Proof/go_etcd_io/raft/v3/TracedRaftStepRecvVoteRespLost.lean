@@ -313,7 +313,7 @@ theorem stepBundle_traced_candVoteRespLost :
     have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { lostState s m with prvals := pvs } := by
-        obtain ⟨pvs0, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs0, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs0] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
         unfold CandidateStepResultC at hf
@@ -332,7 +332,7 @@ theorem stepBundle_traced_candVoteRespLost :
     iunfold stepClose
     iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hse⟩ : ∃ pvs : GMap w64 Progress, s' = { lostState s m with prvals := pvs } := by
-      obtain ⟨pvs0, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs0, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs0] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
       unfold CandidateStepResultC at hf

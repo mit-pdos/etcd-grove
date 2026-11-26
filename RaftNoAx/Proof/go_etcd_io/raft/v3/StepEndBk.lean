@@ -287,11 +287,11 @@ theorem bk_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
     (hty : m.Type' = MsgApp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgVote ∨ m.Type' = MsgVoteResp ∨
       m.Type' = MsgHeartbeat ∨ m.Type' = MsgHeartbeatResp)
     (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
-    (h : StepEnd c id m ents ctx s s') : BkStep s s' := by
+    (h : StepEnd c id m ents ctx s s') (hnx : ¬ XtRec id m s := by xtrec_tac) : BkStep s s' := by
   have hT : StepEndTy m.Type' := by
     unfold StepEndTy
     rcases hty with e | e | e | e | e | e <;> rw [e] <;> se_tyclose MsgApp
-  obtain ⟨hst, -, hv, hfn⟩ := h hT
+  obtain ⟨hst, -, hv, hfn⟩ := h hT (by xtrec_tac)
   by_cases hs : StaleMsg s m
   · exact BkStep.of_stale (hst hs)
   have hh : m.Type' ≠ MsgHup := by
@@ -316,7 +316,7 @@ theorem bk_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHup)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : BkStep s s' := by
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
-  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty)
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty) (by xtrec_tac)
   obtain ⟨-, -, ⟨hlog, -⟩, -, hg⟩ := hhup hst hty
   refine ⟨by rw [hlog], fun hl => ?_⟩
   rcases hg.exists_pre_ctx with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩

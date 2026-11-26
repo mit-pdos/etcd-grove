@@ -139,7 +139,7 @@ theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id
     ((toPState s1).rd.ro.pending = [] → (toPState s2).rd.ro.pending = []) := by
   cases p with
   | self pv t =>
-    obtain ⟨⟨Hty, -, -, Hnz, -, Hcx, -⟩, -, -⟩ := Hpst
+    obtain ⟨⟨Hty, Hfrid, -, Hnz, -, Hcx, -⟩, -, -⟩ := Hpst
     -- the type: an append or vote response (a pre-vote response is excluded by `Hnpv`)
     have Hty' : st.msg.Type' = MsgAppResp ∨ st.msg.Type' = MsgVoteResp := by
       rcases Hty with h | h | h
@@ -166,7 +166,7 @@ theorem advStep_pure {cf : CfgM} {rs : RNState} {fp : List EntryM} {a : w64} {id
       (by rcases Hty' with h | h
           · exact .inr (.inl h)
           · exact .inr (.inr (.inr (.inl h))))
-      Hnz (fun _ => Hcx) Hend
+      Hnz (fun _ => Hcx) Hend (fun hx => hx.2.1 Hfrid)
     have Hpd : (toPState s1).rd.pend = [] := by rw [toPState_rd_pend]; exact Hl.2.2.2.2.1
     refine ⟨fun Adm dec rest re H => ?_, ?_, recvEnd_ro HR.2 HR.1 Hpd⟩
     · simp only [advHead, hq, Option.toList_some, List.singleton_append]

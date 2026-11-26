@@ -616,9 +616,11 @@ abbrev raft.Step.tracedTriple : Prop :=
                       (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
                         ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp, g.decs⟩))⌝ ∗
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
-      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+                   (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
+      "%Hxwframe" ∷ ⌜(m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0))⌝ ∗
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧

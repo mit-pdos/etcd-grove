@@ -84,7 +84,7 @@ theorem unreachEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ct
   have hnv : m.Type' ≠ MsgVote := fun h => by unr_absurd
   have hnp : m.Type' ≠ MsgProp := fun h => by unr_absurd
   have hself : s = { sendMsgs s [] with prvals := s.prvals } := by cases s; simp [sendMsgs]
-  obtain ⟨pvs0, hfn⟩ := (h hety).2.2.2 (fun h' => h'.1 hT0) hnh hnv
+  obtain ⟨pvs0, hfn⟩ := (h hety (by xtrec_tac)).2.2.2 (fun h' => h'.1 hT0) hnh hnv
   rw [hpre pvs0] at hfn
   obtain ⟨hf, hc, hl⟩ := hfn
   cases hr : s.role with
@@ -199,7 +199,7 @@ theorem RawNode.ReportUnreachable.wp_absProof
   have e1 := Href.keep (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
   icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
   obtain ⟨Ht1, -, Ht3, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Htrm' : rs.term = s'.term := by rw [Htrm, Hse]

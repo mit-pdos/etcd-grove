@@ -636,7 +636,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+        (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
       · iframe Hphys Hrc00 HG Hlg
         isplitl [Hm]
         · iapply msgIn_nonprop Hnp $$ Hm

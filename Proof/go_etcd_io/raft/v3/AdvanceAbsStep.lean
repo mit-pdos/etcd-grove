@@ -374,6 +374,7 @@ theorem wp_step_pending_ns
         -, -, %Hend, %Hack', %Hns', -⟩
       have e2 := Hcc (fun h => absurd h (by not_self)); subst c'
       have Hfr' := Hframe (by not_self) (by not_self) (by not_self) (fun h => absurd h (by not_self))
+        (fun _ h => absurd Hfr h)
       have Htm := Hterm (by not_self)
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost

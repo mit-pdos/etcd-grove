@@ -615,7 +615,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
       intro s' hend
       have hse : s' = sendMsgs { s with lead := m.From' }
           [appResp id { s with lead := m.From' } m.From' false s.logst.committed (W64 0) (W64 0)] := by
-        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -637,7 +637,7 @@ theorem stepBundle_traced_folAppStale : stepBundle_traced.on (GF := GF) (hG := h
     iintro %s' %B %recv %_ %hend %_ Hout
     have hse : s' = sendMsgs { s with lead := m.From' }
         [appResp id { s with lead := m.From' } m.From' false s.logst.committed (W64 0) (W64 0)] := by
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

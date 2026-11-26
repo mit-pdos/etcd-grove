@@ -678,10 +678,12 @@ abbrev raft.Step.untracedNsTriple : Prop :=
       -- (raft-final phase 2, 2026-10-29) but a transfer request, which may record the node's
       -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
+                   (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
       -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows
-      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+      "%Hxwframe" ∷ ⌜(m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0))⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
@@ -718,21 +720,24 @@ def noSnapR (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : S
 
 /-- The end state's protocol frame, from the post's frames: off a `MsgSnap` and a snapshot's
 acknowledgement, the log's boundary, snapshot and storage kept. -/
-theorem logKeep_of_frames {m : MessageM} {ents : List EntryM} {sn : Option SnapshotM} {s s' : NState}
+theorem logKeep_of_frames {id : w64} {m : MessageM} {ents : List EntryM} {sn : Option SnapshotM} {s s' : NState}
     (Hlocal : (m.Type' = MsgStorageAppendResp → sn = none) → LocalStepOk m ents s s')
     (Hframe : m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-      (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s')
-    (Hxw : m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-      s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw)
+      (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s')
+    (Hxw : (m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
+      s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+      (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0)))
     (hs : m.Type' ≠ MsgSnap) (ha : m.Type' = MsgStorageAppendResp → sn = none) :
     s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧ s'.logst.storage = s.logst.storage := by
   by_cases h1 : m.Type' = MsgStorageApplyResp
   · obtain ⟨H, -⟩ := Hlocal ha (Or.inr (Or.inr h1))
     exact ⟨H.2.2.2.2.1, H.2.2.2.1, H.2.2.2.2.2.2.1⟩
-  by_cases h2 : m.Type' = MsgTransferLeader
+  by_cases h2 : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
   · obtain ⟨H, -⟩ := Hxw h2
     exact ⟨H.2.2.2.1, H.2.1, H.2.2.2.2.2.1⟩
-  have H := Hframe hs h1 h2 ha
+  have H := Hframe hs h1 (fun h => h2 (.inl h)) ha
+    (fun h3 h4 => Classical.byContradiction fun h5 => h2 (.inr ⟨h3, h4, h5⟩))
   exact ⟨H.2.2.2.1, H.2.1, H.2.2.2.2.2.1⟩
 
 /-- **`raft.Step.spec`'s untraced instance at the no-snapshot flag** (P-raft-1b): the gates at

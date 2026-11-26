@@ -27,7 +27,7 @@ theorem RNPv.step_gxw [GoGlobalContext] [GoSemanticsFunctions] {rs rs' : RNState
     {fp : List EntryM} {s s' : NState} {m : MessageM}
     (H : RNPv rs fp s)
     (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
-    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs }) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc)
+    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs }) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc)
     (hpc : PreCandStep m s s')
     (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' fp s' := by
   obtain ⟨H1, H2, -, H4, H5⟩ := H
@@ -41,7 +41,7 @@ theorem RNPv.step_gxw [GoGlobalContext] [GoSemanticsFunctions] {rs rs' : RNState
 
 /-- `LoanOk.step` across a step that changes the ghost state only in `xw`. -/
 theorem LoanOk.step_gxw {rs : RNState} {s s' : NState} {b : Bool} (t : w64) (H : LoanOk rs s)
-    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs })
+    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs })
     (hkeep : rs.slent ≠ none →
       (s'.logst.snap = s.logst.snap ∨
         ∃ s2, s'.logst.snap = some s2 ∧ uint.Z s.logst.committed < uint.Z s2.index' ∧

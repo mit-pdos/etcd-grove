@@ -75,7 +75,7 @@ theorem localNoLine_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM
     unfold StepEndTy; rcases hp.1 with h | h <;> simp [h]
   have hnh : m.Type' ≠ MsgHup := localTy_ne hp.1 (by decide)
   have hnv : m.Type' ≠ MsgVote := localTy_ne hp.1 (by decide)
-  obtain ⟨pvs, hfn⟩ := (h hty).2.2.2 hns hnh hnv
+  obtain ⟨pvs, hfn⟩ := (h hty (XtRec.of_ne (localTy_ne hp.1 (by decide)))).2.2.2 hns hnh hnv
   rw [hpre pvs] at hfn
   obtain ⟨hf, hc, -⟩ := hfn
   have nVR : m.Type' ≠ MsgVoteResp := localTy_ne hp.1 (by decide)

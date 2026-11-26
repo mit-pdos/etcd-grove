@@ -313,7 +313,7 @@ theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
     (hwf : m.Type' = MsgApp → PlogWf (entryID.mk m.LogTerm' m.Index') ents)
     (hp : uint.Z s.logst.prev.index' = 0) (hlo : 1 ≤ uint.Z s.logst.inprogress)
     (hhi : uint.Z s.logst.inprogress ≤ ((s.logst.sents ++ s.logst.uents).length : Int) + 1)
-    (h : StepEnd c id m ents ctx s s') :
+    (h : StepEnd c id m ents ctx s s') (hnx : ¬ XtRec id m s := by xtrec_tac) :
     uint.nat s'.logst.inprogress - 1 =
       min (uint.nat s.logst.inprogress - 1)
         (lcpLen (s.logst.sents ++ s.logst.uents) (s'.logst.sents ++ s'.logst.uents)) := by
@@ -326,7 +326,7 @@ theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
       min (uint.nat s.logst.inprogress - 1)
         (lcpLen (s.logst.sents ++ s.logst.uents) (s'.logst.sents ++ s'.logst.uents)) := fun he =>
     ip_of_logGrow (ls' := s'.logst) (LogGrow.keep (by rw [he]) (by rw [he])) hhi
-  obtain ⟨hst, -, hv, hfn⟩ := h hT
+  obtain ⟨hst, -, hv, hfn⟩ := h hT (by xtrec_tac)
   by_cases hs : StaleMsg s m
   · exact hkeep (logst_of_stale (hst hs))
   unfold antStepTypes at hty
@@ -594,7 +594,7 @@ theorem campaignEndR_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents :
     CampaignEndR k id (toRState rs [] s) (toRState rs' [] s') := by
   have hl := logst_of_stepEnd_hup hty h0 h
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
-  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty)
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty) (by xtrec_tac)
   obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
   have hbk : BkStep s s' := ⟨by rw [hl], fun hl' => by
     rcases hg.exists_pre_ctx with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩

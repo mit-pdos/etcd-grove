@@ -765,7 +765,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
     have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
-        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -780,7 +780,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
     have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

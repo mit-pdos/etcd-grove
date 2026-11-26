@@ -281,17 +281,20 @@ theorem trCapB_idIn (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : Cfg
 
 /-- (step 4) What a step of an `AdvTy` message keeps of the node's state (`NetFrame` for a response,
 `LocalFrame` for an acknowledgement of no snapshot). -/
-theorem advFrame {m : MessageM} {ents : List EntryM} {sn : Option SnapshotM} {s s' : NState}
+theorem advFrame {id : w64} {m : MessageM} {ents : List EntryM} {sn : Option SnapshotM} {s s' : NState}
     (Hty : AdvTy m.Type') (Hsnn : m.Type' = MsgStorageAppendResp → sn = none)
     (Hloc : (m.Type' = MsgStorageAppendResp → sn = none) → LocalStepOk m ents s s')
+    -- (antithesis parity B1, option (b)) an append response `Advance` steps is the node's own
+    (Hfid : m.Type' = MsgAppResp → m.From' = id)
     (Hfr : m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-      (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s') :
+      (m.Type' = MsgStorageAppendResp → sn = none) →
+      (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s') :
     s'.gh = s.gh ∧ s'.prevote = s.prevote ∧ s'.logst.prev = s.logst.prev ∧
       s'.logst.storage = s.logst.storage ∧ uint.Z s.logst.applied ≤ uint.Z s'.logst.applied := by
   by_cases ha : m.Type' = MsgStorageAppendResp ∨ m.Type' = MsgStorageApplyResp
   · have h := (Hloc Hsnn (.inr ha)).1
     exact ⟨h.ns, h.2.2.2.2.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.2.2⟩
-  · have h := Hfr (by adv_ne) (fun h' => ha (.inr h')) (by adv_ne) Hsnn
+  · have h := Hfr (by adv_ne) (fun h' => ha (.inr h')) (by adv_ne) Hsnn (fun h hne => absurd (Hfid h) hne)
     exact ⟨h.ns, h.2.2.2.2.2.2.1, h.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2⟩
 
 /-- (2026-11-12, trace-check step 4, `hAdv`) **`raft.Step` on a message `Advance` steps, in both modes**:
@@ -307,6 +310,8 @@ theorem wp_raft_Step_adv (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (rs : List Loc) (dl : List EntryM)
     (Hty : AdvTy m.Type') (Hsnn : m.Type' = MsgStorageAppendResp → sn = none)
     (Hsm : StepMsg m)
+    -- (antithesis parity B1, option (b)) a self append response (`advFrame`)
+    (Hfid : m.Type' = MsgAppResp → m.From' = id)
     (Hhup : (m.Type' = MsgHup →
        m.Term' = W64 0 ∧
        uint.Z s.term + 1 < 2 ^ 64 ∧
@@ -421,9 +426,11 @@ theorem wp_raft_Step_adv (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
                         (∀ dec c0 h0 g, md = .dyn dec c0 h0 g →
                           ∃ cs', md' = .dyn dec c0 h0 ⟨uint.nat sv.Metadata'.Index', cs', g.fp, g.decs⟩))⌝ ∗
         "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                     (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
-        "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                     s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+                     (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
+        "%Hxwframe" ∷ ⌜(m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)) → NetFrame s { s' with gh := s.gh } ∧
+                     s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧ (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                     (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨ (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0))⌝ ∗
         "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧
@@ -455,7 +462,7 @@ theorem wp_raft_Step_adv (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     inext
     iintro %err %s' %c' %md' H
     iNamed H
-    have Hgh := (advFrame Hty Hsnn Hlocal.1 Hframe).1
+    have Hgh := (advFrame Hty Hsnn Hlocal.1 Hfid Hframe).1
     ihave Hrntr := rnTrace_none (GF := GF) γ r id c dl s' (by rw [Hgh]; exact htr)
     iapply HΦ $$ %err %s' %c' %md'
     iframe Hrntr Hphys Hghost Herr
@@ -542,7 +549,7 @@ theorem wp_raft_Step_adv (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     iNamed H
     have Hcc := Hcfg' Hsnn
     subst Hcc
-    obtain ⟨Hgh, Hpv, Hpr, Hst, Hap⟩ := advFrame Hty Hsnn Hlocal.1 Hframe
+    obtain ⟨Hgh, Hpv, Hpr, Hst, Hap⟩ := advFrame Hty Hsnn Hlocal.1 Hfid Hframe
     have Htr' : s'.gh.tr = some γd := by rw [Hgh]; exact htr
     icases ownStepGhost_bootCommit γ _ c' id s' $$ Hghost with ⟨%Hbc', Hghost⟩
     icases ownStepGhost_bootPrefix γ _ c' id s' $$ Hghost with ⟨%Hbp', Hghost⟩
@@ -685,7 +692,7 @@ private theorem wp_step_pending_g
       · exact .inr (.inl h)
       · exact .inr (.inr (.inl h))
     iapply wp_raft_Step_adv wp_raft_Step c md γ r id s ml m [] [] sn rsp dl HtyA
-      (fun h => absurd h (by not_self)) Hsm
+      (fun h => absurd h (by not_self)) Hsm (fun _ => Hfr)
       (by not_self) (by not_self) (fun _ => ⟨Hto, Hnz⟩) (by not_self)
       (fun _ => ⟨Hto, Hnz, Hfnz, Hnw _ _ rfl⟩) (by not_self) (by not_self)
       (fun h => ⟨Hto, Hnz, Hfnz, fun Hr => by rw [Hrj h] at Hr; cases Hr⟩)
@@ -728,6 +735,7 @@ private theorem wp_step_pending_g
       iintro %err %s' %c' %md' ⟨Hrntr, Hphys, Hghost, %Hwf', %Hstp, %Hcc, -, %Hframe, -, %Hterm, %Hresp, -⟩
       have e2 := Hcc (fun h => absurd h (by not_self)); subst c'
       have Hfr' := Hframe (by not_self) (by not_self) (by not_self) (fun h => absurd h (by not_self))
+        (fun _ h => absurd Hfr h)
       have Htm := Hterm (by not_self)
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost Hrntr
@@ -789,7 +797,7 @@ private theorem wp_step_pending_g
       exact absurd h.1 (by simp)
     iapply wp_raft_Step_adv wp_raft_Step c md γ r id s ml (appendAckM id t (e.getD ⟨W64 0, W64 0⟩))
       [] [] none [] dl (.inr (.inr (.inr (.inl rfl)))) (fun _ => rfl)
-      (by simp [StepMsg, stepMsgTypes, appendAckM])
+      (by simp [StepMsg, stepMsgTypes, appendAckM]) (fun h => absurd h (by msg_ne))
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (fun _ => ⟨(fun _ h => by cases h), Hle, Hsok', Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -861,7 +869,7 @@ private theorem wp_step_pending_g
       exact absurd h.1 (by simp)
     iapply wp_raft_Step_adv wp_raft_Step c md γ r id s ml (applyAckM id) ce [] none [] dl
       (.inr (.inr (.inr (.inr rfl)))) (fun h => absurd h (by msg_ne))
-      (by simp [StepMsg, stepMsgTypes, applyAckM])
+      (by simp [StepMsg, stepMsgTypes, applyAckM]) (fun h => absurd h (by msg_ne))
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (fun _ => rfl) (by msg_ne) (by msg_ne)
@@ -1614,7 +1622,7 @@ theorem RawNode.Advance.tracedSpec_proof
     have Hsd0 : s0.logst.sdt = [] := by rw [← Hs0]; rfl
     ihave Hghost := ownStepGhost_congr γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id (s := s) (s' := s0)
       (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl)
-      (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl)
+      (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (by rw [← Hs0] <;> rfl) (hxt := by rw [← Hs0])
       (by rw [← Hs0]) $$ Hghost
     have Hwf0 : NStateWf s0 := by rw [← Hs0]; exact Hwf
     have Hstok0 : StepsOk s0 rs.steps :=

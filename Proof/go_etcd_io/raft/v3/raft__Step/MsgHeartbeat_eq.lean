@@ -189,7 +189,7 @@ theorem wp_Step_MsgHeartbeat_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) $$ [$Hphys $Hrc00 Hm Hmb $HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+      Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [$Hphys $Hrc00 Hm Hmb $HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
     · isplitl [Hm Hmb]
       · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
       isplitr

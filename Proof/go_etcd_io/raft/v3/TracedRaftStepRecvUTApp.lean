@@ -516,7 +516,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
             [appResp id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with lead := m.From' }
               m.From' (!b) (if b then s.logst.committed else m.Index')
               (if b then W64 0 else ht) (if b then W64 0 else hint)] := by
-        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
         unfold FollowerStepResultC at hf
@@ -549,7 +549,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
           [appResp id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with lead := m.From' }
             m.From' (!b) (if b then s.logst.committed else m.Index')
             (if b then W64 0 else ht) (if b then W64 0 else hint)] := by
-      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
       unfold FollowerStepResultC at hf

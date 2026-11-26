@@ -817,12 +817,24 @@ abbrev raft.Step.spec : Prop :=
       -- log (2026-10-09)
       -- (raft-final phase 2, 2026-10-29) but a transfer request, which may record the node's
       -- leader and term in `NGhost.xw` (the forward's witness, `ownStepGhost_xw_record`)
+      -- (#33 parity B1) and a leader's append response from another node while it has a transferee,
+      -- which may record the sender and term in `NGhost.xt` (the witness of the `MsgTimeoutNow` it
+      -- may send, `isAcked`)
       "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → m.Type' ≠ MsgTransferLeader →
-                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
+                   (m.Type' = MsgStorageAppendResp → sn = none) →
+                   (m.Type' = MsgAppResp → m.From' ≠ id → s.lt = W64 0) → NetFrame s s'⌝ ∗
       -- a transfer request's frame: `NetFrame` but for the ghost state's `xw`, which only grows, and
-      -- `xs` (2026-11-24, #33 S4: set at a follower or a leader, the request recorded as stepped)
-      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader → NetFrame s { s' with gh := s.gh } ∧
-                   s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } ∧ ∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw⌝ ∗
+      -- `xs` (2026-11-24, #33 S4: set at a follower or a leader, the request recorded as stepped);
+      -- (#33 parity B1) and `xt`, the queued `MsgTimeoutNow`s' destinations and terms; the same
+      -- frame for that append response
+      "%Hxwframe" ∷ ⌜m.Type' = MsgTransferLeader ∨
+                     (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0) →
+                   NetFrame s { s' with gh := s.gh } ∧
+                   s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } ∧
+                   (∀ p, p ∈ s.gh.xw → p ∈ s'.gh.xw) ∧
+                   -- (#33 parity B1) the one record a step adds: a follower's forward to its leader
+                   (∀ p, p ∈ s'.gh.xw → p ∈ s.gh.xw ∨
+                      (p = (s.lead, s.term) ∧ s.role = .follower ∧ s.lead ≠ W64 0))⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

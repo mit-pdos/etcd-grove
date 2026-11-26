@@ -328,11 +328,12 @@ local macro "step_tail" : tactic => `(tactic| (
       icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
       icombine Hsd0 Hsd1 gives %Hsde
       have Hsdr' : s'.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
-      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } := by
-        by_cases hx : m.Type' = MsgTransferLeader
+      have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } := by
+        by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
         · exact ⟨(Hxwf hx).1, (Hxwf hx).2.1⟩
         · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
-            Hfr Hs (by not_net) hx (fun h => absurd h (by not_net))
+            Hfr Hs (by not_net) (fun h => hx (.inl h)) (fun h => absurd h (by not_net))
+              (fun h1 h2 => Classical.byContradiction fun h3 => hx (.inr ⟨h1, h2, h3⟩))
           exact ⟨⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩, by rw [a8]⟩
       obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx⟩ := HfrX
       simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
@@ -386,7 +387,7 @@ local macro "step_tail" : tactic => `(tactic| (
         obtain ⟨hant, hctx, -⟩ := Hscp h
         have h0 : m.Term' ≠ W64 0 := (Hok.2.1 (antStep_stamped hant)).2.1
         have HR := recvEnd_of_stepEnd_net (k := rs.k) Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
-        have Hbk := bk_of_stepEnd_net Hl (antStep_disj hant) h0 hctx (Hx h).1
+        have Hbk := bk_of_stepEnd_net Hl (antStep_disj hant) h0 hctx (Hx h).1 (Hnx h)
         have Hcfe : rs.cfg.cfg = cf := Hcfm.2 (Hcin h).2.2.2.1
         obtain ⟨ty0, hty0⟩ := antStep_mtype hant
         refine ⟨fun ty hty Adm => recvEndR_of_bk (by rw [Hcfe]; exact (HR ty hty).1) Hbk Hsn Hpv ⟨rfl, rfl⟩
@@ -400,7 +401,7 @@ local macro "step_tail" : tactic => `(tactic| (
             have h1 := Hipf.1.1; have := uint_Z_nonneg s.logst.prev.index'; omega
           have hhi : uint.Z s.logst.inprogress ≤ ((s.logst.sents ++ s.logst.uents).length : Int) + 1 := by
             have h1 := Hipf.1.2; rw [Hp0 h] at h1; rw [List.length_append]; push_cast; omega
-          have := ipEnd_of_stepEnd Hl hant h0 hctx Hwfa (Hp0 h) hlo hhi (Hx h).1
+          have := ipEnd_of_stepEnd Hl hant h0 hctx Hwfa (Hp0 h) hlo hhi (Hx h).1 (Hnx h)
           rw [Hip, Nat.add_sub_cancel] at this
           exact this
       ihave Hsc := rnScopeAt_keepIf sc rs
@@ -418,7 +419,7 @@ local macro "step_tail" : tactic => `(tactic| (
                 | (rw [show mtypeOf MsgTransferLeader = none from rfl] at hty0; cases hty0)
                 | (simp [mtypeOf, MsgTransferLeader] at hty0)
             obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
-              Hfr Hs (by not_net) hx (fun h => absurd h (by not_net))
+              Hfr Hs (by not_net) hx (fun h => absurd h (by not_net)) (fun _ _ => Hlt0 h)
             rw [a8])) Hsg (fun _ => Hsdr') $$ Hsc
       iclear Hrntr
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
@@ -495,6 +496,12 @@ theorem RawNode.Step.wp_absProof
   iNamed HI
   -- the scope's facts at the start state
   icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  -- (antithesis parity B1, option (b)) no transferee in the scope (no transfer request stepped,
+  -- `XfOk`): no append response `Step` records first
+  icases ownRaftPhysC_xs_of_lt cf rnv.raft' id s $$ Hphys with ⟨%Hxsl, Hphys⟩
+  have Hlt0 : sc = true → s.lt = W64 0 := fun h => Classical.byContradiction fun hc =>
+    absurd (Hxsl hc) (by rw [(Hscope h).2.2.2.2.2.2.2.2.2]; decide)
+  have Hnx : sc = true → ¬ XtRec id m s := fun h => XtRec.of_lt (Hlt0 h)
   icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpre0, Hphys⟩
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom0, Hphys⟩

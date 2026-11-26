@@ -225,7 +225,8 @@ theorem localBeat_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} 
   have hty : StepEndTy m.Type' := by unfold StepEndTy; simp [hp.1]
   have hnh : m.Type' ≠ MsgHup := by rw [hp.1]; exact msgBeat_ne.2.2.2.2.2.2.1
   have hnv : m.Type' ≠ MsgVote := by rw [hp.1]; exact msgBeat_ne.2.2.2.2.2.2.2.1
-  obtain ⟨pvs, hfn⟩ := (h hty).2.2.2 hns hnh hnv
+  obtain ⟨pvs, hfn⟩ := (h hty (XtRec.of_ne (by
+    rw [hp.1]; simp only [MsgBeat, MsgAppResp]; intro h; exact absurd h (of_decide_eq_true rfl)))).2.2.2 hns hnh hnv
   rw [hpre pvs] at hfn
   obtain ⟨d, hres⟩ := hfn.2.2 hp.2
   unfold LeaderStepResultC at hres

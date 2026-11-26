@@ -235,23 +235,79 @@ abbrev PreVoteStepEnd (id : w64) (m : MessageM) (ctx : List w8) (s s' : NState) 
   (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
     PreVoteEnd id s m s'
 
+/-- (antithesis parity B1, 2026-11-26, option (b)) **An append response `Step` may record before it**:
+a `MsgAppResp` from another node while the node has a transferee, at an untraced node (a traced one
+has none then, `raft.Step.spec`'s premise): `Step` records the transferee's acknowledgement in
+`NGhost.xt` first (`"%Hxwframe"`'s case), so its step function runs at the state with the record
+(`StepEnd`'s `xtr`). -/
+def XtRec (id : w64) (m : MessageM) (s : NState) : Prop :=
+  m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0 ∧ s.gh.tr = none
+
+theorem XtRec.of_ne {id : w64} {m : MessageM} {s : NState} (h : m.Type' ≠ MsgAppResp) :
+    ¬ XtRec id m s := fun h' => h h'.1
+
+theorem XtRec.of_tr {id : w64} {m : MessageM} {s : NState} (h : s.gh.tr ≠ none) :
+    ¬ XtRec id m s := fun h' => h h'.2.2.2
+
+theorem XtRec.of_lt {id : w64} {m : MessageM} {s : NState} (h : s.lt = W64 0) :
+    ¬ XtRec id m s := fun h' => h'.2.2.1 h
+
+/-- (option (b)) `StepEnd`'s `gated` premise (`¬ XtRec`), at a reader's site: a hypothesis, or by the
+message type facts in the context (any type but `MsgAppResp`, its constants decided), or a traced
+node (`s.gh.tr ≠ none`), or no transferee (`s.lt = 0`): a reader writes `h hty (by xtrec_tac)`. -/
+syntax "xtrec_tac" : tactic
+macro_rules
+  | `(tactic| xtrec_tac) => `(tactic| first
+    | assumption
+    | (intro hxr
+       have hxa := hxr.1
+       simp_all only [Perennial.W32, BitVec.ofInt_ofNat, BitVec.reduceEq,
+        Perennial.EtcdGrove.MsgBeat, Perennial.EtcdGrove.MsgHup,
+        Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgAppResp,
+        Perennial.EtcdGrove.MsgVote, Perennial.EtcdGrove.MsgVoteResp, Perennial.EtcdGrove.MsgSnap,
+        Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,
+        Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
+        Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
+        Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
+        Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum,
+        Perennial.EtcdGrove.MsgStorageAppendResp, Perennial.EtcdGrove.MsgStorageApplyResp]
+       done)
+    | (intro hxr; exact hxr.2.2.1 (by assumption))
+    | (intro hxr; exact absurd hxr.2.2.2 (by simp_all))
+    | (intro hxr; simp_all))
+
 /-- **`Step`'s end state** `s'` from `s` on `m`: on the types `StepEndTy` lists (`gated`, applied as a
-function through the coercion below, so its readers write `h hty`), and (#33 parity B1 (ii)) on a
+function through the coercion below, so its readers write `h hty hx`), and (#33 parity B1 (ii)) on a
 `MsgPreVote` (`prevote`: ignored within the lease as a `MsgVote` is, else answered) and a
-`MsgTransferLeader` (`xfer`: the step function's result at the transfer's ghost record, `gh.xw` and
-`gh.xs`, which `Step` writes before it). Nothing on the other types. -/
+`MsgTransferLeader` (`xfer`: the step function's result at the transfer's ghost record, `gh.xw`,
+(option (b)) `gh.xt` and `gh.xs`, which `Step` writes before it). (antithesis parity B1, option (b))
+`gated` but on an append response `Step` may record (`XtRec`), which `xtr` describes at the state with
+the record (`gh.xt`). Nothing on the other types. -/
 structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
     (s s' : NState) : Prop where
-  gated : StepEndTy m.Type' → StepEndBody c id m ents ctx s s'
+  gated : StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s'
   prevote : ¬ StaleMsg s m → m.Type' = MsgPreVote → PreVoteStepEnd id m ctx s s'
   xfer : ¬ StaleMsg s m → m.Type' = MsgTransferLeader →
-    ∃ (X : GMap (w64 × w64) Unit) (b : Bool) (pvs : GMap w64 Progress),
-      StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xs := b } } m pvs) m ents ctx s'
+    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (pvs : GMap w64 Progress),
+      StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xt := Y, xs := b } } m pvs) m ents ctx s'
+  xtr : XtRec id m s →
+    ∃ Y : GMap (w64 × w64) Unit, StepEndBody c id m ents ctx { s with gh := { s.gh with xt := Y } } s'
 
 instance StepEnd.coeFun {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} :
-    CoeFun (StepEnd c id m ents ctx s s') (fun _ => StepEndTy m.Type' → StepEndBody c id m ents ctx s s') :=
+    CoeFun (StepEnd c id m ents ctx s s')
+      (fun _ => StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s') :=
   ⟨StepEnd.gated⟩
+
+/-- (option (b)) `StepEnd`'s body on an append response: at `s`, or at the state with the
+transferee's acknowledgement recorded (`xtr`); either way at `s` but for `gh.xt`. -/
+theorem StepEnd.body_xt {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (h : StepEnd c id m ents ctx s s') (hT : StepEndTy m.Type') :
+    ∃ Y : GMap (w64 × w64) Unit, StepEndBody c id m ents ctx { s with gh := { s.gh with xt := Y } } s' := by
+  by_cases hx : XtRec id m s
+  · exact h.xtr hx
+  · exact ⟨s.gh.xt, h.gated hT hx⟩
 
 /-- (2026-11-11, slice 30c; slice 28n's design) **The storage acknowledgements**, which `Advance` steps. -/
 def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyResp

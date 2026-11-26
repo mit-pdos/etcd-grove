@@ -366,7 +366,7 @@ theorem stepBundle_traced_leadRespNA : stepBundle_traced.on (GF := GF) (hG := hG
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
-    obtain ⟨pvs, hfe⟩ := (hend hty).2.2.2 hns hnHup hnV
+    obtain ⟨pvs, hfe⟩ := (hend hty (by xtrec_tac)).2.2.2 hns hnHup hnV
     rw [hpre pvs] at hfe
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := leadRespNA_end hp hfe
     have hsc := leadRespNA_scope hp hfe
