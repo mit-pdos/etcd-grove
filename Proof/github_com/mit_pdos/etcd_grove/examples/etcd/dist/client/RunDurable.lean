@@ -140,7 +140,7 @@ theorem RunDurable.wp_proof
     (try wp_auto)
     iapply HΦ; iframe Hlt
   subst Hcerr
-  ihave #Hcore := clientCoreAt_of_new cl addrs (Classical.choice hV) $$ [Hnc Hnp]
+  ihave #Hcore := clientCore_of_new cl addrs (Classical.choice hV) $$ [Hnc Hnp]
   · iframe #
   ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl addrs (Classical.choice hV) Γ $$ [Hnc Hnp Hms]
   · iframe #
@@ -286,9 +286,9 @@ theorem RunDurable.wp_proof
   ihave #Hgau := durGetAu (Gg := hG.goose_globalGS) Γ.kv γ γF γs (sint.nat m)
     (fun j' => acks[j']? = some true) $$ [Hfa]
   · iframe #
-  wp_apply (wp_cliGet wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx osl [withPrefixM]
+  wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx osl [withPrefixM]
       iprop(True) (fun σ => iprop(⌜durReadOk (sint.nat m) (fun j' => acks[j']? = some true) σ⌝))
-      durGet_ok (by rw [durGetOp_eq]) (by rw [durGetOp_eq]) (dur_sizes 0).2)
+      durGet_ok (by rw [durGetOp_eq]) (dur_sizes 0).2)
     $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
   · iframe Hlt
     iframe #
@@ -314,7 +314,10 @@ theorem RunDurable.wp_proof
     iapply HΦ; iframe Hlt
   subst Hgerr
   icases HQ with %Hrd
-  have hview : mr.kvs = pfxView durablePfx σ := durRange_eq σ.kvs mr.kvs mr.more Hsel
+  have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel durablePfx [withPrefixM])) σ.kvs mr.kvs mr.more := by
+    have h := Hsel.1
+    rwa [at_readRev_zero σ _ (by rw [durGetOp_eq])] at h
+  have hview : mr.kvs = pfxView durablePfx σ := durRange_eq σ.kvs mr.kvs mr.more Hsel'
   (try wp_auto)
   -- `seen := make([]bool, n)`
   wp_apply (wp_slice_make2 (V := Bool) m) as %ssl ⟨Hssl, -⟩

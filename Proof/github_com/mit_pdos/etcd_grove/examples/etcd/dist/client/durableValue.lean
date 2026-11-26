@@ -31,16 +31,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 theorem durableValue.wp_proof : durableValue.spec (GF := GF) (hG := hG) := by
   intro i hi
   have h1 : sint.nat (W64 (0 + 1)) = 1 := by word
-  have h2 : (((sint.nat i : Nat) : Int)) = sint.Z i := by unfold sint.nat; omega
+  have h2 : (((sint.nat i : Nat) : Int)) = sint.Z i := by unfold sint.nat; exact Int.toNat_of_nonneg hi
   wp_start as -
   wp_auto
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
   iintro %sl ⟨Hsl, -⟩
   (try wp_auto)
-    wp_apply (wp_bytes_to_string _ _ _) $$ [Hsl] as -
-    (try iexact Hsl)
-    (try wp_auto)
+  wp_apply (wp_bytes_to_string _ _ _) $$ [Hsl] as -
+  (try iexact Hsl)
+  (try wp_auto)
   iapply HΦ
   ipureintro
   unfold durVal

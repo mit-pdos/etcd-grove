@@ -98,7 +98,7 @@ theorem RunPutGet.wp_proof
     (try wp_auto)
     iapply HΦ; iframe Hlt
   subst Hcerr
-  ihave #Hcore := clientCoreAt_of_new cl addrs (Classical.choice hV) $$ [Hnc Hnp]
+  ihave #Hcore := clientCore_of_new cl addrs (Classical.choice hV) $$ [Hnc Hnp]
   · iframe #
   ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl addrs (Classical.choice hV) Γ $$ [Hnc Hnp Hms]
   · iframe #
@@ -164,9 +164,9 @@ theorem RunPutGet.wp_proof
     ihave #Hgau := pgGetAu (Gg := hG.goose_globalGS) Γ.kv γ γP (go!"pg/k" ++ s2) (putgetPfx_key s2)
       $$ [Hpfx Hpg Hfired]
     · iframe #
-    wp_apply (wp_cliGet wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd (go!"pg/k" ++ s2)
+    wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd (go!"pg/k" ++ s2)
         slice.nil [] iprop(True) (fun σ => iprop(⌜pgReadOk (go!"pg/k" ++ s2) σ⌝))
-        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl rfl (pg_sizes s2 hlen).2)
+        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl (pg_sizes s2 hlen).2)
       $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
     · iframe Hlt
       iframe #
@@ -193,7 +193,10 @@ theorem RunPutGet.wp_proof
     (try wp_auto)
     icases HQ with %Hrd
     -- the reply's first key-value holds the round's value
-    have h1 := (srvRangeOk_getKey (go!"pg/k" ++ s2) σ.kvs m.kvs m.more Hsel).1
+    have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel (go!"pg/k" ++ s2) [])) σ.kvs m.kvs m.more := by
+      have h := Hsel.1
+      rwa [at_readRev_zero σ _ rfl] at h
+    have h1 := (srvRangeOk_getKey (go!"pg/k" ++ s2) σ.kvs m.kvs m.more Hsel').1
     obtain ⟨kv0, Hkv0, Hval0⟩ := pgReadOk_head Hrd
     rw [← h1] at Hkv0
     rw [pgVal_key] at Hval0
