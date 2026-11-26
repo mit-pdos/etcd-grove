@@ -1030,3 +1030,53 @@ this with its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, aroun
   - Ledger entry marked applied.
 - **Built** on fk-lean2: `MainLogger`, `etcdstart.Link`, the dist/kvremote/putget/putgetk `TopLevelRobustness`, EXIT 0.
   `tier-check` ok (208 known); `lease-order` ok. No `sorry`, no axiom.
+
+### Handoff S3-1 (2026-11-26; steps 1, 2, 4 (in part), 5 done; step 3 blocked: `RunAuthLease` has no proof)
+
+**Done** (the lead's approval, #50 06:08Z; nothing lands before F9's approval):
+- **Step 1** (`93ab11f3ae`): `notes/axiom-review/f7-changed-since-review.md`. All 14 drafts were last reviewed at
+  `6d9d9fd662` (`f7-rerev-{a,c}.md`; `f7-combined.md` at `5b15e37521` reviewed only NewServer/Serve). Changed since:
+  **`KV_GetOn_dist` only** (re-review A's N1: `readCheckedD`/`readAuthedD` now give `srvReqLogLb γR L` at the permitted
+  prefix, a stronger post, never reviewed). `Lease_TimeToLiveKeysOn_dist`: one comment line. The rest unchanged. The
+  tie they rely on changed: `Serve_dist_proposed` adopted as `Serve_dist` (+ `etcdURLsFit` in `NewServer_dist`).
+- **Step 2** (`c1328f9156`, built on fk-lean2, EXIT 0): the 14 drafts are `axiom etcd_dist.authd.<X>.wp_proof`, each in
+  its own pair `Spec/.../dist/<F>.lean` + `Proof/.../dist/<F>.lean` (`<F>` in `etcd-dist-plan.md` §18.4, "Adopted
+  2026-11-26 (F7 S3)"), statements byte-for-byte the drafts'; `AuthViewDist.lean` keeps the vocabulary (defs tier; the
+  specs import it). Docstrings carry the reviews.
+- **Step 4, in part:** `tier-check` ok (208 known), `lease-order` ok. **The base is unchanged by construction**: no
+  module outside the 14 pairs imports them, so no root reaches them; `tcb-report --check`/`--update` not run (a full
+  build for an empty diff). **The axiom-tok walk** run directly on the 14 (no root reaches them, so the script's
+  tcb.json run would not): `notes/axiom-review/f7-auth-axiom-tok.md` — all 14 need an entry, all truncated; 11 have
+  exactly `Client_Put_dist`'s accepted keys (rule 2 `8/1`, rule 7 `∃ P`), `Txn_CommitOn` rule 2 `10/1`, `KV_GetOn`
+  rule 3 (`Q` produced 1), `New_user` rule 5 (`grpcConn`, ...) and `∃ scd`. No entries added.
+- **Step 5** (`33409106a9`): 14 rows in `etcd-dist-f9-f2f7-rows.md`, routes in `etcd-dist-plan.md` §18.4.
+
+**Step 3, blocked: what `RunAuthLease` needs** (`examples/etcd/dist/client/authlease.go:127`; nothing in Lean yet:
+no `Spec/.../dist/client/RunAuthLease.lean`). Its single-process counterpart is `Proof/.../examples/etcd/authlease/`
+(5.9k lines: `run.lean` 1382, `Cell`/`CellModel` 1.5k, `Refusals` 408, `LeaseAttempts` 276, `Holds` 186), over
+`etcd_auth.SetUp.spec` (`auth/SetUp.lean` 414 + `SetupInv`/`SetupHist`/`SetupWrite`). The port, in order:
+1. **A missing contract (for the lead: the 14 do not suffice).** `noAuth`'s third call, `cli.Lease.TimeToLive(ctx,
+   id)` with **no options**, must be refused for the anonymous and the bad-token caller (`v3_server.go:700`,
+   `requireAuthInfo` runs whatever `r.Keys`). No axiom covers it: `Lease_TimeToLiveKeysOn_dist` requires `leaseKeysFold
+   gs false = true` (keys), and `Client_LeaseTimeToLive_dist` is view-free with no check in its success arm, so
+   `refused` cannot be proved. Options: (a) generalize `Lease_TimeToLiveKeysOn_dist` (drop the keys premise; post
+   `leaseCheckD … (fun info => if keys then leaseKeysVerdictFrom … else True)`): a statement change and a re-review;
+   (b) a 15th axiom `Lease_TimeToLiveOn_dist` (approval + review). The single-process proof used `etcdLeaseTTLSpecMd`
+   for both calls (`authlease/noAuth.lean:116`).
+2. **Specs at the view for the dist client's helpers** (none exist): `newUserClient` (over `New_user_dist`),
+   `barriers` (`New_user_dist` + `KV_GetOn_dist` per member, leaving `authFloorD` per member), `grantPut`
+   (`Lease_GrantOn_dist`, `WithLease`, `KV_PutOn_dist`), `noAuth`, `foreign` (`Lease_RevokeOn_dist`,
+   `Lease_TimeToLiveKeysOn_dist`, `Lease_LeasesOn_dist`: refusals by refuting `leaseCheckD`/`writeCheckedD`),
+   `absent` (`KV_GetOn_dist`), `refused`, `reqCtx` (the bad token: `outTokOk none` via `¬ tokShape "badtoken"`).
+3. **`etcd_auth.SetUp` at the view** (`SetUp.spec_dist`): the same Go, re-proved over `KV_PutOn_dist` and the five
+   `Auth_*_dist` (with `histAu`/`SetupInv` at `Γ.kv`), through the anonymous `newClient` client.
+4. **`RunAuthLease.spec`**: as `RunLeaseExpiry.spec` (eps of `leaseMember`s) plus, with auth on, the orchestrator's
+   share of `etcdKV Γ.kv`'s client half and `authHistView Γ.kv` (`notes/etcd-dist-f7.md`, "How the workloads link";
+   `MainLogger`'s auth-on branch must hand them out), `Γ.auth = true`, `Γ.kv.lm = .revocable`, the distinct-names
+   premises; then the cell (`Cell.lean`) moved to `Γ.kv` and `Γ.ls mid`.
+5. **Link and collection:** `wp_RunAuthLease` in a new root `Proof/.../dist/client/auth/Results.lean` (a separate
+   `Results.lean`, so its collection is not `etcd-dist-lease`'s); then `etc/tcb-collections/etcd-dist-auth.txt`
+   (`roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/auth/Results\.lean$`, header as
+   `etcd-dist-lease.txt`'s). **Not created now:** `tcb-report` fails a collection whose pattern matches no root
+   (`etc/tcb-report.py:381`), which would break `etc/gates.sh`. Then `tcb-report --check` (base diff = the auth axioms
+   the link reaches), `--check --update` for base and collection, and the axiom-tok gate's real run.
