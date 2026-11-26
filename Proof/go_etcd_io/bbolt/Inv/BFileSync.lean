@@ -272,7 +272,7 @@ theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
       isplitl [Hown Ha]
       · iapply bMeta_of_own p c hc C [] m.synced (bs.map (fun x => durB x.1)) a
           ⟨hph, hcur, fun k x hk _ => by
-            obtain ⟨y, -, rfl⟩ := List.mem_map.1 (List.mem_of_getElem? hk); rfl, hfs, rfl⟩
+            obtain ⟨y, -, rfl⟩ := List.mem_map.1 (List.mem_of_getElem? hk); rfl, hfs, xsOne_synced m⟩
           $$ [Hown Ha]
         iframe
       isplitl [HR HG]

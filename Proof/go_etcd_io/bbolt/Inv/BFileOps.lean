@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 /-- The facts `bMeta` keeps beside the token, in crash mode. -/
 def bMetaF (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG) (a : BAbs) :
     Prop :=
-  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ FsNoErr ∧ m.lo = m.hi
+  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ FsNoErr ∧ XsOne m
 
 omit go_gctx in
 /-- **`bMeta` in crash mode** as the local caller's part (`csOwnIL`), the exclusivity tokens'
@@ -69,10 +69,10 @@ theorem bMeta_of_own (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
   iframe Ht
   ipureintro; exact ⟨Hl.1, hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, fun _ => hf.2.2.2.2⟩
 
-/-- `bMetaF` but the crash size bounds (`bMetaG`'s facts at `lh`). -/
+/-- `bMetaF` but the crash sizes (`bMetaG`'s facts at `lh`). -/
 def bMetaFG (lh : Bool) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG)
     (a : BAbs) : Prop :=
-  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ FsNoErr ∧ (lh = true → m.lo = m.hi)
+  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ FsNoErr ∧ (lh = true → XsOne m)
 
 omit go_gctx in
 /-- **`bMetaG` in crash mode** as the local caller's part (`bMeta_own`, any `lh`). -/

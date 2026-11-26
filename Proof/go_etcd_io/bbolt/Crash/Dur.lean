@@ -94,15 +94,20 @@ def BWf (s : CSt) : Prop :=
 def WrIn (s : CSt) : Prop :=
   ∀ t off data n, s.busy = .write t off data n → off + data.length ≤ s.m.size
 
+/-- **The crash sizes the ghost state knows are the size alone** (`OsMeta.xs`): what a sync leaves,
+and an announce or a write inside the file keeps; `DB.grow`'s truncate adds its target until its
+sync. -/
+def XsOne (m : OsMeta) : Prop := ∀ l, m.xs = some l → ∀ x ∈ l, x = m.size
+
 /-- **The crash sizes are whole pages**: the sizes the ghost state knows a crash may leave
 (`OsMeta.xs`, exact since the fs ghost state mirrors `OsFile.szCrash`) are whole pages, so is the
-target of a truncate in flight, and a write is in flight only when the size has not moved since the
-last sync (`DB.grow` syncs its truncate before `Tx.write`'s writes; the ghost state knows nothing
-of the sizes a write in flight may leave, `CSt.CrashSize`). -/
+target of a truncate in flight, and a write is in flight only when they are the size alone (a crash
+during a write inside the file then leaves the size, `CSt.crashSize_write_in`; `DB.grow` syncs its
+truncate before `Tx.write`'s writes). -/
 def XsAl (s : CSt) : Prop :=
-  (∃ l, s.m.xs = some l ∧ ∀ x ∈ l, x % 4096 = 0) ∧
+  ∃ l, s.m.xs = some l ∧ (∀ x ∈ l, x % 4096 = 0) ∧
     (∀ t sz n, s.busy = .trunc t sz n → sz % 4096 = 0) ∧
-    (∀ t off data n, s.busy = .write t off data n → s.m.lo = s.m.hi)
+    (∀ t off data n, s.busy = .write t off data n → ∀ x ∈ l, x = s.m.size)
 
 /-- `X`'s byte `b`. -/
 abbrev xb (X : List w8) (b : Nat) : w8 := X.getD b 0
