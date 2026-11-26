@@ -63,7 +63,7 @@ theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C 
     (m : OsMeta) (xs : List ByteG) (a : BAbs) (E : CoPset) (hl : xs.length = m.size)
     (hcut : m.cut = none) (ha : a.phase = .idle ∧ a.cur = C)
     (hok : bCsOk a ⟨m, xs, 0, 0, .idle⟩) (hdur : ∀ x ∈ xs, x = durB x.1)
-    (hlh : FsNoErr → m.lo = m.hi) :
+    (hne : FsNoErr) (hlh : m.lo = m.hi) :
     ⊢ osMeta (GF := GF) i (DFrac.own 1) m -∗ osBytes i 0 (DFrac.own 1) xs ={E}=∗
       ∃ c : CsN, ⌜c.gc = gc ∧ c.N = N⌝ ∗
         bCsInv (GF := GF) { path := path, ino := i, cs := some c } ∗
@@ -90,7 +90,7 @@ theorem bfile_alloc (path : GoString) (i : Ino) (gc : GName) (N : Namespace) (C 
     iexists xs, a
     iframe Ht
     ipureintro
-    exact ⟨hwf, ha.1, ha.2, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hlh⟩
+    exact ⟨hwf, ha.1, ha.2, fun k x hk _ => hdur x (List.mem_of_getElem? hk), hne, hlh⟩
   · unfold bBytes bGhost BFile.dq; dsimp only [dhalf]
     rw [hl]
     iframe Hb Hfr
@@ -109,7 +109,7 @@ theorem bfile_close (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
         ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
-          (FsNoErr → m.lo = m.hi)⌝) by
+          FsNoErr ∧ m.lo = m.hi⌝) by
     unfold bMeta; rw [hc]) $$ Hm
   icases Hm with ⟨Hm, -, %bs, %a, Ht, %Hf⟩
   icases (bBytes_os p 0 (DFrac.own 1) xs).1 $$ Hb with ⟨Hb, -⟩

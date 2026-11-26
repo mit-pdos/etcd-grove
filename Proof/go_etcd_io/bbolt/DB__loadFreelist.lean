@@ -182,7 +182,7 @@ theorem DB.loadFreelist.wp_proof_open
   · iPkgInit
   wp_auto
   wp_func_lits
-  wp_apply Once.wp_Do_own _ iprop(db_ptr ↦ db ∗ lfPre γbq N db sp f fd p b L m xs)
+  wp_apply Once.wp_Do_own _ iprop(db_ptr ↦ db ∗ lfPre γbq N db sp f fd p C b L m xs)
     (lfPost γbq N db sp f fd p C b L m xs) _ $$ [Honce Hpre db] as HQ
   · iframe Honce
     isplitl [Hpre db]

@@ -76,10 +76,12 @@ def commitStep (K : BC) (s : Nat) (b : Loc) (buf : List w8) (Ψ : Nat → IProp 
 at slot `mv.txid % 2` of a file of at least two pages mapped once at `b` (at least two pages);
 the commit step `commitStep` runs under `metalock`. Afterwards the meta is summed, the file's
 size and mappings are unchanged, and `Ψ j` holds for the bytes written `j` (all of them on
-success). -/
+success); the writer's share of the file's `OsMeta` (`bMeta`) is at the committed state `C` before,
+and at `C'` once the meta is written (`j = 4096`; W1: crash mode's commit phase, the next helper's,
+relates `C'` to `mv`). -/
 abbrev Tx.writeMeta.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (mp : Loc) (mv : Meta)
-    (f : Loc) (fd : w64) (om : OsMeta) (b : Loc) (l : Nat) (dqf dqw : DFrac)
+    (f : Loc) (fd : w64) (C C' : CommitSt) (om : OsMeta) (b : Loc) (l : Nat) (dqf dqw : DFrac)
     (Ψ : Nat → IProp GF),
   uint.Z mv.root'.root' < uint.Z mv.pgid' →
   (uint.Z mv.freelist' < uint.Z mv.pgid' ∨ mv.freelist'.toNat = pgidNoFreelist) →
@@ -90,7 +92,7 @@ abbrev Tx.writeMeta.spec : Prop :=
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
-      osMeta K.p.ino (DFrac.own 1) om ∗
+      bMeta K.p C [] om ∗
       commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) Ψ }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗
@@ -99,9 +101,9 @@ abbrev Tx.writeMeta.spec : Prop :=
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
-      (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
+      ∃ j : Nat, (∃ om' : OsMeta, bMeta K.p (if j = 4096 then C' else C) [] om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
-      ∃ j : Nat, Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
+      Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
         (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err) }}
 
 end spec
@@ -174,12 +176,13 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.writeMeta.spec (GF := GF) (hG := hG) := by
-  intro K tx r sm q dq mp mv f fd om b l dqf dqw Ψ hroot hfl hmp hsz hmaps hl
+  intro K tx r sm q dq mp mv f fd C C' om b l dqf dqw Ψ hroot hfl hmp hsz hmaps hl
   wp_start as ⟨#Hcore, #Hreg, Hst, Hdb, Hme, Hmv, Hf, Hwa, Hfo, Hfd, Hm, Hcp⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
   icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  ihave Hm := bMeta_to_os Ht0.2.2.2 C [] om $$ Hm
   iunfold dbFixed at Hfix
   icases Hfix with ⟨#Hps, #Hsp, ⟨%lg, #Hlg, #Hlgok⟩, -, -, -, ⟨%ns, #Hns⟩, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -339,9 +342,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rw [← fileOwn_eq]
     unfold metaSummed
     iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-    isplitl [Hm]
-    · iexists _; iframe; ipureintro; exact hom'
     iexists j
+    isplitl [Hm]
+    · iexists _; ihave Hm := bMeta_of_os Ht0.2.2.2 (if j = 4096 then C' else C) [] _ $$ Hm
+      iframe; ipureintro; exact hom'
     iframe
     isplitr
     · ipureintro; exact ⟨hj, fun h => nomatch h⟩
@@ -369,9 +373,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       iapply HΦ
       unfold metaSummed
       iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-      isplitl [Hm]
-      · iexists _; iframe; ipureintro; exact hom'
       iexists j
+      isplitl [Hm]
+      · iexists _; ihave Hm := bMeta_of_os Ht0.2.2.2 (if j = 4096 then C' else C) [] _ $$ Hm
+        iframe; ipureintro; exact hom'
       iframe
       isplitr
       · ipureintro; exact ⟨Or.inr hj, fun _ => hj⟩
@@ -390,9 +395,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iapply HΦ
         unfold metaSummed
         iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-        isplitl [Hm]
-        · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iexists j
+        isplitl [Hm]
+        · iexists m'; ihave Hm := bMeta_of_os Ht0.2.2.2 (if j = 4096 then C' else C) [] _ $$ Hm
+          iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iframe
         isplitr
         · ipureintro; exact ⟨Or.inr hj, fun _ => hj⟩
@@ -425,9 +431,10 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iapply HΦ
         unfold metaSummed
         iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
-        isplitl [Hm]
-        · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iexists j
+        isplitl [Hm]
+        · iexists m'; ihave Hm := bMeta_of_os Ht0.2.2.2 (if j = 4096 then C' else C) [] _ $$ Hm
+          iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iframe
         isplitr
         · ipureintro; exact ⟨Or.inr hj, fun _ => hj⟩

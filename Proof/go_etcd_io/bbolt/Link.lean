@@ -305,6 +305,7 @@ public import Proof.hash.fnv.sum64a__Write
 public import Proof.io.CopyN
 public import Proof.io.NewSectionReader
 public import Proof.io.fs.FileMode__String
+public import Proof.os.CrashStILSpec
 public import Proof.os.File__Close
 public import Proof.os.File__Fd
 public import Proof.os.File__Name
@@ -804,9 +805,13 @@ theorem golang_org.x.sys.unix.wp_Munmap :
     _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proof
 
+theorem golang_org.x.sys.unix.wp_MunmapCrashIL :
+    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proof_crashIL
+
 theorem wp_munmapM :
     _root_.Perennial.EtcdGrove.bbolt.munmapM.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proof _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap
+  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proof _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapCrashIL
 
 theorem DB.wp_munmap :
     _root_.Perennial.EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
@@ -814,7 +819,7 @@ theorem DB.wp_munmap :
 
 theorem wp_munmapMNoErr :
     _root_.Perennial.EtcdGrove.bbolt.munmapM.specNoErr (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proofNoErr _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap
+  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proofNoErr _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Munmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapCrashIL
 
 theorem DB.wp_munmapNoErr :
     _root_.Perennial.EtcdGrove.bbolt.DB.munmap.specNoErr (GF := GF) (hG := hG) :=
@@ -832,13 +837,17 @@ theorem golang_org.x.sys.unix.wp_Mmap :
     _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.wp_proof
 
+theorem golang_org.x.sys.unix.wp_MmapCrashIL :
+    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Mmap.wp_proof_crashIL
+
 theorem golang_org.x.sys.unix.wp_Madvise :
     _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Madvise.wp_proof
 
 theorem wp_mmapF :
     _root_.Perennial.EtcdGrove.bbolt.mmapF.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.mmapF.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Mmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Madvise _root_.Perennial.EtcdGrove.fmt.wp_Errorf _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
+  _root_.Perennial.EtcdGrove.bbolt.mmapF.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Mmap _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MmapCrashIL _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_Madvise _root_.Perennial.EtcdGrove.fmt.wp_Errorf _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
 theorem DB.wp_page :
     _root_.Perennial.EtcdGrove.bbolt.DB.page.spec (GF := GF) (hG := hG) :=

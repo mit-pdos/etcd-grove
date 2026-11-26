@@ -221,26 +221,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem closeMapResM_res (p : BFile) (m : OsMeta) (ms : MapSt) :
-    closeMapResM (GF := GF) p m ms ⊢ closeMapRes p ms := by
+theorem closeMapResM_res (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
+    (ms : MapSt) : closeMapResM (GF := GF) p C L m ms ⊢ closeMapRes p ms := by
   rcases ms with _ | ⟨b, l⟩
   · simp only [closeMapResM, closeMapRes]; exact .rfl
   · simp only [closeMapResM, closeMapRes]
-    iintro ⟨%h, Hm, %vf, Hc⟩
-    iexists m, vf
+    iintro ⟨%h, #Hinv, Hm, %vf, Hc⟩
+    iexists C, L, m, vf
     iframe
-    ipureintro; exact h
+    isplitr
+    · ipureintro; exact h
+    iexact Hinv
 
 /-- `db.munmap()` of what `close` unmaps, with no error: the fields cleared, the `OsMeta` back. -/
 theorem DB.munmap.wp_closeResNoErrM (hMunmap : DB.munmap.specNoErr (GF := GF) (hG := hG))
-    (hne : FsNoErr) (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (m : OsMeta) (hdb : db ≠ null) :
+    (hne : FsNoErr) (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (hdb : db ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
         db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
         mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
-        closeMapResM p m ms }}
+        closeMapResM p C L m ms }}
       (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
     {{ RET #(interface.nil : GoInterface); mapFields db (DFrac.own 1) (none : MapSt) ∗
-        db.[DB, go!"datasz"] ↦ W64 0 ∗ closeMapBack p m ms }} := by
+        db.[DB, go!"datasz"] ↦ W64 0 ∗ closeMapBack p C L m ms }} := by
   iintro %Φ ⟨#Hpkg, #Hos, #Hlg, #Hlgok, Hmf, Hdsz, Hmr⟩ HΦ
   rcases ms with _ | ⟨b, l⟩
   · simp only [closeMapResM, closeMapBack, mapLen]
@@ -249,8 +252,9 @@ theorem DB.munmap.wp_closeResNoErrM (hMunmap : DB.munmap.specNoErr (GF := GF) (h
     iapply HΦ
     iframe
   · simp only [closeMapResM, closeMapBack, mapLen]
-    icases Hmr with ⟨%hm, Hosm, %vf, Hc⟩
-    wp_apply hMunmap hne db b l lg p m vf hdb hm.1 hm.2 $$ [Hmf Hdsz Hosm Hc] as ⟨Hmf, Hdsz, Hosm⟩
+    icases Hmr with ⟨%hm, #Hinv, Hosm, %vf, Hc⟩
+    wp_apply hMunmap hne db b l lg p C L m vf hdb hm.1 hm.2.1 hm.2.2 $$ [Hmf Hdsz Hosm Hc]
+      as ⟨Hmf, Hdsz, Hosm⟩
     · iframe; iframe #
     iapply HΦ
     iframe
@@ -260,14 +264,15 @@ for `DB.Close`; the file non-nil): under `FsNoErr`, which refutes the callees' e
 abbrev DB.close.spec_ownedNoErrM : Prop :=
   FsNoErr →
   ∀ (db : Loc) (lg : GoInterface) (dqr : DFrac) (fli : GoInterface) (wa : GoFunc) (s : GoString)
-    (ms : MapSt) (p : BFile) (m : OsMeta) (f : Loc) (fd : w64) (name : GoString) (d : OsFd),
+    (ms : MapSt) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (f : Loc) (fd : w64)
+    (name : GoString) (d : OsFd),
   db ≠ null → f ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗ db.[DB, go!"readOnly"] ↦{dqr} false ∗
       db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ fli ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦ wa ∗ db.[DB, go!"path"] ↦ s ∗
       mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
-      closeMapResM p m ms ∗
+      closeMapResM p C L m ms ∗
       db.[DB, go!"file"] ↦ f ∗ fileOwn f fd name (DFrac.own 1) ∗
         osFd fd (DFrac.own 1) d ∗ lockToks fd d }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
@@ -275,7 +280,7 @@ abbrev DB.close.spec_ownedNoErrM : Prop :=
       db.[DB, go!"opened"] ↦ false ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦ func.nil ∗ db.[DB, go!"path"] ↦ (go!"" : GoString) ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-      db.[DB, go!"file"] ↦ null ∗ closeMapBack p m ms }}
+      db.[DB, go!"file"] ↦ null ∗ closeMapBack p C L m ms }}
 
 theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     (hMunmap : DB.munmap.specNoErr (GF := GF) (hG := hG))
@@ -283,11 +288,11 @@ theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     (hFlock : syscall.Flock.spec (GF := GF) (hG := hG))
     (hClose : os.File.Close.spec (GF := GF) (hG := hG)) :
     DB.close.spec_ownedNoErrM (GF := GF) (hG := hG) := by
-  intro hne db lg dqr fli wa s ms p m f fd name d hdb hf
+  intro hne db lg dqr fli wa s ms p C L m f fd name d hdb hf
   wp_start as ⟨#Hos, #Hlg, #Hlgok, Hro, Hop, Hfl, Hwa, Hpath, Hmf, Hdsz, Hmr, Hfile, Hfo, Hfd, Hlt⟩
   wp_auto
   -- `munmap`: `nil`, nothing appended, the `OsMeta` back
-  wp_apply DB.munmap.wp_closeResNoErrM hMunmap hne db lg ms p m hdb $$ [Hmf Hdsz Hmr]
+  wp_apply DB.munmap.wp_closeResNoErrM hMunmap hne db lg ms p C L m hdb $$ [Hmf Hdsz Hmr]
     as ⟨Hmf, Hdsz, Hback⟩
   · iframe; iframe #
   try wp_auto

@@ -38,7 +38,9 @@ before it with zeros, which needs the gap's cells: `os.File.WriteAt.specExt`'s `
 part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping's whole slots (the partial last slot `l / 4096` is never written) or
 where it ended (`om.size ≤ om'.size ≤ max om.size (4096 * (l / 4096))`), a tail slot inside the old file keeps its
 bytes, and a slot across the new end holds at least its part inside the file (on an error too: the
-slots the write touched hold some whole page's bytes); on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
+slots the write touched hold some whole page's bytes); the writer's share of the file's `OsMeta`
+(`bMeta`, at the committed state `C`; every range written synced again unless the file system
+fails); on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
 `store_publish` takes it) and the tail is `wrSlotsSz` at the new size; on an error all the slots
 are, with whatever bytes the write left. On success the success branch also restates the
 straddling-slot fact (kept there for its consumers) and says that the file either kept its size or
@@ -48,7 +50,7 @@ the premises exclude (session S3g: under them a write fails only at `maxBytes`, 
 abbrev Tx.write_ext.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (pml : Loc)
     (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (T : List Nat) (wb : Nat → List w8)
-    (f : Loc) (fd : w64) (om : OsMeta) (b : Loc) (l : Nat) (dqf dqw : DFrac),
+    (f : Loc) (fd : w64) (C : CommitSt) (om : OsMeta) (b : Loc) (l : Nat) (dqf dqw : DFrac),
   (∀ id, (pm !! id).isSome = (bufs !! id).isSome) →
   bufsOK bufs (l / 4096) → om.size < 2 ^ 63 → l < 2 ^ 63 → om.maps = GMap.singleton b l →
   (bufSlots bufs ++ T).Nodup → (∀ s ∈ T, s < l / 4096) →
@@ -63,7 +65,7 @@ abbrev Tx.write_ext.spec : Prop :=
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
-      osMeta K.p.ino (DFrac.own 1) om ∗ wrSlotsSz b K.p (bufSlots bufs ++ T) wb om.size }}
+      bMeta K.p C [] om ∗ wrSlotsSz b K.p (bufSlots bufs ++ T) wb om.size }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗ tx.[Tx, go!"db"] ↦{dq} K.db ∗
       (∃ pml' : Loc, tx.[Tx, go!"pages"] ↦ pml' ∗ pml' ↦$ (∅ : GMap w64 Loc)) ∗
@@ -71,7 +73,7 @@ abbrev Tx.write_ext.spec : Prop :=
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
-      ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.p.ino (DFrac.own 1) om' ∗
+      ∃ (om' : OsMeta) (wb' : Nat → List w8), bMeta K.p C [] om' ∗
         ⌜om.size ≤ om'.size ∧ om'.size ≤ max om.size (4096 * (l / 4096)) ∧ om'.maps = om.maps ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
           (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧

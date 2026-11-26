@@ -12,6 +12,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Inv.BFileOps
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Spec.golang_org.x.sys.unix.Mmap
 public import Spec.golang_org.x.sys.unix.Madvise
@@ -50,14 +51,14 @@ def mapCells (base : Loc) (sz : w64) (m : OsMeta) : IProp GF :=
   iprop(∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
     cellsR base 0 sz.toNat (fun i => toCellVal bs[i]?))
 
-/-- **`mmap(db, sz)`** (over the fields it writes, the file and its `OsMeta`). -/
+/-- **`mmap(db, sz)`** (over the fields it writes, the file and the writer's share of its `OsMeta`, either mode). -/
 abbrev mmapF.spec : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqf dqo dqd : DFrac) (mf : w64) (m : OsMeta)
-    (sz : w64) (x : GoSlice) (y : Loc) (z : w64),
-  (mf = W64 0 ∨ mf = W64 0x8000) → 0 < sz.toInt →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (dqf dqo dqd : DFrac) (mf : w64) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (sz : w64) (x : GoSlice) (y : Loc) (z : w64),
+  (mf = W64 0 ∨ mf = W64 0x8000) → 0 < sz.toInt → bNsOk p →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗ bCsInv p ∗
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dqo ∗ osFd fd dqd (dbFd p.ino) ∗
-      db.[DB, go!"MmapFlags"] ↦□ mf ∗ osMeta p.ino (DFrac.own 1) m ∗
+      db.[DB, go!"MmapFlags"] ↦□ mf ∗ bMeta p C L m ∗
       db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z }}
     (App (App (Val #(functions mmap [])) (Val #db)) (Val #sz))
   {{ (err : GoInterface), RET #err;
@@ -65,23 +66,24 @@ abbrev mmapF.spec : Prop :=
       ((∃ base : Loc, ⌜err = interface.nil ∧ 0 < base.addr⌝ ∗
           db.[DB, go!"dataref"] ↦ (⟨base, sz, sz⟩ : GoSlice) ∗ db.[DB, go!"data"] ↦ base ∗
           db.[DB, go!"datasz"] ↦ sz ∗
-          osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
+          bMeta p C L { m with maps := <[base := sz.toNat]> m.maps } ∗
           mapCells base sz m) ∨
        (db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z ∗
          ⌜err ≠ interface.nil ∧ errPtrTyped err ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err ∗
-         (osMeta p.ino (DFrac.own 1) m ∨
+         (bMeta p C L m ∨
           (∃ base : Loc, ⌜0 < base.addr⌝ ∗
-            osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
+            bMeta p C L { m with maps := <[base := sz.toNat]> m.maps } ∗
             mapCells base sz m)))) }}
 
 theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     (hMmap : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
+    (hMmapC : golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG))
     (hMadvise : golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     mmapF.spec (GF := GF) (hG := hG) := by
-  intro db f fd p dqf dqo dqd mf m sz x y z hmf hsz
-  wp_start as ⟨#Hos, Hf, Hfo, Hfd, #Hmf, Hm, Hdr, Hd, Hsz⟩
+  intro db f fd p dqf dqo dqd mf C L m sz x y z hmf hsz hns
+  wp_start as ⟨#Hos, #Hinv, Hf, Hfo, Hfd, #Hmf, Hm, Hdr, Hd, Hsz⟩
   ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
   · iPkgInit
   ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
@@ -93,8 +95,8 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     rcases hmf with rfl | rfl
     · left; rfl
     · right; rfl
-  wp_apply hMmap fd (W64 0) sz (W64 1) (W64 1 ||| mf) dqd (dbFd p.ino) m rfl rfl hsz rfl hfl
-    $$ [Hfd Hm] as %sl %e ⟨Hfd, Hr⟩
+  wp_apply wp_bMmap hMmap hMmapC fd (W64 0) sz (W64 1) (W64 1 ||| mf) dqd (dbFd p.ino) p C L m
+    rfl rfl rfl hsz rfl hfl hns $$ [Hfd Hm] as %sl %e ⟨Hfd, Hr⟩
   · iframe; iframe #
   icases Hr with (⟨%base, %Hbe, Hm, %bs, %Hbs, Hc⟩ | ⟨%Hbe, Hm⟩)
   · obtain ⟨rfl, rfl⟩ := Hbe
@@ -102,12 +104,15 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     wp_auto
     have hszn : 0 < sz.toNat := by have := hsz; simp [BitVec.toInt] at this; omega
     icases cellsR_pos _ _ _ hszn $$ Hc with ⟨Hc, %Hpos⟩
+    icases bMeta_osMeta p C L { m with maps := <[base := sz.toNat]> m.maps } $$ Hm with
+      ⟨%q, Hm, Hmb⟩
     wp_apply hMadvise ⟨base, sz, sz⟩ (W64 1)
-      (some (p.ino, DFrac.own 1, { m with maps := <[base := sz.toNat]> m.maps })) (by decide)
+      (some (p.ino, DFrac.own q, { m with maps := <[base := sz.toNat]> m.maps })) (by decide)
       (Int.le_of_lt hsz) (fun _ _ _ h => by
         cases h; exact ⟨Hpos, hsz, sz.toNat, GMap.lookup_insert _ _ _⟩)
       $$ [Hm] as %e2 ⟨Hm, %he2'⟩
     · iframe; iframe #
+    ihave Hm := Hmb $$ Hm
     have he2 : e2 = 0 ∨ ¬ FsNoErr := he2'.resolve_left (fun h => nomatch h)
     try wp_auto
     ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]

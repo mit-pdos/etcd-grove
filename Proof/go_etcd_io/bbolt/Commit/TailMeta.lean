@@ -185,10 +185,11 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
   ihave Hcp := commitStep_commit K N' w.C w.fl b l v true S bs Fb X.t.mv pages Dn Q A hA htx hval hps
     hDn htree hhwm hdrop hS hbytes hfl hnp hSb hC'fl hfreed hhwmb $$ [Hres HS Hfb Hau]
   · iframe; iframe #
-  wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.m b l
+  wp_apply wp_writeMeta K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.meta' X.t.mv w.f w.fd w.C
+    (pubC w.C X.t.mv pages) w.m b l
     (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) _ hroot hflp haddr hsz hmaps hl
     $$ [Hst Hdb Hme Hmv Hfile Hwa Hfo Hfd Hom Hcp]
-    as %err ⟨Hst, Hdb, Hme, Hmv, Hfile, Hwa, Hfo, Hfd, ⟨%om', Hom, %Hom'⟩, %j, Hpost, %Hj, Herr⟩
+    as %err ⟨Hst, Hdb, Hme, Hmv, Hfile, Hwa, Hfo, Hfd, %j, ⟨%om', Hom, %Hom'⟩, Hpost, %Hj, Herr⟩
   · iframe; iframe #
   have hX1 : flxS w.C w.fl w.wb = [] := by
     unfold flxS
@@ -206,6 +207,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
   unfold cpPost
   icases Hpost with (⟨%hj, Hres, Hrc1, HQ⟩ | ⟨%hj, Hres, HS, Hfb, Hau⟩)
   · ileft
+    rw [if_pos hj]
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
     have hC'tx : (pubC w.C X.t.mv pages).txid = w.C.txid + 1 := by
@@ -227,6 +229,7 @@ theorem cm_meta_step (wp_writeMeta : Tx.writeMeta.spec (GF := GF) (hG := hG))
       intro he
       have := (Hj.2 he)
       omega
+    rw [if_neg (by omega : j ≠ 4096)]
     unfold cpRes
     icases Hres with ⟨Hout, Hcur, Hfl, Hmap, Hwv, Hopn, Hmc, Hmb, Hstq⟩
     iframe Hstq HS Hau Hfb

@@ -105,6 +105,10 @@ theorem BFile.dq_own (p : BFile) (q : Qp) :
     p.dq (DFrac.own q) = DFrac.own (match p.cs with | none => q | some _ => q.half) := by
   unfold BFile.dq; cases p.cs <;> rfl
 
+/-- The crash invariant's namespace, if any, is disjoint from OsFs's (`isBoltCoreP`'s
+`↑N ## ↑osN`, `c.N = crashN N`). -/
+def bNsOk (p : BFile) : Prop := ∀ c, p.cs = some c → ↑osN ⊆ (⊤ : CoPset) \ ↑c.N
+
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -337,6 +341,11 @@ omit go_gctx in
 instance bCsInv_persistent (p : BFile) : Persistent (bCsInv (GF := GF) p) := by
   unfold bCsInv; cases p.cs <;> dsimp only <;> infer_instance
 
+theorem bCsInv_none {p : BFile} (h : p.cs = none) : ⊢ bCsInv (GF := GF) p := by
+  unfold bCsInv; rw [h]; exact true_intro
+
+theorem bNsOk_none {p : BFile} (h : p.cs = none) : bNsOk p := fun c hc => by rw [h] at hc; cases hc
+
 /-- Every byte of `bs` outside the ranges `L` (`(offset, length)`: what was written or grown since
 the last successful sync) is durable: one candidate, its value. -/
 def DurOut (L : List (Nat × Nat)) (bs : List ByteG) : Prop :=
@@ -351,8 +360,10 @@ def exMap : Nat → GMap Nat Unit
 file header): `osMeta 1`, or (in the crash invariant) the invariant, half of the `OsMeta` and the
 caller's token of the invariant's state `⟨m, bs, 0, 0, .idle⟩` (the file's bytes `bs`, nothing
 frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`, idle at `C`; the
-bytes outside the ranges `L` written since the last successful sync are durable (`DurOut`), and, unless
-the file system fails, the crash size bounds agree (`lo = hi`: `DB.grow` syncs its truncate) (the invariant itself is `bCsInv p`). -/
+bytes outside the ranges `L` written since the last successful sync are durable (`DurOut`; between
+the writer's operations `L = []`), the file system does not fail (`FsNoErr`: crash mode is chosen
+only then, so every error arm of a call in crash mode is refuted), and the crash size bounds agree
+(`lo = hi`: `DB.grow` syncs its truncate) (the invariant itself is `bCsInv p`). -/
 def bMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
   match p.cs with
   | none => osMeta p.ino (DFrac.own 1) m
@@ -360,7 +371,7 @@ def bMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IPro
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
         ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
-          (FsNoErr → m.lo = m.hi)⌝)
+          FsNoErr ∧ m.lo = m.hi⌝)
 
 omit go_gctx in
 instance bMeta_timeless (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
@@ -374,6 +385,29 @@ omit go_gctx in
 theorem bMeta_none {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
     bMeta (GF := GF) p C L m = osMeta p.ino (DFrac.own 1) m := by
   unfold bMeta; rw [h]
+
+omit go_gctx in
+theorem bMeta_to_os {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat))
+    (m : OsMeta) : bMeta (GF := GF) p C L m ⊢ osMeta p.ino (DFrac.own 1) m := by
+  rw [bMeta_none h]
+
+omit go_gctx in
+theorem bMeta_of_os {p : BFile} (h : p.cs = none) (C : CommitSt) (L : List (Nat × Nat))
+    (m : OsMeta) : osMeta (GF := GF) p.ino (DFrac.own 1) m ⊢ bMeta p C L m := by
+  rw [bMeta_none h]
+
+omit go_gctx in
+/-- **After a failure, any committed state and ranges**: the file system can fail (`¬ FsNoErr`), so
+the file is not in a crash invariant (crash mode records `FsNoErr`), and `bMeta` is `osMeta 1`. -/
+theorem bMeta_err (p : BFile) (C C' : CommitSt) (L L' : List (Nat × Nat)) (m : OsMeta)
+    (hne : ¬ FsNoErr) : bMeta (GF := GF) p C L m ⊢ bMeta p C' L' m := by
+  unfold bMeta
+  cases p.cs with
+  | none => exact .rfl
+  | some c =>
+    dsimp only
+    iintro ⟨-, -, %bs, %a, -, %Hf⟩
+    iexfalso; ipureintro; exact hne Hf.2.2.2.2.1
 
 /-- A fraction of the writer's share of the `OsMeta`, at any fraction of the extension's (for the
 crash-free specs that take any fraction: `Stat`, the mapped cells' reads). -/

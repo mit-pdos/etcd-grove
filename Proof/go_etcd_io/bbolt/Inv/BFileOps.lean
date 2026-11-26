@@ -28,10 +28,6 @@ namespace bbolt
 open Fs
 open Iris Iris.BI Iris.ProofMode
 
-/-- The crash invariant's namespace, if any, is disjoint from OsFs's (`isBoltCoreP`'s
-`↑N ## ↑osN`, `c.N = crashN N`). -/
-def bNsOk (p : BFile) : Prop := ∀ c, p.cs = some c → ↑osN ⊆ (⊤ : CoPset) \ ↑c.N
-
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -42,7 +38,7 @@ variable [sem : go.Semantics]
 /-- The facts `bMeta` keeps beside the token, in crash mode. -/
 def bMetaF (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG) (a : BAbs) :
     Prop :=
-  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ (FsNoErr → m.lo = m.hi)
+  a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧ FsNoErr ∧ m.lo = m.hi
 
 omit go_gctx in
 /-- **`bMeta` in crash mode** as the local caller's part (`csOwnIL`), the exclusivity tokens'
@@ -87,15 +83,15 @@ theorem wp_bMunmap (hM : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)
     (hMC : golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG))
     (base : Loc) (len : w64) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
     (vf : Nat → val) (hlen : 0 < len.toInt) (hmap : m.maps !! base = some len.toNat)
-    (hns : bNsOk p) (Φ : val → IProp GF) :
-    ⊢ osInv (GF := GF) -∗ bCsInv p -∗ bMeta p C L m -∗ cellsR base 0 len.toNat vf -∗
-      (∀ e : w64,
-        ((⌜e = 0⌝ ∗ bMeta p C L { m with maps := GMap.delete base m.maps }) ∨
+    (hns : bNsOk p) :
+    {{ osInv (GF := GF) ∗ bCsInv p ∗ bMeta p C L m ∗ cellsR base 0 len.toNat vf }}
+      (App (Val (@! golang_org.x.sys.unix.Munmap)) (Val #(⟨base, len, len⟩ : GoSlice)))
+    {{ (e : w64), RET #(errnoErr e);
+        (⌜e = 0⌝ ∗ bMeta p C L { m with maps := GMap.delete base m.maps }) ∨
          (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗
            (bMeta p C L { m with maps := GMap.delete base m.maps } ∨
-            (bMeta p C L m ∗ cellsR base 0 len.toNat vf)))) -∗ Φ #(errnoErr e)) -∗
-      WP (App (Val (@! golang_org.x.sys.unix.Munmap)) (Val #(⟨base, len, len⟩ : GoSlice))) {{ Φ }} := by
-  iintro #Hos #Hinv Hm Hc HΦ
+            (bMeta p C L m ∗ cellsR base 0 len.toNat vf))) }} := by
+  iintro %Φ ⟨#Hos, #Hinv, Hm, Hc⟩ HΦ
   cases hc : p.cs with
   | none =>
     simp only [bMeta_none hc]
@@ -136,19 +132,17 @@ theorem wp_bMmap (hM : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
     (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt)
     (L : List (Nat × Nat)) (m : OsMeta) (hd : d.ino = p.ino) (hr : d.readable = true)
     (hoff : off = 0) (hlen : 0 < len.toInt) (hprot : prot.toNat = PROT_READ)
-    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (hns : bNsOk p)
-    (Φ : val → IProp GF) :
-    ⊢ osInv (GF := GF) -∗ bCsInv p -∗ osFd fd dq d -∗ bMeta p C L m -∗
-      (∀ (sl : GoSlice) (e : w64), osFd fd dq d -∗
+    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (hns : bNsOk p) :
+    {{ osInv (GF := GF) ∗ bCsInv p ∗ osFd fd dq d ∗ bMeta p C L m }}
+      (App (App (App (App (App (Val (@! golang_org.x.sys.unix.Mmap)) (Val #fd)) (Val #off))
+        (Val #len)) (Val #prot)) (Val #fl))
+    {{ (sl : GoSlice) (e : w64), RET (PairV #sl #(errnoErr e)); osFd fd dq d ∗
         ((∃ base : Loc, ⌜e = 0 ∧ sl = ⟨base, len, len⟩⌝ ∗
             bMeta p C L { m with maps := <[base := len.toNat]> m.maps } ∗
             ∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
               cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) ∨
-         (⌜e ≠ 0 ∧ sl = slice.nil ∧ ¬ FsNoErr⌝ ∗ bMeta p C L m)) -∗
-        Φ (PairV #sl #(errnoErr e))) -∗
-      WP (App (App (App (App (App (Val (@! golang_org.x.sys.unix.Mmap)) (Val #fd)) (Val #off))
-        (Val #len)) (Val #prot)) (Val #fl)) {{ Φ }} := by
-  iintro #Hos #Hinv Hfd Hm HΦ
+         (⌜e ≠ 0 ∧ sl = slice.nil ∧ ¬ FsNoErr⌝ ∗ bMeta p C L m)) }} := by
+  iintro %Φ ⟨#Hos, #Hinv, Hfd, Hm⟩ HΦ
   cases hc : p.cs with
   | none =>
     simp only [bMeta_none hc]
@@ -157,9 +151,9 @@ theorem wp_bMmap (hM : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
     · iframe; iframe #
     inext
     iintro %sl %e ⟨Hfd, Hr⟩
-    iapply HΦ $$ %sl %e Hfd
+    iapply HΦ $$ %sl %e
     rw [hd]
-    iexact Hr
+    iframe
   | some c =>
     ihave #Hinv := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
@@ -170,7 +164,8 @@ theorem wp_bMmap (hM : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
     · iframe; iframe #
     inext
     iintro %sl %e ⟨Hfd, Hr⟩
-    iapply HΦ $$ %sl %e Hfd
+    iapply HΦ $$ %sl %e
+    iframe Hfd
     icases Hr with (⟨%base, %he, Hown, Hcs⟩ | ⟨%he, Hown⟩)
     · ileft; iexists base; isplitr
       · ipureintro; exact he

@@ -71,11 +71,13 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_apply hLogger K.db lg Hdbnn $$ []
   · iframe #
   try wp_auto
+  icases bMeta_osMeta K.p w.C [] w.m $$ Hosm with ⟨%qm, Hosm, Hosmb⟩
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
-    (DFrac.own (1 : Qp).half) (DFrac.own 1)
+    (DFrac.own (1 : Qp).half) (DFrac.own qm)
     (dbFd K.p.ino) w.m rfl (by have := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt; omega) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
+  ihave Hosm := Hosmb $$ Hosm
   have hrefl : wdbGrown w { w with m := w.m, W := w.W, wb := w.wb } :=
     ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun s hs => ⟨hs, fun _ => rfl⟩⟩
   cases lg with
@@ -197,6 +199,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   ihave Hnil : osBytes (GF := GF) K.p.ino
       (min w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) (DFrac.own 1) [] $$ []
   · iapply (bBytes_none (GF := GF) hcs _ _ _).1; iapply growBytes_nil
+  ihave Hosm := bMeta_to_os hcs w.C [] w.m $$ Hosm
   wp_apply hTruncate w.f w.fd K.p.path (DFrac.own (1 : Qp).half) (growSizeOf (W64 (mapLen w.ms : Int)) sz)
     (DFrac.own (1 : Qp).half) (dbFd K.p.ino) w.m [] (wdbOK'_fd fr w hok) rfl hS0
     (by simp only [List.length_nil]; omega)
@@ -209,13 +212,14 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     grow_announce_maps w.m (min w.m.size S.toNat) (rsHi true w.m.size S.toNat) S.toNat
   have hGrown : os.ftDone (GF := GF) K.p.ino w.m S.toNat ∗
       mcellsAny (GF := GF) (GMap.singleton v.base (mapLen w.ms)) S.toNat (mapLen w.ms) ⊢
-      osMeta K.p.ino (DFrac.own 1) (rsPost true w.m S.toNat S.toNat) ∗
+      bMeta K.p w.C [] (rsPost true w.m S.toNat S.toNat) ∗
       zBytes K.p w.m.size (S.toNat - w.m.size) ∗
       ∃ vf, cellsR (GF := GF) v.base (min w.m.size (mapLen w.ms))
         (mapLen w.ms - min w.m.size (mapLen w.ms)) vf := by
     unfold os.ftDone
     iintro ⟨⟨%zs, %hzs, Hm, Hz, Hc⟩, Hr⟩
     ihave Hz := (bBytes_none (GF := GF) hcs _ _ _).2 $$ Hz
+    ihave Hm := bMeta_of_os hcs w.C [] _ $$ Hm
     iframe Hm
     isplitl [Hz]
     · unfold zBytes; iexists _; iframe Hz; ipureintro
@@ -231,6 +235,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     icases hGrown $$ [Htr Hrest] with ⟨Hosm, Hz, Htail⟩
     · iframe
     wp_auto
+    ihave Hosm := bMeta_to_os hcs w.C [] _ $$ Hosm
     wp_apply hSync w.f w.fd K.p.path (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) (dbFd K.p.ino)
       (rsPost true w.m S.toNat S.toNat) $$ [Hfo Hfd Hosm] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
     · rw [← fileOwn_eq]; iframe; iframe #
@@ -251,8 +256,11 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         zBytes K.p w.m.size (S.toNat - w.m.size) -∗
         ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
       intro m' h1 h2
-      exact grow_finish fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8 m' (by omega) h2
-        (by omega) (fun h => by have := hS10 h; omega) (by omega) S.toNat h1
+      iintro Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
+      ihave Hosm := bMeta_of_os hcs w.C [] m' $$ Hosm
+      iapply grow_finish fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8 m' (by omega) h2
+        (by omega) (fun h => by have := hS10 h; omega) (by omega) S.toNat h1 $$ Hclose Hfile Hfo Hfd
+        Hosm Hdsz Hlow Hpart Htail Hwb Hz
     icases Hsy with (⟨%he2, %c, Hosm⟩ | ⟨%he2, Hosm⟩)
     · subst he2
       wp_auto
@@ -359,6 +367,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iapply hfin $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
       · unfold os.ftUndone
         icases Htr with ⟨%xs', -, Hosm, -, Htail⟩
+        ihave Hosm := bMeta_of_os hcs w.C [] _ $$ Hosm
         ihave Htail : mcellsAny (GF := GF) (GMap.singleton v.base (mapLen w.ms)) w.m.size S.toNat
           $$ [Htail]
         · rw [hmaps, Nat.min_eq_left hSge, grow_rsHi _ _ hSge hSal]; iexact Htail

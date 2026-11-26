@@ -64,6 +64,15 @@ theorem BC.core_cs (K : BC) : K.core (GF := GF) ⊢ ⌜K.p.cs = none⌝ := by
   iintro ⟨-, -, %H, -⟩
   ipureintro; exact H.2.2.2
 
+/-- **The database's file's crash invariant**, if any, and its namespace's disjointness from OsFs's
+(what the file operations' specs over `bMeta` take, `Inv/BFileOps.lean`). -/
+theorem BC.core_bfile (K : BC) : K.core (GF := GF) ⊢ bCsInv K.p ∗ ⌜bNsOk K.p⌝ := by
+  iintro #Hc
+  ihave %hcs := BC.core_cs K $$ Hc
+  isplitl []
+  · iapply bCsInv_none hcs
+  · ipureintro; exact bNsOk_none hcs
+
 /-- **A live transaction's token for its statistics** (`txsInv` holds them; `TxStats`'s atomic
 methods need it): with `m = true` a share `q` of its `ex` token (a holder of a fraction of
 `boltTx`); with `m = false` its exclusive part's `done` half (the holder of `txExcl`, inside

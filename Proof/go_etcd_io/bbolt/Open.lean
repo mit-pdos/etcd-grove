@@ -1056,6 +1056,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`); the file's bytes
   -- as bbolt's invariants hold them (W1)
   ihave Hxs := (bBytes_none (GF := GF) hpcs 0 (DFrac.own 1) xs').2 $$ Hxs
+  ihave Hfm := bMeta_of_os hpcs C [] _ $$ Hfm
   wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
     (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 hpcs $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps

@@ -416,14 +416,17 @@ theorem Tx.rollback_f.wp_proof
         · iapply BigSepL.bigSepL_mono (Φ := fun _ s => osSlotH (GF := GF) K.p s (w'.wb s)) ?_ $$ Heb
           intro k x _; unfold osSlotH; exact .rfl
         have hmaps : w.m.maps !! b = some l := by rw [hwok.1 b l hbl']; simp
-        ihave Hosm : osMeta K.p.ino (DFrac.own 1) w'.m $$ [Hosm]
+        icases bMeta_osMeta K.p w.C [] w.m $$ Hosm with ⟨%qm, Hosm, Hosmb⟩
+        ihave Hosm : osMeta K.p.ino (DFrac.own qm) w'.m $$ [Hosm]
         · rw [hm']; iexact Hosm
         rw [← hm'] at hmaps
-        iapply ext_agree _ rfl K.p (DFrac.own 1) w'.m b l hmaps (by simp) _ w'.wb
+        iapply ext_agree _ rfl K.p (DFrac.own qm) w'.m b l hmaps (by simp) _ w'.wb
           (DFrac.own (1 : Qp).half) (1 + pageOverflow (w'.wb f)) f (fun s h1 h2 => by
             have := hextW s (List.mem_range'_1.2 ⟨h1, h2⟩)
             exact ⟨this.2.2.1 b l (by rw [hms']; exact hbl'), this.2.2.2⟩) $$ Hos Hosm Heb Hec
         iintro Hosm Heb Hpg
+        ihave Hosm : bMeta K.p w.C [] w'.m $$ [Hosm Hosmb]
+        · rw [hm']; iapply Hosmb $$ Hosm
         ihave Hpg : bytesPointsto (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
             (extentBytes w'.wb f) $$ [Hpg]
         · unfold extentBytes; iexact Hpg

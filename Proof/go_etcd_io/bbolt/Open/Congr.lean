@@ -50,8 +50,9 @@ theorem txsInv_congr {B B' : BNs} {p p' : BFile} {sp sp' : Loc} {t0 t0' : Nat} (
   simp only [hB, hp, hsp, ht]
 
 /-- `closeKeep` of equal arguments. -/
-theorem closeKeep_congr {p p' : BFile} {m m' : OsMeta} {ms ms' : MapSt} (hp : p = p')
-    (hm : m = m') (hms : ms = ms') : closeKeep (GF := GF) p m ms = closeKeep p' m' ms' := by
+theorem closeKeep_congr {p p' : BFile} {C : CommitSt} {L : List (Nat × Nat)} {m m' : OsMeta}
+    {ms ms' : MapSt} (hp : p = p') (hm : m = m') (hms : ms = ms') :
+    closeKeep (GF := GF) p C L m ms = closeKeep p' C L m' ms' := by
   simp only [hp, hm, hms]
 
 end congr

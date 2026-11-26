@@ -159,7 +159,7 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
     $$ [Hwc Hwbs] with ⟨Hs, Hwc, Hwbs⟩
   · iframe
   wp_apply wp_write K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.pages' X.t.pm X.t.bufs
-    (cmTail w (bufSlots X.t.bufs) l) w.wb w.f w.fd w.m b l (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
+    (cmTail w (bufSlots X.t.bufs) l) w.wb w.f w.fd w.C w.m b l (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
     hpm hbok hsz hl hmaps (cmTail_nodup w _ l hnd)
     (fun s hs => ((mem_cmTail _ _ _ s).1 hs).1)
     (fun s hs hgt => by

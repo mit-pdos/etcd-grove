@@ -144,7 +144,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
     fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
-    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ bMeta K.p w.C [] m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
@@ -207,7 +207,7 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
     fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
-    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ bMeta K.p w.C [] m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗

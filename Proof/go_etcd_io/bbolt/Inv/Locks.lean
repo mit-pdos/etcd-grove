@@ -369,7 +369,7 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     dbPathLk db p w.fd ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own mq) w.ms ∗
-    osMeta p.ino (DFrac.own 1) w.m ∗ fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
+    bMeta p w.C [] w.m ∗ fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
     osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) ∗
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
     wCells w.ms w.W ∗ wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size ∗

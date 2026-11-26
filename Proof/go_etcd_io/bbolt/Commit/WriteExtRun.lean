@@ -98,13 +98,14 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) := by
-  intro K tx r sm q dq pml pm bufs T wb f fd om b l dqf dqw hdom hok hsz hl hmaps hnd hT htail hwb
+  intro K tx r sm q dq pml pm bufs T wb f fd C om b l dqf dqw hdom hok hsz hl hmaps hnd hT htail hwb
     hstr
   wp_start as ⟨#Hcore, #Hreg, Hst, Hdb, Hpg, Hpm, Hbufs, Hf, Hwa, Hfo, Hfd, Hm, Hslots⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
   icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  ihave Hm := bMeta_to_os Ht0.2.2.2 C [] om $$ Hm
   iunfold dbFixed at Hfix
   icases Hfix with ⟨#Hps, #Hsp, ⟨%lg, #Hlg, #Hlgok⟩, -, -, -, ⟨%ns, #Hns⟩, -, -, -, -, -, -, -, -, -,
     -, ⟨%pf, #HisPool, -⟩, -⟩
@@ -580,6 +581,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · iexists pl'; iframe
         iexists om3, wb'
         rw [hm3.1]
+        ihave Hm := bMeta_of_os Ht0.2.2.2 C [] _ $$ Hm
         iframe Hm
         isplitr
         · ipureintro
@@ -780,6 +782,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         isplitl [Hpg Hpl']
         · iexists pl'; iframe
         iexists m', wb'
+        ihave Hm := bMeta_of_os Ht0.2.2.2 C [] _ $$ Hm
         iframe Hm
         isplitr
         · ipureintro
@@ -965,6 +968,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         isplitl [Hpg Hpl']
         · iexists pl'; iframe
         iexists om'', wb'
+        ihave Hm := bMeta_of_os Ht0.2.2.2 C [] _ $$ Hm
         iframe Hm
         rw [Hom''.1]
         isplitr

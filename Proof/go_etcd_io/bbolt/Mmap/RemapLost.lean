@@ -165,7 +165,7 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
       dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 0 -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (none : MapSt) -∗
-      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      bMeta K.p w.C [] m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
       osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
       wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗

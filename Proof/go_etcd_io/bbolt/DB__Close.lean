@@ -44,20 +44,20 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 
 /-- `close_res` with the file's `OsMeta` named (`closeMapResM`; nothing mapped: kept). -/
 private theorem close_resM (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
-    (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) :
-    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
+    (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) (hns : bNsOk p) :
+    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ bCsInv p -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
       ghostVar B.map (1 : Qp).half w.ms -∗ ghostVar B.map (1 : Qp).half.half w.ms -∗
       ghostVar B.mtok 1 () -∗
       ghostVar B.wv (1 : Qp).half wIdle -∗ ghostVar B.out (1 : Qp).half false -∗
       metaCellsQ (GF := GF) (1 : Qp).half.half w.ms w.C -∗
-      wCells (GF := GF) w.ms w.W -∗ osMeta p.ino (DFrac.own 1) w.m -∗
-    |={⊤}=> closeMapResM (GF := GF) p w.m w.ms ∗ closeKeep (GF := GF) p w.m w.ms ∗
+      wCells (GF := GF) w.ms w.W -∗ bMeta p w.C [] w.m -∗
+    |={⊤}=> closeMapResM (GF := GF) p w.C [] w.m w.ms ∗ closeKeep (GF := GF) p w.C [] w.m w.ms ∗
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗
       ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗ ghostVar B.mtok 1 () ∗
       ghostVar B.wv (1 : Qp).half wIdle ∗ ghostVar B.out (1 : Qp).half false := by
-  iintro #Hinv Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc Hosm
+  iintro #Hinv #Hci Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc Hosm
   rcases hms : w.ms with _ | ⟨b, l⟩
   · simp only [closeMapResM, closeKeep]
     imodintro
@@ -78,8 +78,9 @@ private theorem close_resM (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok 
     isplitl [Hosm Hc]
     · isplitr
       · ipureintro
-        refine ⟨by have := hL b l hms; omega, ?_⟩
+        refine ⟨by have := hL b l hms; omega, ?_, hns⟩
         rw [hok.1 b l hms]; exact GMap.lookup_singleton _ _
+      iframe Hci
       isplitl [Hosm]
       · iexact Hosm
       · iexists vf; iexact Hc
@@ -95,8 +96,8 @@ private theorem close_resM (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok 
 /-- The file's `OsMeta` after `close`: no mapping (the idle writer side's, `wdbOK`, with no leaked
 mapping), the size kept. -/
 private theorem close_meta (p : BFile) (w : WDb) (hok : wdbOK w) (hj : w.junk = none) :
-    closeMapBack (GF := GF) p w.m w.ms ∗ closeKeep (GF := GF) p w.m w.ms ⊢
-    ∃ m : OsMeta, osMeta p.ino (DFrac.own 1) m ∗ ⌜m.maps = ∅ ∧ m.size = w.m.size⌝ := by
+    closeMapBack (GF := GF) p w.C [] w.m w.ms ∗ closeKeep (GF := GF) p w.C [] w.m w.ms ⊢
+    ∃ m : OsMeta, bMeta p w.C [] m ∗ ⌜m.maps = ∅ ∧ m.size = w.m.size⌝ := by
   rcases hms : w.ms with _ | ⟨b, l⟩
   · simp only [closeMapBack, closeKeep]
     iintro ⟨-, Hm⟩
@@ -212,7 +213,10 @@ theorem DB.Close.wp_proof
     have h2 := treeOK_root' w.C htree
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  imod close_resM _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
+  ihave #Hci : bCsInv (GF := GF) p $$ []
+  · iapply bCsInv_none Ht0.2.2.2
+  imod close_resM _ γ.ns p w Hwok hL (bNsOk_none Ht0.2.2.2) $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
+    Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hosm0, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the store slots' bytes, `cls` set
   imod store_close _ γ.ns p ⊤ CoPset.subseteq_top w.C w.fl $$ [Hpi Hcur Hgfl Hgwv Hcls Hcls' Hgmap]
@@ -275,7 +279,7 @@ theorem DB.Close.wp_proof
     iapply HΦ
     iright; ipureintro; exact hne
   -- no error: `close` gives the `OsMeta` back
-  wp_apply hOwnedM hne db lg DFrac.discard w.fli _ p.path w.ms p w.m w.f w.fd p.path _ Ht0.2.1
+  wp_apply hOwnedM hne db lg DFrac.discard w.fli _ p.path w.ms p w.C [] w.m w.f w.fd p.path _ Ht0.2.1
     hfnn $$ [Hop Hfli Hwa Hpath Hmf Hdsz Hres Hfile Hfo Hfd Htok]
     as ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile, Hback⟩
   · iframe; iframe #
@@ -390,6 +394,7 @@ theorem DB.Close.wp_proof
   have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
   rw [hsz4] at hfok
   ihave Hxs := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).1 $$ Hxs
+  rw [bMeta_none (GF := GF) Ht0.2.2.2]
   unfold fileHoldsM fileHoldsMDef
   iexists m, xs
   iframe Hm Hxs
