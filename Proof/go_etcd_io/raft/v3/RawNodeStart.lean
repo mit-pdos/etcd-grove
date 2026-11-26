@@ -47,6 +47,7 @@ import Proof.go_etcd_io.raft.v3.ConfchangeApiImpl
 import Proof.go_etcd_io.raft.v3.ConfchangeApi
 public import Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 public import Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
+public import Proof.go_etcd_io.raft.v3.RawNodeStartApi
 
 @[expose] public section
 
@@ -63,25 +64,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-/-- (antithesis parity B1) **The `RState` a node restarts at**: the restarted protocol state
-`restartP`, the applied index `ap`, no pending conf index, no snapshot, the configuration `cs` at the
-configuration index `a`, the ghost prefix `fp`. -/
-def restartR (S : RaftState) (σ : StorContents) (ap a : Nat) (cs : CCState) (fp : List EntryM) :
-    RState :=
-  { p := restartP S σ.base σ.hs.Commit', applied := W64 ap, pci := W64 0, snap := false, cidx := a,
-    cfg := cs, fp := fp }
-
-/-- (antithesis parity B1) **The restart's scope premises at the mode `md`**, one per flag: pre-vote
-and check-quorum off unless `md` lifts them, the node among the names' voters unless `nonVoters`,
-the configuration simple over the names' voters with no learners unless `confChanges`, the log's
-boundary `base0` unless `snapshots`. -/
-def RestartScopeOk (γ : Cluster) (cv : Config) (σ : StorContents) (m : Membership) (md : RnMode) :
-    Prop :=
-  (md.prevote = false → cv.PreVote' = false) ∧ (md.cq = false → cv.CheckQuorum' = false) ∧
-  (md.nonVoters = false → cv.ID' ∈ γ.raftNames.reCfg) ∧
-  (md.confChanges = false → m.voters = γ.raftNames.reCfg ∧ m.votersOutgoing = ∅ ∧ m.learners = ∅) ∧
-  (md.snapshots = false → σ.base = base0)
 
 /-- **`NewRawNode.restartSpec` at the node's protocol state** (#33 S4): its text, the post's node
 `ownRawNodeAt` at the restarted state `restartR` (antithesis parity B1: an `RState`, at the applied

@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.raft.v3.RawNodeApi
 import all Proof.go_etcd_io.raft.v3.RawNodeApi
 public import Proof.go_etcd_io.raft.v3.RawNodeAtLemmas
 public import Proof.go_etcd_io.raft.v3.RawNodeStart
+public import Proof.go_etcd_io.raft.v3.RawNodeStartApi
 public import Proof.go_etcd_io.raft.v3.RawNode__ReadyAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReadyAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__StepAbs
@@ -56,7 +57,7 @@ theorem rawNode_ghost (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r :
     (qs : List Msg) (ip : Nat) (Q : IProp GF) [Persistent Q]
     (HQ : ∀ (s : NState) (md : Bool), toPState s = r.p → RnScopeBasic rs s → rs.term = s.term →
       uint.Z rs.term ≤ uint.Z rs.tc → ownRaftGhost γ id r.p md ⊢ Q) :
-    rawNode γ rn id rs r qs ip ⊢ Q ∗ rawNode γ rn id rs r qs ip := by
+    rawNode γ {} rn id rs r qs ip ⊢ Q ∗ rawNode γ {} rn id rs r qs ip := by
   refine persistent_entails_right ?_
   unfold rawNode ownRawNodeAt
   iintro H
@@ -554,6 +555,31 @@ theorem RawNode.ReportUnreachable.wp_apiProof
     RawNode.ReportUnreachable.apiSpec (GF := GF) (hG := hG) :=
   RawNode.ReportUnreachable.apiSpec_of_abs
     (RawNode.ReportUnreachable.wp_absProof wp_raft_Step wp_MessageType_Enum)
+
+/-- **`NewRawNode` restarting into `rawNode` at a mode without snapshots or configuration
+changes**: `NewRawNode.restartAtSpec (some md)` (`NewRawNode_restartAt_impl`), the ghost prefix
+empty at the boundary `base0` (`RestartScopeOk`'s snapshots conjunct). -/
+theorem NewRawNode.wp_proofRestartAtApi
+    (wp_NewRawNode : NewRawNode.spec (GF := GF) (hG := hG)) :
+    NewRawNode.restartAtApiSpec (GF := GF) (hG := hG) := by
+  unfold NewRawNode.restartAtApiSpec
+  intro md Hsn _Hcc γ N c cv lok si σ csm a m S F SV hpSV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ
+    Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh Hsc x
+  wp_start_folded as ⟨Hc, Hlg, Hcl, Hvac, Hfits, HrS, Hconf, Hrs, #Hcap⟩
+  wp_apply (ApiImpl.RawNodeStart.NewRawNode_restartAt_impl (some md) wp_NewRawNode γ N c cv lok si
+      σ csm a m S F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Hnsm Htlk HtrC HSh
+      (fun md' h => by cases h; exact Hsc) x)
+    $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
+    as %rn %err ⟨%Herr, %l, %sn, %g, %K, %fp, Hrn, %Hfp, #Hcm, %Hl, Hgen, Hfree, HrS, HF⟩
+  · iframe Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs
+    iintro !> %md' %h %hs; iexact Hcap
+  obtain rfl : fp = [] := Hfp (Hsc.2.2.2.2 Hsn)
+  iapply HΦ
+  isplitr; · ipureintro; exact Herr
+  iexists l, sn, g, K
+  unfold rawNode
+  iframe Hrn Hcm Hgen Hfree HrS HF
+  ipureintro; exact Hl
 
 end specs
 

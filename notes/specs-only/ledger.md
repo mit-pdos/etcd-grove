@@ -6537,3 +6537,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `RnScope.with_prvals`, `mem_domSet_of_prvalsMatch`; `transferEnd_of_stepEnd`'s `prvalsMatch` fact now unconditional).
   The other inputs re-prove them with the lifting at a general mode (step C).
 - **Decision.** Lead's decisions 1 and 2 (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step D (first part): the sealed `rawNode` at a mode; `NewRawNode.restartAtApiSpec` (#33)
+- **Spec (sealed predicate's signature; lead's order for node.start).** `rawNode γ md rn id rs r qs ip :=
+  ownRawNodeAt … (some md)` (RawNodeApi.lean; until now fixed at `some {}`). Every apiSpec and law instantiates it at
+  `md = {}` (`fun γ => rawNode γ {}`), text and proofs otherwise unchanged; their generalization to `∀ md` is step D's rest.
+- **New statement.** `NewRawNode.restartAtApiSpec` (RawNodeStartApi.lean, a defs module): `NewRawNode.restartAtSpec
+  (some md)`'s text over `rawNode γ.raftNames md …`, for every `md` with `snapshots = false` and `confChanges = false`;
+  premises `RestartScopeOk … md` directly, `storCapF (interface.ok si) 0` unguarded; the post's ghost prefix `[]` (the
+  boundary is `base0` without snapshots). Proved in RawNodeApiLinked.lean (`NewRawNode.wp_proofRestartAtApi`, from
+  `NewRawNode_restartAt_impl (some md)`). `restartR` and `RestartScopeOk` moved from RawNodeStart.lean (proof tier) to
+  RawNodeStartApi.lean, unchanged, so the harness can name them.
+- **Users to adapt (not the raft helper's files).** HarnessRun.lean:521, HarnessInput.lean:116 and :125 write `rawNode
+  γ.raft.raftNames rn …`: insert the mode (`{}` today, `γ.R.md` once the apiSpecs are at `∀ md`).
+- **Decision.** Lead's order (2026-11-26). No axiom, no premise.
