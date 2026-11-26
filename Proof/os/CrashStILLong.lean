@@ -15,6 +15,7 @@ public import Proof.os.WriteLongStep
 public import Perennial.Golang.Theory.IfJoin
 public import Perennial.Golang.Theory.Plain
 public import GooseLang.Ext.Fs.TruncateBig
+public import Proof.os.ErrorOk
 
 @[expose] public section
 
@@ -523,12 +524,14 @@ theorem os.File.Truncate.wp_proof_crashILBig :
     have he0' : ¬ e = W64 0 := he
     rw [decide_eq_false he0']
     wp_auto
-    wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn Hsys as %pe #Hok
     iapply HΦ
     iframe
     isplitl []
     · (repeat' isplitl []) <;> iassumption
-    ipureintro; intro h; cases h
+    isplitr
+    · ipureintro; intro h; cases h
+    iexact Hok
 
 end proof
 
