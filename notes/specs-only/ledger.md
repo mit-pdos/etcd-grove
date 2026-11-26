@@ -7528,4 +7528,5 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   anyway, `txnReadonly_plain`) and add `txnNestOk (txnWireOf b.model)` to the write arm: the write arm's condition
   becomes `client.txnUpdAtOn`'s. Everything else unchanged. Callers that passed `TxnModel.plain` get `txnNestOk`
   from `txnNestOk_of_plain`.
-- **Decision.** Pending review (`notes/axiom-review/f7-txn-nested-review.md`).
+- **Decision.** Pending review: reviewed SOUND (`notes/axiom-review/f7-txn-nested-review.md`, Go tests in
+  `notes/axiom-review/f7-txn-nested-gotest/`, 22 cases on 3 members); the lead's approval open.

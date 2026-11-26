@@ -1766,3 +1766,17 @@ watch.
 `principalClient.spec` names `threadBound` (`Spec/.../dist/client/principalClient.lean:40`, kind `spec-thread`).
 Next session: take `threadTok`/the owner's handle instead (CLAUDE.md "Bounds"), or carry the premise only where
 `principalOp.spec` already does; do not raise the baseline. No build running.
+
+### Handoff W-5 (2026-11-26; S11/S12: T4 over the widened `Txn_CommitOn_dist`, principal machine linked)
+
+- Bounds: `principalClient.spec`'s `threadBound` is its callees' (`newClient`, `newUserClient`): a `decl=` allow in
+  `etc/bounds-allow.txt`; bounds 389/389, selftest ok.
+- `Txn_CommitOn_dist` widened (ledger `notes/specs-only/ledger.md`, decision pending the lead): no `TxnModel.plain b.model`,
+  the write arm adds `txnNestOk` (`client.txnUpdAtOn`'s condition); docstrings and two `dist-axiom-diff` entries; callers
+  (`work_commitD`, `RunAuthLease`) pass `txnNestOk_of_plain`. Reviewed SOUND (`notes/axiom-review/f7-txn-nested-review.md`,
+  Go tests `f7-txn-nested-gotest/`). axiom-tok not rerun (needs a full tcb run; no entry names this axiom).
+- `then_commit_nested_refusedD` proved (`WorkCallsDist.lean`, over `Then.spec` and `Txn_CommitOn_dist`); `Work.wp_proof_dist`
+  no longer takes the law.
+- Linked in `PrincipalsLinked`: `wp_newClientA`, `wp_newUserClient` (over `New_user_dist`), `wp_principalClient`,
+  `wp_Work_dist`, `wp_principalOp`, `wp_NodeMainAuth`. Built on fk-lean1; tier, lease-order, bounds, dist-axiom-diff ok.
+- Next: link `RunAuth` at `principalsShare`; the lead's approval of the widening.
