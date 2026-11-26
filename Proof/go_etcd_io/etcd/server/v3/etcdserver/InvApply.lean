@@ -1149,9 +1149,9 @@ theorem commit_save_auR (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) 
   · ileft; ipureintro; simpa using hd
   · iright; iexact Hd
 
-/-- `commit_save_auR` without the image row (the protocol's users not yet tracking it). -/
+/-- `commit_save_auR` forgetting the image row (generic over the row since T10 session 10). -/
 theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
-    inv applyN (consInv (GF := GF) γ) ⊢ ghostVar γ.mt (1 : Qp).half mm.1 -∗ token γ.pend -∗
+    inv applyN (consInv (GF := GF) γ IR) ⊢ ghostVar γ.mt (1 : Qp).half mm.1 -∗ token γ.pend -∗
       applyRegd γ -∗
       (∀ (k : w64) (s : ApplyState),
         ⌜k ≠ W64 0 → uint.Z mm.1 ≤ uint.Z k⌝ -∗
@@ -1160,7 +1160,7 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
         (⌜k = W64 0⌝ ∨ wrDone γ) -∗ Ψ k) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ.ci k ∗ (ciIdx γ.ci k ={∅, ⊤ \ ↑ciN}=∗ Ψ k) := by
   iintro #Hinv Hml Htok #Hreg HΨ
-  iapply commit_save_auR (IR := fun _ _ => iprop(True)) γ mm Ψ $$ Hinv Hml Htok Hreg
+  iapply commit_save_auR (IR := IR) γ mm Ψ $$ Hinv Hml Htok Hreg
   iintro %k %s %h1 %h2 Hm Ht - Hw
   iapply HΨ $$ %k %s %h1 %h2 Hm Ht Hw
 

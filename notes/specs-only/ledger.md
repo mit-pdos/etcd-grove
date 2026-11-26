@@ -7281,4 +7281,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   proved inside the applier/`applyConfChange` from the request's model step (`applyStep`'s outcomes that take no lock
   leave the log, leases and rest buckets); or, if some no-lock outcome does change a model (a write outside the batch
   lock), the row is weakened there and the finding recorded. To decide before the switch to the `R` lemmas.
-- **Decision.** Open (T10 session 9 handoff).
+- **Decision.** Taken (coordinator, 2026-11-26, T10 session 10). The applier's (`apply.Apply.spec*`) and
+  `applyConfChange`'s outcomes without the batch lock gain the pure fact that the entry changes no image model, proved
+  inside them from the request's model step. The row's model depends on the mode (mode `on`: `kvModelOn`'s KV model),
+  and the row is passed where the mode is known (`isServerM`). If a no-lock outcome does change a model (a write
+  outside the batch lock), the row is not weakened silently: the session stops, records it here as a finding with the
+  Go path, and reports it (it might be a real bug).

@@ -29,6 +29,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+/- (T10 session 10) Generic over the apply protocol's image row `IR` (`consInv γA IR`). -/
+variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
 
 /-- The real backend's facts of the instance `d` are those of `d` not compacting (question 5's core
 stage, part (1): the server's store at `{ d with cm := false }`). -/
@@ -100,7 +102,7 @@ theorem backend_server_hooks_of
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ∗ regdOrLink γA γ ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA IR) ∗ regdOrLink γA γ ⊢
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b := by
   iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hci, #Hinv, #Hrl⟩
   iapply isBackend_backendHooks hOn γ P W
@@ -137,7 +139,7 @@ theorem hooksOk_server_fut
       storage.isBackendHooks bh
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty,
           #ci⟩ lgh ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA IR) ⊢
       backend.hooksOk P W (fun γB => batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P))
         (storage.hooksIface bh) := by
   iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hci, #Hinv⟩
@@ -149,8 +151,8 @@ theorem hooksOk_server_fut
   · iunfold regdOrLink; iright; ipureintro; exact ⟨rfl, rfl⟩
   iapply ci_saveSpec hSave hPut hUR hID hName hSafe (γA.withPh (futPhys π0 γ)) ci γ P (W γ) _ b t
     hP hH
-  ihave #Hinv' : inv applyN (consInv (γA.withPh (futPhys π0 γ))) $$ []
-  · rw [show consInv (GF := GF) (γA.withPh (futPhys π0 γ)) = consInv γA from rfl]; iexact Hinv
+  ihave #Hinv' : inv applyN (consInv (γA.withPh (futPhys π0 γ)) IR) $$ []
+  · rw [show consInv (GF := GF) (γA.withPh (futPhys π0 γ)) IR = consInv γA IR from rfl]; iexact Hinv
   iframe Hbpkg Hsch Hcpkg Hb Ht Hci Hinv' Hrl
 
 end backend

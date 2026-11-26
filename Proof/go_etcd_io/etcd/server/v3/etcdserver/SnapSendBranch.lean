@@ -51,6 +51,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+/- (T10 session 10) Generic over the apply protocol's image row `IR` where the row plays no part. -/
+variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
 
 -- (the mvcc merge, 2026-11-06) `lean`'s `backend.Snapshot.spec_of_specF2` and
 -- `srvBeSnapOk_of_backend` (F2's route over `backend.Snapshot`'s view) are dropped: the window's
@@ -118,7 +120,7 @@ theorem commitReq_freeze
           #ci⟩ lgh ∗
       backend.isBackendNH γ P W (batchLockInv γA (metaTM γ P)) b (storage.hooksIface bh) ∗
       backend.isBackend γ P W (batchLockInv γA (metaTM γ P)) b ∗
-      isCI ci γA.ci ∗ inv applyN (consInv γA) ⊢
+      isCI ci γA.ci ∗ inv applyN (consInv γA IR) ⊢
       backend.commitReq γ P (batchLockInv γA (metaTM γ P)) b (applyThread γA s)
         (freezeY γA s) := by
   iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hcpkg, #Hh, #Hnh, #Hb, #Hci, #Hinv⟩
