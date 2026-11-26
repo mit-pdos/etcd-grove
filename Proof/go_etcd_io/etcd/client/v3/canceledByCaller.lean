@@ -38,6 +38,14 @@ theorem canceledByCaller.wp_proof (wp_Is : errors.IsStatusErr.spec (GF := GF) (h
   · iPkgInit
   iunfold ctxErrTargets at Htg
   icases Htg with ⟨⟨%ec, #Hec, %Hlc⟩, ⟨%ed, #Hed, %Hld⟩⟩
+  -- (#45) the two targets' descriptions, which `errors.Is` takes
+  ihave #Htdc : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF) (GoInterface.ok ec) m') $$ []
+  · iapply go_etcd_io.etcd.cache.v3.isCtxErr_descIs
+    iapply _root_.Perennial.context.isCtxErr_of_Canceled $$ Hctxp Hec
+  ihave #Htdd : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF) (GoInterface.ok ed) m') $$ []
+  · subst Hld
+    iexists _
+    iapply go_etcd_io.etcd.cache.v3.descIs_deadlineZero
   wp_auto
   iunfold ctxErrClient at Hce
   ihave #HU := Hce $$ %Broadcast.Unknown

@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.google_golang_org.grpc.internal
+public import Perennial.GeneratedProof.strconv
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.codes
 

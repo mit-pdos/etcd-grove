@@ -18,7 +18,6 @@ axiom addrClaim
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -79,9 +78,7 @@ axiom rand.Int31.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Code.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof

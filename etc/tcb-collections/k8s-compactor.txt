@@ -9,7 +9,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots (k8s\.wp_Compact$|k8s\.compactor\.wp_|k8s\.wp_NewCompactor$)
 axiom context.WithCancelValCtx.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcConn
@@ -29,7 +28,6 @@ axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom v3rpc.pbWatchRequestT_reg

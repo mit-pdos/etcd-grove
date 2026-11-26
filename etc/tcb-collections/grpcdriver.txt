@@ -35,8 +35,6 @@ axiom pbStringValueRT_repReg
 axiom pbStringValueST_repReg
 axiom pbStringValueST_reqReg
 axiom pbStringValueT_reqReg
-axiom status.Code.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom streamIcMdIs
 axiom strings.ToLower.wp_proof

@@ -81,8 +81,7 @@ type has `GRPCStatus() *Status` (`hasGRPCStatus`) gives `ok = true`: `FromError`
 `statusErrOk` gives (`statusAt`, `s ≠ null`), which `FromError` returns with `true` (grpc v1.84.0
 `status/status.go:96-127`, `models/grpc/status/status.go` `FromError`'s first branch). With the
 conjunct before it, `ok` is now known of every error the precondition admits. -/
-abbrev status.FromError.spec : Prop :=
-  ∀ (err : GoInterface) (m : GoString) (c : w32),
+abbrev status.FromError.triple (err : GoInterface) (m : GoString) (c : w32) : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
       descIs err m ∗ statusCodeIs err c }}
     (App (Val (@! google_golang_org.grpc.status.FromError)) (Val #err))
@@ -106,6 +105,19 @@ abbrev status.FromError.spec : Prop :=
         ok = false⌝ ∗
       -- (grpc-trusted-T, T3, 2026-11-24) and one with it is a status error
       ⌜hasGRPCStatus err → ok = true⌝ }}
+
+/-- The spec: `triple` of every error. -/
+abbrev status.FromError.spec : Prop :=
+  ∀ (err : GoInterface) (m : GoString) (c : w32), status.FromError.triple (GF := GF) err m c
+
+/-- (status-bodies, 2026-11-25) The spec of an error that is no `rpctypes.EtcdError` value: what a
+program without etcd's `rpctypes` uses (gRPC's robustness driver), whose proof needs no fact of
+`EtcdError`'s `Error()` (a method of a package it does not translate). -/
+abbrev status.FromError.specNE : Prop :=
+  ∀ (err : GoInterface) (m : GoString) (c : w32),
+    (∀ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+      err ≠ interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) →
+    status.FromError.triple (GF := GF) err m c
 
 end spec
 

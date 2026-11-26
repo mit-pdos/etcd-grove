@@ -25,6 +25,54 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: `statusErrOk` -- an error's value is of its dynamic type (`stTypedErr`) (#45)
+
+- **Spec.** `statusErrOk` (`Proof/go_etcd_io/etcd/cache/v3/Base.lean`), the predicate of the errors
+  grpc's `status` accepts. It is posted by the axiom `status.Error.wp_proof` and by grpc's client
+  contracts (`InvGrpc`, `InvGrpcStream`, `InvKVConn`), and proved by the other producers. No
+  spec-plan counterpart.
+- **Defect.** Too weak for `errors.IsStatusErr`'s proof. Perennial's `errors.Is` compares the target
+  with the tree's errors of its type (`errors.ComparableErr`), and that needs those errors to hold
+  values of the target's Lean type. The model does not type interface values, so an error of
+  dynamic type `EtcdError`, `deadlineExceededError` or a pointer type may hold any value.
+- **Evidence.** `statusErr_comparableTarget` (`Proof/errors/IsStatusErr.lean`), for its three
+  target kinds: `etcdError_comparable`, `comparableErr_pointer` (`TreeTyped`) and
+  `deadlineExceededError_comparable`.
+- **Proposed change.** The non-nil conjunct gains `⌜stTypedErr e⌝`: of type `EtcdError` the error
+  holds an `EtcdError`, of type `deadlineExceededError` it holds `deadlineExceededError{}`, and of a
+  pointer type it holds a `Loc`. Go guarantees this by typing, since an interface value holds a
+  value of its dynamic type. The proved producers discharge it: `stTypedErr_ptr`,
+  `stTypedErr_etcdError`, `stTypedErr_deadline`, and `stTypedErr_of_valKey` for `togRPCError`'s
+  non-pointer keys. The leaf lemmas `clientErr_statusErrOk_of_leaf` and `statusErrOk_of_leafMsg`
+  take it as a hypothesis, which their callers give. Where `statusErrOk` is in an axiom's or a
+  contract's post, the trusted statement asserts more:
+  - `status.Error`'s, a `*status.Error`, a pointer;
+  - the grpc client contracts', the errors grpc returns.
+- **Decision.** Accepted by coordinator-E, 2026-11-25 (#45 7179030298: Go's own typing, which the
+  model makes true), as one change to `statusErrOk` with `status-bodies`' `grpcStatusIs` (the entry
+  below with "`GRPCStatus` case"); the two branches merged on `prove-isstatuserr/2026-11-25`, one
+  fresh review of the combined posts: `notes/axiom-review/statuserr-combined.md` (survives).
+
+## 2026-11-25: `errors.IsStatusErr.spec` takes the target's description (#45)
+
+- **Spec.** `errors.IsStatusErr.spec` (`Spec/errors/IsStatusErr.lean`); no spec-plan counterpart.
+- **Defect.** Unprovable once it stops being an axiom. When `err` has an `Is(error) bool` method
+  (grpc's `*status.Error`), Go's `errors.Is` calls `err.Is(target)`. The only spec of that call is
+  `grpcErrMethodsOk`'s `Is` clause, which takes `descIs target m'`. With `dm = none` the precondition
+  gives no description of a pointer target, so the walk cannot make the call.
+- **Evidence.** The proof over Perennial's `errors.wp_Is` builds the leaf's `errorWalkNode`, whose
+  `Is` branch needs that clause's `descIs (GoInterface.ok e) m -∗ descIs target m' -∗ ...`.
+- **Proposed change.** The precondition gains `∃ m', descIs target m'`. Every caller meets it with
+  existing lemmas: `descIs_etcdError` for an `EtcdError` target; `errorMsgIs_errorString` or
+  `errorMsgIs_deadline` with `descIs_of_msg`, or `ctxErr_descIs`, for the context errors. The
+  `dm = some` callers already hold it. The callers whose proofs change: `EtcdServer.LeaseRenew`,
+  `EtcdServer.PromoteMember`, `watchServer.Watch`, `canceledByCaller`, `watcher.Close`,
+  `lessor.recvKeepAliveLoop`, `watchGRPCStream.run`, `Client.getToken`. No statement other than
+  this spec's changes. The rejected alternative was to weaken `grpcErrMethodsOk`'s `Is` clause to
+  any target, which changes a trust-boundary contract and `status.Error`'s axiom.
+- **Decision.** Accepted by coordinator-E, 2026-11-25 (#45): the spec becomes a theorem, so the
+  narrower precondition adds no trust.
+
 ## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
 
 - **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,
@@ -7022,6 +7070,32 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   no longer a premise since dsv-fix4).
 - **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
 
+## 2026-11-25: grpc `status` over its bodies: a `GRPCStatus` error is a structural `*status.Error`; `Errorf` stated for etcd's calls (status-bodies)
+
+- **Spec.** The vocabulary in `Proof/go_etcd_io/etcd/cache/v3/Base.lean` that `status.FromError`/`Code`/`Error`'s
+  specs are written in (`grpcErrMethodsOk`'s `GRPCStatus` clause, `descIs`'s and `statusCodeIs`'s third
+  disjunct); `status.statusAtRaw` (`Proof/google_golang_org/grpc/status/StatusRO.lean`); `status.Errorf.spec`.
+- **Defect.** (1) Unprovable over the bodies: for an error with `GRPCStatus()`, `descIs err m` and
+  `statusCodeIs err c` each named a status by its own persistent WP of `GRPCStatus()`, and `FromError` calls it
+  once; Iris cannot merge two WPs of one call, so no proof gives the returned status both `c` and `m` (the
+  axioms claimed it, by Go's determinism). (2) `statusAtRaw` was a trusted opaque. (3) `Errorf.spec` took any
+  `format` and an unowned `args`, which `fmt.Sprintf` reads (unprovable), and posted only `err ≠ nil`.
+- **Evidence.** The proof attempts on `status-bodies/2026-11-25` (`FromError`, `Code`); grpc v1.84.0
+  `status/status.go:96-146`, `internal/status/status.go:76-230`; `models/grpc`: `*internal/status.Error` is the
+  only type with `GRPCStatus() *Status` (in the model, etcd's translated tree and the k8s code translated here).
+- **Proposed change.** (1) The `GRPCStatus` case is `status.grpcStatusIs e s c m`: `e` is a `*status.Error`
+  whose field `s` holds `s` read-only, and `statusAt s c m`; two agree (`grpcStatusIs_agree`), and the WP form
+  follows (`status.grpcStatusIs_wp`). A strengthening of every trusted post that gives these (`status.Error`'s
+  axiom, grpc's `InvGrpc*` errors), true of the model. (2) `statusAtRaw` is a definition: `s.[Status,"s"] ↦□ p`,
+  `p ≠ null`, `p.[spb.Status,"Code"] ↦□ c`, `p.[spb.Status,"Message"] ↦□ m` (the read-only claim checked
+  against `RawStatusProto`'s two callers in the model, which only read `GetDetails()` and `proto.Marshal`).
+  (3) `Errorf.spec` is SpecPlan's: `args = nil` and `W8 37 ∉ format` (a premise its one caller,
+  `checkRangeStreamRequest`, meets), and `status.Error`'s post with the format as the message (a strengthening).
+  `FromError.specNE`/`Code.specNE` (an error that is no `EtcdError` value) for gRPC's robustness driver, whose
+  programs have no `rpctypes` (no fact of `EtcdError.Error()`); its three proofs take them, discharging the
+  premise from `statusCodeIs` (`statusCodeIs_notEtcd`).
+- **Decision.** (1) #24 7175612915 (asked), (2) and the do-nothing genproto/anypb `init`s: coordinator-E,
+  #24 7175520513; (3) within the user's rule (a trust-boundary spec may change when every caller still proves).
 ## 2026-11-25: `uuid.New.spec` takes `uuid.Assumptions`, `UUID.ID.spec` takes `isPkgInit uuid` (dsv-retire-2)
 
 - **Spec.** `github_com.google.uuid.New.spec` and `github_com.google.uuid.UUID.ID.spec`

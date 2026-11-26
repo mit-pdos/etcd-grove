@@ -2397,7 +2397,7 @@ theorem EtcdServer.wp_isLeader :
 
 theorem errors.wp_IsStatusErr :
     errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  errors.IsStatusErr.wp_proof
+  errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem EtcdServer.wp_LeaseRenew :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) :=

@@ -640,8 +640,13 @@ PROJECTS = [
             # names only: what `clientv3.WatchResponse.Err` calls
             "google.golang.org/grpc/codes",
             "google.golang.org/grpc/status",
-            # names only: the target of the alias grpc/status.Status (client/v3/leasing)
+            # (status-bodies, 2026-11-25) with some bodies: `New` and the `Status`/`Error` methods
+            # (Code/google_golang_org/grpc/internal/status.toml); until then names only, the target
+            # of the alias grpc/status.Status (client/v3/leasing)
             "google.golang.org/grpc/internal/status",
+            # (status-bodies) types only: the message `internal/status.Status` holds
+            "google.golang.org/genproto/googleapis/rpc/status",
+            "google.golang.org/protobuf/types/known/anypb",
             # (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23) names only but the hook
             # variables the translated `init`s of grpc, `codes`, `metadata` and `health` set
             # (`Code/google_golang_org/grpc/internal.toml`), and `FromOutgoingContextRaw`, which grpc's

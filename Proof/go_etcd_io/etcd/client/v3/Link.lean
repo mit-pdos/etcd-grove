@@ -337,21 +337,21 @@ theorem zap.Logger.wp_Warn :
     EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Warn.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
 
-theorem status.wp_Code :
-    EtcdGrove.status.Code.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Code.wp_proof
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
 
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.FromError.wp_proof
+  EtcdGrove.status.FromError.wp_proof rpctypes.EtcdError.wp_Error
+
+theorem status.wp_Code :
+    EtcdGrove.status.Code.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Code.wp_proof status.wp_FromError
 
 theorem rpctypes.wp_ErrorDesc :
     EtcdGrove.rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.ErrorDesc.wp_proof status.wp_FromError
-
-theorem rpctypes.EtcdError.wp_Error :
-    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
 
 theorem rpctypes.wp_Error :
     EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
@@ -542,7 +542,7 @@ theorem v3.wp_isContextError :
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsStatusErr.wp_proof
+  EtcdGrove.errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem v3.Client.wp_shouldRefreshToken :
     EtcdGrove.Client.shouldRefreshToken.spec (GF := GF) (hG := hG) :=
