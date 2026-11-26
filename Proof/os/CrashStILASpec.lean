@@ -8,7 +8,6 @@ module
 
 public import Spec.os.CrashStILA
 public import Proof.os.CrashStILA
-public import Proof.os.CrashStILSpec
 
 @[expose] public section
 
