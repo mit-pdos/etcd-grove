@@ -570,7 +570,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   · iframe #
   iunfold isServerCI at HCI
   icases HCI with ⟨-, #Hci, #Hinv⟩
-  ihave #Hreq := commitReq_freeze hOn hSave hPut hUR hID hName hSafe B.γ C.ci d.γB d.P
+  ihave #Hreq := commitReq_freeze (IR := fun _ _ => iprop(True)) hOn hSave hPut hUR hID hName hSafe B.γ C.ci d.γB d.P
     (mvcc.api.mvccW d.gx) d.be bh lgh hcK hhP st hp.1.1
     $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
   · iframe #

@@ -30,7 +30,8 @@ The rest is `srvDiskImageAt`'s: the backend's image of a committed prefix, the m
 the files (`srvFilesC`, `SrvCrash.lean`: since P8, 2026-11-25, the WAL's files as a crash leaves them,
 `walFilesC`, `srvFiles` without the WAL's synced mark, which a crash does not raise; the graceful
 `srvFiles` gives it, `srvFiles_srvFilesC`; the bbolt file; made by the crash lemma from the
-file extension's crash rest), and the snapshot directory's invariant at the new generation.
+file extension's crash rest), and the snapshot directory's invariant at the new generation, with its
+crash token (`snapDirKeep`, D-T7-2), which `NewServer.specC` returns for the generation's next crash.
 -/
 module
 
@@ -77,7 +78,17 @@ is above it (index `j`), its `.snap.db` was saved (durably) in the member's snap
 it) or the install took it and the crash undid the rename (`c = j + 1`; the rename onto `db` and its
 directory sync not durable): the file, back under its name, is an image at `j` (`fileAt`, with its
 certificate). (The fork syncs the directory before it opens the new backend, so nothing has committed
-to the snapshot's file in that window.) -/
+to the snapshot's file in that window.)
+
+The `.snap.db` case of `bootstrapCrashContract` needs, beside this row (review
+`notes/axiom-review/c-i2-snapdb.md`, the caller's obligations): (1) in the `c ≤ σ.b` branch, the file itself,
+which the directory's invariant (`snapDirKeep`'s body `snapDirBody`) still holds: `j` is saved (`E`) and its
+removal fact `Rm j = monoNatLbOwn γm (j + 1)` is refuted by the counter's authority at `c ≤ j`, so `j ∈ M`, a file
+with its image; the restart takes it out (`snapDir_take`) as `fileAt`. Nothing removes it in between: the
+fork's `purgeFile` no longer purges `.snap.db` files (`a4d2bb172`, in the pin's history;
+`nonissues/etcd-purge-snapdb-unopened.md`), `ReleaseSnapDBs` removes only below the released index (and then
+gives `Rm`). (2) The file's stored index is `j` exactly: the image certificate `srvImageM … j Ds` (the
+invariant's `img`, and this row's `□ srvImageM`) has `imageRestAt … j …`, the receiver's save gives it. -/
 def snapRowB2 (γ : SrvRaft) (dd : GoString) (σ : StorContents) (i : w64) (γd : GName) (c : Nat) :
     IProp GF :=
   iprop(⌜σ.b ≤ uint.nat i ∧ c ≤ uint.nat i + 1⌝ ∨
@@ -88,7 +99,10 @@ def snapRowB2 (γ : SrvRaft) (dd : GoString) (σ : StorContents) (i : w64) (γd 
 /-- **Member `id`'s data directory after a crash, at the request names `ρ` of the incarnation that
 wrote it** (D6; see the file header): `srvDiskImageAt` with the id's vacancy unarmed, the WAL's slot
 `wal.crashImageR` (no `σ.b ≤ i ≤ σ.commit`; the read facts carried), any storage registry `M`, and
-(T10, 2026-11-25) no `bootLen ≤ i`, the membership row `confRowW` and the snapshot row `snapRowB2`. -/
+(T10, 2026-11-25) no `bootLen ≤ i`, the membership row `confRowW` and the snapshot row `snapRowB2`; and
+(D-T7-2, 2026-11-25, approved by coordinator-E on #50, 15:22:46Z items 3-5; ledger "`srvCrashImageAt` misses
+three crash images and drops a crash token") the snapshot directory's invariant with its crash token
+(`snapDirKeep`, not only the handle `snapDirInvH`), which the next generation's crash law needs. -/
 def srvCrashImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
     (M : GMap Loc MemStorNamesRec) : IProp GF :=
@@ -104,9 +118,18 @@ def srvCrashImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S
     srvFilesC dd id σ D ∗
     (∃ (γd γm : GName) (c : Nat),
       ⌜γ.snapLoc id = some γd⌝ ∗ snapRowB2 γ dd σ i γd c ∗
-      snapDirInvH (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
+      snapDirKeep (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
         (fun j => monoNatLbOwn γm (uint.nat j + 1)) ∗
       monoNatAuthOwn γm 1 c))
+
+/-- **The snapshot directory's invariant with its crash token, as a restart returns it** (D-T7-2,
+2026-11-25): `srvCrashImageAt`'s `snapDirKeep`, at the member's directory names `γd` and some removal
+counter `γm`; `NewServer.specC`'s post gives it back (the server keeps only the handle), for the
+generation's crash frame (`memberCrash.memberSnapKeep`). -/
+def srvSnapKeep (γ : SrvRaft) (id : w64) (dd : GoString) : IProp GF :=
+  iprop(∃ γd γm : GName, ⌜γ.snapLoc id = some γd⌝ ∗
+    snapDirKeep (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
+      (fun j => monoNatLbOwn γm (uint.nat j + 1)))
 
 /-- **Member `id`'s data directory after a crash** (`srvCrashImageAt` at some witnesses). -/
 def srvCrashImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=

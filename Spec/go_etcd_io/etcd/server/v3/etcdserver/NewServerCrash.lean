@@ -7,7 +7,8 @@ replaced by the crash image `srvCrashImageAt` (`InvCrashImage.lean`: the backend
 the WAL's commit, the WAL's read facts carried, the id's vacancy unarmed, any storage registry) and
 `bootstrapRestartContract` by `bootstrapCrashContract` (its generalization to such images). The post
 is `specR`'s word for word, beside raft's crash token of the vacancy `NewServer` arms (`nodeCrashTok`,
-T4: the generation keeps it for its next crash, `nodeCrash`): the restarted incarnation's built part `srvBuiltR` at the restart's apply
+T4: the generation keeps it for its next crash, `nodeCrash`) and the snapshot directory's crash token
+(`srvSnapKeep`, D-T7-2): the restarted incarnation's built part `srvBuiltR` at the restart's apply
 state `restartKV ρ.rd.kv A`, the KV model of the backend's applied log `A` (which may now run past the
 WAL's commit: the raft loop's replay of entries at or below the consistent index is skipped by the apply
 thread, `applyEntryNormal`'s `index <= ci`; `notes/etcd-dist-d6.md` §4, the proof's main new step).
@@ -121,6 +122,9 @@ abbrev NewServer.specC : Prop :=
       -- (T4, 2026-11-24, lead's decision) raft's crash token of the vacancy `NewServer` arms
       -- (`nodeVacant_arm`), for this generation's own next crash
       (∃ x, nodeCrashTok γ.cl id x) ∗
+      -- (D-T7-2, 2026-11-25, approved on #50) the snapshot directory's crash token (the image's
+      -- `snapDirKeep`; the server keeps the handle), for the same next crash
+      srvSnapKeep γ id cfg.DataDir' ∗
       ((⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)

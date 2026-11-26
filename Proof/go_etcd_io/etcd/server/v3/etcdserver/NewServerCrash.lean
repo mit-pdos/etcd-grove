@@ -64,7 +64,8 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
       Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc
       Hdirs Hlbc Hbco Hfnc Hdwd Hbwb
     ihave #HbootR := bootstrapAtR_of_crash cfg U γ id N dir σ i A D M Hw $$ HbootC
-    iapply h' $$ [-HΦ HcT]
+    icases HcT with ⟨HcT, HsK⟩
+    iapply h' $$ [-HΦ HcT HsK]
     · iframe
       iframe %Hγn
       iframe %Haufit
@@ -75,7 +76,7 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
     inext
     iintro %srv %err Hq
     iapply HΦ
-    iframe HcT Hq
+    iframe HcT HsK Hq
   · -- WIP (etcd-dist D6 T4): the image not a graceful one; see the file header.
     sorry
 

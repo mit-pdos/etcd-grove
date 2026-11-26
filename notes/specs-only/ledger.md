@@ -7014,7 +7014,11 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   siblings) take `⌜R0 = R⌝`, which `snapDir_crash_law_holds` gets from `crashRest_roots` before each use (it holds the
   law's `osSharedInv R` and `crashRest`). A weaker premise: the law gets stronger.
 - **Decision.** **Approved** (D-T7-1; coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z). Queued on `etcd-safe-t10` after T4's restatement (T10 handoff,
-  session 2); then T7's `snapDirKeptOf.law` hypothesis goes. Not edited yet.
+  session 2); then T7's `snapDirKeptOf.law` hypothesis goes. **Applied** on `etcd-safe-t10` (2026-11-25, T10 session 3):
+  `snapDirKeptF R V' sd := □ ∀ dq j, osPathS R sd dq j -∗ ⌜lookupH R V' sd = some (.dir j)⌝`; `old_dir` at `R`;
+  `step_file`/`step_free`/`step_index`/`loop` take the law's `osSharedInv R` and get `R0 = R` from
+  `crashRest_roots` (moved from `dist/crash/MemberCrash.lean` into `SnapDirCrash.lean`); T7's `snapDirKeptR` is now
+  an abbreviation of `snapDirKeptF` and `snapDirKeptOf.law` (hypothesis `hD1` of `memberGen_crash_law_holds`) is gone.
 ## 2026-11-25: `srvCrashImageAt` misses three crash images and drops a crash token (T7, D6)
 
 - **Spec.** `srvCrashImageAt` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvCrashImage.lean`), the vocabulary of
@@ -7033,7 +7037,11 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   data the image at `σ.b`, the old backend at some `i < σ.b`. (3) `bootLen ≤ i ∨ i = 0` with the fresh backend's
   image. Each is T4's to restate (with `bootstrapCrashContract`).
 - **Decision.** (1) is D-T7-2: **approved** (coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z): `srvCrashImageAt` holds `snapDirKeep`, `NewServer.specC`
-  returns the token; queued on `etcd-safe-t10` after T4's restatement, not edited yet. (2) and (3): **approved**
+  returns the token; **applied** on `etcd-safe-t10` (2026-11-25, T10 session 3): `srvCrashImageAt`'s snapshot row holds
+  `snapDirKeep`; `NewServer.specC`'s post returns `srvSnapKeep γ id cfg.DataDir'` (new def, `InvCrashImage.lean`:
+  `∃ γd γm, ⌜γ.snapLoc id = some γd⌝ ∗ snapDirKeep …` at the image's `img`/`Rm`) beside raft's crash token, in both
+  outcomes; `srvCrashImageAt_disk`'s graceful case returns it (the graceful image keeps the handle); T7's
+  `crashImage_of`/`memberGen_crash_law_holds` pass the new generation's `snapDirKeep` whole. (2) and (3): **approved**
   (coordinator-E, #50 comment 2026-11-25T15:22:46Z, item 2) in T10's form: `snapRowB2` for (2), `bootLen ≤ i` dropped for (3) (no `∨ i = 0` needed:
   `imageRestAt` already accepts absent meta keys at `i = 0`, `encMeta 0 = none`). Applied on `etcd-safe-t10`
   (2026-11-25, T10 session 2): `etcdserver/InvCrashImage.lean` (`srvCrashImageAt`, `wal.crashImageR`, `snapRowB2`,
@@ -7058,6 +7066,22 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** **(a) approved** (B6; coordinator-E, #50 2026-11-25T15:22:46Z items 3-5; lead 15:29:41Z): the restart facts drop `idPfxInv`, `NewServer.specC` allocates a
   fresh one under the new incarnation's names; then T7's `memberPfx.law` goes. Queued on `etcd-safe-t10` after T4's
   restatement, not edited yet.
+- **(a) does not go through as stated** (T10 session 3, 2026-11-25; not applied, a decision needed). `idPfxInv gen p`
+  (`idutil/Defs.lean`) is `∃ γip γgp, p ↪[gen]□ (γip, γgp) ∗ inv idPfxN (idPfxBody γip γgp)`: the prefix's names are a
+  *persistent* element of the cluster's map `gen`, keyed by the prefix `p` alone, and `idPfxBody` holds their
+  authorities `ghostMapAuth γip 1`/`γgp 1`. A new incarnation keeps `ρ.ids.gen` (`restartReqNames`; `idClusterInv`'s
+  `idKeyGenFacts gen k e` fixes it cluster-wide) and `ρ.ids.pfx = idPfxOf id`, so `idPfxInv` at the new generation
+  must use the same `(γip, γgp)`, whose authorities stay in the old generation's invariant (its body holds the old
+  heap's `structFieldRef … ↦□`, which the new generation cannot give back). No fresh one can be allocated at those
+  names, and `idPfxTok` for them is gone. Options, each a restatement of idutil's shared definitions (and of
+  `NewGenerator.spec`/`Next`'s proofs), not of `NewServer.specC` alone: (a') key the prefix names by incarnation
+  (`gen` over `IdKey`), with the cross-incarnation freshness of ids (today `idPfxBody`'s `Ip` map with
+  `idIssueFragD`) moved to a ghost-only invariant per prefix that survives crashes; (b) the ledger's original
+  option: `idPfxInv`'s invariant made crash-aware (`idPfxBody ∨ crashed ∗ token`, as `walInv`), split into a
+  ghost-only part (`Ip`, the issue facts) kept across generations and a heap part (`Gp`, the generators' `prefix`
+  fields) re-made per generation, with a crash law that re-allocates the heap part at `L'`. Either way the
+  generators' map `Gp` (keyed by heap `Loc`s, which a new heap reuses) must be per generation. T7's `memberPfx.law`
+  stays a hypothesis until D7/T8 decide; `memberRestartFacts` and `NewServer.specC` unchanged.
 
 2026-11-25: T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation (T7, D6)
 
@@ -7128,6 +7152,36 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   etcd_safe trusted packet as its own item, listing both points above. Applied on `etcd-safe-t10` (2026-11-25, T10
   session 2) with the review's docstring fixes (`CrashInterim.lean`'s header and laws, `memberDbNamed.law`'s).
 
+## 2026-11-25: the crash image's WAL row names its history and carries its certificates (T10 for P5, D6)
+
+- **Spec.** `walFilesC` (`storage/WalRecsCrash.lean`), `srvFilesC` (`etcdserver/InvRestart.lean`), `srvCrashImageAt`'s files row
+  (`etcdserver/InvCrashImage.lean`), `bootstrapCrashContract` (its `.law`, C-I2) and `rnDurK_crash.law` (`InvWalCrash.lean`, P5's).
+- **Defect.** P5's restart (`rnRestartAllocK.law`'s producer) needs the opened WAL's history `Hs` with every snapshot record
+  certified (`walHistCerts γ.cl sd Hs`); the crash image names only `σ` (`walRead (walSrvHist d.H) = some σ`) and carries no
+  certificate, so the restart cannot rebuild the invariant from it.
+- **Evidence.** P5 (a), `etcd-safe-p5` handoff ("(a) not suppliable through the restart slot alone").
+- **Proposed change.** (1) `walFilesC` names the history `Hs = walSrvHist d.H`, in place if every user follows (else a
+  separate predicate); (2) the crash image's `srvFilesC` row holds `walHistCerts γ.cl sd Hs`, produced by T7 from
+  `rnDurK_crash.law`, which must return them (P5's law; not extended on `etcd-safe-p5` as of 2026-11-25: until it is, a
+  hypothesis of T7's theorem); (3) `bootstrapCrashContract`'s post names the opened WAL's history as that `Hs` and returns
+  the certificates as a visible frame from the pre's image row, handed through unchanged, never created inside the
+  contract (in the `.snap.db` review's scope note); (4) `bootstrapRestartContract` and the graceful slot stay
+  certificate-free.
+- **Decision.** **Approved** (lead, #50 2026-11-25T16:06:56Z, P5's item (a); relayed by the coordinator). Not applied yet
+  (T10 session 3 handed it off: `notes/etcd-dist-d6.md`, "T10 status and handoff, session 3").
+
+## 2026-11-25: the backend's image row lives in the apply protocol's `consInv` (T10, D6; internal)
+
+- **Spec.** T10's image row (design: `notes/etcd-dist-d6.md`, "T10 design" and session 2's handoff): the design put it in
+  the server's batch-lock invariant `batchLockInv`.
+- **Change.** In `consInv` (`etcdserver/InvApply.lean`, `flightInv`'s `false` branch, kept through the `pending` one):
+  `∃ A, srvRLogLb A ∗ ⌜uint.Z s.p = ai0 + |A|⌝ ∗ ⌜∀ m, eff ≤ m ≤ p → models of A's prefix at m are A's⌝`, so that
+  `commit_save_au` hands the image index with its prefix to the commit. An internal choice of the apply protocol's
+  invariant (no exported statement changes; `consInv_open`/`_close` unchanged, accessor lemmas beside them).
+- **Decision.** **Approved** (coordinator, 2026-11-25, T10 session 3 order). First step applied 2026-11-26 (T10
+  session 8): `consInv γ IR` generic over the row (default `True`), the `R` step lemmas; the server's row and the
+  callers not yet (`notes/etcd-dist-d6.md`, "T10 status and handoff, session 8").
+
 ## 2026-11-25: C-I1's record laws restated for bbolt's crash proof (bbolt-crash, D6)
 
 - **Spec.** C-I1 (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`): `dbCrashKeep γ i0 Dl Dn pd`,
@@ -7157,3 +7211,85 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** **Agreed** with T10 (etcd-grove-03, #50, 2026-11-25T17:29Z: "yes to all three") and approved by
   coordinator-E. Applied on `bbolt-crash/2026-11-25` (based on `etcd-safe-t10`), with an `axiom`-skill review of the
   restated laws before T10 merges it. The laws stay axioms until bbolt's crash proof retires them.
+
+## 2026-11-26: `idutil`'s prefix facts tagged with the incarnation (T10 B6, shared first step; internal)
+
+- **Spec.** `idPfxBody`/`idPfxInv`/`idPfxTok`, `idKeyGenFacts`, `idClusterOk` and `idGen`
+  (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec` and `Generator.Next.spec`.
+- **Defect.** Across a restart the new heap reuses addresses, so `idClusterOk`'s clause 3 (distinct keys of one prefix have
+  distinct generators, by `Loc`) and the generators' map `Gp : Loc ↦ IdKey` (named in `gen`, persistent elements, heap
+  facts of the old generation) cannot be kept true; B6 (`notes/etcd-dist-d6.md`, session 4) needs them gone first.
+- **Evidence.** B6's analysis; clause 3's only use was `Next`'s "an id already issued by my generator is my key's".
+- **Proposed change.** (1) The ids' map `Ip : id ↦ (inc, g)`, `idKeyGenFacts`' elements `id ↪[γip]□ (k.2, g)`.
+  (2) Clause 3 restricted to keys of one incarnation is `k = (k.1, k.2)`: dropped. (3) `Gp` cannot go entirely (`Next`
+  must still tell, inside one heap, which incarnation a generator is, the issue record being keyed by `Loc`); it becomes
+  `Gp : Loc ↦ inc`, with heap fact `∃ v, prefix ↦□ v`, named per allocation of the invariant (`idPfxInv := ∃ γip γgp,
+  p ↪[gen]□ γip ∗ inv (idPfxBody γip γgp)`, `idPfxInv_alloc` allocates `γgp`), and `gen : w64 ↦ GName`. (4) `idGen` holds
+  the opened `idPfxInv` with `g ↪[γgp]□ γi.inc` (`NewGenerator` registers it), in place of `idPfxInv γi.gen γi.pfx`.
+  No spec statement's text changes; `idGen`'s first four components (read by `SrvRaftLog`) are unchanged.
+- **Decision.** Announced on #50 (2026-11-25T23:25Z, "unless you object"); applied on `etcd-safe-t10` (T10 session 5).
+  The lead's B6 choice ((a'), (b), (c)) builds on it; under (b) the re-allocation now needs a fresh `γgp` only.
+
+## 2026-11-26: B6 (b), the prefix's ids' invariant cancelled at a crash (T10 session 6; internal)
+
+- **Spec.** `idPfxBody` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec`,
+  `Generator.Next.spec`, `idPfxInv` and every spec naming them; T7's `memberPfx.law` and `memberGen_crash.law`
+  (`dist/crash/MemberCrash.lean`); the issue record's `Specs`/`Crash` (`GooseLang/Ext/IdIssue/`, untrusted: no
+  change to its `Impl`).
+- **Defect.** `idPfxInv` is heap-level (its `Gp` holds `prefix ↦□` facts, its `Ip` the record's `idIssueFragD` at the
+  generation `L`), so the old generation's cannot serve the new one, and a new one at the same names `γip` cannot be
+  allocated while the old invariant holds `γip`'s authority. `memberPfx.law` (an unproved hypothesis) asked for it.
+- **Evidence.** B6's analysis (`notes/etcd-dist-d6.md`, sessions 4-5). B6 decided (b) on #50 (2026-11-26T00:33Z,
+  etcd-grove-03; the lead away). A cancellable invariant (`cinv`, its token in the member's keep) does **not** work:
+  opening one takes a fraction of its token, and `Next` holds only the persistent `idGen` (a persistent fact cannot
+  be invalidated later, so the old generation's `Next` must be able to open the old invariant after a crash and be
+  refuted there). The one resource that refutes an old generation's step is the old record's authority, which the
+  crash's rest `idIssueCrashStart hL hL'` hands over and the step's own state interpretation (`idIssueCtx hL`) also
+  holds.
+- **Proposed change.** (1) `idPfxBody γip γgp := GpPart γgp ∗ (IpPart γip γgp ∨ idIssueDeadD)`: the generators' map
+  (fresh `γgp` per allocation, never cancelled; `NewGenerator` uses only it) and the ids' map, which a crash replaces by
+  the old record's authority `idIssueDeadD` (`∃ Mg, ghostMapAuth hL.idIssueName 1 Mg`, instance-free as
+  `idIssueFragD`). (2) Each `Ip` entry is `(idIssueFragD id g ∗ g ↪[γgp]□ inc) ∨ idIssuePastD id` (an earlier
+  incarnation's id, instance-free `idIssuePastAt`); `Next` refutes the second with `idIssueFragAt_past`. (3) A
+  variant `wp_IdIssue_live` of the record's step lets the step's update give up with `idIssueDeadAt` of its own
+  incarnation, which the step refutes with its state interpretation's authority; `Next` uses it when it opens a
+  cancelled body. (4) The crash law `idPfxInv_crash`: from the old generation's `idPfxInv` and `idIssueCrashStart`,
+  every `Ip` fact made past at `L'`, the old body cancelled (the old authority deposited), and a new invariant at the
+  same `γip` with a fresh, empty `γgp` (`idutil/PfxCrash.lean`). (5) `memberGen_crash.law` (`dist/crash/MemberGen.lean`)
+  takes the issue record's crash rest `idIssueCrashStart (gooseIdIssueGS L) (gooseIdIssueGS L')` beside the file
+  extension's (every extension's crash rest reaches the restart, `etcdstart/NetExtsCrash.lean`), and gains
+  `[HasExt idIssueExt]`; T7's `memberPfx.law` is deleted, `memberGen_crash_law_holds` loses `hB6` and applies
+  `idPfxInv_crash` to the old `idPfxInv` of `memberRestartFacts`. **No keep row** (the "cancel token" is the crash rest's authority, not a member's token). No change
+  to `NewGenerator.spec`'s or `Next.spec`'s text, no top-level change, no axiom.
+- **Decision.** (b) by etcd-grove-03 on #50; this form of it applied on `etcd-safe-t10` (T10 session 6).
+
+## 2026-11-26: the skip paths' model fact for the image row (T10 session 9; internal, proposed)
+
+- **Spec.** The apply protocol's `skip_doneR` (`etcdserver/InvApply.lean`) takes `□ IR eff p -∗ □ IR eff i`; at the
+  server's row `srvImgRow γr.raft (srvImgModel γr)` (`etcdserver/ImgRow.lean`) that is `srvImgRow_skip`, which needs
+  `srvRLogLb (A ++ [x])` with `i = ai0 + |A| + 1` and the pure `srvImgModel γr (A ++ [x]) = srvImgModel γr A` (the entry
+  `i` changes no model the image is of). Callers: `applyEntryNormal` (four sites: the no-data entry, and the applier's
+  outcome without the batch lock, `Hout`'s right disjunct, whose last conjunct the proofs drop) and `EtcdServer.apply`
+  (two sites: `applyConfChange`'s outcome without the batch lock).
+- **Defect.** The no-data sites have the fact (`entryStep`'s nil case, `srvRest_nodata`). The others do not: the
+  applier's (`apply.Apply.spec*`) and `applyConfChange`'s no-lock outcomes say the batch lock was not taken, not that
+  the entry's models are unchanged (`kvModel`, `crevOf`, `kvLeases`, `restModel` of the log with the entry). In the mode
+  `on` the image's KV model is `kvModelOn`'s, so the row's `M` must be the mode's (`srvImgModel` is the mode-off one).
+- **Evidence.** Code reading of the call sites (`EtcdServer__applyEntryNormal.lean` lines ~1002, ~1277: `icases Hout
+  with (… | ⟨Hst, Happ, Hbe, -⟩)`; `EtcdServer__apply.lean` ~788, ~1874).
+- **Proposed change.** The no-lock outcomes gain `⌜srvImgModel γr (A ++ [m]) = srvImgModel γr A⌝` (or the mode's model),
+  proved inside the applier/`applyConfChange` from the request's model step (`applyStep`'s outcomes that take no lock
+  leave the log, leases and rest buckets); or, if some no-lock outcome does change a model (a write outside the batch
+  lock), the row is weakened there and the finding recorded. To decide before the switch to the `R` lemmas.
+- **Decision.** Taken (coordinator, 2026-11-26, T10 session 10). The applier's (`apply.Apply.spec*`) and
+  `applyConfChange`'s outcomes without the batch lock gain the pure fact that the entry changes no image model, proved
+  inside them from the request's model step. The row's model depends on the mode (mode `on`: `kvModelOn`'s KV model),
+  and the row is passed where the mode is known (`isServerM`). If a no-lock outcome does change a model (a write
+  outside the batch lock), the row is not weakened silently: the session stops, records it here as a finding with the
+  Go path, and reports it (it might be a real bug).
+- **Applied** (T10 session 10, in progress). (1) `EtcdServer.applyConfChange.spec`: its no-lock outcome is the
+  failed validation (`server.go` `applyConfChange`: `ValidateConfigurationChange` errs, `cc.NodeID = raft.None`, then
+  `SetConsistentIndex` outside the batch lock); the caller's wand for that store, `Pre -∗ WP SetConsistentIndex
+  {Adv}`, now also takes `⌜membership.ccValidOn rs.bk m = false⌝` (the wand is where `EtcdServer.apply` runs
+  `skip_done`, before `Adv` exists), from which the caller gets `ccRest true m rs = rs`. (2) The applier's no-lock
+  outcome (`cPost`'s `Pre`): see the session's handoff.

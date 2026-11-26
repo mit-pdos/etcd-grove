@@ -193,11 +193,10 @@ theorem idKeyFact_pfxOk {X : Type} [Pos.Countable X] (issued cnt wn fs gen : GNa
     ipureintro; exact Hok
   imodintro
   ipureintro
-  obtain ⟨-, h2, -, -, -, h6⟩ := Hok
-  have hs : (C !! k).isSome := (h6 k).2 (by simp [Hlk])
+  have hs : (C !! k).isSome := (Hok.domF k).2 (by simp [Hlk])
   cases hc : C !! k with
   | none => simp [hc] at hs
-  | some e => exact (h2 k e hc).1
+  | some e => exact (Hok.pfx k e hc).1
 
 /-- **A restarted incarnation's names** (restart S7.4, `memberRestartFacts_alloc`): the stopped
 incarnation's `ρ` with new read names' rows (`applied`, `committed`, `notifier`, `logs`, `pend`), a

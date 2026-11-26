@@ -48,8 +48,8 @@ theorem idClaim_make (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName �
     iframe HI HC HR HF HG
     isplitr
     · ipureintro
-      refine ⟨fun id' => ?_, Hok.2⟩
-      rw [← Hok.1 id']
+      refine idClusterOk.mk (fun id' => ?_) Hok.pfx Hok.gen Hok.domR Hok.domF
+      rw [← Hok.issued id']
       have := GMap.lookup_insert_is_Some I id id' (some (d, γf, γi.key))
       rw [this]
       by_cases h : id = id'

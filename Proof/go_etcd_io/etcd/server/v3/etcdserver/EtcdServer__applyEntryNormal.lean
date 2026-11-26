@@ -323,7 +323,7 @@ set_option hygiene false in
 /-- The deferred update after an entry processed with no writes (state `{st with p := i}`):
 `ci` is below `i`, so it is advanced to `i`; then the postcondition. -/
 local macro "tail_skip" : tactic => `(tactic| (
-  wp_apply_core (wp_ci_get hC γ ci b { st with p := m.index } Hp) $$ [Hst Hbe] [-]
+  wp_apply_core (wp_ci_get (IR := fun _ _ => iprop(True)) hC γ ci b { st with p := m.index } Hp) $$ [Hst Hbe] [-]
   · iframe Pci Hci Hinv Hst Hbe
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
@@ -338,7 +338,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   · iexact He
   (try wp_auto)
   obtain ⟨hlp, hle, hlpend⟩ := stLoaded_fields γ { st with p := m.index }
-  wp_apply_core (wp_ci_advance hS γ ci (stLoaded γ { st with p := m.index }) m.index m.term
+  wp_apply_core (wp_ci_advance (IR := fun _ _ => iprop(True)) hS γ ci (stLoaded γ { st with p := m.index }) m.index m.term
       (by rw [hlpend]; exact Hp) (by rw [hlp]; exact Int.le_refl _)
       (by rw [ciEff_stLoaded]; exact hce)) $$ [Hst] [-]
   · iframe Pci Hci Hinv Hst
@@ -360,7 +360,7 @@ set_option hygiene false in
 /-- The deferred update after an entry whose writes went through the hook (state
 `⟨i, i, i, false⟩`): `ci` is `i`, nothing to do; then the postcondition. -/
 local macro "tail_done" : tactic => `(tactic| (
-  wp_apply_core (wp_ci_get hC γ ci b ⟨m.index, m.index, m.index, false⟩ rfl) $$ [Hst Hbe] [-]
+  wp_apply_core (wp_ci_get (IR := fun _ _ => iprop(True)) hC γ ci b ⟨m.index, m.index, m.index, false⟩ rfl) $$ [Hst Hbe] [-]
   · iframe Pci Hci Hinv Hst Hbe
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
