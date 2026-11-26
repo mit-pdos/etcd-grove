@@ -229,12 +229,11 @@ calls and the proposed `NewServer`/`Serve`). The coordinator decided the fixes, 
 
 ## Handoff (2026-11-26, after the F2 merge; context limit)
 
-- **Build: running, result unknown.** fk-lean2, `~/eg/wt/etcd-safe-f7` at `9a3a07ef29` (detached), script
+- **Build: green** (`lake build` exit 0, 11721 jobs, no error; finished after the handoff was first written). fk-lean2, `~/eg/wt/etcd-safe-f7` at `9a3a07ef29` (detached), script
   `~/eg/logs/f7m-build.sh` (flock `~/eg/.build.lock`, MemoryMax=55G), log `~/eg/logs/f7m-build.log` (ends `EXIT n`).
   Targets `~/eg/logs/f7m-leaves.txt` (= `etc/importers.py --leaves` over `S2Interim`, `MemberLessor`, `NewServerDist`,
   `ServeDist`, `AuthViewDist`, `AuthServeProposed`, `kvremote/TopLevelRobustness`, `client/RunLease*`: 24 leaves).
-  Next session: read the log; on an error fix it (most likely spots: `AuthServeProposed`'s new `"Hlslot"`/`γl`, its
-  `LessorSlot` import; `AuthViewDist`'s `readCheckedD`/`readAuthedD` with the new `L` parameter).
+  The Get and Txn drafts (`AuthViewDist`) typecheck with the new `readCheckedD`.
 - `etc/tier-check.py --check`: ok (208 known violations, none new).
 - Combined proposals: `NewServer.specG_dist_proposed` at
   `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthServeProposed.lean:104`, `Serve_dist_proposed.spec` at
