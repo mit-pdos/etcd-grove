@@ -171,7 +171,7 @@ theorem rnScopeAt_ktie {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s
     unfold rnScopeAt basicScope
     iintro ⟨%H, #Hc⟩
     isplitr
-    · ipureintro; intro _; exact H.2.2
+    · ipureintro; intro _; exact H.2.2.1
     · isplitr
       · ipureintro; exact H
       · imodintro; iexact Hc

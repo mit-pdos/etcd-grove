@@ -6218,3 +6218,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   17th `readreq` leaves the binding 16 requests and the view 17, breaking `ReadsIs` (reachable: raft leaves a
   request unanswered at a follower with no leader or a leader without a commit in its term).
 - **Decision.** Lead's decision, 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3 item 2): the transfer scope's membership facts in `rnScopeAt` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/RawNodeAt.lean` (`XScopeOk`, `XScopeOk.keep`, `rnScopeAt`'s pure part),
+  `RawNodeAtLemmas.lean`, `RawNodeReadyAt.lean` (`rnScopeAt_keepAll`'s `hx`, default `⟨rfl, rfl, rfl⟩`),
+  `RawNodeAtScope.lean`, `RawNodeStart.lean` (`rnScopeAt_start`, the restart's `HxR`).
+- **Change (strengthening of the RawNode scope).** At `some md`, `rnScopeAt` gains `md.transfer = true → XScopeOk γ s`:
+  the known leader (`(toPState s).lead`) `0` or in `γ.reCfg`, every stamped transfer request's destination
+  (`s.gh.xw`'s keys' first component) in `γ.reCfg`, a known leader only past term `0`. Vacuous at `some {}`; the
+  restart proves it (no leader, `xw = ∅`).
+- **Decision.** Lead-approved (Q3 item 2). No new axiom, no new top-level premise.

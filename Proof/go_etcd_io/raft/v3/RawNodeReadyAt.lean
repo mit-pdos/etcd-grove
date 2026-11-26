@@ -238,7 +238,9 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
     (Hst : s'.logst.storage = s.logst.storage)
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
-    (hk : rs'.k = rs.k := by rfl) :
+    (hk : rs'.k = rs.k := by rfl)
+    (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term := by
+      exact ⟨rfl, rfl, rfl⟩) :
     rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
   cases sc with
   | none => unfold rnScopeAt; iintro _; iempintro
@@ -247,7 +249,8 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
     iintro ⟨%Hs, #Hc⟩
     rw [Hst]
     isplitr
-    · ipureintro; exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.keep hfl hk⟩
+    · ipureintro
+      exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx⟩
     · imodintro; iexact Hc
 
 /-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`), the storage, the
@@ -268,7 +271,7 @@ theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState
     isplitr
     · ipureintro
       exact ⟨(RnScope_empty rs' s').2 (H ((RnScope_empty rs s).1 Hs.1)), RnCfgIn.keep hcf Hs.2.1,
-        Hs.2.2.keep hfl hk⟩
+        Hs.2.2.1.keep hfl hk, fun h => absurd h (by decide)⟩
     · imodintro; iexact Hc
 
 end sep
