@@ -91,9 +91,9 @@ theorem Member.wp_proof
   icases Hw with ⟨#Hprem, #Hvoff, Hwa, Hshare⟩
   iunfold memberShare at Hshare
   icases Hshare with ⟨%Hcok, #Hcf, Hsl, #Haddr, Hnames⟩
-  -- the cluster's lease mode is `.none` (`ClusterOk`'s): F7 step 3's `Serve_dist` takes the member at the view's
-  -- mode `c.view.kv.lm`, the slice's `.none`
-  have _Hlm : c.view.kv.lm = .none := by
+  -- the cluster's lease mode is `.none` (`ClusterOk`'s): `Serve_dist` takes the member at the view's mode
+  -- `c.view.kv.lm`, the slice's `.none`
+  have Hlm : c.view.kv.lm = .none := by
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, hlm, -⟩ := Hcok
     exact hlm
   iunfold etcd_dist.memberNamesShare at Hnames
@@ -131,10 +131,14 @@ theorem Member.wp_proof
   subst Herr
   wp_auto
   -- `Serve(s, client)` on a member machine, at the cluster's view (`Serve_dist`)
-  ihave Hup := etcdstart.memberUpL_memberUp srv ρ E₀ lg γn id .none (c.ls id) $$ Hup
-  wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id c.view) $$ [Hup] as %serr -
+  wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id c.view (fun h => absurd h Bool.false_ne_true)) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
+    isplitr
+    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, Or.inl rfl⟩
+    -- the auth-off branch, at the view's lessor `c.ls id` and mode (`Hlm`)
+    rw [Hlm]
+    simp only [etcd_dist.ClusterNames.view, Bool.false_eq_true, ↓reduceIte]
+    iexact Hup
   cases serr with
   | ok ei =>
     wp_auto

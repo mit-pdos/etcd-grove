@@ -40,15 +40,17 @@ member publishes anything and nothing about it changes across a restart.
 * `kv`: the cluster's KV names (`ClusterNames.γk`, `clusterAllocN`'s). Every incarnation of every member
   has KV names `kvCongr` to them (a first start's by `memberBoot_of_slice`, a restart's by
   `restartNames`), and `Serve_dist` serves the table at `Γ` only for such a member.
-* `ls mid`: member `mid`'s lessor history name. No axiom reads it yet: the lease contracts wait for the
-  Prove item P-L1 (`NewServer` taking the lessor's name from the start), and until then the starts set it
-  to a constant (`ClusterNames.view`).
+* `ls mid`: member `mid`'s lessor history name. `Serve_dist` serves the table at `Γ` only for a member whose
+  lessor is at `Γ.ls mid` (`memberUpL`/`memberUpOnL`, F7 step 3, 2026-11-26: `NewServer_dist` takes the name from
+  the start, P-L1); the lease contracts read it. The starts that allocate no lessor slot set it to a constant
+  (`ClusterNames.lsNone`).
 * `auth`: the cluster's auth mode. The KV write contracts are for `auth = false` only (refusal-free
-  members: a write is sent at most once); a member `Serve_dist` serves runs auth off (`memberUp`).
+  members: a write is sent at most once); `Serve_dist` serves a member whose auth mode is the view's
+  (`memberUpL` with auth off, `memberUpOnL` with auth on).
 * `au mid`: member `mid`'s auth names (F7, 2026-11-26, the approved design's P-A1, `notes/etcd-dist-f7.md`).
-  No axiom reads it yet: the auth-on drafts (`AuthViewDist.lean`) read it, and are sound only once
-  `Serve_dist` requires the member's auth store at `Γ.au mid` (`AuthServeProposed.lean`, the review
-  `notes/axiom-review/f7-a.md`); until P-A1's start the starts set it to a constant (`ofKV`). -/
+  No axiom reads it yet: the auth-on drafts (`AuthViewDist.lean`) read it, sound because `Serve_dist` requires
+  the member's auth store at `Γ.au mid` with auth on (`memberUpOnL`, F7 step 3, 2026-11-26; the review
+  `notes/axiom-review/f7-a.md`); the starts without auth names set it to a constant (`ofKV`, `auNone`). -/
 structure DistView [GooseExts] where
   kv : KVNames
   ls : w64 → GName

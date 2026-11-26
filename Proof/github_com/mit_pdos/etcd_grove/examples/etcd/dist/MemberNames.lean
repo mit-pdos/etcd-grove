@@ -2,8 +2,8 @@
 
 # A member's names chosen by the start: its auth names and its lessor name (#50 F7, L1 and L2)
 
-`notes/axiom-review/f7-combined.md`, section 2 ("Usability"): the proposed `NewServer_dist`
-(`AuthServeProposed.lean`) takes from its caller, per member, the auth names `γa` with their fresh
+`notes/axiom-review/f7-combined.md`, section 2 ("Usability"): `NewServer_dist` (`NewServer.specG_dist`, since F7
+step 3) takes from its caller, per member, the auth names `γa` with their fresh
 authorities (`authNamesFreshD γa`, with auth on) and the lessor name `γl` with half of its ghost map's
 authority at `∅` and its slot (`lease.lessorSlot γl`). The start allocates them, before any machine runs,
 over the global ghost state (no heap):
@@ -16,7 +16,7 @@ No axiom, no `sorry`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AuthServeProposed
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 
 @[expose] public section
@@ -82,7 +82,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- At a `HeapGS`, the start's `authNamesFreshG` is the proposed `NewServer_dist`'s `authNamesFreshD`. -/
+/-- At a `HeapGS`, the start's `authNamesFreshG` is `NewServer_dist`'s `authNamesFreshD`. -/
 theorem authNamesFreshG_iff (γa : auth.AuthNames) :
     authNamesFreshG (GF := GF) γa ⊣⊢ authNamesFreshD γa := by
   unfold authNamesFreshG authNamesFreshD authFreshInit
@@ -100,7 +100,7 @@ variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [Has
 /-- **A member's lessor and auth names as the start hands them over** (#50 F7, L4; here since F7 step 2, for putget's `memberShare`;
 `notes/axiom-review/f7-combined.md` §2): half of the lessor name `γl`'s ghost map's authority at `∅` with its slot
 (`lease.lessorSlot_alloc`), and the auth names `γa` with their fresh authorities (`authNamesFreshG_alloc`): what the
-proposed `NewServer_dist` takes (`Hlslot`, and `Hγa` with auth on). -/
+`NewServer_dist` takes (`Hlslot`, and `Hγa` with auth on). -/
 def memberNamesShare (γl : GName) (γa : EtcdGrove.auth.AuthNames) : IProp GF :=
   iprop(ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl ∗ authNamesFreshG γa)
 

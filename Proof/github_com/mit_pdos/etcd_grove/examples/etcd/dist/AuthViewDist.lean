@@ -13,11 +13,11 @@ The vocabulary (see the note, "The view"):
 * `Γ.au mid`, member `mid`'s auth names (`DistView.au`, F7 review A/C, 2026-11-26: until then a free binder
   `A`, which a caller could instantiate with names whose history it owns and so refute every success arm;
   `notes/axiom-review/f7-a.md`). Only the member-local facts read it (the published index
-  `auth.authPubLbM`, a member's read and lease checks). They are sound only through `Serve_dist_proposed`
-  (`AuthServeProposed.lean`), whose premise `memberUpOn … (Γ.au mid)` holds the member's exclusive auth
+  `auth.authPubLbM`, a member's read and lease checks). They are sound only through `Serve_dist` (since F7
+  step 3, 2026-11-26), whose auth-on premise `memberUpOnL … (Γ.au mid) …` holds the member's exclusive auth
   resources at `Γ.au mid`: address facts are minted for any `Γ` (`etcdAddr_set`), so Serve's premise is the
-  only tie. It needs the Prove item P-A1 (`NewServer` taking `γa` from the start, as P-L1 the lessor's);
-  `ofKV` sets it to a constant until then;
+  only tie. With P-A1 (`NewServer_dist` taking `γa` from the start, as P-L1 the lessor's, F7 step 3) a start can meet it;
+  `ofKV` sets it to a constant;
 * **distinct names** (the lease review, `rev-f2-report.md`, 2026-11-26: `DistView.ofKV` gives every member
   the same lessor name, `ls := fun _ => 0`, which lets a fact about member A's names be used at member B):
   every draft that reads a per-member name takes `∀ a b, Γ.au a = Γ.au b → a = b` (and, where it reads
@@ -600,7 +600,7 @@ abbrev Lease_TimeToLiveKeysOn_dist.spec : Prop :=
     (sl : GoSlice) (gs : List (Bool → Bool)),
   (∀ a b : w64, Γ.au a = Γ.au b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   -- (F7 review C, 2026-11-26) the revocable mode, as `Lease_LeasesOn_dist`: Serve ties `Γ.ls mid` to the
-  -- member's lessor at the view's mode `Γ.kv.lm` (`Serve_dist_proposed`)
+  -- member's lessor at the view's mode `Γ.kv.lm` (`Serve_dist`)
   Γ.auth = true → Γ.kv.lm = .revocable → outTokOk (principalOf cfg) om → leaseKeysFold gs false = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗

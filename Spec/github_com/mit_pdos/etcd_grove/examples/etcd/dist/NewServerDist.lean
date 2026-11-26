@@ -5,19 +5,34 @@ S5 across machines; `notes/etcd-dist-plan.md`, "Interim transport"): `NewServer.
 network replaced by the peer addresses. The axiom is `Proof/.../etcd/dist/NewServerDist.lean`.
 
 **What changes from `NewServer.specG`** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`; nothing
-else, the rest is its text verbatim):
+else, the rest is its text verbatim, the premises `etcdURLsFit U.peer → etcdURLsFit U.client →` included):
 * the network's names `γn` are no binder: the post gives them (`∃ γn`, with `γn.N = srvNet γ` and `γn.dir = dir`,
   what the premise fixed before), as `StartMember_dist.spec` (`putgetk`) does;
 * `netHttpOk γn id` (the in-process streams' registry, every other member's host registered with raft's protocol
   through the single-process `http.reserve`) is replaced by `httpAddrAt γ pid a` (`S5Interim.lean`: the deployment's start set `a` to etcd's peer protocols of `γ`'s cluster `γ.cl` and member `pid`; `httpAddrAt` reads `γ`
   only through `γ.cl`) for every other peer `pid`'s address
   `a` in the directory;
-* `noProxyEnv` (this process has no HTTP proxy variable set; the program's check, `os.Getenv.specEnv`) is added.
+* `noProxyEnv` (this process has no HTTP proxy variable set; the program's check, `os.Getenv.specEnv`) is added;
+* (F7, P-A1, 2026-11-26) the member's auth names `γa` are the caller's (the start's per-member allocation,
+  `DistView.au mid`): the binder `γa`, the premise `"Hγa"` (with auth on, `authNamesFreshD γa`: the fresh
+  authorities `NewServer` allocates in one process, `auth.authBoot_alloc`, `tokAlloc`, `srvTpInv_alloc`), and in the
+  post `E.authMode = .on γa` with auth on, in place of `∃ γa`;
+* (F2, P-L1, 2026-11-26) the member's lessor name `γl` is the caller's (`DistView.ls mid`): the binder `γl`, the
+  premise `"Hlslot"` (half of `γl`'s ghost map authority at `∅` and the start's slot `lease.lessorSlot γl` holding
+  the other half), and in the post `mvcc.api.mvccLeases E.γ = γl`. These are token-identical to the in-process
+  `NewServer.specGAt`'s (F7 step 2; there `Hlslot` is first in the precondition, here last), which
+  `NewServer.wp_proofGAt` proves: `lease.newLessor_alloc_at` opens the slot, takes the other half, and closes it with
+  the lessor's history law `lessorHistOk γl` and a pin.
+The construction does not depend on the ghost names. With a distinct `γa` and `γl` per member (the start's,
+`ClusterNames.NamesInj`), the start meets `Serve_dist.spec`'s `memberUpOnL`/`memberUpL` and the lessor axioms'
+premise `∀ a b, Γ.ls a = Γ.ls b → a = b`. (Until 2026-11-26 `γa` was the post's and the lessor name `NewServer`'s
+own, and the `etcdURLsFit` premises were dropped: `notes/axiom-review/f7-diff-vs-inprocess.md`.)
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Interim
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 
 @[expose] public section
 
@@ -50,7 +65,11 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
     -- raft's `RaftNames.reSnapLoc` until 2026-10-27)
     (γd : GName)
     -- (2026-11-04, the lease-expiry plan's Part C) the cluster's lease mode, the caller's choice
-    (m : lease.Mode),
+    (m : lease.Mode)
+    -- (F7, P-A1, 2026-11-26) the member's auth names, the caller's (the start's per-member allocation)
+    (γa : auth.AuthNames)
+    -- (F2, P-L1, 2026-11-26) the member's lessor name, the start's choice (`DistView.ls mid`)
+    (γl : GName),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
   -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
   -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
@@ -118,6 +137,11 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2) the member's peer and client URLs within
+  -- etcd's URL bounds (`etcdURLsFit`: at most `etcdURLCountMax` URLs of at most `etcdURLLenMax`
+  -- bytes, each `http://host`), for the `strings.Join`s of their strings (`publishV3`'s log lines,
+  -- the transport's `X-PeerURLs`); dropped here until 2026-11-26 (`f7-diff-vs-inprocess.md`)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
   -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
   -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of
@@ -211,9 +235,9 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
       -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
       -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
       -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`). This is the ghost map's
-      -- authority only; the directory itself (no `.snap.db` file yet, no writer but the server's
-      -- snapshotters) is `bootOk`'s `Hsdo` (`snap.snapDirOwn`, restart S6a M1), which names this map
-      -- in the directory's invariant (`snapDir_init`); `snapDir_alloc` is deleted.
+      -- authority only; the directory itself is `bootOk`'s `Hsfree` (its snapshot names, free) and
+      -- `Hsdo` (`snap.snapDirOwn`, restart S6a M1; claim #34, 2026-11-23: the claim on its other names),
+      -- which the directory's invariant keeps with this map (`snapDir_init`); `snapDir_alloc` is deleted.
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
       -- bound (until 2026-11-12 also the lessor's checkpointer's effects, through `lease.bootCfg`)
@@ -233,16 +257,25 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
       -- line, 2026-11-25: `rnNewStorageOk` proved by wal-nostorageok; `rnLoggerZapOk`, `rnTimeoutDetectorOk`
       -- now `newRaftNode`'s callees' trust-boundary specs, hprem-axioms)
       -- the packages' init facts `start` needs
-      "#Hcci" ∷ context.isClosedchanInit }}
+      "#Hcci" ∷ context.isClosedchanInit ∗
+      -- (F2, P-L1, 2026-11-26) half of the lessor name's ghost map authority at `∅` and the start's slot holding
+      -- the other half: `NewLessor` makes the member's lessor at `γl` (`lease.NewLessor.specAt`) and publishes its
+      -- history law in the slot (as `NewServer.specGAt`'s `Hlslot`)
+      "Hlslot" ∷ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+      -- (F7, P-A1, 2026-11-26) with auth on, `γa`'s fresh authorities, the caller's
+      "Hγa" ∷ (if on then authNamesFreshD γa else iprop(True)) }}
     (App (Val (@! NewServer)) (Val #cfg))
   {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
       (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γn : NetNames GF) (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
-          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
+          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`;
+          -- F7, P-A1: at the caller's `γa`)
           -- (dist) the member's network names, with the in-process network's payload and directory
-          ⌜γn.N = srvNet γ ∧ γn.dir = dir ∧ envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
+          -- (F2, P-L1) the member's lessor at the start's name
+          ⌜γn.N = srvNet γ ∧ γn.dir = dir ∧ envAgree E E₀ ∧ E.authOn = on ∧ (on = true → E.authMode = .on γa) ∧
+            mvcc.api.mvccLeases E.γ = γl⌝ ∗
           -- (per-type stage B2, 2026-11-11, r5 §4.2) the raw serving stocks: the revocation's built
           -- part, the gRPC run pool's store tokens with `bemu` slots
           srvServeStock srv E ∗

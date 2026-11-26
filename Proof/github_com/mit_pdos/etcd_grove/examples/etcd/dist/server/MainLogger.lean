@@ -9,11 +9,13 @@ return at once otherwise. Member `i`'s share of the start (`memberShareD`) unpac
 Go computes at its URLs `BootGoD`), the request names' KV names `kvCongr` to the cluster's view's (O1 option B,
 `notes/etcd-dist-plan.md` §18.3, no publication). `serverConfig(c, lg)`'s
 configuration (`memberCfg`, auth off) to `NewServer` on a member machine (`NewServer.specG_dist` at auth off and the
-share's compaction mode; every other peer's address from the start's `peerAddrFactsAt`, of the same cluster), its
-post made `memberBuilt` (as `etcdstart.newServerMode`) and split (`memberBuilt_split`) before `s.Start()`
-(`wp_Start_built`); `net.Listen` at the member's own peer address (its `httpAddrAt`), etcd's peer handler served on
+share's compaction mode; every other peer's address from the start's `peerAddrFactsAt`, of the same cluster; the
+member's lessor at `c.ls id`, its half and slot from the share's `memberNamesShare`; `etcdURLsFit` from the
+deployment's `addrOk`), its post made `memberBuiltL` (as `etcdstart.newServerMode`) and split (`memberBuiltL_split`)
+before `s.Start()` (`wp_Start_builtL`); `net.Listen` at the member's own peer address (its `httpAddrAt`), etcd's peer handler served on
 it by a goroutine (`NewPeerHandler_dist`, `PeerServe_dist`); `<-s.ReadyNotify()` (the broadcast idiom's receive);
-`etcdstart.Serve` on a member machine (`Serve_dist`); `holdForever()` does not return.
+`etcdstart.Serve` on a member machine (`Serve_dist`, at the view's lessor `c.ls id` and mode `.none`);
+`holdForever()` does not return.
 -/
 module
 
@@ -33,6 +35,7 @@ public import Proof.go_etcd_io.raft.v3.BootMarshal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MemberSplit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 
 @[expose] public section
 
@@ -101,7 +104,10 @@ theorem MainLogger.wp_proof
   -- the share of the start
   icases Hshare with ⟨%c, Hshare⟩
   iunfold memberShareD at Hshare
-  icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, #Hat, -⟩
+  icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, #Hat, Hnames⟩
+  -- the member's lessor name's half and slot (`NewServer_dist`'s `Hlslot`); its auth names are unused (auth off)
+  iunfold memberNamesShare at Hnames
+  icases Hnames with ⟨Hlh, Hlslot, -⟩
   obtain ⟨Hcok, Hbcfg, -⟩ := Hsh
   obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, -⟩ := Hcok
   rw [members_getD d i m Hm]
@@ -110,6 +116,17 @@ theorem MainLogger.wp_proof
     rw [← hidm]; exact ids_getD d i m Hm
   have hidmem : idm ∈ d.ids := by rw [hidm']; exact List.mem_of_getElem? (ids_getElem? d i m Hm)
   have Hdir : go!"http://" ++ m.peer ∈ dirD d idm := by rw [hidm', dirD_self d Hidnd i m Hm]; simp
+  -- the member's addresses within etcd's URL bounds (`NewServer_dist`'s `etcdURLsFit`), from the deployment's
+  -- `addrOk` (one URL per member, `http://` and the address)
+  have Hmm : m ∈ d.members := List.mem_of_getElem? Hm
+  have Hpf : addrFits m.peer := by
+    refine etcd_dist.addrOk_addrFits (Hwf.addrs.2 m.peer ?_)
+    unfold Deployment.addrs
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, Hmm, by simp⟩)
+  have Hcf : addrFits m.client := by
+    refine etcd_dist.addrOk_addrFits (Hwf.addrs.2 m.client ?_)
+    unfold Deployment.addrs
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, Hmm, by simp⟩)
   have Hbc : rafthttp.bootCfg (dirD d) ps := rafthttp.bootCfg_of_le _ ps
     (fun f => by rw [dirD_ne_nil Hwf, Hbgo.perm.mem_iff])
     (by rw [Hbgo.perm.length_eq, ids_length]; unfold peersMax; exact Nat.le_trans Hmlen (by decide))
@@ -214,7 +231,12 @@ theorem MainLogger.wp_proof
     show c.γ.rule = srvRule (W64 0) c.γ.boot; rw [hboot]; exact hrule
   have Hbc' : rafthttp.bootCfg (dirD d) ({ c.γ with reg := c.reg idm } : SrvRaft).vs := by
     show rafthttp.bootCfg (dirD d) c.γ.vs; rw [hvs]; exact Hbc
-  -- `NewServer` on a member machine, at auth off and the share's compaction mode
+  -- `NewServer` on a member machine, at auth off and the share's compaction mode, the member's lessor at `c.ls idm`
+  ihave Hls : (ghostMapAuth (c.ls idm) (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot (c.ls idm))
+      $$ [Hlh Hlslot]
+  · isplitl [Hlh]
+    · iexact Hlh
+    iexact Hlslot
   letI : MemStorReg GF := ⟨c.reg idm⟩
   have wpNS : NewServer.specG_dist (GF := GF) (hG := hG) false cmp := wp_NewServer_dist false cmp
   simp only [NewServer.specG_dist, kvInvM_false, srvErM_false, srvBuiltG_false, bootKVOf_false] at wpNS
@@ -222,19 +244,20 @@ theorem MainLogger.wp_proof
   wp_apply (wpNS _ ⟨[httpURL m.peer], [httpURL m.client], M, iuOf (gmsD d)⟩
       { c.γ with reg := c.reg idm } idm ctxs ρ
       (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) (2 ^ 48 - 1)
-      (fun _ => srvFloorFacts (GF := GF) (c.idx idm).slog) (dirD d) γd .none
+      (fun _ => srvFloorFacts (GF := GF) (c.idx idm).slog) (dirD d) γd .none (c.au idm) (c.ls idm)
       hraft hrule' (fun h => absurd h Hnsn) hc0' hch' hlog' hkcmp
       (show mvcc.batchLimitOk (W64 0) from ⟨by simp, by simp [mvcc.rangeLimitMax]⟩)
       (show v3rpc.etcdMaxRequestBytesOk (uint.nat (W64 1572864)) by
         simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hcmpcfg (fun _ => trivial) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdok (peerURLsDir_httpURL _ idm m.peer Hdok Hdir)
+      (etcdURLsFit_httpURL m.peer Hpf) (etcdURLsFit_httpURL m.client Hcf)
       (raftNode.bootCfg_of _ rfl) Hbc'
-      (fun h => absurd h (by decide))
-      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
+      (fun h => absurd h Bool.false_ne_true)
+      (lease.bootCfg_of_run hslg (fun h => absurd h Bool.false_ne_true))
       (bootCfgOk_of _ rfl rfl rfl rfl ⟨rfl, rfl⟩ rfl)
       ⟨rfl, discoveryZero_len, HU8, dirFits_memberDataDir m.name HnL⟩ HwbN)
-    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwa] as %srv %err Hres
+    $$ [Htok Hnboot Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir Hwa Hls] as %srv %err Hres
   · iunfold bootPremiseDist at Hbp
     iframe
     iframe #
@@ -276,7 +299,11 @@ theorem MainLogger.wp_proof
     · ipureintro; exact Hbuq
     isplitr
     · ipureintro; exact Hdbo
-    ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
+    isplitr
+    · ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
+    -- `Hγa` at auth off
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    itrivial
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γn, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE,
     Hstk, #Hwb, Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, #Hlsrv, #Httl, -, -, Hkeep⟩)
   · -- `NewServer` failed: return
@@ -286,7 +313,7 @@ theorem MainLogger.wp_proof
     (try wp_auto)
     iapply HΦ; itrivial
   subst Herr
-  obtain ⟨HγnN, Hγndir, HEa, HEon, -⟩ := HE
+  obtain ⟨HγnN, Hγndir, HEa, HEon, -, HEl⟩ := HE
   -- `NewServer`'s post as `memberBuilt` (as `etcdstart.newServerMode`)
   ihave Hsb := isServerBuilt_of_gap srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) bootKV
       (2 ^ 48 - 1) $$ [Hbuilt Hgap]
@@ -307,9 +334,9 @@ theorem MainLogger.wp_proof
     iExactEq Hmw; rfl
   ihave #Hlr : srvLeaseRd srv E .none $$ []
   · iapply srvLeaseRd_of_srvInv srv E .none _ $$ Hlsrv
-  ihave Hmb : memberBuilt srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm
-      (2 ^ 48 - 1) false (m := .none) $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp HServeR Hkeep]
-  · iunfold memberBuilt
+  ihave Hmb : memberBuiltL srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm
+      (2 ^ 48 - 1) false .none (c.ls idm) $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp HServeR Hkeep]
+  · iunfold memberBuiltL
     iexists γA, ci, TM, E, γrn, b, _, γk, τ
     isplitr
     rotate_left
@@ -339,14 +366,14 @@ theorem MainLogger.wp_proof
     isplitr
     · iexact Hlr
     iexact Hkeep
-    ipureintro; exact ⟨HEa, HEon, rfl, rfl, rfl⟩
+    ipureintro; exact ⟨HEa, HEon, rfl, rfl, rfl, HEl⟩
   -- split before `Start`: the ready channel's receiver share, the peer handler's server's resources
-  icases memberBuilt_split srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm
-    (2 ^ 48 - 1) .none $$ Hmb with ⟨Hmb, #Hrr, %τ', #Hnm', Hsr⟩
+  icases memberBuiltL_split srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm
+    (2 ^ 48 - 1) .none (c.ls idm) $$ Hmb with ⟨Hmb, #Hrr, %τ', #Hnm', Hsr⟩
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_Start_built wp_Start srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn
-      idm (2 ^ 48 - 1) true HrbN .none Hrb48) $$ [Hmb Htok] as Hup
+  wp_apply (wp_Start_builtL wp_Start srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn
+      idm (2 ^ 48 - 1) true HrbN .none (c.ls idm) Hrb48) $$ [Hmb Htok] as Hup
   · isplitl [Hmb]
     · iexact Hmb
     iexact Htok
@@ -367,7 +394,7 @@ theorem MainLogger.wp_proof
   subst Hle
   (try wp_auto)
   -- `go http.Serve(pl, etcdhttp.NewPeerHandler(lg, s))`
-  icases memberUp_req srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm .none
+  icases memberUpL_req srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm .none (c.ls idm)
     $$ Hup with ⟨Hup, %Er, %ρr, #Hreq⟩
   wp_apply (wp_NewPeerHandler_dist lg srv γn idm τ' false Er ρr) $$ [] as %h #Hh
   · isplitr
@@ -404,13 +431,15 @@ theorem MainLogger.wp_proof
   (try wp_auto)
   -- `etcdstart.Serve(s, c.Client)` on a member machine
   wp_apply (wp_Serve_dist srv m.client ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn
-      idm c.view) $$ [Hup] as %serr -
+      idm c.view (fun h => absurd h Bool.false_ne_true)) $$ [Hup] as %serr -
   · isplitr
     · iexact Hzlg
     isplitr
-    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
+    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, Or.inl rfl⟩
     isplitl [Hup]
-    · iexact Hup
+    · -- the auth-off branch, at the view's lessor `c.ls idm` and mode `c.γk.lm = .none` (`ClusterOk`'s)
+      simp only [ClusterNames.view, Bool.false_eq_true, ↓reduceIte, hklg]
+      iexact Hup
     iexact Hat
   cases serr with
   | ok ei =>
