@@ -141,7 +141,11 @@ theorem kvOnly_shape {d : Deployment} (Hd : d.WellFormed) (hkv : KvOnly d) :
       0 ≤ sint.Z w.ops ∧ (ns.length : Int) * sint.Z w.ops < 2 ^ 60 := by
   have hnl := wellFormed_nodes_length Hd
   obtain ⟨t, ⟨-, -, -, hws, hnn⟩, hwf⟩ := Hd
-  obtain ⟨-, -, -, -, -, -, hcnt, -, -, -, -, -, -, hcomp, hbnd, -⟩ := hwf
+  -- `WellFormed`'s conjuncts by their statements, not their positions
+  have hcnt : ∀ p ∈ t.workloads.zip t.nodes, p.2.length = p.1.nodeCount := by
+    grind [typed.Deployment.WellFormed]
+  have hcomp : typed.Compatible t.workloads := by grind [typed.Deployment.WellFormed]
+  have hbnd : ∀ tw ∈ t.workloads, tw.BoundsOk := by grind [typed.Deployment.WellFormed]
   have hkind : ∀ tw ∈ t.workloads, ∃ c o, tw = .kv c o := by
     intro tw htw
     obtain ⟨w, hw, he⟩ := forall₂_mem_left' hws tw htw

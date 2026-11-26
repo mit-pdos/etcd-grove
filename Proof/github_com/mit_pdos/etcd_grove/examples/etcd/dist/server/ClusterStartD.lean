@@ -40,7 +40,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-! ## The deployment's members as the start's (pure) -/
 
 section pure
-variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable [GooseExts]
 
 theorem map_zip_map_self {α β γ : Type _} (l : List α) (f : α → β) (g : α × β → γ) :
     (l.zip (l.map f)).map g = l.map (fun a => g (a, f a)) := by
@@ -67,6 +67,11 @@ theorem members_getD_ids (d : Deployment) (k : Nat) (m : Member) (hk : d.members
   · simp [Deployment.ids, List.getD_eq_getElem?_getD, hk]
   · simp [List.getD_eq_getElem?_getD, hk]
 
+end pure
+
+section compactor
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+
 /-- **The compactor's slot at the deployment's configuration**: a well-formed deployment's compactor is off, in
 revision mode at a positive retention, or in periodic mode at a period of at least 10ns (`ServerCfg.Supported`), so
 some compaction mode and cluster retention meet `v3compactor.bootCfg` (off: no compaction; revision: the retention;
@@ -74,7 +79,9 @@ periodic: retention `0`). -/
 theorem compactorCfg_of_wf {d : Deployment} (Hd : d.WellFormed) :
     ∃ (cmp : Bool) (cret : Nat), v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret := by
   obtain ⟨t, ⟨-, -, ⟨hc, -⟩, -, -⟩, hw⟩ := Hd
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, ⟨hs, -⟩, -⟩ := hw
+  -- `WellFormed`'s conjuncts by their statements, not their positions
+  have hs' : t.cfg.Supported := by grind [typed.Deployment.WellFormed]
+  obtain ⟨hs, -⟩ := hs'
   revert hc hs
   cases t.cfg.compactor with
   | off =>
@@ -98,7 +105,7 @@ theorem compactorCfg_of_wf {d : Deployment} (Hd : d.WellFormed) :
     rw [hm]
     exact v3compactor.bootCfg_periodic _ _ (by omega) rfl
 
-end pure
+end compactor
 
 /-! ## The start -/
 

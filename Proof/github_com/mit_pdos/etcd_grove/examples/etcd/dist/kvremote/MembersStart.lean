@@ -99,7 +99,8 @@ theorem member_boot_dist_law (d : Deployment) (Hd : d.WellFormed) (boot : List L
   · ipureintro
     rfl
   isplitl [Hkv]
-  · iapply (kvSys_boot c.γk Hlog (distPs d) _ (srvBootLogOk_of_BootLog _ _ _ Hbc.boot)) $$ Hkv
+  · rw [show c.view.kv = c.γk from rfl]
+    iapply (kvSys_boot c.γk Hlog (distPs d) _ (srvBootLogOk_of_BootLog _ _ _ Hbc.boot)) $$ Hkv
   isplitr
   · rw [clusterMembersOf_eq]
     iexact Hcs
