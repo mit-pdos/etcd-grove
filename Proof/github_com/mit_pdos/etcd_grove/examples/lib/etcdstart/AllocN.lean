@@ -289,8 +289,8 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
         fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid, fun h => nomatch h⟩
     isplitr
     · iunfold clusterFacts
+      rw [kvInvM_false]
       iframe #
-      try iexact Hkv
     iunfold memberSlice
     iapply BigSepL.bigSepL_sep_eqv.2
     isplitl [Hms]
@@ -319,8 +319,8 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
     ihave Htoks := (BigSepL.bigSepL_perm hperm).1 $$ Htoks
     imodintro
     iexists γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg
-    isimp only [hboot] at Hetcd Hah
-    simp only [↓reduceIte]
+    isimp only [hboot] at Hetcd
+    rw [if_pos (rfl : true = true)]
     iframe Hetcd
     iframe Hah
     isplitr
@@ -329,8 +329,8 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
         fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid, fun _ => rfl⟩
     isplitr
     · iunfold clusterFacts
+      rw [kvInvM_true]
       iframe #
-      try iexact Hkv
     iunfold memberSlice
     iapply BigSepL.bigSepL_sep_eqv.2
     isplitl [Hms]
@@ -377,8 +377,8 @@ theorem memberBoot_of_slice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8
         memberBoot { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp
           lm := by
   letI := srvAnyStor (GF := GF)
+  rw [clusterFacts, kvInvM_false]
   iintro #Hm #Hf Hs
-  iunfold clusterFacts at Hf
   icases Hf with ⟨#Hsrl, #Hcl, #H0, #Hpm, #Hrc, #Hkv⟩
   iunfold memberSlice at Hs
   icases Hs with ⟨⟨Hp, Hkf, ⟨Hnb, Hrs⟩, Hsd⟩, Hw, ⟨Hi, Hc, Hr, Hg⟩, Ht⟩
@@ -494,7 +494,8 @@ theorem allocN (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : 
   -- (D7) the cluster's part, then each member's
   imod (clusterAllocN (GF := GF) ids ps hperm id0 hid0 ctxs boot Hbc Hrb Hrb2 lm hap cmp cret)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap, hgps⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap, hgps, -⟩ := Hγ
+  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
   imod (memberBoots_of γ ps ctxs (LogEntry.toEntries boot 0) issued cnt wn fs gen γk (ΦsOf ids idx) γm idx
       cok rev reg (xsOf ids idx) hiss hwn hfs hgen hc0 hch hlog hvs cmp hkc lm hrun hklg hpo HnoSnap ids hgps
       (fun id hid => ΦsOf_at ids idx Hipnd id hid) (fun id hid => xsOf_at ids idx Hipnd id hid))
