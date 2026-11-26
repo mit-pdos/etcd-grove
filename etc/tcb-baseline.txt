@@ -106,9 +106,11 @@ axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_dist.KV_Delete_dist.wp_proof
 axiom etcd_dist.KV_Get_dist.wp_proof
 axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
+axiom etcd_dist.Txn_Commit_dist.wp_proof
 axiom etcd_dist.etcdSvc
 axiom etcd_noRefusal
 axiom fmt.ErrorfStrs.wp_proof
