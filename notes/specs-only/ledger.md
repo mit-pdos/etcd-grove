@@ -7179,3 +7179,17 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** `readAuthedD` takes `L` as a parameter; `readCheckedD` binds it and adds `srvReqLogLb γR L`
   (as `authFloorD` and `writeCheckedD` have). `txnReadCheckedD` does not use `readAuthedD` and is unchanged.
 - **Decision.** Applied on `etcd-safe-f7` (2026-11-26), as the coordinator directed.
+
+### 2026-11-26: the main-program specs' auth premise (F7 S2, Handoff S2-5's option (a))
+- **Spec.** `Spec/.../dist/server/{MainLogger,MainDeploymentLogger,MainDeployment}.lean` (and `member_boot_dist`'s `Hauth`,
+  `AdequacyMember.lean`, a proof file).
+- **Defect.** The premise `d.cfg.auth = false` keeps auth-on deployments out of the member's proof. Removing it outright
+  leaves auth on with the revocable lease mode unprovable: `NewServer_dist` takes `lease.bootCfg lm m on`, whose auth row
+  is `on = true → m = .revocable → lease.leasesNoExpiry` (`LeaseApi.lean:70`), and the specs give only `lease.runCfg lm lm`.
+- **Evidence.** `notes/etcd-dist-f7.md`, Handoff S2-5, "Finding".
+- **Proposed change.** Replace `d.cfg.auth = false →` by `(d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry) →`
+  in the three specs, and `member_boot_dist`'s `Hauth` likewise. It is weaker than the old premise, so every caller
+  (kvremote's M1 included) still discharges it.
+- **Decision.** Option (a), the coordinator's (2026-11-26). Not applied yet: it lands with `MainLogger`'s auth-on branch
+  (Handoff S2-6). The full theorem (the lead's F8) must discharge `leasesNoExpiry` for authLease, as the single-process
+  theorem does from its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, around lines 38-40 and 69-70).

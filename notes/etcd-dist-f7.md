@@ -955,3 +955,58 @@ S2-2's design, unchanged: `memberShareD` passes `d.cfg.auth` to `ClusterOk`/`clu
 `cmp = false`, `cret = 0`); the auth-on `memberBuiltL`/split/`wp_Start_builtL`/`memberUpL_req`; the lessor-tied
 `memberUpOn_intro` (`StartMemberAuth.lean:186-240`, `srvTLSId_false` with `iExactEq Hcca; rfl`); `MainLogger` split on
 `d.cfg.auth` (off-only spots: Handoff S2-1); then the premises.
+
+### Handoff S2-6 (2026-11-26; step 1 green, step 4 half done; context limit)
+
+**Step 1 green:** the S2-5 build (`a915ee621e`; step 3's targets plus `etcdstart.Link` and `auth.Link`) EXIT 0.
+
+**The coordinator's decision: option (a)** (ledger entry 2026-11-26, "the main-program specs' auth premise"). In
+`MainLogger`/`MainDeploymentLogger`/`MainDeployment`, `d.cfg.auth = false →` becomes `(d.cfg.auth = true → lm =
+.revocable → lease.leasesNoExpiry) →`; `member_boot_dist`'s `Hauth` too (kvremote passes `fun _ h => nomatch h`, since
+`lm = .none` there). `MainDeployment*`'s proofs pass `Hauth` through unchanged. **Not applied yet.** It goes in one
+commit with `MainLogger`'s auth-on branch, which it makes necessary.
+**For the lead's F8:** the full theorem must discharge `leasesNoExpiry` for authLease. The single-process theorem does
+this with its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, around lines 38-40 and 69-70).
+
+**Step 4, done:**
+- **`fe644e80d4`, built** (fk-lean2 EXIT 0: `MainLogger`, `dist.TopLevelRobustness`, `kvremote.TopLevelRobustness`;
+  tier-check ok, 208 known; lease-order ok).
+  - `memberShareD` at `ClusterOk … d.ids d.cfg.auth`, `clusterFactsOf c d.cfg.auth`, `etcdAddrAt … (c.view d.cfg.auth)`.
+  - `compactorCfg_of_wf_auth`: with auth on, `cmp = false`, `cret = 0`.
+  - `clusterStartDL` allocates at `on := d.cfg.auth`. Its `etcdKV` tail is `if d.cfg.auth then True else …`
+    (`ite_drop_left`), and its client facts are at `c.view d.cfg.auth`.
+  - `clusterStartD` and `member_boot_dist_law` take `(Hauth : d.cfg.auth = false)`; kvremote passes `Hscope.2`.
+  - `MainLogger` reduces the share with `isimp only [Hauth] at Hshare`.
+- **`b7c07b43f0` and the commit after it: the auth-on chain.** `etc/lean-check.py -a` on fk-lean2 gives 0 errors for
+  both files; the full build has not run.
+  - In `etcdstart/Start.lean`: `memberBuiltOnL` (`memberBuiltL` with `E.authMode = .on γa`, `isServerBuiltM true … (srvErM
+    true …) … (bootKVOf true)`, plus `□ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD`), `memberUpOnL_intro` (the
+    lessor-tied `memberUpOn_intro`), and `wp_Start_builtOnL` (`Start` at `.on γa`, giving `memberUpOnL`).
+  - In `dist/server/MemberSplit.lean`, which now imports `Start`: `memberBuiltOnL_split` and `memberUpOnL_req`
+    (`isServerReqM true`).
+
+**Next, in order:**
+1. **`MainLogger`'s split.** `cases hau : d.cfg.auth` at the share (replacing `isimp only [Hauth]` with `isimp only
+   [hau]`). The off branch is today's proof. The on branch duplicates it with these differences:
+   - `icases Hnames with ⟨Hlh, Hlslot, Hau⟩`; `Hau : authNamesFreshG (c.au idm)` becomes `authNamesFreshD` through
+     `authNamesFreshG_iff`/`authNamesFreshD_iff_srv` (`MemberNames.lean:87-94`); check which form `Hγa` takes.
+   - `obtain rfl : cmp = false := hlast hau` (`ClusterOk`'s last conjunct).
+   - `memberBootOn_of_slice` (`AllocN.lean:398`; `hne := Hauth hau`, after the premise change) in place of
+     `memberBoot_of_slice`. Its pure post has 11 conjuncts (the off one has 10): `…, hNx, hslg, hnoexp`.
+   - No `memberCfg_off`: `cfg.Auth' = true`. Check that `serverConfig`'s `memberCfg` reduces at `d.cfg.auth = true`.
+   - Call `wp_NewServer_dist true false`, simplified with `[NewServer.specG_dist, ↓reduceIte]` only.
+     - Its `cmp → ¬on` premise is `fun h => nomatch h`.
+     - `lease.bootCfg_of_run hslg (fun _ => hnoexp)`.
+     - `Hγa` framed from `Hau`.
+   - The post's last three are `#Hcca`, `#HBF`, `Hkeep`.
+   - `isServerBuilt_of_gapM true`.
+   - Build `memberBuiltOnL … (c.au idm) lm (c.ls idm)`, with the TLS row from `srvTLSId_false` and `iExactEq Hcca;
+     rfl` (`memberCfg` leaves `ClientCertAuthEnabled'` false), and `HBF` applied to `⌜true = true⌝`.
+   - Then `memberBuiltOnL_split`, `wp_Start_builtOnL`, `memberUpOnL_req`, and `NewPeerHandler_dist`/`PeerServe_dist`
+     at `true`.
+   - `Serve_dist` at `c.view true`: its premises `(fun _ => Hinj.2)` (from `Hsh`'s `NamesInj`) and `Or.inr` (`hist`
+     agreement from `Hρ`), and its `if` reduced to `memberUpOnL`.
+2. **The premise change (a)** in the three Spec files (fix the "-- the scope" comment), `member_boot_dist`, and
+   kvremote's call (line 119).
+3. Build `MainLogger`, `AdequacyMember`, the dist `TopLevelRobustness` leaves, `etcdstart.Link`, and `auth.Link`.
+   Then run tier-check and lease-order. kvremote's statement text stays unchanged.

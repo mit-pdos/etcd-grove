@@ -217,21 +217,24 @@ theorem wp_Start_builtOnL (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG
   obtain ⟨hagree, hγa, hcl, hct, hcw, hγl⟩ := HE
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
-  obtain ⟨x₀, hx₀⟩ : ∃ x, x = bootKVOf true := ⟨_, rfl⟩
-  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) (srvTrStopK γk) :=
-    ⟨_, rfl⟩
-  rw [← hx₀, ← hEr] at Hsb
   -- `Start.spec` at the slot's `on γa`: the built part as the slot's row
-  have hB := isServerBuiltM_C (GF := GF) (.on γa) s γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
-    (W64 0) x₀ N hγa
+  have hB := isServerBuiltM_C (GF := GF) (.on γa) s γA ci TM E ρ ρ.rd
+    (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk)) γrn b (W64 0) (W64 0)
+    (W64 0) (bootKVOf true) N hγa
   dsimp only [AuthC.isOn] at hB
   ihave Hsb := hB $$ [Hsb Hkeep]
   · iframe Hsb
-    iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
-  have h' := wp_Start s γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
+    iapply (srvStop.slot_intro (γk := γk)
+      (Er := srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk))
+      (h := by rfl)) $$ Hkeep
+  have h' := wp_Start s γA ci TM (.on γa) E ρ ρ.rd
+    (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk)) γrn b (W64 0) (W64 0)
+    (W64 0) (bootKVOf true) N
   simp only [AuthC.isOn] at h'
   -- the server's member id is the member's (`srvNetMember`'s)
-  icases isServerBuiltC_mid (.on γa) s γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N $$ Hsb
+  icases isServerBuiltC_mid (.on γa) s γA ci TM E ρ ρ.rd
+    (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk)) γrn b (W64 0) (W64 0)
+    (W64 0) (bootKVOf true) N $$ Hsb
     with ⟨Hsb, #HmidS, -⟩
   ihave #Hnm' := Hnm
   iunfold srvNetMember at Hnm'
