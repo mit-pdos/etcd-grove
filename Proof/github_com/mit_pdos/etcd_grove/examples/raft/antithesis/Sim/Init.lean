@@ -268,9 +268,9 @@ theorem antSim_init : antSim_init.stmt := by
     · rw [hxcause]; intro m h; cases h
     · exact ⟨fun _ => by rw [hlead]; exact (nodeId_ne_zero n).symm, .inl hlead⟩
     · intro h; rw [hrole] at h; exact absurd rfl h
-  · intro G hG hGa
+  · intro G hG
     have hG1 := hG.1
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hG, fun a ha => by rw [hGa] at ha; cases ha⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hG⟩
     · intro l hl
       rw [initS_leaders] at hl
       cases hb : R.boot <;> simp [hb] at hl

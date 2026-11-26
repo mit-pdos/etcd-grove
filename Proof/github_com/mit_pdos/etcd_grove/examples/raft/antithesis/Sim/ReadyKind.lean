@@ -422,10 +422,6 @@ inductive ReadyKind (cf : CfgM) (id : w64) (net : List Msg) (xnet : List XMsg) (
       uint.Z v.ps.term < uint.Z x.term → ps₁.term = x.term → ps₁.vote = W64 0 →
       ps₁.role = .follower → ps₁.log = v.ps.log → ps₁.commit = v.ps.commit → rd.ents = [] →
       ReadyKind cf id net xnet v ps₁ rd
-  /-- A `MsgTimeoutNow` of a higher term (adopted, then the transfer's campaign), the drain's, sent
-  to the node: `XNetOk` excludes it (its term is one the receiver reached). -/
-  | campX (x : XMsg) : v.xcause = some x → x ∈ xnet → x.dst = id → x.ty = .timeoutNow →
-      uint.Z v.ps.term < uint.Z x.term → ps₁.vote = id → ReadyKind cf id net xnet v ps₁ rd
 
 /-! ## Sets and tallies -/
 
@@ -994,10 +990,10 @@ theorem ready_kind {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView}
     have hne : x.term ≠ v.ps.term := fun h => by rw [h] at hlt; exact Int.lt_irrefl _ hlt
     exact .adoptX x hbe hxc hxn hxd hlt rfl (by simp [pbecomeFollower, hne]) rfl rfl rfl
       (ents_nil_of_log hro hfu hdl rfl)
-  | campX x p1 _ _ _ hxc hxn hxd hty hp1 _ hc =>
+  | campX x p1 _ _ _ hxc hxn hxd hty hp1 _ hc hle =>
     obtain ⟨hvo, peers, -, rfl⟩ := hc
     rcases hp1 with ⟨hlt, -⟩ | ⟨-, rfl⟩
-    · exact .campX x hxc hxn hxd hty hlt rfl
+    · exact absurd hle (by omega)
     · exact .camp rfl rfl rfl rfl rfl (ents_nil_of_log hro hfu hdl rfl) rfl hvo
 
 /-! ## A non-follower's vote is its own -/
@@ -1020,7 +1016,6 @@ theorem voteSelf_kind {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeVi
   | prop es _ hl _ _ _ _ _ hv => rw [hv]; exact hvs (by rw [hl]; decide)
   | cmt hl _ _ hv => rw [hv]; exact hvs (by rw [hl]; decide)
   | adoptX x _ _ _ _ _ _ _ hr => exact absurd hr hne
-  | campX x _ _ _ _ _ hv => exact hv
 
 /-! ## The outbox's self-addressed messages -/
 

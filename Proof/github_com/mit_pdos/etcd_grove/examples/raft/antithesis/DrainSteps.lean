@@ -86,24 +86,24 @@ theorem inMask_b1_of {R : AntSim.RunCfg} {dec : CCDec} {S : AntCheck.State}
 /-! ## Raft's facts grown -/
 
 /-- **Raft's facts `G'` extend `G`** (S4's `RaftFacts.Le` at `R`): every list grown, the committed
-log extended, a new leader past the boot term in a bootstrapped run, the acknowledgements kept. -/
+log extended, a new leader past the boot term in a bootstrapped run. -/
 def FactsLe (R : AntSim.RunCfg) (G G' : AntSim.RaftFacts) : Prop :=
   (∀ x ∈ G.leaders, x ∈ G'.leaders) ∧
   (∀ x ∈ G'.leaders, x ∉ G.leaders → R.boot = true → 2 ≤ uint.Z x.2) ∧
   (∀ x ∈ G.votes, x ∈ G'.votes) ∧ (∀ x ∈ G.logs, x ∈ G'.logs) ∧ (∀ x ∈ G.camps, x ∈ G'.camps) ∧
-  G.committed <+: G'.committed ∧ (∀ x ∈ G.commits, x ∈ G'.commits) ∧ G'.acks = G.acks
+  G.committed <+: G'.committed ∧ (∀ x ∈ G.commits, x ∈ G'.commits)
 
 theorem FactsLe.refl (R : AntSim.RunCfg) (G : AntSim.RaftFacts) : FactsLe R G G :=
   ⟨fun _ h => h, fun _ h h' => absurd h h', fun _ h => h, fun _ h => h, fun _ h => h,
-    List.prefix_refl _, fun _ h => h, rfl⟩
+    List.prefix_refl _, fun _ h => h⟩
 
 /-- **`GlobalOk` is kept by larger facts** (S4's `globalOk_mono`). -/
 theorem globalOk_mono {R : AntSim.RunCfg} {S : AntCheck.State} {net : List Msg}
     {G G' : AntSim.RaftFacts} (hG : AntSim.GlobalOk R S net G) (hle : FactsLe R G G') :
     AntSim.GlobalOk R S net G' := by
-  obtain ⟨hl, hv, hlog, hled, ⟨c, hc, hch⟩, htl, happ, ⟨hbl, hbt⟩, hack⟩ := hG
-  obtain ⟨hL, hLn, hV, hLg, hC, hP, hCs, hA⟩ := hle
-  refine ⟨?_, ?_, ?_, ?_, ⟨c, ?_, ?_⟩, ?_, ?_, ⟨hLg _ hbl, ?_⟩, ?_⟩
+  obtain ⟨hl, hv, hlog, hled, ⟨c, hc, hch⟩, htl, happ, ⟨hbl, hbt⟩⟩ := hG
+  obtain ⟨hL, hLn, hV, hLg, hC, hP, hCs⟩ := hle
+  refine ⟨?_, ?_, ?_, ?_, ⟨c, ?_, ?_⟩, ?_, ?_, ⟨hLg _ hbl, ?_⟩⟩
   · intro l h
     rcases hl l h with h0 | ⟨j, t, hm, h1, h2⟩
     · exact Or.inl h0
@@ -132,7 +132,6 @@ theorem globalOk_mono {R : AntSim.RunCfg} {S : AntCheck.State} {net : List Msg}
     by_cases hin : (j, t) ∈ G.leaders
     · exact hbt hb j t hin
     · exact hLn (j, t) hjt hin hb
-  · rw [hA]; exact hack
 
 /-- Node `j`'s view replaced by one with a certified full log keeps every view's certified. -/
 theorem setV_logs {R : AntSim.RunCfg} {V : Fin R.N → AntSim.NodeView} {j : Fin R.N}
@@ -236,8 +235,8 @@ theorem sendHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.No
   exact AntSim.antSim_send_in AntSim.mskB1 mskB1_le R dec S V net xnet evs G j q rest
     (hinm S V net xnet hpre.2.1) hpre' hasync hpend htold hmf
 
-/-- **A transfer message's `send` report's step** (the next pending transfer message `x`; its
-acknowledgement among raft's facts, `XMsgFacts`, nothing grown). -/
+/-- **A transfer message's `send` report's step** (the next pending transfer message `x`; nothing
+grown). -/
 theorem sendXHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.NodeView) (x : XMsg)
     (rest : List XMsg) (net₀ : List Msg) (xnet₀ : List XMsg)
     (hinm : ∀ S V net xnet, AntSim.AntSim R dec S V net xnet → AntSim.InMask AntSim.mskB1 R net xnet)
@@ -245,19 +244,19 @@ theorem sendXHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.N
     ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
       (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
       AntSim.SimPre R dec S V net xnet evs G0 → (∀ i : Fin R.N, (V i).r.full ∈ G0.logs) →
-      (G = G0 ∧ AntSim.XMsgFacts G x) →
+      G = G0 →
       V j = v → net₀ <+: net → xnet₀ <+: xnet →
       AntSim.SimStep R dec evs G (AntSim.evSendX (AntSim.nodeId j) v.byE x)
           (AntSim.setV V j (sendXView v rest)) (net ++ [])
           (xnet ++ [x]) ∧
         AntSim.RaftLaws G ∧
         ∀ i : Fin R.N, (AntSim.setV V j (sendXView v rest) i).r.full ∈ G.logs := by
-  intro evs S V net xnet G0 G hpre hlogs ⟨hG, hxf⟩ hVj _ _
+  intro evs S V net xnet G0 G hpre hlogs hG hVj _ _
   subst hVj; subst hG
   refine ⟨?_, hpre.2.2.1, setV_logs hlogs (fun _ h => h) (hlogs j)⟩
   simp only [List.append_nil]
   exact AntSim.antSim_sendX_in AntSim.mskB1 mskB1_le R dec S V net xnet evs _ j x rest
-    (hinm S V net xnet hpre.2.1) hpre hasync hxp htold hxf
+    (hinm S V net xnet hpre.2.1) hpre hasync hxp htold
 
 /-- **The `apply` report's step** (nothing grown). -/
 theorem applyHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.NodeView)

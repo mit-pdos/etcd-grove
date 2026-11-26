@@ -7,8 +7,7 @@ Lean-first (no Rocq counterpart). #33 parity B1: the run's ghost start and end f
   halves at the node's fresh view, each `live` token, the sent lists' authorities at `[]`, the read
   contexts' authority at `∅`);
 - `antInv_alloc`: the run's invariant allocated open, at the empty stream, over fresh views and raft's
-  facts `G` (the Sim's initial state, `antSim_init`, relates them: `G` with the run's boot facts and no
-  acknowledgement);
+  facts `G` (the Sim's initial state, `antSim_init`, relates them: `G` with the run's boot facts);
 - `antInv_close`: with every node's `live` token, the invariant's stream taken out, accepted at
   `R.cfg` and within `check.Run`'s bounds, and the invariant closed (over);
 - `antRaft_alloc`: raft's cluster at the run's `R` (raft's `cluster_alloc_run` at the voters
@@ -115,7 +114,7 @@ theorem antRun_nil_bounds (R : AntSim.RunCfg) :
 /-- **The run's invariant, allocated open** (see the file header). -/
 theorem antInv_alloc (γ : AntNames) (V : Fin γ.R.N → AntSim.NodeView) (G : AntSim.RaftFacts)
     (E : CoPset) (hV : ∀ j, AntSim.FreshView γ.R (V j)) (hB : AntSim.BootFacts γ.R G)
-    (hA : G.acks = []) (hL : AntSim.RaftLaws G) (hlogs : ∀ j, (V j).r.full ∈ G.logs) :
+    (hL : AntSim.RaftLaws G) (hlogs : ∀ j, (V j).r.full ∈ G.logs) :
     ⊢ ghostVar (GF := GF) γ.strm (1 : Qp).half ([] : List AntCheck.Event) -∗
       ([∗list] j ∈ List.finRange γ.R.N, ghostVar (γ.view j) (1 : Qp).half (V j)) -∗
       monoListAuthOwn γ.sent 1 ([] : List Msg) -∗ monoListAuthOwn γ.xsent 1 ([] : List XMsg) -∗
@@ -131,7 +130,7 @@ theorem antInv_alloc (γ : AntNames) (V : Fin γ.R.N → AntSim.NodeView) (G : A
   iexists [], S, V, [], [], G
   iframe Hs Hv Ha Hxa Hf
   ipureintro
-  exact ⟨⟨hP, hS, hb, hcb, hchg⟩, hL, hG G hB hA, hlogs⟩
+  exact ⟨⟨hP, hS, hb, hcb, hchg⟩, hL, hG G hB, hlogs⟩
 
 /-- **The run's end** (see the file header). -/
 theorem antInv_close (γ : AntNames) :
@@ -214,8 +213,8 @@ def bootFacts0 (R : AntSim.RunCfg) : AntSim.RaftFacts :=
     committed := AntSim.bootLog R, commits := [] }
 
 theorem bootFacts0_ok (R : AntSim.RunCfg) :
-    AntSim.BootFacts R (bootFacts0 R) ∧ (bootFacts0 R).acks = [] ∧ AntSim.RaftLaws (bootFacts0 R) := by
-  refine ⟨⟨by simp [bootFacts0], fun _ _ _ h => by simp [bootFacts0] at h⟩, rfl, ?_⟩
+    AntSim.BootFacts R (bootFacts0 R) ∧ AntSim.RaftLaws (bootFacts0 R) := by
+  refine ⟨⟨by simp [bootFacts0], fun _ _ _ h => by simp [bootFacts0] at h⟩, ?_⟩
   refine ⟨fun a h => by simp [bootFacts0] at h, fun a h => by simp [bootFacts0] at h,
     fun a ha b hb k e f _ _ _ => ?_, by simp [bootFacts0], fun p h => by simp [bootFacts0] at h,
     fun x h => by simp [bootFacts0] at h, fun p h => by simp [bootFacts0] at h⟩

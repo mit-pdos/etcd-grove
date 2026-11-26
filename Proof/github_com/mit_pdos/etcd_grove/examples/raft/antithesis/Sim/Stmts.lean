@@ -141,7 +141,9 @@ def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = 
 
 /-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`: no input taken (a drain's, at the view's own
 state), an input taken between inputs (`v` noted it; a message received was sent to it; a protocol
-message has a nonzero term, but a forwarded read request, which `send` stamps none on), or `Advance` at the end of a `Ready` whose reports are all made
+message has a nonzero term, but a forwarded read request, which `send` stamps none on; a received
+`MsgTimeoutNow` is of a term at most the node's durable one, since its transferee, the node,
+acknowledged at that term, design §6.4: raft's `isAcked` against the node's own durable ghost), or `Advance` at the end of a `Ready` whose reports are all made
 (`AdvanceEndR` stepping the `Ready`'s self-addressed messages; with snapshots off, applying none:
 `AdvanceNoSnap`). -/
 inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (net : List Msg)
@@ -150,7 +152,8 @@ inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Pr
   | input (v : NodeView) (inp : Input) (r₁ : RState) :
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
       (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ (m.ty ≠ .readIndex → m.term ≠ W64 0)) →
-      (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
+      (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n ∧
+        (x.ty = .timeoutNow → uint.Z x.term ≤ uint.Z v.dur.term)) →
       InputStep R dec Adm n v.r inp r₁ → Reach R dec Adm net xnet n v r₁
   | advance (v : NodeView) (r₁ : RState) :
       v.pend = [] → v.xpend = [] → v.ce = [] → v.rpend = [] → DrainBy v.byE →
@@ -278,11 +281,11 @@ def FreshView (R : RunCfg) (v : NodeView) : Prop :=
 
 /-- **The initial state** (`Init0`, B 755-764): before any report, at the run's fresh nodes, the
 checker is at a state related to them, with nothing sent; its facts are certified by any `G` with
-the run's boot facts and no acknowledgement yet. -/
+the run's boot facts. -/
 abbrev antSim_init.stmt : Prop :=
   ∀ (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView), (∀ n, FreshView R (V n)) →
     ∃ S, Prefix R.cfg [] S ∧ AntSim R dec S V [] [] ∧
-      ∀ G : RaftFacts, BootFacts R G → G.acks = [] → GlobalOk R S [] G
+      ∀ G : RaftFacts, BootFacts R G → GlobalOk R S [] G
 
 /-! ## The statements: the reports -/
 
@@ -378,11 +381,6 @@ abbrev antSim_send.stmt : Prop :=
     SimStep R dec evs G (evSend (nodeId n) (V n).byE q)
       (setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet
 
-/-- The raft facts a `send` of a transfer message needs (raft's, added to `G` before the report): a
-`MsgTimeoutNow`'s transferee acknowledged at its term (`isAcked`; design §6.4). -/
-def XMsgFacts (G : RaftFacts) (x : XMsg) : Prop :=
-  x.ty = .timeoutNow → ∃ i : w64, uint.Z i ≠ 0 ∧ (x.dst, x.term, i) ∈ G.acks
-
 /-- **`send` of a transfer message** (B 510-524, unmodelled, B 702): the next transfer message of the
 node's `Ready` is reported, then it is on the network. -/
 abbrev antSim_sendX.stmt : Prop :=
@@ -390,7 +388,6 @@ abbrev antSim_sendX.stmt : Prop :=
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (x : XMsg)
     (rest : List XMsg),
     SimPre R dec S V net xnet evs G → R.md.async = false → (V n).xpend = x :: rest → Told (V n) →
-    XMsgFacts G x →
     SimStep R dec evs G (evSendX (nodeId n) (V n).byE x)
       (setV V n { V n with xpend := rest, undo := none, made := true }) net (xnet ++ [x])
 

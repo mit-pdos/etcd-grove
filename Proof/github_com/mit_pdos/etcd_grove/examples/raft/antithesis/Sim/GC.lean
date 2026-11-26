@@ -509,7 +509,7 @@ raft no leader of term `1` in a bootstrapped run). -/
 theorem GlobalOk.leader_server [GooseExts] {S : State} {net : List Msg} {G : RaftFacts}
     (hl : RaftLaws G) (hg : GlobalOk R S net G) {a b : LeaderRec} (ha : a ∈ S.leaders)
     (hb : b ∈ S.leaders) (hab : a.term = b.term) : a.server = b.server := by
-  have h8 := hg.2.2.2.2.2.2.2.1.2
+  have h8 := hg.2.2.2.2.2.2.2.2
   rcases hg.1 a ha with ⟨hbt, has, hat⟩ | ⟨j, t, hjt, has, hat⟩ <;>
     rcases hg.1 b hb with ⟨hbb, hbs, hbt'⟩ | ⟨j', t', hjt', hbs, hbt'⟩
   · rw [has, hbs]

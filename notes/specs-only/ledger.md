@@ -6745,3 +6745,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** Static names fact from the allocation; callers' patterns gain one component (InvApiBoot `-`, RunCluster
   `Hacks`). Part 2 (antCluster's pure facts) follows group D's antCluster edit.
 - **Decision.** The Antithesis lead ((d) as allocation plumbing, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S5): a `MsgTimeoutNow`'s term bounded at its receipt (#33)
+- **Spec (Sim, lead-approved receiver-side route).** Stmts.lean `Reach.input` and Scope.lean `ReachIn.input`: the
+  recvX premise gains `x.ty = .timeoutNow → uint.Z x.term ≤ uint.Z v.dur.term`. ReachP's `campX` (Scope, internal)
+  gains `uint.Z x.term ≤ uint.Z v.ps.term` (last field). Retired: `XNetOk`'s `MsgTimeoutNow` clause (Rel.lean),
+  `XMsgFacts` and `antSim_sendX.stmt`'s `XMsgFacts G x` premise (Stmts), `RaftFacts.acks` and `GlobalOk`'s ack clause
+  (Rel), `antSim_init.stmt`'s `G.acks = []` premise, `FactsLe`'s `G'.acks = G.acks` (DrainSteps), `ReadyKind.campX`
+  (now unreachable). New raft law `isAcked_term_le` (AckedTerm.lean, proved): `ownDurGhost γ id S -∗ isAcked γ id t i
+  -∗ ⌜i ≠ 0 → t ≤ S.term⌝ ∗ ownDurGhost γ id S`.
+- **Defect.** The design's sender-side derivation (§6.4: at `sendX`, `LeaderPart`'s ack + `AckTermsOk`) needs the
+  leader's `Match[dst] ≠ 0` at the message's term in the view's state; raft's `Ready` gives only `x.term ≤ p.term` and
+  `isAcked`, and the stronger fact is false at a general `Ready` (a leader steps down with the message queued:
+  raft.go:1284, `reset` keeps `r.msgs`). `G.acks` was never grown (no route linked raft's `isAcked` to it).
+- **Evidence.** The receiver owns its durable ghost: `isAcked`'s fragment `(t,i) ↪[γa]□ ()` against `durShares`'
+  `ghostMapAuth γa ½ E.acks` (`ghost_map_lookup`), `durPers` bounds `E.acks`' keys by `S.term`. The consumers
+  (`quiet_reachP`, `selfPre_reachP`, `ready_cmt`'s `MatchOk`, `kind_of_reach`) read the campX field; `xnetOk_of_xpend`
+  keeps the first clause; GlobalOk's projections after `BootFacts` shift (Send, ReadyRel). Every theorem strengthened
+  or unchanged; the harness's node.step (group D) proves the new premise from `netXMsg`'s `isAcked` clause.
+- **Decision.** The Antithesis lead (S5 receiver-side route, points 1-5, approved). No axiom, no top-level premise.

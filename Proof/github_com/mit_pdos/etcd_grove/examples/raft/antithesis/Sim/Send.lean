@@ -419,7 +419,7 @@ theorem ack_match {R : RunCfg} {S : State} {net : List Msg} {G : RaftFacts} (hl 
   obtain ⟨L1, hL1, hA⟩ := hgo.2.2.1 n
   obtain ⟨L2, hL2, hl2⟩ : ∃ L2 ∈ G.logs, l = logOf L2 := by
     rcases hgo.2.2.2.1 _ (TermFn.mem_of_get hll) with ⟨-, h⟩ | ⟨L2, hL2, hl2, -⟩
-    · exact ⟨bootLog R, hgo.2.2.2.2.2.2.2.1.1, (Prod.mk.inj h).2⟩
+    · exact ⟨bootLog R, hgo.2.2.2.2.2.2.2.1, (Prod.mk.inj h).2⟩
     · exact ⟨L2, hL2, hl2⟩
   obtain ⟨l', hl', hlen, hpt, sub, hsub, heq⟩ := sendable_inv hsd
   obtain ⟨hpv, hhf⟩ := hg

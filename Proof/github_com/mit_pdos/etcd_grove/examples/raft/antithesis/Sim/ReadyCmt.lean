@@ -258,7 +258,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     rw [logOf_length, logOf_length] at this; exact this
   have hMO : MatchOk S1 n r₁.p :=
     (quiet_reachP hc hnet hx.d1 (fun q hq hne => (hv.qs q hq).qmsg hne)
-      (fun y hy hty hyd => by have h' := (hx.hs1.2.2.2.1 y hy).2 hty n hyd; rw [hx.d1] at h'; exact h') hx.hr (hpl.trans hvl.symm) hpt
+      hx.hr (hpl.trans hvl.symm) hpt
       hplog).2.2.1 hpl ⟨lp3, lp4⟩
   have hbase : r₁.p.base = base0 := hx.base1
   have hT : S1.currentTerm[n.val]! = uint.Z r₁.p.term := by rw [hx.d1, hpt]

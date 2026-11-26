@@ -706,7 +706,7 @@ theorem rr_node_other (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G
       · exfalso
         have hgn := hok.glead hro
         rcases hgo.1 _ (List.contains_iff_mem.mp l1) with ⟨hbt, -, h1⟩ | ⟨j, t, hjt, hsv, htt⟩
-        · have h2 := hgo.2.2.2.2.2.2.2.1.2 hbt _ _ hgn
+        · have h2 := hgo.2.2.2.2.2.2.2.2 hbt _ _ hgn
           have h3 := hok.hterm
           simp only at h1; omega
         have htw : t = w.ps.term := uint_Z_inj.mp (by rw [← htt]; exact hT.trans hok.hterm)
@@ -769,9 +769,8 @@ theorem rr_global (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G)
     (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
     GlobalOk R (S₂) net G := by
   have sh4 := hs.1.2.2.2.2.1
-  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9⟩ := hgo
-  refine ⟨fun l hl => ?_, fun y hy => ?_, fun k => ?_, fun q hq => ?_, hok.chainG, hok.tlG, g7, g8,
-    fun a ha hi j hj => Int.le_trans (g9 a ha hi j hj) (rr_ct_ge hs hok j)⟩
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8⟩ := hgo
+  refine ⟨fun l hl => ?_, fun y hy => ?_, fun k => ?_, fun q hq => ?_, hok.chainG, hok.tlG, g7, g8⟩
   · change l ∈ ld at hl
     by_cases hm : l ∈ S.leaders
     · exact g1 l hm
@@ -826,8 +825,8 @@ theorem ready_rel {R : RunCfg} {dec : CCDec} {xnet : List XMsg} {S : State} {V :
   have hge := rr_ct_ge hs hok
   refine ⟨⟨rr_shape hs hok, rr_binding hs hok, rr_net hs hok, fun x hx => ?_, fun k => ?_⟩, hg,
     violated_nil hok.hviol hl hg⟩
-  · obtain ⟨⟨i, h2⟩, h3⟩ := hs.2.2.2.1 x hx
-    exact ⟨⟨i, Int.le_trans h2 (hge i)⟩, fun ht j hj => Int.le_trans (h3 ht j hj) (hge j)⟩
+  · obtain ⟨i, h2⟩ := hs.2.2.2.1 x hx
+    exact ⟨i, Int.le_trans h2 (hge i)⟩
   by_cases hk : k = n
   · simp only [setV, hk, ite_true]; exact rr_node_self hs hok
   · simp only [setV, hk, ite_false]; exact rr_node_other hs hgo hl hok hk

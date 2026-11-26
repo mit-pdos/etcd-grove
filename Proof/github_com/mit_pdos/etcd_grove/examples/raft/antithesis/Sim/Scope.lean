@@ -112,7 +112,8 @@ inductive ReachIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM 
       inp.InMask msk →
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
       (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ (m.ty ≠ .readIndex → m.term ≠ W64 0)) →
-      (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
+      (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n ∧
+        (x.ty = .timeoutNow → uint.Z x.term ≤ uint.Z v.dur.term)) →
       InputStep R dec Adm n v.r inp r₁ → ReachIn msk R dec Adm net xnet n v r₁
   | advance (v : NodeView) (r₁ : RState) :
       v.pend = [] → v.xpend = [] → v.ce = [] → v.rpend = [] → DrainBy v.byE →
@@ -481,7 +482,8 @@ queued self pre-votes: nothing or the campaign (`AdvanceEnd.split`); a leader's 
 (`SendsEnd`: a transfer, a transfer message received at the node's term); a transfer message
 received (`xnet`) of a higher term adopted (a follower with no leader); a `MsgTimeoutNow`
 received, at the node's term or after adopting its higher one, starting at a follower the
-transfer's campaign (`CampaignEnd` at `ctxTransfer`). The other transfer steps change nothing (`stay`), as does
+transfer's campaign (`CampaignEnd` at `ctxTransfer`), its term at most the node's (`ReachIn`'s
+durable bound: so never the higher one). The other transfer steps change nothing (`stay`), as does
 `ReportUnreachable`. -/
 inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) (xnet : List XMsg) :
     NodeView → PState → Prop
@@ -514,7 +516,8 @@ inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) (xnet : Lis
       v.xcause = some x → x ∈ xnet → x.dst = id → x.ty = .timeoutNow →
       ((uint.Z v.ps.term < uint.Z x.term ∧ p1 = pbecomeFollower v.ps x.term (W64 0)) ∨
         (x.term = v.ps.term ∧ p1 = v.ps)) →
-      p1.role = .follower → CampaignEnd c id p1 ctxTransfer ps₁ → ReachP kk c id net xnet v ps₁
+      p1.role = .follower → CampaignEnd c id p1 ctxTransfer ps₁ → uint.Z x.term ≤ uint.Z v.ps.term →
+      ReachP kk c id net xnet v ps₁
 
 /-- A local proposal's step (term `0`: no preamble) is `ProposeEnd`. -/
 theorem recvEnd_propMsg {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {d : List w8}
@@ -544,8 +547,10 @@ theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : C
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁) :
     ReachP (R.k n) v.r.cfg.cfg (nodeId n) net xnet v r₁.p := by
-  obtain ⟨hmd, -, -, -, -, hty⟩ := hin.b1 hmsk
+  obtain ⟨hmd, hbt, hpar, hspl, -, hty⟩ := hin.b1 hmsk
   have hcc : R.md.confChanges = false := by rw [hmd]
+  have hdt : v.dur.term = v.ps.term := by
+    rw [(hv.sync (by rw [hmd]) hbt hspl hpar).2.1]; rfl
   cases hr with
   | stay hi hb => exact .stay _ hi hb
   | input inp _ hinp hi hbe hca hxc hm hx hs =>
@@ -565,7 +570,7 @@ theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : C
       exact .tick _ _ hi hti' hs.1
     · exact .propose _ d _ hi hbe (recvEnd_propMsg hs.1)
     · exact .read _ d _ hi hbe (recvEnd_readMsg hs.2.1)
-    · obtain ⟨hxn, hxd⟩ := hx x rfl
+    · obtain ⟨hxn, hxd, hxt⟩ := hx x rfl
       have hdb : DrainBy v.byE := .inr ⟨.recvX x, hbe⟩
       have hxc' : v.xcause = some x := hxc
       rcases hs with ⟨hty, ⟨-, rfl⟩ | ⟨hle, ⟨p1, hp1, hend⟩, -⟩⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, hT⟩ | ⟨hlt, rfl⟩⟩
@@ -578,7 +583,7 @@ theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : C
         · rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩
           · exact absurd hl (by simp [pbecomeFollower])
           · exact .sends _ _ hi hdb hl hse
-        · exact .campX _ x p1 _ hi hbe hxc' hxn hxd hty hp1 hce.1 hce.2
+        · exact .campX _ x p1 _ hi hbe hxc' hxn hxd hty hp1 hce.1 hce.2 (by rw [← hdt]; exact hxt hty)
       · exact .stay _ hi hdb
       · rcases transferEndR_p hT with he | ⟨hl, hse⟩
         · rw [he]; exact .stay _ hi hdb

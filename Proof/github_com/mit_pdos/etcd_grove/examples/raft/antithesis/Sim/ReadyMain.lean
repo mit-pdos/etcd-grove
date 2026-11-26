@@ -843,7 +843,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   | adoptX x hbe hxc hxn hxd hlt hpt hpv hpr hpl hpc hen =>
     rw [hen, hbe, hpv, hpr]
     have hpend := pendingX_of (hno n) (htold hbe) hxc
-    obtain ⟨i, hti⟩ := (hs1.2.2.2.1 x hxn).1
+    obtain ⟨i, hti⟩ := hs1.2.2.2.1 x hxn
     have hin' : i ≠ n := fun h => by subst h; rw [d1] at hti; omega
     have hm' := inMemory_nl_eq n hc go!"recv" (hbe ▸ hbyE) .follower (by decide) r₁.p.term (W64 0)
       r₁.p.commit [] (fun h => by cases h)
@@ -859,9 +859,6 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       (hx.qs_fol hpr) (fun h _ => absurd hpr h)
     rw [hpr] at hok
     exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recvX _ _ _ _ _ _ _ _ _ hpend) hod) hok
-  | campX x hxc hxn hxd hty hlt _ =>
-    have h1 := (hs1.2.2.2.1 x hxn).2 hty n hxd
-    rw [d1] at h1; omega
 
 set_option maxHeartbeats 2000000 in
 /-- **A follower's store** (`store` with entries from the first conflict): `onDisk_fstore`. -/

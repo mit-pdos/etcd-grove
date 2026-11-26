@@ -603,8 +603,8 @@ theorem RunCluster.wp_proof
     fun j => (ds[j.val]!).2, γsc⟩
   have HγR : γ.R = R := rfl
   icases (BigSepL.bigSepL_sep_eqv).1 $$ Hvs with ⟨HvA, HvB⟩
-  obtain ⟨hB, hA, hL⟩ := bootFacts0_ok R
-  imod antInv_alloc γ (fun _ => viewInit R) (bootFacts0 R) ⊤ (fun _ => viewInit_fresh R) hB hA hL
+  obtain ⟨hB, hL⟩ := bootFacts0_ok R
+  imod antInv_alloc γ (fun _ => viewInit R) (bootFacts0 R) ⊤ (fun _ => viewInit_fresh R) hB hL
     (fun _ => by rw [viewInit_full]; simp [bootFacts0]) $$ Hs1 HvA Hsa Hxa Hrf with #Hinv
   ihave #Hpm := propMinter_intro (GF := GF) γ HreMd $$ Hcl Hopsi
   -- the `down` lock

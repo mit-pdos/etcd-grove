@@ -11,9 +11,8 @@ sent to it, is reported (`evRecvX`) and taken (`Recv`, B 199-204): it is no requ
 (`evSendX`) and taken (`Send`, B 510-524): a `MsgTimeoutNow` is the node's own, a `MsgTransferLeader`
 forwarded (`isForwarded`), to another server (`XPendOk`); of an unmodelled type (`isUnmodelled`,
 B 702), so `Send` only takes back the announced write. C4's transfer part (`XNetOk`) of the new
-message: its term is at most the node's (`XPendOk`), which is `currentTerm[n]` (sync disk); a
-`MsgTimeoutNow`'s is one at which the transferee acknowledged (`XMsgFacts`: raft's ack in `G.acks`),
-so at most the transferee's term (C5's acks, design §6.4).
+message: its term is at most the node's (`XPendOk`), which is `currentTerm[n]` (sync disk). (A
+`MsgTimeoutNow`'s term at most the transferee's, design §6.4, is read at its receipt: `Reach.input`.)
 -/
 module
 
@@ -119,18 +118,14 @@ theorem antSim_recvX_in (msk : SimMask) (_hmsk : msk ≤ mskB1) :
   have hgo2 : GlobalOk R (recvS S1 n.val (xmsgOf x)) net G := hgo1
   exact ⟨_, Prefix.snoc hp hgc hstep (violated_nil hb.1 hl hgo2), hrel, hgo2⟩
 
-/-- C4's transfer part of a transfer message of node `n`'s `Ready` (`XPendOk`), at its sync disk; a
-`MsgTimeoutNow`'s term is one its receiver acknowledged at (`XMsgFacts`, C5's acks). -/
+/-- C4's transfer part of a transfer message of node `n`'s `Ready` (`XPendOk`), at its sync disk. -/
 theorem xnetOk_of_xpend {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {n : Fin R.N}
-    {v : NodeView} {x : XMsg} {G : RaftFacts} (hgo : GlobalOk R S net G) (h : NodeOk R dec S net n v)
-    (hdt : v.dur.term = v.ps.term) (hx : XPendOk R.N (nodeId n) v.ps x) (hxf : XMsgFacts G x) :
-    (∃ i : Fin R.N, uint.Z x.term ≤ S.currentTerm[i.val]!) ∧
-    (x.ty = .timeoutNow → ∀ j : Fin R.N, x.dst = nodeId j → uint.Z x.term ≤ S.currentTerm[j.val]!) := by
+    {v : NodeView} {x : XMsg} (h : NodeOk R dec S net n v)
+    (hdt : v.dur.term = v.ps.term) (hx : XPendOk R.N (nodeId n) v.ps x) :
+    ∃ i : Fin R.N, uint.Z x.term ≤ S.currentTerm[i.val]! := by
   obtain ⟨-, -, hle, -⟩ := hx
   have hct : S.currentTerm[n.val]! = uint.Z v.ps.term := by rw [h.disk.1, hdt]
-  refine ⟨⟨n, by rw [hct]; exact hle⟩, fun hty j hj => ?_⟩
-  obtain ⟨i, hi, ha⟩ := hxf hty
-  exact hgo.2.2.2.2.2.2.2.2 _ ha hi j hj
+  exact ⟨n, by rw [hct]; exact hle⟩
 
 /-- **`send` of a transfer message** (B 510-524, unmodelled), for the runs a mask below `mskB1` admits
 (sync storage: the disk is raft's state). -/
@@ -140,10 +135,9 @@ theorem antSim_sendX_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
       (rest : List XMsg),
       InMask msk R net xnet →
       SimPre R dec S V net xnet evs G → R.md.async = false → (V n).xpend = x :: rest → Told (V n) →
-      XMsgFacts G x →
       SimStep R dec evs G (evSendX (nodeId n) (V n).byE x)
         (setV V n { V n with xpend := rest, undo := none, made := true }) net (xnet ++ [x]) := by
-  intro R dec S V net xnet evs G n x rest hin ⟨hp, hs, hl, hgo⟩ hasync hxp _ hxf
+  intro R dec S V net xnet evs G n x rest hin ⟨hp, hs, hl, hgo⟩ hasync hxp _
   obtain ⟨-, hbt, hpar, hspl, -⟩ := hin.b1 hmsk
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
   obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs1
@@ -157,7 +151,7 @@ theorem antSim_sendX_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
   have hne' : (nameOf x.dst != nameOf (nodeId n)) = true := by
     rw [bne_iff_ne]; intro h; exact hne (nameOf_inj h)
   have hstep := sendX_eq n x (V n).byE hc hsrv hne' hsrc
-  have hxnew := xnetOk_of_xpend hgo1 (hno n) hdt hx hxf
+  have hxnew := xnetOk_of_xpend (hno n) hdt hx
   have hgo2 : GlobalOk R (sendS S1 n.val S1.msgs S1.confirmed) net G := hgo1
   obtain ⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩ := hsh
   have hrel : AntSim R dec (sendS S1 n.val S1.msgs S1.confirmed)

@@ -910,9 +910,13 @@ violates it is the finding, reported with a Go reproducer per decision 5. Never 
 `T1 = m.term + 1 > T0 + 1`. This is unreachable in our runs: the leader sends it to `to` only when
 `Match[to] = lastIndex` (`raft.go:1475, 1530`). That `Match` came from `to`'s acknowledgement at the
 leader's term `T` (`reset` zeroes peers' `Match`), so `to`'s durable term is `≥ T = m.term`. A
-duplicate after the campaign is stale. **Proof obligation (B1):** a Sim invariant
-`XNetOk`: `x.ty = .timeoutNow → S.currentTerm[x.dst] ≥ x.term`, established at the `sendX` from
-`LeaderPart`'s ack and `AckTermsOk`.
+duplicate after the campaign is stale. **Proof obligation (B1), as done (2026-11-26, S5):** at the
+receipt, not the send: `Reach.input`'s recvX premise `x.ty = .timeoutNow → x.term ≤ v.dur.term`, which
+node.step proves from the message's `isAcked γ dst t i` (`isRaftMsg`, carried by `netXMsg`) and the
+receiver's own durable ghost (`isAcked_term_le`, AckedTerm.lean). The send-side route first planned
+(`XNetOk` from `LeaderPart`'s ack and `AckTermsOk` at `sendX`) needs the leader's `Match[to]` at the
+message's term in the `Ready`'s state, which raft does not give: a leader can step down with the
+message still queued.
 
 ### 6.5 Network duplication and a forwarded `MsgProp`'s tickets (decided)
 
