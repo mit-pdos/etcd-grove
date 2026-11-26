@@ -707,7 +707,7 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   imod batchLockInv_resolve γA (metaTM γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
   iapply Hf
-  iapply (ci_hook_backend hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
+  iapply (ci_hook_backend (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
     [] [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -752,7 +752,7 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   imod batchLockInv_resolve γA (metaTM γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
-  iapply (ci_hook_backend_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
+  iapply (ci_hook_backend_run (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
     [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre

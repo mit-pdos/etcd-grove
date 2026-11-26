@@ -53,7 +53,7 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
   wp_auto
   wp_apply hA ci i t $$ [$Happ] as Happ
   (try wp_auto)
-  wp_apply_core (wp_ci_unsafeGet hU γ ci b st hp) $$ [Hst Hbe] [HΦ HL Happ applyingIdx applyingTerm]
+  wp_apply_core (wp_ci_unsafeGet (IR := fun _ _ => iprop(True)) hU γ ci b st hp) $$ [Hst Hbe] [HΦ HL Happ applyingIdx applyingTerm]
   · iframe Hcipkg Hci Hinv Hst Hbe
   iintro ⟨Hst, Hbe⟩
   (try wp_auto)
