@@ -47,6 +47,127 @@ theorem wrote_vals (bs' : List ByteG) (off : Nat) (data : List w8) (h : off + da
   · rw [if_pos hi, hv i hi]
   · rw [if_neg hi, List.getElem?_eq_none (by omega)]; rfl
 
+/-- **`bMeta` with the bytes the writer may write named** (`P`): in crash mode, also no byte of
+`P` is protected data of the committed state for the crash invariant's reference image
+(`protData a.xcur a.cur`). `Commit` gets it for the dirty pages' slots before `tx.write()`
+(`Commit/CrashProt.lean`); writes keep it (they change neither `a` nor `C`). -/
+def bMetaP (P : Nat → Prop) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) :
+    IProp GF :=
+  match p.cs with
+  | none => osMeta p.ino (DFrac.own 1) m
+  | some c => iprop(osMeta p.ino (DFrac.own (1 : Qp).half) m ∗
+      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
+      ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
+        ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ bMetaF C L m bs a ∧
+          ∀ k, protData a.xcur a.cur k → ¬ P k⌝)
+
+omit go_gctx in
+theorem bMetaP_none {p : BFile} (h : p.cs = none) (P : Nat → Prop) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) :
+    bMetaP (GF := GF) P p C L m = osMeta p.ino (DFrac.own 1) m := by
+  unfold bMetaP; rw [h]
+
+omit go_gctx in
+/-- **Forgetting the named bytes.** -/
+theorem bMetaP_bMeta (P : Nat → Prop) (p : BFile) (C : CommitSt) (L : List (Nat × Nat))
+    (m : OsMeta) : bMetaP (GF := GF) P p C L m ⊢ bMeta p C L m := by
+  unfold bMetaP bMeta bMetaG
+  cases p.cs with
+  | none => exact .rfl
+  | some c =>
+    dsimp only
+    iintro ⟨Hm, Ha, %bs, %a, Ht, %Hf⟩
+    iframe Hm Ha
+    iexists bs, a
+    iframe Ht
+    ipureintro
+    obtain ⟨hw, ⟨h1, h2, h3, h4, h5⟩, -⟩ := Hf
+    exact ⟨hw, h1, h2, h3, h4, fun _ => h5⟩
+
+omit go_gctx in
+/-- `bMetaP` in crash mode as the local caller's part. -/
+theorem bMetaP_own (P : Nat → Prop) (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) :
+    bMetaP (GF := GF) P p C L m ⊢ ∃ (bs : List ByteG) (a : BAbs),
+      csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a ∗
+      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
+      ⌜bMetaF C L m bs a ∧ ∀ k, protData a.xcur a.cur k → ¬ P k⌝ := by
+  unfold bMetaP; rw [hc]; dsimp only
+  iintro ⟨Hm, Ha, %bs, %a, Ht, %Hf⟩
+  iexists bs, a
+  iframe Ha
+  isplitl [Ht Hm]
+  · unfold csOwnIL csOwnL; iframe; ipureintro; exact ⟨Hf.1, rfl, rfl, rfl⟩
+  ipureintro; exact Hf.2
+
+omit go_gctx in
+theorem bMetaP_of_own (P : Nat → Prop) (p : BFile) (c : CsN) (hc : p.cs = some c) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (bs : List ByteG) (a : BAbs) (hf : bMetaF C L m bs a)
+    (hp : ∀ k, protData a.xcur a.cur k → ¬ P k) :
+    csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a ∗
+      ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ⊢ bMetaP P p C L m := by
+  unfold bMetaP; rw [hc]; dsimp only
+  unfold csOwnIL csOwnL
+  iintro ⟨⟨Ht, Hm, %Hl⟩, Ha⟩
+  iframe Hm Ha
+  iexists bs, a
+  iframe Ht
+  ipureintro; exact ⟨Hl.1, hf, hp⟩
+
+omit go_gctx in
+/-- **Naming the bytes** from `bMeta`'s parts, given that none of them is protected. -/
+theorem bMeta_P (P : Nat → Prop) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
+    (hp : ∀ c, p.cs = some c → ∀ (bs : List ByteG) (a : BAbs), bMetaF C L m bs a →
+      ∀ k, protData a.xcur a.cur k → ¬ P k) :
+    bMeta (GF := GF) p C L m ⊢ bMetaP P p C L m := by
+  cases hc : p.cs with
+  | none => rw [bMeta_none hc, bMetaP_none hc]
+  | some c =>
+    iintro Hm
+    icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
+    iapply bMetaP_of_own P p c hc C L m bs a Hf (hp c hc bs a Hf) $$ [Hown Ha]
+    iframe
+
+omit go_gctx in
+/-- **Any ranges, outside crash mode or after a failure** (`bMeta_err`). -/
+theorem bMeta_L (p : BFile) (C : CommitSt) (L L' : List (Nat × Nat)) (m : OsMeta)
+    (h : p.cs = none ∨ ¬ FsNoErr) : bMeta (GF := GF) p C L m ⊢ bMeta p C L' m := by
+  rcases h with h | h
+  · rw [bMeta_none h, bMeta_none h]
+  · exact bMeta_err p C C L L' m h
+
+omit go_gctx in
+/-- **The file system does not fail, in crash mode** (`bMeta` records it). -/
+theorem bMeta_fsNoErr (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
+    (h : p.cs ≠ none) : bMeta (GF := GF) p C L m ⊢ bMeta p C L m ∗ ⌜FsNoErr⌝ := by
+  unfold bMeta bMetaG
+  cases hc : p.cs with
+  | none => exact absurd hc h
+  | some c =>
+    dsimp only
+    iintro ⟨Hm, Ha, %bs, %a, Ht, %Hf⟩
+    isplitl
+    · iframe Hm Ha; iexists bs, a; iframe Ht; ipureintro; exact Hf
+    ipureintro; exact Hf.2.2.2.2.1
+
+omit go_gctx in
+/-- A fraction of `bMetaP`'s `OsMeta` (as `bMeta_osMeta`). -/
+theorem bMetaP_osMeta (P : Nat → Prop) (p : BFile) (C : CommitSt) (L : List (Nat × Nat))
+    (m : OsMeta) :
+    bMetaP (GF := GF) P p C L m ⊢ ∃ q : Qp, osMeta p.ino (DFrac.own q) m ∗
+      (osMeta p.ino (DFrac.own q) m -∗ bMetaP P p C L m) := by
+  unfold bMetaP
+  cases p.cs with
+  | none =>
+    dsimp only
+    iintro Hm
+    iexists 1; iframe; iintro H; iexact H
+  | some c =>
+    dsimp only
+    iintro ⟨Hm, Ha, Ht⟩
+    iexists (1 : Qp).half; iframe Hm
+    iintro Hm; iframe
+
 variable [os.Assumptions] in
 /-- **`File.WriteAt` of bbolt's file**, in either mode (see the file header). -/
 theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
@@ -57,11 +178,11 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     (hd : d.ino = p.ino) (hwr : d.writable = true) (h0 : 0 ≤ off.toInt)
     (hlt : off.toNat + data.length < 2 ^ 63) (hpos : 0 < data.length)
     (hxl : xs.length = min (off.toNat + data.length) m.size - min off.toNat m.size) (hns : bNsOk p)
+    (P : Nat → Prop)
     (hcr : p.cs ≠ none → off.toNat + data.length ≤ m.size ∧
-      ∀ k, off.toNat ≤ k → k < off.toNat + data.length → ∀ X, RefImg X C →
-        8192 ≤ k ∧ ¬ protData X C k) :
+      ∀ k, off.toNat ≤ k → k < off.toNat + data.length → 8192 ≤ k ∧ P k) :
     {{ osInv (GF := GF) ∗ bCsInv p ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
-        osFd (GF := GF) fd dq d ∗ bMeta p C L m ∗
+        osFd (GF := GF) fd dq d ∗ bMetaP P p C L m ∗
         bBytes p (min off.toNat m.size) (DFrac.own 1) xs ∗
         mcellsAny (GF := GF) m.maps (min off.toNat m.size) (off.toNat + data.length) }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
@@ -73,16 +194,17 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
             ys.map Prod.fst = pwValsG m.size off.toNat data j xs ∧
             os.WaCut off.toNat data.length j ∧
             ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
-             (n = W64 0 ∧ err ≠ interface.nil ∧ (¬ FsNoErr ∨ maxBytes ≤ off.toNat + j))) ∧
+             (n = W64 0 ∧ err ≠ interface.nil ∧
+               (¬ FsNoErr ∨ (p.cs = none ∧ maxBytes ≤ off.toNat + j)))) ∧
             m'.size = pwSize m.size off.toNat j ∧ m'.maps = m.maps⌝ ∗
-          bMeta p C ((off.toNat, data.length) :: L) m' ∗
+          bMetaP P p C ((off.toNat, data.length) :: L) m' ∗
           bBytes p (min off.toNat m.size) (DFrac.own 1) ys ∗
           mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length)) ∗
         fmtErrorOkOrNil err }} := by
   iintro %Φ ⟨#Hos, #Hinv, Hf, Hsl, Hfd, Hm, Hxs, Hc⟩ HΦ
   cases hc : p.cs with
   | none =>
-    simp only [bMeta_none hc]
+    simp only [bMetaP_none hc]
     ihave Hxs := (bBytes_none hc _ _ _).1 $$ Hxs
     rw [← hd]
     iapply (hW f fd name dqf sl data dqs off dq d m xs hwr h0 hlt hpos hxl) $$ [Hf Hsl Hfd Hm Hxs Hc]
@@ -97,15 +219,19 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     iframe
     ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := Hj
-    exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, rfl, by simp only [os.pwPostE, pwPost, announce_maps]⟩
+    refine ⟨h1, h2, h3, h4, h5, h6, h7, ?_, rfl, by simp only [os.pwPostE, pwPost, announce_maps]⟩
+    rcases h8 with h8 | ⟨h8a, h8b, h8c | h8c⟩
+    · exact Or.inl h8
+    · exact Or.inr ⟨h8a, h8b, Or.inl h8c⟩
+    · exact Or.inr ⟨h8a, h8b, Or.inr ⟨by first | trivial | rfl | exact hc, h8c⟩⟩
   | some c =>
     obtain ⟨hin, hun⟩ := hcr (by rw [hc]; exact fun h => nomatch h)
     have hmin : min off.toNat m.size = off.toNat := by omega
     have hxl' : xs.length = data.length := by rw [hxl]; omega
     rw [hmin]
     ihave #Hci := bCsInv_some p c hc $$ Hinv
-    icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
-    obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
+    icases bMetaP_own P p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
+    obtain ⟨⟨hph, hcur, hdur, hfs, hlh⟩, hpr⟩ := Hf
     imod csOwnIL_ok c.N p.ino c.g c.ga c.gc bCsOk ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top
       $$ Hci Hown with ⟨Hown, %Hok⟩
     have hD : BDur a ⟨m, bs, 0, 0, .idle⟩ := Hok.1 hfs
@@ -122,7 +248,7 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     ihave Hown : csOwnIL (GF := GF) p.ino c.g c.ga ⟨m, bs, 0, 0, .idle⟩ a $$ [Htok Hm1]
     · unfold csOwnIL csOwnL; iframe; ipureintro; exact Hlo
     have hunp : ∀ k, off.toNat ≤ k → k < off.toNat + data.length → 8192 ≤ k ∧ ¬ protData a.xcur a.cur k :=
-      fun k h1 h2 => by rw [hcur]; exact hun k h1 h2 a.xcur (hcur ▸ hI.1)
+      fun k h1 h2 => ⟨(hun k h1 h2).1, fun hk => hpr k hk (hun k h1 h2).2⟩
     have hobl := bDur_write_idleC a hph m bs 0 0 off.toNat data hD hin hunp hlh
     iapply (hWC f fd name dqf sl data dqs off dq d c.N p.ino c.g c.ga c.gc bCsOk a m bs xs hd hwr h0
       hin (by omega) hlt hpos hxl' (hns c hc)
@@ -160,9 +286,9 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
           if_neg (by omega)]
         exact wrote_vals bs' off.toNat data (by omega) hvals
       isplitl [Hown Ha]
-      · iapply bMeta_of_own p c hc C ((off.toNat, data.length) :: L) m' bs' a
+      · iapply bMetaP_of_own P p c hc C ((off.toNat, data.length) :: L) m' bs' a
           ⟨hph, hcur, hdo, hfs, fun l hl x hx => by
-            rw [hs']; rw [hxs'] at hl; exact hlh l hl x hx⟩ $$ [Hown Ha]
+            rw [hs']; rw [hxs'] at hl; exact hlh l hl x hx⟩ hpr $$ [Hown Ha]
         rw [hsz]; iframe
       isplitl [Hys Hg]
       · iapply (bBytes_os p off.toNat (DFrac.own 1) _).2

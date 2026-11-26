@@ -58,7 +58,7 @@ theorem dbk_open (K : BC) (tx : Loc) (r : TxReg) (X : WX) (c : TxViewC) :
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hkc
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, -, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, -, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   imod txExcl_take K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top tx r $$ [Hti Hreg Hstok] with Hx
   · iframe; iframe #
   imodintro
@@ -109,7 +109,7 @@ theorem dbk_close (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' : WX) (
   icases (ghostVar_split_half r.n.v 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
   ihave #Hinv : inv (txsN K.N) (txsInv (GF := GF) K.B K.p K.sp K.t0) $$ []
   · unfold BC.full isBoltP isBoltCoreP
-    icases Hb with ⟨⟨-, -, -, -, -, -, -, -, -, -, $⟩, -⟩
+    icases Hb with ⟨⟨-, -, -, -, -, -, -, -, -, -, $, -⟩, -⟩
   ihave Hx : txExcl (GF := GF) K.B K.p K.sp K.t0 tx r $$ [Hv1 Hd Hrwl Hcls Hwdb Hshape]
   · iunfold txExcl
     iexists c', TxX.wr X'

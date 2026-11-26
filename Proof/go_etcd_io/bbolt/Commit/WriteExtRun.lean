@@ -1,6 +1,6 @@
 /-
 `tx.write()` with the dirty pages anywhere in the mapping (`Tx.write_ext`, maintainer 12's item 3 of
-`notes/bbolt-proof-plan.md`; U10w): `Tx.write.wp_proof`'s loops with the target slots held relative
+`notes/bbolt-proof-plan.md`; U10w): the page loops of `tx.write()` with the target slots held relative
 to the file's current size (`Commit/WriteExtDefs`): the waiting pages' slots and the tail's slots
 outside the old file form a pool (`slotAnyZ` at the current size); a page's write takes its own
 slots from the pool as one run, and, when it starts past the file's end, the cells of the gap from
@@ -11,7 +11,19 @@ the end of what the page's chunks wrote), which gives the success post's last tw
 module
 
 public import Proof.go_etcd_io.bbolt.Commit.WriteExtDefs
-public import Proof.go_etcd_io.bbolt.Tx__write
+public import Proof.go_etcd_io.bbolt.Commit.WriteDefs
+public import Proof.go_etcd_io.bbolt.Commit.WriteLoop
+public import Proof.go_etcd_io.bbolt.Commit.PagesSort
+public import Proof.go_etcd_io.bbolt.Commit.PwMeta
+public import Proof.go_etcd_io.bbolt.Mmap.Logger
+public import Proof.go_etcd_io.bbolt.Mmap.Infra
+public import Spec.go_etcd_io.bbolt.internal.common.Page__Overflow
+public import Spec.go_etcd_io.bbolt.internal.common.Page__Id
+public import Spec.go_etcd_io.bbolt.internal.common.UnsafeByteSlice
+public import Perennial.Proof.sync.Link
+public import Spec.go_etcd_io.bbolt.fdatasync
+public import Spec.go_etcd_io.bbolt.TxStats__IncWrite
+public import Spec.os.File__WriteAt
 public import Spec.go_etcd_io.bbolt.Tx__write_ext
 public import Proof.github_com.mit_pdos.etcd_grove.OmegaOnly
 
@@ -63,6 +75,10 @@ theorem ext_cover (L : List (w64 × Loc × List w8)) (j : Nat) (c : w64 × Loc �
   · exact List.mem_append_right _ (List.mem_filter.2 ⟨ht, by simp only [decide_eq_true_eq,
       Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not, Nat.not_le]; omega⟩)
 
+/-- The ranges `L` (offset, length) lie in the dirty pages' slots. -/
+def wrIn (bufs : GMap w64 (List w8)) (L : List (Nat × Nat)) : Prop :=
+  ∀ r ∈ L, ∀ k, r.1 ≤ k → k < r.1 + r.2 → k / 4096 ∈ bufSlots bufs
+
 end pure
 
 section proof
@@ -85,6 +101,23 @@ theorem wr_rem_sub (a w cs : Nat) (h : w + cs ≤ a) :
 theorem wr_sintNat_succ (j : w64) (h0 : 0 ≤ sint.Z j) (h : sint.nat j < 2 ^ 62) : sint.nat (j + W64 1) = sint.nat j + 1 := by
   word
 
+/-- `slotsOwn`'s cells and page-cache bytes apart. -/
+theorem slotsOwn_split (b : Loc) (l : Nat) (p : BFile) (S : List Nat) (g : Nat → List w8) :
+    slotsOwn (GF := GF) (some (b, l) : MapSt) p S g ⊣⊢
+      ([∗list] s ∈ S, bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (g s)) ∗
+      [∗list] s ∈ S, osSlot p s (g s) := by
+  unfold slotsOwn; exact BigSepL.bigSepL_sep_eqv
+
+/-- Whole slots inside the file of size `sz`, as slots holding anything at `sz`. -/
+theorem slotsOwn_anyZ (b : Loc) (l : Nat) (p : BFile) (S : List Nat) (g : Nat → List w8) (sz : Nat)
+    (hl : ∀ s ∈ S, (g s).length = 4096) (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ sz) :
+    slotsOwn (GF := GF) (some (b, l) : MapSt) p S g ⊢ [∗list] s ∈ S, slotAnyZ b p sz s := by
+  unfold slotsOwn
+  apply BigSepL.bigSepL_mono
+  intro i s hs
+  have hm := List.mem_of_getElem? hs
+  exact (slotDone_any b p s (g s) (hl s hm)).trans (slotAny_Z b p sz s (hin s hm))
+
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 20000 in
 /-- **`tx.write()` with the pages anywhere in the mapping** (`Tx.write_ext.spec`; see the file
@@ -95,17 +128,18 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))
     (hWriteAt : os.File.WriteAt.specExt (GF := GF) (hG := hG))
-    (hSync : fdatasync.spec (GF := GF) (hG := hG))
+    (hWC : os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG))
+    (hSyncR : fdatasync.specR (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) := by
   intro K tx r sm q dq pml pm bufs T wb f fd C om b l dqf dqw hdom hok hsz hl hmaps hnd hT htail hwb
-    hstr
+    hstr hcrin
   wp_start as ⟨#Hcore, #Hreg, Hst, Hdb, Hpg, Hpm, Hbufs, Hf, Hwa, Hfo, Hfd, Hm, Hslots⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
-  ihave Hm := bMeta_to_os Ht0.2.2.2 C [] om $$ Hm
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
+  icases BC.core_bfile K $$ Hcore with ⟨#Hci, %hns⟩
   iunfold dbFixed at Hfix
   icases Hfix with ⟨#Hps, #Hsp, ⟨%lg, #Hlg, #Hlgok⟩, -, -, -, ⟨%ns, #Hns⟩, -, -, -, -, -, -, -, -, -,
     -, ⟨%pf, #HisPool, -⟩, -⟩
@@ -255,9 +289,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     $$ [HsB HTout]
   · iapply BigSepL.bigSepL_append.2; iframe
   try wp_auto
-  ihave IH : (∃ (j : w64) (pv : Loc) (om' : OsMeta),
+  ihave IH : (∃ (j : w64) (pv : Loc) (om' : OsMeta) (Lw : List (Nat × Nat)),
       "i" ∷ i_ptr ↦ j ∗ "p" ∷ p_ptr ↦ pv ∗ "Hst" ∷ statsTok r sm q ∗
-      "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om' ∗
+      "Hm" ∷ bMetaP (fun k => k / 4096 ∈ bufSlots bufs) K.p C Lw om' ∗
       "Hdone" ∷ ([∗list] e ∈ L'.take (sint.nat j), pgDone b K.p e) ∗
       "Htodo" ∷ ([∗list] e ∈ L'.drop (sint.nat j), pgBufR e) ∗
       "Hpool" ∷ ([∗list] s ∈ (L'.drop (sint.nat j)).flatMap extE ++ tOut T om.size,
@@ -265,9 +299,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ L'.length ∧ om'.maps = om.maps ∧ om.size ≤ om'.size ∧
         om'.size ≤ max om.size (4096 * (l / 4096)) ∧ (∀ e ∈ L'.take (sint.nat j),
           4096 * (e.1.toNat + (1 + pageOverflow e.2.2)) ≤ om'.size) ∧
-        (om'.size = om.size ∨ om'.size % 4096 = 0)⌝ : IProp GF)
+        (om'.size = om.size ∨ om'.size % 4096 = 0) ∧ wrIn bufs Lw⌝ : IProp GF)
     $$ [i p Hst Hm HLr Hpool0]
-  · iexists W64 0, _, om
+  · iexists W64 0, _, om, []
     rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero]
     simp only [named]
     iframe
@@ -275,7 +309,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · iapply BigSepL.bigSepL_nil.2; iempintro
     ipureintro
     refine ⟨by decide, by omega, trivial, Nat.le_refl _, Nat.le_max_left _ _, fun e he => by simp at he,
-      Or.inl trivial⟩
+      Or.inl trivial, fun r hr => by cases hr⟩
   wp_for IH
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   rw [List.length_map] at Hsll
@@ -283,7 +317,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · have Hlt : sint.Z j < sint.Z sl.len := by
       first | simpa using Hif | simpa using GoGlobalContext.intoVal_inj_bool Hif
     clear Hif
-    obtain ⟨Hj0, Hjl, Hjm, Hjs1, Hjs2, Hjd, Hjz⟩ := Hj
+    obtain ⟨Hj0, Hjl, Hjm, Hjs1, Hjs2, Hjd, Hjz, HLw⟩ := Hj
     have Hjn : sint.nat j < L'.length := by have := Hsll.1; word
     obtain ⟨c, Hc⟩ : ∃ c, L'[sint.nat j]? = some c := ⟨_, List.getElem?_eq_getElem Hjn⟩
     have Hcm : c ∈ L' := List.mem_of_getElem? Hc
@@ -301,6 +335,10 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     try wp_auto
     -- the page's values
     obtain ⟨hcid, hclen, hc2, hcin⟩ := hok c.1 c.2.2 (HL'm c Hcm)
+    -- the page's slots are dirty pages' slots
+    have hcB : ∀ s, c.1.toNat ≤ s → s < c.1.toNat + (1 + pageOverflow c.2.2) → s ∈ bufSlots bufs :=
+      fun s h1 h2 => hLext.mem_iff.1 (List.mem_flatMap.2 ⟨c, Hcm, by
+        unfold extE; exact List.mem_range'_1.2 ⟨h1, by omega⟩⟩)
     have hov : pageOverflow c.2.2 < 2 ^ 32 := by
       unfold pageOverflow; exact BitVec.isLt _
     have e1 : (decode (List.drop 2 (List.drop 2 (List.drop 8 (bytesAt c.2.2 0 16)))) : w32) =
@@ -343,11 +381,11 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     ihave Hd2 : bytesPointsto (GF := GF) (b +ₗ ((4096 * c.1.toNat : Nat) : Int))
         (DFrac.own (1 : Qp).half) (c.2.2.take 0) $$ []
     · rw [List.take_zero]; unfold bytesPointsto; iempintro
-    ihave IH2 : (∃ (w : Nat) (ysd : List ByteG) (om2 : OsMeta),
+    ihave IH2 : (∃ (w : Nat) (ysd : List ByteG) (om2 : OsMeta) (Lw2 : List (Nat × Nat)),
         "rem" ∷ rem_ptr ↦ W64 ((c.2.2.length - w : Nat) : Int) ∗
         "offset" ∷ offset_ptr ↦ W64 ((4096 * c.1.toNat + w : Nat) : Int) ∗
         "written" ∷ written_ptr ↦ W64 ((w : Nat) : Int) ∗ "Hst" ∷ statsTok r sm q ∗
-        "Hm" ∷ osMeta K.p.ino (DFrac.own 1) om2 ∗
+        "Hm" ∷ bMetaP (fun k => k / 4096 ∈ bufSlots bufs) K.p C Lw2 om2 ∗
         "Hd1" ∷ bBytes K.p (4096 * c.1.toNat) (DFrac.own 1) ysd ∗
         "Hd2" ∷ bytesPointsto (b +ₗ ((4096 * c.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half)
           (c.2.2.take w) ∗
@@ -359,16 +397,16 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           om'.size ≤ om2.size ∧ om2.size ≤ max om.size (4096 * (l / 4096)) ∧
           (0 < w → 4096 * c.1.toNat + w ≤ om2.size) ∧
           (om2.size = om'.size ∨ om2.size = 4096 * c.1.toNat + w) ∧
-          (0 < w → 4096 * c.1.toNat + w ≤ maxBytes)⌝ : IProp GF)
+          (0 < w → 4096 * c.1.toNat + w ≤ maxBytes) ∧ wrIn bufs Lw2⌝ : IProp GF)
       $$ [rem offset written Hst Hm Hd1 Hd2 Hro Hrc Hpool]
-    · iexists 0, [], om'
+    · iexists 0, [], om', Lw
       simp only [named, Nat.sub_zero, Nat.add_zero]
       iframe
       ipureintro
       exact ⟨by omega, by simp, Hjm, Nat.le_refl _, Hjs2, fun h => absurd h (Nat.lt_irrefl 0),
-        Or.inl trivial, fun h => absurd h (Nat.lt_irrefl 0)⟩
+        Or.inl trivial, fun h => absurd h (Nat.lt_irrefl 0), HLw⟩
     wp_for IH2
-    obtain ⟨Hwlt, Hysd, Hom2m, Hom2a, Hom2b, Hom2w, Hom2z, Hom2mb⟩ := Hw
+    obtain ⟨Hwlt, Hysd, Hom2m, Hom2a, Hom2b, Hom2w, Hom2z, Hom2mb, HLw2⟩ := Hw
     obtain ⟨cs, Hcs⟩ : ∃ cs : Nat, cs = min (c.2.2.length - w) 2147483646 := ⟨_, rfl⟩
     have Hcs0 : 0 < cs := by omega
     have hcin' : 4096 * c.1.toNat + c.2.2.length ≤ l := by
@@ -464,25 +502,38 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have h0 : 0 ≤ (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toInt := by
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
-      ihave Hxs := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).1 $$ Hxs
-      wp_apply hWriteAt f fd K.p.path dqf _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) dqf (dbFd K.p.ino) om2 xs rfl h0
-        (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn]; omega)
-        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %EE, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
+      -- in crash mode: the chunk inside the file, in the page's slots
+      have hcrc : K.p.cs ≠ none →
+          (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toNat + (bytesAt c.2.2 w cs).length ≤ om2.size ∧
+          ∀ k, (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toNat ≤ k →
+            k < (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toNat + (bytesAt c.2.2 w cs).length →
+            8192 ≤ k ∧ k / 4096 ∈ bufSlots bufs := by
+        intro hcs
+        rw [htn, hcl]
+        have hlast := hcrin hcs (c.1.toNat + pageOverflow c.2.2) (hcB _ (by omega) (by omega))
+        refine ⟨by omega, fun k h1 h2 => ⟨by omega, hcB _ (by omega) (by omega)⟩⟩
+      have hwrIn : ∀ Lw0, wrIn bufs Lw0 →
+          wrIn bufs ((4096 * c.1.toNat + w, (bytesAt c.2.2 w cs).length) :: Lw0) := by
+        intro Lw0 h r0 hr0 k h1 h2
+        rcases List.mem_cons.1 hr0 with rfl | hr0
+        · simp only at h1 h2; rw [hcl] at h2; exact hcB _ (by omega) (by omega)
+        · exact h r0 hr0 k h1 h2
+      wp_apply wp_bWriteAt hWriteAt hWC f fd K.p.path dqf _ (bytesAt c.2.2 w cs) (DFrac.own 1)
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) dqf (dbFd K.p.ino) K.p C Lw2 om2 xs rfl rfl h0
+        (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn]; omega) hns
+        (fun k => k / 4096 ∈ bufSlots bufs) hcrc
+        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err
+          ⟨Hfo, Hck, Hfd, ⟨%jj, %aa, %EE, %om3, %ys, %Hjj, Hm, Hys, Hc⟩, Herr⟩
       · iframe #
         rw [htn, ← fileOwn_eq]
         iframe
-      ihave Hys := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).2 $$ Hys
-      obtain ⟨hjja, hale, -, -, -, hysp, hcut, hres⟩ := Hjj
-      rw [htn] at hcut hres
+      obtain ⟨hjja, hale, -, -, -, hysp, hcut, hres, hm3s, hm3m⟩ := Hjj
+      rw [htn] at hcut hres hm3s
       have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       rw [hcl] at hjjle
-      have hm3 : (os.pwPostE om2 (4096 * c.1.toNat + w) aa jj EE).size =
-            pwSize om2.size (4096 * c.1.toNat + w) jj ∧
-          (os.pwPostE om2 (4096 * c.1.toNat + w) aa jj EE).maps = om2.maps :=
-        ⟨rfl, by simp only [os.pwPostE, pwPost, announce_maps]⟩
-      generalize os.pwPostE om2 (4096 * c.1.toNat + w) aa jj EE = om3 at hm3 ⊢
+      have hm3 : om3.size = pwSize om2.size (4096 * c.1.toNat + w) jj ∧ om3.maps = om2.maps :=
+        ⟨hm3s, hm3m⟩
       have hyl : ys.length = min (4096 * c.1.toNat + w + cs)
           (pwSize om2.size (4096 * c.1.toNat + w) jj) - min (4096 * c.1.toNat + w) om2.size := by
         have := congrArg List.length hysp
@@ -581,7 +632,13 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · iexists pl'; iframe
         iexists om3, wb'
         rw [hm3.1]
-        ihave Hm := bMeta_of_os Ht0.2.2.2 C [] _ $$ Hm
+        have hnoe : K.p.cs = none ∨ ¬ FsNoErr := by
+          rcases hres with ⟨-, -, h⟩ | ⟨-, -, h | h⟩
+          · exact absurd h (fun h => nomatch h)
+          · exact Or.inr h
+          · exact Or.inl h.1
+        ihave Hm := bMetaP_bMeta _ K.p C _ _ $$ Hm
+        ihave Hm := bMeta_L K.p C _ [] _ hnoe $$ Hm
         iframe Hm
         isplitr
         · ipureintro
@@ -594,7 +651,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             rcases hres with ⟨-, -, h⟩ | ⟨-, -, h | h⟩
             · exact absurd h (fun h => nomatch h)
             · exact absurd hfs h
-            · exact h
+            · exact h.2
           have hc2 := hcut.2
           have hmbv : maxBytes = 0xffffffff000 := rfl
           rw [hmbv] at hmb hc2 Hom2mb
@@ -631,9 +688,11 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have hbm : om3.maps !! b = some l := by
           rw [hm3.2, Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
         have hyl' : 4096 * c.1.toNat + w + ys2.length ≤ l := by rw [hyl2]; omega
-        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) om3 b l hbm
+        icases bMetaP_osMeta _ K.p C _ om3 $$ Hm with ⟨%qm, Hm, Hmb⟩
+        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own qm) om3 b l hbm
           (DFrac.own 1) (by simp) _ ys2 (4096 * c.1.toNat + w) vf hyl' $$ Hos Hm Hyc Hc
         iintro Hm Hys Hc
+        ihave Hm := Hmb $$ Hm
         icases cellsR_bytes b (ys2.map Prod.fst) _ $$ [Hc] with Hc
         · simp only [List.length_map]; iexact Hc
         rw [hys]
@@ -686,11 +745,12 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             wr_sintNat_succ j (by omega) (by omega)
           rw [fileOwn_eq]
           iframe
-          iexists j + W64 1, c.2.1, om3
+          iexists j + W64 1, c.2.1, om3, _
           rw [hj1, hm3.1]
           iframe
           ipureintro
-          refine ⟨by word, by omega, hm3.2.trans Hom2m, by omega, by omega, ?_, by omega⟩
+          refine ⟨by word, by omega, hm3.2.trans Hom2m, by omega, by omega, ?_, by omega,
+            hwrIn Lw2 HLw2⟩
           intro e he
           rw [List.take_add_one, Hc, Option.toList_some] at he
           rcases List.mem_append.1 he with he | he
@@ -715,7 +775,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           wp_for_post
           rw [fileOwn_eq]
           iframe
-          iexists w + cs, ysd ++ ys2, om3
+          iexists w + cs, ysd ++ ys2, om3, _
           rw [hm3.1]
           iframe
           ipureintro
@@ -723,9 +783,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           exact ⟨hnend, hfst, hm3.2.trans Hom2m, by omega_only [Hom2a, hsz3'],
             by omega_only [hsz3e, Hom2b, hcin, hclen, Hcs, Hcs0], fun _ => by omega_only [hsz3e],
             by omega_only [hsz3e, Hom2z],
-            fun _ => by rw [hcl] at hc2; omega⟩
+            fun _ => by rw [hcl] at hc2; omega, hwrIn Lw2 HLw2⟩
   · have Hjl : sint.nat j = L'.length := by have := Hsll.1; word
-    obtain ⟨-, -, Hom'm, Hom's1, Hom's2, Hjd, Hjz⟩ := Hj
+    obtain ⟨-, -, Hom'm, Hom's1, Hom's2, Hjd, Hjz, HLw⟩ := Hj
     rw [Hjl, List.take_length, List.drop_length] at *
     rw [List.flatMap_nil, List.nil_append]
     iclear Htodo
@@ -734,17 +794,32 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     try wp_auto
     have hlenB : ∀ id pg, bufs !! id = some pg → pg.length = 4096 * (1 + pageOverflow pg) :=
       fun id pg h => (hok id pg h).2.1
+    -- the pages' slots as `slotsOwn`, before the sync (which takes their page-cache bytes)
+    icases done_final b l K.p bufs L' HL'k HL'm hndB hlenB $$ Hsd with ⟨%wb'', %HwbA, %HwbB, Hso⟩
+    have hBin : ∀ s ∈ bufSlots bufs, 4096 * (s + 1) ≤ om'.size := by
+      intro s hs
+      obtain ⟨e, he, hse⟩ := List.mem_flatMap.1 (hLext.mem_iff.2 hs)
+      have := Hjd e he
+      unfold extE at hse
+      have := List.mem_range'_1.1 hse
+      omega
+    ihave Hm := bMetaP_bMeta _ K.p C _ _ $$ Hm
     cases ns
     focus
       -- `NoSync` off: the sync
       try wp_auto
-      wp_apply hSync K.db f fd K.p K.p.ino om' dqf dqf $$ [Hf Hfo Hfd Hm]
-        as %e2 ⟨Hf, Hfo, Hfd, ⟨%m', Hm, %Hm'⟩, Hr⟩
+      icases (slotsOwn_split b l K.p (bufSlots bufs) wb'').1 $$ Hso with ⟨Hsc, Hss⟩
+      wp_apply hSyncR K.db f fd K.p C Lw om' (bufSlots bufs) wb'' dqf dqf hns
+        (fun hcs => ⟨hndB, fun s hs => ⟨HwbA s hs, hBin s hs⟩, fun r0 hr0 k h1 h2 _ =>
+          HLw r0 hr0 k h1 h2⟩) $$ [Hf Hfo Hfd Hm Hss]
+        as %e2 ⟨Hf, Hfo, Hfd, Hss, Hr⟩
       · iframe #; iframe
-      icases Hr with (%He | ⟨%He, #Hfe⟩)
+      ihave Hso := (slotsOwn_split b l K.p (bufSlots bufs) wb'').2 $$ [Hsc Hss]
+      · iframe
+      icases Hr with (⟨%He, %m', Hm, %Hm'⟩ | ⟨%He, #Hfe, Hm⟩)
       rotate_left
       · cases e2 with
-        | nil => exact absurd rfl He
+        | nil => exact absurd rfl He.1
         | ok e2 =>
         cases lg with
         | nil => unfold boltLogger; iexfalso; iexact Hlgok
@@ -771,23 +846,21 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iexact Hsl3
         · log_args_ok
         try wp_auto
-        ihave Hall := sd_any b K.p L' hlenL $$ Hsd
-        ihave Hall := pagesAny_Z b K.p m'.size L' (fun e he => by have := Hjd e he; omega) $$ Hall
-        ihave Hpool := poolZ_resize b K.p _ om'.size m'.size (fun s _ => by omega) $$ Hpool
-        icases errZ_final b K.p bufs _ T wb om.size m'.size hLext hnd (by omega) hwb $$ [Hall Hpool HTin]
-          with ⟨%wb', ⟨%Hwb1, %Hwb2, %Hwb3⟩, Hwr⟩
+        ihave Hall := slotsOwn_anyZ b l K.p (bufSlots bufs) wb'' om'.size HwbA hBin $$ Hso
+        icases errZ_final b K.p bufs _ T wb om.size om'.size (List.Perm.refl _) hnd (by omega) hwb
+          $$ [Hall Hpool HTin] with ⟨%wb', ⟨%Hwb1, %Hwb2, %Hwb3⟩, Hwr⟩
         · iframe
         try iapply HΦ
         iframe Hst Hdb Hf Hwa Hfo Hfd
         isplitl [Hpg Hpl']
         · iexists pl'; iframe
-        iexists m', wb'
-        ihave Hm := bMeta_of_os Ht0.2.2.2 C [] _ $$ Hm
+        iexists om', wb'
+        ihave Hm := bMeta_err K.p C C Lw [] om' He.2 $$ Hm
         iframe Hm
         isplitr
         · ipureintro
-          exact ⟨by omega, by omega, Hm'.2.trans Hom'm, Hwb1, Hwb2,
-            fun s hs _ h2 => by rw [Hwb3 s hs]; omega, fun _ => by rw [Hm'.1]; exact Hjz⟩
+          exact ⟨by omega, by omega, Hom'm, Hwb1, Hwb2,
+            fun s hs _ h2 => by rw [Hwb3 s hs]; omega, fun _ => Hjz⟩
         iright
         isplitr
         · ipureintro; exact fun h => nomatch h
@@ -796,15 +869,24 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iexact Hwr
       subst He
       try wp_auto
-      ihave Hm : (∃ om'' : OsMeta, osMeta K.p.ino (DFrac.own 1) om'' ∗
-          ⌜om''.size = om'.size ∧ om''.maps = om.maps⌝ : IProp GF) $$ [Hm]
-      · iexists m'; iframe; ipureintro; exact ⟨Hm'.1, Hm'.2.trans Hom'm⟩
+      ihave Hm : (∃ om'' : OsMeta, bMeta K.p C [] om'' ∗
+          ⌜om''.size = om'.size ∧ om''.maps = om.maps ∧
+            (K.p.cs ≠ none → om''.lo = om''.size ∧ om''.hi = om''.size)⌝ : IProp GF) $$ [Hm]
+      · iexists m'; iframe; ipureintro; exact ⟨Hm'.1, Hm'.2.1.trans Hom'm, Hm'.2.2⟩
     rotate_left
     focus
+      -- `NoSync` on: outside crash mode (crash mode is chosen only with `NoSync` off)
       try wp_auto
-      ihave Hm : (∃ om'' : OsMeta, osMeta K.p.ino (DFrac.own 1) om'' ∗
-          ⌜om''.size = om'.size ∧ om''.maps = om.maps⌝ : IProp GF) $$ [Hm]
-      · iexists om'; iframe; ipureintro; exact ⟨rfl, Hom'm⟩
+      ihave Hm : (∃ om'' : OsMeta, bMeta K.p C [] om'' ∗
+          ⌜om''.size = om'.size ∧ om''.maps = om.maps ∧
+            (K.p.cs ≠ none → om''.lo = om''.size ∧ om''.hi = om''.size)⌝ : IProp GF) $$ [Hm]
+      · icases BC.core_crash K $$ Hcore with ⟨-, -, #Hsy⟩
+        ihave %hnsF := bSyncs_ns K.db K.p true $$ Hsy Hns
+        have hcsn : K.p.cs = none :=
+          Classical.byContradiction fun h => absurd (hnsF h) (by decide)
+        iexists om'
+        ihave Hm := bMeta_L K.p C Lw [] om' (Or.inl hcsn) $$ Hm
+        iframe; ipureintro; exact ⟨rfl, Hom'm, fun h => absurd hcsn h⟩
     all_goals
       -- the one-page buffers back to the pool
       ihave IH3 : (∃ (j2 : w64) (pv : Loc), "i" ∷ i_ptr ↦ j2 ∗ "p" ∷ p_ptr ↦ pv ∗
@@ -958,29 +1040,28 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iframe
           ipureintro; exact ⟨by word, by omega⟩
       · try wp_auto
-        icases done_final b l K.p bufs L' HL'k HL'm hndB hlenB $$ Hsd with ⟨%wb'', %Hwb1, %Hwb2, Hso⟩
         icases Hm with ⟨%om'', Hm, %Hom''⟩
-        icases okZ_final b l K.p bufs T wb wb'' om.size om'.size hnd Hom's1 hwb Hwb1
+        icases okZ_final b l K.p bufs T wb wb'' om.size om'.size hnd Hom's1 hwb HwbA
           $$ [Hso Hpool HTin] with ⟨%wb', ⟨%HA, %HB, %HC, %HD⟩, Hso, HT⟩
         · iframe
-        try iapply HΦ
+        iapply HΦ
         iframe Hst Hdb Hf Hwa Hfo Hfd
         isplitl [Hpg Hpl']
         · iexists pl'; iframe
         iexists om'', wb'
-        ihave Hm := bMeta_of_os Ht0.2.2.2 C [] _ $$ Hm
         iframe Hm
-        rw [Hom''.1]
+        have hlh := Hom''.2.2
+        rw [Hom''.1] at hlh ⊢
         isplitr
         · ipureintro
-          exact ⟨Hom's1, Hom's2, Hom''.2, HA, HB, fun s hs _ h2 => by rw [HD s hs]; omega,
+          exact ⟨Hom's1, Hom's2, Hom''.2.1, HA, HB, fun s hs _ h2 => by rw [HD s hs]; omega,
             fun _ => Hjz⟩
         ileft
         isplitr
         · ipureintro; rfl
         isplitr
         · ipureintro
-          refine ⟨fun s hs => ?_, fun id pg hb j hj => ?_, fun s hs h1 h2 => ?_, Hjz⟩
+          refine ⟨fun s hs => ?_, fun id pg hb j hj => ?_, fun s hs h1 h2 => ?_, Hjz, hlh⟩
           · obtain ⟨e, he, hse⟩ := List.mem_flatMap.1 (hLext.mem_iff.2 hs)
             have := Hjd e he
             unfold extE at hse
@@ -989,7 +1070,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · have hs : id.toNat + j ∈ bufSlots bufs := by
               unfold bufSlots
               exact List.mem_flatMap.2 ⟨(id, pg), (GMap.mem_toList _ _ _).2 hb, by simp; omega⟩
-            rw [HC _ hs]; exact Hwb2 id pg hb j hj
+            rw [HC _ hs]; exact HwbB id pg hb j hj
           · rw [HD s hs]; omega
         iframe
 end proof

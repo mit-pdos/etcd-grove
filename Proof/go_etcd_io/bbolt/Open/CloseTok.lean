@@ -228,6 +228,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   iunfold boltCloser at Hclo
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
+  icases isBoltCoreP_bfile _ _ _ _ _ _ $$ Hcore with ⟨#Hci, %hnsp⟩
   unfold isBoltCoreP
   icases Hcore with ⟨-, #Ht0a, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -300,9 +301,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
     have h2 := treeOK_root' w.C htree
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  ihave #Hci : bCsInv (GF := GF) p $$ []
-  · iapply bCsInv_none Ht0.2.2.2
-  imod close_res _ γ.ns p w Hwok hL (bNsOk_none Ht0.2.2.2) $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
+  imod close_res _ γ.ns p w Hwok hL hnsp $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
     Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the `flock` token (`dbPathLk`), for `close`'s `funlock` and `File.Close`

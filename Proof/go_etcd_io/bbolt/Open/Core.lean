@@ -112,8 +112,9 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
     (hX : ∀ s ∈ flxS C fl wb, s ∈ wSlots (L / 4096) C FLPg.empty ∧ 4096 * (s + 1) ≤ m.size)
     (hhwm : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF)
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null)
-    (hcs : p.cs = none) (γbq : GName) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⧖ C.txid ∗ dbFixed γbq N db sp ∗
+    (γbq : GName) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⧖ C.txid ∗ bMode γbq N db p ∗
+      dbFixed γbq N db sp ∗
       ghostVar γbq 1 () ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
@@ -140,7 +141,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       sparePair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
       boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
       ghostVar B.clo 1 () := by
-  iintro ⟨#Hpkg, #Hos, #Hrcm, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hro, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
+  iintro ⟨#Hpkg, #Hos, #Hrcm, #Hmode, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hro, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
     Hosm, Hfo, Hfd, Hps, Hmo1, Hslots, Hwb, Hmc1, Hmc2, Hcells, Hwc⟩
   -- the ghost names (`boltState`'s validity token `γbq` is the caller's: the page pool's `New`
   -- was specified against it, U11i)
@@ -318,11 +319,11 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   · unfold boltStateDef boltStateVDef; iexists C.txid; iframe
   unfold isBoltCoreP wdbCore wdbCoreG dblAt t0At
   simp only [openW, mapLen]
-  iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hbs
+  iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hbs Hmode
   iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
   iframe Hmo1 Hwc Hwb Hst3 Hopn Hnf Hclo
   ipureintro
-  exact ⟨⟨htx.2, ReceiptBoundLe.receiptBound_le⟩, hdb, hN, hcs⟩
+  exact ⟨⟨htx.2, ReceiptBoundLe.receiptBound_le⟩, hdb, hN⟩
 
 /-- **The core phase's ghost step** with no freelist yet (`db.freelist` nil). -/
 theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : CoPset) (N : Namespace) (db sp f : Loc)
@@ -332,8 +333,9 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
     (hX : ∀ s ∈ flxS C FLPg.empty wb, s ∈ wSlots (L / 4096) C FLPg.empty ∧ 4096 * (s + 1) ≤ m.size)
     (hhwm : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF)
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null)
-    (hcs : p.cs = none) (γbq : GName) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⧖ C.txid ∗ dbFixed γbq N db sp ∗
+    (γbq : GName) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⧖ C.txid ∗ bMode γbq N db p ∗
+      dbFixed γbq N db sp ∗
       ghostVar γbq 1 () ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
@@ -359,10 +361,10 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
       sparePair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
       boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
       ghostVar B.clo 1 () := by
-  iintro ⟨#Hpkg, #Hos, #Hrcm, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hrest⟩
-  imod open_core_fl E N db sp f fd p C b L m wb FLPg.empty interface.nil rfl hok hfx hX hhwm htx hN hdb hcs γbq $$
+  iintro ⟨#Hpkg, #Hos, #Hrcm, #Hmode, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hrest⟩
+  imod open_core_fl E N db sp f fd p C b L m wb FLPg.empty interface.nil rfl hok hfx hX hhwm htx hN hdb γbq $$
     [Hfix Hbq Hml Hmm Hsl Hop Hfli Hrest] with ⟨%B, %HB, Hc, Hw, Hst, Hrest⟩
-  · iframe Hpkg Hos Hrcm Hfix Hbq Hml Hmm Hsl Hop Hfli Hrest
+  · iframe Hpkg Hos Hrcm Hmode Hfix Hbq Hml Hmm Hsl Hop Hfli Hrest
     unfold flRoOpt; simp only [↓reduceIte]; iempintro
   imodintro
   iexists B

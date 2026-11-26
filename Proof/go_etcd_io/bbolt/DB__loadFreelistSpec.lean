@@ -99,9 +99,9 @@ abbrev DB.loadFreelist.spec_open : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq : GName) (N : Namespace)
     (db sp f : Loc) (fd : w64) (p : BFile)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
-  lfOK N db C b L m xs → 0 ≤ fd.toInt → p.cs = none →
+  lfOK N db C b L m xs → 0 ≤ fd.toInt →
   {{ lfPre (GF := GF) γbq N db sp f fd p C b L m xs ∗
-      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid }}
+      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid ∗ bMode γbq N db p }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))
   {{ RET #(); lfPost γbq N db sp f fd p C b L m xs }}
 

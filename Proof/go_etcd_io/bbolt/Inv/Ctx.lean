@@ -58,20 +58,44 @@ instance BC.core_persistent (K : BC) : Persistent (K.core (GF := GF)) := by
 instance BC.full_persistent (K : BC) : Persistent (K.full (GF := GF)) := by
   unfold BC.full isBoltP; infer_instance
 
-/-- The database's file is outside a crash invariant (W1, stage A: `isBoltCoreP`'s `p.cs = none`). -/
-theorem BC.core_cs (K : BC) : K.core (GF := GF) ⊢ ⌜K.p.cs = none⌝ := by
-  unfold BC.core isBoltCoreP
-  iintro ⟨-, -, %H, -⟩
-  ipureintro; exact H.2.2.2
-
 /-- **The database's file's crash invariant**, if any, and its namespace's disjointness from OsFs's
 (what the file operations' specs over `bMeta` take, `Inv/BFileOps.lean`). -/
-theorem BC.core_bfile (K : BC) : K.core (GF := GF) ⊢ bCsInv K.p ∗ ⌜bNsOk K.p⌝ := by
+theorem BC.core_bfile (K : BC) : K.core (GF := GF) ⊢ bCsInv K.p ∗ ⌜bNsOk K.p⌝ :=
+  isBoltCoreP_bfile K.B K.N K.db K.p K.sp K.t0
+
+/-- **The database's file's mode** (`bMode`, W1). -/
+theorem BC.core_mode (K : BC) : K.core (GF := GF) ⊢ bMode K.B.bq K.N K.db K.p :=
+  isBoltCoreP_mode K.B K.N K.db K.p K.sp K.t0
+
+/-- **Crash mode's facts** from the core: the file system does not fail, the crash invariant's
+namespace is outside `pagesInv`'s, and the sync options are off. -/
+theorem BC.core_crash (K : BC) : K.core (GF := GF) ⊢
+    ⌜K.p.cs ≠ none → FsNoErr⌝ ∗
+    ⌜∀ c, K.p.cs = some c → (↑c.N : CoPset) ⊆ ⊤ \ ↑(pagesN K.N)⌝ ∗ bSyncs K.db K.p := by
   iintro #Hc
-  ihave %hcs := BC.core_cs K $$ Hc
-  isplitl []
-  · iapply bCsInv_none hcs
-  · ipureintro; exact bNsOk_none hcs
+  ihave #Hm := BC.core_mode K $$ Hc
+  unfold bMode
+  cases hc : K.p.cs with
+  | none =>
+    isplitl
+    · ipureintro; exact fun h => absurd rfl h
+    isplitl
+    · ipureintro; intro c h; cases h
+    iapply bSyncs_none hc
+  | some c =>
+    dsimp only
+    icases Hm with ⟨%hcn, -, #Hs⟩
+    isplitl
+    · ipureintro; exact fun _ => hcn.2.2
+    isplitl
+    · ipureintro
+      intro c' h
+      cases h
+      rw [hcn.2.1]
+      intro x hx
+      exact CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp =>
+        ndot_ne_disjoint K.N (show "crash" ≠ "pages" by decide) x ⟨hx, hp⟩⟩
+    iexact Hs
 
 /-- **A live transaction's token for its statistics** (`txsInv` holds them; `TxStats`'s atomic
 methods need it): with `m = true` a share `q` of its `ex` token (a holder of a fraction of

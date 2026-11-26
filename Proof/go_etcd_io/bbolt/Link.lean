@@ -152,7 +152,6 @@ public import Proof.go_etcd_io.bbolt.Tx__page
 public import Proof.go_etcd_io.bbolt.Tx__page_r
 public import Proof.go_etcd_io.bbolt.Tx__rollback
 public import Proof.go_etcd_io.bbolt.Tx__rollback_f
-public import Proof.go_etcd_io.bbolt.Tx__write
 public import Proof.go_etcd_io.bbolt.Tx__writeMeta
 public import Proof.go_etcd_io.bbolt.Tx__write_ext
 public import Proof.go_etcd_io.bbolt.cloneBytes
@@ -1412,9 +1411,17 @@ theorem os.File.wp_WriteAtExt :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.specExt (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proofExt
 
-theorem wp_fdatasync :
-    _root_.Perennial.EtcdGrove.bbolt.fdatasync.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
+theorem os.File.wp_WriteAtCrashILLong :
+    _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_crashILLong
+
+theorem syscall.wp_FdatasyncCrashIL :
+    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashIL
+
+theorem wp_fdatasyncR :
+    _root_.Perennial.EtcdGrove.bbolt.fdatasync.specR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashIL _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
 theorem TxStats.wp_IncWrite :
     _root_.Perennial.EtcdGrove.bbolt.TxStats.IncWrite.spec (GF := GF) (hG := hG) :=
@@ -1422,11 +1429,15 @@ theorem TxStats.wp_IncWrite :
 
 theorem Tx.wp_write_ext :
     _root_.Perennial.EtcdGrove.bbolt.Tx.write_ext.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.write_ext.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Overflow _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_UnsafeByteSlice _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtExt _root_.Perennial.EtcdGrove.bbolt.wp_fdatasync _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite
+  _root_.Perennial.EtcdGrove.bbolt.Tx.write_ext.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Overflow _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_UnsafeByteSlice _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtExt _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtCrashILLong _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncR _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite
 
 theorem internal.common.Meta.wp_Write :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.Write.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.Write.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Sum64 _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Copy _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetFlags
+
+theorem wp_fdatasync :
+    _root_.Perennial.EtcdGrove.bbolt.fdatasync.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
 theorem os.File.wp_WriteAtCrashIL :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashIL (GF := GF) (hG := hG) :=
@@ -1539,10 +1550,6 @@ theorem Tx.wp_WriteTo :
 theorem Tx.wp_rollback :
     _root_.Perennial.EtcdGrove.bbolt.Tx.rollback.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.rollback.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Txid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Freelist _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_Rollback _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.DB.wp_freepages _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_NoSyncReload _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_Reload _root_.Perennial.EtcdGrove.bbolt.DB.wp_page _root_.Perennial.EtcdGrove.bbolt.Tx.wp_close_w
-
-theorem Tx.wp_write :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.write.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.write.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Overflow _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Id _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_UnsafeByteSlice _root_.Perennial.EtcdGrove.bbolt.os.File.wp_WriteAtExt _root_.Perennial.EtcdGrove.bbolt.wp_fdatasync _root_.Perennial.EtcdGrove.bbolt.TxStats.wp_IncWrite
 
 theorem internal.common.InBucket.wp_InSequence :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.InSequence.spec (GF := GF) (hG := hG) :=

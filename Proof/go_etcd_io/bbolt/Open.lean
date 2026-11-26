@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.bbolt.Inv.LoggerOk
 public import Proof.go_etcd_io.bbolt.Open.PoolNew
 public import Proof.ReceiptTactics
 public import Proof.go_etcd_io.bbolt.Open.Congr
+public import Proof.go_etcd_io.bbolt.Open.Mode
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -592,6 +593,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   -- the database's file: its path and inode
   obtain ⟨p, rfl, rfl, hpcs⟩ : ∃ p : BFile, p.path = path ∧ p.ino = i ∧ p.cs = none :=
     ⟨{ path := path, ino := i }, rfl, rfl, rfl⟩
+  -- (outside a crash invariant until `Open/Mode` chooses the file's mode, before `loadFreelist`)
   unfold openedF
   icases Hop with ⟨%m, %xs, Hfm, Hxs, %Hm, %HBm, #Hrcf⟩
   have hBm := hB _ HBm
@@ -1053,14 +1055,31 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     · ipureintro; exact hmf'
     ipureintro; exact Hlgty
   iclear HNFS
-  -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`); the file's bytes
-  -- as bbolt's invariants hold them (W1)
-  ihave Hxs := (bBytes_none (GF := GF) hpcs 0 (DFrac.own 1) xs').2 $$ Hxs
-  ihave Hfm := bMeta_of_os hpcs C [] _ $$ Hfm
-  wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
-    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 hpcs $$
+  -- the file's mode (W1, `Open/Mode`): crash mode iff `NoSync` and `NoGrowSync` are off and the
+  -- file system does not fail (and, interim, the meta tails are zero); the file's bytes as bbolt's
+  -- invariants hold them
+  ihave #Hngs0 : (∃ b : Bool, dbl.[DB, go!"NoGrowSync"] ↦□ b) $$ []
+  · iexists _; iexact NoGrowSync
+  icases Hngs0 with ⟨%ngs, #Hngs⟩
+  iapply wp_open_mode _ _ _ _ rfl γbq N dbl p fd C { m' with maps := GMap.singleton base L } xs'
+    nos ngs hxl' (fun hfs htz hnos hngs => by
+      obtain ⟨hms, hxss⟩ := hsync hnos
+      have hone : XsOne m' := by rw [hms]; exact xsOne_synced _
+      have hdur : ∀ y ∈ xs', y = durB y.1 := by
+        rw [hxss]; intro y hy; obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+      refine ⟨by show m'.dhi ≤ m'.dlo; rw [hms]; exact Nat.le_refl _, hdur,
+        fun l hl x hx => hone l hl x hx, ?_⟩
+      exact open_bDur C D m' _ xs' hC rfl htz hxl' HL.2.2.2.1 hdur
+        (by show m'.lo = m'.size; rw [hms]; rfl) (by show m'.hi = m'.size; rw [hms]; rfl)
+        (by show m'.xs = some [m'.size]; rw [hms]; rfl) hsz'.2)
+  iframe NoSync Hngs path Hfm Hxs
+  iintro %cs %m'' %Hm'' #Hmode path Hfm Hxs
+  -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
+  wp_apply hLoad γbq N dbl sp f fd { p with cs := cs } C base L m'' xs'
+    (lfOK_congr (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn)
+      Hm''.1 Hm''.2) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
-      Hxs Hbp Hcells freelistLoad Hbq HrcC] as Hlf
+      Hxs Hbp Hcells freelistLoad Hbq HrcC Hmode] as Hlf
   · unfold lfPre
     rw [← hxl']
     iframe; iframe #
@@ -1070,14 +1089,11 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   subst HBbq
   have hCD : treeData C = D := hC.2.2.2.2.2.2.2
   -- the writer side `W`: `loadFreelist`'s, or with the file's metadata after the sync below
-  have hWC : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C := rfl
-  have hWms : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).ms =
-    some (base, L) := rfl
-  have hWfl : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).fl = fl :=
-    rfl
-  have hWfli : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).fli =
-    fli := rfl
-  generalize lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli = W
+  have hWC : (lfW C base L m'' xs' f fd fl fli).C = C := rfl
+  have hWms : (lfW C base L m'' xs' f fd fl fli).ms = some (base, L) := rfl
+  have hWfl : (lfW C base L m'' xs' f fd fl fli).fl = fl := rfl
+  have hWfli : (lfW C base L m'' xs' f fd fl fli).fli = fli := rfl
+  generalize lfW C base L m'' xs' f fd fl fli = W
     at Hwok hWC hWms hWfl hWfli ⊢
   try wp_auto
   -- the writer side `W`
@@ -1085,7 +1101,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   cases nfs
   · exact absurd hnfs (by decide)
   · -- `NoFreelistSync` (`Open.spec`'s options): done, no `hasSyncedFreelist()` call
-    have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok
+    have hOW := open_writer (GF := GF) ⊤ B N dbl { p with cs := cs } sp _ Hwok
     rw [hWC, hWfl, hWfli] at hOW
     imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
     · iframe; iframe #

@@ -142,6 +142,28 @@ theorem bSyncs_some (db : Loc) {p : BFile} {c : CsN} (h : p.cs = some c) :
       db.[DB, go!"NoSync"] ↦□ false ∗ db.[DB, go!"NoGrowSync"] ↦□ false := by
   unfold bSyncs; rw [h]
 
+/-- **In crash mode `NoGrowSync` is off**: what holds given `NoGrowSync ↦□ false` holds. -/
+theorem bSyncs_ng (db : Loc) (p : BFile) (P : Prop) :
+    bSyncs (GF := GF) db p ⊢ (db.[DB, go!"NoGrowSync"] ↦□ false -∗ ⌜P⌝) -∗ ⌜p.cs ≠ none → P⌝ := by
+  iintro #Hs H
+  cases hc : p.cs with
+  | none => ipureintro; exact fun h => absurd rfl h
+  | some c =>
+    icases bSyncs_some db hc $$ Hs with ⟨-, #Hng⟩
+    ihave %hP := H $$ Hng
+    ipureintro; exact fun _ => hP
+
+/-- **In crash mode `NoSync` is off.** -/
+theorem bSyncs_ns (db : Loc) (p : BFile) (b : Bool) :
+    bSyncs (GF := GF) db p ⊢ db.[DB, go!"NoSync"] ↦□ b -∗ ⌜p.cs ≠ none → b = false⌝ := by
+  iintro #Hs #Hb
+  cases hc : p.cs with
+  | none => ipureintro; exact fun h => absurd rfl h
+  | some c =>
+    icases bSyncs_some db hc $$ Hs with ⟨#Hns, -⟩
+    ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hb
+    ipureintro; exact fun _ => Heq.symm
+
 /-- The `path` field, with the token of the exclusive `flock` lock the database's descriptor `fd`
 holds (`Open`'s `flock`), which `close` gives back to `funlock` and `File.Close` (`lockToks`). The
 token rides with the field, which only `Open`, `close` and the remaps touch; so do the sync options

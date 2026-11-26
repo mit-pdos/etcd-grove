@@ -59,6 +59,28 @@ abbrev fdatasync.specC : Prop :=
       ∃ (m' : OsMeta) (ys' : List ByteG), bMeta p C' [] m' ∗ bBytes p o (DFrac.own 1) ys' ∗
         ⌜m'.size = m.size ∧ m'.maps = m.maps ∧ ys'.map Prod.fst = ys.map Prod.fst⌝ }}
 
+/-- **`fdatasync(db)` of what was written since the last sync** (W1, `Tx.write`): the ranges `L`
+written since the last sync lie, in crash mode, inside the slots `S` the caller holds (whole, inside
+the file); afterwards the ranges are synced (`L = []`) and, in crash mode, the crash sizes are the
+size alone (`lo = hi = size`, what `writeMeta`'s commit point needs); an error only if the file
+system can fail. -/
+abbrev fdatasync.specR : Prop :=
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
+    (S : List Nat) (g : Nat → List w8) (dqf dq : DFrac),
+  bNsOk p →
+  (p.cs ≠ none → S.Nodup ∧ (∀ s ∈ S, (g s).length = 4096 ∧ 4096 * (s + 1) ≤ m.size) ∧
+    ∀ r ∈ L, ∀ k, r.1 ≤ k → k < r.1 + r.2 → k < m.size → k / 4096 ∈ S) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗ bCsInv p ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dq ∗ osFd fd dq (dbFd p.ino) ∗
+      bMeta p C L m ∗ [∗list] s ∈ S, osSlot p s (g s) }}
+    (App (Val #(functions fdatasync [])) (Val #db))
+  {{ (err : GoInterface), RET #err; db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dq ∗
+      osFd fd dq (dbFd p.ino) ∗ ([∗list] s ∈ S, osSlot p s (g s)) ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ m' : OsMeta, bMeta p C [] m' ∗
+          ⌜m'.size = m.size ∧ m'.maps = m.maps ∧
+            (p.cs ≠ none → m'.lo = m'.size ∧ m'.hi = m'.size)⌝) ∨
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err ∗ bMeta p C L m)) }}
+
 end spec
 
 end bbolt

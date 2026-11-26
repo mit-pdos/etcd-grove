@@ -183,12 +183,14 @@ theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
     (hSC : syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG))
     (fd : w64) (dq : DFrac) (d : OsFd) (p : BFile) (C : CommitSt) (L : List (Nat × Nat))
     (m : OsMeta) (R : List (Nat × List ByteG)) (hd : d.ino = p.ino) (hns : bNsOk p)
-    (hcov : RCov R L m.size) (hdisj : RDisj R) (hin : ∀ r ∈ R, r.1 + r.2.length ≤ m.size) :
+    (hcov : p.cs ≠ none → RCov R L m.size) (hdisj : p.cs ≠ none → RDisj R)
+    (hin : p.cs ≠ none → ∀ r ∈ R, r.1 + r.2.length ≤ m.size) :
     {{ osInv (GF := GF) ∗ bCsInv p ∗ osFd fd dq d ∗ bMeta p C L m ∗ bRanges p R }}
       (App (Val (@! syscall.Fdatasync)) (Val #fd))
     {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
         ((⌜e = 0⌝ ∗ ∃ (m' : OsMeta) (R' : List (Nat × List ByteG)), bMeta p C [] m' ∗ bRanges p R' ∗
-            ⌜m'.size = m.size ∧ m'.maps = m.maps ∧ RSame R R'⌝) ∨
+            ⌜m'.size = m.size ∧ m'.maps = m.maps ∧ RSame R R' ∧
+              (p.cs ≠ none → m'.lo = m'.size ∧ m'.hi = m'.size)⌝) ∨
          (⌜e ≠ 0 ∧ ¬ FsNoErr⌝ ∗ bMeta p C L m ∗ bRanges p R)) }} := by
   iintro %Φ ⟨#Hos, #Hinv, Hfd, Hm, HR⟩ HΦ
   cases hc : p.cs with
@@ -208,13 +210,17 @@ theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
       iexists m.bsynced c, R
       rw [hd]
       iframe
-      ipureintro; exact ⟨rfl, rfl, RSame.refl R⟩
+      ipureintro; exact ⟨rfl, rfl, RSame.refl R, fun h => absurd rfl h⟩
     · iright
       isplitr
       · ipureintro; exact ⟨he.1, he.2.2⟩
       rw [hd]
       iframe
   | some c =>
+    have hsm : p.cs ≠ none := by rw [hc]; exact fun h => nomatch h
+    have hcov := hcov hsm
+    have hdisj := hdisj hsm
+    have hin := hin hsm
     ihave #Hci := bCsInv_some p c hc $$ Hinv
     icases bMeta_own p c hc C L m $$ Hm with ⟨%bs, %a, Hown, Ha, %Hf⟩
     obtain ⟨hph, hcur, hdur, hfs, hlh⟩ := Hf
@@ -277,7 +283,7 @@ theorem wp_bFdatasync (hS : syscall.Fdatasync.specB (GF := GF) (hG := hG))
         iframe
       isplitl [HR HG]
       · iapply (bRanges_os p (rDur R)).2; rw [hdq]; iframe
-      ipureintro; exact ⟨rfl, rfl, RSame_rDur R⟩
+      ipureintro; exact ⟨rfl, rfl, RSame_rDur R, fun _ => ⟨rfl, rfl⟩⟩
     · iright
       isplitr
       · ipureintro; exact he

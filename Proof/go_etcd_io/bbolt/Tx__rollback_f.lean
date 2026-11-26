@@ -178,7 +178,7 @@ theorem Tx.rollback_f.wp_proof
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hkc
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, -, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, -, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   iunfold wdbLive at Hlive
   icases Hlive with ⟨Hcg, Hflo, Hpair, Hrcpt⟩
   iunfold wdbCoreG at Hcg

@@ -138,6 +138,8 @@ theorem DB.Close.wp_proof
   subst hi
   ihave %Hrb := isBoltCoreP_receipts _ _ _ _ _ _ $$ Hcore
   ihave #Hcore2 := Hcore
+  icases isBoltCoreP_bfile _ _ _ _ _ _ $$ Hcore with ⟨#Hci, %hnsp⟩
+  ihave #Hmode := isBoltCoreP_mode _ _ _ _ _ _ $$ Hcore
   unfold isBoltCoreP
   icases Hcore with ⟨-, #Ht0a, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -213,9 +215,7 @@ theorem DB.Close.wp_proof
     have h2 := treeOK_root' w.C htree
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  ihave #Hci : bCsInv (GF := GF) p $$ []
-  · iapply bCsInv_none Ht0.2.2.2
-  imod close_resM _ γ.ns p w Hwok hL (bNsOk_none Ht0.2.2.2) $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
+  imod close_resM _ γ.ns p w Hwok hL hnsp $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
     Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hosm0, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the store slots' bytes, `cls` set
@@ -315,18 +315,6 @@ theorem DB.Close.wp_proof
   -- `maxBytes`, page-aligned; the mapping lies below `maxAddr`)
   have hszw : wdbSz w.m w.ms := Hwok.2.2.2.2.2.2.2.2.2.2.2.2.1
   have hal : w.m.size % 4096 = 0 := hszw.2.2 hne
-  -- the file given back; the caller's validity token kept by the closed database
-  wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
-    Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
-  · iunfold rwR; iright; iunfold closedR
-    iframe Hcls Hclo
-    iexists w.C, w.fl, none
-    iframe
-  try wp_auto
-  iapply HΦ
-  ileft
-  isplitr
-  · ipureintro; rfl
   -- the file: its `OsMeta`, its bytes, an image of the committed state
   icases close_meta p w Hwok hj $$ [Hback Hosm0] with ⟨%m, Hm, %hm⟩
   · iframe
@@ -390,8 +378,21 @@ theorem DB.Close.wp_proof
     (fun s hs => Hwok.2.2.2.2.2.2.2.2.2.2.1 s (Or.inr hs)) Hwok.2.2.2.2.2.1
   have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
   rw [hsz4] at hfok
-  ihave Hxs := (bBytes_none (GF := GF) Ht0.2.2.2 _ _ _).1 $$ Hxs
-  rw [bMeta_none (GF := GF) Ht0.2.2.2]
+  -- the file out of its mode (crash mode: the crash invariant closed with `boltState`'s `bq`)
+  imod bfile_out _ _ _ p w.C [] m xs (by rw [hm.2]; exact hxs.2) $$ Hmode Hm Hxs Hbq
+    with ⟨Hm, Hxs⟩
+  -- the file given back; the caller's validity token kept by the closed database
+  wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
+    Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
+  · iunfold rwR; iright; iunfold closedR
+    iframe Hcls Hclo
+    iexists w.C, w.fl, none
+    iframe
+  try wp_auto
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
   unfold fileHoldsM fileHoldsMDef
   iexists m, xs
   iframe Hm Hxs

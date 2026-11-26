@@ -202,7 +202,7 @@ theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' 
   icases Hw with ⟨⟨-, -, %Hr, #Hreg, Hh, Hf, Hbk, Hnl, Hdb, #Hvo, Hex⟩, Hvc, %l, Hmf, %Hl⟩
   ihave #Hinv : inv (txsN K.N) (txsInv (GF := GF) K.B K.p K.sp K.t0) $$ []
   · unfold BC.full isBoltP isBoltCoreP
-    icases Hb with ⟨⟨-, -, -, -, -, -, -, -, -, -, $⟩, -⟩
+    icases Hb with ⟨⟨-, -, -, -, -, -, -, -, -, -, $, -⟩, -⟩
   imod txExcl_take K.B K.N K.p K.sp K.t0 E hE tx r $$ [Hex] with Hx
   · iframe; iframe #
   imod txExcl_retarget_later K.B K.p K.sp K.t0 tx r c c' X X' E hk hsh $$ [Hx Hv] with ⟨Hx, Hv⟩

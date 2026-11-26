@@ -50,7 +50,7 @@ Proof.go_etcd_io.bbolt.Commit.CheckRoot Proof.go_etcd_io.bbolt.Bucket__Bucket_r 
 Proof.go_etcd_io.bbolt.Commit.CheckRoot Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_r  # proof->proof
 Proof.go_etcd_io.bbolt.Commit.CheckRoot Proof.go_etcd_io.bbolt.Commit.CheckInv  # proof->proof
 Proof.go_etcd_io.bbolt.Commit.Step Proof.go_etcd_io.bbolt.Tx__writeMeta  # defs->proof
-Proof.go_etcd_io.bbolt.Commit.WriteExtRun Proof.go_etcd_io.bbolt.Tx__write  # defs->proof
+Proof.go_etcd_io.bbolt.Commit.WriteExtRun Proof.go_etcd_io.bbolt.Mmap.Logger  # defs->proof
 Proof.go_etcd_io.bbolt.Cursor__First Proof.go_etcd_io.bbolt.Bucket__Get  # proof->proof
 Proof.go_etcd_io.bbolt.Cursor__Next Proof.go_etcd_io.bbolt.Bucket__Get  # proof->proof
 Proof.go_etcd_io.bbolt.Cursor__search_r Proof.go_etcd_io.bbolt.Read.SearchEv  # proof->proof
@@ -114,14 +114,12 @@ Proof.go_etcd_io.bbolt.Tx__Commit_err Proof.go_etcd_io.bbolt.Mmap.Logger  # proo
 Proof.go_etcd_io.bbolt.Tx__Commit_err Proof.go_etcd_io.bbolt.Tx__Rollback  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__Commit_err Proof.go_etcd_io.bbolt.Tx__commitFreelist  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__Commit_err Proof.go_etcd_io.bbolt.Tx__rollback_f  # proof->proof
-Proof.go_etcd_io.bbolt.Tx__Commit_err Proof.go_etcd_io.bbolt.Tx__write  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__Rollback Proof.go_etcd_io.bbolt.Tx__Rollback_r  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__Rollback Proof.go_etcd_io.bbolt.Tx__close_w  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__allocate Proof.go_etcd_io.bbolt.Tx__allocate_f  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__allocate_f Proof.go_etcd_io.bbolt.Mmap.TxAlloc  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__page Proof.go_etcd_io.bbolt.DB__page  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__rollback Proof.go_etcd_io.bbolt.Tx__rollback_f  # proof->proof
-Proof.go_etcd_io.bbolt.Tx__write Proof.go_etcd_io.bbolt.Mmap.Logger  # proof->proof
 Proof.go_etcd_io.bbolt.Tx__writeMeta Proof.go_etcd_io.bbolt.Mmap.Logger  # proof->proof
 Proof.go_etcd_io.bbolt.Write.CreateBktWp Proof.go_etcd_io.bbolt.Bucket__Bucket_w  # defs->proof
 Proof.go_etcd_io.bbolt.Write.CreateBktWp Proof.go_etcd_io.bbolt.Bucket__Cursor_i  # defs->proof
