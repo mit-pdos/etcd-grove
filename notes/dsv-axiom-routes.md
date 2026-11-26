@@ -320,3 +320,14 @@ so it goes in with the proofs of the level methods and `Str` (and the review red
    `nil`), `newEvent` (`eventPool.Get`: `isPool`; `.(*Event)` from `eventElem`), `e.Str(LevelFieldName,
    LevelFieldMarshalFunc(level))` (`marshalSpec`).
 4. Re-review the 7 blocked event axioms over the defined `eventTok`; tcb baselines; gates.
+
+**Session 4 stopped at the context limit (checks pending).** Done: tier-check ok (zerolog `Base` now imports
+`Proof.path.filepath.PkgInit`, not the proof module `Proof.path.filepath.Base`); `etc/gen-init.py --check` ok;
+`etc/goose.py --check --project dsv-rabia` ok; the six rabia/quepaxa targets built green (before the tier fix,
+which changes only that import). **Running when stopped**: a full `lake build` on fk-lean1
+(`/shared/tmp/dsvr3-rb.sh` with no targets, log `/shared/tmp/dsvr3-buildall.log`), started because
+`etc/tcb-report.py` refused (560 modules out of date there). Next: once it is green (rerun `dsvr3-rb.sh`
+incrementally first: the tier fix was synced mid-build), on fk-lean1 run `etc/tcb-report.py --check --update`, then
+`--collection etc/tcb-collections/dsv-rabia.txt --check --update` (and `dsv-quepaxa.txt`); expected removals only:
+`zerolog.wp_initialize'`, `New.wp_proof`, `SetGlobalLevel.wp_proof`, `ParseLevel.wp_proofWarn` (and
+`internal.json`'s initializer if listed); commit those; then `etc/gates.sh` once, logged, in the background.
