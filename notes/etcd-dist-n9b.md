@@ -275,3 +275,35 @@ from `a276f9570e` and re-indexed to M1's view (no `svc` parameter: `etcdAddrAt`,
    of `DistView.ofKV`'s constant).
 3. **Link** leaseRead/leaseCatchup/leaseExpiry as N7-kv linked kv (`KvLinked`, kvremote's dispatch).
 4. The three auth-on lease axioms with F7.
+
+### F2 session 2 (2026-11-26): handoff
+
+**Done** (branch `etcd-safe-f2`):
+- *Step 1:* `LeaseDefs`, `RunLeaseRead`, `RunLeaseCatchup`, `RunLeaseExpiry` build (the client files `open etcd_dist`;
+  `leaseMember_persistent`/`expiryAt_persistent` at `GF`; `RunLeaseExpiry` takes the law's later credit with
+  `wp_pure_lc` after the listing returns).
+- *The axiom review* (`notes/axiom-review/f2-lease-axioms.md`): `Lease_LeasesGranted_dist` unsound with
+  `Lease_Grant_dist` while every member's lessor name is `ofKV`'s `0`. The four lessor axioms now take
+  `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` (ledger 2026-11-26, `etcd-dist-plan.md` §18.4), carried by `leaseGrant`,
+  `leaseList`, `gone` and the Run specs; the docstrings say monotone mode needs `lease.leasesNoExpiry`. A fresh review
+  is the coordinator's.
+- *P-L1, the lessor layer:* `lease.lessorSlot`'s published case carries a pin (`lessorPinR`), so the member's half at
+  `∅` excludes it when its `NewLessor` opens the slot. `lease.newLessor_alloc_at γl` (`NewLessorAlloc.lean`) opens the
+  slot, joins the halves, inserts the two keys, and closes it with `lessorHistOk γl` (`lessorHistOk_of_rdInv`) and the
+  pin; `newLessor_alloc` (fresh name) is derived. `lease.newLessor.specAt`/`lease.NewLessor.specAt` (the name a binder,
+  `ghostMapAuth γl ½ ∅ ∗ lessorSlot γl` in the pre, the post at `γl`) with `wp_proofAt`s; `newLessor.wp_proof` is now
+  derived from `wp_proofAt` (allocates the name and slot). The `At` proofs are not linked yet (no caller).
+- *`NewServer_dist`'s text:* `NewServer.specG_dist_proposed` (`Spec/.../dist/NewServerDist.lean`): the binder `γl`, the
+  premise `"Hlslot"`, the post's `mvcc.api.mvccLeases E.γ = γl`. **Stopped here for review**, together with F7's P-A1
+  change to the same axiom.
+
+**Next, in order (after the review):**
+1. Merge the reviewed text into `NewServer.specG_dist` (with F7's), and carry `NewServer.specG` to the name: a variant
+   whose proof calls `lease.NewLessor.specAt` (its `Link` entry: `etc/gen-link.py --server`), `specG` derived by
+   allocating the name and slot as `newLessor.wp_proof` does.
+2. The member boot (`member_boot_dist`) passes its half and the slot; the start allocates, per member, a distinct `γl`
+   (ghost map at `∅`, two halves, the slot) and an injective `ClusterNames.ls` (in place of `DistView.ofKV`'s
+   constant), discharging the axioms' distinct-names premise and `leaseMember`'s slot.
+3. Link leaseRead/leaseCatchup/leaseExpiry as N7-kv linked kv (`KvLinked`, kvremote's dispatch); then the tier and tcb
+   checks with exactly the six lease axioms added.
+4. The three auth-on lease axioms with F7.
