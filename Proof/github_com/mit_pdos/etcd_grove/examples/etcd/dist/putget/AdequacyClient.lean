@@ -21,6 +21,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientGetD
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
