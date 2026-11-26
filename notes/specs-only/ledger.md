@@ -6296,3 +6296,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Lead-approved (2026-11-26: S1, S3-S7 as requested). No new axiom. S7 restricts the runs every Sim
   statement is over (a `RunCfg` field, which the harness discharges from `DrawMode`); no other premise. Every `_in`
   theorem keeps its statement (mask `mskB1a`).
+
+## 2026-11-26 — antithesis parity B1 phase 2: `readMsg` moves from the Sim to the end relations (#33)
+- **Change.** `readMsg id ctx` (`RawNode.ReadIndex(ctx)`'s local `MsgReadIndex`, `Entries: [{Data: ctx}]`) moves,
+  text unchanged, from `Sim/Stmts.lean` (namespace `AntSim`) to `Protocol/InputEnd.lean` (namespace `EtcdGrove`), so
+  that raft's `RawNode.ReadIndex.form` can state its end at it. `InputStep`'s `.readIndex` arm resolves the same
+  name (parent namespace). Lead-approved; no statement changes meaning.
+
+## 2026-11-26 — antithesis parity B1 phase 2: NOTE for B3 (conf changes): the narrowed pre-vote response arm (#33)
+- 57cff2a9b9's `HandleEnd` `.preVoteResp` arm (a pre-candidate campaigns only on a grant) relies on "a pre-candidate's
+  pending tally is not a quorum". That is FALSE with configuration changes: `switchToConfig` keeps `trk.Votes`, so a
+  shrink can make the pending tally a quorum, and the next (rejecting) response then wins `poll` and campaigns. B1 proves
+  the arm at `md.confChanges = false` only (RnScope's pre-candidate conjunct); **B3 item**: widen the arm (or the
+  invariant) before conf changes are on.

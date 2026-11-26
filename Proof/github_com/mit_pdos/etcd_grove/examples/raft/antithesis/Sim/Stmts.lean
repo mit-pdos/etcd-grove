@@ -93,11 +93,6 @@ def propConfMsg (id : w64) (ty : w32) (data : List w8) : Msg :=
   Msg.mk .propose id (W64 0) (W64 0) false (W64 0) (W64 0) (W64 0) (W64 0)
     [EntryM.mk (W64 0) (W64 0) ty data]
 
-/-- `RawNode.ReadIndex(ctx)`'s message (local `MsgReadIndex` from the node, `Entries: [{Data: ctx}]`). -/
-def readMsg (id : w64) (ctx : List w8) : Msg :=
-  Msg.mk .readIndex id (W64 0) (W64 0) false (W64 0) (W64 0) (W64 0) (W64 0)
-    [EntryM.mk (W64 0) (W64 0) (W32 0) ctx]
-
 /-- The configuration fold's admissible pairs certified in `G` (raft's `Adm`, parity B3). -/
 def admOf (G : RaftFacts) : List EntryM → CCState → Prop := fun l cs => (l, cs) ∈ G.confs
 

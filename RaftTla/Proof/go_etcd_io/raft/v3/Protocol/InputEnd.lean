@@ -585,6 +585,11 @@ def StoreAckEndR (Adm : List EntryM → CCState → Prop) (dec : CCDec) (k : Nod
     (r : RState) (resp : List Msg) (r' : RState) : Prop :=
   ∃ r1, AckEndR dec Adm id r r1 ∧ AdvanceEndR Adm dec k id r1 resp r'
 
+/-- `RawNode.ReadIndex(ctx)`'s message (local `MsgReadIndex` from the node, `Entries: [{Data: ctx}]`). -/
+def readMsg (id : w64) (ctx : List w8) : Msg :=
+  Msg.mk .readIndex id (W64 0) (W64 0) false (W64 0) (W64 0) (W64 0) (W64 0)
+    [EntryM.mk (W64 0) (W64 0) (W32 0) ctx]
+
 end input_end
 
 end EtcdGrove
