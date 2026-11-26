@@ -318,7 +318,7 @@ theorem bk_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
   obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty)
   obtain ⟨-, -, ⟨hlog, -⟩, -, hg⟩ := hhup hst hty
   refine ⟨by rw [hlog], fun hl => ?_⟩
-  rcases hg with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
+  rcases hg.exists_pre_ctx with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
   · exact .inl ⟨hl, rfl⟩
   · exfalso
     cases pre <;> simp [campaignState, sendMsgs, becomeCandidate, becomePrecandidate] at hl

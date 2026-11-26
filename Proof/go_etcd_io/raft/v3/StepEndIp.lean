@@ -578,12 +578,12 @@ theorem recvEndR_of_prop {Adm : List EntryM → CCState → Prop} {id : w64}
     · exact absurd hsl h2
 
 
-/-- (antithesis parity B1, phase 2) **`RawNode.Campaign`'s `RState` end** (`MsgHup`, pre-vote off, in the
-lifting lemmas' scope, no ghost prefix at the boundary `0`): `hup`'s guard (`HupGuard`) read as
-`CampaignEndR`'s, nothing done or an election (`∃ cl`: `HupGuard` does not pin the context), with
-`hasUnappliedConfChanges`' answer on the full log (`noConfIn_of_unapplied`), the log kept. -/
+/-- (antithesis parity B1, phase 2) **`RawNode.Campaign`'s `RState` end** (`MsgHup`, no ghost prefix at
+the boundary `0`, the node constant's pre-vote flag the node's): `hup`'s guard (`HupGuard`, at `hupType s`)
+read as `CampaignEndR`'s, nothing done, an election with no context, or (pre-vote on) a pre-election,
+with `hasUnappliedConfChanges`' answer on the full log (`noConfIn_of_unapplied`), the log kept. -/
 theorem campaignEndR_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {rs rs' : RNState} {s s' : NState} (hsc : LiftScope c id s) (hk : k.prevote = false)
+    {ctx : List w8} {rs rs' : RNState} {s s' : NState} (hk : k.prevote = s.prevote)
     (hc : rs.cfg.cfg = c) (hty : m.Type' = MsgHup) (h0 : m.Term' = W64 0)
     (hprev : uint.Z s.logst.prev.index' = 0)
     (hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed)
@@ -591,12 +591,16 @@ theorem campaignEndR_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents :
     (h : StepEnd c id m ents ctx s s') (hcf : rs'.capplied = rs.capplied ∧ rs'.cfg = rs.cfg) :
     CampaignEndR k id (toRState rs [] s) (toRState rs' [] s') := by
   have hl := logst_of_stepEnd_hup hty h0 h
-  have hbk := bk_of_stepEnd_hup hsc hty h0 h
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
   obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty)
   obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
+  have hbk : BkStep s s' := ⟨by rw [hl], fun hl' => by
+    rcases hg.exists_pre_ctx with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
+    · exact .inl ⟨hl', rfl⟩
+    · exfalso
+      cases pre <;> simp [campaignState, sendMsgs, becomeCandidate, becomePrecandidate] at hl'⟩
   refine ⟨?_, ⟨hbk.1, hcf.1, hcf.2⟩, rfl, by simp only [toRState_snap, hl], pciR_of_bk hbk⟩
-  rcases hg with ⟨-, rfl⟩ | ⟨⟨hnl, hv, hsn, hno⟩, pre, peers, pvs, cl, hpre, hperm, rfl⟩
+  rcases hg with ⟨-, rfl⟩ | ⟨⟨hnl, hv, hsn, hno⟩, -, peers, pvs, hperm, rfl⟩
   · left
     unfold toRState
     rw [hcf.1, hcf.2]
@@ -606,15 +610,22 @@ theorem campaignEndR_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents :
     · rintro ⟨kk, e, h1, h2, h3, h4⟩
       exact noConfIn_of_unapplied s.logst [] (by simp [hprev])
         (by rw [hprev]; exact uint_Z_nonneg _) hac hnw hno kk e h1 h2 h3 h4
-    · cases pre
-      · refine Or.inl ⟨hk, cl, by rw [toRState_cfg, hc]; exact hv, peers,
-          by rw [toRState_cfg, hc]; exact hperm, ?_⟩
-        rw [toRState_p, toRState_p,
-          toPState_prvals_nl _ _ (by simp [campaignState, sendMsgs, becomeCandidate])]
+    · rw [hupType_pre_iff, hupType_ctx, toRState_p, toRState_p, toRState_cfg, hc, hk]
+      cases hpv : s.prevote
+      · refine Or.inl ⟨rfl, hv, peers, hperm, ?_⟩
+        rw [toPState_prvals_nl _ _ (by simp [campaignState, sendMsgs, becomeCandidate])]
         simp only [campaignState, Bool.false_eq_true, ↓reduceIte]
         rw [toPState_sendMsgs, toPState_becomeCandidate]
         rfl
-      · exact absurd (hpre rfl) (by rw [hsc.1]; decide)
+      · refine Or.inr ⟨rfl, hv, peers, hperm, ?_⟩
+        rw [toPState_prvals_nl _ _ (by simp [campaignState, sendMsgs, becomePrecandidate])]
+        simp only [campaignState, ↓reduceIte]
+        rw [toPState_sendMsgs, toPState_becomePrecandidate]
+        have hm : (toPState s).matched = ∅ := by simp [toPState, hnl]
+        have hr : (toPState s).rd = rdNL s.rd := by simp [toPState, hnl]
+        have ht : (toPState s).term = s.term := rfl
+        simp only [pbecomeFollower, ht, eq_self_iff_true, ite_true, ↓reduceIte, hm, hr, rdNL_rdNL]
+        rfl
 
 end pure
 

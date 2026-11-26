@@ -117,7 +117,7 @@ theorem raft.hup.wp_proof
       ipureintro
       refine ⟨⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
         fun _ => stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
-        .inr ⟨HC, _, peers, pvs, _, fun h => (Hpv (of_decide_eq_true h)).1, Hpeers, rfl⟩⟩, ?_⟩
+        .inr ⟨HC, fun h => (Hpv h).1, peers, pvs, Hpeers, rfl⟩⟩, ?_⟩
       rotate_left
       · -- (2026-10-17) a pre-candidate only by a pre-election
         intro h

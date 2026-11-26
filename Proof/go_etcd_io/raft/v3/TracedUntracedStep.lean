@@ -182,7 +182,7 @@ abbrev raft.hup.untracedTriple : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ ∗
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id t s s'⌝ ∗
       ⌜s'.role = .preCandidate → s'.role = s.role ∨ t = campaignPreElection⌝ }}
 
 /-- `raft.hup.spec`'s untraced instance. -/

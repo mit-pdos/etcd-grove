@@ -85,6 +85,17 @@ def vrespMsgOf (id : w64) (s1 : NState) (m : MessageM) (rej : Bool) : Msg :=
 def hupType (s : NState) : CampaignType :=
   if s.prevote = true then campaignPreElection else campaignElection
 
+/-- (#33 parity B1) A `MsgHup`'s campaign is a pre-election exactly with pre-vote on. -/
+theorem hupType_pre_iff (s : NState) : decide (hupType s = campaignPreElection) = s.prevote := by
+  unfold hupType
+  cases s.prevote <;> simp (config := {decide := true}) [campaignElection, campaignPreElection]
+
+/-- (#33 parity B1) A `MsgHup`'s campaign requests carry no context (no transfer). -/
+theorem hupType_ctx (s : NState) : transferCtx (hupType s) = [] := by
+  unfold hupType
+  cases s.prevote <;>
+    simp (config := {decide := true}) [transferCtx, campaignElection, campaignPreElection, campaignTransfer]
+
 /-- (2026-11-10, slice 12) **The local message a tick steps** (`tickElection`'s `MsgHup`,
 `tickHeartbeat`'s `MsgCheckQuorum` and `MsgBeat`): `&pb.Message{From: new(r.id), Type: ty.Enum()}`,
 every other field unset. The tick specs name it for `Step`'s gates. -/
@@ -165,7 +176,7 @@ def StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : Lis
     Prop :=
   StepEndTy m.Type' →
   (StaleMsg s m → s' = s ∨ ∃ (ty : w32) (mm : Msg), LowSend id s m ty mm ∧ s' = sendMsgs s [mm]) ∧
-  (¬ StaleMsg s m → m.Type' = MsgHup → HupOkC c id s s') ∧
+  (¬ StaleMsg s m → m.Type' = MsgHup → HupOkC c id (hupType s) s s') ∧
   (¬ StaleMsg s m → m.Type' = MsgVote →
     (s.cq = true ∧ s' = s) ∨ ∃ pvs : GMap w64 Progress, VoteEnd id (preState s m pvs) m s') ∧
   (¬ StaleMsg s m → m.Type' ≠ MsgHup → m.Type' ≠ MsgVote →
@@ -202,7 +213,7 @@ theorem StepEnd.stale {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} 
   fun _ => ⟨fun _ => h, fun h' => absurd hst h', fun h' => absurd hst h', fun h' => absurd hst h'⟩
 
 theorem StepEnd.hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} (hty : m.Type' = MsgHup) (hns : ¬ StaleMsg s m) (h : HupOkC c id s s') :
+    {s s' : NState} (hty : m.Type' = MsgHup) (hns : ¬ StaleMsg s m) (h : HupOkC c id (hupType s) s s') :
     StepEnd c id m ents ctx s s' :=
   fun _ => ⟨fun h' => absurd h' hns, fun _ _ => h,
     fun _ h' => absurd (hty.symm.trans h') (by simp only [MsgHup, MsgVote, ne_eq]; first | exact of_decide_eq_true rfl | word), fun _ h' => absurd hty h'⟩

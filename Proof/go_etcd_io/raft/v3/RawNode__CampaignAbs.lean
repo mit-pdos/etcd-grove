@@ -133,7 +133,7 @@ local macro "hup_tail" : tactic => `(tactic| (
       · rw [← Hps]
         obtain ⟨Hend1, Hfp0, -⟩ := Hx h
         subst Hfp0
-        exact campaignEndR_of_stepEnd_hup (Hlift h).1 (by rw [← Hkt h]; exact (Hlift h).1.1)
+        exact campaignEndR_of_stepEnd_hup (by rw [← Hkt h])
           (Hcfm.2 (Hcin h).2.2.2.1) rfl rfl (Hp0 h) Hlogf.2.1 Hlogf.2.2 Hend1 ⟨rfl, rfl⟩
       · show uint.nat s'.logst.inprogress - 1 = min ip (lcpLen ps.p.log (toPState s').log)
         rw [hl, Hip, Nat.add_sub_cancel]

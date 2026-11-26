@@ -5947,6 +5947,25 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the drain's Ready messages are frozen.
 - **Decision.** No new axiom, no new top-level premise (a driver-internal spec).
 
+## 2026-11-26 — antithesis parity B1 phase 2 (iii): `HupGuard` at the campaign type; `CampaignEndR` back to `cl = []` (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/SpecResults.lean` (`HupGuard`, `HupOkC`), `Spec/go_etcd_io/raft/v3/raft__hup.lean`
+  (post `HupOkC c id t s s'`), `Spec/go_etcd_io/raft/v3/stepFollower.lean` (`FollowerStepResultC`'s `MsgTimeoutNow`
+  arm `HupOkC c id campaignTransfer s s'`), `LemmasStepGates.lean` (`StepEnd`'s `MsgHup` conjunct
+  `HupOkC c id (hupType s) s s'`), `Protocol/InputEnd.lean` (`CampaignEndR`), `StepEndIp.lean`
+  (`campaignEndR_of_stepEnd_hup`), and the users (`raft__hup`, `stepFollower`, `TracedUntracedStep`, `StepLemmasR`,
+  `raft__Step/{Base,MsgHup,MsgRest}`, `TracedRaftStepHup`, `InputEndLift`, `StepEndBk`, `RawNode__CampaignAbs`).
+- **Change (strengthening).** `HupGuard c id t s s'` / `HupOkC c id t s s'` take `hup`'s campaign type `t`:
+  the campaign arm is `(t = campaignPreElection → s.prevote = true) ∧ ∃ peers pvs, peers ≡ₚ … ∧
+  s' = { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t) with prvals := pvs }`
+  (was: `∃ pre … cl`, kind and context existential). `raft.hup.spec`'s proof already had both
+  (`raft.campaign.spec`'s post). `HupGuard.exists_pre_ctx` gives the old shape to the users that read neither.
+  `CampaignEndR`'s election arm back to `CampaignEnd r.cfg.cfg id r.p [] r'.p` (was `∃ cl`, the previous entry),
+  and `campaignEndR_of_stepEnd_hup` now proves both arms (`hk : k.prevote = s.prevote`, no `LiftScope`): the
+  pre-vote arm `PreCampaignEnd` from `hupType s = campaignPreElection` (`toPState_becomePrecandidate`, a non-leader's
+  `matched`/`rd` already reset).
+- **Decision.** Lead's decision (iii), 2026-11-26. No new axiom, no new top-level premise.
+
 ## 2026-11-26 — antithesis parity B1 (Sim): `NodeFacts` takes the node, a pre-candidate only with pre-vote on (#33)
 
 - **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`NodeFacts`, `NodeOk`).
@@ -5956,3 +5975,12 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `ReadyOutP` gives `rd.pre = true → (R.k n).prevote = true`. `ReadyKind`'s `reportedO_of` needs `v.pre = false`,
   which below `mskS4` (`R.k n = {}`) this gives. Users follow: `Init`, `Quiet`, `ReadyRel` (`ReadyOk.facts`).
 - **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1: `memoryOf.spec` takes the disk log's numbering (#33)
+
+- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/memoryOf.lean`.
+- **Change (two pure premises).** `memoryOf.spec` now assumes `∀ i e, w.log[i]? = some e → uint.nat e.Index' = 1 + i`
+  and `1 + w.log.length ≤ 2 ^ 61`: `MemoryStorage.Append.spec`'s premises at `k = 1` (`Append` panics on a gap),
+  which `diskOwn d w` does not give. `node.start`'s caller discharges them (trivially for an empty disk; B2's
+  restarts carry the log-indices fact with the view). Proof: `Proof/.../antithesis/memoryOf.lean`.
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
