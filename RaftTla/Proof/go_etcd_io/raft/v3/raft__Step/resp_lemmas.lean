@@ -436,7 +436,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
             unfold HeartbeatOk matchOf at this ⊢
             simpa [ps3, ps2, toPState, Hr] using this)
           (fun m' h => by
-            obtain ⟨k, -, -, Hk⟩ := (Hhb m' h).2
+            obtain ⟨k, -, -, Hk⟩ := (Hhb m' h).2.2
             rw [Hk]
             have : ps3.rd.ro = readonlyRelease s.rd.ro id n0 s.rd.pend := by
               simp [ps3, ps2, toPState, Hr]

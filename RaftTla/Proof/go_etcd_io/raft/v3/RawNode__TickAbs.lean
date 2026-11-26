@@ -260,7 +260,7 @@ theorem RawNode.Tick.wp_absProof
       ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
         Hpv.symm Hsg.symm $$ Hnosnap
       have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-      have Hboot' := RnTrBoot.step Hpure.2.2.2 Hru Hap' Hprev' (Hbp' Hprev') Hbc'
+      have Hboot' := RnTrBoot.step Hpure.2.2.2 Hru Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
       have Hpure' := Hpure.step (by rw [Htr]; rfl) Houtty Hboot'
       icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s' $$ Hphys with ⟨%Hip1, Hphys⟩
       icases ownRaftPhysC_cq cf rnv.raft' id s' $$ Hphys with ⟨#Hcq1, Hphys⟩

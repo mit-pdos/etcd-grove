@@ -514,36 +514,30 @@ def CampaignEndR (k : NodeK) (id : w64) (r r' : RState) : Prop :=
       k.prevote = true ∧ PreCampaignEnd r.cfg.cfg id r.p r'.p))) ∧
   KeepCfg r r' ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧ r'.pci = PciNext r r'.p
 
-/-- **`RawNode.TransferLeader(to)`** (local `MsgTransferLeader`; `raft.go:1450-1490`) at a leader:
-ignored (a learner or itself as target, the same transfer pending, R1: `leadTransferee` hidden), or
-recorded, and then either a `MsgTimeoutNow` to `to` (its `Match` the last index) or a probe
-(`sendAppend`). The `MsgTimeoutNow` has no `Msg` reading (`mtypeOf 14 = none`): it is the `XMsg`
-result. At a follower with a leader, forwarded to the leader (also an `XMsg`, at the follower's term:
-`send` stamps it); otherwise (a candidate or pre-candidate, `stepCandidate`; a follower with no
-leader) dropped. -/
-def TransferEndR (id : w64) (r : RState) (to : w64) (r' : RState) (xs : List XMsg) : Prop :=
+/-- **`RawNode.TransferLeader(to)`** (local `MsgTransferLeader`; `raft.go:1450-1490`): at a leader,
+ignored (a target outside the progress map, `stepLeader`'s `pr == nil`; a learner or itself as target;
+the same transfer pending; R1: `leadTransferee` hidden), or recorded, and then either a
+`MsgTimeoutNow` to `to` (its `Match` the last index; untyped, `mtypeOf 14 = none`, so the protocol
+state is kept) or a probe (`sendAppend`); at a follower with a leader, forwarded to the leader (also
+untyped); otherwise (a candidate or pre-candidate, `stepCandidate`; a follower with no leader)
+dropped. (antithesis parity, Q3) The untyped messages are not part of the relation: a `Ready`'s
+`xmsgOf` reading gives them (`RawNode.Ready.form`'s `XReadyOk`). -/
+def TransferEndR (id : w64) (r : RState) (to : w64) (r' : RState) : Prop :=
   r'.applied = r.applied ∧ r'.cidx = r.cidx ∧ r'.cfg = r.cfg ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧
   r'.pci = r.pci ∧
-  (if r.p.role = .leader then
-     (r'.p = r.p ∧ xs = []) ∨
-     (to ∈ r.cfg.cfg.voters ∧ to ≠ id ∧
-       ((r.p.matched !! to = some (W64 (plogLastIndexZ r.p.base r.p.log)) ∧ r'.p = r.p ∧
-          xs = [⟨.timeoutNow, id, to, r.p.term⟩]) ∨
-        (xs = [] ∧ SendsEnd r.cfg.cfg id r.p r'.p)))
-   else if r.p.role = .follower ∧ r.p.lead ≠ W64 0 then
-     r'.p = r.p ∧ xs = [⟨.transferLeader, to, r.p.lead, r.p.term⟩]
-   else r'.p = r.p ∧ xs = [])
+  (r'.p = r.p ∨
+   (r.p.role = .leader ∧ to ∈ r.cfg.cfg.voters ∧ to ≠ id ∧ SendsEnd r.cfg.cfg id r.p r'.p))
 
 /-- (antithesis parity) **A received `MsgTransferLeader`** (a follower's forward, `send` having stamped
 its term, `x.src` the transferee): a stale one ignored (`Step`'s lower-term arm); one of a higher term
 makes the node a follower with no leader (`becomeFollower(m.Term, None)`), which drops it
 (`stepFollower`, `r.lead == None`); one of the node's term (or a term-`0` one, local to `Step`) is
 `TransferEndR`'s. -/
-def TransferRecvEndR (id : w64) (r : RState) (x : XMsg) (r' : RState) (xs : List XMsg) : Prop :=
-  (x.term ≠ W64 0 ∧ uint.Z x.term < uint.Z r.p.term ∧ r' = r ∧ xs = []) ∨
-  ((x.term = W64 0 ∨ x.term = r.p.term) ∧ TransferEndR id r x.src r' xs) ∨
+def TransferRecvEndR (id : w64) (r : RState) (x : XMsg) (r' : RState) : Prop :=
+  (x.term ≠ W64 0 ∧ uint.Z x.term < uint.Z r.p.term ∧ r' = r) ∨
+  ((x.term = W64 0 ∨ x.term = r.p.term) ∧ TransferEndR id r x.src r') ∨
   (uint.Z r.p.term < uint.Z x.term ∧
-    r' = { r with p := pbecomeFollower r.p x.term (W64 0), pci := W64 0 } ∧ xs = [])
+    r' = { r with p := pbecomeFollower r.p x.term (W64 0), pci := W64 0 })
 
 /-- **A received `MsgTimeoutNow`** (`stepFollower`, `raft.go:1620`): a stale one ignored; otherwise
 after the preamble (a higher term: `becomeFollower(x.term, None)`, the design's `PreEnd` at a

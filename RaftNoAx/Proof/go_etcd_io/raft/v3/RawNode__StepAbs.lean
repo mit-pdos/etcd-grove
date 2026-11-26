@@ -240,13 +240,20 @@ local macro "step_tail" : tactic => `(tactic| (
         imod restoreLedger_step γ id rs.sn scfg0
           (Hok.2.2.2.2.1 (Or.inr (Or.inr (Or.inr (Or.inr Hs))))) Href.voteLe.1 Hsl0 Href.commit_mono Href.snapQueue $$ Hledger Hm0 with Hledger'
         ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
-        · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, -⟩
+        · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, hcm, hnm, -⟩
           · rw [h2]; iexact Hsloc
           · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
+            -- (2026-11-26, #33 parity B1) past the bootstrap log (`isMessage_snap_bootTerm`)
+            ihave %Hl2 := isMessage_snap_bootTerm γ (absSnap m sv0 scfg0) rfl $$ [Hm0]
+            · iapply isMessageC_isMessage γ _ $$ Hm0
             isplitr
             · isplitr
               · rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
-              ipureintro; show _ < uint.Z sv0.Metadata'.Index'; omega
+              ipureintro; show _ < uint.Z sv0.Metadata'.Index'
+              refine Int.lt_of_not_ge fun Hge => hnm ?_
+              show plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) sv0.Metadata'.Index' =
+                some sv0.Metadata'.Term'
+              rw [Hbt0 _ hcm (by omega)]; exact Hl2 Hge
             iexact Hincoming
         obtain ⟨fp', ds', Hmd, Hfp'⟩ := RNMode.stepOut_snap Href Hs
         ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp', ds'⟩) cf id s' $$ [Hghost]
@@ -543,7 +550,7 @@ theorem RawNode.Step.wp_absProof
   -- `rn.raft.Step(m)`
   all_goals (
       try wp_auto
-      icases ownStepGhost_bootCommit γ _ cf id s $$ Hghost with ⟨%Hbc0, Hghost⟩
+      icases ownStepGhost_bootTerms γ _ cf id s $$ Hghost with ⟨%Hbt0, Hghost⟩
       icases ownStepGhost_term0 γ _ cf id s $$ Hghost
         with ⟨%Hb1t, Hghost⟩
       icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩

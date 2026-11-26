@@ -57,6 +57,24 @@ def absMsgOf (st : MsgSt) : Option Msg :=
   | some .snap => st.snap.map fun sv => absSnap st.msg sv sv.Metadata'.ConfState'.lists
   | some ty => some (absMsg ty st.msg st.ents st.ctx)
 
+/-- (antithesis parity B1, Q3) **The transfer reading of a physical message's state**: a
+`MsgTimeoutNow` or a `MsgTransferLeader` (the two types `absMsgOf` has no reading for) as an `XMsg`
+of its sender, destination and term; `none` otherwise. -/
+def xmsgOf (st : MsgSt) : Option XMsg :=
+  if st.msg.Type' = MsgTimeoutNow then some ⟨.timeoutNow, st.msg.From', st.msg.To', st.msg.Term'⟩
+  else if st.msg.Type' = MsgTransferLeader then
+    some ⟨.transferLeader, st.msg.From', st.msg.To', st.msg.Term'⟩
+  else none
+
+/-- (Q3) A message with a protocol reading has no transfer reading. -/
+theorem xmsgOf_none_of_absMsgOf {st : MsgSt} (h : (absMsgOf st).isSome) : xmsgOf st = none := by
+  unfold xmsgOf
+  by_cases h1 : st.msg.Type' = MsgTimeoutNow
+  · unfold absMsgOf at h; rw [h1, show mtypeOf MsgTimeoutNow = none from rfl] at h; simp at h
+  · by_cases h2 : st.msg.Type' = MsgTransferLeader
+    · unfold absMsgOf at h; rw [h2, show mtypeOf MsgTransferLeader = none from rfl] at h; simp at h
+    · rw [if_neg h1, if_neg h2]
+
 /-- A protocol role as Go's `StateType` (`Ready.SoftState.RaftState`): what the harness reports. -/
 def roleGo : Role → StateType
   | .follower => StateFollower

@@ -424,6 +424,27 @@ theorem OutTermOk.mono {t t' tc : w64} {m : MessageM}
 
 -- (2026-10-26, raft's signature, stage 1) `AppFrom` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
+/-- (antithesis parity B1, Q3) **An untyped queued message's facts**: a `MsgTimeoutNow` is the node's
+own (`sendTimeoutNow`: `From` unset, so `send` puts the node's id) at a term past `0` (a leader's,
+`SendOk`'s transfer clause); a `MsgTimeoutNow` or a stamped `MsgTransferLeader` (a follower's
+forward) is not self-addressed (`send`'s panic) and of a term at most the node's (`send` stamps the
+node's term; a later step only raises it, `XQOk.mono`). What a `Ready` reads of its untyped
+messages (`RawNode.Ready.form`'s `XReadyOk`). -/
+def XQOk (id : w64) (s : NState) (st : MsgSt) : Prop :=
+  (st.msg.Type' = MsgTimeoutNow → st.msg.From' = id ∧ st.msg.Term' ≠ W64 0) ∧
+  (st.msg.Type' = MsgTimeoutNow ∨ (st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0) →
+     st.msg.To' ≠ id ∧ uint.Z st.msg.Term' ≤ uint.Z s.term)
+
+/-- (Q3) The term raised. -/
+theorem XQOk.mono {id : w64} {s s' : NState} {st : MsgSt} (Ht : uint.Z s.term ≤ uint.Z s'.term)
+    (H : XQOk id s st) : XQOk id s' st :=
+  ⟨H.1, fun h => ⟨(H.2 h).1, Int.le_trans (H.2 h).2 Ht⟩⟩
+
+/-- (Q3) Not a transfer message: nothing to say. -/
+theorem XQOk.of_ne {id : w64} {s : NState} {st : MsgSt} (h1 : st.msg.Type' ≠ MsgTimeoutNow)
+    (h2 : st.msg.Type' ≠ MsgTransferLeader) : XQOk id s st :=
+  ⟨fun h => absurd h h1, fun h => h.elim (fun h => absurd h h1) (fun h => absurd h.1 h2)⟩
+
 /-- **The queued messages' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the queued messages
 `l`; raft-final, 2026-10-29, U7: the design's §2.2, in every cluster): every queued message has the
 shape raft sends (`SentMsgShape`, what a receiver's `NetMsgOk` and a transport need of it), a `MsgApp`
@@ -450,7 +471,9 @@ def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   -- (2026-11-24, #33 S4) until a transfer request is stepped (`NGhost.xs`), no transferee and every
   -- queued message of a described type: the untyped ones (`MsgTimeoutNow`, a forwarded
   -- `MsgTransferLeader`) come only from a transfer request's step or a transferee
-  (s.gh.xs = false → s.lt = W64 0 ∧ ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none)
+  (s.gh.xs = false → s.lt = W64 0 ∧ ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧
+  -- (antithesis parity B1, Q3) the untyped messages' sender, destination and term (`XQOk`)
+  (∀ m ∈ l, XQOk id s m.st)
 
 /-- No queued message has responses (`SentMsgShape`'s last clause): what `isRaftMsg` and a
 transport need. -/
@@ -464,7 +487,7 @@ theorem XfOk.nil {id : w64} {s : NState}
     (hlt : s.gh.xs = false → s.lt = W64 0 := by first | (intro _; rfl) | simp_all) : XfOk id s [] :=
   ⟨fun _ hm => absurd hm List.not_mem_nil, fun _ hm => absurd hm List.not_mem_nil,
    fun _ hm => absurd hm List.not_mem_nil, ht, fun _ _ hm => absurd hm List.not_mem_nil,
-   fun h => ⟨hlt h, fun _ hm => absurd hm List.not_mem_nil⟩⟩
+   fun h => ⟨hlt h, fun _ hm => absurd hm List.not_mem_nil⟩, fun _ hm => absurd hm List.not_mem_nil⟩
 
 /-- (2026-11-12, implementation step 3) A leader or candidate is past term `0`. -/
 theorem XfOk.term_nz {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
@@ -477,30 +500,36 @@ theorem XfOk.typed {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
 /-- (2026-11-24, #33 S4) Until a transfer request is stepped, every queued message of a described
 type. -/
 theorem XfOk.typed_xs {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
-    s.gh.xs = false → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none := fun h => (H.2.2.2.2.2 h).2
+    s.gh.xs = false → ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none := fun h => (H.2.2.2.2.2.1 h).2
+
+/-- (Q3) Every queued message's `XQOk`. -/
+theorem XfOk.xq {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
+    ∀ m ∈ l, XQOk id s m.st := H.2.2.2.2.2.2
 
 /-- (2026-11-24, #33 S4) A transferee only once a transfer request was stepped. -/
 theorem XfOk.xs_of_lt {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
     s.lt ≠ W64 0 → s.gh.xs = true := by
   intro h
   cases hx : s.gh.xs
-  · exact absurd (H.2.2.2.2.2 hx).1 h
+  · exact absurd (H.2.2.2.2.2.1 hx).1 h
   · rfl
 
 /-- (2026-11-24, #33 S4) The transferee cleared. -/
 theorem XfOk.lt_zero {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
     XfOk id { s with lt := W64 0 } l :=
-  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, fun h => ⟨rfl, (H.2.2.2.2.2 h).2⟩⟩
+  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, fun h => ⟨rfl, (H.2.2.2.2.2.1 h).2⟩, H.2.2.2.2.2.2⟩
 
 /-- (2026-11-24, #33 S4) A transferee stored, once a transfer request was stepped. -/
 theorem XfOk.lt_set {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (x : w64)
     (hxs : s.gh.xs = true) : XfOk id { s with lt := x } l :=
-  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, fun h => Bool.noConfusion (hxs.symm.trans h)⟩
+  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, fun h => Bool.noConfusion (hxs.symm.trans h),
+   H.2.2.2.2.2.2⟩
 
 /-- (2026-11-24, #33 S4) A transfer request stepped (`ownRaftPhysC_set_xs`). -/
 theorem XfOk.set_xs {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) :
     XfOk id { s with gh := { s.gh with xs := true } } l :=
-  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, fun h => Bool.noConfusion (h : true = false)⟩
+  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, fun h => Bool.noConfusion (h : true = false),
+   H.2.2.2.2.2.2⟩
 
 /-- The same records, role and term, at the same queues. -/
 theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l)
@@ -508,17 +537,17 @@ theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s
     (htr : s'.gh.tr = s.gh.tr := by first | rfl | simp_all)
     (hxs : s'.gh.xs = s.gh.xs := by first | rfl | simp_all)
     (hlt : s'.lt = s.lt := by first | rfl | simp_all) : XfOk id s' l := by
-  obtain ⟨H1, H2, H3, H4, H5, H6⟩ := H
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := H
   refine ⟨H1, H2, fun m hm h1 h2 => ?_, fun h => ?_, fun h => H5 (htr ▸ h),
-    fun h => by rw [hlt]; exact H6 (hxs ▸ h)⟩
+    fun h => by rw [hlt]; exact H6 (hxs ▸ h), fun m hm => (H7 m hm).mono (by rw [ht]; exact Int.le_refl _)⟩
   · rw [hx]; exact H3 m hm h1 h2
   · rw [ht]; rw [hr] at h; exact H4 h
 
 /-- The term raised. -/
 theorem XfOk.term_le {id : w64} {s : NState} {l : List QMsg} {v : w64} (H : XfOk id s l)
     (Hle : uint.Z s.term ≤ uint.Z v) : XfOk id { s with term := v } l := by
-  obtain ⟨H1, H2, H3, H4, H5, H6⟩ := H
-  refine ⟨H1, H2, H3, fun h => ?_, H5, H6⟩
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := H
+  refine ⟨H1, H2, H3, fun h => ?_, H5, H6, fun m hm => (H7 m hm).mono Hle⟩
   intro hv
   have h0 := H4 h
   apply h0
@@ -551,10 +580,11 @@ theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk i
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     (hty : s.gh.tr.isSome → mtypeOf q.st.msg.Type' ≠ none)
     (hxs : s.gh.xs = false → mtypeOf q.st.msg.Type' ≠ none)
+    (hxq : XQOk id s q.st)
     (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk id s l' := by
-  obtain ⟨H1, H2, H3, H4, H5, H6⟩ := H
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := H
   refine ⟨fun m hm => ?_, fun m hm => ?_, fun m hm => ?_, H4, fun h m hm => ?_,
-    fun h => ⟨(H6 h).1, fun m hm => ?_⟩⟩
+    fun h => ⟨(H6 h).1, fun m hm => ?_⟩, fun m hm => ?_⟩
   · rcases hl m hm with h | h
     · exact H1 m h
     · subst h; exact hsh
@@ -570,6 +600,9 @@ theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk i
   · rcases hl m hm with h' | h'
     · exact (H6 h).2 m h'
     · subst h'; exact hxs h
+  · rcases hl m hm with h' | h'
+    · exact H7 m h'
+    · subst h'; exact hxq
 
 /-- (2026-10-17) The ceiling raised. -/
 theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
@@ -2837,7 +2870,9 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
              (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none) ∧
              -- (2026-11-24, #33 S4) until a transfer request is stepped, of a described type
-             (s.gh.xs = false → mtypeOf st'.msg.Type' ≠ none)⌝ -∗
+             (s.gh.xs = false → mtypeOf st'.msg.Type' ≠ none) ∧
+             -- (antithesis parity B1, Q3) an untyped message's sender, destination and term
+             XQOk id s st'⌝ -∗
            -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic); (2026-11-12,
            -- trace-check step 4) no append response (`send` routes responses to `msgsAfterAppend`)
            ⌜st'.msg.To' ≠ id ∧ st'.msg.Type' ≠ MsgAppResp⌝ -∗
@@ -2868,7 +2903,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ q => qSrc (GF := GF) s.gh.sn q (· ∈ s.logst.ksn))).2
     unfold qSrc; iexact Hq
   have Hxf' : XfOk id s ((msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA) :=
-    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2.1 Hxq.2.2.2.2 _ (fun m hm => by
+    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2.1 Hxq.2.2.2.2.1 Hxq.2.2.2.2.2 _ (fun m hm => by
       simp only [List.mem_append, List.mem_singleton] at hm
       rcases hm with (hm | rfl) | hm
       · exact .inl (List.mem_append_left _ hm)
@@ -2922,7 +2957,9 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
              (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none) ∧
              -- (2026-11-24, #33 S4) until a transfer request is stepped, of a described type
-             (s.gh.xs = false → mtypeOf st'.msg.Type' ≠ none)⌝ -∗
+             (s.gh.xs = false → mtypeOf st'.msg.Type' ≠ none) ∧
+             -- (antithesis parity B1, Q3) an untyped message's sender, destination and term
+             XQOk id s st'⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.gh.sn st'.msg.Type' st'.snap (· ∈ s.logst.ksn) -∗
            -- (2026-11-09, Q8 stage 1 slice 5) the message recorded as just queued (`NGhost.lq`), for
@@ -2945,7 +2982,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ q => qSrc (GF := GF) s.gh.sn q (· ∈ s.logst.ksn))).2
     unfold qSrc; iexact Hq
   have Hxf' : XfOk id s (msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)])) :=
-    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2.1 Hxq.2.2.2.2 _ (fun m hm => by
+    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2.1 Hxq.2.2.2.1 Hxq.2.2.2.2.1 Hxq.2.2.2.2.2 _ (fun m hm => by
       simp only [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm | rfl
       · exact .inl (List.mem_append_left _ hm)

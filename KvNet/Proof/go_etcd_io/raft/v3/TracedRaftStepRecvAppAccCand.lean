@@ -352,7 +352,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
       iapply hookGateOpt_fupd_recv
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
       imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit (by rw [htr]; rfl)
         $$ [$Hm $Hgh] with ⟨Hgh, ⟨#HL, #HN, #Hci, #Hcm⟩, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       imodintro
@@ -480,7 +480,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
           rw [htr]
           iapply hookGateOpt_fupd_recv
           icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
+          imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit (by rw [htr]; rfl)
             $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
           obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
           imodintro
@@ -609,7 +609,7 @@ theorem stepBundle_traced_candAppAcc : stepBundle_traced.onRB (GF := GF) (hG := 
     · exact h.elim
     all_goals
       icases ownStepGhost_nsLink γ md c id s $$ Hgh with ⟨%Hnl, Hgh⟩
-      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit
+      imod ownStepGhost_appAccFacts γ md c id s (absMsg .app m ents ctx) lastnewi es' rfl (Int.le_of_eq (congrArg (fun x => uint.Z x) hterm.symm)) hbase hge happ hfit (by rw [htr]; rfl)
         $$ [$Hm $Hgh] with ⟨Hgh, -, %Hf⟩
       obtain ⟨hwr, hwr', hwN, hcl, hli, hreb, hBN⟩ := Hf
       have hre : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl

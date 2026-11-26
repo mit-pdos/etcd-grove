@@ -200,7 +200,9 @@ precondition with the durable state `S` owned, and the `RawNode` closed in its p
 resources as `RestartNode.spec`'s (whose docstring explains each): the id `cv.ID'` vacant and armed
 at `x`, the receipts' bound (`readyFits`), the configuration `m` after the first `a` committed
 entries (`confAt`), which the storage's `ConfState` reports, and the storage holding `σ`
-(`restartStorage`, with the frame `F` at raft's key `K`). The post: `err` nil; the `RawNode` at
+(`restartStorage`, with the frame `F` at raft's key `K`); the bootstrap log within the stored log
+(`γ.bootLen ≤ σ.last`; 2026-11-26, #33 parity B1: a bootstrapped node starts at commit `0`; until
+then, as `RestartNode.spec`, within the stored commit). The post: `err` nil; the `RawNode` at
 `rawNodeRestarted` (its committed log `l` handed out: committed, as long as the applied index it
 starts at, the stored entries from the base); the id's generation `g` whole with its free queue;
 the durable state back; the storage's frame. -/
@@ -222,7 +224,7 @@ abbrev NewRawNode.restartSpec : Prop :=
   (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
   (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
   max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
-  γ.bootLen ≤ σ.commit →
+  γ.bootLen ≤ σ.last →
   confStateIs csm m →
   ¬ clusterNoSnap γ →
   TraceLoggerOk cv.TraceLogger' →

@@ -308,7 +308,7 @@ theorem wp_Step_MsgReadIndex {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (
             unfold HeartbeatOk matchOf at this ⊢
             simpa [ps1] using this)
           (fun m' h => by
-            rw [(Hms m' h).2, Hps1ro]
+            rw [(Hms m' h).2.1, Hps1ro]
             have : hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)) =
                 hbCtx (readonlyArrive s.rd.ro id (arriveReq s m ents)) := by
               unfold readonlyArrive; rw [hbCtx_recvAck]

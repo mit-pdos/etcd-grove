@@ -71,7 +71,7 @@ term past `0` (`SendOk`'s `Hstz`, or the caller's `Hmterm`). (Case (c), the tran
 hand.) -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
   · simp only [Hty1, $args,*]; simp [sentShapeTypes, sentTypes, MsgReadIndex, MsgProp, MsgVote,
       MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,
       MsgReadIndexResp, MsgSnap, MsgTransferLeader, MsgTimeoutNow]
@@ -120,7 +120,10 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     | (simp only [Hty1, $args,*]; simp [mtypeOf]; done)
     | (simp only; decide)
     | (simp only; simp [mtypeOf]; done)
-    | (simp only [Hty1]; rw [Hty]; exact Option.some_ne_none _)))
+    | (simp only [Hty1]; rw [Hty]; exact Option.some_ne_none _)
+  -- (antithesis parity B1, Q3) not a transfer message: `XQOk` vacuous (case (c) by hand)
+  · exact XQOk.of_ne (fun h => by simp only [Hty1, $args,*] at h; exact absurd h (by tyd))
+      (fun h => by simp only [Hty1, $args,*] at h; exact absurd h (by tyd))))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -581,7 +584,7 @@ theorem raft.send.wp_proof
       simp only
       refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
         fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_,
-        fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion⟩
+        fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion, ⟨fun h => ⟨?_, ?_⟩, fun h => ⟨?_, ?_⟩⟩⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h'
@@ -598,6 +601,14 @@ theorem raft.send.wp_proof
       · -- (2026-11-12, implementation step 3) untraced: the premise refutes a traced node
         obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
         rw [htyx] at Hty; cases Hty
+      -- (antithesis parity B1, Q3) `XQOk`: a `MsgTimeoutNow` from the node (`From` unset), at its
+      -- term (`Htn`); not self-addressed (`Hself`); at the node's term (stamped)
+      · simp only [Hty1] at h
+        rw [Hfr1, Hsrc (by rw [h]; tyd) (by rw [h]; tyd)]
+      · simp only [Hty1] at h ⊢
+        exact Htn h
+      · simp only [Hto1]; exact Hself
+      · simp only; exact Int.le_refl _
     · ipureintro
       refine ⟨by simpa [Hto1] using Hself, ?_⟩
       simp only [Hty1]
