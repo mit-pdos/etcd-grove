@@ -115,7 +115,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   wp_apply sync.RWMutex.wp_RLock $$ [$Hsync $Hmtok] as ⟨Hrl, HP⟩
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
   iunfold Pm at HP
   icases HP with ⟨%ms, Hmap', Hmf, Hmt, Hpf⟩
   cases cl
@@ -129,7 +129,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       $$ [Hpool Hloan Hmtok Hstok] with Htt
     · iframe #; iframe; iunfold rdPair; iframe
     imodintro
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hro]
     · iunfold metaR
       iexists C, F, true, fli, wa
       iframe Hrcm
@@ -157,7 +157,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       $$ [Hpool Hloan Hmtok Hstok] with Htt
     · iframe #; iframe; iunfold rdPair; iframe
     imodintro
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hro]
     · iunfold metaR
       iexists C, F, false, fli, wa
       iframe Hrcm
@@ -274,7 +274,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
         Hvc Hmap' Hmf Hvw Hrcm Hpf Hrds2] with Hrd
     · iframe; iframe #
       simp only [↓reduceIte]; iexact Hpool
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, false, _, wa
       iframe Hrcm

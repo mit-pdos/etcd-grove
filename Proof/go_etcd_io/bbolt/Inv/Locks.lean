@@ -185,8 +185,9 @@ def fltxAuth (B : BNs) (F : GMap Nat w64) : IProp GF :=
 def spareTok (B : BNs) : IProp GF := iprop(ghostVar B.spr (1 : Qp).half (none : Option Nat))
 
 /-- **`metalock`'s resource**: half of the committed state and a quarter of the data, the
-closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots' page-cache
-bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
+closed flag, halves of `opened`/`freelist`/`ops.writeAt`, the meta-borrow token `mlk` (W1: the
+meta slots' page-cache bytes are the writer side's whole, `wdbCoreG`: only writer-side code writes
+or syncs them; readers copy the metas from the mapped cells, `meta_take`), the readers' txids `F` with the freelist's
 reader part, the persistent time receipt of the committed txid (session bbolt-inv: at least that
 many counted steps were taken, so the txid is below `receiptBound GF ≤ 2 ^ 62`, what `fileHolds`
 and `boltImage` ask of a file's txid when `Close` and `Tx.WriteTo` give one out; `Commit`'s meta
@@ -200,7 +201,6 @@ def metaR (B : BNs) (db : Loc) (p : BFile) : IProp GF :=
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} (!cl) ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
-    (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
     ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗ ⧖ C.txid ∗
     ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid ∧ C.hwm * 4096 ≤ 0xFFFFFFFFFFFF⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
 
@@ -371,7 +371,7 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     mapFields db (DFrac.own mq) w.ms ∗
     bMeta p w.C [] w.m ∗ fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
     osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) ∗
-    metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
+    metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own 1) w.C ∗
     wCells w.ms w.W ∗ wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size ∗
     (match w.junk with
      | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true ∗

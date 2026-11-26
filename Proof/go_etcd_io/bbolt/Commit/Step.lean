@@ -1,7 +1,7 @@
 /-
 **`Commit`'s commit point** (U10 of `notes/bbolt-proof-plan.md`; design §3.11, Commit step 7, D22):
 `writeMeta`'s `commitStep` for a commit. Under `metalock`, with the writer's ghost state and meta
-shares, the new tree's slots and the client's update: the meta slot's bytes and cells go to the
+bytes (whole) and cells (its quarter), the new tree's slots and the client's update: the meta slot's bytes and cells go to the
 write; given back with `j` bytes written,
 - `j = 4096` (the page whole, whatever `WriteAt` returned): the store publishes `C'`
   (`store_publish`), the update has fired (`au_commit_fire`), the meta cells and bytes are `C'`'s
@@ -15,9 +15,10 @@ meta page's `pwrite` starts (`tx.go:612`), which is what C-I1's laws ask of the 
 then lands whole (`commitStep`'s `FsNoErr → j = 4096`), so `j = 0` does not arise. Otherwise on
 landing (`j = 4096`), as before. Between the fire and the landing the data's ghost state is at
 `(Dn, ν + 1)` while the page cache's meta is still `C`'s: no invariant sees the gap, since
-`metalock`'s resource `metaR` (the data's other quarter with the cache's meta bytes) is the
+`metalock`'s resource `metaR` (the data's other quarter and the committed state's half) is the
 committer's while it holds `metalock`, and every reader takes `metalock` to read the meta
-(`beginTx`).
+(`beginTx`, from the mapped cells). The meta slots' page-cache bytes are the writer side's whole
+(`wdbCoreG`, W1), so the meta write needs nothing of `metaR`'s but the ghost state.
 -/
 module
 
@@ -57,7 +58,7 @@ def cpRes (K : BC) (C : CommitSt) (fl : FLPg) (b : Loc) (l : Nat) (v : View) (w 
     ghostVar K.B.fl (1 : Qp).half fl ∗ ghostVar K.B.map (1 : Qp).half (some (b, l) : MapSt) ∗
     ghostVar K.B.wv (1 : Qp).half ((some v, some w, pb, wl) : WSt) ∗
     K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
-    metaCellsQ (1 : Qp).half.half (some (b, l)) C ∗ metaOsBytes K.p (DFrac.own (1 : Qp).half) C ∗
+    metaCellsQ (1 : Qp).half.half (some (b, l)) C ∗ metaOsBytes K.p (DFrac.own 1) C ∗
     ghostVar K.B.st (1 : Qp).half.half (D, C.txid))
 
 /-- The client's update of a commit from `Db` to `Dn` (versioned: the version moves by one). -/
@@ -179,7 +180,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
   unfold commitStep
   iintro HR
   iunfold metaR at HR
-  icases HR with ⟨%C0, %F, %cl, %fli, %wa, Hcur, Hst, Hcls, Hop, Hfli, Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm,
+  icases HR with ⟨%C0, %F, %cl, %fli, %wa, Hcur, Hst, Hcls, Hop, Hfli, Hwa, Hmlk, Hfa, Hro, #Hrcm,
     %Hok, %HF⟩
   icombine Hcur Hcurq gives % ⟨_, hC0⟩
   subst C0
@@ -196,8 +197,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
   · iframe; iframe #
   icases metaCells_take C b l _ hs2 $$ [Hmcw Hmcl] with ⟨Hold, Hoth⟩
   · iframe
-  icases metaOsBytes_take K.p C _ hs2 hmok.1 hmok.2.1 $$ [Hob Hobw] with ⟨%xa, %xb, Hxa, Hxb, %hxab⟩
-  · iframe
+  icases metaOsBytes_take K.p C _ hs2 hmok.1 hmok.2.1 $$ Hobw with ⟨%xa, %xb, Hxa, Hxb, %hxab⟩
   have hslotlen : ∀ i, (C.slot i).length = 4096 := by
     intro i; unfold CommitSt.slot; split
     · exact hmok.1
@@ -222,7 +222,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · exact absurd (hne hfs) (by decide)
     simp only [↓reduceIte] at hys
     icases metaOsBytes_put K.p C _ hs2 hmok.1 hmok.2.1 ys xb (hys.trans hxab.1) hxab.2
-      $$ [Hys Hxb] with ⟨Hob, Hobw⟩
+      $$ [Hys Hxb] with Hobw
     · iframe
     ihave Hnew : bytesPointsto (b +ₗ ((4096 * (mv.txid'.toNat % 2) : Nat) : Int))
         (DFrac.own (1 : Qp).half) (C.slot (mv.txid'.toNat % 2)) $$ [Hnew]
@@ -233,7 +233,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       with ⟨Hout, Hmlk, Hcurq, Hmap⟩
     · iframe; iframe #
     imodintro
-    isplitl [Hcur Hst Hcls Hop Hfli Hwa Hob Hmlk Hfa Hro]
+    isplitl [Hcur Hst Hcls Hop Hfli Hwa Hmlk Hfa Hro]
     · iunfold metaR
       iexists C, F, false, fli, wa
       simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
@@ -276,7 +276,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     have hm1' : (C.publish (metaBuf mv) (metaSummed mv) pages).m1.length = 4096 := hmeta.2.1
     icases metaOsBytes_put K.p _ _ hs2 hm0' hm1' ys xb
       (by rw [hsl, ite_eq_left hself]; exact hys) (by rw [hsl, ite_eq_right hother]; exact hxab.2)
-      $$ [Hys Hxb] with ⟨Hob, Hobw⟩
+      $$ [Hys Hxb] with Hobw
     · iframe
     icases metaCells_put _ b l _ hs2 $$ [Hnew Hoth] with ⟨Hmcw, Hmcl⟩
     · iframe
@@ -284,7 +284,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
       with ⟨Hout, Hmlk, Hcurq, Hmap⟩
     · iframe; iframe #
     imodintro
-    isplitl [Hcur Hst Hcls Hop Hfli Hwa Hob Hmlk Hfa Hro]
+    isplitl [Hcur Hst Hcls Hop Hfli Hwa Hmlk Hfa Hro]
     · iunfold metaR
       iexists (C.publish (metaBuf mv) (metaSummed mv) pages), F, false, fli, wa
       simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]

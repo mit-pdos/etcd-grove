@@ -1,7 +1,7 @@
 /-
 **The file a closed database gives back** (session bbolt-inv, `DB.Close_own.spec`): the page-cache
 bytes `Close` holds once it has taken the store's slots (`store_close`), the writer side's `W` slots
-(`wBytes`) and the two halves of the metas (`metaOsBytes`, the writer side's and `metaR`'s), as one
+(`wBytes`) and the metas (`metaOsBytes`, the writer side's), as one
 run of the file's bytes from offset 0, whose values are `closeBytes` (`Inv/CloseImage`): the file
 is whole pages (`wdbOK`), each slot one of the three.
 -/
@@ -85,21 +85,13 @@ theorem osSlots_range (p : BFile) (g : Nat → List w8) :
           List.range'_append_1.symm, List.flatMap_append, List.range'_one, List.flatMap_cons,
         List.flatMap_nil, List.append_nil, Nat.zero_add]
 
-/-- **The metas' two halves, as slots 0 and 1** (the writer side's and `metaR`'s). -/
+/-- **The metas' bytes, as slots 0 and 1** (the writer side's, W1). -/
 theorem metaOsBytes_slots (p : BFile) (C : CommitSt) (h0 : C.m0.length = 4096)
     (h1 : C.m1.length = 4096) :
-    metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
-      metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ⊢
+    metaOsBytes (GF := GF) p (DFrac.own 1) C ⊢
       osSlot p 0 C.m0 ∗ osSlot p 1 C.m1 := by
   unfold metaOsBytes
-  iintro ⟨⟨%xs, H1, %hx⟩, ⟨%ys, H2, %hy⟩⟩
-  have hl : xs.length = ys.length := by
-    have h1 := congrArg List.length hx
-    have h2 := congrArg List.length hy
-    simp only [List.length_map] at h1 h2
-    omega
-  ihave H := osBytes_join_h p xs ys 0 hl $$ [H1 H2]
-  · iframe
+  iintro ⟨%xs, H, %hx⟩
   have hxl : (xs.take 4096).length = 4096 := by
     have := congrArg List.length hx
     simp only [List.length_map, List.length_append] at this

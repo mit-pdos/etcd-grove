@@ -126,7 +126,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       mapFields db (DFrac.own 1) (some (b, L)) ∗
       bMeta p C [] m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) (dbFd p.ino) ∗ Ps sp 1 ∗
-      metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
+      metaOsBytes p (DFrac.own 1) C ∗
       ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
       wBytes p (wSlots (L / 4096) C FLPg.empty) wb m.size ∗
       metaCellsQ (1 : Qp).half.half (some (b, L)) C ∗
@@ -141,7 +141,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
       boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
       ghostVar B.clo 1 () := by
   iintro ⟨#Hpkg, #Hos, #Hrcm, Hfix, Hbq, Hml, Hmm, Hsl, Hop, Hfli, Hro, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
-    Hosm, Hfo, Hfd, Hps, Hmo1, Hmo2, Hslots, Hwb, Hmc1, Hmc2, Hcells, Hwc⟩
+    Hosm, Hfo, Hfd, Hps, Hmo1, Hslots, Hwb, Hmc1, Hmc2, Hcells, Hwc⟩
   -- the ghost names (`boltState`'s validity token `γbq` is the caller's: the page pool's `New`
   -- was specified against it, U11i)
   imod ghostVar_alloc (GF := GF) (treeData C, C.txid) with ⟨%γst, Hst⟩
@@ -297,7 +297,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   · unfold fltxAuth; iframe Hfltx; iexists none; iframe Hspr3; iright; ipureintro
     intro k v h; simp at h
   imod sync.init_Mutex (metaR (GF := GF) B db p) E _ $$ Hml
-    [Hcur1 Hst2 Hcls1 Hop1 Hfli1 Hwa1 Hmo1 Hmlk Hfa Hro] with #Hmeta
+    [Hcur1 Hst2 Hcls1 Hop1 Hfli1 Hwa1 Hmlk Hfa Hro] with #Hmeta
   · inext
     unfold metaR
     iexists C, ∅, false, fli,
@@ -320,7 +320,7 @@ theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E
   simp only [openW, mapLen]
   iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hbs
   iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
-  iframe Hmo2 Hwc Hwb Hst3 Hopn Hnf Hclo
+  iframe Hmo1 Hwc Hwb Hst3 Hopn Hnf Hclo
   ipureintro
   exact ⟨⟨htx.2, ReceiptBoundLe.receiptBound_le⟩, hdb, hN, hcs⟩
 
@@ -346,7 +346,7 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (E : 
       mapFields db (DFrac.own 1) (some (b, L)) ∗
       bMeta p C [] m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) (dbFd p.ino) ∗ Ps sp 1 ∗
-      metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
+      metaOsBytes p (DFrac.own 1) C ∗
       ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
       wBytes p (wSlots (L / 4096) C FLPg.empty) wb m.size ∗
       metaCellsQ (1 : Qp).half.half (some (b, L)) C ∗

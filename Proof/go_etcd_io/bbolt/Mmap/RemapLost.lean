@@ -167,7 +167,7 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
       mapFields K.db (DFrac.own (1 : Qp).half.half) (none : MapSt) -∗
       bMeta K.p w.C [] m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
       osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
-      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
+      metaOsBytes K.p (DFrac.own 1) w.C -∗
       wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
       junkRes K.B j -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       fbTok K.B w.C w.fl (wLive v0 w.C) F -∗

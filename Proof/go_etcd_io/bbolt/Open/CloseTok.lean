@@ -247,7 +247,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hsync $Hmm] as ⟨Hmml, >HP⟩
   try wp_auto
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa,
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hmlk, Hfa,
     Hrof, #Hrcm, %Hok, %HF⟩
   iunfold rwR at HW
   icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo')

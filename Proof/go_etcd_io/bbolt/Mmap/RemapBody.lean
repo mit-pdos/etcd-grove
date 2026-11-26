@@ -732,7 +732,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       rw [show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by rw [loc_add_assoc]; rfl]
       iframe
       ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
-    ihave Hmob : metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C $$ [Hxs]
+    ihave Hmob : metaOsBytes K.p (DFrac.own 1) w.C $$ [Hxs]
     · unfold metaOsBytes; iexists xs; iframe; ipureintro; exact hxs
     ihave Hwcn := wCells_carve w.C w.fl base L' (max L' w.m.size / 4096)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
@@ -784,7 +784,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       rw [show base +ₗ (4112 : Int) = base +ₗ (4096 : Int) +ₗ (16 : Int) by rw [loc_add_assoc]; rfl]
       iframe
       ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
-    ihave Hmob : metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C $$ [Hxs]
+    ihave Hmob : metaOsBytes K.p (DFrac.own 1) w.C $$ [Hxs]
     · unfold metaOsBytes; iexists xs; iframe; ipureintro; exact hxs
     ihave Hwcn := wCells_carve w.C w.fl base L' (max L' w.m.size / 4096)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]

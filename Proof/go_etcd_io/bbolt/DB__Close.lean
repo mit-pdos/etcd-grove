@@ -157,7 +157,7 @@ theorem DB.Close.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hsync $Hmm] as ⟨Hmml, >HP⟩
   try wp_auto
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa,
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hmlk, Hfa,
     Hrof, #Hrcm, %Hok, %HF⟩
   iunfold rwR at HW
   icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo')
@@ -235,7 +235,6 @@ theorem DB.Close.wp_proof
     iclear HS
     iclear HX
     iclear Hwb
-    iclear Hob
     iclear Hmob
     iclear Hosm0
     ihave Hjk : junkRes (GF := GF) (bnsOf γ.gs) w.junk $$ [Hjk]
@@ -331,9 +330,7 @@ theorem DB.Close.wp_proof
   -- the file: its `OsMeta`, its bytes, an image of the committed state
   icases close_meta p w Hwok hj $$ [Hback Hosm0] with ⟨%m, Hm, %hm⟩
   · iframe
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  icases metaOsBytes_slots p w.C hmo.1 hmo.2.1 $$ [Hmob Hob] with ⟨H0, H1⟩
-  · iframe
+  icases metaOsBytes_slots p w.C hmo.1 hmo.2.1 $$ Hmob with ⟨H0, H1⟩
   have hsz : w.m.size < 2 ^ 62 ∧ w.m.size % 4096 = 0 := ⟨hszw.lt, hal⟩
   have hroot := treeOK_root' w.C htree
   have h2 : 2 ≤ w.m.size / 4096 := by
