@@ -1,0 +1,104 @@
+# `etc/dist-axiom-diff.py`'s allow list: each distributed-deployment interim axiom (`*_dist`) and the
+# in-process spec it copies (`pair`), with every difference between the two texts and why (`dev`), or why
+# it has no source (`nosource`). Formats: the script's docstring. A `dev` line accepts every identical
+# difference of its pair (`γ` replaced by `Γ.kv` wherever the copy has it). Generate a pair's lines
+# with `--show NAME`; a new difference needs its reason here and in the axiom's header.
+# (M1, 2026-11-26: written when `NewServer.specG_dist` was found without `specG`'s `etcdURLsFit`;
+# notes/axiom-review/dist-axiom-diff.md.)
+
+pair NewServer_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/NewServerDist.lean NewServer.specG_dist Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean NewServer.specG
+dev NewServer_dist.wp_proof <<<  ||| [ π : Net.NetProtoGS ] >>> the net extension's protocol ghost state (`httpAddrAt` is over it)
+dev NewServer_dist.wp_proof <<< GF ) ( γn : NetNames |||  >>> the network's names `γn` are no binder: the post gives them (below), as `StartMember_dist.spec`
+dev NewServer_dist.wp_proof <<< netHttpOk γn ||| ( □ ∀ ( pid : w64 ) ( a : GoString ) , ⌜ pid ∈ γ.vs ∧ pid ≠ >>> `#Hnet` (the in-process streams' registry) replaced by `#Hpeers`, every other peer's directory address set to etcd's peer protocols (`httpAddrAt`; reviewed, plan §17.3)
+dev NewServer_dist.wp_proof <<<  ||| ∧ go!"http://" ++ a ∈ dir pid ⌝ - >>> the rest of `#Hpeers`' premise (as above)
+dev NewServer_dist.wp_proof <<< ⌜ γn.N = srvNet ||| etcd_dist.httpAddrAt ( Gg := hG.goose_globalGS ) >>> `#Hpeers`' conclusion; the pure premise `%Hγn` (`γn.N = srvNet γ`) moves to the post with `γn`
+dev NewServer_dist.wp_proof <<< ∧ γn.dir = dir ⌝ ||| pid a ) ∗ etcd_dist.noProxyEnv >>> the rest of `%Hγn` (moved to the post), and `#Hnoproxy` added (no HTTP proxy variable set in this process)
+dev NewServer_dist.wp_proof <<<  ||| γn : NetNames GF ) ( >>> the post's `∃ γn` (the network names the member's transport is at)
+dev NewServer_dist.wp_proof <<<  ||| γn.N = srvNet γ ∧ γn.dir = dir ∧ >>> the post's pure facts of `γn`, `%Hγn`'s before
+
+pair KV_Put_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutDist.lean KV_Put_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Put.lean kv.Put.spec
+dev KV_Put_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`kvClientAt`'s endpoints are over it)
+dev KV_Put_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`kvClientAt`) in place of the `*kv` `kv`
+dev KV_Put_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (which are the view's, `Γ.kv`)
+dev KV_Put_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_Put_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V` (`isNewClient`); no `dup`: the axiom is the in-process spec at `dup = false`
+dev KV_Put_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
+dev KV_Put_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
+dev KV_Put_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_Put_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+dev KV_Put_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Put_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev KV_Put_dist.wp_proof <<< ) |||  >>> the closing parenthesis of `isKv`'s group, or of `□?dup (…)` (layout)
+dev KV_Put_dist.wp_proof <<<  ||| Γ.auth = false → >>> a write: the cluster's auth mode off (a weaker axiom: one more premise; N2 review F2)
+dev KV_Put_dist.wp_proof <<< □?dup ( |||  >>> `□?dup` at `dup = false` is the identity (the axiom is the in-process spec at `dup = false`)
+
+pair KV_Get_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetDist.lean KV_Get_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Get.lean kv.Get.spec
+dev KV_Get_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`kvClientAt`'s endpoints are over it)
+dev KV_Get_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`kvClientAt`) in place of the `*kv` `kv`
+dev KV_Get_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (which are the view's, `Γ.kv`)
+dev KV_Get_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_Get_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V` (`isNewClient`); no `dup`: the axiom is the in-process spec at `dup = false`
+dev KV_Get_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
+dev KV_Get_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
+dev KV_Get_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_Get_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+dev KV_Get_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Get_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev KV_Get_dist.wp_proof <<< ) |||  >>> the closing parenthesis of `isKv`'s group, or of `□?dup (…)` (layout)
+
+pair KV_Delete_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteDist.lean KV_Delete_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Delete.lean kv.Delete.spec
+dev KV_Delete_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`kvClientAt`'s endpoints are over it)
+dev KV_Delete_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`kvClientAt`) in place of the `*kv` `kv`
+dev KV_Delete_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (which are the view's, `Γ.kv`)
+dev KV_Delete_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_Delete_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V` (`isNewClient`); no `dup`: the axiom is the in-process spec at `dup = false`
+dev KV_Delete_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
+dev KV_Delete_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
+dev KV_Delete_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_Delete_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+dev KV_Delete_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Delete_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev KV_Delete_dist.wp_proof <<< ) |||  >>> the closing parenthesis of `isKv`'s group, or of `□?dup (…)` (layout)
+dev KV_Delete_dist.wp_proof <<<  ||| Γ.auth = false → >>> a write: the cluster's auth mode off (a weaker axiom: one more premise; N2 review F2)
+dev KV_Delete_dist.wp_proof <<< □?dup ( |||  >>> `□?dup` at `dup = false` is the identity (the axiom is the in-process spec at `dup = false`)
+
+pair KV_Compact_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVCompactDist.lean KV_Compact_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Compact.lean kv.Compact.spec
+dev KV_Compact_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`kvClientAt`'s endpoints are over it)
+dev KV_Compact_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`kvClientAt`) in place of the `*kv` `kv`
+dev KV_Compact_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (which are the view's, `Γ.kv`)
+dev KV_Compact_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_Compact_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V` (`isNewClient`); no `dup`: the axiom is the in-process spec at `dup = false`
+dev KV_Compact_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
+dev KV_Compact_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
+dev KV_Compact_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_Compact_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+dev KV_Compact_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Compact_dist.wp_proof <<< γ.cmp ||| Γ.kv.cmp >>> the KV names: the view's (`γ := Γ.kv`)
+dev KV_Compact_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev KV_Compact_dist.wp_proof <<< γ.cret ) ||| Γ.kv.cret >>> the KV names' retention: the view's (`γ := Γ.kv`), its parenthesis closing `isKv`'s group (layout)
+
+pair Txn_Commit_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitDist.lean Txn_Commit_dist.spec Spec/go_etcd_io/etcd/client/v3/txn__Commit.lean txn.Commit.spec
+dev Txn_Commit_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state
+dev Txn_Commit_dist.wp_proof <<<  ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api`
+dev Txn_Commit_dist.wp_proof <<< addr ||| eps >>> the endpoints: `kvClientAt`'s `eps` (the builder's `txnObjAt` at the same endpoints)
+dev Txn_Commit_dist.wp_proof <<< kv ||| V >>> binders: the client's environment `V` in place of the `*kv` `kv` (now `api`)
+dev Txn_Commit_dist.wp_proof <<< Loc ||| WEnv GF >>> binders: `V`'s type
+dev Txn_Commit_dist.wp_proof <<< γ ||| Γ >>> binders: the cluster's view `Γ` in place of the KV names `γ` (`γ := Γ.kv`)
+dev Txn_Commit_dist.wp_proof <<< KVNames ) ( dup : Bool ||| DistView >>> binders: `Γ`'s type; no `dup`: the axiom is the in-process spec at `dup = false`
+dev Txn_Commit_dist.wp_proof <<<  ||| Γ.auth = false → >>> auth off (a weaker axiom: one more premise; N2 review F2)
+dev Txn_Commit_dist.wp_proof <<< ( ||| kvClientAt cl api eps V Γ ∗ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C), placed first; the parenthesis of the in-process group dropped (layout)
+dev Txn_Commit_dist.wp_proof <<< kv ∗ isKv kv γ dup ||| api >>> `txnKvIs` of the client's `*kv` `api`; `isKv` replaced (above)
+dev Txn_Commit_dist.wp_proof <<< □?dup |||  >>> `□?dup` at `dup = false` is the identity
+dev Txn_Commit_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv`
+dev Txn_Commit_dist.wp_proof <<< ) |||  >>> the closing parenthesis of the in-process group (layout)
+dev Txn_Commit_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (a weaker post)
+dev Txn_Commit_dist.wp_proof <<< ( |||  >>> the parenthesis of the error arm's group (layout)
+
+pair bootstrap.wp_proof_dist Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapDist.lean bootstrap.specDist Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean bootstrap.spec
+dev bootstrap.wp_proof_dist <<<  ||| [ π : Net.NetProtoGS ] >>> the net extension's protocol ghost state (`bootRTOk`'s `httpAddrAt`)
+dev bootstrap.wp_proof_dist <<<  ||| ( ∀ k , ( U.initMap.lookup k ) .isSome → ( U.initURLs k ) .length = 1 ) → GMap.size U.initMap ≤ 64 → U.peer = U.initURLs cfg.Name' → U.client.length = 1 → >>> `etcd_safe`'s shape: one URL per entry, at most 64 entries, the peer URLs the map's, one client URL (more premises: a weaker axiom; `bootstrap.specDist_of_spec` proves the axiom from `bootstrap.spec`)
+dev bootstrap.wp_proof_dist <<<  ||| etcd_dist.bootRTOk ( hG := hG ) γ ( bootGo.id cfg U ) ( bootGo.dir U cfg.InitialClusterToken' ) ∗ >>> the round-tripper contract: the other members' peer addresses (`bootRTOk`; more precondition: a weaker axiom; review notes/axiom-review/bootstrap-dist.md)
+
+nosource Serve_dist.wp_proof `etcdstart.Serve.spec` is its in-process analogue, not its source: it consumes `etcdstart.memberUp` and serves the view's table `etcdSvc Γ mid` at `etcdAddrAt` (N2 review, notes/axiom-review/n2-kv-dist.md); nothing to compare token by token
+nosource NewPeerHandler_dist.wp_proof `etcdhttp` is untranslated: no in-process spec of `NewPeerHandler` exists (plan §17.3 review: sound)
+nosource PeerServe_dist.wp_proof `http.Serve` of etcd's peer handler (`peerHandlerOf`) at the member's peer address: the in-process proofs apply Perennial's `http.Serve_ok` to the raft handler at the in-process network, a different statement (plan §17.3 reviews)
