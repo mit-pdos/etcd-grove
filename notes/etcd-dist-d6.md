@@ -2082,12 +2082,7 @@ right disjunct is the retired-backend case, where `s` is made of the stored inde
 commit point consumes: inside `Tx.Commit`'s update the backend's `UnsafeSave` runs `commit_save_auR`, so the row at
 the stored index `m ∈ [eff, p]` is in hand at `_take`/`_putStep`. The old names (`writes_done`, `skip_done`,
 `ci_swap_au`, `consInv_alloc`, `commit_save_au`) are corollaries at the trivial row, so no caller changed. `InvApply`
-built green on fk-lean1 (build 3, `/shared/tmp/t10-s8-build3.log`). **Build 4 running at handoff, result not seen**:
-the 23 modules naming the protocol plus `etcdserver.Results`, log **`/shared/tmp/t10-s8-build4.log`** (ends `EXIT n`),
-list `/shared/tmp/t10s8/b1.txt`. Next session: read it; if unfinished or failed, rerun incrementally with
-`FKLEAN_HOST=fk-lean1 /shared/tmp/fklean1-check.sh /shared/etcd-grove-t10 etcd-safe-t10 $(cat /shared/tmp/t10s8/b1.txt)`
-and fix what fails (likely spots: callers' `iapply commit_save_au … $$` against the corollary's shape, instance
-search for `∀ a b, Timeless ((fun _ _ => True) a b)` at `imod` after `iinv` in the callers). `etc/tier-check.py --check` ok.
+built green on fk-lean1 (build 3, `/shared/tmp/t10-s8-build3.log`). **Build 4 green** (the 23 modules naming the protocol plus `etcdserver.Results`, exit 0, log `/shared/tmp/t10-s8-build4.log`, list `/shared/tmp/t10s8/b1.txt`). `etc/tier-check.py --check` ok.
 
 **Item 1, left** (in order): (a) the server's row `srvImgRow ρ γ e p := ∃ A, srvRLogLb A ∗ ⌜uint.Z p = ai0 + |A| ∧ ∀ m,
 e ≤ m ≤ p → the KV model and restModel of A's prefix at m are A's⌝` (a defs module beside `InvServer`, timeless),
