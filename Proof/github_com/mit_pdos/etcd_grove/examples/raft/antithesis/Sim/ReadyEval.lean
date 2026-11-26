@@ -60,7 +60,7 @@ set_option maxHeartbeats 2000000 in
 /-- (parity B1) A candidate's report at a node outside its configuration would be `Unpromotable`:
 the premise `hunp` (raft campaigns only at a voter). -/
 theorem inMemory_nl_eq {R : RunCfg} {S : State} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str)
-    (hb : b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"boot")
+    (hb : DrainBy b)
     (r : Role) (hr : r ≠ .leader) (t v c : w64) (es : List EntryM)
     (hunp : r = .candidate → ((S.config[n.val]!).cin.has (nameOf (nodeId n)) ||
       (S.config[n.val]!).cout.has (nameOf (nodeId n))) = true) :
@@ -69,8 +69,8 @@ theorem inMemory_nl_eq {R : RunCfg} {S : State} (n : Fin R.N) (hc : S.cfg = R.cf
   cases r
   case leader => exact absurd rfl hr
   case follower =>
-    rcases hb with rfl | rfl | rfl | rfl <;>
-    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+    rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
+    simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
       InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
       InMem.cmt, fieldEq, need, eok_bind, epure, roleOf, str_beq, str_bne, leader, follower, candidate,
       decide_false, decide_true, Bool.not_true, Bool.not_false,
@@ -79,8 +79,8 @@ theorem inMemory_nl_eq {R : RunCfg} {S : State} (n : Fin R.N) (hc : S.cfg = R.cf
       Bool.and_false, Bool.true_and, Bool.and_true]
   case candidate =>
     have hunp := hunp rfl
-    rcases hb with rfl | rfl | rfl | rfl <;>
-    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+    rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
+    simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
       InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
       InMem.cmt, fieldEq, need, eok_bind, epure, roleOf, str_beq, str_bne, leader, follower, candidate,
       decide_false, decide_true, Bool.not_true, Bool.not_false,

@@ -47,7 +47,7 @@ theorem TermFn.has_with_self {α : Type} (f : TermFn α) (t : Int) (v : α) : (f
 the term (`cmt`), with a quorum of acks at `c` in its term's configuration (`Acked`, B 252); the
 commit recorded (`chain`, `termLen`), the checks (`CommitSafety`, `LeaderCompleteness`) passing. -/
 theorem inMemory_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str)
-    (hb : b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"boot")
+    (hb : DrainBy b)
     (t v c : w64) (lT : List Entry) (cf : Conf)
     (hrole : S.role[n.val]! = leader) (ht : S.currentTerm[n.val]! = uint.Z t)
     (hll : S.ledLog.get (uint.Z t) = .ok lT) (hlc : S.ledConf.get (uint.Z t) = .ok cf)
@@ -73,8 +73,8 @@ theorem inMemory_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.
   have hlr : (leader != leader) = false := bne_self_eq_false _
   have hct : (S.currentTerm[n.val]! == uint.Z t) = true := by rw [ht]; exact beq_self_eq_true _
   unfold State.inMemory
-  rcases hb with rfl | rfl | rfl | rfl <;>
-  simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+  rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
+  simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
       InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
       InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
       str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
@@ -125,7 +125,7 @@ its term, at the end of its leader log `lT` (`first`); no configuration change; 
 new one (`hcmt`: not beyond its term's recorded commit at an entry of its term) and `RecordedIn`
 (`hrec`, or `0`); `ledLog` at its term extended. -/
 theorem inMemory_lprop {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str)
-    (hb : b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"boot")
+    (hb : DrainBy b)
     (t v c : w64) (e : EntryM) (es' : List EntryM) (lT : List Entry)
     (hrole : S.role[n.val]! = leader) (ht : S.currentTerm[n.val]! = uint.Z t)
     (hll : S.ledLog.get (uint.Z t) = .ok lT)
@@ -152,8 +152,8 @@ theorem inMemory_lprop {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
   unfold State.inMemory
   by_cases h0 : uint.Z c = 0
   · have hc0 : decide (uint.Z c > 0) = false := decide_eq_false (by omega)
-    rcases hb with rfl | rfl | rfl | rfl <;>
-    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+    rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
+    simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
         InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
         InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
         str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
@@ -164,8 +164,8 @@ theorem inMemory_lprop {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
   · have hcn : 0 ≤ uint.Z c := by word
     have hc0 : decide (uint.Z c > 0) = true := decide_eq_true (by omega)
     have hrc := hrec.resolve_left h0
-    rcases hb with rfl | rfl | rfl | rfl <;>
-    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+    rcases hb with rfl | ⟨inp, rfl⟩ <;> (try cases inp) <;>
+    simp (config := { decide := true }) only [Input.byE, evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
         InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
         InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
         str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
