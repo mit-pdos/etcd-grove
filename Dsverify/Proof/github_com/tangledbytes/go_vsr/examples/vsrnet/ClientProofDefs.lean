@@ -51,8 +51,10 @@ theorem Op_svcOp (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat) 
       svcOp (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) a (sysTok γ c a)
         (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Op []) := by
   unfold svcOp
-  iintro #Hpkg %sys %i %Ψ
-  iintro !> %Φ ⟨Htok, HU, Hu⟩ HΦ
+  simp only [RBase.svc]
+  iintro #Hpkg %sys %x %i %Ψ
+  iintro !> %Φ ⟨Htok, %Hx, HU, Hu⟩ HΦ
+  subst Hx
   unfold sysTok
   icases Htok with ⟨%n, %m, %hnm, Hres, Hused⟩
   ihave ⟨Hused, %Hle⟩ := budUsed_add (Gg := hG.goose_globalGS) a m $$ Hused Hu
