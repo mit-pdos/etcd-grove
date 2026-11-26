@@ -145,8 +145,13 @@ so it needs the same stream entry, which cannot be stated yet (§22.6).
 
 **Why it is true.** The call only sends a `*progressRequest` on the stream's `reqc` (or returns the closed
 watcher's, the context's or the stream's close error), and grpc's `status` accepts each error it returns
-(`statusErrOk`); nothing is claimed of the server's answer, which arrives, if ever, as a progress response
-of the watch channels `Watch_dist` describes.
+(`statusErrOk`): the stream's close error is set by `run` only: the raw `Recv` error on a halt or `ErrNoLeader`,
+or `v3rpc.Error` of `openWatchClient`'s (`NewStream`'s, etcd's interceptor's `getToken`, or `w.ctx`'s
+`Canceled`). All of them are built in the caller's process by grpc-go (`cliStreamErr`, unconditional of the
+peer) or clientv3, and a remote member chooses only their code, message and status details. `addSubstream`'s
+`CancelReason` error is overwritten by `run`'s defer before `donec` closes
+(`notes/axiom-review/requestprogress-dist-statuserr.md` D1). Nothing is claimed of the server's answer, which
+arrives, if ever, as a progress response of the watch channels `Watch_dist` describes.
 
 Retired with `Watch_dist`, from `watcher.RequestProgress.spec`. As `Watch_dist`, a stream it starts is kept
 under the servers' facts (`wgsGuard`, over `V.atEps eps`): off `V.addrs = eps` the lock asks nothing of it,
