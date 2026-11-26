@@ -378,3 +378,39 @@ no `sorry` and no new axiom. No `Spec/`, axiom or `Spec/.../TopLevelRobustness` 
   after a `simp at hm` is not needed: `simp` already closes the goal (in `kinds_of_authLease`, `lmOf_catchup`'s
   `h6` and `lmOf_authLease`'s `h9`). Delete the `exact absurd hm (by decide)` there, or write `simp at hm` as
   `simp at hm <;> exact absurd hm (by decide)`. Nothing after `DeploymentClass` was compiled.
+
+### Handoff K-7 (2026-11-26; built at da0a82c26, gates run once; context limit)
+
+- **Done.** K-6 builds: the only errors were three `No goals to be solved` in `DeploymentClass.lean` (`simp at hm`
+  closes the goal; the trailing `exact absurd hm (by decide)` deleted, in `eb89be44dd`). Every K-6 file checks clean.
+  Full `lake build` EXIT 0 on Perennial a706aeb9a (29594 jobs). Then lean `adc6c9ca2d` was merged once (`509d1e257e`).
+  The conflicts were in dist `TopLevelRobustness`, `kvremote/TopLevelRobustness`, `AdequacyMember` and `MainLogger`.
+  I kept ours and applied lean's changes: `net.FieldAssumptions` is gone, so its binders, its `fieldA` intros and its
+  `variable [field_sem : …]` lines are dropped, in this branch's own dist files too; `MainLogger`'s two
+  `ListenProto` calls frame `isPkgInit net`. Regenerated to fixpoint at `da0a82c26` (`66e65d151a`); only gen-link
+  `--server` and etcdstart's `Link.lean` changed (the os `FieldAssumptions` binders dropped). Full `lake build`
+  EXIT 0 at `da0a82c26` (29610 jobs, fk-lean2 `~/eg/wt/etcd-safe-f7-rlog`; overrides now point at
+  `~/eg/perennial-da0a82c26`).
+- **The statement:** `theorem etcd_safe_nocrash : etcd_robust_nocrash.spec := etcd_safe_nocrash_of_split
+  etcdBootNCOff_holds etcdAuthBootNC_holds etcdAuthLeaseBootNC_holds`. No `Spec/` change.
+- **Trust base (`a642733434`):** `tcb-report --check --update` and `--collection etcd-dist --check --update` add
+  exactly `etcd_dist.authd.Lease_{GrantOn,LeasesOn,RevokeOn,TimeToLiveOn}_dist.wp_proof`. No other line changed.
+  axiom-tok: those four need entries. I added them with KV_PutOn_dist's keys
+  (`2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF`) plus `trunc` lines. They are for the lead's
+  confirmation. The 59 rule-5 findings are their cascade, which the `axiom-tok-check --check` rerun has not yet
+  confirmed is gone. The auth-off TTL axiom `Client_LeaseTimeToLive_dist` (changed by the fork) needed no new key.
+- **Gates (`etc/gates.sh`, fk-lean2, failfast):** goose `--check` (plain, no `--src`; fork `d26dd5da6` is on the remote):
+  ok (73 projects). links, gomodels, pb-init, kitgen, gen-specs-pkginit, gen-k8s-deep, gen-pbschema, copy-part,
+  issues, bounds, exit-check, import-all, tier, premise-witness, dist-axiom-diff: ok. FAILED, none in a K-6 file:
+  - `mode`: ~20 unclassified lit-modes, in etcdstart `Start.lean` (`memberBuiltOnL`, `wp_Start_builtOnL`),
+    `MemberLessor`, `MemberSplit`, `AuthViewDist`, and `MainLogger:637`. These are the F7 S-line's auth-on
+    additions. Classify them in `etc/mode-allow.txt`.
+  - `api etc/api/grpc.txt`: `client.PrincipalsLinked` imports `Proof.google_golang_org.grpc.WithNoProxy`, which is
+    not importable after the merge.
+  - `errdesc-check`: `Spec/.../dist/KVGetDist.lean` and `WatchDist.lean` (F7's spec changes) need review and an entry
+    in `etc/errdesc-check.py`'s REVIEWED.
+  - `bgcancel`: environment only. It reads `.lake/packages/perennial`, which the fk-lean2 tree does not have.
+  The gates' build and the tcb/collections/axiom-tok/errorf gates were NOT reached (failfast stopped at `mode`).
+- **Next:** fix the three failures above. Then rerun `GATES_FAILFAST=0`, or plain, with `/shared/tmp/f7fork-gates.sh`
+  (scp it to `~/eg/`; it sets PERENNIAL_DIR, TCB_CACHE and GATES_GO_TMPDIR for fk-lean2). Sync the tree first: push,
+  then on fk-lean2 `git fetch` this branch and run `git reset FETCH_HEAD` (that tree is git-synced to `a642733434`).
