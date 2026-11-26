@@ -61,16 +61,9 @@ theorem fol_led {S : State} {V : Fin R.N → NodeView} {net : List Msg} {G : Raf
   refine ⟨⟨_, hlm, rfl⟩, fun k hk hkt => ?_⟩
   have hvk : (V k).ps.role = .leader := roleS_leader (by rw [← (hno k).mem.1]; exact hk)
   have hkm := List.contains_iff_mem.mp ((hno k).leader hvk).1
-  obtain ⟨a, ta, ha, hsa, hta⟩ := hgo.1 _ hlm
-  obtain ⟨b, tb, hb, hsb, htb⟩ := hgo.1 _ hkm
   have hct : S.currentTerm[k.val]! = uint.Z (V k).ps.term := by rw [(hno k).disk.1, hdk k]; rfl
-  have hta' : uint.Z m.term = uint.Z ta := hta
-  have htb' : uint.Z (V k).ps.term = uint.Z tb := htb
-  have htt : ta = tb := uint_Z_inj.mp (by omega)
-  have hab : a = b := hl.1 _ ha _ hb htt
-  have hsa' : nameOf m.src = nameOf a := hsa
-  have hsb' : nameOf (nodeId k) = nameOf b := hsb
-  have hik : m.src = nodeId k := nameOf_inj (by rw [hsa', hsb', hab])
+  have hik : m.src = nodeId k := nameOf_inj (hgo.leader_server hl hlm hkm (by
+    show uint.Z m.term = uint.Z (V k).ps.term; rw [← hct, hkt]))
   exact hn.2.2.2.1 m hm hty k hik (by rw [hk]; decide) hkt
 
 /-- `termLen` after a follower's commit `cc` on a leader's message at term `T` (`OnDisk`'s `adv`):
@@ -704,7 +697,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       (by rw [hpt]; exact hle) ⟨i, hin', by rw [hpt]; exact hti⟩ hv (get!_set_self _ hn3) hsd hold
       (by rw [hlogn, logOf_length]; exact hcL) (by rw [hpc]; exact Int.le_refl _) hcbc
       (by rw [hlogn]; exact cs_ok hgo1.2.2.2.2.1 hcG)
-      (by rw [hlogn]; exact lc_ok hl hgo1.2.2.2.1 hrf.2.2.2.1 hcG)
+      (by rw [hlogn]; exact lc_ok hl hgo1.2.2.2.1 hrf.2.2.2.1 hcG (hx.boot1 (by have := hx.d1; rw [hpt]; omega)))
       (by rw [hlogn]; exact ch_ok hgo1.2.2.2.2.1 hcG)
     rw [hlogn] at hod hpm
     obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := commit_fields (n := n) (T := r₁.p.term) hb hgo1 hcL hcG hrf.2.1
@@ -770,7 +763,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
         hpt.symm (by rw [hpt]; exact hle) ⟨i, hin', by rw [hpt]; exact hti⟩ hv (get!_set_self _ hn3) hsd
         hold (by rw [hlogn, logOf_length]; exact hcL) hcc hcl hprev hfirst
         (by rw [hlogn]; exact cs_ok hgo1.2.2.2.2.1 hcG)
-        (by rw [hlogn]; exact lc_ok hl hgo1.2.2.2.1 hrf.2.2.2.1 hcG)
+        (by rw [hlogn]; exact lc_ok hl hgo1.2.2.2.1 hrf.2.2.2.1 hcG (hx.boot1 (by have := hx.d1; rw [hpt]; omega)))
         (by rw [hlogn]; exact ch_ok hgo1.2.2.2.2.1 hcG)
       rw [hlogn] at hod hpm
       obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := commit_fields (n := n) (T := r₁.p.term) hb hgo1 hcL hcG
@@ -964,7 +957,7 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
     (by rw [hL1eq, hlogv]; exact heqb)
     (by rw [hL1eq]; exact lm_ok hl hx.logG hgo1.2.2.1 hsh.2.2.2.2.1)
     (by rw [hL1eq]; exact cs_ok hgo1.2.2.2.2.1 hcG)
-    (by rw [hL1eq]; exact lc_ok hl hgo1.2.2.2.1 hrf.2.2.2.1 hcG)
+    (by rw [hL1eq]; exact lc_ok hl hgo1.2.2.2.1 hrf.2.2.2.1 hcG (hx.boot1 (by have := hx.d1; rw [hpt]; omega)))
     (by rw [hL1eq]; exact ch_ok hgo1.2.2.2.2.1 hcG)
     (fun h => by rw [h]; exact (hb.2.2.1 n).1)
   rw [hL1eq] at hod hpm
@@ -991,8 +984,8 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
   let S' : State := { S1 with log := S1.log.set n.val (logOf r₁.p.log) }
   have hlog' : S'.log[n.val]! = logOf r₁.p.log := get!_set_self _ hlg3
   have hgo' : GlobalOk R S' net G := by
-    obtain ⟨g1, g2, g3, g4, g5, g6, g7⟩ := hgo1
-    refine ⟨g1, g2, fun k => ?_, g4, g5, g6, g7⟩
+    obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9⟩ := hgo1
+    refine ⟨g1, g2, fun k => ?_, g4, g5, g6, g7, g8, g9⟩
     by_cases hk : k = n
     · subst hk; exact ⟨r₁.p.log, hx.logG, hlog'⟩
     · show ∃ l ∈ G.logs, (S1.log.set n.val (logOf r₁.p.log))[k.val]! = logOf l

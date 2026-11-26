@@ -332,8 +332,10 @@ theorem ack_match {R : RunCfg} {S : State} {net : List Msg} {G : RaftFacts} (hl 
     recvLast m ≤ (S.log[n.val]!).length ∧ recvLast m ≤ l.length ∧
       (S.log[n.val]!).take (recvLast m).toNat = l.take (recvLast m).toNat := by
   obtain ⟨L1, hL1, hA⟩ := hgo.2.2.1 n
-  obtain ⟨L2, hL2, hl2, -⟩ := hgo.2.2.2.1 _ (TermFn.mem_of_get hll)
-  simp only at hl2
+  obtain ⟨L2, hL2, hl2⟩ : ∃ L2 ∈ G.logs, l = logOf L2 := by
+    rcases hgo.2.2.2.1 _ (TermFn.mem_of_get hll) with ⟨-, h⟩ | ⟨L2, hL2, hl2, -⟩
+    · exact ⟨bootLog R, hgo.2.2.2.2.2.2.2.1.1, (Prod.mk.inj h).2⟩
+    · exact ⟨L2, hL2, hl2⟩
   obtain ⟨l', hl', hlen, hpt, sub, hsub, heq⟩ := sendable_inv hsd
   obtain ⟨hpv, hhf⟩ := hg
   unfold recvFact at hl' hlen hpt hsub heq hpv hhf

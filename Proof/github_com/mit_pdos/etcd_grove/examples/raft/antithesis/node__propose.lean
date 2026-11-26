@@ -73,9 +73,9 @@ theorem node.propose.wp_proof
   ihave Hco := causeOwn_noRecv (GF := GF) γ j v (.propose data)
     (by simp only [AntSim.Input.byE]; decide)
   have hR : AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput (.propose data))
-      r' [] :=
-    AntSim.Reach.input _ (.propose data) r' [] hI rfl rfl rfl (fun m h => by cases h)
-      (fun x h => by cases h) ⟨hPE', rfl⟩
+      r' :=
+    AntSim.Reach.input _ (.propose data) r' hI rfl rfl rfl (fun m h => by cases h)
+      (fun x h => by cases h) hPE'
   have hip' : ip' = lcpLen v.r.p.log r'.p.log := by
     rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
   ihave Hown := Hclose $$ %rs %r' %ip' %(.propose data) %net₀ %xnet₀ %([] : List XMsg) %null Hrnf Hraw

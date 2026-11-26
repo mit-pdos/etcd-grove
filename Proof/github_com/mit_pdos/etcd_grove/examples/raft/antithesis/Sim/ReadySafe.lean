@@ -148,15 +148,18 @@ theorem cs_ok {G : RaftFacts} {ch : List Entry} {L : List EntryM} {c : w64}
 
 /-- `LeaderCompleteness` (B 426-428): the new committed prefix (recorded in term `T`, `ReadyFacts`)
 is in every leader log of a later term (each extends its campaign log, C5; `commitIn_camp`,
-`RaftLaws`). -/
-theorem lc_ok {G : RaftFacts} (hG : RaftLaws G) {ll : TermFn (List Entry)} {L : List EntryM} {c T : w64}
-    (hll : ∀ p ∈ ll, ∃ l ∈ G.logs, p.2 = logOf l ∧
+`RaftLaws`); bootstrapped, the boot record's term `1` is not later than `T`. -/
+theorem lc_ok {R : RunCfg} {G : RaftFacts} (hG : RaftLaws G) {ll : TermFn (List Entry)} {L : List EntryM}
+    {c T : w64}
+    (hll : ∀ p ∈ ll, (R.boot = true ∧ p = (1, logOf (bootLog R))) ∨ ∃ l ∈ G.logs, p.2 = logOf l ∧
       ∃ t l0, uint.Z t = p.1 ∧ (t, l0) ∈ G.camps ∧ l0 <+: l)
     (hcm : (T, uint.nat c) ∈ G.commits)
-    (hcG : L.take (uint.nat c) = G.committed.take (uint.nat c)) :
+    (hcG : L.take (uint.nat c) = G.committed.take (uint.nat c))
+    (hT1 : R.boot = true → 1 ≤ uint.Z T) :
     ∀ p ∈ ll, p.1 > uint.Z T → isPrefix ((logOf L).take (uint.Z c).toNat) p.2 = .ok true := by
   intro p hp hgt
-  obtain ⟨l, -, hpl, t, l0, ht, hcamp, hpre⟩ := hll p hp
+  rcases hll p hp with ⟨hb, rfl⟩ | ⟨l, -, hpl, t, l0, ht, hcamp, hpre⟩
+  · have := hT1 hb; simp only at hgt; omega
   obtain ⟨-, -, -, -, -, hcl, -⟩ := hG
   have := (hcl _ hcm).2 (t, l0) hcamp (by simp only; omega)
   rw [hpl, uZ_toNat_nat, logOf_take, hcG]

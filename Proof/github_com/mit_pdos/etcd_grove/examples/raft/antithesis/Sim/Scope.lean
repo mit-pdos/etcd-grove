@@ -108,19 +108,19 @@ def Input.InMask (msk : SimMask) : Input → Prop
 
 /-- `Reach` with the input admitted by the mask. -/
 inductive ReachIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop)
-    (net : List Msg) (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → List XMsg → Prop
-  | stay (v : NodeView) : v.Idle → ReachIn msk R dec Adm net xnet n v v.r []
-  | input (v : NodeView) (inp : Input) (r₁ : RState) (xs : List XMsg) :
+    (net : List Msg) (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → Prop
+  | stay (v : NodeView) : v.Idle → ReachIn msk R dec Adm net xnet n v v.r
+  | input (v : NodeView) (inp : Input) (r₁ : RState) :
       inp.InMask msk →
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
       (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ m.term ≠ W64 0) →
       (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
-      InputStep R dec Adm n v.r inp r₁ xs → ReachIn msk R dec Adm net xnet n v r₁ xs
+      InputStep R dec Adm n v.r inp r₁ → ReachIn msk R dec Adm net xnet n v r₁
   | advance (v : NodeView) (r₁ : RState) :
       v.pend = [] → v.xpend = [] → v.ce = [] → v.rpend = [] → DrainBy v.byE →
       AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁ →
       (R.md.snapshots = false → AdvanceNoSnap Adm dec (R.k n) (nodeId n) v.r v.qs r₁) →
-      ReachIn msk R dec Adm net xnet n v r₁ []
+      ReachIn msk R dec Adm net xnet n v r₁
 
 /-- `Quiet` with the input admitted by the mask. -/
 inductive QuietIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop)
@@ -131,31 +131,31 @@ inductive QuietIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM 
       (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
       QuietIn msk R dec Adm net xnet n v (v.noteInput inp)
   | noReady (v : NodeView) (r₁ : RState) :
-      ReachIn msk R dec Adm net xnet n v r₁ [] → r₁.p.outbox = [] → r₁.p.rd.states = [] →
+      ReachIn msk R dec Adm net xnet n v r₁ → r₁.p.outbox = [] → r₁.p.rd.states = [] →
       r₁.p.term = v.ps.term → r₁.p.vote = v.ps.vote → r₁.p.commit = v.ps.commit →
       r₁.p.role = v.ps.role → r₁.full = v.r.full →
       QuietIn msk R dec Adm net xnet n v { v with r := r₁, qs := [] }
-  | silentReady (v : NodeView) (r₁ : RState) (xs : List XMsg) (rd : ReadyD) :
-      ReachIn msk R dec Adm net xnet n v r₁ xs → ReadyOutP R n v r₁ xs rd → ¬ Reported v rd →
+  | silentReady (v : NodeView) (r₁ : RState) (rd : ReadyD) :
+      ReachIn msk R dec Adm net xnet n v r₁ → ReadyOutP R n v r₁ rd → ¬ Reported v rd →
       QuietIn msk R dec Adm net xnet n v (v.drainOf r₁ rd)
 
 theorem ReachIn.reach {msk : SimMask} {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop}
-    {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg}
-    (h : ReachIn msk R dec Adm net xnet n v r₁ xs) : Reach R dec Adm net xnet n v r₁ xs := by
+    {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : NodeView} {r₁ : RState}
+    (h : ReachIn msk R dec Adm net xnet n v r₁) : Reach R dec Adm net xnet n v r₁ := by
   cases h with
   | stay h1 => exact .stay _ h1
-  | input inp _ _ h0 h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ _ h1 h2 h3 h4 h5 h6 h7
+  | input inp _ h0 h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ h1 h2 h3 h4 h5 h6 h7
   | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
 theorem Input.inMask_top [GooseExts] (inp : Input) : inp.InMask mskTop := by
   cases inp <;> simp [Input.InMask, mskTop]
 
 theorem ReachIn.ofReach_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop}
-    {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg}
-    (h : Reach R dec Adm net xnet n v r₁ xs) : ReachIn mskTop R dec Adm net xnet n v r₁ xs := by
+    {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : NodeView} {r₁ : RState}
+    (h : Reach R dec Adm net xnet n v r₁) : ReachIn mskTop R dec Adm net xnet n v r₁ := by
   cases h with
   | stay h1 => exact .stay _ h1
-  | input inp _ _ h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ _ (Input.inMask_top inp) h1 h2 h3 h4 h5 h6 h7
+  | input inp _ h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ (Input.inMask_top inp) h1 h2 h3 h4 h5 h6 h7
   | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
 theorem QuietIn.ofQuiet_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop}
@@ -164,7 +164,7 @@ theorem QuietIn.ofQuiet_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CC
   cases h with
   | input inp h1 h2 h3 => exact .input _ inp (Input.inMask_top inp) h1 h2 h3
   | noReady _ h1 h2 h3 h4 h5 h6 h7 h8 => exact .noReady _ _ (ReachIn.ofReach_top h1) h2 h3 h4 h5 h6 h7 h8
-  | silentReady _ _ _ h1 h2 h3 => exact .silentReady _ _ _ _ (ReachIn.ofReach_top h1) h2 h3
+  | silentReady _ _ h1 h2 h3 => exact .silentReady _ _ _ (ReachIn.ofReach_top h1) h2 h3
 
 /-- Below `mskB1a`, the mask admits only recv, tick, propose and campaign. -/
 theorem Input.inMask_b1a {msk : SimMask} (hmsk : msk ≤ mskB1a) {inp : Input} (h : inp.InMask msk) :
@@ -213,15 +213,15 @@ theorem InMask.b1a {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {net : L
 tick's step (a tick, or `Campaign` with pre-vote off: `tickEndR_of_campaignEndR`). -/
 theorem Input.step_b1a {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {net : List Msg} {xnet : List XMsg} {n : Fin R.N}
-    {r r₁ : RState} {xs : List XMsg} {inp : Input} (hin : AntSim.InMask msk R net xnet)
-    (h : inp.InMask msk) (hs : InputStep R dec Adm n r inp r₁ xs) :
-    (∃ m, inp = .recv m) ∨ ((inp = .tick ∨ inp = .campaign) ∧ InputStep R dec Adm n r .tick r₁ xs) ∨
+    {r r₁ : RState} {inp : Input} (hin : AntSim.InMask msk R net xnet)
+    (h : inp.InMask msk) (hs : InputStep R dec Adm n r inp r₁) :
+    (∃ m, inp = .recv m) ∨ ((inp = .tick ∨ inp = .campaign) ∧ InputStep R dec Adm n r .tick r₁) ∨
       ∃ d, inp = .propose d := by
   rcases Input.inMask_b1a hmsk h with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩ | rfl
   · exact .inl ⟨m, rfl⟩
   · exact .inr (.inl ⟨.inl rfl, hs⟩)
   · exact .inr (.inr ⟨d, rfl⟩)
-  · exact .inr (.inl ⟨.inr rfl, tickEndR_of_campaignEndR (by rw [(hin.b1a hmsk).2.1 n]) hs.1, hs.2⟩)
+  · exact .inr (.inl ⟨.inr rfl, tickEndR_of_campaignEndR (by rw [(hin.b1a hmsk).2.1 n]) hs⟩)
 
 /-! ## The end relations read below `mskB1a`
 

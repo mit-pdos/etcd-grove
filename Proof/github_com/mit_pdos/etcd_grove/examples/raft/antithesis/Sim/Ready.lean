@@ -86,7 +86,7 @@ structure AfterOk (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (n : Fin
   confLag : ConfLag dec R w
   facts : NodeFacts R n w
   hpend : ∀ q ∈ w.pend, PendOk R.N (nodeId n) w q
-  hxpend : ∀ x ∈ w.xpend, XPendOk R.N (nodeId n) x
+  hxpend : ∀ x ∈ w.xpend, XPendOk R.N (nodeId n) w.ps x
   drain : w.told = (V n).told ∧ w.cause = (V n).cause ∧ w.xcause = (V n).xcause
   hlead : LeadOk n w
 
@@ -98,9 +98,9 @@ empty read-only queue (`reach_roOk`); a reported pre-candidate a follower at a p
 (`ReadyOutP`). -/
 theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
-    {xnet : List XMsg} {n : Fin R.N} {r₁ : RState} {xs : List XMsg} {rd : ReadyD}
+    {xnet : List XMsg} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hs : AntSim R dec S V net xnet)
-    (hr : ReachIn msk R dec Adm net xnet n (V n) r₁ xs) (hro : ReadyOutP R n (V n) r₁ xs rd) :
+    (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd) :
     AfterOk R dec V n ((V n).afterReady r₁ rd) := by
   obtain ⟨hmd, -, -, -, -, -, -, -⟩ := hin.b1a hmsk
   have hnet := hs.2.2.1
@@ -113,7 +113,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
     rcases hv.confLag with h | ⟨h, -⟩
     · exact h
     · rw [hsnap0.2.2] at h; cases h
-  obtain ⟨⟨hcfg, hfp, hsnap⟩, hxs, -, -⟩ := reach_keep hmsk hin hv hr
+  obtain ⟨⟨hcfg, hfp, hsnap⟩, -, -⟩ := reach_keep hmsk hin hv hr
   have hro' := hro
   obtain ⟨hR, hpre, -, -, -, -, -, -, hsync, -, hxm, hpfx, hlen, -, hsnapC, hidx, -⟩ := hro
   obtain ⟨hb0, -, hnosnap⟩ := hsnapC hsn
@@ -141,7 +141,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : C
       (fun h => by change rd.pre = true at h; show r₁.p.role = .follower; rw [← hR]; exact (hpre h).1),
       (fun _ => hroOk), (fun h => (hpre h).2)⟩
     hpend := by have h := pendOk_of_reach hmsk hin hnet hv hr hro'; exact h
-    hxpend := fun x hx => by have hx' : x ∈ rd.xmsgs := hx; rw [hxm, hxs] at hx'; cases hx'
+    hxpend := fun x hx => hxm x hx
     drain := ⟨rfl, rfl, rfl⟩
     hlead := by have h := reach_leadOk hmsk hin hnet hv hr; exact h }
   have hmq := hms q hq
@@ -253,12 +253,24 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   ha : AfterOk R dec V n ((V n).afterReady r₁ rd)
   hk : ReadyKind (CfgM.simple R.voters0 ∅) (nodeId n) net (V n) r₁.p rd
 
+/-- Bootstrapped, a `Ready`'s term at least the node's old one is past `0` (`BootTermOk`: the node's
+term is at least the boot term `1`). -/
+theorem RdCtx.boot1 {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
+    {xnet : List XMsg} {evs : List Event} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
+    {S1 : State} (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
+    (hle : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term) : R.boot = true → 1 ≤ uint.Z r₁.p.term := by
+  intro hb
+  have h1 := hx.hs1.2.1.bootTermOk.1 n
+  have e1 : S1.bootTerm = 1 := by
+    unfold State.bootTerm; rw [hx.hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hb]
+  rw [hx.d1] at h1; omega
+
 /-- **`RdCtx` from `antSim_ready`'s premises** below `mskB1a`. -/
 theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec} {S : State}
     {V : Fin R.N → NodeView} {net : List Msg} {xnet : List XMsg} {evs : List Event} {G : RaftFacts}
-    {n : Fin R.N} {r₁ : RState} {xs : List XMsg} {rd : ReadyD}
+    {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hpre : SimPre R dec S V net xnet evs G)
-    (hr : ReachIn msk R dec (admOf G) net xnet n (V n) r₁ xs) (hro : ReadyOutP R n (V n) r₁ xs rd)
+    (hr : ReachIn msk R dec (admOf G) net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd)
     (hrep : Reported (V n) rd) (htold : Told (V n)) (hrf : ReadyFacts G (nodeId n) r₁)
     (htb : TermRoom (V n)) :
     ∃ S1, RdCtx R dec S V net xnet evs G n r₁ rd S1 := by

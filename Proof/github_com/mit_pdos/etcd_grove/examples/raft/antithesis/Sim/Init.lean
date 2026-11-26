@@ -265,19 +265,19 @@ theorem antSim_init : antSim_init.stmt := by
     · rw [hxcause]; intro m h; cases h
     · exact ⟨fun _ => by rw [hlead]; exact (nodeId_ne_zero n).symm, .inl hlead⟩
     · intro h; rw [hrole] at h; exact absurd rfl h
-  · intro G hG
-    obtain ⟨hG1, hG2⟩ := hG
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro G hG hGa
+    have hG1 := hG.1
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hG, fun a ha => by rw [hGa] at ha; cases ha⟩
     · intro l hl
       rw [initS_leaders] at hl
       cases hb : R.boot <;> simp [hb] at hl
-      exact ⟨W64 1, W64 1, (hG2 hb).1, by rw [hl]; rfl, by rw [hl]; rfl⟩
+      subst hl; exact .inl ⟨rfl, rfl, rfl⟩
     · intro v hv; cases hv
     · intro n; exact ⟨bootLog R, hG1, hlog n⟩
     · intro p hp
       rw [initS_ledLog] at hp
       cases hb : R.boot <;> simp [hb] at hp
-      exact ⟨bootLog R, hG1, by rw [hp], W64 1, [], by rw [hp]; rfl, (hG2 hb).2, List.nil_prefix⟩
+      exact .inl ⟨rfl, hp⟩
     · exact ⟨0, Nat.zero_le _, rfl⟩
     · intro p hp; cases hp
     · intro m hm; cases hm

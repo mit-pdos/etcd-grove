@@ -573,9 +573,9 @@ the view's state (received messages from another node: C4's `NetShape`). For the
 `mskB1a` admits. -/
 theorem quiet_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁)
     (hro : r₁.p.role = v.ps.role) (ht : r₁.p.term = v.ps.term) (hl : r₁.p.log = v.ps.log) :
     QKeep S n v.ps r₁.p := by
   obtain ⟨hmd, _, hbt, hpar, hspl, _, _, hty⟩ := hin.b1a hmsk
@@ -584,13 +584,13 @@ theorem quiet_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
   have hqs := hv.qs
   cases hr with
   | stay _ => exact QKeep.refl
-  | input inp _ _ hinp _ _ _ _ hm _ hs =>
+  | input inp _ hinp _ _ _ _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, hmd', hm0⟩ := hm m rfl
       exact quiet_recv hc hnet hmn hmd' (hnet.2.2.1 m hmn).2.1 hm0 hct (ty7_of_s4 (hty m hmn))
-        (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1) hro ht hl
-    · exact quiet_tick (TickEnd.toO_in hmsk hin hs.1.1) ht
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+        (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1) hro ht hl
+    · exact quiet_tick (TickEnd.toO_in hmsk hin hs.1) ht
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact quiet_propose hh hl
       · exact absurd rfl h0
       · exact absurd rfl h0
@@ -611,9 +611,9 @@ a forward goes to the leader (the leader hint); `Advance` queues a self-acknowle
 candidate's win. -/
 theorem reach_selfFree {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁)
     (hro : r₁.p.role = v.ps.role) (ht : r₁.p.term = v.ps.term) (hl : r₁.p.log = v.ps.log) :
     SelfFree (nodeId n) r₁.p := by
   obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
@@ -623,14 +623,14 @@ theorem reach_selfFree {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
   have hqs := hv.qs
   cases hr with
   | stay _ => exact hX
-  | input inp _ _ hinp _ _ _ _ hm _ hs =>
+  | input inp _ hinp _ _ _ _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
       obtain ⟨-, hsd, hpt⟩ := hnet.2.2.1 m hmn
       have hsd' : m.src ≠ nodeId n := hmd ▸ hsd
-      exact selfFree_recv hX (ty7_of_s4 (hty m hmn)) (fun hp => hm0 (hpt hp)) hsd' hm0 hro ht (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1)
-    · exact selfFree_tick hX ht (TickEnd.toO_in hmsk hin hs.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact selfFree_recv hX (ty7_of_s4 (hty m hmn)) (fun hp => hm0 (hpt hp)) hsd' hm0 hro ht (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
+    · exact selfFree_tick hX ht (TickEnd.toO_in hmsk hin hs.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact selfFree_propose hX hlo (by simp [propMsg]) hl hh
       · exact absurd rfl h0
       · exact absurd rfl h0
@@ -715,7 +715,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       rcases Input.inMask_b1a hmsk hinp with ⟨m', rfl⟩ | rfl | ⟨d, rfl⟩ | rfl <;>
         simp [NodeView.noteInput, Input.xcause] at hx0
   | noReady r₁ hr hX _ ht hvo hc hro hfl =>
-    obtain ⟨⟨hcfg, hfp, hsnap⟩, -, hpe, hxpe⟩ := reach_keep hmsk hin hv hr
+    obtain ⟨⟨hcfg, hfp, hsnap⟩, hpe, hxpe⟩ := reach_keep hmsk hin hv hr
     have hl : r₁.p.log = v.ps.log := log_of_full hfl hfp
     have hkp := quiet_reach hmsk hin hcf hnet hv hr hro ht hl
     have hlead := reach_leadOk hmsk hin hnet hv hr
@@ -739,8 +739,8 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
     · intro q hq; have hq' : q ∈ v.pend := hq; rw [hpe] at hq'; cases hq'
     · intro q hq; have hq' : q ∈ v.xpend := hq; rw [hxpe] at hq'; cases hq'
     · intro q hq; cases hq
-  | silentReady r₁ xs rd hr hrop hs =>
-    obtain ⟨⟨hcfg, hfp, hsnap⟩, hxs, -, -⟩ := reach_keep hmsk hin hv hr
+  | silentReady r₁ rd hr hrop hs =>
+    obtain ⟨⟨hcfg, hfp, hsnap⟩, -, -⟩ := reach_keep hmsk hin hv hr
     have hrop' := hrop
     obtain ⟨hR, hpre, hT, hV, hC, hnil, -, hqp, hsync, -, hxm, hpfx, hlen, -, hsnapC, -, -⟩ := hrop
     have h1 : rd.term = v.dur.term := Classical.byContradiction fun h => hs (.inl h)
@@ -801,7 +801,7 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1a) {dec : CCDec}
       obtain ⟨-, h2', h3', -, -⟩ := id hmq
       have hqo : q ∈ r₁.p.outbox := (List.mem_filter.mp ((hmsg.mem_iff).mp hq)).1
       exact ⟨fun _ _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (d15 m hm).1) hmq⟩
-    · intro x hx; have hx' : x ∈ rd.xmsgs := hx; rw [hxm, hxs] at hx'; cases hx'
+    · exact hxm
     · intro q hq; have hq' : q ∈ rd.qs := hq; rw [hqs] at hq'; cases hq'
 
 /-- **`antSim_quiet` for the runs a mask below `mskB1a` admits**: the steps that report nothing keep

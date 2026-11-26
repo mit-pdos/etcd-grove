@@ -101,26 +101,26 @@ def readMsg (id : w64) (ctx : List w8) : Msg :=
 /-- The configuration fold's admissible pairs certified in `G` (raft's `Adm`, parity B3). -/
 def admOf (G : RaftFacts) : List EntryM → CCState → Prop := fun l cs => (l, cs) ∈ G.confs
 
-/-- What one input does to node `n`'s state (design §3.4), with the transfer messages it queues. A
+/-- What one input does to node `n`'s state (design §3.4). A
 conf change is proposed only with conf changes on. `ApplyConfChange` is no input here: the driver
 reports `conf` at the apply, in the node's goroutine, so `antSim_conf` takes it and its report as one
 step (`ApplyConfEndR`). -/
 def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (n : Fin R.N)
-    (r : RState) : Input → RState → List XMsg → Prop
-  | .recv m, r', xs => RecvEndR Adm (R.k n) (nodeId n) r m r' ∧ xs = []
-  | .recvX x, r', xs => (x.ty = .timeoutNow ∧ TimeoutNowEndR (nodeId n) r x r' ∧ xs = []) ∨
-                        (x.ty = .transferLeader ∧ TransferRecvEndR (nodeId n) r x r' ∧ xs = [])
-  | .tick, r', xs => TickEndR (R.k n) (nodeId n) r r' ∧ xs = []
-  | .propose d, r', xs => RecvEndR Adm (R.k n) (nodeId n) r (propMsg (nodeId n) d) r' ∧ xs = []
-  | .proposeConf ty d, r', xs =>
-      R.md.confChanges = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r' ∧ xs = []
-  | .readIndex c, r', xs => RecvEndR Adm (R.k n) (nodeId n) r (readMsg (nodeId n) c) r' ∧ xs = []
-  | .campaign, r', xs => CampaignEndR (R.k n) (nodeId n) r r' ∧ xs = []
-  | .transfer to, r', xs => TransferEndR (nodeId n) r to r' ∧ xs = []
-  | .snapStatus to ok, r', xs => SnapStatusEndR (nodeId n) r r' ∧ xs = []
-  | .unreachable _, r', xs => r' = r ∧ xs = []
-  | .applyConf _, _, _ => False
-  | .storeAck resp, r', xs => StoreAckEndR Adm dec (R.k n) (nodeId n) r resp r' ∧ xs = []
+    (r : RState) : Input → RState → Prop
+  | .recv m, r' => RecvEndR Adm (R.k n) (nodeId n) r m r'
+  | .recvX x, r' => (x.ty = .timeoutNow ∧ TimeoutNowEndR (nodeId n) r x r') ∨
+                        (x.ty = .transferLeader ∧ TransferRecvEndR (nodeId n) r x r')
+  | .tick, r' => TickEndR (R.k n) (nodeId n) r r'
+  | .propose d, r' => RecvEndR Adm (R.k n) (nodeId n) r (propMsg (nodeId n) d) r'
+  | .proposeConf ty d, r' =>
+      R.md.confChanges = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r'
+  | .readIndex c, r' => RecvEndR Adm (R.k n) (nodeId n) r (readMsg (nodeId n) c) r'
+  | .campaign, r' => CampaignEndR (R.k n) (nodeId n) r r'
+  | .transfer to, r' => TransferEndR (nodeId n) r to r'
+  | .snapStatus to ok, r' => SnapStatusEndR (nodeId n) r r'
+  | .unreachable _, r' => r' = r
+  | .applyConf _, _ => False
+  | .storeAck resp, r' => StoreAckEndR Adm dec (R.k n) (nodeId n) r resp r'
 
 /-- The view once the node has taken an input (before any report): the drain's `by` and cause; its
 `recv` not reported yet. -/
@@ -143,25 +143,24 @@ inductive AdvanceNoSnap (Adm : List EntryM → CCState → Prop) (dec : CCDec) (
 /-- The `by`s of the harness's drains (`n.input`'s, and `boot`'s right after the `boot` report). -/
 def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = inp.byE
 
-/-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`,
-with the transfer messages that input queued: no input taken (`boot`'s drain, at the view's own
+/-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`: no input taken (`boot`'s drain, at the view's own
 state), an input taken between inputs (`v` noted it; a message received was sent to it; a protocol
 message has a nonzero term), or `Advance` at the end of a `Ready` whose reports are all made
 (`AdvanceEndR` stepping the `Ready`'s self-addressed messages; with snapshots off, applying none:
 `AdvanceNoSnap`). -/
 inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (net : List Msg)
-    (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → List XMsg → Prop
-  | stay (v : NodeView) : v.Idle → Reach R dec Adm net xnet n v v.r []
-  | input (v : NodeView) (inp : Input) (r₁ : RState) (xs : List XMsg) :
+    (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → Prop
+  | stay (v : NodeView) : v.Idle → Reach R dec Adm net xnet n v v.r
+  | input (v : NodeView) (inp : Input) (r₁ : RState) :
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
       (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ m.term ≠ W64 0) →
       (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
-      InputStep R dec Adm n v.r inp r₁ xs → Reach R dec Adm net xnet n v r₁ xs
+      InputStep R dec Adm n v.r inp r₁ → Reach R dec Adm net xnet n v r₁
   | advance (v : NodeView) (r₁ : RState) :
       v.pend = [] → v.xpend = [] → v.ce = [] → v.rpend = [] → DrainBy v.byE →
       AdvanceEndR Adm dec (R.k n) (nodeId n) v.r v.qs r₁ →
       (R.md.snapshots = false → AdvanceNoSnap Adm dec (R.k n) (nodeId n) v.r v.qs r₁) →
-      Reach R dec Adm net xnet n v r₁ []
+      Reach R dec Adm net xnet n v r₁
 
 /-- A `Ready`'s data, as the harness reads it: the role after it (`SoftState`, or the last reported
 one; `pre` for `StatePreCandidate`) and its hard state (or the last written one), its entries to
@@ -193,17 +192,16 @@ def AfterAppTy (t : MsgType) : Prop := t = .appResp ∨ t = .voteResp ∨ t = .p
 instance (t : MsgType) : Decidable (AfterAppTy t) := by unfold AfterAppTy; infer_instance
 
 /-- **The `Ready` binding at the protocol level** (`ReadyOut` over `RState`): a `Ready` taken at `r`
-(reached with the transfer messages `xs`) from node `n`'s view `v` reports `r`'s role (a
+from node `n`'s view `v` reports `r`'s role (a
 pre-candidate's protocol role is a follower, and only with pre-vote on) and hard state; its entries
 are what the write appends (the full log after it, from the first entry's index, which starts at a
 conflict with the disk's log or past its end); without a snapshot and with no entries, the full log
 is the disk's; its messages are `r`'s outbox, those to itself queued for `Advance` (up to
 permutation), the others to servers (in async mode split: `AfterAppTy` ones released by the write);
-its transfer messages `xs`; its committed entries follow what was handed out, within the commit;
+its transfer messages raft's (`XReadyOk`: `XPendOk` at `r`); its committed entries follow what was handed out, within the commit;
 its read states `r`'s; without snapshots no snapshot, the log from `base0` and no snapshot message; the full log's
 indices its positions. -/
-def ReadyOutP (R : RunCfg) (n : Fin R.N) (v : NodeView) (r : RState) (xs : List XMsg)
-    (rd : ReadyD) : Prop :=
+def ReadyOutP (R : RunCfg) (n : Fin R.N) (v : NodeView) (r : RState) (rd : ReadyD) : Prop :=
   rd.role = r.p.role ∧ (rd.pre = true → rd.role = .follower ∧ (R.k n).prevote = true) ∧
   rd.term = r.p.term ∧ rd.vote = r.p.vote ∧ rd.commit = r.p.commit ∧
   (rd.snap = none → rd.ents = [] → r.full = v.dur.log) ∧
@@ -215,7 +213,7 @@ def ReadyOutP (R : RunCfg) (n : Fin R.N) (v : NodeView) (r : RState) (xs : List 
   (R.md.async = true →
     rd.msgs.Perm (r.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n ∧ ¬ AfterAppTy q.ty))) ∧
     rd.resp.Perm (r.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n ∧ AfterAppTy q.ty)))) ∧
-  rd.xmsgs = xs ∧
+  (∀ x ∈ rd.xmsgs, XPendOk R.N (nodeId n) r.p x) ∧
   v.delivered ++ rd.ce <+: r.full ∧ (v.delivered ++ rd.ce).length ≤ uint.nat r.p.commit ∧
   rd.reads = r.p.rd.states ∧
   (R.md.snapshots = false → r.p.base = base0 ∧ rd.snap = none ∧ ∀ q ∈ r.p.outbox, q.ty ≠ .snap) ∧
@@ -254,12 +252,12 @@ inductive Quiet (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Pr
       (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
       Quiet R dec Adm net xnet n v (v.noteInput inp)
   | noReady (v : NodeView) (r₁ : RState) :
-      Reach R dec Adm net xnet n v r₁ [] → r₁.p.outbox = [] → r₁.p.rd.states = [] →
+      Reach R dec Adm net xnet n v r₁ → r₁.p.outbox = [] → r₁.p.rd.states = [] →
       r₁.p.term = v.ps.term → r₁.p.vote = v.ps.vote → r₁.p.commit = v.ps.commit →
       r₁.p.role = v.ps.role → r₁.full = v.r.full →
       Quiet R dec Adm net xnet n v { v with r := r₁, qs := [] }
-  | silentReady (v : NodeView) (r₁ : RState) (xs : List XMsg) (rd : ReadyD) :
-      Reach R dec Adm net xnet n v r₁ xs → ReadyOutP R n v r₁ xs rd → ¬ Reported v rd →
+  | silentReady (v : NodeView) (r₁ : RState) (rd : ReadyD) :
+      Reach R dec Adm net xnet n v r₁ → ReadyOutP R n v r₁ rd → ¬ Reported v rd →
       Quiet R dec Adm net xnet n v (v.drainOf r₁ rd)
 
 /-- `V` with node `n`'s view replaced. -/
@@ -274,13 +272,6 @@ def TermRoom (v : NodeView) : Prop := uint.Z v.ps.term + 1 < 2 ^ 64
 
 /-! ## The statements: the run -/
 
-/-- The raft facts a bootstrapped run starts with, as the binding's `BootInit` has them (B 733-753):
-the boot log certified and, bootstrapped, node 1 (`First`) the leader of term 1 with the boot log as
-its campaign log. -/
-def BootFacts (R : RunCfg) (G : RaftFacts) : Prop :=
-  bootLog R ∈ G.logs ∧
-  (R.boot = true → (W64 1, W64 1) ∈ G.leaders ∧ (W64 1, ([] : List EntryM)) ∈ G.camps)
-
 /-- A node of the run before its `boot` report (`antSim_init`): at its start (`PInitR`), nothing
 handed out, its disk its own state, no announced write, nothing queued, the initial configuration,
 no read, not running yet, between inputs. -/
@@ -291,10 +282,11 @@ def FreshView (R : RunCfg) (v : NodeView) : Prop :=
 
 /-- **The initial state** (`Init0`, B 755-764): before any report, at the run's fresh nodes, the
 checker is at a state related to them, with nothing sent; its facts are certified by any `G` with
-the run's boot facts. -/
+the run's boot facts and no acknowledgement yet. -/
 abbrev antSim_init.stmt : Prop :=
   ∀ (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView), (∀ n, FreshView R (V n)) →
-    ∃ S, Prefix R.cfg [] S ∧ AntSim R dec S V [] [] ∧ ∀ G : RaftFacts, BootFacts R G → GlobalOk R S [] G
+    ∃ S, Prefix R.cfg [] S ∧ AntSim R dec S V [] [] ∧
+      ∀ G : RaftFacts, BootFacts R G → G.acks = [] → GlobalOk R S [] G
 
 /-! ## The statements: the reports -/
 
@@ -371,9 +363,9 @@ abbrev antSim_quiet.stmt : Prop :=
 abbrev antSim_ready.stmt : Prop :=
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
-    (xs : List XMsg) (rd : ReadyD),
+    (rd : ReadyD),
     SimPre R dec S V net xnet evs G → R.md.async = false →
-    Reach R dec (admOf G) net xnet n (V n) r₁ xs → ReadyOutP R n (V n) r₁ xs rd → Reported (V n) rd →
+    Reach R dec (admOf G) net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd → Reported (V n) rd →
     Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) →
     SimStep R dec evs G
       (evReady (nodeId n) (V n).byE (roleStr rd.pre rd.role) rd.term rd.vote rd.commit rd.ents rd.snap)
@@ -390,6 +382,11 @@ abbrev antSim_send.stmt : Prop :=
     SimStep R dec evs G (evSend (nodeId n) (V n).byE q)
       (setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet
 
+/-- The raft facts a `send` of a transfer message needs (raft's, added to `G` before the report): a
+`MsgTimeoutNow`'s transferee acknowledged at its term (`isAcked`; design §6.4). -/
+def XMsgFacts (G : RaftFacts) (x : XMsg) : Prop :=
+  x.ty = .timeoutNow → ∃ i : w64, uint.Z i ≠ 0 ∧ (x.dst, x.term, i) ∈ G.acks
+
 /-- **`send` of a transfer message** (B 510-524, unmodelled, B 702): the next transfer message of the
 node's `Ready` is reported, then it is on the network. -/
 abbrev antSim_sendX.stmt : Prop :=
@@ -397,6 +394,7 @@ abbrev antSim_sendX.stmt : Prop :=
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (x : XMsg)
     (rest : List XMsg),
     SimPre R dec S V net xnet evs G → R.md.async = false → (V n).xpend = x :: rest → Told (V n) →
+    XMsgFacts G x →
     SimStep R dec evs G (evSendX (nodeId n) (V n).byE x)
       (setV V n { V n with xpend := rest, undo := none, made := true }) net (xnet ++ [x])
 
@@ -444,9 +442,9 @@ its in-memory state is queued. -/
 abbrev antSim_mem.stmt : Prop :=
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
-    (xs : List XMsg) (rd : ReadyD),
+    (rd : ReadyD),
     SimPre R dec S V net xnet evs G → R.md.async = true →
-    Reach R dec (admOf G) net xnet n (V n) r₁ xs → ReadyOutP R n (V n) r₁ xs rd → Reported (V n) rd →
+    Reach R dec (admOf G) net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd → Reported (V n) rd →
     Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) →
     SimStep R dec evs G
       (evMem (nodeId n) (V n).byE (roleStr rd.pre rd.role) rd.term rd.vote rd.commit rd.ents rd.snap)

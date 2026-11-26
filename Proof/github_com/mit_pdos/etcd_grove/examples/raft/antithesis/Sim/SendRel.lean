@@ -273,8 +273,8 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
       exact NodeOk.send (v := V k) hok (hno k) (hdt k) (V k).pend (fun x hx => hx) (V k).undo (V k).made hu
         (hno k).sync
   · -- GlobalOk
-    obtain ⟨g1, g2, g3, g4, g5, g6, g7⟩ := hgo
-    refine ⟨g1, g2, g3, g4, g5, g6, fun m hm ht => ?_⟩
+    obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9⟩ := hgo
+    refine ⟨g1, g2, g3, g4, g5, g6, fun m hm ht => ?_, g8, g9⟩
     rcases List.mem_append.mp hm with hm | hm
     · exact g7 m hm ht
     · rw [List.mem_singleton] at hm; subst hm; exact hmf.1 ht

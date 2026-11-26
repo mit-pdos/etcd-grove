@@ -222,7 +222,10 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hGl := hrf.2.2.2.2.1 hpl
   have hnoL : ∀ l ∈ S1.leaders, l.term ≠ uint.Z r₁.p.term := by
     intro l hlm0 hlt
-    obtain ⟨j, t', hj, hs', ht'⟩ := hgo1.1 l hlm0
+    rcases hgo1.1 l hlm0 with ⟨hbt, -, h1⟩ | ⟨j, t', hj, hs', ht'⟩
+    · have e1 : S1.bootTerm = 1 := by
+        unfold State.bootTerm; rw [hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hbt]
+      rw [hlt] at h1; omega
     have htt : t' = r₁.p.term := uZ_inj (by rw [← ht', hlt])
     have hjn : j = nodeId n := hl.1 _ hj _ hGl.1 (by simp only; exact htt)
     rcases hb10 n l hlm0 (by rw [hs', hjn]) with h | ⟨-, h | ⟨hbt, h1⟩⟩

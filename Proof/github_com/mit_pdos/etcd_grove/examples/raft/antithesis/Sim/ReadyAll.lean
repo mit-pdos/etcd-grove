@@ -28,15 +28,15 @@ relation (`antSim_ready.stmt` over `ReachIn msk`, for the runs `msk` admits; `R.
 theorem antSim_ready_in [GooseExts] (msk : SimMask) (hmsk : msk ≤ mskB1a) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState)
-      (xs : List XMsg) (rd : ReadyD),
+      (rd : ReadyD),
       InMask msk R net xnet →
       SimPre R dec S V net xnet evs G → R.md.async = false →
-      ReachIn msk R dec (admOf G) net xnet n (V n) r₁ xs → ReadyOutP R n (V n) r₁ xs rd →
+      ReachIn msk R dec (admOf G) net xnet n (V n) r₁ → ReadyOutP R n (V n) r₁ rd →
       Reported (V n) rd → Told (V n) → ReadyFacts G (nodeId n) r₁ → TermRoom (V n) →
       SimStep R dec evs G
         (evReady (nodeId n) (V n).byE (roleStr rd.pre rd.role) rd.term rd.vote rd.commit rd.ents rd.snap)
         (setV V n ((V n).afterReady r₁ rd)) net xnet := by
-  intro R dec S V net xnet evs G n r₁ xs rd hin hpre _ hr hro hrep htold hrf htb
+  intro R dec S V net xnet evs G n r₁ rd hin hpre _ hr hro hrep htold hrf htb
   obtain ⟨S1, hx⟩ := rdCtx_of hmsk hin hpre hr hro hrep htold hrf htb
   obtain ⟨hR, hT, hVt, hC, -⟩ := hx.hro
   rw [hx.hpf, hx.hsn, hR, hT, hVt, hC]

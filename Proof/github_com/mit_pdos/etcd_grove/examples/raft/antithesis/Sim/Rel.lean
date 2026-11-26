@@ -412,10 +412,15 @@ steps keep the vote, and every step that changes the vote otherwise makes the no
 (`voteSelf_ready`). -/
 def VoteSelf {N : Nat} (n : Fin N) (v : NodeView) : Prop := v.ps.role ≠ .follower → v.ps.vote = nodeId n
 
-/-- A transfer message of the `Ready` not yet reported (`XPendOk`): to another server, the node's own
-or a forwarded `MsgTransferLeader` (whose sender is the transferee). -/
-def XPendOk (N : Nat) (id : w64) (x : XMsg) : Prop :=
-  x.dst ≠ id ∧ (∃ j : Fin N, x.dst = nodeId j) ∧ (x.src = id ∨ x.ty = .transferLeader)
+/-- **A transfer message of a `Ready`** taken at the protocol state `p` (`XPendOk`; raft's
+`XReadyOk`): to another server, of a term at most the node's; a `MsgTimeoutNow` the node's own;
+otherwise a forwarded `MsgTransferLeader` (whose sender is the transferee). The drain keeps the
+view's protocol state, so a message not yet reported keeps these facts at the view's. (A
+`MsgTimeoutNow`'s transferee acknowledged at its term, design §6.4: raft's `isAcked`, `G.acks`, read
+at its `send`, `XMsgFacts`.) -/
+def XPendOk (N : Nat) (id : w64) (p : PState) (x : XMsg) : Prop :=
+  x.dst ≠ id ∧ (∃ j : Fin N, x.dst = nodeId j) ∧ uint.Z x.term ≤ uint.Z p.term ∧
+  (x.ty = .timeoutNow → x.src = id)
 
 /-- C1, C2 and the drain's facts for node `n`: its disk, in-memory part, sync disk, announced write,
 queue, reads and configuration (`DiskIs`, `MemIs`, `SyncDisk`, `UndoIs`, `QueueIs`, `ReadsIs`,
@@ -427,7 +432,7 @@ def NodeOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (net : List Msg) (n :
     (v : NodeView) : Prop :=
   DiskIs S n v ∧ MemIs R.N S n v ∧ SyncDisk R v ∧ UndoIs S n v ∧ QueueIs S n v ∧ ReadsIs S n v ∧
   ConfLag dec R v ∧ NodeFacts R n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
-  (∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧ (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) x) ∧
+  (∀ q ∈ v.pend, PendOk R.N (nodeId n) v q) ∧ (∀ x ∈ v.xpend, XPendOk R.N (nodeId n) v.ps x) ∧
   (∀ q ∈ v.qs, QsOk S n v q) ∧
   (v.told = true → (∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∨
     (∃ x, v.xcause = some x ∧ S.pending[n.val]! = [xmsgOf x])) ∧
@@ -495,7 +500,7 @@ theorem NodeOk.pend {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List 
 
 theorem NodeOk.xpend {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
     (h : NodeOk R dec S net n v) :
-    ∀ x ∈ v.xpend, XPendOk R.N (nodeId n) x :=
+    ∀ x ∈ v.xpend, XPendOk R.N (nodeId n) v.ps x :=
   h.2.2.2.2.2.2.2.2.2.2.2.1
 
 theorem NodeOk.qs {R : RunCfg} {dec : CCDec} {S : AntCheck.State} {net : List Msg} {n : Fin R.N} {v : NodeView}
@@ -783,12 +788,15 @@ def NetOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) : Prop :=
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
   HbCommitOk R.N S net ∧ NetShape net ∧ LeadCommitMsgOk R.N S net ∧ ∀ m ∈ net, MsgMask R m
 
-/-- **C4, the transfer messages**: every `MsgTransferLeader`/`MsgTimeoutNow` sent (`xnet`) is
-between two servers, of a term its sender has reached (a forwarded transfer's sender, the
-transferee, at term 0). The binding checks nothing more of them (`isUnmodelled`, B 702). -/
+/-- **C4, the transfer messages**: every `MsgTransferLeader`/`MsgTimeoutNow` sent (`xnet`) is of a
+term some server has reached (its sender's, at the send: what `OnDisk`'s `adopt` asks of a higher
+term, B 371-373), and a `MsgTimeoutNow` of a term its receiver has reached (design §6.4: the
+transferee acknowledged at the leader's term, so its campaign is `elect`'s `T0 + 1`, B 366). The
+binding checks nothing more of them (`isUnmodelled`, B 702; a receipt checks only the receiver,
+which the network routes to, B 201). -/
 def XNetOk (R : RunCfg) (S : AntCheck.State) (xnet : List XMsg) : Prop :=
-  ∀ x ∈ xnet, (∃ i : Fin R.N, x.src = nodeId i ∧ uint.Z x.term ≤ S.currentTerm[i.val]!) ∧
-    ∃ j : Fin R.N, x.dst = nodeId j
+  ∀ x ∈ xnet, (∃ i : Fin R.N, uint.Z x.term ≤ S.currentTerm[i.val]!) ∧
+    (x.ty = .timeoutNow → ∀ j : Fin R.N, x.dst = nodeId j → uint.Z x.term ≤ S.currentTerm[j.val]!)
 
 set_option linter.iris.dupNamespace false in
 /-- **The refinement relation** (§3.3: C1-C4), over the run's `N` servers. -/
@@ -815,6 +823,9 @@ structure RaftFacts where
   /-- parity B3: the configuration fold's admissible pairs (`Adm`: a full log prefix, the
   configuration it makes) -/
   confs : List (List EntryM × CCState) := []
+  /-- (parity B1) the acknowledgements raft certifies (`isAcked`): node `a.1` acknowledged at term
+  `a.2.1` up to index `a.2.2` -/
+  acks : List (w64 × w64 × w64) := []
 
 /-- **A campaign log's terms are below its term** (raft's `isCamp γ c T F`, the log when the node
 became a candidate at `T`, carries `CampOk T F`: every entry of an earlier term). With it a win's
@@ -838,22 +849,35 @@ def RaftLaws (G : RaftFacts) : Prop :=
     ∀ p ∈ G.camps, uint.Z x.1 < uint.Z p.1 → G.committed.take x.2 <+: p.2) ∧
   CampTermsOk G
 
+/-- The raft facts a bootstrapped run starts with and keeps (`BootInit`, B 733-753): the boot log
+certified and, bootstrapped, no raft leader of term `1` (raft's campaigns are past the boot term:
+`isCampK`'s `reBoot ≠ [] → 2 ≤ T`; the binding's leader of term `1`, node 1, is its own record, which
+`GlobalOk` exempts). -/
+def BootFacts (R : RunCfg) (G : RaftFacts) : Prop :=
+  bootLog R ∈ G.logs ∧ (R.boot = true → ∀ j t, (j, t) ∈ G.leaders → 2 ≤ uint.Z t)
+
 /-- **C5, `GlobalOk`**: everything `S` and `net` hold is certified by `G` -- its leaders and votes
 are raft's, its logs (`log[·]`, `ledLog[·]`, each starting with its term's campaign log) certified,
 `chain` a committed prefix, each `termLen` a commit recorded in its term, each append's entries a
-slice of a certified log. With `RaftLaws G`: `ElectionSafety`, `OneVotePerTerm` (R 581-586), any two
-logs `Matching` (B 132), and leader completeness for the terms after a commit's. -/
+slice of a certified log; bootstrapped, the binding's own boot record (node 1 the leader of term
+`1`, the boot log its leader log, `BootInit`, B 733-753) is exempt; `BootFacts`; every acknowledgement raft certifies at a term its node has reached (sent
+after its write, sync). With
+`RaftLaws G`: `ElectionSafety`, `OneVotePerTerm` (R 581-586), any two logs `Matching` (B 132), and
+leader completeness for the terms after a commit's. -/
 def GlobalOk (R : RunCfg) (S : AntCheck.State) (net : List Msg) (G : RaftFacts) : Prop :=
-  (∀ l ∈ S.leaders, ∃ j t, (j, t) ∈ G.leaders ∧ l.server = nameOf j ∧ l.term = uint.Z t) ∧
+  (∀ l ∈ S.leaders, (R.boot = true ∧ l.server = nameOf (W64 1) ∧ l.term = 1) ∨
+    ∃ j t, (j, t) ∈ G.leaders ∧ l.server = nameOf j ∧ l.term = uint.Z t) ∧
   (∀ v ∈ S.votes, ∃ a t c, (a, t, c) ∈ G.votes ∧
     v.voter = nameOf a ∧ v.term = uint.Z t ∧ v.cand = nameOf c) ∧
   (∀ n : Fin R.N, ∃ l ∈ G.logs, S.log[n.val]! = logOf l) ∧
-  (∀ p ∈ S.ledLog, ∃ l ∈ G.logs, p.2 = logOf l ∧
+  (∀ p ∈ S.ledLog, (R.boot = true ∧ p = (1, logOf (bootLog R))) ∨ ∃ l ∈ G.logs, p.2 = logOf l ∧
     ∃ t l0, uint.Z t = p.1 ∧ (t, l0) ∈ G.camps ∧ l0 <+: l) ∧
   (∃ c ≤ G.committed.length, S.chain = logOf (G.committed.take c)) ∧
   (∀ p ∈ S.termLen, 0 ≤ p.2 ∧ ∃ x, uint.Z x = p.1 ∧ (x, p.2.toNat) ∈ G.commits) ∧
   (∀ m ∈ net, m.ty = .app →
-    ∃ l ∈ G.logs, (l.drop (uint.nat m.index)).take m.entries.length = m.entries)
+    ∃ l ∈ G.logs, (l.drop (uint.nat m.index)).take m.entries.length = m.entries) ∧
+  BootFacts R G ∧
+  (∀ a ∈ G.acks, uint.Z a.2.2 ≠ 0 → ∀ j : Fin R.N, a.1 = nodeId j → uint.Z a.2.1 ≤ S.currentTerm[j.val]!)
 
 /-- The raft facts a `ready` report needs of the node's new state `r` (at node `id`), already in
 `G` (the harness adds them from `rawNode`'s laws before the report, §3.4): its full log certified,

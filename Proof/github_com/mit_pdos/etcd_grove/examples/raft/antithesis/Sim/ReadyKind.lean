@@ -73,8 +73,8 @@ def ReportedO (v : NodeView) (rd : ReadyD) : Prop :=
 
 /-- `ReadyOutP` below `mskB1a` (sync, snapshots off, no ghost prefix before or after, the disk's log
 the view's full log) is its protocol reading. -/
-theorem readyOutO_of {R : RunCfg} {n : Fin R.N} {v : NodeView} {r : RState} {xs : List XMsg}
-    {rd : ReadyD} (h : ReadyOutP R n v r xs rd) (hasync : R.md.async = false)
+theorem readyOutO_of {R : RunCfg} {n : Fin R.N} {v : NodeView} {r : RState}
+    {rd : ReadyD} (h : ReadyOutP R n v r rd) (hasync : R.md.async = false)
     (hsn : R.md.snapshots = false) (hdl : v.dur.log = v.ps.log) (hfp : r.fp = []) :
     ReadyOutO R.N (nodeId n) v r.p rd := by
   obtain ⟨hR, -, hT, hV, hC, hnil, hfst, hqp, hsync, -, -, hpfx, hlen, -, hsnapC, hidx, hvot⟩ := h
@@ -122,17 +122,17 @@ inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) : NodeView 
 /-- `ReachIn` below `mskB1a` is its protocol reading at the node's configuration. -/
 theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {net : List Msg} {xnet : List XMsg} {n : Fin R.N}
-    {S : AntCheck.State} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {S : AntCheck.State} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : ReachP (R.k n) v.r.cfg.cfg (nodeId n) net v r₁.p := by
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) : ReachP (R.k n) v.r.cfg.cfg (nodeId n) net v r₁.p := by
   cases hr with
   | stay hi => exact .stay _ hi
-  | input inp _ _ hinp hi hbe hca _ hm _ hs =>
+  | input inp _ hinp hi hbe hca _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨hti, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      exact .recv _ m _ hi hbe hca hmn hmd hm0 (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1)
-    · exact .tick _ _ hi (by rcases hti with rfl | rfl <;> simp [hbe, Input.byE, TickBy]) (TickEnd.toO_in hmsk hin hs.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact .recv _ m _ hi hbe hca hmn hmd hm0 (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
+    · exact .tick _ _ hi (by rcases hti with rfl | rfl <;> simp [hbe, Input.byE, TickBy]) (TickEnd.toO_in hmsk hin hs.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact .propose _ d _ hi hbe hh
       · exact absurd rfl h0
       · exact absurd rfl h0

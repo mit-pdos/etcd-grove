@@ -506,7 +506,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
       | .idle => iprop(⌜v.Idle ∧ r = v.r ∧ qs = [] ∧ ip = v.r.p.log.length ∧ PIdle rs r.p ∧
           cl = null⌝)
       | .loop net₀ xnet₀ r₁ xs₁ => iprop(⌜r = r₁ ∧
-          AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ xs₁ ∧ qs = [] ∧
+          AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧ qs = [] ∧
           ip = lcpLen v.r.p.log r₁.p.log ∧ ByOk v.byE⌝ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗
           causeOwn γ j v cl)
       | .drained => iprop(⌜v.Idle ∧ r = v.r ∧ qs = [] ∧ ip = v.r.p.log.length ∧ PIdle rs r.p⌝ ∗

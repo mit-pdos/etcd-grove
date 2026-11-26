@@ -359,18 +359,18 @@ theorem advanceEndR_fp {Adm : List EntryM → CCState → Prop} {dec : CCDec} {k
 snapshot is received). -/
 theorem reach_fp {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
-    (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) :
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
+    (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁) :
     r₁.fp = v.r.fp := by
   obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   cases hr with
   | stay _ => rfl
-  | input inp _ _ hinp _ _ _ _ hm _ hs =>
+  | input inp _ hinp _ _ _ _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, -⟩ := hm m rfl
-      exact recvEndR_fp hs.1 (by rcases hty m hmn with h | h | h | h | h | h | h <;> rw [h] <;> decide)
-    · exact hs.1.2.2.1
-    · exact recvEndR_fp hs.1 (by simp [propMsg])
+      exact recvEndR_fp hs (by rcases hty m hmn with h | h | h | h | h | h | h <;> rw [h] <;> decide)
+    · exact hs.2.2.1
+    · exact recvEndR_fp hs (by simp [propMsg])
   | advance _ _ _ _ _ _ ha _ =>
     refine advanceEndR_fp ha fun q hq => ?_
     rcases ((hv.qs q hq).2.2.2.2).imp (fun h => h.1) (fun h => h.1) with h | h <;> rw [h] <;> decide
@@ -385,9 +385,9 @@ message to another node `MShape` (the cause's context for a heartbeat response).
 below `mskB1a` admits; a leader with no read request pending (`hro`). -/
 theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hfl : EntsNormal v.r.full)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hfl : EntsNormal v.r.full)
     (hro : v.ps.role = .leader → v.ps.rd.ro.pending = [])
     (hcm : ∀ m, v.cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) :
     EntsNormal r₁.full ∧ OutShape R.md (nodeId n) v.cause r₁.p := by
@@ -400,18 +400,18 @@ theorem shape_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : 
     entsNormal_append (hfp ▸ hf0) hl'
   cases hr with
   | stay _ => exact ⟨hfl, outShape_nil hX⟩
-  | input inp _ _ hinp _ hbe hca _ hmm _ hst =>
+  | input inp _ hinp _ hbe hca _ hmm _ hst =>
     rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, hm0⟩ := hmm m rfl
       have hsc := ty7_of_s4 (hty m hmn)
       have hme := hcm m hca
-      have hl' := entsNormal_recv hsc hme hl (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)
+      have hl' := entsNormal_recv hsc hme hl (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1)
       rw [hca]
-      exact ⟨hfull hl', outShape_recv hX hm0 hl' hsc (fun h => hme (.inr h)) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)⟩
-    · exact ⟨hfull (entsNormal_tick hl (TickEnd.toO_in hmsk hin hst.1.1)), outShape_tick hro hX (TickEnd.toO_in hmsk hin hst.1.1)⟩
+      exact ⟨hfull hl', outShape_recv hX hm0 hl' hsc (fun h => hme (.inr h)) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1)⟩
+    · exact ⟨hfull (entsNormal_tick hl (TickEnd.toO_in hmsk hin hst.1)), outShape_tick hro hX (TickEnd.toO_in hmsk hin hst.1)⟩
     · have hpe : EntsNormal (propMsg (nodeId n) d).entries := by
         intro e he; simp only [propMsg, List.mem_singleton] at he; rw [he]
-      rcases (RecvEnd.toO_prop hmsk hin hv hst.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      rcases (RecvEnd.toO_prop hmsk hin hv hst.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · have hl' := entsNormal_handle (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr rfl))))))
           (fun _ => hpe) hl hh
         exact ⟨hfull hl', outShape_propose hX hl' hpe hh⟩
@@ -590,9 +590,9 @@ theorem dstIn_adv {c : CfgM} {R : RunCfg} {n : Fin R.N} {s s' : PState} {qs : Li
 node is to a server. For the runs a mask below `mskB1a` admits (the initial configuration). -/
 theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : DstIn R.N (nodeId n) r₁.p := by
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) : DstIn R.N (nodeId n) r₁.p := by
   obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hX := hv.facts.outbox
   have hqs := hv.qs
@@ -601,13 +601,13 @@ theorem dst_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CC
     rw [(hv.facts.conf0 (by rw [hmd])).1]; exact cfgIn_voters0 R
   cases hr with
   | stay _ => exact dstIn_nil hX
-  | input inp _ _ hinp _ _ _ _ hm _ hs =>
+  | input inp _ hinp _ _ _ _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, -⟩ := hm m rfl
       obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1
-      exact dstIn_recv hc (dstIn_nil hX) hlo.2 ⟨i, hi⟩ (ty7_of_s4 (hty m hmn)) (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1)
-    · exact dstIn_tick hc hX (TickEnd.toO_in hmsk hin hs.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact dstIn_recv hc (dstIn_nil hX) hlo.2 ⟨i, hi⟩ (ty7_of_s4 (hty m hmn)) (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
+    · exact dstIn_tick hc hX (TickEnd.toO_in hmsk hin hs.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact dstIn_propose hc hlo.2 hh (dstIn_nil hX)
       · exact absurd rfl h0
       · exact absurd rfl h0
@@ -622,9 +622,9 @@ network carries or a proposal, its entries normal, a heartbeat response's contex
 heartbeat's. -/
 theorem msgShape_core {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {ms : List Msg}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {ms : List Msg}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁)
     (hmsg : ms.Perm (r₁.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n))))
     (hfl : EntsNormal v.r.full) (hro : v.ps.role = .leader → v.ps.rd.ro.pending = [])
     (hcm : ∀ m, v.cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries) :
@@ -640,9 +640,9 @@ leader with no read request pending (`hro`): a heartbeat response echoes the han
 context, `[]` by the premise; the destinations by `dst_reach`. -/
 theorem msgShape_in_of {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {rd : ReadyD}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁)
     (hmsg : (rd.msgs ++ rd.resp).Perm (r₁.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n))))
     (hfl : EntsHarness v.r.full) (hro : v.ps.role = .leader → v.ps.rd.ro.pending = [])
     (hcm : ∀ m, v.cause = some m → EntsHarness m.entries ∧
@@ -668,15 +668,15 @@ a leader having no read request pending without reads (`NodeFacts.roPend`). -/
 theorem msgShape_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
     ∀ (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (S : AntCheck.State)
       (net : List Msg) (xnet : List XMsg) (n : Fin R.N) (v : NodeView) (r₁ : RState)
-      (xs : List XMsg) (rd : ReadyD),
+      (rd : ReadyD),
       InMask msk R net xnet →
-      NetOk R S net → NodeOk R dec S net n v → ReachIn msk R dec Adm net xnet n v r₁ xs →
+      NetOk R S net → NodeOk R dec S net n v → ReachIn msk R dec Adm net xnet n v r₁ →
       (rd.msgs ++ rd.resp).Perm (r₁.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n))) →
       EntsHarness v.r.full →
       (∀ m, v.cause = some m → EntsHarness m.entries ∧ (R.md.reads = false → m.ty = .heartbeat → m.ctx = [])) →
       EntsHarness r₁.full ∧ (∀ q ∈ rd.msgs ++ rd.resp, ReadyMsgShape R.md (nodeId n) q) ∧
       ReadyMsgsToVoters R.N rd := by
-  intro R dec Adm S net xnet n v r₁ xs rd hin hnet hv hr hmsg hfl hcm
+  intro R dec Adm S net xnet n v r₁ rd hin hnet hv hr hmsg hfl hcm
   have hrd : R.md.reads = false := by rw [(hin.b1a hmsk).1]
   exact msgShape_in_of hmsk hin hnet hv hr hmsg hfl (hv.facts.roPend hrd) hcm
 
@@ -781,19 +781,19 @@ theorem roOk_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (hs : RoO
 `Ready` is taken at). -/
 theorem reach_roOk {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
-    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) :
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
+    (hnet : NetOk R S net) (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁) :
     RoOk r₁.p := by
   obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hs : RoOk v.ps := ⟨hv.facts.pend0 (by rw [hmd]), hv.facts.roPend (by rw [hmd])⟩
   cases hr with
   | stay _ => exact hs
-  | input inp _ _ hinp _ _ _ _ hm _ hst =>
+  | input inp _ hinp _ _ _ _ hm _ hst =>
     rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, -⟩ := hm m rfl
-      exact roOk_recv hs (ty7_of_s4 (hty m hmn)) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)
-    · exact roOk_tick hs (TickEnd.toO_in hmsk hin hst.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hst.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact roOk_recv hs (ty7_of_s4 (hty m hmn)) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1)
+    · exact roOk_tick hs (TickEnd.toO_in hmsk hin hst.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hst.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact roOk_propose hh hs
       · exact absurd rfl h0
       · exact absurd rfl h0
@@ -821,31 +821,26 @@ theorem advanceNoSnap_keep {Adm : List EntryM → CCState → Prop} {dec : CCDec
     obtain ⟨b1, b2, b3⟩ := recvEndR_keep hr (hq q (List.mem_cons_self ..))
     exact ⟨a1.trans b1, a2.trans b2, a3.trans b3⟩
 
-/-- **`Reach` keeps the configuration, the ghost prefix and the restored flag**, queues no transfer
-message, and starts with nothing pending. -/
+/-- **`Reach` keeps the configuration, the ghost prefix and the restored flag**, and starts with
+nothing pending. -/
 theorem reach_keep {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
-    (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) :
-    (r₁.cfg = v.r.cfg ∧ r₁.fp = v.r.fp ∧ r₁.snap = v.r.snap) ∧ xs = [] ∧ v.pend = [] ∧
-      v.xpend = [] := by
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
+    (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁) :
+    (r₁.cfg = v.r.cfg ∧ r₁.fp = v.r.fp ∧ r₁.snap = v.r.snap) ∧ v.pend = [] ∧ v.xpend = [] := by
   obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   cases hr with
-  | stay hi => exact ⟨⟨rfl, rfl, rfl⟩, rfl, hi.2.1, hi.2.2.1⟩
-  | input inp _ _ hinp hi _ _ _ hm _ hst =>
-    refine ⟨?_, ?_, hi.2.1, hi.2.2.1⟩
-    · rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
-      · obtain ⟨hmn, -, -⟩ := hm m rfl
-        exact recvEndR_keep hst.1
-          (by rcases hty m hmn with h | h | h | h | h | h | h <;> rw [h] <;> decide)
-      · exact ⟨hst.1.2.1.2.2, hst.1.2.2.1, hst.1.2.2.2.1⟩
-      · exact recvEndR_keep hst.1 (by simp [propMsg])
-    · rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
-      · exact hst.2
-      · exact hst.2
-      · exact hst.2
+  | stay hi => exact ⟨⟨rfl, rfl, rfl⟩, hi.2.1, hi.2.2.1⟩
+  | input inp _ hinp hi _ _ _ hm _ hst =>
+    refine ⟨?_, hi.2.1, hi.2.2.1⟩
+    rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
+    · obtain ⟨hmn, -, -⟩ := hm m rfl
+      exact recvEndR_keep hst
+        (by rcases hty m hmn with h | h | h | h | h | h | h <;> rw [h] <;> decide)
+    · exact ⟨hst.2.1.2.2, hst.2.2.1, hst.2.2.2.1⟩
+    · exact recvEndR_keep hst (by simp [propMsg])
   | advance _ hp hxp _ _ _ _ hns =>
-    refine ⟨advanceNoSnap_keep (hns (by rw [hmd])) fun q hq => ?_, rfl, hp, hxp⟩
+    refine ⟨advanceNoSnap_keep (hns (by rw [hmd])) fun q hq => ?_, hp, hxp⟩
     rcases ((hv.qs q hq).2.2.2.2).imp (fun h => h.1) (fun h => h.1) with h | h <;> rw [h] <;> decide
 
 /-- Without conf entries, no conf entry's index (`lastConfIdx` is `0`). -/

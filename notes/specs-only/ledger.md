@@ -6180,3 +6180,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   field's prefix), with the restore's `¬ PlogMatches` (`SnapLogStep`): the snapshot index is past the bootstrap log.
   Statements of `snapLocOk`, `readySnap` and the node API unchanged.
 - **Decision.** Lead's decisions on route (b) (b1-boot-resume.md), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim phase 2): the boot record, the transfer messages' facts (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean`, `Sim/Stmts.lean` (and the
+  Sim proofs).
+- **Change (boot, route (b)).** `BootFacts R G` moves from Stmts to Rel and is now `bootLog R ∈ G.logs ∧
+  (R.boot = true → ∀ j t, (j, t) ∈ G.leaders → 2 ≤ uint.Z t)` (was: node 1 the leader of term 1 with the empty
+  campaign log in `G`; raft has no leader of term 1 once the boot log is written, `isCampK`). `GlobalOk` exempts the
+  binding's own boot record: a leader record is `(R.boot ∧ server = node 1 ∧ term = 1) ∨` raft's; a `ledLog` entry is
+  `(R.boot ∧ p = (1, boot log)) ∨` certified; and `GlobalOk` gains `BootFacts R G` as its 8th conjunct (the harness
+  re-proves it when `G` grows: logs only grow, raft's new leaders are past term 1).
+- **Change (transfer, Q3).** `XNetOk`: every transfer message's term within some server's term, and a
+  `MsgTimeoutNow`'s within its receiver's (design §6.4; the dst-server and src-server clauses dropped: at a receipt
+  the binding checks only the receiver, which the network routes to). `XPendOk N id p x` (at the protocol state `p`):
+  to another server, term ≤ `p.term`, a `MsgTimeoutNow` the node's own. `ReadyOutP` drops its `xs` argument;
+  `rd.xmsgs = xs` becomes `∀ x ∈ rd.xmsgs, XPendOk R.N (nodeId n) r.p x` (raft's `XReadyOk` at the `Ready`); the view
+  keeps its protocol state through the drain, so `NodeOk`'s queue conjunct is `XPendOk … v.ps x`. `RaftFacts` gains
+  `acks` (raft's `isAcked`: node, term, index); `GlobalOk` gains its 9th conjunct (a nonzero certified acknowledgement
+  is at a term its node has reached; the harness proves it as `G` grows, the acknowledgement having been sent after
+  its write); `antSim_init`'s `G` has no acknowledgement yet (`G.acks = []`); `antSim_sendX` takes `XMsgFacts G x` (a
+  `MsgTimeoutNow`'s transferee acknowledged at its term, raft's, added before the report). `Reach`, `InputStep` and
+  `Quiet.silentReady` lose the transfer messages `xs` (always `[]` since 48f500bd1e), and `antSim_ready` its `xs`
+  binder; the harness's uses follow (HarnessInput, HarnessRun's `loop` phase invariant, node.tick/campaign/propose:
+  minimal edits, the phase's `xs₁` field kept).
+- **Decision.** Lead's decisions (Q1, Q2 and the acknowledgement form of the `MsgTimeoutNow` fact, 2026-11-26;
+  `XPendOk` at the view's protocol state, the binding's terms derived at `sendX`). No new axiom, no new top-level
+  premise (the harness's new obligations: `BootFacts`, the acknowledgements' terms, `XMsgFacts`).

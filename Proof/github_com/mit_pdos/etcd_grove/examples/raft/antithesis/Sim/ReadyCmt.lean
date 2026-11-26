@@ -200,16 +200,9 @@ theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
     exact roleS_eq_leader h.symm
   have hkm := List.contains_iff_mem.mp (hv.leader hvk).1
   have hnm := List.contains_iff_mem.mp hn
-  obtain ⟨a, ta, ha, hsa, hta⟩ := hgo.1 _ hnm
-  obtain ⟨b, tb, hb, hsb, htb⟩ := hgo.1 _ hkm
   have hct : S.currentTerm[k.val]! = uint.Z (V k).ps.term := by rw [hv.disk.1, hdk k]; rfl
-  have hta' : S.currentTerm[k.val]! = uint.Z ta := hta
-  have htb' : uint.Z (V k).ps.term = uint.Z tb := htb
-  have htt : ta = tb := uint_Z_inj.mp (by omega)
-  have hab : a = b := hl.1 _ ha _ hb htt
-  have hsa' : nameOf (nodeId n) = nameOf a := hsa
-  have hsb' : nameOf (nodeId k) = nameOf b := hsb
-  exact name_inj (by rw [hsb', hsa', hab])
+  have h := hgo.leader_server hl hnm hkm hct
+  exact name_inj h.symm
 
 /-- **A quiet step's state along `ReachP`** (`quiet_reach` read on the protocol): `QKeep` from the
 view's state, for a step that keeps the role, term and log. -/
@@ -322,7 +315,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hcGc := hx.hrf.2.2.2.1
   have hm' := inMemory_lcommit n hc (V n).byE hbE r₁.p.term r₁.p.vote r₁.p.commit (logOf r₁.p.log)
     R.cfg.initConf hrole hT hll hlc hcL hc0 hk hterm hq (cs_ok hx.hgo1.2.2.2.2.1 hcG)
-    (lc_ok hx.hl hx.hgo1.2.2.2.1 hcGc hcG)
+    (lc_ok hx.hl hx.hgo1.2.2.2.1 hcGc hcG (hx.boot1 (by have := hx.d1; omega)))
   -- the new `chain` and `termLen`
   have himax : imax (tlOld S1.termLen (uint.Z r₁.p.term)) (uint.Z r₁.p.commit) = uint.Z r₁.p.commit := by
     unfold imax; split <;> omega
@@ -347,7 +340,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     S1.ledLog ch tl S1.viol hT.symm (by rw [hx.d2, hpv]) (get!_set_self _ hn3) hsend hcmi
     (by rw [hlogn]; exact hcL)
     ⟨by rw [lp5.1, hpt], by have := lp5.2; rw [hlenF, ← hplog] at this; omega⟩
-    (by rw [hlogn]; exact cs_ok f6 hcG) (by rw [hlogn]; exact lc_ok hx.hl hx.hgo1.2.2.2.1 hcGc hcG)
+    (by rw [hlogn]; exact cs_ok f6 hcG) (by rw [hlogn]; exact lc_ok hx.hl hx.hgo1.2.2.2.1 hcGc hcG (hx.boot1 (by have := hx.d1; omega)))
     (by rw [hlogn]; exact ch_ok f6 hcG)
   have hchl : ¬ (S1.commitIndex[n.val]! < uint.Z r₁.p.commit ∧ (ch.length : Int) < uint.Z r₁.p.commit) :=
     fun h => by have := f2.1; omega

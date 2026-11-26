@@ -503,6 +503,22 @@ theorem sendable_gc {S : State} {g : List Fact} {o : List VoteRec} {F : AppendFa
 
 /-! ## `violated` -/
 
+/-- **Election safety of `leaders`** under `GlobalOk`: two leader records of a term are of one
+server (raft's `ElectionSafety`; the boot record of term `1` is node 1's, and `BootFacts` leaves
+raft no leader of term `1` in a bootstrapped run). -/
+theorem GlobalOk.leader_server [GooseExts] {S : State} {net : List Msg} {G : RaftFacts}
+    (hl : RaftLaws G) (hg : GlobalOk R S net G) {a b : LeaderRec} (ha : a ∈ S.leaders)
+    (hb : b ∈ S.leaders) (hab : a.term = b.term) : a.server = b.server := by
+  have h8 := hg.2.2.2.2.2.2.2.1.2
+  rcases hg.1 a ha with ⟨hbt, has, hat⟩ | ⟨j, t, hjt, has, hat⟩ <;>
+    rcases hg.1 b hb with ⟨hbb, hbs, hbt'⟩ | ⟨j', t', hjt', hbs, hbt'⟩
+  · rw [has, hbs]
+  · have := h8 hbt j' t' hjt'; omega
+  · have := h8 hbb j t hjt; omega
+  · have htt : t = t' := uint_Z_inj.mp (by rw [← hat, ← hbt', hab])
+    have hjj : j = j' := hl.1 _ hjt _ hjt' htt
+    rw [has, hbs, hjj]
+
 /-- **No violation** where `viol` is empty and `GlobalOk` holds: `ElectionSafety` and `OneVotePerTerm`
 are raft's (`RaftLaws`). -/
 theorem violated_nil [GooseExts] {S : State} {net : List Msg} {G : RaftFacts} (hv : S.viol = [])
@@ -510,12 +526,8 @@ theorem violated_nil [GooseExts] {S : State} {net : List Msg} {G : RaftFacts} (h
   have he : S.electionSafety = true := by
     unfold State.electionSafety
     rw [List.all_eq_true]; intro a ha; rw [List.all_eq_true]; intro b hb
-    obtain ⟨j, t, hjt, has, hat⟩ := hg.1 a ha
-    obtain ⟨j', t', hjt', hbs, hbt⟩ := hg.1 b hb
     by_cases hab : a.term = b.term
-    · have htt : t = t' := uint_Z_inj.mp (by rw [← hat, ← hbt, hab])
-      have hjj : j = j' := hl.1 _ hjt _ hjt' htt
-      have : a.server = b.server := by rw [has, hbs, hjj]
+    · have : a.server = b.server := hg.leader_server hl ha hb hab
       simp [hab, this]
     · simp [hab]
   have ho : S.oneVotePerTerm = true := by
@@ -658,9 +670,9 @@ theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List 
       · exact .inl ⟨h1, h0, gcRes_ack_keep hc hg n h2 hct⟩
       · exact .inr ⟨h1, gcRes_votes_keep hc ho h2 n rfl hct⟩
   · -- GlobalOk
-    obtain ⟨g1, g2, g3, g4, g5, g6, g7⟩ := hgo
+    obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9⟩ := hgo
     refine ⟨fun l hl => g1 l (gcRes_leaders_sub hl), fun v hv => g2 v (gcRes_votes_sub hv), g3,
-      fun p hp => g4 p (gcRes_ledLog_sub hp).1, g5, g6, g7⟩
+      fun p hp => g4 p (gcRes_ledLog_sub hp).1, g5, g6, g7, g8, g9⟩
 
 end rel
 

@@ -124,7 +124,7 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
           n.[H.node, go!"rn"] ↦ rn -∗
           rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs' r₁ [] ip' -∗
           ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ rs'.k = rs.k ∧ RsView rs' (v.noteInput inp) ∧
-            AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput inp) r₁ xs₁ ∧
+            AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput inp) r₁ ∧
             ip' = lcpLen v.r.p.log r₁.p.log ∧ ByOk inp.byE ∧ ViewNormal (v.noteInput inp)⌝ -∗
           rnTermLB γ.raft rs'.tc -∗
           n.[H.node, go!"cause"] ↦ cl -∗ viewFrag γ j (v.noteInput inp) -∗ nodeLive γ j -∗

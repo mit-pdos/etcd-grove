@@ -25,11 +25,11 @@ variable {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop} {n 
   {net net' : List Msg} {xnet xnet' : List XMsg}
 
 theorem Reach.mono (hn : net <+: net') (hx : xnet <+: xnet') {v : NodeView} {r₁ : RState}
-    {xs : List XMsg} (h : Reach R dec Adm net xnet n v r₁ xs) : Reach R dec Adm net' xnet' n v r₁ xs :=
+    (h : Reach R dec Adm net xnet n v r₁) : Reach R dec Adm net' xnet' n v r₁ :=
   match h with
   | .stay _ hi => .stay _ hi
-  | .input _ inp _ _ hi hb hc hxc hm hxm hs =>
-    .input _ inp _ _ hi hb hc hxc (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
+  | .input _ inp _ hi hb hc hxc hm hxm hs =>
+    .input _ inp _ hi hb hc hxc (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
       (fun x hxi => ⟨hx.subset (hxm x hxi).1, (hxm x hxi).2⟩) hs
   | .advance _ _ hp hxp hce hrp hb ha hns => .advance _ _ hp hxp hce hrp hb ha hns
 
@@ -40,15 +40,15 @@ theorem Quiet.mono (hn : net <+: net') (hx : xnet <+: xnet') {v v' : NodeView}
     .input _ inp hi (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
       (fun x hxi => ⟨hx.subset (hxm x hxi).1, (hxm x hxi).2⟩)
   | .noReady _ r₁ hr h1 h2 h3 h4 h5 h6 h7 => .noReady _ r₁ (hr.mono hn hx) h1 h2 h3 h4 h5 h6 h7
-  | .silentReady _ r₁ xs rd hr hro hnr => .silentReady _ r₁ xs rd (hr.mono hn hx) hro hnr
+  | .silentReady _ r₁ rd hr hro hnr => .silentReady _ r₁ rd (hr.mono hn hx) hro hnr
 
 theorem ReachIn.mono {msk : SimMask} (hn : net <+: net') (hx : xnet <+: xnet') {v : NodeView}
-    {r₁ : RState} {xs : List XMsg} (h : ReachIn msk R dec Adm net xnet n v r₁ xs) :
-    ReachIn msk R dec Adm net' xnet' n v r₁ xs :=
+    {r₁ : RState} (h : ReachIn msk R dec Adm net xnet n v r₁) :
+    ReachIn msk R dec Adm net' xnet' n v r₁ :=
   match h with
   | .stay _ hi => .stay _ hi
-  | .input _ inp _ _ hk hi hb hc hxc hm hxm hs =>
-    .input _ inp _ _ hk hi hb hc hxc (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
+  | .input _ inp _ hk hi hb hc hxc hm hxm hs =>
+    .input _ inp _ hk hi hb hc hxc (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
       (fun x hxi => ⟨hx.subset (hxm x hxi).1, (hxm x hxi).2⟩) hs
   | .advance _ _ hp hxp hce hrp hb ha hns => .advance _ _ hp hxp hce hrp hb ha hns
 
@@ -59,7 +59,7 @@ theorem QuietIn.mono {msk : SimMask} (hn : net <+: net') (hx : xnet <+: xnet') {
     .input _ inp hk hi (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
       (fun x hxi => ⟨hx.subset (hxm x hxi).1, (hxm x hxi).2⟩)
   | .noReady _ r₁ hr h1 h2 h3 h4 h5 h6 h7 => .noReady _ r₁ (hr.mono hn hx) h1 h2 h3 h4 h5 h6 h7
-  | .silentReady _ r₁ xs rd hr hro hnr => .silentReady _ r₁ xs rd (hr.mono hn hx) hro hnr
+  | .silentReady _ r₁ rd hr hro hnr => .silentReady _ r₁ rd (hr.mono hn hx) hro hnr
 
 end mono
 

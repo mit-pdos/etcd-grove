@@ -71,9 +71,9 @@ theorem node.tick.wp_proof
       $$ [Hv Hl] with ⟨%net₀, %xnet₀, Hv, Hl, #Hlb, #Hxlb, -⟩
   · iframe Hinv Hsw Hsx Hv Hl
   ihave Hco := causeOwn_noRecv (GF := GF) γ j v .tick (by simp only [AntSim.Input.byE]; decide)
-  have hR : AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput .tick) r' [] :=
-    AntSim.Reach.input _ .tick r' [] hI rfl rfl rfl (fun m h => by cases h) (fun x h => by cases h)
-      ⟨hTE, rfl⟩
+  have hR : AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput .tick) r' :=
+    AntSim.Reach.input _ .tick r' hI rfl rfl rfl (fun m h => by cases h) (fun x h => by cases h)
+      hTE
   have hip' : ip' = lcpLen v.r.p.log r'.p.log := by
     rw [hip]; exact Nat.min_eq_right (lcpLen_le_left _ _)
   ihave Hown := Hclose $$ %_ %r' %ip' %.tick %net₀ %xnet₀ %([] : List XMsg) %null Hrnf Hraw

@@ -402,23 +402,23 @@ theorem advanceEndR_toO {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {de
 (C4's `NetShape`: its sender's `AppOk`). For the runs a mask below `mskB1a` admits. -/
 theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : OutOk R.N (nodeId n) v r₁.p := by
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) : OutOk R.N (nodeId n) v r₁.p := by
   obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hX := hv.facts.outbox
   have hb := (hv.facts.snap0 (by rw [hmd])).1
   have hqs := hv.qs
   cases hr with
   | stay _ => exact outOk_nil hX
-  | input inp _ _ hinp _ hbe hca _ hm _ hs =>
+  | input inp _ hinp _ hbe hca _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, hm0⟩ := hm m rfl
       have h7 := hty m hmn
       exact outOk_recv hX hb hm0 hbe hca (hnet.2.2.1 m hmn).1
-        (by rcases h7 with h | h | h | h | h | h | h <;> simp [h]) (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1)
-    · exact outOk_tick hX hb (TickEnd.toO_in hmsk hin hs.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+        (by rcases h7 with h | h | h | h | h | h | h <;> simp [h]) (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
+    · exact outOk_tick hX hb (TickEnd.toO_in hmsk hin hs.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact outOk_propose hX hh
       · exact absurd rfl h0
       · exact absurd rfl h0
@@ -431,9 +431,9 @@ theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : 
 (`NodeView.drainOf`, sync), each to a voter (`ReadyOutP`'s `ReadyMsgsToVoters`). -/
 theorem pendOk_of_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {rd : ReadyD}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hro : ReadyOutP R n v r₁ xs rd) :
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hro : ReadyOutP R n v r₁ rd) :
     ∀ q ∈ rd.msgs, PendOk R.N (nodeId n) (v.drainOf r₁ rd) q := by
   intro q hq
   have hasync : R.md.async = false := by rw [(hin.b1a hmsk).1]
@@ -568,9 +568,9 @@ steps only the node's own acknowledgements and vote responses. For the runs a ma
 admits. -/
 theorem reach_leadOk {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} (hin : InMask msk R net xnet)
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) : LeadHint R.N (nodeId n) r₁.p := by
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) : LeadHint R.N (nodeId n) r₁.p := by
   obtain ⟨_, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hqs := hv.qs
   have hlo : LeadHint R.N (nodeId n) v.ps := hv.leadOk
@@ -578,14 +578,14 @@ theorem reach_leadOk {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec :
   have hin' : ∃ j : Fin R.N, nodeId n = nodeId j := ⟨n, rfl⟩
   cases hr with
   | stay _ => exact hlo
-  | input inp _ _ hinp _ _ _ _ hm _ hs =>
+  | input inp _ hinp _ _ _ _ hm _ hs =>
     rcases Input.step_b1a hmsk hin hinp hs with ⟨m, rfl⟩ | ⟨-, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, hmd, -⟩ := hm m rfl
       have hsd : m.src ≠ nodeId n := hmd ▸ (hnet.2.2.1 m hmn).2.1
       obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1
-      exact leadHint_recv hlo hid hin' (ty7_of_s4 (hty m hmn)) (.inl hsd) ⟨i, hi⟩ (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1.1)
-    · exact leadHint_tick hlo hid (TickEnd.toO_in hmsk hin hs.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      exact leadHint_recv hlo hid hin' (ty7_of_s4 (hty m hmn)) (.inl hsd) ⟨i, hi⟩ (RecvEnd.toO_in hmsk hin hnet hv hmn hs.1)
+    · exact leadHint_tick hlo hid (TickEnd.toO_in hmsk hin hs.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hs.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact leadHint_propose hlo hh
       · exact absurd rfl h0
       · exact absurd rfl h0

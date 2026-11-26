@@ -64,8 +64,8 @@ the harness's, every message to another node `ReadyMsgShape`, and each to one of
 abbrev msgShape.stmt : Prop :=
   ∀ (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (S : AntCheck.State)
     (net : List Msg) (xnet : List XMsg) (n : Fin R.N) (v : NodeView) (r₁ : RState)
-    (xs : List XMsg) (rd : ReadyD),
-    NetOk R S net → NodeOk R dec S net n v → Reach R dec Adm net xnet n v r₁ xs →
+    (rd : ReadyD),
+    NetOk R S net → NodeOk R dec S net n v → Reach R dec Adm net xnet n v r₁ →
     (rd.msgs ++ rd.resp).Perm (r₁.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n))) →
     EntsHarness v.r.full →
     (∀ m, v.cause = some m → EntsHarness m.entries ∧ (R.md.reads = false → m.ty = .heartbeat → m.ctx = [])) →

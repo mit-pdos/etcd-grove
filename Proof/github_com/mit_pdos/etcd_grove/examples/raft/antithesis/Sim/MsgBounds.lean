@@ -285,9 +285,9 @@ handled message's index and log term (`InNums`, of the drain's cause, which is n
 network carries none, `NetFacts`) are within. For the runs a mask below `mskB1a` admits. -/
 theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {K : Int}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {K : Int}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hs : StateNums K r₁.p)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hs : StateNums K r₁.p)
     (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose) : OutNums K (nodeId n) r₁.p := by
   obtain ⟨hmd, _, _, _, _, _, _, hty⟩ := hin.b1a hmsk
   have hX := hv.facts.outbox
@@ -295,13 +295,13 @@ theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec 
   have hqs := hv.qs
   cases hr with
   | stay _ => exact outNums_nil hX
-  | input inp _ _ hinp _ hbe hca _ hmm _ hst =>
+  | input inp _ hinp _ hbe hca _ hmm _ hst =>
     rcases Input.step_b1a hmsk hin hinp hst with ⟨m, rfl⟩ | ⟨-, hst⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, -, hm0⟩ := hmm m rfl
       exact outNums_recv hX hb hm0 hs (hm m hca).1 (hnet.2.2.1 m hmn).1 (ty7_of_s4 (hty m hmn))
-        (fun hp => absurd hp (hm m hca).2) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1.1)
-    · exact outNums_tick hX hb hs (TickEnd.toO_in hmsk hin hst.1.1)
-    · rcases (RecvEnd.toO_prop hmsk hin hv hst.1.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+        (fun hp => absurd hp (hm m hca).2) (RecvEnd.toO_in hmsk hin hnet hv hmn hst.1)
+    · exact outNums_tick hX hb hs (TickEnd.toO_in hmsk hin hst.1)
+    · rcases (RecvEnd.toO_prop hmsk hin hv hst.1) with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
       · exact outNums_propose hX hs (msgNums_propMsg hs.1 _ d) hh
       · exact absurd rfl h0
       · exact absurd rfl h0
@@ -314,9 +314,9 @@ theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec 
 nodes). -/
 theorem readyMsgNums {msk : SimMask} (hmsk : msk ≤ mskB1a) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
-    {n : Fin R.N} {v : NodeView} {r₁ : RState} {xs : List XMsg} {rd : ReadyD} {K : Int}
+    {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD} {K : Int}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁ xs) (hro : ReadyOutP R n v r₁ xs rd)
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) (hro : ReadyOutP R n v r₁ rd)
     (hs : StateNums K r₁.p) (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose) :
     ∀ q ∈ rd.msgs ++ rd.resp, MsgNums K q := by
   have hasync : R.md.async = false := by rw [(hin.b1a hmsk).1]
