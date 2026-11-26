@@ -691,3 +691,38 @@ only from `Link`/`MainLinked`/`Results`/`TopLevelRobustness` files.
   `NewServerDist.olean` may be stale.
 - **Left after that:** the axiom-tok gate (once the lead rules on `NewServer_dist`), step 3 of Handoff 7 (the
   orchestrator's lease dispatch), landing.
+
+### Session 9 (2026-11-26): the two deployment restrictions; `NewServer_dist`'s token finding traced
+
+**Q1, Q2 (the lead's decisions, F8 design `notes/etcd-dist-plan.md` §27.7 on `etcd-safe-f8/2026-11-26`)**, Go and Lean
+in step (`adaea37e3a`):
+- Q1, `typed.Deployment.WellFormed`: `d.cfg.auth = true → ∃ w ∈ d.workloads, w.needsAuth = true` (a new conjunct after
+  the `needsAuth → auth` one). Go: `WellFormed`'s clause-5 loop sets `needed` on a `NeedsAuth` kind, and
+  `c.Auth && !needed` fails after it. Since `auth`/`authLease` run alone, auth is on exactly in `[auth]`, `[authLease]`;
+  review F10's `¬ (auth ∧ leaseExpiry ∈ ws)` is now implied (kept, as Go's check is).
+- Q2, `typed.Compatible`'s fifth conjunct: a `grantsLeases` workload beside no other that `writesKeys` (`leaseRead`
+  grants nothing). Go: `compatible`'s sole-writer loop runs also for `grantsLeases` kinds
+  (`!needsSoleWriter(k) && !grantsLeases(k)`); `goCompatible`'s third conjunct takes the disjunction.
+- Proofs: `compatible.wp_proof` takes `grantsLeases.spec` (link list and `deployment/Link.lean` regenerated); its
+  inner loop is shared by the two "excludes writers" outcomes (`all_goals`); `WellFormed`'s loop invariant tracks
+  `needed` (`nb = true → ∃ w ∈ take j, kindAlone`), then a case split on `auth`/`nb` for the new check;
+  `goWellFormed_sound` proves both clauses; positional destructurings of `WellFormed` shifted (`.members`,
+  `.urlBounds`, `BootFactsSat.satD_wf`). Every other consumer reads `WellFormed` by statement (`grind`).
+- `deploy.go`: `RandomWorkloads` puts the granting lease workloads in a class of their own (`leaseRead`, and
+  `leaseCatchup` or `leaseExpiry`), `leaseRead` beside the key writers; `randomCfg`'s auth exactly when needed.
+  `TestWellFormed`: auth on with `putget` or no workload refused, no workload with auth off accepted, each granting
+  kind beside `putget`/`compact`/`durable` refused and beside `leaseRead` accepted, `putget`+`leaseRead` accepted
+  (mutation-checked: each new case fails with its check removed).
+- Built on fk-lean2 at `adaea37e3a`: `deployment.Link`, `BootFactsSat`, `TopLevelWitness`, `client.Results`,
+  `kvremote.{TopLevelRobustness,TopLevelWitness}`, `dist.TopLevelRobustness`, the two `SpecPlan` PkgInit leaves
+  (`etc/importers.py --leaves`), EXIT 0; `etc/goose.py --check --project putget-dist` up to date.
+- **Conflicts: none.** `clusterStartDL` and `compactorCfg_of_wf` read `WellFormed` by statement; `wp_RunLeaseRead`'s
+  spec is over any `Γ` (its "lease mode `none`" is a comment), so `leaseRead` beside a granter is covered. The auth
+  start (`{auth}`, `{authLease}` with auth on) is exactly Q1's case. Note for F9: kvremote's scope
+  `KvOnly d ∧ d.cfg.auth = false` now has its second half implied by `WellFormed ∧ KvOnly` (not changed: statement
+  text is the lead's).
+
+**`NewServer_dist`'s rule-2b finding**: traced to `lease.bootCfg`'s revocable conjunct `srvRevokeOpen`
+(`revokeExpiredLeases.spec`, a triple the caller supplies: its `threadTok` in and out) and, inside it, `lessorOk`'s
+`Promote` triple (a borrow); write-up `notes/axiom-review/f7-newserver-atok.md`, with M1's comparison. No allow
+entry added (the lead's call).
