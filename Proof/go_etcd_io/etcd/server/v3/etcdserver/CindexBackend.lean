@@ -544,8 +544,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 variable [cindex_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
-/- (T10 session 10) Generic over the apply protocol's image row `IR` (`consInv γA IR`). -/
-variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
+/- (T10 session 10) Generic over the apply protocol's image row `Rw` (`consInv γA Rw`). -/
+variable {Rw : TRow GF}
 
 /-- **The consistent index's pre-commit hook over the real backend**, with the run's facts
 (`hookRun`: what the server's hook needs for its `confState` put): `ci.UnsafeSave(t)`, by the
@@ -565,7 +565,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA IR) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ∗
       applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -632,7 +632,7 @@ theorem ci_hook_backend (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA IR) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ∗
       applyRegd γA ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -662,7 +662,7 @@ backend `γ` (its batch lock held, its commit paid) finds its names registered: 
 resource, or the premise, or (a future backend's) by `fut_resolve`. -/
 theorem batchLockInv_resolve (γA : ApplyNames) (TM : MetaCI → IProp GF) (γ : BNames) (P : BParams)
     (b : Loc) (st : BSess) (stop : Bool) (m u : Nat) :
-    inv applyN (consInv γA IR) ∗ regdOrLink γA γ ⊢ batchLockInv γA TM -∗ batchLocked γ P b st -∗
+    inv applyN (consInv γA Rw) ∗ regdOrLink γA γ ⊢ batchLockInv γA TM -∗ batchLocked γ P b st -∗
       payIn γ st stop m u -∗ |={⊤}=> applyRegd γA ∗ batchLockInv γA TM ∗ batchLocked γ P b st ∗
         payIn γ st stop m u := by
   iintro ⟨#Hinv, #Hrl⟩ Hbl Hl Hpay
@@ -694,7 +694,7 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA IR) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ∗
       regdOrLink γA γ ∗
       □ (∀ (v : val) (Ψ : val → IProp GF),
           WP (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -707,7 +707,7 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   imod batchLockInv_resolve γA (metaTM γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
   iapply Hf
-  iapply (ci_hook_backend (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
+  iapply (ci_hook_backend (Rw := Rw) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$
     [] [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -743,7 +743,7 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA IR) ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ∗
       regdOrLink γA γ ⊢
       storage.saveSpec γ P (batchLockInv γA (metaTM γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ := by
@@ -752,7 +752,7 @@ theorem ci_saveSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := h
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, %Hpre, Hpay⟩ HΦ
   imod batchLockInv_resolve γA (metaTM γ P) γ P b st stop m u $$ [$Hinv $Hrl] Hbl Hl Hpay
     with ⟨#Hreg, Hbl, Hl, Hpay⟩
-  iapply (ci_hook_backend_run (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
+  iapply (ci_hook_backend_run (Rw := Rw) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st) $$ []
     [Hl Hbl]
   · iframe #
   · iframe Hl Hbl; ipureintro; exact Hpre
@@ -778,7 +778,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA IR) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ⊢
       {{ batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ applyThread γA s ∗
           ⌜hookPre P st⌝ }}
         (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!! go!"UnsafeSave"))
@@ -842,13 +842,13 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA IR) ⊢
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗ inv applyN (consInv γA Rw) ⊢
       storage.saveReq γ P (batchLockInv γA (metaTM γ P)) b t
         ⟨go.GoType.PointerType consistentIndex.ty, #ci⟩ (applyThread γA s) (freezeY γA s) := by
   iintro #H
   unfold storage.saveReq
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
-  iapply (ci_hook_freeze_run (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
+  iapply (ci_hook_freeze_run (Rw := Rw) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
     $$ H [Hl Hbl Hst]
   · iframe Hl Hbl Hst; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, Hl, Hbl, HY, %Hr⟩

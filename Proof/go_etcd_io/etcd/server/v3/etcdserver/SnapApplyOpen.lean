@@ -33,8 +33,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-/- (T10 session 10) Generic over the apply protocol's image row `IR` (`consInv γA IR`). -/
-variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
+/- (T10 session 10) Generic over the apply protocol's image row `Rw` (`consInv γA Rw`). -/
+variable {Rw : TRow GF}
 
 /-- **What `applySnapshot` keeps of a backend it opens** (D22 receiver epochs, S8d): the
 announcement of the fresh physical names `futPhys π0 γB` in the protocol's futures (its claim
@@ -69,7 +69,7 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
         isMetaBackend (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
           (readView (γA.withPh π))) ⊢
-    inv applyN (consInv (GF := GF) γA IR) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
+    inv applyN (consInv (GF := GF) γA Rw) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
       W -∗
       ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ={⊤}=∗
         W ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
@@ -182,7 +182,7 @@ theorem wp_ci_swapR (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG)
     (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
     ⊢ ∀ Φ : val → IProp GF,
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
-        isCI ci γ.ci ∗ inv applyN (consInv γ IR) ∗ □ IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗
+        isCI ci γ.ci ∗ inv applyN (consInv γ Rw) ∗ □ Rw.IR s'.eff s'.p ∗ applyThread γ s ∗ ciOwner ci b ∗
         ghostVar π'.mt (1 : Qp).half π'.m0.1 ∗ dghostVar π'.wr (DFrac.own 1) false ∗ token γc ∗
         monoListIdxOwn γ.fut j (π', γc)) -∗
       (applyThread (γ.withPh π') s' ∗ applyRegd (γ.withPh π') ∗ futStash π' ∗ ciOwner ci be -∗
@@ -216,7 +216,7 @@ theorem wp_ci_swap (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, #Hci, #Hinv, Hst, Hown, Hmt, Hwr, Htc, #Hidx⟩ HΦ
   ihave #Ht : iprop(□ (True : IProp GF)) $$ []
   · imodintro; itrivial
-  iapply (wp_ci_swapR (IR := fun _ _ => iprop(True)) hSB γ ci s s' π' j γc b be hk' hps' hok hle)
+  iapply (wp_ci_swapR (Rw := TRow.triv) hSB γ ci s s' π' j γc b be hk' hps' hok hle)
     $$ [Hst Hown Hmt Hwr Htc] HΦ
   iframe Hpkg Hci Hinv Ht Hst Hown Hmt Hwr Htc Hidx
 

@@ -312,7 +312,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
+  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
   · iframe #; iframe Hst Hab
   (try wp_auto)
   wp_apply hGI $$ [Hsm] as -
@@ -336,14 +336,14 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γwr0, Hwr0⟩
   imod (token_alloc (GF := GF)) with ⟨%γpd0, Hpd0⟩
   let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (sv.Metadata'.Index', tI), γmt0, γmt0⟩
-  ihave Hcreate := snap_create (IR := fun _ _ => iprop(True)) γ π0 d.P D (mvcc.api.mvccW gx') hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
+  ihave Hcreate := snap_create (Rw := TRow.triv) γ π0 d.P D (mvcc.api.mvccW gx') hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
-  ihave #Hhooks := hooksOk_server_fut (IR := fun _ _ => iprop(True)) hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
+  ihave #Hhooks := hooksOk_server_fut (Rw := TRow.triv) hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
     (fun _ => mvcc.api.mvccW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $Hinv]
   -- (2026-11-06, `notes/begin-tok-plan.md`) `OpenSnapshotBackend`'s instance, from the server's bound
   ihave %Htb0 : ⌜threadBound GF ≤ backend.rdPoolN⌝ $$ [Hsrv]
@@ -771,7 +771,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #d'.be) $$ [Hown]
   · iunfold applyBackend; iframe Hown HmB'
-  wp_apply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg (γ.withPh π') ci _ s' rfl) $$ [Hst Hab'] as ⟨Hst, Hab'⟩
+  wp_apply (wp_ci_get (Rw := TRow.triv) hCIg (γ.withPh π') ci _ s' rfl) $$ [Hst Hab'] as ⟨Hst, Hab'⟩
   · iframe #; iframe Hst Hab'
     rw [show consInv (GF := GF) (γ.withPh π') = consInv γ from rfl]
     iexact Hinv

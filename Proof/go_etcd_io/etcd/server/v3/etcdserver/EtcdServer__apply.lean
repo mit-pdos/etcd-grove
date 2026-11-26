@@ -417,7 +417,7 @@ theorem EtcdServer.apply.wp_proofOff
     · iPkgInit
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
-    wp_apply_core (wp_ci_get (IR := fun _ _ => iprop(True)) hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
+    wp_apply_core (wp_ci_get (Rw := TRow.triv) hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
       [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr Hrdk Hfs HKV Hao Hphi e Hka HRS Hdv Hrun HAR]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
@@ -786,7 +786,7 @@ theorem EtcdServer.apply.wp_proofOff
           isplitr
           · iintro ⟨Hst, Happ, Hbe, -⟩ %_Hcv
             imod (skip_done γ (stLoaded γ st') m.index hpre.1 hpre.2.1 hpre.2.2.1) $$ Hinv Hst with Hst
-            wp_apply_core (wp_ci_advance (IR := fun _ _ => iprop(True)) hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
+            wp_apply_core (wp_ci_advance (Rw := TRow.triv) hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
               hpre.1 (Int.le_refl _) hpre.2.2.2) $$ [Hst] [Happ Hbe]
             · iframe Hcipkg Hci Hinv Hst
             iintro Hst
@@ -1447,7 +1447,7 @@ theorem EtcdServer.apply.wp_proofOn
     · iPkgInit
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
-    wp_apply_core (wp_ci_get (IR := fun _ _ => iprop(True)) hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
+    wp_apply_core (wp_ci_get (Rw := TRow.triv) hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
       [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr Hrdk Hfs HKV Hao Hphi e Hka HRS Hdv Hrun HAR HtokR]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
@@ -1872,7 +1872,7 @@ theorem EtcdServer.apply.wp_proofOn
           isplitr
           · iintro ⟨Hst, Happ, Hbe, -⟩ %_Hcv
             imod (skip_done γ (stLoaded γ st') m.index hpre.1 hpre.2.1 hpre.2.2.1) $$ Hinv Hst with Hst
-            wp_apply_core (wp_ci_advance (IR := fun _ _ => iprop(True)) hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
+            wp_apply_core (wp_ci_advance (Rw := TRow.triv) hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
               hpre.1 (Int.le_refl _) hpre.2.2.2) $$ [Hst] [Happ Hbe]
             · iframe Hcipkg Hci Hinv Hst
             iintro Hst
