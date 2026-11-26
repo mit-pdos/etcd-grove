@@ -25,7 +25,6 @@ axiom Perennial.github_com.rs.zerolog.Event.Int.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Int64.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Ints.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Msg.wp_proof
-axiom Perennial.github_com.rs.zerolog.Event.Str.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Uint32.wp_proof
 axiom Perennial.github_com.rs.zerolog.Logger.Debug.wp_proof
 axiom Perennial.github_com.rs.zerolog.Logger.Error.wp_proof
