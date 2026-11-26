@@ -529,7 +529,7 @@ theorem runner.apply.wp_proof
     icases HhookOk with ⟨%Hfnil, #Hhrun⟩
     iunfold bkKeep at Hbk
     icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hbp, Hoh, HRT, Htoks, Hcen⟩
-    ihave ⟨Hles, Hlbk⟩ := lessorW_backend v.ι.kv v.bk f v.lp _ v.U _ Hfnil (by rw [HbkP.1]; exact mvccrand.rcP_lease _) $$ [$Hles $Hisb $Hhk]
+    ihave ⟨Hles, Hlbk⟩ := lessorW_backend v.ι.kv v.bk f v.lp _ v.U _ Hfnil (by rw [HbkP.1]; exact mvccfull.rcP_lease _) $$ [$Hles $Hisb $Hhk]
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
       #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
@@ -953,7 +953,7 @@ theorem runner.apply.wp_proof
             iexact Hau
           isplitl [Hlo]
           · rw [← pendItems_nil]; iexact Hlo
-          ipureintro; rw [HbkP.1]; exact ⟨mvccrand.rcP_lease _, lease.winDrops_none _ _⟩
+          ipureintro; rw [HbkP.1]; exact ⟨mvccfull.rcP_lease _, lease.winDrops_none _ _⟩
         icases Hres with (⟨%Hnin, -⟩ | ⟨%Hok2, HY, Hpost, Hlo, Hrvk, Hrb⟩)
         · exact absurd hidL Hnin
         obtain ⟨-, rfl⟩ := Hok2

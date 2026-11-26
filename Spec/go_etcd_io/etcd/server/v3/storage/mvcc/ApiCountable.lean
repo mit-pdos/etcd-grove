@@ -1,11 +1,10 @@
 /-
 **The `Pos.Countable` instances of mvcc's `Change` and `MvccState`** that the testers' ghost state
-(`ghostVar`s at a store state, a log) is built on, shared by `examples/mvccrand` (`World.lean`) and
-`examples/mvccfull` (`History.lean`), which until 2026-11-10 each declared their own copies, equal
-in body but distinct constants: in a module importing both, the ghost names elaborated under one
-did not match those elaborated under the other (`ghostVar_agree`, `icombine` match
-syntactically), which mvccfull worked around with a local `attribute [local instance high]`
-(review round 2's S6, `notes/review/mvccfull-f1-r2.md`). Lean-first (no Rocq counterpart).
+(`ghostVar`s at a store state, a log) is built on: `examples/mvccfull` (`History.lean`) and
+`examples/k8s/etcd3` (`Inv.lean`). One copy, so that ghost names elaborated in different clients
+match (`ghostVar_agree`, `icombine` match syntactically: review round 2's S6,
+`notes/review/mvccfull-f1-r2.md`). Until 2026-11-25 `examples/mvccrand`'s `MvccCountable.lean`,
+moved here, with mvcc's API, when mvccrand was retired (#49). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -17,9 +16,10 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace mvccrand
+namespace mvcc
+namespace api
 
-open Iris mvcc mvcc.api
+open Iris
 
 section model
 variable [GooseExts]
@@ -50,6 +50,7 @@ instance mvccState_countable : Pos.Countable MvccState :=
 
 end model
 
-end mvccrand
+end api
+end mvcc
 end EtcdGrove
 end Perennial
