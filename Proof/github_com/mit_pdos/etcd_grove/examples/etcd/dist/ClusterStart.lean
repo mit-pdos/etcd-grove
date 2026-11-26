@@ -77,9 +77,11 @@ def ClusterNames.lsNone : w64 → GName := fun _ => 0
 def ClusterNames.auNone : w64 → EtcdGrove.auth.AuthNames := fun _ => ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0⟩
 
 /-- **The cluster's view** (`DistView`, O1 option B): its KV names, its members' lessor names `c.ls` and auth
-names `c.au`, and auth off (the start of an auth-off cluster: every member's `memberUp`). At `lsNone`/`auNone`
-it is `DistView.ofKV c.γk`. -/
-def ClusterNames.view [GooseExts] (c : ClusterNames) : DistView := ⟨c.γk, c.ls, false, c.au⟩
+names `c.au`, and the auth mode `on` (off by default: the start of an auth-off cluster, every member's
+`memberUp`; #50 F7 S2: `on = true` for an auth-on cluster). At `lsNone`/`auNone` and auth off it is
+`DistView.ofKV c.γk`. -/
+def ClusterNames.view [GooseExts] (c : ClusterNames) (on : Bool := false) : DistView :=
+  ⟨c.γk, c.ls, on, c.au⟩
 
 /-- **The start's names are distinct per member** (over all of `w64`): what the lease contracts and the proposed
 `Serve_dist`'s guarded premise need of `Γ.ls` and `Γ.au`. -/
@@ -94,19 +96,21 @@ variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [Has
   [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
 
 /-- **What `clusterAllocN` makes true of the names** (its pure post), for the peers `ps`, the bootstrap
-log `boot`, the lease mode `lm`, the compaction mode `cmp`, `cret` and the members' ids `ids`. -/
+log `boot`, the lease mode `lm`, the compaction mode `cmp`, `cret`, the members' ids `ids` and the auth
+mode `on` (#50 F7 S2: the alarm chain's auth bit, and no compactor with auth on). -/
 abbrev ClusterOk (c : ClusterNames) (ps : List w64) (boot : List LogEntry) (lm : lease.Mode)
-    (cmp : Bool) (cret : Nat) (ids : List w64) : Prop :=
+    (cmp : Bool) (cret : Nat) (ids : List w64) (on : Bool := false) : Prop :=
   c.γ.vs = ps ∧ c.γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
     c.γ.boot = LogEntry.toEntries boot 0 ∧
-    c.γk.c0 = W64 0 ∧ c.γk.ch0 = apply.alarmChain false false false ∧ c.γk.log0 = [[], []] ∧
+    c.γk.c0 = W64 0 ∧ c.γk.ch0 = apply.alarmChain on false false ∧ c.γk.log0 = [[], []] ∧
     c.γk.ids.issued = c.issued ∧ c.γk.ids.wn = c.wn ∧ c.γk.ids.fs = c.fs ∧ c.γk.ids.gen = c.gen ∧
     c.γk.cmp = cmp ∧ c.γk.cret = cret ∧ c.γk.lm = lm ∧ kvPfxOk c.γk ∧ ¬ clusterNoSnap c.γ.cl ∧
-    (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ c.γk.gps)
+    (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ c.γk.gps) ∧
+    (on = true → cmp = false)
 
-/-- The cluster's persistent facts (`etcdstart.clusterFacts`) at the names `c`. -/
-abbrev clusterFactsOf (c : ClusterNames) : IProp GF :=
-  clusterFacts c.γ c.γk c.issued c.cnt c.wn c.fs c.gen
+/-- The cluster's persistent facts (`etcdstart.clusterFacts`) at the names `c`, in the auth mode `on`. -/
+abbrev clusterFactsOf (c : ClusterNames) (on : Bool := false) : IProp GF :=
+  clusterFacts c.γ c.γk c.issued c.cnt c.wn c.fs c.gen on
 
 /-- Member `id`'s slice (`etcdstart.memberSlice`) at the names `c`, of the cluster of the ids `ids` with
 the peers `ps`, their contexts `ctxs` and the bootstrap log `bl`. -/

@@ -884,3 +884,35 @@ contradictory `Hif`s before `hneed`, and keep `hacmp` from the retention split.
 **Next:** (1) fix `WellFormed.wp_proof`'s tail as above; build `NewServerAllocOn`, `etcdserver.Results`,
 `dist.deployment.Link`, then the dist `TopLevelRobustness` leaves. (2) Step 3 as above, in one commit with `clusterAllocN`'s `on`. (3) Step 4 (the auth-on
 member chain), unchanged from S2-2's design; `Hauthcmp` comes from `WellFormed.authCompactorOff`.
+
+### Handoff S2-4 (2026-11-26; step 1 done, step 2's build running, step 3 written unbuilt)
+
+**Step 1 done** (`cc6ca7462d`, checked with `etc/lean-check.py --fast -a` on fk-lean2: 0 errors). Cause: in some outer
+branches the loop's exit `wp_if_destruct` leaves `Hif : ¬ #(decide _) = #true` and the goal as `if decide (#(decide
+_) = #false) = true then WP else False`, so the checks' `repeat' wp_if_destruct` split on the loop condition again
+(the `⊢ False`/`¬True` goals, `hneed`/`hacmp` unsolved). Fix: `Hif'` gets a third alternative (`intro h; apply Hif;
+rw [decide_eq_true h]`), then `try simp only [decide_eq_false Hif', _root_.decide_true, ↓reduceIte]` (`decide_true`
+is ambiguous with `BI.decide_true`). Second bug: `hneed`/`hacmp`'s `(rw [hau] at ha; cases ha)` *succeeds* without
+closing the goal when auth is on (`cases` on `true = true`); now `exact absurd ha (by decide)`.
+
+**Step 2: build running at handoff** (started on fk-lean2 from `cc6ca7462d`; result not read): targets
+`etcdserver.NewServerAllocOn`, `etcdserver.Results`, `dist.deployment.Link`, `dist.TopLevelRobustness`,
+`dist.{kvremote,putget,putgetk}.TopLevelRobustness`; log `~/eg/logs/f7l-build.log` on fk-lean2 (ends `EXIT n`),
+client copy `/shared/tmp/f7s2-b4.out` (last line only). If it failed, the build lock may still be held: check before
+starting another. Then run `etc/tier-check.py --check`, `etc/lease-order-check.py` (not run yet).
+
+**Step 3 written, not built** (the WIP commit after `cc6ca7462d`; build it next, with step 2's targets):
+`etcdstart/AllocN.lean`: imports `NewServerAllocOn`; `clusterFacts … (on := false)` ends in `kvInvM on ⟨γ, [], W64 0⟩ γk
+srvAuthSt0`; `clusterAllocN … (cmp) (cret) (on := false) (Hon : on = true → cmp = false ∧ cret = 0 := nomatch)`, post
+`ch0 = alarmChain on false false`, trailing `∧ (on = true → cmp = false)`, `clusterFacts … on`, tail `if on then
+etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries …))) ∗ authHistView γk [srvAuthSt0] else <old tail>`;
+proof `cases on`, the false arm the old proof (+ `simp only [Bool.false_eq_true, ↓reduceIte]` before `iframe Hetcd`,
+`try iexact Hkv` after `iframe #`), the true arm via `srvClusterBootOn_allocG` (`obtain ⟨rfl, rfl⟩ := Hon rfl`,
+`isimp only [hboot] at Hetcd Hah`, `simp only [↓reduceIte]`). Untested guesses: the `simp only` on IPM goals, the
+`kvInvM false` defeq in `memberBoot_of_slice` and `clusterFacts`' `iframe #`, `etcdClusterStart`'s `iexact Hetcd`
+through `if false = true`. `dist/ClusterStart.lean`: `ClusterOk … (on := false)` (`ch0 = alarmChain on false false`,
+trailing `∧ (on = true → cmp = false)`), `clusterFactsOf c (on := false)`, `ClusterNames.view c (on := false)`.
+`MainLogger.lean:112` binds `hgps, -`. `ClusterStartD:501`'s projections are of early conjuncts (unchanged).
+
+**Next:** read step 2's log; fix; build step 3; then step 4 (S2-2's design, `Hauthcmp` from
+`WellFormed.authCompactorOff`); STATUS entry added at this handoff.

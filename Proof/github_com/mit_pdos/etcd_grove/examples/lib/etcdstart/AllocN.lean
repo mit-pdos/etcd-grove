@@ -17,6 +17,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
 import all Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 
 @[expose] public section
@@ -193,15 +194,17 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- **The cluster's persistent facts a member's boot takes** (D7, `notes/etcd-dist-plan.md`: what the
 deployment's start gives every member; `memberBoot_of`'s persistent arguments; heap-free): the server's raft
 log invariant, the request ids' claims, the first claim's record, the proposals' mint, the read contexts
-and the KV invariant, at the cluster's raft names `γ` and KV names `γk`. -/
-def clusterFacts (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName) : IProp GF :=
+and the KV invariant, at the cluster's raft names `γ` and KV names `γk`, in the auth mode `on` (`kvInvM`:
+`kvInv` at `on = false`, `kvInvOn` from the auth state `srvAuthSt0` at `on = true`; #50 F7 S2). -/
+def clusterFacts (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName) (on : Bool := false) :
+    IProp GF :=
   iprop(srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
     idClusterInv issued cnt wn fs gen srvFloorFacts ∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) ∗
     srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
-    kvInv ⟨γ, [], W64 0⟩ γk)
+    kvInvM on ⟨γ, [], W64 0⟩ γk srvAuthSt0)
 
-instance clusterFacts_persistent (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName) :
-    Persistent (clusterFacts (GF := GF) γ γk issued cnt wn fs gen) := by
+instance clusterFacts_persistent (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName)
+    (on : Bool) : Persistent (clusterFacts (GF := GF) γ γk issued cnt wn fs gen on) := by
   unfold clusterFacts; infer_instance
 
 /-- **Member `id`'s slice of the cluster's allocation** (D7: what the deployment's start gives member
@@ -227,24 +230,32 @@ def memberSlice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (bl : Lis
 (D7, `notes/etcd-dist-plan.md`: what the deployment's start allocates once; no heap): each member's
 store names, certificate and revisions' maps and storage registry (`newServerNames_allocL`), then the
 cluster's resources (`srvClusterBoot_allocG`), returned as the cluster's facts, each member's slice
-(over the members' ids `ids`, in their order) and, in the lease mode `none`, the client's `etcdKV`. -/
+(over the members' ids `ids`, in their order) and, in the lease mode `none`, the client's `etcdKV`. In the
+auth mode `on` (#50 F7 S2; `on = true` only without a compactor, `Hon`): the alarm chain's auth bit is `on`,
+the facts' KV invariant `kvInvM on`, and at `on = true` the client's `etcdKV` (at `kvModelOn`, in every lease
+mode) comes with the auth history's view (`srvClusterBootOn_allocG`). -/
 theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid0 : id0 ∈ ids)
     (ctxs : List (List w8)) (boot : List LogEntry) (Hbc : BootCore ps ctxs boot)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart ids)
-    (cmp : Bool := false) (cret : Nat := 0) :
+    (cmp : Bool := false) (cret : Nat := 0) (on : Bool := false)
+    (Hon : on = true → cmp = false ∧ cret = 0 := by exact fun h => nomatch h) :
     ⊢ |={⊤}=> ∃ (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs gen : GName)
         (idx : w64 → srvApi.KVSNames) (cok rev reg : w64 → GName),
       ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
         γ.boot = LogEntry.toEntries boot 0 ∧
-        γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧
+        γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain on false false ∧ γk.log0 = [[], []] ∧
         γk.ids.issued = issued ∧ γk.ids.wn = wn ∧ γk.ids.fs = fs ∧ γk.ids.gen = gen ∧
         γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm ∧ kvPfxOk γk ∧ ¬ clusterNoSnap γ.cl ∧
-        (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps)⌝ ∗
-      clusterFacts (GF := GF) γ γk issued cnt wn fs gen ∗
+        (∀ id ∈ ids, lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) ∧
+        (on = true → cmp = false)⌝ ∗
+      clusterFacts (GF := GF) γ γk issued cnt wn fs gen on ∗
       ([∗list] id ∈ ids, memberSlice (GF := GF) γ ps ctxs (LogEntry.toEntries boot 0) cnt wn fs gen
         (xsOf ids idx (idPfxOf (W16 (uint.Z id)))) (idx id) (cok id) (rev id) (reg id) id) ∗
-      (if decide (lm ≠ .none) then iprop(True) else
+      (if on then
+        iprop(etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
+          authHistView γk [srvAuthSt0])
+      else if decide (lm ≠ .none) then iprop(True) else
         etcdKV γk (kvModelSt γk (bootEntries (LogEntry.toEntries boot 0)))) := by
   obtain ⟨Hpnd, -, -⟩ := idPfxsOf_ok ps Hbc.lowNodup Hbc.lowNz
   have Hpsnd : ps.Nodup := by
@@ -253,41 +264,84 @@ theorem clusterAllocN (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid
   have Hidnd : ids.Nodup := hperm.nodup_iff.1 Hpsnd
   have Hpsne : ps ≠ [] := fun h => by rw [h] at hperm; exact absurd (hperm.symm.subset hid0) (by simp)
   have Hnz : W64 0 ∉ ps := fun h => Hbc.lowNz _ h (by decide)
-  istart
-  imod (newServerNames_allocL (GF := GF) ids Hidnd) with ⟨%idx, %cok, %rev, %reg, Hns⟩
-  imod (srvClusterBoot_allocG (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
-      Hpsne Hnz cmp cret lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
-      (gpsOk_of_apart lm ids id0 hid0 hap))
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm,
-      #Hrc, Hms, Hwns, Htoks⟩
-  obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
-  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
-  have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
-  ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
-  ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
-  ihave Htoks := (BigSepL.bigSepL_perm hperm).1 $$ Htoks
-  imodintro
-  iexists γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg
-  isimp only [KVNames.lg, hklg, hboot] at Hetcd
-  iframe Hetcd
-  isplitr
-  · ipureintro
-    exact ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap,
-      fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid⟩
-  isplitr
-  · iunfold clusterFacts
-    iframe #
-  iunfold memberSlice
-  iapply BigSepL.bigSepL_sep_eqv.2
-  isplitl [Hms]
-  · iexact Hms
-  iapply BigSepL.bigSepL_sep_eqv.2
-  isplitl [Hwns]
-  · iexact Hwns
-  iapply BigSepL.bigSepL_sep_eqv.2
-  isplitl [Hns]
-  · iexact Hns
-  iexact Htoks
+  cases on
+  · istart
+    imod (newServerNames_allocL (GF := GF) ids Hidnd) with ⟨%idx, %cok, %rev, %reg, Hns⟩
+    imod (srvClusterBoot_allocG (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
+        Hpsne Hnz cmp cret lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
+        (gpsOk_of_apart lm ids id0 hid0 hap))
+      with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm,
+        #Hrc, Hms, Hwns, Htoks⟩
+    obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+    have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
+    have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
+    ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
+    ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
+    ihave Htoks := (BigSepL.bigSepL_perm hperm).1 $$ Htoks
+    imodintro
+    iexists γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg
+    isimp only [KVNames.lg, hklg, hboot] at Hetcd
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe Hetcd
+    isplitr
+    · ipureintro
+      exact ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap,
+        fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid, fun h => nomatch h⟩
+    isplitr
+    · iunfold clusterFacts
+      iframe #
+      try iexact Hkv
+    iunfold memberSlice
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [Hms]
+    · iexact Hms
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [Hwns]
+    · iexact Hwns
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [Hns]
+    · iexact Hns
+    iexact Htoks
+
+  · obtain ⟨rfl, rfl⟩ := Hon rfl
+    istart
+    imod (newServerNames_allocL (GF := GF) ids Hidnd) with ⟨%idx, %cok, %rev, %reg, Hns⟩
+    imod (srvClusterBootOn_allocG (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
+        Hpsne Hnz lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
+        (gpsOk_of_apart lm ids id0 hid0 hap))
+      with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, Hah, #Hcl, #H0, #Hpm,
+        #Hrc, Hms, Hwns, Htoks⟩
+    obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+    have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
+    have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklg ▸ h))
+    ihave Hms := (BigSepL.bigSepL_perm hperm).1 $$ Hms
+    ihave Hwns := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
+    ihave Htoks := (BigSepL.bigSepL_perm hperm).1 $$ Htoks
+    imodintro
+    iexists γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg
+    isimp only [hboot] at Hetcd Hah
+    simp only [↓reduceIte]
+    iframe Hetcd
+    iframe Hah
+    isplitr
+    · ipureintro
+      exact ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, HnoSnap,
+        fun id hid _ => by rw [hgps]; exact idPfxOf_mem_idPfxsOf _ id hid, fun _ => rfl⟩
+    isplitr
+    · iunfold clusterFacts
+      iframe #
+      try iexact Hkv
+    iunfold memberSlice
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [Hms]
+    · iexact Hms
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [Hwns]
+    · iexact Hwns
+    iapply BigSepL.bigSepL_sep_eqv.2
+    isplitl [Hns]
+    · iexact Hns
+    iexact Htoks
 
 end allocG
 

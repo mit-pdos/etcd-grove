@@ -109,7 +109,7 @@ theorem MainLogger.wp_proof
   iunfold memberNamesShare at Hnames
   icases Hnames with ⟨Hlh, Hlslot, -⟩
   obtain ⟨Hcok, Hbcfg, -⟩ := Hsh
-  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, hgps⟩ := Hcok
+  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, hgps, -⟩ := Hcok
   rw [members_getD d i m Hm]
   generalize hidm : d.ids.getD i (W64 0) = idm
   have hidm' : idm = memberId (go!"http://" ++ m.peer) d.token := by
