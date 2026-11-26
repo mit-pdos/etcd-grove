@@ -11,7 +11,8 @@ service and one call's budget), the Puts `trs` (`len(nodes) * nops` of them, rea
 plan `n.2.2` and small, `nops < 2 ^ 56` so that each writer's Puts and log encode in a message), and the
 orchestrator's adapter (`kmInv (kmOf Γ n)`, the start's changes seen), `remoteWriters` returns the
 successful Puts `oks`, each with `okFactK (kmOf Γ n) p` (the answering writers' `wQ`). The level token is
-threaded. (Until 2026-11-26 a schema in the share, `specWith`: `lib/remote`'s wire carried only fixed
+threaded. The logic's thread bound (`threadBound GF ≤ 2 ^ 30`, `RunWatch`'s) bounds the goroutines
+`CallAll` starts, one per writer, so that its wait group's counter cannot overflow (`sync.tokJoinL`). (Until 2026-11-26 a schema in the share, `specWith`: `lib/remote`'s wire carried only fixed
 values, §24.4; the wire refactor, §28, made the slices describable.)
 -/
 module
@@ -42,6 +43,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 abbrev remoteWriters.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (nodes tsl : GoSlice) (ns : List GoString) (trs : List wkv)
     (nops : w64) (Γ : DistView) (n : WN),
+  threadBound GF ≤ 2 ^ 30 →
   0 ≤ sint.Z nops → sint.Z nops < 2 ^ 56 → (trs.length : Int) = ns.length * sint.Z nops →
   (∀ p ∈ trs, pairOf p ∈ n.2.2 ∧ wkvSmall p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗

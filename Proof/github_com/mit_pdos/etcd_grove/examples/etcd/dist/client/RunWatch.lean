@@ -8,7 +8,8 @@ workload, `ended`); the client's `Watcher` a watcher of the cluster's KV (`watch
 `kvWatcherW_of_dist` over the interim `Watch_dist`, a hypothesis), so etcd's watch contract at the
 adapter's model (`isEtcdWatcher_of_kmW`); `WithCancel(Background())` and its `defer cancel()`; the
 prefix watch from revision `1` (the read at `0`, `km_reached_of`); `ready()`; the writers at their
-machines (`remoteWriters.specWith WS`, a hypothesis: each successful Put's `okFactK`); the timer
+machines (`remoteWriters.spec`, a hypothesis: at the writers' share, each successful Put's `okFactK` at the
+adapter, whose names go to the writers with their Puts, `kmOf`); the timer
 (`AfterFunc`, `cancel` never panics; `Stop`); `MaxRev`; `Collect` (each response by `resp_km`); the
 cancel; and the check: `CheckOk` from `collectOk` and the Puts' `okFactK`s (`checkOkK_of`). `Collect`'s
 `false` ends the workload (`ended`).
@@ -63,7 +64,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 set_option maxHeartbeats 1600000 in
 set_option maxRecDepth 8192 in
-theorem RunWatch.wp_proof (WS : DistView → List GoString → IProp GF)
+theorem RunWatch.wp_proof
     (wp_GenAll : etcdstart.GenAll.spec (GF := GF) (hG := hG))
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
     (wp_ended : ended.spec (GF := GF) (hG := hG))
@@ -73,14 +74,14 @@ theorem RunWatch.wp_proof (WS : DistView → List GoString → IProp GF)
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG))
-    (wp_remoteWriters : remoteWriters.specWith (GF := GF) (hG := hG) WS)
+    (wp_remoteWriters : remoteWriters.spec (GF := GF) (hG := hG))
     (wp_AfterFunc : time.AfterFunc.spec (GF := GF) (hG := hG))
     (wp_Stop : time.Timer.Stop.spec (GF := GF) (hG := hG))
     (wp_MaxRev : etcdstart.MaxRev.spec (GF := GF) (hG := hG))
     (wp_Collect : etcdstart.Collect.spec (GF := GF) (hG := hG))
     (wp_Check : etcdstart.Check.spec (GF := GF) (hG := hG)) :
-    RunWatch.spec (GF := GF) (hG := hG) WS := by
-  intro π eps nodes addrs ns nops ready hV Htb hpl H0 Hmul
+    RunWatch.spec (GF := GF) (hG := hG) := by
+  intro π ρ eps nodes addrs ns nops ready hV Htb hpl H0 H56 Hmul
   wp_start as ⟨Hlt, #Heps, #Hnodes, #Hready, Hsh⟩
   iunfold watchShare at Hsh
   icases Hsh with ⟨%Γ, %σ₀, %Hσ0, #Hms, Hkv, HWS⟩
@@ -121,8 +122,8 @@ theorem RunWatch.wp_proof (WS : DistView → List GoString → IProp GF)
   · iframe #
   imod ownSlice_persist _ _ _ $$ Htrs with #Htrs
   have hpk := wk_genKeys_pfx trs Htrs.2
-  have hps : ∀ p ∈ trs, pairOf p ∈ trs.map pairOf ∧ wkvSizeOk p := fun p hp =>
-    ⟨List.mem_map_of_mem hp, etcdstart.GenKv.sizeOk (by decide) (Htrs.2 p hp)⟩
+  have hps : ∀ p ∈ trs, pairOf p ∈ trs.map pairOf ∧ wkvSmall p := fun p hp =>
+    ⟨List.mem_map_of_mem hp, genKv_small p (Htrs.2 p hp)⟩
   have htl : (trs.length : Int) = ns.length * sint.Z nops := by
     have h0 : 0 ≤ sint.Z (nodes.len * nops) := by rw [hmul]; exact Int.mul_nonneg (by omega) H0
     rw [Htrs.1, ← hmul]; word
@@ -132,6 +133,8 @@ theorem RunWatch.wp_proof (WS : DistView → List GoString → IProp GF)
   imod (kmInv_alloc Γ.kv σ₀ (etcd_partition.wkW (trs.map pairOf)) hW0) $$ Hkv
     with ⟨%γ, %Hγ, #Hkm, #Hlb0⟩
   obtain ⟨hγk, hγW⟩ := Hγ
+  have hγeq : kmOf Γ (γ.ch, γ.tok, trs.map pairOf) = γ := by
+    cases γ; simp only at hγk hγW; simp [kmOf, hγk, hγW]
   ihave #Hlb : monoListLbOwn γ.ch ([[]] : List (List mvcc.Change)) $$ []
   · rw [← Hσ0]; iexact Hlb0
   (try wp_auto)
@@ -254,10 +257,13 @@ theorem RunWatch.wp_proof (WS : DistView → List GoString → IProp GF)
   wp_apply Hready
   (try wp_auto)
   -- `oks := remoteWriters(nodes, tried, nops)`
-  wp_apply (wp_remoteWriters nodes tsl ns trs nops Γ γ (trs.map pairOf) H0 htl hγk hγW hps)
-    $$ [$Hlt HWS] as %okSl ⟨Hlt, %oks, Hos, #Hoks⟩
-  · iframe #
+  wp_apply (wp_remoteWriters nodes tsl ns trs nops Γ (γ.ch, γ.tok, trs.map pairOf) Htb H0 H56 htl hps)
+    $$ [$Hlt HWS] as %okSl ⟨Hlt, %oks, Hos, #Hoks0⟩
+  · rw [hγeq]
+    iframe #
     iframe
+  ihave #Hoks : □ [∗list] p ∈ oks, etcd_partition.okFactK (GF := GF) γ p $$ []
+  · rw [← hγeq]; iexact Hoks0
   (try wp_auto)
   -- `t := time.AfterFunc(readTimeout, cancel)`
   wp_apply (wp_AfterFunc _ cancel) $$ [] as %t Ht
