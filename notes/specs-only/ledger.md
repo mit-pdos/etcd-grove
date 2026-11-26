@@ -6069,3 +6069,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   disjunction still, `electionElapsed` being outside the model (design R1). Branch posts give `StepEndG` (the body on
   `StepEndTyB` = `StepEndTy` or `MsgTransferLeader`); the close sites build the structure.
 - **Decision.** Lead's decision (route (S), PreVote + (ii)), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: the end relations' new arms (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean`.
+- **Change (the per-input end relations, design §1.2; definitions only, lifting next).** New: `PreKeep`, `LeaseIgnore`,
+  `StaleEnd`, `CampaignSends`, `HbSendOk`, `ReleaseEnd`, `PreVoteEndP`, `ReadIdxEnd`, `ReadAckEnd`, `SnapEnd` (B3),
+  `TransferRecvEndR`. `PreEnd` gains the `PreKeep` arm; `RecvEnd` the `StaleEnd` stale arm (was `s' = s`) and the lease
+  arm; `HandleEnd` is total (pre-vote, pre-vote response, read index and response, snapshot; `heartbeatResp` gains the
+  read acknowledgement) in place of the `∃ B r, StepC` fallback; `AppRespEnd` gains the commit that releases deferred
+  reads (`ReleaseEnd`); `TickEnd`'s campaign is `CampaignEnd … []` under `k.prevote = false`, plus the pre-campaign and
+  the check-quorum step-down; `TransferEndR`'s forward is at a follower and at its term; `TimeoutNowEndR` admits a
+  leader's appends. Departures from the design's sketch, each forced by the fork's code or its specs: no `k.prevote`
+  guard on `PreEnd`'s `PreKeep` arm (`Step` reads no flag there); `RecvEnd`'s main arm does not exclude `LeaseIgnore`
+  (the lease timer is outside `PState`); the read-index heartbeats carry `hbCtx` of the new queue (the fork's
+  positions), not the request's context; `ReadIdxEnd`/`TransferEndR` forward only at a follower (`stepCandidate` drops);
+  `.readIndexResp` only at a follower; `ReleaseEnd` (missing from the sketch); `PreVoteEnd` renamed `PreVoteEndP`
+  (`LemmasStepGates`' `PreVoteEnd` is the `NState` form).
+- **Decision.** Lead's sequencing (InputEnd arms after the Sim's ReadyAll), 2026-11-26. No new axiom, no new top-level
+  premise.
