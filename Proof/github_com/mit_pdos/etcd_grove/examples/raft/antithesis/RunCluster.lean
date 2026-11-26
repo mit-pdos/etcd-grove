@@ -607,6 +607,11 @@ theorem RunCluster.wp_proof
   imod antInv_alloc γ (fun _ => viewInit R) (bootFacts0 R) ⊤ (fun _ => viewInit_fresh R) hB hL
     (fun _ => by rw [viewInit_full]; simp [bootFacts0]) $$ Hs1 HvA Hsa Hxa Hrf with #Hinv
   ihave #Hpm := propMinter_intro (GF := GF) γ HreMd $$ Hcl Hopsi
+  ihave #Hrdm : rdMinter (GF := GF) γ $$ []
+  · iunfold rdMinter
+    imodintro
+    iintro H1
+    iapply isCluster_rdMint (GF := GF) γr antRaftN ⊤ (fun _ _ => CoPset.mem_full) $$ Hcl H1
   -- the `down` lock
   imod sync.init_Mutex (downInv cl γ) ⊤ _ $$ Cmu [Cdown Hdsl] with #Hmu
   · inext
@@ -643,7 +648,7 @@ theorem RunCluster.wp_proof
   ihave #Hc : antCluster cl γ $$ []
   · iunfold antCluster
     iexists cfg, rp, ds.map Prod.fst, sc
-    iframe Ccfg Crec Cstop Hunk Hnj Hmu Hinv Hpm HstInv'
+    iframe Ccfg Crec Cstop Hunk Hnj Hmu Hinv Hpm Hrdm HstInv'
     isplitr
     · ipureintro; exact Hcok
     isplitr

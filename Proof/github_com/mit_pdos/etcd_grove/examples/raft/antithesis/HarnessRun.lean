@@ -135,14 +135,18 @@ def NetFacts (R : AntSim.RunCfg) (st : MsgSt) (m : Msg) : Prop :=
 
 /-- **What an in-flight transfer message's receiver needs of it** (pure): a `MsgTimeoutNow` or a
 (forwarded) `MsgTransferLeader`, read as the `XMsg` `x` (type, source, destination, term) between
-two servers of the run, in a run with transfers on, its term below `2 ^ 61`. -/
+two servers of the run, in a run with transfers on, its term below `2 ^ 61`, its other numbers
+`0`, no entries, not a rejection (raft builds both with only type, ends and term: `sendTimeoutNow`,
+`TransferLeader`; so `msgOf` reports it as `xmsgOf x`). -/
 def XNetFacts (R : AntSim.RunCfg) (st : MsgSt) (x : XMsg) : Prop :=
   R.md.transfer = true ∧ NetMsgOk st.msg.To' st ∧
   ((st.msg.Type' = MsgTimeoutNow ∧ x.ty = .timeoutNow) ∨
     (st.msg.Type' = MsgTransferLeader ∧ x.ty = .transferLeader)) ∧
   x.src = st.msg.From' ∧ x.dst = st.msg.To' ∧ x.term = st.msg.Term' ∧
   (∃ j : Fin R.N, x.dst = AntSim.nodeId j) ∧ (∃ i : Fin R.N, x.src = AntSim.nodeId i) ∧
-  uint.Z st.msg.Term' < 2 ^ 61
+  uint.Z st.msg.Term' < 2 ^ 61 ∧
+  st.msg.Index' = W64 0 ∧ st.msg.LogTerm' = W64 0 ∧ st.msg.Commit' = W64 0 ∧ st.ents = [] ∧
+  st.msg.Reject' = false
 
 /-- **The view's entries are normal** (S4's `ViewNormal` over the full log): `entryOf` takes them
 without `changeOf` (conf entries are batch B3's), and the message its drain handles is a step's. -/
@@ -264,18 +268,27 @@ def antInv (γ : AntNames) : IProp GF :=
 /-! ## The network -/
 
 /-- **An in-flight protocol message** `ml` at `st`, the protocol message `m`: owned, with its
-receiver's premises (`NetFacts` at `R`), raft's certificate, its term within the budget, and sent. -/
+receiver's premises (`NetFacts` at `R`), raft's certificate, its term within the budget, and sent.
+(The read credit `RawNode.Step` takes for a forwarded `MsgReadIndex` is minted by the receiver,
+`rdMinter`, for a time receipt of its own: a duplicated delivery steps each clone.) -/
 def netMsg (γ : AntNames) (ml : Loc) (st : MsgSt) (m : Msg) : IProp GF :=
   iprop((∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
       ⌜c.model = st ∧ c.csUfNil⌝) ∗
     ⌜NetFacts γ.R st m⌝ ∗ □ isMessage γ.raft.raftNames m ∗ rnTermLB γ.raft st.msg.Term' ∗ sentW γ m)
 
 /-- **An in-flight transfer message** `ml` at `st`, the `XMsg` `x`: owned, with its receiver's
-premises (`XNetFacts`), its term within the budget, and sent. -/
+premises (`XNetFacts`), its term within the budget, and sent; a forwarded `MsgTransferLeader`
+stamped with a term, its destination that term's leader (`isRaftMsg`'s, `RawNode.Step`'s `Hxfer`);
+a `MsgTimeoutNow`'s destination acknowledged an index past `0` at its term (`isRaftMsg`'s timeout
+clause, `isAcked`: the receiver's term is at least the message's). -/
 def netXMsg (γ : AntNames) (ml : Loc) (st : MsgSt) (x : XMsg) : IProp GF :=
   iprop((∃ c : MsgC, msgPtsCC ml (DFrac.own 1) DFrac.discard (needsCap st.msg) c ∗
       ⌜c.model = st ∧ c.csUfNil⌝) ∗
-    ⌜XNetFacts γ.R st x⌝ ∗ rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x)
+    ⌜XNetFacts γ.R st x⌝ ∗ rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x ∗
+    □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+      isLeader γ.raft.raftNames st.msg.To' st.msg.Term') ∗
+    □ (⌜st.msg.Type' = MsgTimeoutNow⌝ -∗
+      ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ.raft.raftNames st.msg.To' st.msg.Term' i))
 
 /-- **What makes a message sendable** (pure and persistent facts of its content `st`, `node.sendMsg`'s
 premise): a forwarded proposal in a mode that does not forward it (`send` drops it), or an in-flight
@@ -284,7 +297,11 @@ def sendFacts (γ : AntNames) (st : MsgSt) : IProp GF :=
   iprop(⌜st.msg.Type' = MsgProp ∧ γ.mode.Forward' = false⌝ ∨
     (∃ m : Msg, ⌜NetFacts γ.R st m⌝ ∗ □ isMessage γ.raft.raftNames m ∗ rnTermLB γ.raft st.msg.Term' ∗
       sentW γ m) ∨
-    (∃ x : XMsg, ⌜XNetFacts γ.R st x⌝ ∗ rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x))
+    (∃ x : XMsg, ⌜XNetFacts γ.R st x⌝ ∗ rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x ∗
+      □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+        isLeader γ.raft.raftNames st.msg.To' st.msg.Term') ∗
+      □ (⌜st.msg.Type' = MsgTimeoutNow⌝ -∗
+        ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ.raft.raftNames st.msg.To' st.msg.Term' i)))
 
 /-- **A message `Cluster.send` takes** (`node.sendMsg` hands it a clone of each message of a
 `Ready`): owned, with its sendable facts. -/
@@ -302,6 +319,14 @@ def propOk (γ : AntNames) (data : List w8) : IProp GF :=
 `propMint.law` at the client log's invariant, `PropMint.lean`; `RunCluster` establishes it). -/
 def propMinter (γ : AntNames) : IProp GF :=
   iprop(□ ∀ data : List w8, |={⊤}=> propOk γ data)
+
+/-- **The read credits' minting** (persistent): a read credit for a time receipt (raft's
+`isCluster_rdMint`, the cluster's read credits' exchange; `RunCluster` establishes it), as raft's
+`node.ReadIndex` takes its credit. `node.step` mints one for each `MsgReadIndex` it steps (a
+duplicated delivery steps each clone, each with a credit of its own), `node.readIndex` one for its
+request. -/
+def rdMinter (γ : AntNames) : IProp GF :=
+  iprop(□ (⧗ 1 ={⊤}=∗ rdCred γ.raft.raftNames 1))
 
 /-- **A read context handed out** (exclusive: the reader hands each context to one node, once):
 `ReadIndex`'s premise in the driver. Raft's own read credit (`ReadIndex`'s `rdCred`, design §4) joins
@@ -363,7 +388,7 @@ def antCluster [AntStor GF] (c : Loc) (γ : AntNames) : IProp GF :=
     c.[H.Cluster, go!"stop"] ↦□ stop ∗ ownBroadcastChan stop γ.stopCh iprop(True) .Unknown ∗
     isNetJoin antNetN (c.[H.Cluster, go!"netWg"]) γ.net ∗
     sync.isMutex (c.[H.Cluster, go!"mu"]) (downInv c γ) ∗
-    inv antN (antInv γ) ∗ ⌜antRunFits GF⌝ ∗ propMinter γ ∗ antStorInv)
+    inv antN (antInv γ) ∗ ⌜antRunFits GF⌝ ∗ propMinter γ ∗ rdMinter γ ∗ antStorInv)
 
 /-- **A share `q` of the right to add network goroutines** (`netWg`). -/
 def netAdder (c : Loc) (γ : AntNames) (q : Qp) : IProp GF :=
@@ -403,14 +428,18 @@ def pendingCause (cl : Loc) (o : Option AntCheck.Event) : IProp GF :=
       AntCheck.msgRO g m))
 
 /-- **The cause cell against the view** (S4's `causeOwn` at `Fin R.N`): while the drain's `recv` is
-not reported, the report of the handled message (`pendingCause`), sent, with its receipts;
-otherwise `nil`. -/
+not reported, the report of the handled message (`pendingCause`), sent, with its receipts: a
+protocol message's (`evRecv`) or a transfer message's (`evRecvX`); otherwise `nil`. -/
 def causeOwn (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (cl : Loc) : IProp GF :=
   if v.byE = go!"recv" ∧ v.told = false then
-    iprop(∃ m : Msg, ⌜v.cause = some m ∧ m.dst = AntSim.nodeId j ∧
+    iprop((∃ m : Msg, ⌜v.cause = some m ∧ m.dst = AntSim.nodeId j ∧
         (AntSim.evRecv (AntSim.nodeId j) m).NumsOk⌝ ∗
       pendingCause cl (some (recvEvM (AntSim.msgOf m (AntSim.nodeId j)))) ∗ sentW γ m ∗
-      ⧗ (AntSim.evRecv (AntSim.nodeId j) m).weight)
+      ⧗ (AntSim.evRecv (AntSim.nodeId j) m).weight) ∨
+      (∃ x : XMsg, ⌜v.xcause = some x ∧ x.dst = AntSim.nodeId j ∧
+        (AntSim.evRecvX (AntSim.nodeId j) x).NumsOk⌝ ∗
+      pendingCause cl (some (recvEvM (AntSim.xmsgOf x))) ∗ xsentW γ x ∗
+      ⧗ (AntSim.evRecvX (AntSim.nodeId j) x).weight))
   else pendingCause cl none
 
 /-- **A node may report** (`emit`'s fields): not dead, no kill due. In a run without restarts

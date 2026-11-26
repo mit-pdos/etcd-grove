@@ -108,7 +108,7 @@ theorem node.start.wp_proof
   · iPkgInit
   ihave #Hc' := Hc
   iunfold antCluster at Hc'
-  icases Hc' with ⟨%cfg, %r, %ns, %stop, -, -, %Hmr, -, -, #Hcro, -, -, -, -, -, -, %Hfits, -,
+  icases Hc' with ⟨%cfg, %r, %ns, %stop, -, -, %Hmr, -, -, #Hcro, -, -, -, -, -, -, %Hfits, -, -,
     #Hsinv⟩
   iunfold clusterRO at Hcro
   icases Hcro with ⟨%nsl, %ivl, -, -, -, #Hmode, #Hivl, #Hivs⟩

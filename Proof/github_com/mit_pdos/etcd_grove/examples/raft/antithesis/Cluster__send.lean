@@ -91,10 +91,14 @@ theorem inputOk_of_clone (h_tlb : rnTermLB_persistent.law (GF := GF)) (γ : AntN
     (hk : inp.kind' = W64 0) (hc : cm.model = st ∧ cm.csUfNil) (hj : AntSim.nodeId j = st.msg.To') :
     ((∃ m : Msg, ⌜NetFacts γ.R st m⌝ ∗ □ isMessage γ.raft.raftNames m ∗ rnTermLB γ.raft st.msg.Term' ∗
         sentW γ m) ∨
-      (∃ x : XMsg, ⌜XNetFacts γ.R st x⌝ ∗ rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x)) ∗
+      (∃ x : XMsg, ⌜XNetFacts γ.R st x⌝ ∗ rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x ∗
+        □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+          isLeader γ.raft.raftNames st.msg.To' st.msg.Term') ∗
+        □ (⌜st.msg.Type' = MsgTimeoutNow⌝ -∗
+          ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ.raft.raftNames st.msg.To' st.msg.Term' i))) ∗
     msgPtsCC (GF := GF) inp.msg' (DFrac.own 1) (DFrac.own 1) true cm ⊢ |==> inputOk γ j inp := by
   haveI := h_tlb
-  iintro ⟨(⟨%m, %hf, #Hism, #Htlb, #Hsent⟩ | ⟨%x, %hf, #Htlb, #Hsent⟩), Hl⟩
+  iintro ⟨(⟨%m, %hf, #Hism, #Htlb, #Hsent⟩ | ⟨%x, %hf, #Htlb, #Hsent, #Hld, #Hack⟩), Hl⟩
   · imod netMsg_of_clone γ inp.msg' st m cm hc hf $$ [$Hl $Hism $Htlb $Hsent] with Hn
     imodintro
     iunfold inputOk
@@ -106,7 +110,7 @@ theorem inputOk_of_clone (h_tlb : rnTermLB_persistent.law (GF := GF)) (γ : AntN
     iexists m
     iframe Hn
     ipureintro; rw [absMsgOf_dst hf.2.2.2.2.1, hj]
-  · imod netXMsg_of_clone γ inp.msg' st x cm hc hf $$ [$Hl $Htlb $Hsent] with Hn
+  · imod netXMsg_of_clone γ inp.msg' st x cm hc hf $$ [$Hl $Htlb $Hsent $Hld $Hack] with Hn
     imodintro
     iunfold inputOk
     ileft

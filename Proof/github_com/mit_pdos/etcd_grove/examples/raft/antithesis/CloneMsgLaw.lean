@@ -10,7 +10,8 @@ to `Cluster.send`'s and `node.sendMsg`'s proofs.
 #33 parity B1: `cloneMsg.law` is stated here (S4's `DrainSendWp`, where it was, is gone), with the
 ownership steps around a clone: a sent message frozen read-only (`msgPtsCC_send_freeze`, the form
 `cloneMsg.law` takes), and a clone as an in-flight message (`msgPtsCC_clone_net`, `netMsg_of_clone`,
-`netXMsg_of_clone`).
+`netXMsg_of_clone`); a read credit for a time receipt (`rdCred_of_receipt`, a `MsgReadIndex`'s
+receiver's).
 -/
 module
 
@@ -105,6 +106,21 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- **A stepped message's read credit** (`RawNode.Step`'s `Hcred`): for a `MsgReadIndex`, one for a
+time receipt (`rdMinter`); otherwise none. -/
+theorem rdCred_of_receipt (γ : AntNames) (st : MsgSt) :
+    ⊢ rdMinter (GF := GF) γ -∗ ⧗ 1 ={⊤}=∗
+      rdCred γ.raft.raftNames (if st.msg.Type' = MsgReadIndex then 1 else 0) := by
+  iintro Hm H1
+  by_cases h : st.msg.Type' = MsgReadIndex
+  · rw [if_pos h]
+    iunfold rdMinter at Hm
+    iapply Hm $$ H1
+  · rw [if_neg h]
+    iclear H1 Hm
+    imod rdCred_zero_upd (GF := GF) γ.raft.raftNames with H0
+    imodintro; iexact H0
+
 /-- **A clone of an in-flight protocol message is one** (`netMsg`), with the original's facts. -/
 theorem netMsg_of_clone (γ : AntNames) (l : Loc) (st : MsgSt) (m : Msg) (c : MsgC)
     (hc : c.model = st ∧ c.csUfNil) (hf : NetFacts γ.R st m) :
@@ -119,16 +135,23 @@ theorem netMsg_of_clone (γ : AntNames) (l : Loc) (st : MsgSt) (m : Msg) (c : Ms
   · iexists c; iframe H; ipureintro; exact hc
   ipureintro; exact hf
 
-/-- **A clone of an in-flight transfer message is one** (`netXMsg`), with the original's facts. -/
+/-- **A clone of an in-flight transfer message is one** (`netXMsg`), with the original's facts
+(a stamped `MsgTransferLeader`'s destination its term's leader, a `MsgTimeoutNow`'s an
+acknowledgement at its term). -/
 theorem netXMsg_of_clone (γ : AntNames) (l : Loc) (st : MsgSt) (x : XMsg) (c : MsgC)
     (hc : c.model = st ∧ c.csUfNil) (hf : XNetFacts γ.R st x) :
     msgPtsCC (GF := GF) l (DFrac.own 1) (DFrac.own 1) true c ∗
-        rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x ⊢ |==> netXMsg γ l st x := by
-  iintro ⟨H, Htlb, Hsent⟩
+        rnTermLB γ.raft st.msg.Term' ∗ xsentW γ x ∗
+        □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+          isLeader γ.raft.raftNames st.msg.To' st.msg.Term') ∗
+        □ (⌜st.msg.Type' = MsgTimeoutNow⌝ -∗
+          ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ.raft.raftNames st.msg.To' st.msg.Term' i) ⊢
+      |==> netXMsg γ l st x := by
+  iintro ⟨H, Htlb, Hsent, #Hld, #Hack⟩
   imod msgPtsCC_clone_net l (needsCap st.msg) c $$ H with H
   imodintro
   iunfold netXMsg
-  iframe Htlb Hsent
+  iframe Htlb Hsent Hld Hack
   isplitl [H]
   · iexists c; iframe H; ipureintro; exact hc
   ipureintro; exact hf

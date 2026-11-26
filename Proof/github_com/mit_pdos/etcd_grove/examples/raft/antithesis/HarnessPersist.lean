@@ -32,6 +32,9 @@ instance nodeRO_persistent (c : Loc) (γ : AntNames) (n : Loc) (j : Fin γ.R.N) 
 instance propMinter_persistent (γ : AntNames) : Persistent (propMinter (GF := GF) γ) := by
   unfold propMinter; infer_instance
 
+instance rdMinter_persistent (γ : AntNames) : Persistent (rdMinter (GF := GF) γ) := by
+  unfold rdMinter; infer_instance
+
 
 set_option synthInstance.maxSize 2048 in
 set_option synthInstance.maxHeartbeats 400000 in

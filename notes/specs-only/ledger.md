@@ -6764,3 +6764,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   keeps the first clause; GlobalOk's projections after `BootFacts` shift (Send, ReadyRel). Every theorem strengthened
   or unchanged; the harness's node.step (group D) proves the new premise from `netXMsg`'s `isAcked` clause.
 - **Decision.** The Antithesis lead (S5 receiver-side route, points 1-5, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group D (Q2/Q3, (a)): the network's transfer messages carry what `RawNode.Step` takes; read credits minted by the receiver (#33)
+- **Spec.** HarnessRun.lean: `XNetFacts` += `Index' = 0 ∧ LogTerm' = 0 ∧ Commit' = 0 ∧ ents = [] ∧ Reject' = false` (Q3(a));
+  `netXMsg` and `sendFacts`' transfer arm += `□ (⌜Type' = MsgTransferLeader ∧ Term' ≠ 0⌝ -∗ isLeader γ To' Term')` (Q3(b));
+  and (lead's (a)) `□ (⌜Type' = MsgTimeoutNow⌝ -∗ ∃ i, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ To' Term' i)`;
+  `causeOwn`'s pending arm is a protocol message's
+  (`evRecv`) or a transfer message's (`evRecvX`, `xcause`) (Q2); new `rdMinter γ := □ (⧗ 1 ={⊤}=∗ rdCred γ 1)`, a conjunct
+  of `antCluster` (after `propMinter`). Q5 (`netMsg` += the read credit) is replaced by the receiver's minting:
+  `node.step` mints a stepped `MsgReadIndex`'s credit for a time receipt (`rdMinter`), so `netMsg`/`sendMsg` and
+  `Cluster.send` carry none (a time receipt per clone is not reachable in `Cluster.send`'s loop: its resolutions are
+  taken by the loop's automation).
+  ClusterAllocRun's `isCluster_rdMint` (new, proved: `isCluster γ N -∗ ⧗ 1 ={E}=∗ rdCred γ.raftNames 1` from the
+  cluster's read-credit exchange `rdPool`, as raft's `node.ReadIndex` mints with `rdPool_mint`).
+- **Defect.** `RawNode.Step` takes a `MsgReadIndex`'s read credit and a stamped `MsgTransferLeader`'s `isLeader`; the
+  in-flight messages carried neither, and the driver may deliver a message twice (each a clone, each stepped).
+- **Evidence.** CloneMsgLaw: `netXMsg_of_clone` takes the isLeader and the acknowledgement, `rdCred_of_receipt` (for
+  node.step); Cluster__send passes the persistent facts to each clone; RunCluster builds `rdMinter`
+  (`isCluster_rdMint`); node__start's antCluster pattern gains one component.
+- **Decision.** The Antithesis lead (Q2, Q3, (a) approved; the credits from the cluster's read-credit exchange, no new raft law). No
+  axiom, no top-level premise.
