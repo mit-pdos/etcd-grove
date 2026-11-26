@@ -22,6 +22,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadyRecv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
 
 @[expose] public section
 
@@ -405,6 +406,90 @@ theorem memberUpL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc
     iexact Hrest
   · iexists E, { ρ with wait := γw }
     rw [isServerReqM_false]
+    iexact Hreq
+
+/-- **`memberBuiltL_split` with auth on** (#50 F7 S2 step 4): the same split of `etcdstart.memberBuiltOnL`. -/
+theorem memberBuiltOnL_split (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (N : Nat) (γa : auth.AuthNames) (lm : lease.Mode) (γl : GName) :
+    etcdstart.memberBuiltOnL s ρ E₀ lg γn id N false γa lm γl ⊢
+      etcdstart.memberBuiltOnL s ρ E₀ lg γn id N true γa lm γl ∗ srvReadyRecv s ∗
+      ∃ τ : SrvTr GF, srvNetMember γn s id τ ∗
+        [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ := by
+  iintro H
+  iunfold etcdstart.memberBuiltOnL at H
+  icases H with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, Hwb, Hsb, Hserve, Hsv, Hoff, Hmr,
+    Hrc, #Hnm, Htokp, Hps, Hlr, Hkeep, #Htls, #HBF⟩
+  ihave Hps := memberPeerServeRes_false γn τ $$ Hps
+  iunfold srvReadyCloser at Hrc
+  icases Hrc with ⟨Hrch, Hrc⟩
+  icases srvReadyCh_recv s $$ Hrch with ⟨Hrch, #Hrr⟩
+  isplitl [Hstk Hwb Hsb Hserve Hsv Hoff Hmr Hrch Hrc Htokp Hlr Hkeep]
+  · iunfold etcdstart.memberBuiltOnL
+    iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
+    isplitr
+    · ipureintro; exact HE
+    isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hwb]
+    · iexact Hwb
+    isplitl [Hsb]
+    · iexact Hsb
+    isplitl [Hserve]
+    · iexact Hserve
+    isplitl [Hsv]
+    · iexact Hsv
+    isplitl [Hoff]
+    · iexact Hoff
+    isplitl [Hmr]
+    · iexact Hmr
+    isplitl [Hrch Hrc]
+    · iunfold srvReadyCloser
+      isplitl [Hrch]
+      · iexact Hrch
+      iexact Hrc
+    isplitr
+    · iexact Hnm
+    isplitl [Htokp]
+    · iexact Htokp
+    isplitr
+    · iapply memberPeerServeRes_true γn τ
+    isplitl [Hlr]
+    · iexact Hlr
+    isplitl [Hkeep]
+    · iexact Hkeep
+    isplitr
+    · iexact Htls
+    iexact HBF
+  · isplitr
+    · iexact Hrr
+    iexists τ
+    isplitr
+    · iexact Hnm
+    iexact Hps
+
+/-- **`memberUpL_req` with auth on** (#50 F7 S2 step 4): the request view at `true`, split off
+`etcdstart.memberUpOnL`. -/
+theorem memberUpOnL_req (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (γa : auth.AuthNames) (lm : lease.Mode) (γl : GName) :
+    etcdstart.memberUpOnL s ρ E₀ lg γn id γa lm γl ⊢
+      etcdstart.memberUpOnL s ρ E₀ lg γn id γa lm γl ∗ ∃ (E : apply.AEnv GF) (ρ' : ReqNames),
+        isServerReqM true s E ρ' := by
+  iintro H
+  iunfold etcdstart.memberUpOnL at H
+  icases H with ⟨%E, %cfg, %γw, %HE, Hstk, Hrs, #Hreq, Hrest⟩
+  isplitl [Hstk Hrs Hrest]
+  · iunfold etcdstart.memberUpOnL
+    iexists E, cfg, γw
+    isplitr
+    · ipureintro; exact HE
+    isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hrs]
+    · iexact Hrs
+    isplitr
+    · iexact Hreq
+    iexact Hrest
+  · iexists E, { ρ with wait := γw }
     iexact Hreq
 
 end split

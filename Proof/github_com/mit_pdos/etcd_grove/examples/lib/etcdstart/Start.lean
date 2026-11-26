@@ -153,6 +153,114 @@ theorem wp_Start_builtL (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   iexists τ
   iframe Hnm Htokp
 
+/-! ## The auth-on chain with the lessor at `γl` (#50 F7 S2 step 4) -/
+
+/-- **`memberBuiltL` with auth on, at the auth names `γa`** (#50 F7 S2 step 4): `memberBuiltL`'s body with
+`E.authMode = .on γa` for `E.authOn = false`, the built part in the auth-on mode (`isServerBuiltM true`, at the
+boot state `bootKVOf true`), and what `memberUpOnL` takes besides: the TLS fallback off and the auth store's
+`Authenticate` side. `Start` turns it into `memberUpOnL` (`wp_Start_builtOnL`). -/
+def memberBuiltOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (N : Nat) (served : Bool) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName) : IProp GF :=
+  iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+      (γrn : RNNames GF) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+      (γk : GName) (τ : SrvTr GF),
+    ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+      cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
+    srvServeStock s E ∗
+    srvWatchBuilt s E ∗
+    isServerBuiltM true s γA ci TM E ρ ρ.rd
+      (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk))
+      γrn b (W64 0) (W64 0) (W64 0) (bootKVOf true) N ∗
+    srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    memberPeerServeRes γn τ served ∗
+    srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk ∗
+    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
+
+/-- **A member started with auth on, with the lessor at `γl`, from its parts** (`memberUpOn_intro`'s, for
+`memberUpOnL`): its conjuncts, the views at `true`, and the lessor's name. -/
+theorem memberUpOnL_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
+    (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) (m : lease.Mode) (γl : GName) :
+    ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+        cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
+      srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
+      isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗
+      srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+      srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗
+      ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
+      srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗ srvLeaseRd s E m ⊢
+    memberUpOnL (GF := GF) s ρ E₀ lg γn id γa m γl := by
+  iintro ⟨%HEc, Hstk, Hrun, #Hreq, #Hrd, #Hlb, #Hwb, #Hsf, Hgo, Hlg3, Hbemu, Hrslots, Hctl, #Htls, #HBF, #Hlrd⟩
+  iunfold memberUpOnL
+  iexists E, cfg, γw
+  isplitr; · ipureintro; exact HEc
+  isplitl [Hstk]; · iexact Hstk
+  isplitl [Hrun]; · iexact Hrun
+  iframe Hreq Hrd Hlb Hwb Hsf Htls HBF Hlrd
+  iframe
+
+/-- `wp_Start_builtL` with auth on (#50 F7 S2 step 4): from `memberBuiltOnL`, `memberUpOnL` (`Start` at the auth
+slot's `on γa`, as `StartMemberAuth`). -/
+theorem wp_Start_builtOnL (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
+    (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
+    (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName)
+    (Hrb48 : receiptBound GF ≤ 2 ^ 48) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        memberBuiltOnL s ρ E₀ lg γn id N sv γa m γl ∗ threadTok }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
+    {{ RET #(); memberUpOnL s ρ E₀ lg γn id γa m γl }} := by
+  iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
+  iunfold memberBuiltOnL at Hmb
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, -, #Hlr, Hkeep, #Htls, #HBF⟩
+  obtain ⟨hagree, hγa, hcl, hct, hcw, hγl⟩ := HE
+  iunfold srvServeBuilt at Hserve
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
+  obtain ⟨x₀, hx₀⟩ : ∃ x, x = bootKVOf true := ⟨_, rfl⟩
+  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) (srvTrStopK γk) :=
+    ⟨_, rfl⟩
+  rw [← hx₀, ← hEr] at Hsb
+  -- `Start.spec` at the slot's `on γa`: the built part as the slot's row
+  have hB := isServerBuiltM_C (GF := GF) (.on γa) s γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
+    (W64 0) x₀ N hγa
+  dsimp only [AuthC.isOn] at hB
+  ihave Hsb := hB $$ [Hsb Hkeep]
+  · iframe Hsb
+    iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
+  have h' := wp_Start s γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
+  simp only [AuthC.isOn] at h'
+  -- the server's member id is the member's (`srvNetMember`'s)
+  icases isServerBuiltC_mid (.on γa) s γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N $$ Hsb
+    with ⟨Hsb, #HmidS, -⟩
+  ihave #Hnm' := Hnm
+  iunfold srvNetMember at Hnm'
+  icases Hnm' with ⟨⟨%γdp, #Hpok⟩, -⟩
+  iunfold srvProcOk at Hpok
+  icases Hpok with ⟨%lp, %cp, %stp, %γrp, -, -, #Hmidp, -⟩
+  icombine HmidS Hmidp gives %Hideq
+  subst Hideq
+  wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩
+  · iframe; iframe #
+    ipureintro; exact ⟨hγa, Hrb48, HrbN, by trivial⟩
+  iunfold srvStartReaders at Hsr
+  icases Hsr with ⟨Hrslots, -⟩
+  icases srvStartReaders_split s ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
+  iapply HΦ
+  iapply memberUpOnL_intro _ _ _ _ _ _ _ E cfg γw m γl
+  isplitr
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    isplitl [Hrun]
+    · iexact Hrun
+    iframe Hreq Hrd Hlb Hwb Hsf Htls HBF Hlr
+    iframe
+    iunfold srvPeerCtl
+    iexists τ
+    iframe Hnm Htokp
+  ipureintro; exact ⟨hagree, hγa, hcl, hct, hcw, hγl⟩
+
 end proof
 
 end etcdstart
