@@ -13,9 +13,11 @@
 // mvcc, up to cfg's sizes, among the alternatives cfg's Mix allows (except the restrictions below).
 //
 // The proved theorem (mvccfull_robust, Spec/.../mvccfull/TopLevelRobustness.lean) is about
-// MainAt, so about one configuration, MainConfig: its sizes, and its Mix, whose Read weights rule
-// out the corruption checker's hashes (HashByRev, Hashes; Run's final hashes() is skipped too,
-// hashing). Its other zero weights exclude nothing (each picks from another alternative's values).
+// MainAt, which draws its Config at random (drawConfig: every field any value) and runs it if it
+// is in the proof's range (inScope), so about every Config in that range: its sizes bounded as
+// inScope says, and every Mix whose Read weights rule out the corruption checker's hashes
+// (HashByRev, Hashes; Run's final hashes() is skipped too, hashing), which stay outside until
+// hashing is verified (stage F2).
 //
 // # Auditing
 //
