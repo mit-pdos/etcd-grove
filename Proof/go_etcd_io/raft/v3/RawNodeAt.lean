@@ -132,14 +132,21 @@ dynamic mode (the configuration never changes); without `prevote`/`cq`, the `Con
 read-only queue empty (its heartbeats carry no context, `hbCtx`); without `snapshots`, the log's
 boundary at `base0` (never compacted), no snapshot pending or lent, no `MsgSnap` queued; without
 `transfer`, no transfer request stepped (`NGhost.xs`: every queued message is of a type the model
-describes, `XfOk`). `RnScope {}` is the first harness's scope (`RnScopeBasic`, `RnScope_empty`). -/
+describes, `XfOk`). (antithesis parity B1, lead-approved) With pre-vote on and no configuration changes, a
+pre-candidate's tally not a quorum of its configuration: only `hup` makes a pre-candidate (the tally
+reset, its self pre-vote queued, not yet polled) and a won tally campaigns in the same step; what makes
+`HandleEnd`'s pre-vote response arm campaign only on a grant (with configuration changes it is false:
+`switchToConfig` keeps `trk.Votes`, B3). `RnScope {}` is the first harness's scope (`RnScopeBasic`,
+`RnScope_empty`). -/
 def RnScope (md : RnMode) (rs : RNState) (s : NState) : Prop :=
   (md.confChanges = false → rs.mode.isDyn = true → rs.cfg.cfg.outgoing = ∅) ∧
   (md.prevote = false → s.prevote = false) ∧ (md.cq = false → s.cq = false) ∧
   (md.reads = false → s.rd.pend = [] ∧ (s.role = .leader → s.rd.ro.pending = [])) ∧
   (md.snapshots = false → rs.slent = none ∧ s.logst.prev = base0 ∧ s.logst.snap = none ∧
      ∀ m ∈ s.outbox, m.ty ≠ .snap) ∧
-  (md.transfer = false → s.gh.xs = false)
+  (md.transfer = false → s.gh.xs = false) ∧
+  (md.confChanges = false → md.prevote = true → s.role = .preCandidate →
+     ¬ JQuorum rs.cfg.cfg (granted s.votes))
 
 /-- **The first harness's scope, flat** (`RnScope {}`, `RnScope_empty`; the conjunction the proofs of
 the basic scope read by position): a simple configuration (in the dynamic mode no outgoing half),
@@ -155,10 +162,10 @@ theorem RnScope_empty (rs : RNState) (s : NState) : RnScope {} rs s ↔ RnScopeB
   unfold RnScope RnScopeBasic
   simp only [forall_const]
   constructor
-  · rintro ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10⟩
+  · rintro ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10, -⟩
     exact ⟨h1, h2, h3, h4, h6, h7, h8, h9, h5, h10⟩
   · rintro ⟨h1, h2, h3, h4, h6, h7, h8, h9, h5, h10⟩
-    exact ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10⟩
+    exact ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10, fun h _ => (Bool.false_ne_true h).elim⟩
 
 /-- **The first harness's scope as a scope option** (`none` outside the scope, `some {}` in it): the
 statements of the basic scope quantify over a `Bool`. -/

@@ -979,7 +979,7 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     intro md hsc
     obtain ⟨Hpv0, Hcq0, -, Hmo, Hb0⟩ := Hsc md hsc
     refine ⟨fun h _ => (Hmo h).2.1, fun h => ?_, fun h => ?_, fun _ => ⟨Hpd, ?_⟩,
-      fun h => ⟨rfl, ?_, Hsn0, ?_⟩, fun _ => ?_⟩
+      fun h => ⟨rfl, ?_, Hsn0, ?_⟩, fun _ => ?_, fun _ _ hp => absurd (Hr.symm.trans hp) (by decide)⟩
     · show s.prevote = false; rw [Hpvoff, Hpv0 h]
     · show s.cq = false; rw [Hcq, Hcq0 h]
     · intro hl; exact absurd (Hr.symm.trans hl) (by decide)

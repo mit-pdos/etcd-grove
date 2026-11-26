@@ -6309,3 +6309,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   shrink can make the pending tally a quorum, and the next (rejecting) response then wins `poll` and campaigns. B1 proves
   the arm at `md.confChanges = false` only (RnScope's pre-candidate conjunct); **B3 item**: widen the arm (or the
   invariant) before conf changes are on.
+
+## 2026-11-26 — antithesis parity B1 phase 2: a pre-candidate's tally is not a quorum (`RnScope`) (#33)
+- **Change.** `RnScope md rs s` (RawNodeAt.lean) gains a last conjunct `md.confChanges = false → md.prevote = true →
+  s.role = .preCandidate → ¬ JQuorum rs.cfg.cfg (granted s.votes)`: without configuration changes, a pre-candidate's
+  tally is not a quorum of its configuration (only `hup` makes a pre-candidate, votes reset, the self pre-vote queued
+  and not yet polled; a won tally campaigns in the same step). It is what `HandleEnd`'s narrowed `.preVoteResp` arm
+  (57cff2a9b9) needs. The `md.prevote = true` guard (lead-confirmed) keeps `RnScope_empty` an iff with no new
+  `RnScopeBasic` conjunct; it loses nothing, since with pre-vote off there is no pre-candidate (`role = .preCandidate →
+  s.prevote = true`, and `RnScope` gives `s.prevote = false`).
+- **Producers.** The restart (`RawNodeStart`: a follower); `RnScope_empty` (vacuous at `{}`); `rnScopeAt_keepAll`'s
+  callers (role and tally kept). The inputs that move a pre-candidate prove it with the general-mode lifting (item 4).
+- **Decision.** Lead-approved (2026-11-26). No axiom, no premise.
