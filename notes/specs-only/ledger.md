@@ -5984,12 +5984,3 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   which `diskOwn d w` does not give. `node.start`'s caller discharges them (trivially for an empty disk; B2's
   restarts carry the log-indices fact with the view). Proof: `Proof/.../antithesis/memoryOf.lean`.
 - **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
-
-## 2026-11-26 — antithesis parity B1: `memoryOf.spec` takes the disk log's numbering (#33)
-
-- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/memoryOf.lean`.
-- **Change (two pure premises).** `memoryOf.spec` now assumes `∀ i e, w.log[i]? = some e → uint.nat e.Index' = 1 + i`
-  and `1 + w.log.length ≤ 2 ^ 61`: `MemoryStorage.Append.spec`'s premises at `k = 1` (`Append` panics on a gap),
-  which `diskOwn d w` does not give. `node.start`'s caller discharges them (trivially for an empty disk; B2's
-  restarts carry the log-indices fact with the view). Proof: `Proof/.../antithesis/memoryOf.lean`.
-- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
