@@ -7227,3 +7227,33 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   No spec statement's text changes; `idGen`'s first four components (read by `SrvRaftLog`) are unchanged.
 - **Decision.** Announced on #50 (2026-11-25T23:25Z, "unless you object"); applied on `etcd-safe-t10` (T10 session 5).
   The lead's B6 choice ((a'), (b), (c)) builds on it; under (b) the re-allocation now needs a fresh `γgp` only.
+
+## 2026-11-26: B6 (b), the prefix's ids' invariant cancelled at a crash (T10 session 6; internal)
+
+- **Spec.** `idPfxBody` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec`,
+  `Generator.Next.spec`, `idPfxInv` and every spec naming them; T7's `memberPfx.law`
+  (`dist/crash/MemberCrash.lean`); the issue record's `Specs`/`Crash` (`GooseLang/Ext/IdIssue/`, untrusted: no
+  change to its `Impl`).
+- **Defect.** `idPfxInv` is heap-level (its `Gp` holds `prefix ↦□` facts, its `Ip` the record's `idIssueFragD` at the
+  generation `L`), so the old generation's cannot serve the new one, and a new one at the same names `γip` cannot be
+  allocated while the old invariant holds `γip`'s authority. `memberPfx.law` (an unproved hypothesis) asked for it.
+- **Evidence.** B6's analysis (`notes/etcd-dist-d6.md`, sessions 4-5). B6 decided (b) on #50 (2026-11-26T00:33Z,
+  etcd-grove-03; the lead away). A cancellable invariant (`cinv`, its token in the member's keep) does **not** work:
+  opening one takes a fraction of its token, and `Next` holds only the persistent `idGen` (a persistent fact cannot
+  be invalidated later, so the old generation's `Next` must be able to open the old invariant after a crash and be
+  refuted there). The one resource that refutes an old generation's step is the old record's authority, which the
+  crash's rest `idIssueCrashStart hL hL'` hands over and the step's own state interpretation (`idIssueCtx hL`) also
+  holds.
+- **Proposed change.** (1) `idPfxBody γip γgp := GpPart γgp ∗ (IpPart γip γgp ∨ idIssueDeadD)`: the generators' map
+  (fresh `γgp` per allocation, never cancelled; `NewGenerator` uses only it) and the ids' map, which a crash replaces by
+  the old record's authority `idIssueDeadD` (`∃ Mg, ghostMapAuth hL.idIssueName 1 Mg`, instance-free as
+  `idIssueFragD`). (2) Each `Ip` entry is `(idIssueFragD id g ∗ g ↪[γgp]□ inc) ∨ idIssuePastD id` (an earlier
+  incarnation's id, instance-free `idIssuePastAt`); `Next` refutes the second with `idIssueFragAt_past`. (3) A
+  variant `wp_IdIssue_live` of the record's step lets the step's update give up with `idIssueDeadAt` of its own
+  incarnation, which the step refutes with its state interpretation's authority; `Next` uses it when it opens a
+  cancelled body. (4) The crash law `idPfxInv_crash`: from the old generation's `idPfxInv` and `idIssueCrashStart`,
+  every `Ip` fact made past at `L'`, the old body cancelled (the old authority deposited), and a new invariant at the
+  same `γip` with a fresh, empty `γgp`; `memberPfx.law` restated to take the old `idPfxInv` and the crash rest, and
+  proved from it. **No keep row** (the "cancel token" is the crash rest's authority, not a member's token). No change
+  to `NewGenerator.spec`'s or `Next.spec`'s text, no top-level change, no axiom.
+- **Decision.** (b) by etcd-grove-03 on #50; this form of it applied on `etcd-safe-t10` (T10 session 6).

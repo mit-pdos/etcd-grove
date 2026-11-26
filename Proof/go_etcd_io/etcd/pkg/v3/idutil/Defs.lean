@@ -503,6 +503,8 @@ def idClusterOk {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap IdKey IdKe
   (∀ k e, C !! k = some e → e.1 ≠ [] → e.2.isSome) ∧
   (∀ k, (C !! k).isSome ↔ (R !! k).isSome) ∧ (∀ k, (C !! k).isSome ↔ (Fm !! k).isSome)
 
+end ghost
+
 /-! `idClusterOk`'s clauses by name (T10, 2026-11-26): a proof outside this file reads a clause through
 these, never by its position, so that adding or dropping a clause breaks only this file. -/
 
@@ -536,7 +538,6 @@ theorem idClusterOk.mk {X : Type} {I : GMap w64 (Option IdClaimV)} {C : GMap IdK
     (domF : ∀ k, (C !! k).isSome ↔ (Fm !! k).isSome) : idClusterOk I C R Fm :=
   ⟨issued, pfx, gen, domR, domF⟩
 
-end ghost
 
 section ghostG3
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -604,20 +605,37 @@ def idPfxN : Namespace := nroot .@ "idutil_pfx"
 @[simp] theorem idPfxN_idN_idClusterN : (↑idPfxN : CoPset) ⊆ (⊤ \ ↑idN) \ ↑idClusterN :=
   mask_ndot_ne2 nroot "idutil_pfx" "idutil" "idutil_cluster" (by decide) (by decide)
 
+/-- (T10 B6 (b), 2026-11-26) **An id of the prefix's ids' map, with its issuer `ig = (inc, g)`**
+(persistent): issued by `g`, registered as incarnation `inc`'s generator in this allocation's
+generators' map `γgp`; or (after a crash) issued by an earlier incarnation. -/
+def idPfxIdFact (γgp : GName) (id : w64) (ig : Nat × Loc) : IProp GF :=
+  iprop((idIssueFragD id ig.2 ∗ ig.2 ↪[γgp]□ ig.1) ∨ idIssuePastD id)
+
+instance idPfxIdFact_persistent (γgp : GName) (id : w64) (ig : Nat × Loc) :
+    Persistent (idPfxIdFact (GF := GF) γgp id ig) := by
+  unfold idPfxIdFact; infer_instance
+
+instance idPfxIdFact_timeless (γgp : GName) (id : w64) (ig : Nat × Loc) :
+    Timeless (idPfxIdFact (GF := GF) γgp id ig) := by
+  unfold idPfxIdFact; infer_instance
+
 /-- (etcd-dist D7) **A prefix's generators' facts**, on its member's machine: the ids issued under the
 prefix, each tagged with its issuer's incarnation `i` and its issuer `g`, with the issue record's fact
 that `g` issued it and `g` registered as incarnation `i`'s generator; and the generators, each with its
 incarnation and its `prefix` field (its address one generator's); both maps' elements persisted.
+(T10 B6 (b), 2026-11-26: the ids' map is cancelled at a crash, `idPfxInv_crash`, replaced by the old
+record's authority `idIssueDeadD`; the generators' map, fresh per allocation, is never cancelled.)
 (T10 B6, 2026-11-26: the incarnation tags, and the generators' map keyed to the incarnation and named
 per allocation, `idPfxInv`, instead of keyed to the key and named in `gen`: within one heap a generator
 is one incarnation's, and `Next` reads which from the map.) -/
 def idPfxBody (γip γgp : GName) : IProp GF :=
-  iprop(∃ (Ip : GMap w64 (Nat × Loc)) (Gp : GMap Loc Nat),
-    ghostMapAuth γip 1 Ip ∗ ghostMapAuth γgp 1 Gp ∗
-    ([∗map] id ↦ ig ∈ Ip, idIssueFragD id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗ id ↪[γip]□ ig) ∗
+  iprop((∃ Gp : GMap Loc Nat, ghostMapAuth γgp 1 Gp ∗
     [∗map] g ↦ i ∈ Gp,
       (∃ v : w64, structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ v) ∗
-        g ↪[γgp]□ i)
+        g ↪[γgp]□ i) ∗
+    ((∃ Ip : GMap w64 (Nat × Loc), ghostMapAuth γip 1 Ip ∗
+      [∗map] id ↦ ig ∈ Ip, idPfxIdFact γgp id ig ∗ id ↪[γip]□ ig) ∨
+     idIssueDeadD))
 
 /-- (etcd-dist D7, 2026-11-23) **The prefix `p`'s generators' facts** (persistent; heap-level): its names
 (`gen`'s) and the invariant of its generators' facts on the machine of the member of prefix `p`, where
@@ -639,11 +657,14 @@ theorem idPfxInv_alloc (gen : GName) (p : w64) (E : CoPset) :
   imod (inv_alloc idPfxN E (idPfxBody (GF := GF) γip γgp)) $$ [Hi Hg] with #Hinv
   · inext
     iunfold idPfxBody
-    iexists ∅, ∅
-    iframe Hi Hg
-    isplitl
-    · iapply BigSepM.bigSepM_empty.2; itrivial
-    · iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitl [Hg]
+    · iexists ∅
+      iframe Hg
+      iapply BigSepM.bigSepM_empty.2; itrivial
+    · ileft
+      iexists ∅
+      iframe Hi
+      iapply BigSepM.bigSepM_empty.2; itrivial
   imodintro
   iunfold idPfxInv
   iexists γip, γgp

@@ -124,6 +124,36 @@ theorem idIssuePast_crash_past (L L' : GooseLocalGS GF) (id : w64) :
         idIssuePast (L := L') id :=
   idIssueCrashStart_past _ _ id none
 
+/-- **The crash's rest proves the old incarnation crashed** (T10 B6 (b)): its record's authority, to
+cancel an invariant of the old incarnation's facts (after the facts are made past). -/
+theorem idIssueCrashStart_dead (L L' : GooseLocalGS GF) :
+    ⊢@{IProp GF} idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) -∗
+      idIssueDeadD (L := L) := by
+  rw [idIssueDeadD_eq]
+  iintro Hc
+  iunfold idIssueCrashStart at Hc
+  icases Hc with ⟨%Mg, HA, -⟩
+  iunfold idIssueDeadAt
+  iexists Mg
+  iexact HA
+
+/-- `idIssueFrag_crash_past`, instance-free forms. -/
+theorem idIssueFragD_crash_pastD (L L' : GooseLocalGS GF) (id : w64) (g : Loc) :
+    ⊢@{IProp GF} idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) -∗
+      idIssueFragD (L := L) id g -∗
+      idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) ∗
+        idIssuePastD (L := L') id := by
+  rw [idIssueFragD_eq, idIssuePastD_eq]
+  exact idIssueFrag_crash_past L L' id g
+
+theorem idIssuePastD_crash_pastD (L L' : GooseLocalGS GF) (id : w64) :
+    ⊢@{IProp GF} idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) -∗
+      idIssuePastD (L := L) id -∗
+      idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) ∗
+        idIssuePastD (L := L') id := by
+  rw [idIssuePastD_eq, idIssuePastD_eq]
+  exact idIssuePast_crash_past L L' id
+
 end lifting
 
 end Perennial

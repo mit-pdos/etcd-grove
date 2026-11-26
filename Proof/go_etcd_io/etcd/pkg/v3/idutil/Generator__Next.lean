@@ -253,7 +253,7 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
   (try wp_auto)
   -- (R2c stage 2) step B, the issue: the record's `"Issue"` with both invariants open
   wp_bind (ExternalOp _ _ (Val _))
-  iapply (wp_IdIssue nid g)
+  iapply (wp_IdIssue_live nid g)
   iinv Hinv with Hi Hclose
   icases Hi with ⟨%k', %L', %S', %P', >Hsuf, >Hcr, >Hcnt, >HS, >HP, >%Hdom'⟩
   iunfold idClusterInv at Hcl
@@ -262,9 +262,18 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
   -- (etcd-dist D7) the prefix's generators' facts, on this machine
   iinv Hpinv with Hpb Hclose3
   iunfold idPfxBody at Hpb
-  icases Hpb with ⟨%Ip, %Gp, >HIp, >HGp, >#HIps, >#HGps⟩
+  icases Hpb with ⟨⟨%Gp, >HGp, >#HGps⟩, >HIpd⟩
+  -- (T10 B6 (b)) a cancelled ids' map: this incarnation crashed, which its step refutes
+  icases HIpd with (⟨%Ip, HIp, #HIps⟩ | Hdead)
+  rotate_left
+  · iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro -
+    ileft
+    rw [idIssueDeadD_eq]
+    iexact Hdead
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
+  iright
   iintro %b #Hfr
   imod Hmask with -
   cases b with
@@ -273,8 +282,9 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
     imod Hclose3 $$ [HIp HGp] with -
     · inext
       iunfold idPfxBody
-      iexists Ip, Gp
-      iframe HIp HGp HIps HGps
+      isplitl [HGp]
+      · iexists Gp; iframe HGp HGps
+      · ileft; iexists Ip; iframe HIp HIps
     imod Hclose2 $$ [HI HC HR HF] with -
     · inext
       iexists I, C, R, Fm
@@ -332,9 +342,14 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
             icombine HIp He2 gives %HlI
             have HlI' : Ip.lookup nid = some (k2.2, g2) := HlI
             icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Ip)
-              (Φ := fun id ig => iprop(idIssueFragD (L := hG.goose_localGS) id ig.2 ∗
-                ig.2 ↪[γgp]□ ig.1 ∗ id ↪[γip]□ ig)) HlI').1
-              $$ HIps with ⟨⟨#Hf2, #Hg2, -⟩, -⟩
+              (Φ := fun id ig => iprop(idPfxIdFact γgp id ig ∗
+                id ↪[γip]□ ig)) HlI').1
+              $$ HIps with ⟨⟨#Hfact2, -⟩, -⟩
+            iunfold idPfxIdFact at Hfact2
+            icases Hfact2 with (⟨#Hf2, #Hg2⟩ | #Hp2)
+            rotate_left
+            · iexfalso
+              iapply idIssueFragD_pastD nid g $$ HfD Hp2
             ihave %Hgg := idIssueFragD_agree nid g2 g $$ Hf2 HfD
             subst Hgg
             -- (T10 B6) `g2` is one incarnation's generator: `k2`'s is the key's
@@ -346,7 +361,7 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
             exact absurd hin HnL
     -- (etcd-dist D7) `nid`'s issuer recorded in the prefix's ids' map (already there only as `g`'s)
     ihave Hins : iprop(|==> ∃ Ip' : GMap w64 (Nat × Loc), ghostMapAuth γip 1 Ip' ∗
-        ([∗map] id ↦ ig ∈ Ip', idIssueFragD (L := hG.goose_localGS) id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗
+        ([∗map] id ↦ ig ∈ Ip', idPfxIdFact γgp id ig ∗
           id ↪[γip]□ ig) ∗
         nid ↪[γip]□ ((γi.inc, g) : Nat × Loc)) $$ [HIp]
     · cases hIp : Ip.lookup nid with
@@ -356,15 +371,23 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
         iexists Ip.insert nid (γi.inc, g)
         iframe HIp Hng
         iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := Ip)
-          (Φ := fun id ig => iprop(idIssueFragD (L := hG.goose_localGS) id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗
+          (Φ := fun id ig => iprop(idPfxIdFact γgp id ig ∗
             id ↪[γip]□ ig)) hIp).2
-        iframe HIps HfD Hgr Hng
+        iframe HIps Hng
+        iunfold idPfxIdFact
+        ileft
+        iframe HfD Hgr
       | some ig' =>
         rcases ig' with ⟨i', g'⟩
         icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Ip)
-          (Φ := fun id ig => iprop(idIssueFragD (L := hG.goose_localGS) id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗
+          (Φ := fun id ig => iprop(idPfxIdFact γgp id ig ∗
             id ↪[γip]□ ig)) hIp).1
-          $$ HIps with ⟨⟨#Hf', #Hg', #Hel⟩, -⟩
+          $$ HIps with ⟨⟨#Hfact', #Hel⟩, -⟩
+        iunfold idPfxIdFact at Hfact'
+        icases Hfact' with (⟨#Hf', #Hg'⟩ | #Hp')
+        rotate_left
+        · iexfalso
+          iapply idIssueFragD_pastD nid g $$ HfD Hp'
         ihave %Hgg := idIssueFragD_agree nid g' g $$ Hf' HfD
         subst Hgg
         ihave %Hii := ghostMapElem_agree g' γgp DFrac.discard DFrac.discard _ _ $$ Hg' Hgr
@@ -376,8 +399,9 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
     imod Hclose3 $$ [HIp HGp] with -
     · inext
       iunfold idPfxBody
-      iexists Ip', Gp
-      iframe HIp HGp HIps' HGps
+      isplitl [HGp]
+      · iexists Gp; iframe HGp HGps
+      · ileft; iexists Ip'; iframe HIp HIps' 
     imod ghost_map_insert nid (none : Option IdClaimV) HIn $$ HI with ⟨HI, Hu⟩
     imod ghost_map_update ((nid :: L', some g) : IdKeyEntry) $$ HC Hcnt with ⟨HC, Hcnt⟩
     imod ghost_map_delete $$ HP Hpd with HP

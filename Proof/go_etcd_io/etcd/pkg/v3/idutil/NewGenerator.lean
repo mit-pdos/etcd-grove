@@ -67,7 +67,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
   iinv Hpinv with Hpb Hpclose
   iunfold idPfxBody at Hpb
-  icases Hpb with ⟨%Ip, %Gp, >HIp, >HGp, >#HIps, >#HGps⟩
+  icases Hpb with ⟨⟨%Gp, >HGp, >#HGps⟩, >HIpd⟩
   icombine HC Hcnt gives %Hlk
   have Hlk' : C !! γi.key = some (([], none) : IdKeyEntry) := Hlk
   ihave %HGpn : ⌜Gp !! gp = none⌝ $$ [prefix']
@@ -85,11 +85,12 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   ihave #Hpfk : structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" gp ↦□ γi.pfx $$ []
   · iExactEq prefix'; rw [Hpfx]; rfl
   imod (ghost_map_insert_persist gp γi.inc HGpn) $$ HGp with ⟨HGp, #Hgk⟩
-  imod Hpclose $$ [HIp HGp] with -
+  imod Hpclose $$ [HIpd HGp] with -
   · inext
     iunfold idPfxBody
-    iexists Ip, (Gp.insert gp γi.inc)
-    iframe HIp HGp HIps
+    iframe HIpd
+    iexists (Gp.insert gp γi.inc)
+    iframe HGp
     have HGpn' : Gp.lookup gp = none := HGpn
     iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := Gp)
       (Φ := fun g i => iprop((∃ v : w64,
