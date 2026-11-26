@@ -20,7 +20,9 @@ axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
+axiom grpcProtoCodec
 axiom grpcSrvAtLis
+axiom grpcStatsHandlerOk
 axiom grpcWrotePeer
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
