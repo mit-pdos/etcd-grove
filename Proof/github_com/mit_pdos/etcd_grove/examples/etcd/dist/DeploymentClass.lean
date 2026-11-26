@@ -300,7 +300,9 @@ theorem class_auth {d : Deployment} (Hd : d.WellFormed) (h5 : d.workloads.map (�
     d.cfg.auth = true ∧ ∃ (w : Workload) (ns : List GoString), d.workloads = [w] ∧ w.kind = W64 5 ∧
       d.nodes = [ns] ∧ ns.length = 4 := by
   obtain ⟨w, hw⟩ : ∃ w, d.workloads = [w] := by
-    obtain ⟨w, hw⟩ := List.length_eq_one_iff.1 (by rw [← List.length_map (f := (·.kind)), h5]; rfl)
+    have hl := congrArg List.length h5
+    rw [List.length_map] at hl
+    obtain ⟨w, hw⟩ := List.length_eq_one_iff.1 hl
     exact ⟨w, hw⟩
   have hk : w.kind = W64 5 := by rw [hw] at h5; simpa using h5
   obtain ⟨t, he, htw⟩ := Hd
@@ -311,8 +313,7 @@ theorem class_auth {d : Deployment} (Hd : d.WellFormed) (h5 : d.workloads.map (�
     have e := hen.kind
     rw [hk] at e
     clear htwm hen
-    revert e
-    cases tw <;> simp [typed.Workload.kindW] <;> decide
+    cases tw <;> simp only [typed.Workload.kindW, typed.Workload.kind] at e ⊢ <;> first | rfl | exact absurd e (by decide)
   subst htk
   have hauth : ∀ w ∈ t.workloads, w.needsAuth = true → t.cfg.auth = true := by
     grind [typed.Deployment.WellFormed]

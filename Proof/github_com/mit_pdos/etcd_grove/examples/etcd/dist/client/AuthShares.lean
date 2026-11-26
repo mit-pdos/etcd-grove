@@ -2,8 +2,9 @@
 
 # `etcd/dist/client`: the auth workload's shares (#50 F7 S12, `notes/etcd-dist-f7.md`, "Handoff W-6")
 
-The shares the auth class's start would hand its machines, at the global ghost state (`[Gg : GooseGlobalGS]`), the
-candidates for `wlShare`'s and `wlNodeShare`'s kind-5 arms (`client/Shares.lean`, the lead's, still `False` there):
+The shares the auth class's start hands its machines, at the global ghost state (`[Gg : GooseGlobalGS]`):
+`wlShare`'s and `wlNodeShare`'s kind-5 arms (`client/Shares.lean`; F7 S13 and S14), given by `dist/StartAuth.lean`'s
+`etcd_startAuth`:
 - `authShare eps ns`: the orchestrator's, `RunAuth.spec`'s precondition but its machine-local parts (an auth-on view
   `Γ` with distinct auth names, the raft names `γR` tied to `Γ`'s requested log, a start state `σ₀` with no change;
   every member's `leaseMember`, the KV invariant `kvInvOn`, the empty log's lower bound, the client halves `etcdKV`

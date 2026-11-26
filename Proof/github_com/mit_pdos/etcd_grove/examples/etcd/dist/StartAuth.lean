@@ -155,9 +155,11 @@ theorem etcd_startAuth (d : Deployment) (Hd : d.WellFormed) (h5 : d.workloads.ma
     isplitr
     · iexact Hlm
     isplitr
-    · iexact Hkvi
+    · rw [show γR = ⟨c.γ, [], W64 0⟩ from rfl, show Γ.kv = c.γk from rfl]
+      iexact Hkvi
     isplitr
     · iexact HL0
+    rw [show Γ.kv = c.γk from rfl]
     iframe Hetcd
     iframe Hview
     iunfold principalsShare
