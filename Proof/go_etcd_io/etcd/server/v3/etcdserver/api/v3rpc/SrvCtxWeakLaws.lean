@@ -40,7 +40,7 @@ variable [sem : go.Semantics]
 variable [server_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **R-4: a weak context's error after `Done` is one the gRPC layer takes**: a context error
-(`applyErrIs_of_isCtxErr`, `applyErrIs_srvErrOk`) or `rpctypes.ErrGRPCNoLeader`'s value, a
+(`applyErrIs_of_isCtxErr`, `applyErrIs_srvErrOk_ctx`) or `rpctypes.ErrGRPCNoLeader`'s value, a
 `*status.Error` (`interceptorVars`' `errVarSet`). -/
 theorem v3rpc.srvErrOk_of_weakErr :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -57,8 +57,8 @@ theorem v3rpc.srvErrOk_of_weakErr :
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNoL
   icases HeNoL with ⟨%e, #He, #Se⟩
   iintro !> %err (#Hc | #Hn)
-  · iapply applyErrIs_srvErrOk
-    iapply HCtxE $$ Hc
+  · ihave #HA := HCtxE $$ Hc
+    iapply applyErrIs_srvErrOk_ctx $$ HA Hc
   · iunfold noLeaderErr at Hn
     icases Hn with ⟨%e', #He', %Heq⟩
     icombine He He' gives %h
