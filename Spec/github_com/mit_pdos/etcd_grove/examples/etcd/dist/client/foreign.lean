@@ -1,12 +1,13 @@
 /-
-`foreign(cli, who, id)` (`examples/etcd/dist/client/authlease.go`; authlease's, copied): three lease calls by a
-user (`u` or `v`) about a lease `id` holding a key the user may not write or read: `Revoke(id)`,
-`TimeToLive(id, WithAttachedKeys())` and `Leases()`; each must be refused (`refused` panics on success). Auth on,
-revocable mode, at the cluster view, `cli` a user client (`userCli`) of the endpoint `addr` serving member `mid`:
-each call over its `Lease_*On_dist` contract at `mid`. As the single-process `etcd_authlease.foreign.spec`, the
-caller refutes each success, with its resource `R` (returned): `Revoke`'s (its result `Qr σ` and its check
-`writeCheckedD`), `TimeToLive`'s (member `mid`'s check over `id`'s attached keys at a published index `n ≥ n₀`
-and its lessor's index `j ≥ m₀`) and `Leases`' (the check over every listed lease's keys, the listing at `j`).
+`foreign(cli, who, id)` (`examples/etcd/dist/client/authlease.go`; authlease's checks 3-5 narrowed to check 3,
+F7 option (b)): one lease call by a user (`u` or `v`) about a lease `id` holding a key the user may not write,
+`Revoke(id)`, which must be refused (`refused` panics on success). Auth on, revocable mode, at the cluster view,
+`cli` a user client (`userCli`) of the endpoint `addr` serving member `mid`: the call over its
+`Lease_RevokeOn_dist` contract at `mid`. As the single-process `etcd_authlease.foreign.spec`'s Revoke premise, the
+caller refutes a success, with its resource `R` (returned): from `Revoke`'s result `Qr σ` and its check
+`writeCheckedD`. The single-process workload's TimeToLive-with-keys and Leases refusals are not in the dist
+`foreign` (nor their refutation premises here): at a member applying a snapshot they are false in Go
+(`notes/etcd-dist-f7-bprime.md`).
 Lean-first (no Rocq counterpart); F7 stage S5.
 -/
 module
@@ -40,26 +41,17 @@ abbrev foreign.spec : Prop :=
   ∀ [π : NetProtoGS] [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (cl : Loc) (who addr : GoString) (id : w64) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (L₀ : List EntryModel) (n₀ m₀ : Nat)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (L₀ : List EntryModel) (n₀ : Nat)
     (Qr : KVState → IProp GF) (R : IProp GF),
-  (∀ a b : w64, Γ.au a = Γ.au b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog →
   (who = go!"bad" → principalOf cfg = none) →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ userCli cl addr V cfg ∗ etcdAddrAt (Gg := hG.goose_globalGS) addr Γ mid ∗
-      srvReqLogLb γR L₀ ∗ auth.authPubLbM (.on (Γ.au mid)) n₀ ∗ lease.lessorLb (Γ.ls mid) m₀ ∗ R ∗
+      srvReqLogLb γR L₀ ∗ auth.authPubLbM (.on (Γ.au mid)) n₀ ∗ R ∗
       writeAuD Γ.kv (principalOf cfg) (.leaseRevoke id) L₀ Qr ∗
       □ (∀ σ : KVState, Qr σ -∗ writeCheckedD [addr] Γ γR (principalOf cfg) (irrLeaseRevoke id) L₀ -∗
-          R ={⊤}=∗ False) ∗
-      □ (∀ (n j : Nat), ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ -∗
-          leaseCheckD (Γ.au mid) (principalOf cfg) n
-            (fun info => leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id .read) -∗
-          R ={⊤}=∗ False) ∗
-      □ (∀ (n j : Nat) (ids : List w64), ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ -∗ lease.leaseIdsAt (Γ.ls mid) j ids -∗
-          leaseCheckD (Γ.au mid) (principalOf cfg) n
-            (fun info => iprop([∗list] id' ∈ ids,
-              leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id' .read)) -∗
           R ={⊤}=∗ False) }}
     (App (App (App (Val (@! client.foreign)) (Val #cl)) (Val #who)) (Val #id))
   {{ RET #(); levelTok 0 ∗ R }}

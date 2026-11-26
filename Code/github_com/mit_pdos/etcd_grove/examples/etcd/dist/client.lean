@@ -1247,10 +1247,21 @@ noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Val #())))))
 
-/-- foreign (authlease's checks 3-5, copied): who is refused the revocation of id, its TimeToLive
-    with keys and the listing of the leases, id holding a key who may not touch.
+/-- foreign (authlease's checks 3-5 narrowed to check 3; F7 option (b),
+    notes/etcd-dist-f7-bprime.md): who is refused the revocation of id, id holding a key who may
+    not write.
 
-    go: authlease.go:88:6 -/
+    authlease's foreign also panics unless who is refused id's TimeToLive with keys and the listing of
+    the leases (Leases). Those two checks are dropped here: across members they are not guaranteed.
+    The receiving member checks the keys its own lessor attaches to the lease (TimeToLive) or to every
+    lease (Leases), and a member applying a snapshot has, between lessor.Recover and kv.Restore, leases
+    with no keys attached, so the check passes; a follower then forwards TimeToLive to the leader and
+    returns the leader's keys unchecked (issues/etcd-lease-timetolive-keys-toctou.md;
+    nonissues/etcd-lease-keys-mid-apply.md, "A second window"; the test in
+    notes/etcd-dist-f7-bprime/). Revoke is checked over the auth state at apply, through the log, so
+    its refusal holds at any member.
+
+    go: authlease.go:99:6 -/
 noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -1280,80 +1291,11 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "id"))
-  (Let "$a2" (Let "$sl0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.WithAttachedKeys []))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseOption.ty (Var "$sl0")))])))
-  (App (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Lease.ty go!"TimeToLive"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Lease.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (App (App (Val (GoInstruction (FuncResolve reqCtx []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.client.v3.Lease.ty go!"Leases"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.Lease.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))))) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"Leases, a lease holding a key it may not read"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"TimeToLive with keys of a lease holding a key it may not read"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
   (Let "$a1" (Val #(go!"Revoke of a lease holding a key it may not write"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
   (App (Val doExecute)
@@ -1369,7 +1311,7 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
 /-- absent (authlease's, copied) reports whether root's Get of k succeeded and found no key; it
     panics if the Get succeeded and found one.
 
-    go: authlease.go:105:6 -/
+    go: authlease.go:108:6 -/
 noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "root"
   (Lam "k"
@@ -1443,13 +1385,13 @@ noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
     Lean: Workload.authLease; alone in its deployment, which has the token provider): authkv's
     set-up through eps[0] and barriers; root's lease Lz holding z/lease (eps[0]); u's lease Lu
     holding a/lease and, by a transaction, a/txn (eps[1 mod k]); barriers; then authlease's checks
-    1-5, each principal through its own member (v: eps[2 mod k]), and u's revocation of Lu, after
-    which root finds neither a/lease nor a/txn. A refusal is any error; every key the checks expect
-    absent or attached is read by root after the refused request, so an error never stands for
-    "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
+    1-5 (3-5, foreign, narrowed to 3, the revocation), each principal through its own member
+    (v: eps[2 mod k]), and u's revocation of Lu, after which root finds neither a/lease nor a/txn.
+    A refusal is any error; every key the checks expect absent or attached is read by root after
+    the refused request, so an error never stands for "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
     lessor; the checks are refusals, made by the receiving member before it forwards.
 
-    go: authlease.go:127:6 -/
+    go: authlease.go:130:6 -/
 noncomputable def RunAuthLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "ready"

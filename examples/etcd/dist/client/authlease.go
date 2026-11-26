@@ -83,21 +83,24 @@ func noAuth(cli *clientv3.Client, who string, id clientv3.LeaseID) {
 	refused(who, "Leases", err)
 }
 
-// foreign (authlease's checks 3-5, copied): who is refused the revocation of id, its TimeToLive
-// with keys and the listing of the leases, id holding a key who may not touch.
+// foreign (authlease's checks 3-5 narrowed to check 3; F7 option (b),
+// notes/etcd-dist-f7-bprime.md): who is refused the revocation of id, id holding a key who may
+// not write.
+//
+// authlease's foreign also panics unless who is refused id's TimeToLive with keys and the listing of
+// the leases (Leases). Those two checks are dropped here: across members they are not guaranteed.
+// The receiving member checks the keys its own lessor attaches to the lease (TimeToLive) or to every
+// lease (Leases), and a member applying a snapshot has, between lessor.Recover and kv.Restore, leases
+// with no keys attached, so the check passes; a follower then forwards TimeToLive to the leader and
+// returns the leader's keys unchecked (issues/etcd-lease-timetolive-keys-toctou.md;
+// nonissues/etcd-lease-keys-mid-apply.md, "A second window"; the test in
+// notes/etcd-dist-f7-bprime/). Revoke is checked over the auth state at apply, through the log, so
+// its refusal holds at any member.
 func foreign(cli *clientv3.Client, who string, id clientv3.LeaseID) {
 	ctx, cancel := reqCtx(who)
 	_, err := cli.Lease.Revoke(ctx, id)
 	cancel()
 	refused(who, "Revoke of a lease holding a key it may not write", err)
-	ctx, cancel = reqCtx(who)
-	_, err = cli.Lease.TimeToLive(ctx, id, clientv3.WithAttachedKeys())
-	cancel()
-	refused(who, "TimeToLive with keys of a lease holding a key it may not read", err)
-	ctx, cancel = reqCtx(who)
-	_, err = cli.Lease.Leases(ctx)
-	cancel()
-	refused(who, "Leases, a lease holding a key it may not read", err)
 }
 
 // absent (authlease's, copied) reports whether root's Get of k succeeded and found no key; it
@@ -119,10 +122,10 @@ func absent(root *clientv3.Client, k string, why string) bool {
 // Lean: Workload.authLease; alone in its deployment, which has the token provider): authkv's
 // set-up through eps[0] and barriers; root's lease Lz holding z/lease (eps[0]); u's lease Lu
 // holding a/lease and, by a transaction, a/txn (eps[1 mod k]); barriers; then authlease's checks
-// 1-5, each principal through its own member (v: eps[2 mod k]), and u's revocation of Lu, after
-// which root finds neither a/lease nor a/txn. A refusal is any error; every key the checks expect
-// absent or attached is read by root after the refused request, so an error never stands for
-// "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
+// 1-5 (3-5, foreign, narrowed to 3, the revocation), each principal through its own member
+// (v: eps[2 mod k]), and u's revocation of Lu, after which root finds neither a/lease nor a/txn.
+// A refusal is any error; every key the checks expect absent or attached is read by root after
+// the refused request, so an error never stands for "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
 // lessor; the checks are refusals, made by the receiving member before it forwards.
 func RunAuthLease(eps []string, ready func()) Result {
 	k := len(eps)
