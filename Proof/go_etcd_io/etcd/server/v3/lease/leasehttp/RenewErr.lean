@@ -39,14 +39,13 @@ variable [sem : go.Semantics]
 /-- **An error for which `errors.Is(err, lease.ErrLeaseNotFound)` answers `false`** (persistent; see the
 file header): for `ErrLeaseNotFound`'s value `e`, an error tree at `e` holding `err`, whose errors of
 `e`'s type hold pointers (`TreeTyped`, Go's typing), none of which is `e` or has an `Is` method that may
-answer `true` (`M`). -/
+answer `true` (`M`): `errors.noMatchTree` at `e` (nonleaf-status-errs, 2026-11-26: the tree stated
+once for this and `notCtxTree`; the same statement, `ii ≠ e` read as `ok ii ≠ ok e`). -/
 def leasehttp.notLeaseNotFound (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk,
     globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
-    ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
-      _root_.Perennial.errors.errorIsTree (GF := GF) S M (GoInterface.ok e) ∗
-      ⌜S err ∧ _root_.Perennial.errors.TreeTyped S (GoInterface.ok e) ∧
-        ∀ ii, S (GoInterface.ok ii) → ii ≠ e ∧ ¬ M ii⌝)
+    errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S (GoInterface.ok e))
+      err (GoInterface.ok e))
 
 instance leasehttp.notLeaseNotFound_persistent (err : GoInterface) :
     Persistent (leasehttp.notLeaseNotFound (GF := GF) err) := by

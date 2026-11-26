@@ -199,5 +199,28 @@ theorem isCtxErr_deTypedErr (ii : GoInterfaceOk) :
 
 end shape
 
+section noMatch
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **An error that `errors.Is(err, target)` does not match** (persistent; nonleaf-status-errs,
+2026-11-26, shared by `notCtxTree` and `leasehttp.notLeaseNotFound`): `err` is in an error tree at
+`target` (`errors.errorIsTree`: the specs of its errors' `Is` and `Unwrap` methods), with the typing
+`P` the `Is` spec at `target` asks of the tree (`TreeTyped · target` for a pointer target, `deTyped`
+for `context.DeadlineExceeded`), in which no error is `target` and no `Is` method may answer `true`
+(`M`). Then `errors.Is(err, target)` answers `false` (the `Is` specs' posts). -/
+def errors.noMatchTree (P : (GoError → Prop) → Prop) (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ P S ∧ ∀ ii, S (GoInterface.ok ii) → GoInterface.ok ii ≠ target ∧ ¬ M ii⌝)
+
+instance errors.noMatchTree_persistent (P : (GoError → Prop) → Prop) (err target : GoInterface) :
+    Persistent (errors.noMatchTree (GF := GF) P err target) := by
+  unfold errors.noMatchTree; infer_instance
+
+end noMatch
+
 end EtcdGrove
 end Perennial

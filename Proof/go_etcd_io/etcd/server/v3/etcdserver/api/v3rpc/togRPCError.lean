@@ -39,7 +39,9 @@ theorem v3rpc.togRPCError.wp_proof
   wp_start as ⟨#Herr, #HP⟩
   iunfold v3rpc.srvErrIs at Herr
   icases Herr with ⟨%Hnn, #HIs, %Hsafe, %ei, %Hei, -⟩
-  ihave #HSe := applyErrIs_srvErrOk err $$ HIs
+  -- (nonleaf-status-errs, 2026-11-26) `srvErrOk`, or no context error (`notCtxTree`), which the two
+  -- `errors.Is` below then answer `false` of
+  ihave #HSv := applyErrIs_srv err $$ HIs
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -62,16 +64,38 @@ theorem v3rpc.togRPCError.wp_proof
   have hTT := HS.2 (fun tii h => by cases h; exact Hecp)
   -- (k8s etcd3 7c-2 part 2, G1-a′) a leaf without `Is` is a tree of itself alone, so that
   -- `errors.Is`'s witness says it is the target
-  ihave ⟨%S0, %M0, #Htree0, %HS0⟩ : iprop(∃ (S0 : GoInterface → Prop) (M0 : GoInterfaceOk → Prop),
+  ihave ⟨%S0, %M0, #Htree0, %HS0, #HSe0⟩ : iprop(∃ (S0 : GoInterface → Prop) (M0 : GoInterfaceOk → Prop),
       _root_.Perennial.errors.errorIsTree (GF := GF) S0 M0 (GoInterface.ok ec) ∗
       ⌜S0 err ∧ _root_.Perennial.errors.TreeTyped S0 (GoInterface.ok ec) ∧
         ((∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])) → ∀ ii, S0 (GoInterface.ok ii) →
-          (GoInterface.ok ii = GoInterface.ok ec ∨ M0 ii) → err = GoInterface.ok ec)⌝) $$ []
-  · by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
+          (GoInterface.ok ii = GoInterface.ok ec ∨ M0 ii) → err = GoInterface.ok ec)⌝ ∗
+      (go_etcd_io.etcd.cache.v3.srvErrOk err ∨
+        ⌜∀ ii, S0 (GoInterface.ok ii) → ¬ (GoInterface.ok ii = GoInterface.ok ec ∨ M0 ii)⌝)) $$ []
+  · icases HSv with (#HSe | #Hnc)
+    rotate_left
+    · iunfold notCtxTree at Hnc
+      icases Hnc with ⟨#Hnc, -⟩
+      ihave #Hnm := Hnc $$ %(GoInterface.ok ec) Hec
+      iunfold errors.noMatchTree at Hnm
+      icases Hnm with ⟨%Sn, %Mn, #Htn, %HSn⟩
+      iexists Sn, Mn
+      iframe Htn
+      isplitr
+      · ipureintro
+        refine ⟨HSn.1, HSn.2.1, fun _ ii hS hor => ?_⟩
+        exact absurd hor (fun h => h.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2)
+      iright
+      ipureintro
+      intro ii hS hor
+      exact hor.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2
+    by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     · obtain ⟨ei, hei, hl, hIs'⟩ := hL
       iexists (fun x : GoInterface => x = GoInterface.ok ei), (fun _ : GoInterfaceOk => False)
       isplitl
       · iapply _root_.Perennial.errors.errorIsTree_leaf ei _ _ hl hIs'
+      isplitr
+      rotate_left
+      · ileft; iexact HSe
       ipureintro
       refine ⟨hei, ?_, ?_⟩
       · intro ii tii hS0 ht hty
@@ -82,6 +106,9 @@ theorem v3rpc.togRPCError.wp_proof
         · exact h.elim
     · iexists S, M
       iframe Htree
+      isplitr
+      rotate_left
+      · ileft; iexact HSe
       ipureintro
       exact ⟨HS.1, hTT, fun h => absurd h hL⟩
   wp_apply hIs S0 M0 err (GoInterface.ok ec) (fun tii h => by cases h; exact Hecp)
@@ -89,7 +116,12 @@ theorem v3rpc.togRPCError.wp_proof
   · iframe #; ipureintro; exact HS0.1
   wp_if_destruct
   rotate_left
-  · iapply HΦ
+  · icases HSe0 with (#HSe | %Hno)
+    rotate_left
+    · exfalso
+      obtain ⟨ii, hS0, hor⟩ := Hw1 ec rfl Hecp Hnn (by first | rfl | assumption | simp_all)
+      exact Hno ii hS0 hor
+    iapply HΦ
     isplitr
     · ipureintro; exact Hnn
     iframe HSe
@@ -109,15 +141,37 @@ theorem v3rpc.togRPCError.wp_proof
   -- (errors-is-deadline) the tree's `deadlineExceededError`s hold `deadlineExceededError{}`
   ihave #HIsDE := applyErrIs_treeDE err $$ HIs
   ihave ⟨%S', %M', #Htree', %HS'⟩ := HIsDE $$ %de
-  ihave ⟨%S1, %M1, #Htree1, %HS1⟩ : iprop(∃ (S1 : GoInterface → Prop) (M1 : GoInterfaceOk → Prop),
+  ihave ⟨%S1, %M1, #Htree1, %HS1, #HSe1⟩ : iprop(∃ (S1 : GoInterface → Prop) (M1 : GoInterfaceOk → Prop),
       _root_.Perennial.errors.errorIsTree (GF := GF) S1 M1 de ∗
       ⌜S1 err ∧ ((∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])) → ∀ ii, S1 (GoInterface.ok ii) →
-          (GoInterface.ok ii = de ∨ M1 ii) → err = de) ∧ deTyped S1⌝) $$ []
-  · by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
+          (GoInterface.ok ii = de ∨ M1 ii) → err = de) ∧ deTyped S1⌝ ∗
+      (go_etcd_io.etcd.cache.v3.srvErrOk err ∨
+        ⌜∀ ii, S1 (GoInterface.ok ii) → ¬ (GoInterface.ok ii = de ∨ M1 ii)⌝)) $$ []
+  · icases HSv with (#HSe | #Hnc)
+    rotate_left
+    · iunfold notCtxTree at Hnc
+      icases Hnc with ⟨-, #Hnc⟩
+      ihave #Hnm := Hnc $$ %de Hde
+      iunfold errors.noMatchTree at Hnm
+      icases Hnm with ⟨%Sn, %Mn, #Htn, %HSn⟩
+      iexists Sn, Mn
+      iframe Htn
+      isplitr
+      · ipureintro
+        refine ⟨HSn.1, fun _ ii hS hor => ?_, HSn.2.1⟩
+        exact absurd hor (fun h => h.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2)
+      iright
+      ipureintro
+      intro ii hS hor
+      exact hor.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2
+    by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     · obtain ⟨ei, hei, hl, hIs'⟩ := hL
       iexists (fun x : GoInterface => x = GoInterface.ok ei), (fun _ : GoInterfaceOk => False)
       isplitl
       · iapply _root_.Perennial.errors.errorIsTree_leaf ei _ _ hl hIs'
+      isplitr
+      rotate_left
+      · ileft; iexact HSe
       ipureintro
       refine ⟨hei, ?_, ?_⟩
       · intro _ ii hS1 hor
@@ -128,13 +182,21 @@ theorem v3rpc.togRPCError.wp_proof
         exact HS'.2 ii (by rw [hS1, ← hei]; exact HS'.1)
     · iexists S', M'
       iframe Htree'
+      isplitr
+      rotate_left
+      · ileft; iexact HSe
       ipureintro
       exact ⟨HS'.1, fun h => absurd h hL, HS'.2⟩
   wp_apply hDE S1 M1 err de $$ [$Htree1] as %b2 %Hw2
   · iframe #; ipureintro; exact ⟨HS1.1, HS1.2.2⟩
   wp_if_destruct
   rotate_left
-  · iapply HΦ
+  · icases HSe1 with (#HSe | %Hno)
+    rotate_left
+    · exfalso
+      obtain ⟨ii, hS1, hor⟩ := Hw2 (by first | rfl | assumption | simp_all)
+      exact Hno ii hS1 hor
+    iapply HΦ
     isplitr
     · ipureintro; exact Hnn
     iframe HSe
