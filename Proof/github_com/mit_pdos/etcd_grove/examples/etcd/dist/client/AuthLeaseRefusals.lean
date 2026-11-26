@@ -256,18 +256,22 @@ variable [sem : go.Semantics]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+/-- A lease member's endpoint serves a member of the view. -/
+theorem leaseMember_member [π : NetProtoGS] (Γ : DistView) (a : GoString) :
+    leaseMember (Gg := hG.goose_globalGS) Γ a ⊢ ∃ mid : w64, etcdAddrAt (Gg := hG.goose_globalGS) a Γ mid := by
+  iintro H
+  iunfold leaseMember at H
+  icases H with ⟨-, %mid, Ha, -⟩
+  iexists mid
+  iexact Ha
+
 /-- The endpoints of lease members are members of the view. -/
 theorem membersAt_of_leaseMembers [π : NetProtoGS] (Γ : DistView) (addrs : List GoString) :
     ([∗list] a ∈ addrs, leaseMember (Gg := hG.goose_globalGS) Γ a) ⊢
       membersAt (Gg := hG.goose_globalGS) addrs Γ := by
   iintro H
   iunfold membersAt
-  iapply (BigSepL.bigSepL_mono (fun {_ a} _ => by
-    iintro H
-    iunfold leaseMember at H
-    icases H with ⟨-, %mid, Ha, -⟩
-    iexists mid
-    iexact Ha))
+  iapply (BigSepL.bigSepL_mono (fun {_ a} _ => leaseMember_member Γ a))
   iexact H
 
 /-- The endpoints of lease members are valid addresses. -/
