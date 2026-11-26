@@ -36,7 +36,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Iris.ProofMode Net client
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
-open etcd_dist.view etcdstart
+open etcd_dist etcd_dist.view etcdstart
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]

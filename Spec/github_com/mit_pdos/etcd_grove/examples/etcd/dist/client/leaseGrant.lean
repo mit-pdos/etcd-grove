@@ -24,7 +24,7 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Net client
 open github_com.mit_pdos.etcd_grove.examples.etcd.dist
-open etcd_dist.view
+open etcd_dist etcd_dist.view
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
