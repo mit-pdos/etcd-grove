@@ -491,7 +491,7 @@ theorem PreCandStep.mk' {m : MessageM} {s s' : NState}
 /-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
 snapshot is pending. -/
 theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM}
-    {id : w64} {s s' : NState} (h : HupGuard c id s s') (hl : s'.logst = s.logst) :
+    {id : w64} {t : CampaignType} {s s' : NState} (h : HupGuard c id t s s') (hl : s'.logst = s.logst) :
     SnapRoleBack s s' := fun h1 h2 => by
   rcases h with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, -⟩, -⟩
   · exact ⟨h1, h2⟩
@@ -500,7 +500,7 @@ theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM
 /-- (2026-11-12, trace-check implementation step 3) `RoleUp` of a campaign by `hup` at `sb` (the start
 state `s`, or a step-down of it: its log, and a follower or `s`'s role), with the log facts of `s`. -/
 theorem HupGuard.roleUp [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM} {id : w64} {m : MessageM}
-    {s sb s' : NState} (h : HupGuard c id sb s') (hl : s'.logst = sb.logst) (hb : sb.logst = s.logst)
+    {t : CampaignType} {s sb s' : NState} (h : HupGuard c id t sb s') (hl : s'.logst = sb.logst) (hb : sb.logst = s.logst)
     (hr : sb.role = s.role ∨ sb.role = .follower) (hty : m.Type' = MsgHup ∨ m.Type' = MsgTimeoutNow)
     (hlogf : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :

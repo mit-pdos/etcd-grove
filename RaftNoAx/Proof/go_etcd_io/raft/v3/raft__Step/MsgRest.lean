@@ -86,7 +86,7 @@ theorem followerStepResult_timeout (c : CfgM) {scfg : CSLists} {c' : CfgM} (id :
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgTimeoutNow)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) :
-    c = c' ∧ dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role) := by
+    c = c' ∧ dropped = false ∧ HupOkC c id campaignTransfer s s' ∧ (s'.role = .preCandidate → s'.role = s.role) := by
   unfold FollowerStepResultC at H
   refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2

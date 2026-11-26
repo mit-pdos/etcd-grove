@@ -123,8 +123,9 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
      else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
        dropped = false ∧ s' = s
      else if m.Type' = MsgTimeoutNow then
-       -- (2026-10-17) the transfer's campaign makes no pre-candidate
-       dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
+       -- (2026-10-17) the transfer's campaign makes no pre-candidate; (#33 parity B1, 2026-11-26)
+       -- `hup(campaignTransfer)`'s result, its requests carrying the transfer marker
+       dropped = false ∧ HupOkC c id campaignTransfer s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
      else False)
 
 end results

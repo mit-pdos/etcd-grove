@@ -145,7 +145,8 @@ theorem wp_Step_MsgHup {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := 
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
-    exact ⟨StepEnd.hup Hty (notStale_of_zero Hterm) Hok0, Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
+    exact ⟨StepEnd.hup Hty (notStale_of_zero Hterm)
+      (by first | (rw [hupType_pre Hpv]; exact Hok0) | (rw [hupType_el Hpv]; exact Hok0)), Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
       fun h => absurd (Hty.symm.trans h) (by w32_ne), Hpcs⟩
 

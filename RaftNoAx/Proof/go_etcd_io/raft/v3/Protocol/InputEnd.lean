@@ -335,12 +335,11 @@ def UnappliedConf (r : RState) : Prop :=
 
 /-- **`RawNode.Campaign`** (`MsgHup`, `campaignElection` or, with pre-vote, `campaignPreElection`;
 `hup`'s guards: not a leader, promotable, no committed conf change unapplied): nothing, or the
-campaign. The election's request context is existential (`∃ cl`, design §1.2: `hup`'s spec,
-`HupGuard`, does not pin it to `[]` yet; to be tightened when it does). -/
+campaign: an election's requests carry no context (`[]`). -/
 def CampaignEndR (k : NodeK) (id : w64) (r r' : RState) : Prop :=
   (r' = r ∨
    (r.p.role ≠ .leader ∧ ¬ UnappliedConf r ∧ r.snap = false ∧
-     (k.prevote = false ∧ (∃ cl, CampaignEnd r.cfg.cfg id r.p cl r'.p) ∨
+     (k.prevote = false ∧ CampaignEnd r.cfg.cfg id r.p [] r'.p ∨
       k.prevote = true ∧ PreCampaignEnd r.cfg.cfg id r.p r'.p))) ∧
   KeepCfg r r' ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧ r'.pci = PciNext r r'.p
 

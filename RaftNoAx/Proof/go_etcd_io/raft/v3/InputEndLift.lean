@@ -779,7 +779,7 @@ theorem tickEnd_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
   obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty)
   obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
-  rcases hg with ⟨-, rfl⟩ | ⟨⟨hnl, hv, -, -⟩, pre, peers, pvs, cl, hpre, hperm, rfl⟩
+  rcases hg.exists_pre_ctx with ⟨-, rfl⟩ | ⟨⟨hnl, hv, -, -⟩, pre, peers, pvs, cl, hpre, hperm, rfl⟩
   · exact Or.inl rfl
   · cases pre
     · refine Or.inr (Or.inl ⟨by rw [toPState_role]; exact proleRole_not_leader _ hnl, hv, peers,
