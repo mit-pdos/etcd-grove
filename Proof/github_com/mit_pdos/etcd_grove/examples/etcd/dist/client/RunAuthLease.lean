@@ -401,11 +401,12 @@ theorem RunAuthLease.wp_proof
       (psAtLeast γc 3) hau hauth hγR (outTokOk_none _)) $$ [$Hlt Hobj] as %tresp %terr ⟨Hlt, Ht⟩
   · iframe Hobj; iframe #
     isplitl []
-    · ipureintro; exact ⟨htpm, htin⟩
+    · ipureintro; exact htin
     isplitl []
     · iright
       isplitl []
-      · ipureintro; exact ⟨hro, Or.inr ⟨hlm, htpl⟩, htnz⟩
+      · ipureintro; exact ⟨hro, Or.inr ⟨hlm, htpl⟩, htnz,
+          txnNestOk_of_plain _ (txnWireOf_plain _ htpm) htin⟩
       iunfold writeAuD
       ihave #Htx := cell_txnTAu Γ.kv γc lz lu ps2 hps2 (opGrantD Γ.kv (principalOf ucfg)
         (.txn (txnWireOf (leaseTxn tK lu))) Lset) $$ []
@@ -569,11 +570,12 @@ theorem RunAuthLease.wp_proof
       (fun _ => iprop(False)) hau hauth hγR (outTokOk_none _)) $$ [$Hlt Hobj3] as %xresp %xerr ⟨Hlt, Hx⟩
   · iframe Hobj3; iframe #
     isplitl []
-    · ipureintro; exact ⟨htpm', htin'⟩
+    · ipureintro; exact htin'
     isplitl []
     · iright
       isplitl []
-      · ipureintro; exact ⟨hro', Or.inr ⟨hlm, htpl'⟩, htnz'⟩
+      · ipureintro; exact ⟨hro', Or.inr ⟨hlm, htpl'⟩, htnz',
+          txnNestOk_of_plain _ (txnWireOf_plain _ htpm') htin'⟩
       rw [hPu]
       iexact Hrft
     ipureintro; exact htsz'

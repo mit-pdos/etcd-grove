@@ -49,6 +49,8 @@ applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 **Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
 `notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
 arm admits a leased transaction in the revocable lease mode (the spec's docstring).
+**Widened to nested transactions** (F7 S11, 2026-11-26; review `notes/axiom-review/f7-txn-nested-review.md`):
+no `TxnModel.plain`, the write arm `client.txnUpdAtOn`'s condition (`txnNestOk`); the spec's docstring.
 
 Retired by #24's S2 client side (`etcdSvc` defined, `Invoke` over the net model). The statement does not
 change. -/

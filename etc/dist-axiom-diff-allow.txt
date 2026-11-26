@@ -358,6 +358,8 @@ dev Txn_CommitOn_dist.wp_proof <<< ⌜ txn.txnReadonly ( txnWireOf b.model ) = t
 dev Txn_CommitOn_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv`
 dev Txn_CommitOn_dist.wp_proof <<<  ||| ( >>> the parenthesis of the widened write condition (layout)
 dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ∨ ( Γ.kv.lm = .revocable ∧ txnPlainL ( txnWireOf b.model ) ) >>> (F7 S5, widened before approval, reviewed SOUND `f7-txn-review.md` with Go tests) a leased transaction in the revocable lease mode admitted, as `KV_PutOn_dist` and the in-process `client.txnUpdAtOn`; wider than `txn.Commit.spec`'s `txnPlain`
+dev Txn_CommitOn_dist.wp_proof <<< TxnModel.plain b.model ∧ |||  >>> (F7 S11, widened before approval, review `f7-txn-nested-review.md`) no plainness premise: a writing transaction may nest `OpTxn`s, as the in-process `client.client_txn_on` (a read-only one is flat anyway, `txnReadonly_plain`); wider than `txn.Commit.spec`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ∧ txnNestOk ( txnWireOf b.model ) >>> (F7 S11) the write arm's nested shape, `client.txnUpdAtOn`'s `txnNestOk` (no early-cut get at any depth, no nested put a later sibling deletes); what dropping `TxnModel.plain` needs, implied by it (`txnNestOk_of_plain`)
 dev Txn_CommitOn_dist.wp_proof <<< AU < { ∃∃ ||| writeAuD Γ.kv >>> a writing transaction's update persistent (`writeAuD`: resent after a token refresh), with the grant obligation
 dev Txn_CommitOn_dist.wp_proof <<< σ : KVState ||| principalOf cfg >>> `writeAuD`'s principal (its AU is `kvAu1G`, the source's text)
 dev Txn_CommitOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)

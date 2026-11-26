@@ -43,6 +43,11 @@ arm admits a leased transaction in the revocable lease mode, `txn.txnPlain … �
 as `KV_PutOn_dist`'s `leaseID = 0 ∨ Γ.kv.lm = .revocable` and the in-process `client.txnUpdAtOn` (`RunAuthLease`'s
 leased transactions; a weaker premise, callers unaffected). The auth-off `Txn_Commit_dist` is unchanged.
 
+**Widened to nested transactions** (F7 S11, 2026-11-26; ledger `notes/specs-only/ledger.md`, review
+`notes/axiom-review/f7-txn-nested-review.md`): no `TxnModel.plain b.model` (a read-only transaction is flat anyway,
+`txnReadonly_plain`), and the write arm takes `client.txnUpdAtOn`'s condition, `txnNestOk` added: a writing
+transaction may nest `OpTxn`s (`examples/etcd/auth`'s T4), as in the in-process `client.client_txn_on`.
+
 **Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
@@ -57,14 +62,14 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
       txnObjAt txn_ptr eps ctx ctx_desc b ∗ txnKvIs txn_ptr api ∗
-      ⌜TxnModel.plain b.model ∧ txnModelIn (txnWireOf b.model)⌝ ∗
+      ⌜txnModelIn (txnWireOf b.model)⌝ ∗
       ((⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV Γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV Γ.kv σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧
             (txn.txnPlain (txnWireOf b.model) ∨
               (Γ.kv.lm = .revocable ∧ txnPlainL (txnWireOf b.model))) ∧
-            txnNoZeroEnd (txnWireOf b.model)⌝ ∗
+            txnNoZeroEnd (txnWireOf b.model) ∧ txnNestOk (txnWireOf b.model)⌝ ∗
           writeAuD Γ.kv (principalOf cfg) (.txn (txnWireOf b.model)) L₀ Q)) ∗
       ⌜txnSizeOk (txnWireOf b.model)⌝ }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))

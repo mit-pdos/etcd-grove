@@ -7509,3 +7509,23 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
   lands, only the docstring is corrected: it said every protobuf error is a pointer.
 - **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.
+
+## 2026-11-26: `Txn_CommitOn_dist`'s write arm refuses nested transactions (F7 S11)
+
+- **Spec.** `Txn_CommitOn_dist.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean`),
+  the interim axiom `etcd_dist.authd.Txn_CommitOn_dist.wp_proof`.
+- **Defect.** The pre takes `TxnModel.plain b.model` (no nested `OpTxn`) for both arms. `examples/etcd/auth`'s T4
+  (`t.Then(OpTxn(nil, [OpPut(c/who/t3, "vt")], nil)).Commit()`, `t4M`) is a writing transaction with a nested
+  `OpTxn`, so `Work.wp_proof_dist` cannot call `Commit` through the contract and took
+  `then_commit_nested_refusedD.law` as a hypothesis (`notes/etcd-dist-f7.md`, "Handoff W-3").
+- **Evidence.** The in-process contract it mirrors, `client.client_txn_on` (`Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean`),
+  has no plainness premise: its write arm (`client.txnUpdAtOn`, `KVServiceOn.lean`) takes
+  `txn.txnPlain t ∨ (ρ.kv.lm = .revocable ∧ txnPlainL t)`, `txnNoZeroEnd t` and `txnNestOk t`, with nested
+  transactions (`notes/txn-nested.md`); the in-process T4 (`then_commit_nested_refused`) is proved through it. etcd's
+  server checks a nested transaction's operations (`checkTxnReqsPermission`), and `writeCheckedD`/`irrTxn` already
+  cover nested operations.
+- **Proposed change.** Drop `TxnModel.plain b.model` from the shared pure premise (a read-only transaction is flat
+  anyway, `txnReadonly_plain`) and add `txnNestOk (txnWireOf b.model)` to the write arm: the write arm's condition
+  becomes `client.txnUpdAtOn`'s. Everything else unchanged. Callers that passed `TxnModel.plain` get `txnNestOk`
+  from `txnNestOk_of_plain`.
+- **Decision.** Pending review (`notes/axiom-review/f7-txn-nested-review.md`).

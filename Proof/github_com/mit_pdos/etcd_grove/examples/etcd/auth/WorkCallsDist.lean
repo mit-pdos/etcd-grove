@@ -397,10 +397,11 @@ theorem work_commitD (wp_Commit : Txn_CommitOn_dist.spec (GF := GF) (hG := hG)) 
   · iframe Hlt Hobj
     iframe #
     isplitl []
-    · ipureintro; exact ⟨hp0, hin⟩
+    · ipureintro; exact hin
     isplitl []
     · iright
-      ipureintro; exact ⟨hro, Or.inl hpl.1, hpl.2⟩
+      ipureintro
+      exact ⟨hro, Or.inl hpl.1, hpl.2, txnNestOk_of_plain _ (txnWireOf_plain _ hp0) hin⟩
     ipureintro; exact hsz
   iapply HΦ
   iframe Hlt
