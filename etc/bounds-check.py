@@ -27,7 +27,10 @@ were counted until 2026-11-01: each is a library's exact precondition on its inp
 would not simplify; `notes/bounds-plan.md`, B5.)
 
 Owners, whose own invariants legitimately do this reasoning, are listed in `etc/bounds-allow.txt`
-(`KIND REGEX  # why`, the regex searched in the file's path): their matches are not counted.
+(`KIND REGEX  # why`, the regex searched in the file's path): their matches are not counted. An entry
+`KIND REGEX decl=DREGEX  # why` is narrower: only the matches inside a top-level declaration whose name
+DREGEX matches (searched; the nearest `def`/`abbrev`/`theorem`/... line above the match), so that a file's
+other matches stay counted (a variant spec beside the baselined one).
 
 usage:
     etc/bounds-check.py                  totals per kind, then per package
@@ -120,8 +123,22 @@ def load_allow() -> list[tuple[str, re.Pattern[str]]]:
             kind, rx = line.split(None, 1)
             if kind not in KIND_NAMES and kind != "*":
                 sys.exit(f"bounds-check: {ALLOW}: unknown kind {kind}")
-            res.append((kind, re.compile(rx.strip())))
+            rx, _, decl = rx.strip().partition(" decl=")
+            res.append((kind, re.compile(rx.strip()), re.compile(decl.strip()) if decl else None))
     return res
+
+
+DECL = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable|partial|unsafe)\s+)*"
+                  r"(?:theorem|lemma|def|abbrev|axiom|instance|structure|inductive|opaque)\s+([^\s:(\[{]+)",
+                  re.M)
+
+
+def decl_at(code: str, pos: int) -> str:
+    """The name of the top-level declaration the position `pos` of `code` is in ("" if none)."""
+    name = ""
+    for m in DECL.finditer(code, 0, pos):
+        name = m.group(1)
+    return name
 
 
 def scan():
@@ -143,10 +160,13 @@ def scan():
                 for kind, rx, where in KINDS:
                     if where != "both" and where != tkind:
                         continue
-                    if any((k == kind or k == "*") and a.search(rel) for k, a in allow):
+                    here = [d for k, a, d in allow if (k == kind or k == "*") and a.search(rel)]
+                    if None in here:
                         continue
                     for m in rx.finditer(code):
                         if kind == "stock" and len(m.group(1)) < 2:
+                            continue
+                        if here and any(d.search(decl_at(code, m.start())) for d in here):
                             continue
                         ln = code.count("\n", 0, m.start()) + 1
                         counts[(kind, pkg)] += 1
