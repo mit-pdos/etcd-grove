@@ -98,14 +98,16 @@ def rInit (cs : CCState) : RState :=
 /-- **`HasReady`'s `false`, at the protocol level** (design §2.2, revision 2-3): nothing queued
 (Go's `HasReady` is true on any message, self-addressed or not, `rawnode.go:460`); the hard state the
 last reported one (`prevHardSt`'s record `rs.phs`: the zero one at a fresh node); the role the last
-reported soft state's (Go compares `softState()` with `prevSoftSt`); the log the durable state the
+reported soft state's (Go compares `softState()` with `prevSoftSt`; antithesis parity B1, item 5:
+its protocol reading `roleProto`, a reported pre-candidate a follower); the log the durable state the
 client entered (nothing unpersisted: `hasNextUnstableEnts` false). -/
 def PIdle (rs : RNState) (ps : PState) : Prop :=
-  ps.outbox = [] ∧ HardStateM.mk ps.term ps.vote ps.commit = rs.phs ∧ roleGo ps.role = rs.role ∧
+  ps.outbox = [] ∧ HardStateM.mk ps.term ps.vote ps.commit = rs.phs ∧ roleProto rs.role = ps.role ∧
   rs.dur.ents = ps.log
 
 /-- **A `Ready`'s fields against the node's protocol state at the call** (design §2.2, "The `Ready`
-binding"): the role it reports is the node's (`roleAfter`, `softStateIs`); the hard state after it is
+binding"): the role it reports is the node's (`roleAfter`, `softStateIs`; antithesis parity B1, item 5:
+read by `roleProto`, a reported pre-candidate a follower with no leader); the hard state after it is
 the node's term, vote and commit (`phsNext`); the durable state the write makes has the node's log,
 the entries `es` the log's suffix from `es[0].Index`; the messages' protocol readings are the outbox's but
 those to the node itself (which go to `stepsOnAdvance`), each message to another node; the committed entries are
@@ -113,7 +115,8 @@ the log's after those delivered, up to at most the commit index; no snapshot (`L
 def ReadyOut (id : w64) (rs : RNState) (ps : PState) (h : HardStateM)
     (es ce : List EntryM) (ms : List QMsg) (ss : Option (w64 × StateType)) (L : Option SnapLoan) :
     Prop :=
-  roleAfter rs.role ss = roleGo ps.role ∧
+  (roleProto (roleAfter rs.role ss) = ps.role ∧
+    (roleAfter rs.role ss = StatePreCandidate → ps.lead = W64 0)) ∧
   phsNext rs.phs h = HardStateM.mk ps.term ps.vote ps.commit ∧
   (readyDurable rs.dur (phsNext rs.phs h) L es).ents = ps.log ∧
   (∀ e0 ∈ es.head?, ps.log.drop (uint.nat e0.Index' - 1) = es) ∧

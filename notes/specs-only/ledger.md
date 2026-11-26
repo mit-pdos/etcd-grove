@@ -6454,3 +6454,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (RawNodeReadyAt.lean): `rnScopeAt_keepSome` given `XScopeOk` across the step.
 - **Not yet.** `RawNode.TransferLeader.apiSpec` (step D: the sealed `rawNode` at `some md`).
 - **Decision.** Design §4's row (lead-approved); successor 9's plan. No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, item 5: a reported role read by `roleProto` (#33)
+- **Spec (weakened, then strengthened at a pre-candidate; lead-approved, design §4).** `roleProto : StateType → Role`
+  (RawNodeAt.lean; `StatePreCandidate` and unknown values ↦ follower; `roleProto_roleGo`, `roleProto_stateW64`).
+  `PIdle`'s role conjunct `roleGo ps.role = rs.role` → `roleProto rs.role = ps.role`; `ReadyOut`'s first conjunct
+  `roleAfter rs.role ss = roleGo ps.role` → `roleProto (roleAfter rs.role ss) = ps.role ∧ (roleAfter rs.role ss =
+  StatePreCandidate → ps.lead = W64 0)` (a reported pre-candidate a follower with no leader). The old forms imply the
+  new (`roleProto ∘ roleGo = id`; `roleGo` never gives `StatePreCandidate`), and the new hold at a pre-candidate, which
+  the old did not: what HasReady/Ready at a pre-vote-on mode need.
+- **Proof.** `pidle_of_hasReady` no longer reads pre-vote off (`ownRaftPhysC_precand` dropped from HasReady's proof);
+  `RawNode.Ready.wp_absProof` from readyWithoutAccept's `roleAfter rs.role ss = stateW64 s.role` alone
+  (`toPState_lead_of_stateW64`). No consumer read the old conjuncts (Sim uses its own `ReadyOutP`; the harness carries
+  `PIdle` unopened).
+- **Decision.** Lead's item 5 (2026-11-26). No axiom, no premise.

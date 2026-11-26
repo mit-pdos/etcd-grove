@@ -106,13 +106,14 @@ theorem RawNode.Ready.wp_absProof
   refine ⟨Hmsgs_term, Hpsn, fun md hmd => ?_⟩
   have hsc : sc = true := by cases sc <;> first | rfl | cases hmd
   obtain ⟨Hq, Hhs, Hdur, Hes, Hip', HL⟩ := Hout hsc
-  obtain ⟨Hrole, Hdpre, Hdlen, Htyped⟩ := Hscf hsc
+  obtain ⟨-, Hdpre, Hdlen, Htyped⟩ := Hscf hsc
   have Hr0 := Hps
   rw [(Hfp1 hsc).1] at Hr0
   subst Hr0
   have Hf2 : fp2 = [] := (Hfp2 hsc).1
   subst Hf2
-  refine ⟨rfl, Hq, ⟨Hrole1.trans Hrole.symm, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
+  refine ⟨rfl, Hq, ⟨⟨by rw [Hrole1, roleProto_stateW64]; rfl,
+    fun h => toPState_lead_of_stateW64 s (Hrole1 ▸ h)⟩, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
     Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew,
     fun q hq => .inl (Htyped q hq),

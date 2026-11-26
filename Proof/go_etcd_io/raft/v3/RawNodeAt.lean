@@ -80,6 +80,26 @@ def roleGo : Role → StateType
   | .candidate => StateCandidate
   | .leader => StateLeader
 
+/-- (antithesis parity B1, item 5; design §4) **A reported role's protocol reading**: Go's `StateType`
+(`Ready.SoftState.RaftState`, the `RawNode`'s `prevSoftSt` record `rs.role`) as the protocol role, a
+pre-candidate (`StatePreCandidate`) a follower (`toPState`'s `proleRole`); a value raft never reports
+a follower too. -/
+def roleProto (t : StateType) : Role :=
+  if t = StateCandidate then .candidate else if t = StateLeader then .leader else .follower
+
+theorem roleProto_roleGo (ro : Role) : roleProto (roleGo ro) = ro := by
+  cases ro <;> simp [roleProto, roleGo, stateW64, proleRole, StateFollower, StateCandidate, StateLeader, StatePreCandidate]
+
+theorem roleProto_stateW64 (ro : PRole) : roleProto (stateW64 ro) = proleRole ro := by
+  cases ro <;> simp [roleProto, roleGo, stateW64, proleRole, StateFollower, StateCandidate, StateLeader, StatePreCandidate]
+
+/-- A node whose role reads as `StatePreCandidate` knows no leader at the protocol level. -/
+theorem toPState_lead_of_stateW64 (s : NState) (h : stateW64 s.role = StatePreCandidate) :
+    (toPState s).lead = W64 0 := by
+  have hr : s.role = .preCandidate := by
+    cases hr : s.role <;> simp_all [stateW64, StateFollower, StateCandidate, StateLeader, StatePreCandidate]
+  simp [toPState, hr]
+
 /-- **The `RState` reading of a node** (antithesis parity, design §1.1; `ownRawNodeAt`'s `"%Hps"`):
 the protocol reading `toPState`, raft's `applied`, `pendingConfIndex` as the dynamic model reads it
 (`pciR`: the code's at a leader, `0` elsewhere -- Go clears it in `reset`, and the model reads it only at

@@ -5,8 +5,7 @@ corollary (`RawNode.HasReady.spec_of_abs`, `RawNodeSpecOfAbs.lean`). The proof i
 `proof_RawNode__HasReady.v`, 857d09190), over `ownRawNodeAt`: the paths returning `true` close the
 node as it was; the one returning `false` reads, in the scope, the protocol-level idle facts
 (`pidle_of_hasReady`): the empty queues (`outboxRel_empty`), the hard state `prevHardSt`'s or empty
-(and then `prevHardSt`'s too, `PhsOk`), the soft state `prevSoftSt`'s (a node with pre-vote off is
-no pre-candidate, `ownRaftPhysC_precand`), and nothing left to hand out (the in-progress boundary at
+(and then `prevHardSt`'s too, `PhsOk`), the soft state `prevSoftSt`'s (read by `roleProto`: a pre-candidate a follower), and nothing left to hand out (the in-progress boundary at
 the log's end, the storage's view the whole log, `ownRaftPhysC_ipFacts`, which `durTie` makes the
 recorded durable state, `durTie_scope`).
 
@@ -47,7 +46,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`HasReady`'s `false`, at the protocol level** (pure): the facts the false path has. -/
 theorem pidle_of_hasReady (rs : RNState) (ps : PState) (ip : Nat) (s : NState) (sv : SoftState)
     (Hps : toPState s = ps) (Hip : uint.nat s.logst.inprogress = ip + 1) (Hsc : RnScopeBasic rs s)
-    (Hpre : s.role = .preCandidate → s.prevote = true) (Hout : s.outbox = [])
+    (Hout : s.outbox = [])
     (Hhsi : hsOf s = hsZero ∨ hsOf s = rs.phs) (Hphs : PhsOk rs s)
     (Hsoft : stateW64 s.role = sv.RaftState') (Hrole : rs.role = sv.RaftState')
     (Hnu : nextUnstable s.logst = [])
@@ -60,7 +59,7 @@ theorem pidle_of_hasReady (rs : RNState) (ps : PState) (ip : Nat) (s : NState) (
     (Hdur : DurFull rs.dur s.logst.stored ∧
       uint.Z rs.dur.base.index' ≤ uint.Z s.logst.prev.index') :
     PIdle rs ps ∧ ip = ps.log.length := by
-  obtain ⟨-, Hpv, -, -, -, Hprev, -, -⟩ := Hsc
+  obtain ⟨-, -, -, -, -, Hprev, -, -⟩ := Hsc
   subst Hps
   have Hp0 : uint.Z s.logst.prev.index' = 0 := by rw [Hprev]; rfl
   -- the boundary at the log's end
@@ -82,11 +81,7 @@ theorem pidle_of_hasReady (rs : RNState) (ps : PState) (ip : Nat) (s : NState) (
         cases hp : rs.phs; simp only [hp] at ht hc hv; simp [hsZero, ht, hc, hv]
       rw [this, ← h]; rfl
     · rw [← h]; rfl
-  · rw [Hrole, ← Hsoft]
-    simp only [toPState]
-    cases hr : s.role with
-    | preCandidate => have := Hpre hr; rw [Hpv] at this; cases this
-    | _ => rfl
+  · rw [Hrole, ← Hsoft, roleProto_stateW64]; rfl
   · simp only [toPState]
     obtain ⟨Hd1, -⟩ := Hdur.1
     have Hb0 : uint.nat rs.dur.base.index' = 0 := by have := Hdur.2; word
@@ -144,7 +139,7 @@ local macro "finish_false" : tactic => `(tactic| (
         | (apply Classical.byContradiction; intro h; exact Hif h)
     rw [Hz]; rfl
   have Hpi : sc = true → PIdle rs ps.p ∧ ip = ps.p.log.length := fun h =>
-    pidle_of_hasReady rs ps.p ip s sv (by rw [← Hps]; rfl) Hip (Hscope h) Hpre Hob Hhsi Hphs Hsofteq Hrole Hnu Hipf.1
+    pidle_of_hasReady rs ps.p ip s sv (by rw [← Hps]; rfl) Hip (Hscope h) Hob Hhsi Hphs Hsofteq Hrole Hnu Hipf.1
       (Hipf.2 (Hscope h).2.2.2.2.2.2.1) (Hdurf h)
   close_view
   iapply HΦ
@@ -222,7 +217,6 @@ theorem RawNode.HasReady.wp_absProof
   -- the scope's facts, and the struct's, for the `false` path
   icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   ihave %Hdurf := durTie_scope γ sc rs s Hscope $$ Hdur
-  icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpre, Hphys⟩
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   wp_auto
   wp_apply wp_raft_softState cf rnv.raft' id s $$ Hphys as Hphys
