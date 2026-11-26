@@ -11,3 +11,6 @@ axiom os.Getenv.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom strings.ToLower.wp_proof
+opaque etcdVerifyEnv
+opaque mvcc.kvEncode
+opaque mvcc.viewFk

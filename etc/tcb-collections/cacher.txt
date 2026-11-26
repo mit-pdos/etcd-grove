@@ -9,3 +9,8 @@
 roots ^Proof/k8s_io/apiserver/pkg/storage/cacher/Link\.lean$
 axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
+opaque k8sfeature.featureOffRaw
+opaque k8sfeature.featureOnRaw
+opaque kmetrics.vecLabels
+opaque trace.otelSpan
+opaque utiltrace.builtTrace

@@ -39,3 +39,5 @@ axiom Perennial.math.rand.Seed.wp_proof
 axiom Perennial.raxos.hyp.fmt.Println.wp_proof
 axiom Perennial.raxos.hyp.proto.Marshal.wp_proof
 axiom Perennial.raxos.hyp.proto.Unmarshal.wp_proof
+opaque Perennial.raxos.msg.clientMI
+opaque Perennial.raxos.msg.replicaMI
