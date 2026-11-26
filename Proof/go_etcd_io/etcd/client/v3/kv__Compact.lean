@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.client.v3.OpCompact
 public import Spec.go_etcd_io.etcd.client.v3.CompactOp__toRequest
 public import Spec.go_etcd_io.etcd.client.v3.retryKVClient__Compact
 public import Spec.go_etcd_io.etcd.client.v3.ContextError
+public import Proof.go_etcd_io.etcd.client.v3.KVMembers
 
 @[expose] public section
 
@@ -116,6 +117,66 @@ theorem kv.Compact.wp_proof
       iframe #
       ipureintro
       exact ⟨⟨(Herr'.2 (by simp)).1, rfl⟩, (Herr'.2 (by simp)).2⟩
+
+/-- `kv.Compact` for any spec registered for `Compact` (`kv.Compact.specG`): `OpCompact`, its
+request, the retry client's `Compact` at the spec, the error through `ContextError`. -/
+theorem kv.Compact.wp_generic
+    (wp_OpCompact : OpCompact.spec (GF := GF) (hG := hG))
+    (wp_toRequest : CompactOp.toRequest.spec (GF := GF) (hG := hG))
+    (wp_retry_Compact : retryKVClient.Compact.spec (GF := GF) (hG := hG))
+    (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
+    kv.Compact.specG (GF := GF) (hG := hG) := by
+  intro api conn addr ci om cd rev Sc Qc
+  wp_start as ⟨Hlt, #Hobj, #Hom, #Hctx, #Hce, #Hrpc, #Hpre⟩
+  iunfold kvObjAtC at Hobj
+  icases Hobj with ⟨%rkv, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
+  iunfold callOptsAt at Hco
+  icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, %Hsc⟩
+  wp_auto
+  wp_apply wp_OpCompact rev $$ []
+  wp_apply wp_toRequest _ $$ [] as %p ⟨%req, Hreq, %Hrq⟩
+  obtain ⟨hrv, hph, hun⟩ := Hrq
+  simp only at hrv hph
+  ihave Hrun : reqPre conn go!"/etcdserverpb.KV/Compact" addr vs
+      (attemptPre conn om Sc ⟨req.Revision', req.Physical'⟩ Qc) $$ []
+  · iapply reqPre_box
+    rw [hrv, hph]
+    iexact Hpre
+  wp_apply wp_retry_Compact rkv conn addr Sc Qc ci om cd p req sl vs $$ [Hlt Hreq Hrun]
+    as %resp %err ⟨Hlt, -, Hres⟩
+  · iframe #
+    iframe
+    ipureintro; exact hun
+  iunfold compactCallOut at Hres
+  icases Hres with (⟨%Herr, %m, #Hm, HQ⟩ | ⟨%Herr, #Hse, #Hcl⟩)
+  · subst Herr
+    wp_auto
+    iapply HΦ
+    iframe Hlt
+    unfold compactCallOut
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists m
+    isplitl []
+    · iexact Hm
+    iexact HQ
+  · obtain ⟨Hne, Hce', Hnull⟩ := Herr
+    cases err with
+    | nil => exact absurd rfl Hne
+    | ok ei =>
+      wp_auto
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
+      wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
+      · iframe #; ipureintro; exact fun _ => Hce'
+      ihave #Hcl' := Hclw $$ Hcl
+      iapply HΦ
+      iframe Hlt
+      unfold compactCallOut
+      iright
+      iframe #
+      ipureintro
+      exact ⟨(Herr'.2 (by simp)).1, (Herr'.2 (by simp)).2, rfl⟩
 
 end proof
 

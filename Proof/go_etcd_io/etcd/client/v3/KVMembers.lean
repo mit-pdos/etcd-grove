@@ -282,6 +282,24 @@ abbrev txn.Commit.specG : Prop :=
         (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ (txnCallOut Q resp err) }}
 
+/-- **`kv.Compact(ctx, rev)` with no options, for any spec registered for `Compact` at the
+connection** (`kv.Compact.spec`'s in the transport's terms; stage S1 of the defined `etcdSvc`,
+2026-11-27): the request `⟨rev, false⟩` (not physical) through the retry client's `Compact`, the
+caller's request precondition at every attempt's metadata, persistent (a compaction may be
+delivered more than once): `compactCallOut Qc` (the error through `ContextError`, a client error). -/
+abbrev kv.Compact.specG : Prop :=
+  ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk)
+    (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (rev : w64)
+    (Sc : GrpcSpecMd (GF := GF) pbCompactionRequest pbCompactionResponse)
+    (Qc : CompactRespM → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ (kvObjAtC api conn addr ∗
+      metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
+      isGrpcRpcsMd addr go!"/etcdserverpb.KV/Compact" Sc ∗
+      □ ▷ attemptPre conn om Sc (⟨rev, false⟩ : CompactReqM) Qc) }}
+    (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
+        go!"Compact")) (Val #(GoInterface.ok ci))) (Val #rev)) (Val #slice.nil))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗ compactCallOut Qc resp err }}
+
 end spec
 
 end EtcdGrove
