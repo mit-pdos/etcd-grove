@@ -32,7 +32,6 @@ from __future__ import annotations
 import argparse
 import difflib
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -92,8 +91,10 @@ def read_allow(lines: list[str]):
 
 
 def dist_axioms(root: Path) -> dict[str, str]:
-    files = subprocess.run(["git", "ls-files", "Proof/*.lean", "*/Proof/*.lean"], cwd=root,
-                           capture_output=True, text=True, check=True).stdout.split()
+    # the sources on disk, not git's index: the gate also runs in a synced copy with no `.git` (the VM)
+    files = sorted({str(p.relative_to(root)) for pat in ("Proof/**/*.lean", "*/Proof/**/*.lean")
+                    for p in root.glob(pat)
+                    if not p.relative_to(root).parts[0].startswith(".") and p.relative_to(root).parts[0] != "old"})
     out = {}
     for f in files:
         txt = (root / f).read_text(encoding="utf-8")

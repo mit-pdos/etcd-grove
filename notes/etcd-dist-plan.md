@@ -2759,3 +2759,23 @@ tier (208), bounds (390), premise-witness (50 statements), iris-premise (16); fu
 collection but `etcd-dist` matched unchanged; `etcd-dist` (127 axioms) took `lean`'s gRPC changes:
 +`grpclog.initFuncsOk`, +`streamIcMdIs` (for `etcdStreamInterceptor`), −`grpc.opaqueInitsOk`,
 −`grpc.credentials.opaqueInitsOk`, −`grpc.health.{initFuncsOk,opaqueInitsOk}`, −`grpcAddrIsRaw`, −`grpcSrvCfgRaw`.
+
+### 21.4 The queue's gates (2026-11-26)
+
+- **`axiom-tok --check`** (it failed on the queue).
+  - Entries for N2's client axioms `KV_Put/Get/Delete_dist` and `Txn_Commit_dist` (they replace
+    `Client_{Put,Get}_dist`'s stale entries), for `NewPeerHandler_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist`
+    and `NewServer_dist`, each traced from the raw walk (`etc/axiom-tok-allow.txt`'s section headers).
+  - `NewServer_dist`'s walk is capped. The cap is global, `MAXSCEN`, and was not changed. Its entry rests on a trace,
+    `notes/axiom-review/newserver-dist-axiom-tok.md`, which is waiting for an independent triage.
+- **`NewServer.specG_dist` lacked `specG`'s `etcdURLsFit` premises.** It had been copied before `specG` took them.
+  The premises are restored, and `MainLogger` discharges them.
+- **The new gate `etc/dist-axiom-diff.py`** (`notes/axiom-review/dist-axiom-diff.md`) checks every copied dist axiom
+  against its source.
+- **Two lean merges:** `78475a1dba` (Perennial `a76168a96`), then `009822ac30` (Perennial `a706aeb9a`).
+  - Generated files were regenerated at each pin, and `goose.py --check` passes for every project at both.
+  - One full VM build at `009822ac30`: green.
+  - `tcb-report --check`: 380 axioms, 0 `sorry`. That is lean's 371 plus M1's 9.
+  - The `etcd-dist` collection lost lean's two retired axioms, `otel.attribute.opaqueInitsOk` and
+    `strings.Contains.wp_proof`.
+

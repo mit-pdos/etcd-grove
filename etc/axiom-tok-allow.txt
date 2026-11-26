@@ -243,6 +243,28 @@ entry Perennial.EtcdGrove.bootstrap.wp_proof_dist 3:Pre:produced2/consumed1,7:Φ
 # campaign definitions, `(netRh γn).γn.N.1 st`): a subset of `Serve_dist`'s notes.
 entry Perennial.EtcdGrove.etcd_dist.NewPeerHandler_dist.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:sDoneAny:context.ContextDesc(IPropGF)  see the paragraph above: inside the consumed `isServerReqM`; the post is an opaque with no law
 entry Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:sDoneAny:context.ContextDesc(IPropGF)  see the paragraph above: inside the consumed server handles; the post is `True`
+# `etcd_dist.NewServer_dist.wp_proof` (Proof/.../examples/etcd/dist/NewServerDist.lean; interim, retired by phase 7
+# S5; reviews: plan §17.3). Its walk is CAPPED: the scenario cap is global (`MAXSCEN = 1024`,
+# etc/AxiomTokCheck.lean:163; not settable per axiom; not raised: a tool change), one sub-walk collapsed into its
+# worst scenario, so the rule-3 counts below are unreliable; uncapped diagnostic runs (cap 8192, 65536, 2^20) did not
+# finish. Hand-traced (M1, 2026-11-26; notes/axiom-review/newserver-dist-axiom-tok.md):
+# - rule 2 passes on every scenario of the final set, the collapsed one (max production, min consumption)
+#   included, so on every scenario of the uncollapsed walk: no token is produced beyond what is consumed;
+# - `2:*:handedtoacallback2/supplieddirectly1` (2b): an instrumented copy of the checker (the unfold stack at
+#   each callback token) shows the two "handed to a callback" tokens are the post's `threadTok`, given to the
+#   triple's continuation, and the post of `lessorOk`'s `□ {{ threadTok }} Promote d {{ threadTok }}`
+#   (InvApplier.lean:614-617, in the post's `srvFieldsAt`), whose pre's token the walk counts as handed back
+#   because the contract sits under the continuation: a method that takes one token and returns it, no mint;
+# - every key is a key of the proved statements of the same post text (`etc/dist-axiom-diff.py`: the dist post is
+#   `NewServer.specG`'s with `γn` an `∃`): walked beside it in one run (`--lean-only --names`), the linked theorems
+#   `wp_NewServer : NewServer.spec` (auth off) and `server_new_auth_on : NewServer.specM true` (auth on) have, between
+#   them, 44 of its 45 keys, the token key included; the one more, `3:Dep:produced1/consumed0`, is traced
+#   (instrumented: `atomUse`'s stack) to `srvBuiltG`>`srvReadBuiltNK`>`isApplyLessor`>`revokeClause`>…>
+#   `batchTxSpecG`, six flips deep: leaseTimeToLive's CP3-attributed `Dep` (the revoke's backend
+#   batch-transaction callbacks), the same key there;
+# - its truncations are in the post's backend, lease and bbolt definitions (`bbAt`, `isBolt`, `lessorPin*`,
+#   `ownMap`, ...), the handles of the same proved post.
+entry Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof 2:*:handedtoacallback2/supplieddirectly1,3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Pre:produced1/consumed0,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Wb:produced11/consumed1,3:Y:produced1/consumed0,3:cd.PDone:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:E:apply.AEnvGF,7:GA:w64→IPropGF,7:Hs:auth.BkView→IPropGF,7:K:IPropGF,7:Lk:Bool→IPropGF→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:P:IPropGF,7:Pk:IPropGF,7:Pw:IPropGF,7:Q:IPropGF,7:Q:ListEntryModel→IPropGF,7:R:IPropGF,7:RD:IPropGF,7:RL:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:Rd:IPropGF,7:S:IPropGF,7:Sw:auth.AuthSess→IPropGF,7:T:IPropGF,7:TM:MetaCI→IPropGF,7:TS:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Wb:IPropGF,7:c:TrNGF,7:cd:context.ContextDesc(IPropGF),7:sDoneAny:context.ContextDesc(IPropGF),7:Φ:GoString×GoString→IPropGF,7:Φ:Unit-n>IPropGF,7:γn:NetNamesGF,7:τ:SrvTrGF  see the paragraph above (and the note it cites): capped walk; tokens traced (the continuation's and `Promote`'s returned token: no mint); every key a key of the proved `wp_NewServer`/`server_new_auth_on` (same post text) but `3:Dep`, traced to leaseTimeToLive's revoke pattern
 # The ratchet's exception for these four (dist-putget-interim, 2026-11-25; for the coordinator's review):
 # their walks truncate where the walks of the handles they take already do on `lean`, in definitions this
 # branch did not write: the client axioms in `isNewClient`'s contexts (`stuck projection: cd.4`, the
@@ -268,6 +290,7 @@ trunc Perennial.EtcdGrove.etcd_dist.Txn_Commit_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.NewPeerHandler_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proof_dist
+trunc Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
