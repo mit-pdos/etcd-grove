@@ -737,7 +737,8 @@ theorem walFold_snapFrom (σ0 : StorContents) (X : WalHist) :
     | save hs es =>
       simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
       obtain ⟨ents, -, h⟩ := h
-      exact ih _ _ hA' hτ h
+      refine ih _ _ hA' ?_ h
+      exact hτ
 
 theorem snapFrom_mono {σ0 τ : StorContents} {X Y : WalHist} (hXY : ∀ o ∈ X, o ∈ Y)
     (h : SnapFrom σ0 X τ) : SnapFrom σ0 Y τ := by

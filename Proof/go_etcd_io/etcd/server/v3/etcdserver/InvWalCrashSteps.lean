@@ -347,7 +347,7 @@ theorem rnDurK_saveSnap_law_holds : rnDurK_saveSnap.law (GF := GF) := by
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       ihave #Hhc' := walHistCertsK_snoc γn.cl νk.sd Hs n (WalOpG.snap m al)
-          (by rw [walLastHS_snoc_snapP]) $$ [Hhc]
+          (by rw [walLastHS_snoc_snapP]; exact Nat.le_refl _) $$ [Hhc]
       · iframe Hhc; simp only [walOpCert]; iframe Hsv Hsd
       ihave #Hsc' := walSnapCert_saveSnap γn.cl σ m $$ [Hsc]
       · iframe Hsc Hsv
@@ -454,7 +454,7 @@ theorem rnDurK_ownSnap_law_holds : rnDurK_ownSnap.law (GF := GF) := by
     imod Hclose $$ [Hv0 Hcm Htn Hr Hraft] with -
     · inext; ileft; iunfold rnDurBodyK
       ihave #Hhc' := walHistCertsK_snoc γn.cl νk.sd Hs n (WalOpG.snap md al)
-          (by rw [walLastHS_snoc_snapP]) $$ [Hhc]
+          (by rw [walLastHS_snoc_snapP]; exact Nat.le_refl _) $$ [Hhc]
       · iframe Hhc; simp only [walOpCert]; iframe Hsv Hsd
       ihave #Hsc' := walSnapCert_saveSnap γn.cl _ md $$ [Hsc]
       · iframe Hsc Hsv

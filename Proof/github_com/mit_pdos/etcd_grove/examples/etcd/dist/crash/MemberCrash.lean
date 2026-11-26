@@ -412,7 +412,7 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
   icases Hk with ⟨#Hinv, Htk, Hx, Hst⟩
   imod rnDurK_crash_law_holds (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E
     (fun _ σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
-    Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, %Hc, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl, -⟩ | Htaken)
+    Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, %Hc, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl⟩ | Htaken)
   · iintro %Hs %n Hr Hsy
     ihave Hr := (walHistH_gen (G := G) L L' h Hs true).1 $$ Hr
     iunfold memberWalCrash at Hw
