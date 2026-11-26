@@ -79,6 +79,35 @@ theorem cls_forall₂_map {α β γ : Type} {R : α → β → Prop} (f : α →
   | _, _, .cons hab t => by
       simp only [List.map_cons, hfg _ _ hab, cls_forall₂_map f g hfg t]
 
+/-- A list of lists empty but at `j` flattens to its `j`-th. -/
+theorem cls_flatten_single {α : Type} :
+    ∀ (L : List (List α)) (j : Nat) (x : List α), L[j]? = some x →
+      (∀ (j' : Nat) (y : List α), L[j']? = some y → j' ≠ j → y = []) → L.flatten = x
+  | [], _, _, h, _ => by simp at h
+  | a :: L, 0, x, h, ho => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    have : L.flatten = [] := List.flatten_eq_nil_iff.2 (fun y hy => by
+      obtain ⟨i, hi⟩ := List.getElem?_of_mem hy
+      exact ho (i + 1) y (by simpa using hi) (by omega))
+    simp [this]
+  | a :: L, j + 1, x, h, ho => by
+    simp only [List.getElem?_cons_succ] at h
+    have ha : a = [] := ho 0 a rfl (by omega)
+    subst ha
+    simp only [List.flatten_cons, List.nil_append]
+    exact cls_flatten_single L j x h (fun j' y hy hne => ho (j' + 1) y (by simpa using hy) (by omega))
+
+theorem cls_nodeList_length {α β : Type} : ∀ (ws : List α) (ns : List (List β)), ws.length = ns.length →
+    ((ws.zip ns).flatMap (fun p => p.2.zipIdx.map (fun q => (p.1, q.2, q.1)))).length = ns.flatten.length
+  | [], [], _ => rfl
+  | _ :: ws, n :: ns, h => by
+    simp only [List.zip_cons_cons, List.flatMap_cons, List.length_append, List.length_map, List.length_zipIdx,
+      List.flatten_cons]
+    rw [cls_nodeList_length ws ns (by simpa using h)]
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+
 end lists
 
 /-! ## The typed deployment's classes -/
@@ -586,6 +615,60 @@ theorem class_authOff {d : Deployment} (Hd : d.WellFormed) (ha : d.cfg.auth = fa
     · apply lmOf_none
       intro w hwm
       rcases hpk' w hwm with e | e | e | e <;> rw [e] <;> exact ⟨by decide, by decide⟩
+
+/-- **At most eleven workloads** (their kinds are distinct, each below 11). -/
+theorem workloads_length_le {d : Deployment} (Hd : d.WellFormed) : d.workloads.length ≤ 11 := by
+  obtain ⟨t, he, hw⟩ := Hd
+  have hcomp : typed.Compatible t.workloads := by grind [typed.Deployment.WellFormed]
+  have hsub : t.workloads.map typed.Workload.kind ⊆ List.range 11 := by
+    intro k hk
+    obtain ⟨w, -, rfl⟩ := List.mem_map.1 hk
+    cases w <;> simp [typed.Workload.kind]
+  have := List.Nodup.length_le_of_subset hcomp.1 hsub
+  rw [← he.2.2.2.1.length_eq]
+  simpa using this
+
+/-- The client machines are the node lists' addresses, in order. -/
+theorem nodeList_length_eq {d : Deployment} (Hd : d.WellFormed) : d.nodeList.length = d.nodes.flatten.length := by
+  have hl : d.nodes.length = d.workloads.length := by
+    obtain ⟨t, he, hw⟩ := Hd
+    have hl : t.nodes.length = t.workloads.length := by grind [typed.Deployment.WellFormed]
+    rw [← he.2.2.2.2, hl, he.2.2.2.1.length_eq]
+  unfold Deployment.nodeList
+  exact cls_nodeList_length _ _ hl.symm
+
+/-- **Fewer than `2 ^ 31` client machines** (auth off: only the sole writer's, `SoleBounds`; auth on: `[auth]`'s four
+or `[authLease]`'s none). -/
+theorem nodeList_length_lt {d : Deployment} (Hd : d.WellFormed) : d.nodeList.length < 2 ^ 31 := by
+  rw [nodeList_length_eq Hd]
+  cases ha : d.cfg.auth
+  · rcases class_authOff Hd ha with ⟨-, hn0⟩ | ⟨-, -, hn0⟩ | ⟨j, s, ns, -, hns, -, -, hnoth, hsb, -⟩ |
+        ⟨-, -, hn0, -⟩
+    · rw [hn0]; decide
+    · rw [List.flatten_eq_nil_iff.2 hn0]; decide
+    · rw [cls_flatten_single d.nodes j ns hns hnoth]; exact hsb.1
+    · rw [List.flatten_eq_nil_iff.2 hn0]; decide
+  · obtain ⟨t, he, hw⟩ := Hd
+    have ha' : t.cfg.auth = true := by rw [← he.2.2.1.2.2.2]; exact ha
+    have hq1 : t.cfg.auth = true → ∃ w ∈ t.workloads, w.needsAuth = true := by
+      grind [typed.Deployment.WellFormed]
+    have hcomp : typed.Compatible t.workloads := by grind [typed.Deployment.WellFormed]
+    obtain ⟨w, hwm, hwa⟩ := hq1 ha'
+    have hal : w.alone = true := by
+      revert hwa; cases w <;> simp [typed.Workload.needsAuth, typed.Workload.alone]
+    have hl1 := hcomp.2.1 ⟨w, hwm, hal⟩
+    have hl : t.nodes.length = t.workloads.length := by grind [typed.Deployment.WellFormed]
+    obtain ⟨ns, hns⟩ := List.length_eq_one_iff.1 (hl.trans hl1)
+    rw [← he.2.2.2.2, hns]
+    obtain ⟨tw, htw, hlen⟩ := typed.node_at hw (show t.nodes[0]? = some ns by rw [hns]; rfl)
+    obtain ⟨w', hw'⟩ := List.length_eq_one_iff.1 hl1
+    have e1 : w' = tw := by rw [hw'] at htw; simpa using htw
+    have e2 : w = w' := List.mem_singleton.1 (hw' ▸ hwm)
+    simp only [List.flatten_cons, List.flatten_nil, List.append_nil]
+    rw [hlen, ← e1, ← e2]
+    clear hlen htw e1 e2 hw' hwm hal hl1
+    revert hwa
+    cases w <;> simp [typed.Workload.needsAuth, typed.Workload.nodeCount]
 
 /-- **The shared KV's prefixes are apart** (P; `kvPfx_alloc`'s premise): `pg/`, `du/`, `cw/`, none a prefix of
 another. -/

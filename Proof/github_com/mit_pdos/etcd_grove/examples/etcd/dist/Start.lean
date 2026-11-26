@@ -62,25 +62,6 @@ theorem cls_mem_zipIdx_fst {α : Type} : ∀ (l : List α) (s : Nat) (q : α × 
     · exact List.mem_cons_self
     · exact List.mem_cons_of_mem _ (cls_mem_zipIdx_fst l (s + 1) q h)
 
-/-- A list of lists empty but at `j` flattens to its `j`-th. -/
-theorem cls_flatten_single {α : Type} :
-    ∀ (L : List (List α)) (j : Nat) (x : List α), L[j]? = some x →
-      (∀ (j' : Nat) (y : List α), L[j']? = some y → j' ≠ j → y = []) → L.flatten = x
-  | [], _, _, h, _ => by simp at h
-  | a :: L, 0, x, h, ho => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    have : L.flatten = [] := List.flatten_eq_nil_iff.2 (fun y hy => by
-      obtain ⟨i, hi⟩ := List.getElem?_of_mem hy
-      exact ho (i + 1) y (by simpa using hi) (by omega))
-    simp [this]
-  | a :: L, j + 1, x, h, ho => by
-    simp only [List.getElem?_cons_succ] at h
-    have ha : a = [] := ho 0 a rfl (by omega)
-    subst ha
-    simp only [List.flatten_cons, List.nil_append]
-    exact cls_flatten_single L j x h (fun j' y hy hne => ho (j' + 1) y (by simpa using hy) (by omega))
-
 /-- No client machine when every node list is empty. -/
 theorem nodeList_nil {d : Deployment} (h : ∀ ns ∈ d.nodes, ns = []) : d.nodeList = [] := by
   unfold Deployment.nodeList
@@ -283,6 +264,25 @@ theorem distribute {A : Type} (key : A → w64) (R : w64 → IProp GF) (P : IPro
         isplitr
         · iexact HP
         · iexact HK
+
+/-- A big separating conjunction indexed only by position, over a list of the same length. -/
+theorem cls_bigSepL_idx {A B : Type _} :
+    ∀ (Φ : Nat → IProp GF) (l : List A) (l' : List B), l.length = l'.length →
+      ([∗list] i ↦ _x ∈ l, Φ i) ⊢ [∗list] i ↦ _y ∈ l', Φ i
+  | _, [], [], _ => by
+    iintro -
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  | Φ, _ :: l, _ :: l', h => by
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H0, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H0]
+    · iexact H0
+    iapply (cls_bigSepL_idx (fun i => Φ (i + 1)) l l' (by simpa using h))
+    iexact H
+  | _, [], _ :: _, h => by simp at h
+  | _, _ :: _, [], h => by simp at h
 
 theorem slots_members (d : Deployment) (c : ClusterNames) :
     ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ⊢
