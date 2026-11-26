@@ -107,10 +107,10 @@ Perennial.EtcdGrove.grpcAddrAt
 Perennial.EtcdGrove.grpcCliPI
 Perennial.EtcdGrove.grpcSrvPI
 Perennial.EtcdGrove.ProtoMsg.wire
-# (etcd-dist, putget_safe's interim axioms, 2026-11-24) the table both machines hold (axiomatized until
-# S2 defines etcdSvc), the address fact over it and the publication vocabulary
+# (etcd-dist, putget_safe's interim axioms, 2026-11-24) the table every machine holds (axiomatized until
+# S2 defines etcdSvc) and the address facts over it, at the cluster's view (O1 option B, 2026-11-25: until
+# then also the publication vocabulary, envAt/envPubInv)
 module Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
 Perennial.EtcdGrove.etcd_dist.etcdSvc
 Perennial.EtcdGrove.etcd_dist.etcdAddrAt
-Perennial.EtcdGrove.etcd_dist.envAt
-Perennial.EtcdGrove.etcd_dist.envPubInv
+Perennial.EtcdGrove.etcd_dist.membersAt

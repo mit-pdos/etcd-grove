@@ -40,7 +40,8 @@ func Rotate[T any](xs []T, i int) []T {
 	k := len(xs)
 	out := make([]T, k)
 	for j := 0; j < k; j++ {
-		out[j] = xs[(i+j)%k]
+		x := xs[(i+j)%k]
+		out[j] = x
 	}
 	return out
 }

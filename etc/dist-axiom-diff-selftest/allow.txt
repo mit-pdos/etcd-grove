@@ -1,0 +1,8 @@
+# `etc/dist-axiom-diff.py --selftest`'s allow file (over Src.lean and Dist.lean beside it)
+pair st_dist etc/dist-axiom-diff-selftest/Dist.lean st_dist.spec etc/dist-axiom-diff-selftest/Src.lean st.spec
+dev st_dist <<< ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state
+dev st_dist <<< ( γn : NetNames GF ) ||| >>> the network's names move to the post
+dev st_dist <<< etcdURLsFit cfg.peer → ||| >>> the dropped premise (the selftest removes this line: then refused)
+dev st_dist <<< netHttpOk γn ∗ ⌜ γn.N = srvNet ⌝ ||| peersAt cfg >>> the network fact replaced
+dev st_dist <<< ||| ∃ γn , ⌜ γn.N = srvNet ⌝ ∗ >>> the network's names in the post
+nosource st_nosrc_dist the selftest's axiom with no source

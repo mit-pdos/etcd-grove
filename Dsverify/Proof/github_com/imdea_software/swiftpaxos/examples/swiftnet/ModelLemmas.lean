@@ -150,13 +150,14 @@ theorem swR_encOut_inj (sys : St → IProp GF) (E : CoPset) (o o' : BStr)
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `swR sys E`. -/
 theorem swS_pendDec (sys : St → IProp GF) (E : CoPset) :
-    PendDec (swR sys E) (swS (GF := GF)) where
+    PendDec (swR sys E) (swS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := pM_step swB swDec s _ i _ (swDec_box i (.ok o))
   err s i := pM_step swB swDec s _ i _ (swDec_box i .err)
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, .ok o, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, .err, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem pendCtx_swS (sys : St → IProp GF) (E : CoPset) (γp : PendNames) :
     pendCtx (Gg := hG.goose_globalGS) (swR sys E) (swS0 (GF := GF)) γp =

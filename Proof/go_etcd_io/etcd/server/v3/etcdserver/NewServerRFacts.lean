@@ -206,7 +206,7 @@ theorem restart_peerURLs (γ : ServerRaftNames) (γk : KVNames) (A : List EntryM
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
   have hvs : _ ∧ _ := ⟨Hvs0.2.1, Hvs0.2.2.1⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -, -, %Hbcc0⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
   · iframe Hb HA
   ihave #HA' := HA
@@ -231,15 +231,12 @@ theorem restart_peerURLs (γ : ServerRaftNames) (γk : KVNames) (A : List EntryM
   · -- past the bootstrap log: the boot members, overwritten by attribute writes
     obtain ⟨R, hR⟩ := hR
     have hcfg : γ.raft.cfg = GMap.listToSet γ.raft.vs := rfl
-    have hmem : ∀ m ∈ A, m.typ = W32 1 → ccBootOk γ.raft.cfg m.data := fun m hm ht =>
+    have hmem : ∀ m ∈ A, m.typ = W32 1 → ccWideOk γ.raft.cfg m.data := fun m hm ht =>
       Hcc m.toLE (by simp only [srvLE, hpre, List.nil_append]; exact List.mem_map_of_mem hm) ht
     have hbcc : ∀ e ∈ γ.raft.boot, ∀ cc, ccDecodeV1 e.Data' = some cc →
-        ccApplyOk (GMap.listToSet γ.raft.vs) cc := by
-      intro e he cc hd
-      have hin : EntryModel.ofM e ∈ A := by
-        rw [← hR]; exact List.mem_append_left _ (List.mem_map_of_mem he)
-      exact hmem _ hin (by simpa [EntryModel.ofM] using (hbt e he).2.1) cc
-        (by simpa [EntryModel.ofM] using hd)
+        ccAddOk (GMap.listToSet γ.raft.vs) cc :=
+      -- (route B) the boot policy's, `srvClusterOk`'s boot fact
+      fun e he cc hd => Hbcc0 e he cc hd
     have hcc : ∀ e ∈ R, e.typ ≠ W32 0 → ∀ cc, ccDecodeV1 e.data = some cc →
         ccApplyOk (GMap.listToSet γ.raft.vs) cc := by
       intro e he hne cc hd
@@ -255,7 +252,8 @@ theorem restart_peerURLs (γ : ServerRaftNames) (γk : KVNames) (A : List EntryM
           (γ.raft.boot.foldl (fun r e => restEntry (W64 0) (EntryModel.ofM e) r)
             (restBoot γ.raft.boot)) := by
       rw [← hR]; simp [restModel, List.foldl_append, List.foldl_map]
-    rw [hfold, fold_sync γ.raft.vs (W64 0) R _ hsync hcc, foldMem_peerURLs,
+    rw [hfold, fold_sync γ.raft.vs (W64 0) R _ hsync
+      (memVoters_boot γ.raft.vs γ.raft.boot hps hvs.1 Hurl hbcc) hcc, foldMem_peerURLs,
       bootFold_mem γ.raft.boot hnd γ.raft.boot hbt (restBoot γ.raft.boot) (fun _ => rfl)]
   · -- within the bootstrap log
     have hA : A = (γ.raft.boot.take A.length).map EntryModel.ofM := by

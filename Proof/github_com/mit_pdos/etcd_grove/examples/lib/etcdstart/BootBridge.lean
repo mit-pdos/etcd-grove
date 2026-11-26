@@ -158,7 +158,7 @@ theorem bootCC_ok (U : BootURLs) (token : GoString) (bl : List LogEntry)
   rw [hdec, Option.some.injEq] at hc
   subst hc
   obtain ⟨k, -, rfl⟩ := mem_members U token m hm
-  unfold ccApplyOk
+  unfold ccAddOk
   refine ⟨rfl, ?_, bootGo.ccContextOf_memberJSON _ hmp, ?_⟩
   · exact (GMap.elem_of_list_to_set _ _).2 (List.mem_map_of_mem (f := (·.id)) hm)
   · exact (congrArg (fun r : apply.MemberM => r.isLearner)

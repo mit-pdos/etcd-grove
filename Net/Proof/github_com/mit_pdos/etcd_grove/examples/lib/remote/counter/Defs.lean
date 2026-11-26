@@ -81,7 +81,7 @@ section base
 variable [GooseExts] [GoGlobalContext] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The far side's store** (see the file header), over the counter's ghost variable `γ`. -/
-def cR (γ : GName) : RBase GF w64 Bool w64 where
+def cR (γ : GName) : RBase GF w64 Bool Bool w64 where
   B := cB
   sysState n := ghostVar γ (1 : Qp).half n
   Eop := ↑syncN

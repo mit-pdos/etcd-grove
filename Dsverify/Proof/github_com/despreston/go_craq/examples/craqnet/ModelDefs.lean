@@ -781,7 +781,8 @@ theorem ivK_inOf (x : KIn) : ivK x = interface.mkOk In.ty #(inOf x) := by
 `Check` premise; finding F4: a put's success and a get's not found are the one output `got none`,
 so `ovK` decodes back to its output whatever the input). -/
 theorem kvS_pendDec (γ : CraqNames) :
-    PendDec (kvR (Gg := hG.goose_globalGS) γ) (kvS (GF := GF)) where
+    PendDec (kvR (Gg := hG.goose_globalGS) γ) (kvS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := by
     obtain ⟨f, w, hv, -⟩ := encOutV_ovK o
@@ -796,7 +797,7 @@ theorem kvS_pendDec (γ : CraqNames) :
     obtain ⟨f, w, hv, -⟩ := encOutV_ovK o
     exact BI.pure_intro ⟨⟨i, rfl⟩, false, f, w, hv⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, true, false, ⟨[], by simp⟩, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 /-- **Distinct outputs have distinct bytes** (remote's `Check` premise; finding F4). -/
 theorem kvR_encOut_inj (γ : CraqNames) (o o' : KOut)

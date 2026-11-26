@@ -6,6 +6,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
+	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/deployment"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
@@ -34,17 +35,6 @@ import (
 //
 // The single-client workloads (compact, putget, durable, the lease workloads, authLease: their
 // clients are sequential steps of one orchestration) have no client machine.
-
-// NodeCount is how many client machines a workload has (0: it runs on one machine).
-func NodeCount(w Workload) int {
-	switch w.Kind {
-	case KV, Watch, Cache:
-		return w.Clients
-	case Auth:
-		return len(auth.Principals())
-	}
-	return 0
-}
 
 // How long a call from the orchestrator to a client machine may take: a writer's whole loop (each
 // Put within the request timeout), a principal's whole auth.Work (a dozen requests and a refused
@@ -207,8 +197,8 @@ func remotePrincipals(nodes []string) int {
 	return n
 }
 
-// ConnectRetry makes a client of eps, trying every 100ms until it succeeds (a client machine has
-// nothing else to do).
+// ConnectRetry makes a client of eps, trying every 100ms until it succeeds (k8s/dist's; etcd_safe's
+// client machines connect once, NodeMain).
 func ConnectRetry(eps []string) *clientv3.Client {
 	for {
 		cli, err := newClient(eps)
@@ -219,21 +209,26 @@ func ConnectRetry(eps []string) *clientv3.Client {
 	}
 }
 
-// NodeMain is client machine c of workload w (NodeCount(w) > c), listening at addr, the members'
+// NodeMain is client machine c of workload w (deployment.NodeCount(w) > c), listening at addr, the members'
 // client endpoints eps: it serves the
-// orchestrator's calls (see above). It never returns (for a workload without client machines, it
-// returns at once).
-func NodeMain(w Workload, c int, addr string, eps []string) {
-	if c < 0 || c >= NodeCount(w) || len(eps) == 0 {
+// orchestrator's calls (see above). It never returns, except at once for a workload without client
+// machines, or when its client of the members fails to be made (no retry: the orchestrator's calls
+// to it then go unanswered).
+func NodeMain(w deployment.Workload, c int, addr string, eps []string) {
+	if c < 0 || c >= deployment.NodeCount(w) || len(eps) == 0 {
 		return
 	}
 	switch w.Kind {
-	case KV:
+	case deployment.KV:
 		kvremote.Node(c, addr, Rotate(eps, c))
-	case Watch, Cache:
-		newClient := func(c int) any { return ConnectRetry(Rotate(eps, c)) }
+	case deployment.Watch, deployment.Cache:
+		cli, err := newClient(Rotate(eps, c))
+		if err != nil {
+			return
+		}
+		newClient := func(int) any { return cli }
 		remote.ServeClient(c, addr, newClient, writerOp, writerCodec(), writerAttempt(w.Ops))
-	case Auth:
+	case deployment.Auth:
 		newClient := func(int) any { return eps }
 		remote.ServeClient(c, addr, newClient, principalOp, principalCodec(), principalAttempt)
 	}
