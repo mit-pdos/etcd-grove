@@ -83,21 +83,27 @@ func noAuth(cli *clientv3.Client, who string, id clientv3.LeaseID) {
 	refused(who, "Leases", err)
 }
 
-// foreign (authlease's checks 3-5, copied): who is refused the revocation of id, its TimeToLive
-// with keys and the listing of the leases, id holding a key who may not touch.
-func foreign(cli *clientv3.Client, who string, id clientv3.LeaseID) {
+// foreign (authlease's checks 3-5, adapted): who is refused the revocation of id; its TimeToLive
+// with keys, if it succeeds, returns no key forbidden, the key of id who may not read; and who
+// lists the leases (the reply carries no key, so nothing is checked of it).
+func foreign(cli *clientv3.Client, who string, id clientv3.LeaseID, forbidden string) {
 	ctx, cancel := reqCtx(who)
 	_, err := cli.Lease.Revoke(ctx, id)
 	cancel()
 	refused(who, "Revoke of a lease holding a key it may not write", err)
 	ctx, cancel = reqCtx(who)
-	_, err = cli.Lease.TimeToLive(ctx, id, clientv3.WithAttachedKeys())
+	resp, err := cli.Lease.TimeToLive(ctx, id, clientv3.WithAttachedKeys())
 	cancel()
-	refused(who, "TimeToLive with keys of a lease holding a key it may not read", err)
+	if err == nil {
+		for _, kb := range resp.Keys {
+			if string(kb) == forbidden {
+				panic("dist authLease: " + who + "'s TimeToLive with keys returned " + forbidden)
+			}
+		}
+	}
 	ctx, cancel = reqCtx(who)
-	_, err = cli.Lease.Leases(ctx)
+	_, _ = cli.Lease.Leases(ctx)
 	cancel()
-	refused(who, "Leases, a lease holding a key it may not read", err)
 }
 
 // absent (authlease's, copied) reports whether root's Get of k succeeded and found no key; it
@@ -184,8 +190,8 @@ func RunAuthLease(eps []string, ready func()) Result {
 	if !absent(root, xKey, "after u's refused puts") {
 		return ended("authLease: root's read failed")
 	}
-	foreign(ucli, "u", lz)
-	foreign(vcli, "v", lu)
+	foreign(ucli, "u", lz, zKey)
+	foreign(vcli, "v", lu, aKey)
 	ctx, cancel = context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
 	g, err := root.Get(ctx, zKey)
 	cancel()

@@ -211,3 +211,45 @@ only trusted text changes are the two approved ones (change 1 `EtcdServer.leaseT
   `f7fork-leasettl-keys-gotest/`, all pass: no key aliases the body, even with `UnmarshalAliasBuffer`); its one nit
   (a docstring line range, 268 → 269) applied. Rows in `notes/axiom-review/README.md`/`notes/audit.md` not added
   yet. Next: review 2.
+
+### Handoff K-3 (2026-11-26; e done, f stopped at a missing fact, g not started)
+
+- **e done.** Review 2 (`notes/axiom-review/f7fork-ttl-dist-keys.md`, Go test `f7fork-ttl-dist-keys-gotest/`):
+  **SOUND** (the client's `Keys` is the decoded reply's, `lease.go:246-261`, retries reset it; grpc v1.84.0 frees
+  its receive buffer after `Unmarshal` but protobuf-go v1.36.12 copies every repeated `bytes` element; the verdict
+  is member-local at states of index `≥ n`; admin/auth-off arms claim nothing per key; lease-not-found answers
+  no keys). Its docstring nit applied (`61d32a2122`); index rows for both reviews in `notes/axiom-review/README.md`
+  (`notes/audit.md` rows not added).
+- **f(1) done** (uncommitted at the time of writing, then committed with this handoff): `foreign(cli, who, id,
+  forbidden)` in `examples/etcd/dist/client/authlease.go`: TimeToLive with keys panics only if it succeeds and a
+  returned key is `forbidden` (`zKey` for u/`Lz`, `aKey` for v/`Lu`); `Leases` called, its result ignored
+  (`_, _ =`). Retranslated (`etc/goose.py --project putget-dist --src etcd=/shared/etcd-fork-ttlkeys`: only
+  `Code/.../dist/client.lean`). `go test ./etcd/dist/`: PASS; a real deployment `DIST_RUN=1 DIST_WANT=authLease
+  go test -short -run 'TestDist$'` (3 members, auth on): `authLease: checked`, PASS. **The Lean build breaks at
+  `foreign` until f(2)** (its spec still names the 3-argument function).
+- **f(2)-(4) NOT done: a fact the plan assumed is missing.** `Lease_TimeToLiveOn_dist.spec` (and
+  `Lease_LeasesOn_dist.spec`) take `lease.lessorLb (Γ.ls mid) m₀` in their precondition (trusted text, unchanged),
+  so `foreign`'s spec must keep `m₀`, `lessorLb (Γ.ls mid) m₀` and `Γ.ls`'s injectivity (the plan's "the Leases
+  premise and `m₀`/`Γ.ls` injectivity go" is wrong for the precondition; only the Leases *refutation* premise goes).
+  `RunAuthLease` has a `lessorLb` only at `a0` and `au` (`lease.leaseLiveFrom_lb` of root's and u's `grantPut`,
+  l.449-450); **v's `foreign` runs at `av = eps[2 mod k]`, a third member when `k ≥ 3`, where no fact of the
+  client machine gives `lessorLb (Γ.ls midv) _`**: until now `foreignReads.law` (a hypothesis) supplied it.
+  `lessorSlot` publishes only `lessorHistOk` and a pin (no lower bound), `barrierFloor` only `authFloorD`. Options
+  (a decision for the lead):
+  1. Go: v's client at `au` (`newUserClient(au, "v", vPw)`): `midv = midu`, `Hlbu` serves; loses v's check at a
+     third member.
+  2. Publish a lower bound in the slot: `lessorSlot`'s right disjunct gains `lessorLb γl 0` (the member's
+     `NewLessor` has it), plus a client lemma "a served member's slot is closed" (from `etcdAddrAt`/`Serve_dist`
+     facts: not found; may need the start's facts in `RunAuthLease`'s precondition). Definitions and the member
+     proofs change; no trusted text.
+  3. v (or root) grants a lease at `av` first (Go change; the authLease cell `γc.ids` is `[Lz, Lu]`, so the cell
+     model would change).
+  The rest of f(2)-(4) is as planned: the refutation premise over the forbidden key `k`,
+  `□ (∀ n, ⌜n₀ ≤ n⌝ -∗ leaseCheckD (Γ.au mid) (principalOf cfg) n (fun info => auth.permVerdictFrom (.on (Γ.au mid))
+  n info k [] .read GoInterface.nil) -∗ R ={⊤}=∗ False)`; its proof in `foreign` walks the returned keys (the
+  `[∗list]` of `kss`, `big_sepL2` lookup at the equal key, `leaseCheckD` mapped to that key's verdict); the lemma
+  replacing `foreignReads.law`: `n₀ := m` (the floor's `authPubLbM`), `authFloorD_frozen` for `st = setupSt r`,
+  arms refuted by `leaseCheckD_none_frozen`'s pattern (auth enabled), `etcd_authlease.not_adminOk_setupSt` (admin)
+  and `etcd_authlease.not_permitted_setupSt` (with `not_inRangeK_zK` for u; v reads nothing), all existing.
+- **Build** (step 1 of this session, fk-lean2, at `059eaf26f0`'s content): `etcdserver.Link` + `v3rpc.Results`: success (10439 jobs). The earlier failure in `AuthSrv` was read-only `.ilean` files, not a proof error.
+- **g not started.**

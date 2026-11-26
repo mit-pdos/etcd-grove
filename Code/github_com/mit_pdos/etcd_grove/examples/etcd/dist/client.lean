@@ -1247,15 +1247,18 @@ noncomputable def noAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
   (Val #())))))
 
-/-- foreign (authlease's checks 3-5, copied): who is refused the revocation of id, its TimeToLive
-    with keys and the listing of the leases, id holding a key who may not touch.
+/-- foreign (authlease's checks 3-5, adapted): who is refused the revocation of id; its TimeToLive
+    with keys, if it succeeds, returns no key forbidden, the key of id who may not read; and who
+    lists the leases (the reply carries no key, so nothing is checked of it).
 
-    go: authlease.go:88:6 -/
+    go: authlease.go:89:6 -/
 noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
   (Lam "id"
+  (Lam "forbidden"
   (Seq (App (Val exceptionDo)
+  (Let "forbidden" (App (Val (GoInstruction (GoAlloc go.string))) (Var "forbidden"))
   (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "id"))
   (Let "who" (App (Val (GoInstruction (GoAlloc go.string))) (Var "who"))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
@@ -1298,6 +1301,7 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1318,33 +1322,42 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"Leases, a lease holding a key it may not read"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #())))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (Var "$r1")))))
   (App (Val doExecute)
   (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty go!"Keys"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty)))) (Var "resp"))))
+  (Let "kb" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.SliceType go.byte))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "kb"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "forbidden")))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "who"))
-  (Let "$a1" (Val #(go!"TimeToLive with keys of a lease holding a key it may not read"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve refused []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"dist authLease: ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "who")))) (Val #(go!"'s TimeToLive with keys returned ")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "forbidden")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "kb") (Var "$value"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
@@ -1363,13 +1376,13 @@ noncomputable def foreign.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))
-  (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))
+  (Val #()))))))
 
 /-- absent (authlease's, copied) reports whether root's Get of k succeeded and found no key; it
     panics if the Get succeeded and found one.
 
-    go: authlease.go:105:6 -/
+    go: authlease.go:111:6 -/
 noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "root"
   (Lam "k"
@@ -1449,7 +1462,7 @@ noncomputable def absent.impl [GooseExts] [GoGlobalContext] : val :=
     "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
     lessor; the checks are refusals, made by the receiving member before it forwards.
 
-    go: authlease.go:127:6 -/
+    go: authlease.go:133:6 -/
 noncomputable def RunAuthLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "ready"
@@ -1767,12 +1780,14 @@ noncomputable def RunAuthLease.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "vcli"))
   (Let "$a1" (Val #(go!"v"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "lu"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve foreign []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val aKey))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve foreign []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "ucli"))
   (Let "$a1" (Val #(go!"u"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty))) (Var "lz"))
-  (App (App (App (App (Val (GoInstruction (FuncResolve foreign []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val zKey))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve foreign []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "root"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val xKey))
   (Let "$a2" (Val #(go!"after u's refused puts"))
