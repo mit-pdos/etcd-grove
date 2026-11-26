@@ -281,7 +281,9 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
         γr.bootLen = (AntSim.bootLog R).length ∧
         γr.raftNames.reTrace = none ∧ γr.raftNames.reCfg = R.voters0 ∧
         γr.raftNames.maxData = none ∧ γr.raftNames.reBoot = AntSim.bootLog R ∧
-        (↑(raftN γr.raftNames) : CoPset) ⊆ ⊤ \ ↑antN⌝ ∗
+        (↑(raftN γr.raftNames) : CoPset) ⊆ ⊤ \ ↑antN ∧
+        -- (antithesis parity B1, group E) an acknowledging node is a server
+        (∀ a : w64, (γr.raftNames.reAcks !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j)⌝ ∗
       isCluster (GF := GF) γr antRaftN ∗ readyFits γr antRaftN ∗ opsInv γr ∗
       confAt γr 0 (Membership.simple R.voters0) ∗ raftFactsOwn γr.raftNames (bootFacts0 R) ∗
       [∗list] j ∈ List.finRange R.N,
@@ -293,7 +295,7 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
       (bootOps R) true ⊤ (fun _ _ => CoPset.mem_full) Hrb Hvne Hvnd Hvnz Hvlen Hind Hinz (bootOps_norm R)
     with ⟨%γr, %Hd, %Hnm, Hops, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
   obtain ⟨Hdup, Hbl, Hmd, Hns, Htr⟩ := Hd
-  obtain ⟨Hcfg, Hboot, HreNs, HreTr, HreMd⟩ := Hnm
+  obtain ⟨Hcfg, Hboot, HreNs, HreTr, HreMd, Hacks⟩ := Hnm
   rw [bootOps_entries] at Hboot
   imod opsInv_alloc γr (bootOps R) ⊤ $$ Hops with #Hopsi
   have Hbl' : γr.bootLen = (AntSim.bootLog R).length := by
@@ -305,8 +307,13 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
   iexists γr
   isplitr
   · ipureintro
-    refine ⟨Hdup, Hns, Htr, Hmd, Hbl', HreTr, Hcfg, HreMd, Hboot, ?_⟩
-    unfold raftN; rw [HreNs]; exact antRaftNs_mask
+    refine ⟨Hdup, Hns, Htr, Hmd, Hbl', HreTr, Hcfg, HreMd, Hboot, ?_, fun a ha => ?_⟩
+    · unfold raftN; rw [HreNs]; exact antRaftNs_mask
+    · obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 ha
+      have h1 := GMap.elem_of_dom_2 _ a u hu
+      rw [Hacks] at h1
+      obtain ⟨j, -, hj⟩ := List.mem_map.1 ((GMap.elem_of_list_to_set _ _).1 h1)
+      exact ⟨j, hj.symm⟩
   rw [show R.voters0 = GMap.listToSet (votersL R) from rfl]
   iframe Hcl Hrfit Hopsi Hca
   isplitr

@@ -589,7 +589,7 @@ theorem RunCluster.wp_proof
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Cnodes with #Cnodes
   -- raft's cluster, the wait groups
   imod antRaft_alloc (GF := GF) R Hfits with ⟨%γr, %Hγr, #Hcl, #Hrfit, #Hopsi, #Hca, #Hrf, Hnds⟩
-  obtain ⟨-, Hns, Htr, Hmd, Hbl, HreTr, HreCfg, HreMd, HreBoot, HrN⟩ := Hγr
+  obtain ⟨-, Hns, Htr, Hmd, Hbl, HreTr, HreCfg, HreMd, HreBoot, HrN, Hacks⟩ := Hγr
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") _ $$ CnodesWg with ⟨%γnw, Hnw⟩
   imod sync.join.init _ γnw $$ Hnw with Hnadder
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") _ $$ CbehWg with ⟨%γbw, Hbw⟩

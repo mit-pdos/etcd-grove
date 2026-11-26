@@ -375,7 +375,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     ⊢ |={E}=> ∃ γ : Cluster,
         ⌜γ.raft.dup = dup ∧ γ.raft.reBoot = LogEntry.toEntries boot 0 ∧ γ.raft.reTrace = none ∧
           γ.raft.maxData = none ∧ γ.raft.reNoSnap = false ∧ γ.raft.reCfg = GMap.listToSet vs ∧
-          γ.raft.reNs = N .@ "raft"⌝ ∗
+          γ.raft.reNs = N .@ "raft" ∧ domSet γ.raft.reAcks = GMap.listToSet ids⌝ ∗
         ownCommittedOps (GF := GF) γ boot ∗ isClusterU γ N ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗
         isCommitted γ.raft γ.raft.reBoot ∗ logRecs γ.raft base0 γ.raft.reBoot ∗
@@ -407,7 +407,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     (fun _ h => by cases h)
     Hcne Hinz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
-    $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
+    $$ Hcl with ⟨%γr, %Hacks, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0, Hmxd'⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, -, -⟩
@@ -459,7 +459,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
   iexists γ
   iframe Hops Hdc Hcb Hrecs
   isplitr
-  · ipureintro; exact ⟨Hdup, HbootL, Htr0, Hmxd', Hns, Hcfg, HNs⟩
+  · ipureintro; exact ⟨Hdup, HbootL, Htr0, Hmxd', Hns, Hcfg, HNs, Hacks⟩
   isplitr
   · unfold confAtU
     iexists [], ∅
@@ -499,7 +499,8 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF
 cluster's facts (duplicated proposals as `dup` says, the bootstrap log's length, no data bound, snapshots on,
 untraced) and its raft names' (the voters, the bootstrap log, raft's namespace `N.@"raft"`); the
 committed operations at the bootstrap log, the cluster, the configuration of no entry; the bootstrap
-log committed with its records; every id of `ids` at its durable state with its vacant slot. -/
+log committed with its records; every id of `ids` at its durable state with its vacant slot; (antithesis
+parity B1, group E) the acknowledgement maps named for exactly the ids `ids` (`isAcked`'s node an id). -/
 theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEntry) (dup : Bool)
     (E : CoPset)
     (HE : (↑(N .@ "raft") : CoPset) ⊆ E) :
@@ -509,7 +510,8 @@ theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEn
       ⌜γ.dup = dup ∧ γ.bootLen = boot.length ∧ γ.maxData = none ∧ ¬ clusterNoSnap γ ∧
         Cluster.trace γ = none⌝ ∗
       ⌜γ.raftNames.reCfg = GMap.listToSet vs ∧ γ.raftNames.reBoot = LogEntry.toEntries boot 0 ∧
-        γ.raftNames.reNs = N.@"raft" ∧ γ.raftNames.reTrace = none ∧ γ.raftNames.maxData = none⌝ ∗
+        γ.raftNames.reNs = N.@"raft" ∧ γ.raftNames.reTrace = none ∧ γ.raftNames.maxData = none ∧
+        domSet γ.raftNames.reAcks = GMap.listToSet ids⌝ ∗
       ownCommittedOps (GF := GF) γ boot ∗ isCluster γ N ∗
       confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
       isCommitted γ.raftNames γ.raftNames.reBoot ∗ logRecs γ.raftNames base0 γ.raftNames.reBoot ∗
@@ -523,11 +525,24 @@ theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEn
   imodintro
   iexists γ
   iframe Hops Hcl Hca Hcb Hrecs Hfs
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hd
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := Hd
   isplitr
   · ipureintro
     exact ⟨h1, by rw [h2, ApiImpl.toEntries_length], h4, by rw [h5]; decide, h3⟩
-  ipureintro; exact ⟨h6, h2, h7, h3, h4⟩
+  ipureintro; exact ⟨h6, h2, h7, h3, h4, h8⟩
+
+/-- **A read credit for a time receipt, from the cluster** (its read credits' exchange, `rdPool`,
+which `cluster_alloc_normBoot` allocated from every read credit, as raft's `node.ReadIndex` does with
+`rdPool_mint`): for the antithesis harness, whose driver hands a `MsgReadIndex` to `RawNode.Step`
+once per delivery (a duplicated delivery steps a clone, with a credit of its own). No new credit:
+`rdPool_mint` trades a receipt for one of the pool's. -/
+theorem isCluster_rdMint (γ : Cluster) (N : Namespace) (E : CoPset)
+    (HE : ↑(N .@ "rdpool") ⊆ E) :
+    ⊢ isCluster (GF := GF) γ N -∗ ⧗ 1 ={E}=∗ rdCred γ.raftNames 1 := by
+  iintro #Hc H1
+  unfold isCluster ApiImpl.isClusterU Cluster.raftNames
+  icases Hc with ⟨-, -, #Hp⟩
+  iapply ApiImpl.rdPool_mint γ N E HE $$ Hp H1
 
 end allocRunApi
 

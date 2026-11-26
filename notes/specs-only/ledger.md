@@ -6733,3 +6733,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   default); node.start's fresh node is a follower. Mechanical: node__tick/node__campaign read `rs.flw` as
   `hrv.2.2.2.2.2.1`; node__start's tuple gains the role component.
 - **Decision.** The Antithesis lead (S2, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S4 (d), part 1): the cluster's acknowledgement maps named for exactly its ids (#33)
+- **Spec.** Protocol/Facts.lean `ownRaftGhost_alloc_core_reg_tr`'s post gains `⌜domSet γ.reAcks = ids⌝` (first conjunct;
+  `alloc_maps` already proved it, the proof dropped it); `ownRaftGhost_alloc_core_reg` unchanged (drops it).
+  ClusterAllocRun's `cluster_alloc_run` (and the private `cluster_alloc_normBoot`) gain `domSet γ.raftNames.reAcks =
+  GMap.listToSet ids`; RunClusterAlloc's `antRaft_alloc` gains `∀ a, (γr.raftNames.reAcks !! a).isSome → ∃ j : Fin R.N,
+  a = AntSim.nodeId j`. All strengthenings of allocation posts.
+- **Defect.** The drain's `XPendOk` needs a `MsgTimeoutNow`'s destination to be a server; raft hands out only `isRaftMsg`'s
+  `isAcked γ dst t i` (i ≠ 0), whose node has an acknowledgement map, and no fact said which ids have one.
+- **Evidence.** Static names fact from the allocation; callers' patterns gain one component (InvApiBoot `-`, RunCluster
+  `Hacks`). Part 2 (antCluster's pure facts) follows group D's antCluster edit.
+- **Decision.** The Antithesis lead ((d) as allocation plumbing, approved). No axiom, no top-level premise.
