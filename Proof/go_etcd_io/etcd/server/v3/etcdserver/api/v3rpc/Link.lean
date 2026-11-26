@@ -127,6 +127,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fillW
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.healthNotifier__startServe
 public import Proof.google_golang_org.grpc.health.NewServer
 public import Proof.google_golang_org.grpc.health.Server__SetServingStatus
+public import Proof.google_golang_org.grpc.health.Server__setServingStatusLocked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isRPCSupportedForLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Compact
@@ -750,9 +751,13 @@ theorem health.wp_NewServer :
     EtcdGrove.health.NewServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.health.NewServer.wp_proof
 
+theorem health.Server.wp_setServingStatusLocked :
+    EtcdGrove.health.Server.setServingStatusLocked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.health.Server.setServingStatusLocked.wp_proof
+
 theorem health.Server.wp_SetServingStatus :
     EtcdGrove.health.Server.SetServingStatus.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.health.Server.SetServingStatus.wp_proof
+  EtcdGrove.health.Server.SetServingStatus.wp_proof health.Server.wp_setServingStatusLocked
 
 theorem grpc_health_v1.HealthCheckResponse_ServingStatus.wp_String :
     EtcdGrove.grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG) :=
@@ -768,7 +773,7 @@ theorem wp_newHealthNotifier :
 
 theorem grpc_health_v1.wp_RegisterHealthServer :
     EtcdGrove.grpc_health_v1.RegisterHealthServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc_health_v1.RegisterHealthServer.wp_proof
+  EtcdGrove.grpc_health_v1.RegisterHealthServer.wp_proof grpc.Server.wp_RegisterService
 
 theorem grpc_prometheus.ServerMetrics.wp_InitializeMetrics :
     EtcdGrove.grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG) :=
