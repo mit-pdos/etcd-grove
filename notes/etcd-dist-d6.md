@@ -3186,6 +3186,58 @@ Added, no old user changed:
 
 No axiom, `sorry`, `Spec/` or trusted text changed.
 
+### T10 step 3 (B), session 3 (2026-11-26, branch `etcd-safe-t10s3b/2026-11-26`)
+
+**Item 1 (B3's prerequisite): `rnReplayHist` moved down into `InvRaftNode.lean`** (after `rnReplayState_persistent`),
+with all its lemmas (`_persistent`, `.state`, `.describe`, `.intro`, `.advance`, `.empty`, `.appendEntries`, `.after`)
+and `replayPending_after`; names and statements unchanged. To make that legal without a cycle: `replayRunsDescribe`
+moved verbatim from `ReplayJob.lean` to `ReplayHistory.lean`, which now imports `ReplayLookup` instead of `ReplayJob`
+(so `ReplayHistory`/`ReplayCoverage` sit below `InvRaftNode`); `InvRaftNode` imports `ReplayCoverage` and
+`Spec/…/replayTerms__after`; `ReplayWorkerTerms` and `ReplaySeed` import `ReplayJob` (the cone they had). So B3 can
+name `rnReplayHist` in `rnWorkerStartTok`. Build: `ReplaySeed`, `ReplayWorkerTerms`, `NewServerCrash`, the server's
+`Link` (`/shared/tmp/t10s3b-s3-build2.log`); `etc/tier-check.py --check` ok.
+
+**Item 2 (B8): depends on B3-B7 in part. What each image case of the `sorry` (`NewServerCrash.lean`) needs:**
+* *`σ.commit < i`* (the backend past the WAL's commit): B6 (`rnRestartOk` without `|a0| ≤ commit0`), B7
+  (`rnStopImage`/`wal.stopImage` without the commit bound), B5 (`applyAll`'s keep case: a snapshot at or below the
+  backend's index), and `restart_idx`'s `|A| ≤ σ.commit` gone from `NewServerR`. Waits for them.
+* *`confRowW`'s second case* (stored `confState` one conf change ahead): independent of B3-B7. `m' = m` follows
+  from `srv_confAt_eq_simple` at `i` and `i + 1` (the server's membership is `simple cfg` at every committed index),
+  given a committed log at least `i + 1` long, which needs a new raft API law `confAt_committed` (`confAt γ k m ⊢ ∃ l,
+  isCommittedLogLb γ l ∗ ⌜k ≤ |l|⌝`, from `confAtU`'s committed log). Written and saved, not applied:
+  `/shared/tmp/t10s3b-confAt-committed.patch` (`InvApiDec.confAt_committed_impl`, `InvNodeRule.confAt_committed`). An
+  API addition to raft (`etc/api/raft.txt` lists `InvNodeRule`); it rebuilds all of raft's importers and its copies
+  (`RaftTla`, `RaftNoAx`, `KvNet`: `etc/gen-raft-tla.py`, `etc/copy-part.py`), hence deferred. Then
+  `srvCrashImageAt_disk` (`NewServerRAt.lean`) takes `srvRaftLogInv ⟨γ, [], W64 0⟩` and drops the conf conjunct from
+  its `¬ (…)`.
+* *`i < bootLen`* (the backend inside the bootstrap batch): **needs a row the crash image does not carry.** The
+  crash contract asks `γ.cl.bootLen ≤ σ.commit`; the graceful proof gets it from `bootLen ≤ i ≤ σ.commit`
+  (`restart_idx`, `bootstrapAtR_of_crash`). Nothing in `srvCrashImageAt` gives it (`walReadFacts` does not), so the
+  image (and its producer `MemberCrash.lean`, which this session leaves alone) needs `⌜γ.cl.bootLen ≤ σ.commit⌝`, or
+  a raft fact `bootLen ≤ S.commit` for a node's durable state. For the lead.
+* *`i < σ.b`* (the `.snap.db` recovery): independent of B3-B7 (the backend restarts at `j = σ.b ≤ σ.commit`), but
+  not an instance of `specRAt`: the post is at `(σ, j, Ls, Ds)` and the files are `srvFilesC σ D` plus the snapshot
+  file, so it needs a second hinge (`specRAt` at the snapshot file's image: `srvRLogLb` of `Ls`'s tail and `confAt j`
+  from `srvImageM γ j Ds`; in the `c ≤ σ.b` branch the file out of `snapDirKeep` by `snapDir_take`, with the
+  invariant returned for `srvSnapKeep`) and `wp_proofRG` generalized over the two file shapes (`NewServerR.lean`).
+  Large; not started.
+
+**Item 3:** of B1-B8, B1/B2 were done (session 2); B4 and B7 follow B3/B6; nothing else is independent of the three
+`Spec/` changes beyond item 2's `confRowW` piece.
+
+**Handoff T10s3b-3** (stopped at the context rule).
+* *Tree, manifest, build*: as Handoff T10s3b-1.
+* **The lead approved B3, B5 and B6** (#50, 22:14Z), each with a ledger entry (`notes/specs-only/ledger.md`) first,
+  under these conditions: (1) no `Spec/` file that an `axiom` states may change in meaning (`bootstrapDist`,
+  `bootstrapOne`, `NewServerDist`, `NewAuthStore` (which names `applySnapshot.specSnapM` in a docstring), and any
+  other); a docstring cross-reference may change. (3) No axiom's statement may unfold to a changed `Proof/`-tier
+  definition: `rnRestartOk` (B6), `isNotify`/`isNotify2`/`taReplayField` (B3), any `specKeep` split (B5); check
+  with the TCB report's constants (`etc/tcb-report.py`), not only grep.
+* *Next*: B3 (ledger entry, then `Spec/…/EtcdServer__applyAll.lean:94/:237/:246` and session 2's switch list), B4,
+  B5, B6, B7; then B8 as above.
+
+No axiom, `sorry`, `Spec/` or trusted text changed.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

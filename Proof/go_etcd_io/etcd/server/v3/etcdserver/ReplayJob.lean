@@ -8,11 +8,6 @@ namespace Perennial
 namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-- Every entry above the delivered cursor in this Ready has a readable run with its term. -/
-def replayRunsDescribe [GooseExts] (runs : List replayTermRun) (S : RaftState) (delivered : Nat) : Prop :=
-  ∀ (ci term : w64), delivered < uint.nat ci → plogTermAt S.base S.ents ci = some term →
-    replayRunCovers runs ci = true ∧ ∃ r, replayRunAt runs ci = some r ∧ r.term' = term
-
 variable [GooseExts]
 
 /-- In the replay window the last entry in the durable backend prefix is at the

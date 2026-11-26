@@ -2,6 +2,7 @@
 module
 public import Proof.go_etcd_io.raft.v3.DurableLogView
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayCoverage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReplayJob
 
 @[expose] public section
 noncomputable section
