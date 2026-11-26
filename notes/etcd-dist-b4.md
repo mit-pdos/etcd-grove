@@ -393,3 +393,30 @@ The §9 move, with Revision 1's slot (§R1.3, branch `etcd-safe-crash-b4r/2026-1
   only errors are in the `slot` section (`SrvKeep.lean:233-241`): `go.Semantics` and `Assumptions` need `GoLocalContext`. Fix: add
   `variable [lctx : GoLocalContext]` to `section slot` (as `MemberCrash`'s `keep` section has), then rebuild the five modules.
   The four `examples/` users were not reached yet.
+
+## Handoff B4M-2 (2026-11-26, same branch and worktree)
+
+* **B4M-2: the move builds.** `59eb3b0fee`: `SrvKeep.lean`'s `slot` section gains `[lctx : GoLocalContext]`;
+  `srvKeepInv`'s body is `inv srvKeepN iprop(…)` (a bare `(∃ ph, … ∗ …)` does not elaborate); and the slot is read at
+  `⟨G, { L with goose_go_local_context := lctx }⟩` (MemberGen's `atCtx`, `L` itself when its context is `lctx`), because
+  `⟨G, L⟩` carries `L`'s own Go context, at which the section's `go.Semantics`/`Assumptions` (over `lctx`) do not apply.
+  `SrvKeepPh.countable` compiles as written. The four `examples/` users (`MemberCrash`, `MemberBoot`,
+  `MemberCrashBoot`, `BackendImage`) and `InvCrashImage` built with no change.
+* **Build:** full `lake build` ok (`/shared/tmp/b4move-full1.log`). The worktree's `.lake/packages` is now a directory
+  of its own (symlinks to `/shared/etcd-grove/.lake/packages/*`, with `perennial` → `/shared/perennial-a706aeb9a`,
+  the pin), so that goose.py and gen-init.py in the gates see the pinned Perennial (the shared one is at `ddc0f0acc`).
+* **Gates** (`LAKE_PACKAGES=/shared/tmp/b4move-manifest.json GATES_FAILFAST=0 etc/gates.sh`,
+  `/shared/tmp/b4move-gates2.log`): build ok. The failures are not from the move; they come from the merged
+  etcd-safe-full/T7 line (`5c6d24c587`, P5's `a38f75bcc3`):
+  - `tcb`: one NEW `sorry rnRestartAllocK_law_holds` (P5-RESTART, `etcd-dist-plan.md` §16.3) in five collections
+    (etcd-all-single-process, k8s-all-single-process, leaseexpiryN-single-process, putget-dist, server); nothing else
+    new or gone. The move adds or removes no `sorry`/axiom (`git diff a45701179d HEAD -- Proof Spec`), and changes
+    nothing under `Spec/` or `TrustedCode/`.
+  - `mode`: 20 unclassified literal modes (`NewServerCrash`, `NewServerCDist`, `NewServerRAt`, `etcdstart/Start`).
+  - `featuregate`: the etcd fork pin moved (`251a430ce042`), allow-list entries stale (`df6af0c36a6b`).
+  - `model-param` (117 rule-1 binders, `KV_Compact_dist` …); `errdesc-check`: `KVGetDist`, `WatchDist` unreviewed.
+* **Left for the owner (statement restatements, S0/T7):** `memberKeepS`; `memberKeepR`/`memberKeepRc` restated
+  over `srvKeepAt`; the four laws `memberFirstCrash.law`, `memberGen_boot.law`, `memberGen_crash.law`,
+  `memberStop.law` restated over the slot (`srvKeepInv … γph L ∗ srvKeepPh γph ½ ph₀`, §9's and R1.3's blocks).
+  Note for them: `srvKeepInv` reads `L` at `lctx` (above), so a law at generation `L` uses it where `L`'s context is
+  `lctx` (as `memberPc`/`CrashBootWp` do).
