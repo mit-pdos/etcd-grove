@@ -787,7 +787,7 @@ and `etc/lease-order-check.py`, and build the dist `TopLevelRobustness` leaves (
 
 **Step 1 (P-A1): done.** `f9b5d39bca`'s build of `etcdserver.Results`, `etcdserver.Link`, `dist.MemberNames` EXIT 0
 (fk-lean2); `etc/tier-check.py --check` ok (208 known), `etc/lease-order-check.py` ok. The dist `TopLevelRobustness`
-leaves (the addendum's) are not rebuilt yet.
+leaves (the addendum's) were building at handoff, at `323b40ae38` (notes only past `f9b5d39bca`): `dist.TopLevelRobustness` and `dist.kvremote.TopLevelRobustness` via `/shared/tmp/f7sync.sh`, log `~/eg/logs/f7l-build.log` on fk-lean2 (ends `EXIT n`), client copy `/shared/tmp/f7s2-b2.out`. Next session: read it first.
 
 **Step 2 (auth-on member boot): blocked before any Lean, on one gap the coordinator's decision assumed away.**
 "Auth on means compaction off; use `WellFormed`" does not hold:
@@ -801,7 +801,7 @@ leaves (the addendum's) are not rebuilt yet.
   that deployment, so `MainLogger` cannot be proved for it, whatever the start allocates.
 - `WellFormed`'s doc comment (item 5) says Q1 "keeps `compact` from auth, which `NewServer`'s `cmp = true → on = false`
   excludes": true of the `compact` workload, not of the server's compactor, which sets `cmp` alone.
-Options (the lead's): (a) a `WellFormed` conjunct `(t.cfg.auth = true → t.cfg.compactor = .off)` with Go's
+No Lean was written for step 2. Options (the lead's): (a) a `WellFormed` conjunct `(t.cfg.auth = true → t.cfg.compactor = .off)` with Go's
 `WellFormed` check and a `TestWellFormed` case (a change to the top-level premise's definition: the deployments
 covered shrink by auth-with-compactor); (b) the three main-program specs keep a narrower premise,
 `d.cfg.auth = true → d.cfg.retention = W64 0`, in place of `d.cfg.auth = false` (intermediate specs only; the
@@ -826,3 +826,5 @@ HasLC.hasLC GF] [GoLocalContext]`; HeapGS callers reach them through `HeapGS.goo
 `memberBootOn_of` (`Alloc3On.lean:140`) as `memberBoot_of_slice` is from `memberBoot_of`; then the member chain
 (`memberBuiltL`/split/`wp_Start_builtL`/`memberUpL_req` at on, `memberUpOn_intro` with `mvccLeases E.γ = γl`) after
 `StartMemberAuth.lean:186-240`; `MainLogger` split on `d.cfg.auth` (its off-only spots are listed in Handoff S2-1).
+
+**Next:** (1) the leaves build's result (fix if red). (2) The lead's choice among (a)/(b)/(c) above. (3) Move `kvInvOn` and `kvInvOn_alloc_boot` (and what its proof uses) to heap-free sections; build `etcdserver.Results`. (4) `srvClusterBootOn_allocG`, then the design's steps in order, building and pushing after each.
