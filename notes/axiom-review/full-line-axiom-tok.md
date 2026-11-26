@@ -144,5 +144,10 @@ None of the notes is in a post. Each axiom gets a `trunc` line.
 
 ## Gates on `etcd-safe-full-atok/2026-11-26`
 
-The gate results are in the commit message of the commit that carries this note, and in the report to the
-coordinator.
+These results were taken on the VM at `e655019199`, the entries' commit.
+
+| check | result |
+|---|---|
+| `tcb-report --check` | trust base matches `etc/tcb-baseline.txt`: 383 axioms, 0 `sorry` (unchanged) |
+| `axiom-tok --check` (a fresh Lean run) | ok, 366 Prop axioms walked: 319 pass, 47 by an entry or pair |
+| `axiom-tok --selftest --reuse-raw` | 0 failures; `real-pass EtcdServer.leaseTimeToLive.wp_proof` is ok again |
