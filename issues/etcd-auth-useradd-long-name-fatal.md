@@ -73,3 +73,5 @@ and `TestUserAdd_Simple` in `tests/common`.
 The 2026-10-23 review's plan: upstream (the fix is easy to audit). Not a security report (clients are
 trusted; with auth on only `root` can add users or roles). The same failure for a record grown
 past bbolt's value limit by many grants is `nonissues/etcd-auth-record-too-large-fatal.md`.
+
+Not filed (Upamanyu, 2026-11-26): recorded only, nothing goes upstream for now, and not a security issue (under etcd's threat model, clients with auth off and `root` with auth on are trusted). The drafts: the fix and its tests, re-checked on etcd-io/etcd@4e090c033 (`main`, 2026-11-24; the tests crash without the fix and pass with it), are [`fix.patch`](etcd-auth-useradd-long-name-fatal/fix.patch) (branch `fix/etcd-auth-useradd-long-name-fatal`, not pushed); the issue and PR texts were drafted with the `upstream-report` skill and are not kept.
