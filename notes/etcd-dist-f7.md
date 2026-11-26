@@ -1933,3 +1933,8 @@ context rule while the first build ran). No `sorry`, no axiom.
   the built environment: `lake env python3 etc/gen-link.py <mode> > .lake/gl.lean; cmp -s .lake/gl.lean <Link.lean>`
   (same package overrides as the build), including `--kvraft`, `--kvraft-udp`, `--wal-tester`, `--walfs`; report any
   that differ with a short diff. (4) Push `git push https://github.com/mit-pdos/etcd-grove.git etcd-safe-f7-rlog`.
+- **Build result (after B-1's commit)**: fails first in `DeploymentClass.lean`'s `class_auth` (nothing downstream
+  checked yet): l.303 `List.length_map (f := (·.kind))` (invalid field notation; use `(f := Workload.kind)` or
+  `congrArg List.length h5` with `List.length_map`), l.315 `decide` in `cases tw <;> simp [typed.Workload.kindW] <;> decide`
+  ("expected type must not contain free variables": drop the `<;> decide`, close by `simp` or `exact absurd e (by decide)`
+  per case as `kinds_nodup` does).
