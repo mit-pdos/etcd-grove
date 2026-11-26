@@ -341,6 +341,38 @@ abbrev RawNode.ReportUnreachable.absSpec : Prop :=
   ∀ md : RnMode, md.snapshots = false → md.confChanges = false → RawNode.ReportUnreachable.form
     (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (some md))
 
+/-! ### `RawNode.ReadIndex` -/
+
+/-- (antithesis parity B1, phase 2; design §4) `RawNode.ReadIndex.spec`'s triple over `R` (the deposit:
+the request's `readReq` at a committed log past `L0`, and `isRead`), the client's record kept (the
+message's term is `0`), and (under `S`, with reads on) the request's exact effect `RecvEndR` at
+`readMsg rctx` (local, `From` unset); the log kept, so the in-progress boundary too. -/
+abbrev RawNode.ReadIndex.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
+    (rctx : GoSlice) (c : List w8) (Qr : List EntryM → IProp GF) (L0 : List EntryM),
+  (∀ md, S md → md.reads = true) →
+  γ.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip ∗
+      "#Hctx" ∷ rctx ↦*□ c ∗
+      "%Hmd" ∷ ⌜∀ b, γ.maxData = some b → c.length ≤ b⌝ ∗
+      "Hfr" ∷ rdFresh γ c ∗
+      "#Hau" ∷ readAu γ Qr ∗
+      "#HL0" ∷ isCommitted γ L0 ∗
+      "Hcred" ∷ rdCred γ 1 }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ReadIndex")) (Val #rctx))
+  {{ (r' : RState), RET #();
+      "Hrn" ∷ R γ rn id rs r' qs ip ∗
+      "#Hrq" ∷ (∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr) ∗
+      "%Hend" ∷ ⌜∀ md, S md → ∀ Adm, RecvEndR Adm rs.k id r (readMsg c) r'⌝ }}
+
+/-- **`RawNode.ReadIndex`, strengthened**, in the harness's scope at a mode with reads, without
+snapshots or configuration changes (`raft.Step.untracedNs`, `AckScope`). -/
+abbrev RawNode.ReadIndex.absSpec : Prop :=
+  ∀ md : RnMode, md.snapshots = false → md.confChanges = false → RawNode.ReadIndex.form
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (some md)) (fun md' => md' = md)
+
 /-! ### `RawNode.HasReady` -/
 
 /-- **`RawNode.HasReady`, strengthened** (design §2.2, revision 2's T3): read-only; on `false`, in

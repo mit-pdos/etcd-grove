@@ -253,6 +253,26 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
       exact ⟨H md Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx⟩
     · imodintro; iexact Hc
 
+/-- The scope at one mode `md` kept by a step that keeps `RnScope md` (an input whose effect grows what
+another mode excludes: a read request at reads on), the storage, the `Config` flags and the node
+constant. -/
+theorem rnScopeAt_keepSome {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : RNState)
+    (s s' : NState) (H : RnScope md rs s → RnScope md rs' s')
+    (Hst : s'.logst.storage = s.logst.storage)
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
+    (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
+    (hk : rs'.k = rs.k := by rfl)
+    (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term := by
+      exact ⟨rfl, rfl, rfl⟩) :
+    rnScopeAt (GF := GF) γ id (some md) rs s ⊢ rnScopeAt γ id (some md) rs' s' := by
+  unfold rnScopeAt
+  iintro ⟨%Hs, #Hc⟩
+  rw [Hst]
+  isplitr
+  · ipureintro
+    exact ⟨H Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx⟩
+  · imodintro; iexact Hc
+
 /-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`), the storage, the
 `Config` flags and the node constant. -/
 theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)

@@ -6346,3 +6346,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `.readIndex` arm (Sim/Stmts.lean) `RecvEndR Adm (R.k n) (nodeId n) r (readMsg c) r'`. Behaviour is the same: a
   leader answers a request from `0` or itself locally (`preadRespond`), a follower's forward stamps its own id.
 - **Decision.** Lead-approved (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `RawNode.ReadIndex` over `ownRawNodeAt` (#33)
+- **Spec (new form).** `RawNode.ReadIndex.form R S` (RawNodeAbsSpecs.lean, design §4's row): `RawNode.ReadIndex.spec`'s
+  pre (the context read-only and within the data bound, `rdFresh`, `readAu`, `isCommitted L0`, `rdCred γ 1`) over the
+  node predicate `R`, a premise `∀ md, S md → md.reads = true`; post the client's record and the in-progress boundary
+  kept (the message's term is `0`; the log unchanged), the deposit (`∃ Lc, L0 <+: Lc ∗ readReq ∗ isRead`, as the old
+  spec), and `∀ md, S md → ∀ Adm, RecvEndR Adm rs.k id r (readMsg c) r'`. `RawNode.ReadIndex.absSpec`: at `some md`
+  for every mode without snapshots or configuration changes (`raft.Step.untracedNs`, `AckScope`), `S = (· = md)`.
+- **Proof.** `RawNode__ReadIndexAbs.lean`: `readIdxEnd_of_stepEnd` (`StepEnd` on a local `MsgReadIndex`: `ReadIdxEnd`
+  at the protocol reading, every role, and the state framed but for the outbox, the read state and same-`Match`
+  `Progress` values); `RawNode.ReadIndex.wp_absProof`. `rnScopeAt_keepSome` (RawNodeReadyAt.lean): the scope kept at
+  one mode (the read state grows, which a mode without reads excludes).
+- **Not yet.** `RawNode.ReadIndex.apiSpec`: the sealed `rawNode` is at `some {}` (reads off) until item 4's step D.
+- **Decision.** Design §4 (lead-approved row). No axiom, no premise.
