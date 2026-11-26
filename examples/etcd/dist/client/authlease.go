@@ -58,6 +58,18 @@ func grantPut(cli *clientv3.Client, k string) (clientv3.LeaseID, bool) {
 	return g.ID, true
 }
 
+// ownLease grants a lease of the client's own principal through cli, at the workload's TTL, and
+// reports whether the grant returned. RunAuthLease's v makes one at its member before its foreign
+// checks there, so that the member has served a lease request of the run. The lease holds no key
+// and is neither Lz nor Lu: no check is about it, and foreign still asks v about Lu, u's lease,
+// and its forbidden key a/lease.
+func ownLease(cli *clientv3.Client) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
+	_, err := cli.Lease.Grant(ctx, maxLeaseTTL)
+	cancel()
+	return err == nil
+}
+
 // noAuth (authlease's check 1, copied): who (no token, or the invalid one) is refused every lease
 // method on id.
 func noAuth(cli *clientv3.Client, who string, id clientv3.LeaseID) {
@@ -83,9 +95,10 @@ func noAuth(cli *clientv3.Client, who string, id clientv3.LeaseID) {
 	refused(who, "Leases", err)
 }
 
-// foreign (authlease's checks 3-5, adapted): who is refused the revocation of id; its TimeToLive
-// with keys, if it succeeds, returns no key forbidden, the key of id who may not read; and who
-// lists the leases (the reply carries no key, so nothing is checked of it).
+// foreign (authlease's checks 3-5, adapted): who is refused the revocation of id, a lease of
+// another principal (Lz or Lu, never who's own); its TimeToLive with keys, if it succeeds, returns no
+// key forbidden, the key of id who may not read; and who lists the leases, the result ignored:
+// Leases' replies carry lease IDs only, no key, so nothing of them is checked.
 func foreign(cli *clientv3.Client, who string, id clientv3.LeaseID, forbidden string) {
 	ctx, cancel := reqCtx(who)
 	_, err := cli.Lease.Revoke(ctx, id)
@@ -124,7 +137,8 @@ func absent(root *clientv3.Client, k string, why string) bool {
 // RunAuthLease is the authLease workload (authlease's run minus its members' gRPC serving, copied;
 // Lean: Workload.authLease; alone in its deployment, which has the token provider): authkv's
 // set-up through eps[0] and barriers; root's lease Lz holding z/lease (eps[0]); u's lease Lu
-// holding a/lease and, by a transaction, a/txn (eps[1 mod k]); barriers; then authlease's checks
+// holding a/lease and, by a transaction, a/txn (eps[1 mod k]); v's own lease, holding no key
+// (eps[2 mod k], ownLease); barriers; then authlease's checks
 // 1-5, each principal through its own member (v: eps[2 mod k]), and u's revocation of Lu, after
 // which root finds neither a/lease nor a/txn. A refusal is any error; every key the checks expect
 // absent or attached is read by root after the refused request, so an error never stands for
@@ -172,6 +186,9 @@ func RunAuthLease(eps []string, ready func()) Result {
 	cancel()
 	if err != nil {
 		return ended("authLease: u's leased transaction failed")
+	}
+	if !ownLease(vcli) {
+		return ended("authLease: v's own lease grant failed")
 	}
 	if !barriers(eps) {
 		return ended("authLease: a barrier failed")

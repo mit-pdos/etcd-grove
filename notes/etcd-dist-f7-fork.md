@@ -279,3 +279,57 @@ has made its lessor" giving `RunAuthLease` the `lease.lessorLb (Γ.ls midv) m₀
   (a grant at `av` first: `LeaseGrant`'s post gives `lessorLb` there), Go changes with no trusted-text change.
 - Nothing else changed: `ab2cec0a79`'s tree, plus this entry. f(2)-(4), g not started; the Lean build still breaks at
   `foreign` (its spec names the 3-argument function).
+
+### Handoff K-5 (2026-11-26; option (3), decided by Upamanyu: steps 1-3 done, step 4 not started; context limit)
+
+**Option (3)**: v first grants a lease of its own through `av` (`ownLease(vcli)`, after u's transaction, before
+the second barriers); the grant's post gives `lessorLb (Γ.ls midv) _`, what `foreign`'s calls at `av` take. No
+`Spec/` (trusted), axiom or `TopLevelRobustness` text changed beyond the two approved TTL changes.
+
+- **Deployment rules, checked before relying on the extra grant (none needed a change):**
+  - *the authLease cell model*: `cell_grantAuD`/`cell_grantWriteAuD` offer a grant to any principal at any time
+    (`CellOk0`'s `cellOk0_grant`: the id joins `gs`; the key-values, `ids`, `ps`, `d` kept; after the revocation
+    the fresh id is not `Lu`). v's lease joins `gs` only, never `ids = [Lz, Lu]`; no cell change.
+  - *`WellFormed`/compatibility*: the rules are per workload kind. `authLease` already `grantsLeases`
+    (`leaseIdsApart` of the members' ids, unchanged) and `needsSoleWriter`; Q2's lease-granting sole-writer rule
+    is about OTHER workloads beside a granting one, and `authLease` is alone; v's grant writes no key. `needsNoExpiry`:
+    the grant's TTL is `maxLeaseTTL`, as root's and u's.
+  - *the refusal scope of `Lz`/`Lu`*: unchanged. `foreign` still asks u about `Lz`/`z/lease` and v about
+    `Lu`/`a/lease`; v's own lease is in no check (Go comments of `ownLease`, `foreign`, `RunAuthLease`; the
+    docstrings of `ownLease.spec` and `ForeignRefutes.lean`).
+- **Step 1 done**: `examples/etcd/dist/client/authlease.go` (`ownLease`; `foreign`'s comment says `Leases` is
+  called with its result ignored because its replies carry lease IDs only). Retranslated (`etc/goose.py --project
+  putget-dist --src etcd=/shared/etcd-fork-ttlkeys`: only `Code/.../dist/client.lean`). `go test ./etcd/dist/`
+  PASS; real deployment `DIST_RUN=1 DIST_WANT=authLease go test -short -run 'TestDist$'` (3 members, auth on):
+  `authLease: checked`, PASS.
+- **Step 2 done**: `client/ForeignRefutes.lean` (`git mv` of `ForeignReadsLaw.lean`; the law is gone):
+  `foreign_refutesD`, from `authFloorD_frozen` (disabled arm: auth enabled at `setupSt`; admin arm:
+  `not_adminOk_setupSt`; read arm: `not_permitted_setupSt`, `not_inRangeK_zK` for u). Checked (lean-check).
+- **Step 3 done (proofs checked with lean-check, not yet `lake build`)**: `ownLease` spec + proof (new);
+  `foreign`'s spec (4 arguments; one refutation, at the forbidden key; the Leases refutation gone; `m₀`,
+  `lessorLb` and `Γ.ls` injectivity kept, as the TTL/Leases contracts take them) and proof (`leaseCheckD_wand`; the
+  range loop as `hasKey`'s); `RunAuthLease.wp_proof` without `hlaw`, with `wp_ownLease`.
+- **Not built with `lake build` yet**: the lean-check runs on fk-lean2 (`/shared/tmp/f7fork-chk.sh`) passed
+  `ownLease`, `foreign`, `ForeignRefutes`, `RunAuthLease` (0 errors each, whole file). Nothing links
+  `RunAuthLease` yet, so no `Link`/`Results` changed.
+- **Step 4 (next session): close `EtcdAuthLeaseBootNC` as `EtcdAuthBootNC` was** (F7 S12-S14's pattern):
+  1. `client/RunAuthLeaseLinked.lean` (linking tier): `wp_RunAuthLease := RunAuthLease.wp_proof …` over
+     `RunAuthLinked`'s `wp_newClientA`, `wp_SetUpDist`, `wp_barriersA`, `wp_newUserClient`, and the leaf proofs
+     (`grantPut`, `noAuth`, `foreign`, `ownLease`, `absent`, `refused`, `ended`, `checked`, `WithLease`, `OpPut`,
+     `Then.specPlain`, `Txn_CommitOn_dist`, `KV_PutOn_dist`, `KV_GetOn_dist`, `Lease_{Grant,Revoke,TimeToLive,
+     Leases}On_dist`; `etcd_txnlin.client_Txn_dist.law` from its `_holds`); then a `MainReadyAuthLease` arm
+     (`MainReadyAuth.lean`'s pattern) and its linked theorem.
+  2. `client/AuthShares.lean`: `authLeaseShare eps` = `RunAuthLease.spec`'s precondition but its machine-local
+     parts: `∃ Γ γR σ₀, ⌜Γ.auth ∧ Γ.kv.lm = .revocable ∧ γR.raft.log = Γ.kv.rlog ∧ au/ls injective ∧ findKey a/x
+     σ₀.kvs = none⌝ ∗ leaseMembers ∗ kvInvOn ∗ srvReqLogLb γR [] ∗ etcdKV Γ.kv σ₀ ∗ authHistView Γ.kv [srvAuthSt0]`;
+     `Shares.lean`'s `wlShare` kind 6 `False` → `authLeaseShare eps` (and `wlShare_authLease`), `MainReady`'s
+     kind-6 arm from it.
+  3. `StartAuth.lean`: `etcd_startAuthLease` (`etcd_startAuth` for `[authLease]`: `class_auth`'s kind-6 analogue in
+     `DeploymentClass.lean`; no principal machines, so no `mapCtx_alloc`/`addrs_set_proto`; the boot state's
+     `a/x` absent from `bootStOn`; `lmOf_auth_revocable`; `Γ.ls` injectivity from the cluster facts' `hinj`).
+  4. `TopLevelRobustness.lean` (proof file): `etcdAuthLeaseBootNC_holds`, `etcd_safe_nocrash` with no
+     hypotheses (its statement and `etcd_robust_nocrash.spec` otherwise byte-identical); its header and the
+     `etcd_kv_safe_nocrash` remark updated.
+  Then step 5 (full build, `etc/gates.sh` in full with `LAKE_OPTS=--packages=.lake/package-overrides.json`,
+  `goose.py --check --src etcd=/shared/etcd-fork-ttlkeys`, axiom-tok keys of the two changed axioms, tcb-report
+  `--check --update` and the `etcd-dist` collection) and step 6 (push).
