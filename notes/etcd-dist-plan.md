@@ -2256,7 +2256,7 @@ So each is an interim axiom with that reason; the lessor four also wait for P-L1
 `notes/etcd-dist-f7-reviews.md`).** All read `Γ.auth = true`, `Γ.kv` (`hist`, `rlog`) and, where member-local,
 the member's auth names `A mid` (`Γ.au` after P-A1); every success arm names the serving member and its check, every
 error arm claims nothing (the lead's condition, #50 01:29:52Z). F2's three rows "after F7's auth view" are
-`KV_PutOn_dist` (its `leaseID ≠ 0` case is `KV_PutLease_dist`), `Lease_RevokeOn_dist`, `Lease_TimeToLiveKeysOn_dist`.
+`KV_PutOn_dist` (its `leaseID ≠ 0` case is `KV_PutLease_dist`), `Lease_RevokeOn_dist`, `Lease_TimeToLiveOn_dist` (was `…KeysOn…`).
 
 | Draft | Function | Mirrors (client spec / server spec) | Reads of `Γ` | Axiomatizable |
 |---|---|---|---|---|
@@ -2294,7 +2294,7 @@ axioms in F7 step 3 (`eb138f6f8c`). Not linked yet: `RunAuthLease` is the first 
 | `Auth_AuthEnable_dist` (`AuthAuthEnableDist`) | `authClient.AuthEnable.spec` / `etcdAuthEnableSpecW` |
 | `Lease_GrantOn_dist` (`LeaseGrantOnDist`) | `client_lease_grant_on` / `etcdLeaseGrantSpecOn` at `Γ.ls mid` |
 | `Lease_RevokeOn_dist` (`LeaseRevokeOnDist`) | `client_lease_revoke_on` / `etcdLeaseRevokeSpecOn` |
-| `Lease_TimeToLiveKeysOn_dist` (`LeaseTimeToLiveKeysOnDist`) | `lessor.TimeToLive.spec` / `etcdLeaseTTLSpecMdW` (keys) |
+| `Lease_TimeToLiveOn_dist` (`LeaseTimeToLiveOnDist`; was `Lease_TimeToLiveKeysOn_dist`, generalized to any options 2026-11-26) | `lessor.TimeToLive.spec` / `etcdLeaseTTLSpecMdW` |
 | `Lease_LeasesOn_dist` (`LeaseLeasesOnDist`) | `lessor.Leases.spec` / `etcdLeaseLeasesSpecMdW` |
 
 All fourteen go with the rest of §18.4 when #24's S2 client side defines `etcdSvc` and proves `Invoke` over the net

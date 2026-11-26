@@ -6,7 +6,7 @@ Definitions only. The fourteen contracts drafted here were adopted as interim tr
 (F7 S3, the lead's approval #50 06:08Z), each in its own Spec/Proof pair beside `KVPutDist.lean`: `NewUserDist`,
 `KVPutOnDist`, `KVDeleteOnDist`, `TxnCommitOnDist`, `KVGetOnDist`, `AuthUserAddDist`, `AuthUserGrantRoleDist`,
 `AuthRoleAddDist`, `AuthRoleGrantPermissionDist`, `AuthAuthEnableDist`, `LeaseGrantOnDist`, `LeaseRevokeOnDist`,
-`LeaseTimeToLiveKeysOnDist`, `LeaseLeasesOnDist` (reviews: `notes/axiom-review/f7-*.md`,
+`LeaseTimeToLiveOnDist`, `LeaseLeasesOnDist` (reviews: `notes/axiom-review/f7-*.md`,
 `f7-changed-since-review.md`).
 
 The vocabulary (see the note, "The view"):
