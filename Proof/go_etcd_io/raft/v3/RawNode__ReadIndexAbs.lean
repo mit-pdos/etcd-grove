@@ -177,6 +177,15 @@ theorem readIdxEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List 
         · exact .inl hx
         · exact .inr (by rw [(Hms x hx).1.1]; simp)
 
+/-- (antithesis parity B1, step B) **A received `MsgReadIndex`** (a follower's forward: `send` stamps
+no term on it, so term `0`, `From` the follower or the original requester): `RecvEnd`'s local arm,
+`ReadIdxEnd` (`readIdxEnd_of_stepEnd` reads no `From`). -/
+theorem recvEnd_of_stepEnd_readIndex {k : NodeK} {c : CfgM} {id : w64} {m : MessageM}
+    {ents : List EntryM} {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgReadIndex)
+    (hT0 : m.Term' = W64 0) (hpc : domSet s.progress = c.ids) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .readIndex m ents ctx) (toPState s') ∧ RdFrame s s' :=
+  ⟨Or.inl ⟨hT0, (readIdxEnd_of_stepEnd hty hT0 hpc h).1⟩, (readIdxEnd_of_stepEnd hty hT0 hpc h).2⟩
+
 /-- A premise of `Step` about another message type: `MsgReadIndex` (`W32 15`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum, MsgSnap,

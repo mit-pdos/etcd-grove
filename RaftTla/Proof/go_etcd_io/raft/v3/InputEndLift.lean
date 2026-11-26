@@ -91,30 +91,29 @@ def LiftScope (c : CfgM) (id : w64) (s : NState) : Prop :=
 
 /-- What the step function's state (after the preamble) has of `LiftScope`: the role facts (a
 pre-candidate knows no leader, `becomePreCandidate`'s `r.lead = None`); the rest only for a
-non-follower, which is the state the step started in. -/
+non-follower, which is the state the step started in. (antithesis parity B1, step B) No read-index
+fact: a leader's release of its deferred requests is `AppRespEnd`'s `ReleaseEnd` arm. -/
 def FnScope (c : CfgM) (id : w64) (t : NState) : Prop :=
   (t.role = .preCandidate → t.lead = W64 0) ∧ (t.role = .follower → t.votes = ∅) ∧
   (t.role ≠ .follower →
-    t.rd.pend = [] ∧ domSet t.prvals = domSet t.progress ∧ id ∈ domSet t.prvals ∧
-    domSet t.progress = c.ids)
+    domSet t.prvals = domSet t.progress ∧ id ∈ domSet t.prvals ∧ domSet t.progress = c.ids)
 
 theorem LiftScope.fn {c : CfgM} {id : w64} {s : NState} (h : LiftScope c id s) : FnScope c id s :=
-  ⟨fun hr => absurd hr h.2.2.1, fun hr => followerVotesOk_phys s h.2.2.2.1 hr, fun _ => h.2.2.2.2⟩
+  ⟨fun hr => absurd hr h.2.2.1, fun hr => followerVotesOk_phys s h.2.2.2.1 hr, fun _ => h.2.2.2.2.2⟩
 
 /-- (antithesis parity B1, phase 2, step B) **`LiftScope` at the node's flags `k`**: check-quorum and
 pre-vote the raft state's (`KTie`), a pre-candidate with no leader, the node in its own progress map
 past the follower role (`RnScope`'s facts at a mode with pre-vote and non-voters, the lead's decisions
-1 and 2), the progress map's facts as `LiftScope`'s. No read-index fact: an arm that reads one takes
-`s.rd.pend = []` itself. -/
+1 and 2), the progress map's facts as `LiftScope`'s. No read-index fact (`FnScope` has none). -/
 def LiftScopeK (k : NodeK) (c : CfgM) (id : w64) (s : NState) : Prop :=
   k.cq = s.cq ∧ k.prevote = s.prevote ∧ (s.role = .preCandidate → s.lead = W64 0) ∧
   FollowerVotesOk (toPState s) ∧ domSet s.prvals = domSet s.progress ∧
   (s.role ≠ .follower → id ∈ domSet s.prvals) ∧ domSet s.progress = c.ids
 
-theorem LiftScopeK.fn {k : NodeK} {c : CfgM} {id : w64} {s : NState} (h : LiftScopeK k c id s)
-    (hpd : s.rd.pend = []) : FnScope c id s :=
+theorem LiftScopeK.fn {k : NodeK} {c : CfgM} {id : w64} {s : NState} (h : LiftScopeK k c id s) :
+    FnScope c id s :=
   ⟨h.2.2.1, fun hr => followerVotesOk_phys s h.2.2.2.1 hr,
-    fun hr => ⟨hpd, h.2.2.2.2.1, h.2.2.2.2.2.1 hr, h.2.2.2.2.2.2⟩⟩
+    fun hr => ⟨h.2.2.2.2.1, h.2.2.2.2.2.1 hr, h.2.2.2.2.2.2⟩⟩
 
 /-- The basic scope's `LiftScope` at the flags off. -/
 theorem LiftScope.toK {k : NodeK} {c : CfgM} {id : w64} {s : NState} (h : LiftScope c id s)
@@ -154,12 +153,12 @@ theorem FnScope.of_preState {c : CfgM} {id : w64} {s : NState} {m : MessageM} (h
   · rw [ie_preState_nobf hb]; exact h.fn
 
 theorem FnScope.of_preStateK {k : NodeK} {c : CfgM} {id : w64} {s : NState} {m : MessageM}
-    (h : LiftScopeK k c id s) (hpd : s.rd.pend = []) (pvs : GMap w64 Progress) :
+    (h : LiftScopeK k c id s) (pvs : GMap w64 Progress) :
     FnScope c id (preState s m pvs) := by
   by_cases hb : PreBF m s
   · simp only [preState, hb, ↓reduceIte]
     refine ⟨fun hr => absurd hr (by simp [becomeFollower]), fun _ => rfl, fun hr => absurd rfl hr⟩
-  · rw [ie_preState_nobf hb]; exact h.fn hpd
+  · rw [ie_preState_nobf hb]; exact h.fn
 
 /-- `stepFollower`'s `r.lead = m.From` (`raft__Step/repl_lemmas.lean`'s `adopt_follower`, which a
 module outside `raft__Step/` may not import). -/
@@ -352,6 +351,113 @@ theorem ie_rd_pend_nil (s : NState) (h : s.rd.pend = []) :
     simp only at h ⊢
     rw [h]
 
+/-- `readRespond` at a leader, read (`raft__Step/resp_lemmas.lean`'s `toPState_readRespond`, restated). -/
+theorem ie_toPState_readRespond (id : w64) (s : NState) (Hr : s.role = .leader) (q : ReadReq) :
+    toPState (readRespond id s q) = preadRespond id (toPState s) q := by
+  unfold readRespond preadRespond
+  by_cases h : q.src = W64 0 ∨ q.src = id
+  · simp only [h, ↓reduceIte]
+    cases q.ents with
+    | nil => rfl
+    | cons e es => simp [addReadState, toPState, Hr]
+  · simp only [h, ↓reduceIte]
+    simp [toPState, sendMsgs, psendMsgs, Hr]
+
+theorem ie_toPState_readRespondAll (id : w64) (s : NState) (Hr : s.role = .leader)
+    (qs : List ReadReq) :
+    toPState (readRespondAll id s qs) = preadRespondAll id (toPState s) qs := by
+  induction qs generalizing s with
+  | nil => rfl
+  | cons q qs ih =>
+    have e1 : readRespondAll id s (q :: qs) = readRespondAll id (readRespond id s q) qs := rfl
+    rw [e1, preadRespondAll_cons, ← ie_toPState_readRespond id s Hr q]
+    obtain ⟨o1, r1, h1⟩ := readRespond_eq id s q
+    apply ih
+    rw [h1]; exact Hr
+
+/-- Answering read requests only appends to the outbox. -/
+theorem ie_preadRespondAll_outbox (id : w64) (s : PState) (qs : List ReadReq) :
+    ∃ xs : List Msg, (preadRespondAll id s qs).outbox = s.outbox ++ xs := by
+  induction qs generalizing s with
+  | nil => exact ⟨[], by simp [preadRespondAll]⟩
+  | cons q qs ih =>
+    rw [preadRespondAll_cons]
+    have h1 : ∃ ys, (preadRespond id s q).outbox = s.outbox ++ ys := by
+      unfold preadRespond
+      split
+      · split
+        · exact ⟨[], by simp⟩
+        · exact ⟨[], by simp⟩
+      · exact ⟨_, rfl⟩
+    obtain ⟨ys, hys⟩ := h1
+    obtain ⟨xs, hxs⟩ := ih (preadRespond id s q)
+    exact ⟨ys ++ xs, by rw [hxs, hys, List.append_assoc]⟩
+
+/-- Answering read requests only appends to the outbox (`NState`). -/
+theorem ie_readRespondAll_outbox (id : w64) (s : NState) (qs : List ReadReq) (o : List Msg)
+    (ho : s.outbox = o) : ∃ xs : List Msg, (toPState (readRespondAll id s qs)).outbox = o ++ xs := by
+  subst ho
+  induction qs generalizing s with
+  | nil => exact ⟨[], by simp [readRespondAll, toPState]⟩
+  | cons q qs ih =>
+    have e1 : readRespondAll id s (q :: qs) = readRespondAll id (readRespond id s q) qs := rfl
+    rw [e1]
+    have h1 : ∃ ys, (readRespond id s q).outbox = s.outbox ++ ys := by
+      unfold readRespond
+      split
+      · split
+        · exact ⟨[], by simp [addReadState]⟩
+        · exact ⟨[], by simp⟩
+      · exact ⟨_, rfl⟩
+    obtain ⟨ys, hys⟩ := h1
+    obtain ⟨xs, hxs⟩ := ih (readRespond id s q)
+    exact ⟨ys ++ xs, by rw [hxs, hys, List.append_assoc]⟩
+
+theorem ie_mem_filter_gset (P : w64 → Unit → Bool) (X : GSet w64) (x : w64) :
+    x ∈ GMap.filter P X ↔ x ∈ X ∧ P x () = true := by
+  rw [GMap.mem_iff, GMap.mem_iff, GMap.lookup_filter]
+  cases h : X !! x with
+  | none => simp
+  | some u => cases u; simp [Option.filter]
+
+/-- (`raft__Step/resp_lemmas.lean`'s `majIdx_majQ`, restated) One half's quorum index bounds a
+quorum of that half from below. -/
+theorem ie_majIdx_majQ {s : GSet w64} {f : w64 → w64} {N0 N : w64} (H : MajIdx s f N0)
+    (Hle : uint.Z N ≤ uint.Z N0) (Q : GSet w64)
+    (HQ : ∀ v, v ∈ s → uint.Z N ≤ uint.Z (f v) → v ∈ Q) : MajQ s Q := by
+  by_cases hs : s = ∅
+  · exact Or.inl hs
+  · right
+    obtain ⟨-, Hq, -⟩ := H.2 hs
+    unfold IsQuorum at Hq ⊢
+    refine Nat.lt_of_lt_of_le Hq (Nat.mul_le_mul_left 2 (GMap.subseteq_size ?_))
+    rw [GMap.elem_of_subseteq]
+    intro v hv
+    rw [GMap.elem_of_intersection] at hv ⊢
+    obtain ⟨hv1, hv2⟩ := hv
+    rw [ie_mem_filter_gset] at hv1
+    refine ⟨HQ v hv2 ?_, hv2⟩
+    have := hv1.2
+    simp only [decide_eq_true_eq] at this
+    omega
+
+/-- (`JCommittedIdx.acked`, restated) `JointConfig.CommittedIndex`'s answer is acknowledged by a
+joint quorum. -/
+theorem ie_jCommittedIdx_acked {c : CfgM} {f : w64 → w64} {N : w64}
+    (H : JCommittedIdx c.incoming c.outgoing f N) : JQuorumAcked c f N := by
+  obtain ⟨N0, N1, H0, H1, HN⟩ := H
+  have h0 : uint.Z N ≤ uint.Z N0 := by rw [HN]; split <;> omega
+  have h1 : uint.Z N ≤ uint.Z N1 := by rw [HN]; split <;> omega
+  refine ⟨GMap.filter (fun v _ => decide (uint.Z N ≤ uint.Z (f v))) c.voters,
+    ⟨ie_majIdx_majQ H0 h0 _ fun v hv hn => ?_, ie_majIdx_majQ H1 h1 _ fun v hv hn => ?_⟩,
+    fun v hv => ?_⟩
+  · rw [ie_mem_filter_gset]
+    exact ⟨GMap.elem_of_union_l _ hv, by simpa using hn⟩
+  · rw [ie_mem_filter_gset]
+    exact ⟨GMap.elem_of_union_r _ hv, by simpa using hn⟩
+  · rw [ie_mem_filter_gset] at hv
+    simpa using hv.2
+
 theorem ie_handle_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgAppResp)
     (hns : NoSnapSent (toPState t) (toPState s')) (H : StepFnEnd c id t m ents ctx s') :
@@ -379,7 +485,7 @@ theorem ie_handle_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ent
     obtain ⟨-, -, rfl⟩ := hres
     rw [if_neg (by rw [toPState_role, hr]; decide)]
   | leader =>
-    obtain ⟨hpend, hdom, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
+    obtain ⟨hdom, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     ie_tysimp hty at hres
@@ -392,57 +498,78 @@ theorem ie_handle_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ent
       have hn := hns ms ((congrArg PState.outbox he).trans rfl) y hy
       exact ⟨(hrs y hy).1.app hn, (hrs y hy).2.1, ie_dst_ids rfl hpc (hrs y hy).2.2.1⟩
     · obtain ⟨x, pvs, n, hb, ms, hx, hpm, hn, -, -, hrs, hif⟩ := hA
-      have he : toPState s' =
-          psendMsgs { toPState t with matched := prvalsMatch pvs, commit := n } ms := by
-        by_cases hnc : n = t.logst.committed
-        · rw [if_pos hnc] at hif
-          obtain ⟨-, rfl⟩ := hif; exact ie_toPState_leader_send t hr ms pvs n
-        · rw [if_neg hnc] at hif
-          rcases hif with ⟨-, hrel, rfl⟩ | ⟨-, -, rfl⟩
-          · have hb0 : hb = [] := by
-              cases hb with
-              | nil => rfl
-              | cons y _ =>
-                obtain ⟨-, -, k, hk1, hk2, -⟩ := hrel y List.mem_cons_self
-                simp only [hpend, List.length_nil] at hk2
-                omega
-            subst hb0
-            have hT : sendMsgs (sendMsgs (releasedState id
-                { t with logst := { t.logst with committed := n } }) []) ms =
-                sendMsgs { t with logst := { t.logst with committed := n } } ms := by
-              rw [ie_sendMsgs_nil, ie_releasedState_nil id { t with logst := { t.logst with committed := n } } hpend]
-            refine (congrArg (fun x => toPState { x with prvals := pvs }) hT).trans ?_
-            exact ie_toPState_leader_send t hr ms pvs n
-          · have hp : pendReqs { t with logst := { t.logst with committed := n } } = [] := by
-              simp [pendReqs, hpend]
-            have hT : sendMsgs (readRespondAll id
-                { t with logst := { t.logst with committed := n }, rd := { t.rd with pend := [] } }
-                (pendReqs { t with logst := { t.logst with committed := n } })) ms =
-                sendMsgs { t with logst := { t.logst with committed := n } } ms := by
-              rw [hp]
-              have h2 := ie_rd_pend_nil { t with logst := { t.logst with committed := n } } hpend
-              exact congrArg (fun x => sendMsgs x ms) h2
-            refine (congrArg (fun x => toPState { x with prvals := pvs }) hT).trans ?_
-            exact ie_toPState_leader_send t hr ms pvs n
       have hM : prvalsMatch pvs =
           <[m.From' := if uint.Z x < uint.Z m.Index' then m.Index' else x]> (toPState t).matched := by
         rw [hpm, ie_matched_leader t hr]
       have hx' : (toPState t).matched !! m.From' = some x := by
         rw [ie_matched_leader t hr]; exact hx
-      refine Or.inr (Or.inr (Or.inl ⟨hacc, x, n, hx', ?_, ms, fun y hy => ?_, by rw [he, hM]⟩))
-      · rcases hn with hn | hn
-        · exact Or.inl hn
-        · right
-          rw [ie_toPState_prvals_leader t hr, hM] at hn
-          exact hn
-      · have hn := hns ms (by rw [he]; rfl) y hy
-        have H : AppSendOk c id (toPState { t with logst := { t.logst with committed := n } }) y :=
-          ⟨(hrs y hy).1.app hn, (hrs y hy).2.1, ie_dst_ids rfl hpc (hrs y hy).2.2.1⟩
-        refine AppSendOk.proper ?_ ?_ ?_ ?_ H <;> rfl
+      -- the appends, judged at the state with the new commit index
+      have hap : ∀ y ∈ ms, y.ty ≠ .snap →
+          AppSendOk c id (toPState { t with logst := { t.logst with committed := n } }) y :=
+        fun y hy hn => ⟨(hrs y hy).1.app hn, (hrs y hy).2.1, ie_dst_ids rfl hpc (hrs y hy).2.2.1⟩
+      -- the state the commit leaves, read
+      have hS : ({ toPState t with
+          matched := <[m.From' := if uint.Z x < uint.Z m.Index' then m.Index' else x]> (toPState t).matched,
+          commit := n } : PState) =
+          toPState { t with logst := { t.logst with committed := n }, prvals := pvs } := by
+        rw [← hM]; simp [toPState, hr]
+      have hPrd : (toPState { t with logst := { t.logst with committed := n }, prvals := pvs }).rd = t.rd := by
+        simp [toPState, hr]
+      by_cases hnc : n = t.logst.committed
+      · rw [if_pos hnc] at hif
+        obtain ⟨-, rfl⟩ := hif
+        have he := ie_toPState_leader_send t hr ms pvs n
+        refine Or.inr (Or.inr (Or.inl ⟨hacc, x, n, hx', Or.inl hnc, ms, fun y hy => ?_, by rw [he, hM]⟩))
+        exact AppSendOk.proper rfl rfl rfl rfl (hap y hy (hns ms (by rw [he]; rfl) y hy))
+      · rw [if_neg hnc] at hif
+        have hcm : PCommitOk c ({ toPState t with matched := <[m.From' := if uint.Z x < uint.Z m.Index' then m.Index' else x]> (toPState t).matched } : PState) n := by
+          rcases hn with hn | hn
+          · exact absurd hn hnc
+          · rw [ie_toPState_prvals_leader t hr, hM] at hn; exact hn
+        rcases hif with ⟨hns1, hrel, rfl⟩ | ⟨hs1, -, rfl⟩
+        · -- (antithesis parity) the release: the deferred requests queued, the heartbeats
+          have he : toPState { sendMsgs (sendMsgs (releasedState id
+              { t with logst := { t.logst with committed := n } }) hb) ms with prvals := pvs } =
+              psendMsgs (psendMsgs { toPState { t with logst := { t.logst with committed := n }, prvals := pvs }
+                with rd := { t.rd with pend := [], ro := readonlyRelease t.rd.ro id n t.rd.pend } } hb) ms := by
+            simp [toPState, hr, sendMsgs, psendMsgs, releasedState]
+          refine Or.inr (Or.inr (Or.inr ⟨hacc, x, n, _, hx', hcm, ?_, ms, fun y hy => ?_, he⟩))
+          · rw [hS]; unfold ReleaseEnd; rw [hPrd]
+            refine Or.inl ⟨hns1, hb, fun y hy => ?_, rfl⟩
+            obtain ⟨hok, ⟨hi, hlt, hen, hd⟩, kk, hk1, hk2, hcx⟩ := hrel y hy
+            exact ⟨⟨hok, hi, hlt, hen, ie_dst_ids rfl hpc hd⟩, kk, hk1, hk2, hcx⟩
+          · have hn := hns (hb ++ ms) (by rw [he]; simp [psendMsgs, toPState]) y (List.mem_append_right _ hy)
+            exact AppSendOk.proper rfl rfl rfl rfl (hap y hy hn)
+        · -- (antithesis parity) the release at a single voter: each request answered at once
+          have he : toPState { sendMsgs (readRespondAll id
+              { t with logst := { t.logst with committed := n }, rd := { t.rd with pend := [] } }
+              (pendReqs { t with logst := { t.logst with committed := n } })) ms with prvals := pvs } =
+              psendMsgs (preadRespondAll id
+                { toPState { t with logst := { t.logst with committed := n }, prvals := pvs }
+                  with rd := { t.rd with pend := [] } }
+                (t.rd.pend.map (fun p => ⟨n, p.1.From', p.2⟩))) ms := by
+            show psendMsgs (toPState { readRespondAll id
+              { t with logst := { t.logst with committed := n }, rd := { t.rd with pend := [] } }
+              (pendReqs { t with logst := { t.logst with committed := n } }) with prvals := pvs }) ms = _
+            rw [← readRespondAll_prvals, ie_toPState_readRespondAll id _ (by simp [hr])]
+            congr 2
+            simp [toPState, hr]
+          obtain ⟨o, r2, ho⟩ := preadRespondAll_eq id
+            { toPState { t with logst := { t.logst with committed := n }, prvals := pvs }
+                with rd := { t.rd with pend := [] } } (t.rd.pend.map (fun p => ⟨n, p.1.From', p.2⟩))
+          obtain ⟨xs, hxs⟩ := ie_preadRespondAll_outbox id
+            { toPState { t with logst := { t.logst with committed := n }, prvals := pvs }
+                with rd := { t.rd with pend := [] } } (t.rd.pend.map (fun p => ⟨n, p.1.From', p.2⟩))
+          refine Or.inr (Or.inr (Or.inr ⟨hacc, x, n, _, hx', hcm, ?_, ms, fun y hy => ?_, he⟩))
+          · rw [hS]; unfold ReleaseEnd; rw [hPrd]
+            exact Or.inr ⟨hs1, rfl⟩
+          · have hn := hns (xs ++ ms) (by rw [he]; simp only [psendMsgs]; rw [hxs]; simp [toPState])
+              y (List.mem_append_right _ hy)
+            exact AppSendOk.proper (by rw [ho]; rfl) (by rw [ho]; rfl) (by rw [ho]; rfl) (by rw [ho]; rfl) (hap y hy hn)
 
 theorem ie_handle_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
     {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope c id t)
-    (hty : m.Type' = MsgHeartbeatResp) (hctx : ctx = [])
+    (hty : m.Type' = MsgHeartbeatResp)
     (hns : NoSnapSent (toPState t) (toPState s')) (H : StepFnEnd c id t m ents ctx s') :
     HandleEnd k c id (toPState t) (absMsg .heartbeatResp m ents ctx) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := H
@@ -468,18 +595,36 @@ theorem ie_handle_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM
     obtain ⟨-, -, rfl⟩ := hres
     rw [if_neg (by rw [toPState_role, hr]; decide)]
   | leader =>
-    obtain ⟨-, -, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
+    obtain ⟨hdom, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     ie_tysimp hty at hres
     obtain ⟨-, ms, pvs, hrs, hpm, hres⟩ := hres
     rw [if_pos (by rw [toPState_role, hr]; rfl)]
-    rcases hres with ⟨-, rfl⟩ | ⟨hne, -⟩
-    · have he := ie_toPState_send_prvals t ms pvs (fun _ => hpm)
-      refine ⟨_, ⟨ms, fun y hy => ?_, he⟩, Or.inl ⟨Or.inl hctx, rfl⟩⟩
-      have hn := hns ms ((congrArg PState.outbox he).trans rfl) y hy
+    have he := ie_toPState_send_prvals t ms pvs (fun _ => hpm)
+    obtain ⟨xs, hxs⟩ : ∃ xs, (toPState s').outbox = (toPState t).outbox ++ ms ++ xs := by
+        rcases hres with ⟨-, rfl⟩ | ⟨-, N, -, rfl⟩
+        · exact ⟨[], by rw [he]; simp [psendMsgs]⟩
+        · exact ie_readRespondAll_outbox id _ _ _ rfl
+    have hsend : SendsEnd c id (toPState t) (toPState { sendMsgs t ms with prvals := pvs }) := by
+      refine ⟨ms, fun y hy => ?_, he⟩
+      have hn := hns (ms ++ xs) (by rw [hxs, List.append_assoc]) y (List.mem_append_left _ hy)
       exact ⟨(hrs y hy).1.app hn, (hrs y hy).2.1, ie_dst_ids rfl hpc (hrs y hy).2.2.1⟩
-    · exact absurd hctx hne
+    refine ⟨_, hsend, ?_⟩
+    rcases hres with ⟨hc0, rfl⟩ | ⟨hne, N, hN, rfl⟩
+    · refine Or.inl ⟨?_, rfl⟩
+      rcases hc0 with hc0 | hc0
+      · exact .inl hc0
+      · exact .inr (ie_matched_none t hr _ hdom hc0)
+    · -- (antithesis parity) the read acknowledgement: the requests up to the joint quorum's position
+      -- answered
+      refine Or.inr ⟨hne, Or.inr ⟨N, ?_, ?_⟩⟩
+      · have hro : (toPState { sendMsgs t ms with prvals := pvs }).rd.ro = t.rd.ro := by
+          simp [toPState, hr, sendMsgs]
+        rw [hro]
+        exact ie_jCommittedIdx_acked hN
+      · rw [ie_toPState_readRespondAll id _ (by simp [sendMsgs, hr])]
+        congr 1 <;> simp [toPState, hr, sendMsgs, Msg.mkV]
 
 theorem ie_handle_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgVoteResp)
@@ -496,7 +641,7 @@ theorem ie_handle_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {en
     obtain ⟨-, -, rfl⟩ := hres
     rw [if_neg (by rw [toPState_role, hr]; decide)]
   | candidate =>
-    obtain ⟨-, -, hid, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
+    obtain ⟨-, hid, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
     obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
     unfold CandidateStepResultC at hres
     ie_tysimp hty at hres
@@ -637,7 +782,7 @@ theorem ie_handle_prop {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents :
     have hl0 : (toPState t).lead = W64 0 := by simp [toPState, hr]
     rw [if_neg (by rw [hpr]; decide), if_neg (by rw [hl0]; exact fun h => h.2 rfl), hs]
   | leader =>
-    obtain ⟨-, -, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
+    obtain ⟨-, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC at hres
     ie_tysimp hty at hres
@@ -812,13 +957,13 @@ theorem recvEnd_of_stepEnd_app {c : CfgM} {id : w64} {m : MessageM} {ents : List
 scope, so the leader's heartbeats carry none). -/
 theorem recvEnd_of_stepEnd_heartbeatResp {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHeartbeatResp)
-    (h0 : m.Term' ≠ W64 0) (hctx : ctx = []) (hns : NoSnapSent (toPState s) (toPState s'))
+    (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .heartbeatResp m ents ctx) (toPState s') :=
   ie_recvEnd_fn hsc (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty hctx (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgAppResp`**. -/
 theorem recvEnd_of_stepEnd_appResp {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
@@ -862,12 +1007,12 @@ theorem recvEnd_of_stepEnd_vote {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
 /-! ### The lifting lemmas at the node's flags (antithesis parity B1, step B)
 
 The six received arms over `LiftScopeK` (check-quorum and pre-vote at the node's flags, a
-pre-candidate's arms), with no read-index request pending (`hpd`): stale at any flags
+pre-candidate's arms): stale at any flags
 (`ie_recvEnd_staleK`), a `MsgVote` within the lease ignored (`LeaseIgnore`). -/
 
 /-- `ie_recvEnd_fn` over `LiftScopeK`. -/
 theorem ie_recvEnd_fnK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
-    {s s' : NState} {ty : MsgType} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {s s' : NState} {ty : MsgType} (hsc : LiftScopeK k c id s)
     (hty : mtypeOf m.Type' = some ty)
     (hpv : m.Type' ≠ MsgPreVote) (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
     (h0 : m.Term' ≠ W64 0) (hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term')
@@ -882,7 +1027,7 @@ theorem ie_recvEnd_fnK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
   obtain ⟨-, -, -, hfn⟩ := h
   obtain ⟨pvs, H⟩ := hfn hst hh hv
   exact Or.inr (Or.inr (Or.inr ⟨h0, _, ie_preEnd_preState pvs h0 hst hbf hpl hpk,
-    hH _ (FnScope.of_preStateK hsc hpd pvs) (ie_preState_outbox s m pvs) H⟩))
+    hH _ (FnScope.of_preStateK hsc pvs) (ie_preState_outbox s m pvs) H⟩))
 
 /-- **A stale message** over `LiftScopeK`: ignored, or (check-quorum or pre-vote on) a stale
 `MsgApp`/`MsgHeartbeat` answered. -/
@@ -898,45 +1043,45 @@ theorem recvEnd_of_stepEnd_staleK {c : CfgM} {id : w64} {m : MessageM} {ents : L
 
 /-- **`MsgHeartbeat`** over `LiftScopeK`. -/
 theorem recvEnd_of_stepEnd_heartbeatK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgHeartbeat) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .heartbeat m ents ctx) (toPState s') :=
-  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fnK hsc (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
     (fun _ hsc' _ H => ie_handle_heartbeat hsc' hty H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgApp`** over `LiftScopeK`. -/
 theorem recvEnd_of_stepEnd_appK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgApp) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .app m ents ctx) (toPState s') :=
-  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fnK hsc (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
     (fun _ hsc' _ H => ie_handle_app hsc' hty H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgHeartbeatResp`** over `LiftScopeK`, with no read-index context. -/
 theorem recvEnd_of_stepEnd_heartbeatRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgHeartbeatResp)
-    (h0 : m.Term' ≠ W64 0) (hctx : ctx = []) (hns : NoSnapSent (toPState s) (toPState s'))
+    (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .heartbeatResp m ents ctx) (toPState s') :=
-  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fnK hsc (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
-    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty hctx (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
 
 /-- **`MsgAppResp`** over `LiftScopeK`. -/
 theorem recvEnd_of_stepEnd_appRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgAppResp)
     (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .appResp m ents ctx) (toPState s') :=
   (h.body_xt (by unfold StepEndTy; ie_tyclose hty)).elim fun Y hb =>
-  ie_recvEnd_fnK (s := { s with gh := { s.gh with xt := Y } }) hsc hpd (by rw [hty]; rfl)
+  ie_recvEnd_fnK (s := { s with gh := { s.gh with xt := Y } }) hsc (by rw [hty]; rfl)
     (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
@@ -944,12 +1089,12 @@ theorem recvEnd_of_stepEnd_appRespK {c : CfgM} {id : w64} {m : MessageM} {ents :
 
 /-- **`MsgVoteResp`** over `LiftScopeK`. -/
 theorem recvEnd_of_stepEnd_voteRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgVoteResp)
     (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .voteResp m ents ctx) (toPState s') :=
-  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fnK hsc (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
     (fun _ hsc' ho H => ie_handle_voteResp hsc' hty (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
@@ -957,7 +1102,7 @@ theorem recvEnd_of_stepEnd_voteRespK {c : CfgM} {id : w64} {m : MessageM} {ents 
 /-- **`MsgVote`** over `LiftScopeK`: stale at any flags; within the lease (check-quorum on, a leader
 known, a higher term, not forced) ignored (`LeaseIgnore`); else `Step`'s own arm. -/
 theorem recvEnd_of_stepEnd_voteK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgVote) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .vote m ents ctx) (toPState s') := by
   have hT : StepEndTy m.Type' := by unfold StepEndTy; ie_tyclose hty
@@ -974,7 +1119,7 @@ theorem recvEnd_of_stepEnd_voteK {c : CfgM} {id : w64} {m : MessageM} {ents : Li
   · exact Or.inr (Or.inr (Or.inr ⟨h0, _,
       ie_preEnd_preState pvs h0 hst (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
         (ie_not_preTermKeep (by decide) (by decide)),
-      ie_handle_vote c ents ctx (FnScope.of_preStateK hsc hpd pvs) hty H⟩))
+      ie_handle_vote c ents ctx (FnScope.of_preStateK hsc pvs) hty H⟩))
 
 /-- `Step`'s `MsgPreVote` answer at the protocol level (`PreVoteEnd` → `PreVoteEndP`): the grant reads
 the physical `lead`, which a pre-candidate's is `0` too. -/
@@ -1136,7 +1281,7 @@ keeps the preamble's state (`PreTermKeep`, at a higher term too); a rejection of
 down (the preamble), which then ignores it; the step function's answer `ie_handle_preVoteResp`, with
 the pre-candidate's tally not a quorum (`hq`, from `RnScope`). -/
 theorem recvEnd_of_stepEnd_preVoteRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hq : s.role = .preCandidate → ¬ JQuorum c (granted s.votes))
     (hty : m.Type' = MsgPreVoteResp) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .preVoteResp m ents ctx) (toPState s') := by
@@ -1146,7 +1291,7 @@ theorem recvEnd_of_stepEnd_preVoteRespK {c : CfgM} {id : w64} {m : MessageM} {en
   · exact ie_recvEnd_staleK ⟨hsc.1, hsc.2.1⟩ (by rw [hty]; rfl) hpv hst (h hT (by xtrec_tac))
   obtain ⟨-, -, -, hfn⟩ := h hT (by xtrec_tac)
   obtain ⟨pvs, H⟩ := hfn hst (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote)
-  have hfs := FnScope.of_preStateK hsc hpd (m := m) pvs
+  have hfs := FnScope.of_preStateK hsc (m := m) pvs
   have h2 : ¬ uint.Z m.Term' < uint.Z s.term := fun hl => hst ⟨h0, hl⟩
   cases hrj : m.Reject'
   · -- a grant: the preamble keeps the state
@@ -1223,15 +1368,152 @@ theorem ie_handle_readIndexResp {c : CfgM} {id : w64} {t : NState} {m : MessageM
 /-- (antithesis parity B1, step B) **`MsgReadIndexResp`** over `LiftScopeK` (a leader's answer,
 stamped with its term): stale, ignored; else after the preamble `ie_handle_readIndexResp`. -/
 theorem recvEnd_of_stepEnd_readIndexRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
     (hty : m.Type' = MsgReadIndexResp) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .readIndexResp m ents ctx) (toPState s') :=
-  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+  ie_recvEnd_fnK hsc (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
     (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
     (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
     (ie_not_preTermKeep (by decide) (by decide))
     (fun _ hsc' _ H => ie_handle_readIndexResp hsc' hty H)
     (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+
+/-- (antithesis parity B1, step B) `Step`'s step function on a `MsgTimeoutNow` at `t` (the state after
+the preamble): a follower runs `hup(campaignTransfer)` (`HupOkC`): nothing, or the campaign with the
+transfer marker on its requests (`CampaignEnd` at `ctxTransfer`); a candidate or pre-candidate ignores it
+(`stepCandidate`); a leader's spec gives the transfer types' appends (`ReplSends`, `SendsEnd`). -/
+theorem ie_handle_timeoutNow {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgTimeoutNow)
+    (hns : NoSnapSent (toPState t) (toPState s')) (H : StepFnEnd c id t m ents ctx s') :
+    toPState s' = toPState t ∨ ((toPState t).role = .leader ∧ SendsEnd c id (toPState t) (toPState s')) ∨
+      ((toPState t).role = .follower ∧ CampaignEnd c id (toPState t) ctxTransfer (toPState s')) := by
+  obtain ⟨hf, hc, hl⟩ := H
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hup, -⟩ := hres
+    obtain ⟨-, -, -, -, hg⟩ := hup
+    rcases hg with ⟨-, rfl⟩ | ⟨⟨-, hv, -, -⟩, -, peers, pvs, hperm, rfl⟩
+    · exact Or.inl rfl
+    · have hd : decide (campaignTransfer = campaignPreElection) = false := by
+        simp (config := {decide := true}) [campaignTransfer, campaignPreElection]
+      have hcx : transferCtx campaignTransfer = ctxTransfer := by
+        simp [transferCtx, ctxTransfer, campaignTransfer]
+      refine Or.inr (Or.inr ⟨by rw [toPState_role, hr]; rfl, hv, peers, hperm, ?_⟩)
+      rw [hd, hcx, toPState_prvals_nl _ _ (by simp [campaignState, sendMsgs, becomeCandidate])]
+      simp only [campaignState, Bool.false_eq_true, ↓reduceIte]
+      rw [toPState_sendMsgs, toPState_becomeCandidate]
+      rfl
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact Or.inl rfl
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact Or.inl rfl
+  | leader =>
+    obtain ⟨-, -, hpc⟩ := hsc.2.2 (by rw [hr]; decide)
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC at hres
+    rw [if_neg (by rw [hty]; ie_tyclose MsgProp)] at hres
+    obtain ⟨-, hres⟩ := hres
+    unfold LeaderNonpropResultC at hres
+    rcases hres with ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ |
+      ⟨-, lt', ms, pvs, rfl, ⟨hrs, -⟩, hpm, -⟩ | ⟨h, -⟩
+    rotate_right 2
+    · have he : toPState { sendMsgs { t with lt := lt' } ms with prvals := pvs } =
+          psendMsgs (toPState t) ms := ie_toPState_send_prvals _ ms pvs (fun _ => hpm)
+      refine Or.inr (Or.inl ⟨by rw [toPState_role, hr]; rfl, ms, fun y hy => ?_, he⟩)
+      have hn := hns ms (by rw [he]; rfl) y hy
+      exact ⟨(hrs y hy).1.app hn, (hrs y hy).2.1, ie_dst_ids rfl hpc (hrs y hy).2.2.1⟩
+    all_goals (exfalso; ie_tysimp hty at h)
+
+/-- (antithesis parity B1, step B) **`MsgTimeoutNow`** (a leader's, stamped with its term) over
+`LiftScopeK`: stale, ignored; else after the preamble (a higher term: a follower with no leader,
+`preLead`), `ie_handle_timeoutNow`: `TimeoutNowEndR`'s protocol part. -/
+theorem timeoutNowEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hty : m.Type' = MsgTimeoutNow)
+    (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
+    (h : StepEnd c id m ents ctx s s') :
+    (uint.Z m.Term' < uint.Z (toPState s).term ∧ toPState s' = toPState s) ∨
+    (uint.Z (toPState s).term ≤ uint.Z m.Term' ∧
+      ∃ p1, (uint.Z (toPState s).term < uint.Z m.Term' ∧ p1 = pbecomeFollower (toPState s) m.Term' (W64 0) ∨
+              m.Term' = (toPState s).term ∧ p1 = toPState s) ∧
+        (toPState s' = p1 ∨ (p1.role = .leader ∧ SendsEnd c id p1 (toPState s')) ∨
+         (p1.role = .follower ∧ CampaignEnd c id p1 ctxTransfer (toPState s')))) := by
+  have hT : StepEndTy m.Type' := by unfold StepEndTy; ie_tyclose hty
+  obtain ⟨hs, -, -, hfn⟩ := h hT (by xtrec_tac)
+  by_cases hst : StaleMsg s m
+  · refine Or.inl ⟨hst.2, ?_⟩
+    rcases hs hst with rfl | ⟨ty', mm, hlow, -⟩
+    · rfl
+    · exfalso
+      rcases hlow with ⟨-, -, hha, -⟩ | ⟨-, hp, -⟩
+      · rcases hha with e | e <;> rw [hty] at e <;> ie_tysimp e at e
+      · rw [hty] at hp; ie_tysimp hp at hp
+  · have h2 : ¬ uint.Z m.Term' < uint.Z s.term := fun hl => hst ⟨h0, hl⟩
+    refine Or.inr ⟨by show uint.Z s.term ≤ _; omega, ?_⟩
+    obtain ⟨pvs, H⟩ := hfn hst (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote)
+    have hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term' := by unfold PreBF; ie_tyclose hty
+    have hpl : preLead m = W64 0 := by unfold preLead; ie_tyclose hty
+    refine ⟨toPState (preState s m pvs), ?_,
+      ie_handle_timeoutNow (FnScope.of_preStateK hsc pvs) hty
+        (hns.of_outbox (ie_preState_outbox s m pvs)) H⟩
+    rw [ie_toPState_preState, hpl]
+    by_cases hb : PreBF m s
+    · rw [if_pos hb]; exact Or.inl ⟨hbf.1 hb, rfl⟩
+    · rw [if_neg hb]
+      refine Or.inr ⟨?_, rfl⟩
+      have h1 : ¬ uint.Z s.term < uint.Z m.Term' := fun h => hb (hbf.2 h)
+      show m.Term' = s.term
+      word
+
+/-- (antithesis parity B1, step B) **A tick's `MsgCheckQuorum`** (`tickHeartbeat`, check-quorum on):
+nothing at a non-leader; a leader stays (its `Progress` values of the same `Match`) or steps down at its
+term with no leader known (`becomeFollower(r.Term, None)`): `TickEnd`'s step-down arm. -/
+theorem cqEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgCheckQuorum) (h0 : m.Term' = W64 0)
+    (h : StepEnd c id m ents ctx s s') :
+    (toPState s' = toPState s ∧ s'.role = s.role) ∨
+    (s.role = .leader ∧ toPState s' = pbecomeFollower (toPState s) (toPState s).term (W64 0) ∧
+      s'.role = .follower) := by
+  obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
+      (by rw [hty]; ie_tyclose MsgVote) h0 h
+  cases hr : s.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    exact Or.inl ⟨by rw [hs], by rw [hs, hr]⟩
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    exact Or.inl ⟨by rw [hs], by rw [hs, hr]⟩
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    exact Or.inl ⟨by rw [hs], by rw [hs, hr]⟩
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, pvs, ⟨hpm, rfl⟩ | rfl⟩ := hres
+    · exact Or.inl ⟨toPState_prvals s pvs (fun _ => hpm), hr⟩
+    · refine Or.inr ⟨rfl, ?_, rfl⟩
+      rw [toPState_prvals_nl _ _ (by simp [becomeFollower]), toPState_becomeFollower]
+      rfl
 
 /-- **`MsgProp`** (term `0`: `RawNode.Propose`'s, or a forwarded one), as `ProposeEnd`. -/
 theorem proposeEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}

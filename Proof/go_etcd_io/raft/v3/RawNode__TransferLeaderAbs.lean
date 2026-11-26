@@ -53,13 +53,15 @@ local macro "tl_absurd" : tactic => `(tactic| (rw [hty] at h; simp [MsgUnreachab
   MsgPreVote, MsgPreVoteResp, MsgStorageAppendResp, MsgStorageApplyResp, MsgForgetLeader] at h))
 
 set_option maxHeartbeats 1000000 in
-/-- **The end state of a local `MsgTransferLeader`** (`StepEnd.xfer`, term `0`): `s` but for the ghost
-state, the transferee `lt`, the outbox and `Progress` values of the same `Match`; the protocol reading
-kept, or (a leader) the appends `SendsEnd` to the transferee `m.From'`, a voter other than the node.
-`hpc`: the progress map tracks the configuration's ids (`ownRaftPhysC_trkDoms`); `hns`: no `MsgSnap`
-queued (`raft.Step.untracedNs`). -/
-theorem transferEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgTransferLeader) (hT0 : m.Term' = W64 0)
+/-- **The end state of a `MsgTransferLeader` the preamble keeps** (`StepEnd.xfer`: not stale, no
+step-down; a local one, term `0`, or (antithesis parity B1, step B) a forwarded one of the node's term):
+`s` but for the ghost state, the transferee `lt`, the outbox and `Progress` values of the same `Match`;
+the protocol reading kept, or (a leader) the appends `SendsEnd` to the transferee `m.From'`, a voter
+other than the node. `hpc`: the progress map tracks the configuration's ids (`ownRaftPhysC_trkDoms`);
+`hns`: no `MsgSnap` queued (`raft.Step.untracedNs`). -/
+theorem transferEnd_of_stepEnd_cur {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgTransferLeader) (hst : ¬ StaleMsg s m)
+    (hnb : ¬ PreBF m s)
     (hpc : domSet s.progress = c.ids) (hns : NoSnapL s'.outbox) (h : StepEnd c id m ents ctx s s') :
     ∃ (g : NGhost) (l : w64) (o : List Msg) (pvs : GMap w64 Progress),
       s' = { s with gh := g, lt := l, outbox := o, prvals := pvs } ∧
@@ -69,10 +71,8 @@ theorem transferEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List
           SendsEnd c id (toPState s) (toPState s'))) := by
   have hnh : m.Type' ≠ MsgHup := fun h => by tl_absurd
   have hnp : m.Type' ≠ MsgProp := fun h => by tl_absurd
-  obtain ⟨X, Y, b, pvs0, hfn⟩ := h.xfer (fun h' => h'.1 hT0) hty
-  have hnbf : ∀ t : NState, ¬ PreBF m t := fun t h' => by
-    have := h'.1; rw [hT0] at this; simp at this
-  rw [ie_preState_nobf (hnbf _)] at hfn
+  obtain ⟨X, Y, b, pvs0, hfn⟩ := h.xfer hst hty
+  rw [ie_preState_nobf (s := { s with gh := { s.gh with xw := X, xt := Y, xs := b } }) (fun h' => hnb h')] at hfn
   obtain ⟨hf, hc, hl⟩ := hfn
   have hkeep : s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b } } →
       ∃ (g : NGhost) (l : w64) (o : List Msg) (pvs : GMap w64 Progress),
@@ -120,6 +120,51 @@ theorem transferEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List
         exact ⟨(hrs y hy).1.app hn, (hrs y hy).2.1, ie_dst_ids rfl hpc (hrs y hy).2.2.1⟩
     all_goals exfalso
     all_goals tl_absurd
+
+/-- **The end state of a local `MsgTransferLeader`** (term `0`): `transferEnd_of_stepEnd_cur`. -/
+theorem transferEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgTransferLeader) (hT0 : m.Term' = W64 0)
+    (hpc : domSet s.progress = c.ids) (hns : NoSnapL s'.outbox) (h : StepEnd c id m ents ctx s s') :
+    ∃ (g : NGhost) (l : w64) (o : List Msg) (pvs : GMap w64 Progress),
+      s' = { s with gh := g, lt := l, outbox := o, prvals := pvs } ∧
+      prvalsMatch pvs = prvalsMatch s.prvals ∧
+      (toPState s' = toPState s ∨
+        (s.role = .leader ∧ m.From' ∈ c.voters ∧ m.From' ≠ id ∧
+          SendsEnd c id (toPState s) (toPState s'))) :=
+  transferEnd_of_stepEnd_cur hty (fun h' => h'.1 hT0)
+    (fun h' => by have := h'.1; rw [hT0] at this; simp at this) hpc hns h
+
+set_option maxHeartbeats 1000000 in
+/-- (antithesis parity B1, step B) **A received `MsgTransferLeader` of a higher term** (`StepEnd.xfer`,
+the preamble's step-down): the node a follower at the message's term with no leader
+(`becomeFollower(m.Term, None)`), which drops it (`stepFollower`). -/
+theorem transferEnd_of_stepEnd_gt {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgTransferLeader) (hst : ¬ StaleMsg s m)
+    (hb : PreBF m s) (h : StepEnd c id m ents ctx s s') :
+    ∃ (g : NGhost) (pvs : GMap w64 Progress),
+      s' = { becomeFollower { s with gh := g } m.Term' (W64 0) with prvals := pvs } := by
+  obtain ⟨X, Y, b, pvs0, hfn⟩ := h.xfer hst hty
+  have hb' : PreBF m { s with gh := { s.gh with xw := X, xt := Y, xs := b } } := hb
+  have hpl : preLead m = W64 0 := by
+    unfold preLead
+    rw [if_neg (by rw [hty]; simp [MsgApp, MsgHeartbeat, MsgSnap, MsgTransferLeader])]
+  simp only [preState, hb', ↓reduceIte, hpl] at hfn
+  obtain ⟨hf, -, -⟩ := hfn
+  obtain ⟨scfg, sv, d, c', hres⟩ := hf (by simp [becomeFollower])
+  obtain ⟨-, -, he⟩ := StepProof.followerStepResult_rnoop c id _ m ents sv d s' ctx (.inl hty) hres
+  exact ⟨_, pvs0, he⟩
+
+/-- (antithesis parity B1, step B) `TransferRecvEndR`'s higher-term arm at the `RState` reading. -/
+theorem transferRecvEndR_of_gt {rs : RNState} {fp : List EntryM} {id : w64} {s : NState} {x : XMsg}
+    {g : NGhost} {pvs : GMap w64 Progress} (hgt : uint.Z s.term < uint.Z x.term) :
+    TransferRecvEndR id (toRState rs fp s) x
+      (toRState rs fp { becomeFollower { s with gh := g } x.term (W64 0) with prvals := pvs }) := by
+  refine .inr (.inr ⟨hgt, ?_⟩)
+  have hp : toPState { becomeFollower { s with gh := g } x.term (W64 0) with prvals := pvs } =
+      pbecomeFollower (toPState s) x.term (W64 0) := by
+    rw [toPState_prvals_nl _ _ (by simp [becomeFollower]), toPState_becomeFollower]; rfl
+  simp only [toRState, hp]
+  simp [pciR, becomeFollower, resetTo, resetTo0]
 
 /-- `TransferEndR` at the `RState` reading, from `transferEnd_of_stepEnd`'s conclusion. -/
 theorem transferEndR_of {rs : RNState} {fp : List EntryM} {c : CfgM} {id to : w64} {s : NState}

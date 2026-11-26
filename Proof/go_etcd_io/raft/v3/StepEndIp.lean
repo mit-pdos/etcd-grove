@@ -151,7 +151,6 @@ theorem logGrow_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {en
     obtain ⟨-, -, rfl⟩ := hres
     exact LogGrow.keep rfl rfl
   | leader =>
-    obtain ⟨hpend, -, -⟩ := hsc.2.2 (by rw [hr]; decide)
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     se_tysimp hty at hres
@@ -160,46 +159,21 @@ theorem logGrow_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {en
     · rw [hs]; exact LogGrow.keep rfl rfl
     · exact LogGrow.keep rfl rfl
     · obtain ⟨x, pvs, n, hb, ms, -, -, -, -, -, -, hif⟩ := hA
-      by_cases hnc : n = t.logst.committed
-      · rw [if_pos hnc] at hif
-        obtain ⟨-, rfl⟩ := hif
+      split at hif
+      · obtain ⟨-, rfl⟩ := hif
         exact LogGrow.keep rfl rfl
-      · rw [if_neg hnc] at hif
-        rcases hif with ⟨-, hrel, rfl⟩ | ⟨-, -, rfl⟩
-        · have hb0 : hb = [] := by
-            cases hb with
-            | nil => rfl
-            | cons y _ =>
-              obtain ⟨-, -, k, hk1, hk2, -⟩ := hrel y List.mem_cons_self
-              simp only [hpend, List.length_nil] at hk2
-              omega
-          subst hb0
-          have hT : sendMsgs (sendMsgs (releasedState id
-              { t with logst := { t.logst with committed := n } }) []) ms =
-              sendMsgs { t with logst := { t.logst with committed := n } } ms := by
-            rw [ie_sendMsgs_nil, ie_releasedState_nil id { t with logst := { t.logst with committed := n } } hpend]
-          show LogGrow t.logst (sendMsgs (sendMsgs (releasedState id
-              { t with logst := { t.logst with committed := n } }) []) ms).logst
-          rw [hT]
-          exact LogGrow.keep rfl rfl
-        · have hp : pendReqs { t with logst := { t.logst with committed := n } } = [] := by
-            simp [pendReqs, hpend]
-          have hT : sendMsgs (readRespondAll id
+      · -- (antithesis parity) a release keeps the log
+        rcases hif with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩
+        · exact LogGrow.keep rfl rfl
+        · show LogGrow t.logst (readRespondAll id
               { t with logst := { t.logst with committed := n }, rd := { t.rd with pend := [] } }
-              (pendReqs { t with logst := { t.logst with committed := n } })) ms =
-              sendMsgs { t with logst := { t.logst with committed := n } } ms := by
-            rw [hp]
-            have h2 := ie_rd_pend_nil { t with logst := { t.logst with committed := n } } hpend
-            exact congrArg (fun x => sendMsgs x ms) h2
-          show LogGrow t.logst (sendMsgs (readRespondAll id
-              { t with logst := { t.logst with committed := n }, rd := { t.rd with pend := [] } }
-              (pendReqs { t with logst := { t.logst with committed := n } })) ms).logst
-          rw [hT]
+              (pendReqs { t with logst := { t.logst with committed := n } })).logst
+          rw [(readRespondAll_fields id _ _).1]
           exact LogGrow.keep rfl rfl
 
 theorem logGrow_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
     {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope c id t)
-    (hty : m.Type' = MsgHeartbeatResp) (hctx : ctx = []) (H : StepFnEnd c id t m ents ctx s') :
+    (hty : m.Type' = MsgHeartbeatResp) (H : StepFnEnd c id t m ents ctx s') :
     LogGrow t.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := H
   cases hr : t.role with
@@ -226,9 +200,11 @@ theorem logGrow_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : Message
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     se_tysimp hty at hres
     obtain ⟨-, ms, pvs, -, -, hres⟩ := hres
-    rcases hres with ⟨-, rfl⟩ | ⟨hne, -⟩
+    rcases hres with ⟨-, rfl⟩ | ⟨-, N, -, rfl⟩
     · exact LogGrow.keep rfl rfl
-    · exact absurd hctx hne
+    · -- (antithesis parity) the read acknowledgement keeps the log
+      rw [(readRespondAll_fields id _ _).1]
+      exact LogGrow.keep rfl rfl
 
 theorem logGrow_fn_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgVoteResp)
@@ -335,7 +311,7 @@ the common prefix of the logs before and after. A `MsgApp` (its batch well forme
 as `maybeAppendIp` (`maybeAppendIp_lcp`), the other types by `LogGrow`. -/
 theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' ∈ antStepTypes)
-    (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
+    (h0 : m.Term' ≠ W64 0) (_hctx : m.Type' = MsgHeartbeatResp → ctx = [])
     (hwf : m.Type' = MsgApp → PlogWf (entryID.mk m.LogTerm' m.Index') ents)
     (hp : uint.Z s.logst.prev.index' = 0) (hlo : 1 ≤ uint.Z s.logst.inprogress)
     (hhi : uint.Z s.logst.inprogress ≤ ((s.logst.sents ++ s.logst.uents).length : Int) + 1)
@@ -385,7 +361,7 @@ theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
     rw [preState_logst] at this
     exact ip_of_logGrow this hhi
   · obtain ⟨pvs, H⟩ := hfn hs hh (by rw [e]; se_tyclose MsgVote)
-    have := logGrow_fn_heartbeatResp (FnScope.of_preState hsc pvs) e (hctx e) H
+    have := logGrow_fn_heartbeatResp (FnScope.of_preState hsc pvs) e H
     rw [preState_logst] at this
     exact ip_of_logGrow this hhi
 
@@ -476,7 +452,7 @@ scope; a heartbeat response with no context; nothing queued but no `MsgSnap`): `
 message's abstraction (`InputEndLift.lean`'s lemmas, by type). -/
 theorem recvEnd_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' ∈ antStepTypes)
-    (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
+    (h0 : m.Term' ≠ W64 0) (_hctx : m.Type' = MsgHeartbeatResp → ctx = [])
     (hns : NoSnapSent (toPState s) (toPState s')) (h : StepEnd c id m ents ctx s s') :
     ∀ ty, mtypeOf m.Type' = some ty →
       RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') ∧
@@ -491,7 +467,7 @@ theorem recvEnd_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List
   · exact ⟨recvEnd_of_stepEnd_vote hsc e h0 h, by simp⟩
   · exact ⟨recvEnd_of_stepEnd_voteResp hsc e h0 hns h, by simp⟩
   · exact ⟨recvEnd_of_stepEnd_heartbeat hsc e h0 h, by simp⟩
-  · exact ⟨recvEnd_of_stepEnd_heartbeatResp hsc e h0 (hctx e) hns h, by simp⟩
+  · exact ⟨recvEnd_of_stepEnd_heartbeatResp hsc e h0 hns h, by simp⟩
 
 /-- A proposal's end relation keeps the read-index state. -/
 theorem proposeEnd_rd {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}

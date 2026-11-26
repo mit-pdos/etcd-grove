@@ -233,7 +233,7 @@ theorem bk_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : 
 
 theorem bk_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
     {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope c id t)
-    (hty : m.Type' = MsgHeartbeatResp) (hctx : ctx = []) (H : StepFnEnd c id t m ents ctx s') :
+    (hty : m.Type' = MsgHeartbeatResp) (H : StepFnEnd c id t m ents ctx s') :
     BkFn t s' := by
   obtain ⟨hf, hc, hl⟩ := H
   cases hr : t.role with
@@ -260,9 +260,15 @@ theorem bk_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     se_tysimp hty at hres
     obtain ⟨-, ms, pvs, -, -, hres⟩ := hres
-    rcases hres with ⟨-, rfl⟩ | ⟨hne, -⟩
+    rcases hres with ⟨-, rfl⟩ | ⟨-, N, -, rfl⟩
     · exact BkFn.keep rfl rfl rfl
-    · exact absurd hctx hne
+    · -- (antithesis parity) the read acknowledgement: only the outbox and the read state
+      obtain ⟨o, r, he⟩ := readRespondAll_eq id
+        { { sendMsgs t ms with prvals := pvs } with rd := { ({ sendMsgs t ms with prvals := pvs } : NState).rd with
+            ro := (readonlyAdvance (readonlyRecvAck ({ sendMsgs t ms with prvals := pvs } : NState).rd.ro m.From' ctx) N).1 } }
+        (readonlyAdvance (readonlyRecvAck ({ sendMsgs t ms with prvals := pvs } : NState).rd.ro m.From' ctx) N).2
+      rw [he]
+      exact BkFn.keep rfl rfl rfl
 
 theorem bk_fn_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgVoteResp)
@@ -306,6 +312,195 @@ theorem bk_vote {id : w64} {t : NState} {m : MessageM} {s' : NState} (H : VoteEn
     BkFn t s' := by
   rcases H with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact BkFn.keep rfl rfl rfl
 
+/-! ### The step function on the B1 types (antithesis parity B1, step B)
+
+Each keeps the log's state and is `BkFn`: no new leader (a won pre-vote makes a candidate, a quorum
+check's step-down a follower), else the role and `pendingConfIndex` kept. -/
+
+theorem bk_fn_preVoteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hty : m.Type' = MsgPreVoteResp) (H : StepFnEnd c id t m ents ctx s') :
+    s'.logst = t.logst ∧ BkFn t s' := by
+  obtain ⟨hf, hc, hl⟩ := H
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_neg (by rw [hr]; decide)] at hres
+    subst hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_pos hr] at hres
+    obtain ⟨won, lost, peers, pvs, -, -, rfl⟩ := hres
+    cases won <;> cases lost <;>
+      exact ⟨by simp [prevoteRespResult, campaignState, becomeFollower, becomeCandidate, resetTo,
+          resetTo0, sendMsgs],
+        BkFn.nl (by simp [prevoteRespResult, campaignState, becomeFollower, becomeCandidate, resetTo,
+          resetTo0, sendMsgs])
+          (by simp [prevoteRespResult, campaignState, becomeFollower, becomeCandidate, resetTo,
+            resetTo0, sendMsgs, hr])⟩
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+
+theorem bk_fn_readIndexResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hty : m.Type' = MsgReadIndexResp) (H : StepFnEnd c id t m ents ctx s') :
+    s'.logst = t.logst ∧ BkFn t s' := by
+  obtain ⟨hf, hc, hl⟩ := H
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rcases ents with _ | ⟨e, _ | ⟨e2, es⟩⟩ <;> simp only at hres <;> subst hres <;>
+      exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+
+theorem bk_fn_timeoutNow {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hty : m.Type' = MsgTimeoutNow) (H : StepFnEnd c id t m ents ctx s') :
+    s'.logst = t.logst ∧ BkFn t s' := by
+  obtain ⟨hf, hc, hl⟩ := H
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hup, -⟩ := hres
+    obtain ⟨-, -, ⟨hlog, -⟩, -, hg⟩ := hup
+    refine ⟨hlog, ?_⟩
+    rcases hg with ⟨-, rfl⟩ | ⟨-, -, peers, pvs, -, rfl⟩
+    · exact BkFn.keep rfl rfl rfl
+    · generalize decide (campaignTransfer = campaignPreElection) = pre
+      cases pre <;>
+        exact BkFn.nl (by simp [campaignState, becomeCandidate, becomePrecandidate, resetTo, resetTo0,
+          sendMsgs]) (by simp [campaignState, becomeCandidate, becomePrecandidate, resetTo, resetTo0, sendMsgs])
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC at hres
+    rw [if_neg (by rw [hty]; se_tyclose MsgProp)] at hres
+    obtain ⟨-, hres⟩ := hres
+    unfold LeaderNonpropResultC at hres
+    rcases hres with ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ |
+      ⟨-, lt', ms, pvs, rfl, -⟩ | ⟨h, -⟩
+    rotate_right 2
+    · exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+    all_goals (exfalso; se_tysimp hty at h)
+
+theorem bk_fn_readIndex {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hty : m.Type' = MsgReadIndex) (H : StepFnEnd c id t m ents ctx s') :
+    s'.logst = t.logst ∧ BkFn t s' := by
+  obtain ⟨hf, hc, hl⟩ := H
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    split at hres <;> subst hres <;> exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC at hres
+    rw [if_neg (by rw [hty]; se_tyclose MsgProp)] at hres
+    obtain ⟨-, hres⟩ := hres
+    unfold LeaderNonpropResultC at hres
+    rcases hres with ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, Hri⟩ | ⟨h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩
+    rotate_left 3
+    all_goals try (exfalso; se_tysimp hty at h; done)
+    rcases Hri with ⟨-, rfl⟩ | ⟨-, ⟨-, rfl⟩ | ⟨-, ms, pvs, rfl, -, -⟩⟩
+    · exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+    · obtain ⟨o, r, he⟩ := readRespond_eq id t (arriveReq t m ents)
+      rw [he]; exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+    · exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+
+/-- A tick's `MsgCheckQuorum` at the step function: a leader stays or steps down (a follower). -/
+theorem bk_fn_checkQuorum {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hty : m.Type' = MsgCheckQuorum) (H : StepFnEnd c id t m ents ctx s') :
+    s'.logst = t.logst ∧ BkFn t s' := by
+  obtain ⟨hf, hc, hl⟩ := H
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, pvs, ⟨-, rfl⟩ | rfl⟩ := hres
+    · exact ⟨rfl, BkFn.keep rfl rfl rfl⟩
+    · exact ⟨by simp [becomeFollower, resetTo, resetTo0],
+        BkFn.nl (by simp [becomeFollower, resetTo, resetTo0]) (by simp [becomeFollower, resetTo, resetTo0])⟩
+
 /-! ### The harness's inputs -/
 
 /-- **A network message's step** (the harness's six protocol types, term nonzero, a
@@ -314,7 +509,7 @@ theorem bk_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s)
     (hty : m.Type' = MsgApp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgVote ∨ m.Type' = MsgVoteResp ∨
       m.Type' = MsgHeartbeat ∨ m.Type' = MsgHeartbeatResp)
-    (h0 : m.Term' ≠ W64 0) (hctx : m.Type' = MsgHeartbeatResp → ctx = [])
+    (h0 : m.Term' ≠ W64 0) (_hctx : m.Type' = MsgHeartbeatResp → ctx = [])
     (h : StepEnd c id m ents ctx s s') (hnx : ¬ XtRec id m s := by xtrec_tac) : BkStep s s' := by
   have hT : StepEndTy m.Type' := by
     unfold StepEndTy
@@ -337,7 +532,7 @@ theorem bk_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
   · obtain ⟨pvs, H⟩ := hfn hs hh (by rw [e]; se_tyclose MsgVote)
     exact (bk_fn_heartbeat (FnScope.of_preState hsc pvs) e H).ofPre
   · obtain ⟨pvs, H⟩ := hfn hs hh (by rw [e]; se_tyclose MsgVote)
-    exact (bk_fn_heartbeatResp (FnScope.of_preState hsc pvs) e (hctx e) H).ofPre
+    exact (bk_fn_heartbeatResp (FnScope.of_preState hsc pvs) e H).ofPre
 
 /-- **A tick's `MsgHup`**: the log kept (`HupOkC`), nothing done or a campaign (no leader). -/
 theorem bk_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
