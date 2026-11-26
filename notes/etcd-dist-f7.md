@@ -726,3 +726,55 @@ in step (`adaea37e3a`):
 (`revokeExpiredLeases.spec`, a triple the caller supplies: its `threadTok` in and out) and, inside it, `lessorOk`'s
 `Promote` triple (a borrow); write-up `notes/axiom-review/f7-newserver-atok.md`, with M1's comparison. No allow
 entry added (the lead's call).
+
+### Handoff S2-1 (2026-11-26, P-A1 written, its build running; context limit)
+
+**P-A1 (written, build running at handoff).** Head `c9b4c6402a`+1 (the parenthesization fix); fk-lean2 build of
+`etcdserver.Results`, `etcdserver.Link`, `dist.MemberNames` via `/shared/tmp/f7sync.sh`, log `~/eg/logs/f7l-build.log`
+(ends `EXIT n`; client copy `/shared/tmp/f7s2-b1.out`). The two earlier runs failed only in `auth/Boot.lean`
+(`unfold authBootFresh` missing; `|==> A ∗ B` parses as `(|==> A) ∗ B`: conclusions now parenthesized, also
+`srvTpInv_alloc_given`). Nothing past `Boot.lean` was elaborated yet: expect errors further on.
+- `auth.authBootFresh γa` / `auth.authBoot_given` (`auth/Boot.lean`): `authBoot_alloc`'s conclusion at given names.
+- `auth.newTokenProviderSimple.specAt`/`wp_proofAt`, `auth.NewTokenProvider.specAt`/`wp_proofAt` (pre `tokAuth γt γf ∅`
+  given; post without `∃ γt γf` and without the rights' authority); link entries `+At` in
+  `etc/link-lean-first-server.txt`, `Link.lean` regenerated (`python3 etc/gen-link.py --server > …/Link.lean`).
+- `AuthSrv.lean`: `authNamesFreshTP γa` (tok, fresh map, `authBootFresh`), `srvAuthNamesFresh γa` (+ `monoNatAuthOwn γa.rdy 1 0`),
+  `authSrvTPAt on` (binders `γy γa`, pre `⌜on → γa.rdy = γy⌝ ∗ (⌜on⌝ -∗ authNamesFreshTP γa)`, post `on → M = .on γa`),
+  `authSrvTPAt_off`, `srvAuthNamesFresh_alloc`, `ite_on_wand`, `ite_on_intro`. `AuthSrvLinked`: `authSrvTP_on` became
+  `authSrvTPAt_on` (over `NewTokenProvider.specAt`, `authBoot_given`). `Results`: `srv_auth_tp_on/off : authSrvTPAt …`.
+- `InvStart.srvTpInv_alloc_given`; `NewServer.lean`: `srvTpInv_allocA`; the big proof is now `NewServer.wp_proofGAtA`
+  (spec `NewServer.specGAtA`: binder `γa` after `γl`, `"Hγa" ∷ (if on then srvAuthNamesFresh γa else True)` FIRST in the
+  pre, post `on = true → E.authMode = .on γa`); `wp_proofGAt` derived (allocates `γa`; `wp_start_folded`, frame
+  `isplitl [Ha]`, `ite_on_intro`); every `hTP` is `authSrvTPAt`. Likely spots: the token-provider call's frame bullet
+  (`iframe Hzlg Hγa`, then `isplitr` pure / `isplitr` waiter / `ipureintro; exact Hγy`: if `iframe` already closed
+  the pure, drop the last line), `srvTpInv_allocA`'s `iframe H1 Hi`, `authSrvTPAt_on`'s `ihave Hfr := Hfr $$ []`,
+  the derivation's `Hq.2.2.1`/`Hq.2.2.2` projections.
+- `dist/MemberNames.authNamesFreshD_iff_srv` (imports `AuthSrv`): `authNamesFreshD γa ⊣⊢ srvAuthNamesFresh γa`.
+  `NewServer_dist`'s text is unchanged.
+
+**Step 2 (auth-on member boot): not started; research done.** Findings:
+- **Statement premises.** `d.cfg.auth = false →` is a premise of three Spec files: `Spec/.../dist/server/MainLogger.lean:53`,
+  `MainDeploymentLogger.lean:49`, `MainDeployment.lean:49`, and `member_boot_dist`'s `Hauth` (`AdequacyMember.lean:74`,
+  a proof file, used only by `kvremote/TopLevelRobustness.lean:119` with M1's `Hscope.2`). Dropping them is a spec
+  change of those main-program specs (not top-level, not axioms): needs the lead's OK under "proof-only except L5"
+  (L5 names only `Hauth`). `member_boot_dist.law` (`kvremote/Start.lean:123`) has `⌜Γ.auth = false⌝` in its post.
+- **Missing, global (no-heap) allocation**: no `GooseGlobalGS` auth-on counterpart of `clusterAllocN`/
+  `srvClusterBoot_allocG` (the on ones, `srvClusterBootOn_alloc` `ES/NewServerAllocOn.lean:58`, `allocNOn`, are `HeapGS`
+  and need `bootMarshal`); `ClusterOk` (`alarmChain false`) and `ClusterNames.view` (`auth := false`) take no `on`;
+  no auth-on `memberBoot_of_slice` (`AllocN.lean:305`). Auth on needs `cmp = false` (`NewServer_dist`'s `cmp → ¬on`).
+- **Missing, member chain**: auth-on `memberBuiltL`/`memberBuiltL_split`/`wp_Start_builtL`/`memberUpL_req` (all
+  auth-off today); a lessor-tied `memberUpOn_intro` (`etcdstart/Served.lean:191`, generic `γa m`) giving
+  `memberUpOnL`. Templates: `etcdstart/StartMemberAuth.lean:196-238` (generic lease mode) and authkv's `startServer`:
+  `NewServer` on, `isServerBuilt_of_gapM`, `isServerBuiltM_C (.on γa)` + `srvStop.slot_intro`, `wp_Start … (.on γa)`,
+  `memberUpOn_intro`; TLS by `srvTLSId_false` (`ES/AuthReqDerive.lean:103`) with `iExactEq Hcca; rfl`
+  (`memberCfg` never sets `ClientCertAuthEnabled'`: zero value). `srvLeaseRd_of_srvInv` and the peer specs are generic in `on`.
+- MainLogger's off-only spots: `:110` drops the auth names, `:169` `memberBoot_of_slice`, `:205` `memberCfg_off`,
+  `:241` `simp [kvInvM_false, …]`, `:318` `isServerBuilt_of_gap`, `:337` `memberBuiltL`, `:399/:408` peer at `false`,
+  `:434-441` Serve_dist's off branch.
+
+**Next:** (1) read the build log, fix P-A1 until `Results`/`Link`/`MemberNames` build; `etc/tier-check.py --check`,
+`etc/lease-order-check.py`. (2) Ask the lead whether step 2 may drop `d.cfg.auth = false` from the three main-program
+specs (exact texts above). (3) Step 2 in order: global auth-on cluster allocation (`ClusterOk on`, `view` with
+`d.cfg.auth`, one `Γ.kv.hist`), `memberBoot_of_slice` on, the auth-on member chain ending in `memberUpOnL`, MainLogger
+split on `d.cfg.auth`. (4) Step 3 (`RunAuthLease` plan): not started.
+
