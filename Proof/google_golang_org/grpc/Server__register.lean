@@ -185,6 +185,7 @@ theorem grpc.Server.register.wp_proof
   isplitl []
   · ipureintro; rfl
   iintro %asl -
+  (try wp_auto)
   wp_apply (wp_printf gs _ _) $$ [$Hev] as Hev
   -- not serving; `s.services[sd.ServiceName]`: no entry
   wp_apply (wp_map_lookup2 (K := GoString) (V := Loc) go.string

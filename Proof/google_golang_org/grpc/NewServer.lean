@@ -311,6 +311,10 @@ theorem grpc.NewServer.wp_proof
   -- `opts.cp != nil || opts.dc != nil`, `opts.creds != nil && …`: none is set
   (try simp only [hcp, hdc, hcr])
   (try wp_auto)
+  (try simp only [hcp, hdc, hcr])
+  (try wp_auto)
+  (try simp only [hcp, hdc, hcr])
+  (try wp_auto)
   wp_apply (wp_chainUnaryServerInterceptors «$r0_ptr» so (srvOptsUnary ks)) $$ [$Sopts $Hu]
     as %cu ⟨Sopts, Hcu⟩
   · ipureintro; exact hui

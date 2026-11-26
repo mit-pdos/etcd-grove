@@ -35,9 +35,12 @@ theorem grpcsync.NewEvent.wp_proof : grpcsync.NewEvent.spec (GF := GF) (hG := hG
   iexists ch, γ
   isplitl [«$r0»]
   · iexact «$r0»
-  iframe
-  ipureintro
-  exact Hcap
+  isplitr
+  · iexact Hch
+  isplitr
+  · ipureintro
+    exact Hcap
+  iexact Hoc
 
 end proof
 
