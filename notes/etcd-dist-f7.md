@@ -159,24 +159,20 @@ is unaffected.
 4. Who writes `Watch_dist`'s auth-on form (refusal, and u's permitted-keys check): F4 (yours) or F7?
 5. Should P-A1 be done together with P-L1 (one `NewServer` change, one re-review of `NewServer_dist`)?
 
-## Handoff (S1, 2026-11-26, context limit; build not yet confirmed)
+## Handoff (S1, 2026-11-26, second part: drafts compiled)
 
-- **Build**: started on fk-lean2 (`~/eg/wt/etcd-safe-f7`, seeded from `etcd-safe-m1`'s `.lake/build`; script
-  `~/eg/scratch/f7-build.sh`; log `~/eg/logs/f7-build.log`; targets `...etcd.dist.AuthViewDist` and
-  `...etcd.dist.AuthServeProposed`). The result was not seen before this handoff: read the log first, fix any
-  errors (the drafts were written against the in-tree vocabulary but never compiled), then update the line numbers in
-  `notes/etcd-dist-f7-reviews.md`.
-- **Drafts** (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`): `New_user_dist` :235,
-  `KV_PutOn_dist` :261, `KV_DeleteOn_dist` :286, `Txn_CommitOn_dist` :320, `KV_GetOn_dist` :368, `Auth_UserAdd_dist`
-  :402, `Auth_UserGrantRole_dist` :425, `Auth_RoleAdd_dist` :446, `Auth_RoleGrantPermission_dist` :468,
-  `Auth_AuthEnable_dist` :491, `Lease_GrantOn_dist` :515, `Lease_RevokeOn_dist` :544, `Lease_TimeToLiveKeysOn_dist`
-  :573, `Lease_LeasesOn_dist` :596; helpers `servedBy` :97, `writeAuD` :121, `writeCheckedD` :129, `adminRepliedD`
-  :140, `authFloorD` :158, `readCheckedD` :167, `txnReadCheckedD` :175, `leaseCheckD` :184. Proposals
-  (`.../dist/AuthServeProposed.lean`): `NewServer.specG_dist_proposed` :55 (`authNamesFreshD` :39 is a placeholder),
-  `Serve_dist_proposed.spec` :170.
-- **Review list**: `notes/etcd-dist-f7-reviews.md`.
-- **To add (the lease review's finding, coordinator 2026-11-26)**: `DistView.ofKV` gives every member the same lessor
-  name (`ls := fun _ => 0`); F2 is adding a distinct-names premise. Every draft here that reads per-member names
-  (`A mid`, i.e. `Γ.au mid`, or `Γ.ls mid`: `New_user_dist`, `Txn_CommitOn_dist`, `KV_GetOn_dist`, the four
-  `Lease_*On_dist`, `Serve_dist_proposed`) needs the same distinct-names premise (for `A`, `Function.Injective A`
-  or F2's form, whichever F2 adopts) until the start allocates the names per member. Not yet added.
+- **Build**: `AuthViewDist` and `AuthServeProposed` compile at `5cb43bae2f` (fk-lean2, `~/eg/wt/etcd-safe-f7`,
+  log `~/eg/logs/f7-build.log`: no error in either module).
+- **Distinct names**: every draft that reads per-member names (`New_user_dist`, `Txn_CommitOn_dist`,
+  `KV_GetOn_dist`, the four `Lease_*On_dist`, `Serve_dist_proposed`) takes `∀ a b : w64, A a = A b → a = b`,
+  and the three lease drafts that read `Γ.ls` also `∀ a b : w64, Γ.ls a = Γ.ls b → a = b`
+  (`Lease_RevokeOn_dist` reads no `Γ.ls`). That is the lease review's form (`rev-f2-report.md`, "The fix").
+  F2 had not pushed its premise (`etcd-safe-f2` @ `00544657aa` has no `Γ.ls a = Γ.ls b`). The form is over
+  every `w64`, not a member set, because `DistView` has none. The start can meet it by completing its
+  per-member allocation with names it never owns. Align with F2's form once F2 lands it.
+- **`authNamesFreshD`** (`AuthServeProposed.lean:58`) is complete: one fresh authority per `auth.AuthNames`
+  field, at the values the server's boot allocates today (`authHist_alloc`, `authBoot_alloc`, `tokAlloc`,
+  `srvTpInv_alloc`). It does not cover the provider's keeper map `γk` (not an `AuthNames` field) or the
+  backend's names.
+- **Review list** (`notes/etcd-dist-f7-reviews.md`): line numbers updated, plus a "Distinct names" check.
+  It is ready for the batch of fresh `axiom`-skill reviews.
