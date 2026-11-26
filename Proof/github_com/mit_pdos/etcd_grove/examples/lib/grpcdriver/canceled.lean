@@ -91,7 +91,7 @@ theorem canceled.wp_proof (wp_freshValue : freshValue.spec (GF := GF) (hG := hG)
     isplitl []
     · ileft
       unfold ctxCanceledIs
-      iunfold context.errIsCanceled at Herr
+      iunfold EtcdGrove.context.errIsCanceled at Herr
       icases Herr with ⟨%e, #He, #HeWP⟩
       iexists cd, e
       iframe #

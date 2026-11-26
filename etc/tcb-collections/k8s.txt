@@ -72,7 +72,6 @@ axiom status.FromError.wp_proof
 axiom status.Status.Code.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
-axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof

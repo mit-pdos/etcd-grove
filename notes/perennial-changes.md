@@ -40,7 +40,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   That call is not reachable from Go (`cancelCtx` is unexported; `WithCancel`'s callers get only the
   `CancelFunc`, which passes `Canceled`), so the axiom is true of Go; the ghost set is what makes the
   invariant say so. General: any program that tells a cancelled context from an expired one needs it.
-- **Status.** Workaround in place (the interim axiom); the Perennial change is not started.
+- **Status.** Done (2026-11-25): Perennial `lean` `0fd2c2394` (perennial#705). `cancelCtxInv` has an index
+  `A : GoInterface → Prop`, the errors `err` may take, fixed when the context is made (`withCancel`'s new
+  argument); `isCancelCtxOfA c γ P A` is what `c.cancel` needs (with `A err`), `isCancelCtxOf` is `∃ A`
+  (no right to cancel), `cancelCtx.Err` returns an error `A` allows. New `wp_WithCancel_genA` and
+  `wp_WithCancel_Background_canceled` (allowed errors `(· = Canceled's value)`). The interim axiom is now a
+  theorem from the latter (pin bump branch `context-canceled-proof/2026-11-25`).
 - **Workaround here.** None yet: the premise is stated; the driver cannot produce it until Perennial does.
 - **Proposed change.** `cancel()`'s post also gives that the new context's `Err()` returns `Canceled`'s
   value on every call when the parent was not done first (for instance a parent whose `PDone` is `False`,
@@ -396,6 +401,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
     design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
     `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
   - `time.Time.Format.wp_proofBroken`: `time`'s formatting is names only.
+- **Retired (2026-11-26, branch `strings-contains/2026-11-26`).** `strings.Contains`: Perennial branch
+  `strings-contains` (`200ab1aa8`, off its `lean` `62ed5bb7f`, not landed) adds `Contains` to
+  `strings.toml`'s `translate` (the real Go, `Index(s, substr) >= 0`, over the already translated
+  `Index`) and proves `strings.wp_Contains` (`RET #(decide (substr <:+: s)); True`), so
+  `Proof/strings/Contains.lean` is a theorem from it (statement unchanged; the proof takes
+  `[strings.Assumptions]`, which every caller's package assumptions give, as for `HasSuffix`).
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 

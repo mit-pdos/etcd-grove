@@ -100,7 +100,6 @@ axiom bridge.bridgeAt
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
 axiom contention.NewTimeoutDetector.wp_proof
-axiom context.WithCancelBackground.wp_proof_canceled
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -348,7 +347,6 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
-axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Time.Format.wp_proofBroken

@@ -3,8 +3,8 @@
 # `lib/grpcdriver`: the driver's functions linked to their callees' proofs
 
 Each function's proof (`<F>.wp_proof`) with its callees' linked results: grpc's (its interim axioms and
-proofs, `Proof/google_golang_org/grpc/`), the context interim axiom
-(`context.WithCancelBackground.wp_proof_canceled`), the `StringValue` codec (`wrapperspb.String`'s
+proofs, `Proof/google_golang_org/grpc/`), `context.WithCancelBackground.wp_proof_canceled` (proved
+from Perennial's `wp_WithCancel_Background_canceled`, an interim axiom until perennial#705), the `StringValue` codec (`wrapperspb.String`'s
 proof), net's `Listen`, Perennial's. Written by hand (`etc/gen-link.py` does not cover this part yet); its
 results are in `EtcdGrove.grpcdriver`, under the prefix every `Link.lean` shares (`etc/proof_roots.py`).
 -/
