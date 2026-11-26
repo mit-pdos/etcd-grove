@@ -4782,3 +4782,14 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   so that named array types slice as their underlying type (with a goose example slicing a named array).
   A Perennial change, reviewed on its own.
 - **Status.** Open.
+
+## `time.Time` comparisons specified as some `bool` (2026-11-26, time-compare, perennial#642)
+
+- **Limitation.** Perennial's `Time.Before`/`After`/`Equal` specs returned some `bool`, `sec`/`nsec` some
+  integer and `stripMono` some new value, so no client could use what a comparison of times returns.
+- **Change (general).** Perennial branch `time-compare-specs`: the six specs return Go's functions of the
+  fields (`Perennial/Proof/time/Base.lean`: `Time.hasMono`, `Time.secOf`, `Time.nsecOf`, `Time.before`,
+  `Time.after` (`before` swapped), `Time.equal`, `Time.stripMonoOf`), proved over the translated code; no
+  precondition changed. Here only the callers' `wp_apply … as %b -` change (the result is no longer an
+  existential; `generalize` where the proof cases on it), on branch `time-compare/2026-11-26`.
+- **Status.** Proposed (the pin bump waits for the coordinator).

@@ -647,7 +647,8 @@ theorem runChecks.wp_proof
     · -- not complete: before the deadline, wait and ask again
       (try wp_auto)
       wp_apply time.wp_Now as %t1 -
-      wp_apply time.Time.wp_Before as %bf -
+      wp_apply time.Time.wp_Before
+      generalize (_root_.Perennial.time.Time.before _ _) = bf
       (try wp_auto)
       cases bf
       · (try wp_auto)

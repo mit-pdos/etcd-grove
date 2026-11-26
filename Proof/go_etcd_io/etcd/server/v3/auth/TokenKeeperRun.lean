@@ -67,7 +67,7 @@ theorem time_wp_ptr_After (l : Loc) (t u : time.Time) :
     {{ (b : Bool), RET #b; l ↦ t }} := by
   wp_start as Hl
   wp_auto
-  wp_apply time.Time.wp_After as %b -
+  wp_apply time.Time.wp_After
   iapply HΦ $$ Hl
 
 /-- **The keeper's goroutine `run`** (see the file header): S5d's `RunSpec`. -/
