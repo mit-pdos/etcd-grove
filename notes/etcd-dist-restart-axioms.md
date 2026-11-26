@@ -51,15 +51,19 @@ abbrev serve_dist.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.serve)) (Val #s)) (Val #a))
   {{ (gs : Loc) (err : GoInterface), RET (PairV #gs #err);
       ⌜err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗ ∃ (E : apply.AEnv GF) (dd : GoString),
-        ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ grpcServing gs E ∗ srvStopRight s E ρ.rd.raft.raft ρ mid dd }}
+      ⌜err = GoInterface.nil⌝ ∗ (if Γ.auth then True else ∃ (E : apply.AEnv GF) (dd : GoString),
+        ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ grpcServing gs E ∗ srvStopRight s E ρ.rd.raft.raft ρ mid dd) }}
 ```
 
 - **Contract / why true:** `Serve_dist`'s (the in-process `etcdstart.Serve` proof per member, the address's
   protocol across machines), and: the gRPC server's run pool holds the serving stocks' store readers while idle
   (`grpcServing`'s reading); `serve` does not use `srvStopRight`'s channels' ownership (the handlers read
   `StopNotify`, a persistent view), so the right comes back. With `GracefulStop_dist` this lifts `HardStop.spec`'s
-  "never served" scope for the dist line (its header, `EtcdServer__HardStop.lean:8-16`).
+  "never served" scope for the dist line (its header, `EtcdServer__HardStop.lean:8-16`). `grpcServing gs E` is
+  made only here, once per `gs` (`serve` makes a fresh one), from the serving stocks `memberUpL` holds
+  (`srvServeStock`'s `srvRevokePoolN` store readers): the readers `GracefulStop_dist` gives back. `memberUpOnL`
+  holds no `srvStopRight` and has auth on, so the auth arm gives no stop right (review F3,
+  `notes/axiom-review/gracefulstop-dist.md`).
 - **Design finding:** the design's `serve_dist` returns only "the right to stop it"; it must also return the etcd
   server's `srvStopRight` (and `srvStopReq`'s other parts, `srvBootApplied` and `srvDataDir`, persistent, from the
   member's facts), since `memberUpL` holds it and `Serve_dist` consumes `memberUpL` whole. The stop scope
