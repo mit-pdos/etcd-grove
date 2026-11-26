@@ -39,7 +39,7 @@ theorem collectFor.wp_proof
     (wp_Collect : etcdstart.Collect.spec (GF := GF) (hG := hG)) :
     collectFor.spec (GF := GF) (hG := hG) := by
   intro _ Ok I F A wch γ cancel upTo c0 hI hP hC hS
-  wp_start as ⟨Hcons, #HA, #Hcancel⟩
+  wp_start as ⟨#Hch, Hcons, #HA, #Hcancel⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pes : isPkgInit (PROP := IProp GF)
@@ -48,7 +48,7 @@ theorem collectFor.wp_proof
   (try wp_auto)
   -- `t := time.AfterFunc(readTimeout, cancel)`
   wp_apply (wp_AfterFunc _ cancel) $$ [] as %t Ht
-  · wp_apply Hcancel $$ [] as -
+  · wp_apply Hcancel
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
   -- `evs, ok := etcdstart.Collect(wch, upTo)`
@@ -59,7 +59,7 @@ theorem collectFor.wp_proof
   wp_apply (wp_Stop t) $$ [Ht] as %b -
   · iright; iexact Ht
   (try wp_auto)
-  wp_apply Hcancel $$ [] as -
+  wp_apply Hcancel
   (try wp_auto)
   iapply HΦ
   iexact Hcol
