@@ -62,7 +62,8 @@ theorem NodeMainWatch.wp_proof
   intro π ρ w c addr eps epsL
   wp_start as ⟨%Hp, #Heps, HNP⟩
   obtain ⟨Hk, Hb⟩ := Hp
-  have hnc : w.goNodeCount = w.clients := by simp [Workload.goNodeCount, Hk]
+  have hnc : w.goNodeCount = w.clients := by
+    rcases Hk with Hk | Hk <;> simp [Workload.goNodeCount, Hk]
   ihave %Hel := ownSlice_len _ _ _ $$ Heps
   ihave #Prem : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
@@ -87,59 +88,62 @@ theorem NodeMainWatch.wp_proof
   iunfold nodeWatchPre at HNP
   icases HNP with ⟨Hlt, %Γ, %Hpp, #Hms, #Haddr⟩
   obtain ⟨hauth, hV, htb, hpl, hAs⟩ := Hpp
-  simp only [Workload.val, Hk]
-  wp_auto
-  -- `cli, err := newClient(Rotate(eps, c))`
-  wp_apply (hRot (V := GoString) (T := go.string) eps DFrac.discard epsL c) as %out ⟨-, Hout⟩
-  · iframe #
-    ipureintro
-    intro _
-    exact ⟨h0, Hb h0 h1⟩
-  imod ownSlice_persist _ _ _ $$ Hout with #Hout
-  wp_apply (wp_newClient out (rotateL epsL (sint.nat c)) (Classical.choice hV) htb hpl) $$ [$Hlt]
-    as %cl %cerr ⟨Hlt, Hcl⟩
-  · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
-  rotate_left
-  · -- no client: `NodeMain` returns
-    obtain ⟨Hcerr, -⟩ := Hcfail
-    cases cerr with
-    | nil => exact absurd rfl Hcerr
-    | ok ei => ?_
+  rcases Hk with Hk | Hk <;>
+  (
+    simp only [Workload.val, Hk]
     wp_auto
-    iapply HΦ; itrivial
-  subst Hcerr
-  ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl (rotateL epsL (sint.nat c)) (Classical.choice hV) Γ
-    $$ [Hnc Hnp Hms]
-  · iframe #
-  wp_auto
-  ipersist cli
-  -- `remote.ServeClient(c, addr, newClient, writerOp, writerCodec(), writerAttempt(w.Ops))`
-  wp_apply (wp_writerCodec WN (wP (Gg := hG.goose_globalGS) Γ) (wQ (Gg := hG.goose_globalGS) Γ))
-    as %cd #Hcd
-  wp_apply wp_writerAttempt as %d -
-  wp_apply (wp_ServeClient (writerSvc Γ) c addr _ _ cd d
-      (writerTok Γ (rotateL epsL (sint.nat c)) (Classical.choice hV))) $$ [Hlt] as ⟨⟩
-  (try iframe Prem)
-  (try iframe Hcd)
-  isplitr [Hlt]
-  · rw [← svcAddr_writerSvc]; iexact Haddr
-  isplitr [Hlt]
-  · iapply reportOp_svcOp
-    unfold reportOp
-    iintro %sys %x %i
-    iintro !> %Ψ ⟨Htok, #Hiv, HP⟩ HΨ
-    iapply (wp_writerOp Γ (rotateL epsL (sint.nat c)) (Classical.choice hV) hauth hAs sys x i)
-      $$ [Htok HP] HΨ
-    iframe
-    iframe #
-  · iintro %Ψ HΨ
+    -- `cli, err := newClient(Rotate(eps, c))`
+    wp_apply (hRot (V := GoString) (T := go.string) eps DFrac.discard epsL c) as %out ⟨-, Hout⟩
+    · iframe #
+      ipureintro
+      intro _
+      exact ⟨h0, Hb h0 h1⟩
+    imod ownSlice_persist _ _ _ $$ Hout with #Hout
+    wp_apply (wp_newClient out (rotateL epsL (sint.nat c)) (Classical.choice hV) htb hpl) $$ [$Hlt]
+      as %cl %cerr ⟨Hlt, Hcl⟩
+    · iframe #
+    icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
+    rotate_left
+    · -- no client: `NodeMain` returns
+      obtain ⟨Hcerr, -⟩ := Hcfail
+      cases cerr with
+      | nil => exact absurd rfl Hcerr
+      | ok ei => ?_
+      wp_auto
+      iapply HΦ; itrivial
+    subst Hcerr
+    ihave ⟨%api, #Hkc⟩ := kvClient_of_new cl (rotateL epsL (sint.nat c)) (Classical.choice hV) Γ
+      $$ [Hnc Hnp Hms]
+    · iframe #
     wp_auto
-    iapply HΨ
-    unfold writerTok
-    iexists cl, api
-    iframe Hlt Hkc
-    ipureintro; rfl
+    ipersist cli
+    -- `remote.ServeClient(c, addr, newClient, writerOp, writerCodec(), writerAttempt(w.Ops))`
+    wp_apply (wp_writerCodec WN (wP (Gg := hG.goose_globalGS) Γ) (wQ (Gg := hG.goose_globalGS) Γ))
+      as %cd #Hcd
+    wp_apply wp_writerAttempt as %d -
+    wp_apply (wp_ServeClient (writerSvc Γ) c addr _ _ cd d
+        (writerTok Γ (rotateL epsL (sint.nat c)) (Classical.choice hV))) $$ [Hlt] as ⟨⟩
+    (try iframe Prem)
+    (try iframe Hcd)
+    isplitr [Hlt]
+    · rw [← svcAddr_writerSvc]; iexact Haddr
+    isplitr [Hlt]
+    · iapply reportOp_svcOp
+      unfold reportOp
+      iintro %sys %x %i
+      iintro !> %Ψ ⟨Htok, #Hiv, HP⟩ HΨ
+      iapply (wp_writerOp Γ (rotateL epsL (sint.nat c)) (Classical.choice hV) hauth hAs sys x i)
+        $$ [Htok HP] HΨ
+      iframe
+      iframe #
+    · iintro %Ψ HΨ
+      wp_auto
+      iapply HΨ
+      unfold writerTok
+      iexists cl, api
+      iframe Hlt Hkc
+      ipureintro; rfl
+  )
 
 end proof
 
