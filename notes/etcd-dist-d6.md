@@ -2051,3 +2051,20 @@ Likely spots: `PfxCrash` (the `pure_forall` step building `Hall`, `ghost_map_loo
 `icases Hrf with ⟨⟨-, -, -, -, #Hp, -⟩, -⟩` (the fifth row of `memberRestartFacts` is `idPfxInv`).
 No axiom, `sorry`, trusted text or top-level change.
 
+
+### T10 status and handoff, session 7 (2026-11-26, branch `etcd-safe-t10`)
+
+**B6 (b) built green.** Session 6's build 3 failed only in `GooseLang/Ext/IdIssue/Crash.lean` (lines 132, 146,
+154: `rw [idIssue…D_eq]` with two `GooseLocalGS` in scope synthesized `L'` where the goal had `L`). Fixed by
+naming the generation, `(L := L)`/`(L := L')`. Then `idutil/PfxCrash.lean`: iunfold takes its names
+comma-separated; `go.Semantics` depends on the local context, so `idPfxInv_crash` takes one instance per
+generation, `[semL : @go.Semantics _ L.goose_go_local_context go_gctx]` and `semL'` (no section `GoLocalContext`),
+and `MemberCrash` passes `(semL := sem) (semL' := sem)` (both generations at `lc'` there); `(Mg !! id).isSome`
+from `Option.isSome_iff_exists.2 ⟨ig, hI⟩`. `MemberCrash` reads `idPfxInv` with `memberRestartFacts`' flat pattern
+`⟨-, -, -, -, #Hp, -⟩` (the fifth row). Build 5 (`/shared/tmp/t10-s7-build5.log`, fk-lean1, head `67af957a84`):
+session 6's rerun targets (`/shared/tmp/t10s5/users.txt` plus `BackendImage`, `NewServerCrash`, `CrashInterim`,
+`PfxCrash`, `MemberCrash`) all green. `etc/tier-check.py --check` ok. No axiom, `sorry`, trusted text or
+top-level change. Nobody applies `memberGen_crash.law` yet; whoever does passes the issue record's crash rest
+(`etcdstart/NetExtsCrash.lean`, `etcdNet_crashStart_split`).
+
+**Next T10 items** (not started): P5's certificate route and the `consInv` image row (session 3's approvals).
