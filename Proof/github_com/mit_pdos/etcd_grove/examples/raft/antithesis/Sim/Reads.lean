@@ -107,12 +107,6 @@ theorem RRel.filter {a : List ReadRec} {b : List (Str × Nat)} (h : RRel a b) (c
       simp only [List.filter_cons, hb, hy, ne_eq, not_false_eq_true, decide_true, ite_true]
       exact .cons h1 h2 ih
 
-/-- The binding's last `MaxReads` (B 660). -/
-def readsTrunc {α : Type} (q : List α) : List α := if q.length > maxReads then q.drop 1 else q
-
-/-- The view's reads after a `readreq` of `p`: appended, the last `MaxReads` kept (as the binding's,
-B 660). -/
-def readsAsk (l : List (Str × Nat)) (p : Str × Nat) : List (Str × Nat) := readsTrunc (l ++ [p])
 
 theorem RRel.trunc {a : List ReadRec} {b : List (Str × Nat)} (h : RRel a b) :
     RRel (readsTrunc a) (readsTrunc b) := by

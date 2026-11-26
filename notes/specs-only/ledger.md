@@ -6207,3 +6207,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Lead's decisions (Q1, Q2 and the acknowledgement form of the `MsgTimeoutNow` fact, 2026-11-26;
   `XPendOk` at the view's protocol state, the binding's terms derived at `sendX`). No new axiom, no new top-level
   premise (the harness's new obligations: `BootFacts`, the acknowledgements' terms, `XMsgFacts`).
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `readreq` keeps the binding's last `MaxReads` requests (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Stmts.lean` (`readsTrunc`,
+  `readsAsk`, `antSim_readreq.stmt`), `Sim/Reads.lean` (the proof).
+- **Change (correction of a false statement).** `antSim_readreq.stmt`'s new view records the request as
+  `readsAsk (V n).reads (ctx, G.committed.length)`: appended, the oldest dropped past `MaxReads = 16`, as the
+  binding's `ReadAsked` does (B 660). As stated before (plain append) it was false: with 16 outstanding contexts a
+  17th `readreq` leaves the binding 16 requests and the view 17, breaking `ReadsIs` (reachable: raft leaves a
+  request unanswered at a follower with no leader or a leader without a commit in its term).
+- **Decision.** Lead's decision, 2026-11-26. No new axiom, no new top-level premise.

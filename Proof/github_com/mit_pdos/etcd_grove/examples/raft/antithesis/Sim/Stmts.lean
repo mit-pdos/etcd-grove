@@ -407,14 +407,23 @@ abbrev antSim_apply.stmt : Prop :=
       (setV V n { V n with delivered := (V n).delivered ++ (V n).ce, ce := [], undo := none,
                            made := true }) net xnet
 
+/-- The binding's last `MaxReads` of a node's read requests (`ReadAsked`, B 660: the oldest dropped). -/
+def readsTrunc {α : Type} (q : List α) : List α := if q.length > AntCheck.maxReads then q.drop 1 else q
+
+/-- The view's reads after a `readreq` of `p`: appended, the last `MaxReads` kept (as the binding's,
+B 660). -/
+def readsAsk (l : List (AntCheck.Str × Nat)) (p : AntCheck.Str × Nat) : List (AntCheck.Str × Nat) :=
+  readsTrunc (l ++ [p])
+
 /-- **`readreq`** (B 657-661): the reader's context, asked of a node between inputs, is reported
-before `ReadIndex`; the view records it with the committed length known now. -/
+before `ReadIndex`; the view records it with the committed length known now, keeping the last
+`MaxReads` requests as the binding does. -/
 abbrev antSim_readreq.stmt : Prop :=
   ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (ctx : List w8),
     SimPre R dec S V net xnet evs G → (V n).Idle →
     SimStep R dec evs G (evReadReq (nodeId n) ctx)
-      (setV V n { V n with reads := (V n).reads ++ [(ctx, G.committed.length)] }) net xnet
+      (setV V n { V n with reads := readsAsk (V n).reads (ctx, G.committed.length) }) net xnet
 
 /-- **`read`** (B 663-667): the next read state of the node's `Ready` is reported; its index is at
 least the committed length known when its context was asked (raft's read-index safety,
