@@ -73,7 +73,6 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.Lease.expired.wp_proof
-axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof

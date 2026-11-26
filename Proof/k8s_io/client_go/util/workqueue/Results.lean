@@ -4,7 +4,7 @@ from `Link.lean`: the typed queue (`Typed[T]`'s methods and constructors), the r
 the delaying and rate-limiting queues.
 
 `#print axioms` on a result is its trust base: the trust boundary's names-only functions (their
-`wp_proof` axioms: `k8s.io/utils/clock`, `klog`, `x/time/rate`, `container/heap`, `math.Pow`,
+`wp_proof` axioms: `k8s.io/utils/clock`, `klog`, `x/time/rate`, `container/heap`,
 `time.Duration.Nanoseconds`, `utilruntime.HandleCrashWithLogger`) and Perennial's; no `sorry`. The
 methods the delaying and rate-limiting queues promote from their embedded interfaces are proved
 (each the embedded queue's), so every result is linked.
