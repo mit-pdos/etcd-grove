@@ -1761,3 +1761,8 @@ watch.
 - Not linked. Next: run `python3 etc/bounds-check.py --check` and the lease-order check; link `principalOp`
   (with `principalClient`, `Work.wp_proof_dist` — which still takes `then_commit_nested_refusedD.law`, W-3's T4
   gap) into `PrincipalsLinked`/`NodeMainAuth`; the T4 contract change (W-3) remains open.
+
+**W-4 addendum (checks, 2026-11-26):** lease-order ok, tier ok. **bounds FAILS** (390 against 389): the new
+`principalClient.spec` names `threadBound` (`Spec/.../dist/client/principalClient.lean:40`, kind `spec-thread`).
+Next session: take `threadTok`/the owner's handle instead (CLAUDE.md "Bounds"), or carry the premise only where
+`principalOp.spec` already does; do not raise the baseline. No build running.
