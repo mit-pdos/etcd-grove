@@ -256,21 +256,19 @@ theorem reachIn_b1 {R : AntSim.RunCfg} {dec : CCDec} {Adm : List EntryM → CCSt
 
 /-! ## Transfer messages -/
 
-/-- **A `Ready`'s transfer message is pending at the node** (`XPendOk`): raft's `XReadyOk`, with the
-destination facts it leaves to the caller: a `MsgTimeoutNow`'s destination a server (from
-`isRaftMsg`'s acknowledgement clause and the acknowledgements' names, or the driver), a
-`MsgTransferLeader`'s term past `0` (raft stamps a forward with the node's term, which a node with a
-leader has: `XScopeOk`), and the initial voters servers. -/
+/-- **A `Ready`'s transfer message is pending at the node** (`XPendOk`): raft's `XReadyOk` (not
+self-addressed, at a term at most the node's, a `MsgTimeoutNow` the node's own), with its destination
+a server, which the caller reads off the message's certificates (`xdst_server`: a `MsgTimeoutNow`'s
+`isAcked`, a stamped `MsgTransferLeader`'s `isLeader`, against `antCluster`'s names facts). -/
 theorem xPendOk_of {R : AntSim.RunCfg} {γ : RaftNames} {md : RnMode} {id : w64} {p : PState}
-    {x : XMsg} (hok : XReadyOk γ md id p x) (hnv : md.nonVoters = false)
-    (hcfg : ∀ a ∈ γ.reCfg, ∃ j : Fin R.N, a = AntSim.nodeId j)
-    (htn : x.ty = .timeoutNow → ∃ j : Fin R.N, x.dst = AntSim.nodeId j) :
+    {x : XMsg} (hok : XReadyOk γ md id p x)
+    (htn : x.ty = .timeoutNow → ∃ j : Fin R.N, x.dst = AntSim.nodeId j)
+    (htr : x.ty = .transferLeader → ∃ j : Fin R.N, x.dst = AntSim.nodeId j) :
     AntSim.XPendOk R.N id p x := by
-  obtain ⟨h1, ⟨hd, ht⟩, -, h4⟩ := hok
+  obtain ⟨h1, ⟨hd, ht⟩, -, -⟩ := hok
   cases hty : x.ty with
   | timeoutNow => exact ⟨hd, htn hty, ht, fun _ => (h1 hty).1⟩
-  | transferLeader =>
-    exact ⟨hd, hcfg _ (h4 hnv hty), ht, fun h => by rw [hty] at h; cases h⟩
+  | transferLeader => exact ⟨hd, htr hty, ht, fun h => by rw [hty] at h; cases h⟩
 
 end pure
 

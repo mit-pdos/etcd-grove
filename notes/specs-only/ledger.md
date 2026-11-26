@@ -6824,3 +6824,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   capacity kept), `cloneMsg_law_of`, `msgPtsCC_clone_net`, `Cluster.send.spec`. `#print axioms`: std +
   `pbMessageC_reg` (baseline TCB, as `Cluster.send`'s).
 - **Decision.** The Antithesis lead (2026-11-26). No new axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S4 (d), part 2): the cluster's winners maps named for exactly its ids; `antCluster` carries both names facts (#33)
+- **Spec.** Protocol/Facts.lean `ownRaftGhost_alloc_core_reg_tr`'s first conjunct is now `⌜domSet γ.reAcks = ids ∧
+  domSet γ.reWins = ids⌝` (`alloc_maps`' fact for the winners map, which the proof dropped). ClusterAllocRun's
+  `cluster_alloc_run` (and `cluster_alloc_normBoot`) gain `domSet γ.raftNames.reWins = GMap.listToSet ids`;
+  RunClusterAlloc's `antRaft_alloc` gains `∀ a, (γr.raftNames.reWins !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId
+  j`. HarnessRun's `antCluster` gains a last pure conjunct: both facts (acknowledgement and winners maps named for the
+  run's servers only), proved in `RunCluster`. All strengthenings of allocation posts / a persistent cluster fact.
+- **Defect.** The drain's `XPendOk` needs a transfer message's destination to be a server. Raft hands out only
+  `isRaftMsg`'s certificates: a `MsgTimeoutNow`'s `isAcked γ dst t i` (i ≠ 0, so `reAcks !! dst = some _`) and a stamped
+  `MsgTransferLeader`'s `isLeader γ dst t` (its `isWinCore`: `reWins !! dst = some _`; new lemma `isLeader_wins`,
+  AckedTerm.lean, with `isRaftMsg_xdst` reading both). No fact said which ids have those maps. Drain side
+  (DrainSteps `xdst_server`): the certificates' maps plus `antCluster`'s facts give the destination a server;
+  DrainBridge's `xPendOk_of` takes it (`htn`, `htr`) in place of the interim `hcfg`/`hnv` (non-voters are on in B1,
+  so `XReadyOk`'s configuration clause is not usable).
+- **Evidence.** Callers' patterns: ClusterAllocRun's `%Hdom` split, RunClusterAlloc `Hwins`, RunCluster `Hwins` and
+  the antCluster intro, `node__start`/`Cluster__proposer`'s antCluster patterns gain a trailing `-` (the other sites end
+  in a name that already absorbs the tail).
+- **Decision.** The Antithesis lead (forward-destination route, steps 2-3, approved). No axiom, no top-level premise.

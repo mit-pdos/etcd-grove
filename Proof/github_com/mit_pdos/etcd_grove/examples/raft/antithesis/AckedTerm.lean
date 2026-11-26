@@ -7,11 +7,12 @@ acknowledgement map (`reAcks !! id`); the node's durable ghost (`ownDurGhost γ 
 that map's authority at its durable maps `E` (`durShares`), and `durPers` bounds every key of `E.acks`
 by the durable term `S.term`. So the node that receives a `MsgTimeoutNow` (whose `isRaftMsg` carries
 its destination's `isAcked` at the message's term) reads the message's term as at most its own durable
-term, from its own ghost state.
+term, from its own ghost state. And `isLeader_wins`: a leader's winners map is named (`reWins`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.GhostState
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 
@@ -64,6 +65,42 @@ theorem isAcked_term_le (γ : RaftNames) (id t i : w64) (S : RaftState) :
         iframe Hv Hac Hc Hl He
         ipureintro; exact Hn
       · iexact Hp
+
+/-- **A leader of a term has its winners map** (`isLeader`'s `isWinCore`, `γ.reWins !! id = some _`):
+with the cluster's allocation fact (`reWins` named for its ids), a forwarded `MsgTransferLeader`'s
+destination, the leader `isRaftMsg` certifies, is one of the cluster's nodes. -/
+theorem isLeader_wins (γ : RaftNames) (id t : w64) :
+    ⊢ isLeader (GF := GF) γ id t -∗ ⌜(γ.reWins !! id).isSome⌝ := by
+  iintro H
+  unfold isLeader isWin isWinCore
+  icases H with ⟨%q, %c, ⟨%γw, %F0, %k, %M, %Hw, -⟩, -⟩
+  ipureintro
+  rw [Hw.1]; rfl
+
+/-- **A transfer message's destination is named**, from what a `Ready` says of each message it hands
+out (`isRaftMsg`): a `MsgTimeoutNow`'s destination acknowledged an index past `0` (`isAcked`, its
+acknowledgement map `reAcks`), a stamped `MsgTransferLeader`'s destination led the message's term
+(`isLeader`, its winners map `reWins`). -/
+theorem isRaftMsg_xdst (γ : RaftNames) (id : w64) (st : MsgSt) :
+    ⊢ isRaftMsg (GF := GF) γ id st -∗
+      ⌜(st.msg.Type' = MsgTimeoutNow → (γ.reAcks !! st.msg.To').isSome) ∧
+        (st.msg.Type' = MsgTransferLeader → st.msg.Term' ≠ W64 0 →
+          (γ.reWins !! st.msg.To').isSome)⌝ := by
+  iintro #H
+  unfold isRaftMsg
+  icases H with ⟨-, -, -, -, #Hl, -, -, #Ht⟩
+  isplit
+  · iintro %hty
+    ispecialize Ht $$ %hty
+    icases Ht with ⟨%i, %hi, Ha⟩
+    unfold isAcked
+    icases Ha with (%H0 | ⟨⟨%γa, %Hγa, -⟩, -⟩)
+    · exact absurd H0 hi
+    · ipureintro; rw [Hγa]; rfl
+  · iintro %hty %hz
+    have hlz : st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0 := ⟨hty, hz⟩
+    ispecialize Hl $$ %hlz
+    iapply isLeader_wins $$ Hl
 
 end acked
 

@@ -109,7 +109,7 @@ theorem node.start.wp_proof
   ihave #Hc' := Hc
   iunfold antCluster at Hc'
   icases Hc' with ⟨%cfg, %r, %ns, %stop, -, -, %Hmr, -, -, #Hcro, -, -, -, -, -, -, %Hfits, -, -,
-    #Hsinv⟩
+    #Hsinv, -⟩
   iunfold clusterRO at Hcro
   icases Hcro with ⟨%nsl, %ivl, -, -, -, #Hmode, #Hivl, #Hivs⟩
   ihave #Hn' := Hn

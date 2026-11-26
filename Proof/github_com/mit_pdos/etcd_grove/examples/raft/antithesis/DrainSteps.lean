@@ -301,6 +301,28 @@ theorem readHstep {R : AntSim.RunCfg} {dec : CCDec} (j : Fin R.N) (v : AntSim.No
   exact AntSim.antSim_read_in AntSim.mskB1 mskB1_le R dec S V net xnet evs _ j rs rest
     (hinm S V net xnet hpre.2.1) hpre hrp htold hfl
 
+/-! ### A transfer message's destination -/
+
+/-- **A `Ready`'s transfer message is to a server**: its certificates' maps (`isRaftMsg_xdst`: a
+`MsgTimeoutNow`'s destination has an acknowledgement map, a stamped `MsgTransferLeader`'s a winners
+map) and `antCluster`'s names facts (those maps named for the run's servers only); a
+`MsgTransferLeader` stamped (`XReadyOk`). `xPendOk_of`'s `htn`/`htr`. -/
+theorem xdst_server {R : AntSim.RunCfg} {γr : RaftNames} {st : MsgSt} {x : XMsg}
+    (hx : xmsgOf st = some x)
+    (hcert : (st.msg.Type' = MsgTimeoutNow → (γr.reAcks !! st.msg.To').isSome) ∧
+      (st.msg.Type' = MsgTransferLeader → st.msg.Term' ≠ W64 0 → (γr.reWins !! st.msg.To').isSome))
+    (hacks : ∀ a : w64, (γr.reAcks !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j)
+    (hwins : ∀ a : w64, (γr.reWins !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j)
+    (htl : x.ty = .transferLeader → x.term ≠ W64 0) :
+    ∃ j : Fin R.N, x.dst = AntSim.nodeId j := by
+  unfold xmsgOf at hx
+  by_cases h1 : st.msg.Type' = MsgTimeoutNow
+  · rw [if_pos h1] at hx; cases hx; exact hacks _ (hcert.1 h1)
+  · rw [if_neg h1] at hx
+    by_cases h2 : st.msg.Type' = MsgTransferLeader
+    · rw [if_pos h2] at hx; cases hx; exact hwins _ (hcert.2 h2 (htl rfl))
+    · rw [if_neg h2] at hx; cases hx
+
 end pure
 
 end AntHarness

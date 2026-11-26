@@ -375,7 +375,8 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     ⊢ |={E}=> ∃ γ : Cluster,
         ⌜γ.raft.dup = dup ∧ γ.raft.reBoot = LogEntry.toEntries boot 0 ∧ γ.raft.reTrace = none ∧
           γ.raft.maxData = none ∧ γ.raft.reNoSnap = false ∧ γ.raft.reCfg = GMap.listToSet vs ∧
-          γ.raft.reNs = N .@ "raft" ∧ domSet γ.raft.reAcks = GMap.listToSet ids⌝ ∗
+          γ.raft.reNs = N .@ "raft" ∧ domSet γ.raft.reAcks = GMap.listToSet ids ∧
+          domSet γ.raft.reWins = GMap.listToSet ids⌝ ∗
         ownCommittedOps (GF := GF) γ boot ∗ isClusterU γ N ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗
         isCommitted γ.raft γ.raft.reBoot ∗ logRecs γ.raft base0 γ.raft.reBoot ∗
@@ -407,7 +408,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     (fun _ h => by cases h)
     Hcne Hinz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
-    $$ Hcl with ⟨%γr, %Hacks, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
+    $$ Hcl with ⟨%γr, %Hdom, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0, Hmxd'⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, -, -⟩
@@ -459,7 +460,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
   iexists γ
   iframe Hops Hdc Hcb Hrecs
   isplitr
-  · ipureintro; exact ⟨Hdup, HbootL, Htr0, Hmxd', Hns, Hcfg, HNs, Hacks⟩
+  · ipureintro; exact ⟨Hdup, HbootL, Htr0, Hmxd', Hns, Hcfg, HNs, Hdom.1, Hdom.2⟩
   isplitr
   · unfold confAtU
     iexists [], ∅
@@ -500,7 +501,8 @@ cluster's facts (duplicated proposals as `dup` says, the bootstrap log's length,
 untraced) and its raft names' (the voters, the bootstrap log, raft's namespace `N.@"raft"`); the
 committed operations at the bootstrap log, the cluster, the configuration of no entry; the bootstrap
 log committed with its records; every id of `ids` at its durable state with its vacant slot; (antithesis
-parity B1, group E) the acknowledgement maps named for exactly the ids `ids` (`isAcked`'s node an id). -/
+parity B1, group E) the acknowledgement and win maps named for exactly the ids `ids` (`isAcked`'s and
+`isLeader`'s node an id). -/
 theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEntry) (dup : Bool)
     (E : CoPset)
     (HE : (↑(N .@ "raft") : CoPset) ⊆ E) :
@@ -511,7 +513,7 @@ theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEn
         Cluster.trace γ = none⌝ ∗
       ⌜γ.raftNames.reCfg = GMap.listToSet vs ∧ γ.raftNames.reBoot = LogEntry.toEntries boot 0 ∧
         γ.raftNames.reNs = N.@"raft" ∧ γ.raftNames.reTrace = none ∧ γ.raftNames.maxData = none ∧
-        domSet γ.raftNames.reAcks = GMap.listToSet ids⌝ ∗
+        domSet γ.raftNames.reAcks = GMap.listToSet ids ∧ domSet γ.raftNames.reWins = GMap.listToSet ids⌝ ∗
       ownCommittedOps (GF := GF) γ boot ∗ isCluster γ N ∗
       confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
       isCommitted γ.raftNames γ.raftNames.reBoot ∗ logRecs γ.raftNames base0 γ.raftNames.reBoot ∗
@@ -525,11 +527,11 @@ theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEn
   imodintro
   iexists γ
   iframe Hops Hcl Hca Hcb Hrecs Hfs
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := Hd
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := Hd
   isplitr
   · ipureintro
     exact ⟨h1, by rw [h2, ApiImpl.toEntries_length], h4, by rw [h5]; decide, h3⟩
-  ipureintro; exact ⟨h6, h2, h7, h3, h4, h8⟩
+  ipureintro; exact ⟨h6, h2, h7, h3, h4, h8, h9⟩
 
 /-- **A read credit for a time receipt, from the cluster** (its read credits' exchange, `rdPool`,
 which `cluster_alloc_normBoot` allocated from every read credit, as raft's `node.ReadIndex` does with

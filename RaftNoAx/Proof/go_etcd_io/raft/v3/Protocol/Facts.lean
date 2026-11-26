@@ -1295,8 +1295,8 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
     W64 0 ∉ ids →
     BootWf L → (L ≠ [] → 1 ≤ uint.Z t) →
     ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
-      -- (antithesis parity B1, group E) the acknowledgement maps' names exactly the ids'
-      |={E}=> ∃ γ : RaftNames, ⌜domSet γ.reAcks = ids⌝ ∗
+      -- (antithesis parity B1, group E) the acknowledgement and win maps' names exactly the ids'
+      |={E}=> ∃ γ : RaftNames, ⌜domSet γ.reAcks = ids ∧ domSet γ.reWins = ids⌝ ∗
         ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
           γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN ∧ γ.reSnapReg = reg ∧
@@ -1321,7 +1321,7 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
   imod alloc_maps (GF := GF) (K := w64) (V := List EntryM × w64) ids with ⟨%nc, -, Hc⟩
   imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List EntryM) ids
     with ⟨%nl, -, Hl⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, %Hnw, Hw⟩
   imod alloc_evs (GF := GF) ids with ⟨%ne, He⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nlc, -, Hlc⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nrq, -, Hrq⟩
@@ -1483,7 +1483,7 @@ theorem ownRaftGhost_alloc_core_reg_tr (E : CoPset) (cfg ids : GSet w64)
   imod alloc_nodes E γ0 ids Hnz $$ Hinv' Hc00 Hcinv' Hsl Hv Ht Ha Hc Hl Hw He Hlc Hrq with Hnodes
   imodintro
   iexists γ0
-  isplitr; · ipureintro; rw [e3]; exact Hna
+  isplitr; · ipureintro; rw [e3, e6]; exact ⟨Hna, Hnw⟩
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
     by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
     by rw [Hγ0]⟩
