@@ -52,7 +52,7 @@ construction; `sizeCache` and `state` are rightly excluded.
 
 ## Evidence: Go test
 
-`examples/axiomcx/protoequal/protoequal_test.go` (uncommitted; Go only, no Goose project, no Lean
+`examples/axiomcx/protoequal/protoequal_test.go` (committed with the branch, kept as the reproducible evidence; Go only, no Goose project, no Lean
 file). `cd examples && GOTOOLCHAIN=go1.27.3 go test -race -v ./axiomcx/protoequal/`:
 
 ```
