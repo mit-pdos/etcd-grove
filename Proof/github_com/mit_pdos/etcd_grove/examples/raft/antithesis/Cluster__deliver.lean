@@ -7,6 +7,7 @@ the stop channel (a broadcast) drops it.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__deliver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
 
 @[expose] public section
 
@@ -30,10 +31,10 @@ theorem Cluster.deliver.wp_proof : Cluster.deliver.spec (GF := GF) (hG := hG) :=
   intro c γ n j inp
   wp_start as ⟨#Hc, #Hn, Hinp⟩
   iunfold antCluster at Hc
-  icases Hc with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, #Hr, #Hrec, #Hro, %Hlen, #Hn0, #Hn1, #Hn2,
-    #Hstop, #Hbc, #Hnj, #Hinv⟩
+  icases Hc with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
+    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm⟩
   iunfold nodeRO at Hn
-  icases Hn with ⟨%ch, #Hid, #Hname, #Hin, #Hbag⟩
+  icases Hn with ⟨%ch, %d, #Hnc, #Hid, #Hname, #Hin, #Hbag, #Hd, #Hlog⟩
   ihave #Hsch := ownBroadcastChan_is_chan _ _ _ _ $$ Hbc
   wp_auto_lc 2
   wp_apply_core chan.wp_select_blocking
