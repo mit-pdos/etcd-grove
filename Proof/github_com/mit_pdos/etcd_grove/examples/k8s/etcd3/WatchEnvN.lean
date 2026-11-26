@@ -203,7 +203,7 @@ theorem clientWatchOk_of_regs [_root_.Perennial.errors.Assumptions] [_root_.Pere
   rw [haddr] at *
   ihave ⟨%w, %conn, %wc, %lg, %ics, #HWf, #Hcw⟩ := isNewClient_watcher_of cl (svs.map EtcdGrove.client.SrvAt.addr)
     (etcdstart.watchEnvL m0 (wmemsOf svs ws) γrc wpfx)
-    (by rw [etcdstart.watchEnvL_addrs]; exact haddr) $$ [Hnc Hconn]
+    (by rw [etcdstart.watchEnvL_addrs]; exact wmemsOf_addrs svs ws hlen) $$ [Hnc Hconn]
   · iframe #
   iunfold k8s.clientWatchOk
   iexists w, _
