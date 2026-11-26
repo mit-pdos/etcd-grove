@@ -3048,6 +3048,26 @@ replacement), waiting on the lead's choice of (i)/(ii) above; then (B). The scri
 still holds (the remote tree is that commit plus this branch's files).
 No axiom, `sorry`, `Spec/` or trusted text changed.
 
+**T10 step 3, session 3 (2026-11-26): STOP under the lead's condition 4, before any Lean change.** Option (i)
+(#50, 22:14Z) puts the row on `bootstrapBackend.spec`/`bootstrap.spec`, but `NewServer`'s proof does not call
+`bootstrap.spec`: it calls `bootstrap` through its premise `"#Hboot" ∷ bootstrapContract …`
+(`Spec/.../etcdserver/NewServer.lean:272,452,558`, used at `NewServer.lean:409`), whose post is `bootOk` at the
+default row (`InvBoot.lean:599`). Every supplier of that premise is default-row trusted text: the in-process
+examples' top-level premise `bootPremise` (`etcdstart/Defs.lean:193`, `putget3/Defs.lean:141`), the axiom
+`bootstrap.wp_proofOne` (via `BootOneLinked.lean:39`), and on the dist path `bootstrap.wp_proof_dist` with
+`NewServer.specG_dist`'s pre naming `bootstrapContract` itself (`Spec/.../dist/NewServerDist.lean:186`); the route
+from the proved `bootstrap.spec` (`BootBridge.bootPremise_of_spec`) has no linking user. So the server's row
+cannot reach `isServer` without restating an axiom or a top-level premise (or `bootstrapContract`, which an axiom's
+statement names: condition 3). Ledger: "the server's image row cannot reach `NewServer` through
+`bootstrapContract`" (2026-11-26), with the two ways on for the lead.
+
+**Handoff T10s3-3.** Branch `etcd-safe-t10s3/2026-11-26` @ this commit (notes only on top of `0fd28cd373`).
+Done: steps 1, 2 (sessions 1-2). Left, waiting on the lead's decision of the ledger entry: step 3 (the boot
+specs' row, `isServer`/`isServerM` at the row, the call sites, `skip_doneR` from step 2's fact with
+`cPost_true_orPre` deleted, `consInv_allocR` read at `(if k = 0 then p else eff, p)`), then (B). The restart read
+(`InvApply` only, `rfl` at `.triv`) does not depend on the decision but is useless without the row; not done.
+Host and script unchanged (`BASE=9f2a8ff9ea`). No axiom, `sorry`, `Spec/`, trusted or Lean text changed.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

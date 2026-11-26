@@ -8398,3 +8398,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
   lands, only the docstring is corrected: it said every protobuf error is a pointer.
 - **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.
+
+## 2026-11-26: the server's image row cannot reach `NewServer` through `bootstrapContract` (T10 step 3; open, STOP under condition 4)
+
+- **Spec.** `bootstrapBackend.spec`, `bootstrap.spec` (`Spec/.../etcdserver/`): the lead's option (i) (#50, 22:14Z)
+  gives them a row `Rw : TRow GF` (default `.triv`), premise `□ Rw.IR 0 0`, post `bootBackendRows … (Rw := Rw)` /
+  `bootOk … (Rw := Rw)`.
+- **Defect.** Option (i) gives the row to `bootstrap.spec`'s callers, but `NewServer`'s proof is not one: it calls
+  `bootstrap` through its premise `"#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir`
+  (`Spec/.../etcdserver/NewServer.lean:272,452,558`; consumed at `NewServer.lean:409`, `wp_apply Hboot'`), and
+  `bootstrapContract` (`InvBoot.lean:599`) posts `bootOk` at the default row. Every supplier of that premise is
+  default-row trusted text: the in-process examples' top-level premise `bootPremise`
+  (`etcdstart/Defs.lean:193`, `putget3/Defs.lean:141`, ...), the axiom `bootstrap.wp_proofOne` (`specOne` posts
+  `bootOk` at the default, `bootstrapOne.lean:73`; via `etcdstart/BootOneLinked.lean:39`), and on the dist path
+  `bootstrap.wp_proof_dist` (`bootstrapDist.lean:79`) with `NewServer.specG_dist`'s pre naming
+  `bootstrapContract` itself (`Spec/.../dist/NewServerDist.lean:186`). `bootPremise_of_spec` (BootBridge), the
+  one route from the proved `bootstrap.spec`, has no linking user. The invariant's row is fixed at its allocation
+  (inside `bootstrapBackend`), so `NewServer` cannot obtain `inv applyN (consInv γA (srvImgRowT …))` from a
+  default-row `bootOk`.
+- **Evidence.** The lines above; `grep -rn "bootstrapContract\|bootPremise" Proof Spec`.
+- **Proposed change (for the lead).** Either (a) a row-generic contract `bootstrapContractR … Rw` (with
+  `bootstrapContract = bootstrapContractR … .triv` by `rfl`) taken by `NewServer.spec*` at the server's row, its
+  suppliers moved onto `bootstrap.spec` (`bootPremise_of_spec`, retiring `bootPremise` and `wp_proofOne` from the
+  in-process examples) and the dist axioms restated: changes top-level premises and axiom statements; or (b) the
+  row's binding moved out of the allocation (option (ii): a ghost name allocated with `consInv`, bound to the
+  raft names by `NewServer` after `bootstrap`): changes `bootOk`'s meaning at the default, so the axioms' too.
+  Both are outside conditions 1-4.
+- **Decision.** Open. No Lean changed (T10s3 session 3 stopped before the change).
