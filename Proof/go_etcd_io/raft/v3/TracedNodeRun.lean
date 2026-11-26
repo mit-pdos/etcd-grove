@@ -412,7 +412,7 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
     Hpv.symm Hsg.symm $$ Hnosnap
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -581,7 +581,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   icases ownStepGhost_bootCommit γ _ cf id s' $$ Hghost with ⟨%Hbc', Hghost⟩
   icases ownStepGhost_bootPrefix γ _ cf id s' $$ Hghost with ⟨%Hbp', Hghost⟩
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -867,7 +867,8 @@ theorem wp_applyConf_dyn_g
         have hγ : γ.reTrace ≠ none := Hgtr ▸ hs
         obtain ⟨Htcb, -, -⟩ := Htr hγ
         obtain ⟨n1, n2, n3⟩ := Hnums hγ
-        refine ⟨Hfol hs, by rw [Hkeep hγ, ← Hcfg]; rfl, Hbc0, n1, ?_, n2, n3⟩
+        refine ⟨Hfol hs, by rw [Hkeep hγ, ← Hcfg]; rfl,
+          Hbc0 (by rw [Hgtr]; exact Option.isSome_iff_ne_none.mpr hγ), n1, ?_, n2, n3⟩
         have h5 : uint.Z s.term ≤ uint.Z rs.tc := by rw [Hpvoff.2.1]; exact Hpvoff.2.2.1
         have hb : traceNumBound = 2 ^ 61 := rfl
         rw [hb] at Htcb ⊢

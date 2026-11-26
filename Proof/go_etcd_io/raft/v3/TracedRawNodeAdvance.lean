@@ -548,7 +548,7 @@ theorem wp_raft_Step_adv (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     ihave #Hnosnap' := trNoSnap_logst (some γd) s'.gh.tr s.logst s'.logst (by rw [Htr'])
       Hpr.symm Hst.symm $$ Hnosnap
     have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpr]; exact Hprev0
-    have Hboot' := RnTrBoot.step Hpure.2.2.2 (Hterm Hne).2.2.2.2.2.2.2.hup Hap Hprev' (Hbp' Hprev') Hbc'
+    have Hboot' := RnTrBoot.step Hpure.2.2.2 (Hterm Hne).2.2.2.2.2.2.2.hup Hap Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
     icases Hcap with ⟨%bt', %Hmono, Hcap⟩
     ihave Hrntr : rnTrace γ r id c' dl s' $$ [Hcap]
     · iapply (rnTrace_traced γ r id c' dl s' γd Htr').2

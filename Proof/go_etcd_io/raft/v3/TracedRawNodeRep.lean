@@ -180,7 +180,7 @@ theorem RawNode.ReportUnreachable.traced
   ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
     Hpv.symm Hsg.symm $$ Hnosnap
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hpv]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2

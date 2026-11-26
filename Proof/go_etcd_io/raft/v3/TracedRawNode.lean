@@ -316,7 +316,7 @@ theorem RawNode.Step.traced
       ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
         Hpv.symm Hsg.symm $$ Hnosnap
       imod trNoSnap_prev0 s'.gh.tr s'.logst (by rw [Htr']; simp) $$ Hnosnap' with %Hprev'
-      have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') Hbc'
+      have Hboot' := RnTrBoot.step Hpure.2.2.2 Hpcs.2.2.hup Hap' Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
       icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
       ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
       · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
@@ -568,7 +568,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   ihave #Hnosnap' := trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr])
     Hfr'.2.2.2.2.1.symm Hfr'.2.2.2.2.2.2.1.symm $$ Hnosnap
   have Hprev' : uint.Z s'.logst.prev.index' = 0 := by rw [Hfr'.2.2.2.2.1]; exact Hprev0
-  have Hboot' := RnTrBoot.step Hpure.2.2.2 (Htm (by prop_ne)).2.2.2.2.2.2.2.hup Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hprev' (Hbp' Hprev') Hbc'
+  have Hboot' := RnTrBoot.step Hpure.2.2.2 (Htm (by prop_ne)).2.2.2.2.2.2.2.hup Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hprev' (Hbp' Hprev') (Hbc' (by rw [Htr']; rfl))
   icases HG with ⟨%Houtty, %bt', %Hmono, HG⟩
   ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [HG]
   · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2

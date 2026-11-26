@@ -434,7 +434,7 @@ private theorem wp_RestartNode_impl
       simp only [StorContents.b, StorContents.commit] at Hbc Hwc Hcc
       have := uint_nat_eq σ.hs.Commit'; have := uint_nat_eq σ.base.index'
       have := uint_nat_eq S.commit
-      exact ⟨Hb1, by omega, by omega, Hb2, Hwc⟩) HbootZ
+      exact ⟨Hb1, by omega, by omega, Hb2, Hwc, Or.inl HbootZ⟩) (fun _ => HbootZ)
     $$ Hnc Hvac [HAU Hlc1]
     with ⟨Hnc, %S, %HS, ⟨HQ, #HtS, #Hbinv⟩, Hg, %gen, Hgen, Hfree, #HI1r⟩
   · have HEo : (⊤ \ ↑N : CoPset) ⊆ ⊤ \ ↑(slotN γ.raft cv.ID') := by

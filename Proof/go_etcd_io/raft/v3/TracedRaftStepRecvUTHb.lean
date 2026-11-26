@@ -33,10 +33,10 @@ argument: the heartbeat's commit is at most the receiver's acknowledgement at it
 trivial one, the receiver acknowledging only at its own term, `AcksTerm`). -/
 theorem ownRaftGhost_hbHigher (E : CoPset) (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
     ↑(slotN γ id) ⊆ E → ↑(crashNs γ id) ⊆ E → m.ty = .heartbeat → m.dst = id →
-    uint.Z ps.term < uint.Z m.term →
+    uint.Z ps.term < uint.Z m.term → γ.reTrace ≠ none →
     ⊢ notCrashed -∗ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m ={E}=∗
       notCrashed ∗ ownRaftGhost γ id ps md ∗ ⌜uint.Z m.commit = 0 ∧ (γ.reBoot.length : Int) ≤ uint.Z ps.commit⌝ := by
-  intro HE HC Hty Hto Hlt
+  intro HE HC Hty Hto Hlt Htr
   simp only [isMessage, Hty]
   unfold ownRaftGhost isAcked
   iintro Hnc ⟨%γs, %V, %πc, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
@@ -50,7 +50,7 @@ theorem ownRaftGhost_hbHigher (E : CoPset) (γ : RaftNames) (id : w64) (ps : PSt
     isplitl
     · iexists γs, V, πc, kl
       iframe % # ∗
-    · ipureintro; exact ⟨by omega, Hbt.1⟩
+    · ipureintro; exact ⟨by omega, Hbt.1 Htr⟩
   rw [Hto] at Hγa'
   imod slot_openV E γ id γs V Hsname HE HC $$ Hnc Hslot Hvirt with ⟨Hnc, Hvirt, %E0, %HEV, Hsh, Hcl'⟩
   icases durShares_ack γ id _ E0 γa' m.term i Hγa' $$ Hsh Hfrag with ⟨%Hk0, Hsh⟩
@@ -284,7 +284,7 @@ theorem stepBundle_traced_utHb : stepBundle_traced.on (GF := GF) (hG := hG) UTHb
       icases Hgh with ⟨Hg, Hr⟩
       icases ownRaftGhost_logFacts γ id (toPState s) hs0.1 $$ Hg with ⟨Hg, ⟨#HL, #Hcm, #Hci⟩, %Hwr⟩
       imod ownRaftGhost_hbHigher ⊤ γ id (toPState s) (absMsg .heartbeat m ents ctx) CoPset.subseteq_top
-        CoPset.subseteq_top rfl hto' hgt $$ Hnc Hg Hm with ⟨Hnc, Hg, %Hcz⟩
+        CoPset.subseteq_top rfl hto' hgt (by rw [← Hnl.2.1, htr]; simp) $$ Hnc Hg Hm with ⟨Hnc, Hg, %Hcz⟩
       imodintro
       iframe Hnc
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl

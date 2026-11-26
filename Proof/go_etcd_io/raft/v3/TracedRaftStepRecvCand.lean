@@ -560,7 +560,7 @@ theorem stepBundle_traced_candHb : stepBundle_traced.on (GF := GF) (hG := hG) Ca
       icases Hgh with ⟨Hg, Hr⟩
       imod ownRaftGhost_hbFacts γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl hto'
         (by show m.Term' = s.term; exact hterm) (by show proleRole s.role ≠ .leader; rw [hrole]; nofun)
-        hs0.1 hwB $$ Hnc Hm Hg with ⟨Hnc, Hg, %Hbc, #HL, #Hcert⟩
+        hs0.1 hwB (by rw [← Hnl.2.1, htr]; simp) $$ Hnc Hm Hg with ⟨Hnc, Hg, %Hbc, #HL, #Hcert⟩
       imodintro
       iframe Hnc
       have hreT : γ.reTrace.isSome := by rw [← Hnl.2.1, htr]; rfl

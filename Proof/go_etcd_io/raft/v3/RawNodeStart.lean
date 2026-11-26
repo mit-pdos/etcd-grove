@@ -108,7 +108,7 @@ abbrev NewRawNode.restartAtSpec (sc : Option RnMode) : Prop :=
   (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
   (uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit) →
   max σ.b (uint.nat cv.Applied') ≤ a → a ≤ σ.commit →
-  γ.bootLen ≤ σ.commit →
+  γ.bootLen ≤ σ.last →
   confStateIs csm m →
   ¬ clusterNoSnap γ →
   TraceLoggerOk cv.TraceLogger' →
@@ -493,9 +493,6 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     cases h : γ.raft.reDyn with
     | none => exact absurd h this
     | some _ => rfl
-  -- the restored hard state's commit, as a word
-  have HbootZ : (γ.raft.reBoot.length : Int) ≤ uint.Z σ.hs.Commit' := by
-    unfold Cluster.bootLen StorContents.commit at Hboot; have := uint_nat_eq σ.hs.Commit'; omega
   have HsN : (↑(slotN γ.raft cv.ID') : CoPset) ⊆ ↑N := by
     intro p hp
     have := slotN_raftN γ.raft cv.ID' p hp
@@ -520,7 +517,18 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
       simp only [StorContents.b, StorContents.commit] at Hbc Hwc Hcc
       have := uint_nat_eq σ.hs.Commit'; have := uint_nat_eq σ.base.index'
       have := uint_nat_eq S'.commit
-      exact ⟨Hb1, by omega, by omega, Hb2, Hwc⟩) HbootZ
+      -- (2026-11-26, #33 parity B1) the durable log is the stored one, past the bootstrap log
+      have HbL : γ.raft.reBoot.length ≤ S'.last := by
+        have Hr := (plogTermAt_some_range _ _ _ _ Hb2).2
+        have Hd : σ.ents.length =
+            S'.ents.length - (uint.Z σ.base.index' - uint.Z S'.base.index').toNat := by
+          rw [Hb3]; unfold RaftState.entsFrom; rw [List.length_drop]
+        unfold plogLastIndexZ at Hr
+        unfold Cluster.bootLen StorContents.last StorContents.b at Hboot
+        unfold RaftState.last
+        have := uint_nat_eq S'.base.index'
+        omega
+      exact ⟨Hb1, by omega, by omega, Hb2, Hwc, Or.inr HbL⟩) (fun h => absurd HtrG h)
     $$ Hnc Hvac [Hdur]
     with ⟨Hnc, %S', %HSS, Hdur, Hg, %gen, Hgen, Hfree, #HI1r⟩
   · iintro Hnc1
@@ -564,7 +572,7 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     simp only [restartP, plogLastIndexZ] at Hrcl
     rw [← Hse] at Hrcl
     have := uint_nat_eq σ.hs.Commit'
-    unfold StorContents.commit at Hboot
+    unfold StorContents.last StorContents.b at Hboot
     omega
   have Hca : committedAfter σ.base σ.hs = σ.hs.Commit' := committedAfter_restart σ Hbc
   -- the stored commit within the stored log

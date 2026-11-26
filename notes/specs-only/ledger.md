@@ -6146,3 +6146,37 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   entries, to a peer of the progress map: `bcastHeartbeat`'s post) added to `SendRIResult`, `ReleaseResult` and
   `ReleaseHbs` (raft-internal specs, strengthened; their proofs pass `bcastHeartbeat`'s facts through).
 - **Decision.** Lead's decisions (Q3 approved, option 1; Q1 approved), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1: the bootstrapped start, route (b): `ownLogGhost.Hboot` a prefix fact (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/{GhostState,StepGhost,ReadIndex,Refinement,Enter}.lean`,
+  `Proof/go_etcd_io/raft/v3/{InvRawnode,RawNodeStartSpec,RawNodeStart,RestartNode}.lean`, mechanical:
+  `Proof/go_etcd_io/raft/v3/{InvNodeRun,RawNode__StepAbs}.lean` (the untraced snapshot restore),
+  mechanical: `Proof/go_etcd_io/raft/v3/Traced{RaftStepRecvHb,RaftStepRecvCand,RaftStepRecvUTHb,RaftStepRecvAppAcc,RaftStepRecvAppAccFol,RaftStepRecvAppAccCand,RaftStepRecvAppAccUT,NodeRun,RawNodeAdvance,RawNodeRep,RawNode}.lean`,
+  `RawNode__TickAbs.lean` (one line, a traced use of `ownStepGhost_bootCommit`). Part copies regenerated separately.
+- **Why.** The driver boots each node from `HardState{Term:1}` over its storage's bootstrap entries (commit `0`: the
+  binding's `BootInit` has `commitIndex = 0`, and a boot report with commit `1` is rejected, ant4-b1boot). The
+  protocol invariant `ownLogGhost.Hboot : |reBoot| ≤ commit` is false there.
+- **Change (untrusted protocol-ghost invariant).** `ownLogGhost`'s `%Hboot` was `⌜(γ.reBoot.length : Int) ≤ uint.Z s.commit⌝`,
+  is `⌜γ.reBoot <+: fp ++ s.log ∧ (γ.reTrace ≠ none → (γ.reBoot.length : Int) ≤ uint.Z s.commit)⌝` (the full log
+  starts with the bootstrap log; the commit past it only in a traced cluster, where `RawNode.Bootstrap` commits it).
+  Kept by `ownLogGhost_upd` through a new output conjunct of its wand (`reBoot <+: F → |reBoot| ≤ |F'|`): the app
+  accept's cut is never below the bootstrap log's end (both logs have the boot entries there, `logRecs_boot_termAt`),
+  nor a snapshot restore's index (the node then has the leader's entry there). Lemmas with a new meaning:
+  `ownLogGhost_boot` (`(reTrace ≠ none → |reBoot| ≤ commit) ∧ (reBoot ≠ [] → 1 ≤ term)`),
+  `ownStepGhost_bootCommit` (`s.gh.tr.isSome → …`), `ownRaftGhost_bootLe`, `ownRaftGhost_hbFacts`,
+  `ownRaftGhost_hbHigher` (premise `γ.reTrace ≠ none`), `ownStepGhost_appAccFacts` (premise `s.gh.tr.isSome`),
+  `ownLogGhost_boot_commit` (private; now at a leader's commit of its own term, from the prefix and `isLeader_boot`).
+  `raft_restart`: its premise `|reBoot| ≤ c` is now `γ.reTrace ≠ none → |reBoot| ≤ c`, and its per-state facts
+  gain `(|reBoot| ≤ c ∨ |reBoot| ≤ S.last)`. `NewRawNode.restartSpec` and `NewRawNode.restartAtSpec`:
+  `γ.bootLen ≤ σ.commit` → `γ.bootLen ≤ σ.last` (both state `Cluster.trace γ = none`, so no trace half); weaker.
+  `RestartNode.spec` unchanged. `ownRaftGhost_noXfer_of_commit` / `ownRaftGhost_noSnap_of_commit` (a node at
+  commit `0` is of a cluster with no bootstrap log) take `γ.reTrace ≠ none` (unused today).
+  The untraced snapshot restore (`InvNodeRun`'s `MsgSnap` arm, `RawNode__StepAbs`'s `step_tail`) used the old
+  `|reBoot| ≤ commit` for `snapLocOk`'s `|reBoot| < snapshot index`; it now gets it from two new lemmas:
+  `isMessage_snap_bootTerm` (Refinement: a snapshot message at or below the bootstrap log's end has the boot entry's
+  term at its index, from the leader's full log and `logRecs_boot_termAt`) and `ownStepGhost_bootTerms` (InvRawnode:
+  past the commit index and up to the bootstrap log's end the node's log has the boot entries' terms, from the
+  field's prefix), with the restore's `¬ PlogMatches` (`SnapLogStep`): the snapshot index is past the bootstrap log.
+  Statements of `snapLocOk`, `readySnap` and the node API unchanged.
+- **Decision.** Lead's decisions on route (b) (b1-boot-resume.md), 2026-11-26. No new axiom, no new top-level premise.
