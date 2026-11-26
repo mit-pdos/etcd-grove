@@ -83,6 +83,15 @@ another address list does not help: `grpcConn` is an opaque axiom (`InvGrpcBase.
 `grpcConn conn eps` into `grpcConn conn V.addrs`. `isNewClient_watcher_of` needs the same `watchConnFacts`. So no
 cross-machine program can call the proved specs on this watcher.
 
+**Correction (2026-11-26, `wenv-isnewclient.md` F2).** "No cross-machine program can call the proved specs on
+this watcher" is false. A program can `Listen` at an endpoint, `grpc.start` a server with the `Watch` handler
+on that listener (giving `grpcAddrIs`, hence `watchConnFacts`), and set the address's protocols to `etcdSvc`'s
+from `netAddrLeft` (`addr_set_proto_tok`, giving `etcdAddrAt`): it then holds both `isClientWatcher` and
+`membersAt` for one watcher. The verdict stands for another reason: such an address is never served
+(`grpcServes` of the opaque `etcdSvc` is unprovable with a stream registered, an address has one table, and
+`etcdstart.Serve`'s `Listen` fails on the open listener), so the watcher's streams get no response
+(`wenv-isnewclient.md` W1, W2).
+
 ### C. Resumption, lagging and restarted members, snapshots
 
 - **The client's resume revision is the cursor plus one, and it moves only forward.**

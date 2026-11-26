@@ -275,7 +275,7 @@ theorem MainWatch.wp_proof
     E₁ E₂ E₃ ρ₁ ρ₂ ρ₃ HR₁.2 HR₂.2 HR₃.2 $$ [Pcli Ppb Pctx Heo Hmw₁ Hmw₂ Hmw₃ Hb₁ Hb₂ Hb₃]
   · iframe #
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher_of cl₁
-    [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx) $$ [Hnc₁ Hconn]
+    [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx) (by rfl) $$ [Hnc₁ Hconn]
   · iframe #
   ihave #Hkw : client.isKvWatcher (GF := GF) w γ.kv $$ []
   · iunfold client.isKvWatcher
