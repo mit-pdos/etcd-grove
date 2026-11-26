@@ -231,7 +231,10 @@ PROJECTS = [
         # the file is mapped, right after `init` or `getPageSize`, so the file is whole and synced at one point.
         # Then (W5) 1710e5c (branch `goose-lean-close-sync`): `DB.Close` `fdatasync`s a writable, syncing
         # database before `close` unmaps and closes it (a commit failed at `maxBytes` can leave unsynced pages).
-        rev="1710e5c8c3de55dc6952f7a5a65394cae0d087ea",
+        # Then (W6) 2c660ee (branch `goose-lean-needsinit-valid`): `needsInit` keeps a file a valid meta of
+        # which names pages in it with their flags (`validMetaOverPages`); a #567 file
+        # (data pages lost) still re-initializes.
+        rev="2c660eec26add7a69e6c97381c12558fe068a706",
         lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash/fnv=",
                     "encoding/hex=", "os=", "io/fs="],
         packages=[

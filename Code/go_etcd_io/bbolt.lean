@@ -7338,12 +7338,13 @@ noncomputable def DB.initImage.impl [GooseExts] [GoGlobalContext] : val :=
 /-- needsInit reports whether Open must initialize a file of the given size: a new (empty) file, or
     one whose initialization a crash interrupted. Such a file is at most four pages long, every byte
     it holds is zero or the byte init writes there, and it is not init's whole image (a database
-    whose init completed opens as usual). Its state is the empty database's, so initializing it
-    again loses nothing. Any other database holds a byte init does not write: a commit writes a
+    whose init completed opens as usual), and no valid meta of it names freelist and root pages
+    that are in it with their page flags (validMetaOverPages). Its state is the empty database's, so
+    initializing it again loses nothing. Any other database holds a byte init does not write: a commit writes a
     page past the fourth, or a meta page of another transaction ID. A read-only Open initializes
     only an empty file, as before.
 
-    go: db.go:776:15 -/
+    go: db.go:777:15 -/
 noncomputable def DB.needsInit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "size"
@@ -7367,7 +7368,9 @@ noncomputable def DB.needsInit.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "whole" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "whole")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7377,6 +7380,44 @@ noncomputable def DB.needsInit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 2)))))) (Lam BAnon
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"validMetaOverPages"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "whole"))
+  (Let "$r0" (Val #false)
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
   (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -7470,11 +7511,124 @@ noncomputable def DB.needsInit.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- validMetaOverPages reports whether the meta in page i of data validates and
+    the pages it names lie in data with their flags: its freelist page, if it
+    names one, the freelist flag and its own id; its root page a leaf or branch
+    flag.
+
+    go: db.go:818:15 -/
+noncomputable def DB.validMetaOverPages.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "db"
+  (Lam "data"
+  (Lam "i"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "db" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DB.ty)))) (Var "db"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"pageSize"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Meta"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.int _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"pageInBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")) (Var "$a1"))))) (Val #()))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.InBucket.ty) go!"RootPage"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"RootBucket"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (Var "m"))) (Val #()))) (Val #()))
+  (Let "root" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "root"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"pageInBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")) (Var "$a1"))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"IsLeafPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "p"))) (Val #())) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"IsBranchPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "p"))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Pair (Var "p") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "root")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "root") (Var "$r0")))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"Freelist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (Var "m"))) (Val #()))
+  (Let "fl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "fl")) (Val #(W64 18446744073709551615))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "fl"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType DB.ty) go!"pageInBuffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db"))) (Var "$a0")) (Var "$a1"))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"IsFreelistPage"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "p"))) (Val #()))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty) go!"Id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Var "p"))) (Val #())) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "fl"))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)))) (Pair (Var "p") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Var "fl")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty))) (Pair (Var "fl") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty) go!"Validate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (Var "m"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)))) (Pair (Var "m") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
+
 /-- Close releases all database resources.
     It will block waiting for any open transactions to finish
     before closing the database and returning.
 
-    go: db.go:804:15 -/
+    go: db.go:846:15 -/
 noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7541,7 +7695,7 @@ noncomputable def DB.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"rwlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: db.go:827:15 -/
+/-- go: db.go:869:15 -/
 noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7674,7 +7828,7 @@ noncomputable def DB.close.impl [GooseExts] [GoGlobalContext] : val :=
     IMPORTANT: You must close read-only transactions after you are finished or
     else the database will not reclaim old pages.
 
-    go: db.go:887:15 -/
+    go: db.go:929:15 -/
 noncomputable def DB.Begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "writable"
@@ -7753,7 +7907,7 @@ noncomputable def DB.Begin.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "lg") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: db.go:905:15 -/
+/-- go: db.go:947:15 -/
 noncomputable def DB.Logger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7778,7 +7932,7 @@ noncomputable def DB.Logger.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad Logger.ty))) (Var "$res0"))))))
 
-/-- go: db.go:912:15 -/
+/-- go: db.go:954:15 -/
 noncomputable def DB.beginTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7878,7 +8032,7 @@ noncomputable def DB.beginTx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"metalock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (Var "db")))) (Val #()))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tx.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: db.go:959:15 -/
+/-- go: db.go:1001:15 -/
 noncomputable def DB.beginRWTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -7979,7 +8133,7 @@ noncomputable def DB.beginRWTx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- removeTx removes a transaction from the database.
 
-    go: db.go:995:15 -/
+    go: db.go:1037:15 -/
 noncomputable def DB.removeTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "tx"
@@ -8027,7 +8181,7 @@ noncomputable def DB.removeTx.impl [GooseExts] [GoGlobalContext] : val :=
 
     Attempting to manually commit or rollback within the function will cause a panic.
 
-    go: db.go:1025:15 -/
+    go: db.go:1067:15 -/
 noncomputable def DB.Update.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fn"
@@ -8114,7 +8268,7 @@ noncomputable def DB.Update.impl [GooseExts] [GoGlobalContext] : val :=
 
     Attempting to manually rollback within the function will cause a panic.
 
-    go: db.go:1056:15 -/
+    go: db.go:1098:15 -/
 noncomputable def DB.View.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fn"
@@ -8214,7 +8368,7 @@ noncomputable def DB.View.impl [GooseExts] [GoGlobalContext] : val :=
 
     Batch is only useful when there are multiple goroutines calling it.
 
-    go: db.go:1100:15 -/
+    go: db.go:1142:15 -/
 noncomputable def DB.Batch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "fn"
@@ -8289,7 +8443,7 @@ noncomputable def DB.Batch.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- trigger runs the batch if it hasn't already been run.
 
-    go: db.go:1138:17 -/
+    go: db.go:1180:17 -/
 noncomputable def batch.trigger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -8303,7 +8457,7 @@ noncomputable def batch.trigger.impl [GooseExts] [GoGlobalContext] : val :=
 /-- run performs the transactions in the batch and communicates results
     back to DB.Batch.
 
-    go: db.go:1144:17 -/
+    go: db.go:1186:17 -/
 noncomputable def batch.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -8431,7 +8585,7 @@ noncomputable def batch.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef DB.ty go!"batchMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DB.ty)))) (App (Val (GoInstruction (StructFieldRef batch.ty go!"db"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batch.ty)))) (Var "b")))))) (Val #()))))))
   (Val #()))))
 
-/-- go: db.go:1194:19 -/
+/-- go: db.go:1236:19 -/
 noncomputable def panicked.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -8472,7 +8626,7 @@ noncomputable def panicked.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
-/-- go: db.go:1201:6 -/
+/-- go: db.go:1243:6 -/
 noncomputable def safelyCall.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fn"
   (Lam "tx"
@@ -8519,7 +8673,7 @@ noncomputable def safelyCall.impl [GooseExts] [GoGlobalContext] : val :=
     This is not necessary under normal operation, however, if you use NoSync
     then it allows you to force the database file to sync against the disk.
 
-    go: db.go:1214:15 -/
+    go: db.go:1256:15 -/
 noncomputable def DB.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8577,7 +8731,7 @@ noncomputable def DB.Sync.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Stats retrieves ongoing performance stats for the database.
     This is only updated when a transaction closes.
 
-    go: db.go:1231:15 -/
+    go: db.go:1273:15 -/
 noncomputable def DB.Stats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8609,7 +8763,7 @@ noncomputable def DB.Stats.impl [GooseExts] [GoGlobalContext] : val :=
 /-- This is for internal access to the raw data bytes from the C cursor, use
     carefully, or not at all.
 
-    go: db.go:1243:15 -/
+    go: db.go:1285:15 -/
 noncomputable def DB.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8634,7 +8788,7 @@ noncomputable def DB.Info.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- page retrieves a page reference from the mmap based on the current page size.
 
-    go: db.go:1249:15 -/
+    go: db.go:1291:15 -/
 noncomputable def DB.page.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "id"
@@ -8657,7 +8811,7 @@ noncomputable def DB.page.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- pageInBuffer retrieves a page reference from a given byte array based on the current page size.
 
-    go: db.go:1255:15 -/
+    go: db.go:1297:15 -/
 noncomputable def DB.pageInBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "b"
@@ -8677,7 +8831,7 @@ noncomputable def DB.pageInBuffer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- meta retrieves the current meta page reference.
 
-    go: db.go:1260:15 -/
+    go: db.go:1302:15 -/
 noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -8739,7 +8893,7 @@ noncomputable def DB.«meta».impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- allocate returns a contiguous block of memory starting at a given page.
 
-    go: db.go:1284:15 -/
+    go: db.go:1326:15 -/
 noncomputable def DB.allocate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "txid"
@@ -8930,7 +9084,7 @@ noncomputable def DB.allocate.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- grow grows the size of the database to the given sz.
 
-    go: db.go:1342:15 -/
+    go: db.go:1384:15 -/
 noncomputable def DB.grow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "sz"
@@ -9081,7 +9235,7 @@ noncomputable def DB.grow.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Logger.ty))) (Pair (Var "lg") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: db.go:1382:15 -/
+/-- go: db.go:1424:15 -/
 noncomputable def DB.growSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam "mmapSize"
@@ -9106,7 +9260,7 @@ noncomputable def DB.growSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))))
 
-/-- go: db.go:1392:15 -/
+/-- go: db.go:1434:15 -/
 noncomputable def DB.IsReadOnly.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -9121,7 +9275,7 @@ noncomputable def DB.IsReadOnly.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: db.go:1396:15 -/
+/-- go: db.go:1438:15 -/
 noncomputable def DB.freepages.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "db"
   (Lam BAnon
@@ -9261,7 +9415,7 @@ noncomputable def DB.freepages.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)))) (Var "$res0"))))))
 
-/-- go: db.go:1433:6 -/
+/-- go: db.go:1475:6 -/
 noncomputable def newFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "freelistType"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Val #())))
@@ -9285,7 +9439,7 @@ noncomputable def newFreelist.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface.ty))) (Var "$res0")))))
 
-/-- go: db.go:1517:19 -/
+/-- go: db.go:1559:19 -/
 noncomputable def Options.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam BAnon
@@ -9331,7 +9485,7 @@ noncomputable def Options.String.impl [GooseExts] [GoGlobalContext] : val :=
     This is useful when obtaining stats at two different points and time and
     you need the performance counters that occurred within that time span.
 
-    go: db.go:1559:17 -/
+    go: db.go:1601:17 -/
 noncomputable def Stats.Sub.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "other"
@@ -16011,7 +16165,7 @@ class DB.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   get_readOnly : ∀ (x : DB), go.IsGoStepPureDetTagged under (StructFieldGet DB.underlying go!"readOnly") #x (Val #(x.readOnly'))
   set_readOnly : ∀ (x : DB) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DB.underlying go!"readOnly") (PairV #x #y) (Val #(({ x with readOnly' := y } : DB)))
   method_set : go.MethodSetIs DB.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Batch", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"Begin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.PointerType Info.ty)]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Logger", (some (go.signature.Signature [] false [Logger.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"Stats", (some (go.signature.Signature [] false [Stats.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"View", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.error]))), (go!"go.etcd.io/bbolt.beginRWTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.beginTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.fileSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.freepages", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))), (go!"go.etcd.io/bbolt.getPageSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromFirstMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromSecondMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.grow", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.growSize", (some (go.signature.Signature [go.int, go.int] false [go.int]))), (go!"go.etcd.io/bbolt.hasSyncedFreelist", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.initImage", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.invalidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.loadFreelist", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)]))), (go!"go.etcd.io/bbolt.mlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmapSize", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.mmapUnlocked", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mrelock", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.needsInit", (some (go.signature.Signature [go.int64] false [go.bool, go.error]))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.pageInBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.removeTx", (some (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DB.ty) [(go!"Batch", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"Begin", (some (go.signature.Signature [go.bool] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"GoString", (some (go.signature.Signature [] false [go.string]))), (go!"Info", (some (go.signature.Signature [] false [(go.GoType.PointerType Info.ty)]))), (go!"IsReadOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Logger", (some (go.signature.Signature [] false [Logger.ty]))), (go!"Path", (some (go.signature.Signature [] false [go.string]))), (go!"Stats", (some (go.signature.Signature [] false [Stats.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Update", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"View", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false [go.error]))] false [go.error]))), (go!"go.etcd.io/bbolt.allocate", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Txid.ty, go.int] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty), go.error]))), (go!"go.etcd.io/bbolt.beginRWTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.beginTx", (some (go.signature.Signature [] false [(go.GoType.PointerType Tx.ty), go.error]))), (go!"go.etcd.io/bbolt.close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.fileSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.freepages", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty)]))), (go!"go.etcd.io/bbolt.getPageSize", (some (go.signature.Signature [] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromFirstMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.getPageSizeFromSecondMeta", (some (go.signature.Signature [] false [go.int, go.bool, go.error]))), (go!"go.etcd.io/bbolt.grow", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.growSize", (some (go.signature.Signature [go.int, go.int] false [go.int]))), (go!"go.etcd.io/bbolt.hasSyncedFreelist", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/bbolt.init", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.initImage", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"go.etcd.io/bbolt.invalidate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.loadFreelist", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/bbolt.meta", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Meta.ty)]))), (go!"go.etcd.io/bbolt.mlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmap", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mmapSize", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"go.etcd.io/bbolt.mmapUnlocked", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.mrelock", (some (go.signature.Signature [go.int, go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munlock", (some (go.signature.Signature [go.int] false [go.error]))), (go!"go.etcd.io/bbolt.munmap", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/bbolt.needsInit", (some (go.signature.Signature [go.int64] false [go.bool, go.error]))), (go!"go.etcd.io/bbolt.page", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.pageInBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.internal.common.Page.ty)]))), (go!"go.etcd.io/bbolt.removeTx", (some (go.signature.Signature [(go.GoType.PointerType Tx.ty)] false []))), (go!"go.etcd.io/bbolt.validMetaOverPages", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.int] false [go.bool])))]
   ptr_Batch_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Batch" DB.Batch.impl
   ptr_Begin_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Begin" DB.Begin.impl
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"Close" DB.Close.impl
@@ -16053,6 +16207,7 @@ class DB.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   ptr_page_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"page" DB.page.impl
   ptr_pageInBuffer_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"pageInBuffer" DB.pageInBuffer.impl
   ptr_removeTx_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"removeTx" DB.removeTx.impl
+  ptr_validMetaOverPages_unfold : MethodUnfold (go.GoType.PointerType DB.ty) go!"validMetaOverPages" DB.validMetaOverPages.impl
 
 attribute [instance] DB.TypeAssumptions.type_repr
   DB.TypeAssumptions.underlying
@@ -16171,6 +16326,7 @@ attribute [instance] DB.TypeAssumptions.type_repr
   DB.TypeAssumptions.ptr_page_unfold
   DB.TypeAssumptions.ptr_pageInBuffer_unfold
   DB.TypeAssumptions.ptr_removeTx_unfold
+  DB.TypeAssumptions.ptr_validMetaOverPages_unfold
 
 structure call [GooseExts] where
   mk ::
