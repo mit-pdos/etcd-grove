@@ -388,7 +388,8 @@ def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
   | .heartbeatResp => q.src = id ∧ q.term = v.ps.term
   | .propose => q.src = id ∧ q.term = W64 0
   | .preVote => q.src = id ∧ id ∈ v.r.cfg.cfg.voters
-  | .preVoteResp => q.src = id ∧ (q.reject = false → ∃ m, v.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src)
+  | .preVoteResp => q.src = id ∧ (q.reject = false → ∃ m, v.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src) ∧
+      (q.reject = true → q.term = v.ps.term)
   | .readIndex => q.src = id
   | .readIndexResp => q.src = id
   | .snap => q.src = id ∧ v.ps.role = .leader

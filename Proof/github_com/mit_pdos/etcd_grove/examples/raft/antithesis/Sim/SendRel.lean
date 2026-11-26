@@ -74,8 +74,9 @@ structure SendOk (R : RunCfg) (S : State) (n : Fin R.N) (q : Msg) (M : List Fact
   acks : ∀ a ∈ M, a.type = go!"ack" → a.src = nameOf (nodeId n) → a.term = S.currentTerm[n.val]! →
     ((C[n.val]!).term = a.term ∧ a.index ≤ (C[n.val]!).index) ∨ a.index ≤ S.commitIndex[n.val]!
   ty : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
-    q.ty = .heartbeatResp ∨ q.ty = .propose
-  src : q.src = nodeId n ∧ uint.Z q.term ≤ S.currentTerm[n.val]!
+    q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp
+  src : q.src = nodeId n ∧ (PreTermKeep q ∨ uint.Z q.term ≤ S.currentTerm[n.val]!)
+  pvo : PreVoterOk R q
   dst : ∃ j : Fin R.N, q.dst = nodeId j
   req : (q.ty = .app ∨ q.ty = .heartbeat) → (toAppendFact (msgOf q q.dst) >>= S.sendable) = .ok true
   vote : q.ty = .vote → ∃ f, voteFact (msgOf q q.dst) = .ok f ∧ f ∈ M
@@ -145,7 +146,7 @@ theorem SendOk.tyNet {R : RunCfg} {S : State} {n : Fin R.N} {q : Msg} {M : List 
     q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
       q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp ∨
       q.ty = .readIndex ∨ q.ty = .readIndexResp ∨ q.ty = .snap := by
-  rcases hok.ty with h | h | h | h | h | h | h <;> simp [h]
+  rcases hok.ty with h | h | h | h | h | h | h | h | h <;> simp [h]
 
 /-- **The relation after a `send`**. -/
 theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
@@ -219,7 +220,7 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
       · rw [List.mem_singleton] at hm
         subst hm
         obtain ⟨j, hj⟩ := hok.dst
-        exact ⟨hok.tyNet, ⟨n, hok.src.1, .inr hok.src.2⟩, j, hj, fun _ => ⟨hok.req, hok.vote, hok.grant, hok.ack⟩⟩
+        exact ⟨hok.tyNet, ⟨n, hok.src.1, hok.src.2⟩, j, hj, fun _ => ⟨hok.req, hok.vote, hok.grant, hok.ack⟩⟩
     · intro m hm hty j hdst hle
       change ((C[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (C[j.val]!).index) ∨
         uint.Z m.commit ≤ S.commitIndex[j.val]!
@@ -256,8 +257,7 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
     · rcases List.mem_append.mp hm with hm | hm
       · exact hn.2.2.2.2.2 m hm
       · rw [List.mem_singleton] at hm; subst hm
-        intro _
-        rcases hok.ty with h | h | h | h | h | h | h <;> rw [h] <;> exact ⟨nofun, nofun⟩
+        exact hok.pvo
   · -- NodeOk
     intro k
     by_cases hk : k = n

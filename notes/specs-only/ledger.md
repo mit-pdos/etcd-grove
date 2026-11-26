@@ -6376,3 +6376,14 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   log) is false at `mskB1p` (a pre-candidate's repeat pre-campaign queues its self pre-vote); replaced by
   `reach_selfPre` (every self-addressed message a granted self pre-vote at the next term, from a voter with pre-vote on),
   used only by `nodeOk_quiet`.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `PendOk`'s pre-vote rejection at the node's term; `send` of the pre-vote types (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`PendOk`); the Sim proofs follow
+  (Outbox, SendRel, Send).
+- **Change.** `PendOk`'s `.preVoteResp` case gains `q.reject = true → q.term = v.ps.term`. Why: raft answers a rejected
+  pre-vote request at its own term (`StaleEnd`'s stale request, `PreVoteEndP`'s refusal), so a sent rejection is at a
+  term its sender has (`NetOk`'s sender clause: a rejection is not `PreTermKeep`). `SendOk` (SendRel, proof-internal)
+  admits the pre-vote types (`ty`), a `PreTermKeep` sender term (`src`) and carries `PreVoterOk` (`pvo`);
+  `antSim_send_in` is at `msk ≤ mskB1p` (the binding's `isUnmodelled` sends change nothing: `send_pre_eq`).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise; an invariant strengthening.

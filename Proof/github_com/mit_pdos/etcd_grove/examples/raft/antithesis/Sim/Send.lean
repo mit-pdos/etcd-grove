@@ -120,6 +120,14 @@ theorem send_prop_eq (hty : q.ty = .propose) :
     pure_bind, epure]
   rfl
 
+/-- A pre-vote request or response (B 702 `isUnmodelled`) changes nothing. -/
+theorem send_pre_eq (hty : q.ty = .preVote ∨ q.ty = .preVoteResp) (hsrc : q.src = nodeId n) :
+    S.step (evSend (nodeId n) b q) = .ok (some (sendS S n.val S.msgs S.confirmed)) := by
+  rcases hty with hty | hty <;>
+  send_simp [hsrc, beq_self_eq_true, orM_true, Bool.not_true, isUnmodelled, Bool.or_true, Bool.true_or,
+    Bool.false_eq_true, ite_false, ite_true, eok_bind, isReq, need, Msg.typ, pure_bind, epure]
+  all_goals rfl
+
 theorem send_appRespRej_eq (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hrej : q.reject = true) :
     S.step (evSend (nodeId n) b q) = .ok (some (sendS S n.val S.msgs S.confirmed)) := by
   send_simp [hsrc, beq_self_eq_true, orM_true, Bool.not_true,
@@ -194,12 +202,13 @@ theorem send_stale_eq (hty : q.ty = .appResp) (hsrc : q.src = nodeId n) (hrej : 
   rfl
 
 omit hc hsrv hne in
-/-- `SendOk` of a `send` that adds no fact. -/
-theorem SendOk.plain {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : Msg} (hsh : Shape R S)
+/-- `SendOk` of a `send` that adds no fact, any type in scope. -/
+theorem SendOk.plainP {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : Msg} (hsh : Shape R S)
     (hb : BindingOk R dec S)
     (hty : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
-      q.ty = .heartbeatResp ∨ q.ty = .propose)
-    (hsrc : q.src = nodeId n ∧ uint.Z q.term ≤ S.currentTerm[n.val]!) (hdst : ∃ j : Fin R.N, q.dst = nodeId j)
+      q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp)
+    (hsrc : q.src = nodeId n ∧ (PreTermKeep q ∨ uint.Z q.term ≤ S.currentTerm[n.val]!))
+    (hpvo : PreVoterOk R q) (hdst : ∃ j : Fin R.N, q.dst = nodeId j)
     (hreq : (q.ty = .app ∨ q.ty = .heartbeat) → (toAppendFact (msgOf q q.dst) >>= S.sendable) = .ok true)
     (hvote : q.ty = .vote → ∃ f, voteFact (msgOf q q.dst) = .ok f ∧ f ∈ S.msgs)
     (hgrant : ¬ (q.ty = .voteResp ∧ q.reject = false))
@@ -218,6 +227,7 @@ theorem SendOk.plain {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : M
   acks := hb.2.2.2.2.2.1 n
   ty := hty
   src := hsrc
+  pvo := hpvo
   dst := hdst
   req := hreq
   vote := hvote
@@ -227,6 +237,26 @@ theorem SendOk.plain {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : M
   cmono := .inl rfl
   hb := hhb
   lcm := hlcm
+
+omit hc hsrv hne in
+/-- `SendOk` of a `send` that adds no fact. -/
+theorem SendOk.plain {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q : Msg} (hsh : Shape R S)
+    (hb : BindingOk R dec S)
+    (hty : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
+      q.ty = .heartbeatResp ∨ q.ty = .propose)
+    (hsrc : q.src = nodeId n ∧ uint.Z q.term ≤ S.currentTerm[n.val]!) (hdst : ∃ j : Fin R.N, q.dst = nodeId j)
+    (hreq : (q.ty = .app ∨ q.ty = .heartbeat) → (toAppendFact (msgOf q q.dst) >>= S.sendable) = .ok true)
+    (hvote : q.ty = .vote → ∃ f, voteFact (msgOf q q.dst) = .ok f ∧ f ∈ S.msgs)
+    (hgrant : ¬ (q.ty = .voteResp ∧ q.reject = false))
+    (hack : ¬ (q.ty = .appResp ∧ q.reject = false ∧ q.index ≠ W64 0))
+    (hhb : q.ty = .heartbeat → ∀ j : Fin R.N, q.dst = nodeId j → S.currentTerm[j.val]! ≤ uint.Z q.term →
+      ((S.confirmed[j.val]!).term = uint.Z q.term ∧ uint.Z q.commit ≤ (S.confirmed[j.val]!).index) ∨
+        uint.Z q.commit ≤ S.commitIndex[j.val]!)
+    (hlcm : (q.ty = .app ∨ q.ty = .heartbeat) → S.role[n.val]! ≠ follower →
+      S.currentTerm[n.val]! = uint.Z q.term → uint.Z q.commit ≤ S.commitIndex[n.val]!) :
+    SendOk R S n q S.msgs S.confirmed :=
+  SendOk.plainP hsh hb (by rcases hty with h | h | h | h | h | h | h <;> simp [h]) ⟨hsrc.1, .inr hsrc.2⟩
+    (fun _ => by rcases hty with h | h | h | h | h | h | h <;> simp [h]) hdst hreq hvote hgrant hack hhb hlcm
 
 omit hc hsrv hne in
 /-- A leader's commit index as C3 has it, for `Sendable`'s `RecordedIn` of a request's commit `c` at
@@ -432,7 +462,8 @@ theorem SendOk.ofGrant {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q :
     · exact hb.2.2.2.2.2.1 n a h ht hs hte
     · subst h; exact absurd ht grant_ne_ack
   ty := .inr (.inl hty)
-  src := ⟨hsrc, hterm⟩
+  src := ⟨hsrc, .inr hterm⟩
+  pvo := fun _ => by simp [hty]
   dst := ⟨j, hj⟩
   req := fun h => by rcases h with h | h <;> rw [hty] at h <;> cases h
   vote := fun h => by rw [hty] at h; cases h
@@ -467,7 +498,8 @@ theorem SendOk.ofStale {R : RunCfg} {dec : CCDec} {S : State} {n : Fin R.N} {q m
     · exact hb.2.2.2.2.2.1 n a h ht hs hte
     · subst h; exact .inr (Int.le_refl _)
   ty := .inr (.inr (.inr (.inl hty)))
-  src := ⟨hsrc, hterm⟩
+  src := ⟨hsrc, .inr hterm⟩
+  pvo := fun _ => by simp [hty]
   dst := ⟨j, hj⟩
   req := fun h => by rcases h with h | h <;> rw [hty] at h <;> cases h
   vote := fun h => by rw [hty] at h; cases h
@@ -506,7 +538,8 @@ theorem SendOk.ofAck {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {G 
      conf := ?_
      acks := ?_
      ty := .inr (.inr (.inr (.inl hty)))
-     src := ⟨hsrc, by omega⟩
+     src := ⟨hsrc, .inr (by omega)⟩
+     pvo := fun _ => by simp [hty]
      dst := ⟨j, hj⟩
      req := fun h => by rcases h with h | h <;> rw [hty] at h <;> cases h
      vote := fun h => by rw [hty] at h; cases h
@@ -601,7 +634,7 @@ variable [GooseExts]
 node, an append's payload `AppOk`'s, a forwarded proposal at term `0`. -/
 theorem pendOk_shape {N : Nat} {id : w64} {v : NodeView} {q : Msg} (h : PendOk N id v q)
     (hty : q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .heartbeat ∨
-      q.ty = .heartbeatResp ∨ q.ty = .propose) : MsgShape q := by
+      q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp) : MsgShape q := by
   obtain ⟨hne, -, hc⟩ := h
   have key : q.src = id ∧ (q.ty = .app → AppPayloadOk q) ∧ (q.ty = .propose → q.term = W64 0) := by
     cases hq : q.ty <;> simp only [hq] at hc
@@ -616,11 +649,13 @@ theorem pendOk_shape {N : Nat} {id : w64} {v : NodeView} {q : Msg} (h : PendOk N
     case appResp => exact ⟨hc.1, fun h => (nomatch h), fun h => (nomatch h)⟩
     case heartbeatResp => exact ⟨hc.1, fun h => (nomatch h), fun h => (nomatch h)⟩
     case propose => exact ⟨hc.1, fun h => (nomatch h), fun _ => hc.2⟩
+    case preVote => exact ⟨hc.1, fun h => (nomatch h), fun h => (nomatch h)⟩
+    case preVoteResp => exact ⟨hc.1, fun h => (nomatch h), fun h => (nomatch h)⟩
     all_goals (exfalso; rw [hq] at hty; simp at hty)
   exact ⟨key.2.1, fun e => hne (e.symm.trans key.1), key.2.2⟩
 
-/-- **`send`** (`drain`, B 510-593), for the runs a mask below `mskB1a` admits (sync). -/
-theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
+/-- **`send`** (`drain`, B 510-593), for the runs a mask below `mskB1p` admits (sync). -/
+theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1p) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (q : Msg)
       (rest : List Msg),
@@ -630,13 +665,13 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
       SimStep R dec evs G (evSend (nodeId n) (V n).byE q)
         (setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet := by
   intro R dec S V net xnet evs G n q rest hin ⟨hp, hs, hl, hgo⟩ hasync hpend htold hmf
-  obtain ⟨hmd, _, hbt, hpar, hspl, _, _, _⟩ := hin.b1a hmsk
+  obtain ⟨hmd, hbt, hpar, hspl, _, _, _⟩ := hin.b1p hmsk
   have hq7 : q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .heartbeat ∨
-      q.ty = .heartbeatResp ∨ q.ty = .propose := by
+      q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp := by
     have := ((hs.2.2.2.2 n).facts.pendMask q (by rw [hpend]; exact List.mem_cons_self)).2.2
     rw [hmd] at this
     simp only [NetTy] at this
-    rcases this with (h | h | h | h | h | h | ⟨h0, -⟩ | ⟨h0, -⟩ | ⟨h0, -⟩) | h
+    rcases this with (h | h | h | h | h | h | ⟨-, h | h⟩ | ⟨h0, -⟩ | ⟨h0, -⟩) | h
     all_goals first | (exact absurd h0 (by decide)) | simp [h]
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
   have hsync : ∀ k, (V k).dur = durOf (V k).r := fun k => ((hs1.2.2.2.2 k).sync hasync hbt hspl hpar).2.1
@@ -841,6 +876,33 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1a) :
           have hqi : uint.Z q.index = S1.commitIndex[n.val]! := by rw [hcmt, s2]
           exact ⟨_, _, send_stale_eq n q _ hc hsrv hne' hty h1 hrej m hpd hmty hmt hi' hsd hqd hqtZ hG hst hqi,
             SendOk.ofStale hsh hb hty h1 (by omega) j hj hqd hqtZ hqi⟩
+  case preVote =>
+    obtain ⟨h1, hvt⟩ := hcase
+    exact ⟨_, _, send_pre_eq n q _ hc hsrv hne' (.inl hty) h1,
+      SendOk.plainP hsh hb (by simp [hty]) ⟨h1, .inl (.inl hty)⟩
+        (fun hcc => ⟨fun _ => by rw [h1]; rw [(hf.conf0 hcc).1, CfgM.voters_simple] at hvt; exact hvt,
+          fun h => nomatch hty.symm.trans h⟩) ⟨j, hj⟩
+        (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))
+        (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h.1)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h)
+        (fun h _ _ => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))⟩
+  case preVoteResp =>
+    obtain ⟨h1, hgr, hrjt⟩ := hcase
+    have hsrc : PreTermKeep q ∨ uint.Z q.term ≤ S1.currentTerm[n.val]! := by
+      cases hrej : q.reject
+      · exact .inl (.inr ⟨hty, hrej⟩)
+      · exact .inr (Int.le_of_eq (by rw [hct, hrjt hrej]))
+    have hpvo : PreVoterOk R q := by
+      refine fun hcc => ⟨fun h => (nomatch hty.symm.trans h), fun _ hrej => ?_⟩
+      obtain ⟨m, hcm, hmty, hqd⟩ := hgr hrej
+      obtain ⟨hmn, -⟩ := hca m hcm
+      rw [hqd]; exact (hnet.2.2.2.2.2 m hmn hcc).1 hmty
+    exact ⟨_, _, send_pre_eq n q _ hc hsrv hne' (.inr hty) h1,
+      SendOk.plainP hsh hb (by simp [hty]) ⟨h1, hsrc⟩ hpvo ⟨j, hj⟩
+        (fun h => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))
+        (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h.1)
+        (fun h => nomatch hty.symm.trans h.1) (fun h => nomatch hty.symm.trans h)
+        (fun h _ _ => h.elim (fun h => nomatch hty.symm.trans h) (fun h => nomatch hty.symm.trans h))⟩
   all_goals (exfalso; rw [hty] at hq7; simp at hq7)
 
 end main

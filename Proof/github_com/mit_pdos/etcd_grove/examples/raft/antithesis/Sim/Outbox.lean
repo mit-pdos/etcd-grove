@@ -284,9 +284,9 @@ theorem pendOk_preVote {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
 
 theorem pendOk_preVoteResp {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
     (hd : ∃ j : Fin N, q.dst = nodeId j) (hty : q.ty = .preVoteResp) (hs : q.src = id)
-    (hg : q.reject = false → ∃ m, w.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src) :
-    PendOk N id w q := by
-  unfold PendOk; rw [hty]; exact ⟨hne, hd, hs, hg⟩
+    (hg : q.reject = false → ∃ m, w.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src)
+    (hrj : q.reject = true → q.term = w.ps.term) : PendOk N id w q := by
+  unfold PendOk; rw [hty]; exact ⟨hne, hd, hs, hg, hrj⟩
 
 /-- A campaign's messages (`CampaignSends`, from a state with nothing queued): its vote requests. -/
 theorem outOk_campaignSends {c : CfgM} {id : w64} {w : NodeView} {X s' : PState} {cl : List w8}
@@ -311,15 +311,16 @@ theorem outOk_recvP {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {m : Ms
     exact ⟨hne, hd, rfl, hby, .inr ⟨m, hca, hty, rfl, hlt, rfl⟩⟩
   · intro q hq hne hd
     rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
-    exact pendOk_preVoteResp hne hd rfl rfl fun h => absurd h (by simp [Msg.plain])
+    exact pendOk_preVoteResp hne hd rfl rfl (fun h => absurd h (by simp [Msg.plain])) fun _ => rfl
   · exact outOk_nil hX
   · rcases hpv with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · intro q hq hne hd
       rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
-      exact pendOk_preVoteResp hne hd rfl rfl fun _ => ⟨m, hca, hty, rfl⟩
+      exact pendOk_preVoteResp hne hd rfl rfl (fun _ => ⟨m, hca, hty, rfl⟩)
+        fun h => absurd h (by simp [Msg.plain])
     · intro q hq hne hd
       rw [List.mem_singleton.mp (mem_psend hX hq)] at hne hd ⊢
-      exact pendOk_preVoteResp hne hd rfl rfl fun h => absurd h (by simp [Msg.plain])
+      exact pendOk_preVoteResp hne hd rfl rfl (fun h => absurd h (by simp [Msg.plain])) fun _ => rfl
   · exact outOk_nil (s := pbecomeFollower s _ _) hX
   · exact outOk_nil hX
   · exact outOk_campaignSends hX hcs
