@@ -35,8 +35,8 @@ def reqMd [GooseExts] (who : GoString) : Option (GoString → Option (List GoStr
   if who = go!"bad" then metadata.mdAdd none go!"token" etcd_auth.badToken else none
 
 /-- **`reqCtx`'s metadata is admitted by the auth-on contracts**: no token for every principal but the
-bad one, whose `badtoken` has no simple token's shape (`etcd_auth.simpleTok_ne_badToken`), admitted for an
-anonymous principal. -/
+bad one, whose `badtoken` (with no `Bearer ` prefix) has no simple token's shape
+(`etcd_auth.simpleTok_ne_badToken`), admitted for an anonymous principal; no `authorization` key. -/
 theorem outTokOk_reqMd [GooseExts] (P : Option GoString) (who : GoString)
     (h : who = go!"bad" → P = none) : outTokOk P (reqMd who) := by
   unfold reqMd
@@ -44,16 +44,21 @@ theorem outTokOk_reqMd [GooseExts] (P : Option GoString) (who : GoString)
   · rw [if_pos hw]
     right
     refine ⟨h hw, ?_⟩
-    intro t ht hsh
-    rw [metadata.mdVals_mdAdd] at ht
-    simp only [metadata.mdVals, Option.bind_none, Option.getD_none, List.nil_append,
-      List.mem_singleton] at ht
-    subst ht
-    obtain ⟨pre, idx, he, -⟩ := hsh
-    exact etcd_auth.simpleTok_ne_badToken pre idx he.symm
+    intro k hk t ht hsh
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hk
+    rcases hk with rfl | rfl
+    · rw [metadata.mdVals_mdAdd] at ht
+      simp only [metadata.mdVals, Option.bind_none, Option.getD_none, List.nil_append,
+        List.mem_singleton] at ht
+      subst ht
+      rw [etcd_auth.trimPrefix_badToken] at hsh
+      obtain ⟨pre, idx, he, -⟩ := hsh
+      exact etcd_auth.simpleTok_ne_badToken pre idx he.symm
+    · -- `reqCtx` adds `token` only
+      simp [metadata.mdVals, metadata.mdAdd] at ht
   · rw [if_neg hw]
     left
-    rfl
+    exact ⟨rfl, rfl⟩
 
 section client
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]

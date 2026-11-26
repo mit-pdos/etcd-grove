@@ -84,7 +84,7 @@ theorem grantPut.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -, #Hgout, -⟩
   (try wp_auto)
   wp_apply (wp_Grant cl lp addr V Γ mid cfg γR L₀ n₀ gctx gcd none (W64 9000000000) Qg Hau Hls Hauth Hrev HγR
-      (by left; rfl)) $$ [$Hlt] as %gr %gerr ⟨Hlt, Hg⟩
+      (outTokOk_none _)) $$ [$Hlt] as %gr %gerr ⟨Hlt, Hg⟩
   · iframe #
   (try wp_auto)
   wp_apply Hgcancel
@@ -128,7 +128,7 @@ theorem grantPut.wp_proof
   (try wp_auto)
   have hok := opPutModel_lease_ok' k mg.id
   wp_apply (wp_Put cl api [addr] V Γ cfg γR L₀ pctx pcd none k go!"v" _ [withLeaseM mg.id] (Qp mg.id)
-      Hauth HγR (by left; rfl)) $$ [$Hlt] as %presp %perr ⟨Hlt, Hp⟩
+      Hauth HγR (outTokOk_none _)) $$ [$Hlt] as %presp %perr ⟨Hlt, Hp⟩
   · iframe #
     ipureintro
     exact ⟨⟨hok.1, hok.2, Or.inr Hrev⟩, hsz mg.id⟩

@@ -46,7 +46,7 @@ The vocabulary (see the note, "The view"):
 * the error arm is `err ≠ nil ∧ resp = null` and claims nothing: `ErrInvalidAuthToken`, an expired token
   (the member's TTL keeper), a token another member has not yet applied, `ErrAuthOldRevision`,
   `ErrUserEmpty`, `ErrPermissionDenied` are all returned errors there, and no premise asks for a valid token
-  (only `outTokOk`: the caller adds no issued token of its own).
+  (only `outTokOk`: the caller adds no issued token of its own, under `token` or `authorization`).
 -/
 module
 
@@ -63,6 +63,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKVOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.go_etcd_io.etcd.server.v3.auth.Reads
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthTieRead
 
 @[expose] public section
 
@@ -91,12 +92,21 @@ the member), or `P`'s own name. -/
 def userOk (P : Option GoString) (user : GoString) : Prop :=
   user = (zeroValDef : GoString) ∨ P = some user
 
-/-- **A context's outgoing token is no issued one**: no `token` metadata, or (an anonymous client only)
-values none of which has the simple provider's shape (`auth.tokShape`: `<prefix>.<index>`), so no member
-issued it (authLease's `badtoken`). -/
+/-- **A context's outgoing token is no issued one**: no `token` and no `authorization` metadata, or (an
+anonymous client only) values under either key none of which, its `Bearer ` prefix trimmed, has the simple
+provider's shape (`auth.tokShape`: `<prefix>.<index>`), so no member issued it (authLease's `badtoken`).
+
+Both keys (F7 S5 review, `notes/axiom-review/f7-s5-review.md` §1, 2026-11-26: until then `token` only, which
+was UNSOUND): the server's `AuthInfoFromCtx` (`server/auth/store.go:1072`, `auth.mdTokenOf`) reads `token`
+and, when it is absent, `authorization`, each with an optional `Bearer ` prefix trimmed; an anonymous client
+sending root's token under `authorization` is served as root (Go test `notes/axiom-review/f7-s5-gotest/`). -/
 def outTokOk [GooseExts] (P : Option GoString) (om : GrpcMd) : Prop :=
-  metadata.mdVals om go!"token" = [] ∨
-    (P = none ∧ ∀ t ∈ metadata.mdVals om go!"token", ¬ auth.tokShape t)
+  (metadata.mdVals om go!"token" = [] ∧ metadata.mdVals om go!"authorization" = []) ∨
+    (P = none ∧ ∀ k ∈ [go!"token", go!"authorization"], ∀ t ∈ metadata.mdVals om k,
+      ¬ auth.tokShape (strings.trimPrefix t go!"Bearer "))
+
+/-- No outgoing metadata (the contexts `New`'s and `NewClients`' clients are called with) sends no token. -/
+theorem outTokOk_none [GooseExts] (P : Option GoString) : outTokOk P none := Or.inl ⟨rfl, rfl⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -180,12 +190,18 @@ Why it holds of etcd (`notes/axiom-review/f7-getOn-n1.md`, retirement obligation
 the cap `bootState :: admStates ρ.kv st₀ A` (`authOwn_capped`); a position at or after the floor's is the
 floor's state (`L' := L`) or the state after a later admin entry of `A` (`L'` the prefix of `A` through it,
 which extends `L`). It is what a later member-local lease check at index `≥ m` (`leaseCheckD`) is read
-against: the cross-machine form of the single-process `akAuthFixed`. -/
+against: the cross-machine form of the single-process `akAuthFixed`.
+
+Under a fancy update at a mask holding `authTieReadMask` (F7 S5 review, `notes/axiom-review/f7-s5-review.md`
+§2.2, 2026-11-26: until then a plain persistent wand, false in the logic: the log fragment `srvReqLogLb γR L'`
+of a state recorded after the floor exists only inside the tie's invariant `authTieN`, so it is obtained by
+opening it, as `akAuthFixed` states, `examples/etcd/auth/WorkEnv.lean`). -/
 def authFloorD (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
     (L₀ : List EntryModel) (m : Nat) : IProp GF :=
   iprop(auth.authPubLbM (.on (Γ.au mid)) m ∗ ∃ (L : List EntryModel) (i : Nat), ⌜L₀ <+: L ∧ i ≤ m⌝ ∗
     srvReqLogLb γR L ∗ auth.authStateAt (Γ.au mid) i (srvAuthAtLog Γ.kv srvAuthSt0 L) ∗
-    □ (∀ (j : Nat) (st : auth.AuthState), ⌜i ≤ j⌝ -∗ auth.authStateAt (Γ.au mid) j st -∗
+    □ (∀ (E' : CoPset) (j : Nat) (st : auth.AuthState), ⌜authTieReadMask ⊆ E' ∧ i ≤ j⌝ -∗
+      auth.authStateAt (Γ.au mid) j st ={E'}=∗
       ∃ L' : List EntryModel, ⌜L₀ <+: L' ∧ st = srvAuthAtLog Γ.kv srvAuthSt0 L'⌝ ∗ srvReqLogLb γR L'))
 
 /-- **A successful linearizable range's check** (persistent; `v3rpc.rangeAuthed` at the cluster):

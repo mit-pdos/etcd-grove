@@ -52,7 +52,7 @@ abbrev foreign.spec : Prop :=
       writeAuD Γ.kv (principalOf cfg) (.leaseRevoke id) L₀ Qr ∗
       □ (∀ σ : KVState, Qr σ -∗ writeCheckedD [addr] Γ γR (principalOf cfg) (irrLeaseRevoke id) L₀ -∗
           R ={⊤}=∗ False) ∗
-      □ (∀ n j : Nat, ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ -∗
+      □ (∀ (n j : Nat), ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ -∗
           leaseCheckD (Γ.au mid) (principalOf cfg) n
             (fun info => leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id .read) -∗
           R ={⊤}=∗ False) ∗

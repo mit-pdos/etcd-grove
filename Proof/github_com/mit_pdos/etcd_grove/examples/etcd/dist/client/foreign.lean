@@ -121,7 +121,7 @@ theorem foreign.wp_proof
   (try wp_auto)
   icases Hr with (⟨-, %ids, %sl, %j, %n, -, -, %Hjn, Hids, -, Hck⟩ | %Herr)
   · iapply fupd_wp
-    imod HnoL $$ %n %j %ids %⟨Hjn.2, Hjn.1⟩ Hids Hck HR with ⟨⟩
+    imod HnoL $$ %n %j %ids %(⟨Hjn.2, Hjn.1⟩) Hids Hck HR with ⟨⟩
   wp_apply (wp_refused who _ err Herr.1)
   (try wp_auto)
   iapply HΦ; iframe Hlt HR

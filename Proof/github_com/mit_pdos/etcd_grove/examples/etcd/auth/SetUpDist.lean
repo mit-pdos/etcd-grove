@@ -83,7 +83,7 @@ theorem SetUp.wp_proof_dist
       etcd_dist.authd.writeAuD Γ.kv (etcd_dist.authd.principalOf cfg)
         (.put (putWireOf (opPutModel k go!"setup" []))) L₀ (fun _ => iprop(True)) : IProp GF) $$ []
   · rw [hP]; iexact Hkv
-  have hom : etcd_dist.authd.outTokOk (etcd_dist.authd.principalOf cfg) none := Or.inl rfl
+  have hom : etcd_dist.authd.outTokOk (etcd_dist.authd.principalOf cfg) none := etcd_dist.authd.outTokOk_none _
   imod (setup_alloc Γ.kv ⊤) $$ Hview with ⟨%γz, #Hc, #Hn⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

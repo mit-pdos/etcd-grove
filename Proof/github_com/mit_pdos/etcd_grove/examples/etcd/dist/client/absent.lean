@@ -76,7 +76,7 @@ theorem absent.wp_proof
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave Hres := optsAt_res slice.nil [] iprop(True) $$ Hnil
   wp_apply (wp_Get root api [addr] V Γ cfg γR L₀ ectx ecd none k slice.nil [] iprop(True) Q Hau Hauth HγR
-      (by left; rfl)) $$ [$Hlt $Hres] as %resp %err ⟨Hlt, -, Hout⟩
+      (outTokOk_none _)) $$ [$Hlt $Hres] as %resp %err ⟨Hlt, -, Hout⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel k []).base.sortSet = false from rfl]

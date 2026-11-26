@@ -4,7 +4,7 @@ cluster's auth history at `hs` (`authHistFrozen`, at a committed prefix `Lset` w
 and a barrier left a member's floor above it (`authFloorD … L₀ m`, `Lset <+: L₀`), every state the member
 records from the floor on is `setupSt r` (`authFloorD_frozen`): the cross-machine form of the single-process
 `akAuthFixed`. Each such state is the history's after a committed prefix `L' ⊒ L₀` (`authFloorD`'s last
-conjunct), whose admin states are a lower bound of the history (`authHistLb_of_reqLogLb`, the KV invariant),
+conjunct, an update at a mask holding `authTieReadMask`), whose admin states are a lower bound of the history (`authHistLb_of_reqLogLb`, the KV invariant),
 so a prefix of the frozen `hs` (`authHistFrozen_prefix`); they extend `Lset`'s, which are `hs`, so they are
 `hs`, and the state is `hs`'s last. An anonymous principal's lease check at or above the floor is then
 refuted (`leaseCheckD_none_frozen`): `setupSt` has auth enabled, and `P = none` binds no user. Also the dist
@@ -57,10 +57,11 @@ theorem authFloorD_frozen (Γ : DistView) (γR : ServerRaftNames) (mid : w64) (L
     (m : Nat) (γz : GName) (hs : List auth.AuthState) (r : Nat) (hLs : Lset <+: L₀)
     (hadm : admStates Γ.kv srvAuthSt0 Lset = hs)
     (hst : srvAuthAtLog Γ.kv srvAuthSt0 Lset = etcd_auth.setupSt r)
-    (E : CoPset) (hE1 : ↑kvN ⊆ E) (hE2 : ↑authHistN ⊆ E) :
+    (E : CoPset) (hE : authTieReadMask ⊆ E) :
     ⊢ kvInvOn (GF := GF) γR Γ.kv srvAuthSt0 -∗ authHistFrozen Γ.kv γz hs -∗ authFloorD Γ γR mid L₀ m -∗
       ∃ i : Nat, ⌜i ≤ m⌝ ∗ □ (∀ (j : Nat) (st : auth.AuthState), ⌜i ≤ j⌝ -∗
         auth.authStateAt (Γ.au mid) j st ={E}=∗ ⌜st = etcd_auth.setupSt r⌝) := by
+  obtain ⟨-, hE1, hE2, -, -⟩ := authTieReadMask_sub E hE
   iintro #Hinv #Hfz #Hfl
   iunfold authFloorD at Hfl
   icases Hfl with ⟨-, %L, %i, %Hi, -, -, #Hall⟩
@@ -69,9 +70,8 @@ theorem authFloorD_frozen (Γ : DistView) (γR : ServerRaftNames) (mid : w64) (L
   · ipureintro; exact Hi.2
   imodintro
   iintro %j %st %Hj #Hst
-  ispecialize Hall $$ %j %st
-  ihave ⟨%L', %HL', #HL'lb⟩ := Hall $$ [] Hst
-  · ipureintro; exact Hj
+  ispecialize Hall $$ %E %j %st
+  imod (Hall $$ %(⟨hE, Hj⟩) Hst) with ⟨%L', %HL', #HL'lb⟩
   imod authHistLb_of_reqLogLb γR Γ.kv srvAuthSt0 L' E hE1 $$ Hinv HL'lb with #Hlb
   imod authHistFrozen_prefix Γ.kv γz hs _ E hE2 $$ Hfz Hlb with %hp
   imodintro
