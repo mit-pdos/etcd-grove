@@ -2,12 +2,11 @@
 
 # `mvccfull`: the run's file names
 
-`Main`'s files by name (`mvccfullNames`, until 2026-11-24 in `TopLevelDefs.lean`, a name of the
-top-level statement's premise `Habs`) and their facts: pairwise distinct, each a valid name of at most
-255 bytes, and `FilePaths` at the prefix `r/mvccfull` is them under `r` (`filePaths_at`); and
-`MainConfig`'s configuration in `Run`'s scope (`mainConfig_okAt`). Moved unchanged out of
-`Adequacy.lean` (P3 of the pure-premise plan, 2026-11-24), so that `MainAt`'s proof, which checks the
-names itself, takes them (CLAUDE.md, "Import tiers").
+A run's files by name (`runNames ops`, for `ops` operations; until 2026-11-26 `mvccfullNames`,
+`Main`'s 12000) and their facts: pairwise distinct, each a valid name, of at most 255 bytes for
+fewer than `2 ^ 38` operations, and `FilePaths` at the prefix `r/mvccfull` is them under `r`
+(`filePaths_at`); and `MainConfig`'s configuration in `Run`'s scope (`mainConfig_okAt`). `MainAt`'s
+proof, which checks the names itself, takes them (CLAUDE.md, "Import tiers").
 -/
 module
 
@@ -37,10 +36,12 @@ namespace mvccfull
 
 open github_com.mit_pdos.etcd_grove.examples.mvccfull
 
-/-- **`Main`'s files, by name** (`FilePaths(MainConfig("mvccfull"))`): the members' `mvccfull-0.db`,
-`mvccfull-1.db` and the builders' `mvccfull-b<n>.db`. -/
-def mvccfullNames [GooseExts] [GoGlobalContext] : List GoString :=
-  filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix))
+/-- **A run's files, by name**, for `ops` operations (`FilePaths` of a configuration with the prefix
+`mvccfull`): the members' `mvccfull-0.db`, `mvccfull-1.db` and the builders' `mvccfull-b<n>.db`,
+`n` from 1 to `ops`. -/
+def runNames [GooseExts] (ops : w64) : List GoString :=
+  [memberPathM go!"mvccfull" 0, memberPathM go!"mvccfull" 1] ++
+    (List.range' 1 (sint.nat ops)).map (buildPathM go!"mvccfull")
 
 end mvccfull
 
@@ -130,14 +131,14 @@ theorem buildPathM_ne1 (n : Nat) : buildPathM go!"mvccfull" n ≠ memberPathM go
   unfold buildPathM memberPathM
   simp [itoaM, decDigits_pos 1 (by decide), decDigits_zero]
 
-/-- **`Main`'s files are distinct** (`goose_adequacy_start_files`' `Fs.Nodup`): the members'
-`mvccfull-0.db`, `mvccfull-1.db` and the builders' `mvccfull-b<n>.db`. -/
-theorem filePaths_main_nodup [GooseExts] [GoGlobalContext] (mx : Mix) : (filePathsM (mainConfigM go!"mvccfull" mx)).Nodup := by
-  unfold filePathsM
+/-- **A run's files are distinct**: the members' `mvccfull-0.db`, `mvccfull-1.db` and the builders'
+`mvccfull-b<n>.db`. -/
+theorem runNames_nodup [GooseExts] (ops : w64) : (runNames ops).Nodup := by
+  unfold runNames
   rw [List.nodup_append]
   refine ⟨?_, ?_, ?_⟩
   · simp [memberPathM, itoaM, decDigits_pos 1 (by decide), decDigits_zero]
-  · exact List.pairwise_map.2 ((List.nodup_range' (s := 1) (n := sint.nat (W64 12000))).imp fun h e => h (buildPathM_inj _ _ e))
+  · exact List.pairwise_map.2 ((List.nodup_range' (s := 1) (n := sint.nat ops)).imp fun h e => h (buildPathM_inj _ _ e))
   · intro x hx y hy hxy
     subst hxy
     simp only [List.mem_map] at hy
@@ -195,38 +196,38 @@ theorem buildPathM_child (r p : GoString) (k : Nat) :
     buildPathM (Fs.child r p) k = Fs.child r (buildPathM p k) := by
   simp [buildPathM, Fs.child, List.append_assoc]
 
-/-- The files of the run at the prefix `r/mvccfull` are the names in the directory `r`. -/
-theorem filePaths_at [GooseExts] [GoGlobalContext] (r : GoString) (mx : Mix) :
-    filePathsM (mainConfigM (Fs.child r go!"mvccfull") mx) = mvccfullNames.map (Fs.child r) := by
-  unfold mvccfullNames filePathsM mainConfigM
+/-- The files of a run at the prefix `r/mvccfull` are the names in the directory `r`. -/
+theorem filePaths_at [GooseExts] (r : GoString) (cfg : Config)
+    (hp : cfg.Prefix' = Fs.child r go!"mvccfull") :
+    filePathsM cfg = (runNames cfg.Ops').map (Fs.child r) := by
+  unfold runNames filePathsM
+  rw [hp]
   simp only [memberPathM_child, List.map_append, List.map_cons, List.map_nil, List.map_map]
   congr 1
   apply List.map_congr_left
   intro k _
   simp [buildPathM_child]
 
-theorem mvccfullNames_nodup [GooseExts] [GoGlobalContext] : mvccfullNames.Nodup := filePaths_main_nodup _
-
-/-- Each of `Main`'s files is a name. -/
-theorem mvccfullNames_ok [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullNames, NameOk b := by
+/-- Each of a run's files is a name. -/
+theorem runNames_ok [GooseExts] (ops : w64) : ∀ b ∈ runNames ops, NameOk b := by
   intro b hb
-  unfold mvccfullNames filePathsM at hb
+  unfold runNames at hb
   rcases List.mem_append.1 hb with h | h
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
     rcases h with rfl | rfl <;> apply nameOk_of <;>
       first
-      | (simp [memberPathM, mainConfigM]; done)
+      | (simp [memberPathM]; done)
       | (intro c hc
-         simp only [memberPathM, mainConfigM, List.mem_append] at hc
+         simp only [memberPathM, List.mem_append] at hc
          rcases hc with (hc | hc) | hc
          · revert c; decide
          · have := itoaM_mem _ c hc; omega
          · revert c; decide)
   · obtain ⟨k, -, rfl⟩ := List.mem_map.1 h
     apply nameOk_of
-    · simp [buildPathM, mainConfigM]
+    · simp [buildPathM]
     · intro c hc
-      simp only [buildPathM, mainConfigM, List.mem_append] at hc
+      simp only [buildPathM, List.mem_append] at hc
       rcases hc with (hc | hc) | hc
       · revert c; decide
       · have := itoaM_mem k c hc; omega
@@ -245,27 +246,27 @@ theorem decDigits_length_le' : ∀ (k n : Nat), n < 10 ^ k → (decDigits n).len
       have := decDigits_length_le' k (n / 10) (by rw [Nat.pow_succ] at h; omega)
       omega
 
-/-- Each of `Main`'s files is a name of at most 255 bytes (wal-fsfix, 2026-11-20: with `Fs.DirFits r`,
-its path fits, `PathFits`). -/
-theorem mvccfullNames_len [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullNames, b.length ≤ 255 := by
+/-- Each of a run's files is a name of at most 255 bytes, for fewer than `2 ^ 38` operations
+(wal-fsfix, 2026-11-20: with `Fs.DirFits r`, its path fits, `PathFits`). -/
+theorem runNames_len [GooseExts] (ops : w64) (hops : sint.Z ops < 2 ^ 38) :
+    ∀ b ∈ runNames ops, b.length ≤ 255 := by
   intro b hb
   have hi : ∀ n, n < 10 ^ 20 → (itoaM n).length ≤ 20 := fun n hn => by
     unfold itoaM; split
     · decide
     · exact decDigits_length_le' 20 n hn
-  unfold mvccfullNames filePathsM at hb
+  unfold runNames at hb
   rcases List.mem_append.1 hb with h | h
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
-    rcases h with rfl | rfl <;> simp [memberPathM, mainConfigM, itoaM] <;>
+    rcases h with rfl | rfl <;> simp [memberPathM, itoaM] <;>
       first | decide | (have := decDigits_length_le' 1 1 (by decide); omega)
   · obtain ⟨k, hk, rfl⟩ := List.mem_map.1 h
     have hk' : k < 10 ^ 20 := by
       rw [List.mem_range'_1] at hk
-      have : sint.nat (mainConfigM go!"mvccfull" (zeroValDef : Mix)).Ops' ≤ 12000 := by
-        simp [mainConfigM] <;> decide
+      have : sint.nat ops < 2 ^ 38 := by word
       omega
     have := hi k hk'
-    simp only [buildPathM, mainConfigM, List.length_append] at this ⊢
+    simp only [buildPathM, List.length_append] at this ⊢
     have h8 : (go!"mvccfull" : GoString).length = 8 := by decide
     have h2 : (go!"-b" : GoString).length = 2 := by decide
     have h3 : (go!".db" : GoString).length = 3 := by decide

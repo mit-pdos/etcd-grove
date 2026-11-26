@@ -57,11 +57,10 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- The program: `mvccfull`'s initialization, then `MainAt(r)`: `Main`'s run with its files in the
-directory `r` (`Run(MainConfig(r/mvccfull))`), after the program's own checks that `r` fits and that
-nothing is at any of the run's file paths (P3 of the pure-premise plan, 2026-11-24; S3e to then:
-`Run(MainConfig(r/mvccfull))`, those two facts premises of the statement; until S3e `Main()`, whose
-prefix `mvccfull` is relative). -/
+/-- The program: `mvccfull`'s initialization, then `MainAt(r)`: the tester's run of a configuration
+it draws (`drawConfig`), with its files in the directory `r`, after the program's own checks that `r`
+fits, that the configuration is in the proof's scope (`inScope`) and that nothing is at any of the
+run's file paths. -/
 def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt) #r

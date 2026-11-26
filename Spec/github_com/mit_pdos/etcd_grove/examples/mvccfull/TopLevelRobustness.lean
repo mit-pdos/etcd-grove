@@ -46,19 +46,18 @@ which fewer than `mvccfullThreads` (`2 ^ 28`) threads are live, no thread is stu
 unrecovered panic, so none of the tester's checks fails.
 
 **The program** (`mvccfullProgram r`, `TopLevelDefs.lean`): `mvccfull`'s initialization, then
-`MainAt(r)`, which returns at once unless the directory `r` fits (`dirFits`) and nothing is at any
-of the run's file paths, and otherwise runs `Run(MainConfig(r + "/mvccfull"))`.
+`MainAt(r)`, which returns at once unless the directory `r` fits (`dirFits`); draws a configuration
+`cfg` with the prefix `r + "/mvccfull"` and every other field any value (`drawConfig`); returns unless
+`cfg` is in the proof's scope (`inScope`) and nothing is at any of the run's file paths; and
+otherwise runs `Run(cfg)`.
 
-**What it covers: one configuration, `MainConfig`** (`examples/mvccfull/config.go`), not every
-`Config`. Its sizes: 12000 log operations, the keys of length 1 to 4 over `a`, `b`, `c`, values up to
-5000 bytes, 2 readers and 2 watch streams per member, 4000 reads per reader and 64 watchers on a
-member's streams between two restarts, the backend's batch limit 3, the store's compaction batch
-limit 2. Its
-`Mix`: every alternative of positive weight is among the executions; of the four of weight 0, three
-pick from values another alternative also picks (`CompactAt`'s current revision, `RangeRev`'s and
-`Start`'s compaction revision) and exclude nothing; the fourth, the readers' **corruption-checker
-hashes** (`Read`'s last: `HashByRev`, `Hashes`), is excluded, and so is `Run`'s final `hashes()`
-(`hashing(Mix.Read)` is false).
+**What it covers: every configuration in `inScope`'s range** (`examples/mvccfull/config.go`; exactly
+`Run`'s scope `runCfgOk`): fewer than `2 ^ 38` log operations, `2·Readers + 4·Streams + 3 ≤ 2 ^ 28`
+(a negative count is 0), the backend's batch limit at most `2 ^ 57` and the store's compaction batch
+limit at most `2 ^ 56`, keys of length at most 37, values' padding at most `2 ^ 20` bytes, any number
+of reads and watchers, any pauses, and every `Mix` whose read weights add up below `2 ^ 63` and
+**exclude the corruption checker's hashes** (`Read`'s last weight not positive and some other
+positive: `HashByRev`, `Hashes`, and `Run`'s final `hashes()`, excluded until stage F2 proves them).
 
 **The bounds.** `mvccfullThreads`: a cap the proof needs (the backend's reader-slot pool and the
 stores' reader tokens are sized for `2 ^ 28` threads), not a limit of the code. `mvccfullSteps`: the

@@ -111,7 +111,14 @@ Main: MainConfig Run
 # its error against `os.ErrNotExist`, `errors.IsPathErrnoNotExist.spec`, proved in `Proof/errors/`)
 dirFits:
 absent: =_root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.wp_proof
-MainAt: dirFits absent MainConfig FilePaths Run
+# (mvcc-followup, 2026-11-26) `MainAt` draws its configuration (`drawConfig`: `anyInt`, `anyInts`) and
+# runs it when it is in `Run`'s scope (`inScope`: its checks, `hashing` and `weightsFit` of the read weights)
+MainAt: dirFits absent drawConfig inScope FilePaths Run
+anyInt:
+anyInts: anyInt
+drawConfig: anyInt anyInts
+inScope: hashing weightsFit
+weightsFit:
 MainConfig: 
 Run: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds normalize walkKeys zap_NewNop memberPath runner__newMember runner__startEpoch runner__startReaders runner__write runner__stopReaders hashing runner__endEpoch runner__shut runner__open runner__checkAll
 buildPath: itoa
