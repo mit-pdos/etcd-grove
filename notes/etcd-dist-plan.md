@@ -2653,3 +2653,89 @@ added until a workload's proof reaches them.
 
 **Next (not done here).** The `Watcher` interface dispatch lemmas and the adapter bridges over a shared
 "watcher of KV `γk`" predicate (§22.3); the watch, compact and cache workloads' proofs; F4 with the first of them.
+
+## 24. N10a: watch (2026-11-26, branch `etcd-safe-n10a/2026-11-25`)
+
+#50's N10a, first half: the `watch` workload of `examples/etcd/dist/client` (`RunWatch` on the orchestrator,
+the writers on client machines of their own), for the full `etcd_safe_nocrash`, over N3's interim watch
+contracts (§22.7) as callee hypotheses. Base `etcd-safe-n3/2026-11-25` @ `923a4ae72c`. M1's files untouched.
+No new axiom, `sorry`, top-level premise or Go change. **Held, per the coordinator (relaying N3's review F3):**
+no linking module plugs in `Watch_dist.wp_proof`/`RequestProgress_dist.wp_proof`, and F4 (`Serve_dist`'s
+docstring) is not done, until the watcher-environment refactor lands (§22.5 question 3); no spec here locks
+the watcher (`kvWatcherW` is a triple at a `*watcher`, obtained only from `Watch_dist`).
+
+### 24.1 The argument (single-process `partition.MainWatch`, at the cluster's KV)
+
+`Proof/.../dist/client/WatchWorkDefs.lean` (defs):
+- **The adapter at `Γ.kv`.** The orchestrator's share holds the cluster's client half `etcdKV Γ.kv σ₀` at the boot
+  state (`σ₀.changes = [[]]`), whole: a watch deployment's only key writer is the watch workload
+  (`needsSoleWriter`, §23.4). After `GenAll` picks `trs`, `RunWatch` allocates the clients' adapter
+  (`client.kmInv_alloc`) at the plan's property `etcd_partition.wkW (trs.map pairOf)` (every revision from 2 one
+  Put of the plan). The invariant is persistent: the orchestrator hands it to the writers with their Puts.
+- **The watcher.** `kvWatcherW w γk`: `Watch_dist`'s triple at the client's `*watcher` and the KV `γk`, without
+  the client facts; `kvWatcherW_of_dist` (from `watchClientAt` and `Watch_dist` as a hypothesis).
+  `isEtcdWatcher_of_kmW`: `client.isEtcdWatcher_of_km`'s proof over it, so the single-process `Collect` plan
+  (`wp_Collect_plan`, each response by `etcd_partition.resp_km`) applies unchanged: events exact and in order
+  across reconnections, progress notifications skipping nothing, both from `Watch_dist`'s elements (§22.3).
+  (Not a corollary of the single-process bridge or vice versa: that one's post is at the environment's
+  `V.kv` with the auth row in its elements.)
+- **The writers.** `km_put_au0` (the adapter's write update after the start's `[[]]`, keeping `wkW`, keys under
+  `wk/`: `wk_genKeys_pfx`), `okFactKM_of_write`, `okFactK_of_KM` (one definition), `checkOkK_of`
+  (`MainWatch.lean`'s, copied: a proof module), `wk_watch_opts`.
+- **`KMWatch.lean` split** (it is linking: its bridge applies `watcher.wp_Watch`): everything that rests on no
+  linked result (`etcdWatchElem_of_km` and its lemmas) moved verbatim to `client/v3/KMWatchDefs.lean`, which
+  the dist defs import (tier-check ok). Names unchanged; `KMClient` and `partition.MainWatch` rebuilt green.
+
+### 24.2 The specs (`Spec/.../dist/client/`) and what is proved
+
+| Spec | Function | Statement | Proof |
+|---|---|---|---|
+| `RunWatch.spec WS` | `RunWatch` (orchestrator) | `{isPkgInit ∗ levelTok 0 ∗ eps ↦*□ addrs ∗ nodes ↦*□ ns ∗ {True} ready() {True} ∗ watchShare WS addrs ns} RunWatch(eps, nodes, nops, ready) {levelTok 0}` (no panic: `Check` holds); premises `Nonempty (WEnv GF)`, `threadBound GF ≤ 2^30`, `plainEndpoints addrs`, `0 ≤ nops`, `len(ns) * nops < 2^63` | **proved** over `Watch_dist`, `remoteWriters.specWith WS`, `GenAll`, `newClient`, `Collect`, `MaxRev`, `Check`, the four options, `time.AfterFunc`/`Timer.Stop` |
+| `remoteWriters.specWith WS` | `remoteWriters` | schema in the writer machines' share `WS Γ ns`: from `kmInv γ` (`γ.kv = Γ.kv`, `γ.W = wkW P`, `[[]]` seen) and the Puts `trs` (`len(ns) * nops`, each of `P`, small), the successful Puts, each `okFactK γ p` | **not proved** (24.4) |
+| `writerOp.spec` | `writerOp` (the writer machine's call) | from a client of `Γ` (auth off, `kvClientAt`), the Puts (read-only, of `P`, small), `kmInv γ` and `[[]]` seen: returns its log `oks` (a `[]PutRec` interface, owned) with each `okFactK γ p` | **proved** over `Writer_dist` |
+| `Writer_dist.spec` | `etcdstart.Writer` across machines | `Writer.spec` with `kvClientAt` for `isKv api γk false`, `γk := Γ.kv`; the lock invariant `wsInvT w OkF γt` (`wsInvF`, or the token `γt` once `writerOp` has taken the log out: it returns the slice it read after the lock), `Writer` holding `token γt` while it runs; the conversion over `kvRevFits` | **proved** over `KV_Put_dist` |
+| `newClient`, `checked`, `ended` | | N9a's (`etcd-safe-n9a`), verbatim but their imports (they did not build: `client.Base` alone lacks the ext instances; `KVClientDist` added) | proved (N9a's) |
+
+All modules build on the VM; `#print axioms` of `RunWatch.wp_proof`, `writerOp.wp_proof`, `Writer_dist.wp_proof`:
+no `sorryAx`, no `wp_proof` axiom (only the opaque vocabulary `grpcConn`, `etcdSvc`, ... that the statements
+name). The writer machine's `NodeMain` watch arm (`newClient(Rotate(eps, c))`, `remote.ServeClient` with
+`writerOp`) is not specified: it needs the same wire as 24.4.
+
+### 24.3 What the start must supply
+
+- **Orchestrator**: `watchShare WS addrs ns` (global, `GooseGlobalGS`): the view `Γ`, `membersAt addrs Γ`, the
+  cluster's client half `etcdKV Γ.kv σ₀` whole at the boot state (`σ₀.changes = [[]]`; no `kvPfx` split: the
+  watch deployment has no other key writer), and `WS Γ ns`. Its `levelTok 0` is the machine's. Nothing else:
+  the adapter (`kmInv`, its change list and tokens) is allocated at run time by `RunWatch`.
+- **Writer machines** (`WS`, to be defined with 24.4): each node address's report service, whose input carries
+  the orchestrator's adapter names (a ghost component of the input type: the slot records the dialer's input)
+  and whose precondition is `kmInv γ ∗ monoListLbOwn γ.ch [[]] ∗ ⌜γ.kv = Γ.kv ∧ γ.W = wkW P ∧ puts of P⌝`, the
+  output's fact `okFactK γ` of each record; per node `membersAt (rotated eps) Γ`, `Γ.auth = false`,
+  `errors.AsTarget rpctypes.EtcdError` (`Writer_dist`'s) and its call budget.
+- Pure: `Nonempty (WEnv GF)`, `threadBound GF ≤ 2^30`, plain endpoints, `0 ≤ nops ∧ len(ns) * nops < 2^63`
+  (`WellFormed`'s bounds).
+
+### 24.4 The writers' remote call: blocked on the remote library's wire (report, not done)
+
+`remote.Report.spec`/`ServeClient.spec` carry a call's input and output as Go values that are functions of their
+models (`RWire.iv`/`ov`; `wireOk`'s `EncIn` reads no memory and `DecIn`/`DecOut` return exactly the value
+encoded). `writerCodec`'s values are slices (`[]etcdstart.KV` in, `[]etcdstart.PutRec` out): `EncIn` reads the
+slice's elements and a decoder returns a fresh slice, so no `RWire` describes them. kvremote sidesteps this
+with txnlin's fixed-arity `Input`/`Output`. Two ways out:
+- (a) **the remote library's wire as persistent value predicates** (`ivAt x i`, `ovAt v o`, e.g. a slice with
+  `↦*□` of the elements): a proof refactor of `Net/.../lib/remote` (no trust); on M1's line (kvremote), so after
+  M1 lands. Recommended (no Go change).
+- (b) a Go change: `writerCodec`'s values slice-free (a fixed-arity struct cannot hold `nops` Puts; an encoded
+  string would move the codec into `writerOp`): not recommended.
+With (a), `remoteWriters`' proof is `CallAll` over `Report` per node, and `NodeMain`'s watch arm `ServeClient`
+with `writerOp.spec` as its `reportOp`.
+
+### 24.5 Checks
+
+- `etc/tier-check.py --check`: ok (208 known).
+- `etc/bounds-check.py --check`: **fails, `spec-thread` +2 in `dist/client`** (`threadBound GF ≤ 2^30` in
+  `RunWatch.spec` and N9a's `newClient.spec`, the premise `NewClients` takes); N9a/N9b's workload specs carry
+  the same. The baseline only goes down, so this needs the coordinator's decision (record the package's count,
+  or move the thread bound to the owner, `notes/bounds-plan.md`). `Writer_dist`'s revision bound is
+  `kvRevFits` (not counted).
+- TCB baseline: unchanged (nothing a root reaches is new: no linking module).
