@@ -31,13 +31,17 @@ func absent(p string) bool {
 	return err != nil && errors.Is(err, os.ErrNotExist)
 }
 
-// MainAt is Main with its files in the directory r. It runs only if r fits (dirFits) and none of the
-// files the run may create is there yet; otherwise it returns without doing anything.
+// MainAt is the tester with its files in the directory r and a Config drawn at random (drawConfig):
+// it runs only if r fits (dirFits), the Config is in the range the proof covers (inScope), and none
+// of the files the run may create is there yet; otherwise it returns without doing anything.
 func MainAt(r string) {
 	if !dirFits(r) {
 		return
 	}
-	cfg := MainConfig(r + "/mvccfull")
+	cfg := drawConfig(r + "/mvccfull")
+	if !inScope(cfg) {
+		return
+	}
 	for _, p := range FilePaths(cfg) {
 		if !absent(p) {
 			return

@@ -6,6 +6,7 @@ module
 
 public import Proof.google_golang_org.grpc.InvGrpcServer
 public import GeneratedProof.google_golang_org.grpc.health
+public import Proof.google_golang_org.grpc.InvGrpcHealth
 
 @[expose] public section
 

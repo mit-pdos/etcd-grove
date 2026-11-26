@@ -6,6 +6,7 @@ module
 
 public import Proof.google_golang_org.grpc.InvGrpcServer
 public import GeneratedProof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
+public import Proof.google_golang_org.grpc.InvGrpcStats
 
 @[expose] public section
 
