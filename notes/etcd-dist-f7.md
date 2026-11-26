@@ -1238,3 +1238,50 @@ v's Revoke refutations only the cell and `writeCheckedD`: those are not blocked.
 **Next, once decided:** the cell (`authlease/Cell.lean` is over `γk` and reusable except `cell_grantAu`, which takes
 the single-process `E`/`ρ`; at the view the grant's offer is `writeAuD Γ.kv P (.leaseGrant …) L₀`), then
 `RunAuthLease` as Handoff S3-1 items 4-5.
+
+### Handoff S5-4 (2026-11-26; `RunAuthLease` blocked: `Txn_CommitOn_dist` admits no leased write transaction)
+
+**Done** (branch `etcd-safe-f7`; no `sorry`, no new axiom, no statement changed): the defs module
+`Proof/.../dist/client/AuthLeaseRefusals.lean` (built on fk-lean2), the ports `RunAuthLease`'s checks need:
+- `akGrantedL_of_writeGrantGD` (the dist `akGrantedL_of_writeGrantG`: a view grant `writeGrantG … (userOk P)` at
+  `L₀ ⊒ Lset` is granted at `setupSt r`, from `authHistFrozen` alone; the principal through `hPw`,
+  `userOk_some_akUser` (u, v) / `userOk_none_akUser` (anon, bad)); `opChecksLeaseD` (+ `_put`, `_revoke`, `_txn`);
+- `refused_updateD` (the dist `refused_update`: `writeAuD Γ.kv P op L₀ Q` for any `Q` from `cell_refusedAu`, for
+  u's leased put/txn of `a/x` with `Lz` and u's revocation of `Lz`, all three with `Q := False`, which makes their
+  success arms and `foreign`'s Revoke premise trivial); `revokeLu_updateD` (v's/anon's/bad's revocation of `Lu`,
+  `Q := revoked γc`, `foreign`'s Revoke premise then `cell_not_revoked` at `R := monoNatAuthOwn γc.a ½ 0`);
+- `cell_setupAuD` (`SetUp.spec_dist`'s set-up put offers from the cell at `Γ.kv`), `cell_seen_now` (open the cell:
+  `cellSeen γc ps1 0 σ` from a `ps` lower bound, which `foreignReads.law` needs: the dist `barriers` takes no read
+  update), `seenD_z`, `seenD_gone` (copies of authlease `run.lean`'s, a proof module), `leaseMember_member`,
+  `membersAt_of_leaseMembers`, `addrOk_of_leaseMembers` (barriers' premises from the spec's `leaseMember`s).
+
+**The blocker (for the lead): u's two transactions.** `RunAuthLease` sends two write transactions, both leased:
+`Txn().Then(OpPut(txnKey, "v", WithLease(lu))).Commit()` (must succeed or end) and the refused
+`Txn().Then(OpPut(xKey, "v", WithLease(lz))).Commit()`. `Txn_CommitOn_dist`'s write arm requires
+`txn.txnPlain (txnWireOf b.model)`, and `opPlain (.put _ _ l)` is `l = W64 0` (`txn/TxnRun.lean:531`): a leased
+put is not plain, so neither call has a contract (nor does the auth-off `Txn_Commit_dist`). The single-process
+contract it was drafted from (`client.txnUpdAtOn`, `KVServiceOn.lean:987`) has `txn.txnPlain t ∨ (ρ.kv.lm =
+.revocable ∧ txnPlainL t)`. **Proposed minimal change**: `Txn_CommitOn_dist`'s write arm `txn.txnPlain (txnWireOf
+b.model)` → `(txn.txnPlain (txnWireOf b.model) ∨ (Γ.kv.lm = .revocable ∧ txnPlainL (txnWireOf b.model)))` (as
+`KV_PutOn_dist`'s `leaseID = 0 ∨ Γ.kv.lm = .revocable`); a change to a reviewed axiom: approval and re-review.
+Callers are unaffected (a weaker premise). Not done.
+
+**Nothing else found blocking.** The plan (checked against the specs, not written as Lean):
+- members: barrier 1's `barrierFloor`s (at `L₀ = Lset`, after `SetUp`) name the member `mid` of each address; use
+  them for everything at that address (grantPut, noAuth, foreign, the law), not `leaseMember`'s `mid` (no
+  agreement lemma for `etcdAddrAt`); barrier 2 is only an ok check. `authFloorD_frozen` at `Lset <+: Lset`.
+- noAuth: `n₀ := m` (the floor's `authPubLbM`), the refutation `leaseCheckD_none_frozen`; its `lessorLb (Γ.ls mid)
+  m₀` from the grant at that address (`grantPut`'s `leaseLiveFrom`, `lease.leaseLiveFrom_lb`): root's at `a0` for
+  anon, u's at `au` for bad; offers: `cell_grantWriteAuD … none`, `revokeLu_updateD … none "anon"/"bad"` (needs
+  `3 ≤ ps.length`, so after the leased txn: blocked with it).
+- foreign: u against `Lz` (`refused_updateD … (.leaseRevoke lz) zK lz [lz]`), v against `Lu` (`revokeLu_updateD`);
+  the two reads from `hlaw` with `cell_seen_now` (after the txn's `psAtLeast γc 3`).
+- root's Get of `z/lease`: `KV_GetOn_dist` with `Q := cellSeen γc ps1 0` (`cell_readAu`, `kvReadAu` unfolds to the
+  axiom's AU), `kvLogOk_kvs` + `mvcc.stateAfter_sorted` for `client.filter_key_of_findKey`, `seenD_z`.
+- u's revocation of `Lu`: `cell_permit`, then `cell_revokeUAu` with `G := opGrantD …` (any `G`), `Q := revoked`;
+  the absences `cell_readAu … 1`, `seenD_gone`.
+- the txn calls (once unblocked): `kv.Txn.spec` (as `client_Txn_dist_law_holds`), `txn.Then.specPlain`
+  (`TxnPlainSpec.lean`, a defs module), `OpPut.spec`, `etcd_auth.optsAt_one`/`opsAt_one`, then the shape facts as
+  authlease `run.lean`'s `leaseTxn_ok`/`txnOpOf_leasePut` (a proof module: copy into a defs module).
+
+**Next:** the lead's decision on `Txn_CommitOn_dist`; then `RunAuthLease.lean` (no file yet) as above.
