@@ -223,6 +223,27 @@ theorem memberCfg_off (c : server.Config) (lg cluster : Loc) (pu cu : GoSlice) (
   subst h
   rfl
 
+/-- `serverConfig`'s configuration with auth on is its configuration at a member configuration whose `Auth`
+field is the literal `true` (so that its fields reduce: the simple token provider, a TTL of 300 s). -/
+theorem memberCfg_on (c : server.Config) (lg cluster : Loc) (pu cu : GoSlice) (fg : GoInterface)
+    (h : c.Auth' = true) :
+    memberCfg c lg cluster pu cu fg = memberCfg { c with Auth' := true } lg cluster pu cu fg := by
+  cases c
+  simp only at h
+  subst h
+  rfl
+
+/-- **`serverConfig`'s token provider with auth on** (`NewServer_dist`'s auth premise): the simple provider, with a
+TTL (300 s) positive and below `2 ^ 32`. -/
+theorem memberCfg_tokenOk (c : server.Config) (lg cluster : Loc) (pu cu : GoSlice) (fg : GoInterface)
+    (h : c.Auth' = true) :
+    (memberCfg c lg cluster pu cu fg).AuthToken' = go!"simple" ∧
+      0 < uint.Z (memberCfg c lg cluster pu cu fg).TokenTTL' ∧
+      uint.Z (memberCfg c lg cluster pu cu fg).TokenTTL' < 2 ^ 32 := by
+  unfold memberCfg
+  simp only [h, ↓reduceIte]
+  refine ⟨?_, ?_, ?_⟩ <;> trivial
+
 /-- **The WAL's slot of `serverConfig`'s configuration** (`wal.bootRes`): its data directory is the member's and
 its dedicated WAL directory that directory's (`srvWalDirOf_lit`). -/
 theorem memberCfg_bootRes (c : server.Config) (lg cluster : Loc) (pu cu : GoSlice) (fg : GoInterface) :

@@ -49,8 +49,9 @@ abbrev MainLogger.spec : Prop :=
     (i : Nat) (m : Member) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (lm : lease.Mode),
   d.WellFormed → d.members[i]? = some m →
-  -- the scope: no token provider (`Serve_dist` serves a member with auth off)
-  d.cfg.auth = false →
+  -- the scope (option (a), `notes/specs-only/ledger.md` 2026-11-26): with auth on, in the revocable lease mode no
+  -- lease expires (`NewServer_dist`'s `lease.bootCfg` auth row)
+  (d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry) →
   crypto.fips140.GodebugFips140Off →
   -- `bootstrap`'s results as Go computes them (`BootCore`, `BootGoD`)
   BootCore ps ctxs boot → BootGoD d ps ctxs →

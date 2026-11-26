@@ -7190,6 +7190,7 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** Replace `d.cfg.auth = false →` by `(d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry) →`
   in the three specs, and `member_boot_dist`'s `Hauth` likewise. It is weaker than the old premise, so every caller
   (kvremote's M1 included) still discharges it.
-- **Decision.** Option (a), the coordinator's (2026-11-26). Not applied yet: it lands with `MainLogger`'s auth-on branch
-  (Handoff S2-6). The full theorem (the lead's F8) must discharge `leasesNoExpiry` for authLease, as the single-process
+- **Decision.** Option (a), the coordinator's (2026-11-26). **Applied** (2026-11-26, F7 S2, with `MainLogger`'s auth-on
+  branch, one commit): the three specs take the new premise; `member_boot_dist`'s `Hauth` is the same, bound after `lm`;
+  kvremote passes `fun _ h => nomatch h` at `lm = .none`, its statement unchanged. The full theorem (the lead's F8) must discharge `leasesNoExpiry` for authLease, as the single-process
   theorem does from its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, around lines 38-40 and 69-70).

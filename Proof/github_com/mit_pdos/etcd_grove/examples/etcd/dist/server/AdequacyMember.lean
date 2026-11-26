@@ -16,8 +16,9 @@ proved ones (`MainDeploymentLogger`, `ConfigOf`, `MainLogger` and its leaves, `d
 `os.Getenv.wp_proofEnv` (and `proto.MarshalBootConfChange.wp_proof`, as putgetK's). Each interim axiom enters
 here only, as its spec is a hypothesis of the proof that uses it.
 
-Its one hypothesis beyond `EtcdBootNC`'s premises: the scope `Hauth : d.cfg.auth = false` (`Serve_dist` serves a
-member with auth off). Go's values at the members' URLs (`BootGoD`) follow from the well-formed deployment at the
+Its one hypothesis beyond `EtcdBootNC`'s premises: the scope `Hauth : d.cfg.auth = true → lm = .revocable →
+lease.leasesNoExpiry` (option (a), `notes/specs-only/ledger.md` 2026-11-26: with auth on, in the revocable lease mode
+no lease expires). Go's values at the members' URLs (`BootGoD`) follow from the well-formed deployment at the
 pinned `BootFacts` (`BootGoD.of_wf`, at `distPs d`, `distCtxs d`).
 -/
 module
@@ -71,10 +72,11 @@ theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Sem
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
-    (d : Deployment) (Hd : d.WellFormed) (Hauth : d.cfg.auth = false)
+    (d : Deployment) (Hd : d.WellFormed)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off)
     (lm : lease.Mode) (Hlm : lm = .mono → lease.leasesNoExpiry)
+    (Hauth : d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry)
     (i : Nat) (m : Member) (hm : d.members[i]? = some m) (σ : state) (Hσ : ServerStart m σ)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ

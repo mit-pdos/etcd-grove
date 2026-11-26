@@ -99,12 +99,12 @@ theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.
 
 /-- **Member `i`'s machine's boot at M1's premises** (`EtcdKvBootNC`'s member part): N5's `member_boot_dist`
 from its share `∃ c, memberShareD c .none d (distPs d) (distCtxs d) boot i`, its start state `σs[i]` given by
-`Hσs` and the scope's `d.cfg.auth = false`. -/
+`Hσs`; at the lease mode `.none` the auth premise holds trivially (the scope's `d.cfg.auth = false` is unused). -/
 theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
-    (d : Deployment) (Hd : d.WellFormed) (Hscope : KvOnly d ∧ d.cfg.auth = false)
+    (d : Deployment) (Hd : d.WellFormed) (_Hscope : KvOnly d ∧ d.cfg.auth = false)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off) (σs : List state)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
@@ -116,7 +116,8 @@ theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   have hl : i < d.members.length := Hσs.1 ▸ hiσ
   have Hst := Hσs.2 (d.members[i], σs[i]) (List.mem_iff_getElem.mpr
     ⟨i, by simp [List.length_zip]; omega, by simp [List.getElem_zip]⟩)
-  exact server.member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips .none (fun h => nomatch h) i d.members[i]
+  exact server.member_boot_dist d Hd boot Hbf Henv HEnv Hfips .none (fun h => nomatch h)
+    (fun _ h => nomatch h) i d.members[i]
     (List.getElem?_eq_getElem hl) σs[i] Hst
 
 
