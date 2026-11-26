@@ -8,7 +8,6 @@ public import Spec.go_etcd_io.bbolt.fdatasync
 public import Spec.os.File__Fd
 public import Spec.syscall.Fdatasync
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
-public import Spec.os.CrashStILA
 public import Proof.go_etcd_io.bbolt.Inv.BFileSync
 
 @[expose] public section

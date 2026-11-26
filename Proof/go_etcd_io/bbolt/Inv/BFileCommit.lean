@@ -21,7 +21,6 @@ public import Proof.go_etcd_io.bbolt.Inv.BFileSync
 public import Proof.go_etcd_io.bbolt.Inv.BFileWrite
 public import Proof.go_etcd_io.bbolt.Inv.Store
 public import Proof.go_etcd_io.bbolt.Crash.Img
-public import Spec.os.CrashStILA
 
 @[expose] public section
 

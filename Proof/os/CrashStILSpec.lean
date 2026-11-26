@@ -1,6 +1,6 @@
 /-
-The proofs of `Spec/os/CrashStIL.lean`: the models' loops of `Proof/os/CrashStSpec.lean`, over the
-local steps of `Proof/os/CrashStIL.lean` with `csInvI`'s accessor (`csI_acc`), the caller's part
+The proofs of `Spec/os/CrashStILR.lean`'s short cases: the models' loops of `Proof/os/CrashStSpec.lean`, over the
+local steps of `Proof/os/CrashStIL.lean` with `csInvIR`'s accessor (`csI_accR`), the caller's part
 `csOwnIL` and the bytes each call takes. A write's loop keeps, beside the state it reached, the
 caller's half of the write's range as that state holds it (`finBytes_window`); a truncate's, in
 its grown state, the caller's half of the new bytes. Lean-first (no Rocq counterpart).
@@ -101,19 +101,6 @@ theorem syscall.Fdatasync.wp_proof_crashILR [syscall.Assumptions] :
   · ileft; iframe; ipureintro; exact he
   · iright; iframe; ipureintro; exact ⟨he.1, he.2.2⟩
 
-theorem syscall.Fdatasync.wp_proof_crashIL [syscall.Assumptions] :
-    syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ fd dq d N i γ γa γc Ok a m bs c hi hN hcov hok
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (syscall.Fdatasync.wp_proof_crashILR (GF := GF) (hG := hG)
-    fd dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs c hi hN hcov hok) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
-
 theorem golang_org.x.sys.unix.Mmap.wp_proof_crashILR [golang_org.x.sys.unix.Assumptions] :
     golang_org.x.sys.unix.Mmap.specCrashILR (GF := GF) (hG := hG) := by
   intro A _ fd off len prot fl dq d N i γ γa γc Ok R _ a m bs hi hrd hoff hlen hprot hfl hN hok
@@ -157,19 +144,6 @@ theorem golang_org.x.sys.unix.Mmap.wp_proof_crashILR [golang_org.x.sys.unix.Assu
     iframe
     ipureintro; exact ⟨he, rfl, hno⟩
 
-theorem golang_org.x.sys.unix.Mmap.wp_proof_crashIL [golang_org.x.sys.unix.Assumptions] :
-    golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ fd off len prot fl dq d N i γ γa γc Ok a m bs hi hrd hoff hlen hprot hfl hN hok
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (golang_org.x.sys.unix.Mmap.wp_proof_crashILR (GF := GF) (hG := hG)
-    fd off len prot fl dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs hi hrd hoff hlen hprot hfl hN hok) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
-
 theorem golang_org.x.sys.unix.Munmap.wp_proof_crashILR [golang_org.x.sys.unix.Assumptions] :
     golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG) := by
   intro A _ base len p N γ γa γc Ok R _ a m bs vf hpos hb hN hok
@@ -194,19 +168,6 @@ theorem golang_org.x.sys.unix.Munmap.wp_proof_crashILR [golang_org.x.sys.unix.As
     iapply wp_errno
     iapply HΦ
     iexact Hr
-
-theorem golang_org.x.sys.unix.Munmap.wp_proof_crashIL [golang_org.x.sys.unix.Assumptions] :
-    golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ base len p N γ γa γc Ok a m bs vf hpos hb hN hok
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (golang_org.x.sys.unix.Munmap.wp_proof_crashILR (GF := GF) (hG := hG)
-    base len p N γ γa γc Ok (fun _ => iprop(emp)) a m bs vf hpos hb hN hok) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
 
 variable [os.Assumptions]
 
@@ -252,18 +213,6 @@ theorem os.File.Sync.wp_proof_crashILR : os.File.Sync.specCrashILR (GF := GF) (h
     iright
     iframe
     ipureintro; exact ⟨(by intro h; cases h), he.2.2⟩
-
-theorem os.File.Sync.wp_proof_crashIL : os.File.Sync.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf dq d N i γ γa γc Ok a m bs c hi hN hcov hok
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (os.File.Sync.wp_proof_crashILR (GF := GF) (hG := hG)
-    f fd name dqf dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs c hi hN hcov hok) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
 
 theorem os.File.WriteAt.wp_proof_crashILR : os.File.WriteAt.specCrashILR (GF := GF) (hG := hG) := by
   intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok R _ a m bs xs hi hwr hoff hin hmaxB hbig hn hn2 hxl hN hW
@@ -491,18 +440,6 @@ theorem os.File.WriteAt.wp_proof_crashILR : os.File.WriteAt.specCrashILR (GF := 
         · ipureintro
           exact ⟨_, by trivial, hRs _ (.inl rfl), .inr ⟨rfl, (by intro h; cases h), hfe (fun h => he0 (by rw [h]; rfl))⟩⟩
 
-theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok a m bs xs hi hwr hoff hin hmaxB hbig hn hn2 hxl hN hW
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (os.File.WriteAt.wp_proof_crashILR (GF := GF) (hG := hG)
-    f fd name dqf sl data dqs off dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs xs hi hwr hoff hin hmaxB hbig hn hn2 hxl hN hW) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
-
 theorem os.File.Truncate.wp_proof_crashILR : os.File.Truncate.specCrashILR (GF := GF) (hG := hG) := by
   intro A _ f fd name dqf sz dq d N i γ γa γc Ok R _ a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT
   subst hi
@@ -704,18 +641,6 @@ theorem os.File.Truncate.wp_proof_crashILR : os.File.Truncate.specCrashILR (GF :
         iright
         isplitr; · ipureintro; exact ⟨(by intro h; cases h), hfe (fun h => he0 (by rw [h]; rfl))⟩
         ileft; iexists n0, m0; iframe; ipureintro; exact hm0
-
-theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf sz dq d N i γ γa γc Ok a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (os.File.Truncate.wp_proof_crashILR (GF := GF) (hG := hG)
-    f fd name dqf sz dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
 
 end proof
 

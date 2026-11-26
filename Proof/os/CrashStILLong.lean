@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/CrashStILLong.lean`: `os.File.WriteAt.wp_proof_crashIL`'s loop
+The proofs of `Spec/os/CrashStILR.lean`'s long cases: `os.File.WriteAt.wp_proof_crashILR`'s loop
 (`Proof/os/CrashStILSpec.lean`), each attempt of the next chunk (`wchunk`: at most `maxRW` bytes,
 the model's `max`, as `Proof/os/WriteLong.lean` takes it), over the local steps of
 `Proof/os/CrashStIL.lean`. The caller's half of the write's range splits around the chunk
@@ -466,18 +466,6 @@ theorem os.File.WriteAt.wp_proof_crashILLongR : os.File.WriteAt.specCrashILLongR
           exact ⟨_, by trivial, hRs _ (.inl rfl), .inr ⟨rfl, (by intro h; cases h),
             hfe (fun h => he0 (by rw [h]; rfl))⟩⟩
 
-theorem os.File.WriteAt.wp_proof_crashILLong : os.File.WriteAt.specCrashILLong (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok a m bs xs hi hwr hoff hin hmaxB hbig hn hxl hN hW
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (os.File.WriteAt.wp_proof_crashILLongR (GF := GF) (hG := hG)
-    f fd name dqf sl data dqs off dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs xs hi hwr hoff hin hmaxB hbig hn hxl hN hW) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
-
 theorem os.File.Truncate.wp_proof_crashILBigR :
     os.File.Truncate.specCrashILBigR (GF := GF) (hG := hG) := by
   intro A _ f fd name dqf sz dq d N i γ γa γc Ok R _ a m bs hi hfd0 hwr hsz hgrow hbig hN hT
@@ -544,19 +532,6 @@ theorem os.File.Truncate.wp_proof_crashILBigR :
     isplitr
     · ipureintro; intro h; cases h
     iexact Hok
-
-theorem os.File.Truncate.wp_proof_crashILBig :
-    os.File.Truncate.specCrashILBig (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf sz dq d N i γ γa γc Ok a m bs hi hfd0 hwr hsz hgrow hbig hN hT
-  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
-  iapply (os.File.Truncate.wp_proof_crashILBigR (GF := GF) (hG := hG)
-    f fd name dqf sz dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs hi hfd0 hwr hsz hgrow hbig hN hT) $$ [H]
-  · isplitr
-    · iexact Hos
-    isplitr [H]
-    · iapply csInvI_R; iexact Hinv
-    · iexact H
-  · iexact HΦ
 
 end proof
 

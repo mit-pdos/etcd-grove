@@ -1,14 +1,9 @@
 /-
-Two cases `Spec/os/CrashStIL.lean`'s specs leave out. `os.File.WriteAt.specCrashILLong`:
-`os.File.WriteAt.specCrashIL` for a write of any length inside the file:
-past `maxRW` (1 GiB) the model (`TrustedCode/os.lean`'s `File.WriteAt.impl`, as Go's `poll.FD.Pwrite`)
-writes in chunks of at most `maxRW` bytes, each attempt (`pwrite(2)`, the extension's
-`PWriteStart`/`PWriteFinish`) from where the last stopped, of the next chunk (`wchunk`). The states the
-loop reaches are `WReachC`'s: `WReach`'s, each attempt of the chunk from `nn` instead of all the rest
-of the data (the same when the data is at most `maxRW`, `wchunk_short`).
-`os.File.Truncate.specCrashILBig`: a growing `Truncate` to a target past `maxBytes`, which fails with
-the file as its first attempt announced it. Proved in `Proof/os/CrashStILLong.lean`. Lean-first (no
-Rocq counterpart).
+The vocabulary of the long `WriteAt` (`wchunk`, `WReachC`: past `maxRW` (1 GiB) the model
+(`TrustedCode/os.lean`'s `File.WriteAt.impl`, as Go's `poll.FD.Pwrite`) writes in chunks of at most
+`maxRW` bytes, each attempt from where the last stopped) for `os.File.WriteAt.specCrashILLongR`
+(`Spec/os/CrashStILR.lean`). (W3, 2026-11-26: the specs over `csInvI` that this file held were retired,
+unused.) Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -82,65 +77,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-variable [os.Assumptions] in
-/-- **`os.File.WriteAt.specCrashIL` for data of any length**: the model's loop writes in chunks of at
-most `maxRW` (1 GiB, `wchunk`), each attempt from where the last stopped (`WReachC`); the caller
-shows `Ok` of every state the loop may pass through, idle and with an attempt's chunk in flight. -/
-abbrev os.File.WriteAt.specCrashILLong : Prop :=
-  ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
-    (data : List w8) (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino)
-    (γ γa γc : GName) (Ok : A → CSt → Prop) (a : A) (m : OsMeta) (bs xs : List ByteG),
-  d.ino = i → d.writable = true → 0 ≤ off.toInt → off.toNat + data.length ≤ m.size →
-  off.toNat + data.length ≤ maxBytes → off.toNat + data.length < 2 ^ 63 → 0 < data.length →
-  xs.length = data.length → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
-  (∀ nn m' bs', WReachC m bs off.toNat data nn m' bs' →
-    Ok a ⟨m', bs', 0, 0, .idle⟩ ∧ (nn < data.length → ∀ t n,
-      PwFresh m' bs' (off.toNat + nn) (wchunk data nn) n →
-      Ok a ⟨m', bs', 0, 0, .write t (off.toNat + nn) (wchunk data nn) n⟩)) →
-  {{ osInv (GF := GF) ∗ csInvI (GF := GF) N i γ γa γc Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
-      sl ↦*{dqs} data ∗ osFd (GF := GF) fd dq d ∗
-      csOwnIL (GF := GF) i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗
-      osBytes (GF := GF) i off.toNat (DFrac.own (1 : Qp).half) xs ∗
-      mcellsAny (GF := GF) m.maps off.toNat (off.toNat + data.length) }}
-    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
-      (Val #off))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      mcellsAny m.maps off.toNat (off.toNat + data.length) ∗
-      ∃ (nn : Nat) (m' : OsMeta) (bs' : List ByteG),
-        ⌜xs = (bs.drop off.toNat).take data.length ∧ WReachC m bs off.toNat data nn m' bs' ∧
-          ((n = W64 data.length ∧ err = interface.nil ∧ nn = data.length ∧
-              m'.size = m.size ∧ m'.maps = m.maps ∧
-              ∀ i < data.length, (bs'[off.toNat + i]?).map Prod.fst = data[i]?) ∨
-           (n = W64 0 ∧ err ≠ interface.nil ∧ ¬ FsNoErr))⌝ ∗
-        csOwnIL i γ γa ⟨m', bs', 0, 0, .idle⟩ a ∗
-        osBytes i off.toNat (DFrac.own (1 : Qp).half) ((bs'.drop off.toNat).take data.length) }}
-
-variable [os.Assumptions] in
-/-- **`os.File.Truncate.specCrashIL` for a target past `maxBytes`**: the model's `ftruncate` fails
-(`EFBIG`, `FtruncateFinish` of `Impl.lean`, whatever the file system's errors), retried on `EINTR`;
-the file as the first attempt announced it (`TReach.ann`: the bytes it announced past the size keep
-their new candidates); the error is the model's `*PathError`, one `fmt` formats (`fmtErrorOk`). Of
-the announced state, and of the start and the attempts in flight, the caller shows
-`Ok`. -/
-abbrev os.File.Truncate.specCrashILBig : Prop :=
-  ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64)
-    (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino) (γ γa γc : GName) (Ok : A → CSt → Prop)
-    (a : A) (m : OsMeta) (bs : List ByteG),
-  d.ino = i → 0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.size ≤ sz.toNat →
-  maxBytes < sz.toNat → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
-  (∀ m', (m' = m ∨ m' = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat) →
-    Ok a ⟨m', bs, 0, 0, .idle⟩ ∧ ∀ t n, Ok a ⟨m', bs, 0, 0, .trunc t sz.toNat n⟩) →
-  {{ osInv (GF := GF) ∗ csInvI (GF := GF) N i γ γa γc Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
-      osFd (GF := GF) fd dq d ∗ csOwnIL (GF := GF) i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗
-      mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) }}
-    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
-  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
-      csOwnIL i γ γa ⟨m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
-        bs, 0, 0, .idle⟩ a ∗
-      mcellsAny m.maps m.size (rsHi true m.size sz.toNat) }}
 
 end spec
 

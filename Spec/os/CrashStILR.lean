@@ -1,18 +1,25 @@
 /-
-The local crash specs of `Spec/os/CrashStIL.lean`, `Spec/os/CrashStILLong.lean` and
-`Spec/os/CrashStILA.lean` over `csInvIR N i γ γa γc Ok R` (`Proof/os/CrashStIR.lean`): the crash
-invariant whose open alternative holds the client's resource `R a` (bbolt's: its committed data's
-version, history and synced mark, `Proof/go_etcd_io/bbolt/Inv/BFile.lean`'s `bR`). Each is its
-`csInvI` statement with `csInvIR … R` for `csInvI …` (a timeless `R`); the call keeps `R` (its value
-does not change), but `syscall.Fdatasync.specCrashILAR`, whose value moves from `a` to `a'`, takes
-`R a ⊣⊢ R a'` (a client resource that reads only what the move keeps). The `csInvI` statements are the case `R := fun _ => emp` (`csInvI_R`). Proved in
-`Proof/os/CrashStILSpec.lean`, `Proof/os/CrashStILLong.lean`, `Proof/os/CrashStILASpec.lean`.
-Lean-first (no Rocq counterpart).
+**The local crash specs** of the `os`, `syscall` and `golang.org/x/sys/unix` calls on a file in the
+inode-keyed crash invariant with a client resource, `csInvIR N i γ γa γc Ok R`
+(`Proof/os/CrashStIR.lean`; bbolt's `R` is its committed data's version, history and synced mark,
+`Proof/go_etcd_io/bbolt/Inv/BFile.lean`'s `bR`), from the local caller's part `csOwnIL`, the caller
+passing, as `osBytes` at the fraction `½`, only the bytes the call needs, and getting back those it
+changed:
+* `WriteAt` a write inside the file (`specCrashILR`; of any length, in chunks of `maxRW`,
+  `specCrashILLongR`): its range;
+* `Truncate` growing (`specCrashILR`; past `maxBytes`, failing, `specCrashILBigR`): the caller's
+  half of the new bytes back;
+* `Sync`/`Fdatasync`: the caller's half of the bytes of a mask, every byte not yet durable outside it
+  durable in the state; `syscall.Fdatasync.specCrashILAR` with the value moving from `a` to `a'` as
+  the sync lands, which takes `R a ⊣⊢ R a'` (a client resource that reads only what the move keeps);
+* `Mmap`/`Munmap`: none.
+The call keeps `R` (a timeless resource). Every error arm witnesses that the file system can fail
+(`¬ FsNoErr`); a write and a truncate stay at most `maxBytes`. Proved in `Proof/os/CrashStILSpec.lean`,
+`Proof/os/CrashStILLong.lean`, `Proof/os/CrashStILASpec.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Spec.os.CrashStILLong
-public import Spec.os.CrashStILA
 public import Proof.os.CrashStIR
 
 @[expose] public section
@@ -34,8 +41,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 variable [os.Assumptions] in
-/-- `os.File.WriteAt.specCrashIL` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- `os.File.WriteAt.specCrashI` from the local caller's part, a write inside the file: the caller
+passes its half of the range (`xs`), learns it is the state's, and gets it back as the state it
+reached holds it. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev os.File.WriteAt.specCrashILR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
     (data : List w8) (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino)
@@ -67,8 +75,8 @@ abbrev os.File.WriteAt.specCrashILR : Prop :=
         osBytes i off.toNat (DFrac.own (1 : Qp).half) ((bs'.drop off.toNat).take data.length) }}
 
 variable [os.Assumptions] in
-/-- `os.File.Truncate.specCrashIL` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- `os.File.Truncate.specCrashI` from the local caller's part (a growing truncate): grown
+(`csGrownL`: the caller's half of the new bytes with it), or, on failure, maybe not. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev os.File.Truncate.specCrashILR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64)
     (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino) (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)]
@@ -92,8 +100,8 @@ abbrev os.File.Truncate.specCrashILR : Prop :=
             mcellsAny m.maps m.size (rsHi true m.size sz.toNat))))) }}
 
 variable [os.Assumptions] in
-/-- `os.File.Sync.specCrashIL` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- `os.File.Sync.specCrashI` from the local caller's part: the caller's half of the bytes of the
+mask `c`, every byte not yet durable outside it durable in the state. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev os.File.Sync.specCrashILR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd)
     (N : Namespace) (i : Ino) (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)] (a : A) (m : OsMeta)
@@ -112,8 +120,7 @@ abbrev os.File.Sync.specCrashILR : Prop :=
           cBytes i (fun _ => DFrac.own (1 : Qp).half) c 0 bs)) }}
 
 variable [syscall.Assumptions] in
-/-- `syscall.Fdatasync.specCrashIL` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- `syscall.Fdatasync.specCrashI` from the local caller's part (as `os.File.Sync.specCrashILR`). The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev syscall.Fdatasync.specCrashILR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino)
     (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)] (a : A) (m : OsMeta) (bs : List ByteG) (c : Nat → Bool),
@@ -131,8 +138,7 @@ abbrev syscall.Fdatasync.specCrashILR : Prop :=
           cBytes i (fun _ => DFrac.own (1 : Qp).half) c 0 bs)) }}
 
 variable [golang_org.x.sys.unix.Assumptions] in
-/-- `golang_org.x.sys.unix.Mmap.specCrashIL` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- `golang_org.x.sys.unix.Mmap.specCrashI` from the local caller's part. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev golang_org.x.sys.unix.Mmap.specCrashILR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (N : Namespace)
     (i : Ino) (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)] (a : A) (m : OsMeta) (bs : List ByteG),
@@ -151,8 +157,7 @@ abbrev golang_org.x.sys.unix.Mmap.specCrashILR : Prop :=
        (⌜e ≠ 0 ∧ sl = slice.nil ∧ ¬ FsNoErr⌝ ∗ csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a)) }}
 
 variable [golang_org.x.sys.unix.Assumptions] in
-/-- `golang_org.x.sys.unix.Munmap.specCrashIL` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- `golang_org.x.sys.unix.Munmap.specCrashI` from the local caller's part. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev golang_org.x.sys.unix.Munmap.specCrashILR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (base : Loc) (len : w64) (i : Ino) (N : Namespace)
     (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)] (a : A) (m : OsMeta) (bs : List ByteG)
@@ -169,8 +174,9 @@ abbrev golang_org.x.sys.unix.Munmap.specCrashILR : Prop :=
          (csOwnIL i γ γa ⟨m, bs, 0, 0, .idle⟩ a ∗ cellsR base 0 len.toNat vf))) }}
 
 variable [os.Assumptions] in
-/-- `os.File.WriteAt.specCrashILLong` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- **`os.File.WriteAt.specCrashILR` for data of any length**: the model's loop writes in chunks of at
+most `maxRW` (1 GiB, `wchunk`), each attempt from where the last stopped (`WReachC`); the caller
+shows `Ok` of every state the loop may pass through, idle and with an attempt's chunk in flight. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev os.File.WriteAt.specCrashILLongR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
     (data : List w8) (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino)
@@ -202,8 +208,12 @@ abbrev os.File.WriteAt.specCrashILLongR : Prop :=
         osBytes i off.toNat (DFrac.own (1 : Qp).half) ((bs'.drop off.toNat).take data.length) }}
 
 variable [os.Assumptions] in
-/-- `os.File.Truncate.specCrashILBig` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call). -/
+/-- **`os.File.Truncate.specCrashILR` for a target past `maxBytes`**: the model's `ftruncate` fails
+(`EFBIG`, `FtruncateFinish` of `Impl.lean`, whatever the file system's errors), retried on `EINTR`;
+the file as the first attempt announced it (`TReach.ann`: the bytes it announced past the size keep
+their new candidates); the error is the model's `*PathError`, one `fmt` formats (`fmtErrorOk`). Of
+the announced state, and of the start and the attempts in flight, the caller shows
+`Ok`. The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps). -/
 abbrev os.File.Truncate.specCrashILBigR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64)
     (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino) (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)]
@@ -223,8 +233,7 @@ abbrev os.File.Truncate.specCrashILBigR : Prop :=
       mcellsAny m.maps m.size (rsHi true m.size sz.toNat) }}
 
 variable [syscall.Assumptions] in
-/-- `syscall.Fdatasync.specCrashILA` over `csInvIR` (the crash invariant with the client resource `R`, kept
-unchanged by the call, or moved with the value: `R a ⊣⊢ R a'`). -/
+/-- `syscall.Fdatasync.specCrashILR`, the value moving to `a'` with the sync (see the file header). The crash invariant is `csInvIR` (with the client resource `R`, which the call keeps, or moves with the value: `R a ⊣⊢ R a'`). -/
 abbrev syscall.Fdatasync.specCrashILAR : Prop :=
   ∀ {A : Type} [Pos.Countable A] (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (i : Ino)
     (γ γa γc : GName) (Ok : A → CSt → Prop) (R : A → IProp GF) [∀ a, Timeless (R a)] (a a' : A) (m : OsMeta) (bs : List ByteG)
