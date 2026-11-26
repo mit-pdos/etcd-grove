@@ -27,7 +27,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__shut
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__open
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.runner__checkAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.RunLemmas
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.newHistory
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.SliceLiteralEx
 
 @[expose] public section
 
@@ -104,7 +104,7 @@ theorem Run.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
-  wp_apply (mvccrand.wp_slice_literal_ex (V := GoMap))
+  wp_apply (mvccfull.wp_slice_literal_ex (V := GoMap))
   wp_apply (wp_map_make1 (K := GoString) (V := kvRec)) as %m1 Hm1
   wp_apply (wp_map_make1 (K := GoString) (V := kvRec)) as %m2 Hm2
   iexists [m1, m2]

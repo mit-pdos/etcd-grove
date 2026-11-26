@@ -54,7 +54,7 @@ abbrev runner.open.spec : Prop :=
       (∃ sl : GoSlice, mF go!"leases" mp ↦ sl ∗ sl ↦* leasesAfter ks ops n ∗
         ownSliceCap w64 sl (DFrac.own 1)) ∗
       backend.fileHolds path D ∗ mvccImage D σ.log σ.crev u ∗
-      ⌜leaseRecsOk (backend.rbData (mvccrand.rcP (limOf cfg)) D) (leasesAfter ks ops n)⌝ ∗
+      ⌜leaseRecsOk (backend.rbData (mvccfull.rcP (limOf cfg)) D) (leasesAfter ks ops n)⌝ ∗
       memberCarry ks γh mp m σ b Hl ∗ ghostVar m.σ (1 : Qp).half σ ∗ ghostVar m.bnd (1 : Qp).half b }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"open") (Val #mp))
   {{ RET #(); threadTok ∗ histRd h γh ∗

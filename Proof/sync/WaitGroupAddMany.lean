@@ -1,9 +1,12 @@
 /-
-`runChecks`' wait group of its `2 + Readers` goroutines (`examples/mvccrand/mvccrand.go`:
-`wg.Add(2 + cfg.Readers)` before the `go` statements). Lean-first (no Rocq counterpart).
+A wait group's `Add(n)` for `n` goroutines at once (the drivers of `examples/etcd/all`:
+`wg.Add(n)` before the `go` statements). Lean-first (no Rocq counterpart). Until 2026-11-25
+`examples/mvccrand`'s `RunChecksJoin.lean` (its `runChecks`' `wg.Add(2 + cfg.Readers)`), moved
+here when mvccrand was retired (#49). A fact about Perennial's `sync.join` that belongs to no Go
+package of this repository: a candidate for Perennial (`notes/perennial-changes.md`).
 
 Perennial's join idiom (`sync.join`, `WaitGroupJoin.lean`) adds one goroutine per `Add(1)`; the
-tester adds them all at once. `wp_Add_many`: one `Add(n)` gives a `Done` right for each of the `n`
+callers add them all at once. `wp_Add_many`: one `Add(n)` gives a `Done` right for each of the `n`
 propositions `Ps` and the permission to `Wait` for all of them, from `WaitGroup.Add`'s spec, as
 `WaitGroupJoin`'s `wp_Add_of` (the counter below `2 ^ 31`: `n < 2 ^ 31 - 1`, the caller's).
 -/
@@ -22,7 +25,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace mvccrand
+namespace waitGroup
 
 open Iris Iris.BI Iris.ProofMode Perennial.sync Perennial.sync.join
 
@@ -151,6 +154,6 @@ theorem wp_Add_many (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
 
 end join
 
-end mvccrand
+end waitGroup
 end EtcdGrove
 end Perennial
