@@ -2955,6 +2955,64 @@ revoke site derive it with `revokeIds/Rest_nonRevoke`, `restAfter_other`); `Spec
 *Then*: steps 3-5 of the plan (`ApplyAdmin`/`ApplyAdminL`, `AdminEntryOn` with `result_keep`, the rest of stage 5),
 full build, gates in full, `tcb --check`.
 
+### T10 step 3, session 1 (2026-11-26, branch `etcd-safe-t10s3/2026-11-26`; design)
+
+Base `etcd-safe-t10b/2026-11-26` @ `9f2a8ff9ea` (step 2 done). Build: fk-lean2, `~/eg/wt/etcd-safe-p5`
+(repurposed, Perennial overrides at `a706aeb9a`), sync and build with `/shared/tmp/t10s3-rb.sh [targets]`
+(`CHECK=1`: `etc/lean-check.py`; `GATES=1`: gates; logs `~/eg/logs/t10s3-{build,gates}.log` there).
+
+**What step 3 is.** Two parts, of very different size. (A) The server's row: `consInv γ` at the server's
+`srvImgRow` (session 9's plan, item 3): `isServer`/`isServerM` pass it, the call sites switch to the `R`
+lemmas, the skip sites read step 2's fact. (B) Closing `NewServer.wp_proofC`'s `sorry`: the restart proof
+(`wp_proofRG`) over the non-graceful images (`σ.commit < i`, `i < σ.b` with the `.snap.db`, `i < bootLen`,
+`confRowW`'s second case). (A) does not give (B): (B) is T4's open list ("Not done (next, in order)" items
+2-4 of the option-(a) entry, and round 4's steps: the replay state over the durable state and its deposits,
+`applyAll`'s keep case, `rnRestartOk` without `|a0| ≤ commit0`, `rnStopImage`/`wal.stopImage` without the commit
+bound), plus T10's three image cases. Order: (A) first (each group builds green), then (B) by T4's list.
+
+**The row the server uses.** Mode off: `srvImgRow γr.raft (srvImgModel γr)` (`ImgRow.lean`). Mode `on`: the
+same row over `srvImgModelOn` (to define beside it: the models at `kvModelOn`), passed where the mode is known
+(`isServerM`, `AppliedOn`, `AuthCompRows`), not in `isServerCI` alone. As a bundle: `srvImgRowT γ M : TRow GF`.
+
+**Bundle: yes** (session 10's alternative). `structure TRow GF where IR; tl : ∀ a b, Timeless (IR a b)`
+(`InvApply.lean`), `consInv γ (Rw : TRow GF := TRow.triv)`, the generic sections over `{Rw : TRow GF}` with
+the global instance `TRow.timeless`: no instance argument, so `Rw` unifies from `inv applyN (consInv γ Rw)`.
+Named `Rw`, not `R`: nine of the files already bind an `R`. Mechanical, untrusted, no statement of a
+`Spec/` file. The 22 `(IR := fun _ _ => True)` sites become `(Rw := TRow.triv)`; they can drop the
+argument where it then unifies. Written, not checked: `/shared/tmp/t10s3-trow.patch` (handoff below).
+
+**A finding for (A): the row at the restart's allocation.** `consInv_allocR` takes `□ IR 0 m0.1` (the state
+`⟨k = 0, p = m0.1, eff = 0⟩`). At the server's row that says the models are constant over `[0, m0.1]`: true at
+the first boot (`m0.1 = ai0`, `srvImgRow_nil`), false at a restart with a non-empty applied prefix. What the
+protocol needs at `k = 0` is only the row at the stored index (`commit_save_auR`'s `k = 0` case reads it at
+`mm.1`; Go's `UnsafeSave` stores nothing new while `ci = 0`). Fix (choose when doing the allocation's callers):
+allocate at `eff = m0.1` (`⟨0, m0.1, m0.1, false⟩`; `commitOk` then pins the stored index, as Go does), which
+changes the boot packets' `applyThread γ ⟨0, m0.1, 0, false⟩`; or read the row at `(if k = 0 then p else eff, p)`.
+
+**Order of files (A).** 1. `InvApply` (`TRow`) and the 21 users (the patch). 2. `ImgRow`: `srvImgRowT`,
+`srvImgModelOn`. 3. `InvApplier`/`AppliedOn`/`AuthCompRows` (`isServer`, `isServerM`) at the row; the call
+sites: `writes_done` → `writes_doneR` (`srvImgRow_at` at `A ++ ms.take (j+1)` in `EtcdServer__apply`, `A ++ [m]`
+in `applyEntryNormal`), `skip_done` → `skip_doneR` (`srvImgRow_skip`; the fact from `cPost`'s `Pre` disjunct:
+replace `applyEntryNormal`'s local `cPost_true_orPre` in `tail_on` by a use of the fact; `applyConfChange`'s wand's
+`ccValidOn = false`), `ci_swap_au` → `ci_swap_auR` (`SnapApplyOpen`), `consInv_alloc` → `consInv_allocR`
+(`bootstrapBackend`), the boot packets carry the row. 4. Then (B).
+
+**Handoff T10s3-1** (session 1 stopped at the coordinator's context rule; notes only, no Lean changed on the
+branch; no `sorry`, no axiom).
+* *Host*: fk-lean2 (`ssh -i /shared/aws ubuntu@ec2-54-152-19-40.compute-1.amazonaws.com`), tree
+  `~/eg/wt/etcd-safe-p5` (a worktree of `~/eg/etcd-grove.git`, now detached at `9f2a8ff9ea`; the branch is also
+  pushed to that bare repo), `.lake/package-overrides.json` pointing at `~/eg/perennial-a706aeb9a` (the t10b pin,
+  `lake-manifest.json`'s rev). Disk after the build: 63G free.
+* *Script*: `/shared/tmp/t10s3-rb.sh [targets]` syncs this worktree's changes against `9f2a8ff9ea` (tar over ssh)
+  and runs `lake build` there under `flock ~/eg/build.lock` and `MemoryMax=55G`, `LEAN_NUM_THREADS=10`
+  (`CHECK=1`: `etc/lean-check.py` on the args; `GATES=1`: `etc/gates.sh`; log `~/eg/logs/t10s3-build.log`). When the
+  base moves, change its `BASE=`.
+* *Build state*: `NewServerCrash` and the server's `Link` at `9f2a8ff9ea` built green on that tree (10083 jobs,
+  EXIT 0), so the next checks are incremental.
+* *Next*: apply `/shared/tmp/t10s3-trow.patch` (`git apply`; the `TRow` bundle in `InvApply.lean`, `Rw` in its 21
+  users, written by perl/python edits and **not yet checked**), then `CHECK=1 t10s3-rb.sh` on `InvApply.lean`,
+  `InvServer.lean`, then build the 22 files' modules plus the server's `Link`; then the design's order, item 2.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
