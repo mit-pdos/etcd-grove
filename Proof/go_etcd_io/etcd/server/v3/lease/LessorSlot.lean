@@ -10,9 +10,11 @@ What a client needs of it is heap-free in substance: the history's `histOnce` (`
   has with the slot open. The member proves it from its reader invariant when it makes the lessor.
 - `lessorSlot γl`: the start's invariant for the lessor name `γl` it chooses before any machine runs
   (P-L1): either half of `γl`'s ghost map's authority at `∅` (the lessor not made yet; the member holds the
-  other half and `NewLessor` takes both) or `lessorHistOk γl` (made and published in the same step). A
-  lessor fact `lessorAt γl i σ` holds a pin of `γl` (`lessorPinR`), which the empty authority excludes, so a
-  client holding both is in the second case: `lessorSlot_absent_stays`.
+  other half and `NewLessor` takes both) or `lessorHistOk γl` with a pin of `γl` (`lessorPinR`; made and
+  published in the same step). A lessor fact `lessorAt γl i σ` holds a pin of `γl`, which the empty
+  authority excludes, so a client holding both is in the second case: `lessorSlot_absent_stays`; and the
+  member's own half at `∅` excludes the second case's pin when its `NewLessor` opens the slot
+  (`newLessor_alloc_at`).
 -/
 module
 
@@ -57,12 +59,26 @@ instance lessorHistOk_persistent (γl : GName) : Persistent (lessorHistOk (GF :=
 
 /-- **The start's slot for the lessor name `γl`** (persistent): until the member's `NewLessor` makes the
 lessor at `γl`, half of `γl`'s ghost map's authority at `∅` (the member holds the other half); after, the
-lessor's history law (`lessorHistOk`). -/
+lessor's history law (`lessorHistOk`) and a pin of `γl` (which excludes the member's half at `∅`: the
+slot is closed once). -/
 def lessorSlot (γl : GName) : IProp GF :=
-  iprop(inv lessorSlotN iprop(ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∨ lessorHistOk γl))
+  iprop(inv lessorSlotN iprop(ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∨
+    (lessorHistOk γl ∗ ∃ γr : LessorRdNames, lessorPinR γl γr)))
 
 instance lessorSlot_persistent (γl : GName) : Persistent (lessorSlot (GF := GF) γl) := by
   unfold lessorSlot; infer_instance
+
+/-- The lessor's reader namespace is outside the slots'. -/
+theorem lessorRdN_slot : (↑lessorRdN : CoPset) ⊆ ⊤ \ ↑lessorSlotN :=
+  mask_ndot_ne' nroot "lessor_rd" "lessor_slot" (by decide)
+
+/-- **A pin excludes the empty authority.** -/
+theorem lessorPinR_not_empty (γl : GName) (γr : LessorRdNames) (q : Qp) :
+    ghostMapAuth (GF := GF) γl q (∅ : GMap Bool LessorGV) ∗ lessorPinR γl γr ⊢ False := by
+  unfold lessorPinR lessorPinAll
+  iintro ⟨Ha, ⟨%lp, %γga, %γcl, #Hp⟩⟩
+  ihave %Hl := ghost_map_lookup $$ Ha Hp
+  exact absurd Hl (by simp)
 
 /-- **A lessor fact excludes the empty authority**: a pin of `γl` (in every `lessorAt γl i σ`) is not
 in `∅`. -/
@@ -89,6 +105,7 @@ theorem lessorSlot_absent_stays (γl : GName) (i k j : Nat) (σ ρ τ : LSnap) (
     iapply lessorAt_not_empty γl i σ (1 : Qp).half
     iframe Ha Hi
   · imod lc_fupd_elim_later (E := ⊤ \ ↑lessorSlotN) $$ Hlc Hr with #Hr'
+    icases Hr' with ⟨#Hr', -⟩
     iunfold lessorHistOk at Hr'
     have hall : (σ.1.lookup id).isSome ∧ i ≤ k ∧ ρ.1.lookup id = none ∧ k ≤ j := ⟨hσ, hik, hρ, hkj⟩
     imod Hr' $$ %i %k %j %σ %ρ %τ %id %hall Hi Hk Hj with %Hτ
@@ -98,6 +115,25 @@ theorem lessorSlot_absent_stays (γl : GName) (i k j : Nat) (σ ρ τ : LSnap) (
     ipureintro; exact Hτ
 
 end slot
+
+section rd
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
+/-- **The history law from the lessor's reader invariant** (what the member publishes in the slot). -/
+theorem lessorHistOk_of_rdInv (γl : GName) : lessorRdInv (GF := GF) γl ⊢ lessorHistOk γl := by
+  iintro #Hr
+  iunfold lessorHistOk
+  imodintro
+  iintro %i %k %j %σ %ρ %τ %id %Hc #Hi #Hk #Hj
+  obtain ⟨hσ, hik, hρ, hkj⟩ := Hc
+  iapply (lessorAt_absent_stays γl i k j σ ρ τ id (⊤ \ ↑lessorSlotN) lessorRdN_slot hσ hik hρ hkj)
+  iframe Hr Hi Hk Hj
+
+end rd
 
 end lease
 end EtcdGrove
