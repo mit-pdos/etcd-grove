@@ -34,6 +34,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCrashImage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
 public import GooseLang.Ext.Fs.CrashTok
+public import GooseLang.Ext.IdIssue.Crash
 
 @[expose] public section
 
@@ -130,15 +131,16 @@ variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [HasExt idIssueExt]
 
 /-- **The member's crash law** (D6.3/D6.4's deliverable; `kvGen_crash`'s shape): for generations `L`
 and `L'` whose Go context is the statement's (`CrashBootWp`'s `lctx`), what the run of `L` keeps for
 a crash (`Keep L`: the run's crash invariants and their tokens, e.g. the durability invariant's, the
 WAL area's `walInv` with `walCrashTok`, the backend file's, the snapshot directory's, the
 `osSharedInv`), a later credit, `L`'s `crashed`, the file extension's crash rest at the crash premise
-`Q` and `L'`'s cells' invariant give `L'`'s `memberGen`. `Q` is the bridge's (D4c): `walInv_crash`
-needs `Q st st' → W1 walCodec st st'`. -/
+`Q`, the issue record's crash rest (T10 B6 (b), 2026-11-26: it cancels the old generation's prefix
+ids' invariant, `idPfxInv_crash`) and `L'`'s cells' invariant give `L'`'s `memberGen`. `Q` is the
+bridge's (D4c): `walInv_crash` needs `Q st st' → W1 walCodec st st'`. -/
 abbrev memberGen_crash.law (C : MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (id : w64) (Keep : GooseLocalGS GF → IProp GF) (Q : Fs.OsState → Fs.OsState → Prop) : Prop :=
   ∀ (L L' : GooseLocalGS GF) (V' : Fs.Hist),
@@ -146,6 +148,7 @@ abbrev memberGen_crash.law (C : MemberCl) (cfg : go_etcd_io.etcd.server.v3.confi
     letI : HeapGS .hasLC GF := ⟨G, L⟩;
     (⊢ Keep L -∗ £ 1 -∗ crashed (hC := L.goose_crashGS) -∗
       Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) [] false V' -∗
+      idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) -∗
       Fs.osInv (L := L') ={⊤}=∗
       memberGen (hG := ⟨G, atCtx L'⟩) C cfg id)
 

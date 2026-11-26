@@ -7231,7 +7231,7 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 ## 2026-11-26: B6 (b), the prefix's ids' invariant cancelled at a crash (T10 session 6; internal)
 
 - **Spec.** `idPfxBody` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec`,
-  `Generator.Next.spec`, `idPfxInv` and every spec naming them; T7's `memberPfx.law`
+  `Generator.Next.spec`, `idPfxInv` and every spec naming them; T7's `memberPfx.law` and `memberGen_crash.law`
   (`dist/crash/MemberCrash.lean`); the issue record's `Specs`/`Crash` (`GooseLang/Ext/IdIssue/`, untrusted: no
   change to its `Impl`).
 - **Defect.** `idPfxInv` is heap-level (its `Gp` holds `prefix ↦□` facts, its `Ip` the record's `idIssueFragD` at the
@@ -7253,7 +7253,10 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   incarnation, which the step refutes with its state interpretation's authority; `Next` uses it when it opens a
   cancelled body. (4) The crash law `idPfxInv_crash`: from the old generation's `idPfxInv` and `idIssueCrashStart`,
   every `Ip` fact made past at `L'`, the old body cancelled (the old authority deposited), and a new invariant at the
-  same `γip` with a fresh, empty `γgp`; `memberPfx.law` restated to take the old `idPfxInv` and the crash rest, and
-  proved from it. **No keep row** (the "cancel token" is the crash rest's authority, not a member's token). No change
+  same `γip` with a fresh, empty `γgp` (`idutil/PfxCrash.lean`). (5) `memberGen_crash.law` (`dist/crash/MemberGen.lean`)
+  takes the issue record's crash rest `idIssueCrashStart (gooseIdIssueGS L) (gooseIdIssueGS L')` beside the file
+  extension's (every extension's crash rest reaches the restart, `etcdstart/NetExtsCrash.lean`), and gains
+  `[HasExt idIssueExt]`; T7's `memberPfx.law` is deleted, `memberGen_crash_law_holds` loses `hB6` and applies
+  `idPfxInv_crash` to the old `idPfxInv` of `memberRestartFacts`. **No keep row** (the "cancel token" is the crash rest's authority, not a member's token). No change
   to `NewGenerator.spec`'s or `Next.spec`'s text, no top-level change, no axiom.
 - **Decision.** (b) by etcd-grove-03 on #50; this form of it applied on `etcd-safe-t10` (T10 session 6).

@@ -28,6 +28,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.MemberGen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapDirCrash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
+public import Proof.go_etcd_io.etcd.pkg.v3.idutil.PfxCrash
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsHGen
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsCrash
@@ -926,14 +927,6 @@ abbrev memberDbNamed.law (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF) 
       ⌜V'.now.entry k.J go!"db" = some (.file k.i0)⌝ ∗ KeepB L k ∗
       crashRest Q (gooseOsGS (L := etcd_dist.atCtx L)) (gooseOsGS (L := etcd_dist.atCtx L')) D tt V'
 
-/-- **B6, the prefix generators' invariant at the new generation** (named hypothesis; ledger 2026-11-25,
-"`memberGen`'s restart case asks for the old incarnation's `idPfxInv`"): `idPfxInv` is heap-level, so the
-old incarnation's cannot be carried; `memberRestart` asks for it at the new generation. D7's / T8's to
-restate. -/
-abbrev memberPfx.law : Prop :=
-  ∀ (L' : GooseLocalGS GF) (ρo : ReqNames),
-    ⊢ |={⊤}=> idPfxInv (hG := ⟨G, etcd_dist.atCtx L'⟩) ρo.ids.gen ρo.ids.pfx
-
 end keep
 
 /-! ## The restart's facts and image at the new generation (T7, session 6) -/
@@ -1044,13 +1037,14 @@ variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [Sf : ExtSemantics fsExt] [Of : FsSemOk] [Hf : HasExt fsExt]
+variable [Sf : ExtSemantics fsExt] [Of : FsSemOk] [Hf : HasExt fsExt] [Hi : HasExt idIssueExt]
 
 open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 /-- **The member's crash law** (T7; `memberGen_crash.law` at `memberKeep`), over the named hypotheses of
 the tasks still open: the crash premise `Q`'s W1 (`hQ`) and bbolt's (`hA1`, until `etcdCQ` has it), B4
-(`hB4`), B1 (`hB1`, `hB1n`) and B6 (`hB6`); D-T7-1 needs none since its restatement (2026-11-25). -/
+(`hB4`) and B1 (`hB1`, `hB1n`); D-T7-1 needs none since its restatement (2026-11-25), B6 none since (b)
+(2026-11-26: the issue record's crash rest cancels the old prefix ids' invariant, `idPfxInv_crash`). -/
 theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
     (KeepF : GooseLocalGS GF → IProp GF) (KeepB : GooseLocalGS GF → MemberKN GF → IProp GF)
@@ -1058,7 +1052,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     (hQ : ∀ st st', Q st st' → WalFs.W1 walCodec st st')
     (hA1 : ∀ i0 st st', Q st st' → backend.BoltCrashWhole (· = i0) st st')
     (hB4 : memberFirstCrash.law C cfg id KeepF Q) (hB1 : memberImage.law cfg id KeepB)
-    (hB1n : memberDbNamed.law KeepB) (hB6 : memberPfx.law (GF := GF)) :
+    (hB1n : memberDbNamed.law KeepB) :
     etcd_dist.memberGen_crash.law C cfg id (memberKeep C cfg id KeepF KeepB) Q := by
   intro L L' V' hL hL'
   obtain ⟨fl, lc, nh, gs, th, cr⟩ := L
@@ -1066,7 +1060,7 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   simp only at hL hL'
   subst hL hL'
   letI hG : HeapGS .hasLC GF := ⟨G, ⟨fl, lc', nh, gs, th, cr⟩⟩
-  iintro Hk Hlc #Hcr Hrest #Hosi
+  iintro Hk Hlc #Hcr Hrest Hic #Hosi
   iunfold memberKeep at Hk
   icases Hk with ⟨Hcf, Hlc2, (HF | HR)⟩
   · imod hB4 ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ V' rfl rfl $$ HF Hlc Hcr Hrest Hosi
@@ -1198,7 +1192,12 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
     with ⟨%i, %A, %D, %m, Hdo, Himg, %hbnd⟩
   -- the fresh registry (Q4) and the prefix generators' invariant (B6)
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%r', Hreg⟩
-  imod hB6 ⟨fl', lc', nh', gs', th', cr'⟩ ρo with Hpfx
+  ihave #Hpfo : idPfxInv ρo.ids.gen ρo.ids.pfx $$ []
+  · iunfold etcdstart.memberRestartFacts at Hrf
+    icases Hrf with ⟨⟨-, -, -, -, #Hp, -⟩, -⟩
+    iexact Hp
+  imod (idPfxInv_crash (Gg := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ρo.ids.gen ρo.ids.pfx)
+    $$ Hpfo Hic with Hpfx
   ihave Hrf' := memberRestartFacts_gen (G := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γ ρo id $$ [Hpfx]
   · isplitr
     · iexact Hrf
