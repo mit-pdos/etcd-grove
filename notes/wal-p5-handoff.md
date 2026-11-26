@@ -27,7 +27,10 @@
   **`/shared/tmp/p5-s6-build2.log`** (ends `EXIT n`). Next session: read it first; if unfinished, rerun the same
   command (incremental in fk-lean2's `~/eg/wt/etcd-safe-p5`); fix what fails (likely spots: `InvWalCrashLaws`'s
   `walHistCerts_take` (`BigSepL.bigSepL_append` destructuring), `MemberCrash.lean`'s `memberDur_crash`
-  pattern). Session 5's merge build was never finished either; this build covers it.
+  pattern). Session 5's merge build was never finished either; this build covers it. **That build did not
+  run**: lake refused the target list at once (`unknown target notes.mvcc-api-clients.ServerSpecs`: the list
+  had three `notes.*` targets). Rerun with `$(cat /shared/tmp/p5-s6-leaves-nonotes.txt)` (157 leaves, the
+  `notes.*` lines dropped) in place of the list above.
   **(b) plan under the alternative** (next session, in order):
   1. The contract over `walHistH`: `isWalStorage`'s `Save`/`SaveSnap` AUs become `AU <{ ∃∃ Hs, walHistH h Hs
      sized }> <{ walHistH h (Hs ++ [op]) sized, COMM Q Hs }>` (layer 1 needs no `WalSaveOk`/term premise:
