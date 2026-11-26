@@ -530,14 +530,15 @@ theorem preCand_noQuorum_of {md : RnMode} {id : w64} {rs : RNState} {s : NState}
 `RnCfgIn`; on, a follower became one only as a voter, `RoleFn`, else it was in the progress map before). -/
 theorem id_mem_of_roleFn {md : RnMode} {γ : RaftNames} {id : w64} {rs : RNState} {s s' : NState}
     {c : CfgM} (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs)
-    (HC : CfgScope γ c) (hl : c.learners = ∅) (hrole : RoleFn c id s s')
+    (HC : CfgScope γ c) (hl : c.learners = ∅)
+    (hfol : s.role = .follower → s'.role ≠ .follower → id ∈ c.voters)
     (Hd : domSet s.prvals = domSet s.progress ∧ domSet s.progress = c.ids)
     (hnf : s'.role ≠ .follower) : id ∈ γ.reCfg := by
   cases hnv : md.nonVoters
   · exact Hc.1 hnv
   · rw [← HC.voters]
     by_cases hf : s.role = .follower
-    · exact hrole.2 hf hnf
+    · exact hfol hf hnf
     · have h := Hs.2.2.2.2.2.2.2.2 hcc hnv hf
       rw [Hd.1, Hd.2] at h
       exact CfgM.voter_of_ids hl h
@@ -546,7 +547,7 @@ theorem id_mem_of_roleFn {md : RnMode} {γ : RaftNames} {id : w64} {rs : RNState
 state at reads off (`hrd`); no snapshot (`hsn`); no transfer request stepped at transfer off (`hxs`); the
 pre-candidate facts and the node's membership from the role facts (`RoleFn`) and the progress maps' domains
 before and after. -/
-theorem RnScope.step {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState} {s s' : NState}
+theorem RnScope.stepG {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState} {s s' : NState}
     {c : CfgM} (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs)
     (HC : CfgScope γ c) (hl : c.learners = ∅) (hc : rs.cfg.cfg = c)
     (hm : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg ∧ rs'.slent = rs.slent)
@@ -556,7 +557,10 @@ theorem RnScope.step {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState
     (hsn : md.snapshots = false → s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
       NoSnapL s'.outbox)
     (hxs : md.transfer = false → s'.gh.xs = s.gh.xs)
-    (hrole : RoleFn c id s s')
+    (hpre : s'.role = .preCandidate →
+      (s.role = .preCandidate ∧ s'.lead = s.lead ∧ (s'.votes = s.votes ∨ ¬ JQuorum c (granted s'.votes))) ∨
+      (s'.lead = W64 0 ∧ ¬ JQuorum c (granted s'.votes)))
+    (hfol : s.role = .follower → s'.role ≠ .follower → id ∈ c.voters)
     (Hd : domSet s.prvals = domSet s.progress ∧ domSet s.progress = c.ids)
     (Hd' : domSet s'.prvals = domSet s'.progress ∧ domSet s'.progress = c.ids) :
     RnScope md id rs' s' := by
@@ -572,16 +576,58 @@ theorem RnScope.step {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState
   · obtain ⟨q1, q2, q3, q4⟩ := h5 a
     obtain ⟨e1, e2, e3⟩ := hsn a
     exact ⟨hsl.trans q1, e1.trans q2, e2.trans q3, e3⟩
-  · obtain ⟨hr0, -, hv⟩ := hrole.1 hr
-    rw [hcf, hc]
-    rcases hv with hv | hv
+  · rw [hcf, hc]
+    rcases hpre hr with ⟨hr0, -, hv | hv⟩ | ⟨-, hv⟩
     · rw [hv, ← hc]; exact h7 a b hr0
     · exact hv
-  · obtain ⟨hr0, hl0, -⟩ := hrole.1 hr
-    rw [hl0]; exact h8 a hr0
+    · exact hv
+  · rcases hpre hr with ⟨hr0, hl0, -⟩ | ⟨hl0, -⟩
+    · rw [hl0]; exact h8 a hr0
+    · exact hl0
   · rw [Hd'.1, Hd'.2]
     exact GMap.elem_of_union_l c.learners
-      (by rw [HC.voters]; exact id_mem_of_roleFn a Hs0 Hc HC hl hrole Hd hnf)
+      (by rw [HC.voters]; exact id_mem_of_roleFn a Hs0 Hc HC hl hfol Hd hnf)
+
+/-- `RnScope.stepG` at a network step's role facts (`RoleFn`). -/
+theorem RnScope.step {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState} {s s' : NState}
+    {c : CfgM} (hcc : md.confChanges = false) (Hs : RnScope md id rs s) (Hc : RnCfgIn md γ id rs)
+    (HC : CfgScope γ c) (hl : c.learners = ∅) (hc : rs.cfg.cfg = c)
+    (hm : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg ∧ rs'.slent = rs.slent)
+    (hpv : s'.prevote = s.prevote) (hcq : s'.cq = s.cq)
+    (hrd : md.reads = false → s'.rd.pend = s.rd.pend ∧
+      ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []))
+    (hsn : md.snapshots = false → s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
+      NoSnapL s'.outbox)
+    (hxs : md.transfer = false → s'.gh.xs = s.gh.xs)
+    (hrole : RoleFn c id s s')
+    (Hd : domSet s.prvals = domSet s.progress ∧ domSet s.progress = c.ids)
+    (Hd' : domSet s'.prvals = domSet s'.progress ∧ domSet s'.progress = c.ids) :
+    RnScope md id rs' s' :=
+  RnScope.stepG hcc Hs Hc HC hl hc hm hpv hcq hrd hsn hxs (fun hr => .inl (hrole.1 hr)) hrole.2 Hd Hd'
+
+/-- (step C2) **An empty tally is no quorum** of a configuration with a voter in its incoming half. -/
+theorem not_jquorum_granted_empty {c : CfgM} {i : w64} (hin : i ∈ c.incoming) :
+    ¬ JQuorum c (granted ∅) := by
+  rintro ⟨h1, -⟩
+  rw [granted_empty] at h1
+  rcases h1 with h1 | h1
+  · rw [h1] at hin; exact GMap.not_elem_of_empty i hin
+  · unfold IsQuorum at h1
+    have hs : (∅ : GSet w64) ∩ c.incoming ⊆ ∅ := by
+      rw [GMap.elem_of_subseteq]; set_solver
+    have := GMap.subseteq_size hs
+    rw [GMap.size_empty] at this
+    omega
+
+/-- A tick's protocol leader: kept or cleared. -/
+theorem tickEnd_lead {c : CfgM} {id : w64} {s s' : PState} (h : TickEnd k c id s s') :
+    s'.lead = s.lead ∨ s'.lead = W64 0 := by
+  rcases h with rfl | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, -, -, peers, -, rfl⟩ | ⟨-, ms, -, rfl⟩ | ⟨-, -, rfl⟩
+  · exact .inl rfl
+  · exact .inr rfl
+  · exact .inr rfl
+  · exact .inl rfl
+  · exact .inr rfl
 
 end scope
 

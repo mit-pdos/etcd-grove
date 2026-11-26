@@ -498,7 +498,7 @@ local macro "step_tail" : tactic => `(tactic| (
             · rw [e]; exact .inr (Hscp md h).2.2
             · rw [e]; right
               refine id_mem_of_roleFn (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 (HCf md h).1
-                (HCf md h).2.1 (HroleF md h) Hdom0 (fun hf => ?_)
+                (HCf md h).2.1 (HroleF md h).2 Hdom0 (fun hf => ?_)
               rw [toPState_role, hf] at hr; cases hr
           · by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
             · obtain ⟨-, -, -, Hgrow⟩ := Hxwf hx

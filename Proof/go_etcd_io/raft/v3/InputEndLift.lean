@@ -1564,9 +1564,9 @@ theorem tickEnd_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List
 
 /-- **A tick's `MsgBeat`** (`tickHeartbeat`): a leader's heartbeats; nothing elsewhere. -/
 theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgBeat)
-    (h0 : m.Term' = W64 0) (hro : (toPState s).rd.ro.pending = [])
-    (h : StepEnd c id m ents ctx s s') :
+    {ctx : List w8} {s s' : NState} (hnp : s.role ≠ .preCandidate) (hpc : domSet s.progress = c.ids)
+    (hty : m.Type' = MsgBeat)
+    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') :
     TickEnd k c id (toPState s) (toPState s') := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
       (by rw [hty]; ie_tyclose MsgVote) h0 h
@@ -1583,19 +1583,18 @@ theorem tickEnd_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     ie_tysimp hty at hres
     obtain ⟨-, -, hs⟩ := hres
     exact Or.inl (by rw [hs])
-  | preCandidate => exact absurd hr hsc.2.2.1
+  | preCandidate => exact absurd hr hnp
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     ie_tysimp hty at hres
     obtain ⟨-, ms, pvs, rfl, hok, hpm⟩ := hres
-    have hpc : domSet s.progress = c.ids := hsc.2.2.2.2.2.2.2
-    -- (#33 S4, msgShape) the read-only queue empty: the heartbeats carry no context (`hbCtx`)
-    have hpend : s.rd.ro.pending = [] := by
-      have h' := hro; unfold toPState at h'; simp only [hr, ite_true] at h'; exact h'
+    -- (antithesis parity B1, step C2) the heartbeats' context the read-only queue's (`hbCtx`): a leader's
+    -- read state is its protocol reading's
+    have hrd : (toPState s).rd = s.rd := by unfold toPState; simp only [hr, ite_true]
     exact Or.inr (Or.inr (Or.inr (Or.inl ⟨by rw [toPState_role, hr]; rfl, ms,
       fun y hy => ⟨(hok y hy).1, (hok y hy).2.2.1, (hok y hy).2.2.2.1, (hok y hy).2.2.2.2.1,
-        by rw [(hok y hy).2.1]; unfold hbCtx; rw [hpend, hro]; simp, ie_dst_ids rfl hpc (hok y hy).2.2.2.2.2⟩,
+        by rw [(hok y hy).2.1, hrd], ie_dst_ids rfl hpc (hok y hy).2.2.2.2.2⟩,
       ie_toPState_send_prvals s ms pvs (fun _ => hpm)⟩)))
 
 /-- (#33 S4) **A tick's `MsgHup` keeps the log's state** (`HupOkC`: a campaign touches no log
@@ -1610,7 +1609,7 @@ theorem logst_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List E
 /-- (#33 S4) **A tick's `MsgBeat` keeps the log's state**: a leader's heartbeats queue messages
 only; elsewhere nothing. -/
 theorem logst_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgBeat)
+    {ctx : List w8} {s s' : NState} (hnp : s.role ≠ .preCandidate) (hty : m.Type' = MsgBeat)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : s'.logst = s.logst := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
       (by rw [hty]; ie_tyclose MsgVote) h0 h
@@ -1627,13 +1626,78 @@ theorem logst_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List 
     ie_tysimp hty at hres
     obtain ⟨-, -, hs⟩ := hres
     rw [hs]
-  | preCandidate => exact absurd hr hsc.2.2.1
+  | preCandidate => exact absurd hr hnp
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
     ie_tysimp hty at hres
     obtain ⟨-, ms, pvs, rfl, -, -⟩ := hres
     rfl
+
+/-- (antithesis parity B1, step C2) **A leader's `MsgBeat` keeps it a leader.** -/
+theorem role_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hr : s.role = .leader) (hty : m.Type' = MsgBeat)
+    (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : s'.role = .leader := by
+  obtain ⟨-, -, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
+      (by rw [hty]; ie_tyclose MsgVote) h0 h
+  obtain ⟨d, hres⟩ := hl hr
+  unfold LeaderStepResultC LeaderNonpropResultC at hres
+  ie_tysimp hty at hres
+  obtain ⟨-, ms, pvs, rfl, -, -⟩ := hres
+  exact hr
+
+/-- (antithesis parity B1, step C2) **A tick's `MsgCheckQuorum` at the `NState`**: nothing at a non-leader;
+a leader stays (its `Progress` values replaced, the same `Match`) or steps down (a follower, the log kept). -/
+theorem cqEndN_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgCheckQuorum) (h0 : m.Term' = W64 0)
+    (h : StepEnd c id m ents ctx s s') :
+    (s.role ≠ .leader ∧ s' = s) ∨
+    (s.role = .leader ∧ ∃ pvs, s' = { s with prvals := pvs } ∧ toPState s' = toPState s) ∨
+    (s.role = .leader ∧ toPState s' = pbecomeFollower (toPState s) (toPState s).term (W64 0) ∧
+      s'.role = .follower ∧ s'.logst = s.logst) := by
+  obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
+      (by rw [hty]; ie_tyclose MsgVote) h0 h
+  rcases (show s.role = .follower ∨ s.role = .candidate ∨ s.role = .preCandidate ∨ s.role = .leader by
+    cases s.role <;> simp) with hr | hr | hr | hr
+  · obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    exact .inl ⟨by rw [hr]; decide, hs⟩
+  · obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    exact .inl ⟨by rw [hr]; decide, hs⟩
+  · obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    exact .inl ⟨by rw [hr]; decide, hs⟩
+  · obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, pvs, ⟨hpm, rfl⟩ | rfl⟩ := hres
+    · exact .inr (.inl ⟨hr, pvs, rfl, toPState_prvals s pvs (fun _ => hpm)⟩)
+    · refine .inr (.inr ⟨hr, ?_, by simp [becomeFollower], by simp [becomeFollower, resetTo, resetTo0]⟩)
+      rw [toPState_prvals_nl _ _ (by simp [becomeFollower]), toPState_becomeFollower]
+      rfl
+
+/-- (antithesis parity B1, step C2) **A tick's `MsgHup` at the `NState`**: nothing, or a campaign by a voter
+(a candidate, or a pre-candidate with no leader and an empty tally). -/
+theorem hupRole_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgHup) (h0 : m.Term' = W64 0)
+    (h : StepEnd c id m ents ctx s s') :
+    s' = s ∨ (id ∈ c.voters ∧ s'.role ≠ .follower ∧
+      (s'.role = .preCandidate → s'.lead = W64 0 ∧ s'.votes = ∅)) := by
+  have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
+  obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac)
+  obtain ⟨-, -, -, -, hg⟩ := hhup hst hty
+  rcases hg with ⟨-, rfl⟩ | ⟨⟨-, hv, -, -⟩, -, peers, pvs, -, rfl⟩
+  · exact .inl rfl
+  · refine .inr ⟨hv, ?_⟩
+    unfold campaignState
+    split <;> simp [sendMsgs, becomePrecandidate, becomeCandidate]
 
 end lift
 

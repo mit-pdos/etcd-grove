@@ -432,20 +432,25 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private theorem true_eq_true_eq : (fun md : RnMode => basicScope true = some md) = (fun md => md = {}) := by
   funext md; apply propext; simp only [basicScope, Option.some.injEq]; exact eq_comm
 
+/-- The scope's guard at `some {}`: the mode `{}`. -/
+private theorem some_eq_some_eq :
+    (fun md : RnMode => (some {} : Option RnMode) = some md) = (fun md => md = {}) := by
+  funext md; apply propext; simp only [Option.some.injEq]; exact eq_comm
+
 theorem RawNode.Step.apiSpec_of_abs (H : RawNode.Step.absSpec (GF := GF) (hG := hG)) :
     RawNode.Step.apiSpec (GF := GF) (hG := hG) := by
   have h := H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩)
-  have e : (fun md : RnMode => (some {} : Option RnMode) = some md) = (fun md => md = {}) := by
-    funext md; apply propext; simp only [Option.some.injEq]; exact eq_comm
-  rw [e] at h; exact h
+  rw [some_eq_some_eq] at h; exact h
 
 theorem RawNode.Tick.apiSpec_of_abs (H : RawNode.Tick.absSpec (GF := GF) (hG := hG)) :
     RawNode.Tick.apiSpec (GF := GF) (hG := hG) := by
-  have h := H true; rw [true_eq_true_eq] at h; exact h
+  have h := H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩)
+  rw [some_eq_some_eq] at h; exact h
 
 theorem RawNode.Campaign.apiSpec_of_abs (H : RawNode.Campaign.absSpec (GF := GF) (hG := hG)) :
     RawNode.Campaign.apiSpec (GF := GF) (hG := hG) := by
-  have h := H true; rw [true_eq_true_eq] at h; exact h
+  have h := H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩)
+  rw [some_eq_some_eq] at h; exact h
 
 theorem RawNode.Propose.apiSpec_of_abs (H : RawNode.Propose.absSpec (GF := GF) (hG := hG)) :
     RawNode.Propose.apiSpec (GF := GF) (hG := hG) := by

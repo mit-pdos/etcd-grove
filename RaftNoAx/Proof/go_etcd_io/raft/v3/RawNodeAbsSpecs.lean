@@ -258,9 +258,11 @@ abbrev RawNode.Tick.form (R : RaftNames → Loc → w64 → RNState → RState �
 
 /-- **`RawNode.Tick`, strengthened**. -/
 abbrev RawNode.Tick.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Tick.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc))
-    (fun md => basicScope sc = some md)
+  ∀ sc : Option RnMode, (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+    RawNode.Tick.form
+      (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc)
+      (fun md => sc = some md)
 
 abbrev RawNode.Tick.spec_of_abs.law : Prop :=
   RawNode.Tick.absSpec (GF := GF) (hG := hG) → RawNode.Tick.spec (GF := GF) (hG := hG)
@@ -287,9 +289,11 @@ abbrev RawNode.Campaign.form (R : RaftNames → Loc → w64 → RNState → RSta
 
 /-- **`RawNode.Campaign`, strengthened**. -/
 abbrev RawNode.Campaign.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Campaign.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc))
-    (fun md => basicScope sc = some md)
+  ∀ sc : Option RnMode, (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+    RawNode.Campaign.form
+      (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc)
+      (fun md => sc = some md)
 
 /-! ### `RawNode.Propose` -/
 

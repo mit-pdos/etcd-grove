@@ -50,7 +50,7 @@ theorem RawNode.Tick.spec_of_abs : RawNode.Tick.spec_of_abs.law (GF := GF) (hG :
   wp_start_folded as H
   iNamed H
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-  wp_apply Habs false γ rn id rs ps qs ip H1 H2 H3 $$ [$Hrn] as %t %ps' %ip' H
+  wp_apply Habs none (fun _ h => by cases h) γ rn id rs ps qs ip H1 H2 H3 $$ [$Hrn] as %t %ps' %ip' H
   iNamed H
   ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn
   iapply HΦ $$ %t

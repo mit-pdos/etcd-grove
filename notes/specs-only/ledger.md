@@ -6617,3 +6617,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (the leader kept, cleared, the sender or the node itself, `recvEnd_lead`; a known leader's term past `0`,
   `ownStepGhost_leadNz`; `xw` grown only by a forward to a known leader).
 - **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C2: `RawNode.Tick.absSpec` and `RawNode.Campaign.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (the lead's statement, decision 1, as C1's).** RawNodeAbsSpecs.lean: `RawNode.Tick.absSpec` and
+  `RawNode.Campaign.absSpec := ∀ sc : Option RnMode, (∀ md, sc = some md → snapshots, confChanges, forwarding, async off)
+  → form (ownRawNodeAt … sc) (fun md => sc = some md)` (were `∀ sc : Bool` at `basicScope sc`). `spec_of_abs` at `none`,
+  `apiSpec_of_abs` at `some {}`.
+- **Proof.** RawNode__TickAbs / RawNode__CampaignAbs at `some md`: `TickEnd` at any flags (`tickHbEnd_lift`: the quorum
+  check's step-down, `TickEnd`'s last arm, `cqEndN_of_stepEnd`; the heartbeats' context `hbCtx` of the read-only queue at
+  any read state); the scope kept by `RnScope.stepG` (a pre-campaign's pre-candidate has no leader and an empty tally,
+  `hupRole_of_stepEnd`, `not_jquorum_granted_empty`; `tick_role`), `XScopeOk` (`tickEnd_lead`). Lifting lemmas generalized
+  (no statement of record): `tickEnd_of_stepEnd_beat`, `logst_of_stepEnd_beat`, `bk_of_stepEnd_beat` take the role facts
+  they read instead of `LiftScope`, `bk_of_stepEnd_hup` none, `tickEnd_of_stepEnd_beat` no empty read-only queue.
+- **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.

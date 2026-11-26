@@ -535,7 +535,7 @@ theorem bk_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
 
 /-- **A tick's `MsgHup`**: the log kept (`HupOkC`), nothing done or a campaign (no leader). -/
 theorem bk_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgHup)
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgHup)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : BkStep s s' := by
   have hst : ¬ StaleMsg s m := fun hs => hs.1 h0
   obtain ⟨-, hhup, -, -⟩ := h (by unfold StepEndTy; se_tyclose hty) (by xtrec_tac)
@@ -548,7 +548,7 @@ theorem bk_of_stepEnd_hup {c : CfgM} {id : w64} {m : MessageM} {ents : List Entr
 
 /-- **A tick's `MsgBeat`**: a leader's heartbeats; nothing elsewhere. -/
 theorem bk_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgBeat)
+    {ctx : List w8} {s s' : NState} (hnp : s.role ≠ .preCandidate) (hty : m.Type' = MsgBeat)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : BkStep s s' := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; se_tyclose hty)
     (by rw [hty]; se_tyclose MsgHup) (by rw [hty]; se_tyclose MsgVote) h0 h
@@ -566,7 +566,7 @@ theorem bk_of_stepEnd_beat {c : CfgM} {id : w64} {m : MessageM} {ents : List Ent
     se_tysimp hty at hres
     obtain ⟨-, -, rfl⟩ := hres
     exact BkFn.keep rfl rfl rfl
-  | preCandidate => exact absurd hr hsc.2.2.1
+  | preCandidate => exact absurd hr hnp
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres

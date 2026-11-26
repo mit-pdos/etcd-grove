@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 public import Proof.go_etcd_io.raft.v3.RaftStepNoSnap
 public import Proof.go_etcd_io.raft.v3.RawNodeAtScope
 public import Proof.go_etcd_io.raft.v3.StepEndIp
+public import Proof.go_etcd_io.raft.v3.StepEndRole
 
 @[expose] public section
 
@@ -88,14 +89,38 @@ local macro "hup_tail" : tactic => `(tactic| (
     have Ht2' := Ht2 rfl
     ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
     -- in the scope, the campaign read as a tick's `TickEnd` (for the scope), the log's state kept
-    have Hlifted : sc = true → TickEnd rs.k cf id (toPState s) (toPState s') ∧ s'.logst = s.logst :=
-      fun h => ⟨tickEnd_of_stepEnd_hup (by rw [← Hkt h]) rfl rfl (Hx h).1,
-        logst_of_stepEnd_hup rfl rfl (Hx h).1⟩
-    ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
-      (fun h Hs => by
-        have hro := tickEnd_rd_out (Hlifted h).1
-        exact RnScopeBasic.keep Hs rfl rfl Hpre Hcq' hro.1 Hpv Hsn hro.2
-          (tickEnd_ro (Hlifted h).1)) Hsg (fun _ => Hsdr') $$ Hsc
+    have Hlifted : ∀ md, sc = some md →
+        TickEnd rs.k cf id (toPState s) (toPState s') ∧ s'.logst = s.logst :=
+      fun md h => ⟨tickEnd_of_stepEnd_hup (by rw [← (Hscope md h).2.2.1]) rfl rfl (Hx md h).1,
+        logst_of_stepEnd_hup rfl rfl (Hx md h).1⟩
+    icases ownRaftPhysC_trkDoms cf rnv.raft' id s' $$ Hphys with ⟨%Hdom1, Hphys⟩
+    ihave Hsc := rnScopeAt_keepOpt sc rs { rs with term := s'.term } s s'
+      (fun md h Hs0 => by
+        have hT := (Hlifted md h).1
+        have hro := tickEnd_rd_out hT
+        have hin : id ∈ cf.voters → id ∈ cf.incoming := fun hv => by
+          rw [CfgM.voters_of_out (HCf md h).1.2.1] at hv; exact hv
+        have HR : (s'.role = .preCandidate →
+            (s.role = .preCandidate ∧ s'.lead = s.lead ∧ (s'.votes = s.votes ∨ ¬ JQuorum cf (granted s'.votes))) ∨
+            (s'.lead = W64 0 ∧ ¬ JQuorum cf (granted s'.votes))) ∧
+            (s.role = .follower → s'.role ≠ .follower → id ∈ cf.voters) := by
+          rcases hupRole_of_stepEnd rfl rfl (Hx md h).1 with e | ⟨hv, -, hp⟩
+          · rw [e]; exact ⟨fun hr => .inl ⟨hr, rfl, .inl rfl⟩, fun h1 h2 => absurd h1 h2⟩
+          · exact ⟨fun hr => .inr ⟨(hp hr).1, by rw [(hp hr).2]; exact not_jquorum_granted_empty (hin hv)⟩,
+              fun _ _ => hv⟩
+        exact RnScope.stepG (hsc0 md h).2.1 Hs0 (Hscope md h).2.1 (HCf md h).1 (HCf md h).2.1
+          (HCf md h).2.2 ⟨rfl, rfl, rfl⟩ Hpre Hcq' (fun _ => ⟨hro.1, tickEnd_ro hT⟩)
+          (fun hsn => ⟨Hpv, Hsn, fun x hx =>
+            (hro.2 x hx).elim (fun hm => (Hs0.2.2.2.2.1 hsn).2.2.2 x hm) (fun h => h)⟩)
+          (fun _ => by rw [Hgh]) HR.1 HR.2 Hdom Hdom1)
+      Hsg (hfl := ⟨Hpre, Hcq', Hsdr'⟩)
+      (hx := fun md h _ HX0 => by
+        obtain ⟨hl0, hw0, ht0⟩ := HX0
+        rcases tickEnd_lead (Hlifted md h).1 with e | e
+        · refine ⟨by rw [e]; exact hl0, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => ?_⟩
+          have h1 := ht0 (by rw [← e]; exact hne)
+          intro e0; apply h1; rw [e0] at Ht1; word
+        · exact ⟨.inl e, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => absurd e hne⟩) $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
       (by rw [Hgh]; exact Hgtr.trans HtrG)
     icases Herr with (%Herr | ⟨%Hc', -⟩)
@@ -108,7 +133,7 @@ local macro "hup_tail" : tactic => `(tactic| (
         (logStoreRec_ksn Hsd) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
       ihave #Hsloc' := snapLocOk_keep γ id (.inl Hsn) $$ Hsloc
       · iapply ownRawNodeAt_intro γ rn id { rs with term := s'.term } (toRState { rs with term := s'.term } fp s') qs
-          (uint.nat s'.logst.inprogress - 1) (basicScope sc) s' cf fp rnv sv hprev steps Hwf' Hin
+          (uint.nat s'.logst.inprogress - 1) sc s' cf fp rnv sv hprev steps Hwf' Hin
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, (logStoreRec_stored Hsd)⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl
           (by rw [Hsg]; exact ⟨Hstor.1, by rw [Hsn1.2, Hgh, ← Hns0.2]; exact Hstor.2⟩)
@@ -123,21 +148,20 @@ local macro "hup_tail" : tactic => `(tactic| (
       ipureintro
       refine ⟨by rw [Htrm]; exact ⟨Ht1, Ht2'⟩, Herr, ?_⟩
       intro md hmd
-      have h : sc = true := by cases sc <;> first | rfl | cases hmd
-      have hl := (Hlifted h).2
+      have hl := (Hlifted md hmd).2
       have hlog : (toPState s').log = ps.p.log := by
         rw [← Hps]
         show s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents
         rw [hl]
       refine ⟨?_, ?_⟩
       · rw [← Hps]
-        obtain ⟨Hend1, Hfp0, -⟩ := Hx h
+        obtain ⟨Hend1, Hfp0, -⟩ := Hx md hmd
         subst Hfp0
-        exact campaignEndR_of_stepEnd_hup (by rw [← Hkt h])
-          (Hcfm.2 (Hcin h).2.2.2.1) rfl rfl (Hp0 h) Hlogf.2.1 Hlogf.2.2 Hend1 ⟨rfl, rfl⟩
+        exact campaignEndR_of_stepEnd_hup (by rw [← (Hscope md hmd).2.2.1])
+          (HCf md hmd).2.2 rfl rfl (Hp0 md hmd) Hlogf.2.1 Hlogf.2.2 Hend1 ⟨rfl, rfl⟩
       · show uint.nat s'.logst.inprogress - 1 = min ip (lcpLen ps.p.log (toPState s').log)
         rw [hl, Hip, Nat.add_sub_cancel]
-        exact ip_eq_min_of_eq (Hipl h) hlog
+        exact ip_eq_min_of_eq (Hipl md hmd) hlog
     · exfalso; revert Hc'; msg_ne))
 
 /-- **`RawNode.Campaign`, strengthened** (`RawNode.Campaign.absSpec`). -/
@@ -147,32 +171,25 @@ theorem RawNode.Campaign.wp_absProof
     RawNode.Campaign.absSpec (GF := GF) (hG := hG) := by
   have wp_raft_StepNs := raft.Step.untracedNs wp_raft_Step
   have wp_raft_Step := raft.Step.untraced wp_raft_Step
-  intro sc γ rn id rs ps qs ip Hterm Hflw HtrG
+  intro sc hsc0 γ rn id rs ps qs ip Hterm Hflw HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
   -- the scope's facts at the start state
-  icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
-  icases rnScopeAt_ktie sc rs s $$ Hsc with ⟨%Hkt, Hsc⟩
-  icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpre0, Hphys⟩
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom, Hphys⟩
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
-  icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
-  icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
-  have Hlift : sc = true → LiftScope cf id s ∧ AckScope cf := fun h => by
-    have Hs := Hscope h
-    obtain ⟨HC, Hid⟩ := cfgScope_of Hs (Hcin h) Hcfm
-    have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid), Hal0 HC.2.1⟩
-  have Hp0 : sc = true → uint.Z s.logst.prev.index' = 0 := fun h => by
-    rw [(Hscope h).2.2.2.2.2.1]; rfl
-  have Hipl : sc = true → ip ≤ ps.p.log.length := fun h => by
+  have HCf : ∀ md, sc = some md → CfgScope γ cf ∧ cf.learners = ∅ ∧ rs.cfg.cfg = cf := fun md h =>
+    cfgScope_ofMd (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 Hcfm
+  have Hp0 : ∀ md, sc = some md → uint.Z s.logst.prev.index' = 0 := fun md h => by
+    rw [((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.1]; rfl
+  have Hipl : ∀ md, sc = some md → ip ≤ ps.p.log.length := fun md h => by
     rw [← Hps]
-    exact ip_le_log Hip (by rw [(Hscope h).2.2.2.2.2.1]; rfl) Hipf.1.2
+    exact ip_le_log Hip (by rw [((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.1]; rfl) Hipf.1.2
   -- the log facts `hasUnappliedConfChanges` reads (as `raft__Step/MsgHup.lean`)
   icases ownRaftPhysC_log_same cf rnv.raft' id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
@@ -198,10 +215,11 @@ theorem RawNode.Campaign.wp_absProof
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
-  by_cases hsc : sc = true
-  · icases rnScopeAt_cap hsc rs s $$ Hsc with ⟨#Hcap, Hsc⟩
-    icases ownStepGhost_fp_nil γ rs fp ds cf id s (Hcin hsc).2.2.2.1 (Hscope hsc).2.2.2.2.2.1 $$ Hghost
-      with ⟨%Hfp0, Hghost⟩
+  by_cases hsc : ∃ md, sc = some md
+  · obtain ⟨md0, hmd0⟩ := hsc
+    icases rnScopeAt_capOpt hmd0 (hsc0 md0 hmd0).1 rs s $$ Hsc with ⟨#Hcap, Hsc⟩
+    icases ownStepGhost_fp_nil γ rs fp ds cf id s (Hscope md0 hmd0).2.1.2.2.2
+      ((Hscope md0 hmd0).1.2.2.2.2.1 (hsc0 md0 hmd0).1).2.1 $$ Hghost with ⟨%Hfp0, Hghost⟩
     wp_apply wp_raft_StepNs cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
       [] [] none []
       (by simp [StepMsg, stepMsgTypes, MsgHup])
@@ -211,7 +229,7 @@ theorem RawNode.Campaign.wp_absProof
       (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-      (by tr_none) (Hlift hsc).2 $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
+      (by tr_none) (Hal0 (HCf md0 hmd0).1.2.1) $$ [$Hphys $Hghost $Hlc1 Hcr Hm]
     · hup_frame
       isplitr
       · imodintro
@@ -220,13 +238,13 @@ theorem RawNode.Campaign.wp_absProof
       isplitr
       · iexact Hcap
       isplitr
-      · ipureintro; exact Hp0 hsc
-      · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2.1
+      · ipureintro; exact Hp0 md0 hmd0
+      · ipureintro; exact ((Hscope md0 hmd0).1.2.2.2.2.1 (hsc0 md0 hmd0).1).2.2.2
     simp only [hP]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr,
       %Hend, -, %Hns', -⟩
-    have Hx : sc = true → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
-        [] [] s s' ∧ fp = [] ∧ NoSnapL s'.outbox := fun _ => ⟨Hend, Hfp0, Hns'⟩
+    have Hx : ∀ md, sc = some md → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
+        [] [] s s' ∧ fp = [] ∧ NoSnapL s'.outbox := fun _ _ => ⟨Hend, Hfp0, Hns'⟩
     hup_tail
   · wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
       [] [] none []
@@ -244,8 +262,8 @@ theorem RawNode.Campaign.wp_absProof
       simp [MsgSnap] at Hc
     simp only [hP]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, -, %Htm, -, -, -, Herr⟩
-    have Hx : sc = true → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
-        [] [] s s' ∧ fp = [] ∧ NoSnapL s'.outbox := fun h => absurd h hsc
+    have Hx : ∀ md, sc = some md → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 0 } : MessageM)
+        [] [] s s' ∧ fp = [] ∧ NoSnapL s'.outbox := fun md h => absurd ⟨md, h⟩ hsc
     hup_tail
 
 end proof
