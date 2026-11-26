@@ -9,10 +9,9 @@ the update's post names the database, so its name is fixed here), and the update
 record at `(D, D)` (at the version `C.txid`, its evidence the synced mark of `C.txid`); `Open` keeps the
 client's half of the committed data, the file's resources in crash mode and the core phase's names.
 
-The one use of the tails hypothesis of the crash-mode `Open` (`TailsZeroOnOpen`, as `crashMode_on`'s
-for C-I1's `_new`): the reference image needs zero meta tails (`RefImg`), which the settled file's
-`boltImage` gives once `fileOK` carries them (W7). If the commit point moves (C★: a repair before crash
-mode), only this lemma is re-proved.
+The reference image's zero meta tails come with the settled file's `boltImage` (its `fileOK`'s
+`metaOk`, W7). If the commit point moves (C★: a repair before crash mode), only this lemma is
+re-proved.
 -/
 module
 
@@ -46,17 +45,17 @@ section pure
 variable [GooseExts]
 
 /-- **A settled durable file is durable for its committed state** (`Open/Mode.open_bDur` with the
-crash sizes known only to be the size, `fileHoldsMDurC`'s): its own bytes are a reference image of `C`
-(with zero meta tails), every byte durable. -/
+crash sizes known only to be the size, `fileHoldsMDurC`'s): its own bytes are a reference image of `C`,
+every byte durable. -/
 theorem open_bDurC (C : CommitSt) (D : Data) (m : OsMeta) (xs : List ByteG)
-    (hok : openOK C D m xs) (htz : metaTailsZero (xs.map Prod.fst)) (hl : xs.length = m.size)
+    (hok : openOK C D m xs) (hl : xs.length = m.size)
     (h8 : 8192 ≤ m.size) (hdur : ∀ y ∈ xs, y = durB y.1) (hlo : m.lo = m.size)
     (hhi : m.hi = m.size) (hxs : ∃ l, m.xs = some l ∧ ∀ x ∈ l, x = m.size)
     (hal : m.size % 4096 = 0) :
     BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨m, xs, 0, 0, .idle⟩ := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, -⟩ := hok
   have hR : RefImg (xs.map Prod.fst) C :=
-    ⟨h1, h2, h3, h4, by rw [List.length_map, hl]; exact h5, h6, h7, htz⟩
+    ⟨h1, h2, h3, h4, by rw [List.length_map, hl]; exact h5, h6, h7⟩
   have hps : ∀ b, b < m.size →
       PSync ⟨m, xs, 0, 0, .idle⟩ b (xb (xs.map Prod.fst) b) := by
     intro b hb
@@ -157,7 +156,7 @@ under `B.cn`) idle at its committed state `C` (`openOK`), the writer's share of 
 bbolt's share of its bytes `xs`, `C.txid`'s receipt, the core phase's names (`openNames`), the
 client's half of the committed data and the update's `Q`. -/
 theorem open_commit (N : Namespace) (path : GoString) (i : Ino) (D : Data)
-    (Q : BoltName → IProp GF) (hfs : FsNoErr) (hT : TailsZeroOnOpen) :
+    (Q : BoltName → IProp GF) (hfs : FsNoErr) :
     AU <{ fileHoldsMDurC (GF := GF) i D }> @ ⊤ \ ↑N, ∅
       <{ ∀∀ (γ : BoltName), ⌜γ.ns = N⌝ ∗ boltCrashRec γ i D D, COMM Q γ }> ⊢
     |={⊤}=> ∃ (B : BNs) (c : CsN) (C : CommitSt) (m : OsMeta) (xs : List ByteG),
@@ -179,7 +178,6 @@ theorem open_commit (N : Namespace) (path : GoString) (i : Ino) (D : Data)
   unfold fileHoldsMDurC boltImageRcpt
   icases Hf with ⟨%m, %bs, Hm, Hb, %hm, #Hrc⟩
   obtain ⟨hmaps, hsz, hlo, hhi, hpos, hcut, hxs, himg, hlen⟩ := hm
-  have htz : metaTailsZero bs := hT bs D himg
   unfold boltImage at himg
   obtain ⟨⟨hlt, hal⟩, hfok⟩ := himg
   obtain ⟨C, hC1, hC2, hC3, hC4, hC5, hC6, hC7, hC8⟩ :
@@ -209,7 +207,7 @@ theorem open_commit (N : Namespace) (path : GoString) (i : Ino) (D : Data)
     exact hall x hx
   have hD : BDur ⟨C, C, (bs.map durB).map Prod.fst, (bs.map durB).map Prod.fst, .idle⟩
       ⟨m, bs.map durB, 0, 0, .idle⟩ :=
-    open_bDurC C D m (bs.map durB) hok (by rw [hxf]; exact htz) hxl h8 hdur (by rw [hlo, hsz])
+    open_bDurC C D m (bs.map durB) hok hxl h8 hdur (by rw [hlo, hsz])
       (by rw [hhi, hsz]) hxsm (by rw [hsz]; exact hal)
   ihave #HrcC := fileRcpt_get bs C hC1 hC2 $$ Hrc
   -- the file into its crash invariant, with its synced mark

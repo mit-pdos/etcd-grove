@@ -6,7 +6,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Inv.Names
+public import Proof.go_etcd_io.bbolt.Inv.BFile
 
 @[expose] public section
 
@@ -16,6 +16,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
 open Iris Iris.BI Iris.ProofMode
 
 section mask

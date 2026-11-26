@@ -436,7 +436,7 @@ theorem bDur_view_pos {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s) (hni : a.
   have hlo := vmeta_lo_of s hW
   have hfl := hV.lo
   revert hP hni
-  cases a.phase <;> intro hP hni <;> dsimp only at hP
+  cases a.phase <;> intro hni hP <;> (try dsimp only at hP)
   · have h3 := refImg_hwm hP.1
     have h4 := hP.2.2.2.1
     omega
