@@ -126,3 +126,67 @@ The keys are in `etc/axiom-tok-allow.txt`'s entry, one per finding class; the wa
 The walk truncates in the post's backend, lease and bbolt definitions (`bbAt`, `isBolt`, `lessorPin*`, `ownMap`,
 ...). These are the definitions whose truncations other entries already accept: `storage.OpenBackend`,
 `bootstrap.wp_proofOne`, and the server-handle axioms. The same post is the post of the proved `wp_NewServer`.
+
+## Re-key after lean `c924d71a03` and `9d454f138b` (2026-11-26, the land queue's bounce)
+
+The land queue merged lean `d31b1781b5` (s2a) and bounced M1. `axiom-tok --check` and its selftest failed there.
+
+**Plain lean passes.** I built a detached worktree at plain lean `c924d71a03` (no M1) on the VM and ran both checks:
+
+- `tcb-report --check`: 366 axioms, 0 `sorry`;
+- `axiom-tok --check`: ok, 349 Prop axioms walked, 317 passing outright and 32 by an entry or pair;
+- `axiom-tok --selftest`: 0 failures.
+
+So every failure was M1's.
+
+**One root finding.** M1 was merged with `c924d71a03` and then with `9d454f138b`, and the walk run on both merged trees.
+Every failure traces to one finding of `NewServer_dist`'s capped walk:
+
+| | key | scenarios |
+|---|---|---|
+| before (lean `009822ac30`) | `3:Wb:produced11/consumed1` | 208 |
+| after (lean `c924d71a03`, and again after `9d454f138b`) | `3:Wb:produced46/consumed36` | 928 |
+
+- **The surplus is unchanged.** Production minus consumption is 10 both times. What changed is how much the collapse
+  merged: s2a changed the server's gRPC handles in the post.
+- **No other finding of the axiom changed.**
+
+**Where `Wb` is.** I ran an instrumented walk that pushes the unfold stack in both `walkI` and `walkProp`. Every `Wb`
+use is inside the post's `srvBuiltG`, in the auth store's handles:
+
+- `srvKVInvsM > srvUberOn > apply.isAuthStepsX > adminW > auth.authWBackendOk > auth.authBatchTxOk >
+  auth.authBatchTxLk`;
+- `auth.authBackendReads`;
+- `applyBuiltNAM > applyBuiltNAOn > srvAuthApplyResB > authApplyResB > authInstallPre > authStepsAny >
+  apply.isAuthStepsX`.
+
+`Wb` is the auth store's write-backend permit, borrowed and returned through those batch-transaction contracts. The
+contracts are `specG`'s post text, which the textual argument above covers.
+
+**The proved auth-on theorem has the same key.** I walked `NewServer_dist`, `wp_NewServer` and `server_new_auth_on`
+beside each other in one run, on the `9d454f138b` merge:
+
+- the proved `server_new_auth_on` (auth on) has exactly `3:Wb:produced46/consumed36`;
+- `wp_NewServer` (auth off) has the transfer `7:Wb:IPropGF` only;
+- as before, 44 of the dist axiom's 45 keys are keys of the proved walks, and the 45th is `3:Dep` (the depth cutoff,
+  above).
+
+**The fix.** The entry's `3:Wb:produced11/consumed1` becomes `3:Wb:produced46/consumed36`, and nothing else changes.
+The M1 lead treats this as a re-key of the triaged entry, needing no new independent triage.
+
+**The rule-5 cascade.** I judged the same raw output (the `9d454f138b` merge) with only that key changed. Before the
+re-key, `NewServer_dist` tainted 20 opaque predicates, which left 40 axioms with findings:
+
+- `apply.semverIsCore`, `backend.readerStreams`, `context.madeCancelCtxRaw`, `credsYieldRaw`;
+- `etcd_dist.peerHandlerRaw`, `grpcConn`, `grpcConnOptsRaw`, `grpcSrvAtLis`;
+- `http.httpProtoAtRaw`, `http.httpProtoOwn`, `http.netErrRaw`, `http.reqCtxRaw`, `http.reqRestRaw`,
+  `http.reqStreamRaw`, `http.respCloserRaw`, `http.respReader`;
+- `io.pipeW`, `metadata.builtRawMDRaw`, `metadata.transportMDRaw`, `v3rpc.ctxCauseOkRaw`.
+
+After the re-key:
+
+- **every one of the 20 is cleared**: 0 tainted predicates and 0 axioms with findings left;
+- **`grpc.Server.Serve.wp_proof`'s token-mint-candidate line is back to "(entry)"**, as on plain lean;
+- **the selftest's `real-pass EtcdServer.leaseTimeToLive.wp_proof` failure is gone**. It came from the taint.
+
+No tainted predicate remained, so none needed a trace of its own.

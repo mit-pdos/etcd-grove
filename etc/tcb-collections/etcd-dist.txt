@@ -22,7 +22,6 @@ axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
@@ -37,7 +36,6 @@ axiom binary.WriteUint8.wp_proof
 axiom bootstrap.wp_proof_dist
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcd_dist.KV_Delete_dist.wp_proof
 axiom etcd_dist.KV_Get_dist.wp_proof
@@ -126,9 +124,7 @@ axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Code.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
