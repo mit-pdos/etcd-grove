@@ -250,6 +250,7 @@ theorem etcdClusterStart (S5 : S5Draft GF) (ms : List ClusterMember) (ps : List 
   imod (clusterAllocN (GF := GF) ((m0 :: ms').map (·.id)) ps hperm m0.id hid0 ctxs boot Hbc Hrb Hrb2
       lm hap cmp cret)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
+  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
   ihave Hsl := memberSlices_of (GF := GF) (m0 :: ms') ps ctxs (LogEntry.toEntries boot 0) γ γk issued
     cnt wn fs gen idx cok rev reg $$ Hsl
   ihave Hs : [∗list] m ∈ m0 :: ms', memberSliceOf (GF := GF)
