@@ -356,3 +356,14 @@ does not show: `etc/lean-check.py --stop`, then check again; candidate entry for
 `Event.Str.wp_proof` now takes the DecodeRuneInString spec, passed by `HypsHoldLinked`. 12 zerolog axioms left.
 Next: the five level methods (session 4, item 3), then the review over the defined token, then the tcb update
 (expected: `Event.Str.wp_proof` removed from the base and `dsv-rabia`, nothing added).
+
+**Session 6 stopped at the context limit (handoff).** Head: this commit. Gates: run once at `bc5bb0cc02`'s
+code (fk-lean1, log `~/eg/logs/dsv-retire-3-gates-s6.log`): all passed but axiom-tok's stale entry, fixed in
+`ca45e750f0` (`axiom-tok-check.py --check` ok). Proved since: `Event.Str.wp_proof` over the defined `eventTok`
+(`c396097763`; `etc/lean-check.py -a` clean on `AppendString.lean`, `Event__Str.lean`, `HypsHoldLinked.lean`).
+**Running when stopped**: a full incremental `lake build` on fk-lean1 (`/shared/tmp/dsvr3-rb.sh`, no targets; log
+`/shared/tmp/dsvr3-build-s6.log`, last line `BUILD_EXIT n`). Next: once it is green, on fk-lean1 run
+`etc/tcb-report.py --check --update` and `--collection etc/tcb-collections/dsv-rabia.txt --check --update`
+(expected: only `github_com.rs.zerolog.Event.Str.wp_proof` removed), copy the files back, commit; `etc/tier-check.py
+--check` (new module `internal/json/AppendString.lean` should be defs tier) and `etc/axiom-tok-check.py --check`;
+then the five level methods (session 4, item 3) and the review of the 12 remaining axioms over the defined token.
