@@ -1080,3 +1080,40 @@ no `Spec/.../dist/client/RunAuthLease.lean`). Its single-process counterpart is 
    `etcd-dist-lease.txt`'s). **Not created now:** `tcb-report` fails a collection whose pattern matches no root
    (`etc/tcb-report.py:381`), which would break `etc/gates.sh`. Then `tcb-report --check` (base diff = the auth axioms
    the link reaches), `--check --update` for base and collection, and the axiom-tok gate's real run.
+
+### Handoff S4-1 (2026-11-26; S4 steps 1 (7 of 9 helpers) and 2 done; `noAuth`/`foreign` blocked on two view gaps)
+
+**Done** (branch `etcd-safe-f7`, built on fk-lean2, tier-check ok (208 known), lease-order ok; no `sorry`, no new axiom):
+- `d79d211b48`: the lead's choice (a): `Lease_TimeToLiveKeysOn_dist` generalized to any options and renamed
+  `Lease_TimeToLiveOn_dist` (keys arm unchanged; without keys the check is `requireAuthInfo`'s, written
+  `principalOf cfg = some info.Username'`, because `userOk` alone admits the empty user). `8330c5220b`: its fresh
+  review `notes/axiom-review/f7-getOn-n1.md` (SOUND as drafted; must claim nothing of TTL/Keys), `KV_GetOn_dist`
+  with N1 SOUND (keep `serializable = false`), retirement obligation R1 in its docstring; F9 rows cite it.
+- `4359c342ff` (step 2): `etcd_auth.SetUp.spec_dist` / `SetUp.wp_proof_dist` (`auth/SetUpDist.lean`,
+  `SetupInvDist.lean`): pre `userClientAt` + `authClientAt` of the anonymous client (`principalOf cfg = none`),
+  `srvReqLogLb γR L₀`, the set-up puts' `writeAuD … L₀`, `authHistView Γ.kv [srvAuthSt0]`; post (ok) `authHistFrozen
+  Γ.kv γz hs ∗ srvReqLogLb γR Lset ∗ ⌜admStates … Lset = hs ∧ srvAuthAtLog … Lset = setupSt r⌝`.
+- `18155a8b18` (step 1, part): `dist/client/{reqCtx,refused,newUserClient,barrier,barriers,grantPut,absent}` and the
+  defs module `AuthLeaseDefs.lean` (`reqMd`, `userCli`, `barrierFloor Γ γR L₀ addr := ∃ mid m, etcdAddrAt addr Γ mid ∗
+  authFloorD Γ γR mid L₀ m`).
+
+**Blocked (for the lead): two gaps of the view that refusals need.**
+1. **`leaseCheckD` is vacuous for an anonymous principal when `K = True`** (`Lease_GrantOn_dist`,
+   `Lease_RevokeOn_dist`): its info arm is `∃ info, ⌜userOk P info.Username'⌝ ∗ (admin ∨ K info)` and `userOk none ""`
+   holds, so anon's/bad's Grant success cannot be refuted (the single-process proof used `principalBound tok (some
+   info)`, false at no token). Proposed: `leaseCheckD`'s binding `P = some info.Username'` (true of etcd: with auth on
+   a non-nil `AuthInfo` comes from an accepted token, which is `New`'s for `cfg`'s user); a change to four reviewed
+   axioms (Grant, Revoke, TimeToLive, Leases), and `Lease_TimeToLiveOn_dist`'s no-keys `principalOf` clause becomes
+   redundant.
+2. **No per-member fix of the auth state after the barrier**: `authFloorD` gives `Γ.au mid`'s state at one index
+   `i ≤ m`; a later lease check reads index `≥ n`. Refuting it needs the dist form of `akAuthFixed`: every state of
+   `Γ.au mid` from the floor on is the frozen set-up state. Review `f7-getOn-n1.md`'s R1 lemma (from `authHistTie`:
+   a later member state is `srvAuthAtLog L` at a committed `L ⊒ L'`) is exactly its core, so with the frozen history
+   it follows from Serve's resources; at the view it needs a law (an axiom's post, e.g. `authFloorD` strengthened to
+   `□ ∀ j st, i ≤ j → authStateAt (Γ.au mid) j st → ∃ L ⊒ L₀, srvReqLogLb γR L ∗ ⌜st = srvAuthAtLog … L⌝`).
+3. Smaller: the dist `newClient.spec` post gives no `clientF cl "cfg" ↦□ cfg` with `cfg.Token' = [] ∧ principalOf cfg =
+   none`, which `SetUp.spec_dist` and `noAuth` need: strengthen it (`etcdstart.NewClients` sets no user/password/token).
+
+**Next:** after the lead's decisions: `noAuth` (the five calls; with (1) only "auth disabled" is left, refuted by (2)
+since `setupSt` has auth enabled), `foreign` (callees as they are; premises: the caller's refutations, as
+`authlease/foreign.lean`), `newClient`'s stronger post, then `RunAuthLease` (Handoff S3-1, items 4-5).
