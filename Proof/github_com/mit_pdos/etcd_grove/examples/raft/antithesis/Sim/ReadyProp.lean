@@ -58,9 +58,9 @@ theorem logIdx_len_lt {l : List EntryM} (hl : LogIdx l) (hne : l ≠ []) : (l.le
 /-- A proposal's state keeps the `Match` values (`ProposeEnd`: `pappend` and `psendMsgs`). -/
 theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
     {ents : List EntryM}
-    (hr : ReachO kk cf id net v ps₁) (hby : v.byE = go!"propose") (hvl : v.ps.role = .leader)
+    (hr : ReachP kk cf id net v ps₁) (hby : v.byE = go!"propose") (hvl : v.ps.role = .leader)
     (hne : ents ≠ []) (hplog : ps₁.log = v.ps.log ++ ents)
-    (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
+    (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
     ps₁.matched = v.ps.matched := by
   have hlne : ps₁.log ≠ v.ps.log := by
     intro h; rw [h] at hplog
@@ -72,7 +72,16 @@ theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : N
   | recv m _ _ hbe =>
     have h' : (go!"propose" : Str) ≠ go!"recv" := by decide
     rw [hby] at hbe; exact absurd hbe h'
+  | recvP m _ _ hbe =>
+    have h' : (go!"propose" : Str) ≠ go!"recv" := by decide
+    rw [hby] at hbe; exact absurd hbe h'
   | tick _ _ hbe =>
+    have h' : (go!"propose" : Str) ≠ go!"tick" := by decide
+    have h'' : (go!"propose" : Str) ≠ go!"campaign" := by decide
+    rcases hbe with hbe | hbe <;> rw [hby] at hbe
+    · exact absurd hbe h'
+    · exact absurd hbe h''
+  | tickP _ _ hbe =>
     have h' : (go!"propose" : Str) ≠ go!"tick" := by decide
     have h'' : (go!"propose" : Str) ≠ go!"campaign" := by decide
     rcases hbe with hbe | hbe <;> rw [hby] at hbe
@@ -84,9 +93,13 @@ theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : N
     rcases hs with rfl | ⟨es, ms, -, -, rfl⟩
     · exact absurd rfl hlne
     · rfl
-  | advance _ _ _ _ ha =>
+  | advP _ _ _ _ _ _ _ h =>
+    rcases h with rfl | ⟨-, -, peers, -, rfl⟩
+    · exact absurd rfl hlne
+    · exact absurd rfl hlne
+  | advance _ _ _ _ hno ha =>
     have hP : AdvP cf id v.ps True ps₁ :=
-      advP_run hX ha hqs (fun _ _ _ => trivial) (fun _ _ hc => absurd (hc.symm.trans hvl) (by decide))
+      advP_run hX ha (fun q hq => hqs q hq (hno q hq)) (fun _ _ _ => trivial) (fun _ _ hc => absurd (hc.symm.trans hvl) (by decide))
         (.inl (.inl rfl))
     rcases hP with (heq | ⟨hc, -⟩) | ⟨-, hL, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩
     · rw [heq] at hlne; exact absurd rfl hlne
@@ -208,7 +221,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       rw [hLeq, ← hcnZ]
       refine recordedIn_true (by rw [logOf_length]; omega) h2 ⟨x, hx1, by rw [hT] at hx2; exact hx2, hx3⟩ ?_
       rw [h4, ← hLeq, List.take_append_of_le_length (by rw [logOf_length]; exact h1)]
-  have hdb : DrainBy go!"propose" := hby ▸ reach_byE hx.hr hx.hro hx.hrep
+  have hdb : DrainBy go!"propose" := hby ▸ reach_byE hx.hr
   have hm' := inMemory_lprop n hc go!"propose" hdb r₁.p.term r₁.p.vote r₁.p.commit e es'
     (logOf (V n).ps.log) hrole hT hll hfirst hterms (by rw [hLeq, logOf_length]; exact hcL0) hcm hrec
   rw [hLeq] at hm'
@@ -257,7 +270,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     show x ∈ r₁.full
     rw [hfl, hplog]; exact List.mem_append_right _ hxe
   rw [hby]
-  refine hx.finish (ready_of hx.hq0 hm' rfl (queued_ready _ _ _ _ _ _ _ _ _) hod) ?_
+  refine hx.finish hpl (ready_of hx.hq0 hm' rfl (queued_ready _ _ _ _ _ _ _ _ _) hod) ?_
   exact {
     hterm := rfl
     tge := Int.le_of_eq hT
@@ -269,7 +282,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       rw [get!_set_self _ hn3]; show leader = roleOf r₁.p.role; rw [hpl]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
-    rstay := fun _ _ => get!_set_self _ hn3
+    rstay := fun h _ => by rw [get!_set_self _ hn3] at h; exact absurd h (by decide)
     hdel := ha.hdel
     hfp := ha.hfp
     hdur := ha.hdur
@@ -367,7 +380,7 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hpend := ha.hpend
     hxpend := ha.hxpend
     hqs := fun q hq => by
-      obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso q hq
+      obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso (by rw [hpl]; decide) q hq
       rcases hk with ⟨hlr, rfl⟩ | ⟨hc', -⟩
       · refine ⟨h1, h2, h4, .inl ⟨h3, .inl ⟨rfl, hlr, ?_⟩⟩⟩
         refine ⟨_, hackN, rfl, rfl, rfl, rfl, ?_⟩

@@ -31,9 +31,12 @@ section main
 variable [GooseExts]
 variable {R : RunCfg} {dec : CCDec} {xnet : List XMsg}
 
-/-- A message of the S4 types keeps no term (`PreTermKeep`: a pre-vote message). -/
-theorem InMsg.notPre {m : Msg} (h : InMsg m) : ¬ PreTermKeep m := by
-  rintro (h' | ⟨h', -⟩) <;> rcases h.1 with h1 | h1 | h1 | h1 | h1 | h1 | h1 <;> rw [h1] at h' <;> cases h'
+/-- A message of a type other than the pre-vote ones keeps no term (`PreTermKeep`). -/
+theorem notPre_ty {m : Msg} {t : MsgType} (h : m.ty = t) (h1 : t ≠ .preVote) (h2 : t ≠ .preVoteResp) :
+    ¬ PreTermKeep m := by
+  rintro (h' | ⟨h', -⟩) <;> rw [h] at h'
+  · exact h1 h'
+  · exact h2 h'
 
 /-- The binding's leader role is raft's (a pre-candidate is reported as `precandidate`). -/
 theorem roleS_leader {v : NodeView} (h : roleS v = leader) : v.ps.role = .leader := by
@@ -106,13 +109,6 @@ theorem fol_tl {S : State} {V : Fin R.N → NodeView} {net : List Msg} {G : Raft
 
 /-! ## Small facts of the kinds -/
 
-/-- A follower's `Ready` queues no self-addressed message. -/
-theorem qs_follower {id : w64} {N : Nat} {v : NodeView} {ps : PState} {rd : ReadyD}
-    (hro : ReadyOutO N id v ps rd) (hso : SelfOut id ps) (hf : ps.role = .follower) :
-    ∀ q ∈ rd.qs, False := by
-  intro q hq
-  rcases (qs_self hro hso q hq).2 with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [hf] at h <;> cases h
-
 /-- `UpToDate` of a vote request against the node's log is raft's `plogUpToDate`. -/
 theorem upToDate_of {S : State} {n : Nat} {l : List EntryM} {m : Msg}
     (hlog : S.log[n]! = logOf l) (hidx : LogIdx l)
@@ -157,13 +153,19 @@ variable {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs : List Eve
 theorem RdCtx.rlen (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) : S1.role.length = R.N :=
   hx.hs1.1.2.2.2.2.2.2.1
 
-/-- The new view's binding role: raft's (no pre-candidate below `mskB1a`). -/
-theorem RdCtx.roleS_w (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) :
-    roleS ((V n).afterReady r₁ rd) = roleOf r₁.p.role := by
-  show roleStr rd.pre r₁.p.role = _; rw [hx.hpf]; rfl
 
 theorem RdCtx.logG (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) : r₁.p.log ∈ G.logs := by
   rw [← hx.hfl]; exact hx.hrf.1
+
+/-- A follower's `Ready` queues only its self pre-votes (`qs_pre`): `QsOk`'s pre-vote arm at the
+new view. -/
+theorem RdCtx.qs_fol (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1) (hpr : r₁.p.role = .follower)
+    {S' : State} : ∀ q ∈ rd.qs, QsOk R S' n ((V n).afterReady r₁ rd) q := by
+  intro q hq
+  obtain ⟨rfl, hvo, hk⟩ := qs_pre hx.hro hx.hso hpr q hq
+  refine ⟨rfl, rfl, rfl, .inr ⟨rfl, rfl, ?_, hk, fun q' hq' => ?_⟩⟩
+  · rw [(hx.ha.facts.conf0 hx.hcc).1]; exact hvo
+  · rw [(qs_pre hx.hro hx.hso hpr q' hq').1]; rfl
 
 /-- **`ReadyOk` of a `Ready` that changes only the term, the vote or the role** of a non-leader
 (`camp`, `grant`, `adopt`, `demote`): `InMemory`'s `memNL`, `OnDisk`'s log, commit, confirmation,
@@ -173,7 +175,7 @@ theorem readyOk_plain (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     {vo : Option Str} {M : List Fact} {Vs : List VoteRec} {p : Pre}
     (hnl : r₁.p.role ≠ .leader) (hlog : r₁.p.log = (V n).ps.log) (hcm : r₁.p.commit = (V n).ps.commit)
     (htge : uint.Z (V n).ps.term ≤ uint.Z r₁.p.term)
-    (hvl : (V n).ps.role = .leader → (V n).ps.term ≠ r₁.p.term)
+    (hvc : r₁.p.role = .candidate → r₁.p.term = (V n).ps.term → (V n).ps.role = .candidate)
     (hvote : match vo with
       | some x => x = nameOf r₁.p.vote ∧ S1.bootTerm < uint.Z r₁.p.term
       | none => (r₁.p.term = (V n).ps.term ∧ r₁.p.vote = (V n).ps.vote) ∨
@@ -220,9 +222,9 @@ theorem readyOk_plain (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
     rstay := by
-      intro hl ht
-      rw [hx.d5, roleOf_leader_iff] at hl
-      exact absurd (uint_Z_inj.mp (by rw [← hx.d1, ← ht])).symm (hvl hl)
+      intro hc ht
+      rw [get!_set_self _ hn3, roleOf_candidate_iff] at hc
+      rw [hx.d5, hvc hc (uint_Z_inj.mp (ht.trans hx.d1))]; rfl
     hdel := ha.hdel
     hfp := ha.hfp
     hdur := ha.hdur
@@ -342,12 +344,7 @@ theorem readyOk_fol (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hrole := by rw [get!_set_self _ hn3]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
-    rstay := by
-      intro hl ht
-      rw [hx.d5, roleOf_leader_iff] at hl
-      rcases hft with ⟨h, -⟩ | ⟨-, h, -⟩
-      · rw [hx.d1, hpt] at ht; rw [ht] at h; exact absurd h (Int.lt_irrefl _)
-      · exact absurd hl h
+    rstay := fun h _ => by rw [get!_set_self _ hn3, hpr] at h; exact absurd h (by decide)
     hdel := ha.hdel
     hfp := ha.hfp
     hdur := ha.hdur
@@ -387,7 +384,7 @@ theorem readyOk_fol (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     cpart := fun h => absurd (h.symm.trans hpr) (by decide)
     hpend := ha.hpend
     hxpend := ha.hxpend
-    hqs := fun q hq => (qs_follower hx.hro hx.hso hpr q hq).elim
+    hqs := hx.qs_fol hpr
     drain := ha.drain
     hlead := ha.hlead
     hvself := fun h => absurd hpr h
@@ -518,18 +515,18 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   have hro := hx.hro
   have htold := hx.htold
   have htb := hx.htb
-  have hbyE := reach_byE hr hro hx.hrep
+  have hbyE := reach_byE hr
   -- the sender of a received message: another node, at a term it has
-  have hsender : ∀ m, RecvAt (nodeId n) net (V n) m → ∃ i : Fin R.N, i ≠ n ∧ m.src = nodeId i ∧
-      uint.Z m.term ≤ S1.currentTerm[i.val]! := by
-    intro m hm
+  have hsender : ∀ m, RecvAt (nodeId n) net (V n) m → ¬ PreTermKeep m → ∃ i : Fin R.N, i ≠ n ∧
+      m.src = nodeId i ∧ uint.Z m.term ≤ S1.currentTerm[i.val]! := by
+    intro m hm hnp
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
-    refine ⟨i, fun h => ?_, hi, hti.resolve_left (hx.hin m hm.2.2.1).notPre⟩
+    refine ⟨i, fun h => ?_, hi, hti.resolve_left hnp⟩
     subst h
     exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
   unfold ReadyGoal
   cases hx.hk with
-  | demote hvc hpr hpt hpv hpl hpc hen =>
+  | follow hpr hpt hpv hpl hpc hen =>
     rw [hen, hpr]
     have hm := inMemory_nl_eq n hc (V n).byE hbyE .follower (by decide) r₁.p.term r₁.p.vote r₁.p.commit []
       (fun h => by cases h)
@@ -539,19 +536,18 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       (by rw [hpc, d4]) (get!_set_self _ hn3)
     have hok := readyOk_plain hx (vo := none) (M := S1.msgs) (Vs := S1.votes) (p := p)
       (by rw [hpr]; decide) hpl hpc (by rw [hpt]; exact Int.le_refl _)
-      (fun h => by rw [hvc] at h; cases h) (.inl ⟨hpt, hpv⟩) (fun f hf => hf)
+      (fun h => by rw [hpr] at h; cases h) (.inl ⟨hpt, hpv⟩) (fun f hf => hf)
       (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
       (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
-      (fun q hq => (qs_follower hro hso hpr q hq).elim) (fun h _ => absurd hpr h)
+      (hx.qs_fol hpr) (fun h _ => absurd hpr h)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm rfl (queued_ready ..) hod) hok
-  | camp hbe hnl0 hpt hpv hpr hpl hpc hen =>
+    exact hx.finish hpr (ready_of hq0 hm rfl (queued_ready ..) hod) hok
+  | camp hnl0 hpt hpv hpr hpl hpc hen hvot hvo0 =>
     rw [hen, hpv, hpr]
     have htz : uint.Z r₁.p.term = uint.Z (V n).ps.term + 1 := by
       rw [hpt]; have := htb; word
     have hbtl : S1.bootTerm < uint.Z r₁.p.term := by
       have h0 := hb.bootTermOk.1 n; rw [d1] at h0; omega
-    obtain ⟨hvot, hvo0⟩ := camp_votes hr d7 hqs hbe hpt hpr
     have hvo : nodeId n ∈ R.voters0 := by
       unfold CfgM.voters CfgM.simple at hvo0
       rcases (GMap.elem_of_union _ _ _).mp hvo0 with h | h
@@ -559,13 +555,15 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       · exact absurd h (GMap.not_elem_of_empty _)
     have hm := inMemory_nl_eq n hc (V n).byE hbyE .candidate (by decide) r₁.p.term (nodeId n)
       r₁.p.commit [] (fun _ => by rw [hx.hconf]; exact cin_has_voter n hvo hx.hcf)
-    obtain ⟨p, hpm, hod⟩ := onDisk_camp n hc (V n).byE r₁.p.term r₁.p.commit (S1.role.set n.val (roleOf .candidate))
+    obtain ⟨p, hpm, hod⟩ := onDisk_camp n hc (V n).byE r₁.p.term r₁.p.commit
+      (if (V n).byE = go!"recv" then S1.pending[n.val]! else []) (S1.role.set n.val (roleOf .candidate))
       S1.leaders S1.ledLog S1.chain S1.termLen S1.viol (by rw [htz, d1]) (by rw [hpc, d4])
       (get!_set_self _ hn3)
     have hok := readyOk_plain hx (vo := some (nameOf (nodeId n)))
       (M := lset.add S1.msgs (S1.voteRequest n.val (uint.Z r₁.p.term)))
       (Vs := lset.add S1.votes { voter := nameOf (nodeId n), term := uint.Z r₁.p.term, cand := nameOf (nodeId n) })
-      (p := p) (by rw [hpr]; decide) hpl hpc (by rw [htz]; omega) (fun h => absurd h hnl0)
+      (p := p) (by rw [hpr]; decide) hpl hpc (by rw [htz]; omega)
+      (fun _ ht => by rw [ht] at htz; omega)
       ⟨by rw [hpv], hbtl⟩
       (fun f hf => mem_lset_add.mpr (.inl hf))
       (fun f hf hn => by
@@ -587,19 +585,18 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
           unfold State.voteRequest State.lastTerm
           rw [rS_cfg, rS_log, get!_set_self _ hlg3])
       (fun q hq => by
-        obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hro hso q hq
+        obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hro hso (by rw [hpr]; decide) q hq
         rcases hk with ⟨h, -⟩ | ⟨-, rfl⟩
         · rw [hpr] at h; cases h
         · refine ⟨h1, h2, h4, .inl ⟨h3, .inr ⟨rfl, ?_⟩⟩⟩
           rw [rS_votes]; exact mem_lset_add.mpr (.inr rfl))
       (fun h ht => by rw [ht] at htz; omega)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm rfl (queued_other _ _ _ _ _ _ _ _ _
-      (by rcases hbe with h | h <;> rw [h] <;> decide)) hod) hok
-  | adopt m hm hlt hpt hpv hpr hpl hpc hen =>
+    exact hx.finish hpr (ready_of hq0 hm rfl (queued_ready ..) hod) hok
+  | adopt m hm hlt hpt hpv hpr hpl hpc hen hnp =>
     rw [hen, hm.1, hpv, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm hnp
     have hm' := inMemory_nl_eq n hc go!"recv" (hm.1 ▸ hbyE) .follower (by decide) r₁.p.term (W64 0)
       r₁.p.commit [] (fun h => by cases h)
     obtain ⟨p, hpm, hod⟩ := onDisk_adopt n hc r₁.p.term r₁.p.commit m (S1.role.set n.val (roleOf .follower))
@@ -607,17 +604,17 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       ⟨i, hin', by rw [hpt]; exact hti⟩ (by rw [hpc, d4]) (get!_set_self _ hn3)
     have hok := readyOk_plain hx (vo := none) (M := S1.msgs) (Vs := S1.votes) (p := p)
       (by rw [hpr]; decide) hpl hpc (by rw [hpt]; exact Int.le_of_lt hlt)
-      (fun _ h => by rw [h, hpt] at hlt; exact absurd hlt (Int.lt_irrefl _))
+      (fun h => by rw [hpr] at h; cases h)
       (.inr ⟨by rw [hpt]; exact hlt, hpv⟩) (fun f hf => hf)
       (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
       (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
-      (fun q hq => (qs_follower hro hso hpr q hq).elim) (fun h _ => absurd hpr h)
+      (hx.qs_fol hpr) (fun h _ => absurd hpr h)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
+    exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
   | grant m hm hty hTT hutd hpt hpv hpr hpl hpc hen =>
     rw [hen, hm.1, hpv, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide))
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hTT with h | ⟨h, -⟩
       · exact Int.le_of_lt h
@@ -643,11 +640,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
     have hok := readyOk_plain hx (vo := some (nameOf m.src)) (M := S1.msgs)
       (Vs := lset.add S1.votes { voter := nameOf (nodeId n), term := uint.Z r₁.p.term, cand := nameOf m.src })
       (p := p) (by rw [hpr]; decide) hpl hpc (by rw [hpt, ← d1]; exact hle)
-      (fun hl0 h => by
-        rcases hTT with h' | ⟨-, h2, -⟩
-        · rw [h, hpt] at h'; exact absurd h' (Int.lt_irrefl _)
-        · have := hvs (by rw [hl0]; decide); rw [h2] at this
-          exact nodeId_ne_zero n this.symm)
+      (fun h => by rw [hpr] at h; cases h)
       ⟨by rw [hpv], by rw [hpt]; exact hb.bootTermOk.2 _ (List.contains_iff_mem.mp hvf) rfl⟩
       (fun f hf => hf) (fun f hf hn => absurd hf hn)
       (fun y hy => mem_lset_add.mpr (.inl hy))
@@ -657,13 +650,13 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
         · rw [hpv]; exact ⟨h, by rw [hsi]; exact nodeId_ne_zero i⟩)
       (fun _ => by rw [hpv]; exact mem_lset_add.mpr (.inr rfl)) hpm
       (fun h => absurd (h.symm.trans hpr) (by decide))
-      (fun q hq => (qs_follower hro hso hpr q hq).elim) (fun h _ => absurd hpr h)
+      (hx.qs_fol hpr) (fun h _ => absurd hpr h)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
+    exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
   | hb m hm hty hft hpt hpr hpl hlt hpc hen =>
     rw [hen, hm.1, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide))
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩
       · exact Int.le_of_lt h
@@ -713,10 +706,10 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       (fol_tl hs1 hgo1 hl hx.hdk hm.2.2.1 (.inr hty) hm.2.2.2.1 hle hpt (by rw [hpc]; exact Int.le_refl _)).2
       (with_sorted _ _ hb.tlSorted)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
+    exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
   | store m hm hty hft hpt hpr hpc0 hprv hsl hcmv hchg =>
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide))
     have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩
@@ -825,7 +818,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
         (fol_tl hs1 hgo1 hl hx.hdk hm.2.2.1 (.inl hty) hm.2.2.2.1 hle hpt hcc).2
         (with_sorted _ _ hb.tlSorted)
       rw [hpr] at hok
-      exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
+      exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
     · exact hstoreB m hm hty hft hpt hpr hpc0 hprv ⟨d, e, hed, hen, hncf, hbef, hidx, hile, hpl⟩ hcmv
   | win src rej mt h1 h2 h3 h4 h5 h6 h7 => exact hwin src rej mt h1 h2 h3 h4 h5 h6 h7
   | prop es h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hprop es h1 h2 h3 h4 h5 h6 h7 h8 h9
@@ -869,14 +862,14 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
   have hq0 := hx.hq0
   have hrf := hx.hrf
   have htold := hx.htold
-  have hbyE := reach_byE hx.hr hx.hro hx.hrep
+  have hbyE := reach_byE hx.hr
   unfold ReadyGoal
   rw [hm.1]
   have hpend := pending_of (hno n) (htold hm.1) hm.2.1
   obtain ⟨i, hin', hsi, hti⟩ : ∃ i : Fin R.N, i ≠ n ∧ m.src = nodeId i ∧
       uint.Z m.term ≤ S1.currentTerm[i.val]! := by
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
-    refine ⟨i, fun h => ?_, hi, hti.resolve_left (hx.hin m hm.2.2.1).notPre⟩
+    refine ⟨i, fun h => ?_, hi, hti.resolve_left (notPre_ty hty (by decide) (by decide))⟩
     subst h
     exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
   have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty
@@ -1068,7 +1061,7 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
           exact ⟨rfl, rfl, ⟨i, by show nameOf m.src = _; rw [hsi]⟩, rfl, .inl ⟨rfl, Int.le_refl _⟩⟩)
       hpm f1 f2 f3 f4 f5 f6 f7 (.inr ⟨rfl, hhas, hcmono⟩) hconf hFT.1 hFT.2 (with_sorted _ _ hb.tlSorted)
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
+    exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
   · rw [if_neg hlt, if_neg (fun h => hlt h.1), if_neg hlt] at hod
     have hceq : uint.Z r₁.p.commit = S1.commitIndex[n.val]! := by omega
     have hok := readyOk_fol hx (L1 := logOf r₁.p.log)
@@ -1088,7 +1081,7 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
       (.inr ⟨rfl, hhas, hcmono⟩) hconf (fun _ => Int.le_refl _) (fun _ h => absurd h (Int.lt_irrefl _))
       hb.tlSorted
     rw [hpr] at hok
-    exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
+    exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
 
 /-- **`antSim_ready` for every kind but a leader's** from the context (`win`, `prop`, `cmt` as
 premises). -/

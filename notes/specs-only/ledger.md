@@ -6387,3 +6387,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   admits the pre-vote types (`ty`), a `PreTermKeep` sender term (`src`) and carries `PreVoterOk` (`pvo`);
   `antSim_send_in` is at `msk ≤ mskB1p` (the binding's `isUnmodelled` sends change nothing: `send_pre_eq`).
 - **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise; an invariant strengthening.
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B): `BindingOk`'s leader records not a candidate; `Reach.stay` at a drain's `by` (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`BindingOk`),
+  `Sim/Stmts.lean` (`Reach.stay`), `Sim/Scope.lean` (`ReachIn.stay`, `ReachP.stay`); the Sim proofs follow (Init, Mono,
+  ReadyRel's `ReadyOk.rstay`, ReadyWin, ReadyMain, ReadyCmt, ReadyProp).
+- **Change.** (Q1) `BindingOk`'s leaders conjunct: a node's leader record at its current term needs
+  `S.role[n] ≠ candidate` (was `S.role[n] = leader ∨ (R.boot ∧ l.term = 1)`). Why: with check quorum a leader steps
+  down to a follower at its term and its record stays (B 248 `role1`, no record removed), which the old conjunct
+  rejects; its only reader (ReadyWin, a candidate's win at its term has no leader record of that term) needs only
+  "not a candidate". The boot disjunct is subsumed (`BootInit`'s term-1 leader is a follower). `ReadyOk.rstay` becomes
+  `ro[n] = candidate → t1 = currentTerm[n] → role[n] = candidate` (only a campaign makes a candidate, at a new term).
+  (Q2) `Reach.stay` gains `DrainBy v.byE`: a `Ready` reported at the view's own state (only the pre-candidate flag
+  changed, which `ReadyOutP` does not tie to raft's protocol state) is evaluated with `by = v.byE`, which the binding
+  accepts only for a drain's `by`; the harness has `ByOk v.byE` at every drain.
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise: Q1 weakens an invariant
+  conjunct (still enough for its reader); Q2 adds a hypothesis to a `Reach` constructor, which the harness discharges.

@@ -424,7 +424,7 @@ def LeadOk {N : Nat} (n : Fin N) (v : NodeView) : Prop :=
 /-- **C1, a non-follower's vote is its own** (raft's `GhostState` fact `s.role ≠ .follower →
 s.vote = id`): a campaign votes for the node itself (`TickEnd`'s `elect`), a win and a leader's
 steps keep the vote, and every step that changes the vote otherwise makes the node a follower
-(`voteSelf_ready`). -/
+(`voteSelf_kind`). -/
 def VoteSelf {N : Nat} (n : Fin N) (v : NodeView) : Prop := v.ps.role ≠ .follower → v.ps.vote = nodeId n
 
 /-- **A transfer message of a `Ready`** taken at the protocol state `p` (`XPendOk`; raft's
@@ -693,7 +693,7 @@ and agreeing with it (`subSeq`'s domain, B 434, 600), recorded under a term it h
 (`RecordedIn`, B 109-112, at a win and a request's commit); `confirmed` a prefix of its term's leader
 log while that is kept; every ack of a node at its term within its `confirmed` or its commit (what
 `CommitBeyondConfirmed`, B 435, needs); `ledLog`'s terms led; a node in `leaders` at its current term
-only while it leads it (but `BootInit`'s leader of term 1, B 733-753, a follower at its start); the grants' and acks' senders and receivers and the votes' voters servers
+not a candidate (a leader, or a follower after a check-quorum step-down or `BootInit`'s leader of term 1, B 733-753); the grants' and acks' senders and receivers and the votes' voters servers
 (`GC` looks them up, B 699-708: an evaluation error otherwise); a node's vote at its term in
 `votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540);
 the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
@@ -716,7 +716,7 @@ def BindingOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
   (∀ p ∈ S.ledLog, ∃ l ∈ S.leaders, l.term = p.1) ∧
   (∀ n : Fin R.N, ∀ l ∈ S.leaders, l.server = nameOf (nodeId n) →
     l.term < S.currentTerm[n.val]! ∨
-      (l.term = S.currentTerm[n.val]! ∧ (S.role[n.val]! = AntCheck.leader ∨ (R.boot = true ∧ l.term = 1)))) ∧
+      (l.term = S.currentTerm[n.val]! ∧ S.role[n.val]! ≠ AntCheck.candidate)) ∧
   (∀ f ∈ S.msgs, f.type ≠ go!"vote" →
     (∃ i : Fin R.N, f.src = nameOf (nodeId i)) ∧ ∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
   (∀ v ∈ S.votes, ∃ i : Fin R.N, v.voter = nameOf (nodeId i)) ∧

@@ -441,15 +441,16 @@ macro_rules
 
 theorem cons_bne_nil {α : Type} [BEq α] (x : α) (l : List α) : ((x :: l) != []) = true := rfl
 
-/-- **A campaign's `OnDisk`** (`TickEnd`'s campaign, `elect`; any `by`: a tick's or `Campaign`'s): the next term, the node's own vote,
+/-- **A campaign's `OnDisk`** (`elect`; any `by` and queued message: a tick's, `Campaign`'s, or a
+won pre-vote's on a response received or in `Advance`): the next term, the node's own vote,
 nothing else written; its vote request and its vote recorded. -/
 theorem onDisk_camp {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str) (t c : w64)
-    (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
+    (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet)
     (ht : uint.Z t = S.currentTerm[n.val]! + 1) (hcm : uint.Z c = S.commitIndex[n.val]!)
     (hro : ro[n.val]! = candidate) :
     ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
-      S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .candidate) t (nodeId n) c [], []⟩ false ro ld ll ch tl vi
+      S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .candidate) t (nodeId n) c [], M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) (some (nameOf (nodeId n))) (S.log[n.val]!) (uint.Z c) ro
             (S.confirmed[n.val]!) (lset.add S.msgs (S.voteRequest n.val (uint.Z t)))
             (lset.add S.votes { voter := nameOf (nodeId n), term := uint.Z t, cand := nameOf (nodeId n) })

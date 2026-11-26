@@ -261,7 +261,7 @@ structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeVi
   hrole : ro[n.val]! = roleOf w.ps.role
   rlen : ro.length = R.N
   rother : ∀ k : Fin R.N, k ≠ n → ro[k.val]! = S.role[k.val]!
-  rstay : S.role[n.val]! = leader → t1 = S.currentTerm[n.val]! → ro[n.val]! = leader
+  rstay : ro[n.val]! = candidate → t1 = S.currentTerm[n.val]! → S.role[n.val]! = candidate
   hdel : w.delivered = (V n).delivered
   -- the node's view: its disk raft's state (no ghost prefix), the announced write the old disk,
   -- not made; queue, reads and configuration kept; raft's facts
@@ -536,21 +536,19 @@ theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net
     · have old := hb8 k l hm hsv
       by_cases hk : k = n
       · rw [hk] at old ⊢; rw [rr_ct_n sh1]
-        show _ ∨ (_ ∧ (ro[n.val]! = leader ∨ _))
+        show _ ∨ (_ ∧ ro[n.val]! ≠ candidate)
         have htg := hok.tge
         rcases old with h | ⟨h1, h2⟩
         · exact .inl (by omega)
         · by_cases he : t1 = S.currentTerm[n.val]!
-          · rcases h2 with h2 | h2
-            · exact .inr ⟨by omega, .inl (hok.rstay h2 he)⟩
-            · exact .inr ⟨by omega, .inr h2⟩
+          · exact .inr ⟨by omega, fun hc => h2 (hok.rstay hc he)⟩
           · exact .inl (by omega)
       · rw [rr_ct_o hk]
-        show _ ∨ (_ ∧ (ro[k.val]! = leader ∨ _))
+        show _ ∨ (_ ∧ ro[k.val]! ≠ candidate)
         rw [hok.rother k hk]; exact old
     · obtain ⟨rfl, hro, -⟩ := hok.lnew l hl hm
       have hkn : k = n := name_inj hsv.symm
-      rw [hkn, rr_ct_n sh1]; exact .inr ⟨rfl, .inl hro⟩
+      rw [hkn, rr_ct_n sh1]; exact .inr ⟨rfl, by show ro[n.val]! ≠ candidate; rw [hro]; decide⟩
   · -- facts' servers
     intro f hf hty
     change f ∈ M at hf

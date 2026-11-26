@@ -174,7 +174,7 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hrf := hx.hrf
   have hfl := hx.hfl
   have hlogG : r₁.p.log ∈ G.logs := by rw [← hfl]; exact hrf.1
-  have hbE := reach_byE hx.hr hx.hro hx.hrep
+  have hbE := reach_byE hx.hr
   obtain ⟨hb1, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
     hb19, -⟩ := id hb
   obtain ⟨-, -, -, -, -, -, -, -, -, -, hbase, hidx, -⟩ := id hx.hro
@@ -228,12 +228,9 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       rw [hlt] at h1; omega
     have htt : t' = r₁.p.term := uZ_inj (by rw [← ht', hlt])
     have hjn : j = nodeId n := hl.1 _ hj _ hGl.1 (by simp only; exact htt)
-    rcases hb10 n l hlm0 (by rw [hs', hjn]) with h | ⟨-, h | ⟨hbt, h1⟩⟩
+    rcases hb10 n l hlm0 (by rw [hs', hjn]) with h | ⟨-, h⟩
     · rw [hlt, hT] at h; exact Int.lt_irrefl _ h
-    · rw [hx.d5, hvc] at h; exact absurd h (by decide)
-    · have e1 : S1.bootTerm = 1 := by
-        unfold State.bootTerm; rw [hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hbt]
-      rw [hlt] at h1; omega
+    · rw [hx.d5, hvc] at h; exact h rfl
   have hnl : S1.ledLog.has (uint.Z r₁.p.term) = false := by
     cases h : S1.ledLog.has (uint.Z r₁.p.term) with
     | false => rfl
@@ -431,7 +428,7 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hlenlt : (r₁.p.log.length : Int) < 2 ^ 64 := by
     refine logIdx_len_lt hidx ?_
     rw [hplog']; simp
-  refine hx.finish (ready_of hx.hq0 hm' rfl (queued_ready _ _ _ _ _ _ _ _ _) hod) ?_
+  refine hx.finish hpl (ready_of hx.hq0 hm' rfl (queued_ready _ _ _ _ _ _ _ _ _) hod) ?_
   exact {
     hterm := rfl
     tge := Int.le_of_eq hT
@@ -443,7 +440,7 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       rw [get!_set_self _ hn3]; show leader = roleOf r₁.p.role; rw [hpl]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
-    rstay := fun _ _ => get!_set_self _ hn3
+    rstay := fun h _ => by rw [get!_set_self _ hn3] at h; exact absurd h (by decide)
     hdel := ha.hdel
     hfp := ha.hfp
     hdur := ha.hdur
@@ -532,7 +529,7 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hpend := ha.hpend
     hxpend := ha.hxpend
     hqs := fun q hq => by
-      obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso q hq
+      obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso (by rw [hpl]; decide) q hq
       rcases hk with ⟨hlr, rfl⟩ | ⟨hc', -⟩
       · refine ⟨h1, h2, h4, .inl ⟨h3, .inl ⟨rfl, hlr, ?_⟩⟩⟩
         refine ⟨_, hackN, rfl, rfl, rfl, rfl, ?_⟩

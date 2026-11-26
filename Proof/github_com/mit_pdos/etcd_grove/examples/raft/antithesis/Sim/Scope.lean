@@ -109,7 +109,7 @@ def Input.InMask (msk : SimMask) : Input → Prop
 /-- `Reach` with the input admitted by the mask. -/
 inductive ReachIn (msk : SimMask) (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop)
     (net : List Msg) (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → Prop
-  | stay (v : NodeView) : v.Idle → ReachIn msk R dec Adm net xnet n v v.r
+  | stay (v : NodeView) : v.Idle → DrainBy v.byE → ReachIn msk R dec Adm net xnet n v v.r
   | input (v : NodeView) (inp : Input) (r₁ : RState) :
       inp.InMask msk →
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
@@ -143,7 +143,7 @@ theorem ReachIn.reach {msk : SimMask} {R : RunCfg} {dec : CCDec} {Adm : List Ent
     {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : NodeView} {r₁ : RState}
     (h : ReachIn msk R dec Adm net xnet n v r₁) : Reach R dec Adm net xnet n v r₁ := by
   cases h with
-  | stay h1 => exact .stay _ h1
+  | stay h1 h2 => exact .stay _ h1 h2
   | input inp _ h0 h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ h1 h2 h3 h4 h5 h6 h7
   | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
@@ -154,7 +154,7 @@ theorem ReachIn.ofReach_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CC
     {net : List Msg} {xnet : List XMsg} {n : Fin R.N} {v : NodeView} {r₁ : RState}
     (h : Reach R dec Adm net xnet n v r₁) : ReachIn mskTop R dec Adm net xnet n v r₁ := by
   cases h with
-  | stay h1 => exact .stay _ h1
+  | stay h1 h2 => exact .stay _ h1 h2
   | input inp _ h1 h2 h3 h4 h5 h6 h7 => exact .input _ inp _ (Input.inMask_top inp) h1 h2 h3 h4 h5 h6 h7
   | advance _ h1 h2 h3 h4 h5 h6 h7 => exact .advance _ _ h1 h2 h3 h4 h5 h6 h7
 
@@ -763,7 +763,7 @@ or check-quorum step-down (`TickEndP`); a proposal (`ProposeEnd`); `Advance` ste
 self-acknowledgements and self-votes (`AdvanceEndO`), or a voter's queued self pre-votes: nothing or
 the campaign (`AdvanceEnd.split`). -/
 inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) : NodeView → PState → Prop
-  | stay (v : NodeView) : v.Idle → ReachP kk c id net v v.ps
+  | stay (v : NodeView) : v.Idle → DrainBy v.byE → ReachP kk c id net v v.ps
   | recv (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
       m ∈ net → m.dst = id → m.term ≠ W64 0 → S4Ty m.ty → RecvEndO kk c id v.ps m ps₁ →
       ReachP kk c id net v ps₁
@@ -805,14 +805,14 @@ theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : 
   have hcc : R.md.confChanges = false := by rw [hmd]
   have hp := hv.facts.pend0 hrd
   cases hr with
-  | stay hi => exact .stay _ hi
+  | stay hi hb => exact .stay _ hi hb
   | input inp _ hinp hi hbe hca _ hm _ hs =>
     rcases Input.step_b1p hmsk hinp hs with ⟨m, rfl⟩ | ⟨hti, hs⟩ | ⟨d, rfl⟩
     · obtain ⟨hmn, hmd', hm0⟩ := hm m rfl
       rcases recvEnd_split (hty m hmn) (fun h1 => (hnet.2.2.2.2.1 m hmn).2.2.2 hrd (.inr h1)) hp hs.1
         with ⟨h, h4 | he⟩ | h
       · exact .recv _ m _ hi hbe hca hmn hmd' hm0 h4 h
-      · rw [he]; exact .stay _ hi
+      · rw [he]; exact .stay _ hi (.inr ⟨.recv m, hbe⟩)
       · refine .recvP _ m _ hi hbe hca hmn hmd' hm0 (fun h1 h2 => ?_) h
         have := ((hnet.2.2.2.2.2 m hmn) hcc).2 h1 h2
         rw [(hv.facts.conf0 hcc).1, CfgM.voters_simple, ← hmd']; exact this

@@ -138,14 +138,14 @@ inductive AdvanceNoSnap (Adm : List EntryM → CCState → Prop) (dec : CCDec) (
 /-- The `by`s of the harness's drains (`n.input`'s, and `boot`'s right after the `boot` report). -/
 def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = inp.byE
 
-/-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`: no input taken (`boot`'s drain, at the view's own
+/-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`: no input taken (a drain's, at the view's own
 state), an input taken between inputs (`v` noted it; a message received was sent to it; a protocol
 message has a nonzero term), or `Advance` at the end of a `Ready` whose reports are all made
 (`AdvanceEndR` stepping the `Ready`'s self-addressed messages; with snapshots off, applying none:
 `AdvanceNoSnap`). -/
 inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (net : List Msg)
     (xnet : List XMsg) (n : Fin R.N) : NodeView → RState → Prop
-  | stay (v : NodeView) : v.Idle → Reach R dec Adm net xnet n v v.r
+  | stay (v : NodeView) : v.Idle → DrainBy v.byE → Reach R dec Adm net xnet n v v.r
   | input (v : NodeView) (inp : Input) (r₁ : RState) :
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
       (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ m.term ≠ W64 0) →

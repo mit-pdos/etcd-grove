@@ -27,7 +27,7 @@ variable {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop} {n 
 theorem Reach.mono (hn : net <+: net') (hx : xnet <+: xnet') {v : NodeView} {r₁ : RState}
     (h : Reach R dec Adm net xnet n v r₁) : Reach R dec Adm net' xnet' n v r₁ :=
   match h with
-  | .stay _ hi => .stay _ hi
+  | .stay _ hi hb => .stay _ hi hb
   | .input _ inp _ hi hb hc hxc hm hxm hs =>
     .input _ inp _ hi hb hc hxc (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
       (fun x hxi => ⟨hx.subset (hxm x hxi).1, (hxm x hxi).2⟩) hs
@@ -46,7 +46,7 @@ theorem ReachIn.mono {msk : SimMask} (hn : net <+: net') (hx : xnet <+: xnet') {
     {r₁ : RState} (h : ReachIn msk R dec Adm net xnet n v r₁) :
     ReachIn msk R dec Adm net' xnet' n v r₁ :=
   match h with
-  | .stay _ hi => .stay _ hi
+  | .stay _ hi hb => .stay _ hi hb
   | .input _ inp _ hk hi hb hc hxc hm hxm hs =>
     .input _ inp _ hk hi hb hc hxc (fun m hmi => ⟨hn.subset (hm m hmi).1, (hm m hmi).2⟩)
       (fun x hxi => ⟨hx.subset (hxm x hxi).1, (hxm x hxi).2⟩) hs

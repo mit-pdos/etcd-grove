@@ -88,6 +88,40 @@ theorem inMemory_nl_eq {R : RunCfg} {S : State} (n : Fin R.N) (hc : S.cfg = R.cf
       Option.isSome_none, Option.map_none, Bool.false_and,
       Bool.and_false, hunp, Bool.true_and, Bool.and_true]
 
+/-! ## A pre-candidate's report is a follower's (B 248-250 `role1`) -/
+
+/-- `InMemory` reads a report's role through `role1` (a pre-candidate a follower), `leads` and the
+`Unpromotable` test, which a pre-candidate's and a follower's report pass alike. -/
+theorem inMemory_pre_eq (S : State) (n : Nat) (id : w64) (b : Str) (t v c : w64) (es : List EntryM)
+    (sn : Option go_etcd_io.raft.v3.entryID) :
+    S.inMemory n (evReady id b go!"precandidate" t v c es sn) =
+      S.inMemory n (evReady id b go!"follower" t v c es sn) := rfl
+
+set_option maxHeartbeats 2000000 in
+/-- `OnDisk` reads the report's role only in `elect` and `leads`, false for both. -/
+theorem onDisk_pre_eq (S : State) (n : Nat) (id : w64) (b : Str) (t v c : w64) (es : List EntryM)
+    (sn : Option go_etcd_io.raft.v3.entryID) (M : List AntCheck.Msg) (more : Bool) (ro : List Str) (ld : List LeaderRec)
+    (ll : TermFn (List Entry)) (ch : List Entry) (tl : TermFn Int) (vi : SSet) :
+    S.onDisk n ⟨evReady id b go!"precandidate" t v c es sn, M⟩ more ro ld ll ch tl vi =
+      S.onDisk n ⟨evReady id b go!"follower" t v c es sn, M⟩ more ro ld ll ch tl vi := rfl
+
+theorem queued_evReady (S : State) (n : Nat) (id : w64) (b r : Str) (t v c : w64) (es : List EntryM)
+    (sn : Option go_etcd_io.raft.v3.entryID) :
+    S.queued n (evReady id b r t v c es sn) =
+      pure ⟨evReady id b r t v c es sn, if b == go!"recv" then S.pending[n]! else []⟩ := by
+  unfold State.queued
+  simp only [evReady, need, pure_bind]
+  split <;> rfl
+
+/-- **A pre-candidate's `ready` report is evaluated as a follower's.** -/
+theorem ready_pre_eq (S : State) (n : Nat) (id : w64) (b : Str) (t v c : w64) (es : List EntryM)
+    (sn : Option go_etcd_io.raft.v3.entryID) :
+    S.ready n (evReady id b go!"precandidate" t v c es sn) =
+      S.ready n (evReady id b go!"follower" t v c es sn) := by
+  unfold State.ready
+  rw [inMemory_pre_eq, queued_evReady, queued_evReady]
+  simp only [pure_bind, onDisk_pre_eq]
+
 end eval
 
 end AntSim

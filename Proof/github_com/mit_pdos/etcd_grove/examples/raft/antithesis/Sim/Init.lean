@@ -188,7 +188,8 @@ theorem antSim_init : antSim_init.stmt := by
     · intro n l hl
       rw [initS_leaders] at hl
       cases hb : R.boot <;> simp [hb] at hl
-      intro _; right; rw [hct, hl]; simp [bootT, hb]
+      intro _; right; refine ⟨by rw [hct, hl]; simp [bootT, hb], ?_⟩
+      rw [show (initS R).role[n.val]! = follower from rep_get _ n]; decide
     · intro f hf; cases hf
     · intro v hv; cases hv
     · intro n hv; exact absurd (hvote n) hv

@@ -7,7 +7,7 @@ The `cmt` kind (`ReadyKind.cmt`: a leader's new commit, on an acknowledgement re
 in `Advance`): `InMemory`'s `cmt` (`inMemory_lcommit`) and `OnDisk` (`onDisk_lcommit`) evaluated,
 the side conditions `ReadyOk`. Raft's quorum of `Match` values (`CmtOk` at the initial voters
 `R.voters0`) is the binding's `Acked` quorum (B 252) of the initial configuration
-(`jq_isQuorum`) through `LeaderPart`'s ack facts (`quietP_reach` carries them to the `Ready`'s
+(`jq_isQuorum`) through `LeaderPart`'s ack facts (`quiet_reachP` carries them to the `Ready`'s
 state).
 -/
 module
@@ -204,32 +204,6 @@ theorem lead_unique {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
   have h := hgo.leader_server hl hnm hkm hct
   exact name_inj h.symm
 
-/-- **A quiet step's state along `ReachP`** (`quiet_reach` read on the protocol): `QKeep` from the
-view's state, for a step that keeps the role, term and log. -/
-theorem quietP_reach {R : RunCfg} {kk : NodeK} {c : CfgM} {S : State} {net : List Msg}
-    {n : Fin R.N} {v : NodeView} {ps₁ : PState}
-    (hc : S.cfg = R.cfg) (hnet : NetOk R S net) (hqs : ∀ q ∈ v.qs, QsOk R S n v q)
-    (hkp : (R.k n).prevote = false) (hct : S.currentTerm[n.val]! = uint.Z v.ps.term) (hin : ∀ m ∈ net, InMsg m)
-    (hr : ReachO kk c (nodeId n) net v ps₁)
-    (hro : ps₁.role = v.ps.role) (ht : ps₁.term = v.ps.term) (hl : ps₁.log = v.ps.log) :
-    QKeep S n v.ps ps₁ := by
-  cases hr with
-  | stay _ => exact QKeep.refl
-  | recv m _ _ _ _ hmn hmd hm0 hs =>
-    exact quiet_recv hc hnet hmn hmd (hin m hmn).2.2.1 hm0 hct (hin m hmn).1 hs hro ht hl
-  | tick _ _ _ hs => exact quiet_tick hs ht
-  | propose d _ _ _ hs => exact quiet_propose hs hl
-  | advance _ _ _ _ ha =>
-    refine (quiet_adv_run hc hct (fun q hq => ?_) ha rfl).2.2 hro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := (hqs q hq).old hkp
-    refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
-    · rcases h5 with h5 | h5
-      · exact h5.2.2
-      · rw [h5.1] at hty; cases hty
-    · rcases h5 with h5 | h5
-      · rw [h5.1] at hty; cases hty
-      · exact h5.2
-
 /-- **Normal entries leave the configuration**: the fold of entries none of which is a conf change
 (type 0) is its start. -/
 theorem cfgFold_normal {dec : CCDec} {s : CCState} {l : List EntryM} (h : EntsNormal l) :
@@ -267,7 +241,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     (hlt : uint.Z (V n).ps.commit < uint.Z r₁.p.commit)
     (hcm : CmtOk (CfgM.simple R.voters0 ∅) r₁.p r₁.p.commit) (hns : NoSelf (nodeId n) r₁.p) :
     ReadyGoal R dec V net xnet evs G n r₁ rd := by
-  have hbE := reach_byE hx.hr hx.hro hx.hrep
+  have hbE := reach_byE hx.hr
   have hb := hx.hs1.2.1
   have hnet := hx.hs1.2.2.1
   have hv := hx.hs1.2.2.2.2 n
@@ -283,7 +257,8 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     have := congrArg List.length hfull
     rw [logOf_length, logOf_length] at this; exact this
   have hMO : MatchOk S1 n r₁.p :=
-    (quietP_reach hc hnet hv.qs (by rw [hx.hkn]) hx.d1 hx.hin hx.hr (hpl.trans hvl.symm) hpt hplog).2.2.1 hpl ⟨lp3, lp4⟩
+    (quiet_reachP hc hnet hx.d1 (fun q hq hne => (hv.qs q hq).qmsg hne) hx.hr (hpl.trans hvl.symm) hpt
+      hplog).2.2.1 hpl ⟨lp3, lp4⟩
   have hbase : r₁.p.base = base0 := hx.hro.2.2.2.2.2.2.2.2.2.2.1
   have hT : S1.currentTerm[n.val]! = uint.Z r₁.p.term := by rw [hx.d1, hpt]
   have hlogn : S1.log[n.val]! = logOf r₁.p.log := by rw [hx.d3, hplog]
@@ -353,7 +328,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hcf : (S1.confirmed.set n.val (S1.confirmed[n.val]!))[n.val]! = S1.confirmed[n.val]! :=
     get!_set_self _ (by rw [hsh.2.2.2.2.2.2.2.2.2.2.1]; exact n.isLt)
   have ha := hx.ha
-  refine hx.finish (ready_of hx.hq0 hm' rfl (queued_ready _ _ _ _ _ _ _ _ _) hod) ?_
+  refine hx.finish hpl (ready_of hx.hq0 hm' rfl (queued_ready _ _ _ _ _ _ _ _ _) hod) ?_
   exact {
     hterm := rfl
     tge := Int.le_of_eq hT
@@ -367,7 +342,7 @@ theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
       rw [hpl]; rfl
     rlen := by rw [List.length_set, hrl]
     rother := fun k hk => get!_set_ne _ _ (fun h => hk (Fin.ext h))
-    rstay := fun _ _ => get!_set_self _ hn3
+    rstay := fun h _ => by rw [get!_set_self _ hn3] at h; exact absurd h (by decide)
     hdel := ha.hdel
     hfp := ha.hfp
     hdur := ha.hdur
