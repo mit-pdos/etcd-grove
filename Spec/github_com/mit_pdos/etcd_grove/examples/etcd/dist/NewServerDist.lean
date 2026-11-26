@@ -5,12 +5,14 @@ S5 across machines; `notes/etcd-dist-plan.md`, "Interim transport"): `NewServer.
 network replaced by the peer addresses. The axiom is `Proof/.../etcd/dist/NewServerDist.lean`.
 
 **What changes from `NewServer.specG`** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`; nothing
-else, the rest is its text verbatim):
+else, the rest is its text verbatim, comments and Iris names aside; `etc/dist-axiom-diff.py` checks this list
+against the two texts, `etc/dist-axiom-diff-allow.txt`):
+* the binder `[π : Net.NetProtoGS]` (the net extension's protocol ghost state, for `httpAddrAt`);
 * the network's names `γn` are no binder: the post gives them (`∃ γn`, with `γn.N = srvNet γ` and `γn.dir = dir`,
-  what the premise fixed before), as `StartMember_dist.spec` (`putgetk`) does;
+  what the premise `%Hγn` fixed before), as `StartMember_dist.spec` (`putgetk`) does;
 * `netHttpOk γn id` (the in-process streams' registry, every other member's host registered with raft's protocol
-  through the single-process `http.reserve`) is replaced by `httpAddrAt γ pid a` (`S5Interim.lean`: the deployment's
-  start set `a` to etcd's peer protocols of the cluster `γ` and member `pid`) for every other peer `pid`'s address
+  through the single-process `http.reserve`) is replaced by `httpAddrAt γ pid a` (`S5Interim.lean`: the deployment's start set `a` to etcd's peer protocols of `γ`'s cluster `γ.cl` and member `pid`; `httpAddrAt` reads `γ`
+  only through `γ.cl`) for every other peer `pid`'s address
   `a` in the directory;
 * `noProxyEnv` (this process has no HTTP proxy variable set; the program's check, `os.Getenv.specEnv`) is added.
 -/
@@ -118,6 +120,12 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
   -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
   -- transport sends in `X-PeerURLs`)
   peerURLsDir dir id U.peer →
+  -- (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2) the member's peer and client URLs within
+  -- etcd's URL bounds (`etcdURLsFit`: at most `etcdURLCountMax` URLs of at most `etcdURLLenMax`
+  -- bytes, each `http://host`), for the `strings.Join`s of their strings (`publishV3`'s log lines,
+  -- the transport's `X-PeerURLs`); (M1, 2026-11-26) restored here: this statement was copied from
+  -- `specG` before `specG` took the premise (`notes/axiom-review/dist-axiom-diff.md`)
+  etcdURLsFit U.peer → etcdURLsFit U.client →
   -- (2026-11-03, the final whole-`bootOk` review's S2 and M2; slots of the slot convention,
   -- `notes/spec-first-plan.md`) the raft node's condition on the configuration (a positive
   -- heartbeat, a scope restriction: `raftNode.bootCfg`), and the transport's on its directory, of

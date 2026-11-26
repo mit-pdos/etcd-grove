@@ -12,6 +12,7 @@ public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
 public import Code.google_golang_org.grpc.metadata
 public import Code.google_golang_org.grpc.peer
+public import Code.google_golang_org.grpc.grpclog
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -821,8 +822,6 @@ noncomputable def globalPerTargetDialOptions [GooseExts] [GoGlobalContext] : GoS
 
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.logger"
-
-opaque logger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
@@ -2174,12 +2173,101 @@ noncomputable def GenericClientStream.Recv.impl [GooseExts] [GoGlobalContext] (R
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "m") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- CloseAndRecv closes the sending side of the stream, then receives the unary
+    response from the server. The type of message which it returns is determined
+    by the Res type parameter of the GenericClientStream receiver.
+
+    go: stream_interfaces.go:194:41 -/
+noncomputable def GenericClientStream.CloseAndRecv.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Res)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Res)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Res))) (App (Val (GoInstruction (GoZeroVal Res))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Res)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Res)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "m"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Res) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "m")))
+  (App (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"RecvMsg"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Res)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "m") (Var "$r0")))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"CloseSend"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericClientStream.ty Req Res))))) (Var "x"))))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Res)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Res)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
 /-- Send pushes one message into the stream of responses to be consumed by the
     client. The type of message which can be sent is determined by the Res
     type parameter of the serverStreamServer receiver.
 
     go: stream_interfaces.go:218:41 -/
 noncomputable def GenericServerStream.Send.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
+  (LamV "x"
+  (Lam "m"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType (GenericServerStream.ty Req Res))))) (Var "x"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Res)))) (Var "m"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Res) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Res)))) (Var "m")))
+  (App (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"SendMsg"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericServerStream.ty Req Res) go!"ServerStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (GenericServerStream.ty Req Res))))) (Var "x"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- SendAndClose pushes the unary response to the client. The type of message
+    which can be sent is determined by the Res type parameter of the
+    clientStreamServer receiver.
+
+    go: stream_interfaces.go:225:41 -/
+noncomputable def GenericServerStream.SendAndClose.impl [GooseExts] [GoGlobalContext] (Req Res : go.GoType) : val :=
   (LamV "x"
   (Lam "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -2408,7 +2496,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2431,6 +2519,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Val #(go!"core"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.grpclog.Component []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«2» []))) (Val #())) (Val #())))))
@@ -2439,7 +2531,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
-  (App (Val logger.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr logger))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2463,9 +2555,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.grpclog.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalDialOptions (go.GoType.SliceType DialOption.ty))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalPerTargetDialOptions (go.GoType.SliceType perTargetDialOption.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc logger _root_.Perennial.google_golang_org.grpc.grpclog.DepthLoggerV2.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc globalServerOptions (go.GoType.SliceType ServerOption.ty))) (Val #()))))))
   (App (Val doExecute)
@@ -6016,6 +6112,7 @@ class GenericClientStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"CloseSend"))) (App (Val (GoInstruction (StructFieldGet (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r"))))
   Context_unfold : ∀ (Req Res : go.GoType), MethodUnfold (GenericClientStream.ty Req Res) go!"Context" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"Context"))) (App (Val (GoInstruction (StructFieldGet (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r"))))
+  ptr_CloseAndRecv_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"CloseAndRecv" (GenericClientStream.CloseAndRecv.impl Req Res)
   ptr_CloseSend_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"CloseSend" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ClientStream.ty go!"CloseSend"))) (App (Val (GoInstruction (GoLoad ClientStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericClientStream.ty Req Res) go!"ClientStream"))) (Var "$r")))))
   ptr_Context_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericClientStream.ty Req Res)) go!"Context" (LamV "$r"
@@ -6031,6 +6128,7 @@ attribute [instance] GenericClientStream.TypeAssumptions.type_repr
   GenericClientStream.TypeAssumptions.ptr_method_set
   GenericClientStream.TypeAssumptions.CloseSend_unfold
   GenericClientStream.TypeAssumptions.Context_unfold
+  GenericClientStream.TypeAssumptions.ptr_CloseAndRecv_unfold
   GenericClientStream.TypeAssumptions.ptr_CloseSend_unfold
   GenericClientStream.TypeAssumptions.ptr_Context_unfold
   GenericClientStream.TypeAssumptions.ptr_Recv_unfold
@@ -6069,6 +6167,7 @@ class GenericServerStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 (App (Val (GoInstruction (MethodResolve ServerStream.ty go!"Context"))) (App (Val (GoInstruction (GoLoad ServerStream.ty))) (App (Val (GoInstruction (StructFieldRef (GenericServerStream.ty Req Res) go!"ServerStream"))) (Var "$r")))))
   ptr_Recv_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericServerStream.ty Req Res)) go!"Recv" (GenericServerStream.Recv.impl Req Res)
   ptr_Send_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericServerStream.ty Req Res)) go!"Send" (GenericServerStream.Send.impl Req Res)
+  ptr_SendAndClose_unfold : ∀ (Req Res : go.GoType), MethodUnfold (go.GoType.PointerType (GenericServerStream.ty Req Res)) go!"SendAndClose" (GenericServerStream.SendAndClose.impl Req Res)
 
 attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.underlying
@@ -6080,6 +6179,7 @@ attribute [instance] GenericServerStream.TypeAssumptions.type_repr
   GenericServerStream.TypeAssumptions.ptr_Context_unfold
   GenericServerStream.TypeAssumptions.ptr_Recv_unfold
   GenericServerStream.TypeAssumptions.ptr_Send_unfold
+  GenericServerStream.TypeAssumptions.ptr_SendAndClose_unfold
 
 abbrev traceEventLog [GooseExts] : Type := GoInterface
 
@@ -6427,6 +6527,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
+  import_grpclog_Assumption : _root_.Perennial.google_golang_org.grpc.grpclog.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.ConnectParams_instance
@@ -6584,6 +6685,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_stats_Assumption
   Assumptions.import_metadata_Assumption
   Assumptions.import_peer_Assumption
+  Assumptions.import_grpclog_Assumption
 
 end google_golang_org.grpc
 

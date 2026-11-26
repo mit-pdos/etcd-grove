@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.internal
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.context.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.connectivity
 
 @[expose] public section
 noncomputable section

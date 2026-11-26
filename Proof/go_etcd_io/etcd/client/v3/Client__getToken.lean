@@ -39,7 +39,7 @@ theorem Client.getToken.wp_proof
   iunfold retryClientOk at Hrc
   icases Hrc with ⟨%Hcn, #Hlg, %tok, %atb, #Htok, #Hatb, %Htokatb, -⟩
   iunfold clientReady at Hready
-  icases Hready with ⟨%api, %P, #Hauth, #HapiS, #Hca⟩
+  icases Hready with ⟨%api, %P, #Hauth, #HapiS, #Hca, -⟩
   iunfold clientAuthAt at Hca
   icases Hca with ⟨%u, %pw, %tok', %atb', #Hu, #Hpw, #Htok', #Hatb', #Hbun, #Htokp, #Hreg⟩
   ihave %Heq1 := typedPointsto_agree_wand _ _ _ _ _ $$ Htok Htok'

@@ -37,6 +37,7 @@ public import Perennial.Code.github_com.tchajed.marshal
 public import Perennial.Code.hash
 public import Perennial.Code.internal.bytealg
 public import Perennial.Code.internal.byteorder
+public import Perennial.Code.internal.gomodel
 public import Perennial.Code.internal.oserror
 public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.stringslite
@@ -101,6 +102,8 @@ theorem ExternalInit.internal_bytealg [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize' := ⟨⟩
 theorem ExternalInit.internal_byteorder [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.internal.byteorder _root_.Perennial.internal.byteorder.initialize' := ⟨⟩
+theorem ExternalInit.internal_gomodel [GooseExts] [GoGlobalContext] :
+    ExternalInit pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize' := ⟨⟩
 theorem ExternalInit.internal_oserror [GooseExts] [GoGlobalContext] :
     ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize' := ⟨⟩
 theorem ExternalInit.internal_strconv [GooseExts] [GoGlobalContext] :

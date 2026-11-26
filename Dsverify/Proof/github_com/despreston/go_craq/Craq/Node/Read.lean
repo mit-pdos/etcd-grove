@@ -25,7 +25,7 @@ namespace NodeP
 section read
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
+variable [sem : go.Semantics] [log.Assumptions] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions] [LogSpecs GF]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- An `errors.New(msg)` error has its message. -/
@@ -168,14 +168,14 @@ theorem wp_Read (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
             ipureintro
             unfold notFoundMsg
             decide
-      · ihave %Hok := errAny_ok err $$ Hea
+      · ihave %Hok := errPlain_ok err $$ Hea
         obtain ⟨ei, rfl⟩ := Hok
         wp_auto
         wp_log [interface.mkOk go.string #k, GoInterface.ok ei]
         · iapply argOks2
           isplitr
           · iapply argOk_string
-          iapply argOk_err $$ Hea
+          iapply argOk_errPlain $$ Hea
         ihave ⟨-, -, -, #Htv⟩ := node_vars $$ Hpkg
         ihave ⟨%e3, #He3, #He3Msg, -⟩ := newVar_errMsg' $$ Htv
         wp_auto

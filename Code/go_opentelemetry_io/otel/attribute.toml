@@ -4,8 +4,13 @@
 # value types they name (`BOOL`, `INT64`, `STRING`).
 translate = ["!*", "Bool", "Int", "Int64", "String", "Key.Bool", "Key.Int", "Key.Int64",
   "Key.String", "BoolValue", "IntValue", "Int64Value", "StringValue", "boolToRaw", "int64ToRaw",
-  "BOOL", "INT64", "STRING"]
-imports = ["!*"]
+  "BOOL", "INT64", "STRING",
+  # (prove-otel-encoderid, 2026-11-25) `encoder.go`'s `init` (`id := NewEncoderID(); defaultEncoderID
+  # = id`, the fork's rewrite of `defaultEncoderID = NewEncoderID()`, etc/goose.py's `module_forks`;
+  # until then the trust-boundary axiom `opaqueInitsOk`) and `NewEncoderID`, with their bodies, and
+  # the two variables they use
+  "init.0", "NewEncoderID", "encoderIDCounter", "defaultEncoderID"]
+imports = ["!*", "sync/atomic"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

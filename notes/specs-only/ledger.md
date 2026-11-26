@@ -85,6 +85,30 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   etcd_safe coordinator, 2026-11-25). The two axioms still need their `axiom`-skill reviews and the user's
   approval in the etcd_safe packet before they are declared (trust-boundary specs).
 
+## 2026-11-24: the watch and lease clients' stream specs fix the stream's member and metadata at open (SW1's users, R2)
+
+- **Spec.** `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/watchClient__Watch.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__{openWatchClient,newWatchClient,serveWatchClient}.lean`
+  (the watch client), `Spec/go_etcd_io/etcd/api/v3/etcdserverpb/leaseClient__LeaseKeepAlive.lean`,
+  `Spec/go_etcd_io/etcd/client/v3/{retryLeaseClient__LeaseKeepAlive,lessor__resetRecv,lessor__sendKeepAliveLoop}.lean`
+  (the lease client). SpecPlan: `SpecPlan/Spec/go_etcd_io/etcd/client/v3/watchGRPCStream__*.lean`,
+  `.../etcdserverpb/watchClient__Watch.lean` (same shape as the old real specs).
+- **Defect.** Too strong, inherited from `NewStream`'s (the entry below): each fixes, when the stream is
+  returned, its address (the member `i`, the content `watchUp (V.mem i).2`) and its metadata `md`
+  (`clientAttemptMd`, the token `auth.mdTokenOf md`, which `run`'s epoch recorded, `EpInfo`).
+- **Evidence.** SW1's `NewStream` (`phase7-switch`, commit 5): one content `Up` for every address, the
+  dispatch learned with each response (`streamDispIs γ a md`, `Md a md`, `Dn a md`).
+- **Proposed change (applied on `phase7-switch-ab`).** The watch client: the requests' content is one for
+  every member (`client.watchUpW V`: a create's bound published at every member's auth store, which
+  `wsBdOk` already holds; `watchConnFacts`' per-member registration gives it, `isGrpcStreamMd_mono`,
+  `watchConnFacts_regW`); the specs return `cliWatchStreamIs … (watchUpW V) (watchMdW V om) Dn` and
+  `□ ∀ a md, watchMdW V om a md -∗ watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md) γs (Dn a md)`;
+  `EpInfo` drops the member and the token; `respcE` carries each response's dispatch; `run`'s epoch
+  (`epochAt`) learns its member and token with its first response (until then no substream's state reads
+  them: `wsElem_atIdx_nil`). The callers' guarantees (`watcher.Watch.spec`, `watchCheckOk`'s statement
+  but its `clientAttemptMd` conjunct, now SW1's `IProp` `clientAttemptMdI`) are unchanged. The lease
+  client: an existential dispatch family `Md` and a dispatch-indexed `Dn` (it never reads the content).
+- **Decision.** Applied with SW1 (branch `phase7-switch-ab`), pending the user's review of SW1.
 ## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s
@@ -6995,6 +7019,49 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** coordinator-E, 2026-11-25 (option 1, within Upamanyu's direction on #18 7119112205: rewrite
   `sort.Slice` call sites to `slices.Sort`/`SortFunc` rather than add a reflection primitive).
 
+## 2026-11-25: `mvccfull_robust.spec` -- `HEnv : EtcdVerifyOff` is a premise the program could check (mvcc-retire, #49)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean`,
+  `mvccfull_robust.spec`'s `(HEnv : EtcdVerifyOff)`; `MainAt.spec` (`Spec/.../mvccfull/MainAt.lean`),
+  `Run.spec`'s `⌜EtcdVerifyOff⌝`.
+- **Defect.** Not wrong: an environment premise with a witness (`etcdVerifyOffValue_unset`). But the
+  program can read the variable itself (`os.Getenv`'s spec, an existing axiom, returns
+  `etcdVerifyEnv`), so the theorem need not assume it (#49's etcd report, item 8, and cross-cutting 2).
+- **Evidence.** `Proof/go_etcd_io/etcd/client/pkg/v3/verify/Env.lean` (`EtcdVerifyOff` is
+  `etcdVerifyOffValue etcdVerifyEnv`); `Spec/os/Getenv.lean`.
+- **Proposed change.** `MainAt` (`examples/mvccfull/start.go`) returns at once when
+  `verifyOn(os.Getenv("ETCD_VERIFY"))`, a local function that lower-cases the value
+  (`strings.ToLower`) and compares it with `all`, `assert`, `lock` (as `verify.getEnvVerify` does);
+  else as now. `MainAt.spec` drops `⌜EtcdVerifyOff⌝` (its proof gets it from the check's `else`
+  branch through `os.Getenv`'s spec and `strings.lowersTo`); `mvccfull_robust.spec` drops `HEnv`
+  (a strengthening; no new axiom: `os.Getenv.wp_proof` is already in mvccfull's collection,
+  `etc/tcb-collections/mvccfull.txt`). A Go test: `MainAt` with
+  `ETCD_VERIFY=all` returns without creating a file, unset runs (`start_test.go`).
+  `etc/premise-witness-baseline.txt` loses mvccfull's `HEnv` line.
+- **Decision.** Pending: a change of the top-level statement, Upamanyu's (#8, via coordinator-E).
+
+## 2026-11-25: `mvccfull_robust.spec` -- one configuration, `MainConfig`, while the package doc spoke of every `Config` (mvcc-retire, #49)
+
+- **Spec.** `mvccfull_robust.spec` (`Spec/.../mvccfull/TopLevelRobustness.lean`), over
+  `mvccfullProgram r` (`TopLevelDefs.lean`: `MainAt(r)`, so `Run(MainConfig(r/mvccfull))`).
+- **Defect.** The package doc (`examples/mvccfull/mvccfull.go`, "Coverage") described a theorem for
+  every `Config`; the statement covers `MainConfig` only, whose `Mix.Read` gives the
+  corruption checker's hashes weight 0 (#49's etcd report, item 8). Fixed as documentation on
+  `mvcc-retire`: the statement's docstring and the Go docs (`mvccfull.go`, `config.go`) now say exactly
+  what is covered (MainConfig's sizes; of its four zero weights, three exclude nothing, the hashes are
+  excluded).
+- **Evidence.** `examples/mvccfull/config.go` (`MainConfig`, `Read: {1, 1, 2, 1, 1, 0}`); `Run.spec`'s
+  `runCfgOk` requires `readMixOk` (no hash read: `HashByRev`, `Hashes` have no spec until F2).
+- **Proposed change** (beyond the docs). `MainAt` draws the configuration: each size and each weight from
+  `primitive.RandomUint64` within `runCfgOk`'s bounds (`Ops < 2^38`, `2·Readers + 4·Streams + 3 ≤ 2^28`,
+  batch limits, `MaxVal ≤ 2^20`, `Depth` with `keysOf` below `2^60`), returning when a drawn value is out
+  of range, with `Read`'s hash weight forced to 0 until F2 proves the hashes; then checks the drawn
+  configuration's `FilePaths` absent and runs `Run(cfg)`. The statement's text is unchanged, its program
+  covers every configuration `Run.spec` admits (a strengthening). `MainAt.spec`'s proof over a drawn
+  `cfg` (`Run.spec` already holds for every `cfg` with `runCfgOk`); a Go non-vacuity test (many seeds:
+  the validation passes, `Run`'s checks are reached). The hashes remain outside until F2.
+- **Decision.** Pending: the program the top-level statement is about changes, Upamanyu's (#8, via
+  coordinator-E).
 ## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
 
 - **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
@@ -7014,3 +7081,86 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
   no longer a premise since dsv-fix4).
 - **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
+- **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
+- **Defect.** Too weak for its consumer: `bootstrapSnapshot` carves the fresh `member/snap`'s names into the snapshot
+  directory's free names, which must be durable (`backend.fileFreeDur`, so that the crash law `snapDir_crash.law`
+  can keep them across a crash), and that needs every history entry writing a name of the new directory (other than
+  the `.touch` probe, which `IsDirWriteable` writes and removes) to be below a commit index the caller holds.
+  The post said only `h'.next ≤ n`.
+- **Evidence.** The proof of `bootSnap.snapDir_carve` (`BootSnapCarve.lean`); Go: `TouchDirAll` ends with
+  `IsDirWriteable`'s fsync of the directory (fileutil.go), committing the journal (ext4, configuration C).
+- **Proposed change.** The post's pure part gains `∀ xe ∈ hJ.ents, ∀ b, b ≠ ".touch" → xe.2.1.op.Writes J b →
+  xe.1 < n`, proved from `osNames_histCoh` (a strengthening: no caller loses anything). `SpecPlan/` has no such
+  vocabulary; nothing to change there.
+- **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
+  branch `etcd-safe-p7`.
+
+## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
+
+- **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
+  `remote.Check.spec` (`Net/Spec/.../lib/remote/{Run,Check}.lean`): `genSpec gen (∃ i, x = R.iv i)`, `PendDec R S`,
+  `hinj`; `RBase`'s one input type shared by the wire and the model.
+- **Defect.** Too narrow for the kv workload (`kvremote.Orch` = `remote.Run` of `txnlin.Model()`): with `S =
+  linkvtxnS` the model input is `MI`, and (1) `Gen`'s inputs are not a function of their `MI` (`genFrom` sets fields
+  `decTOp`/`decCmp` ignore); (2) `ioOk_*`/`err` over every `MI` fail for inputs `decIn` cannot produce or `ValidIn`
+  excludes; (3) `ok` over every output fails, since `decOut` reads an output by the input's kind; (4) `hinj` fails
+  for `O = MO` (`outOf` collides across kinds), and `O = Output` breaks (3)'s equality at revisions past `2 ^ 64`.
+- **Evidence.** `notes/etcd-dist-p9.md` (each with file and line); the Pend proof uses `ok` only at the invariant's
+  configuration (Pend.lean:352).
+- **Proposed change.** `RBase` with a wire input `I` and a model input `J` (`mi : I → J`), a state guard `good`
+  with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
+  stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
+  top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
+- **Decision.** Approved as proposed (the coordinator, `remote`'s owner, #28; 2026-11-25): `RBase GF St J I O`
+  (wire input `I`, model input `J`, `mi : I → J`), `good` with `sysState_good`, `PendDec` at a configuration,
+  `PendDec.ofTotal` for the existing instances; condition: no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text
+  changes. Applied on `etcd-safe-p9`.
+
+## 2026-11-25: `remote.lin` cannot abort, so a far side whose system takes an atomic update cannot use it (P9)
+
+- **Spec.** `remote.lin` (`Net/Proof/.../lib/remote/Defs.lean`), the linearization point a slot hands the far
+  side (`slotUpd`, `opMaybe`): a one-shot fancy update `|={⊤ \ Eop, ∅}=> ∃ st, sysState st ∗ (sysState st' ={∅, ⊤ \
+  Eop}=∗ Φ o)`, with no way back without stepping.
+- **Defect.** The kv workload's far side (`kvremote.Node`, `txnlin.Call.spec`) hands the update to etcd as an Iris
+  atomic update (`callUpd`: a write's `kvOpAu1 γk`, `AU <{ ∃∃ σ, etcdKV γk σ }> @ ⊤ \ kvEop, ∅ <{ … }>`), whose
+  accessor must be abortable (`atomic_acc`'s abort: `etcdKV γk σ ={∅, ⊤ \ kvEop}=∗ AU`). `etcdKV γk σ` comes only
+  from `lin`'s `sysState`, and `lin` once opened can only be closed by stepping, so a write's `kvOpAu1` cannot be
+  built from `lin` (a read's can: `□ lin` closes at the same state, `reads_stay`). The dsverify kits never needed
+  the abort (their servers fire `lin` directly; gryff's `opAU` note: "which cannot abort").
+- **Evidence.** `atomic_acc` (`Iris/BI/Lib/Atomic.lean:26`); `kvAu1` (`InvRequest.lean:1024`); the producer
+  (`Pend.lean`, `pend_choice`'s write case) can abort: it opens only `pendCtx` before handing `sysState` over, and
+  lintest's update (`pend_commit_core`) can run in the commit branch instead, at the same mask.
+- **Proposed change.** `lin` becomes the atomic update `AU <{ ∃∃ st, sysState st }> @ ⊤ \ Eop, ∅ <{ sysState
+  (step st).1, COMM Φ (step st).2 }>` (stronger for the far side: `lin_linF` gives back the old form, renamed
+  `linF`, for the far sides that fire it directly; `linF_read_lin` builds a read's `lin` from `□ linF`). The
+  producer's write cases (`pend_choice`, `pend_fire`) abort by closing `pendCtx` unchanged; the instances' far
+  sides change by a `lin_linF` each; no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changes.
+- **Decision.** Applied on `etcd-safe-p9` (P9, 2026-11-25), pending the coordinator's (`remote`'s owner) review
+  before landing.
+- **Review** (P9, 2026-11-25, an independent `spec-reviewer`): sound, no must-fix. The new `lin` is stronger for
+  the far side only for writes (for a read `□ lin ⊣⊢ □ linF`, `lin_linF` and `linF_read_lin`); every producer
+  (`pend_fire`, `pend_choice`, `readNoop`, the counter client's forwarding) proves it; no `TopLevel*` text
+  mentions `lin`. Applied: the elimination law `lin_acc` (the state with the abort and the commit, telescopes
+  simplified; `lin_linF` now uses it), docstrings (`linF` "one-shot form", `lin`'s inner mask `∅`, "a write's
+  `lin`, committed at most once" for "one-shot `lin`" in `Defs`/`Do`, `Pend`'s abort, the five dsverify kits'
+  `opAU` notes now naming `linF`). Left (should-fix): an introduction law in the same plain form, so that
+  `pend_fire`/`pend_choice` and `kvremote/NodeUpd` stop unfolding telescopes; `lin_mono` (counter `Shared`)
+  and the two copies of `slotUpd_lin` (swiftnet `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.
+
+## 2026-11-25: `uuid.New.spec` takes `uuid.Assumptions`, `UUID.ID.spec` takes `isPkgInit uuid` (dsv-retire-2)
+
+- **Spec.** `github_com.google.uuid.New.spec` and `github_com.google.uuid.UUID.ID.spec`
+  (`Dsverify/Proof/github_com/imdea_software/swiftpaxos/lib/LibSpecs.lean`), the trust-boundary axioms
+  `New.wp_proof`, `UUID.ID.wp_proof` of dsv-fix4 (`Dsverify/Proof/github_com/google/uuid/`).
+- **Defect.** Neither is provable from uuid's translation (from its model `models/uuid`, dsv-retire-2): `New.spec`
+  takes no `[github_com.google.uuid.Assumptions]`, so `New` (a `functions` value) cannot be unfolded to its
+  body; `UUID.ID.spec`'s precondition is `True`, while `ID`'s body calls `(*bigEndian).Uint32` on
+  `&binary.BigEndian`, which loads that global: its initialized value comes only from `isPkgInit
+  encoding/binary`, reachable from `isPkgInit uuid`.
+- **Evidence.** `notes/axiom-review/dsv-fix4/google-uuid.md`, last section; the translated bodies
+  (`Dsverify/Code/github_com/google/uuid.lean`).
+- **Proposed change.** `New.spec` gains the instance argument `[github_com.google.uuid.Assumptions]` (as
+  `UUID.ID.spec` has), and `UUID.ID.spec`'s precondition becomes `isPkgInit uuid`. Their one caller,
+  `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
+  translation and the two axioms deleted.
+- **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).

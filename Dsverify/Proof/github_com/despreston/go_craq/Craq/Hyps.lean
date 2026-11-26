@@ -43,9 +43,9 @@ the instance from Net's proofs (not a hypothesis). -/
 class RpcClientSpecs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
     [net.FieldAssumptions] [NetProtoGS] : Prop where
-  call : net.rpc.Client.Call.spec (GF := GF) (hG := hG)
+  call : net.rpc.Client.Call.spec_plain (GF := GF) (hG := hG)
   close : net.rpc.Client.Close.spec (GF := GF) (hG := hG)
-  dialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)
+  dialHTTP : net.rpc.DialHTTP.spec_plain (GF := GF) (hG := hG)
 
 section hyps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]

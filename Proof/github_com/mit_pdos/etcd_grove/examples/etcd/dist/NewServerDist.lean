@@ -38,6 +38,12 @@ Why it is true: `NewServer.wp_proofG` proves `specG`'s text over the in-process 
 round trips use. Across machines the round trips go to the other members' peer addresses, which the deployment's
 start set to `httpPeerSvc` (`http_addr_set`), served by the other members' peer handlers (`PeerServe_dist`; any
 holder of `httpAddrAt` may also listen and accept there, but write nothing): what differs is how a message reaches its receiver, the transport's own code being the same.
+Across machines the members of one cluster read the address facts at their own records, which agree on `γ.cl` (the
+index of `httpAddrAt`) and differ at most in the storage registry `γ.reg`: given `γ.cl`, this precondition fixes the
+rest (`vs` by `nodeBoot`'s `BootLogOk vs γ.cl.raft.reBoot`, `boot` by `srvRaftLogInv`'s committed lower bound of
+length `γ.cl.bootLen`, `rule` by the premise, `snapLoc` by `srvClusterOk`, the log names by `srvLogInv`'s
+`ownCommittedOps γ.cl`, `authOn` by `kvInvM on`, one per cluster), and `srvNet` does not read `reg`: the members are
+those of one in-process network (`allocN`'s `γn.N = srvNet γ`), with the cluster's ids, contexts and auth mode.
 The proxy: Go's transport (etcd's `transport.NewTimeoutTransport`, `Proxy: http.ProxyFromEnvironment`) would send
 every peer request to an HTTP proxy named by `HTTP_PROXY`/`http_proxy` (`HTTPS_PROXY`/`https_proxy` for `https`
 URLs), which may answer anything (raft messages that make the member panic, `commitTo` past its last index);
@@ -48,9 +54,12 @@ A connection the transport makes reaches a listener at `a` that may be another p
 `addrProto` lets its holder listen at `a`): such a program can write nothing there (no proof establishes the opaque
 acceptor protocol of any bytes), so the transport sees a peer that never answers, which it handles (a timeout, an
 error, a retry). The peer addresses' protocols name the cluster
-and the member (`httpAddrAt γ pid a`), and an address is set once (`addrUnset` spent by `http_addr_set`), so the
-transport of a member of another ghost cluster (a second `srvClusterBoot_alloc` with the same configuration: same ids)
-can never meet `Hpeers` at these addresses; a duplicate of a member inside `γ` is excluded by the exclusive
+and the member (`httpAddrAt γ pid a`: `httpPeerSvc γ.cl pid`, raft's cluster names, allocated once per cluster; not the
+member's whole record `γ`, whose storage registry `γ.reg` is the member's own, so that every member of the cluster reads
+the same fact of an address: 2026-11-25, `notes/axiom-review/s5-cluster-index.md`), and an address is set once
+(`addrUnset` spent by `http_addr_set`), so the
+transport of a member of another ghost cluster (a second `srvClusterBoot_alloc` with the same configuration: same ids,
+another `γ.cl`) can never meet `Hpeers` at these addresses; a duplicate of a member inside `γ.cl` is excluded by the exclusive
 `nodeVacant γ.cl id` and `raftState γ.cl id` (`Hnboot`; `nodeBoot` itself is persistent) (review of 2026-11-24: unindexed, two clusters at one address gave a duplicate member and
 raft's `tocommit out of range` panic). The network names `γn` the post gives are this member's.
 

@@ -53,7 +53,7 @@ variable [lintest_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assu
 variable [perclient_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions]
 variable [NaInvG GF]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem wp_hang : hang.spec (GF := GF) (hG := hG) := hang.wp_proof
 

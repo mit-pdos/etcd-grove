@@ -28,7 +28,7 @@ entry Perennial.EtcdGrove.goose_adequacy_start 2:*:produced1/consumed0  the firs
 # `grpcRunOkMd`, a program-picked record), as `acceptRun`'s and `acceptRunConns`' did through the same
 # run contract; their two `trunc` lines retired with them, so the ratchet holds one line where it held two.
 trunc Perennial.EtcdGrove.grpc.Server.Serve.wp_proof
-entry Perennial.EtcdGrove.grpc.Server.Serve.wp_proof 2:*:handedtoacallback1/supplieddirectly0,3:Spec:produced1/consumed0  phase 7 S2's interface (notes/axiom-review/s2-interface.md): the thread token handed to a callback is the run contract's (`grpcServes`' `grpcRunOkMd #mh srv ics Spec`: each accepted call runs its handler on a goroutine of its own, given a token and returning it), not a mint; the `Spec` atom is produced by a client's deposit (`ClientConn.Invoke`'s `grpcDeposit` at the table's entry) and consumed by the handler's run across the two axioms, as the design has it, so neither axiom alone both produces and consumes it
+entry Perennial.EtcdGrove.grpc.Server.Serve.wp_proof 2:*:handedtoacallback1/supplieddirectly0,3:Spec:produced1/consumed0,2:*:produced1/consumed0,3:up₀:produced1/consumed0  phase 7 S2's interface (notes/axiom-review/s2-interface.md): the thread token handed to a callback is the run contract's (`grpcServes`' `grpcRunOkMd #mh srv ics Spec`: each accepted call runs its handler on a goroutine of its own, given a token and returning it), not a mint; the `Spec` atom is produced by a client's deposit (`ClientConn.Invoke`'s `grpcDeposit` at the table's entry) and consumed by the handler's run across the two axioms, as the design has it, so neither axiom alone both produces and consumes it; the stream clause (gRPC driver, grpc-trusted-T, 2026-11-24): `grpcStreamRunOk` hands a stream handler's run the thread token of the stream's own goroutine (grpc-go v1.84's `serveStreams` runs each stream on one) and the run returns it in its post, as the unary run contract does (the walk counts it as produced, not as handed to a callback; the two findings appear exactly with the stream clause `grpcServesEnt .stream`, which `lean` does not have; why the walk does not see it as a callback's, most likely the chain `srvStreamChainWP` it is under, is inferred, not traced); the `up₀` atom is a stream entry's client content, produced by a client's `NewStream` (its `Up ==∗ up₀` deposit, `grpcStreamSvcAt`) and handed to the handler through `grpcServes`' `up₀ -∗ Up`, so neither axiom alone both produces and consumes it, as for `Spec`
 
 # --- B1a triage of B0's report-only run (2026-11-11; /shared/tmp/stageB/freeze-cp1a.md §1) ---
 # Checker artefacts: a callback the Go code never calls (the pre's handle carries a method contract
@@ -53,7 +53,7 @@ entry Perennial.EtcdGrove.storage.OpenBackend.wp_proof 7:Φ:GoString×GoString�
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 3:Pre:produced2/consumed1  as v3alarm.NewAlarmStore's: Pre is bound in the produced `authApplyOk` → `isAuthStore`; the hook path and the no-lock path are exclusive, so the two productions are one `Pre` on one of them (reason rewritten 2026-11-12, stage B gate triage)
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:RD:IPropGF  the auth store's reader permit: its copies are produced together with the handles that alone use it (`isReqAuth st RD`, `authApplyOk stl RD`, each call consuming a copy and returning it), the Scope's rule 7 first case (§5.1, "`NewAuthStore`'s `RD` inside `isReqAuth`"), which the walk does not recognize through the defined handles
-entry Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof 7:Dn:Nat→Rep.M→IPropGF,7:cd':context.ContextDesc(IPropGF)  the Scope's rule 7 first case (§5.1: "NewStream (its `Dn`, `cd'` neutral)"), not recognized through the defined handle: `Dn` is the stream's content family, fixed with the client end `cliStreamIs cs γ … Dn cd'` and the client's own `Spec a md γ Dn` (the server end gets the same `Dn` through `acceptRun`'s `□ Spec md γs Dn`, the pair); `cd'.PDone` occurs only inside `cliStreamIs`'s `isContextDone` (irreducible: Perennial's context handle)
+entry Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof 7:Dn:GrpcMd→Nat→Rep.M→IPropGF,7:cd':context.ContextDesc(IPropGF)  the Scope's rule 7 first case (§5.1: "NewStream (its `Dn`, `cd'` neutral)"), not recognized through the defined handle: `Dn` is the stream's content family (indexed by the dispatch `(a, md)` the client learns, `streamDispIs`, since SW1 and the gRPC driver's restatement), fixed with the client end `cliStreamIs cs γ … Dn cd'` and the client's own `Spec a md γ Dn` (the server end gets the same `Dn` through `acceptRun`'s `□ Spec md γs Dn`, the pair); `cd'.PDone` occurs only inside `cliStreamIs`'s `isContextDone` (irreducible: Perennial's context handle)
 entry Perennial.EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof 3:Up:produced1/consumed0  `Up L.length m` occurs in the `RecvMsg` post of `srvRawStreamIs`, consumed for the stream `st` the interceptor is given and produced for the stream `st'` it hands the handler; the walk takes the max over the produced post's three branches and the min over the consumed one's, uncorrelated, though `st'` (go-grpc-middleware's `monitoredServerStream`) forwards `RecvMsg` to `st`'s: `Up L.length m` is produced only when the inner `RecvMsg` gave it
 
 # --- CP3: the five server-handle axioms the scenario cap used to collapse (triaged 2026-11-12 by an
@@ -150,29 +150,42 @@ trunc Perennial.net.rpc.wp_initialize'
 entry Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof 2:L:0:handedtoacallbacklen(vs)+len(vs)/supplieddirectly0  see the section header: the `levelTok 0` of the call options' `backoffOkT` contract (`streamCallOptsOk vs`), lent by the backoff's caller, not by this axiom
 entry Perennial.EtcdGrove.Client.streamClientInterceptor.wp_proof 2:L:0:handedtoacallbacklen(ros)+len(ros)/supplieddirectly0  see the section header: the `levelTok 0` of the options' `backoffOkT` contract inside `optApplyOk`, lent by the backoff's caller, not by this axiom
 
-# --- putget-dist's interim client axioms (dist-putget-interim, 2026-11-25; for the coordinator's review) ---
-# `etcd_dist.Client_Put_dist.wp_proof`, `etcd_dist.Client_Get_dist.wp_proof`
-# (Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/Client{Put,Get}Dist.lean; interim, retired by
-# #24's S2). Both take what the proved `client.client_Put_own`/`client_Get_own` take of the client and the
-# context: `isNewClient cl [ep] V` (persistent), `ctxOk ci cd`, `ctxErrClient ci cd`, and, since this
-# date, the caller's `levelTok 0`, given back (the first queue run found the statements took none: the
-# rule-2 finding `handed to a callback 8, supplied directly 0`, now `... 1`).
-# Rule 2: the 8 tokens handed to a callback are the `levelTok 0` in the pre of the retry interceptor's
-# contract (`etcdInterceptorOk`, `etcdInterceptorOkW`: given back in its post) of each of the four
-# connections `isNewClient` describes (the client's `clientKVAt`, `KV`'s `kvObjAt`, `Lease`'s `lessorAt`,
-# `Auth`'s `authObjAt`), counted once each. `Put`/`Get` call one interceptor once (`kv.Do` -> the KV stub
-# -> `ClientConn.Invoke` -> the chain), synchronously on the caller's goroutine, lending it the caller's
-# one token, which the call gives back before `Put` returns; no goroutine of the call runs an interceptor,
-# so a callback that never returns stops every later one, and no token is minted (`client_Put_own`'s proof
-# lends the one token the same way).
-# Rule 7: the `∃ P` is the one `isContext` gives the parent `*cancelCtx` (not `isCancelCtxOf`'s own binder,
-# which is `R`, `context/Base.lean:505`). What carries the entry (review 2026-11-25): `P` is picked only in
-# the pre of the interceptor contract, which is quantified over every context and descriptor (`∀ ctx cd`), so
-# any interceptor proof is generic in it, and the axiom's post (token, `envAt`, `putGetInv`, `monoNatLbOwn`)
-# never mentions it: nothing can be smuggled out. (That it is the caller's own proposition passed back is
-# plausible but was not traced.)
-entry Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  see the section header: the caller's one `levelTok 0`, lent to the one interceptor call `Put` makes (synchronous, given back), counted once per connection contract `isNewClient` carries; the `∃ P` is the caller's context's own `*cancelCtx` Done proposition, passed back
-entry Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as `Client_Put_dist.wp_proof` (section header), for `Get`'s one `Range` call
+# --- net/http's interim axioms over a user handler and a raw client (httpdriver, 2026-11-25;
+# notes/library-drivers.md, "net/http"; review notes/axiom-review/net-http-interim.md) ---
+entry Perennial.net.http.Serve.wp_proof 2:*:handedtoacallback1/supplieddirectly0  the thread token handed to the handler (`handlerOk`'s `servePre`) is the token of the goroutine net/http's server forks per connection (`Server.Serve`'s `go c.serve(ctx)`: a fork gives its goroutine a token), returned in `serveDone`; `Serve` takes none and mints none
+entry Perennial.net.http.ServeMux.ServeHTTP.wp_proof 2:*:handedtoacallbacklen(L)/supplieddirectly1,3:E:produced1/consumed0,3:S:produced3/consumed2  the caller's `servePre` (its thread token, its body reader's state `S` and errors' evidence `E`) is handed on whole to the one handler `findHandler` routes the request to (each route's `handlerOk` counts as a callback, at most one runs) or, for the mux's own `307`/`404`, kept and given back in `serveDone` (`S`, the token); `E` is the caller's body reader's, passed through, never produced by the mux
+entry Perennial.net.http.ReadResponse.wp_proof_resp 3:E:produced1/consumed0,3:E:produced2/consumed0,3:E:produced2/consumed1,3:Q:produced1/consumed0,3:S:produced5/consumed2,7:EB:Listw8→GoInterface→IPropGF,7:SB:Listw8→IPropGF  `S`, `E` are the caller's stream's state and errors' evidence (`readerStreamNE`, `ownReader`): the axiom reads through the stream's own `Read` contract and gives the reader back in its post, so their productions are the stream's callbacks' posts; `□ Q ρ` comes only from the caller's law over `S` (its conclusion, persistent knowledge the caller supplies for every answer the stream may carry); `SB`, `EB` are the body reader's contract, chosen by the axiom and bound with the body reader it returns (`io.readerOk bi _ SB EB`, rule 7's neutral case)
+
+# --- N2's client axioms across machines (etcd-dist §18; on M1's path since 2026-11-26) ---
+# `etcd_dist.{KV_Put,KV_Get,KV_Delete,Txn_Commit}_dist.wp_proof` (Proof/.../examples/etcd/dist/{KVPut,KVGet,KVDelete,
+# TxnCommit}Dist.lean; interim, retired by #24's S2; review notes/axiom-review/n2-kv-dist.md). Each is the proved
+# in-process client spec (`kv.Put.spec` ...) with `isKv kv γ false` replaced by `kvClientAt cl api eps V Γ`
+# (checked token by token: etc/dist-axiom-diff.py). They replace putget-dist's `Client_{Put,Get}_dist`
+# (theorems over them since N2), whose entries these follow; traced again (M1, 2026-11-26) from the raw walk:
+# Rule 2 (`handed to a callback 8, supplied directly 1`; Txn_Commit_dist's `10`): the user supplies one
+# `levelTok 0` (consumed `tok:L:0` 9 = 1 + the 8 the callbacks give back, `ret:L:0` 8). The 8 are the pres of
+# the retry interceptor's two contracts (`etcdInterceptorOk ic ∗ etcdInterceptorOkW ic`, each `{{ levelTok 0 ∗ …
+# }} … {{ levelTok 0 ∗ … }}`) in each `isEtcdConn` (InvKVConn.lean:2025) of the four connections `isNewClient`
+# holds (`clientKVAt`, `KV`'s `kvObjAt`, `Lease`'s `lessorAt`, `Auth`'s `authObjAt`); Txn_Commit_dist's builder
+# `txnObjAt` holds one more `kvObjAt` (its `*kv`'s), `+2`. Go: `kv.Put`/`Get`/`Delete` -> `kv.Do` -> `kv.remote.X`
+# (`retryKVClient`, retry.go:106-124) -> the stub's `c.cc.Invoke` (rpc_grpc.pb.go:99-105) -> grpc v1.84's
+# `cc.dopts.unaryInt(ctx, …)` (call.go:29-37): one interceptor call, on the caller's goroutine, which returns
+# before the axiom's function does (its retries call the invoker one after another); `txn.Commit` the same through
+# `txn.kv.remote.Txn` (txn.go:146). So the one token is lent to one call at a time and given back; none is minted.
+# Rule 7 (`∃ P : IProp`, in `isCancelCtxOf`): the `ctxOk ctx cd` in those contracts' pres, the context the axiom
+# hands the interceptor; Go passes the caller's `ctx` unchanged down that chain (Txn: the builder's `txn.ctx`, of
+# `txnObjAt`'s `ctxOk ci cd`), so `P` is the caller's context's own `*cancelCtx` Done proposition; the contracts are
+# quantified over every `ctx cd`, and no post mentions `P`.
+# Rule 3, KV_Get_dist and Txn_Commit_dist (`atom:Q: produced 1, consumed 0`): `Q` is produced in the post's
+# `□ Q σ` (Get's non-serializable success arm; Txn's read-only non-serializable arm) and consumed through the
+# atomic update's `COMM □ Q σ` (as KV_Put_dist's `Q`, which has no rule-3 finding); the scenarios without that
+# consumption are the ones where the user supplies the pre's other disjunct, the pure `⌜Q = fun _ => True⌝`
+# (Get's `□ (⌜Q = …⌝ ∨ (… ∗ AU …))`, Txn's first disjunct `⌜readonly ∧ Q = …⌝`), which the walk does not read
+# (`⌜…⌝` holds no resource): there the produced `□ Q σ` is `□ True`.
+entry Perennial.EtcdGrove.etcd_dist.KV_Put_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  see the section header: the caller's one `levelTok 0`, lent to the one interceptor call (synchronous, given back), counted once per contract of the four connections; `P` the caller's context's Done proposition, passed down unchanged
+entry Perennial.EtcdGrove.etcd_dist.KV_Delete_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `DeleteRange`
+entry Perennial.EtcdGrove.etcd_dist.KV_Get_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Put_dist's, for `Range`; `Q`: the pure `Q = fun _ => True` disjunct (section header)
+entry Perennial.EtcdGrove.etcd_dist.Txn_Commit_dist.wp_proof 2:L:0:handedtoacallback10/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Put_dist's, for `Txn`, with the builder's fifth connection (`txnObjAt`'s `kvObjAt`, +2) and its context; `Q`: the pure read-only disjunct (section header)
 # The same branch's two other new axioms, which the queue's run listed as `rule 3,7 (2)` and which taint
 # `builtRawMDRaw`/`transportMDRaw`/`statusAtRaw` (the selftest's `real-pass EtcdServer.leaseTimeToLive`
 # failure); their findings are the established patterns of the entries above, keys unchanged:
@@ -208,6 +221,56 @@ entry Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof 3:Dep:produced1/consumed
 # `SetDowngradeInfo` each write the backend at most once, under `shouldApplyV3`, `cluster.go:467-474,
 # 589ff, 809-814`).
 entry Perennial.EtcdGrove.bootstrap.wp_proofOne 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  see the section header: as NewAlarmStore's `Pre` (two exclusive paths) and backend.Snapshot's `dlIs` `Φ`
+# `bootstrap.wp_proof_dist` (Proof/go_etcd_io/etcd/server/v3/etcdserver/bootstrapDist.lean; interim, retired when
+# #34 proves `bootstrap`; review notes/axiom-review/bootstrap-dist.md): `bootstrap.spec` with `etcd_safe`'s shape
+# premises and the persistent `bootRTOk` in its pre, the same post `bootOk` (checked token by token:
+# etc/dist-axiom-diff.py; machine-checked too: `bootstrap.specDist_of_spec` derives it from `bootstrap.spec`).
+# Its walk (M1, 2026-11-26) has exactly `wp_proofOne`'s findings, keys and truncation notes (the bbolt
+# definitions); `bootRTOk` (`httpAddrAt`'s address invariant, `noProxyEnv`) adds none.
+entry Perennial.EtcdGrove.bootstrap.wp_proof_dist 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  as `bootstrap.wp_proofOne`'s (the same post `bootOk`): `Pre` on one of two exclusive paths, `Φ` `dlIs`'s
+# `etcd_dist.NewPeerHandler_dist.wp_proof`, `etcd_dist.PeerServe_dist.wp_proof` (Proof/.../examples/etcd/dist/
+# {NewPeerHandler,PeerServe}Dist.lean; interim, retired by phase 7 S5; reviews: plan §17.3). Neither returns
+# anything the user can use: `NewPeerHandler_dist`'s post is `peerHandlerOf h s` = `□ peerHandlerRaw h s`, an
+# opaque with no law (`S5Interim.lean:148-152`) that only `PeerServe_dist` consumes, and `PeerServe_dist`'s post
+# is `True`. Every finding is inside the server handles they consume (`isServerReqM`, `srvNetMember`; and
+# `PeerServe_dist`'s `httpAddrAt`, `netListenerOpen`, `srvServeRes` slots), with keys that are a subset of
+# `Serve_dist`'s (whose `memberUp` holds `isServerReq`) and `leaseTimeToLive`'s (CP3's per-pattern attribution):
+# `Ψ` under `srvReqFieldsAtM`>`waitInvM`>`waitTrig` (the wait registry's trigger), `Φ : Unit -n> IProp` an
+# atomic update's fixpoint, `sDoneAny` `auth.ctxDoneAny`'s context. `PeerServe_dist` runs those handles'
+# handlers (etcd's peer API: raft, lease, members), as the proved in-process `http.Serve_ok` at the raft
+# handler does over the same `isServerReqM`/`srvNetMember` (etcdstart.NewMember); `NewPeerHandler_dist` only
+# builds the mux. Their walks truncate where `Serve_dist`'s does, in the same handles (`cd.4`, raft's log and
+# campaign definitions, `(netRh γn).γn.N.1 st`): a subset of `Serve_dist`'s notes.
+entry Perennial.EtcdGrove.etcd_dist.NewPeerHandler_dist.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:sDoneAny:context.ContextDesc(IPropGF)  see the paragraph above: inside the consumed `isServerReqM`; the post is an opaque with no law
+entry Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:sDoneAny:context.ContextDesc(IPropGF)  see the paragraph above: inside the consumed server handles; the post is `True`
+# `etcd_dist.NewServer_dist.wp_proof` (Proof/.../examples/etcd/dist/NewServerDist.lean; interim, retired by phase 7
+# S5; reviews: plan §17.3). Its walk is CAPPED: the scenario cap is global (`MAXSCEN = 1024`,
+# etc/AxiomTokCheck.lean:163; not settable per axiom; not raised: a tool change), one sub-walk collapsed into its
+# worst scenario, so the rule-3 counts below are unreliable; uncapped diagnostic runs (cap 8192, 65536, 2^20) did not
+# finish. Traced (M1, 2026-11-26; notes/axiom-review/newserver-dist-axiom-tok.md) and triaged independently
+# (notes/axiom-review/newserver-dist-axiom-tok-triage.md: "justified with corrections", applied here):
+# - rule 2 passes on every scenario of the final set, the collapsed one (max production, min consumption)
+#   included, so on every scenario of the uncollapsed walk: no token is produced beyond what is consumed;
+# - `2:*:handedtoacallback2/supplieddirectly1` (2b): the tokens handed to a callback are those of the
+#   caller-supplied premise `lease.bootCfg` ⊇ `srvRevokeOpen` = `EtcdServer.revokeExpiredLeases.spec` (its pre's
+#   token, returned by its post), and `Promote`'s, borrowed and returned inside that triple's pre (`srvFieldsAt` ⊇
+#   `lessorOk`'s `□ {{ threadTok }} Promote d {{ threadTok }}`, InvApplier.lean:614-617); the post's `threadTok` is
+#   not under a callback; the proved theorems have the same premise and the same four tokens; the first pair is paid
+#   by the pre's `threadTok`, the second is a borrow within one call: no mint;
+# - every finding is of a binder inside text the proved statements share verbatim (`etc/dist-axiom-diff.py`: the
+#   post and all premises but the listed deviations), whose verdict depends only on the subterm under it: findings
+#   of the text the proved `wp_NewServer : NewServer.spec` (auth off) and `server_new_auth_on : NewServer.specM true`
+#   (auth on) establish; walked beside it, 44 of its 45 keys recur in their walks (the token key included), and
+#   `3:Dep:produced1/consumed0` (`storeTxnWriteIs`' `∃ Dep`, used at `batchTxSpecG`, through
+#   `srvBuiltG`>`srvReadBuiltNK`>`isApplyLessor`>`revokeClause`>…, leaseTimeToLive's CP3 pattern) sits one definition
+#   below their depth cutoff: the proved statements are one `Prop` unfold deeper (`spec`/`specM` -> `specG`), and at
+#   `--depth=15` they report the same key (at `--depth=13` the dist axiom loses it);
+# - the moved `γn`: the top-level `∃ γn` is neutral (never naked); the `7:γn:NetNamesGF` key is `srvApplyAllBuilt`'s
+#   inner binder, shared text; `γn.N = srvNet γ` fixes its one `IProp`-carrying field; the deviations' consumed
+#   premises (`Hpeers`, `noProxyEnv`) only add to what the axiom consumes, and no holder credit is reported;
+# - its truncations are in the post's and premises' backend, bbolt, lease and context definitions (`ownMap`, `bbAt`,
+#   `isBolt`, `lessorPin*`, ...), none in the deviations' text.
+entry Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof 2:*:handedtoacallback2/supplieddirectly1,3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Pre:produced1/consumed0,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Wb:produced11/consumed1,3:Y:produced1/consumed0,3:cd.PDone:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:E:apply.AEnvGF,7:GA:w64→IPropGF,7:Hs:auth.BkView→IPropGF,7:K:IPropGF,7:Lk:Bool→IPropGF→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:P:IPropGF,7:Pk:IPropGF,7:Pw:IPropGF,7:Q:IPropGF,7:Q:ListEntryModel→IPropGF,7:R:IPropGF,7:RD:IPropGF,7:RL:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:Rd:IPropGF,7:S:IPropGF,7:Sw:auth.AuthSess→IPropGF,7:T:IPropGF,7:TM:MetaCI→IPropGF,7:TS:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Wb:IPropGF,7:c:TrNGF,7:cd:context.ContextDesc(IPropGF),7:sDoneAny:context.ContextDesc(IPropGF),7:Φ:GoString×GoString→IPropGF,7:Φ:Unit-n>IPropGF,7:γn:NetNamesGF,7:τ:SrvTrGF  see the paragraph above (and the trace and triage notes it cites): capped walk; the 2b tokens are the caller-supplied `revokeExpiredLeases.spec` premise's and `Promote`'s borrow inside it (no mint); every finding of a binder in text shared verbatim with the proved `wp_NewServer`/`server_new_auth_on`, `3:Dep` one definition below their depth cutoff
 # The ratchet's exception for these four (dist-putget-interim, 2026-11-25; for the coordinator's review):
 # their walks truncate where the walks of the handles they take already do on `lean`, in definitions this
 # branch did not write: the client axioms in `isNewClient`'s contexts (`stuck projection: cd.4`, the
@@ -223,12 +286,21 @@ entry Perennial.EtcdGrove.bootstrap.wp_proofOne 3:Pre:produced2/consumed1,7:Φ:G
 # acceptable because `bootstrap.wp_proof` is a theorem with no `sorry`, so `bootOk`'s bbolt resources come
 # only through `bootstrapBackend`/`OpenBackend`'s post, whose truncation is already accepted (that no open
 # callee of #34's link adds bbolt resources was not confirmed).
-trunc Perennial.EtcdGrove.etcd_dist.Client_Put_dist.wp_proof
-trunc Perennial.EtcdGrove.etcd_dist.Client_Get_dist.wp_proof
+# (M1, 2026-11-26) `Client_{Put,Get}_dist` are theorems since N2: their two lines become N2's four client axioms'
+# (the same truncation notes: `isNewClient`'s contexts, `cd.4`, the models' projections, `isCancelCtxOf`,
+# `isMutex`, `named`, `dghostVar`); the S5 interim axioms' and `bootstrap.wp_proof_dist`'s are above.
+trunc Perennial.EtcdGrove.etcd_dist.KV_Put_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.KV_Get_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.KV_Delete_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.Txn_Commit_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.NewPeerHandler_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof
+trunc Perennial.EtcdGrove.bootstrap.wp_proof_dist
+trunc Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
-# `<pkg>.wp_initialize'` of the nine `HYP_INITS` packages whose `axiom`-skill review survived
+# `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at
 # `ownInitializing` (Perennial's initialization ghost state, given and returned with the same map);
 # the post adds only the package's persistent `isPkgInit` (fact `True`, zerolog's with `io`'s). No
@@ -236,12 +308,8 @@ trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 trunc Perennial.encoding.gob.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.proto.wp_initialize'
-trunc Perennial.github_com.google.uuid.wp_initialize'
 trunc Perennial.github_com.rs.zerolog.wp_initialize'
-trunc Perennial.google_golang_org.grpc.codes.wp_initialize'
 trunc Perennial.gopkg_in.yaml_v2.wp_initialize'
-trunc Perennial.io.ioutil.wp_initialize'
-trunc Perennial.os.signal.wp_initialize'
 
 # dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): swiftpaxos's gob axioms
 entry Perennial.encoding.gob.Decoder.Decode.wp_proof 3:E:produced1/consumed0  E is the reader's error predicate, `∃`-bound inside the consumed (persistent) `bufio.readsOk rd I`; it occurs produced only in the post of the reader's own `Read` contract (`io.readerOk ri Pre I E`), which `Decode` calls; the axiom's post holds no `E` (review notes/axiom-review/dsv-fix4/encoding-gob.md)

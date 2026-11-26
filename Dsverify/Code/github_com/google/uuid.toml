@@ -1,5 +1,10 @@
-# Project dsv-swiftpaxos (etc/goose.py): `github.com/google/uuid`, names and types only (no model yet; the
-# specs the kit's proof uses are its hypotheses, notes/dsv-swiftpaxos.md).
-translate = ["!*"]
-imports = ["!*"]
+# Project dsv-swiftpaxos (etc/goose.py): `github.com/google/uuid` v1.3.1 from its model, models/uuid
+# (v1.3.1's code; `NewRandom`'s bytes from goose's `primitive.RandomUint64`, `MODEL:`; models/README.md).
+# (dsv-retire-2, 2026-11-25, mit-pdos/etcd-grove#49 step 2; until then names and types only, `New`,
+# `UUID.ID` and the initializer trust-boundary axioms.) What the kit calls, with bodies: `New`, its
+# callees `NewRandom` and `Must`, and `UUID.ID`; the model's one package variable `xvalues` (an array
+# literal), so that the initializer is translated whole. The rest (parsing, formatting, marshaling,
+# SQL) names only; the imports cut to those the translated bodies call.
+translate = ["!*", "New", "NewRandom", "Must", "UUID.ID", "xvalues"]
+imports = ["!*", "encoding/binary", "github.com/goose-lang/primitive"]
 translate_types = true

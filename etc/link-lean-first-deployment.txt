@@ -27,6 +27,10 @@ deployment_decimal:
 deployment_AddrOk: deployment_decimal
 deployment_compatible: deployment_alone deployment_needsSoleWriter deployment_writesKeys deployment_needsNoExpiry
 deployment_memberIDs: membership_NewMember+One
-deployment_IdsOk: deployment_memberIDs deployment_grantsLeases
+deployment_RaftIdOk:
+deployment_IdsOk: deployment_memberIDs deployment_grantsLeases deployment_RaftIdOk
 # the check
 deployment_WellFormed: deployment_nameOk deployment_kindNames deployment_boundsOk deployment_AddrOk deployment_NodeCount deployment_IdsOk deployment_compatible deployment_NeedsAuth =_root_.Perennial.EtcdGrove.fmt.ErrorfStrs.wp_proof
+# the dispatch's accessors (N7-kv)
+deployment_Deployment__Endpoints:
+deployment_Deployment__Node:

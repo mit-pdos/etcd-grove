@@ -81,13 +81,16 @@ const (
 	CompactorPeriodic = "periodic"
 )
 
-// MaxMembers bounds the cluster's size and MaxLen every member name, every address and the token
-// (in bytes), so that the strings etcd builds from them (a member's peer URLs joined, the initial
-// cluster's "name=http://peer" list) stay far below strings.Join's length bound (Lean:
-// typed.maxMembers, typed.maxLen).
+// MaxMembers bounds the cluster's size and MaxLen every address and the token (in bytes), so that
+// the strings etcd builds from them (a member's peer URLs joined, the initial cluster's
+// "name=http://peer" list) stay far below strings.Join's length bound (Lean: typed.maxMembers,
+// typed.maxLen). MaxNameLen bounds every member name (Lean: typed.maxNameLen): the member's data
+// directory "<name>.etcd" and its WAL area's paths must fit in a path component (255 bytes); the
+// proof's bound is 200.
 const (
 	MaxMembers = 64
 	MaxLen     = 255
+	MaxNameLen = 200
 )
 
 // Member is a member of a deployment (Lean: Member).
@@ -299,8 +302,17 @@ func memberIDs(d Deployment) []uint64 {
 	return ids
 }
 
+// RaftIdOk says whether raft accepts id as a node's id: raft v3.7's Config.validate refuses an id
+// that IsLocalMsgTarget names, LocalAppendThread (math.MaxUint64) and LocalApplyThread
+// (math.MaxUint64-1), and StartNode panics on its error. (Exported for TestWellFormed: a deployment
+// with such a member id would need a SHA-1 preimage.)
+func RaftIdOk(id uint64) bool {
+	return id != 1<<64-1 && id != 1<<64-2
+}
+
 // IdsOk is WellFormed's condition 3: the member ids' 16 low bits distinct and nonzero, and, if a
-// workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart).
+// workload grants leases, their 15 low bits distinct (Lean: leaseIdsApart); every id one raft
+// accepts (RaftIdOk).
 func IdsOk(d Deployment) bool {
 	ids := memberIDs(d)
 	grants := false
@@ -310,7 +322,7 @@ func IdsOk(d Deployment) bool {
 	low16, low15 := map[uint64]bool{}, map[uint64]bool{}
 	for _, id := range ids {
 		a, b := id&0xffff, id&0x7fff
-		if a == 0 || low16[a] || (grants && low15[b]) {
+		if a == 0 || !RaftIdOk(id) || low16[a] || (grants && low15[b]) {
 			return false
 		}
 		low16[a], low15[b] = true, true
@@ -324,13 +336,13 @@ func IdsOk(d Deployment) bool {
 // int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
 // needs.)
 func WellFormed(d Deployment) error {
-	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxLen bytes
+	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxNameLen bytes
 	if len(d.Members) == 0 || len(d.Members) > MaxMembers {
 		return fmt.Errorf("%d members", len(d.Members))
 	}
 	names := map[string]bool{}
 	for _, m := range d.Members {
-		if !nameOk(m.Name) || len(m.Name) > MaxLen || names[m.Name] {
+		if !nameOk(m.Name) || len(m.Name) > MaxNameLen || names[m.Name] {
 			return fmt.Errorf("member name %q", m.Name)
 		}
 		names[m.Name] = true

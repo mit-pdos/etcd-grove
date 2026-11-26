@@ -10,7 +10,7 @@ the prophecies unresolved, and the owned update while `kv ≤ kt` (`kt` is 0 if 
 `kv` carries the owned update if `kv = kt`, and otherwise the read's persistent one (`kv ≠ kt`, both
 below `T`, so `T > 1`: a read). An answer that decodes to an output `ov o` resolves `xs` with `kv`:
 so `known` and `kv = kt`, and the slot gave `Φb o`; then `ys` with the reply's length and bytes
-(the inner loop), so `prophBytes ys` is the reply's bytes, `encOut (ov o)` (`repP`), and the choice
+(the inner loop), so `prophBytes ys` is the reply's bytes, `encOut (ov o)` (`repP`, at the store's fixed-value wire `RBase.svc`), and the choice
 gives `Φo o`. An answer of the unknown output resolves `xs` with `T`: so not `known`, and `Ψ` is
 returned; the loop's end resolves with `T`, not `known` either.
 -/
@@ -79,7 +79,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     (wp_NewProph : github_com.goose_lang.primitive.NewProph.spec (GF := GF) (hG := hG))
     (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG)) :
     Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R a i Φo Ψ cd d
+  intro J R a i Φo Ψ cd d
   wp_start as ⟨#Hm, #Ha, #Hcd, Hbu, Hrd, Hch⟩
   iunfold codecOk at Hcd
   icases Hcd with ⟨#HEncIn, #HDecIn, #HEncOut, #HDecOut, #HIsRead, #HUnk, #HIsUnkO, #HIsUnkU⟩
@@ -95,10 +95,10 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     have : sint.nat req.len = uint.nat req.len := by word
     simp only [maxLen]; word
   wp_apply HIsRead $$ %i []
-  obtain ⟨T, hT⟩ : ∃ T : Nat, T = if R.B.isWrite i = true then 1 else 3 := ⟨_, rfl⟩
+  obtain ⟨T, hT⟩ : ∃ T : Nat, T = if R.B.isWrite (R.mi i) = true then 1 else 3 := ⟨_, rfl⟩
   have hT1 : 1 ≤ T ∧ T ≤ 3 := by split at hT <;> omega
   ihave #Hrlin : iprop(□ (⌜1 < T⌝ -∗ slotUpd (Gg := hG.goose_globalGS) R i (fun _ => iprop(True)))) $$ [Hrd]
-  · cases hw : R.B.isWrite i
+  · cases hw : R.B.isWrite (R.mi i)
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrd with #Hrd
       imodintro
@@ -114,7 +114,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
   iapply (wp_wand_l (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ tries_ptr ↦ W64 T)))
   isplitr [tries]
   rotate_left
-  · cases hw : R.B.isWrite i
+  · cases hw : R.B.isWrite (R.mi i)
     · wp_auto
       have h3 : T = 3 := by simp [hT, hw]
       subst h3
@@ -149,7 +149,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
       icases Hk with ⟨HΨ, HL⟩
       iexists (fun _ => iprop(True))
       iframe HΨ
-      cases hw : R.B.isWrite i
+      cases hw : R.B.isWrite (R.mi i)
       · ihave HL' := Hrlin $$ %(by simp [hT, hw])
         iframe HL'
         iintro %h; cases h
@@ -220,7 +220,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     wp_apply wp_attempt (RBase.svc (Gg := hG.goose_globalGS) R) a i Φa req (DFrac.own 1) d Hlen
       $$ [Hreq HLa Hu] as %rep %ok ⟨Hreq, Hres⟩
     · iframe Hm Ha Hreq HLa Hu
-    icases Hres with (%Hf | ⟨%v, %Hok, Hrep, Hv⟩)
+    icases Hres with (%Hf | ⟨%Hok, Hv⟩)
     · subst Hf
       wp_auto
       wp_for_post
@@ -230,9 +230,8 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
       ipureintro; word
     subst Hok
     wp_auto
-    imod ownSlice_persist $$ Hrep with #Hrep
-    icases Hv with (⟨%o, %Ho, HΦa⟩ | %Hu)
-    · subst Ho
+    icases Hv with (⟨%o, Hrep, HΦa⟩ | ⟨%v, Hrep, %Hu⟩)
+    · imod (ownSlice_persist (V := w8) rep (DFrac.own 1) (R.encOut (R.ov o))) $$ Hrep with #Hrep
       wp_apply HDecOut $$ %(R.ov o) %rep %DFrac.discard %(Or.inl ⟨o, rfl⟩) [Hrep] as %x %good %Hx
       · iexact Hrep
       cases good
@@ -316,6 +315,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
           ipureintro; rfl
     · have Hu : v = R.unk i := Hu
       subst Hu
+      imod (ownSlice_persist (V := w8) rep (DFrac.own 1) (R.encOut (R.unk i))) $$ Hrep with #Hrep
       wp_apply HDecOut $$ %(R.unk i) %rep %DFrac.discard %(Or.inr ⟨i, rfl⟩) [Hrep] as %x %good %Hx
       · iexact Hrep
       cases good

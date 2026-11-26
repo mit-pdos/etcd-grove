@@ -38,8 +38,13 @@ etcd-grove-81: `status.New(c, msg).Err()` returns `&Error{s: s}` for `c ≠ OK`,
 strengthening: grpc v1.84.0 `internal/status/status.go:129`, `func (s *Status) Err() error`'s
 `return &Error{s: s}` after `if s.Code() == codes.OK { return nil }`, which the pre's `c ≠ OK`
 excludes; `status.go:58`, `Error` is `New(c, msg).Err()`), so a pointer error
-(`errors.IsPointerError`, `rpctypes.ErrGRPCNotSupportedForLearner`'s fact). Nothing about the code,
-nor about `codes.OK` (for which it returns `nil`). -/
+(`errors.IsPointerError`, `rpctypes.ErrGRPCNotSupportedForLearner`'s fact). Nothing about `codes.OK`
+(for which it returns `nil`).
+(grpc-trusted-T, T1, 2026-11-24; interim, retired by the `status-bodies` stage, which proves this
+triple over the bodies) The error's code is `c` (`statusCodeIs err c`: what `status.Code(err)` and
+`status.FromError(err)`'s `Code()` return) and it carries a status (`hasGRPCStatus`: `*status.Error`
+has `GRPCStatus() *Status`, `internal/status/status.go:216`, returning `e.s`, the status `New(c, msg)`
+built with code `c`). Until then nothing was said of the code. -/
 abbrev status.Error.spec : Prop :=
   ∀ (c : w32) (msg : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
@@ -48,7 +53,8 @@ abbrev status.Error.spec : Prop :=
   {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗ descIs err msg ∗
       ⌜∀ ii, err = GoInterface.ok ii →
         ii.ty = go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty⌝ ∗
-      ⌜∀ ii, err = GoInterface.ok ii → ∃ l : Loc, ii.v = #l⌝ }}
+      ⌜∀ ii, err = GoInterface.ok ii → ∃ l : Loc, ii.v = #l⌝ ∗
+      statusCodeIs err c ∗ ⌜hasGRPCStatus err⌝ }}
 
 end spec
 

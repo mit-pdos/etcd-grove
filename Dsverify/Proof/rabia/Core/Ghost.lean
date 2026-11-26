@@ -211,7 +211,7 @@ def savedQ (γq : GName) (Q : OpQ GF) : IProp GF :=
       Q (stateOfCmds x.1) (stateOfCmds x.2.1) x.2.2)
 
 /-- The update of client operation `i` with commit postcondition `Q`: remote's one-shot update
-(`remote.lin`, over the key-value state `kvState`, at the mask `cliE` = `⊤ \ Eop`), in the
+(`remote.linF`, which `remote.lin_linF` gives from `remote.lin`, over the key-value state `kvState`, at the mask `cliE` = `⊤ \ Eop`), in the
 relational form the lab's atomic update at `clientN` had. -/
 def opAU (γ : RabiaNames) (i : KvInput GoString GoString) (Q : OpQ GF) : IProp GF :=
   iprop(|={cliE, ∅}=> ∃ σ, kvState γ σ ∗

@@ -35,8 +35,9 @@ passes on random deployments, rejects malformed ones, and the real path runs.
 - *start states* (deployment facts): `ServerStart` (the member's files as on disk, `FsInit`, its data
   directory and WAL area empty) and `ClientStart` (`FsInit`). The rest of the start (fresh processes, no
   listener, no connection) is `Robust`'s own (`extsInitLocal`/`extsInitGlobal`);
-- *bootstrap's results*, `BootFacts` (pure): the peers, contexts and bootstrap log the members compute;
-  to be retired by `bootstrap`'s spec, with them Lean functions of the deployment;
+- *bootstrap's log*, `BootFacts d boot` (pure): `boot` is the node API's bootstrap log of the peers and
+  contexts Go computes from the deployment (`distPs d`, `distCtxs d`: `bootGo`'s values at its initial
+  cluster and token, Lean functions of the deployment), with `BootCore`'s facts of it;
 - *environment and workload*, `EtcdEnv`: `authRecordsFit`, `backendUnderQuota`, `grpcRepliesFit`,
   `diskOk`, `leasePeersOk`, conditional `leasesNoExpiry`; its `peerRequests` field is `True`, a
   PLACEHOLDER until etcd's peer clients are over the net extension (phase 7 S5);
@@ -104,8 +105,8 @@ def etcd_robust.spec : Prop :=
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     -- the deployment (checked by the programs, not a premise)
     (d : Deployment)
-    -- bootstrap's results; the environment and workload premises not yet discharged
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
+    -- bootstrap's log at Go's peers and contexts; the environment and workload premises not yet discharged
+    (boot : List LogEntry) (Hbf : BootFacts d boot)
     (Henv : EtcdEnv d)
     -- the machines' start states: members, orchestrators, client machines
     (σs σc σn : List state) (g : GlobalState)
@@ -131,7 +132,7 @@ def etcd_robust_nocrash.spec : Prop :=
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment)
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
+    (boot : List LogEntry) (Hbf : BootFacts d boot)
     (Henv : EtcdEnv d)
     (σs σc σn : List state) (g : GlobalState)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)

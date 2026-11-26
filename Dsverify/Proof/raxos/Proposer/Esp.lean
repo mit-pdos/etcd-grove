@@ -100,6 +100,7 @@ theorem wp_ESP (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
       iexists ml, dq, m
       isplitr
       · ipureintro; rfl
+      iPkgInit
       iframe Hm
       iintro Hm
       isplit
@@ -129,6 +130,7 @@ theorem wp_ESP (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
     iexists «$r0_ptr»
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hz
     unfold decInto
     isplit
@@ -209,6 +211,7 @@ theorem wp_FetchBatches (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceO
       iexists ml, dq, ids
       isplitr
       · ipureintro; rfl
+      iPkgInit
       iframe Hm
       iintro Hm
       isplit
@@ -233,6 +236,7 @@ theorem wp_FetchBatches (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceO
     iexists «$r0_ptr»
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hz
     unfold decInto
     isplit
@@ -306,6 +310,7 @@ theorem wp_InformDecision (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfac
       iexists ml, dq, ds
       isplitr
       · ipureintro; rfl
+      iPkgInit
       iframe Hm
       iintro Hm
       isplit
@@ -327,6 +332,7 @@ theorem wp_InformDecision (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfac
     iexists «$r0_ptr»
     isplitr
     · ipureintro; rfl
+    iPkgInit
     iframe Hz
     unfold decInto
     isplit

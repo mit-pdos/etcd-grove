@@ -29,6 +29,8 @@ variable [package_sem' : Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem wp_main
+    (wp_RandomInt : wire.RandomInt.spec (GF := GF) (hG := hG))
+    (wp_RandomBytes : wire.RandomBytes.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
@@ -46,7 +48,7 @@ theorem wp_main
   · iPkgInit
   icases wire.ed_init $$ Hwi with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_SendJunk wp_Dial wp_Write wp_Close γm ed $$ []
+  wp_apply wp_SendJunk wp_RandomInt wp_RandomBytes wp_Dial wp_Write wp_Close γm ed $$ []
   · iframe Hinvs Hplan Hed
   (try wp_auto)
   iapply HΦ

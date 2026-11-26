@@ -1252,6 +1252,56 @@ axioms hold.
 - `putget`'s `S2Holds` generalization from the D9 commit was not taken (the putget files are the putget
   leads'); the skeleton does not need it yet.
 
+### 11.3 M1's assembly (P9, 2026-11-25, branch `etcd-safe-p9`; `notes/etcd-dist-p9.md`)
+
+**Blocked at the instance's spec**: `remote`'s `PendDec`/`Run.spec` cannot describe txnlin's model (its
+`Gen` is not a function of the model input, `decIn` is partial, `decOut` reads an output by its input's
+kind, `outOf` is not injective); a generalization of `remote`'s store (wire input vs model input, a
+state guard, `PendDec` "at a configuration") is proposed to the lead (`notes/etcd-dist-p9.md`, ledger
+2026-11-25). The assembly below assumes it.
+
+`etcd_kv_safe_nocrash`: `etcd_safe_nocrash`'s statement at deployments with k members and one `kv`
+workload (an orchestrator machine `clientProg d 0` running `kvremote.Orch`, `Clients` client machines
+`nodeProg d c` running `kvremote.Node`), under `putget_safe`'s interim S2/S5 axioms. Steps, each its own
+module (linking where it uses `wp_*`):
+
+1. **The kv store** (`dist/kvremote/Store.lean`, defs): `kvR γk : RBase GF MS MI VIn Output` with
+   `sysState st := ∃ σ, etcdKV γk σ ∗ ⌜GoodKV σ ∧ absSt σ = st ∧ kvRevFits σ.rev⌝` (timeless), `Eop` the
+   KV invariants' mask (`callUpd`'s), `B := TSo`, `good st := st.rev < 2 ^ 63`; `PendDec (kvR γk)
+   linkvtxnS` (pure, from `decOut_outOf`, `pSeq_ok`, `pSeq_errW_pending`, `pSeq_errR`); `hinj`. (Done 2026-11-25, with `O := VOut`, outputs that fit a slice, and `good` bounding the
+   state's values too: `notes/etcd-dist-p9.md`, fourth session.)
+2. **The codec** (`dist/enc/*` specs and proofs; `dist/kvremote/{EncInput,DecInput,EncOutput,DecOutput,
+   Codec}.lean`): `codecOk (kvR γk) (Codec())`.
+3. **The client machine** (`dist/kvremote/Node.lean`): `opMaybe (kvR γk) a tok op` for `Node`'s `op`
+   (`txnlin.Call.spec`, `wp_Call`; `tok cli := isNewClient cl … ∗ clientWriteOnce … ∗ kvRegsAt`s of the
+   members' published views, D7 §4), then `ServeClient.spec`; `Node`'s WP: never returns.
+4. **The orchestrator** (`dist/kvremote/Orch.lean`): `Run.spec` at `kvR γk`, `linkvtxnS`, `txnlin.Model`'s
+   `isModel` (`Model.wp_proof`), `Gen.spec`; `Orch` returns a verdict that is not `Illegal`, so `client.RunKV`
+   (`examples/etcd/dist/client/kv.go`), which panics only on `Illegal`, does not panic.
+5. **The start** (`dist/kvremote/Start.lean`, global ghost state): from D7's `clusterAllocN`/
+   `clusterFacts` (the cluster's `etcdKV γk` at the boot state), allocate `pendCtx (kvR γk) linkvtxnS γ`
+   with `pendLib` at `pInit` (the boot state is empty: `absSt σ₀ = mInit`), `mapCtx_alloc` with budget
+   `ops * readTries` per client address, `remoteAddr (kvR γk) a_c` for each client machine (remote's
+   `remote_start`); hand `pendLib` and the units to the orchestrator's share, `remoteAddr` and the
+   members' views to each client machine's.
+   **The deployment's extensions** (P9, 2026-11-25): every machine, the client machines included, runs over
+   `etcdNetExts := ⟨[idIssueExt, Fs.fsExt, Net.netExt]⟩` (`etcdstart/NetExts.lean`; `etcdNetExts_hasIdIssue`).
+   The client machines need the request-ID extension: `Call_dist.spec` (the lead's statement of `Call` across
+   machines, which `kvremote.Node`'s proof applies) is stated under `[HasExt idIssueExt]`, as are N2's
+   `KV_*_dist`/`Txn_Commit_dist`. The bundle provides it; a bundle for client machines without
+   `idIssueExt` would not.
+   Done so far (`dist/kvremote/Start.lean`, defs): `kv_start` (the kv part: `mapCtx_alloc`, `pend_alloc`,
+   `addrs_set_proto`) and `kv_start_deployment` (one kv workload; the members' part a hypothesis
+   `member_boot_dist`, which N5 proves). Not done: step 6's use (the boot WPs, the shares
+   through N7-kv's `orchShare`/`nodeShare`).
+6. **The theorem** (`dist/kvremote/TopLevelRobustness.lean`, linking): `etcd_safe_nocrash_of_boot`'s
+   shape with `EtcdBootNC` discharged by putgetK's k-member boot (`member_bootK`; `dist-putgetk`) for the
+   members, step 5 for the start, steps 3-4 for the client and orchestrator machines; `EtcdBootNCBad`
+   as today.
+
+Sizes: 1 ~300 lines, 2 ~700 (enc ~300, the codec ~400), 3 ~250, 4 ~200, 5 ~300, 6 ~250; the `remote`
+generalization ~150 more.
+
 ## 12. The crash plan: D4 (the bundle under crash) and D6 (server restart)
 
 Specs first, then invariants, then proofs in parallel.
@@ -2372,6 +2422,472 @@ baseline change is exactly N2's: `etc/tcb-baseline.txt` and `putget-dist.txt` ga
 and `etcd_dist.KV_Get_dist.wp_proof` and lose `etcd_dist.Client_Put_dist.wp_proof` and
 `etcd_dist.Client_Get_dist.wp_proof`. `KV_Delete_dist`, `KV_Compact_dist` and `Txn_Commit_dist` are declared, but no
 root reaches them yet (M1's Node will). No new axiom beyond N2's reviewed ones, no `sorry`, no new top-level premise.
+## 19. N5: the member machine's boot, `server.MainDeployment(d, i)` (2026-11-25, branch `etcd-safe-n5/2026-11-25`)
+
+From `etcd-safe-bootax/2026-11-25` @ `c14f88dec2`. First stopped on the interim peer transport's index (below);
+the coordinator decided the fix (2026-11-25): **index by the cluster**, done (see "Done" at the end of this section).
+
+**The blocker: `httpAddrAt` is indexed by the member's whole `SrvRaft`, which holds its own storage registry.**
+`httpAddrAt γ id a := addrProto a (httpPeerSvc γ id).1 (httpPeerSvc γ id).2` (`S5Interim.lean`), `httpPeerSvc`
+opaque, indexed by the whole `SrvRaft γ` since the 2026-11-24 re-review's hardening (§17.3: "indexed by the whole
+`SrvRaft` `γ`, not only `γ.cl`"). But the `γ` a member's `NewServer` runs at is per member: `memberBoot_of_slice`
+gives `memberBoot { c.γ with reg := c.reg id }` (`etcdstart/AllocN.lean`), because `NewServer` owns its storage
+registry's authority (`ghostMapAuth γ.reg 1 ∅`, `memberSlice`; `MemStorReg := ⟨γ.reg⟩`), so two members' `γ`s
+differ in `reg`. The three texts that read `httpAddrAt` all take it at the reading member's `γ`:
+- `NewServer_dist`'s `#Hpeers`: `httpAddrAt γ_A pid a` for every other peer `pid` of member `A`;
+- `bootstrap.wp_proof_dist`'s `bootRTOk γ id dir` (through `bootPremiseDist`, whose `γ` carries
+  `MemStorReg := ⟨γ.reg⟩`): the same, at `γ_A`;
+- `PeerServe_dist`: `httpAddrAt γ id pa` at a `γ` with `γn.N = srvNet γ`.
+At three members `A`, `B`, `C`, `B`'s address `b` must then carry `httpPeerSvc γ_A B` (for `A`'s `NewServer`) and
+`httpPeerSvc γ_C B` (for `C`'s); an address is set once (`addr_set_proto` spends `addrUnset b`), and two
+applications of the opaque `httpPeerSvc` to different records are not provably equal, so no start can give both.
+(One member: `Hpeers` and `bootRTOk` are vacuous but `noProxyEnv`; two: only if `srvNet` does not read `reg`.)
+`etcdClusterStart`'s `memberStartShare` is still over `S5Draft`'s unindexed `httpAddrAt`, so no share was ever
+built at the indexed one, which is why this did not surface.
+
+**Proposed fix** (a change to the interim axioms' trusted vocabulary, for the owner): index the peer protocols by the
+cluster, not the member's whole record: `httpAddrAt γ id a := addrProto a (httpPeerSvc γ.cl id).1 (…).2`, with
+`httpPeerSvc` taking the `Cluster` (the re-reviewed form before the hardening; `γ.cl` is allocated once per cluster,
+so the review's counterexample, a second ghost cluster with the same ids, stays excluded). The axioms' statements
+(`NewServer_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist`) are unchanged as text; `httpAddrAt γ_A pid a` and
+`httpAddrAt γ_C pid a` become the same proposition. Alternative: keep the record but erase `reg`
+(`httpPeerSvc { γ with reg := default } id`). Either wants the axiom skill's re-review of `NewServer_dist`.
+
+**What N5 needs besides, found on the way (none blocks):**
+- The Go refactor is still needed: `Serve_dist` is about `etcdstart.Serve`, and `MainLogger` inlines its body
+  (`v3rpc.Server`, `net.Listen`, `go gs.Serve`). `if etcdstart.Serve(s, c.Client) != nil { return }` after
+  `<-s.ReadyNotify()` keeps the order (serving after ready); the package doc's sentence on not using it goes.
+- `ReadyNotify` is called before serving, so it needs a spec: `return s.readych`, whose channel `srvReadyCh` (in
+  `srvReadyCloser`, `InvMonitors.lean`) is an `ownBroadcastChan rdc γ True .Pending` that `Start` hands to
+  `publishV3`. Before `Start`, split off the read-only field and the broadcast idiom's persistent receiver part;
+  the receive then blocks until `publishV3` closes it (post `True`).
+- `wp_Start_built` drops `memberBuilt`'s `memberPeerServeRes` (`-`); `MainLogger` serves the peer handler after
+  `Start`, so it needs `memberBuilt … false ⊢ memberBuilt … true ∗ (httpProcSlots × srvServeRes γn τ) ∗
+  □ srvNetMember γn s id τ` before `Start`. `NewServer_dist`'s post must also be turned into `memberBuilt` (the
+  single-process `etcdstart.newServer` proof does this for `NewServer.spec`; `putgetk` never did, its
+  `StartMember_dist` being a named hypothesis).
+- Bounds: `etcdSteps = 2 ^ 48` fits (`N = 2 ^ 48 - 1`: `N + 7 + bootWB ≤ backend.wbInit = 2 ^ 62 - 1`).
+
+**Done (2026-11-25, same branch).**
+- **The cluster index** (`149d218c5d`): `httpPeerSvc (cl : Cluster) (id : w64)`, `httpAddrAt γ id a := addrProto a
+  (httpPeerSvc γ.cl id).1 (…).2` (`S5Interim.lean`, the two declarations and their docstrings, and the header's
+  mention); the axioms' statements word for word unchanged. Fresh `axiom`-skill re-review of `NewServer_dist`,
+  `PeerServe_dist`, `NewPeerHandler_dist` and `bootstrap.wp_proof_dist`'s `bootRTOk` together:
+  **all survive** (`notes/axiom-review/s5-cluster-index.md`; Go evidence: strangers answered by a real three-member
+  cluster's `/members` boot or get "already bootstrapped", no panic); its docstring changes D1-D6 applied.
+- **Go program changes** (for the no-crash packet; `go test ./etcd/dist/ ./etcd/dist/server/` pass, `TestDist`
+  needs root, not run):
+  - `MainLogger` serves clients with `etcdstart.Serve(s, c.Client)` after `<-s.ReadyNotify()` (its inline body,
+    `Serve_dist`'s subject); the package doc's sentence on not using it gone.
+  - `deployment.WellFormed` bounds member names by `MaxNameLen = 200` (Lean `typed.maxNameLen`; addresses and the
+    token stay at `MaxLen = 255`): the member's data directory `<name>.etcd` and its WAL area's paths must fit in
+    a path component, and the proof's bound (`dirFits_memberDataDir`, `wp_walAreas`) is 200. **Names of 201-255
+    bytes are now refused by the check, so those machines return at once.** `TestWellFormed`: 200 accepted, 201
+    refused. `Deployment.WellFormed.members` gives the members' facts.
+- **Translated**: `EtcdServer.ReadyNotify` (`etcdserver.toml`).
+- **Specs** (`Spec/.../dist/server/`, namespace `etcd_dist.server`): `MainDeployment.spec`,
+  `MainDeploymentLogger.spec` (from `deploymentRepr`, the machine's fresh WAL area and `⌜d.WellFormed⌝ -∗` member
+  `i`'s share), `MainLogger.spec` (at `configRepr` and the share), `ConfigOf.spec`, `serverConfig.spec`
+  (`memberCfg`), `inCluster.spec`, `proxyEnvSet.spec` (`false` gives `noProxyEnv`), `holdForever.spec`; and
+  `EtcdServer.ReadyNotify.spec` (from `srvReadyRecv`, `ReadyRecv.lean`), `net.Listen.specProto` (a listener at an
+  `addrProto` address). Vocabulary: `dist/server/MemberDefs.lean` (`memberShareD`: putgetK's `memberShareK` at the
+  deployment's members with `peerAddrFactsAt`, the indexed peer facts; `BootGoD`: putgetK's `BootGoK` plus the
+  peers' permutation, which `BootFacts` lacks). Scope premise of the specs: `d.cfg.auth = false` (`Serve_dist`
+  serves a member with auth off).
+- **For `EtcdBootNC`'s discharge** (not N5's): `BootGoD d ps ctxs` is a hypothesis of the member boot that
+  `EtcdBootNC`'s `BootPremises` does not give (`BootFacts` has neither the permutation nor Go's values at the
+  members' URLs: putgetK takes `BootGoK` as a top-level premise); auth deployments need `Serve_dist`'s auth-on form;
+  the start must produce `memberShareD` (`etcdClusterStart` at `peerAddrFactsAt`).
+
+**On `etcd-safe-n5/2026-11-25` (head `d2c8f9a7cd`, built on the VM):** every N5 proof, and `member_boot_dist`
+(`dist/server/AdequacyMember.lean`): `Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c γE,
+memberShareD c d ps ctxs boot i γE Pub)` at a well-formed `d`, hypotheses `Hauth : d.cfg.auth = false` and
+`BootGoD d ps ctxs` beyond `EtcdBootNC`'s premises; every proof and interim axiom plugged in. Leaf proofs and
+`MainLogger` by helpers (A, B). bounds: `MemberSplit`'s hand-off of the HTTP stock allowed (`etc/bounds-allow.txt`).
+No `Link` entry: the linking is the manual `AdequacyMember` module, as putgetK's.
+
+**Port (2026-11-25), branch `etcd-safe-nc-n5/2026-11-25`** from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca` (the
+no-crash line with N2): N5's commits cherry-picked (`-x`); the generated files regenerated at this line's pins (the
+server translation, `dist/server`'s Init/PkgTable, SpecPlan's PkgInit; `ReadyNotify`'s translation at the etcd pin
+`df6af0c36`); `bounds-allow` without the crash line's `NewServerRAt` entry. Done on this branch (built on the VM, 11272 jobs: `server.AdequacyMember`, `dist.TopLevelRobustness` (Spec and
+Proof), `BootBad`, `BootFactsSat`, `deployment.Link`, `putgetk.Start`; tier, bounds, premise-witness, gen-init
+checks pass):
+- **Γ** (helper C): `memberShareD c d ps ctxs boot i` without the publication: its client fact is
+  `etcdAddrAt (member i's client) c.view (member i's id)` (N2's `memberStartShare`), `Serve_dist` at `Γ = c.view`
+  with `kvCongr ρ.rd.kv c.view.kv` from `memberBoot_of_slice`; the specs take `BootCore ps ctxs boot`.
+- **`member_boot_dist`** (`dist/server/AdequacyMember.lean`), the name and form M1's start takes:
+  `Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ (∃ c, memberShareD c d (distPs d) (distCtxs d) boot i)`
+  at `Hd : d.WellFormed`, `Hbf : BootFacts d boot`, `EtcdEnv d`, `EtcdVerifyOff`, `GodebugFips140Off`,
+  `d.members[i]? = some m`, `ServerStart m σ`, and **one hypothesis beyond `EtcdBootNC`'s premises:
+  `Hauth : d.cfg.auth = false`** (M1's scope; the full theorem needs `Serve_dist`'s auth-on form, N11).
+
+**Packet items (the no-crash packet), Go program and statement changes of N5:**
+- Go: `MainLogger` calls `etcdstart.Serve(s, c.Client)` after `<-s.ReadyNotify()` (its inline body before).
+- Go: `deployment.WellFormed` bounds member names by `MaxNameLen = 200`: names of 201-255 bytes are now refused,
+  so those machines return at once.
+- Go: `deployment.WellFormed` refuses a member whose computed id is `MaxUint64` or `MaxUint64 − 1` (`RaftIdOk`;
+  raft v3.7's `Config.validate` refuses them, `StartNode` panics). Typed `WellFormed` mirrors it;
+  `TestWellFormed` tests `RaftIdOk` on crafted ids (a refusing deployment needs a SHA-1 preimage).
+- **BootFacts: ps/ctxs pinned to Go's computed values (they were free).** Old text (`etcd_robust_nocrash.spec`,
+  and the same in `etcd_robust.spec`):
+  ```
+      (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : BootFacts d ps ctxs boot)
+  ```
+  with `structure BootFacts (d) (ps) (ctxs) (boot) : Prop extends BootCore ps ctxs boot where perm : ps.Perm d.ids`.
+  New text:
+  ```
+      (boot : List LogEntry) (Hbf : BootFacts d boot)
+  ```
+  with (`TopLevelDefs.lean`) `abbrev BootFacts (d) (boot) : Prop := BootCore (distPs d) (distCtxs d) boot`,
+  `distPs d := bootGo.ps (distURLs d) d.token`, `distCtxs d := bootGo.ctxs (distURLs d) d.token`, `distURLs d` the
+  deployment's initial cluster (each name to its one peer URL `http://peer`). `EtcdBootNC`'s `BootPremises` is
+  `∃ boot, BootFacts d boot ∧ …`. Compiled witness of the remaining `BootFacts`: `BootFacts.sat : ∃ d boot,
+  d.WellFormed ∧ BootFacts d boot` (`BootFactsSat.lean`, a one-member deployment); the dist statements stay `* draft`
+  in the premise-witness baseline (their other premises have no witness yet).
+
+
+## 21. M1 assembly (2026-11-25, branch `etcd-safe-m1-top/2026-11-25`; the etcd_safe lead's helper)
+
+**Needs `KvDefs` (N7-kv) to build.** `KvOnly` is in N7-kv's `Proof/.../dist/client/KvDefs.lean`, which is not on this
+base. The branch builds once it is rebased onto etcd-grove-03's `etcd-safe-m1`, which carries N7-kv.
+
+**Scope.** This branch has M1's statement, its skeleton, the premise witness and the collection root. It
+starts from `etcd-safe-nc-n2/2026-11-25` @ `b35f8f67ca`. etcd-grove-03 does §11.3 steps 1-5 on their
+branch `etcd-safe-m1`: the merge of `etcd-safe-p9-nc`, the port of `kvremote/Start.lean` to Γ,
+`wp_Node`'s hypotheses, and N7-kv's replay with its instance lemmas. This branch goes onto their head when
+they post it. It touches none of their files.
+
+**Done (local commit `bf30d11ac5`).**
+- **The statement**: `Spec/.../dist/kvremote/TopLevelRobustness.lean`, `etcd_kv_safe_nocrash.spec`. Its
+  binders are `etcd_robust_nocrash.spec`'s, in the same order and over the same `TopLevelDefs`
+  definitions, plus `Hscope : KvOnly d ∧ d.cfg.auth = false` after `d`. `KvOnly` is N7-kv's
+  (`client/KvDefs.lean`: `∀ w ∈ d.workloads, w.kind = W64 0`). The statement is in `kvremote/`, not beside
+  `etcd_robust_nocrash.spec`, for two reasons:
+  - Spec and Proof stay paired by path (CLAUDE.md, "Layout"), and the premise-witness script pairs
+    `kvremote/TopLevelWitness.lean` with it;
+  - the shared dist Spec file, which N5's port edits (`BootFacts` pinned), is left alone.
+- **Inheriting N5's change.** `etcd_kv_safe_nocrash_of_full : etcd_robust_nocrash.spec →
+  etcd_kv_safe_nocrash.spec` (Proof) applies the full statement to M1's arguments. Once N5 changes the
+  full statement's `BootFacts` binders, this theorem stops compiling until M1's binders get the same edit
+  (`(ps) (ctxs)` dropped, `BootFacts d boot`). So M1 cannot silently diverge. A statement written as
+  M1's "body by reference" would need the full statement refactored into a per-deployment definition,
+  which is a change to the shared trusted file. Not done.
+- **The skeleton** (`Proof/.../dist/kvremote/TopLevelRobustness.lean`, linking):
+  - `EtcdKvBootNC` is `EtcdBootNC` with the scope as one more hypothesis.
+  - `etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.spec` uses
+    `etcd_safe_nocrash_of_boot`'s bridge. The malformed case comes from `etcdBootNCBad_holds`.
+  - It reuses `BootPremises` by name, so N5's change to it carries over.
+  - No axiom, no `sorry`.
+- **The witness**: `Proof/.../dist/PremiseWitness.lean` holds per-premise lemmas, shared with P12 (#50).
+  - `witnessMember` and `witnessToken` are `putget_safe`'s witness member `putgetd`.
+  - `witnessMember_id` proves `memberId … = pgId`, evaluated by the kernel.
+  - `bootFacts_witness d hm ht` gives `BootFacts` at `[pgId] [pgCtx] pgBoot` for any deployment of that
+    member alone.
+  - `serverStart_witness` and `clientStart_witness` give the start states (`witnessMemberσ`,
+    `witnessClientσ`).
+  - `kvremote/TopLevelWitness.lean` proves `etcd_kv_safe_nocrash.premisesSat`. Its deployment
+    `kvDeployment` has that member, auth off, and one `kv` workload with one client machine. It leaves
+    out only the opaque `Henv`, `HEnv` and `Hfips` (three baseline lines).
+  - `bootFacts_witness` is at the current `BootFacts`. After N5's pinning it must show `BootCore` at
+    `distPs`/`distCtxs` (`bootGo.ps`/`bootGo.ctxs`; `putget`'s `pgBootGo` computes those for this member).
+- **Collection**: `etc/tcb-collections/etcd-dist.txt` gains the root `kvremote/TopLevelRobustness`.
+
+**Checked** (VM, with N7-kv's `KvDefs.lean` copied in untracked, since it is not on this base): the four modules
+(the Spec statement, `dist/PremiseWitness`, `kvremote/TopLevelWitness`, `kvremote/TopLevelRobustness`) built on the
+first try (5092 jobs); `premise-witness --check` (48 statements) and `tier-check --check` pass. `#print axioms`:
+- `etcd_kv_safe_nocrash_of_full` and `etcd_kv_safe_nocrash.premisesSat`: only `propext`, `Classical.choice` and
+  `Quot.sound`;
+- `etcd_kv_safe_nocrash_of_boot`: 36 of this repository's axioms, all through `etcdBootNCBad_holds`'s package
+  initializers. All are in `etc/tcb-baseline.txt` except etcdhttp's generated `initFuncsOk`/`opaqueInitsOk`,
+  which are declared on this line but reached by no root before this one (§20). They enter
+  `etc/tcb-baseline.txt` and `etcd-dist.txt` at the `--check --update` after the full build.
+
+**Left: `EtcdKvBootNC`'s discharge** (once etcd-grove-03's head is posted).
+- The start:
+  - `netProto_alloc`;
+  - the members' part of the cluster's start (P9's `member_boot_dist.law` in `Start.lean`, a hypothesis
+    there; `etcdClusterStart` at `peerAddrFactsAt`, producing N5's `memberShareD`);
+  - `kv_start_deployment` (its `hb` from `kvOnly_bounds`/`BoundsOk`; `d.workloads = [w]` from `KvOnly` and
+    `Compatible`'s distinct kinds; the case with no workload separately).
+- The boot WPs:
+  - members: N5's `member_boot_dist`;
+  - orchestrators: N7-kv's `wp_OrchestratorKv` at `kvOrchPre`, with the machine's initialization as in
+    `BootBad.clientBadWp`;
+  - client machines: `wp_NodeDeploymentKv` at `kvNodePre`, `levelTok 0` from `threadTok_level0` as in
+    putgetK's `client_bootK`.
+- **A shape issue for the shares.** `DistBootWpSLT`'s share `P` is stated at `[GooseGlobalGS]` only, before
+  the machine's `HeapGS` exists. But `kvOrchPre`, `kvNodePre` and `orchShare`/`nodeShare` are defined under
+  `[hG : HeapGS]`, even though `kvOrchPre` reads only `hG.goose_globalGS`. Two fixes:
+  - (a) state them at `[Gg : GooseGlobalGS]`, a change to etcd-grove-03's files, which N5's `memberShareD`
+    already follows;
+  - (b) give the shares here as their global parts, and rebuild `kvOrchPre`/`kvNodePre` inside the boot
+    lemma at the machine's `hG` (`levelTok 0` is machine-local anyway).
+
+### 21.1 Checkpoint (2026-11-25 ~23:30Z, head `ecbdc08ef2` + this note)
+
+**Merged into this branch:** `etcd-safe-nc-n5/2026-11-25` @ `69f9417d8b` (N5: `member_boot_dist`, `BootFacts`
+pinned), `etcd-safe-p12/2026-11-25` @ `758571cd38` (P12's per-premise lemmas, already reconciled with this
+branch's `PremiseWitness` names) and etcd-grove-03's `etcd-safe-m1` @ `21db702041` (P9 on the line, `Start.lean`
+ported to Γ). One conflict, in the notes: both appended sections are kept.
+
+**Done since §21:**
+- M1's statement now has the pinned binders, `(boot) (Hbf : BootFacts d boot)`; `_of_full` and `_of_boot`
+  follow them.
+- `bootFacts_witness d hm ht : BootFacts d pgBoot` is now proved from N5's `satD_ps`/`satD_ctxs`. This works
+  because `distPs`/`distCtxs` read only the members and the token, so there is one computation of Go's peers and
+  contexts. `witnessMember_id` is dropped, since it duplicated `satD_ids`. P12's `witnessDeployment_boot`, its
+  `etcd_robust(_nocrash).premisesSat` and M1's witness are updated to the new arity.
+- `kvMemberBoot`: EtcdKvBootNC's member part, N5's `member_boot_dist` at `σs[i]`. Its share is
+  `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`.
+- The baseline header's broken `etc/premise-py` is restored to `etc/premise-witness.py`.
+
+**VM build** (`BootFactsSat`, `PremiseWitness`, `dist/TopLevelWitness`, `server/AdequacyMember`,
+`kvremote/Start`, `kvremote/Link`):
+- built: everything but `kvremote/Link`, including the pinned witnesses, `AdequacyMember` and `Start`;
+- **failed: etcd-grove-03's `kvremote/CallDist.lean`** at `21db702041`. Six errors "typeclass instance
+  problem is stuck: `go_etcd_io.etcd.client.v3.Assumptions`" (lines 69, 175, 259, 322, 391, 785), from their
+  port. That is their file, so it is left to them.
+- `kvremote/TopLevelRobustness` and `kvremote/TopLevelWitness` wait for `KvDefs` (`etcd-safe-n7kv-nc2`).
+
+**Next, in order:**
+1. When `etcd-safe-n7kv-nc2` and a fixed `etcd-safe-m1` are pushed: merge both, then build the kvremote
+   M1 modules.
+2. **The members' start** (the alignment of `Start.lean`'s `member_boot_dist.law`, ours to do). Instantiate
+   `MS Γ := ∃ c, ⌜c.view = Γ⌝ ∗ [∗list] i ↦ _ ∈ d.members, memberShareD c d (distPs d) (distCtxs d) boot i`,
+   with `boot` a new parameter of the law. Then prove the law, which nobody has proved yet. It is a variant of
+   `etcdClusterStart` at N5's indexed peer facts:
+   - `clusterAllocN` first, then `S5Interim.http_addr_set` at `c.γ` for every peer address, then
+     `members_svc_start`'s client part at `c.view`;
+   - `clusterMembersOf d = cmsD d`, by `List.zip`/`map`;
+   - `(kvR c.γk).sysState init` from the lease-mode-`none` `etcdKV c.γk (kvModelSt c.γk (bootEntries …))`.
+     This needs `GoodKV`, `absSt = init` and `kvGood` of the boot state (`InvBuild.kvModelSt_boot`).
+   Either a new defs module beside `Start.lean`, or `Start.lean` itself (allowed for the alignment).
+3. **Shares at `GooseGlobalGS`** (option (b), with etcd-grove-03's files untouched). Use putget's pattern,
+   `∀ L, X (hG := heapAt G L lctx)` (`putget/Defs.lean`'s `clientShare`). The start's updates (`kv_start`,
+   `kv_start_deployment`) are stated under `[hG : HeapGS]`, so running them at the start needs some local
+   state `L₀`. A probe is checking whether `GooseLocalGS GF` is inhabited. If it is not, (b) does not work
+   and etcd-grove-03 must restate `kvOrchPre`/`kvNodePre`/`kv_start` at `[Gg : GooseGlobalGS]` (option (a)).
+4. The orchestrators' and client machines' boot WPs: `BootBad.clientBadWp`'s initialization, then
+   `wp_OrchestratorKv kvOrchPre` / `wp_NodeDeploymentKv kvNodePre`. `levelTok 0` comes from
+   `threadTok_level0`, and `Orch.spec → Orch.specWith` is a timeout specialization.
+5. `EtcdKvBootNC` from steps 2-4 (`netProto_alloc`, the empty-workload case separately), then
+   `etcd_kv_safe_nocrash := etcd_kv_safe_nocrash_of_boot …`. Then the full VM build, the gates and
+   `tcb-report --check --update` (etcdhttp's two init axioms enter the baselines).
+
+**Probe result (step 3).** `GooseLocalGS GF` is a class with six fields:
+- the extensions' `Exts.LocalGS`;
+- `goose_go_local_context`;
+- `NaHeapGS Loc val GF`;
+- `GoStateGS GF`;
+- `ThreadGS GF`;
+- `CrashGS GF`.
+
+These carry the functors' inclusions, not only names. So it has no `default`, and `Nonempty` is not
+automatic. An `L₀` for `etcdDistGF` could still be put together by hand: `etcdDistGF_gooseGpreS` supplies the
+inclusions, and any names will do. But every `kvOrchPre`/`kvR` reading only `hG.goose_globalGS` would then
+have to be checked defeq across `L`s. Option (a) avoids both: etcd-grove-03 restates `kvOrchPre`, `kvNodePre`,
+`kvR`, `kv_start` and `kv_start_deployment` at `[Gg : GooseGlobalGS]`, as N5's `memberShareD` is.
+
+### 21.2 Session 2 (2026-11-26, from `5a3055d5dc`): (A) to (D), `etcd_kv_safe_nocrash` proved
+
+**Merged:** etcd-grove-03's `etcd-safe-m1` @ `9e1045a209`, which brings the CallDist fix, the shares at
+`[Gg : GooseGlobalGS]` (option (a): `kvR`, `kvOrchPre` over `linkvtxnSG`, `kvNodePre` global plus a local
+`kvNodePreL`, `Start.lean`) and `[GoLocalContext]` at those sections. Also N7-kv's replays `etcd-safe-n7kv-nc`
+@ `6ffd1b9527` and `etcd-safe-n7kv-nc2` @ `5f2923d14d`. Their Proof and Spec files are identical; the one
+conflict, in the notes file `etcd-dist-n7kv.md`, was resolved by keeping theirs.
+
+**A statement-adjacent file changed: `dist/TopLevelDefs.lean`'s `etcdDistGF`.** It gains slot 8, iris-lean's
+non-atomic invariants (`NaInvF`), and the instance `etcdDistGF_naInvG`, because P9's `kvremote.wp_Orch` takes
+`[NaInvG GF]` (porcupine's results). This is not a statement change: no Spec statement mentions `etcdDistGF`
+(checked by grep), and since 2026-11-25 it is the proofs' ghost state only.
+
+**Written (step numbers as in §21.1):**
+- **(A), step 2: the members' start.**
+  - `server/ClusterStartD.lean`, `clusterStartD`:
+    1. `clusterAllocN` at `distPs`/`distCtxs`, lease mode `none`, with the compactor slot from the deployment
+       (`compactorCfg_of_wf`);
+    2. every peer address set to `httpAddrAt c.γ` (`peersAt_start`);
+    3. every client address set to `etcdAddrAt … c.view` (`clientsAt_start`);
+    4. each member's `memberShareD` (`memberShares_of`).
+
+    It returns `c.γk.log0 = [[], []]`, the client's `etcdKV` at the boot state and `clientSvcFacts (cmsD d) c.view`.
+    It needs only `receiptBound ≤ 2 ^ 60`.
+  - `kvremote/MembersStart.lean`: the law proved, `member_boot_dist_law : member_boot_dist.law d
+    (membersShareKv d boot)`. `kvSys_boot` turns the boot `etcdKV` into `(kvR γk).sysState (kvR γk).B.init`;
+    `clusterMembersOf_eq` shows `clusterMembersOf d = cmsD d`.
+- **(C), step 4: the client-side boots,** `kvremote/AdequacyClient.lean`.
+  - `kvOrchBoot`: the orchestrator boots from `kvOrchPre (ρ := ρ) ns w.ops`, through `wp_OrchestratorKv` with
+    `Orch.specWith` from `kvremote.wp_Orch` (the timeout specialized).
+  - `kvNodeBoot`: a client machine boots from `kvNodePre (ρ := ρ) (W64 c) a (rotateL clients c)`, through
+    `wp_NodeDeploymentKv` at `kvNodePreL`. Its `levelTok 0` comes from `threadTok_level0`, and its thread bound
+    from `hT`.
+- **(D), step 5: the discharge,** in the Proof file `kvremote/TopLevelRobustness.lean`.
+  - `kvOnly_shape`: no workload, or one `kv` workload together with `kv_start`'s bounds.
+  - `kvShares`: the machines' shares.
+  - `etcdKvBootNC_holds : EtcdKvBootNC`.
+  - `theorem etcd_kv_safe_nocrash : etcd_kv_safe_nocrash.spec`.
+
+**Also merged:** etcd-grove-03's `etcd-safe-m1` @ `11242953f7` and `etcd-safe-m1-fin` @ `e19748b443`, which carry
+dsv-vr's `Kit`/`OrchProofDefs` for P9's `remote` and `KvDefs.kvOnly_bounds` by statement (theirs kept). The
+`WellFormed` conjuncts of `compactorCfg_of_wf` and `kvOnly_shape` are also taken by statement (`grind`), not by
+position. `etc/bounds-allow.txt` gains kvremote's two machine preconditions: `kvOrchPre`'s receipt bound and
+`kvNodePreL`'s thread bound.
+
+**Checkpoint (2026-11-26 ~01:40Z): green.**
+- **Build:** the full VM build passes (`lake build`, 1189 s), as do the gen-link modes and `tier-check`,
+  `premise-witness` and `bounds-check` (`--check`).
+- **Trust base:** `tcb-report --check` passes at the updated `etc/tcb-baseline.txt` (373 axioms, 0 sorries).
+  It gains 9 axioms, which no root reached before M1:
+  - etcdhttp's `initFuncsOk` and `opaqueInitsOk`;
+  - N2's `KV_Delete_dist` and `Txn_Commit_dist`;
+  - N5's `NewServer_dist`, `NewPeerHandler_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist` and
+    `os.Getenv.wp_proofEnv`. These are reached through `member_boot_dist`, whose `AdequacyMember` had no
+    `Link` root.
+- **etcd-dist collection:** passes at its first baseline (0 → 132 axioms).
+- **`#print axioms etcd_kv_safe_nocrash`:** `propext`, `Classical.choice`, `Quot.sound` and the same 132
+  repository axioms.
+- **Not done:** the merge of `lean` and the landing; the lead decides.
+
+### 21.3 `lean` merged for the queue (2026-11-26)
+
+One merge of `lean` @ `4ace26632f` (Perennial pin `8fb3c9fd5`). Conflicts only in tables and notes (gen-init's
+ROOTS/PROGRAMS, the premise-witness, tcb and putget-dist baselines, the axiom-review index, STATUS), both sides
+kept; gen-init and gen-specs-pkginit regenerated at the new pin; no proof needed adapting. Checked: goose `--check`
+(every project), gen-init, gen-specs-pkginit, gen-raft-tla, copy-part, kitgen, every gen-link mode (61, btree's too),
+tier (208), bounds (390), premise-witness (50 statements), iris-premise (16); full VM build green (29404 jobs).
+`tcb-report --check`: 385 axioms, 0 `sorry`, i.e. `lean`'s 376 minus `Client_Put/Get_dist` plus M1's 11. Every
+collection but `etcd-dist` matched unchanged; `etcd-dist` (127 axioms) took `lean`'s gRPC changes:
++`grpclog.initFuncsOk`, +`streamIcMdIs` (for `etcdStreamInterceptor`), −`grpc.opaqueInitsOk`,
+−`grpc.credentials.opaqueInitsOk`, −`grpc.health.{initFuncsOk,opaqueInitsOk}`, −`grpcAddrIsRaw`, −`grpcSrvCfgRaw`.
+
+### 21.4 The queue's gates (2026-11-26)
+
+- **`axiom-tok --check`** (it failed on the queue).
+  - Entries for N2's client axioms `KV_Put/Get/Delete_dist` and `Txn_Commit_dist` (they replace
+    `Client_{Put,Get}_dist`'s stale entries), for `NewPeerHandler_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist`
+    and `NewServer_dist`, each traced from the raw walk (`etc/axiom-tok-allow.txt`'s section headers).
+  - `NewServer_dist`'s walk is capped. The cap is global, `MAXSCEN`, and was not changed. Its entry rests on a trace,
+    `notes/axiom-review/newserver-dist-axiom-tok.md`. An independent triage found it justified with corrections
+    (`newserver-dist-axiom-tok-triage.md`): the source of the 2b token key, the depth-cutoff origin of `3:Dep`, and
+    the textual form of the subset argument. The corrections are applied; no key changed.
+- **`NewServer.specG_dist` lacked `specG`'s `etcdURLsFit` premises.** It had been copied before `specG` took them.
+  The premises are restored, and `MainLogger` discharges them.
+- **The new gate `etc/dist-axiom-diff.py`** (`notes/axiom-review/dist-axiom-diff.md`) checks every copied dist axiom
+  against its source.
+- **Two lean merges:** `78475a1dba` (Perennial `a76168a96`), then `009822ac30` (Perennial `a706aeb9a`).
+  - Generated files were regenerated at each pin, and `goose.py --check` passes for every project at both.
+  - One full VM build at `009822ac30`: green.
+  - `tcb-report --check`: 380 axioms, 0 `sorry`. That is lean's 371 plus M1's 9.
+  - The `etcd-dist` collection lost lean's two retired axioms, `otel.attribute.opaqueInitsOk` and
+    `strings.Contains.wp_proof`.
+
+
+## 28. The remote wire refactor (design, 2026-11-26; branch `etcd-safe-rwire/2026-11-26` off `etcd-safe-m1-top/2026-11-25` @ `1d5fafbae1`)
+
+§24.4 (a), F8's merge-order step 4 (§27). Untrusted: a proof refactor of `Net/{Spec,Proof}/.../examples/lib/remote/`
+(no Go change, no axiom, no `sorry`, no top-level premise). It unblocks `remoteWriters` and `NodeMain`'s writer arm
+(F4 watch, F6 cache).
+
+### 28.1 What is wrong with today's wire
+
+`RWire I O` carries an input `i` as the fixed Go value `iv i` and an output `o` as `ov o`, its bytes as
+`encIn i`/`encOut v`; `wireOk S cd` says `EncIn` (no precondition: it reads no memory) gives `encIn i`, and
+`DecIn`/`DecOut` return exactly the value encoded (`ok → x = iv i`). `writerCodec`'s input is a `[]KV`
+(`EncIn` reads the slice's elements) and its output a `[]PutRec` (`DecOut` returns a fresh slice), so no `RWire`
+describes it.
+
+### 28.2 The generalized contract: persistent value predicates
+
+`RWire GF I O` (now over `GF`):
+- `ivAt x i : IProp GF`, `ovAt v o : IProp GF`, both **persistent** (`ivAt_persistent`, `ovAt_persistent`; instances
+  `RWire.ivAt_pers`/`ovAt_pers`): the Go value `x` describes the input `i` (e.g. `x` is a slice interface whose
+  elements are `↦*□` the model's), `v` the output `o`. Several Go values may describe one model value (a fresh
+  decoded slice and the sender's), and a value describes it only together with memory it reads.
+- `encIn : I → List w8`, `encOut : O → List w8` (**over the model**, no longer over Go values), with the length bounds.
+
+`RSvc GF I O` extends it with the answers that are not outputs, which stay **fixed Go values** (a store's `unk i`;
+none for a report): `unkAns i v : Prop` and their bytes `encUnk v`; and `upd` as before.
+
+`wireOk S cd` (persistent) is six triples:
+- `EncIn`: `{S.ivAt x i} EncIn(x) {b. b ↦* encIn i}`; `DecIn`: `{b ↦*{dq} encIn i} DecIn(b) {x ok. ⌜ok⌝ -∗ S.ivAt x i}`;
+- `EncOut` of an output: `{S.ovAt v o} EncOut(v) {b. b ↦* encOut o}`; `DecOut`: `{b ↦*{dq} encOut o} DecOut(b)
+  {x ok. ⌜ok⌝ -∗ S.ovAt x o}`;
+- `EncOut`/`DecOut` of an unknown answer `v` (`⌜S.unkAns i v⌝ -∗ ...`): as before, bytes `encUnk v`, `ok → x = v`.
+
+What moves with it (all in the library):
+- `repP` (what an acceptor writes): the frame of `encUnk v` for an unknown answer `v` of the slot's input, or of
+  `encOut o` for an output `o` the slot recorded (`doneLb γ o`); `rep_read` gives the same disjunction to the dialer.
+  `reqP`/`req_read` unchanged (the frame of `encIn i`).
+- `svcOp S a tok op`: `op(sys, x)` gets `S.ivAt x i` with the update; its output `v` comes with `S.ovAt v o ∗ Φ o`, or
+  is an unknown answer. `reportOp W P Q tok op`: likewise (`W.ivAt x i ∗ P i`, then `W.ovAt v o ∗ Q i o`).
+- `attempt.spec`'s answer: `rep ↦* encOut o ∗ Φ o`, or `rep ↦* encUnk v ∗ ⌜unkAns i v⌝`.
+- `Report.spec`: the caller passes any `x` with `S.ivAt x i`; `Report` returns `true` with `S.ovAt v o ∗ Φ o` or an
+  unknown answer. (`Report` has no instance yet.)
+- `serveConn`, `Serve`, `ServeClient`, `listen`: statements unchanged (they name `svcAddr`, `wireOk`, `svcOp`); proofs
+  follow the new `repP`/`wireOk`.
+
+### 28.3 The old fixed-value wire as an instance
+
+- **Stores keep `RBase` unchanged** (fixed values `iv`/`ov`/`unk`, bytes `encIn`/`encOut` over Go values): porcupine's
+  history holds the Go values, so a store's model must see fixed ones. `RBase.svc R` instantiates the new wire with
+  `ivAt x i := ⌜x = R.iv i⌝`, `ovAt v o := ⌜v = R.ov o⌝`, `encOut o := R.encOut (R.ov o)`, `unkAns i v := v = R.unk i`,
+  `encUnk := R.encOut`, `upd := slotUpd R`. `codecOk R cd` (unchanged) still gives `wireOk (RBase.svc R) cd`
+  (`codecOk_wireOk`, re-proved), and `opMaybe R` still gives `svcOp (RBase.svc R)` (`opMaybe_svcOp`, re-proved).
+- `RWire.ofValues iv ov encIn encOut` is the fixed-value wire for a report (F7's `principalCodec`: a string in, a bool
+  out).
+- `Do.spec`, `Run.spec`, `Check.spec` are stated over `RBase`/`codecOk`/`remoteAddr`: **unchanged**. `Do.wp_proof`
+  follows `attempt`'s new answer.
+
+### 28.4 Instances, and how each changes
+
+Every instance uses the library through `RBase`, `codecOk`, `opMaybe`, `remoteAddr`, `codecOk_wireOk`,
+`opMaybe_svcOp`, `reqP/repP (RBase.svc _)` (`addrs_set_proto`) and the `Do`/`Run`/`Check`/`ServeClient` specs, none
+of which changes its statement. So **every instance changes by nothing (rebuild only)**:
+- kvremote (M1): `Proof/.../examples/etcd/dist/kvremote/` (`Codec`, `Defs`, `Node`, `Orch`, `Store`, `Start`, its
+  `TopLevelRobustness`) and `dist/client`'s kv part;
+- counter: `Net/Proof/.../lib/remote/counter/`;
+- the dsverify kits over remote: craqnet, swiftnet (swift), epaxosnet, vsrnet, paxosnet, gryffnet, rabianet,
+  quepaxanet (`Dsverify/Proof/.../examples/*net/`), and `etc/kitlibs-check-test`.
+If a proof there breaks on unfolding (e.g. `unfold remoteAddr svcAddr`), the fix is local and its statement stays.
+**As built:** only one instance proof changed. vsrnet's `Op_svcOp` (`Dsverify/.../vsrnet/ClientProofDefs.lean`) unfolds `svcOp`
+by hand. It now takes the input value `x` and its `⌜x = iv i⌝` after `simp only [RBase.svc]`: three lines, and the
+statement is unchanged. kvremote, counter, swift and the other kits build unedited.
+
+### 28.5 What does not change
+
+No `TopLevelRobustness`/`TopLevelDefs`/`Spec` top-level statement, no trusted file (`TrustedCode`, `GooseLang/Ext`,
+`Robustness`, `models/`), no Go: the only statements that change are the library's own `attempt.spec` and
+`Report.spec` (no instance names them) and the definitions in `remote/Defs.lean`. Checks: tier, bounds,
+`gen-link --check`, `tcb-report --check` (all unchanged), targeted builds of remote, kvremote, counter, kits, swift
+and their top-level results, then one full build.
+
+### 28.6 writerCodec, statable (draft for N10a's owner)
+
+`writerWire : RWire GF WIn (List PutRecM)`: `ivAt x ps := ∃ s, ⌜x = slice-of-KV interface s⌝ ∗ s ↦*□ ps.kvs ∗
+⌜small ps⌝` (the input type may carry the orchestrator's ghost names), `ovAt v rs := ∃ s, ⌜v = ...⌝ ∗ s ↦*□ rs ∗
+⌜small rs⌝`, `encIn`/`encOut` `enc`'s bytes (bounded by `small`). `writerCodec.spec : wireOk (reportSvc writerWire
+P Q) (writerCodec)`, `writerOp`'s spec as `reportOp writerWire P Q tok writerOp` (its owned `[]PutRec` persisted
+with `ownSlice_persist`). Draft: `notes/remote-wire/WriterCodec.lean` (28.7).
+
+### 28.7 Results (2026-11-26, branch head after this section)
+
+- **Implemented** as 28.2–28.3: `remote/Defs.lean` (`RWire`, `RWire.ofValues`, `RSvc`, `RBase.svc`, `repP`, `rep_read`,
+  `wireOk`, `codecOk_wireOk`, `svcOp`, `opMaybe_svcOp`, `reportSvc`, `reportOp`, `reportOp_svcOp`), `attempt`/`Report`
+  (spec and proof), `serveConn`'s and `Do`'s proofs; vsrnet's `Op_svcOp` (28.4).
+- **writerCodec is statable**: `notes/remote-wire/WriterCodec.lean` (a draft outside every `lean_lib`; `vmlake env lean`
+  on it: no error). It holds `writerWire N` (inputs `N × List KV`, the ghost part `N` for the orchestrator's adapter
+  names; `ivAt`/`ovAt` a `[]KV`/`[]PutRec` slice interface with `↦*□` of the model and its `enc` bytes in bound),
+  `writerCodec.spec` (`wireOk (reportSvc (writerWire N) P Q)` for every `P`, `Q`), and `writerCall.spec`
+  (`remoteWriters`' per-node `Report` at that wire). N10a's owner links it: prove `writerCodec.spec` over `enc`'s specs
+  (`DecIn` of a fresh slice built by `append` gives `↦*` of the decoded list, persisted), restate `writerOp` as a
+  `reportOp`, and take `Report.wp_proof`.
+- **Checks**: targeted VM builds of `Net` (remote, counter), `Dsverify` (every kit, swift), kvremote's
+  `TopLevelRobustness`/`TopLevelWitness`/`Link`, dist's `TopLevelRobustness`/`TopLevelWitness` and `client`'s
+  `KvLinked`/`NodeMain`/`RunKV`/`InitLinked`: green. Tier: ok (207 known). Bounds: 389, the baseline. Every `gen-link` mode
+  matches. One full VM build: green (29343 jobs). `tcb-report --check`: matches the baseline (380 axioms, 0 `sorry`), and
+  all 68 collections match. `KitLibsCheckTest` (a test lib outside `defaultTargets`) fails on retired `InitHyp` names
+  (`math-rand-isinit`'s), unrelated to this branch and untouched.
+
 
 ## 22. N3: the watch stream contract (design, 2026-11-25; branch `etcd-safe-n3/2026-11-25`)
 

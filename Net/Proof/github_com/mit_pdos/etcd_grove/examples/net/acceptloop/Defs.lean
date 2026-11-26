@@ -3,7 +3,7 @@ The protocol of `examples/net/acceptloop`, over the net extension's resources (`
 the per-address protocol (`wire/Addr.lean`) and the per-direction stream protocol
 (`wire/Stream.lean`). It is echo's, per connection: a server goroutine handling one connection
 and a client goroutine calling on one each own that connection's halves only, so neither the
-goroutines of the server's accept loop nor the client's two concurrent calls need anything more.
+goroutines of the server's accept loop nor the client's concurrent calls need anything more.
 
 * **Every connection** `cn` to `srvAddr` has ghost names `γ` (`connName γm cn γ`, persistent: the
   ghost map `γm`): a ghost variable `γ.srv` (`srvW`, two halves: the bytes the acceptor's `Write`

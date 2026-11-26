@@ -6,7 +6,10 @@ types; `unaryHandlerImpl` is that body as Goose translates it, with those as par
 `wp_unaryHandler` proves it once. Each handler's proof (`Proof/.../_KV_<M>_Handler.lean`) applies
 the lemma at its method; the build checks that the handler's translation is `unaryHandlerImpl` at
 those parameters (the `FuncUnfold` instance's type, by unfolding), so a regenerated handler of a
-different shape breaks the build, not soundness. Lean-first (no Rocq counterpart).
+different shape breaks the build, not soundness. The lemmas are generic in the handler's package
+(`pkg`, whose `isPkgInit` the spec takes): gRPC's robustness driver's `svc` handlers use them too
+(`Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/svc/`). Lean-first (no Rocq
+counterpart).
 -/
 module
 
@@ -142,7 +145,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+variable [grpc_sem : google_golang_org.grpc.Assumptions]
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the metadata-indexed handler spec (`grpcHandlerOwnOkMd`; the auth plan's E3zb), for a method that may write its request** (`grpcHandlerOwnOk`; the auth
@@ -159,14 +162,15 @@ returns its result, or the chain returns an error without calling it. -/
 theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
     {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
     {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
-    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
+    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
+    {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+  {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOwnOkMd #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
@@ -299,14 +303,15 @@ resources come back, and on success the response is at some `m'` with `Φ m'`. -
 theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
     {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
     {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
-    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
+    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
+    {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+  {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOkMd #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
@@ -321,7 +326,7 @@ theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth f
   intro Req Rep Spec srv S ics Rs Q m Φ' Ψe ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := grpcHandlerOkMd_own _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec $$ Hh
-  iapply (wp_unaryHandlerOwnMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep Spec srv S ics Rs Q
+  iapply (wp_unaryHandlerOwnMd (V := V) (pkg := pkg) h srvTy reqTy repTy meth fullMethod Req Rep Spec srv S ics Rs Q
     m Φ' Ψe ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] HΦ
   iframe; iframe #
 
@@ -340,14 +345,15 @@ returns its result, or the chain returns an error without calling it. -/
 theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
     {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
     {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
-    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
+    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
+    {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+  {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOwnOk #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
@@ -362,7 +368,7 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
   intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := (grpcHandlerOwnOk_md _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec).1 $$ Hh
-  iapply (wp_unaryHandlerOwnMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
+  iapply (wp_unaryHandlerOwnMd (V := V) (pkg := pkg) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
     srv S ics Rs Q m Φ' (fun _ => iprop(True)) ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] [HΦ]
   · iframe; iframe #
     iapply (grpcSpecAt_md_intro Spec ci m Φ' (fun _ => iprop(True)))
@@ -385,14 +391,15 @@ resources come back, and on success the response is at some `m'` with `Φ m'`. -
 theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth fullMethod : GoString)
     {elems : List go.InterfaceElem} [go.UnderlyingDirectedEq srvTy (go.InterfaceType elems)]
     {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V reqTy]
-    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)] :
+    [FuncUnfold h [] (unaryHandlerImpl srvTy reqTy repTy meth fullMethod)]
+    {pkg : GoString} [IsPkgInit (IProp GF) pkg] :
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (srv : GoInterfaceOk) (S : IProp GF)
     (ics : List GoFunc) (Rs : List (IProp GF)) (Q : GoInterface → IProp GF) (m : Req.M)
     (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
   Req.ty = reqTy → Rep.ty = repTy →
   go.typeSetContains srv.ty srvTy = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+  {{ isPkgInit (PROP := IProp GF) pkg ∗
       (□ ∀ l : Loc, l ↦ (zero_val V) -∗ Req.blank l) ∗
       grpcHandlerOk #(methods srv.ty meth srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
@@ -407,7 +414,7 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
   intro Req Rep Spec srv S ics Rs Q m Φ' ci cd dec ui hReq hRep hsrv
   iintro %Φ ⟨#Pk, #Hb, #Hh, #Hics, #HQ, HS, HRs, #Hctx, #Hrc, #Hdec, #Hch, HSpec⟩ HΦ
   ihave #Hh' := (grpcHandlerOk_md _ iprop(S ∗ [∗list] R ∈ Rs, R) Spec).1 $$ Hh
-  iapply (wp_unaryHandlerMd (V := V) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
+  iapply (wp_unaryHandlerMd (V := V) (pkg := pkg) h srvTy reqTy repTy meth fullMethod Req Rep (GrpcSpec.md Spec)
     srv S ics Rs Q m Φ' (fun _ => iprop(True)) ci cd dec ui hReq hRep hsrv) $$ [HS HRs HSpec] [HΦ]
   · iframe; iframe #
     iapply (grpcSpecAt_md_intro Spec ci m Φ' (fun _ => iprop(True)))

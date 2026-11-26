@@ -771,10 +771,15 @@ class HandlerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq HandlerFunc.ty HandlerFunc.underlying
   method_set : go.MethodSetIs HandlerFunc.ty [(go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType HandlerFunc.ty) [(go!"ServeHTTP", (some (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false [])))]
+  ServeHTTP_unfold : MethodUnfold HandlerFunc.ty go!"ServeHTTP" HandlerFunc.ServeHTTP.impl
+  ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType HandlerFunc.ty) go!"ServeHTTP" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve HandlerFunc.ty go!"ServeHTTP"))) (App (Val (GoInstruction (GoLoad HandlerFunc.ty))) (Var "$r"))))
 
 attribute [instance] HandlerFunc.TypeAssumptions.underlying
   HandlerFunc.TypeAssumptions.method_set
   HandlerFunc.TypeAssumptions.ptr_method_set
+  HandlerFunc.TypeAssumptions.ServeHTTP_unfold
+  HandlerFunc.TypeAssumptions.ptr_ServeHTTP_unfold
 
 class redirectHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying redirectHandler.underlying redirectHandler
@@ -1133,26 +1138,6 @@ attribute [instance] loggingConn.TypeAssumptions.type_repr
   loggingConn.TypeAssumptions.set_Conn
   loggingConn.TypeAssumptions.method_set
   loggingConn.TypeAssumptions.ptr_method_set
-
-class checkConnErrorWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying checkConnErrorWriter.underlying checkConnErrorWriter
-  underlying : go.UnderlyingDirectedEq checkConnErrorWriter.ty checkConnErrorWriter.underlying
-  get_c : ∀ (x : checkConnErrorWriter), go.IsGoStepPureDetTagged under (StructFieldGet checkConnErrorWriter.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : checkConnErrorWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checkConnErrorWriter.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : checkConnErrorWriter)))
-  method_set : go.MethodSetIs checkConnErrorWriter.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType checkConnErrorWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  Write_unfold : MethodUnfold checkConnErrorWriter.ty go!"Write" checkConnErrorWriter.Write.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType checkConnErrorWriter.ty) go!"Write" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve checkConnErrorWriter.ty go!"Write"))) (App (Val (GoInstruction (GoLoad checkConnErrorWriter.ty))) (Var "$r"))))
-
-attribute [instance] checkConnErrorWriter.TypeAssumptions.type_repr
-  checkConnErrorWriter.TypeAssumptions.underlying
-  checkConnErrorWriter.TypeAssumptions.get_c
-  checkConnErrorWriter.TypeAssumptions.set_c
-  checkConnErrorWriter.TypeAssumptions.method_set
-  checkConnErrorWriter.TypeAssumptions.ptr_method_set
-  checkConnErrorWriter.TypeAssumptions.Write_unfold
-  checkConnErrorWriter.TypeAssumptions.ptr_Write_unfold
 
 end net.http
 

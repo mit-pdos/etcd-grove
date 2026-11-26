@@ -64,7 +64,7 @@ theorem repRRProp_persist (l : Loc) (v : pure.Val) :
   simp only [ptRRProp_own]
   iintro H
   simp only [rrPropOf]
-  icases H with ⟨%y, Hy, %Hyu, %Hyf, Hids⟩
+  icases H with ⟨%y, ⟨Hy, -⟩, %Hyu, %Hyf, Hids⟩
   ipersist Hy
   ipersist Hids
   imodintro
@@ -78,7 +78,7 @@ theorem repRR_persist (r : Loc) (st : RecSt) :
   unfold repRR
   simp only [ptRR_own]
   iintro H
-  icases H with ⟨%x, Hx, %Hxu, %Hxf, HF, HM⟩
+  icases H with ⟨%x, ⟨Hx, -⟩, %Hxu, %Hxf, HF, HM⟩
   simp only [rrOf, repOpt] at *
   imod repRRProp_persist _ _ $$ HF with #HF
   imod repRRProp_persist _ _ $$ HM with #HM
@@ -548,8 +548,10 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
         simp only [show sint.nat (W64 0) = 0 from rfl, List.replicate_zero]
         ipersist Hcb0
         try wp_auto
-        imod ptProp_share ⊤ _ _ $$ «$r0» with #«$r0»
-        imod ptPM_share ⊤ _ _ $$ «$a1» with #«$a1»
+        imod ptProp_share ⊤ _ _ ?st $$ «$r0» with #«$r0»
+        case st => exact stateOk_zero _
+        imod ptPM_share ⊤ _ _ ?st $$ «$a1» with #«$a1»
+        case st => exact stateOk_zero _
         ihave #Hpr1 : repProp «$r0_ptr» .discard
             (⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, []⟩ : Prop') $$ []
         · unfold repProp
@@ -609,8 +611,10 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
             · exfalso; subst Hst; simp [rrOf] at hnf
             iclear Hxr HF HM «$r0» «$a1» Hpr1
             wp_auto
-            imod ptProp_share ⊤ _ _ $$ «$r0» with #«$r0»
-            imod ptPM_share ⊤ _ _ $$ «$a1» with #«$a1»
+            imod ptProp_share ⊤ _ _ ?st $$ «$r0» with #«$r0»
+            case st => exact stateOk_zero _
+            imod ptPM_share ⊤ _ _ ?st $$ «$a1» with #«$a1»
+            case st => exact stateOk_zero _
             ihave #Hpr2 : repProp «$r0_ptr» .discard
                 (⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, bsP⟩ : Prop') $$ []
             · unfold repProp
@@ -674,8 +678,11 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
           · exact absurd rfl Herr
       rw [_root_.decide_eq_false hm1]
       wp_auto
-      imod ptProp_share ⊤ _ _ $$ pi with #pi
-      imod ptPM_share ⊤ _ _ $$ «$a1» with #«$a1»
+      imod ptProp_share ⊤ _ _ ?st $$ pi with #pi
+      case st =>
+        rw [show x.state' = Pc.state' by rw [Hxeq], hPc]; exact stateOk_zero _
+      imod ptPM_share ⊤ _ _ ?st $$ «$a1» with #«$a1»
+      case st => exact stateOk_zero _
       ihave #Hpr : repProp pi_ptr .discard
           (⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, bsP⟩ : Prop') $$ []
       · unfold repProp

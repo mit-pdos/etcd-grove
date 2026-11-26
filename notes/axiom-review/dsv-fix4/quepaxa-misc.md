@@ -6,6 +6,11 @@ Perennial `fce59af75`; Go at the pinned toolchain go1.27.3 (`src/time/time.go`, 
 `src/slices/sort.go`, `src/fmt/print.go`, `src/os/file.go`). Read-only review: no Lean
 counterexample was attempted, since no gap was found to build one on.
 
+**Retired 2026-11-25** (#49 step 1, branch `dsv-retire-1`): `time.Time.UTC` and `sort.Ints`. Perennial
+(branch `retire1-sort-time`, `596a47b9f`) translates `Time.UTC`, `Time.setLoc` and `sort.Ints` and proves
+them (`time.Time.wp_UTC`, `sort.wp_Ints`); `Dsverify/Proof/{time/Time__UTC,sort/Ints}.lean` are now
+theorems from those. `fmt.Println` stays.
+
 ## The axioms
 
 Each is the field of a former premise class of QuePaxa's statement (`UtcHyp`, `SortHyp`,

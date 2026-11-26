@@ -34,16 +34,17 @@ theorem metadata.MD.Get.wp_proof
   wp_auto
   wp_method_call; wp_call
   wp_auto
-  wp_apply (wp_ToLower k) as %k' -
+  wp_apply (wp_ToLower k) as %k' %hk'
   (try wp_auto)
   wp_apply wp_map_lookup1 go.string (go.GoType.SliceType go.string) md m k' DfracDiscarded
     $$ [$Hm] as -
   (try wp_auto)
   iapply HΦ
   ipureintro
+  refine ⟨k', hk', ?_⟩
   cases h : m !! k' with
-  | none => left; rfl
-  | some sl => right; exact ⟨k', by simp [h]⟩
+  | none => left; exact ⟨rfl, rfl⟩
+  | some sl => right; simp [h]
 
 end proof
 

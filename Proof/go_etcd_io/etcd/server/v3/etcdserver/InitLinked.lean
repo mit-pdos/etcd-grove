@@ -23,7 +23,7 @@ public import Proof.encoding.json.Init
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.dustin.go_humanize.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
@@ -64,8 +64,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.snapshotmeta.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
-public import Proof.go_opentelemetry_io.otel.attribute.Init
-public import Proof.go_opentelemetry_io.otel.trace.Init
+public import Proof.go_opentelemetry_io.otel.attribute.InitLinked
+public import Proof.go_opentelemetry_io.otel.trace.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.golang_org.x.crypto.bcrypt.InitLinked
 public import Proof.net.http.Init

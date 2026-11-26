@@ -10,13 +10,14 @@ started from a fresh state (no package initialized, one thread), for every real 
 fewer than `2^63` steps, never gets stuck, no thread of it ends in a panic, and the main
 thread's result, if it has one, is `#()`.
 
-`Main` runs `Check(lintest.CounterClock(), 4, 10, 0)` -- 4 goroutines of 10 operations each
-of a counter under a mutex, traced with a counter clock, the trace checked by porcupine's
+`Main` runs `Check(lintest.CounterClock(), clients, ops, 0)` -- between 1 and 8 goroutines (a
+random number) of between 1 and 32 random operations each of a counter under a mutex, traced with a counter clock, the trace checked by porcupine's
 translated `CheckOperationsVerbose` with no timeout -- and panics unless the answer is `Ok`.
 So no panic means porcupine answered `Ok`.
 
 It follows from Perennial's `goose_adequacy` (through `examples/lib/etcdstart/Adequacy.lean`'s `init_adequate`), as the register's (`register/Adequacy.lean`):
-the trivial extension (`common/TrivialExt.lean`; the proofs are generic over the extensions), a concrete ghost-state bundle `counterGF`,
+no extension (`Robustness.noExts`, `Robustness/NoExts.lean`; the proofs are generic over the
+extensions), a concrete ghost-state bundle `counterGF`,
 the bounds `N = n + 1` (time receipts) and `T = n + 2` (threads, `Proof/runtime/Threads.lean`),
 the package initialization (`counter/Init.lean`, at the program's table `PkgTable.lean`, both
 generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from `context`'s `isPkgInit`,
@@ -43,7 +44,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.PkgTable
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.TopLevelDefs
 
@@ -62,7 +62,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-! ## The ghost-state bundle -/
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] Robustness.noExts Robustness.noExtsSemantics Robustness.noExtsInterp
 
 /-- The functors: the register's (`registerGF`: the universal camera `AllG` at slot 0, then
 invariants, later credits, GooseLang's heap, prophecies and package state), and iris-lean's non-atomic invariants at slot 11. Every other slot is the unit
@@ -89,7 +89,7 @@ instance counterGF_gooseGpreS : GooseGpreS counterGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨counterGF_allG⟩, PUnit.unit)
+  goosePreGExts := PUnit.unit
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := counterGF_allG
 
@@ -109,11 +109,12 @@ no package initialized (`IsInit`), one live thread -- of `n < 2^63` steps: if th
 has finished, its result is `#()`; no thread is stuck (each is a value or can step); no thread
 has ended in a panic.
 
-What it says about porcupine: `Main` runs 4 clients of 10 operations each (increments for the
-even clients, reads for the odd ones) of a counter under a mutex, records each operation's
+What it says about porcupine: `Main` runs a random number (1 to 8) of clients of a random number (1 to 32) of
+operations each (each at random an increment or a read) of a counter under a mutex, records each operation's
 call and return times with a counter clock, and passes the trace to porcupine's
 `CheckOperationsVerbose` (its translated Go code, no timeout), panicking unless the answer is
-`Ok`. So for every interleaving of the 4 clients and every choice of the scheduler, porcupine
+`Ok`. So for every draw of the random numbers, every interleaving of the clients and every choice of
+the scheduler, porcupine
 returned `Ok` on the recorded trace: a non-`Ok` answer would have made `Main` panic.
 
 Parametric in the Go semantics: any `go.Semantics` at the state's local context, any package
@@ -130,7 +131,7 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := counterGF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
   letI : HeapGS .hasLC counterGF := heapWith hG lctx
   have Hbound : receiptBound counterGF ≤ 2 ^ 63 := by rw [HN]; omega

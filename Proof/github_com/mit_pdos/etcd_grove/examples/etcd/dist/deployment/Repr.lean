@@ -61,6 +61,29 @@ instance deploymentRepr_persistent (v : deployment.Deployment) (d : Deployment) 
     Persistent (deploymentRepr (GF := GF) v d) := by
   unfold deploymentRepr; infer_instance
 
+open Iris.ProofMode in
+/-- **Law**: the workloads' slice points read-only to `d`'s workloads (their Go values). -/
+theorem deploymentRepr_workloads (v : deployment.Deployment) (d : Deployment) :
+    deploymentRepr (GF := GF) v d ⊢ v.Workloads' ↦*□ d.workloads.map Workload.val := by
+  iintro #Hd
+  iunfold deploymentRepr at Hd
+  icases Hd with ⟨-, -, -, #Hw, -⟩
+  iexact Hw
+
+open Iris.ProofMode in
+/-- **Law**: the client machines' slice points read-only to one inner slice per workload, each
+pointing read-only to that workload's client machines' addresses. -/
+theorem deploymentRepr_nodes (v : deployment.Deployment) (d : Deployment) :
+    deploymentRepr (GF := GF) v d ⊢
+      iprop(∃ ss : List GoSlice, v.Nodes' ↦*□ ss ∗ [∗list] s;ns ∈ ss;d.nodes, s ↦*□ ns) := by
+  iintro #Hd
+  iunfold deploymentRepr at Hd
+  icases Hd with ⟨-, -, -, -, %ss, #Hn, #Hns⟩
+  iexists ss
+  isplit
+  · iexact Hn
+  · iexact Hns
+
 end defs
 
 end etcd_dist

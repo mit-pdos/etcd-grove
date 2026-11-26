@@ -289,7 +289,8 @@ theorem callOn.wp_proof (L : CodecLaws (GF := GF))
               · imod (net.rpc.unsent_reqSent W a cn γ.conn o) $$ [$Hrpc $Hlc1 $Hun $Hsent] with %Hf
                 exact Hf.elim
             · imodintro; iright; iright
-              iframe Hea
+              ihave #Hea' := models_lab.errPlain_errAny _ $$ Hea
+              iframe Hea'
               ipureintro; exact ⟨Hne, Hns⟩
           iapply fupd_wp
           imod Hout

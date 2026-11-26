@@ -206,8 +206,8 @@ theorem runner.newMember.wp_proof
     isplitr
     · ipureintro
       refine ⟨[], ?_, rfl, fun _ h => by cases h⟩
-      have hLe : ((backend.rbData (mvccrand.rcP (limOf cfg)) ∅).lookup go!"lease").getD ∅ = ∅ := rfl
-      show backend.bktEnts (((backend.rbData (mvccrand.rcP (limOf cfg)) ∅).lookup go!"lease").getD ∅) = _
+      have hLe : ((backend.rbData (mvccfull.rcP (limOf cfg)) ∅).lookup go!"lease").getD ∅ = ∅ := rfl
+      show backend.bktEnts (((backend.rbData (mvccfull.rcP (limOf cfg)) ∅).lookup go!"lease").getD ∅) = _
       rw [hLe]; simp [backend.bktEnts]
     iunfold memberCarry
     iframe

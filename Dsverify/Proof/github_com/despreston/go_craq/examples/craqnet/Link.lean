@@ -7,8 +7,8 @@ Net's `net` specs, Net's `SetCodec`, remote's `Check`/`ServeClient`; then the ki
 `net.rpc.DialHTTP.wp`, in `RpcClientSpecs`, over Perennial's proofs of `strings.Cut`/`TrimLeft`),
 and so are the package-level `rpc.RegisterName` of a fresh name (`net.rpc.RegisterName.wp_fresh`)
 and `rpc.HandleHTTP` (`net.rpc.HandleHTTP.wp_proof`, over net/http's `Handle`). What is not proved
-stays an argument: the hypothesis classes (instance arguments: `LogHyp`, `RpcHttpServe`'s
-`http.ListenAndServe`), which the statement takes
+stays an argument: the hypothesis classes (instance arguments: `RpcHttpServe`'s
+`http.ListenAndServe`), which the statement takes; `LogSpecs` (the `*Logger` specs) is made from the axioms of `Craq/LogAx.lean` by the statement's proof
 (F1, RemoveNode's obligation: `cnewArg_RemoveNode`; F3, the nodes' `errOk`: `nodeSpec_errOk`).
 -/
 module
@@ -68,8 +68,8 @@ variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 `Client.Call`, `Client.Close`, and models-rpc-http's `DialHTTP` (over `DialHTTPPath` and net/http's
 `ReadResponse`, with Perennial's `strings.Cut`/`TrimLeft`). -/
 instance rpcClientSpecs : RpcClientSpecs GF :=
-  ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp,
-    net.rpc.DialHTTP.wp⟩
+  ⟨net.rpc.Client.Call.wp_plain, net.rpc.Client.Close.wp,
+    net.rpc.DialHTTP.wp_plain⟩
 
 /-- The protocol's laws the node's proofs use. -/
 theorem nodeLaws : NodeP.Laws (GF := GF) :=
@@ -99,12 +99,12 @@ theorem wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG) :=
   examples.craqnet.wp_awaitConf net.Listen.wp_proof net.Listener.Accept.wp_proof
     net.Conn.Read.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
 
-theorem wp_configure [LogHyp GF] : configure.spec (GF := GF) (hG := hG) :=
+theorem wp_configure [LogSpecs GF] : configure.spec (GF := GF) (hG := hG) :=
   examples.craqnet.wp_configure net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Read.wp_proof
     net.Conn.Close.wp_proof
 
 /-- Every server machine (F1 discharged, `cnewArg_RemoveNode`; F3 discharged, `nodeSpec_errOk`). -/
-theorem wp_Server [LogHyp GF] [RpcHttpServe GF] :
+theorem wp_Server [LogSpecs GF] [RpcHttpServe GF] :
     Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof net.rpc.RegisterName.wp_fresh
     (net.rpc.HandleHTTP.wp_proof
@@ -114,11 +114,11 @@ theorem wp_Server [LogHyp GF] [RpcHttpServe GF] :
     (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf
     (fun cfg a => nodeSpec_errOk cfg.γ cfg.chain a)
 
-theorem wp_Client [LogHyp GF] [ρ : RemoteGS] : Client.spec (GF := GF) (hG := hG) :=
+theorem wp_Client [LogSpecs GF] [ρ : RemoteGS] : Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof wp_awaitConf net.rpc.SetCodec.wp wp_NewNodeClient wp_NewCoordinatorClient
     Codec.wp_proof EtcdGrove.remote.wp_ServeClient
 
-theorem wp_Orch [LogHyp GF] [ρ : RemoteGS] : Orch.spec (GF := GF) (hG := hG) :=
+theorem wp_Orch [LogSpecs GF] [ρ : RemoteGS] : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof wp_configure Model.wp_proof Codec.wp_proof Gen.wp_proof EtcdGrove.remote.wp_Check
 
 end linked
