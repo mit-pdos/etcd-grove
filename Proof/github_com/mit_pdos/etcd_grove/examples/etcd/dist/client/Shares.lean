@@ -24,8 +24,8 @@ the boot's), under the net extension's registry `π` and the remote library's na
 - `wlNodeShare w c addr eps`: client machine `c` of workload `w`, at `addr`, `eps` the members' client addresses
   (not rotated; F7 S13), `eps'` those rotated by `c`: `kv` `kvNodePre c addr eps'` (M1); `watch`, `cache`
   `writerNodePre addr eps'` (the writer machine's share: `nodeWatchPre` without its machine-local and pure parts,
-  `nodeWatchPre_of`); `auth` `False` (D2; to be `authNodePre addr eps`, `client/AuthShares.lean`, at the endpoints
-  unrotated, as `NodeMain` hands them to `principalOp`); other kinds `True` (they have no client machine: `NodeMain` returns).
+  `nodeWatchPre_of`); `auth` `authNodePre addr eps` (`client/AuthShares.lean`, at the endpoints unrotated, as
+  `NodeMain` hands them to `principalOp`; F7 S13, linked by `wp_NodeMainAuth`); other kinds `True` (they have no client machine: `NodeMain` returns).
 - `orchShareF d j`, `nodeShareF d n`: those at the arguments the dispatch computes from the deployment (as M1's
   `orchShare`/`nodeShare`, `client/KvDefs.lean`), with their `_eq` laws.
 
@@ -43,6 +43,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Cac
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CompactWorkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KVWorkDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthShares
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Orch
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Node
@@ -170,7 +171,7 @@ end pure
 section shares
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt] [GoGlobalContext]
 variable [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
-variable [go_etcd_io.raft.v3.Assumptions]
+variable [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Assumptions]
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS] [ρ : RemoteGS]
 
@@ -205,12 +206,12 @@ def wlShare (w : Workload) (eps ns : List GoString) : IProp GF :=
 
 /-- **Client machine `c`'s share in workload `w`** (see the file header), at the members' client addresses `eps`
 **not rotated** (F7 S13, W-6's rotation gap): the kv and writer arms at `eps` rotated by `c` (what `NodeMain` hands
-their machines); the auth arm, still `False` (D2), is to be `authNodePre addr eps` at `eps` itself (what `NodeMain`
-hands `principalOp`), once `NodeMain`'s auth arm is linked. -/
+their machines); the auth arm `authNodePre addr eps` at `eps` itself (what `NodeMain` hands `principalOp`;
+`NodeMainAuth`, linked in `DispatchLinked`). -/
 def wlNodeShare (w : Workload) (c : w64) (addr : GoString) (eps : List GoString) : IProp GF :=
   if w.kind = W64 0 then kvNodePre (Gg := Gg) c addr (rotateL eps (sint.nat c))
   else if w.kind = W64 1 ∨ w.kind = W64 2 then writerNodePre (Gg := Gg) addr (rotateL eps (sint.nat c))
-  else if w.kind = W64 5 then iprop(False)
+  else if w.kind = W64 5 then authNodePre (Gg := Gg) addr eps
   else iprop(True)
 
 /-! ### The arms (each a law, so that no caller unfolds the chain) -/
@@ -272,7 +273,8 @@ theorem wlNodeShare_writer (h : w.kind = W64 1 ∨ w.kind = W64 2) :
   unfold wlNodeShare
   rw [if_neg (by rcases h with h | h <;> rw [h] <;> decide), if_pos h]
 
-theorem wlNodeShare_auth (h : w.kind = W64 5) : wlNodeShare (Gg := Gg) w c addr eps = iprop(False) := by
+theorem wlNodeShare_auth (h : w.kind = W64 5) :
+    wlNodeShare (Gg := Gg) w c addr eps = authNodePre (Gg := Gg) addr eps := by
   unfold wlNodeShare
   rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 

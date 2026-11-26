@@ -2,11 +2,11 @@
 `client.NodeMain(w, c, addr, eps)`: client machine `c` of workload `w`, at `addr`, the members' client
 endpoints `eps`.
 - `NodeMain.spec` (F8, `notes/etcd-dist-plan.md` §27.3): **every arm**, from the client machine's share
-  `wlNodeShare w c addr eps` (`client/Shares.lean`; its kv and writer arms at `Rotate(eps, c)`, its auth arm at
-  `eps`, still `False`: F7 S13), its level token, and the pure facts the dispatch and the boot give (`wlPure w`: the client
+  `wlNodeShare w c addr eps` (`client/Shares.lean`; its kv and writer arms at `Rotate(eps, c)`, its auth arm
+  `authNodePre` at `eps`: F7 S13), its level token, and the pure facts the dispatch and the boot give (`wlPure w`: the client
   count's bound; at most 64 endpoints; the endpoints plain; `nodeMachinePure`). kv: `kvremote.Node`; watch,
-  cache: the writer (`NodeMainWatch.spec`); auth: reached with a `False` share (D2); the other kinds have no
-  client machine (it returns).
+  cache: the writer (`NodeMainWatch.spec`); auth: the principal machine (`NodeMainAuth.spec`); the other kinds
+  have no client machine (it returns).
 - `NodeMain.specKv` (M1): **the kv arm only**: of a `kv` workload, when `c` is one of its
   client machines and `eps` is not empty, `kvremote.Node(c, addr, Rotate(eps, c))`; otherwise it returns.
 Proved for any precondition `NP` of `Node`. `Rotate`'s index

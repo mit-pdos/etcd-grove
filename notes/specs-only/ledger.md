@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: F7 dist client dispatch (`NodeMain`, `MainReady`, `MainDeployment`, `Orchestrator`) -- W-6's contract gaps (rotation, instances)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/NodeMain.lean` (`NodeMain.spec`),
+  `.../client/MainReady.lean` (`MainReady.spec`), `.../client/MainDeployment.lean` (`MainDeployment.spec`),
+  `.../client/Orchestrator.lean` (`Orchestrator.spec`). No `SpecPlan/` counterpart (Lean-first dist harness).
+- **Defect.** (Gap 2, rotation) `NodeMain.spec` gave the client machine's share at the endpoints rotated by `c`
+  (`wlNodeShare w c addr (rotateL epsL c)`, `plainEndpoints (rotateL epsL c)`), but `NodeMain`'s auth arm hands
+  `principalOp` the endpoints unrotated, so the auth arm's share (`authNodePre addr eps`) could not be stated at the
+  endpoints it is used at. (Gap 3, instances) `MainReady.spec`, `MainDeployment.spec`, `Orchestrator.spec` did not
+  bind the `errors`/`fmt`/`rpctypes` `Assumptions` instances that the auth arm's callees (`MainReadyAuth.spec`,
+  `RunAuth.spec`) bind, so the auth arm could not be linked under them.
+- **Evidence.** `notes/etcd-dist-f7.md`, "Handoff W-6" (the three contract gaps) and "Handoff RL-1".
+- **Proposed change.** (Gap 2) `NodeMain.spec`'s share is `wlNodeShare w c addr epsL` and its pure premise
+  `plainEndpoints epsL` (endpoints unrotated); `wlNodeShare` rotates by `c` in its kv and writer arms and its kind-5
+  arm is `authNodePre addr eps` (`NodeMain.wp_proof` takes `NodeMainAuth.spec`, linked in `DispatchLinked` by
+  `wp_NodeMainAuth`). (Gap 3) the three specs bind `[errors.Assumptions] [fmt.Assumptions] [rpctypes.Assumptions]`
+  after `[ρ]`; `AdequacyClient.orchBoot` binds them, discharged from `EtcdBootNCAt`'s. `etcd_safe_nocrash` and
+  `etcd_robust_nocrash.spec` unchanged.
+- **Decision.** Accepted: approved by lead 2026-11-26 (branch `etcd-safe-f7-rlog`).
+
 ## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
 
 - **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`: `New_user_dist.spec`,

@@ -9,9 +9,10 @@ kind, their callees' proofs linked:
   `RunKV`, `kvremote.wp_Orch`), watch `wp_RunWatch` (N10a, `WatchLinked`), cache `wp_RunCache` (F6, `CacheLinked`),
   compact `wp_RunCompact` (F5, `CompactLinked`), putget and durable `wp_RunPutGet`/`wp_RunDurable` (N9a,
   `KVWorkLinked`), the lease workloads `wp_RunLeaseRead`/`wp_RunLeaseCatchup`/`wp_RunLeaseExpiry` (F2/F7,
-  `Results`). `auth` and `authLease` need no callee: their shares are `False` (D2).
+  `Results`). `auth` and `authLease` need no callee: their orchestrator shares are `False` (D2).
 - `wp_NodeDeploymentFull : NodeDeployment.spec`: `NodeDeployment`, `NodeMain` (F8's proofs) with the kv arm M1's
-  (`NodeMain.wp_proofKv`, `kvremote.wp_Node`) and the writer arm `wp_NodeMainWatch` (N10a, `WatchLinked`).
+  (`NodeMain.wp_proofKv`, `kvremote.wp_Node`), the writer arm `wp_NodeMainWatch` (N10a, `WatchLinked`) and the auth
+  arm `wp_NodeMainAuth` (F7 S13, `PrincipalsLinked`: the principal machines, over the authd interim contracts).
 
 No hypothesis, no `sorry`; the axioms are the workloads' interim contracts (`#print axioms` below).
 -/
@@ -30,6 +31,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Cac
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CompactLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KVWorkLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Link
 
 @[expose] public section
@@ -86,7 +88,7 @@ theorem wp_NodeDeploymentFull [ThreadBoundLe GF (2 ^ 30)] : NodeDeployment.spec 
       (by
         intro π ρ
         exact NodeMain.wp_proofKv _ wp_NodeCount Rotate.wp_proof (EtcdGrove.kvremote.wp_Node (ρ := ρ)))
-      wp_NodeMainWatch)
+      wp_NodeMainWatch wp_NodeMainAuth)
 
 end links
 
