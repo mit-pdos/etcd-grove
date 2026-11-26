@@ -58,11 +58,15 @@ comes in at the named state `s` (`ownRawNodeReadyS`) with the scope at `sc`, and
 its in-progress boundary `ip'`, the scope kept; in the scope, the queue reads as the outbox's
 self-addressed messages, the hard state after the `Ready` is the node's, the durable state the
 batch makes has the node's log, the entries handed out are the log's from the in-progress
-boundary on, the boundary moves to the log's end, and no snapshot was handed out. -/
+boundary on, the boundary moves to the log's end, and no snapshot was handed out. (antithesis parity
+B1, step C4) The scope an `Option RnMode` (at each mode without snapshots, conf changes, forwarding or
+async writes). -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan) (s : NState)
-    (sc : Bool),
+    (sc : Option RnMode),
+  (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧ md.forwarding = false ∧
+    md.async = false) →
   -- (2026-11-11, trace-check Q8 stage 1 slice 28n; from 2026-11-09, Q8 stage 0, until then the
   -- premise `γ.reTrace = none`) one spec for both modes: at a traced cluster the `Ready` line's
   -- numbers within the trace's bound (the term below the ceiling, the log by the receipts' fit;
@@ -71,7 +75,7 @@ abbrev RawNode.acceptReady.spec : Prop :=
   (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNodeReadyS γ rn id rs rd ce es ms true L s ∗
-      "Hsc" ∷ rnScopeAt γ id (basicScope sc) rs s ∗
+      "Hsc" ∷ rnScopeAt γ id sc rs s ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending) (ss : Option (w64 × StateType)) (qs' : List Msg) (ip' : Nat), RET #();
@@ -90,12 +94,12 @@ abbrev RawNode.acceptReady.spec : Prop :=
                   role := roleAfter rs.role ss }
         { toRState rs fp s with
             p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } }
-        qs' ip' (basicScope sc)) ∗
+        qs' ip' sc) ∗
       -- (2026-11-11, slice 28n) the handed-out messages' tokens (`readyTok`: nothing untraced; the
       -- `Ready` line's `recvTokOf` traced, `trCap_fire_ready`)
       "Htoks" ∷ ([∗list] q ∈ ms, readyTok γ q.st) ∗
       -- (#33 S4) in the scope, the `Ready` against `s`
-      "%Hout" ∷ ⌜sc = true →
+      "%Hout" ∷ ⌜∀ md, sc = some md →
         qs' ≡ₚ s.outbox.filter (fun m => decide (m.dst = id)) ∧
         phsNext rs.phs h = HardStateM.mk s.term s.vote s.logst.committed ∧
         (readyDurable rs.dur (phsNext rs.phs h) L es).ents = (toPState s).log ∧

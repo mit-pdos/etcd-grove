@@ -171,7 +171,7 @@ theorem node.run.gated_of
       · wp_auto
         -- (#33 S4) the node at its protocol state, outside the scope (`ownRawNode_at`)
         icases ownRawNode_at γ.raft nv.rn' id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs ps qs ip false Hsteps Hunp $$ [$Hrn]
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs ps qs ip none (fun _ h => by cases h) Hsteps Hunp $$ [$Hrn]
           as %rd' %ce %es %ms %sts %hrd %L H
         iNamed H
         icases Hrn with ⟨%s, Hrn, -, -, -⟩
@@ -1132,7 +1132,7 @@ theorem node.run.gated_of
     iunfold ownRawNodeReady at Hrn
     icases Hrn with ⟨%s0, Hrn⟩
     ihave Hsc0 := rnScopeAt_none (GF := GF) (γ := γ.raft) (id := id) { rs with bw := W } s0
-    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L s0 false
+    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id { rs with bw := W } rdv' ce es ms h L s0 none (fun _ h => by cases h)
       (fun h => ⟨tc_bound Hrbr (Hrb h), Hfit h⟩) $$ [$Hrn $Hsc0 $HhhO]
       as %steps %ss2 %qs' %ip' ⟨#Hss2, %Hssn2, ⟨%fp0, Hrn⟩, Htoks, -⟩
     ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn

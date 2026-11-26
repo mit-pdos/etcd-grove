@@ -504,8 +504,11 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState 
 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Ready.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc)) (fun md => basicScope sc = some md)
+  ∀ sc : Option RnMode, (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+    RawNode.Ready.form
+      (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc)
+      (fun md => sc = some md)
 
 abbrev RawNode.Ready.spec_of_abs.law : Prop :=
   RawNode.Ready.absSpec (GF := GF) (hG := hG) → RawNode.Ready.spec (GF := GF) (hG := hG)

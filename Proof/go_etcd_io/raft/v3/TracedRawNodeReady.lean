@@ -101,7 +101,7 @@ theorem RawNode.Ready.traced
   wp_auto
   -- (#33 S4) the node at its protocol state, outside the scope (`ownRawNode_at`)
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs ps qs ip false Hsteps0 Hunp0 $$ [$Hrn]
+  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs ps qs ip none (fun _ h => by cases h) Hsteps0 Hunp0 $$ [$Hrn]
     as %rd %ce %es %ms %sts %h %L H
   iNamed H
   icases Hrn with ⟨%s, Hrn, -, -, -⟩
@@ -115,7 +115,7 @@ theorem RawNode.Ready.traced
   imodintro
   iframe Hnc
   ihave Hsc0 := rnScopeAt_none (GF := GF) (γ := γ) (id := id) { rs with bw := W } s
-  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L s false
+  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L s none (fun _ h => by cases h)
     (fun _ => ⟨Htcb, Hfit⟩) $$ [$Hrn $Hsc0 $HhardO]
     as %steps %ss %qs' %ip' H
   iNamed H

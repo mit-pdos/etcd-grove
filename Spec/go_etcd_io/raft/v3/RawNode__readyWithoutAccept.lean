@@ -54,8 +54,11 @@ comes in as `ownRawNodeAt` at the protocol state `ps`, the queue `qs`, the in-pr
 and the scope flag `sc`, and leaves as `ownRawNodeReadyS` at a named state `s` (`ownRawNodeReady`'s
 body) with the scope kept, reading as `ps` (`toPState s = ps`), the boundary `ip + 1`; the messages
 handed out read (`absMsgOf`) as the outbox's to others, each to another node; the `Ready`'s soft
-state reports `s`'s role; and, in the scope, that role is the protocol's (no pre-candidate: pre-vote
-off) and the committed log handed out a prefix of the log, within the commit index.
+state reports `s`'s role; and, in the scope, the committed log handed out a prefix of the log, within
+the commit index. (antithesis parity B1, step C4) The scope an `Option RnMode` (at each mode without
+snapshots, conf changes, forwarding or async writes); with transfer off every message handed out typed;
+the role's protocol reading no longer stated (a pre-candidate reads as a follower: `ReadyOut` reads the
+role through `roleProto`).
 
 raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): **the messages are handed out** --
 `rd.Messages` (a `[]*pb.Message` aliasing `r.msgs`, extended by the `msgsAfterAppend` messages to
@@ -78,13 +81,15 @@ to it, the loan `L` (`SnapLoan`); no committed entries -- and with no snapshot r
 last `Ready` (`rs.psnap = false`) none, as until then.) -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
-    (sc : Bool),
+    (sc : Option RnMode),
+  (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧ md.forwarding = false ∧
+    md.async = false) →
   rs.steps = [] →
   rs.unpersisted = [] →
   -- (2026-11-09 to 2026-11-11, Q8 stage 0 to slice 28n: `γ.reTrace = none`, an untraced node; the
   -- function logs nothing, and the node's logger is handed on in either mode, `TraceLoggerOkS`)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeAt γ rn id rs r qs ip (basicScope sc) }}
+      "Hrn" ∷ ownRawNodeAt γ rn id rs r qs ip sc }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
@@ -92,15 +97,16 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       -- (#33 S4) at a named state `s`, which reads as `r` (antithesis parity B1: at `r`'s ghost
       -- prefix; until then as `ps`), with the scope kept
       "Hrn" ∷ (∃ s : NState, ownRawNodeReadyS γ rn id rs rd ce es ms false L s ∗
-        rnScopeAt γ id (basicScope sc) rs s ∗
+        rnScopeAt γ id sc rs s ∗
         ⌜toRState rs r.fp s = r ∧ uint.nat s.logst.inprogress = ip + 1 ∧
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
-          (sc = true → roleGo r.p.role = stateW64 s.role ∧ rs.delivered ++ ce <+: r.p.log ∧
+          (∀ md, sc = some md → rs.delivered ++ ce <+: r.p.log ∧
             (rs.delivered ++ ce).length ≤ uint.nat r.p.commit ∧
             -- (#33 S4, 2026-11-24) every message reads as a protocol message: of a type the model
             -- describes (no transfer request stepped in the scope, `NGhost.xs`: `XfOk`'s last clause)
-            ∀ q ∈ ms, (absMsgOf q.st).isSome)⌝ ∗
+            -- (antithesis parity B1, step C4) at transfer off
+            (md.transfer = false → ∀ q ∈ ms, (absMsgOf q.st).isSome))⌝ ∗
         ∃ ss : Option (w64 × StateType), softStateIs rd.SoftState' ss ∗
           ⌜roleAfter rs.role ss = stateW64 s.role⌝) ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗

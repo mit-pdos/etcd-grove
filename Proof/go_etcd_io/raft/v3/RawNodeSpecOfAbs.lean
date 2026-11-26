@@ -99,7 +99,7 @@ theorem RawNode.Ready.spec_of_abs : RawNode.Ready.spec_of_abs.law (GF := GF) (hG
   wp_start_folded as H
   iNamed H
   icases ownRawNode_at γ rn id rs $$ Hrn with ⟨%ps, %qs, %ip, Hrn⟩
-  wp_apply Habs false γ rn id x rs ps qs ip q g H1 H2 H3 $$ [$Hrn $Hlive $Hfree]
+  wp_apply Habs none (fun _ h => by cases h) γ rn id x rs ps qs ip q g H1 H2 H3 $$ [$Hrn $Hlive $Hfree]
     as %rd %ce %es %ms %sts %h %steps %L %ss %W %r' %qs' %ip' H
   iNamed H
   ihave Hrn := ownRawNodeAt_ownRawNode _ _ _ _ _ _ _ _ $$ Hrn

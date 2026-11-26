@@ -6659,3 +6659,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   RawNode__HasReadyAbs at `some md` (`durTie_scopeOpt`, `pidle_of_hasReady` reads the log's boundary only).
 - **Decision.** The Antithesis lead (2026-11-26: decision 1; the `Advance.form` premise at pre-vote off). No axiom, no premise
   added.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C4: `RawNode.readyWithoutAccept.spec`/`acceptReady.spec` and `RawNode.Ready.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (approved, C4).** Spec/…/RawNode__readyWithoutAccept.lean and RawNode__acceptReady.lean: `sc : Bool` → `sc :
+  Option RnMode` with decision 1's premise `∀ md, sc = some md → snapshots, confChanges, forwarding, async off` (the
+  proofs read the scope's no-snapshot facts; the approved text named only the type change); `basicScope sc` → `sc`.
+  readyWithoutAccept's in-scope fact `∀ md, sc = some md → rs.delivered ++ ce <+: r.p.log ∧ … ∧ (md.transfer = false →
+  ∀ q ∈ ms, (absMsgOf q.st).isSome)` (was `sc = true → roleGo r.p.role = stateW64 s.role ∧ … ∧ ∀ q ∈ ms, …`: the
+  role conjunct dropped, unused since 30c8840abc; typed only at transfer off). acceptReady's `%Hout` at `∀ md, sc = some md
+  →`. RawNodeAbsSpecs.lean: `RawNode.Ready.absSpec` at decision 1's form (was `∀ sc : Bool`).
+- **Proof.** RawNode__readyWithoutAccept/acceptReady at `Option RnMode` (`rnScopeAt_pureOpt`, `rnScopeAt_keepOpt`,
+  `durTie_scopeOpt`). RawNode__ReadyAbs at `some md`: the transfer conjuncts of `Ready.form` (each message typed or a
+  transfer message; `XReadyOk`) from the named state's queues (`ownRawNodeReadyS_xq`: `ownRaftPhysReady`'s `XfOk`,
+  `outboxRelP`, `MsSub`; `xmsgOf_isSome_of_shape`, `xReadyOk_of` with the scope's `XScopeOk` at transfer on; typed at
+  transfer off). Users at `none`: TracedRawNodeReady.lean, node__run_gated.lean (mechanical: `false` → `none (fun _ h =>
+  by cases h)`), RawNodeSpecOfAbs.
+- **Decision.** The Antithesis lead (C4 approved; decision 1). No axiom, no top-level premise.

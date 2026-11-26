@@ -116,13 +116,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ps qs ip sc Hsteps0 Hunp0
+  intro γ rn id rs ps qs ip sc hsc0 Hsteps0 Hunp0
   wp_start as H
   iNamed H
   iNamed Hrn
   -- (#33 S4) `ownRawNodeAt`: the queue's states forgotten, the scope read
   ihave Hpend := pendAt_lentPend γ id rs.bw rs.slent steps rs.steps qs $$ Hpend
-  icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   -- (D22 S-d3a) no loan (the queue is empty): a pending snapshot was restored since the last
   -- `Ready`, and is not in progress
   have Hsl : rs.slent = none := Hloan.none_of_nil Hsteps0
@@ -788,40 +788,35 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- (#33 S4) the facts at `s`: the messages' readings (`readyMsgs_perm`), and in the scope the role
   -- and the committed log handed out
   have Hmsperm := (readyMsgs_perm id s.outbox ms1 ms2 Houtbox (fun q h => (HmsgsAA_ok.2 q h).1)).1
-  have Hscf0 : sc = true → roleGo ps.p.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.p.log ∧
+  have Hscf0 : ∀ md, sc = some md → rs.delivered ++ ce <+: ps.p.log ∧
       (rs.delivered ++ ce).length ≤ uint.nat ps.p.commit := by
-    intro hsc
-    obtain ⟨-, Hpv, -, -, -, Hprev, Hsn, -⟩ := Hscope hsc
+    intro md hsc
+    obtain ⟨-, Hprev, Hsn, -⟩ := (Hscope md hsc).1.2.2.2.2.1 (hsc0 md hsc).1
     subst Hps
     simp only [toRState_p]
-    refine ⟨?_, ?_⟩
-    · simp only [toPState]
-      cases hr : s.role with
-      | preCandidate => have := Hprecand hr; rw [Hpv] at this; cases this
-      | _ => rfl
-    · have Hfp0 : fp0 = [] := by
-        apply List.eq_nil_of_length_eq_zero
-        have := Hfp.1
-        have h0 : uint.Z (toPState s).base.index' = 0 := by
-          show uint.Z s.logst.prev.index' = 0; rw [Hprev]; rfl
-        omega
-      have H := Hdpre Hsn
-      rw [Hfp0] at H
-      unfold cprefix at H
-      simp only [List.nil_append] at H
-      refine ⟨H.trans (List.take_prefix _ _), ?_⟩
-      have := H.length_le
-      simp only [List.length_take] at this
-      show _ ≤ uint.nat (toPState s).commit
-      unfold uint.nat; unfold uint.Z at this; omega
+    have Hfp0 : fp0 = [] := by
+      apply List.eq_nil_of_length_eq_zero
+      have := Hfp.1
+      have h0 : uint.Z (toPState s).base.index' = 0 := by
+        show uint.Z s.logst.prev.index' = 0; rw [Hprev]; rfl
+      omega
+    have H := Hdpre Hsn
+    rw [Hfp0] at H
+    unfold cprefix at H
+    simp only [List.nil_append] at H
+    refine ⟨H.trans (List.take_prefix _ _), ?_⟩
+    have := H.length_le
+    simp only [List.length_take] at this
+    show _ ≤ uint.nat (toPState s).commit
+    unfold uint.nat; unfold uint.Z at this; omega
   -- (#33 S4, 2026-11-24) and every message handed out typed: no transfer request stepped in the
   -- scope (`RnScopeBasic`'s `NGhost.xs`), so `XfOk`'s last clause
-  have Hscf : sc = true → roleGo ps.p.role = stateW64 s.role ∧ rs.delivered ++ ce <+: ps.p.log ∧
+  have Hscf : ∀ md, sc = some md → rs.delivered ++ ce <+: ps.p.log ∧
       (rs.delivered ++ ce).length ≤ uint.nat ps.p.commit ∧
-      ∀ q ∈ ms1 ++ nonself id ms2, (absMsgOf q.st).isSome := fun hsc =>
-    ⟨(Hscf0 hsc).1, (Hscf0 hsc).2.1, (Hscf0 hsc).2.2,
-      fun q hq => absMsgOf_isSome_of_rel Houtbox q (Hsub q hq)
-        (Hxf.typed_xs (Hscope hsc).2.2.2.2.2.2.2.2.2 q (Hsub q hq))⟩
+      (md.transfer = false → ∀ q ∈ ms1 ++ nonself id ms2, (absMsgOf q.st).isSome) := fun md hsc =>
+    ⟨(Hscf0 md hsc).1, (Hscf0 md hsc).2,
+      fun ht q hq => absMsgOf_isSome_of_rel Houtbox q (Hsub q hq)
+        (Hxf.typed_xs ((Hscope md hsc).1.2.2.2.2.2.1 ht) q (Hsub q hq))⟩
   isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger Hsc]
   · iexists s
     isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr Hledger]

@@ -239,7 +239,7 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es ms h L s sc Hbnd
+  intro γ rn id rs rd ce es ms h L s sc hsc0 Hbnd
   wp_start as H
   iNamed H
   -- (2026-10-28, stage U3c) a lent snapshot's committed log ends at its id
@@ -252,7 +252,7 @@ theorem RawNode.acceptReady.wp_proof
       icases ownRawNodeReady_loanLast γ rn id rs rd ce es ms true l0 $$ Hrn' with ⟨%Hx, -⟩
       ipureintro; intro l hl; cases hl; exact Hx
   -- (#33 S4) the scope, read
-  icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   iNamed Hrn
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
@@ -1211,23 +1211,27 @@ theorem RawNode.acceptReady.wp_proof
       rw [Hprev, Hsents, List.nil_append] at Hidx'
       exact DurFull_next_snap _ _ _ _ _ _ _ Hfp Hidx'
   -- (#33 S4) the scope after: no snapshot handed out in it (none pending), what it reads kept
-  have HLn : RnScopeBasic rs s → L = none := fun H => by
+  have HLn : s.logst.snap = none → L = none := fun H => by
     cases hl : L with
     | none => rfl
     | some l =>
       exfalso
       have h1 := (Hrdp.2 l hl).2.1
-      rw [H.2.2.2.2.2.2.1] at h1; cases h1
-  have HscN : RnScopeBasic rs s →
-      RnScopeBasic rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) :=
-    fun H => ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, HLn H, by rw [HpN]; exact H.2.2.2.2.2.1,
-      by rw [Hlogst, Haf2, Hf_snap]; exact H.2.2.2.2.2.2.1, fun m hm => by simp [readyNstate] at hm,
-      H.2.2.2.2.2.2.2.2⟩
-  ihave Hsc := rnScopeAt_keep sc rs rsN s
-    (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) HscN HstN $$ Hsc
-  ihave %Hdurf := durTie_scope γ sc rsN
+      rw [H] at h1; cases h1
+  -- (antithesis parity B1, step C4) at each mode the scope names: the snapshot conjunct as above, the
+  -- rest read off fields the hand-out keeps
+  have HscN : ∀ md, sc = some md → RnScope md id rs s → RnScope md id rsN (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) :=
+    fun md h H => ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, fun hs =>
+      ⟨HLn (H.2.2.2.2.1 hs).2.2.1, by rw [HpN]; exact (H.2.2.2.2.1 hs).2.1,
+        by rw [Hlogst, Haf2, Hf_snap]; exact (H.2.2.2.2.1 hs).2.2.1, fun m hm => by simp [readyNstate] at hm⟩,
+      H.2.2.2.2.2.1, H.2.2.2.2.2.2.1, H.2.2.2.2.2.2.2.1, H.2.2.2.2.2.2.2.2⟩
+  ihave Hsc := rnScopeAt_keepOpt sc rs rsN s
+    (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) HscN HstN
+    (hx := fun _ _ _ H => H) $$ Hsc
+  ihave %Hdurf := durTie_scopeOpt γ sc rsN
     (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length))
-    (fun h => HscN (Hscope h)) $$ HdurN
+    (fun md h => ⟨((HscN md h (Hscope md h).1).2.2.2.2.1 (hsc0 md h).1).2.1,
+      ((HscN md h (Hscope md h).1).2.2.2.2.1 (hsc0 md h).1).2.2.1⟩) $$ HdurN
   -- the in-progress boundary after: the log's end
   have HipEq : uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.inprogress =
       uint.Z s.logst.prev.index' + (s.logst.sents.length : Int) + (s.logst.uents.length : Int) + 1 := by
@@ -1244,7 +1248,7 @@ theorem RawNode.acceptReady.wp_proof
         uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.inprogress := rfl
     have := uint_Z_nonneg s.logst.prev.index'
     omega
-  have Hfacts : sc = true →
+  have Hfacts : ∀ md, sc = some md →
       (selfmsgs id ms2).filterMap (fun q => absMsgOf q.st) ≡ₚ
         s.outbox.filter (fun m => decide (m.dst = id)) ∧
       phsNext rs.phs hrd = HardStateM.mk s.term s.vote s.logst.committed ∧
@@ -1255,12 +1259,12 @@ theorem RawNode.acceptReady.wp_proof
       uint.nat (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.inprogress - 1 =
         (toPState s).log.length ∧
       L = none := by
-    intro hsc
-    have Hsc0 := Hscope hsc
-    have Hp0 : uint.Z s.logst.prev.index' = 0 := by rw [Hsc0.2.2.2.2.2.1]; rfl
+    intro md hsc
+    have Hsc0 := (Hscope md hsc).1.2.2.2.2.1 (hsc0 md hsc).1
+    have Hp0 : uint.Z s.logst.prev.index' = 0 := by rw [Hsc0.2.1]; rfl
     refine ⟨(readyMsgs_perm id s.outbox ms1 ms2 Houtbox (fun q h => (HmsgsAA_ok.2 q h).1)).2, Hhseq,
-      ?_, ?_, ?_, HLn Hsc0⟩
-    · obtain ⟨⟨Hd1, -⟩, Hb⟩ := Hdurf hsc
+      ?_, ?_, ?_, HLn Hsc0.2.2.1⟩
+    · obtain ⟨⟨Hd1, -⟩, Hb⟩ := Hdurf md hsc
       have Hb' : uint.Z s.logst.prev.index' =
           uint.Z (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.prev.index' := by
         rw [HpN]
@@ -1363,7 +1367,7 @@ theorem RawNode.acceptReady.wp_proof
         p := { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } }
     ((selfmsgs id ms2).filterMap (fun q => absMsgOf q.st))
     (uint.nat (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst.inprogress - 1)
-    (basicScope sc)
+    sc
     (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
