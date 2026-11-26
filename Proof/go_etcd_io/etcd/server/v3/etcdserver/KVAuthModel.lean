@@ -1750,12 +1750,13 @@ theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
 
 end pure2
 
-section defs
+section defsHF
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The KV model of the committed log `L` in the mode `on`**, from the start's auth state `st₀`
 (the store's state at the server's start) and the start's log. -/
@@ -1813,7 +1814,7 @@ theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
 
 /-! ### A client's view of the auth history (the auth-mode merge's 5b, 2026-10-29) -/
 
-end defs
+end defsHF
 
 section defsHF
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -1917,6 +1918,16 @@ instance authHistFrozen_persistent (γk : KVNames) (γz : GName) (hs : List auth
     Persistent (authHistFrozen (GF := GF) γk γz hs) := by
   unfold authHistFrozen; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The KV invariant in the mode `on`** (`kvInv`'s, with the mode-`on` model, see the header):
 the server's half of the committed log `L` (after `ai0`, consecutive, every entry of the mode-`on`
 log and determinate at the state it is applied at, every entry above the start's consistent index)
@@ -1959,6 +1970,15 @@ theorem kvInvM_true (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthSta
 instance kvInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
     (st₀ : auth.AuthState) : Persistent (kvInvM (GF := GF) on γ γk st₀) := by
   cases on <;> unfold kvInvM <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **An admin entry's result tied to its step** (the auth plan's E3x, persistent): for an
 admin request, a refused outcome (`authApplierV3.Apply`'s `needAdminPermission` check) names why,
@@ -2116,6 +2136,16 @@ theorem entryRevGrantId_nonGrant (lm : lease.Mode) (e : EntryModel)
 
 /-! ### The auth history's laws (the auth-mode merge's 5b) -/
 
+end lemmas
+
+section lemmasHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- The whole auth history is the view and the invariant's half. -/
 theorem authHist_split (γk : KVNames) (l : List auth.AuthState) :
     monoListAuthOwn (GF := GF) γk.hist 1 l ⊢
@@ -2125,6 +2155,15 @@ theorem authHist_split (γk : KVNames) (l : List auth.AuthState) :
   rw [Qp.half_add_half] at h
   unfold authHistView
   exact h.1
+
+end lemmasHF
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- The history's two halves agree, and update together by an append. -/
 theorem authHist_halves_update (γk : KVNames) (l l' x : List auth.AuthState) :
