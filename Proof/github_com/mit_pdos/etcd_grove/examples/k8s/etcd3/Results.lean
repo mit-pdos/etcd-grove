@@ -86,21 +86,21 @@ variable [NaInvG GF]
 /-- **`Main` does not panic** (`Link.lean`'s `k8s_etcd3.wp_Main`). -/
 theorem k8setcd3_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_Main
 
 /-- **`MainCluster` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainCluster`). -/
 theorem k8setcd3_MainCluster [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_MainCluster
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_etcd3.wp_MainPartition`). -/
 theorem k8setcd3_MainPartition [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_etcd3.wp_MainPartition
 

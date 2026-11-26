@@ -71,7 +71,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelDe
 public import Proof.runtime.Start
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 public import Net.Statement.DistDeploy
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.log.NewModel
 public import GooseLang.Ext.Net.Ghost
 public import GooseLang.Ext.Fs.Ghost
@@ -102,7 +101,7 @@ def etcd_robust.spec : Prop :=
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     -- carried over from the single-process theorems (review F7); each to go when its model is proved
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     -- the deployment (checked by the programs, not a premise)
     (d : Deployment)
     -- bootstrap's log at Go's peers and contexts; the environment and workload premises not yet discharged
@@ -130,7 +129,7 @@ def etcd_robust_nocrash.spec : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment)
     (boot : List LogEntry) (Hbf : BootFacts d boot)
     (Henv : EtcdEnv d)

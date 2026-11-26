@@ -4,6 +4,7 @@ module
 public import Code.go_etcd_io.etcd.client.v3.chunk0
 public import Code.go_etcd_io.etcd.client.v3.chunk1
 public import Code.go_etcd_io.etcd.client.v3.chunk2
+public import Code.go_etcd_io.etcd.client.v3.chunk3
 
 @[expose] public section
 

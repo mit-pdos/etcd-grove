@@ -62,21 +62,21 @@ theorem etcd_all.wp_spawn : etcd_all.spawn.spec (GF := GF) (hG := hG) :=
 /-- **The KV part** (`KV.lean`), over its five drivers' linked results. -/
 theorem etcd_all.wp_KV [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     etcd_all.KV.spec (GF := GF) (hG := hG) :=
   etcd_all.KV.wp_proof etcd_all.wp_spawn etcd_txnlinfaultsN.wp_Main etcd_partition.wp_MainWatch
     etcd_compactwatch.wp_Main etcd_compacted.wp_Main etcd_cache.wp_Main
 
 /-- **The Auth part** (`Auth.lean`), over its two drivers' linked results. -/
 theorem etcd_all.wp_Auth [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcd_all.Auth.spec (GF := GF) (hG := hG) :=
   etcd_all.Auth.wp_proof etcd_all.wp_spawn etcd_authN.wp_Main etcd_authlease.wp_Main
 
 /-- **The Lease part** (`Lease.lean`), over its two drivers' linked results. -/
 theorem etcd_all.wp_Lease [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     etcd_all.Lease.spec (GF := GF) (hG := hG) :=
   etcd_all.Lease.wp_proof etcd_all.wp_spawn etcd_leaseN.wp_Main etcd_leasecatchup.wp_Main
 
@@ -90,7 +90,7 @@ theorem etcd_all.wp_Restart [_root_.Perennial.net.FieldAssumptions]
 eleven drivers' linked results. -/
 theorem etcd_all.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=
   etcd_all.Main.wp_proof etcd_all.wp_spawn etcd_all.wp_KV etcd_all.wp_Auth etcd_all.wp_Lease
     etcd_all.wp_Restart
@@ -107,7 +107,7 @@ theorem etcd_all.wp_ParamsOk : etcd_all.ParamsOk.spec (GF := GF) (hG := hG) :=
 `ParamsOk`, with the schedules `cluster3.RandomSchedule` draws. -/
 theorem etcd_all.wp_MainChecked [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_all.MainChecked.spec (GF := GF) (hG := hG) :=
   etcd_all.MainChecked.wp_proof etcd_all.wp_ParamsOk cluster3.wp_RandomSchedule etcd_all.wp_Main
 
