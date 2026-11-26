@@ -5872,3 +5872,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
      `ReachIn.advance` take `R.md.snapshots = false → AdvanceNoSnap …` (new in `Stmts.lean`: `AdvanceEndR`
      with the storage acknowledgement `AckEndR`'s first or second arm). No raft relation changes. B3
      lifts it (design §7, item 7).
+
+## 2026-11-26 — antithesis parity B1, Sim step 3c: a leader has no read request pending without reads (#33)
+
+- **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/{Rel,Init,MsgShape}.lean`.
+- **Defect found migrating `msgShape` (Sim helper; lead's decision Q5, 2026-11-25, leader-only form).**
+  `TickEnd`'s heartbeats now carry `ctx = hbCtx s.rd.ro` (not `[]`), so `msgShape.stmt`'s "a heartbeat
+  with no context without reads" needs the read-only queue empty at a leader's tick; nothing in
+  `NodeOk` said so. **Change:** `NodeFacts` gains a 10th conjunct
+  `R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = []` (projection `NodeFacts.roPend`).
+  Inductive: a node becomes leader only through `pbecomeLeader` (`rd := rdNL`, the queue reset), and
+  with reads off no read request is queued. Leader-only so that the initial and restarted states
+  (`PInitR`, `RestartR`: followers, `rd` unconstrained) need nothing new; no harness obligation.
+- `msgShape_in` (`Sim/MsgShape.lean`): `msgShape.stmt`'s conclusion over `ReachIn` at `msk ≤ mskS4`.

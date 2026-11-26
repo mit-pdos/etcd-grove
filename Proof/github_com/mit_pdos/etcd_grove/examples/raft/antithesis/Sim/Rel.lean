@@ -293,7 +293,9 @@ positions; what was handed out (`delivered`, and in a drain `ce`) a prefix of th
 its commit; the `Ready`'s messages not yet sent under the mask (`MsgMask`); the disk's term within
 raft's (a write is of a state raft had, and terms only grow: what `GC` needs to keep a leader's and a
 candidate's records at raft's term); a reported pre-candidate is a follower to raft (`toPState`), so
-that a leader's binding role is `leader`. -/
+that a leader's binding role is `leader`; without reads a leader has no read request pending (it
+becomes leader with the read-only queue reset, `pbecomeLeader`, and none is queued without reads:
+a tick's heartbeats carry no context, `hbCtx`). -/
 def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
@@ -301,7 +303,8 @@ def NodeFacts (R : RunCfg) (v : NodeView) : Prop :=
   LogIdx v.dur.log ∧
   v.delivered ++ v.ce <+: v.dur.log ∧ (v.delivered ++ v.ce).length ≤ uint.nat v.dur.commit ∧
   (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term ∧
-  (v.pre = true → v.ps.role = .follower)
+  (v.pre = true → v.ps.role = .follower) ∧
+  (R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = [])
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -565,7 +568,12 @@ theorem NodeFacts.durTerm {R : RunCfg} {v : NodeView}
 theorem NodeFacts.preRole {R : RunCfg} {v : NodeView}
     (h : NodeFacts R v) :
     v.pre = true → v.ps.role = .follower :=
-  h.2.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.2.1
+
+theorem NodeFacts.roPend {R : RunCfg} {v : NodeView}
+    (h : NodeFacts R v) :
+    R.md.reads = false → v.ps.role = .leader → v.ps.rd.ro.pending = [] :=
+  h.2.2.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 

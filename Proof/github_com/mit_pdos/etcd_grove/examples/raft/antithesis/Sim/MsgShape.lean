@@ -652,6 +652,23 @@ theorem msgShape_in_of {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec 
   · obtain ⟨m, hc, hmt, hx⟩ := h4 hh
     rw [hx]; exact (hcm m hc).2 hrd hmt
 
+/-- **`msgShape.stmt` over `ReachIn`**, for the runs a mask below `mskS4` admits: `msgShape_in_of`,
+a leader having no read request pending without reads (`NodeFacts.roPend`). -/
+theorem msgShape_in (msk : SimMask) (hmsk : msk ≤ mskS4) :
+    ∀ (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (S : AntCheck.State)
+      (net : List Msg) (xnet : List XMsg) (n : Fin R.N) (v : NodeView) (r₁ : RState)
+      (xs : List XMsg) (rd : ReadyD),
+      InMask msk R net xnet →
+      NetOk R S net → NodeOk R dec S net n v → ReachIn msk R dec Adm net xnet n v r₁ xs →
+      (rd.msgs ++ rd.resp).Perm (r₁.p.outbox.filter (fun q => decide (q.dst ≠ nodeId n))) →
+      EntsHarness v.r.full →
+      (∀ m, v.cause = some m → EntsHarness m.entries ∧ (R.md.reads = false → m.ty = .heartbeat → m.ctx = [])) →
+      EntsHarness r₁.full ∧ (∀ q ∈ rd.msgs ++ rd.resp, ReadyMsgShape R.md (nodeId n) q) ∧
+      ReadyMsgsToVoters R.N rd := by
+  intro R dec Adm S net xnet n v r₁ xs rd hin hnet hv hr hmsg hfl hcm
+  have hrd : R.md.reads = false := by rw [(hin.s4 hmsk).1]
+  exact msgShape_in_of hmsk hin hnet hv hr hmsg hfl (hv.facts.roPend hrd) hcm
+
 end shape
 
 end AntSim
