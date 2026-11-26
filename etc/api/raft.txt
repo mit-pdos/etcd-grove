@@ -219,6 +219,9 @@ importable Proof.go_etcd_io.raft.v3.RawNodeAbsSpecs
 importable Proof.go_etcd_io.raft.v3.Protocol.CommitCamp
 # (2026-11-26) the antithesis run's cluster allocation (cluster_alloc_run: any server count, a one-entry normal boot log)
 importable Proof.go_etcd_io.raft.v3.ClusterAllocRun
+# (2026-11-26) the restart over the sealed RawNode at a mode (NewRawNode.restartAtApiSpec)
+importable Proof.go_etcd_io.raft.v3.RawNodeStartApi
+importable Proof.go_etcd_io.raft.v3.Protocol.Enter
 importable Proof.go_etcd_io.raft.v3.Protocol.RnMode
 importable Spec.go_etcd_io.raft.v3.RawNode__Campaign
 importable Spec.go_etcd_io.raft.v3.raft__appendEntry
