@@ -8,7 +8,7 @@ trusted exactly as on lean (decision below), so log has no Go model and no delta
 | repo | branch | head | state |
 |---|---|---|---|
 | Perennial | `goose-model-overlay-rest` | `09bd3826c` | **LANDED** on Perennial lean as `da0a82c26` (merged with lean `a706aeb9a`, with the KNOWN_LIMITATIONS GC section); the etcd-grove branch is pinned to `da0a82c26` |
-| etcd-grove | `go-models-rest-egnet/2026-11-24` | (this notes commit; code at `4a10a63935`) | **the packet's branch**: pinned to the **landed Perennial `da0a82c26`**, **merged with etcd-grove lean `93687cba82`** (pin `a706aeb9a`, an ancestor of `da0a82c26`; session 16); the two gate fixes of #8 7176991791 (tier, gomodels); **all default targets built, EXIT 0** (29400 jobs, `tmp/gm16/s2-full4.log`); **full `etc/gates.sh`: every section ok** (VM, `tmp/gm16/s2-gates1.log`, plus the sections the VM cannot run, run locally: goose, reader-slot, models, remote, merge-status, iris-premise, premise-witness); `tcb-report --check` matches lean's baseline (374 axioms, 0 sorry); **all 68 collections match** |
+| etcd-grove | `go-models-rest-egnet/2026-11-24` | (this notes commit; code at `4a10a63935`) | **the packet's branch**: pinned to the **landed Perennial `da0a82c26`**, **merged with etcd-grove lean `eb4f1a1633`** (pin `a706aeb9a`, an ancestor of `da0a82c26`; session 16); the two gate fixes of #8 7176991791 (tier, gomodels); **all default targets built, EXIT 0** (29400 jobs, `tmp/gm16/s2-full4.log`); **full `etc/gates.sh`: every section ok** (VM, `tmp/gm16/s2-gates1.log`, plus the sections the VM cannot run, run locally: goose, reader-slot, models, remote, merge-status, iris-premise, premise-witness); `tcb-report --check` matches lean's baseline (374 axioms, 0 sorry); **all 68 collections match** |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
 **Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
@@ -2373,6 +2373,10 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   reader-slot ok, gomodels ok, models ok, remote ok, merge-status selftest ok, iris-premise ok (16 listed),
   premise-witness ok (49 statements). Top-level statements vs lean: only `FieldAssumptions` binders removed
   (and their prose), nothing added.
+  Then lean moved to `eb4f1a1633` (4 commits, tcb-report's trusted opaques: etc/ and the baselines only),
+  merged as `4b194f5080` (no conflict): `lake build --no-build` all 29400 up to date; `tcb-report --check`
+  "matches etc/tcb-baseline.txt (374 axioms, 0 sorries, 93 opaques)"; every collection `--check` exit 0
+  (`tmp/gm16/s2-tcb2.log`).
 - **(2026-11-26, session 16, the two gate fixes, coordinator-E #8 7176991791)** etcd-grove egnet code `08e66dd44a`
   (pin `09bd3826c`): `tier` fixed (`os.Remove.wp_fileSncNFmt` to the defs module `Proof/os/RemoveParts.lean`;
   `tier-check --check` ok, baseline unchanged), `gomodels` fixed (both `internal/gomodel.toml` = Perennial
