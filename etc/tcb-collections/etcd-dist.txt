@@ -58,6 +58,10 @@ axiom etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof
 axiom etcd_dist.authd.KV_DeleteOn_dist.wp_proof
 axiom etcd_dist.authd.KV_GetOn_dist.wp_proof
 axiom etcd_dist.authd.KV_PutOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_GrantOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_LeasesOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_RevokeOn_dist.wp_proof
+axiom etcd_dist.authd.Lease_TimeToLiveOn_dist.wp_proof
 axiom etcd_dist.authd.New_user_dist.wp_proof
 axiom etcd_dist.authd.Txn_CommitOn_dist.wp_proof
 axiom etcd_dist.authd.WatchOn_dist.wp_proof
