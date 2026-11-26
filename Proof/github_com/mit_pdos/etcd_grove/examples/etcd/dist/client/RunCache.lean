@@ -175,7 +175,7 @@ theorem RunCache.wp_proof
   -- `ccli, err := newClient(eps)`
   wp_apply (wp_newClient eps addrs (Classical.choice hV) Htb hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

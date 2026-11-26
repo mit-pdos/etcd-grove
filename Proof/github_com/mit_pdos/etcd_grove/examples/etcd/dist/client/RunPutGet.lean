@@ -69,7 +69,8 @@ theorem RunPutGet.wp_proof
   iunfold kvPfxShare at Hsh
   icases Hsh with ⟨%Γ, %γ, %Hauth, #Hms, #Hpfx, Hhalf⟩
   -- putget's invariant, from the owner's half
-  imod (pgInv_alloc (Gg := hG.goose_globalGS) γ ⊤) $$ Hhalf with ⟨%γP, #Hpg⟩
+  ihave Hpg0 := pgInv_alloc (Gg := hG.goose_globalGS) γ ⊤ $$ Hhalf
+  imod Hpg0 with ⟨%γP, #Hpg⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -87,7 +88,7 @@ theorem RunPutGet.wp_proof
   -- `cli, err := newClient(eps)`
   wp_apply (wp_newClient eps addrs (Classical.choice hV) Htb hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

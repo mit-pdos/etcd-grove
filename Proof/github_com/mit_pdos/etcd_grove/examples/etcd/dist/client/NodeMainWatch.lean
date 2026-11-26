@@ -99,7 +99,7 @@ theorem NodeMainWatch.wp_proof
   wp_apply (wp_newClient out (rotateL epsL (sint.nat c)) (Classical.choice hV) htb hpl) $$ [$Hlt]
     as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
   rotate_left
   · -- no client: `NodeMain` returns
     obtain ⟨Hcerr, -⟩ := Hcfail

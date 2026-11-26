@@ -56,7 +56,6 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
 
 /-- **compact's `checkCompactRev`, linked.** -/
 theorem wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG) :=

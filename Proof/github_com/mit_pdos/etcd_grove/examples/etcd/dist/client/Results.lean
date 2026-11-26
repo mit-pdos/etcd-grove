@@ -12,8 +12,8 @@ named `Results.lean`, not `LeaseResults.lean`, because `etc/proof_roots.py` take
   (`Lease_LeasesGranted_dist`);
 - `wp_RunLeaseExpiry` (lease mode `revocable`): `leaseGrant.spec` (`Lease_GrantLive_dist`), `leaseList.specLive`
   (`Lease_LeasesLive_dist`), `gone`.
-The client's `newClient` is over `etcdstart`'s linked `NewClients` (under `DialWithBalancerBody`, as every client
-result), `Client.Close` its trust-boundary axiom, `context`'s and `time.Sleep`'s linked results.
+The client's `newClient` is over `etcdstart`'s linked `NewClients`,
+`Client.Close` its trust-boundary axiom, `context`'s and `time.Sleep`'s linked results.
 
 The lease mode and the lessor names' facts these runs' specs take (`Γ.kv.lm`, distinct `Γ.ls`, every member's
 `leaseMember`) are what the cluster's start at that mode gives (`server/ClusterStartD.lean`, `clusterStartDL`:
@@ -71,7 +71,6 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-variable [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
 
 /-- `newClient`, linked (`etcdstart`'s `NewClients`, `zap.NewNop`'s axiom). -/
 theorem wp_newClientDist : newClient.spec (GF := GF) (hG := hG) :=

@@ -125,11 +125,11 @@ theorem RunDurable.wp_proof
       (try iexists n)
       (try iframe)
       (try (ipureintro; constructor <;> word))
-  have hmN : sint.nat m ≤ 256 := by unfold sint.nat; omega
+  have hmN : sint.nat m ≤ 256 := by have h2 := Hm.2; unfold sint.Z at h2; unfold sint.nat; omega
   -- `cli, err := newClient(eps)`
   wp_apply (wp_newClient eps addrs (Classical.choice hV) Htb hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -146,7 +146,8 @@ theorem RunDurable.wp_proof
   · iframe #
   ihave #Hnil := optsAt_nil (GF := GF)
   -- durable's invariant, with the `n` puts' tokens
-  imod (durInv_alloc (Gg := hG.goose_globalGS) γ (sint.nat m) ⊤) $$ Hhalf
+  ihave Hdi0 := durInv_alloc (Gg := hG.goose_globalGS) γ (sint.nat m) ⊤ $$ Hhalf
+  imod Hdi0
     with ⟨%γF, %γs, %Hγs, #Hdi, Htoks⟩
   ihave Hfa := durFiredAll_none (Gg := hG.goose_globalGS) γF
   imod Hfa with #Hfa

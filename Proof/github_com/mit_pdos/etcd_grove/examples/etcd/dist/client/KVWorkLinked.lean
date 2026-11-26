@@ -51,7 +51,6 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-variable [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
 
 theorem wp_newClient : newClient.spec (GF := GF) (hG := hG) :=
   newClient.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClients
