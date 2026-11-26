@@ -19,6 +19,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Clus
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__reader
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__running
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__send
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__spawn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__transferer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DefaultConfig
@@ -65,6 +66,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__reportCause
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__saveDisk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__sendEv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__sendMsg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__sent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__start
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__stateEv
@@ -89,10 +91,8 @@ public import Proof.go_etcd_io.raft.v3.RawNodeApiLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunInMaskB1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__send
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__drain
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__readIndex
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__sendMsg
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Link
 public import Proof.go_etcd_io.raft.v3.Link
@@ -264,6 +264,10 @@ theorem AntHarness.node.wp_alone [StorageModel GF] [AntHarness.AntStor GF] :
     AntHarness.node.alone.spec (GF := GF) (hG := hG) :=
   AntHarness.node.alone.wp_proof
 
+theorem AntHarness.Cluster.wp_send [StorageModel GF] [AntHarness.AntStor GF] :
+    AntHarness.Cluster.send.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.send.wp_proof AntHarness.Cluster.wp_deliver AntHarness.Cluster.wp_node AntHarness.wp_below raftpb.Message.wp_GetType raftpb.Message.wp_GetTo raftpb.Message.wp_GetFrom _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done proto.wp_ClonePb rnTermLB_persistent
+
 theorem AntHarness.Cluster.wp_spawn [StorageModel GF] :
     AntHarness.Cluster.spawn.spec (GF := GF) (hG := hG) :=
   AntHarness.Cluster.spawn.wp_proof _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done
@@ -352,6 +356,10 @@ theorem AntHarness.node.wp_sendEv [StorageModel GF] [AntHarness.AntStor GF] :
     AntHarness.node.sendEv.spec (GF := GF) (hG := hG) :=
   AntHarness.node.sendEv.wp_proof AntHarness.node.wp_msg
 
+theorem AntHarness.node.wp_sendMsg [StorageModel GF] [AntHarness.AntStor GF] :
+    AntHarness.node.sendMsg.spec (GF := GF) (hG := hG) :=
+  AntHarness.node.sendMsg.wp_proof AntHarness.Cluster.wp_send proto.wp_ClonePb
+
 theorem AntHarness.node.wp_sent [StorageModel GF] :
     AntHarness.node.sent.spec (GF := GF) (hG := hG) :=
   AntHarness.node.sent.wp_proof raftpb.Message.wp_GetType
@@ -386,10 +394,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
-variable (h_antithesis_Cluster__send : ∀ [StorageModel GF] [AntHarness.AntStor GF], AntHarness.Cluster.send.spec (GF := GF) (hG := hG))
 variable (h_antithesis_node__drain : ∀ [StorageModel GF] [AntHarness.AntStor GF], AntHarness.node.drain.spec (GF := GF) (hG := hG))
 variable (h_antithesis_node__readIndex : ∀ [StorageModel GF] [AntHarness.AntStor GF], AntHarness.node.readIndex.spec (GF := GF) (hG := hG))
-variable (h_antithesis_node__sendMsg : ∀ [StorageModel GF] [AntHarness.AntStor GF], AntHarness.node.sendMsg.spec (GF := GF) (hG := hG))
 variable (h_antithesis_node__step : ∀ [StorageModel GF] [AntHarness.AntStor GF], AntHarness.node.step.spec (GF := GF) (hG := hG))
 
 
