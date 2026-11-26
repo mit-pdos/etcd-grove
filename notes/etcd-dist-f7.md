@@ -1465,3 +1465,34 @@ WatchOn_dist.spec`, `wp_WithPrefix`, `wp_WithRev`, `wp_WithRange`, `wp_AfterFunc
   `akHist_readAu Γ.kv` (`Q σ := ⌜stateHistOk σ⌝`; `kvReadAu` is `□ AU`, `icases … with #H`); then
   `RootWatch.lean`'s `root_resp`/`histOk_of_rootEvOk` (the elements' check slot unused).
 - u's watch: the same at `[au]`, u's `cfg`; `RootWatch.lean`'s `u_resp` (no auth fact: the range filters).
+
+### Handoff RA-2 (2026-11-26; S6 `RunAuth`: `RunAuth.wp_proof` and `collectFor` written, UNBUILT)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 as in RA-1. No `sorry`, no
+new axiom, no statement changed. The session stopped at the context limit with nothing of this handoff checked.
+
+**Build status: UNBUILT.** The fk-lean1 seed copy (`cp -a ../dsv-retire-3/.lake/build`) ran while `dsv-retire-3`
+was itself building, so some files were missing when copied (`~/eg/tmp/f7ra-cp.log`): Lake rebuilds what is stale.
+A local background job waits for the copy, then runs `/shared/tmp/f7ra-rb.sh` on RA-1's four modules; log
+`/shared/tmp/f7ra-build1.log` (ends `EXIT n`). First step: read that log (rerun the same command if the job is gone),
+then `CHECK=1 /shared/tmp/f7ra-rb.sh <file>` on each file below, in order, and fix forward.
+
+**Written since RA-1 (none checked by Lean):**
+- `AuthLeaseRunLemmas.lean` (defs): new `section runLemmas` holding `mod_len_sintD`, `srem_eq_umodD`, `anonCli_of_new`,
+  `authClientAt_persistent`, `authClientAt_of_userCli`, moved out of `RunAuthLease.lean` (a proof module, so
+  `RunAuth` may not import it: tier rule). Names and statements are unchanged. `RunAuthLease` already imports this
+  module; rebuild it.
+- `AuthRunDefs.lean`: `watch_all_okD`, `watch_ab_okD` (the `isRangeWatchP`/size premise of `WatchOn_dist` for root's
+  and u's watches); it now imports `auth.RootWatch`.
+- `Spec/.../dist/client/collectFor.lean`, `Proof/.../dist/client/collectFor.lean`: `collectFor.spec` is `Collect.spec`
+  with `cancel`'s `□ ∀ Ψ, ▷ Ψ #() -∗ WP cancel #() {{Ψ}}`. Its proof uses `AfterFunc`, `Collect`, `Stop` and `cancel`,
+  like `RunWatch.lean`'s.
+- `Proof/.../dist/client/RunAuth.lean`: `RunAuth.wp_proof PS (…) (wp_rp : remotePrincipals.specWith PS)
+  (wp_Watch : WatchOn_dist.spec) (wp_collectFor : collectFor.spec) … : RunAuth.specWith PS`. It follows the RA-1
+  plan: `akHist_alloc` before SetUp, `akHist_writeAuD` (a local lemma) for the set-up puts and `z/end`,
+  `akDistEnv` from barrier 1, and root's and u's watches over `akHist_readAu` (`root_resp`, `u_resp`). Its final
+  loop is `auth/Run.lean`'s, copied. Steps most likely to need fixing: the cancel wrappers `Hhc`/`Huc` (iapply goal
+  order), `watchFloorsD_one` (bigSepL singleton simp), the `akDistEnv` floors (`bigSepL_mono` argument shape), and
+  the Put's pure premise (`putWireOf … leaseID`).
+- Not done: a `Link` entry (not linkable while `PS` is open); task 3 (`etcd_auth.Work`'s dist spec and proof) not
+  started; `tier-check`/`lease-order` not run.

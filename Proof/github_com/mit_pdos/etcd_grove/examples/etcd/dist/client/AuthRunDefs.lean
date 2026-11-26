@@ -14,6 +14,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthWatchRefusal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.RootWatch
 
 @[expose] public section
 
@@ -27,6 +28,31 @@ namespace etcd_dist_client
 
 open Iris Iris.BI Net client go_etcd_io.etcd.server.v3.etcdserver
 open etcd_dist etcd_dist.authd
+
+section pure
+variable [GooseExts]
+
+/-- Root's watch `Watch("", WithPrefix(), WithRev(1))`: `WatchOn_dist`'s request premise. -/
+theorem watch_all_okD :
+    (opWatchModel ([] : GoString) [withPrefixM, withRevM (W64 1)]).isRangeWatchP (W64 1) = true ∧
+      ¬ opWatchPanics ([] : GoString) [withPrefixM, withRevM (W64 1)] ∧ 1 ≤ sint.Z (W64 1) ∧
+      watchSizeOk (opWatchModel ([] : GoString) [withPrefixM, withRevM (W64 1)]) := by
+  refine ⟨?_, etcd_auth.watch_all_ok.2, by decide, ?_⟩
+  · simp [opWatchModel, op_simps, OpFull.isRangeWatchP]
+  · unfold watchSizeOk
+    simp [opWatchModel, op_simps]
+
+/-- u's watch `Watch("a", WithRange("b"), WithRev(1))`: `WatchOn_dist`'s request premise. -/
+theorem watch_ab_okD :
+    (opWatchModel etcd_auth.lo [withRangeM etcd_auth.hi, withRevM (W64 1)]).isRangeWatchP (W64 1) = true ∧
+      ¬ opWatchPanics etcd_auth.lo [withRangeM etcd_auth.hi, withRevM (W64 1)] ∧ 1 ≤ sint.Z (W64 1) ∧
+      watchSizeOk (opWatchModel etcd_auth.lo [withRangeM etcd_auth.hi, withRevM (W64 1)]) := by
+  refine ⟨?_, etcd_auth.watch_ab_ok.1.2, by decide, ?_⟩
+  · simp [opWatchModel, op_simps, OpFull.isRangeWatchP]
+  · unfold watchSizeOk
+    simp [opWatchModel, op_simps]
+
+end pure
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
