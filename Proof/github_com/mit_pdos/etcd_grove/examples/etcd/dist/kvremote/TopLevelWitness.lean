@@ -76,8 +76,10 @@ theorem etcd_kv_safe_nocrash.premisesSat :
     rcases hm with rfl | rfl | rfl <;> exact fresh_freshState _
   · intro m hm
     simp [machines, servers, clients, nodeMachines] at hm
-    rcases hm with rfl | rfl | rfl <;>
-      (try simp only [witnessMemberσ, witnessClientσ]) <;> exts_init
+    -- (etcd_safe crash line, D4a) `etcdFsSem`'s `initLocal` is `FsInit`: given explicitly
+    rcases hm with rfl | rfl | rfl
+    · exact ⟨trivial, serverStart_witness.1, by first | trivial | rfl | (simp <;> trivial), trivial⟩
+    all_goals exact ⟨trivial, clientStart_witness, by first | trivial | rfl | (simp <;> trivial), trivial⟩
 
 end etcd_dist
 end EtcdGrove
