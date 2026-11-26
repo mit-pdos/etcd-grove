@@ -20,7 +20,14 @@
   IProp`, the callback gives `Φ (Hs.take j) σ`, the post's live disjunct `∃ S σ l Hc, Φ Hc σ ∗ … ∗
   ⌜… ∧ walRead Hc = some σ⌝ ∗ … ∗ walHistCerts γn.cl νk.sd Hc` (`walHistCerts_take`, `InvWalCrashLaws.lean`);
   T7's `memberDur_crash` passes `fun _ σ => walFilesC …` and drops `Hc`'s facts (T10 threads them into
-  `walFilesC`'s history and the image row). Builds: see the session's commit message/STATUS line.
+  `walFilesC`'s history and the image row). **Unbuilt at handoff** (stopped at the context limit): build of
+  `4022e9a46a` queued on fk-lean2 at handoff, command `FKLEAN_HOST=fk-lean2 /shared/tmp/fklean1-check.sh
+  /shared/etcd-grove-p5 etcd-safe-p5 $(cat /shared/tmp/p5-s6-leaves-all.txt)` (160 leaves: session 5's
+  `/shared/tmp/p5-leaves.txt` plus `etc/importers.py --leaves --git 3dfa5ac91a`), log
+  **`/shared/tmp/p5-s6-build2.log`** (ends `EXIT n`). Next session: read it first; if unfinished, rerun the same
+  command (incremental in fk-lean2's `~/eg/wt/etcd-safe-p5`); fix what fails (likely spots: `InvWalCrashLaws`'s
+  `walHistCerts_take` (`BigSepL.bigSepL_append` destructuring), `MemberCrash.lean`'s `memberDur_crash`
+  pattern). Session 5's merge build was never finished either; this build covers it.
   **(b) plan under the alternative** (next session, in order):
   1. The contract over `walHistH`: `isWalStorage`'s `Save`/`SaveSnap` AUs become `AU <{ ∃∃ Hs, walHistH h Hs
      sized }> <{ walHistH h (Hs ++ [op]) sized, COMM Q Hs }>` (layer 1 needs no `WalSaveOk`/term premise:
