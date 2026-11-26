@@ -94,7 +94,7 @@ theorem RunLeaseExpiry.wp_proof
     (wp_ended : ended.spec (GF := GF) (hG := hG))
     (wp_Close : EtcdGrove.Client.Close.spec (GF := GF) (hG := hG)) :
     RunLeaseExpiry.spec (GF := GF) (hG := hG) := by
-  intro π Γ eps addrs hV Htb hAs hlm
+  intro π Γ eps addrs hV Htb hAs hlm hinj
   wp_start as ⟨Hlt, #Heps, #Hms⟩
   ihave %Hlen := ownSlice_len $$ Heps
   (try wp_auto)
@@ -226,7 +226,7 @@ theorem RunLeaseExpiry.wp_proof
     have hoz : (sint.Z n).toNat = oks.length := by rw [hnz, Hn.2.2.2.2]
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     -- `g, err := leaseGrant(cli, expiryTTL)`: live in the member's lessor history from an index
-    wp_apply (wp_leaseGrant cl x (Classical.choice hV) Γ mid _ hAs hlm) $$ [$Hlt] as %g %gerr ⟨Hlt, Hg⟩
+    wp_apply (wp_leaseGrant cl x (Classical.choice hV) Γ mid _ hAs hlm hinj) $$ [$Hlt] as %g %gerr ⟨Hlt, Hg⟩
     · iframe #
     icases Hg with (⟨%Hgerr, %mg, #Hgid, -, -, %gi, %gl, #Hlive, -⟩ | %Hgfail)
     · subst Hgerr
@@ -381,7 +381,7 @@ theorem RunLeaseExpiry.wp_proof
     · iframe #; ipureintro; rw [hnz]; exact Hidj_lookup
     (try wp_auto)
     -- `gone(clis[j], ids[j])`
-    wp_apply (wp_gone cj aj Vj Γ midj i idj hAs hlm) $$ [$Hlt] as %b ⟨Hlt, Hb⟩
+    wp_apply (wp_gone cj aj Vj Γ midj i idj hAs hlm hinj) $$ [$Hlt] as %b ⟨Hlt, Hb⟩
     · iframe #
     cases b
     · (try wp_auto)
@@ -400,7 +400,7 @@ theorem RunLeaseExpiry.wp_proof
     wp_apply wp_load_slice_index clsl (sint.Z n) _ _ cj Hb2.1 $$ [Hclsl] as -
     · iframe #; ipureintro; rw [hnz]; exact Hcj_lookup
     (try wp_auto)
-    wp_apply (wp_leaseList cj aj Vj Γ midj ka hAs hlm) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
+    wp_apply (wp_leaseList cj aj Vj Γ midj ka hAs hlm hinj) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
     · iframe #
     icases Hls with (⟨%Hlerr, %ids, %sl, %jj, #Hslf, Hsl, %Hkj, #Hids⟩ | %Hlfail)
     rotate_left

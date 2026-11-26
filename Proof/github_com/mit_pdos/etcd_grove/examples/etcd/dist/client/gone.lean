@@ -46,7 +46,7 @@ theorem gone.wp_proof
     (wp_listed : listed.spec (GF := GF) (hG := hG))
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG)) :
     gone.spec (GF := GF) (hG := hG) := by
-  intro π cl ep V Γ mid m id hAs hlm
+  intro π cl ep V Γ mid m id hAs hlm hinj
   wp_start as ⟨Hlt, #Hmc, #Hlb⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
@@ -59,7 +59,7 @@ theorem gone.wp_proof
     wp_apply wp_Sleep
     (try wp_auto)
     -- the listing, at the lower bound `m`
-    wp_apply (wp_leaseList cl ep V Γ mid m hAs hlm) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
+    wp_apply (wp_leaseList cl ep V Γ mid m hAs hlm hinj) $$ [$Hlt] as %ls %lerr ⟨Hlt, Hls⟩
     · iframe #
     icases Hls with (⟨%Hlerr, %ids, %sl, %j, #Hslf, Hsl, %Hmj, #Hids⟩ | %Hlfail)
     · subst Hlerr

@@ -79,7 +79,7 @@ theorem leaseList.wp_proofLive
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Leases_dist : Lease_LeasesLive_dist.spec (GF := GF) (hG := hG)) :
     leaseList.specLive (GF := GF) (hG := hG) := by
-  intro π cl ep V Γ mid n hAs hlm
+  intro π cl ep V Γ mid n hAs hlm hinj
   wp_start as ⟨Hlt, #Hmc, #HG⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -95,7 +95,7 @@ theorem leaseList.wp_proofLive
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
   (try wp_auto)
-  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd n hlm) $$ [$Hlt] as %resp %err ⟨Hlt, Hres⟩
+  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd n hlm hinj) $$ [$Hlt] as %resp %err ⟨Hlt, Hres⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
@@ -111,7 +111,7 @@ theorem leaseList.wp_proofGranted
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Leases_dist : Lease_LeasesGranted_dist.spec (GF := GF) (hG := hG)) :
     leaseList.specGranted (GF := GF) (hG := hG) := by
-  intro π cl ep V Γ mid G hAs hlm
+  intro π cl ep V Γ mid G hAs hlm hinj
   wp_start as ⟨Hlt, #Hmc, HG⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
@@ -127,7 +127,7 @@ theorem leaseList.wp_proofGranted
   wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
     as %ctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
   (try wp_auto)
-  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd G hlm) $$ [$Hlt HG] as %resp %err ⟨Hlt, Hres⟩
+  wp_apply (wp_Leases_dist cl lp ep V Γ mid ctx cd G hlm hinj) $$ [$Hlt HG] as %resp %err ⟨Hlt, Hres⟩
   · iframe #; iexact HG
   (try wp_auto)
   wp_apply Hcancel

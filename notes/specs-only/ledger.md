@@ -25,6 +25,23 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: the four lessor axioms (`Lease_Grant_dist`, `Lease_GrantLive_dist`, `Lease_LeasesGranted_dist`, `Lease_LeasesLive_dist`) -- names shared across members
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/{LeaseGrantDist,LeaseGrantLiveDist,
+  LeaseLeasesGrantedDist,LeaseLeasesLiveDist}.lean` (interim trust-boundary axioms, not linked). No `SpecPlan/` counterpart.
+- **Defect.** The statements quantify over every view `Γ`; the start's view `DistView.ofKV` has `ls := fun _ => 0`, so
+  every member has the same lessor name, and a grant's fact at member A (`leaseGrantedAt (Γ.ls A) i id`) meets
+  `Lease_LeasesGranted_dist`'s premise at member B. Go's `LeaseLeases` reads B's own lessor with no read index: a
+  lagging B does not list it. `Lease_LeasesGranted_dist` is unsound with `Lease_Grant_dist`; the revocable pair the same
+  once a slot is held.
+- **Evidence.** `notes/axiom-review/f2-lease-axioms.md` (the independent `axiom` review, 2026-11-26; the program there).
+- **Proposed change (applied, F2).** A premise `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` on all four (the view has no
+  member set: over every id); `ofKV` fails it. Carried by the wrappers (`leaseGrant`, `leaseList`, `gone`) and the Run
+  specs. P-L1 must discharge it: the start allocates a distinct lessor name per member (and an injective `ls`), and
+  `NewServer` makes that member's lessor at exactly that name. The docstrings also say monotone mode needs
+  `lease.leasesNoExpiry` from the member's start.
+- **Decision.** Accepted (the coordinator, 2026-11-26); a fresh review follows.
+
 ## 2026-11-26: `lessorAbsentStays_dist.law` (N9b's draft law) -- a premise no client can hold; proved over a heap-free lessor slot
 
 - **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/LeaseDefs.lean`,

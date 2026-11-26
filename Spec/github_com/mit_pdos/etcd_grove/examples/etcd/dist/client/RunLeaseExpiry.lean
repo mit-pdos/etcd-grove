@@ -50,6 +50,8 @@ abbrev RunLeaseExpiry.spec : Prop :=
   threadBound GF ≤ 2 ^ 30 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   Γ.kv.lm = .revocable →
+  -- (F2 axiom review, 2026-11-26) the members' lessor names distinct (the lessor axioms' premise)
+  (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ eps ↦*□ addrs ∗ [∗list] a ∈ addrs, leaseMember (Gg := hG.goose_globalGS) Γ a }}
     (App (Val (@! client.RunLeaseExpiry)) (Val #eps))

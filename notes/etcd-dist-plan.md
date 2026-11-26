@@ -2202,6 +2202,15 @@ error).
 ClientLeaseTTLDist}.lean`); the four lessor ones are linked only after P-L1. The three F2 rows are used only by
 authLease, which runs auth on: their statements need F7's per-member auth names in `Γ` (§18.3's "Auth (N11)").
 
+**Narrowed 2026-11-26 (F2 axiom review, `notes/axiom-review/f2-lease-axioms.md`; the coordinator's decision):** the
+four lessor rows take `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` (the members' lessor names distinct; the view has no
+member set, so over every id). Without it, `DistView.ofKV`'s `ls := fun _ => 0` lets a grant at member A meet
+`Lease_LeasesGranted_dist`'s premise at a lagging member B, whose `LeaseLeases` reads its own lessor with no read
+index: unsound (the review's program). `ofKV` fails the premise; P-L1 discharges it (the start allocates a distinct
+lessor name per member, `NewServer` makes the member's lessor at exactly that name). The client wrappers (`leaseGrant`,
+`leaseList`, `gone`) and the Run specs take it too. Monotone mode also needs `lease.leasesNoExpiry` from the member's
+start (each docstring says so).
+
 The workloads call `cli.Put`/`cli.Get`/... (`*Client`'s promoted methods through its `KV` field): a proved promotion lemma
 per method gives them from the `(*kv)` drafts, so the axioms sit at the functions the proved specs are about. The cache
 library's own `c.kv.Get` is `KV_Get_dist` directly.

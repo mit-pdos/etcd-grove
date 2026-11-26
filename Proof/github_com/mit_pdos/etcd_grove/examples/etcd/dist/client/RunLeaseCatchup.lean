@@ -59,7 +59,7 @@ theorem RunLeaseCatchup.wp_proof
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG))
     (wp_Close : EtcdGrove.Client.Close.spec (GF := GF) (hG := hG)) :
     RunLeaseCatchup.spec (GF := GF) (hG := hG) := by
-  intro π Γ eps addrs ready hV Htb hAs hlm hne
+  intro π Γ eps addrs ready hV Htb hAs hlm hinj hne
   wp_start as ⟨Hlt, #Heps, #Hms, Hready⟩
   ihave %Hlen := ownSlice_len $$ Heps
   have hpos : 0 < addrs.length := List.length_pos_iff.2 hne
@@ -144,7 +144,7 @@ theorem RunLeaseCatchup.wp_proof
   · iunfold memberCli; iframe #
   (try wp_auto)
   -- `g1, err := leaseGrant(c3, maxLeaseTTL)`: granted at the last member's lessor
-  wp_apply (wp_leaseGrant c3 x3 (Classical.choice hV) Γ mid3 _ hAs hlm) $$ [$Hlt] as %g1 %gerr ⟨Hlt, Hg⟩
+  wp_apply (wp_leaseGrant c3 x3 (Classical.choice hV) Γ mid3 _ hAs hlm hinj) $$ [$Hlt] as %g1 %gerr ⟨Hlt, Hg⟩
   · iframe #
   icases Hg with (⟨%Hgerr, %mg, #Hg1id, #Hg1ttl, %Hg1nz, %gi, #Hg1gr⟩ | %Hgfail)
   rotate_left
@@ -177,7 +177,7 @@ theorem RunLeaseCatchup.wp_proof
   wp_for IF
   wp_if_destruct
   · (try wp_auto)
-    wp_apply (wp_leaseGrant c1 x1 (Classical.choice hV) Γ mid1 _ hAs hlm) $$ [$Hlt]
+    wp_apply (wp_leaseGrant c1 x1 (Classical.choice hV) Γ mid1 _ hAs hlm hinj) $$ [$Hlt]
       as %f %ferr ⟨Hlt, Hf⟩
     · iframe #
     icases Hf with (⟨%Hferr, %mf, #Hfid, -, -, -⟩ | %Hffail)
@@ -214,7 +214,7 @@ theorem RunLeaseCatchup.wp_proof
   wp_for IP
   wp_if_destruct
   · (try wp_auto)
-    wp_apply (wp_leaseList c3 x3 (Classical.choice hV) Γ mid3 [mg.id] hAs hlm) $$ [$Hlt]
+    wp_apply (wp_leaseList c3 x3 (Classical.choice hV) Γ mid3 [mg.id] hAs hlm hinj) $$ [$Hlt]
       as %ls %lerr ⟨Hlt, Hls⟩
     · iframe #
     icases Hls with (⟨%Hlerr, %ids, %sl, #Hslf, Hsl, %Hids⟩ | %Hlfail)

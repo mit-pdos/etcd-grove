@@ -41,6 +41,8 @@ abbrev gone.spec : Prop :=
     (id : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   Γ.kv.lm = .revocable →
+  -- (F2 axiom review, 2026-11-26) the members' lessor names distinct (the lessor axioms' premise)
+  (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ memberCli cl ep V Γ mid ∗ lease.lessorLb (Γ.ls mid) m }}
     (App (App (Val (@! client.gone)) (Val #cl)) (Val #id))
