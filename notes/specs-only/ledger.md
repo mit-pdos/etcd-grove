@@ -25,6 +25,30 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: `rnDurK_crash.law` -- the crash gives no certificate of the crashed WAL's history, so the restart cannot carry the snapshot records a later `Save` re-keeps (D6-T2 / P5 (a), etcd-safe-p5)
+
+- **Spec.** `rnDurK_crash.law` (`etcdserver/InvWalCrash.lean`, P5's; proved by `rnDurK_crash_law_holds`,
+  `InvWalCrashLaws.lean`); its user T7's `memberDur_crash` (`dist/crash/MemberCrash.lean`).
+- **Defect.** Too weak for T10's image route (#50 2026-11-25T16:06:56Z, items 1-3; `notes/etcd-dist-d6.md`, "T10
+  status and handoff, session 8", "What P5 must provide"): the law hands the WAL's crash `Φ` only the read
+  records `σ` and gives back only their snapshot certificate (`walSnapCert`, `walSnapDur`). A snapshot record
+  of the crashed prefix that the read drops (above the prefix's commit) is re-kept by every read once a later
+  `Save` commits past it (the ledger entry "`wal.restartOk` over the reader's fold", defect 1), so the crash
+  image's `srvFilesC` row must hold `walHistCerts γ.cl sd Hs` of the prefix's history `Hs`, and `walFilesC` must
+  name that `Hs`; the law names neither.
+- **Evidence.** The body holds `walHistCerts γn.cl νk.sd Hs` of the whole history (`rnDurBodyK`), and the
+  crash reads the complete prefix `Hs.take j`; the law's `Φ : StorContents → IProp GF` cannot see `j`, and
+  its post has no history.
+- **Proposed change.** `Φ : WalHist → StorContents → IProp GF`; the callback gives `Φ (Hs.take j) σ` for the
+  prefix's read `σ`; the post's left disjunct gains the crashed prefix's history `Hc` with `Φ Hc σ`,
+  `⌜walRead Hc = some σ⌝` and `walHistCerts γn.cl νk.sd Hc` (persistent; from the body's certificates of `Hs`,
+  `walHistCerts_take`). Nothing new is claimed: the certificates are the body's. Moves: `memberDur_crash`
+  passes `fun _ σ => walFilesC …` (unchanged otherwise; T10 then names the history in `walFilesC` and puts the
+  certificates in the image's row, on `etcd-safe-t10`).
+- **Decision.** Within the lead's approval of (a)'s image route (#50 2026-11-25T16:06:56Z: "supplied by T7
+  from `rnDurK_crash.law`, extended to return them"); a P5-internal statement (no axiom, no top-level
+  premise). Applied on `etcd-safe-p5` (P5 session 6).
+
 ## 2026-11-25: raft's `readyRest` (the batch's facts) -- the batch's durable log is tied to the committed log only through the handed entries `ce`, so a WAL read re-based at a snapshot record above the handed log holds no provable state (D6-T2 / P5 (b), etcd-safe-p5)
 
 - **Spec.** Raft's node API: `readyRest`/`ReadyRestFacts` (`Proof/go_etcd_io/raft/v3/NodeApiVocab.lean`,

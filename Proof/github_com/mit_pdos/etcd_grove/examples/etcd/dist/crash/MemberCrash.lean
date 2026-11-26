@@ -449,8 +449,8 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
   iunfold memberDurKeep at Hk
   icases Hk with ⟨#Hinv, Htk, Hx, Hst⟩
   imod rnDurK_crash_law_holds (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E
-    (fun σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
-    Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl⟩ | Htaken)
+    (fun _ σ => walFilesC (hG := ⟨G, etcd_dist.atCtx L'⟩) { h.toWalA with W := W' } id cid σ true) hE hE' $$
+    Hinv Hcl Hlc1 Hcr Htk Hx [Hw] with (⟨%S, %σ, %l, %Hc, Hf, HrS, Hvac, %hp, #Hsc, #Hsd, #Hl, -⟩ | Htaken)
   · iintro %σr %Hs %n Hr Hsy
     ihave Hr := (walRecsH_gen (G := G) L L' h σr Hs true).1 $$ Hr
     iunfold memberWalCrash at Hw
@@ -474,7 +474,7 @@ theorem memberDur_crash (L L' : GooseLocalGS GF) (γn : SrvRaft) (id cid : w64) 
     iframe Hf
     iunfold memberDurOut
     iframe HrS Hvac Hsc Hsd Hl
-    ipureintro; exact hp
+    ipureintro; exact ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1⟩
   · imod rnTakenK_stop (hG := ⟨G, etcd_dist.atCtx L⟩) γn id νk h E hE $$ Hinv Htaken Hst with %hF
     exact hF.elim
 

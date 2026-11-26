@@ -96,6 +96,18 @@ theorem walHistCerts_snapCert (cl : Cluster) (sd : w64 → IProp GF) (Hs I : Wal
       ipureintro
       exact hsn
 
+/-- **The certificates of a history give those of each of its prefixes.** -/
+theorem walHistCerts_take (cl : Cluster) (sd : w64 → IProp GF) (Hs : WalHist) (j : Nat) :
+    walHistCerts (GF := GF) cl sd Hs ⊢ walHistCerts cl sd (Hs.take j) := by
+  have hs : walHistCerts (GF := GF) cl sd Hs = walHistCerts cl sd (Hs.take j ++ Hs.drop j) := by
+    rw [List.take_append_drop]
+  rw [hs]
+  iintro #Hc
+  iunfold walHistCerts at Hc
+  ihave ⟨#Hc1, -⟩ := BigSepL.bigSepL_append.1 $$ Hc
+  iunfold walHistCerts
+  iexact Hc1
+
 /-- `rnPendK` at a pending view, unfolded. -/
 theorem rnPendK_some (γn : SrvRaft) (id : w64) (x : CrashNames) (v v0 : WalView) (γb : GName)
     (pos : Nat) :
@@ -144,6 +156,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
   -- the image's certificate
   ihave ⟨#Hcert, #Hsdur⟩ := walHistCerts_snapCert γn.cl νk.sd Hs (Hs.take j) σ''
     (fun o ho => List.mem_of_mem_take ho) (walRead_snapSrc hrd) $$ Hhc
+  ihave #Hhcj := walHistCerts_take γn.cl νk.sd Hs j $$ Hhc
   -- close with the crash's side
   imod Hclose $$ [Hv Hcm Htn Hr Htk] with -
   · inext; ileft; iunfold rnDurBodyK
@@ -161,15 +174,15 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
     imodintro
     ileft
     have hS : ImgOk v.S v.l σ'' := hok
-    iexists v.S, σ'', v.l
-    iframe HΦ Hvac Hcert Hsdur
+    iexists v.S, σ'', v.l, Hs.take j
+    iframe HΦ Hvac Hcert Hsdur Hhcj
     rw [rnLogLbsK_none]
     icases Hlb with ⟨Hl, -⟩
     iframe Hl
     isplitl [HrS]
     · iexact HrS
     ipureintro
-    exact ⟨hS.1, hS.2, Hview.2.2.2.2.1, hrf⟩
+    exact ⟨hS.1, hS.2, Hview.2.2.2.2.1, hrf, hrd⟩
   | some p =>
     obtain ⟨v0, γb, pos⟩ := p
     dsimp only [durOf]
@@ -191,23 +204,23 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
         with ⟨HrS, Hvac⟩
       imodintro
       ileft
-      iexists v.S, σ'', v.l
-      iframe HΦ Hvac Hcert Hsdur Hl
+      iexists v.S, σ'', v.l, Hs.take j
+      iframe HΦ Hvac Hcert Hsdur Hl Hhcj
       isplitl [HrS]
       · rw [← Hst2]; iexact HrS
       ipureintro
-      exact ⟨hok.1, hok.2, Hview.2.2.2.2.1, hrf⟩
+      exact ⟨hok.1, hok.2, Hview.2.2.2.2.1, hrf, hrd⟩
     · -- the image holds the state before it: a crash drops it
       rw [if_pos hjp] at hok
       imod nodeCrash γn.cl srvClusterN id νk.x E hN $$ Hcl Hcr Hct with Hvac
       imodintro
       ileft
-      iexists v0.S, σ'', v0.l
-      iframe HΦ Hvac Hcert Hsdur Hl0
+      iexists v0.S, σ'', v0.l, Hs.take j
+      iframe HΦ Hvac Hcert Hsdur Hl0 Hhcj
       isplitl [HrS]
       · iexact HrS
       ipureintro
-      exact ⟨hok.1, hok.2, Hpo v0 γb pos rfl, hrf⟩
+      exact ⟨hok.1, hok.2, Hpo v0 γb pos rfl, hrf, hrd⟩
 
 end defs
 

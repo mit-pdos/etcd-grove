@@ -465,9 +465,16 @@ crash's; a member that never stops its server excludes it).
 (P8, 2026-11-25; T5's proposal (3), `notes/wal-p8-handoff.md`) The WAL's crash gives the prefix `j` and
 `Φ` of whatever it reads (`walRecsH_crash`, `WalRecsH.lean`: whether the read succeeds is not the WAL's
 but this invariant's, `CrashReadsHold`), and the image's read facts `walReadFacts σ` come from the
-invariant's `HistReadOk` (`walReadFacts_of_read`). -/
+invariant's `HistReadOk` (`walReadFacts_of_read`).
+
+(P5 (a), 2026-11-26; #50 2026-11-25T16:06:56Z, the image route) `Φ` sees the crashed prefix's history
+`Hs.take j` too, and the post gives that history `Hc` (`walRead Hc = some σ`) with the certificates of
+every snapshot record in it (`walHistCerts`, the body's, `walHistCerts_take`): a record the read drops
+is re-kept once a later `Save` commits past it, so the restart's image carries them (T10's `srvFilesC`
+row). -/
 abbrev rnDurK_crash.law : Prop :=
-  ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset) (Φ : StorContents → IProp GF),
+  ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset)
+    (Φ : WalHist → StorContents → IProp GF),
     ↑rnDurKN ⊆ E → ↑srvClusterN ⊆ E \ ↑rnDurKN →
     letI := srvStor (GF := GF) γn;
     (⊢ rnDurInvK γn id νk h -∗ isCluster γn.cl srvClusterN -∗ £ 1 -∗ crashed -∗ token νk.tk -∗
@@ -476,12 +483,12 @@ abbrev rnDurK_crash.law : Prop :=
         walRecsH h σr Hs true -∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) ={E \ ↑rnDurKN}=∗
           walRecsH h σr Hs true ∗
           ∃ j : Nat, ⌜n ≤ j ∧ j ≤ Hs.length⌝ ∗
-            ∀ σ : StorContents, ⌜walRead (Hs.take j) = some σ⌝ -∗ Φ σ) ={E}=∗
-      (∃ (S : RaftState) (σ : StorContents) (l : List LogEntry), Φ σ ∗
+            ∀ σ : StorContents, ⌜walRead (Hs.take j) = some σ⌝ -∗ Φ (Hs.take j) σ) ={E}=∗
+      (∃ (S : RaftState) (σ : StorContents) (l : List LogEntry) (Hc : WalHist), Φ Hc σ ∗
         raftState γn.cl id S ∗ nodeVacant γn.cl id ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ⌝ ∗ walSnapCert γn.cl σ ∗
-        walSnapDur νk.sd σ ∗
-        isCommittedLogLb γn.cl l) ∨
+        ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ ∧ walRead Hc = some σ⌝ ∗
+        walSnapCert γn.cl σ ∗ walSnapDur νk.sd σ ∗
+        isCommittedLogLb γn.cl l ∗ walHistCerts γn.cl νk.sd Hc) ∨
       rnTakenK νk)
 
 end defs
