@@ -300,7 +300,7 @@ func (n *node) start() {
 	}
 	n.dead, n.fuse = false, 0
 	n.store = memoryOf(d)
-	hs := proto.Clone(d.hs).(*pb.HardState)
+	hs := copyHardState(d.hs)
 	n.hs, n.mhs, n.rhs = hs, hs, hs
 	n.role = "follower"
 	n.cause = nil

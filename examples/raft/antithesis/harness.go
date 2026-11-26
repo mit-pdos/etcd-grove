@@ -263,11 +263,20 @@ type disk struct {
 
 func (d *disk) base() uint64 { return d.snap.GetMetadata().GetIndex() }
 
+// copyHardState is a copy of hs (nil for nil): its term, vote and commit index, all a HardState
+// holds (a field copy rather than proto.Clone, whose model covers only *pb.Message).
+func copyHardState(hs *pb.HardState) *pb.HardState {
+	if hs == nil {
+		return nil
+	}
+	return &pb.HardState{Term: u64p(hs.GetTerm()), Vote: u64p(hs.GetVote()), Commit: u64p(hs.GetCommit())}
+}
+
 // save is MemDisk.Save: the HardState, if any, and the entries, which replace the log from the
 // first one's index on. Raft's writes start at most one past the log's end, after the snapshot.
 func (d *disk) save(hs *pb.HardState, ents []*pb.Entry) {
 	if hs != nil {
-		d.hs = proto.Clone(hs).(*pb.HardState)
+		d.hs = copyHardState(hs)
 	}
 	if len(ents) > 0 {
 		at := ents[0].GetIndex() - d.base() - 1
@@ -284,7 +293,7 @@ func (d *disk) save(hs *pb.HardState, ents []*pb.Entry) {
 // log up to its index (restore: the whole log, a snapshot a leader sent).
 func (d *disk) saveSnapshot(snap *pb.Snapshot, hs *pb.HardState, restore bool) {
 	if hs != nil {
-		d.hs = proto.Clone(hs).(*pb.HardState)
+		d.hs = copyHardState(hs)
 	}
 	if restore {
 		d.ents = nil
