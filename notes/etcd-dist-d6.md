@@ -2614,6 +2614,59 @@ top-level change. Nobody applies `memberGen_crash.law` yet; whoever does passes 
 
 **Next T10 items** (not started): P5's certificate route and the `consInv` image row (session 3's approvals).
 
+### T10b status and handoff, session 1 (2026-11-26, branch `etcd-safe-t10b/2026-11-26`)
+
+Assigned by coordinator-E (#50, 15:00Z): T10 item 2 (P5's certificate route) with the P5-RESTART `sorry`, T10
+step 2 (the no-lock outcomes' model fact, mode `on`), T10 step 3 (the server's row, closing `NewServer.wp_proofC`'s
+non-graceful case). Base `etcd-safe-crash-r6/2026-11-26` @ `8cdf5ff75f` with `etcd-safe-p5r/2026-11-26` @
+`8c9642a9b2` merged (`ada6d74e2c`, clean). The brief's `plans/etcd-safe-crash-left.md` is in no branch and no
+worktree on this host or fk-lean1; this session worked from this file's T10 sections and `notes/wal-p5-handoff.md`.
+
+**Item 2 is blocked by the graceful restart (no Lean changed).** `rnRestartAllocK_law_holds` (the `sorry`) is
+reached through `bootstrappedRaft.newRaftNode.wp_proof` from `NewServer.wp_proofRG`, the one proof behind both
+restarts: `NewServer.wp_proofR` (graceful: `bootstrapRestartContract`, image `srvDiskImageAt`) and, through
+`specRAt`, `NewServer.wp_proofC` (crash). `wp_proofRG` takes the WAL's history from `wal.restartOk`
+(`wal.restartOk_startRK`, `NewServerR.lean:362`) and must hand `rnRestartAllocK` the certificates of every
+snapshot record in it (`walHistCerts γ.cl sd Hs`, at `sd := fun _ => True` there, `bootstrappedRaft__newRaftNode.lean:223`).
+The planned route (session 8's "Item 2", the lead's 2026-11-25T16:06:56Z conditions) gives them on the crash path
+only: the crash image's files row and `bootstrapCrashContract`'s pass-through. On the graceful path nothing holds
+them: `srvDiskImageAt` has only `wal.stopImage`'s `walSnapCert cl σ` (the records' own snapshot), the graceful
+contract and slot stay certificate-free by the lead's condition, and the graceful stop's image is built from
+`rnDurK_take.law`'s `walRecs h σ` and the closed WAL's `walFiles` (`StopShutdown.lean:680`), neither of which names
+the history. So the route, done as planned, leaves the `sorry` in place (moved to the graceful case). Two ways on:
+* **(A) the image route on both paths**: the graceful image carries the history's certificates too. Needs
+  `rnDurK_take.law` to return the history with `walHistCerts` (the body has them, `InvWalCrash.lean:295`), the
+  closed WAL's files naming their history (`raftNode.stop`'s `rnWalClosed`, the WAL's `Close` over the history),
+  `StopShutdown`, and `srvDiskImageAt`'s body (a premise of `Spec/.../NewServerR.lean`, so a spec's meaning: the
+  lead's call). Then `walFilesC`/`srvFilesC` name the history in both images, `wal.restartOk` names the opened
+  history (the files' history: a claim of both contracts), and the certificates ride in the image, not the
+  contracts. Large (raft loop stop, WAL close, server stop).
+* **(B) P5's invariant needs no certificate of the restart's history** (recommended; P5's files only, no image,
+  contract or trusted text change). `rnRestartAllocK.law` already takes `walSnapCert γn.cl σ`, the restart read's
+  own certificate. At a restart nothing is pending (`HistReads σ Hs`), so every later read of `Hs ++ X` is based
+  at `σ`'s base or at a snapshot record of `X`. The body's `walHistCerts γn.cl νk.sd Hs` becomes "the certificate
+  of the restart read's base, and `walHistCerts` of the records after the allocation point `k`" (`k = 0` at a first
+  start, where the two coincide); `walHistCerts_snapCert` gets that case; `rnDurK_crash.law`'s post drops
+  `walHistCerts … Hc` (P5 session 6's addition for the image route; T7's `memberDur_crash` drops it today). Then
+  the `sorry` is `walSnapCert` passed through, and `walFilesC`, the images, C-I2 and `wal.restartOk` stay as they
+  are. Needs the pure lemma (reads of an extension of a restarted history are based at `σ`'s base or later), in
+  `InvWalCrashPure.lean`.
+Asked of the lead: (A) or (B). C-I2's text is unchanged on this branch (no before/after to record).
+
+**Steps 2 and 3: not started** (not reachable this session). Step 2's applier part changes the `Pre` disjunct of
+`cPost` (`apply/Contracts.lean:102`) into one with the step's no-effect fact, which `cPost` cannot state (it has no
+step arguments): the component posts that produce `Pre` restate it, `cPost` reaches 16 `Spec/` files and 46 `Proof/`
+files. The brief's trust rule makes that a stop-and-report before any `Spec/` text changes. Step 3 needs step 2's
+fact at every `skip_doneR` site, and closing `NewServerCrash.lean:81` needs `wp_proofRG` for images that are not
+graceful ones (the backend's index above the WAL's commit, `confRowW`'s second case, `snapRowB2`'s `.snap.db` case),
+which the row alone does not give.
+
+**Build**: fk-lean1, `~/eg/wt/etcd-safe-t10b` (seeded with `cp -a` from `etcd-safe-f7-runauth`, same Perennial pin
+`a706aeb9a`); sync and build with `/shared/tmp/t10b-rb.sh [targets]` (`GATES=1` for `etc/gates.sh`; logs
+`~/eg/logs/t10b-{build,gates}.log` there). The merge's full build and gates: see the STATUS entry of this session.
+
+No axiom, `sorry`, trusted text, top-level premise or top-level statement changed.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
