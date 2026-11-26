@@ -8,6 +8,7 @@ inputs share beyond `HarnessInput.lean`'s:
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInput
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Init
 
 @[expose] public section
 
@@ -146,6 +147,147 @@ theorem msgOfSt_netFacts {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFact
     rw [e6]
   rw [e1, e2, e3, e4, e5]
 
+/-- The network's types in a run without forwarding are not `MsgProp`. -/
+theorem netFacts_ne_prop {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFacts R st m)
+    (hs : R.md.snapshots = false) (hf : R.md.forwarding = false) : st.msg.Type' ≠ MsgProp := by
+  have key : ∀ t : w32, t ∈ netTypes R.md → t ≠ MsgProp := fun t ht => by
+    rcases netTypes_cases ht hs hf with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      decide
+  exact key _ h.2.1
+
+/-- The network's types in B1 are not a transfer request. -/
+theorem netFacts_ne_transfer {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFacts R st m)
+    (hs : R.md.snapshots = false) (hf : R.md.forwarding = false) :
+    st.msg.Type' ≠ MsgTransferLeader := by
+  have key : ∀ t : w32, t ∈ netTypes R.md → t ≠ MsgTransferLeader := fun t ht => by
+    rcases netTypes_cases ht hs hf with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      decide
+  exact key _ h.2.1
+
+/-- The network's types in B1 are not `MsgTimeoutNow`. -/
+theorem netFacts_ne_timeoutNow {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFacts R st m)
+    (hs : R.md.snapshots = false) (hf : R.md.forwarding = false) :
+    st.msg.Type' ≠ MsgTimeoutNow := by
+  have key : ∀ t : w32, t ∈ netTypes R.md → t ≠ MsgTimeoutNow := fun t ht => by
+    rcases netTypes_cases ht hs hf with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      decide
+  exact key _ h.2.1
+
+/-- A transfer message's type: neither a snapshot nor a proposal nor a read request, and no
+protocol reading. -/
+theorem xnetFacts_types {R : AntSim.RunCfg} {st : MsgSt} {x : XMsg} (h : XNetFacts R st x) :
+    st.msg.Type' ≠ MsgSnap ∧ st.msg.Type' ≠ MsgProp ∧ st.msg.Type' ≠ MsgReadIndex ∧
+      mtypeOf st.msg.Type' = none := by
+  rcases h.2.2.1 with ⟨ht, -⟩ | ⟨ht, -⟩ <;> rw [ht] <;>
+    exact ⟨by simp [MsgTimeoutNow, MsgTransferLeader, MsgSnap],
+      by simp [MsgTimeoutNow, MsgTransferLeader, MsgProp],
+      by simp [MsgTimeoutNow, MsgTransferLeader, MsgReadIndex], rfl⟩
+
+/-- A transfer message's type is `RawNode.Step`'s at the run's mode (transfers on), and not a
+heartbeat response. -/
+theorem xnetFacts_stepTypes {R : AntSim.RunCfg} {st : MsgSt} {x : XMsg} (h : XNetFacts R st x) :
+    st.msg.Type' ∈ stepTypes R.md ∧ st.msg.Type' ≠ MsgHeartbeatResp := by
+  have ht := h.1
+  rcases h.2.2.1 with ⟨h1, -⟩ | ⟨h1, -⟩ <;> rw [h1] <;> unfold stepTypes <;>
+    simp [ht, MsgTimeoutNow, MsgTransferLeader, MsgHeartbeatResp]
+
+/-- A transfer message's transfer reading (`xmsgOf`) is its `XMsg`. -/
+theorem xnetFacts_xmsgOf {R : AntSim.RunCfg} {st : MsgSt} {x : XMsg} (h : XNetFacts R st x) :
+    xmsgOf st = some x := by
+  obtain ⟨-, -, hty, hsrc, hdst, hterm, -⟩ := h
+  obtain ⟨xty, xs, xd, xt⟩ := x
+  simp only at hsrc hdst hterm
+  subst hsrc hdst hterm
+  unfold xmsgOf
+  rcases hty with ⟨ht, hx⟩ | ⟨ht, hx⟩
+  · simp only at hx; subst hx; rw [if_pos ht]
+  · simp only at hx; subst hx
+    rw [if_neg (by rw [ht]; simp [MsgTransferLeader, MsgTimeoutNow]), if_pos ht]
+
+/-- **A transfer message's `msgOf` report at its destination is `xmsgOf`'s** (`XNetFacts`' zero
+fields; the term below `2 ^ 61`). -/
+theorem msgOfSt_xnetFacts {R : AntSim.RunCfg} {st : MsgSt} {x : XMsg} (h : XNetFacts R st x) :
+    msgOfSt st x.dst = AntSim.xmsgOf x := by
+  obtain ⟨-, -, hty, hsrc, -, hterm, -, -, hT, hI, hL, hC, hE, hR⟩ := h
+  have e1 : sint.Z st.msg.Term' = uint.Z st.msg.Term' := by word
+  unfold msgOfSt AntSim.xmsgOf
+  rcases hty with ⟨ht, hx⟩ | ⟨ht, hx⟩ <;>
+    simp only [ht, hx, hI, hL, hC, hE, hR, hsrc, hterm, e1, List.map_nil] <;> rfl
+
+/-- The `recv` report of an in-flight message has its numbers within the checker's bound. -/
+theorem evRecv_numsOk {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFacts R st m)
+    (hs : R.md.snapshots = false) (hf : R.md.forwarding = false) (id : w64) :
+    (AntSim.evRecv id m).NumsOk := by
+  obtain ⟨ty, -, -, hm, -, -⟩ := netFacts_absMsg h hs hf
+  subst hm
+  obtain ⟨-, -, -, -, -, -, -, hT, hI, hL, hC, hE⟩ := h
+  simp only [AntSim.evRecv, AntCheck.Event.NumsOk, AntCheck.optNumOk, AntSim.msgOf,
+    AntCheck.Msg.NumsOk, AntCheck.numOk, AntCheck.numBound, absMsg, absMsgFrom, Msg.mkV,
+    AntCheck.entriesOk, AntSim.logOf]
+  and_intros
+  all_goals try exact True.intro
+  all_goals try (intro _ h; cases h; done)
+  intro mm hmm
+  cases hmm
+  refine ⟨⟨by word, by word⟩, ⟨by word, by word⟩, ⟨by word, by word⟩, ⟨by word, by word⟩, ?_⟩
+  intro es hes
+  cases hes
+  intro e he
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 he
+  have := hE x hx
+  have e : (AntSim.entOf x).term = uint.Z x.Term' := by
+    unfold AntSim.entOf; split <;> (try split) <;> rfl
+  rw [e]; exact ⟨by word, by word⟩
+
+/-- The `recv` report's weight: the message's entries and two. -/
+theorem evRecv_weight {R : AntSim.RunCfg} {st : MsgSt} {m : Msg} (h : NetFacts R st m)
+    (hs : R.md.snapshots = false) (hf : R.md.forwarding = false) (id : w64) :
+    (AntSim.evRecv id m).weight = st.ents.length + 2 := by
+  obtain ⟨ty, -, -, hm, -, -⟩ := netFacts_absMsg h hs hf
+  subst hm
+  simp [AntSim.evRecv, AntCheck.Event.weight, AntCheck.Event.size, AntCheck.Msg.size, AntSim.msgOf,
+    AntSim.logOf, absMsg, absMsgFrom, Msg.mkV]
+
+/-- The `recv` report of a transfer message has its numbers within the checker's bound. -/
+theorem evRecvX_numsOk {R : AntSim.RunCfg} {st : MsgSt} {x : XMsg} (h : XNetFacts R st x)
+    (id : w64) : (AntSim.evRecvX id x).NumsOk := by
+  obtain ⟨-, -, -, -, -, hterm, -, -, hT, -⟩ := h
+  have hT' : uint.Z x.term < 2 ^ 61 := hterm ▸ hT
+  simp only [AntSim.evRecvX, AntCheck.Event.NumsOk, AntCheck.optNumOk, AntSim.xmsgOf,
+    AntCheck.Msg.NumsOk, AntCheck.numOk, AntCheck.numBound, AntCheck.entriesOk]
+  and_intros
+  all_goals try exact True.intro
+  all_goals try (intro _ h; cases h; done)
+  intro mm hmm
+  cases hmm
+  have h0 : (0 : Int) ≤ uint.Z x.term := by word
+  refine ⟨⟨by omega, by omega⟩, ⟨by omega, by omega⟩, ⟨by omega, by omega⟩,
+    ⟨by omega, by omega⟩, ?_⟩
+  intro es hes
+  cases hes
+  intro e he
+  cases he
+
+/-- The `recv` report of a transfer message weighs two. -/
+theorem evRecvX_weight (x : XMsg) (id : w64) : (AntSim.evRecvX id x).weight = 2 := by
+  simp [AntSim.evRecvX, AntCheck.Event.weight, AntCheck.Event.size, AntCheck.Msg.size,
+    AntSim.xmsgOf]
+
+/-- **A run without non-voters has every node a voter** (`InScope`: `Voters = Nodes` unless the
+scope has non-voters): node `i`'s id is an initial voter. -/
+theorem nodeId_mem_voters0 {s : H.Scope} {m : H.Mode} {R : AntSim.RunCfg} (hin : InScope s m)
+    (hmr : ModeRun s m R) (hnv : R.md.nonVoters = false) (i : Fin R.N) :
+    AntSim.nodeId i ∈ R.voters0 := by
+  have hK : R.K = R.N := by
+    rw [hmr.1, hmr.2.1]
+    rcases hin.2.1 with h | ⟨h, -, -⟩
+    · rw [h]
+    · rw [hmr.2.2.2.2.1] at hnv
+      simp only [scopeMd] at hnv
+      rw [hnv] at h; cases h
+  exact (AntSim.mem_voters0 R i.isLt).mpr (by have := i.isLt; omega)
+
+
 end pure
 
 section laws
@@ -178,6 +320,85 @@ theorem nodeOwn_drained_reset (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Lo
   iframe Hstor Hraw Hnr Hhsro Hcs
   ipureintro
   exact ⟨Hsto, Hrv, Hc0, Hph.1, Hph.2.1, Hph.2.2.1, Hph.2.2.2.1, Hph.2.2.2.2, rfl⟩
+
+/-- **The cause cell after a protocol message's input** (`n.cause = &cause`, `cause := msgOf(m,
+n.id)`): the report of the message, sent, with its receipts (`msgOf`'s, one per entry, and two more). -/
+theorem causeOwn_recv (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (cl : Loc)
+    (g : AntCheck.G.Msg) {st : MsgSt} {m : Msg} (hf : NetFacts γ.R st m)
+    (hs : γ.R.md.snapshots = false) (hfw : γ.R.md.forwarding = false)
+    (hd : m.dst = AntSim.nodeId j) (hcl : cl ≠ null) :
+    cl ↦ g ∗ AntCheck.msgRO (GF := GF) g (msgOfSt st (AntSim.nodeId j)) ∗ sentW γ m ∗
+        ⧗ st.ents.length ∗ ⧗ 1 ∗ ⧗ 1 ⊢
+      causeOwn γ j (v.noteInput (.recv m)) cl := by
+  unfold causeOwn
+  simp only [AntSim.NodeView.noteInput, AntSim.Input.byE, AntSim.Input.cause, AntSim.Input.xcause,
+    and_self, ↓reduceIte]
+  rw [msgOfSt_netFacts hf hs hfw]
+  iintro ⟨Hc, #Hg, Hs, Hr, Hr1, Hr2⟩
+  ileft
+  iexists m
+  rw [evRecv_weight hf hs hfw]
+  iframe Hs
+  isplitr
+  · ipureintro; exact ⟨rfl, hd, evRecv_numsOk hf hs hfw _⟩
+  isplitl [Hc]
+  · iunfold pendingCause
+    iright
+    iexists g, AntSim.msgOf m (AntSim.nodeId j)
+    iframe Hc Hg
+    ipureintro; exact ⟨hcl, rfl⟩
+  iapply (receipt_add (GF := GF) (st.ents.length + 1) 1).2
+  iframe Hr2
+  iapply (receipt_add (GF := GF) st.ents.length 1).2
+  iframe Hr Hr1
+
+/-- **The cause cell after a transfer message's input**: its report (`xmsgOf`), sent, with two
+receipts. -/
+theorem causeOwn_recvX (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (cl : Loc)
+    (g : AntCheck.G.Msg) {st : MsgSt} {x : XMsg} (hf : XNetFacts γ.R st x)
+    (hd : x.dst = AntSim.nodeId j) (hcl : cl ≠ null) :
+    cl ↦ g ∗ AntCheck.msgRO (GF := GF) g (msgOfSt st (AntSim.nodeId j)) ∗ xsentW γ x ∗
+        ⧗ 1 ∗ ⧗ 1 ⊢
+      causeOwn γ j (v.noteInput (.recvX x)) cl := by
+  unfold causeOwn
+  simp only [AntSim.NodeView.noteInput, AntSim.Input.byE, AntSim.Input.cause, AntSim.Input.xcause,
+    and_self, ↓reduceIte]
+  rw [← hd, msgOfSt_xnetFacts hf]
+  iintro ⟨Hc, #Hg, Hs, Hr1, Hr2⟩
+  iright
+  iexists x
+  rw [evRecvX_weight]
+  iframe Hs
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl, evRecvX_numsOk hf _⟩
+  isplitl [Hc]
+  · iunfold pendingCause
+    iright
+    iexists g, AntSim.xmsgOf x
+    iframe Hc Hg
+    ipureintro; exact ⟨hcl, rfl⟩
+  iapply (receipt_add (GF := GF) 1 1).2
+  iframe Hr1 Hr2
+
+/-- **A `MsgTimeoutNow`'s acknowledgement against the receiver's disk** (the hypothesis `node.step`
+takes; group D's proposal: `RsView` gains `rs.dur.term = v.dur.term`, which every `Ready`'s
+`readyDurable … (phsNext rs.phs h)` and the start keep, and then this is `isAcked_term_le` on
+`nodeRaft`'s `ownDurGhost γ id rs.dur`): an acknowledgement past index `0` of node `j` is at a term
+at most its disk's. -/
+abbrev nodeOwn_acked.law : Prop :=
+  ∀ (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (t i : w64),
+    nodeOwn (GF := GF) c γ j n v .idle ∗ isAcked γ.raft.raftNames (AntSim.nodeId j) t i ⊢
+      ⌜uint.Z i ≠ 0 → uint.Z t ≤ uint.Z v.dur.term⌝ ∗ nodeOwn c γ j n v .idle
+
+/-- A receipt for a premise that may be off (`rnBudget_step`'s `⧗ (if P then 1 else 0)`). -/
+theorem receipt_ite (P : Prop) [Decidable P] :
+    (⧗ 1 : IProp GF) ⊢ ⧗ (if P then 1 else 0) := by
+  by_cases hP : P
+  · rw [if_pos hP]
+  · rw [if_neg hP]
+    iintro H
+    icases receipt_zero_of (GF := GF) 1 $$ H with ⟨H0, -⟩
+    iexact H0
 
 end laws
 
