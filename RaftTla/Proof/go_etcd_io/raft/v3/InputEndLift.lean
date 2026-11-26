@@ -1515,19 +1515,21 @@ theorem cqEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
       rw [toPState_prvals_nl _ _ (by simp [becomeFollower]), toPState_becomeFollower]
       rfl
 
-/-- **`MsgProp`** (term `0`: `RawNode.Propose`'s, or a forwarded one), as `ProposeEnd`. -/
+/-- **`MsgProp`** (term `0`: `RawNode.Propose`'s, or a forwarded one), as `ProposeEnd`. (antithesis
+parity B1, step C3) At the step function's scope `FnScope` (`LiftScope.fn`, `LiftScopeK.fn`): a
+pre-candidate drops it. -/
 theorem proposeEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
+    {ctx : List w8} {s s' : NState} (hsc : FnScope c id s) (hty : m.Type' = MsgProp)
     (h0 : m.Term' = W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     ProposeEnd c id (toPState s) (absMsg .propose m ents ctx) (toPState s') :=
-  ie_handle_prop hsc.fn hty hns
+  ie_handle_prop hsc hty hns
     (ie_fn_local (by unfold StepEndTy; ie_tyclose hty) (by rw [hty]; ie_tyclose MsgHup)
       (by rw [hty]; ie_tyclose MsgVote) h0 h)
 
 /-- **`MsgProp`** as a received message (`RecvEnd`'s local arm). -/
 theorem recvEnd_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
+    {ctx : List w8} {s s' : NState} (hsc : FnScope c id s) (hty : m.Type' = MsgProp)
     (h0 : m.Term' = W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
     (h : StepEnd c id m ents ctx s s') :
     RecvEnd k c id (toPState s) (absMsg .propose m ents ctx) (toPState s') :=

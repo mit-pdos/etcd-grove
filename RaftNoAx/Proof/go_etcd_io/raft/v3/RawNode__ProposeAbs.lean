@@ -27,6 +27,7 @@ public import RaftNoAx.Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RaftStepNoSnap
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.RawNodeAtScope
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.StepEndIp
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.StepEndRole
 
 @[expose] public section
 
@@ -122,24 +123,37 @@ local macro "prop_tail" : tactic => `(tactic| (
       Hfr.2.2.2.2.1 Hfr.2.2.2.1 (logStoreRec_stored Hfr.2.2.2.2.2.1) Hfr.2.1 $$ Hstrecs
     -- in the scope, the proposal's exact effect, the log only appended to
     have hnc : ∀ e ∈ [propEntryM data], ¬ IsConfEnt e := propEntryM_noConf data
-    have Hlifted : sc = true →
+    have Hlifted : ∀ md, sc = some md →
         ProposeEnd cf id (toPState s)
           (absMsg .propose ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
-            [propEntryM data] []) (toPState s') ∧ LogGrow s.logst s'.logst ∧ BkStep s s' := fun h =>
-      ⟨proposeEnd_of_stepEnd (Hlift h).1 rfl rfl (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1,
-        logGrow_of_stepEnd_prop (Hlift h).1 rfl rfl (Hx h).1,
-        bk_of_stepEnd_prop (Hlift h).1 rfl rfl hnc (Hx h).1⟩
+            [propEntryM data] []) (toPState s') ∧ LogGrow s.logst s'.logst ∧ BkStep s s' := fun md h =>
+      ⟨proposeEnd_of_stepEnd (Hlift md h).1.fn rfl rfl (noSnapSent_of_noSnapL (Hx md h).2) (Hx md h).1,
+        logGrow_of_stepEnd_prop rfl rfl (Hx md h).1,
+        bk_of_stepEnd_prop rfl rfl hnc (Hx md h).1⟩
     icases ownRaftPhysC_sdr cf rnv.raft' id s' $$ Hphys with ⟨#Hsd1, Hphys⟩
     icombine Hsd0 Hsd1 gives %Hsde
     have Hsdr' : s'.sdr = s.sdr := by first | exact Hsde.symm | exact Hsde
-    ihave Hsc := rnScopeAt_keepIf sc rs rs s s'
-      (fun h Hs => by
+    -- in the scope, `RnScope` kept: the role kept (`LocalFrame`), a pre-candidate's state kept (it drops
+    -- the proposal), the leader kept (`proposeEnd_lead`)
+    icases ownRaftPhysC_trkDoms cf rnv.raft' id s' $$ Hphys with ⟨%Hdom1, Hphys⟩
+    have Hrole' : s'.role = s.role := Hfr.2.2.2.2.2.2.2.2.2.1
+    ihave Hsc := rnScopeAt_keepOpt sc rs rs s s'
+      (fun md h Hs0 => by
         have hrd : s'.rd.pend = s.rd.pend := by
-          rw [← toPState_rd_pend s', ← toPState_rd_pend s, proposeEnd_rd (Hlifted h).1]
-        exact RnScopeBasic.keep Hs rfl rfl Hfr.2.2.2.2.2.2.2.1 Hcq' hrd Hfr.2.2.2.2.1 Hfr.2.2.2.1
-          (fun m hm => .inr ((Hx h).2 m hm))
-          (fun h0 => by rw [proposeEnd_rd (Hlifted h).1]; exact h0)
-          (hxs := congrArg NGhost.xs Hfr.2.2.2.2.2.2.2.2.1)) Hfr.2.2.2.2.2.2.1 (fun _ => Hsdr') $$ Hsc
+          rw [← toPState_rd_pend s', ← toPState_rd_pend s, proposeEnd_rd (Hlifted md h).1]
+        exact RnScope.stepG (hsc0 md h).2.1 Hs0 (Hscope md h).2.1 (HCf md h).1 (HCf md h).2.1
+          (HCf md h).2.2 ⟨rfl, rfl, rfl⟩ Hfr.2.2.2.2.2.2.2.1 Hcq'
+          (fun _ => ⟨hrd, fun h0 => by rw [proposeEnd_rd (Hlifted md h).1]; exact h0⟩)
+          (fun _ => ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.1, (Hx md h).2⟩)
+          (fun _ => by rw [Hfr.2.2.2.2.2.2.2.2.1])
+          (fun hr => by
+            have hr0 : s.role = .preCandidate := Hrole'.symm.trans hr
+            rw [preCand_of_stepEnd_prop rfl rfl hr0 (Hx md h).1]
+            exact .inl ⟨hr0, rfl, .inl rfl⟩)
+          (fun h1 h2 => absurd (Hrole'.trans h1) h2) Hdom Hdom1)
+      Hfr.2.2.2.2.2.2.1 (hfl := ⟨Hfr.2.2.2.2.2.2.2.1, Hcq', Hsdr'⟩)
+      (hx := fun md h _ HX0 => XScopeOk.keep HX0
+        ⟨proposeEnd_lead (Hlifted md h).1, by rw [Hfr.2.2.2.2.2.2.2.2.1], Hfr.1⟩) $$ Hsc
     ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
       (by rw [LocalFrame.ns Hfr]; exact Hgtr.trans HtrG)
     iapply HΦ $$ %err %(toRState rs fp s') %(uint.nat s'.logst.inprogress - 1)
@@ -150,7 +164,7 @@ local macro "prop_tail" : tactic => `(tactic| (
       (by first | exact Href.voteLe.1 | exact Hcv.1.voteLe.1 | exact Hvr.1 | omega)
       (logStoreRec_ksn Hfr.2.2.2.2.2.1) (by first | exact Href.commit_mono | exact Hcv.commit | exact Hc) (by first | exact Href.snapQueue | exact Hcv.queue | exact Hcv.1.snapQueue) $$ Hledger
     ihave #Hsloc' := snapLocOk_keep γ id (.inl Hfr.2.2.2.1) $$ Hsloc
-    · iapply ownRawNodeAt_intro γ rn id rs (toRState rs fp s') qs (uint.nat s'.logst.inprogress - 1) (basicScope sc)
+    · iapply ownRawNodeAt_intro γ rn id rs (toRState rs fp s') qs (uint.nat s'.logst.inprogress - 1) sc
         s' cf fp rnv sv hprev steps Hwf' Hin Hasync
         (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
         (by rw [Hfr.2.2.2.1]; exact Hsnap)
@@ -174,15 +188,14 @@ local macro "prop_tail" : tactic => `(tactic| (
       · iright; iexact Hd
     ipureintro
     intro md hmd
-    have h : sc = true := by cases sc <;> first | rfl | cases hmd
-    have Hg := (Hlifted h).2.1
+    have Hg := (Hlifted md hmd).2.1
     refine ⟨fun Adm => by
       rw [← Hps]
       exact recvEndR_of_prop (by simp [absMsg, absMsgFrom, Msg.mkV]) rfl
-        (by rw [Hcfm.2 (Hcin h).2.2.2.1]; exact (Hlifted h).1) (Hlifted h).2.2 Hfr.2.2.2.1
+        (by rw [(HCf md hmd).2.2]; exact (Hlifted md hmd).1) (Hlifted md hmd).2.2 Hfr.2.2.2.1
         Hfr.2.2.2.2.1 ⟨rfl, rfl⟩ hnc, ?_⟩
     have := ip_of_logGrow Hg (by
-      have := Hipf.1.2; rw [Hp0 h] at this; rw [List.length_append]; push_cast; omega)
+      have := Hipf.1.2; rw [Hp0 md hmd] at this; rw [List.length_append]; push_cast; omega)
     rw [Hip, Nat.add_sub_cancel] at this
     rw [← Hps]
     exact this))
@@ -194,12 +207,12 @@ theorem RawNode.Propose.wp_absProof
     RawNode.Propose.absSpec (GF := GF) (hG := hG) := by
   have wp_raft_StepNs := raft.Step.untracedNs wp_raft_Step
   have wp_raft_Step := raft.Step.untraced wp_raft_Step
-  intro sc γ rn id rs ps qs ip data_sl data HtrG
+  intro sc hsc0 γ rn id rs ps qs ip data_sl data HtrG
   wp_start as H
   iNamed H
   iNamed Hrn
   -- the scope's facts at the start state
-  icases rnScopeAt_scope sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  icases rnScopeAt_pureOpt sc rs s $$ Hsc with ⟨%Hscope, Hsc⟩
   icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpre0, Hphys⟩
   icases ownRaftPhysC_ipFacts cf rnv.raft' id s $$ Hphys with ⟨%Hipf, Hphys⟩
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom, Hphys⟩
@@ -207,16 +220,15 @@ theorem RawNode.Propose.wp_absProof
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownRaftPhysC_sdr cf rnv.raft' id s $$ Hphys with ⟨#Hsd0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
-  icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
   icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
-  have Hlift : sc = true → LiftScope cf id s ∧ AckScope cf ∧ cf.ids = (rnCfg γ).ids := fun h => by
-    have Hs := Hscope h
-    obtain ⟨HC, Hid⟩ := cfgScope_of Hs (Hcin h) Hcfm
-    have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid), Hal0 HC.2.1,
-      HC.ids ((Hcin h).learners Hcfm)⟩
-  have Hp0 : sc = true → uint.Z s.logst.prev.index' = 0 := fun h => by
-    rw [(Hscope h).2.2.2.2.2.1]; rfl
+  have HCf : ∀ md, sc = some md → CfgScope γ cf ∧ cf.learners = ∅ ∧ rs.cfg.cfg = cf := fun md h =>
+    cfgScope_ofMd (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 Hcfm
+  have Hlift : ∀ md, sc = some md → LiftScopeK rs.k cf id s ∧ AckScope cf := fun md h => by
+    obtain ⟨Hs, Hc, Hk, -⟩ := Hscope md h
+    obtain ⟨HC, -, -⟩ := HCf md h
+    exact ⟨liftScopeK_of (hsc0 md h).2.1 Hs Hc Hk HC Hpre0 Hfv Hdom.1 Hdom.2, Hal0 HC.2.1⟩
+  have Hp0 : ∀ md, sc = some md → uint.Z s.logst.prev.index' = 0 := fun md h => by
+    rw [((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.1]; rfl
   wp_auto_lc 1
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
@@ -267,8 +279,9 @@ theorem RawNode.Propose.wp_absProof
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   -- `raft.Step`: in the scope at the no-snapshot flag, outside it untraced; afterwards the same, with
   -- the step's end state (in the scope) as `Hx`
-  by_cases hsc : sc = true
-  · icases rnScopeAt_cap hsc rs s $$ Hsc with ⟨#Hcap, Hsc⟩
+  by_cases hsc : ∃ md, sc = some md
+  · obtain ⟨md0, hmd0⟩ := hsc
+    icases rnScopeAt_capOpt hmd0 (hsc0 md0 hmd0).1 rs s $$ Hsc with ⟨#Hcap, Hsc⟩
     wp_apply wp_raft_StepNs cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
       [propEntryM data] [] none []
       (by simp [StepMsg, stepMsgTypes, MsgProp])
@@ -281,7 +294,7 @@ theorem RawNode.Propose.wp_absProof
       (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
-      (by tr_none) (Hlift hsc).2.1 $$ [$Hphys $Hghost $Hlc1 Hm Htk Hcr]
+      (by tr_none) (Hlift md0 hmd0).2 $$ [$Hphys $Hghost $Hlc1 Hm Htk Hcr]
     · prop_frame
       isplitr
       · imodintro
@@ -290,13 +303,13 @@ theorem RawNode.Propose.wp_absProof
       isplitr
       · iexact Hcap
       isplitr
-      · ipureintro; exact Hp0 hsc
-      · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2.1
+      · ipureintro; exact Hp0 md0 hmd0
+      · ipureintro; exact ((Hscope md0 hmd0).1.2.2.2.2.1 (hsc0 md0 hmd0).1).2.2.2
     simp only [MsgProp]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %Htm, %_, -, -, Herr,
       %Hend, -, %Hns', -⟩
-    have Hx : sc = true → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
-        [propEntryM data] [] s s' ∧ NoSnapL s'.outbox := fun _ => ⟨Hend, Hns'⟩
+    have Hx : ∀ md, sc = some md → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
+        [propEntryM data] [] s s' ∧ NoSnapL s'.outbox := fun _ _ => ⟨Hend, Hns'⟩
     prop_tail
   · wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
       [propEntryM data] [] none []
@@ -317,8 +330,8 @@ theorem RawNode.Propose.wp_absProof
         simp [MsgSnap] at Hc
     simp only [MsgProp]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %Htm, %_, -, -, Herr⟩
-    have Hx : sc = true → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
-        [propEntryM data] [] s s' ∧ NoSnapL s'.outbox := fun h => absurd h hsc
+    have Hx : ∀ md, sc = some md → StepEnd cf id ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM)
+        [propEntryM data] [] s s' ∧ NoSnapL s'.outbox := fun md h => absurd ⟨md, h⟩ hsc
     prop_tail
 
 end proof

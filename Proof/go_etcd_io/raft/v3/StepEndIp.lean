@@ -366,9 +366,10 @@ theorem ipEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List Entry
     exact ip_of_logGrow this hhi
 
 /-- **A proposal's step** (term `0`, no preamble): the log appended to (a leader's `proposed`) or kept
-(a forward, a drop), the in-progress boundary kept. -/
+(a forward, a drop), the in-progress boundary kept. (antithesis parity B1, step C3) At any scope: a
+pre-candidate drops it. -/
 theorem logGrow_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgProp)
     (h0 : m.Term' = W64 0) (h : StepEnd c id m ents ctx s s') : LogGrow s.logst s'.logst := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; se_tyclose hty)
     (by rw [hty]; se_tyclose MsgHup) (by rw [hty]; se_tyclose MsgVote) h0 h
@@ -385,7 +386,12 @@ theorem logGrow_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
     se_tysimp hty at hres
     obtain ⟨-, -, hs⟩ := hres
     rw [hs]; exact LogGrow.keep rfl rfl
-  | preCandidate => exact absurd hr hsc.2.2.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hs⟩ := hres
+    rw [hs]; exact LogGrow.keep rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC at hres
@@ -468,6 +474,28 @@ theorem recvEnd_of_stepEnd_net {c : CfgM} {id : w64} {m : MessageM} {ents : List
   · exact ⟨recvEnd_of_stepEnd_voteResp hsc e h0 hns h, by simp⟩
   · exact ⟨recvEnd_of_stepEnd_heartbeat hsc e h0 h, by simp⟩
   · exact ⟨recvEnd_of_stepEnd_heartbeatResp hsc e h0 hns h, by simp⟩
+
+/-- (antithesis parity B1, step C3) **A pre-candidate drops a proposal**: the step changes nothing
+(`stepCandidate`'s `MsgProp` arm, `ErrProposalDropped`). -/
+theorem preCand_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgProp) (h0 : m.Term' = W64 0)
+    (hr : s.role = .preCandidate) (h : StepEnd c id m ents ctx s s') : s' = s := by
+  obtain ⟨-, hc, -⟩ := ie_fn_local (by unfold StepEndTy; se_tyclose hty)
+    (by rw [hty]; se_tyclose MsgHup) (by rw [hty]; se_tyclose MsgVote) h0 h
+  obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+  unfold CandidateStepResultC at hres
+  se_tysimp hty at hres
+  obtain ⟨-, -, hs⟩ := hres
+  exact hs
+
+/-- (antithesis parity B1, step C3) A proposal's end relation keeps the protocol leader. -/
+theorem proposeEnd_lead {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (h : ProposeEnd c id s m s') :
+    s'.lead = s.lead := by
+  unfold ProposeEnd at h
+  split at h
+  · rcases h with rfl | ⟨es, ms, -, -, rfl⟩ <;> rfl
+  · split at h <;> (subst h; rfl)
 
 /-- A proposal's end relation keeps the read-index state. -/
 theorem proposeEnd_rd {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}

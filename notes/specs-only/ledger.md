@@ -6630,3 +6630,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (no statement of record): `tickEnd_of_stepEnd_beat`, `logst_of_stepEnd_beat`, `bk_of_stepEnd_beat` take the role facts
   they read instead of `LiftScope`, `bk_of_stepEnd_hup` none, `tickEnd_of_stepEnd_beat` no empty read-only queue.
 - **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C3 (Propose): `RawNode.Propose.absSpec` at every scope `Option RnMode` (#33)
+- **Spec (the lead's statement, decision 1, as C1's).** RawNodeAbsSpecs.lean: `RawNode.Propose.absSpec := ∀ sc : Option
+  RnMode, (∀ md, sc = some md → snapshots, confChanges, forwarding, async off) → form (ownRawNodeAt … sc) (fun md => sc =
+  some md)` (was `∀ sc : Bool` at `basicScope sc`). `spec_of_abs` at `none`, `apiSpec_of_abs` at `some {}`.
+- **Proof.** RawNode__ProposeAbs at `some md`: `ProposeEnd` over `LiftScopeK` (`FnScope`); the scope kept by
+  `RnScope.stepG` (the role kept, `LocalFrame`; a pre-candidate drops the proposal and keeps its state,
+  `preCand_of_stepEnd_prop`), `XScopeOk` (`proposeEnd_lead`). Lifting lemmas generalized (no statement of record):
+  `proposeEnd_of_stepEnd`/`recvEnd_of_stepEnd_prop` take `FnScope`, `logGrow_of_stepEnd_prop`/`bk_of_stepEnd_prop` no scope.
+- **Decision.** The Antithesis lead (2026-11-26, decision 1). No axiom, no premise.

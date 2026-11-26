@@ -321,8 +321,11 @@ abbrev RawNode.Propose.form (R : RaftNames → Loc → w64 → RNState → RStat
 
 /-- **`RawNode.Propose`, strengthened**. -/
 abbrev RawNode.Propose.absSpec : Prop :=
-  ∀ sc : Bool, RawNode.Propose.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (basicScope sc)) (fun md => basicScope sc = some md)
+  ∀ sc : Option RnMode, (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
+      md.forwarding = false ∧ md.async = false) →
+    RawNode.Propose.form
+      (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc)
+      (fun md => sc = some md)
 
 abbrev RawNode.Propose.spec_of_abs.law : Prop :=
   RawNode.Propose.absSpec (GF := GF) (hG := hG) → RawNode.Propose.spec (GF := GF) (hG := hG)

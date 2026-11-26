@@ -454,7 +454,8 @@ theorem RawNode.Campaign.apiSpec_of_abs (H : RawNode.Campaign.absSpec (GF := GF)
 
 theorem RawNode.Propose.apiSpec_of_abs (H : RawNode.Propose.absSpec (GF := GF) (hG := hG)) :
     RawNode.Propose.apiSpec (GF := GF) (hG := hG) := by
-  have h := H true; rw [true_eq_true_eq] at h; exact h
+  have h := H (some {}) (fun md h => by cases h; exact ⟨rfl, rfl, rfl, rfl⟩)
+  rw [some_eq_some_eq] at h; exact h
 
 theorem RawNode.Ready.apiSpec_of_abs (H : RawNode.Ready.absSpec (GF := GF) (hG := hG)) :
     RawNode.Ready.apiSpec (GF := GF) (hG := hG) := by

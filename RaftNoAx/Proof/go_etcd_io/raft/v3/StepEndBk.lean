@@ -609,7 +609,7 @@ theorem bk_leaderPropConf_noConf (s : NState) (ents : List EntryM) (cs : List (O
 `pendingConfIndex` (`leaderPropConf … = (ents, s.pci)`); a forward or a drop changes nothing
 read here. -/
 theorem bk_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
-    {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
+    {ctx : List w8} {s s' : NState} (hty : m.Type' = MsgProp)
     (h0 : m.Term' = W64 0) (hnc : ∀ e ∈ ents, ¬ IsConfEnt e) (h : StepEnd c id m ents ctx s s') :
     BkStep s s' := by
   obtain ⟨hf, hc, hl⟩ := ie_fn_local (by unfold StepEndTy; se_tyclose hty)
@@ -628,7 +628,12 @@ theorem bk_of_stepEnd_prop {c : CfgM} {id : w64} {m : MessageM} {ents : List Ent
     se_tysimp hty at hres
     obtain ⟨-, -, rfl⟩ := hres
     exact BkFn.keep rfl rfl rfl
-  | preCandidate => exact absurd hr hsc.2.2.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact BkFn.keep rfl rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC at hres
