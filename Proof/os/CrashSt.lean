@@ -158,12 +158,32 @@ theorem vmeta_xs (s : CSt) : s.vmeta.xs = s.m.xs := by
 
 /-- **A size a crash may leave the file in the state `s` at**, as the ghost state knows it: one of
 the crash sizes `s.m` knows (`OsMeta.xs`), if it knows them, or, with an `ftruncate` in flight,
-its target, or, with a `pwrite` in flight, any. -/
+its target, or, with a `pwrite` in flight, one between the smallest of them (or the write's target,
+`max size (off + len)`) and the largest (or the target). -/
 def CrashSize (s : CSt) (n : Nat) : Prop :=
   ∀ l, s.m.xs = some l → n ∈ l ∨ match s.busy with
     | .idle => False
-    | .write .. => True
+    | .write _ off data _ =>
+        ((∃ a ∈ l, a ≤ n) ∨ max s.m.size (off + data.length) ≤ n) ∧
+        ((∃ b ∈ l, n ≤ b) ∨ n ≤ max s.m.size (off + data.length))
     | .trunc _ sz _ => n = sz
+
+/-- **A crash during a write inside the file leaves its size**, when the sizes known are all the
+size. -/
+theorem crashSize_write_in {s : CSt} {n t off nn : Nat} {data : List w8} {l : List Nat}
+    (hb : s.busy = .write t off data nn) (hin : off + data.length ≤ s.m.size)
+    (hl : s.m.xs = some l) (hall : ∀ a ∈ l, a = s.m.size) (h : s.CrashSize n) : n = s.m.size := by
+  rcases h l hl with h | h
+  · exact hall n h
+  · rw [hb] at h
+    obtain ⟨h1, h2⟩ := h
+    have hmx : max s.m.size (off + data.length) = s.m.size := by omega
+    rw [hmx] at h1 h2
+    rcases h1 with ⟨a, ha, h1⟩ | h1 <;> rcases h2 with ⟨b, hb', h2⟩ | h2
+    · have := hall a ha; have := hall b hb'; omega
+    · have := hall a ha; omega
+    · have := hall b hb'; omega
+    · omega
 
 /-- What the specs keep of a state: all the bytes, the frozen ones inside, a write in flight
 misses them (and so does what it appends, which starts at the size), a truncate grows. -/
@@ -218,10 +238,12 @@ theorem crashSeen_crashSize {Q : OsState → OsState → Prop} {i : Ino} {s : CS
   · right
     rcases hb : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩
     · simp [CSt.toks, hb] at hx
-    · trivial
     · simp only [CSt.toks, hb, List.mem_singleton] at hx
       subst hx
-      exact hxt (by simp [rsKind, OsChangeKind.isTrunc])
+      exact ⟨hxt.2.1, hxt.2.2⟩
+    · simp only [CSt.toks, hb, List.mem_singleton] at hx
+      subst hx
+      exact hxt.1 (by simp [rsKind, OsChangeKind.isTrunc])
 
 /-! ## What a crash sees does not depend on fractions -/
 

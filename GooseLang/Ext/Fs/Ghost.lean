@@ -91,7 +91,7 @@ structure OsMeta where
   resize's zero candidates from a `pwrite`'s (W1, `notes/wal-fsext-plan.md` §2.5). -/
   rz : List Nat := []
   /-- **The sizes a crash may leave the file at**, if known (`some l`): each of `OsFile.CrashSz`
-  (the size, the smallest size since the last sync, `OsFile.szCrash`) is in `l` (`MetaOk.xs`), where
+  (the size, the smallest and largest sizes since the last sync, `OsFile.szCrash`) is in `l` (`MetaOk.xs`), where
   `lo` and `hi` only bound them. A sync, a boot or a crash makes it the size alone; a landed
   `ftruncate` adds its size (`OsFile.land` adds only that one); a `pwrite` that may reach past
   the size, or an `fallocate` that changes it, forgets them (`none`: `land` adds every size in
@@ -302,13 +302,15 @@ structure OsWf : Prop where
   stamps : ∀ i f b p, st.file i = some f → p ∈ f.cand b → p.2 ≤ st.fs.stamp
 
 /-- The sizes a crash may leave the file `f` at, apart from a change in flight (`CrashFile`): its
-size, its smallest size since the last sync, and its crash sizes (`OsFile.szCrash`). -/
-def OsFile.CrashSz (f : OsFile) (s : Nat) : Prop := s = f.size ∨ s = f.sizeLo ∨ f.szCrash s
+size, its smallest and largest sizes since the last sync (the bounds of a change in flight's), and
+its crash sizes (`OsFile.szCrash`). -/
+def OsFile.CrashSz (f : OsFile) (s : Nat) : Prop :=
+  s = f.size ∨ s = f.sizeLo ∨ s = f.sizeHi ∨ f.szCrash s
 
 /-- After a sync, the size is the one crash size. -/
 theorem OsFile.crashSz_synced {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] {s : Nat}
     (h : (f.synced busy).CrashSz s) : s = f.size := by
-  simp only [OsFile.CrashSz, OsFile.synced] at h; rcases h with h | h | h <;> exact h
+  simp only [OsFile.CrashSz, OsFile.synced] at h; rcases h with h | h | h | h <;> exact h
 
 /-- A landing adds the sizes `OsFile.land` adds: its size for an `ftruncate`, every size between
 the old and the new one otherwise. -/
@@ -316,12 +318,15 @@ theorem OsFile.crashSz_land {f : OsFile} {c : OsChange} {e sz s : Nat}
     (h : (f.land c e sz).CrashSz s) :
     f.CrashSz s ∨ (if c.kind.isTrunc then s = sz else min f.size sz ≤ s ∧ s ≤ max f.size sz) := by
   simp only [OsFile.CrashSz, OsFile.land] at h ⊢
-  rcases h with h | h | h | h
+  rcases h with h | h | h | h | h
   · right; subst h; split <;> omega
   · by_cases hl : f.sizeLo ≤ sz
     · left; right; left; omega
     · right; split <;> omega
-  · left; right; right; exact h
+  · by_cases hl : sz ≤ f.sizeHi
+    · left; right; right; left; omega
+    · right; split <;> omega
+  · left; right; right; right; exact h
   · right; exact h
 
 /-- A landing that leaves the size as it was adds no crash size. -/
@@ -1426,7 +1431,7 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     simp only [initMeta, Option.some.injEq] at hl; subst hl
     simp only [OsFile.CrashSz, OsFile.ofDisk] at hx
     simp only [List.mem_singleton]
-    rcases hx with h | h | h <;> exact h
+    rcases hx with h | h | h | h <;> exact h
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by

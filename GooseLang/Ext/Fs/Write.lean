@@ -94,10 +94,11 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     fun s hs => hrz s (hmo.rz s (by simpa using hs)), fun z hz b hb => ?_,
     fun b hb => by rw [hcache b]; exact hmo.ce b (by rw [← hsz.1]; exact hb),
     fun l hl s hs => hmo.xs l (by simpa using hl) s (by
-      rcases hs with h | h | h
+      rcases hs with h | h | h | h
       · exact .inl (h.trans hsz.1)
       · exact .inr (.inl (h.trans hsz.2.1))
-      · exact .inr (.inr (hsc s h)))⟩
+      · exact .inr (.inr (.inl (h.trans hsz.2.2)))
+      · exact .inr (.inr (.inr (hsc s h))))⟩
   rotate_right
   · simp only [announce_zf, Option.map_eq_some_iff] at hz
     obtain ⟨z0, hz0, rfl⟩ := hz
