@@ -94,12 +94,13 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     iframe Hlt
     ileft
     iframe #
-    isplitr
-    · ipureintro; rfl
-    iexists _
-    iframe Hcfg
+    -- `iframe #` frames `Hcfg` into the existential; the pure facts are left
     ipureintro
-    first | exact ⟨rfl, rfl, rfl⟩ | simp
+    first
+      | exact ⟨rfl, rfl, rfl⟩
+      | exact ⟨rfl, rfl, rfl, rfl⟩
+      | exact ⟨rfl, ⟨rfl, rfl, rfl⟩⟩
+      | simp
   · obtain ⟨Hcerr, Hnull⟩ := Hcfail
     iapply HΦ
     iframe Hlt
