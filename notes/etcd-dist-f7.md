@@ -439,3 +439,56 @@ Targets: `dist.server.ClusterStartD`, `dist.server.MainLogger`, `dist.kvremote.T
   (3) the current `Serve_dist` ties nothing to `Γ.ls mid` (known, F2; the proposed text fixes it). Docstring nits in
   `AuthServeProposed.lean`: "the in-process `NewServer.specG` is not yet carried to the name" is stale (`specGAt`), and
   "distinct-names premises (kept here too)" holds only of the auth names.
+
+### Handoff 4 (2026-11-26, step 2 carried; step 3 prepared, held for the putgetK verdict)
+
+**Done:**
+- **Step 1, built** (fk-lean2, `ce6319f67f`): `NewServer` (`specGAt`, `wp_proofGAt`, the derived `wp_proofG`) and the
+  server `Link.lean` build. `etcdserver/Results.lean`'s `server_new_auth_on` then needed `lease.wp_NewLessorAt` (fixed).
+- **Step 2, the putget carry** (proof-only; no statement of putget's results changes):
+  - `NewServer.specAt := ∀ cmp, specGAt false cmp` (Spec `NewServer.lean`), `NewServer.wp_proofAt` (`wp_proofGAt` at
+    auth off); Link entry `etcdserver_NewServer+At` (server list, same callees as `etcdserver_NewServer`).
+  - `etcdstart.memberBuiltL … m γl` (`dist/MemberLessor.lean`: `memberBuilt`'s body plus `mvccLeases E.γ = γl`),
+    `memberUpL_memberUp` (forgets the name), `etcdstart.wp_Start_builtL` (`Start.lean`: `memberBuiltL` → `memberUpL`).
+  - `newServerMode.specAt`/`wp_proofAt`, `newServer.specAt`/`wp_proofAt`, `StartServer.specAt`/`wp_proofAt`: `spec` plus
+    the binder `γl`, `ghostMapAuth γl ½ ∅ ∗ lease.lessorSlot γl` first in the pre, `memberBuiltL`/`memberUpL … γl` in the
+    post. Common list: `etcdserver_NewServer+At: @`, `etcdstart_{newServerMode,newServer,StartServer}+At`.
+  - `etcd_dist.wp_StartServer1_slice` now takes `StartServer.specAt` and `γl` (with its half and slot) and gives
+    `memberUpL … .none γl` (its only caller is putget's `Member`).
+  - `memberNamesShare` moved from `server/MemberDefs.lean` to `MemberNames.lean` (same variables); putget's
+    `memberShare` carries `memberNamesShare (c.ls id) (c.au id)`; `putget_shares` allocates one lessor name
+    (`lessorSlot_alloc ⊤ []`) and auth names (`authNamesFreshG_alloc`) and sets `c.ls := fun _ => γl`,
+    `c.au := fun _ => γa` (until then `lsNone`/`auNone`). putget's `Member` starts at `c.ls id` and, until step 3,
+    weakens `memberUpL` to `memberUp` for the current `Serve_dist`; its `AdequacyMember` passes `etcdstart.wp_StartServerAt`.
+
+**Step 3 (held: the lead's putgetK decision, #50 03:26Z).** What the replacement needs beyond the texts:
+- `authNamesFreshD` and `etcdstart.memberUpOnL` move out of `AuthServeProposed.lean` (which the Spec files cannot import:
+  it imports them) into a defs module (`MemberLessor.lean`, adding `auth.Boot`/`LessorSlot` imports); then the proposed
+  texts replace `NewServer.specG_dist` (Spec `NewServerDist.lean`, plus `etcdURLsFit U.peer → etcdURLsFit U.client →` after
+  `peerURLsDir`) and `Serve_dist.spec` (Spec `ServeDist.lean`), and `AuthServeProposed.lean` is deleted (only comments in
+  `S2Interim`/`AuthViewDist` and `MemberNames`' import name it).
+- `MainLogger` (dist/server) builds `memberUp` through `memberBuilt` → `memberBuilt_split` (`server/MemberSplit.lean:247`)
+  → `wp_Start_built` → `memberUp_req` (`:303`) → `Serve_dist`: each needs an L variant (`memberBuiltL_split`,
+  `wp_Start_builtL` exists, `memberUpL_req`), with `NewServer_dist`'s new `Hlslot` from `memberShareD`'s
+  `memberNamesShare` (today dropped with `-` at line 104) and `etcdURLsFit` from `addrFits` (`etcd_dist.addrOk_addrFits`,
+  `etcdstart.etcdURLsFit_httpURL`).
+- putget's `Member`: `Serve_dist`'s `memberUpL … Γ.kv.lm (Γ.ls mid)` at `Γ = c.view`: needs `c.γk.lm = .none` (from
+  `ClusterOk … .none`) to match the slice's `.none`; drop the `memberUpL_memberUp` weakening.
+- putgetK: (a) `StartMember_dist`'s post `memberUpL … Γ.kv.lm (Γ.ls mid)` and back `addrFits peerAddr → addrFits client →`;
+  or (b), if the review passes, putgetK's result deleted.
+
+**Build state at handoff:** step 2's build of `a41e370ee7` was still running on fk-lean2 when this session stopped (context
+limit): targets `etcdserver.Results`, `etcdstart.Link`, and the dist `putget`/`kvremote`/`putgetk` `TopLevelRobustness`;
+log `~/eg/logs/f7l-build.log` (ends `EXIT n`). **First thing next:** read that log; if it failed, fix and rebuild those
+targets (likely spots: `iframe Hl Ha`/`iexact Hslot` in `putget_shares`, the `isplitl [Hlslot]` framings of the `At`
+proofs, `memberNamesShare`'s section variables in `MemberNames.lean`, the `(G := hG.goose_globalGS)` instance of
+`lessorSlot` in putget's `Member`). Helper used: `/shared/tmp/f7sync.sh MODULES…` (fetches the branch into
+`~/eg/etcd-grove.git`, checks it out in `~/eg/wt/etcd-safe-f7`, runs `f7l-build.sh`).
+
+**Step 3:** held for the lead's putgetK verdict: (b) retire `putgetK_safe` (delete its result) if the independent
+review confirms etcd_safe's driver subsumes it, else (a) strengthen `StartMember_dist` (above). Do not commit the
+replacement until the coordinator relays the verdict.
+
+**Step 4 (not started):** link leaseRead, leaseCatchup and leaseExpiry as N7-kv linked kv; `etc/tcb-report.py --check
+--update` for exactly the new axioms (base and collections); `etc/tier-check.py --check`; `etc/lease-order-check.py`.
+Step 5 (not started): `notes/axiom-review/f7-diff-vs-inprocess.md` and `notes/etcd-dist-f9-f2f7-rows.md` for the final texts.
