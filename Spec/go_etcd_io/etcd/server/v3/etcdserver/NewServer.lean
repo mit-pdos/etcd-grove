@@ -118,6 +118,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorRecover
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorSlot
 
 @[expose] public section
 
@@ -398,6 +399,106 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (the restart plan's R2b-3d; 2026-11-05, the stop's slot, `StopApi.lean`: until then
           -- inline, `srvStopKeep`, `srvTrKeyOf`, the auth-off `srvCleanupOwn`) what the server's stop
           -- needs of the construction
+          srvStop.keep srv cfg E γrn γk }}
+
+/-- **`NewServer(cfg)` with the lessor at the caller's name `γl`** (F7 step 2, 2026-11-26; F2's P-L1 carried into
+the in-process spec): `NewServer.specG` (its comments there) with the binder `γl`, the premise `"Hlslot"` (half of
+`γl`'s lessor map authority at `∅` and the start's slot `lease.lessorSlot γl`, what `lease.NewLessor.specAt`
+takes), first in the precondition, and in the post `mvcc.api.mvccLeases E.γ = γl`. `NewServer.wp_proofGAt`
+proves it; `NewServer.wp_proofG` derives `specG` from it by allocating the slot (`lease.lessorSlot_alloc`). -/
+abbrev NewServer.specGAt (on cmp : Bool) : Prop :=
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
+    (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (γn : NetNames GF) (dir : w64 → List GoString)
+    (γd : GName)
+    (m : lease.Mode)
+    -- (F7 step 2) the member's lessor name, the caller's
+    (γl : GName),
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ →
+  γ.rule = srvRule (W64 0) γ.boot →
+  (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
+  ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
+  ρ.rd.kv.log0 = [[], []] →
+  ρ.rd.kv.cmp = cmp →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
+  v3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' cmp ρ.rd.kv.cret →
+  (cmp = true → on = false) →
+  E₀.cmp = cmp →
+  E₀.Nx = srvApi.kvNx ρ.rd on →
+  threadBound GF ≤ backend.rdPoolN →
+  receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  γ.boot.length ≤ 2 ^ 60 →
+  ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) → Φs ρ.ids.pfx = srvFloorFact E₀ →
+  (∃ p : Loc, p ≠ null ∧ cfg.ServerFeatureGate' = interface.mkOk
+    (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
+  netDirOk dir →
+  peerURLsDir dir id U.peer →
+  etcdURLsFit U.peer → etcdURLsFit U.client →
+  raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
+  (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
+    uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  lease.bootCfg (GF := GF) ρ.rd.kv.lm m on →
+  bootCfgOk cfg → bootCfgFresh cfg U → N + 7 + bootWB ≤ backend.wbInit →
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  {{ -- (F7 step 2) half of `γl`'s ghost map authority at `∅` and the slot holding the other half
+      "Hlslot" ∷ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
+      "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      "Htok" ∷ threadTok ∗
+      "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
+      "#Hlcp" ∷ featureIs cfg.ServerFeatureGate' go!"LeaseCheckpoint" false ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
+      "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
+      "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
+      "Hwdf" ∷ wal.bootRes cfg ∗
+      "Hnboot" ∷ (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+        nodeVacant γ.cl id) ∗
+      "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
+      "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+      "#Hpfxi" ∷ idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+      "Hids" ∷ idShare ρ.ids ∗
+      "Hwtok" ∷ idWaitTok ρ.ids ∗
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
+      "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
+      "#Hkvinv" ∷ kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
+      "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
+      "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
+      "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
+      "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+      "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
+      "#Hcci" ∷ context.isClosedchanInit }}
+    (App (Val (@! NewServer)) (Val #cfg))
+  {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
+      (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+      ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
+        ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+          (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
+          ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa) ∧
+            mvcc.api.mvccLeases E.γ = γl⌝ ∗
+          srvServeStock srv E ∗
+          srvWatchBuilt srv E ∗
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk))
+            γrn b (W64 0)
+            (W64 0) (bootKVOf on) N ∗
+          srvBuildGap srv γrn ρ.rd.cursor (W64 0) (W64 0) ∗
+          srvServeBuilt srv E cfg ∗
+          srvSVRes srv E ∗
+          srvMonitorCfg srv cfg ∗
+          srvReadyCloser srv E ∗
+          srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
+          ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
+          lease.srvInv on srv E m ∗
+          leaseTTLRowR srv γ.vs ∗
+          srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
           srvStop.keep srv cfg E γrn γk }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
