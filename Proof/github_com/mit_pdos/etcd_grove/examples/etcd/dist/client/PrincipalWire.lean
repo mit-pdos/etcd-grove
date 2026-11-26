@@ -67,6 +67,7 @@ theorem strBytes_dec {w s : GoString} (h : capped (encStr w) = encStr s ++ []) :
     simp only [capped, hl, ↓reduceIte] at h
     have := congrArg List.length h
     simp [encStr, encU64_length] at this
+    omega
 
 /-- **The principals' wire** (see the file header). -/
 def principalWire : RWire GF GoString Bool where
@@ -85,7 +86,9 @@ section svc
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
 variable [go_gctx : GoGlobalContext] [GoLocalContext] [go.Semantics]
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
