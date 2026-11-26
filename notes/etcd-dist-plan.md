@@ -1676,6 +1676,50 @@ initializers, which this line's configuration already generates from the main tr
 premise-witness, api, import-all; every `Link` regenerated on the VM matches; full VM build green (28661 jobs);
 `tcb-report --check` (338 axioms, 0 sorries) and every collection unchanged.
 
+### 16.3 Round 4 (2026-11-25): T4 and T7's line
+
+Branch `etcd-safe-main-r4/2026-11-25`, from `etcd-safe-main-r3/2026-11-25` @ `5a1c41d945`. Merged heads, in order:
+
+| # | branch | head |
+|---|---|---|
+| 1 | `etcd-safe-d6t4b/2026-11-24` (D6 T4: raft's L1/L2 `LeaderCompleteLaw`, the campaign map's closure and `raftState_leadAgree`, the lifetime mark `nodeStartTerm` in `RestartNode`'s post, `rnReplayJob` an update, `rnRestart_cmtBefore`, `ReplayCoverage`; `NewServer.wp_proofC` still an unlinked `sorry`) | `f5cbaf3dbe` |
+| 2 | `etcd-safe-t7` (etcd-grove-03: round 3, P6b @ `2d2f3cc470`, P5 @ `f353cbb2fb`, T7's `memberGen_crash_law_holds`) | `7f26ddec0a` |
+
+What the merges needed:
+- **T4** (branched at `419753d989`, before rounds 2-3): modify/delete conflicts on files this line had retired
+  (`RaftTla/Proof/runtime/PkgInitExt.lean`, gone with L1's single `PkgInitExt`; the kv, kvdurable, kvreconf and
+  kvdurablenoax client proofs, gone with `lean`'s retirements): they stay deleted. T4's change to them (one more `-`
+  for `RestartNode`'s new conjunct) reached `kvraft/start.lean` through git's KvNet → KvRaft rename. T4's KvNet copy
+  of `LeaderCompleteLaw` came in under the old part name, and copy-part took it for one of KvRaft's own files and kept
+  it. The first build caught that (`unknown module prefix 'KvNet'`); the copy was removed and regenerated. Copies:
+  gen-raft-tla and copy-part regenerated; `etc/api/raft.txt` lists `LeaderCompleteLaw` (T4's).
+- **T7**: three Lean conflicts, all T4's lifetime mark against P5's restart slot, all resolved by keeping both.
+  `rnBootPost`'s restart case is P5's (no `raftState`: the wrapper's crash-aware durability takes it through
+  `hRestartAlloc`) plus T4's `nodeStartTerm n S.term`. `bootstrappedRaft.newRaftNode` destructures `RestartNode`'s
+  post with P5's `#Harm` and T4's `#Hst0`, follows P5's structure, and frames `Hst0` into `rnBootPost`.
+  `raftNode_of_RestartNode` takes `Hbpost` as P5 does, with T4's `#Hst0`. T4's `raftState_cmtBefore` at the restored
+  state (before the boot call) is unchanged. `notes/etcd-dist-d6.md`: both sides only appended, so T4's sections come
+  first, then T7's (from §10T2 on). No design choice was needed.
+- No new axiom, `sorry` or top-level premise; no Go change; no `lean` merge.
+
+**Checked:** gen-raft-tla, copy-part, gen-init, gen-specs-pkginit (`PERENNIAL_DIR` a checkout at the manifest's
+`fce59af75`); api (raft); tier (208 known); bounds (390). The merged modules and their importers were built on the VM
+first (only the KvRaft copy failed). Then the full VM build went green at `1c2958cbb4` (28669 jobs). Every `Link`
+regenerated on the VM matches, and so does btree's. The trust-base checks ran through `vmlake env` (re-run after the VM was preempted at 16:12Z: rebuilt with
+no change, then checked):
+- **`tcb-report --check`: one difference, from T7's line, none from T4 or the merges.** `+ sorry
+  rnRestartAllocK_law_holds`. It is P5's labeled hole P5-RESTART (`InvWalCrashSteps.lean`, `a38f75bcc3`: the
+  restart slot does not carry `walHistCerts`, pending the restatement over the reader's fold on #50). It is
+  linked in the server `Link` (`bootstrappedRaft.newRaftNode`'s `rnRestartAllocK.law`), so on `etcd-safe-t7` itself
+  too. That branch's baseline never listed it (`etcd-dist-d6.md`: "needs a local build to update"). No axiom
+  was added or removed. **The baselines were not updated here** (no new `sorry` without a decision). The
+  collections that differ by this `sorry` alone: `server`, `putget-dist`, `etcd-all-single-process`,
+  `k8s-all-single-process`, `leaseexpiryN-single-process`. Every other collection matches.
+- **`etc/tcb-collections/etcd-dist.txt`** (P12, from the draft; roots: the dist `TopLevelRobustness`): baseline
+  empty (0 axioms, 0 sorries; `--check --update`). `etcd_safe_of_boot` and `etcd_safe_nocrash_of_boot` take
+  the boot WPs (`EtcdBootC`/`EtcdBootCBad`, `EtcdBootNC`/`EtcdBootNCBad`) as named hypotheses, so no axiom is
+  reached yet.
+
 ## 17. Interim transport (2026-11-24, branch `etcd-safe-transport/2026-11-24`; §16 there, renumbered at its merge into the integration line, 2026-11-25)
 
 The cross-machine transport `etcd_safe_nocrash` needs, as interim trust-boundary axioms at the external interfaces
