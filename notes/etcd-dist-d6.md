@@ -1976,3 +1976,36 @@ trivial (a key is `(p, inc)`), and `Gp` with its heap points-to can go, if `Ip` 
 **Next session:** after the lead's B6 decision, that change; P5's certificate route and the `consInv` image row as in
 session 3's handoff, the image row now at `kbStep.law`'s commit point (inside `Tx.Commit`'s update, C-I1's
 `_take`/`_putStep`).
+
+### T10 status and handoff, session 5 (2026-11-26, branch `etcd-safe-t10`)
+
+**Step 1 (green):** session 4's targets (`MemberCrash`, `BackendImage`, `NewServerCrash`, `backend.CrashInterim`) at
+`689a8b5e62` rebuilt incrementally on fk-lean1 (`FKLEAN_HOST=fk-lean1 /shared/tmp/fklean1-check.sh /shared/etcd-grove-t10
+etcd-safe-t10 <targets>`): only `BackendImage` recompiled, exit 0 (`/shared/tmp/t10-s5-build1.log`).
+
+**Step 2: B6's shared first step** (commit `7e8b4e3a3f`; ledger 2026-11-26), in `idutil` only (`Defs`, `NewGenerator`,
+`Generator__Next`):
+* `idPfxBody`'s ids' map is `Ip : id ↦ (inc, g)`; each entry holds `idIssueFragD id g`, `g ↪[γgp]□ inc` and its element;
+  `idKeyGenFacts`' elements are `id ↪[γip]□ (k.2, g)`.
+* `idClusterOk`'s clause 3, restricted to keys of one incarnation, is `k = (k.1, k.2)`: dropped (five clauses now; the
+  `Hok.2…` projections in `Next` and `idIncarnation_alloc` shifted).
+* `Gp` could **not** be dropped. The issue record is keyed by `Loc`, so `Next` still needs a way to tell, inside one heap,
+  which incarnation a generator `g` belongs to (an id already issued by `g` must be its own key's). `Gp` is kept for that,
+  but re-scoped as `Gp : Loc ↦ inc`, with heap fact `∃ v, prefix ↦□ v` and its name `γgp` per allocation of the
+  invariant: `idPfxInv gen p := ∃ γip γgp, p ↪[gen]□ γip ∗ inv idPfxN (idPfxBody γip γgp)`. So `gen : w64 ↦ GName`,
+  `idPfxTok` carries only `γip`, and `idPfxInv_alloc` allocates `γgp`. `idGen` holds the opened invariant with
+  `g ↪[γgp]□ γi.inc` (registered by `NewGenerator`), replacing `idPfxInv γi.gen γi.pfx`. Its first four components are
+  unchanged (`SrvRaftLog` reads them). No spec statement's text changes.
+* For B6 (b), the re-allocation at the crash keeps `γip`'s authority and allocates a fresh `γgp` (empty `Gp`). The body
+  also gains the past disjunct `idIssuePastD id` (to be added: an instance-free `idIssuePastAt` like `idIssueFragD`), and
+  `Next` refutes it with `idIssueFragAt_past`.
+
+**Build at handoff: running, result not seen.** fk-lean1, the 36 modules mentioning the changed names
+(`etc/importers.py --uses …`, list in `/shared/tmp/t10s5/users.txt`) plus `BackendImage`, `NewServerCrash` and
+`backend.CrashInterim`; log **`/shared/tmp/t10-s5-build2.log`** (ends `EXIT n`). `Defs`' cone is 2346 modules. Next session:
+read the log. If it is unfinished, rerun the same command (incremental) with `FKLEAN_HOST=fk-lean1`:
+`/shared/tmp/fklean1-check.sh /shared/etcd-grove-t10 etcd-safe-t10 $(cat /shared/tmp/t10s5/users.txt) <the three>`.
+Fix what fails. The likely spots are `Next`'s new agreement steps (the `ig.2`/`ig.1` projections of literal pairs in
+`bigSepM_lookup_acc`'s `Φ`, and `rcases ig'` under `hIp`) and `NewGenerator`'s `∃ v` frame.
+
+**B6:** the lead (coordinator-E) had not answered on #50 by this session. Recommended option: (b).
