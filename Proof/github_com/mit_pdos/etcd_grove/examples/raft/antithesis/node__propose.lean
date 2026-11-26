@@ -9,7 +9,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__propose
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__input
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInput
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessStep
 public import Proof.go_etcd_io.raft.v3.LemmasEnts
 
 @[expose] public section
@@ -55,13 +55,14 @@ theorem node.propose.wp_proof
   icases nodeOwn_idle_open h_bp c γ j n v $$ Hown with
     ⟨%rn, %rs, Hrnf, Hraw, Htc, #Hb, %Hst, Hcause, Hv, Hl, %Hpr, Hclose⟩
   obtain ⟨hrv, hI, hP, hN, hk⟩ := Hpr
+  obtain ⟨hs, hcc, hfw, has⟩ := rMd_flags Hmode.2 Hb1
   iunfold propOk at Hprop
   icases Hprop with ⟨#Hpd, Htk, %Hmd⟩
   wp_auto
-  wp_apply wp_Propose γ.raft.raftNames rn (AntSim.nodeId j) rs v.r [] v.r.p.log.length sl data
+  wp_apply wp_Propose γ.R.md hs hcc hfw has γ.raft.raftNames rn (AntSim.nodeId j) rs v.r [] v.r.p.log.length sl data
       Hst.1 $$ [$Hrpkg $Hraw $Hdata $Hpd $Htk] as %err %r' %ip' ⟨Hraw, Herr, %Hend⟩
   · ipureintro; exact Hmd
-  obtain ⟨hPE, hip⟩ := Hend {} rfl
+  obtain ⟨hPE, hip⟩ := Hend γ.R.md rfl
   have hPE' := hPE (AdmFold γ.dec γ.R.c0)
   rw [absMsg_propose, hk] at hPE'
   ihave #Hsw : □ (∀ m, ⌜AntSim.Input.propose data = .recv m⌝ -∗ sentW (GF := GF) γ m) $$ []

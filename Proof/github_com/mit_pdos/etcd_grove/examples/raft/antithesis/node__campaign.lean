@@ -9,7 +9,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__campaign
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node__input
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInput
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessStep
 public import Proof.ReceiptTactics
 
 @[expose] public section
@@ -55,15 +55,16 @@ theorem node.campaign.wp_proof
   icases nodeOwn_idle_open h_bp c γ j n v $$ Hown with
     ⟨%rn, %rs, Hrnf, Hraw, Htc, #Hb, %Hst, Hcause, Hv, Hl, %Hpr, Hclose⟩
   obtain ⟨hrv, hI, hP, hN, hk⟩ := Hpr
-  icases h_wf _ _ _ _ _ _ _ $$ Hraw with ⟨%Hwf, Hraw⟩
-  icases h_tc _ _ _ _ _ _ _ $$ Hraw with ⟨%Htcle, Hraw⟩
+  obtain ⟨hs, hcc, hfw, has⟩ := rMd_flags Hmode.2 Hb1
+  icases h_wf γ.R.md hs hcc hfw has _ _ _ _ _ _ _ $$ Hraw with ⟨%Hwf, Hraw⟩
+  icases h_tc γ.R.md hs hcc hfw has _ _ _ _ _ _ _ $$ Hraw with ⟨%Htcle, Hraw⟩
   wp_take_receipt as Hrc
   imod h_spend γ.raft rs.tc ⊤ (by solve_ndisj) $$ Hb Hrc Htc with ⟨%Hbd, Htc⟩
-  ihave Hraw := h_raise _ _ _ _ _ _ _ (rs.tc + W64 1) (by word) $$ Hraw
-  wp_apply wp_Campaign γ.raft.raftNames rn (AntSim.nodeId j) { rs with tc := rs.tc + W64 1 } v.r []
+  ihave Hraw := h_raise γ.R.md hs hcc hfw has _ _ _ _ _ _ _ (rs.tc + W64 1) (by word) $$ Hraw
+  wp_apply wp_Campaign γ.R.md hs hcc hfw has γ.raft.raftNames rn (AntSim.nodeId j) { rs with tc := rs.tc + W64 1 } v.r []
       v.r.p.log.length (by simp only; rw [← Hwf.2.2]; word) hrv.2.2.2.2.2
       Hst.1 $$ [$Hrpkg $Hraw] as %err %t %r' %ip' ⟨Hraw, %Ht, %Herr, %Hend⟩
-  obtain ⟨hTE, hip⟩ := Hend {} rfl
+  obtain ⟨hTE, hip⟩ := Hend γ.R.md rfl
   rw [show ({ rs with tc := rs.tc + W64 1 } : RNState).k = γ.R.k j from hk] at hTE
   ihave #Hsw : □ (∀ m, ⌜AntSim.Input.campaign = .recv m⌝ -∗ sentW (GF := GF) γ m) $$ []
   · imodintro; iintro %m %h; cases h
