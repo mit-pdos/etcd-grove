@@ -126,3 +126,26 @@ dev RequestProgress_dist.wp_proof <<<  ||| [ π : NetProtoGS ] ( cl w : Loc ) ( 
 dev RequestProgress_dist.wp_proof <<< w ||| Γ >>> two places: the binder `Γ` (the view) where the source binds `w` (now bound with `cl`, above), and `watchClientAt`'s last argument `Γ` where `isClientWatcher V w` ends with `w`
 dev RequestProgress_dist.wp_proof <<< Loc ||| DistView >>> binders: the view's type
 dev RequestProgress_dist.wp_proof <<< isClientWatcher ||| watchClientAt cl w eps >>> `isClientWatcher V w` replaced by `watchClientAt cl w eps V Γ` (as `Watch_dist`'s); the post is the source's (`statusErrOk err`)
+pair WatchOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchOnDist.lean WatchOn_dist.spec Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean watcher.Watch.spec
+dev WatchOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`watchClientAt`'s endpoints are over it)
+dev WatchOn_dist.wp_proof <<<  ||| cl >>> binders: the client `cl` whose `Watcher` field is `w` (`watchClientAt`)
+dev WatchOn_dist.wp_proof <<<  ||| ) ( eps : List GoString >>> binders: the endpoints `eps` the client dials
+dev WatchOn_dist.wp_proof <<< γ ||| Γ >>> binders: the cluster's view `Γ` in place of the KV names `γ` (`γ := Γ.kv`)
+dev WatchOn_dist.wp_proof <<< KVNames ||| DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: the view's type; the client's configuration `cfg` (its user is the principal, `principalOf`), the server raft names `γR` whose requested log is the view's and the caller's requested prefix `L₀` (the floors' and the row's, F7's `KV_GetOn_dist` binders)
+dev WatchOn_dist.wp_proof <<<  ||| , >>> the binder list's end before the pure premises (layout)
+dev WatchOn_dist.wp_proof <<< n ||| ∀ a b >>> binders: no auth bound `n` (the floors replace it, below); the distinct auth names premise (F7's, every contract reading `Γ.au`; it makes `etcdSvc Γ mid` per member, the docstring's "which member")
+dev WatchOn_dist.wp_proof <<< Nat ||| w64 , Γ.au a = Γ.au b → a = b >>> the rest of the distinct auth names premise
+dev WatchOn_dist.wp_proof <<< , ||| → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOkS ( principalOf cfg ) om → >>> an auth-on view; `γR`'s log the view's (as `KV_GetOn_dist`); no context of the watch's stream key sends an issued token (`outTokOkS`: F7's `outTokOk` over every metadata of `om`'s stream key, since the watcher shares a stream among them and the key collides)
+dev WatchOn_dist.wp_proof <<< isClientWatcher ||| watchClientAt cl w eps >>> `isClientWatcher V w` replaced by `watchClientAt cl w eps V Γ` (as `Watch_dist`'s)
+dev WatchOn_dist.wp_proof <<< w ||| Γ ∗ clientF cl go!"cfg" ↦□ cfg >>> the rest of that replacement, and the client's `cfg` field, read-only (as `userClientAt`'s)
+dev WatchOn_dist.wp_proof <<< V.kst ||| cfg.Token' >>> `⌜V.kst = γ.st⌝` (goes with `isClientWatcher`, as `Watch_dist`'s) replaced by `⌜cfg.Token' = []⌝` (no preset token, as `userClientAt`'s)
+dev WatchOn_dist.wp_proof <<< γ.st ||| [ ] >>> the rest of that replacement
+dev WatchOn_dist.wp_proof <<<  ||| ∗ watchFloorsD eps Γ γR L₀ >>> the floors: every endpoint's member has a published auth index whose floor is above `L₀` (`authFloorD`), in place of member 0's `authPubLbM` at `n` (below)
+dev WatchOn_dist.wp_proof <<< ⌜ V.nm = 1 ∧ 0 < n ⌝ → auth.authPubLbM ( V.mem 0 ) .2.E.authMode n ) ∗ □ ( |||  >>> the one-member bound's premise replaced by the floors at every endpoint (above): no gate on the number of members
+dev WatchOn_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev WatchOn_dist.wp_proof <<< V.kv ||| Γ.kv >>> the elements' KV names: the view's `Γ.kv` (as `Watch_dist`'s)
+dev WatchOn_dist.wp_proof <<< iprop |||  >>> the row's slot is a definition (`watchCheckedD`), not an `iprop` term (layout)
+dev WatchOn_dist.wp_proof <<< □ ||| watchCheckedD eps Γ γR >>> the row: `watchCheckOk` (member 0's check for the stream's token, at states no older than `n`) replaced by `watchCheckedD` (some member of the endpoints checked it for the user `""` or the principal's, at the history after a committed prefix extending `L₀`); persistent, so no `□`
+dev WatchOn_dist.wp_proof <<< ⌜ V.nm = 1 ⌝ → watchCheckOk ( V.mem 0 ||| principalOf cfg >>> the rest of the row's replacement: no one-member gate; the principal in place of member 0's tag and server
+dev WatchOn_dist.wp_proof <<< .2.tag ( V.mem 0 ) .2.s V.conn om n ||| L₀ >>> the rest of the row's replacement: no server, connection, metadata or bound (the principal by name, `outTokOkS` premise; the floor's prefix `L₀`); the key and range end are the source's
+dev WatchOn_dist.wp_proof <<< ) |||  >>> the closing parenthesis of the source's `□ (…)` (layout)
