@@ -71,6 +71,8 @@ theorem wp_Step_MsgPreVoteResp_eq {nc : Bool} (_P : raft.Step.Postulates (GF := 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗

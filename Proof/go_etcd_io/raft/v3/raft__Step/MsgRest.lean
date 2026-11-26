@@ -265,7 +265,8 @@ local macro "local_candidate" : tactic => `(tactic| (
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
       TermStep.refl _ _, StepEnd.localRep Hty3 Hterm hnbf
         (fun _ => StepFnEnd.candidate (by simp [Hrole]) Hres)⟩
-  | exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+  | exact ⟨StepEnd.fn_nobf hnbf (by first | exact fun h => h.1 Hz | exact notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) hnh hnv
+        (StepFnEnd.candidate (by simp [Hrole]) Hres), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
       TermStep.refl _ _⟩))
 
@@ -302,7 +303,9 @@ local macro "local_leader" : tactic => `(tactic| (
       TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
         (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres)),
       StepEnd.localRep Hty3 Hterm hnbf (fun _ => StepFnEnd.leader Hrole Hres)⟩
-  | exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
+  | exact ⟨StepEnd.fn_nobf hnbf (by first | exact fun h => h.1 Hz | exact notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) hnh hnv
+        (StepFnEnd.leader Hrole Hres), Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl,
+      NetFrame.of_logst Hl Hpv Hg,
       TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
         (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
 
@@ -332,7 +335,8 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %s
   iframe Hphys HG
   ipureintro
-  exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+  exact ⟨StepEnd.fn_nobf hnbf (by first | exact fun h => h.1 Hz | exact notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) hnh hnv
+      (StepFnEnd.follower Hrole Hres), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
     StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
     TermStep.refl _ _⟩))
 
@@ -363,7 +367,9 @@ local macro "timeout_follower" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys HG
   ipureintro
-  exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, HCD⟩, rfl, NetFrame.of_logst Hl1 Hpv1 Hg1,
+  exact ⟨StepEnd.fn_nobf hnbf (by first | exact fun h => h.1 Hz | exact notStale_of_le (by rw [Hteq]; exact Int.le_refl _)) hnh hnv
+      (StepFnEnd.follower Hrole Hres), Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, HCD⟩, rfl,
+    NetFrame.of_logst Hl1 Hpv1 Hg1,
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
      fun _ => by rw [Hl1]; exact Int.le_refl _,
      fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega,
@@ -509,6 +515,8 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = stepdownMsg id m) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -517,6 +525,12 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
+  have hnh : m.Type' ≠ MsgHup := by rw [Hty]; w32_ne
+  have hnv : m.Type' ≠ MsgVote := by rw [Hty]; w32_ne
+  have hlead : preLead m = W64 0 := by
+    unfold preLead
+    rw [if_neg]
+    rintro (h | h | h) <;> rw [Hty] at h <;> exact absurd h (by w32_ne)
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
@@ -610,7 +624,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := { becomeFollower s m.Term' (W64 0) with prvals := pvs })
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
-    exact ⟨⟨rfl, rfl⟩, ⟨[stepdownMsg id m], by simp,
+    exact ⟨StepEnd.fn_bf ⟨Hgt, by rw [Hty]; w32_ne, fun h => absurd h.1 (by rw [Hty]; w32_ne)⟩ hlead hnh hnv pvs (StepFnEnd.follower rfl Hres), ⟨rfl, rfl⟩, ⟨[stepdownMsg id m], by simp,
       StepCD.frame (stepdown_rest c id s m pvs Hgt) (by rframe)⟩, rfl,
       Hfr.1, Hfr.2⟩
   wp_gets
@@ -637,7 +651,7 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil,
+    exact ⟨StepEnd.stale ⟨Hz, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       NetFrame.refl _, TermStep.refl _ _⟩
   -- the current term: `r.step(r, m)`; a follower of the term has no leader (the premise)
@@ -681,6 +695,8 @@ theorem wp_Step_MsgTimeoutNow {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = stepdownMsg id m) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -689,6 +705,12 @@ theorem wp_Step_MsgTimeoutNow {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
         "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hnw Hnwm Hwf Hfla
+  have hnh : m.Type' ≠ MsgHup := by rw [Hty]; w32_ne
+  have hnv : m.Type' ≠ MsgVote := by rw [Hty]; w32_ne
+  have hlead : preLead m = W64 0 := by
+    unfold preLead
+    rw [if_neg]
+    rintro (h | h | h) <;> rw [Hty] at h <;> exact absurd h (by w32_ne)
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
@@ -787,7 +809,7 @@ theorem wp_Step_MsgTimeoutNow {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := { becomeFollower s m.Term' (W64 0) with prvals := pvs })
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
-    refine ⟨Hwf1, ⟨[stepdownMsg id m] ++ [], by simp,
+    refine ⟨StepEnd.fn_bf ⟨Hgt, by rw [Hty]; w32_ne, fun h => absurd h.1 (by rw [Hty]; w32_ne)⟩ hlead hnh hnv pvs (StepFnEnd.follower rfl Hres), Hwf1, ⟨[stepdownMsg id m] ++ [], by simp,
       StepCD.trans_frame (stepdown_rest c id s m pvs Hgt) (by rframe) HCD
         (fun _ g hd => ⟨hd.1, fun h => by simp [becomeFollower] at h, hd.2.2.1,
           fun h => absurd (Hty.symm.trans h) (by w32_ne),
@@ -828,7 +850,7 @@ theorem wp_Step_MsgTimeoutNow {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil,
+    exact ⟨StepEnd.stale ⟨Hz, Hlt⟩ (.inl rfl), Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       NetFrame.refl _, TermStep.refl _ _⟩
   have Hteq : m.Term' = s.term := by word

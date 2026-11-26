@@ -95,6 +95,8 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
@@ -118,6 +120,9 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
   wp_drive _Q
   -- a local message: the preamble skipped
   have hnbf : ¬ PreBF m s := PreBF.of_zero Hterm
+  have hns : ¬ StaleMsg s m := fun h => h.1 Hterm
+  have hnh : m.Type' ≠ MsgHup := by rw [Hty]; w32_ne
+  have hnv : m.Type' ≠ MsgVote := by rw [Hty]; w32_ne
   imod preGate_nobf c r id s m _ _ (.inl Hterm) hnbf $$ Hgpre HG with HG
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
@@ -143,7 +148,9 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) (by xs_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.follower Hrole Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1] at Hend
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -153,7 +160,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hend, Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgCheckQuorum` arm either
     simp only [stepFuncOf]
     ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
@@ -172,7 +179,9 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inl Hrole) Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1] at Hend
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -182,7 +191,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hend, Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the quorum check, perhaps a step-down at its term
     simp only [stepFuncOf]
     imod (preceipt_zero (GF := GF)) with #Hrc00
@@ -202,6 +211,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     ihave HG := stepOut_leader R _ _ _ _ $$ HGo
+    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.leader Hrole Hres)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
       leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -212,7 +222,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩
+    exact ⟨Hend, Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩
   · -- PreCandidate, as a candidate: no `MsgCheckQuorum` arm either
     simp only [stepFuncOf]
     ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
@@ -231,7 +241,9 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
       Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [$Hphys $Hrc00 Hm $Hsrc0 $HG $Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
+    have Hend := StepEnd.fn_nobf (ctx := ctx) hnbf hns hnh hnv (StepFnEnd.candidate (.inr Hrole) Hres)
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
+    rw [Hs1] at Hend
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -241,7 +253,7 @@ theorem wp_Step_MsgCheckQuorum {nc : Bool} (_P : raft.Step.Postulates (GF := GF)
     iapply HΦ $$ %interface.nil %s
     iframe Hphys HG
     ipureintro
-    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hend, Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

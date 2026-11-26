@@ -582,7 +582,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+      exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.follower Hrole Hres), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
@@ -614,7 +615,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
+      exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.candidate (.inl Hrole) Hres), Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
     · -- Leader: no arm
       simp only [stepFuncOf]
       imod (preceipt_zero (GF := GF)) with #Hrc00
@@ -646,7 +648,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+      exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.leader Hrole Hres), Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
@@ -677,7 +680,8 @@ macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %s1
       iframe Hphys HG
       ipureintro
-      exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩))
+      exact ⟨StepEnd.fn_nobf hnbf (notStale_of_le (by first | exact Int.le_of_lt Hgt | (rw [Hteq]; exact Int.le_refl _))) (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne)
+        (StepFnEnd.candidate (.inr Hrole) Hres), Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩))
 
 end EtcdGrove
 end Perennial

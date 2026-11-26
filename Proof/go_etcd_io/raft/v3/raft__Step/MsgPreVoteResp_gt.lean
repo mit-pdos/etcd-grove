@@ -69,6 +69,8 @@ theorem wp_Step_MsgPreVoteResp_gt {nc : Bool} (_P : raft.Step.Postulates (GF := 
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (#33 parity B1) the end state on the path (`StepEnd`): the role's step function's result
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
@@ -196,7 +198,8 @@ theorem wp_Step_MsgPreVoteResp_gt {nc : Bool} (_P : raft.Step.Postulates (GF := 
   iapply HΦ $$ %interface.nil %_
   iframe Hphys HG
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h,
+  refine ⟨StepEnd.fn_bf hbf hlead (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs (StepFnEnd.follower rfl Hres),
+    ⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h,
     StepCD.frame ?_ (by rframe)⟩, rfl,
     ⟨fun h => by rcases h with h | h <;> rw [Hty] at h <;> exact absurd h (by w32_ne),
      fun _ => ⟨.inl (Int.le_max_right _ _), fun h => absurd h (by simp [becomeFollower])⟩⟩,

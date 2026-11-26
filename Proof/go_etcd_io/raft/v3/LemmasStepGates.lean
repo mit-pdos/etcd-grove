@@ -117,10 +117,32 @@ Each is what the callee's spec gives (`FollowerStepResultC`, `CandidateStepResul
 /-- The message types `StepEnd` describes: the six traced types and the four local ones a traced
 node steps (`tickElection`'s `MsgHup`, `tickHeartbeat`'s `MsgBeat`, `Propose`'s `MsgProp`, and
 (2026-11-11, slice 27n, Q27 (a)) `ReportUnreachable`'s `MsgUnreachable`, whose end state is `s` but
-for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing). -/
+for `Progress` values of the same `Match`: `LeaderNonpropResultC`'s report case queues nothing).
+(#33 parity B1, 2026-11-26) And the types an untraced node of the Antithesis scope steps besides: the
+read-index pair, `MsgTimeoutNow`, the quorum check and the pre-vote response, each its step function's
+result. The traced statements' types are `TrStepTy` (the ten above). Not yet `MsgTransferLeader`:
+`Step` runs its step function at the state with the transfer's ghost record (`gh.xw`, `gh.xs`), not
+at `s`, so its end is that function's result from another state than `StepEnd`'s `s`. -/
 def StepEndTy (ty : w32) : Prop :=
   ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
+    ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable ∨
+    ty = MsgPreVoteResp ∨ ty = MsgReadIndex ∨ ty = MsgReadIndexResp ∨ ty = MsgTimeoutNow ∨
+    ty = MsgCheckQuorum
+
+/-- (#33 parity B1, 2026-11-26) **The message types a traced node steps** (`StepEndTy` until then): the
+six traced types and the four local ones. -/
+def TrStepTy (ty : w32) : Prop :=
+  ty = MsgApp ∨ ty = MsgAppResp ∨ ty = MsgHeartbeat ∨ ty = MsgHeartbeatResp ∨ ty = MsgVote ∨
     ty = MsgVoteResp ∨ ty = MsgHup ∨ ty = MsgBeat ∨ ty = MsgProp ∨ ty = MsgUnreachable
+
+theorem TrStepTy.stepEndTy {ty : w32} (h : TrStepTy ty) : StepEndTy ty := by
+  unfold TrStepTy at h; unfold StepEndTy
+  rcases h with h | h | h | h | h | h | h | h | h | h <;> simp [h]
+
+/-- (#33 parity B1) A traced type is a type `StepEnd` describes, as a coercion: a traced proof
+passes its `TrStepTy` premise to a `StepEnd` hypothesis as it passed its `StepEndTy` premise
+before the split (no proof change in the traced files beyond the rename). -/
+instance TrStepTy.coeStepEndTy {ty : w32} : Coe (TrStepTy ty) (StepEndTy ty) := ⟨TrStepTy.stepEndTy⟩
 
 /-- (2026-11-11, slice 24b) **A candidate's vote response that decides its election**: a `MsgVoteResp`
 of the candidate's term whose recorded tally is won (`JQuorum`) or lost (`JLost`) at `c`, so that

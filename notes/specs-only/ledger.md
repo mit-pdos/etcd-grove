@@ -5998,3 +5998,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `bootT R`, no facts), `GC` (facts a subset), `SendRel` (a send adds no vote fact), `ReadyRel.rr_binding`.
 - **Decision.** Approved by the lead (2026-11-26, the general form, so B1's ready result covers `R.boot = true`).
   No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (i): `StepEnd` describes five more types; `TrStepTy` for the traced statements (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/LemmasStepGates.lean` (`StepEndTy`, new `TrStepTy`, `TrStepTy.stepEndTy`,
+  coercion `TrStepTy.coeStepEndTy`), the close sites in `Proof/go_etcd_io/raft/v3/raft__Step.lean`, the branch posts
+  of `raft__Step/{MsgCheckQuorum,MsgReadIndex,MsgReadIndexResp,MsgRest,ElectionLemmas,MsgPreVoteResp{,_eq,_gt,_lt}}.lean`,
+  and ten `Traced*.lean` files (a rename only, below).
+- **Change (strengthening of the `stepClose` premise of `raft.Step.spec`; its text is unchanged).** `StepEndTy`, the
+  types whose end state `StepEnd` gives, grows from ten to fifteen: `MsgPreVoteResp`, `MsgReadIndex`,
+  `MsgReadIndexResp`, `MsgTimeoutNow`, `MsgCheckQuorum`, each its role's step function's result (`StepFnEnd`), or the
+  stale/step-down arms. The close sites prove it from the branch posts' new `"%Hend"`; before, the closing wand got
+  nothing for these types (`end_ty`). The traced statements keep the old ten under the new name `TrStepTy`
+  (`stepTrTy_ne_xfer` would be false for the wider set). A coercion passes a `TrStepTy` premise to a `StepEnd`.
+- **Traced files: a mechanical rename.** In `Proof/go_etcd_io/raft/v3/`: `sed -i '/have hty : StepEndTy m.Type. := by
+  unfold StepEndTy; simp \[hp.1\]/!s/\bStepEndTy\b/TrStepTy/g'` on TracedEscrow, TracedNodeRun, TracedRaftStep,
+  TracedRaftStepBundle, TracedRaftStepLocal, TracedRaftStepRecvAppAccFol, TracedRaftStepRecvVoteResp, TracedRawNode,
+  TracedRawNodeAdvance and TracedRawNodeRep (`.lean`), nothing else.
+- **Deviation from the approved list.** `MsgTransferLeader` is NOT added yet (sixteen were approved). `Step`'s
+  transfer branch runs its step function at `{ s with gh := { s.gh with xw := X, xs := b } }` (the transfer's ghost
+  record), so the end it proves is `StepEnd … s₁ s'`, not at `s`: false at `s` whenever the record changes
+  (`FollowerStepResultC`'s transfer arm gives `s' = s₁ ≠ s`). It needs a `StepEnd` conjunct for that type at the
+  recorded ghost; it goes in with the pre-vote stage's change to the step-function conjunct.
+- **Decision.** Lead's decision (i), 2026-11-26. No new axiom, no new top-level premise.
