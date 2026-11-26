@@ -6,7 +6,7 @@ The orchestrator allocates putget's invariant from its share's half (`pgInv_allo
 its error ends the workload), defers `Close`, and runs the 50 rounds with the invariant `i ≥ 0` (and the
 token): round `i`'s key and value are `pg/k<s>`/`v<s>` for `s = strconv.Itoa(i)`; its put (`wp_cliPut`, over
 `KV_Put_dist`) carries the round's one-shot update (`pgPutAu_round`), whose result on `nil` is the put's
-`pgFired`; its get (`CompactCallsDist.wp_cliGetR`, over `KV_Get_dist`) the read update after it (`pgGetAu`), whose result
+`pgFired`; its get (`wp_cliGet`, over `KV_Get_dist`) the read update after it (`pgGetAu`), whose result
 `pgReadOk` makes the reply's first key-value the round's value (`pgReadOk_head`, the selection
 `srvRangeOk_getKey`), so the check does not panic. A failed put or get continues. Then `ended`/`checked`, and
 the deferred `Close`.
@@ -69,8 +69,7 @@ theorem RunPutGet.wp_proof
   iunfold kvPfxShare at Hsh
   icases Hsh with ⟨%Γ, %γ, %Hauth, #Hms, #Hpfx, Hhalf⟩
   -- putget's invariant, from the owner's half
-  ihave Hpg0 := pgInv_alloc γ ⊤ $$ Hhalf
-  imod Hpg0 with ⟨%γP, #Hpg⟩
+  imod (pgInv_alloc γ ⊤) $$ Hhalf with ⟨%γP, #Hpg⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -171,8 +170,6 @@ theorem RunPutGet.wp_proof
       $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
     · iframe Hlt
       iframe #
-      isplitl []
-      · itrivial
       rw [show (opGetModel (go!"pg/k" ++ s2) []).base.sortSet = false from rfl]
       iapply sortNamesIf_false
     (try wp_auto)
@@ -196,7 +193,11 @@ theorem RunPutGet.wp_proof
     -- the reply's first key-value holds the round's value
     have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel (go!"pg/k" ++ s2) [])) σ.kvs m.kvs m.more := by
       have h := Hsel.1
-      rwa [at_readRev_zero σ _ rfl] at h
+      have e : (σ.at (σ.readRev (W64 0))).kvs = σ.kvs := by
+        have hrr : σ.readRev (W64 0) = σ.rev := by simp [KVState.readRev]
+        rw [hrr]; rfl
+      rw [e] at h
+      exact h
     have h1 := (srvRangeOk_getKey (go!"pg/k" ++ s2) σ.kvs m.kvs m.more Hsel').1
     obtain ⟨kv0, Hkv0, Hval0⟩ := pgReadOk_head Hrd
     rw [← h1] at Hkv0
@@ -237,7 +238,8 @@ theorem RunPutGet.wp_proof
     wp_apply wp_bytes_to_string vSl kv0.value DFrac.discard $$ [HvS] as -
     · iframe #
     rw [Hval0]
-    wp_auto
+    (try simp only [decide_true, Bool.not_true])
+    (try wp_auto)
     wp_for_post
     iframe
     iexists j + W64 1, true
@@ -245,19 +247,21 @@ theorem RunPutGet.wp_proof
     iframe
     ipureintro; word
   (try wp_auto)
-  wp_if_destruct
-  · wp_apply wp_ended as %r -
+  cases rv
+  · (try wp_auto)
+    wp_apply wp_ended as %r -
     (try wp_auto)
     wp_apply wp_Close as %ce -
     · iframe #
     (try wp_auto)
     iapply HΦ; iframe Hlt
-  wp_apply wp_checked as %r -
-  (try wp_auto)
-  wp_apply wp_Close as %ce -
-  · iframe #
-  (try wp_auto)
-  iapply HΦ; iframe Hlt
+  · (try wp_auto)
+    wp_apply wp_checked as %r -
+    (try wp_auto)
+    wp_apply wp_Close as %ce -
+    · iframe #
+    (try wp_auto)
+    iapply HΦ; iframe Hlt
 
 end proof
 

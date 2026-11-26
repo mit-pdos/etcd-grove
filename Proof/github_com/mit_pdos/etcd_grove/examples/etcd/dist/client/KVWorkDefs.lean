@@ -353,7 +353,6 @@ def pgFired (γP : GName) (k : GoString) : IProp GF :=
 instance pgFired_persistent (γP : GName) (k : GoString) : Persistent (pgFired (GF := GF) γP k) := by
   unfold pgFired; infer_instance
 
-
 /-- **A put's update** of `k ↦ pgVal k` (fired at most once), result `pgFired γP k`. -/
 theorem pgPutAu (γk : KVNames) (γ γP : GName) (k : GoString) (hk : putgetPfx <+: k) :
     kvPfx (GF := GF) γk putgetPfx γ ∗ pgInv γ γP ⊢
@@ -444,7 +443,32 @@ def durFired (γF : GName) (j : Nat) : IProp GF :=
 instance durFired_persistent (γF : GName) (j : Nat) : Persistent (durFired (GF := GF) γF j) := by
   unfold durFired; infer_instance
 
-
+/-- `n` tokens. -/
+theorem tokens_alloc (n : Nat) :
+    ⊢ |==> ∃ γs : List GName, ⌜γs.length = n⌝ ∗ [∗list] g ∈ γs, token (GF := GF) g := by
+  induction n with
+  | zero =>
+    imodintro
+    iexists []
+    isplitr
+    · ipureintro; rfl
+    · iapply BigSepL.bigSepL_nil.2
+      itrivial
+  | succ n ih =>
+    ihave H := ih
+    imod H with ⟨%γs, %hl, Hs⟩
+    imod (token_alloc (GF := GF)) with Hγ
+    icases Hγ with ⟨%g, Hg⟩
+    imodintro
+    iexists (γs ++ [g])
+    isplitr
+    · ipureintro; simp [hl]
+    · iapply BigSepL.bigSepL_append.2
+      iframe Hs
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hg
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
 
 /-- **The puts of `S` fired** (persistent). -/
 def durFiredAll (γF : GName) (S : Nat → Prop) : IProp GF :=
@@ -453,29 +477,6 @@ def durFiredAll (γF : GName) (S : Nat → Prop) : IProp GF :=
 instance durFiredAll_persistent (γF : GName) (S : Nat → Prop) :
     Persistent (durFiredAll (GF := GF) γF S) := by
   unfold durFiredAll; infer_instance
-
-theorem durFiredAll_none (γF : GName) : ⊢ |==> durFiredAll (GF := GF) γF (fun _ => False) := by
-  ihave H := monoListLbOwn_nil (GF := GF) (A := Nat) γF
-  imod H with #Hlb
-  imodintro
-  iunfold durFiredAll
-  iexists []
-  iframe Hlb
-  ipureintro
-  intro j hj
-  exact hj.elim
-
-theorem durFiredAll_mono (γF : GName) (S S' : Nat → Prop) (h : ∀ j, S' j → S j) :
-    durFiredAll (GF := GF) γF S ⊢ durFiredAll γF S' := by
-  iintro #H
-  iunfold durFiredAll at H
-  iunfold durFiredAll
-  icases H with ⟨%l, #Hlb, %Hl⟩
-  iexists l
-  iframe Hlb
-  ipureintro
-  intro j hj
-  exact Hl j (h j hj)
 
 /-- One more fired put. -/
 theorem durFiredAll_add (γF : GName) (S : Nat → Prop) (j : Nat) :
@@ -583,8 +584,7 @@ theorem durGetAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n : Nat) (
 
 end ghost
 
-/-! The invariants' allocations, at a machine (as `CompactWorkDefs.cwInv_alloc`: an update the
-orchestrator's proof `imod`s at its own `HeapGS`). -/
+
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -597,7 +597,7 @@ theorem pgInv_alloc (γ : GName) (E : CoPset) :
   iintro Hh
   imod (mono_list_own_alloc (GF := GF) ([] : List GoString)) with ⟨%γP, Ha, -⟩
   imod (inv_alloc (client.kvClientN .@ "pg") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
-      pgW γP v)) $$ [Hh Ha] with #Hinv
+      pgW (Gg := hG.goose_globalGS) γP v)) $$ [Hh Ha] with #Hinv
   · inext; iexists []; iframe Hh
     iunfold pgW; iexists []; iframe Ha; ipureintro; exact pgOk_nil
   imodintro
@@ -605,32 +605,6 @@ theorem pgInv_alloc (γ : GName) (E : CoPset) :
   iunfold pgInv
   iexact Hinv
 
-/-- `n` tokens. -/
-theorem tokens_alloc (n : Nat) :
-    ⊢ |==> ∃ γs : List GName, ⌜γs.length = n⌝ ∗ [∗list] g ∈ γs, token (GF := GF) g := by
-  induction n with
-  | zero =>
-    imodintro
-    iexists []
-    isplitr
-    · ipureintro; rfl
-    · iapply BigSepL.bigSepL_nil.2
-      itrivial
-  | succ n ih =>
-    ihave H := ih
-    imod H with ⟨%γs, %hl, Hs⟩
-    imod (token_alloc (GF := GF)) with Hγ
-    icases Hγ with ⟨%g, Hg⟩
-    imodintro
-    iexists (γs ++ [g])
-    isplitr
-    · ipureintro; simp [hl]
-    · iapply BigSepL.bigSepL_append.2
-      iframe Hs
-      iapply BigSepL.bigSepL_cons.2
-      iframe Hg
-      iapply BigSepL.bigSepL_nil.2
-      itrivial
 
 /-- **durable's invariant, allocated** from the owner's half at `[]`, with `n` puts' tokens (each
 `token γs[j]` for put `j`). -/
@@ -638,11 +612,11 @@ theorem durInv_alloc (γ : GName) (n : Nat) (E : CoPset) :
     ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗ ∃ (γF : GName) (γs : List GName),
       ⌜γs.length = n⌝ ∗ durInv (Gg := hG.goose_globalGS) γ γF γs n ∗ [∗list] g ∈ γs, token g := by
   iintro Hh
-  ihave H := tokens_alloc (GF := GF) n
+  ihave H := tokens_alloc (Gg := hG.goose_globalGS) n
   imod H with ⟨%γs, %hl, Hts⟩
   imod (mono_list_own_alloc (GF := GF) ([] : List Nat)) with ⟨%γF, Ha, -⟩
   imod (inv_alloc (client.kvClientN .@ "du") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
-      durW γF γs n v)) $$ [Hh Ha] with #Hinv
+      durW (Gg := hG.goose_globalGS) γF γs n v)) $$ [Hh Ha] with #Hinv
   · inext; iexists []; iframe Hh
     iunfold durW; iexists []; iframe Ha
     isplitl
@@ -656,6 +630,33 @@ theorem durInv_alloc (γ : GName) (n : Nat) (E : CoPset) :
   iframe Hts
   iunfold durInv
   iexact Hinv
+
+
+
+theorem durFiredAll_none (γF : GName) :
+    ⊢ |==> durFiredAll (Gg := hG.goose_globalGS) γF (fun _ => False) := by
+  ihave H := monoListLbOwn_nil (GF := GF) (A := Nat) γF
+  imod H with #Hlb
+  imodintro
+  iunfold durFiredAll
+  iexists []
+  iframe Hlb
+  ipureintro
+  intro j hj
+  exact hj.elim
+
+theorem durFiredAll_mono (γF : GName) (S S' : Nat → Prop) (h : ∀ j, S' j → S j) :
+    durFiredAll (GF := GF) γF S ⊢ durFiredAll γF S' := by
+  iintro #H
+  iunfold durFiredAll at H
+  iunfold durFiredAll
+  icases H with ⟨%l, #Hlb, %Hl⟩
+  iexists l
+  iframe Hlb
+  ipureintro
+  intro j hj
+  exact Hl j (h j hj)
+
 
 end alloc
 
