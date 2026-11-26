@@ -6978,7 +6978,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `etc/tcb-collections/mvccfull.txt`). A Go test: `MainAt` with
   `ETCD_VERIFY=all` returns without creating a file, unset runs (`start_test.go`).
   `etc/premise-witness-baseline.txt` loses mvccfull's `HEnv` line.
-- **Decision.** Pending: a change of the top-level statement, Upamanyu's (#8, via coordinator-E).
+- **Decision.** Approved (coordinator-E for Upamanyu, #49 7179589277, 2026-11-26) -- but **not done:
+  the proposed change cannot be proved over the trusted `os.Getenv` spec as it stands** (branch
+  `mvcc-followup`, 2026-11-26). Since its review the same day ("only offness, never the value",
+  `notes/axiom-review/getenv-etcd-verify.md`), `os.Getenv.spec`'s post for `ETCD_VERIFY` is
+  `EtcdVerifyOff → etcdVerifyOffValue v`, not `v = etcdVerifyEnv`: a read the program finds off does
+  not give `EtcdVerifyOff`, and without it nothing links that read to the later reads inside `Run`
+  (`verify.IsVerificationEnabled`, the backend's lock checks), each of which may then return an "on"
+  value in the model. So `MainAt`'s check cannot discharge `Run.spec`'s `⌜EtcdVerifyOff⌝`. What would:
+  a per-process environment in `os`'s semantics (the deferred Perennial change named in `Getenv.lean`'s
+  header: every read of a process returns that process's one value), after which `os.Getenv` returns the
+  process's value and a first read that is off makes every later one off. Strengthening the axiom
+  instead (`etcdVerifyOffValue v ↔ EtcdVerifyOff`) is unsound across processes (two machines with
+  different values: a program comparing their offness panics, the axiom proves it does not), and adds
+  trust, outside this approval. `HEnv` stays; the entry stays open until that Perennial change.
 
 ## 2026-11-25: `mvccfull_robust.spec` -- one configuration, `MainConfig`, while the package doc spoke of every `Config` (mvcc-retire, #49)
 
