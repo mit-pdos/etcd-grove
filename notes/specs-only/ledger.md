@@ -48,9 +48,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   contract's post, the trusted statement asserts more:
   - `status.Error`'s, a `*status.Error`, a pointer;
   - the grpc client contracts', the errors grpc returns.
-- **Decision.** Pending: the coordinator, asked on #45 (2026-11-25) whether the user's 2026-11-23
-  approval of the same typing class (`deTyped`, `ctxErrsErr`) covers it. #24 owns the grpc
-  contracts and is notified.
+- **Decision.** Accepted by coordinator-E, 2026-11-25 (#45 7179030298: Go's own typing, which the
+  model makes true), as one change to `statusErrOk` with `status-bodies`' `grpcStatusIs` (the entry
+  below with "`GRPCStatus` case"); the two branches merged on `prove-isstatuserr/2026-11-25`, one
+  fresh review of the combined posts: `notes/axiom-review/statuserr-combined.md` (survives).
 
 ## 2026-11-25: `errors.IsStatusErr.spec` takes the target's description (#45)
 

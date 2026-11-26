@@ -9,4 +9,3 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/concurrency/(Link|Results)\.lean$
 axiom proto.Clone.wp_proof
 axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
