@@ -6229,3 +6229,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`s.gh.xw`'s keys' first component) in `γ.reCfg`, a known leader only past term `0`. Vacuous at `some {}`; the
   restart proves it (no leader, `xw = ∅`).
 - **Decision.** Lead-approved (Q3 item 2). No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: a pre-candidate campaigns only on a granted pre-vote response (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean` (`HandleEnd`'s `.preVoteResp` arm).
+- **Change (narrowing of an end relation; the Sim's request S2).** The arm at a follower with no leader (how a
+  pre-candidate reads) was `s' = s ∨ CampaignSends c id s [] s'`; it is now
+  `s' = s ∨ (m.reject = false ∧ CampaignSends c id s [] s')`. As written before, a rejection of a higher term (the
+  preamble makes the node a follower with no leader at that term) allowed a campaign that skips a term. raft:
+  a higher-term rejection makes the node a follower (`becomeFollower(m.Term, None)`, `PreTermKeep` covers only grants),
+  and `stepFollower` ignores a `MsgPreVoteResp`; at the node's term, `stepCandidate`'s `poll` records the rejection as
+  a "no" (`recordVote` keeps an earlier answer), which never makes a pending tally a win. No raft proof produced or
+  read the arm (the lifting at `LiftScope` excludes pre-candidates).
+- **Lifting, not yet.** Its producer from `StepEnd` (`CandidateStepResultC`'s `PrecandVoteRespResultC`: `won → JQuorum c
+  (granted (recordVote s.votes from (!reject)))`) needs the raft invariant "a pre-candidate's recorded tally is not a
+  quorum" for the rejection case (with a rejection the new tally's grants are the old ones'); not in raft today.
+- **Decision.** Lead's request (2026-11-26). No new axiom, no new top-level premise.
