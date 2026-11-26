@@ -184,19 +184,19 @@ variable [GooseExts]
 abbrev odX (S : State) (n : Nat) (id : w64) (b : Str) (r : Role) (t v c : w64) (es : List EntryM)
     (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet) : OnDisk :=
-  { s := S, n := n, q := { ev := evReady id b r t v c es, m := M }, more := false, ro := ro, ld := ld,
+  { s := S, n := n, q := { ev := evReady id b (roleOf r) t v c es, m := M }, more := false, ro := ro, ld := ld,
     ll := ll, ch := ch, tl := tl, vi := vi }
 
 variable (S : State) (n : Nat) (id : w64) (b : Str) (r : Role) (t v c : w64) (es : List EntryM)
   (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
   (tl : TermFn Int) (vi : SSet)
 
-theorem ev_vote : (evReady id b r t v c es).vote = some (nameOf v) := rfl
-theorem ev_commit : (evReady id b r t v c es).commit = some (uint.Z c) := rfl
-theorem ev_term : (evReady id b r t v c es).term = some (uint.Z t) := rfl
-theorem ev_role : (evReady id b r t v c es).role = some (roleOf r) := rfl
-theorem ev_snap : (evReady id b r t v c es).snap = none := rfl
-theorem ev_entries : (evReady id b r t v c es).entries = some (logOf es) := rfl
+theorem ev_vote : (evReady id b (roleOf r) t v c es).vote = some (nameOf v) := rfl
+theorem ev_commit : (evReady id b (roleOf r) t v c es).commit = some (uint.Z c) := rfl
+theorem ev_term : (evReady id b (roleOf r) t v c es).term = some (uint.Z t) := rfl
+theorem ev_role : (evReady id b (roleOf r) t v c es).role = some (roleOf r) := rfl
+theorem ev_snap : (evReady id b (roleOf r) t v c es).snap = none := rfl
+theorem ev_entries : (evReady id b (roleOf r) t v c es).entries = some (logOf es) := rfl
 theorem cand_leader : (candidate == leader) = false := by decide
 theorem fol_leader : (follower == leader) = false := by decide
 theorem fol_cand : (follower == candidate) = false := by decide
@@ -246,7 +246,7 @@ theorem od_voted : (odX S n id b r t v c es M ro ld ll ch tl vi).voted =
 theorem od_old : (odX S n id b r t v c es M ro ld ll ch tl vi).old =
     (if tl.has (uint.Z t) then tl.get (uint.Z t) else .ok 0) := rfl
 
-theorem od_w : (odX S n id b r t v c es M ro ld ll ch tl vi).w = evReady id b r t v c es := rfl
+theorem od_w : (odX S n id b r t v c es M ro ld ll ch tl vi).w = evReady id b (roleOf r) t v c es := rfl
 theorem od_L1_nil : (odX S n id b r t v c [] M ro ld ll ch tl vi).L1 = .ok (S.log[n]!) := rfl
 theorem od_acks_nil (hm : (uint.Z c != S.commitIndex[n]!) = false) : (odX S n id b r t v c [] M ro ld ll ch tl vi).acks = .ok false := by
   unfold OnDisk.acks; rw [od_stores, od_moved, hm, od_takes, od_below]; rfl
@@ -324,7 +324,7 @@ theorem ox_old {x : OnDisk} (hx : odX S n id b r t v c es M ro ld ll ch tl vi = 
     x.old = (if tl.has (uint.Z t) then tl.get (uint.Z t) else .ok 0) := by
   subst hx; exact od_old ..
 theorem ox_w {x : OnDisk} (hx : odX S n id b r t v c es M ro ld ll ch tl vi = x) :
-    x.w = evReady id b r t v c es := by
+    x.w = evReady id b (roleOf r) t v c es := by
   subst hx; exact od_w ..
 theorem ox_L1_nil {x : OnDisk} (hx : odX S n id b r t v c [] M ro ld ll ch tl vi = x) :
     x.L1 = .ok (S.log[n]!) := by
@@ -354,8 +354,8 @@ theorem ready_of {S : State} {n : Nat} {ev : Event} {r : MemResult} {q : QItem} 
 
 theorem queued_ready (S : State) (n : Nat) (id : w64) (b : Str) (r : Role) (t v c : w64)
     (es : List EntryM) :
-    S.queued n (evReady id b r t v c es) =
-      .ok { ev := evReady id b r t v c es, m := (if b = go!"recv" then S.pending[n]! else ([] : List AntCheck.Msg)) } := by
+    S.queued n (evReady id b (roleOf r) t v c es) =
+      .ok { ev := evReady id b (roleOf r) t v c es, m := (if b = go!"recv" then S.pending[n]! else ([] : List AntCheck.Msg)) } := by
   unfold State.queued
   by_cases hb : b = go!"recv"
   · subst hb; simp only [evReady, need, eok_bind, epure, str_beq, decide_true, ite_true]
@@ -406,7 +406,7 @@ theorem mo_voteFact : voteFact (msgOf m to) = .ok (vfOf m) := rfl
 end msgs
 
 set_option hygiene false in
-/-- `OnDisk` of a `ready` report at node `n` (`hc : S.cfg = cfg3`) evaluated: `onDiskB` at a named
+/-- `OnDisk` of a `ready` report at node `n` (`hc : S.cfg = R.cfg`) evaluated: `onDiskB` at a named
 record `x` (`hX`), its pieces rewritten with the joins kept (`zeta := false`), then the joins
 inlined. -/
 local syntax "od_run" "[" Lean.Parser.Tactic.simpLemma,* "]" : tactic
@@ -436,13 +436,13 @@ theorem cons_bne_nil {α : Type} [BEq α] (x : α) (l : List α) : ((x :: l) != 
 
 /-- **A campaign's `OnDisk`** (`TickEnd`'s campaign, `elect`): the next term, the node's own vote,
 nothing else written; its vote request and its vote recorded. -/
-theorem onDisk_camp {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64)
+theorem onDisk_camp {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t c : w64)
     (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet)
     (ht : uint.Z t = S.currentTerm[n.val]! + 1) (hcm : uint.Z c = S.commitIndex[n.val]!)
     (hro : ro[n.val]! = candidate) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) go!"tick" .candidate t (nodeId n) c [], []⟩ false ro ld ll ch tl vi
+      S.onDisk n.val ⟨evReady (nodeId n) go!"tick" (roleOf .candidate) t (nodeId n) c [], []⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) (some (nameOf (nodeId n))) (S.log[n.val]!) (uint.Z c) ro
             (S.confirmed[n.val]!) (lset.add S.msgs (S.voteRequest n.val (uint.Z t)))
             (lset.add S.votes { voter := nameOf (nodeId n), term := uint.Z t, cand := nameOf (nodeId n) })
@@ -461,16 +461,16 @@ theorem onDisk_camp {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64)
 /-- **A vote granted** (`HandleEnd`'s grant, after the preamble): the vote for the request's sender
 written at the request's term, which is the node's (`hT`: the same, `V1` then empty, or adopted from
 the request, which a node of that term sent); nothing else written; the vote recorded. -/
-theorem onDisk_grant {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64) (m : Msg)
+theorem onDisk_grant {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t c : w64) (m : Msg)
     (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet)
     (hty : m.ty = .vote) (hmt : m.term = t) (hsrc : nameOf m.src ≠ [])
     (hT : (uint.Z t = S.currentTerm[n.val]! ∧ S.vote n.val = []) ∨
-      (S.currentTerm[n.val]! < uint.Z t ∧ ∃ j : Fin 3, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!))
+      (S.currentTerm[n.val]! < uint.Z t ∧ ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!))
     (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = follower)
     (hf1 : S.msgs.contains (vfOf m) = true) (hf2 : S.upToDate (vfOf m) n.val = true) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" .follower t m.src c [], [msgOf m (nodeId n)]⟩ false ro ld
+      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t m.src c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) (some (nameOf m.src)) (S.log[n.val]!) (uint.Z c) ro
             (S.confirmed[n.val]!) S.msgs
@@ -492,7 +492,7 @@ theorem onDisk_grant {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64) (m 
         k != n.val && decide (S.currentTerm[k]! ≥ uint.Z m.term)) = true := by
       rw [List.any_eq_true]
       refine ⟨j.val, ?_, ?_⟩
-      · rw [List.mem_range, hc, cfg3_server]; simp [namesL]
+      · rw [List.mem_range, server_length hc]; exact j.isLt
       · simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq]
         exact ⟨fun h => hj (Fin.ext h), htj⟩
     od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
@@ -501,13 +501,13 @@ theorem onDisk_grant {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64) (m 
 
 /-- **A role change only** (`HandleEnd`'s loss, `padoptLeader` at the node's term with nothing
 stored or committed): the term, vote, log and commit as they were. -/
-theorem onDisk_same {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (r : Role) (t v c : w64)
+theorem onDisk_same {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str) (r : Role) (t v c : w64)
     (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry))
     (ch : List Entry) (tl : TermFn Int) (vi : SSet) (hr : r ≠ .leader)
     (ht : uint.Z t = S.currentTerm[n.val]!) (hv : nameOf v = S.vote n.val)
     (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = roleOf r) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) b r t v c [], M⟩ false ro ld ll ch tl vi
+      S.onDisk n.val ⟨evReady (nodeId n) b (roleOf r) t v c [], M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p ch tl vi)) := by
   have hcm' : (uint.Z c != S.commitIndex[n.val]!) = false := by rw [hcm]; exact bne_self_eq_false _
@@ -522,13 +522,13 @@ theorem onDisk_same {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (r : R
 
 /-- **A term adopted only** (`PreEnd`'s `pbecomeFollower` at the handled message's term, no vote,
 nothing stored or committed; a node of that term sent it, `hj`). -/
-theorem onDisk_adopt {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64) (m : Msg)
+theorem onDisk_adopt {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t c : w64) (m : Msg)
     (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet) (hmt : m.term = t)
-    (ht : S.currentTerm[n.val]! < uint.Z t) (hj : ∃ j : Fin 3, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
+    (ht : S.currentTerm[n.val]! < uint.Z t) (hj : ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
     (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = follower) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" .follower t (W64 0) c [], [msgOf m (nodeId n)]⟩ false ro ld
+      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t (W64 0) c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p ch tl vi)) := by
@@ -543,7 +543,7 @@ theorem onDisk_adopt {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t c : w64) (m 
       k != n.val && decide (S.currentTerm[k]! ≥ uint.Z m.term)) = true := by
     rw [List.any_eq_true]
     refine ⟨j.val, ?_, ?_⟩
-    · rw [List.mem_range, hc, cfg3_server]; simp [namesL]
+    · rw [List.mem_range, server_length hc]; exact j.isLt
     · simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq]
       exact ⟨fun h => hj (Fin.ext h), htj⟩
   od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,

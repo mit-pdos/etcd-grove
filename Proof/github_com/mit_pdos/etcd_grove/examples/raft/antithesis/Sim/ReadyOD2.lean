@@ -415,12 +415,12 @@ other than `n` is at it, `hj`): the commit `c` (above the old one, within the lo
 commit and its last index), the ack of the request's last index recorded and confirmed. The safety
 checks' hypotheses: `chain` and the new committed prefix comparable (`hcs`), the latter in every
 later leader log (`hlc`), `chain` agreeing with the log to `c` (`hch`). -/
-theorem onDisk_fcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m : Msg)
+theorem onDisk_fcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t v c : w64) (m : Msg)
     (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet)
     (hty : m.ty = .app) (hmt : m.term = t)
     (hge : S.currentTerm[n.val]! ≤ uint.Z t)
-    (hj : ∃ j : Fin 3, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
+    (hj : ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
     (hv : (nameOf v != (if uint.Z t != S.currentTerm[n.val]! then [] else S.vote n.val)) = false)
     (hro : ro[n.val]! = follower)
     (hsend : sendableIn ld ll ch tl (afOf m (nodeId n)) = .ok true)
@@ -432,7 +432,7 @@ theorem onDisk_fcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64)
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" .follower t v c [], [msgOf m (nodeId n)]⟩ false ro ld
+      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t v c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro
             { term := uint.Z t, index := fConfIdx S n.val false (uint.Z t) (uint.Z m.index + m.entries.length) }
@@ -459,7 +459,7 @@ theorem onDisk_fcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64)
       k != n.val && decide (S.currentTerm[k]! ≥ uint.Z m.term)) = true := by
     rw [List.any_eq_true]
     refine ⟨j.val, ?_, ?_⟩
-    · rw [List.mem_range, hc, cfg3_server]; simp [namesL]
+    · rw [List.mem_range, server_length hc]; exact j.isLt
     · simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq]
       exact ⟨fun h => hj (Fin.ext h), htj⟩
   have hsub := subSeq_ch1 (P := S.commitIndex[n.val]! < uint.Z c) hcL hch (fun h => absurd hcm h)
@@ -475,13 +475,13 @@ moved or not, at the request's term (the node's, or adopted). The report's entri
 start at `first = e.Index'`, `K = first - m.index` (`hK1`, `hK2`); the request's entries before
 `K` are in the log (`hhf`), those from `K` are the report's (`hes`); `first` conflicts with the log
 or is just past its end (`hcf`, `hlen`). `L1` is the log after the write. -/
-theorem onDisk_fstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m : Msg)
+theorem onDisk_fstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t v c : w64) (m : Msg)
     (e : EntryM) (es' : List EntryM)
     (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet) (eqb : Bool)
     (hty : m.ty = .app) (hmt : m.term = t)
     (hge : S.currentTerm[n.val]! ≤ uint.Z t)
-    (hj : ∃ j : Fin 3, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
+    (hj : ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
     (hv : (nameOf v != (if uint.Z t != S.currentTerm[n.val]! then [] else S.vote n.val)) = false)
     (hro : ro[n.val]! = follower)
     (hsend : sendableIn ld ll ch tl (afOf m (nodeId n)) = .ok true)
@@ -507,7 +507,7 @@ theorem onDisk_fstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) 
       ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat)
     (hcch : uint.Z c = S.commitIndex[n.val]! → uint.Z c ≤ ch.length) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" .follower t v c (e :: es'), [msgOf m (nodeId n)]⟩ false
+      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t v c (e :: es'), [msgOf m (nodeId n)]⟩ false
           ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none
             ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) (uint.Z c) ro
@@ -531,7 +531,7 @@ theorem onDisk_fstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) 
       k != n.val && decide (S.currentTerm[k]! ≥ uint.Z m.term)) = true := by
     rw [List.any_eq_true]
     refine ⟨j.val, ?_, ?_⟩
-    · rw [List.mem_range, hc, cfg3_server]; simp [namesL]
+    · rw [List.mem_range, server_length hc]; exact j.isLt
     · simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq]
       exact ⟨fun h => hj (Fin.ext h), htj⟩
   have hf1 : 1 ≤ firstOf (e :: es') := by show 1 ≤ uint.Z e.Index'; omega
@@ -607,12 +607,12 @@ theorem onDisk_fstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) 
 heartbeat's term (the node's, or adopted): nothing recorded; `CommitBeyondConfirmed` (B 435) passes
 since the node's confirmation is at the term and covers the commit (`hcbc`, what `HbCommitOk` gives
 when the commit moves). -/
-theorem onDisk_fhb {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m : Msg)
+theorem onDisk_fhb {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t v c : w64) (m : Msg)
     (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
     (tl : TermFn Int) (vi : SSet)
     (hty : m.ty = .heartbeat) (hmt : m.term = t)
     (hge : S.currentTerm[n.val]! ≤ uint.Z t)
-    (hj : ∃ j : Fin 3, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
+    (hj : ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
     (hv : (nameOf v != (if uint.Z t != S.currentTerm[n.val]! then [] else S.vote n.val)) = false)
     (hro : ro[n.val]! = follower)
     (hsend : sendableIn ld ll ch tl (afOf m (nodeId n)) = .ok true)
@@ -623,7 +623,7 @@ theorem onDisk_fhb {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m 
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" .follower t v c [], [msgOf m (nodeId n)]⟩ false ro ld
+      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t v c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p
@@ -645,7 +645,7 @@ theorem onDisk_fhb {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m 
       k != n.val && decide (S.currentTerm[k]! ≥ uint.Z m.term)) = true := by
     rw [List.any_eq_true]
     refine ⟨j.val, ?_, ?_⟩
-    · rw [List.mem_range, hc, cfg3_server]; simp [namesL]
+    · rw [List.mem_range, server_length hc]; exact j.isLt
     · simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq]
       exact ⟨fun h => hj (Fin.ext h), htj⟩
   have hsub := subSeq_ch1 (P := S.commitIndex[n.val]! < uint.Z c) hcL hch (fun h => absurd hcm h)
@@ -659,7 +659,7 @@ theorem onDisk_fhb {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (t v c : w64) (m 
 `Ready` after `Advance` stepped the leader's self-acknowledgement): its own request with the commit
 `Sendable` (`hsend`: in `InMemory`'s `chain`/`termLen`, `RecordedIn`), its confirmation at its term
 covering the commit (`hcbc`, `LeaderConfOk`). -/
-theorem onDisk_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t v c : w64)
+theorem onDisk_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str) (t v c : w64)
     (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry))
     (ch : List Entry) (tl : TermFn Int) (vi : SSet)
     (ht : uint.Z t = S.currentTerm[n.val]!) (hv : nameOf v = S.vote n.val) (hro : ro[n.val]! = leader)
@@ -671,7 +671,7 @@ theorem onDisk_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t 
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) b .leader t v c [], M⟩ false ro ld ll ch tl vi
+      S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c [], M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p
             (if S.commitIndex[n.val]! < uint.Z c ∧ (ch.length : Int) < uint.Z c then
@@ -697,7 +697,7 @@ theorem onDisk_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t 
 log's end), its commit unchanged: its own request `Sendable` from its leader log `lT` at its term
 (`hll`, `hsend`: `InMemory`'s `ledLog`, which has the entries appended), its acknowledgement of
 its new last index recorded and confirmed. -/
-theorem onDisk_lstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t v c : w64)
+theorem onDisk_lstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str) (t v c : w64)
     (e : EntryM) (es' : List EntryM)
     (M : List AntCheck.Msg) (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry))
     (ch : List Entry) (tl : TermFn Int) (vi : SSet) (lT : List Entry) (eqb : Bool)
@@ -715,7 +715,7 @@ theorem onDisk_lstore {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (t v
     (hch : ch.take (uint.Z c).toNat =
       ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat) :
     ∃ p : Pre, p.made = false ∧
-      S.onDisk n.val ⟨evReady (nodeId n) b .leader t v c (e :: es'), M⟩ false ro ld ll ch tl vi
+      S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c (e :: es'), M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none
             ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) (uint.Z c) ro
             { term := uint.Z t, index := uint.Z e.Index' - 1 + (es'.length + 1 : Nat) }

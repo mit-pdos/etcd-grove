@@ -46,7 +46,7 @@ theorem TermFn.has_with_self {α : Type} (f : TermFn α) (t : Int) (v : α) : (f
 (`ledLog`), the new commit `c` within it at an entry of its term, beyond what `termLen` recorded for
 the term (`cmt`), with a quorum of acks at `c` in its term's configuration (`Acked`, B 252); the
 commit recorded (`chain`, `termLen`), the checks (`CommitSafety`, `LeaderCompleteness`) passing. -/
-theorem inMemory_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
+theorem inMemory_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str)
     (hb : b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"boot")
     (t v c : w64) (lT : List Entry) (cf : Conf)
     (hrole : S.role[n.val]! = leader) (ht : S.currentTerm[n.val]! = uint.Z t)
@@ -56,7 +56,7 @@ theorem inMemory_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
     (hq : isQuorum (S.acked n.val (uint.Z t) (uint.Z c)) cf = true)
     (hcs : comparable S.chain (lT.take (uint.Z c).toNat) = .ok true)
     (hlcp : ∀ p ∈ S.ledLog, p.1 > uint.Z t → isPrefix (lT.take (uint.Z c).toNat) p.2 = .ok true) :
-    S.inMemory n.val (evReady (nodeId n) b .leader t v c []) =
+    S.inMemory n.val (evReady (nodeId n) b (roleOf .leader) t v c []) =
       .ok { ok := true, role := S.role.set n.val leader, leaders := S.leaders, ledLog := S.ledLog,
             ledConf := S.ledConf, config := S.config, confAt := S.confAt, ledAt := S.ledAt, elAt := S.elAt,
             chain := if (S.chain.length : Int) < uint.Z c then lT.take (uint.Z c).toNat else S.chain,
@@ -79,7 +79,7 @@ theorem inMemory_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
       InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
       str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
       Bool.not_false, Bool.false_eq_true, ite_true, ite_false, andM_false, andM_true, orM_true, orM_false,
-      server_of hc n, Option.isSome_none, Option.isSome_some, Bool.false_and, Bool.and_false, Bool.true_and,
+      server_of hc n, Option.isSome_none, Option.isSome_some, Option.map_none, Bool.false_and, Bool.and_false, Bool.true_and,
       Bool.and_true, hrole, hll, hlc, TermFn.has_of_get hll, hknown, hk', hterm', hc0', hcL', hct,
       logOf_nil, List.length_nil, bne_self_eq_false, hnewC, hcs, notM_ok, hq, anyM_lc hlcp,
       od_andM_ok, od_orM_ok] <;>
@@ -88,7 +88,7 @@ theorem inMemory_lcommit {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
    · rw [if_neg h, if_neg (by simpa using h)])
 
 theorem entOf_isConf (e : EntryM) : isConf (entOf e) = false := by
-  unfold entOf isConf; split <;> rfl
+  unfold entOf isConf; split <;> (try split) <;> rfl
 
 theorem anyM_notConf (es : List EntryM) (f : Nat → EvalM Bool) :
     anyM (List.range (logOf es).length) (fun q =>
@@ -124,7 +124,7 @@ theorem anyM_terms (es : List EntryM) (T : Int) (h : ∀ e ∈ es, uint.Z e.Term
 its term, at the end of its leader log `lT` (`first`); no configuration change; its commit `c` not a
 new one (`hcmt`: not beyond its term's recorded commit at an entry of its term) and `RecordedIn`
 (`hrec`, or `0`); `ledLog` at its term extended. -/
-theorem inMemory_lprop {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
+theorem inMemory_lprop {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str)
     (hb : b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"boot")
     (t v c : w64) (e : EntryM) (es' : List EntryM) (lT : List Entry)
     (hrole : S.role[n.val]! = leader) (ht : S.currentTerm[n.val]! = uint.Z t)
@@ -135,7 +135,7 @@ theorem inMemory_lprop {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
     (hcm : (decide (uint.Z c > tlOld S.termLen (uint.Z t)) &&
       (termAt (lT ++ logOf (e :: es')) (uint.Z c) == uint.Z t)) = false)
     (hrec : uint.Z c = 0 ∨ recordedIn S.chain S.termLen (lT ++ logOf (e :: es')) (uint.Z c) (uint.Z t) = .ok true) :
-    S.inMemory n.val (evReady (nodeId n) b .leader t v c (e :: es')) =
+    S.inMemory n.val (evReady (nodeId n) b (roleOf .leader) t v c (e :: es')) =
       .ok { ok := true, role := S.role.set n.val leader, leaders := S.leaders,
             ledLog := S.ledLog.with (uint.Z t) (lT ++ logOf (e :: es')),
             ledConf := S.ledConf, config := S.config, confAt := S.confAt, ledAt := S.ledAt, elAt := S.elAt,
@@ -158,7 +158,7 @@ theorem inMemory_lprop {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
         InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
         str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
         Bool.not_false, Bool.false_eq_true, ite_true, ite_false, andM_false, andM_true, orM_true, orM_false,
-        server_of hc n, Option.isSome_none, Option.isSome_some, Bool.false_and, Bool.and_false, Bool.true_and,
+        server_of hc n, Option.isSome_none, Option.isSome_some, Option.map_none, Bool.false_and, Bool.and_false, Bool.true_and,
         Bool.and_true, hrole, hll, TermFn.has_of_get hll, hknown, hc0, hcL', hct, stores_cons, hfe,
         TermFn.get_with_self, TermFn.has_with_self, hts, hbad, notM_ok, od_andM_ok, od_orM_ok, hcm]
   · have hcn : 0 ≤ uint.Z c := by word
@@ -170,7 +170,7 @@ theorem inMemory_lprop {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
         InMem.cmt, InMem.known, InMem.L, InMem.c, InMem.newC, fieldEq, need, eok_bind, epure, roleOf,
         str_beq, str_bne, leader, follower, candidate, decide_false, decide_true, Bool.not_true,
         Bool.not_false, Bool.false_eq_true, ite_true, ite_false, andM_false, andM_true, orM_true, orM_false,
-        server_of hc n, Option.isSome_none, Option.isSome_some, Bool.false_and, Bool.and_false, Bool.true_and,
+        server_of hc n, Option.isSome_none, Option.isSome_some, Option.map_none, Bool.false_and, Bool.and_false, Bool.true_and,
         Bool.and_true, hrole, hll, TermFn.has_of_get hll, hknown, hcL', hct, stores_cons, hfe,
         TermFn.get_with_self, TermFn.has_with_self, hts, hbad, notM_ok, od_andM_ok, od_orM_ok, hcm, hrc, hc0]
 
