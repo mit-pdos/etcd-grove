@@ -504,3 +504,15 @@ is left here.
 `vsrnet/OrchProofDefs.lean:74-77`. Its `PendDec` instance predates P9's: it has field `err`, where P9's `PendDec`
 has `errW`/`errR` and takes a configuration. Use `PendDec.ofTotal` as P9 did for the existing instances (`760047072f`),
 then rerun `/shared/tmp/m1-tcb.sh`. TCB is still not run.
+
+## M1 session 4 (2026-11-26, branch `etcd-safe-m1`)
+
+`d83e9825b7`: dsv-vr `vsrnet/OrchProofDefs.kvS_pendDec` wrapped in `PendDec.ofTotal (fun _ => rfl) { … }`, as
+`760047072f` did for the other kits (P9's `PendDec` has `errW`/`errR` and takes a configuration). Built: vsrnet
+`TopLevelRobustness` and `Link`, then the **full VM build green (29051 jobs)** on fk-lean2. No other vsrnet module broke.
+
+**TCB**: `etc/tcb-report.py --check` differed only by +`etcd_dist.KV_Delete_dist.wp_proof` and
++`etcd_dist.Txn_Commit_dist.wp_proof`, N2's interim axioms, reached now that kvremote's `Link` is in the build.
+Baseline updated (`--check --update`, 366 entries). No collection lists them: `putget-dist` and `etcd-dist`
+re-ran unchanged, and every `etc/tcb-collections/*.txt` passes `--check`. M1 is done here. Landing goes with the
+lead's `etcd-safe-m1-top`.
