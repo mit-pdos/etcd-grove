@@ -6,6 +6,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.Golang.Theory.Slice
 
 @[expose] public section
 
