@@ -2359,6 +2359,13 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   exhaustion, the extension's D12).
 
 # Evidence
+- **(2026-11-26, session 16, the two gate fixes, coordinator-E #8 7176991791)** etcd-grove egnet code `08e66dd44a`
+  (pin `09bd3826c`): `tier` fixed (`os.Remove.wp_fileSncNFmt` to the defs module `Proof/os/RemoveParts.lean`;
+  `tier-check --check` ok, baseline unchanged), `gomodels` fixed (both `internal/gomodel.toml` = Perennial
+  `09bd3826c`'s). **Full `etc/gates.sh` on the VM** (`tmp/gm16/gates2.log`): build ok 29035 jobs, tcb
+  matches (384 axioms, 0 sorry), 65/65 collections, axiom-tok, gomodels, tier and every generator ok; the
+  sections the VM cannot run, run locally: goose.py --check 73/73 up to date, reader-slot ok, merge-status
+  selftest ok, iris-premise ok, premise-witness ok, models ok, remote ok (resume-egnet.md, session 16).
 - **(2026-11-26, session 15, after the lean `5c036beb77` merge, grpc-driver)** etcd-grove egnet code `b8bb95f0ba`
   (pin Perennial `09bd3826c`; lean pins `d5eb93cb5`, its ancestor): `goose.py --check` (73 projects, with the
   pinned Perennial's translator): all up to date; `lake build` (all default targets) **EXIT 0, 29034 jobs**
