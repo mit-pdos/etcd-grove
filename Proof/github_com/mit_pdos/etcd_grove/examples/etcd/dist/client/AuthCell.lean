@@ -79,7 +79,8 @@ theorem cell_grantWriteAuD (γk : KVNames) (γc : CellNames) (P : Option GoStrin
   iintro %id
   iunfold writeAuD
   imodintro
-  iexact Hau $$ %id
+  ispecialize Hau $$ %id
+  iexact Hau
 
 end cell
 
