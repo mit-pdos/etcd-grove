@@ -18,6 +18,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 import all Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 
 @[expose] public section
@@ -389,6 +390,44 @@ theorem memberBoot_of_slice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8
   iapply (memberBoot_of γ ps ctxs reg issued cnt wn fs gen γk Φs id γm γs cok rev x Hx Hiss Hwn Hfs Hgen
     Hc0 Hch Hlog Hvs cmp Hkc lm hrun Hklg hpfx hpo HΦ Hns) $$ Hsrl Hcl H0 Hpm Hrc Hkv [Hp Hkf Hnb' Hrs Hsd]
     Hw Hg Hi Hc Hr Hpi
+  iframe Hp Hkf Hnb' Hrs Hsd
+
+/-- **A member's `memberBootOn` from the cluster's facts and its slice, auth on** (F7 S2, 2026-11-26;
+`memberBoot_of_slice`'s, over `memberBootOn_ofMC`): the facts at `on = true` (`kvInvOn`), no compactor
+(`cmp = false`), and in the revocable mode no lease expiring (`lease.bootCfg`'s auth row). -/
+theorem memberBootOn_of_slice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (bl : List EntryM)
+    (reg : GName) (issued cnt wn fs gen : GName) (γk : KVNames)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
+    (Hx : x = γs.slog)
+    (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hgen : γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0)
+    (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []])
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hne : lm = .revocable → lease.leasesNoExpiry) (Hklg : γk.lm = lm)
+    (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk)
+    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
+    ⊢ bootMarshal ps ctxs bl -∗ clusterFacts γ γk issued cnt wn fs gen true -∗
+      memberSlice γ ps ctxs bl cnt wn fs gen x γs cok rev reg id ={⊤}=∗
+      ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
+        ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
+        ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩ ∧ kvSame ρ.rd.kv γk ∧ kvCongr ρ.rd.kv γk⌝ ∗
+        memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id false
+          lm := by
+  letI := srvAnyStor (GF := GF)
+  rw [clusterFacts, kvInvM_true]
+  iintro #Hm #Hf Hs
+  icases Hf with ⟨#Hsrl, #Hcl, #H0, #Hpm, #Hrc, #Hkv⟩
+  iunfold memberSlice at Hs
+  icases Hs with ⟨⟨Hp, Hkf, ⟨Hnb, Hrs⟩, Hsd⟩, Hw, ⟨Hi, Hc, Hr, Hg⟩, Ht⟩
+  imod (idPfxInv_alloc gen (idPfxOf (W16 (uint.Z id))) ⊤) $$ Ht with #Hpi
+  ihave Hnb' : nodeBoot γ.cl srvClusterN ps ctxs id $$ [Hnb]
+  · iapply (nodeBoot_of_G γ.cl srvClusterN ps ctxs id bl)
+    iframe Hnb Hm
+  iapply (memberBootOn_ofMC γ ps ctxs reg issued cnt wn fs gen γk Φs id γm γs cok rev x Hx Hiss Hwn Hfs
+    Hgen Hc0 Hch Hlog Hvs Hkc lm hrun hne Hklg hpfx hpo HΦ) $$ Hsrl Hcl H0 Hpm Hrc Hkv
+    [Hp Hkf Hnb' Hrs Hsd] Hw Hg Hi Hc Hr Hpi
   iframe Hp Hkf Hnb' Hrs Hsd
 
 /-- **Every member's `memberBoot`, from the cluster's facts and the members' slices** (probe C2, its

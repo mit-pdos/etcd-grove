@@ -297,7 +297,9 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
           ρ.rd.kv.lm = γk.lm ∧
-          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen⌝ ∗
+          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen ∧
+          -- (F7 S2, 2026-11-26) the read names' KV names `kvCongr` to the cluster's (`srvMemberBoot_alloc`'s)
+          kvCongr ρ.rd.kv γk⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids := by
   iintro #Hkv Hp Hwt
@@ -316,7 +318,9 @@ theorem srvMemberBootOn_alloc (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id :
       ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn, 0, γk.ids.fs, γpd, γk.ids.gen⟩, γk.hist, γk.cmp, γk.rlog, γk.cret, γk.lm, γk.gps⟩⟩⟩
   isplitr
   · ipureintro
-    exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+        ⟨fun _ => hpo, fun _ h => ⟨hpfx h, (hpo h).2⟩⟩⟩⟩
   isplitr
   · dsimp only
     rw [kvInvM_true, kvInvOn_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,

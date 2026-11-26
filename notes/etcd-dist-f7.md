@@ -916,3 +916,42 @@ trailing `∧ (on = true → cmp = false)`), `clusterFactsOf c (on := false)`, `
 
 **Next:** read step 2's log; fix; build step 3; then step 4 (S2-2's design, `Hauthcmp` from
 `WellFormed.authCompactorOff`); STATUS entry added at this handoff.
+
+### Handoff S2-5 (2026-11-26; steps 2-3 green, step 4 started; context limit)
+
+**Step 2 green** (`cc6ca7462d`, fk-lean2 EXIT 0 on every target). **Step 3 green** (`cbaabdcba4`: `41f0fcbf6f` fixed
+`AllocN` (`rw [kvInvM_false/true]` before `iframe #`, `rw [if_pos (rfl : true = true)]` in the on arm, `isimp only
+[hboot] at Hetcd` only, `memberBoot_of_slice` by `rw [clusterFacts, kvInvM_false]`, `etcdClusterStart`'s caller binds
+`hgps, -` and reduces `Hetcd`); `cbaabdcba4` reduces `clusterAllocN`'s `if false = true` tail in `ClusterStart` and
+`ClusterStartD`). EXIT 0 on `NewServerAllocOn`, `etcdserver.Results`, `dist.deployment.Link`, the `TopLevelRobustness`
+of `dist`, `kvremote`, `putget`, `putgetk`. `etc/tier-check.py --check` ok (208 known), `etc/lease-order-check.py` ok.
+
+**Step 4, first piece (the commit after `cbaabdcba4`; `NewServerAllocOn`, `Alloc3On`, `AllocN`, `auth/MainAlloc` checked
+0 errors with `etc/lean-check.py -a` on fk-lean2; the full build was started at handoff, unread):**
+- `srvMemberBootOn_alloc`'s post gains a trailing `∧ kvCongr ρ.rd.kv γk` (the mode-off one's; proof as there). Its
+  restatement `server_member_alloc_on` (`etcdserver/Results.lean`) carries it (a stronger post of a package result;
+  no top-level statement). Destructurings in `Alloc3On` and `auth/MainAlloc` end in `, -`.
+- `etcdstart.memberBootOn_ofMC` (`Alloc3On`): the old `memberBootOn_ofM` with `∧ kvSame ρ.rd.kv γk ∧ kvCongr ρ.rd.kv γk`
+  in its post; `memberBootOn_ofM` is now derived from it (same text as before).
+- `etcdstart.memberBootOn_of_slice` (`AllocN`, which now imports `Alloc3On`): `memberBoot_of_slice`'s, at `clusterFacts …
+  true`, `ch0 = alarmChain true …`, `cmp = false`, with **`hne : lm = .revocable → lease.leasesNoExpiry`**; post
+  `memberBootOn … id false lm` with `st/c0/ch0/log0/hist/raft`, `kvSame`, `kvCongr`.
+
+**Finding (blocks the premise removal; for the lead):** with auth on and the revocable lease mode, the member's boot
+needs `lease.leasesNoExpiry` (no lease expires during the run): `NewServer_dist` takes `lease.bootCfg lm m on`, whose
+auth row is `on = true → m = .revocable → leasesNoExpiry` (`LeaseApi.lean:69`), and `memberBootOn_ofM` takes the same.
+`MainLogger`/`MainDeploymentLogger`/`MainDeployment` give only `lease.runCfg lm lm` (in the revocable mode: the
+revoke levels and `srvRevokeOpen`, not no-expiry). So with `d.cfg.auth = false →` simply removed, `MainLogger` is
+unprovable for an auth-on deployment in the revocable mode (and `AuthViewDist`'s `Lease_*On_dist` drafts are exactly
+auth on + revocable). Options: (a) replace the premise by the weaker `(d.cfg.auth = true → lm = .revocable →
+lease.leasesNoExpiry) →` in the three specs (implied by today's `d.cfg.auth = false`, so every caller still
+discharges it; kvremote from M1's scope); (b) revisit the auth row of `lease.bootCfg` (`NewServer_dist`'s, an axiom: a
+new review). (a) is within "premise weakening on intermediate specs" but is not plain removal: asking first.
+
+**Next (in order):** (1) read the build started at handoff (fk-lean2 `~/eg/logs/f7l-build.log`, ends `EXIT n`; targets
+the step-2 ones plus `etcdstart.Link` and `auth.Link`); fix (`etcdserver.Results`'s restatement was not checked alone). (2) The lead's choice above. (3) The rest of step 4, per
+S2-2's design, unchanged: `memberShareD` passes `d.cfg.auth` to `ClusterOk`/`clusterFactsOf`/`view` and
+`ClusterStartD` allocates at `on := d.cfg.auth` (`Hon` from `WellFormed.authCompactorOff` + `v3compactor.bootCfg_off`:
+`cmp = false`, `cret = 0`); the auth-on `memberBuiltL`/split/`wp_Start_builtL`/`memberUpL_req`; the lessor-tied
+`memberUpOn_intro` (`StartMemberAuth.lean:186-240`, `srvTLSId_false` with `iExactEq Hcca; rfl`); `MainLogger` split on
+`d.cfg.auth` (off-only spots: Handoff S2-1); then the premises.

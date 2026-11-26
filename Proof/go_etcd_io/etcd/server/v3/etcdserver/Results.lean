@@ -2315,7 +2315,9 @@ theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id 
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.kv.cmp = γk.cmp ∧
           ρ.rd.kv.lm = γk.lm ∧
-          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen⌝ ∗
+          ρ.ids.wn = γk.ids.wn ∧ ρ.ids.fs = γk.ids.fs ∧ ρ.ids.inc = 0 ∧ ρ.ids.gen = γk.ids.gen ∧
+          -- (F7 S2, 2026-11-26) the read names' KV names `kvCongr` to the cluster's (`srvMemberBoot_alloc`'s)
+          kvCongr ρ.rd.kv γk⌝ ∗
         kvInvM true ⟨γ, [], W64 0⟩ ρ.rd.kv srvAuthSt0 ∗ idShare ρ.ids ∗
         srvReadNamesFreshNK ρ.rd ∗ idWaitTok ρ.ids :=
   srvMemberBootOn_alloc γ cnt γk id cok hpfx hpo
