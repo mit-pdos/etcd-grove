@@ -249,7 +249,9 @@ def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=
 /-- **An error that is not a context error, as `errors.Is` sees it** (persistent; nonleaf-status-errs,
 2026-11-26): `errors.Is(err, context.Canceled)` and `errors.Is(err, context.DeadlineExceeded)` answer
 `false` (`errors.noMatchTree` at each variable's value, with the typing each `Is` spec asks:
-`TreeTyped` at `Canceled`'s pointer, `deTyped` at `DeadlineExceeded`'s `deadlineExceededError{}`).
+`TreeTyped` at `Canceled`'s pointer, `deTyped` at `DeadlineExceeded`'s `deadlineExceededError{}`), and its
+tree's errors have no `As`, `GRPCStatus` or `Format` method (`errors.plainErrNode`), so that `errors.As`, grpc's
+`status` functions and `fmt` treat it as Go does any such error: only its type, `Unwrap` and `Error()` are used.
 `applyErrIs`'s alternative to `srvErrOk`: `togRPCError` passes a context error on as it is, and
 converts every other error into a status error or its map's value, so such an error never reaches
 grpc's server as it is and need not be one grpc's `status` accepts. What `proto.Marshal`'s invalid
@@ -257,9 +259,10 @@ UTF-8 errors are (`proto.MarshalIRR.spec`: `impl.errInvalidUTF8{}` and `*prefixE
 non-leaves, both unwrapping to protobuf's `errors.Error`). -/
 def notCtxTree (err : GoInterface) : IProp GF :=
   iprop((□ ∀ c : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ c -∗
-      errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S c) err c) ∗
+      errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S c)
+        errors.plainErrNode err c) ∗
     (□ ∀ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d -∗
-      errors.noMatchTree (GF := GF) deTyped err d))
+      errors.noMatchTree (GF := GF) deTyped errors.plainErrNode err d))
 
 instance notCtxTree_persistent (err : GoInterface) : Persistent (notCtxTree (GF := GF) err) := by
   unfold notCtxTree; infer_instance

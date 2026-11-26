@@ -353,7 +353,7 @@ local macro "renew_forward" : tactic => `(tactic| (
         · rfl
         · exfalso
           obtain ⟨ii, hS, hii⟩ := Hb eNF rfl HNFl.1 Hhn rfl
-          obtain ⟨hne, hM⟩ := HS.2.2 ii hS
+          obtain ⟨hne, hM, -⟩ := HS.2.2 ii hS
           rcases hii with h | h
           · exact hne h
           · exact hM h

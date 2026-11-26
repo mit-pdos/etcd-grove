@@ -44,16 +44,18 @@ for these errors.
 All of the trusted text below is in `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Base.lean`, unless a
 file is named.
 
-1. **`notCtxTree err`** (new; persistent). It is the conjunction of two `errors.noMatchTree` facts:
+1. **`notCtxTree err`** (new; persistent). It is the conjunction of two `errors.noMatchTree` facts, each with
+   node condition `errors.plainErrNode` (no `As`, `GRPCStatus` or `Format` method):
    - at `context.Canceled`'s value, with the typing `TreeTyped · c`;
    - at `context.DeadlineExceeded`'s value, with the typing `deTyped`.
 
-   **`errors.noMatchTree P err target`** (new, in `Proof/errors/CtxErr.lean`) says: `err` is in an
-   `errors.errorIsTree S M target` that has typing `P`, no error of `S` is `target`, and no error of `S` has
-   `M`. This is the precedent's shape, factored out.
+   **`errors.noMatchTree P N err target`** (new, in `Proof/errors/CtxErr.lean`) says: `err` is in an
+   `errors.errorIsTree S M target` that has typing `P`, and every error of `S` is not `target`, does not have
+   `M`, and has `N`. This is the precedent's shape, factored out.
 
-   `leasehttp.notLeaseNotFound` (`Proof/.../lease/leasehttp/RenewErr.lean`) is now restated over it. The
-   statement is the same: `ii ≠ e` is now written `ok ii ≠ ok e`, and `ok` is injective.
+   `leasehttp.notLeaseNotFound` (`Proof/.../lease/leasehttp/RenewErr.lean`) is now restated over it, with
+   `N := True`. The statement is the same: `ii ≠ e` is now written `ok ii ≠ ok e`, `ok` is injective, and
+   `∧ True` adds nothing.
 2. **`applyErrIs`'s third conjunct**:
    - Before: `srvErrOk err`.
    - After: `srvErrOk err ∨ notCtxTree err`.
@@ -71,8 +73,8 @@ file is named.
      `deadlineExceededError` type.
    - `errKeyMsg`: `*prefixError` is a pointer key; `errInvalidUTF8{}` is the new key; each `Error()` returns
      one fixed string.
-   - `notCtxTree`: `errors.Error` is neither `context.Canceled`'s pointer nor `deadlineExceededError{}`, and
-     no `Is` method answers.
+   - `notCtxTree`: `errors.Error` is neither `context.Canceled`'s pointer nor `deadlineExceededError{}`, no
+     `Is` method answers, and none of the three types has an `As`, `GRPCStatus` or `Format` method.
 
    The docstring now records this. No UTF-8 premise was added.
 
@@ -105,41 +107,55 @@ The axioms it found (15 hits) are listed below.
 
 ### Stronger (a precondition holds a contract whose post's `applyErrIs` is now weaker, so the axiom assumes less)
 
-**What the new class adds.** An error the new class admits and the old did not satisfies the old tree
-conjunct (exact `Is`/`Unwrap` relations, typings), `errKeyMsg` (a map key whose `Error()` returns one fixed
-string), and `notCtxTree`. It is not `srvErrOk`. So it can have `Unwrap` or `As` methods, `GRPCStatus` or
-`Format` methods it does not specify, or a non-`stTypedErr` type. The new key is `errInvalidUTF8{}`.
+**What the new class adds.** It admits an error the old class did not. Such an error has:
+- the old tree conjunct, for every target: exact `Is`/`Unwrap` relations and the typings;
+- `errKeyMsg`: it is a map key, and its `Error()` returns one fixed string;
+- `notCtxTree`: no node of its trees is a context error, no node's `Is` matches one, and every node is an
+  `errors.plainErrNode`, with no `As`, `GRPCStatus` or `Format` method.
 
-**Why the strengthening is true of Go.** In Go, the consumers of an error value behave as follows:
-- `errors.Is` needs only the `Is`/`Unwrap` specs, which the tree conjunct still gives.
-- `==` and map lookup are defined on every comparable dynamic type. A field-less struct is comparable and has
-  one value (Go spec, "Comparison operators").
-- `err.Error()` is covered by `errMsgOk`.
-- `fmt` recovers panics in `Error`/`Format`/`String` (`src/fmt/print.go:580`, `catchPanic`, go1.27.3).
-- zap's `encodeError` recovers panics too (`go.uber.org/zap@v1.28.0/zapcore/error.go:47-58`).
-- The only consumers that rely on `srvErrOk`'s extra facts are grpc's `status.FromError`/`Code`/`Convert`
-  (grpc v1.84 `status/status.go:96-146`: `GRPCStatus`, then `errors.As`), which grpc's server applies to a
-  handler's error (`server.go:1461-1466`), and the prometheus interceptor. A hypothetical error of the new class
-  whose `As`/`GRPCStatus` method panicked could make those panic.
+It is not `srvErrOk`. It may be a non-leaf: `Unwrap` methods, which the tree specifies. It may be a
+non-`stTypedErr` value, and it may be the new key `errInvalidUTF8{}`.
 
-So each axiom below is true for the wider class provided its Go code never hands an error from such a contract
-to grpc's `status` functions or to `errors.As` without first passing it through `togRPCError`. `togRPCError` is
-proved, so the server only ever sees its post, which is unchanged: `srvErrOk`. This was checked for each axiom.
+The `plainErrNode` condition makes the class safe for every Go consumer of an error. It adds nothing new to
+check about Go for `MarshalIRR`: none of `errInvalidUTF8`, `*prefixError` and `*errors.errorString` has those
+methods (`codec_field.go:19-21`; `errors.go:36-42`; Go's `errors/errors.go`, `errorString` has only `Error`).
 
-| Axiom | Where the contract enters | Verdict (a) and why |
-|---|---|---|
-| `etcd_dist.NewPeerHandler_dist.wp_proof` | `isServerReqM` (raft `Propose`, auth checks: `raftPropose`, `authApplyErrIs`) | true: it only builds the handler; `peerHandlerOf` is consumed by `PeerServe_dist` |
-| `etcd_dist.PeerServe_dist.wp_proof` | `isServerReqM` | true: the peer HTTP handlers (rafthttp, leasehttp, member promote) turn errors into HTTP replies with `err.Error()`, type switches and `errors.Is` (`etcdhttp`, `leasehttp/http.go`); there is no grpc status and no `errors.As` |
-| `etcd_dist.Serve_dist.wp_proof` | `memberUp` → `isServerRead` (`isReadNotify`, `isApplyLessor`) | true: the request path's errors reach grpc's server only through the v3rpc handlers' `togRPCError` (proved), so grpc sees `srvErrOk` errors as before |
-| `etcd_noRefusal`, `etcd_noOtherRefusal` (`api/v3rpc/NoRefusal.lean`) | `isServerReq`/`isServerReqM` | true: the statuses `gs` sends come from `togRPCError`'s post, unchanged. The descriptions possible from the new class (`Unknown` with `err.Error()`) were already possible from leaf errors with arbitrary fixed messages, so the set of descriptions, and hence the refusal claims, are unchanged |
-| `EtcdServer.monitorClusterVersions.wp_proof` | `srvMonitorPermitM` → `isServerReqM` | true: `server.go:2255-2257`, its errors go to `zap.Error` (which recovers) and, in `updateClusterVersionV3`, to `errors.Is(err, ErrStopped)` (tree) |
-| `EtcdServer.monitorStorageVersion.wp_proof` | `isServerReqM` | true: `server.go:2274`, the same, logged and compared only |
-| `EtcdServer.rangeStream.wp_proof` | `isServerReadM`/`isServerReqM` | true: the read path's errors are returned as they are (its post, weaker) or sent nowhere else |
-| `EtcdServer.leaseTimeToLive.wp_proof` | `isServerReadM`/`isServerReqM` | true: the same, returned as they are or compared with `errors.Is` (lease's sentinels) |
+**Why the class is safe for Go's consumers.** Each tree is closed under `Unwrap`, by the `errorIsTree` `Unwrap`
+specs.
+- **`errors.Is`** (any target): it calls only `Is`/`Unwrap`, which the tree conjunct specifies.
+- **`errors.As`/`errors.AsType`**: they visit the same nodes as `Is`. With no `As` method on any node, they
+  only compare types.
+- **grpc's `status.FromError`/`Code`/`Convert`** (v1.84.0 `status/status.go:96-146`):
+  - the type assertion to `GRPCStatus()` fails at the root;
+  - `errors.As` to it finds nothing;
+  - so they return `New(Unknown, err.Error())`, calling only `Error()`, which `errMsgOk` gives.
+- **grpc's server** (`server.go:1461-1466`, `FromError`, then `FromContextError`, whose `errors.Is` checks the
+  tree) and **the prometheus interceptor** (`status.Code`) use only those functions.
+- **`fmt`** prints the error with `Error()`, since there is no `Format` method. It recovers panics in any case
+  (`src/fmt/print.go:580`, `catchPanic`, go1.27.3). zap's `encodeError` recovers too
+  (`go.uber.org/zap@v1.28.0/zapcore/error.go:47-58`).
+- **`==` and map lookup**: the error is `errKeyOk`. A field-less struct is comparable and has one value (Go
+  spec, "Comparison operators").
 
-In Go, none of these contracts (raft's `Propose`, the read notifier, the auth checks, the lessor) ever returns a
-non-leaf error. The strengthening is formal: it admits implementations that do. It is sound by the reasons in
-the table.
+So every axiom that takes such an error is true of it in Go, whatever its Go code then does with the error.
+The table records, per axiom, where the contract enters and what the code does with its errors. In Go, none
+of these contracts (raft's `Propose`, the read notifier, the auth checks, the lessor) ever returns a non-leaf
+error; the strengthening admits only hypothetical implementations that do.
+
+Axiom locations are `file:line` of the `axiom` line. The Go locations are in etcd `df6af0c36a6b` (project
+`etcd`'s pin).
+
+| # | Axiom | Where the contract enters | What its Go code does with those errors; verdict |
+|---|---|---|---|
+| 1 | `NewPeerHandler_dist.wp_proof` (`Proof/.../examples/etcd/dist/NewPeerHandlerDist.lean:39`) | `isServerReqM`: `srvRaftNode`→`raftPropose`, `srvAuthBound`→`authApplyErrIs` | builds the handler only (`server/etcdserver/api/etcdhttp/peer.go:44-48`); no error is consumed. **(a) true** |
+| 2 | `PeerServe_dist.wp_proof` (`.../dist/PeerServeDist.lean:70`) | `isServerReqM` (as 1) | the member-promote handler (`peer.go:125-165`): `errors.Is` against membership's sentinels (`:151-156`), `writeError` (`api/etcdhttp/utils.go:40-75`: `errors.As` to `*v2error.Error`/`*httptypes.HTTPError`, then `errors.Is`, then `err.Error()`), and `zap.Error`. The lease handler (`server/lease/leasehttp/http.go:90-104`): `errors.Is`, `http.Error(…, err.Error())`. All are safe by the list above. **(a) true** |
+| 3 | `Serve_dist.wp_proof` (`.../dist/ServeDist.lean:69`) | `memberUp`→`isServerRead`: `isReadNotify`, `isApplyLessor` | the v3rpc handlers pass the request path's errors through `togRPCError` (`api/v3rpc/util.go:98-108`, proved), whose post (`srvErrOk`) is unchanged; grpc's server and the interceptors see only those. **(a) true** (also by the list above, even without `togRPCError`) |
+| 4 | `etcd_noRefusal` (`Proof/.../api/v3rpc/NoRefusal.lean:70`) | `isServerReq` (as 1) | the statuses `gs` sends come from `togRPCError`'s post. A new-class error that reaches it is not a context error, so it becomes `status.Error(Unknown, err.Error())` (`util.go:105`). Leaves with arbitrary fixed messages could already do that, so the possible descriptions, and the refusal claim, are unchanged. **(a) true** |
+| 5 | `etcd_noOtherRefusal` (`NoRefusal.lean:102`) | `isServerReqM` (as 1) | as 4. **(a) true** |
+| 6 | `EtcdServer.monitorClusterVersions.wp_proof` (`Proof/.../etcdserver/EtcdServer__monitorClusterVersions.lean:24`) | `srvMonitorPermitM`→`isServerReqM` | `server.go:2255-2257` (`zap.Error`); `updateClusterVersionV3` (`server.go:2329-2360`) calls `raftRequest`, then `errors.Is(err, nil)`/`ErrStopped` and `zap.Error`; `version/monitor.go:56-62` returns it. **(a) true** |
+| 7 | `EtcdServer.monitorStorageVersion.wp_proof` (`.../EtcdServer__monitorStorageVersion.lean:24`) | `isServerReqM` | `server.go:2274`; `version/monitor.go:119-121` (`zap.Error`). **(a) true** |
+| 8 | `EtcdServer.rangeStream.wp_proof` (`.../EtcdServer__rangeStream.lean:28`) | `isServerReadM`/`isServerReqM` | `v3_server.go:198-260`: the read's and `txn.Range`'s errors are returned as they are, into its post (which is weaker). **(a) true** |
+| 9 | `EtcdServer.leaseTimeToLive.wp_proof` (`.../EtcdServer__leaseTimeToLive.lean:29`) | `isServerReadM`/`isServerReqM` | `v3_server.go:637-697`: `waitAppliedIndex`'s and `waitLeader`'s errors are returned; `errors.Is(err, lease.ErrLeaseNotFound)`; then its own sentinels. **(a) true** |
 
 ### `errKeyOk`'s new disjunct as an input
 

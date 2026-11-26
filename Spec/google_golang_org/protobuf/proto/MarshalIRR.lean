@@ -27,7 +27,8 @@ value `impl.errInvalidUTF8{}` (`internal/impl/codec_gen.go:5041-5049`, `codec_fi
 reflective path returns `errors.InvalidUTF8(name)`, a `*prefixError` (`internal/errors/errors.go:83-85,
 20-22`). `proto.Marshal` passes either on unwrapped (`proto/encode.go:105-116, 198-204`). Both unwrap to
 protobuf's sentinel `errors.Error`, an `errors.New` pointer (`errors.go:16`, `codec_field.go:21`,
-`errors.go:40-42`), and none of the three has an `Is` method, so neither is a leaf error
+`errors.go:40-42`), and none of the three has an `Is`, `As`, `GRPCStatus` or `Format` method
+(`errors.plainErrNode`), but neither is a leaf error
 (`errors.isLeafError`, which `srvErrOk` asks). `applyErrIs`'s third conjunct admits them since then:
 `srvErrOk`, or an error that is no context error (`notCtxTree`: `errors.Is` against `context.Canceled`
 and `context.DeadlineExceeded` answers `false`), which `togRPCError` never passes on as it is. Both are

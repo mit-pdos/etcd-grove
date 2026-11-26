@@ -209,16 +209,28 @@ variable [sem : go.Semantics]
 2026-11-26, shared by `notCtxTree` and `leasehttp.notLeaseNotFound`): `err` is in an error tree at
 `target` (`errors.errorIsTree`: the specs of its errors' `Is` and `Unwrap` methods), with the typing
 `P` the `Is` spec at `target` asks of the tree (`TreeTyped · target` for a pointer target, `deTyped`
-for `context.DeadlineExceeded`), in which no error is `target` and no `Is` method may answer `true`
-(`M`). Then `errors.Is(err, target)` answers `false` (the `Is` specs' posts). -/
-def errors.noMatchTree (P : (GoError → Prop) → Prop) (err target : GoInterface) : IProp GF :=
+for `context.DeadlineExceeded`), in which no error is `target`, no `Is` method may answer `true`
+(`M`), and every error has `N`. Then `errors.Is(err, target)` answers `false` (the `Is` specs'
+posts). The tree is closed under `Unwrap` (`errorIsTree`'s `Unwrap` specs), so `N` holds of every
+error `errors.Is` or `errors.As` visits. -/
+def errors.noMatchTree (P : (GoError → Prop) → Prop) (N : GoInterfaceOk → Prop)
+    (err target : GoInterface) : IProp GF :=
   iprop(∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
     _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-    ⌜S err ∧ P S ∧ ∀ ii, S (GoInterface.ok ii) → GoInterface.ok ii ≠ target ∧ ¬ M ii⌝)
+    ⌜S err ∧ P S ∧ ∀ ii, S (GoInterface.ok ii) → GoInterface.ok ii ≠ target ∧ ¬ M ii ∧ N ii⌝)
 
-instance errors.noMatchTree_persistent (P : (GoError → Prop) → Prop) (err target : GoInterface) :
-    Persistent (errors.noMatchTree (GF := GF) P err target) := by
+instance errors.noMatchTree_persistent (P : (GoError → Prop) → Prop) (N : GoInterfaceOk → Prop)
+    (err target : GoInterface) : Persistent (errors.noMatchTree (GF := GF) P N err target) := by
   unfold errors.noMatchTree; infer_instance
+
+/-- **An error whose methods no library walk calls but `Is`, `Unwrap` and `Error`**: no `As`,
+`GRPCStatus` or `Format` method. So `errors.As` only checks its type (`isLeafError`'s reason), grpc's
+`status.FromError` finds no status in it (v1.84.0 `status/status.go:96-127`: the type assertion and
+`errors.As` to `GRPCStatus() *Status`), and `fmt` prints it with its `Error()`. Of every error of
+`notCtxTree`'s trees (nonleaf-status-errs, 2026-11-26). -/
+def errors.plainErrNode [GoSemanticsFunctions] (ii : GoInterfaceOk) : Prop :=
+  methodSet ii.ty !! go!"As" = none ∧ methodSet ii.ty !! go!"GRPCStatus" = none ∧
+    methodSet ii.ty !! go!"Format" = none
 
 end noMatch
 

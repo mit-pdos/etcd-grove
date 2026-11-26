@@ -45,7 +45,7 @@ def leasehttp.notLeaseNotFound (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk,
     globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
     errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S (GoInterface.ok e))
-      err (GoInterface.ok e))
+      (fun _ => True) err (GoInterface.ok e))
 
 instance leasehttp.notLeaseNotFound_persistent (err : GoInterface) :
     Persistent (leasehttp.notLeaseNotFound (GF := GF) err) := by
