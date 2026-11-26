@@ -139,11 +139,12 @@ a theorem, `lessorAbsentStays_dist.law_holds`, over the heap-free slot; `notes/s
 (`lease.lessorSlot`) and three snapshots of its history at `i ≤ k ≤ j`, the lease `id` in the first and not
 in the second, it is not in the third. The single-process form is `lease.lessorAt_absent_stays`, over the
 lessor's reader invariant `lessorRdInv`, which holds the member's heap; the slot gives that invariant at the
-member's local state (`lease.lessorRdInvAt`), which a client at another machine can hold. -/
+member's slot (`lease.lessorHistOk`), which a client at another machine can hold. It spends a later credit
+(the slot is an invariant whose published law is not timeless). -/
 abbrev lessorAbsentStays_dist.law : Prop :=
   ∀ (Γ : DistView) (mid : w64) (i k j : Nat) (σ ρ τ : lease.LSnap) (id : w64),
   (σ.1.lookup id).isSome → i ≤ k → ρ.1.lookup id = none → k ≤ j →
-  lease.lessorSlot (GF := GF) (Γ.ls mid) ∗ lease.lessorAt (Γ.ls mid) i σ ∗ lease.lessorAt (Γ.ls mid) k ρ ∗
+  £ 1 ∗ lease.lessorSlot (GF := GF) (Γ.ls mid) ∗ lease.lessorAt (Γ.ls mid) i σ ∗ lease.lessorAt (Γ.ls mid) k ρ ∗
       lease.lessorAt (Γ.ls mid) j τ ⊢
     |={⊤}=> ⌜τ.1.lookup id = none⌝
 

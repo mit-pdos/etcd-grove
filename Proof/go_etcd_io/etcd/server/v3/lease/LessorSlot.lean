@@ -75,19 +75,20 @@ theorem lessorAt_not_empty (γl : GName) (i : Nat) (σ : LSnap) (q : Qp) :
 
 /-- **A client's "absent stays absent" at the start's lessor name** (heap-free form of
 `lessorAt_absent_stays`): from the slot of `γl` and three snapshots of its history at `i ≤ k ≤ j`, the
-lease `id` in the first and not in the second, it is not in the third. -/
+lease `id` in the first and not in the second, it is not in the third. It spends a later credit: the slot
+publishes the law, which is not timeless, in an invariant opened under a later. -/
 theorem lessorSlot_absent_stays (γl : GName) (i k j : Nat) (σ ρ τ : LSnap) (id : w64)
     (hσ : (σ.1.lookup id).isSome) (hik : i ≤ k) (hρ : ρ.1.lookup id = none) (hkj : k ≤ j) :
-    lessorSlot (GF := GF) γl ∗ lessorAt γl i σ ∗ lessorAt γl k ρ ∗ lessorAt γl j τ ⊢
+    £ 1 ∗ lessorSlot (GF := GF) γl ∗ lessorAt γl i σ ∗ lessorAt γl k ρ ∗ lessorAt γl j τ ⊢
       |={⊤}=> ⌜τ.1.lookup id = none⌝ := by
-  iintro ⟨#Hs, #Hi, #Hk, #Hj⟩
+  iintro ⟨Hlc, #Hs, #Hi, #Hk, #Hj⟩
   iunfold lessorSlot at Hs
   iinv Hs with Hb Hclose
   icases Hb with (>Ha | #Hr)
   · iexfalso
     iapply lessorAt_not_empty γl i σ (1 : Qp).half
     iframe Ha Hi
-  · ihave #Hr' := Hr
+  · imod lc_fupd_elim_later (E := ⊤ \ ↑lessorSlotN) $$ Hlc Hr with #Hr'
     iunfold lessorHistOk at Hr'
     have hall : (σ.1.lookup id).isSome ∧ i ≤ k ∧ ρ.1.lookup id = none ∧ k ≤ j := ⟨hσ, hik, hρ, hkj⟩
     imod Hr' $$ %i %k %j %σ %ρ %τ %id %hall Hi Hk Hj with %Hτ

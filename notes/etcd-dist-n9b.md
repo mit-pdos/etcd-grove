@@ -237,3 +237,41 @@ Nothing else: `Lease_Grant_dist`/`Lease_LeasesGranted_dist` suffice for leaseCat
   Then: `etc/tier-check.py --check` (it passed for the leaseRead files on the earlier base; not rerun this
   session), the `#print axioms` check of the three Run* theorems, and STATUS.md.
 - No `Link.lean` for `dist/client`: the drafts and the law `lessorAbsentStays_dist.law` are callee hypotheses.
+
+## 11. F2 session 1 (2026-11-26): handoff
+
+#50 F2 (the lead's split, 2026-11-26T01:14:37Z): leases on the full no-crash line. Branch **`etcd-safe-f2`**
+off M1's `etcd-safe-m1-top/2026-11-25` @ `e2d102d97b`; worktree `/shared/etcd-grove-f2`; fk-lean1
+`~/eg/wt/etcd-safe-f2` (its `.lake/build` moved from `wt/etcd-safe-n9b`).
+
+**N9b brought over without merging the branch whole.** `etcd-safe-n9b` sits on the crash integration line
+(etcd pin `e94f33b50`, P6-P8, round 3): merging it would bring all of that into the no-crash line (59 files
+conflicted). Its own files (the `dist/client` lease specs and proofs, the axiom reviews, this note) were taken
+from `a276f9570e` and re-indexed to M1's view (no `svc` parameter: `etcdAddrAt`, `leaseClientAt`).
+
+**Done.**
+- *Item 2:* `lessorAbsentStays_dist.law` is a theorem (`LeaseDefs.lean`, `law_holds`), over the heap-free slot
+  `lease.lessorSlot` (`Proof/go_etcd_io/etcd/server/v3/lease/LessorSlot.lean`; design: the ledger's
+  2026-11-26 entry). `leaseMember`/`memberCli` carry `lease.lessorSlot (Γ.ls mid)`; `RunLeaseExpiry` uses the
+  theorem (no hypothesis left). No interim axiom's text changed.
+- *Item 5 (part):* the six lease contracts are interim axioms, each in its own pair (Spec/Proof
+  `.../etcd/dist/{LeaseGrantDist,LeaseGrantLiveDist,LeaseLeasesGrantedDist,LeaseLeasesLiveDist,
+  ClientLeaseLeasesDist,ClientLeaseTTLDist}.lean`, `axiom … .wp_proof` at line 59/59/59/59/57/57).
+  Route rows: `notes/etcd-dist-plan.md` §18.4 (no `dsv-axiom-routes.md` exists on any branch). The four
+  lessor ones must not be linked before P-L1.
+- *The three missing axioms* (`Lease.Revoke`, `TimeToLive(WithAttachedKeys)`, `Put(WithLease)`) are **not
+  drafted**: authLease alone calls them, auth on, and their contracts (who is refused, the owner's
+  revocation, the keys verdict) are stated over the auth names F7 adds to `Γ`. Rows in §18.4, marked
+  "after F7's auth view".
+
+**Next, in order.**
+1. Build result of `b7a05e8e60`-and-later (see STATUS); fix what fails in `LessorSlot`/the ported proofs.
+2. **P-L1** (item 4): `newLessor_alloc` at a given `γl` (`NewLessorAlloc.lean:113` allocates it today) taking
+   `ghostMapAuth γl ½ ∅ ∗ lessorSlot γl`: open the slot, join the halves, `ghost_map_insert` the two keys,
+   build `lessorRdInv` as today, prove `lessorHistOk γl` from `lessorAt_absent_stays` at `⊤ ∖ lessorSlotN`
+   (namespace disjointness of `lessor_rd`/`lessor_slot`), close the slot. Then `NewLessor`/`newLessor`
+   variants, `NewServer.specG`'s lessor name from the caller (`mvccLeases E.γ = Γ.ls mid` in the post), the
+   member boot passing its half, and the start allocating `Γ.ls mid` and the slots (`ClusterNames.ls` in place
+   of `DistView.ofKV`'s constant).
+3. **Link** leaseRead/leaseCatchup/leaseExpiry as N7-kv linked kv (`KvLinked`, kvremote's dispatch).
+4. The three auth-on lease axioms with F7.
