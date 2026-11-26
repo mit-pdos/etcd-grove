@@ -188,13 +188,14 @@ def PInit (ps : PState) : Prop :=
 /-- **A node of the run `R` at its start** (`NewRawNode` on the fresh storage, or on the bootstrapped
 one: `HardState{Term: 1}` and the boot entry): term 0 or 1, no vote, no leader, follower, no tally,
 empty outbox, the log `bootLog R` from `base0`, commit 0, no `Match`; nothing applied, no pending
-conf index, no snapshot, at the initial configuration, no ghost prefix, no deferred read request. -/
+conf index, no snapshot, at the initial configuration, no ghost prefix, the read state fresh (no
+`ReadState`, a fresh read-only object, no deferred read request: `NewRawNode`'s restart state's). -/
 def PInitR (R : RunCfg) (r : RState) : Prop :=
   r.p.term = W64 (if R.boot then 1 else 0) ∧ r.p.vote = W64 0 ∧ r.p.lead = W64 0 ∧
   r.p.role = .follower ∧ r.p.votes = ∅ ∧ r.p.outbox = [] ∧ r.p.base = base0 ∧
   r.p.log = bootLog R ∧ r.p.commit = W64 0 ∧ r.p.matched = ∅ ∧
   r.applied = W64 0 ∧ r.pci = W64 0 ∧ r.snap = false ∧ r.cidx = 0 ∧ r.cfg = R.c0 ∧ r.fp = [] ∧
-  r.p.rd.pend = []
+  r.p.rd = {}
 
 /-- A log from index 1 whose entries carry their positions as indices (`PlogWf`'s index part): the
 binding's positions (`TermAt`, `SubSeq`, an `apply`'s `first`) are raft's indices. -/

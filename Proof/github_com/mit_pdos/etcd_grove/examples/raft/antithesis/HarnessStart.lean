@@ -371,19 +371,18 @@ theorem start_restartScope (γ : AntNames) (j : Fin γ.R.N) (s l : Loc) (σ : St
     rw [GMap.elem_of_list_to_set, List.mem_map]
     exact ⟨j.val, List.mem_range.2 (by have := j.isLt; omega), rfl⟩
 
-/-- **The state `NewRawNode` restarts a fresh node at is the view's** (`PInitR`; the read state
-fresh). -/
+/-- **The state `NewRawNode` restarts a fresh node at is the view's** (`PInitR`). -/
 theorem restartR_fresh (R : AntSim.RunCfg) (v : AntSim.NodeView) (hf : AntSim.FreshView R v)
-    (hrd : v.r.p.rd = {}) (ap : Nat) (hap : ap = 0) :
+    (ap : Nat) (hap : ap = 0) :
     restartR (downDur R) (bootContents (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) v.dur.log)
       ap 0 (ApiImpl.stOf (Membership.simple R.voters0)) [] = v.r := by
   subst hap
   rw [fresh_dur hf]
   obtain ⟨hP, -⟩ := hf
-  generalize v.r = r at hP hrd ⊢
+  generalize v.r = r at hP ⊢
   obtain ⟨p, applied, pci, snap, cidx, cfg, fp⟩ := r
   obtain ⟨term, vote, lead, role, votes, outbox, base, log, commit, matched, rd⟩ := p
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, -⟩ := hP
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, hrd⟩ := hP
   simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 hrd
   subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 h14 h15 h16 hrd
   have hc : ApiImpl.stOf (Membership.simple R.voters0) = R.c0 := by

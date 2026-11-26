@@ -6688,3 +6688,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   snapshots (the scope's no-snapshot conjunct); new `ReadIndex/TransferLeader.wp_apiProof`.
 - **Decision.** The Antithesis lead (D; decision 1's scope). `rawNode_scope`'s non-voter premise: flagged to the lead.
   No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: `PInitR`'s read state fresh (#33)
+- **Spec (strengthened Sim definition; node.start's request).** `PInitR R r` (Sim/Rel.lean): the last conjunct
+  `r.p.rd.pend = []` → `r.p.rd = {}` (no `ReadState`, a fresh read-only object, no deferred request).
+- **Defect / evidence.** `NewRawNode` restarts a node at `restartR … = {restartP … with …}`, whose read state is
+  `initPState`'s `{}`; `nodeOwn`'s `.loop` phase after `node.start`'s restart needs the restarted state to be the
+  view's (`Reach.stay`), and `FreshView` (through `PInitR`) left `rd.states`, `rd.ro` unconstrained, so the equality
+  was unprovable (`HarnessStart.restartR_fresh`).
+- **Users.** `FreshView` is a premise everywhere it is consumed (`antSim_init`, `antSim_boot`, `nodeOwn .down`); its one
+  producer is `RunCluster.viewInit_fresh` (`viewInit`'s `rd` is `{}`: still `rfl`). Sim/Init.lean derives the old
+  `rd.pend = []` from it; Sim/Boot.lean and `HarnessStart.fresh_dur` ignore the conjunct.
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise.

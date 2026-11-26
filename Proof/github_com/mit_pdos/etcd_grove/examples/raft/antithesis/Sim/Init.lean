@@ -218,9 +218,10 @@ theorem antSim_init : antSim_init.stmt := by
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
   · intro x hx; cases hx
   · intro n
-    obtain ⟨⟨hterm, hvote0, hlead, hrole, _, hout, hbase, hlog0, hcommit, _, _, _, hsnap, hcidx, hcfg, hfp, hpd⟩,
+    obtain ⟨⟨hterm, hvote0, hlead, hrole, _, hout, hbase, hlog0, hcommit, _, _, _, hsnap, hcidx, hcfg, hfp, hrd⟩,
       hdel, hdur, hundo, hmems, hcv, hca, hpre, hreads, _, ⟨hqs, hpend, hxpend, hce, hrp⟩, htold, hcause,
       hxcause⟩ := hV n
+    have hpd : (V n).r.p.rd.pend = [] := by rw [hrd]
     have hfull : (V n).r.full = bootLog R := by rw [RState.full, hfp, hlog0]; rfl
     refine ⟨⟨?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · rw [hct, hdur]; simp only [durOf]; rw [hterm]; unfold bootT; cases R.boot <;> rfl
