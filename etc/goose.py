@@ -644,6 +644,9 @@ PROJECTS = [
             # (Code/google_golang_org/grpc/internal/status.toml); until then names only, the target
             # of the alias grpc/status.Status (client/v3/leasing)
             "google.golang.org/grpc/internal/status",
+            # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) types only: `grpcsync.Event`, the
+            # type of `grpc.Server`'s `quit`/`done` fields
+            "google.golang.org/grpc/internal/grpcsync",
             # (status-bodies) types only: the message `internal/status.Status` holds
             "google.golang.org/genproto/googleapis/rpc/status",
             "google.golang.org/protobuf/types/known/anypb",

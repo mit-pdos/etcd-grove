@@ -7,6 +7,7 @@ module
 public import Proof.google_golang_org.grpc.InvGrpcServer
 public import GeneratedProof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Defs
+public import Proof.google_golang_org.grpc.InvGrpcProm
 
 @[expose] public section
 
