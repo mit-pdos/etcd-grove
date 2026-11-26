@@ -8,7 +8,8 @@ the answering writers' logs report.
 
 **The triple:** from the writer machines' share (`writersShare Γ ns`: the slot map, each node's writer
 service and one call's budget), the Puts `trs` (`len(nodes) * nops` of them, read-only, each one of the
-plan `n.2.2` and small, `nops < 2 ^ 56` so that each writer's Puts and log encode in a message), and the
+plan `n.2.2` and small, fewer than `2 ^ 56` so that each writer's Puts and log encode in a message: `RunWatch`
+has it from `GenAll`'s receipts, `GenAll_receipts.spec`), and the
 orchestrator's adapter (`kmInv (kmOf Γ n)`, the start's changes seen), `remoteWriters` returns the
 successful Puts `oks`, each with `okFactK (kmOf Γ n) p` (the answering writers' `wQ`). The level token is
 threaded. The logic's thread bound (`threadBound GF ≤ 2 ^ 30`, `RunWatch`'s) bounds the goroutines
@@ -44,7 +45,7 @@ abbrev remoteWriters.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (nodes tsl : GoSlice) (ns : List GoString) (trs : List wkv)
     (nops : w64) (Γ : DistView) (n : WN),
   threadBound GF ≤ 2 ^ 30 →
-  0 ≤ sint.Z nops → sint.Z nops < 2 ^ 56 → (trs.length : Int) = ns.length * sint.Z nops →
+  0 ≤ sint.Z nops → (trs.length : Int) = ns.length * sint.Z nops → trs.length < 2 ^ 56 →
   (∀ p ∈ trs, pairOf p ∈ n.2.2 ∧ wkvSmall p) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ nodes ↦*□ ns ∗ tsl ↦*□ trs ∗ writersShare (Gg := hG.goose_globalGS) Γ ns ∗

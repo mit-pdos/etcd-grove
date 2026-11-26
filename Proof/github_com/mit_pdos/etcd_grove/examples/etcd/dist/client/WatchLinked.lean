@@ -2,7 +2,7 @@
 
 # The watch workload across machines, linked (#50 N10a, `notes/etcd-dist-plan.md` §24)
 
-`RunWatch` (the orchestrator) and `NodeMain`'s watch arm (a writer machine) with every callee's proof:
+`RunWatch` (the orchestrator; its writers' Puts by `GenAll_receipts`) and `NodeMain`'s watch arm (a writer machine) with every callee's proof:
 the interim contracts at clientv3's interface across machines, `Watch_dist` (N3, `WatchDist.lean`;
 linked here first, after the watcher-environment refactor, §25) and `KV_Put_dist` (N2); the writers'
 calls over `lib/remote` (`Report`, `ServeClient`) at the writers' wire (§28); `etcdstart`'s, clientv3's
@@ -11,6 +11,7 @@ and Perennial's linked results.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.GenAllR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.writerOp
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WriterDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMainWatch
@@ -91,7 +92,7 @@ theorem wp_remoteWriters : remoteWriters.spec (GF := GF) (hG := hG) :=
 /-- **The watch workload's orchestrator, linked**: over `Watch_dist` (N3's interim contract) and the
 writers' calls. -/
 theorem wp_RunWatch : RunWatch.spec (GF := GF) (hG := hG) :=
-  RunWatch.wp_proof EtcdGrove.etcdstart.wp_GenAll wp_newClient ended.wp_proof checked.wp_proof
+  RunWatch.wp_proof (GenAll_receipts.wp_proof EtcdGrove.etcdstart.wp_Gen) wp_newClient ended.wp_proof checked.wp_proof
     Watch_dist.wp_proof (WithPrefix.wp_proof getPrefix.wp_proof) WithRev.wp_proof
     WithProgressNotify.wp_proof WithCreatedNotify.wp_proof
     wp_remoteWriters time.wp_AfterFunc time.Timer.wp_Stop EtcdGrove.etcdstart.wp_MaxRev

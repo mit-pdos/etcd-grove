@@ -177,4 +177,8 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newC
 # (`threadBound GF ≤ 2 ^ 30`): `newClient` (NewClients', the line above), `RunWatch` (the orchestrator), `remoteWriters`,
 # `reportAll` and `CallAll` (one goroutine per writer: `sync.tokJoinL`'s wait group counter). Discharged
 # from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
-spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(RunWatch|remoteWriters|reportAll|CallAll)\.lean$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunWatch|remoteWriters|reportAll|CallAll)\.lean$
+# (N10a2 §24.7, 2026-11-26) the writers' Puts counted by receipts: `GenAll_receipts` (`GenAllR`: the Puts fewer
+# than `receiptBound`, one receipt per iteration) and `RunWatch`'s `receiptBound GF ≤ 2 ^ 56`. Discharged at the
+# machine's boot from the start's `receiptBound ≤ etcdSteps`, not a top-level premise (as kvremote's `Orch`).
+spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(GenAllR|RunWatch)\.lean$

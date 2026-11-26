@@ -3249,6 +3249,34 @@ F4 (`Serve_dist`'s docstring) is not on this branch (it is `etcd-safe-f5`'s).
   remoteWriters, reportAll, CallAll): discharged from `etcdThreads` by the machine's boot, as kvremote's `Node`.
 - `KMWatch` split (§24.1) unchanged; N9a's `newClient`/`checked`/`ended` taken with fixed imports.
 
+### 24.7 The writers' Puts bounded by receipts (2026-11-26, branch `etcd-safe-n10a2/2026-11-26`)
+
+§24.6's `nops < 2^56` is gone: no deployment supplied it (the typed `BoundsOk` allows ~2^62 Watch ops). What
+bounds the Puts is the execution's length: `GenAll`'s loop runs `len(nodes) * nops` iterations, each with a
+counted step (a function resolution), so the proof collects that many exclusive receipts and `receipt_lt` gives
+the count below `receiptBound GF`.
+
+- **`GenAll_receipts.spec`** (`Spec/.../dist/client/GenAllR.lean`; proof `Proof/.../dist/client/GenAllR.lean`
+  over `Gen.spec`, one `wp_take_receipt` per iteration at `append`'s resolution, the invariant holding
+  `⧗ i`): `GenAll.spec`'s pre verbatim, its post
+  `∃ ps, sl ↦* ps ∗ ⌜ps.length = sint.nat n ∧ (∀ p ∈ ps, GenKv ks p) ∧ sint.nat n < receiptBound GF⌝`.
+  `lib/etcdstart`'s `GenAll.spec` is unchanged (its other users keep it).
+- **`RunWatch.spec`**: the pure premises are now
+  `Nonempty (WEnv GF) → threadBound GF ≤ 2 ^ 30 → plainEndpoints addrs →
+  0 ≤ sint.Z nops → ns.length * sint.Z nops < 2 ^ 63 → receiptBound GF ≤ 2 ^ 56 →`
+  (`sint.Z nops < 2 ^ 56` replaced by `receiptBound GF ≤ 2 ^ 56`, the weakest receipt premise that suffices;
+  the boot has `receiptBound ≤ etcdSteps = 2 ^ 48`, so `le_trans h (by decide)`). The proof calls
+  `GenAll_receipts` and gets `trs.length < receiptBound GF ≤ 2 ^ 56`.
+- **`remoteWriters.spec`**: `sint.Z nops < 2 ^ 56` replaced by `trs.length < 2 ^ 56` (all the writers' Puts):
+  `threadBound GF ≤ 2 ^ 30 → 0 ≤ sint.Z nops → (trs.length : Int) = ns.length * sint.Z nops →
+  trs.length < 2 ^ 56 → (∀ p ∈ trs, pairOf p ∈ n.2.2 ∧ wkvSmall p) →`. With no writers (`ns = []`) nothing
+  is asked of `nops`; with one or more, `nops ≤ trs.length < 2 ^ 56` per writer, as `wP` needs (`wP` unchanged).
+- **The cache** (`RunCache.spec`) restates the same way: call `GenAll_receipts` for its Puts, take
+  `receiptBound GF ≤ 2 ^ 56` instead of a pure `nops` bound, and hand its writers `trs.length < 2 ^ 56`.
+- **Bounds**: the two `receiptBound` mentions (`GenAllR`, `RunWatch`) are listed in `etc/bounds-allow.txt`'s
+  dist/client entry as `spec-receipt`: discharged at the machine's boot from `receiptBound ≤ etcdSteps`, not a
+  top-level premise (as kvremote's `Orch`).
+
 ## 25. Watcher-environment refactor (design, 2026-11-26; branch `etcd-safe-wenv/2026-11-26`)
 
 Required by the N3 review's F3 (`notes/axiom-review/n3-watch-dist.md`) before any result rests on
