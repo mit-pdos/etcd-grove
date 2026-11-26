@@ -24,7 +24,7 @@ decodes to it; that is the premise unit 2 will state of the handlers' requests.
 map-key audit's F1, `notes/axiom-review/errkeys-proto-renewhttp.md`). Invalid UTF-8 is the only failure
 this call has. At the pin (protobuf-go v1.36.12) the generated messages' fast path returns the struct
 value `impl.errInvalidUTF8{}` (`internal/impl/codec_gen.go:5041-5049`, `codec_field.go:17-21`); the
-reflective path returns `errors.InvalidUTF8(name)`, a `*prefixError` (`internal/errors/errors.go:84-86,
+reflective path returns `errors.InvalidUTF8(name)`, a `*prefixError` (`internal/errors/errors.go:83-85,
 20-22`). `proto.Marshal` passes either on unwrapped (`proto/encode.go:105-116, 198-204`). Both unwrap to
 protobuf's sentinel `errors.Error`, an `errors.New` pointer (`errors.go:16`, `codec_field.go:21`,
 `errors.go:40-42`), and none of the three has an `Is` method, so neither is a leaf error
