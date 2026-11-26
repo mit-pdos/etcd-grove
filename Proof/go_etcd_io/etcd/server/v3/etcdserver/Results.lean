@@ -2585,17 +2585,17 @@ package's, so `applyEntryNormal`'s NOSPACE branch is dead for admin entries too.
 theorem server_apply_admin_not_nospace_on
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames)
     (M : auth.AuthMode) (hs : List auth.AuthState) (rq : EtcdGrove.apply.IRRModel)
-    (log : mvcc.Log) (ar : Loc) (out : EtcdGrove.apply.ApplyOut) :
+    (log : mvcc.Log) (ar : Loc) (k : Prop) (out : EtcdGrove.apply.ApplyOut) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars ⊢
       EtcdGrove.apply.applyResultIs rq true log ar out -∗
-      EtcdGrove.apply.adminOut Own γa M hs rq true ar out -∗ EtcdGrove.apply.adminRejErr ar out -∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar k out -∗ EtcdGrove.apply.adminRejErr ar out -∗
       EtcdGrove.apply.applyResultIs rq true log ar out ∗
-      EtcdGrove.apply.adminOut Own γa M hs rq true ar out ∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar k out ∗
       (⌜ar = null⌝ ∨ ∃ err : GoInterface,
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) :=
-  applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar out
+  applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar k out
 
 end applyStateOn
 

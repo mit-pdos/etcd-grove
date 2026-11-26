@@ -205,7 +205,8 @@ theorem adminOutX_on_noExtraE (γa : auth.AuthNames) (Own : List auth.AuthState 
     (hs : List auth.AuthState) (R : auth.StepRel) (err : GoInterface) :
     auth.adminOutX (.on γa) Own hs R auth.noExtra err ⊢
       ∃ (st : auth.AuthState) (o : auth.Outcome), ⌜hs.getLast? = some st ∧ R st o ∧
-        (err = GoInterface.nil → ∀ e, o ≠ .err e)⌝ ∗ Own (histAfter hs o) := by
+        (err = GoInterface.nil → ∀ e, o ≠ .err e) ∧ (err ≠ GoInterface.nil → outState st o = st)⌝ ∗
+        Own (histAfter hs o) := by
   unfold auth.adminOutX
   iintro (⟨%e, %hx, -, -⟩ | ⟨%st, %o, %h, Hr⟩)
   · exact absurd hx id
@@ -218,7 +219,7 @@ theorem adminOutX_on_noExtraE (γa : auth.AuthNames) (Own : List auth.AuthState 
       iexists st, .err e
       iframe Ho
       ipureintro
-      refine ⟨h.1, h.2, fun hn => ?_⟩
+      refine ⟨h.1, h.2, fun hn => ?_, fun _ => rfl⟩
       rw [Hei] at hn; cases hn
     | same =>
       simp only [auth.outResX, histAfter]
@@ -226,14 +227,14 @@ theorem adminOutX_on_noExtraE (γa : auth.AuthNames) (Own : List auth.AuthState 
       iexists st, .same
       iframe Ho
       ipureintro
-      exact ⟨h.1, h.2, fun _ e he => by cases he⟩
+      exact ⟨h.1, h.2, (fun _ e he => by cases he), fun _ => rfl⟩
     | next st' =>
       simp only [auth.outResX, histAfter]
-      icases Hr with ⟨Ho, -⟩
+      icases Hr with ⟨Ho, %he⟩
       iexists st, .next st'
       iframe Ho
       ipureintro
-      exact ⟨h.1, h.2, fun _ e he => by cases he⟩
+      exact ⟨h.1, h.2, (fun _ e he => by cases he), fun hne => absurd he hne⟩
 
 end res
 
@@ -252,14 +253,14 @@ error) is the step to some `o`, with the authority at the history after it, whos
 `outState st o` the model's admin step reaches (`adminStateR_of_step`, `_of_authEnable`). -/
 theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (hs : List auth.AuthState) (st : auth.AuthState) (rq : apply.IRRModel) (ar : Loc)
-    (out : apply.ApplyOut) (hl : hs.getLast? = some st) (hn : apply.needAdminPermission rq = true)
+    (out : apply.ApplyOut) (k : Prop) (hl : hs.getLast? = some st) (hn : apply.needAdminPermission rq = true)
     (hka : apply.adminKindOk rq)
     (hrej : out = .rejected → apply.needAdminPermission rq = true ∧ apply.adminRejL (.on γa) hs rq)
     (hpass : ∀ o b, out = .dispatched o b → apply.adminPassL (.on γa) hs rq)
     (hout : out = .rejected ∨ ∃ o b, out = .dispatched o b) :
-    apply.adminOut Own γa (.on γa) hs rq true ar out ⊢
+    apply.adminOut Own γa (.on γa) hs rq true ar k out ⊢
       ∃ (hs' : List auth.AuthState) (st' : auth.AuthState),
-        ⌜hs'.getLast? = some st' ∧ adminStateR rq st st'⌝ ∗ Own γa hs' ∗
+        ⌜hs'.getLast? = some st' ∧ adminStateR rq st st' ∧ (k → st' = st)⌝ ∗ Own γa hs' ∗
         adminTieAr ar rq st st' out := by
   rcases hout with rfl | ⟨o, b, rfl⟩
   · simp only [apply.adminOut]
@@ -268,7 +269,7 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
     iframe Ho
     isplitr
     · ipureintro
-      exact ⟨hl, adminStateR_of_rejL γa hs st rq hl (hrej rfl).2⟩
+      exact ⟨hl, adminStateR_of_rejL γa hs st rq hl (hrej rfl).2, fun _ => rfl⟩
     iunfold adminTieAr
     iright
     ileft
@@ -286,16 +287,17 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
-        icases Hres with ⟨Hres, -⟩
+        icases Hres with ⟨Hres, -, %hk⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
-        obtain ⟨h1, h2, h3⟩ := h
+        obtain ⟨h1, h2, h3, h4⟩ := h
         rw [hl] at h1; cases h1
         iexists histAfter hs o', outState st o'
         iframe Ho
         isplitr
         · ipureintro
           exact ⟨histAfter_last hs st o' hl,
-            adminStateR_of_step rq st o' ha (Or.inl ⟨m, hkd, hm, h2⟩)⟩
+            adminStateR_of_step rq st o' ha (Or.inl ⟨m, hkd, hm, h2⟩),
+            fun hk' => h4 (hk hk')⟩
         iunfold adminTieAr
         iright
         iright
@@ -316,16 +318,17 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
-        icases Hres with ⟨Hres, -⟩
+        icases Hres with ⟨Hres, -, %hk⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
-        obtain ⟨h1, h2, h3⟩ := h
+        obtain ⟨h1, h2, h3, h4⟩ := h
         rw [hl] at h1; cases h1
         iexists histAfter hs o', outState st o'
         iframe Ho
         isplitr
         · ipureintro
           exact ⟨histAfter_last hs st o' hl,
-            adminStateR_of_step rq st o' ha (Or.inr (Or.inl ⟨n, hkd, hm, h2⟩))⟩
+            adminStateR_of_step rq st o' ha (Or.inr (Or.inl ⟨n, hkd, hm, h2⟩)),
+            fun hk' => h4 (hk hk')⟩
         iunfold adminTieAr
         iright
         iright
@@ -346,16 +349,17 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
-        icases Hres with ⟨Hres, -⟩
+        icases Hres with ⟨Hres, -, %hk⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
-        obtain ⟨h1, h2, h3⟩ := h
+        obtain ⟨h1, h2, h3, h4⟩ := h
         rw [hl] at h1; cases h1
         iexists histAfter hs o', outState st o'
         iframe Ho
         isplitr
         · ipureintro
           exact ⟨histAfter_last hs st o' hl,
-            adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inl ⟨ur.1, ur.2, hkd, hm, h2⟩)))⟩
+            adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inl ⟨ur.1, ur.2, hkd, hm, h2⟩))),
+            fun hk' => h4 (hk hk')⟩
         iunfold adminTieAr
         iright
         iright
@@ -376,16 +380,17 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
         simp only [hm, Option.map_some, Option.some.injEq] at had
         subst had
         simp only [apply.AdminReq.result]
-        icases Hres with ⟨Hres, -⟩
+        icases Hres with ⟨Hres, -, %hk⟩
         ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hres
-        obtain ⟨h1, h2, h3⟩ := h
+        obtain ⟨h1, h2, h3, h4⟩ := h
         rw [hl] at h1; cases h1
         iexists histAfter hs o', outState st o'
         iframe Ho
         isplitr
         · ipureintro
           exact ⟨histAfter_last hs st o' hl,
-            adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inr ⟨nw.1, nw.2, hkd, hm, h2⟩)))⟩
+            adminStateR_of_step rq st o' ha (Or.inr (Or.inr (Or.inr ⟨nw.1, nw.2, hkd, hm, h2⟩))),
+            fun hk' => h4 (hk hk')⟩
         iunfold adminTieAr
         iright
         iright
@@ -402,15 +407,19 @@ theorem adminOut_model (γa : auth.AuthNames) (Own : auth.AuthNames → List aut
     · -- `AuthEnable`
       cases had
       simp only [apply.AdminReq.result]
-      icases Hres with ⟨%en, -, Hx, -⟩
+      icases Hres with ⟨%en, -, Hx, -, %hk⟩
       ihave ⟨%st1, %o', %h, Ho⟩ := adminOutX_on_noExtraE γa (Own γa) hs _ _ $$ Hx
-      obtain ⟨h1, h2, h3⟩ := h
+      obtain ⟨h1, h2, h3, -⟩ := h
       rw [hl] at h1; cases h1
       iexists histAfter hs o', outState st o'
       iframe Ho
       isplitr
       · ipureintro
-        exact ⟨histAfter_last hs st o' hl, adminStateR_of_authEnable γa rq st en o' ha hkd h2⟩
+        refine ⟨histAfter_last hs st o' hl, adminStateR_of_authEnable γa rq st en o' ha hkd h2, fun hk' => ?_⟩
+        have h2' := h2
+        rw [hk hk'] at h2'
+        have ho : o' = .same := by simpa [auth.stepOf, auth.authEnableF] using h2'.2
+        rw [ho]; rfl
       iunfold adminTieAr
       iright
       iright

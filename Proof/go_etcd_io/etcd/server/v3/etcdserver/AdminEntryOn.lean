@@ -77,7 +77,6 @@ abbrev adminEntryOn.spec : Prop :=
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
         (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
     {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗ apply.applyTok E ∗ apply.bkRTOf E ∗
-        (if v3 then iprop(Post ∨ Pre) else Pre) ∗
         apply.resultErrOk ar ∗ apply.resTrace ar ∗ ⌜id' = id⌝ ∗
         ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
           ⌜apply.applyStep rq v3 x x' out ∧ x'.log = x.log ∧ x'.chain = x.chain⌝ ∗
@@ -91,16 +90,17 @@ abbrev adminEntryOn.spec : Prop :=
           ∃ (hs' : List auth.AuthState) (st' : auth.AuthState),
             auth.authOwnFu γa hs' ∗ auth.tieRes stl (.on γa) hs' ∗
             ⌜hs'.getLast? = some st' ∧ (if v3 then adminStateR rq st st' else st' = st)⌝ ∗
+            apply.cPost v3 Pre Post (st' = st) ∗
             (if v3 then adminTieAr ar rq st st' out else iprop(True)) ∗
           (if v3 then adminAuthnAr γa ar rq out else iprop(True)) }}
 
 /-- **An `Authenticate` entry's outcome** (C1's A2): the authority as it was, and the response
 (`adminAuthnAr`); it is rejected or dispatched. -/
 theorem adminOut_authn (γa : auth.AuthNames) (Own : auth.AuthNames → List auth.AuthState → IProp GF)
-    (hs : List auth.AuthState) (rq : apply.IRRModel) (ar : Loc) (out : apply.ApplyOut)
+    (hs : List auth.AuthState) (rq : apply.IRRModel) (ar : Loc) (k : Prop) (out : apply.ApplyOut)
     (hk : apply.dispatchKind rq = .authenticate)
     (hout : out = .rejected ∨ ∃ o b, out = .dispatched o b) :
-    apply.adminOut Own γa (.on γa) hs rq true ar out ⊢ Own γa hs ∗ adminAuthnAr γa ar rq out := by
+    apply.adminOut Own γa (.on γa) hs rq true ar k out ⊢ Own γa hs ∗ adminAuthnAr γa ar rq out := by
   rcases hout with rfl | ⟨o, b, rfl⟩
   · simp only [apply.adminOut]
     iintro ⟨Ho, -⟩
@@ -183,7 +183,7 @@ theorem apply_admin_entry_on
     isplitr
     · ipureintro; exact Hch
     iframe Hfu Htie
-  iintro !> %ar %id' ⟨Htt, Hrt, HRD, HPP, #Hok, Htr, %Hid', %x', %out, Hkv, %Hst, %Hlat, Hres, Hwv, HW, Hout,
+  iintro !> %ar %id' ⟨Htt, Hrt, HRD, #Hok, Htr, %Hid', %x', %out, %k, Hkv, HPP, %Hst, %Hlat, Hres, Hwv, HW, Hout,
     #HRE⟩
   have hout : out = .rejected ∨ ∃ o b, out = .dispatched o b := by
     cases out with
@@ -194,10 +194,10 @@ theorem apply_admin_entry_on
     | dispatched o b => exact Or.inr ⟨o, b, rfl⟩
   have hOut : apply.adminOut (GF := GF)
       (fun γa' h => iprop(auth.authOwnFu (GF := GF) γa' h ∗ auth.tieRes stl (.on γa) h))
-      γa E.authMode hs rq v3 ar out =
+      γa E.authMode hs rq v3 ar k out =
       apply.adminOut (GF := GF)
         (fun γa' h => iprop(auth.authOwnFu (GF := GF) γa' h ∗ auth.tieRes stl (.on γa) h))
-        γa (.on γa) hs rq v3 ar out := by rw [hM]
+        γa (.on γa) hs rq v3 ar k out := by rw [hM]
   irevert Hout
   rw [hOut]
   iintro Hout
@@ -224,7 +224,7 @@ theorem apply_admin_entry_on
     icases Hown with ⟨Hfu, Htie⟩
     simp only [Bool.false_eq_true, ↓reduceIte] at *
     iapply HΦ
-    iframe HRD Htt Hrt HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp
+    iframe HRD Htt Hrt Hok Htr Hkv Hres Hwv HRE HRO HT Htp
     isplitr
     · ipureintro; exact Hid'
     isplitr
@@ -233,12 +233,14 @@ theorem apply_admin_entry_on
     iframe Hfu Htie
     isplitr
     · ipureintro; exact ⟨Hl, rfl⟩
+    isplitl [HPP]
+    · iapply (apply.cPost_mono _ _ _ _ _ (fun _ => rfl)) $$ HPP
     isplitl <;> itrivial
   | true =>
     -- the result's error is not `ErrNoSpace`'s, read off the outcome before it is consumed
     ihave ⟨Hres, Hout, #Hnn⟩ := applyResultIs_notNoSpaceAdmin
       (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) γa (.on γa) hs rq
-      x.log ar out $$ [] Hres Hout HRE
+      x.log ar k out $$ [] Hres Hout HRE
     · iframe Pauth Hev
     have hrj := Hlat.1
     have hps := Hlat.2
@@ -246,14 +248,14 @@ theorem apply_admin_entry_on
     by_cases hka : apply.dispatchKind rq = .authenticate
     · -- (C1's A2) an `Authenticate`: the authority as it was, its response
       ihave ⟨Hown, HAu⟩ := adminOut_authn γa
-        (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs rq ar out hka
+        (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs rq ar k out hka
         hout $$ Hout
       have hna : apply.needAdminPermission rq = false := by
         have h := Hadm; unfold apply.adminKindOk at h; rw [hka] at h; exact h.1
       icases Hown with ⟨Hfu, Htie⟩
       simp only [↓reduceIte] at *
       iapply HΦ
-      iframe HRD Htt Hrt HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
+      iframe HRD Htt Hrt Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
       isplitr
       · ipureintro; exact Hid'
       isplitr
@@ -262,16 +264,18 @@ theorem apply_admin_entry_on
       iframe Hfu Htie HAu
       isplitr
       · ipureintro; exact ⟨Hl, adminStateR_authn rq st hka⟩
+      isplitl [HPP]
+      · iapply (apply.cPost_mono _ _ _ _ _ (fun _ => rfl)) $$ HPP
       iapply adminTieAr_nonAdmin ar rq st st out hna
     -- the outcome as the model's admin step
     have hn := adminKindOk_needAdmin rq Hadm hka
     ihave ⟨%hs', %st', %Hm, Hown, #HtA⟩ := adminOut_model γa
-      (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs st rq ar out Hl
+      (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h)) hs st rq ar out k Hl
       hn Hadm hrj (fun o b h => hps o b h) hout $$ Hout
     icases Hown with ⟨Hfu, Htie⟩
     simp only [↓reduceIte] at *
     iapply HΦ
-    iframe HRD Htt Hrt HPP Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
+    iframe HRD Htt Hrt Hok Htr Hkv Hres Hwv HRE HRO HT Htp Hnn
     isplitr
     · ipureintro; exact Hid'
     isplitr
@@ -279,7 +283,9 @@ theorem apply_admin_entry_on
     iexists hs', st'
     iframe Hfu Htie HtA
     isplitr
-    · ipureintro; exact Hm
+    · ipureintro; exact ⟨Hm.1, Hm.2.1⟩
+    isplitl [HPP]
+    · iapply (apply.cPost_mono _ _ _ _ _ Hm.2.2) $$ HPP
     iunfold adminAuthnAr
     ileft
     ipureintro; exact Or.inl hka
