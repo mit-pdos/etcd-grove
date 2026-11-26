@@ -4754,3 +4754,36 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
 - **Proposed (general).** `wp_apply` (or the `ihave … [defer]` machinery under it) must fail with an error when it
   cannot discharge a deferred goal, never elaborate it to `sorry`; a minimal reproduction is the first step.
   **Status.** Not filed (no post: dsv-fix6 brief); no reproduction outside `RunLeaseExpiry.lean` yet.
+
+## goose emits a negative literal constant as an expression, so `wp_auto` cannot step a large table (2026-11-25, dsv-retire-2, #49 step 2)
+
+- **Limitation.** goose translates a negative integer constant in a composite literal (`rngCooked`, math/rand's
+  607-entry `[rngLen]int64` table, `rng.go`) as `Convert go.untypedInt go.int64 (GoUnOp GoNeg go.untypedInt
+  #(n : Int))`, an expression to evaluate, where a positive one is the value `#(W64 n)`. The initializer is then
+  hundreds of `Let`s over pure steps, and a plain `wp_auto` over `math/rand`'s initializer reached 41 GB.
+- **Who needs it.** Perennial's own `math/rand` initializer proof (branch `retire2-codes-uuid-rand`, `e609d80e7`),
+  now that `rngCooked` is translated for `New(NewSource(seed))` (dsverify's `math.rand.NewSource`/`New`/
+  `rngSource.Int63` axioms).
+- **Workaround.** A lemma path for the chain of lets (`Perennial/Proof/math/rand/LetChain.lean` on that branch),
+  not `wp_auto`.
+- **Proposed change.** goose folds a constant expression to its typed value (`#(W64 (2^64 - n))`), as Go's type
+  checker already has it (`types.TypeAndValue.Value`), so a table of constants is a list of values whatever
+  their signs. A goose change, reviewed on its own.
+- **Status.** Open.
+
+## `go.slice_array_step` is untagged, so no named array type can be sliced (2026-11-25, dsv-retire-2, #49 step 2)
+
+- **Limitation.** `ArraySemantics.slice_array_step` (`Perennial/Golang/Defn/Array.lean`) gives the step of
+  `Slice (ArrayType n t)` untagged (`⤳`), where `index_ref_array` is tagged `⤳[under]`. `go.slice_underlying`
+  (`PostLang.lean`) gives `Slice t` for a named `t` only from a `⤳[under]` step of its underlying type, so
+  slicing an addressable value of a named array type (Go's `uuid[0:4]` on `type UUID [16]byte`) has no step:
+  `wp_auto` stops at `Slice UUID.ty`, and no instance of `⟦Slice UUID.ty, …⟧ ⤳ _` is found.
+- **Who needs it.** dsverify's `github.com/google/uuid` (its model `models/uuid`: `NewRandom` slices
+  `uuid[0:8]`, `uuid[8:16]`, `UUID.ID` slices `uuid[0:4]`), to prove `uuid.New` and `UUID.ID`.
+- **Workaround.** A local instance `slice_array_step_under` (`Dsverify/Proof/github_com/google/uuid/Base.lean`),
+  the same step tagged `under`, built from `go.slice_array_step` (a theorem: the tag is a label for instance
+  search only; nothing is assumed).
+- **Proposed change.** Tag `slice_array_step` and `fullSlice_array_step_pure` `⤳[under]`, as `index_ref_array`,
+  so that named array types slice as their underlying type (with a goose example slicing a named array).
+  A Perennial change, reviewed on its own.
+- **Status.** Open.

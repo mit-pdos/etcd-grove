@@ -11,6 +11,7 @@
 # libnet-net/2026-11-25, after the robustness-review fixes: 0 entries, so the seven results rest on
 # no axiom and no `sorry` of this repository; their trust is the net TrustedCode, the extension's
 # semantics and Perennial's).
-# rpcdriver (net/rpc over net/http) is not one of them: it rests on its interim net/http and
-# net/rpc axioms, and has its own collection, etc/tcb-collections/rpcdriver.txt.
-roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/(?!rpcdriver/)
+# rpcdriver (net/rpc over net/http) and httpdriver (net/http) are not of them: they rest on their
+# interim net/http and net/rpc axioms, and have their own collections, etc/tcb-collections/rpcdriver.txt
+# and etc/tcb-collections/httpdriver.txt.
+roots ^Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/(?!rpcdriver/|httpdriver/)

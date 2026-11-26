@@ -1,9 +1,13 @@
 /-
-The package fact of `os.signal`: `True` (names only here (no model: notes/dsv-rabia.md), no variables).
+The package fact of `os.signal`: `True` (no model: notes/dsv-rabia.md). Names only but its variables
+and `init` (dsv-retire-1-inits, 2026-11-25), translated with its imports `os` and `sync`, so its
+dependencies hold their facts.
 -/
 module
 
 public import Dsverify.GeneratedProof.os.signal
+public import Proof.os.PkgInit
+public import Perennial.Proof.sync.Base
 public import Net.Proof.net.Base
 
 @[expose] public section

@@ -1,14 +1,14 @@
 /-
-**Trust-boundary axiom** (dsv-fix4, mit-pdos/etcd-grove#49 fix 4): `sort.Ints(x)` sorts the slice's elements ascending in signed order, a permutation of them (the
-spec `raxos.hyp.sort.Ints.spec`, `Dsverify/Proof/raxos/Hyp.lean`). Perennial leaves `sort.Ints`
-untranslated (`Perennial/Code/sort.toml`). Go's `sort.go` (go1.27.3): `func Ints(x []int) {
-intsImpl(x) }`, `intsImpl` is `slices.Sort`, pdqsort on `cmp.Less` of `int`s: it permutes the
-elements by swaps within the slice and ends sorted; no panic. The premise `raxos.hyp.SortHyp` of
-QuePaxa's statement until dsv-fix4, its field verbatim. Review: `notes/axiom-review/dsv-fix4/quepaxa-misc.md`.
+`sort.Ints(x)` sorts the slice's elements ascending in signed order, a permutation of them (the
+spec `raxos.hyp.sort.Ints.spec`, `Dsverify/Proof/raxos/Hyp.lean`), from Perennial's translation
+of `sort.Ints` (`slices.Sort(x)`, go sort.go:170) and its proof `sort.wp_Ints` (over
+`slices.wp_Sort` and `cmp.Less` at `int`). Until #49 step 1 (2026-11-25) a trust-boundary axiom of dsv-fix4
+(`notes/axiom-review/dsv-fix4/quepaxa-misc.md`), retired by the translation.
 -/
 module
 
 public import Dsverify.Proof.raxos.Hyp
+public import Perennial.Proof.sort.Link
 
 @[expose] public section
 
@@ -18,13 +18,15 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section ax
+section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.sort.Assumptions]
 
-/-- **Trust-boundary axiom** (the file header). -/
-axiom raxos.hyp.sort.Ints.wp_proof : raxos.hyp.sort.Ints.spec (GF := GF) (hG := hG)
+/-- Perennial's linked result, at the hypothesis' statement (the file header). -/
+theorem raxos.hyp.sort.Ints.wp_proof : raxos.hyp.sort.Ints.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.sort.wp_Ints
 
-end ax
+end proof
 
 end Perennial
