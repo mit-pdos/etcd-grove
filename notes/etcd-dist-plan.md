@@ -4393,3 +4393,54 @@ When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` b
 - gen-link: every other Link matches; five Links of other projects (bbolt, kvraft, WAL) differ
   from what `gen-link` prints in this worktree with no `.lake`. They are identical to `lean`'s files, so the difference
   comes from this environment.
+
+### 30.7 Round 2 (2026-11-26): the axiom-tok entries and F7's gates merged
+
+**Merged, in order:**
+- `etcd-safe-full-atok/2026-11-26` @ `8b31f9f926`: fast-forward (the nine axiom-tok entries and their `trunc` lines,
+  `notes/axiom-review/full-line-axiom-tok.md`).
+- `etcd-safe-f7` @ `a7e73bb6e0`, then @ `ce1e357c5a` (`bounds-check.py --selftest` for the `decl=` form). F7 carries
+  lean `eb4f1a1633` (T-opaques: `tcb-report`'s opaque lines, the regenerated collections); the only Lean change
+  reaching this line is a comment. Conflicts:
+  - `etc/axiom-tok-allow.txt`: the union. The line's `KV_Compact_dist`/`Watch_dist`/`RequestProgress_dist` entries and
+    `trunc` lines are kept, and F2's six lease entries (identical on both sides) appear once.
+  - `etc/bounds-allow.txt`, `etc/dist-axiom-diff-allow.txt`: both sides' additions (the line's dist/client lines;
+    F7's `decl=` lines and the 20 F2/F7 `pair` blocks).
+  - `dist/client/Results.lean`: comment wrapping, ours.
+  - `notes/STATUS.md`: the merge driver; the G-dial entry it left out is in `status-history.md` already.
+- Generated files: no Lean input changed, and every check is up to date (`gen-init`, `gen-specs-pkginit`,
+  `gen-raft-tla`, `copy-part`; `PERENNIAL_DIR` from Perennial `a706aeb9a` extracted in scratch).
+- The independent triage of `Watch_dist`'s and `RequestProgress_dist`'s entries
+  (`notes/axiom-review/watch-dist-axiom-tok-triage.md`) found them justified with corrections, so three reason texts
+  are corrected: the counted unary contracts are never called by any goroutine of the call. Keys and `trunc` lines
+  are unchanged.
+
+**Checks at `c68ca7c424`** (the build at `3534ba63f1`; the later commit is text only):
+
+| check | result |
+|---|---|
+| full VM build | green (29561 jobs) |
+| `#print axioms etcd_safe_nocrash` | 134 axioms, no `sorryAx`, the same set as round 1 |
+| gen-link, all 60 modes | match: 55 locally, and the five that differ in a worktree with no `.lake` (bbolt, kvraft, kvraft-udp, wal-tester, walfs) match under `vmlake env` |
+| `tier-check` | ok |
+| `bounds-check --check` | ok, 389 against a baseline of 389 (round 1: 423) |
+| `bounds-check --selftest` | ok, 12/12 |
+| `premise-witness --check` | ok (49 statements) |
+| `lease-order-check` and its selftest | ok |
+| `dist-axiom-diff --check` | ok (29 interim axioms, 3 with no source) |
+| `dist-axiom-diff --selftest` | 0 failures |
+| `axiom-tok --check` (`vmlake env`, no `TCB_CACHE`) | ok: 366 Prop axioms walked, 319 pass, 47 by an entry or pair. The walks are unchanged by the merge: no re-key, no taint, no mint |
+| `axiom-tok --selftest --reuse-raw` | 0 failures |
+| `tcb-report --check` (`vmlake env`, no `TCB_CACHE`) | matches the baseline: 383 axioms, 0 `sorry`, 93 opaques |
+| `tcb-report --selftest` | ok |
+| all 69 collections, `--check` | match (`etcd-dist`: 131 axioms and 55 opaques; `etcd-dist-lease`: 29 and 19) |
+
+**The trust base against lean `eb4f1a1633`, by origin.** Nine axioms are added, no opaque line changes, and nothing
+is removed:
+- N2: `KV_Compact_dist`.
+- N3: `Watch_dist` and `RequestProgress_dist`.
+- F2: `view.Lease_Grant_dist`, `Lease_GrantLive_dist`, `Lease_LeasesGranted_dist`, `Lease_LeasesLive_dist`,
+  `Client_LeaseLeases_dist` and `Client_LeaseTimeToLive_dist`.
+
+No root reaches F7's auth-on axioms (they are reached only from the auth classes, §30.4). Round 2 adds no axiom,
+`sorry` or premise, and changes no Go.
