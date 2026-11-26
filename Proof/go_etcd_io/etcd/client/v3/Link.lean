@@ -668,7 +668,7 @@ theorem grpc.wp_WithResolvers :
     EtcdGrove.grpc.WithResolvers.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.WithResolvers.wp_proof
 
-theorem v3.Client.wp_dialWithBalancer [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem v3.Client.wp_dialWithBalancer :
     EtcdGrove.Client.dialWithBalancer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.dialWithBalancer.wp_proof v3.Client.wp_Endpoints v3.Client.wp_credentialsForEndpoint grpc.wp_WithResolvers v3.Client.wp_dial
 
@@ -832,11 +832,11 @@ theorem credentials.wp_NewPerRPCCredentialBundle :
     EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=
   EtcdGrove.credentials.NewPerRPCCredentialBundle.wp_proof
 
-theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync v3.Client.wp_Close credentials.wp_NewPerRPCCredentialBundle
 
-theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.clientv3.New.wp_proof v3.wp_newClient
 

@@ -45,7 +45,7 @@ include h_After in
 two drivers' linked `MainPartition` results and the named hypothesis of `clock.RealClock.After`. -/
 theorem k8s_all.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
   k8s_all.Main.wp_proof k8s_all.holdToken.wp_proof k8s_etcd3.wp_MainPartition
     (k8s_compactor.wp_MainPartition h_After)
@@ -64,7 +64,7 @@ include h_After in
 draws. -/
 theorem k8s_all.wp_MainChecked [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     k8s_all.MainChecked.spec (GF := GF) (hG := hG) :=
   k8s_all.MainChecked.wp_proof k8s_all.wp_ParamsOk cluster3.wp_RandomSchedule
     (k8s_all.wp_Main h_After)

@@ -9,7 +9,6 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Spec.go_etcd_io.etcd.client.v3.Client__credentialsForEndpoint
 public import Spec.go_etcd_io.etcd.client.v3.Client__dial
 public import Spec.google_golang_org.grpc.WithResolvers
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 
 @[expose] public section
 
@@ -29,9 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- The proof unfolds the method by its trusted body (`DialWithBalancerBody.lean`). -/
 theorem Client.dialWithBalancer.wp_proof
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (wp_Endpoints : Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_credentialsForEndpoint : Client.credentialsForEndpoint.spec (GF := GF) (hG := hG))
     (wp_WithResolvers : grpc.WithResolvers.spec (GF := GF) (hG := hG))
@@ -86,6 +83,7 @@ theorem Client.dialWithBalancer.wp_proof
     rw [List.nil_append]
     iframe Ho2
     iapply BigSepL2.bigSepL2_singleton.2; iexact Ho
+  wp_auto
   iapply HΦ
   iexact Hres
 

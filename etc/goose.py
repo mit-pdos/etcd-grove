@@ -682,7 +682,7 @@ PROJECTS = [
             # names only (item 5, client construction): what `clientv3.New`'s dial names:
             # the credentials requirement of an endpoint, grpc's keepalive parameters, insecure
             # credentials and resolver builders (the type of `grpc.WithResolvers`'s parameter,
-            # for the trusted body of `dialWithBalancer`), and the type of `Config.TLS`
+            # which `dialWithBalancer` converts to), and the type of `Config.TLS`
             # (crypto/tls, a standard-library package Perennial does not translate)
             "go.etcd.io/etcd/client/v3/internal/endpoint",
             "google.golang.org/grpc/keepalive",

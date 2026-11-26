@@ -223,9 +223,6 @@ SRV_ASSUMPTIONS = "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions"
 # (written `[<name as here>]` in its file); its result takes it too, and so does every result
 # linking one that does, here or in an imported Link (its `theorem` line).
 SEM_PREMISES = [
-    # `(*Client).dialWithBalancer`'s body, which the translator cannot produce
-    # (`Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`)
-    "go_etcd_io.etcd.client.v3.DialWithBalancerBody",
     # (rafthttp stage 6f) `*errors.errorString` a leaf error without `Is` (`Proof/errors/NewVar.lean`)
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)

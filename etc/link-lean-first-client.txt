@@ -257,7 +257,7 @@ WithRequireLeader:
 NewLeaseFromLeaseClient: WithRequireLeader Client__GetLogger
 # Item 5 (client construction, branch `construct`): `clientv3.New` (client.go: `New`, `newClient`,
 # `SetEndpoints`, `credentialsForEndpoint`, `authority`, `dialSetupOpts`, `dial`,
-# `dialWithBalancer` from its trusted body, `autoSync`). Trust boundary: grpc's dial
+# `dialWithBalancer`, `autoSync`). Trust boundary: grpc's dial
 # (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
 # `internal/resolver` (`New`, `SetEndpoints`, `Close`: proved over the translation since prove-grpc3,
 # 2026-11-21) and the names-only `internal/endpoint`
