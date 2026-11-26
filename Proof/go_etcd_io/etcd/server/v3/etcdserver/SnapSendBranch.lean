@@ -132,7 +132,7 @@ theorem commitReq_freeze
   iframe Ht Hhk
   iapply hooksReq_backendHooks hOn γ P W _ b t bh _ lgh hH
   iframe Hspkg Hbpkg Hsch Hh Hb Ht
-  iapply ci_saveFreeze hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH s hps
+  iapply ci_saveFreeze (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH s hps
   iframe #
 
 
@@ -590,7 +590,7 @@ theorem mergedCreate_window_replay
     (batchLockInv γ (metaTM B'.γB B'.P)) B'.be (storage.hooksIface bh) $$ [HB HhkAt]
   · iframe #
   -- the commit's request: the window opened (`commitReq_freeze`)
-  ihave #Hreq := commitReq_freeze hOn hSave hPut hUR hID hName hSafe γ ci B'.γB B'.P
+  ihave #Hreq := commitReq_freeze (IR := fun _ _ => iprop(True)) hOn hSave hPut hUR hID hName hSafe γ ci B'.γB B'.P
     (mvcc.api.mvccW gx) B'.be bh lgh hcK hhP st hok.1
     $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
   · iframe #

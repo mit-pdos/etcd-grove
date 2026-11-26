@@ -7287,3 +7287,9 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   and the row is passed where the mode is known (`isServerM`). If a no-lock outcome does change a model (a write
   outside the batch lock), the row is not weakened silently: the session stops, records it here as a finding with the
   Go path, and reports it (it might be a real bug).
+- **Applied** (T10 session 10, in progress). (1) `EtcdServer.applyConfChange.spec`: its no-lock outcome is the
+  failed validation (`server.go` `applyConfChange`: `ValidateConfigurationChange` errs, `cc.NodeID = raft.None`, then
+  `SetConsistentIndex` outside the batch lock); the caller's wand for that store, `Pre -∗ WP SetConsistentIndex
+  {Adv}`, now also takes `⌜membership.ccValidOn rs.bk m = false⌝` (the wand is where `EtcdServer.apply` runs
+  `skip_done`, before `Adv` exists), from which the caller gets `ccRest true m rs = rs`. (2) The applier's no-lock
+  outcome (`cPost`'s `Pre`): see the session's handoff.

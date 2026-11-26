@@ -109,7 +109,7 @@ theorem backend_server_hooks_of
     (batchLockInv γA (metaTM γ P)) b bh _ lgh hH
   iframe Hspkg Hbpkg Hsch Hh Hnh
   iintro !> #Hb %t #Ht
-  iapply ci_saveSpec hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH
+  iapply ci_saveSpec (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W _ b t hP hH
   iframe #
 
 /-- **The physical names of the backend `applySnapshot` opens** (D22 receiver epochs, S8b,
@@ -149,7 +149,7 @@ theorem hooksOk_server_fut
   inext
   ihave #Hrl : regdOrLink (γA.withPh (futPhys π0 γ)) γ $$ []
   · iunfold regdOrLink; iright; ipureintro; exact ⟨rfl, rfl⟩
-  iapply ci_saveSpec hSave hPut hUR hID hName hSafe (γA.withPh (futPhys π0 γ)) ci γ P (W γ) _ b t
+  iapply ci_saveSpec (IR := IR) hSave hPut hUR hID hName hSafe (γA.withPh (futPhys π0 γ)) ci γ P (W γ) _ b t
     hP hH
   ihave #Hinv' : inv applyN (consInv (γA.withPh (futPhys π0 γ)) IR) $$ []
   · rw [show consInv (GF := GF) (γA.withPh (futPhys π0 γ)) IR = consInv γA IR from rfl]; iexact Hinv

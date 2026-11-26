@@ -42,7 +42,8 @@ from the uber applier, the caller's `isBackend` of `d` at `E.Pk d` and the froze
 in one critical section of the batch lock, after the hook (the
 caller's hook triple and update, a write session's token spent), or, if the validation fails,
 there is none and it stores the applying index `(i, t)` into the consistent index (read from
-`ciApplying`, which the caller's `Pre` lends). It may change `cc` (`NodeId` on a failed
+`ciApplying`, which the caller's `Pre` lends; T10 session 10: the caller's wand for it is told the
+validation failed, `ccValidOn rs.bk m = false`, the entry's no-lock model fact). It may change `cc` (`NodeId` on a failed
 validation), but not its `Id`, and hands it to raft read-only. (2026-10-31, the snapshot track's
 S5) `ep.confState` after it is raft's answer, which reports the voters (`epCsVoters`: the cluster's
 membership is the voters' at every committed index, `srv_confAt_simple`), or, if the validation
@@ -130,7 +131,8 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
         mvcc.api.hookRun (E.Pk d) E.f Pre Q ∗
         (Q ={⊤}=∗ E.Pk d ∗ Post) ∗
         (Pre -∗ ciApplying ci i t ∗ (ciApplying ci i t -∗ Pre)) ∗
-        (Pre -∗ WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!!
+        (Pre -∗ ⌜membership.ccValidOn rs.bk m = false⌝ -∗
+          WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!!
           go!"SetConsistentIndex")) (Val #i)) (Val #t)) {{ v, ⌜v = #()⌝ ∗ Adv }}) ∗
         Pre)
       else iprop(

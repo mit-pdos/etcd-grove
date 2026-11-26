@@ -2409,7 +2409,7 @@ theorem NewServer.wp_proofRG
           · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
             iframe HΦ'
             icases Hpre with ⟨Hcst, Hcb⟩
-            iapply (wp_ci_get h83 γA cil cb cst hcp) $$ [Hcst Hcb]
+            iapply (wp_ci_get (IR := fun _ _ => iprop(True)) h83 γA cil cb cst hcp) $$ [Hcst Hcb]
             · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
             iintro ⟨Hcst, Hcb⟩
             rw [hld]

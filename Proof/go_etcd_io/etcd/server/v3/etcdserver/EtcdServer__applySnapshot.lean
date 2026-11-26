@@ -488,7 +488,7 @@ theorem EtcdServer.applySnapshot.wp_proofKeep
   · iframe #; iexact Hrcv
   (try wp_auto)
   -- the guard: `ci := s.consistIndex.ConsistentIndex()`, at least the snapshot's index: taken
-  wp_apply (wp_ci_get hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
+  wp_apply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
   · iframe #; iframe Hst Hab
   (try wp_auto)
   wp_apply hGI $$ [Hsm] as -

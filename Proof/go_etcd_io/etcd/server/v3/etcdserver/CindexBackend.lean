@@ -848,7 +848,7 @@ theorem ci_saveFreeze (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
   iintro #H
   unfold storage.saveReq
   iintro !> %st %stop %m %u %Φ !> ⟨Hl, Hbl, Hst, %Hpre, Hpay⟩ HΦ
-  iapply (ci_hook_freeze_run hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
+  iapply (ci_hook_freeze_run (IR := IR) hSave hPut hUR hID hName hSafe γA ci γ P W Pk b t hP st s hps)
     $$ H [Hl Hbl Hst]
   · iframe Hl Hbl Hst; ipureintro; exact Hpre
   iintro !> ⟨%st', %ui, %ut, Hl, Hbl, HY, %Hr⟩
