@@ -4298,7 +4298,7 @@ work; the merged branches' interim axioms are the F9 packet's (nothing lands bef
   `cfg` conjunct), importing both `LeaseDefs` and `KVClientDist`; F5's `clientCore_of_new` deleted (F7's
   `clientCoreAt_of_new` kept); `InvClientNewResult` merged as wenv's (`isNewClient` at `V.atEps eps`);
   `Serve_dist`'s docstring: the N3 review's F4 sentence merged cleanly onto F7's text; bounds-allow: both lines.
-- N9a `etcd-safe-n9a/2025-11-25` up to @ `1e7ad3dc32` (putget, durable; `KVWorkLinked` green): N9a's files, with the
+- N9a `etcd-safe-n9a/2026-11-25` up to @ `1e7ad3dc32` (putget, durable; `KVWorkLinked` green): N9a's files, with the
   line's adaptations only (newClient's `cfg` conjunct, `clientCoreAt_of_new`).
 - N10a2 `etcd-safe-n10a2/2026-11-26` up to @ `8b8c417009` (writerCodec proved, `WatchLinked` complete, the writers'
   Puts by receipts, §24.7).
