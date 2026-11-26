@@ -25,6 +25,9 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
   "newFuncServerOption", "funcServerOption.apply", "KeepaliveEnforcementPolicy", "MaxRecvMsgSize",
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
+  # (grpc-statshandler, 2026-11-26) `StatsHandler`, with its body: its closure appends a non-nil
+  # handler to `statsHandlers` (a nil one is logged through `logger` and ignored)
+  "StatsHandler",
   # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
   "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
   "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
