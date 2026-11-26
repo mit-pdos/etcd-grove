@@ -261,6 +261,34 @@ Next, in order: build `...internal.json.InitLoop` and finish `wp_init0`; build j
 above (zerolog's fact, `eventTok`/`loggerMade` definitions, the nine proofs, the remaining-axioms note
 `notes/axiom-review/dsv-zerolog-remaining.md`, the checks, gates).
 
+**Session 3 (2026-11-26), WIP handoff (stopped at the context limit).** Committed (`150c26d79a`, no `sorry`):
+- `internal/json/InitLoop.lean`: `wp_init0` finished (no `sorry`; helper `wp_store_arrBool`); json's `Base.lean`
+  imports its imports' `Base`s. json's `Init.lean` checks (`initfn_apply` now `$$ HnoEscapeTable`, no brackets).
+- `zerolog/NewNil.lean` (new, defs tier): `newLevelWriter`, `newLogger w` (the logger `New` builds from
+  `Discard`'s value `w`), `wp_New_nil w` (`{{ Discard ↦□ w }} New(nil) {{ RET #(newLogger w); True }}`, by cases on
+  `w` and `typeSetContains`), `wp_Nop`. Both check with `etc/lean-check.py`.
+- `rabia.py` zerolog `SPECIAL`: `before` (`arrayPool`: one `repeat (first | rw recv_eq_func_mk | wp_func_lits | wp_auto)`
+  over all the variable initializers; `$inits`: `rename_i`/`irename` of `gLevel`'s cell to `HgCell`), `after`
+  `init.«0»` (`SetGlobalLevel`'s `StoreInt32` through `wp_apply_core`, then `wp_Nop`), import `NewNil`.
+  zerolog's `Base.lean` imports its imports' `Base`s (fact still `True`). Regenerated `Init.lean` checks
+  (`lean-check -a`, 0 errors); zerolog's `Init.lean` axiom is gone.
+- `quepaxa.py` io/ioutil `finish`: `try iexists _`, `try iexact HDiscard` (`is_pkg_init_finish` already closes it).
+
+**Running when stopped (result unknown)**: on fk-lean1, `/shared/tmp/dsvr3-rb.sh` with targets
+`Dsverify.Proof.rabia.examples.rabianet.TopLevelRobustness Dsverify.Proof.rabia.roles.server.Link
+Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness Dsverify.Proof.raxos.{Proposer,Proxy,Replica}.Results`;
+its output was going to the session's task file (lost with the session): rerun that command (incremental). Tools:
+`/shared/tmp/dsvr3-rb.sh <targets>` (lake build there; now syncs every file changed since the remote's base
+`04c16d3753`, committed or not), `/shared/tmp/dsvr3-lc.sh [-a|-q|--goal L] FILE` (`etc/lean-check.py` there;
+use `-a`: the incremental report can show a stale error).
+
+**Next, in order**: fix that build until green; then step 3's list above from item 3 (zerolog's fact: `gLevel ↦□ p ∗
+inv (∃ v, p ↦ v)` from `HgCell` in `finish`, the level strings and `LevelFieldMarshalFunc` `↦□`, `eventPool`'s
+`isPool`); `loggerMade lg := ∃ w, Discard ↦□ w ∗ ⌜lg = newLogger w⌝` (needs the defs' instance context in
+`Spec.lean`); `New.wp_proof` from `wp_New_nil`; `SetGlobalLevel`; `ParseLevel("warn")` (it calls
+`fmt.Errorf` with `%s` before the switch, and compares with `LevelFieldMarshalFunc(l)`: needs `Errorf`'s spec
+and the fact's marshal function); the level methods and `Str`; the remaining-axioms note; checks; gates.
+
 **Blocked by Perennial (recorded in `notes/perennial-changes.md`, 2026-11-26)**: `Event.{Int,Ints,Int64,Uint32,
 Bool,Float64}` call `strconv.AppendInt`/`AppendUint`/`AppendBool`/`AppendFloat`, names only in Perennial;
 `Event.Msg` writes to `ioutil.Discard`, whose value `io.isInit` hides. These seven stay axioms; once `eventTok`
