@@ -2807,6 +2807,14 @@ no counterexample.**
     - F4: `Client.Close`'s wording.
     - F5: "the statements do not change" on retirement is unsupported at `V.addrs = eps`, so the
       retirement may have to narrow the statement (a user decision at that point).
+- **Docstrings (applied, the lead's decision, 2026-11-26)**: F1–F4 in `WatchDist.lean` (the "∀ V form"
+  header, `Watch_dist`'s margin, `RequestProgress_dist`'s last paragraph), `WatchClientDist.lean`
+  (`watchClientAt`) and `Client__Close.lean` (`Client.Close.wp_proof`). F2's correction is also in N3's
+  review (section B) and the two `notes/audit.md` rows, with F3's restated trigger. No statement changed.
+- **Future decision for Upamanyu (F5)**, when the axioms are retired: at `V.addrs = eps` the retiring proof
+  cannot discharge the guard without a serving-based law or the client-view split (25.2). The `∀ V`
+  statement may then have to be narrowed (e.g. to `V.addrs ≠ eps`, or to `V` built from the table), which
+  changes what the axiom claims. The header now says this is open.
 - **Landing**: after M1 lands, not into M1's landing line (the lead, 2026-11-26).
 
 ### 25.6 Not done here (follow-ups)
@@ -2827,4 +2835,6 @@ no counterexample.**
   violations, none new); `bounds-check --check` ok (390, baseline 390); `tcb-report --check` matches
   `etc/tcb-baseline.txt` (364 axioms, 0 sorries); every collection matches, `etcd-dist` with 0 axioms
   and 0 sorries. The watch, cache and compact theorems are in the full build.
-- The review is in (25.5): all sound; the docstring findings go to the F9 batch.
+- The review is in (25.5): all sound.
+- The docstring fixes F1–F4 are applied (25.5). The three touched modules build on the VM (4655 jobs);
+  `tcb-report --check` matches the baseline (364 axioms, 0 sorries) and `etcd-dist` (0, 0).

@@ -24,7 +24,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **Trust boundary** (the auth plan's E2d): `Close` (`client.go`) cancels the client's context
 (its own `cancel`), closes its `Watcher` (under the watcher's lock, each stream closed and the
-streams map set to `nil`: `watcher.Close`, proved, keeps the watcher's invariant) and its `Lease`
+streams map set to `nil`, which `watcherMu` allows at every environment; each stream's `close` returns,
+also for streams the cross-machine watch contracts opened, `notes/axiom-review/n3-watch-dist.md` T5,
+`wenv-isnewclient.md` W2) and its `Lease`
 (the lessor's `stopCancel`, then `donec` closed once through `firstKeepAliveOnce`, whose `Once`
 owns that close, and waited for), and closes its gRPC connection (grpc's `ClientConn.Close`, after
 which calls on it fail, as the attempt and stream axioms allow), returning `ContextError` of that or

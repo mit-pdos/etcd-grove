@@ -37,8 +37,8 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **What the watch contracts across machines take of the client** (persistent; see the file header):
 `New`'s client `cl` of the endpoints `eps` (no proxy dial path), its `Watcher` field the `*watcher` `w`
 (the one `isNewClient` names: the field is read-only, so `w` is unique), every endpoint serving a member
-of the cluster view `Γ`. The watcher's environment `V` is the one `New` was given; the contracts' posts
-read nothing of it (`notes/etcd-dist-plan.md` §22.3, "The watcher's environment"). -/
+of the cluster view `Γ`. The watcher is over `New`'s environment restricted to the dialed endpoints
+(`V.atEps eps`, `isNewClient`); the contracts' posts read nothing of it (`notes/etcd-dist-plan.md` §25). -/
 def watchClientAt [π : NetProtoGS] (cl w : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView) :
     IProp GF :=
   iprop(isNewClient cl eps V ∗ clientNoProxy cl ∗

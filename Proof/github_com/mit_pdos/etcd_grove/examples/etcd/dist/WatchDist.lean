@@ -16,25 +16,35 @@ obligation for the entry (§22.6, route (a)).
 **What retires them.** That work (route (a), after M1 lands): each statement then becomes a theorem, proved
 from `watcher.Watch.spec`/`watcher.RequestProgress.spec` over an `isClientWatcher` built from the table's
 entries at every endpoint (`isNewClient_watcher_of`), the members' KV names `kvSame` to `Γ.kv` by
-`Serve_dist`'s `kvCongr`. The statements do not change; the retiring proof also needs what
+`Serve_dist`'s `kvCongr`. Whether the statements survive that unchanged is open at `V.addrs = eps` ("The `∀ V`
+form" below); the retiring proof also needs what
 `watchConnFacts_of_members` takes (`context.ErrAny.spec`, `errors.AsTarget`, the `errors`/`fmt`/`rpctypes`
 `Assumptions` instances, each member's `watchMemberFacts`), from the table's entries or the top level, not
 from `watchClientAt`.
 
 **The `∀ V` form.** Both are stated for every watcher environment `V` that `New` was given (their posts read
-nothing of it). At today's definitions they are not provable at every `V`: a stream these calls add to the
-watcher's map must carry `isWGS V G` in the lock's invariant (`watcherMu`), which holds `watchSrvFacts V`,
-and no cross-machine program has those facts. At `V.nm = 0` they are `False`, so there the triples are
-not valid Iris triples at all: their soundness is by encapsulation (below), not by truth. The retiring
-proof meets the `∀ V` form only after the watcher-environment refactor (no trust): `watchSrvFacts` taken out of `isWGS` and
-given to `run` per stream from the connection's table; without it, the theorem would hold only at the
-table's own environment, a weaker statement (§22.3, "The watcher's environment"). Until then their use is
-sound because nothing observes the lock's contents: `mu` is unexported, and every spec of code that locks it
-either takes `isClientWatcher V w`, whose `watchSrvFacts` no cross-machine program has (`watcher.Watch`,
-`RequestProgress`, `Close`, `closeStream`), or is an axiom whose post says nothing of the lock
-(`Watch_dist`, `RequestProgress_dist`, `Client.Close.wp_proof`, which calls `c.Watcher.Close()`). **Any new
-spec or proof that locks the watcher from `isNewClient`/`isClientWatcherCore` without `watchSrvFacts` voids
-this argument and must be reviewed together with these axioms** (`notes/axiom-review/n3-watch-dist.md`, F3).
+nothing of it). The watcher's lock keeps each stream as `wgsGuard` (its invariants under the servers' facts,
+`□ (watchSrvFacts V -∗ isWGS V G)`), over `New`'s environment restricted to the dialed endpoints (`V.atEps eps`,
+`isNewClient`; `notes/etcd-dist-plan.md` §25). At a `V` whose members are not exactly `eps` (`V.nm = 0`
+included) the guard holds outright, so the lock asks nothing of a stream these calls add. At `V.addrs = eps` the
+guard asks `isWGS V G` under `watchSrvFacts V`, which a cross-machine stream cannot meet (its `respc` invariant
+is at `V`'s member values), and no law refutes `watchSrvFacts V` from `membersAt eps Γ`: there the use is sound
+by encapsulation, not by truth. A program can hold both `watchSrvFacts V` and `membersAt eps Γ` (`Listen` at an
+endpoint, `grpc.start` with the `Watch` handler on that listener, then `addr_set_proto_tok` from `netAddrLeft`
+to `etcdSvc`'s protocols), so proved specs and these axioms can act on one watcher. Their use is sound because
+the lock's contents are never observed against a response: `mu` is unexported; every proved spec that locks it
+(`watcher.Watch`, `RequestProgress`, `Close`, `closeStream`) reads a stream only with `watchSrvFacts` of the
+lock's environment (`wgsGuard_elim`), and the axioms that lock it (`Watch_dist`, `RequestProgress_dist`,
+`Client.Close.wp_proof`, which calls `c.Watcher.Close()`) say nothing of the lock in their posts; and a program
+holding those facts and `membersAt eps Γ` at once has, at every endpoint, a `grpc.start`ed server with a
+`Watch` registration that nothing can serve (`grpcServes` of the opaque `etcdSvc` with a stream registered is
+unprovable, an address has one table, `etcdstart.Serve`'s `Listen` fails on the open listener), so its streams
+get no response (`notes/axiom-review/wenv-isnewclient.md`, C, W1, W2). **The argument breaks, and these axioms
+must be reviewed again, on**: (1) a change to `watcherMu` or `wgsGuard` that yields a stream's `isWGS` without
+`watchSrvFacts`; (2) any law about `etcdSvc` at the `Watch` name (route (a)'s `.stream` entry included), or
+any other way to make `grpcServes` provable for a server with a `Watch` registration at an address of
+`membersAt` (check when route (a) defines `etcdSvc`: the entry must bind the handler to `Γ`'s members);
+(3) a spec that frees or closes a `grpc.start`ed listener (a `Stop`); (4) a new axiom that locks `w.mu`.
 -/
 module
 
@@ -114,16 +124,14 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
   single-process spec's auth row (`watchCheckOk`, gated on
   `V.nm = 1`) is not claimed: it reads member 0's auth tag and server, per-member names not in `Γ` (N11).
 
-**Margin: the watcher's environment.** `isNewClient cl eps V` fixes `V` at `New`, and the watcher's lock
-invariant keeps each stream's `isWGS V G`, which holds `watchSrvFacts V`. A stream this call adds has no
-provable `isWGS V G` (it is `False` at `V.nm = 0`), so the `∀ V` triple is not provable before the
-watcher-environment refactor; its use is sound because nothing observes the lock's contents, and any new
-spec that locks the watcher without `watchSrvFacts` must be reviewed with it (file header, "The `∀ V`
-form").
+**Margin: the watcher's environment.** The lock keeps the stream this call adds under the servers' facts
+(`wgsGuard`), over `V.atEps eps`: off `V.addrs = eps` it asks nothing of it; at `V.addrs = eps` the use is
+sound by encapsulation (file header, "The `∀ V` form", with the cases that would break it).
 
 Retired by S2's etcd-side stream work (§22.6 route (a)): the `Watch` entry stated at `Γ`, and this statement
 proved from `watcher.Watch.spec` over `isClientWatcher` built from the table (`isNewClient_watcher_of`),
-`V.kv` `kvSame` to `Γ.kv` from `Serve_dist`'s `kvCongr`. The statement does not change. -/
+`V.kv` `kvSame` to `Γ.kv` from `Serve_dist`'s `kvCongr`. Whether the statement survives unchanged is open
+at `V.addrs = eps` (file header). -/
 axiom Watch_dist.wp_proof : Watch_dist.spec (GF := GF) (hG := hG)
 
 /-- **`(*watcher).RequestProgress(ctx)` across machines** (interim trust boundary, as `Watch_dist`; see the
@@ -139,9 +147,9 @@ watcher's, the context's or the stream's close error), and grpc's `status` accep
 (`statusErrOk`); nothing is claimed of the server's answer, which arrives, if ever, as a progress response
 of the watch channels `Watch_dist` describes.
 
-Retired with `Watch_dist`, from `watcher.RequestProgress.spec`. As `Watch_dist`, a stream it starts has
-no provable `isWGS V G` at today's definitions, so its `∀ V` form needs the same watcher-environment
-refactor, and its use rests on the same encapsulation argument (file header, "The `∀ V` form"). -/
+Retired with `Watch_dist`, from `watcher.RequestProgress.spec`. As `Watch_dist`, a stream it starts is kept
+under the servers' facts (`wgsGuard`, over `V.atEps eps`): off `V.addrs = eps` the lock asks nothing of it,
+and at `V.addrs = eps` its use rests on the same encapsulation argument (file header, "The `∀ V` form"). -/
 axiom RequestProgress_dist.wp_proof : RequestProgress_dist.spec (GF := GF) (hG := hG)
 
 end proof
