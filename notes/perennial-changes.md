@@ -397,6 +397,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   - `context.WithCancelValCtx`: unchanged (`propagateCancel`'s goroutine branch);
     `context.madeCancelCtx_of_isCancelCtx` is a trusted law of the local opaque `madeCancelCtx`, not a
     missing Perennial spec: it goes only if Perennial exports a "made by `context`" fact of a `*cancelCtx`;
+    known limitation (2026-11-26): a `reflect.New` zero `cancelCtx` counts as made by `context`
+    (`reflect.New.spec` with `reflNew_pointsto` gives its points-tos, hence `isCancelCtxOfA`); sound because
+    no consumer reads its `Context` field (`madeCancelCtx`'s docstring lists them;
+    `notes/axiom-review/madecancelctx-per-index.md`);
   - `fmt.SprintfSlice`, `fmt.ErrorfSlice` (`[]Decision`, a slice of structs: `printValue`, stuck by
     design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
     `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
