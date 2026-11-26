@@ -429,11 +429,11 @@ theorem grpc.serve (addr : GoString) (ics : List GoFunc)
       have hm : m ∈ ms := List.mem_of_getElem? hk
       have he := grpcStartSvc_go ics regs tys sms m.name _
         (grpcGoSvc_some ics regs tys m.name m.handler m.srv m.Req m.Rep (hreg m hm) (hty m hm))
+      have he' : grpcStartSvc ics regs tys sms m.name = some (.unary ⟨m.Req.toProtoMsg.wire,
+          m.Rep.toProtoMsg.wire, (grpcGoEntry ics regs m.name m.Req m.Rep).spec⟩) := he
       iintro #Ha #Hr
-      ihave #Hg0 : isGrpcRpcMd (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
-          (grpcGoEntry ics regs m.name m.Req m.Rep).spec $$ []
-      · iapply (isGrpcRpcMd_of_addr (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
-          (grpcStartSvc ics regs tys sms) _ he) $$ Ha
+      ihave Hg0 := isGrpcRpcMd_of_addr (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
+          (grpcStartSvc ics regs tys sms) (grpcGoEntry ics regs m.name m.Req m.Rep).spec he' $$ Ha
       iapply (isGrpcRpcMd_mono_wand (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
         (grpcGoEntry ics regs m.name m.Req m.Rep).spec m.spec) $$ [] Hg0
       imodintro
