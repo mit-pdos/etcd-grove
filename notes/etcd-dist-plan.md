@@ -4285,3 +4285,39 @@ top-level premise, no Go change. Nothing lands before Upamanyu's F9 approval.
   kvremote's `TopLevelRobustness`: green. `KVCallsDist` and so `KVWorkLinked` still fail by the known §26.6 items
   (`KVCallsDist.lean:156` `hser`, `durableKey`/`durableValue`); the edited pattern at line 150 reports no error.
 - **F9 row:** strengthened approved axiom: KV_Get_dist error arm + statusErrOk.
+
+## 30. F8: integration and assembly (2026-11-26, branch `etcd-safe-full/2026-11-26` off `lean` @ `93687cba82`)
+
+The integration line of every workload branch, and `etcd_safe_nocrash`'s assembly (design §27). Untrusted proof
+work; the merged branches' interim axioms are the F9 packet's (nothing lands before F9's approval).
+
+### 30.1 Merged (in order; conflicts as §27.5 predicted)
+- F7 `etcd-safe-f7` @ `3e36f7cbd9` (F2 leases + F7 auth; `Serve_dist`/`NewServer_dist` replaced): clean.
+- kvgete `etcd-safe-kvgete/2026-11-26` @ `dba4cce259` (F6 cache, F5 compact, wenv, N3, rwire, N10a2's writers,
+  `KV_Get_dist` strengthened): `dist/client/{checked,ended,newClient}` (Spec) as F7's (newClient's anonymous-client
+  `cfg` conjunct), importing both `LeaseDefs` and `KVClientDist`; F5's `clientCore_of_new` deleted (F7's
+  `clientCoreAt_of_new` kept); `InvClientNewResult` merged as wenv's (`isNewClient` at `V.atEps eps`);
+  `Serve_dist`'s docstring: the N3 review's F4 sentence merged cleanly onto F7's text; bounds-allow: both lines.
+- N9a `etcd-safe-n9a/2025-11-25` up to @ `1e7ad3dc32` (putget, durable; `KVWorkLinked` green): N9a's files, with the
+  line's adaptations only (newClient's `cfg` conjunct, `clientCoreAt_of_new`).
+- N10a2 `etcd-safe-n10a2/2026-11-26` up to @ `8b8c417009` (writerCodec proved, `WatchLinked` complete, the writers'
+  Puts by receipts, §24.7).
+- F8 design `etcd-safe-f8/2026-11-26` @ `508327e097` (§27).
+- Line adaptations: lean's G-dial deleted the `DialWithBalancerBody` class (its section variables go from the five
+  dist/client linking files); newClient's post patterns (`, -`) in NodeMainWatch, RunWatch, RunCache, RunCompact;
+  `CacheLinked.wp_RunCache` hypothesis-free (watch's linked writers); `RunCache.spec` over receipts as `RunWatch.spec`
+  (`receiptBound GF ≤ 2 ^ 56` in place of `nops < 2 ^ 56`, which no well-formed deployment gives).
+- Generated files (`gen-init`, `gen-specs-pkginit`, `gen-raft-tla --check`, PERENNIAL_DIR at `a706aeb9a`): up to date.
+
+### 30.2 The assembly (decisions)
+- Q3 taken: the skeleton is `dist/BootSkel.lean`; `dist/TopLevelRobustness.lean` holds the theorem, paired with its Spec.
+- **Split by the token provider** (`etcdBootNC_of_split`): by Q1 (`WellFormed`), auth is on exactly when the one
+  workload is `auth` or `authLease` (`DeploymentClass.auth_class`). The auth-off deployments (classes E, Ls, S, P of
+  §27.1) are F8's general start and dispatch; the two auth classes are named hypotheses `EtcdAuthBootNC` and
+  `EtcdAuthLeaseBootNC` (`EtcdBootNCAt` at `[auth]` / `[authLease]`), their shares `False` in `wlShare`/`wlNodeShare`.
+  Why: `RunAuth` has no spec yet (F7 S3), and the auth-on start (the client halves of `etcdKV` and `authHistView` with
+  `kvInvOn`, F7 L5/S4) is not written; `RunAuthLease` is proved over `foreignReads.law`, not linked.
+- M1's `etcd_kv_safe_nocrash` keeps its own proof (no landed top-level theorem may come to rest on a hypothesis);
+  it becomes the one-line corollary `etcd_kv_safe_nocrash_of_full etcd_safe_nocrash` once the hypotheses are gone (Q4),
+  and M1's kv-only dispatch specs (`.specKv`) and boots retire then.
+- The premise `KvOnly ∧ auth = false` of M1's statement stays (F9 trust-shrinking item, the user's call).
