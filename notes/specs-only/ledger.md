@@ -6675,3 +6675,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   transfer off). Users at `none`: TracedRawNodeReady.lean, node__run_gated.lean (mechanical: `false` → `none (fun _ h =>
   by cases h)`), RawNodeSpecOfAbs.
 - **Decision.** The Antithesis lead (C4 approved; decision 1). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step D: the RawNode apiSpecs and `rawNode` laws at every mode (#33)
+- **Spec.** RawNodeApi.lean: `RawNode.{Step,Tick,Campaign,Propose,Ready,Advance}.apiSpec := ∀ md : RnMode, md.snapshots =
+  false → md.confChanges = false → md.forwarding = false → md.async = false → form (fun γ => rawNode γ md) (fun md' =>
+  md' = md)` (were at `{}`); `ReportUnreachable.apiSpec`, `HasReady.apiSpec` likewise; **new** `RawNode.ReadIndex.apiSpec`
+  and `RawNode.TransferLeader.apiSpec` (their forms over `rawNode γ md`, the forms' own reads/transfer premises). The
+  `rawNode` laws (wf, noSnap, logTerms, phsTerm, scope, logRecs, leader, tally, commit, committed, commitInv, entries,
+  term_tc, raise_tc, appended) at `∀ md` with the same four premises; `rawNode_scope` also takes `md.nonVoters = false`
+  (its `id ∈ γ.reCfg` is `RnCfgIn`'s non-voter conjunct). `NewRawNode.emptyStartApiSpec` still at `{}` (boot, deferred).
+- **Proof.** RawNodeApiLinked: `apiSpec_of_abs` at `some md` (`some_eq_some_md`); `rawNode_ghost` at a mode without
+  snapshots (the scope's no-snapshot conjunct); new `ReadIndex/TransferLeader.wp_apiProof`.
+- **Decision.** The Antithesis lead (D; decision 1's scope). `rawNode_scope`'s non-voter premise: flagged to the lead.
+  No axiom, no top-level premise.
