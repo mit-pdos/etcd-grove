@@ -37,6 +37,11 @@ next endpoint on `Unavailable`), its success the member's check (`txnReadChecked
 `writeAuD` (resent after a token refresh), its success the grant of `irrTxn` (`writeCheckedD`, nested
 operations included). The error arm claims nothing.
 
+**Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; needs a fresh review): the write
+arm admits a leased transaction in the revocable lease mode, `txn.txnPlain … ∨ (Γ.kv.lm = .revocable ∧ txnPlainL …)`,
+as `KV_PutOn_dist`'s `leaseID = 0 ∨ Γ.kv.lm = .revocable` and the in-process `client.txnUpdAtOn` (`RunAuthLease`'s
+leased transactions; a weaker premise, callers unaffected). The auth-off `Txn_Commit_dist` is unchanged.
+
 **Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
@@ -55,7 +60,9 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
       ((⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV Γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
             <{ etcdKV Γ.kv σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
-        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
+        (⌜txn.txnReadonly (txnWireOf b.model) = false ∧
+            (txn.txnPlain (txnWireOf b.model) ∨
+              (Γ.kv.lm = .revocable ∧ txnPlainL (txnWireOf b.model))) ∧
             txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           writeAuD Γ.kv (principalOf cfg) (.txn (txnWireOf b.model)) L₀ Q)) ∗
       ⌜txnSizeOk (txnWireOf b.model)⌝ }}
