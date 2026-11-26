@@ -793,3 +793,16 @@ sound with fixes. The scratch texts are updated in place, with the rev-3 copies 
 **Still open:** the countability of `Option backend.DBNames`, or else `bkKeepInvK` (T10); and §R3.2's items 1–5.
 
 **For review:** D-2's ghost variable (§1.5) and D-1's share (§1.3). Both are small.
+
+### R4.1 Conditions from the rev-4 check (D5r3 §Rev4: D-1 resolved, D-2 sound)
+
+- **(a)** `srvStop.keep`'s body keeps its `srvKbVar` half inside an invariant it shares with the server (the backend
+  escrow or T10's `bkKeepInvK`), because the swap runs on the apply thread. Otherwise a later swap changes
+  `srvStop.keep`'s body, which the approved `NewServer_dist` reads. **This is for P5's brief for `srvStop.keep`.**
+- **(b)** The countable instance is `dbNames_countable` (`storage/mvcc/InvStore.lean:243`) with `countableOption`.
+  `SrvKeep.lean` must import `InvStore`'s instance or sit below it. This closes rev 4's countability question.
+- **(c)** The agreement gives `B.db = k.γb`, not the whole of the server's backend names. `cmtInvK`'s `γk` must come
+  from `srvKb k`. The texts now write the holder's half as `srvKbVar γbk ½ (some B.db)`.
+
+Scratch: srvkeep §1.5 (a)–(c), and `(some B.db)` in the scratch §A post, c-i2 §3.2–§3.3 and srvkeep §2.6. The crash
+line now waits on kaashoek's T10 and Upamanyu's crash packet.
