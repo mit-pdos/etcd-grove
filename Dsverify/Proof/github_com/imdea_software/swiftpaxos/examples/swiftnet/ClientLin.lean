@@ -73,7 +73,7 @@ instance linkInv_persistent (γ : SwiftNames netDistGF) (γk : GName) :
   unfold linkInv; infer_instance
 
 /-- The kit's store over the slot. -/
-abbrev swRK (γk : GName) : RBase netDistGF St KIn BStr := swR (sysK γk) swEop
+abbrev swRK (γk : GName) : RBase netDistGF St KIn KIn BStr := swR (sysK γk) swEop
 
 end defs
 
@@ -161,7 +161,8 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
     iframe
   · iintro Hσ'
     imod Hmask with -
-    iunfold lin at Hlin
+    ihave Hlin := lin_linF (swRK γk) i Φ $$ Hlin
+    iunfold linF at Hlin
     rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
     ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]
@@ -230,7 +231,8 @@ theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i
     iframe
   · iintro Hσ'
     imod Hmask with -
-    iunfold lin at Hlin
+    ihave Hlin := lin_linF (swRK γk) i Φ $$ Hlin
+    iunfold linF at Hlin
     rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
     ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]

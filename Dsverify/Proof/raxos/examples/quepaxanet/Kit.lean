@@ -108,7 +108,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: QuePaxa's key-value map on the kit's inputs (see the file header). -/
-def qR (γ : QNames) : RBase GF raxos.pure.Store QIn QOut where
+def qR (γ : QNames) : RBase GF raxos.pure.Store QIn QIn QOut where
   B := qB
   sysState σ := ownState γ σ
   Eop := ↑raxosN
@@ -134,7 +134,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- **The store's linearization point is QuePaxa's request update** (definitionally), its answer
 clamped into `QOut` (`clampO`: the answer itself for every answer the codec encodes). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
-    lin (Gg := Gg) (qR γ) i Φ ⊣⊢ opAU γ i.1 (fun o => Φ (clampO qOut0 o)) := .rfl
+    lin (Gg := Gg) (qR γ) i Φ ⊢ opAU γ i.1 (fun o => Φ (clampO qOut0 o)) :=
+  (lin_linF (qR γ) i Φ).trans .rfl
 
 end base
 

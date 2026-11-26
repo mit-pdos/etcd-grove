@@ -581,11 +581,24 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions",
                    "The proofs of the checker of Antithesis's model of raft (`examples/raft/antithesis/"
                    "check`, the Go transcription of `EtcdRaft.tla` and `EtcdBinding.tla`)", [""]),
+    # (etcd-dist D2, 2026-11-24) etcd_safe's deployment check (`examples/etcd/dist/deployment`) and the
+    # member ids it computes (`membership.NewMember`'s chain, also in the server's list)
+    "--deployment": ("link-lean-first-deployment.txt",
+                     "github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment "
+                     "go_etcd_io.etcd.server.v3.etcdserver.api.membership go_etcd_io.etcd.client.pkg.v3.types",
+                     "github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions",
+                     "etcd_safe's deployment check (`examples/etcd/dist/deployment`)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
 # (`GooseLang/Ext/Fs/SemOk.lean`), so that they hold over a restricted one (`NoTear.lean`).
 EXTS = {"--bboltfs": "[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]"}
+# The package assumptions a mode's sections take beside its own package's (after `package_sem`): those
+# of packages its proofs call into that its package's `Assumptions` does not import (`types`'s and
+# `strings`'s come from the deployment's)
+PKG_ASMS = {"--deployment": "[go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions] "
+                            "[_root_.Perennial.sort.Assumptions] [_root_.Perennial.crypto.sha1.Assumptions] "
+                            "[encoding.binary.Assumptions]"}
 # The namespaces a mode's links open before those binders (the file extension's names are in `Fs`).
 EXT_OPENS = {"--bboltfs": "\nopen Fs\n"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
@@ -599,13 +612,18 @@ NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "co
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest", "--perclient": "perclient",
               "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
-              "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
+              "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs", "--deployment": "etcd_dist"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # (etcd-dist D2) Perennial's results the member ids' proofs take (`=` callees), net/http's
+                 # `URL.String` boundary, `fmt.Errorf` of basic arguments
+                 "--deployment": ["Perennial.Proof.strings.Link", "Perennial.Proof.sort.Link",
+                                  "Perennial.Proof.crypto.sha1.Link", "Proof.net.http.Axioms",
+                                  "Proof.fmt.ErrorfStrs"],
                  # (the import tiers, 2026-11-18) the client's laws its proofs take (`=client.*_law_holds`,
                  # `=etcd_txnlin.*_law_holds` callees)
                  "--k8s": ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
@@ -1203,7 +1221,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}""")
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}""")
     def hyp(fn):
         return "h_" + fn.replace("+", "_")
 
@@ -1413,7 +1431,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
     later = [fn for fn in order if fn in blocked and fn not in pending and fn not in external]
@@ -1443,7 +1461,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
 {include_line}
 """)
         out.extend((("include " + " ".join(hyp(p) for p in sorted(reach[fn])) + " in\n")

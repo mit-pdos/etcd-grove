@@ -7087,6 +7087,71 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
   no longer a premise since dsv-fix4).
 - **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
+- **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
+- **Defect.** Too weak for its consumer: `bootstrapSnapshot` carves the fresh `member/snap`'s names into the snapshot
+  directory's free names, which must be durable (`backend.fileFreeDur`, so that the crash law `snapDir_crash.law`
+  can keep them across a crash), and that needs every history entry writing a name of the new directory (other than
+  the `.touch` probe, which `IsDirWriteable` writes and removes) to be below a commit index the caller holds.
+  The post said only `h'.next ≤ n`.
+- **Evidence.** The proof of `bootSnap.snapDir_carve` (`BootSnapCarve.lean`); Go: `TouchDirAll` ends with
+  `IsDirWriteable`'s fsync of the directory (fileutil.go), committing the journal (ext4, configuration C).
+- **Proposed change.** The post's pure part gains `∀ xe ∈ hJ.ents, ∀ b, b ≠ ".touch" → xe.2.1.op.Writes J b →
+  xe.1 < n`, proved from `osNames_histCoh` (a strengthening: no caller loses anything). `SpecPlan/` has no such
+  vocabulary; nothing to change there.
+- **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
+  branch `etcd-safe-p7`.
+
+## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
+
+- **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
+  `remote.Check.spec` (`Net/Spec/.../lib/remote/{Run,Check}.lean`): `genSpec gen (∃ i, x = R.iv i)`, `PendDec R S`,
+  `hinj`; `RBase`'s one input type shared by the wire and the model.
+- **Defect.** Too narrow for the kv workload (`kvremote.Orch` = `remote.Run` of `txnlin.Model()`): with `S =
+  linkvtxnS` the model input is `MI`, and (1) `Gen`'s inputs are not a function of their `MI` (`genFrom` sets fields
+  `decTOp`/`decCmp` ignore); (2) `ioOk_*`/`err` over every `MI` fail for inputs `decIn` cannot produce or `ValidIn`
+  excludes; (3) `ok` over every output fails, since `decOut` reads an output by the input's kind; (4) `hinj` fails
+  for `O = MO` (`outOf` collides across kinds), and `O = Output` breaks (3)'s equality at revisions past `2 ^ 64`.
+- **Evidence.** `notes/etcd-dist-p9.md` (each with file and line); the Pend proof uses `ok` only at the invariant's
+  configuration (Pend.lean:352).
+- **Proposed change.** `RBase` with a wire input `I` and a model input `J` (`mi : I → J`), a state guard `good`
+  with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
+  stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
+  top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
+- **Decision.** Approved as proposed (the coordinator, `remote`'s owner, #28; 2026-11-25): `RBase GF St J I O`
+  (wire input `I`, model input `J`, `mi : I → J`), `good` with `sysState_good`, `PendDec` at a configuration,
+  `PendDec.ofTotal` for the existing instances; condition: no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text
+  changes. Applied on `etcd-safe-p9`.
+
+## 2026-11-25: `remote.lin` cannot abort, so a far side whose system takes an atomic update cannot use it (P9)
+
+- **Spec.** `remote.lin` (`Net/Proof/.../lib/remote/Defs.lean`), the linearization point a slot hands the far
+  side (`slotUpd`, `opMaybe`): a one-shot fancy update `|={⊤ \ Eop, ∅}=> ∃ st, sysState st ∗ (sysState st' ={∅, ⊤ \
+  Eop}=∗ Φ o)`, with no way back without stepping.
+- **Defect.** The kv workload's far side (`kvremote.Node`, `txnlin.Call.spec`) hands the update to etcd as an Iris
+  atomic update (`callUpd`: a write's `kvOpAu1 γk`, `AU <{ ∃∃ σ, etcdKV γk σ }> @ ⊤ \ kvEop, ∅ <{ … }>`), whose
+  accessor must be abortable (`atomic_acc`'s abort: `etcdKV γk σ ={∅, ⊤ \ kvEop}=∗ AU`). `etcdKV γk σ` comes only
+  from `lin`'s `sysState`, and `lin` once opened can only be closed by stepping, so a write's `kvOpAu1` cannot be
+  built from `lin` (a read's can: `□ lin` closes at the same state, `reads_stay`). The dsverify kits never needed
+  the abort (their servers fire `lin` directly; gryff's `opAU` note: "which cannot abort").
+- **Evidence.** `atomic_acc` (`Iris/BI/Lib/Atomic.lean:26`); `kvAu1` (`InvRequest.lean:1024`); the producer
+  (`Pend.lean`, `pend_choice`'s write case) can abort: it opens only `pendCtx` before handing `sysState` over, and
+  lintest's update (`pend_commit_core`) can run in the commit branch instead, at the same mask.
+- **Proposed change.** `lin` becomes the atomic update `AU <{ ∃∃ st, sysState st }> @ ⊤ \ Eop, ∅ <{ sysState
+  (step st).1, COMM Φ (step st).2 }>` (stronger for the far side: `lin_linF` gives back the old form, renamed
+  `linF`, for the far sides that fire it directly; `linF_read_lin` builds a read's `lin` from `□ linF`). The
+  producer's write cases (`pend_choice`, `pend_fire`) abort by closing `pendCtx` unchanged; the instances' far
+  sides change by a `lin_linF` each; no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changes.
+- **Decision.** Applied on `etcd-safe-p9` (P9, 2026-11-25), pending the coordinator's (`remote`'s owner) review
+  before landing.
+- **Review** (P9, 2026-11-25, an independent `spec-reviewer`): sound, no must-fix. The new `lin` is stronger for
+  the far side only for writes (for a read `□ lin ⊣⊢ □ linF`, `lin_linF` and `linF_read_lin`); every producer
+  (`pend_fire`, `pend_choice`, `readNoop`, the counter client's forwarding) proves it; no `TopLevel*` text
+  mentions `lin`. Applied: the elimination law `lin_acc` (the state with the abort and the commit, telescopes
+  simplified; `lin_linF` now uses it), docstrings (`linF` "one-shot form", `lin`'s inner mask `∅`, "a write's
+  `lin`, committed at most once" for "one-shot `lin`" in `Defs`/`Do`, `Pend`'s abort, the five dsverify kits'
+  `opAU` notes now naming `linF`). Left (should-fix): an introduction law in the same plain form, so that
+  `pend_fire`/`pend_choice` and `kvremote/NodeUpd` stop unfolding telescopes; `lin_mono` (counter `Shared`)
+  and the two copies of `slotUpd_lin` (swiftnet `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.
 
 ## 2026-11-25: grpc `status` over its bodies: a `GRPCStatus` error is a structural `*status.Error`; `Errorf` stated for etcd's calls (status-bodies)
 
