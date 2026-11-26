@@ -401,6 +401,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
     design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
     `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
   - `time.Time.Format.wp_proofBroken`: `time`'s formatting is names only.
+- **Retired (2026-11-26, branch `strings-contains/2026-11-26`).** `strings.Contains`: Perennial branch
+  `strings-contains` (`200ab1aa8`, off its `lean` `62ed5bb7f`, not landed) adds `Contains` to
+  `strings.toml`'s `translate` (the real Go, `Index(s, substr) >= 0`, over the already translated
+  `Index`) and proves `strings.wp_Contains` (`RET #(decide (substr <:+: s)); True`), so
+  `Proof/strings/Contains.lean` is a theorem from it (statement unchanged; the proof takes
+  `[strings.Assumptions]`, which every caller's package assumptions give, as for `HasSuffix`).
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 

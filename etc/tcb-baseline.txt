@@ -347,7 +347,6 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
-axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom time.Time.Format.wp_proofBroken
