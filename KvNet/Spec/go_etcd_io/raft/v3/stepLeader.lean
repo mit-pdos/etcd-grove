@@ -284,7 +284,9 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader) ∧
    ∃ (lt' : w64) (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs { s with lt := lt' } ms with prvals := pvs } ∧
-     ReplSends id s ms ∧
+     -- (#33 parity B1) and a transfer's sends go to the transferee, a voter other than the leader
+     -- (`pr != nil`, `!pr.IsLearner`, `leadTransferee != r.id`)
+     (ReplSends id s ms ∧ (m.Type' = MsgTransferLeader → ms ≠ [] → m.From' ∈ c.voters ∧ m.From' ≠ id)) ∧
      prvalsMatch pvs = prvalsMatch s.prvals ∧
      -- (2026-11-11, trace-check Q8 stage 1 slice 27n, Q27 (a)) a report of an unreachable peer
      -- queues nothing and keeps the transferee (`pr.BecomeProbe()` only): `Step`'s end state for it

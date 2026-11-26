@@ -177,6 +177,22 @@ theorem rnScopeAt_ktie {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s
       · ipureintro; exact H
       · imodintro; iexact Hc
 
+/-- (antithesis parity B1, phase 2) **The scope at a mode `md`, read out**: its pure part, and the
+storage never compacted past `0` without snapshots. -/
+theorem rnScopeAt_someMd {γ : RaftNames} {id : w64} (md : RnMode) (rs : RNState) (s : NState) :
+    rnScopeAt (GF := GF) γ id (some md) rs s ⊢
+      ⌜RnScope md rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧ (md.transfer = true → XScopeOk γ s)⌝ ∗
+      □ (⌜md.snapshots = false⌝ -∗ storCapF s.logst.storage 0) ∗ rnScopeAt γ id (some md) rs s := by
+  unfold rnScopeAt
+  iintro ⟨%H, #Hc⟩
+  isplitr
+  · ipureintro; exact H
+  isplitr
+  · imodintro; iexact Hc
+  isplitr
+  · ipureintro; exact H
+  · imodintro; iexact Hc
+
 /-- Closing `ownRawNodeAt`: `ownRawNode_intro_tr`'s premises and resources, the queue as `pendAt`, and
 the protocol reading, the in-progress boundary and the scope. -/
 theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState)

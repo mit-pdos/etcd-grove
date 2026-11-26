@@ -318,6 +318,29 @@ abbrev RawNode.TransferLeader.absSpec : Prop :=
   ∀ sc : Option RnMode, RawNode.TransferLeader.form
     (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc) (fun md => sc = some md)
 
+/-! ### `RawNode.ReportUnreachable` -/
+
+/-- (antithesis parity B1, phase 2; design §4) `RawNode.ReportUnreachable.spec`'s triple over `R`, the
+node's state unchanged (`MsgUnreachable`, local: a leader's `pr.BecomeProbe()`, which keeps the
+peer's `Match`; nothing elsewhere), so the client's record, the `RState`, the queue and the
+in-progress boundary too. (No `spec_of_abs`: the old spec keeps its own proof.) -/
+abbrev RawNode.ReportUnreachable.form
+    (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
+    (to : w64),
+  γ.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ReportUnreachable")) (Val #to))
+  {{ RET #(); "Hrn" ∷ R γ rn id rs r qs ip }}
+
+/-- **`RawNode.ReportUnreachable`, strengthened**, in the harness's scope at a mode without snapshots
+or configuration changes (B1's: the step's end state, `raft.Step.untracedNs`, needs the log never
+compacted and no automatic leave). -/
+abbrev RawNode.ReportUnreachable.absSpec : Prop :=
+  ∀ md : RnMode, md.snapshots = false → md.confChanges = false → RawNode.ReportUnreachable.form
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (some md))
+
 /-! ### `RawNode.HasReady` -/
 
 /-- **`RawNode.HasReady`, strengthened** (design §2.2, revision 2's T3): read-only; on `false`, in

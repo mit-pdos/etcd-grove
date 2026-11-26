@@ -60,6 +60,7 @@ abbrev RawNode.Campaign.apiSpec : Prop := RawNode.Campaign.form (rawNode (GF := 
 abbrev RawNode.Propose.apiSpec : Prop := RawNode.Propose.form (rawNode (GF := GF)) (fun md => md = {})
 abbrev RawNode.Ready.apiSpec : Prop := RawNode.Ready.form (rawNode (GF := GF)) (fun md => md = {})
 abbrev RawNode.Advance.apiSpec : Prop := RawNode.Advance.form (rawNode (GF := GF)) (fun md => md = {})
+abbrev RawNode.ReportUnreachable.apiSpec : Prop := RawNode.ReportUnreachable.form (rawNode (GF := GF))
 
 /-- `rn.HasReady()`, read-only; on `false` the protocol-level idle fact `PIdle`, the in-progress
 boundary at the log's end. -/

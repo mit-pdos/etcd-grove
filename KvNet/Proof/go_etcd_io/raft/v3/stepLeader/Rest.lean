@@ -271,10 +271,11 @@ private theorem rest_res (id : w64) (s : NState) (m : MessageM) (ents : List Ent
     (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)
     (Hms : ReplSends id s ms) (Hmm : prvalsMatch pvs = prvalsMatch s.prvals)
-    (Hu : m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = []) :
+    (Hu : m.Type' = MsgUnreachable → lt' = s.lt ∧ ms = [])
+    (Hx : m.Type' = MsgTransferLeader → ms ≠ [] → m.From' ∈ c.voters ∧ m.From' ≠ id) :
     LeaderNonpropResultC c id s m ents ctx
       { sendMsgs { s with lt := lt' } ms with prvals := pvs } :=
-  Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, lt', ms, pvs, rfl, Hms, Hmm, Hu⟩)))))
+  Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, lt', ms, pvs, rfl, ⟨Hms, Hx⟩, Hmm, Hu⟩)))))
 
 private theorem rest_nil (s : NState) :
     s = { sendMsgs { s with lt := s.lt } [] with prvals := s.prvals } := by
@@ -288,7 +289,7 @@ private theorem rest_res_self (id : w64) (s : NState) (m : MessageM)
   have H : LeaderNonpropResultC c id s m ents ctx
       { sendMsgs { s with lt := s.lt } [] with prvals := s.prvals } :=
     rest_res c id s m ents ctx s.lt [] s.prvals Hty
-    (fun _ h => absurd h List.not_mem_nil) rfl (fun _ => ⟨rfl, rfl⟩)
+    (fun _ h => absurd h List.not_mem_nil) rfl (fun _ => ⟨rfl, rfl⟩) (fun _ h => absurd rfl h)
   rwa [← rest_nil s] at H
 
 private theorem rest_prvals (s : NState) (pvs : GMap w64 Progress) :
@@ -457,7 +458,7 @@ theorem wp_stepLeader_report
     · iidx HG
     ipureintro
     exact ⟨rfl, rest_res c id s m ents ctx s.lt [] _ Hty' (fun _ h => absurd h List.not_mem_nil)
-      (prvalsMatch_insert_same _ _ p _ Hpvs Hpm) (fun _ => ⟨rfl, rfl⟩)⟩
+      (prvalsMatch_insert_same _ _ p _ Hpvs Hpm) (fun _ => ⟨rfl, rfl⟩) (fun _ h => absurd rfl h)⟩
   · -- `MsgSnapStatus`: only a peer receiving a snapshot
     by_cases Hsn : p.state = .snapshot
     rotate_left
@@ -530,7 +531,7 @@ theorem wp_stepLeader_report
     · iidx HG
     ipureintro
     refine ⟨rfl, rest_res c id s m ents ctx s.lt [] _ Hty' (fun _ h => absurd h List.not_mem_nil) ?_
-      (fun _ => ⟨rfl, rfl⟩)⟩
+      (fun _ => ⟨rfl, rfl⟩) (fun _ h => absurd rfl h)⟩
     rw [prvalsMatch_insert_same (<[m.From' := p']> s.prvals) m.From' p' { p' with paused := true }
       (GMap.lookup_insert_eq _ _ _) rfl]
     exact prvalsMatch_insert_same _ _ p _ Hpvs Hpm
@@ -581,6 +582,7 @@ theorem wp_stepLeader_transfer
     rest_res c id s m ents ctx _ [] _ Hty' (fun _ h => absurd h List.not_mem_nil) rfl
       (fun h => absurd (Hty.symm.trans h)
         (by simp only [MsgTransferLeader, MsgUnreachable, ne_eq]; first | exact of_decide_eq_true rfl | word))
+      (fun _ h => absurd rfl h)
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   simp only [Hty, MsgTransferLeader]
@@ -588,7 +590,9 @@ theorem wp_stepLeader_transfer
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTrackerC_prvals_dom c tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
-  dsimp only at Hdom Hpdom
+  -- (#33 parity B1) the tracked ids, and their learner flags: a tracked non-learner is a voter
+  icases ownTrackerC_pure c tv _ $$ Htrk with ⟨%Htpure, Htrk⟩
+  dsimp only at Hdom Hpdom Htpure
   wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
   try wp_auto
   ihave Hphys := Hback $$ Htrkf Htrk
@@ -772,9 +776,21 @@ theorem wp_stepLeader_transfer
     isplitl [HG]
     · iidx HG
     ipureintro
+    -- the transferee a voter: tracked (`pr != nil`), not a learner
+    have Hvot : m.From' ∈ c.voters := by
+      have Hids : m.From' ∈ c.voters ∪ c.learners := by
+        have h := Htpure.2.1; rw [h] at Hfcfg; exact Hfcfg
+      have Hnl : m.From' ∉ c.learners := by
+        have h := Htpure.2.2.1 _ _ Hpvs
+        rw [Hpl] at h
+        exact of_decide_eq_false h.symm
+      rcases (GMap.elem_of_union _ _ _).1 Hids with h | h
+      · exact h
+      · exact absurd h Hnl
     exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm
       (fun h => absurd (Hty.symm.trans h)
-        (by simp only [MsgTransferLeader, MsgUnreachable, ne_eq]; first | exact of_decide_eq_true rfl | word))⟩
+        (by simp only [MsgTransferLeader, MsgUnreachable, ne_eq]; first | exact of_decide_eq_true rfl | word))
+      (fun _ _ => ⟨Hvot, Hself⟩)⟩
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgBeat`**: `bcastHeartbeat`, return. -/

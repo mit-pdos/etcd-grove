@@ -126,7 +126,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   obtain ⟨rfl, Hres⟩ := H
   unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ |
-    ⟨-, lt', ms, pvs, rfl, Hms, Hpm, -⟩ | ⟨Hc, -⟩
+    ⟨-, lt', ms, pvs, rfl, ⟨Hms, -⟩, Hpm, -⟩ | ⟨Hc, -⟩
   rotate_right 2
   · refine ⟨rfl, Hwf, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl

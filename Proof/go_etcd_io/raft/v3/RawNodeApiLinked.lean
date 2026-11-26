@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__TickAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__CampaignAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__ProposeAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__AdvanceAbs
+public import Proof.go_etcd_io.raft.v3.RawNode__ReportUnreachableAbs
 import all Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
@@ -454,6 +455,11 @@ theorem RawNode.Advance.apiSpec_of_abs (H : RawNode.Advance.absSpec (GF := GF) (
     RawNode.Advance.apiSpec (GF := GF) (hG := hG) := by
   have h := H true; rw [true_eq_true_eq] at h; exact h
 
+theorem RawNode.ReportUnreachable.apiSpec_of_abs
+    (H : RawNode.ReportUnreachable.absSpec (GF := GF) (hG := hG)) :
+    RawNode.ReportUnreachable.apiSpec (GF := GF) (hG := hG) := by
+  have h := H {} rfl rfl; exact h
+
 theorem RawNode.HasReady.apiSpec_of_abs (H : RawNode.HasReady.absSpec (GF := GF) (hG := hG)) :
     RawNode.HasReady.apiSpec (GF := GF) (hG := hG) := by
   intro γ rn id rs r qs ip
@@ -540,6 +546,14 @@ theorem RawNode.Propose.wp_apiProof
 theorem RawNode.Advance.wp_apiProof (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.apiSpec (GF := GF) (hG := hG) :=
   RawNode.Advance.apiSpec_of_abs (RawNode.Advance.wp_absProof wp_raft_Step)
+
+/-- **`RawNode.ReportUnreachable`, over `rawNode`** (`RawNode.ReportUnreachable.wp_absProof`'s hypotheses). -/
+theorem RawNode.ReportUnreachable.wp_apiProof
+    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    RawNode.ReportUnreachable.apiSpec (GF := GF) (hG := hG) :=
+  RawNode.ReportUnreachable.apiSpec_of_abs
+    (RawNode.ReportUnreachable.wp_absProof wp_raft_Step wp_MessageType_Enum)
 
 end specs
 

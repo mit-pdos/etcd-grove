@@ -6246,6 +6246,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   quorum" for the rejection case (with a rejection the new tally's grants are the old ones'); not in raft today.
 - **Decision.** Lead's request (2026-11-26). No new axiom, no new top-level premise.
 
+## 2026-11-26 — antithesis parity B1 phase 2: a leader's transfer sends go to a voter other than itself; `RawNode.ReportUnreachable` over `ownRawNodeAt` (#33)
+
+- **Files.** `Spec/go_etcd_io/raft/v3/stepLeader.lean` (`LeaderNonpropResultC`'s arm of the five local/transfer
+  types), `Proof/go_etcd_io/raft/v3/stepLeader/Rest.lean` (`rest_res`, `wp_stepLeader_transfer`),
+  `raft__Step/MsgRest.lean` (a destructuring); `RawNodeAbsSpecs.lean` (`RawNode.ReportUnreachable.form`/`.absSpec`),
+  `RawNodeApi.lean` (`.apiSpec`), `RawNode__ReportUnreachableAbs.lean` (new), `RawNodeApiLinked.lean`,
+  `RawNodeAtLemmas.lean` (`rnScopeAt_someMd`).
+- **Change 1 (strengthening of a Spec post; lead-approved option (a)).** The arm's `ReplSends id s ms` is now
+  `ReplSends id s ms ∧ (m.Type' = MsgTransferLeader → ms ≠ [] → m.From' ∈ c.voters ∧ m.From' ≠ id)`: a transfer's
+  `sendAppend` goes to the transferee, tracked (`pr != nil`), not a learner (`!pr.IsLearner`), not the leader
+  (`leadTransferee != r.id`). Proved in `wp_stepLeader_transfer` from `ownTrackerC_pure` (`domSet prs = c.ids`,
+  `LearnerFlagsC`). Placed in the `ReplSends` slot (not last) so that no `Traced*` destructuring changes. It gives
+  `TransferEndR`'s leader arm its `to ∈ r.cfg.cfg.voters ∧ to ≠ id`.
+- **Change 2 (new spec).** `RawNode.ReportUnreachable.form R`: the node's predicate unchanged (`r' = r`, `rs`, `qs`,
+  `ip` too), design §4's row; `absSpec` at `some md` with `md.snapshots = false` and `md.confChanges = false` (the lead's
+  B1 condition for the abs proofs at a general mode: `raft.Step.untracedNs` and `AckScope`); `apiSpec` over `rawNode`.
+- **Decision.** Lead-approved (2026-11-26). No new axiom, no new top-level premise.
+
 ## 2026-11-26 — antithesis parity B1 (Sim stage B): the pre-vote facts of the Sim's invariant (#33)
 
 - **Files.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`MemIs`, `PendOk`, `QsOk`,
