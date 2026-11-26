@@ -295,3 +295,15 @@ hypotheses. Done on this branch (proof-only, no Spec/ change):
   `walCrashTok`, `osSharedInv` and the crash rest. It opens `walInv` in whatever state it is, parked included
   (`walParked`, :295), and constrains no state. `rnDurK_crash.law` reads `walRecsH` from `rnDurInvK`'s live body,
   where `walCloseK` leaves it. So a crash after the crash-aware `Close` is covered by the proved laws as they are.
+
+**Integration note (the lead, 2026-11-26).** `etcd-safe-p5r` (P5 (b) steps 2–5, merged into kaashoek's
+`etcd-safe-t10b/2026-11-26` @16f728437b) deletes `walRecsH`: `rnDurInvK`'s body holds `walHistH h Hs true` plus
+`HistReadsK`. There, the contract's `Release` takes `AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }>`, with
+`walHistH_releaseAU`. `walCloseK` as written here, an identity AU over `walRecsH` through `walRecsH_closeAU`, will
+conflict when this branch meets t10b. The fix is to restate it over `walHistH` with t10b's `Release` binders, through
+a `walHistH_closeAU` beside `walHistH_saveAU`/`walHistH_releaseAU` (`walHistH` is `walRecsH` without the fold row,
+so the proof carries over). Do not merge t10b until it settles.
+**Done** (after the gates at 3a301609d6): `walCloseK` is now stated over `walHistH` with `Release`'s binders
+(t10b's), through `walHistH_closeAU` (`storage/WalRecsH.lean`, beside `walHistH_saveSnapAU`); `walRecsH_closeAU` is
+gone. On this branch `rnDurInvK`'s body still holds `walRecsH`, and a caller converts with `walRecsH_iff_hist`;
+on t10b the body's `walHistH` is the update's object directly.

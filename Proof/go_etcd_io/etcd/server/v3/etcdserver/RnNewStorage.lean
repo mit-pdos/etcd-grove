@@ -401,12 +401,12 @@ theorem walClose_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : B
   · exact absurd h.cov Hbad.2
 
 /-- (etcd_safe P5, 2026-11-26) **The crash-aware `Close`'s law** from the storage's `Close`: the caller's identity
-update over the records with their history turned into layer 1's (`walRecsH_closeAU`); no error under `h.cov`. -/
+update over the history turned into layer 1's (`walHistH_closeAU`); no error under `h.cov`. -/
 theorem walCloseK_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (Q : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
-            <{ walRecsH h σ Hs s, COMM Q }> }}
+          AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }> @ WalFs.walAuMask, ∅
+            <{ walHistH h Hs s, COMM Q }> }}
         (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Close" #p))
           (Val #()))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }} := by
@@ -417,7 +417,7 @@ theorem walCloseK_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (Q : IPro
   iunfold storage.walOpen at Ho
   icases Ho with ⟨Hws, #Harea, -⟩
   iunfold walPurgeRight at Hpr
-  ihave HAU := walRecsH_closeAU h Q $$ HAU
+  ihave HAU := walHistH_closeAU h Q $$ HAU
   wp_apply (hClose p ss h.R h.jr h.r h.w h.dir h.γ (fun _ => Q)) $$ [Hws Hpr HAU] as %err Hpost
   · iframe Hover Harea Hws Hpr HAU
   icases Hpost with (⟨%he, %d, HQ, -, -, -⟩ | %Hbad)

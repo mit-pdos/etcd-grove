@@ -147,8 +147,8 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
     -- (etcd_safe P5, 2026-11-26) the crash-aware `Close`: the records stay where the caller keeps them
     □ (∀ (Q : IProp GF),
       {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
-            <{ walRecsH h σ Hs s, COMM Q }> }}
+          AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }> @ WalFs.walAuMask, ∅
+            <{ walHistH h Hs s, COMM Q }> }}
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }}))
 
@@ -219,8 +219,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }})
     (hCloseK : ∀ (Q : IProp GF), R ⊢
       {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
-            <{ walRecsH h σ Hs s, COMM Q }> }}
+          AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }> @ WalFs.walAuMask, ∅
+            <{ walHistH h Hs s, COMM Q }> }}
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }}) :
     R ⊢ isWalStorage st h ss := by
@@ -658,15 +658,15 @@ theorem walClose_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterf
   iexact HC
 
 /-- (etcd_safe P5, 2026-11-26; `notes/etcd-dist-p5s.md` §2.3) **The crash-aware `Close`** (the contract's law):
-`Close` reads the WAL's durable state and leaves it unchanged, through an identity update over the records with
-their history, which the caller keeps in its invariant (the crash-aware durability `rnDurInvK`'s live body), so
+`Close` reads the WAL's durable state and leaves it unchanged, through an identity update over the history (the
+contract's `Release` binders), which the caller keeps in its invariant (the crash-aware durability's body), so
 that a crash during or after the stop still finds them there. No error arm (`h.cov`). -/
 theorem walCloseK_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
     (hst : st = GoInterface.ok si) (Q : IProp GF) :
     isWalStorage (GF := GF) st h ss ⊢
       {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
-            <{ walRecsH h σ Hs s, COMM Q }> }}
+          AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }> @ WalFs.walAuMask, ∅
+            <{ walHistH h Hs s, COMM Q }> }}
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }} := by
   unfold isWalStorage

@@ -396,43 +396,6 @@ theorem walRecs_auId_toH (h : WalH GF) (E : CoPset) (Q : IProp GF) :
     iapply Hcommit
     iapply walRecsH_walRecs; iexact Hr
 
-/-- (etcd_safe P5, 2026-11-26) **An identity update over the records with their history turned into `Close`'s**
-(layer 1's update over the WAL's durable state, which `Close` reads and leaves unchanged): what the crash-aware
-`Close` (`walCloseK`, the WAL contract) fires inside the caller's invariant, so that the records stay there. -/
-theorem walRecsH_closeAU (h : WalH GF) (Q : IProp GF) :
-    (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
-      <{ walRecsH h σ Hs s, COMM Q }>) ⊢
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d, COMM Q }> := by
-  iintro Hau
-  iauintro
-  unfold atomic_acc
-  ihave Hacc := aupd_aacc $$ Hau
-  unfold atomic_acc
-  imod Hacc with Hacc
-  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-  icases Hacc with ⟨%σ, %Hs, %s, Hr, Hcl⟩
-  unfold walRecsH
-  icases Hr with ⟨%d, Hd, Ha, #Hn, %hf⟩
-  imodintro
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iexists d
-  iframe Hd
-  isplit
-  · iintro Hd
-    icases Hcl with ⟨Habort, -⟩
-    iapply Habort
-    iexists d
-    iframe Hd Ha Hn
-    ipureintro; exact hf
-  · iintro Hd
-    icases Hcl with ⟨-, Hcommit⟩
-    isimp only [tforall_nil, Std.Tele.app] at Hcommit
-    iapply Hcommit
-    iexists d
-    iframe Hd Ha Hn
-    ipureintro; exact hf
-
 /-! ### (P5, ledger proposal (b), approved 2026-11-25) The records by their history alone
 
 `walRecsH` pins the records to the history's *eager* fold (`walFoldChkFrom walFresh`), which a restart
@@ -585,6 +548,44 @@ theorem walHistH_saveAU (h : WalH GF) (sized : Bool) (hs : HardStateM) (cs : Lis
       subst h2
       obtain ⟨c, hcm, rfl⟩ := List.mem_map.mp he
       exact ⟨c, rfl, (hc c hcm).2.2 hsz⟩
+
+/-- (etcd_safe P5, 2026-11-26) **An identity update over the history turned into `Close`'s** (layer 1's update
+over the WAL's durable state, which `Close` reads and leaves unchanged): what the crash-aware `Close` (`walCloseK`,
+the WAL contract) fires inside the caller's invariant (the crash-aware durability's body), so that the history stays
+there. The binders are the contract's `Release`'s. -/
+theorem walHistH_closeAU (h : WalH GF) (Q : IProp GF) :
+    (AU <{ ∃∃ (Hs : WalHist) (s : Bool), walHistH h Hs s }> @ WalFs.walAuMask, ∅
+      <{ walHistH h Hs s, COMM Q }>) ⊢
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := h.W) h.dir h.γ.inc d, COMM Q }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%Hs, %s, Hr, Hcl⟩
+  unfold walHistH
+  icases Hr with ⟨%d, Hd, Ha, #Hn, %hf⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists d
+  iframe Hd
+  isplit
+  · iintro Hd
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    iexists d
+    iframe Hd Ha Hn
+    ipureintro; exact hf
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iexists d
+    iframe Hd Ha Hn
+    ipureintro; exact hf
 
 /-- (P5) **`SaveSnap`'s update of the history, as layer 1's** (`walRecsH_saveSnapAU` without the fold:
 no premise on the base's term). -/
