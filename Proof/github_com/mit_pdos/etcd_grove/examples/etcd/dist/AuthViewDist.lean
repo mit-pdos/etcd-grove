@@ -82,6 +82,9 @@ def opGrantD (γk : KVNames) (P : Option GoString) : KVOp → List EntryModel �
       writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk P hm.username⌝)) (irrTxn tw) L₀ σ)
   | .leaseGrant id ttl, L₀ =>
     writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk P hm.username⌝)) (irrLeaseGrant id ttl) L₀
+  | .leaseRevoke id, L₀ =>
+    writeGrantG γk srvAuthSt0 (fun hm => iprop(⌜userOk P hm.username⌝)) (irrLeaseRevoke id) L₀
+  | _, _ => fun _ => iprop(True)
 
 /-- **The auth-on write update** (persistent: a write is resent after a token refresh, so the update may
 be offered to several attempts; it fires at most once, at the entry's commit): `□ kvAu1G` at the
@@ -107,18 +110,19 @@ read `[key, end)` at the auth state after a requested prefix `L` extending `L₀
 at or after its read index; for a serializable one, the member's published state: `A mid`'s index at
 least `n`). -/
 def readAuthedD (γk : KVNames) (P : Option GoString) (L₀ : List EntryModel) (o : OpFull) : Prop :=
-  ∃ (user : GoString) (rv : Nat) (L : List EntryModel), userOk P user ∧ L₀ <+: L ∧
-    auth.permitted (srvAuthAtLog γk srvAuthSt0 L) ⟨user, rv⟩ o.key o.rangeEnd .read
+  ∃ (user e : GoString) (rv : Nat) (L : List EntryModel), userOk P user ∧ L₀ <+: L ∧
+    apply.authEndOf o.base.rangeEnd e ∧
+    auth.permitted (srvAuthAtLog γk srvAuthSt0 L) ⟨user, rv⟩ o.key e .read
 
 /-- **What every auth-on contract takes of the client**: `kvClientAt`'s (its `KV` the `*kv` `api`), and
 its configuration `cfg`, read-only (whose user name is the principal). -/
-def userClientAt [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
+def userClientAt [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) : IProp GF :=
   iprop(kvClientAt cl api eps V Γ ∗ clientF cl go!"cfg" ↦□ cfg)
 
 /-- **An auth client of the view**: `New`'s client of endpoints serving `Γ`, with no proxy, its `Auth`
 field the `*authClient` `ap`, its configuration `cfg`. -/
-def authClientAt [π : NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
+def authClientAt [NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) : IProp GF :=
   iprop(isNewClient cl eps V ∗ clientNoProxy cl ∗ clientF cl go!"cfg" ↦□ cfg ∗
     clientF cl go!"Auth" ↦□
@@ -145,7 +149,7 @@ address facts of an auth-on view; `clientTokAt` dropped from the post: the token
 auth-on contracts read the principal from `cfg`). `New` calls `Auth.Authenticate` at an endpoint when it
 dials (`getToken`); a wrong password or an auth-off member is the error arm. -/
 abbrev New_user_dist.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 30)] [π : NetProtoGS] (cfg : go_etcd_io.etcd.client.v3.Config)
+  ∀ [ThreadBoundLe GF (2 ^ 30)] [NetProtoGS] (cfg : go_etcd_io.etcd.client.v3.Config)
     (eps : List GoString) (V : WEnv GF) (Γ : DistView),
   Γ.auth = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -164,7 +168,7 @@ member's floor `F` dropped, the update persistent (`writeAuD`: a write is resent
 by the principal of `cfg`; the error arm claims nothing). A lease `0`, or the revocable lease mode, as
 `etcdPutSpecOn`'s filter. -/
 abbrev KV_PutOn_dist.spec : Prop :=
-  ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
+  ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd) (key val : GoString)
     (opts_sl : GoSlice) (opts : List (OpFull → OpFull)) (Q : KVState → IProp GF),
@@ -190,7 +194,7 @@ statement, for an auth-on view, at the principal of `cfg`, and a success also te
 older than its read index, which is at least every commit before the call). Serializable reads are not
 covered (no workload sends one with auth on): `serializable = false` is a premise. -/
 abbrev KV_GetOn_dist.spec : Prop :=
-  ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
+  ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (L₀ : List EntryModel)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd) (key : GoString)
     (opts_sl : GoSlice) (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
@@ -213,7 +217,7 @@ abbrev KV_GetOn_dist.spec : Prop :=
             txn.srvRangeOk (rangeWireOf (opGetModel key opts))
               (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
             m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ ∧
-            readAuthedD Γ.kv (principalOf cfg) L₀ (rangeWireOf (opGetModel key opts)).base⌝) ∨
+            readAuthedD Γ.kv (principalOf cfg) L₀ (rangeWireOf (opGetModel key opts))⌝) ∨
         ⌜err ≠ GoInterface.nil ∧ resp = null⌝)) }}
 
 /-- **DRAFT `Auth_UserAdd_dist`: `(*authClient).UserAdd(ctx, name, pw)` across machines** (mirrors
@@ -221,7 +225,7 @@ abbrev KV_GetOn_dist.spec : Prop :=
 cluster's names, the binding `userOk` of `cfg`'s principal; a success the cluster-level `adminRepliedD`).
 Sent by the set-up's anonymous client before `AuthEnable`; stated for either auth mode of the history. -/
 abbrev Auth_UserAdd_dist.spec : Prop :=
-  ∀ [π : NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
+  ∀ [NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd) (name pw : GoString)
     (Q : List auth.AuthState → IProp GF),
@@ -243,7 +247,7 @@ abbrev Auth_UserAdd_dist.spec : Prop :=
 /-- **DRAFT `Auth_AuthEnable_dist`: `(*authClient).AuthEnable(ctx)` across machines** (as
 `Auth_UserAdd_dist`, at `irrAuthEnable`). -/
 abbrev Auth_AuthEnable_dist.spec : Prop :=
-  ∀ [π : NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
+  ∀ [NetProtoGS] (cl ap : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd)
     (Q : List auth.AuthState → IProp GF),
