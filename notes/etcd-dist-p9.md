@@ -470,3 +470,37 @@ use, in `CallDist.lean` and `CallDistLinked.lean`.
 3. Merge `etcd-safe-n7kv-nc2` when it is pushed (not pushed at this writing). Restate `orchShare`/`nodeShare`
    at `Gg` (they only apply `OP`/`NP`), add the two instance lemmas (`Node.spec = Node.specWith kvNodePreL`
    by `rfl`; `Orch.spec → Orch.specWith (kvOrchPre (Gg := …))`), and `membersAt_sub` at `rotateL`.
+
+## M1 session 3 (2026-11-25, branch `etcd-safe-m1`)
+
+**Commits**: `9e1045a209` `[GoLocalContext]` in the four global-share sections (`Store` `sys`, Spec `Orch`/`Node`
+`share`, `Start`): `etcdKV`/`go.Semantics` need it (pattern of `InvRequest`, `AllocN`). **Built green**:
+`kvremote.Link`, `kvremote.Start` (11303 jobs). `e89e194db5` merges N7-kv (`etcd-safe-n7kv-nc` @ `6ffd1b9527`,
+the coordinator's choice instead of nc2; clean). `32d132e3d0` `KvDefs.kvOnly_bounds` takes `WellFormed`'s
+`BoundsOk` and `maxMembers` conjuncts by their statements (`grind [typed.Deployment.WellFormed]`), not by position,
+so N5's `RaftIdOk` cannot shift them (built; m1-top's positional patch `dee4962e1e` then conflicts in one line: keep
+this side). Also dsv-vr `vsrnet/Kit.kvR` at `RBase GF St KIn KIn KOut`. `d60e49bcad` dsv-vr `Kit.lin_AUof` goes through
+`remote.lin_linF` (P9's `lin` is an AU), lean-check clean. Both Kit fixes are breakages of the full build that this
+line already had: P9's `remote` changes against dsv-vr's kit from `lean`.
+
+**Tier**: `etc/tier-check.py --check` ok (208 known violations, unchanged).
+
+**TCB: not yet known.** The full `lake build` at `9e1045a209` failed only in `vsrnet/Kit`, so `tcb-report` did not
+run. The rerun at `d60e49bcad` runs `/shared/tmp/m1-build.sh` (Kit), then `/shared/tmp/m1-tcb.sh`: a full build,
+then `etc/tcb-report.py --check`. Its result is in **`/shared/tmp/m1-tcb.log`** (`BUILD-OK`, `TCB-EXIT n`; the
+full-build part's errors are at the top). Expected: only N2's `KV_Delete_dist`/`Txn_Commit_dist` new. Then on
+fk-lean2 (`wt/etcd-safe-m1`, under the flock): `etc/tcb-report.py --check --update` and the collections that list them
+(`--collection etc/tcb-collections/<x>.txt --check --update`). If the full build shows more stale dsverify modules
+from P9's `remote` (`RBase`'s `J`, `lin` an AU), port them the same way (`lin_linF`; gryffnet's `lin_opAU` is the model).
+
+**Step 3: dropped as duplicate.** The lead's `etcd-safe-m1-top` already has it: `kvremote/AdequacyClient.lean`
+(the instance by `wp_Node`, `threadTok_level0`, `nodeShare_eq` + `kvNodePreL` inline) and `TopLevelRobustness`'s
+`mem_rotateL`. A local draft (`kvremote/Shares.lean`, shares over `GF` alone) was discarded unpushed. Nothing of step 3
+is left here.
+
+**Left**: read `/shared/tmp/m1-tcb.log`, fix the build, update the baseline (N2's two axioms only), push.
+
+**Update (end of session 3):** the rerun at `d60e49bcad` got past `Kit`. The full build fails next in dsv-vr's
+`vsrnet/OrchProofDefs.lean:74-77`. Its `PendDec` instance predates P9's: it has field `err`, where P9's `PendDec`
+has `errW`/`errR` and takes a configuration. Use `PendDec.ofTotal` as P9 did for the existing instances (`760047072f`),
+then rerun `/shared/tmp/m1-tcb.sh`. TCB is still not run.
