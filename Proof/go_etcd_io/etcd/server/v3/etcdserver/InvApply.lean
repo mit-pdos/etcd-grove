@@ -365,7 +365,9 @@ def consInv (γ : ApplyNames) (IR : w64 → w64 → IProp GF := fun _ _ => iprop
 `∃ A, srvRLogLb A ∗ ⌜…⌝` is). -/
 variable {IR : w64 → w64 → IProp GF} [hIR : ∀ a b, Timeless (IR a b)]
 
-instance consInv_timeless (γ : ApplyNames) : Timeless (consInv (GF := GF) γ IR) := by
+instance consInv_timeless (γ : ApplyNames) (IR : w64 → w64 → IProp GF)
+    [hT : ∀ a b, Timeless (IR a b)] : Timeless (consInv (GF := GF) γ IR) := by
+  have hT' : ∀ a b, Timeless (iprop(□ IR a b) : IProp GF) := fun a b => inferInstance
   unfold consInv consInvAt; infer_instance
 
 theorem consInv_withPh (γ : ApplyNames) (π : ApplyPhys) :
