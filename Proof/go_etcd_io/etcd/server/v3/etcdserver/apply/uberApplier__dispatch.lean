@@ -128,12 +128,100 @@ local macro "grant_same" : tactic => `(tactic| (
       | exact apply.grantOutOk_noV3 _ _ _ _
       | exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])))
 
+/-- A request whose backend step keeps the log keeps it through every chain (a layer's rejection
+keeps it too). -/
+theorem apply.chainStep_logAfter_of (rq : IRRModel) (log : mvcc.Log)
+    (hB : ∀ o, apply.backendStep rq log o → o.logAfter log = log) :
+    ∀ (c : apply.Chain) (o : apply.Outcome), apply.chainStep apply.backendStep c rq log o →
+      o.logAfter log = log
+  | .backend, o, h => hB o h
+  | .corrupt c, o, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · subst h; rfl
+    · exact apply.chainStep_logAfter_of rq log hB c o h
+  | .capped c, o, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · subst h; rfl
+    · split at h
+      · rcases h with rfl | h
+        · rfl
+        · exact apply.chainStep_logAfter_of rq log hB c o h
+      · exact apply.chainStep_logAfter_of rq log hB c o h
+  | .auth _ c, o, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · rcases h with ⟨-, rfl⟩ | h
+      · rfl
+      · exact apply.chainStep_logAfter_of rq log hB c o h
+    · exact apply.chainStep_logAfter_of rq log hB c o h
+  | .quota c, o, h => by
+    simp only [apply.chainStep] at h
+    exact apply.chainStep_logAfter_of rq log hB c o h
+
+/-- `dispatchNoEff` at an unchanged log and rest state, for a kind that is no compaction, grant or
+revoke (the cluster setters, given that their effect is the identity). -/
+theorem apply.dispatchNoEff_rest (c : apply.Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log)
+    (crev : Int) (T : List w64) (rs : apply.RestM) (o : apply.Outcome)
+    (hl : o.logAfter log = log) (hrest : apply.restAfter rq v3 rs = rs)
+    (hc : dispatchKind rq ≠ .compaction) (hg : dispatchKind rq ≠ .leaseGrant)
+    (hr : dispatchKind rq ≠ .leaseRevoke) :
+    apply.dispatchNoEff c rq v3 log crev T rs o :=
+  ⟨hl, apply.dispatchCrev_nonCmp c rq v3 crev hc,
+    by rw [apply.grantIds_nonGrant _ _ _ _ hg, apply.revokeIds_nonRevoke _ _ _ _ hr],
+    fun t => by
+      rw [hrest, apply.grantRest_nonGrant _ _ _ _ _ hg, apply.revokeRest_nonRevoke _ _ _ _ _ hr]⟩
+
+/-- A request that is neither a cluster setter nor a compaction, grant or revoke leaves the rest state. -/
+theorem apply.restAfter_kind (rq : IRRModel) (v3 : Bool) (r : apply.RestM)
+    (h1 : dispatchKind rq ≠ .clusterVersionSet) (h2 : dispatchKind rq ≠ .clusterMemberAttrSet) :
+    apply.restAfter rq v3 r = r := by
+  have e1 : rq.clusterVersionSet = none := by
+    cases h : rq.clusterVersionSet with
+    | none => rfl
+    | some _ => exact absurd (by simp [dispatchKind, h]) h1
+  have e2 : rq.clusterMemberAttrSet = none := by
+    cases h : rq.clusterMemberAttrSet with
+    | none => rfl
+    | some _ => exact absurd (by simp [dispatchKind, e1, h]) h2
+  exact apply.restAfter_other rq v3 r e1 e2
+
+/-- (T10 step 2) `dispatchNoEff` of a request of a kind with no model effect but its log's, from
+the outcome's log fact. -/
+theorem apply.dispatchNoEff_plain (c : apply.Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log)
+    (crev : Int) (T : List w64) (rs : apply.RestM) (o : apply.Outcome)
+    (hl : o.logAfter log = log)
+    (h1 : dispatchKind rq ≠ .clusterVersionSet) (h2 : dispatchKind rq ≠ .clusterMemberAttrSet)
+    (hc : dispatchKind rq ≠ .compaction) (hg : dispatchKind rq ≠ .leaseGrant)
+    (hr : dispatchKind rq ≠ .leaseRevoke) :
+    apply.dispatchNoEff c rq v3 log crev T rs o :=
+  ⟨hl, apply.dispatchCrev_nonCmp c rq v3 crev hc,
+    by rw [apply.grantIds_nonGrant _ _ _ _ hg, apply.revokeIds_nonRevoke _ _ _ _ hr],
+    fun t => by
+      rw [apply.restAfter_kind rq v3 rs h1 h2, apply.grantRest_nonGrant _ _ _ _ _ hg,
+        apply.revokeRest_nonRevoke _ _ _ _ _ hr]⟩
+
 set_option hygiene false in
-/-- (T10 step 2) The no-lock outcome changed none of the server's models (`dispatchNoEff`), from the
-method's fact (`hN`) and the request's kind. -/
+/-- (T10 step 2) The no-lock outcome changed none of the server's models (`dispatchNoEff`): for a
+plain kind, from the outcome's log fact (`hN.1`, or `rfl` for the unchanged log). -/
 local macro "noeff" : tactic => `(tactic| (
-  simp_all [apply.dispatchNoEff, apply.dispatchCrev, apply.revokeIds, apply.grantIds, apply.revokeRest,
-    apply.grantRest, apply.restAfter, apply.ClusterReq.eff, apply.Outcome.logAfter, apply.revokeNoEff]))
+  first
+  | exact apply.dispatchNoEff_plain _ _ _ _ _ _ _ _ hN.1 (by simp [hk]) (by simp [hk])
+      (by simp [hk]) (by simp [hk]) (by simp [hk])
+  | exact apply.dispatchNoEff_plain _ _ _ _ _ _ _ _ rfl (by simp [hk]) (by simp [hk])
+      (by simp [hk]) (by simp [hk]) (by simp [hk])
+  | (obtain ⟨e, rfl⟩ := hN
+     exact ⟨rfl, apply.dispatchCrev_nonCmp _ _ _ _ (by simp [hk]),
+       by rw [apply.grantIds_rejected, apply.revokeIds_rejected],
+       fun t => by
+         rw [apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk]), apply.grantRest_rejected,
+           apply.revokeRest_rejected]⟩)
+  | exact ⟨apply.cmpOutcome_logAfter c log, by rw [hcr]; exact hN,
+      by rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk]), apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])],
+      fun t => by
+        rw [apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk]),
+          apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk]), apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]⟩))
 
 set_option hygiene false in
 /-- `cPost true` at `dispatchNoEff` from `HPP : Post ∨ (Pre ∗ ⌜φ⌝)`, or `HPP` already at it. -/
@@ -150,7 +238,11 @@ set_option hygiene false in
 local macro "cpost_gen " φ:term : tactic => `(tactic| (
   ihave HPP : iprop(apply.cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))) $$ [HPP]
   · iapply (apply.cPost_mono v3 Pre Post $φ
-      (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false)) (fun h => by noeff))
+      (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))
+      (fun h => apply.dispatchNoEff_rest _ _ _ _ _ _ _ _ rfl
+        (by first | (simp only [apply.restAfter, hs]; exact h)
+                  | (simp only [apply.restAfter, zClusterVersionSet, hs]; exact h))
+        (by simp [hk]) (by simp [hk]) (by simp [hk])))
     iexact HPP))
 
 set_option hygiene false in
@@ -507,8 +599,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, #Hcls⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
-    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜True⌝)) $$ [HPre]
-    · iright; iframe HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ True⌝)) $$ [HPre]
+    · iright; iframe HPre; ipureintro
+      refine ⟨apply.chainStep_logAfter_of rq log (fun o h => ?_) c oc Hst, trivial⟩
+      simp only [apply.backendStep, hk] at h; subst h; rfl
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
@@ -783,7 +877,17 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitr
     · ipureintro; exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])
     isplitl [HPP]
-    · cpost_fin
+    · simp only [apply.cPost, ↓reduceIte]
+      icases HPP with (HP | ⟨HP, %hN⟩)
+      · ileft; iexact HP
+      · iright; iframe HP; ipureintro
+        refine ⟨hN.1, apply.dispatchCrev_nonCmp _ _ _ _ (by simp [hk]), ?_, fun t => ?_⟩
+        · rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]; exact hN.2.1
+        · have h2 := hN.2.2
+          rw [apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk])] at h2
+          rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk]),
+            apply.restAfter_kind _ _ _ (by simp [hk]) (by simp [hk])]
+          exact h2
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩

@@ -2235,11 +2235,12 @@ grant through and the lessor's condition holds at `T`; the half of the live set 
 resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's, at least the request's,
 `grantTTLOk`: the lease-expiry plan's S2–S4, Q-S6 (A-ii); review r1 F14), the ids the lessor
 ever had after it (`grantIds` of `U`: the grant's id added exactly when applied), the answer; (strict
-M1) the backend's reader token back (`mPostW`). -/
+M1) the backend's reader token back (`mPostW`), its `Pre` disjunct (no batch lock: T10 step 2) only
+at a rejection. -/
 def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : LeaseGrantModel)
     (log : mvcc.Log) (T : List w64) (rs : RestM) (U : List w64) (Pre Post : IProp GF) (resp : Loc)
     (err : GoInterface) (o : Outcome) : IProp GF :=
-  iprop(mPostW E c a log Pre Post ∗ applyErrIs err ∗
+  iprop(mPostW E c a log iprop(Pre ∗ ⌜∃ e, o = .rejected e⌝) Post ∗ applyErrIs err ∗
     -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
     (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs err) ∗
     ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧

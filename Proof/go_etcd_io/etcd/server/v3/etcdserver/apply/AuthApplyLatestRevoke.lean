@@ -89,13 +89,13 @@ theorem apply.auth_pass_kvPostFL_nil (E : apply.AEnv GF) (on : Bool) (c : apply.
     (inner : GoInterface) (info info' : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
     (log : mvcc.Log) (R : apply.Outcome → IProp GF) (Pre Post : IProp GF) (X : apply.Outcome → Prop)
     (hX : ∀ oc, apply.chainStep apply.backendStep c rq log oc → X oc)
-    (hk : dispatchKind rq = .leaseRevoke) :
+    (hk : dispatchKind rq = .leaseRevoke) (N : apply.Outcome → Prop) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      apply.kvPost E c inner info' rq log R Pre Post -∗
+      apply.kvPost E c inner info' rq log R Pre Post N -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ apply.reqClass E.authMode info rq -∗
       apply.reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
       apply.kvPostFL E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
-        log [] R Pre Post X := by
+        log [] R Pre Post X N := by
   iintro #Happ Hpost Hinfo #Hcls #Hlc
   iunfold apply.kvPost at Hpost
   iunfold apply.kvPostFL
@@ -151,6 +151,8 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
     iapply apply.auth_reject_kvPostFL E E.authOn c p inner info rq log [] _ _ Pre Q Post _ hk
       (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h))
       (Or.inl ⟨rfl, Or.inr ⟨id, List.mem_singleton.2 rfl, Hvd.2 (fun h => by cases h)⟩⟩)
+      (apply.revokeNoEff rq T rs)
+      ⟨apply.revokeIds_rejected rq true _ T, apply.revokeRest_rejected T rq true _ rs⟩
       $$ Happ [Hrr] Hkv Hinfo Hres Hcs
     simp only [apply.revokeOutcomeIs, apply.rejErrIs]
     iunfold apply.revokeRes at Hrr
@@ -201,7 +203,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
     isplitr
     · ipureintro; exact Hk.1
     iapply Hlc; rfl
-  iapply apply.auth_pass_kvPostFL_nil E E.authOn c p (.ok bi) info info' rq log _ Pre Post _ Hpass Hk.2.1
+  iapply apply.auth_pass_kvPostFL_nil E E.authOn c p (.ok bi) info info' rq log _ Pre Post _ Hpass Hk.2.1 (apply.revokeNoEff rq T rs)
     $$ Happ Hpost Hinfo Hrc Hrl
 
 end proof

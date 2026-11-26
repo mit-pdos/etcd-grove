@@ -68,7 +68,7 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
       iframe HeC
       ipureintro; rfl
     iright; iframe HPre; ipureintro
-    (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
+    exact ⟨trivial, apply.revokeIds_rejected rq true _ T, apply.revokeRest_rejected T rq true _ rs⟩
 
 end proof
 

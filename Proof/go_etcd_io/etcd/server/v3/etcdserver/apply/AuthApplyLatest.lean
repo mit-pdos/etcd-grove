@@ -362,13 +362,14 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
     (inner : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
     (log F : mvcc.Log) (R : Outcome → IProp GF)
     (P Pre Q Post : IProp GF) (X : Outcome → Prop) (hk : authChecks (dispatchKind rq) = true)
-    (hm : authMayReject on rq) (hX : X (.rejected .auth)) :
+    (hm : authMayReject on rq) (hX : X (.rejected .auth))
+    (N : Outcome → Prop := fun _ => True) (hN : N (.rejected .auth) := by trivial) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       R (.rejected .auth) -∗ kvOwn E log -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗
       chainResAny c inner -∗ srvApi.csContractA P E.f Pre Q Post -∗
       kvPostFL E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
-        log F R Pre Post X := by
+        log F R Pre Post X N := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
   ihave HPre := csContract_pre _ _ _ _ _ $$ Hcs
   ihave Hkv := kvOwn_rejected E log rq .auth (by decide) $$ Hkv
@@ -382,7 +383,7 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
   isplitl [Hinfo Hres]
   · iapply chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
-  · iright; iframe HPre; ipureintro; simp [Outcome.logAfter]
+  · iright; iframe HPre; ipureintro; exact ⟨by simp [Outcome.logAfter], hN⟩
   isplitl []
   · iapply chainClass_auth_rejected
   · iapply chainLeaseClass_auth_rejected

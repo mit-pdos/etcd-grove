@@ -233,7 +233,9 @@ theorem apply.applierV3backend.Txn.wp_proof
         rw [hcl] at *
         iframe Hw Htie Hbk Hhk Hard Hknown' Hu HltL
       iright; iframe HPre; ipureintro
-      (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
+      have h' := hchs
+      simp only [txn.txnChs] at h'
+      rw [h']; unfold mvcc.commitLog; simp
 
 end proof
 

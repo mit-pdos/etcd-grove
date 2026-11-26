@@ -297,7 +297,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
     iframe Hkv Hres
     isplitl [HPre]
     · iright; iframe HPre; ipureintro
-      (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
+      simp [apply.chainCompacts]
     simp only [apply.chainCompacts, Bool.false_eq_true, ↓reduceIte, apply.cmpAnswerIs]
     iframe Hc He
     ipureintro; exact Hn
