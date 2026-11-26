@@ -2178,7 +2178,7 @@ theorem srv_auth_tp_on : authSrvTPAt (GF := GF) (hG := hG) true :=
 /-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
 `NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
 theorem srv_auth_tp_off : authSrvTPAt (GF := GF) (hG := hG) false :=
-  authSrvTPAt_off auth.wp_NewTokenProvider auth.wp_NewAuthStore
+  authSrvTPAt_of_TP false rfl (authSrvTP_off auth.wp_NewTokenProvider auth.wp_NewAuthStore)
 
 /-- **`NewServer` with auth on** (the auth plan's E2k): `NewServer.specM true`, the server started with
 the simple token provider and the auth store of `srv_auth_tp_on` (its proofs, not `NewAuthStore`'s

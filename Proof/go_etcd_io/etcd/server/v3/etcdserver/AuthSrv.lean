@@ -388,24 +388,37 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   · ipureintro; exact ⟨rfl, fun h => absurd h (by decide), fun _ h => by cases h⟩
   iapply (authStoreKit_off h30 tp)
 
-/-- **`authSrvTPAt false`** (#50 F7 S2, P-A1): `authSrvTP_off`'s proof; the names are unused. -/
-theorem authSrvTPAt_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
-    (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) :
-    authSrvTPAt (GF := GF) false := by
+/-- **`authSrvTPAt` at auth off, of `authSrvTP`** (#50 F7 S2, P-A1; until the F9 AuthC-slot refactor,
+2026-11-26, `authSrvTPAt_off`, a copy of `authSrvTP_off`'s proof): with auth off the names `γa` are unused, the
+premises the auth-on ones (vacuous) and the post's mode off either way. -/
+theorem authSrvTPAt_of_TP (on : Bool) (hon : on = false) (h : authSrvTP (GF := GF) on) :
+    authSrvTPAt (GF := GF) on := by
+  subst hon
   intro lg opts iw ttl γy γa
   iintro %Φ ⟨#Hpkg, #Hlg, -, -, -, -⟩ HΦ
-  iapply (h25 lg opts iw ttl) $$ [Hpkg]
-  · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
-  iintro !> %tp %err ⟨%Htp, -⟩
+  iapply (h lg opts iw ttl γy) $$ [Hpkg Hlg]
+  · isplitr
+    · iexact Hpkg
+    isplitr
+    · iexact Hlg
+    isplitr
+    · ipureintro; intro hc; exact absurd hc (by decide)
+    iintro !> %hc; exact absurd hc (by decide)
+  iintro !> %tp %err ⟨%Htp, Hk⟩
   iapply HΦ
   isplitr
   · ipureintro; exact Htp
-  iintro -
+  iintro %He
+  ispecialize Hk $$ []
+  · ipureintro; exact He
+  imod Hk with ⟨%M, %HM, Hkit⟩
   imodintro
-  iexists .off
+  iexists M
   isplitr
-  · ipureintro; exact ⟨rfl, fun h => absurd h (by decide), fun _ h => by cases h⟩
-  iapply (authStoreKit_off h30 tp)
+  · ipureintro
+    obtain ⟨h1, -, h3⟩ := HM
+    exact ⟨h1, fun hc => absurd hc (by decide), h3⟩
+  iexact Hkit
 
 /-- **Fresh auth names, allocated** (#50 F7 S2, P-A1): what `NewServer.wp_proofGAt` allocates to call
 `NewServer.wp_proofGAtA` with auth on (as `authBoot_alloc`, the provider and `srvTpInv_alloc` did). -/

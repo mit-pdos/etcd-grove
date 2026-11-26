@@ -406,8 +406,8 @@ theorem MainLogger.wp_proof
     (try wp_auto)
     -- `go http.Serve(pl, etcdhttp.NewPeerHandler(lg, s))`
     icases memberUpL_req srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm lm (c.ls idm)
-      $$ Hup with ⟨Hup, %Er, %ρr, #Hreq⟩
-    wp_apply (wp_NewPeerHandler_dist lg srv γn idm τ' false Er ρr) $$ [] as %h #Hh
+      $$ Hup with ⟨Hup, %onr, %Er, %ρr, #Hreq⟩
+    wp_apply (wp_NewPeerHandler_dist lg srv γn idm τ' onr Er ρr) $$ [] as %h #Hh
     · isplitr
       · iexact Hzlg
       isplitr
@@ -416,7 +416,7 @@ theorem MainLogger.wp_proof
     (try wp_auto)
     wp_apply wp_fork $$ [Hsr Hlo]
     · (try wp_auto)
-      wp_apply (wp_PeerServe_dist pl h m.peer srv γn idm τ' false Er ρr { c.γ with reg := c.reg idm } HγnN
+      wp_apply (wp_PeerServe_dist pl h m.peer srv γn idm τ' onr Er ρr { c.γ with reg := c.reg idm } HγnN
           (by rw [Hγndir]; exact Hdir)) $$ [Hsr Hlo] as %perr -
       · isplitr
         · iexact Hown
@@ -631,7 +631,7 @@ theorem MainLogger.wp_proof
     obtain ⟨HγnN, Hγndir, HEa, HEon, HEam, HEl⟩ := HE
     -- `NewServer`'s post as `memberBuiltOnL`
     ihave Hsb := isServerBuilt_of_gapM true srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0)
-        (bootKVOf true) (2 ^ 48 - 1) $$ [Hbuilt Hgap]
+        _ (2 ^ 48 - 1) $$ [Hbuilt Hgap]
     · iframe
     iunfold srvMonitorCfg at Hmon
     icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
@@ -671,7 +671,7 @@ theorem MainLogger.wp_proof
       isplitr
       · iexact Hwb
       isplitl [Hsb]
-      · iexact Hsb
+      · iExactEq Hsb; rfl
       isplitl [Hserve]
       · iexact Hserve
       isplitl [Hsv]
@@ -725,8 +725,8 @@ theorem MainLogger.wp_proof
     (try wp_auto)
     -- `go http.Serve(pl, etcdhttp.NewPeerHandler(lg, s))`, the request view at auth on
     icases memberUpOnL_req srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd true) false) lg γn idm
-      (c.au idm) lm (c.ls idm) $$ Hup with ⟨Hup, %Er, %ρr, #Hreq⟩
-    wp_apply (wp_NewPeerHandler_dist lg srv γn idm τ' true Er ρr) $$ [] as %h #Hh
+      (c.au idm) lm (c.ls idm) $$ Hup with ⟨Hup, %onr, %Er, %ρr, #Hreq⟩
+    wp_apply (wp_NewPeerHandler_dist lg srv γn idm τ' onr Er ρr) $$ [] as %h #Hh
     · isplitr
       · iexact Hzlg
       isplitr
@@ -735,7 +735,7 @@ theorem MainLogger.wp_proof
     (try wp_auto)
     wp_apply wp_fork $$ [Hsr Hlo]
     · (try wp_auto)
-      wp_apply (wp_PeerServe_dist pl h m.peer srv γn idm τ' true Er ρr { c.γ with reg := c.reg idm } HγnN
+      wp_apply (wp_PeerServe_dist pl h m.peer srv γn idm τ' onr Er ρr { c.γ with reg := c.reg idm } HγnN
           (by rw [Hγndir]; exact Hdir)) $$ [Hsr Hlo] as %perr -
       · isplitr
         · iexact Hown

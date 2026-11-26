@@ -1,7 +1,7 @@
 /-
 **A started member whose lessor is at a given name** (F2's P-L1, PROPOSED with `Serve_dist_proposed.spec`
 (`AuthServeProposed.lean`, the merged F2/F7 proposal), 2026-11-26; the auth-lease review's F2, `/shared/tmp/coord-03/rev-f7c-report.md`). Lean-first (no Rocq
-counterpart). Definitions only. Also here, moved from `AuthServeProposed.lean` so that the Spec files can
+counterpart). Definitions only (and `memberUpOnL_eq`, by `rfl`). Also here, moved from `AuthServeProposed.lean` so that the Spec files can
 import them (F7 step 3's preparation): `authNamesFreshD` (a member's fresh auth authorities, with auth on) and
 `etcdstart.memberUpOnL` (`memberUpOn` with the lessor at `γl`).
 
@@ -145,14 +145,16 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 
 /-- **`memberUpOn` with the lessor at `γl`** (PROPOSED, F7 review C's F2, 2026-11-26; F2's `memberUpL`
 with auth on): `memberUpOn`'s body verbatim, at the lease mode `m`, and `mvcc.api.mvccLeases E.γ = γl` for its
-environment `E` (the name the lessor was made at: `NewServer.specG_dist_proposed`'s `γl`, P-L1). -/
+environment `E` (the name the lessor was made at: `NewServer.specG_dist_proposed`'s `γl`, P-L1). The request and
+read views are at the auth slot `AuthC.on γa`'s mode (`(AuthC.on γa).isOn`, which is `true`: `memberUpOnL_eq`). -/
 def memberUpOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
     ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
     srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
-    isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
+    isServerReqM (AuthC.on γa).isOn s E { ρ with wait := γw } ∗ isServerReadM (AuthC.on γa).isOn s E ρ.rd ∗
+    srvAuthLb s E ∗
     srvGoRes s ∗ srvLgReader s ∗
     ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
@@ -160,6 +162,26 @@ def memberUpOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvPeerCtl γn s id ∗
     □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗
     srvLeaseRd s E m)
+
+/-- **`memberUpOnL`'s body with the views at a mode `b` that is `true`** (the F9 AuthC-slot refactor,
+2026-11-26): the definition before it (the views at the literal `true`), so `memberUpOnL` means what it meant
+(`Serve_dist`'s auth-on premise unchanged). By `rfl`: `(AuthC.on γa).isOn` is `true` by definition. -/
+theorem memberUpOnL_eq (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName) (b : Bool) (hb : b = true) :
+    memberUpOnL s ρ E₀ lg γn id γa m γl =
+      iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+        ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+          cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
+        srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
+        isServerReqM b s E { ρ with wait := γw } ∗ isServerReadM b s E ρ.rd ∗ srvAuthLb s E ∗
+        srvGoRes s ∗ srvLgReader s ∗
+        ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
+        srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+        srvBemuReader s ∗
+        srvPeerCtl γn s id ∗
+        □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗
+        srvLeaseRd s E m) := by
+  subst hb; rfl
 
 end defsL
 

@@ -156,8 +156,9 @@ theorem wp_Start_builtL (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
 /-! ## The auth-on chain with the lessor at `γl` (#50 F7 S2 step 4) -/
 
 /-- **`memberBuiltL` with auth on, at the auth names `γa`** (#50 F7 S2 step 4): `memberBuiltL`'s body with
-`E.authMode = .on γa` for `E.authOn = false`, the built part in the auth-on mode (`isServerBuiltM true`, at the
-boot state `bootKVOf true`), and what `memberUpOnL` takes besides: the TLS fallback off and the auth store's
+`E.authMode = .on γa` for `E.authOn = false`, the built part in the mode of the auth slot `AuthC.on γa`
+(`isServerBuiltM (AuthC.on γa).isOn`, at the boot state `bootKVOf (AuthC.on γa).isOn`: the auth-on mode, as
+`isServerBuiltM_C` takes it), and what `memberUpOnL` takes besides: the TLS fallback off and the auth store's
 `Authenticate` side. `Start` turns it into `memberUpOnL` (`wp_Start_builtOnL`). -/
 def memberBuiltOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName) : IProp GF :=
@@ -168,9 +169,10 @@ def memberBuiltOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (
       cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
     srvServeStock s E ∗
     srvWatchBuilt s E ∗
-    isServerBuiltM true s γA ci TM E ρ ρ.rd
-      (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk))
-      γrn b (W64 0) (W64 0) (W64 0) (bootKVOf true) N ∗
+    isServerBuiltM (AuthC.on γa).isOn s γA ci TM E ρ ρ.rd
+      (srvErM (AuthC.on γa).isOn ρ E₀ (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) id (srvTrKey γn γk)
+        (srvTrStopK γk))
+      γrn b (W64 0) (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
     srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
@@ -178,14 +180,14 @@ def memberBuiltOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (
     □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD)
 
 /-- **A member started with auth on, with the lessor at `γl`, from its parts** (`memberUpOn_intro`'s, for
-`memberUpOnL`): its conjuncts, the views at `true`, and the lessor's name. -/
+`memberUpOnL`): its conjuncts, the views at the slot `AuthC.on γa`'s mode, and the lessor's name. -/
 theorem memberUpOnL_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName) (m : lease.Mode) (γl : GName) :
     ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
         cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
       srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
-      isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗
+      isServerReqM (AuthC.on γa).isOn s E { ρ with wait := γw } ∗ isServerReadM (AuthC.on γa).isOn s E ρ.rd ∗
       srvAuthLb s E ∗ srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
       srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗
       ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
@@ -219,22 +221,21 @@ theorem wp_Start_builtOnL (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `Start.spec` at the slot's `on γa`: the built part as the slot's row
   have hB := isServerBuiltM_C (GF := GF) (.on γa) s γA ci TM E ρ ρ.rd
-    (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk)) γrn b (W64 0) (W64 0)
-    (W64 0) (bootKVOf true) N hγa
-  dsimp only [AuthC.isOn] at hB
+    (srvErM (AuthC.on γa).isOn ρ E₀ (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) id (srvTrKey γn γk)
+      (srvTrStopK γk)) γrn b (W64 0) (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) N hγa
   ihave Hsb := hB $$ [Hsb Hkeep]
   · iframe Hsb
     iapply (srvStop.slot_intro (γk := γk)
-      (Er := srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk))
+      (Er := srvErM (AuthC.on γa).isOn ρ E₀ (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) id (srvTrKey γn γk)
+        (srvTrStopK γk))
       (h := by rfl)) $$ Hkeep
   have h' := wp_Start s γA ci TM (.on γa) E ρ ρ.rd
-    (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk)) γrn b (W64 0) (W64 0)
-    (W64 0) (bootKVOf true) N
-  simp only [AuthC.isOn] at h'
+    (srvErM (AuthC.on γa).isOn ρ E₀ (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) id (srvTrKey γn γk)
+      (srvTrStopK γk)) γrn b (W64 0) (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) N
   -- the server's member id is the member's (`srvNetMember`'s)
   icases isServerBuiltC_mid (.on γa) s γA ci TM E ρ ρ.rd
-    (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk) (srvTrStopK γk)) γrn b (W64 0) (W64 0)
-    (W64 0) (bootKVOf true) N $$ Hsb
+    (srvErM (AuthC.on γa).isOn ρ E₀ (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) id (srvTrKey γn γk)
+      (srvTrStopK γk)) γrn b (W64 0) (W64 0) (W64 0) (bootKVOf (AuthC.on γa).isOn) N $$ Hsb
     with ⟨Hsb, #HmidS, -⟩
   ihave #Hnm' := Hnm
   iunfold srvNetMember at Hnm'
