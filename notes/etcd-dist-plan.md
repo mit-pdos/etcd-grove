@@ -2759,3 +2759,405 @@ tier (208), bounds (390), premise-witness (50 statements), iris-premise (16); fu
 collection but `etcd-dist` matched unchanged; `etcd-dist` (127 axioms) took `lean`'s gRPC changes:
 +`grpclog.initFuncsOk`, +`streamIcMdIs` (for `etcdStreamInterceptor`), −`grpc.opaqueInitsOk`,
 −`grpc.credentials.opaqueInitsOk`, −`grpc.health.{initFuncsOk,opaqueInitsOk}`, −`grpcAddrIsRaw`, −`grpcSrvCfgRaw`.
+
+## 27. F8: the full assembly (design, 2026-11-26; branch `etcd-safe-f8/2026-11-26` off `etcd-safe-m1-top/2026-11-25` @ `ad0a4756a0`)
+
+Stage F8 of `etcd_safe_nocrash` (`coordinator-notes/plans/etcd-nocrash-plan.md`): the full start (the cluster and
+every workload's shares), the full client and node dispatch over all eleven kinds, and
+`theorem etcd_safe_nocrash : etcd_robust_nocrash.spec`. Design only: no Lean file changes on this branch, nothing
+built. It reads M1 (§21) as the template and the workload branches as of 2026-11-26 ~04:00Z: F7 (with F2)
+`etcd-safe-f7` @ `2b5dc255a6`, F5 `etcd-safe-f5/2026-11-26` @ `ae9e3d338e` (contains wenv @ `bd5984c79e`, N3
+@ `923a4ae72c` and N9a @ `943a376ab5`), N10a `etcd-safe-n10a/2026-11-25` @ `e000f65246`.
+
+### 27.1 Which workloads can share a deployment (Go `deployment.WellFormed`, Lean `Compatible`)
+
+`compatible` (`examples/etcd/dist/deployment/deployment.go`) allows a deployment's workloads if:
+- the kinds are distinct;
+- `auth` and `authLease` (`alone`) run only alone;
+- a `needsSoleWriter` kind (`kv`, `watch`, `cache`, `auth`, `authLease`) runs beside no workload that writes
+  keys. Every kind writes keys except `leaseRead`, `leaseCatchup` and `leaseExpiry`;
+- `leaseExpiry` never runs beside a `needsNoExpiry` kind (`leaseCatchup`, `authLease`).
+
+`WellFormed` also asks for the following:
+- every `needsAuth` kind runs with `Cfg.Auth`;
+- `compact` never runs under the periodic compactor;
+- `leaseExpiry` never runs under `Cfg.Auth`.
+
+Client machines (`NodeCount > 0`) belong to `kv`, `watch` and `cache` (`Clients` each) and to `auth` (4). All four
+need a sole writer or run alone, so **a well-formed deployment has at most one workload with client machines**.
+The start therefore sets one set of node addresses to one protocol, and needs one `RemoteGS ρ`.
+
+The key prefixes (`client.go`):
+
+| Kind | Keys |
+|---|---|
+| `kv` | `k0`, `k1`, `k2` |
+| `watch` | `wk/` |
+| `cache` | `ck/` |
+| `compact` | `cw/` |
+| `putget` | `pg/` |
+| `durable` | `du/` |
+| `auth`, `authLease` | `a/`, `c/`, `z/` |
+
+Only `compact`, `putget` and `durable` write keys without being sole writers, so they are the only kinds that can
+share the KV.
+
+**The classes of well-formed deployment.** Let `L` be any set of lease kinds that `Compatible` allows.
+
+| Class | Workloads |
+|---|---|
+| E | none |
+| S | one sole writer `s ∈ {kv, watch, cache}`, plus `L` |
+| P | a nonempty subset of `{putget, durable, compact}`, plus `L` |
+| A | `{auth}` |
+| AL | `{authLease}` |
+| Ls | `L` alone, nonempty |
+
+**Two mixes no current proof can cover.** Both are decided in Q1 and Q2 below (27.7).
+- **Auth on without an auth workload** (Q1). `Cfg.Auth = true` is allowed with any kinds but `leaseExpiry`. The
+  cluster then serves in the auth-on mode, where every KV call is the `…On_dist` form: a persistent update offered to
+  every retry, F7's `writeAuD`. putget, durable, compact, kv, watch, cache and leaseRead are proved over the auth-off
+  contracts only. compact cannot run at all, because `NewServer`'s `cmp = true → on = false` (F5 §26.4).
+- **A lease-granting workload beside a key writer** (Q2). `leaseCatchup` or `leaseExpiry` with S or P. In a cluster
+  whose lease mode is not `none`, the KV invariant takes the KV state's ghost variable whole, and
+  `clusterAllocN`/`srvClusterBoot_allocG` return no client `etcdKV` (the lease-grant plan's 2.3, the user's (C)). So
+  neither the kv store `kvR` nor `kvPfx_alloc` can be started. leaseRead grants nothing, so it runs at lease mode
+  `none` beside anything: `wp_RunLeaseRead` is at `none` (F7, `client/Results.lean`).
+
+The design below assumes Q1 and Q2 are answered by narrowing `WellFormed` (the recommendation). Then:
+- auth is on exactly in classes A and AL;
+- the lease mode is not `none` only in AL and Ls;
+- every class that writes keys (S, P, A) is at lease mode `none` with auth off, except A, which is auth-on at
+  `none`.
+
+### 27.2 The start: `startShares d` and the order of allocations
+
+**The deployment's parameters** (pure functions of `d`, in a new defs module `dist/DeploymentClass.lean`):
+- `lmOf d : lease.Mode`:
+  - `.revocable` if `leaseExpiry ∈ d.workloads`;
+  - `.mono` if some workload `needsNoExpiry`;
+  - `.none` otherwise.
+
+  Its side conditions come from the premises: `lmOf d = .mono → lease.leasesNoExpiry` from `Henv.noExpiry` (F7's
+  `member_boot_dist` premise `Hlm`), and `lmOf d = .revocable → leaseIdsApart d.ids` from `WellFormed`'s
+  `grantsLeases` clause (`clusterAllocN`'s `hap`).
+- `cmpOf d : Bool × Nat`, the KV's compaction mode and the cluster's retention, by the compactor:
+
+  | Compactor | With `compact` | Without `compact` |
+  |---|---|---|
+  | off | `(true, 1)` | `(false, 0)` |
+  | `revision r` | `(true, 1)` | `(true, r)` (M1's) |
+  | `periodic p` | excluded by `WellFormed` | `(true, 0)` |
+
+  `v3compactor.bootCfg` admits each entry: off at any `cmp`/`cret` (`bootCfg_off`); revision at any `cret ≤ r`, with
+  `r ≥ 1` from `Supported`; periodic at `cret = 0`. This is `compactorCfg_of_wf` (`server/ClusterStartD.lean`) made a
+  function, with compact's case added (F5 §26.4: compact needs `cmp = true ∧ cret = 1`).
+- `authOf d := d.cfg.auth` (with Q1: true exactly in classes A and AL).
+- `classOf d`, one of the classes of 27.1: E, `S j` (the sole writer's index), P, A, AL or Ls.
+
+  Its pure facts (`classOf_spec`, from `Compatible` and `WellFormed`):
+  - `nodesOnly`: every other workload has no client machines;
+  - for class S, the sole writer's bounds, as `kvOnly_shape` gives them now;
+  - for class P, the prefixes `[pg/, du/, cw/]` apart (none a prefix of another);
+  - `lmOf d = .none` in E, S, P and A.
+
+**The allocations, in order.** This is `etcd_start` in a new `dist/Start.lean`, whose statement is `EtcdBootNC`'s
+start update.
+
+0. **The net registry.** `netProto_alloc ⊤` gives `π` and `□ regCtx`. Every share is stated under `π`.
+1. **The addresses.** Split `d.addrs` into the members' `[peer, client]` pairs and `d.nodes.flatten`.
+2. **The cluster**: `clusterStartDA d Hd boot Hbf Hrb (lmOf d) (cmpOf d) (authOf d)`. This is F7's `clusterStartDL`
+   (`server/ClusterStartD.lean` on `etcd-safe-f7`; WIP, not built) generalized to the compaction setting and the auth
+   mode:
+   1. `clusterAllocN` at `distPs d`/`distCtxs d`, `lm`, `cmp`, `cret`, and the auth mode (F7 L5 item 2: with auth on,
+      `kvInvM true …`, `ch0 = alarmChain true …`, one cluster history name `c.γk.hist`).
+      - It gives the raft names `c.γ`, the KV names `c.γk`, `issued`/`cnt`/`wn`/`fs`/`gen`, and per member
+        `idx`/`cok`/`rev`/`reg`.
+      - It gives the members' slices and the persistent `clusterFacts`, which include `kvInv ⟨c.γ, [], 0⟩ c.γk`.
+      - It gives the client's `etcdKV c.γk σ₀` iff `lm = .none`, and the client's half of `authHistView c.γk` iff
+        auth is on.
+   2. The per-member names: `memberNames_alloc` (F7 L3/L4, built at `b676473728`).
+      - Each member's lessor name `c.ls id` comes from `lessorSlot_alloc` outside the names so far, and its auth
+        names `c.au id` from `authNamesFreshG_alloc`.
+      - Both maps are padded off the members, so that `c.NamesInj` holds: both are injective over all of `w64`.
+      - This step comes before step 4, because `c.view := ⟨c.γk, c.ls, authOf d, c.au⟩` (F7 L5 item 3: the view
+        takes the auth mode) must be complete before any client address is set at it.
+   3. The peer addresses: `peersAt_start` (`http_addr_set` at `c.γ`).
+   4. The client addresses: `clientsAt_start` (`etcdAddr_set` at `c.view`).
+   5. The members' shares: `memberShares_of`, giving `memberShareD c (lmOf d) d (distPs d) (distCtxs d) boot i` for
+      each member. Each share carries `ClusterOk … lm cmp cret`, `bootCfg`, `NamesInj` and `memberNamesShare (c.ls id)
+      (c.au id)`.
+
+   Besides the shares, the step returns:
+   - the pure facts `c.γk.log0 = [[], []]`, `c.γk.lm = lm`, `c.γk.cmp = cmp`, `c.γk.cret = cret` and `c.view.auth =
+     authOf d`;
+   - the persistent `clientSvcFacts (cmsD d) c.view`;
+   - every member's `lease.lessorSlot (c.ls id)`, also persistent.
+3. **The persistent client facts.** Let `Γ := c.view` and `eps := d.members.map Member.client`.
+   - `membersAt eps Γ` (`membersAt_of_members`).
+   - `leaseMember Γ a` for each `a ∈ eps` (F7's `client/LeaseDefs.lean`). It is built from the member's `etcdAddrAt`,
+     its lessor slot and `addrOk`.
+4. **The KV half and the node addresses, by `classOf d`.** Each case is one lemma, owned by the workload.
+
+   | Class | What the start does |
+   |---|---|
+   | E, Ls | The KV half (if any) is dropped. `ρ` comes from `mapCtx_alloc` over no address, so there is one form. |
+   | `S j`, `kv` | `kv_start Γ.kv ns w.ops` (M1, `kvremote/Start.lean`), after `kvSys_boot` (`kvremote/MembersStart.lean`). It makes the budget map `ρ`, the pending library of `kvR Γ.kv`, and every node address set to `kvR`'s service. It gives `kvOrchPre ρ ns ops` and each node's `remoteAddr (kvR Γ.kv) a`. |
+   | `S j`, `watch` | `watch_start` (F4, to write). The whole KV half goes to `watchShare WS eps ns` (§24.3). The writers' protocol is a budget of one call per writer (`mapCtx_alloc`) and every node address set to the writer service (`addrs_set_proto`). The orchestrator's adapter names travel in the call's input. It gives `WS Γ ns`. |
+   | `S j`, `cache` | `cache_start` (F6), as `watch_start`. |
+   | P | `kvPfx_alloc Γ.kv σ₀ h0 hc0 [pg/, du/, cw/] hap ok` with `ok cw/ = cwOk` and `True` for the others (F5's `KVPfxDist.lean`). Each prefix gets its `kvPfxH` and the owner's half of its `ghostVar`. `putgetShare eps` and `durableShare eps` come through `kvPfx_of_H`. `compactShare eps` also takes `kvInv` (from `clusterFacts`), `Γ.kv.cmp = true`, `Γ.kv.cret = 1` and `1 ≤ σ₀.rev`. The shares of absent prefixes are dropped. All three prefixes are always allocated, so the lemma has one form. |
+   | A | `auth_start` (F7 S3). The orchestrator gets the client halves of `etcdKV Γ.kv` and `authHistView Γ.kv`. The four principal addresses are set to the principal service (input: the principal's name; precondition: F7's `akHistInv`/`akAuthFixed`, carried by the call), with a budget of one call each. |
+   | AL | `authLease_start` (F7 S4). It is not designed yet. |
+
+**The shares.** `startShares d boot ρ : Nat → IProp etcdDistGF`, at `[GooseGlobalGS]`, as `DistBootWpSLT` needs.
+- **Member** (`i < k`, with `k := d.members.length`): `∃ c, memberShareD c (lmOf d) d (distPs d) (distCtxs d) boot
+  i`. This is M1's member share, with the lease mode.
+- **Orchestrator `j`** (`i = k + j`): `wlShare ρ d.workloads[j] eps d.nodes[j]`.
+- **Client machine `n`** (`i = k + |W| + n`, with `d.nodeList[n] = (w, c, a)`): `wlNodeShare ρ w c a (rotateL eps c)`.
+
+`wlShare` and `wlNodeShare` go in a new defs module `dist/client/Shares.lean`, by `sint.Z w.kind`:
+
+| Kind | `wlShare ρ w eps ns` (orchestrator) | `wlNodeShare ρ w c a eps'` (client machine) |
+|---|---|---|
+| 0 `kv` | `kvOrchPre ρ ns w.ops` | `kvNodePre ρ (W64 c) a eps'` |
+| 1 `watch` | `watchShare (WS ρ) eps ns` | `writerNodePre ρ (W64 c) a eps'` (F4) |
+| 2 `cache` | `cacheShare ρ eps ns` (F6) | `writerNodePre ρ (W64 c) a eps'` (shared with watch) |
+| 3 `compact` | `compactShare eps` | – |
+| 4 `putget` | `putgetShare eps` | – |
+| 5 `auth` | `authShare ρ eps ns` (F7) | `principalNodePre ρ (W64 c) a eps` (F7; unrotated: `principalClient` picks by index) |
+| 6 `authLease` | `authLeaseShare eps` (F7) | – |
+| 7 `leaseRead` | `∃ Γ, [∗list] a ∈ eps, leaseMember Γ a` | – |
+| 8 `leaseCatchup` | `∃ Γ, ⌜Γ.kv.lm = .mono ∧ Inj Γ.ls⌝ ∗ [∗list] a ∈ eps, leaseMember Γ a` | – |
+| 9 `leaseExpiry` | the same at `.revocable` | – |
+| 10 `durable` | `durableShare eps` | – |
+| other | `True` | `True` |
+
+Notes on the shares:
+- The Γ-dependent pure premises of the lease runs (`Γ.kv.lm`, injective `Γ.ls`) sit inside their shares, because the
+  dispatch cannot know `Γ`. `RunLeaseCatchup`'s `addrs ≠ []` holds because the deployment has a member.
+- The machine-level premises are discharged at the boot, as M1's are:
+  - `Nonempty (WEnv GF)`: `wenv_nonempty`;
+  - `threadBound ≤ 2 ^ 30`: from `hT`;
+  - `errors.AsTarget rpctypes.EtcdError`: `rpctypesEtcdError_asTarget`;
+  - `plainEndpoints`: `rotateL_plain`, or `addrOk_plainEndpoint` for the unrotated `eps`;
+  - `levelTok 0`: `threadTok_level0`;
+  - the bounds (`0 ≤ n`, `len(ns) * nops < 2 ^ 63`): `BoundsOk` and `nodeCount`, through `WellFormed`.
+
+### 27.3 The dispatch: `client.MainDeployment`/`NodeDeployment` over every kind
+
+M1's dispatch specs (`Spec/.../dist/client/{Orchestrator,MainDeployment,MainReady,NodeDeployment,NodeMain}.lean`)
+are kv-only: `⌜w.kind = W64 0⌝`, or `(d.WellFormed → KvOnly d)`. The full dispatch replaces them; it does not add
+parallel specs.
+
+**The new specs.**
+- `MainReady.spec`. Its precondition is `isPkgInit client ∗ levelTok 0 ∗ eps ↦*□ epsL ∗ nodes ↦*□ ns ∗
+  readySpec ready ∗ wlShare ρ w epsL ns`, with the pure facts `wlPure w epsL ns`:
+  - `plainEndpoints epsL` and `epsL ≠ []`;
+  - `ns.length = nodeCount w`;
+  - `w`'s `BoundsOk`, and its kind below 11.
+
+  Its postcondition is `True`, since the orchestrator machine ends. `levelTok 0` is new, because every `Run*` but
+  `RunKV` takes it. The orchestrator's boot gets it from `threadTok_level0`, as `kvNodeBoot` does already.
+- `MainDeployment.spec` and `Orchestrator.spec`: the deployment's `deploymentRepr v d`, `levelTok 0`, and `⌜d.WellFormed⌝
+  -∗ orchShareF ρ d j`, where `orchShareF` is `startShares`' orchestrator part. `KvOnly` is dropped.
+- `NodeDeployment.spec` and `NodeMain.spec`: the same with `nodeShareF ρ d n`.
+
+**The orchestrator's arms (`MainReady`'s switch).** Each arm's callee spec is a hypothesis of
+`MainReady.wp_proof`: the dispatch proof imports only Spec files, and the linking module plugs in the proofs.
+
+| Kind | Callee spec (hypothesis) | Where it is stated and proved | Status (2026-11-26) |
+|---|---|---|---|
+| `kv` | `RunKV.spec OP` over `Orch.specWith OP` at `OP := kvOrchPre ρ` | M1 (`client/RunKV`, `kvremote.wp_Orch`) | proved and linked; landing (L0) |
+| `watch` | `RunWatch.spec (WS ρ)` | N10a (`client/RunWatch.lean`) | proved over `Watch_dist`, `Writer_dist` and `remoteWriters.specWith WS`. `remoteWriters` is **not proved**: it needs the remote wire refactor (§24.4 (a)). N10a is on N3's base, before the watcher refactor, so it must be rebased onto wenv |
+| `cache` | `RunCache.spec (CS ρ)` | F6 | not started. Its spec draft is F8 step 1 (below). Callees: `cache.New`, `c.Watch`, `RequestProgress`, `c.Get` across machines over `Watch_dist`/`KV_Get_dist`; `remoteWriters` (shared with watch); the pure helpers `cacheCollect`, `awaitProgress`, `checkProgress`, `lastVal`, `hasKey`, `checkGet` |
+| `compact` | `RunCompact.spec` | F5 (`client/RunCompact.lean`, `CompactLinked.lean`) | proved and linked, at `KV_Put/Get/Compact_dist` and `Watch_dist` |
+| `putget` | `RunPutGet.spec` | N9a, on F5's line | proof written, **not built**: it calls `clientCoreAt_of_new` (F7's `LeaseDefs`) and needs F5's `hser'` fix in `KVCallsDist.wp_cliGet` (§26.6) |
+| `durable` | `RunDurable.spec` | N9a, on F5's line | the same as putget |
+| `auth` | `RunAuth.spec` | F7 S3 | not started. It needs the auth-on axioms (drafted and reviewed, `AuthViewDist.lean`), F4's auth-on `Watch_dist`, and `remotePrincipals`/`principalOp` |
+| `authLease` | `RunAuthLease.spec` | F7 S4 | not started. It needs F2's lease-on forms and P-L1 (done on F7) |
+| `leaseRead` | `RunLeaseRead.spec` | F2/F7 (`client/RunLeaseRead.lean`, `client/Results.lean`) | proved over its callees. The link `wp_RunLeaseRead` is written, **not built** (F7 Handoff 7) |
+| `leaseCatchup` | `RunLeaseCatchup.spec` | the same | the same. Its `ready` is in WP form, which follows from `readySpec` |
+| `leaseExpiry` | `RunLeaseExpiry.spec` | the same | the same |
+
+**The client machines' arms (`NodeMain`'s switch).**
+
+| Kind | Callee spec | Where | Status |
+|---|---|---|---|
+| `kv` | `Node.specWith NP` at `NP := kvNodePreL ρ` | M1 (`kvremote.wp_Node`) | proved and linked |
+| `watch`, `cache` | `newClient.spec`, then `remote.ServeClient` at `writerCodec` with `writerOp.spec` as its operation | N10a (`writerOp.wp_proof` over `Writer_dist`) | `writerOp` is proved. `ServeClient` at a slice codec needs the wire refactor (§24.4 (a)), not started |
+| `auth` | `remote.ServeClient` at `principalCodec` (a string in, a bool out: fixed arity, so no refactor is needed) with `principalOp.spec` (`auth.Work` over the `…On_dist` forms) | F7 S3 | not started |
+
+**Order.** The dispatch proofs (`MainReady`, `MainDeployment`, `Orchestrator`, `NodeMain`, `NodeDeployment`) are F8's
+own, and they need only the callees' Spec files. So F8 step 1 writes:
+- the Spec drafts that do not exist yet: `RunCache`, `RunAuth`, `RunAuthLease`, the node arms' wrappers;
+- the shares those drafts name: `cacheShare`, `authShare`, `authLeaseShare`, `writerNodePre`, `principalNodePre`.
+
+Each draft goes to its owner for review. Then the dispatch is proved before the workloads finish (specs first,
+`proof-plan-then-parallel`). The linking module `client/DispatchLinked.lean`, which replaces `KvLinked.lean`, gives
+`wp_Orchestrator` and `wp_NodeDeployment` from the linked `wp_Run*`.
+
+### 27.4 The assembly
+
+The assembly follows `etcdKvBootNC_holds` (`kvremote/TopLevelRobustness.lean`) step by step, with the kv parts
+generalized:
+- `orchBoot` and `nodeBoot` (new `dist/AdequacyClient.lean`) are `kvOrchBoot`/`kvNodeBoot` over `wp_Orchestrator`/
+  `wp_NodeDeployment`: the machine's initialization as in `BootBad.clientBadWp`, then `deploymentLit`.
+  - `orchBoot` now also takes `levelTok 0` from `threadTok_level0`.
+  - The shares come from `orchShareF`/`nodeShareF` (laws as `orchShare_eq`/`nodeShare_eq`).
+- `memberBoot` is `kvMemberBoot` at `lmOf d`. It uses F7's `member_boot_dist`: no `Hauth`, with `Hlm` from
+  `Henv.noExpiry`.
+- The main theorem:
+  ```
+  theorem etcdBootNC_holds : EtcdBootNC := by
+    -- netProto_alloc; etcd_start (27.2) gives ρ and [∗list] i ↦ _ ∈ machines d σs σc σn, startShares d boot ρ i;
+    -- Ps := startShares d boot ρ; each machine i by its index: memberBoot / orchBoot / nodeBoot
+  theorem etcd_safe_nocrash : etcd_robust_nocrash.spec :=
+    etcd_safe_nocrash_of_bootWF etcdBootNC_holds          -- BootBad.lean: the malformed case
+  ```
+  M1's pieces that carry over in general form are `forall₂_mem_left'`, `nodeList_addr`/`nodeList_length` (general
+  form: a node's address is in `d.nodes[j]`), `mem_rotateL`, `rotateL_plain`, `bigSepL_idx'` and `bigSepL_of_box`.
+  They move to a defs module.
+- **Where the theorem goes.** The Proof file `dist/TopLevelRobustness.lean` holds the skeleton (`EtcdBootNC`,
+  `EtcdBootNCBad`, `etcd_safe_nocrash_of_boot`). `BootBad` and M1 import it, so the theorem cannot go in it.
+  - Proposed: move the skeleton to `dist/BootSkel.lean` (defs) and put `etcd_safe_nocrash` in `dist/TopLevelRobustness.lean`.
+    Spec and Proof then stay paired by path, as `premise-witness` expects of `dist/TopLevelWitness.lean`, which
+    already proves `etcd_robust_nocrash.premisesSat` (P12).
+  - The alternative is a new `dist/full/TopLevelRobustness.lean`, which keeps the files as they are but breaks the
+    pairing.
+- **The collection.** `etc/tcb-collections/etcd-dist.txt` gains the root `dist/TopLevelRobustness`. F7's
+  `etcd-dist-lease.txt` is folded into it, since its roots are reached from the theorem.
+- **The axioms the theorem adds.** Relative to M1's 127 axioms:
+  - N3's `Watch_dist` and `RequestProgress_dist`;
+  - N2's `KV_Compact_dist`;
+  - F2's six lease axioms;
+  - F7's auth-on axioms (about 14);
+  - the cache's callees, if any;
+  - `Client.Close.wp_proof`, if not already in.
+
+  All of these go to F9.
+
+**`etcd_kv_safe_nocrash` becomes a corollary.** `etcd_kv_safe_nocrash_of_full` already exists, so the theorem is
+`etcd_kv_safe_nocrash_of_full etcd_safe_nocrash`.
+- Everything M1 has that is kv-specific then goes: `EtcdKvBootNC`, `kvShares*`, `kvOnly_shape`, `kvMemberBoot`,
+  `etcdKvBootNC_holds`, `kvremote/AdequacyClient.lean`'s two boots, `KvLinked` and the kv-only dispatch specs
+  (clean end state). `KvOnly` survives only in M1's Spec statement.
+- *Note only:* keep or retire the M1 theorem itself? It adds nothing once the full theorem holds, but its Spec file
+  is one more file to audit. By the theorem-naming rule it already has the weaker variant's longer name. Removing a
+  top-level theorem needs the user's sign-off, so it stays as a one-line corollary until the F9 packet asks.
+
+### 27.5 Dependencies and the merge order
+
+**What each piece rests on.**
+
+| Piece | Branch / owner | Status (2026-11-26 ~04:00Z) |
+|---|---|---|
+| M1 (kv, the members' start, the kv dispatch) | `etcd-safe-m1-top` @ `ad0a4756a0` / lead | green, `lean` merged, landing (L0) |
+| P-L1, P-A1 (lessor and auth names from the start), `Serve_dist`/`NewServer_dist` replaced | `etcd-safe-f7` (F2 merged) / etcd-grove-03 | replacement built (`eb138f6f8c`); trusted, F9 |
+| Per-member names (`memberNames_alloc`, `NamesInj`) | F7 L3/L4 | built (`b676473728`) |
+| Lease-mode start (`clusterStartDL`, `memberShareD … lm`, `member_boot_dist` over `lm`) | F7 Handoff 7 step 2 | WIP, **not built** |
+| Auth-on start (`clusterAllocN` at auth on, `view.auth`, `memberUpOnL`) | F7 L5 | design only |
+| leaseRead, leaseCatchup, leaseExpiry (`client/Results.lean`) | F7 step 4 | written, **not built** |
+| Six lease axioms | F2/F7 | reviewed; F9 |
+| auth, authLease workloads | F7 S3/S4 | not started |
+| Auth-on interim axioms | F7 S1 | drafted, reviewed; F9 |
+| Watch stream axioms | N3 `etcd-safe-n3` | in F5 |
+| Watcher-environment refactor | wenv `etcd-safe-wenv` | done, review sound (one F9 item, §25.5); in F5 |
+| `KVPfxDist` (the KV by prefix, with its history), putget, durable | N9a, extended by F5 | defs built; putget and durable not built |
+| compact | F5 `etcd-safe-f5` @ `ae9e3d338e` | proved and linked |
+| watch (the orchestrator and `writerOp`) | N10a `etcd-safe-n10a` @ `e000f65246` | proved over hypotheses; on N3's base |
+| Remote wire refactor (§24.4 (a): `Net/.../lib/remote`'s wire as persistent value predicates; kvremote re-instantiated) | open (lead) | not started |
+| `remoteWriters`, `NodeMain`'s writer arm | after the wire refactor (F4) | not started |
+| Auth-on `Watch_dist` (auth's watches, the refused watch) | F4 or F7 (F7 Q4) | not started |
+| cache | F6 / open | not started |
+| Dispatch, start, assembly, witness, collection | F8 / lead | this design |
+
+**The merge order into one line** (`etcd-safe-f8/2026-11-26`, from M1's head; no `lean` merges in between).
+
+The conflicts below are from `git merge-tree` run in sequence: m1-top ⊕ F7, then ⊕ F5, then ⊕ N10a.
+
+1. **F7, including F2.** It merges textually clean onto m1-top: F7 is based on M1 @ `e2d102d97b`, before m1-top's
+   `lean` merge. Merge it once F7's head builds (its steps 2 and 4 are unbuilt). In `etc/axiom-tok-allow.txt`, keep
+   F7's `Serve_dist`/`NewServer_dist` entries and drop M1's old ones (F7 Handoff 7). F7 has already changed every M1 file
+   that `memberShareD`'s new `lm` argument touches.
+2. **F5**, which brings wenv, N3 and N9a. **Never merge N9a on its own**: F5's `KVPfxDist` supersedes N9a's
+   (`kvPfx_alloc` now takes the disciplines and returns `kvPfxH`). Retire N9a's branch after this step.
+
+   Textual conflicts:
+   - `Proof/go_etcd_io/etcd/client/v3/InvClientNewResult.lean`: M1's line against wenv's `isNewClient` at `V.atEps
+     eps`. Keep wenv's conjunct. It is the definition the trusted KV and watch axioms' preconditions name (§25.5), so
+     re-read what M1's line changed there.
+   - `Spec/.../dist/client/{checked,ended,newClient}.lean`: the same statements with different imports (F7's
+     `LeaseDefs`, F5's `KVClientDist`). Keep one copy whose import covers both. The Proof files are identical.
+   - `etc/bounds-allow.txt`: N9a/F5's `spec-thread` line for `dist/client`; take the union.
+   - The notes.
+
+   Semantic conflicts:
+   - `clientCore_of_new` (F5's `CompactWorkDefs`) duplicates `clientCoreAt_of_new` (F7's `LeaseDefs`). Keep F7's,
+     delete F5's, and point compact at it. putget and durable then find the lemma they call.
+   - Apply F5's `hser'` fix to `KVCallsDist.wp_cliGet`. Then build `RunPutGet`, `RunDurable` and `KVWorkLinked` for
+     the first time.
+   - `Serve_dist`'s docstring: the N3 review's F4 sentence (watch streams) merges cleanly into F7's new text. With
+     auth on, the server is `memberUpOnL`, and its watch handler's auth-on behaviour is not what F4 describes. That is
+     a re-review item for F9.
+3. **N10a, rebased by its owner onto F5 (or wenv) first.**
+   - Textually it conflicts only in the three Spec helpers and the notes. Its `WatchDist`/`WatchClientDist` are N3's,
+     unchanged, so wenv's versions win.
+   - Semantically, `RunWatch`, `watchClient_of_new`/`kvWatcherW_of_dist` and the `KMWatch`/`KMWatchDefs` split were
+     built over the `isNewClient`/`watcherMu` from before the refactor, so they must be rebuilt and probably adapted
+     to `V.atEps`.
+   - Also open on N10a: the `bounds-check` `spec-thread` +2 (§24.5). Take N9a's `bounds-allow` line, or the
+     coordinator decides.
+4. **The remote wire refactor.** It changes `Net/` and kvremote's `Codec`/`Orch`/`Node`, which are M1's proved code:
+   keep the old wire as the instance `ivAt x i := ⌜i = iv x⌝`, so that kvremote's proofs change by instantiation only.
+   Then come `remoteWriters`, the writer arm (F4) and `watch_start`.
+5. **F6 cache**, off step 4.
+6. **F7 S3 (auth), after the auth-on `Watch_dist`; F7 S4 (authLease).** Both are on F7's line, merged here after it.
+7. **F8 proper**: the dispatch and its Spec drafts, `Shares`, `DeploymentClass`, `clusterStartDA`, `Start`, the
+   boots, the theorem, the collection.
+   - It starts right after steps 1-3: the arms of steps 4-6 are hypotheses (their Spec files) until they land.
+   - The theorem closes when the last arm is linked.
+
+### 27.6 Risks
+
+- **The wire refactor reopens M1's proved kvremote**, in `Net/`, a part shared with dsverify. Mitigation: the old
+  wire as an instance.
+- **The cache is the largest unknown.** The cache library's single-process proofs (`Proof/go_etcd_io/etcd/cache/v3`)
+  are over a local watcher environment. Across machines they need the watch contract at the view, and the wenv
+  refactor's `wgsGuard` may not be enough.
+- **Auth is large**: about 9k lines of single-process proofs to port, about 14 new axioms, re-reviews of `Serve_dist`
+  and `NewServer_dist`, the auth-on `Watch_dist`, and the auth-on start (F7 L5, design only).
+- **F7's lease-mode start and lease links are unbuilt.** The start, step 2 of 27.2, rests on them.
+- **The order of the allocations in step 2.** The names must precede `clientsAt_start`, because `c.view` holds `ls`,
+  `au` and `auth`.
+  - Allocating everything at once is unsound for the lease axioms: their reviews require injective `Γ.ls` and
+    `Γ.au`.
+  - `etc/lease-order-check.py` blocks linking the lease axioms until `Serve_dist` ties the lessor to `Γ.ls mid`. It
+    does on F7.
+- **The trust items F8 itself raises for F9.**
+  - F4's sentence on the new `Serve_dist`.
+  - wenv's §25.5 item (`isNewClient` in the axioms' preconditions).
+  - The Q1/Q2 `WellFormed` change, if taken: an untrusted Go change, but one that narrows the deployments the theorem
+    says something about. It goes with the packet, as NC4's items do.
+- **Duplicated modules on four branches** (`checked`, `ended`, `newClient`, the `clientCore` lemma). The rule from now
+  on is one owner per shared helper: they move to `dist/client/Base`-level defs at the F7 ⊕ F5 merge.
+
+### 27.7 Open questions (for the lead; Q1 and Q2 go to the user with the recommendation)
+
+- **Q1: auth on with no auth workload.**
+  - **Recommended:** add to `WellFormed` (Go clause 5 and the Lean `Deployment.WellFormed`, with `TestWellFormed`):
+    `Cfg.Auth → ∃ w, needsAuth w`. Since `alone` holds, auth is then on exactly in `{auth}` and `{authLease}`. This
+    is parity with the single-process `etcd_safe`, where auth was on only in auth's own clusters. It also closes
+    F5 §26.4's compact-under-auth question.
+  - Otherwise every non-auth workload is proved a second time over the `…On_dist` forms, and compact cannot run with
+    auth on at all (`cmp → on = false`).
+- **Q2: lease grants beside key writers.**
+  - **Recommended:** add to `Compatible`: a `grantsLeases` workload runs beside no other workload that writes keys.
+    `authLease`, which does both, runs alone. Then the lease mode is not `none` only where no client needs `etcdKV`.
+  - Otherwise revisit the lease-grant plan's (C): give a client a KV half in a granting cluster whose own writes
+    attach no lease. That is a large change to the server's KV invariant, against an earlier decision of the user's.
+  - leaseRead stays allowed beside anything.
+- **Q3: where the theorem goes** (27.4): `dist/BootSkel.lean` plus `dist/TopLevelRobustness.lean`, or a new
+  directory.
+- **Q4: the M1 theorem**, kept as a corollary or retired in F9 (27.4). Retiring it needs the user's sign-off.
+- **Q5: who writes the auth-on `Watch_dist`** (F7's Q4), and the Spec drafts for cache, auth and authLease. Proposed:
+  F8 drafts the run specs and shares now, and their owners review them.
