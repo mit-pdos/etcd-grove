@@ -96,7 +96,7 @@ theorem node.start.wp_proof
     (wp_drain : node.drain.spec (GF := GF) (hG := hG))
     (wp_alone : node.alone.spec (GF := GF) (hG := hG))
     (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law (GF := GF))
-    (h_rso : raftState_open_rn.law (GF := GF)) (h_loop : startLoop.law (GF := GF)) :
+    (h_rso : raftState_open_rn.law (GF := GF)) :
     node.start.spec (GF := GF) (hG := hG) := by
   intro _ c γ n j v q
   wp_start as ⟨#Hc, #Hn, Hown, Had, Htok, %Hb1⟩
@@ -433,7 +433,7 @@ theorem node.start.wp_proof
   imod nodeVacant_arm γ.raft (AntSim.nodeId j) ⊤ $$ Hvac with ⟨%x, Hvac, -⟩
   have HmdR : γ.R.md = scopeMd γ.scope := Hrun.2.2.2.2.1
   have Hsn : γ.R.md.snapshots = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.1
-  have Hcc : γ.R.md.confChanges = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.2
+  have Hcc : γ.R.md.confChanges = false := by rw [HmdR]; exact Hb1.2.2.2.2.2.2.2.1
   have Hmi := inScope_inflight Hscope
   have HN9 : γ.R.N ≤ 9 := γ.R.hK.2.2
   have Hsh := start_storageHolds γ.R v.dur Hdur
@@ -482,10 +482,10 @@ theorem node.start.wp_proof
   subst Hl0
   icases (h_rso γ.raft (AntSim.nodeId j) (downDur γ.R)).1 $$ Hrs with ⟨Hdg, Htlb, Hbud⟩
   icases HF with ⟨Hmeta, -⟩
-  ihave Hloop : nodeLoopAt γ.R.md c γ j n { v with alive := true } [] [] v.r [] $$
+  ihave Hown : nodeOwn c γ j n { v with alive := true } (.loop [] [] v.r []) $$
       [Nrn Nstore Nrole Nhs Ncause Napp Nconf Nitems Nmhs Nrhs Nwrites Ninfl Napps Napplying Nrest Nwip
         Naip Nconfs NconfBase Hemit Hv Hl Dhs Dsnap Dents Dcap Hmeta Hrn Hgv Hsf Hdg Htlb Hbud]
-  · iunfold nodeLoopAt
+  · iunfold nodeOwn
     iexists d, rn', ms, hp, null, cs, go!"follower", W64 0
     iframe Nd Nrn Nstore Nrole Nhs Ncause Napp Nconf Hv Hl
     isplitl [Nitems Nmhs Nrhs Nwrites Ninfl Napps Napplying Nrest Nwip Naip Nconfs NconfBase Hemit]
@@ -555,8 +555,7 @@ theorem node.start.wp_proof
     rw [if_neg (by rw [Hby]; intro h; exact absurd h.1 (by decide))]
     iunfold pendingCause
     ileft; ipureintro; exact ⟨rfl, rfl⟩
-  -- the boot drain (`nodeOwn`'s node at `γ.R.md`: `startLoop.law`), then `alone`
-  ihave Hown := h_loop c γ j n { v with alive := true } [] [] v.r [] $$ Hloop
+  -- the boot drain, then `alone`
   rw [show (go!"boot" : GoString) = ({ v with alive := true } : AntSim.NodeView).byE from Hby.symm]
   wp_apply wp_drain c γ n j { v with alive := true } [] [] v.r [] q $$ [$Hpkg $Hc $Hn $Hown $Had $Htok]
     as %v'' ⟨Hown, Had, Htok, %Hby''⟩

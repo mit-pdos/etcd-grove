@@ -10,9 +10,7 @@ Lean-first (no Rocq counterpart). #33 parity B1: **what `node.start` needs of a 
 - the boot write's hard state and entry, frozen (`bootHs_hsRO`, `bootEnt_entRO`);
 - `NewRawNode`'s restart premises at the driver's `raft.Config` (`startConfig`; `startConfig_valid`,
   `start_storageHolds`, `start_confStateIs`, `start_restartScope`) and the state it restarts at
-  (`restartR_fresh`: a fresh view's);
-- the close into `nodeOwn`'s `.loop` phase with raft's node at the run's mask (`nodeLoopAt`,
-  `startLoop.law`; at `md = {}` it is `nodeOwn`'s own text, `nodeLoopAt_empty`).
+  (`restartR_fresh`: a fresh view's).
 -/
 module
 
@@ -394,59 +392,6 @@ theorem restartR_fresh (R : AntSim.RunCfg) (v : AntSim.NodeView) (hf : AntSim.Fr
       RaftState.init, RaftState.entsFrom, base0, AntSim.RunCfg.c0]
 
 end restart
-
-section loop
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
-
-/-- **`nodeOwn`'s `.loop` phase with raft's node at the mode `md`**: `nodeOwn c γ j n v
-(.loop net₀ xnet₀ r₁ xs₁)`'s text (`HarnessRun.lean`) with `rawNode γ.raft.raftNames {}` replaced by
-`rawNode γ.raft.raftNames md`. (Raft's step D moves `nodeOwn`'s node to `γ.R.md`; this copy goes
-then.) -/
-def nodeLoopAt (md : RnMode) (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc)
-    (v : AntSim.NodeView) (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) :
-    IProp GF :=
-  iprop(∃ (d rn ms hsl cl csl : Loc) (role : GoString) (applied : w64),
-    n.[H.node, go!"disk"] ↦□ d ∗ nodeMemB1 n ∗
-    n.[H.node, go!"rn"] ↦ rn ∗ n.[H.node, go!"store"] ↦ ms ∗ n.[H.node, go!"role"] ↦ role ∗
-    n.[H.node, go!"hs"] ↦ hsl ∗ n.[H.node, go!"cause"] ↦ cl ∗ n.[H.node, go!"applied"] ↦ applied ∗
-    n.[H.node, go!"conf"] ↦ csl ∗
-    viewFrag γ j v ∗ nodeLive γ j ∗ ⌜ViewNormal v⌝ ∗
-    iprop(diskOwn d v.dur ∗ ∃ (si : Loc) (rs : RNState) (qs : List Msg) (ip : Nat) (r : RState),
-      nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1))
-        (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
-      ⌜rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
-      rawNode γ.raft.raftNames md rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
-      ⌜RsView rs v ∧ v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length ∧
-        rs.k = γ.R.k j⌝ ∗
-      hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
-      csPts csl DFrac.discard
-        (ConfStateM.mk ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1)) [] [] [] false) false ∗
-      ⌜v.conf = γ.R.c0⌝ ∗
-      iprop(⌜r = r₁ ∧
-          AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧ qs = [] ∧
-          ip = lcpLen v.r.p.log r₁.p.log ∧ ByOk v.byE⌝ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗
-          causeOwn γ j v cl)))
-
-/-- At `md = {}`, `nodeLoopAt` is `nodeOwn`'s `.loop` phase (the copy is faithful). -/
-theorem nodeLoopAt_empty (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
-    (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) :
-    nodeLoopAt (GF := GF) {} c γ j n v net₀ xnet₀ r₁ xs₁ ⊣⊢ nodeOwn c γ j n v (.loop net₀ xnet₀ r₁ xs₁) := by
-  unfold nodeLoopAt nodeOwn
-  exact .rfl
-
-/-- **`node.start`'s close into `nodeOwn`** (what its `drain "boot"` takes), from raft's node at the
-run's mask (`NewRawNode.restartAtApiSpec` at `γ.R.md`). Holds by `nodeLoopAt_empty` once `nodeOwn`'s
-node is at `γ.R.md` (raft's step D); until then a hypothesis of `node.start.wp_proof`. -/
-abbrev startLoop.law : Prop :=
-  ∀ (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (net₀ : List Msg)
-    (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg),
-    nodeLoopAt (GF := GF) γ.R.md c γ j n v net₀ xnet₀ r₁ xs₁ ⊢ nodeOwn c γ j n v (.loop net₀ xnet₀ r₁ xs₁)
-
-end loop
 
 section names
 variable [GooseExts]
