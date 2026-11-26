@@ -1196,7 +1196,8 @@ theorem memberGen_crash_law_holds (C : etcd_dist.MemberCl)
   · iunfold etcdstart.memberRestartFacts at Hrf
     icases Hrf with ⟨-, -, -, -, #Hp, -⟩
     iexact Hp
-  imod (idPfxInv_crash (Gg := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ ρo.ids.gen ρo.ids.pfx)
+  imod (idPfxInv_crash (Gg := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩
+      (semL := sem) (semL' := sem) ρo.ids.gen ρo.ids.pfx)
     $$ Hpfo Hic with Hpfx
   ihave Hrf' := memberRestartFacts_gen (G := G) ⟨fl, lc', nh, gs, th, cr⟩ ⟨fl', lc', nh', gs', th', cr'⟩ γ ρo id $$ [Hpfx]
   · isplitr

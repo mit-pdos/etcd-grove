@@ -25,15 +25,15 @@ open Iris Iris.BI Iris.ProofMode
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [lctx : GoLocalContext]
-variable [sem : go.Semantics]
-include lctx sem
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 open Iris.Std in
 /-- **The prefix's ids' invariant at the restarted generation** (`L'`), from the old generation's
-(`L`) and the issue record's crash rest, which it consumes (its authority cancels the old ids' map). -/
-theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
+(`L`) and the issue record's crash rest, which it consumes (its authority cancels the old ids' map). Each generation's `go.Semantics` is at its own local context. -/
+theorem idPfxInv_crash (L L' : GooseLocalGS GF)
+    [semL : @go.Semantics _ L.goose_go_local_context go_gctx]
+    [semL' : @go.Semantics _ L'.goose_go_local_context go_gctx] (gen : GName) (p : w64) :
     ⊢ idPfxInv (hG := ⟨Gg, L⟩) gen p -∗
       idIssueCrashStart (gooseIdIssueGS (L := L)) (gooseIdIssueGS (L := L')) ={⊤}=∗
       idPfxInv (hG := ⟨Gg, L'⟩) gen p := by
