@@ -37,7 +37,8 @@ next endpoint on `Unavailable`), its success the member's check (`txnReadChecked
 `writeAuD` (resent after a token refresh), its success the grant of `irrTxn` (`writeCheckedD`, nested
 operations included). The error arm claims nothing.
 
-**Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; needs a fresh review): the write
+**Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
+`notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
 arm admits a leased transaction in the revocable lease mode, `txn.txnPlain … ∨ (Γ.kv.lm = .revocable ∧ txnPlainL …)`,
 as `KV_PutOn_dist`'s `leaseID = 0 ∨ Γ.kv.lm = .revocable` and the in-process `client.txnUpdAtOn` (`RunAuthLease`'s
 leased transactions; a weaker premise, callers unaffected). The auth-off `Txn_Commit_dist` is unchanged.

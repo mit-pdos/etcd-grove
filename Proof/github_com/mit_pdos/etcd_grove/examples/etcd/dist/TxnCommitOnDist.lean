@@ -46,7 +46,8 @@ applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 
 **Reviews** (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C, the Serve tie). Unchanged since (`f7-changed-since-review.md`).
 
-**Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; needs a fresh review): the write
+**Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
+`notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write
 arm admits a leased transaction in the revocable lease mode (the spec's docstring).
 
 Retired by #24's S2 client side (`etcdSvc` defined, `Invoke` over the net model). The statement does not
