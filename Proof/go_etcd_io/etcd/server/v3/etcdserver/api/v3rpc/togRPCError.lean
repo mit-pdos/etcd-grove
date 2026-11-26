@@ -151,7 +151,7 @@ theorem v3rpc.togRPCError.wp_proof
     have hE := HS1.2.1 ⟨ei, Hl.1, Hl.2.1, Hl.2.2⟩ ii hS1 hor
     rw [hE]
     iexact Hde
-  wp_apply v3rpc.wp_errMap_lookup2 _ _ _ Hsafe $$ HM as -
+  wp_apply v3rpc.wp_errMap_lookup2_at _ _ _ Hsafe $$ HM as -
   cases hk : Mg !! err with
   | some v =>
     simp only [Option.getD_some, Option.isSome_some, decide_true]

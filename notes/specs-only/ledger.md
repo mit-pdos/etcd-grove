@@ -7026,7 +7026,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `etc/tcb-collections/mvccfull.txt`). A Go test: `MainAt` with
   `ETCD_VERIFY=all` returns without creating a file, unset runs (`start_test.go`).
   `etc/premise-witness-baseline.txt` loses mvccfull's `HEnv` line.
-- **Decision.** Pending: a change of the top-level statement, Upamanyu's (#8, via coordinator-E).
+- **Decision.** Approved (coordinator-E for Upamanyu, #49 7179589277, 2026-11-26) -- but **not done:
+  the proposed change cannot be proved over the trusted `os.Getenv` spec as it stands** (branch
+  `mvcc-followup`, 2026-11-26). Since its review the same day ("only offness, never the value",
+  `notes/axiom-review/getenv-etcd-verify.md`), `os.Getenv.spec`'s post for `ETCD_VERIFY` is
+  `EtcdVerifyOff → etcdVerifyOffValue v`, not `v = etcdVerifyEnv`: a read the program finds off does
+  not give `EtcdVerifyOff`, and without it nothing links that read to the later reads inside `Run`
+  (`verify.IsVerificationEnabled`, the backend's lock checks), each of which may then return an "on"
+  value in the model. So `MainAt`'s check cannot discharge `Run.spec`'s `⌜EtcdVerifyOff⌝`. What would:
+  a per-process environment in `os`'s semantics (the deferred Perennial change named in `Getenv.lean`'s
+  header: every read of a process returns that process's one value), after which `os.Getenv` returns the
+  process's value and a first read that is off makes every later one off. Strengthening the axiom
+  instead (`etcdVerifyOffValue v ↔ EtcdVerifyOff`) is unsound across processes (two machines with
+  different values: a program comparing their offness panics, the axiom proves it does not), and adds
+  trust, outside this approval. `HEnv` stays; the entry stays open until that Perennial change.
 
 ## 2026-11-25: `mvccfull_robust.spec` -- one configuration, `MainConfig`, while the package doc spoke of every `Config` (mvcc-retire, #49)
 
@@ -7048,8 +7061,13 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   covers every configuration `Run.spec` admits (a strengthening). `MainAt.spec`'s proof over a drawn
   `cfg` (`Run.spec` already holds for every `cfg` with `runCfgOk`); a Go non-vacuity test (many seeds:
   the validation passes, `Run`'s checks are reached). The hashes remain outside until F2.
-- **Decision.** Pending: the program the top-level statement is about changes, Upamanyu's (#8, via
-  coordinator-E).
+- **Decision.** Approved (coordinator-E for Upamanyu, #49 7179589277, 2026-11-26). Done on branch
+  `mvcc-followup`: `MainAt` draws every field with `anyInt` (a random 64-bit value shifted right by a
+  random amount below 64: every int, short ones often) and runs the configuration when `inScope` (exactly
+  `runCfgOk`, `ScopeLemmas.lean`'s `runCfgOk_of`) admits it; Read's hash weight is drawn like the others
+  and `inScope` rejects it through `hashing`. The statement's text is unchanged but its docstring; its
+  program covers every configuration `Run.spec` admits. Go tests: `TestDrawConfig` (drawn configurations
+  pass `inScope`; its bounds are the stated ones), `TestMainAt`.
 ## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
 
 - **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
@@ -7178,3 +7196,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
   translation and the two axioms deleted.
 - **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).
+## 2026-11-26: `grpcErrMap`'s and `grpcErrOut`'s map at `v3rpc.errKeys`; `toGRPCErrorMap_init` was false (grpcerrmap)
+
+- **Spec.** `v3rpc.grpcErrMap` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Base.lean`, in the package
+  fact `v3rpcInit`), `v3rpc.grpcErrOut` (`InvKV.lean`), and the trust-boundary axiom `toGRPCErrorMap_init`
+  (`v3rpc/Init.lean`) that gave the former.
+- **Defect.** The map points-to `mp ↦$□ M` was at Perennial's interface keys (`nil` or pointers), while the
+  same fact says `context.DeadlineExceeded`'s value, the struct `deadlineExceededError{}`, is a key: the post
+  was unsatisfiable, and the axiom false.
+- **Evidence.** `notes/axiom-review/togrpcerrormap-keys.md`; `util.go:91` (the struct key is real).
+- **Proposed change.** Own the map at `v3rpc.errKeys` (the `errKeyOk` keys) in both; `togRPCError`'s lookup
+  through `wp_errMap_lookup2_at`. Translate the initializer and prove it (the axiom deleted). To give the
+  initializer its keys' and values' facts: `rpctypesInit` gains a last conjunct `rpctypesMapVals` (the map's
+  51 values, each `statusErrOk` with its description; proved by `rpctypes`' initializer), `etcdserver/version`'s
+  fact (`True`) becomes `errorsNewVars versionErrMsgs`, and `v3rpc.toml` imports `etcdserver/errors` (which
+  `util.go` imports; its initializer ran only through `etcdserver`'s). Strengthenings, but the key class,
+  which replaces a false statement; no top-level statement changes.
+- **Decision.** Within the brief's rule for false axioms (fix the spec, record it, say so).

@@ -1649,6 +1649,21 @@ untranslated, `opaqueInitsOk`).''',
     alloc_types={'nRetries': 'w64', 'maxExponentialRetries': 'w64'}),
     ['ErrInvalidURL', 'ErrBadSizeKey', 'ErrSizeNotFound', 'ErrFullCluster', 'ErrTooManyRetries'])
 
+# (grpcerrmap, 2026-11-26) its fact: its three error variables (`versionErrMsgs`, `membership/PkgInit.lean`),
+# keys of `v3rpc`'s error map
+_VER = SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.version']
+_VER['doc'] = '''Its fact (`membership/PkgInit.lean`; grpcerrmap, 2026-11-26, `True` until then): every error
+variable its `errors.New` error (`errorsNewVars versionErrMsgs`), keys of `v3rpc`'s error map. Its
+initializer initializes its imports, allocates its variables and runs their translated initializers
+(`errors.go`: `errors.New` calls; until 2026-11-19 untranslated, `opaqueInitsOk`).'''
+_VER['finish'] = ([f'ipersist H{x}' for x in ['ErrInvalidDowngradeTargetVersion', 'ErrDowngradeInProcess',
+                                               'ErrNoInflightDowngrade']] + FIN_PRE[:6] +
+    ['imodintro',
+     'unfold go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs',
+     'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
+     'iframe #'])
+
+
 # The k8s etcd3 store's packages (stage 6g, 2026-10-23): their facts are in
 # `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`.
 _K3 = 'k8s_io.apiserver.pkg.storage.etcd3'
@@ -2915,6 +2930,34 @@ for x, g in _RPC_ERRS.items():
     st += ['try wp_auto']
     _R['before'][x] = st
 _R['finish'].remove('ipersist HerrStringToError')
+
+# (grpcerrmap, 2026-11-26) `rpctypesInit`'s last conjunct, `rpctypesMapVals` (`cache/v3/Base.lean`): the
+# values of `v3rpc`'s error map `toGRPCErrorMap`, each one grpc's `status` accepts with its description
+# (`status_steps`' `#O<x>`, `#DR<x>`; `ErrTooManyRequests` and `ErrMemberNotEnoughStarted`: `EtcdError`
+# values, `rpctypes_etcdError_statusErrOk` and `Error.wp_initErr`'s description), read off its definition.
+def _rpc_map_vals():
+    s = open('Proof/go_etcd_io/etcd/cache/v3/Base.lean').read()
+    i = s.index('abbrev rpctypesMapVals : IProp GF :=')
+    body = s[i:s.index('\n\n', i)]
+    return re.findall(r'statusErrVar go_etcd_io\.etcd\.api\.v3\.v3rpc\.rpctypes\.(\w+) go!"([^"]*)"', body)
+_RPC_MAPVALS = _rpc_map_vals()
+assert len(_RPC_MAPVALS) == 51, len(_RPC_MAPVALS)
+_rmv = [f'ipersist H{x}' for x, _ in _RPC_MAPVALS if f'ipersist H{x}' not in _R['finish']]
+_rmv += ['-- (grpcerrmap) the values of `v3rpc`\'s error map, with their descriptions',
+         'ihave #RMV : (go_etcd_io.etcd.cache.v3.rpctypesMapVals : IProp GF) $$ []']
+for _i, (x, m) in enumerate(_RPC_MAPVALS):
+    if _i + 1 < len(_RPC_MAPVALS):
+        _rmv += ['isplitl []']
+    if x in _RPC_ERRS:
+        _rmv += [f'· iexists ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, #x{x}⟩',
+                 f'  iframe H{x}',
+                 '  isplitl []',
+                 f'  · iapply (EtcdGrove.rpctypes_etcdError_statusErrOk EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc x{x})',
+                 f'  · iapply (go_etcd_io.etcd.cache.v3.descIs_etcdError_of _ _ X{x})']
+    else:
+        _rmv += [f'· iexists e{x}; iframe H{x} O{x} DR{x}']
+_R['finish'][_R['finish'].index('iframe Hown'):_R['finish'].index('iframe Hown')] = _rmv
+
 _R['rec_depth'] = 200000
 _R['imports'] += ['Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error',
                   'Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc',
@@ -3512,7 +3555,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              'ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA',
              '-- mvcc\'s',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd37',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.mvcc}',
              'icases Hmi with ⟨' + '-, ' * 32 + '#NEWR, #NWDI, -⟩',
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
@@ -3551,6 +3594,154 @@ promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'clientReques
         ['type', 'client_api_version'])
 # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
 promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'streamFailures', 'Counter', ['Type', 'API'])
+
+# (grpcerrmap, 2026-11-26) `toGRPCErrorMap` translated (`util.go:35-93`; until then the trust-boundary
+# axiom `toGRPCErrorMap_init`, whose post owned the map at Perennial's interface keys and so could not
+# hold, `notes/axiom-review/togrpcerrormap-keys.md`): the literal's 53 keys, each an `errKeyOk` error
+# with its description (`v3rpc.errMapKeyVar`, from its package's fact), and its values, `rpctypes`'
+# (`rpctypesMapVals`, from `rpctypes`' fact); after the 106 loads, the map made and the entries
+# inserted under `v3rpc.errMapInv` (`ErrMapInit.lean`), whose end gives the fact's map (`errMap_done`).
+_V = SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc']
+del _V['custom']['toGRPCErrorMap']
+_V['alloc_types']['toGRPCErrorMap'] = 'Loc'
+_V['imports'] = _V['imports'] + ['Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ErrMapInit']
+_V['doc'] = _V['doc'].replace("""(the map untranslated: the trust-boundary axiom
+`toGRPCErrorMap_init`; the vector translated,""", """(the map translated since grpcerrmap,
+2026-11-26: until then the trust-boundary axiom `toGRPCErrorMap_init`; the vector translated,""")
+def _lean_pairs(path, name):
+    s = open(path).read()
+    i = s.index(f'def {name} : List (GoString × GoString) :=')
+    return re.findall(r'\((\w+), go!"([^"]*)"\)', s[i:s.index(']', s.index('[', i))])
+_MB = 'go_etcd_io.etcd.server.v3.etcdserver.api.membership'
+_ER = 'go_etcd_io.etcd.server.v3.etcdserver.errors'
+_VE = 'go_etcd_io.etcd.server.v3.etcdserver.version'
+_AU = 'go_etcd_io.etcd.server.v3.auth'
+_LE = 'go_etcd_io.etcd.server.v3.lease'
+_MV = 'go_etcd_io.etcd.server.v3.storage.mvcc'
+_MBP = 'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/membership/PkgInit.lean'
+# a key's package: its list of `(variable, message)` (the fact's), how to take it from the fact
+_EMK_LISTS = {_MB: (f'{_MB}.membershipErrMsgs', _lean_pairs(_MBP, 'membershipErrMsgs')),
+              _ER: (f'{_ER}.errorsMsgs', _lean_pairs('Proof/go_etcd_io/etcd/server/v3/etcdserver/errors/Base.lean', 'errorsMsgs')),
+              _VE: (f'{_VE}.versionErrMsgs', _lean_pairs(_MBP, 'versionErrMsgs')),
+              _AU: (f'{_AU}.authErrMsgs', _lean_pairs('Proof/go_etcd_io/etcd/server/v3/auth/Base.lean', 'authErrMsgs'))}
+_EMK_ONE = {f'{_MV}.ErrCompacted': (30, 'mvcc: required revision has been compacted'),
+            f'{_MV}.ErrFutureRev': (31, 'mvcc: required revision is a future revision'),
+            f'{_LE}.ErrLeaseNotFound': (7, 'lease not found'),
+            f'{_LE}.ErrLeaseExists': (8, 'lease already exists'),
+            f'{_LE}.ErrLeaseTTLTooLarge': (9, 'too large lease TTL')}
+_EMK_FACT = {_MB: (f'{_MB}.membershipInit', 4, 1), _ER: (f'{_ER}.errorsInit', 3, 1),
+             _AU: (f'{_AU}.authInit', 24, 23), _MV: (f'{_MV}.mvccInit', 43, None),
+             _LE: (f'{_LE}.leaseInit', 11, None)}
+def _mem_term(i):
+    t = 'List.Mem.head _'
+    for _ in range(i):
+        t = f'List.Mem.tail _ ({t})'
+    return t
+def _icases_nth(n, i, name):
+    return '⟨' + ', '.join([f'#{name}' if j == i else '-' for j in range(i + 1)] + (['-'] if i + 1 < n else [])) + '⟩'
+_FR = 'go_etcd_io.etcd.cache.v3.futureRevDesc'
+_CP = 'go_etcd_io.etcd.cache.v3.compactedDesc'
+_UNFF = f'unfold {_FR}; decide'
+_UNFC = f'unfold {_CP}; decide'
+def _key_steps(i, g):
+    """`ihave #KV<i> : errMapKeyVar g m`, from `g`'s package's fact; its message."""
+    pkg, x = g.rsplit('.', 1)
+    if g == 'context.Canceled' or g == 'context.DeadlineExceeded':
+        m = 'context canceled' if x == 'Canceled' else 'context deadline exceeded'
+        st = [f'ihave #KV{i} : (EtcdGrove.v3rpc.errMapKeyVar _root_.Perennial.{g} go!"{m}" : IProp GF) $$ []',
+              '· ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []',
+              '  · iapply _root_.Perennial.context.isInit_access $$ {Hd:context}',
+              '  iNamed Hci']
+        if x == 'Canceled':
+            st += ['  icases HCanceledCell with ⟨%xc, #Hxc, #Hxs⟩',
+                   '  iapply EtcdGrove.v3rpc.keyVar_of_cell',
+                   '  unfold EtcdGrove.errVarCell EtcdGrove.errStrCell',
+                   '  iexists xc; iframe Hxc Hxs']
+        else:
+            st += ['  iapply EtcdGrove.v3rpc.keyVar_deadline $$ HDeadlineExceededTy']
+        return st, m
+    fact, n, at = _EMK_FACT.get(pkg, (None, None, None))
+    acc = ([f'  ihave Hf : ({fact} : IProp GF) $$ []', f'  · iapply isPkgInit_access $$ {{Hd:{pkg}}}']
+           if fact else [f'  ihave Hf : (EtcdGrove.errorsNewVars {_EMK_LISTS[pkg][0]} : IProp GF) $$ []',
+                         f'  · iapply isPkgInit_access $$ {{Hd:{pkg}}}'])
+    if g in _EMK_ONE:
+        j, m = _EMK_ONE[g]
+        lem = 'keyVar_of_newVar' if pkg == _MV else 'keyVar_of_cell'
+        sub = acc + [f'  icases Hf with {_icases_nth(n, j, "Hx")}',
+                     f'  iapply EtcdGrove.v3rpc.{lem} $$ Hx']
+        return [f'ihave #KV{i} : (EtcdGrove.v3rpc.errMapKeyVar {g} go!"{m}" : IProp GF) $$ []',
+                '· ' + sub[0][2:]] + sub[1:], m
+    lname, pairs = _EMK_LISTS[pkg]
+    j = [p[0] for p in pairs].index(x)
+    m = pairs[j][1]
+    cell = pkg == _AU
+    st = list(acc)
+    if at is not None:
+        st += [f'  icases Hf with {_icases_nth(n, at, "Hl")}']
+    else:
+        st += ['  ihave #Hl := Hf']
+    mem = f'({_mem_term(j)} : ({g}, go!"{m}") ∈ {lname})'
+    if cell:
+        st += [f'  ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := {lname}) {mem} $$ Hl',
+               '  iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx']
+    else:
+        st += [f'  ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := {lname}) {mem} $$ Hl',
+               '  iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx']
+    return [f'ihave #KV{i} : (EtcdGrove.v3rpc.errMapKeyVar {g} go!"{m}" : IProp GF) $$ []',
+            '· ' + st[0][2:]] + st[1:], m
+def _v3rpc_code():
+    return open('Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.lean').read()
+_V3C = _v3rpc_code()
+_GA = r'\(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) \(App \(Val \(GoInstruction \(GlobalVarAddr _root_\.Perennial\.([\w.]+)\)\)\) \(Val #\(\)\)\)\)'
+_EMKEYS = re.findall(r'\(Let "\$k\d+" ' + _GA, _V3C)
+_EMVALS = re.findall(r'\(Let "\$v\d+" ' + _GA, _V3C)
+assert len(_EMKEYS) == 53 and len(_EMVALS) == 53, (len(_EMKEYS), len(_EMVALS))
+_RT = 'go_etcd_io.etcd.api.v3.v3rpc.rpctypes.'
+_VIDX = {x: j for j, (x, _) in enumerate(_RPC_MAPVALS)}
+_VMSG = dict(_RPC_MAPVALS)
+_ifr = _EMKEYS.index(f'{_MV}.ErrFutureRev')
+_icp = _EMKEYS.index(f'{_MV}.ErrCompacted')
+_st = ['-- the keys, from their packages\' facts']
+_kmsg = []
+for _i, _g in enumerate(_EMKEYS):
+    _s, _m = _key_steps(_i, _g)
+    _st += _s + [f'icases KV{_i} with ⟨%k{_i}, #KP{_i}, %KO{_i}, #KD{_i}⟩']
+    _kmsg.append(_m)
+_st += ['-- the values, from `rpctypes`\' fact',
+        'ihave Hrmv : (go_etcd_io.etcd.cache.v3.rpctypesMapVals : IProp GF) $$ []',
+        '· ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.api.v3.v3rpc.rpctypes}',
+        '  icases Hri with ⟨' + '-, ' * 45 + '#R⟩',
+        '  iexact R',
+        'icases Hrmv with ⟨' + ', '.join(f'⟨%v{j}, #VP{j}, #VS{j}, #VD{j}⟩' for j in range(len(_RPC_MAPVALS))) + '⟩',
+        '-- the loads, then the map',
+        'try wp_auto',
+        f'wp_apply (EtcdGrove.v3rpc.wp_errMap_make k{_ifr} k{_icp}) as %mpE HmE',
+        'try wp_auto']
+for _i, (_g, _vg) in enumerate(zip(_EMKEYS, _EMVALS)):
+    assert _vg.startswith(_RT), _vg
+    _vx = _vg[len(_RT):]
+    _j = _VIDX[_vx]
+    _mv = _VMSG[_vx]
+    if _vx == 'ErrGRPCFutureRev':
+        assert _i == _ifr
+        _hmv = f'⟨fun _ => rfl, fun h => absurd h (by {_UNFC})⟩'
+    elif _vx == 'ErrGRPCCompacted':
+        assert _i == _icp
+        _hmv = f'⟨fun h => absurd h (by {_UNFF}), fun _ => rfl⟩'
+    else:
+        _hmv = f'⟨fun h => absurd h (by {_UNFF}), fun h => absurd h (by {_UNFC})⟩'
+    _xg = _g if _g.startswith('go_etcd_io') else f'_root_.Perennial.{_g}'
+    _st += [f'wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k{_ifr} k{_icp} {_i} {_xg} k{_i} v{_j}',
+            f'    go!"{_kmsg[_i]}" go!"{_mv}" rfl KO{_i} ⟨by {_UNFF}, by {_UNFC}⟩ {_hmv})',
+            f'    $$ [$HmE $KP{_i} $KD{_i} $VS{_j} $VD{_j}] as HmE',
+            'try wp_auto']
+_st += ['-- the map built: the fact\'s pieces',
+        f'ihave ⟨StoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, #PtoGRPCErrorMap⟩ := EtcdGrove.v3rpc.errMap_done _ _ _ _ 53 (Nat.le_of_eq rfl) $$ HmE KP{_ifr} KP{_icp}',
+        'ipersist StoGRPCErrorMap']
+_V['before']['toGRPCErrorMap'] = _st
+_V['rec_depth'] = 200000
+
 
 
 # Item 8 (2026-10-17): the read package, its `init()`'s `MustRegister` given the registration

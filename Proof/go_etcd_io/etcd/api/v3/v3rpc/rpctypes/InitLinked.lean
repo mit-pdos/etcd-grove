@@ -1624,6 +1624,159 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     icombine HErrFutureRev He gives %Heq
     cases Heq
     iexact SErrFutureRev
+  ipersist HErrGRPCMemberNotFound
+  ipersist HErrGRPCMemberExist
+  ipersist HErrGRPCPeerURLExist
+  ipersist HErrGRPCMemberNotLearner
+  ipersist HErrGRPCTooManyLearners
+  ipersist HErrMemberNotEnoughStarted
+  ipersist HErrGRPCLearnerNotReady
+  ipersist HErrGRPCRequestTooLarge
+  ipersist HErrTooManyRequests
+  ipersist HErrGRPCNotLeader
+  ipersist HErrGRPCLeaderChanged
+  ipersist HErrGRPCCanceled
+  ipersist HErrGRPCStopped
+  ipersist HErrGRPCTimeout
+  ipersist HErrGRPCTimeoutDueToLeaderFail
+  ipersist HErrGRPCTimeoutDueToConnectionLost
+  ipersist HErrGRPCTimeoutWaitAppliedIndex
+  ipersist HErrGRPCUnhealthy
+  ipersist HErrGRPCCorrupt
+  ipersist HErrGRPCBadLeaderTransferee
+  ipersist HErrGRPCClusterVersionUnavailable
+  ipersist HErrGRPCWrongDowngradeVersionFormat
+  ipersist HErrGRPCInvalidDowngradeTargetVersion
+  ipersist HErrGRPCDowngradeInProcess
+  ipersist HErrGRPCNoInflightDowngrade
+  ipersist HErrGRPCLeaseNotFound
+  ipersist HErrGRPCLeaseExist
+  ipersist HErrGRPCLeaseTTLTooLarge
+  ipersist HErrGRPCRootUserNotExist
+  ipersist HErrGRPCRootRoleNotExist
+  ipersist HErrGRPCUserAlreadyExist
+  ipersist HErrGRPCUserNotFound
+  ipersist HErrGRPCRoleAlreadyExist
+  ipersist HErrGRPCRoleNotFound
+  ipersist HErrGRPCRoleEmpty
+  ipersist HErrGRPCAuthFailed
+  ipersist HErrGRPCPermissionNotGiven
+  ipersist HErrGRPCRoleNotGranted
+  ipersist HErrGRPCPermissionNotGranted
+  ipersist HErrGRPCAuthNotEnabled
+  ipersist HErrGRPCInvalidAuthMgmt
+  ipersist HErrGRPCDeadlineExceeded
+  -- (grpcerrmap) the values of `v3rpc`'s error map, with their descriptions
+  ihave #RMV : (go_etcd_io.etcd.cache.v3.rpctypesMapVals : IProp GF) $$ []
+  isplitl []
+  · iexists eErrGRPCMemberNotFound; iframe HErrGRPCMemberNotFound OErrGRPCMemberNotFound DRErrGRPCMemberNotFound
+  isplitl []
+  · iexists eErrGRPCMemberExist; iframe HErrGRPCMemberExist OErrGRPCMemberExist DRErrGRPCMemberExist
+  isplitl []
+  · iexists eErrGRPCPeerURLExist; iframe HErrGRPCPeerURLExist OErrGRPCPeerURLExist DRErrGRPCPeerURLExist
+  isplitl []
+  · iexists eErrGRPCMemberNotLearner; iframe HErrGRPCMemberNotLearner OErrGRPCMemberNotLearner DRErrGRPCMemberNotLearner
+  isplitl []
+  · iexists eErrGRPCTooManyLearners; iframe HErrGRPCTooManyLearners OErrGRPCTooManyLearners DRErrGRPCTooManyLearners
+  isplitl []
+  · iexists ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, #xErrMemberNotEnoughStarted⟩
+    iframe HErrMemberNotEnoughStarted
+    isplitl []
+    · iapply (EtcdGrove.rpctypes_etcdError_statusErrOk EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc xErrMemberNotEnoughStarted)
+    · iapply (go_etcd_io.etcd.cache.v3.descIs_etcdError_of _ _ XErrMemberNotEnoughStarted)
+  isplitl []
+  · iexists eErrGRPCLearnerNotReady; iframe HErrGRPCLearnerNotReady OErrGRPCLearnerNotReady DRErrGRPCLearnerNotReady
+  isplitl []
+  · iexists eErrGRPCCompacted; iframe HErrGRPCCompacted OErrGRPCCompacted DRErrGRPCCompacted
+  isplitl []
+  · iexists eErrGRPCFutureRev; iframe HErrGRPCFutureRev OErrGRPCFutureRev DRErrGRPCFutureRev
+  isplitl []
+  · iexists eErrGRPCRequestTooLarge; iframe HErrGRPCRequestTooLarge OErrGRPCRequestTooLarge DRErrGRPCRequestTooLarge
+  isplitl []
+  · iexists eErrGRPCNoSpace; iframe HErrGRPCNoSpace OErrGRPCNoSpace DRErrGRPCNoSpace
+  isplitl []
+  · iexists ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, #xErrTooManyRequests⟩
+    iframe HErrTooManyRequests
+    isplitl []
+    · iapply (EtcdGrove.rpctypes_etcdError_statusErrOk EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc xErrTooManyRequests)
+    · iapply (go_etcd_io.etcd.cache.v3.descIs_etcdError_of _ _ XErrTooManyRequests)
+  isplitl []
+  · iexists eErrGRPCNoLeader; iframe HErrGRPCNoLeader OErrGRPCNoLeader DRErrGRPCNoLeader
+  isplitl []
+  · iexists eErrGRPCNotLeader; iframe HErrGRPCNotLeader OErrGRPCNotLeader DRErrGRPCNotLeader
+  isplitl []
+  · iexists eErrGRPCLeaderChanged; iframe HErrGRPCLeaderChanged OErrGRPCLeaderChanged DRErrGRPCLeaderChanged
+  isplitl []
+  · iexists eErrGRPCCanceled; iframe HErrGRPCCanceled OErrGRPCCanceled DRErrGRPCCanceled
+  isplitl []
+  · iexists eErrGRPCStopped; iframe HErrGRPCStopped OErrGRPCStopped DRErrGRPCStopped
+  isplitl []
+  · iexists eErrGRPCTimeout; iframe HErrGRPCTimeout OErrGRPCTimeout DRErrGRPCTimeout
+  isplitl []
+  · iexists eErrGRPCTimeoutDueToLeaderFail; iframe HErrGRPCTimeoutDueToLeaderFail OErrGRPCTimeoutDueToLeaderFail DRErrGRPCTimeoutDueToLeaderFail
+  isplitl []
+  · iexists eErrGRPCTimeoutDueToConnectionLost; iframe HErrGRPCTimeoutDueToConnectionLost OErrGRPCTimeoutDueToConnectionLost DRErrGRPCTimeoutDueToConnectionLost
+  isplitl []
+  · iexists eErrGRPCTimeoutWaitAppliedIndex; iframe HErrGRPCTimeoutWaitAppliedIndex OErrGRPCTimeoutWaitAppliedIndex DRErrGRPCTimeoutWaitAppliedIndex
+  isplitl []
+  · iexists eErrGRPCUnhealthy; iframe HErrGRPCUnhealthy OErrGRPCUnhealthy DRErrGRPCUnhealthy
+  isplitl []
+  · iexists eErrGRPCKeyNotFound; iframe HErrGRPCKeyNotFound OErrGRPCKeyNotFound DRErrGRPCKeyNotFound
+  isplitl []
+  · iexists eErrGRPCCorrupt; iframe HErrGRPCCorrupt OErrGRPCCorrupt DRErrGRPCCorrupt
+  isplitl []
+  · iexists eErrGRPCBadLeaderTransferee; iframe HErrGRPCBadLeaderTransferee OErrGRPCBadLeaderTransferee DRErrGRPCBadLeaderTransferee
+  isplitl []
+  · iexists eErrGRPCClusterVersionUnavailable; iframe HErrGRPCClusterVersionUnavailable OErrGRPCClusterVersionUnavailable DRErrGRPCClusterVersionUnavailable
+  isplitl []
+  · iexists eErrGRPCWrongDowngradeVersionFormat; iframe HErrGRPCWrongDowngradeVersionFormat OErrGRPCWrongDowngradeVersionFormat DRErrGRPCWrongDowngradeVersionFormat
+  isplitl []
+  · iexists eErrGRPCInvalidDowngradeTargetVersion; iframe HErrGRPCInvalidDowngradeTargetVersion OErrGRPCInvalidDowngradeTargetVersion DRErrGRPCInvalidDowngradeTargetVersion
+  isplitl []
+  · iexists eErrGRPCDowngradeInProcess; iframe HErrGRPCDowngradeInProcess OErrGRPCDowngradeInProcess DRErrGRPCDowngradeInProcess
+  isplitl []
+  · iexists eErrGRPCNoInflightDowngrade; iframe HErrGRPCNoInflightDowngrade OErrGRPCNoInflightDowngrade DRErrGRPCNoInflightDowngrade
+  isplitl []
+  · iexists eErrGRPCLeaseNotFound; iframe HErrGRPCLeaseNotFound OErrGRPCLeaseNotFound DRErrGRPCLeaseNotFound
+  isplitl []
+  · iexists eErrGRPCLeaseExist; iframe HErrGRPCLeaseExist OErrGRPCLeaseExist DRErrGRPCLeaseExist
+  isplitl []
+  · iexists eErrGRPCLeaseTTLTooLarge; iframe HErrGRPCLeaseTTLTooLarge OErrGRPCLeaseTTLTooLarge DRErrGRPCLeaseTTLTooLarge
+  isplitl []
+  · iexists eErrGRPCRootUserNotExist; iframe HErrGRPCRootUserNotExist OErrGRPCRootUserNotExist DRErrGRPCRootUserNotExist
+  isplitl []
+  · iexists eErrGRPCRootRoleNotExist; iframe HErrGRPCRootRoleNotExist OErrGRPCRootRoleNotExist DRErrGRPCRootRoleNotExist
+  isplitl []
+  · iexists eErrGRPCUserAlreadyExist; iframe HErrGRPCUserAlreadyExist OErrGRPCUserAlreadyExist DRErrGRPCUserAlreadyExist
+  isplitl []
+  · iexists eErrGRPCUserEmpty; iframe HErrGRPCUserEmpty OErrGRPCUserEmpty DRErrGRPCUserEmpty
+  isplitl []
+  · iexists eErrGRPCUserNotFound; iframe HErrGRPCUserNotFound OErrGRPCUserNotFound DRErrGRPCUserNotFound
+  isplitl []
+  · iexists eErrGRPCRoleAlreadyExist; iframe HErrGRPCRoleAlreadyExist OErrGRPCRoleAlreadyExist DRErrGRPCRoleAlreadyExist
+  isplitl []
+  · iexists eErrGRPCRoleNotFound; iframe HErrGRPCRoleNotFound OErrGRPCRoleNotFound DRErrGRPCRoleNotFound
+  isplitl []
+  · iexists eErrGRPCRoleEmpty; iframe HErrGRPCRoleEmpty OErrGRPCRoleEmpty DRErrGRPCRoleEmpty
+  isplitl []
+  · iexists eErrGRPCAuthFailed; iframe HErrGRPCAuthFailed OErrGRPCAuthFailed DRErrGRPCAuthFailed
+  isplitl []
+  · iexists eErrGRPCPermissionNotGiven; iframe HErrGRPCPermissionNotGiven OErrGRPCPermissionNotGiven DRErrGRPCPermissionNotGiven
+  isplitl []
+  · iexists eErrGRPCPermissionDenied; iframe HErrGRPCPermissionDenied OErrGRPCPermissionDenied DRErrGRPCPermissionDenied
+  isplitl []
+  · iexists eErrGRPCRoleNotGranted; iframe HErrGRPCRoleNotGranted OErrGRPCRoleNotGranted DRErrGRPCRoleNotGranted
+  isplitl []
+  · iexists eErrGRPCPermissionNotGranted; iframe HErrGRPCPermissionNotGranted OErrGRPCPermissionNotGranted DRErrGRPCPermissionNotGranted
+  isplitl []
+  · iexists eErrGRPCAuthNotEnabled; iframe HErrGRPCAuthNotEnabled OErrGRPCAuthNotEnabled DRErrGRPCAuthNotEnabled
+  isplitl []
+  · iexists eErrGRPCInvalidAuthToken; iframe HErrGRPCInvalidAuthToken OErrGRPCInvalidAuthToken DRErrGRPCInvalidAuthToken
+  isplitl []
+  · iexists eErrGRPCInvalidAuthMgmt; iframe HErrGRPCInvalidAuthMgmt OErrGRPCInvalidAuthMgmt DRErrGRPCInvalidAuthMgmt
+  isplitl []
+  · iexists eErrGRPCAuthOldRevision; iframe HErrGRPCAuthOldRevision OErrGRPCAuthOldRevision DRErrGRPCAuthOldRevision
+  · iexists eErrGRPCDeadlineExceeded; iframe HErrGRPCDeadlineExceeded OErrGRPCDeadlineExceeded DRErrGRPCDeadlineExceeded
   iframe Hown
   imodintro
   isplitr
