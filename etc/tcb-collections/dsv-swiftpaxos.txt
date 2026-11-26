@@ -29,3 +29,8 @@ axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.os.signal.Notify.wp_proofUsr1Sigs
+opaque Perennial.encoding.gob.decoderTok
+opaque Perennial.encoding.gob.encoderTok
+opaque Perennial.encoding.gob.wireBytes
+opaque Perennial.encoding.gob.wireFits
+opaque Perennial.net.http.godebugHttpmuxgo121

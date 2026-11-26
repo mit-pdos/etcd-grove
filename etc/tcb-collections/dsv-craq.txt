@@ -22,3 +22,5 @@ axiom Perennial.github_com.despreston.go_craq.LoggerPrintln.wp_proof
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'
+opaque Perennial.github_com.despreston.go_craq.StdLogger
+opaque Perennial.net.http.godebugHttpmuxgo121

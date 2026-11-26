@@ -254,6 +254,23 @@ def lean_args():
     return [f"--part={r}" for r in PART_ROOTS]
 
 
+def local_roots():
+    """The module roots of this repository's Lake libraries (`lakefile.toml`'s `lean_lib`
+    globs, `Code.+` giving `Code`): its modules, as against its dependencies' (Lean, Std,
+    Mathlib, Iris, Perennial)."""
+    import tomllib
+    with open(os.path.join(ROOT, "lakefile.toml"), "rb") as f:
+        libs = tomllib.load(f).get("lean_lib", [])
+    return sorted({g.split(".")[0] for lib in libs
+                   for g in lib.get("globs", lib.get("roots", [lib["name"]]))})
+
+
+def tcb_args():
+    """`etc/tcb-report.lean`'s own options: `lean_args()`, and this repository's module roots
+    (`--local=ROOT`), the modules its trusted `opaque`s are counted in and walked through."""
+    return lean_args() + [f"--local={r}" for r in local_roots()]
+
+
 def shown(path):
     """`path` relative to the working directory if it is below it, else absolute."""
     r = os.path.relpath(path)
@@ -390,7 +407,7 @@ def run(json_path, prog):
             ctx = lean_cache.KeyContext(env, TCB_CACHE_VERSION, TCB_CACHE_SCRIPTS, ("TCB_",),
                                         os.path.join(ROOT, ".lake", "tcb-report-hashes.json"))
             for i, mods in enumerate(runs):
-                keys[i] = ctx.key([*lean_args(), *mods], mods)[0]
+                keys[i] = ctx.key([*tcb_args(), *mods], mods)[0]
         except lean_cache.NoCache as e:
             print(f"{prog}: not using the cache: {e}", file=sys.stderr)
             ctx = None
@@ -405,14 +422,14 @@ def run(json_path, prog):
         t0 = time.monotonic()
         with open(outs[i], "w") as f:
             rc = subprocess.run(
-                lake("env", *script, *lean_args(), *runs[i]),
+                lake("env", *script, *tcb_args(), *runs[i]),
                 cwd=ROOT, stdout=f, env=env, check=False,
             ).returncode
         print(f"{prog}: Lean run of {len(runs[i])} root modules ({runs[i][0]}, ...): "
               f"{time.monotonic() - t0:.0f}s", file=sys.stderr)
         if rc == 0 and ctx is not None:
             try:
-                same = ctx.key([*lean_args(), *runs[i]], runs[i])[0] == keys[i]
+                same = ctx.key([*tcb_args(), *runs[i]], runs[i])[0] == keys[i]
             except lean_cache.NoCache:
                 same = False
             if same:  # nothing rebuilt during the run
@@ -450,18 +467,20 @@ def run(json_path, prog):
 
 
 def _names(objs):
-    """`objs` with each root's `axioms` and `defs` by name: `etc/tcb-report.lean` writes them as
-    the indices (`i`) of its run's axiom and def lines (each run starting with a `group` line)."""
+    """`objs` with each root's `axioms`, `defs` and `opaques` by name: `etc/tcb-report.lean` writes
+    them as the indices (`i`) of its run's axiom, def and opaque lines (each run starting with a `group` line)."""
     out, group = [], []
 
     def flush():
         ax = {o["i"]: o["name"] for o in group if o["t"] == "axiom"}
         df = {o["i"]: o["name"] for o in group if o["t"] == "def"}
+        oq = {o["i"]: o["name"] for o in group if o["t"] == "opaque"}
         for o in group:
             if o["t"] == "root":
                 o["axioms"] = [ax[i] if isinstance(i, int) else i for i in o["axioms"]]
                 o["defs"] = [df[i] if isinstance(i, int) else i for i in o["defs"]]
-            if o["t"] in ("axiom", "def"):
+                o["opaques"] = [oq[i] if isinstance(i, int) else i for i in o.get("opaques", [])]
+            if o["t"] in ("axiom", "def", "opaque"):
                 o.pop("i", None)
             out.append(o)
         group.clear()

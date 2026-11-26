@@ -44,3 +44,10 @@ axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom strings.ToLower.wp_proof
 axiom zap.Stack.wp_proof
+opaque apply.semverIsCore
+opaque apply.semverValid
+opaque etcdVerifyEnv
+opaque lease.leaseEnc
+opaque lease.leasesNoExpiry
+opaque mvcc.kvEncode
+opaque mvcc.viewFk

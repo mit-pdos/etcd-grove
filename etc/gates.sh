@@ -135,6 +135,8 @@ if python3 etc/tcb-report.py --check > "$tmp/tcb.log" 2>&1; then
 else
   echo "tcb: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/tcb.log" | tail -20; fail=1
 fi
+# its selftest: which `opaque`s etc/tcb-report.lean counts, on an environment of its own (seconds)
+python3 etc/tcb-report.py --selftest > "$tmp/tcbs.log" 2>&1 || { echo "tcb selftest: FAILED"; tail -10 "$tmp/tcbs.log"; fail=1; }
 # the collections, in one run (the JSON loaded once; each collection checked as on its own: 68
 # runs of 5.6s each, nearly all of it parsing the JSON, took six minutes), beside the axiom-tok gate
 # below: both only read the .lake/tcb.json the check above wrote
