@@ -545,17 +545,19 @@ def TransferRecvEndR (id : w64) (r : RState) (x : XMsg) (r' : RState) : Prop :=
 
 /-- **A received `MsgTimeoutNow`** (`stepFollower`, `raft.go:1620`): a stale one ignored; otherwise
 after the preamble (a higher term: `becomeFollower(x.term, None)`, the design's `PreEnd` at a
-non-leader type, written out), a promotable node campaigns at once (`campaignTransfer`, no
-pre-vote, `ctxTransfer` on its requests); otherwise nothing. (antithesis parity) At a leader,
-`stepLeader`'s spec gives the transfer types' arm only appends (`ReplSends`), so the arm admits
-them (`SendsEnd`). -/
+non-leader type, written out), a promotable follower campaigns at once (`campaignTransfer`, no
+pre-vote, `ctxTransfer` on its requests); otherwise nothing (`stepCandidate` ignores it, so a
+candidate or pre-candidate never campaigns on it; a pre-candidate reads as a follower here, and its
+ignoring is the `r'.p = p1` arm). (antithesis parity) At a leader, `stepLeader`'s spec gives the
+transfer types' arm only appends (`ReplSends`), so the arm admits them (`SendsEnd`; Go's
+`stepLeader` ignores it). -/
 def TimeoutNowEndR (id : w64) (r : RState) (x : XMsg) (r' : RState) : Prop :=
   (uint.Z x.term < uint.Z r.p.term ∧ r' = r) ∨
   (uint.Z r.p.term ≤ uint.Z x.term ∧
     (∃ p1, (uint.Z r.p.term < uint.Z x.term ∧ p1 = pbecomeFollower r.p x.term (W64 0) ∨
               x.term = r.p.term ∧ p1 = r.p) ∧
        (r'.p = p1 ∨ (p1.role = .leader ∧ SendsEnd r.cfg.cfg id p1 r'.p) ∨
-        CampaignEnd r.cfg.cfg id p1 ctxTransfer r'.p)) ∧
+        (p1.role = .follower ∧ CampaignEnd r.cfg.cfg id p1 ctxTransfer r'.p))) ∧
     KeepCfg r r' ∧ r'.fp = r.fp ∧ r'.snap = r.snap ∧ r'.pci = PciNext r r'.p)
 
 /-- **`RawNode.ReportSnapshot`** (`MsgSnapStatus`; design §1.4, B3): nothing, or at a leader a probe

@@ -6551,3 +6551,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Users to adapt (not the raft helper's files).** HarnessRun.lean:521, HarnessInput.lean:116 and :125 write `rawNode
   γ.raft.raftNames rn …`: insert the mode (`{}` today, `γ.R.md` once the apiSpecs are at `∀ md`).
 - **Decision.** Lead's order (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1: `TimeoutNowEndR`'s campaign arm only at a follower (#33)
+- **Spec (tightened end relation; Sim's request).** `TimeoutNowEndR` (Protocol/InputEnd.lean): the campaign arm is
+  `p1.role = .follower ∧ CampaignEnd … p1 ctxTransfer r'.p` (`p1` after the preamble). Go (`raft.go` v3.7.0):
+  `stepCandidate` ignores `MsgTimeoutNow` (`:1712`, also a pre-candidate's step function), `stepLeader` has no arm for it;
+  only `stepFollower` campaigns (`:1758`). Spec stepCandidate's result gives `s' = s` for it, so the tightened form is
+  provable; the leader's `SendsEnd` arm stays (stepLeader's spec: `ReplSends`). A pre-candidate reads as a follower in
+  `PState` (its ignoring is the `r'.p = p1` arm). Nothing proves `TimeoutNowEndR` yet; the Sim does not use the looser
+  form. Part copies.
+- **Decision.** Sim helper's request via the lead (2026-11-26). No axiom, no premise.
