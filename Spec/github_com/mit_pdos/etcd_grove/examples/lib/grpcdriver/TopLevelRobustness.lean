@@ -18,7 +18,7 @@ panics when a property of gRPC fails, this says each holds, under every fault th
 allows (cut, reset or delayed connections, refused dials).
 
 **Premises**: only the deployment's start (`DistDeploy`) and the program's typing facts (the
-commands' `Assumptions`, `net.FieldAssumptions`, `go.BasicIntoValInj`). What it rests on beyond the
+commands' `Assumptions`, `go.BasicIntoValInj`; `net.FieldAssumptions` went with the Go-model net). What it rests on beyond the
 proofs, besides the net extension's semantics and the grpc model's trusted claims: the trust-base
 collection `etc/tcb-collections/grpcdriver.txt`.
 Proved in `Proof/github_com/mit_pdos/etcd_grove/examples/lib/grpcdriver/TopLevelRobustness.lean`.
@@ -45,7 +45,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 def grpcdriver_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState),
     DistDeploy grpcAddrs (system σs σc) g →
     Robustness.Robust [] (system σs σc) g grpcThreads grpcSteps

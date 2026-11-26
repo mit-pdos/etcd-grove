@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 theorem writeFrame.wp_proof (wp_putBytes : putBytes.spec (GF := GF) (hG := hG))
     (wp_writeAll : writeAll.spec (GF := GF) (hG := hG)) :

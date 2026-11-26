@@ -51,39 +51,47 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   # `genericReadFrom`'s loop reads `fileWithoutWriteTo` and writes `fileWithoutReadFrom`, and
   # `spliceToFile`'s `getPollFDAndNetwork` calls `fileWithoutWriteTo`'s `SyscallConn`
   "fileWithoutWriteTo.Read", "fileWithoutWriteTo.SyscallConn", "fileWithoutReadFrom.Write",
+  # (2026-11-24, S5) Go's code over the model (the [model] table below)
+  "fileStat", "File.Fd", "File.fd", "File.readFrom", "File.spliceToFile",
+  # (2026-11-25, perennial#692 decision (b), etcd-grove#8 7166757537) `rawConn.Control`/`Read`/`Write`
+  # stay names-only (no model, no trusted body): Go's bodies call `poll.FD.RawControl`/`RawRead`/
+  # `RawWrite`, names-only here, so no proof could pass them anyway, and their `runtime.KeepAlive`
+  # would make `os` import `runtime`, whose initializer rests on the trust-boundary axioms of
+  # Proof/runtime/Init.lean (every program importing `os` would then rest on them). With `runtime`
+  # out of the imports goose also leaves out `Process` (its `cleanup runtime.Cleanup` field).
+  "MkdirAll", "Mkdir", "Remove", "fixLongPath", "ignoringEINTR", "syscallMode",
+  "supportsCreateWithStickyBit",
+  "ModeDir", "ModeSymlink", "ModeSetuid", "ModeSetgid", "ModeSticky",
   # (zap-z2, 2026-11-23, as Perennial's os.toml since `ca6df841b`) `Exit` (zap's `internal/exit`,
   # `zap.Logger.Fatal`), over the trusted `syscall.Exit` (`AngelicExit`) and `runtime_beforeExit`
   # (below); it reads `internal/testlog`'s flag (Perennial's translation)
   "Exit"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
-imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll",
+imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll", "sync/atomic", "time",
+  "internal/filepathlite", "internal/gomodel",
   # (zap-z2) what `Exit` calls (`testlog.PanicOnExit0`)
   "internal/testlog"]
-# The functions and methods minibolt calls, modeled by the Linux file extension fsExt
-# (TrustedCode/os.lean, GooseLang/Ext/Fs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
-# `syscall.Stat_t`) with the layouts the models need.
-trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.Stat",
-  "File.Truncate", "File.Sync", "File.Close", "File.Fd",
-  # the directory tree, for the WAL's calls (examples/osfs/walfs, notes/walfs-ext-plan.md)
-  "Rename", "Remove", "Mkdir", "File.Readdirnames",
-  # the file offset, for the segment's sequential I/O (examples/osfs/walfs's seglog.go)
-  "File.Seek", "File.Write", "File.Read",
-  # (2026-11-07) what the initializer runs that is not translated, the user's decisions (Perennial
-  # fix-semantics Case 33; TrustedCode/os.lean): `runtime_args` (a linkname, no Go body) an
-  # arbitrary `[]string`; `Stdin`/`Stdout` do nothing (variables not allocated); `Stderr` allocates
-  # its variable and stores an arbitrary in-range address with no cell, not reserved (`GoPrealloc`).
-  "runtime_args", "Stdin", "Stdout", "Stderr",
-  # (2026-11-13, the WAL over fsExt: notes/wal-fsext-plan.md, section 4.3; drafts pending the user's
-  # review) `Stat`/`Lstat` (fileutil's Exist, CheckDirPermission), `MkdirAll` (TouchDirAll: Go's body
-  # calls internal/filepathlite, which nothing translates) and `RemoveAll` (the WAL's Create and
-  # Open: Go's body is over the *at system calls, which the extension does not have)
-  "Stat", "Lstat", "MkdirAll", "RemoveAll",
-  # (2026-11-14, `io.Copy` of two files: notes/wal-fsext-plan.md, "io.Copy log"; pending the user's
-  # review) Go's bodies over the trusted layout, with `poll.CopyFileRange`'s copy_file_range(2)
-  # rounds on the two files' offsets (TrustedCode/os.lean)
-  "File.readFrom", "File.copyFileRange", "File.spliceToFile",
-  # (rawconn.go) `c.file.pfd.RawControl/RawRead/RawWrite`: not modelled (a panic)
-  "rawConn.Control", "rawConn.Read", "rawConn.Write",
+# (2026-11-24, Go-model overlays S5, perennial#692) The functions and methods minibolt, the WAL and
+# fileutil call are Go: Go's own code where it translates (above and below), and elsewhere the Go
+# model of the [model] table (models/os/model.go, each declaration's MODEL: comment says why it has at
+# least Go's behaviours), over the primitive stubs here: one operation of the Linux file extension
+# fsExt each (models/os/stubs.go; GooseLang/Ext/Fs/Impl.lean), with their GooseLang models in
+# TrustedCode/os.lean. Until then `file`, `fileStat` and the functions were hand-written GooseLang
+# (TrustedCode/os.lean), the layouts with hand-stated field facts (`os.file.FieldAssumptions`).
+trusted = ["fsOpen", "fsPRead", "fsPWrite", "fsFdKind", "fsClose", "fsDirClose", "fsOutClose",
+  "fsFstat", "fsFtruncate", "fsFsync", "fsDirSync", "fsOutSync", "fsLstatDir", "fsRename",
+  "fsUnlink", "fsRmdir", "fsDirReadNext", "fsPathKind", "fsWithCall",
+  # (2026-11-07) `runtime_args`, a linkname into the runtime with no Go body (goose: "unsupported:
+  # external function"): an arbitrary `[]string` (TrustedCode/os.lean). A primitive, not a Go model:
+  # a model body would replace the runtime's in gc builds, whose programs (and os's own tests) need
+  # the real arguments.
+  "runtime_args",
+  # (2026-11-07) the initializer's standard streams, the user's decisions (Perennial fix-semantics
+  # Case 33; TrustedCode/os.lean): `Stdin`/`Stdout` do nothing (variables not allocated); `Stderr`
+  # allocates its variable and stores an arbitrary in-range address with no cell, not reserved
+  # (`GoPrealloc`). Translated code (raft's default logger, dsverify's dlog) loads them, so they
+  # cannot be skipped, and an address with no cell has no Go expression.
+  "Stdin", "Stdout", "Stderr",
   # (zap-z2, 2026-11-23, as Perennial's os.toml) `runtime_beforeExit` (a `go:linkname` into the
   # runtime's `os_beforeExit`, which `Exit` calls): nothing (TrustedCode/os.lean)
   "runtime_beforeExit"]
@@ -91,3 +99,21 @@ trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
 # assertions convert to interface types
 translate_types = true
+
+# (2026-11-24, S5) Go's code over the model: the real `fileStat` (its layout: `modTime` and `sys` are
+# left zero by the models, so `ModTime`, `Sys` and `sameFile` stay untranslated), `File.Fd`, the
+# zero-copy dispatch's `readFrom`/`spliceToFile` (`pollSplice` and `rawConn`'s methods are names
+# only: no proof passes them), `MkdirAll` (over `internal/filepathlite`), and `Mkdir`/`Remove`
+# over syscall's models of `Mkdir`, `Unlink` and `Rmdir` (Code/syscall.toml).
+[model]
+dir = "models/os"
+replaces = ["file", "OpenFile", "File.Close", "File.ReadAt", "File.WriteAt", "File.Seek",
+  "File.Write", "File.Read", "File.Stat", "File.Truncate", "File.Sync", "Rename",
+  "File.Readdirnames", "Stat", "Lstat", "RemoveAll", "File.copyFileRange"]
+
+[[skip]]
+names = ["modelDirNames", "modelDirNamesMu"]
+reason = """
+The gc-only state of the stub fsDirReadNext (models/os/stubs.go): a map literal and its mutex, read
+and written only by the Go bodies of that stub and fsDirClose, which is not translated (its GooseLang model is the extension's
+DirReadNext)."""

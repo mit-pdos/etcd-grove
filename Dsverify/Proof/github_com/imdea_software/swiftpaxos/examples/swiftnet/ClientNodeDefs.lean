@@ -70,7 +70,7 @@ def maxOps : Nat := 1000
 section defs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- The Go value of a configuration (`kit.go`'s `Conf`). -/
@@ -144,7 +144,7 @@ end defs
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 variable [ρ : RemoteGS]

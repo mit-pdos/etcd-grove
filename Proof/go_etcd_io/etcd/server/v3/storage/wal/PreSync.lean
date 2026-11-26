@@ -63,7 +63,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- The stream's state, with `osInv`. -/

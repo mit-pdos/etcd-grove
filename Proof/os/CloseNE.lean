@@ -24,7 +24,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- **`f.Close()` of a shared directory fd, no error** (see the file header). -/
 theorem os.File.Close.wp_dirSNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
@@ -33,18 +33,21 @@ theorem os.File.Close.wp_dirSNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : �
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
     {{ RET #GoInterface.nil; emp }} := by
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩, Hosfd⟩
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   ihave %hfd0 := osDirFdS_nonneg _ _ _ $$ Hosfd
-  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
-  wp_auto
+  rw [decide_eq_false (show fd ≠ W64 (-1) by rintro rfl; exact absurd hfd0 (by decide))]
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  wp_stub os.fsDirClose.impl
   wp_apply wp_osDirCloseSNE hS fd j ph CoPset.subseteq_top $$ Hinv Hosfd
   iapply HΦ
   iempintro

@@ -11,6 +11,8 @@ module
 public import Proof.os.ErrorOk
 public import Spec.os.OpenFileS
 public import GooseLang.Ext.Fs.NoErrSpecsOpenFile
+public import Proof.os.IgnoringEINTR
+public import Proof.os.ForLoeb
 
 @[expose] public section
 
@@ -27,7 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG := hG) := by
   intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hnd hq
@@ -42,16 +44,22 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
     (∃ xs, Q (some xs) ∗ crOut j b h (DFrac.own q) (some xs) ∗ crMeta (some xs)))
     $$ [Hau Hn]
   · ileft; iframe
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp HSt HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
+  try rw [os.file_ty_eq]
+  try rw [os.File_ty_eq]
+  try rw [show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hm⟩)
   · wp_apply +noauto (wp_aunc_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
-      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
+      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ «$res0» «$res1» perm flag name]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
     · iframe
@@ -68,10 +76,12 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
           iintro Hau
           obtain ⟨-, rfl⟩ := he
           subst he4
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
-          iapply IH $$ Hperm Hp [Hau Hn] HΦ
+          wp_for_post
+          inext
+          iapply IH $$ Hperm Hp [Hau Hn] HΦ [$] [$] [$] [$] [$]
           ileft; iframe
         · iright
           iexists none
@@ -79,12 +89,16 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
           · dsimp only [crOut]; iexact Hr'
           iintro HQ
           obtain ⟨he0, rfl⟩ := he
-          wp_auto
+          try wp_auto
           rw [decide_eq_false (show e ≠ W64 0 from he0)]
-          wp_auto
+          try wp_auto
           rw [decide_eq_false (show e ≠ W64 4 from he4)]
-          wp_auto
-          wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+          try wp_auto
+          wp_apply os.wp_modelErrno
+          try wp_auto
+          wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+          try wp_auto
+          wp_for_post
           iapply HΦ
           iframe
           dsimp only [crOut, crMeta]
@@ -101,12 +115,15 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · dsimp only [crOut]; iexact Hr'
         iintro HQ
         obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
-        iStructNamed inner
+        try wp_auto
+        os_newfile
+        wp_for_post_core
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
+        ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         iframe
@@ -119,12 +136,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · ipureintro; exact ⟨rfl, hfd0, hi⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           (repeat' isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- the file created
       icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr'⟩
       unfold osLogged
@@ -140,19 +159,25 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         ipureintro; exact ⟨⟨hn, hs⟩, hst⟩
       icases Hr with (%he | ⟨%he, Hfd⟩)
       · obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
-          iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
+          wp_for_post
+          inext
+          iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ [$] [$] [$] [$] [$]
           iright; iexists (x, s0, i); dsimp only [crMeta]; iframe
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
-        wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+        try wp_auto
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+        try wp_auto
+        wp_for_post
         iapply HΦ
         dsimp only [crMeta]
         iframe
@@ -161,12 +186,15 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
       · obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
-        iStructNamed inner
+        try wp_auto
+        os_newfile
+        wp_for_post_core
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
+        ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         dsimp only [crMeta]
@@ -178,12 +206,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · ipureintro; exact ⟨rfl, hfd0, rfl⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           (repeat' isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- an error, no effect
       icases (osNames_join j _ q r h hq).2 $$ Hw with ⟨Hn, Hr'⟩
       by_cases he4 : e = W64 4
@@ -192,10 +222,12 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         iintro Hau
         obtain ⟨-, rfl⟩ := he
         subst he4
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
-        iapply IH $$ Hperm Hp [Hau Hn] HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp [Hau Hn] HΦ [$] [$] [$] [$] [$]
         ileft; iframe
       · iright
         iexists none
@@ -203,12 +235,16 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · dsimp only [crOut]; iexact Hr'
         iintro HQ
         obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
-        wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+        try wp_auto
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iframe
         dsimp only [crOut, crMeta]
@@ -238,12 +274,15 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         by split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
-      wp_auto
-      iStructNamed inner
+      try wp_auto
+      os_newfile
+      wp_for_post_core
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
+      ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe
@@ -254,28 +293,36 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
       · ipureintro; exact ⟨rfl, hfd0, rfl⟩
       unfold os.ownFile os.ownOff
       isplitr [off]
-      · iexists inner_ptr
+      · iexists _
         iframe
         (repeat' isplitl []) <;> iassumption
-      · iexists inner_ptr
-        iframe
-        iassumption
+      · iexists _
+        isplitl []
+        · iexact f
+        (try rw [show (W64 0 : w64) = 0 from rfl])
+        iexact off
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
       subst hfd
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
-        iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ [$] [$] [$] [$] [$]
         iright; iexists (x, sx, i); dsimp only [crMeta]; iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
-      wp_auto
-      wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+      try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError_ok _ _ e he0 $$ Hsys as %pe #Hok
+      try wp_auto
+      wp_for_post
       iapply HΦ
       iframe
       iright
@@ -342,16 +389,22 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
     (∃ xs, Q (some xs) ∗ crOut j b h (DFrac.own q) (some xs) ∗ crMeta (some xs)))
     $$ [Hau Hn]
   · ileft; iframe
+  wp_for_bind
   iloeb as IH generalizing Hperm Hp HSt HΦ
+  wp_for_step
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_open_stub
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
+  try rw [os.file_ty_eq]
+  try rw [os.File_ty_eq]
+  try rw [show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hm⟩)
   · wp_apply +noauto (wp_aunc_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
-      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
+      (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ «$res0» «$res1» perm flag name]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
     · iframe
@@ -368,10 +421,12 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
           iintro Hau
           obtain ⟨-, rfl⟩ := he
           subst he4
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
-          iapply IH $$ Hperm Hp [Hau Hn] HΦ
+          wp_for_post
+          inext
+          iapply IH $$ Hperm Hp [Hau Hn] HΦ [$] [$] [$] [$] [$]
           ileft; iframe
         · exact absurd (hPe he.1) he4
       · iright
@@ -380,12 +435,15 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         · dsimp only [crOut]; iexact Hr'
         iintro HQ
         obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
-        iStructNamed inner
+        try wp_auto
+        os_newfile
+        wp_for_post_core
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
+        ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         iframe
@@ -397,12 +455,14 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         · ipureintro; exact ⟨rfl, hfd0, hi⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           (repeat' isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- the file created
       icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr'⟩
       unfold osLogged
@@ -418,24 +478,29 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         ipureintro; exact ⟨⟨hn, hs⟩, hst⟩
       icases Hr with (%he | ⟨%he, Hfd⟩)
       · obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
-          iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
+          wp_for_post
+          inext
+          iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ [$] [$] [$] [$] [$]
           iright; iexists (x, s0, i); dsimp only [crMeta]; iframe
         exact absurd (hPe he0) he4
       · obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
-        iStructNamed inner
+        try wp_auto
+        os_newfile
+        wp_for_post_core
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
+        ipersist nonblock
+        ipersist appendMode
         imodintro
         iapply HΦ
         dsimp only [crMeta]
@@ -446,12 +511,14 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         · ipureintro; exact ⟨rfl, hfd0, rfl⟩
         unfold os.ownFile os.ownOff
         isplitr [off]
-        · iexists inner_ptr
+        · iexists _
           iframe
           (repeat' isplitl []) <;> iassumption
-        · iexists inner_ptr
-          iframe
-          iassumption
+        · iexists _
+          isplitl []
+          · iexact f
+          (try rw [show (W64 0 : w64) = 0 from rfl])
+          iexact off
     · -- an error, no effect
       icases (osNames_join j _ q r h hq).2 $$ Hw with ⟨Hn, Hr'⟩
       by_cases he4 : e = W64 4
@@ -460,10 +527,12 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         iintro Hau
         obtain ⟨-, rfl⟩ := he
         subst he4
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
-        iapply IH $$ Hperm Hp [Hau Hn] HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp [Hau Hn] HΦ [$] [$] [$] [$] [$]
         ileft; iframe
       · exact absurd (hPe he.1) he4
   · obtain ⟨x, sx, i⟩ := xs
@@ -485,12 +554,15 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         by split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
-      wp_auto
-      iStructNamed inner
+      try wp_auto
+      os_newfile
+      wp_for_post_core
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
+      ipersist nonblock
+      ipersist appendMode
       imodintro
       iapply HΦ
       iframe
@@ -500,24 +572,28 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
       · ipureintro; exact ⟨rfl, hfd0, rfl⟩
       unfold os.ownFile os.ownOff
       isplitr [off]
-      · iexists inner_ptr
+      · iexists _
         iframe
         (repeat' isplitl []) <;> iassumption
-      · iexists inner_ptr
-        iframe
-        iassumption
+      · iexists _
+        isplitl []
+        · iexact f
+        (try rw [show (W64 0 : w64) = 0 from rfl])
+        iexact off
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
       subst hfd
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
-        iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
+        wp_for_post
+        inext
+        iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ [$] [$] [$] [$] [$]
         iright; iexists (x, sx, i); dsimp only [crMeta]; iframe
       have hE4 : e = EINTR := by rcases hres with ⟨h, -⟩ | ⟨-, -, h⟩; exact absurd h he0; exact h
       exact absurd hE4 he4

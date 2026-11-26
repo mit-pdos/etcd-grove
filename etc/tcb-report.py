@@ -203,6 +203,45 @@ def scan_sources():
     return hits
 
 
+def go_models():
+    """The Go model overlays (perennial#692): every `[model]` table of a goose config of this
+    repository (`Code/**.toml` and the parts' `<root>/Code/**.toml`), as (config, dir, replaces,
+    added_methods, the model files' Go lines, the primitive stubs: the config's `trusted` names that
+    the model files declare). A model's replaced declarations are trusted Go (each with its `MODEL:`
+    comment); its additions are translated and verified like any code."""
+    try:
+        import tomllib
+    except ImportError:
+        import tomli as tomllib
+    out = []
+    for d in ["Code"] + [os.path.join(r, "Code") for r in proof_roots.PART_ROOTS]:
+        for dp, _, fs in sorted(os.walk(os.path.join(ROOT, d))):
+            for f in sorted(fs):
+                if not f.endswith(".toml"):
+                    continue
+                path = os.path.join(dp, f)
+                try:
+                    cfg = tomllib.loads(read(path))
+                except Exception:
+                    continue
+                m = cfg.get("model")
+                if not m:
+                    continue
+                mdir = os.path.join(ROOT, m.get("dir", ""))
+                lines, names = 0, set()
+                if os.path.isdir(mdir):
+                    for g in sorted(os.listdir(mdir)):
+                        if g.endswith(".go") and not g.endswith("_test.go"):
+                            t = read(os.path.join(mdir, g))
+                            lines += len(t.splitlines())
+                            for mm in re.finditer(r"^func (?:\((?:\w+ )?\*?(\w+)(?:\[[^]]*\])?\) )?(\w+)", t, re.M):
+                                names.add((mm.group(1) + "." if mm.group(1) else "") + mm.group(2))
+                stubs = [n for n in cfg.get("trusted", []) if n in names]
+                out.append((os.path.relpath(path, ROOT), m.get("dir", ""), m.get("replaces", []),
+                            m.get("added_methods", []), lines, stubs))
+    return out
+
+
 def matches(r, pat, defs, at_):
     """Whether root `r` is selected by the regular expression `pat`: searched in its
     name (`T.wp_M`), its module's file and, for a linked result, its spec's file
@@ -808,6 +847,25 @@ def main():
         "hand-written models of Go code goose does not translate, are trusted to mean what "
         "that code means (each docstring says why)."
     )
+    gm = go_models()
+    if gm:
+        w(
+            "- **The Go models** (Go model overlays, perennial#692: a goose config's `[model]` "
+            "table, whose files goose splices into the real package before translating it): each "
+            "replaced declaration is trusted to have at least the behaviours of the real one "
+            "(its `MODEL:` doc comment says why; `gomodel.Choose`/`Stuck` are its choice and "
+            "stuck points); additions are translated and verified, but a primitive stub (an "
+            "addition the config trusts, with a `TrustedCode` model). `dir` `.lake/gomodel/...` is "
+            "Perennial's `internal/gomodel` at the pin (`etc/gomodels.py`)."
+        )
+        w("")
+        w("  | config | dir | replaces | added methods | Go lines | primitive stubs |")
+        w("  |---|---|---|---|---:|---|")
+        for cfgp, mdir, reps, added, lines, stubs in gm:
+            rs = "every file" if reps == ["*"] else (", ".join(f"`{r}`" for r in reps) or "(additions only)")
+            w(f"  | `{cfgp}` | `{mdir}` | {rs} | {', '.join(f'`{a}`' for a in added) or '-'} | "
+              f"{lines} | {', '.join(f'`{x}`' for x in stubs) or '-'} |")
+        w("")
     w(
         "- **The library models' generators** (`models/`, `models/README.md`): a program whose "
         "statement runs over a generated codec in place of a real library trusts the generator, "

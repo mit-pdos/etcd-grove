@@ -105,6 +105,7 @@
 //	model_os_filestat_name.go     fileStat.Name: base of the path    os.lean: fileStat, model.base; os.toml
 //	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
 //	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
+//	model_os_dir_offset.go        a directory's offset: not modelled models/os/model.go: Readdirnames, Seek
 //	model_os_readdirnames_len.go  Readdirnames: under 2^44 names     os.lean: File.Readdirnames.impl (assume)
 //	model_os_copy_file_range.go   io.Copy of files: copy_file_range  os.lean: model.copyFileRangeRound,
 //	                              as PRead + PWrite (pending review) pollCopyFileRange, File.copyFileRange.impl

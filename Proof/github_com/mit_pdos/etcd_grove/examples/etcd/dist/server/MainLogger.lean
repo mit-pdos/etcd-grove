@@ -390,9 +390,12 @@ theorem MainLogger.wp_proof
       iexact Htok
     (try wp_auto)
     -- `net.Listen("tcp", c.Peer)`: at the member's own peer address
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply (wp_ListenProto go!"tcp" m.peer (httpPeerSvc (GF := GF) c.γ.cl idm).1
         (httpPeerSvc (GF := GF) c.γ.cl idm).2) $$ [] as %pl %lerr Hl
-    · isplitr
+    · (try iframe HnetPk)
+      isplitr
       · ipureintro; rfl
       iExactEq Hown; rfl
     icases Hl with (⟨%Hle, Hlo⟩ | %Hle)
@@ -709,9 +712,12 @@ theorem MainLogger.wp_proof
       iexact Htok
     (try wp_auto)
     -- `net.Listen("tcp", c.Peer)`: at the member's own peer address
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply (wp_ListenProto go!"tcp" m.peer (httpPeerSvc (GF := GF) c.γ.cl idm).1
         (httpPeerSvc (GF := GF) c.γ.cl idm).2) $$ [] as %pl %lerr Hl
-    · isplitr
+    · (try iframe HnetPk)
+      isplitr
       · ipureintro; rfl
       iExactEq Hown; rfl
     icases Hl with (⟨%Hle, Hlo⟩ | %Hle)

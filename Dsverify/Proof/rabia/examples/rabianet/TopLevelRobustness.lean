@@ -119,7 +119,7 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
       [go.Semantics] [rabia.examples.rabianet.Assumptions] [go.BasicIntoValInj] [NetProtoGS]
       [RemoteGS], gens.spec (GF := remoteGF) (hG := hG)) :
     rabia_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 bvi
     hri σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (remoteStepBound) ?_
   intro G π hrb

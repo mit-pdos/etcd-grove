@@ -332,21 +332,21 @@ theorem ownFile_fractional (f : Loc) (fd : w64) (p : GoString) :
     refine ⟨?_, ?_⟩
     · iintro H
       unfold os.ownFile
-      icases H with ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩
-      icases ((typedPointsto_frac (GF := GF) (structFieldRef os.file go!"fd" inner) fd).fractional
+      icases H with ⟨%inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩
+      icases ((typedPointsto_frac (GF := GF) (structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner)) fd).fractional
         q1 q2).1 $$ Hfd with ⟨H1, H2⟩
       isplitl [H1]
       · iexists inner; iframe; iframe #
       · iexists inner; iframe; iframe #
     · iintro ⟨H1, H2⟩
       unfold os.ownFile
-      icases H1 with ⟨%inner, #Hf, Hfd1, #Hn, #Hsys⟩
-      icases H2 with ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hsys2⟩
+      icases H1 with ⟨%inner, #Hf, Hfd1, #Hn, #Hnb, #Hap, #Hsys⟩
+      icases H2 with ⟨%inner2, #Hf2, Hfd2, #Hn2, #Hn2b, #Hap2, #Hsys2⟩
       icombine Hf Hf2 gives %Heq
       cases Heq
       iexists inner
       iframe #
-      iapply ((typedPointsto_frac (GF := GF) (structFieldRef os.file go!"fd" inner) fd).fractional
+      iapply ((typedPointsto_frac (GF := GF) (structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" inner)) fd).fractional
         q1 q2).2
       iframe
 

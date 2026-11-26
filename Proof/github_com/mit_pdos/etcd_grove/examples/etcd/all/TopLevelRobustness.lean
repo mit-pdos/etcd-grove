@@ -37,7 +37,7 @@ variable [go_gctx : GoGlobalContext]
 /-- `etcd_robust_single_process.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean`). -/
 theorem etcd_robust_single_process : etcd_robust_single_process.spec := by
-  intro lctx sem package_sem _ _ _ _ k₁ ids₁ ps₁ ctxs₁ boot₁ Hlen₁
+  intro lctx sem package_sem _ k₁ ids₁ ps₁ ctxs₁ boot₁ Hlen₁
     Hbf₁ pid₁ pid₂ pid₃ psP ctxsP bootP HbfP cwId ctxsCW bootCW HbfCW cId ctxsC bootC HbfC kvId ctxsK
     bootK HbfK k₂ ids₂ ps₂ ctxs₂ boot₂ Hlen₂ Hbf₂ k₃ ids₃ ps₃ ctxs₃ boot₃ Hlen₃ Hbf₃
     Hap k₄ ids₄ ps₄ ctxs₄ boot₄ Hlen₄ Hbf₄ lid₁ lid₂ lid₃ psL ctxsL bootL HbfL k₅

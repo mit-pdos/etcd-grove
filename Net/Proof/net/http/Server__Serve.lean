@@ -39,7 +39,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [π : NetProtoGS] [net.Assumptions] [log.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -167,10 +167,11 @@ theorem Server.Serve.wp_proof
     iexists _; iexact HI
   · -- `Accept` failed
     iunfold net.resErr at HE
-    icases HE with ⟨%e, Hop, -⟩
-    iunfold net.opErr at Hop
-    icases Hop with ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩
+    icases HE with ⟨%e, #Hop, #Hk, -, #Hs, #Ha⟩
+    ihave #Hown := net.kindErr_netOwnErr _ _ _ _ net.edTyped_none $$ Hk
+    icases net.opErr_opErrOk _ _ _ _ _ $$ [$Hop $Hown $Hs $Ha] with ⟨%pe, %v, %Herr, #Hpe, #Hok⟩
     subst Herr
+    ihave #Hsys := net.lisAt_errnoOk _ _ _ $$ HlisAt
     try wp_auto
     wp_apply wp_shuttingDown $$ [$Hss]
     try wp_auto
@@ -178,7 +179,7 @@ theorem Server.Serve.wp_proof
       go_type_set
     simp only [hne]
     try wp_auto
-    wp_apply wp_Temporary pe _ $$ [$Hpe] as %b -
+    wp_apply wp_Temporary pe _ $$ [$Hpe $Hok] as %b -
     cases b
     · -- not temporary: `Serve` returns the error
       try wp_auto
@@ -202,7 +203,7 @@ theorem Server.Serve.wp_proof
         rw [show ∀ (a b c : GoInterface), [a, b].set (sint.nat (W64 (0 + 1))) c = [a, c] from
           fun _ _ _ => rfl]
         try wp_auto
-        wp_apply wp_logf_accept $$ [$Hlogi $Hel $Hpe $Hsl]
+        wp_apply wp_logf_accept $$ [$Hlogi $Hel $Hpe $Hok $Hsys $Hsl]
         try wp_auto
         wp_apply time.wp_Sleep
         try wp_auto

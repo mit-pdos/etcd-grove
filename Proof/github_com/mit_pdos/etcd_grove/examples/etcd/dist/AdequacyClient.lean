@@ -50,7 +50,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 theorem orchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat) (σ : state)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] (ρ : RemoteGS) :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (clientProg d j) σ
@@ -89,7 +89,7 @@ theorem orchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
 
 /-- **The `n`-th client machine** (see the file header), from its share `nodeShareF d n`. -/
 theorem nodeBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
-    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat) (σ : state)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] (ρ : RemoteGS) :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (nodeProg d n) σ

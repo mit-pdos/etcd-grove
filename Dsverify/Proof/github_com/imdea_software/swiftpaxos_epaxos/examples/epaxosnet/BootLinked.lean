@@ -60,7 +60,7 @@ theorem ownInitializing_of_empty [GooseExts] [GooseSemantics] [GooseInterp]
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [examples.epaxosnet.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [examples.epaxosnet.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 

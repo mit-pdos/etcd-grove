@@ -35,8 +35,8 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.Bucket_kvw`). -/
-private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
     (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ name ↦*{dq} n }}
@@ -45,7 +45,7 @@ private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs
       ((⌜S.lookup n = none ∧ b = Loc.null⌝) ∨
        (⌜S.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx γ b n (G n))) }} := by
   intro tx γ D S G name n dq
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -64,8 +64,8 @@ private theorem bbolt.kvGlue_Tx__Bucket_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Bucket.Cursor_kvw`). -/
-private theorem bbolt.kvGlue_Bucket__Cursor_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Bucket__Cursor_kvw (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
     (m : backend.BktData),
   G n = g → S.lookup n = some m →
@@ -73,7 +73,7 @@ private theorem bbolt.kvGlue_Bucket__Cursor_kvw (h : ∀ [ExtSemantics Fs.fsExt]
     (App (Val (b @!! go.GoType.PointerType go_etcd_io.bbolt.Bucket.ty @!! go!"Cursor")) (Val #()))
   {{ (c : Loc), RET #c; ownCur tx γ c (wView D S G) (backend.bktEnts m) none ∗ ownWTxG tx γ D S G }} := by
   intro tx γ D S G b n g m hg hm
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -90,13 +90,13 @@ private theorem bbolt.kvGlue_Bucket__Cursor_kvw (h : ∀ [ExtSemantics Fs.fsExt]
     iapply HΦ; iframe
 
 theorem backend.batchTx.UnsafeRange.wp_proof
-    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
+    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
     (hStringer : zap.Stringer.spec (GF := GF) (hG := hG))
     (hStack : zap.Stack.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
-    (hCursor : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG))
+    (hCursor : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG))
     (hRange : backend.unsafeRange.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
   replace hBucket := bbolt.kvGlue_Tx__Bucket_kvw hBucket

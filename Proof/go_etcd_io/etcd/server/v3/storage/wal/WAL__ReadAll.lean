@@ -274,7 +274,7 @@ theorem readAll_success1 {Mr : WalMarshal} {U : WalUnmarshal} (hU : U.Ok Mr) {d1
   · rw [h2, hle.2.2.2.2.1]
 
 set_option maxHeartbeats 2000000 in
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [syscall.Assumptions]
     [go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal) (U : WalUnmarshal) (hU : U.Ok Mr) (hUs : U.SnapCoh)

@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.As
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_restart1.wp_Main`). -/
 theorem restart1_Main
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions] :
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_restart1.Main.spec (GF := GF) (hG := hG) :=
   etcd_restart1.wp_Main
 

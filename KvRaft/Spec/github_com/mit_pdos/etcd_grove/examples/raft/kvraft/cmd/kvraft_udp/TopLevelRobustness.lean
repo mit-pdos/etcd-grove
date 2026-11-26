@@ -80,8 +80,7 @@ variable [go_gctx : GoGlobalContext]
 def kvraft_udp_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions] [udp_field_sem : net.UdpFieldAssumptions]
-    [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
+    [udp_field_sem : net.UdpFieldAssumptions]
     [log_sem : log.NewModel],
   ∀ (cl : ClusterConfig) (dir : GoString) (replicas : List (GoString × state)) (σc : state)
     (g : GlobalState),
@@ -99,8 +98,7 @@ UDP. A corollary of `kvraft_udp_robust`. -/
 def kvraft_udp_robust_example.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions] [udp_field_sem : net.UdpFieldAssumptions]
-    [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
+    [udp_field_sem : net.UdpFieldAssumptions]
     [log_sem : log.NewModel],
   ∀ (σ₁ σ₂ σ₃ σ₄ σ₅ σc : state) (g : GlobalState),
     (∀ σ ∈ [σ₁, σ₂, σ₃, σ₄, σ₅],

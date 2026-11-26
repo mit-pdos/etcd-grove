@@ -34,7 +34,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 
 def confPre (cf : RCfg) (ps : GoSlice) : Config :=
   { Role' := go!"svr", Id' := (zeroValDef : Config).Id', ControllerAddr' := (zeroValDef : Config).ControllerAddr',
@@ -432,11 +432,14 @@ theorem sendConf.wp_proof (D : KitNetDeps (GF := GF)) (γ : Names) (a : GoString
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply D.dial go!"tcp" net.tcpNet_tcp a iprop(True)
       (fun cid => iprop(connEnd (Gg := hG.goose_globalGS) cid false (cfgP γ) cfgQ [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cid false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcl, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Haok
     isplit
     · itrivial
@@ -740,8 +743,11 @@ theorem awaitConf.wp_proof (D : KitNetDeps (GF := GF)) : awaitConf.spec (GF := G
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
   wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk D.listen) go!"tcp" net.tcpNet_tcp a as %lv %err Hres
-  · iframe %Haok
+  · (try iframe HnetPk)
+    iframe %Haok
     iapply listen_au $$ Hproto
   ihave HI : (∃ (lv err : GoInterface), "l" ∷ l_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
       "Hres" ∷ ((⌜err = interface.nil⌝ ∗ ∃ l, ownListener lv l a) ∨
@@ -892,8 +898,11 @@ theorem awaitConf.wp_proof (D : KitNetDeps (GF := GF)) : awaitConf.spec (GF := G
     rw [if_pos (by simp)]
     wp_auto
     wp_apply time.wp_Sleep
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply (net.Listen.spec_addrOk D.listen) go!"tcp" net.tcpNet_tcp a as %lv' %err' Hres
-    · iframe %Haok
+    · (try iframe HnetPk)
+      iframe %Haok
       iapply listen_au $$ Hproto
     wp_for_post
     iframe

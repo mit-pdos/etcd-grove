@@ -44,7 +44,7 @@ def PutgetKBoot : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (peers clients : List GoString)
     (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (_Hbl : BootLogFacts (idsOf peers) ps ctxs boot)
@@ -81,7 +81,7 @@ theorem system_fsInit [GoGlobalContext] [GoSemanticsFunctions] {peers clients : 
 /-- **`putgetK_safe` from the machines' boot WPs** (see the file header), by the all-stable bridge over
 `etcdNetExts` (`Net.robust_of_distBootIL`), with each machine's `FsInit` from the statement. -/
 theorem putgetK_safe_of_boot (HS : PutgetKBoot) : putgetK_safe.spec := by
-  intro _ _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo σs σc g Hm Hc
+  intro _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo σs σc g Hm Hc
     Hd HEnv Hfips
   refine Net.robust_of_distBootIL (GF := putgetGF) (addrs peers clients) (system peers clients σs σc) g
     (2 ^ 28) (2 ^ 28 - 1) srvLevelK (by unfold srvLevelK srvRevokeK; omega) ?_

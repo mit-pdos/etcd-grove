@@ -31,7 +31,7 @@ section link
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [go.BasicIntoValInj]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions] [epaxos.Assumptions]
 
 theorem master.wp_New : master.New.specM (GF := GF) := master.New.wp_proof

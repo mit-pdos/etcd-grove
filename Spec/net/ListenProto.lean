@@ -6,6 +6,7 @@ invariant (`listen_au`) and given back at the step, so the address fact stays wh
 address, with no claim on its requests (`netListenerOpen`). A theorem from the part `Net/`'s `Listen` spec
 (`Net/Spec/net/Listen.lean`), `Proof/net/ListenProto.lean`; a third spec of `net.Listen` beside
 `Spec/net/Listen.lean`'s (an unreserved address) and `Spec/net/ListenHttp.lean`'s (an address reserved for HTTP).
+It takes `net`'s package fact (`isPkgInit net`, as Net's `Listen.spec` since the Go-model net, egnet 2026-11-26).
 -/
 module
 
@@ -30,7 +31,8 @@ variable [sem : go.Semantics]
 and a listener open at `addr` (`netListenerOpen`), or a non-nil error. -/
 abbrev net.Listen.specProto : Prop :=
   ∀ [HasExt netExt] [NetProtoGS] (network addr : GoString) (P Q : Proto GF),
-  {{ ⌜network = go!"tcp"⌝ ∗ addrProto (Gg := hG.goose_globalGS) addr P Q }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜network = go!"tcp"⌝ ∗
+      addrProto (Gg := hG.goose_globalGS) addr P Q }}
     (App (App (Val (@! net.Listen)) (Val #network)) (Val #addr))
   {{ (l err : GoInterface), RET (PairV #l #err);
       (⌜err = GoInterface.nil⌝ ∗ netListenerOpen l addr) ∨ ⌜err ≠ GoInterface.nil⌝ }}

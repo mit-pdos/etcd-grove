@@ -40,7 +40,7 @@ namespace orch
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [examples.swiftnet.Assumptions]
 
 set_option goose.wp.extras true
 

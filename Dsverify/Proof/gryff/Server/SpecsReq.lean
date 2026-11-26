@@ -32,7 +32,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [sA : gryff.src.serverlib.Assumptions]
 variable [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
+variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [net.http.Assumptions]
 variable [nS : netN.NetSpecs GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))

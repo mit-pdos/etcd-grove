@@ -227,15 +227,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
     "EtcdGrove.ErrorStringNotWriter",
-    # (wal-nostorageok, 2026-11-21) `os`'s field steps of its trusted `file`/`fileStat` layouts, which
-    # goose does not emit (`TrustedCode/os.lean`): the WAL's results take them, and so, through
-    # `=rnNewStorageOk_law_holds`, does the server's `newRaftNode` and every result reaching it. A mode
-    # that has them as section variables (`PRE_VARS`, `EXTRA_VARS`) does not repeat them per result.
-    "os.file.FieldAssumptions",
-    "os.fileStat.FieldAssumptions",
-    # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
-    # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
-    "_root_.Perennial.net.FieldAssumptions",
 ]
 # The semantic premises a proof takes only as a section variable: `os`'s field assumptions also occur
 # inside the binders of a hypothesis (backend's `∀ [os.file.FieldAssumptions] ..., bbolt.Tx.Commit.spec`).
@@ -831,10 +822,10 @@ PER_FN_PENDING = {"--k8s-etcd3"}
 # The modes whose `@` callees with no Link of their own package are looked up in every imported Link
 # (k8s 7e-4: the driver's `storage`/`labels`/`fields` callees, linked in the k8s etcd3 store's Link)
 EXT_ANY_LINK = {"--k8setcd3"}
-# The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
-# layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
-# emit; `OpenFile`'s and `Stat`'s proofs take them).
-PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
+# The trusted assumptions a mode's linked proofs need beyond its package's, first (none since
+# 2026-11-24: minibolt's were the layouts of `os.file` and `os.fileStat`, `os.file.FieldAssumptions`,
+# which the Go-model overlays (S5) made translated).
+PRE_VARS: dict = {}
 # The section variables a mode's specs take besides the usual ones, last
 EXTRA_VARS = {# (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
               "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",

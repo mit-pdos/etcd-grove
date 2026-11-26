@@ -42,7 +42,6 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [rem_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 
 set_option maxHeartbeats 1600000 in
 theorem NodeMainAuth.wp_proof

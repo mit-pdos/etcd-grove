@@ -76,7 +76,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `crash_safety` for executions of fewer than `N` steps along which fewer than `T` threads are
 live. -/
 theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.Assumptions] [os.file.FieldAssumptions]
+    [os.Assumptions]
     [hPre : GooseGpreS GF]
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -199,7 +199,6 @@ boot program's result is `#()`, no thread is stuck and no thread has an unrecove
 particular whenever one interrupts `commit` (after the create, the write, the `fdatasync`, the
 rename or the directory's sync). (`crash_safety_bounded` with the ghost state `fsGF`.) -/
 theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))

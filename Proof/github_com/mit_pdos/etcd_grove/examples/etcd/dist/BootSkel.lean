@@ -69,7 +69,7 @@ def EtcdBootNC : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
@@ -89,7 +89,7 @@ def EtcdBootNCBad : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
@@ -102,7 +102,7 @@ distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` f
 `ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl

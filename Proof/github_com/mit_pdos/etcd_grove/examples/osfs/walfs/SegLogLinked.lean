@@ -60,7 +60,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `seglog_crash_safety` for executions of fewer than `N` steps along which fewer than `T`
 threads are live. -/
 theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.Assumptions] [os.file.FieldAssumptions]
+    [package_sem : Assumptions] [os.Assumptions]
     [golang_org.x.sys.unix.Assumptions] [hPre : GooseGpreS GF]
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -141,7 +141,6 @@ call of the segment's life is one the trusted models cover, however many times t
 (`seglog_crash_safety_bounded` with
 the ghost state `fsGF`.) -/
 theorem seglog_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))

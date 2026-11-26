@@ -32,7 +32,6 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [examples.swiftnet.Assumptions]
-  [net.FieldAssumptions]
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF]
   [H : RpcHttpHyp netDistGF]
@@ -185,7 +184,9 @@ theorem register.wp_proof (L : CodecLaws (GF := netDistGF))
   ipersist args
   ipersist maddr
   wp_for
-  wp_apply DialHTTP_tcp γ.W masterAddr $$ [$Ha] as %mc %err Hd
+  ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+  · solve_pkg_init
+  wp_apply DialHTTP_tcp γ.W masterAddr $$ [$HnetPk $Ha] as %mc %err Hd
   icases Hd with (⟨%Herr, #Hcl⟩ | ⟨%Herr, -⟩)
   rotate_left
   · cases err with

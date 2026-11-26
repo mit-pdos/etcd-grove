@@ -122,7 +122,7 @@ than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 `goose_dist_crash_adequacy` for the system. -/
 theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [junk_sem : cmd.junk.Assumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -262,7 +262,7 @@ thread bound `n + 2`, which an execution of `n` steps from single threads respec
 `DistCrashThreadsBelow.of_single`.) It assumes the deployment of `Impl.lean` D13. -/
 theorem echo_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [junk_sem : cmd.junk.Assumptions] [go.BasicIntoValInj]
     (σs σc σj : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

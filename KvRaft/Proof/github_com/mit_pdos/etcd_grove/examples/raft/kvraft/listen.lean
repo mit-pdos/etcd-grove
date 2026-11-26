@@ -25,7 +25,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 
 theorem listen.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
     listen.spec (GF := GF) (hG := hG) := by
@@ -35,9 +35,12 @@ theorem listen.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
   ihave %Hok := addrTok_ok _ $$ Ht
   try wp_auto
   wp_for
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a $$ [] as %li %err
     (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hok
+  · (try iframe HnetPk)
+    iframe %Hok
     iapply listen_au a P Q $$ Ha
   · subst Herr
     try wp_auto

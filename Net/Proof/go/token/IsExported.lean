@@ -27,18 +27,20 @@ variable [package_sem' : go.token.Assumptions]
 theorem IsExported.wp_proof : IsExported.spec (GF := GF) (hG := hG) := by
   intro c rest hc
   wp_start
+  try wp_auto
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hl
   have hne : W64 (c :: rest).length ≠ W64 0 := by
     simp at Hl ⊢; word
-  rw [decide_eq_false hne]
-  wp_auto
+  try rw [decide_eq_false hne]
+  try wp_auto
   have h1 : uint.Z c < uint.Z (W8 128) := by
     have := hc.2; simp at this ⊢; omega
-  rw [decide_eq_true h1]
-  wp_auto
-  rw [decide_eq_true hc.1]
-  wp_auto
-  rw [decide_eq_true hc.2]
+  try rw [decide_eq_true h1]
+  try wp_auto
+  try rw [decide_eq_true hc.1]
+  try wp_auto
+  try rw [decide_eq_true hc.2]
+  try wp_auto
   iapply HΦ; itrivial
 
 end proof

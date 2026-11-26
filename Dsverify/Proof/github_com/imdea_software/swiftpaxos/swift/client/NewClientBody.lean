@@ -32,7 +32,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
-  [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
+  [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions]
   [rpc.Assumptions] [replica.defs.Assumptions]
 
 set_option goose.wp.extras true

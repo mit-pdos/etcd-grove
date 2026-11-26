@@ -27,7 +27,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [π : NetProtoGS]
 variable [sem : go.Semantics] [package_sem : rabia.internal.tcp.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [msg_sem : rabia.internal.message.Assumptions] [sync.Assumptions]
 
 set_option goose.wp.extras true

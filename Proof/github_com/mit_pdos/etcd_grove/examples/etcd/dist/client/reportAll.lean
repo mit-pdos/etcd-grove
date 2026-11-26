@@ -30,7 +30,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 
 theorem reportAll.wp_proof
     (wp_CallAll : CallAll.spec (GF := GF) (hG := hG))

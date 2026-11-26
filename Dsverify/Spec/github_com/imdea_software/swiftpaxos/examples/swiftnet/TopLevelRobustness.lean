@@ -86,7 +86,7 @@ def swiftpaxos_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [server6_sem : cmd.server6.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+     [go.BasicIntoValInj],
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy swAddrs (system σ) g →
     Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound

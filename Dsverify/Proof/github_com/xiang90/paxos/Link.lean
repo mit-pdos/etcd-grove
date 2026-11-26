@@ -42,7 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
-variable [package_sem : github_com.xiang90.paxos.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : github_com.xiang90.paxos.Assumptions]
   [sync.Assumptions]
 
 -- transport (no callees outside its module)

@@ -100,7 +100,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.Assumptions]
-variable [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+variable [go.BasicIntoValInj]
 
 theorem wp_String :
     google_golang_org.protobuf.types.known.wrapperspb.String.spec (GF := GF) (hG := hG) :=

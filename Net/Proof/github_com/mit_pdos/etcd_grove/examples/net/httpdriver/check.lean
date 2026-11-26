@@ -89,7 +89,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : Assumptions]
 variable [π : NetProtoGS] [hπ : net.http.HttpProtoGS]
 
 theorem check.wp_proof (wp_Get : net.http.Header.Get.spec (GF := GF) (hG := hG)) :

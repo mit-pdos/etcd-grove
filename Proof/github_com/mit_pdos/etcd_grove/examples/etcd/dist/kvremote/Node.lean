@@ -46,7 +46,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremo
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem Node.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))

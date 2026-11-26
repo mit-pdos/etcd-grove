@@ -29,7 +29,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions] [io.Assumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
 
 /-- `New`'s initial order `(id + 1 + j) % N` is a permutation of the ids with `id` last
 (`fwPrefOwn`). -/
@@ -190,11 +190,14 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     · iframe #; ipureintro; simpa using hgl
     ihave %Hokk := addrTok_ok _ $$ [Hap]
     · iapply addrProto_tok $$ Hap
+    ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+    · solve_pkg_init
     wp_apply EpNetDeps.dial go!"tcp" net.tcpNet_tcp (L.getD k []) iprop(True)
         (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (repDialP γ (L.getD k []))
           (repAccP γ (L.getD k [])) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
       as %cv %err (⟨%Herr, %cid, #Hc, Hend, Hfresh⟩ | ⟨-, %x, -, #Herr⟩)
-    · isplitr
+    · (try iframe HnetPk)
+      isplitr
       · ipureintro; exact Hokk
       isplit
       · itrivial

@@ -24,7 +24,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions] [io.Assumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
 
 /-- The lengths of the framework's peer slices. -/
 def fwLens (L : List GoString) (p : FwPtrs) : Prop :=

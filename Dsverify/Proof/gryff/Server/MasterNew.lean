@@ -82,7 +82,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
@@ -127,11 +127,9 @@ omit mA kA nS in
 /-- A `Listen` error is `errAny`. -/
 theorem resErr_errAny_m [net.Assumptions] (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
-  unfold Perennial.net.resErr Perennial.net.opErr
-  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -⟩
-  subst Herr
-  iapply netN.opErrPtr_errAny $$ Hpe
+    Perennial.net.resErr (GF := GF) (some k) op src addr ed nm err ∗ syscall.errnoOk (GF := GF) ⊢
+      models_lab.errAny err :=
+  netN.resErr_errAny_sys k op src addr ed nm err
 
 set_option goose.wp.extras true
 
@@ -249,7 +247,11 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
   · iexists lv, err; iframe
     icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
     · ileft; iframe Hl; ipureintro; exact He
-    · iright; ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ Hre
+    · iright
+      ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+      · iPkgInit
+      ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsy
+      ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ [$Hre $Hsys]
       ihave %Hne := models_lab.errAny_ne_nil _ $$ Ha
       iframe Ha; ipureintro; exact Hne
   wp_for IHL
@@ -298,7 +300,11 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
     iframe
     icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
     · ileft; iframe Hl; ipureintro; exact He
-    · iright; ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ Hre
+    · iright
+      ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+      · iPkgInit
+      ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsy
+      ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ [$Hre $Hsys]
       ihave %Hne := models_lab.errAny_ne_nil _ $$ Ha
       iframe Ha; ipureintro; exact Hne
   subst He

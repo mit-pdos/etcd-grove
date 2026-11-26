@@ -29,7 +29,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.server
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions]
+variable [package_sem : Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -71,7 +71,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.httpdriver.cmd.client
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions]
+variable [package_sem : Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

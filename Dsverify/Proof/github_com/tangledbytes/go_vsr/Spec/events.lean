@@ -203,7 +203,7 @@ end defs
 section streams
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : events.Assumptions] [net.Assumptions] [net.FieldAssumptions]
+variable [package_sem : events.Assumptions] [net.Assumptions]
 variable [π : NetProtoGS]
 
 /-- The writer `w`'s stream (see the file header): `w` is the end `s` of a connection `cn` (a
@@ -238,7 +238,7 @@ section hook
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : events.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
+variable [net.Assumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
 variable [encoding.json.Assumptions] [models_lab.jsoncodec.JsonCodec GF]
 
 /-- The frame decoder `f` (`func(*json.Decoder) (uint8, json.RawMessage, error)`, the G1 hook's
@@ -265,7 +265,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : events.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
+variable [net.Assumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
 variable [encoding.json.Assumptions] [models_lab.jsoncodec.JsonCodec GF]
 
 set_option goose.wp.extras true

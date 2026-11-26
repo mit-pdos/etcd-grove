@@ -31,7 +31,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : encoding.json.Assumptions]
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [HasExt netExt] [net.Assumptions] [π : NetProtoGS]
 
 attribute [local instance] encRepModel
 
@@ -85,7 +85,8 @@ theorem Encoder.Encode_conn.wp_proof (wp_marshalAny : marshalAny.spec (GF := GF)
     isplitl [Htok]
     · iapply writeP_init $$ Htok
     · iapply write_acc cn s P W _ $$ Hp0
-  ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ HE
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hca
+  ihave #Heo := net.resErr_errOrNil _ _ _ _ _ _ _ $$ Hsys HE
   icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
   obtain ⟨⟨z, hz0⟩, hn, hnone, -⟩ := Hwr
   unfold writeP

@@ -60,7 +60,7 @@ section hyp
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [log.Assumptions] [net.http.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -140,7 +140,7 @@ attribute [instance] RpcHttpAddr.rpcAddrP_persistent RpcHttpAddr.rpcLisP_persist
 /-- `Net/`'s specs of the net/rpc-over-HTTP calls the kit makes (the file header), bundled: the
 proofs take this one premise; `Link.lean`'s `netRpcHttpHyp` gives it from `Net/`'s proofs. -/
 class RpcHttpHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics]
-    [net.rpc.Assumptions] [net.FieldAssumptions] [NetProtoGS] [log.Assumptions]
+    [net.rpc.Assumptions] [NetProtoGS] [log.Assumptions]
     [net.http.Assumptions] : Prop where
   DialHTTP_spec : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)
   HandleHTTP_spec : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG)
@@ -161,18 +161,18 @@ def defaultSrvFresh : IProp GF :=
 /-- `rpc.DialHTTP("tcp", a)` over net/http's server variables (`dialEnv`'s) and `RpcHttpAddr`'s
 `rpcAddrP`. -/
 theorem DialHTTP_kit [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] (W : RpcWorld GF) (a : GoString) :
-    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpSrvEnv (GF := GF) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpSrvEnv (GF := GF) ∗
         globalAddr net.rpc.connected ↦□ connectedStatus ∗
         RpcHttpAddr.rpcAddrP W a (connectReq defaultRPCPath) connectAns }}
       (App (App (Val (@! net.rpc.DialHTTP)) (Val #(go!"tcp"))) (Val #a))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }} := by
-  iintro %Φ ⟨%Hb, #Hc, #Hse, #Hcon, #Ha⟩ HΦ
+  iintro %Φ ⟨#Hnet, %Hb, #Hc, #Hse, #Hcon, #Ha⟩ HΦ
   ihave #He := httpSrvEnv_env $$ Hse
   ihave #Ha' := RpcHttpAddr.rpcAddrP_net W a _ _ $$ Ha
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
-  iframe Hc He Hcon Ha'
+  iframe Hnet Hc He Hcon Ha'
   ipureintro; exact Hb
 
 /-- A listener address's rpc protocols over HTTP give, at every valid address it takes, the world's

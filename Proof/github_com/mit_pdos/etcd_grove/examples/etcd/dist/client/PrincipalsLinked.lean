@@ -58,7 +58,6 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [rem_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [NaInvG GF]
 
 /-- The principals' codec, linked over `enc`. -/
@@ -87,7 +86,6 @@ variable [esrv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [rem_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [NaInvG GF]
 
 /-- `newClient`, linked (as `WatchLinked`'s). -/

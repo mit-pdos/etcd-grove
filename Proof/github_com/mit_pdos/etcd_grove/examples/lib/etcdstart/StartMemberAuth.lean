@@ -132,6 +132,8 @@ theorem StartMemberAuth.wp_proof
   subst Herr
   wp_auto
   -- `net.Listen("tcp", peerAddr)` (`NewMember`'s)
+  ihave #Pnet : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · iPkgInit
   wp_apply (wp_ListenHttp go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
   icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)

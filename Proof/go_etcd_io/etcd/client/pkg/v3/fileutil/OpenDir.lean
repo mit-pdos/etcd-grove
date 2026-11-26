@@ -23,7 +23,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os_sem : os.Assumptions] [go.BasicIntoValInj]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proof :
     go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG) := by

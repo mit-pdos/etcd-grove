@@ -1985,7 +1985,7 @@ end proof
 section rcvproof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [sem : go.Semantics] [net.rpc.Assumptions] [π : NetProtoGS]
 variable [examples.gryffnet.Assumptions]
 variable [bvi : go.BasicIntoValInj]
 

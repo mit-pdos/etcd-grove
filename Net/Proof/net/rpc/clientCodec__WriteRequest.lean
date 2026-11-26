@@ -30,7 +30,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 theorem reqWire_bytes (seq : w64) (sm : GoString) (eb : List w8) :
@@ -54,6 +54,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
     clientCodec.WriteRequest.spec (GF := GF) (hG := hG) := by
   intro c t cn s a la ra r rv body w0 ed C Pr W0 Ψ0 Ψ
   wp_start as ⟨#Hrwc, #Hc, #Hed, Hwerr, Hr, #Hset, Htok, %Hsm, Henc, Hupd⟩
+  ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hc
   wp_auto
   cases w0 with
   | ok e =>
@@ -113,7 +114,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
   ihave #Hacc := write_acc (Gg := hG.goose_globalGS) cn s Pr W0
     (reqWire rv.Seq' rv.ServiceMethod' eb) $$ Hproto
   wp_apply wp_Write t cn s a la ra b2 (reqWire rv.Seq' rv.ServiceMethod' eb) (DFrac.own 1) ed
-      (writeP (Gg := hG.goose_globalGS) cn s Pr W0) $$ [$Hc $Hb2 $Hed $Hw0 $Hacc]
+      (writeP (Gg := hG.goose_globalGS) cn s Pr W0) $$ [$Hpoll $Hc $Hb2 $Hed $Hw0 $Hacc]
     as %n %err ⟨%w, %res, Hw, Hb2, ⟨%Hpre, %Hn, %Hnone, %Hall⟩, #Herr⟩
   unfold writeP
   cases res with
