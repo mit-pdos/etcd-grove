@@ -171,4 +171,4 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Nod
 # (N9a, 2026-11-26; F5 compact, 2026-11-26) dist/client's orchestrator workloads (putget, durable, compact) and their `newClient`: the logic's thread
 # bound (`threadBound GF ≤ 2 ^ 30`, `NewClients`' premise) is a pure premise of the machine's program, discharged
 # from `etcdThreads` by the orchestrator machine's boot (as `kvremote/Node`'s), not a top-level premise.
-spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunPutGet|RunDurable|RunCompact)\.lean$
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunPutGet|RunDurable|RunCompact|RunCache)\.lean$

@@ -3658,3 +3658,29 @@ writer is the cache workload, `needsSoleWriter`), and `writersShare Γ ns` (`map
 `svcAddr (writerSvcG Γ)` and one call's budget `budUnit`); the client machines get the watch writers' share
 (`nodeWatchPre`). The orchestrator's boot gives `threadTok` whole (29.2). Nothing else: the adapter, the cache's
 ghost state and the writers' names are allocated at run time.
+
+### 29.5 Linking
+
+`client/CacheLinked.lean`: `wp_RunCache (wp_Get : KV_GetE_dist.spec) (wp_remoteWriters : remoteWriters.spec) :
+RunCache.spec`, every other callee linked (the cache library's `Link`, the helpers' copies, etcdstart's, `newClient`,
+`WithPrefix`/`WithRev`, `context`, `time`, and the interim axioms `Watch_dist`, `RequestProgress_dist`). The two
+hypotheses: `remoteWriters.spec` (N10a, not proved on `etcd-safe-n10a2` @ `157e03e135`; watch needs it too) and
+`KV_GetE_dist.spec` (29.3). Once both are settled: `wp_RunCache KV_Get_dist.wp_proof wp_remoteWriters`.
+`#print axioms etcd_dist_client.wp_RunCache` (via `vmlake env lean`): no `sorryAx`; of this repository's interim
+dist axioms exactly `etcdSvc`, `Watch_dist`, `RequestProgress_dist` and `Client.Close.wp_proof`, plus existing
+package/trust-boundary ones. No exported result imports `CacheLinked` yet (F8's dispatch will), so the TCB baseline
+does not move.
+
+### 29.6 Checkpoints and checks
+
+- `e3b678f6da`: the merges (lean @ `80545ccc4a` with wenv, rwire, f5, n10a2). Conflicts: `InvClientNewResult.lean`
+  (lean's `etcdWatchConn` with wenv's `V.atEps eps`), `notes/etcd-dist-plan.md` (both sides' sections kept),
+  `etc/bounds-allow.txt` (both lines kept). Generators (`gen-init`, `gen-specs-pkginit`, `gen-raft-tla --check`, at
+  lean's Perennial pin `a706aeb9a`): up to date. VM: `CompactLinked`, `WatchLinked`, `KvLinked`, `NodeMainWatch`,
+  dist's `TopLevelRobustness`, `KMClient` green after the merge. (`KVWorkLinked`, N9a's putget/durable, does not build:
+  `KVCallsDist`'s `hser` and `durableKey`/`durableValue`, the known §26.6 items, untouched here.)
+- `bf2fffdb01`: specs, `CacheWorkDefs`, `ServerKVGetDefs`, the six helpers (helper commit `3e63791db1`), `RunCache.wp_proof`:
+  VM-built.
+- Linking commit (this section's last edit): `CacheLinked` VM-built. `tier-check --check` ok (207 known).
+  `bounds-check --check`: `RunCache` added to dist/client's `spec-thread` allow line (the machine's thread bound, as
+  putget's); the check still fails by N10a's two (`RunWatch.spec`, `remoteWriters.spec`: §24.5, theirs to settle).
