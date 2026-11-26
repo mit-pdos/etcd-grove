@@ -158,3 +158,25 @@ is unaffected.
    in F2's vocabulary, reviewed in one batch with F7's.
 4. Who writes `Watch_dist`'s auth-on form (refusal, and u's permitted-keys check): F4 (yours) or F7?
 5. Should P-A1 be done together with P-L1 (one `NewServer` change, one re-review of `NewServer_dist`)?
+
+## Handoff (S1, 2026-11-26, context limit; build not yet confirmed)
+
+- **Build**: started on fk-lean2 (`~/eg/wt/etcd-safe-f7`, seeded from `etcd-safe-m1`'s `.lake/build`; script
+  `~/eg/scratch/f7-build.sh`; log `~/eg/logs/f7-build.log`; targets `...etcd.dist.AuthViewDist` and
+  `...etcd.dist.AuthServeProposed`). The result was not seen before this handoff: read the log first, fix any
+  errors (the drafts were written against the in-tree vocabulary but never compiled), then update the line numbers in
+  `notes/etcd-dist-f7-reviews.md`.
+- **Drafts** (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`): `New_user_dist` :235,
+  `KV_PutOn_dist` :261, `KV_DeleteOn_dist` :286, `Txn_CommitOn_dist` :320, `KV_GetOn_dist` :368, `Auth_UserAdd_dist`
+  :402, `Auth_UserGrantRole_dist` :425, `Auth_RoleAdd_dist` :446, `Auth_RoleGrantPermission_dist` :468,
+  `Auth_AuthEnable_dist` :491, `Lease_GrantOn_dist` :515, `Lease_RevokeOn_dist` :544, `Lease_TimeToLiveKeysOn_dist`
+  :573, `Lease_LeasesOn_dist` :596; helpers `servedBy` :97, `writeAuD` :121, `writeCheckedD` :129, `adminRepliedD`
+  :140, `authFloorD` :158, `readCheckedD` :167, `txnReadCheckedD` :175, `leaseCheckD` :184. Proposals
+  (`.../dist/AuthServeProposed.lean`): `NewServer.specG_dist_proposed` :55 (`authNamesFreshD` :39 is a placeholder),
+  `Serve_dist_proposed.spec` :170.
+- **Review list**: `notes/etcd-dist-f7-reviews.md`.
+- **To add (the lease review's finding, coordinator 2026-11-26)**: `DistView.ofKV` gives every member the same lessor
+  name (`ls := fun _ => 0`); F2 is adding a distinct-names premise. Every draft here that reads per-member names
+  (`A mid`, i.e. `Γ.au mid`, or `Γ.ls mid`: `New_user_dist`, `Txn_CommitOn_dist`, `KV_GetOn_dist`, the four
+  `Lease_*On_dist`, `Serve_dist_proposed`) needs the same distinct-names premise (for `A`, `Function.Injective A`
+  or F2's form, whichever F2 adopts) until the start allocates the names per member. Not yet added.
