@@ -25,8 +25,9 @@ open Iris Iris.BI Iris.ProofMode
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [lctx : GoLocalContext]
 variable [sem : go.Semantics]
+include lctx sem
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 open Iris.Std in
