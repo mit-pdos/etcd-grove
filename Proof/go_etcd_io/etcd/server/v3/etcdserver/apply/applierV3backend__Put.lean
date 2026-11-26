@@ -183,7 +183,8 @@ theorem apply.applierV3backend.Put.wp_proof
         exact ⟨fun _ => rfl, fun _ => Or.inl ⟨Hnl, Hnin⟩⟩
       iapply (apply.kvOwnAt_of_split E log B c L)
       iframe Hw0 Htie Hbk Hhk Hard Hknown Hu HltL
-    iright; iexact HPre
+    iright; iframe HPre; ipureintro
+    (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
   · subst Hσ
     rcases apply.putPend_cases o log c with ⟨hn, hf, hp⟩ | ⟨hn, hp⟩
     · -- the key missing: nothing written

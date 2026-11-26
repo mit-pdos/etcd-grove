@@ -73,7 +73,7 @@ abbrev apply.authApplierV3.LeaseRevoke.specL : Prop :=
         (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o))
         Pre Post
         (apply.authOutLL E.authMode hs (auth.authInfoM info) c rq log []
-          (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) }}
+          (mvcc.leaseItemsOf (mvcc.stateAfter log)) [id]) (apply.revokeNoEff rq T rs) }}
 
 end spec
 

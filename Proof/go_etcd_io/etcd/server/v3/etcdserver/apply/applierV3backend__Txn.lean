@@ -176,7 +176,8 @@ theorem apply.applierV3backend.Txn.wp_proof
         exact ⟨fun h => absurd rfl h, fun hl _ => Herr.2.2.2 hl⟩
       iapply (apply.kvOwnAt_of_split E log B c L)
       iframe Hw Htie Hbk Hhk Hard Hknown Hu HltL
-    iright; iexact HPre
+    iright; iframe HPre; ipureintro
+    (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
   · -- the run committed
     isplitr [Htrc]
     rotate_left
@@ -231,7 +232,8 @@ theorem apply.applierV3backend.Txn.wp_proof
         iapply (apply.kvOwnAt_of_split E _ B c L)
         rw [hcl] at *
         iframe Hw Htie Hbk Hhk Hard Hknown' Hu HltL
-      iright; iexact HPre
+      iright; iframe HPre; ipureintro
+      (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
 
 end proof
 

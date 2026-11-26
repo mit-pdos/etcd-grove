@@ -619,6 +619,11 @@ theorem grantRest_noV3 (t : w64) (rq : IRRModel) (o : Outcome) (r : RestM) :
     grantRest t rq false o r = r := by
   unfold grantRest; rw [if_neg (fun h' => Bool.false_ne_true h'.2)]
 
+/-- **A revocation's no-lock fact** (T10 step 2, `LeaseRevoke`'s `kvPost` `N`): the outcome `o` left the
+live set `T` and the rest buckets `rs` as they were (the lease not live). -/
+def revokeNoEff (rq : IRRModel) (T : List w64) (rs : RestM) (o : Outcome) : Prop :=
+  revokeIds rq true o T = T ∧ revokeRest T rq true o rs = rs
+
 /-- An outcome that is not `.applied`: the identity. -/
 theorem grantIds_not_applied (rq : IRRModel) (v3 : Bool) (o : Outcome) (L : List w64)
     (h : ∀ log' ns, o ≠ .applied log' ns) : grantIds rq v3 o L = L := by
@@ -2282,7 +2287,8 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvPost E c (.ok ai) info rq log
-            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post ∗
+            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post
+            (revokeNoEff rq T rs) ∗
             applyTok E }}) ∗
     -- (the lease-grant stage, 2.11) `LeaseGrant`
     □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)

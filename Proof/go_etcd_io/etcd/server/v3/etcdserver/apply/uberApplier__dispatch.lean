@@ -129,6 +129,31 @@ local macro "grant_same" : tactic => `(tactic| (
       | exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])))
 
 set_option hygiene false in
+/-- (T10 step 2) The no-lock outcome changed none of the server's models (`dispatchNoEff`), from the
+method's fact (`hN`) and the request's kind. -/
+local macro "noeff" : tactic => `(tactic| (
+  simp_all [apply.dispatchNoEff, apply.dispatchCrev, apply.revokeIds, apply.grantIds, apply.revokeRest,
+    apply.grantRest, apply.restAfter, apply.ClusterReq.eff, apply.Outcome.logAfter, apply.revokeNoEff]))
+
+set_option hygiene false in
+/-- `cPost true` at `dispatchNoEff` from `HPP : Post ∨ (Pre ∗ ⌜φ⌝)`, or `HPP` already at it. -/
+local macro "cpost_fin" : tactic => `(tactic| (
+  first
+  | iexact HPP
+  | (simp only [apply.cPost, ↓reduceIte]
+     icases HPP with (HP | ⟨HP, %hN⟩)
+     · ileft; iexact HP
+     · iright; iframe HP; ipureintro; noeff)))
+
+set_option hygiene false in
+/-- `HPP : cPost v3 Pre Post φ` restated at `dispatchNoEff` (a request that leaves the KV as it is). -/
+local macro "cpost_gen " φ:term : tactic => `(tactic| (
+  ihave HPP : iprop(apply.cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))) $$ [HPP]
+  · iapply (apply.cPost_mono v3 Pre Post $φ
+      (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false)) (fun h => by noeff))
+    iexact HPP))
+
+set_option hygiene false in
 /-- The postcondition for a request that leaves the KV and the chain as they are. -/
 local macro "fin_same" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
@@ -140,7 +165,7 @@ local macro "fin_same" : tactic => `(tactic| (
   iframe Ha Hs Hkv
   grant_same
   isplitl [HPP]
-  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  · cpost_fin
   isplitr
   · ipureintro; simp [apply.kvFloorOk, apply.isFloorKind, apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
   isplitl []
@@ -171,7 +196,7 @@ local macro "fin_kv" : tactic => `(tactic| (
   iframe Ha Hs Hkv
   grant_same
   isplitl [HPP]
-  · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+  · cpost_fin
   isplitr
   · ipureintro
     refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -329,6 +354,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+    cpost_gen ((apply.ClusterReq.ver x).eff v3 rs = rs)
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterVersionSet : rq.clusterVersionSet = none := nCV.1 (by simpa using Hif)
@@ -360,6 +386,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe HFS
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+    cpost_gen ((apply.ClusterReq.attr x).eff v3 rs = rs)
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterMemberAttrSet : rq.clusterMemberAttrSet = none := nCM.1 (by simpa using Hif)
@@ -388,8 +415,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     iapply HΦ
     iframe HFS
     ihave ⟨Hkv, Hrt, HPP⟩ := apply.kvOwnPre_kvOwn v3 E log Pre Q Post $$ Hkv
-    ihave HPP : iprop(cPost v3 Pre Post) $$ [HPP]
-    · iapply apply.cPost_of_pre; iexact HPP
+    ihave HPP : iprop(cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false))) $$ [HPP]
+    · iapply (apply.cPost_of_pre v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs (Outcome.applied log false)) (by noeff)); iexact HPP
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zDowngradeVersionTest : rq.downgradeVersionTest = false := nDT.1 (by simpa using Hif)
@@ -453,7 +480,8 @@ theorem apply.uberApplier.dispatch.wp_proof
           apply.everOwn E (apply.grantIds rq true o U) ∗ apply.revokeOwn E rq ∗
           (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq true o
             (apply.grantRest t rq true o (apply.restAfter rq true rs)))) ∗
-          ⌜apply.grantOutOk c rq true T o⌝ ∗ apply.cPost true Pre Post ∗
+          ⌜apply.grantOutOk c rq true T o⌝ ∗
+          apply.cPost true Pre Post (apply.dispatchNoEff c rq true log crev T rs o) ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
@@ -479,8 +507,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, #Hcls⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜True⌝)) $$ [HPre]
+    · iright; iframe HPre
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
@@ -588,7 +616,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe Ha Hs Hkv
     grant_same
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · cpost_fin
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -667,7 +695,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       rw [hs] at hg; cases hg
       exact Hst.2.1.trans Hst.2.2
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · cpost_fin
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, ?_, rfl, rfl⟩
@@ -755,7 +783,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitr
     · ipureintro; exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])
     isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    · cpost_fin
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩
@@ -844,8 +872,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     wp_apply HStatus $$ %log %info [Htt Hkv Hres] as %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
     · iframe
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜True⌝)) $$ [HPre]
+    · iright; iframe HPre
     fin_same
     itrivial
   have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)

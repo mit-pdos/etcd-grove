@@ -2860,6 +2860,54 @@ check they still build). *Stage 5*: `ApplyAdmin`'s `adminOut … k`, `ApplyAdmin
 Pre Post k`), then `AdminEntryOn`: `cPost v3 Pre Post (st' = st)` inside `∃ hs' st'`, from `result_keep` in the
 `Pre` branch (choose `hs' := hs`); the rest of T10s2-1's stage-5 list. Not yet run: full build, gates, `tcb --check`.
 
+**Handoff T10s2-4** (session 4 stopped at the context rule; head = this commit, pushed; WIP: the files marked
+failing do not build yet, no `sorry`, no axiom). Last build: the stage-4 targets (`/shared/tmp/t10b-s4targets.txt`,
+`lake build` on fk-lean1).
+
+*Done (built green)*: `DispatchAdmin` (`adminDone … k`, `adminSpec` post `∃ (o) (k : Prop), … cPost v3 Pre Post k`,
+the six admin sites `%k` from `adminTriples`' `mPostF`; v3 = false: `k := True`); `Spec/.../uberApplier__dispatch`
+(post `cPost v3 Pre Post (dispatchNoEff c rq v3 log crev T rs o)`); `Spec/.../applierV3backend__Compaction`
+(`Post ∨ (Pre ∗ ⌜cmpRevAfter crev rev = crev⌝)`, cmpTriple's form) and its proof; `Chain.lean`: new
+`revokeNoEff rq T rs o := revokeIds rq true o T = T ∧ revokeRest T rq true o rs = rs` (simpler than T10s2-1's
+`∀ t, … grantRest …`: for a revoke `grantRest` is the identity), the applierSpec revoke row's `kvPost … (revokeNoEff
+rq T rs)`; the three `Spec/.../{applierV3backend,applierV3Corrupt,authApplierV3}__LeaseRevoke` with that `N`;
+`applierV3backend__LeaseRevoke` (local `kvPost_backend` takes `N`); `Spec/.../applierV3backend__{ClusterVersionSet,
+ClusterMemberAttrSet,DowngradeInfoSet}` (`mPostV … (restSetVersion v3 v rs = rs)` / `(restUpdateAttrs v3 mm rs = rs)`
+/ `True`) and their proofs (unchanged); `applierV3backend__Put`, `applierV3Capped__{Put,Txn}`,
+`applierV3Corrupt__{Put,Txn,DeleteRange}` (the `Pre` sites `iright; iframe HPre; ipureintro; (first | exact ⟨rfl,
+trivial⟩ | …)`); `DispatchKVL` (`kvSpecL` post `cPost v3 Pre Post (o.logAfter log = log ∧ revokeIds rq v3 o T = T ∧
+revokeRest T rq v3 o (restAfter rq v3 rs) = rs)`; applierKVL's revoke row `… (revokeNoEff rq T rs)`; `fin_kvL` and the
+revoke site derive it with `revokeIds/Rest_nonRevoke`, `restAfter_other`); `Spec/.../uberApplier__Apply` restated
+(`cPost v3 Pre Post (applyNoEff rq v3 x x' T rs out)`, stage 5's spec).
+
+*Failing (first error each)*:
+- `applierV3Corrupt__LeaseRevoke.lean:47`: unsolved goals (the Pre site's pure fact: now `revokeNoEff` of the
+  rejected outcome: `revokeIds_rejected`, `revokeRest_rejected`; the `first | … | simp_all […]` did not close it).
+- `applierV3backend__Txn.lean:218`: unsolved goals (second `Pre` site, the read-only path: `logAfter = log` of its
+  outcome; `:179` site passes).
+- `newApplierV3Backend.lean:304`: unsolved goals (its revoke row now needs `revokeNoEff`; not yet looked at).
+- `newApplierV3Corrupt.lean:299`: unsolved goals (the `mPreRest_reject` site: rejected outcome's fact, as Corrupt
+  LeaseRevoke).
+- `authApplierV3__LeaseRevoke.lean:61`, `:105`: `iapply` cannot apply `kvPost …` (the inner/outer `kvPost` now with
+  `N := revokeNoEff rq T rs`: pass `N` explicitly / the auth rejection's `Pre` site gets the rejected fact).
+- `AuthApplyLatestRevoke.lean:151`: `iapply` cannot apply `kvPostFL …` (same: its spec now ends `(apply.revokeNoEff rq
+  T rs)`).
+- `uberApplier__dispatch.lean`: the new local macros `noeff` (`simp_all [dispatchNoEff, dispatchCrev, revokeIds,
+  grantIds, revokeRest, grantRest, restAfter, ClusterReq.eff, Outcome.logAfter, revokeNoEff]`), `cpost_fin`,
+  `cpost_gen φ` (header, ~line 125-160): `noeff`'s `simp_all` fails ("Tactic `simp` failed with a nested error") at
+  357, 389, 419, 512, 533, 561, 582, 619, 786, 877; 698: `icases: cannot destruct Pre` (the grant site's `HPP` is not
+  `Post ∨ (Pre ∗ ⌜_⌝)`: check the grant row's post). Replace `noeff`'s `simp_all` by a targeted proof: `dispatchNoEff`
+  is `⟨logAfter, dispatchCrev_nonCmp, grantIds_nonGrant + revokeIds_nonRevoke, fun t => grantRest_nonGrant +
+  revokeRest_nonRevoke + restAfter_other⟩` for most kinds (as `grant_same` does), the method's fact for
+  compaction/revoke/grant/cluster.
+- `uberApplier__Apply.lean:61` (stage 5), `ApplyAdmin.lean:44` (stage 5): not started.
+- Not reached (downstream of the failures): `Results` (alarm chain, its revoke post `(Post ∨ Pre)` at line 436 will
+  need `(Pre ∗ ⌜… revokeNoEff …⌝)`), `newAuthApplierV3`, `newQuotaApplierV3`, `CompactArm`, `quotaApplierV3__*`,
+  `authApplierV3__*` other than LeaseRevoke.
+
+*Then*: steps 3-5 of the plan (`ApplyAdmin`/`ApplyAdminL`, `AdminEntryOn` with `result_keep`, the rest of stage 5),
+full build, gates in full, `tcb --check`.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

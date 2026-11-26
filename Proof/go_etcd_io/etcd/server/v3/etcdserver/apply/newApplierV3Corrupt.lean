@@ -296,7 +296,8 @@ theorem apply.newApplierV3Corrupt.wp_proof
     icases apply.mPreRest_reject _ _ _ _ _ $$ Hkv with ⟨Hkv, HPre⟩
     iframe Hkv Hres
     isplitl [HPre]
-    · iright; iexact HPre
+    · iright; iframe HPre; ipureintro
+      (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
     simp only [apply.chainCompacts, Bool.false_eq_true, ↓reduceIte, apply.cmpAnswerIs]
     iframe Hc He
     ipureintro; exact Hn
