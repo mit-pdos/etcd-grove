@@ -165,6 +165,22 @@ theorem etcd_safe_nocrash_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = f
     (Ha : EtcdAuthBootNC) (Hal : EtcdAuthLeaseBootNC) : etcd_robust_nocrash.spec :=
   etcd_safe_nocrash_of_bootWF (etcdBootNC_of_split Hoff Ha Hal)
 
+/-- **`etcd_safe_nocrash`** (`notes/etcd-dist-plan.md` §27, §30): every workload kind of the single-process
+`etcd_robust_single_process` (but its restarts, `etcd_safe`'s), plus `leaseExpiry` and partitions, on any
+deployment, from the auth-off boot `etcdBootNCOff_holds` (proved: every class but the two auth ones) and two
+**named hypotheses**, the boots of the auth classes:
+* `Hauth : EtcdAuthBootNC` — deployments whose one workload is `auth` (F7 S3 closes it: `RunAuth`, the principal
+  arm, the auth-on start);
+* `HauthLease : EtcdAuthLeaseBootNC` — deployments whose one workload is `authLease` (F7 S4 closes it: the auth-on
+  start at the revocable lease mode, and `RunAuthLease`, proved over `foreignReads.law`).
+When both are theorems the hypotheses go, and `etcd_kv_safe_nocrash` becomes `etcd_kv_safe_nocrash_of_full
+etcd_safe_nocrash` (§27.4 Q4). -/
+theorem etcd_safe_nocrash (Hauth : EtcdAuthBootNC) (HauthLease : EtcdAuthLeaseBootNC) :
+    etcd_robust_nocrash.spec :=
+  etcd_safe_nocrash_of_split etcdBootNCOff_holds Hauth HauthLease
+
+#print axioms etcd_safe_nocrash
+
 end etcd_dist
 end EtcdGrove
 end Perennial
