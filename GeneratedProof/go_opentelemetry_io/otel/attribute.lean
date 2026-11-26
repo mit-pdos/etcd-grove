@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.Golang.Theory
 public import Code.go_opentelemetry_io.otel.«attribute»
 
