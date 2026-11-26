@@ -3013,6 +3013,41 @@ branch; no `sorry`, no axiom).
   users, written by perl/python edits and **not yet checked**), then `CHECK=1 t10s3-rb.sh` on `InvApply.lean`,
   `InvServer.lean`, then build the 22 files' modules plus the server's `Link`; then the design's order, item 2.
 
+**T10 step 3, session 2 (2026-11-26): steps 1-2 done, step 3 stopped (a `Spec/` change).**
+* *Step 1, `TRow`*: the patch applied with two fixes in `InvApply.lean`: `TRow.triv` is an `abbrev`
+  (as a `def`, `TRow.triv.IR a b` did not reduce to `True` for `IntoWand` at the trivial corollaries
+  `writes_done`, `skip_done`, `ci_swap_au`, `consInv_alloc`), and `consInv_timeless` keeps its
+  `Timeless (□ Rw.IR a b)` helper. The 22 files plus the server's `Link` and `NewServerCrash` built green
+  on fk-lean2 (10094 jobs). Commit `ca9fbbfa4d`.
+* *Step 2*: `srvImgRowT γ M : TRow GF` (and `srvImgRowT_IR`) in `ImgRow.lean`, which now imports `InvApply`;
+  `srvImgModelOn γr A` (the mode-`on` KV model, `crevOf`, `kvLeasesOn` and `restModel` at `pre ++ A`, and
+  the auth state after `A`, what `dbImageOn` is of) and `srvImgRowM on γr` (the row by mode) in
+  `KVModelM.lean`, **not** `ImgRow`: `kvModelOn`'s module `KVAuthModel` imports `InvApplier`, which
+  `isServer`'s row needs `ImgRow` under (an import cycle otherwise). Lean-checked; commit `19b44496c8`.
+* *Step 3, STOP: the row cannot be allocated without a `Spec/` change.* `consInv` is allocated in
+  `bootstrapBackend` (`consInv_alloc`, `bootstrapBackend.lean:214`), and `bootstrapBackend.spec`
+  (`Spec/.../etcdserver/bootstrapBackend.lean:68`) returns `bootBackendRows cfg bk γA cil d` at the default
+  `Rw := TRow.triv`, as `bootstrap.spec` returns `bootOk … b` at it. The invariant's row is fixed when it
+  is allocated, and the server's row `srvImgRowT γr.raft M` names the `ServerRaftNames` (`pre`, `ai0`, the
+  log's names), which do not exist at `bootstrapBackend` (it takes no names; `bootstrap.spec` takes only
+  `γ : SrvRaft`). So `isServer`/`isServerM` cannot hold `consInv γ (srvImgRowT …)` until the boot specs
+  carry a row. Ways on, for the lead: (i) `bootstrapBackend.spec`/`bootstrap.spec` take a row `Rw` with a
+  premise `□ Rw.IR 0 0` (and the restart's specs the row at `(0, m0.1)`), the raft names allocated before
+  `bootstrap` in `NewServer`'s proof; or (ii) the row over a ghost name allocated at `bootstrapBackend`
+  and bound to the raft names later (`IR e p := ⌜(e, p) = (0, 0)⌝ ∨ ∃ γr, bound γb γr ∗ srvImgRow γr …`),
+  the name in `bootBackendRows`'s post; both change a `Spec/` statement.
+* *`consInv_allocR`'s restart problem*: not chosen (its callers are behind the same stop). For the record,
+  the fix with fewer statement changes is reading the row at `(if k = 0 then p else eff, p)` inside
+  `consInv` (`InvApply` only: `consInv`, `consInv_open`/`_close`, `skip_doneR`, `commit_save_auR`), where
+  allocating at `eff = m0.1` changes `applyThread γ ⟨0, m0.1, 0, false⟩` in the boot packets
+  (`bootBackendRows`, `bootOk`, `InvRestart`) and so `bootstrapBackend.spec`'s meaning.
+
+**Handoff T10s3-2.** Branch `etcd-safe-t10s3/2026-11-26` @ `19b44496c8` (pushed). Done: steps 1, 2.
+Left: step 3 (`isServer`/`isServerM` at the row) and step 4 (the call sites, `cPost_true_orPre`'s
+replacement), waiting on the lead's choice of (i)/(ii) above; then (B). The script's `BASE=9f2a8ff9ea`
+still holds (the remote tree is that commit plus this branch's files).
+No axiom, `sorry`, `Spec/` or trusted text changed.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
