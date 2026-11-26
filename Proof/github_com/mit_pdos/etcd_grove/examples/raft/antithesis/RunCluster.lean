@@ -26,6 +26,7 @@ specs (`driver.go`'s `RunCluster`, in its order):
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunCluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.AntStorageStart
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__spawn
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__proposer
@@ -89,7 +90,8 @@ def rInit (R : AntSim.RunCfg) : RState :=
 /-- **A node's view at the run's start** (`FreshView`): not running, nothing delivered, its disk its
 state's. -/
 def viewInit (R : AntSim.RunCfg) : AntSim.NodeView :=
-  { r := rInit R, delivered := [], dur := AntSim.durOf (rInit R), conf := R.c0, alive := false }
+  { r := rInit R, delivered := [], dur := AntSim.durOf (rInit R), conf := R.c0, alive := false,
+    byE := go!"boot" }
 
 /-- A mode within B1's mask: `1 ≤ Voters ≤ Nodes ≤ 5`. -/
 theorem inScope_b1_sizes {m : H.Mode} (h : InScope b1Scope m) :
@@ -229,11 +231,10 @@ theorem nodeMade_own (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) :
     iexists d, null, null, null, null, null, zero_val GoString, W64 0
     dsimp only
     iframe Hd Hmem Hrn Hst Hrole Hhs Hcause Happ Hconf Hv Hl Hdr Hdisk
-    obtain ⟨hP, -, hdur, -, -, -, -, -, -, halive, hidle, -⟩ := viewInit_fresh γ.R
     isplitr
     · ipureintro; exact viewInit_normal γ.R
     ipureintro
-    exact ⟨halive, hidle, hdur, hP⟩
+    exact ⟨viewInit_fresh γ.R, rfl⟩
 
 /-- **The network adders' shares joined**: what is left after `i` nodes and the shares of those `i`
 nodes make the whole right. -/
@@ -264,6 +265,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A range loop over a slice the loop only reads** (a copy of
 `idNames.lean`'s `wp_slice_for_range_ro`, private there). -/
@@ -317,12 +319,18 @@ private theorem wp_slice_for_range_ro {V : Type} [ZeroVal V] [TypedPointsto (GF 
 
 theorem RunCluster.wp_proof
     (wp_Name : Name.spec (GF := GF) (hG := hG))
-    (wp_run : Cluster.run.spec (GF := GF) (hG := hG))
-    (wp_spawn : Cluster.spawn.spec (GF := GF) (hG := hG))
-    (wp_proposer : Cluster.proposer.spec (GF := GF) (hG := hG))
-    (wp_campaigner : Cluster.campaigner.spec (GF := GF) (hG := hG))
-    (wp_reader : Cluster.reader.spec (GF := GF) (hG := hG))
-    (wp_transferer : Cluster.transferer.spec (GF := GF) (hG := hG))
+    (wp_run : ∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC
+      Cluster.run.spec (GF := GF) (hG := hG))
+    (wp_spawn : ∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC
+      Cluster.spawn.spec (GF := GF) (hG := hG))
+    (wp_proposer : ∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC
+      Cluster.proposer.spec (GF := GF) (hG := hG))
+    (wp_campaigner : ∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC
+      Cluster.campaigner.spec (GF := GF) (hG := hG))
+    (wp_reader : ∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC
+      Cluster.reader.spec (GF := GF) (hG := hG))
+    (wp_transferer : ∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC
+      Cluster.transferer.spec (GF := GF) (hG := hG))
     (wp_Sleep : time.Sleep.spec (GF := GF) (hG := hG))
     (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
     (wp_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG))
@@ -330,6 +338,24 @@ theorem RunCluster.wp_proof
     RunCluster.spec (GF := GF) (hG := hG) := by
   intro _ Hfits cfg mode Hcok Hsc
   wp_start as Htok
+  -- the storage registry (`node.start` registers its `bootStorage` there), the run's storage model
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := AntStorRecT) with ⟨%γreg, Hreg⟩
+  letI : AntStor GF := ⟨γreg⟩
+  imod inv_alloc antStorN ⊤ antStorInvBody $$ [Hreg] with #HstInv
+  · inext
+    iunfold antStorInvBody
+    iexists ∅
+    iframe Hreg
+    iapply (BigSepM.bigSepM_empty).2; iempintro
+  ihave #HstInv' : antStorInv (GF := GF) $$ []
+  · iunfold antStorInv; iexact HstInv
+  letI : StorageModel GF := antStorageModelNC
+  have wp_run : Cluster.run.spec (GF := GF) (hG := hG) := wp_run
+  have wp_spawn : Cluster.spawn.spec (GF := GF) (hG := hG) := wp_spawn
+  have wp_proposer : Cluster.proposer.spec (GF := GF) (hG := hG) := wp_proposer
+  have wp_campaigner : Cluster.campaigner.spec (GF := GF) (hG := hG) := wp_campaigner
+  have wp_reader : Cluster.reader.spec (GF := GF) (hG := hG) := wp_reader
+  have wp_transferer : Cluster.transferer.spec (GF := GF) (hG := hG) := wp_transferer
   ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -617,7 +643,7 @@ theorem RunCluster.wp_proof
   ihave #Hc : antCluster cl γ $$ []
   · iunfold antCluster
     iexists cfg, rp, ds.map Prod.fst, sc
-    iframe Ccfg Crec Cstop Hunk Hnj Hmu Hinv Hpm
+    iframe Ccfg Crec Cstop Hunk Hnj Hmu Hinv Hpm HstInv'
     isplitr
     · ipureintro; exact Hcok
     isplitr

@@ -349,9 +349,10 @@ def downInv (c : Loc) (γ : AntNames) : IProp GF :=
 /-- **The cluster `c` of the run `γ`** (persistent): its pacing (`CfgOk`), the run's scope, mode
 and configuration related (`InScope`, `ModeRun`), its recorder, its `N` nodes (`clusterRO`, each
 `nodeRO`), its stop channel (broadcast), the network's join, the `down` lock, the run's invariant,
-the receipts' fit, the proposer's minting, and raft's ghost names' static facts as `nodeRaft`
-needs them. -/
-def antCluster (c : Loc) (γ : AntNames) : IProp GF :=
+the receipts' fit, the proposer's minting, raft's ghost names' static facts as `nodeRaft`
+needs them, and the storage registry's invariant (`antStorInv`, at the run's `AntStor` name: `node.start`
+registers its `bootStorage` there). -/
+def antCluster [AntStor GF] (c : Loc) (γ : AntNames) : IProp GF :=
   iprop(∃ (cfg : H.Config) (r : Loc) (ns : List Loc) (stop : Loc),
     c.[H.Cluster, go!"cfg"] ↦□ cfg ∗ ⌜CfgOk cfg⌝ ∗
     ⌜InScope γ.scope γ.mode ∧ ModeRun γ.scope γ.mode γ.R⌝ ∗
@@ -361,7 +362,7 @@ def antCluster (c : Loc) (γ : AntNames) : IProp GF :=
     c.[H.Cluster, go!"stop"] ↦□ stop ∗ ownBroadcastChan stop γ.stopCh iprop(True) .Unknown ∗
     isNetJoin antNetN (c.[H.Cluster, go!"netWg"]) γ.net ∗
     sync.isMutex (c.[H.Cluster, go!"mu"]) (downInv c γ) ∗
-    inv antN (antInv γ) ∗ ⌜antRunFits GF⌝ ∗ propMinter γ)
+    inv antN (antInv γ) ∗ ⌜antRunFits GF⌝ ∗ propMinter γ ∗ antStorInv)
 
 /-- **A share `q` of the right to add network goroutines** (`netWg`). -/
 def netAdder (c : Loc) (γ : AntNames) (q : Qp) : IProp GF :=
@@ -494,8 +495,9 @@ disk's hard state, `conf` the initial voters' configuration (no conf change in B
 `RawNode`'s node constant the run's node flags (`rs.k = γ.R.k j`: the ends `RawNode` gives are at `rs.k`, the Sim's
 inputs at `R.k j`), the
 cause cell; and the phase's facts (S4's, over `RState`):
-- `down`: not running (`v.alive = false`), nothing of a `Ready` left, the disk the node's state's
-  (`SyncDisk`), its raft resources (`nodeDownRaft`);
+- `down`: the run's fresh view (`FreshView`: not running, nothing of a `Ready` left, the disk the
+  node's state's), its next drain `start`'s (`byE = "boot"`), an empty disk, its raft resources
+  (`nodeDownRaft`);
 - `idle`: running, nothing of a `Ready` left, the node at the view's state, idle (`PIdle`), its
   in-progress boundary at the log's end, the cause cell `nil`;
 - `loop net₀ xnet₀ r₁ xs₁`: the node at `r₁`, reached from the view, nothing queued, the boundary at the
@@ -510,7 +512,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
     n.[H.node, go!"conf"] ↦ csl ∗
     viewFrag γ j v ∗ nodeLive γ j ∗ ⌜ViewNormal v⌝ ∗
     match ph with
-    | .down => iprop(⌜v.alive = false ∧ v.Idle ∧ v.dur = AntSim.durOf v.r ∧ AntSim.PInitR γ.R v.r⌝ ∗
+    | .down => iprop(⌜AntSim.FreshView γ.R v ∧ v.byE = go!"boot"⌝ ∗
         diskOwn d ⟨W64 0, W64 0, W64 0, []⟩ ∗ nodeDownRaft γ j)
     | _ => iprop(diskOwn d v.dur ∗ ∃ (si : Loc) (rs : RNState) (qs : List Msg) (ip : Nat) (r : RState),
       nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1))

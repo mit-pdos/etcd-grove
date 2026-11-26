@@ -58,7 +58,7 @@ theorem memoryOf.wp_proof (wp_New : NewMemoryStorage.spec (GF := GF) (hG := hG))
     iunfold diskOwn
     iframe
     rw [hl, List.length_nil, Nat.add_zero]
-    iframe Hhsr Hes Hlock Hend
+    iframe Hhsr Hes Hlock Hend Hl0
     isplitl
     · iapply memLog_nil
     ipureintro; exact Hsz
@@ -77,7 +77,7 @@ theorem memoryOf.wp_proof (wp_New : NewMemoryStorage.spec (GF := GF) (hG := hG))
     iunfold diskOwn
     iframe
     icases Hlog with ⟨Hlog, Hend⟩
-    iframe Hhsr Hes Hlock Hlog Hend
+    iframe Hhsr Hes Hlock Hlog Hend Hl0
     ipureintro; exact Hsz
 
 end proof

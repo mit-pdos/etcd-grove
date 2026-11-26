@@ -6478,3 +6478,20 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   stale arm (`rfl`); ElectionLemmas' two closers wrap theirs by `PreVoteStepAll.of_fresh`; raft__Step.lean's `end_mk`,
   `end_ty`, the AppRespX and transfer closes and the PreVote close adapted. For `StaleEnd`'s third arm in the lifting.
 - **Decision.** Lead's decision 4 (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1: a fresh node's view, the storage registry, `memoryOf`'s dummy entry (#33)
+- **Files.** `HarnessRun.lean` (`nodeOwn`'s `.down`, `antCluster`), `RunCluster.lean` (`viewInit`, `RunCluster.wp_proof`'s
+  hypotheses), `Spec/.../antithesis/memoryOf.lean`, and a `variable [AntStor GF]` line in the 62 Spec/Proof files of the
+  antithesis package that mention `antCluster` or a spec that does (mechanical).
+- **`.down`.** Its pure part was `v.alive = false ∧ v.Idle ∧ v.dur = durOf v.r ∧ PInitR γ.R v.r`; now
+  `AntSim.FreshView γ.R v ∧ v.byE = go!"boot"` (FreshView implies the four). `node.start` needs it: `antSim_boot`
+  takes `FreshView` of the node's view, and `drain` is called with the view's `by` (`"boot"`; the boot report keeps
+  it). `viewInit` gets `byE := go!"boot"` (`FreshView` does not constrain `byE`; `antSim_init` holds at any).
+- **`antCluster`.** Takes `[AntStor GF]` and gains `antStorInv` (the registry `node.start` registers its
+  `bootStorage` in). `RunCluster.wp_proof` allocates the registry and its invariant, then takes the run's storage
+  model `antStorageModelNC` (`AntStorageStart.lean`, S4's `RunClusterStorage` restored) by `letI`; its six callee
+  hypotheses that mention `antCluster` are now `∀ [AntStor GF], letI : StorageModel GF := antStorageModelNC; …spec`
+  (S4's pattern). `RunCluster.spec`, `Main.spec` and the top level unchanged.
+- **`memoryOf.spec`.** The post also returns `memLog γs 0 DFrac.discard [zero_val EntryM]` (`NewMemoryStorage`'s
+  dummy entry; `node.start`'s `Term(0)` in a run without boot reads it).
+- **Decision.** Lead (2026-11-26), all three. No axiom, no top-level premise (driver-internal statements).

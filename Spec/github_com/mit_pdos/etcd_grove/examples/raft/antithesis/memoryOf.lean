@@ -4,7 +4,7 @@ the vocabulary is `HarnessRun.lean`'s).
 `memoryOf(d)`: a fresh `MemoryStorage` holding the disk `w` (its hard state, its entries from index
 1), the storage `start` gives raft. The disk's entries are numbered from 1, within raft's index
 bound (`MemoryStorage.Append`'s premises; `Append` panics on a gap).
-It also returns `NewMemoryStorage`'s snapshot resources (no snapshot yet; the storage fresh, no
+It also returns `NewMemoryStorage`'s dummy entry at index 0 (`Term(0)` reads it) and its snapshot resources (no snapshot yet; the storage fresh, no
 reader holds it), which `start` needs to attach the storage to raft.
 -/
 module
@@ -40,7 +40,7 @@ abbrev memoryOf.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.memoryOf)) (Val #d))
   {{ (ms : Loc), RET #ms; diskOwn d w ∗ ∃ γs : MemStorNames, memStorLock ms γs ∗
       memStorMeta ms γs (HardStateM.mk w.term w.vote w.commit) ∗ memLog γs 1 (DFrac.own 1) w.log ∗
-      memEnd γs (1 + w.log.length) ∗ memSnapNone γs memSnapEmpty ∗ memStorFresh ms γs 0 memSnapEmpty ∗
+      memLog γs 0 DFrac.discard [zero_val EntryM] ∗ memEnd γs (1 + w.log.length) ∗ memSnapNone γs memSnapEmpty ∗ memStorFresh ms γs 0 memSnapEmpty ∗
       ⌜γs.sz = false⌝ }}
 
 end spec

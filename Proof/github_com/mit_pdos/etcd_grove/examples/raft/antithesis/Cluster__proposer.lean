@@ -25,6 +25,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [AntStor GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
@@ -39,7 +40,7 @@ theorem Cluster.proposer.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF :
   ihave #Hc' := Hc
   iunfold antCluster at Hc'
   icases Hc' with ⟨%cfg, %r, %ns, %stop, #Hcfg, %Hcok, %Hmode, #Hr, #Hrec, #Hro, #Hnodes, #Hstop, #Hbc,
-    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm⟩
+    #Hnj, #Hmu, #Hinv, %Hfits, #Hpm, #_Hsinv⟩
   ihave Hcf := Hcfg
   iStructNamed Hcf
   wp_auto
