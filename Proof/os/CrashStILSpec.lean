@@ -15,6 +15,7 @@ public import Spec.golang_org.x.sys.unix.Munmap
 public import Perennial.Golang.Theory.Unsafe
 public import GooseLang.Ext.Fs.NoMapLockErrSpecs
 public import Perennial.Golang.Theory.Plain
+public import Spec.os.CrashStILR
 
 @[expose] public section
 
@@ -86,13 +87,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-theorem syscall.Fdatasync.wp_proof_crashIL [syscall.Assumptions] :
-    syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ fd dq d N i γ γa γc Ok a m bs c hi hN hcov hok
+theorem syscall.Fdatasync.wp_proof_crashILR [syscall.Assumptions] :
+    syscall.Fdatasync.specCrashILR (GF := GF) (hG := hG) := by
+  intro A _ fd dq d N i γ γa γc Ok R _ a m bs c hi hN hcov hok
   subst hi
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown, Hb⟩
-  wp_apply wp_osFsync_L fd dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
-    (csI_acc N d.ino γ γa γc Ok a) m bs c hN hcov hok $$ Hos Hinv Hfd Hown Hb as %e Hr Hfd
+  wp_apply wp_osFsync_L fd dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R) (csTokI γ γa a) (Ok a)
+    (csI_accR R N d.ino γ γa γc Ok a) m bs c hN hcov hok $$ Hos Hinv Hfd Hown Hb as %e Hr Hfd
   iapply wp_errno
   iapply HΦ
   iframe Hfd
@@ -100,17 +101,30 @@ theorem syscall.Fdatasync.wp_proof_crashIL [syscall.Assumptions] :
   · ileft; iframe; ipureintro; exact he
   · iright; iframe; ipureintro; exact ⟨he.1, he.2.2⟩
 
-theorem golang_org.x.sys.unix.Mmap.wp_proof_crashIL [golang_org.x.sys.unix.Assumptions] :
-    golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ fd off len prot fl dq d N i γ γa γc Ok a m bs hi hrd hoff hlen hprot hfl hN hok
+theorem syscall.Fdatasync.wp_proof_crashIL [syscall.Assumptions] :
+    syscall.Fdatasync.specCrashIL (GF := GF) (hG := hG) := by
+  intro A _ fd dq d N i γ γa γc Ok a m bs c hi hN hcov hok
+  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
+  iapply (syscall.Fdatasync.wp_proof_crashILR (GF := GF) (hG := hG)
+    fd dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs c hi hN hcov hok) $$ [H]
+  · isplitr
+    · iexact Hos
+    isplitr [H]
+    · iapply csInvI_R; iexact Hinv
+    · iexact H
+  · iexact HΦ
+
+theorem golang_org.x.sys.unix.Mmap.wp_proof_crashILR [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Mmap.specCrashILR (GF := GF) (hG := hG) := by
+  intro A _ fd off len prot fl dq d N i γ γa γc Ok R _ a m bs hi hrd hoff hlen hprot hfl hN hok
   subst hi
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown⟩
   have hl : ¬ (sint.Z len ≤ sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega
   rw [decide_eq_false hl]
   wp_auto
-  wp_apply wp_osMmap_L fd off len prot fl dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok)
-    (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a) m bs hN hrd hoff hlen hprot hfl hok
+  wp_apply wp_osMmap_L fd off len prot fl dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R)
+    (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a) m bs hN hrd hoff hlen hprot hfl hok
     $$ Hos Hinv Hfd Hown as %base %e Hr Hfd
   icases Hr with (⟨%he, Hown, Hc⟩ | ⟨%he, Hown⟩)
   · obtain ⟨rfl, hpos, hmax⟩ := he
@@ -143,9 +157,22 @@ theorem golang_org.x.sys.unix.Mmap.wp_proof_crashIL [golang_org.x.sys.unix.Assum
     iframe
     ipureintro; exact ⟨he, rfl, hno⟩
 
-theorem golang_org.x.sys.unix.Munmap.wp_proof_crashIL [golang_org.x.sys.unix.Assumptions] :
-    golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ base len p N γ γa γc Ok a m bs vf hpos hb hN hok
+theorem golang_org.x.sys.unix.Mmap.wp_proof_crashIL [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Mmap.specCrashIL (GF := GF) (hG := hG) := by
+  intro A _ fd off len prot fl dq d N i γ γa γc Ok a m bs hi hrd hoff hlen hprot hfl hN hok
+  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
+  iapply (golang_org.x.sys.unix.Mmap.wp_proof_crashILR (GF := GF) (hG := hG)
+    fd off len prot fl dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs hi hrd hoff hlen hprot hfl hN hok) $$ [H]
+  · isplitr
+    · iexact Hos
+    isplitr [H]
+    · iapply csInvI_R; iexact Hinv
+    · iexact H
+  · iexact HΦ
+
+theorem golang_org.x.sys.unix.Munmap.wp_proof_crashILR [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Munmap.specCrashILR (GF := GF) (hG := hG) := by
+  intro A _ base len p N γ γa γc Ok R _ a m bs vf hpos hb hN hok
   wp_start as ⟨#Hos, #Hinv, Hown, Hc⟩
   by_cases hl0 : len = W64 0
   · subst hl0; exact absurd hpos (by decide)
@@ -161,17 +188,30 @@ theorem golang_org.x.sys.unix.Munmap.wp_proof_crashIL [golang_org.x.sys.unix.Ass
     have hb0 : (base +ₗ (0 : Int)) = base := by simp
     rw [hb0]
     wp_auto
-    wp_apply wp_osMunmap_L base len len p N (csInvI (GF := GF) N p γ γa γc Ok) (csTokI γ γa a) (Ok a)
-      (csI_acc N p γ γa γc Ok a) m bs len.toNat vf hN hb rfl rfl hok
+    wp_apply wp_osMunmap_L base len len p N (csInvIR (GF := GF) N p γ γa γc Ok R) (csTokI γ γa a) (Ok a)
+      (csI_accR R N p γ γa γc Ok a) m bs len.toNat vf hN hb rfl rfl hok
       $$ Hos Hinv Hown Hc as %e Hr
     iapply wp_errno
     iapply HΦ
     iexact Hr
 
+theorem golang_org.x.sys.unix.Munmap.wp_proof_crashIL [golang_org.x.sys.unix.Assumptions] :
+    golang_org.x.sys.unix.Munmap.specCrashIL (GF := GF) (hG := hG) := by
+  intro A _ base len p N γ γa γc Ok a m bs vf hpos hb hN hok
+  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
+  iapply (golang_org.x.sys.unix.Munmap.wp_proof_crashILR (GF := GF) (hG := hG)
+    base len p N γ γa γc Ok (fun _ => iprop(emp)) a m bs vf hpos hb hN hok) $$ [H]
+  · isplitr
+    · iexact Hos
+    isplitr [H]
+    · iapply csInvI_R; iexact Hinv
+    · iexact H
+  · iexact HΦ
+
 variable [os.Assumptions]
 
-theorem os.File.Sync.wp_proof_crashIL : os.File.Sync.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf dq d N i γ γa γc Ok a m bs c hi hN hcov hok
+theorem os.File.Sync.wp_proof_crashILR : os.File.Sync.specCrashILR (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf dq d N i γ γa γc Ok R _ a m bs c hi hN hcov hok
   subst hi
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hown, Hb⟩
@@ -181,8 +221,8 @@ theorem os.File.Sync.wp_proof_crashIL : os.File.Sync.specCrashIL (GF := GF) (hG 
   iStructNamed Hf2
   wp_auto
   wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hos Hosfd as Hosfd
-  wp_apply wp_osFsync_L fd dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a)
-    (csI_acc N d.ino γ γa γc Ok a) m bs c hN hcov hok $$ Hos Hinv Hosfd Hown Hb as %e Hr Hosfd
+  wp_apply wp_osFsync_L fd dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R) (csTokI γ γa a) (Ok a)
+    (csI_accR R N d.ino γ γa γc Ok a) m bs c hN hcov hok $$ Hos Hinv Hosfd Hown Hb as %e Hr Hosfd
   by_cases he4 : e = W64 4
   · icases Hr with (⟨%he, -⟩ | ⟨%he, -⟩)
     · exact absurd (he4 ▸ he) (by decide)
@@ -213,9 +253,20 @@ theorem os.File.Sync.wp_proof_crashIL : os.File.Sync.specCrashIL (GF := GF) (hG 
     iframe
     ipureintro; exact ⟨(by intro h; cases h), he.2.2⟩
 
-theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok a m bs xs hi hwr hoff hin hmaxB hbig hn
-    hn2 hxl hN hW
+theorem os.File.Sync.wp_proof_crashIL : os.File.Sync.specCrashIL (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf dq d N i γ γa γc Ok a m bs c hi hN hcov hok
+  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
+  iapply (os.File.Sync.wp_proof_crashILR (GF := GF) (hG := hG)
+    f fd name dqf dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs c hi hN hcov hok) $$ [H]
+  · isplitr
+    · iexact Hos
+    isplitr [H]
+    · iapply csInvI_R; iexact Hinv
+    · iexact H
+  · iexact HΦ
+
+theorem os.File.WriteAt.wp_proof_crashILR : os.File.WriteAt.specCrashILR (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok R _ a m bs xs hi hwr hoff hin hmaxB hbig hn hn2 hxl hN hW
   subst hi
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hsl, Hosfd, Hown, Hx, Hc⟩
@@ -223,7 +274,7 @@ theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF
   have hlen : bs.length = m.size := Hlo.1.1
   have hgap : off.toNat ≤ m.size := by omega
   -- the caller's bytes are the state's
-  imod csOwnIL_agree N d.ino γ γa γc Ok ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top off.toNat
+  imod csOwnILR_agree R N d.ino γ γa γc Ok ⟨m, bs, 0, 0, .idle⟩ a ⊤ CoPset.subseteq_top off.toNat
     (DFrac.own (1 : Qp).half) xs (by show off.toNat + xs.length ≤ bs.length; omega)
     $$ Hinv Hown Hx with ⟨Hown, Hx, %hxs⟩
   rw [hxl] at hxs
@@ -320,7 +371,7 @@ theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF
       Ok a ⟨m', bs', 0, 0, .write t (off + nnv).toNat (data.drop nnv.toNat) n⟩ := by
     intro t n hfr; rw [hoffv] at hfr ⊢; exact (hW _ _ _ hR).2 hnn t n hfr
   wp_apply wp_osPWriteStart_L fd (off + nnv) (data.drop nnv.toNat) dq d N
-    (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a)
+    (csInvIR (GF := GF) N d.ino γ γa γc Ok R) (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a)
     m' bs' ((bs'.drop (off + nnv).toNat).take (data.drop nnv.toNat).length) hN hwr hoffv' hin' hdne
     (by
       have h1 : (off + nnv).toNat + (data.drop nnv.toNat).length ≤ bs'.length := by
@@ -337,7 +388,7 @@ theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF
     exact (hW _ _ _ (hR.step k _ nst [] hnn (by rw [hdl] at hk; exact hk) (.inl rfl)
       (by rw [← hoffv, hps k hk]; simp) (fun _ _ _ h => absurd h (Nat.not_lt_zero _)) hfr)).1
   wp_apply wp_osPWriteFinish_L t d.ino (off + nnv).toNat (data.drop nnv.toNat) nst N
-    (csInvI (GF := GF) N d.ino γ γa γc Ok) (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a)
+    (csInvIR (GF := GF) N d.ino γ γa γc Ok R) (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a)
     m' bs' hN hl' hin' (by rw [hoffv]; omega) hW2 $$ Hos Hinv Hown as %k %e %hke Hown Hy Hc2
   obtain ⟨hk, hke, hzt, hzl, hfe⟩ := hke
   rw [hdl] at hk
@@ -440,8 +491,20 @@ theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF
         · ipureintro
           exact ⟨_, by trivial, hRs _ (.inl rfl), .inr ⟨rfl, (by intro h; cases h), hfe (fun h => he0 (by rw [h]; rfl))⟩⟩
 
-theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := GF) (hG := hG) := by
-  intro A _ f fd name dqf sz dq d N i γ γa γc Ok a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT
+theorem os.File.WriteAt.wp_proof_crashIL : os.File.WriteAt.specCrashIL (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf sl data dqs off dq d N i γ γa γc Ok a m bs xs hi hwr hoff hin hmaxB hbig hn hn2 hxl hN hW
+  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
+  iapply (os.File.WriteAt.wp_proof_crashILR (GF := GF) (hG := hG)
+    f fd name dqf sl data dqs off dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs xs hi hwr hoff hin hmaxB hbig hn hn2 hxl hN hW) $$ [H]
+  · isplitr
+    · iexact Hos
+    isplitr [H]
+    · iapply csInvI_R; iexact Hinv
+    · iexact H
+  · iexact HΦ
+
+theorem os.File.Truncate.wp_proof_crashILR : os.File.Truncate.specCrashILR (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf sz dq d N i γ γa γc Ok R _ a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT
   subst hi
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn, #Hsys⟩, Hosfd, Hown, Hc⟩
@@ -473,8 +536,8 @@ theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := 
     have hR0 : TReach m bs sz.toNat m0 bs := by rcases hm0 with rfl | rfl; exact .refl; exact .ann
     ihave Hc := (show mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) ⊢
       mcellsAny m0.maps m0.size (rsHi true m0.size sz.toNat) by rw [hsz0, hmp0]) $$ Hc
-    wp_apply wp_osFtruncateStart_L fd sz dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok)
-      (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a) m0 bs hN hwr hsz
+    wp_apply wp_osFtruncateStart_L fd sz dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R)
+      (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a) m0 bs hN hwr hsz
       (by rw [hsz0]; exact hgrow) (hT _ _ hR0).2 $$ Hos Hinv Hosfd Hown Hc as %t %n Hosfd Hown
     have hpost : rsPost true m0 sz.toNat sz.toNat = rsPost true m sz.toNat sz.toNat := by
       rcases hm0 with rfl | rfl
@@ -490,8 +553,8 @@ theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := 
       intro zs hz; rw [hpost]; rw [hsz0] at hz; exact (hT _ _ (.grown n zs hz)).1
     have hokF : Ok a ⟨m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat,
         bs, 0, 0, .idle⟩ := by rw [hann]; exact (hT _ _ .ann).1
-    wp_apply wp_osFtruncateFinish_L t d.ino sz.toNat n N (csInvI (GF := GF) N d.ino γ γa γc Ok)
-      (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a) m0 bs hN (by rw [hsz0]; exact hlen)
+    wp_apply wp_osFtruncateFinish_L t d.ino sz.toNat n N (csInvIR (GF := GF) N d.ino γ γa γc Ok R)
+      (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a) m0 bs hN (by rw [hsz0]; exact hlen)
       (by rw [hsz0]; exact hgrow) hmaxB hokG hokF $$ Hos Hinv Hown as %e %hfe Hr
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
@@ -559,8 +622,8 @@ theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := 
     ihave Hc0 := (show mcellsAny (GF := GF) m0.maps sz.toNat (rsHi true m0.size sz.toNat) ⊢
       mcellsAny (rsPost true m0 sz.toNat sz.toNat).maps (rsPost true m0 sz.toNat sz.toNat).size
         (rsHi true (rsPost true m0 sz.toNat sz.toNat).size sz.toNat) by rw [hgsz, hgmaps, hRR]) $$ Hc0
-    wp_apply wp_osFtruncateStart_L fd sz dq d N (csInvI (GF := GF) N d.ino γ γa γc Ok)
-      (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a) _ _ hN hwr hsz
+    wp_apply wp_osFtruncateStart_L fd sz dq d N (csInvIR (GF := GF) N d.ino γ γa γc Ok R)
+      (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a) _ _ hN hwr hsz
       (by rw [hgsz]; exact Nat.le_refl _) (hT _ _ hR0).2 $$ Hos Hinv Hosfd Hown Hc0 as %t %n Hosfd Hown
     have hokG : ∀ zs' : List Cands, zs'.length = sz.toNat - (rsPost true m0 sz.toNat sz.toNat).size →
         Ok a ⟨rsPost true (rsPost true m0 sz.toNat sz.toNat) sz.toNat sz.toNat,
@@ -575,8 +638,8 @@ theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := 
         (rsHi true (rsPost true m0 sz.toNat sz.toNat).size sz.toNat)
         sz.toNat, bs ++ grownBytes zs n0, 0, 0, .idle⟩ := by
       rw [os.announce_rsPost]; exact (hT _ _ hR0).1
-    wp_apply wp_osFtruncateFinish_L t d.ino sz.toNat n N (csInvI (GF := GF) N d.ino γ γa γc Ok)
-      (csTokI γ γa a) (Ok a) (csI_acc N d.ino γ γa γc Ok a) _ _ hN (by rw [hgsz]; exact hgl)
+    wp_apply wp_osFtruncateFinish_L t d.ino sz.toNat n N (csInvIR (GF := GF) N d.ino γ γa γc Ok R)
+      (csTokI γ γa a) (Ok a) (csI_accR R N d.ino γ γa γc Ok a) _ _ hN (by rw [hgsz]; exact hgl)
       (by rw [hgsz]; try exact Nat.le_refl _) hmaxB hokG hokF $$ Hos Hinv Hown as %e %hfe Hr
     -- the state is the grown one again
     ihave Hown : csOwnIL (GF := GF) d.ino γ γa ⟨rsPost true m0 sz.toNat sz.toNat,
@@ -641,6 +704,18 @@ theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := 
         iright
         isplitr; · ipureintro; exact ⟨(by intro h; cases h), hfe (fun h => he0 (by rw [h]; rfl))⟩
         ileft; iexists n0, m0; iframe; ipureintro; exact hm0
+
+theorem os.File.Truncate.wp_proof_crashIL : os.File.Truncate.specCrashIL (GF := GF) (hG := hG) := by
+  intro A _ f fd name dqf sz dq d N i γ γa γc Ok a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT
+  iintro %Φ ⟨#Hos, #Hinv, H⟩ HΦ
+  iapply (os.File.Truncate.wp_proof_crashILR (GF := GF) (hG := hG)
+    f fd name dqf sz dq d N i γ γa γc Ok (fun _ => iprop(emp)) a m bs hi hfd0 hwr hsz hgrow hmaxB hN hT) $$ [H]
+  · isplitr
+    · iexact Hos
+    isplitr [H]
+    · iapply csInvI_R; iexact Hinv
+    · iexact H
+  · iexact HΦ
 
 end proof
 
