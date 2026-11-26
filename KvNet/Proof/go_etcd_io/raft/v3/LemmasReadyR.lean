@@ -272,7 +272,7 @@ theorem outboxRelP_isRaftMsgs (γ : RaftNames) (id : w64) (s : NState) (o : List
     isplitr
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0) (Hxf.2.1 q Hq0)
-        (Hxf.2.2.1 q Hq0) Htr (Hsn q List.mem_cons_self) $$ Ho Hq Hxw
+        (Hxf.2.2.1 q Hq0) ((Hxf.xq q Hq0).2.2) Htr (Hsn q List.mem_cons_self) $$ Ho Hq Hxw
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
         (fun q' hq' => Hsn q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
@@ -299,7 +299,7 @@ theorem outboxRelP_isRaftMsgs_ns (γ : RaftNames) (id : w64) (s : NState) (o : L
     · ihave #Hq := qCerts_mem γ _ q Hq0 $$ Hqc
       iapply outboxRelP_isRaftMsg_gen γ id s o ms1 ms2 q (fun x => iprop(⌜x.dst ≠ id⌝ -∗ isMessage γ x))
         (fun x hx => by iintro #H; iapply H; ipureintro; rw [hx]; exact Hq1) Hp Hq0 Hns
-        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) Htr (fun _ => Hq1) $$ Ho Hq Hxw
+        (Hxf.1 q Hq0) (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) ((Hxf.xq q Hq0).2.2) Htr (fun _ => Hq1) $$ Ho Hq Hxw
     · iapply (ih (fun q' hq' => Hsub q' (List.mem_cons_of_mem _ hq'))
         (fun q' hq' => Hto q' (List.mem_cons_of_mem _ hq'))) $$ Ho Hqc Hxw
 
@@ -423,7 +423,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
             iintro #Hfr
             ihave #Ho' := bigSepL_wand_pers (durFrags (GF := GF) γ id W) (isMessage γ) o $$ Ho Hfr
             iapply outboxRelP_isRaftMsg γ id s o ms1 ms2 q Hp Hq0 Hns (Hxf.1 q Hq0)
-              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0)
+              (Hxf.2.1 q Hq0) (Hxf.2.2.1 q Hq0) ((Hxf.xq q Hq0).2.2)
               Htr (fun hs => absurd hs (resp_ne_MsgSnap _ Hresp)) $$ Ho' Hqq Hxw
           · iexact Htq
       · iapply ih Hsub' Hok' $$ Ho Hqc Hxw H Htk

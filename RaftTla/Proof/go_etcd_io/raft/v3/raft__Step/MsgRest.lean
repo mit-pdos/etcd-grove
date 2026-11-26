@@ -282,7 +282,7 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
   · iframe Hphys Hrc00 HG Hlg
     isplitl [Hm]
     · msg_pass
@@ -490,7 +490,12 @@ theorem wp_Step_MsgTransferLeader {nc : Bool} (_P : raft.Step.Postulates (GF := 
     (Hxtr : m.Type' = MsgTransferLeader → s.gh.tr = none)
     -- (2026-11-24, #33 S4) the request recorded as stepped at a follower or a leader (`NGhost.xs`,
     -- `raft.Step` sets it before this arm; `stepLeader`'s and `stepFollower`'s premise)
-    (Hxs : s.role = .follower ∨ s.role = .leader → s.gh.xs = true) :
+    (Hxs : s.role = .follower ∨ s.role = .leader → s.gh.xs = true)
+    -- (antithesis parity B1, option (b)) at a leader, a caught-up transferee recorded in `NGhost.xt`
+    -- (`raft.Step` records it before this arm; `stepLeader`'s premise)
+    (Hxtx : s.role = .leader → m.Type' = MsgTransferLeader → m.From' ≠ id →
+      (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst →
+      (s.gh.xt !! (m.From', s.term)).isSome) :
     m.Type' = MsgTransferLeader →
     ents = [] →
     ctx = [] →

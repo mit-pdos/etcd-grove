@@ -6404,3 +6404,28 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   accepts only for a drain's `by`; the harness has `ByOk v.byE` at every drain.
 - **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise: Q1 weakens an invariant
   conjunct (still enough for its reader); Q2 adds a hypothesis to a `Reach` constructor, which the harness discharges.
+
+## 2026-11-26 — antithesis parity B1 phase 2: the `MsgTimeoutNow` witness (`NGhost.xt`, option (b)) and the transfer frames (#33)
+- **Spec (raft.Step.spec, lead- and #44-cleared, branch-only).** `%Hframe` gains the premise `(m.Type' = MsgAppResp →
+  m.From' ≠ id → s.lt = W64 0)`; `%Hxwframe`'s premise widens to `MsgTransferLeader ∨ (MsgAppResp ∧ From ≠ id ∧
+  lt ≠ 0)`, its ghost frame gains `xt := s'.gh.xt`, and it gains the xw-growth conjunct (`∀ p ∈ s'.gh.xw, p ∈ s.gh.xw ∨
+  (p = (s.lead, s.term) ∧ follower ∧ lead ≠ 0)`: the one record a step adds is a follower's forward). Weaker than before
+  only on an append response from another node while the node has a transferee (it may now record in `gh.xt`).
+- **Spec (callees).** `SendOk`'s transfer clause (c): a `MsgTimeoutNow`'s `(To, term)` is in `NGhost.xt`;
+  `raft.sendTimeoutNow.spec` takes `(s.gh.xt !! (to, s.term)).isSome`; `stepLeader.spec` takes it at a transfer request
+  from a peer whose `Match` is the last index, and at an accepted append response from the transferee at the last
+  index (`raft.Step` records it before the step). The proof-level `XQOk` (queued untyped messages) gains the same clause.
+- **API vocabulary.** `isRaftMsg` gains a last conjunct: a `MsgTimeoutNow`'s destination acknowledged an index past `0`
+  at the message's term (`∃ i, uint.Z i ≠ 0 ∗ isAcked γ To Term i`, durable): what the harness's `send` of it reports
+  (`XMsgFacts`). `XReadyOk`'s docstring points to it.
+- **Proof.** `NGhost.xt` with witnesses `xtW` (inside `xfW`); `raft.Step` records `(transferee, term)` before a leader's
+  transfer request (witness: `matchedOk`'s ack of the transferee's `Match` = last index, `ownRaftGhost_matched_ack`,
+  last index ≥ 1 `ownRaftGhost_leader_last1`, LemmasXt.lean) and before an append response from another node with a
+  transferee (`dispatch_AppRespX`: witness `isMessage`'s ack of the response's index = last index); the ghost state
+  goes through the gates and the close at `s` and is recorded after it (at `s` or past `maybeCommit`).
+  `StepEnd` (LemmasStepGates) gains `xtr` (`XtRec`: such a response, untraced) at the recorded state; `gated` takes
+  `¬ XtRec`; `xfer` names `xt`. `stepGates_xt`/`leaderGates_xt` (TracedStepGates): the gates read no `xt`.
+- **Mechanical.** The restated frames (TracedRaftStepBundle, TracedUntracedRaftStep, TracedRawNodeAdvance, RaftStepNoSnap)
+  and the bare ghost frames by `frame_rw.py`; `gated`'s readers by `gated_rw.py` (`(by xtrec_tac)`); the `%Hframe` users'
+  one-argument appends (a traced node's `lt = 0`, the type, an `Advance` step's own sender).
+- **Decision.** Lead's option (b) (2026-11-26), #44 cleared. No axiom, no top-level premise.

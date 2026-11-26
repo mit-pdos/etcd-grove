@@ -156,6 +156,10 @@ def SendOk (id : w64) (s : NState) (m : MessageM) (ents : List EntryM)
     -- (`NGhost.xw`, `xfW`; `raft.Step`'s transfer arm records its leader before `stepFollower`
     -- forwards). Until then only with leader transfer on (`NGhost.xf = false`, D21 M2r).
     (m.Type' = MsgTransferLeader → (s.gh.xw !! (m.To', s.term)).isSome) ∧
+    -- (antithesis parity B1, option (b)) a `MsgTimeoutNow`, to a destination and at a term recorded
+    -- with its acknowledgement of an index past `0` (`NGhost.xt`, `xtW`; `raft.Step` records the
+    -- transferee before the step that sends it)
+    (m.Type' = MsgTimeoutNow → (s.gh.xt !! (m.To', s.term)).isSome) ∧
     -- (2026-11-24, #33 S4) once a transfer request was stepped (`NGhost.xs`): until then every
     -- queued message is of a described type (`XfOk`'s last clause)
     s.gh.xs = true))

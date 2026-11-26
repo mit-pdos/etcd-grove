@@ -45,6 +45,9 @@ abbrev raft.sendTimeoutNow.spec : Prop :=
   -- (2026-11-24, #33 S4) once a transfer request was stepped (`NGhost.xs`): `send`'s transfer clause
   -- (a node with a transferee has stepped one, `ownRaftPhysC_xs_of_lt`)
   s.gh.xs = true →
+  -- (antithesis parity B1, option (b)) the destination recorded at the node's term (`NGhost.xt`, with
+  -- its acknowledgement witness): `send`'s timeout clause
+  (s.gh.xt !! (to, s.term)).isSome →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-09, Q8 stage 1 slice 5) `send`'s hook's gate, at no event
       HookGateOpt s.gh.tr r none Q }}

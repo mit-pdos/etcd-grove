@@ -454,6 +454,15 @@ abbrev stepLeader.spec : Prop :=
   -- (2026-11-24, #33 S4) a transfer request recorded as stepped (`NGhost.xs`, which `raft.Step`'s
   -- transfer arm sets before the step), for the transferee's store and `sendTimeoutNow`
   (m.Type' = MsgTransferLeader → s.gh.xs = true) →
+  -- (antithesis parity B1, option (b)) the transferee recorded at the node's term (`NGhost.xt`) where
+  -- `sendTimeoutNow` runs: a transfer request from a peer whose `Match` is the last index, and an
+  -- accepted append response from the transferee at the last index (`raft.Step` records it before
+  -- the step, from the leader's `matchedOk` and from the response's `isMessage`)
+  (m.Type' = MsgTransferLeader → m.From' ≠ id →
+     (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst →
+     (s.gh.xt !! (m.From', s.term)).isSome) →
+  (m.Type' = MsgAppResp → m.Reject' = false → m.From' = s.lt → m.Index' = logLast s.logst →
+     (s.gh.xt !! (m.From', s.term)).isSome) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a

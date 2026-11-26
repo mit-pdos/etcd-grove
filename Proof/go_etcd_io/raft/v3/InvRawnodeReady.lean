@@ -851,6 +851,8 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
     (Hsh : SentMsgShape q.st) (Hfr : replicationFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
+    -- (antithesis parity B1, option (b)) a `MsgTimeoutNow` recorded in `NGhost.xt` (`XQOk`)
+    (Hxt : q.st.msg.Type' = MsgTimeoutNow → (s.gh.xt !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
     (Htr : ∀ x ∈ o, MsgTrOk γ x)
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
@@ -917,13 +919,25 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (id : w64) (s : NState) (o : List 
   rotate_left
   · isplitr
     · ipureintro; exact Hsn
+    isplitr
     · ipureintro; exact Hnsnap
+    -- (antithesis parity B1, option (b)) the timeout request's witness, out of `xfW`'s `xtW`
+    imodintro
+    iintro %Ht
+    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxt Ht)
+    unfold xfW xtW
+    icases Hxf with ⟨-, #Hxt'⟩
+    ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ =>
+        iprop(∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ p.1 p.2 i))
+      (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxt'
+    iexact Hl
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
   unfold xfW
+  icases Hxf with ⟨#Hxw', -⟩
   ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ => isLeader (GF := GF) γ p.1 p.2)
-    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxf
+    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxw'
   iexact Hl
 
 /-- (2026-11-01, durability stage II (k), fix C) `outboxRelP_isRaftMsg` from any persistent fact `R`
@@ -940,6 +954,8 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
     (Hsh : SentMsgShape q.st) (Hfr : replicationFrom id q.st)
     (Hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
+    -- (antithesis parity B1, option (b)) a `MsgTimeoutNow` recorded in `NGhost.xt` (`XQOk`)
+    (Hxt : q.st.msg.Type' = MsgTimeoutNow → (s.gh.xt !! (q.st.msg.To', q.st.msg.Term')).isSome)
     -- (Q8 stage 1 slice 10) in a traced cluster, the outbox's numbers (`NsLink`'s `OutTr`)
     (Htr : ∀ x ∈ o, MsgTrOk γ x)
     -- (restart S7.3, 2026-11-14) a `MsgSnap` not to the node (`send`'s panic)
@@ -1008,13 +1024,25 @@ theorem outboxRelP_isRaftMsg_gen (γ : RaftNames) (id : w64) (s : NState) (o : L
   rotate_left
   · isplitr
     · ipureintro; exact Hsn
+    isplitr
     · ipureintro; exact Hnsnap
+    -- (antithesis parity B1, option (b)) the timeout request's witness, out of `xfW`'s `xtW`
+    imodintro
+    iintro %Ht
+    obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxt Ht)
+    unfold xfW xtW
+    icases Hxf with ⟨-, #Hxt'⟩
+    ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ =>
+        iprop(∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked (GF := GF) γ p.1 p.2 i))
+      (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxt'
+    iexact Hl
   imodintro
   iintro %Ht
   obtain ⟨u, hu⟩ := Option.isSome_iff_exists.1 (Hxw Ht.1 Ht.2)
   unfold xfW
+  icases Hxf with ⟨#Hxw', -⟩
   ihave #Hl := (BigSepM.bigSepM_lookup (Φ := fun (p : w64 × w64) _ => isLeader (GF := GF) γ p.1 p.2)
-    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxf
+    (i := (q.st.msg.To', q.st.msg.Term')) hu) $$ Hxw'
   iexact Hl
 
 /-- The abstraction of a message `isRaftMsg` covers, for a type the model describes but a

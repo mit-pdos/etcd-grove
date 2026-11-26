@@ -535,6 +535,18 @@ theorem wp_stepLeader_report
       (GMap.lookup_insert_eq _ _ _) rfl]
     exact prvalsMatch_insert_same _ _ p _ Hpvs Hpm
 
+/-- (antithesis parity B1, option (b)) An accepted append response that reaches `maybeCommit`
+(`AppRespRan`) sets its sender's `Match` to its index. -/
+private theorem appRespMatch_ran_self (s : NState) (src index : w64) (H : AppRespRan s src index) :
+    appRespMatch s src index !! src = some index := by
+  obtain ⟨p, hp, h⟩ := H
+  have hm : prvalsMatch s.prvals !! src = some p.matched := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, hp]; rfl
+  rw [appRespMatch_of_some s src index p.matched hm, GMap.lookup_insert_eq]
+  rcases h with h | ⟨h, -⟩
+  · simp [h]
+  · subst h; simp
+
 set_option maxHeartbeats 1600000 in
 /-- **`MsgTransferLeader`** (2026-10-13): from a peer with a `Progress`; a learner's is
 ignored (since 2026-10-13, stage L); a transfer to the same node in progress is kept, one to another is aborted first;
@@ -556,6 +568,9 @@ theorem wp_stepLeader_transfer
     -- (2026-11-24, #33 S4) the request recorded as stepped (`NGhost.xs`): the transferee's store and
     -- `sendTimeoutNow`'s
     (Hxs : s.gh.xs = true)
+    -- (antithesis parity B1, option (b)) a caught-up transferee recorded (`NGhost.xt`): `sendTimeoutNow`'s
+    (Hxt : m.From' ≠ id → (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst →
+      (s.gh.xt !! (m.From', s.term)).isSome)
     (G : List Msg → IProp GF) {nc : Bool} (Hidx : IdxFreeN nc s.gh.tr G) :
     -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) the two sends' gates, at the
@@ -734,10 +749,20 @@ theorem wp_stepLeader_transfer
   ihave Hphys := Hlogback $$ Hlog
   wp_if_destruct
   · -- caught up: `MsgTimeoutNow` now
+    -- (antithesis parity B1, option (b)) the transferee recorded (`Hxt`): its `Match` is the last index
+    have Hmt : (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst := by
+      have hl := logLast_eq_of_Z _ _ Hli
+      have hpm := ((progressAbs_Some _ _ _).1 Habs).2.2.1
+      simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs]
+      first
+        | (rw [← hpm]; exact hl)
+        | (simp only [Option.map_some', Option.getD_some]; rw [← hpm]; exact hl)
+        | (simp; rw [← hpm]; exact hl)
     ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
     ispecialize Hgtnow $$ %s.outbox HG
     wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' (G s.outbox) Hself
-      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr Hxs $$ [$Hphys $Hgtnow]
+      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr Hxs
+      (Hxt Hself Hmt) $$ [$Hphys $Hgtnow]
       as ⟨Hphys, HG⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
@@ -1368,6 +1393,10 @@ theorem wp_stepLeader_appresp
       2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
       (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
         uint.Z t0 ≤ 1))
+    -- (antithesis parity B1, option (b)) the transferee recorded (`NGhost.xt`) when it acknowledges the
+    -- last index: `sendTimeoutNow`'s
+    (Hxta : m.Reject' = false → m.From' = s.lt → m.Index' = logLast s.logst →
+      (s.gh.xt !! (m.From', s.term)).isSome)
     (ents : List EntryM) (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (G : List Msg → IProp GF) (Gc : Bool → w64 → List Msg → IProp GF)
     {nc : Bool} (HiG : IdxFreeN nc s.gh.tr G) (HiC : ∀ b N, IdxFreeN nc s.gh.tr (Gc b N)) :
@@ -2078,6 +2107,19 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           -- (2026-11-24, #33 S4) a transferee: a transfer request was stepped
           icases ownRaftPhysC_xs_of_lt c r id _ $$ Hphys with ⟨%Hxsl, Hphys⟩
+          -- (antithesis parity B1, option (b)) the transferee recorded (`Hxta`): its `Match`, which
+          -- the response set to its index (`Hran`), is the last index
+          have Hmi : m.Index' = logLast s.logst := by
+            have h1 : prvalsMatch pvs5 !! m.From' = some p5.matched := by
+              simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hp5]; rfl
+            rw [Hmm5, Hmm4, HmA, appRespMatch_ran_self s _ _ Hran] at h1
+            have hl := logLast_eq_of_Z _ _ Hli
+            have hlg : logLast s2.logst = logLast s.logst := by rw [Hs2f.2.2.1]; rfl
+            rw [Option.some.inj h1, ← ((progressAbs_Some _ _ _).1 Habs).2.2.1]
+            exact hl.trans hlg
+          have Hxtt : (s2.gh.xt !! (m.From', s2.term)).isSome := by
+            rw [Hs2gh, Hs2f.2.1]
+            exact Hxta Hrej (by rw [Hft]; show s2.lt = s.lt; exact Hs2lt) Hmi
           wp_apply wp_raft_sendTimeoutNow c r id _ m.From'
               (Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox)
               Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz)
@@ -2089,7 +2131,7 @@ theorem wp_stepLeader_appresp
                 intro htr
                 have hlt := Hltr htr
                 have : m.From' = s.lt := by rw [Hft]; show s2.lt = s.lt; exact Hs2lt
-                exact Hfrom0 (this.trans hlt)) (Hxsl (fun h => Hfrom0 (Hft.trans h))) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
+                exact Hfrom0 (this.trans hlt)) (Hxsl (fun h => Hfrom0 (Hft.trans h))) Hxtt $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
           · -- (slice 9) at no event
             iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hg1 rfl
             case hg1 => exact (congrArg NGhost.tr Hs2gh).symm

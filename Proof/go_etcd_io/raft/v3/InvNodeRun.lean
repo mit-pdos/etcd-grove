@@ -602,7 +602,7 @@ private theorem RNPv.step_xw [GoSemanticsFunctions] {rs rs' : RNState} {fp : Lis
     {s s' : NState} {m : MessageM}
     (H : RNPv rs fp s)
     (hmd : rs'.mode = rs.mode) (htc : rs'.tc = rs.tc) (_hpv : s'.prevote = s.prevote)
-    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs }) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc)
+    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs }) (ht : uint.Z s'.term ≤ uint.Z s.gh.tc)
     (hpc : PreCandStep m s s')
     (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' fp s' := by
   obtain ⟨H1, H2, -, H4, H5⟩ := H
@@ -616,7 +616,7 @@ private theorem RNPv.step_xw [GoSemanticsFunctions] {rs rs' : RNState} {fp : Lis
 
 /-- (raft-final phase 2) `LoanOk.step` across a step that changes the ghost state only in `xw`. -/
 private theorem LoanOk.step_xw {rs : RNState} {s s' : NState} {b : Bool} (t : w64) (H : LoanOk rs s)
-    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs })
+    (hgh : s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs })
     (hkeep : rs.slent ≠ none →
       (s'.logst.snap = s.logst.snap ∨
         ∃ s2, s'.logst.snap = some s2 ∧ uint.Z s.logst.committed < uint.Z s2.index' ∧
@@ -862,11 +862,12 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have e2 := Hcc (fun h => absurd h (by not_net)); subst c'
   -- (raft-final phase 2) a transfer request may record its forward in `xw` (`"%Hxwframe"`): the frame
   -- is `NetFrame` at the ghost state before the step, which the step changes only in `xw`
-  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } := by
-    by_cases hx : m.Type' = MsgTransferLeader
+  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } := by
+    by_cases hx : m.Type' = MsgTransferLeader ∨ (m.Type' = MsgAppResp ∧ m.From' ≠ id ∧ s.lt ≠ W64 0)
     · exact ⟨(Hxwf hx).1, (Hxwf hx).2.1⟩
     · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
-        Hfr Hs (by not_net) hx (fun h => absurd h (by not_net))
+        Hfr Hs (by not_net) (fun h => hx (.inl h)) (fun h => absurd h (by not_net))
+          (fun h1 h2 => Classical.byContradiction fun h3 => hx (.inr ⟨h1, h2, h3⟩))
       exact ⟨⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩, by rw [a8]⟩
   obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx⟩ := HfrX
   simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
@@ -1575,6 +1576,7 @@ theorem wp_applyConf_dyn
     · iapply leadW_applyCC γ Hok $$ Hlw
     · iunfold xfW at Hxw
       iunfold xfW
+      unfold xtW
       rw [Hok.gh]; iexact Hxw
   ihave Hghost : ownStepGhost γ (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
       ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,
@@ -1705,7 +1707,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   -- (raft-final phase 2) the witnesses across the change (`leadW_applyCC`; `xw` kept)
   ihave #Hlw' := leadW_applyCC γ Hok $$ Hlw
   ihave #Hxw' : xfW (GF := GF) γ s' $$ []
-  · iunfold xfW; rw [Hgh]; iunfold xfW at Hxw; iexact Hxw
+  · iunfold xfW at Hxw; iunfold xfW; unfold xtW; rw [Hgh]; iexact Hxw
   ihave #Hcl' : certLink (GF := GF) γ s'.gh.sn $$ []
   · rw [Hgh]; iexact Hcl
   rw [← Hrel.1] at *

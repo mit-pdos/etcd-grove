@@ -432,7 +432,7 @@ theorem raft.send.wp_proof
   unfold SendOk at Hok
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Htc, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, Hstz, rfl⟩ |
-    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw, Hxs⟩) |
+    (⟨HSnap, Hsents, Hsctx, Hmterm, Hself, HnsF, Hstz⟩ | ⟨Htt, Htn, Hents0, Hctx0, Hmterm, Hself, rfl, Hxw, Hxt, Hxs⟩) |
     ⟨HAR, Hmterm, Hstz, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. A request goes onto `r.msgs`, a response onto
@@ -584,7 +584,7 @@ theorem raft.send.wp_proof
       simp only
       refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
         fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_,
-        fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion, ⟨fun h => ⟨?_, ?_⟩, fun h => ⟨?_, ?_⟩⟩⟩
+        fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion, ⟨fun h => ⟨?_, ?_⟩, fun h => ⟨?_, ?_⟩, fun h => ?_⟩⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h'
@@ -609,6 +609,10 @@ theorem raft.send.wp_proof
         exact Htn h
       · simp only [Hto1]; exact Hself
       · simp only; exact Int.le_refl _
+      -- (option (b)) recorded in `NGhost.xt` (`Hxt`), at the node's term (stamped)
+      · simp only [Hty1] at h
+        simp only [Hto1]
+        exact Hxt h
     · ipureintro
       refine ⟨by simpa [Hto1] using Hself, ?_⟩
       simp only [Hty1]

@@ -1154,6 +1154,14 @@ structure NGhost [GooseExts] where
   (`NetFrame`). (Until then the flags `xf`, leader transfer off, and `bt`, past term `0` for good,
   which the cluster's no-transfer mode set; both deleted with the mode, U9.) -/
   xw : GMap (w64 × w64) Unit := ∅
+  /-- (antithesis parity B1, 2026-11-26, option (b)) **The timeout requests stamped**: the destination
+  and term `(To, Term)` of every `MsgTimeoutNow` the node queued (`XQOk`'s last clause), each with a
+  witness that its destination acknowledged an index past `0` at that term (`ghostRest`'s `xfW`, its
+  `xtW` half). Only a leader queues one, to its transferee once that one's `Match` is the last index
+  (`sendTimeoutNow`, `SendOk`'s transfer clause): `raft.Step` records `(transferee, term)` before the
+  step, from the leader's `Match` witness (`matchedOk`) on a transfer request and from the
+  acknowledgement's own (`isMessage`) on an append response (`"%Hxwframe"`). Only grows. -/
+  xt : GMap (w64 × w64) Unit := ∅
   /-- (D22 S-d3a, 2026-10-21) **The storage lent**: a mirror of `LogState.lent` (`SnpOk`), which a
   step keeps (`NetFrame`'s `s'.gh = s.gh`), so that the `RawNode` knows across the steps between a
   snapshot's `Ready` and its `Advance` that the application holds the storage. Only the `RawNode`'s

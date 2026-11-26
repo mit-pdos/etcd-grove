@@ -275,6 +275,42 @@ macro "ltr_tac" : tactic => `(tactic| first
         Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
 
 set_option hygiene false in
+/-- (antithesis parity B1, option (b)) `stepLeader`'s premise that a caught-up transferee of a transfer
+request is recorded (`NGhost.xt`): the transfer arm's (`Hxtx`, recorded before the step), or vacuous at
+a branch of another type (`Hty`, as `xs_tac`). -/
+macro "xtx_tac" : tactic => `(tactic| first
+  | exact Hxtx Hrole
+  | exact fun h => Hxtx h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat,
+        Perennial.EtcdGrove.MsgAppResp])))
+
+set_option hygiene false in
+/-- (antithesis parity B1, option (b)) `stepLeader`'s premise that a transferee acknowledging the last
+index is recorded (`NGhost.xt`): the append response's (`Hxta`, recorded before the step), or vacuous
+at a branch of another type (`Hty`, as `xs_tac`). -/
+macro "xta_tac" : tactic => `(tactic| first
+  | exact fun _ => Hxta Hrole Hteq
+  | exact fun h => Hxta h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat,
+        Perennial.EtcdGrove.MsgAppResp])))
+
+set_option hygiene false in
 /-- (2026-10-22, D38a) `stepFollower`'s premise that a forwarded message (`MsgProp`, `MsgReadIndex`,
 `MsgTransferLeader`) has no responses, at a branch that steps another type: vacuous, by the branch's
 type hypothesis (as `notsnap_tac`). -/
@@ -792,7 +828,7 @@ theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM)
   isplitr
   · simp only [ghostRestM]; ipureintro; exact HC
   rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
-    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
+    show xfW (GF := GF) γ s' = xfW γ s by unfold xfW xtW; rw [Hng.1]]
   iframe Hcl Hw' Hx
 
 /-- (2026-10-28, stage U0) `ghost_step_static0` to another static configuration `c'` (a snapshot's
@@ -926,7 +962,7 @@ theorem ghost_step_snapack (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64
     · isplitr
       · ipureintro; exact ⟨HD, Hcs', HI'⟩
       iframe Hfr' HM
-    rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1], Hps, Hng.1]
+    rw [show xfW (GF := GF) γ s' = xfW γ s by unfold xfW xtW; rw [Hng.1], Hps, Hng.1]
     iexact Hcl
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/

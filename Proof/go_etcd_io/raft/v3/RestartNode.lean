@@ -838,9 +838,11 @@ private theorem wp_RestartNode_impl
     · rw [show s1.gh.sn = sn from Hgsn]; iexact Hlink
     isplitr
     · iapply leadW_none γ.raft cv.ID' _ (by rw [HtoP1]; rfl)
-    unfold xfW
-    rw [show s1.gh.xw = ∅ by show s.gh.xw = ∅; rw [Hgh]]
-    iapply BigSepM.bigSepM_empty.2; iempintro
+    unfold xfW xtW
+    rw [show s1.gh.xw = ∅ by show s.gh.xw = ∅; rw [Hgh], show s1.gh.xt = ∅ by show s.gh.xt = ∅; rw [Hgh]]
+    isplitl []
+    · iapply BigSepM.bigSepM_empty.2; iempintro
+    · iapply BigSepM.bigSepM_empty.2; iempintro
   -- the node's record: the committed log up to `max b A` handed out, the stored hard state, the
   -- durable state `S`, a follower; the term ceiling at the term; at the configuration point
   let rs0 : RNState :=

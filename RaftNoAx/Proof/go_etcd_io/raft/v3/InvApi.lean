@@ -5039,7 +5039,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   ihave #Hdat := isRaftMsg_dat γ.raft src st $$ Hraft
   ihave #Hraft0 := Hraft
   iunfold isRaftMsg at Hraft
-  icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw, -, %Hnsm⟩
+  icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw, -, %Hnsm, -⟩
   have Hrs : st.resps = [] := Hsh.2.2.2.2.2.2.2
   have Hst : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
     cases st; simp only at Hrs ⊢; rw [Hrs]

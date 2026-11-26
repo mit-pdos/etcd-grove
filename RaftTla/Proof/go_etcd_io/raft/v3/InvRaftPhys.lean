@@ -433,17 +433,32 @@ messages (`RawNode.Ready.form`'s `XReadyOk`). -/
 def XQOk (id : w64) (s : NState) (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgTimeoutNow → st.msg.From' = id ∧ st.msg.Term' ≠ W64 0) ∧
   (st.msg.Type' = MsgTimeoutNow ∨ (st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0) →
-     st.msg.To' ≠ id ∧ uint.Z st.msg.Term' ≤ uint.Z s.term)
+     st.msg.To' ≠ id ∧ uint.Z st.msg.Term' ≤ uint.Z s.term) ∧
+  -- (antithesis parity B1, option (b)) a `MsgTimeoutNow`'s destination and term recorded in
+  -- `NGhost.xt` (whose witnesses, `xtW`, the `Ready` hands out with it)
+  (st.msg.Type' = MsgTimeoutNow → (s.gh.xt !! (st.msg.To', st.msg.Term')).isSome)
 
-/-- (Q3) The term raised. -/
+/-- (Q3) The term raised (and (option (b)) the timeout records kept). -/
 theorem XQOk.mono {id : w64} {s s' : NState} {st : MsgSt} (Ht : uint.Z s.term ≤ uint.Z s'.term)
-    (H : XQOk id s st) : XQOk id s' st :=
-  ⟨H.1, fun h => ⟨(H.2 h).1, Int.le_trans (H.2 h).2 Ht⟩⟩
+    (H : XQOk id s st)
+    (Hx : ∀ p, (s.gh.xt !! p).isSome → (s'.gh.xt !! p).isSome := by
+      first | exact fun _ h => h | (intro p h; simp_all)) : XQOk id s' st :=
+  ⟨H.1, fun h => ⟨(H.2.1 h).1, Int.le_trans (H.2.1 h).2 Ht⟩, fun h => Hx _ (H.2.2 h)⟩
 
 /-- (Q3) Not a transfer message: nothing to say. -/
 theorem XQOk.of_ne {id : w64} {s : NState} {st : MsgSt} (h1 : st.msg.Type' ≠ MsgTimeoutNow)
     (h2 : st.msg.Type' ≠ MsgTransferLeader) : XQOk id s st :=
-  ⟨fun h => absurd h h1, fun h => h.elim (fun h => absurd h h1) (fun h => absurd h.1 h2)⟩
+  ⟨fun h => absurd h h1, fun h => h.elim (fun h => absurd h h1) (fun h => absurd h.1 h2),
+   fun h => absurd h h1⟩
+
+/-- (option (b)) A timeout record added (`ownRaftPhysC_xt_record`). -/
+theorem XQOk.xt_insert {id : w64} {s : NState} {st : MsgSt} (H : XQOk id s st) (p : w64 × w64) :
+    XQOk id { s with gh := { s.gh with xt := insert p s.gh.xt } } st := by
+  refine ⟨H.1, H.2.1, fun h => ?_⟩
+  show ((<[p := ()]> s.gh.xt) !! (st.msg.To', st.msg.Term')).isSome = true
+  by_cases hp : p = (st.msg.To', st.msg.Term')
+  · rw [hp, GMap.lookup_insert]; rfl
+  · rw [GMap.lookup_insert_ne _ _ hp]; exact H.2.2 h
 
 /-- **The queued messages' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the queued messages
 `l`; raft-final, 2026-10-29, U7: the design's §2.2, in every cluster): every queued message has the
@@ -536,10 +551,12 @@ theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s
     (hx : s'.gh.xw = s.gh.xw) (hr : s'.role = s.role) (ht : s'.term = s.term)
     (htr : s'.gh.tr = s.gh.tr := by first | rfl | simp_all)
     (hxs : s'.gh.xs = s.gh.xs := by first | rfl | simp_all)
-    (hlt : s'.lt = s.lt := by first | rfl | simp_all) : XfOk id s' l := by
+    (hlt : s'.lt = s.lt := by first | rfl | simp_all)
+    (hxt : s'.gh.xt = s.gh.xt := by first | rfl | assumption) : XfOk id s' l := by
   obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := H
   refine ⟨H1, H2, fun m hm h1 h2 => ?_, fun h => ?_, fun h => H5 (htr ▸ h),
-    fun h => by rw [hlt]; exact H6 (hxs ▸ h), fun m hm => (H7 m hm).mono (by rw [ht]; exact Int.le_refl _)⟩
+    fun h => by rw [hlt]; exact H6 (hxs ▸ h),
+    fun m hm => (H7 m hm).mono (by rw [ht]; exact Int.le_refl _) (fun _ h => by rw [hxt]; exact h)⟩
   · rw [hx]; exact H3 m hm h1 h2
   · rw [ht]; rw [hr] at h; exact H4 h
 
@@ -572,6 +589,11 @@ theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l)
   by_cases hp : p = (m.st.msg.To', m.st.msg.Term')
   · rw [hp, GMap.lookup_insert]; rfl
   · rw [GMap.lookup_insert_ne _ _ hp]; exact h
+
+/-- (antithesis parity B1, option (b)) A timeout record added (`ownRaftPhysC_xt_record`). -/
+theorem XfOk.xt_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
+    XfOk id { s with gh := { s.gh with xt := insert p s.gh.xt } } l :=
+  ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, H.2.2.2.2.1, H.2.2.2.2.2.1, fun m hm => (H.xq m hm).xt_insert p⟩
 
 /-- A message queued: its own facts. -/
 theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
@@ -1945,6 +1967,21 @@ theorem ownRaftPhysC_xw_record (r : Loc) (id : w64) (s : NState) (p : w64 × w64
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward Hmms HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Htl Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
     Hvoter Hprok Hnsl (Hxf.xw_insert p) Hlq
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+
+/-- (antithesis parity B1, option (b)) **A timeout record added** (a ghost step, `NGhost.xt`): the
+physical state does not read it. `raft.Step` does it before a step that may queue a
+`MsgTimeoutNow`. -/
+theorem ownRaftPhysC_xt_record (r : Loc) (id : w64) (s : NState) (p : w64 × w64) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ownRaftPhysCV c V r id { s with gh := { s.gh with xt := insert p s.gh.xt } } := by
+  iintro H
+  iNamed_physC H
+  iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with xt := insert p s.gh.xt } } _ msgs
+    msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward Hmms HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Htl Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
+    Hvoter Hprok Hnsl (Hxf.xt_insert p) Hlq
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
 
 /-- (2026-11-24, #33 S4) **A transfer request stepped** (a ghost step, `NGhost.xs`): the physical

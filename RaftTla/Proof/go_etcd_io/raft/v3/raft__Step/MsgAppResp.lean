@@ -56,7 +56,11 @@ theorem wp_Step_MsgAppResp {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
           uint.Z t0 ≤ 1)))
     -- (2026-11-12, trace-check implementation step 3) no transferee at a traced node
     -- (`raft.Step.spec`'s premise, `stepLeader.spec`'s)
-    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0)
+    -- (antithesis parity B1, option (b)) a transferee acknowledging the last index recorded in
+    -- `NGhost.xt` (`raft.Step` records it before the step; `stepLeader`'s premise)
+    (Hxta : s.role = .leader → m.Term' = s.term → m.Reject' = false → m.From' = s.lt →
+      m.Index' = logLast s.logst → (s.gh.xt !! (m.From', s.term)).isSome) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -107,7 +111,7 @@ theorem wp_Step_MsgAppResp {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG
       ipureintro
       exact ⟨Hend, Hwf', Href, Herr, Hresp, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hltr Hty Hto Hterm Hteq Hfnz Hrej
+      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hltr Hxta Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
         $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
       try phys_out

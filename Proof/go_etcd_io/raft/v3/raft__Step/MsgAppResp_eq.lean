@@ -57,7 +57,11 @@ theorem wp_Step_MsgAppResp_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
           uint.Z t0 ≤ 1)))
     -- (2026-11-12, trace-check implementation step 3) no transferee at a traced node
     -- (`raft.Step.spec`'s premise, `stepLeader.spec`'s)
-    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0)
+    -- (antithesis parity B1, option (b)) a transferee acknowledging the last index recorded in
+    -- `NGhost.xt` (`raft.Step` records it before the step; `stepLeader`'s premise)
+    (Hxta : s.role = .leader → m.Term' = s.term → m.Reject' = false → m.From' = s.lt →
+      m.Index' = logLast s.logst → (s.gh.xt !! (m.From', s.term)).isSome) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -191,7 +195,7 @@ theorem wp_Step_MsgAppResp_eq {nc : Bool} (_P : raft.Step.Postulates (GF := GF) 
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => Hack Hrole Hteq)
-      (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+      (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) (by xs_tac) (by xtx_tac) (by xta_tac) $$ [$Hphys $Hrc00 Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

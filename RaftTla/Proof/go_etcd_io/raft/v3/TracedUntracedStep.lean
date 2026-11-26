@@ -457,6 +457,12 @@ abbrev stepLeader.untracedTriple : Prop :=
   s.gh.tr = none →
   -- (2026-11-24, #33 S4) `stepLeader.spec`'s premise
   (m.Type' = MsgTransferLeader → s.gh.xs = true) →
+  -- (antithesis parity B1, option (b)) `stepLeader.spec`'s timeout premises
+  (m.Type' = MsgTransferLeader → m.From' ≠ id →
+     (prvalsMatch s.prvals !! m.From').getD (W64 0) = logLast s.logst →
+     (s.gh.xt !! (m.From', s.term)).isSome) →
+  (m.Type' = MsgAppResp → m.Reject' = false → m.From' = s.lt → m.Index' = logLast s.logst →
+     (s.gh.xt !! (m.From', s.term)).isSome) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
@@ -475,14 +481,14 @@ abbrev stepLeader.untracedTriple : Prop :=
 /-- `stepLeader.spec`'s untraced instance: every gate from the struct's nil logger, `G := emp`. -/
 theorem stepLeader.untraced (h : stepLeader.spec (GF := GF) (hG := hG)) :
     stepLeader.untracedTriple (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack htr Hxs
+  intro c r id s ml m ents sn ctx rs k0 Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack htr Hxs Hxtx Hxta
   iintro %Φ ⟨#Hpkg, Hphys, Hm, Hcc, #Hrc⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
   iapply h c r id s ml m ents sn ctx rs k0 (fun _ => iprop(emp)) (fun _ => iprop(emp)) iprop(emp)
     (fun _ => iprop(emp)) (fun _ _ _ => iprop(emp))
     Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr Hack (fun _ h => absurd htr h)
     (IdxFree.const _ _) (IdxFree.const _ _) (fun _ _ => IdxFree.const _ _) (fun _ => htr)
-    (fun _ h => absurd htr h) Hxs $$ [Hphys Hm Hcc]
+    (fun _ h => absurd htr h) Hxs Hxtx Hxta $$ [Hphys Hm Hcc]
   · try dsimp only
     iframe Hpkg Hphys Hm Hcc Hrc
     rw [htr]

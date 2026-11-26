@@ -128,7 +128,10 @@ the call (`p`): a `MsgTimeoutNow` from the node at a term past `0`; a `MsgTimeou
 `MsgTransferLeader` to another node, of a term at most the node's (`XQOk`); a stamped forward to a
 member of the configuration (its destination the node's leader when it forwarded, `XScopeOk`). No
 destination fact for a `MsgTimeoutNow` (the driver routes by destination, dropping one to a
-non-server; the lead's decision, Q3 option 1). -/
+non-server; the lead's decision, Q3 option 1): what a `MsgTimeoutNow` says of its destination is
+`isRaftMsg`'s timeout clause (antithesis parity B1, option (b): the destination acknowledged an index
+past `0` at the message's term, durable `isAcked`, from the sender's `NGhost.xt` witnesses), which the
+`Ready` hands out with every message (`"#Hlead"`, `isRaftMsg`). -/
 def XReadyOk (γ : RaftNames) (id : w64) (p : PState) (x : XMsg) : Prop :=
   (x.ty = .timeoutNow → x.src = id ∧ x.term ≠ W64 0) ∧
   (x.ty = .timeoutNow ∨ x.term ≠ W64 0 → x.dst ≠ id ∧ uint.Z x.term ≤ uint.Z p.term) ∧

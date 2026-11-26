@@ -376,7 +376,8 @@ theorem wp_rn_raft_Step_net_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   have e2 := Hcc (fun h => absurd h (by trrcv_ne Hnt)); subst c'
   obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10⟩ :=
     Hfr (by trrcv_ne Hnt) (by trrcv_ne Hnt) (by trrcv_ne Hnt) (fun h => absurd h (by trrcv_ne Hnt))
-  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xs := s'.gh.xs } :=
+      (fun _ _ => Hpure.1.1)
+  have HfrX : NetFrame s { s' with gh := s.gh } ∧ s'.gh = { s.gh with xw := s'.gh.xw, xt := s'.gh.xt, xs := s'.gh.xs } :=
     ⟨⟨a1, a2, a3, a4, a5, a6, a7, rfl, a9, a10⟩, by rw [a8]⟩
   obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, -, Hfl', Hap'⟩, Hgx⟩ := HfrX
   simp only at Ha Hsn Hu Hpv Hsd Hsg Hpre Hfl' Hap'
@@ -569,7 +570,7 @@ theorem wp_rn_raft_Step_hup_tr (wp_raft_Step : raft.Step.spec (GF := GF) (hG := 
   have Hc := Href.commit_mono
   have e1 := Href.keep (by hup_ne) (by hup_ne) (fun h => absurd h (by hup_ne)); subst e1
   have e2 := Hcc (by hup_ne); subst c'
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by hup_ne) (by hup_ne) (by hup_ne) (fun h => absurd h (by hup_ne))
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by hup_ne) (by hup_ne) (by hup_ne) (fun h => absurd h (by hup_ne)) (fun h => absurd h (by hup_ne))
   obtain ⟨Ht1, Ht2, -, Hip4, -, Hpcs⟩ := Htm (by hup_ne)
   have Ht2' := Ht2 rfl
   icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
@@ -936,6 +937,7 @@ theorem wp_applyConf_dyn_g
     · iapply leadW_applyCC' γ Hok $$ Hlw
     · iunfold xfW at Hxw
       iunfold xfW
+      unfold xtW
       rw [Hok.gh]; iexact Hxw
   ihave Hghost : ownStepGhost γ (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
       ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,
