@@ -47,7 +47,7 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
   icases HIpd with (⟨%Ip, HIp, #HIps⟩ | Hd)
   rotate_left
   · -- already cancelled: two authorities of the old record
-    rw [idIssueDeadD_eq]
+    rw [idIssueDeadD_eq (L := L)]
     iunfold idIssueDeadAt at Hd
     icases Hd with ⟨%Mg', HA'⟩
     letI := (gooseIdIssueGS (L := L)).idIssueAllG
@@ -67,11 +67,11 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
       iunfold idPfxIdFact at Hf
       letI := (gooseIdIssueGS (L := L)).idIssueAllG
       icases Hf with (⟨#Hf, -⟩ | #Hf)
-      · rw [idIssueFragD_eq id ig.2]
+      · rw [idIssueFragD_eq (L := L) id ig.2]
         iunfold idIssueFrag idIssueFragAt idIssueElemAt at Hf
         ihave %Hl := ghost_map_lookup $$ HA Hf
         ipureintro; intro _; simp [show Mg.lookup id = _ from Hl]
-      · rw [idIssuePastD_eq id]
+      · rw [idIssuePastD_eq (L := L) id]
         iunfold idIssuePast idIssuePastAt idIssueElemAt at Hf
         ihave %Hl := ghost_map_lookup $$ HA Hf
         ipureintro; intro _; simp [show Mg.lookup id = _ from Hl]
@@ -97,7 +97,7 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
       (Φ := fun i v => idIssueElemAt (gooseIdIssueGS (L := L')) i v) hc).1 $$ HE with ⟨#Hpast, -⟩
     iunfold idPfxIdFact
     iright
-    rw [idIssuePastD_eq id]
+    rw [idIssuePastD_eq (L := L') id]
     iunfold idIssuePast idIssuePastAt
     iexact Hpast
   -- the new generation's invariant: the same ids' map, every id past, and the fresh generators' map
@@ -117,7 +117,7 @@ theorem idPfxInv_crash (L L' : GooseLocalGS GF) (gen : GName) (p : w64) :
     iunfold idPfxBody
     iframe HGpp
     iright
-    rw [idIssueDeadD_eq]
+    rw [idIssueDeadD_eq (L := L)]
     iunfold idIssueDeadAt
     iexists Mg
     iexact HA
