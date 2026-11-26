@@ -408,14 +408,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `Proof/strings/Contains.lean` is a theorem from it (statement unchanged; the proof takes
   `[strings.Assumptions]`, which every caller's package assumptions give, as for `HasSuffix`).
 - **Retired (2026-11-26, branch `math-ceil-pow/2026-11-26`).** `math.Ceil`, `math.Pow`: Perennial branch
-  `math-ceil-pow` (`4e7c797ed`, PR to its `lean`, a trusted change: not landed) translates `Ceil` and
-  `Pow` with the pure Go on their path (`pow`, `isOddInt`, `Modf`, `Trunc`, `Copysign`, `Frexp`, `Ldexp`,
-  `Exp`, `Log`, ...) and trusts only the amd64 assembly they reach (`archCeil`, `archTrunc`, `archExp`,
-  `archLog`: `λ: "x", ArbitraryInt`, some bit pattern, no panic), with a goose change for `x++`/`x--` at
-  float types (`pow`'s `yf--; yi++`); it proves `math.wp_Ceil` and `math.wp_Pow` (some `float64`), so
-  `Proof/math/Ceil.lean` and `Proof/math/Pow.lean` are theorems from them (statements unchanged; the
-  proofs take `[math.Assumptions]`, which etcdserver's, workqueue's and gryffnet's package assumptions
-  give).
+  `math-ceil-pow` (`1ba9dfe4b`, perennial#709, reworked after Upamanyu's review; not landed) translates
+  `Ceil` and `Pow` with the pure Go on their path (`pow`, `isOddInt`, `Modf`, `Trunc`, `Floor`, the
+  portable `floor`/`ceil`/`trunc`, `Copysign`, `Frexp`, `Ldexp`, `Exp`, `Log`, ...). The amd64 assembly
+  they reach is replaced by Go models (`goose/model/overlay/math`, no TrustedCode): `archFloor`/`archCeil`/
+  `archTrunc` are the portable bodies on non-NaN inputs and some NaN on NaNs, and `archExp`/`archLog` are
+  some float64. A differential test against the real assembly and gc's ROUNDSD covers 2.2M inputs. The
+  branch also has a goose change for `x++`/`x--` at float types (`pow`'s `yf--; yi++`) and fixes
+  `blank_asm`'s reading of `GLOBL d<>+0(SB)`. It proves `math.wp_Ceil` and `math.wp_Pow` (some
+  `float64`), so `Proof/math/Ceil.lean` and `Proof/math/Pow.lean` are theorems from them (statements
+  unchanged). The proofs take `[math.Assumptions]`, which etcdserver's, workqueue's and gryffnet's
+  package assumptions give. math's initializer now imports `internal/gomodel`, so the generated
+  PkgTables changed.
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
