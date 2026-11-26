@@ -1,8 +1,15 @@
-# names only (project dsv-rabia, notes/dsv-rabia.md): the lab replaced this library by its own
-# model (harness/rpcmodel); this repository has no model of it yet, so the kit's proof takes the
-# specs of what it calls as hypotheses.
-translate = ["!*"]
-imports = ["!*", "io"]
+# With bodies (dsv-retire-3, mit-pdos/etcd-grove#49 step 3; notes/dsv-axiom-routes.md, zerolog's row):
+# zerolog v1.23.0 translated whole but for one initializer, so that its `wp_initialize'` and the
+# function specs rabia's code uses are proved from its code, not trust-boundary axioms.
+translate = ["*", "!Context.Caller"]
+imports = ["*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+[[skip]]
+names = ["ch"]
+reason = """
+`ch = newCallerHook(...)` (context.go:393): goose's modelcheck refuses it (in-place construction). A
+struct literal of a function value and a constant: an allocation, no panic, no effect beyond its
+variable. Only `Context.Caller` reads it, which stays a name (no verified code reaches it)."""

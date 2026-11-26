@@ -30,8 +30,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`http.Serve(pl, h)` of etcd's peer handler at the member's peer address** (see the file header): `pa` set to
-etcd's peer protocols of `s`'s cluster and member (`httpAddrAt γ id pa`), `pl` a listener open at `pa` (`netListenerOpen`, from `net.Listen` through
+/-- **`http.Serve(pl, h)` of etcd's peer handler at the member's peer address** (see the file header): `pa` set to etcd's peer protocols of `s`'s cluster and member (`httpAddrAt γ id pa`, at a `γ` whose network payload is
+`s`'s, `γn.N = srvNet γ`: `srvNet`'s message predicate is at `γ.cl`, so `γ.cl` is `s`'s cluster), `pl` a listener open at `pa` (`netListenerOpen`, from `net.Listen` through
 `listen_au` over `httpAddrAt`'s `addrProto`), `h` etcd's peer handler of `s` (`peerHandlerOf`), `s` started
 (`isServerReqM`) and member `id` of its network (`srvNetMember`), with the handler's per-request resources
 (`httpProcSlots` of `srvServeRes`, `NewServer_dist`'s post, as the in-process `http.Serve_ok` takes them). -/

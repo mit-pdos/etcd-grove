@@ -33,7 +33,7 @@ by the twelve nodes; it is allocated by the run's `start` (package `kit`).
   result is its output's answer), `op_register`, `op_collect` (the client's).
 
 Changed against the lab (notes/dsv-quepaxa.md): **a request's update is remote's linearization
-point** (`opAU`: `remote.lin` of the kit's store `kvB`, `Kit.lean`'s `lin_opAU`; a put's one-shot,
+point** (`opAU`: `remote.linF`, the one-shot form `remote.lin_linF` gives of `remote.lin` of the kit's store `kvB`, `Kit.lean`'s `lin_opAU`; a put's one-shot,
 a get's persistent, as remote's `slotUpd`), with the caller's postcondition `Φ` of the output, in
 place of the lab's atomic update at `clientN` over its `Harness.Models` `kv` with a commit
 postcondition `Q σ σ' o`; inputs and outputs are the kit's `KIn`/`KOut`. The proxy's read counters

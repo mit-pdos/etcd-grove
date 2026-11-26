@@ -1,7 +1,7 @@
 /-
 The kit's orchestrator (`kit.go`'s `Orch`, as paxos's `Orch`): `New` (choose, record and send the
-configuration, from `orchCore`), `time.Sleep`, then `remote.Check` of six clients' `K = 8`
-operations against the key-value map with pending puts (`kvS`, `Model()`), over `kvR γ`
+configuration, from `orchCore`), `time.Sleep` for a random time, then `remote.Check` of six
+clients' operations, each a random `1 ≤ k ≤ K = 8`, against the key-value map with pending puts (`kvS`, `Model()`), over `kvR γ`
 (`Codec()`), with the generator `gens()`. `Model()`'s, `Codec()`'s, `gens()`'s and remote's
 `Check`'s specs are hypotheses here (linked in `Linked.lean`).
 -/
@@ -11,6 +11,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.KitSpecs
 public import Dsverify.Proof.rabia.examples.rabianet.ModelLemmas
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Perennial.Proof.time
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -54,7 +55,10 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   unfold orchCore
   icases Hcore with ⟨#Hsh, HK⟩
   wp_apply wp_New γ $$ [$Hpkg $Hsh $HK] as -
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   try wp_auto
+  wp_apply math.rand.wp_Intn_pos (W64 3000 + W64 1) (by decide) as %w0 -
   wp_apply time.wp_Sleep
   try wp_auto
   wp_apply wp_Model as %m #Hm
@@ -66,6 +70,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   wp_apply (wp_Codec γ) as %cd #Hcd
   wp_apply wp_gens as %g #Hg
   try wp_auto
+  wp_apply math.rand.wp_Intn_pos (W64 8) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
@@ -75,9 +80,9 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     unfold nC at this
     word
   try wp_auto
-  wp_apply wp_Check (kvR γ) kvS γp m addrs _ cd g _ d pendN_rabia lintestN_rabia
+  wp_apply wp_Check (kvR γ) kvS γp m addrs _ cd g (W64 1 + x) d pendN_rabia lintestN_rabia
     (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) 24 (by decide) $$ [Hlib Hbud]
+    (by word) (by rw [hlen']; word) 24 (by simp only [readTries]; word) $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     simp only [kvR]

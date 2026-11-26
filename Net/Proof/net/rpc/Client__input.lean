@@ -36,6 +36,7 @@ public import Net.Spec.net.rpc.clientCodec__ReadResponseHeader
 public import Net.Spec.net.rpc.clientCodec__ReadResponseBody
 public import Net.Proof.net.rpc.ClientRead
 public import Net.Proof.net.rpc.Errs
+public import Net.Proof.models_lab.ErrFmt
 public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
 public import Perennial.Proof.errors.Base
@@ -107,19 +108,22 @@ variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions] [errors.Assumpti
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- The reader's error once a read failed: not `nil`, not a `ServerError`, a pointer (which
-`err == io.EOF` compares), with an `Error()` (persistent). -/
+`err == io.EOF` compares), with an `Error()` and formatted by `fmt` through it alone (`errPlain`,
+persistent). -/
 def inErr (e : GoInterface) : IProp GF :=
   iprop(⌜e ≠ interface.nil ∧ notServerErr e ∧
       ∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝ ∗
-    models_lab.errAny e)
+    models_lab.errPlain e)
 
 instance inErr_persistent (e : GoInterface) : Persistent (inErr (GF := GF) e) := by
   unfold inErr; infer_instance
 
+variable [fmt.Assumptions] [os.Assumptions] [internal.poll.Assumptions]
+
 theorem inErr_newVar (X msg : GoString) (e : GoInterface) :
     errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗ inErr e := by
   iintro #Hv #He
-  ihave #Ha := errAny_newVar X msg e $$ Hv He
+  ihave #Ha := errPlain_newVar X msg e $$ Hv He
   iunfold errors.newVar at Hv
   icases Hv with ⟨%x, #Hx, -⟩
   icombine He Hx gives %Heq
@@ -135,8 +139,9 @@ theorem inErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     errors.newVar (GF := GF) net.rpc.errFrame go!"rpc: malformed frame" ∗
       globalAddr net.rpc.errFrame ↦□ ef ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
       globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ net.netAddr la ∗ net.netAddr ra ∗
       (⌜err = ef⌝ ∨ readErr la ra eof ueof ed first got err) ⊢ inErr err := by
-  iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, #HE⟩
+  iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, #Hed, #Hla, #Hra, #HE⟩
   icases HE with (%He | #HE)
   · subst He; iapply inErr_newVar $$ HefV Hef
   unfold readErr
@@ -148,7 +153,12 @@ theorem inErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     ihave #Hi := io.isInit_access $$ Hio
     icases Hi with ⟨-, -, -, -, -, #HU, -⟩
     iapply inErr_newVar $$ HU Hueof
-  · ihave #Ha := errAny_resErr $$ HE
+  · ihave %Hl1 := errLeaf_netAddr la $$ Hla
+    ihave %Hl2 := errLeaf_netAddr ra $$ Hra
+    ihave #Ha := errPlain_resErr k go!"read" la ra (some ed) _ err Hl1 Hl2 $$ [$HE]
+    · iintro %ed' %Hed'
+      cases Hed'
+      iexact Hed
     ihave %Hns := notServerErr_resErr $$ HE
     ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
     obtain ⟨-, Hne⟩ := Hnet
@@ -158,14 +168,15 @@ theorem inErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     ipureintro
     exact ⟨by simp [interface.mkOk], Hns, _, pe, rfl⟩
 
-/-- An `*errorString` with its `Error()` is `inErr`. -/
+/-- An `*errorString` with its field and its `Error()` is `inErr`. -/
 theorem inErr_errorString (x : Loc) (msg : GoString) :
-    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
-        (Val #())) {{ Φ }}) ⊢
+    x.[errors.errorString, go!"s"] ↦□ msg ∗
+      (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+        WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
+          (Val #())) {{ Φ }}) ⊢
       inErr (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x) := by
   iintro #H
-  ihave #Ha := errAny_errorString x msg $$ H
+  ihave #Ha := errPlain_errorString x msg $$ H
   unfold inErr
   iframe Ha
   ipureintro
@@ -184,8 +195,9 @@ theorem wp_inErr_Error (T : go.GoType) (l : Loc) (Φ : val → IProp GF) :
       WP (App (Val #(methods (go.GoType.PointerType T) go!"Error" #l)) (Val #())) {{ Φ }} := by
   unfold inErr
   iintro ⟨-, #Ha⟩ HΦ
+  ihave #Ha' := models_lab.errPlain_errAny _ $$ Ha
   unfold models_lab.errAny
-  icases Ha with ⟨%e, %He, -, #HW⟩
+  icases Ha' with ⟨%e, %He, -, #HW⟩
   cases He
   iapply HW $$ HΦ
 
@@ -268,6 +280,9 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
   ihave #Henv' := Henv
   unfold cliEnv
   icases Henv' with ⟨%eof, %ueof, %ed, #Hio, #Hsync, #Heof, #Hueof, #Hed, #HefV, #HesV, #Hdbg⟩
+  ihave #Hconn' := Hconn
+  iunfold net.connAt at Hconn'
+  icases Hconn' with ⟨%nw0, -, -, #Hla, #Hra, -⟩
   ihave #HefV' := HefV
   iunfold errors.newVar at HefV'
   icases HefV' with ⟨%xf, #Hef, -⟩
@@ -375,7 +390,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         rcases List.mem_append.1 hx with hx | hx
         · exact HC x hx
         · simp at hx; subst hx; exact Hyok
-      · ihave #Hi := inErr_read la ra eof ueof ed _ true got1 err1 $$ [$HefV $Hef $Hio $Heof $Hueof $HE1]
+      · ihave #Hi := inErr_read la ra eof ueof ed _ true got1 err1 $$ [$HefV $Hef $Hio $Heof $Hueof $Hed $Hla $Hra $HE1]
         ihave #Hi' := Hi
         iunfold inErr at Hi'
         icases Hi' with ⟨%Hip, -⟩
@@ -537,7 +552,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             rcases List.mem_append.1 hx with hx | hx
             · exact HC x hx
             · simp at hx; subst hx; exact Hyok
-        · ihave #Hi := inErr_read la ra eof ueof ed _ true got1 err1 $$ [$HefV $Hef $Hio $Heof $Hueof $HE1]
+        · ihave #Hi := inErr_read la ra eof ueof ed _ true got1 err1 $$ [$HefV $Hef $Hio $Heof $Hueof $Hed $Hla $Hra $HE1]
           ihave #Hi' := Hi
           iunfold inErr at Hi'
           icases Hi' with ⟨%Hip, -⟩
@@ -643,7 +658,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           rcases List.mem_append.1 hx with hx | hx
           · exact HC x hx
           · simp at hx; subst hx; exact Hyok
-        · ihave #Hi := inErr_read la ra eof ueof ed _ true got1 err1 $$ [$HefV $Hef $Hio $Heof $Hueof $HE1]
+        · ihave #Hi := inErr_read la ra eof ueof ed _ true got1 err1 $$ [$HefV $Hef $Hio $Heof $Hueof $Hed $Hla $Hra $HE1]
           ihave #Hi' := Hi
           iunfold inErr at Hi'
           icases Hi' with ⟨%Hip, -⟩
@@ -666,7 +681,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           iframe Hdq
           iapply inErr_errorString $$ HN
   -- the header's read failed: `break`
-  ihave #Hi := inErr_read la ra eof ueof ed _ true got err $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
+  ihave #Hi := inErr_read la ra eof ueof ed _ true got err $$ [$HefV $Hef $Hio $Heof $Hueof $Hed $Hla $Hra $HE]
   ihave #Hi' := Hi
   iunfold inErr at Hi'
   icases Hi' with ⟨%Hip, -⟩

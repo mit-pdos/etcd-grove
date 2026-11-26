@@ -14,8 +14,8 @@ name is optional; a kit without `GOOSE` has no goose project.
 | `GOOSE` | goose.py | the kit's project: a dict of `Project`'s fields (`name="dsv-<kit>"`, `local`, `root="Dsverify"`, `lean_roots`, `packages`, `owned`, `std_models`, `module_models`, `expand_comment_tabs`, ...), placed before project `models-net` |
 | `PKGS` | gen-init.py | the packages whose `Init.lean` is generated into `Dsverify/Proof/` (those with a `Dsverify/Code/<pkg>.lean`; a `HYP_INITS` package never) |
 | `PROGRAMS` | gen-init.py | program package -> its `PkgTable.lean` path, relative to `Dsverify/` |
-| `HYP_INITS` | gen-init.py | the packages whose `wp_initialize'` is a hypothesis (the class `InitHyp` of their hand-written `Dsverify/Proof/<pkg>/Init.lean`): external here, and every generated file of the kit whose package's closure holds one imports that `Init` and takes `[<pkg>.InitHyp GF]` as a section variable |
-| `HYP_IMPORTS` | gen-init.py | the `HYP_INITS` packages' imports as the closure sees them: `'all'` (default), `'known'` (those in the inventory), `'none'` (none, and their `PkgInfo` imports none: programs' tables stop there); or a dict, package -> one of these (`'all'` for a package it does not list), for a kit whose hypothesis packages differ. `'none'` only for a package whose initializer runs no import's initializer (names only, `PkgInfo` imports `[]`): an `InitHyp` whose condition does not constrain a package the initializer reaches is false (that package is initialized after it, and `ownInitializing` then needs the table's fact for it; dsv-inithyp-fix: net/rpc's and net/http's now `build_get_is_pkg_init_wf`, `'all'`) |
+| `HYP_INITS` | gen-init.py | the packages whose `wp_initialize'` is a trust-boundary axiom, or for gen-init's `DSV_PREMISE_INITS` a premise `InitHyp` (their hand-written `Dsverify/Proof/<pkg>/Init.lean`; "`HYP_INITS`: per-package `wp_initialize'` axioms" below): external here, and every generated file of the kit whose package's closure holds one imports that `Init` |
+| `HYP_IMPORTS` | gen-init.py | the `HYP_INITS` packages' imports as the closure sees them: `'all'` (default), `'known'` (those in the inventory), `'none'` (none, and their `PkgInfo` imports none: programs' tables stop there); or a dict, package -> one of these (`'all'` for a package it does not list), for a kit whose hypothesis packages differ. `'none'` only for a package whose initializer runs no import's initializer (names only, `PkgInfo` imports `[]`): a `wp_initialize'` axiom whose condition does not constrain a package the initializer reaches is false (that package is initialized after it, and `ownInitializing` then needs the table's fact for it; dsv-inithyp-fix: net/rpc's and net/http's now `build_get_is_pkg_init_wf`, `'all'`) |
 | `MAIN` | gen-init.py | main-tree packages the kit's closure adds to `NET_MAIN` (always the main tree's inventory and instances, with those of their imports `Net/` lacks; not raft's `Init` if listed in `RAFT_INIT`) |
 | `MAIN_GEN` | gen-init.py | the `MAIN` packages whose `Init.lean` is generated into the part (default: all of `MAIN`) |
 | `OWN` | gen-init.py | the part's own translations of packages the main tree translates otherwise: the main tree's `SPECIAL` does not apply to them |
@@ -30,21 +30,73 @@ Tabs: Lean rejects a tab in a doc comment goose copies from Go. Keep the fork's 
 `expand_comment_tabs=True` in `GOOSE`: goose.py replaces the tabs in the translation's comments by
 four spaces (a tab elsewhere is an error), in `--check` too.
 
-## `InitHyp`: a visible premise, never an instance
+## `HYP_INITS`: per-package `wp_initialize'` axioms
 
-A `HYP_INITS` package's `Dsverify/Proof/<pkg>/Init.lean` declares `class InitHyp GF : Prop` holding
-that package's `wp_initialize'`. It asserts that **Go runs the package's untranslated initializers
-without panicking** -- the same trust as gen-init's `opaqueInitsOk`/`initFuncsOk` axioms it replaces,
-moved to where it can be seen. So (#24, the condition for this mechanism):
-- every `[<pkg>.InitHyp GF]` a kit needs is a **premise of its top-level statement**: it appears in
-  the `.spec` of `Dsverify/Proof/<kit>/.../TopLevelRobustness.lean` (the file an auditor reads);
-- **no `instance` of an `InitHyp` class may exist anywhere** (it would need an axiom, or be one in
-  effect);
-- `etc/theorem-loc.py`/`etc/theorem-tcb.py` count each as a statement premise (they follow the
-  names the statement mentions); the first kit with a statement over an `InitHyp` confirms this in
-  its notes.
+**Superseded rule** (until 2026-11-25: "`InitHyp`: a visible premise, never an instance"; superseded
+by Upamanyu's decision, mit-pdos/etcd-grove#8, 2026-11-25T02:20:53Z: function contracts are
+per-function axioms, not premises, and no Iris spec appears in a top-level statement, hidden ones
+included; an `InitHyp` premise was such a hidden spec).
+
+A `HYP_INITS` package's `Dsverify/Proof/<pkg>/Init.lean` declares its `wp_initialize'` as a
+**trust-boundary axiom**: run once, from a table holding its imports' facts, the package's
+initializer establishes its fact. It asserts that **Go runs the package's untranslated initializers
+without panicking** -- the same trust as gen-init's `opaqueInitsOk`/`initFuncsOk` axioms. So:
+- the axiom states exactly what the class `InitHyp` (the premise it replaces, deleted) stated,
+  with the same post; it appears in no top-level statement;
+- each axiom has an `axiom`-skill review (`notes/axiom-review/dsv-inits/`), and a package whose
+  review refutes the axiom keeps its `InitHyp` premise (gen-init's `DSV_PREMISE_INITS`, whose
+  generated sections take it as an instance; the statement's `NonVacuityLinked.lean` instantiates it
+  through the test-only `Dsverify/Proof/<pkg>/InitInstancesLinked.lean`,
+  `etc/dsv/tools/inithyp-instances.py`): go-redis v8 and grpc (dsv-fix3, 2026-11-25:
+  `GODEBUG=fips140=bogus` panics in go-redis's `crypto/tls` closure; a program registering grpc's
+  `binarylog.proto` first panics in grpc's initializer), until Upamanyu picks the fix;
+- each is counted in the tcb collection of every kit whose programs initialize the package
+  (`etc/tcb-collections/dsv-<kit>.txt`, `etc/tcb-report.py --collection ... --check --update`).
 
 Paxos needs none: its statement rests on Lean's three axioms with no hypotheses.
+
+## Per-function axioms (dsv-fix4)
+
+The same rule for the libraries' functions (mit-pdos/etcd-grove#49 fix 4): a library class a kit's
+statement took as a premise (`zerolog.Hyps`, `math.rand.Hyps`, `SwiftHyps`, `PbHyp`, ...) becomes
+one **trust-boundary `axiom` per Go function**, in `Dsverify/Proof/<pkg>/<fn>.lean` (`<Type>__<Method>`
+for a method), stating the class's field verbatim, over a **fixed vocabulary**: where the class was
+quantified over predicates (a token, a wire format), they become `opaque` constants
+(`math/rand/RngDefs.lean`'s `rngTok`, `encoding/gob/Vocab.lean`), and a pure law of them is an axiom
+too. An environment claim (no SIGUSR1 is sent; no `GODEBUG=randseednop=0`) is stated in the axiom's docstring. The top-level proof builds the class
+from the axioms (`letI`/`haveI`, or a `*HypsHoldLinked`/`RandsLinked` theorem; in a kitgen kit the
+KITGEN statement key `discharged=[(class, term)]`), so the class stays the proofs' vocabulary and
+leaves the statement. Each axiom:
+- claims no more than the premise it replaces;
+- has an `axiom`-skill review by a reviewer given only the axiom, its Go function and its callers
+  (`notes/axiom-review/dsv-fix4/`, indexed in `notes/axiom-review/README.md`); **a refuted axiom
+  stays a premise** until restated narrowly and reviewed again (dsv-fix6, `notes/dsv-fix6.md`): craq's
+  `LogHyp` (`fmt` called an operand's `Format`/`GoString`, which `argOk` admitted) is restated as three
+  axioms (`Craq/LogAx.lean`: `LogDefault`, `LoggerPrintf`, `LoggerPrintln`) over an opaque `StdLogger`
+  from `log.Default`, a narrowed `argOk` (errors `errPlain`, `Net/Proof/models_lab/ErrFmt.lean`) and
+  Go's directive grammar `FmtVerbsOk` (verbs `v s q x X d`), after four refuting rounds survives the
+  fifth (`notes/axiom-review/dsv-fix6/log-logger-5.md`), and `craq_remote_robust` lost the premise
+  (an open finding beside it: Net's trusted `(*OpError).Error` calls no field method,
+  `notes/axiom-review/dsv-fix6/net-operr-error.md`); rabia's
+  `zerolog.Hyps` (`Msg` called any writer's `Write`, which `New`'s spec admitted) is restated with
+  `New` at the `nil` writer only and the level methods over a points-to of a logger `New(nil)` made
+  (`loggerOk`), reviewed in `notes/axiom-review/dsv-fix6/zerolog.md` (survives), and is axioms
+  again; quepaxa's `PbHyp` (the messages' representation admitted any value of protobuf's runtime
+  fields `state`/`sizeCache`) is restated over a narrowed representation (an owned message's
+  `state` unset or its type's own `MessageInfo`, a shared message's runtime fields in a sealed
+  invariant) with each kind asking its declaring package's `isPkgInit`, reviewed in
+  `notes/axiom-review/dsv-fix6/quepaxa-pb-2.md` (survives with a condition, checked by
+  `etc/pb-init-check.py`), and is axioms again;
+- is counted in its kits' tcb collections (`etc/tcb-collections/dsv-<kit>.txt`).
+Where a pure fact the program could check is what the axiom needs, it goes into the Go code instead
+(#49's bar): gryff's `sort.Slice.wp_proofInt32Lt` (retired 2026-11-25) had no length bound, and
+pdqsort's heapsort fallback overflows `2*root+1` past `2^62` elements (#18), so `ShortCircuit` now
+sorts with `slices.Sort` and short-circuits the reads only while `len(keys) <= maxShortReads`
+(`1 << 20`; a read skipped completes by its own replies), proved over Perennial's `slices.wp_Sort`
+and `cmp.Less` at `int32` (`Spec/cmp/Less.lean`).
+Left premises: craq's `RpcHttpServe` (waits on S5), the go-redis and grpc `InitHyp`s, quepaxa's
+`QpVocab`, `GrpcHyp`, `GrpcWorldHyp` (an allocation law of the ghost state) and `MapHyp` (its `ivt`
+stands in for Perennial's `sorry` instances of `sync.Map`'s memory: a model fact).
 
 ## Challenges: the dsverify skill and the challenge's `CLAUDE.md`
 

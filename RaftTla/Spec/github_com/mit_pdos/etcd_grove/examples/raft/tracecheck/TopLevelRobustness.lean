@@ -43,13 +43,14 @@ execution of fewer than `2 ^ 61 - 5` steps along which fewer than `2 ^ 31` threa
 thread is stuck and none has an unrecovered panic. (2026-11-24) `Main` draws the number of voters, `1 + below(5)` (until then three), and the
 bootstrap log of `nv` voters is `tracecheck.bootLog nv`, the bytes Go computes (until then a premise
 `boot` with its pure facts `tracecheck.BootLogFacts boot`, unprovable while the decoder was opaque);
-`proto.Marshal`'s contract at its conf changes, at each size `Main` can draw, follows from the
-trust-boundary axiom `proto.MarshalBootConfChange.wp_proof` (`tracecheck.premises_of_spec`; premises to
-axioms, 2026-11-24: until then a premise, `Hprem`). -/
+`Hprem` is, at each size `Main` can draw, `proto.Marshal`'s
+contract at its conf changes (`tracecheck.premises_of_marshal`). -/
 def raft_tracecheck_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
     [hLog : log.NewModel]
+    (Hprem : ∀ nv : Nat, 1 ≤ nv → nv ≤ tracecheck.maxNodes → ∀ hG : HeapGS .hasLC tcGF,
+      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) nv (tracecheck.bootLog nv))
     (σ : state) (g : GlobalState),
     Robustness.Robust [] [(tracecheckProgram, σ)] g (threads := 2 ^ 31)
       (bound := 2 ^ 61 - 5)

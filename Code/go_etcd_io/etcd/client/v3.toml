@@ -260,12 +260,10 @@ translate = [
   "New",
   "newClient",
   "Client.SetEndpoints",
-  # (not `Client.dialWithBalancer`, names only: its `grpc.WithResolvers(c.resolver)` converts to
-  # grpc's `resolver.Builder`, which no file of the package imports, and the pinned translator
-  # then names the type after the imported package of the same name, the client's
-  # `internal/resolver` (`pkgRef`'s fallback): an unknown `internal.resolver.Builder.ty`. Its body
-  # is the translation with that type corrected, a trusted unfolding:
-  # `Proof/go_etcd_io/etcd/client/v3/DialWithBalancerBody.lean`.)
+  # (G-dial, 2026-11-26) `Client.dialWithBalancer`: its `grpc.WithResolvers(c.resolver)` converts to
+  # grpc's `resolver.Builder`, a package no file of `clientv3` imports, which goose names by its own
+  # path since Perennial e5e31069a; until then a trusted unfolding (the class `DialWithBalancerBody`)
+  "Client.dialWithBalancer",
   "Client.credentialsForEndpoint",
   "Client.dial",
   "Client.dialSetupOpts",

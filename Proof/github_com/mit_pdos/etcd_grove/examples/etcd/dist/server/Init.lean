@@ -17,11 +17,8 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.Init
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Init
 public import Proof.go_etcd_io.etcd.server.v3.features.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.google_golang_org.grpc.Init
-public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.net.Init
 public import Proof.net.http.Init
 public import Proof.os.Init

@@ -50,6 +50,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoInflightDowngrade _ as HErrNoInflightDowngrade
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrDowngradeInProcess _ as HErrDowngradeInProcess
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidDowngradeTargetVersion _ as HErrInvalidDowngradeTargetVersion
@@ -69,8 +70,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrNoInflightDowngrade))
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoInflightDowngrade ⟨#_, #MErrNoInflightDowngrade⟩
+  ipersist HErrInvalidDowngradeTargetVersion
+  ipersist HErrDowngradeInProcess
+  ipersist HErrNoInflightDowngrade
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs
+  simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

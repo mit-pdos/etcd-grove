@@ -6,13 +6,10 @@ public import Code.net.http
 public import Code.os
 public import Perennial.Code.time
 public import Code.go_uber_org.zap
-public import Code.google_golang_org.grpc
-public import Code.google_golang_org.grpc.keepalive
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
-public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Code.go_etcd_io.etcd.server.v3.features
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
@@ -74,7 +71,7 @@ noncomputable def MainLogger [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- holdForever keeps the process alive: a member runs until its machine crashes.
 
-    go: server.go:71:6 -/
+    go: server.go:66:6 -/
 noncomputable def holdForever.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -89,7 +86,7 @@ noncomputable def holdForever.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ConfigOf is member i's configuration in the deployment d (0 <= i < len(d.Members)).
 
-    go: server.go:78:6 -/
+    go: server.go:73:6 -/
 noncomputable def ConfigOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "i"
@@ -144,7 +141,7 @@ noncomputable def ConfigOf.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MainDeployment is member i's machine of the deployment d (Lean: serverProg d i), with no logging
     (MainDeploymentLogger).
 
-    go: server.go:91:6 -/
+    go: server.go:86:6 -/
 noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "i"
@@ -162,7 +159,7 @@ noncomputable def MainDeployment.impl [GooseExts] [GoGlobalContext] : val :=
     formed (deployment.WellFormed) and has a member i, MainLogger of member i's configuration
     (ConfigOf); otherwise it returns at once.
 
-    go: server.go:98:6 -/
+    go: server.go:93:6 -/
 noncomputable def MainDeploymentLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "i"
@@ -190,7 +187,7 @@ noncomputable def MainDeploymentLogger.impl [GooseExts] [GoGlobalContext] : val 
 /-- serverConfig is the member's etcd configuration: c's, with the examples' fixed values for the
     rest (etcdstart's newServerMode and StartMemberAuth).
 
-    go: server.go:107:6 -/
+    go: server.go:102:6 -/
 noncomputable def serverConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "lg"
@@ -285,7 +282,7 @@ noncomputable def serverConfig.impl [GooseExts] [GoGlobalContext] : val :=
     HTTP_PROXY or http_proxy for http URLs, HTTPS_PROXY or https_proxy for https URLs) nonempty.
     NO_PROXY and REQUEST_METHOD only ever turn a proxy off, so they are not read.
 
-    go: server.go:147:6 -/
+    go: server.go:142:6 -/
 noncomputable def proxyEnvSet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -304,7 +301,7 @@ noncomputable def proxyEnvSet.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- inCluster says whether c's own name and peer address are an entry of its initial cluster.
 
-    go: server.go:153:6 -/
+    go: server.go:148:6 -/
 noncomputable def inCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -341,7 +338,7 @@ noncomputable def inCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs one member with no logging (MainLogger).
 
-    go: server.go:163:6 -/
+    go: server.go:158:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -356,7 +353,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
     (and the process) without a panic: the theorem then has nothing to say about this member's
     later behavior, and its peers see it as a member that never answers.
 
-    go: server.go:170:6 -/
+    go: server.go:165:6 -/
 noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "lg"
@@ -397,46 +394,21 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$go" (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Serve []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))
-  (Let "$a3" (Let "$sl0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 1000000000))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MinTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.KeepaliveEnforcementPolicy []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Client"))) (Var "c")))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "cl"))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve holdForever []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Client"))) (Var "c")))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "cl") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"ReadyNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))))
   (App (Val doExecute)
@@ -476,15 +448,12 @@ noncomputable def MainLogger.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.os, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.os, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -507,10 +476,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.config.initialize') (Val #()))))))
@@ -518,8 +483,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -674,13 +637,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_os_Assumption : _root_.Perennial.os.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
   import_etcdhttp_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
   import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
   import_deployment_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
@@ -701,13 +661,10 @@ attribute [instance] Assumptions.Peer_instance
   Assumptions.import_os_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_keepalive_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_config_Assumption
   Assumptions.import_etcdserver_Assumption
   Assumptions.import_etcdhttp_Assumption
-  Assumptions.import_v3rpc_Assumption
   Assumptions.import_features_Assumption
   Assumptions.import_deployment_Assumption
   Assumptions.import_etcdstart_Assumption

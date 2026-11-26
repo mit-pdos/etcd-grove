@@ -7,7 +7,7 @@ etcd's peer handler, dialed by the other members' rafthttp and leasehttp round t
 start to the opaque peer protocols `httpPeerSvc` (`httpAddrAt a`), as S2's interface sets a client address to
 grpc's opaque `grpcCliPI`/`grpcSrvPI` (`grpcAddrAt`). With it:
 * `http_addr_set` is a theorem (`addr_set_proto`). `S5Draft`'s unindexed `httpAddrAt` is not instantiated: the
-  protocol is indexed by the cluster and the member (`httpPeerSvc γ id`), so `S5Draft` must gain those indices
+  protocol is indexed by the cluster and the member (`httpPeerSvc γ.cl id`), so `S5Draft` must gain those indices
   before its fields are these (`notes/etcd-dist-plan.md` §17.3);
 * the member-side axioms are `NewServer_dist` (`etcdserver.NewServer` with the network across machines),
   `NewPeerHandler_dist` and `PeerServe_dist` (etcd's peer handler served on the member's peer listener);
@@ -48,11 +48,21 @@ open Iris Iris.BI Net
 requests of etcd's peer API, from a member of the deployment's cluster) and the acceptor's (`.2`, what etcd's peer
 handler served by net/http writes back). Its intended reading, S5's: the HTTP protocols of etcd's peer API, each
 request carrying raft's message invariant (the in-process network's `raftProto`). Opaque so that no program but the
-member-side axioms writes or learns anything of such a connection. **Indexed by the cluster's raft names `γ` (the whole
-`SrvRaft` record one allocation gives every member) and the address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the same
-configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an address is
-set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it. -/
-opaque httpPeerSvc [GooseExts] {GF : BundledGFunctors} (γ : SrvRaft) (id : w64) :
+member-side axioms writes or learns anything of such a connection. (2026-11-25, the review of
+`bootstrap.wp_proof_dist`) The dialer's requests include `bootstrap`'s `GET /members` (`isMemberBootstrapped`,
+before the member is a started server: read-only, no raft message), which etcd's peer handler answers with its
+cluster's members (`etcdhttp/peer.go:112-120`); `bootstrap.wp_proof_dist` relies on that answer being etcd's
+(a `null` element would panic it). **Indexed by the cluster `cl` (raft's cluster names, allocated once per cluster)
+and the address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the
+same configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an
+address is set once (`addrUnset` is spent), so the only acceptor writing at it is member `id` of `cl`
+(`PeerServe_dist`, whose `γ` `srvNet` ties to the server's cluster) and the only dialers writing there are members
+of `cl` (`NewServer_dist`, one per id: `raftState`/`nodeVacant`); a second allocation of the same configuration is
+another `cl`.
+(2026-11-25, N5, `notes/etcd-dist-plan.md` §19: by the cluster, not the member's whole `SrvRaft` record, which
+holds the member's own storage registry `reg`: every member reads the other members' addresses at its own record, so
+an index by the record could not be met at three members; `notes/axiom-review/s5-cluster-index.md`.) -/
+opaque httpPeerSvc [GooseExts] {GF : BundledGFunctors} (cl : Cluster) (id : w64) :
     Proto GF × Proto GF := (fun _ _ => iprop(True), fun _ _ => iprop(True))
 
 section addr
@@ -61,10 +71,11 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The peer address `a` is member `id`'s of the server raft `γ` (its cluster and names) and serves etcd's peer API** (persistent, no heap):
-`a`'s protocols are `httpPeerSvc γ id`'s. -/
+/-- **The peer address `a` is member `id`'s of the cluster of the server raft `γ` and serves etcd's peer API**
+(persistent, no heap): `a`'s protocols are `httpPeerSvc γ.cl id`'s (by `γ`'s cluster only: two members' records,
+which differ in their storage registries, read the same fact). -/
 def httpAddrAt (γ : SrvRaft) (id : w64) (a : GoString) : IProp GF :=
-  addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) γ id).1 (httpPeerSvc (GF := GF) γ id).2
+  addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) γ.cl id).1 (httpPeerSvc (GF := GF) γ.cl id).2
 
 instance httpAddrAt_persistent (γ : SrvRaft) (id : w64) (a : GoString) :
     Persistent (httpAddrAt (Gg := Gg) γ id a) := by
@@ -102,6 +113,30 @@ instance noProxyEnv_persistent : Persistent (noProxyEnv (hG := hG)) := by
   unfold noProxyEnv; infer_instance
 
 end env
+
+/-! ## `bootstrap`'s round tripper -/
+
+section bootrt
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [π : NetProtoGS]
+
+/-- **What `bootstrap`'s round tripper needs of the other members' peer URLs** (persistent; the round-tripper
+contract of the interim `bootstrap.wp_proof_dist`): every other peer `pid` of the cluster `γ` (not `id`) whose
+directory entry is `http://a` has its address `a` set to etcd's peer protocols of `γ`'s cluster `γ.cl` and `pid` (`httpAddrAt`; `γ`'s other
+fields, here only `γ.vs`, are the caller's), and
+this process uses no HTTP proxy (`noProxyEnv`). `bootstrap` (`bootstrap.go:72`, `rafthttp.NewRoundTripper`)
+makes the round tripper with which `isMemberBootstrapped` (`cluster_util.go:41`) sends `GET <url>/members` to each
+other member's peer URL. Exactly `NewServer.specG_dist`'s `#Hpeers ∗ #Hnoproxy`, so the S5 interim axioms'
+callers discharge it; S5's proof of net/http across machines is to replace it by the client contract it proves. -/
+def bootRTOk (γ : SrvRaft) (id : w64) (dir : w64 → List GoString) : IProp GF :=
+  iprop((□ ∀ (pid : w64) (a : GoString), ⌜pid ∈ γ.vs ∧ pid ≠ id ∧ go!"http://" ++ a ∈ dir pid⌝ -∗
+      httpAddrAt (Gg := hG.goose_globalGS) γ pid a) ∗ noProxyEnv (hG := hG))
+
+instance bootRTOk_persistent (γ : SrvRaft) (id : w64) (dir : w64 → List GoString) :
+    Persistent (bootRTOk (hG := hG) γ id dir) := by
+  unfold bootRTOk; infer_instance
+
+end bootrt
 
 /-! ## The peer handler -/
 

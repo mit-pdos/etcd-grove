@@ -6,7 +6,7 @@ The EPaxos kit's client machines and orchestrator (kit.go's `Client`, `Orch`, `C
 discharged at the top level.
 
 * `Client(c)`: remote's `newClient` returns the server addresses' slice (read-only, `tok sys`
-  says which: a pure fact). `op` sleeps what is left of `start(c)` since `t0` (`Client`'s
+  says which: a pure fact). `op` sleeps what is left of `start(c)` (a random delay) since `t0` (`Client`'s
   `time.Now()`, written once: read-only), then is `Op` on the slice; its update is
   remote's `lin` through `lin_opU`, and an answer's bytes are below `2 ^ 16` (`Op.spec`), so
   `epR_ov` applies.
@@ -24,6 +24,7 @@ public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeC
 public import Perennial.Spec.time.Sleep
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
+public import Dsverify.Proof.math.rand.IntnPos
 
 @[expose] public section
 
@@ -87,14 +88,18 @@ theorem wp_attempt :
   iapply HΦ
   itrivial
 
-/-- `start(c)`: some duration. -/
+/-- `start(c)`: some duration (StartMs and a random stagger). -/
 theorem wp_startDelay (c : w64) :
     {{ isPkgInit (PROP := IProp GF) kpkg }}
       (App (Val (@! github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.start))
         (Val #c))
     {{ (d : w64), RET #d; True }} := by
   wp_start
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
   wp_auto
+  wp_apply math.rand.wp_Intn_pos (W64 5 * W64 300 + W64 1) (by decide) as %w0 -
+  try wp_auto
   iapply HΦ
   itrivial
 
@@ -150,13 +155,16 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (wp_Codec γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 2) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 10 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (epR γ) epS γp m addrs clientAddrs cd _ _ d pendN_ep lintestN_ep
+  wp_apply wp_Check (epR γ) epS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_ep lintestN_ep
     (epS_pendDec γ) (epR_encOut_inj γ) (fun st => epR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) 6 (by decide) $$ [Hlib Hbud]
+    (by word) (by rw [hlen']; word) 6 (by simp only [readTries]; word) $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)
@@ -169,7 +177,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
 
 omit ρ bvi in
 /-- A slot's update gives its `lin` (a read's persistently). -/
-theorem slotUpd_lin (R : RBase GF KvS EIn BStr) (i : EIn) (Φ : BStr → IProp GF) :
+theorem slotUpd_lin (R : RBase GF KvS EIn EIn BStr) (i : EIn) (Φ : BStr → IProp GF) :
     slotUpd (Gg := hG.goose_globalGS) R i Φ ⊢ lin (Gg := hG.goose_globalGS) R i Φ := by
   unfold slotUpd
   split

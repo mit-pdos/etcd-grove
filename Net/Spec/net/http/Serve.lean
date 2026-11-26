@@ -14,10 +14,24 @@ with it).
 The shared rpc-over-HTTP design (L2) and its amendment 4 (agreed with phase 7's S5). Proved
 (`Net/Proof/net/http/Serve.lean`, since 2026-11-25; an interim axiom before) from `http.Serve`'s spec
 with a handler (`Serve.specHandler`, the `nil` handler) and `DefaultServeMux`'s dispatch. Lean-first.
+
+`http.Serve(l, h)` over an HTTP handler (`Serve.spec`; httpdriver, 2026-11-25): it serves the
+connections `l` accepts, each on its own goroutine, until `Accept` fails, then returns its error; it
+never panics. What it needs: the listener `l` at `la` (`isListener`, `netLisOn`, `lisInv`), whose every
+address serves HTTP with the protocol `P` (`protoLis la P`, `ProtoDefs.lean`: what a dialer writes,
+`httpReqP P`, what an acceptor writes, `httpRespP P`, and the registry of connections); a handler of
+every request under `/` with `P` (`handlerOk h P "/"`; a run gets its connection goroutine's thread
+token); net/http's server variables (`httpSrvEnv`). What it guarantees is what it writes: on each
+connection, for the `i`-th request the dialer wrote (the `i`-th slot), the handler's complete response,
+the head of a chunked one, or net/http's `400` answer (`httpRespP P`). `Serve.specHandler`'s shape
+for an HTTP handler in place of net/rpc's `CONNECT` one; S5's draft `Serve.spec` with C1 (no handler
+pool) and the departures listed in `ProtoDefs.lean`. An interim trust-boundary axiom
+(`Net/Proof/net/http/Serve.lean`).
 -/
 module
 
 public import Net.Proof.net.http.MuxDefs
+public import Net.Proof.net.http.ProtoDefs
 public import Net.Proof.net.http.PkgInit
 public import Net.Proof.net.Base
 
@@ -50,6 +64,22 @@ abbrev Serve.spec_rpc : Prop :=
       threadTok }}
     (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #(interface.nil : GoInterface)))
   {{ (err : GoInterface), RET #err; threadTok }}
+
+
+section spec_http
+variable [hπ : HttpProtoGS]
+
+/-- See the file header. -/
+abbrev Serve.spec : Prop :=
+  ∀ (P : HProto GF) (la : GoString) (lis h : GoInterface) (l : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ httpSrvEnv (GF := GF) ∗
+      protoLis (Gg := hG.goose_globalGS) la P ∗ handlerOk h P go!"/" ∗
+      net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+      lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
+    (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #h))
+  {{ (err : GoInterface), RET #err; True }}
+
+end spec_http
 
 end spec
 end net.http

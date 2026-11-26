@@ -2,14 +2,18 @@
 `NewRaftLoggerZap(lg)` (`zap_raft.go` at the etcd pin `edc800c6f`: `&zapRaftLogger{lg: lg, sugar:
 lg.Sugar()}` as a `raft.Logger`). Claim #34, stage 4 (2026-11-25). Lean-first.
 
-**Not proved: a hypothesis** (`?` in the server's `Link.lean`) of `raftConfig`'s linked result: etcd's
-`zap_raft.go` and zap's `SugaredLogger` are names-only. It holds of Go for a logger as `zap.NewNop()`
-builds it (`zapLoggerOk`, the only kind this repository's specs give): `zapRaftLogger`'s `Infof`,
-`Debugf`, `Warningf`, `Errorf` call the sugared logger's, whose `log` returns at once when the core
-(`nopCore`) is not enabled at the level (zap v1.28.0 `sugar.go`, `log`: `lvl < DPanicLevel &&
-!s.base.Core().Enabled(lvl)`), so each returns with no effect: `isLogger` (raft's logger contract).
-Until then the server's closed theorems took the weaker premise `rnLoggerZapOk` (any interface, no
-contract), and `bootstrap`'s contract the logger's `isLogger`.
+**Not proved: the trust-boundary axiom** `NewRaftLoggerZap.wp_proof` (`Proof/.../NewRaftLoggerZap.lean`;
+premises to axioms, item C, 2026-11-24: until then the closed theorems took the weaker premise
+`rnLoggerZapOk`, any interface, no contract; claim #34 then stated this stronger triple as a hypothesis of
+`raftConfig`): etcd's `zap_raft.go` and zap's `SugaredLogger` are names-only. It holds of Go for a logger
+as `zap.NewNop()` builds it (`zapLoggerOk`, the only kind this repository's specs give): the body is
+`skipCallerLg := lg.WithOptions(zap.AddCallerSkip(1)); return &zapRaftLogger{lg: skipCallerLg, sugar:
+skipCallerLg.Sugar()}` (`WithOptions` and `Sugar` clone the non-nil logger, keeping its core);
+`zapRaftLogger`'s `Infof`, `Debugf`, `Warningf`, `Errorf` call the sugared logger's, whose `log` returns at
+once when the core (`nopCore`) is not enabled at the level (zap v1.28.0 `sugar.go`, `log`: `lvl <
+DPanicLevel && !s.base.Core().Enabled(lvl)`), so each returns with no effect: `isLogger` (raft's logger
+contract). Interim: retired once zap's `WithOptions`, `AddCallerSkip` and `Sugar` have specs and the body
+is translated (plan item C, claim #40).
 -/
 module
 

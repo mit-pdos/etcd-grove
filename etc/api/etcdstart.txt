@@ -43,6 +43,9 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyM
 # (`HWal`) and the areas' allocation at adequacy, which `AdequacyMembers` publicly imports
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
+# (2026-11-25, etcd_safe's bootstrap interim axiom) `bootPremise` from `bootstrap.spec`: the bridge an example
+# uses to drop `bootstrap`'s contract as a premise (`etcd_dist.BootDist` builds the dist variant on it)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootBridge
 # the package's initialization
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Init
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked
@@ -87,6 +90,8 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.CollectPlan
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOne
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOneLinked
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.RespChan
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served

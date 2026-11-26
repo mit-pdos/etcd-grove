@@ -45,6 +45,10 @@ theorem Handle.wp_proof (wp_Search : sort.Search.spec (GF := GF) (hG := hG))
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   iunfold muxOwn at Hown
+  icases Hown with ⟨Hown, #Hse⟩
+  ihave #Hse2 := Hse
+  iunfold serveEnv at Hse2
+  icases Hse2 with ⟨-, #Hd⟩
   iapply (wp_Handle_lit wp_Search wp_IndexAny wp_IndexByte wp_PathUnescape wp_Caller wp_Sprintf
     (globalAddr net.http.defaultServeMux) Ps p h hp hnew hh hfn) $$ [Hown]
   · iframe #; iexact Hown

@@ -954,3 +954,22 @@ verified there in 671 s (`verify-final.log`).
   checks with `lake env lean` without "environment already contains". `lake build` of QuePaxa's
   `TopLevelRobustness` (statement and proof) green; `#print axioms quepaxa_remote_robust`:
   `propext`, `Classical.choice`, `Quot.sound`.
+
+## dsv-fix3: initializer premises become axioms (2026-11-25, #49)
+
+The names-only initializers' `InitHyp` premises became per-package trust-boundary axioms
+(`axiom wp_initialize'` in `Dsverify/Proof/<pkg>/Init.lean`, the class's statement exactly; Upamanyu,
+#8 2026-11-25T02:20:53Z; `etc/dsv/README.md`, "`HYP_INITS`: per-package `wp_initialize'` axioms"),
+each reviewed by the `axiom` skill (`notes/axiom-review/dsv-inits/`) and counted in the kit's
+collection. Two reviews refuted theirs in Go, go-redis v8's (`GODEBUG=fips140=bogus` panics in
+`crypto/internal/fips140`'s `init`, through `crypto/tls`) and grpc's (a program registering grpc's
+`binarylog.proto` first panics in grpc's initializer): those two stay `InitHyp` premises (gen-init's
+`DSV_PREMISE_INITS`) until Upamanyu picks a fix. The nine axiomatized packages' test-only
+`InitInstancesLinked.lean` (imported by nothing; their local `localInitFuncsOk`, true of no
+particular semantics, looked false where an `init` panics) are deleted with their `InitHyp` classes.
+
+Here: `gopkg_in.yaml_v2`, `io.ioutil`, `encoding.gob`, `google_golang_org.grpc.codes` are axioms;
+`quepaxa_remote_robust` loses those four `InitHyp` premises and keeps go-redis's and grpc's
+(statement diff: removals only); `NonVacuityLinked.lean` instantiates the two kept ones.
+(dsv-retire-1/-2, 2026-11-25, #49: `io.ioutil`'s and `google_golang_org.grpc.codes`' axioms retired,
+their initializers translated and proved; codes' with the part's grpc `internal`, `CanonicalString`.)

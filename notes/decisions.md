@@ -42631,6 +42631,48 @@ generated `Assumptions`), a translator-configuration change on branches of their
 `bootstrapStorage`, `bootstrapRaft`, `bootstrappedCluster.Finalize` unproved, `bootFs.touchMember.law`
 open), so it stays a premise until #34 links it; then `etcdstart/BootBridge.lean` discharges it with
 pure facts of `bootstrap`'s computed results (`bootGo.*`), folded into `BootFacts`.
+
+## The interim bootstrap axiom at one member (2026-11-24 · the coordinator's task, the owner's bar "no Hoare triple in the top-level statement" · branch `dist-putget-interim/2026-11-24`)
+
+**Decision.** `bootstrap`'s contract leaves `putget_safe`'s statement: its named Iris premise `Hprem`
+(`etcdstart.premises`, `bootstrapContract` at every configuration and URLs of the one member) is replaced by
+one interim axiom, `bootstrap.wp_proofOne : bootstrap.specOne` (`Spec/` and `Proof/go_etcd_io/etcd/server/
+v3/etcdserver/bootstrapOne.lean`), and two pure premises: `etcdstart.BootGo1 name peer client id ctxs boot`
+(the member id, the peers' contexts, the directory and the bootstrap log are Go's at `urls1`: what #34's
+`BootBridge.lean` asks of an example) and `crypto.fips140.GodebugFips140Off` (an environment premise of
+`bootstrap.spec`). `etcdstart.cfgOk` says `UnsafeNoFsync` is false (`newServer`'s literal leaves it zero), which
+`bootstrap.spec` needs. `bootstrap.specOne` is `bootstrap.spec` (#34's) word for word under two more premises
+(one initial-cluster entry, `cfg.Name`, of one peer URL); `bootstrap.specOne_of_spec` (`BootOneDefs.lean`)
+shows it no stronger, so when #34 proves `bootstrap` the axiom becomes that theorem of the linked result.
+The bridge is `etcdstart.premises_of_specOne` (`BootOne.lean`, a defs module), linked in `BootOneLinked.lean`
+(`premises_holds`), which `member_boot` (`AdequacyMember.lean`) applies where it took `Hprem`.
+
+**Why not one interim axiom per open hypothesis of #34's linked `bootstrap`** (the task's first choice: the
+server Link's `wp_bootstrap` has fifteen hypotheses after the merge, the `?` entries reachable from
+`etcdserver_bootstrap`). Two of them are false of Go as stated, so as axioms they would be unsound:
+`advertiseMatchesCluster.spec` (the member's own initial-cluster URL slice is sorted in place,
+`config.go:251`, while the spec keeps it `↦*□`) and `isMemberBootstrapped.spec` (with another member it sends
+`GET /members` through the round tripper without the peer's protocol, `cluster_util.go:80-82`); both are in the
+ledger (2026-11-24), pending for #34. `bootstrap.wp_proof`'s proof needs them in their general form, so no
+restricted axiom can stand in for them without changing #34's proofs. The same two facts make the unrestricted
+`bootstrap.spec` false of Go at a member of two or more URLs or a cluster of two or more members, so the task's
+fallback, one axiom at `bootstrap.spec`, would be unsound too; restricted to one member of one URL neither
+happens, and that is every configuration `etcdstart.premises` names (`urls1`). Three of the fifteen are proved
+but not linkable in the server Link (`bootstrapSnapshot`, `bootFs.touchData`, `bootFs.walExist`: the WAL
+Link's results take a `WalFs.WalGS` instance; an all-zero record of ghost names, with `AllG` from
+`HeapGS`, might supply it, since their statements do not mention it: an untried route for #34's final link).
+
+**Scope.** Only the one-member statements lose `Hprem`: `putget_safe`. `etcd_all`, `leaseexpiryN` and
+`k8s_all` keep theirs: their clusters but three are multi-member (`bootPremise` at `urls3`/`urlsN`), which
+`bootstrap.specOne` does not cover; `etcd_all`'s three one-member premises (`HpremCW`, `HpremC`, `HpremK`)
+could go the same way, not done here. `bootPremise`'s `cfgOk` is stronger by the `UnsafeNoFsync` conjunct,
+so the multi-member premises are weaker (they ask the contract at fewer configurations).
+
+**The pure premises' truth.** At `urls1` every `bootGo` value is a function of `name` and `peer` (the map's one
+key, its one URL `http://peer`), so `BootGo1` is satisfiable exactly at Go's id, contexts and log, which
+`BootFacts` also describes; one conjunct, `memBoot (toEntries boot 0) = bootGo.memMap U name`, is about the
+opaque `membership.ccMemberOf` (the conf-change context's JSON decoding), so it cannot be checked by
+evaluation: it holds iff that opaque decoder inverts `memberJSON` on the member (#34's stop S2).
 ## `ETCD_VERIFY` as an environment premise over its value (2026-11-25 · the owner's decision · branch `etcd-verify-env/2026-11-25`)
 
 Supersedes in part the B4 half of "Numeric address literals (`hAsLit`) and `ETCD_VERIFY` off" (2026-11-08)

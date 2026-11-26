@@ -14,6 +14,7 @@ public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
 public import GeneratedProof.go_etcd_io.etcd.cache.v3
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.strconv

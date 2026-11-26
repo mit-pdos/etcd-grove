@@ -203,7 +203,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   rw [Hsi]
   wp_apply HRecv $$ Hrt as %req %err Hrr
   icases Hrr with (⟨%Herr, %q, ⟨%v, Hreq, %Hqv⟩, HUpq, Hrt⟩ | ⟨#Heofi, %Hne, Hrt, #Hcl⟩ |
-    ⟨%Hne, #Hse, #Hsok, Hrt⟩)
+    ⟨%Hne, #Hse, #Hsok, Hrt, -⟩)
   · -- a request
     subst Herr
     wp_apply hIs (· = GoInterface.nil) (fun _ => False) GoInterface.nil (GoInterface.ok eofE)

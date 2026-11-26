@@ -36,8 +36,9 @@ abbrev retryLeaseClient.LeaseKeepAlive.spec : Prop :=
     (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
         go!"LeaseKeepAlive")) (Val #(GoInterface.ok ctx))) (Val #opts))
   {{ (st err : GoInterface), RET (PairV #st #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Up : Nat → KaReqM → IProp GF)
-          (Dn : Nat → (w64 × w64) → IProp GF) (cd' : context.ContextDesc (IProp GF)),
-        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn cd' clientRes ∗
+          (Md : GoString → GrpcMd → IProp GF) (Dn : GoString → GrpcMd → Nat → (w64 × w64) → IProp GF)
+          (cd' : context.ContextDesc (IProp GF)),
+        cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Md Dn cd' clientRes ∗
         kaUpZero Up ∗
         cliSendTok (Req := pbLeaseKeepAliveRequest) γ [] ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨

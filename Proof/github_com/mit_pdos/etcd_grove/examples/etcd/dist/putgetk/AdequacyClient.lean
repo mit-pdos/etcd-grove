@@ -3,10 +3,9 @@
 # `etcd/dist/putgetk`: the client machine's boot (`notes/putget-dist-plan.md` §13b, plan item 4)
 
 `client_bootK`: the client's boot program (`putgetk.initialize' #()`, then `putgetk.Client(ep)`, its result
-discarded) is safe from its share of the start (`⌜ep ≠ ""⌝ -∗ ⌜addrOk ep⌝ ∗ clientShare ep γE mid
-putgetPub`) and its whole start, as putget's `client_boot` (`dist/putget/AdequacyClient.lean`): `Client.wp_proof`
-at `AddrOK`'s proof and putget's `Client.wp_proof` at its linked callees and the interim axioms
-`Client_Put_dist`, `Client_Get_dist`.
+discarded) is safe from its share of the start (`⌜ep ≠ ""⌝ -∗ ⌜addrOk ep⌝ ∗ clientShare ep Γ mid`) and its whole start, as putget's `client_boot` (`dist/putget/AdequacyClient.lean`): `Client.wp_proof`
+at `AddrOK`'s proof and putget's `Client.wp_proof` at its linked callees and `Client_Put_dist`, `Client_Get_dist`
+(theorems over the interim axioms `KV_Put_dist`, `KV_Get_dist`).
 -/
 module
 
@@ -41,11 +40,11 @@ set_option maxHeartbeats 1600000 in
 theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (ep : GoString) (σc : state)
-    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
+    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (Γ : etcd_dist.DistView) (mid : w64) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient ep) σc
-      (iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))) := by
+      (iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare (GF := putgetGF) ep Γ mid)) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -74,10 +73,11 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   wp_apply (Client.wp_proof (AddrOK.wp_proof decimal.wp_proof)
       (etcd_putget_dist.Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
         context.WithTimeoutBackground.wp_proof context.wp_ErrAny
-        etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
+        (etcd_dist.Client_Put_dist.wp_proof etcd_dist.KV_Put_dist.wp_proof)
+        (etcd_dist.Client_Get_dist.wp_proof etcd_dist.KV_Get_dist.wp_proof)
         (etcd_putget_dist.AddrOk.wp_proof etcd_putget_dist.decimal.wp_proof)
         mvcc.api.mvccApi_names_nonempty_law_holds)
-      ep γE mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hlt Hshare] as %b -
+      ep Γ mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hlt Hshare] as %b -
   · iframe; (try iframe #)
   (try wp_auto)
   all_goals first | done | (ipureintro; rfl) | itrivial

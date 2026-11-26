@@ -8,6 +8,7 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.time.Link
+public import Perennial.Proof.math.rand.Base
 public import Proof.bufio.Init
 public import Proof.github_com.anishathalye.porcupine.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init

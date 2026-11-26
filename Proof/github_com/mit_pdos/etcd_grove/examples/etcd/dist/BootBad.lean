@@ -247,7 +247,7 @@ end boot
 (`serverBootBad`, `clientBootBad`, `nodeBootBad`). -/
 theorem etcdBootNCBad_holds :
     EtcdBootNCBad := by
-  intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
+  intro _ lctx _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
   rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
   · exact serverBootBad d Hd Hfips k σ
   · exact clientBootBad d Hd Hfips j σ
@@ -284,7 +284,7 @@ stable machine's program checks the deployment and returns (`serverBadWp`, `clie
 the stable machines by `etcdBootNCBad_holds`'s lemmas). -/
 theorem etcdBootCBad_holds :
     EtcdBootCBad := by
-  intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb
+  intro _ lctx _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb
   refine ⟨fun i m hm => ?_, fun j m hm => ?_⟩
   · simp only [servers, List.getElem?_mapIdx] at hm
     obtain ⟨σ, -, rfl⟩ := Option.map_eq_some_iff.mp hm

@@ -191,6 +191,7 @@ theorem wp_Run
       iunfold repCB at Hcb
       icases Hcb with ⟨%x, Hl, Hrep⟩
       rw [ptCB_own]
+      icases Hl with ⟨Hl, -⟩
       imod repCBVal_persist ⊤ x b $$ Hrep with #Hrep
       ihave #Hconsts' := Hconsts
       iunfold sharedConsts at Hconsts'

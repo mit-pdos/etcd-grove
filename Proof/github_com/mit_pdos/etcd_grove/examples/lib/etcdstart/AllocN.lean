@@ -319,7 +319,7 @@ theorem memberBoot_of_slice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8
     ⊢ bootMarshal ps ctxs bl -∗ clusterFacts γ γk issued cnt wn fs gen -∗
       memberSlice γ ps ctxs bl cnt wn fs gen x γs cok rev reg id ={⊤}=∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
+        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk ∧ kvCongr ρ.rd.kv γk⌝ ∗
         memberBoot { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp
           lm := by
   letI := srvAnyStor (GF := GF)
@@ -383,7 +383,7 @@ theorem memberBoots_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (b
     · ipureintro
       refine ⟨by simp [Hgs.1], fun g hg => ?_⟩
       rcases List.mem_cons.1 hg with rfl | hg
-      · exact ⟨⟨reg q, rfl⟩, Hρ.1, Hρ.2.1, Hρ.2.2.1, Hρ.2.2.2.1, Hρ.2.2.2.2⟩
+      · exact ⟨⟨reg q, rfl⟩, Hρ.1, Hρ.2.1, Hρ.2.2.1, Hρ.2.2.2.1, Hρ.2.2.2.2.1⟩
       · exact Hgs.2 g hg
     iapply BigSepL.bigSepL_cons.2
     iframe

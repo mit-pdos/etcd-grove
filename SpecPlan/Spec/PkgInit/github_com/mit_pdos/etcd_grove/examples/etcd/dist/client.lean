@@ -6,6 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.auth
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
@@ -35,7 +36,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client :=
+instance pkgInit_github_com_mit_pdos_etcd_grove_examples_etcd_dist_client : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client)
 end
 

@@ -169,6 +169,9 @@ translate = ["!*",
   # (rafthttp stage 6d, 2026-10-24) the member's raft handler, `s.r.transport.Handler()`, over
   # rafthttp's proved `Transport.Handler`
   "EtcdServer.RaftHandler",
+  # (etcd-dist N5, 2026-11-25) `ReadyNotify` (`return s.readych`), which the member machine's program waits
+  # on before serving clients (`examples/etcd/dist/server`)
+  "EtcdServer.ReadyNotify",
   # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go): the merged
   # message, its reader goroutine over the backend snapshot and `io.Pipe`, and its send with the
   # in-flight count released by a `GoAttach` goroutine

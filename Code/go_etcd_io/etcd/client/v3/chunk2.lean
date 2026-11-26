@@ -16,6 +16,39 @@ noncomputable section
 
 namespace go_etcd_io.etcd.client.v3
 
+class keepAlive.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying keepAlive.underlying keepAlive
+  underlying : go.UnderlyingDirectedEq keepAlive.ty keepAlive.underlying
+  get_chs : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"chs") #x (Val #(x.chs'))
+  set_chs : ∀ (x : keepAlive) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"chs") (PairV #x #y) (Val #(({ x with chs' := y } : keepAlive)))
+  get_ctxs : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"ctxs") #x (Val #(x.ctxs'))
+  set_ctxs : ∀ (x : keepAlive) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"ctxs") (PairV #x #y) (Val #(({ x with ctxs' := y } : keepAlive)))
+  get_deadline : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"deadline") #x (Val #(x.deadline'))
+  set_deadline : ∀ (x : keepAlive) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"deadline") (PairV #x #y) (Val #(({ x with deadline' := y } : keepAlive)))
+  get_nextKeepAlive : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"nextKeepAlive") #x (Val #(x.nextKeepAlive'))
+  set_nextKeepAlive : ∀ (x : keepAlive) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"nextKeepAlive") (PairV #x #y) (Val #(({ x with nextKeepAlive' := y } : keepAlive)))
+  get_donec : ∀ (x : keepAlive), go.IsGoStepPureDetTagged under (StructFieldGet keepAlive.underlying go!"donec") #x (Val #(x.donec'))
+  set_donec : ∀ (x : keepAlive) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet keepAlive.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : keepAlive)))
+  method_set : go.MethodSetIs keepAlive.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType keepAlive.ty) [(go!"go.etcd.io/etcd/client/v3.close", (some (go.signature.Signature [] false [])))]
+  ptr_close_unfold : MethodUnfold (go.GoType.PointerType keepAlive.ty) go!"close" keepAlive.close.impl
+
+attribute [instance] keepAlive.TypeAssumptions.type_repr
+  keepAlive.TypeAssumptions.underlying
+  keepAlive.TypeAssumptions.get_chs
+  keepAlive.TypeAssumptions.set_chs
+  keepAlive.TypeAssumptions.get_ctxs
+  keepAlive.TypeAssumptions.set_ctxs
+  keepAlive.TypeAssumptions.get_deadline
+  keepAlive.TypeAssumptions.set_deadline
+  keepAlive.TypeAssumptions.get_nextKeepAlive
+  keepAlive.TypeAssumptions.set_nextKeepAlive
+  keepAlive.TypeAssumptions.get_donec
+  keepAlive.TypeAssumptions.set_donec
+  keepAlive.TypeAssumptions.method_set
+  keepAlive.TypeAssumptions.ptr_method_set
+  keepAlive.TypeAssumptions.ptr_close_unfold
+
 class keepAliveCtxKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keepAliveCtxKey.underlying keepAliveCtxKey
   underlying : go.UnderlyingDirectedEq keepAliveCtxKey.ty keepAliveCtxKey.underlying
@@ -1159,27 +1192,6 @@ attribute [instance] watcherStream.TypeAssumptions.type_repr
   watcherStream.TypeAssumptions.method_set
   watcherStream.TypeAssumptions.ptr_method_set
   watcherStream.TypeAssumptions.ptr_resetBufWait_unfold
-
-class valCtx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying valCtx.underlying valCtx
-  underlying : go.UnderlyingDirectedEq valCtx.ty valCtx.underlying
-  get_Context : ∀ (x : valCtx), go.IsGoStepPureDetTagged under (StructFieldGet valCtx.underlying go!"Context") #x (Val #(x.Context'))
-  set_Context : ∀ (x : valCtx) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet valCtx.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : valCtx)))
-  method_set : go.MethodSetIs valCtx.ty [(go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType valCtx.ty) [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
-  ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Deadline" valCtx.Deadline.impl
-  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Done" valCtx.Done.impl
-  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType valCtx.ty) go!"Err" valCtx.Err.impl
-
-attribute [instance] valCtx.TypeAssumptions.type_repr
-  valCtx.TypeAssumptions.underlying
-  valCtx.TypeAssumptions.get_Context
-  valCtx.TypeAssumptions.set_Context
-  valCtx.TypeAssumptions.method_set
-  valCtx.TypeAssumptions.ptr_method_set
-  valCtx.TypeAssumptions.ptr_Deadline_unfold
-  valCtx.TypeAssumptions.ptr_Done_unfold
-  valCtx.TypeAssumptions.ptr_Err_unfold
 
 end go_etcd_io.etcd.client.v3
 

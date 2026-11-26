@@ -25,7 +25,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
-/-- `t.Equal(u)` of two non-nil times: some `bool` (`time.Time.Equal`'s spec in Perennial). -/
+/-- `t.Equal(u)` of two non-nil times: some `bool` (weaker than `time.Time.Equal`'s spec in
+Perennial, which gives Go's value, `time.Time.equal`). -/
 abbrev Time.Equal.spec : Prop :=
   ∀ (a b : Loc) (ta tb : k8s_io.apimachinery.pkg.apis.«meta».v1.Time),
   {{ isPkgInit (PROP := IProp GF) pkg_id.time ∗ a ↦ ta ∗ b ↦ tb }}

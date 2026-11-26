@@ -4,6 +4,7 @@ module
 public import Perennial.Code.context
 public import Perennial.Code.time
 public import Code.go_uber_org.zap
+public import Code.google_golang_org.grpc
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.auth
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
@@ -317,9 +318,11 @@ noncomputable def checkGet [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- newUserClient (authN's, copied) connects a client of addr that authenticates as user name with
     password pw (clientv3.New calls Authenticate when it dials; the token is sent with every
-    request).
+    request). No proxy (grpc.WithNoProxy), as etcdstart.NewClients: every connection goes to addr
+    itself, never through an HTTP CONNECT proxy the process environment names (notes/etcd-dist-plan.md
+    §18.8, item 4; notes/putget-dist-plan.md section 12, finding F1).
 
-    go: auth.go:25:6 -/
+    go: auth.go:28:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "name"
@@ -338,7 +341,9 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v4" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$v5" (App (Val (GoInstruction (GoLoad go.string))) (Var "pw"))
   (Let "$v6" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"DialTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Username")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Password")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v6")))])))))))))
+  (Let "$v7" (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.WithNoProxy []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.DialOption.ty (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"DialTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Username")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Password")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v6"))), (KeyedElement (some (KeyField go!"DialOptions")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.DialOption.ty) (Var "$v7")))]))))))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.New []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -358,7 +363,7 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
     addr (its read index is at least the set-up's AuthEnable, so the member has applied it when the
     read returns), and reports whether it succeeded.
 
-    go: auth.go:40:6 -/
+    go: auth.go:44:6 -/
 noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -441,7 +446,7 @@ noncomputable def barrier.impl [GooseExts] [GoGlobalContext] : val :=
 /-- barriers runs barrier at every endpoint, and reports whether every one succeeded (authlease's
     barriers, copied).
 
-    go: auth.go:54:6 -/
+    go: auth.go:58:6 -/
 noncomputable def barriers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -480,7 +485,7 @@ noncomputable def barriers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- collectFor reads wch with etcdstart.Collect up to upTo, giving up (its context cancelled, an
     end, not a check) after readTimeout.
 
-    go: auth.go:65:6 -/
+    go: auth.go:69:6 -/
 noncomputable def collectFor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "cancel"
@@ -543,7 +548,7 @@ noncomputable def collectFor.impl [GooseExts] [GoGlobalContext] : val :=
     Every refusal the checks expect is any error (auth.Work's refused): an error never counts as a
     write not applied, since the history check reads what was applied.
 
-    go: auth.go:84:6 -/
+    go: auth.go:88:6 -/
 noncomputable def RunAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "nodes"
@@ -6245,12 +6250,13 @@ noncomputable def checkGet.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.google_golang_org.grpc.metadata, pkg_id.net, pkg_id.sync, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.strconv, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.google_golang_org.grpc.metadata, pkg_id.net, pkg_id.sync, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment, pkg_id.strconv, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6273,6 +6279,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6412,6 +6420,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_auth_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
@@ -6490,6 +6499,7 @@ attribute [instance] Assumptions.Result_instance
   Assumptions.import_context_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
+  Assumptions.import_grpc_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_auth_Assumption
   Assumptions.import_etcdstart_Assumption

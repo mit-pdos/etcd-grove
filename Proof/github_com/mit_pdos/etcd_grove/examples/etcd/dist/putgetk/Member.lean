@@ -10,9 +10,10 @@ at the cluster's names); `StartMember` on a member machine is the named hypothes
 `etcd_dist.StartMember_dist.spec S5` (S5's), its premises discharged from the configuration (the directory
 `etcd_putgetN.dirN`, well formed by `dirN_ok`, within the transport's bound since the ids' 16 low bits are
 distinct, `idPfxsOf_ok`; the URLs `urlsN`; the names `nameOf j` distinct, ASCII and short) and from the share
-(every peer address's `httpAddrAt`, `peerAddrFacts`); the member's view is published at `Pub` (`memberPubOkK`,
-the request names agreeing with the cluster's KV names, `kvAgree`); `etcdstart.Serve` on a member machine is
-`etcd_dist.Serve_dist` (interim axiom); `holdForever()` does not return.
+(every peer address's `httpAddrAt`, `peerAddrFacts`); `etcdstart.Serve` on a member machine is
+`etcd_dist.Serve_dist` (interim axiom) at the cluster's view, the request names' KV names `kvCongr` to its
+(`memberBoot_of_slice`; O1 option B, `notes/etcd-dist-plan.md` §18.3, no publication); `holdForever()` does not
+return.
 -/
 module
 
@@ -223,15 +224,19 @@ theorem Member.wp_proof
     (hne : mvcc.api.names_nonempty.law)
     -- (etcd-safe-main, 2026-11-25: hprem-axioms' swap; until then the premise `bootMarshal`)
     -- `proto.Marshal`'s spec at a boot conf change
-    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) :
+    (wp_MarshalBoot : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG))
+    -- (2026-11-25; until then the members' premise `bootPremise`) the interim axiom on `bootstrap` at
+    -- `etcd_safe`'s shape
+    (wp_bootstrap_dist : ∀ [π : Net.NetProtoGS] [MemStorReg GF],
+      _root_.Perennial.EtcdGrove.bootstrap.specDist (GF := GF) (hG := hG)) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB S5 peers clients ps ctxs boot i Pub peersSl clientsSl Hfips Hblf Hi64 HLv Haf
+  intro CS π TB RB S5 peers clients ps ctxs boot i peersSl clientsSl Hfips Hblf Hbgo Hi64 HLv Haf
     Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
   have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
   have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
-  wp_start as ⟨Htok, Hp, Hc, #Hprem, Hvoff, Hwa, Hshare⟩
+  wp_start as ⟨Htok, Hp, Hc, Hvoff, Hwa, Hshare⟩
   try simp only [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Token]
   ihave %Hpl := ownSlice_len $$ Hp
   ihave %Hcl := ownSlice_len $$ Hc
@@ -267,21 +272,19 @@ theorem Member.wp_proof
   have Hcfg := Hb rfl
   -- the share of the start
   ihave Hshare := Hshare $$ %(And.intro Hcfg Hilt)
-  icases Hshare with ⟨%c, %γE, Hshare⟩
+  icases Hshare with ⟨%c, Hshare⟩
   obtain ⟨Hne, Hlen, Hids⟩ := Hcfg
   obtain ⟨Hids1, Hids2⟩ := Hids
   obtain ⟨pi, hpi⟩ : ∃ p, peers[i]? = some p := ⟨_, List.getElem?_eq_getElem Hilt⟩
   obtain ⟨ci, hci⟩ : ∃ p, clients[i]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
   iunfold memberShareK at Hshare
-  icases Hshare with ⟨%Hsh, Hmss, #Hpub⟩
+  icases Hshare with ⟨%Hsh, Hmss⟩
   obtain ⟨Hcok, Hand, Haok⟩ := Hsh
   obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, -⟩ := Hcok
   have hcm := cms_getD peers clients i pi ci hpi hci
   iunfold etcd_dist.memberStartShare at Hmss
   isimp only [hcm] at Hmss
-  icases Hmss with ⟨#Hcf, #Hpaf, Hsl, Hsvc⟩
-  iunfold etcd_dist.memberSvcShare at Hsvc
-  icases Hsvc with ⟨#Hat, Hhalf, #Hinv⟩
+  icases Hmss with ⟨#Hcf, #Hpaf, Hsl, #Hat⟩
   -- the configuration's pure facts
   obtain ⟨Hpfxnd, -, HidsLen⟩ := idPfxsOf_ok (idsOf peers) Hids1 Hids2
   have Hidnd : (idsOf peers).Nodup := by
@@ -314,21 +317,22 @@ theorem Member.wp_proof
   have Hx : xsOf ((cmsOf (membersOf peers clients) (idsOf peers)).map (·.id)) c.idx
       (idPfxOf (W16 (uint.Z (memberIdOf pi)))) = (c.idx (memberIdOf pi)).slog := by
     rw [cms_ids]; exact xsOf_at _ _ Hpfxnd _ (List.mem_of_getElem? hidi)
-  -- the member's bootstrap premise
-  iunfold premises at Hprem
-  icases Hprem with #Hbps
   -- `proto.Marshal`'s bytes at the bootstrap log's conf changes, from its trust-boundary spec and the
   -- log's bytes (`Hblf.wire`), as putgetN's
   ihave #Hpp : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
   · iPkgInit
   ihave #Hmarsh := bootMarshal_of_spec wp_MarshalBoot _ _ _ Hblf.wire $$ Hpp
-  ihave #Hbp : etcdstart.bootPremise (2 ^ 28) ps (LogEntry.toEntries boot 0) ctxs
-      (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token (nameOf i)
-      (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) (memberIdOf pi) $$ []
-  · iapply (BigSepL2.bigSepL2_lookup (Φ := fun _ m id => etcdstart.bootPremise (GF := GF) (2 ^ 28) ps
+  -- the member's bootstrap contract, given the round tripper's, from the interim axiom (`BootDist.lean`) and
+  -- what Go computes at its URLs (`Hbgo`)
+  ihave #Pesrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  haveI : ThreadBoundLe GF (2 ^ 29) := ⟨Nat.le_trans TB.threadBound_le (by decide)⟩
+  haveI : ReceiptBoundLe GF (2 ^ 60) := ⟨Nat.le_trans RB.receiptBound_le (by decide)⟩
+  obtain ⟨Hidr, HU⟩ := Hbgo ⟨nameOf i, pi, ci⟩ (memberIdOf pi) (zip_mem_of hmi hidi)
+  ihave #Hbp := etcd_dist.bootPremiseDist_of_specDist wp_bootstrap_dist (2 ^ 28) ps
       (LogEntry.toEntries boot 0) ctxs (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token
-      m.Name' (urlsN (membersOf peers clients) m) id) hmi hidi)
-    iexact Hbps
+      (nameOf i) (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) (memberIdOf pi) Hfips Hidr HU
+      ⟨boot, Hblf.boot, rfl⟩ $$ Pesrv
   -- the member's peer address and every other peer's
   ihave #Hown : S5.httpAddrAt pi $$ []
   · iapply (peerFact_of (G := hG.goose_globalGS) S5 (cmsOf (membersOf peers clients) (idsOf peers)) pi
@@ -352,14 +356,7 @@ theorem Member.wp_proof
         (idPfxOf (W16 (uint.Z (memberIdOf pi)))))
       Hx hiss hwn hfs hgen hc0 hch hlog hvs false hkc .none lease.runCfg_none hklg (fun h => nomatch h)
       hpo rfl hns) $$ Hmarsh Hcf Hsl with ⟨%ρ, %Hρ, Hmb⟩
-  -- the member's view, published at `γE` with `Pub`
-  ihave #HP : □ Pub (etcd_dist.memberView ρ) $$ []
-  · iunfold memberPubOkK at Hpub
-    imodintro
-    ihave HPg := Hpub $$ %ρ %(show kvAgree ρ c.γk from Hρ)
-    iexact HPg
-  imod (etcd_dist.env_publish_h ⊤ γE CoPset.subseteq_top Pub (etcd_dist.memberView ρ)) $$ Hhalf Hinv HP
-    with #Hν
+  have Hcg : kvCongr ρ.rd.kv c.view.kv := Hρ.2.2.2.2.2
   -- the initial cluster's map
   irename i => Hiv
   wp_apply wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.client.pkg.v3.types.URLs) as %pm Hpm
@@ -518,9 +515,9 @@ theorem Member.wp_proof
   (try wp_auto)
   wp_apply (wp_Serve_dist s ci ρ
       (etcdstart.env₀ γm (c.idx (memberIdOf pi)) (c.rev (memberIdOf pi)) (srvApi.kvNx ρ.rd false) false)
-      lg γn (memberIdOf pi) γE (etcd_dist.memberView ρ)) $$ [Hup] as %serr -
+      lg γn (memberIdOf pi) c.view) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, rfl⟩
+    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
   cases serr with
   | ok ei =>
     (try wp_auto)

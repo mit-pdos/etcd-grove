@@ -43,8 +43,8 @@ theorem NewClient.wp_proof (wp_NewClients : etcdstart.NewClients.spec (GF := GF)
   · iframe #
   (try wp_auto)
   iapply HΦ
-  iframe Hlt
   -- (2026-11-24) `NewClients`' no-proxy fact is not this spec's
+  iframe Hlt
   icases Hcl with (⟨%Hcerr, #Hnc, #Htok, -⟩ | %Hcfail)
   · ileft
     isplitr

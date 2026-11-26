@@ -232,7 +232,7 @@ theorem WellFormed.wp_proof
       "%Hj" ∷ ⌜j ≤ d.members.length ∧
         (∀ k, mp !! k = if k ∈ (d.members.take j).map Member.name then some true else none) ∧
         ((d.members.take j).map Member.name).Nodup ∧
-        (∀ m ∈ d.members.take j, etcd_dist.typed.nameOk m.name = true ∧ m.name.length ≤ etcd_dist.typed.maxLen)⌝ :
+        (∀ m ∈ d.members.take j, etcd_dist.typed.nameOk m.name = true ∧ m.name.length ≤ etcd_dist.typed.maxNameLen)⌝ :
       IProp GF) $$ [i m Hnm]
   · iexists 0, _, ∅
     iframe
@@ -256,7 +256,7 @@ theorem WellFormed.wp_proof
       wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hsl
       wp_if_destruct
       · err_exit
-      · have hl255 := strlen_le _ 255 Hsl (by decide) Hif
+      · have hl255 := strlen_le _ 200 Hsl (by decide) Hif
         wp_apply (wp_map_lookup1 _ _ nm mp mm.name) $$ [Hnm] as Hnm
         · iframe
         rw [Hj2]

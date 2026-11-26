@@ -22,6 +22,7 @@ package gryffnet
 import (
 	"bufio"
 	"encoding/binary"
+	"math/rand"
 	"net"
 	"net/rpc"
 	"strings"
@@ -338,14 +339,14 @@ func attempt() time.Duration {
 	return time.Duration(CallMs) * time.Millisecond
 }
 
-// Orch is the orchestrator's program: it panics unless porcupine accepts the history of the
-// clients' operations.
+// Orch is the orchestrator's program: it draws each client's number of operations, 1 to K, and
+// panics unless porcupine accepts the history of the clients' operations.
 func Orch() {
 	g := &gens{mu: new(sync.Mutex), n: make([]uint64, NC)}
 	gen := func(c int) any {
 		return g.next(c)
 	}
-	remote.Check(Model(), ClientAddrs(), Codec(), gen, int(K), attempt())
+	remote.Check(Model(), ClientAddrs(), Codec(), gen, 1+rand.Intn(int(K)), attempt())
 }
 
 // client is client c's Gryff client: a connection to its replica, as Gryff's own client keeps one
@@ -531,13 +532,12 @@ func op(sys *Sys, x In) any {
 	}
 }
 
-// Start is client c's delay before its first operation (Op): every client waits for the replicas
-// to register with the master and connect to each other; then clients 2p and 2p+1 (two replicas'
-// clients) start together, p * StaggerMs later. Start matters only to tests (time is not modeled:
-// the theorem allows any delay): each pair's operations overlap, the pairs' rarely, which keeps
-// one compare-and-swap of each pair swapping (Gen).
+// Start is client c's delay before its first operation (Op): StartMs, for the replicas to register
+// with the master and connect to each other (an operation before that is unknown), then a random
+// 0 to (NC/2)*StaggerMs. Start matters only to tests (time is not modeled: the theorem allows any
+// delay).
 func Start(c uint64) uint64 {
-	return StartMs + (c/2)*StaggerMs
+	return StartMs + uint64(rand.Intn(int((NC/2)*StaggerMs)+1))
 }
 
 // Client is client machine c's program (c < NC): its Gryff client, served at its address in

@@ -77,7 +77,7 @@ theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g 
       (∀ a, ρ.bud a = if a ∈ baddrs then some N else none) →
       ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
         ([∗list] a ∈ baddrs, budUnits (Gg := G) a N) -∗
-        (∀ R : RBase netGF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
+        (∀ R : RBase netGF St I I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
         ∃ Ps : Nat → IProp netGF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWp m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
@@ -101,7 +101,7 @@ theorem remote_robustRB {GF : BundledGFunctors} [GooseGpreS GF] (addrs : List Go
       receiptBound GF ≤ bound → (∀ a, ρ.bud a = if a ∈ baddrs then some N else none) →
       ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
         ([∗list] a ∈ baddrs, budUnits (Gg := G) a N) -∗
-        (∀ R : RBase GF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
+        (∀ R : RBase GF St I I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
         ∃ Ps : Nat → IProp GF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWpG m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :

@@ -8,13 +8,10 @@ public import SpecPlan.Spec.PkgInit.net.http
 public import SpecPlan.Spec.PkgInit.os
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
-public import SpecPlan.Spec.PkgInit.google_golang_org.grpc
-public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.keepalive
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp
-public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
@@ -33,7 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server :=
+instance pkgInit_github_com_mit_pdos_etcd_grove_examples_etcd_dist_server : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server)
 end
 

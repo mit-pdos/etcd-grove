@@ -10,12 +10,11 @@ distinct (a wand: what the machine's start gives only then), the member's named 
 (`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`EtcdVerifyOff`, the statement's
 `HEnv`), its WAL area and data directory fresh (`memberAreasFresh`; since 2026-11-24 no `dataDirFresh`,
 which `bootstrap`'s slot no longer takes), its share of the distributed start over the interim cross-machine
-vocabulary (`memberShare`, `notes/putget-dist-plan.md` §12: its client address set to serve etcd's KV
-calls for the publication name `γE` and its member id `id`, its half of the publication token, the
-publication invariant at `Pub`) and the obligation on `Pub` (`memberPubOk`: a putget invariant gives
-`Pub` of the view of its KV state variable), `Member` does not panic. It publishes its view at `γE`
-(`env_publish`) before `Serve`, with the client's putget invariant allocated from the bootstrap log's
-KV state.
+vocabulary (`memberShare`, `notes/putget-dist-plan.md` §12, `notes/etcd-dist-plan.md` §18.3: the one-member
+cluster's names `c` as the start allocated them, the cluster's facts, the member's slice, its client address
+set to serve etcd's table for its id `id` at the cluster's view `c.view`), `Member` does not panic. It starts
+its member from its slice (`etcd_dist.wp_StartServer1_slice`), whose KV names are then `kvCongr` to the
+view's, what `Serve` on a member machine takes.
 
 **The pure premises:** the in-process putget's (`Spec/.../examples/etcd/putget/Main.lean`): `bootstrap`'s
 results (`BootFacts`), the logic's bounds (as the logic's bound classes: `ThreadBoundLe` at `2 ^ 28`, the server specs';
@@ -56,7 +55,7 @@ abbrev Member.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     (peer client : GoString) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (γE : GName) (Pub : etcd_dist.EnvView → IProp GF),
+    (c : etcd_dist.ClusterNames),
   etcdstart.BootFacts id ctxs boot →
   -- the addresses as Go strings (`AddrOk`'s loop runs to `len(a)`)
   peer.length + 1 < 2 ^ 63 → client.length + 1 < 2 ^ 63 →
@@ -68,7 +67,7 @@ abbrev Member.spec : Prop :=
       (⌜Net.addrOk peer = true ∧ Net.addrOk client = true ∧ peer ≠ client⌝ -∗
         etcdstart.premises (GF := GF) name peer client (2 ^ 48 - 1) id ctxs boot ∗
         ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
-        memberShare (G := hG.goose_globalGS) client γE id Pub ∗ memberPubOk Pub) }}
+        memberShare (G := hG.goose_globalGS) client c ctxs boot id) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))
       (Val #client))
   {{ RET #(); True }}

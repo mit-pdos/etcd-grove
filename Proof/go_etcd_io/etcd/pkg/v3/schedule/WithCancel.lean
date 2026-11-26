@@ -31,7 +31,7 @@ variable [package_sem : _root_.Perennial.context.Assumptions]
 /-- `wp_WithCancel_gen_of` (Perennial), with the cancel function not `nil`. -/
 theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
     (Hprop : ∀ (c : Loc) (γ : ContextNames),
-      {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ isCancelCtxOf c γ P ∗
+      {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ isCancelCtxOfA c γ P (fun _ => True) ∗
           ctxField c ↦ (interface.nil : GoInterface) ∗ Pre }}
         (App (App (Val (c @!! go.GoType.PointerType context.cancelCtx.ty @!! go!"propagateCancel"))
           (Val #(interface.ok parent)))
@@ -51,7 +51,8 @@ theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
   ihave #Hce := isCtxErr_of_Canceled canceled $$ Hpkg Hcanceled
   wp_auto
   iapply wp_fupd
-  wp_apply wp_withCancel parent P Pre Hprop $$ [$Hcci $Hpre] as %c %γ ⟨#Hc, #Hf⟩
+  wp_apply wp_withCancel parent P Pre (fun _ => True) Hprop $$ [$Hcci $Hpre] as %c %γ ⟨#HcA, #Hf⟩
+  ihave #Hc := isCancelCtxOfA_of _ _ _ _ $$ HcA
   ipersist c
   imodintro
   iapply HΦ
@@ -63,7 +64,8 @@ theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
   iintro %Φ' #Hp HΦ'
   ihave #HcE := isCtxErr_of_Canceled canceled $$ Hpkg Hcanceled
   wp_auto
-  wp_apply cancelCtx.wp_cancel c γ P true canceled GoInterface.nil hcanceled $$ [$Hc]
+  wp_apply cancelCtx.wp_cancel c γ P (fun _ => True) true canceled GoInterface.nil hcanceled trivial
+    $$ [$HcA]
     as #Hclosed
   · iframe #
     simp only [↓reduceIte]

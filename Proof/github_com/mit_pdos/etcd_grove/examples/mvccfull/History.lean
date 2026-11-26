@@ -25,7 +25,7 @@ the read lock. So:
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Pending
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MvccCountable
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCountable
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.GhostVar

@@ -21,7 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [package_sem : google_golang_org.grpc.Assumptions]
 
 theorem grpc.StaticMethod.wp_proof : grpc.StaticMethod.spec (GF := GF) (hG := hG) := by
   wp_start

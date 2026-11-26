@@ -101,7 +101,8 @@ theorem wp_convertToClientBatchMessages (re : Loc) (msl : GoSlice) (ps : List Lo
     wp_auto
     irename «$r0» => Hnq
     generalize «$r0_ptr» = nq at *
-    imod ptCSingle_share ⊤ _ _ $$ Hnq with #Hnq
+    imod ptCSingle_share ⊤ _ _ ?st $$ Hnq with #Hnq
+    case st => exact stateOk_zero _
     ihave %Hlen2 := ownSlice_len $$ Hsl
     have Hb2 : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨Hi.1, by have := Hi.2.2; word⟩
     simp only [Hb2, _root_.and_self, ↓reduceIte]

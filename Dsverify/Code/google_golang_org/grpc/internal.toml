@@ -1,0 +1,12 @@
+# (dsv-retire-2, 2026-11-25; mit-pdos/etcd-grove#49 step 2) grpc's `internal` (models/grpc), for
+# `codes`' `init`, which sets the hook `CanonicalString` (no initializer; read by no translated code):
+# names only but `CanonicalString` and the variables with initializers (`internal.go`: constants,
+# constant expressions and function literals, built and not called), translated so that the
+# package's initializer is proved without a `[[skip]]` (the main tree skips them,
+# `Code/google_golang_org/grpc/internal.toml`).
+translate = ["!*", "CanonicalString",
+  "KeepaliveMinPingTime", "KeepaliveMinServerPingTime", "GRPCResolverSchemeExtraMetadata",
+  "UserSetDefaultScheme", "TimeAfterFunc", "NewStreamWaitingForResolver",
+  "AsyncReporterCleanupDelegate"]
+imports = ["!*", "time"]
+translate_types = true

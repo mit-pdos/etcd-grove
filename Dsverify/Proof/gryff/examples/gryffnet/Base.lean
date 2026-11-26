@@ -11,6 +11,7 @@ public import Net.Proof.net.rpc.PkgInit
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Perennial.Proof.math.rand.Base
 public import Proof.github_com.anishathalye.porcupine.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init

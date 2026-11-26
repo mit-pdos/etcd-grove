@@ -85,7 +85,7 @@ theorem lessor.resetRecv.wp_proof
   · iframe #
     iframe
   (try wp_auto)
-  icases Hres with (⟨%Herr, %γ, %Up, %Dn, %cd', #Hcs, #Hz, HSt, HRt⟩ | ⟨%Hst, #Herr⟩)
+  icases Hres with (⟨%Herr, %γ, %Up, %Md, %Dn, %cd', #Hcs, #Hz, HSt, HRt⟩ | ⟨%Hst, #Herr⟩)
   · subst Herr
     (try wp_auto)
     wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
@@ -97,7 +97,7 @@ theorem lessor.resetRecv.wp_proof
       (try wp_auto)
       wp_apply wp_fork_level0 $$ [HSt]
       · iintro Hl0
-        wp_apply wp_send l addr st γ Up Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
+        wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
         · iframe #; iframe
         isplitr
         · itrivial
@@ -112,7 +112,7 @@ theorem lessor.resetRecv.wp_proof
       ileft
       isplitr
       · ipureintro; rfl
-      iexists γ, Up, Dn, cd'
+      iexists γ, Up, Md, Dn, cd'
       iframe #
       iframe
     | ok si =>
@@ -122,7 +122,7 @@ theorem lessor.resetRecv.wp_proof
         (try wp_auto)
         wp_apply wp_fork_level0 $$ [HSt]
         · iintro Hl0
-          wp_apply wp_send l addr st γ Up Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
+          wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
           · iframe #; iframe
           isplitr
           · itrivial
@@ -137,7 +137,7 @@ theorem lessor.resetRecv.wp_proof
         ileft
         isplitr
         · ipureintro; rfl
-        iexists γ, Up, Dn, cd'
+        iexists γ, Up, Md, Dn, cd'
         iframe #
         iframe
       · icases Hscok with (%Hn | #Hcany)
@@ -152,7 +152,7 @@ theorem lessor.resetRecv.wp_proof
         (try wp_auto)
         wp_apply wp_fork_level0 $$ [HSt]
         · iintro Hl0
-          wp_apply wp_send l addr st γ Up Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
+          wp_apply wp_send l addr st γ Up Md Dn cd' [] $$ [Hl0 HSt] as ⟨Hl0, -⟩
           · iframe #; iframe
           isplitr
           · itrivial
@@ -167,7 +167,7 @@ theorem lessor.resetRecv.wp_proof
         ileft
         isplitr
         · ipureintro; rfl
-        iexists γ, Up, Dn, cd'
+        iexists γ, Up, Md, Dn, cd'
         iframe #
         iframe
   · ihave #Herr' := Herr

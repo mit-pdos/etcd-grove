@@ -11,7 +11,7 @@ gives the served member's `srvLevels`) and every receipt bound up to `etcdSteps`
 §14). No axiom and no `sorry`.
 
 What discharges `EtcdBootNC`, in later steps: the start from S2's names (`S2Holds etcdDistGF`, the members'
-client addresses: `cluster_svc_start`), S5's (`S5Holds etcdDistGF`, the members' peer addresses:
+client addresses at the cluster's view: `members_svc_start`, O1 option B, `notes/etcd-dist-plan.md` §18.3), S5's (`S5Holds etcdDistGF`, the members' peer addresses:
 `S5Draft.http_addr_set`) and D7's cluster start (`etcdClusterStart`, after the idutil split); the k-member
 boot; the workloads' starts and boots (D8). The reduction from S2's and S5's names is written once the
 interim S2 interface (the member's and client's shares, `notes/putget-dist-plan.md`) is fixed.
@@ -56,8 +56,7 @@ theorem machines_fsInit [GoGlobalContext] [GoSemanticsFunctions] {d : Deployment
 /-- The statement's premises except the deployment's well-formedness, as one hypothesis's binders. -/
 abbrev BootPremises [GoGlobalContext] [GoSemanticsFunctions] [lctx : GoLocalContext] (d : Deployment) (σs σc σn : List state) :
     Prop :=
-  ∃ (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
-    BootFacts d ps ctxs boot ∧ EtcdEnv d ∧
+  ∃ boot : List LogEntry, BootFacts d boot ∧ EtcdEnv d ∧
     (σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2) ∧
     (σc.length = d.workloads.length ∧ ∀ σ ∈ σc, ClientStart σ) ∧
     (σn.length = d.nodeList.length ∧ ∀ σ ∈ σn, ClientStart σ) ∧
@@ -71,7 +70,7 @@ def EtcdBootNC : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
@@ -91,7 +90,7 @@ def EtcdBootNCBad : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     ∀ [GooseGlobalGS .hasLC etcdDistGF], receiptBound etcdDistGF ≤ etcdSteps →
@@ -104,7 +103,7 @@ distinct by `WellFormed`), on a malformed one at none; each machine's `FsInit` f
 `ServerStart`/`ClientStart`, the network's start from `Robust`'s own initial states. -/
 theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
     etcd_robust_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -114,7 +113,7 @@ theorem etcd_safe_nocrash_of_boot (HS : EtcdBootNC) (HB : EtcdBootNCBad) :
   by_cases Hd : d.WellFormed
   · exact Net.robust_of_distBootILT (GF := etcdDistGF) d.addrs (machines d σs σc σn) g
       etcdThreads etcdSteps 0 (Nat.zero_le _) HI
-      (fun _ hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
+      (fun _ hb => HS d Hd σs σc σn ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
       ⟨Hd.addrs.1, Hd.addrs.2, Hnet.1, Hnet.2⟩ hfresh hg hl
   · refine Net.robust_of_distBootILT (GF := etcdDistGF) [] (machines d σs σc σn) g
       etcdThreads etcdSteps 0 (Nat.zero_le _) HI
@@ -146,7 +145,7 @@ def EtcdBootC : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
@@ -180,7 +179,7 @@ def EtcdBootCBad : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     letI := etcdNetExtsCrashInterpD4b
@@ -199,7 +198,7 @@ receipt bound up to `etcdSteps`, no receipt floor): the members crash, the orche
 machines do not; on a well-formed deployment at its addresses, on a malformed one at none; each
 machine's `FsInit` from `ServerStart`/`ClientStart`. -/
 theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ _ d ps ctxs boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ _ d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have Hfs : ∀ m, m ∈ servers d σs ++ (clients d σc ++ nodeMachines d σn) →
       Fs.FsInit (extLocal Fs.fsExt m.2.world) := fun m hm =>
     machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 (by simpa [machines, List.append_assoc] using hm)
@@ -207,7 +206,7 @@ theorem etcd_safe_of_boot (HS : EtcdBootC) (HB : EtcdBootCBad) : etcd_robust.spe
   · exact robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp (GF := etcdDistGF) d.addrs
       (servers d σs) (clients d σc ++ nodeMachines d σn) g etcdThreads etcdSteps 0 (Nat.zero_le _)
       Hd.addrs.1 Hd.addrs.2 Hfs
-      (fun _ hb => HS d Hd σs σc σn ⟨ps, ctxs, boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
+      (fun _ hb => HS d Hd σs σc σn ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ Hfips hb)
   · refine robust_of_dist_crash_adequacy_etcdNet idIssue_crash_interp (GF := etcdDistGF) []
       (servers d σs) (clients d σc ++ nodeMachines d σn) g etcdThreads etcdSteps 0 (Nat.zero_le _)
       List.nodup_nil (by simp) Hfs (fun _ hb => ?_)

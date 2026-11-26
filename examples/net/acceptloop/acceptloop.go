@@ -7,8 +7,9 @@
 // Two nodes, each a process (cmd/server, cmd/client): the server listens at
 // SrvAddr and, for each connection it accepts, starts a goroutine that reads a
 // 1-byte request, writes it back and closes the connection; the client starts
-// two goroutines, each dialing its own connection, sending its own id (1 and 2)
-// and checking that the reply is its id. The check holds however the goroutines
+// 1 to maxCallers goroutines (their number drawn at random), each dialing its
+// own connection, sending its own id (1, 2, ...) and checking that the reply is
+// its id. The check holds however the goroutines
 // of both nodes interleave: a connection carries only its own dialer's bytes,
 // and the server's handler for a connection reads and writes only that
 // connection, so no reply crosses to the other client. Operations may fail at
@@ -24,6 +25,9 @@ import (
 
 // SrvAddr is the server's address.
 const SrvAddr = "127.0.0.1:7103"
+
+// maxCallers is the most concurrent calls the client makes.
+const maxCallers = 8
 
 // handle echoes one 1-byte request of the connection c, then closes it.
 func handle(c net.Conn) {
@@ -69,17 +73,18 @@ func CallOne(id byte) {
 	c.Close()
 }
 
-// Call starts two concurrent calls, with the ids 1 and 2.
+// Call starts 1 to maxCallers concurrent calls, their number drawn at random,
+// with the distinct ids 1, 2, ..., and waits for them.
 func Call() {
+	m := 1 + wire.RandomInt(maxCallers-1)
 	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		CallOne(1)
-		wg.Done()
-	}()
-	go func() {
-		CallOne(2)
-		wg.Done()
-	}()
+	wg.Add(m)
+	for i := 1; i <= m; i++ {
+		id := byte(i)
+		go func() {
+			CallOne(id)
+			wg.Done()
+		}()
+	}
 	wg.Wait()
 }

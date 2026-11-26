@@ -47,7 +47,11 @@ GOOSE = dict(
     # gods v1.18.1 from its model, models/gods (gods' code but the red-black tree iterator's
     # Next/Prev, rewritten without goto: models/README.md), so that the iterator is translated
     # and gods' treemap specs are proved (notes/gods-verified.md)
-    module_models={"github.com/emirpasic/gods": "models/gods"},
+    module_models={"github.com/emirpasic/gods": "models/gods",
+                   # (dsv-retire-2, 2026-11-25, #49 step 2) google/uuid v1.3.1 from its model,
+                   # models/uuid (v1.3.1's code, `NewRandom` over goose's `primitive.RandomUint64`:
+                   # models/README.md), so that `New`, `UUID.ID` and its initializer are proved
+                   "github.com/google/uuid": "models/uuid"},
 )
 
 # etc/gen-init.py: gods' packages and the fork's packages whose initializers keep nothing for the
@@ -67,6 +71,7 @@ PROGRAMS = {f'{SWIFT}.examples.swiftnet.cmd.{n}':
             for n in SWIFT_NODES}
 PKGS = [f'github_com.emirpasic.gods.{p}' for p in
         ['utils', 'containers', 'maps', 'trees', 'trees.redblacktree', 'maps.treemap']] + \
+    ['github_com.google.uuid'] + \
     [f'{SWIFT}.{p}' for p in ['rpc', 'dlog', 'config', 'state', 'hook', 'replica.defs', 'replica',
                               'master']]
 # the main tree's packages the part's closure adds to `NET_MAIN` (bufio, encoding/hex,
@@ -74,8 +79,8 @@ PKGS = [f'github_com.emirpasic.gods.{p}' for p in
 # mit-pdos/etcd-grove#24), no longer an `InitHyp`
 MAIN = ['bufio', 'encoding.hex', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
-# initializers that are hypotheses of the part's proofs (the `InitHyp` class of their hand-written
-# `Init.lean`; notes/dsv-swiftpaxos.md, "Hypotheses"): os/signal (dsv-rabia's), and the
+# initializers whose `wp_initialize'` is a trust-boundary axiom (their hand-written `Init.lean`;
+# dsv-fix3, #8 2026-11-25T02:20:53Z: until then the class `InitHyp`, a premise of the statement): the
 # names-only encoding/gob, github.com/google/uuid. Their imports: all (the default). Not
 # net/rpc's and net/http's: `Net/`'s (external; their `wp_initialize'` and first-run
 # `wp_init_first` Net's interim axioms, `etc/gen-init.py`'s `NET_AXIOM_INITS`), whose
@@ -83,13 +88,26 @@ MAIN_GEN = ['bufio', 'encoding.hex', 'encoding.json']
 # reach, so the programs' tables hold that closure. Not math/rand: the boot uses Perennial's proved `math.rand.wp_initialize'`
 # by hand (until math-rand-isinit, 2026-11-24, `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`, a
 # premise of the statement).
-HYP_INITS = ['os.signal', 'encoding.gob',
-             'github_com.google.uuid']
+# Not os/signal (dsv-retire-1-inits, 2026-11-25): its `wp_initialize'` is proved (its `Init.lean`
+# generated, kit rabia's `PKGS`).
+# Not github.com/google/uuid (dsv-retire-2, 2026-11-25, #49 step 2): translated from its model
+# (models/uuid) with its variable `xvalues`, its `Init.lean` generated with a proved `wp_initialize'`
+HYP_INITS = ['encoding.gob']
 
 
 def special(g):
     """Configurations of the kit's packages (`g`: etc/gen-init.py's globals)."""
     SPECIAL, newvars_cfg, FIN_PRE = {}, g.newvars_cfg, g.FIN_PRE
+    # (dsv-retire-2, 2026-11-25) google/uuid's model: its one variable, the array literal `xvalues`
+    SPECIAL['github_com.google.uuid'] = dict(
+        doc='''Its fact is `True`. Its initializer allocates `xvalues`, initializes its imports
+(`encoding/binary`, goose's `primitive`) and stores `xvalues`' array literal (the model's, models/uuid,
+v1.3.1's `util.go`; dsv-retire-2, 2026-11-25: until then names only, its `wp_initialize'` a
+trust-boundary axiom).''',
+        alloc_types={'xvalues': 'GoArray w8 256'},
+        before={'xvalues': ['try wp_auto']},
+        # the literal's 256 nested `Let`s
+        rec_depth=100000, heavy=True)
     SPECIAL[f'{SWIFT}.dlog'] = dict(
         doc='''Its fact is `True`. Its initializer initializes its imports, allocates `DLOG` and stores
 `false`.''',
@@ -151,8 +169,6 @@ first, through `swiftnet`'s (`BootLinked.lean`, `boot_swiftnet`), at the command
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
-variable [encoding.gob.InitHyp netDistGF]
-variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]''',
         returns="returns the machine's boot resources.",
         q='bootRes',

@@ -35,19 +35,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : sync.Assumptions]
 
-/-- A lock made of locked memory, with its lock token. -/
+/-- A lock made of locked memory (the `internal/sync.Mutex` at `m`, its `state` cell at `1`), with
+its lock token. -/
 theorem init_lock_locked (R : IProp GF) (E : CoPset) (m : Loc) :
-    ⊢ typedPointsto (GF := GF) m true (DFrac.own 1) ={E}=∗ isLock m R ∗ ownLock m := by
+    ⊢ typedPointsto (GF := GF) (structFieldRef internal.sync.Mutex go!"state" m) (W32 1)
+        (DFrac.own 1) ={E}=∗ isLock m R ∗ ownLock m := by
   iintro Hl
   rw [isLock_unseal, ownLock_unseal]; unfold isLockDef ownLockDef
-  icases (typedPointsto_quarter_three_quarter m true).1 $$ Hl with ⟨Hl1, Hl2⟩
-  imod inv_alloc nroot E (lockInv m R) $$ [Hl1] with #Hinv
+  icases (typedPointsto_quarter_three_quarter _ (W32 1)).1 $$ Hl with ⟨Hl1, Hl2⟩
+  imod inv_alloc nroot E (lockInv (structFieldRef internal.sync.Mutex go!"state" m) R) $$ [Hl1]
+    with #Hinv
   · inext
     unfold lockInv
-    iexists true
-    simp only [↓reduceIte]
+    iexists (W32 1)
     iframe
+    simp only [show (W32 1 : w32) ≠ W32 0 by decide, ↓reduceIte]
+    itrivial
   imodintro
+  try simp only [named]
   iframe Hl2
   iframe Hinv
 
@@ -64,7 +69,8 @@ theorem rwmutex_init_wlocked {E : CoPset} (N : Namespace) (rw : Loc) :
       ({ «_#0'» := zero_val _, v' := W32 (-(1073741824 : Int)) } : sync.atomic.Int32) from rfl,
     show rwW.readerWait' =
       ({ «_#0'» := zero_val _, v' := W32 0 } : sync.atomic.Int32) from rfl,
-    show rwW.w' = ({ «_#0'» := zero_val _, mu' := true } : sync.Mutex) from rfl]
+    show rwW.w' = ({ «_#0'» := zero_val _, mu' := { state' := W32 1, sema' := W32 0 } } :
+      sync.Mutex) from rfl]
   imod ownTokAuth_alloc (GF := GF) with ⟨%γread_wait, Hread_wait⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γrlock, Hrlock⟩
   imod ownTokAuth_add (Int.toNat rwmutex.actualMaxReaders) γrlock 0 $$ Hrlock with ⟨Hrlock, Htoks⟩
@@ -83,8 +89,9 @@ theorem rwmutex_init_wlocked {E : CoPset} (N : Namespace) (rw : Loc) :
     with ⟨%γws, #Hws, Hws_own⟩
   let γ : rwmutex.RWMutexNames := ⟨⟨γread_wait, γrlock, γwl, γwt, γst⟩, γrs, γws⟩
   iStructNamedSuffix w "_w"
+  iStructNamedSuffix mu_w "_w"
   imod init_lock_locked (ghostVar γwl (1 : Qp).half (WlockState.NotLocked (W32 0))) E
-    (structFieldRef sync.Mutex go!"mu" (rwmutex.RWW rw)) $$ mu_w with ⟨#Hmu, Hown⟩
+    (structFieldRef sync.Mutex go!"mu" (rwmutex.RWW rw)) $$ state_w with ⟨#Hmu, Hown⟩
   imod ownToks_0 (GF := GF) γrlock with H0
   ihave Hprot : rwmutex.ownRWMutexInvariant (GF := GF) γ.protGn (W32 0) (W32 0)
       (W32 (-(1073741824 : Int))) (W32 0) rwmutex.Locked $$ [Hread_wait Hwl_inv Hrlock H0 Hwt]

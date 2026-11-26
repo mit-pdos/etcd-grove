@@ -144,15 +144,18 @@ theorem Main.wp_proof
   ihave #Hc₁ := etcdstart.bootPremise_of N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₁
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₁ clientAddr₁) id₁ (cfgOk name₁)
-      (urlsOk peerAddr₁ clientAddr₁) (fun _ h => h) (fun _ h => h) $$ Hb₁
+      (urlsOk peerAddr₁ clientAddr₁)
+      (fun _ h => ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1⟩) (fun _ h => h) $$ Hb₁
   ihave #Hc₂ := etcdstart.bootPremise_of N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₂
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₂ clientAddr₂) id₂ (cfgOk name₂)
-      (urlsOk peerAddr₂ clientAddr₂) (fun _ h => h) (fun _ h => h) $$ Hb₂
+      (urlsOk peerAddr₂ clientAddr₂)
+      (fun _ h => ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1⟩) (fun _ h => h) $$ Hb₂
   ihave #Hc₃ := etcdstart.bootPremise_of N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
       go!"putget3" name₃
       (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr₃ clientAddr₃) id₃ (cfgOk name₃)
-      (urlsOk peerAddr₃ clientAddr₃) (fun _ h => h) (fun _ h => h) $$ Hb₃
+      (urlsOk peerAddr₃ clientAddr₃)
+      (fun _ h => ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1⟩) (fun _ h => h) $$ Hb₃
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init

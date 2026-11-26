@@ -227,7 +227,7 @@ AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:
-errors_IsStatusErr:
+errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 go_humanize_Bytes:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
@@ -961,7 +961,6 @@ zap_Logger__Panic: pool_Pool__Get
 bootstrapNewWAL: pbutil_MustMarshalMessage+Meta membership_RaftCluster__ID+Frac config_ServerConfig__WALDir wal_Create+Srv zap_Logger__Panic zap_Error
 bootstrapStorage: bootstrapNewWAL
 zap_Logger__Named: ?
-NewRaftLoggerZap: ?
 raftConfig: zap_Logger__Named NewRaftLoggerZap
 membership_RaftCluster__MemberIDs+Mem: ?
 membership_RaftCluster__MemberByName+Mem: ?

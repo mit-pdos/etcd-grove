@@ -4,8 +4,9 @@
 > `… SortSliceHyp, MathPowHyp, RandSeedHyp → ∀ σ g, DistDeploy … → Robust [] (system σ) g (2 ^ 30) (2 ^ 63)`:
 > no net/rpc or net/http premise (`RpcHttpHyp`, `RpcBootHyp`, the `net.rpc`/`net.http` `InitHyp`s
 > gone, section "dsv-fix2"). `#print axioms`: Lean's three and `Net/`'s interim axioms
-> `net.rpc.wp_init_first`, `net.rpc.wp_initialize'`, `net.http.wp_init_first`,
-> `net.http.wp_initialize'`, `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`. (2026-11-25: the last two proved; `Serve` over the interim context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg`.)
+> `net.rpc.wp_initialize'`, `net.http.wp_init_first`, `net.http.wp_initialize'`, and the interim
+> context axioms `context.WithValue.wp_proofPtr`, `context.WithCancel.wp_proofValBg` (2026-11-25:
+> net/rpc's first run, `net.http.Handle` and `Serve.wp_proof_rpc` proved).
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
@@ -1122,5 +1123,7 @@ The kit's net/rpc and net/http are `Net/`'s: their package facts (`rpcInit`, `ht
   `wp_initialize'` axioms too (their `net.rpc`/`net.http` `InitHyp`s gone: `Dsverify/Proof/net/{rpc,http}/Init.lean`
   deleted, since the TCB report loads every kit in one environment and the two facts' declarations
   clash) and keep their other net/rpc premises (`RpcHttpHyp`, `RpcFirstInit`, `RpcBoot`,
-  `RpcHttpServe`) until net/rpc's first run is proved (dsv-fix2b: `net.rpc.wp_init_first` from net/rpc's
-  translated initializer, covering both orders).
+  `RpcHttpServe`) until net/rpc's first run is proved. dsv-fix2b (2026-11-25) proved it:
+  `net.rpc.wp_init_first` is a theorem over net/rpc's translated initializer (go/token's initializer
+  translated and proved, `Net/Proof/go/token/Init.lean`), and `net.rpc.wp_init_first_http` covers
+  the order in which net/http's first run happens inside net/rpc's, giving `muxOwn DefaultServeMux []`.

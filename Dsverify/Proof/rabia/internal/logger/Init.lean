@@ -14,7 +14,6 @@ public import Proof.os.Init
 public import Proof.path.Init
 public import Dsverify.Proof.rabia.internal.config.Init
 public import Proof.runtime.PkgInitExt
-public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
 
@@ -37,7 +36,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.github_com.rs.zerolog.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.internal.logger.Assumptions]
 
 namespace rabia.internal.logger
@@ -56,8 +54,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.rabia.internal.config.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (_root_.Perennial.path.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.github_com.rs.zerolog _root_.Perennial.github_com.rs.zerolog.initialize'
-      EtcdGrove.ExternalInit.github_com_rs_zerolog _root_.Perennial.github_com.rs.zerolog.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.github_com.rs.zerolog.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown

@@ -65,8 +65,8 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
     iframe #
     ipureintro; exact ⟨Htb, Hsz⟩
   iapply HΦ
-  iframe Hlt
   -- (2026-11-24) the client's configuration (`New`'s post) is not this spec's
+  iframe Hlt
   icases Hcl with (⟨%Hcerr, #Hnc, #Htok, -⟩ | %Hcfail)
   · ileft
     isplitr

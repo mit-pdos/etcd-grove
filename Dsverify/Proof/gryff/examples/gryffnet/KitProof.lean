@@ -5,6 +5,7 @@ as hypotheses.
 -/
 module
 
+public import Dsverify.Proof.math.rand.IntnPos
 public import Dsverify.Proof.gryff.examples.gryffnet.KitSpecs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
@@ -85,7 +86,8 @@ theorem casR_encOut_inj (γ : ProtoNames) (o o' : w64)
   exact u64Le_inj (List.cons.inj h).2
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `casR γ`. -/
-theorem casS_pendDec (γ : ProtoNames) : PendDec (casR (GF := GF) γ) (casS (GF := GF)) where
+theorem casS_pendDec (γ : ProtoNames) : PendDec (casR (GF := GF) γ) (casS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := by
     show (pM casB casDec).step s (inV i, outV ⟨false, o⟩) = (pSeq casBK).step s (i, .ok o)
@@ -97,7 +99,7 @@ theorem casS_pendDec (γ : ProtoNames) : PendDec (casR (GF := GF) γ) (casS (GF 
     exact pseq_K s i .err
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, ⟨false, o⟩, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, ⟨true, W64 0⟩, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem pendCtx_casS (γ : ProtoNames) (γp : PendNames) :
     pendCtx (Gg := hG.goose_globalGS) (casR γ) (casS0 (GF := GF)) γp =
@@ -564,13 +566,17 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs
   imodintro
   wp_apply (Codec.wp_proof γ) as %cd #Hcd
+  ihave #Hrand : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ []
+  · iPkgInit
+  wp_apply math.rand.wp_Intn_pos (W64 4) (by decide) as %x %Hx
   wp_apply wp_attempt as %d -
   ihave %Hal := ownSlice_len _ _ _ $$ Haddrs
   have hlen' : sint.Z addrs.len = 6 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
-  wp_apply wp_Check (casR γ) casS γp m addrs clientAddrs cd _ (W64 4) d pendN_gryff lintestN_gryff
-    (casS_pendDec γ) (casR_encOut_inj γ) (fun st => casR_timeless γ st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 12 (by decide) $$ [Hlib Hbud]
+  wp_apply wp_Check (casR γ) casS γp m addrs clientAddrs cd _ (W64 1 + x) d pendN_gryff
+    lintestN_gryff (casS_pendDec γ) (casR_encOut_inj γ) (fun st => casR_timeless γ st) hrb
+    (by rw [hlen']; decide) (by word) (by rw [hlen']; word) 12 (by simp only [readTries]; word)
+    $$ [Hlib Hbud]
   · iframe #
     iframe Hlib Hbud
     unfold EtcdGrove.lintest.genSpec

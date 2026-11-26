@@ -24,7 +24,10 @@ variable {rc : RecG} {κ : Nat} {dg : DepG} {s s' : RState} {a : Fin 3} {o : Lis
 
 theorem shortCircuit_conf {n : w32} {v : ValTag} {f : Bool}
     (h : shortCircuit s n v f = some (s', o)) : s'.conf = s.conf := by
-  unfold shortCircuit at h
+  rcases Perennial.gryff.model.shortCircuit_cases h with h | ⟨rfl, rfl⟩
+  rotate_left
+  · rfl
+  unfold Perennial.gryff.model.shortCircuitReads at h
   opeel h
   all_goals
     cases h

@@ -60,7 +60,7 @@ ghost state.)
    leases' records (`leaseRecsOk (rbData P D)`);
 3. *reopen* (`runner.open`): `backend.New` on `fileHolds path D` (`newPostK`, at `mvccW gx` of a
    fresh registration, `mvccW_alloc.law`), the backend opened for the store (`etcdStorage_open.law`,
-   `backendRest_open.law`: `inc_open_backend`, `mvccrand.rc_open` at any image), `NewLessor.spec`
+   `backendRest_open.law`: `inc_open_backend`, `mvccfull.rc_open` at any image), `NewLessor.spec`
    over the records (`GA := True`, `reqOf := 3600`), `mvcc.api.New.spec` at the image's state (the
    lessor's owner part at the live leases, every key's lease live: `logOk_items`), the hook set and
    frozen (`SetTxPostLockInsideApplyHook`), a new incarnation's invariant allocated with the carried
@@ -70,7 +70,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Streams
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.LogLemmas
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.RunChecksBackend
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.BackendParams
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.lease.NewLessor
@@ -186,12 +186,12 @@ def bkCensus (bk : mvcc.KBReal) : IProp GF :=
     storageRest (etcdStorage bk) ={⊤}=∗ backend.bOpen bk.γB 1)
 
 /-- **What the writer keeps of a member's opened backend `bk`** (the tester's parameters at the
-batch limit `lim`, `mvccrand.rcP`, at the store's write invariant `mvccW bk.gx`, the batch lock's
+batch limit `lim`, `mvccfull.rcP`, at the store's write invariant `mvccW bk.gx`, the batch lock's
 invariant `True`): its contract and stop channels, its file `path`, half of the open token, the
 lessor's write right (a reader slot with its open share, `apply.bkRT`), `k` write-back tokens (one
 per lease grant), the census. -/
 def bkKeep (bk : mvcc.KBReal) (path : GoString) (k : Nat) : IProp GF :=
-  iprop(⌜bk.P = mvccrand.rcP bk.limit ∧ bk.cm = true⌝ ∗
+  iprop(⌜bk.P = mvccfull.rcP bk.limit ∧ bk.cm = true⌝ ∗
     □ backend.isBackend bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
     □ backend.isStopChans bk.γB bk.P (mvccW bk.gx) iprop(True) bk.be ∗
     backend.bFile bk.γB path ∗
@@ -573,7 +573,7 @@ theorem wbStock_supply (γB : backend.BNames) :
   iexact Ht
 
 /-- **Reopen, the backend** (step 3, after `backend.New` on the file's data `D` at a fresh
-registration `gx` and the limit `lim`; `mvccrand.rc_open` at any image): the store's storage at the
+registration `gx` and the limit `lim`; `mvccfull.rc_open` at any image): the store's storage at the
 image's history (`mvccStorageFor`), what the writer keeps (`bkKeep`, `k` write-back tokens), the
 hook's half unset, the lease bucket's part of the tracked buckets at `D` (for `NewLessor`), the
 open share and token `NewLessor` and `SetTxPostLockInsideApplyHook` take. (Proof to come: `sorry`;
@@ -582,9 +582,9 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     (hrest : backendRest_open.law (GF := GF)) (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (γB : backend.BNames) (be : Loc) (gx : GName) (lim : w64) (path : GoString) (D : backend.Data)
     (L : Log) (c : Int) (u : Bool) (k : Nat) (hk : receiptBound GF + k + 5 ≤ backend.wbInit) :
-    let bk := mvccrand.rcKB γB be gx lim
+    let bk := mvccfull.rcKB γB be gx lim
     mvccWReg gx ∗ mvccImage D L c u ∗ backend.bFile γB path ∗ backend.bPath γB.db path ∗
-      backend.newPostK γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
+      backend.newPostK γB (mvccfull.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
         (backend.bFresh (GF := GF)) be D ={⊤}=∗
     mvccStorageFor (etcdStorage bk) iprop(True) L c u ∗ bkKeep bk path k ∗
       backend.plHook γB func.nil ∗ backend.rbPart γB (· = leaseName) (backend.rbData bk.P D) ∗
@@ -594,11 +594,11 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     ThreadBoundLe.le_of (2 ^ 28) (Nat.le_of_eq backend.rdPoolN_val.symm)
   iintro ⟨Hreg, Himg, Hbf, Hbp, Hnew⟩
   ihave #Hks := mvcc.keySized_all (GF := GF)
-  icases backend.newPostK_named γB (mvccrand.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
+  icases backend.newPostK_named γB (mvccfull.rcP lim) (fun _ => mvccW gx) (fun _ => iprop(True))
     backend.bFresh be D $$ Hnew with ⟨#Hb, #Hsc, Hk, Hv, Hh, Hrb, Hrd, Hdl, Hfk, Hsr, -⟩
   icases (backend.bFresh_eq γB).1 $$ Hk with ⟨Hwb, Ho⟩
   icases (backend.bOpen_one_pool γB).1 $$ Ho with ⟨Hoh, Hpl, Hos⟩
-  imod backend.rdToks_pool hT ⊤ γB (mvccrand.rcP lim) be $$ Hrd with ⟨#Hpool, Hrs⟩
+  imod backend.rdToks_pool hT ⊤ γB (mvccfull.rcP lim) be $$ Hrd with ⟨#Hpool, Hrs⟩
   obtain ⟨n2, hn2⟩ : ∃ n2, backend.rdStockN = n2 + 2 :=
     ⟨backend.rdStockN - 2, by have := backend.rdStockN_val; omega⟩
   have hn2' : backend.rdStockN - 2 = n2 := by omega
@@ -620,7 +620,7 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   haveI : Persistent (wbStock (GF := GF) γB) := by unfold wbStock; infer_instance
   imod wbStock_alloc γB N (by omega) ⊤ $$ HwN with #Hstock
   ihave #Hsup := wbStock_supply γB $$ Hstock
-  ihave Hnp : backend.newPostKP (GF := GF) γB (mvccrand.rcP lim) (fun _ => mvccW gx)
+  ihave Hnp : backend.newPostKP (GF := GF) γB (mvccfull.rcP lim) (fun _ => mvccW gx)
       (fun _ => iprop(True)) (fun _ => iprop(True)) be D $$ [Hv Hh Hrb Hrs Hdl Hfk Hsr]
   · iapply backend.newPostKP_intro
     isplitr; iexact Hb
@@ -636,14 +636,14 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
     isplitl [Hdl]; iexact Hdl
     isplitl [Hfk]; iexact Hfk
     iexact Hsr
-  ihave Hks' : (□ (∀ (γ : backend.BNames) (b' : Loc), keySized (GF := GF) γ (mvccrand.rcP lim) b'))
+  ihave Hks' : (□ (∀ (γ : backend.BNames) (b' : Loc), keySized (GF := GF) γ (mvccfull.rcP lim) b'))
     $$ []
   · iintro !> %γ %b'; iapply Hks
   rw [← hn2']
-  imod hopen bk (fun _ => iprop(True)) (fun _ => iprop(True)) D L c u (mvccrand.rcP_bridge lim)
-      (mvccrand.rcP_lease lim) rfl
+  imod hopen bk (fun _ => iprop(True)) (fun _ => iprop(True)) D L c u (mvccfull.rcP_bridge lim)
+      (mvccfull.rcP_lease lim) rfl
       $$ [Hks' Himg Hnp Hreg Hw1 Hw1' Hsup Hos] with ⟨Hsf, Hrest, Hrt, -⟩
-  · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+  · rw [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be, mvccfull.rcKB_gx]
     isplitl [Hks']; iexact Hks'
     isplitl [Himg]; iexact Himg
     isplitl [Hnp]; iexact Hnp
@@ -659,18 +659,18 @@ theorem inc_open_backend [ThreadBoundLe GF (2 ^ 28)] (hopen : etcdStorage_open.l
   isplitl [Hbf Hbp Hoh Hor Hrt Hwk Ho2 Hpl]
   · iunfold bkKeep
     isplitr
-    · ipureintro; exact ⟨mvccrand.rcKB_P γB be gx lim, rfl⟩
-    simp only [bk, mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+    · ipureintro; exact ⟨mvccfull.rcKB_P γB be gx lim, rfl⟩
+    simp only [bk, mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be, mvccfull.rcKB_gx]
     iframe #; iframe
     isplitl [Hrt Hor]
     · iapply (apply.bkRT_eq _).2
-      simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
+      simp only [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be]
       iframe
     iunfold bkCensus
-    simp only [mvccrand.rcKB_γB]
+    simp only [mvccfull.rcKB_γB]
     iintro Ho1 Hhalf Hst
     rw [etcdStorage_rest]
-    simp only [mvccrand.rcKB_γB]
+    simp only [mvccfull.rcKB_γB]
     rw [hn2']
     imodintro
     iapply (backend.bOpen_one_pool γB).2

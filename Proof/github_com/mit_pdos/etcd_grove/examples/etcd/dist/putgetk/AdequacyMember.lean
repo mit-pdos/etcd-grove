@@ -3,19 +3,20 @@
 # `etcd/dist/putgetk`: member `i`'s machine's boot (`notes/putget-dist-plan.md` §13b, plan item 4)
 
 `member_bootK`: member `i`'s boot program (`putgetk.initialize' #()`, then `putgetk.Member(i, []string{peers…},
-[]string{clients…})`) is safe from its share of the start (`⌜cfgOk ∧ i < n⌝ -∗ memberShareK …` at
-`Pub = putgetPub`) and its whole start (`DistBootWpSL srvLevelK`), as putget's `member_boot`
+[]string{clients…})`) is safe from its share of the start (`⌜cfgOk ∧ i < n⌝ -∗ memberShareK …`) and its whole start (`DistBootWpSL srvLevelK`), as putget's `member_boot`
 (`dist/putget/AdequacyMember.lean`): the file extension's start, the member's WAL area from its machine's
 files (`MemberFiles i`), the package's initialization (its registration rights allocated here: putgetk's
 `regQs` is putget's list, so `putget_regQsOk` serves), the two slice literals (`wp_strSliceLit`: a list of
 `2 ^ 63` strings or more exits angelically), then `Member.wp_proof` at its callees' linked results
 (`Valid`, `AddrOK`, `decimal`, `MemberID` over Perennial's `crypto.sha1.wp_Sum`, `Name` over `FormatUint`,
-`holdForever` over `time.Sleep`, `zap.NewNop`, the interim axiom `etcd_dist.Serve_dist.wp_proof`) and the
+`holdForever` over `time.Sleep`, `zap.NewNop`, the interim axioms `etcd_dist.Serve_dist.wp_proof` and
+`bootstrap.wp_proof_dist`) and the
 named hypothesis `StartMember_dist` (S5's member side, `HSM`).
 -/
 module
 
 public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Member
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Valid
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.AddrOK
@@ -151,14 +152,13 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (Hblf : BootLogFacts (idsOf peers) ps ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    (Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) n peers clients ps ctxs boot)
+    (Hbgo : BootGoK peers clients ps ctxs)
     (Hfips : crypto.fips140.GodebugFips140Off)
     (i : Nat) (hi : i < peers.length) (σm : state) (Hm : MemberFiles i σm)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S5 : etcd_dist.S5Draft putgetGF) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootMember peers clients i) σm
-      (iprop(⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ (c : etcd_dist.ClusterNames) (γE : GName),
-        memberShareK S5 c peers clients ps ctxs boot i γE (putgetPub (GF := putgetGF)))) := by
+      (iprop(⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ c : etcd_dist.ClusterNames,
+        memberShareK S5 c peers clients ps ctxs boot i)) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -207,14 +207,14 @@ theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   iintro %hpl %psl Hpsl
   (try wp_auto)
   -- `putgetk.Member(i, peers, clients)`
-  ihave #Hpr := Hprem (2 ^ 28) (by decide) hG
   wp_apply (Member.wp_proof
       (Valid.wp_proof (AddrOK.wp_proof decimal.wp_proof) (MemberID.wp_proof crypto.sha1.wp_Sum))
       (Name.wp_proof etcdstart.strconv.wp_FormatUint) zap.NewNop.wp_proof
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       (fun S5' => HSM hG S5') mvcc.api.mvccApi_names_nonempty_law_holds
       _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
-      S5 peers clients ps ctxs boot i (putgetPub (GF := putgetGF)) psl csl Hfips Hblf
+      (fun {_} {_} => _root_.Perennial.EtcdGrove.bootstrap.wp_proof_dist)
+      S5 peers clients ps ctxs boot i psl csl Hfips Hblf Hbgo
       (by omega) (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hpsl Hcsl Hwa Hshare]
   · iframe; iframe #

@@ -44,7 +44,8 @@ theorem rate.Limiter.advance.wp_proof
   wp_auto
   wp_mcall (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"
   wp_auto
-  wp_apply wp_Before as %bef -
+  wp_apply wp_Before
+  generalize (_root_.Perennial.time.Time.before _ _) = bef
   cases bef <;> wp_auto
   all_goals
     wp_mcall (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"

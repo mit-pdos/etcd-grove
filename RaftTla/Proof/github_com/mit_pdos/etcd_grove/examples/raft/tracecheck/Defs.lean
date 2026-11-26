@@ -17,10 +17,8 @@ decision, 2026-11-11; `notes/trace-check-design.md` §1.1), modelled on `etcd_pu
   logs to be one committed log; `proto.MarshalConfChange.spec` gives only bytes that decode to the
   change.
 
-Until 2026-11-24 the closed theorem took both as premises (Q32: "follow the etcd examples"). Since then
-the pure facts are proved (`bootLog n` above), and (premises to axioms) the Iris premise is a theorem,
-`premises_of_spec`, at `bootLog n` for every `n` `Main` can draw, from the trust-boundary axiom
-`proto.MarshalBootConfChange.wp_proof` and the log's bytes (`bootWire_bootLog`).
+No axiom: the closed theorem took both as premises (Q32: "follow the etcd examples"); since
+2026-11-24 only the Iris premise, at `bootLog n` for every `n` `Main` can draw.
 
 **Non-vacuity** (2026-11-24): until then `bootMarshal` began with `⌜∀ c ∈ ctxs, c ≠ []⌝`, false at
 this harness's contexts `[[], [], []]`, so the premise was `⌜False⌝ ∗ …` and `raft_tracecheck_safe`
@@ -33,7 +31,6 @@ adds one breaks it.
 module
 
 public import RaftTla.Spec.go_etcd_io.raft.v3.Api
-public import RaftTla.Proof.go_etcd_io.raft.v3.BootMarshal
 public import RaftTla.Proof.go_etcd_io.raft.v3.CCModel
 
 @[expose] public section
@@ -88,23 +85,6 @@ theorem bootLog_bootLog (n : Nat) (hn : n < 2 ^ 61) :
 theorem bootLogFacts_bootLog (n : Nat) (hn : n < 2 ^ 61) : BootLogFacts n (bootLog n) :=
   bootLog_bootLog n hn
 
-/-- **The bootstrap log's bytes** (premises to axioms, 2026-11-24; see the file header): the `i`-th
-entry's data of `bootLog n` is `proto.Marshal`'s bytes of `ConfChange{Type: AddNode, NodeId: i}`
-(`bootWire`: `ccBootWire i []`, the four bytes `0x10 0x00 0x18 i`; `TestBootWireVectors`), by
-definition (until the merge with `Main`'s drawn size, a premise `BootWireFacts boot` at three voters). -/
-theorem bootWire_bootLog (n : Nat) : bootWire (bootVoters n) (List.replicate n []) (bootLog n) := by
-  intro k e id ctx he hid hctx
-  simp only [bootLog, List.getElem?_map, Option.map_eq_some_iff] at he
-  obtain ⟨i, hi, rfl⟩ := he
-  rw [hi, Option.some.injEq] at hid
-  subst hid
-  rw [List.getElem?_replicate] at hctx
-  split at hctx
-  · rw [Option.some.injEq] at hctx
-    subst hctx
-    rfl
-  · exact absurd hctx (by simp)
-
 end pure
 
 section defs
@@ -117,15 +97,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- **`Main`'s named premise** (see the file header), for `n` voters. -/
 abbrev premises (n : Nat) (boot : List LogEntry) : IProp GF :=
   bootMarshal (bootVoters n) (List.replicate n []) (LogEntry.toEntries boot 0)
-
-/-- **The premise follows from `proto.Marshal`'s trust-boundary spec** (premises to axioms,
-2026-11-24; until then a premise of the closed theorem): at the harness's conf changes (`AddNode i`, no
-context: the `nil` slice), for `n` voters, at `bootLog n` (its bytes, `bootWire_bootLog`), given
-`proto`'s initialization. -/
-theorem premises_of_spec (wpM : proto.MarshalBootConfChange.spec (GF := GF) (hG := hG)) (n : Nat) :
-    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ⊢
-      premises (GF := GF) n (bootLog n) :=
-  bootMarshal_of_spec wpM _ _ (bootLog n) (bootWire_bootLog n)
 
 /-- **The premise is `proto.Marshal`'s contract alone** (non-vacuity guard, 2026-11-24; see the file
 header): for each of the `n` conf changes `Bootstrap` builds (`AddNode i`, no context: the `nil`

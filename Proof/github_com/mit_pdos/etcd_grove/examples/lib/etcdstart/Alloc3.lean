@@ -138,7 +138,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       -- (etcd-dist D7) its prefix's generators' facts, on its machine
       idPfxInv gen (idPfxOf (W16 (uint.Z id))) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
+        ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk ∧ kvCongr ρ.rd.kv γk⌝ ∗
         memberBoot { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp
           lm := by
   subst Hx
@@ -149,7 +149,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc',
-    hgen'⟩ := Hρ
+    hgen', hcg⟩ := Hρ
   ihave #Hpi' : idPfxInv ρ.ids.gen ρ.ids.pfx $$ []
   · rw [hgen', Hgen, hpfx]; iexact Hpi
   ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
@@ -157,7 +157,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   imodintro
   iexists ρ
   isplitr
-  · ipureintro; exact ⟨hst, hc0', hch', hlog', hst, hc0', hch', hlog', hrl', hkc', hcr'⟩
+  · ipureintro; exact ⟨hst, hc0', hch', hlog', ⟨hst, hc0', hch', hlog', hrl', hkc', hcr'⟩, hcg⟩
   iunfold memberBoot
   simp only [env₀]
   ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts $$ []
@@ -306,9 +306,9 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
   ihave #Hs₁ := Hnet $$ %id₁
   ihave #Hs₂ := Hnet $$ %id₂
   ihave #Hs₃ := Hnet $$ %id₃
-  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hs₁⟩ := Hρ₁
-  obtain ⟨hst₂, hc0₂, hch₂, hlog₂, hs₂⟩ := Hρ₂
-  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hs₃⟩ := Hρ₃
+  obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hs₁, -⟩ := Hρ₁
+  obtain ⟨hst₂, hc0₂, hch₂, hlog₂, hs₂, -⟩ := Hρ₂
+  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hs₃, -⟩ := Hρ₃
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
     env₀ γm idx₁ rev₁ (srvApi.kvNx ρ₁.rd false) cmp, env₀ γm idx₂ rev₂ (srvApi.kvNx ρ₂.rd false) cmp,

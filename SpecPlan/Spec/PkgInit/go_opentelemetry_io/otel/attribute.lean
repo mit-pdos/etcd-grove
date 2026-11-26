@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.sync.atomic.Base
 
 @[expose] public section
 noncomputable section

@@ -21,12 +21,13 @@ GOOSE = dict(
     expand_comment_tabs=True,
     lean_roots=["rabia=Dsverify", "github.com/rs/zerolog=Dsverify",
                 "github.com/gogo/protobuf=Dsverify", "github.com/go-redis/redis/v8=Dsverify",
-                "os/signal=Dsverify",
+                "os/signal=Dsverify", "io/ioutil=Dsverify",
+                "encoding/json=", "path/filepath=", "internal/filepathlite=",
                 "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
                 "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                 "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
                 "bufio=", "container/heap=", "path="],
-    packages=["github.com/rs/zerolog", "github.com/gogo/protobuf/proto",
+    packages=["github.com/rs/zerolog", "github.com/rs/zerolog/internal/json", "github.com/gogo/protobuf/proto",
               "github.com/gogo/protobuf/gogoproto", "github.com/go-redis/redis/v8",
               "github.com/go-redis/redis/v8/internal/proto", "os/signal", "./internal/config", "./internal/message", "./internal/queue", "./internal/ledger",
               "./internal/tcp", "./internal/logger", "./internal/system",
@@ -35,6 +36,8 @@ GOOSE = dict(
               "./examples/rabianet/cmd/orch"]
              + ["./examples/rabianet/cmd/client%d" % c for c in range(6)]
              + ["./examples/rabianet/cmd/server%d" % s for s in range(1, 6)],
+    # (dsv-retire-3) zerolog's `InterfaceMarshalFunc = json.Marshal`: encoding/json the model's names
+    std_models=["encoding/json"],
     owned=["rabia", os.path.join("github_com", "rs"), os.path.join("github_com", "gogo"),
            os.path.join("github_com", "go_redis"), os.path.join("os", "signal")],
 )
@@ -42,10 +45,11 @@ GOOSE = dict(
 # etc/gen-init.py: Rabia's packages, the names-only libraries the lab modelled, the kit and its
 # programs
 RABIA_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
-PKGS = [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
+PKGS = ['os.signal'] + [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
                                'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
                                'roles.server.layers.network', 'roles.server.layers.consensus',
                                'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
+    ['github_com.rs.zerolog.internal.json', 'github_com.rs.zerolog'] + \
     [f'rabia.examples.rabianet.cmd.{n}' for n in RABIA_NODES]
 PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
             f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in RABIA_NODES}
@@ -53,20 +57,34 @@ PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
 # (their `Init.lean` the main tree's, etc/gen-init.py's `shared_inits`, as `Net/`'s `NET_MAIN`'s; the
 # instances of `container.heap` and `path` the main tree's `Proof/<pkg>/PkgInit.lean` (L1,
 # 2026-11-24); `internal.bytealg` is Perennial's)
-MAIN = ['bufio', 'container.heap', 'path']
-# the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a hypothesis
-# (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem initializing
-# them takes as an instance. Not math/rand (math-rand-isinit, 2026-11-24): Perennial proves its
+MAIN = ['bufio', 'container.heap', 'path', 'path.filepath', 'internal.filepathlite', 'encoding.json']
+# the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a
+# trust-boundary axiom (`Dsverify/Proof/<pkg>/Init.lean`; dsv-fix3, #8 2026-11-25T02:20:53Z: until
+# then the class `InitHyp`, a premise of the statement), but go-redis's, still `InitHyp` and a
+# premise (gen-init's `DSV_PREMISE_INITS`: its axiom review refuted it). Not math/rand (math-rand-isinit, 2026-11-24): Perennial proves its
 # `wp_initialize'` (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so
 # neither here nor in `MAIN`
-HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
+HYP_INITS = ['github_com.gogo.protobuf.proto',
              'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
-             'github_com.go_redis.redis.v8.internal.proto', 'os.signal']
+             'github_com.go_redis.redis.v8.internal.proto']
+# Not zerolog nor its `internal/json` (dsv-retire-3, 2026-11-26): translated with bodies, their
+# `Init.lean` generated (`PKGS`) with a proved `wp_initialize'`.
+# Not os/signal (dsv-retire-1-inits, 2026-11-25): its variables and `init` are translated, its
+# `Init.lean` generated (`PKGS`) with a proved `wp_initialize'`
 
 
 def special(g):
     """Configurations of the kit's packages (`g`: etc/gen-init.py's globals)."""
     SPECIAL, newvars_cfg, FIN_PRE = {}, g.newvars_cfg, g.FIN_PRE
+    # (dsv-retire-1-inits) os/signal: the zero-valued `handlers`, `watchSignalLoopOnce`,
+    # `watchSignalLoop`, and `init.0` (`watchSignalLoop = loop`)
+    SPECIAL['os.signal'] = dict(
+        doc='''Its fact is `True`. Its initializer allocates `handlers`, `watchSignalLoopOnce` and
+`watchSignalLoop` (zero values), initializes its imports `os` and `sync`, and runs its `init`, which
+stores the function value `loop` (not called) in `watchSignalLoop`.''',
+        alloc_types={'handlers': '_root_.Perennial.os.signal.«struct#c69a5a71»',
+                     'watchSignalLoopOnce': '_root_.Perennial.sync.Once',
+                     'watchSignalLoop': 'GoFunc'})
     SPECIAL['rabia.internal.config'] = dict(
         doc='''Its fact (`Base.lean`): `Conf`'s invariant `confInv`, as initialized. Its initializer
 allocates `Conf` and initializes its imports.''',
@@ -99,17 +117,21 @@ allocates `Conf` and initializes its imports.''',
                 'iintro %fdp ⟨Hfds, _⟩'],
         },
         'after': {
-            # (#24) the package state out of `Hown` for the `Register*` calls (`proto.Hyps`), and
+            # (#24) the package state out of `Hown` for the `Register*` calls (`proto.Hyps`; each
+            # `RegisterType` on a typed `nil` pointer, not the `nil` interface, dsv-fix3), and
             # `MsgType_value`'s points-to for `RegisterEnum` (consumed: called once, here)
             'init.«0»': ['iunfold EtcdGrove.ownInitLb at Hown',
                          'icases Hown with ⟨%σg, Hg, #Hok, %Hle⟩',
                          f'wp_apply ({_DSV_PH}.RegisterEnum (GF := GF)) $$ [$Hg $HMsgType_value] as Hg',
                          'try wp_auto',
                          f'wp_apply ({_DSV_PH}.RegisterType (GF := GF)) $$ [$Hg] as Hg',
+                         '· ipureintro; first | exact nofun | simp',
                          'try wp_auto',
                          f'wp_apply ({_DSV_PH}.RegisterType (GF := GF)) $$ [$Hg] as Hg',
+                         '· ipureintro; first | exact nofun | simp',
                          'try wp_auto',
                          f'wp_apply ({_DSV_PH}.RegisterType (GF := GF)) $$ [$Hg] as Hg',
+                         '· ipureintro; first | exact nofun | simp',
                          'try wp_auto'],
             'init.«1»': [f'wp_apply ({_DSV_PH}.RegisterFile (GF := GF)) $$ [$Hg] as Hg',
                          'try wp_auto',
@@ -131,6 +153,97 @@ allocates `Conf` and initializes its imports.''',
        errorf={'ErrInvalidLengthMessage': 'proto: negative length found during unmarshaling',
                'ErrIntOverflowMessage': 'proto: integer overflow',
                'ErrUnexpectedEndOfGroupMessage': 'proto: unexpected end of group'})
+
+    # (dsv-retire-3, 2026-11-26) zerolog's `internal/json`: `JSONMarshalFunc` (no initializer, so
+    # `nil`; zerolog's `init` sets it) and `noEscapeTable` (a zero `[256]bool`, then `init.0`'s loop)
+    ZJ, ZL = 'github_com.rs.zerolog.internal.json', 'github_com.rs.zerolog'
+    SPECIAL[ZJ] = dict(
+        doc='''Its fact (`jsonInit`, `Base.lean`): the invariant of its hook cell `JSONMarshalFunc`
+(`hookCell`, `Proof/runtime/InitInv.lean`), which zerolog's initializer, holding its package state, opens
+for a plain store, and `noEscapeTable`, read-only for good. Its initializer allocates both (no
+initializer for `JSONMarshalFunc`, so `nil`; a zero array for the table), initializes its imports and
+runs its translated `init`, whose loop fills the table (`wp_init0`, `InitLoop.lean`). (dsv-retire-3,
+2026-11-26: until then names only, zerolog's `wp_initialize'` a trust-boundary axiom.)''',
+        alloc_types={'JSONMarshalFunc': 'GoFunc', 'noEscapeTable': 'GoArray Bool 256'},
+        initfn_apply={'init.«0»': ['wp_apply (wp_init0 _) $$ HnoEscapeTable as ⟨%tb, HnoEscapeTable⟩',
+                                  'try wp_auto']},
+        imports=['Dsverify.Proof.github_com.rs.zerolog.internal.json.InitLoop'],
+        finish=['imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) '
+                '$$ HJSONMarshalFunc with #CJSONMarshalFunc', 'ipersist HnoEscapeTable']
+        + g.FIN_PRE[:6] + ['try imodintro', f'unfold _root_.Perennial.{ZJ}.jsonInit',
+                           'iframe CJSONMarshalFunc', 'iexists _', 'iexact HnoEscapeTable'],
+    )
+    # (dsv-retire-3) zerolog's fact (`zerologInit`, `Base.lean`): `gLevel`'s cell into its invariant,
+    # `eventPool` into a `sync.Pool` of events, the variables the fact keeps read-only (made at the end of
+    # `init.0`, while the goal is still a WP), and the fact itself after `is_pkg_init_finish`
+    ZL_FACT = ['-- the fact (`zerologInit`, `Base.lean`)', 'imod inv_alloc _root_.Perennial.github_com.rs.zerolog.gLevelN ⊤ (iprop(∃ v : w32, pgl ↦ v)) $$ [HgCell] with #IgCell', '· inext; iexists _; iexact HgCell', 'imod sync.init_Pool pep _ iprop(True) _root_.Perennial.github_com.rs.zerolog.eventElem ⊤ ?_ $$ [HepCell] with #Hpool', 'rotate_left', '· iframe HepCell', '  iapply sync.newSpec_of_true', '  iright', '  wp_start', '  dsimp only', '  wp_auto', '  wp_apply (wp_slice_make3 (V := w8) (W64 0) (W64 500) (by decide)) as %sb ⟨Hsb, Hcap, -⟩', '  wp_alloc le as Hle', '  wp_auto', '  iapply HΦ', '  unfold _root_.Perennial.github_com.rs.zerolog.eventElem', '  iexists le, _, _', '  iframe Hle', '  isplitr', '  · ipureintro; rfl', '  iframe', 'ipersist HgLevel', 'ipersist HLevelFieldName', 'ipersist HLevelTraceValue', 'ipersist HLevelDebugValue', 'ipersist HLevelInfoValue', 'ipersist HLevelWarnValue', 'ipersist HLevelErrorValue', 'ipersist HLevelFieldMarshalFunc', 'ipersist Henc', 'ipersist HeventPool']
+    ZL_FIN = ['try imodintro', 'unfold _root_.Perennial.github_com.rs.zerolog.zerologInit', 'isplitl []', '· iexists pgl; iframe #', 'isplitl []', '· iexact HLevelFieldName', 'isplitl []', '· iexists _; iframe HLevelFieldMarshalFunc', '  unfold _root_.Perennial.github_com.rs.zerolog.marshalSpec', '  iintro %lv', '  wp_start as %hlv', '  haveI : go.NotInterface go.int8 := ⟨by simp [go.int8]⟩', '  simp only [_root_.Perennial.github_com.rs.zerolog.fiveLevels, List.mem_cons, List.not_mem_nil,', '    _root_.or_false] at hlv', '  rcases hlv with rfl | rfl | rfl | rfl | rfl', '  all_goals (repeat (first | wp_method_call | wp_call | wp_auto))', '  all_goals (simp (config := { decide := true }) only', '    [_root_.Perennial.github_com.rs.zerolog.levelString, ↓reduceIte]; iapply HΦ; itrivial)', 'isplitl []', '· iexact Henc', 'isplitl []', '· iexists pep, _; iframe #; ipureintro; simp [func.nil]', 'iexists wdis; iexact HDis', 'rfl']
+    SPECIAL[ZL] = dict(
+        doc='''Its fact (`zerologInit`, `Base.lean`): `gLevel`'s cell in an invariant, `LevelFieldName`,
+`LevelFieldMarshalFunc` with its spec on the five levels, `enc`, `eventPool`'s `sync.Pool` of events and
+`ioutil.Discard`'s value, read-only for good. Its initializer allocates its translated variables, initializes its imports,
+runs their translated initializers (constants, function literals, `sync.Pool` literals, `new(int32)`)
+and its two translated `init`s: `init.0` (`ctx.go`: `SetGlobalLevel(TraceLevel)`, `disabledLogger =
+&Nop()`) and `init.1` (`encoder_json.go`), which stores a closure in `internal/json`'s
+`JSONMarshalFunc`, another package's variable: through `internal/json`'s invariant, lending the
+initializer's package state (`EtcdGrove.grpcInternal.wp_store_hook`). (dsv-retire-3, 2026-11-26: until
+then names only, its `wp_initialize'` a trust-boundary axiom.)''',
+        alloc_types={'arrayPool': 'Loc', 'consoleBufPool': '_root_.Perennial.sync.Pool',
+                     'th': f'_root_.Perennial.{ZL}.timestampHook', 'disabledLogger': 'Loc',
+                     'enc': f'_root_.Perennial.{ZJ}.Encoder', 'eventPool': 'Loc',
+                     **{x: 'GoString' for x in ['TimestampFieldName', 'LevelFieldName', 'LevelTraceValue',
+                                                'LevelDebugValue', 'LevelInfoValue', 'LevelWarnValue',
+                                                'LevelErrorValue', 'LevelFatalValue', 'LevelPanicValue',
+                                                'MessageFieldName', 'ErrorFieldName', 'CallerFieldName',
+                                                'ErrorStackFieldName', 'TimeFieldFormat']},
+                     **{x: 'GoFunc' for x in ['LevelFieldMarshalFunc', 'CallerMarshalFunc', 'ErrorStackMarshaler',
+                                              'ErrorMarshalFunc', 'InterfaceMarshalFunc', 'TimestampFunc',
+                                              'ErrorHandler']},
+                     'CallerSkipFrameCount': 'w64', 'DurationFieldUnit': 'w64', 'DurationFieldInteger': 'Bool',
+                     'gLevel': 'Loc', 'disableSampling': 'Loc', 'Often': 'w32', 'Sometimes': 'w32',
+                     'Rarely': 'w32'},
+        imports=['Dsverify.Proof.github_com.rs.zerolog.NewNil'],
+        # the translated variable initializers: constants, function literals (`recv_eq_func_mk`), the
+        # `sync.Pool` literals, `new(int32)`s
+        before={'arrayPool': ['repeat (first | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto) | (wp_func_lits; wp_auto) | wp_auto)'],
+                # `gLevel`'s cell (`new(int32)`, shadowed by `disableSampling`'s), named for `SetGlobalLevel`
+                # and `eventPool`'s `sync.Pool` (`new(Pool)`'s cell), for the fact
+                '$inits': ['rename_i _ pep pgl', 'irename: (pgl ↦ (_ : w32) : IProp GF) => HgCell',
+                           'irename: (pep ↦ (_ : _root_.Perennial.sync.Pool) : IProp GF) => HepCell']},
+        after={'init.«0»': [
+            "-- `SetGlobalLevel(TraceLevel)`: the atomic store into `gLevel`'s cell, owned here",
+            'unfold TraceLevel',
+            'wp_func_call',
+            'wp_call',
+            'try wp_auto',
+            'wp_apply_core sync.atomic.wp_StoreInt32 $$ [] [-]',
+            '· iexact {Hd:sync.atomic}',
+            'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+            'iintro Hmask',
+            'inext',
+            'iexists _',
+            'iframe HgCell',
+            'iintro HgCell',
+            'imod Hmask with -',
+            'imodintro',
+            'try wp_auto',
+            "-- `Nop()`: `New(nil).Level(Disabled)`; `New(nil)` reads `ioutil.Discard` (io/ioutil's fact)",
+            'ihave #ID : (∃ w : GoInterface, globalAddr _root_.Perennial.io.ioutil.Discard ↦□ w : IProp GF) $$ []',
+            '· iapply isPkgInit_access $$ {Hd:io.ioutil}',
+            'icases ID with ⟨%wdis, #HDis⟩',
+            'wp_apply (wp_Nop wdis) $$ HDis as %lnop -',
+            'try wp_auto'] + ZL_FACT,
+            'init.«1»': [
+            f'ihave #Hfj : (_root_.Perennial.{ZJ}.jsonInit (hG := hG) : IProp GF) $$ []',
+            f'· iapply isPkgInit_access $$ {{Hd:{ZJ}}}',
+            'try wp_auto',
+            f'unfold _root_.Perennial.{ZJ}.jsonInit',
+            'icases Hfj with ⟨#Hfc, -⟩',
+            'wp_apply (EtcdGrove.grpcInternal.wp_store_hook (hG := hG) (V := GoFunc) _ _ _ _) $$ [Hfc Hown] as Hown',
+            '· iframe Hown Hfc',
+            'try wp_auto']},
+        finish=g.FIN_PRE[:6] + ZL_FIN,
+    )
     return SPECIAL
 
 
@@ -235,31 +348,37 @@ the configuration, configures Rabia and connects its Rabia client endpoint, then
 `remote.ServeClient`) and five server machines (each waits for the configuration and, if it is one
 of its `n` servers, runs a Rabia server; rabia over TCP) -- deployed at `rabiaKitAddrs`
 (`DistDeploy`: the addresses distinct and valid, no connection, no listener). In every execution
-of fewer than `2^63` steps, with any number of threads, no thread of any machine is stuck and none
+of fewer than `remoteStepBound` (`2 ^ 63`) steps, with any number of threads, no thread of any machine is stuck and none
 has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since the orchestrator panics unless
 porcupine accepts the history, this says porcupine accepts every history, under every fault the
 net extension allows.
 
-**Premises** (visible, each a hypothesis class of the proof, at the bundle `remoteGF` the proof
-uses, for every machine's heap): the libraries translated with names only, whose initializers
-(`InitHyp`: zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`: each runs
-without panicking) and functions (`zerolog.Hyps`: a logger's five non-panicking levels on a
-non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
-`message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
-`NewSource`/`New`/`Rand.Intn` with exclusive tokens) have no model here,
-and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
-deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
-`log.Println` is proved from Perennial's trusted model of `log`; `math/rand`'s initializer and
-package-level `Intn` from Perennial's proofs. Proved in
+**Premise** (at the bundle `remoteGF` the proof uses, for every machine's heap): go-redis v8's
+initializer runs without panicking (`InitHyp`; its axiom review refuted it as an axiom,
+`notes/axiom-review/dsv-inits/github-com-go-redis-redis-v8.md`). Not premises: the functions of the
+libraries translated with names only (zerolog's `New(nil)`, a logger's levels, events and `Msg`; gogo `proto`'s
+`Register*` calls in `message`'s initialization; math/rand's `NewSource`/`New`/`(*rngSource).Int63`)
+and the environment claim that nobody sends SIGINT or SIGTERM to the deployment's processes
+(`signal.Notify(c, SIGINT, SIGTERM)` registers a channel that never receives) are per-function
+trust-boundary axioms, and so are the initializers of zerolog, gogo `proto`, `gogoproto` and
+`os/signal` (their `wp_initialize'`); every axiom the result rests on is listed in
+`etc/tcb-collections/dsv-rabia.txt`. `log.Println` is proved from Perennial's trusted model of
+`log`; `math/rand`'s initializer, package-level `Intn` and `(*Rand).Intn` from Perennial's code.
+Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.''',
-        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.rs.zerolog.Init', 'public import Dsverify.Proof.github_com.rs.zerolog.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec', 'public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init', 'public import Dsverify.Proof.os.signal.Init', 'public import Dsverify.Proof.os.signal.Spec', 'public import Dsverify.Proof.math.rand.Spec'],
+        imports=['public import Net.Statement.DistDeploy', 'public import Robustness.Statement', 'public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared', 'public import Dsverify.Proof.github_com.go_redis.redis.v8.Init'],
         opens=['open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         heap_at='spec',
         heap_at_doc='''A machine's heap over `remoteGF` at the deployment's Go local context `lctx` (the heaps the
 proof makes, one per machine): the global ghost state `G` and the local `L`, its local context
 `lctx`. The premises below hold of every such heap.''',
-        addrs='rabiaKitAddrs', steps='2 ^ 63',
-        premises=[('hzi', 'github_com.rs.zerolog.InitHyp'), ('hpi', 'github_com.gogo.protobuf.proto.InitHyp'), ('hph', 'github_com.gogo.protobuf.proto.Hyps'), ('hgpi', 'github_com.gogo.protobuf.gogoproto.InitHyp'), ('hri', 'github_com.go_redis.redis.v8.InitHyp'), ('hsi', 'os.signal.InitHyp'), ('hz', 'github_com.rs.zerolog.Hyps'), ('hmr', 'math.rand.Hyps'), ('hns', 'os.signal.NoSignals os.signal.quietSigs')],
+        addrs='rabiaKitAddrs', steps='remoteStepBound',
+        premises=[('hri', 'github_com.go_redis.redis.v8.InitHyp')],
+        # (dsv-fix4) the library classes the proof discharges from per-function axioms
+        discharged=[('github_com.gogo.protobuf.proto.Hyps', 'github_com.gogo.protobuf.proto.hyps_holds'),
+                    ('github_com.rs.zerolog.Hyps', 'github_com.rs.zerolog.hyps_holds'),
+                    ('math.rand.Hyps', 'math.rand.rng.hyps_holds'),
+                    ('os.signal.NoSignals os.signal.quietSigs', '⟨os.signal.Notify.wp_proofQuietSigs⟩')],
     ),
     defs=dict(
         doc='''The rabia kit's deployment (notes/dsv-rabia.md): its twelve machines' boot programs and addresses,
@@ -283,7 +402,7 @@ addresses still unset), remote's map of operations, the client machines' address
 state, and each machine's boot program from its share, through `robust_of_distProtoRB`. The boot
 (`wp_boot`) hands `main` the machine's package state after the initialization (`ownGoState`, out
 of `ownInitializing`): the clients and servers claim `config.Conf` with it.''',
-        imports=['public import Dsverify.Proof.rabia.examples.rabianet.Linked', 'public import Dsverify.Proof.rabia.examples.rabianet.CodecProof', 'public import Dsverify.Proof.rabia.Core.Start', 'public import Net.Statement.DistBridge'],
+        imports=['public import Dsverify.Proof.rabia.examples.rabianet.Linked', 'public import Dsverify.Proof.rabia.examples.rabianet.CodecProof', 'public import Dsverify.Proof.rabia.Core.Start', 'public import Net.Statement.DistBridge', 'public import Dsverify.Proof.github_com.gogo.protobuf.proto.HypsHoldLinked', 'public import Dsverify.Proof.github_com.rs.zerolog.HypsHoldLinked', 'public import Dsverify.Proof.math.rand.RandsLinked', 'public import Dsverify.Proof.os.signal.Notify'],
         options=['set_option linter.unusedSectionVars false', 'set_option maxRecDepth 100000'],
         opens=['open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote rabia', 'open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)'],
         boot='gostate',

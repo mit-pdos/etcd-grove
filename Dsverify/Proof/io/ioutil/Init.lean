@@ -1,49 +1,85 @@
 /-
-**A hypothesis**: `io/ioutil`'s initializer meets Perennial's initialization spec (notes/dsv-quepaxa.md,
-"Hypotheses"; dsv-vr's pattern, `Dsverify/Proof/encoding/json/Init.lean` there). `io/ioutil` is
-names only in the part, its variable `Discard`'s initializer untranslated, so its `initialize'` cannot be proved here, and the rule is no new axiom and no trusted code:
-the spec is the class `InitHyp` (a `Prop`), which every theorem whose proof initializes `io/ioutil` takes
-as an instance argument (`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`),
-up to the kit's closed statement. Replace by a proved `wp_initialize'` when the package's
-translation or model lands.
+Package initialization of `io.ioutil`
+(item 8, 2026-10-17): its `wp_initialize'`.
+
+Its fact (`Base.lean`): `Discard` holds some writer, read-only for good (dsv-retire-3,
+2026-11-26: zerolog's `New(nil)` reads it; until then `True`). Its initializer allocates `Discard`,
+initializes its import `io` and copies `io.Discard` (which io's fact holds, read-only) into `Discard`.
 -/
 module
 
 public import Dsverify.Proof.io.ioutil.Base
+public import Perennial.Proof.io.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic
+/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.io.ioutil.Assumptions]
 
 namespace io.ioutil
 
-/-- **Hypothesis** (the file header): `io/ioutil`'s initializer establishes its package fact. -/
-class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
-    (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
-  wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
-    GetIsPkgInitProp pkg_id.io.ioutil get_is_pkg_init →
-    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.io.ioutil }}
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.io.ioutil get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.io.ioutil }} := by
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) Discard _ as HDiscard
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of Discard))
+  ihave #IO := _root_.Perennial.io.isInit_access $$ Hd1
+  icases IO with ⟨⟨%wd, #Hiod⟩, -⟩
+  wp_auto
+  -- translated initializer of _root_.Perennial.io.Discard))
+  ipersist HDiscard
+  iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
+  is_pkg_init_finish
+  try imodintro
+  try iexists _
+  try iexact HDiscard
 
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
-
-/-- Perennial's form of `io/ioutil`'s initialization, from the hypothesis. -/
-theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.io.ioutil get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.io.ioutil }} :=
-  h.wp_init get_is_pkg_init Hinit
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.io.ioutil }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+
+
+end io.ioutil
 
 end init
 
-end io.ioutil
 end Perennial

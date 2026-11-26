@@ -52,8 +52,9 @@ it, and a theorem about a program holds for every value it could be. A theorem t
 particular value takes it as a premise (`GodebugHttpmuxgo121Not1`). -/
 opaque godebugHttpmuxgo121 : GoString
 
-/-- **Environment premise: `GODEBUG` does not set `httpmuxgo121=1`** (`godebugHttpmuxgo121` is
-not `"1"`): neither the process's `GODEBUG` variable (its last `httpmuxgo121=` entry) nor, when the
+/-- **Environment premise: on every machine, `GODEBUG` does not set `httpmuxgo121=1`**
+(`godebugHttpmuxgo121` is not `"1"`; it is one constant, so a premise about it is about every machine
+of a deployment): on each, neither the process's `GODEBUG` variable (its last `httpmuxgo121=` entry) nor, when the
 variable has none, the binary's default GODEBUG sets it to `1`, whatever `#`-pattern follows. Then
 net/http's `init` leaves `use121` false, and the ServeMux uses Go 1.22's pattern matcher.
 

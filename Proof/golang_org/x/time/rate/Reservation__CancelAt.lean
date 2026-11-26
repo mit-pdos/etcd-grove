@@ -96,7 +96,8 @@ theorem rate.Reservation.CancelAt.wp_proof
     iapply HΦ; iframe
   wp_mcall (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"
   wp_auto
-  wp_apply wp_Before as %bef -
+  wp_apply wp_Before
+  generalize (_root_.Perennial.time.Time.before _ _) = bef
   cases bef
   case true =>
     wp_auto
@@ -132,7 +133,8 @@ theorem rate.Reservation.CancelAt.wp_proof
   all_goals
     wp_mcall (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Equal"
     (try wp_auto)
-    wp_apply wp_Equal as %eq -
+    wp_apply wp_Equal
+    generalize (_root_.Perennial.time.Time.equal _ _) = eq
     cases eq
     case false =>
       wp_auto
@@ -151,7 +153,8 @@ theorem rate.Reservation.CancelAt.wp_proof
       (try wp_auto)
       wp_mcall (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"
       (try wp_auto)
-      wp_apply wp_Before as %bef' -
+      wp_apply wp_Before
+      generalize (_root_.Perennial.time.Time.before _ _) = bef'
       cases bef' <;> (try wp_auto)
       all_goals
         wp_apply sync.Mutex.wp_Unlock $$ [$Hl $Hlocked Hlimit Hburst Htokens Hlast HlastEvent]

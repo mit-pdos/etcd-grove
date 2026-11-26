@@ -8,7 +8,6 @@ module
 
 public import Dsverify.Proof.gryff.Replica2.Specs
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
-public import Dsverify.Proof.gryff.Lib.SortHyps
 
 @[expose] public section
 
@@ -27,7 +26,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [wire.BufioSpecs GF]
 variable [binA : wire.BinaryVarintHyps GF]
-variable [sortA : SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 
 theorem cmp_cases (a b : model.Tag) :

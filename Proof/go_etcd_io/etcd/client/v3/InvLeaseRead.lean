@@ -58,6 +58,18 @@ structure LeaseLeasesRespM where
   hdr : HdrM
   ids : List w64
 
+instance LeaseTTLRespM.msgCountable : Pos.Countable LeaseTTLRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.id, r.ttl, r.grantedTtl))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
+instance LeaseLeasesRespM.msgCountable : Pos.Countable LeaseLeasesRespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.hdr, r.ids))
+    (fun a b h => by
+      have := Pos.encode_inj h
+      cases a; cases b; simp_all)
+
 end model
 
 section defs

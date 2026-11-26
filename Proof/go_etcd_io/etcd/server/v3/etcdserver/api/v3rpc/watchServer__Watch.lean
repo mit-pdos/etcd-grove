@@ -331,6 +331,10 @@ theorem v3rpc.watchServer.Watch.wp_proof
       iframe Htt; imodintro; ipureintro; exact isPanic_intoVal _
   iunfold v3rpc.ctxCanceledPtr at Hcanc
   icases Hcanc with ⟨%eC, #HeC, %HeCp⟩
+  -- (#45) the target's description, which `errors.Is` takes
+  ihave #HtdC : (∃ m', go_etcd_io.etcd.cache.v3.descIs (GF := GF) (GoInterface.ok eC) m') $$ []
+  · iapply go_etcd_io.etcd.cache.v3.isCtxErr_descIs
+    iapply _root_.Perennial.context.isCtxErr_of_Canceled $$ Pctx HeC
   iunfold v3rpc.statusMsgErrVar at HmWC
   icases HmWC with ⟨%eWC, #HeWC, #HeWCm, #HeWCs⟩
   ihave #HsvW := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk (GF := GF) _ $$ HeWCs

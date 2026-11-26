@@ -15,11 +15,33 @@ a line cut by an error does not parse as a whole one, since nothing follows the 
 head parser (`textproto_model.go`) and `readTransfer` (the answer's body, read to the connection's
 end, is not read here). `httpEnv` (`Net/Proof/net/http/Defs.lean`) is the package state the parse
 reads. Proved in `Net/Proof/net/http/ReadResponse.lean`.
+
+`http.ReadResponse(b, nil)` on a stream of responses (`ReadResponse.spec_resp`; httpdriver,
+2026-11-24): `b` a `*bufio.Reader` that has delivered `D` (`bufio.ownReader`) of a stream reader `ri`
+that makes progress (`io.readerStreamNE ri S E`), shorter than `2 ^ 62 - 2 ^ 12` bytes (the length law
+`bufio.NewReader` takes: the reader's `Read` is specified only below `2 ^ 62` bytes, and the head
+is read whatever its size; 2026-11-25), whose bytes past `D` are, as long as it is read,
+nothing yet, or a prefix of the wire of a response `ρ` the model reads as written (`respOk`,
+`WireDefs.lean`: no chunked body) or, for one delimited by its `Content-Length`, that wire followed by
+more, with the caller's persistent knowledge `Q ρ` of it (the law over `S`); and that delivers nothing
+after an error (the law over `E` and `S`, as the `CONNECT` spec's). It returns an error (with the
+reader), or a response with `ρ`'s status, its header lines (`hdrOwn`, the client's, without a
+`Connection: close` line, `dropConn`) and a body reader
+(`io.readerOk`, by the contract `SB`, `EB` it gives, from `SB []`, shorter than `2 ^ 60` bytes): an
+`io.EOF` of it comes with `Q ρ` of a response `ρ` with that head whose body is the bytes read (one
+delimited by its `Content-Length`) or extends them (a close-delimited one, read to the stream's end),
+and gives back the reader, past the response (`D ++` its head `++` the body read), for the next
+`ReadResponse` on the connection. The model's head parser, `readTransfer` and its body reader
+(`body` over `io.LimitReader`, or over the reader itself to its end). Interim trust-boundary axiom
+(`Net/Proof/net/http/ReadResponse.lean`), retired by phase 7's S5 (the client half: `ReadResponse` on
+general heads).
 -/
 module
 
 public import Net.Proof.net.http.Defs
 public import Proof.io.ReaderStreamNE
+public import Net.Proof.net.http.WireDefs
+public import Net.Proof.models_lab.ErrFmt
 
 @[expose] public section
 
@@ -48,6 +70,55 @@ abbrev ReadResponse.spec : Prop :=
     (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #req))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err ≠ interface.nil⌝) ∨
+      (⌜err = interface.nil⌝ ∗ ∃ rv : net.http.Response, resp ↦ rv ∗
+        (⌜rv.Status' ≠ net.rpc.connectedStatus⌝ ∨
+          ⌜rv.Status' = net.rpc.connectedStatus⌝ ∗
+            EtcdGrove.bufio.ownReader b ri S E net.rpc.connectAns)) }}
+
+/-- See the file header. -/
+abbrev ReadResponse.spec_resp : Prop :=
+  ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
+    (D : List w8) (Q : Resp → IProp GF) (eof : GoInterface),
+  {{ httpEnv ∗ globalAddr io.EOF ↦□ eof ∗ EtcdGrove.io.readerStreamNE ri S E ∗
+      EtcdGrove.bufio.ownReader b ri S E D ∗
+      (□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝) ∗
+      (□ ∀ r, S r -∗ ⌜r <+: D⌝ ∨ ∃ ρ : Resp, ⌜respOk ρ ∧
+          (r <+: D ++ respWire ρ ∨ (ρ.close = false ∧ D ++ respWire ρ <+: r))⌝ ∗ □ Q ρ) ∗
+      (□ ∀ (r r' : List w8) (err : GoInterface), E r err -∗ S r' -∗ ⌜r <+: r' → r' = r⌝) }}
+    (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #(null : Loc)))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err ≠ interface.nil⌝ ∗ ∃ D', EtcdGrove.bufio.ownReader b ri S E D') ∨
+      (⌜err = interface.nil⌝ ∗ ∃ (rv : net.http.Response) (st : w64) (reason : List w8)
+          (hc : List HdrLine) (cl : Bool) (hm : Loc) (bi : GoInterfaceOk)
+          (SB : List w8 → IProp GF) (EB : List w8 → GoInterface → IProp GF),
+        resp ↦ rv ∗ ⌜rv.StatusCode' = st ∧ rv.Header' = hm ∧ rv.Body' = interface.ok bi⌝ ∗
+        hdrOwn hm (dropConn hc) ∗ io.readerOk bi (fun _ _ => True) SB EB ∗ SB [] ∗
+        ⌜∀ x, SB x ⊢ iprop(⌜x.length < 2 ^ 60⌝)⌝ ∗
+        (□ ∀ (x : List w8) (e : GoInterface), EB x e -∗ ⌜e = eof⌝ -∗
+          ∃ ρ : Resp, ⌜ρ.st = st ∧ ρ.reason = reason ∧ ρ.hc = hc ∧ ρ.close = cl ∧
+            (if cl then x <+: ρ.body else x = ρ.body)⌝ ∗ □ Q ρ) ∗
+        (∀ (x : List w8) (e : GoInterface), SB x -∗ □ EB x e -∗ ⌜e = eof⌝ -∗
+          EtcdGrove.bufio.ownReader b ri S E (D ++ respHeadWire st reason hc ++ x))) }}
+
+/-- `ReadResponse.spec` with what its error is: for a property `L` of errors that every
+`errLeaf` error has (`models_lab/ErrFmt.lean`) and the stream's errors have (`E r e` gives `L e`),
+the error has it: the stream's, `io.ErrUnexpectedEOF` (an `*errorString`), a malformed line's
+(`badStringError`'s `*errorString`) or a malformed header's (`textproto.ProtocolError`). With
+`L := models_lab.errLeaf`, the error is `errLeaf` (`DialHTTPPath`'s `"dial-http"` `*OpError` wraps
+it: `DialHTTPPath.spec_plain`). Proved in `Net/Proof/net/http/ReadResponse.lean`;
+`ReadResponse.spec` follows from it (`L := fun _ => True`). -/
+abbrev ReadResponse.spec_errs : Prop :=
+  ∀ (L : GoInterface → Prop), (∀ e, models_lab.errLeaf e → L e) →
+  ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
+    (req : Loc) (rq : net.http.Request),
+  {{ httpEnv ∗ EtcdGrove.io.readerStreamNE ri S E ∗ EtcdGrove.bufio.ownReader b ri S E [] ∗
+      (□ ∀ r, S r -∗ ⌜r <+: net.rpc.connectAns ∨ r <+: net.rpc.badReqAns⌝) ∗
+      (□ ∀ (r r' : List w8) (err : GoInterface), E r err -∗ S r' -∗ ⌜r <+: r' → r' = r⌝) ∗
+      req ↦ rq ∗ ⌜rq.Method' = go!"CONNECT"⌝ ∗
+      (□ ∀ (r : List w8) (err : GoInterface), E r err -∗ ⌜L err⌝) }}
+    (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #req))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      (⌜err ≠ interface.nil ∧ L err⌝) ∨
       (⌜err = interface.nil⌝ ∗ ∃ rv : net.http.Response, resp ↦ rv ∗
         (⌜rv.Status' ≠ net.rpc.connectedStatus⌝ ∨
           ⌜rv.Status' = net.rpc.connectedStatus⌝ ∗

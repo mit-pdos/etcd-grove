@@ -11,12 +11,12 @@ hypotheses of phase 7 S5 (#24/#18), neither an axiom nor a premise of the statem
 The start: the protocol registry (`netProto_alloc`); then a case split on the program's check
 (`cfgOk`):
 * **`cfgOk`**: the cluster's start `etcd_dist.etcdClusterStart` (every peer address set to rafthttp's
-  protocol, the cluster's allocation, each member's publication name and client address), the client's
-  putget invariant allocated from the cluster's `etcdKV` (`client.putGetInv_alloc_all`), which gives every
-  member's publication obligation (`memberPubOkK` at `putgetPub`); member `i`'s share is its
-  `memberStartShare`, the client's is member `0`'s address and publication facts;
+  protocol, the cluster's allocation, each member's client address at the cluster's view `c.view`), the
+  client's putget invariant allocated from the cluster's `etcdKV` (`putGetInvK_alloc`); member `i`'s
+  share is its `memberStartShare`, the client's member `0`'s address fact at the view and the invariant;
 * **not `cfgOk`**: every member's `Valid` fails, so its share is trivial; the client's address (member
-  `0`'s client address, if any) is set with a fresh publication name that no member publishes at.
+  `0`'s client address, if any) is set at a view of fresh KV names (`putGetInvK_alloc_fresh`) that no member
+  serves.
 `putgetK_safe_of_S5 : putgetK_safe.spec` over `HS5` and `HSM` (`putgetK_safe_of_boot`).
 -/
 module
@@ -38,38 +38,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-namespace client
-
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
-
-attribute [local instance] GooseGlobalGS.gooseInvGS
-
-section allocG
-variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
-variable [lctx : GoLocalContext] [sem : go.Semantics] [G : GooseGlobalGS .hasLC GF]
-
-/-- **The client's putget invariant, allocated over the global ghost state** (`putGetInv_alloc_log` at no
-machine's heap: the invariant reads the heap only through its global part,
-`etcd_putget_dist.putGetInv_heap`), at every local ghost state over `G`. -/
-theorem putGetInv_alloc_all (γr : ReadNames) (σ : KVState) (key val : GoString) :
-    etcdKV (GF := GF) γr.kv σ ⊢ |={⊤}=> ∃ γf : GName,
-      ∀ L : GooseLocalGS GF,
-        putGetInv (hG := etcd_putget_dist.heapAt G L lctx) γr γf key val := by
-  iintro Hσ
-  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
-  imod inv_alloc kvClientN ⊤ (iprop(∃ (σ : KVState) (n : Nat), etcdKV γr.kv σ ∗
-      monoNatAuthOwn γf 1 n ∗ ⌜putGetOk key val σ n⌝)) $$ [Hσ Hm] with #Hinv
-  · inext; iexists σ, 0; iframe Hσ Hm
-    ipureintro; exact ⟨KVState.kvs_sorted _, fun h => absurd h (by omega)⟩
-  imodintro
-  iexists γf
-  iintro %L
-  iunfold putGetInv
-  iexact Hinv
-
-end allocG
-
-end client
 
 namespace etcd_putgetk_dist
 
@@ -104,16 +72,11 @@ theorem zip_getD_fst {α β : Type _} (d : α) : ∀ {l1 : List α} {l2 : List �
     show l1.getD k d = x.1
     exact zip_getD_fst d h
 
-theorem svc_head [GooseExts] (p0 c0 : GoString) (pr cr : List GoString) (γ0 : GName)
-    (γr : List GName) :
-    ∃ rest, etcd_dist.svcList ((cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr))).zip
-      (γ0 :: γr)) = ((c0, memberIdOf p0), γ0) :: rest := by
+theorem cms_head [GooseExts] (p0 c0 : GoString) (pr cr : List GoString) :
+    ∃ rest, cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr)) =
+      (⟨p0, c0, memberIdOf p0⟩ : etcd_dist.ClusterMember) :: rest := by
   rw [cms_eq]
-  simp [etcd_dist.svcList]
-
-/-- Read names at the cluster's KV names (the client's invariant reads only `kv`). -/
-abbrev rnOf [GooseExts] (c : etcd_dist.ClusterNames) : ReadNames :=
-  ⟨default, default, default, default, default, default, ⟨c.γ, [], W64 0⟩, c.γk⟩
+  simp
 
 section bigops
 variable {GF : BundledGFunctors}
@@ -161,19 +124,19 @@ variable [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
 /-- Member `i`'s machine's share (`member_bootK`'s). -/
 def memberPK (S5 : etcd_dist.S5Draft putgetGF) (peers clients : List GoString) (ps : List w64)
     (ctxs : List (List w8)) (boot : List LogEntry) (i : Nat) : IProp putgetGF :=
-  iprop(⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ (c : etcd_dist.ClusterNames) (γE : GName),
-    memberShareK S5 c peers clients ps ctxs boot i γE (putgetPub (GF := putgetGF)))
+  iprop(⌜cfgOk peers clients ∧ i < peers.length⌝ -∗ ∃ c : etcd_dist.ClusterNames,
+    memberShareK S5 c peers clients ps ctxs boot i)
 
 /-- The client machine's share (`client_bootK`'s). -/
-def clientPK (ep : GoString) (γE : GName) (mid : w64) : IProp putgetGF :=
-  iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep γE mid (putgetPub (GF := putgetGF)))
+def clientPK (ep : GoString) (Γ : etcd_dist.DistView) (mid : w64) : IProp putgetGF :=
+  iprop(⌜ep ≠ []⌝ -∗ ⌜Net.addrOk ep = true⌝ ∗ clientShare ep Γ mid)
 
 /-- The machines' shares: member `i`'s for `i < n`, then the client's. -/
 def sharesK (S5 : etcd_dist.S5Draft putgetGF) (peers clients : List GoString) (ps : List w64)
-    (ctxs : List (List w8)) (boot : List LogEntry) (γE : GName) (mid : w64) (i : Nat) :
+    (ctxs : List (List w8)) (boot : List LogEntry) (Γ : etcd_dist.DistView) (mid : w64) (i : Nat) :
     IProp putgetGF :=
   if i < peers.length then memberPK S5 peers clients ps ctxs boot i
-  else clientPK (clients.headD go!"") γE mid
+  else clientPK (clients.headD go!"") Γ mid
 
 end shares
 
@@ -182,7 +145,7 @@ set_option maxHeartbeats 1600000 in
 theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (HEnv : EtcdVerifyOff)
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
@@ -191,15 +154,14 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (Hbl : BootLogFacts (idsOf peers) ps ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    (Hprem : ∀ n : Nat, n + 12 ≤ 2 ^ 40 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) n peers clients ps ctxs boot)
+    (Hbgo : BootGoK peers clients ps ctxs)
     (σs : Nat → state) (σc : state) (Hm : ∀ i < peers.length, MemberFiles i (σs i))
     (Hfips : crypto.fips140.GodebugFips140Off)
     [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S5 : etcd_dist.S5Draft putgetGF)
-    (γE : GName) (mid : w64) :
+    (Γ : etcd_dist.DistView) (mid : w64) :
     ∀ (i : Nat) (m : Expr × state), (system peers clients σs σc)[i]? = some m →
       Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2
-        (sharesK S5 peers clients ps ctxs boot γE mid i) := by
+        (sharesK S5 peers clients ps ctxs boot Γ mid i) := by
   intro i m hm
   unfold system at hm
   have hlen : (peers.mapIdx (fun i _ => (bootMember peers clients i, σs i))).length = peers.length := by
@@ -209,7 +171,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     obtain ⟨p, -, rfl⟩ := Option.map_eq_some_iff.1 hm
     unfold sharesK
     rw [if_pos hi]
-    exact member_bootK HEnv HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem Hfips i hi
+    exact member_bootK HEnv HSM peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo Hfips i hi
       (σs i) (Hm i hi) S5
   · rw [List.getElem?_append_right (by omega), hlen] at hm
     have hm' : m = (bootClient (clients.headD go!""), σc) := by
@@ -221,7 +183,7 @@ theorem system_boots [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     subst hm'
     unfold sharesK
     rw [if_neg hi]
-    exact client_bootK (clients.headD go!"") σc γE mid
+    exact client_bootK (clients.headD go!"") σc Γ mid
 
 set_option maxHeartbeats 3200000 in
 /-- **`PutgetKBoot` over S5's named hypotheses** (see the file header). -/
@@ -233,7 +195,7 @@ theorem putgetKBoot_of
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),
       etcd_dist.StartMember_dist.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx) S5) :
     PutgetKBoot := by
-  intro _ lctx _ _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem σs σc Hm Hc
+  intro _ lctx _ _ _ _ _ peers clients ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo σs σc Hm Hc
     Hfips Hnd Hok HEnv G hlo hb
   have hS5' : ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS],
       Nonempty (etcd_dist.S5Draft putgetGF) := HS5
@@ -289,72 +251,53 @@ theorem putgetKBoot_of
         rw [cms_clients _ _ hlen]
         iexact Hcl
     imod (etcd_dist.etcdClusterStart S5 (cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr))) ps
-        hperm hmsne ctxs boot Hbc (by omega) (by omega) .none (fun h => nomatch h) false 0
-        (fun _ _ => putgetPub (GF := putgetGF))) $$ Hreg Hs2
-      with ⟨%c, %γEs, %Hγ, Hms, #Hcs, Hetcd⟩
-    obtain ⟨Hcok, hγlen⟩ := Hγ
+        hperm hmsne ctxs boot Hbc (by omega) (by omega) .none (fun h => nomatch h) false 0) $$ Hreg Hs2
+      with ⟨%c, %Hcok, Hms, #Hcs, Hetcd⟩
     rw [cms_ids] at Hcok
     isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
     -- the client's invariant, from the cluster's `etcdKV`
-    ihave Hetcd' : etcdKV (GF := putgetGF) (rnOf c).kv
-        (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) $$ [Hetcd]
-    · rw [show (rnOf c).kv = c.γk from rfl]
-      iexact Hetcd
-    imod (client.putGetInv_alloc_all (GF := putgetGF) (rnOf c)
-        (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v") $$ Hetcd'
-      with ⟨%γf, #Hinv⟩
-    ihave #Hpub : memberPubOkK c.γk (putgetPub (GF := putgetGF)) $$ []
-    · iunfold memberPubOkK
-      imodintro
-      iintro %ρ %hρ
-      iunfold putgetPub
-      iexists (rnOf c), γf
-      isplitr
-      · ipureintro; exact hρ.1.symm
-      iexact Hinv
-    obtain ⟨γ0, γr, rfl⟩ : ∃ γ0 γr, γEs = γ0 :: γr := by
-      cases γEs with
-      | nil => rw [cms_length] at hγlen; simp at hγlen
-      | cons a r => exact ⟨a, r, rfl⟩
-    obtain ⟨rest, hrest⟩ := svc_head p0 c0 pr cr γ0 γr
-    -- the client's share: member `0`'s address and publication facts
+    imod (putGetInvK_alloc (GF := putgetGF) c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))
+        go!"k" go!"v") $$ Hetcd with ⟨%γf, #Hinv⟩
+    obtain ⟨rest, hrest⟩ := cms_head p0 c0 pr cr
+    -- the client's share: member `0`'s address fact at the view, and the invariant
     iunfold etcd_dist.clientStartShare at Hcs
     icases Hcs with ⟨-, #Hsvc⟩
     iunfold etcd_dist.clientSvcFacts at Hsvc
     isimp only [hrest] at Hsvc
-    icases BigSepL.bigSepL_cons.1 $$ Hsvc with ⟨⟨#Hat0, #Hinv0⟩, -⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hsvc with ⟨#Hat0, -⟩
     imodintro
-    iexists sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot γ0 (memberIdOf p0)
+    iexists sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot c.view (memberIdOf p0)
     isplitr
     · ipureintro
       exact system_boots HEnv HSM' (p0 :: pr) (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
-        Hprem σs σc Hm Hfips S5 γ0 (memberIdOf p0)
+        Hbgo σs σc Hm Hfips S5 c.view (memberIdOf p0)
     unfold system
     iapply BigSepL.bigSepL_append.2
     isplitl [Hms]
-    · iapply (bigSepL_idx (sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot γ0 (memberIdOf p0))
-        ((cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr))).zip (γ0 :: γr)) _
-        (by rw [List.length_zip, hγlen, Nat.min_self, cms_length, List.length_mapIdx]))
-      iapply (BigSepL.bigSepL_impl (Ψ := fun k _ => sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot γ0
+    · iapply (bigSepL_idx (sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot c.view (memberIdOf p0))
+        (cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr))) _
+        (by rw [cms_length, List.length_mapIdx]))
+      iapply (BigSepL.bigSepL_impl (Ψ := fun k _ => sharesK S5 (p0 :: pr) (c0 :: cr) ps ctxs boot c.view
         (memberIdOf p0) k)) $$ Hms
       imodintro
       iintro %k %x %hk Hx
       have hkn : k < (p0 :: pr).length := by
         have := (List.getElem?_eq_some_iff.1 hk).1
-        rw [List.length_zip, hγlen, Nat.min_self, cms_length] at this
+        rw [cms_length] at this
         exact this
+      have hx : (cmsOf (membersOf (p0 :: pr) (c0 :: cr)) (idsOf (p0 :: pr))).getD k
+          ⟨go!"", go!"", W64 0⟩ = x := by
+        rw [List.getD_eq_getElem?_getD, hk]; rfl
       unfold sharesK
       rw [if_pos hkn]
       iunfold memberPK
       iintro %-
-      iexists c, x.2
+      iexists c
       iunfold memberShareK
-      rw [zip_getD_fst ⟨go!"", go!"", W64 0⟩ hk]
+      rw [hx]
       isplitr
       · ipureintro; exact ⟨Hcok, Hnd, Hok⟩
-      isplitl [Hx]
       · iexact Hx
-      · iexact Hpub
     · iapply BigSepL.bigSepL_singleton.2
       unfold sharesK
       rw [if_neg (by simp)]
@@ -367,9 +310,14 @@ theorem putgetKBoot_of
       iunfold clientShare
       isplitl
       · iexact Hat0
-      · iexact Hinv0
+      isplitr
+      · ipureintro; rfl
+      iexists γf
+      rw [show (etcd_dist.ClusterNames.view c).kv = c.γk from rfl]
+      iexact Hinv
   · -- no cluster: every member returns at once; the client's address set alone
-    imod (etcd_dist.envPub_start ⊤ (putgetPub (GF := putgetGF))) with ⟨%γE, -, #HinvE⟩
+    -- a putget invariant at fresh KV names, at a view no member serves
+    imod (putGetInvK_alloc_fresh (GF := putgetGF) go!"k" go!"v") with ⟨%γk0, %γf0, #HinvE⟩
     have hmem : ∀ k x, (peers.mapIdx (fun i _ => (bootMember peers clients i, σs i)))[k]? = some x →
         k < peers.length := by
       intro k x hk
@@ -378,11 +326,11 @@ theorem putgetKBoot_of
     cases clients with
     | nil =>
       imodintro
-      iexists sharesK S5 peers [] ps ctxs boot γE (W64 0)
+      iexists sharesK S5 peers [] ps ctxs boot (etcd_dist.DistView.ofKV γk0) (W64 0)
       isplitr
       · ipureintro
-        exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hprem
-          σs σc Hm Hfips S5 γE (W64 0)
+        exact system_boots HEnv HSM' peers [] ps ctxs boot Hbl Haf Hbuq Hrf Hdbo Hbgo
+          σs σc Hm Hfips S5 (etcd_dist.DistView.ofKV γk0) (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
       isplitl []
@@ -403,13 +351,13 @@ theorem putgetKBoot_of
       ihave Hs := BigSepL.bigSepL_append.1 $$ Hs
       icases Hs with ⟨-, Hcl⟩
       icases BigSepL.bigSepL_cons.1 $$ Hcl with ⟨Hu, -⟩
-      imod (etcd_dist.etcdAddr_set ⊤ c0 γE (W64 0)) $$ Hreg Hu with #Hat
+      imod (etcd_dist.etcdAddr_set ⊤ c0 (etcd_dist.DistView.ofKV γk0) (W64 0)) $$ Hreg Hu with #Hat
       imodintro
-      iexists sharesK S5 peers (c0 :: cr) ps ctxs boot γE (W64 0)
+      iexists sharesK S5 peers (c0 :: cr) ps ctxs boot (etcd_dist.DistView.ofKV γk0) (W64 0)
       isplitr
       · ipureintro
         exact system_boots HEnv HSM' peers (c0 :: cr) ps ctxs boot Hbl Haf Hbuq Hrf Hdbo
-          Hprem σs σc Hm Hfips S5 γE (W64 0)
+          Hbgo σs σc Hm Hfips S5 (etcd_dist.DistView.ofKV γk0) (W64 0)
       unfold system
       iapply BigSepL.bigSepL_append.2
       isplitl []
@@ -431,7 +379,11 @@ theorem putgetKBoot_of
         iunfold clientShare
         isplitl
         · iexact Hat
-        · iexact HinvE
+        isplitr
+        · ipureintro; rfl
+        iexists γf0
+        rw [show (etcd_dist.DistView.ofKV γk0).kv = γk0 from rfl]
+        iexact HinvE
 
 /-- **`putgetK_safe` over S5's named hypotheses** (see the file header): S5's names exist (`HS5`), and
 `StartMember` on a member machine meets its PLACEHOLDER spec (`HSM`). Neither is an axiom or a premise of

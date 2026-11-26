@@ -162,7 +162,7 @@ connect clause reworded after the independent review the same day) Two parts:
 address of `As` (a local process can dial `127.0.0.1:p` and send requests,
 `examples/premisefix/foreignconn`). (2026-11-23) Still needed over the net extension: the gRPC and
 HTTP traffic of the programs' models (grpc's `ClientConn`, `http.Transport`) does not go through the
-extension (`grpc.start`, `http.register` rest on `addrClaim` until phase 7's S2/S5), so the extension's
+extension (`Server.Serve`'s axiom, `http.register` rest on `addrClaim` until phase 7's S2/S5), so the extension's
 closed network does not exclude a foreign connection to a gRPC or HTTP listener;
 (b) **what `e` itself does** (a fact of its code, checked against the source): every connection to
 an address of `As` is made by `e`, and its requests are either sent through operations this
@@ -197,9 +197,9 @@ of `As` the program's claim on it (`addrClaim`; until the net swap, 2026-11-22, 
 listening token is now the net extension's) and the right to fix its HTTP protocol (`httpProtoFree`,
 D39a, 2026-10-23; the address part removed at the swap and restored 2026-11-23 for the single-process
 theorems); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
-(`dataDirFresh`; since 2026-11-24 consumed by nothing: `bootstrap` takes `dataAreaFresh`). (Sweep repairs 1,
-B4, to 2026-11-25: also `ETCD_VERIFY` off for the run, the token `envVerifyOff`; now the pure premise
-`EtcdVerifyOff`.) -/
+(`dataDirFresh`; since 2026-11-24 consumed by nothing: `bootstrap` takes `dataAreaFresh`). (Sweep
+repairs 1, B4, to 2026-11-25: also `ETCD_VERIFY` off for the run, the token `envVerifyOff`; now the pure
+premise `EtcdVerifyOff`.) -/
 def startRights {GF : BundledGFunctors} [GooseExts] (As Ds : List GoString) : IProp GF :=
   iprop(([∗list] a ∈ As, addrClaim a) ∗
     ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d))

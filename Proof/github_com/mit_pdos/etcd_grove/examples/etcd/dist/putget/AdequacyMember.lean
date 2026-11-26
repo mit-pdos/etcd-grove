@@ -3,7 +3,7 @@
 # `etcd/dist/putget`: the member machine's boot, over the interim cross-machine axioms (`notes/putget-dist-plan.md`, sections 10 and 12)
 
 `member_boot`: the member machine's boot program (`putget.initialize' #()`, then `putget.Member(peer, client)`)
-is safe from the member's share of the distributed start (`memberShare` at `Pub = putgetPub`) and its whole
+is safe from the member's share of the distributed start (`memberShare` at the cluster's names `c`) and its whole
 start (`DistBootWpST`: its files' and listeners' start resources, no package initialized, its main thread's
 token, the logic's bounds: at most `2 ^ 48` receipts, the thread bound `putgetThreads`).
 Linked: `Member.wp_proof` at its callees' linked results (`etcdstart`'s `Link`, `zap.NewNop`'s,
@@ -35,6 +35,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Pkg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BootOneLinked
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.google_golang_org.protobuf.proto.MarshalBootConfChange
 public import Perennial.Proof.time.Link
@@ -104,13 +105,11 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
-    (Hprem : ∀ n : Nat, n + 1 ≤ 2 ^ 48 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
-          boot)
+    (Hbg : etcdstart.BootGo1 name peer client id ctxs boot) (Hfips : crypto.fips140.GodebugFips140Off)
     (σm : state) (Hm : MemberFiles σm)
-    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
+    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (c : etcd_dist.ClusterNames) :
     DistBootWpST putgetThreads putgetSteps (bootMember peer client) σm
-      (memberShareIf peer client γE id (putgetPub (GF := putgetGF))) := by
+      (memberShareIf (GF := putgetGF) peer client c ctxs boot id) := by
   intro hG hGG hL hrb hT
   unfold putgetSteps at hrb
   unfold putgetThreads at hT
@@ -153,13 +152,16 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   · iframe
   (try wp_auto)
   -- `putget.Member(peer, client)`
-  ihave #Hpr := Hprem (2 ^ 48 - 1) (by decide) hG
-  ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩
+  -- (2026-11-24) `bootstrap`'s contract from the interim bootstrap axiom at Go's values (until then the
+  -- statement's named Iris premise `Hprem`)
+  ihave #Hsrvpkg : isPkgInit (PROP := IProp putgetGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  ihave #Hpr := etcdstart.premises_holds name peer client (2 ^ 48 - 1) id ctxs boot (by decide) Hfips Hbg $$ Hsrvpkg
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
-      peer client id ctxs boot γE (putgetPub (GF := putgetGF)) Hbf hlp hlc
+      peer client id ctxs boot c Hbf hlp hlc
       (by unfold srvLevels srvLevelK srvRevokeK; rw [hT]; decide) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hwa Hshare]
   · iframe Htok

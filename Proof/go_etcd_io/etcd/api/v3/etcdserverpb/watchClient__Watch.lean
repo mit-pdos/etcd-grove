@@ -35,6 +35,13 @@ theorem watchClient.Watch.wp_proof
     watchClient.Watch.spec (GF := GF) (hG := hG) := by
   intro wc conn addrs ics Up Spec ctx cd om opts vs
   wp_start as ⟨Hlt, #Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hom, #Hopts, #Hok⟩
+  iunfold etcdWatchConn at Hconn
+  icases Hconn with ⟨#Hconn, #Hcst⟩
+  iunfold etcdConnStream at Hcst
+  icases Hcst with ⟨%d, #Hcod, %hd⟩
+  obtain ⟨si, hsi⟩ : ∃ si, d.streamIc = some si := Option.ne_none_iff_exists'.mp hd.1
+  have hE : streamErrShape (GF := GF) d = fun _ => iprop(True) := by
+    funext err; unfold streamErrShape; rw [hsi]
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -68,14 +75,19 @@ theorem watchClient.Watch.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
-  have hNS := wp_NewStream conn addrs ics clientRes go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequestT
-    v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg Up Spec ctx cd om
-  simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT] at hNS
+  have hNS := wp_NewStream conn addrs ics clientRes d etcdVersionMd go!"/etcdserverpb.Watch/Watch"
+    v3rpc.pbWatchRequestT v3rpc.pbWatchResponseT v3rpc.pbWatchRequestT_reg v3rpc.pbWatchResponseT_reg
+    Up Spec ctx cd om
+  simp only [v3rpc.pbWatchRequestT, v3rpc.pbWatchResponseT, hE, ← clientAttemptMd_eq] at hNS
   iapply (hNS _ copts ([sm] ++ vs) (levelTok 0)) $$ [Hlt]
   · isplitr
     · iframe #
     isplitr
     · iframe #
+    isplitr
+    · iframe #
+    isplitr
+    · ipureintro; exact hd.2
     isplitr
     · ipureintro; rfl
     isplitl [Hlt]
@@ -84,11 +96,11 @@ theorem watchClient.Watch.wp_proof
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
     iframe Hd0
-    ipureintro; exact hcs
+    ipureintro; exact Or.inl hcs
   inext
   iintro %cs %err ⟨Hlt, Hres⟩
   wp_auto
-  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %md, %Ha, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %γ, %Dn, %cd', #Hcs, HSt, HRt, #HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto
@@ -96,7 +108,8 @@ theorem watchClient.Watch.wp_proof
     ipersist ClientStream
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := v3rpc.pbWatchRequest)
       (Rep := v3rpc.pbWatchResponse) etcdserverpb.WatchRequest etcdserverpb.WatchResponse
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (Up a) Dn cd' clientRes $$ [ClientStream]
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up
+      (fun a md => iprop(⌜a ∈ addrs⌝ ∗ clientAttemptMd conn om md)) Dn cd' clientRes $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
@@ -107,11 +120,8 @@ theorem watchClient.Watch.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists a, γ, Dn, cd', md
-    iframe
-    isplitr
-    · ipureintro; exact Ha
-    iexact Hw
+    iexists γ, Dn, cd'
+    iframe HSt HRt Hw HSpec
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'
     icases Herr' with ⟨%Hne, -, -⟩

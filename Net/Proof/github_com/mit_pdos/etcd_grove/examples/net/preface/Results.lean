@@ -45,6 +45,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
@@ -241,11 +242,11 @@ theorem preface_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
             γm) $$ [] Hgs
         iframe Hinvs Hplan
       · iapply wp_bootOf _ _ _ _ _ (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf)
-          (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.client.wp_main wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
       · iapply wp_bootOf _ _ _ _ _ (cmd.junk.wp_initialize' _ cmd.junk.getIsPkgInit_wf)
-          (cmd.junk.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.junk.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent

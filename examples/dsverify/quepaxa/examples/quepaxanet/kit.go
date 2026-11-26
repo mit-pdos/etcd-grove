@@ -51,8 +51,8 @@ import (
 // replicas, NKeys keys of KeyLen bytes (values of ValLen bytes in QuePaxa's flags), the first
 // client's QuePaxa name ClientName, QuePaxa's constant flags (BatchSize, BatchTimeUs, LeaderMode,
 // TimeEpochMs), an operation's wait for its answer OpMs, Listen's and Dial's retry RetryMs, the
-// orchestrator's wait for the deployment's start StartMs, and client c's wait before its first
-// operation c*StaggerMs.
+// orchestrator's wait for the deployment's start StartMs, and the bound on a client's random wait
+// before its first operation, NC*StaggerMs.
 const (
 	NC          uint64 = 6
 	K           uint64 = 20
@@ -434,8 +434,7 @@ func command(in In) string {
 
 // Op is client c's operation, run on client machine c with its QuePaxa client (NewClient's Sys),
 // one request as QuePaxa's benchmark client sends one: before the client's first request it waits
-// c*StaggerMs (staggered clients keep fault-free histories small enough for the check; time is
-// not modeled: the theorem allows any delay); a ClientBatch from the client (its name the sender)
+// a random 0 to NC*StaggerMs (time is not modeled: the theorem allows any delay); a ClientBatch from the client (its name the sender)
 // with one command and a fresh batch id ("<name>.<seq>": distinct across the clients, whose names
 // are) sent to every replica's proxy; then the first answer with that id, for at most OpMs: no
 // answer in time is an unknown outcome (Out{Unknown: true}). An answer's command is the store's
@@ -458,7 +457,7 @@ func Op(s *Sys, in In) Out {
 		return Out{Unknown: true}
 	}
 	if seq == 0 {
-		time.Sleep(time.Duration(s.c*StaggerMs) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(int(NC*StaggerMs)+1)) * time.Millisecond)
 	}
 	id := digits(s.name) + "." + digits(seq)
 	ch := make(chan *client.ClientBatch, 1)
@@ -644,11 +643,12 @@ func attempt() time.Duration {
 }
 
 // orch is the orchestrator over the given configuration and client addresses: New, a wait of
-// StartMs for the machines to connect (time is not modeled), then remote.Check.
+// StartMs for the machines to connect (time is not modeled), then remote.Check of a random 1 to K
+// operations per client.
 func orch(cfgs []string, clients []string, gen func(int) any) {
 	New(cfgs)
 	time.Sleep(time.Duration(StartMs) * time.Millisecond)
-	remote.Check(Model(), clients, Codec(), gen, int(K), attempt())
+	remote.Check(Model(), clients, Codec(), gen, 1+rand.Intn(int(K)), attempt())
 }
 
 // Orch is the orchestrator's program: it panics unless porcupine accepts the history of the

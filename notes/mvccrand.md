@@ -1,5 +1,9 @@
 # mvccrand: a randomized tester of mvcc, used as etcd's server uses it
 
+**Retired 2026-11-25** (#49, Upamanyu's decision: mvccfull covers a superset). The example, its proofs and
+`mvccrand_robust` are deleted; what other trees used moved (notes/STATUS.md, 2026-11-25, "mvccrand retired").
+This note is kept as history.
+
 Branch `worktree-mvcc-rand-tester`. 2026-10-30: the user asked for a top-level randomized tester of
 etcd's mvcc package in isolation, its adequacy proved end to end from the existing mvcc specs, or,
 if that is impossible, why the specs are insufficient. The first version (below, "The first
@@ -17,7 +21,8 @@ no check fails, in any interleaving). Over `goose_adequacy_start_files` (program
 `mvccrand_Main`: `Main` → `Run` → `runChecks`, `le.Stop()`, `be.Close()`). Hypotheses:
 `dbOpenOk`, `dbCloseOk`, `dbFilesAbsent prog ["mvccrand.db"]`, `verifyEnvOff prog`, `ckptEffectsOk`,
 `n + 2 ≤ 2 ^ 28`, the package assumptions, and at every ghost-state instance `sort.Slice.spec`
-(specified, neither proved nor assumed) and `□ keySized` (fewer than `2 ^ 62` keys in a read
+(specified, neither proved nor assumed; gone 2026-11-25: `genLease` sorts with `slices.Sort`, proved,
+`notes/specs-only/ledger.md`) and `□ keySized` (fewer than `2 ^ 62` keys in a read
 state). The decisions: `notes/decisions.md`, "mvccrand's closed theorem". Not covered: liveness
 (`TestRun`'s `Drain`), and the reads' and watches' exact results beyond what the checks test.
 

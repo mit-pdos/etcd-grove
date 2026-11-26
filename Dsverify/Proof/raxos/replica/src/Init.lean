@@ -17,7 +17,6 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
-public import Dsverify.Proof.google_golang_org.grpc.codes.Init
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.log.Link
 public import Perennial.Proof.math.rand.Link
@@ -28,6 +27,7 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.bufio.Init
+public import Dsverify.Proof.google_golang_org.grpc.codes.Init
 public import Dsverify.Proof.google_golang_org.grpc.status.Init
 public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
@@ -40,7 +40,6 @@ public import Dsverify.Proof.raxos.proto.client.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
-public import Dsverify.Proof.io.ioutil.Init
 public import Dsverify.Proof.encoding.gob.Init
 
 @[expose] public section
@@ -64,12 +63,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.google_golang_org.grpc.codes.InitHyp GF]
 variable [_root_.Perennial.google_golang_org.grpc.InitHyp GF]
-variable [_root_.Perennial.encoding.gob.InitHyp GF]
-variable [_root_.Perennial.io.ioutil.InitHyp GF]
 variable [_root_.Perennial.github_com.go_redis.redis.v8.InitHyp GF]
-variable [_root_.Perennial.gopkg_in.yaml_v2.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.replica.src.Assumptions]
 
 namespace raxos.replica.src
@@ -109,8 +104,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.github_com.go_redis.redis.v8 _root_.Perennial.github_com.go_redis.redis.v8.initialize'
       EtcdGrove.ExternalInit.github_com_go_redis_redis_v8 _root_.Perennial.github_com.go_redis.redis.v8.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.status.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.grpc.codes _root_.Perennial.google_golang_org.grpc.codes.initialize'
-      EtcdGrove.ExternalInit.google_golang_org_grpc_codes _root_.Perennial.google_golang_org.grpc.codes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.codes.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.grpc _root_.Perennial.google_golang_org.grpc.initialize'
       EtcdGrove.ExternalInit.google_golang_org_grpc _root_.Perennial.google_golang_org.grpc.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.reflect _root_.Perennial.reflect.initialize'

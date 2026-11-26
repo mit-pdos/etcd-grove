@@ -333,24 +333,36 @@ records a decrease. An owner's own matches are listed in `etc/bounds-allow.txt`.
 ## Trust base
 
 `etc/tcb-report.py` reports what the proof rests on (needs an up-to-date `lake
-build`): the `sorry`s and axioms the results depend on, the exported results (linked
+build`): the `sorry`s and axioms the results depend on, the trusted `opaque`s, the exported results (linked
 results no other proof uses), and the definitions their statements are written in
 terms of. Run it when you need the report; don't commit its output (`-o` writes a
 file), which goes stale as the proof changes. It never builds, nor does
 `etc/verified-code.py`: both exit, asking for `lake build`, when `lake build
 --no-build` finds the root modules out of date. `etc/tcb-report.py --check` exits 1 if
-this repository's axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
-purpose, rerun with `--check --update`.
+this repository's axioms, `sorry`s or trusted `opaque`s differ from `etc/tcb-baseline.txt` (`axiom X`,
+`sorry X`, `opaque X` lines); when you add or remove one on purpose, rerun with `--check --update`.
+
+A trusted `opaque` is not an axiom, but a statement or an axiom about one means only what its
+reader takes it to be, so it is trust as a definition is (until its stage defines it or proves the
+code it stands for). Counted (by declaring module, not namespace): the kernel's `opaque` constants
+(`opaque`, `partial def`) declared in this repository's modules (its Lake libraries' roots) and
+reached from an exported result's statement or from an axiom's type, through types, definitions'
+bodies and constructors (not proofs). Not counted: Lean's, Std's, Mathlib's, Iris's and Perennial's
+(trusted as a whole, as their axioms are), and those of this repository's Goose translations
+(`Code/`, `GeneratedProof/`, a part's `<root>/Code/`, `<root>/GeneratedProof/`: `T.underlying`,
+`T.zero_val`, an untranslated constant), trusted with the translator. A trusted model's opaque in
+a translated package's namespace (`TrustedCode/net/http.lean`'s `Perennial.net.http.godebugHttpmuxgo121`)
+counts. `etc/tcb-report.py --selftest` checks the rule on a small environment of its own.
 
 For some of the results only: `--roots PATTERN...` (regular expressions searched in a
 root's name, its module's file and its spec's file: `'raft__Step'`,
 `'^Spec/go_etcd_io/raft/'`) prints the axioms and `sorry`s those roots rest on and
 which roots reach a `sorry` (`--per-root`: every root). A collection
 (`etc/tcb-collections/*.txt`) keeps the patterns (`roots` lines) with their baseline
-(`axiom`/`sorry` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
+(`axiom`/`sorry`/`opaque` lines): `--collection etc/tcb-collections/raft.txt` reports on it,
 `--check` compares, `--check --update` rewrites the baseline. Track a proof's progress
 by adding a collection for it. Its `axioms PATTERN` lines, if any, restrict the report and the
-baseline to the axioms and `sorry`s whose name or module file matches one: what one family of
+baseline to the axioms, `sorry`s and opaques whose name or module file matches one: what one family of
 declarations contributes to the roots (`etc/tcb-collections/grpc.txt`).
 
 ## How much is verified
@@ -464,6 +476,12 @@ generated: never edit the `.lean` files by hand.
   are `Proof/go_etcd_io/etcd/server/v3/storage/wal/` (`Link.lean`: `etc/gen-link.py --walfs`; trust
   base `etc/tcb-collections/wal-fsext.txt`). Until 2026-11-15 in the part `LinuxFs/`, with the main
   tree's names-only WAL beside it (`notes/wal-lean-integration.md`).
+- A dependency of a project translated from a fork of its own (`etc/goose.py`'s `module_forks`: a
+  `replace` in the translation's temporary workspace only, the fork's and the examples' Go builds keep
+  the module itself), for a behaviour-preserving rewrite goose needs: otel v1.47.0 from
+  `zeldovich-agent/opentelemetry-go`, branch `goose-lean-encoderid` (`8717f503c`, on the tag v1.47.0;
+  project `etcd`), where `attribute`'s `defaultEncoderID = NewEncoderID()` (refused by goose's
+  modelcheck R4) is set by an `init` through a local variable.
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,

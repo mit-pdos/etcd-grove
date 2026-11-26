@@ -235,6 +235,7 @@ def spec_file(kit, kg):
     ms = machines(kg)
     o = [lean_header(kit), doc(st['doc']), 'module\n\n']
     o.append(f'public import Dsverify.Proof.{pkg}.TopLevelDefs\n')
+    o.append('public import Dsverify.Proof.Bounds\n')  # remoteStepBound (fix 5a)
     o.append(lines(st.get('imports')))
     o.append('\n@[expose] public section\n\nnoncomputable section\n\n'
              'set_option linter.iris.style.nameCheck false\n\nnamespace Perennial\n\n'
@@ -258,7 +259,7 @@ def spec_file(kit, kg):
         o.append('    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]\n')
         o.append('    (σ : Nat → state) (g : GlobalState) (threads : Nat),\n')
     o.append(f'    DistDeploy {st["addrs"]} (system σ) g →\n')
-    o.append(f'    Robustness.Robust [] (system σ) g threads ({st["steps"]})\n\n')
+    o.append(f'    Robustness.Robust [] (system σ) g threads {st["steps"]}\n\n')
     o.append(f'end {pkg}\nend Perennial\n')
     return ''.join(o)
 
@@ -453,6 +454,10 @@ def proof_file(kit, kg):
         for n, t, cls in premises(st):
             if t.startswith('    (∀ G L, letI := heapAt G L; '):
                 o.append(f'    haveI : {cls[0]} remoteGF := {n} G\' hG.goose_localGS\n')
+        # classes discharged in the proof, not premises (dsv-fix4: per-function axioms; KITGEN's
+        # statement `discharged`, [(class, term)], the term usually a linking module's `hyps_holds`)
+        for cls, term in st.get('discharged', []):
+            o.append(f'    haveI : {cls} remoteGF := {term}\n')
     o.append('    match i, hm with\n')
     for m in ms:
         frame = role_get(m, 'frame')

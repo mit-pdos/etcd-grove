@@ -37,8 +37,10 @@ public import Proof.go_uber_org.zap.PkgInit
 public import Proof.math.rand.Base
 public import Net.Proof.net.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
+public import Proof.google_golang_org.genproto.googleapis.rpc.status.Base
 public import Proof.crypto.tls.PkgInit
 public import Proof.google_golang_org.protobuf.PkgInit
+public import Proof.runtime.InitInv
 
 @[expose] public section
 
@@ -52,6 +54,19 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace go_etcd_io.etcd.cache.v3
+
+section grpcStatus
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- **`err` carries a gRPC status** (pure; grpc-trusted-T, T3, 2026-11-24): a non-nil error whose
+dynamic type has grpc's `GRPCStatus() *Status` method, so that `status.FromError` takes it as a status
+error (`ok = true`, given `statusErrOk`'s non-nil status: grpc v1.84.0 `status.go:96-127`). What a
+caller tells grpc's own errors apart by (the gRPC driver's `errOk`); `*status.Error` is such a type. -/
+def hasGRPCStatus (err : GoInterface) : Prop :=
+  ∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" =
+    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+
+end grpcStatus
 
 section desc
 
@@ -159,6 +174,102 @@ instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf
 
+-- `initInv` (the init-time invariant): `Proof/runtime/InitInv.lean` (dsv-retire-2, 2026-11-25)
+
+-- grpc's `grpclog` and `grpclog/internal` (types and names only, but `grpclog`'s `cache` and
+-- `Component`), before `connectivity`, `credentials`, `health` and grpc, whose `logger`s call
+-- `grpclog.Component` at init (phase7-inits batch 2, 2026-11-25; until then in
+-- `k8s/.../storage/etcd3/Base.lean`, fact `True`)
+instance google_golang_org_grpc_grpclog_internal_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  define_is_pkg_init iprop(True)
+instance google_golang_org_grpc_grpclog_internal_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog.internal :=
+  build_get_is_pkg_init_wf
+
+namespace google_golang_org.grpc.grpclog
+
+/-- The namespace of `cache`'s invariant. -/
+def cacheN : Namespace := nroot.@"grpclogCache"
+
+/-- **`grpclog`'s package fact** (phase7-inits batch 2, 2026-11-25; until then `True`): `cache` holds a
+map for good, whose contents (a component's name to its `*componentData`) are in an init-time invariant
+(`initInv`): `Component`, which reads and writes the map, is called only by package initializers (the
+`logger`s of grpc, `credentials`, `health` and `connectivity`; `Spec/google_golang_org/grpc/grpclog/Component.lean`). -/
+def grpclogInit : IProp GF :=
+  iprop(∃ (m : Loc) (γI : GName),
+    globalAddr _root_.Perennial.google_golang_org.grpc.grpclog.cache ↦□ m ∗
+    inv cacheN (initInv (∃ M : GMap GoString Loc, m ↦$ M) γI))
+
+instance grpclogInit_persistent : Persistent (grpclogInit (GF := GF)) := by
+  unfold grpclogInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
+  define_is_pkg_init grpclogInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.grpclog :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.grpclog
+
+-- (phase7-inits batch 2) grpc's `connectivity` (types and names only but its `logger`): `State`, the
+-- type grpc's `internal.HealthChecker` names; before `internal`
+instance grpc_connectivity_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.connectivity :=
+  define_is_pkg_init iprop(True)
+instance grpc_connectivity_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.connectivity :=
+  build_get_is_pkg_init_wf
+
+-- (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23, for `FromOutgoingContextRaw`) grpc's
+-- `internal` (names only but its hook variables), before `metadata`, `codes` and grpc, whose `init`s set
+-- them
+namespace google_golang_org.grpc.internal
+
+-- `hookN`, `hookInv`, `hookCell`, `hookCells`: `Proof/runtime/InitInv.lean` (dsv-retire-2, 2026-11-25)
+
+/-- The hook variables of type `any` the translated `init`s set: `metadata`'s, `codes`', grpc's
+(`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s. -/
+def hooksAny : List GoString :=
+  [_root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw,
+   _root_.Perennial.google_golang_org.grpc.internal.CanonicalString,
+   _root_.Perennial.google_golang_org.grpc.internal.AddGlobalDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.AddGlobalPerTargetDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.JoinDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.DisableGlobalDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.AcceptCompressors,
+   _root_.Perennial.google_golang_org.grpc.internal.GetServerCredentials,
+   _root_.Perennial.google_golang_org.grpc.internal.IsRegisteredMethod,
+   _root_.Perennial.google_golang_org.grpc.internal.ServerFromContext,
+   _root_.Perennial.google_golang_org.grpc.internal.AddGlobalServerOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.JoinServerOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.XDSFilterWrapperOption,
+   _root_.Perennial.google_golang_org.grpc.internal.RegisterClientHealthCheckListener]
+
+/-- The hook variables of function type the translated `init`s set: grpc's `func()`s, `health`'s
+`HealthCheckFunc` (an `internal.HealthChecker`) and `balancer`'s `BalancerUnregister` (a `func(string)`). -/
+def hooksFunc : List GoString :=
+  [_root_.Perennial.google_golang_org.grpc.internal.ClearGlobalDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalPerTargetDialOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.ClearGlobalServerOptions,
+   _root_.Perennial.google_golang_org.grpc.internal.HealthCheckFunc,
+   _root_.Perennial.google_golang_org.grpc.internal.BalancerUnregister]
+
+/-- **`internal`'s package fact**: the invariants of its hook cells, which only package initializers
+write and no translated code reads (their readers, grpc-go's tests, xds, stats/opentelemetry, orca and
+`experimental`, are outside the model; `Code/google_golang_org/grpc/internal.toml`). -/
+def internalInit : IProp GF :=
+  iprop(hookCells GoInterface hooksAny ∗ hookCells GoFunc hooksFunc)
+
+instance internalInit_persistent : Persistent (internalInit (GF := GF)) := by
+  unfold internalInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal :=
+  define_is_pkg_init internalInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal
+
 -- `google.golang.org/grpc/metadata` (types and names only), before `grpc`, which imports it
 -- (unit W-W: grpc's `ClientStream`/`ServerStream` name `metadata.MD`; moved here from
 -- `server/v3/auth/Base.lean`)
@@ -222,6 +333,18 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
   build_get_is_pkg_init_wf
 
 end google_golang_org.grpc.stats
+
+-- (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) `grpc/internal/grpcsync` (types only:
+-- `Event`, the type of `Server`'s `quit`/`done`), before grpc's, which imports it
+namespace google_golang_org.grpc.internal.grpcsync
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcsync :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcsync :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal.grpcsync
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
@@ -431,8 +554,9 @@ instance ctxErrIs_persistent (err : GoInterface) : Persistent (ctxErrIs (GF := G
 `status.FromError(err).Message()` and `rpctypes.ErrorDesc(err)` return. `nil`: `""`; an
 `rpctypes.EtcdError` value: its `desc` (`EtcdError.Error` returns it, and it has no `GRPCStatus`; a pure
 fact of a pointer-free value, the same in every run); an error of another type with grpc's
-`GRPCStatus() *Status`: the message of the read-only status it stably returns (`status.statusAt`);
-otherwise the string its `Error()` stably returns (`errorMsgIs`; grpc v1.84.0 `status.go:96-127`:
+`GRPCStatus() *Status`: the message of the read-only status it stably returns (`status.statusAt`; since
+status-bodies, 2026-11-25, the status its `*status.Error` holds, `status.grpcStatusIs`, on which two
+descriptions agree); otherwise the string its `Error()` stably returns (`errorMsgIs`; grpc v1.84.0 `status.go:96-127`:
 `FromError` returns the status of an error with `GRPCStatus` directly, and for every other error a status
 whose message is `err.Error()`, wrapping or not). A relation, not a function: no law makes two of them on
 one error agree (`notes/errdesc-ghost-plan.md`, the rule (I1)-(I4)); a fact about the description comes
@@ -449,9 +573,7 @@ def descIs (err : GoInterface) (m : GoString) : IProp GF :=
           [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗ errorMsgIs e m) ∨
         ∃ (s : Loc) (c : w32), ⌜methodSet e.ty !! go!"GRPCStatus" = some (go.Signature [] false
           [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗
-          (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-            WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-          EtcdGrove.status.statusAt s c m))
+          EtcdGrove.status.grpcStatusIs e s c m))
 
 instance descIs_persistent (err : GoInterface) (m : GoString) :
     Persistent (descIs (GF := GF) err m) := by
@@ -539,6 +661,59 @@ theorem descIs_of_msg (e : GoInterfaceOk) (m : GoString)
   iframe H
   ipureintro; exact hg
 
+omit package_sem in
+/-- **`deadlineExceededError{}`'s description is `"context deadline exceeded"`** (#45, 2026-11-25):
+its `Error()` returns the literal, and it has no `GRPCStatus`. -/
+theorem descIs_deadlineZero [_root_.Perennial.context.Assumptions] :
+    ⊢ descIs (GF := GF) (interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
+        #(zero_val _root_.Perennial.context.deadlineExceededError)) go!"context deadline exceeded" := by
+  iapply descIs_of_msg
+  · intro h
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
+      _root_.Perennial.context.deadlineExceededError.ty at h
+    simp at h
+  · have := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty)
+      go!"GRPCStatus"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at this
+    simp [this]
+  unfold errorMsgIs
+  iintro !> %Φ HΦ
+  wp_method_call
+  unfold _root_.Perennial.context.deadlineExceededError.Error.impl
+  wp_auto
+  iexact HΦ
+
+omit package_sem in
+/-- **A context's error has a description** (#45, 2026-11-25): its stable `Error()` (`"context
+canceled"` of the `*errorString` in `context.Canceled`, `"context deadline exceeded"` of
+`deadlineExceededError{}`); neither type has grpc's `GRPCStatus`. What `errors.IsStatusErr` takes of
+a context-error target. -/
+theorem isCtxErr_descIs [_root_.Perennial.errors.Assumptions] [_root_.Perennial.context.Assumptions]
+    (e : GoInterface) :
+    _root_.Perennial.context.isCtxErr (GF := GF) e ⊢ ∃ m : GoString, descIs e m := by
+  iintro #H
+  unfold _root_.Perennial.context.isCtxErr
+  icases H with (⟨-, %x, %hx, #Hs⟩ | ⟨-, %hx⟩)
+  · subst hx
+    iexists go!"context canceled"
+    iapply descIs_of_msg
+    · intro h
+      try simp only [interface.mkOk] at h
+      unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h
+      cases h
+    · have := go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"GRPCStatus"
+      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at this
+      simp [this]
+    unfold errorMsgIs
+    iintro !> %Φ HΦ
+    rw [method_unfold]
+    wp_auto
+    iexact HΦ
+  · subst hx
+    iexists go!"context deadline exceeded"
+    iapply descIs_deadlineZero
+
 /-- **The methods grpc's `status` and Go's `errors.Is` call on the error `e` return**
 (persistent; unit P3a), if `e`'s type has them (both are called through a type assertion):
 `GRPCStatus() *Status` (`status.FromError`/`Code`/`Convert`) and `Is(error) bool`
@@ -553,19 +728,69 @@ unexported fields); the fact is a guarantee of the producer that built `s` (with
 and never writes it after, as grpc and etcd do (`examples/premisefix/grpcstatusro`;
 `notes/k8s-7f5a-draft.md` §11.2); a status may be shared (package-level `status.Error` values).
 (errdesc stage 2a, 2026-11-20) Read-only with some code `c` and message `m`, the per-run relation
-`status.statusAt s c m` (until then `grpcStatusRO s (statusCode e)`, the pure `statusCode`). -/
+`status.statusAt s c m` (until then `grpcStatusRO s (statusCode e)`, the pure `statusCode`).
+(status-bodies, 2026-11-25, #24 7175612915) An error with `GRPCStatus() *Status` is a `*status.Error`
+holding that status (`status.grpcStatusIs`: its field `s`, read-only), not one whose `GRPCStatus()` has a
+WP returning it: one WP per fact, which no proof calling `GRPCStatus()` once can make agree
+(`status.FromError`'s code and message); the WP follows (`grpcStatusIs_wp`). True of grpc and of the
+code translated here, where `*status.Error` is the only type with that method. -/
 def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
   iprop((⌜methodSet e.ty !! go!"GRPCStatus" =
       some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ →
-    ∃ (s : Loc) (c : w32) (m : GoString), (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-      WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-      EtcdGrove.status.statusAt s c m) ∗
+    ∃ (s : Loc) (c : w32) (m : GoString), EtcdGrove.status.grpcStatusIs e s c m) ∗
     (⌜methodSet e.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])⌝ →
     □ ∀ (target : GoInterface) (m m' : GoString) (Φ : val → IProp GF),
       descIs (GoInterface.ok e) m -∗ descIs target m' -∗
       ▷ (∀ b : Bool, ⌜b = true → m = m'⌝ -∗ Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
+
+/-- **An error's value is of its dynamic type** (#45, 2026-11-25), for the three kinds of target
+`errors.IsStatusErr` compares an error with (`errors.ComparableErr`): an `rpctypes.EtcdError`
+holds an `EtcdError`, a `deadlineExceededError` its only value `deadlineExceededError{}`, and a
+pointer type a pointer. Go's typing makes it true of every Go interface value; the model does not
+type interface values, so the producers of errors say it. -/
+def stTypedErr (e : GoInterfaceOk) : Prop :=
+  (e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+    ∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError, e.v = #x) ∧
+  (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+    e.v = #(zero_val _root_.Perennial.context.deadlineExceededError)) ∧
+  (∀ T, e.ty = go.PointerType T → ∃ l : Loc, e.v = #l)
+
+/-- A pointer error is `stTypedErr`. -/
+theorem stTypedErr_ptr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
+    stTypedErr e := by
+  obtain ⟨T, l, hT, hl⟩ := h
+  refine ⟨fun h' => ?_, fun h' => ?_, fun _ _ => ⟨l, hl⟩⟩
+  · rw [hT] at h'; unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h'; cases h'
+  · rw [hT] at h'; unfold _root_.Perennial.context.deadlineExceededError.ty at h'; cases h'
+
+/-- An `EtcdError` value is `stTypedErr`. -/
+theorem stTypedErr_etcdError (x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) :
+    stTypedErr ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, #x⟩ := by
+  refine ⟨fun _ => ⟨x, rfl⟩, fun h' => ?_, fun T h' => ?_⟩
+  · unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
+      _root_.Perennial.context.deadlineExceededError.ty at h'
+    simp at h'
+  · unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty at h'; cases h'
+
+/-- `deadlineExceededError{}` is `stTypedErr`. -/
+theorem stTypedErr_deadline :
+    stTypedErr ⟨_root_.Perennial.context.deadlineExceededError.ty,
+      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩ := by
+  refine ⟨fun h' => ?_, fun _ => rfl, fun T h' => ?_⟩
+  · unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
+      _root_.Perennial.context.deadlineExceededError.ty at h'
+    simp at h'
+  · unfold _root_.Perennial.context.deadlineExceededError.ty at h'; cases h'
+
+/-- An error of a non-pointer type other than `EtcdError` and `deadlineExceededError` is
+`stTypedErr` (vacuously). -/
+theorem stTypedErr_of_ty (e : GoInterfaceOk)
+    (h1 : e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (h2 : e.ty ≠ _root_.Perennial.context.deadlineExceededError.ty)
+    (h3 : ∀ T, e.ty ≠ go.PointerType T) : stTypedErr e :=
+  ⟨fun h => absurd h h1, fun h => absurd h h2, fun T h => absurd h (h3 T)⟩
 
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks
@@ -578,12 +803,15 @@ them `rpctypes.Error` and the client's retry interceptor, need. No `Format` meth
 (premise-fixes-4, 2026-11-10): `fmt` prints it with its `Error` (`fmt.argOk`); grpc's
 `*status.Error`, `rpctypes.EtcdError` and the context errors have none (`examples/premisefix/
 fmtarg`). Its `Error` is `Error() string` (`noArgStringSig`; fmt soundness 2, 2026-11-18: what
-`fmt.argOk` asks since; true of every non-nil Go `error` value's dynamic type). -/
+`fmt.argOk` asks since; true of every non-nil Go `error` value's dynamic type). (#45, 2026-11-25)
+Its value is of its dynamic type, for the types `errors.Is` compares it with (`stTypedErr`: Go's
+typing, which the model does not have). -/
 def statusErrOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
     (∃ m : GoString, errorMsgIs e m) ∗ ⌜errors.isLeafError e⌝ ∗ grpcErrMethodsOk e ∗
     ⌜methodSet e.ty !! go!"Format" = none ∧
-      methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝)
+      methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝ ∗
+    ⌜stTypedErr e⌝)
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
@@ -591,7 +819,8 @@ instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (G
 /-- **The gRPC status code of `err` is `c`** (persistent; errdesc stage 2a, 2026-11-20: until then the
 pure `statusCode err`): what `status.FromError(err).Code()` and `status.Code(err)` return. `nil`:
 `OK`; an error without grpc's `GRPCStatus() *Status`: `Unknown` (grpc v1.84.0 `status.go:96-127`);
-one with it: the code of the read-only status it stably returns (`grpcErrMethodsOk`). -/
+one with it: the code of the read-only status it stably returns (`grpcErrMethodsOk`; since status-bodies,
+2026-11-25, the status its `*status.Error` holds, `status.grpcStatusIs`). -/
 def statusCodeIs (err : GoInterface) (c : w32) : IProp GF :=
   iprop(⌜err = GoInterface.nil ∧ c = W32 0⌝ ∨
     (∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e ∧ methodSet e.ty !! go!"GRPCStatus" ≠
@@ -600,9 +829,7 @@ def statusCodeIs (err : GoInterface) (c : w32) : IProp GF :=
     ∃ (e : GoInterfaceOk) (s : Loc) (m : GoString), ⌜err = GoInterface.ok e ∧
       methodSet e.ty !! go!"GRPCStatus" = some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])⌝ ∗
-      (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
-        WP (App (Val #(methods e.ty go!"GRPCStatus" e.v)) (Val #())) {{ Φ }}) ∗
-      EtcdGrove.status.statusAt s c m)
+      EtcdGrove.status.grpcStatusIs e s c m)
 
 instance statusCodeIs_persistent (err : GoInterface) (c : w32) :
     Persistent (statusCodeIs (GF := GF) err c) := by
@@ -630,7 +857,7 @@ theorem statusErrOk_descIs (err : GoInterface) :
     icases Hg with ⟨Hg, -⟩
     by_cases hg : methodSet e0.ty !! go!"GRPCStatus" = some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
-    · ihave ⟨%s, %c, %m', #Hs, #Hst⟩ := Hg $$ %hg
+    · ihave ⟨%s, %c, %m', #Hst⟩ := Hg $$ %hg
       iexists m'
       unfold descIs
       iright; iright
@@ -639,7 +866,7 @@ theorem statusErrOk_descIs (err : GoInterface) :
       · ipureintro; exact ⟨rfl, hx⟩
       iright
       iexists s, c
-      iframe Hs Hst
+      iframe Hst
       ipureintro; exact hg
     · iexists m
       unfold descIs
@@ -723,6 +950,74 @@ def rpctypesEtcdErrorTy : Prop :=
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Error" =
     some EtcdGrove.noArgStringSig
 
+/-- **`X` holds an error grpc's `status` accepts, of description `m`** (persistent; grpcerrmap,
+2026-11-26): what `v3rpc`'s error map `toGRPCErrorMap` takes of each of its values. -/
+abbrev statusErrVar (X m : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr X ↦□ GoInterface.ok e ∗ statusErrOk (GoInterface.ok e) ∗
+    descIs (GoInterface.ok e) m)
+
+/-- **The values of `v3rpc`'s error map** (grpcerrmap, 2026-11-26; `v3rpc/util.go`'s
+`toGRPCErrorMap`, in the literal's order, each once): `rpctypes`' errors, each with its description
+(`error.go`: the `status.Error` errors' messages, and `ErrMemberNotEnoughStarted`'s and
+`ErrTooManyRequests`' those of the `ErrGRPC*` errors they are `Error` of). -/
+abbrev rpctypesMapVals : IProp GF :=
+  iprop(
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotFound go!"etcdserver: member not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberExist go!"etcdserver: member ID already exist" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPeerURLExist go!"etcdserver: Peer URLs already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotLearner go!"etcdserver: can only promote a learner member" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyLearners go!"etcdserver: too many learner members in cluster" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrMemberNotEnoughStarted go!"etcdserver: re-configuration failed due to not enough started members" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLearnerNotReady go!"etcdserver: can only promote a learner member which is in sync with leader" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted go!"etcdserver: mvcc: required revision has been compacted" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev go!"etcdserver: mvcc: required revision is a future revision" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRequestTooLarge go!"etcdserver: request is too large" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace go!"etcdserver: mvcc: database space exceeded" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrTooManyRequests go!"etcdserver: too many requests" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader go!"etcdserver: no leader" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotLeader go!"etcdserver: not leader" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaderChanged go!"etcdserver: leader changed" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCanceled go!"etcdserver: request canceled" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCStopped go!"etcdserver: server stopped" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeout go!"etcdserver: request timed out" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToLeaderFail go!"etcdserver: request timed out, possibly due to previous leader failure" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToConnectionLost go!"etcdserver: request timed out, possibly due to connection lost" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutWaitAppliedIndex go!"etcdserver: request timed out, waiting for the applied index took too long" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUnhealthy go!"etcdserver: unhealthy cluster" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound go!"etcdserver: key not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCorrupt go!"etcdserver: corrupt cluster" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCBadLeaderTransferee go!"etcdserver: bad leader transferee" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCClusterVersionUnavailable go!"etcdserver: cluster version not found during downgrade" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWrongDowngradeVersionFormat go!"etcdserver: wrong downgrade target version format" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidDowngradeTargetVersion go!"etcdserver: invalid downgrade target version" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDowngradeInProcess go!"etcdserver: cluster has a downgrade job in progress" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoInflightDowngrade go!"etcdserver: no inflight downgrade job" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotFound go!"etcdserver: requested lease not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseExist go!"etcdserver: lease already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseTTLTooLarge go!"etcdserver: too large lease TTL" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootUserNotExist go!"etcdserver: root user does not exist" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootRoleNotExist go!"etcdserver: root user does not have root role" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserAlreadyExist go!"etcdserver: user name already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty go!"etcdserver: user name is empty" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserNotFound go!"etcdserver: user name not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleAlreadyExist go!"etcdserver: role name already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotFound go!"etcdserver: role name not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleEmpty go!"etcdserver: role name is empty" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthFailed go!"etcdserver: authentication failed, invalid user ID or password" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGiven go!"etcdserver: permission not given" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied go!"etcdserver: permission denied" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotGranted go!"etcdserver: role is not granted to the user" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGranted go!"etcdserver: permission is not granted to the role" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthNotEnabled go!"etcdserver: authentication is not enabled" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken go!"etcdserver: invalid auth token" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthMgmt go!"etcdserver: invalid auth management" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision go!"etcdserver: revision of auth store is old" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDeadlineExceeded go!"etcdserver: context deadline exceeded")
+
+set_option synthInstance.maxSize 4096 in
+instance rpctypesMapVals_persistent : Persistent (rpctypesMapVals (GF := GF)) := by
+  unfold rpctypesMapVals statusErrVar; infer_instance
+
 /-- `rpctypes`' package facts: the two errors the store returns (`EtcdError` values, k8s etcd3 7e-2's
 D1, `examples/k8s7e2attack`'s `TestRpctypesErrTypes`); `ErrCompacted.Error()`
 (the watcher's `Compact` puts it in the cancel response) returns some string, and so does
@@ -735,7 +1030,8 @@ returns their description); and (unit P3a: `rpctypes.Error` is translated) the m
 `ErrGRPCNotSupportedForLearner` (a `*status.Error`, a pointer); and (item 8, 2026-10-17: moved here
 from `auth`'s facts, so that `rpctypes`' initializer proves them) the token keys
 `TokenFieldNameGRPC`, `TokenFieldNameSwagger` (`"token"`, `"authorization"`; the strings since the
-auth plan's E2c). -/
+auth plan's E2c); and (grpcerrmap, 2026-11-26) the values of `v3rpc`'s error map, each an error grpc's
+`status` accepts with its description (`rpctypesMapVals`: the last conjunct). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e ∗
@@ -876,7 +1172,9 @@ abbrev rpctypesInit : IProp GF :=
       descIs (GoInterface.ok e) go!"etcdserver: no leader") ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e ∗
-      descIs (GoInterface.ok e) go!"etcdserver: not capable"))
+      descIs (GoInterface.ok e) go!"etcdserver: not capable") ∗
+    -- (grpcerrmap, 2026-11-26) the values of `v3rpc`'s error map, which its initializer reads
+    rpctypesMapVals)
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
@@ -1182,12 +1480,12 @@ theorem statusErrOk_code (err : GoInterface) :
     icases Hm with ⟨Hg, -⟩
     by_cases hg : methodSet e0.ty !! go!"GRPCStatus" = some (go.Signature [] false
         [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
-    · ihave ⟨%s, %c, %m, #Hs, #Hst⟩ := Hg $$ %hg
+    · ihave ⟨%s, %c, %m, #Hst⟩ := Hg $$ %hg
       iexists c
       unfold statusCodeIs
       iright; iright
       iexists e0, s, m
-      iframe Hs Hst
+      iframe Hst
       ipureintro; exact ⟨rfl, hg⟩
     · iexists W32 2
       unfold statusCodeIs
@@ -1421,7 +1719,7 @@ theorem errStrOk_of_statusErrOk (err : GoInterface) :
     statusErrOk (GF := GF) err ⊢ errStrOk err := by
   unfold statusErrOk errStrOk
   iintro #H !> %e %h
-  ihave ⟨⟨%m, #He⟩, -, -, %hF⟩ := H $$ %e %h
+  ihave ⟨⟨%m, #He⟩, -, -, %hF, -⟩ := H $$ %e %h
   isplitl
   · iapply errorMsgIs_errorStringSpec $$ He
   · ipureintro; exact hF

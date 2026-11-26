@@ -21,6 +21,9 @@ hypothesis `sigs ≠ []` fails). Each kit instantiates it with the signals its c
   `signal.Stop` needs no spec: `SigListen` reaches it only after a receive from one of the two
   channels, neither of which ever sends.
 * SwiftPaxos, `[SIGUSR1]` (`swiftpaxos.usr1Sigs`), what `hook.HookUser1` registers.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `NotifyQuiet.spec quietSigs` and `NotifyQuiet.spec usr1Sigs` are trust-boundary axioms (`Notify.lean`, the environment claims in their docstrings; review `notes/axiom-review/dsv-fix4/os-signal-notify.md`), from which the top-level proofs build `NoSignals`.
 -/
 module
 
@@ -43,6 +46,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 literal: `syscall.SIGINT` (2) and `syscall.SIGTERM` (15). -/
 def quietSigs : List os.Signal :=
   [interface.mkOk syscall.Signal.ty #(W64 2), interface.mkOk syscall.Signal.ty #(W64 15)]
+
+/-- The signal SwiftPaxos's `hook.HookUser1` registers (`signal.Notify(c, SIGUSR1)`; the fork writes
+`SIGUSR1` as the literal `syscall.Signal(0xa)`), as the `os.Signal` values of its slice literal
+(`swiftpaxos.usr1Sigs`, `lib/LibSpecs.lean`, is this list). -/
+def usr1Sigs : List os.Signal :=
+  [interface.mkOk syscall.Signal.ty #(W64 10)]
 
 /-- `Notify(c, sigs...)` on a non-`nil` channel, for a non-empty list `sigs`, in a deployment where
 none of `sigs` is sent: nothing (the environment assumption `NoSignals sigs`, the header). -/

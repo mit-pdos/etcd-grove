@@ -9,6 +9,9 @@ statement claims exactly that: the shared `math.rand.Seed.spec` (`Dsverify/Proof
 next to dsv-rabia's `math.rand.Hyps`, which gryff does not need: it never calls `Intn` or `New`).
 dsv-quepaxa's `Perennial.raxos.hyp.math.rand.Seed.spec` is textually the same triple (a duplicate to
 retire there). A premise of `gryff_remote_robust`; no instance.
+
+
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: the top-level proof builds the instance from the trust-boundary axiom `math.rand.Seed.wp_proof` (`Dsverify/Proof/math/rand/Seed.lean`; review `notes/axiom-review/dsv-fix4/math-rand-seed.md`).
 -/
 module
 

@@ -57,7 +57,7 @@ theorem cm_wtxEnd_lost (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb)
   · iright; iexact Hw
   ipureintro; exact ⟨Hok.1, hwr, hrl⟩
 
-omit [GooseSemantics] hos in
+omit hos in
 /-- **The agreed state follows the records** (the transaction holds it whole). -/
 theorem cm_excl_update (K : BC) (r : TxReg) (X X' : WX) (D : Data × Nat) :
     cmExcl (GF := GF) K r X D ⊢ |==> cmExcl K r X' D := by

@@ -204,7 +204,8 @@ opaque COLON [GooseExts] [GoGlobalContext] : val
 
 opaque operator_end [GooseExts] [GoGlobalContext] : val
 
-opaque keyword_beg [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def keyword_beg [GooseExts] [GoGlobalContext] : val :=
+  #(W64 60)
 
 opaque BREAK [GooseExts] [GoGlobalContext] : val
 
@@ -256,7 +257,8 @@ opaque TYPE [GooseExts] [GoGlobalContext] : val
 
 opaque VAR [GooseExts] [GoGlobalContext] : val
 
-opaque keyword_end [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def keyword_end [GooseExts] [GoGlobalContext] : val :=
+  #(W64 86)
 
 opaque additional_beg [GooseExts] [GoGlobalContext] : val
 
@@ -272,8 +274,6 @@ opaque HighestPrec [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tokens [GooseExts] [GoGlobalContext] : GoString :=
   go!"go/token.tokens"
-
-opaque tokens.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def keywords [GooseExts] [GoGlobalContext] : GoString :=
   go!"go/token.keywords"
@@ -305,6 +305,29 @@ noncomputable def IsIdentifier [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def compareKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go/token.compareKey"
 
+/-- go: token.go:284:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.MapType go.string Token.ty)]))) (Val #())) (App (Val (GoInstruction (GoOp GoSub Token.ty))) (Pair (Val keyword_end) (App (Val (GoInstruction (GoOp GoPlus Token.ty))) (Pair (Val keyword_beg) (Val #(W64 1)))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus Token.ty))) (Pair (Val keyword_beg) (Val #(W64 1))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc Token.ty))) (App (Val (GoInstruction (GoZeroVal Token.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt Token.ty))) (Pair (App (Val (GoInstruction (GoLoad Token.ty))) (Var "i")) (Val keyword_end))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Token.ty))) (Var "i"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string Token.ty)))) (App (Val (GoInstruction (GlobalVarAddr keywords))) (Val #())))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 89 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr tokens))) (Val #())) (App (Val (GoInstruction (GoLoad Token.ty))) (Var "i")))))) (Var "$r0"))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Token.ty))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus Token.ty))) (Pair (App (Val (GoInstruction (GoLoad Token.ty))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Token.ty))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string Token.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr keywords))) (Val #())) (Var "$r0")))))))
+  (Val #())))
+
 noncomputable instance info' : PkgInfo pkg_id.go.token where
   pkgImportedPkgs := []
 
@@ -315,10 +338,99 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.go.token)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"ILLEGAL"))
+  (Let "$v1" (Val #(go!"EOF"))
+  (Let "$v2" (Val #(go!"COMMENT"))
+  (Let "$v3" (Val #(go!"IDENT"))
+  (Let "$v4" (Val #(go!"INT"))
+  (Let "$v5" (Val #(go!"FLOAT"))
+  (Let "$v6" (Val #(go!"IMAG"))
+  (Let "$v7" (Val #(go!"CHAR"))
+  (Let "$v8" (Val #(go!"STRING"))
+  (Let "$v9" (Val #(go!"+"))
+  (Let "$v10" (Val #(go!"-"))
+  (Let "$v11" (Val #(go!"*"))
+  (Let "$v12" (Val #(go!"/"))
+  (Let "$v13" (Val #(go!"%"))
+  (Let "$v14" (Val #(go!"&"))
+  (Let "$v15" (Val #(go!"|"))
+  (Let "$v16" (Val #(go!"^"))
+  (Let "$v17" (Val #(go!"<<"))
+  (Let "$v18" (Val #(go!">>"))
+  (Let "$v19" (Val #(go!"&^"))
+  (Let "$v20" (Val #(go!"+="))
+  (Let "$v21" (Val #(go!"-="))
+  (Let "$v22" (Val #(go!"*="))
+  (Let "$v23" (Val #(go!"/="))
+  (Let "$v24" (Val #(go!"%="))
+  (Let "$v25" (Val #(go!"&="))
+  (Let "$v26" (Val #(go!"|="))
+  (Let "$v27" (Val #(go!"^="))
+  (Let "$v28" (Val #(go!"<<="))
+  (Let "$v29" (Val #(go!">>="))
+  (Let "$v30" (Val #(go!"&^="))
+  (Let "$v31" (Val #(go!"&&"))
+  (Let "$v32" (Val #(go!"||"))
+  (Let "$v33" (Val #(go!"<-"))
+  (Let "$v34" (Val #(go!"++"))
+  (Let "$v35" (Val #(go!"--"))
+  (Let "$v36" (Val #(go!"=="))
+  (Let "$v37" (Val #(go!"<"))
+  (Let "$v38" (Val #(go!">"))
+  (Let "$v39" (Val #(go!"="))
+  (Let "$v40" (Val #(go!"!"))
+  (Let "$v41" (Val #(go!"!="))
+  (Let "$v42" (Val #(go!"<="))
+  (Let "$v43" (Val #(go!">="))
+  (Let "$v44" (Val #(go!":="))
+  (Let "$v45" (Val #(go!"..."))
+  (Let "$v46" (Val #(go!"("))
+  (Let "$v47" (Val #(go!"["))
+  (Let "$v48" (Val #(go!"{"))
+  (Let "$v49" (Val #(go!","))
+  (Let "$v50" (Val #(go!"."))
+  (Let "$v51" (Val #(go!")"))
+  (Let "$v52" (Val #(go!"]"))
+  (Let "$v53" (Val #(go!"}"))
+  (Let "$v54" (Val #(go!";"))
+  (Let "$v55" (Val #(go!":"))
+  (Let "$v56" (Val #(go!"break"))
+  (Let "$v57" (Val #(go!"case"))
+  (Let "$v58" (Val #(go!"chan"))
+  (Let "$v59" (Val #(go!"const"))
+  (Let "$v60" (Val #(go!"continue"))
+  (Let "$v61" (Val #(go!"default"))
+  (Let "$v62" (Val #(go!"defer"))
+  (Let "$v63" (Val #(go!"else"))
+  (Let "$v64" (Val #(go!"fallthrough"))
+  (Let "$v65" (Val #(go!"for"))
+  (Let "$v66" (Val #(go!"func"))
+  (Let "$v67" (Val #(go!"go"))
+  (Let "$v68" (Val #(go!"goto"))
+  (Let "$v69" (Val #(go!"if"))
+  (Let "$v70" (Val #(go!"import"))
+  (Let "$v71" (Val #(go!"interface"))
+  (Let "$v72" (Val #(go!"map"))
+  (Let "$v73" (Val #(go!"package"))
+  (Let "$v74" (Val #(go!"range"))
+  (Let "$v75" (Val #(go!"return"))
+  (Let "$v76" (Val #(go!"select"))
+  (Let "$v77" (Val #(go!"struct"))
+  (Let "$v78" (Val #(go!"switch"))
+  (Let "$v79" (Val #(go!"type"))
+  (Let "$v80" (Val #(go!"var"))
+  (Let "$v81" (Val #(go!"~"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 89 go.string)))) (LiteralValue [(KeyedElement (some (KeyInteger 0)) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyInteger 1)) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyInteger 2)) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyInteger 4)) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyInteger 5)) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyInteger 6)) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyInteger 7)) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyInteger 8)) (ElementExpression go.string (Var "$v7"))), (KeyedElement (some (KeyInteger 9)) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyInteger 12)) (ElementExpression go.string (Var "$v9"))), (KeyedElement (some (KeyInteger 13)) (ElementExpression go.string (Var "$v10"))), (KeyedElement (some (KeyInteger 14)) (ElementExpression go.string (Var "$v11"))), (KeyedElement (some (KeyInteger 15)) (ElementExpression go.string (Var "$v12"))), (KeyedElement (some (KeyInteger 16)) (ElementExpression go.string (Var "$v13"))), (KeyedElement (some (KeyInteger 17)) (ElementExpression go.string (Var "$v14"))), (KeyedElement (some (KeyInteger 18)) (ElementExpression go.string (Var "$v15"))), (KeyedElement (some (KeyInteger 19)) (ElementExpression go.string (Var "$v16"))), (KeyedElement (some (KeyInteger 20)) (ElementExpression go.string (Var "$v17"))), (KeyedElement (some (KeyInteger 21)) (ElementExpression go.string (Var "$v18"))), (KeyedElement (some (KeyInteger 22)) (ElementExpression go.string (Var "$v19"))), (KeyedElement (some (KeyInteger 23)) (ElementExpression go.string (Var "$v20"))), (KeyedElement (some (KeyInteger 24)) (ElementExpression go.string (Var "$v21"))), (KeyedElement (some (KeyInteger 25)) (ElementExpression go.string (Var "$v22"))), (KeyedElement (some (KeyInteger 26)) (ElementExpression go.string (Var "$v23"))), (KeyedElement (some (KeyInteger 27)) (ElementExpression go.string (Var "$v24"))), (KeyedElement (some (KeyInteger 28)) (ElementExpression go.string (Var "$v25"))), (KeyedElement (some (KeyInteger 29)) (ElementExpression go.string (Var "$v26"))), (KeyedElement (some (KeyInteger 30)) (ElementExpression go.string (Var "$v27"))), (KeyedElement (some (KeyInteger 31)) (ElementExpression go.string (Var "$v28"))), (KeyedElement (some (KeyInteger 32)) (ElementExpression go.string (Var "$v29"))), (KeyedElement (some (KeyInteger 33)) (ElementExpression go.string (Var "$v30"))), (KeyedElement (some (KeyInteger 34)) (ElementExpression go.string (Var "$v31"))), (KeyedElement (some (KeyInteger 35)) (ElementExpression go.string (Var "$v32"))), (KeyedElement (some (KeyInteger 36)) (ElementExpression go.string (Var "$v33"))), (KeyedElement (some (KeyInteger 37)) (ElementExpression go.string (Var "$v34"))), (KeyedElement (some (KeyInteger 38)) (ElementExpression go.string (Var "$v35"))), (KeyedElement (some (KeyInteger 39)) (ElementExpression go.string (Var "$v36"))), (KeyedElement (some (KeyInteger 40)) (ElementExpression go.string (Var "$v37"))), (KeyedElement (some (KeyInteger 41)) (ElementExpression go.string (Var "$v38"))), (KeyedElement (some (KeyInteger 42)) (ElementExpression go.string (Var "$v39"))), (KeyedElement (some (KeyInteger 43)) (ElementExpression go.string (Var "$v40"))), (KeyedElement (some (KeyInteger 44)) (ElementExpression go.string (Var "$v41"))), (KeyedElement (some (KeyInteger 45)) (ElementExpression go.string (Var "$v42"))), (KeyedElement (some (KeyInteger 46)) (ElementExpression go.string (Var "$v43"))), (KeyedElement (some (KeyInteger 47)) (ElementExpression go.string (Var "$v44"))), (KeyedElement (some (KeyInteger 48)) (ElementExpression go.string (Var "$v45"))), (KeyedElement (some (KeyInteger 49)) (ElementExpression go.string (Var "$v46"))), (KeyedElement (some (KeyInteger 50)) (ElementExpression go.string (Var "$v47"))), (KeyedElement (some (KeyInteger 51)) (ElementExpression go.string (Var "$v48"))), (KeyedElement (some (KeyInteger 52)) (ElementExpression go.string (Var "$v49"))), (KeyedElement (some (KeyInteger 53)) (ElementExpression go.string (Var "$v50"))), (KeyedElement (some (KeyInteger 54)) (ElementExpression go.string (Var "$v51"))), (KeyedElement (some (KeyInteger 55)) (ElementExpression go.string (Var "$v52"))), (KeyedElement (some (KeyInteger 56)) (ElementExpression go.string (Var "$v53"))), (KeyedElement (some (KeyInteger 57)) (ElementExpression go.string (Var "$v54"))), (KeyedElement (some (KeyInteger 58)) (ElementExpression go.string (Var "$v55"))), (KeyedElement (some (KeyInteger 61)) (ElementExpression go.string (Var "$v56"))), (KeyedElement (some (KeyInteger 62)) (ElementExpression go.string (Var "$v57"))), (KeyedElement (some (KeyInteger 63)) (ElementExpression go.string (Var "$v58"))), (KeyedElement (some (KeyInteger 64)) (ElementExpression go.string (Var "$v59"))), (KeyedElement (some (KeyInteger 65)) (ElementExpression go.string (Var "$v60"))), (KeyedElement (some (KeyInteger 66)) (ElementExpression go.string (Var "$v61"))), (KeyedElement (some (KeyInteger 67)) (ElementExpression go.string (Var "$v62"))), (KeyedElement (some (KeyInteger 68)) (ElementExpression go.string (Var "$v63"))), (KeyedElement (some (KeyInteger 69)) (ElementExpression go.string (Var "$v64"))), (KeyedElement (some (KeyInteger 70)) (ElementExpression go.string (Var "$v65"))), (KeyedElement (some (KeyInteger 71)) (ElementExpression go.string (Var "$v66"))), (KeyedElement (some (KeyInteger 72)) (ElementExpression go.string (Var "$v67"))), (KeyedElement (some (KeyInteger 73)) (ElementExpression go.string (Var "$v68"))), (KeyedElement (some (KeyInteger 74)) (ElementExpression go.string (Var "$v69"))), (KeyedElement (some (KeyInteger 75)) (ElementExpression go.string (Var "$v70"))), (KeyedElement (some (KeyInteger 76)) (ElementExpression go.string (Var "$v71"))), (KeyedElement (some (KeyInteger 77)) (ElementExpression go.string (Var "$v72"))), (KeyedElement (some (KeyInteger 78)) (ElementExpression go.string (Var "$v73"))), (KeyedElement (some (KeyInteger 79)) (ElementExpression go.string (Var "$v74"))), (KeyedElement (some (KeyInteger 80)) (ElementExpression go.string (Var "$v75"))), (KeyedElement (some (KeyInteger 81)) (ElementExpression go.string (Var "$v76"))), (KeyedElement (some (KeyInteger 82)) (ElementExpression go.string (Var "$v77"))), (KeyedElement (some (KeyInteger 83)) (ElementExpression go.string (Var "$v78"))), (KeyedElement (some (KeyInteger 84)) (ElementExpression go.string (Var "$v79"))), (KeyedElement (some (KeyInteger 85)) (ElementExpression go.string (Var "$v80"))), (KeyedElement (some (KeyInteger 88)) (ElementExpression go.string (Var "$v81")))]))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val tokens.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 89 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr tokens))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc tokens (go.GoType.ArrayType 89 go.string))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc keywords (go.GoType.MapType go.string Token.ty))) (Val #()))))))))
 
 structure Position [GooseExts] where
   mk ::
@@ -751,6 +863,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   tree_instance : tree.TypeAssumptions
   node_instance : node.TypeAssumptions
   key_instance : key.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   IsExported_unfold : FuncUnfold IsExported [] IsExported.impl
 
 attribute [instance] Assumptions.Position_instance
@@ -764,6 +877,7 @@ attribute [instance] Assumptions.Position_instance
   Assumptions.tree_instance
   Assumptions.node_instance
   Assumptions.key_instance
+  Assumptions.«init.0_unfold»
   Assumptions.IsExported_unfold
 
 end go.token

@@ -4,14 +4,13 @@
 
 What `Member.spec` (`Spec/.../examples/etcd/dist/putgetk/Member.lean`) is written in, beside the cluster's
 start (`etcd_dist.etcdClusterStart`, `dist/ClusterStart.lean`) and the in-process `putgetN`'s audited
-per-member premises (`etcdstart.bootPremise` at `etcd_putgetN.dirN` and `etcdstart.urlsN`):
+per-member premises (`etcdstart.bootPremise` at `etcd_putgetN.dirN` and `etcdstart.urlsN`; since 2026-11-25
+`BootGoK`, the pure facts `bootstrap`'s interim axiom asks of them):
 * `nameOf j`: member `j`'s name as `putgetk.Name(j)` computes it;
 * `cmsOf ms ids`: the start's members (`etcd_dist.ClusterMember`: peer address, client address, member id)
   from the deployment's members and their ids, in the members' order;
-* `kvAgree ρ γk`: what `memberBoot_of_slice` says of the member's request names `ρ` against the cluster's
-  KV names;
-* `memberPubOkK γk Pub`: the member's publication obligation: its view, at any request names agreeing
-  with the cluster's KV names, satisfies `Pub` (the start's to provide, as putget's `memberPubOk`).
+* `memberShareK`: member `i`'s share of the cluster's start (its client address at the cluster's view,
+  `c.view`: O1 option B, `notes/etcd-dist-plan.md` §18.3; until 2026-11-25 also a publication obligation).
 -/
 module
 
@@ -20,6 +19,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Base
 public import Perennial.Proof.crypto.sha1.Fips180
 public import Proof.go_etcd_io.raft.v3.BootMarshal
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootDist
 
 @[expose] public section
 
@@ -40,11 +40,6 @@ def nameOf [GooseExts] (j : Nat) : GoString := go!"putgetk-" ++ fmtUint (W64 j) 
 in the members' order. -/
 def cmsOf [GooseExts] (ms : List GMember) (ids : List w64) : List etcd_dist.ClusterMember :=
   (ms.zip ids).map (fun p => ⟨p.1.Peer', p.1.Client', p.2⟩)
-
-/-- **The member's request names agree with the cluster's KV names** (`memberBoot_of_slice`'s pure post). -/
-def kvAgree [GooseExts] (ρ : ReqNames) (γk : KVNames) : Prop :=
-  ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
-    kvSame ρ.rd.kv γk
 
 /-! ## The configuration -/
 
@@ -114,42 +109,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **The members' named premises** (persistent): the in-process `putgetN`'s (`etcd_putgetN.premises`) at
-the configuration's members `membersOf peers clients`, their ids `idsOf peers` and `token`, at the bound
-`N` of each member's apply thread's write tokens, the peers `ps`, their contexts and the bootstrap log: per
-member, `bootstrap`'s contract (`etcdstart.bootPremise`) for its configuration (`cfgOk token name`) and URLs
-(`urlsN`) at the peer-URL directory `dirN`. (Until 2026-11-25 also `proto.Marshal`'s contract at the
-bootstrap log, `bootMarshal`, now from its trust-boundary axiom and `BootLogFacts.wire`, and the raft
-wrapper's contracts, `etcdstart.commonPremises`, now axioms: hprem-axioms' swap, on etcd-safe-main.) -/
-def premises (N : Nat) (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) : IProp GF :=
-  iprop(
-    ([∗list] m; id ∈ membersOf peers clients; idsOf peers,
-      etcdstart.bootPremise N ps (LogEntry.toEntries boot 0) ctxs
-        (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token m.Name'
-        (urlsN (membersOf peers clients) m) id))
-
-instance premises_persistent (N : Nat) (peers clients : List GoString) (ps : List w64)
-    (ctxs : List (List w8)) (boot : List LogEntry) :
-    Persistent (premises (GF := GF) N peers clients ps ctxs boot) := by
-  unfold premises; infer_instance
-
-end defs
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]
-
-/-- **The member's publication obligation** (persistent): its view, at any request names agreeing with the
-cluster's KV names `γk`, satisfies `Pub` (`etcd_dist.memberView`; the start's to provide: putget's
-`memberPubOk`, with the client's invariant allocated by the start, not the member, now that the KV state
-is the cluster's). -/
-def memberPubOkK (γk : KVNames) (Pub : etcd_dist.EnvView → IProp GF) : IProp GF :=
-  iprop(□ ∀ ρ : ReqNames, ⌜kvAgree ρ γk⌝ -∗ Pub (etcd_dist.memberView ρ))
-
-instance memberPubOkK_persistent (γk : KVNames) (Pub : etcd_dist.EnvView → IProp GF) :
-    Persistent (memberPubOkK γk Pub) := by
-  unfold memberPubOkK; infer_instance
+/-- **What `bootstrap` computes at each member's URLs** (pure; 2026-11-25, in place of the members' named
+premises `premises`, every member's `bootstrap` contract `etcdstart.bootPremise`, now derived from the interim
+axiom `bootstrap.wp_proof_dist`): for every member `m` of the configuration with its id `id`, the id is not one
+of raft's local targets, and at every URLs the member's configuration names (`urlsN`) the peers `ps`, contexts
+`ctxs`, the directory `dirN` and `id` are Go's (`bootGo.*` at the token), the URLs and names plain, and the
+initial cluster is `etcd_safe`'s shape: one peer URL per member, **at most 64 members** (`etcd_dist.bootGoAt`).
+Facts of the configuration (SHA-1 ids, the boot log's contexts) not yet evaluated in Lean. -/
+def BootGoK (peers clients : List GoString) (ps : List w64) (ctxs : List (List w8)) : Prop :=
+  ∀ (m : GMember) (id : w64), (m, id) ∈ (membersOf peers clients).zip (idsOf peers) →
+    (id ≠ W64 18446744073709551615 ∧ id ≠ W64 18446744073709551614) ∧
+    ∀ U, urlsN (membersOf peers clients) m U →
+      etcd_dist.bootGoAt ps ctxs (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers)) token m.Name'
+        id U
 
 end defs
 
@@ -166,16 +138,15 @@ variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [Has
 /-- **Member `i`'s share of the cluster's start** (when the configuration is `cfgOk`; `etcdClusterStart`'s,
 at S5's names `S5` and the cluster's names `c`): the names as the start chose them (`ClusterOk`, lease mode
 `none`, no compaction), the addresses distinct and valid (`DistDeploy`'s), its `memberStartShare` (of the
-configuration's members `cmsOf (membersOf peers clients) (idsOf peers)`) and its publication obligation. -/
+configuration's members `cmsOf (membersOf peers clients) (idsOf peers)`): its client address set at the
+cluster's view. -/
 def memberShareK (S5 : etcd_dist.S5Draft GF) (c : etcd_dist.ClusterNames) (peers clients : List GoString)
-    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (i : Nat) (γE : GName)
-    (Pub : etcd_dist.EnvView → IProp GF) : IProp GF :=
+    (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (i : Nat) : IProp GF :=
   iprop(⌜etcd_dist.ClusterOk c ps boot .none false 0 (idsOf peers) ∧ (addrs peers clients).Nodup ∧
       ∀ a ∈ addrs peers clients, Net.addrOk a = true⌝ ∗
     etcd_dist.memberStartShare S5 c (cmsOf (membersOf peers clients) (idsOf peers)) ps ctxs
       (LogEntry.toEntries boot 0)
-      ((cmsOf (membersOf peers clients) (idsOf peers)).getD i ⟨go!"", go!"", W64 0⟩) γE Pub ∗
-    memberPubOkK c.γk Pub)
+      ((cmsOf (membersOf peers clients) (idsOf peers)).getD i ⟨go!"", go!"", W64 0⟩))
 
 end shareK
 
