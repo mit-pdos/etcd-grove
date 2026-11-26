@@ -139,7 +139,7 @@ theorem member_crash_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Se
     [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hd : d.WellFormed) (Hcls : d.cfg.auth = false ∧ lmOf d = .none ∧ (cmpOf d).1 = false)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off)
@@ -165,7 +165,7 @@ def EtcdBootCAt (P : Deployment → Prop) : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (d : Deployment) (_Hd : d.WellFormed) (_HP : P d) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),

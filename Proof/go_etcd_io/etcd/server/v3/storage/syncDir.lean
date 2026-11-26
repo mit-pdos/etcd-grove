@@ -30,7 +30,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 theorem storage.syncDir.wp_proof
-    (wp_OpenDir : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions],
+    (wp_OpenDir : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt],
       go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specNE (GF := GF) (hG := hG))
     (wp_Fsync : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt],
       go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG)) :
