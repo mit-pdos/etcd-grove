@@ -162,6 +162,9 @@ theorem writerCodec.wp_proof
     cases ok
     · -- the flag is false: the loop ends
       (try wp_auto)
+      try simp only [val_false_ne_true, decide_false, _root_.decide_true, Bool.false_eq_true, ↓reduceIte]
+      try simp only [decide_eq_true_eq, _root_.decide_true, ↓reduceIte]
+      (try wp_auto)
       ihave Hdd : ownDec d r false $$ [Hd Hs0]
       · unfold ownDec; iexists s0, dq0; iframe
       wp_apply wp_Done d r false $$ [Hdd] as %dn %Hdn
@@ -171,7 +174,9 @@ theorem writerCodec.wp_proof
       iintro %hdn
       exact absurd (Hdn hdn).1 Bool.false_ne_true
     · by_cases hc : sint.Z j < sint.Z n
-      · simp only [decide_eq_true hc, ↓reduceIte]
+      · (try wp_auto)
+        simp only [decide_eq_true hc]
+        simp only [_root_.decide_true, ↓reduceIte]
         (try wp_auto)
         ihave Hdd : ownDec d r true $$ [Hd Hs0]
         · unfold ownDec; iexists s0, dq0; iframe
@@ -201,14 +206,16 @@ theorem writerCodec.wp_proof
         obtain ⟨-, e2⟩ := H2 h2
         rw [Hok rfl, e2, e3, kvsBody_snoc]
         simp only [List.append_assoc]
-      · simp only [decide_eq_false hc, Bool.false_eq_true, ↓reduceIte]
+      · (try wp_auto)
+        try simp only [decide_eq_false hc, val_false_ne_true, decide_false, Bool.false_eq_true, ↓reduceIte]
+        simp only [_root_.decide_true, ↓reduceIte]
         (try wp_auto)
         ihave Hdd : ownDec d r true $$ [Hd Hs0]
         · unfold ownDec; iexists s0, dq0; iframe
+        imod ownSlice_persist s _ _ $$ Hs with #Hs
         wp_apply wp_Done d r true $$ [Hdd] as %dn %Hdn
         · iframe
         (try wp_auto)
-        imod ownSlice_persist s _ _ $$ Hs with #Hs
         iapply HΦ'
         iintro %hdn
         obtain ⟨-, hnil⟩ := Hdn hdn
@@ -250,7 +257,9 @@ theorem writerCodec.wp_proof
       simp only [decide_eq_true hc, ↓reduceIte]
       (try wp_auto)
       have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
-      simp only [h0, hc, _root_.and_self, ↓reduceIte]
+      try simp only [h0, hc, _root_.and_self, ↓reduceIte]
+      try simp only [decide_eq_true_eq, _root_.decide_true, ↓reduceIte]
+      (try wp_auto)
       have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
       obtain ⟨x, hx⟩ : ∃ x, o[j]? = some x := ⟨_, List.getElem?_eq_getElem hj⟩
       wp_apply (wp_load_slice_index sl (sint.Z (W64 (j : Int))) o DFrac.discard x h0) $$ [] as -
@@ -283,6 +292,9 @@ theorem writerCodec.wp_proof
       (try wp_auto)
       iunfold ownEnc at He
       icases He with ⟨%s, He, Hs, -⟩
+      (try wp_auto)
+      try simp only [val_false_ne_true, decide_false, _root_.decide_true, Bool.false_eq_true, ↓reduceIte]
+      try simp only [decide_eq_true_eq, _root_.decide_true, ↓reduceIte]
       (try wp_auto)
       iapply HΦ'
       have e : capped (recsBytes o) = encU64 sl.len ++ recsBody o := by
@@ -326,6 +338,9 @@ theorem writerCodec.wp_proof
     cases ok
     · -- the flag is false: the loop ends
       (try wp_auto)
+      try simp only [val_false_ne_true, decide_false, _root_.decide_true, Bool.false_eq_true, ↓reduceIte]
+      try simp only [decide_eq_true_eq, _root_.decide_true, ↓reduceIte]
+      (try wp_auto)
       ihave Hdd : ownDec d r false $$ [Hd Hs0]
       · unfold ownDec; iexists s0, dq0; iframe
       wp_apply wp_Done d r false $$ [Hdd] as %dn %Hdn
@@ -335,7 +350,9 @@ theorem writerCodec.wp_proof
       iintro %hdn
       exact absurd (Hdn hdn).1 Bool.false_ne_true
     · by_cases hc : sint.Z j < sint.Z n
-      · simp only [decide_eq_true hc, ↓reduceIte]
+      · (try wp_auto)
+        simp only [decide_eq_true hc]
+        simp only [_root_.decide_true, ↓reduceIte]
         (try wp_auto)
         ihave Hdd : ownDec d r true $$ [Hd Hs0]
         · unfold ownDec; iexists s0, dq0; iframe
@@ -370,14 +387,16 @@ theorem writerCodec.wp_proof
         obtain ⟨-, e2⟩ := H2 h2
         rw [Hok rfl, e2, e3, e4, recsBody_snoc]
         simp only [List.append_assoc]
-      · simp only [decide_eq_false hc, Bool.false_eq_true, ↓reduceIte]
+      · (try wp_auto)
+        try simp only [decide_eq_false hc, val_false_ne_true, decide_false, Bool.false_eq_true, ↓reduceIte]
+        simp only [_root_.decide_true, ↓reduceIte]
         (try wp_auto)
         ihave Hdd : ownDec d r true $$ [Hd Hs0]
         · unfold ownDec; iexists s0, dq0; iframe
+        imod ownSlice_persist s _ _ $$ Hs with #Hs
         wp_apply wp_Done d r true $$ [Hdd] as %dn %Hdn
         · iframe
         (try wp_auto)
-        imod ownSlice_persist s _ _ $$ Hs with #Hs
         iapply HΦ'
         iintro %hdn
         obtain ⟨-, hnil⟩ := Hdn hdn

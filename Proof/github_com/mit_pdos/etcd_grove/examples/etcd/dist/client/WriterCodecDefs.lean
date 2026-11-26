@@ -170,6 +170,10 @@ theorem recsBytes_dec {rs0 rs : List wrec} {n : w64}
 
 end pure
 
+/-- The loops' exit: a false condition is not `true`. -/
+theorem val_false_ne_true [GooseExts] [GoGlobalContext] : (#false : val) ≠ #true :=
+  fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)
+
 end etcd_dist_client
 end EtcdGrove
 end Perennial
