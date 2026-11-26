@@ -186,6 +186,22 @@ theorem rawNode_prop_mint (γ : Cluster) (N : Namespace) (data : List w8) (E : C
   · ipureintro; exact ⟨rfl, Hnf, CCDecodes_normal _⟩
   iexact Hdep
 
+/-- (antithesis parity B1) **A read context's raft resources, minted** (the antithesis harness's
+`RawNode.ReadIndex` premises, for a context `c` the client has not used): `c`'s fresh token and raft's
+trivial read update, `c` now used (`ApiImpl.api_read_lend`). The update's predicate is `True`, not a
+client's `Q`: `RawNode.ReadIndex` takes the fresh token with any update, so the adapter cannot tie a
+deposit of `c` to a predicate of the client's (no `isReadCtx` of `c` exists). -/
+theorem rawNode_read_mint (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
+    (E : CoPset) (HE : ↑N ⊆ E) :
+    ⊢ isCluster (GF := GF) γ N -∗ ownReadCtxs γ U -∗ ⌜c ∉ U⌝ ={E}=∗
+      ownReadCtxs γ (insert c U) ∗ rdFresh γ.raftNames c ∗
+        readAu γ.raftNames (fun _ => iprop(True)) := by
+  iintro #Hcl HU %Hc
+  unfold isCluster ApiImpl.isClusterU
+  icases Hcl with ⟨-, #Hci, -⟩
+  unfold ownReadCtxs Cluster.raftNames
+  iapply ApiImpl.api_read_lend γ N U c E HE Hc $$ Hci HU
+
 end mint
 
 section spec

@@ -296,7 +296,7 @@ private theorem api_alloc_client_norm (N : Namespace) (E : CoPset) (cfg : GSet w
   imod inv_alloc (apiN N) E (apiInvBody (GF := GF) γ) $$ [HrL Hf Ho1 Hfa Hrfa] with #Hinv
   · inext
     unfold apiInvBody
-    iexists LogEntry.toEntries boot 0, bootFresh (LogEntry.toEntries boot 0), ∅
+    iexists LogEntry.toEntries boot 0, bootFresh (LogEntry.toEntries boot 0), ∅, ∅
     rw [strip_toEntries, HB.ops]
     iframe HrL Hf Ho1 Hfa Hrfa
     isplitr
@@ -319,10 +319,14 @@ private theorem api_alloc_client_norm (N : Namespace) (E : CoPset) (cfg : GSet w
       imodintro
       iintro %c %Hc
       exact absurd Hc (by simp [GMap.lookup_empty])
+    isplitr
     · unfold rdFreshOk
       imodintro
       iintro %c %Hc
       exact absurd Hc (by simp [GMap.lookup_empty])
+    · unfold rdLent
+      iapply BigSepM.bigSepM_empty.2
+      all_goals iempintro
   ihave #Hinv' : apiInv (GF := GF) γ N $$ []
   · unfold apiInv; iexact Hinv
   ihave #Hnoop := api_noopAu γ N HNs $$ Hinv'
@@ -377,7 +381,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
           γ.raft.maxData = none ∧ γ.raft.reNoSnap = false ∧ γ.raft.reCfg = GMap.listToSet vs ∧
           γ.raft.reNs = N .@ "raft" ∧ domSet γ.raft.reAcks = GMap.listToSet ids ∧
           domSet γ.raft.reWins = GMap.listToSet ids⌝ ∗
-        ownCommittedOps (GF := GF) γ boot ∗ isClusterU γ N ∗
+        ownCommittedOps (GF := GF) γ boot ∗ ownReadCtxs γ ∅ ∗ isClusterU γ N ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗
         isCommitted γ.raft γ.raft.reBoot ∗ logRecs γ.raft base0 γ.raft.reBoot ∗
         [∗list] id ∈ ids, raftStateU γ id
@@ -411,7 +415,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     $$ Hcl with ⟨%γr, %Hdom, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0, Hmxd'⟩ := Hγ
   iunfold allocOut at Hout
-  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, -, -⟩
+  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, HU, -⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
   subst Hγr
   have Hrn : DecNames γ c0 gd := by
@@ -458,7 +462,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
   imod boot_facts E γ.raft HrE $$ Hcinv with ⟨#Hcb, #Hrecs, %Hbf⟩
   imodintro
   iexists γ
-  iframe Hops Hdc Hcb Hrecs
+  iframe Hops HU Hdc Hcb Hrecs
   isplitr
   · ipureintro; exact ⟨Hdup, HbootL, Htr0, Hmxd', Hns, Hcfg, HNs, Hdom.1, Hdom.2⟩
   isplitr
@@ -499,7 +503,8 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [CrashGS GF
 /-- **`cluster_alloc_normBoot` over the node API's names** (`cluster_alloc_names`' form): the
 cluster's facts (duplicated proposals as `dup` says, the bootstrap log's length, no data bound, snapshots on,
 untraced) and its raft names' (the voters, the bootstrap log, raft's namespace `N.@"raft"`); the
-committed operations at the bootstrap log, the cluster, the configuration of no entry; the bootstrap
+committed operations at the bootstrap log, the read contexts' authority at `∅` (antithesis parity B1:
+the harness lends contexts, `rawNode_read_mint`), the cluster, the configuration of no entry; the bootstrap
 log committed with its records; every id of `ids` at its durable state with its vacant slot; (antithesis
 parity B1, group E) the acknowledgement and win maps named for exactly the ids `ids` (`isAcked`'s and
 `isLeader`'s node an id). -/
@@ -514,19 +519,19 @@ theorem cluster_alloc_run (N : Namespace) (vs ids : List w64) (boot : List LogEn
       ⌜γ.raftNames.reCfg = GMap.listToSet vs ∧ γ.raftNames.reBoot = LogEntry.toEntries boot 0 ∧
         γ.raftNames.reNs = N.@"raft" ∧ γ.raftNames.reTrace = none ∧ γ.raftNames.maxData = none ∧
         domSet γ.raftNames.reAcks = GMap.listToSet ids ∧ domSet γ.raftNames.reWins = GMap.listToSet ids⌝ ∗
-      ownCommittedOps (GF := GF) γ boot ∗ isCluster γ N ∗
+      ownCommittedOps (GF := GF) γ boot ∗ ownReadCtxs γ ∅ ∗ isCluster γ N ∗
       confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗
       isCommitted γ.raftNames γ.raftNames.reBoot ∗ logRecs γ.raftNames base0 γ.raftNames.reBoot ∗
       [∗list] id ∈ ids, raftState γ id
         (if boot = [] then RaftState.init else bootDurState γ.raftNames.reBoot) ∗ nodeVacant γ id := by
   intro Hrb Hne Hnd Hnz Hlen Hind Hinz HB
-  unfold ownCommittedOps isCluster confAt Cluster.dup Cluster.bootLen Cluster.trace Cluster.maxData
+  unfold ownCommittedOps ownReadCtxs isCluster confAt Cluster.dup Cluster.bootLen Cluster.trace Cluster.maxData
     raftState nodeVacant clusterNoSnap Cluster.raftNames
   imod ApiImpl.cluster_alloc_normBoot (GF := GF) N vs ids boot dup E HE Hrb Hne Hnd Hnz Hlen Hind Hinz HB
-    with ⟨%γ, %Hd, Hops, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
+    with ⟨%γ, %Hd, Hops, HU, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
   imodintro
   iexists γ
-  iframe Hops Hcl Hca Hcb Hrecs Hfs
+  iframe Hops HU Hcl Hca Hcb Hrecs Hfs
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := Hd
   isplitr
   · ipureintro

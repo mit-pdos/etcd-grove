@@ -13,7 +13,8 @@ Lean-first (no Rocq counterpart). #33 parity B1: the run's ghost start and end f
 - `antRaft_alloc`: raft's cluster at the run's `R` (raft's `cluster_alloc_run` at the voters
   `1..K`, the ids `1..N`, the boot log `bootLog R` the driver writes): the static facts `nodeRaft`
   and `nodeDownRaft` state, the cluster, its receipts' fit, the client log's invariant (`opsInv`),
-  the configuration of no entry, raft's initial facts `bootFacts0 R` (`raftFactsOwn`: the boot log,
+  the read contexts' authority at `∅` (the reader's, for `rawNode_read_mint`), the configuration
+  of no entry, raft's initial facts `bootFacts0 R` (`raftFactsOwn`: the boot log,
   certified and committed), each node's vacant slot and durable state at `downDur R`;
   `propMinter_intro`: the proposer's minting from the cluster and `opsInv` (raft's
   `rawNode_prop_mint`).
@@ -284,7 +285,7 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
         -- (antithesis parity B1, group E) an acknowledging node, and a winning one, is a server
         (∀ a : w64, (γr.raftNames.reAcks !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j) ∧
         (∀ a : w64, (γr.raftNames.reWins !! a).isSome → ∃ j : Fin R.N, a = AntSim.nodeId j)⌝ ∗
-      isCluster (GF := GF) γr antRaftN ∗ readyFits γr antRaftN ∗ opsInv γr ∗
+      isCluster (GF := GF) γr antRaftN ∗ readyFits γr antRaftN ∗ opsInv γr ∗ ownReadCtxs γr ∅ ∗
       confAt γr 0 (Membership.simple R.voters0) ∗ raftFactsOwn γr.raftNames (bootFacts0 R) ∗
       [∗list] j ∈ List.finRange R.N,
         nodeVacant γr (AntSim.nodeId j) ∗ raftState γr (AntSim.nodeId j) (downDur R) := by
@@ -293,7 +294,7 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
   obtain ⟨Hind, Hinz⟩ := nodeIds_ok R
   imod cluster_alloc_run (GF := GF) antRaftN (votersL R) ((List.finRange R.N).map AntSim.nodeId)
       (bootOps R) true ⊤ (fun _ _ => CoPset.mem_full) Hrb Hvne Hvnd Hvnz Hvlen Hind Hinz (bootOps_norm R)
-    with ⟨%γr, %Hd, %Hnm, Hops, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
+    with ⟨%γr, %Hd, %Hnm, Hops, HU, #Hcl, #Hca, #Hcb, #Hrecs, Hfs⟩
   obtain ⟨Hdup, Hbl, Hmd, Hns, Htr⟩ := Hd
   obtain ⟨Hcfg, Hboot, HreNs, HreTr, HreMd, Hacks, Hwins⟩ := Hnm
   rw [bootOps_entries] at Hboot
@@ -320,7 +321,7 @@ theorem antRaft_alloc (R : AntSim.RunCfg) (Hfits : antRunFits GF) :
       obtain ⟨j, -, hj⟩ := List.mem_map.1 ((GMap.elem_of_list_to_set _ _).1 h1)
       exact ⟨j, hj.symm⟩
   rw [show R.voters0 = GMap.listToSet (votersL R) from rfl]
-  iframe Hcl Hrfit Hopsi Hca
+  iframe Hcl Hrfit Hopsi HU Hca
   isplitr
   · unfold raftFactsOwn bootFacts0
     rw [← Hboot]

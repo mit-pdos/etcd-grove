@@ -6843,3 +6843,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the antCluster intro, `node__start`/`Cluster__proposer`'s antCluster patterns gain a trailing `-` (the other sites end
   in a name that already absorbs the tail).
 - **Decision.** The Antithesis lead (forward-destination route, steps 2-3, approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: raft's read-mint law for the harness (rawNode_read_mint) (#33)
+- **Law (lead-approved, corrected statement).** RawNodeStartSpec.lean `rawNode_read_mint (γ N U c E) (HE : ↑N ⊆ E) :
+  ⊢ isCluster γ N -∗ ownReadCtxs γ U -∗ ⌜c ∉ U⌝ ={E}=∗ ownReadCtxs γ (insert c U) ∗ rdFresh γ.raftNames c ∗
+  readAu γ.raftNames (fun _ => True)`: a client holding the read contexts' authority mints an unused context's
+  fresh token and raft's trivial read update, for its own `RawNode.ReadIndex` (the antithesis driver's `node.readIndex`).
+  ClusterAllocRun `cluster_alloc_run` (and the private `cluster_alloc_normBoot`) also return `ownReadCtxs γ ∅` (was
+  dropped); RunClusterAlloc `antRaft_alloc` returns it (`RunCluster` names it `HU`, unused until the reader's
+  `readerOwn` carries it).
+- **Why not the requested general form** (`ctxAu γ N Q` premise, `readAu (qrOf Q)`): unsound. `RawNode.ReadIndex`
+  accepts the fresh token with ANY read update `Qr`, so a deposit of `c` need not be at `qrOf Q`; yet the adapter's
+  `readStateOk_ctx` would give `□ Q` of a read state of `c` to whoever holds `isReadCtx c Q`. Also the adapter's
+  invariant required every key of its fresh-token map `RF` to be deposited already (`rdKeys`: `readReq`; `rdFreshOk`:
+  `isRead … (qrOf Q)`), which a token handed out before the deposit breaks.
+- **Invariant change (InvApi, untrusted).** `apiInvBody` gains `RL : GMap (List w8) GName` and `rdLent γ RL :=
+  [∗map] c ↦ γq ∈ RL, c ↪[γ.ctxs]□ (γq, []) ∗ savedPredOwn γq (DFrac.own 1) (fun _ => True)`; `rdKeys γ RF RL` per
+  key `readKey γ c ∨ (⌜(RL !! c).isSome⌝ ∗ ∃ γq, c ↪[γ.ctxs]□ (γq, []))`, `rdFreshOk γ RF RL` per key
+  `readDep γ c ∨ ⌜(RL !! c).isSome⌝`. A lent context's `ctxs` name has its saved predicate owned whole by the
+  invariant, so no `isReadCtx` of it exists (`rdLent_ctx_absurd`: `own 1 • discard` invalid). `api_read_ensure` and
+  `readStateOk_ctx_impl` (via the new `api_readReq_ctx`) dismiss the lent case by it; `api_readReq_dep` now returns
+  only `readKey` (a lent context's from the request itself at `l0 = []`). New: `api_readAu_true` (raft's trivial read
+  update from the adapter's invariant alone), `api_read_lend` (the law's body). Public node-API statements unchanged.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
