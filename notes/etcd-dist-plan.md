@@ -4368,3 +4368,21 @@ When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` b
   closes; then M1 is a corollary and the premise can go with M1 itself (Q4).
 - Narrowings already in `WellFormed` (F7's Q1/Q2 and auth ⇒ no compactor): the classes of §27.1 rest on them.
 - `Serve_dist`'s docstring carries the N3 review's F4 sentence (watch streams) onto F7's replaced text: re-review item.
+
+### 30.6 Checks at the line's head
+- Full VM build (`lake build`, whole lib) green at `95c5e4343e`; `dist.TopLevelRobustness` green with the theorem.
+- `tcb-report --check`: ok after `--update` (+3, 30.5). Collections `etcd-dist`, `etcd-dist-lease`: rewritten (§30 commit).
+- `premise-witness --check`: ok (49 statements). `tier-check`: ok. `lease-order-check`: ok. Generated files: up to date;
+  `copy-part --check`: 0 differ.
+- `bounds-check`: FAILED, 423 against 389, all carried in from F7 (F7 alone: 420; lean: 385 ok). The line's own new
+  bounds are allow-listed (dist/client spec-thread/spec-receipt lines).
+- `dist-axiom-diff --check`: FAILED (20): F2's and F7's lease and auth-on axioms have no `pair`/`nosource` line yet
+  (F7's F9 rows). N3's `Watch_dist`/`RequestProgress_dist` now pass.
+- `axiom-tok --check`: FAILED, 47 need an entry. Among them are the axioms the theorem reaches for the first time: N3's two,
+  N2's `KV_Compact_dist`, F2's six (rule 2 `8/1` or `8/0` and rule 7 `∃ P`, `Client_Put_dist`'s accepted pattern). Also
+  among them are M1's KV/Serve/NewServer/PeerServe entries and several grpc/etcdserver trust axioms whose walks changed
+  in the merges (F7's replaced `Serve_dist`/`NewServer_dist`; wenv's `isNewClient`). Each entry is to be re-derived
+  from its walk and triaged, never copied (open item; the F9 packet's).
+- gen-link: the 61 Links of the dist/etcd modes match; five Links of other projects (bbolt, kvraft, WAL) differ
+  from what `gen-link` prints in this worktree with no `.lake`. They are identical to `lean`'s files, so the difference
+  comes from this environment.
