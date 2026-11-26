@@ -226,3 +226,16 @@ calls and the proposed `NewServer`/`Serve`). The coordinator decided the fixes, 
 - **`readCheckedD`** gives `srvReqLogLb γR L` for `readAuthedD`'s `L` (re-review A's N1).
 - Ledger: three entries of 2026-11-26 ("combined", "one proposed `Serve_dist`", "`readCheckedD`"). Review list:
   rows 5, 15, 16, 19 updated, row 20 (the combined proposal) awaits one fresh re-review before S2 adopts it.
+
+## Handoff (2026-11-26, after the F2 merge; context limit)
+
+- **Build: running, result unknown.** fk-lean2, `~/eg/wt/etcd-safe-f7` at `9a3a07ef29` (detached), script
+  `~/eg/logs/f7m-build.sh` (flock `~/eg/.build.lock`, MemoryMax=55G), log `~/eg/logs/f7m-build.log` (ends `EXIT n`).
+  Targets `~/eg/logs/f7m-leaves.txt` (= `etc/importers.py --leaves` over `S2Interim`, `MemberLessor`, `NewServerDist`,
+  `ServeDist`, `AuthViewDist`, `AuthServeProposed`, `kvremote/TopLevelRobustness`, `client/RunLease*`: 24 leaves).
+  Next session: read the log; on an error fix it (most likely spots: `AuthServeProposed`'s new `"Hlslot"`/`γl`, its
+  `LessorSlot` import; `AuthViewDist`'s `readCheckedD`/`readAuthedD` with the new `L` parameter).
+- `etc/tier-check.py --check`: ok (208 known violations, none new).
+- Combined proposals: `NewServer.specG_dist_proposed` at
+  `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthServeProposed.lean:104`, `Serve_dist_proposed.spec` at
+  `:283` (same file).
