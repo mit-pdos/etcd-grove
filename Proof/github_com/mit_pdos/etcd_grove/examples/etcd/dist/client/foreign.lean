@@ -104,7 +104,7 @@ theorem foreign.wp_proof
   icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck⟩ | %Herr)
   · iapply fupd_wp
     have hk : leaseKeysFold [fun _ => true] false = true := rfl
-    simp only [hk, ↓reduceIte]
+    try simp only [hk, ↓reduceIte]
     imod HnoT $$ %n %j %Hnj Hck HR with ⟨⟩
   wp_apply (wp_refused who _ err Herr.1)
   (try wp_auto)
