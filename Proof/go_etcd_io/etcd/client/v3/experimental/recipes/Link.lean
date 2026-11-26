@@ -60,6 +60,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.claimFirstKey
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.google_golang_org.grpc.codes.Code__String
 public import Proof.context.TODO
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.deleteRevKey
 public import Proof.fmt.Sscanf
@@ -74,6 +75,7 @@ public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphe
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueEphemeralKey
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.newUniqueKV
 public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.google_golang_org.protobuf.proto.EqualStatus
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.putNewKV
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
@@ -171,9 +173,17 @@ theorem rpctypes.wp_Error :
     EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
+theorem codes.Code.wp_String :
+    EtcdGrove.codes.Code.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.codes.Code.String.wp_proof _root_.Perennial.strconv.wp_FormatInt
+
+theorem proto.wp_EqualStatus :
+    EtcdGrove.proto.EqualStatus.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.EqualStatus.wp_proof
+
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
+  EtcdGrove.status.Error.wp_proof _root_.Perennial.fmt.wp_Sprintf codes.Code.wp_String proto.wp_EqualStatus
 
 theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=

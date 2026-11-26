@@ -184,6 +184,7 @@ axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualStatus.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
@@ -223,7 +224,6 @@ axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Error.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs

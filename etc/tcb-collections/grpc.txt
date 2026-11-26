@@ -150,7 +150,6 @@ axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom status.Error.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof

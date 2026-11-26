@@ -320,7 +320,7 @@ local macro "renew_forward" : tactic => `(tactic| (
       ipureintro; exact Hrt
     (try wp_auto)
     -- `if err == nil || errorspkg.Is(err, lease.ErrLeaseNotFound) { return ttl, err }`
-    icases Hh with (%Hhn | ⟨%Hhn, #Hhe⟩)
+    icases Hh with (%Hhn | ⟨%Hhn, #Hhe⟩ | ⟨%Hhn, #Hhx⟩)
     · subst Hhn
       (try wp_auto)
       wp_for_post
@@ -335,6 +335,33 @@ local macro "renew_forward" : tactic => `(tactic| (
       isplitr
       · ipureintro; rfl
       iexact Hchk1
+    rotate_left
+    · -- (mapkeys, 2026-11-26) a library's error, not `ErrLeaseNotFound`: `errors.Is` is `false`
+      rcases herr with hei | _
+      rotate_left
+      · exact absurd rfl Hhn
+      (try wp_auto)
+      iunfold leasehttp.notLeaseNotFound at Hhx
+      ihave ⟨%S, %M, #Htree, %HS⟩ := Hhx $$ %eNF HNF
+      have hpt : ptrTarget (GoInterface.ok eNF) := fun tii h => by cases h; exact HNFl.1
+      wp_apply hIs S M _ (GoInterface.ok eNF) hpt HS.2.1 $$ [] as %b ⟨-, -, %Hb⟩
+      · iframe #; ipureintro; exact HS.1
+      have hb : b = false := by
+        cases b
+        · rfl
+        · exfalso
+          obtain ⟨ii, hS, hii⟩ := Hb eNF rfl HNFl.1 Hhn rfl
+          obtain ⟨hne, hM⟩ := HS.2.2 ii hS
+          rcases hii with h | h
+          · exact hne (by injection h)
+          · exact hM h
+      subst hb
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists j + W64 1, u
+      iframe
+      ipureintro; constructor <;> word
     rcases herr with hei | _
     rotate_left
     · exact absurd rfl Hhn
