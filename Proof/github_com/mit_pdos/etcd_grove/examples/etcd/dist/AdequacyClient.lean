@@ -16,7 +16,7 @@ deployment's literal, then the linked dispatch (`wp_OrchestratorFull`, `wp_NodeD
 `errors.As` target (`rpctypesEtcdError_asTarget`); the client machine's level token from its thread token
 (`threadTok_level0`). The deployment-level ones (bounds, plain endpoints) the dispatch derives from `WellFormed`
 itself, so neither boot takes `d.WellFormed` nor `d.cfg.auth = false` (with auth on, a well-formed deployment's
-only workload is `auth` or `authLease`, whose shares are `False`: D2).
+only workload is `auth` or `authLease`, whose shares `authShare`/`authLeaseShare` the auth starts give).
 
 No axiom, no `sorry`, no hypothesis beyond `EtcdBootNC`'s.
 -/

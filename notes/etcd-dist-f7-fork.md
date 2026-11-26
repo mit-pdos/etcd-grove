@@ -333,3 +333,43 @@ the second barriers); the grant's post gives `lessorLb (Γ.ls midv) _`, what `fo
   Then step 5 (full build, `etc/gates.sh` in full with `LAKE_OPTS=--packages=.lake/package-overrides.json`,
   `goose.py --check --src etcd=/shared/etcd-fork-ttlkeys`, axiom-tok keys of the two changed axioms, tcb-report
   `--check --update` and the `etcd-dist` collection) and step 6 (push).
+
+### Handoff K-6 (2026-11-26; step 4's four pieces written, NOT built; context limit)
+
+All four pieces of K-5's step 4 are written. None has been built or checked: a `lake build` of
+`Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness` was started on fk-lean2 and left
+running, with no result. The command was `/shared/tmp/f7fork-rb.sh Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness`,
+in the tree `~/eg/wt/etcd-safe-f7-rlog`, logging to `~/eg/logs/f7fork-build.log` (it ends with `EXIT n`). There is
+no `sorry` and no new axiom. No `Spec/`, axiom or `Spec/.../TopLevelRobustness` text changed.
+- **1. Linked**: `client/RunAuthLeaseLinked.lean` (new, linking tier) holds `wp_reqCtxD` and `wp_RunAuthLease`. It
+  uses the client-library names `WithLease.wp_proof`, `WithAttachedKeys.wp_proof`, `client.v3.wp_OpPut`,
+  `txn.Then.spec_plain client.v3.txn.wp_Then`, `etcd_txnlin.client_Txn_dist_law_holds client.v3.kv.wp_Txn` and
+  `etcd_auth.metadata.wp_AppendToOutgoingContext`, and the `etcd_dist.authd.*On_dist` axioms. Check these names
+  first if the build fails. `MainReady`'s kind-6 arm is **inline** in `MainReady.wp_proof` (new hypothesis
+  `hAL : RunAuthLease.spec`). I did not add a `MainReadyAuthLease` spec, because that would have been new `Spec/`
+  text. `DispatchLinked` passes `wp_RunAuthLease`.
+- **2. Share**: `authLeaseShare eps` is in `client/AuthShares.lean`; `wlShare`'s kind 6 is now that share, and
+  `wlShare_authLease` matches it.
+- **3. Start**: `lmOf` changed. `[authLease]` (`hasKind 6`) is now `.revocable`; it was `.none`, which contradicted
+  `RunAuthLease`'s `Γ.kv.lm = .revocable`. The changes in `DeploymentClass.lean`:
+  - `lmOf_none` takes a third premise, `≠ 6`, and its three callers are updated;
+  - `lmOf_revocable_apart` handles kind 6 (`authLease` `grantsLeases`);
+  - `lmOf_mono_noExpiry` has one more `split`;
+  - `lmOf_catchup` uses the new `kinds_of_authLease`;
+  - `lmOf_auth_revocable` takes `EtcdEnv`'s `noExpiry` (kind 6 `needsNoExpiry`);
+  - `class_authLease` and `lmOf_authLease` are new.
+  In `StartAuth.lean`: `bootStOn_model`, `bootStOn_absent` and `etcd_startAuthLease`.
+- **4. Assembly**: in `TopLevelRobustness.lean` (the proof file), `etcdBootNCOffAuth_holds` now covers
+  `auth=false ∨ [5] ∨ [6]`, and `etcdAuthLeaseBootNC_holds` is new. `etcd_safe_nocrash : etcd_robust_nocrash.spec`
+  has no hypotheses. The `AdequacyClient` header is updated.
+- **Next**:
+  1. Read the build log and fix the errors. Use `CHECK=1 /shared/tmp/f7fork-rb.sh -a -q FILE`, in this order:
+     `DeploymentClass`, `AuthShares`, `Shares`, `MainReady`, `RunAuthLeaseLinked`, `StartAuth`, `DispatchLinked`,
+     `TopLevelRobustness`.
+  2. Run the full build, then `etc/gates.sh` in full with `LAKE_OPTS=--packages=.lake/package-overrides.json`.
+     The etcd fork commit `d26dd5da6` is **not on the remote** (`git ls-remote` of `goose-lean-ttlkeys` was empty
+     on 2026-11-26), so run `goose.py --check --src etcd=/shared/etcd-fork-ttlkeys` and say so in the gates note.
+  3. Update the axiom-tok keys of the two changed TTL axioms, and list them.
+  4. Run tcb-report `--check --update` and the `etcd-dist` collection. Expect the newly reached
+     `Lease_{Grant,Revoke,TimeToLive,Leases}On_dist` axioms.
+  5. Update STATUS (status-history is append-only), then push.

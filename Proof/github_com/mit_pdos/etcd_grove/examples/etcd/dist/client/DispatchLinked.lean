@@ -10,7 +10,8 @@ kind, their callees' proofs linked:
   compact `wp_RunCompact` (F5, `CompactLinked`), putget and durable `wp_RunPutGet`/`wp_RunDurable` (N9a,
   `KVWorkLinked`), the lease workloads `wp_RunLeaseRead`/`wp_RunLeaseCatchup`/`wp_RunLeaseExpiry` (F2/F7,
   `Results`), auth `wp_MainReadyAuth` (F7 S14, `RunAuthLinked`: `RunAuth` over the authd interim contracts and the
-  `Auth_*` admin axioms). `authLease` needs no callee: its orchestrator share is `False` (D2).
+  `Auth_*` admin axioms), authLease `wp_RunAuthLease` (F7 fork, `RunAuthLeaseLinked`: `RunAuthLease` over the
+  authd interim contracts, the `Lease_*On_dist` ones among them).
 - `wp_NodeDeploymentFull : NodeDeployment.spec`: `NodeDeployment`, `NodeMain` (F8's proofs) with the kv arm M1's
   (`NodeMain.wp_proofKv`, `kvremote.wp_Node`), the writer arm `wp_NodeMainWatch` (N10a, `WatchLinked`) and the auth
   arm `wp_NodeMainAuth` (F7 S13, `PrincipalsLinked`: the principal machines, over the authd interim contracts).
@@ -34,6 +35,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KVW
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Results
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunAuthLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunAuthLeaseLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Link
 
 @[expose] public section
@@ -81,7 +83,7 @@ theorem wp_OrchestratorFull : Orchestrator.spec (GF := GF) (hG := hG) :=
             (RunKV.wp_proof _ (fun nodes ns ops =>
               EtcdGrove.kvremote.wp_Orch (ρ := ρ) nodes ns ops (W64 120000000000))))
         wp_RunWatch wp_RunCache wp_RunCompact wp_RunPutGet wp_RunDurable
-        wp_RunLeaseRead wp_RunLeaseCatchup wp_RunLeaseExpiry wp_MainReadyAuth))
+        wp_RunLeaseRead wp_RunLeaseCatchup wp_RunLeaseExpiry wp_MainReadyAuth wp_RunAuthLease))
 
 /-- **The `n`-th client machine, of any workload** (`NodeDeployment.spec`; see the file header). -/
 theorem wp_NodeDeploymentFull [ThreadBoundLe GF (2 ^ 30)] : NodeDeployment.spec (GF := GF) (hG := hG) :=
