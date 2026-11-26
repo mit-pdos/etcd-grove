@@ -604,6 +604,50 @@ theorem walHistH_saveSnapAU (h : WalH GF) (sized : Bool) (m : SnapshotMetadataM)
     imodintro
     iframe HQ Hlb
 
+/-- (P5 (b)) **An update of the records with their history, as one of the history** (the contract's
+`Save`/`SaveSnap` are over `walHistH`; the laws over `walRecsH` derive from them): the history's eager fold
+is the records (`walRecsH_iff_hist`), and at the commit the fold's step `hstep` gives the new records. -/
+theorem walRecsH_au_toHist (h : WalH GF) (sized : Bool) (P : StorContents → Prop)
+    (f : StorContents → StorContents) (o : WalOp) (E : CoPset) (Q : WalHist → IProp GF)
+    (hstep : ∀ (Hs : WalHist) (σ : StorContents), walFoldChkFrom walFresh Hs = some σ → P σ →
+      walFoldChkFrom walFresh (Hs ++ [o]) = some (f σ)) :
+    (AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗ ⌜P σ⌝ }> @ E, ∅
+        <{ walRecsH h (f σ) (Hs ++ [o]) sized, COMM Q Hs }>) ⊢
+      AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }> @ E, ∅
+        <{ walHistH h (Hs ++ [o]) sized, COMM Q Hs }> := by
+  iintro Hau
+  iauintro
+  unfold atomic_acc
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, %Hs, ⟨Hr, %hok⟩, Hcl⟩
+  icases (walRecsH_iff_hist h σ Hs sized).1 $$ Hr with ⟨Hr, %hf⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists Hs
+  isplitl [Hr]
+  · iexact Hr
+  isplit
+  · iintro Hr
+    icases Hcl with ⟨Habort, -⟩
+    iapply Habort
+    isplitl [Hr]
+    · iapply (walRecsH_iff_hist h σ Hs sized).2
+      isplitl [Hr]
+      · iexact Hr
+      · ipureintro; exact hf
+    · ipureintro; exact hok
+  · iintro Hr
+    icases Hcl with ⟨-, Hcommit⟩
+    isimp only [tforall_nil, Std.Tele.app] at Hcommit
+    iapply Hcommit
+    iapply (walRecsH_iff_hist h (f σ) (Hs ++ [o]) sized).2
+    isplitl [Hr]
+    · iexact Hr
+    · ipureintro; exact hstep Hs σ hf hok
+
 /-- The server's history has the raw history's length. -/
 theorem walSrvHist_length (H : List (WalOpG WalEnt)) : (walSrvHist H).length = H.length := by
   unfold walSrvHist; simp

@@ -273,8 +273,8 @@ def rnWalViewK (νk : WalNamesK GF) (vk : WalViewK) : IProp GF :=
 
 /-- **The contract's `Save`, with the history** (to be proved in the contract, from
 `storage.Save.spec`, whose post has the sync's lower bound, and `walRecs_saveAU`, which appends the
-record): `walSaveSized_spec` with the atomic update over `walRecsH` (the history grows by the
-`Save`), committing at the history `Hs`, and on success the sync's lower bound when the batch must
+record): `walSaveHist_spec`, the atomic update over the history (`walHistH`, P5 (b): no fold, no
+premise; the history grows by the `Save`), committing at the history `Hs`, and on success the sync's lower bound when the batch must
 sync (`walMustSync`). -/
 abbrev walSaveH.law : Prop :=
   ∀ (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk), st = GoInterface.ok si →
@@ -283,11 +283,9 @@ abbrev walSaveH.law : Prop :=
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
             @ WalFs.walAuMask, ∅
-            <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
+            <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
@@ -295,15 +293,13 @@ abbrev walSaveH.law : Prop :=
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                  ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
               @ WalFs.walAuMask, ∅
-              <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                  (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }}
+              <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }}
 
 /-- **The contract's `SaveSnap`, with the history** (to be proved in the contract, as
-`walSaveH.law`): `walSaveSnap_spec` with the atomic update over `walRecsH` (the snapshot record
-appended), committing at the history `Hs`, and the record synced (`SaveSnapshot` always syncs). -/
+`walSaveH.law`): `walSaveSnapHist_spec`, the atomic update over the history (`walHistH`; the
+snapshot record appended), committing at the history `Hs`, and the record synced (`SaveSnapshot` always syncs). -/
 abbrev walSaveSnapH.law : Prop :=
   ∀ (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk), st = GoInterface.ok si →
     ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool)
@@ -314,11 +310,9 @@ abbrev walSaveSnapH.law : Prop :=
           ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
           ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
             @ WalFs.walAuMask, ∅
-            <{ walRecsH h (walSaveSnap σ m.model) (Hs ++ [WalOpG.snap m.model al]) sized,
-              COMM Q Hs }> }}
+            <{ walHistH h (Hs ++ [WalOpG.snap m.model al]) sized, COMM Q Hs }> }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗

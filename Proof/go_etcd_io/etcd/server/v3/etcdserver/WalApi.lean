@@ -94,11 +94,9 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
         (cs : List EntryC) (Q : WalHist → IProp GF),
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
             @ WalFs.walAuMask, ∅
-            <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
+            <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
@@ -106,11 +104,9 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                  ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
               @ WalFs.walAuMask, ∅
-              <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                  (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }}) ∗
+              <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }}) ∗
     □ (∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool)
         (Q : WalHist → IProp GF),
       {{ storage.walOpen h q ∗ walStorRd st h ∗
@@ -118,11 +114,9 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
           ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
           ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
             @ WalFs.walAuMask, ∅
-            <{ walRecsH h (walSaveSnap σ m.model) (Hs ++ [WalOpG.snap m.model al]) sized,
-              COMM Q Hs }> }}
+            <{ walHistH h (Hs ++ [WalOpG.snap m.model al]) sized, COMM Q Hs }> }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
@@ -287,7 +281,35 @@ theorem isWalStorage_ss_agree (st : GoInterface) (h h' : WalH GF) (ss ss' : Loc)
   first | exact Heq | exact Heq.2
 
 /-- (raft-entsize §5; wal-link L3) **`Save`** (the contract's law): the entries as objects frozen at contents
-the WAL can write (`walSaveEntOk`), the records saved. -/
+the WAL can write (`walSaveEntOk`), (P5 (b)) the update over the history (`walHistH`), no fold. -/
+theorem walSaveHist_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
+    (hst : st = GoInterface.ok si) (sized : Bool) (q : Qp) (hp : Loc) (hs : HardStateM) (sl : GoSlice)
+    (esL : List Loc) (cs : List EntryC) (Q : WalHist → IProp GF) :
+    isWalStorage st h ss ⊢
+      {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
+          ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
+            @ WalFs.walAuMask, ∅
+            <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
+        (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
+      {{ (err : GoInterface), RET #err;
+          (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
+            (⌜walMustSync Hs hs (cs.map EntryC.model)⌝ -∗
+              (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
+          (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
+            storage.walOpen h q ∗ walStorRd st h ∗
+            AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
+              @ WalFs.walAuMask, ∅
+              <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }} := by
+  unfold isWalStorage
+  iintro ⟨-, %si', %Heq, #HS, -, -, -, -⟩
+  rw [hst] at Heq; cases Heq
+  ispecialize HS $$ %sized %q %hp %hs %sl %esL %cs %Q
+  iexact HS
+
+/-- (raft-entsize §5; wal-link L3) **`Save`** (the contract's law): the entries as objects frozen at contents
+the WAL can write (`walSaveEntOk`), the records saved (P5 (b): derived from `walSaveHist_spec`
+through `walRecsH_au_toHist`; the refusal hands back the history's update). -/
 theorem walSaveSized_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
     (hst : st = GoInterface.ok si) (sized : Bool) (q : Qp) (hp : Loc) (hs : HardStateM) (sl : GoSlice)
     (esL : List Loc) (cs : List EntryC) (Q : WalHist → IProp GF) :
@@ -306,16 +328,22 @@ theorem walSaveSized_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoIn
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                  ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
               @ WalFs.walAuMask, ∅
-              <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                  (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }} := by
-  unfold isWalStorage
-  iintro ⟨-, %si', %Heq, #HS, -, -, -, -⟩
-  rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %sized %q %hp %hs %sl %esL %cs %Q
-  iexact HS
+              <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }} := by
+  have hc := walRecsH_au_toHist h sized (fun σ => WalSaveOk σ (cs.map EntryC.model))
+    (fun σ => walSave σ hs (cs.map EntryC.model)) (WalOpG.save hs (cs.map EntryC.model)) WalFs.walAuMask Q
+    (fun _ _ hf hok => walFoldChkFrom_snoc_save hf hok)
+  iintro #Hw
+  iintro !> %Φ ⟨Ho, Hr, Hh, #Hsl, #Hb, %hcs, HAU⟩ HΦ
+  ihave HAU := hc $$ HAU
+  ihave #HS := walSaveHist_spec st h ss si hst sized q hp hs sl esL cs Q $$ Hw
+  iapply HS $$ [Ho Hr Hh HAU]
+  · iframe Ho Hr Hh Hsl Hb HAU
+    ipureintro; exact hcs
+  iintro %err !> Hpost
+  iapply HΦ
+  iexact Hpost
 
 /-- (out_size C3, 2026-11-12) **The entry objects `esL` are frozen at contents of bounded size
 holding `es`** (persistent): what a sized WAL `Save` (`walSaveSized_spec`) and the sized storage's
@@ -465,8 +493,34 @@ theorem walSaveRnR_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInte
   · ileft; iframe Ho Hr HQ; ipureintro; exact He
   · iright; iframe Ho Hr; ipureintro; exact Herr
 
-/-- (P5) **`SaveSnap`** (the contract's law) over the records with their history: the snapshot record
+/-- (P5) **`SaveSnap`** (the contract's law) over the history (P5 (b): `walHistH`, no fold): the snapshot record
 appended at the history `Hs`, synced, its witness (`walSnapRec`). -/
+theorem walSaveSnapHist_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
+    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool)
+    (Q : WalHist → IProp GF) (sized : Bool := false) :
+    isWalStorage st h ss ⊢
+      {{ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp m ∗
+          ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
+          ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
+          ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
+            @ WalFs.walAuMask, ∅
+            <{ walHistH h (Hs ++ [WalOpG.snap m.model al]) sized, COMM Q Hs }> }}
+        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
+          ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
+            walSnapRec h Hs.length m.model }} := by
+  unfold isWalStorage
+  iintro ⟨-, %si', %Heq, -, #HS, -, -, -⟩
+  rw [hst] at Heq; cases Heq
+  ispecialize HS $$ %sized %q %sn %mp %dq %m %al %Q
+  iexact HS
+
+/-- (P5) **`SaveSnap`** (the contract's law) over the records with their history: the snapshot record
+appended at the history `Hs`, synced (derived from
+`walSaveSnapHist_spec` through `walRecsH_au_toHist`), its witness (`walSnapRec`). -/
 theorem walSaveSnapH_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
     (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool)
     (Q : WalHist → IProp GF) (sized : Bool := false) :
@@ -486,11 +540,20 @@ theorem walSaveSnapH_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoIn
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
           ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)) ∗
             walSnapRec h Hs.length m.model }} := by
-  unfold isWalStorage
-  iintro ⟨-, %si', %Heq, -, #HS, -, -, -⟩
-  rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %sized %q %sn %mp %dq %m %al %Q
-  iexact HS
+  have hc := walRecsH_au_toHist h sized
+    (fun σ => uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term')
+    (fun σ => walSaveSnap σ m.model) (WalOpG.snap m.model al) WalFs.walAuMask Q
+    (fun _ _ hf _ => walFoldChkFrom_snoc_snap hf)
+  iintro #Hw
+  iintro !> %Φ ⟨Ho, Hr, Hsn, #Hm, %h1, %h2, %h3, HAU⟩ HΦ
+  ihave HAU := hc $$ HAU
+  ihave #HS := walSaveSnapHist_spec st h ss si hst q sn mp dq m al Q sized $$ Hw
+  iapply HS $$ [Ho Hr Hsn HAU]
+  · iframe Ho Hr Hsn Hm HAU
+    ipureintro; exact ⟨h1, h2, h3⟩
+  iintro %err !> Hpost
+  iapply HΦ
+  iexact Hpost
 
 /-- **`SaveSnap`** (the contract's law, over the records without their history: `walSaveSnapH_spec`
 with `walRecs_au_toH`): the snapshot record saved, synced, its witness (`walSnapRec`). -/

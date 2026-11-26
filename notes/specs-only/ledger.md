@@ -25,6 +25,29 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: the WAL contract's `Save`/`SaveSnap` -- their atomic updates are over the eager fold (`walRecsH`), which no restarted WAL's history keeps (D6-T2 / P5 (b) step 1, etcd-safe-p5)
+
+- **Spec.** `isWalStorage`'s `Save` and `SaveSnap` (`etcdserver/WalApi.lean`; proved by `walSave_law`/
+  `walSaveSnap_law`, `RnNewStorage.lean`), the derived `walSaveSized_spec`/`walSaveSnapH_spec`, and P5's
+  `walSaveH.law`/`walSaveSnapH.law` (`InvWalCrash.lean`).
+- **Defect.** Too strong for the crash-aware invariant: the update's state is `walRecsH h σ Hs` with
+  `σ` the history's *eager* fold (`walFoldChkFrom walFresh Hs`) and `Save` asks `WalSaveOk σ es`; after a
+  restart whose history holds a snapshot record the reader drops, the next `Save` is no step of the eager
+  fold (the ledger entry "`wal.restartOk` over the reader's fold", defect 2), so the invariant cannot hand
+  the contract this state. Layer 1 needs neither the fold nor the premise.
+- **Evidence.** `walHistH_saveAU`/`walHistH_saveSnapAU` (`storage/WalRecsH.lean`) give layer 1's update
+  from one over `walHistH h Hs` (the history, no fold) with no premise.
+- **Proposed change.** The contract's two updates over the history: `AU <{ ∃∃ Hs, walHistH h Hs sized }>
+  @ WalFs.walAuMask, ∅ <{ walHistH h (Hs ++ [op]) sized, COMM Q Hs }>` (the refusal arm of `Save` returns
+  this update); `walSave_law`/`walSaveSnap_law` through `walHistH_saveAU`/`walHistH_saveSnapAU`; the direct
+  laws `walSaveHist_spec`/`walSaveSnapHist_spec`; `walSaveSized_spec`/`walSaveSnapH_spec` kept as derived laws
+  over `walRecsH` through `walRecsH_au_toHist` (the fold's step at commit), their refusal arm now handing
+  back the history's update (its only user, `walSaveRn_spec`, drops it); `walSaveH.law`/`walSaveSnapH.law`
+  restated over `walHistH` (the direct laws). Nothing else moves in this step.
+- **Decision.** Step 1 of P5 (b) as planned under the lead's approval of (b) (#50 2026-11-25 15:33Z) and
+  its server-side alternative (#50 2026-11-25T18:04:00Z); internal to the server (no top-level statement,
+  premise or axiom). Applied on `etcd-safe-p5` (P5 session 7).
+
 ## 2026-11-26: `rnDurK_crash.law` -- the crash gives no certificate of the crashed WAL's history, so the restart cannot carry the snapshot records a later `Save` re-keeps (D6-T2 / P5 (a), etcd-safe-p5)
 
 - **Spec.** `rnDurK_crash.law` (`etcdserver/InvWalCrash.lean`, P5's; proved by `rnDurK_crash_law_holds`,
