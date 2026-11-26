@@ -3048,6 +3048,98 @@ replacement), waiting on the lead's choice of (i)/(ii) above; then (B). The scri
 still holds (the remote tree is that commit plus this branch's files).
 No axiom, `sorry`, `Spec/` or trusted text changed.
 
+### T10 step 3 (B), session 1 (2026-11-26, branch `etcd-safe-t10s3b/2026-11-26`; plan)
+
+Base `etcd-safe-t10s3/2026-11-26` @ `0fd28cd373` ((A) steps 1-2). Build: the local host (32 cores),
+worktree `/shared/etcd-grove-t10s3b`, Perennial `/shared/perennial-a706aeb9a` through
+`/shared/tmp/t10s3b-manifest.json` (`--packages=`), `.lake/build` seeded from `/shared/etcd-grove-b4move`.
+(B) closes `NewServer.wp_proofC`'s `sorry` (`NewServerCrash.lean`). The raft side of round 4's step 3
+(the configuration point past the stored commit) is in: `raft-restart-confpoint/2026-11-24` (option D) is
+an ancestor of the base.
+
+**The order, and the files each item touches.** None is one of (A)'s (`InvApply`, `ImgRow`, `KVModelM`,
+the `bootstrap*` specs and proofs, `isServer`/`isServerM`). The `Spec/` files the items reach are named:
+each is a stop until approved.
+
+* **B1 (option (a) item 2): the law at each *enter*.** `rnLeadLaw γ S` (persistent: `□ (⌜a0 ≠ [] ∧ t0 <
+  S.term⌝ -∗ □ (snapshotLeader … S.term ={⊤}=∗ ⌜durLogAgrees S (a0.map toLE)⌝))`) and `rnLeadLaw_enter`
+  (`rnRestartOk`, `isCluster`, `srvRaftLogInv`, `raftState S` ⊢ `|={⊤}=> raftState S ∗ rnLeadLaw γ S`, by
+  `raftState_leadAgree`, `srv_confFixed`, `rnRestart_cmtBefore`): `ReplayJob.lean`. Its uses after
+  `rn_enter`/`rn_enterS` (`raftNode__start.lean`) come with B3, where the law has somewhere to go.
+  No `Spec/` change.
+* **B2 (item 3, the loop's part): the replay state over the durable state.** `rnReplayState γ view S n :=
+  ∃ runs, view ↦*□ runs ∗ ⌜replayHistoryMatches runs S n⌝` (`InvRaftNode.lean`), its `.empty`/`.advance`/
+  `.appendEntries` over `ReplayCoverage.lean`'s lemmas (`replayHistoryMatches_append`/`_same`/`_after`,
+  `plogTermAt_next_batch`); the loop invariant (`Hhistory`) at `rnLoopTokP`'s `S` (`raftNode__start.lean`),
+  the seed (`NodeStart.lean`, `NodeStartLinked.lean`: `replaySeed_facts`' `DurAgrees` form), the worker
+  (`ReplayWorkerTerms.lean`). `rnReplayState` is named in no `Spec/` file. No `Spec/` change.
+* **B3 (item 3, the deposit) — `Spec/` change.** `rnApN`'s `notifyc` deposit `rnApR γ F ce ∗ rnLeadLaw γ S`
+  and the payload's `∃ S, ⌜replayRunsDescribe runs S n ∧ S.term = rt⌝` (`InvRaftNode.lean`, `InvRaftLoop.lean`,
+  `raftNode__start.lean`, `EtcdServer__run.lean`). The apply side reads the deposit through
+  `applyAll.spec*`, whose precondition states it: `Spec/go_etcd_io/etcd/server/v3/etcdserver/
+  EtcdServer__applyAll.lean:94` (`isNotify γnc nc (dvView ρ.raft dv (ghostOf rp (A ++ unapplied ai ms)))`,
+  which must carry `rnLeadLaw γn S` for the payload's `S`) and the snapshot spec's `:237`
+  (`isNotify2 γnc nc (… walSnapRec …) True`) and `:246` (`taReplayField ap`, which item 1 of round 4
+  replaces by the job). A payload field cannot carry the law instead: it is made at the *enter*, after
+  `r.applyc <- ap` (`raft.go:240`) and the `Save`, so only the `notifyc` send (after the enter) can hand it over.
+* **B4 (item 4): `applyAll` builds `rnReplayJob` after the receive** (`rnReplayJob_of_history` +
+  `rnReplayJob_premise_of_lead`): `EtcdServer__applyAll.lean` (proof), `InvApplyAll.lean` (`taReplayBatch`
+  carries the history). Needs B3's spec.
+* **B5 (round 4 item 1): `applyAll`'s keep case — `Spec/` change.** `applyAll.specSnapM`'s premise
+  `uint.Z g < uint.Z sv.Metadata'.Index'` (`Spec/…/EtcdServer__applyAll.lean`, the A8 premise) gets the
+  sibling case `k ≤ g` (a new `applyAll.specKeep`, or the premise dropped and the post split), with
+  `rnApSnap`'s replay job (`taReplayField` → the job, B3). Proof: the batch tail at `ms = []`
+  (`EtcdServer__applyAll.lean`), the run's keep arm (`EtcdServer__run.lean`).
+* **B6 (round 4 item 2): `rnRestartOk` without `|a0| ≤ commit0` — `Spec/` change.** `InvRaftNode.lean`
+  (`rnRestartOk`, `rnRestartOk_a0_le`, `rnRestartOk_winAbove`), `raftNode__start.lean` (two uses),
+  `NodeBridge.lean`, `EtcdServer__run.lean`; `raftNode.onStop.spec`'s precondition states the bound:
+  `Spec/…/raftNode__onStop.lean:56` (`⌜γ.a0.length ≤ uint.nat p.Commit'⌝`), to drop (with B7).
+  `Spec/…/EtcdServer__run.lean:60-92` names it in prose only.
+* **B7 (round 4 item 4's tail): `rnStopImage`/`wal.stopImage` without the commit bound.** `InvRaftNode.lean`
+  (`rnStopImage`), `WalApi.lean` (`wal.stopImage`, `_intro`, `_elim`: drop `uint.nat i ≤ σ.commit`), and
+  their consumers `StopImage`, `StopShutdown`, `raftNode__onStop`, `NewServerR`, `NewServerRAt`,
+  `BuiltRestart`, `InvRestart`, `InvCrashImage`, `InvWalCrashSteps`. Proof/ only, given B6's spec change.
+* **B8 (T10's image cases) and `wp_proofC`.** `NewServer.specRAt` (`NewServerRAt.lean`, Proof/) over the
+  crash contract's two cases (`bootstrapCrashContract`, `InvCrashImage.lean`: the `.snap.db` case
+  `i < σ.b` with `snapRowB2`, `i < bootLen`, `confRowW`'s second case) in place of the restart contract,
+  and `wp_proofRG` over it (`NewServerR.lean`, `NewServerRAt.lean`, `BuiltRestart.lean`); then
+  `wp_proofC` is `specRAt`'s instance (`NewServerCrash.lean`) and its Link entry. The restart contract
+  `bootstrapRestartContract` is `InvRestart.lean`'s, `bootstrap`'s spec (A)'s: B8 uses the crash contract
+  (`bootstrapCrashContract.law`, already with both cases) and does not edit `bootstrap*`.
+
+**Where this session stops.** B1 is written but not green (below); B2 is the next Spec-free item, but
+it is useful only with B3/B4: `rnReplayState.job` (`ReplayWorkerTerms.lean`, used at
+`raftNode__start.lean:1484` for the payload) reads the job off `replayPending`, which a replay state over
+`S` alone no longer gives, so B2 either keeps `replayPending` beside `replayHistoryMatches` until B3/B4,
+or waits for them. B3, B5 and B6 each change a `Spec/` file (above), so they wait on approval; B4 and B7
+follow them.
+
+**Handoff T10s3b-1** (stopped at the coordinator's context rule; notes only on the branch, no Lean changed;
+no axiom, `sorry`, `Spec/` or trusted text changed).
+* *Tree*: `/shared/etcd-grove-t10s3b` (worktree of `/shared/etcd-grove`, branch `etcd-safe-t10s3b/2026-11-26`
+  off `0fd28cd373`). `.lake/packages/` holds symlinks: `Qq`, `batteries`, `iris` to
+  `/shared/etcd-grove/.lake/packages/*`, `perennial` to `/shared/perennial-a706aeb9a` (the pin).
+  `.lake/build` copied (`cp -a`) from `/shared/etcd-grove-b4move` (55G).
+* *Manifest*: `/shared/tmp/t10s3b-manifest.json` (a copy of `/shared/tmp/b4move-manifest.json`: the
+  base's manifest with `perennial` as a path at `/shared/perennial-a706aeb9a`). Pass it to every lake
+  command and lake-running script (`--packages=`, `LAKE_OPTS=--packages=…`).
+* *Build*: `cd /shared/etcd-grove-t10s3b && flock /shared/tmp/local-build.lock systemd-run --scope -q -p
+  MemoryMax=60G lake build --packages=/shared/tmp/t10s3b-manifest.json
+  Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerCrash Proof.go_etcd_io.etcd.server.v3.etcdserver.Link`
+  (log `/shared/tmp/t10s3b-build.log`).
+* *Build state*: that build ran with B1's edit in `ReplayJob.lean`: 10083 of 10084 jobs done, the one
+  failure `ReplayJob.lean:148` (below), so `ReplayJob`'s importers (`NewServerCrash`, the `Link`, ...) are
+  not yet built at the branch head; with the edit reverted the next build compiles `ReplayJob` and its cone
+  only.
+* *B1, not green*: the lemma is saved as `/shared/tmp/t10s3b-b1.patch` (`git apply` it; `rnLeadLaw`,
+  `rnLeadLaw_persistent`, `rnLeadLaw_enter`, appended to `ReplayJob.lean`). First error: `ReplayJob.lean:148:15:
+  Unknown identifier Hfix` at `rw [hγ] at Hfix` (an Iris hypothesis, not a Lean one). Fix: `subst`-free, e.g.
+  `have hfix := srv_confFixed (GF := GF) γr ⊤ (by simp) (by simp); rw [hγ] at hfix` before `ihave #Hfix :=
+  hfix $$ Hinv`; then check the rest with `etc/lean-check.py` (`LAKE_OPTS=--packages=…`; see the memory note
+  on path manifests: check the shared Perennial checkout's revision before and after).
+* *Next*: B1 green, then the lead's decision on B3/B5/B6's `Spec/` changes (the exact lines above); B2 by
+  that decision.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
