@@ -89,6 +89,9 @@ def auPad (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames) : w64 → Etcd
     let n := (ids.map (fun y => (g y).hist)).sum + 1 + uint.nat x
     ⟨n, n, n, n, n, n, n, n, n, n, n, n⟩
 
+theorem lt_add_one_add (s n : Nat) : ¬ s + 1 + n ≤ s :=
+  Nat.not_le.2 (Nat.lt_of_lt_of_le (Nat.lt_succ_self s) (Nat.le_add_right _ _))
+
 theorem lsPad_inj (ids : List w64) (f : w64 → GName)
     (hf : ∀ a ∈ ids, ∀ b ∈ ids, f a = f b → a = b) : ∀ a b, lsPad ids f a = lsPad ids f b → a = b := by
   intro a b h
@@ -96,14 +99,13 @@ theorem lsPad_inj (ids : List w64) (f : w64 → GName)
   by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids
   · rw [if_pos ha, if_pos hb] at h; exact hf a ha b hb h
   · rw [if_pos ha, if_neg hb] at h
-    have h2 : (f a : Nat) = (ids.map f).sum + 1 + uint.nat b := h
-    have := le_sum_map_of_mem ids f a ha; omega
+    have h3 : f a ≤ (ids.map f).sum := le_sum_map_of_mem ids f a ha
+    rw [h] at h3; exact absurd h3 (lt_add_one_add _ _)
   · rw [if_neg ha, if_pos hb] at h
-    have h2 : ((ids.map f).sum + 1 + uint.nat a : Nat) = f b := h
-    have := le_sum_map_of_mem ids f b hb; omega
+    have h3 : f b ≤ (ids.map f).sum := le_sum_map_of_mem ids f b hb
+    rw [← h] at h3; exact absurd h3 (lt_add_one_add _ _)
   · rw [if_neg ha, if_neg hb] at h
-    have h2 : ((ids.map f).sum + 1 + uint.nat a : Nat) = (ids.map f).sum + 1 + uint.nat b := h
-    exact uint_nat_inj (by omega)
+    exact uint_nat_inj a b (Nat.add_left_cancel h)
 
 theorem auPad_inj (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames)
     (hg : ∀ a ∈ ids, ∀ b ∈ ids, (g a).hist = (g b).hist → a = b) :
@@ -114,15 +116,13 @@ theorem auPad_inj (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames)
   by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids
   · rw [if_pos ha, if_pos hb] at h'; exact hg a ha b hb h'
   · rw [if_pos ha, if_neg hb] at h'
-    have h2 : ((g a).hist : Nat) = (ids.map (fun y => (g y).hist)).sum + 1 + uint.nat b := h'
-    have := le_sum_map_of_mem ids (fun y => (g y).hist) a ha; simp only at this; omega
+    have h3 : (g a).hist ≤ (ids.map (fun y => (g y).hist)).sum := le_sum_map_of_mem ids (fun y => (g y).hist) a ha
+    rw [h'] at h3; exact absurd h3 (lt_add_one_add _ _)
   · rw [if_neg ha, if_pos hb] at h'
-    have h2 : ((ids.map (fun y => (g y).hist)).sum + 1 + uint.nat a : Nat) = (g b).hist := h'
-    have := le_sum_map_of_mem ids (fun y => (g y).hist) b hb; simp only at this; omega
+    have h3 : (g b).hist ≤ (ids.map (fun y => (g y).hist)).sum := le_sum_map_of_mem ids (fun y => (g y).hist) b hb
+    rw [← h'] at h3; exact absurd h3 (lt_add_one_add _ _)
   · rw [if_neg ha, if_neg hb] at h'
-    have h2 : ((ids.map (fun y => (g y).hist)).sum + 1 + uint.nat a : Nat) =
-      (ids.map (fun y => (g y).hist)).sum + 1 + uint.nat b := h'
-    exact uint_nat_inj (by omega)
+    exact uint_nat_inj a b (Nat.add_left_cancel h')
 
 end pure
 
@@ -289,7 +289,7 @@ theorem hists_ne (γ : GName) (l : List EtcdGrove.auth.AuthState) (ids : List w6
       iunfold authNamesFreshG at Hx
       icases Hx with ⟨Hh, -⟩
       subst hx
-      iapply (monoListAuthOwn_exclusive γ [EtcdGrove.auth.bootState] l) $$ Hh Hγ
+      iapply (monoListAuthOwn_exclusive _ [EtcdGrove.auth.bootState] l) $$ Hh Hγ
     · icases ih $$ Hγ Hs with ⟨%Hne, Hγ, Hs⟩
       isplitr
       · ipureintro
@@ -339,7 +339,7 @@ theorem memberNames_alloc_list (ids : List w64) (hnd : ids.Nodup) :
       · intro a ha b hb e
         have ha2 := List.mem_cons.1 ha
         have hb2 := List.mem_cons.1 hb
-        beta_reduce at e
+        dsimp only at e
         by_cases hax : a = x <;> by_cases hbx : b = x
         · rw [hax, hbx]
         · rw [if_pos hax, if_neg hbx] at e
@@ -351,7 +351,7 @@ theorem memberNames_alloc_list (ids : List w64) (hnd : ids.Nodup) :
       · intro a ha b hb e
         have ha2 := List.mem_cons.1 ha
         have hb2 := List.mem_cons.1 hb
-        beta_reduce at e
+        dsimp only at e
         by_cases hax : a = x <;> by_cases hbx : b = x
         · rw [hax, hbx]
         · rw [if_pos hax, if_neg hbx] at e
