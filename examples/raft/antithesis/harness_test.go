@@ -32,8 +32,8 @@ func runs(t *testing.T) int {
 }
 
 // FullScope is every feature on (the plain theorem's scope); B1Scope is batch B1's (messages and N
-// servers: no restarts, AsyncStorageWrites, batching, parallel or split writes, snapshots or
-// membership changes).
+// servers: no forwarded proposals, restarts, AsyncStorageWrites, batching, parallel or split writes,
+// snapshots or membership changes), main.go's constants (b1Scope in the proofs).
 func FullScope() Scope {
 	return Scope{PreVote: true, CheckQuorum: true, Reads: true, Transfer: true, Forwarding: true, Dup: true,
 		NonVoters: true, Boot: true, Limits: true, Restarts: true, Async: true, Batch: true, Parallel: true,
@@ -42,6 +42,7 @@ func FullScope() Scope {
 
 func B1Scope() Scope {
 	s := FullScope()
+	s.Forwarding = false
 	s.Restarts, s.Async, s.Batch, s.Parallel, s.Split, s.Snapshots, s.ConfChanges = false, false, false, false,
 		false, false, false
 	return s
