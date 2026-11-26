@@ -116,7 +116,7 @@ theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
   have hl : i < d.members.length := Hσs.1 ▸ hiσ
   have Hst := Hσs.2 (d.members[i], σs[i]) (List.mem_iff_getElem.mpr
     ⟨i, by simp [List.length_zip]; omega, by simp [List.getElem_zip]⟩)
-  exact member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips i d.members[i]
+  exact server.member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips i d.members[i]
     (List.getElem?_eq_getElem hl) σs[i] Hst
 
 
@@ -244,12 +244,12 @@ theorem rotateL_plain {d : Deployment} (Hd : d.WellFormed) (c : Nat) :
   · have := congrArg List.length h
     rw [rotateL_length, List.length_map] at this
     exact hne (List.eq_nil_of_length_eq_zero this)
-  · have hm := mem_rotateL hep
-    obtain ⟨m, hm, rfl⟩ := List.mem_map.1 hm
+  · have hmem := mem_rotateL hep
+    obtain ⟨m, hm', rfl⟩ := List.mem_map.1 hmem
     apply addrOk_plainEndpoint
     apply Hd.addrs.2
     simp only [Deployment.addrs]
-    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm, by simp⟩)
+    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm', by simp⟩)
 
 end shape
 
@@ -433,7 +433,7 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
         simp only [clients, List.mapIdx_cons, List.mapIdx_nil, List.getElem?_cons_zero, Option.some.injEq] at hm
         subst hm
         rw [kvShares_orch]
-        exact kvOrchBoot d Hscope.1 Hfips 0 w ns (by norm_num) (by rw [hw1]; rfl) (by rw [hn1]; rfl) σo ρ
+        exact kvOrchBoot d Hscope.1 Hfips 0 w ns (by omega) (by rw [hw1]; rfl) (by rw [hn1]; rfl) σo ρ
       · obtain ⟨k, rfl⟩ : ∃ k, i = k + (d.members.length + 1) := ⟨i - (d.members.length + 1), by omega⟩
         rw [List.getElem?_append_right (by omega), hcl, Nat.add_sub_cancel] at hm
         unfold nodeMachines at hm
