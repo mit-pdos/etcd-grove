@@ -3216,6 +3216,39 @@ with `writerOp.spec` as its `reportOp`.
   `kvRevFits` (not counted).
 - TCB baseline: unchanged (nothing a root reaches is new: no linking module).
 
+### 24.6 N10a2: linked (2026-11-26, branch `etcd-safe-n10a2/2026-11-26`)
+
+On the watcher-environment refactor (§25, `etcd-safe-wenv` @ `bd5984c79e`) and the remote wire refactor (§28,
+`etcd-safe-rwire` @ `f4798d0cf5`, which carries M1). Both merged; the N10a proofs needed no change for them.
+**Everything of §24.2 is now proved and linked** (`Proof/.../dist/client/WatchLinked.lean`): `wp_RunWatch`
+(over `Watch_dist.wp_proof`), `wp_NodeMainWatch`, `wp_remoteWriters`, `wp_writerOp` (over `KV_Put_dist.wp_proof`),
+`wp_writerCodec`, `wp_newClient`. No `sorry`, no new axiom; `Watch_dist.wp_proof` is reached for the first time.
+F4 (`Serve_dist`'s docstring) is not on this branch (it is `etcd-safe-f5`'s).
+
+- **The writers' wire and service** (`WriterWire.lean`, defs): `writerWire N` (a `[]KV`/`[]PutRec` interface
+  holding the model read-only, bytes `kvsBytes`/`recsBytes` in bound) and `writerWireG` (bytes only, ivAt/ovAt
+  `True`). A value predicate names a machine's heap, a service's protocols are global and read only its bytes and
+  update: the share holds `svcAddr (writerSvcG Γ)`, a machine uses `writerSvc Γ`, the same protocols
+  (`svcAddr_writerSvc`, `rfl`). The adapter's names travel in the input (`WN = (ch, tok, plan)`, `kmOf Γ n`:
+  `KMNames` is not countable). `wP`/`wQ` at the global ghost state (`kmInvG`, `okFactKG`: `kmInv`/`okFactK`'s
+  bodies, `rfl`). `writersShare Γ ns` (`RunWatch`'s `WS`: slot map, each writer's `svcAddr` and one call's
+  budget), `writerTok`, `nodeWatchPre`.
+- **Specs restated**: `writerOp.spec` is `remote.reportOp`'s body at `writerWire WN`, `wP`, `wQ`, `writerTok`;
+  `remoteWriters.spec` concrete at `writersShare` (was a schema) with `threadBound GF ≤ 2^30` (its prover found
+  the unbounded case false: `CallAll`'s `wg.Add` per writer overflows the counter at 2^31 writers);
+  `RunWatch.spec` at `writersShare` with `nops < 2^56` (a writer's Puts and log fit a message); new
+  `writerCodec.spec`, `writerAttempt.spec`, `CallAll.spec` (at `[any, any]`, `sync.tokJoinL` at level 0),
+  `reportAll.spec` (at any service), `NodeMainWatch.spec` (the watch arm, kind 1; M1's `NodeMain.spec` stays the
+  kv arm's until N7's per-kind dispatch). `Writer_dist`: the log's length at a ghost variable (`wsInvT ... γn`),
+  so `writerOp` knows the log has at most as many (small) records as Puts and fits (`recsBytes_length_le`).
+- **For the dispatch/top level (not done here)**: `nops < 2^56` is stronger than `WellFormed`'s Watch bound
+  (`nops ≤ (2^62-1)/clients`); either tighten `boundsOk` (Go) or carry it. The start supplies `writersShare`
+  (the slot map, each writer address's `svcAddr (writerSvcG Γ)` and budget) and each writer machine's
+  `nodeWatchPre`.
+- **Bounds**: `etc/bounds-allow.txt` lists dist/client's `spec-thread` matches (newClient, RunWatch,
+  remoteWriters, reportAll, CallAll): discharged from `etcdThreads` by the machine's boot, as kvremote's `Node`.
+- `KMWatch` split (§24.1) unchanged; N9a's `newClient`/`checked`/`ended` taken with fixed imports.
+
 ## 25. Watcher-environment refactor (design, 2026-11-26; branch `etcd-safe-wenv/2026-11-26`)
 
 Required by the N3 review's F3 (`notes/axiom-review/n3-watch-dist.md`) before any result rests on
