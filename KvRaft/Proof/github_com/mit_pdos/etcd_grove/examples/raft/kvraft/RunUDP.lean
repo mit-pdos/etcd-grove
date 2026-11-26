@@ -31,7 +31,6 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
 variable [go.IntoValInj GoString]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [field_sem : net.FieldAssumptions]
 
 theorem RunUDP.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     (cf : GoInterface → List w8 → IProp GF) (stp : NodeStopper GF)

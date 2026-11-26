@@ -2,18 +2,43 @@
 **CRC-32C (Castagnoli) as a pure function** (the vocabulary of `hash/crc32`'s and `pkg/v3/crc`'s
 specs, and the WAL's `WalCodec.crc32c`): `crc32c c p` is `crc32.Update(c, MakeTable(Castagnoli), p)`,
 table-driven as Go's `simpleUpdate` computes it over the table of the reflected polynomial
-`0x82F63B78`, bitwise (`TrustedCode/hash/crc32.lean`; since 2026-11-22 the trusted claim is only that
-`archUpdateCastagnoli` computes it). `slicingTableArr` is `slicingMakeTable`'s eight tables. `crc32cBits` is the bitwise definition, the same on
+`0x82F63B78`, bitwise (the table's definitions are below, moved from `TrustedCode/hash/crc32.lean` on 2026-11-24, when
+the arch hooks became a Go model, `models/hash/crc32/model.go`; the trusted claim is only that
+`archUpdateCastagnoli`'s assembly computes it). `slicingTableArr` is `slicingMakeTable`'s eight tables. `crc32cBits` is the bitwise definition, the same on
 the standard check vector (`crc32c_check`, `crc32cBits_check`: "123456789" gives `0xE3069283`).
 -/
 module
 
-public import TrustedCode.hash.crc32
+public import Perennial.Golang.Defn
 
 @[expose] public section
 
 namespace Perennial
 namespace hash.crc32
+
+/-! ## The table (pure) -/
+
+/-- `crc32.Castagnoli` (`crc32.go`): the reversed Castagnoli polynomial. -/
+def castagnoliPoly : w32 := 0x82f63b78#32
+
+/-- One reflected shift-xor step of `simplePopulateTable` (`crc32_generic.go`):
+`if crc&1 == 1 { crc = (crc >> 1) ^ poly } else { crc >>= 1 }`. -/
+def crcBit (poly c : w32) : w32 := if c &&& 1#32 = 1#32 then (c >>> 1) ^^^ poly else c >>> 1
+
+/-- `k` steps of `crcBit`. -/
+def crcBits (poly : w32) : Nat → w32 → w32
+  | 0, c => c
+  | k + 1, c => crcBits poly k (crcBit poly c)
+
+/-- Entry `i` of `simplePopulateTable(poly)`: eight steps from `uint32(i)`. -/
+def crcTableEntry (poly : w32) (i : Nat) : w32 := crcBits poly 8 (BitVec.ofNat 32 i)
+
+/-- The 256 entries of `simplePopulateTable(poly)`. -/
+def crcTableOf (poly : w32) : List w32 := (List.range 256).map (crcTableEntry poly)
+
+/-- **The Castagnoli table** (what `MakeTable(Castagnoli)` returns a pointer to: `simpleMakeTable`'s,
+`castagnoliInitOnce`'s `castagnoliTable`). -/
+def castagnoliTableArr : GoArray w32 256 := array.mk 256 (crcTableOf castagnoliPoly)
 
 /-- One byte of `simpleUpdate` over the table `tab`: `tab[byte(crc)^v] ^ (crc >> 8)`. -/
 def crcUpdByte (tab : List w32) (c : w32) (v : w8) : w32 :=

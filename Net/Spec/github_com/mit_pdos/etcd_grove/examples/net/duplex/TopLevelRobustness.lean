@@ -23,7 +23,7 @@ What it assumes:
   hosts (any machine may dial any valid address), so the theorem's machines are processes of one
   host, as `examples/net/duplex/process_test.go` runs them.
 * **Trusted**: the models of the `net` functions and types the program calls
-  (`Net/TrustedCode/net.lean`, over `netExt`, with their struct-field facts `net.FieldAssumptions`),
+  (Go's `net` over its Go model `models/net`, whose primitive stubs `Net/TrustedCode/net.lean` models over `netExt`),
   `Impl.lean`'s semantics, Perennial's Goose translation and Go semantics (`go.Semantics`; Goose's
   model of `primitive.RandomUint64`, any `uint64`; the commands' `Assumptions` are the generated
   unfoldings of the translated bodies), and `Robust`. Tracked by `etc/tcb-collections/net.txt`.
@@ -56,7 +56,7 @@ restart, each a fresh Go process (`Robust`'s premise): in every execution, of an
 thread of any machine is stuck and none has an unrecovered panic. -/
 def duplex_crash_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions]
+    [client_sem : cmd.client.Assumptions]
     (σs σc : state) (g : GlobalState) (bound : Nat),
     Robustness.Robust (system σs σc) [] g (threads := bound + 1) (bound := bound)
 

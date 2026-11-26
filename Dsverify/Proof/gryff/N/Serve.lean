@@ -452,7 +452,7 @@ section
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wire.BufioSpecs GF]
-variable [wire.BinaryVarintHyps GF] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
+variable [wire.BinaryVarintHyps GF] [net.Assumptions] [netN.NetSpecs GF]
 
 set_option hygiene false in
 /-- `serveClient`'s exit: `if err != nil && err != io.EOF { log.Printf(...) }` (`Herr`: the
@@ -539,6 +539,9 @@ theorem serveClient_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r gR 
   · iPkgInit
   ihave #Hlog : isPkgInit (PROP := IProp GF) pkg_id.log $$ []
   · iPkgInit
+  ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
+  · iPkgInit
+  ihave #Hsys := Perennial.net.errnoOk_of_poll $$ Hpoll
   ihave #Hdl : isPkgInit (PROP := IProp GF) pkg_id.gryff.src.dlog $$ []
   · iPkgInit
   ihave #Hdlog := replica.dlog_init_access $$ Hdl
@@ -634,7 +637,7 @@ theorem serveClient_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r gR 
     as %c0 %err (⟨%Herr, Hown⟩ | ⟨%He, #Hrerr, Hown⟩)
   rotate_left
   · -- a read error: the loop ends
-    ihave ⟨#Herr, %Hptr⟩ := netN.rdErr_conn' t eof la ra ed err $$ [$Hrerr $Hio $Hbin $HEOFv]
+    ihave ⟨#Herr, %Hptr⟩ := netN.rdErr_conn' t eof la ra ed err $$ [$Hrerr $Hio $Hbin $HEOFv $Hsys]
     obtain ⟨ei, rfl⟩ : ∃ ei, err = interface.ok ei := by
       cases err with
       | nil => exact absurd rfl He
@@ -680,7 +683,7 @@ theorem serveClient_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r gR 
   · iframe; iframe #
   rotate_left
   · -- an unmarshaling error: the loop ends
-    ihave ⟨#Herr, %Hptr⟩ := netN.rdErr_conn' t eof la ra ed err2 $$ [$Hrerr $Hio $Hbin $HEOFv]
+    ihave ⟨#Herr, %Hptr⟩ := netN.rdErr_conn' t eof la ra ed err2 $$ [$Hrerr $Hio $Hbin $HEOFv $Hsys]
     obtain ⟨ei, rfl⟩ : ∃ ei, err2 = interface.ok ei := by
       cases err2 with
       | nil => exact absurd rfl He

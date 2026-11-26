@@ -48,7 +48,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [lintest_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions]
 variable [perclient_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions]
 variable [NaInvG GF]

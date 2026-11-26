@@ -26,13 +26,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : _root_.Perennial.net.Assumptions]
-variable [_root_.Perennial.net.FieldAssumptions]
 
 theorem net.Listen.wp_proof
     (wp_Listen : ∀ [HasExt netExt], _root_.Perennial.net.Listen.spec (GF := GF) (hG := hG)) :
     net.Listen.spec (GF := GF) (hG := hG) := by
   intro network addr
-  iintro %Φ ⟨%Hnw, Hfree⟩ HΦ
+  iintro %Φ ⟨#Hpkg, %Hnw, Hfree⟩ HΦ
   subst Hnw
   iunfold netAddrFree at Hfree
   icases Hfree with ⟨Hclaim, %hX, Hu⟩
@@ -46,7 +45,8 @@ theorem net.Listen.wp_proof
   · inext; iexact Htok
   have hA := _root_.Perennial.net.Listen.spec_addrOk (GF := GF) (hG := hG) wp_Listen
   iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ []
-  · isplitr
+  · iframe Hpkg
+    isplitr
     · ipureintro; exact Hok
     · iinv Hinv with >Ht Hclose
       iapply fupd_mask_intro Std.LawfulSet.empty_subset

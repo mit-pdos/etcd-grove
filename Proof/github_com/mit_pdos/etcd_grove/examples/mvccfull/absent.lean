@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 theorem absent.wp_proof
     (wp_IsNE : errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG)) :
     absent.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ d b R j qd h qc hb hne
+  intro _ _ _ d b R j qd h qc hb hne
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
   ihave #Hos : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
   · iPkgInit

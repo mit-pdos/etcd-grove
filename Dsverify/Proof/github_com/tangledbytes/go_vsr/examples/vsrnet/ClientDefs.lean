@@ -136,7 +136,7 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
-variable [net.FieldAssumptions] [π : NetProtoGS]
+variable [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- **Client machine `c`'s system** `sys`, its request counter at `n` (exclusive; `Op` takes it and

@@ -183,3 +183,248 @@ incrementally there, 4761 jobs green at `1c7a88da48`). Base: `dsv-retire-1` @ `6
    `etc/gen-init.py --check`; `etc/gates.sh` on fk-lean2 (`FKLEAN1_GATES=1 FKLEAN_HOST=fk-lean2
    /shared/tmp/fklean1-check.sh /shared/etcd-grove-dsvretire2 dsv-retire-2 -`); push `dsv-retire-2` over https;
    STATUS.md "Last updated" entry.
+
+## Step 3, zerolog (branch `dsv-retire-3`, 2026-11-26): state and handoff
+
+**Done.** zerolog v1.23.0 is translated with bodies, with `internal/json` (`Dsverify/Code/github_com/rs/zerolog.toml`:
+everything but `Context.Caller`, which stays a name, and the `[[skip]]`ped initializer `ch`; goose refuses a
+skipped variable read by translated code, so `Context.Caller` has to go too). Project `dsv-rabia`
+(`etc/dsv/rabia.py`) gained the package `internal/json`, the roots `io/ioutil=Dsverify`, `encoding/json=`,
+`path/filepath=`, `internal/filepathlite=` (zerolog's imports, each with a proved initializer: Perennial's, the
+main tree's, or `Dsverify`'s `io/ioutil`), `std_models=["encoding/json"]` (`InterfaceMarshalFunc = json.Marshal`
+names the model's `Marshal`) and, in gen-init's `MAIN`, `path.filepath`, `internal.filepathlite`,
+`encoding.json`. `etc/gen-init.py` regenerated the rabia `PkgTable`s (zerolog's imports now in them).
+zerolog is still in `HYP_INITS` (its `wp_initialize'` still the axiom).
+
+**Not done: the tree does not build yet.** `internal/json` has no `Base.lean` (no `isPkgInit` instance), which
+the regenerated `PkgTable`s name. Next steps, in order:
+
+1. `Dsverify/Proof/github_com/rs/zerolog/internal/json/Base.lean`: the fact. `init.0` (string.go) fills
+   `noEscapeTable` in a loop over `0..0x7e`; zerolog's `init.1` **stores into `json.JSONMarshalFunc`**, another
+   package's variable, so `internal/json`'s fact must hand out a writable cell: `inv (∃ f, JSONMarshalFunc ↦ f)`
+   (or a full points-to through gen-init's `newvars`, as the main tree does for cross-package stores: grep
+   gen-init for an example). `AppendString` indexes `noEscapeTable[s[i]]` (a `[256]bool` by a byte: in
+   bounds) and `hex[b>>4]`: the fact needs only `noEscapeTable ↦□ some array`, not its contents.
+2. Move `github_com.rs.zerolog.internal.json` and `github_com.rs.zerolog` from `HYP_INITS` to `PKGS` (rabia.py)
+   with `SPECIAL` configs (gen-init cannot step the loop of `internal/json`'s `init.0`, nor the calls in
+   zerolog's `init.0`: `SetGlobalLevel(TraceLevel)` (an atomic store to `*gLevel`, held at init) and
+   `disabledLogger = &Nop()` = `New(nil).Level(Disabled)`, which reads `ioutil.Discard`: `io/ioutil`'s fact
+   (`Dsverify/Proof/io/ioutil/Base.lean`, `True` today) must keep `∃ w, Discard ↦□ w`, which its init has from
+   `io.isInit`). The three `sync.Pool` literals (`eventPool`, `arrayPool`, console's buffer pool): Perennial's
+   `init_Pool` (`Perennial/Proof/sync/PoolDefs.lean`). Delete zerolog's `Init.lean` axiom.
+3. zerolog's fact (`Base.lean`, `True` today), for the function proofs: `gLevel ↦□ p ∗ inv (∃ v, p ↦ v)`,
+   `LevelFieldName ↦□ "level"`, `LevelFieldMarshalFunc ↦□ f` with `f`'s spec (`Level.String`),
+   `enc ↦□ Encoder{}`, `eventPool`'s `isPool` with `P` = "a `*Event` with its buffer owned"; persistent
+   (`↦□`), so no client can write zerolog's variables (the dsv-fix6 review's condition 1).
+4. Define the tokens, opaque today: `loggerMade lg` := "`lg` is `New(nil)`'s logger" (`∃ w, ioutil.Discard ↦□ w`
+   and `lg` = `Logger{w := (w as a LevelWriter, or levelWriterAdapter{w}), level := TraceLevel}`, other fields
+   zero); `eventTok e` := `e = null ∨` "`e ↦` an `Event` whose buffer is owned, non-empty (`AppendKey` reads
+   `dst[len(dst)-1]`), `w` a logger's, `done`/`ch` nil, level one of the five". As retire-2's `rngTok :=
+   ownRngSource`: the axioms' statements are unchanged, their vocabulary gets its meaning.
+5. Prove, riskiest first: `Logger.{Trace,..,Error}` (`should`, `GlobalLevel`, `eventPool.Get`, `.(*Event)`,
+   `e.Str(LevelFieldName, LevelFieldMarshalFunc(level))`), `Event.Str` (`AppendKey`, `AppendString` and its
+   `appendStringComplex` loop over Perennial's `utf8.DecodeRuneInString`), `New`, `ParseLevel` (`"warn"`),
+   `SetGlobalLevel`.
+
+**Session 2 (2026-11-26), WIP handoff (stopped at the context limit; nothing built yet).** Pushed, not built:
+- `Dsverify/Proof/github_com/rs/zerolog/internal/json/Base.lean`: fact `jsonInit` = `hookCell GoFunc
+  (globalAddr JSONMarshalFunc) ∗ ∃ a : GoArray Bool 256, globalAddr noEscapeTable ↦□ a`.
+- `.../internal/json/InitLoop.lean`: `wp_init0` (`init.«0»`'s loop: table owned before and after).
+  **DRAFT with two `sorry`s** (the loop body: `array_acc` on `arrayIndexRef Bool (sint.Z k)`, store,
+  `wp_for_post`, re-establish `0 ≤ k ≤ 127`; `hb` from the array points-to's length). Must be finished
+  before anything lands; never in a landed commit.
+- `etc/gen-init.py`: new config key `initfn_apply` (a translated `init` applied by its own spec instead
+  of stepped into).
+- `etc/dsv/rabia.py`: zerolog and `internal/json` moved from `HYP_INITS` to `PKGS`, with `SPECIAL`
+  configs (allocs, `initfn_apply` for json's `init.«0»`, the hook-cell store in zerolog's `init.«1»`,
+  json's `finish`). zerolog's fact still `True`. **Not yet written**: zerolog `init.«0»`'s steps
+  (`SetGlobalLevel(TraceLevel)`: probably `wp_func_call; wp_call; wp_auto` and the atomic store on the
+  `new(int32)` cell; `Nop()` = `New(nil).Level(Disabled)`: reads `ioutil.Discard` via io/ioutil's new
+  fact, then a type assertion `w.(LevelWriter)` on an unknown `w`: expect a case split), and whatever the
+  translated variable initializers need (the three `sync.Pool` literals, `new(int32)`s). Iterate on the
+  generated `Init.lean`, then move the steps into `rabia.py` and rerun gen-init.
+- `etc/dsv/quepaxa.py` + `Dsverify/Proof/io/ioutil/Base.lean`: io/ioutil's fact is now
+  `∃ w, Discard ↦□ w` (its `finish` makes it).
+- Regenerated by `PERENNIAL_DIR=/shared/perennial-a706aeb9a etc/gen-init.py`: zerolog's `Init.lean` (the
+  axiom gone, the proof draft), json's `Init.lean`, io/ioutil's, `PkgInitDsv`, rabia's `Init`/`PkgTable`s.
+
+Build: the remote worktree `~/eg/wt/dsv-retire-3` on fk-lean1 was being seeded (from `wt/lean-warm`) by
+`/shared/tmp/fklean1-check.sh /shared/etcd-grove-dsvr3 dsv-retire-3` with targets
+`Dsverify.GeneratedProof.github_com.rs.zerolog Dsverify.GeneratedProof.github_com.rs.zerolog.internal.json
+Dsverify.Proof.github_com.rs.zerolog.Spec` at `04c16d3753` (log `/shared/tmp/dsvr3-seed.log`; remote log
+`~/eg/logs/dsv-retire-3-*.log`). For iteration after it: `/shared/tmp/dsvr3-rb.sh <targets>`
+(The seed finished: the worktree exists; its build at `04c16d3753` failed, as expected, in zerolog's `Base.lean` (`failed to synthesize`, lines 27/29: no `internal/json` instance at that commit, which `ca1e516109` adds).) It tars the local changed files into the remote worktree and runs `lake build` there under the
+build lock and `MemoryMax=50G`.
+
+Next, in order: build `...internal.json.InitLoop` and finish `wp_init0`; build json's and zerolog's
+`Init` (fix steps, back into `rabia.py`, regenerate); build the rabia roots; then steps 3-6 of the list
+above (zerolog's fact, `eventTok`/`loggerMade` definitions, the nine proofs, the remaining-axioms note
+`notes/axiom-review/dsv-zerolog-remaining.md`, the checks, gates).
+
+**Session 3 (2026-11-26), WIP handoff (stopped at the context limit).** Committed (`150c26d79a`, no `sorry`):
+- `internal/json/InitLoop.lean`: `wp_init0` finished (no `sorry`; helper `wp_store_arrBool`); json's `Base.lean`
+  imports its imports' `Base`s. json's `Init.lean` checks (`initfn_apply` now `$$ HnoEscapeTable`, no brackets).
+- `zerolog/NewNil.lean` (new, defs tier): `newLevelWriter`, `newLogger w` (the logger `New` builds from
+  `Discard`'s value `w`), `wp_New_nil w` (`{{ Discard ↦□ w }} New(nil) {{ RET #(newLogger w); True }}`, by cases on
+  `w` and `typeSetContains`), `wp_Nop`. Both check with `etc/lean-check.py`.
+- `rabia.py` zerolog `SPECIAL`: `before` (`arrayPool`: one `repeat (first | rw recv_eq_func_mk | wp_func_lits | wp_auto)`
+  over all the variable initializers; `$inits`: `rename_i`/`irename` of `gLevel`'s cell to `HgCell`), `after`
+  `init.«0»` (`SetGlobalLevel`'s `StoreInt32` through `wp_apply_core`, then `wp_Nop`), import `NewNil`.
+  zerolog's `Base.lean` imports its imports' `Base`s (fact still `True`). Regenerated `Init.lean` checks
+  (`lean-check -a`, 0 errors); zerolog's `Init.lean` axiom is gone.
+- `quepaxa.py` io/ioutil `finish`: `try iexists _`, `try iexact HDiscard` (`is_pkg_init_finish` already closes it).
+
+**Built green** (fk-lean1, at `150c26d79a`, 3811 jobs): `Dsverify.Proof.rabia.examples.rabianet.TopLevelRobustness
+Dsverify.Proof.rabia.roles.server.Link Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness
+Dsverify.Proof.raxos.{Proposer,Proxy,Replica}.Results` (step 3 of the brief done). Tools:
+`/shared/tmp/dsvr3-rb.sh <targets>` (lake build there; now syncs every file changed since the remote's base
+`04c16d3753`, committed or not), `/shared/tmp/dsvr3-lc.sh [-a|-q|--goal L] FILE` (`etc/lean-check.py` there;
+use `-a`: the incremental report can show a stale error).
+
+**Next, in order**: step 3's list above from item 3 (zerolog's fact: `gLevel ↦□ p ∗
+inv (∃ v, p ↦ v)` from `HgCell` in `finish`, the level strings and `LevelFieldMarshalFunc` `↦□`, `eventPool`'s
+`isPool`); `loggerMade lg := ∃ w, Discard ↦□ w ∗ ⌜lg = newLogger w⌝` (needs the defs' instance context in
+`Spec.lean`); `New.wp_proof` from `wp_New_nil`; `SetGlobalLevel`; `ParseLevel("warn")` (it calls
+`fmt.Errorf` with `%s` before the switch, and compares with `LevelFieldMarshalFunc(l)`: needs `Errorf`'s spec
+and the fact's marshal function); the level methods and `Str`; the remaining-axioms note; checks; gates.
+
+**Blocked by Perennial (recorded in `notes/perennial-changes.md`, 2026-11-26)**: `Event.{Int,Ints,Int64,Uint32,
+Bool,Float64}` call `strconv.AppendInt`/`AppendUint`/`AppendBool`/`AppendFloat`, names only in Perennial;
+`Event.Msg` writes to `ioutil.Discard`, whose value `io.isInit` hides. These seven stay axioms; once `eventTok`
+and `loggerMade` are concrete (step 4) their preconditions narrow but their posts become concrete too (a field
+method gives back `e ↦` an event with its buffer), so they must be re-reviewed with the `axiom` skill over the
+concrete tokens before that lands. So at most 9 of the 16 function axioms
+plus the initializer retire on this route.
+
+**Session 4 (2026-11-26).** The rabia/quepaxa roots built green at `150c26d79a` (session 3's build). Done since:
+- zerolog's fact `zerologInit` (`Base.lean`; `zerologInit_access`): `gLevel ↦□ p ∗ inv gLevelN (∃ v, p ↦ v)`,
+  `LevelFieldName ↦□ "level"`, `LevelFieldMarshalFunc ↦□ f ∗ marshalSpec f` (on `fiveLevels`, `f lv` returns
+  `levelString lv`), `enc ↦□ Encoder{}`, `eventPool ↦□ ep ∗ sync.isPool ep f True eventElem` (`f ≠ nil`),
+  `ioutil.Discard ↦□ w`. Proved by the generated `Init.lean` (`rabia.py`: `ZL_FACT` at the end of `init.«0»`'s
+  `after`, while the goal is still a WP; `ZL_FIN` after `FIN_PRE[:6]`). `Level.String` needs a local
+  `go.NotInterface go.int8` (`haveI`, as Perennial's `time.Duration` proofs do for `int64`).
+- `loggerMade lg := ∃ w, Discard ↦□ w ∗ ⌜lg = newLogger w⌝` (`Spec.lean` now imports `NewNil`).
+- Proved, axioms gone: `New.wp_proof` (`wp_New_nil`), `SetGlobalLevel.wp_proof` (the invariant),
+  `ParseLevel.wp_proofWarn` (`marshalSpec`; the switch comes first, `fmt.Errorf` is not reached).
+- `notes/axiom-review/dsv-zerolog-remaining.md`: the 13 left, for a fresh review.
+
+**Not done: `eventTok` is still opaque**, deliberately: a definition changes what all 13 remaining axioms claim,
+so it goes in with the proofs of the level methods and `Str` (and the review redone over it). Next, in order:
+1. `Event.Str` (riskiest): `AppendKey` (`dst[len(dst)-1]`) and `internal/json.AppendString` with
+   `appendStringComplex`'s loop over `utf8.DecodeRuneInString`; `internal/json`'s fact has `noEscapeTable ↦□`.
+2. Define `eventTok e := ⌜e = null⌝ ∨ ∃ v bs, e ↦ v ∗ v.buf' ↦* bs ∗ ownSliceCap ∗ ⌜bs ≠ []⌝ ∗ (∃ w, Discard ↦□ w ∗
+   ⌜v.w' = newLevelWriter w⌝) ∗ ⌜v.done' = func.nil ∧ v.ch' = slice.nil ∧ v.stack' = false ∧ v.level' ∈ fiveLevels⌝`
+   (`Msg`'s axiom needs all of it; check its body). The pool gives `eventElem` (buffer owned, any contents):
+   `newEvent` truncates it and appends `{`.
+3. `Logger.{Trace,..,Error}`: `should` (`l.level` is Trace, `GlobalLevel()` through the invariant; disabled →
+   `nil`), `newEvent` (`eventPool.Get`: `isPool`; `.(*Event)` from `eventElem`), `e.Str(LevelFieldName,
+   LevelFieldMarshalFunc(level))` (`marshalSpec`).
+4. Re-review the 7 blocked event axioms over the defined `eventTok`; tcb baselines; gates.
+
+**Session 4 stopped at the context limit (checks pending).** Done: tier-check ok (zerolog `Base` now imports
+`Proof.path.filepath.PkgInit`, not the proof module `Proof.path.filepath.Base`); `etc/gen-init.py --check` ok;
+`etc/goose.py --check --project dsv-rabia` ok; the six rabia/quepaxa targets built green (before the tier fix,
+which changes only that import). **Running when stopped**: a full `lake build` on fk-lean1
+(`/shared/tmp/dsvr3-rb.sh` with no targets, log `/shared/tmp/dsvr3-buildall.log`), started because
+`etc/tcb-report.py` refused (560 modules out of date there). Next: once it is green (rerun `dsvr3-rb.sh`
+incrementally first: the tier fix was synced mid-build), on fk-lean1 run `etc/tcb-report.py --check --update`, then
+`--collection etc/tcb-collections/dsv-rabia.txt --check --update` (and `dsv-quepaxa.txt`); expected removals only:
+`zerolog.wp_initialize'`, `New.wp_proof`, `SetGlobalLevel.wp_proof`, `ParseLevel.wp_proofWarn` (and
+`internal.json`'s initializer if listed); commit those; then `etc/gates.sh` once, logged, in the background.
+
+**Session 6 (2026-11-26): trust-base files updated** (the coordinator accepted the diff). The full build on fk-lean1
+was green (29110 jobs); `etc/tcb-report.py --check` matches for the base (362 axioms, 0 sorries), `dsv-rabia` (22)
+and `dsv-quepaxa` (6, unchanged). Removed from the base and from `dsv-rabia`: zerolog's `wp_initialize'`,
+`New.wp_proof`, `SetGlobalLevel.wp_proof`, `ParseLevel.wp_proofWarn`. Added to `dsv-rabia` only, none new to the
+repository (all three are already in the base baseline): `Perennial.runtime.initFuncsOk`,
+`Perennial.runtime.opaqueInitsOk`, `Perennial.internal.runtime.sys.opaqueInitsOk`. They were always under rabia's
+roots, but hidden behind the one axiom `zerolog.wp_initialize'`, whose statement gave zerolog's `isPkgInit`
+without its dependencies' initializers; zerolog's initializer is now proved, and the proof applies the
+initializers of the runtime packages zerolog imports, so their axioms show in the collection.
+`etc/gates.sh` (fk-lean1, log `~/eg/logs/dsv-retire-3-gates-s6.log`): every check passed but axiom-tok, whose
+`etc/axiom-tok-allow.txt` still had `trunc ...zerolog.wp_initialize'` (a stale entry: now a theorem); removed
+(`ca45e750f0`), and `etc/axiom-tok-check.py --check` is ok.
+
+**Session 6, continued: `eventTok` defined, `Event.Str` proved** (`c396097763`). `eventTok` is the planned
+definition (session 4, item 2). `internal/json/AppendString.lean`: `wp_appendStringComplex`, `wp_AppendString`
+(appends a non-empty `q`), `wp_AppendKey` (needs `bs ≠ []`: `dst[len(dst)-1]`), lemmas (not `wp_proof`s) taking
+Perennial's `utf8.DecodeRuneInString` spec; `jsonInit_access` in json's `Base.lean`. Gotchas: a theorem in a section
+with `[HasExt Net.netExt]` takes it (zerolog's statements do not have it: keep it out of lemma sections); `hex[...]`
+needs `rw [hex_get_shr]`/`[hex_get_and]` before `wp_auto` (over the literal list); Perennial's `word` cache can
+reuse a stale `_proof_N` across re-elaborations in one lean-check server (a kernel type mismatch that a fresh server
+does not show: `etc/lean-check.py --stop`, then check again; candidate entry for `notes/perennial-changes.md`).
+`Event.Str.wp_proof` now takes the DecodeRuneInString spec, passed by `HypsHoldLinked`. 12 zerolog axioms left.
+Next: the five level methods (session 4, item 3), then the review over the defined token, then the tcb update
+(expected: `Event.Str.wp_proof` removed from the base and `dsv-rabia`, nothing added).
+
+**Session 6 stopped at the context limit (handoff).** Head: this commit. Gates: run once at `bc5bb0cc02`'s
+code (fk-lean1, log `~/eg/logs/dsv-retire-3-gates-s6.log`): all passed but axiom-tok's stale entry, fixed in
+`ca45e750f0` (`axiom-tok-check.py --check` ok). Proved since: `Event.Str.wp_proof` over the defined `eventTok`
+(`c396097763`; `etc/lean-check.py -a` clean on `AppendString.lean`, `Event__Str.lean`, `HypsHoldLinked.lean`).
+**Running when stopped**: a full incremental `lake build` on fk-lean1 (`/shared/tmp/dsvr3-rb.sh`, no targets; log
+`/shared/tmp/dsvr3-build-s6.log`, last line `BUILD_EXIT n`). Next: once it is green, on fk-lean1 run
+`etc/tcb-report.py --check --update` and `--collection etc/tcb-collections/dsv-rabia.txt --check --update`
+(expected: only `github_com.rs.zerolog.Event.Str.wp_proof` removed), copy the files back, commit; `etc/tier-check.py
+--check` (new module `internal/json/AppendString.lean` should be defs tier) and `etc/axiom-tok-check.py --check`;
+then the five level methods (session 4, item 3) and the review of the 12 remaining axioms over the defined token.
+
+**Session 7 (2026-11-26).** Session 6's build was green (29111 jobs). Trust-base files: `Event.Str.wp_proof`
+removed from the base (361) and `dsv-rabia` (21), nothing else (`95d2d3b100`); tier-check and axiom-tok-check
+ok (no allow entry named `Str`). Proved the five level methods: `LoggerNewEvent.lean` (defs tier) has
+`Event.Str.spec ownEvent` (the statement of `Event.Str.wp_proof`, as a callee spec) and `wp_Logger_newEvent`
+(`l.newEvent(lv, nil)` for `lv ∈ fiveLevels` on a `New(nil)` logger gives `eventTok e`); each
+`Logger.M.wp_proof` takes `Event.Str.spec eventTok` and applies it; `HypsHoldLinked` passes
+`Event.Str.wp_proof wp_DecodeRuneInString`. Statements unchanged. Gotchas: `wp_auto` does not load a field
+through the logger's fractional points-to `l ↦{dq} lg` (its `Access` search fails; the generated
+`Logger_access_load_<field>` instance taken by hand with `.access_strict` works); calls into an inlined
+method need a second `wp_call` (`should`); after the struct stores, `simp only` (no lemmas) collapses the
+nested record projections in the event's points-to. `/shared/tmp/dsvr3-lc.sh` syncs `etc/` too: run the tcb
+update and copy its files back before any lean-check, or the sync overwrites them on the remote. The `word`
+cache observation (session 6) was not reproduced: no `notes/perennial-changes.md` entry.
+
+**Session 7 stopped at the context limit (handoff).** Head: this commit. The level methods' proofs and
+`LoggerNewEvent.lean` built green on fk-lean1 (full incremental build, 29112 jobs, log
+`/shared/tmp/dsvr3-build-s7.log`, `BUILD_EXIT 0`); `etc/tier-check.py --check` ok. **Running when stopped**
+(maybe still): on fk-lean1, in `~/eg/wt/dsv-retire-3`, `etc/tcb-report.py --check --update`, then `--reuse
+--collection etc/tcb-collections/dsv-rabia.txt --check --update`, `--reuse --collection
+etc/tcb-collections/dsv-quepaxa.txt --check`, `etc/axiom-tok-check.py --check`; its output goes to
+`/shared/tmp/claude-0/-shared-etcd-grove/7b886a2f-34a1-4069-98ad-c4f614dc605c/tasks/bk73xzaye.output`, and the
+same command then copies `etc/tcb-baseline.txt` and `etc/tcb-collections/dsv-rabia.txt` back into
+`/shared/etcd-grove-dsvr3`. Next, in order:
+1. Check that run's output (or rerun it, `--reuse` is fine once `.lake/tcb.json` is fresh). The expected change
+   is only the removal of `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof` from the base (361 -> 356) and from
+   `dsv-rabia` (21 -> 16). Anything else: stop and report. Copy the two files back **before** any
+   `/shared/tmp/dsvr3-lc.sh` run (it syncs `etc/` to the remote), then commit and push. Update the
+   numbers in `notes/STATUS.md`'s dsv-retire-3 entry ("the level methods' removal pending the build").
+2. `etc/gates.sh` once, in the background on fk-lean1, logged; fix and re-check.
+3. `notes/axiom-review/dsv-zerolog-remaining.md` is updated (7 left) and ready for the coordinator's review.
+(Correction, same session: the trust-base run finished before the handoff commit (its files were committed in
+`ac8105fb09`, session 8): exactly the five `Logger.*.wp_proof` removed, base 356, `dsv-rabia` 16, `dsv-quepaxa`
+unchanged (6), axiom-tok ok. Item 1 is done but for the numbers in `notes/STATUS.md`; next is `etc/gates.sh`.)
+
+**Session 8 (2026-11-26).** Trust-base files of the level methods committed (`ac8105fb09`: base 356, `dsv-rabia`
+16). `etc/gates.sh` on fk-lean1: all passed (log `~/eg/logs/dsv-retire-3-gates-s8b.log`; the first run,
+`-s8.log`, failed only the Go-test checks because `/shared/tmp` does not exist there: rerun with
+`GATES_GO_TMPDIR`/`GATES_K8S_LOCK` under `~/eg/tmp`). The review of the 7 remaining axioms
+(`notes/axiom-review/dsv-zerolog-remaining-review.md`, tests `dsv-zerolog-gotest/`): six sound, `Ints`
+conditional; the coordinator dropped `Ints` and `Int64` (rabia calls neither): fields removed from `EventSpecs`,
+axiom files deleted, `HypsHoldLinked` updated; build green, base 354, `dsv-rabia` 14 (only those two), every other
+collection unchanged, axiom-tok, tier and gen-init ok.
+
+## zerolog step 3: result
+
+- **Retired: 12 axioms.** Proved (10; statements unchanged): zerolog's `wp_initialize'` (the package fact
+  `zerologInit`, by the generated initializer; `internal/json`'s too), `New.wp_proof`, `SetGlobalLevel.wp_proof`,
+  `ParseLevel.wp_proofWarn`, `Event.Str.wp_proof`, `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof`. Dropped (2,
+  unused by rabia; the review found `Ints` conditional): `Event.{Ints,Int64}.wp_proof`, with their `EventSpecs`
+  fields. Trust base: base 361 -> 354 over sessions 7-8 (`Str`, the five levels, the two dropped), `dsv-rabia`
+  21 -> 14.
+- **Left: 5**, all blocked by Perennial (`notes/perennial-changes.md`, 2026-11-26), all reviewed sound over the
+  defined `eventTok`: `Event.{Int,Uint32,Bool,Float64}.wp_proof` (`strconv.AppendInt`/`AppendUint`/`AppendBool`/
+  `AppendFloat` are names only) and `Event.Msg.wp_proof` (writes to `ioutil.Discard`, whose `Write` `io.isInit`
+  hides).
+- **Gates:** all passed (session 8, before the drop); after the drop the touched checks (tcb and every
+  collection, axiom-tok, tier, gen-init) pass.
+- **Workaround:** `wp_auto` does not load a field through a fractional points-to `l ↦{dq} lg` (its `Access`
+  search fails); the generated `Logger_access_load_<field>` instance, applied by hand with `.access_strict`,
+  works (`LoggerNewEvent.lean`). A candidate Perennial fix, not filed.

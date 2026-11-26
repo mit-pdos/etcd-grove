@@ -660,3 +660,34 @@ func TestCopyFileRangeIoCopy(t *testing.T) {
 	}
 	mark("done")
 }
+
+// model_os_dir_offset.go: getdents moves a directory's offset (to 2^63-1 at the end of an ext4
+// htree directory), and SEEK_END of a directory is not its size.
+func TestDirOffset(t *testing.T) {
+	d := extDir(t)
+	if err := os.WriteFile(d+"/a", []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Open(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if _, err := f.Readdirnames(-1); err != nil {
+		t.Fatal(err)
+	}
+	cur, err := f.Seek(0, io.SeekCurrent)
+	if err != nil || cur == 0 {
+		t.Fatalf("Seek(0, SeekCurrent) after Readdirnames: %d, %v; want the kernel's nonzero offset", cur, err)
+	}
+	t.Logf("offset after Readdirnames(-1): %d", cur)
+	fi, err := f.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
+	end, err := f.Seek(0, io.SeekEnd)
+	t.Logf("SEEK_END of the directory: %d, %v (size %d)", end, err, fi.Size())
+	if err == nil && end == fi.Size() {
+		t.Fatalf("SEEK_END of an htree directory gave its size %d", end)
+	}
+}

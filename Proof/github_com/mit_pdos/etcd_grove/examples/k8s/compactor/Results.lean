@@ -47,15 +47,14 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_Main`). -/
-theorem k8s_compactor_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+theorem k8s_compactor_Main
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_Main h_After
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_MainPartition`). -/
-theorem k8s_compactor_MainPartition [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem k8s_compactor_MainPartition
+    [go_etcd_io.etcd.cache.v3.Assumptions]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_MainPartition h_After

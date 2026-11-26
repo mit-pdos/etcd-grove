@@ -24,7 +24,7 @@ machine's heap `heapAt G L`, or for the global ghost state `G`; notes/dsv-quepax
   (`hyp.grpc.GrpcWorldHyp`, over the global ghost state), and `sync.Map` over `qv.map`
   (`hyp.sync.MapHyp`);
 * the translation's `Assumptions` of the twelve commands (with, by their instances, those of every
-  package they import), `net.FieldAssumptions` and `go.BasicIntoValInj`, as paxos's statement.
+  package they import) and `go.BasicIntoValInj`, as paxos's statement.
 Not premises: protobuf's `Marshal`/`Unmarshal` of QuePaxa's messages, math/rand's `Seed`,
 `time.Time.UTC`, `sort.Ints` and `fmt.Println` are per-function trust-boundary axioms, and so are
 the initializers of the other libraries with no translation or model here (yaml.v2, io/ioutil,
@@ -82,7 +82,7 @@ def quepaxa_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+     [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; google_golang_org.grpc.InitHyp remoteGF) →
     ∀ (qv : raxos.hyp.QpVocab remoteGF),

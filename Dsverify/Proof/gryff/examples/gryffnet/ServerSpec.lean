@@ -27,7 +27,7 @@ open gryff.boot (gryffGlobals bootProph)
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [gA : examples.gryffnet.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [gA : examples.gryffnet.Assumptions] [net.rpc.Assumptions]
 variable [RA : RpcHttpAddr GF] [net.http.Assumptions]
 
 /-- **`Server(id)`**, server machine `id = i + 1` (`i < 4`: the master at `i = 0`, replica node

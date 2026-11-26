@@ -99,7 +99,7 @@ instance masterReg_persistent (γ : GryffNames GF) (m : Loc) :
     Persistent (masterReg γ m) := by
   unfold masterReg; infer_instance
 
-variable [net.rpc.Assumptions] [net.http.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [net.http.Assumptions] [π : NetProtoGS]
 variable [RA : RpcHttpAddr GF]
 
 /-- A master serving registrations on its listener (persistent): what `(*Master).Serve` needs

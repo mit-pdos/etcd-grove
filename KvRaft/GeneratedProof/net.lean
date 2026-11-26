@@ -119,25 +119,6 @@ noncomputable instance scope_into_val_typed :
 end def_
 end scope
 
-namespace addrinfoErrno
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance addrinfoErrno_typed_pointsto :
-    TypedPointsto (GF := GF) net.addrinfoErrno :=
-  sorry -- axiomatized type
-
-noncomputable instance addrinfoErrno_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.addrinfoErrno net.addrinfoErrno.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end addrinfoErrno
-
 namespace conf
 section def_
 
@@ -195,25 +176,6 @@ noncomputable instance mptcpStatusDial_into_val_typed :
 end def_
 end mptcpStatusDial
 
-namespace mptcpStatusListen
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance mptcpStatusListen_typed_pointsto :
-    TypedPointsto (GF := GF) net.mptcpStatusListen :=
-  sorry -- axiomatized type
-
-noncomputable instance mptcpStatusListen_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.mptcpStatusListen net.mptcpStatusListen.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end mptcpStatusListen
-
 namespace Dialer
 section def_
 
@@ -252,6 +214,97 @@ noncomputable instance sysDialer_into_val_typed :
 end def_
 end sysDialer
 
+namespace KeepAliveConfig
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions]
+
+noncomputable instance KeepAliveConfig_typed_pointsto :
+    TypedPointsto (GF := GF) net.KeepAliveConfig where
+  typedPointstoDef l v dq := iprop(
+    "Enable" ∷ typedPointsto (structFieldRef net.KeepAliveConfig go!"Enable" l) v.Enable' dq ∗
+    "Idle" ∷ typedPointsto (structFieldRef net.KeepAliveConfig go!"Idle" l) v.Idle' dq ∗
+    "Interval" ∷ typedPointsto (structFieldRef net.KeepAliveConfig go!"Interval" l) v.Interval' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef net.KeepAliveConfig go!"Count" l) v.Count' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance KeepAliveConfig_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.KeepAliveConfig net.KeepAliveConfig.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance KeepAliveConfig_access_load_Enable (l : Loc) (v : net.KeepAliveConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Enable" l) v.Enable' dq)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Enable" l) v.Enable' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_store_Enable (l : Loc) (v : net.KeepAliveConfig) (Enable' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Enable" l) v.Enable' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Enable" l) Enable' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Enable' := Enable' } : net.KeepAliveConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_load_Idle (l : Loc) (v : net.KeepAliveConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Idle" l) v.Idle' dq)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Idle" l) v.Idle' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_store_Idle (l : Loc) (v : net.KeepAliveConfig) (Idle' : _root_.Perennial.time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Idle" l) v.Idle' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Idle" l) Idle' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Idle' := Idle' } : net.KeepAliveConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_load_Interval (l : Loc) (v : net.KeepAliveConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Interval" l) v.Interval' dq)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Interval" l) v.Interval' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_store_Interval (l : Loc) (v : net.KeepAliveConfig) (Interval' : _root_.Perennial.time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Interval" l) v.Interval' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Interval" l) Interval' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interval' := Interval' } : net.KeepAliveConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_load_Count (l : Loc) (v : net.KeepAliveConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Count" l) v.Count' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance KeepAliveConfig_access_store_Count (l : Loc) (v : net.KeepAliveConfig) (Count' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.KeepAliveConfig go!"Count" l) Count' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := Count' } : net.KeepAliveConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end KeepAliveConfig
+
 namespace ListenConfig
 section def_
 
@@ -261,12 +314,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
 noncomputable instance ListenConfig_typed_pointsto :
-    TypedPointsto (GF := GF) net.ListenConfig :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.ListenConfig where
+  typedPointstoDef l v dq := iprop(
+    "Control" ∷ typedPointsto (structFieldRef net.ListenConfig go!"Control" l) v.Control' dq ∗
+    "KeepAlive" ∷ typedPointsto (structFieldRef net.ListenConfig go!"KeepAlive" l) v.KeepAlive' dq ∗
+    "KeepAliveConfig" ∷ typedPointsto (structFieldRef net.ListenConfig go!"KeepAliveConfig" l) v.KeepAliveConfig' dq ∗
+    "mptcpStatus" ∷ typedPointsto (structFieldRef net.ListenConfig go!"mptcpStatus" l) v.mptcpStatus' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance ListenConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.ListenConfig net.ListenConfig.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.ListenConfig net.ListenConfig.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ListenConfig_access_load_Control (l : Loc) (v : net.ListenConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"Control" l) v.Control' dq)
+      (typedPointsto (structFieldRef net.ListenConfig go!"Control" l) v.Control' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_store_Control (l : Loc) (v : net.ListenConfig) (Control' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"Control" l) v.Control' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.ListenConfig go!"Control" l) Control' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Control' := Control' } : net.ListenConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_load_KeepAlive (l : Loc) (v : net.ListenConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAlive" l) v.KeepAlive' dq)
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAlive" l) v.KeepAlive' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_store_KeepAlive (l : Loc) (v : net.ListenConfig) (KeepAlive' : _root_.Perennial.time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAlive" l) v.KeepAlive' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAlive" l) KeepAlive' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeepAlive' := KeepAlive' } : net.ListenConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_load_KeepAliveConfig (l : Loc) (v : net.ListenConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAliveConfig" l) v.KeepAliveConfig' dq)
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAliveConfig" l) v.KeepAliveConfig' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_store_KeepAliveConfig (l : Loc) (v : net.ListenConfig) (KeepAliveConfig' : net.KeepAliveConfig) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAliveConfig" l) v.KeepAliveConfig' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.ListenConfig go!"KeepAliveConfig" l) KeepAliveConfig' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeepAliveConfig' := KeepAliveConfig' } : net.ListenConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_load_mptcpStatus (l : Loc) (v : net.ListenConfig) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"mptcpStatus" l) v.mptcpStatus' dq)
+      (typedPointsto (structFieldRef net.ListenConfig go!"mptcpStatus" l) v.mptcpStatus' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ListenConfig_access_store_mptcpStatus (l : Loc) (v : net.ListenConfig) (mptcpStatus' : net.mptcpStatusListen) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.ListenConfig go!"mptcpStatus" l) v.mptcpStatus' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.ListenConfig go!"mptcpStatus" l) mptcpStatus' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mptcpStatus' := mptcpStatus' } : net.ListenConfig) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end ListenConfig
@@ -451,12 +576,135 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
 noncomputable instance netFD_typed_pointsto :
-    TypedPointsto (GF := GF) net.netFD :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.netFD where
+  typedPointstoDef l v dq := iprop(
+    "pfd" ∷ typedPointsto (structFieldRef net.netFD go!"pfd" l) v.pfd' dq ∗
+    "family" ∷ typedPointsto (structFieldRef net.netFD go!"family" l) v.family' dq ∗
+    "sotype" ∷ typedPointsto (structFieldRef net.netFD go!"sotype" l) v.sotype' dq ∗
+    "isConnected" ∷ typedPointsto (structFieldRef net.netFD go!"isConnected" l) v.isConnected' dq ∗
+    "net" ∷ typedPointsto (structFieldRef net.netFD go!"net" l) v.net' dq ∗
+    "laddr" ∷ typedPointsto (structFieldRef net.netFD go!"laddr" l) v.laddr' dq ∗
+    "raddr" ∷ typedPointsto (structFieldRef net.netFD go!"raddr" l) v.raddr' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance netFD_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.netFD net.netFD.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.netFD net.netFD.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance netFD_access_load_pfd (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"pfd" l) v.pfd' dq)
+      (typedPointsto (structFieldRef net.netFD go!"pfd" l) v.pfd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_pfd (l : Loc) (v : net.netFD) (pfd' : _root_.Perennial.internal.poll.FD) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"pfd" l) v.pfd' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"pfd" l) pfd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pfd' := pfd' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_load_family (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"family" l) v.family' dq)
+      (typedPointsto (structFieldRef net.netFD go!"family" l) v.family' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_family (l : Loc) (v : net.netFD) (family' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"family" l) v.family' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"family" l) family' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with family' := family' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_load_sotype (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"sotype" l) v.sotype' dq)
+      (typedPointsto (structFieldRef net.netFD go!"sotype" l) v.sotype' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_sotype (l : Loc) (v : net.netFD) (sotype' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"sotype" l) v.sotype' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"sotype" l) sotype' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sotype' := sotype' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_load_isConnected (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"isConnected" l) v.isConnected' dq)
+      (typedPointsto (structFieldRef net.netFD go!"isConnected" l) v.isConnected' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_isConnected (l : Loc) (v : net.netFD) (isConnected' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"isConnected" l) v.isConnected' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"isConnected" l) isConnected' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isConnected' := isConnected' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_load_net (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"net" l) v.net' dq)
+      (typedPointsto (structFieldRef net.netFD go!"net" l) v.net' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_net (l : Loc) (v : net.netFD) (net' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"net" l) v.net' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"net" l) net' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with net' := net' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_load_laddr (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"laddr" l) v.laddr' dq)
+      (typedPointsto (structFieldRef net.netFD go!"laddr" l) v.laddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_laddr (l : Loc) (v : net.netFD) (laddr' : net.Addr) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"laddr" l) v.laddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"laddr" l) laddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with laddr' := laddr' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_load_raddr (l : Loc) (v : net.netFD) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"raddr" l) v.raddr' dq)
+      (typedPointsto (structFieldRef net.netFD go!"raddr" l) v.raddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance netFD_access_store_raddr (l : Loc) (v : net.netFD) (raddr' : net.Addr) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.netFD go!"raddr" l) v.raddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.netFD go!"raddr" l) raddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raddr' := raddr' } : net.netFD) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end netFD
@@ -727,6 +975,46 @@ noncomputable instance HardwareAddr_into_val_typed :
 end def_
 end HardwareAddr
 
+namespace conn
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions]
+
+noncomputable instance conn_typed_pointsto :
+    TypedPointsto (GF := GF) net.conn where
+  typedPointstoDef l v dq := iprop(
+    "fd" ∷ typedPointsto (structFieldRef net.conn go!"fd" l) v.fd' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance conn_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.conn net.conn.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance conn_access_load_fd (l : Loc) (v : net.conn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.conn go!"fd" l) v.fd' dq)
+      (typedPointsto (structFieldRef net.conn go!"fd" l) v.fd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance conn_access_store_fd (l : Loc) (v : net.conn) (fd' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.conn go!"fd" l) v.fd' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.conn go!"fd" l) fd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fd' := fd' } : net.conn) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end conn
+
 namespace PacketConn
 section def_
 
@@ -872,44 +1160,6 @@ noncomputable instance OpError_access_store_Err (l : Loc) (v : net.OpError) (Err
 
 end def_
 end OpError
-
-namespace timeout
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance timeout_typed_pointsto :
-    TypedPointsto (GF := GF) net.timeout :=
-  sorry -- axiomatized type
-
-noncomputable instance timeout_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.timeout net.timeout.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end timeout
-
-namespace temporary
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance temporary_typed_pointsto :
-    TypedPointsto (GF := GF) net.temporary :=
-  sorry -- axiomatized type
-
-noncomputable instance temporary_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.temporary net.temporary.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end temporary
 
 namespace ParseError
 section def_
@@ -1483,7 +1733,7 @@ noncomputable instance TCPAddr_access_store_Zone (l : Loc) (v : net.TCPAddr) (Zo
 end def_
 end TCPAddr
 
-namespace KeepAliveConfig
+namespace TCPConn
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -1491,16 +1741,94 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
-noncomputable instance KeepAliveConfig_typed_pointsto :
-    TypedPointsto (GF := GF) net.KeepAliveConfig :=
-  sorry -- axiomatized type
+noncomputable instance TCPConn_typed_pointsto :
+    TypedPointsto (GF := GF) net.TCPConn where
+  typedPointstoDef l v dq := iprop(
+    "conn" ∷ typedPointsto (structFieldRef net.TCPConn go!"conn" l) v.conn' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance KeepAliveConfig_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.KeepAliveConfig net.KeepAliveConfig.underlying :=
-  sorry -- axiomatized type
+noncomputable instance TCPConn_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.TCPConn net.TCPConn.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance TCPConn_access_load_conn (l : Loc) (v : net.TCPConn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPConn go!"conn" l) v.conn' dq)
+      (typedPointsto (structFieldRef net.TCPConn go!"conn" l) v.conn' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPConn_access_store_conn (l : Loc) (v : net.TCPConn) (conn' : net.conn) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPConn go!"conn" l) v.conn' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.TCPConn go!"conn" l) conn' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conn' := conn' } : net.TCPConn) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
-end KeepAliveConfig
+end TCPConn
+
+namespace TCPListener
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions]
+
+noncomputable instance TCPListener_typed_pointsto :
+    TypedPointsto (GF := GF) net.TCPListener where
+  typedPointstoDef l v dq := iprop(
+    "fd" ∷ typedPointsto (structFieldRef net.TCPListener go!"fd" l) v.fd' dq ∗
+    "lc" ∷ typedPointsto (structFieldRef net.TCPListener go!"lc" l) v.lc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance TCPListener_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.TCPListener net.TCPListener.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance TCPListener_access_load_fd (l : Loc) (v : net.TCPListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPListener go!"fd" l) v.fd' dq)
+      (typedPointsto (structFieldRef net.TCPListener go!"fd" l) v.fd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPListener_access_store_fd (l : Loc) (v : net.TCPListener) (fd' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPListener go!"fd" l) v.fd' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.TCPListener go!"fd" l) fd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fd' := fd' } : net.TCPListener) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPListener_access_load_lc (l : Loc) (v : net.TCPListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPListener go!"lc" l) v.lc' dq)
+      (typedPointsto (structFieldRef net.TCPListener go!"lc" l) v.lc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPListener_access_store_lc (l : Loc) (v : net.TCPListener) (lc' : net.ListenConfig) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPListener go!"lc" l) v.lc' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.TCPListener go!"lc" l) lc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lc' := lc' } : net.TCPListener) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end TCPListener
 
 namespace UDPAddr
 section def_
@@ -1651,215 +1979,6 @@ noncomputable instance UnixListener_into_val_typed :
 
 end def_
 end UnixListener
-
-namespace _Ctype__GoString_
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype__GoString__typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype__GoString_ :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype__GoString__into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype__GoString_ net._Ctype__GoString_.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype__GoString_
-
-namespace _Ctype_char
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_char_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_char :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_char_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_char net._Ctype_char.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_char
-
-namespace _Ctype_int
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_int_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_int :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_int_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_int net._Ctype_int.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_int
-
-namespace _Ctype_long
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_long_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_long :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_long_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_long net._Ctype_long.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_long
-
-namespace _Ctype_struct_addrinfo
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_struct_addrinfo_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_struct_addrinfo :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_struct_addrinfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_struct_addrinfo net._Ctype_struct_addrinfo.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_struct_addrinfo
-
-namespace _Ctype_struct_sockaddr
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_struct_sockaddr_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_struct_sockaddr :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_struct_sockaddr_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_struct_sockaddr net._Ctype_struct_sockaddr.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_struct_sockaddr
-
-namespace _Ctype_uchar
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_uchar_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_uchar :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_uchar_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_uchar net._Ctype_uchar.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_uchar
-
-namespace _Ctype_uint
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_uint_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_uint :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_uint_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_uint net._Ctype_uint.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_uint
-
-namespace _Ctype_ulong
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_ulong_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_ulong :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_ulong_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_ulong net._Ctype_ulong.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_ulong
-
-namespace _Ctype_ushort
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_ushort_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_ushort :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_ushort_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_ushort net._Ctype_ushort.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_ushort
-
-namespace _Ctype_void
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance _Ctype_void_typed_pointsto :
-    TypedPointsto (GF := GF) net._Ctype_void :=
-  sorry -- axiomatized type
-
-noncomputable instance _Ctype_void_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net._Ctype_void net._Ctype_void.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end _Ctype_void
 
 end net
 end

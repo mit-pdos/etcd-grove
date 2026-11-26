@@ -28,7 +28,7 @@ open Iris Iris.BI Net
 /-- See the file header. -/
 class NetSpecs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.Assumptions]
-    [net.FieldAssumptions] : Prop where
+    : Prop where
   read : Perennial.net.Conn.Read.spec (GF := GF) (hG := hG)
   write : Perennial.net.Conn.Write.spec (GF := GF) (hG := hG)
   close : Perennial.net.Conn.Close.spec (GF := GF) (hG := hG)

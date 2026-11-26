@@ -47,7 +47,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [os.fileStat.FieldAssumptions] [os.file.FieldAssumptions]
 
 /-- **The storage methods' specs at every open WAL** (see the file header). -/
 theorem walStorSpecs_holds

@@ -36,7 +36,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section boot
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
 
 /-- A machine's net/rpc boot resources (see the file header). -/

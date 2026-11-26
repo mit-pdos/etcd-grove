@@ -37,7 +37,7 @@ structure client.St where
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : client.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : client.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- The `*Client` `cl` is client `c` of the system `γ` in state `st` (exclusive).
@@ -73,7 +73,7 @@ end defs
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : client.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : client.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 variable [models_lab.jsoncodec.JsonCodec GF]
 

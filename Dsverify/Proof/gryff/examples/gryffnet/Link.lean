@@ -103,7 +103,7 @@ theorem binaryVarintHyps [bufio.Assumptions] [io.Assumptions] [encoding.binary.A
   wire.binaryVarintHyps_holds
 
 /-- Net's specs N uses, from their proofs. -/
-theorem netSpecs [net.Assumptions] [net.FieldAssumptions] : netN.NetSpecs GF :=
+theorem netSpecs [net.Assumptions] : netN.NetSpecs GF :=
   ⟨net.Conn.Read.wp_proof, net.Conn.Write.wp_proof, net.Conn.Close.wp_proof,
     net.Conn.RemoteAddr.wp_proof, net.Listener.Accept.wp_proof, net.Listen.wp_proof,
     net.Dial.wp_proof, net.DialTimeout.wp_proof⟩
@@ -117,13 +117,13 @@ variable [net.rpc.Assumptions] [sync.Assumptions]
 theorem SetCodec_wp : net.rpc.SetCodec.spec (GF := GF) (hG := hG) :=
   net.rpc.SetCodec.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock
 
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj] [NetProtoGS]
+variable [net.Assumptions] [go.BasicIntoValInj] [NetProtoGS]
 
 theorem Call_wp : net.rpc.Client.Call.spec (GF := GF) (hG := hG) := net.rpc.Client.Call.wp
 
 end rpc
 
-variable [package_sem' : gryff.examples.gryffnet.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : gryff.examples.gryffnet.Assumptions]
 variable [π : NetProtoGS] [bvi : go.BasicIntoValInj]
 
 variable [ρ : RemoteGS] in

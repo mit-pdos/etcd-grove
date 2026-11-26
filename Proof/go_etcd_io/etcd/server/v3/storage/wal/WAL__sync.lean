@@ -53,7 +53,7 @@ variable [syscall_sem : syscall.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIn [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIn
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG))
@@ -183,7 +183,7 @@ logger, `unsafeNoSync`, the encoder, the tail's writer state, the locks, the gho
 bytes flushed past the size if need be (`wal.tailWriterW`) and the window's fdatasync
 (`fileutil.Fdatasync.wp_tailW`): the tail synced and durable (`TailMetaS`), its size below ext4's
 maximum offset. *Error*: everything lost. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core
     (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG))
@@ -361,7 +361,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
 
 /-- See the file header: `wp_core` over the handle (`walHandleIn`), the tail's `TailMetaS` weakened to
 `TailMeta`. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG))
@@ -404,7 +404,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof [os.file.FieldAs
 
 /-- **`WAL.sync.specC`**: `wp_core` over the handle after `Close` closed the pipeline (`walHandleC`),
 the tail synced (`TailMetaS`). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG))
@@ -458,7 +458,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
 (`h.sz = o0 + |out|`, `cut`'s truncate), so the size after the flush is the stream's end
 (`cutSynced`), the window closed: `walHandleIn`'s `TailMeta` weakened to `TailMetaW`; `sync.specNoErr`
 when `Sio` covers every inode. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCut [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCut
     {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr) :

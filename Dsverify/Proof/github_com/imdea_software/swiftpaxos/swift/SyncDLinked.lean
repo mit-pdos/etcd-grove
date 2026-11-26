@@ -33,7 +33,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [sync.atomic.Assumptions] [state.Assumptions] [log.Assumptions]
   [slices.Assumptions] [time.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-  [github_com.emirpasic.gods.maps.treemap.Assumptions] [net.FieldAssumptions]
+  [github_com.emirpasic.gods.maps.treemap.Assumptions]
 
 /-- **`handleSync` at the descriptors' state** (see the file header). -/
 theorem swift.Replica.wp_handleSyncD (γ : sp.Names) (γc γm : GName) (rp : Loc) (x : swift.RunX)

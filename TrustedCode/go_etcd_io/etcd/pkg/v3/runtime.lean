@@ -25,6 +25,7 @@ module
 
 public import Perennial.Golang.Defn
 public import TrustedCode.os
+public import Code.os
 public import TrustedCode.syscall
 
 @[expose] public section
@@ -90,7 +91,9 @@ noncomputable def FDUsage.impl : val :=
     if: "e" =⟨go.uintptr⟩ #(W64 0) then (ArbitraryInt, #GoInterface.nil)
     else
       let: "op" := if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then #"open" else #"readdirent" in
-      (#(W64 0), os.model.pathError "op" #model.procSelfFd (syscall.model.errno "e"))
+      let: "pathError" := FuncResolve os.modelPathError [] #() in
+      let: "errno" := FuncResolve os.modelErrno [] #() in
+      (#(W64 0), "pathError" "op" #model.procSelfFd ("errno" "e"))
 
 /-- `FDLimit() (uint64, error)` (`fds_linux.go`):
 

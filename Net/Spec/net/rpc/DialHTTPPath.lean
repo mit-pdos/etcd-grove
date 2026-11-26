@@ -8,7 +8,9 @@ error: the net extension's D1 v3.5, the dialer setting no read deadline), and on
 `NewClient`: a client of `a`, its reader just after the answer (the acceptor writes nothing more
 before a request, and nothing before the whole request is written: `respProto`); or an error (the
 dial's, or the `*OpError` `"dial-http"` wrapping the answer's, with its `Error()`, `errAny`).
-`httpEnv` is what the answer's read needs of the package's state (`http.ReadResponse.spec`).
+`httpEnv` is what the answer's read needs of the package's state (`http.ReadResponse.spec`);
+`isPkgInit net` (net's initialization: net/rpc has no initialization proof) gives `internal/poll`'s,
+which `Conn.Read` takes (since the Go-model overlays S6: Go's `conn.Read` compares with `io.EOF`).
 Proved in `Net/Proof/net/rpc/DialHTTPPath.lean`, over `http.ReadResponse.spec`.
 -/
 module
@@ -30,13 +32,13 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev DialHTTPPath.spec : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗
       rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq path) connectAns }}
     (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))
@@ -47,10 +49,11 @@ abbrev DialHTTPPath.spec : Prop :=
 /-- `DialHTTPPath.spec` whose error is `errPlain` (`Net/Proof/models_lab/ErrFmt.lean`): the dial's
 `*OpError`, or the `"dial-http"` `*OpError` wrapping an `errLeaf` error (the answer's read error,
 `http.ReadResponse.spec_errs`, or an `errors.New` error). Proved in
-`Net/Proof/net/rpc/DialHTTPPath.lean`; `DialHTTPPath.spec` follows from it. -/
+`Net/Proof/net/rpc/DialHTTPPath.lean`; `DialHTTPPath.spec` follows from it. Go-model net: takes
+`isPkgInit net` as `DialHTTPPath.spec` does (Go's `OpError.Error` needs `syscall`'s table). -/
 abbrev DialHTTPPath.spec_plain : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
-  {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗
       rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq path) connectAns }}
     (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))

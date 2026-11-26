@@ -45,8 +45,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_compacted.wp_Main`). -/
-theorem putgetc_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem putgetc_Main :
     etcd_compacted.Main.spec (GF := GF) (hG := hG) :=
   etcd_compacted.wp_Main
 

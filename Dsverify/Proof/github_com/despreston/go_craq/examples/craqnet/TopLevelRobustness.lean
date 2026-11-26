@@ -176,7 +176,7 @@ end alloc
 /-- **The craq kit, closed** (see the statement's file); net/rpc's client over HTTP over Perennial's
 proofs of `strings.Cut`/`TrimLeft` (`Link.lean`'s `rpcClientSpecs`). -/
 theorem craq_remote_robust : craq_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 bvi
     rs σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT
     (GF := remoteGF) craqKitAddrs [] (system σ) g (2 ^ 30) (2 ^ 63) List.Pairwise.nil

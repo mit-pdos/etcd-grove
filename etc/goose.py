@@ -44,10 +44,12 @@ out at the pinned revision, otherwise a clone in `.lake/goose/perennial`.  A
 project's source is cloned into `.lake/goose/<name>` at its pinned revision, except
 for a project in this repository (`local`), whose source is that directory.
 
-Every `go` command runs with `GOTOOLCHAIN` set to the pinned GO_TOOLCHAIN (Go fetches it if
-absent): the translation of a standard-library package (names-only `net/http`, `encoding/json`,
-...) is of the toolchain's own source, which changes between patch releases (go1.27.1's
-`net/http` gives a different translation from go1.27.3's).
+Every `go` command runs on the pinned GO_TOOLCHAIN (Go fetches it if absent): the translation
+of a standard-library package (names-only `net/http`, `encoding/json`, ...) is of the toolchain's
+own source, which changes between patch releases (go1.27.1's `net/http` gives a different
+translation from go1.27.3's). It runs from a copy of the toolchain outside the Go module cache,
+`.lake/goose/goroot-<GO_TOOLCHAIN>` (`GOROOT` set to it, `GOTOOLCHAIN=local`; pinned_goroot says
+why).
 """
 
 import argparse
@@ -66,6 +68,16 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 WORK = os.path.join(ROOT, ".lake", "goose")
 # The Go toolchain the translations are generated with (the module docstring says why).
 GO_TOOLCHAIN = "go1.27.3"
+
+# The build tags of every project (one build configuration for every program): `netgo`, the pure-Go
+# `net` (Go-model overlays S6, 2026-11-24). `net`'s Go model (`[model]` in Net/Code/net.toml) splices
+# only a package without cgo files (Perennial's goose/util/model.go), and the default linux build
+# of `net` has them (the cgo resolver). The verified build is `-tags netgo`. etcd's release builds
+# use CGO_ENABLED=0 (scripts/build_lib.sh, `CGO_ENABLED="${CGO_ENABLED:-0}"`), which selects the
+# same `net` files but `netgo_off.go` for `netgo_on.go`: the constant `netGoBuildTag`, read only by
+# the resolver's configuration (`conf.go`), which the model replaces. `netgo` changes no other
+# package's files.
+BUILD_TAGS = ["netgo"]
 
 # Project raft's pin (projects raft and raft-tla translate two builds of it).
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
@@ -110,9 +122,10 @@ class Project:
     # The Go source is this directory of this repository (relative to its root) instead
     # of a fork (`repo`, `rev`: None).
     local: str = None
-    # Additional Go build tags the packages are loaded with, beside `goose` (goose's and proofgen's
-    # `-tags`, Perennial c6b39d4f8). Every package of one program must be translated with the same
-    # tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones with any.
+    # Additional Go build tags the packages are loaded with, beside `goose` and BUILD_TAGS (goose's
+    # and proofgen's `-tags`, Perennial c6b39d4f8). Every package of one program must be translated
+    # with the same tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones
+    # with any.
     tags: list = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
@@ -881,8 +894,10 @@ PROJECTS = [
         # `FileMode` and `PathError`, the errors the models return)
         # (`internal/poll` and `internal/syscall/unix`, 2026-11-07: what `os`'s translated
         # initializer reads; Perennial's import its own `syscall`)
+        # (`internal/filepathlite=`, 2026-11-24, Go-model overlays S5: os's Go `MkdirAll` and its
+        # models' `filepathlite.Base`, over this repository's translation, Code/internal/filepathlite)
         lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
-                    "io/fs=", "internal/poll=", "internal/syscall="],
+                    "io/fs=", "internal/poll=", "internal/syscall=", "internal/filepathlite="],
         packages=[".", "os", "syscall", "golang.org/x/sys/unix", "io/fs", "internal/poll",
                   "internal/syscall/unix"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "bboltfs"),
@@ -2348,6 +2363,71 @@ def host_env():
     return {k: v for k, v in os.environ.items() if k not in target}
 
 
+def pinned_goroot():
+    """The GOROOT every `go` command (and goose, proofgen) runs with: a copy of the pinned
+    GO_TOOLCHAIN's GOROOT at `.lake/goose/goroot-<GO_TOOLCHAIN>`, made once (its files hard links
+    to the toolchain's where the file system allows, else copies).
+
+    Not the toolchain's own GOROOT: `GOTOOLCHAIN=<GO_TOOLCHAIN>` runs the toolchain Go fetched
+    into the module cache (`$GOMODCACHE/golang.org/toolchain@v0.0.1-go1.27.3.linux-amd64`), and
+    the go command refuses an overlay that replaces a file there ("go: overlay contains a
+    replacement for .../src/hash/crc32/crc32_amd64.go. Files beneath GOMODCACHE (...) must not
+    be replaced."), which Perennial's Go models of standard-library packages are (since go-models
+    da0a82c26: the models of `os` and `syscall` replace `hash/crc32/crc32_amd64.go`). The go
+    command compares the overlay's paths with GOMODCACHE as strings, so a GOROOT outside it
+    suffices; a copy rather than a symbolic link keeps the paths outside it for a tool that
+    resolves links. The copy is renamed into place only when complete, so its `bin/go` marks a
+    finished one."""
+    d = os.path.join(WORK, "goroot-" + GO_TOOLCHAIN)
+    if os.path.isfile(os.path.join(d, "bin", "go")):
+        return d
+    env = {k: v for k, v in os.environ.items() if k != "GOROOT"}
+    env["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    r = subprocess.run(["go", "env", "GOROOT", "GOVERSION"], capture_output=True, text=True,
+                       env=env)
+    if r.returncode != 0:
+        sys.exit(f"goose.py: go env GOROOT (GOTOOLCHAIN={GO_TOOLCHAIN}) failed: {r.stderr.strip()}")
+    src, version = r.stdout.split()
+    if version != GO_TOOLCHAIN:
+        sys.exit(f"goose.py: GOTOOLCHAIN={GO_TOOLCHAIN} runs {version} ({src})")
+
+    def link_or_copy(a, b):
+        try:
+            os.link(a, b)
+        except OSError:
+            shutil.copy2(a, b)
+
+    os.makedirs(WORK, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="goroot-" + GO_TOOLCHAIN + ".", dir=WORK)
+    new = os.path.join(tmp, "goroot")
+    # the directories are made writable (the module cache's are read-only), so that a copy can
+    # be deleted; the files keep their modes (a hard link shares the module cache's file)
+    for dp, dns, fns in os.walk(src):
+        rel = os.path.relpath(dp, src)
+        out = os.path.normpath(os.path.join(new, rel))
+        os.makedirs(out, mode=0o755)
+        for n in list(dns):
+            if os.path.islink(os.path.join(dp, n)):
+                os.symlink(os.readlink(os.path.join(dp, n)), os.path.join(out, n))
+                dns.remove(n)
+        for n in fns:
+            a = os.path.join(dp, n)
+            if os.path.islink(a):
+                os.symlink(os.readlink(a), os.path.join(out, n))
+            else:
+                link_or_copy(a, os.path.join(out, n))
+    try:
+        os.rename(new, d)
+    except OSError:
+        if not os.path.isfile(os.path.join(d, "bin", "go")):
+            raise
+        # another goose.py made it first: ours is left in `tmp`
+        print(f"goose.py: {d} made meanwhile; {tmp} is a spare copy to delete", file=sys.stderr)
+        return d
+    os.rmdir(tmp)
+    return d
+
+
 def git_head(d):
     r = subprocess.run(["git", "-C", d, "rev-parse", "HEAD"], capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else None
@@ -2669,8 +2749,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             piece_out = os.path.join(out, str(i))
             config = os.path.join(lib_dir, "Code")
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
-            if proj.tags:
-                roots = ["-tags", ",".join(proj.tags)] + roots
+            roots = ["-tags", ",".join(BUILD_TAGS + (proj.tags or []))] + roots
             if overlay and i == 0:
                 roots = ["-overlay", overlay] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
@@ -2730,7 +2809,11 @@ def main():
     ap.add_argument("--src", action="append", default=[], metavar="NAME=DIR")
     ap.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     args = ap.parse_args()
-    os.environ["GOTOOLCHAIN"] = GO_TOOLCHAIN
+    # the pinned toolchain from its copy outside the module cache (pinned_goroot says why), for
+    # every go command: the translator's build, the translations, the prophecy patches' checks
+    goroot = pinned_goroot()
+    os.environ.update(GOROOT=goroot, GOTOOLCHAIN="local",
+                      PATH=os.path.join(goroot, "bin") + os.pathsep + os.environ.get("PATH", ""))
     # The checked-in translations are linux/amd64's with cgo (the standard library's
     # cgo-processed packages, e.g. `net`, translate differently per target): translate for that
     # target on any host unless told otherwise (an arm64 host needs amd64's C cross-compiler for
@@ -2755,6 +2838,11 @@ def main():
         perennial, rev = pinned_perennial()
     sources = [(p,) + source(p, local.get(p.name), args.check) for p in projects]
     sources = [with_proph_patches(p, src, desc) for p, src, desc in sources]
+
+    # the [model] dir of every internal/gomodel.toml: Perennial's internal/gomodel at the Lean pin
+    # (etc/gomodels.py)
+    import gomodels
+    gomodels.materialize([perennial])
 
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)

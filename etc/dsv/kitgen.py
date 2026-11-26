@@ -252,11 +252,11 @@ def spec_file(kit, kg):
         o.append(f'    [{m.n}_sem : cmd.{m.n}.Assumptions]\n')
     ps = premises(st)
     if ps:
-        o.append('    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],\n')
+        o.append('    [go.BasicIntoValInj],\n')
         o.extend(t for _, t, _ in ps)
         o.append('    ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),\n')
     else:
-        o.append('    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]\n')
+        o.append('    [go.BasicIntoValInj]\n')
         o.append('    (σ : Nat → state) (g : GlobalState) (threads : Nat),\n')
     o.append(f'    DistDeploy {st["addrs"]} (system σ) g →\n')
     o.append(f'    Robustness.Robust [] (system σ) g threads {st["steps"]}\n\n')
@@ -428,9 +428,9 @@ def proof_file(kit, kg):
     ss = ' '.join(f's{m.i}' for m in ms)
     names = [n for n, _, _ in premises(st)]
     if names:
-        o.append(f'  intro gctx lctx sem {ss} fsem bvi\n    {" ".join(names)} σ g threads\n')
+        o.append(f'  intro gctx lctx sem {ss} bvi\n    {" ".join(names)} σ g threads\n')
     else:
-        o.append(f'  intro gctx lctx sem {ss} fsem bvi σ g threads\n')
+        o.append(f'  intro gctx lctx sem {ss} bvi σ g threads\n')
     o.append(lines(pr.get('bridge', f'  refine robust_of_distProtoRB (GF := remoteGF) {st["addrs"]} '
                                      f'(system σ) g threads ({st["steps"]}) ?_\n  intro G π hrb')))
     o.append(lines(pr['start']))

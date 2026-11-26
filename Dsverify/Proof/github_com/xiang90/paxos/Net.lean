@@ -92,7 +92,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : paxos.Assumptions]
 variable [π : NetProtoGS]
 
 local notation "pkg" => pkg_id.github_com.xiang90.paxos

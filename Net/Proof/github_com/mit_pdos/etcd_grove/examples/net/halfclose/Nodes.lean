@@ -104,7 +104,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : halfclose.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : halfclose.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `append(data, buf[:k]...)`: the first `k` bytes of `buf` appended to `data`, `buf` kept. -/
@@ -400,9 +400,12 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hplan, #Heof⟩
   icases hcInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HhcInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%xa, #Hxa, HE⟩)
-  · iframe %Hplan
+  · (try iframe HnetPk)
+    iframe %Hplan
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -466,9 +469,12 @@ theorem wp_Call
   wp_apply wp_RandomBytes k as %req ⟨%rq, Hreq, -⟩
   · ipureintro; exact Hk.1
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => clientProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcp⟩ | ⟨-, %xa, #Hxa, HE⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply dial_both_au addrN srvAddr (connProto γm) (clientProto γm) $$ HaddrInv

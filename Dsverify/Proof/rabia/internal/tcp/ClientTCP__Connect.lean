@@ -111,7 +111,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.internal.tcp.Assumptions] [sync.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [msg_sem : rabia.internal.message.Assumptions]
 
 set_option goose.wp.extras true
@@ -360,11 +360,14 @@ theorem wp_ClientTCP_connect (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (
     $$ [HConn HReader HWriter]
   · iexists cn, rd, wr; iframe
   wp_for HI
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply D.dial go!"tcp" net.tcpNet_tcp (proxyAddr (c % cf.n)) iprop(True)
       (fun cid => iprop(connEnd (Gg := hG.goose_globalGS) cid false (proxyP γ (c % cf.n))
         (proxyQ γ (c % cf.n)) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cid false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcl, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Haok
     isplit
     · itrivial

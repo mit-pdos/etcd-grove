@@ -23,7 +23,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
 variable [EpNetDeps GF]
 
 theorem replica.Replica.WaitForClientConnections.spec_holds (hSC : replica.Replica.serveConn.spec (GF := GF))

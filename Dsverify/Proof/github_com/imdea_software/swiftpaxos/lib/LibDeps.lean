@@ -53,16 +53,16 @@ class SwiftBufioDeps [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext
 header). -/
 class SwiftNetDeps [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
-  connRead : ∀ [net.Assumptions] [net.FieldAssumptions], net.Conn.Read.spec (GF := GF) (hG := hG)
-  connWrite : ∀ [net.Assumptions] [net.FieldAssumptions], net.Conn.Write.spec (GF := GF) (hG := hG)
-  connClose : ∀ [net.Assumptions] [net.FieldAssumptions], net.Conn.Close.spec (GF := GF) (hG := hG)
-  connRemoteAddr : ∀ [net.Assumptions] [net.FieldAssumptions],
+  connRead : ∀ [net.Assumptions] , net.Conn.Read.spec (GF := GF) (hG := hG)
+  connWrite : ∀ [net.Assumptions] , net.Conn.Write.spec (GF := GF) (hG := hG)
+  connClose : ∀ [net.Assumptions] , net.Conn.Close.spec (GF := GF) (hG := hG)
+  connRemoteAddr : ∀ [net.Assumptions] ,
     net.Conn.RemoteAddr.spec (GF := GF) (hG := hG)
-  dial : ∀ [net.Assumptions] [net.FieldAssumptions], net.Dial.spec (GF := GF) (hG := hG)
-  dialTimeout : ∀ [net.Assumptions] [net.FieldAssumptions],
+  dial : ∀ [net.Assumptions] , net.Dial.spec (GF := GF) (hG := hG)
+  dialTimeout : ∀ [net.Assumptions] ,
     net.DialTimeout.spec (GF := GF) (hG := hG)
-  listen : ∀ [net.Assumptions] [net.FieldAssumptions], net.Listen.spec (GF := GF) (hG := hG)
-  accept : ∀ [net.Assumptions] [net.FieldAssumptions],
+  listen : ∀ [net.Assumptions] , net.Listen.spec (GF := GF) (hG := hG)
+  accept : ∀ [net.Assumptions] ,
     net.Listener.Accept.spec (GF := GF) (hG := hG)
 
 end Perennial.github_com.imdea_software.swiftpaxos

@@ -73,7 +73,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions]
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [_root_.Perennial.net.FieldAssumptions] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcd_watch.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_watch.Main.wp_proof etcdstart.wp_GenAll etcdstart.wp_Writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 

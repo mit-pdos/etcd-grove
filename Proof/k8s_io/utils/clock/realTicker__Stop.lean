@@ -7,6 +7,7 @@ module
 
 public import Spec.k8s_io.utils.clock.realTicker__Stop
 public import Perennial.Proof.time
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 

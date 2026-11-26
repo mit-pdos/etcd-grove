@@ -393,12 +393,11 @@ trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof
 # `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at
 # `ownInitializing` (Perennial's initialization ghost state, given and returned with the same map);
-# the post adds only the package's persistent `isPkgInit` (fact `True`, zerolog's with `io`'s). No
+# the post adds only the package's persistent `isPkgInit` (fact `True`). No
 # token or thread resource is produced.
 trunc Perennial.encoding.gob.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.gogoproto.wp_initialize'
 trunc Perennial.github_com.gogo.protobuf.proto.wp_initialize'
-trunc Perennial.github_com.rs.zerolog.wp_initialize'
 trunc Perennial.gopkg_in.yaml_v2.wp_initialize'
 
 # dsv-fix4 (mit-pdos/etcd-grove#49 fix 4): swiftpaxos's gob axioms

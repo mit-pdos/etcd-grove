@@ -27,7 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [srv_sem : rabia.roles.server.Assumptions]
 variable [math.rand.Hyps GF]
-variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [go.BasicIntoValInj]
 
 set_option goose.wp.extras true
 

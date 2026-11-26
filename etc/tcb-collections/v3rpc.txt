@@ -33,7 +33,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom grpc.CustomCodec.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
-axiom grpc.StatsHandler.wp_proof
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
 axiom grpcProtoCodec

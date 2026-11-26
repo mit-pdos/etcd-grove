@@ -9,6 +9,7 @@ module
 public import Proof.hash.crc32.Init
 public import Perennial.Proof.hash.Link
 public import Perennial.Proof.internal.byteorder.Link
+public import Perennial.Proof.internal.gomodel.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Proof.hash.crc32.simpleMakeTable
@@ -68,6 +69,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoFunc) updateCastagnoli _ as HupdateCastagnoli
   wp_apply wp_GlobalAlloc (V := Loc) castagnoliTable8 _ as HcastagnoliTable8
   wp_apply wp_GlobalAlloc (V := Loc) castagnoliTable _ as HcastagnoliTable
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.gomodel _root_.Perennial.internal.gomodel.initialize'
+      EtcdGrove.ExternalInit.internal_gomodel _root_.Perennial.internal.gomodel.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
       EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
@@ -76,14 +79,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.internal_byteorder _root_.Perennial.internal.byteorder.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.hash _root_.Perennial.hash.initialize'
       EtcdGrove.ExternalInit.hash _root_.Perennial.hash.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of castagnoliInitOnce))
+  try wp_auto
+  wp_apply _root_.Perennial.sync.wp_OnceFunc as %castagnoliOnce HcastagnoliOnce
+  try wp_auto
   -- translated initializer of IEEETable))
   try wp_auto
   rw [show (W32 3988292384) = _root_.Perennial.hash.crc32.ieeePoly from rfl]
   wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %tI HtI
-  try wp_auto
-  -- translated initializer of castagnoliInitOnce))
-  try wp_auto
-  wp_apply _root_.Perennial.sync.wp_OnceFunc as %castagnoliOnce HcastagnoliOnce
   try wp_auto
   -- translated initializer of ieeeInitOnce))
   try wp_auto

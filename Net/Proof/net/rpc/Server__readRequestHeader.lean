@@ -88,7 +88,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions] [errors.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -110,6 +110,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
   icases HefV' with ⟨%xf, #Hef, -⟩
   iunfold srvCodecAt at Hsc
   icases Hsc with ⟨#Hrwc, #Hconn⟩
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
   ihave #HEOF := io.eof_of_init $$ Hio
   iunfold errors.newVar at HEOF
   icases HEOF with ⟨%x0, #Hx0, -⟩
@@ -143,7 +144,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     icases Hres with (⟨%seq, %sm, ⟨%Hnil, %Hgot, %Hlen⟩, Hr⟩ | ⟨%Hne, Hr, HE⟩)
     rotate_left
     · ihave #Hre := rdErr_readF la ra _ _ ed _ true got err (readDead (Gg := hG.goose_globalGS) cn true)
-        $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
+        $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof $HE]
       ihave #Hre' := Hre
       iunfold rdErr at Hre'
       icases Hre' with ⟨-, %Hp⟩
@@ -363,7 +364,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
       simp [frameOf_length] at this
       omega
     ihave #Hre := rdErr_readF la ra _ _ ed _ true got err (readDead (Gg := hG.goose_globalGS) cn true)
-      $$ [$HefV $Hef $Hio $Heof $Hueof $HE]
+      $$ [$HefV $Hef $Hio $Hsys $Heof $Hueof $HE]
     ihave #Hre' := Hre
     iunfold rdErr at Hre'
     icases Hre' with ⟨-, %Hp⟩

@@ -26,7 +26,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : replica.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : replica.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- What a send needs of the replica `v` (persistent): its network is the `*TCP` `tcp`, the
@@ -55,7 +55,7 @@ macro "msg_bound" : tactic => `(tactic| (
 section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : replica.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : replica.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 set_option goose.wp.extras true

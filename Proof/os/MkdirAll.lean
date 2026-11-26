@@ -27,7 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- An atomic update whose outcome `none` holds of its precondition commits with `none`, no step. -/
 theorem os.osAU_commit_none {A : Type} (α : IProp GF) (β Q : Option A → IProp GF)
@@ -95,10 +95,7 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   have htn : RootsTreeName R (child (joinPath r0 cs) b) := by
     rw [← joinPath_snoc]; exact os.treeName_snoc hm hcsb
   try wp_auto
-  wp_apply wp_osPathKindS R _ hpin CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi as %k %hk
-  obtain ⟨-, rfl⟩ := hk.resolve_right (fun h => h.1 htn)
-  wp_auto
-  rw [show (go!"os.Stat" : GoString) = os.Stat from rfl]
+  try rw [show (go!"os.Stat" : GoString) = os.Stat from rfl]
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
   wp_apply os.Stat.wp_absentS (joinPath r0 cs) b R j (.only [b]) _ (DFrac.own q) h 1 hb hbN hn
     $$ [Hp Hn Hperm] as %fi %err ⟨Hp, Hn, Hperm, %herr⟩
@@ -107,9 +104,7 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   cases err with
   | nil => exact absurd rfl herr
   | ok ie =>
-  wp_auto
-  wp_apply os.model.wp_mkdirAllParent
-  rw [os.parentModel_child _ b hb]
+  try wp_auto
   have hrne : 0 < r0.length := by
     obtain ⟨rc, hne, -, hrf⟩ := (hR.2.2 (r0, j0) hm).1
     rcases rc with _ | ⟨x, rc⟩
@@ -117,112 +112,125 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     · simp only at hrf; rw [hrf]; simp [joinPath]
   have hplen : 0 < (joinPath r0 cs).length := by
     simp only [joinPath, List.length_append]; omega
-  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %hlen
-  rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 ((joinPath r0 cs).length : Int)) by word)]
-  wp_auto
-  ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
-  wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm, #He⟩
-  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
-  (try rw [hkr]); (try rw [hkb])
-  ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
-  cases e with
-  | ok ie2 =>
-    -- the parent's `MkdirAll` failed: no `Mkdir`, the update commits with `none`
-    imod os.osAU_commit_none _ _ Q (by dsimp only [mkOut]; exact .rfl) $$ Hau with HQ
-    wp_auto
-    iapply HΦ
-    isplitr
-    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
-    iframe
-    dsimp only [mkOut, mkNew]
-    iframe
-    ipureintro; intro hc; cases hc
-  | nil =>
-  wp_auto
-  rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
-  wp_apply os.Mkdir.wp_proofS (joinPath r0 cs) b perm R j (DFrac.own qd) h q r Q hb hn hq
-    $$ [Hp Hperm Hn Hau] as %e ⟨#Hfe, Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
-  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
-  (try rw [hkr]); (try rw [hkb])
-  cases e with
-  | nil =>
-    wp_auto
-    iapply HΦ
-    isplitr
-    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
-    iframe
-    ipureintro; exact ho
-  | ok ie3 =>
-  wp_auto
-  rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
-  cases o with
-  | none =>
-    -- nothing logged: `d/b` is still absent
-    isimp only [mkOut] at Hout
-    wp_apply os.Lstat.wp_absentS (joinPath r0 cs) b R j (.only [b]) _ (DFrac.own q) h 1 hb hbN hn
-      $$ [Hp Hout Hperm] as %fi %err ⟨Hp, Hout, Hperm, %herr2⟩
+  have hPne : (child (joinPath r0 cs) b) ≠ [] := by simp [child]
+  have hpl := os.parentModel_length _ hPne
+  rw [os.parentModel_child _ b hb] at hpl
+  mkdirall_parent (child (joinPath r0 cs) b) (
+    rw [os.parentModel_child _ b hb]
+    try wp_auto
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+    try wp_auto
+    wp_apply filepathlite.VolumeName.wp_lex
+    try wp_auto
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+    try wp_auto
+    have hpb : (joinPath r0 cs).length < 2 ^ 63 := by omega
+    rw [decide_eq_true (show sint.Z (W64 (([] : GoString).length : Int)) <
+        sint.Z (W64 ((joinPath r0 cs).length : Int)) by simp only [List.length_nil]; word)]
+    try wp_auto
+    ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
+    wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm, #He⟩
     · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
     (try rw [hkr]); (try rw [hkb])
-    cases err with
-    | nil => exact absurd rfl herr2
-    | ok ie4 =>
-    wp_auto
-    iapply HΦ
-    isplitr
-    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
-    iframe
-    dsimp only [mkOut]
-    iframe
-    ipureintro; intro hc; cases hc
-  | some xs =>
-  obtain ⟨x, s0, J⟩ := xs
-  isimp only [mkOut] at Hout
-  icases Hout with ⟨Hlog, Hn⟩
-  have hJ : ((h.log x (mkEnt j b J s0) (<[b := .dir J]> h.cur)).cur !! b) = some (.dir J) := by
-    simp only [NamesH.log]; rw [GMap.lookup_insert]
-  generalize hh : h.log x (mkEnt j b J s0) (<[b := .dir J]> h.cur) = h' at hJ ⊢
-  -- a spine to the new directory, from fractions of the spine and of the caller's claim
-  obtain ⟨ε, a', b', hqd, hqq⟩ := os.qp_common qd q
-  subst hqd hqq
-  icases (osPathS_frac R (joinPath r0 cs) ε a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
-  icases (osNames_frac j (.only [b]) ε b' h').1 $$ Hn with ⟨Hne, Hnb⟩
-  ihave Hpc := osPathS_child R _ b (DFrac.own ε) j J h' hb hJ $$ Hpe Hne
-  wp_apply os.Lstat.wp_dirS (child (joinPath r0 cs) b) R J (DFrac.own ε) 1 $$ [Hpc Hperm]
-    as %fi %err ⟨Hpc, Hperm, Hres⟩
-  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
-  (try rw [hkr]); (try rw [hkb])
-  icases os.osPathS_unchild R (joinPath r0 cs) b j J ε a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
-  · iframe
-  icases osNames_agree j (.only [b]) _ _ h'' h' $$ Hne Hnb with %he
-  subst he
-  ihave Hn := (osNames_frac j (.only [b]) ε b' h'').2 $$ [Hne Hnb]
-  · iframe
-  icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr2)
-  · obtain ⟨rfl, rfl⟩ := hfe
-    wp_auto
-    fileStat_isDir Hfs
-    subst hh
-    wp_if_destruct
-    all_goals
+    ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
+    cases e with
+    | ok ie2 =>
+      -- the parent's `MkdirAll` failed: no `Mkdir`, the update commits with `none`
+      imod os.osAU_commit_none _ _ Q (by dsimp only [mkOut]; exact .rfl) $$ Hau with HQ
+      try wp_auto
+      iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
+      iframe
+      dsimp only [mkOut, mkNew]
+      iframe
+      ipureintro; intro hc; cases hc
+    | nil =>
+    try wp_auto
+    try rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
+    wp_apply os.Mkdir.wp_proofS (joinPath r0 cs) b perm R j (DFrac.own qd) h q r Q hb hn hq
+      $$ [Hp Hperm Hn Hau] as %e ⟨#Hfe, Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
+    · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+    (try rw [hkr]); (try rw [hkb])
+    cases e with
+    | nil =>
+      try wp_auto
+      iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
+      iframe
+      ipureintro; exact ho
+    | ok ie3 =>
+    try wp_auto
+    try rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
+    cases o with
+    | none =>
+      -- nothing logged: `d/b` is still absent
+      isimp only [mkOut] at Hout
+      wp_apply os.Lstat.wp_absentS (joinPath r0 cs) b R j (.only [b]) _ (DFrac.own q) h 1 hb hbN hn
+        $$ [Hp Hout Hperm] as %fi %err ⟨Hp, Hout, Hperm, %herr2⟩
+      · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+      (try rw [hkr]); (try rw [hkb])
+      cases err with
+      | nil => exact absurd rfl herr2
+      | ok ie4 =>
+      try wp_auto
+      iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
+      iframe
+      dsimp only [mkOut]
+      iframe
+      ipureintro; intro hc; cases hc
+    | some xs =>
+    obtain ⟨x, s0, J⟩ := xs
+    isimp only [mkOut] at Hout
+    icases Hout with ⟨Hlog, Hn⟩
+    have hJ : ((h.log x (mkEnt j b J s0) (<[b := .dir J]> h.cur)).cur !! b) = some (.dir J) := by
+      simp only [NamesH.log]; rw [GMap.lookup_insert]
+    generalize hh : h.log x (mkEnt j b J s0) (<[b := .dir J]> h.cur) = h' at hJ ⊢
+    -- a spine to the new directory, from fractions of the spine and of the caller's claim
+    obtain ⟨ε, a', b', hqd, hqq⟩ := os.qp_common qd q
+    subst hqd hqq
+    icases (osPathS_frac R (joinPath r0 cs) ε a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
+    icases (osNames_frac j (.only [b]) ε b' h').1 $$ Hn with ⟨Hne, Hnb⟩
+    ihave Hpc := osPathS_child R _ b (DFrac.own ε) j J h' hb hJ $$ Hpe Hne
+    wp_apply os.Lstat.wp_dirS (child (joinPath r0 cs) b) R J (DFrac.own ε) 1 $$ [Hpc Hperm]
+      as %fi %err ⟨Hpc, Hperm, Hres⟩
+    · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+    (try rw [hkr]); (try rw [hkb])
+    icases os.osPathS_unchild R (joinPath r0 cs) b j J ε a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
+    · iframe
+    icases osNames_agree j (.only [b]) _ _ h'' h' $$ Hne Hnb with %he
+    subst he
+    ihave Hn := (osNames_frac j (.only [b]) ε b' h'').2 $$ [Hne Hnb]
+    · iframe
+    icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr2)
+    · obtain ⟨rfl, rfl⟩ := hfe
+      try wp_auto
+      fileStat_isDir Hfs
+      subst hh
+      wp_if_destruct
+      all_goals
+        iapply HΦ
+        isplitr
+        · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
+        iframe
+        isimp only [mkOut]
+        iframe
+        ipureintro; intro _; rfl
+    · cases err with
+      | nil => exact absurd rfl herr2
+      | ok ie4 =>
+      try wp_auto
+      subst hh
       iapply HΦ
       isplitr
       · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
       iframe
       isimp only [mkOut]
       iframe
-      ipureintro; intro _; rfl
-  · cases err with
-    | nil => exact absurd rfl herr2
-    | ok ie4 =>
-    wp_auto
-    subst hh
-    iapply HΦ
-    isplitr
-    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
-    iframe
-    isimp only [mkOut]
-    iframe
-    ipureintro; intro _; rfl
+      ipureintro; intro _; rfl)
 
 end proof
 

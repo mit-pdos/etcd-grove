@@ -143,7 +143,7 @@ set_option maxHeartbeats 3200000 in
 /-- **Member `i`'s machine's boot** (see the file header). -/
 theorem member_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (HEnv : EtcdVerifyOff)
     (HSM : ∀ (hG : HeapGS .hasLC putgetGF) [π : NetProtoGS]
       (S5 : etcd_dist.S5Draft (G := (putgetHeapAt hG lctx).goose_globalGS) putgetGF),

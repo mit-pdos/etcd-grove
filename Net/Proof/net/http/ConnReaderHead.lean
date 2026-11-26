@@ -17,7 +17,8 @@ delivered:
   limit is reached (`io.EOF` again).
 
 Its read error predicate is `crHeadErr γe` (a read returned the error `e` at `r`, persistent:
-`io.EOF`'s `*errorString` or the connection's `*OpError` of a read, `crErrId e`, whose `Error()`
+`io.EOF`'s `*errorString` or the connection's `*OpError` of a read (of net's own errors and addresses,
+what `OpError.Timeout` needs: `net.opErrOk`), `crErrId e`, whose `Error()`
 returns some string other than `"message too large"`, `errMsgOk e`), whose finality (`crHeadErr_final`: nothing delivered after it) and message
 (`crHeadErr_msg`) are what a head parser's spec asks (`readRequestLimit.spec`).
 
@@ -68,7 +69,8 @@ def crHead (cr : Loc) (γ : CrNames) (γe : GName) (cn : Nat) (P Q : Proto GF) (
 def crErrId (e : GoInterface) : IProp GF :=
   iprop((∃ xe : Loc, ⌜e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #xe⌝ ∗
           globalAddr io.EOF ↦□ e) ∨
-        (∃ src addr e' : GoInterface, net.opErr go!"read" src addr e' e))
+        (∃ src addr e' : GoInterface, net.opErr go!"read" src addr e' e ∗ net.netOwnErr e' ∗
+          net.addrOrNil src ∗ net.addrOrNil addr))
 
 instance crErrId_persistent (e : GoInterface) : Persistent (crErrId (GF := GF) e) := by
   unfold crErrId; infer_instance

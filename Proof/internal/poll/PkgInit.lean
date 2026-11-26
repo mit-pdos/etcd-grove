@@ -1,8 +1,9 @@
 /-
 The package-initialization instance of this repository's `internal/poll` (project bboltfs's
 translation, `Code/internal/poll.lean`, 2026-11-07; Perennial's imports Perennial's `syscall`). Its
-fact: the two error variables `os`'s initializer copies (`ErrNoDeadline`, `ErrDeadlineExceeded`)
-hold some error, and `ErrFileClosing`, which `(*os.File).wrapErr` compares with (2026-11-22), an
+fact: the two error variables `os`'s initializer copies hold some error (`ErrNoDeadline`) and an
+`*DeadlineExceededError` (`ErrDeadlineExceeded`, 2026-11-24: net's `OpError.Timeout` and `conn.Read`'s
+comparison with `io.EOF` read its type), and `ErrFileClosing`, which `(*os.File).wrapErr` compares with (2026-11-22), an
 `*errorString` (`errors.New`; its type is what the comparison with a `*os.SyscallError` reads), for good
 (Go never writes them after initialization). Its `wp_initialize'` is
 `Init.lean` (generated, `etc/gen-init.py`).
@@ -36,7 +37,8 @@ namespace internal.poll
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.poll :=
   define_is_pkg_init iprop((∃ e : GoInterface, typedPointsto (globalAddr ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType DeadlineExceededError.ty) #x) DFrac.discard) ∗
     (∃ x : Loc, typedPointsto (globalAddr ErrFileClosing)
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.poll :=
@@ -48,10 +50,25 @@ theorem errFileClosing_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.internal
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard := by
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll).trans ?_
   show iprop((∃ e : GoInterface, typedPointsto (globalAddr ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType DeadlineExceededError.ty) #x) DFrac.discard) ∗
     (∃ x : Loc, typedPointsto (globalAddr ErrFileClosing)
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) ⊢ _
   iintro ⟨-, -, He⟩
+  iexact He
+
+/-- `poll.ErrDeadlineExceeded` holds an `*DeadlineExceededError`, for good (`&DeadlineExceededError{}`:
+net's `OpError.Timeout` answers its `Timeout()`, and a read's error is compared with `io.EOF`). -/
+theorem errDeadlineExceeded_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
+    ∃ x : Loc, typedPointsto (globalAddr ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType DeadlineExceededError.ty) #x) DFrac.discard := by
+  refine (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll).trans ?_
+  show iprop((∃ e : GoInterface, typedPointsto (globalAddr ErrNoDeadline) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType DeadlineExceededError.ty) #x) DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr ErrFileClosing)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) ⊢ _
+  iintro ⟨-, He, -⟩
   iexact He
 
 end internal.poll

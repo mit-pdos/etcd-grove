@@ -31,7 +31,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.kvcheck.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 
 theorem checker.disrupt.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG))
     (wp_randomID : checker.randomID.spec (GF := GF) (hG := hG))
