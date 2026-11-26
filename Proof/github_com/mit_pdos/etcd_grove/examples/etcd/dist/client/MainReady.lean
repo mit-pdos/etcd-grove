@@ -3,14 +3,15 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/MainRead
 - `MainReady.wp_proofKv` (N7-kv, M1): the kv arm, at `RunKV.spec OP`.
 - `MainReady.wp_proof` (F8): every arm. The kv arm is `MainReady.specKv` at `kvOrchPre`; each other arm calls its
   workload's `Run*` at the share's parts (`wlShare_*`), the level-`0` token split off the thread token
-  (`threadTok_level0`; `RunCache` takes it whole), and the pure facts; `auth` is `MainReadyAuth.spec`'s arm (F7 S14), `authLease` is reached
-  with a `False` share (D2); an unknown kind returns `ended`.
+  (`threadTok_level0`; `RunCache` takes it whole), and the pure facts; `auth` is `MainReadyAuth.spec`'s arm (F7 S14), `authLease` calls
+  `RunAuthLease` at `authLeaseShare` (F7 fork); an unknown kind returns `ended`.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.MainReady
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunKV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.MainReadyAuth
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunAuthLease
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NodeCount
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunCompact
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunWatch
@@ -97,7 +98,8 @@ theorem MainReady.wp_proof
     (hLR : RunLeaseRead.spec (GF := GF) (hG := hG))
     (hLC : RunLeaseCatchup.spec (GF := GF) (hG := hG))
     (hLE : RunLeaseExpiry.spec (GF := GF) (hG := hG))
-    (hA : MainReadyAuth.spec (GF := GF) (hG := hG)) :
+    (hA : MainReadyAuth.spec (GF := GF) (hG := hG))
+    (hAL : RunAuthLease.spec (GF := GF) (hG := hG)) :
     MainReady.spec (GF := GF) (hG := hG) := by
   intro π ρ errA fmtA rpcA w eps nodes epsL ns ready
   by_cases hk0 : w.kind = W64 0
@@ -261,10 +263,32 @@ theorem MainReady.wp_proof
       iframe
       ipureintro; exact ⟨hk, hm⟩
     iapply HΦ; ipureintro; trivial
-  · -- authLease: no share (D2)
+  · -- authLease: `RunAuthLease` at `authLeaseShare` (F7 fork): the guards as `MainReadyAuth`'s
     rw [wlShare_authLease hk]
-    wp_start_folded as ⟨%Hp, Htok, #Heps, #Hnodes, #Hready, Hsh⟩
-    iexfalso; iexact Hsh
+    wp_start as ⟨%Hp, Htok, #Heps, #Hnodes, #Hready, Hsh⟩
+    obtain ⟨hpure, hpl, hV, htb, hrb, hAs⟩ := Hp
+    ihave %Hel := ownSlice_len _ _ _ $$ Heps
+    wp_auto
+    wp_if_destruct
+    · wp_func_call; wp_call; wp_auto
+      iapply HΦ; ipureintro; trivial
+    have hne : epsL ≠ [] := by
+      intro h; rw [h] at Hel; simp at Hel; word
+    wp_apply hNC
+    wp_if_destruct
+    · wp_func_call; wp_call; wp_auto
+      simp only [Workload.val, hk]
+      wp_auto
+      iunfold authLeaseShare at Hsh
+      icases Hsh with ⟨%Γ, %γR, %σ0, %Hq, #Hms, #HkvI, #HL0, HkV, Hview⟩
+      obtain ⟨hauth, hlm, hγR, hau, hls, hσ0⟩ := Hq
+      icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Hlt, -⟩
+      wp_apply (hAL Γ eps epsL ready γR σ0 hV htb hAs hne hauth hlm hγR hau hls hσ0)
+        $$ [Hlt HkV Hview] as %r -
+      · iframe #; iframe
+      iapply HΦ; ipureintro; trivial
+    · wp_func_call; wp_call; wp_auto
+      iapply HΦ; ipureintro; trivial
   · -- leaseRead
     rw [wlShare_leaseRead hk]
     unfold leaseShare

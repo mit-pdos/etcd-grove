@@ -62,7 +62,14 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
     iapply HΦ
     iframe
     iunfold ttlAns
-    iexact Hans
+    -- (F7 fork) the server's post also carries the returned keys' check, which `ttlAns` does not state
+    icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, Hhv, #Hf, -⟩, #Hout, #Hcf⟩ | Herr)
+    · ileft
+      iframe Hout Hcf
+      isplitr
+      · ipureintro; exact He
+      iexists w; iframe Hw Hhv Hf; ipureintro; exact ⟨Hh, Hid⟩
+    · iright; iexact Herr
   · iunfold lessorLeasesOk
     iintro %ci %tok %cd %r %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #HtokC, #Hpub, #Hllb⟩ HΦ
     wp_apply (hLs s E γr γl ci cd tok r ms cs n m) $$ [HRD Htok HR]

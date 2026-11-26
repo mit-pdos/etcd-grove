@@ -1,13 +1,15 @@
 /-
-`foreign(cli, who, id)` (`examples/etcd/dist/client/authlease.go`; authlease's, copied): three lease calls by a
-user (`u` or `v`) about a lease `id` holding a key the user may not write or read: `Revoke(id)`,
-`TimeToLive(id, WithAttachedKeys())` and `Leases()`; each must be refused (`refused` panics on success). Auth on,
-revocable mode, at the cluster view, `cli` a user client (`userCli`) of the endpoint `addr` serving member `mid`:
-each call over its `Lease_*On_dist` contract at `mid`. As the single-process `etcd_authlease.foreign.spec`, the
-caller refutes each success, with its resource `R` (returned): `Revoke`'s (its result `Qr σ` and its check
-`writeCheckedD`), `TimeToLive`'s (member `mid`'s check over `id`'s attached keys at a published index `n ≥ n₀`
-and its lessor's index `j ≥ m₀`) and `Leases`' (the check over every listed lease's keys, the listing at `j`).
-Lean-first (no Rocq counterpart); F7 stage S5.
+`foreign(cli, who, id, forbidden)` (`examples/etcd/dist/client/authlease.go`; authlease's checks 3-5, adapted):
+three lease calls by a user (`u` or `v`) about a lease `id` of another principal holding the key `forbidden`, which
+the user may not write or read: `Revoke(id)`, which must be refused (`refused` panics on success);
+`TimeToLive(id, WithAttachedKeys())`, which panics only if it succeeds and returns the key `forbidden`; and
+`Leases()`, its result ignored (its replies carry lease IDs only). Auth on, revocable mode, at the cluster view,
+`cli` a user client (`userCli`) of the endpoint `addr` serving member `mid`: each call over its `Lease_*On_dist`
+contract at `mid`, which takes a published auth index `n₀` and a lower bound `m₀` of `mid`'s lessor. As the
+single-process `etcd_authlease.foreign.spec`, the caller refutes what would panic, with its resource `R`
+(returned): `Revoke`'s success (its result `Qr σ` and its check `writeCheckedD`), and member `mid`'s read verdict
+granting the principal the key `forbidden` at a published index `n ≥ n₀` (what `TimeToLive`'s post says of each
+returned key). Lean-first (no Rocq counterpart); F7 stage S5, the TimeToLive check F7 (fork).
 -/
 module
 
@@ -39,7 +41,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 abbrev foreign.spec : Prop :=
   ∀ [π : NetProtoGS] [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    (cl : Loc) (who addr : GoString) (id : w64) (V : WEnv GF) (Γ : DistView) (mid : w64)
+    (cl : Loc) (who addr : GoString) (id : w64) (forbidden : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
     (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames) (L₀ : List EntryModel) (n₀ m₀ : Nat)
     (Qr : KVState → IProp GF) (R : IProp GF),
   (∀ a b : w64, Γ.au a = Γ.au b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
@@ -52,16 +54,11 @@ abbrev foreign.spec : Prop :=
       writeAuD Γ.kv (principalOf cfg) (.leaseRevoke id) L₀ Qr ∗
       □ (∀ σ : KVState, Qr σ -∗ writeCheckedD [addr] Γ γR (principalOf cfg) (irrLeaseRevoke id) L₀ -∗
           R ={⊤}=∗ False) ∗
-      □ (∀ (n j : Nat), ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ -∗
+      □ (∀ n : Nat, ⌜n₀ ≤ n⌝ -∗
           leaseCheckD (Γ.au mid) (principalOf cfg) n
-            (fun info => leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id .read) -∗
-          R ={⊤}=∗ False) ∗
-      □ (∀ (n j : Nat) (ids : List w64), ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ -∗ lease.leaseIdsAt (Γ.ls mid) j ids -∗
-          leaseCheckD (Γ.au mid) (principalOf cfg) n
-            (fun info => iprop([∗list] id' ∈ ids,
-              leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id' .read)) -∗
+            (fun info => auth.permVerdictFrom (.on (Γ.au mid)) n info forbidden [] .read GoInterface.nil) -∗
           R ={⊤}=∗ False) }}
-    (App (App (App (Val (@! client.foreign)) (Val #cl)) (Val #who)) (Val #id))
+    (App (App (App (App (Val (@! client.foreign)) (Val #cl)) (Val #who)) (Val #id)) (Val #forbidden))
   {{ RET #(); levelTok 0 ∗ R }}
 
 end spec

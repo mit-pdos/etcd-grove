@@ -234,10 +234,12 @@ theorem Deployment.hasKind_false (d : Deployment) (k : w64) (h : ∀ w ∈ d.wor
   · obtain ⟨w, hw, e⟩ := (d.hasKind_iff k).1 hk
     exact absurd e (h w hw)
 
-/-- **The cluster's lease mode** (D4): `.revocable` with a `leaseExpiry` workload (kind 9), `.mono` with a
-`leaseCatchup` one (kind 8), `.none` otherwise (the auth classes are started with auth on at `.none`, D2). -/
+/-- **The cluster's lease mode** (D4): `.revocable` with a `leaseExpiry` workload (kind 9) or an `authLease` one
+(kind 6: it revokes `Lu`; started with auth on, F7 fork), `.mono` with a `leaseCatchup` one (kind 8), `.none`
+otherwise (the `auth` class is started with auth on at `.none`). -/
 def lmOf (d : Deployment) : lease.Mode :=
-  if d.hasKind (W64 9) then .revocable else if d.hasKind (W64 8) then .mono else .none
+  if d.hasKind (W64 9) then .revocable else if d.hasKind (W64 6) then .revocable
+  else if d.hasKind (W64 8) then .mono else .none
 
 /-- **The KV's compaction mode and the cluster's retention** (D4, §27.2's table): `(true, 1)` with a `compact`
 workload (kind 3); otherwise by the compactor: off (the retention `0`) `(false, 0)`, revision mode at the
@@ -248,10 +250,12 @@ def cmpOf (d : Deployment) : Bool × Nat :=
   else if d.cfg.compactorMode = go!"revision" then (true, (sint.Z d.cfg.retention).toNat)
   else (true, 0)
 
-theorem lmOf_none {d : Deployment} (h : ∀ w ∈ d.workloads, w.kind ≠ W64 8 ∧ w.kind ≠ W64 9) :
+theorem lmOf_none {d : Deployment}
+    (h : ∀ w ∈ d.workloads, w.kind ≠ W64 8 ∧ w.kind ≠ W64 9 ∧ w.kind ≠ W64 6) :
     lmOf d = .none := by
   unfold lmOf
-  rw [d.hasKind_false _ (fun w hw => (h w hw).2), d.hasKind_false _ (fun w hw => (h w hw).1)]
+  rw [d.hasKind_false _ (fun w hw => (h w hw).2.1), d.hasKind_false _ (fun w hw => (h w hw).2.2),
+    d.hasKind_false _ (fun w hw => (h w hw).1)]
   rfl
 
 /-! ## Facts of a well-formed deployment -/
@@ -331,6 +335,66 @@ theorem class_auth {d : Deployment} (Hd : d.WellFormed) (h5 : d.workloads.map (�
   rw [hl0, ← e']
   rfl
 
+/-- **The `authLease` class** (F7 fork): a deployment whose one workload is `authLease` has auth on, that workload
+alone and one empty node list (`nodeCount .authLease = 0`). -/
+theorem class_authLease {d : Deployment} (Hd : d.WellFormed) (h6 : d.workloads.map (·.kind) = [W64 6]) :
+    d.cfg.auth = true ∧ ∃ w : Workload, d.workloads = [w] ∧ w.kind = W64 6 ∧ d.nodes = [[]] := by
+  obtain ⟨w, hw⟩ : ∃ w, d.workloads = [w] := by
+    have hl := congrArg List.length h6
+    rw [List.length_map] at hl
+    obtain ⟨w, hw⟩ := List.length_eq_one_iff.1 hl
+    exact ⟨w, hw⟩
+  have hk : w.kind = W64 6 := by rw [hw] at h6; simpa using h6
+  obtain ⟨t, he, htw⟩ := Hd
+  have hws := he.2.2.2.1
+  have hnn : t.nodes = d.nodes := he.2.2.2.2
+  obtain ⟨tw, htwm, hen⟩ := wf_mem he (show w ∈ d.workloads by rw [hw]; exact List.mem_singleton_self w)
+  have htk : tw = .authLease := by
+    have e := hen.kind
+    rw [hk] at e
+    clear htwm hen
+    cases tw <;> simp only [typed.Workload.kindW, typed.Workload.kind] at e ⊢ <;> first | rfl | exact absurd e (by decide)
+  subst htk
+  have hauth : ∀ w ∈ t.workloads, w.needsAuth = true → t.cfg.auth = true := by
+    grind [typed.Deployment.WellFormed]
+  have hta : t.cfg.auth = true := hauth _ htwm rfl
+  have hda : d.cfg.auth = true := by rw [he.2.2.1.2.2.2]; exact hta
+  have htl : t.workloads.length = 1 := by rw [hws.length_eq, hw]; rfl
+  have hl' : t.nodes.length = t.workloads.length := by grind [typed.Deployment.WellFormed]
+  obtain ⟨ns, hns⟩ := List.length_eq_one_iff.1 (show d.nodes.length = 1 by rw [← hnn, hl', htl])
+  obtain ⟨tw', htw'⟩ := List.length_eq_one_iff.1 htl
+  have e' : typed.Workload.authLease = tw' := List.mem_singleton.1 (htw' ▸ htwm)
+  obtain ⟨tw0, h0, hl0⟩ := typed.node_at htw (j := 0) (ns := ns) (by rw [hnn, hns]; rfl)
+  rw [htw'] at h0
+  cases h0
+  have hl : ns.length = 0 := by rw [hl0, ← e']; rfl
+  refine ⟨hda, w, hw, hk, ?_⟩
+  rw [hns, List.eq_nil_of_length_eq_zero hl]
+
+/-- **An `authLease` workload runs alone** (it needs auth, so the class is `[auth]` or `[authLease]`). -/
+theorem kinds_of_authLease {d : Deployment} (Hd : d.WellFormed) (h : ∃ w ∈ d.workloads, w.kind = W64 6) :
+    d.workloads.map (·.kind) = [W64 6] := by
+  obtain ⟨w, hwm, hk⟩ := h
+  have ha : d.cfg.auth = true := by
+    obtain ⟨t, he, htw⟩ := Hd
+    obtain ⟨tw, htwm, hen⟩ := wf_mem he hwm
+    have htk : tw = .authLease := by
+      have e := hen.kind
+      rw [hk] at e
+      clear htwm hen
+      cases tw <;> simp only [typed.Workload.kindW, typed.Workload.kind] at e ⊢ <;>
+        first | rfl | exact absurd e (by decide)
+    subst htk
+    have hauth : ∀ w ∈ t.workloads, w.needsAuth = true → t.cfg.auth = true := by
+      grind [typed.Deployment.WellFormed]
+    rw [he.2.2.1.2.2.2]; exact hauth _ htwm rfl
+  rcases auth_class Hd ha with h5 | h6
+  · exfalso
+    have hm : W64 6 ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w, hwm, hk⟩
+    rw [h5] at hm
+    simp at hm
+  · exact h6
+
 /-- **The lease-granting mode's ids** (`clusterAllocN`'s `hap`): with a `leaseExpiry` workload (a lease-granting
 one) the members' ids are apart in 15 bits (`WellFormed`'s `grantsLeases` clause). -/
 theorem lmOf_revocable_apart {d : Deployment} (Hd : d.WellFormed) :
@@ -342,19 +406,24 @@ theorem lmOf_revocable_apart {d : Deployment} (Hd : d.WellFormed) :
   have e : t.ids = d.ids := by simp only [typed.Deployment.ids, Deployment.ids, he.1, he.2.1]
   rw [← e]
   apply hap
-  have h9 : d.hasKind (W64 9) = true := by
+  have h96 : d.hasKind (W64 9) = true ∨ d.hasKind (W64 6) = true := by
     unfold lmOf at hlm
     cases h : d.hasKind (W64 9)
-    · rw [h] at hlm
-      simp only [Bool.false_eq_true, ↓reduceIte] at hlm
-      split at hlm <;> cases hlm
-    · rfl
-  obtain ⟨w, hwm, hk⟩ := (d.hasKind_iff _).1 h9
+    · cases h6 : d.hasKind (W64 6)
+      · rw [h, h6] at hlm
+        simp only [Bool.false_eq_true, ↓reduceIte] at hlm
+        split at hlm <;> cases hlm
+      · exact Or.inr rfl
+    · exact Or.inl rfl
+  obtain ⟨w, hwm, hk⟩ : ∃ w ∈ d.workloads, w.kind = W64 9 ∨ w.kind = W64 6 := by
+    rcases h96 with h9 | h6
+    · obtain ⟨w, hwm, hk⟩ := (d.hasKind_iff _).1 h9; exact ⟨w, hwm, Or.inl hk⟩
+    · obtain ⟨w, hwm, hk⟩ := (d.hasKind_iff _).1 h6; exact ⟨w, hwm, Or.inr hk⟩
   obtain ⟨tw, htw, hen⟩ := wf_mem he hwm
   refine ⟨tw, htw, ?_⟩
   have := hen.kind
-  rw [hk] at this
   clear htw hen
+  rcases hk with hk | hk <;> rw [hk] at this <;>
   cases tw <;> simp only [typed.Workload.kindW, typed.Workload.kind] at this <;>
     first | rfl | exact absurd this (by decide)
 
@@ -370,8 +439,10 @@ theorem lmOf_mono_noExpiry {d : Deployment}
     split at hlm
     · cases hlm
     · split at hlm
-      · assumption
       · cases hlm
+      · split at hlm
+        · assumption
+        · cases hlm
   obtain ⟨w, hwm, hk⟩ := (d.hasKind_iff _).1 h8
   exact ⟨w, hwm, by simp [Workload.needsNoExpiry, hk]⟩
 
@@ -406,24 +477,56 @@ theorem lmOf_catchup {d : Deployment} (Hd : d.WellFormed) (h : ∃ w ∈ d.workl
         first | rfl | exact absurd k8 (by decide)
     subst hx9 hx8
     exact hcomp.2.2.2.1 ⟨ht9, _, ht8, rfl⟩
+  have h6 : d.hasKind (W64 6) = false := by
+    apply d.hasKind_false
+    intro w6 hw6 e6
+    obtain ⟨w8, hw8, e8⟩ := h
+    have hm : W64 8 ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w8, hw8, e8⟩
+    rw [kinds_of_authLease ⟨t, he, hw⟩ ⟨w6, hw6, e6⟩] at hm
+    simp at hm
   unfold lmOf
-  rw [h9, if_pos ((d.hasKind_iff _).2 h)]
+  rw [h9, h6, if_pos ((d.hasKind_iff _).2 h)]
   rfl
 
-/-- **With auth on the lease mode is not revocable** (so `member_boot_dist`'s `Hauth` holds). -/
-theorem lmOf_auth_revocable {d : Deployment} (Hd : d.WellFormed) :
-    d.cfg.auth = true → lmOf d = .revocable → lease.leasesNoExpiry := by
-  intro ha hlm
-  exfalso
+/-- **The `authLease` class's lease mode is revocable** (its workload revokes `Lu`). -/
+theorem lmOf_authLease {d : Deployment} (h6 : d.workloads.map (·.kind) = [W64 6]) : lmOf d = .revocable := by
   have h9 : d.hasKind (W64 9) = false := by
     apply d.hasKind_false
     intro w hw e
     have hm : W64 9 ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w, hw, e⟩
-    rcases auth_class Hd ha with h | h <;> rw [h] at hm <;> simp at hm <;> exact absurd hm (by decide)
-  unfold lmOf at hlm
-  rw [h9] at hlm
-  simp only [Bool.false_eq_true, ↓reduceIte] at hlm
-  split at hlm <;> cases hlm
+    rw [h6] at hm
+    simp at hm
+  have h6' : d.hasKind (W64 6) = true := by
+    obtain ⟨w, hw, e⟩ := List.mem_map.1 (show W64 6 ∈ d.workloads.map (·.kind) by rw [h6]; simp)
+    exact (d.hasKind_iff _).2 ⟨w, hw, e⟩
+  unfold lmOf
+  rw [h9, h6']
+  rfl
+
+/-- **With auth on and the lease mode revocable, no lease expires** (`member_boot_dist`'s `Hauth`): the class is
+`[authLease]` (`[auth]`'s mode is `.none`), whose workload needs that no lease expires, which `EtcdEnv`'s
+`noExpiry` gives. -/
+theorem lmOf_auth_revocable {d : Deployment} (Hd : d.WellFormed)
+    (H : (∃ w ∈ d.workloads, w.needsNoExpiry = true) → lease.leasesNoExpiry) :
+    d.cfg.auth = true → lmOf d = .revocable → lease.leasesNoExpiry := by
+  intro ha hlm
+  rcases auth_class Hd ha with h | h
+  · exfalso
+    have hno : ∀ k : w64, k ≠ W64 5 → d.hasKind k = false := by
+      intro k hk
+      apply d.hasKind_false
+      intro w hw e
+      have hm : k ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w, hw, e⟩
+      rw [h] at hm
+      simp at hm
+      exact hk hm
+    unfold lmOf at hlm
+    rw [hno _ (by decide), hno _ (by decide), hno _ (by decide)] at hlm
+    simp only [Bool.false_eq_true, ↓reduceIte] at hlm
+    cases hlm
+  · apply H
+    obtain ⟨w, hw, e⟩ := List.mem_map.1 (show W64 6 ∈ d.workloads.map (·.kind) by rw [h]; simp)
+    exact ⟨w, hw, by simp [Workload.needsNoExpiry, e]⟩
 
 section compactor
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
@@ -622,9 +725,9 @@ theorem class_authOff {d : Deployment} (Hd : d.WellFormed) (ha : d.cfg.auth = fa
         cases hj'
         rw [hen.kind]
         rcases hsk with ⟨c, o, rfl⟩ | ⟨c, o, rfl⟩ | ⟨c, o, rfl⟩ <;>
-          simp only [typed.Workload.kindW, typed.Workload.kind] <;> exact ⟨by decide, by decide⟩
+          simp only [typed.Workload.kindW, typed.Workload.kind] <;> exact ⟨by decide, by decide, by decide⟩
       · rw [hoth' j' w hj' hjj]
-        exact ⟨by decide, by decide⟩
+        exact ⟨by decide, by decide, by decide⟩
   · -- P
     have hpk' : ∀ w ∈ d.workloads, w.kind = W64 3 ∨ w.kind = W64 4 ∨ w.kind = W64 7 ∨ w.kind = W64 10 := by
       intro w hwm
@@ -651,7 +754,7 @@ theorem class_authOff {d : Deployment} (Hd : d.WellFormed) (ha : d.cfg.auth = fa
       exact List.eq_nil_of_length_eq_zero (by rw [hl, this])
     · apply lmOf_none
       intro w hwm
-      rcases hpk' w hwm with e | e | e | e <;> rw [e] <;> exact ⟨by decide, by decide⟩
+      rcases hpk' w hwm with e | e | e | e <;> rw [e] <;> exact ⟨by decide, by decide, by decide⟩
 
 /-- **At most eleven workloads** (their kinds are distinct, each below 11). -/
 theorem workloads_length_le {d : Deployment} (Hd : d.WellFormed) : d.workloads.length ≤ 11 := by

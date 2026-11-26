@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist`: the auth class's start (#50 F7 S14, `notes/etcd-dist-f7.md`, "Handoff W-6" item 2)
+# `etcd/dist`: the auth classes' start (#50 F7 S14, `notes/etcd-dist-f7.md`, "Handoff W-6" item 2)
 
 `etcd_startAuth`: `etcd_start`'s conclusion (every machine's share, `startShares`) for a well-formed deployment whose
 one workload is `auth` (`class_auth`: auth on, one node list of the four principals' machines). In order:
@@ -14,6 +14,11 @@ one workload is `auth` (`class_auth`: auth on, one node list of the four princip
   (`addrs_set_proto`).
 The orchestrator's share is `authShare eps ns` (`wlShare`'s kind 5), each principal machine's `authNodePre a eps`
 (`wlNodeShare`'s kind 5), at the members' client addresses `eps` unrotated.
+
+`etcd_startAuthLease` (F7 fork): the same for the deployments whose one workload is `authLease`, at the revocable
+lease mode (`lmOf_authLease`), with no principal machine: the orchestrator's share `authLeaseShare eps`
+(`wlShare`'s kind 6; the boot state without `a/x`, `bootStOn_absent`; the lessor names injective, the cluster's
+`NamesInj`).
 
 No axiom, no `sorry`.
 -/
@@ -43,24 +48,34 @@ variable [GooseExts]
 
 /-- **The boot state in the mode `on` changes nothing**: the bootstrap log's entries are conf changes
 (`kvRaftOfOn_conf`), so the model is the start's log `[[], []]`, whose one later revision has no change. -/
+theorem bootStOn_model (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) (bl : List EntryM)
+    (hb : srvBootLogOk ps bl) : kvModelOn γk srvAuthSt0 (bootEntries bl) = [[], []] := by
+  obtain ⟨-, -, he⟩ := hb
+  have hconf : ∀ m ∈ bootEntries bl, m.typ ≠ W32 0 := by
+    intro m hm
+    unfold bootEntries at hm
+    obtain ⟨e, hm', rfl⟩ := List.mem_map.1 hm
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm'
+    simp only [EntryModel.ofM]
+    rw [(he k _ (List.getElem?_eq_getElem hk)).2.2.1]; decide
+  unfold kvModelOn
+  rw [kvRaftOfOn_conf _ _ _ _ hconf]
+  exact hlog
+
+/-- See `bootStOn_model`. -/
 theorem bootStOn_changes (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) (bl : List EntryM)
     (hb : srvBootLogOk ps bl) :
     ∀ cs ∈ (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries bl))).changes, cs = [] := by
-  have h : kvModelOn γk srvAuthSt0 (bootEntries bl) = [[], []] := by
-    obtain ⟨-, -, he⟩ := hb
-    have hconf : ∀ m ∈ bootEntries bl, m.typ ≠ W32 0 := by
-      intro m hm
-      unfold bootEntries at hm
-      obtain ⟨e, hm', rfl⟩ := List.mem_map.1 hm
-      obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm'
-      simp only [EntryModel.ofM]
-      rw [(he k _ (List.getElem?_eq_getElem hk)).2.2.1]; decide
-    unfold kvModelOn
-    rw [kvRaftOfOn_conf _ _ _ _ hconf]
-    exact hlog
   intro cs hcs
-  rw [h] at hcs
+  rw [bootStOn_model γk hlog ps bl hb] at hcs
   simpa [kvStateOf] using hcs
+
+/-- **The boot state in the mode `on` holds no key** (`bootStOn_model`): `authLeaseShare`'s `a/x` absent. -/
+theorem bootStOn_absent (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) (bl : List EntryM)
+    (hb : srvBootLogOk ps bl) (k : GoString) :
+    mvcc.findKey k (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries bl))).kvs = none := by
+  rw [bootStOn_model γk hlog ps bl hb, kvStateOf_kvs]
+  rfl
 
 end pure
 
@@ -191,6 +206,71 @@ theorem etcd_startAuth (d : Deployment) (Hd : d.WellFormed) (h5 : d.workloads.ma
     isplitl []
     · iexact Hmem
     · unfold svcAddr; iexact Ha
+
+/-- **The authLease class's start** (F7 fork; see the file header): for a well-formed deployment whose one workload
+is `authLease`, as `etcd_startAuth` at the revocable lease mode (`lmOf_authLease`) and with no client machine
+(`class_authLease`): the orchestrator's share is `authLeaseShare eps` (`wlShare`'s kind 6), the members' shares as
+`etcd_start`'s, the remote library's names any (no principal machine). -/
+theorem etcd_startAuthLease (d : Deployment) (Hd : d.WellFormed) (h6 : d.workloads.map (·.kind) = [W64 6])
+    (boot : List LogEntry) (Hbf : BootFacts d boot) (Hrb : receiptBound GF ≤ 2 ^ 60) :
+    ⊢ regCtx (Gg := Gg) -∗ ([∗list] a ∈ d.addrs, addrUnset (Gg := Gg) a) ={⊤}=∗
+      ∃ ρ : RemoteGS,
+        ([∗list] i ↦ _m ∈ d.members, startShares (Gg := Gg) (ρ := ρ) d boot i) ∗
+        ([∗list] j ↦ _w ∈ d.workloads, startShares (Gg := Gg) (ρ := ρ) d boot (d.members.length + j)) ∗
+        [∗list] n ↦ _x ∈ d.nodeList,
+          startShares (Gg := Gg) (ρ := ρ) d boot (d.members.length + d.workloads.length + n) := by
+  have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
+  have hbl := srvBootLogOk_of_BootLog _ _ _ Hbc.boot
+  obtain ⟨hon, w, hw, hk, hns⟩ := class_authLease Hd h6
+  have hlmr : lmOf d = .revocable := lmOf_authLease h6
+  have hj : d.workloads[0]? = some w := by rw [hw]; rfl
+  have hnl : d.nodeList = [] := nodeList_nil (by rw [hns]; simp)
+  let eps := d.members.map Member.client
+  let ρ0 : RemoteGS := ⟨0, fun _ => none, fun _ _ => 0⟩
+  have hcs := clusterStartDC (G := Gg) d Hd boot Hbf Hrb (lmOf d) (lmOf_revocable_apart Hd) (cmpOf d).1 (cmpOf d).2
+      (cmpOf_bootCfg Hd) (cmpOf_auth Hd)
+  simp only [hon, ↓reduceIte] at hcs
+  iintro #Hreg Hs
+  simp only [Deployment.addrs]
+  icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hm, -⟩
+  imod hcs $$ Hreg Hm with ⟨%c, %Hc, #Hcf, ⟨%hrl, Hetcd, Hview⟩, #Hcs, #Hsl, Hms⟩
+  obtain ⟨hlog, hlm, -, -, hinj⟩ := Hc
+  let Γ : DistView := c.view true
+  let γR : ServerRaftNames := ⟨c.γ, [], W64 0⟩
+  ihave #Hlm := leaseMembers_of (Gg := Gg) d Hd c true $$ [Hcs Hsl]
+  · isplitl []
+    · iexact Hcs
+    · iexact Hsl
+  ihave #Hkvi := kvInvOn_of_clusterFacts (Gg := Gg) c $$ Hcf
+  imod (show ⊢ |==> srvReqLogLb (GF := GF) γR [] by unfold srvReqLogLb; exact monoListLbOwn_nil _) with #HL0
+  have hax := bootStOn_absent c.γk hlog (distPs d) _ hbl go!"a/x"
+  imodintro
+  iexists ρ0
+  isplitl [Hms]
+  · iapply (members_shares (ρ := ρ0) d boot c) $$ Hms
+  rw [hnl]
+  isplitl [Hetcd Hview]
+  · obtain ⟨ns', -, he⟩ := startShares_orch' (Gg := Gg) (ρ := ρ0) Hd (boot := boot) hj
+    rw [hw]
+    iapply BigSepL.bigSepL_singleton.2
+    simp only [Nat.add_zero] at he ⊢
+    rw [he, wlShare_authLease hk]
+    iunfold authLeaseShare
+    iexists Γ, γR, kvStateOf (kvModelOn c.γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))
+    isplitr
+    · ipureintro
+      exact ⟨rfl, show c.γk.lm = _ by rw [hlm, hlmr], hrl.symm, hinj.2, hinj.1, hax⟩
+    isplitr
+    · iexact Hlm
+    isplitr
+    · rw [show γR = ⟨c.γ, [], W64 0⟩ from rfl, show Γ.kv = c.γk from rfl]
+      iexact Hkvi
+    isplitr
+    · iexact HL0
+    rw [show Γ.kv = c.γk from rfl]
+    iframe Hetcd
+    iexact Hview
+  · iapply BigSepL.bigSepL_nil.2; iempintro
 
 end start
 

@@ -9,6 +9,8 @@ The shares the auth class's start hands its machines, at the global ghost state 
   `Γ` with distinct auth names, the raft names `γR` tied to `Γ`'s requested log, a start state `σ₀` with no change;
   every member's `leaseMember`, the KV invariant `kvInvOn`, the empty log's lower bound, the client halves `etcdKV`
   and `authHistView`, and `principalsShare` at the members' client addresses `eps` and the principal machines `ns`);
+- `authLeaseShare eps`: the authLease orchestrator's, `RunAuthLease.spec`'s precondition but its machine-local
+  parts (`wlShare`'s kind-6 arm, given by `etcd_startAuthLease`);
 - `authNodePre addr eps`: principal machine `addr`'s, `nodeAuthPre` without its level token and pure machine facts
   (`nodeAuthPre_of`), at the members' client addresses **not rotated** (`NodeMain`'s auth arm hands its `eps` to
   `principalOp` unrotated, where `NodeMain.spec` gives the share at `rotateL eps c`: W-6's rotation item).
@@ -45,6 +47,18 @@ def authShare (eps ns : List GoString) : IProp GF :=
       (∀ cs ∈ σ₀.changes, cs = [])⌝ ∗
     ([∗list] a ∈ eps, leaseMember (Gg := Gg) Γ a) ∗ kvInvOn γR Γ.kv srvAuthSt0 ∗ srvReqLogLb γR [] ∗
     etcdKV Γ.kv σ₀ ∗ authHistView Γ.kv [srvAuthSt0] ∗ principalsShare (Gg := Gg) Γ γR eps ns)
+
+/-- **The authLease workload's orchestrator share** (`wlShare`'s kind-6 arm, given by `dist/StartAuth.lean`'s
+`etcd_startAuthLease`): `RunAuthLease.spec`'s precondition but its machine-local parts (an auth-on view `Γ` at the
+revocable lease mode with distinct auth and lessor names, the raft names `γR` tied to `Γ`'s requested log, a start
+state `σ₀` without `a/x`; every member's `leaseMember`, the KV invariant `kvInvOn`, the empty log's lower bound and
+the client halves `etcdKV` and `authHistView`). No principal machines: authLease has none. -/
+def authLeaseShare (eps : List GoString) : IProp GF :=
+  iprop(∃ (Γ : DistView) (γR : ServerRaftNames) (σ₀ : KVState),
+    ⌜Γ.auth = true ∧ Γ.kv.lm = .revocable ∧ γR.raft.log = Γ.kv.rlog ∧ (∀ a b : w64, Γ.au a = Γ.au b → a = b) ∧
+      (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) ∧ mvcc.findKey go!"a/x" σ₀.kvs = none⌝ ∗
+    ([∗list] a ∈ eps, leaseMember (Gg := Gg) Γ a) ∗ kvInvOn γR Γ.kv srvAuthSt0 ∗ srvReqLogLb γR [] ∗
+    etcdKV Γ.kv σ₀ ∗ authHistView Γ.kv [srvAuthSt0])
 
 /-- **A principal machine's share** (see the file header). -/
 def authNodePre (addr : GoString) (eps : List GoString) : IProp GF :=

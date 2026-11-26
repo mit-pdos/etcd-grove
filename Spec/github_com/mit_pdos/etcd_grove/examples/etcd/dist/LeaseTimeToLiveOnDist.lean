@@ -49,9 +49,25 @@ principal, as `userOk` does for the keys arm; `userOk` alone would admit the emp
 **Generalized before approval** (2026-11-26, the lead's choice (a), F7 S4): until then
 `Lease_TimeToLiveKeysOn_dist`, which required `leaseKeysFold gs false = true` and named only the keys arm;
 now any options, the refusal (error) arm unchanged. Needs a fresh review. **Reviewed** `f7-getOn-n1.md` (2026-11-26): SOUND as drafted. It must keep claiming nothing about
-`TTL`, `GrantedTTL` or `Keys` (a `ttl = -1` claim would be false for an expired, not yet revoked lease).
+`TTL` or `GrantedTTL` (a `ttl = -1` claim would be false for an expired, not yet revoked lease); of `Keys` only
+the fork's readability claim below.
 
 **Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review: done, `f9-auth-combined-review.md`, SOUND): `leaseCheckD`'s binding is `P = some info.Username'` (`requireAuthInfo`'s condition), no longer `userOk P`; the no-keys arm's `principalOf cfg = some info.Username'` is now implied by it (kept, redundant).
+
+**The reply's keys** (F7 fork, 2026-11-26, SPECULATIVE: branch `etcd-safe-f7-fork/2026-11-26` only, approved there by
+the lead and the coordinator, pending Upamanyu's decision; review `notes/axiom-review/f7fork-ttl-dist-keys.md`):
+with attached keys, the reply's `Keys` (`ks`, read-only: the client's `LeaseTimeToLiveResponse` holds the decoded
+`pb` response's slice, `lease.go:257`, which protobuf-go decodes into fresh copies, `consumeBytesSlice`) are the
+byte lists `kss`, each readable (`IsRangePermitted(k, [])`, `permVerdictFrom`) by the caller's principal at
+states of member `mid`'s auth store of index `≥ n` (`n ≥ n₀` its published index, as the keys verdict above), or the principal an
+admin there, or auth disabled there (`leaseCheckD`, its own `info`: the re-check calls `AuthInfoFromCtx` again).
+Why it is true of the fork `d26dd5da6` only: `LeaseTimeToLive` checks the keys it returns
+(`checkLeaseTimeToLiveKeys`, `v3_server.go:719-725, 733-757`) after `leaseTimeToLive`'s lookup on the leader or the
+forwarded reply, over the receiving member's auth store, and returns the checked `resp` unchanged; proved in-process
+as `EtcdServer.LeaseTimeToLive.spec`'s keys conjunct. At the pin `df6af0c36a` it is false
+(`notes/etcd-dist-f7-bprime.md` on branch `etcd-safe-f7-bprime`: a follower applying a snapshot answered keys
+the user may not read). A grant revoked at the leader but not yet applied at `mid` still passes: the claim is
+relative to `mid`'s auth state, as the reads' `authFloorD`.
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseTimeToLiveOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-c.md` (`d946f6cbda`: UNSOUND as written; F1 the member names bound to `Γ.au`, F2 the lessor name `Γ.ls mid` tied by Serve), then `f7-rerev-c.md` (`6d9d9fd662`): SOUND given the proposed Serve, adopted as `Serve_dist` (`f7-combined.md`, F7 step 3 `eb138f6f8c`). Since then a comment only (`f7-changed-since-review.md`). -/
@@ -76,7 +92,15 @@ abbrev Lease_TimeToLiveOn_dist.spec : Prop :=
             leaseCheckD (Γ.au mid) (principalOf cfg) n
               (fun info => if leaseKeysFold gs false then
                   leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id .read
-                else iprop(⌜principalOf cfg = some info.Username'⌝))) ∨
+                else iprop(⌜principalOf cfg = some info.Username'⌝)) ∗
+            (if leaseKeysFold gs false then
+              iprop(∃ (ks : GoSlice) (kbs : List GoSlice) (kss : List (List w8)),
+                structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"Keys" resp ↦□ ks ∗
+                ks ↦*□ kbs ∗ ([∗list] kb;k ∈ kbs;kss, kb ↦*□ k) ∗
+                leaseCheckD (Γ.au mid) (principalOf cfg) n
+                  (fun info => [∗list] k ∈ kss,
+                    auth.permVerdictFrom (.on (Γ.au mid)) n info k [] .read GoInterface.nil))
+             else iprop(True))) ∨
         ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 end spec

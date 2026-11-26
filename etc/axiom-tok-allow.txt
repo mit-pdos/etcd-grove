@@ -397,6 +397,23 @@ trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_RoleAdd_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_RoleGrantPermission_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_UserAdd_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof
+
+# --- F7 fork (etcd-safe-f7-fork, 2026-11-26): the four authd lease axioms, reached by `etcd_safe_nocrash` once
+# `wlShare`'s kind 6 is `authLeaseShare` and `DispatchLinked` links `wp_RunAuthLease` (the `authLease` workload's
+# `LeaseGrant`, `LeaseRevoke`, `LeaseTimeToLive` (with keys, the fork's `checkLeaseTimeToLiveKeys`) and `LeaseLeases`
+# over the principals' clients). The same keys as the S13/S14 entries' `KV_PutOn_dist` and the auth-off
+# `Lease_Grant_dist`/`Client_LeaseTimeToLive_dist`: rule 2 (8/1), the caller's one `levelTok 0` lent to one
+# interceptor call at a time through `isNewClient`'s four connections' contracts and given back; rule 7 `P`, the
+# contracts' context's Done proposition. Truncation notes as the S13 block's (`isCancelCtx{,Of}`, `isMutex`,
+# `dghostVar`, ...). For the lead's confirmation. ---
+entry Perennial.EtcdGrove.etcd_dist.authd.Lease_GrantOn_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), auth on, for `LeaseGrant`
+entry Perennial.EtcdGrove.etcd_dist.authd.Lease_RevokeOn_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), auth on, for `LeaseRevoke`
+entry Perennial.EtcdGrove.etcd_dist.authd.Lease_TimeToLiveOn_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), auth on, for `LeaseTimeToLive`
+entry Perennial.EtcdGrove.etcd_dist.authd.Lease_LeasesOn_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), auth on, for `LeaseLeases`
+trunc Perennial.EtcdGrove.etcd_dist.authd.Lease_GrantOn_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Lease_RevokeOn_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Lease_TimeToLiveOn_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Lease_LeasesOn_dist.wp_proof
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
 # `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at

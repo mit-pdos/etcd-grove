@@ -11,8 +11,7 @@ valid address serving etcd's table for a member of `Γ` (`leaseMember`), at leas
 shares from the start (`notes/etcd-dist-f7.md`, "How the workloads link"): the client half of `etcdKV Γ.kv
 σ0` (no `a/x` in it) and of `authHistView Γ.kv [srvAuthSt0]`, the KV invariant `kvInvOn γR Γ.kv srvAuthSt0`
 and the empty requested log's lower bound. It does not panic: every check's refusal is derived from the
-cluster's auth and lease facts. It returns a `Result`, `levelTok 0` kept. (The proof takes `foreign`'s two
-lessor-read refutations as the hypothesis `foreignReads.law`, Handoff S5-3/S5-4: not linked while it stands.)
+cluster's auth and lease facts. It returns a `Result`, `levelTok 0` kept.
 Lean-first (no Rocq counterpart); F7 stage S5.
 -/
 module
