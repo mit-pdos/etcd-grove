@@ -7209,3 +7209,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** **Agreed** with T10 (etcd-grove-03, #50, 2026-11-25T17:29Z: "yes to all three") and approved by
   coordinator-E. Applied on `bbolt-crash/2026-11-25` (based on `etcd-safe-t10`), with an `axiom`-skill review of the
   restated laws before T10 merges it. The laws stay axioms until bbolt's crash proof retires them.
+
+## 2026-11-26: `idutil`'s prefix facts tagged with the incarnation (T10 B6, shared first step; internal)
+
+- **Spec.** `idPfxBody`/`idPfxInv`/`idPfxTok`, `idKeyGenFacts`, `idClusterOk` and `idGen`
+  (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), the vocabulary of `NewGenerator.spec` and `Generator.Next.spec`.
+- **Defect.** Across a restart the new heap reuses addresses, so `idClusterOk`'s clause 3 (distinct keys of one prefix have
+  distinct generators, by `Loc`) and the generators' map `Gp : Loc ↦ IdKey` (named in `gen`, persistent elements, heap
+  facts of the old generation) cannot be kept true; B6 (`notes/etcd-dist-d6.md`, session 4) needs them gone first.
+- **Evidence.** B6's analysis; clause 3's only use was `Next`'s "an id already issued by my generator is my key's".
+- **Proposed change.** (1) The ids' map `Ip : id ↦ (inc, g)`, `idKeyGenFacts`' elements `id ↪[γip]□ (k.2, g)`.
+  (2) Clause 3 restricted to keys of one incarnation is `k = (k.1, k.2)`: dropped. (3) `Gp` cannot go entirely (`Next`
+  must still tell, inside one heap, which incarnation a generator is, the issue record being keyed by `Loc`); it becomes
+  `Gp : Loc ↦ inc`, with heap fact `∃ v, prefix ↦□ v`, named per allocation of the invariant (`idPfxInv := ∃ γip γgp,
+  p ↪[gen]□ γip ∗ inv (idPfxBody γip γgp)`, `idPfxInv_alloc` allocates `γgp`), and `gen : w64 ↦ GName`. (4) `idGen` holds
+  the opened `idPfxInv` with `g ↪[γgp]□ γi.inc` (`NewGenerator` registers it), in place of `idPfxInv γi.gen γi.pfx`.
+  No spec statement's text changes; `idGen`'s first four components (read by `SrvRaftLog`) are unchanged.
+- **Decision.** Announced on #50 (2026-11-25T23:25Z, "unless you object"); applied on `etcd-safe-t10` (T10 session 5).
+  The lead's B6 choice ((a'), (b), (c)) builds on it; under (b) the re-allocation now needs a fresh `γgp` only.

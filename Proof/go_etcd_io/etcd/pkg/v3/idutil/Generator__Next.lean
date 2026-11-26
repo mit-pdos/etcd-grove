@@ -83,13 +83,13 @@ theorem idClusterOk_issue {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap 
     (k : IdKey) (nid : w64) (L : List w64) (g : Loc) (Hok : idClusterOk I C R Fm)
     (HC : C !! k = some (L, some g)) (Hpn : idPfx nid = k.1) (HIn : I !! nid = none) :
     idClusterOk (I.insert nid none) (C.insert k (nid :: L, some g)) R Fm := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hok
+  obtain ⟨h1, h2, h4, h5, h6⟩ := Hok
   have hsome : ∀ k', ((C.insert k (nid :: L, some g)) !! k').isSome = (C !! k').isSome := by
     intro k'
     by_cases hk : k = k'
     · subst hk; rw [GMap.lookup_insert, HC]; rfl
     · rw [GMap.lookup_insert_ne _ _ hk]
-  refine ⟨?_, ?_, ?_, ?_, fun k' => by rw [hsome]; exact h5 k', fun k' => by rw [hsome]; exact h6 k'⟩
+  refine ⟨?_, ?_, ?_, fun k' => by rw [hsome]; exact h5 k', fun k' => by rw [hsome]; exact h6 k'⟩
   · intro id
     rw [GMap.lookup_insert_is_Some]
     by_cases h : nid = id
@@ -125,16 +125,6 @@ theorem idClusterOk_issue {X : Type} (I : GMap w64 (Option IdClaimV)) (C : GMap 
       · exact g2 id h'
     · rw [GMap.lookup_insert_ne _ _ hpp] at hp
       exact h2 p e hp
-  · intro a b ea eb g' ha hb hga hgb hab
-    have fix : ∀ c ec, (C.insert k (nid :: L, some g)) !! c = some ec →
-        ∃ ec', C !! c = some ec' ∧ ec'.2 = ec.2 := by
-      intro c ec hc
-      by_cases hk : k = c
-      · subst hk; rw [GMap.lookup_insert] at hc; cases hc; exact ⟨_, HC, rfl⟩
-      · rw [GMap.lookup_insert_ne _ _ hk] at hc; exact ⟨ec, hc, rfl⟩
-    obtain ⟨ea', ha', hea⟩ := fix a ea ha
-    obtain ⟨eb', hb', heb⟩ := fix b eb hb
-    exact h3 a b ea' eb' g' ha' hb' (by rw [hea]; exact hga) (by rw [heb]; exact hgb) hab
   · intro p e hp hne
     by_cases hpp : k = p
     · subst hpp; rw [GMap.lookup_insert] at hp; cases hp; rfl
@@ -161,7 +151,8 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
   ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   iunfold idGen at Hg
-  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl, #Hpi⟩
+  icases Hg with ⟨%s0, %Hgn, #Hpfx, %Hs0, #Hinv, %X, %hX, %Φs, %x, %HΦx, #Hkf, #Hcl, %γip, %γgp, #Hgn,
+    #Hpinv, #Hgr⟩
   obtain ⟨Hs0, Hpl⟩ := Hs0
   -- the steps up to `atomic.AddUint64`'s resolution, one by one (`wp_auto` would take that step
   -- too, and its receipt with it)
@@ -268,8 +259,6 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
   iinv Hcl with Hci Hclose2
   icases Hci with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
   -- (etcd-dist D7) the prefix's generators' facts, on this machine
-  iunfold idPfxInv at Hpi
-  icases Hpi with ⟨%γip, %γgp, #Hgn, #Hpinv⟩
   iinv Hpinv with Hpb Hclose3
   iunfold idPfxBody at Hpb
   icases Hpb with ⟨%Ip, %Gp, >HIp, >HGp, >#HIps, >#HGps⟩
@@ -321,7 +310,7 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
         · exfalso
           rw [← hid] at h0
           exact idutil_or_ne_zero γi.pfx _ Hpok.1 h0
-        · have hg2 := Hok.2.2.2.1 k2 e2 hk2 (List.ne_nil_of_mem hin)
+        · have hg2 := Hok.2.2.1 k2 e2 hk2 (List.ne_nil_of_mem hin)
           rcases e2 with ⟨L2, og2⟩
           cases og2 with
           | none => simp at hg2
@@ -329,48 +318,56 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
             icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := C)
               (Φ := fun k e => idKeyGenFacts (GF := GF) γi.gen k e) hk2).1 $$ HG with ⟨Hk2, -⟩
             iunfold idKeyGenFacts at Hk2
-            icases Hk2 with ⟨%γip2, %γgp2, #Hgn2, -, #Hl2⟩
+            icases Hk2 with ⟨%γip2, #Hgn2, #Hl2⟩
             obtain ⟨n, hn⟩ := List.getElem?_of_mem hin
             ihave #He2 := (BigSepL.bigSepL_lookup (PROP := IProp GF)
-              (Φ := fun _ id => iprop(id ↪[γip2]□ g2)) hn) $$ Hl2
+              (Φ := fun _ id => iprop(id ↪[γip2]□ ((k2.2, g2) : Nat × Loc))) hn) $$ Hl2
             -- `k2` is of `nid`'s prefix, the key's: its names the prefix's
             have hp2 : k2.1 = γi.pfx := ((Hok.2.1 k2 (L2, some g2) hk2).2 nid hin).symm.trans Hpn
-            ihave #Hgn' : k2.1 ↪[γi.gen]□ (γip, γgp) $$ []
+            ihave #Hgn' : k2.1 ↪[γi.gen]□ γip $$ []
             · rw [hp2]; iexact Hgn
             ihave %Hag := ghostMapElem_agree k2.1 γi.gen DFrac.discard DFrac.discard _ _ $$ Hgn' Hgn2
-            simp only [Prod.mk.injEq] at Hag
-            obtain ⟨rfl, rfl⟩ := Hag
+            subst Hag
             icombine HIp He2 gives %HlI
-            have HlI' : Ip.lookup nid = some g2 := HlI
+            have HlI' : Ip.lookup nid = some (k2.2, g2) := HlI
             icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Ip)
-              (Φ := fun id g => iprop(idIssueFragD (L := hG.goose_localGS) id g ∗ id ↪[γip]□ g)) HlI').1
-              $$ HIps with ⟨⟨#Hf2, -⟩, -⟩
+              (Φ := fun id ig => iprop(idIssueFragD (L := hG.goose_localGS) id ig.2 ∗
+                ig.2 ↪[γgp]□ ig.1 ∗ id ↪[γip]□ ig)) HlI').1
+              $$ HIps with ⟨⟨#Hf2, #Hg2, -⟩, -⟩
             ihave %Hgg := idIssueFragD_agree nid g2 g $$ Hf2 HfD
             subst Hgg
-            have hkk := Hok.2.2.1 k2 γi.key (L2, some g2) (L', some g2) g2 hk2 HlkC' rfl rfl hp2
+            -- (T10 B6) `g2` is one incarnation's generator: `k2`'s is the key's
+            ihave %Hinc := ghostMapElem_agree g2 γgp DFrac.discard DFrac.discard _ _ $$ Hg2 Hgr
+            have hkk : k2 = γi.key := Prod.ext hp2 Hinc
             subst hkk
             rw [HlkC'] at hk2
             cases hk2
             exact absurd hin HnL
     -- (etcd-dist D7) `nid`'s issuer recorded in the prefix's ids' map (already there only as `g`'s)
-    ihave Hins : iprop(|==> ∃ Ip' : GMap w64 Loc, ghostMapAuth γip 1 Ip' ∗
-        ([∗map] id ↦ g' ∈ Ip', idIssueFragD (L := hG.goose_localGS) id g' ∗ id ↪[γip]□ g') ∗
-        nid ↪[γip]□ g) $$ [HIp]
+    ihave Hins : iprop(|==> ∃ Ip' : GMap w64 (Nat × Loc), ghostMapAuth γip 1 Ip' ∗
+        ([∗map] id ↦ ig ∈ Ip', idIssueFragD (L := hG.goose_localGS) id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗
+          id ↪[γip]□ ig) ∗
+        nid ↪[γip]□ ((γi.inc, g) : Nat × Loc)) $$ [HIp]
     · cases hIp : Ip.lookup nid with
       | none =>
-        imod (ghost_map_insert_persist nid g hIp) $$ HIp with ⟨HIp, #Hng⟩
+        imod (ghost_map_insert_persist nid ((γi.inc, g) : Nat × Loc) hIp) $$ HIp with ⟨HIp, #Hng⟩
         imodintro
-        iexists Ip.insert nid g
+        iexists Ip.insert nid (γi.inc, g)
         iframe HIp Hng
         iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := Ip)
-          (Φ := fun id g => iprop(idIssueFragD (L := hG.goose_localGS) id g ∗ id ↪[γip]□ g)) hIp).2
-        iframe HIps HfD Hng
-      | some g' =>
+          (Φ := fun id ig => iprop(idIssueFragD (L := hG.goose_localGS) id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗
+            id ↪[γip]□ ig)) hIp).2
+        iframe HIps HfD Hgr Hng
+      | some ig' =>
+        rcases ig' with ⟨i', g'⟩
         icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Ip)
-          (Φ := fun id g => iprop(idIssueFragD (L := hG.goose_localGS) id g ∗ id ↪[γip]□ g)) hIp).1
-          $$ HIps with ⟨⟨#Hf', #Hel⟩, -⟩
+          (Φ := fun id ig => iprop(idIssueFragD (L := hG.goose_localGS) id ig.2 ∗ ig.2 ↪[γgp]□ ig.1 ∗
+            id ↪[γip]□ ig)) hIp).1
+          $$ HIps with ⟨⟨#Hf', #Hg', #Hel⟩, -⟩
         ihave %Hgg := idIssueFragD_agree nid g' g $$ Hf' HfD
         subst Hgg
+        ihave %Hii := ghostMapElem_agree g' γgp DFrac.discard DFrac.discard _ _ $$ Hg' Hgr
+        subst Hii
         imodintro
         iexists Ip
         iframe HIp HIps Hel
@@ -404,13 +401,12 @@ theorem idutil.Generator.Next.wp_proof [HasExt idIssueExt]
         iapply HkC
         iunfold idKeyGenFacts at Hk
         iunfold idKeyGenFacts
-        icases Hk with ⟨%a, %b, #Hpa, #Hga, #Hl⟩
+        icases Hk with ⟨%a, #Hpa, #Hl⟩
         simp only
         ihave %Hag := ghostMapElem_agree γi.pfx γi.gen DFrac.discard DFrac.discard _ _ $$ Hgn Hpa
-        simp only [Prod.mk.injEq] at Hag
-        obtain ⟨rfl, rfl⟩ := Hag
-        iexists γip, γgp
-        iframe Hpa Hga
+        subst Hag
+        iexists γip
+        iframe Hpa
         iapply BigSepL.bigSepL_cons.2
         iframe Hng Hl
     imod Hclose $$ [Hsuf Hcr Hcnt HS HP] with -
