@@ -6,12 +6,13 @@
 example's helpers' dist copies, etcdstart's, clientv3's option constructors, `context` and `time`, the interim
 axioms `KV_Get_dist` (its error arm's `statusErrOk` since 2026-11-26, plan §29.7), `Watch_dist` and
 `RequestProgress_dist`, and the writers (`remoteWriters.wp_proof`, N10a's, over `reportAll`, `CallAll`,
-`lib/remote`'s `Report` and `writerAttempt`). One callee stays a hypothesis of `wp_RunCache`:
-* `writerCodec.spec`: the writers' codec (N10a, §24.6), not proved yet; the watch workload needs the same.
+`lib/remote`'s `Report`, `writerAttempt` and the writers' codec: `WatchLinked.wp_remoteWriters`, the watch
+workload's). No hypothesis.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunCache
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.remoteWriters
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.reportAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CallAll
@@ -68,16 +69,14 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [NaInvG GF]
 
-/-- **The cache workload's orchestrator, linked** but at the writers' codec (`writerCodec.spec`, N10a's; see
-the file header). -/
-theorem wp_RunCache (wp_writerCodec : writerCodec.spec (GF := GF) (hG := hG)) :
-    RunCache.spec (GF := GF) (hG := hG) :=
+/-- **The cache workload's orchestrator, linked** (the writers' calls as the watch workload's,
+`WatchLinked.wp_remoteWriters`, over N10a's linked `writerCodec`). -/
+theorem wp_RunCache : RunCache.spec (GF := GF) (hG := hG) :=
   RunCache.wp_proof etcdstart.wp_GenAll (newClient.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClients)
     ended.wp_proof checked.wp_proof KV_Get_dist.wp_proof Watch_dist.wp_proof RequestProgress_dist.wp_proof
     context.wp_ErrAny context.WithTimeoutBackground.wp_proof (WithPrefix.wp_proof getPrefix.wp_proof) WithRev.wp_proof
     wp_New Cache.wp_Watch Cache.wp_RequestProgress Cache.wp_Get Cache.wp_Close
-    (remoteWriters.wp_proof (reportAll.wp_proof CallAll.wp_proof EtcdGrove.remote.wp_Report) wp_writerCodec
-      writerAttempt.wp_proof)
+    wp_remoteWriters
     _root_.Perennial.time.wp_AfterFunc _root_.Perennial.time.Timer.wp_Stop etcdstart.wp_MaxRev
     cacheCollect.wp_proof (awaitProgress.wp_proof client.v3.WatchResponse.wp_IsProgressNotify)
     checkProgress.wp_proof etcdstart.wp_Check (checkGet.wp_proof lastVal.wp_proof hasKey.wp_proof)
