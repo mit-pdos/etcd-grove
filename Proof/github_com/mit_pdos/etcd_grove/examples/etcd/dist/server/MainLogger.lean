@@ -98,6 +98,13 @@ theorem MainLogger.wp_proof
     have h := Hnlen m (List.mem_of_getElem? Hm); unfold typed.maxNameLen at h; exact h
   obtain ⟨Hidnd, H0⟩ := Hwf.idsNodup
   have Hdok : netDirOk (dirD d) := dirD_ok Hwf
+  -- the member's peer and client addresses valid (`WellFormed`), so its one URL of each within etcd's
+  -- URL bounds (`NewServer.specG_dist`'s `etcdURLsFit`, as `specG`'s)
+  have Hmem : m ∈ d.members := List.mem_of_getElem? Hm
+  have Hpa : Net.addrOk m.peer = true := Hwf.addrs.2 _
+    (List.mem_append_left _ (List.mem_flatMap.2 ⟨m, Hmem, by simp⟩))
+  have Hca : Net.addrOk m.client = true := Hwf.addrs.2 _
+    (List.mem_append_left _ (List.mem_flatMap.2 ⟨m, Hmem, by simp⟩))
   -- the share of the start
   icases Hshare with ⟨%c, Hshare⟩
   iunfold memberShareD at Hshare
@@ -229,6 +236,7 @@ theorem MainLogger.wp_proof
         simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default Hcmpcfg (fun _ => trivial) hcmp0 hNx Htb Hrb48 HrbN
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdok (peerURLsDir_httpURL _ idm m.peer Hdok Hdir)
+      (etcdURLsFit_httpURL _ (addrOk_addrFits Hpa)) (etcdURLsFit_httpURL _ (addrOk_addrFits Hca))
       (raftNode.bootCfg_of _ rfl) Hbc'
       (fun h => absurd h (by decide))
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
