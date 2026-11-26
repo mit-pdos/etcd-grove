@@ -190,7 +190,7 @@ theorem appResp_rest {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {
           unfold HeartbeatOk matchOf at this ⊢
           simpa [ps3, ps2, toPState, hrole] using this)
         (fun m' h => by
-          obtain ⟨k, -, -, Hk⟩ := (Hhb m' h).2
+          obtain ⟨k, -, -, Hk⟩ := (Hhb m' h).2.2
           rw [Hk]
           have : ps3.rd.ro = readonlyRelease s.rd.ro id n0 s.rd.pend := by
             simp [ps3, ps2, toPState, hrole]

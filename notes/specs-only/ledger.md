@@ -6130,3 +6130,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `XfOk` gains `∀ m ∈ l, XQOk id s m.st`; `ownRaftPhysC_msgs`/`_msgsAA` take it of the appended message, which
   `raft.send` proves from `SendOk`'s transfer clause (no `Spec` text change); a term raised keeps it (`XQOk.mono`).
 - **Decision.** Lead's decision (Q3 approved), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2 (Q3 items 3-4, Q1): Ready's transfer messages, TransferLeader's form, the read heartbeats' shape (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/{RawNodeAt,RawNodeAbsSpecs,RawNode__ReadyAbs}.lean`;
+  `Spec/go_etcd_io/raft/v3/{sendMsgReadIndexResponse,releasePendingReadIndexMessages,stepLeader}.lean` and their proofs,
+  consumers `raft__Step/{resp_lemmas,AppRespMid,MsgReadIndex}.lean`, `StepEndIp.lean`, `InputEndLift.lean` (projections).
+- **Change.** (Q3) `xmsgOf` (a `MsgTimeoutNow`/`MsgTransferLeader` as an `XMsg`), `XReadyOk γ id p x` (a `MsgTimeoutNow`
+  from the node at a term past `0`; a `MsgTimeoutNow` or a stamped forward to another node at most the node's term; a
+  stamped forward to a member of `γ.reCfg`; the forward clauses guarded by `x.term ≠ 0` as `XQOk` and `XfOk`'s record are;
+  no destination fact for a `MsgTimeoutNow`, lead's option 1). `RawNode.Ready.form`'s `%Hout`: every message handed out
+  reads as a protocol or a transfer message, the latter `XReadyOk` at `r.p` (was: every message a protocol one; the basic
+  scope's proof gives the old fact as the left disjunct). New `RawNode.TransferLeader.form`/`.absSpec` (`TransferEndR`, only
+  at a scope with transfer on; no premise on the target), not yet proved. (Q1) `HbShape s m` (no index, log term or
+  entries, to a peer of the progress map: `bcastHeartbeat`'s post) added to `SendRIResult`, `ReleaseResult` and
+  `ReleaseHbs` (raft-internal specs, strengthened; their proofs pass `bcastHeartbeat`'s facts through).
+- **Decision.** Lead's decisions (Q3 approved, option 1; Q1 approved), 2026-11-26. No new axiom, no new top-level premise.

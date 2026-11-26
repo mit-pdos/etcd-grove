@@ -122,6 +122,17 @@ def ReadyOut (id : w64) (rs : RNState) (ps : PState) (h : HardStateM)
   rs.delivered ++ ce <+: ps.log ∧ (rs.delivered ++ ce).length ≤ uint.nat ps.commit ∧
   L = none
 
+/-- (antithesis parity B1, Q3) **A `Ready`'s untyped message against the node's protocol state** at
+the call (`p`): a `MsgTimeoutNow` from the node at a term past `0`; a `MsgTimeoutNow` or a stamped
+`MsgTransferLeader` to another node, of a term at most the node's (`XQOk`); a stamped forward to a
+member of the configuration (its destination the node's leader when it forwarded, `XScopeOk`). No
+destination fact for a `MsgTimeoutNow` (the driver routes by destination, dropping one to a
+non-server; the lead's decision, Q3 option 1). -/
+def XReadyOk (γ : RaftNames) (id : w64) (p : PState) (x : XMsg) : Prop :=
+  (x.ty = .timeoutNow → x.src = id ∧ x.term ≠ W64 0) ∧
+  (x.ty = .timeoutNow ∨ x.term ≠ W64 0 → x.dst ≠ id ∧ uint.Z x.term ≤ uint.Z p.term) ∧
+  (x.ty = .transferLeader → x.term ≠ W64 0 → x.dst ∈ γ.reCfg)
+
 end pure
 
 section spec
@@ -280,6 +291,32 @@ abbrev RawNode.Propose.absSpec : Prop :=
 abbrev RawNode.Propose.spec_of_abs.law : Prop :=
   RawNode.Propose.absSpec (GF := GF) (hG := hG) → RawNode.Propose.spec (GF := GF) (hG := hG)
 
+/-! ### `RawNode.TransferLeader` -/
+
+/-- (antithesis parity B1, Q3; design §4) `RawNode.TransferLeader.spec`'s triple over `R`, and (under
+`S`) the transfer's exact effect `TransferEndR` at the target `to`, the log kept. Only in a scope
+with transfer on (stepping the request sets `NGhost.xs`, which `RnScope` keeps `false` without it).
+No premise on `to`: the driver draws any server of the run; a leader ignores a target outside its
+progress map (`stepLeader`'s `pr == nil`), `TransferEndR`'s `r'.p = r.p` arm. -/
+abbrev RawNode.TransferLeader.form (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
+    (S : RnMode → Prop) : Prop :=
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
+    (to : w64),
+  (∀ md, S md → md.transfer = true) →
+  γ.reTrace = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hrn" ∷ R γ rn id rs r qs ip }}
+    (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"TransferLeader")) (Val #to))
+  {{ (r' : RState), RET #();
+      "Hrn" ∷ R γ rn id rs r' qs ip ∗
+      "%Hend" ∷ ⌜∀ md, S md → TransferEndR id r to r'⌝ }}
+
+/-- **`RawNode.TransferLeader`, strengthened**, at every scope (transfer exists only past the basic
+scope). -/
+abbrev RawNode.TransferLeader.absSpec : Prop :=
+  ∀ sc : Option RnMode, RawNode.TransferLeader.form
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc) (fun md => sc = some md)
+
 /-! ### `RawNode.HasReady` -/
 
 /-- **`RawNode.HasReady`, strengthened** (design §2.2, revision 2's T3): read-only; on `false`, in
@@ -364,9 +401,10 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState 
         -- (#33 S4, 2026-11-24) a non-empty hard state differs from the last one handed out
         -- (`rd.HardState` is set only when `!isHardStateEqual(hardSt, prevHardSt)`; ledger)
         (¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs) ∧
-        -- (#33 S4, 2026-11-24) every message handed out reads as a protocol message: of a type the
-        -- model describes (the harness steps no transfer request, `RnScopeBasic`'s `NGhost.xs`; ledger)
-        (∀ q ∈ ms, (absMsgOf q.st).isSome)⌝ }}
+        -- (#33 S4, 2026-11-24) every message handed out reads as a protocol message or (antithesis
+        -- parity B1, Q3) as a transfer message (`xmsgOf`), each of those against the node (`XReadyOk`)
+        (∀ q ∈ ms, (absMsgOf q.st).isSome ∨ (xmsgOf q.st).isSome) ∧
+        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ id r.p x)⌝ }}
 
 /-- **`RawNode.Ready`, strengthened**. -/
 abbrev RawNode.Ready.absSpec : Prop :=

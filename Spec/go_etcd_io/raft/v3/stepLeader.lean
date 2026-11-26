@@ -131,7 +131,7 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 /-- `releasePendingReadIndexMessages`' heartbeats at `s` (2026-10-12): `HeartbeatOk`, each
 with the position after one of the released requests. -/
 def ReleaseHbs (id : w64) (s : NState) (hb : List Msg) : Prop :=
-  ∀ m' ∈ hb, HeartbeatOk id (toPState s) m' ∧
+  ∀ m' ∈ hb, HeartbeatOk id (toPState s) m' ∧ HbShape s m' ∧
     ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧
       m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))
 

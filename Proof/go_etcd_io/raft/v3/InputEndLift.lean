@@ -353,7 +353,7 @@ theorem ie_handle_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ent
               cases hb with
               | nil => rfl
               | cons y _ =>
-                obtain ⟨-, k, hk1, hk2, -⟩ := hrel y List.mem_cons_self
+                obtain ⟨-, -, k, hk1, hk2, -⟩ := hrel y List.mem_cons_self
                 simp only [hpend, List.length_nil] at hk2
                 omega
             subst hb0

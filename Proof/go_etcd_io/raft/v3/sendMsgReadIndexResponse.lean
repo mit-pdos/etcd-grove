@@ -238,7 +238,7 @@ theorem sendMsgReadIndexResponse.wp_proof
       iframe Hphys HG
       ipureintro
       right
-      refine ⟨Hns, ms, pvs, rfl, fun m' Hm' => ⟨(Hms m' Hm').1, ?_⟩, Hmm⟩
+      refine ⟨Hns, ms, pvs, rfl, fun m' Hm' => ⟨(Hms m' Hm').1, ?_, (Hms m' Hm').2.2⟩, Hmm⟩
       rw [(Hms m' Hm').2.1]
       simp only [arriveState, readonlyArrive, hbCtx_recvAck]
   · have Hns : ¬ CfgSingle c id := fun h => Hin ((cfgSingle_iff c id).1 h).1
@@ -302,7 +302,7 @@ theorem sendMsgReadIndexResponse.wp_proof
     iframe Hphys HG
     ipureintro
     right
-    refine ⟨Hns, ms, pvs, rfl, fun m' Hm' => ⟨(Hms m' Hm').1, ?_⟩, Hmm⟩
+    refine ⟨Hns, ms, pvs, rfl, fun m' Hm' => ⟨(Hms m' Hm').1, ?_, (Hms m' Hm').2.2⟩, Hmm⟩
     rw [(Hms m' Hm').2.1]
     simp only [arriveState, readonlyArrive, hbCtx_recvAck]
 

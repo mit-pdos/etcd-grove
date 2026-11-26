@@ -114,7 +114,9 @@ theorem RawNode.Ready.wp_absProof
   subst Hf2
   refine ⟨rfl, Hq, ⟨Hrole1.trans Hrole.symm, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
-    Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew, Htyped⟩
+    Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew,
+    fun q hq => .inl (Htyped q hq),
+    fun q hq x hx => by rw [xmsgOf_none_of_absMsgOf (Htyped q hq)] at hx; cases hx⟩
 
 end proof
 
