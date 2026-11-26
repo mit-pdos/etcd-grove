@@ -3252,6 +3252,47 @@ Inside (B) the row appears only as `□ Rw.IR` obligations of `consInv` (`skip_d
 raft's snapshot certificate, not off the row. When (A) lands, `isServer` at the row makes the restart
 allocate it at the image's `(eff, p)`, from the same `srvCrashImageAt` facts: (A)'s boot-spec change,
 shared by the graceful and crash branches through `specRAt`, which does not undo (B)'s work.
+(Separately, B8's case `i < bootLen` needs `⌜γ.cl.bootLen ≤ σ.commit⌝` in the crash image, session 3 item 2: a
+conjunct of `srvCrashImageAt` (or a raft law), not `consInv`'s row; still for the lead.)
+
+**STOP under condition (3): B3, B5, B6 (and B7) each change a definition an axiom's statement unfolds to.**
+Checked in Lean, not by grep: `/shared/tmp/t10s3b-chk/AxCheck.lean` imports the 54 modules declaring an `axiom` in
+the cone of `InvRaftNode`/`InvApplyAll`/the two `Spec/` files (`etc/importers.py`), walks each of the 149 repository
+axioms' types through repository definitions' bodies (as `etc/tcb-report.lean`'s `statementDefs`), and reports the
+targets reached; `AxPath.lean` prints the path. Hits (output `/shared/tmp/t10s3b-chk/out.txt`):
+* `etcd_dist.NewServer_dist.wp_proof` (`dist/NewServerDist.lean:74`) reaches `rnRestartOk`, `rnApP`, `rnApN`,
+  `rnApSnap`, `rnApR`, `rnReplayJob`, `isNotify`, `isNotify2`, `rnStopImage`: path `NewServer.specG_dist → srvBuiltG →
+  isRaftNode → rnRestartOk` and `isRaftNode → isRNApplyc → rnApP → rnApN`.
+* `etcd_dist.Serve_dist.wp_proof` (`dist/ServeDist.lean:72`) reaches `wal.stopImage`: `Serve_dist.spec →
+  etcdstart.memberUpL → srvStopRight → srvDoneInv → srvDiskImage → srvDiskImageAt → wal.stopImage`.
+* No axiom reaches `EtcdServer.applyAll.spec*`, `raftNode.onStop.spec`, `taReplayField` or `taReplayBatch`
+  (condition (1) holds for `EtcdServer__applyAll.lean` and `raftNode__onStop.lean`).
+So B6 (`rnRestartOk`), B3 (`rnApN`'s deposit), B5 (its `rnApSnap` job) and B7 (`rnStopImage`, `wal.stopImage`) each
+change what `NewServer_dist`'s or `Serve_dist`'s axiom means. No Lean changed. Ways on, for the lead: (a) the axioms'
+meaning may follow (they stand for proofs to come, and the change makes the server's invariant true of a crash
+restart); (b) frozen copies (`rnRestartOkG`, ...) for the axioms' side, the proofs on new definitions, and a bridge
+where the two meet (`isRaftNode` and `srvDiskImageAt` are shared by the proved graceful path, so the copy reaches far).
+
+**B3's plan has the protocol's direction wrong.** `isNotify γ ch R` (`NotifyC.lean`) carries `R` from the
+*receiver* to the sender (`notifyMatch 1 true` holds `R`; `notify_recv_au` deposits it, `notify_send2_au` hands it to
+the raft loop): it is how the apply thread returns the view (`dvView`) to the driver. A raft-to-apply deposit at the
+send after the *enter* needs a protocol whose first send deposits (as `isNotify2`'s `S1`): a new `isNotifyD γ ch Q R`
+(send 1 deposits `Q`, the receive takes `Q` and deposits `R`), `rnApN`'s and `rnApplyTok_recv`'s (`InvRaftLoop.lean:96`)
+`notifyc` at it, `start_notify`/`wp_notify_send1` at `raftNode__start.lean:1337,1735,1887`, the receive at
+`EtcdServer__applyAll.lean:215` (proof). The job is used after that receive (`:481`), so the deposit can be the job
+itself, built on the raft side from the history and `rnLeadLaw` (B4 then has nothing to do on the apply side):
+`applyAll.specBatch`'s `taReplayBatch ap γn rt n` becomes `taReplayTermsAddr ap ↦□ terms` and its `notifyc`
+`isNotifyD γnc nc (rnReplayJob γn terms rt n) (dvView …)`.
+
+**B6 cannot go first.** Dropping `|a0| ≤ commit0` breaks `rnRestartOk_winAbove`'s second conjunct, which
+`NodeBridge.lean:576` (`Hab`) feeds to `applyAll.specSnapM`'s A8 premise `g < sv.Index`: B5's keep case replaces it.
+And `rnRestartOk_a0_le`'s two uses (`raftNode__start.lean:232,2067`) feed `raftNode.onStop.spec`'s
+`⌜γ.a0.length ≤ p.Commit'⌝` and `rnStopImage` (B7). The order stays the handoff's: B3, B4, B5, B6, B7.
+
+**Handoff T10s3b-4** (stopped: condition (3), and the context rule). Branch at this commit; tree, manifest, build as
+T10s3b-1 (the head's Lean unchanged since session 3, its build green). Waiting on the lead's choice of (a)/(b) above;
+then B3 per the corrected design (new `isNotifyD`, the job deposited at send 1), B4 (trivial), B5, B6, B7, B8.
+No axiom, `sorry`, `Spec/`, trusted or Lean text changed.
 
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
