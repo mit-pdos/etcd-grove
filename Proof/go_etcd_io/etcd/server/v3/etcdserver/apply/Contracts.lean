@@ -127,12 +127,6 @@ theorem cPost_mono (b : Bool) (Pre Post : IProp GF) (φ ψ : Prop) (h : φ → �
     · ileft; iexact H
     · iright; iframe H; ipureintro; exact h hφ
 
-/-- Forget the fact of a no-write return (`Post ∨ (Pre ∗ ⌜φ⌝)`, the auth store's admin methods'). -/
-theorem orPre_forget (Pre Post : IProp GF) (φ : Prop) : Post ∨ (Pre ∗ ⌜φ⌝) ⊢ Post ∨ Pre := by
-  iintro (H | ⟨H, -⟩)
-  · ileft; iexact H
-  · iright; iexact H
-
 /-! ## Responses -/
 
 /-- A response of type `T` returned by a component: `nil`, or a fresh one whose `Header` the

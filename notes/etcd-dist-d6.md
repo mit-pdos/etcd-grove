@@ -2833,6 +2833,33 @@ Note `kvPostFL` is used by `DispatchKVL` (lines 142-198) and `AuthApplyLatest{Pu
 *Stage 5*: unchanged from T10s2-1's list, plus the step-spec point above. Then full build, gates in full,
 `tcb --check`. `AuthSrv.lean` fails `setup-file` today (an import above the defs does not build yet).
 
+**Handoff T10s2-3** (session 3 stopped at the context rule; head = this commit, pushed).
+
+*The step-spec decision (coordinator, 2026-11-26), done*: the admin step specs carry the store's no-lock fact,
+as the rows do. `apply/Chain.lean`: `mPostF E c a log Pre Post φ` (`kvOwn ∗ chainResAny ∗ (Post ∨ (Pre ∗ ⌜φ⌝))`)
+and `mPostF_backend`, beside `mPost` (kept: `mPostW` in the `Spec/.../applierV3backend__*` files and the getters/
+`Authenticate` use it; changing its arity would have touched those `Spec/` files, outside the plan's list).
+`AuthSteps` (11 `stepSpec`s), `AuthFuel` (11 `fuelSpec`s), `AuthStepsX` (5 `stepSpecX`, 5 `fuelSpecX`; not
+`Authenticate.specX`, which keeps the authority anyway): `mPostF … (err ≠ GoInterface.nil)`; `AuthEnable`/
+`AuthDisable`: `∃ en, mPostF … (en = true)` / `(en = false) ∗ enabledVerdict ∗ adminOut…` (moved inside `∃ en`).
+The 16 `orPre_forget` sites are gone and `orPre_forget` is deleted (`Contracts.lean`).
+`AdminChain`: `AdminReq.result … err k` takes the no-lock fact `k` (`⌜k → err ≠ nil⌝`; `authEnable`: `⌜k → en =
+true⌝` inside `∃ en`; `authenticate`: none); `adminTriples`' post is `applyTok ∗ applyErrIs err ∗ W ∗ ∃ k : Prop,
+mPostF E c (.ok ai) log Pre Post k ∗ ar.result … err k`; the four layer wrappers and `applierAdmin_backendX` (explicit
+continuations, `k := err ≠ nil` / `en = true`; `Authenticate`: `k := True`) follow. New `AdminReq.result_keep (hk :
+k) : ar.result Own γa (.on γa) hs resp err k ⊢ Own γa hs` (what stage 5 uses for `st' = st`). Lean-checked
+(`-a`, 0 errors): `AuthSteps`, `AuthStepsX`, `AuthFuel`, `AdminChain`.
+
+*Stage 4, next*: `DispatchAdmin.lean` (spec line ~135 and `adminDone` line ~99; six `iunfold apply.mPost at Hpost`
+sites, 537-880, become `mPostF` with `%k`): `adminDone Own γa M hs rq v3 ar k` (`ad.result … v.Err' k`), the
+`adminSpec` post `∃ o (k : Prop), … cPost v3 Pre Post k ∗ … adminDone … k` (with `v3 = false`: `k := True`, the
+authority as it was). Then the rest of stage 4 as in T10s2-2 (first re-run the method files' lean-check unfiltered),
+`uberApplier__dispatch` (its `mPost` site, line 647), `newAuthApplierV3`/`newApplierV3{Capped,Corrupt}`/
+`newQuotaApplierV3`/`authApplierV3__{UserGet,RoleGet}`/`quotaApplierV3__LeaseGrant` (they use `mPost`, unchanged:
+check they still build). *Stage 5*: `ApplyAdmin`'s `adminOut … k`, `ApplyAdminL`'s `adminSpecL` (`∃ k`, `cPost v3
+Pre Post k`), then `AdminEntryOn`: `cPost v3 Pre Post (st' = st)` inside `∃ hs' st'`, from `result_keep` in the
+`Pre` branch (choose `hs' := hs`); the rest of T10s2-1's stage-5 list. Not yet run: full build, gates, `tcb --check`.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

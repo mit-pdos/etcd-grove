@@ -1790,6 +1790,13 @@ def mPost (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
   iprop(kvOwn E log ∗ chainResAny c a ∗ (Post ∨ Pre))
 
+/-- **`mPost` with the no-lock fact `φ`** (T10 step 2): the admin steps' (`AuthSteps`,
+`AuthStepsX`), whose `Pre` disjunct (returned without the batch lock) carries the store's fact
+(`err ≠ nil`, or the flag already as the step would set it), the authority's being unchanged. -/
+def mPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Post : IProp GF) (φ : Prop) : IProp GF :=
+  iprop(kvOwn E log ∗ chainResAny c a ∗ (Post ∨ (Pre ∗ ⌜φ⌝)))
+
 /-- **`mPre` with the backend's tokens** (strict M1, 2026-11-05, decided by the coordinator): for
 the methods whose components write the backend themselves (the lessor's grant and checkpoint, the
 alarm and auth stores), a write-back token and a reader token of the backend `B` (`bkWT`, `bkRT`,
@@ -1988,6 +1995,13 @@ theorem mPost_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post
     kvOwn E log ∗ (Post ∨ Pre) ⊢ mPost E .backend a log Pre Post := by
   iintro ⟨Hkv, HPP⟩
   unfold mPost
+  iframe Hkv HPP
+  iapply chainResAny_backend
+
+theorem mPostF_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post : IProp GF}
+    {φ : Prop} : kvOwn E log ∗ (Post ∨ (Pre ∗ ⌜φ⌝)) ⊢ mPostF E .backend a log Pre Post φ := by
+  iintro ⟨Hkv, HPP⟩
+  unfold mPostF
   iframe Hkv HPP
   iapply chainResAny_backend
 
