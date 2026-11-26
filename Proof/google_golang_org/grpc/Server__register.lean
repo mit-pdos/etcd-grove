@@ -313,9 +313,13 @@ theorem grpc.Server.register.wp_proof
       · iexact Hmls
       iexists dv, cs, cm
       rw [hj]
-      iframe
-      ipureintro
-      exact hdj
+      isplitr
+      · ipureintro; exact hdj
+      isplitr
+      · iexact Hcs
+      isplitr
+      · iexact Hcm
+      iexact «$r0»
     iframe
     ipureintro
     have hfresh : dv.MethodName' ∉
