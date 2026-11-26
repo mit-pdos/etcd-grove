@@ -128,6 +128,16 @@ theorem dispatchCrev_noV3 (c : Chain) (rq : IRRModel) (crev : Int) :
     dispatchCrev c rq false crev = crev := by
   unfold dispatchCrev; simp
 
+/-- **`dispatch(rq, v3)` changed no model** (T10 step 2): at the log `log`, compaction revision `crev`,
+the apply thread's live set `T` and rest state `rs`, the outcome `o` left the committed log, the
+compaction revision, the live set and the rest state (for every record TTL `t`) as they were. What a
+dispatch that took no batch lock returns (`cPost`'s `Pre` disjunct). -/
+def dispatchNoEff [GooseExts] (c : Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (crev : Int)
+    (T : List w64) (rs : RestM) (o : Outcome) : Prop :=
+  o.logAfter log = log ∧ dispatchCrev c rq v3 crev = crev ∧
+    revokeIds rq v3 o (grantIds rq v3 o T) = T ∧
+    ∀ t : w64, revokeRest T rq v3 o (grantRest t rq v3 o (restAfter rq v3 rs)) = rs
+
 /-- **What a compaction request needs at the log `log`**: `cmpAdmitRev` at its revision; nothing
 for another kind. -/
 def cmpAdmit (log : mvcc.Log) (rq : IRRModel) : Prop :=

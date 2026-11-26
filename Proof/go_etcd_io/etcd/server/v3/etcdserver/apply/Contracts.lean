@@ -98,9 +98,12 @@ c.be.MustSave...ToBackend(...) }`) and, through them, the appliers' cluster meth
 def cPre (b : Bool) (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) : IProp GF :=
   if b then csContractA P f Pre Q Post else Pre
 
-/-- What a writer under `cPre b` returns: `Post ∨ Pre` (`b`), `Pre` (not `b`). -/
-def cPost (b : Bool) (Pre Post : IProp GF) : IProp GF :=
-  if b then iprop(Post ∨ Pre) else Pre
+/-- What a writer under `cPre b` returns: with `b`, `Post` (it took the batch lock and wrote) or `Pre`
+with `φ` (it took no lock: `φ` is the caller's statement that the call changed none of the models it
+tracks, the no-lock outcomes' model fact, T10 step 2, ledger 2026-11-26 "the skip paths' model fact");
+without `b`, `Pre` (nothing reaches the backend). -/
+def cPost (b : Bool) (Pre Post : IProp GF) (φ : Prop) : IProp GF :=
+  if b then iprop(Post ∨ (Pre ∗ ⌜φ⌝)) else Pre
 
 theorem cPre_pre (b : Bool) (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) :
     cPre b P f Pre Q Post ⊢ Pre := by
@@ -108,10 +111,21 @@ theorem cPre_pre (b : Bool) (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) 
   · simp only [cPre, Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
   · simp only [cPre, ↓reduceIte]; exact csContract_pre P f Pre Q Post
 
-theorem cPost_of_pre (b : Bool) (Pre Post : IProp GF) : Pre ⊢ cPost b Pre Post := by
+theorem cPost_of_pre (b : Bool) (Pre Post : IProp GF) (φ : Prop) (h : φ) :
+    Pre ⊢ cPost b Pre Post φ := by
   cases b
   · simp only [cPost, Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
-  · simp only [cPost, ↓reduceIte]; iintro H; iright; iexact H
+  · simp only [cPost, ↓reduceIte]; iintro H; iright; iframe H; ipureintro; exact h
+
+/-- A weaker no-lock fact. -/
+theorem cPost_mono (b : Bool) (Pre Post : IProp GF) (φ ψ : Prop) (h : φ → ψ) :
+    cPost b Pre Post φ ⊢ cPost b Pre Post ψ := by
+  cases b
+  · simp only [cPost, Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
+  · simp only [cPost, ↓reduceIte]
+    iintro (H | ⟨H, %hφ⟩)
+    · ileft; iexact H
+    · iright; iframe H; ipureintro; exact h hφ
 
 /-! ## Responses -/
 
@@ -598,20 +612,20 @@ def isCluster (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"SetVersion")) (Val #v))
           (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.UpdateCapability))) (Val #b))
-      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗ RO (restSetVersion b s r) }}) ∗
+      {{ RET #(); cPost b Pre Post (restSetVersion b s r = r) ∗ bkRT B ∗ BT B ∗ RO (restSetVersion b s r) }}) ∗
     □ (∀ (id : w64) (attr : etcdserver.api.membership.Attributes) (cus : List GoString) (b : Bool)
         (B : mvcc.KBReal) (Pre Q Post : IProp GF) (r : RestM),
       {{ cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗
           attr.ClientURLs' ↦*□ cus ∗ ⌜(r.mem.lookup id).isSome = true⌝ ∗ RO r }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"UpdateAttributes")) (Val #id)) (Val #attr)) (Val #b))
-      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗
+      {{ RET #(); cPost b Pre Post (restUpdateAttrs b ⟨id, attr.Name', cus⟩ r = r) ∗ bkRT B ∗ BT B ∗
           RO (restUpdateAttrs b ⟨id, attr.Name', cus⟩ r) }}) ∗
     □ (∀ (d : Loc) (di : etcdserver.version.DowngradeInfo) (b : Bool) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ d ↦ di ∗ RW }}
         (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"SetDowngradeInfo")) (Val #d)) (Val #b))
-      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗ RW }}))
+      {{ RET #(); cPost b Pre Post True ∗ bkRT B ∗ BT B ∗ RW }}))
 
 instance isCluster_persistent (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RO : RestM → IProp GF) (RW : IProp GF) : Persistent (isCluster c Pk f BT RO RW) := by
@@ -633,20 +647,20 @@ def isClusterRest (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : m
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"SetVersion")) (Val #v))
           (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.UpdateCapability))) (Val #b))
-      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗ RO (restSetVersion b s r) }}) ∗
+      {{ RET #(); cPost b Pre Post (restSetVersion b s r = r) ∗ bkRT B ∗ BT B ∗ RO (restSetVersion b s r) }}) ∗
     □ (∀ (id : w64) (attr : etcdserver.api.membership.Attributes) (cus : List GoString) (b : Bool)
         (B : mvcc.KBReal) (Pre Q Post : IProp GF) (r : RestM),
       {{ cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗
           attr.ClientURLs' ↦*□ cus ∗ ⌜(r.mem.lookup id).isSome = true⌝ ∗ RO r }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"UpdateAttributes")) (Val #id)) (Val #attr)) (Val #b))
-      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗
+      {{ RET #(); cPost b Pre Post (restUpdateAttrs b ⟨id, attr.Name', cus⟩ r = r) ∗ bkRT B ∗ BT B ∗
           RO (restUpdateAttrs b ⟨id, attr.Name', cus⟩ r) }}) ∗
     □ (∀ (d : Loc) (di : etcdserver.version.DowngradeInfo) (b : Bool) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ d ↦ di ∗ RW }}
         (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"SetDowngradeInfo")) (Val #d)) (Val #b))
-      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗ RW }}))
+      {{ RET #(); cPost b Pre Post True ∗ bkRT B ∗ BT B ∗ RW }}))
 
 instance isClusterRest_persistent (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RO : RestM → IProp GF) (RW : IProp GF) : Persistent (isClusterRest c Pk f BT RO RW) := by

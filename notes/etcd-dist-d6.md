@@ -2736,6 +2736,21 @@ Coordinator chose (B). No `Spec/`, `TrustedCode/`, image, contract or axiom text
   /shared/tmp/t10b-rb.sh`; `etc/tcb-report.py --check --update` (with `LAKE_OPTS`) should lose `rnRestartAllocK_law_holds`'s
   `sorry`; list it; update STATUS; push.
 
+### T10 step 2 (`cPost` restatement), session 1 (2026-11-26, branch `etcd-safe-t10b/2026-11-26`)
+
+**G1** (the lead's question: is T10's commit invariant generic in its payload, or a separate crash-mode backend
+bundle?). Generic, one bundle. `kbStep.law`/`kbSync.law` (`dist/crash/BackendImage.lean`) are stated over an
+abstract payload `KB : Data → Data → IProp GF` and the backend-supplied `CV`; T10's design ("T10 design", §1)
+makes `KB` a parameter of the backend's names, as `W`/`Pk` are, with `cmtBody` gaining `dbCrashKeep ∗ KB` and
+`cmtInvK` the crash token, and untracked backends (tests, `mvccfull`, defrag's temporary) taking `KB := True`
+and the old body. No second backend bundle is planned: the record absorbs only the half of bbolt's `boltState`
+that `cmtInv` already holds (`dbHalf γ.db Dc`, `InvBackend.lean:1763`); the batch lock's half (`ownDB`, what
+the server's bundle reaches through `mvccBackend`/`bkWT`) is untouched. So the apply path's specs carry it at
+the cost of the names gaining `KB`/`γk`: no `Spec/` file names `cmtInv` (8 `Proof/` files do, all inside the
+backend), and the apply path's specs take the backend through `mvccBackend E.γ 1 B (E.Pk B)`, opaque in the
+names. B4's `specGK`/`specCK` then need the server's backend opened with the server's payload (`bkPayload ∗
+ciFloorAuth`), not a different bundle; the cost is where the server's `γ` is built (`OpenBackend.spec`'s post).
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

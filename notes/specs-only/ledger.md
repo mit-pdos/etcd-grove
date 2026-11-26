@@ -8141,6 +8141,31 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   {Adv}`, now also takes `⌜membership.ccValidOn rs.bk m = false⌝` (the wand is where `EtcdServer.apply` runs
   `skip_done`, before `Adv` exists), from which the caller gets `ccRest true m rs = rs`. (2) The applier's no-lock
   outcome (`cPost`'s `Pre`): see the session's handoff.
+- **Applied, (2): `cPost` restated** (T10 step 2, branch `etcd-safe-t10b/2026-11-26`; draft
+  `/shared/tmp/coord-03/t10-step2-cpost-draft.md`, approved by the lead with conditions, #50, 2026-11-26 15:27Z).
+  `apply.cPost b Pre Post φ := if b then Post ∨ (Pre ∗ ⌜φ⌝) else Pre` (`Contracts.lean`), `φ` the no-lock fact;
+  `cPost_of_pre` takes `φ`'s proof, `cPost_mono` weakens it. Restated in place (no old two-argument `cPost`, no
+  wrappers, no parallel rows). The facts by level: `dispatchNoEff` (`InvUber.lean`: log, compaction revision, live
+  set, rest state unchanged) at `dispatch`; `applyNoEff` (`GrantRest.lean`) at `apply.Apply` (mode `on`: `∧ st' = st`);
+  `kvPost`/`kvPostF` gain `N : Outcome → Prop` (default `fun _ => True`, explicit only at the three `LeaseRevoke`
+  specs) and their `Pre` disjunct `⌜oc.logAfter log = log ∧ N oc⌝`; `cmpTriple`'s `Pre` the compaction revision
+  unchanged; `mPostV` and the cluster rows of `isCluster`/`isClusterRest` take the row's rest effect as the
+  identity (`True` for `SetDowngradeInfo`); the auth store's admin methods' `Pre` an unchanged authority (below).
+  34 `Spec/` files change in meaning, all specs of proved functions (none an axiom, none reachable from a
+  `TopLevelRobustness` statement).
+  * **Strengthens an unproved law: `bootClusterRows.spec`** (`Spec/.../etcdserver/bootClusterRows.lean`, a `?`
+    hypothesis of the server's `Link`, no axiom): it concludes `clusterApplyRest`, i.e. `isClusterRest`'s rows, whose
+    `Pre` disjunct now carries the rest effect's identity. Accepted as untrusted (the lead, condition (a)). Go:
+    `RaftCluster.UpdateAttributes` (`membership/cluster.go:473`) and `SetVersion` (`cluster.go:613`) write the
+    backend (`MustSave...ToBackend`, under the batch lock) whenever `shouldApplyV3`, and without it write nothing
+    to the backend; no row's rest effect happens outside the lock, so the stronger row is true of the code.
+  * **The auth store's pre-lock returns** (mode `on`'s `st' = st`): each method's `(Post ∨ Pre)` becomes
+    `Post ∨ (Pre ∗ ⌜φ⌝)`, `φ` the fact that its return before `tx.Lock()` has: `err ≠ nil` for the methods whose
+    pre-lock returns are errors (`ErrUserEmpty`, `ErrRoleEmpty`, ...); `en = true` for **`AuthEnable`** (its pre-lock
+    return, `store.go:273-276`, `if as.enabled { return nil }`, has `err = nil`: the draft's uniform `err ≠ nil`
+    would be false of it); `en = false` for **`AuthDisable`** (it has a pre-lock return, `store.go:308-310`, `if
+    !as.enabled { return }`, so its `Pre` disjunct is not `⌜False⌝`: the lead's condition (c)). Each gives an
+    unchanged authority through `auth.adminOut_keep` (`Steps.lean`).
 ## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
 
 - **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
