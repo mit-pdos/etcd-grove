@@ -78,7 +78,7 @@ theorem runner.openBackend.wp_proof
       unfold limOf; split
       · assumption
       · word
-    wp_apply (wp_bNew _ (mvccrand.rcP (limOf cfg)) D W Pk K) $$ [Hfile Htok Hup] as %r Hr
+    wp_apply (wp_bNew _ (mvccfull.rcP (limOf cfg)) D W Pk K) $$ [Hfile Htok Hup] as %r Hr
     · iframe Hfile Htok Hvoff Hup
       -- (premise fixes 6) the configuration's logger, the runner's: a zap logger
       isplitr
@@ -86,7 +86,7 @@ theorem runner.openBackend.wp_proof
         iapply zapLoggerOk_orNil; iexact Hlgz
       isplitr
       · ipureintro
-        refine ⟨mvccrand.rcP_wf _ hl0 hlim, ?_, by first | exact hmlk | simpa using hmlk,
+        refine ⟨mvccfull.rcP_wf _ hl0 hlim, ?_, by first | exact hmlk | simpa using hmlk,
           by first | exact htmo | simpa using htmo,
           by simp only [hmms]; decide⟩
         show limOf cfg = _

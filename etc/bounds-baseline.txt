@@ -81,7 +81,6 @@ spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3lock 1
 spec-cfg go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 2
 spec-rev github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 1
 stock github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 6
-stock github_com/mit_pdos/etcd_grove/examples/mvccrand 1
 stock go_etcd_io/etcd/cache/v3 10
 stock go_etcd_io/etcd/pkg/v3/notify 1
 stock go_etcd_io/etcd/server/v3/auth 7
