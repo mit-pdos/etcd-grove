@@ -23,6 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KvD
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthRunDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalWire
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 
 @[expose] public section
@@ -72,6 +73,11 @@ abbrev RunAuth.specWith
       authHistView Γ.kv [srvAuthSt0] ∗ PS Γ γR addrs ns }}
     (App (App (App (Val (@! client.RunAuth)) (Val #eps)) (Val #nodes)) (Val #ready))
   {{ (r : client.Result), RET #r; levelTok 0 }}
+
+/-- **The triple at the principal service's share** (`principalsShare`, at the machine's global ghost state; F7 S12):
+the share `remotePrincipals.spec` takes. -/
+abbrev RunAuth.spec : Prop :=
+  RunAuth.specWith (fun Γ γR addrs ns => principalsShare (Gg := hG.goose_globalGS) Γ γR addrs ns)
 
 end spec
 
