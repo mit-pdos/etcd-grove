@@ -67,7 +67,11 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # `grpcSrvNew` a definition
   "NewServer", "defaultServerOptions", "chainUnaryServerInterceptors", "chainUnaryInterceptors",
   "chainStreamServerInterceptors", "chainStreamInterceptors", "Server.RegisterService",
-  "Server.register", "Server.printf", "Server.wrapUnaryHandler", "CustomCodec", "newCodecV0Bridge"]
+  "Server.register", "Server.printf", "Server.wrapUnaryHandler", "CustomCodec", "newCodecV0Bridge",
+  # (W1, 2026-11-26) the constants `defaultServerOptions`' literal names (until then opaque, so its
+  # translated initializer did not step)
+  "defaultServerMaxReceiveMessageSize", "defaultServerMaxSendMessageSize", "defaultWriteBufSize",
+  "defaultReadBufSize"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated

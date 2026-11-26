@@ -171,7 +171,7 @@ theorem grpc.Server.register.wp_proof
     rw [HM sn]
     exact (map.lookupL_eq_none_iff _ _).2
       (by rw [List.map_fst_zip (l₁ := svcs) (l₂ := ils) (by omega)]; exact Hsn)
-  wp_auto
+  (try wp_auto)
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -205,7 +205,7 @@ theorem grpc.Server.register.wp_proof
   ihave IH : iprop(∃ (n : w64) (iv : w64) (M2 : GMap GoString Loc),
       "Hcnt" ∷ i_ptr ↦ n ∗ "Hireg" ∷ ireg ↦ iv ∗ "Hstm" ∷ stm ↦$ M2 ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ sds.length ∧
-        ∀ x, M2 !! x = map.lookupL x ((grpcReg_streamsPart sds ssl).take (sint.nat n))⌝)
+        ∀ x : GoString, M2 !! x = map.lookupL x ((grpcReg_streamsPart sds ssl).take (sint.nat n))⌝)
     $$ [Hcnt Hireg Hstm]
   · iexists W64 0, _, ∅
     simp only [named]
@@ -247,7 +247,7 @@ theorem grpc.Server.register.wp_proof
   -- every stream entered: the streams' half of `srvStreamsL`
   obtain ⟨Hn0, Hnle, HM2⟩ := Hn
   have Hsn2 : sint.nat n = sds.length := by rw [Hsdl.1] at Hnle ⊢; word
-  have HM2' : ∀ x, M2 !! x = map.lookupL x (grpcReg_streamsPart sds ssl) := by
+  have HM2' : ∀ x : GoString, M2 !! x = map.lookupL x (grpcReg_streamsPart sds ssl) := by
     intro x
     rw [HM2 x, Hsn2, List.take_of_length_le]
     simp [grpcReg_streamsPart]
@@ -262,7 +262,7 @@ theorem grpc.Server.register.wp_proof
         cm ↦□ sliceIndexRef google_golang_org.grpc.MethodDesc (j : Int) msl ∗
         ml ↦□ google_golang_org.grpc.StreamDesc.mk d.MethodName' (wrapUnaryClosure cs cm) false false) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ mds.length ∧ mls.length = sint.nat n ∧
-        ∀ x, M3 !! x = map.lookupL x (grpcReg_streamsPart sds ssl ++ grpcReg_methodsPart mds mls)⌝)
+        ∀ x : GoString, M3 !! x = map.lookupL x (grpcReg_streamsPart sds ssl ++ grpcReg_methodsPart mds mls)⌝)
     $$ [Hcnt2 Hireg2 Hstm]
   · iexists W64 0, _, M2, []
     simp only [named]

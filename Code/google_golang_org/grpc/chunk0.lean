@@ -702,9 +702,11 @@ opaque defaultClientMaxReceiveMessageSize [GooseExts] [GoGlobalContext] : val
 
 opaque defaultClientMaxSendMessageSize [GooseExts] [GoGlobalContext] : val
 
-opaque defaultWriteBufSize [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def defaultWriteBufSize [GooseExts] [GoGlobalContext] : val :=
+  #(32768 : Int)
 
-opaque defaultReadBufSize [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def defaultReadBufSize [GooseExts] [GoGlobalContext] : val :=
+  #(32768 : Int)
 
 opaque defaultMaxCallAttempts [GooseExts] [GoGlobalContext] : val
 
@@ -812,9 +814,11 @@ opaque SupportPackageIsVersion9 [GooseExts] [GoGlobalContext] : val
 
 opaque grpcUA [GooseExts] [GoGlobalContext] : val
 
-opaque defaultServerMaxReceiveMessageSize [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def defaultServerMaxReceiveMessageSize [GooseExts] [GoGlobalContext] : val :=
+  #(4194304 : Int)
 
-opaque defaultServerMaxSendMessageSize [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def defaultServerMaxSendMessageSize [GooseExts] [GoGlobalContext] : val :=
+  #(2147483647 : Int)
 
 opaque listenerAddressForServeHTTP [GooseExts] [GoGlobalContext] : val
 

@@ -70,6 +70,7 @@ stats handlers' property (`grpcStatsHandlerOk`) are in `InvGrpcHealth.lean`, `In
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcStream
+public import Proof.google_golang_org.grpc.InvGrpcStats
 public import Proof.net.InvNet
 public import Perennial.Proof.sync.CondDefs
 public import GeneratedProof.google_golang_org.grpc.internal.stats
@@ -471,7 +472,7 @@ def srvRegIs (gs : Loc) (r : GrpcSrvReg) (il : Loc) : IProp GF :=
       structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" r.sd ↦□ ssl ∗
       il ↦ google_golang_org.grpc.serviceInfo.mk r.ss stm mdv ∗
       ownMap stm (DFrac.own 1) M2 ∗
-      ⌜mls.length = r.mds.length ∧ ∀ n, M2 !! n = map.lookupL n (srvStreamsL r ssl mls)⌝ ∗
+      ⌜mls.length = r.mds.length ∧ ∀ n : GoString, M2 !! n = map.lookupL n (srvStreamsL r ssl mls)⌝ ∗
       [∗list] j ↦ ml ∈ mls, ∃ (d : google_golang_org.grpc.MethodDesc) (cs cm : Loc),
         ⌜r.mds[j]? = some d⌝ ∗ cs ↦□ gs ∗
         cm ↦□ sliceIndexRef google_golang_org.grpc.MethodDesc (j : Int) msl ∗
@@ -538,7 +539,7 @@ def grpcSrvNew (gs : Loc) (ics sics : List GoFunc) (svcs : List GoString)
     structFieldRef google_golang_org.grpc.Server go!"serveWG" gs ↦ (zero_val _root_.Perennial.sync.WaitGroup) ∗
     structFieldRef google_golang_org.grpc.Server go!"handlersWG" gs ↦ (zero_val _root_.Perennial.sync.WaitGroup) ∗
     ⌜svcs = rs.map (·.sn) ∧ svcs.Nodup ∧ ils.length = rs.length ∧
-      (∀ n, M !! n = map.lookupL n (svcs.zip ils)) ∧
+      (∀ n : GoString, M !! n = map.lookupL n (svcs.zip ils)) ∧
       regs = rs.flatMap (fun r => descRegs r.sn r.mds r.ss) ∧
       sregs = rs.flatMap (fun r => descSRegs r.sn r.sds r.ss) ∧
       ∀ r ∈ rs, ∀ sd ∈ r.sds, sd.ClientStreams' = true ∨ sd.ServerStreams' = true⌝ ∗

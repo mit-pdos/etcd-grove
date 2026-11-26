@@ -33,7 +33,7 @@ theorem binary.bigEndian.AppendUint32.wp_proof :
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
   · iPkgInit
   ihave #Hinit := isInit_access $$ Hpkg
-  icases Hinit with ⟨-, #Hbe⟩
+  icases Hinit with ⟨-, #Hbe, -⟩
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hbe
   wp_apply (wp_load_struct_nofields (V := bigEndian) _ Hnn) as -
   wp_method_call
