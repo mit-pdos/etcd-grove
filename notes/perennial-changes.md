@@ -382,7 +382,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   Nothing else is coverable at `b3f2fc485` (no Perennial change since `47ec64a9d` touches these
   packages but `encoding/binary`'s varints and `fmt.Fprint`). What each remaining one needs:
   - `strings.Contains`/`SplitN`/`ToLower`, `slices.ContainsFunc`, `io.Pipe`/`PipeWriter.CloseWithError`,
-    `os.Getenv`/`Getpagesize`, `math.Ceil`/`Pow`, `sort.SliceIsSorted`, `context.WithValue`: still names
+    `os.Getenv`/`Getpagesize`, `sort.SliceIsSorted`, `context.WithValue` (`math.Ceil`/`Pow`: retired below): still names
     only in Perennial, as above (`slices.ContainsFunc` is plain generic Go: adding it, with `IndexFunc`, to
     `slices.toml` and a spec is the cheapest of them);
   - `binary.WriteUint8`: `binary.Write` is translated now, but a named type of underlying `uint8` misses
@@ -411,6 +411,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `Index`) and proves `strings.wp_Contains` (`RET #(decide (substr <:+: s)); True`), so
   `Proof/strings/Contains.lean` is a theorem from it (statement unchanged; the proof takes
   `[strings.Assumptions]`, which every caller's package assumptions give, as for `HasSuffix`).
+- **Retired (2026-11-26, branch `math-ceil-pow/2026-11-26`).** `math.Ceil`, `math.Pow`: Perennial branch
+  `math-ceil-pow` (`1ba9dfe4b`, perennial#709, reworked after Upamanyu's review; not landed) translates
+  `Ceil` and `Pow` with the pure Go on their path (`pow`, `isOddInt`, `Modf`, `Trunc`, `Floor`, the
+  portable `floor`/`ceil`/`trunc`, `Copysign`, `Frexp`, `Ldexp`, `Exp`, `Log`, ...). The amd64 assembly
+  they reach is replaced by Go models (`goose/model/overlay/math`, no TrustedCode): `archFloor`/`archCeil`/
+  `archTrunc` are the portable bodies on non-NaN inputs and some NaN on NaNs, and `archExp`/`archLog` are
+  some float64. A differential test against the real assembly and gc's ROUNDSD covers 2.2M inputs. The
+  branch also has a goose change for `x++`/`x--` at float types (`pow`'s `yf--; yi++`) and fixes
+  `blank_asm`'s reading of `GLOBL d<>+0(SB)`. It proves `math.wp_Ceil` and `math.wp_Pow` (some
+  `float64`), so `Proof/math/Ceil.lean` and `Proof/math/Pow.lean` are theorems from them (statements
+  unchanged). The proofs take `[math.Assumptions]`, which etcdserver's, workqueue's and gryffnet's
+  package assumptions give. math's initializer now imports `internal/gomodel`, so the generated
+  PkgTables changed.
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 

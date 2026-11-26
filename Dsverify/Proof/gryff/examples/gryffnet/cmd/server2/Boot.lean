@@ -108,7 +108,7 @@ theorem wf_bufio : GetIsPkgInitProp pkg_id.bufio (getIsPkgInit (GF := GF)) := by
 theorem wf_math : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact True.intro
+  exact ⟨wf_internal_gomodel, True.intro⟩
 
 theorem wf_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -483,7 +483,7 @@ theorem wfNo_bufio : GetIsPkgInitProp pkg_id.bufio (gNo (getIsPkgInit (GF := GF)
 theorem wfNo_math : GetIsPkgInitProp pkg_id.math (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfNo_internal_gomodel, True.intro⟩
 
 theorem wfNo_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -843,7 +843,7 @@ theorem wfS2_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS2 (getIsPkgInit (
 theorem wfS2_math : GetIsPkgInitProp pkg_id.math (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS2_internal_gomodel, True.intro⟩
 
 theorem wfS2_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1198,7 +1198,7 @@ theorem wfS1_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS1 (getIsPkgInit (
 theorem wfS1_math : GetIsPkgInitProp pkg_id.math (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS1_internal_gomodel, True.intro⟩
 
 theorem wfS1_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1543,7 +1543,7 @@ theorem wfS0_bufio : GetIsPkgInitProp pkg_id.bufio (gEx noPkgsS0 (getIsPkgInit (
 theorem wfS0_math : GetIsPkgInitProp pkg_id.math (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS0_internal_gomodel, True.intro⟩
 
 theorem wfS0_internal_abi : GetIsPkgInitProp pkg_id.internal.abi (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

@@ -1,10 +1,11 @@
 /-
-The trust boundary: `math.Ceil(x)`: Perennial translates `math` but specifies no float operation. Lean-first (no Rocq counterpart); the
-server-construction unit, stage N0 (2026-10-16), for `NewServer`.
+`math.Ceil`: Perennial's proof of the real Go (`math.wp_Ceil`: `archCeil` on amd64, assembly with a
+trusted model returning an arbitrary bit pattern, `Perennial/TrustedCode/math.lean`).
 -/
 module
 
 public import Spec.math.Ceil
+public import Perennial.Proof.math.Link
 
 @[expose] public section
 
@@ -20,8 +21,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.math.Assumptions]
 
-axiom math.Ceil.wp_proof : math.Ceil.spec (GF := GF) (hG := hG)
+theorem math.Ceil.wp_proof : math.Ceil.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.math.wp_Ceil
 
 end proof
 

@@ -171,7 +171,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.gryff.examples.gryffnet.cmd.or
   have h14 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h2, True.intro⟩
   have h15 : GetIsPkgInitProp pkg_id.internal.abi (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

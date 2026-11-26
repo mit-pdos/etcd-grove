@@ -338,7 +338,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h43 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h1, True.intro⟩
   have h44 : GetIsPkgInitProp pkg_id.go_uber_org.zap.internal.stacktrace (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

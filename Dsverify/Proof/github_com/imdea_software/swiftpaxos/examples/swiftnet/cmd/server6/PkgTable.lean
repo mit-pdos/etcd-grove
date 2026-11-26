@@ -282,7 +282,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h40 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h4, True.intro⟩
   have h41 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
