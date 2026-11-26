@@ -100,10 +100,12 @@ theorem poll_ed :
       ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
   refine (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll).trans ?_
   show iprop((∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded)
+      (interface.mkOk (go.GoType.PointerType internal.poll.DeadlineExceededError.ty) #x) DFrac.discard) ∗
     (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrFileClosing)
       (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) ⊢ _
-  iintro ⟨-, #Hd, -⟩
+  iintro ⟨-, ⟨%xd, #Hd⟩, -⟩
+  iexists _
   iexact Hd
 
 /-- The package facts `session` reads. -/
