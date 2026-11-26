@@ -120,9 +120,10 @@ with the watch-resume fixes) and grpc-go v1.84 (the model) over the net extensio
   from the member's `crevOk` (`kvCpOk` at its names, `cmpOkOf_same` through `kvSame`).
 * *Any auth mode.* With auth off (`memberUpL`) no create is refused. With auth on (`Serve_dist`'s
   `memberUpOnL` since F7 step 3), a refused create (permission denied, empty user, invalid token, old
-  revision) is a created-and-canceled response with its reason, the error arm. A passing create's events are
-  the cluster's, as with auth off. No row is claimed: `WatchOn_dist` states it (review
-  `notes/axiom-review/watchon-dist.md`, F4).
+  revision) is a created-and-canceled response with its reason, the error arm. A passing create's events
+  are the cluster's, as with auth off. No row is claimed: `WatchOn_dist` states it (the single-process
+  spec's auth row, `watchCheckOk` gated on `V.nm = 1`, reads member 0's auth tag and server, per-member
+  names not in `Γ`: N11). (`watchon-dist.md` F4, `f9-auth-combined-review.md` D2.)
 
 **Margin: the watcher's environment.** The lock keeps the stream this call adds under the servers' facts
 (`wgsGuard`), over `V.atEps eps`: off `V.addrs = eps` it asks nothing of it; at `V.addrs = eps` the use is
