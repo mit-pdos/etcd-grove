@@ -2272,6 +2272,36 @@ error arm claims nothing (the lead's condition, #50 01:29:52Z). F2's three rows 
 | `Lease_LeasesOn_dist` | `(*lessor).Leases` | `lessor.Leases.spec` / `etcdLeaseLeasesSpecMdW` | `ls mid`, `A mid` | after review, P-L1, P-A1 |
 | `Serve_dist_proposed`, `NewServer.specG_dist_proposed` | `etcdstart.Serve`, `NewServer` | the current axioms (re-review) | `kv.hist`, `A mid` | S2 (`Proof/.../dist/AuthServeProposed.lean`) |
 
+**Adopted 2026-11-26 (F7 S3, the lead's approval #50 06:08Z; branch `etcd-safe-f7`, not landed before F9):** the
+fourteen auth-on rows above are interim axioms in the namespace `etcd_dist.authd`, each in its own pair
+(`Spec/.../dist/<F>.lean`, `Proof/.../dist/<F>.lean`, `<F>` below), statements unchanged from the reviewed drafts
+except `KV_GetOn_dist` (re-review A's N1, applied after the review: `notes/axiom-review/f7-changed-since-review.md`);
+`AuthViewDist.lean` keeps their vocabulary. `Serve_dist_proposed`/`NewServer.specG_dist_proposed` replaced the
+axioms in F7 step 3 (`eb138f6f8c`). Not linked yet: `RunAuthLease` is the first user (`notes/etcd-dist-f7.md`,
+"Handoff S3-1"). **Retirement routes:**
+
+| Axiom (`<F>`) | Retired by (the in-process contract it mirrors, through grpc's server at the member) |
+|---|---|
+| `New_user_dist` (`NewUserDist`) | S2's client side: `clientv3.New.spec` over `Invoke`, `etcdSvc`'s `Authenticate` entry (`CheckPassword`) |
+| `KV_PutOn_dist` (`KVPutOnDist`) | `client_put_on` / `etcdPutSpecOn` as an `etcdSvc` entry (`T := False`, the principal by name) |
+| `KV_DeleteOn_dist` (`KVDeleteOnDist`) | `client_delete_on` / `etcdDeleteSpecOn` |
+| `Txn_CommitOn_dist` (`TxnCommitOnDist`) | `client_txn_on` / `etcdTxnSpecOn` |
+| `KV_GetOn_dist` (`KVGetOnDist`) | `client_range_on` / `etcdRangeSpecOn` (the floor from the barrier, `authFloorAt`) |
+| `Auth_UserAdd_dist` (`AuthUserAddDist`) | `authClient.UserAdd.spec` / `etcdUserAddSpecW` |
+| `Auth_UserGrantRole_dist` (`AuthUserGrantRoleDist`) | `authClient.UserGrantRole.spec` / `etcdUserGrantRoleSpecW` |
+| `Auth_RoleAdd_dist` (`AuthRoleAddDist`) | `authClient.RoleAdd.spec` / `etcdRoleAddSpecW` |
+| `Auth_RoleGrantPermission_dist` (`AuthRoleGrantPermissionDist`) | `authClient.RoleGrantPermission.spec` / `etcdRoleGrantPermissionSpecW` |
+| `Auth_AuthEnable_dist` (`AuthAuthEnableDist`) | `authClient.AuthEnable.spec` / `etcdAuthEnableSpecW` |
+| `Lease_GrantOn_dist` (`LeaseGrantOnDist`) | `client_lease_grant_on` / `etcdLeaseGrantSpecOn` at `Γ.ls mid` |
+| `Lease_RevokeOn_dist` (`LeaseRevokeOnDist`) | `client_lease_revoke_on` / `etcdLeaseRevokeSpecOn` |
+| `Lease_TimeToLiveKeysOn_dist` (`LeaseTimeToLiveKeysOnDist`) | `lessor.TimeToLive.spec` / `etcdLeaseTTLSpecMdW` (keys) |
+| `Lease_LeasesOn_dist` (`LeaseLeasesOnDist`) | `lessor.Leases.spec` / `etcdLeaseLeasesSpecMdW` |
+
+All fourteen go with the rest of §18.4 when #24's S2 client side defines `etcdSvc` and proves `Invoke` over the net
+model; the statements do not change. **Gap found linking `RunAuthLease` (S3):** `noAuth`'s plain `TimeToLive(id)`
+(no options) must be refused for an anonymous or bad-token caller (`requireAuthInfo`); no row covers it
+(`Lease_TimeToLiveKeysOn_dist` needs `leaseKeysFold gs false = true`; `Client_LeaseTimeToLive_dist` names no check).
+
 ### 18.5 Streams (N3, out of scope): what they would need
 
 `watcher.Watch` and `RequestProgress` (watch, compact ×2, cache's own watch, auth's root/u/refused watches): a stream
