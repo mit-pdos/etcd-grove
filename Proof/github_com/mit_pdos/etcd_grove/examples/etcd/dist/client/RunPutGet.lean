@@ -6,7 +6,7 @@ The orchestrator allocates putget's invariant from its share's half (`pgInv_allo
 its error ends the workload), defers `Close`, and runs the 50 rounds with the invariant `i ≥ 0` (and the
 token): round `i`'s key and value are `pg/k<s>`/`v<s>` for `s = strconv.Itoa(i)`; its put (`wp_cliPut`, over
 `KV_Put_dist`) carries the round's one-shot update (`pgPutAu_round`), whose result on `nil` is the put's
-`pgFired`; its get (`wp_cliGet`, over `KV_Get_dist`) the read update after it (`pgGetAu`), whose result
+`pgFired`; its get (`CompactCallsDist.wp_cliGetR`, over `KV_Get_dist`) the read update after it (`pgGetAu`), whose result
 `pgReadOk` makes the reply's first key-value the round's value (`pgReadOk_head`, the selection
 `srvRangeOk_getKey`), so the check does not panic. A failed put or get continues. Then `ended`/`checked`, and
 the deferred `Close`.
@@ -164,9 +164,9 @@ theorem RunPutGet.wp_proof
     ihave #Hgau := pgGetAu (Gg := hG.goose_globalGS) Γ.kv γ γP (go!"pg/k" ++ s2) (putgetPfx_key s2)
       $$ [Hpfx Hpg Hfired]
     · iframe #
-    wp_apply (wp_cliGet wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd (go!"pg/k" ++ s2)
+    wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd (go!"pg/k" ++ s2)
         slice.nil [] iprop(True) (fun σ => iprop(⌜pgReadOk (go!"pg/k" ++ s2) σ⌝))
-        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl rfl (pg_sizes s2 hlen).2)
+        ⟨by unfold opGetPanics opFold OpFull.newOp; simp, rfl⟩ rfl (pg_sizes s2 hlen).2)
       $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
     · iframe Hlt
       iframe #
@@ -193,7 +193,10 @@ theorem RunPutGet.wp_proof
     (try wp_auto)
     icases HQ with %Hrd
     -- the reply's first key-value holds the round's value
-    have h1 := (srvRangeOk_getKey (go!"pg/k" ++ s2) σ.kvs m.kvs m.more Hsel).1
+    have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel (go!"pg/k" ++ s2) [])) σ.kvs m.kvs m.more := by
+      have h := Hsel.1
+      rwa [at_readRev_zero σ _ rfl] at h
+    have h1 := (srvRangeOk_getKey (go!"pg/k" ++ s2) σ.kvs m.kvs m.more Hsel').1
     obtain ⟨kv0, Hkv0, Hval0⟩ := pgReadOk_head Hrd
     rw [← h1] at Hkv0
     rw [pgVal_key] at Hval0

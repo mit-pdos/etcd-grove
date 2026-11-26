@@ -7,7 +7,7 @@ defers `Close`, and allocates durable's invariant from its share's half with `n`
 (`durInv_alloc`). The put loop keeps the acknowledgements `acks` (the slice `acked`), the tokens of the puts
 not yet sent, and the fired witness of the acknowledged ones (`durFiredAll`): put `j` (`wp_cliPut` over
 `KV_Put_dist`) carries its token in its one-shot update (`durPutAu`), and a `nil` reply gives `durFired`. The
-range (`wp_cliGet` over `KV_Get_dist`, one `WithPrefix` option) reads `durReadOk` (`durGetAu`): its key-values
+range (`CompactCallsDist.wp_cliGetR` over `KV_Get_dist`, one `WithPrefix` option) reads `durReadOk` (`durGetAu`): its key-values
 are the prefix's (`durRange_eq`), each a put's at version `1`, and every acknowledged put's key is among them.
 The check loop over the reply: the inner loop finds the last `j` with `durableKey(j)` the key (it exists), whose
 value is `durVal j` (`durVal_of_key`), and marks `seen[j]` (keys distinct below 256: `durKey_inj`); the last loop
@@ -286,9 +286,9 @@ theorem RunDurable.wp_proof
   ihave #Hgau := durGetAu (Gg := hG.goose_globalGS) Γ.kv γ γF γs (sint.nat m)
     (fun j' => acks[j']? = some true) $$ [Hfa]
   · iframe #
-  wp_apply (wp_cliGet wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx osl [withPrefixM]
+  wp_apply (wp_cliGetR wp_KV_Get cl api addrs (Classical.choice hV) Γ gctx gcd durablePfx osl [withPrefixM]
       iprop(True) (fun σ => iprop(⌜durReadOk (sint.nat m) (fun j' => acks[j']? = some true) σ⌝))
-      durGet_ok (by rw [durGetOp_eq]) (by rw [durGetOp_eq]) (dur_sizes 0).2)
+      durGet_ok (by rw [durGetOp_eq]) (dur_sizes 0).2)
     $$ [Hlt] as %gresp %gerr ⟨Hlt, -, Hget⟩
   · iframe Hlt
     iframe #
@@ -314,7 +314,10 @@ theorem RunDurable.wp_proof
     iapply HΦ; iframe Hlt
   subst Hgerr
   icases HQ with %Hrd
-  have hview : mr.kvs = pfxView durablePfx σ := durRange_eq σ.kvs mr.kvs mr.more Hsel
+  have Hsel' : txn.srvRangeOk (rangeWireOf (opGetModel durablePfx [withPrefixM])) σ.kvs mr.kvs mr.more := by
+    have h := Hsel.1
+    rwa [at_readRev_zero σ _ (by rw [durGetOp_eq])] at h
+  have hview : mr.kvs = pfxView durablePfx σ := durRange_eq σ.kvs mr.kvs mr.more Hsel'
   (try wp_auto)
   -- `seen := make([]bool, n)`
   wp_apply (wp_slice_make2 (V := Bool) m) as %ssl ⟨Hssl, -⟩
