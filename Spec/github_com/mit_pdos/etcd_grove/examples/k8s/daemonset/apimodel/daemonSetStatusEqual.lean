@@ -1,5 +1,5 @@
 /-
-`daemonSetStatusEqual(a, b)`: true only if the statuses agree but for the conditions' transition times, which compare by `time.Time.Equal` (some `bool` in Perennial's spec).
+`daemonSetStatusEqual(a, b)`: true only if the statuses agree but for the conditions' transition times, which compare by `time.Time.Equal` (some `bool` in `metav1.Time.Equal`'s spec).
 Lean-first (no Rocq counterpart); phase 3 of `notes/k8s-daemonset-plan.md` (the model API server's
 specs, D50's internal layer).
 -/

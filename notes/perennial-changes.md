@@ -397,6 +397,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   - `context.WithCancelValCtx`: unchanged (`propagateCancel`'s goroutine branch);
     `context.madeCancelCtx_of_isCancelCtx` is a trusted law of the local opaque `madeCancelCtx`, not a
     missing Perennial spec: it goes only if Perennial exports a "made by `context`" fact of a `*cancelCtx`;
+    known limitation (2026-11-26): a `reflect.New` zero `cancelCtx` counts as made by `context`
+    (`reflect.New.spec` with `reflNew_pointsto` gives its points-tos, hence `isCancelCtxOfA`); sound because
+    no consumer reads its `Context` field (`madeCancelCtx`'s docstring lists them;
+    `notes/axiom-review/madecancelctx-per-index.md`);
   - `fmt.SprintfSlice`, `fmt.ErrorfSlice` (`[]Decision`, a slice of structs: `printValue`, stuck by
     design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
     `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
@@ -4816,3 +4820,14 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   so that named array types slice as their underlying type (with a goose example slicing a named array).
   A Perennial change, reviewed on its own.
 - **Status.** Open.
+
+## `time.Time` comparisons specified as some `bool` (2026-11-26, time-compare, perennial#642)
+
+- **Limitation.** Perennial's `Time.Before`/`After`/`Equal` specs returned some `bool`, `sec`/`nsec` some
+  integer and `stripMono` some new value, so no client could use what a comparison of times returns.
+- **Change (general).** Perennial branch `time-compare-specs`: the six specs return Go's functions of the
+  fields (`Perennial/Proof/time/Base.lean`: `Time.hasMono`, `Time.secOf`, `Time.nsecOf`, `Time.before`,
+  `Time.after` (`before` swapped), `Time.equal`, `Time.stripMonoOf`), proved over the translated code; no
+  precondition changed. Here only the callers' `wp_apply … as %b -` change (the result is no longer an
+  existential; `generalize` where the proof cases on it), on branch `time-compare/2026-11-26`.
+- **Status.** Proposed (the pin bump waits for the coordinator).
