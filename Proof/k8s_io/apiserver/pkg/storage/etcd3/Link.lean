@@ -767,7 +767,7 @@ theorem errors.wp_AsLeafTy :
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsStatusErr.wp_proof
+  EtcdGrove.errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem apierrors.wp_NewInternalError :
     EtcdGrove.apierrors.NewInternalError.spec (GF := GF) (hG := hG) :=

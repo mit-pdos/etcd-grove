@@ -10,6 +10,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.errOk
 public import Spec.google_golang_org.grpc.status.FromError
+public import Proof.google_golang_org.grpc.internal.status.Methods
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
@@ -32,7 +33,7 @@ variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 variable [pkg_wr : google_golang_org.protobuf.types.known.wrapperspb.Assumptions]
 
-theorem errOk.wp_proof (wp_FromError : status.FromError.spec (GF := GF) (hG := hG)) :
+theorem errOk.wp_proof (wp_FromError : status.FromError.specNE (GF := GF) (hG := hG)) :
     errOk.spec (GF := GF) (hG := hG) := by
   intro err
   wp_start as ⟨#Hse, #Hsh⟩
@@ -52,7 +53,8 @@ theorem errOk.wp_proof (wp_FromError : status.FromError.spec (GF := GF) (hG := h
     try wp_auto
     ihave ⟨%m, #Hd⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_descIs _ $$ Hse
     ihave ⟨%c, #Hc⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_code _ $$ Hse
-    wp_apply wp_FromError _ m c $$ [] as %s %ok ⟨-, -, -, -, -, %Hok⟩
+    ihave %hne := statusCodeIs_notEtcd _ c (Or.inr ⟨e, rfl, hm⟩) $$ Hc
+    wp_apply wp_FromError _ m c hne $$ [] as %s %ok ⟨-, -, -, -, -, %Hok⟩
     · iframe #
     have hok : ok = true := Hok ⟨e, rfl, hm⟩
     subst hok

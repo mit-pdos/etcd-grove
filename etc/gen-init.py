@@ -2873,8 +2873,9 @@ _R['alloc_types']['errStringToError'] = 'Loc'
 for x in ['ErrFutureRev', 'ErrCompacted', 'errStringToError', 'ErrUserEmpty', 'ErrInvalidAuthToken',
           'ErrAuthOldRevision', 'ErrNoLeader', 'ErrAuthNotEnabled']:
     del _R['custom'][x]
-_RPC_ARGS = ('EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc')
-_RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof)'
+_RPC_FE = '(EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)'
+_RPC_ARGS = (_RPC_FE + ' EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc')
+_RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init ' + _RPC_FE + ')'
 # the map literal: its keys (`ErrorDesc(X)`, each its description), then the map made and its entries inserted
 _R['before']['errStringToError'] = (
     ['have HtyRpc : go_etcd_io.etcd.cache.v3.rpctypesEtcdErrorTy (GF := GF) (hG := hG) :=',

@@ -51,7 +51,7 @@ public import Proof.google_golang_org.grpc.codes.InitLinked
 public import Proof.google_golang_org.grpc.health.InitLinked
 public import Proof.google_golang_org.grpc.health.grpc_health_v1.InitLinked
 public import Proof.google_golang_org.grpc.metadata.InitLinked
-public import Proof.google_golang_org.grpc.status.Init
+public import Proof.google_golang_org.grpc.status.InitLinked
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram

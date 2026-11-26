@@ -114,7 +114,6 @@ axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcd_dist.KV_Delete_dist.wp_proof
 axiom etcd_dist.KV_Get_dist.wp_proof
@@ -344,11 +343,7 @@ axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Code.wp_proof
 axiom status.Error.wp_proof
-axiom status.Errorf.wp_proof
-axiom status.FromError.wp_proof
-axiom status.Status.Code.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
