@@ -29,7 +29,7 @@ def posSum (ws : List w64) (k : Nat) : Int := (((ws.map sint.Z).take k).map (fun
 theorem posSum_succ (ws : List w64) (k : Nat) (v : w64) (h : ws[k]? = some v) :
     posSum ws (k + 1) = posSum ws k + max 0 (sint.Z v) := by
   unfold posSum
-  rw [List.take_succ, List.getElem?_map, h]
+  rw [List.take_add_one, List.getElem?_map, h]
   simp
 
 theorem posSum_nonneg (ws : List w64) (k : Nat) : 0 ≤ posSum ws k := by
@@ -38,6 +38,15 @@ theorem posSum_nonneg (ws : List w64) (k : Nat) : 0 ≤ posSum ws k := by
   induction l with
   | nil => simp
   | cons a l ih => simp only [List.map_cons, List.sum_cons]; omega
+
+/-- The loop's end before the sixth weight: `i` is the slice's length. -/
+theorem weightsFit_end (j wl : w64) (n : Nat) (hn : n = sint.nat wl) (hj0 : 0 ≤ sint.Z j)
+    (hjl : sint.Z j ≤ sint.Z wl) (hc : ¬(sint.Z j < 6 ∧ sint.Z j < sint.Z wl))
+    (h6 : sint.Z j < 6) : sint.nat j = n ∧ n ≤ 6 := by
+  have hz : sint.Z j = sint.Z wl := by omega
+  have hjw : j = wl := BitVec.eq_of_toInt_eq hz
+  subst hjw hn
+  exact ⟨rfl, by word⟩
 
 theorem weightsFit.wp_proof : weightsFit.spec (GF := GF) (hG := hG) := by
   intro w ws dq
@@ -52,7 +61,8 @@ theorem weightsFit.wp_proof : weightsFit.spec (GF := GF) (hG := hG) := by
   · iexists W64 0, W64 0
     iframe
     ipureintro
-    refine ⟨by word, by word, by word, by simp [posSum]⟩
+    refine ⟨by word, by word, by word, ?_⟩
+    unfold posSum; rw [show sint.nat (W64 0) = 0 from rfl]; simp
   wp_for IH
   obtain ⟨hj0, hj6, hjl, ht⟩ := Hj
   have htn := posSum_nonneg ws (sint.nat j)
@@ -111,8 +121,8 @@ theorem weightsFit.wp_proof : weightsFit.spec (GF := GF) (hG := hG) := by
     have hend : posSum ws (sint.nat j) = posSum ws 6 := by
       unfold posSum
       by_cases h6 : sint.Z j < 6
-      · have hjn : sint.nat j = ws.length := by rw [Hwl.1]; word
-        rw [hjn, List.take_of_length_le (by simp), List.take_of_length_le (by simp; omega)]
+      · obtain ⟨hjn, hle⟩ := weightsFit_end j w.len ws.length Hwl.1 hj0 hjl Hc h6
+        rw [hjn, List.take_of_length_le (by simp), List.take_of_length_le (by simpa using hle)]
       · rw [show sint.nat j = 6 by word]
     have hfit : posSum ws 6 < 2 ^ 63 := by rw [← hend, ← ht]; word
     by_cases h6 : sint.Z j < 6
@@ -121,9 +131,23 @@ theorem weightsFit.wp_proof : weightsFit.spec (GF := GF) (hG := hG) := by
       rw [decide_eq_false (show ¬ sint.Z j < sint.Z w.len by omega)]
       (try simp only [Bool.false_eq_true, decide_False_any, decide_True_any, decide_eq_self_any, ↓reduceIte])
       (try wp_auto)
+      (try rw [decide_eq_false (show ¬ ((#false : val) = (#true : val)) by simp [intoVal_eq_iff])])
+      (try simp only [Bool.false_eq_true, ↓reduceIte])
+      (try wp_auto)
+      (try simp only [decide_true, ↓reduceIte])
+      (try wp_auto)
+      (try simp only [decide_true, ↓reduceIte])
+      (try wp_auto)
       iapply HΦ; iframe; ipureintro; intro _; exact hfit
     · rw [decide_eq_false (show ¬ sint.Z j < sint.Z (W64 6) by word)]
       (try simp only [Bool.false_eq_true, decide_False_any, decide_True_any, decide_eq_self_any, ↓reduceIte])
+      (try wp_auto)
+      (try rw [decide_eq_false (show ¬ ((#false : val) = (#true : val)) by simp [intoVal_eq_iff])])
+      (try simp only [Bool.false_eq_true, ↓reduceIte])
+      (try wp_auto)
+      (try simp only [decide_true, ↓reduceIte])
+      (try wp_auto)
+      (try simp only [decide_true, ↓reduceIte])
       (try wp_auto)
       iapply HΦ; iframe; ipureintro; intro _; exact hfit
 

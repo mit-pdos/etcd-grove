@@ -57,8 +57,7 @@ theorem anyInts.wp_proof (wp_anyInt : anyInt.spec (GF := GF) (hG := hG)) :
     exact ⟨by word, by rw [List.length_set]; exact Hwl⟩
   · (try wp_auto)
     iapply HΦ
-    iexists ws
-    iframe
+    iexact Hsl
 
 end proof
 

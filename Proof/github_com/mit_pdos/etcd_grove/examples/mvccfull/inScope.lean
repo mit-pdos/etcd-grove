@@ -45,13 +45,8 @@ theorem inScope.wp_proof (wp_hashing : hashing.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- `rd`: `max 0 cfg.Readers`
   wp_if_destruct
-  · (try wp_auto)
-    ihave Hrd : (∃ v : w64, rd_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Readers')⌝ : IProp GF)
-      $$ [rd]
-    · iexists _; iframe; ipureintro; revert Hif; word
-    icases Hrd with ⟨%rdv, rd, %Hrdv⟩
+  all_goals
     (try wp_auto)
-  · (try wp_auto)
     ihave Hrd : (∃ v : w64, rd_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Readers')⌝ : IProp GF)
       $$ [rd]
     · iexists _; iframe; ipureintro; revert Hif; word
@@ -60,13 +55,8 @@ theorem inScope.wp_proof (wp_hashing : hashing.spec (GF := GF) (hG := hG))
   -- `st`: `max 0 cfg.Streams`
   all_goals
     wp_if_destruct
-    · (try wp_auto)
-      ihave Hst : (∃ v : w64, st_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Streams')⌝ : IProp GF)
-        $$ [st]
-      · iexists _; iframe; ipureintro; revert Hif; word
-      icases Hst with ⟨%stv, st, %Hstv⟩
+    all_goals
       (try wp_auto)
-    · (try wp_auto)
       ihave Hst : (∃ v : w64, st_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Streams')⌝ : IProp GF)
         $$ [st]
       · iexists _; iframe; ipureintro; revert Hif; word
@@ -113,17 +103,21 @@ theorem inScope.wp_proof (wp_hashing : hashing.spec (GF := GF) (hG := hG))
     have hmv : sint.Z cfg.MaxVal' ≤ 2 ^ 20 := by revert Hif; word
     (try wp_auto)
     -- `!hashing(cfg.Mix.Read) && weightsFit(cfg.Mix.Read)`
-    wp_apply wp_hashing $$ [Hw] as %hh Hw
+    wp_apply wp_hashing cfg.Mix'.Read' wr dq $$ [Hw] as %hb ⟨Hw, %hh⟩
+    · iframe
     (try wp_auto)
-    wp_if_destruct
-    · (try wp_auto)
-      wp_apply wp_weightsFit $$ [Hw] as %hf Hw
+    cases hb
+    · (try simp only [Bool.not_false, ↓reduceIte])
+      (try wp_auto)
+      wp_apply wp_weightsFit cfg.Mix'.Read' wr dq $$ [Hw] as %hf ⟨Hw, %hfit⟩
+      · iframe
       (try wp_auto)
       iapply HΦ; iframe; ipureintro; intro hb
-      exact runCfgOk_of cfg wr hops0 hops hrs hbl hcbl hd hmv
-        (by revert Hif hh; cases hashingM (wr.map sint.Z) <;> simp) (hf hb)
-    · (try wp_auto)
+      exact runCfgOk_of cfg wr hops0 hops hrs hbl hcbl hd hmv hh.symm (hfit hb)
+    · (try simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte])
+      (try wp_auto)
       iapply HΦ; iframe; ipureintro; intro h; cases h
+
 end proof
 
 end mvccfull

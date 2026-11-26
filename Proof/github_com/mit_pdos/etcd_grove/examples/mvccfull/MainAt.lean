@@ -78,6 +78,7 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     iunfold mixOwn at Hmix
     icases Hmix with ⟨%dq, %ws, %wo, %wc, %wrr, %wa, %wst, Hs1, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
     wp_apply wp_inScope cfg wr dq $$ [Hrd] as %ok ⟨Hrd, %hok⟩
+    · iframe
     cases ok
     · try wp_auto
       iapply HΦ; itrivial
