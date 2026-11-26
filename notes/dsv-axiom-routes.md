@@ -331,3 +331,13 @@ incrementally first: the tier fix was synced mid-build), on fk-lean1 run `etc/tc
 `--collection etc/tcb-collections/dsv-rabia.txt --check --update` (and `dsv-quepaxa.txt`); expected removals only:
 `zerolog.wp_initialize'`, `New.wp_proof`, `SetGlobalLevel.wp_proof`, `ParseLevel.wp_proofWarn` (and
 `internal.json`'s initializer if listed); commit those; then `etc/gates.sh` once, logged, in the background.
+
+**Session 6 (2026-11-26): trust-base files updated** (the coordinator accepted the diff). The full build on fk-lean1
+was green (29110 jobs); `etc/tcb-report.py --check` matches for the base (362 axioms, 0 sorries), `dsv-rabia` (22)
+and `dsv-quepaxa` (6, unchanged). Removed from the base and from `dsv-rabia`: zerolog's `wp_initialize'`,
+`New.wp_proof`, `SetGlobalLevel.wp_proof`, `ParseLevel.wp_proofWarn`. Added to `dsv-rabia` only, none new to the
+repository (all three are already in the base baseline): `Perennial.runtime.initFuncsOk`,
+`Perennial.runtime.opaqueInitsOk`, `Perennial.internal.runtime.sys.opaqueInitsOk`. They were always under rabia's
+roots, but hidden behind the one axiom `zerolog.wp_initialize'`, whose statement gave zerolog's `isPkgInit`
+without its dependencies' initializers; zerolog's initializer is now proved, and the proof applies the
+initializers of the runtime packages zerolog imports, so their axioms show in the collection.
