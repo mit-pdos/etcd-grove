@@ -23,7 +23,7 @@ public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.InitLinked
-public import Proof.go_opentelemetry_io.otel.attribute.Init
+public import Proof.go_opentelemetry_io.otel.attribute.InitLinked
 public import Proof.google_golang_org.grpc.codes.InitLinked
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.status.Init
@@ -47,7 +47,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.feature.InitLinked
 public import Proof.k8s_io.apiserver.pkg.storage.value.Init
 public import Proof.k8s_io.apiserver.pkg.util.feature.Init
 public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.InitLinked
-public import Proof.k8s_io.component_base.tracing.Init
+public import Proof.k8s_io.component_base.tracing.InitLinked
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.clock.Init
 public import Proof.net.http.Init
