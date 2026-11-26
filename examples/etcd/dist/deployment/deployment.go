@@ -407,8 +407,8 @@ func WellFormed(d Deployment) error {
 		c.CompactorMode == CompactorPeriodic && c.Retention >= 10) {
 		return fmt.Errorf("compactor")
 	}
-	// 5. compatible; the token provider exactly where a workload needs it; no compact under the
-	// periodic compactor; no leaseExpiry beside the token provider
+	// 5. compatible; the token provider exactly where a workload needs it, and only with the
+	// compactor off; no compact under the periodic compactor; no leaseExpiry beside the token provider
 	if !compatible(d.Workloads) {
 		return fmt.Errorf("workloads not compatible")
 	}
@@ -432,6 +432,12 @@ func WellFormed(d Deployment) error {
 	// off, as in the single-process etcd_safe, where auth was on only in the auth drivers' own clusters)
 	if c.Auth && !needed {
 		return fmt.Errorf("the token provider without a workload that needs it")
+	}
+	// the token provider with the compactor off (decided 2026-11-26, notes/etcd-dist-f7.md, Handoff
+	// S2-2's option (a): etcd's NewServer is proved with auth on only without a compactor, cmp = true
+	// → on = false; the auth workloads compact nothing)
+	if c.Auth && c.Retention != 0 {
+		return fmt.Errorf("the token provider beside an auto-compactor")
 	}
 	return nil
 }

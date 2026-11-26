@@ -236,8 +236,11 @@ def nameOk (n : GoString) : Bool :=
    needs the token provider has it; the token provider only with a workload that needs it (decided
    2026-11-26, `notes/etcd-dist-plan.md` §27.7 Q1: since such a workload runs alone, auth is on only in
    `[auth]` and `[authLease]`; the other workloads are proved with auth off, as in the single-process
-   `etcd_safe`, where auth was on only in the auth drivers' own clusters; it also keeps `compact`
-   from auth, which `NewServer`'s `cmp = true → on = false` excludes, §26.4); `compact` not under the periodic
+   `etcd_safe`, where auth was on only in the auth drivers' own clusters; it also keeps the `compact`
+   workload from auth, §26.4); the token provider only with the compactor off (decided 2026-11-26,
+   `notes/etcd-dist-f7.md`, Handoff S2-2's option (a): the server's compactor sets `NewServer`'s `cmp` by
+   itself, whatever the workloads, and `NewServer`'s `cmp = true → on = false` excludes it under auth);
+   `compact` not under the periodic
    compactor (review F5); no token provider beside expiring leases (review F10, now implied by the
    clause before: kept as the Go check is);
 6. at most `maxMembers` members, every member name of at most `maxNameLen` bytes (its data directory and WAL
@@ -255,6 +258,8 @@ def Deployment.WellFormed (d : Deployment) : Prop :=
   (∀ w ∈ d.workloads, w.needsAuth = true → d.cfg.auth = true) ∧
   -- §27.7 Q1: the token provider only with a workload that needs it
   (d.cfg.auth = true → ∃ w ∈ d.workloads, w.needsAuth = true) ∧
+  -- Handoff S2-2 (a): the token provider only with the compactor off
+  (d.cfg.auth = true → d.cfg.compactor = .off) ∧
   -- review F5: compactwatch's checks hold under the revision compactor (or none), not the periodic
   (Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false) ∧
   -- review F10: the revocable lease mode with the token provider needs `leasesNoExpiry`
@@ -331,7 +336,7 @@ theorem Deployment.WellFormed.members {d : Deployment} (h : d.WellFormed) :
       d.members.length ≤ typed.maxMembers ∧ ∀ m ∈ d.members, m.name.length ≤ typed.maxNameLen := by
   obtain ⟨t, he, hw⟩ := h
   have hm : t.members = d.members := he.1
-  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
+  obtain ⟨h1, h2, h3, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, h18, h19, -, -⟩ := hw
   rw [← hm]
   exact ⟨h1, h2, h3, h18, h19⟩
 
@@ -357,7 +362,7 @@ theorem Deployment.WellFormed.urlBounds {d : Deployment} (h : d.WellFormed) :
   obtain ⟨t, he, hw⟩ := h
   have e := typed.Deployment.addrs_encodes he
   have hm : t.members = d.members := he.1
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, haddr, -⟩ := hw
   intro m hmem
   have hp : m.peer ∈ t.addrs := by
     rw [typed.Deployment.addrs, hm]
@@ -371,6 +376,17 @@ theorem Deployment.WellFormed.urlBounds {d : Deployment} (h : d.WellFormed) :
   simp only [List.length_append, List.length_cons, List.length_nil, etcdURLCountMax,
     etcdURLLenMax]
   refine ⟨by omega, by omega, ?_, ?_⟩ <;> (have : (go!"http://").length = 7 := rfl) <;> omega
+
+/-- **In a well-formed deployment the token provider runs with the compactor off** (Handoff S2-2's option
+(a)): the Go value's retention is `0`. -/
+theorem Deployment.WellFormed.authCompactorOff {d : Deployment} (h : d.WellFormed)
+    (ha : d.cfg.auth = true) : sint.Z d.cfg.retention = 0 := by
+  obtain ⟨t, he, hw⟩ := h
+  obtain ⟨-, -, hc, -, -⟩ := he
+  obtain ⟨hcm, -, -, hau⟩ := hc
+  have hoff : t.cfg.compactor = .off := hw.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 (by rw [← hau]; exact ha)
+  rw [hoff] at hcm
+  exact hcm
 
 end etcd_dist
 end EtcdGrove

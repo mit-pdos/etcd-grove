@@ -45,6 +45,8 @@ def goWellFormed (d : Deployment) : Prop :=
   (∀ w ∈ d.workloads, w.kind = W64 9 → d.cfg.auth = false) ∧
   -- the token provider only with a workload that needs it
   (d.cfg.auth = true → ∃ w ∈ d.workloads, kindAlone w.kind = true) ∧
+  -- the token provider only with the compactor off
+  (d.cfg.auth = true → d.cfg.retention = W64 0) ∧
   -- the sizes (1, 2, 4)
   d.members.length ≤ typed.maxMembers ∧ (∀ m ∈ d.members, m.name.length ≤ typed.maxNameLen) ∧
   (∀ a ∈ d.addrs, a.length ≤ typed.maxLen) ∧ d.token.length ≤ typed.maxLen
@@ -224,7 +226,7 @@ theorem forall₂_map_self {α β : Type} (l : List α) (f : α → β) (R : β 
 /-- **Soundness of Go's check**: a deployment that passes it is well formed. -/
 theorem goWellFormed_sound (d : Deployment) (h : goWellFormed d) : d.WellFormed := by
   obtain ⟨hmem, hnames, hnameOk, hkinds, hnl, haddrOk, haddrNd, hnodes, hids, htok, hsc, hcu, hret,
-    hcompat, hauth, hcompact, hexp, hneed, hsz⟩ := h
+    hcompat, hauth, hcompact, hexp, hneed, hacmp, hsz⟩ := h
   obtain ⟨hcE, hcS⟩ := typedCfg_encodes d.cfg hsc hcu hret
   have hwE : ∀ w ∈ d.workloads, (typedW w).Encodes w ∧ (typedW w).BoundsOk :=
     fun w hw => typedW_encodes w (hkinds w hw).1 (hkinds w hw).2
@@ -232,7 +234,7 @@ theorem goWellFormed_sound (d : Deployment) (h : goWellFormed d) : d.WellFormed 
   · exact forall₂_map_self d.workloads typedW _ (fun w hw => (hwE w hw).1)
   obtain ⟨hnd, halone, hsole, hnoexp⟩ := hcompat
   have haddrs : (typedOf d).addrs = d.addrs := rfl
-  refine ⟨hmem, hnames, hnameOk, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, htok, hcS, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hmem, hnames, hnameOk, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, htok, hcS, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [haddrs]; exact haddrOk
   · rw [haddrs]; exact haddrNd
   · simp only [typedOf, List.length_map]; exact hnl
@@ -315,6 +317,9 @@ theorem goWellFormed_sound (d : Deployment) (h : goWellFormed d) : d.WellFormed 
     obtain ⟨w, hw, hal⟩ := hneed ha
     exact ⟨typedW w, List.mem_map.2 ⟨w, hw, rfl⟩,
       by rw [(typedW_preds w (hkinds w hw).1).2.2.2.1]; exact hal⟩
+  · intro ha
+    simp only [typedOf, typedCfg] at ha ⊢
+    rw [if_pos (hacmp ha)]
   · intro hc
     simp only [typedOf, List.mem_map] at hc
     obtain ⟨x, hx, hxe⟩ := hc

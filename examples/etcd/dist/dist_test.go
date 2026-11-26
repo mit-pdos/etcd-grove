@@ -160,9 +160,24 @@ func TestWellFormed(t *testing.T) {
 			t.Errorf("member %s's id %x refused", m.Name, id)
 		}
 	}
+	// the token provider only with the compactor off
+	au := []Workload{{Kind: deployment.Auth}}
+	d, err := RandomDeployment("wf", 3, addr, au, testNodes(au))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad = d
+	bad.Cfg.CompactorMode, bad.Cfg.Retention = deployment.CompactorRevision, 10
+	if WellFormed(bad) == nil {
+		t.Error("the token provider beside a revision compactor passed")
+	}
+	bad.Cfg.CompactorMode, bad.Cfg.Retention = deployment.CompactorPeriodic, int64(time.Second)
+	if WellFormed(bad) == nil {
+		t.Error("the token provider beside a periodic compactor passed")
+	}
 	// the client machines: their number, their addresses
 	kv := []Workload{{Kind: deployment.KV, Clients: 2, Ops: 3}}
-	d, err := RandomDeployment("wf", 3, addr, kv, testNodes(kv))
+	d, err = RandomDeployment("wf", 3, addr, kv, testNodes(kv))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,7 +217,7 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("auth without the token provider passed")
 	}
-	bad.Cfg.Auth = true
+	bad.Cfg.Auth, bad.Cfg.Retention = true, 0
 	if err := WellFormed(bad); err != nil {
 		t.Errorf("auth with the token provider failed: %v", err)
 	}

@@ -585,7 +585,8 @@ theorem WellFormed.wp_proof
                 have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif' Hf1
                 subst hjl
                 rw [List.take_length] at Hf2 Hf3
-                -- the token provider only with a workload that needs it: `c.Auth && !needed` fails
+                -- the token provider only with a workload that needs it: `c.Auth && !needed` fails; then
+                -- only with the compactor off: `c.Auth && c.Retention != 0` fails
                 rcases hau : d.cfg.auth with _ | _ <;> rcases hnb : nb with _ | _ <;>
                   (try simp only [ServerCfg.val, hau]) <;> (try wp_auto)
                 all_goals (repeat' wp_if_destruct)
@@ -594,6 +595,10 @@ theorem WellFormed.wp_proof
                 have hneed : d.cfg.auth = true → ∃ w ∈ d.workloads, kindAlone w.kind = true := by
                   intro ha
                   first | exact Hf3 hnb | (rw [hau] at ha; cases ha)
+                -- the token provider only with the compactor off: `c.Auth && c.Retention != 0` fails
+                have hacmp : d.cfg.auth = true → d.cfg.retention = W64 0 := by
+                  intro ha
+                  first | (rw [hau] at ha; cases ha) | exact ‹d.cfg.retention = W64 0›
                 iapply HΦ
                 ipureintro
                 intro _
@@ -604,7 +609,7 @@ theorem WellFormed.wp_proof
                 refine ⟨hmem, Hj3, fun m hm => (Hj4 m hm).1, Hk2, hnl', fun a ha => (Hok.2.2 a ha).1,
                   Hok.2.1, ?_, hbid hpeers rfl, htok0, hsnap, hcatch, hret, hbc rfl,
                   fun w hw => (Hf2 w hw).1, fun w hw => (Hf2 w hw).2.1, fun w hw => (Hf2 w hw).2.2,
-                  hneed, hmax, fun m hm => (Hj4 m hm).2, fun a ha => (Hok.2.2 a ha).2, ?_⟩
+                  hneed, hacmp, hmax, fun m hm => (Hj4 m hm).2, fun a ha => (Hok.2.2 a ha).2, ?_⟩
                 · intro j' w ns hw hns
                   exact Hn3 j' w ns (List.getElem?_eq_some_iff.1 hw).1 hw hns
                 · unfold etcd_dist.typed.maxLen; rw [← htok]; exact htokl))

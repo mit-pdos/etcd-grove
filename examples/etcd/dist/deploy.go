@@ -105,8 +105,8 @@ func RandomWorkloads(sz Sizes) []Workload {
 }
 
 // randomCfg is a random supported server configuration for the workloads ws: the token provider
-// exactly if a workload needs it; the compactor off,
-// in revision mode or in periodic mode (not beside compact); snapshots often or rarely.
+// exactly if a workload needs it; the compactor off, in revision mode or in periodic mode (not beside
+// compact, nor beside the token provider); snapshots often or rarely.
 func randomCfg(ws []Workload) ServerCfg {
 	var c ServerCfg
 	auth, compact := false, false
@@ -117,9 +117,11 @@ func randomCfg(ws []Workload) ServerCfg {
 	c.Auth = auth
 	switch rand.IntN(4) {
 	case 1:
-		c.CompactorMode, c.Retention = deployment.CompactorRevision, pick[int64](1, 10, 1000)
+		if !auth {
+			c.CompactorMode, c.Retention = deployment.CompactorRevision, pick[int64](1, 10, 1000)
+		}
 	case 2:
-		if !compact {
+		if !auth && !compact {
 			c.CompactorMode, c.Retention = deployment.CompactorPeriodic, pick(int64(10*time.Millisecond), int64(time.Second))
 		}
 	}
