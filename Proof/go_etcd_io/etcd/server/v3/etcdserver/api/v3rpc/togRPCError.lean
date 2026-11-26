@@ -77,17 +77,17 @@ theorem v3rpc.togRPCError.wp_proof
       icases Hnc with ⟨#Hnc, -⟩
       ihave #Hnm := Hnc $$ %(GoInterface.ok ec) Hec
       iunfold errors.noMatchTree at Hnm
-      icases Hnm with ⟨%Sn, %Mn, #Htn, %HSn⟩
+      icases Hnm with ⟨%Sn, %Mn, #Htn, %HSn, -⟩
       iexists Sn, Mn
       iframe Htn
       isplitr
       · ipureintro
         refine ⟨HSn.1, HSn.2.1, fun _ ii hS hor => ?_⟩
-        exact absurd hor (fun h => h.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2.1)
+        exact absurd hor (fun h => h.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2)
       iright
       ipureintro
       intro ii hS hor
-      exact hor.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2.1
+      exact hor.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2
     by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     · obtain ⟨ei, hei, hl, hIs'⟩ := hL
       iexists (fun x : GoInterface => x = GoInterface.ok ei), (fun _ : GoInterfaceOk => False)
@@ -153,17 +153,17 @@ theorem v3rpc.togRPCError.wp_proof
       icases Hnc with ⟨-, #Hnc⟩
       ihave #Hnm := Hnc $$ %de Hde
       iunfold errors.noMatchTree at Hnm
-      icases Hnm with ⟨%Sn, %Mn, #Htn, %HSn⟩
+      icases Hnm with ⟨%Sn, %Mn, #Htn, %HSn, -⟩
       iexists Sn, Mn
       iframe Htn
       isplitr
       · ipureintro
         refine ⟨HSn.1, fun _ ii hS hor => ?_, HSn.2.1⟩
-        exact absurd hor (fun h => h.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2.1)
+        exact absurd hor (fun h => h.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2)
       iright
       ipureintro
       intro ii hS hor
-      exact hor.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2.1
+      exact hor.elim (HSn.2.2 ii hS).1 (HSn.2.2 ii hS).2
     by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     · obtain ⟨ei, hei, hl, hIs'⟩ := hL
       iexists (fun x : GoInterface => x = GoInterface.ok ei), (fun _ : GoInterfaceOk => False)

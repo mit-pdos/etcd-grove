@@ -210,16 +210,17 @@ variable [sem : go.Semantics]
 `target` (`errors.errorIsTree`: the specs of its errors' `Is` and `Unwrap` methods), with the typing
 `P` the `Is` spec at `target` asks of the tree (`TreeTyped · target` for a pointer target, `deTyped`
 for `context.DeadlineExceeded`), in which no error is `target`, no `Is` method may answer `true`
-(`M`), and every error has `N`. Then `errors.Is(err, target)` answers `false` (the `Is` specs'
-posts). The tree is closed under `Unwrap` (`errorIsTree`'s `Unwrap` specs), so `N` holds of every
-error `errors.Is` or `errors.As` visits. -/
-def errors.noMatchTree (P : (GoError → Prop) → Prop) (N : GoInterfaceOk → Prop)
+(`M`), and every error has `N` (persistently). Then `errors.Is(err, target)` answers `false` (the
+`Is` specs' posts). The tree is closed under `Unwrap` (`errorIsTree`'s `Unwrap` specs), so `N` holds of
+every error `errors.Is` or `errors.As` visits. -/
+def errors.noMatchTree (P : (GoError → Prop) → Prop) (N : GoInterfaceOk → IProp GF)
     (err target : GoInterface) : IProp GF :=
   iprop(∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
     _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-    ⌜S err ∧ P S ∧ ∀ ii, S (GoInterface.ok ii) → GoInterface.ok ii ≠ target ∧ ¬ M ii ∧ N ii⌝)
+    ⌜S err ∧ P S ∧ ∀ ii, S (GoInterface.ok ii) → GoInterface.ok ii ≠ target ∧ ¬ M ii⌝ ∗
+    □ (∀ ii : GoInterfaceOk, ⌜S (GoInterface.ok ii)⌝ -∗ N ii))
 
-instance errors.noMatchTree_persistent (P : (GoError → Prop) → Prop) (N : GoInterfaceOk → Prop)
+instance errors.noMatchTree_persistent (P : (GoError → Prop) → Prop) (N : GoInterfaceOk → IProp GF)
     (err target : GoInterface) : Persistent (errors.noMatchTree (GF := GF) P N err target) := by
   unfold errors.noMatchTree; infer_instance
 

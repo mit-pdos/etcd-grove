@@ -344,7 +344,7 @@ local macro "renew_forward" : tactic => `(tactic| (
       iunfold leasehttp.notLeaseNotFound at Hhx
       ihave #Hnm := Hhx $$ %eNF HNF
       iunfold errors.noMatchTree at Hnm
-      icases Hnm with ⟨%S, %M, #Htree, %HS⟩
+      icases Hnm with ⟨%S, %M, #Htree, %HS, -⟩
       have hpt : ptrTarget (GoInterface.ok eNF) := fun tii h => by cases h; exact HNFl.1
       wp_apply hIs S M _ (GoInterface.ok eNF) hpt HS.2.1 $$ [] as %b ⟨-, -, %Hb⟩
       · iframe #; ipureintro; exact HS.1
@@ -353,7 +353,7 @@ local macro "renew_forward" : tactic => `(tactic| (
         · rfl
         · exfalso
           obtain ⟨ii, hS, hii⟩ := Hb eNF rfl HNFl.1 Hhn rfl
-          obtain ⟨hne, hM, -⟩ := HS.2.2 ii hS
+          obtain ⟨hne, hM⟩ := HS.2.2 ii hS
           rcases hii with h | h
           · exact hne h
           · exact hM h

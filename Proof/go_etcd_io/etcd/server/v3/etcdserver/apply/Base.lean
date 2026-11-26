@@ -246,12 +246,23 @@ or a pointer error. -/
 def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=
   ∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii
 
+/-- **A node of `notCtxTree`'s trees** (persistent): no `As`, `GRPCStatus` or `Format` method
+(`errors.plainErrNode`), and an `Error()` that stably returns one string (`errMsgOk`). -/
+def ctxFreeNode (ii : GoInterfaceOk) : IProp GF :=
+  iprop(⌜errors.plainErrNode ii⌝ ∗ errMsgOk ii)
+
+instance ctxFreeNode_persistent (ii : GoInterfaceOk) : Persistent (ctxFreeNode (GF := GF) ii) := by
+  unfold ctxFreeNode; infer_instance
+
 /-- **An error that is not a context error, as `errors.Is` sees it** (persistent; nonleaf-status-errs,
 2026-11-26): `errors.Is(err, context.Canceled)` and `errors.Is(err, context.DeadlineExceeded)` answer
 `false` (`errors.noMatchTree` at each variable's value, with the typing each `Is` spec asks:
 `TreeTyped` at `Canceled`'s pointer, `deTyped` at `DeadlineExceeded`'s `deadlineExceededError{}`), and its
-tree's errors have no `As`, `GRPCStatus` or `Format` method (`errors.plainErrNode`), so that `errors.As`, grpc's
-`status` functions and `fmt` treat it as Go does any such error: only its type, `Unwrap` and `Error()` are used.
+tree's errors have no `As`, `GRPCStatus` or `Format` method (`errors.plainErrNode`) and an `Error()` that stably
+returns one string (`errMsgOk`: so no error of the tree is a `nil` pointer whose `Error()` dereferences it), so that
+`errors.As`, grpc's `status` functions and `fmt` use only its type, `Unwrap` and `Error()`, and a library that
+calls a method of a node `errors.As` matched gets a non-`nil` node (nonleaf review, 2026-11-26: `etcdhttp`'s
+`writeError` and rafthttp call `WriteTo` on the node they match).
 `applyErrIs`'s alternative to `srvErrOk`: `togRPCError` passes a context error on as it is, and
 converts every other error into a status error or its map's value, so such an error never reaches
 grpc's server as it is and need not be one grpc's `status` accepts. What `proto.Marshal`'s invalid
@@ -259,10 +270,9 @@ UTF-8 errors are (`proto.MarshalIRR.spec`: `impl.errInvalidUTF8{}` and `*prefixE
 non-leaves, both unwrapping to protobuf's `errors.Error`). -/
 def notCtxTree (err : GoInterface) : IProp GF :=
   iprop((□ ∀ c : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ c -∗
-      errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S c)
-        errors.plainErrNode err c) ∗
+      errors.noMatchTree (GF := GF) (fun S => _root_.Perennial.errors.TreeTyped S c) ctxFreeNode err c) ∗
     (□ ∀ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d -∗
-      errors.noMatchTree (GF := GF) deTyped errors.plainErrNode err d))
+      errors.noMatchTree (GF := GF) deTyped ctxFreeNode err d))
 
 instance notCtxTree_persistent (err : GoInterface) : Persistent (notCtxTree (GF := GF) err) := by
   unfold notCtxTree; infer_instance
@@ -278,13 +288,13 @@ theorem notCtxTree_isCtxErr (err : GoInterface) :
   icases He with (⟨#Hv, %x, %hx, -⟩ | ⟨#Hv, %hx⟩)
   · ihave #Hn := Hc $$ %err Hv
     iunfold errors.noMatchTree at Hn
-    icases Hn with ⟨%S, %M, -, %HS⟩
+    icases Hn with ⟨%S, %M, -, %HS, -⟩
     subst hx
     exfalso
     exact (HS.2.2 _ HS.1).1 rfl
   · ihave #Hn := Hd $$ %err Hv
     iunfold errors.noMatchTree at Hn
-    icases Hn with ⟨%S, %M, -, %HS⟩
+    icases Hn with ⟨%S, %M, -, %HS, -⟩
     subst hx
     exfalso
     exact (HS.2.2 _ HS.1).1 rfl

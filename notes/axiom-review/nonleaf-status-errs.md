@@ -45,17 +45,19 @@ All of the trusted text below is in `Proof/go_etcd_io/etcd/server/v3/etcdserver/
 file is named.
 
 1. **`notCtxTree err`** (new; persistent). It is the conjunction of two `errors.noMatchTree` facts, each with
-   node condition `errors.plainErrNode` (no `As`, `GRPCStatus` or `Format` method):
+   node condition `ctxFreeNode`: `errors.plainErrNode` (no `As`, `GRPCStatus` or `Format` method) and `errMsgOk`
+   (`Error()` stably returns one string; added after the independent review, below):
    - at `context.Canceled`'s value, with the typing `TreeTyped · c`;
    - at `context.DeadlineExceeded`'s value, with the typing `deTyped`.
 
    **`errors.noMatchTree P N err target`** (new, in `Proof/errors/CtxErr.lean`) says: `err` is in an
-   `errors.errorIsTree S M target` that has typing `P`, and every error of `S` is not `target`, does not have
-   `M`, and has `N`. This is the precedent's shape, factored out.
+   `errors.errorIsTree S M target` that has typing `P`, every error of `S` is not `target` and does not have
+   `M`, and (persistently) every error of `S` has the node predicate `N`. This is the precedent's shape,
+   factored out.
 
    `leasehttp.notLeaseNotFound` (`Proof/.../lease/leasehttp/RenewErr.lean`) is now restated over it, with
    `N := True`. The statement is the same: `ii ≠ e` is now written `ok ii ≠ ok e`, `ok` is injective, and
-   `∧ True` adds nothing.
+   `□ ∀ ii, ⌜…⌝ -∗ True` adds nothing.
 2. **`applyErrIs`'s third conjunct**:
    - Before: `srvErrOk err`.
    - After: `srvErrOk err ∨ notCtxTree err`.
@@ -74,7 +76,10 @@ file is named.
    - `errKeyMsg`: `*prefixError` is a pointer key; `errInvalidUTF8{}` is the new key; each `Error()` returns
      one fixed string.
    - `notCtxTree`: `errors.Error` is neither `context.Canceled`'s pointer nor `deadlineExceededError{}`, no
-     `Is` method answers, and none of the three types has an `As`, `GRPCStatus` or `Format` method.
+     `Is` method answers, none of the three types has an `As`, `GRPCStatus` or `Format` method, and each
+     node's `Error()` returns one fixed string: `"string field contains invalid UTF-8"` (`codec_field.go:19`),
+     `prefix + e.s` (`errors.go:36-38`; `prefix` set once at init, `:26-34`; `s` never written after `New`),
+     `"protobuf error"` (`errors.go:16`, Go's `errorString.Error` returns its field).
 
    The docstring now records this. No UTF-8 premise was added.
 
@@ -92,7 +97,8 @@ following:
 - Separately, a scan of every `{{ … }}` precondition found `applyErrIs`/`srvErrIs` only in proved specs:
   `read.isStopped`, `notifier.notify`, `togRPCError`, `kvServer.RangeStream`, and some local proof lemmas.
 
-The axioms it found (15 hits) are listed below.
+The axioms it found (15 hits) are listed below, but for `bcrypt.GenerateFromPassword.wp_proof`, which names
+`applyErrIs` only in its docstring (the independent review's Q3).
 
 ### Weaker (their posts give `applyErrIs`/`errKeyOk`, which now claim less), so trust shrinks
 
@@ -100,7 +106,6 @@ The axioms it found (15 hits) are listed below.
 |---|---|
 | `proto.MarshalIRR.wp_proof` | error arm `applyErrIs` with `srvErrOk` (false of Go) → with `srvErrOk ∨ notCtxTree` (true: see above) |
 | `leasehttp.RenewHTTP.wp_proof` | its `applyErrIs` arm weakens likewise; its `notLeaseNotFound` arm is restated over `errors.noMatchTree`, with the same meaning |
-| `bcrypt.GenerateFromPassword.wp_proof` | its `InvalidCostError` post's `applyErrIs` weakens likewise |
 | `auth.NewAuthStore.wp_proof` | the store contracts it gives (`isReqAuth`, `authApplyOk`, whose errors are `applyErrIs`/`authApplyErrIs`) weaken likewise |
 | `etcd_dist.NewServer_dist.wp_proof` | the server invariants it gives (`srvBuiltG`, `srvAuthStoreOn`, ...), whose internal contracts post `applyErrIs`, weaken likewise |
 | `EtcdServer.rangeStream.wp_proof`, `EtcdServer.leaseTimeToLive.wp_proof` | their error posts (`applyErrIs err`) weaken likewise; their preconditions are in the next table |
@@ -110,21 +115,27 @@ The axioms it found (15 hits) are listed below.
 **What the new class adds.** It admits an error the old class did not. Such an error has:
 - the old tree conjunct, for every target: exact `Is`/`Unwrap` relations and the typings;
 - `errKeyMsg`: it is a map key, and its `Error()` returns one fixed string;
-- `notCtxTree`: no node of its trees is a context error, no node's `Is` matches one, and every node is an
-  `errors.plainErrNode`, with no `As`, `GRPCStatus` or `Format` method.
+- `notCtxTree`: no node of its trees is a context error, no node's `Is` matches one, and every node is a
+  `ctxFreeNode`: no `As`, `GRPCStatus` or `Format` method, and an `Error()` that stably returns one string.
 
 It is not `srvErrOk`. It may be a non-leaf: `Unwrap` methods, which the tree specifies. It may be a
 non-`stTypedErr` value, and it may be the new key `errInvalidUTF8{}`.
 
-The `plainErrNode` condition makes the class safe for every Go consumer of an error. It adds nothing new to
-check about Go for `MarshalIRR`: none of `errInvalidUTF8`, `*prefixError` and `*errors.errorString` has those
-methods (`codec_field.go:19-21`; `errors.go:36-42`; Go's `errors/errors.go`, `errorString` has only `Error`).
+**What the class guarantees** (not more: it says nothing of methods other than `Is`, `Unwrap`, `As`,
+`GRPCStatus`, `Format` and `Error`, nor of an error's other values). For every error `e` it admits, and every
+node `n` of `e`'s trees (closed under `Unwrap`, by the `errorIsTree` `Unwrap` specs):
+`n`'s `Is` (for any target) and `Unwrap` return as the tree specifies; `n` has no `As`, `GRPCStatus` or `Format`
+method; `n.Error()` returns one fixed string, so `n` is no `nil` pointer whose `Error()` dereferences its
+receiver; `e` itself is `nil`-free and `errKeyOk`. The node conditions add nothing to check of Go for `MarshalIRR`:
+none of `errInvalidUTF8`, `*prefixError` and `*errors.errorString` has those methods (`codec_field.go:19-21`;
+`errors.go:36-42`; Go's `errors/errors.go`, `errorString` has only `Error`), and their `Error()`s are fixed (above).
 
-**Why the class is safe for Go's consumers.** Each tree is closed under `Unwrap`, by the `errorIsTree` `Unwrap`
-specs.
+**What follows for the Go consumers these axioms' code uses.**
 - **`errors.Is`** (any target): it calls only `Is`/`Unwrap`, which the tree conjunct specifies.
 - **`errors.As`/`errors.AsType`**: they visit the same nodes as `Is`. With no `As` method on any node, they
-  only compare types.
+  only compare types; a node they match is not a `nil` pointer of a type whose `Error()` dereferences it, so
+  a caller's method call on it (`WriteTo` in `etcdhttp`'s `writeError`, `utils.go:47-50`, and rafthttp,
+  `http.go:149-162, 308-312`) gets a non-`nil` receiver.
 - **grpc's `status.FromError`/`Code`/`Convert`** (v1.84.0 `status/status.go:96-146`):
   - the type assertion to `GRPCStatus()` fails at the root;
   - `errors.As` to it finds nothing;
@@ -137,7 +148,9 @@ specs.
 - **`==` and map lookup**: the error is `errKeyOk`. A field-less struct is comparable and has one value (Go
   spec, "Comparison operators").
 
-So every axiom that takes such an error is true of it in Go, whatever its Go code then does with the error.
+So every axiom below is true of such an error in Go, for what its Go code does with it (the table): `errors.Is`,
+`errors.As` followed by a method of the matched node, grpc's `status` functions, `fmt`/zap, `==`/map lookups and
+`Error()`.
 The table records, per axiom, where the contract enters and what the code does with its errors. In Go, none
 of these contracts (raft's `Propose`, the read notifier, the auth checks, the lessor) ever returns a non-leaf
 error; the strengthening admits only hypothetical implementations that do.
@@ -148,7 +161,7 @@ Axiom locations are `file:line` of the `axiom` line. The Go locations are in etc
 | # | Axiom | Where the contract enters | What its Go code does with those errors; verdict |
 |---|---|---|---|
 | 1 | `NewPeerHandler_dist.wp_proof` (`Proof/.../examples/etcd/dist/NewPeerHandlerDist.lean:39`) | `isServerReqM`: `srvRaftNode`→`raftPropose`, `srvAuthBound`→`authApplyErrIs` | builds the handler only (`server/etcdserver/api/etcdhttp/peer.go:44-48`); no error is consumed. **(a) true** |
-| 2 | `PeerServe_dist.wp_proof` (`.../dist/PeerServeDist.lean:70`) | `isServerReqM` (as 1) | the member-promote handler (`peer.go:125-165`): `errors.Is` against membership's sentinels (`:151-156`), `writeError` (`api/etcdhttp/utils.go:40-75`: `errors.As` to `*v2error.Error`/`*httptypes.HTTPError`, then `errors.Is`, then `err.Error()`), and `zap.Error`. The lease handler (`server/lease/leasehttp/http.go:90-104`): `errors.Is`, `http.Error(…, err.Error())`. All are safe by the list above. **(a) true** |
+| 2 | `PeerServe_dist.wp_proof` (`.../dist/PeerServeDist.lean:70`) | `isServerReqM` (as 1) | the member-promote handler (`peer.go:125-165`): `errors.Is` against membership's sentinels (`:151-156`), `writeError` (`api/etcdhttp/utils.go:40-75`: `errors.As` to `*v2error.Error`/`*httptypes.HTTPError`, then `WriteTo` on the match, then `errors.Is`, then `err.Error()`), and `zap.Error`; rafthttp (`http.go:149-162, 308-312`: `errors.As` to `writerToResponse`, then `WriteTo`). The lease handler (`server/lease/leasehttp/http.go:90-104`): `errors.Is`, `http.Error(…, err.Error())`. A matched node is non-`nil` (its `Error()` returns, `errMsgOk`), so `WriteTo` gets a real receiver. Second line of defence: `net/http`'s `conn.serve` recovers a handler's panic (`net/http/server.go:1956`). **(a) true** |
 | 3 | `Serve_dist.wp_proof` (`.../dist/ServeDist.lean:69`) | `memberUp`→`isServerRead`: `isReadNotify`, `isApplyLessor` | the v3rpc handlers pass the request path's errors through `togRPCError` (`api/v3rpc/util.go:98-108`, proved), whose post (`srvErrOk`) is unchanged; grpc's server and the interceptors see only those. **(a) true** (also by the list above, even without `togRPCError`) |
 | 4 | `etcd_noRefusal` (`Proof/.../api/v3rpc/NoRefusal.lean:70`) | `isServerReq` (as 1) | the statuses `gs` sends come from `togRPCError`'s post. A new-class error that reaches it is not a context error, so it becomes `status.Error(Unknown, err.Error())` (`util.go:105`). Leaves with arbitrary fixed messages could already do that, so the possible descriptions, and the refusal claim, are unchanged. **(a) true** |
 | 5 | `etcd_noOtherRefusal` (`NoRefusal.lean:102`) | `isServerReqM` (as 1) | as 4. **(a) true** |
@@ -203,3 +216,40 @@ the grpc server and prometheus axioms, and `rpctypes.Error` are unchanged: no re
    `_of_nodeErr`, `_ctxErrorf`, ...): they give the left disjunct (`ileft`), so they are unchanged in strength.
 
 The full VM build is the check of this list.
+
+## Independent review (axiom skill, at `03bb1e319b`, 2026-11-26), and the response
+
+The review's text, as received (`tmp/dsn/review-nonleaf.md`):
+
+**Verdict: sound.** No counterexample for any question or any of the 9 strengthened axioms.
+
+- **Q1, MarshalIRR's error post (protobuf v1.36.12): sound, checked.**
+  - `errInvalidUTF8 struct{}` (`codec_field.go:17`) has only Error, InvalidUTF8 and Unwrap, and Unwrap returns `errors.Error` (`:19-21`).
+  - `*prefixError` (`errors.go:20-24`) has only Error and Unwrap, and Unwrap returns `Error` (`:40-42`).
+  - `Error` is `errors.New(...)` (`:16`), an `*errorString`. The only `Is` in that package belongs to wrapError (`:66`), which neither path builds.
+  - Neither error is wrapped on the way out (`encode_gen.go:72`, `encode.go:200-204`, `v3_server.go:1095-1097`).
+  - No node in either tree is a context error.
+  - errKeyOk holds: the field-less struct and the pointer are both comparable.
+- **Q2, the 9 strengthened axioms: all sound, with every file:line checked.**
+  - NewPeerHandler_dist handles no errors.
+  - monitorClusterVersions and monitorStorageVersion use only errors.Is and zap. zap's encodeError recovers panics (`zapcore/error.go:47-58`).
+  - rangeStream and leaseTimeToLive only return errors or call errors.Is on them, with pointer targets.
+  - etcd_noRefusal and etcd_noOtherRefusal look up only the root in togRPCError's map.
+  - Serve_dist passes handler errors through the proved togRPCError, whose post is unchanged.
+  - PeerServe_dist is sound, but only through conn.serve's panic recovery (`net/http/server.go:1956`). writeError and rafthttp call errors.As to value-receiver types and then WriteTo, so a nil deep node of such a type would panic. Lead's response: narrow notCtxTree so that every node has a fixed Error() message, which removes that reliance.
+- **Q3, receivers the note missed: none.** A fixpoint reach script found the note's 13 real axioms and nothing else. TrustedCode, GooseLang and Net don't reach these predicates, and no TopLevel file does. bcrypt mentions applyErrIs only in its docstring, so it doesn't belong in the note's "weaker" list.
+- **Q4, translating errInvalidUTF8:** translation only. It also removes two `sorry -- axiomatized type` instances.
+- **Inferred, not tested:** recovery under HTTP/2; and that every new `{{ }}` that takes applyErrIs as input is a proved theorem (this came from a line-based grep).
+
+**Response** (the lead's decisions, 2026-11-26):
+
+1. `notCtxTree`'s node condition is narrowed from `errors.plainErrNode` to `ctxFreeNode` = `plainErrNode ∗ errMsgOk`:
+   every node's `Error()` stably returns one string. This excludes a `nil` pointer node of a value-receiver
+   type (whose `Error()` dereferences it), so PeerServe_dist's `errors.As`-then-`WriteTo` no longer rests on
+   `conn.serve`'s recovery, which stays as a second line of defence. It admits fewer errors, so it weakens
+   only `MarshalIRR`'s post's alternative (that post stays true: the three nodes' `Error()`s are fixed, above)
+   and strengthens nothing.
+2. `bcrypt.GenerateFromPassword` is removed from the "weaker" list (docstring mention only).
+3. The class's guarantee is stated exactly ("What the class guarantees"), in place of "safe for every Go
+   consumer".
+
