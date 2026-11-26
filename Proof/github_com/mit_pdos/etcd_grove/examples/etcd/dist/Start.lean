@@ -62,25 +62,6 @@ theorem cls_mem_zipIdx_fst {α : Type} : ∀ (l : List α) (s : Nat) (q : α × 
     · exact List.mem_cons_self
     · exact List.mem_cons_of_mem _ (cls_mem_zipIdx_fst l (s + 1) q h)
 
-/-- A list of lists empty but at `j` flattens to its `j`-th. -/
-theorem cls_flatten_single {α : Type} :
-    ∀ (L : List (List α)) (j : Nat) (x : List α), L[j]? = some x →
-      (∀ (j' : Nat) (y : List α), L[j']? = some y → j' ≠ j → y = []) → L.flatten = x
-  | [], _, _, h, _ => by simp at h
-  | a :: L, 0, x, h, ho => by
-    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
-    subst h
-    have : L.flatten = [] := List.flatten_eq_nil_iff.2 (fun y hy => by
-      obtain ⟨i, hi⟩ := List.getElem?_of_mem hy
-      exact ho (i + 1) y (by simpa using hi) (by omega))
-    simp [this]
-  | a :: L, j + 1, x, h, ho => by
-    simp only [List.getElem?_cons_succ] at h
-    have ha : a = [] := ho 0 a rfl (by omega)
-    subst ha
-    simp only [List.flatten_cons, List.nil_append]
-    exact cls_flatten_single L j x h (fun j' y hy hne => ho (j' + 1) y (by simpa using hy) (by omega))
-
 /-- No client machine when every node list is empty. -/
 theorem nodeList_nil {d : Deployment} (h : ∀ ns ∈ d.nodes, ns = []) : d.nodeList = [] := by
   unfold Deployment.nodeList
