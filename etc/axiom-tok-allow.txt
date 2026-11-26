@@ -186,18 +186,6 @@ entry Perennial.EtcdGrove.etcd_dist.KV_Put_dist.wp_proof 2:L:0:handedtoacallback
 entry Perennial.EtcdGrove.etcd_dist.KV_Delete_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `DeleteRange`
 entry Perennial.EtcdGrove.etcd_dist.KV_Get_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Put_dist's, for `Range`; `Q`: the pure `Q = fun _ => True` disjunct (section header)
 entry Perennial.EtcdGrove.etcd_dist.Txn_Commit_dist.wp_proof 2:L:0:handedtoacallback10/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Put_dist's, for `Txn`, with the builder's fifth connection (`txnObjAt`'s `kvObjAt`, +2) and its context; `Q`: the pure read-only disjunct (section header)
-# F2/F7's six auth-off lease axioms (2026-11-26; Proof/.../examples/etcd/dist/{LeaseGrant,LeaseGrantLive,
-# LeaseLeasesGranted,LeaseLeasesLive,ClientLeaseLeases,ClientLeaseTTL}Dist.lean): the walk reports KV_Put_dist's keys
-# and truncations exactly. Go: `lessor.Grant`/`TimeToLive`/`Leases` (client/v3/lease.go:222-263) -> `l.remote.X`
-# (`retryLeaseClient`, retry.go:141-151) -> the stub's `c.cc.Invoke` -> grpc's one `unaryInt` call on the caller's
-# goroutine, as for KV: the one `levelTok 0` is lent to one interceptor call at a time and given back, none minted;
-# rule 7's `P` is the caller's context's Done proposition (`isCancelCtxOf`), passed down unchanged.
-entry Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseGrant`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
-entry Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseGrant`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
-entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseLeases`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
-entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseLeases`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
-entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseLeases`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
-entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's (section header), for `LeaseTimeToLive`: the caller's one `levelTok 0` lent to the one interceptor call, counted once per contract of the four connections; `P` the caller's context's Done proposition
 # The same branch's two other new axioms, which the queue's run listed as `rule 3,7 (2)` and which taint
 # `builtRawMDRaw`/`transportMDRaw`/`statusAtRaw` (the selftest's `real-pass EtcdServer.leaseTimeToLive`
 # failure); their findings are the established patterns of the entries above, keys unchanged:
@@ -283,6 +271,14 @@ entry Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof 3:Ψ:produced1/consu
 # - its truncations are in the post's and premises' backend, bbolt, lease and context definitions (`ownMap`, `bbAt`,
 #   `isBolt`, `lessorPin*`, ...), none in the deviations' text.
 entry Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof 2:*:handedtoacallback2/supplieddirectly1,3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Pre:produced1/consumed0,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Wb:produced46/consumed36,3:Y:produced1/consumed0,3:cd.PDone:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:E:apply.AEnvGF,7:GA:w64→IPropGF,7:Hs:auth.BkView→IPropGF,7:K:IPropGF,7:Lk:Bool→IPropGF→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:P:IPropGF,7:Pk:IPropGF,7:Pw:IPropGF,7:Q:IPropGF,7:Q:ListEntryModel→IPropGF,7:R:IPropGF,7:RD:IPropGF,7:RL:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:Rd:IPropGF,7:S:IPropGF,7:Sw:auth.AuthSess→IPropGF,7:T:IPropGF,7:TM:MetaCI→IPropGF,7:TS:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:Wb:IPropGF,7:c:TrNGF,7:cd:context.ContextDesc(IPropGF),7:sDoneAny:context.ContextDesc(IPropGF),7:Φ:GoString×GoString→IPropGF,7:Φ:Unit-n>IPropGF,7:γn:NetNamesGF,7:τ:SrvTrGF  see the paragraph above (and the trace and triage notes it cites): capped walk; the 2b tokens are the caller-supplied `revokeExpiredLeases.spec` premise's and `Promote`'s borrow inside it (no mint); every finding of a binder in text shared verbatim with the proved `wp_NewServer`/`server_new_auth_on`, `3:Dep` one definition below their depth cutoff
+# The six lease axioms are F2's (etcd-grove-03): for etcd-grove-03's confirmation. F7's walk of the auth-on
+# `Lease_*On` axioms read the same key the same way (notes/axiom-review/f7-auth-axiom-tok.md, "Rule 2, 8/1").
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseGrant` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseGrant` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
+entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseTimeToLive` (the section header; F2's, for etcd-grove-03's confirmation)
 # The ratchet's exception for these four (dist-putget-interim, 2026-11-25; for the coordinator's review):
 # their walks truncate where the walks of the handles they take already do on `lean`, in definitions this
 # branch did not write: the client axioms in `isNewClient`'s contexts (`stuck projection: cd.4`, the
@@ -310,13 +306,13 @@ trunc Perennial.EtcdGrove.etcd_dist.PeerServe_dist.wp_proof
 trunc Perennial.EtcdGrove.bootstrap.wp_proof_dist
 trunc Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof
+trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 trunc Perennial.EtcdGrove.etcd_dist.view.Lease_Grant_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.view.Lease_GrantLive_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
-trunc Perennial.EtcdGrove.bootstrap.wp_proofOne
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
 # `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at
