@@ -159,9 +159,241 @@ theorem writerCodec.wp_proof
       obtain ⟨-, h⟩ := H1 h
       rw [h, kvsBody_nil, List.append_nil]
     wp_for IH
-    trace_state
-    sorry
-  sorry
+    cases ok
+    · -- the flag is false: the loop ends
+      (try wp_auto)
+      ihave Hdd : ownDec d r false $$ [Hd Hs0]
+      · unfold ownDec; iexists s0, dq0; iframe
+      wp_apply wp_Done d r false $$ [Hdd] as %dn %Hdn
+      · iframe
+      (try wp_auto)
+      iapply HΦ'
+      iintro %hdn
+      exact absurd (Hdn hdn).1 Bool.false_ne_true
+    · by_cases hc : sint.Z j < sint.Z n
+      · simp only [decide_eq_true hc, ↓reduceIte]
+        (try wp_auto)
+        ihave Hdd : ownDec d r true $$ [Hd Hs0]
+        · unfold ownDec; iexists s0, dq0; iframe
+        wp_apply wp_DecStr d r true $$ [Hdd] as %k Hdd
+        · iframe
+        icases decPost_elim _ _ _ _ _ $$ Hdd with ⟨%r2, %ok2, Hdd, %H2⟩
+        (try wp_auto)
+        wp_apply wp_DecStr d r2 ok2 $$ [Hdd] as %v Hdd
+        · iframe
+        icases decPost_elim _ _ _ _ _ $$ Hdd with ⟨%r3, %ok3, Hdd, %H3⟩
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %sl ⟨Hsl', -⟩
+        wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl'] as %s1 ⟨Hs, Hcap, -⟩
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iunfold ownDec at Hdd
+        icases Hdd with ⟨%s0', %dq0', Hd, Hs0⟩
+        iexists _, (ps ++ [{ Key' := k, Val' := v }]), s1, r3, ok3, s0', dq0'
+        iframe
+        ipureintro
+        intro h3
+        obtain ⟨h2, e3⟩ := H3 h3
+        obtain ⟨-, e2⟩ := H2 h2
+        rw [Hok rfl, e2, e3, kvsBody_snoc]
+        simp only [List.append_assoc]
+      · simp only [decide_eq_false hc, Bool.false_eq_true, ↓reduceIte]
+        (try wp_auto)
+        ihave Hdd : ownDec d r true $$ [Hd Hs0]
+        · unfold ownDec; iexists s0, dq0; iframe
+        wp_apply wp_Done d r true $$ [Hdd] as %dn %Hdn
+        · iframe
+        (try wp_auto)
+        imod ownSlice_persist s _ _ $$ Hs with #Hs
+        iapply HΦ'
+        iintro %hdn
+        obtain ⟨-, hnil⟩ := Hdn hdn
+        have hb := Hok rfl
+        rw [hnil] at hb
+        obtain ⟨rfl, hlen⟩ := kvsBytes_dec hb
+        iexists s
+        iframe #
+        ipureintro
+        exact ⟨rfl, hlen⟩
+  isplitr
+  · -- EncOut
+    iintro %v %o !> %Φ' ⟨%sl, ⟨%Hv, %Hlen⟩, #Hsl⟩ HΦ'
+    subst Hv
+    ihave %Hsl_len := ownSlice_len _ _ _ $$ Hsl
+    wp_auto
+    ihave He : ownEnc «$r0_ptr» [] $$ [«$r0»]
+    · unfold ownEnc
+      iexists slice.nil
+      iframe
+      isplitl []
+      · iapply ownSlice_nil
+      · iapply ownSliceCap_nil
+    wp_apply wp_EncInt _ _ sl.len $$ [He] as He
+    · iframe
+    (try wp_auto)
+    isimp only [List.nil_append] at He
+    ihave IH : (∃ (j : Nat) (pv : wrec),
+        "i" ∷ i_ptr ↦ W64 j ∗ "r" ∷ r_ptr ↦ pv ∗
+        "He" ∷ ownEnc «$r0_ptr» (encU64 sl.len ++ recsBody (o.take j)) ∗
+        "%Hj" ∷ ⌜j ≤ o.length⌝ : IProp GF) $$ [i r He]
+    · iexists 0, _
+      rw [List.take_zero, recsBody_nil, List.append_nil]
+      iframe
+      ipureintro; omega
+    wp_for IH
+    by_cases hj : j < o.length
+    · have hc : sint.Z (W64 (j : Int)) < sint.Z sl.len := by word
+      simp only [decide_eq_true hc, ↓reduceIte]
+      (try wp_auto)
+      have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
+      simp only [h0, hc, _root_.and_self, ↓reduceIte]
+      have hsj : (sint.Z (W64 (j : Int))).toNat = j := by word
+      obtain ⟨x, hx⟩ : ∃ x, o[j]? = some x := ⟨_, List.getElem?_eq_getElem hj⟩
+      wp_apply (wp_load_slice_index sl (sint.Z (W64 (j : Int))) o DFrac.discard x h0) $$ [] as -
+      · iframe #; ipureintro; rw [hsj]; exact hx
+      (try wp_auto)
+      wp_apply wp_EncI64 _ _ x.Rev' $$ [He] as He
+      · iframe
+      (try wp_auto)
+      wp_apply wp_EncStr _ _ x.Key' $$ [He] as He
+      · iframe
+      (try wp_auto)
+      wp_apply wp_EncStr _ _ x.Val' $$ [He] as He
+      · iframe
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists (j + 1), x
+      have hw : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
+      have hb : encU64 sl.len ++ recsBody (o.take (j + 1)) =
+          encU64 sl.len ++ recsBody (o.take j) ++ encU64 x.Rev' ++ encStr x.Key' ++ encStr x.Val' := by
+        rw [recsBody_take_succ _ _ _ hx]; simp only [List.append_assoc]
+      rw [hw, hb]
+      iframe
+      ipureintro; omega
+    · have hc : ¬ sint.Z (W64 (j : Int)) < sint.Z sl.len := by word
+      simp only [decide_eq_false hc, Bool.false_eq_true, ↓reduceIte]
+      have hjl : j = o.length := by omega
+      subst hjl
+      rw [List.take_length]
+      (try wp_auto)
+      iunfold ownEnc at He
+      icases He with ⟨%s, He, Hs, -⟩
+      (try wp_auto)
+      iapply HΦ'
+      have e : capped (recsBytes o) = encU64 sl.len ++ recsBody o := by
+        rw [capped_of _ Hlen, recsBytes_eq]
+        obtain ⟨h1, h2⟩ := Hsl_len
+        congr 2
+        word
+      rw [e]
+      iexact Hs
+  isplitr
+  · -- DecOut
+    iintro %o %b %dq !> %Φ' Hb HΦ'
+    wp_auto
+    wp_apply wp_NewDec b _ dq $$ [Hb] as %d Hd
+    · iframe
+    (try wp_auto)
+    wp_apply wp_DecInt d _ true $$ [Hd] as %n Hd
+    · iframe
+    icases decPost_elim _ _ _ _ _ $$ Hd with ⟨%r1, %ok1, Hd, %H1⟩
+    (try wp_auto)
+    ihave IH : (∃ (j : w64) (rs : List wrec) (s : GoSlice) (r : List w8) (ok : Bool) (s0 : GoSlice)
+        (dq0 : DFrac),
+        "i" ∷ i_ptr ↦ j ∗ "rs" ∷ rs_ptr ↦ s ∗ "Hs" ∷ s ↦* rs ∗
+        "Hcap" ∷ ownSliceCap wrec s (DFrac.own 1) ∗
+        "Hd" ∷ d ↦ ({ B' := s0, Ok' := ok } : Dec) ∗ "Hs0" ∷ s0 ↦*{dq0} r ∗
+        "%Hok" ∷ ⌜ok = true → capped (recsBytes o) = encU64 n ++ recsBody rs ++ r⌝ : IProp GF)
+        $$ [i rs Hd]
+    · iunfold ownDec at Hd
+      icases Hd with ⟨%s0, %dq0, Hd, Hs0⟩
+      iexists W64 0, [], slice.nil, r1, ok1, s0, dq0
+      iframe
+      isplitl []
+      · iapply ownSlice_nil
+      isplitl []
+      · iapply ownSliceCap_nil
+      ipureintro
+      intro h
+      obtain ⟨-, h⟩ := H1 h
+      rw [h, recsBody_nil, List.append_nil]
+    wp_for IH
+    cases ok
+    · -- the flag is false: the loop ends
+      (try wp_auto)
+      ihave Hdd : ownDec d r false $$ [Hd Hs0]
+      · unfold ownDec; iexists s0, dq0; iframe
+      wp_apply wp_Done d r false $$ [Hdd] as %dn %Hdn
+      · iframe
+      (try wp_auto)
+      iapply HΦ'
+      iintro %hdn
+      exact absurd (Hdn hdn).1 Bool.false_ne_true
+    · by_cases hc : sint.Z j < sint.Z n
+      · simp only [decide_eq_true hc, ↓reduceIte]
+        (try wp_auto)
+        ihave Hdd : ownDec d r true $$ [Hd Hs0]
+        · unfold ownDec; iexists s0, dq0; iframe
+        wp_apply wp_DecI64 d r true $$ [Hdd] as %rv Hdd
+        · iframe
+        icases decPost_elim _ _ _ _ _ $$ Hdd with ⟨%r2, %ok2, Hdd, %H2⟩
+        (try wp_auto)
+        wp_apply wp_DecStr d r2 ok2 $$ [Hdd] as %k Hdd
+        · iframe
+        icases decPost_elim _ _ _ _ _ $$ Hdd with ⟨%r3, %ok3, Hdd, %H3⟩
+        (try wp_auto)
+        wp_apply wp_DecStr d r3 ok3 $$ [Hdd] as %v Hdd
+        · iframe
+        icases decPost_elim _ _ _ _ _ $$ Hdd with ⟨%r4, %ok4, Hdd, %H4⟩
+        (try wp_auto)
+        wp_apply wp_slice_literal
+        isplitr
+        · ipureintro; rfl
+        iintro %sl ⟨Hsl', -⟩
+        wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl'] as %s1 ⟨Hs, Hcap, -⟩
+        (try wp_auto)
+        wp_for_post
+        iframe
+        iunfold ownDec at Hdd
+        icases Hdd with ⟨%s0', %dq0', Hd, Hs0⟩
+        iexists _, (rs ++ [{ Rev' := rv, Key' := k, Val' := v }]), s1, r4, ok4, s0', dq0'
+        iframe
+        ipureintro
+        intro h4
+        obtain ⟨h3, e4⟩ := H4 h4
+        obtain ⟨h2, e3⟩ := H3 h3
+        obtain ⟨-, e2⟩ := H2 h2
+        rw [Hok rfl, e2, e3, e4, recsBody_snoc]
+        simp only [List.append_assoc]
+      · simp only [decide_eq_false hc, Bool.false_eq_true, ↓reduceIte]
+        (try wp_auto)
+        ihave Hdd : ownDec d r true $$ [Hd Hs0]
+        · unfold ownDec; iexists s0, dq0; iframe
+        wp_apply wp_Done d r true $$ [Hdd] as %dn %Hdn
+        · iframe
+        (try wp_auto)
+        imod ownSlice_persist s _ _ $$ Hs with #Hs
+        iapply HΦ'
+        iintro %hdn
+        obtain ⟨-, hnil⟩ := Hdn hdn
+        have hb := Hok rfl
+        rw [hnil] at hb
+        obtain ⟨rfl, hlen⟩ := recsBytes_dec hb
+        iexists s
+        iframe #
+        ipureintro
+        exact ⟨rfl, hlen⟩
+  isplitr
+  · -- the unknown answers' encoding: a report has none
+    iintro %i %v %h
+    exact False.elim h
+  · iintro %i %v %b %dq %h
+    exact False.elim h
 
 end proof
 
