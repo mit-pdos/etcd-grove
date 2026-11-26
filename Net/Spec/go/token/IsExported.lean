@@ -1,5 +1,5 @@
 /-
-`token.IsExported(name)` (the model, `Net/TrustedCode/go/token.lean`) on a name whose first byte is
+`token.IsExported(name)` (the model, `models/go/token/model.go`, until 2026-11-24 `Net/TrustedCode/go/token.lean`) on a name whose first byte is
 an upper-case ASCII letter: `true` (Go's `unicode.IsUpper` fast path). Proved in
 `Net/Proof/go/token/IsExported.lean`.
 -/

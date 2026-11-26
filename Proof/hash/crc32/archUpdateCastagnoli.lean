@@ -30,9 +30,7 @@ theorem hash.crc32.archUpdateCastagnoli.wp_proof
     (hmk : hash.crc32.simpleMakeTable.spec (GF := GF) (hG := hG))
     (hupd : hash.crc32.simpleUpdate.spec (GF := GF) (hG := hG)) :
     hash.crc32.archUpdateCastagnoli.spec (GF := GF) (hG := hG) := by
-  -- the model names its callees by their Go names (`go!"hash/crc32.simpleMakeTable"`)
-  unfold hash.crc32.simpleMakeTable.spec hash.crc32.simpleMakeTable at hmk
-  unfold hash.crc32.simpleUpdate.spec hash.crc32.simpleUpdate at hupd
+  -- the Go model: `return simpleUpdate(crc, simpleMakeTable(Castagnoli), p)`
   intro c s bs dq
   wp_start as Hs
   try wp_auto
@@ -40,7 +38,7 @@ theorem hash.crc32.archUpdateCastagnoli.wp_proof
   try wp_auto
   wp_apply hupd $$ [Ht Hs] as ⟨-, Hs⟩
   · iframe
-  rw [show hash.crc32.crcUpdate (array.mk 256 (hash.crc32.crcTableOf hash.crc32.castagnoliPoly)).arr c bs =
+  rw [show hash.crc32.crcUpdate (array.mk 256 (hash.crc32.crcTableOf (W32 2197175160))).arr c bs =
     hash.crc32.crc32c c bs from rfl]
   iapply HΦ
   iexact Hs

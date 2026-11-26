@@ -43,7 +43,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 /-- **One `copy_file_range` round** (see the file header). -/
 theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqfd dqfs : DFrac)
@@ -52,14 +52,14 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
     (hdoff : doff = W64 vs.length) (hs0 : 0 ≤ soff.toInt) (hsoff : soff.toNat ≤ bs.length)
     (hbs : bs.length = m.size) (hm : m.size < 2 ^ 61) (hvs : vs.length ≤ m.size)
     (hmx0 : 0 < mx.toInt) (hmx : mx.toInt ≤ 0x7ffff000) :
-    {{ osInv (GF := GF) ∗ structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗
+    {{ osInv (GF := GF) ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗
         structFieldRef os.file go!"off" ind ↦ doff ∗
-        structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗ structFieldRef os.file go!"off" ins ↦ soff ∗
+        structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗ structFieldRef os.file go!"off" ins ↦ soff ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         io.copyDst dd.ino (· = vs) }}
-      (App (App (App (Val os.model.copyFileRangeRound) (Val #ind)) (Val #ins)) (Val #mx))
+      (App (App (App (Val (@! os.modelCopyFileRangeRound)) (Val #ind)) (Val #ins)) (Val #mx))
     {{ (w e : w64), RET (PairV #w #e);
-        structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗ structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
+        structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ind) ↦{dqd} fdd ∗ structFieldRef internal.poll.FD go!"Sysfd" (structFieldRef os.file go!"pfd" ins) ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         ∃ k : Nat, ⌜w = W64 k ∧ k ≤ mx.toNat ∧ (0 < k → e = W64 0) ∧
             (k = 0 → e = W64 0 → bs.length ≤ soff.toNat) ∧ soff.toNat + k ≤ bs.length⌝ ∗
@@ -67,7 +67,6 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
           structFieldRef os.file go!"off" ins ↦ (soff + W64 k) ∗
           io.copyDst dd.ino (· = vs ++ ((bs.map Prod.fst).drop soff.toNat).take k) }} := by
   wp_start as ⟨#Hinv, Hdfd, Hdoff, Hsfd, Hsoff, Hfdd, Hfds, Hm, Hbs, Hdst⟩
-  rw [os.file_ty_eq]
   have hvsN : vs.length < 2 ^ 61 := by omega
   have hdZ : sint.Z doff = vs.length := by rw [hdoff]; exact (os.cfr_natZ _ hvsN).1
   have hdN : doff.toNat = vs.length := by rw [hdoff]; exact (os.cfr_natZ _ hvsN).2
@@ -77,30 +76,31 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
   have hmxN : mx.toNat ≤ 0x7ffff000 ∧ 0 < mx.toNat := by
     have := hmxZ; simp only [sint.Z] at this; omega
   have hsN : soff.toNat < 2 ^ 61 := by omega
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z fdd < sint.Z (W64 0) by rw [hz0]; exact Int.not_lt.2 hfdd)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z fds < sint.Z (W64 0) by rw [hz0]; exact Int.not_lt.2 hfds)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z doff < sint.Z (W64 0) by rw [hz0, hdZ]; omega)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z soff < sint.Z (W64 0) by rw [hz0]; omega)]
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl]
+  try wp_auto
   have hd2 : sint.Z (doff + mx) = vs.length + mx.toNat := by
     rw [os.cfr_sumZ doff mx (by omega) hmxN.1, hdN]
   have hs2 : sint.Z (soff + mx) = soff.toNat + mx.toNat := os.cfr_sumZ soff mx hsN hmxN.1
   have hmax : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (doff + mx) by
     rw [hd2, hmax]; omega)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (soff + mx) by
     rw [hs2, hmax]; omega)]
-  wp_auto
+  try wp_auto
   -- the `pread` of the source
   have hmidl : ((bs.drop soff.toNat).take mx.toNat).length = min mx.toNat (m.size - soff.toNat) := by
     simp only [List.length_take, List.length_drop]; omega
   ihave ⟨Hmid, Hback⟩ := os.osBytes_mid ds.ino qb bs soff.toNat mx.toNat $$ Hbs
+  try wp_auto
+  wp_stub os.fsPRead.impl
   wp_apply wp_osPRead fds soff mx dqfs qm qb ds m ((bs.drop soff.toNat).take mx.toNat)
     CoPset.subseteq_top hrd hs0 hmidl $$ Hinv Hfds Hm Hmid as %r %e %hre Hfds Hm Hmid
   ihave Hbs := Hback $$ Hmid
@@ -112,7 +112,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
   rotate_left
   · -- an errno: nothing copied
     rw [decide_eq_false he0]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hdfd Hsfd Hfdd Hfds Hm Hbs
     iexists 0
@@ -123,17 +123,17 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
     exact ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ h => absurd h he0, by omega⟩
   subst he0
   rw [show decide ((W64 0) = W64 0) = true from decide_eq_true rfl]
-  wp_auto
+  try wp_auto
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len r
   iintro %-
-  wp_auto
+  try wp_auto
   have hrl : r.length = k' := by
     rw [hrv, List.length_take, List.length_drop, List.length_map]; rw [hmidl] at hk'l; omega
   by_cases hk0 : k' = 0
   · -- the source's end
     have hlz : r.length = 0 := by omega
     rw [decide_eq_true (show (W64 r.length) = W64 0 by rw [hlz]; rfl)]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hdfd Hsfd Hfdd Hfds Hm Hbs
     iexists 0
@@ -151,7 +151,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
     intro h; have := congrArg BitVec.toNat h
     simp at this; omega
   rw [decide_eq_false hrne]
-  wp_auto
+  try wp_auto
   -- the destination, at its end
   ihave ⟨%md, %xs, Hmd, Hxs, %hmd⟩ := io.copyDst_elim dd.ino _ $$ Hdst
   obtain ⟨hok, hxl, hvs'⟩ := hmd
@@ -160,6 +160,8 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
   · unfold osBytes bytesG; iapply BigSepL.bigSepL_nil.2; iempintro
   ihave Hmc : mcellsAny (GF := GF) md.maps doff.toNat (doff.toNat + r.length) $$ []
   · rw [hok.1]; unfold mcellsAny; iapply BigSepM.bigSepM_empty.2; itrivial
+  try wp_auto
+  wp_stub os.fsPWrite.impl
   wp_apply wp_osPWriteStart fdd doff r dqfd dd md [] CoPset.subseteq_top hwr
     (by have := hdZ; simp only [sint.Z] at this; omega) (by omega)
     (fun h => by subst h; simp only [List.length_nil] at hrl; omega) (by simp only [List.length_nil]; omega)
@@ -178,7 +180,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
   by_cases hk0' : k = 0
   · subst hk0'
     rw [decide_eq_true (show (W64 ((0 : Nat) : Int)) = W64 0 from rfl)]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hdfd Hsfd Hfdd Hfds Hm Hbs
     iexists 0
@@ -195,7 +197,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
     intro h; have := congrArg BitVec.toNat h
     simp at this; omega
   rw [decide_eq_false hkne]
-  wp_auto
+  try wp_auto
   iapply HΦ
   iframe Hdfd Hsfd Hfdd Hfds Hm Hbs
   iexists k

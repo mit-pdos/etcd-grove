@@ -66,7 +66,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : preface.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : preface.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `client_check`, its update under a node's invariants (`Defs.lean`'s are the global ghost
@@ -235,9 +235,12 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hplan, #Heof, #Hed⟩
   icases pfInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HpfInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ [] as %li %err
     (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hplan
+  · (try iframe HnetPk)
+    iframe %Hplan
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -297,9 +300,12 @@ theorem wp_Call
   obtain ⟨x, rfl⟩ : ∃ x, rq = [x] :=
     List.length_eq_one_iff.mp (by rw [Hrq]; rfl)
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => clientRes γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcr⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply pf_dial_au γm $$ HaddrInv HpfInv
@@ -461,9 +467,12 @@ theorem wp_SendJunk
   wp_apply wp_RandomBytes k as %junk ⟨%js, Hjunk, -⟩
   · ipureintro; exact Hk.1
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => clientRes γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcr⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply pf_dial_au γm $$ HaddrInv HpfInv

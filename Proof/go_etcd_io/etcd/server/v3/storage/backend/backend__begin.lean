@@ -36,14 +36,14 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.Size_kv`). -/
-private theorem bbolt.kvGlue_Tx__Size_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__Size_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (T : bbolt.TxView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx γ q T }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Size")) (Val #()))
   {{ (n : w64), RET #n; txLive tx γ q T }} := by
   intro tx γ q T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, H⟩ HΦ
@@ -60,14 +60,14 @@ private theorem bbolt.kvGlue_Tx__Size_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.Fs
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.DB_kv`). -/
-private theorem bbolt.kvGlue_Tx__DB_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.DB.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__DB_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.DB.spec (GF := GF) (hG := hG)) :
   ∀ (tx db : Loc) (γ : DBNames) (q : Qp) (T : bbolt.TxView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx γ q T ∗ backend.txDB tx γ db }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"DB")) (Val #()))
   {{ RET #db; txLive tx γ q T }} := by
   intro tx db γ q T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -84,14 +84,14 @@ private theorem bbolt.kvGlue_Tx__DB_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `DB.Stats_kv`). -/
-private theorem bbolt.kvGlue_DB__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Stats.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_DB__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Stats.spec (GF := GF) (hG := hG)) :
   ∀ (db tx : Loc) (γ : DBNames) (T : bbolt.TxView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ txLive tx γ 1 T }}
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Stats")) (Val #()))
   {{ (s : Stats), RET #s; txLive tx γ 1 T }} := by
   intro db tx γ T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -108,14 +108,14 @@ private theorem bbolt.kvGlue_DB__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `DB.Info_kv`). -/
-private theorem bbolt.kvGlue_DB__Info_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Info.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_DB__Info_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Info.spec (GF := GF) (hG := hG)) :
   ∀ (db tx : Loc) (γ : DBNames) (q : Qp) (T : bbolt.TxView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ backend.txDB tx γ db ∗ txLive tx γ q T }}
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Info")) (Val #()))
   {{ (i : Loc), RET #i; (∃ v : Info, i ↦ v) ∗ txLive tx γ q T }} := by
   intro db tx γ q T
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -131,14 +131,14 @@ private theorem bbolt.kvGlue_DB__Info_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.Fs
 
 theorem backend.backend.begin.wp_proof
     (hUB : backend.backend.unsafeBegin.spec (GF := GF) (hG := hG))
-    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG))
-    (hDB : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.DB.spec (GF := GF) (hG := hG))
-    (hStats : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Stats.spec (GF := GF) (hG := hG))
-    (hInfo : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Info.spec (GF := GF) (hG := hG)) :
+    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Size.spec (GF := GF) (hG := hG))
+    (hDB : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.DB.spec (GF := GF) (hG := hG))
+    (hStats : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Stats.spec (GF := GF) (hG := hG))
+    (hInfo : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Info.spec (GF := GF) (hG := hG)) :
     backend.backend.begin.spec (GF := GF) (hG := hG) := by
   replace hSize := bbolt.kvGlue_Tx__Size_kv hSize
   replace hDB := bbolt.kvGlue_Tx__DB_kv hDB

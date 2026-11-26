@@ -47,7 +47,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 `etcd_kv_safe_nocrash`. The proof applies the full statement to M1's arguments and drops the scope, so it
 fails to compile if the two statements differ in anything but `Hscope`. -/
 theorem etcd_kv_safe_nocrash_of_full (H : etcd_robust_nocrash.spec) : etcd_kv_safe_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d _Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d _Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   exact H d boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
 
 /-- **The machines' boot WPs, for a well-formed deployment of M1's scope**: `EtcdBootNC` with the scope
@@ -57,7 +57,7 @@ def EtcdKvBootNC : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (d : Deployment) (_Hd : d.WellFormed) (_Hscope : KvOnly d ∧ d.cfg.auth = false)
     (σs σc σn : List state) (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
@@ -72,7 +72,7 @@ def EtcdKvBootNC : Prop :=
 `etcd_safe_nocrash_of_boot`'s bridge, with the scope passed to `EtcdKvBootNC` and the malformed case from
 `etcdBootNCBad_holds`. -/
 theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.spec := by
-  intro _ _ _ _ _ _ _ _ _ _ _ d Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
+  intro _ _ _ _ _ _ _ _ _ _ d Hscope boot Hbf Henv σs σc σn g Hσs Hσc Hσn HEnv Hfips
   have HI := etcdNetExts_initP g (machines d σs σc σn)
     (fun m hm => machines_fsInit Hσs.2 Hσc.2 Hσn.2 Hσs.1 hm)
   intro hfresh hg hl
@@ -102,7 +102,7 @@ from its share `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`, its sta
 theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hd : d.WellFormed) (Hscope : KvOnly d ∧ d.cfg.auth = false)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off) (σs : List state)
@@ -337,7 +337,7 @@ end shares
   `memberShareD` (`kvMemberBoot`), the orchestrator's from `kvOrchPre` (`kvOrchBoot`), each client machine's from its
   `kvNodePre` (`kvNodeBoot`), built from the members' address facts and its address's `remoteAddr`. -/
 theorem etcdKvBootNC_holds : EtcdKvBootNC := by
-  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd Hscope σs σc σn Hp Hfips G hb
+  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA d Hd Hscope σs σc σn Hp Hfips G hb
   obtain ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ := Hp
   have hrb : receiptBound etcdDistGF ≤ 2 ^ 60 := by unfold etcdSteps at hb; omega
   have hsl : (servers d σs).length = d.members.length := by simp [servers, Hσs.1]

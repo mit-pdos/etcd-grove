@@ -24,7 +24,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 
 theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :

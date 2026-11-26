@@ -26,7 +26,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-variable [_root_.Perennial.bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions]
+variable [_root_.Perennial.bufio.Assumptions] [net.Assumptions]
 variable [QpBufioDeps GF] [QpNetDeps GF]
 
 theorem clientInProto_hs (γ : QNames) (cl k : Nat) (hk : k < 2 ^ 16) (cid : Nat) :
@@ -72,11 +72,14 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
   simp only [Option.getD_some]
   ihave %Hok2 := addrTok_ok (clientAddr cl) $$ [Hproto]
   · iapply addrProto_tok $$ Hproto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply QpNetDeps.dial go!"tcp" net.tcpNet_tcp (clientAddr cl) iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (clientInProto γ cl) silentProto [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %cv %err (⟨%Herr, %cn, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
-  · isplitr
+  · (try iframe HnetPk)
+    isplitr
     · ipureintro; exact Hok2
     isplit
     · itrivial

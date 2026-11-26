@@ -33,7 +33,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [RA : RpcHttpAddr GF] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [net.rpc.Assumptions]
 variable (wp_Register : net.rpc.Register.spec_fresh (GF := GF) (hG := hG))
 
 include wp_Register in

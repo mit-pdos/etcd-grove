@@ -44,7 +44,7 @@ member (as leaseexpiryN's `cluster k`, P6).
 
 (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
 `single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
-name; against the tag the statement gains the instance argument `[net.FieldAssumptions]`, and its
+name; against the tag the statement gains the instance argument `` (dropped since, 2026-11-24, Go-model overlays S6), and its
 semantics the net extension; the network's initial state is `Robust`'s own premise.)
 -/
 module
@@ -89,9 +89,7 @@ def k8s_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
-    -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [log.NewModel]
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     -- the store's cluster: `k₁` members

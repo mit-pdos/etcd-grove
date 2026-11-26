@@ -69,7 +69,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 
 theorem golang_org.x.sys.unix.wp_Munmap :
     EtcdGrove.golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG) :=

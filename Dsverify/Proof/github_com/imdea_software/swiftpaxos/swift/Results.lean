@@ -52,7 +52,7 @@ section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
-  [sync.Assumptions] [examples.swiftnet.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
+  [sync.Assumptions] [examples.swiftnet.Assumptions] [net.rpc.Assumptions]
 
 /-- `BeTheLeader`, linked. -/
 theorem swift.Replica.wp_BeTheLeader : swift.Replica.BeTheLeader.spec :=
@@ -73,7 +73,7 @@ variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurren
   [time.Assumptions] [config.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
   [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
   [io.Assumptions] [errors.Assumptions] [bufio.Assumptions]
-  [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+  [net.Assumptions] [net.rpc.Assumptions]
 
 /-- `swift.New`, linked to its proved callees; the hypotheses still open: the package states'
 facts (proved at the link with `pkgStates`), the batcher's and the reply channel's goroutines,

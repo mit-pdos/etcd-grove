@@ -7,7 +7,7 @@ of the message) whose message starts with `what` (what tells it from the package
 -/
 module
 
-public import Net.Proof.net.http.Defs
+public import Net.Proof.net.http.RequestDefs
 
 @[expose] public section
 

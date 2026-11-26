@@ -56,7 +56,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
-variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))

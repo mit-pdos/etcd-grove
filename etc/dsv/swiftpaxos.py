@@ -167,7 +167,7 @@ first, through `swiftnet`'s (`BootLinked.lean`, `boot_swiftnet`), at the command
         gf='netDistGF',
         variables='''variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [package_sem : cmd.{n}.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [package_sem : cmd.{n}.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]''',
         returns="returns the machine's boot resources.",

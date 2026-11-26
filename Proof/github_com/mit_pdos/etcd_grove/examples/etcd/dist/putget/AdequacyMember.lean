@@ -97,9 +97,7 @@ set_option maxHeartbeats 1600000 in
 theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
-    -- (wal-nostorageok: `NewStorage`'s contract proved, `etcdstart`'s linked results take `os`'s field steps)
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [log.NewModel]
     (HEnv : EtcdVerifyOff)
     (peer client : GoString) (hlp : peer.length + 1 < 2 ^ 63) (hlc : client.length + 1 < 2 ^ 63)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)

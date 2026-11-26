@@ -70,7 +70,7 @@ from its share `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`. -/
 theorem member_boot_dist [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
     (d : Deployment) (Hd : d.WellFormed) (Hauth : d.cfg.auth = false)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off)

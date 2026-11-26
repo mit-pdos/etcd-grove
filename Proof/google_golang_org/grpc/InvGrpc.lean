@@ -31,7 +31,7 @@ variable [sem : go.Semantics]
 /-- **The method `name` at `addr` meets `Spec`** (persistent): `addr`'s service table, fixed when
 its protocols were set, has an entry for `name` at the messages' wire parts that a caller of `Spec`
 meets after an update (`grpcSvcAt`, no heap). -/
-def isGrpcRpcMd {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpecMd Req Rep) :
+@[no_expose] def isGrpcRpcMd {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
   iprop(∃ (_ : HasExt netExt) (π : NetProtoGS) (σ : NetSlotGS),
     grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr name Req.wire Rep.wire Spec)
@@ -172,6 +172,19 @@ theorem isGrpcRpcMd_mono_upd {Req Rep : ProtoMsg GF} (addr name : GoString)
   imodintro
   iintro %md %m %Φ %Ψe HS
   iapply (h md m Φ Ψe) $$ HS
+
+/-- A registration with the metadata-indexed `Spec` is one with any `Spec'` whose callers meet `Spec`
+after an update, in a persistent context (`grpcSvcAt_mono_upd`). -/
+theorem isGrpcRpcMd_mono_wand {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec Spec' : GrpcSpecMd Req Rep) :
+    ⊢ (□ ∀ md m Φ Ψe, Spec' md m Φ Ψe ==∗ Spec md m Φ Ψe) -∗
+      isGrpcRpcMd addr name Spec -∗ isGrpcRpcMd addr name Spec' := by
+  iintro #Hw #H
+  iunfold isGrpcRpcMd at H
+  icases H with ⟨%hX, %π, %σ, #Hs⟩
+  unfold isGrpcRpcMd
+  iexists hX, π, σ
+  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr name Req.wire Rep.wire Spec Spec') $$ Hw Hs
 
 /-- A registration with the metadata-indexed `Spec` is one with a stronger `Spec'`. -/
 theorem isGrpcRpcMd_mono {Req Rep : ProtoMsg GF} (addr name : GoString)

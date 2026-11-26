@@ -59,8 +59,7 @@ theorem etcd_compactwatch.wp_checkCompactRev :
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), over
 its callees' linked results. -/
-theorem etcd_compactwatch.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem etcd_compactwatch.wp_Main :
     etcd_compactwatch.Main.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof

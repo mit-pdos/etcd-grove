@@ -193,6 +193,13 @@ if python3 etc/goose.py --check > "$tmp/goose.log" 2>&1; then
 else
   echo "goose: FAILED"; grep "^goose.py:" "$tmp/goose.log" | grep -v "up to date" | head -20; fail=1
 fi
+# 4a. every internal/gomodel.toml says what the pinned Perennial's does (its Go files are the pin's,
+# materialized by goose.py: etc/gomodels.py)
+if python3 etc/gomodels.py check > "$tmp/gomodels.log" 2>&1; then
+  echo "gomodels: ok"
+else
+  echo "gomodels: FAILED"; tail -10 "$tmp/gomodels.log"; fail=1
+fi
 if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
   echo "gen-init: $(tail -1 "$tmp/init.log" | sed 's/^gen-init: //')"
 else

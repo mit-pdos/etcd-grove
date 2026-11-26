@@ -25,7 +25,7 @@ set_option linter.unusedSectionVars false
 section helpers
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : replica.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : replica.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- Dropping a key of a map's big separating conjunction. -/

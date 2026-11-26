@@ -247,6 +247,8 @@ def register(cfg, p, regs):
 
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
 PERENNIAL_HERE = {'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+# (Go model overlays, 2026-11-24) the overlay-added `internal/gomodel` of the standard-library models
+# is Perennial's at the pin (`Perennial.Proof.internal.gomodel.Link`: its `isPkgInit`, `wp_initialize'`).
 # The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
 # and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
 PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
@@ -762,7 +764,7 @@ function, which calls the trusted model of
         'ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []',
         '· iapply isPkgInit_access $$ {Hd:io.fs}',
         'icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, #F3⟩, ⟨%fe4, #F4⟩, ⟨%fe5, #F5⟩⟩',
-        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ []',
+        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) (interface.mkOk (go.GoType.PointerType _root_.Perennial.internal.poll.DeadlineExceededError.ty) #x) DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ []',
         '· iapply isPkgInit_access $$ {Hd:internal.poll}',
         'icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩, ⟨%pe3, #P3⟩⟩',
         'repeat (first',
@@ -1400,9 +1402,9 @@ WT_SPECIAL = {'github_com.mit_pdos.etcd_grove.examples.lib.durable':
 SPECIAL.update(LFS_SPECIAL)
 
 SPECIAL['internal.poll'] = dict(
-    doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
-initializer copies, hold some error for good, and `ErrFileClosing`, which `(*os.File).wrapErr`
-compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
+    doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline`, which `os`'s initializer copies, holds some
+error for good, `ErrDeadlineExceeded` (copied too) an `*DeadlineExceededError`, and
+`ErrFileClosing`, which `(*os.File).wrapErr` compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
 initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
 literal).''',
     imports=['Perennial.Proof.sync.Link', 'Perennial.Proof.errors.NewVar'],
@@ -5515,6 +5517,12 @@ def _gen(p, cfg=None):
             A(f'  wp_call  -- {x}: its trusted initializer does nothing')
         elif kind == 'opaqueinitfn':
             A(f'  wp_apply (initFuncsOk {x} (by mem_tac))')
+        elif kind == 'initfn' and x in cfg.get('initfn_apply', {}):
+            # (dsv-retire-3, 2026-11-26) a translated `init` with a spec of its own (a loop: zerolog's
+            # `internal/json`), applied instead of stepped into
+            A(f'  -- the translated {x}, by its spec')
+            for l in cfg['initfn_apply'][x]:
+                A('  ' + hdsub(l))
         elif kind == 'initfn':
             A(f'  -- the translated {x}')
             A('  wp_func_call')
@@ -5864,7 +5872,11 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
               # (2026-11-03) `os`'s, now generated (raft's `Init.lean` imports it), and its imports'
               'os', 'syscall', 'io.fs',
               # (2026-11-07) `os`'s translated initializers' imports
-              'internal.poll', 'internal.syscall.unix']
+              'internal.poll', 'internal.syscall.unix',
+              # (2026-11-25, Go model overlays at Perennial e9a45a420) `os`'s new import, whose
+              # `Init.lean` imports `PkgInitExt`: filepathlite (`os` no longer imports `runtime`:
+              # Code/os.toml, rawConn)
+              'internal.filepathlite']
 
 
 def part_paths(inits):
@@ -6252,7 +6264,10 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
-NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
+NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
+            'internal.filepathlite']
+# ((Go model overlays S5) the models' internal/gomodel, which syscall's and os's import, is Perennial's:
+# no `Init.lean` of its own, here or in the part.)
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
@@ -6317,7 +6332,8 @@ def net_inits(main_txt):
         # (`etc/goose.py`'s net lean roots): their translations and instances are the main tree's
         for p in NET_MAIN:
             inv[p] = saved[0][p]
-            inst[p] = saved[1][p]
+            if p in saved[1]:  # (runtime's instance is Perennial's)
+                inst[p] = saved[1][p]
         # (rpc-driver) the axiom packages' closures: the main tree's packages the part lacks
         st = [q for p in NET_AXIOM_INITS for q in inv[p]['imports']]
         while st:
@@ -6528,7 +6544,8 @@ def dsv_kit_raw(k, base):
         _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
             inv[p] = main_inv[p]
-            inst[p] = main_inst[p]
+            if p in main_inst:  # (runtime's instance is Perennial's)
+                inst[p] = main_inst[p]
         # the main tree's packages `MAIN` (always the main tree's inventory), and those of their
         # imports that `Net/` lacks
         st, seen = list(main), set()

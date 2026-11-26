@@ -64,7 +64,7 @@ theorem copy_data_eq (bs rest : List w8) :
 abbrev prIface (pr : Loc) : GoInterfaceOk := ⟨go.GoType.PointerType replica.prefixReader.ty, #pr⟩
 
 /-- `prefixReader.Read` meets `io.readerOk` (see the file header). -/
-theorem prefixReader_readerOk [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions]
+theorem prefixReader_readerOk [_root_.Perennial.io.Assumptions] [net.Assumptions]
     (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     (pr t : Loc) (cid : Nat) (a : GoString) (la ra eof ed : GoInterface) (P : Proto GF)
     (first : List w8) :

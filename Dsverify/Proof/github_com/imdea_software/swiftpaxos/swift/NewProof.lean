@@ -31,7 +31,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [hook.Assumptions]
-  [time.Assumptions] [config.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
+  [time.Assumptions] [config.Assumptions] [net.rpc.Assumptions]
 
 set_option goose.wp.extras true
 

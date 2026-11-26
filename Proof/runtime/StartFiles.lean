@@ -98,7 +98,7 @@ theorem files_of_claim (R : Roots) (r : GoString) (j0 : Ino) (hr : (r, j0) ∈ R
     rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem])]
     exact hcur b (List.mem_cons_self ..)
 
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [backend.FsNoErrAll]
+variable [backend.FsNoErrAll]
 
 /-- **The fresh files at program start** (see the file header): from the file extension's start
 resources (`osStart` of an `FsInit` state), at the step of the program `e` (not a value), the

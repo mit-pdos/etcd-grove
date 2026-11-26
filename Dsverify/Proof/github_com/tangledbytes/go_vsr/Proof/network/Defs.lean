@@ -87,7 +87,7 @@ def network.regN : Namespace := ndot (ndot nroot "vsr") "tcpreg"
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 
 /-- The `tcp.mu` field. -/
 abbrev network.muField (tcp : Loc) : Loc := structFieldRef network.TCP go!"mu" tcp
@@ -187,7 +187,7 @@ end defs
 section defs2
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 /-- What the readers need (persistent): `FromDecoder` on a decoder of `γ`'s stream (what
@@ -237,7 +237,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section insts
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF]
 
 instance network.rootInv_persistent (tcp : Loc) (ns : network.TcpNames) :

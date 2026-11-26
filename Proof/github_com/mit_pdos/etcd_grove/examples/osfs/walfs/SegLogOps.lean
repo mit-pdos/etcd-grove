@@ -113,7 +113,7 @@ section oscalls
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
-variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
+variable [sem : go.Semantics] [os.Assumptions]
 
 /-- **`os.OpenFile(dir/seg.log, O_RDWR|O_CREATE, perm)`**, `dir` the root of inode `j`, `seg.log`
 absent: on success a new file of a fresh inode `i`, `seg.log` names it. -/

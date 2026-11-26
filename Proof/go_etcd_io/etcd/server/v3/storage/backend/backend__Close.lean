@@ -33,19 +33,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 `FsNoErrAll` refutes); the file it gives back (`fileHoldsM`, S3g), at the inode the database kept
 (`dbRestF`): `bClosed` (S5; until then, with the claim the database kept, `fileHolds`). -/
 private theorem bbolt.kvGlue_DB__Close
-    (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    (h :
       bbolt.DB.Close.spec (GF := GF) (hG := hG)) :
   ∀ (db : Loc) (γ : DBNames) (D : backend.Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ ownDB db γ D ∗ dbHalf γ D }}
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ backend.bClosed γ D }} := by
   intro db γ D
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.isDB, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
-  · haveI := fax; haveI := fsax
-    have h' := @h fax fsax
+  · have h' := h
     simp only [backend.bClosed, backend.ownDB, backend.dbHalf, backend.isDB, onFs_some hfs]
     obtain ⟨Sio, hino, hpath', hs1, hs2⟩ := nex.ok
     have hne : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath'
@@ -66,7 +65,7 @@ private theorem bbolt.kvGlue_DB__Close
     iframe Hino Hf
 
 theorem backend.backend.Close.wp_proof
-    (hClose : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    (hClose :
       bbolt.DB.Close.spec (GF := GF) (hG := hG)) :
     backend.backend.Close.spec (GF := GF) (hG := hG) := by
   replace hClose := bbolt.kvGlue_DB__Close hClose

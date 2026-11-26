@@ -35,7 +35,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `acceptloop_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/acceptloop/TopLevelRobustness.lean`). -/
 theorem acceptloop_crash_robust : acceptloop_crash_robust.spec := by
-  intro lctx sem server_sem client_sem field_sem σs σc g bound hf hig
+  intro lctx sem server_sem client_sem σs σc g bound hf hig
   -- `Robust`'s premise `extsInitGlobal g` is, for `netExts = [netExt]`, no connection
   -- (`NetGlobal.init`, `GooseLang/Ext/Net/Impl.lean`)
   have Hconns : (extGlobal netExt g.globalWorld).conns = ∅ := hig.1

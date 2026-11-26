@@ -25,10 +25,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.snapshot.UnsafeRange.wp_proof
-    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
-    (hCursor : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG))
+    (hBucket : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Bucket.spec (GF := GF) (hG := hG))
+    (hCursor : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG))
     (hur : backend.unsafeRange.spec (GF := GF) (hG := hG)) :
     backend.snapshot.UnsafeRange.spec (GF := GF) (hG := hG) := by
   replace hBucket := bbolt.kvGlue_Tx__Bucket_kvr hBucket

@@ -60,9 +60,8 @@ theorem etcd_leasecatchup.wp_listed : etcd_leasecatchup.listed.spec (GF := GF) (
 
 /-- **`run` does not panic** (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/run.lean`),
 over its callees' linked results. -/
-theorem etcd_leasecatchup.wp_run [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem etcd_leasecatchup.wp_run
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_leasecatchup.run.spec (GF := GF) (hG := hG) :=
   etcd_leasecatchup.run.wp_proof etcd_leasecatchup.wp_config cluster3.wp_StartCluster
     etcdstart.wp_NewClients etcd_leasecatchup.wp_grant etcd_leasecatchup.wp_leases
@@ -71,9 +70,8 @@ theorem etcd_leasecatchup.wp_run [_root_.Perennial.net.FieldAssumptions]
 /-- **The multi-member lease example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/Main.lean`), under `run`'s
 semantic premises. -/
-theorem etcd_leasecatchup.wp_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem etcd_leasecatchup.wp_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_leasecatchup.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasecatchup.Main.wp_proof zap.NewNop.wp_proof etcd_leasecatchup.wp_run
 

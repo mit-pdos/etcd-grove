@@ -28,10 +28,11 @@ variable [sem : go.Semantics]
 
 /-- `net.Listen("tcp", addr)` with the right to listen at `addr`, reserved for HTTP (`http.httpAddrFree`, consumed)
 returns `nil` and a listener at `addr` (`netListenerAt`: the Go `*TCPListener` `l` tied to the extension's listener
-open at `addr`, with the claim on `addr`'s requests), or a non-nil error. -/
+open at `addr`, with the claim on `addr`'s requests), or a non-nil error. It takes `net`'s package fact (egnet,
+2026-11-25: `Net/`'s `Listen` does, as `Spec/net/Listen.lean`'s). -/
 abbrev net.Listen.specHttp : Prop :=
   ∀ (network addr : GoString),
-  {{ ⌜network = go!"tcp"⌝ ∗ http.httpAddrFree (GF := GF) addr }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ ⌜network = go!"tcp"⌝ ∗ http.httpAddrFree (GF := GF) addr }}
     (App (App (Val (@! net.Listen)) (Val #network)) (Val #addr))
   {{ (l err : GoInterface), RET (PairV #l #err);
       (⌜err = GoInterface.nil⌝ ∗ netListenerAt l addr) ∨ ⌜err ≠ GoInterface.nil⌝ }}

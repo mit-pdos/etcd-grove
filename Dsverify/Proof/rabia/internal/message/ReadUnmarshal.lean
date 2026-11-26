@@ -28,7 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : rabia.internal.message.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.Assumptions] [π : NetProtoGS]
 
 /-- The payload's property from `frameIs`, the protocol's fact of the bytes read (one step later:
 a later credit). -/

@@ -73,7 +73,7 @@ def gryff_remote_robust.spec : Prop :=
     [server2_sem : cmd.server2.Assumptions]
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] [rpc_sem : net.rpc.Assumptions],
+    [go.BasicIntoValInj] [rpc_sem : net.rpc.Assumptions],
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy gryffKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound

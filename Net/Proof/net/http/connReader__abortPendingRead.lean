@@ -29,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : net.http.Assumptions]
-variable [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [π : NetProtoGS] [net.Assumptions]
 
 theorem val_false_ne_true : (#false : val) ≠ #true :=
   fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)

@@ -1466,7 +1466,7 @@ variable [sem : go.Semantics]
 /-- **The streaming method `name` at `addr` meets `Spec` at each metadata a stream may carry, with
 the client's content `Up`** (persistent, no heap; the stream analogue of `isGrpcRpcMd`, read off
 `addr`'s service table, `grpcStreamSvcAt`). What a client's `NewStream` needs. -/
-def isGrpcStreamMd {Req Rep : StreamMsg GF} (addr name : GoString) (Up : Nat → Req.M → IProp GF)
+@[no_expose] def isGrpcStreamMd {Req Rep : StreamMsg GF} (addr name : GoString) (Up : Nat → Req.M → IProp GF)
     (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop(∃ (_ : HasExt Net.netExt) (π : Net.NetProtoGS) (σ : Net.NetSlotGS),
     grpcStreamSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr name Req.wire Rep.wire Up Spec)

@@ -35,7 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem cB_step_eq (b : Bool) (n : w64) :

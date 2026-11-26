@@ -36,7 +36,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `crash_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/osfs/crashlog/TopLevelRobustness.lean`). -/
 theorem crash_robust : crash_robust.spec := by
-  intro lctx sem package_sem _ _ σ g dir Hinit Hdir Hnd Hlog bound
+  intro lctx sem package_sem σ g dir Hinit Hdir Hnd Hlog bound
   exact
     Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
       (crash_safety

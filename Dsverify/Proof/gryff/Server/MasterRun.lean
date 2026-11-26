@@ -84,7 +84,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [net.rpc.Assumptions]
 variable (L : CodecLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
@@ -97,7 +97,7 @@ instance clientOk_persistent (γ : GryffNames GF) (c : Loc) :
     Persistent (clientOk γ c) := by
   unfold clientOk; infer_instance
 
-omit [net.rpc.Assumptions] [net.FieldAssumptions] in
+omit [net.rpc.Assumptions] in
 theorem worldOk_replica (γ : GryffNames GF) (hw : worldOk γ) (k : Nat) (hk : k < 3) :
     γ.rpc.SS (replicaRpcAddr k) go!"Replica" = some replicaSvc := by
   rw [hw.1]

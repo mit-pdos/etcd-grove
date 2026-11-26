@@ -193,7 +193,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 local notation "kpkg" => pkg_id.github_com.xiang90.paxos.examples.paxosnet

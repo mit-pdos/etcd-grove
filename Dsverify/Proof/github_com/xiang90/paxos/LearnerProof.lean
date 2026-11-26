@@ -27,7 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
-variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : paxos.Assumptions]
 
 set_option goose.wp.extras true
 

@@ -58,7 +58,7 @@ class EpBufioDeps (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics]
 
 /-- net's specs the replica proofs call (the file header). -/
 class EpNetDeps (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics] [HasExt netExt]
-    [net.FieldAssumptions] : Prop where
+    : Prop where
   connRead : net.Conn.Read.spec (GF := GF) (hG := hG)
   connWrite : net.Conn.Write.spec (GF := GF) (hG := hG)
   connClose : net.Conn.Close.spec (GF := GF) (hG := hG)

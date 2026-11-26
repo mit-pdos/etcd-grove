@@ -27,7 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : service.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- See the file header. -/
 abbrev Svc.Echo.spec : Prop :=

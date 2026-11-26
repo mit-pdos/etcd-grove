@@ -75,17 +75,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 variable [NaInvG GF]
 
 /-- **`Main` does not panic, for every schedule** (`Link.lean`'s `etcd_partition.wp_Main`). -/
-theorem linkv3p_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem linkv3p_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_partition.Main.spec (GF := GF) (hG := hG) :=
   etcd_partition.wp_Main
 
 /-- **`MainWatch` does not panic, for every schedule** (`Link.lean`'s `etcd_partition.wp_MainWatch`; W4
 of `notes/watch-cut-plan.md`). -/
-theorem linkv3p_MainWatch [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    :
+theorem linkv3p_MainWatch
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=
   etcd_partition.wp_MainWatch
 

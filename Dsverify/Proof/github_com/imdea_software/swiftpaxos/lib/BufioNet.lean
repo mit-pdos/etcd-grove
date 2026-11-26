@@ -42,7 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [π : NetProtoGS]
+variable [net.Assumptions] [net.rpc.Assumptions] [π : NetProtoGS]
 
 theorem tcpConn_ne_reader :
     go.GoType.PointerType net.TCPConn.ty ≠ go.GoType.PointerType bufio.Reader.ty := by
@@ -55,10 +55,10 @@ theorem tcpConn_ne_writer :
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is an error with some message. -/
 theorem resErr_errOrNil (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ errOrNil err := by
-  iintro #H
+    syscall.errnoOk (GF := GF) ⊢ net.resErr (some k) op src addr ed nm err -∗ errOrNil err := by
+  iintro #Hsys #H
   ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ H
-  ihave #Ha := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ H
+  ihave #Ha := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ Hsys H
   unfold errOrNil
   iright
   iframe Ha
@@ -109,6 +109,9 @@ theorem readerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv
   icases net_facts $$ Hpkg with ⟨%eof, %ed, #Heof, #Hv, #Hed⟩
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
+  ihave #Hpoll0 : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
+  · iPkgInit
+  ihave #Hsys := net.errnoOk_of_poll $$ Hpoll0
   icases newVar_err _ _ $$ Hv with ⟨%eof', #Heof', #Ha, %Hw⟩
   icombine Heof Heof' gives %Heq
   subst Heq
@@ -124,7 +127,7 @@ theorem readerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv
     iintro !> %r %e (%h | ⟨%k, #H⟩)
     · subst h; iframe Ha; ipureintro; exact Hw.1
     · ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ H
-      ihave #Ha' := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ H
+      ihave #Ha' := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ Hsys H
       iframe Ha'
       ipureintro; exact errWf_of_ptrTyped (net.netErr_ptrTyped (Hn.2 (by simp)))
   iapply net.conn_readerOk (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connRead (GF := GF)) t cid side a la ra eof ed P $$ [$Hio $Hat $Heof $Hed]
@@ -167,6 +170,7 @@ theorem writerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connWrite (GF := GF)) t cid side a la ra b bs dq ed (writeP cid side P W)
     $$ [HJ0 Hb]
   · iframe Hat Hb Hed HJ0 Hacc
+    iapply net.connAt_poll _ _ _ _ _ _ $$ Hat
   iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩
   obtain ⟨hpre, rfl, hnone, -⟩ := Hw
   unfold writeP
@@ -178,10 +182,11 @@ theorem writerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv
     | some k => exact absurd herr (net.netErr_ne_nil (Hres.2 (by simp)))
   have htake : bs.take w.length = w := by
     obtain ⟨rs, rfl⟩ := hpre; simp
+  ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hat
   ihave He : errOrNil err $$ []
   · cases res with
     | none => unfold errOrNil; ileft; ipureintro; exact Hres.1 rfl
-    | some k => iapply resErr_errOrNil $$ HE
+    | some k => iapply resErr_errOrNil $$ Hsys HE
   iapply HΦ
   iexists w.length
   isplitr
@@ -210,6 +215,7 @@ theorem _root_.Perennial.net.TCPConn.Write.labProof [github_com.imdea_software.s
   iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connWrite (GF := GF)) c cid side a la ra b bs dq ed (writeP cid side P W)
     $$ [HJ0 Hb]
   · iframe Hat Hb Hed HJ0 Hacc
+    iapply net.connAt_poll _ _ _ _ _ _ $$ Hat
   iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩
   obtain ⟨hpre, rfl, hnone, -⟩ := Hw
   unfold writeP

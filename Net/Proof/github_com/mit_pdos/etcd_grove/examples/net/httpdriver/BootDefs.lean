@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions]
+variable [package_sem : Assumptions]
 
 /-- A machine's boot resources (see the file header). -/
 def bootRes : IProp GF :=

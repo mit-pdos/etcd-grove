@@ -41,7 +41,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.orch
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.orch.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -79,7 +79,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client0
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.client0.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -108,7 +108,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client1
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.client1.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -137,7 +137,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client2
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.client2.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -166,7 +166,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client3
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.client3.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -195,7 +195,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client4
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.client4.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -224,7 +224,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.client5
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.client5.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -253,7 +253,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server1
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.server1.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -282,7 +282,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server2
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.server2.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -311,7 +311,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server3
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.server3.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -340,7 +340,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server4
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.server4.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -369,7 +369,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server5
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.server5.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -398,7 +398,7 @@ namespace github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.server6
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
 variable [net.http.Assumptions] [client.Assumptions] [package_sem' : cmd.server6.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 

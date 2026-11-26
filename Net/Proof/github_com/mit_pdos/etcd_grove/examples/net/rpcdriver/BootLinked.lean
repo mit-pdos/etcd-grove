@@ -36,7 +36,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net EtcdGrove
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : Assumptions] [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

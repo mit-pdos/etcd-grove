@@ -79,7 +79,7 @@ theorem ownInitializing_of_empty [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.
 section boot
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 

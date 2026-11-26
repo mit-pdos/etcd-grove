@@ -57,7 +57,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `dirswap_crash_safety` for executions of fewer than `N` steps along which fewer than `T`
 threads are live. -/
 theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.Assumptions] [os.file.FieldAssumptions]
+    [package_sem : Assumptions] [os.Assumptions]
     [hPre : GooseGpreS GF]
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString) (j : Ino)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
@@ -164,7 +164,6 @@ order), in particular whenever a crash interrupts `Create` (after the removals, 
 create, the write, the sync, the rename of the directory or the parent's sync). (`dirswap_crash_safety_bounded` with the ghost state
 `fsGF`.) -/
 theorem dirswap_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions]
     (σ : state) (g : GlobalState) (dir : GoString) (j : Ino)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world))

@@ -31,8 +31,8 @@ variable [GoGlobalContext]
 /-- `etcd_wal_safe.spec`
 (`WalTester/Spec/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness.lean`). -/
 theorem etcd_wal_safe : etcd_wal_safe.spec := by
-  -- the Go context, the Go semantics, the packages' 27 assumptions, then the premises
-  intro lctx sem _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+  -- the Go context, the Go semantics, the packages' 25 assumptions, then the premises
+  intro lctx sem _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
   intro σ g e Hinit hRe hr ho hne Hfirst
   haveI : go.BasicIntoValInj := inferInstance
   refine Robustness.Robust.of_single_crashing fun hfr n κs t2 σ2 b hn Hsteps => ?_

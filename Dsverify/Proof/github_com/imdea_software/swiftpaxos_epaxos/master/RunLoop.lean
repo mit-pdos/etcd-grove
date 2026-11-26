@@ -29,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions] [epaxos.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF] [RH : RpcHttpHyp GF]
 
@@ -226,7 +226,9 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
           RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns) hkr)
         iexact Hrpcs
       wp_auto
-      wp_apply (DialHTTP_kit W (rpcAddrOf k)) $$ [$Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
+      ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      · solve_pkg_init
+      wp_apply (DialHTTP_kit W (rpcAddrOf k)) $$ [$HnetPk $Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
       · ipureintro; exact HW.2
       wp_apply wp_store_slice_index nds (sint.Z iw) ns cl $$ [$Hnds] as Hnds
       · ipureintro; constructor <;> word
