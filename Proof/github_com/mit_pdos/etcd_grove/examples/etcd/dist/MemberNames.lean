@@ -90,6 +90,22 @@ theorem authNamesFreshG_iff (γa : auth.AuthNames) :
 
 end heap
 
+section share
+variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
+  [GoGlobalContext] [GoLocalContext] [go.Semantics] [go_etcd_io.etcd.client.v3.Assumptions]
+  [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+  [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  [G : GooseGlobalGS .hasLC GF] [π : Net.NetProtoGS]
+
+/-- **A member's lessor and auth names as the start hands them over** (#50 F7, L4; here since F7 step 2, for putget's `memberShare`;
+`notes/axiom-review/f7-combined.md` §2): half of the lessor name `γl`'s ghost map's authority at `∅` with its slot
+(`lease.lessorSlot_alloc`), and the auth names `γa` with their fresh authorities (`authNamesFreshG_alloc`): what the
+proposed `NewServer_dist` takes (`Hlslot`, and `Hγa` with auth on). -/
+def memberNamesShare (γl : GName) (γa : EtcdGrove.auth.AuthNames) : IProp GF :=
+  iprop(ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl ∗ authNamesFreshG γa)
+
+end share
+
 end etcd_dist
 end EtcdGrove
 end Perennial

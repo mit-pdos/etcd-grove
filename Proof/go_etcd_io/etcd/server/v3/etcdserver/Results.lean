@@ -2200,7 +2200,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.Field
     idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics
     prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier
     EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
-    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor srv_auth_tp_on
+    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessorAt srv_auth_tp_on
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
     apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_lease_revoke_latest,
     apply_UserAdd_fuelX,

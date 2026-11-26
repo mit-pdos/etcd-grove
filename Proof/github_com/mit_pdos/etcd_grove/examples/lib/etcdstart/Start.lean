@@ -13,6 +13,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 
 @[expose] public section
 
@@ -79,6 +80,64 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   icases srvStartReaders_split s ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
   iapply HΦ
   iunfold memberUp
+  iexists E, cfg, γw
+  -- (the raw run-pool stocks first, framed explicitly: no bare `iframe` meets their
+  -- `srvRevokePoolN`-long lists)
+  isplitr
+  · ipureintro; exact HE
+  isplitl [Hstk]
+  · iexact Hstk
+  isplitl [Hrun]
+  · iexact Hrun
+  iframe
+  iframe #
+  iunfold srvPeerCtl
+  iexists τ
+  iframe Hnm Htokp
+
+/-- `wp_Start_built` with the lessor at `γl` (F7 step 2): from `memberBuiltL`, `memberUpL`. -/
+theorem wp_Start_builtL (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
+    (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
+    (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (m : lease.Mode) (γl : GName)
+    (Hrb48 : receiptBound GF ≤ 2 ^ 48) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        memberBuiltL s ρ E₀ lg γn id N sv m γl ∗ threadTok }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
+    {{ RET #(); memberUpL s ρ E₀ lg γn id m γl }} := by
+  iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
+  iunfold memberBuiltL at Hmb
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, -, #Hlr, Hkeep⟩
+  iunfold srvServeBuilt at Hserve
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
+  -- `Start.spec` at the slot's `off`
+  imod isServerBuilt_offC s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
+    γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb⟩
+  · iframe Hsb
+    iapply (srvStop.slot_intro s cfg E γrn γk
+      (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk)) rfl) $$ Hkeep
+  have h' := wp_Start s γA ci TM .off E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
+    γrn b (W64 0) (W64 0) (W64 0) bootKV N
+  simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false] at h'
+  -- the server's member id is the member's (`srvNetMember`'s)
+  icases isServerBuiltC_mid .off s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
+    γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ Hsb with ⟨Hsb, #HmidS, -⟩
+  ihave #Hnm' := Hnm
+  iunfold srvNetMember at Hnm'
+  icases Hnm' with ⟨⟨%γdp, #Hpok⟩, -⟩
+  iunfold srvProcOk at Hpok
+  icases Hpok with ⟨%lp, %cp, %stp, %γrp, -, -, #Hmidp, -⟩
+  icombine HmidS Hmidp gives %Hideq
+  subst Hideq
+  wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, -, Hgo, Hlg3, Hsr, -, Hright⟩
+  · iframe; iframe #
+    ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
+  iunfold srvStartReaders at Hsr
+  icases Hsr with ⟨Hrslots, -⟩
+  -- (per-type stage B2) the run pool's share of the read loop's slots
+  icases srvStartReaders_split s ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
+  iapply HΦ
+  iunfold memberUpL
   iexists E, cfg, γw
   -- (the raw run-pool stocks first, framed explicitly: no bare `iframe` meets their
   -- `srvRevokePoolN`-long lists)

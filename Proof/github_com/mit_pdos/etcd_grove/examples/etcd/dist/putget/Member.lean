@@ -48,7 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 set_option maxHeartbeats 800000 in
 theorem Member.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_StartServer : etcdstart.StartServer.spec (GF := GF) (hG := hG))
+    (wp_StartServer : etcdstart.StartServer.specAt (GF := GF) (hG := hG))
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
     (wp_Serve_dist : etcd_dist.Serve_dist.spec (GF := GF) (hG := hG))
     (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
@@ -90,7 +90,9 @@ theorem Member.wp_proof
   ispecialize Hw $$ %(by simp [hp, hc, hpc])
   icases Hw with ⟨#Hprem, #Hvoff, Hwa, Hshare⟩
   iunfold memberShare at Hshare
-  icases Hshare with ⟨%Hcok, #Hcf, Hsl, #Haddr⟩
+  icases Hshare with ⟨%Hcok, #Hcf, Hsl, #Haddr, Hnames⟩
+  iunfold etcd_dist.memberNamesShare at Hnames
+  icases Hnames with ⟨Hlh, Hlslot, -⟩
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -108,9 +110,13 @@ theorem Member.wp_proof
   ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hwa]
   · iframe; iframe #
   wp_apply (etcd_dist.wp_StartServer1_slice wp_StartServer wp_MarshalBoot hne (2 ^ 48 - 1) name peer client lg id
-      ctxs boot Hbf hpl (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo c Hcok)
-    $$ [Htok Hstart Hsl] as %srv %err Hr
-  · iframe; iframe #
+      ctxs boot Hbf hpl (by decide) (by decide) Hpf Hcf Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo c Hcok (c.ls id))
+    $$ [Hlh Hlslot Htok Hstart Hsl] as %srv %err Hr
+  · isplitl [Hlh Hlslot]
+    · isplitl [Hlh]
+      · iexact Hlh
+      iexact Hlslot
+    iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, %Hcg⟩)
   · cases err with
     | nil => exact absurd rfl Herr
@@ -120,6 +126,7 @@ theorem Member.wp_proof
   subst Herr
   wp_auto
   -- `Serve(s, client)` on a member machine, at the cluster's view (`Serve_dist`)
+  ihave Hup := etcdstart.memberUpL_memberUp srv ρ E₀ lg γn id .none (c.ls id) $$ Hup
   wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id c.view) $$ [Hup] as %serr -
   · iframe; iframe #
     ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩

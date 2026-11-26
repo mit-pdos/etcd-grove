@@ -48,6 +48,38 @@ def memberUpL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn :
     srvPeerCtl γn s id ∗ srvLeaseRd s E m ∗
     (∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ id dd))
 
+/-- `memberUpL` forgets the lessor's name: `memberUp` (F7 step 2, until `Serve_dist` takes `memberUpL`). -/
+theorem memberUpL_memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (m : lease.Mode) (γl : GName) :
+    memberUpL (GF := GF) s ρ E₀ lg γn id m γl ⊢ memberUp s ρ E₀ lg γn id m := by
+  iintro Hup
+  iunfold memberUpL at Hup
+  iunfold memberUp
+  icases Hup with ⟨%E, %cfg, %γw, %HE, Hrest⟩
+  iexists E, cfg, γw
+  isplitr
+  · ipureintro; exact ⟨HE.1, HE.2.1, HE.2.2.1, HE.2.2.2.1, HE.2.2.2.2.1⟩
+  iexact Hrest
+
+/-- **`memberBuilt` with the lessor at `γl`** (F7 step 2): `etcdstart.memberBuilt`'s body verbatim, and
+`mvcc.api.mvccLeases E.γ = γl` for its environment `E` (`NewServer.specGAt`'s post); `Start` turns it into
+`memberUpL` (`etcdstart.wp_Start_builtL`). -/
+def memberBuiltL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (N : Nat) (served : Bool) (m : lease.Mode) (γl : GName) : IProp GF :=
+  iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+      (γrn : RNNames GF) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+      (γk : GName) (τ : SrvTr GF),
+    ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+      cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
+    srvServeStock s E ∗
+    srvWatchBuilt s E ∗
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
+      γrn b (W64 0) (W64 0) (W64 0) bootKV N ∗
+    srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    memberPeerServeRes γn τ served ∗
+    srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
+
 end defs
 
 end etcdstart

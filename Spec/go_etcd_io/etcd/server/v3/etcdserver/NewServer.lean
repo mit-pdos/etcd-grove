@@ -505,6 +505,10 @@ abbrev NewServer.specGAt (on cmp : Bool) : Prop :=
 at `on = false` (`NewServer.wp_proof`). -/
 abbrev NewServer.spec : Prop := ∀ cmp : Bool, NewServer.specG (GF := GF) (hG := hG) false cmp
 
+/-- **`NewServer` with auth off and the lessor at the caller's name** (F7 step 2): `NewServer.specGAt` at
+`on = false`, in either compaction mode (`NewServer.wp_proofAt`; `etcdstart.newServerMode.specAt`'s callee). -/
+abbrev NewServer.specAt : Prop := ∀ cmp : Bool, NewServer.specGAt (GF := GF) (hG := hG) false cmp
+
 /-- **`NewServer(cfg)` in the auth mode `on`, the compactor off**: `NewServer.specG` at
 `cmp = false` (`NewServer.wp_proofM`; the auth plan's E2i). -/
 abbrev NewServer.specM (on : Bool) : Prop := NewServer.specG (GF := GF) (hG := hG) on false

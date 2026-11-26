@@ -172,13 +172,6 @@ instance peerAddrFactsAt_persistent (γ : SrvRaft) (ms : List ClusterMember) :
     Persistent (peerAddrFactsAt (GF := GF) γ ms) := by
   unfold peerAddrFactsAt; infer_instance
 
-/-- **A member's lessor and auth names as the start hands them over** (#50 F7, L4;
-`notes/axiom-review/f7-combined.md` §2): half of the lessor name `γl`'s ghost map's authority at `∅` with its slot
-(`lease.lessorSlot_alloc`), and the auth names `γa` with their fresh authorities (`authNamesFreshG_alloc`): what the
-proposed `NewServer_dist` takes (`Hlslot`, and `Hγa` with auth on). -/
-def memberNamesShare (γl : GName) (γa : EtcdGrove.auth.AuthNames) : IProp GF :=
-  iprop(ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl ∗ authNamesFreshG γa)
-
 /-- **Member `i`'s share of the cluster's start** (of the deployment `d`, at the cluster's names `c`): the
 names as the start chose them (`ClusterOk`, lease mode `none`, at a compaction mode `cmp` and retention `cret`
 whose compactor slot the deployment's configuration meets), the cluster's facts, every member's peer address fact

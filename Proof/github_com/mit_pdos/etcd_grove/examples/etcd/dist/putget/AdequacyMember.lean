@@ -157,7 +157,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   ihave #Hsrvpkg : isPkgInit (PROP := IProp putgetGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   ihave #Hpr := etcdstart.premises_holds name peer client (2 ^ 48 - 1) id ctxs boot (by decide) Hfips Hbg $$ Hsrvpkg
-  wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
+  wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServerAt
       (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
       (AddrOk.wp_proof decimal.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
