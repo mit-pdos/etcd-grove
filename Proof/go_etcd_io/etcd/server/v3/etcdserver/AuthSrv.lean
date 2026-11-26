@@ -11,7 +11,7 @@ mode (`authStoreKit M tp`): `NewAuthStore`'s axiom's triple with the apply contr
 
 * **auth off** (`authSrvTP_off`): from `NewTokenProvider`'s proof and `NewAuthStore`'s axiom, the
   mode `off` (`NewServer.spec`'s, the closed theorems').
-* **auth on** (`authSrvTP_on`): the simple provider (`"simple"`, a positive TTL); the auth names
+* **auth on** (`authSrvTPAt_on`, at the caller's names since #50 F7 S2): the simple provider (`"simple"`, a positive TTL); the auth names
   allocated over the boot state with the provider's token names (`auth.authBoot_alloc`), the store
   from its proof in the mode `on γa` (`auth.newAuthStore_on`), its request side and apply contract
   of its invariant (`authSrvContracts_on`). D22's part, `authSchemaSrv` (`AuthSnapKit.lean`; a named
@@ -217,6 +217,38 @@ abbrev authSrvTP (on : Bool) : Prop :=
           (∀ γa : auth.AuthNames, M = .on γa → γa.rdy = γy)⌝ ∗ authStoreKit M tp) }}
 
 
+/-- **The auth names' fresh authorities the token provider and the auth store take** (#50 F7 S2, P-A1): the
+issued tokens' authority (`newTokenProviderSimple`'s, until then allocated there), the issue rights' empty
+authority (the kit's, `authStoreKit_on`'s) and the boot authorities (`auth.authBootFresh`, until then allocated
+by `auth.authBoot_alloc`). The readiness cell `γa.rdy` is the server's (`srvAuthNamesFresh`). -/
+def authNamesFreshTP (γa : auth.AuthNames) : IProp GF :=
+  iprop(auth.tokAuth γa.tok γa.fresh ∅ ∗ ghostMapAuth γa.fresh 1 (∅ : GMap GoString Unit) ∗
+    auth.authBootFresh γa)
+
+/-- **A member's fresh auth names, as `NewServer` takes them** (#50 F7 S2, P-A1): `authNamesFreshTP γa` and the
+readiness cell's whole authority at `0` (until then `srvTpInv_alloc`'s). The same resources as the distributed
+`authNamesFreshD γa` (`NewServer_dist`'s; `etcd_dist.authNamesFreshD_iff_srv`). -/
+def srvAuthNamesFresh (γa : auth.AuthNames) : IProp GF :=
+  iprop(authNamesFreshTP γa ∗ monoNatAuthOwn γa.rdy 1 0)
+
+/-- **`authSrvTP` at the caller's auth names** (#50 F7 S2, P-A1, as F2's P-L1 for the lessor): with auth on,
+the names `γa` (their readiness cell `γy`) and their fresh authorities `authNamesFreshTP γa` come from the
+caller, and the mode is `.on γa`. -/
+abbrev authSrvTPAt (on : Bool) : Prop :=
+  ∀ (lg : Loc) (opts : GoString) (iw : GoFunc) (ttl : time.Duration) (γy : GName) (γa : auth.AuthNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
+      ⌜on = true → opts = go!"simple" ∧ 0 < sint.Z ttl⌝ ∗
+      □ (⌜on = true⌝ → ∀ idx : w64,
+        {{ auth.tpShot γy }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) ∗
+      ⌜on = true → γa.rdy = γy⌝ ∗ (⌜on = true⌝ -∗ authNamesFreshTP γa) }}
+    (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewTokenProvider)) (Val #lg))
+      (Val #opts)) (Val #iw)) (Val #ttl))
+  {{ (tp err : GoInterface), RET (PairV #tp #err);
+      ⌜err = GoInterface.nil → tp ≠ GoInterface.nil⌝ ∗
+      (⌜err = GoInterface.nil⌝ -∗ |==> ∃ M : auth.AuthMode,
+        ⌜M.isOn = on ∧ (on = true → M = .on γa) ∧
+          (∀ γa' : auth.AuthNames, M = .on γa' → γa'.rdy = γy)⌝ ∗ authStoreKit M tp) }}
+
 /-- **The server's auth store's cost field** (persistent; authkv's Main, 2026-10-30): the server's
 `authStore` field is a `*authStore` whose `bcryptCost` field is read-only, what `BcryptCost()`
 returns (`bcryptCostOk`, the Auth service's `UserAdd`). `NewServer.specM true`'s. -/
@@ -355,6 +387,67 @@ theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; exact ⟨rfl, fun h => absurd h (by decide), fun _ h => by cases h⟩
   iapply (authStoreKit_off h30 tp)
+
+/-- **`authSrvTPAt false`** (#50 F7 S2, P-A1): `authSrvTP_off`'s proof; the names are unused. -/
+theorem authSrvTPAt_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
+    (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) :
+    authSrvTPAt (GF := GF) false := by
+  intro lg opts iw ttl γy γa
+  iintro %Φ ⟨#Hpkg, #Hlg, -, -, -, -⟩ HΦ
+  iapply (h25 lg opts iw ttl) $$ [Hpkg]
+  · iframe Hpkg; iapply zapLoggerOk_orNil; iexact Hlg
+  iintro !> %tp %err ⟨%Htp, -⟩
+  iapply HΦ
+  isplitr
+  · ipureintro; exact Htp
+  iintro -
+  imodintro
+  iexists .off
+  isplitr
+  · ipureintro; exact ⟨rfl, fun h => absurd h (by decide), fun _ h => by cases h⟩
+  iapply (authStoreKit_off h30 tp)
+
+/-- **Fresh auth names, allocated** (#50 F7 S2, P-A1): what `NewServer.wp_proofGAt` allocates to call
+`NewServer.wp_proofGAtA` with auth on (as `authBoot_alloc`, the provider and `srvTpInv_alloc` did). -/
+theorem srvAuthNamesFresh_alloc : ⊢ |==> ∃ γa : auth.AuthNames, srvAuthNamesFresh (GF := GF) γa := by
+  unfold srvAuthNamesFresh authNamesFreshTP auth.authBootFresh
+  iintro
+  imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Unit)) with ⟨%γf, Hf⟩
+  imod (auth.tokAlloc (GF := GF) γf) with ⟨%γt, Ht⟩
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γy, Hy, -⟩
+  imod (auth.authHist_alloc (GF := GF) γt γf γy [auth.bootState] auth.bootState
+      [auth.bootState, auth.bump auth.bootState]
+      (fun st hs => by simp at hs; subst hs; exact auth.bootState_permKeysOk))
+    with ⟨%γa, %Hn, Hh, Hc1, Hc2, Hp, Hfen, Hfca, Hr, Hcap, -, Hbk, Hsucc, Hrdt⟩
+  obtain ⟨ht, hf, hy⟩ := Hn
+  imodintro
+  iexists γa
+  rw [ht, hf, hy]
+  iframe Ht Hf Hy Hp Hfen Hfca Hcap Hbk Hsucc Hrdt
+  isplitl [Hh Hr]
+  · iunfold auth.authHist at Hh
+    icases Hh with ⟨Hh, -⟩
+    iapply (auth.authHist_full γa [auth.bootState]).2
+    iframe Hh Hr
+  · iunfold auth.authCurHalf at Hc1 Hc2
+    iapply (ghostVar_split_half γa.cur 1 auth.bootState).2
+    iframe Hc1 Hc2
+
+/-- An `if on then P else True` premise from `P` (#50 F7 S2). -/
+theorem ite_on_intro (on : Bool) (P : IProp GF) : P ⊢ (if on then P else iprop(True)) := by
+  cases on
+  · show P ⊢ iprop(True)
+    iintro -; itrivial
+  · show P ⊢ P
+    iintro H; iexact H
+
+/-- An `if on then P else True` premise as a wand on `on = true` (#50 F7 S2). -/
+theorem ite_on_wand (on : Bool) (P : IProp GF) : (if on then P else iprop(True)) ⊢ (⌜on = true⌝ -∗ P) := by
+  cases on
+  · show iprop(True) ⊢ _
+    iintro - %h; cases h
+  · show P ⊢ _
+    iintro H -; iexact H
 
 set_option maxRecDepth 16384 in
 /-- **The kit in the mode `on γa`** (see the file header): the store's proof in the mode `on γa`

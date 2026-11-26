@@ -70,7 +70,7 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc',
-    hgen'⟩ := Hρ
+    hgen', -⟩ := Hρ
   ihave #Hpi' : idPfxInv ρ.ids.gen ρ.ids.pfx $$ []
   · rw [hgen', hgen, hpfx]; iexact Hpi
   -- (R2c) the member's first key, its store's index registered, at its names

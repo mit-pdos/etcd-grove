@@ -42,10 +42,10 @@ preface; re-review after review 4, 2026-11-24; narrowed by the O1-B review's F4,
 protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's table at `(Γ, mid)`, whose spec
 is at the view's names. The member's KV names agree with the view's (`kvCongr ρ.rd.kv Γ.kv`, what
 `kvInv_congr` and `isKv_intro`'s `kvSame` need: one KV state, model and requested log for the whole
-cluster), its auth is off (`memberUp`) and so is the view's (`Γ.auth = false`, review F2: the table's
-entries are the auth-off handlers), and the member is `mid` (`memberUp`'s id), so every such call
-meets the spec the member's handlers are proved against. The view's lessor names (`Γ.ls`) are read by no
-contract yet (P-L1, `notes/etcd-dist-plan.md` §18.3), so nothing ties them here.
+cluster), its auth mode, auth names, lessor name and lease mode are the view's (`memberUpL`/`memberUpOnL` at
+`Γ.kv.lm`, `Γ.ls mid` and, with auth on, `Γ.au mid`: F7 and F2's P-L1, 2026-11-26, reviews
+`notes/axiom-review/f7-combined.md` §1, §3; until then auth off only and nothing tied `Γ.ls`), and the member is
+`mid` (`memberUpL`'s id), so every such call meets the spec the member's handlers are proved against.
 
 Why it is true: today's `etcdstart.Serve.wp_proof` proves the same body in one process, through
 `grpc.start`/`grpc.serve` and the handlers' run contracts (`grpcRunOkMd`, on the member's own
@@ -64,8 +64,8 @@ the handlers' contracts (`phase7-plan.md` §2.4, §3, "`etcdstart`"), each at th
 `kvCongr` with the view's.
 Its statement needs no change, but S2's version may strengthen the post. **Obligation for S2's
 proof (review F5):** today's `Serve.spec` returns the served member's id existentially (`grpcUpM`),
-while this statement fixes the table's `mid` to `memberUp`'s id; S2's proof must show the id the
-server registers is `memberUp`'s (`mid = id`), or the statement changes at retirement. -/
+while this statement fixes the table's `mid` to `memberUpL`'s (`memberUpOnL`'s) id; S2's proof must show the id the
+server registers is the member's (`mid = id`), or the statement changes at retirement. -/
 axiom Serve_dist.wp_proof : Serve_dist.spec (GF := GF) (hG := hG)
 
 end proof

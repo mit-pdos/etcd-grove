@@ -489,13 +489,16 @@ theorem Member.wp_proof
   (try wp_auto)
   wp_apply wp_NewNop as %lg #Hlgz
   (try wp_auto)
+  -- the member's addresses within etcd's URL bounds (`StartMember_dist`'s `addrFits`), from `DistDeploy`'s `addrOk`
+  have Hpf := etcd_dist.addrOk_addrFits (Haokp pi (List.mem_of_getElem? hpi))
+  have Hcf := etcd_dist.addrOk_addrFits (Haok ci (List.mem_append_right _ (List.mem_of_getElem? hci)))
   wp_apply (wp_StartMember_dist S5 (2 ^ 28) (nameOf i) pi ci token sl pm lg M
       (iuOf (membersOf peers clients)) (urlsN (membersOf peers clients) ⟨nameOf i, pi, ci⟩) ps
       (LogEntry.toEntries boot 0) ctxs (etcd_putgetN.dirN (membersOf peers clients) (idsOf peers))
       (memberIdOf pi) { c.γ with reg := c.reg (memberIdOf pi) } ρ
       (etcdstart.env₀ γm (c.idx (memberIdOf pi)) (c.rev (memberIdOf pi)) (srvApi.kvNx ρ.rd false) false)
-      (fun _ => srvFloorFacts (GF := GF) (c.idx (memberIdOf pi)).slog) .none
-      Htb Hrb48 HrbN HwbN hvs hrule hboot Hbl Hdok Hdir Hbc ⟨rfl, rfl, Hdom, rfl⟩ hutf (nameOf_len i)
+      (fun _ => srvFloorFacts (GF := GF) (c.idx (memberIdOf pi)).slog) .none (c.ls (memberIdOf pi))
+      Htb Hrb48 HrbN HwbN hvs hrule hboot Hbl Hdok Hdir Hbc ⟨rfl, rfl, Hdom, rfl⟩ Hpf Hcf hutf (nameOf_len i)
       Haf Hbuq Hdbo) $$ [Htok Hmb Hvoff Hwa] as %s %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %γn, Hup⟩)
@@ -515,9 +518,13 @@ theorem Member.wp_proof
   (try wp_auto)
   wp_apply (wp_Serve_dist s ci ρ
       (etcdstart.env₀ γm (c.idx (memberIdOf pi)) (c.rev (memberIdOf pi)) (srvApi.kvNx ρ.rd false) false)
-      lg γn (memberIdOf pi) c.view) $$ [Hup] as %serr -
+      lg γn (memberIdOf pi) c.view (fun h => absurd h Bool.false_ne_true)) $$ [Hup] as %serr -
   · iframe; iframe #
-    ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, rfl⟩
+    isplitr
+    · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, Or.inl rfl⟩
+    -- the auth-off branch at the view's lessor `c.ls` and mode `c.γk.lm = .none` (`ClusterOk`'s)
+    simp only [etcd_dist.ClusterNames.view, Bool.false_eq_true, ↓reduceIte, hklg]
+    iexact Hup
   cases serr with
   | ok ei =>
     (try wp_auto)

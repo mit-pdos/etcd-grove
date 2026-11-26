@@ -2193,6 +2193,23 @@ error).
 | `Lease_LeasesLive_dist` | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpecLive γl` / `etcdLeaseLeasesSpecLiveW` | `ls mid`, revocable | after P-L1 |
 | `Client_LeaseLeases_dist` (etcd-grove-03's) | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpecAny` / `etcdLeaseLeasesSpecAnyW` | nothing | after O1-B (or now, over `γE`) |
 | `Client_LeaseTimeToLive_dist` (etcd-grove-03's) | `(*lessor).TimeToLive` (no options) | `lessor.TimeToLive.spec` at `etcdLeaseTTLSpec` / `etcdLeaseTTLSpecW` | nothing | after O1-B (or now) |
+| `Lease_Revoke_dist` (F2, not drafted) | `(*lessor).Revoke` | `lessor.Revoke.spec` / the auth-on refusal (`noAuth`, `foreign`) and the owner's revocation | auth names (F7) | after F7's auth view |
+| `Lease_TimeToLiveKeys_dist` (F2, not drafted) | `(*lessor).TimeToLive` with `WithAttachedKeys()` | `lessor.TimeToLive.spec` at `leaseKeysFold gs = true` / the keys verdict under auth | auth names (F7) | after F7's auth view |
+| `KV_PutLease_dist` (F2, not drafted) | `(*kv).Put` with `WithLease(id)` | `kv.Put.spec` with a lease (`putWireOf … .leaseID ≠ 0`) / `etcdPutSpecW` and the lease's attach, auth on | `kv`, `ls mid`, auth names (F7) | after F7's auth view |
+
+**Adopted 2026-11-26 (F2, `etcd-safe-f2`):** the six lease rows above are interim axioms, each in its own pair
+(`Proof/.../dist/{LeaseGrantDist,LeaseGrantLiveDist,LeaseLeasesGrantedDist,LeaseLeasesLiveDist,ClientLeaseLeasesDist,
+ClientLeaseTTLDist}.lean`); the four lessor ones are linked only after P-L1. The three F2 rows are used only by
+authLease, which runs auth on: their statements need F7's per-member auth names in `Γ` (§18.3's "Auth (N11)").
+
+**Narrowed 2026-11-26 (F2 axiom review, `notes/axiom-review/f2-lease-axioms.md`; the coordinator's decision):** the
+four lessor rows take `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` (the members' lessor names distinct; the view has no
+member set, so over every id). Without it, `DistView.ofKV`'s `ls := fun _ => 0` lets a grant at member A meet
+`Lease_LeasesGranted_dist`'s premise at a lagging member B, whose `LeaseLeases` reads its own lessor with no read
+index: unsound (the review's program). `ofKV` fails the premise; P-L1 discharges it (the start allocates a distinct
+lessor name per member, `NewServer` makes the member's lessor at exactly that name). The client wrappers (`leaseGrant`,
+`leaseList`, `gone`) and the Run specs take it too. Monotone mode also needs `lease.leasesNoExpiry` from the member's
+start (each docstring says so).
 
 The workloads call `cli.Put`/`cli.Get`/... (`*Client`'s promoted methods through its `KV` field): a proved promotion lemma
 per method gives them from the `(*kv)` drafts, so the axioms sit at the functions the proved specs are about. The cache
@@ -2234,6 +2251,56 @@ So each is an interim axiom with that reason; the lessor four also wait for P-L1
   apply wait), so the grant is in that member's history.
 - `Compact` with `cmp = true` implies auth off (`NewServer`'s `cmp = true → on = false`); its call is idempotent past the
   compacted revision (an error then), so a retry is harmless either way.
+
+**F7's auth-on rows (S1, 2026-11-26; drafts in `Proof/.../dist/AuthViewDist.lean`, review list
+`notes/etcd-dist-f7-reviews.md`).** All read `Γ.auth = true`, `Γ.kv` (`hist`, `rlog`) and, where member-local,
+the member's auth names `A mid` (`Γ.au` after P-A1); every success arm names the serving member and its check, every
+error arm claims nothing (the lead's condition, #50 01:29:52Z). F2's three rows "after F7's auth view" are
+`KV_PutOn_dist` (its `leaseID ≠ 0` case is `KV_PutLease_dist`), `Lease_RevokeOn_dist`, `Lease_TimeToLiveOn_dist` (was `…KeysOn…`).
+
+| Draft | Function | Mirrors (client spec / server spec) | Reads of `Γ` | Axiomatizable |
+|---|---|---|---|---|
+| `New_user_dist` | `clientv3.New` (user) | `clientv3.New.spec` / `Authenticate`'s `CheckPassword` | `kv`, `A mid` | after review |
+| `KV_PutOn_dist` | `(*kv).Put` (incl. `WithLease`) | `client_put_on` / `etcdPutSpecOn` | `kv` | after review |
+| `KV_DeleteOn_dist` | `(*kv).Delete` | `client_delete_on` / `etcdDeleteSpecOn` | `kv` | after review |
+| `Txn_CommitOn_dist` | `(*txn).Commit` | `client_txn_on` / `etcdTxnSpecOn` | `kv`, `A mid` | after review |
+| `KV_GetOn_dist` | `(*kv).Get` | `client_range_on` / `etcdRangeSpecOn` | `kv`, `A mid` (the floor) | after review, P-A1 |
+| `Auth_UserAdd_dist`, `Auth_UserGrantRole_dist`, `Auth_RoleAdd_dist`, `Auth_RoleGrantPermission_dist`, `Auth_AuthEnable_dist` | `(*authClient).X` | `authClient.X.spec` / `etcdXSpecW` | `kv` (`hist`) | after review |
+| `Lease_GrantOn_dist` | `(*lessor).Grant` | `client_lease_grant_on` / `etcdLeaseGrantSpecOn` | `kv`, `ls mid`, `A mid` | after review, P-L1, P-A1 |
+| `Lease_RevokeOn_dist` | `(*lessor).Revoke` | `client_lease_revoke_on` / `etcdLeaseRevokeSpecOn` | `kv`, `A mid` | after review, P-A1 |
+| `Lease_TimeToLiveKeysOn_dist` | `(*lessor).TimeToLive` + `WithAttachedKeys()` | `lessor.TimeToLive.spec` / `etcdLeaseTTLSpecMdW` | `ls mid`, `A mid` | after review, P-L1, P-A1 |
+| `Lease_LeasesOn_dist` | `(*lessor).Leases` | `lessor.Leases.spec` / `etcdLeaseLeasesSpecMdW` | `ls mid`, `A mid` | after review, P-L1, P-A1 |
+| `Serve_dist_proposed`, `NewServer.specG_dist_proposed` | `etcdstart.Serve`, `NewServer` | the current axioms (re-review) | `kv.hist`, `A mid` | S2 (`Proof/.../dist/AuthServeProposed.lean`) |
+
+**Adopted 2026-11-26 (F7 S3, the lead's approval #50 06:08Z; branch `etcd-safe-f7`, not landed before F9):** the
+fourteen auth-on rows above are interim axioms in the namespace `etcd_dist.authd`, each in its own pair
+(`Spec/.../dist/<F>.lean`, `Proof/.../dist/<F>.lean`, `<F>` below), statements unchanged from the reviewed drafts
+except `KV_GetOn_dist` (re-review A's N1, applied after the review: `notes/axiom-review/f7-changed-since-review.md`);
+`AuthViewDist.lean` keeps their vocabulary. `Serve_dist_proposed`/`NewServer.specG_dist_proposed` replaced the
+axioms in F7 step 3 (`eb138f6f8c`). Not linked yet: `RunAuthLease` is the first user (`notes/etcd-dist-f7.md`,
+"Handoff S3-1"). **Retirement routes:**
+
+| Axiom (`<F>`) | Retired by (the in-process contract it mirrors, through grpc's server at the member) |
+|---|---|
+| `New_user_dist` (`NewUserDist`) | S2's client side: `clientv3.New.spec` over `Invoke`, `etcdSvc`'s `Authenticate` entry (`CheckPassword`) |
+| `KV_PutOn_dist` (`KVPutOnDist`) | `client_put_on` / `etcdPutSpecOn` as an `etcdSvc` entry (`T := False`, the principal by name) |
+| `KV_DeleteOn_dist` (`KVDeleteOnDist`) | `client_delete_on` / `etcdDeleteSpecOn` |
+| `Txn_CommitOn_dist` (`TxnCommitOnDist`) | `client_txn_on` / `etcdTxnSpecOn` |
+| `KV_GetOn_dist` (`KVGetOnDist`) | `client_range_on` / `etcdRangeSpecOn` (the floor from the barrier, `authFloorAt`) |
+| `Auth_UserAdd_dist` (`AuthUserAddDist`) | `authClient.UserAdd.spec` / `etcdUserAddSpecW` |
+| `Auth_UserGrantRole_dist` (`AuthUserGrantRoleDist`) | `authClient.UserGrantRole.spec` / `etcdUserGrantRoleSpecW` |
+| `Auth_RoleAdd_dist` (`AuthRoleAddDist`) | `authClient.RoleAdd.spec` / `etcdRoleAddSpecW` |
+| `Auth_RoleGrantPermission_dist` (`AuthRoleGrantPermissionDist`) | `authClient.RoleGrantPermission.spec` / `etcdRoleGrantPermissionSpecW` |
+| `Auth_AuthEnable_dist` (`AuthAuthEnableDist`) | `authClient.AuthEnable.spec` / `etcdAuthEnableSpecW` |
+| `Lease_GrantOn_dist` (`LeaseGrantOnDist`) | `client_lease_grant_on` / `etcdLeaseGrantSpecOn` at `Γ.ls mid` |
+| `Lease_RevokeOn_dist` (`LeaseRevokeOnDist`) | `client_lease_revoke_on` / `etcdLeaseRevokeSpecOn` |
+| `Lease_TimeToLiveOn_dist` (`LeaseTimeToLiveOnDist`; was `Lease_TimeToLiveKeysOn_dist`, generalized to any options 2026-11-26) | `lessor.TimeToLive.spec` / `etcdLeaseTTLSpecMdW` |
+| `Lease_LeasesOn_dist` (`LeaseLeasesOnDist`) | `lessor.Leases.spec` / `etcdLeaseLeasesSpecMdW` |
+
+All fourteen go with the rest of §18.4 when #24's S2 client side defines `etcdSvc` and proves `Invoke` over the net
+model; the statements do not change. **Gap found linking `RunAuthLease` (S3):** `noAuth`'s plain `TimeToLive(id)`
+(no options) must be refused for an anonymous or bad-token caller (`requireAuthInfo`); no row covers it
+(`Lease_TimeToLiveKeysOn_dist` needs `leaseKeysFold gs false = true`; `Client_LeaseTimeToLive_dist` names no check).
 
 ### 18.5 Streams (N3, out of scope): what they would need
 

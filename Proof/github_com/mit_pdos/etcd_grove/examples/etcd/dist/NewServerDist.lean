@@ -63,8 +63,14 @@ another `γ.cl`) can never meet `Hpeers` at these addresses; a duplicate of a me
 `nodeVacant γ.cl id` and `raftState γ.cl id` (`Hnboot`; `nodeBoot` itself is persistent) (review of 2026-11-24: unindexed, two clusters at one address gave a duplicate member and
 raft's `tocommit out of range` panic). The network names `γn` the post gives are this member's.
 
+The member's auth names `γa` and lessor name `γl` are the caller's (F7's P-A1 and F2's P-L1, 2026-11-26; review
+`notes/axiom-review/f7-combined.md` §1, SOUND): the construction does not depend on ghost names. The lessor part is
+proved in one process (`NewServer.specGAt`, `NewServer.wp_proofGAt`, the same `Hlslot` and `mvccLeases E.γ = γl`).
+With auth on, the authorities `NewServer` allocates in one process (`auth.authBoot_alloc`, `tokAlloc`,
+`srvTpInv_alloc`) are the caller's instead (`authNamesFreshD γa`); no in-process spec takes them yet.
+
 Retired by phase 7 S5 (net/http's client half over the net extension, rafthttp's transport proved across machines)
-with `NewServer.wp_proofG` restated over S5's address facts. -/
+with `NewServer.wp_proofGAt` restated over S5's address facts. -/
 axiom NewServer_dist.wp_proof [π : NetProtoGS] (on cmp : Bool) :
     NewServer.specG_dist (GF := GF) (hG := hG) on cmp
 

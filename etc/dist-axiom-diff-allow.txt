@@ -8,7 +8,11 @@
 
 pair NewServer_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/NewServerDist.lean NewServer.specG_dist Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean NewServer.specG
 dev NewServer_dist.wp_proof <<<  ||| [ π : Net.NetProtoGS ] >>> the net extension's protocol ghost state (`httpAddrAt` is over it)
-dev NewServer_dist.wp_proof <<< GF ) ( γn : NetNames |||  >>> the network's names `γn` are no binder: the post gives them (below), as `StartMember_dist.spec`
+dev NewServer_dist.wp_proof <<< γn : NetNames GF ) ( |||  >>> the network's names `γn` are no binder: the post gives them (below), as `StartMember_dist.spec`
+dev NewServer_dist.wp_proof <<<  ||| ) ( γa : auth.AuthNames ) ( γl : GName >>> (F7 P-A1, F2 P-L1) the member's auth names `γa` and lessor name `γl` are the caller's binders (the start's per-member `DistView.au mid`/`ls mid`), as `NewServer.specGAt`'s
+dev NewServer_dist.wp_proof <<<  ||| ∗ ( ghostMapAuth γl ( 1 : Qp ) .half ( ∅ : GMap Bool lease.LessorGV ) ∗ lease.lessorSlot γl ) ∗ ( if on then authNamesFreshD γa else iprop ( True ) ) >>> (F2 P-L1) `Hlslot`: half of `γl`'s lessor map at `∅` and the start's slot holding the other half; (F7 P-A1) `Hγa`: with auth on, `γa` fresh (`authNamesFreshD`, what `NewServer` allocates in one process); token-identical to `NewServer.specGAt`'s, which `NewServer.wp_proofGAt` proves
+dev NewServer_dist.wp_proof <<< ∃ γa , |||  >>> (F7 P-A1) `γa` is the caller's binder, not the post's
+dev NewServer_dist.wp_proof <<<  ||| ∧ mvcc.api.mvccLeases E.γ = γl >>> (F2 P-L1) the member's lessor is at the caller's `γl`, as `NewServer.specGAt`'s post
 dev NewServer_dist.wp_proof <<< netHttpOk γn ||| ( □ ∀ ( pid : w64 ) ( a : GoString ) , ⌜ pid ∈ γ.vs ∧ pid ≠ >>> `#Hnet` (the in-process streams' registry) replaced by `#Hpeers`, every other peer's directory address set to etcd's peer protocols (`httpAddrAt`; reviewed, plan §17.3)
 dev NewServer_dist.wp_proof <<<  ||| ∧ go!"http://" ++ a ∈ dir pid ⌝ - >>> the rest of `#Hpeers`' premise (as above)
 dev NewServer_dist.wp_proof <<< ⌜ γn.N = srvNet ||| etcd_dist.httpAddrAt ( Gg := hG.goose_globalGS ) >>> `#Hpeers`' conclusion; the pure premise `%Hγn` (`γn.N = srvNet γ`) moves to the post with `γn`

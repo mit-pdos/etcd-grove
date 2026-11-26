@@ -22,6 +22,12 @@ features_NewDefaultServerFeatureGate: featuregate_New featureGate__Add featureGa
 etcdstart_newServerMode: features_NewDefaultServerFeatureGate etcdserver_NewServer
 etcdstart_newServer: etcdstart_newServerMode
 etcdstart_StartServer: etcdstart_newServer EtcdServer__Start
+# (F7 step 2) the same with the member's lessor at the caller's name (`NewServer.specAt`, linked in the
+# server's `Link.lean`): the dist members' start, whose `memberUpL` ties the lessor to the cluster's view
+etcdserver_NewServer+At: @
+etcdstart_newServerMode+At: features_NewDefaultServerFeatureGate etcdserver_NewServer+At
+etcdstart_newServer+At: etcdstart_newServerMode+At
+etcdstart_StartServer+At: etcdstart_newServer+At EtcdServer__Start
 # (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
 # nothing (`examples/etcd/restart` keeps its listeners)
 etcdstart_BuildServer: etcdstart_newServer

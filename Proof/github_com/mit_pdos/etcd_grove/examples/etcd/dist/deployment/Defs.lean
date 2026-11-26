@@ -80,13 +80,14 @@ def Workload.goBoundsOk (w : Workload) : Prop :=
 instance (w : Workload) : Decidable w.goBoundsOk := by unfold Workload.goBoundsOk; infer_instance
 
 /-- What `compatible(ws)` returning `true` says: the kinds distinct; a kind that is `alone` the only
-workload; beside a kind that `needsSoleWriter` (at another index) no kind that `writesKeys`; not both
-`LeaseExpiry` and a kind that `needsNoExpiry`. -/
+workload; beside a kind that `needsSoleWriter` or `grantsLeases` (at another index) no kind that
+`writesKeys`; not both `LeaseExpiry` and a kind that `needsNoExpiry`. -/
 def goCompatible (ws : List Workload) : Prop :=
   (ws.map Workload.kind).Nodup ∧
   (∀ w ∈ ws, kindAlone w.kind = true → ws.length = 1) ∧
   (∀ (i j : Nat) (w x : Workload), ws[i]? = some w → ws[j]? = some x → i ≠ j →
-    kindNeedsSoleWriter w.kind = true → kindWritesKeys x.kind = false) ∧
+    (kindNeedsSoleWriter w.kind = true ∨ kindGrantsLeases w.kind = true) →
+    kindWritesKeys x.kind = false) ∧
   ¬ ((∃ w ∈ ws, w.kind = W64 9) ∧ ∃ w ∈ ws, kindNeedsNoExpiry w.kind = true)
 
 /-- `RaftIdOk(id)`: `id` is neither of raft's local message targets (`math.MaxUint64`,

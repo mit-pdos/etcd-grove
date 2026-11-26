@@ -61,7 +61,84 @@ theorem kvInvOn_reg (γ : SrvRaft) (r : GName) (γk : KVNames) :
 with auth on; authkv's `ak_alloc`'s framing; auth-lease S4, 2026-11-16: at any lease mode, until then
 mode `none`): at the cluster's names `γ` with the member's own storage registry `reg`; in the
 revocable mode the member's prefix one of the cluster's grant prefixes, which meet their condition
-(`kvPfxOk`), and no lease expiring (`lease.bootCfg`'s auth row). -/
+(`kvPfxOk`), and no lease expiring (`lease.bootCfg`'s auth row); (F7 S2, 2026-11-26) the read names' KV names `kvSame` and `kvCongr` to the
+cluster's (what `Serve_dist` takes; `srvMemberBootOn_alloc`'s `kvCongr`). -/
+theorem memberBootOn_ofMC (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
+    (issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
+    (Hx : x = γs.slog)
+    (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hgen : γk.ids.gen = gen)
+    (Hc0 : γk.c0 = W64 0)
+    (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[], []])
+    (Hvs : γ.vs = ps) (Hkc : γk.cmp = false)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
+    (hne : lm = .revocable → lease.leasesNoExpiry) (Hklm : γk.lm = lm)
+    (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk)
+    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
+    ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
+      idClusterInv issued cnt wn fs gen srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
+      srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
+      kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
+      ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
+        idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗
+        (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+          nodeVacant γ.cl id) ∗
+        ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
+      idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗
+      ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec) -∗
+      srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
+      ghostMapAuth rev 1 (∅ : GMap w64 Unit) -∗
+      -- (etcd-dist D7) its prefix's generators' facts, on its machine
+      idPfxInv gen (idPfxOf (W16 (uint.Z id))) ==∗
+      ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
+        ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
+        ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩ ∧ kvSame ρ.rd.kv γk ∧ kvCongr ρ.rd.kv γk⌝ ∗
+        memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id false lm := by
+  subst Hx
+  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev #Hpi
+  ihave #Hkv' := kvInvOn_reg γ reg γk $$ Hkv
+  imod (srvMemberBootOn_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
+      (fun h => hpfx (Hklm ▸ h)) hpo) $$ Hkv' Hp [Hwt0]
+    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
+  · rw [Hwn]; iexact Hwt0
+  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc',
+    hgen', hcg⟩ := Hρ
+  ihave #Hpi' : idPfxInv ρ.ids.gen ρ.ids.pfx $$ []
+  · rw [hgen', Hgen, hpfx]; iexact Hpi
+  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
+  · simp only [IdNames.key]; rw [hpfx, hinc', hfs', Hfs]; iexact Hkf
+  ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts $$ []
+  · rw [hiss', hcnt, hwn', hfs', hgen', Hiss, Hwn, Hfs, Hgen]; iexact Hcl
+  imodintro
+  iexists ρ
+  isplitr
+  · ipureintro
+    exact ⟨hst, hc0', hch', hlog', hhist, hraft,
+      ⟨hst, hc0', hch', hlog', hcg.2.2.2.2.2.2.2.1, hcg.2.2.2.2.2.2.1, hcg.2.2.2.2.2.2.2.2.1⟩, hcg⟩
+  iunfold memberBootOn
+  simp only [env₀]
+  rw [hiss', hcnt, hraft, Hiss]
+  rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', Hiss])]
+  ihave #Hsrl' := srvRaftLogInv_reg γ reg $$ Hsrl
+  ihave #Hpm' := srvPropMint_reg γ reg γk.ids $$ Hpm
+  ihave #Hrc' := srvRdCtxInv_reg γ reg issued $$ Hrc
+  ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
+      nodeVacant γ.cl id $$ [Hnb]
+  · rw [Hvs]; iexact Hnb
+  rw [hcok]
+  iframe Hnb' Hsrl' Hcl' Hpi' Hkf' Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
+  isplitr
+  · ipureintro
+    exact ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog],
+      hpfx, by rw [hpfx]; exact HΦ, trivial, by rw [hkc', Hkc], trivial,
+      by rw [hklg', Hklm]; exact hrun, hne⟩
+  iunfold idNoZero
+  rw [hiss', Hiss]
+  iexact H0
+
+/-- **`memberBootOn` from the allocations, at the lease mode `lm`** (`memberBootOn_ofMC` without its
+`kvSame`/`kvCongr`, F7 S2, 2026-11-26). -/
 theorem memberBootOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
     (issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
@@ -94,46 +171,15 @@ theorem memberBootOn_ofM (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) 
         ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧
         ρ.rd.raft = ⟨{ γ with reg := reg }, [], W64 0⟩⌝ ∗
         memberBootOn { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id false lm := by
-  subst Hx
-  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev #Hpi
-  ihave #Hkv' := kvInvOn_reg γ reg γk $$ Hkv
-  imod (srvMemberBootOn_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
-      (fun h => hpfx (Hklm ▸ h)) hpo) $$ Hkv' Hp [Hwt0]
-    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
-  · rw [Hwn]; iexact Hwt0
-  obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hhist, hkc', hklg', hwn', hfs', hinc',
-    hgen'⟩ := Hρ
-  ihave #Hpi' : idPfxInv ρ.ids.gen ρ.ids.pfx $$ []
-  · rw [hgen', Hgen, hpfx]; iexact Hpi
-  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
-  · simp only [IdNames.key]; rw [hpfx, hinc', hfs', Hfs]; iexact Hkf
-  ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts $$ []
-  · rw [hiss', hcnt, hwn', hfs', hgen', Hiss, Hwn, Hfs, Hgen]; iexact Hcl
+  iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv Hm Hw Hg Hi Hc Hr #Hpi
+  imod (memberBootOn_ofMC γ ps ctxs reg issued cnt wn fs gen γk Φs id γm γs cok rev x Hx Hiss Hwn Hfs Hgen
+      Hc0 Hch Hlog Hvs Hkc lm hrun hne Hklm hpfx hpo HΦ) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm Hw Hg Hi Hc Hr Hpi
+    with ⟨%ρ, %Hρ, Hb⟩
   imodintro
   iexists ρ
-  isplitr
-  · ipureintro
-    exact ⟨hst, hc0', hch', hlog', hhist, hraft⟩
-  iunfold memberBootOn
-  simp only [env₀]
-  rw [hiss', hcnt, hraft, Hiss]
-  rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', Hiss])]
-  ihave #Hsrl' := srvRaftLogInv_reg γ reg $$ Hsrl
-  ihave #Hpm' := srvPropMint_reg γ reg γk.ids $$ Hpm
-  ihave #Hrc' := srvRdCtxInv_reg γ reg issued $$ Hrc
-  ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
-      nodeVacant γ.cl id $$ [Hnb]
-  · rw [Hvs]; iexact Hnb
-  rw [hcok]
-  iframe Hnb' Hsrl' Hcl' Hpi' Hkf' Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
-  isplitr
-  · ipureintro
-    exact ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog],
-      hpfx, by rw [hpfx]; exact HΦ, trivial, by rw [hkc', Hkc], trivial,
-      by rw [hklg', Hklm]; exact hrun, hne⟩
-  iunfold idNoZero
-  rw [hiss', Hiss]
-  iexact H0
+  iframe Hb
+  ipureintro
+  exact ⟨Hρ.1, Hρ.2.1, Hρ.2.2.1, Hρ.2.2.2.1, Hρ.2.2.2.2.1, Hρ.2.2.2.2.2.1⟩
 
 /-- **`memberBootOn` from the allocations**, for one member, at the lease mode `none`
 (`memberBootOn_ofM`'s). -/

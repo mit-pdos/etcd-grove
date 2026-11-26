@@ -25,6 +25,122 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
+
+- **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean`: `New_user_dist.spec`,
+  `KV_GetOn_dist.spec`, `Txn_CommitOn_dist.spec` (read-only branch), `Lease_{GrantOn,RevokeOn,TimeToLiveKeysOn,
+  LeasesOn}_dist.spec` (drafts, `.spec` only, no axiom); `AuthServeProposed.lean`, `Serve_dist_proposed.spec`.
+  No `SpecPlan/` counterpart.
+- **Defect.** Unsound (reviews A and C). Each draft quantified `A : w64 → auth.AuthNames` with only
+  `∀ a b, A a = A b → a = b`, and its success arm stated facts at `A mid` (`passwordChecked`, `enabledVerdict`,
+  `authFloorD`, `rangeClassFrom`, `txnClassFrom`, `leaseCheckD`). Injectivity is over the whole record, so a
+  caller can share one `hist` name it owns across all members and refute every success arm.
+- **Evidence.** `notes/axiom-review/f7-a.md` (a `New` with a real user and password that panics on success;
+  the same for `Get` and a read-only `Txn`), `notes/axiom-review/f7-c.md` F1 (the lease reads).
+- **Proposed change.** `DistView` gains `au : w64 → auth.AuthNames` (`S2Interim.lean`; `ofKV` sets a constant
+  until P-A1's start). The binder `A` is dropped and every `A mid` becomes `Γ.au mid`; the distinct-names
+  premises are kept, now over `Γ.au`. `Serve_dist_proposed` takes no `A` and requires, with auth on,
+  `etcdstart.memberUpOnL … (Γ.au mid) …` (`memberUpOn`'s body, `E.authMode = .on (Γ.au mid)`), so the
+  member's exclusive resources tie `Γ.au mid` to the real member. `etcdAddr_set` mints address facts for any
+  `Γ`, so Serve's premise is the only possible tie.
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`. Re-review with the S2 batch.
+
+## 2026-11-26: F7 proposed `Serve_dist` -- `Γ.ls mid` not tied to the serving member's lessor
+
+- **Spec.** `AuthServeProposed.lean`, `Serve_dist_proposed.spec`; `AuthViewDist.lean`,
+  `Lease_TimeToLiveKeysOn_dist.spec`.
+- **Defect.** Unsound (review C, F2). A start could publish a `Γ` whose `ls` names it owns. The proposed Serve's
+  `memberUpOn` used lease mode `.none` and said nothing of `Γ.ls`. The TTL draft also had no `Γ.kv.lm` premise.
+- **Evidence.** `notes/axiom-review/f7-c.md`, F2: Grant, Put with that lease, and `TimeToLive(WithAttachedKeys)`
+  as root, then a panic on success, with every disjunct of the success arm refuted.
+- **Proposed change.** `Serve_dist_proposed` requires `etcdstart.memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)` with
+  auth on, and F2's `etcdstart.memberUpL … Γ.kv.lm (Γ.ls mid)` with auth off. Both say `mvccLeases E.γ = Γ.ls mid`
+  at the lease mode `Γ.kv.lm`. `MemberLessor.lean` is copied verbatim from `etcd-safe-f2`. F2 owns P-L1, and its
+  `Serve_dist.spec_proposed` has the same lessor part, so the two are reviewed together.
+  `Lease_TimeToLiveKeysOn_dist` gains `Γ.kv.lm = .revocable`, as `Lease_LeasesOn_dist` has.
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`.
+
+## 2026-11-26: F7 `Auth_UserAdd_dist` -- the server's name bound dropped
+
+- **Spec.** `AuthViewDist.lean`, `Auth_UserAdd_dist.spec`; it mirrors `etcdUserAddSpecW`
+  (`v3rpc/AuthService.lean:121`).
+- **Defect.** The precondition is too weak. It omitted `name.length ≤ backend.maxKeySize`, which the mirror and
+  the three sibling drafts ask for. With a longer name every member that applies the entry calls `lg.Fatal`
+  (bbolt's `ErrKeyTooLarge`, `batch_tx.go:183`), yet the history model counts the entry as an applied `UserAdd`.
+  The update was `∀ um, ⌜…⌝ -∗ …` where the mirror has `□ (∀ um, ⌜…⌝ → …)`. The two are equivalent, so this is
+  only style.
+- **Evidence.** `notes/axiom-review/f7-b.md`; `issues/etcd-auth-useradd-long-name-fatal.md`.
+- **Proposed change.** The pure precondition is now `⌜strsSizeOk [name, pw] ∧ name.length ≤ backend.maxKeySize⌝`,
+  and the update is `□ (∀ um, ⌜um.name = name ∧ um.noPassword = false⌝ → histAu …)`. The driver meets the bound
+  ("root", "u", "v").
+- **Decision.** Accepted (the coordinator, 2026-11-26), applied on `etcd-safe-f7`.
+## 2026-11-26: the four lessor axioms (`Lease_Grant_dist`, `Lease_GrantLive_dist`, `Lease_LeasesGranted_dist`, `Lease_LeasesLive_dist`) -- names shared across members
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/{LeaseGrantDist,LeaseGrantLiveDist,
+  LeaseLeasesGrantedDist,LeaseLeasesLiveDist}.lean` (interim trust-boundary axioms, not linked). No `SpecPlan/` counterpart.
+- **Defect.** The statements quantify over every view `Γ`; the start's view `DistView.ofKV` has `ls := fun _ => 0`, so
+  every member has the same lessor name, and a grant's fact at member A (`leaseGrantedAt (Γ.ls A) i id`) meets
+  `Lease_LeasesGranted_dist`'s premise at member B. Go's `LeaseLeases` reads B's own lessor with no read index: a
+  lagging B does not list it. `Lease_LeasesGranted_dist` is unsound with `Lease_Grant_dist`; the revocable pair the same
+  once a slot is held.
+- **Evidence.** `notes/axiom-review/f2-lease-axioms.md` (the independent `axiom` review, 2026-11-26; the program there).
+- **Proposed change (applied, F2).** A premise `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` on all four (the view has no
+  member set: over every id); `ofKV` fails it. Carried by the wrappers (`leaseGrant`, `leaseList`, `gone`) and the Run
+  specs. P-L1 must discharge it: the start allocates a distinct lessor name per member (and an injective `ls`), and
+  `NewServer` makes that member's lessor at exactly that name. The docstrings also say monotone mode needs
+  `lease.leasesNoExpiry` from the member's start.
+- **Decision.** Accepted (the coordinator, 2026-11-26); a fresh review follows.
+- **Follow-up (the auth-lease review's F2, 2026-11-26):** distinct names are not enough: a start could serve a `Γ`
+  whose lessor names it allocated and owns (`etcdAddr_set` takes any `Γ`). Proposed (for review with F7's P-A1):
+  `Serve_dist.spec_proposed` requires the serving member's lessor at `Γ.ls mid` and its lease mode `Γ.kv.lm`
+  (`etcdstart.memberUpL`); `NewServer.specG_dist_proposed` gives `mvccLeases E.γ = γl`. The distinct-names premise is
+  then redundant; kept.
+
+## 2026-11-26: `lessorAbsentStays_dist.law` (N9b's draft law) -- a premise no client can hold; proved over a heap-free lessor slot
+
+- **Spec.** `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/LeaseDefs.lean`,
+  `lessorAbsentStays_dist.law` (a callee hypothesis of `RunLeaseExpiry.wp_proof` on `etcd-safe-n9b`), and its
+  single-process form `lease.lessorAt_absent_stays` (`Proof/go_etcd_io/etcd/server/v3/lease/LessorHist.lean`).
+  No `SpecPlan/` counterpart (the dist workloads are not in the spec plan). Not a trust-boundary spec: untrusted
+  proof design (the lead, #50 2026-11-26T01:14:58Z: "decide it yourselves ... record it in the ledger").
+- **Defect.** The draft law took only the address fact `etcdAddrAt a Γ mid` and three `lessorAt (Γ.ls mid)`
+  snapshots. The address fact is over the opaque table `etcdSvc` (no law), so nothing could prove the law from
+  it: it would have had to become an axiom. Its single-process form takes `lessorRdInv γl`, which is over the
+  member's heap (`lessorRdBody`'s `lsF … ↦□`, `ttlTie`), so it cannot appear in a statement about another
+  machine's client.
+- **Evidence.** `notes/etcd-dist-n9b.md` §10 ("What the lead's drafts lack", item 1); leaseexpiryN's `run.lean:452`.
+- **Proposed change (applied, F2).** A heap-free history slot, allocated by the start for each member's lessor
+  name `Γ.ls mid` (P-L1), `lease.lessorSlot γl := inv lessorSlotN (ghostMapAuth γl ½ ∅ ∨ lessorHistOk γl)`
+  (`Proof/go_etcd_io/etcd/server/v3/lease/LessorSlot.lean`), where `lessorHistOk γl` is the law itself over
+  `lessorAt` alone (`□ ∀ i k j σ ρ τ id, ⌜…⌝ -∗ lessorAt … -∗ … ={⊤ ∖ lessorSlotN}=∗ ⌜τ.1.lookup id = none⌝`):
+  persistent and heap-free, so any machine can hold it. (A first try put `∃ L : GooseLocalGS GF,
+  lessorRdInv (hG := ⟨Gg, L⟩) γl` there; it does not elaborate, `lessorRdInv`'s `go.Semantics` instance is at
+  the member's local context.) Until the member's `NewLessor` runs, the slot holds half of `γl`'s ghost-map
+  authority at `∅`; the member holds the other half. P-L1's `NewLessor` variant (`newLessor_alloc` at a given
+  `γl`) opens the slot in its one allocation step. The right disjunct is excluded there, because the member's
+  half at `∅` contradicts the pin it holds (`lessorAt_not_empty`). The variant joins the halves, inserts the
+  lessor's two keys (`lessorGhost`), allocates `lessorRdInv` as today, proves `lessorHistOk γl` from it
+  (`lessorAt_absent_stays` at `⊤ ∖ lessorSlotN`) and closes the slot with it. A client holding the slot and
+  any `lessorAt γl i σ` (which holds a pin of `γl`) is in the second case. So the law, restated with
+  `lessorSlot (Γ.ls mid)` in place of the address fact, is a theorem (`lessorAbsentStays_dist.law_holds`, via
+  `lease.lessorSlot_absent_stays`).
+  The clients' `leaseMember`/`memberCli` carry the slot of the member's lessor name; the orchestrator's share at
+  the start carries it for every member.
+  - *Moves:* the start allocates, for each member `mid`, `γl := Γ.ls mid` as a ghost map
+    `GMap Bool LessorGV` at `∅` (two halves) and the slot (`ClusterNames.ls`, replacing `DistView.ofKV`'s
+    constant). The member's boot passes its half to `NewServer.specG` (P-L1), down to `NewLessor`'s variant.
+    No interim axiom's text changes: the lease drafts already read `Γ.ls mid`, and `etcdAddrAt`/`etcdSvc` are
+    untouched.
+  - *Not taken:* (b) the law as an interim axiom (trust where a proof exists); (c) a stronger
+    `Lease_LeasesLive_dist` post (an axiom's text change); a real split of `lessorRdBody` with a fraction of
+    the history's authority in a heap-free invariant (every append in the lessor package, Grant, Revoke,
+    Recover, Attach and Detach, would have to open it; the slot needs only the allocation step).
+  - *Crash (D6, not this line):* a restarted member's lessor would need a slot that survives the restart. The
+    one-shot slot is for `etcd_safe_nocrash`.
+- **Decision.** Accepted (etcd-grove-03, under the lead's delegation of 2026-11-26T01:14:58Z). The slot and the
+  law's proof are on `etcd-safe-f2`; P-L1 (the `NewLessor`/`NewServer` variants and the start's allocation) is
+  F2's item 4.
+
 ## 2026-11-25: `statusErrOk` -- an error's value is of its dynamic type (`stTypedErr`) (#45)
 
 - **Spec.** `statusErrOk` (`Proof/go_etcd_io/etcd/cache/v3/Base.lean`), the predicate of the errors
@@ -7153,6 +7269,64 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `pend_fire`/`pend_choice` and `kvremote/NodeUpd` stop unfolding telescopes; `lin_mono` (counter `Shared`)
   and the two copies of `slotUpd_lin` (swiftnet `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.
 
+## 2026-11-26: F2's and F7's proposed `NewServer.specG_dist` combined (re-review C's N1)
+
+- **Spec.** `NewServer.specG_dist_proposed` (PROPOSED, not an axiom), written twice: F7's (P-A1,
+  `Proof/.../dist/AuthServeProposed.lean`) and F2's (P-L1, `Spec/.../dist/NewServerDist.lean` on `etcd-safe-f2` @
+  `54fa3c9780`), both in namespace `EtcdGrove`, so the merged branch could not even import both.
+- **Defect.** F7's text had no lessor binder: its post's `E` fixes `mvccLeases E.γ` inside `NewServer` (`envAgree`
+  does not fix `E.γ`), and the view is fixed before any machine runs, so no start could meet `memberUpL` or
+  `memberUpOnL` at `Γ.ls mid`, and the proposed Serve was unusable in both auth modes. F2's text lacked F7's auth names.
+- **Evidence.** `/shared/tmp/coord-03/rerev-f7c-report.md`, §2 N1 (`envAgree`, `InvBuild.lean:67`).
+- **Proposed change.** One text, in `AuthServeProposed.lean`: F7's `γa`, `"Hγa"` (`authNamesFreshD γa` with auth on)
+  and `on = true → E.authMode = .on γa`, plus F2's `γl`, `"Hlslot"` (half of `γl`'s ghost map authority at `∅` and
+  `lease.lessorSlot γl`) and `mvcc.api.mvccLeases E.γ = γl`. F2's copy is deleted (`NewServerDist.lean` back to the
+  current axiom's text only, its `LessorSlot` import dropped). The current `NewServer.specG_dist` is unchanged.
+- **Decision.** Applied on `etcd-safe-f7` (the F2/F7 merge, 2026-11-26), as the coordinator directed; one fresh
+  re-review of the merged text before it replaces the axiom (`notes/etcd-dist-f7-reviews.md`, row 20).
+
+## 2026-11-26: one proposed `Serve_dist` (F7's), its distinct-names premise guarded (re-review C's N2)
+
+- **Spec.** `Serve_dist_proposed.spec` (F7, `AuthServeProposed.lean`) and F2's `Serve_dist.spec_proposed`
+  (`Spec/.../dist/ServeDist.lean` on `etcd-safe-f2`), both PROPOSED.
+- **Defect.** Two texts for one axiom: F2's is the auth-off half of F7's (`memberUpL … Γ.kv.lm (Γ.ls mid)`, `Γ.auth =
+  false`). F7's took `∀ a b, Γ.au a = Γ.au b → a = b` also for auth-off views, where `au` is never read (an auth-off
+  start would have to pad it). Its docstring did not say that the tie must hold of every route serving an auth-on
+  `Γ` (condition C), nor that a restarted member cannot re-serve at the same names.
+- **Evidence.** `/shared/tmp/coord-03/rerev-f7c-report.md` (N2, "Limit"); `rerev-f7a-report.md` ("Condition C").
+- **Proposed change.** Keep F7's text (`memberUpOnL … (Γ.au mid)` with auth on, `memberUpL` with auth off); guard the
+  premise as `Γ.auth = true → ∀ a b, Γ.au a = Γ.au b → a = b`; its docstring states condition C and the restart limit
+  (`lease.lessorSlot` closes once at the first `NewLessor`; `authNamesFreshD` needs the history at `[bootState]`;
+  outside the no-crash line). F2's text is deleted (`ServeDist.lean` back to the current axiom only, its
+  `MemberLessor` import dropped). The current `Serve_dist.spec` is unchanged.
+- **Decision.** Applied on `etcd-safe-f7` (2026-11-26), as the coordinator directed; re-review with row 20.
+
+## 2026-11-26: `readCheckedD`'s cluster-level log a committed lower bound (re-review A's N1)
+
+- **Spec.** `readCheckedD`/`readAuthedD` (`Proof/.../dist/AuthViewDist.lean`), the success arm of the draft
+  `KV_GetOn_dist`.
+- **Defect.** `readAuthedD`'s prefix `L` was only `L₀ <+: L`, existential inside a pure proposition, with no
+  `srvReqLogLb γR L`: the claim admitted any extension of `L₀`, uncommitted ones included. Sound (Go's success meets
+  it at the member's applied prefix) but nearly empty.
+- **Evidence.** `/shared/tmp/coord-03/rerev-f7a-report.md`, §2 N1.
+- **Proposed change.** `readAuthedD` takes `L` as a parameter; `readCheckedD` binds it and adds `srvReqLogLb γR L`
+  (as `authFloorD` and `writeCheckedD` have). `txnReadCheckedD` does not use `readAuthedD` and is unchanged.
+- **Decision.** Applied on `etcd-safe-f7` (2026-11-26), as the coordinator directed.
+
+### 2026-11-26: the main-program specs' auth premise (F7 S2, Handoff S2-5's option (a))
+- **Spec.** `Spec/.../dist/server/{MainLogger,MainDeploymentLogger,MainDeployment}.lean` (and `member_boot_dist`'s `Hauth`,
+  `AdequacyMember.lean`, a proof file).
+- **Defect.** The premise `d.cfg.auth = false` keeps auth-on deployments out of the member's proof. Removing it outright
+  leaves auth on with the revocable lease mode unprovable: `NewServer_dist` takes `lease.bootCfg lm m on`, whose auth row
+  is `on = true → m = .revocable → lease.leasesNoExpiry` (`LeaseApi.lean:70`), and the specs give only `lease.runCfg lm lm`.
+- **Evidence.** `notes/etcd-dist-f7.md`, Handoff S2-5, "Finding".
+- **Proposed change.** Replace `d.cfg.auth = false →` by `(d.cfg.auth = true → lm = .revocable → lease.leasesNoExpiry) →`
+  in the three specs, and `member_boot_dist`'s `Hauth` likewise. It is weaker than the old premise, so every caller
+  (kvremote's M1 included) still discharges it.
+- **Decision.** Option (a), the coordinator's (2026-11-26). **Applied** (2026-11-26, F7 S2, with `MainLogger`'s auth-on
+  branch, one commit): the three specs take the new premise; `member_boot_dist`'s `Hauth` is the same, bound after `lm`;
+  kvremote passes `fun _ h => nomatch h` at `lm = .none`, its statement unchanged. The full theorem (the lead's F8) must discharge `leasesNoExpiry` for authLease, as the single-process
+  theorem does from its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, around lines 38-40 and 69-70).
 ## 2026-11-25: grpc `status` over its bodies: a `GRPCStatus` error is a structural `*status.Error`; `Errorf` stated for etcd's calls (status-bodies)
 
 - **Spec.** The vocabulary in `Proof/go_etcd_io/etcd/cache/v3/Base.lean` that `status.FromError`/`Code`/`Error`'s
