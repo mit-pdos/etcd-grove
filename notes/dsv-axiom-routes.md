@@ -344,3 +344,15 @@ initializers of the runtime packages zerolog imports, so their axioms show in th
 `etc/gates.sh` (fk-lean1, log `~/eg/logs/dsv-retire-3-gates-s6.log`): every check passed but axiom-tok, whose
 `etc/axiom-tok-allow.txt` still had `trunc ...zerolog.wp_initialize'` (a stale entry: now a theorem); removed
 (`ca45e750f0`), and `etc/axiom-tok-check.py --check` is ok.
+
+**Session 6, continued: `eventTok` defined, `Event.Str` proved** (`c396097763`). `eventTok` is the planned
+definition (session 4, item 2). `internal/json/AppendString.lean`: `wp_appendStringComplex`, `wp_AppendString`
+(appends a non-empty `q`), `wp_AppendKey` (needs `bs ≠ []`: `dst[len(dst)-1]`), lemmas (not `wp_proof`s) taking
+Perennial's `utf8.DecodeRuneInString` spec; `jsonInit_access` in json's `Base.lean`. Gotchas: a theorem in a section
+with `[HasExt Net.netExt]` takes it (zerolog's statements do not have it: keep it out of lemma sections); `hex[...]`
+needs `rw [hex_get_shr]`/`[hex_get_and]` before `wp_auto` (over the literal list); Perennial's `word` cache can
+reuse a stale `_proof_N` across re-elaborations in one lean-check server (a kernel type mismatch that a fresh server
+does not show: `etc/lean-check.py --stop`, then check again; candidate entry for `notes/perennial-changes.md`).
+`Event.Str.wp_proof` now takes the DecodeRuneInString spec, passed by `HypsHoldLinked`. 12 zerolog axioms left.
+Next: the five level methods (session 4, item 3), then the review over the defined token, then the tcb update
+(expected: `Event.Str.wp_proof` removed from the base and `dsv-rabia`, nothing added).

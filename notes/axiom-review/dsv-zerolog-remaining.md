@@ -21,11 +21,11 @@ names-only version, where the package fact was `True`.
   and hooks nil, `stack` false. `loggerOk lg = □ loggerMade lg`, as before. Unlike the opaque version,
   it is no longer produced only by `New`'s axiom: any `lg` equal to `newLogger w` has it (a logger value
   with the same fields behaves the same).
-- **`eventTok`** (`EventTok.lean`) is still **opaque** (no law). Defining it changes what all thirteen
-  remaining axioms claim, so it is left for the session that proves the level methods and `Str` over a
-  definition (the planned one: `e = null`, or `e ↦` an `Event` whose buffer is owned and non-empty, its
-  writer `newLevelWriter w` of `Discard`'s value, `done`/`ch` nil, `stack` false, level one of the five);
-  this review must then be redone over it.
+- **`eventTok`** (`EventTok.lean`) is **defined** (session 6, 2026-11-26): `e = null`, or `e ↦ v` with
+  `v.buf' ↦* bs`, its `ownSliceCap`, `bs ≠ []`, `ioutil.Discard ↦□ w` and `v.w' = newLevelWriter w`,
+  `v.done' = nil`, `v.ch' = nil`, `v.stack' = false`, `v.level' ∈ fiveLevels`. This changes what the
+  remaining axioms claim: the review must be done over this definition (rabia's statement premise
+  `Hyps` quantifies the token existentially, so its text is unchanged).
 
 ## Retired (proved from the translation; statements unchanged)
 
@@ -34,25 +34,25 @@ names-only version, where the package fact was `True`.
 - `ParseLevel.wp_proofWarn` (`ParseLevel.lean`): the switch through `marshalSpec`; `fmt.Errorf` (after
   the switch) is not reached on `"warn"`.
 - (session 3) zerolog's and `internal/json`'s `wp_initialize'`.
+- (session 6) `Event.Str.wp_proof` (`Event__Str.lean`), over the defined `eventTok`, from
+  `internal/json`'s `AppendKey`/`AppendString`/`appendStringComplex` lemmas
+  (`internal/json/AppendString.lean`) and Perennial's `utf8.DecodeRuneInString` spec.
 
-## Remaining (13), statements unchanged
+## Remaining (12), statements unchanged
 
 - `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof` (`Logger__*.lean`):
   `{{ isPkgInit zerolog ∗ l ↦{dq} lg ∗ loggerOk lg }} l.M() {{ (e : Loc), RET #e; l ↦{dq} lg ∗ eventTok e }}`.
   The precondition is now concrete and narrower (`lg = newLogger w`: level Trace, no sampler, no context,
   no stack, so `newEvent` reads `GlobalLevel()`, takes an event from `eventPool` and calls
   `e.Str(LevelFieldName, LevelFieldMarshalFunc(level))`); the post is over the opaque `eventTok`.
-  Provable over a defined `eventTok` once `Event.Str` is (next step).
-- `Event.Str.wp_proof`: `{{ isPkgInit ∗ eventTok e }} e.Str(k, x) {{ RET #e; eventTok e }}`. Provable:
-  `AppendKey` (reads `dst[len(dst)-1]`: needs the buffer non-empty, the `eventTok` definition's job) and
-  `internal/json`'s `AppendString` (`noEscapeTable`, the fact's `↦□`; `appendStringComplex`'s loop over
-  Perennial's `utf8.DecodeRuneInString`).
+  Provable now: `eventTok` is defined and `Event.Str` proved (next step).
 - `Event.{Int,Ints,Int64,Uint32,Bool,Float64}.wp_proof`: blocked by Perennial (`strconv.AppendInt`,
   `AppendUint`, `AppendBool`, `AppendFloat` are names only; `notes/perennial-changes.md`, 2026-11-26).
 - `Event.Msg.wp_proof`: blocked by Perennial (writes to `ioutil.Discard`, whose `Write` `io.isInit` hides).
 
-What to attack: whether the five level axioms and the eight event axioms are still true real-zerolog
-facts **for every `eventTok` a later definition could give** — in particular that no field method
-or `Msg` needs more of the event than the planned definition holds, and that a `nil` event (a disabled
+What to attack: whether the five level axioms and the seven event axioms are true real-zerolog
+facts **over the defined `eventTok`** — in particular that no field method or `Msg` needs more of the
+event than the definition holds, and that a client cannot build the token for an event the real
+methods mishandle (the definition is now public: any owned `Event` with those fields has it), and that a `nil` event (a disabled
 level: `GlobalLevel()` above the level, which `SetGlobalLevel` can now set to anything) is handled by
 every method (`Str`..`Msg` return at once on `nil`).
