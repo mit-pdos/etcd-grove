@@ -449,7 +449,7 @@ private theorem pendAt_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
 /-- The basic scope's owned part at the start: its facts, the storage's cap from the pre. -/
 private theorem rnScopeAt_start {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs : RNState)
     (s : NState) (st : Storage) (Hst : s.logst.storage = st)
-    (H : ∀ md, sc = some md → RnScope md rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
+    (H : ∀ md, sc = some md → RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
       (md.transfer = true → XScopeOk γ s)) :
     □ (∀ md, ⌜sc = some md⌝ -∗ ⌜md.snapshots = false⌝ -∗ storCapF (GF := GF) st 0) ⊢
       rnScopeAt γ id sc rs s := by
@@ -977,11 +977,12 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     have := uint_nat_eq σ.base.index'; have := uint_nat_eq s.logst.inprogress
     omega
   let rsK : RNState := { rs0 with k := cfgK cv }
-  have HscR : ∀ md, sc = some md → RnScope md rsK s1 := by
+  have HscR : ∀ md, sc = some md → RnScope md cv.ID' rsK s1 := by
     intro md hsc
     obtain ⟨Hpv0, Hcq0, -, Hmo, Hb0⟩ := Hsc md hsc
     refine ⟨fun h _ => (Hmo h).2.1, fun h => ?_, fun h => ?_, fun _ => ⟨Hpd, ?_⟩,
-      fun h => ⟨rfl, ?_, Hsn0, ?_⟩, fun _ => ?_, fun _ _ hp => absurd (Hr.symm.trans hp) (by decide)⟩
+      fun h => ⟨rfl, ?_, Hsn0, ?_⟩, fun _ => ?_, fun _ _ hp => absurd (Hr.symm.trans hp) (by decide),
+      fun _ hp => absurd (Hr.symm.trans hp) (by decide), fun _ _ hp => absurd Hr hp⟩
     · show s.prevote = false; rw [Hpvoff, Hpv0 h]
     · show s.cq = false; rw [Hcq, Hcq0 h]
     · intro hl; exact absurd (Hr.symm.trans hl) (by decide)

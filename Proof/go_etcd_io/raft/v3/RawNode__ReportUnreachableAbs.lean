@@ -205,7 +205,7 @@ theorem RawNode.ReportUnreachable.wp_absProof
   have Htrm' : rs.term = s'.term := by rw [Htrm, Hse]
   ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) (Hip4 (by msg_ne)) $$ Hstrecs
   -- the scope and the reading kept
-  ihave Hsc := rnScopeAt_keepAll (some md) rs rs s s' (fun _ h => by rw [Hse]; exact h)
+  ihave Hsc := rnScopeAt_keepAll (some md) rs rs s s' (fun _ h => by rw [Hse]; exact h.with_prvals pvs Hpm)
     (by rw [Hse]) (hfl := by rw [Hse]; exact ⟨rfl, rfl, rfl⟩)
     (hx := by rw [Hse]; exact ⟨rfl, rfl, rfl⟩) $$ Hsc
   ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'

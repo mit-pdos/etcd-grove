@@ -6525,3 +6525,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Open (B2).** `RestartR` lacks `r0.p.rd.pend = []` for the read-source conjunct at `bootR` (design §7 item 8).
 - **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no top-level premise beyond the two
   harness-discharged hypotheses above.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step B: `RnScope`'s pre-candidate and membership facts (#33)
+- **Spec (strengthened scope; lead's decisions 1 and 2).** `RnScope md id rs s` (RawNodeAt.lean; the node id added as an
+  argument) gains two last conjuncts: `md.prevote = true → s.role = .preCandidate → s.lead = W64 0` (Go's
+  `becomePreCandidate` `r.lead = None`; every later `lead` write changes the role) and `md.confChanges = false →
+  md.nonVoters = true → s.role ≠ .follower → id ∈ domSet s.prvals` (only a promotable node campaigns, `hup`/HupOkC's
+  `id ∉ c.voters → s' = s`; with a fixed configuration a leader stays a member). Both vacuous at `{}`
+  (`RnScope_empty` unchanged in content, `id` implicit). Producers: the restart (a follower), the three inputs proved at
+  a general mode (ReportUnreachable, ReadIndex, TransferLeader: role and lead kept, `Progress` values of the same `Match`:
+  `RnScope.with_prvals`, `mem_domSet_of_prvalsMatch`; `transferEnd_of_stepEnd`'s `prvalsMatch` fact now unconditional).
+  The other inputs re-prove them with the lifting at a general mode (step C).
+- **Decision.** Lead's decisions 1 and 2 (2026-11-26). No axiom, no premise.

@@ -235,7 +235,7 @@ theorem KTie.keep {rs rs' : RNState} {s s' : NState} (H : KTie rs s)
 /-- The scope kept, at every mode, by a step that keeps what it reads (`RnScope md`), the storage,
 the `Config` flags and the node constant. -/
 theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs rs' : RNState)
-    (s s' : NState) (H : ∀ md, RnScope md rs s → RnScope md rs' s')
+    (s s' : NState) (H : ∀ md, RnScope md id rs s → RnScope md id rs' s')
     (Hst : s'.logst.storage = s.logst.storage)
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
@@ -258,7 +258,7 @@ theorem rnScopeAt_keepAll {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
 another mode excludes: a read request at reads on), the storage, the `Config` flags and the node
 constant. -/
 theorem rnScopeAt_keepSome {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : RNState)
-    (s s' : NState) (H : RnScope md rs s → RnScope md rs' s')
+    (s s' : NState) (H : RnScope md id rs s → RnScope md id rs' s')
     (Hst : s'.logst.storage = s.logst.storage)
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
@@ -277,7 +277,7 @@ theorem rnScopeAt_keepSome {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : R
 /-- `rnScopeAt_keepSome` for a step that may change the transfer facts' inputs (a transfer request:
 the ghost records `xw` grow), given `XScopeOk` across it. -/
 theorem rnScopeAt_keepSomeX {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : RNState)
-    (s s' : NState) (H : RnScope md rs s → RnScope md rs' s')
+    (s s' : NState) (H : RnScope md id rs s → RnScope md id rs' s')
     (Hst : s'.logst.storage = s.logst.storage)
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)

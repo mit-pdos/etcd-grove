@@ -325,14 +325,15 @@ theorem RawNode.ReadIndex.wp_absProof
   -- the scope at `md` kept (reads on: the read state may grow), the reading's end
   ihave Hsc := rnScopeAt_keepSome md rs rs s { s with outbox := o, rd := rd, prvals := pvs }
     (fun Hs => by
-      obtain ⟨h1, h2, h3, -, h5, h6, h7⟩ := Hs
+      obtain ⟨h1, h2, h3, -, h5, h6, h7, h8, h9⟩ := Hs
       have h4 : md.reads = false → rd.pend = [] ∧ (s.role = .leader → rd.ro.pending = []) :=
         fun h => absurd (hreads.symm.trans h) (by decide)
       have h5' : md.snapshots = false → rs.slent = none ∧ s.logst.prev = base0 ∧ s.logst.snap = none ∧
           ∀ x ∈ o, x.ty ≠ .snap := fun hs => by
         obtain ⟨h51, h52, h53, h54⟩ := h5 hs
         exact ⟨h51, h52, h53, fun x hx => (Hout x hx).elim (h54 x) (fun h => h)⟩
-      exact ⟨h1, h2, h3, h4, h5', h6, h7⟩) rfl $$ Hsc
+      exact ⟨h1, h2, h3, h4, h5', h6, h7, h8, fun a b c => mem_domSet_of_prvalsMatch Hpm (h9 a b c)⟩)
+      rfl $$ Hsc
   ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered _
     (by rw [Hgh]; exact Hgtr.trans HtrG)
   have Hbk : BkStep s { s with outbox := o, rd := rd, prvals := pvs } :=

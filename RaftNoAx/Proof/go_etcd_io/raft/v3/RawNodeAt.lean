@@ -157,9 +157,14 @@ describes, `XfOk`). (antithesis parity B1, lead-approved) With pre-vote on and n
 pre-candidate's tally not a quorum of its configuration: only `hup` makes a pre-candidate (the tally
 reset, its self pre-vote queued, not yet polled) and a won tally campaigns in the same step; what makes
 `HandleEnd`'s pre-vote response arm campaign only on a grant (with configuration changes it is false:
-`switchToConfig` keeps `trk.Votes`, B3). `RnScope {}` is the first harness's scope (`RnScopeBasic`,
-`RnScope_empty`). -/
-def RnScope (md : RnMode) (rs : RNState) (s : NState) : Prop :=
+`switchToConfig` keeps `trk.Votes`, B3). (antithesis parity B1, lead's decisions 1 and 2, 2026-11-26)
+With pre-vote on, a pre-candidate knows no leader (`becomePreCandidate` sets `lead` to `0`, and every
+`lead` write changes the role); with non-voters on and no configuration changes, a node past the follower
+role in its own progress map (only a promotable node campaigns, `hup`; the configuration never
+changes, so a leader, once a candidate, stays one of it). The lifting reads both (`VoteGrant` the
+physical `lead`; a step function the node's own `Progress`). `RnScope {}` is the first harness's scope
+(`RnScopeBasic`, `RnScope_empty`). -/
+def RnScope (md : RnMode) (id : w64) (rs : RNState) (s : NState) : Prop :=
   (md.confChanges = false → rs.mode.isDyn = true → rs.cfg.cfg.outgoing = ∅) ∧
   (md.prevote = false → s.prevote = false) ∧ (md.cq = false → s.cq = false) ∧
   (md.reads = false → s.rd.pend = [] ∧ (s.role = .leader → s.rd.ro.pending = [])) ∧
@@ -167,7 +172,9 @@ def RnScope (md : RnMode) (rs : RNState) (s : NState) : Prop :=
      ∀ m ∈ s.outbox, m.ty ≠ .snap) ∧
   (md.transfer = false → s.gh.xs = false) ∧
   (md.confChanges = false → md.prevote = true → s.role = .preCandidate →
-     ¬ JQuorum rs.cfg.cfg (granted s.votes))
+     ¬ JQuorum rs.cfg.cfg (granted s.votes)) ∧
+  (md.prevote = true → s.role = .preCandidate → s.lead = W64 0) ∧
+  (md.confChanges = false → md.nonVoters = true → s.role ≠ .follower → id ∈ domSet s.prvals)
 
 /-- **The first harness's scope, flat** (`RnScope {}`, `RnScope_empty`; the conjunction the proofs of
 the basic scope read by position): a simple configuration (in the dynamic mode no outgoing half),
@@ -179,14 +186,36 @@ def RnScopeBasic (rs : RNState) (s : NState) : Prop :=
   s.rd.pend = [] ∧ rs.slent = none ∧ s.logst.prev = base0 ∧ s.logst.snap = none ∧
   (∀ m ∈ s.outbox, m.ty ≠ .snap) ∧ (s.role = .leader → s.rd.ro.pending = []) ∧ s.gh.xs = false
 
-theorem RnScope_empty (rs : RNState) (s : NState) : RnScope {} rs s ↔ RnScopeBasic rs s := by
+theorem RnScope_empty {id : w64} (rs : RNState) (s : NState) :
+    RnScope {} id rs s ↔ RnScopeBasic rs s := by
   unfold RnScope RnScopeBasic
   simp only [forall_const]
   constructor
-  · rintro ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10, -⟩
+  · rintro ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10, -, -, -⟩
     exact ⟨h1, h2, h3, h4, h6, h7, h8, h9, h5, h10⟩
   · rintro ⟨h1, h2, h3, h4, h6, h7, h8, h9, h5, h10⟩
-    exact ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10, fun h _ => (Bool.false_ne_true h).elim⟩
+    exact ⟨h1, h2, h3, ⟨h4, h5⟩, ⟨h6, h7, h8, h9⟩, h10, fun h _ => (Bool.false_ne_true h).elim,
+      fun h _ => (Bool.false_ne_true h).elim, fun h1 => by
+        first | exact (Bool.false_ne_true h1).elim | exact fun h2 => (Bool.false_ne_true h2).elim⟩
+
+/-- Two `Progress` maps of the same `Match` values have the same peers. -/
+theorem mem_domSet_of_prvalsMatch {a b : GMap w64 Progress} (h : prvalsMatch a = prvalsMatch b)
+    {v : w64} (hv : v ∈ domSet b) : v ∈ domSet a := by
+  rw [GMap.elem_of_dom] at hv ⊢
+  obtain ⟨p, hp⟩ := hv
+  have hv' := congrArg (· !! v) h
+  simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, hp] at hv'
+  cases ha : a !! v with
+  | none => rw [ha] at hv'; simp at hv'
+  | some q => exact ⟨q, rfl⟩
+
+/-- `RnScope` across a step that writes only `Progress` values of the same `Match` (and what the scope
+does not read). -/
+theorem RnScope.with_prvals {md : RnMode} {id : w64} {rs : RNState} {s : NState}
+    (pvs : GMap w64 Progress) (hp : prvalsMatch pvs = prvalsMatch s.prvals) (H : RnScope md id rs s) :
+    RnScope md id rs { s with prvals := pvs } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := H
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, fun a b c => mem_domSet_of_prvalsMatch hp (h9 a b c)⟩
 
 /-- **The first harness's scope as a scope option** (`none` outside the scope, `some {}` in it): the
 statements of the basic scope quantify over a `Bool`. -/
@@ -277,7 +306,7 @@ def rnScopeAt (γ : RaftNames) (id : w64) (sc : Option RnMode) (rs : RNState) (s
     IProp GF :=
   match sc with
   | none => iprop(emp)
-  | some md => iprop(⌜RnScope md rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
+  | some md => iprop(⌜RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
                        (md.transfer = true → XScopeOk γ s)⌝ ∗
                      □ (⌜md.snapshots = false⌝ -∗ storCapF s.logst.storage 0))
 
