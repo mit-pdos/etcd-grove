@@ -13,3 +13,6 @@ roots ^mvcc\.keyIndex\.wp_(compact|keep|doCompact)$
 roots ^mvcc\.wp_(Unsafe)?(Set|Read)(Scheduled|Finished)Compact$
 roots ^schedule\.(job\.)?wp_(NewJob|Do|Name)$
 axiom go_humanize.Bytes.wp_proof
+opaque etcdVerifyEnv
+opaque mvcc.kvEncode
+opaque mvcc.viewFk

@@ -32,3 +32,6 @@ axiom proto.UnmarshalWalRecordE.wp_proof
 axiom snapEncC_ok
 axiom strings.ToLower.wp_proof
 axiom time.Time.Format.wp_proofBroken
+opaque hsDecode
+opaque pbModelOf
+opaque snapDecode

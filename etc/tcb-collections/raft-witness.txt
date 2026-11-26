@@ -25,3 +25,6 @@ axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.SizeEntry.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
+opaque ccDecodeV1
+opaque ccDecodeV2
+opaque pbUnmarshalLeft

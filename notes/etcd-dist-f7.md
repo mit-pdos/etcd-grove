@@ -1576,3 +1576,57 @@ bounds `simp` after `wp_auto`; `RunAuth`'s spec imports remote's `Defs` (`Remote
 `[NaInvG GF]`. `etc/bounds-allow.txt`: `remotePrincipals`, `principalOp`. (`bounds-check --check` still fails on
 this branch, 424 against 389, as it did at `05c8bc09ba`: other packages' debt from the merge; `RunAuth.lean`'s
 `threadBound` is one of them, the orchestrator's, as `RunWatch`'s allowed one.)
+### Handoff M-merge (2026-11-26; lean merged twice, build green, axiom-tok left)
+
+**Done** (branch `etcd-safe-f7`): lean `776bb603cc` merged (`3e36f7cbd9`), then lean `eb4f1a1633` with G-dial
+(`351641e79f`). Full build of `351641e79f` on fk-lean2 green (29488 jobs; fk-lean2's Perennial override moved to
+`perennial-a706aeb9a`, the pin, built there: lean's new `context`/`errors` files need it).
+- Conflicts: `Spec/.../dist/NewServerDist.lean` (lean's `dist-axiom-diff` header wording plus F7's bullets; both sides
+  had restored `etcdURLsFit`), `MainLogger.lean` (F7's: it already passes `etcdURLsFit`). `status-history.md`: lean's
+  text whole, the branch's 24 entries appended. STATUS's "Last updated" by the merge driver (every entry kept once).
+- G-dial: `dist/client/Results.lean` loses its `DialWithBalancerBody` section variable; nothing else needed it.
+- `clientCore_of_new`: no copy left on either side. kvremote's Spec `TopLevelRobustness` = lean's.
+- lean's new gate `etc/dist-axiom-diff.py`: NewServer_dist's dev lines for F2/F7's `γa`/`γl` binders, `Hlslot`/`Hγa`,
+  post; pair lines for the 20 F2/F7 axioms (`fd09d46699`). SEVEN marked `UNEXPLAINED` for review: the six auth-off
+  lease axioms drop `om`/`metadata.outMD ctx om` with the registration; `New_user_dist` drops `clientAuthPre`'s
+  `ctxErrClientAll`. Gate and selftest ok.
+- Checks: tier-check ok, lease-order ok, `tcb-report.py --check` ok (baseline 380 axioms: vs lean +6 lease axioms
+  `etcd_dist.view.{Client_LeaseLeases,Client_LeaseTimeToLive,Lease_GrantLive,Lease_Grant,Lease_LeasesGranted,
+  Lease_LeasesLive}_dist`; the 14 auth axioms are reached by no root, RunAuthLease unlinked). Collections all match
+  but `etcd-dist` and `etcd-dist-lease`, updated: `etcd-dist` vs lean is `+axiom traceutil.Tracer.Start.wp_proof`,
+  `+opaque v3rpc.ctxCauseOkRaw` (the in-process lease handlers' — `EtcdServer.LeaseGrant`/`Renew`/`Revoke` — reached
+  through F2/F7's lease-serving `Serve_dist`); `etcd-dist-lease` follows lean's grpc changes.
+- gen-link locally differs for `--bbolt --kvraft --kvraft-udp --wal-tester --walfs` only (no Perennial checkout here;
+  files identical to lean's): re-check on fk-lean2.
+
+**Left: the axiom-tok gate** (fails: 44 need an entry, 2 capped, 6 truncated). The roots are the six F2 lease axioms
+above: no entry and no `trunc` line, so they taint `credsYieldRaw`, `grpcConn`, `metadata.*MDRaw`, ... and 38 other
+axioms fail rule 5 as a cascade, `NewServer_dist`/`Serve_dist` among them (capped; no stale key reported, so M1's
+`NewServer_dist` key `3:Wb:produced46/consumed36` still matches our text). Fix: entries for the six as `KV_Put_dist`'s
+(`2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF`, plus whatever the "1 more" is) and `trunc` lines (their
+truncations are `KV_Put_dist`'s: `isCancelCtxOf`, `cd.4`, `toProtoMsg` projections), then re-run. Exact keys: the raw
+run started on fk-lean2, `/shared/tmp/f7atok.sh` (`etc/axiom-tok-check.py --raw ~/eg/tmp/f7-atok.jsonl`, log
+`~/eg/logs/f7-atok2.log`); keys from `finding_key` over the jsonl. Then `axiom-tok-check.py --check` green.
+
+### Handoff G-1 (2026-11-26; axiom-tok, bounds, dist-axiom-diff green; fk-lean2 checks running)
+
+- **axiom-tok**: the six auth-off lease axioms (`etcd_dist.view.{Lease_Grant,Lease_GrantLive,Lease_LeasesGranted,
+  Lease_LeasesLive,Client_LeaseLeases,Client_LeaseTimeToLive}_dist`) get the lead's entries and `trunc` lines in
+  their exact text (`etcd-safe-full-atok/2026-11-26` @ `8b31f9f926`, without its three axioms this line lacks:
+  `KV_Compact`, `Watch`, `RequestProgress`). Their walk on this line (`~/eg/tmp/f7-atok.jsonl` on fk-lean2) has the
+  same keys, `2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF`. `--check` ok (363 walked: 319 pass, 44 by an
+  entry); the 38-axiom cascade and the two capped walks are gone; selftest 0 failures.
+- **dist-axiom-diff**: the seven `UNEXPLAINED` drops reviewed SOUND (`notes/axiom-review/f7-distdiff-review.md`,
+  Go test in `f7-distdiff-gotest/`); the reasons are in the allow file. Gate and selftest ok.
+- **bounds**: 424 → 389 (baseline 389, unchanged; the matches left are exactly `lean`'s). `etc/bounds-check.py`
+  gains a declaration-scoped allow (`KIND REGEX decl=DREGEX`), so that F7's variant specs beside a baselined one
+  (`NewServer.specGAt`/`specGAtA`, `lease.NewLessor.specAt`, `etcdstart.{StartServer,newServer,newServerMode}.specAt`,
+  `memberUpOnL_intro`) are allowed without hiding the original's match. Also allowed whole: `dist/MemberLessor.lean`
+  (stock passed along) and the nine `dist/client` helpers' `threadBound` (the client machine's boot at `etcdThreads`).
+  No premise removed: each is a global bound the proof below needs, discharged only by the boot.
+- tier-check, lease-order (and selftest) ok locally; `gen-init --check` ok locally (290 files).
+- **fk-lean2 at `737890b211`** (env `LAKE_OPTS=--packages=.lake/package-overrides.json PERENNIAL_DIR=~/eg/perennial-a706aeb9a`):
+  all 60 `gen-link` modes and `gen-btree-link` match their `Link.lean`; `gen-init --check` ok (290 files); `axiom-tok
+  --check --reuse-raw ~/eg/tmp/f7-atok.jsonl` ok; `--selftest` 0 failures. (Locally the five Perennial-dependent modes
+  differ only for want of a Perennial build.)
+  No Lean file changed since `351641e79f`'s green build, so no build is needed.
