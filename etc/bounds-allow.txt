@@ -168,3 +168,9 @@ stock ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/MemberSpli
 # (`kvremote/TopLevelRobustness.lean`'s `etcdKvBootNC_holds`, `kvremote/AdequacyClient.lean`'s `kvNodeBoot`).
 spec-receipt ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Orch\.lean$
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Node\.lean$
+
+# (N10a, 2026-11-26) the watch workload's machine programs over the logic's thread bound
+# (`threadBound GF ≤ 2 ^ 30`): `newClient` (NewClients'), `RunWatch` (the orchestrator), `remoteWriters`,
+# `reportAll` and `CallAll` (one goroutine per writer: `sync.tokJoinL`'s wait group counter). Discharged
+# from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunWatch|remoteWriters|reportAll|CallAll)\.lean$
