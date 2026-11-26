@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (80)
+## Not reported (81)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -71,6 +71,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [client/pkg/transport: ClientConfig with EmptyCN panics if the certificate file is rewritten while it loads](etcd-transport-emptycn-cert-reread-panic.md) | no | etcd-io/etcd#10343 pr merged |
 | [etcdserver: a follower killed while persisting a received snapshot cannot restart](etcd-wal-received-snapshot-save-crash-no-restart.md) | no | etcd-io/etcd#19095 pr merged; etcd-io/etcd#19674 issue closed |
 | [The etcd fork cannot restart from a snapshot in a WAL written with older segment names](etcd-wal-upgrade-legacy-segment-name.md) | no |  |
+| [auth: a member that has not yet applied AuthEnable accepts an unauthenticated watch, which then streams keys written after auth was enabled](etcd-watch-auth-lagging-member.md) | no | etcd-io/etcd#12385 issue closed |
 | [clientv3: Watcher.Close can hang forever after the member refuses a watch](etcd-watch-close-hang-refused-create.md) | no | etcd-io/etcd#10131 issue closed; etcd-io/etcd#14296 pr merged |
 | [clientv3: after a reconnect, a watch from the current revision delivers an event committed before the watch](etcd-watch-current-resume-past-event.md) | no | etcd-io/etcd#15248 pr merged |
 | [watch: a PrevKv watch's first events can arrive without PrevKv when the key is written while the watch is created](etcd-watch-prevkv-before-created.md) | no | kubernetes/kubernetes#121285 issue closed; kubernetes/kubernetes#100112 issue closed; etcd-io/etcd#6120 issue closed |

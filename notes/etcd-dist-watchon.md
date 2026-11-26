@@ -52,4 +52,6 @@ other axioms):
 
 Etcd behaviour the test measured (not a hole in this deployment; the floors exclude it): a member lagging across
 `AuthEnable` passes anonymous watch creates at its old auth state, and such a watch keeps streaming events written
-after the enable (Go test [lag]: 2 of 13,556 creates).
+after the enable (Go test [lag]: 2 of 13,556 creates). Recorded as `issues/etcd-watch-auth-lagging-member.md`
+(deterministic test at etcd-io/etcd@4e090c033: a partitioned follower; `blocks-proof: no`; not filed upstream:
+Upamanyu decides).
