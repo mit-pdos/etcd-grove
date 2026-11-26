@@ -265,6 +265,25 @@ theorem distribute {A : Type} (key : A → w64) (R : w64 → IProp GF) (P : IPro
         · iexact HP
         · iexact HK
 
+/-- A big separating conjunction indexed only by position, over a list of the same length. -/
+theorem cls_bigSepL_idx {A B : Type _} :
+    ∀ (Φ : Nat → IProp GF) (l : List A) (l' : List B), l.length = l'.length →
+      ([∗list] i ↦ _x ∈ l, Φ i) ⊢ [∗list] i ↦ _y ∈ l', Φ i
+  | _, [], [], _ => by
+    iintro -
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  | Φ, _ :: l, _ :: l', h => by
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H0, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H0]
+    · iexact H0
+    iapply (cls_bigSepL_idx (fun i => Φ (i + 1)) l l' (by simpa using h))
+    iexact H
+  | _, [], _ :: _, h => by simp at h
+  | _, _ :: _, [], h => by simp at h
+
 theorem slots_members (d : Deployment) (c : ClusterNames) :
     ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ⊢
       [∗list] m ∈ d.members, lease.lessorSlot (GF := GF) (c.ls (memberId (go!"http://" ++ m.peer) d.token)) := by
