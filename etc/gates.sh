@@ -423,6 +423,8 @@ if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then
 else
   echo "bounds: FAILED"; grep -v "^bounds: ok" "$tmp/bounds.log" | head -20; fail=1
 fi
+# its selftest: the allow forms on a synthetic tree (a `decl=` entry hides its declaration's matches only)
+python3 etc/bounds-check.py --selftest > "$tmp/boundss.log" 2>&1 || { echo "bounds selftest: FAILED"; grep "FAIL" "$tmp/boundss.log" | head -10; fail=1; }
 return $fail
 }
 

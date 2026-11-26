@@ -39,6 +39,8 @@ usage:
                                          etc/bounds-baseline.txt or is new; decreases are reported
     etc/bounds-check.py --check --update rewrite the baseline (after a decrease, or an increase
                                          that is meant: say why in the commit)
+    etc/bounds-check.py --selftest       check the allow forms on a synthetic tree (a `decl=` entry
+                                         hides its declaration's matches and no other's)
 
 Reads the sources only; needs no build.
 """
@@ -194,12 +196,69 @@ def write_baseline(counts: Counter[tuple[str, str]]) -> None:
                 f.write(f"{kind} {pkg} {n}\n")
 
 
+SELFTEST_SPEC = """\
+/-- `threadBound` in a docstring is no match. -/
+def X.spec : Prop := ∀ n, n < threadBound
+-- threadBound in a comment is no match
+@[simp] private theorem Y.spec_lemma : ∀ n, n < threadBound := sorry
+def Z.spec : Prop := True
+"""
+
+
+def selftest() -> int:
+    """Scan a synthetic tree (one Spec file, `threadBound` in `X.spec` (line 2) and in `Y.spec_lemma`
+    (line 4)) under each allow form, and check what stays counted."""
+    import tempfile
+    global ROOT, ALLOW
+    saved = ROOT, ALLOW
+    rel = os.path.join("Spec", "p", "F.lean")
+    x, y = f"{rel}:2: threadBound", f"{rel}:4: threadBound"
+    cases = [  # (name, allow file, the spec-thread matches left)
+        ("no allow", "", [x, y]),
+        ("file allow", "spec-thread ^Spec/p/F\\.lean$  # owner\n", []),
+        ("file allow, other file", "spec-thread ^Spec/p/G\\.lean$\n", [x, y]),
+        ("file allow, other kind", "spec-receipt ^Spec/p/F\\.lean$\n", [x, y]),
+        ("* allow", "* ^Spec/p/F\\.lean$\n", []),
+        ("decl=X hides X only", "spec-thread ^Spec/p/F\\.lean$ decl=^X\\.spec$  # variant\n", [y]),
+        ("decl=Y hides Y only (attributes, modifiers)", "spec-thread ^Spec/p/F\\.lean$ decl=^Y\\.spec_lemma$\n", [x]),
+        ("decl= matching neither", "spec-thread ^Spec/p/F\\.lean$ decl=^Z\\.spec$\n", [x, y]),
+        ("decl= anchored: X.spec does not match ^X$", "spec-thread ^Spec/p/F\\.lean$ decl=^X$\n", [x, y]),
+        ("decl= of another file", "spec-thread ^Spec/p/G\\.lean$ decl=^X\\.spec$\n", [x, y]),
+        ("two decl= entries", "spec-thread ^Spec/p/F\\.lean$ decl=^X\\.spec$\n"
+                              "spec-thread ^Spec/p/F\\.lean$ decl=^Y\\.spec_lemma$\n", []),
+        ("decl= beside a file allow", "spec-thread ^Spec/p/F\\.lean$ decl=^X\\.spec$\n"
+                                      "spec-thread ^Spec/p/F\\.lean$\n", []),
+    ]
+    failed = 0
+    try:
+        with tempfile.TemporaryDirectory(prefix="bounds-selftest-") as tmp:
+            os.makedirs(os.path.join(tmp, "Spec", "p"))
+            with open(os.path.join(tmp, rel), "w", encoding="utf-8") as f:
+                f.write(SELFTEST_SPEC)
+            ROOT, ALLOW = tmp, os.path.join(tmp, "allow.txt")
+            for name, allow, want in cases:
+                with open(ALLOW, "w", encoding="utf-8") as f:
+                    f.write(allow)
+                counts, matches = scan()
+                got = matches["spec-thread"]
+                ok = got == want and counts[("spec-thread", "p")] == len(want) and sum(counts.values()) == len(want)
+                failed += not ok
+                print(f"bounds selftest: {'ok  ' if ok else 'FAIL'} {name}" + ("" if ok else f": got {got}, want {want}"))
+    finally:
+        ROOT, ALLOW = saved
+    print(f"bounds selftest: {'ok' if not failed else 'FAILED'} ({len(cases) - failed}/{len(cases)} cases)")
+    return 1 if failed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--update", action="store_true")
     ap.add_argument("--kind", choices=KIND_NAMES)
+    ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
     counts, matches = scan()
 
     if args.check:
