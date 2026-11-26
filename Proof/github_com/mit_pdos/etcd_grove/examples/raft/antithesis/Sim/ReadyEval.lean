@@ -13,6 +13,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Logs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.SendRel
 
 @[expose] public section
 
@@ -27,24 +28,18 @@ open AntCheck
 section eval
 variable [GooseExts]
 
-theorem setOf_has_name (j : Fin 3) : (setOf (namesL 3)).has (nameOf (nodeId j)) = true := by
-  revert j; decide +kernel
-
 theorem roleOf_ne_precand (r : Role) : (roleOf r == go!"precandidate") = false := by
   cases r <;> decide
 
 theorem str_beq (a b : Str) : (a == b) = decide (a = b) := Bool.eq_iff_iff.mpr (by simp)
 theorem str_bne (a b : Str) : (a != b) = !decide (a = b) := by rw [bne, str_beq]
 
-theorem ready_name_ne : ∀ j : Fin 3, (nameOf (nodeId j) != []) = true := by
-  decide +kernel
-
-theorem ready_server_has : ∀ j : Fin 3, SSet.has (namesL 3) (nameOf (nodeId j)) = true := by
-  decide +kernel
+theorem ready_name_ne {R : RunCfg} (j : Fin R.N) : (nameOf (nodeId j) != []) = true := by
+  unfold nameOf; rw [if_neg (nodeId_ne_zero j)]; simp
 
 /-- `Step` of a `ready` report is `Ready` at the node's position. -/
-theorem step_evReady {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str) (r : Role) (t v c : w64)
-    (es : List EntryM) :
+theorem step_evReady {R : RunCfg} {S : State} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str) (r : Str)
+    (t v c : w64) (es : List EntryM) :
     S.step (evReady (nodeId n) b r t v c es) =
       (S.ready n.val (evReady (nodeId n) b r t v c es) >>= fun o => match o with
         | none => pure none
@@ -62,25 +57,35 @@ def memNL (S : State) (n : Nat) (r : Str) : MemResult :=
     termLen := S.termLen, viol := S.viol }
 
 set_option maxHeartbeats 2000000 in
-theorem inMemory_nl_eq {S : State} (n : Fin 3) (hc : S.cfg = cfg3) (b : Str)
+/-- (parity B1) A candidate's report at a node outside its configuration would be `Unpromotable`:
+the premise `hunp` (raft campaigns only at a voter). -/
+theorem inMemory_nl_eq {R : RunCfg} {S : State} (n : Fin R.N) (hc : S.cfg = R.cfg) (b : Str)
     (hb : b = go!"recv" ∨ b = go!"tick" ∨ b = go!"propose" ∨ b = go!"boot")
     (r : Role) (hr : r ≠ .leader) (t v c : w64) (es : List EntryM)
-    (hconf : S.config[n.val]! = cfg3.initConf) :
-    S.inMemory n.val (evReady (nodeId n) b r t v c es) = .ok (memNL S n.val (roleOf r)) := by
-  have hunp : ((S.config[n.val]!).cin.has (nameOf (nodeId n)) ||
-      (S.config[n.val]!).cout.has (nameOf (nodeId n))) = true := by
-    simp only [hconf, Config.initConf, cfg3_initVoters, ready_server_has, Bool.true_or]
+    (hunp : r = .candidate → ((S.config[n.val]!).cin.has (nameOf (nodeId n)) ||
+      (S.config[n.val]!).cout.has (nameOf (nodeId n))) = true) :
+    S.inMemory n.val (evReady (nodeId n) b (roleOf r) t v c es) = .ok (memNL S n.val (roleOf r)) := by
   unfold State.inMemory
   cases r
   case leader => exact absurd rfl hr
-  all_goals
+  case follower =>
     rcases hb with rfl | rfl | rfl | rfl <;>
     simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
       InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
       InMem.cmt, fieldEq, need, eok_bind, epure, roleOf, str_beq, str_bne, leader, follower, candidate,
       decide_false, decide_true, Bool.not_true, Bool.not_false,
       Bool.false_eq_true, ite_true, ite_false, andM_false, andM_true, orM_true, orM_false, memNL, server_of hc n,
-      Option.isSome_none, Bool.false_and,
+      Option.isSome_none, Option.map_none, Bool.false_and,
+      Bool.and_false, Bool.true_and, Bool.and_true]
+  case candidate =>
+    have hunp := hunp rfl
+    rcases hb with rfl | rfl | rfl | rfl <;>
+    simp (config := { decide := true }) only [evReady, InMem.ok, InMem.T, InMem.role1, InMem.leads,
+      InMem.wins, InMem.es, InMem.ld1, InMem.ll1, InMem.lc1, InMem.snapsM, InMem.app, InMem.ll2,
+      InMem.cmt, fieldEq, need, eok_bind, epure, roleOf, str_beq, str_bne, leader, follower, candidate,
+      decide_false, decide_true, Bool.not_true, Bool.not_false,
+      Bool.false_eq_true, ite_true, ite_false, andM_false, andM_true, orM_true, orM_false, memNL, server_of hc n,
+      Option.isSome_none, Option.map_none, Bool.false_and,
       Bool.and_false, hunp, Bool.true_and, Bool.and_true]
 
 end eval

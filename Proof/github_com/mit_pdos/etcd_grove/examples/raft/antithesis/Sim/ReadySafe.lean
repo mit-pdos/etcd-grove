@@ -50,8 +50,8 @@ theorem entOf_equal (e f : EntryM) : ∃ x, (entOf e).equal (entOf f) = .ok x :=
   split
   · exact ⟨_, rfl⟩
   · unfold Value.equal
-    have he : (entOf e).value.isRec = false := by unfold entOf; split <;> rfl
-    have hf : (entOf f).value.isRec = false := by unfold entOf; split <;> rfl
+    have he : (entOf e).value.isRec = false := by unfold entOf; split <;> (try split) <;> rfl
+    have hf : (entOf f).value.isRec = false := by unfold entOf; split <;> (try split) <;> rfl
     rw [he, hf]
     exact ⟨_, rfl⟩
 
