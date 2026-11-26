@@ -23,7 +23,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.M
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.AdequacyClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 
 @[expose] public section
 
