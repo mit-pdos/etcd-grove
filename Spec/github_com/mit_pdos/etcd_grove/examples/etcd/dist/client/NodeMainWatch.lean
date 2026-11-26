@@ -1,10 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-`NodeMain(w, c, addr, eps)` (`examples/etcd/dist/client/nodes.go`) **for a watch workload** (#50 N10a,
-`notes/etcd-dist-plan.md` §24): writer machine `c`'s client of the members' endpoints rotated by `c`
+`NodeMain(w, c, addr, eps)` (`examples/etcd/dist/client/nodes.go`) **for a watch or cache workload** (#50 N10a,
+`notes/etcd-dist-plan.md` §24; cache since F8: the two kinds share the arm): writer machine `c`'s client of the members' endpoints rotated by `c`
 (`newClient(Rotate(eps, c))`; if it fails, `NodeMain` returns), then `remote.ServeClient` at `addr` with
 `writerOp` and `writerCodec`, which never returns. M1's `NodeMain.spec` is the kv arm's; this is the watch
-arm's (kind `Watch`, 1), until N7's per-kind dispatch states one spec for all arms.
+arm's (kinds `Watch`, 1, and `Cache`, 2); F8's full `NodeMain.spec` applies it to those kinds.
 
 **The triple:** from the writer machine's share at the rotated endpoints (`nodeWatchPre`: its level
 token, a view with auth off whose members serve every endpoint, the writer service's protocols at
@@ -44,7 +44,7 @@ abbrev NodeMainWatch.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (w : Workload) (c : w64) (addr : GoString) (eps : GoSlice)
     (epsL : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      ⌜w.kind = W64 1 ∧
+      ⌜(w.kind = W64 1 ∨ w.kind = W64 2) ∧
         (0 ≤ sint.Z c → sint.Z c < sint.Z w.clients → sint.Z c + epsL.length ≤ 2 ^ 63)⌝ ∗
       eps ↦*□ epsL ∗ (⌜0 ≤ sint.Z c ∧ sint.Z c < sint.Z w.clients ∧ epsL ≠ []⌝ -∗
         nodeWatchPre addr (rotateL epsL (sint.nat c))) }}
