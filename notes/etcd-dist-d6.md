@@ -2074,7 +2074,7 @@ top-level change. Nobody applies `memberGen_crash.law` yet; whoever does passes 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
 "Decision", with an "Applied" line).
 
-**Step 1 (row-agnostic users generic over the row): written, build pending** (`/shared/tmp/t10-s10-build3.log`, targets
+**Step 1 (row-agnostic users generic over the row): build 3 green** (exit 0, 11040 jobs, `/shared/tmp/t10-s10-build3.log`; `etc/tier-check.py --check` ok; targets
 `/shared/tmp/t10s10-targets2.txt`: the 100 modules naming a changed name, `etc/importers.py --uses`). `isServerCI s γ ci
 (IR := trivial)`; section `variable {IR} [hIR : ∀ a b, Timeless (IR a b)]` in `InvServer` (`ci_get_au`, `wp_ci_*`),
 `CindexBackend` (hook section), `BuildLemmas`, `SnapSendBranch` (`commitReq_freeze`), `SnapApplyOpen` (`snap_create`;
@@ -2091,7 +2091,7 @@ TRow.triv)`, lemmas over `{R}`: then `R` unifies from `inv applyN (consInv γ R)
 mechanical change of `InvApply`, `IR` to `R.IR`).
 
 **Step 2 (the no-lock outcomes' model fact): started.**
-- `applyConfChange` (done, in build 3): its no-lock path is the failed validation, and the skip happens inside the
+- `applyConfChange` (done, build 3 green): its no-lock path is the failed validation, and the skip happens inside the
   caller's wand `Pre -∗ WP SetConsistentIndex {Adv}` (where `EtcdServer.apply` runs `skip_done`, before `Adv`
   exists), so the wand takes `⌜membership.ccValidOn rs.bk m = false⌝` (spec and proof; the caller's two wands
   `iintro … %_Hcv`). From it `ccRest true m rs = rs` (as `fail_tail`'s `hcr`), so the entry's `restModel` step is
