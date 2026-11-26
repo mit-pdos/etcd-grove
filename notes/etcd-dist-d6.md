@@ -2860,6 +2860,24 @@ check they still build). *Stage 5*: `ApplyAdmin`'s `adminOut … k`, `ApplyAdmin
 Pre Post k`), then `AdminEntryOn`: `cPost v3 Pre Post (st' = st)` inside `∃ hs' st'`, from `result_keep` in the
 `Pre` branch (choose `hs' := hs`); the rest of T10s2-1's stage-5 list. Not yet run: full build, gates, `tcb --check`.
 
+**Handoff T10s2-6** (session 6 stopped at the coordinator's context rule; head = this commit, pushed; no `sorry`, no
+new axiom). **Full `lake build` on fk-lean1: EXIT 0** (flock, MemoryMax=55G).
+
+*Done (green)*: `DispatchKVL` (range site: `Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ True⌝)` by `chainStep_logAfter_of`,
+which moved from `uberApplier__dispatch` to `DispatchLemmas`; revoke site: `revokeNoEff` at `restAfter_other`);
+`quotaApplierV3__*`, `authApplierV3__*` (there is no `quotaApplierV3__LeaseRevoke` file); stage 5: `uberApplier__Apply`
+(`cPost_mono` + `applyNoEff_of_dispatch` / `applyNoEff_rejected`), `ApplyKVL` (`applyNoEff`, grant identities by
+`authKVKind`), `ApplyRec`/`ApplyFnKVL` (`cPost v3 Pre Post (applyNoEff …)` moved inside `∃ x' out`; skip: `applyNoEff_skipped`),
+`ApplyAdmin`/`ApplyAdminL`/`ApplyFnAdmin`/`ApplyFnAdminL` (`adminOut … ar k out`, `∃ … (k : Prop)`, `cPost v3 Pre Post k`;
+rejected/skipped `k := True`), `ApplyTieOn` (`adminOutX_on_noExtraE` also gives `err ≠ nil → outState st o = st`;
+`adminOut_model` takes `k` and posts `k → st' = st`), `NoSpaceDeadAdminOn` (`k` threaded), `AdminEntryOn`
+(`cPost v3 Pre Post (st' = st)` inside `∃ hs' st'`), `EtcdServer__applyEntryNormal` (the three `_win` wrappers restated;
+call sites destructure the moved conjunct; local `cPost_true_orPre` forgets the fact where `tail_on` uses `Hout`: step 3
+reads it there), etcdserver `Results` (`server_apply_admin_not_nospace_on` takes `k`).
+
+*Not run*: `etc/gates.sh` in full (`GATES_FAILFAST=0`; base failures `mode`, `featuregate`, `model-param`,
+`errdesc-check`), `etc/tcb-report.py --check` (expect unchanged). Then STATUS update.
+
 **Handoff T10s2-5** (session 5 stopped at the context rule; head = this commit, pushed; WIP, no `sorry`, no axiom).
 Last build: the stage-4 targets plus the `quotaApplierV3__*`/`authApplierV3__*`/`newAuth`/`newQuota` modules
 (`/shared/tmp/t10b-s4targets.txt`, `/shared/tmp/t10b-g2.txt`) on fk-lean1, exit 1.
