@@ -6468,3 +6468,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`toPState_lead_of_stateW64`). No consumer read the old conjuncts (Sim uses its own `ReadyOutP`; the harness carries
   `PIdle` unopened).
 - **Decision.** Lead's item 5 (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `StepEnd.prevote` on a stale `MsgPreVote` (#33)
+- **Spec (strengthened, internal).** `StepEnd.prevote` (LemmasStepGates.lean) was `¬ StaleMsg s m → m.Type' = MsgPreVote →
+  PreVoteStepEnd …`; now `m.Type' = MsgPreVote → PreVoteStepAll …` (new abbrev: stale → `s' = sendMsgs s
+  [Msg.plain .preVoteResp id m.From' s.term true]`, Go's `m.Term < r.Term` arm; not stale → `PreVoteStepEnd` as
+  before). `raft.Step.spec`'s text unchanged (StepEnd is its `stepClose` premise's content, a definition).
+- **Proof.** The four branch posts `"%Hpv"` (raft__Step/MsgPreVote{,_eq,_gt,_lt}.lean) at `PreVoteStepAll`; `_lt` proves the
+  stale arm (`rfl`); ElectionLemmas' two closers wrap theirs by `PreVoteStepAll.of_fresh`; raft__Step.lean's `end_mk`,
+  `end_ty`, the AppRespX and transfer closes and the PreVote close adapted. For `StaleEnd`'s third arm in the lifting.
+- **Decision.** Lead's decision 4 (2026-11-26). No axiom, no premise.

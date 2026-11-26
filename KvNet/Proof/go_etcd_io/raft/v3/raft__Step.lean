@@ -112,7 +112,7 @@ set_option hygiene false in
 /-- (#33 parity B1 (ii)) The closing wand's `StepEnd` from the branch's `StepEndG` (`Hend`): the
 pre-vote and transfer fields by the type. -/
 local macro "end_mk" : tactic =>
-  `(tactic| exact ⟨fun h _ => Hend (.inl h), fun _ h => absurd h (by close_ty_ne), fun _ h => absurd h (by close_ty_ne),
+  `(tactic| exact ⟨fun h _ => Hend (.inl h), fun h => absurd h (by close_ty_ne), fun _ h => absurd h (by close_ty_ne),
     fun h => absurd h (by first | exact Hnx | exact Perennial.EtcdGrove.XtRec.of_ne (by close_ty_ne))⟩)
 
 set_option hygiene false in
@@ -126,7 +126,7 @@ local macro "xwf_ne" : tactic =>
 set_option hygiene false in
 /-- The closing wand's `StepEnd` for a type it says nothing of. -/
 local macro "end_ty" : tactic =>
-  `(tactic| exact ⟨fun h _ => absurd h (by not_end_ty), fun _ h => absurd h (by close_ty_ne),
+  `(tactic| exact ⟨fun h _ => absurd h (by not_end_ty), fun h => absurd h (by close_ty_ne),
     fun _ h => absurd h (by close_ty_ne), fun h => absurd h (Perennial.EtcdGrove.XtRec.of_ne (by close_ty_ne))⟩)
 
 section dispatch
@@ -560,7 +560,7 @@ private theorem dispatch_AppRespX {nc : Bool} (P : raft.Step.Postulates (GF := G
   ihave HGo := hwo $$ HGo
   imod gate_close_mid γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv
       (fun _ => Hstep)
-      ⟨fun _ h => absurd Hxr h, fun _ h => absurd h (by rw [Hty]; w32_ne),
+      ⟨fun _ h => absurd Hxr h, fun h => absurd h (by rw [Hty]; w32_ne),
         fun _ h => absurd h (by rw [Hty]; w32_ne),
         fun _ => ⟨Y, Hend (.inl (by unfold StepEndTy; simp [Hty]))⟩⟩ (by ack_ty) $$ Hclose HGo
     with ⟨Hgh, HGq, %Hot⟩
@@ -1701,7 +1701,7 @@ theorem raft.Step.wp_proof
     unfold ncfupd
     iintro Hnc
     imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) recv (fun _ => Hstep)
-      ⟨fun h _ => absurd h (by not_end_ty), fun _ h => absurd h (by rw [HtyX]; w32_ne),
+      ⟨fun h _ => absurd h (by not_end_ty), fun h => absurd h (by rw [HtyX]; w32_ne),
         fun hns hT => ⟨X, Y, b, (Hend (.inr hT)).2.2.2 hns (by rw [HtyX]; w32_ne) (by rw [HtyX]; w32_ne)⟩,
         fun h => absurd h.1 (by rw [HtyX]; w32_ne)⟩ (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
@@ -1949,7 +1949,7 @@ theorem raft.Step.wp_proof
     unfold ncfupd
     iintro Hnc
     imod gate_close γ md c id m ents ctx s R Gout s' (plogLastIndexZ (toPState s).base (toPState s).log) [] (fun _ => Hst)
-      ⟨fun h _ => absurd h (by not_end_ty), fun hns _ => Hpv hns, fun _ h => absurd h (by close_ty_ne),
+      ⟨fun h _ => absurd h (by not_end_ty), fun _ => Hpv, fun _ h => absurd h (by close_ty_ne),
         fun h => absurd h (XtRec.of_ne (by close_ty_ne))⟩ (by first | (rw [Hty]; w32_ne) | exact Hty | exact HnP) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne)) (by first | (rw [Hty]; w32_ne) | (rw [HtyA]; w32_ne) | (rw [HtyB]; w32_ne) | (rw [HtyX]; w32_ne) | (rcases HtyL with h | h | h <;> rw [h] <;> w32_ne) | exact Hn.2.1 | exact HnA) (by ack_ty) $$ Hclose HGo
       with ⟨Hghost, Hrest, HGq, %Hot⟩
     iapply finish_branch0 γ md c r id s s' m err Gout Φ (Hot := Hot) (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)

@@ -236,6 +236,17 @@ abbrev PreVoteStepEnd (id : w64) (m : MessageM) (ctx : List w8) (s s' : NState) 
   (s.cq = true ∧ s.lead ≠ W64 0 ∧ uint.Z s.term < uint.Z m.Term' ∧ ctx ≠ go!"CampaignTransfer" ∧ s' = s) ∨
     PreVoteEnd id s m s'
 
+/-- (antithesis parity B1, 2026-11-26, the lead's decision 4) **A `MsgPreVote`'s end state, stale or
+not**: a stale one (`Step`'s `m.Term < r.Term` arm) rejected at the node's term, nothing else changed
+(`StaleEnd`'s third arm); else `PreVoteStepEnd`. -/
+abbrev PreVoteStepAll (id : w64) (m : MessageM) (ctx : List w8) (s s' : NState) : Prop :=
+  (StaleMsg s m → s' = sendMsgs s [Msg.plain .preVoteResp id m.From' s.term true]) ∧
+  (¬ StaleMsg s m → PreVoteStepEnd id m ctx s s')
+
+theorem PreVoteStepAll.of_fresh {id : w64} {m : MessageM} {ctx : List w8} {s s' : NState}
+    (hns : ¬ StaleMsg s m) (h : PreVoteStepEnd id m ctx s s') : PreVoteStepAll id m ctx s s' :=
+  ⟨fun h' => absurd h' hns, fun _ => h⟩
+
 /-- (antithesis parity B1, 2026-11-26, option (b)) **An append response `Step` may record before it**:
 a `MsgAppResp` from another node while the node has a transferee, at an untraced node (a traced one
 has none then, `raft.Step.spec`'s premise): `Step` records the transferee's acknowledgement in
@@ -280,7 +291,7 @@ macro_rules
 
 /-- **`Step`'s end state** `s'` from `s` on `m`: on the types `StepEndTy` lists (`gated`, applied as a
 function through the coercion below, so its readers write `h hty hx`), and (#33 parity B1 (ii)) on a
-`MsgPreVote` (`prevote`: ignored within the lease as a `MsgVote` is, else answered) and a
+`MsgPreVote` (`prevote`: stale, rejected; else ignored within the lease as a `MsgVote` is, or answered) and a
 `MsgTransferLeader` (`xfer`: the step function's result at the transfer's ghost record, `gh.xw`,
 (option (b)) `gh.xt` and `gh.xs`, which `Step` writes before it). (antithesis parity B1, option (b))
 `gated` but on an append response `Step` may record (`XtRec`), which `xtr` describes at the state with
@@ -288,7 +299,7 @@ the record (`gh.xt`). Nothing on the other types. -/
 structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
     (s s' : NState) : Prop where
   gated : StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s'
-  prevote : ¬ StaleMsg s m → m.Type' = MsgPreVote → PreVoteStepEnd id m ctx s s'
+  prevote : m.Type' = MsgPreVote → PreVoteStepAll id m ctx s s'
   xfer : ¬ StaleMsg s m → m.Type' = MsgTransferLeader →
     ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool) (pvs : GMap w64 Progress),
       StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xt := Y, xs := b } } m pvs) m ents ctx s'

@@ -255,7 +255,8 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
       | exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil,
           Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
           Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
-      | exact ⟨fun _ => .inl ⟨Hcqr, Hlead, Hgt0, Hfrc, rfl⟩, Hwf,
+      | exact ⟨Perennial.EtcdGrove.PreVoteStepAll.of_fresh
+          (Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)) (.inl ⟨Hcqr, Hlead, Hgt0, Hfrc, rfl⟩), Hwf,
           Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _),
           rfl, Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
   try wp_auto))
@@ -540,7 +541,11 @@ macro "prevote_resp_tail " grant:ident pv:term : tactic =>
     iapply HΦ $$ %interface.nil %_
     iframe Hphys HG
     ipureintro
-    refine ⟨fun _ => .inr ($pv), nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
+    refine ⟨Perennial.EtcdGrove.PreVoteStepAll.of_fresh
+      (by first
+        | exact Perennial.EtcdGrove.notStale_of_le (Int.le_of_lt Hgt0)
+        | exact Perennial.EtcdGrove.notStale_of_le (by rw [Heq0]; exact Int.le_refl _)) (.inr ($pv)),
+      nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_sendMsgs]
     exact .sendFree _ _ (.inr rfl) rfl))
