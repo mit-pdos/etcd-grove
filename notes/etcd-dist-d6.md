@@ -2805,6 +2805,34 @@ with the lock taken: check, else the fact is the `.err` outcome's).
    Then: full build, `etc/gates.sh` in full (base failures: `mode`, `featuregate`, `model-param`, `errdesc-check`),
    `etc/tcb-report.py --check` unchanged.
 
+**Handoff T10s2-2** (session 2 stopped at the context rule; stage 3 = `3a851dec04`, pushed).
+
+*Stage 3 done* (lean-checked on fk-lean1, `-a`, 0 errors each): the 11 `Spec/.../auth/authStore__*` admin specs
+(`Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)`; `AuthEnable`/`AuthDisable`: `(Post ∨ (Pre ∗ ⌜en = true⌝))` /
+`⌜en = false⌝` inside `∃ en`, docstrings say so); `LatestTie` specT/specTB rows and `spec_of_T`/`specT_of_TB`;
+the method proofs (`InvAuth.csContract_noWriteF … (h : φ)` at the pre-lock sites, `(by nofun)` for `err ≠ nil`;
+Enable/Disable's split moved after `iexists en`); `UserAdd_tieSure`; `isAuthSteps` (11 rows) and `isAuthStepsX`
+(5 rows) restated in place; `AuthDerive`, `AuthApplyLatest{,Revoke,Put,Txn}`, `AuthLemmas`, `newAuthApplierV3` green.
+`kvPostFL` (`AuthApplyLatest`) gained `N` (default `fun _ => True`) and `kvPostF`'s `Pre` disjunct.
+**Open design point for stages 4-5**: the mode-`on` step specs (`AuthSteps`' `*.stepSpec`, `AuthStepsX`'
+`stepSpecX`/`fuelSpecX`) still post `mPost` (`Post ∨ Pre`); their proofs drop the fact with
+`apply.orPre_forget` (`Contracts.lean`, 16 sites, right after each `wp_apply HM`). For `ApplyAdmin(L)`'s
+mode-`on` `st' = st`, these step specs must carry `Post ∨ (Pre ∗ ⌜φ⌝)` (φ the row's) up to `adminDone`, where
+`auth.adminOut_keep` turns it into an unchanged authority; decide that form (a `φ` on the step specs' post, not
+on `mPost`, which the axiom-side `authReqContract` path also uses) before stage 5.
+
+*Stage 4*: a lean-check (`-a`) of every `applierV3backend__*`, `applierV3Corrupt__*`, `applierV3Capped__*`,
+`quotaApplierV3__*`, `authApplierV3__*`, `newApplierV3*`, `newQuotaApplierV3`, `CompactArm` printed no file
+with errors (its summary filter printed nothing at all: re-run it unfiltered before trusting that). None of
+the stage-4 spec changes are made yet: `applierV3backend__Compaction` spec (`ErrCompacted`, `rev ≤ crev`), the
+three `LeaseRevoke` specs' explicit `N`, `__Cluster{VersionSet,MemberAttrSet}`/`__DowngradeInfoSet` via
+`mPostV_of` with the row's fact, `Results` (alarm chain), then `DispatchKVL`, `DispatchAdmin`,
+`uberApplier__dispatch` (+ spec `apply.cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs o)`).
+Note `kvPostFL` is used by `DispatchKVL` (lines 142-198) and `AuthApplyLatest{Put,Txn}`.
+
+*Stage 5*: unchanged from T10s2-1's list, plus the step-spec point above. Then full build, gates in full,
+`tcb --check`. `AuthSrv.lean` fails `setup-file` today (an import above the defs does not build yet).
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
