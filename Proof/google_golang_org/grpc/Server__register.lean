@@ -393,8 +393,8 @@ theorem grpc.Server.register.wp_proof
   · ipureintro
     have hfr : sn ∉ (svcs.zip ils).map Prod.fst := by
       rw [List.map_fst_zip (l₁ := svcs) (l₂ := ils) (by omega)]; exact Hsn
-    refine ⟨by rw [List.map_append, ← Hsvcs], ?_, by simp [Hils], fun x => ?_, ?_, ?_, ?_⟩
-    · refine List.nodup_append.2 ⟨Hsvnd, List.nodup_singleton sn, fun a ha b hb hab => ?_⟩
+    refine ⟨by rw [List.map_append, ← Hsvcs]; rfl, ?_, by simp [Hils], fun x => ?_, ?_, ?_, ?_⟩
+    · refine List.nodup_append.2 ⟨Hsvnd, List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩, fun a ha b hb hab => ?_⟩
       rw [List.mem_singleton] at hb
       rw [hab, hb] at ha
       exact Hsn ha
