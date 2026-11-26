@@ -8,14 +8,16 @@ are unchanged. Each proposal replaces its current text only after a fresh `axiom
 (`notes/etcd-dist-f7-reviews.md`), in step S2 (with P-A1 and P-L1). The member's auth names are the view's
 `Γ.au mid` (`DistView.au`; until the reviews of 2026-11-26 a free binder `A`, `notes/axiom-review/f7-{a,c}.md`).
 
-`MemberLessor.lean` (F2's P-L1, `etcdstart.memberUpL`) is a copy of `etcd-safe-f2`'s file, identical, so that
-the proposed Serve below states the lessor part with F2's text; it merges cleanly with F2's branch.
+F2's P-L1 (`etcd-safe-f2` @ `54fa3c9780`) is merged in (2026-11-26): `MemberLessor.lean` (`etcdstart.memberUpL`,
+one copy) states the auth-off lessor part, and F2's two proposals (`NewServer.specG_dist_proposed` in
+`NewServerDist.lean`, `Serve_dist.spec_proposed` in `ServeDist.lean`) are combined into the two below and deleted.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.NewServerDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorSlot
 
 @[expose] public section
 
@@ -82,10 +84,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **PROPOSED `NewServer.specG_dist` for P-A1** (with auth on, the auth names `γa` the caller's and
-`E.authMode = .on γa` in the post, in place of `∃ γa`). Otherwise the current text verbatim, its comments
-dropped (read them in `NewServerDist.lean`); the two changes are marked `(F7, P-A1: PROPOSED)`. P-L1's
-lessor binder joins in the same change (F2's). -/
+/-- **PROPOSED `NewServer.specG_dist` for P-A1 and P-L1, combined** (F7's auth names and F2's lessor name,
+merged 2026-11-26 from F7's text here and F2's on `etcd-safe-f2` @ `54fa3c9780`, `NewServerDist.lean`, which is
+deleted; review C's N1, `notes/axiom-review/f7-c.md`). The current text verbatim, its comments dropped (read them
+in `NewServerDist.lean`), with these changes, each marked `PROPOSED`:
+* (F7, P-A1) the binder `γa` (the member's auth names, the start's per-member allocation, `DistView.au mid`), the
+  premise `"Hγa"` (with auth on, `authNamesFreshD γa`: its fresh authorities, whole), and in the post
+  `E.authMode = .on γa` with auth on, in place of `∃ γa`;
+* (F2, P-L1) the binder `γl` (the member's lessor name, the start's choice, `DistView.ls mid`), the premise
+  `"Hlslot"` (half of `γl`'s ghost map authority at `∅`, and the start's slot `lease.lessorSlot γl` holding the
+  other half), and in the post `mvcc.api.mvccLeases E.γ = γl`.
+Why it is true of the Go code: as for `specG_dist`; the construction does not depend on the ghost names. With auth
+on, the authorities `NewServer` allocates today (`auth.authBoot_alloc`, `tokAlloc`, `srvTpInv_alloc`) are the
+caller's instead (S2 threads them into the provider's and readiness proofs). In one process `NewLessor` meets the
+lessor part (`lease.NewLessor.specAt`, proved: `lease.newLessor_alloc_at` opens the slot, takes the other half, and
+closes it with the lessor's history law `lessorHistOk γl` and a pin); the in-process `NewServer.specG` is not yet
+carried to the name. With a distinct `γa` and `γl` per member, the start meets `Serve_dist_proposed.spec`'s
+`memberUpOnL`/`memberUpL` and the lessor axioms' premise `∀ a b, Γ.ls a = Γ.ls b → a = b`. -/
 abbrev NewServer.specG_dist_proposed [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
     (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
@@ -94,7 +109,9 @@ abbrev NewServer.specG_dist_proposed [π : Net.NetProtoGS] (on cmp : Bool) : Pro
     (γd : GName)
     (m : lease.Mode)
     -- (F7, P-A1: PROPOSED) the member's auth names, the caller's (the start's per-member allocation)
-    (γa : auth.AuthNames),
+    (γa : auth.AuthNames)
+    -- (F2, P-L1: PROPOSED) the member's lessor name, the start's choice (`DistView.ls mid`)
+    (γl : GName),
   ρ.rd.raft = ⟨γ, [], W64 0⟩ →
   γ.rule = srvRule (W64 0) γ.boot →
   (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
@@ -154,6 +171,10 @@ abbrev NewServer.specG_dist_proposed [π : Net.NetProtoGS] (on cmp : Bool) : Pro
       "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       "#Hcci" ∷ context.isClosedchanInit ∗
+      -- (F2, P-L1: PROPOSED) half of the lessor name's ghost map authority at `∅` and the start's slot holding
+      -- the other half: `NewLessor` makes the member's lessor at `γl` (`lease.NewLessor.specAt`) and publishes its
+      -- history law in the slot
+      "Hlslot" ∷ (ghostMapAuth γl (1 : Qp).half (∅ : GMap Bool lease.LessorGV) ∗ lease.lessorSlot γl) ∗
       -- (F7, P-A1: PROPOSED) with auth on, `γa`'s fresh authorities, the caller's
       "Hγa" ∷ (if on then authNamesFreshD γa else iprop(True)) }}
     (App (Val (@! NewServer)) (Val #cfg))
@@ -162,7 +183,9 @@ abbrev NewServer.specG_dist_proposed [π : Net.NetProtoGS] (on cmp : Bool) : Pro
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γn : NetNames GF) (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames GF) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
-          ⌜γn.N = srvNet γ ∧ γn.dir = dir ∧ envAgree E E₀ ∧ E.authOn = on ∧ (on = true → E.authMode = .on γa)⌝ ∗
+          ⌜γn.N = srvNet γ ∧ γn.dir = dir ∧ envAgree E E₀ ∧ E.authOn = on ∧ (on = true → E.authMode = .on γa) ∧
+            -- (F2, P-L1: PROPOSED) the member's lessor at the start's name
+            mvcc.api.mvccLeases E.γ = γl⌝ ∗
           srvServeStock srv E ∗
           srvWatchBuilt srv E ∗
           srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk))
@@ -195,7 +218,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 
 /-- **`memberUpOn` with the lessor at `γl`** (PROPOSED, F7 review C's F2, 2026-11-26; F2's `memberUpL`
 with auth on): `memberUpOn`'s body verbatim, at the lease mode `m`, and `mvcc.api.mvccLeases E.γ = γl` for its
-environment `E` (the name the lessor was made at: F2's `NewServer.specG_dist_proposed`, P-L1). -/
+environment `E` (the name the lessor was made at: `NewServer.specG_dist_proposed`'s `γl`, P-L1). -/
 def memberUpOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
@@ -233,7 +256,8 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
   (`memberUpOn`'s, its `E.authMode = .on (Γ.au mid)`: the member's auth names the view's), and with auth off
   F2's `etcdstart.memberUpL … Γ.kv.lm (Γ.ls mid)` (`memberUp`'s);
 * in both, the member's lessor is at the view's name `Γ.ls mid` and its lease subsystem at the view's mode
-  `Γ.kv.lm` (P-L1, F2's `Serve_dist.spec_proposed` on `etcd-safe-f2`, reviewed with this one).
+  `Γ.kv.lm` (P-L1; F2's `Serve_dist.spec_proposed` on `etcd-safe-f2` @ `54fa3c9780`, the auth-off half of this
+  text, is merged here and deleted, 2026-11-26).
 Why (F7 reviews A and C, 2026-11-26): address facts are minted for any `Γ` (`etcdAddr_set`), so without these
 premises a start could publish a `Γ` whose `au`/`ls` names it allocated and owns, and refute every auth-on and
 lease axiom's success arm. With them, `Γ.au mid` and `Γ.ls mid` are the serving member's real names, held
@@ -241,13 +265,28 @@ through the member's exclusive resources (`NewServer`'s fresh authorities, P-A1'
 P-L1's lessor), so two members cannot share them and the drafts' distinct-names premises (kept here too)
 are redundant. `etcdSvc`'s intended interpretation then says that an auth-on member's entries are the
 `etcd*SpecOn` handlers at `T := False` (no TLS identity: `ClientCertAuthEnabled` false in `deployment`'s
-configuration). -/
+configuration).
+
+**Condition C** (re-reviews A and C, 2026-11-26): the auth-on drafts (`AuthViewDist.lean`) that read `Γ.au mid`
+are sound only while *every* route that serves `etcdSvc Γ mid` for an auth-on `Γ` requires
+`etcdstart.memberUpOn(L) … (Γ.au mid) …`, as this text does. No other serve axiom (an in-process `Serve`,
+`grpc.Server.Serve` over a table, a later `Serve_dist` variant) may serve an auth-on `Γ` without this tie.
+
+**Restarts are outside it** (the no-crash line only): `memberUpOnL`/`memberUpL` hold of a member's first
+incarnation. A member restarted after a crash cannot re-serve at the same `Γ.ls mid`/`Γ.au mid`: the lessor slot
+`lease.lessorSlot (Γ.ls mid)` closes once, at the first `NewLessor` (and `srvLeaseRd`'s restart branch is mode
+`.none` only), and `authNamesFreshD (Γ.au mid)` needs the history at `[bootState]`, which has grown. Serving a
+fixed `Γ` across crashes is a crash-line item.
+
+The distinct-auth-names premise binds only auth-on views (re-review C's N2: `Γ.au` is never read with auth off,
+so an auth-off start need not pad it). -/
 abbrev Serve_dist_proposed.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (Γ : DistView),
-  -- (F7: PROPOSED) distinct auth names per member (the lease review's form; redundant given the tie below)
-  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
+  -- (F7: PROPOSED) with auth on, distinct auth names per member (the lease review's form; redundant given the
+  -- tie below; guarded, re-review C's N2)
+  (Γ.auth = true → ∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
       ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ srvLevels (GF := GF) ∧

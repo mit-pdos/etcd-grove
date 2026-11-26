@@ -1,7 +1,7 @@
 /-
-**A started member whose lessor is at a given name** (F2's P-L1, PROPOSED with `Serve_dist.spec_proposed`,
-2026-11-26; the auth-lease review's F2, `/shared/tmp/coord-03/rev-f7c-report.md`). Lean-first (no Rocq
-counterpart). Definitions only; nothing uses them but the proposed text.
+**A started member whose lessor is at a given name** (F2's P-L1, PROPOSED with `Serve_dist_proposed.spec`
+(`AuthServeProposed.lean`, the merged F2/F7 proposal), 2026-11-26; the auth-lease review's F2, `/shared/tmp/coord-03/rev-f7c-report.md`). Lean-first (no Rocq
+counterpart). Definitions only; nothing uses them but the proposed texts.
 
 `etcdstart.memberUpL s ρ E₀ lg γn id m γl` is `etcdstart.memberUp s ρ E₀ lg γn id m` with its server's
 environment's lessor name `mvcc.api.mvccLeases E.γ` equal to `γl`: the name the lessor was made at

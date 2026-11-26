@@ -157,9 +157,10 @@ def adminRepliedD [NetProtoGS] (eps : List GoString) (Γ : DistView) (γR : Serv
     srvReqLogLb γR L ∗ adminQh Γ.kv rq Q hm L)
 
 /-- **What a successful auth-on read tells the caller of its check, cluster-level**: the principal it
-was bound to may read `[key, end)` at the auth state after a requested prefix `L` extending `L₀`. -/
-def readAuthedD (γk : KVNames) (P : Option GoString) (L₀ : List EntryModel) (o : OpFull) : Prop :=
-  ∃ (user e : GoString) (rv : Nat) (L : List EntryModel), userOk P user ∧ L₀ <+: L ∧
+was bound to may read `[key, end)` at the auth state after the requested prefix `L` extending `L₀`
+(`readCheckedD` gives `srvReqLogLb γR L` with it: `L` is committed; re-review A's N1, 2026-11-26). -/
+def readAuthedD (γk : KVNames) (P : Option GoString) (L₀ L : List EntryModel) (o : OpFull) : Prop :=
+  ∃ (user e : GoString) (rv : Nat), userOk P user ∧ L₀ <+: L ∧
     apply.authEndOf o.base.rangeEnd e ∧
     auth.permitted (srvAuthAtLog γk srvAuthSt0 L) ⟨user, rv⟩ o.key e .read
 
@@ -175,11 +176,12 @@ def authFloorD (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
 /-- **A successful linearizable range's check** (persistent; `v3rpc.rangeAuthed` at the cluster):
 member `mid` of the endpoints served it, its verdict (`rangeClassFrom`) passed for `info` at its auth
 state of index `m` (published, `authFloorD`'s floor above `L₀`), `info`'s user one `P` may be bound to; and
-the cluster-level check (`readAuthedD`). -/
+the cluster-level check (`readAuthedD`) at a requested prefix `L ⊒ L₀` that is a lower bound of the
+requested log (`srvReqLogLb γR L`, re-review A's N1, 2026-11-26: so `L` is committed, not any extension). -/
 def readCheckedD [NetProtoGS] (eps : List GoString) (Γ : DistView)
     (γR : ServerRaftNames) (P : Option GoString) (L₀ : List EntryModel) (o : OpFull) : IProp GF :=
-  iprop(∃ (mid : w64) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat),
-    servedBy eps Γ mid ∗ ⌜userOk P info.Username' ∧ readAuthedD Γ.kv P L₀ o⌝ ∗
+  iprop(∃ (mid : w64) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat) (L : List EntryModel),
+    servedBy eps Γ mid ∗ ⌜userOk P info.Username' ∧ readAuthedD Γ.kv P L₀ L o⌝ ∗ srvReqLogLb γR L ∗
     apply.rangeClassFrom (.on (Γ.au mid)) m info o ∗ authFloorD Γ γR mid L₀ m)
 
 /-- **A successful read-only transaction's check** (`readCheckedD`'s, at `txnClassFrom`: every

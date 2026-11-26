@@ -2193,6 +2193,23 @@ error).
 | `Lease_LeasesLive_dist` | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpecLive γl` / `etcdLeaseLeasesSpecLiveW` | `ls mid`, revocable | after P-L1 |
 | `Client_LeaseLeases_dist` (etcd-grove-03's) | `(*lessor).Leases` | `lessor.Leases.spec` at `etcdLeaseLeasesSpecAny` / `etcdLeaseLeasesSpecAnyW` | nothing | after O1-B (or now, over `γE`) |
 | `Client_LeaseTimeToLive_dist` (etcd-grove-03's) | `(*lessor).TimeToLive` (no options) | `lessor.TimeToLive.spec` at `etcdLeaseTTLSpec` / `etcdLeaseTTLSpecW` | nothing | after O1-B (or now) |
+| `Lease_Revoke_dist` (F2, not drafted) | `(*lessor).Revoke` | `lessor.Revoke.spec` / the auth-on refusal (`noAuth`, `foreign`) and the owner's revocation | auth names (F7) | after F7's auth view |
+| `Lease_TimeToLiveKeys_dist` (F2, not drafted) | `(*lessor).TimeToLive` with `WithAttachedKeys()` | `lessor.TimeToLive.spec` at `leaseKeysFold gs = true` / the keys verdict under auth | auth names (F7) | after F7's auth view |
+| `KV_PutLease_dist` (F2, not drafted) | `(*kv).Put` with `WithLease(id)` | `kv.Put.spec` with a lease (`putWireOf … .leaseID ≠ 0`) / `etcdPutSpecW` and the lease's attach, auth on | `kv`, `ls mid`, auth names (F7) | after F7's auth view |
+
+**Adopted 2026-11-26 (F2, `etcd-safe-f2`):** the six lease rows above are interim axioms, each in its own pair
+(`Proof/.../dist/{LeaseGrantDist,LeaseGrantLiveDist,LeaseLeasesGrantedDist,LeaseLeasesLiveDist,ClientLeaseLeasesDist,
+ClientLeaseTTLDist}.lean`); the four lessor ones are linked only after P-L1. The three F2 rows are used only by
+authLease, which runs auth on: their statements need F7's per-member auth names in `Γ` (§18.3's "Auth (N11)").
+
+**Narrowed 2026-11-26 (F2 axiom review, `notes/axiom-review/f2-lease-axioms.md`; the coordinator's decision):** the
+four lessor rows take `(∀ a b : w64, Γ.ls a = Γ.ls b → a = b)` (the members' lessor names distinct; the view has no
+member set, so over every id). Without it, `DistView.ofKV`'s `ls := fun _ => 0` lets a grant at member A meet
+`Lease_LeasesGranted_dist`'s premise at a lagging member B, whose `LeaseLeases` reads its own lessor with no read
+index: unsound (the review's program). `ofKV` fails the premise; P-L1 discharges it (the start allocates a distinct
+lessor name per member, `NewServer` makes the member's lessor at exactly that name). The client wrappers (`leaseGrant`,
+`leaseList`, `gone`) and the Run specs take it too. Monotone mode also needs `lease.leasesNoExpiry` from the member's
+start (each docstring says so).
 
 The workloads call `cli.Put`/`cli.Get`/... (`*Client`'s promoted methods through its `KV` field): a proved promotion lemma
 per method gives them from the `(*kv)` drafts, so the axioms sit at the functions the proved specs are about. The cache
