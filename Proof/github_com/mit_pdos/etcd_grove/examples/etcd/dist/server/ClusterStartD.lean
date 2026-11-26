@@ -449,6 +449,7 @@ theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdG
   iintro ⟨Ha, #Hsl, Hf⟩
   isplitl [Ha Hf]
   · iframe
+    iexact Hsl
   · iexact Hsl
 
 /-- **The cluster's start at the members' shares, at the lease mode `lm`** (see the file header): for a well-formed deployment `d` at the

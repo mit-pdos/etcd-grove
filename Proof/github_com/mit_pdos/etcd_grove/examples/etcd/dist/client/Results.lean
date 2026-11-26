@@ -57,9 +57,9 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_dist
+namespace etcd_dist_client
 
-open Iris Iris.BI
+open Iris Iris.BI Net etcd_dist
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -111,7 +111,7 @@ theorem wp_RunLeaseExpiry : RunLeaseExpiry.spec (GF := GF) (hG := hG) :=
 
 end links
 
-end etcd_dist
+end etcd_dist_client
 end EtcdGrove
 end Perennial
 
