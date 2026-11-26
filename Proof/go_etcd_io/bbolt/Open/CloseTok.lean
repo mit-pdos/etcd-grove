@@ -18,6 +18,7 @@ public import Proof.go_etcd_io.bbolt.Mmap.RemapGather
 public import Proof.go_etcd_io.bbolt.Mmap.RemapLost
 public import Perennial.Proof.sync.Results
 public import Spec.go_etcd_io.bbolt.fdatasync
+public import Proof.go_etcd_io.bbolt.Open.Facts
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -40,12 +41,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- The root page of a well-formed committed state lies in `[2, hwm)` (as `Txn/WInit.treeOK_root`). -/
-theorem treeOK_root' [GooseExts] (C : CommitSt) (htree : treeOK C) : 2 ≤ C.root ∧ C.root < C.hwm := by
-  obtain ⟨⟨hwf, -⟩, -⟩ := htree
-  cases hwf with
-  | page _ _ h2 hlt _ _ _ _ => exact ⟨h2, hlt⟩
 
 /-- Two halves of a points-to, as the whole. -/
 theorem pt_join {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :

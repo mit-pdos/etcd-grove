@@ -18,6 +18,12 @@ namespace bbolt
 
 open Fs
 
+/-- The root page of a well-formed committed state lies in `[2, hwm)` (as `Txn/WInit.treeOK_root`). -/
+theorem treeOK_root' [GooseExts] (C : CommitSt) (htree : treeOK C) : 2 ≤ C.root ∧ C.root < C.hwm := by
+  obtain ⟨⟨hwf, -⟩, -⟩ := htree
+  cases hwf with
+  | page _ _ h2 hlt _ _ _ _ => exact ⟨h2, hlt⟩
+
 section pure
 variable [GooseExts]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]

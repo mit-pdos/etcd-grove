@@ -17,7 +17,6 @@ module
 
 public import Proof.go_etcd_io.bbolt.Open.Core
 public import Proof.go_etcd_io.bbolt.Open.Facts
-public import Proof.go_etcd_io.bbolt.Open.CloseTok
 public import Proof.go_etcd_io.bbolt.Inv.BFileCrash
 public import Proof.go_etcd_io.bbolt.Inv.AuMask
 public import Spec.go_etcd_io.bbolt.ApiCrash
