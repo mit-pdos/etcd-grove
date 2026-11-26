@@ -97,6 +97,66 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   but its `clientAttemptMd` conjunct, now SW1's `IProp` `clientAttemptMdI`) are unchanged. The lease
   client: an existential dispatch family `Md` and a dispatch-indexed `Dn` (it never reads the content).
 - **Decision.** Applied with SW1 (branch `phase7-switch-ab`), pending the user's review of SW1.
+## 2026-11-25: dist `Watch`/`RequestProgress` (N3) -- SW1's `.stream` entry cannot carry etcd's watch contract across machines yet; per-function interim contracts instead
+
+- **Spec.** The cross-machine contract of `(*clientv3.watcher).Watch`/`RequestProgress`. Drafts:
+  `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean` (`Watch_dist.spec`,
+  `RequestProgress_dist.spec`, `watchClientAt`), which mirror `Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean`
+  and `watcher__RequestProgress.lean` at the cluster view's KV names `Γ.kv`, without the auth row. The axiom
+  texts are in `Proof/.../etcd/dist/WatchDist.lean` (not declared). The alternative is a `Watch` stream entry in
+  the dist table `etcd_dist.etcdSvc Γ mid` (A1, `Proof/.../etcd/dist/S2Interim.lean`), over SW1's `GrpcSvcEntry.stream`
+  (on `lean` since `5c036beb77`). Design: `notes/etcd-dist-plan.md` §22, §22.6.
+- **Defect.** Route (a), the watch over SW1's `.stream` entries, cannot be stated now, even in the no-crash
+  theorems where no member restarts. The proved stream contract `v3rpc.watchMethod pw R W` (up `watchUp R`,
+  dn `watchDn γs R W tok`, spec `watchStreamSpec γs R W tok`) names member values that no start can fix:
+  - `R : v3rpc.WSrv` holds the member's server `s`, the watch server's lock `wsl` and logger `lg`: heap
+    locations its machine allocates at run time (`NewServer`, `v3rpc.Server`). It also holds the whole apply
+    environment `E : apply.AEnv`, which is `NewServer.specG`'s existential.
+  - `W : v3rpc.SrvW` holds the store handle (heap), the mvcc name `γm = E.γ`, and `histLb`/`crevOk`.
+  - `watchUp R` reads `R.E.authMode`, and `watchDn` fixes its run's `r.srv = R ∧ r.W = W`.
+  - The client watcher fixes its environment `V` at `New` (`WEnv.mem`/`memW` list each member's `WSrv`/`SrvW`;
+    the lock invariant's `isWGS` keeps `watchSrvFacts V`). The workloads call `New` before any RPC, so a client
+    cannot learn the values before it must name them, not even through a publication (option A, rejected by O1).
+
+  The transport is not the gap. `grpc.ClientConn.NewStream.wp_proof` with `Server.Serve`'s model reads the
+  stream's registration off the dialed address's table (`isGrpcStreamMd_of_addr`), as `grpcdriver_robust` does
+  across machines. The gap is a table entry that both machines can state: heap-free and a function of `(Γ, mid)`.
+- **Evidence.** `v3rpc/InvWatch.lean` (`WSrv`, `watchUp`, `watchDn`, `watchStreamSpec`; section over
+  `hG : HeapGS`), `v3rpc/Results.lean` (`watchMethod`), `v3rpc/WatchApi.lean` (`SrvW`), `client/v3/InvWatch.lean`
+  (`WEnv`, `isWGS`, `watcherMu`), `client/v3/InvClientNewResult.lean` (`isNewClient`, `isNewClient_watcher_of`),
+  `etcdstart/ServedLeaseLinked.lean` (the in-process start's `∃ Svc, grpcServeTok …` with the `Watch` entry at
+  `watchMethod pw R W`). On `lean`, 47 files (about 28k lines) mention `WSrv`/`SrvW`/`watchDn`/`watchStreamSpec`,
+  and 147 mention `WEnv`.
+- **Proposed change.**
+  - **Now (b):** two per-function interim axioms at clientv3's interface, `Watch_dist.wp_proof` and
+    `RequestProgress_dist.wp_proof` (the drafts above: posts at `Γ.kv` only; reconnection and resumption at
+    another member are inside `Watch_dist`, as in the proved single-process spec). Trust: +2 axioms, each with a
+    fresh `axiom`-skill review. No existing trusted statement changes, so M1's line is untouched.
+  - **Later (a), the retirement path, after M1 lands:** a restated A1, with `etcdSvc`'s `Watch` entry defined
+    at `Γ` and its unary part opaque. A full definition would need the unary entries as heap-free wire specs
+    (S2's etcd side). A partial definition (`Watch` only) would refute the KV contracts, since a registration
+    with no entry is unconstrained by `grpcServes`. The restatement needs:
+    - etcd's watch contract restated heap-free and `Γ`-indexed: either `Γ` gains start-allocated watch-server
+      ghost names (a P-L1-like change to `NewServer`/`v3rpc.Server`), with the heap locations existential, or a
+      client-level entry at `Γ.kv` with an agreement mechanism `streamAuxIs` does not give;
+    - the client's `WEnv` no longer listing members' `WSrv`/`SrvW`;
+    - `Serve_dist`'s `grpcServes` obligation for the entry (from `etcd_watch_served_chain`).
+
+    Its trusted cost: A1 restated, and `Serve_dist` and the five `KV_*_dist` re-reviewed (their "who answers"
+    argument rests on the opaque, lawless table). All of these are on M1's line. Its size is several thousand
+    lines over 2-3 weeks: most of S2's etcd-side stream work. When it is done, it retires (b)'s two axioms.
+  - **Restart (the crash theorem):**
+    - (b)'s statements read only `Γ.kv` (`kvCongr` keeps it), so they are restart-stable. Retiring them for
+      every `V` needs the client watcher's environment refactor (`watchSrvFacts` out of `isWGS`, taken per
+      stream from the table), and `etcd_safe` needs that refactor anyway: a `V` fixed at `New` lists member
+      values that a restart changes.
+    - Under (a) with start-allocated ghost names, a restarted member's `E` and mvcc names are new, so it needs a
+      D6-style continuation, as P-L1 does for the lessor.
+    - Under (a) with a client-level entry, the entry is restart-stable but needs the same `WEnv` refactor.
+- **Decision.** (b) now; (a) over SW1's `.stream` entries is the retirement path, after M1 lands (the
+  etcd_safe coordinator, 2026-11-25). The two axioms still need their `axiom`-skill reviews and the user's
+  approval in the etcd_safe packet before they are declared (trust-boundary specs).
+
 ## 2026-11-24: `wal.bootRes` (bootstrap's WAL slot) -- `dataDirFresh` redundant with `dataAreaFresh`
 
 - **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, `wal.bootRes` (the trusted `bootstrapContract`'s

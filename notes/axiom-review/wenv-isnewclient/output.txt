@@ -1,0 +1,15 @@
+# go1.27.3, clientv3 fork df6af0c36a6b, grpc-go v1.84.0; GOTOOLCHAIN=go1.27.3 go test -count=1 -v
+=== RUN   TestW1SecondListenFails
+    wenv_test.go:74: W1: second net.Listen(127.0.0.1:44375): err=listen tcp 127.0.0.1:44375: bind: address already in use
+--- PASS: TestW1SecondListenFails (0.00s)
+=== RUN   TestW2Unserved
+    wenv_test.go:90: W2: Watch returned after 2.00985862s
+    wenv_test.go:96: W2: channel closed after 2.009939531s, 0 responses
+    wenv_test.go:100: W2: RequestProgress: err=context deadline exceeded (deadline: true)
+    wenv_test.go:102: W2: Close: err=<nil>
+--- PASS: TestW2Unserved (3.01s)
+=== RUN   TestW3ServedControl
+    wenv_test.go:125: W3: first response: ok=true err=<nil> progress=true rev=5
+--- PASS: TestW3ServedControl (0.00s)
+PASS
+ok  	wenvreview	3.023s
