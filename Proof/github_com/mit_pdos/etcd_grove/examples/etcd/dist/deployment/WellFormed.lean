@@ -581,7 +581,13 @@ theorem WellFormed.wp_proof
                       | (obtain ⟨w, hw', hk⟩ := Hf3 hnb
                          exact ⟨w, List.mem_append_left _ hw', hk⟩))
               · have Hif' : ¬ sint.Z (W64 (j : Int)) < sint.Z v.Workloads'.len := by
-                  first | exact Hif | exact of_decide_eq_false (GoGlobalContext.intoVal_inj_bool Hif)
+                  first
+                    | exact Hif
+                    | exact of_decide_eq_false (GoGlobalContext.intoVal_inj_bool Hif)
+                    | (intro h; apply Hif; rw [decide_eq_true h])
+                -- the loop's exit `if` may be left as `¬ #(decide _) = #true`: reduce it, so that the
+                -- checks' `wp_if_destruct` below do not split on it again
+                try simp only [decide_eq_false Hif', _root_.decide_true, ↓reduceIte]
                 have hjl := idx_end _ _ _ Hlw.1 Hlw.2 Hif' Hf1
                 subst hjl
                 rw [List.take_length] at Hf2 Hf3
@@ -594,11 +600,11 @@ theorem WellFormed.wp_proof
                 all_goals (
                 have hneed : d.cfg.auth = true → ∃ w ∈ d.workloads, kindAlone w.kind = true := by
                   intro ha
-                  first | exact Hf3 hnb | (rw [hau] at ha; cases ha)
+                  first | exact Hf3 hnb | (rw [hau] at ha; exact absurd ha (by decide))
                 -- the token provider only with the compactor off: `c.Auth && c.Retention != 0` fails
                 have hacmp : d.cfg.auth = true → d.cfg.retention = W64 0 := by
                   intro ha
-                  first | (rw [hau] at ha; cases ha) | exact ‹d.cfg.retention = W64 0›
+                  first | (rw [hau] at ha; exact absurd ha (by decide)) | exact ‹d.cfg.retention = W64 0›
                 iapply HΦ
                 ipureintro
                 intro _
