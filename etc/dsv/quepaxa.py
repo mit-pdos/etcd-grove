@@ -89,7 +89,7 @@ initializes its import `io` and copies `io.Discard` (which io's fact holds, read
         before={'Discard': ['ihave #IO := _root_.Perennial.io.isInit_access $$ {Hd:io}',
                             'icases IO with ⟨⟨%wd, #Hiod⟩, -⟩',
                             'wp_auto']},
-        finish=['ipersist HDiscard'] + g.FIN_PRE[:6] + ['try imodintro', 'iexists _', 'iexact HDiscard'])
+        finish=['ipersist HDiscard'] + g.FIN_PRE[:6] + ['try imodintro', 'try iexists _', 'try iexact HDiscard'])
     # (dsv-retire-2, 2026-11-25) grpc's `internal` and `codes`, the part's own translations (`OWN`), as
     # the main tree's (etc/gen-init.py's `SPECIAL` for them) but over the part's one hook cell
     GI, GC = 'google_golang_org.grpc.internal', 'google_golang_org.grpc.codes'

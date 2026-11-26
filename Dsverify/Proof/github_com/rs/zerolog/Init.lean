@@ -33,6 +33,7 @@ public import Proof.net.Init
 public import Proof.os.Init
 public import Proof.path.filepath.Init
 public import Proof.runtime.Init
+public import Dsverify.Proof.github_com.rs.zerolog.NewNil
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -141,6 +142,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of arrayPool))
+  repeat (first | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto) | (wp_func_lits; wp_auto) | wp_auto)
   -- translated initializer of consoleBufPool))
   -- translated initializer of th))
   -- translated initializer of enc))
@@ -172,9 +174,33 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of Often))
   -- translated initializer of Sometimes))
   -- translated initializer of Rarely))
+  rename_i _ _ pgl
+  irename: (pgl ↦ (_ : w32) : IProp GF) => HgCell
   -- the translated init.«0»
   wp_func_call
   wp_call
+  try wp_auto
+  -- `SetGlobalLevel(TraceLevel)`: the atomic store into `gLevel`'s cell, owned here
+  unfold TraceLevel
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply_core sync.atomic.wp_StoreInt32 $$ [] [-]
+  · iexact Hd19
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iexists _
+  iframe HgCell
+  iintro HgCell
+  imod Hmask with -
+  imodintro
+  try wp_auto
+  -- `Nop()`: `New(nil).Level(Disabled)`; `New(nil)` reads `ioutil.Discard` (io/ioutil's fact)
+  ihave #ID : (∃ w : GoInterface, globalAddr _root_.Perennial.io.ioutil.Discard ↦□ w : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd13
+  icases ID with ⟨%wdis, #HDis⟩
+  wp_apply (wp_Nop wdis) $$ HDis as %lnop -
   try wp_auto
   -- the translated init.«1»
   wp_func_call

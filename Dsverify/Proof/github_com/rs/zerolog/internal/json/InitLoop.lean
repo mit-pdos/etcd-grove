@@ -44,9 +44,9 @@ theorem wp_store_arrBool (l : Loc) (n : Int) (a : GoArray Bool n) (i : Int) (v :
 
 /-- `init.«0»` (`string.go:9`): with `noEscapeTable` owned, it returns with the table owned. -/
 theorem wp_init0 (a : GoArray Bool 256) :
-    {{ globalAddr noEscapeTable ↦ a }}
+    {{ (globalAddr noEscapeTable ↦ a : IProp GF) }}
       (App (Val (@! init.«0»)) (Val #()))
-    {{ RET #(); ∃ b : GoArray Bool 256, globalAddr noEscapeTable ↦ b }} := by
+    {{ RET #(); (∃ b : GoArray Bool 256, globalAddr noEscapeTable ↦ b : IProp GF) }} := by
   wp_start as Ht
   wp_auto
   ihave HI : (∃ (k : Nat) (b : GoArray Bool 256), "i" ∷ i_ptr ↦ W64 (k : Int) ∗
@@ -57,6 +57,12 @@ theorem wp_init0 (a : GoArray Bool 256) :
   wp_if_destruct
   · have hk : k ≤ 126 := by revert Hif; word
     have hb : 0 ≤ sint.Z (W64 (k : Int)) ∧ sint.Z (W64 (k : Int)) < 256 := by word
+    all_goals try wp_auto
+    all_goals try (wp_if_destruct)
+    all_goals try wp_auto
+    all_goals try (wp_if_destruct)
+    all_goals try wp_auto
+    all_goals try (wp_if_destruct)
     all_goals try wp_auto
     all_goals try rw [ite_eq_left_of_eq_true _ _ (eq_true hb)]
     all_goals try wp_apply (wp_store_arrBool _ 256 _ _ _ hb) $$ Ht as Ht

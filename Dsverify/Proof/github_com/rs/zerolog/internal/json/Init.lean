@@ -73,7 +73,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.unicode_utf8 _root_.Perennial.unicode.utf8.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of noEscapeTable))
   -- the translated init.«0», by its spec
-  wp_apply (wp_init0 _) $$ [HnoEscapeTable] as ⟨%tb, HnoEscapeTable⟩
+  wp_apply (wp_init0 _) $$ HnoEscapeTable as ⟨%tb, HnoEscapeTable⟩
   try wp_auto
   imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) $$ HJSONMarshalFunc with #CJSONMarshalFunc
   ipersist HnoEscapeTable

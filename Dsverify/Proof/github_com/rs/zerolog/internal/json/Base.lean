@@ -12,6 +12,11 @@ module
 
 public import Dsverify.GeneratedProof.github_com.rs.zerolog.internal.json
 public import Net.Proof.net.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.math.Base
+public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.time.Base
+public import Perennial.Proof.unicode.utf8.Base
 public import Proof.runtime.InitInv
 
 @[expose] public section

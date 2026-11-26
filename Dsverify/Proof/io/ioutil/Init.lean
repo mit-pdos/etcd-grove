@@ -65,8 +65,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   try imodintro
-  iexists _
-  iexact HDiscard
+  try iexists _
+  try iexact HDiscard
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
