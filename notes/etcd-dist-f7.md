@@ -1473,6 +1473,7 @@ WatchOn_dist.spec`, `wp_WithPrefix`, `wp_WithRev`, `wp_WithRange`, `wp_AfterFunc
 Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 as in RA-1. No `sorry`, no
 new axiom, no statement changed. The session stopped at the context limit with nothing of this handoff checked.
 
+**Update:** the background job was killed (exit 144) before it built anything; the log is empty. Check that the seed copy on fk-lean1 has finished (`pgrep -f "cp -a ../dsv-retire-3"`), then rerun the build.
 **Build status: UNBUILT.** The fk-lean1 seed copy (`cp -a ../dsv-retire-3/.lake/build`) ran while `dsv-retire-3`
 was itself building, so some files were missing when copied (`~/eg/tmp/f7ra-cp.log`): Lake rebuilds what is stale.
 A local background job waits for the copy, then runs `/shared/tmp/f7ra-rb.sh` on RA-1's four modules; log
