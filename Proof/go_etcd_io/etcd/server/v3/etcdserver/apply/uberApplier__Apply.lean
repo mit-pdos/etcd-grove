@@ -58,7 +58,8 @@ theorem apply.uberApplier.Apply.wp_proof
         apply.everOwn E (apply.grantIds rq v3 o U) ∗ apply.revokeOwn E rq ∗
         (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq v3 o
           (apply.grantRest t rq v3 o (apply.restAfter rq v3 rs)))) ∗
-        ⌜apply.grantOutOk x.chain rq v3 T o⌝ ∗ apply.cPost v3 Pre Post ∗
+        ⌜apply.grantOutOk x.chain rq v3 T o⌝ ∗
+        apply.cPost v3 Pre Post (apply.dispatchNoEff x.chain rq v3 x.log x.crev T rs o) ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
           apply.kvFloorOk rq v3 F x.log o ∧ a' = GoInterface.ok ai ∧ c' = x.chain⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
@@ -82,6 +83,9 @@ theorem apply.uberApplier.Apply.wp_proof
   icases Hpost with (⟨⟨Htt, Hrt, HFS, Hco, %a', %c', %o, Ha', #Hs'', Hkv, HLt, HEv, Hrv, HRO, %Hgo, HPP, %Hst, #Hcls, Hgr, Hvr, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, Htt, HFS, -, HRO, Hco, HLt, HEv, Hrv⟩, Hrej⟩)
   · obtain ⟨-, -, -, ha, hc⟩ := id Hst
     subst ha hc
+    have hstep : apply.applyStep rq v3 x ⟨o.logAfter x.log, x.chain, apply.dispatchCrev x.chain rq v3 x.crev⟩
+        (.dispatched o skip) := ⟨Hskip, Hst.1, rfl, Hst.2.1, rfl⟩
+    ihave HPP := apply.cPost_mono v3 Pre Post _ _ (apply.applyNoEff_of_dispatch (T := T) (rs := rs) hstep) $$ HPP
     imodintro
     iapply HΦ
     iframe Htt Hrt HFS
@@ -109,7 +113,7 @@ theorem apply.uberApplier.Apply.wp_proof
     isplitl [Ha]
     · iunfold apply.uberOwn; iexists _; iframe Ha HsW Hsh; ipureintro; exact HcE
     isplitl [HPre]
-    · iapply apply.cPost_of_pre
+    · iapply (apply.cPost_of_pre _ _ _ _ (apply.applyNoEff_rejected (T := T) (rs := rs) ⟨Hna, rfl⟩))
       iexact HPre
     isplitl [HRO]
     · iexists (apply.grantTTLW rq)
