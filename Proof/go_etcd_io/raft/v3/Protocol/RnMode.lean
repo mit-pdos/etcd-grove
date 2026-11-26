@@ -28,7 +28,7 @@ structure NodeK where
 deriving DecidableEq, Inhabited
 
 /-- The features a RawNode spec's exact effect covers (design R2, §2). `{}` is the first harness's
-scope (`raft_antithesis_robust_basic`'s). -/
+scope (`raft_antithesis_robust_msgs`'s). -/
 structure RnMode where
   prevote : Bool := false
   cq : Bool := false

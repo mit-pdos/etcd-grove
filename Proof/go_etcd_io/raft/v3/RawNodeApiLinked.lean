@@ -498,7 +498,8 @@ theorem RawNode.HasReady.apiSpec_of_abs (H : RawNode.HasReady.absSpec (GF := GF)
   iapply HΦ
   icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, %Hid, ⟨-, Hrn⟩⟩)
   · unfold rawNode; iframe Hrn; ipureintro; intro h; rw [Hb] at h; cases h
-  · unfold rawNode; iframe Hrn; ipureintro; intro _; exact Hid md rfl
+  · unfold rawNode; iframe Hrn; ipureintro; intro _
+    exact ⟨(Hid.1 md rfl).1, (Hid.1 md rfl).2, Hid.2⟩
 
 theorem NewRawNode.emptyStartApiSpec_of_abs
     (H : NewRawNode.emptyStartAbsSpec (GF := GF) (hG := hG)) :

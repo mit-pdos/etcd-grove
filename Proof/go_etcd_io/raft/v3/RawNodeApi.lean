@@ -100,7 +100,7 @@ abbrev RawNode.TransferLeader.apiSpec : Prop :=
     RawNode.TransferLeader.form (fun γ => rawNode (GF := GF) γ md) (fun md' => md' = md)
 
 /-- `rn.HasReady()`, read-only; on `false` the protocol-level idle fact `PIdle`, the in-progress
-boundary at the log's end. -/
+boundary at the log's end, (antithesis parity B1) no read state. -/
 abbrev RawNode.HasReady.apiSpec : Prop :=
   ∀ md : RnMode, md.snapshots = false → md.confChanges = false → md.forwarding = false →
     md.async = false →
@@ -109,7 +109,8 @@ abbrev RawNode.HasReady.apiSpec : Prop :=
       "Hrn" ∷ rawNode γ md rn id rs r qs ip }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
-      rawNode γ md rn id rs r qs ip ∗ ⌜b = false → PIdle rs r.p ∧ ip = r.p.log.length⌝ }}
+      rawNode γ md rn id rs r qs ip ∗
+        ⌜b = false → PIdle rs r.p ∧ ip = r.p.log.length ∧ r.p.rd.states = []⌝ }}
 
 /-- `NewRawNode` at an empty storage: the node at `pInit`, nothing queued. -/
 abbrev NewRawNode.emptyStartApiSpec : Prop := NewRawNode.emptyStartForm (fun γ => rawNode (GF := GF) γ {})

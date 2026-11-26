@@ -147,7 +147,11 @@ local macro "finish_false" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   isplitr
-  · ipureintro; exact Hpi
+  · ipureintro
+    refine ⟨Hpi, ?_⟩
+    rw [← Hps]
+    show (if s.role = .leader then s.rd else rdNL s.rd).states = []
+    split <;> exact Hrd0
   isplit
   · ihave Hpend := pendAt_lentPend γ id rs.bw rs.slent steps rs.steps qs $$ Hpend
     iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp

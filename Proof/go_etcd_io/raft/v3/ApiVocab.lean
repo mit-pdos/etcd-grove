@@ -445,8 +445,8 @@ def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
     -- the sender's outbox holds none there, `LogNsOk`, `NsLink`)
     ⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
     -- (antithesis parity B1, 2026-11-26, option (b)) a `MsgTimeoutNow`'s destination acknowledged an
-    -- index past `0` at its term (durable, `isAcked`; from the sender's `xtW`): what a `send` of it
-    -- reports of the transferee (the Antithesis harness's `XMsgFacts`)
+    -- index past `0` at its term (durable, `isAcked`; from the sender's `xtW`): the receiver reads the
+    -- message's term as at most its own durable term (the Antithesis harness's `isAcked_term_le`)
     □ (⌜st.msg.Type' = MsgTimeoutNow⌝ -∗
       ∃ i : w64, ⌜uint.Z i ≠ 0⌝ ∗ isAcked γ st.msg.To' st.msg.Term' i))
 

@@ -421,7 +421,8 @@ abbrev RawNode.ReadIndex.absSpec : Prop :=
 
 /-- **`RawNode.HasReady`, strengthened** (design §2.2, revision 2's T3): read-only; on `false`, in
 the scope, the protocol-level idle fact `PIdle` and the in-progress boundary at the log's end
-(`hasNextUnstableEnts` false), and both views of the node: the old spec's
+(`hasNextUnstableEnts` false), (antithesis parity B1) no read state (Go's `HasReady` is true on any),
+and both views of the node: the old spec's
 `ownRawNodeIdle` and `ownRawNodeAt` (an Iris conjunction: either, of the same resources). -/
 abbrev RawNode.HasReady.absSpec : Prop :=
   ∀ (sc : Option RnMode), (∀ md, sc = some md → md.snapshots = false ∧ md.confChanges = false ∧
@@ -433,7 +434,8 @@ abbrev RawNode.HasReady.absSpec : Prop :=
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))
   {{ (b : Bool), RET #b;
       (⌜b = true⌝ ∗ ownRawNodeAt γ rn id rs r qs ip sc) ∨
-      (⌜b = false⌝ ∗ ⌜∀ md, sc = some md → PIdle rs r.p ∧ ip = r.p.log.length⌝ ∗
+      (⌜b = false⌝ ∗
+        ⌜(∀ md, sc = some md → PIdle rs r.p ∧ ip = r.p.log.length) ∧ r.p.rd.states = []⌝ ∗
         (ownRawNodeIdle γ rn id rs ∧ ownRawNodeAt γ rn id rs r qs ip sc)) }}
 
 abbrev RawNode.HasReady.spec_of_abs.law : Prop :=

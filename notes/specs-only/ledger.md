@@ -6866,3 +6866,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   only `readKey` (a lent context's from the request itself at `l0 = []`). New: `api_readAu_true` (raft's trivial read
   update from the adapter's invariant alone), `api_read_lend` (the law's body). Public node-API statements unchanged.
 - **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: RawNode.HasReady's false arm without read states (#33)
+- **Spec (lead-approved, post-only; PIdle unchanged).** RawNodeAbsSpecs.lean `RawNode.HasReady.absSpec`'s false arm:
+  `⌜(∀ md, sc = some md → PIdle rs r.p ∧ ip = r.p.log.length) ∧ r.p.rd.states = []⌝` (was the first conjunct only).
+  RawNodeApi.lean `RawNode.HasReady.apiSpec`: `⌜b = false → PIdle rs r.p ∧ ip = r.p.log.length ∧ r.p.rd.states = []⌝`.
+- **Defect.** Go's `HasReady` is true whenever raft holds read states (`rawnode.go`'s `len(r.readStates) != 0`); the
+  specs did not say so, and the antithesis drain's exit needs `QuietIn.noReady`'s `r₁.p.rd.states = []`.
+- **Evidence/Proof.** RawNode__HasReadyAbs's false case already derives `Hrd0 : s.rd.states = []` (the read states'
+  slice length 0); passed to the post. RawNodeApiLinked's `apiSpec_of_abs` threads it; RawNodeSpecOfAbs unchanged
+  (drops the pure fact). Also: ApiVocab's `isRaftMsg` comment (MsgTimeoutNow clause: read by the receiver as
+  `isAcked_term_le`), and Protocol/RnMode.lean's doc reference to `raft_antithesis_robust_msgs`. Part copies.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
