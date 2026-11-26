@@ -235,6 +235,11 @@ def parts_reached(mod):
         seen.add(m)
         if m.split(".")[0] in PART_ROOTS and not shared_net(m):
             reached.add(m.split(".")[0])
+            # (etcd-safe-main, 2026-11-24) the part's own `net/http`, `net/textproto`, `net/rpc`
+            # declare the main tree's names: a root reaching the part only through other modules
+            # (the dist client's `lib/remote`) and the main tree's `net/http` runs apart from them
+            if re.match(r"Net\.(Code|GeneratedProof|TrustedCode|ManualProof|Spec|Proof)\.net\.", m):
+                reached.add("Net.net")
         if shadows_perennial(m):
             reached.add(m)
         todo += _imports(m)

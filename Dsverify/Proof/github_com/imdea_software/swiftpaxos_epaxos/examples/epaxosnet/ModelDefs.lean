@@ -142,13 +142,14 @@ def bEmpty : BStr := ⟨[], by simp⟩
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `epR γ`. -/
 theorem epS_pendDec (γ : EpNames) :
-    PendDec (epR (Gg := hG.goose_globalGS) γ) (epS (GF := GF)) where
+    PendDec (epR (Gg := hG.goose_globalGS) γ) (epS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := linkv.pM_step epB epDec s _ i _ (epDec_box i false o)
   err s i := linkv.pM_step epB epDec s _ i _ (epDec_box i true bEmpty)
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, false, o, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, true, bEmpty, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 end facts
 

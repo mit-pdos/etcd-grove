@@ -60,6 +60,11 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
+         # etcd_safe (2026-11-24, notes/etcd-dist-plan.md D2): the member machines' and the client machines'
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.server',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.client',
+         # putgetK_safe (2026-11-24, notes/putget-dist-plan.md §13): the k members' and the client's package
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk',
          # gRPC's robustness driver (notes/library-drivers.md): its two machines' commands
          'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server',
          'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client',
@@ -309,6 +314,13 @@ inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
 # over the main tree's imports, as `net`'s (and as #37's `models_lab.pbcodec`).
 inv['models_lab.jsoncodec'] = inventory('Net/Code')['models_lab.jsoncodec']
 inst['models_lab.jsoncodec'] = [('@Net.Proof.models_lab.jsoncodec.Base', 'iprop(True)')]
+# (etcd-dist D2, 2026-11-24) etcd_safe's client machines call `examples/lib/remote`, the part `Net/`'s
+# translation, with its `IsPkgInit` instance in `Net/`'s `Base.lean` (`True`); its main-tree `Init.lean` is
+# generated here over the main tree's imports (Net's own imports the part's copies), as `net`'s.
+inv['github_com.mit_pdos.etcd_grove.examples.lib.remote'] = \
+    inventory('Net/Code')['github_com.mit_pdos.etcd_grove.examples.lib.remote']
+inst['github_com.mit_pdos.etcd_grove.examples.lib.remote'] = \
+    [('@Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base', 'iprop(True)')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -2807,7 +2819,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 def status_steps(x, desc=None, ptr=False):
     pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
-             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
+             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_linked as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
              f'obtain ⟨e{x}, rfl⟩ : ∃ e, r{x} = GoInterface.ok e := match r{x}, N{x} with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h',
              f'ihave #E{x} : ({CV3}.errorStringSpec e{x} : IProp GF) $$ []',
@@ -2828,7 +2840,7 @@ for x, desc in _RSTATUS.items():
 del _R['custom']['ErrGRPCNotSupportedForLearner']
 _R.setdefault('before', {})['ErrGRPCNotSupportedForLearner'] = status_steps('ErrGRPCNotSupportedForLearner', ptr=True)
 _R['alloc_types']['ErrGRPCNotSupportedForLearner'] = 'GoInterface'
-_R['imports'].append('Proof.google_golang_org.grpc.status.Error')
+_R['imports'].append('Proof.google_golang_org.grpc.status.ErrorLinked')
 
 # (prove-rpcmap, 2026-11-20) the whole package is translated: its other `ErrGRPC* = status.Error(...)`
 # errors (`status_steps`), the map literal `errStringToError` and the client-side errors
@@ -5744,6 +5756,16 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
 # distributed theorem (notes/putget-dist-plan.md)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
+# (2026-11-24) etcd_safe's programs (notes/etcd-dist-plan.md D2): the member machines' (`server`) and the
+# orchestrators' and client machines' (`client`)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.server'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/PkgTable.lean'
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.client'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/PkgTable.lean'
+# (2026-11-24) putgetK_safe's package (every machine's boot program runs its initializer), for its
+# distributed theorem (notes/putget-dist-plan.md §13)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putgetk/PkgTable.lean'
 # (grpcdriver, 2026-11-24) gRPC's robustness driver's two commands (each machine's boot program runs its
 # command's initializer), for grpcdriver_robust
 for _c in ['server', 'client']:

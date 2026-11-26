@@ -7,5 +7,4 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/cache/v3/Link\.lean$
 roots \bcache_(New|Get|Watch|Watch_delivery|WaitForRevision|WaitForNextResync|Close)$
-axiom status.Error.wp_proof
-opaque metadata.builtRawMDRaw
+axiom proto.EqualStatus.wp_proof

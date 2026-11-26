@@ -7087,6 +7087,71 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   length premise. The axiom, its file and `SortSliceHyp` are deleted; the statement is unchanged (the class was
   no longer a premise since dsv-fix4).
 - **Decision.** coordinator brief 2026-11-25 (#49's bar: a pure fact the program could check goes into Go).
+- **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
+- **Defect.** Too weak for its consumer: `bootstrapSnapshot` carves the fresh `member/snap`'s names into the snapshot
+  directory's free names, which must be durable (`backend.fileFreeDur`, so that the crash law `snapDir_crash.law`
+  can keep them across a crash), and that needs every history entry writing a name of the new directory (other than
+  the `.touch` probe, which `IsDirWriteable` writes and removes) to be below a commit index the caller holds.
+  The post said only `h'.next ≤ n`.
+- **Evidence.** The proof of `bootSnap.snapDir_carve` (`BootSnapCarve.lean`); Go: `TouchDirAll` ends with
+  `IsDirWriteable`'s fsync of the directory (fileutil.go), committing the journal (ext4, configuration C).
+- **Proposed change.** The post's pure part gains `∀ xe ∈ hJ.ents, ∀ b, b ≠ ".touch" → xe.2.1.op.Writes J b →
+  xe.1 < n`, proved from `osNames_histCoh` (a strengthening: no caller loses anything). `SpecPlan/` has no such
+  vocabulary; nothing to change there.
+- **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
+  branch `etcd-safe-p7`.
+
+## 2026-11-25: `remote.PendDec` (and `Run.spec`/`Check.spec`'s generator premise) cannot describe txnlin's model (P9)
+
+- **Spec.** `remote.PendDec` (`Net/Proof/.../lib/remote/Pend.lean`), the premises of `remote.Run.spec` and
+  `remote.Check.spec` (`Net/Spec/.../lib/remote/{Run,Check}.lean`): `genSpec gen (∃ i, x = R.iv i)`, `PendDec R S`,
+  `hinj`; `RBase`'s one input type shared by the wire and the model.
+- **Defect.** Too narrow for the kv workload (`kvremote.Orch` = `remote.Run` of `txnlin.Model()`): with `S =
+  linkvtxnS` the model input is `MI`, and (1) `Gen`'s inputs are not a function of their `MI` (`genFrom` sets fields
+  `decTOp`/`decCmp` ignore); (2) `ioOk_*`/`err` over every `MI` fail for inputs `decIn` cannot produce or `ValidIn`
+  excludes; (3) `ok` over every output fails, since `decOut` reads an output by the input's kind; (4) `hinj` fails
+  for `O = MO` (`outOf` collides across kinds), and `O = Output` breaks (3)'s equality at revisions past `2 ^ 64`.
+- **Evidence.** `notes/etcd-dist-p9.md` (each with file and line); the Pend proof uses `ok` only at the invariant's
+  configuration (Pend.lean:352).
+- **Proposed change.** `RBase` with a wire input `I` and a model input `J` (`mi : I → J`), a state guard `good`
+  with `sysState st ⊢ ⌜good st⌝`, and `PendDec`'s `ok`/`err` in the "at a configuration" form (`∃ s'`, holding the
+  stepped configuration, closed), with `PendDec.ofTotal` from today's form so other instances change by a line;
+  top-level statements unchanged. `notes/etcd-dist-p9.md`, "Proposal".
+- **Decision.** Approved as proposed (the coordinator, `remote`'s owner, #28; 2026-11-25): `RBase GF St J I O`
+  (wire input `I`, model input `J`, `mi : I → J`), `good` with `sysState_good`, `PendDec` at a configuration,
+  `PendDec.ofTotal` for the existing instances; condition: no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text
+  changes. Applied on `etcd-safe-p9`.
+
+## 2026-11-25: `remote.lin` cannot abort, so a far side whose system takes an atomic update cannot use it (P9)
+
+- **Spec.** `remote.lin` (`Net/Proof/.../lib/remote/Defs.lean`), the linearization point a slot hands the far
+  side (`slotUpd`, `opMaybe`): a one-shot fancy update `|={⊤ \ Eop, ∅}=> ∃ st, sysState st ∗ (sysState st' ={∅, ⊤ \
+  Eop}=∗ Φ o)`, with no way back without stepping.
+- **Defect.** The kv workload's far side (`kvremote.Node`, `txnlin.Call.spec`) hands the update to etcd as an Iris
+  atomic update (`callUpd`: a write's `kvOpAu1 γk`, `AU <{ ∃∃ σ, etcdKV γk σ }> @ ⊤ \ kvEop, ∅ <{ … }>`), whose
+  accessor must be abortable (`atomic_acc`'s abort: `etcdKV γk σ ={∅, ⊤ \ kvEop}=∗ AU`). `etcdKV γk σ` comes only
+  from `lin`'s `sysState`, and `lin` once opened can only be closed by stepping, so a write's `kvOpAu1` cannot be
+  built from `lin` (a read's can: `□ lin` closes at the same state, `reads_stay`). The dsverify kits never needed
+  the abort (their servers fire `lin` directly; gryff's `opAU` note: "which cannot abort").
+- **Evidence.** `atomic_acc` (`Iris/BI/Lib/Atomic.lean:26`); `kvAu1` (`InvRequest.lean:1024`); the producer
+  (`Pend.lean`, `pend_choice`'s write case) can abort: it opens only `pendCtx` before handing `sysState` over, and
+  lintest's update (`pend_commit_core`) can run in the commit branch instead, at the same mask.
+- **Proposed change.** `lin` becomes the atomic update `AU <{ ∃∃ st, sysState st }> @ ⊤ \ Eop, ∅ <{ sysState
+  (step st).1, COMM Φ (step st).2 }>` (stronger for the far side: `lin_linF` gives back the old form, renamed
+  `linF`, for the far sides that fire it directly; `linF_read_lin` builds a read's `lin` from `□ linF`). The
+  producer's write cases (`pend_choice`, `pend_fire`) abort by closing `pendCtx` unchanged; the instances' far
+  sides change by a `lin_linF` each; no `TopLevelRobustness.lean`/`TopLevelDefs.lean` text changes.
+- **Decision.** Applied on `etcd-safe-p9` (P9, 2026-11-25), pending the coordinator's (`remote`'s owner) review
+  before landing.
+- **Review** (P9, 2026-11-25, an independent `spec-reviewer`): sound, no must-fix. The new `lin` is stronger for
+  the far side only for writes (for a read `□ lin ⊣⊢ □ linF`, `lin_linF` and `linF_read_lin`); every producer
+  (`pend_fire`, `pend_choice`, `readNoop`, the counter client's forwarding) proves it; no `TopLevel*` text
+  mentions `lin`. Applied: the elimination law `lin_acc` (the state with the abort and the commit, telescopes
+  simplified; `lin_linF` now uses it), docstrings (`linF` "one-shot form", `lin`'s inner mask `∅`, "a write's
+  `lin`, committed at most once" for "one-shot `lin`" in `Defs`/`Do`, `Pend`'s abort, the five dsverify kits'
+  `opAU` notes now naming `linF`). Left (should-fix): an introduction law in the same plain form, so that
+  `pend_fire`/`pend_choice` and `kvremote/NodeUpd` stop unfolding telescopes; `lin_mono` (counter `Shared`)
+  and the two copies of `slotUpd_lin` (swiftnet `ClientOp`, epaxosnet `ClientProof`) moved into `Defs`.
 
 ## 2026-11-25: grpc `status` over its bodies: a `GRPCStatus` error is a structural `*status.Error`; `Errorf` stated for etcd's calls (status-bodies)
 
@@ -7131,6 +7196,33 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
   translation and the two axioms deleted.
 - **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).
+## 2026-11-26: `status.statusAtRaw` gains the read-only rest of the `*spb.Status`; `proto.Equal` (Status) (prove-statuserror)
+
+- **Spec.** The trusted vocabulary `status.statusAtRaw` (`Proof/google_golang_org/grpc/status/StatusRO.lean`),
+  through which every trusted post giving `statusAt`, `grpcStatusIs`, `descIs`, `statusCodeIs` or `statusErrOk`
+  claims a read-only status; the new trust-boundary spec `proto.EqualStatus.spec`
+  (`Spec/google_golang_org/protobuf/proto/EqualStatus.lean`).
+- **Defect.** `status.Error.wp_proof` could not be proved over grpc's body: `grpcErrMethodsOk`'s `Is` clause needs
+  `(*internal/status.Error).Is`'s `proto.Equal(e.s.s, tse.s.s)` (`internal/status/status.go:222-228`), which has
+  no spec, and an honest spec of `Equal` reads every populated field (protobuf-go v1.36.12 `proto/equal.go:39-64`,
+  `internal/impl/equal.go:22-133`: `Code`, `Message`, `Details` and each `*anypb.Any`'s `TypeUrl`, `Value`,
+  unknown fields, then `unknownFields`), while `statusAtRaw` held `↦□` only of `Code` and `Message`: nothing
+  could discharge a read permission on the rest of the target's status, and a spec without one would hide a race
+  with a writer of `Details`.
+- **Evidence.** The translated `Error.Is` (`Code/google_golang_org/grpc/internal/status.lean`); protobuf-go's
+  `Equal`; `notes/axiom-review/proto-equal-status.md`.
+- **Proposed change.** `statusAtRaw s c m` is `s.[Status,"s"] ↦□ p ∗ status.pbStatusRO p c m`: `p ≠ null`,
+  `Code`/`Message` `↦□` as before, and `status.pbStatusRestRO p`, `↦□` of `unknownFields` and its bytes,
+  `Details` and its elements, and each non-nil element's `TypeUrl`, `Value` (and bytes) and `unknownFields`
+  (and bytes) (`status.pbAnyRO`; `anypb.Any`'s struct translated for it). Not `sizeCache` (`proto.Marshal`
+  writes it) nor `state` (only atomic accesses). `proto.EqualStatus.spec`: for non-nil `p, q` with
+  `pbStatusRO p c m ∗ pbStatusRO q c' m'`, `Equal` returns some `b` with `b = true → c = c' ∧ m = m'`, nothing
+  about `false` or `Details`. Then `status.Error.wp_proof` is proved over grpc's body (with `codes.Code.String`
+  proved over `code_string.go` and `fmt.Sprintf`), net −`status.Error.wp_proof` +`proto.EqualStatus.wp_proof`.
+- **Decision.** Approved by coordinator-E, 2026-11-26 (#37 7180330705: the narrow `Equal` spec, conditions 1-5;
+  7183375670: `pbStatusRestRO` in `statusAtRaw`, conditions 1-4), subject to the fresh review. The review
+  (`notes/axiom-review/proto-equal-status.md`) found `Equal` panics on invalid unknown-field bytes of equal length:
+  both unknown-field lists (the status's, each `Any`'s) are now `ufWire` of their schema, as the decoder leaves them.
 ## 2026-11-26: `grpcErrMap`'s and `grpcErrOut`'s map at `v3rpc.errKeys`; `toGRPCErrorMap_init` was false (grpcerrmap)
 
 - **Spec.** `v3rpc.grpcErrMap` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Base.lean`, in the package
@@ -7148,3 +7240,38 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `util.go` imports; its initializer ran only through `etcdserver`'s). Strengthenings, but the key class,
   which replaces a false statement; no top-level statement changes.
 - **Decision.** Within the brief's rule for false axioms (fix the spec, record it, say so).
+## 2026-11-26: `leasehttp.RenewHTTP.spec`'s post claimed `applyErrIs` of the libraries' errors (mapkeys)
+
+- **Spec.** `leasehttp.RenewHTTP.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/leasehttp/RenewHTTP.lean`), the
+  trust-boundary axiom `leasehttp.RenewHTTP.wp_proof`.
+- **Defect.** The post's error arm, `err ≠ nil ∗ applyErrIs err`, was claimed of every error. `RenewHTTP` passes
+  some library errors on unwrapped: `proto.Marshal`'s (`*prefixError`), `http.NewRequest`'s and `Client.Do`'s
+  (`*url.Error`), `io.ReadAll`'s on the body (`tls.RecordHeaderError`, a struct value, `*net.OpError`, ...),
+  and the decode's behind `%w`. These are neither keys of `togRPCError`'s map (`errKeyOk`) nor leaves
+  (`srvErrOk`). The map-key audit flagged this as its F2; the leaf part was found while fixing it.
+- **Evidence.** `notes/axiom-review/errkeys-proto-renewhttp.md`; `server/lease/leasehttp/http.go`
+  (`RenewHTTP`, `readResponse`).
+- **Proposed change.** Add a third post arm, `err ≠ nil ∗ leasehttp.notLeaseNotFound err`
+  (`Proof/.../lease/leasehttp/RenewErr.lean`): an error tree in which no error is or `Is`
+  `lease.ErrLeaseNotFound`. This weakens the post (the old one implied it). The one consumer,
+  `EtcdServer.LeaseRenew`, gets `errors.Is(err, ErrLeaseNotFound) = false` there and tries the next URL;
+  every caller proves, and no top-level statement changes.
+- **Decision.** Within the pre-approved class (a correction weakening a trusted post to what Go does;
+  coordinator, #18, 2026-11-26).
+## 2026-11-26: `proto.MarshalIRR.spec`'s error arm is false of Go (open; mapkeys)
+
+- **Spec.** `proto.MarshalIRR.spec` (`Spec/google_golang_org/protobuf/proto/MarshalIRR.lean`), the axiom
+  `proto.MarshalIRR.wp_proof`.
+- **Defect.** On an invalid-UTF-8 proto3 string, the only failure, `Marshal` returns `impl.errInvalidUTF8{}`
+  (the fast path) or a `*prefixError` (the reflective path), unwrapped. The post claims `applyErrIs` of it.
+  The struct is no `errKeyOk` key (the map-key audit's F1), and neither error is a leaf (`srvErrOk`): both
+  have `Unwrap() error`.
+- **Evidence.** `notes/axiom-review/errkeys-proto-renewhttp.md`; protobuf-go v1.36.12
+  `internal/impl/codec_gen.go:5041-5049`, `codec_field.go:17-21`, `internal/errors/errors.go`,
+  `proto/encode.go:105-116, 198-204`.
+- **Proposed change.** Either a UTF-8 premise (as `MarshalUser.spec`'s), carried by `apply.internalRaftRequestIs`
+  from the decoded gRPC requests and the auth store's names; or `srvErrOk` widened to non-leaf errors (grpc's
+  `status.FromError` spec walking `Unwrap`), with `errInvalidUTF8` translated as its struct and added to
+  `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
+  lands, only the docstring is corrected: it said every protobuf error is a pointer.
+- **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.

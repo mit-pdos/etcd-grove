@@ -208,24 +208,16 @@ func Orch(nodes []string, ops int, timeout time.Duration) porcupine.CheckResult 
 	return remote.Run(txnlin.Model(), nodes, Codec(), txnlin.Gen, ops, Attempt, timeout)
 }
 
-// Retry is how long a client machine waits before it tries again to make its client.
-const Retry = 100 * time.Millisecond
-
-// connect makes a clientv3 client of the endpoints eps, trying until it succeeds.
-func connect(eps []string) *clientv3.Client {
-	for {
-		cli, err := etcdstart.NewClients(eps, zap.NewNop())
-		if err == nil {
-			return cli
-		}
-		time.Sleep(Retry)
-	}
-}
-
 // Node is client machine c's program, at addr: a clientv3 client of the endpoints eps (in the
-// order the client prefers), each operation it is asked txnlin.Call through it. It never returns.
+// order the client prefers), each operation it is asked txnlin.Call through it. It never returns,
+// except at once if its client fails to be made (no retry: the orchestrator's calls to it then go
+// unanswered).
 func Node(c int, addr string, eps []string) {
-	newClient := func(int) any { return connect(eps) }
+	cli, err := etcdstart.NewClients(eps, zap.NewNop())
+	if err != nil {
+		return
+	}
+	newClient := func(int) any { return cli }
 	op := func(sys any, in any) any {
 		return txnlin.Call(sys.(*clientv3.Client), in)
 	}

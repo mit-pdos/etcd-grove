@@ -20,7 +20,7 @@ committed version `cvOf L k` (0: none). Half of its authority is the **tail toke
 (persistent): `cvOf ≥ v` from some point on.
 
 **Linearization.** A client operation's update `opAU γ i Φ` is remote's linearization point
-(`remote.lin`, a fancy update from `clientMask = ⊤ ∖ craqEop`; notes/dsv-craq.md, P1; the lab's
+(the one-shot form `remote.linF` that `remote.lin_linF` gives, a fancy update from `clientMask = ⊤ ∖ craqEop`; notes/dsv-craq.md, P1; the lab's
 was an Iris atomic update at `clientN`). A put's update is deposited at assignment (`assign`) and
 fired by the tail's commit of any version `≥` its own (`commit`: every assigned version of the key in
 `(cvOf L k, v]` in order, the prefix); its receipt waits in the record for the coordinator's
@@ -145,7 +145,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 def ownState (γ : CraqNames) (σ : KvM.State) : IProp GF :=
   iprop(∃ l : List (GoString × GoString), ⌜σ = kvOfPuts l⌝ ∗ ghostVar γ.abs (1 : Qp).half l)
 
-/-- A client operation's update: remote's linearization point (`remote.lin`, one-shot), from
+/-- A client operation's update: remote's linearization point in its one-shot form (`remote.linF`, from `remote.lin_linF`), from
 `clientMask`, for the caller's postcondition `Q` of the output. -/
 def opAU (γ : CraqNames) (i : KvM.Input) (Q : KvM.Output → IProp GF) : IProp GF :=
   iprop(|={clientMask, ∅}=> ∃ σ, ownState γ σ ∗

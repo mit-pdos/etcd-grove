@@ -8,5 +8,4 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/client/v3/concurrency/(Link|Results)\.lean$
 axiom proto.Clone.wp_proof
-axiom status.Error.wp_proof
-opaque metadata.builtRawMDRaw
+axiom proto.EqualStatus.wp_proof

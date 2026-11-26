@@ -432,7 +432,8 @@ def chosenW (Γ : Names) (v : GoString) : IProp GF :=
   iprop(∃ m a b, ⌜a ∈ accIds ∧ b ∈ accIds ∧ a ≠ b⌝ ∗ accW Γ a m v ∗ accW Γ b m v)
 
 /-- Client `c`'s update for input `v` with the caller's postcondition `Φ` of the output: the
-linearization point of `remote` (`remote.lin` of the register, one-shot: a proposal is a write). -/
+linearization point of `remote` in its one-shot form (`remote.linF` of the register, which
+`remote.lin_linF` gives: a proposal is a write). -/
 def opAU (Γ : Names) (v : GoString) (Φ : GoString → IProp GF) : IProp GF :=
   iprop(|={⊤ \ paxosEop, ∅}=> ∃ σ, own_state Γ σ ∗
     (own_state Γ (woStep v σ).1 ={∅, ⊤ \ paxosEop}=∗ Φ (woStep v σ).2))

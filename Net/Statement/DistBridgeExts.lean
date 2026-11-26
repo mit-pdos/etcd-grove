@@ -15,6 +15,11 @@ is safe from its share of an update from the deployment's addresses unset.
   default `initLocal` (any state), so a statement over it adds `FsInit` per machine;
 - nothing else: the net extension's start resources are taken out of the list's by its position
   (`hasExt_globalStart`), whatever the other extensions are.
+
+**`Robust`'s thread bound** (`robust_of_distBootILT`, over Perennial's `goose_dist_adequacy_below`): the
+logic's thread bound is the statement's `threads`, and the receipt bound ranges up to `bound` alone
+(`DistBootWpSLT`). The bridges before it (`robust_of_distBootIL` and the ones built on it) tie the thread
+bound to the receipts (`threadBound GF = receiptBound GF + 1`), so a thread cap also caps the steps.
 -/
 module
 
@@ -226,6 +231,66 @@ theorem robust_of_distBootIL [lctx : GoLocalContext] (addrs : List GoString)
     intro j m hm
     exact nodeWp_of_distBootSL lo bound (max (n + 1) lo) HN (by omega) (by omega) m.1 m.2 (Ps j)
       (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
+
+/-- **`DistBootWpSL` with the thread bound fixed** (`threadBound GF = T`, `Robust`'s separate thread bound): a
+machine's boot program safe from its share and its whole start at the thread bound `T` and every receipt bound
+from `lo` to `bound`. A program's thread facts (a pool of `n` slots, `threadBound GF ≤ n + 1`; the levels of a
+thread token, `srvLevels`) come from `T`, its lifetime counters' caps from `bound`. -/
+def DistBootWpSLT [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T lo bound : Nat) (e : Expr)
+    (σ : state) (P : IProp GF) : Prop :=
+  ∀ hG : HeapGS .hasLC GF, hG.goose_globalGS = G →
+    hG.goose_localGS.goose_go_local_context = lctx →
+    lo ≤ receiptBound GF → receiptBound GF ≤ bound → threadBound GF = T →
+    letI : HeapGS .hasLC GF := hG
+    P ⊢ extsLocalStart (L := hG.goose_localGS) σ.world -∗
+      ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ -∗ threadTok ={⊤}=∗
+      WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}
+
+omit [HasExt netExt] in
+/-- A machine's obligation in `goose_dist_adequacy_below` (`nodeWp`, at `T` threads and `N` receipts,
+`lo ≤ N ≤ bound`) from `DistBootWpSLT`. -/
+theorem nodeWp_of_distBootSLT [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC GF] (T lo bound N : Nat)
+    (hN : receiptBound GF = N) (hlo : lo ≤ N) (hb : N ≤ bound) (e : Expr) (σ : state) (P : IProp GF)
+    (hf : Fresh lctx σ) (H : DistBootWpSLT T lo bound e σ P) :
+    P ⊢ nodeWp T e σ (fun v => v = #()) := by
+  unfold nodeWp
+  iintro HP %L
+  unfold nodeWpBody
+  iintro %hT %hL Hls Hgs Htok
+  rw [hf.2.1]
+  iapply H ⟨G, L⟩ rfl (hL.trans hf.1) (by omega) (by omega) hT $$ HP Hls Hgs Htok
+
+/-- **The bridge with `Robust`'s thread bound** (over Perennial's `goose_dist_adequacy_below`): an execution
+of `n` steps along which every machine keeps fewer than `threads` threads is run at `max (n + 1) lo`
+receipts and the thread bound `threads`, so each machine's boot program is safe at `threadBound GF =
+threads` and any receipt bound from `lo` to `bound` (`DistBootWpSLT`; `lo ≤ bound`). -/
+theorem robust_of_distBootILT [lctx : GoLocalContext] (addrs : List GoString)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound lo : Nat) (hlo : lo ≤ bound)
+    (HI : extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], lo ≤ receiptBound GF → receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ Ps : Nat → IProp GF,
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
+            DistBootWpSLT threads lo bound m.1 m.2 (Ps i)⌝ ∗
+          [∗list] i ↦ _m ∈ nodes, Ps i) :
+    DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  rintro ⟨Hnd, Hok, -, -⟩ hfresh hg hl n κs c hsteps hn i tp σ hi e he
+  simp only [List.map_nil, List.nil_append] at hfresh hl hsteps
+  have H := goose_dist_adequacy_below (GF := GF) (max (n + 1) lo) threads nodes g
+    (fun _ v => v = #()) (fun _ p h => intoVal_ne_PanicV () p h.symm) (HI hg hl).1 (HI hg hl).2
+    ?_ n κs c hsteps (by omega) (fun m hm => (hfresh m hm).2.2) i tp σ hi
+  · exact ⟨H.2.1 e he, H.2.2 e he⟩
+  · intro G HN
+    iintro Hg
+    ihave Hnet := hasExt_globalStart (X := netExt) g.globalWorld $$ Hg
+    ihave Hs := addrs_start (Gg := G) (extGlobal netExt g.globalWorld) addrs Hnd Hok $$ Hnet
+    imod Hstart (by omega) (by omega) $$ Hs with ⟨%Ps, %HP, HPs⟩
+    imodintro
+    iapply BigSepL.bigSepL_mono ?_ $$ HPs
+    intro j m hm
+    exact nodeWp_of_distBootSLT threads lo bound (max (n + 1) lo) HN (by omega) (by omega) m.1 m.2
+      (Ps j) (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
 
 /-- **The bridge, over any list of extensions with the net extension** (see the file header), with the
 interpretations' conditions on the initial states (`extsInitgP`, `extsInitP`) given from `Robust`'s

@@ -273,9 +273,10 @@ def regHalf (γ : ProtoNames) (σ : w64) : IProp GF := ghostVar γ.reg (1 : Qp).
 /-- The client's update for an operation with input `i`, commit postcondition `Q`: a one-shot
 fancy update from the mask outside Gryff's invariant (where a replica's step fires it, the
 invariant open) that takes the register `σ` to `casApply σ i`. Port: the lab's was an Iris atomic
-update at `clientN` (its driver's); here it is remote's linearization point (`remote.lin` of the
-kit's store `casR`, whose `Eop` is `gryffN`, `Kit.lean`'s `lin_opAU`), which cannot abort (the
-proof never aborts it: `opAU_fire` commits once). -/
+update at `clientN` (its driver's); here it is the one-shot form of remote's linearization point
+(`remote.linF`, which `remote.lin_linF` gives from `remote.lin` of the kit's store `casR`, whose `Eop`
+is `gryffN`, `Kit.lean`'s `lin_opAU`), which cannot abort (the proof never aborts it: `opAU_fire`
+commits once). -/
 def opAU (γ : ProtoNames) (i : RegInput w64) (Q : w64 → w64 → RegOutput w64 → IProp GF) :
     IProp GF :=
   iprop(|={⊤ \ ↑gryffN, ∅}=> ∃ σ, regHalf γ σ ∗
