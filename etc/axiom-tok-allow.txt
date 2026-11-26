@@ -189,24 +189,32 @@ entry Perennial.EtcdGrove.etcd_dist.Txn_Commit_dist.wp_proof 2:L:0:handedtoacall
 # The same branch's two other new axioms, which the queue's run listed as `rule 3,7 (2)` and which taint
 # `builtRawMDRaw`/`transportMDRaw`/`statusAtRaw` (the selftest's `real-pass EtcdServer.leaseTimeToLive`
 # failure); their findings are the established patterns of the entries above, keys unchanged:
-# `etcd_dist.Serve_dist.wp_proof` (Proof/.../examples/etcd/dist/ServeDist.lean; interim, retired by
-# #24's S2) consumes `etcdstart.memberUp` (the started member's server handles `isServerReq`/
-# `isServerRead`, the stocks, `srvGoRes`, ...), `etcdAddrAt a γE mid` and `envAt γE ν`, and returns
-# `True`. Every finding sits inside `memberUp`'s persistent server handles, the same binders as
-# `leaseTimeToLive`'s and `rangeStream`'s entries (`Dep`/`Rd`/`U`/`Locked` under `isApplyLessor`'s
-# revoke callbacks, `Ψ` under the wait registry's trigger, `Φ : Unit -n> IProp` an atomic update's
-# fixpoint, `sDoneAny` `auth.ctxDoneAny`'s, `P` a `*cancelCtx`'s Done proposition, the rest those
-# handles' own families). Unlike those functions, `Serve` does call the handles' methods (it runs the
-# member's request handlers). Why it is sound (review 2026-11-25): the post is `True`, and every finding is
-# inside handles the axiom only consumes (`memberUp`), which only etcd's proved start can build (the
-# server's fields are unexported), so no user-written callback ever runs; and the keys come from the handles'
+# `etcd_dist.Serve_dist.wp_proof` (Proof/.../examples/etcd/dist/ServeDist.lean; interim, retired by #24's S2)
+# consumes the started member's serving resources: with auth off `memberUpL … Γ.kv.lm (Γ.ls mid)`, with auth
+# on `memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)` (`dist/MemberLessor.lean`: `memberUp`'s and `memberUpOn`'s
+# server handles `isServerReq(M)`/`isServerRead(M)`, the stocks, `srvGoRes`, `srvLeaseRd`, and with auth on
+# `srvAuthLb`); it also consumes `etcdAddrAt a Γ mid`, and it returns `True`. Every finding sits inside those
+# consumed persistent handles, with the same binders as `leaseTimeToLive`'s and `rangeStream`'s entries:
+# - `Dep`/`Rd`/`U`/`Locked` under `isApplyLessor`'s revoke callbacks;
+# - `Ψ` under the wait registry's trigger;
+# - `Φ : Unit -n> IProp`, an atomic update's fixpoint;
+# - `sDoneAny`, `auth.ctxDoneAny`'s;
+# - with auth on, `A`/`Pre`/`Y`/`C`/`R`/`Lk`/`Sw` of the auth handles;
+# - the rest, those handles' own families.
+#
+# Unlike those functions, `Serve` does call the handles' methods (it runs the member's request handlers). Why
+# it is sound (review 2026-11-25; text corrected by notes/axiom-review/f9-auth-combined-review.md J1): the
+# post is `True`, and every finding is inside handles the axiom only consumes. Only etcd's proved start builds
+# them (`memberUpL` through `etcdstart.wp_Start_builtL`, `memberUpOnL` from `memberUpOn_intro`'s parts; the
+# server's fields are unexported), so no user-written callback ever runs. The keys come from the handles'
 # definitions themselves (the same keys appear for `leaseTimeToLive`, which never calls them). The proved
-# in-process `etcdstart.Serve.wp_proof` is the analogue, not literally the same handles: `memberUp`
-# (`Defs.lean:466`) carries extra stocks and lacks `srvAuthLb`, and `Serve.spec` takes `netAddrFree` and a
-# view-shift that `Serve_dist` replaces. `7:P:IPropGF` is not among `leaseTimeToLive`'s keys: most likely
-# the per-request context the gRPC server picks for the handlers (harmless: those contracts are generic in
-# it); not traced.
-entry Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Y:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Sw:auth.AuthSess→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:sDoneAny:context.ContextDesc(IPropGF),7:Φ:Unit-n>IPropGF,7:P:IPropGF  see the section header: `memberUpL`/`memberUpOnL`'s server handles, as leaseTimeToLive's and rangeStream's keys (re-keyed 2026-11-26 for F7's reviewed text, eb138f6f8c: the auth-on handles add `A`/`Pre`/`Y`/`C`/`R`/`Lk`/`Sw`, every one of them a key of leaseTimeToLive's entry; the walk hits the scenario cap, so its rule-3 counts are leaseTimeToLive's merged ones); the handles' contracts are discharged by the proved in-process `etcdstart.Serve.wp_proof` over the same handles, and the post is `True`
+# in-process analogue is `etcdstart.Serve.wp_proof`, over `memberUp` (auth off) and over `memberUpOn` through
+# `memberUpOn_served` (auth on). It is not literally the same predicates: the `L` variants add the lessor
+# name, and `Serve.spec` takes `netAddrFree` and a view-shift that `Serve_dist` replaces. The walk hits the
+# scenario cap, so its rule-3 counts are merged ones. `7:P:IPropGF` is not among `leaseTimeToLive`'s keys;
+# most likely it is the per-request context the gRPC server picks for the handlers (harmless: those contracts
+# are generic in it); not traced.
+entry Perennial.EtcdGrove.etcd_dist.Serve_dist.wp_proof 3:A:produced3/consumed2,3:Dep:produced1/consumed0,3:Pre:produced2/consumed1,3:Pre:produced3/consumed2,3:Y:produced1/consumed0,3:Ψ:produced1/consumed0,7:A:IPropGF,7:C:IPropGF,7:Dep:IPropGF,7:GA:w64→IPropGF,7:Lk:auth.AuthState→IPropGF→IPropGF,7:Sw:auth.AuthSess→IPropGF,7:Locked:mvcc.Puts→IPropGF,7:Pw:IPropGF,7:R:IPropGF,7:Rd:GoSlice→GoString→IPropGF,7:T:IPropGF,7:U:IPropGF,7:U:Nat→IPropGF,7:sDoneAny:context.ContextDesc(IPropGF),7:Φ:Unit-n>IPropGF,7:P:IPropGF  see the section header: `memberUpL`/`memberUpOnL`'s server handles, as leaseTimeToLive's and rangeStream's keys (re-keyed 2026-11-26 for F7's reviewed text, eb138f6f8c: the auth-on handles add `A`/`Pre`/`Y`/`C`/`R`/`Lk`/`Sw`, every one of them a key of leaseTimeToLive's entry; the walk hits the scenario cap, so its rule-3 counts are leaseTimeToLive's merged ones); the handles' contracts are discharged by the proved in-process `etcdstart.Serve.wp_proof` over the corresponding in-process handles (`memberUp`; `memberUpOn` via `memberUpOn_served`), and the post is `True`
 # `bootstrap.wp_proofOne` (Proof/go_etcd_io/etcd/server/v3/etcdserver/bootstrapOne.lean; interim, retired
 # when #34 proves `bootstrap`): `bootstrap.spec` at one member of one URL; until 2026-11-24 the same
 # content was the closed theorems' Iris premise `etcdstart.premises`, which this gate did not walk. Its
@@ -361,7 +369,7 @@ entry Perennial.EtcdGrove.etcd_dist.authd.KV_DeleteOn_dist.wp_proof 2:L:0:handed
 entry Perennial.EtcdGrove.etcd_dist.authd.KV_GetOn_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF,3:Q:produced1/consumed0  as KV_Get_dist's (the section header), auth on; `Q`: the pure `Q = fun _ => True` disjunct
 entry Perennial.EtcdGrove.etcd_dist.authd.Txn_CommitOn_dist.wp_proof 2:L:0:handedtoacallback10/supplieddirectly1,7:P:IPropGF  as Txn_Commit_dist's (the section header), auth on: the builder's fifth connection (+2)
 entry Perennial.EtcdGrove.etcd_dist.authd.WatchOn_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  as Watch_dist's (the section header), auth on: no RPC on the caller's goroutine
-entry Perennial.EtcdGrove.etcd_dist.authd.New_user_dist.wp_proof 7:P:IPropGF,7:scd:context.ContextDesc(IPropGF)  `New`'s shape (notes/axiom-review/f7-auth-axiom-tok.md): `P` the contracts' context's Done proposition, as KV_Put_dist's; `scd` the context `New`'s `getToken` makes inside the call (its `PDone`), as the proved `newClient`'s; no level token in its pre or post
+entry Perennial.EtcdGrove.etcd_dist.authd.New_user_dist.wp_proof 7:P:IPropGF,7:scd:context.ContextDesc(IPropGF)  `New`'s shape (notes/axiom-review/f7-auth-axiom-tok.md; re-walked in f9-auth-combined-review.md §4). `P` is the Done proposition of the `*cancelCtx`s inside the client handle the post returns (`isNewClient`; there it is produced, in `KV_Put_dist`'s pre consumed). `scd` is the `∃ scd` of that handle's lessor (`lessorAt`: its `stopCtx`'s description, `context.isContext sc scd`, under `isContextDone`, whose `scd.PDone` the walk counts as produced): rule 7's neutral case through a defined handle, as NewStream's `cd'`. The caller's `levelTok 0` is taken and returned (the walk: `L:0` consumed 9, produced 9 in every scenario; no rule-2 finding). There is no auth-off sibling: no auth-off `New` axiom exists, because the auth-off clients come from the proved `New`.
 # Their truncation notes (and `New_user_dist`'s) are those of the auth-off siblings' walks above (`isNewClient`'s
 # contexts, `cd.4`, the models' projections, `isCancelCtx{,Of}`, `isMutex`, `named`, `dghostVar`, `isChan`,
 # `status.statusAt{,Raw}`): notes/axiom-review/f7-auth-axiom-tok.md, "Truncations".

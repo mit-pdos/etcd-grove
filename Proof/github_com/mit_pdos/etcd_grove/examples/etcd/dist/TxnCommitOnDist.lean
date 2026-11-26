@@ -44,7 +44,7 @@ own names `Γ.au mid`/`Γ.ls mid`, which `Serve_dist`'s auth-on premise (`member
 resources, and an error arm that claims nothing (an invalid or expired token, a token another member has not yet
 applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 
-**Reviews** (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C, the Serve tie). Unchanged since (`f7-changed-since-review.md`).
+**Reviews** (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C, the Serve tie). Widened since (S5, S11); reviewed `f7-txn-review.md`, `f7-txn-nested-review.md`, and with the set `f9-auth-combined-review.md` (SOUND).
 
 **Widened before approval** (F7 S5, 2026-11-26, the lead's approval #50 07:36Z; reviewed SOUND,
 `notes/axiom-review/f7-txn-review.md`, with Go tests in `notes/axiom-review/f7-txn-gotest/`): the write

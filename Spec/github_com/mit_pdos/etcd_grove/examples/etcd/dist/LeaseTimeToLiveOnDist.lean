@@ -51,7 +51,7 @@ principal, as `userOk` does for the keys arm; `userOk` alone would admit the emp
 now any options, the refusal (error) arm unchanged. Needs a fresh review. **Reviewed** `f7-getOn-n1.md` (2026-11-26): SOUND as drafted. It must keep claiming nothing about
 `TTL`, `GrantedTTL` or `Keys` (a `ttl = -1` claim would be false for an expired, not yet revoked lease).
 
-**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `leaseCheckD`'s binding is `P = some info.Username'` (`requireAuthInfo`'s condition), no longer `userOk P`; the no-keys arm's `principalOf cfg = some info.Username'` is now implied by it (kept, redundant).
+**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review: done, `f9-auth-combined-review.md`, SOUND): `leaseCheckD`'s binding is `P = some info.Username'` (`requireAuthInfo`'s condition), no longer `userOk P`; the no-keys arm's `principalOf cfg = some info.Username'` is now implied by it (kept, redundant).
 
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseTimeToLiveOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-c.md` (`d946f6cbda`: UNSOUND as written; F1 the member names bound to `Γ.au`, F2 the lessor name `Γ.ls mid` tied by Serve), then `f7-rerev-c.md` (`6d9d9fd662`): SOUND given the proposed Serve, adopted as `Serve_dist` (`f7-combined.md`, F7 step 3 `eb138f6f8c`). Since then a comment only (`f7-changed-since-review.md`). -/

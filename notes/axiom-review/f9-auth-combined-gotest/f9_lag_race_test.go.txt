@@ -1,0 +1,279 @@
+// F9 combined review (2026-11-26): the auth-on interim axioms' interactions on a three-member
+// auth-on cluster (simple tokens), at the etcd fork's pin df6af0c36a6b, grpc v1.84.
+//
+//	TestF9LagWritesReads: a follower stopped before AuthEnable, restarted after it (caught up by a
+//	    snapshot); from its restart on, an anonymous client and a token-less named client at that
+//	    member try writes (Put, a nested Txn) outside every grant, and linearizable reads, which the
+//	    axioms (writeCheckedD's grantedAt, readCheckedD's L ⊒ L₀ with L₀ through AuthEnable) say are
+//	    refused once AuthEnable has returned;
+//	TestF9EnableRace: anonymous Puts, nested Txns and linearizable Gets at every member race with
+//	    AuthEnable; any of them sent after AuthEnable returned must fail, and no success may be applied
+//	    after a root Put that followed the enable.
+//
+// Every line this test prints itself starts with "F9".
+package f9review
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"go.uber.org/zap"
+
+	"go.etcd.io/etcd/api/v3/authpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/tests/v3/framework/integration"
+)
+
+const (
+	rootPw = "root-pw"
+	uPw    = "u-pw"
+)
+
+func logf(t *testing.T, f string, args ...any) { t.Logf("F9 "+f, args...) }
+
+func newCli(t *testing.T, ep, user, pw string) *clientv3.Client {
+	t.Helper()
+	c, err := clientv3.New(clientv3.Config{Endpoints: []string{ep}, Username: user, Password: pw,
+		DialTimeout: 5 * time.Second, Logger: zap.NewNop()})
+	if err != nil {
+		t.Fatalf("client %s@%s: %v", user, ep, err)
+	}
+	return c
+}
+
+// u may read and write [a, b); root is root; auth enabled last (unless enable is false)
+func setupAuth(t *testing.T, cli *clientv3.Client, enable bool) {
+	ctx := context.Background()
+	must := func(_ any, err error) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(cli.RoleAdd(ctx, "r"))
+	must(cli.RoleGrantPermission(ctx, "r", "a", "b", clientv3.PermissionType(authpb.READWRITE)))
+	must(cli.UserAdd(ctx, "u", uPw))
+	must(cli.UserGrantRole(ctx, "u", "r"))
+	must(cli.UserAdd(ctx, "root", rootPw))
+	must(cli.UserGrantRole(ctx, "root", "root"))
+	if enable {
+		must(cli.AuthEnable(ctx))
+	}
+}
+
+func stopIdx(clus *integration.Cluster) int {
+	lead := clus.Members[0].Server.Lead()
+	for i := 1; i < 3; i++ {
+		if uint64(clus.Members[i].Server.MemberID()) != lead {
+			return i
+		}
+	}
+	return 2
+}
+
+// the forbidden operations: every one of them must fail once AuthEnable has returned
+type probe struct {
+	name string
+	run  func(ctx context.Context, c *clientv3.Client, k string) (int64, error)
+}
+
+var probes = []probe{
+	{"Put c/", func(ctx context.Context, c *clientv3.Client, k string) (int64, error) {
+		r, err := c.Put(ctx, "c/"+k, "x")
+		if err != nil {
+			return 0, err
+		}
+		return r.Header.Revision, nil
+	}},
+	{"nested Txn put c/", func(ctx context.Context, c *clientv3.Client, k string) (int64, error) {
+		r, err := c.Txn(ctx).Then(clientv3.OpTxn(nil, []clientv3.Op{clientv3.OpPut("c/n"+k, "x")}, nil)).Commit()
+		if err != nil {
+			return 0, err
+		}
+		return r.Header.Revision, nil
+	}},
+	{"linearizable Get c/1", func(ctx context.Context, c *clientv3.Client, k string) (int64, error) {
+		r, err := c.Get(ctx, "c/1")
+		if err != nil {
+			return 0, err
+		}
+		return r.Header.Revision, nil
+	}},
+}
+
+func TestF9LagWritesReads(t *testing.T) {
+	integration.BeforeTest(t, integration.WithoutGoLeakDetection())
+	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 3, SnapshotCount: 10, SnapshotCatchUpEntries: 5})
+	defer clus.Terminate(t)
+	ep := func(i int) string { return clus.Members[i].GRPCURL }
+	pre := newCli(t, ep(0), "", "")
+	if _, err := pre.Put(context.Background(), "c/1", "x"); err != nil {
+		t.Fatal(err)
+	}
+	si := stopIdx(clus)
+	m := clus.Members[si]
+	m.Stop(t)
+	logf(t, "[lag] member %d (a follower) stopped, auth off there", si)
+	time.Sleep(2 * time.Second)
+	setupAuth(t, pre, true)
+	pre.Close()
+	logf(t, "[lag] AuthEnable returned")
+	root := newCli(t, ep(0), "root", rootPw)
+	defer root.Close()
+	for i := 0; i < 60; i++ {
+		if _, err := root.Put(context.Background(), fmt.Sprintf("a/s%02d", i), "x"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	var tries, bad atomic.Int64
+	var mu sync.Mutex
+	errs := map[string]int{}
+	worker := func(user, pw string) {
+		defer wg.Done()
+		for n := 0; ; n++ {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			c, err := clientv3.New(clientv3.Config{Endpoints: []string{ep(si)}, Username: user, Password: pw,
+				DialTimeout: 300 * time.Millisecond, Logger: zap.NewNop()})
+			if err != nil {
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+			for _, p := range probes {
+				ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+				rev, err := p.run(ctx, c, fmt.Sprintf("%s-%d", user, n))
+				cancel()
+				tries.Add(1)
+				mu.Lock()
+				if err == nil {
+					bad.Add(1)
+					logf(t, "[lag] UNEXPECTED %q by %q at member %d succeeded, header revision %d", p.name, user, si, rev)
+				} else {
+					errs[p.name+": "+err.Error()]++
+				}
+				mu.Unlock()
+			}
+			c.Close()
+		}
+	}
+	wg.Add(2)
+	go worker("", "")
+	go worker("u", uPw)
+	time.Sleep(100 * time.Millisecond)
+	if err := m.Restart(t); err != nil {
+		t.Fatal(err)
+	}
+	logf(t, "[lag] member %d restarted", si)
+	time.Sleep(6 * time.Second)
+	close(stop)
+	wg.Wait()
+	for e, n := range errs {
+		logf(t, "[lag] refused %5d x %s", n, e)
+	}
+	r, err := root.Get(context.Background(), "c/", clientv3.WithPrefix(), clientv3.WithKeysOnly())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys []string
+	for _, kv := range r.Kvs {
+		keys = append(keys, string(kv.Key))
+	}
+	logf(t, "[lag] probes %d, successes %d; keys under c/ afterwards: %v", tries.Load(), bad.Load(), keys)
+	if bad.Load() != 0 || len(keys) != 1 {
+		t.Errorf("a forbidden operation succeeded at the lagging member")
+	}
+}
+
+func TestF9EnableRace(t *testing.T) {
+	integration.BeforeTest(t, integration.WithoutGoLeakDetection())
+	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 3})
+	defer clus.Terminate(t)
+	ep := func(i int) string { return clus.Members[i].GRPCURL }
+	pre := newCli(t, ep(0), "", "")
+	if _, err := pre.Put(context.Background(), "c/1", "x"); err != nil {
+		t.Fatal(err)
+	}
+	setupAuth(t, pre, false)
+	var enabledAt atomic.Int64 // unix nanos when AuthEnable returned; 0 before
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	type res struct {
+		name     string
+		member   int
+		sent     int64
+		rev      int64
+		ok       bool
+	}
+	var mu sync.Mutex
+	var all []res
+	for i := 0; i < 3; i++ {
+		for w := 0; w < 2; w++ {
+			wg.Add(1)
+			go func(i, w int) {
+				defer wg.Done()
+				c := newCli(t, ep(i), "", "")
+				defer c.Close()
+				for n := 0; ; n++ {
+					select {
+					case <-stop:
+						return
+					default:
+					}
+					for _, p := range probes {
+						sent := time.Now().UnixNano()
+						ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+						rev, err := p.run(ctx, c, fmt.Sprintf("m%d-w%d-%d", i, w, n))
+						cancel()
+						mu.Lock()
+						all = append(all, res{p.name, i, sent, rev, err == nil})
+						mu.Unlock()
+					}
+				}
+			}(i, w)
+		}
+	}
+	time.Sleep(300 * time.Millisecond)
+	if _, err := pre.AuthEnable(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	enabledAt.Store(time.Now().UnixNano())
+	pre.Close()
+	root := newCli(t, ep(0), "root", rootPw)
+	defer root.Close()
+	pr, err := root.Put(context.Background(), "a/after", "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := pr.Header.Revision
+	time.Sleep(2 * time.Second)
+	close(stop)
+	wg.Wait()
+	var okBefore, okAfterSend, okAfterRev, refused int
+	for _, r := range all {
+		switch {
+		case !r.ok:
+			refused++
+		case r.sent > enabledAt.Load():
+			okAfterSend++
+			logf(t, "[race] UNEXPECTED %q at member %d sent after AuthEnable returned: success, revision %d", r.name, r.member, r.rev)
+		case r.name != "linearizable Get c/1" && r.rev >= after:
+			okAfterRev++
+			logf(t, "[race] UNEXPECTED %q at member %d applied at revision %d >= root's post-enable Put %d", r.name, r.member, r.rev, after)
+		default:
+			okBefore++
+		}
+	}
+	logf(t, "[race] anonymous operations: %d, succeeded before the enable returned (and applied before it): %d, refused: %d, successes sent after: %d, applied after: %d (root's post-enable Put at revision %d)",
+		len(all), okBefore, refused, okAfterSend, okAfterRev, after)
+	if okAfterSend != 0 || okAfterRev != 0 {
+		t.Errorf("an anonymous operation succeeded after AuthEnable")
+	}
+}
