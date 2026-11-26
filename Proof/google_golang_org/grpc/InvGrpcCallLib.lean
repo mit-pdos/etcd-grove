@@ -3,7 +3,9 @@
 `plan-s3.md` §2.3-§2.4): one ghost protocol for every call, unary or stream, over which grpc's
 transport, `clientStream` and `processRPC` are to be proved once (S3.2), and the connection's byte
 protocols `grpcCliP`/`grpcSrvP` over frame sequences, with their parse laws. Definitions and proved
-laws; no axiom, no opaque. Nothing links them yet: `grpcAddrAt` still points at the opaque
+laws; no axiom, no opaque. The ghost predicates and the protocols are sealed (`@[no_expose]`,
+decision A of `notes/phase7-endstate.md`) and the module is internal to grpc (`etc/api/grpc.txt`):
+grpc's own proofs reach their bodies with `import all`. Nothing links them yet: `grpcAddrAt` still points at the opaque
 `grpcCliPI`/`grpcSrvPI` (`InvGrpcWire.lean`) until S3.2 proves `Invoke`, `NewStream` and `Serve`
 over the model (W5).
 
@@ -205,7 +207,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The `j`-th response the server sent on the stream is `m` (persistent). -/
-def downAt {Rep : StreamMsg GF} (γ : StreamNames) (j : Nat) (m : Rep.M) : IProp GF :=
+@[no_expose] def downAt {Rep : StreamMsg GF} (γ : StreamNames) (j : Nat) (m : Rep.M) : IProp GF :=
   monoListIdxOwn γ.down j m
 
 instance downAt_persistent {Rep : StreamMsg GF} (γ : StreamNames) (j : Nat) (m : Rep.M) :
@@ -213,18 +215,18 @@ instance downAt_persistent {Rep : StreamMsg GF} (γ : StreamNames) (j : Nat) (m 
   unfold downAt; infer_instance
 
 /-- The server's right to dispatch the call (exclusive). -/
-def callMdTok (κ : CallNames) : IProp GF :=
+@[no_expose] def callMdTok (κ : CallNames) : IProp GF :=
   dghostVar κ.s.md (DFrac.own (1 : Qp).half) (none : Option (GoString × GrpcMdCode))
 
 /-- The server's right to end the call (exclusive). -/
-def callEndTok (κ : CallNames) : IProp GF :=
+@[no_expose] def callEndTok (κ : CallNames) : IProp GF :=
   dghostVar κ.fin (DFrac.own (1 : Qp).half) (none : Option (Nat × Option GoString))
 
 /-- The client's right to take what the call's end carries (exclusive). -/
-def callFinTok (κ : CallNames) : IProp GF := token κ.finTok
+@[no_expose] def callFinTok (κ : CallNames) : IProp GF := token κ.finTok
 
 /-- **The server ended the call after `n` responses, with `o`** (persistent; set once). -/
-def callEndIs (κ : CallNames) (n : Nat) (o : Option GoString) : IProp GF :=
+@[no_expose] def callEndIs (κ : CallNames) (n : Nat) (o : Option GoString) : IProp GF :=
   dghostVar κ.fin DFrac.discard (some (n, o) : Option (Nat × Option GoString))
 
 instance callEndIs_persistent (κ : CallNames) (n : Nat) (o : Option GoString) :
@@ -233,7 +235,7 @@ instance callEndIs_persistent (κ : CallNames) (n : Nat) (o : Option GoString) :
 
 /-- The end's state, once dispatched to `a` at the code `c`: unset, or ended after `n` of the
 responses `D` with `o`. -/
-def callEndBody (κ : CallNames) (P : CallParams GF) (a : GoString) (c : GrpcMdCode)
+@[no_expose] def callEndBody (κ : CallNames) (P : CallParams GF) (a : GoString) (c : GrpcMdCode)
     (D : List P.rep.M) : IProp GF :=
   iprop((dghostVar κ.fin (DFrac.own (1 : Qp).half) (none : Option (Nat × Option GoString)) ∗
       dghostVar κ.s.downEnd (DFrac.own 1) ([] : List P.rep.M)) ∨
@@ -242,7 +244,7 @@ def callEndBody (κ : CallNames) (P : CallParams GF) (a : GoString) (c : GrpcMdC
 
 /-- The dispatch's state: unset (no response yet), or dispatched to `a` at the code `c`, each
 response not yet received holding its content. -/
-def callDispBody (κ : CallNames) (P : CallParams GF) (D Dr : List P.rep.M) : IProp GF :=
+@[no_expose] def callDispBody (κ : CallNames) (P : CallParams GF) (D Dr : List P.rep.M) : IProp GF :=
   iprop((⌜D = []⌝ ∗ callMdTok κ ∗
       dghostVar κ.fin (DFrac.own (1 : Qp).half) (none : Option (Nat × Option GoString)) ∗
       dghostVar κ.s.downEnd (DFrac.own 1) ([] : List P.rep.M)) ∨
@@ -253,7 +255,7 @@ def callDispBody (κ : CallNames) (P : CallParams GF) (D Dr : List P.rep.M) : IP
       callEndBody κ P a c D)
 
 /-- The call's invariant's body (see the file header). -/
-def callBody (κ : CallNames) (P : CallParams GF) : IProp GF :=
+@[no_expose] def callBody (κ : CallNames) (P : CallParams GF) : IProp GF :=
   iprop(∃ (U Ur : List P.req.M) (D Dr : List P.rep.M), ⌜Ur <+: U ∧ Dr <+: D⌝ ∗
     cliSendTok (Req := P.req) κ.s U ∗
     dghostVar κ.s.upRcv (DFrac.own (1 : Qp).half) Ur ∗
@@ -265,7 +267,7 @@ def callBody (κ : CallNames) (P : CallParams GF) : IProp GF :=
     callDispBody κ P D Dr)
 
 /-- **The call's invariant** (persistent). -/
-def callInv (κ : CallNames) (P : CallParams GF) : IProp GF := inv (callN κ) (callBody κ P)
+@[no_expose] def callInv (κ : CallNames) (P : CallParams GF) : IProp GF := inv (callN κ) (callBody κ P)
 
 instance callInv_persistent (κ : CallNames) (P : CallParams GF) :
     Persistent (callInv κ P) := by
@@ -273,7 +275,7 @@ instance callInv_persistent (κ : CallNames) (P : CallParams GF) :
 
 /-- **The server's share of a call** (exclusive): its tokens, both queues' at `[]`, the handler's
 auxiliary name unset, and the rights to dispatch and to end. -/
-def callSrvShare (κ : CallNames) (P : CallParams GF) : IProp GF :=
+@[no_expose] def callSrvShare (κ : CallNames) (P : CallParams GF) : IProp GF :=
   iprop(srvRecvTok (Req := P.req) κ.s [] ∗ srvSendTok (Rep := P.rep) κ.s [] ∗
     streamAuxTok κ.s ∗ callMdTok κ ∗ callEndTok κ)
 
@@ -975,27 +977,27 @@ theorem call_take_fin (E : CoPset) (κ : CallNames) (P : CallParams GF) (hE : �
 /-! ## The attempt: the call's deposit, keyed by the call -/
 
 /-- **An attempt's ticket** (exclusive): the right to dispatch or refuse it. -/
-def attTicket (α : AttNames) : IProp GF := token α.tk
+@[no_expose] def attTicket (α : AttNames) : IProp GF := token α.tk
 
 /-- **An attempt's client token** (exclusive): the right to take the deposit back. -/
-def attCliTok (α : AttNames) : IProp GF := token α.cl
+@[no_expose] def attCliTok (α : AttNames) : IProp GF := token α.cl
 
 /-- **The attempt `α` was refused** (persistent): it is never dispatched. -/
-def attRefused (α : AttNames) : IProp GF := monoListLbOwn (A := Bool) α.st [false]
+@[no_expose] def attRefused (α : AttNames) : IProp GF := monoListLbOwn (A := Bool) α.st [false]
 
 instance attRefused_persistent (α : AttNames) : Persistent (attRefused (GF := GF) α) := by
   unfold attRefused; infer_instance
 
 /-- An attempt's states: open (the deposit here, the ticket outside); dispatched; refused (the
 deposit here until the client takes it); cancelled (by the client, with the ticket). -/
-def attBody (α : AttNames) (D : IProp GF) : IProp GF :=
+@[no_expose] def attBody (α : AttNames) (D : IProp GF) : IProp GF :=
   iprop((D ∗ monoListAuthOwn (A := Bool) α.st 1 []) ∨
     (token α.tk ∗ monoListAuthOwn (A := Bool) α.st 1 [true]) ∨
     (token α.tk ∗ monoListAuthOwn (A := Bool) α.st 1 [false] ∗ (D ∨ token α.cl)) ∨
     (token α.tk ∗ token α.cl ∗ monoListAuthOwn (A := Bool) α.st 1 []))
 
 /-- **The attempt's invariant** (persistent). -/
-def attInv (α : AttNames) (D : IProp GF) : IProp GF := inv (attN α) (attBody α D)
+@[no_expose] def attInv (α : AttNames) (D : IProp GF) : IProp GF := inv (attN α) (attBody α D)
 
 instance attInv_persistent (α : AttNames) (D : IProp GF) : Persistent (attInv α D) := by
   unfold attInv; infer_instance
@@ -1365,7 +1367,7 @@ variable [HasExt netExt] [π : NetProtoGS] [σs : NetSlotGS]
 conversions): for a unary call, the caller's spec converts to the entry's; for a stream, the
 client's request content converts to the entry's, and the entry's specification holds at every
 attempt metadata. -/
-def callFacts (ent : GrpcSvcEntry GF) (κ : CallNames) (a : GoString) (P : CallParams GF) :
+@[no_expose] def callFacts (ent : GrpcSvcEntry GF) (κ : CallNames) (a : GoString) (P : CallParams GF) :
     IProp GF :=
   match ent with
   | .unary e => iprop(∃ (S : GrpcMd → e.Wq.M → (e.Wp.M → IProp GF) → (GoString → IProp GF) → IProp GF)
@@ -1392,7 +1394,7 @@ theorem callFacts_admits (ent : GrpcSvcEntry GF) (κ : CallNames) (a : GoString)
 /-- **What the server claims when it dispatches an attempt to `a` of the call `κ` with the head
 `fs`** (exclusive): its share of the call, the call's invariant, the metadata family's fact at
 every metadata it may make of the head, and the kind's facts. -/
-def callDeposit (ent : GrpcSvcEntry GF) (fs : List (GoString × GoString)) (κ : CallNames)
+@[no_expose] def callDeposit (ent : GrpcSvcEntry GF) (fs : List (GoString × GoString)) (κ : CallNames)
     (a : GoString) (P : CallParams GF) : IProp GF :=
   iprop(callSrvShare κ P ∗ callInv κ P ∗ (□ ∀ md, ⌜grpcFieldsMd fs md⌝ -∗ □ P.Md a md) ∗
     callFacts ent κ a P)
@@ -1400,7 +1402,7 @@ def callDeposit (ent : GrpcSvcEntry GF) (fs : List (GoString × GoString)) (κ :
 /-- **The client's head `fs` on `cn` opens the call `κ` of the entry `ent`** (persistent): the head
 names `ent`, and the connection's slot, keyed by the head and the names and claimable once the
 whole head was written, holds the ticket of an attempt whose invariant holds the deposit. -/
-def callHeadIs (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (κ : CallNames)
+@[no_expose] def callHeadIs (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (κ : CallNames)
     (ent : GrpcSvcEntry GF) : IProp GF :=
   iprop(∃ (name : GoString) (sl : SlotNames) (α : AttNames) (a : GoString) (P : CallParams GF),
     ⌜pathOf fs = some name ∧ Svc name = some ent⌝ ∗
@@ -1415,7 +1417,7 @@ instance callHeadIs_persistent Svc cn fs κ ent :
 
 /-- **The connection `cn` carries the attempt `α` of the call `κ`, whose head `fs` names `ent`**
 (persistent): what a frame's fact is stated over. -/
-def callKeyOf (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (κ : CallNames)
+@[no_expose] def callKeyOf (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (κ : CallNames)
     (α : AttNames) (ent : GrpcSvcEntry GF) : IProp GF :=
   iprop((∃ sl : SlotNames, depSlotOf (Gg := hG.goose_globalGS) cn sl ((fs, κ, α) : CallKey)) ∗
     ⌜∃ name, pathOf fs = some name ∧ Svc name = some ent⌝)
@@ -1575,7 +1577,7 @@ theorem callHead_relay (E : CoPset) (hE : (↑netSlotN : CoPset) ⊆ E) (Svc : G
 /-- **The frames a client writes after its head on the call `γ`** (persistent): a prefix of data
 frames, each a message of the up queue at its position, at most one close after them (the queue
 closed after as many requests), and possibly a cancel. -/
-def cliFramesOk (γ : StreamNames) (Wq : ProtoWire) (rest : List w8) : IProp GF :=
+@[no_expose] def cliFramesOk (γ : StreamNames) (Wq : ProtoWire) (rest : List w8) : IProp GF :=
   iprop(□ ∃ (ds : List (List w8)) (c x : List w8),
     ⌜rest <+: (ds.map dataFrame).flatten ++ c ++ x ∧ (∀ bs ∈ ds, bs.length < 2 ^ 32) ∧
       (x = [] ∨ x = cancelFrame)⌝ ∗
@@ -1590,7 +1592,7 @@ instance cliFramesOk_persistent γ Wq rest : Persistent (cliFramesOk (GF := GF) 
 
 /-- **What a client writes** on a connection to an address serving `Svc`: a prefix of the preface,
 or the preface, a well-formed head that opens a call of an entry of `Svc`, and the call's frames. -/
-def grpcCliP (Svc : GrpcSvc GF) : Net.Proto GF := fun cn W =>
+@[no_expose] def grpcCliP (Svc : GrpcSvc GF) : Net.Proto GF := fun cn W =>
   iprop(⌜W <+: clientPrefaceBytes⌝ ∨
     ∃ (fs : List (GoString × GoString)) (κ : CallNames) (ent : GrpcSvcEntry GF) (rest : List w8),
       ⌜W = clientPrefaceBytes ++ headFrame fs ++ rest ∧ headOk fs⌝ ∗
@@ -1603,7 +1605,7 @@ instance grpcCliP_persistent Svc cn W : Persistent (grpcCliP (GF := GF) Svc cn W
 
 /-- **What a server frame at the position `j` says** (`j` data frames before it; see the file
 header). -/
-def srvFrameOkAt (Svc : GrpcSvc GF) (cn j : Nat) : SrvFrame → IProp GF
+@[no_expose] def srvFrameOkAt (Svc : GrpcSvc GF) (cn j : Nat) : SrvFrame → IProp GF
   | .data bs => iprop(□ ∃ (fs : List (GoString × GoString)) (κ : CallNames) (α : AttNames)
       (ent : GrpcSvcEntry GF) (m : ent.wp.M), callKeyOf Svc cn fs κ α ent ∗
       downAt (Rep := ProtoWire.msg (GF := GF) ent.wp) κ.s j m ∗
@@ -1622,7 +1624,7 @@ instance srvFrameOkAt_persistent Svc cn j f : Persistent (srvFrameOkAt (GF := GF
 
 /-- **The facts of a server's frames from the position `j`** (persistent): each frame's, at its
 position, up to the first trailer or reset. -/
-def srvFramesOk (Svc : GrpcSvc GF) (cn : Nat) : Nat → List SrvFrame → IProp GF
+@[no_expose] def srvFramesOk (Svc : GrpcSvc GF) (cn : Nat) : Nat → List SrvFrame → IProp GF
   | _, [] => iprop(True)
   | j, f :: F => iprop(□ (srvFrameOkAt Svc cn j f ∗
       match srvFrameStep f j with
@@ -1634,7 +1636,7 @@ instance srvFramesOk_persistent Svc cn j F : Persistent (srvFramesOk (GF := GF) 
 
 /-- **What a server writes** on a connection to an address serving `Svc`: a prefix of its preface,
 or its preface and well-formed whole frames, with their facts. -/
-def grpcSrvP (Svc : GrpcSvc GF) : Net.Proto GF := fun cn W =>
+@[no_expose] def grpcSrvP (Svc : GrpcSvc GF) : Net.Proto GF := fun cn W =>
   iprop(⌜W <+: settingsBytes⌝ ∨
     ∃ F : List SrvFrame, ⌜W = settingsBytes ++ (F.map srvFrameBytes).flatten ∧
       ∀ f ∈ F, srvFrameWf f⌝ ∗ srvFramesOk Svc cn 0 F)
