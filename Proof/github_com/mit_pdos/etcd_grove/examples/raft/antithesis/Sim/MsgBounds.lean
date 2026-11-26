@@ -551,13 +551,13 @@ theorem msgNums_readMsg {K : Int} (hK : 0 < K) (d : List w8) : MsgNums K (readMs
 state's numbers, the handled message's index and log term (all its numbers for a read request,
 which a follower forwards and a leader answers with its entries) and the view's read requests'
 (`ReadNums`) are within. -/
-theorem outNums_reachP {K : Int} {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
+theorem outNums_reachP {K : Int} {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState}
     (hX : v.ps.outbox = []) (hb : v.ps.base = base0) (hs : StateNums K ps₁)
     (hpay : ∀ m ∈ net, m.ty = .app → AppPayloadOk m)
     (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose ∧ (m.ty = .readIndex → MsgNums K m))
     (hrq : ReadNums K v.ps)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → SelfMsg id v.ps.term q)
-    (hr : ReachP kk c id net v ps₁) : OutNums K id ps₁ := by
+    (hr : ReachP kk c id net xnet v ps₁) : OutNums K id ps₁ := by
   cases hr with
   | stay _ => exact outNums_nil hX
   | recv m _ _ _ hca hmn _ _ hty h =>
@@ -576,20 +576,25 @@ theorem outNums_reachP {K : Int} {c : CfgM} {id : w64} {net : List Msg} {v : Nod
     rcases h with rfl | ⟨-, -, hcs⟩
     · exact outNums_nil hX
     · exact outNums_campaignSends hX hb hs hcs
+  | sends _ _ _ _ h => exact outNums_sends hX hs h
+  | adoptX x _ _ _ _ _ _ => exact outNums_nil (s := pbecomeFollower v.ps _ _) hX
+  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+    rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;>
+      exact outNums_campaignSends (by exact hX) (by exact hb) hs hc.sends
 
 /-- **The numbers of the messages of the state a `Ready` is taken at** (`outNums_reachP`): every
 message to another node is within any bound `K` the state's numbers (`StateNums`), the handled
 message's index and log term (`InNums`, of the drain's cause, which is no proposal: the network
 carries none, `NetFacts`; all its numbers for a read request) and the view's read requests'
-(`ReadNums`) are within. For the runs a mask below `mskB1r` admits. -/
-theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+(`ReadNums`) are within. For the runs a mask below `mskB1` admits. -/
+theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {K : Int}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁) (hs : StateNums K r₁.p)
     (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose ∧ (m.ty = .readIndex → MsgNums K m))
     (hrq : ReadNums K v.ps) : OutNums K (nodeId n) r₁.p := by
-  obtain ⟨hmd, -⟩ := hin.b1r hmsk
+  obtain ⟨hmd, -⟩ := hin.b1 hmsk
   refine outNums_reachP hv.facts.outbox (hv.facts.snap0 (by rw [hmd])).1 hs
     (fun m hmn => (hnet.2.2.1 m hmn).1) hm hrq (fun q hq hne => ?_) (ReachIn.toP hmsk hin hnet hv hr)
   obtain ⟨h1, h2, h3, h4, h5⟩ := (hv.qs q hq).notPre hne
@@ -597,7 +602,7 @@ theorem outNums_reach {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec 
 
 /-- **The `Ready`'s messages within `K`** (`ReadyOutP`: in sync mode they are the outbox's to other
 nodes). -/
-theorem readyMsgNums {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+theorem readyMsgNums {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} {rd : ReadyD} {K : Int}
     (hin : InMask msk R net xnet) (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
@@ -606,7 +611,7 @@ theorem readyMsgNums {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec :
     (hm : ∀ m, v.cause = some m → InNums K m ∧ m.ty ≠ .propose ∧ (m.ty = .readIndex → MsgNums K m))
     (hrq : ReadNums K v.ps) :
     ∀ q ∈ rd.msgs ++ rd.resp, MsgNums K q := by
-  have hasync : R.md.async = false := by rw [(hin.b1r hmsk).1]
+  have hasync : R.md.async = false := by rw [(hin.b1 hmsk).1]
   obtain ⟨hresp, hmsg⟩ := hro.2.2.2.2.2.2.2.2.1 hasync
   intro q hq
   rw [hresp, List.append_nil] at hq

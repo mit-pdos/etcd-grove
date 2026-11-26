@@ -509,7 +509,7 @@ theorem outOk_tick {c : CfgM} {id : w64} {w : NodeView} {s s' : PState}
     obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
     exact pendOk_heartbeat (w := w.withP _) hne hd hr hh hi hlt he
 
-/-! ## The pre-vote and check-quorum arms' messages (below `mskB1r`) -/
+/-! ## The pre-vote and check-quorum arms' messages (below `mskB1`) -/
 
 theorem pendOk_preVote {id : w64} {w : NodeView} {q : Msg} (hne : q.dst ≠ id)
     (hd : ∃ j : Fin N, q.dst = nodeId j) (hty : q.ty = .preVote) (hs : q.src = id)
@@ -764,12 +764,12 @@ theorem outOk_advance {c : CfgM} {id : w64} {w : NodeView} {s s' : PState} {qs :
 /-- **`OutOk` along `ReachP`**: one input's messages at its end state (C1: nothing queued before
 it), `Advance`'s a leader's `MsgApp`s, heartbeats and read answers (`outOk_advance`) or a
 pre-candidate's campaign. A received message is from a node (a forwarded read request's source). -/
-theorem outOk_reachP {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
+theorem outOk_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState}
     (hX : v.ps.outbox = []) (hb : v.ps.base = base0) (hc : c = v.r.cfg.cfg)
     (hpay : ∀ m ∈ net, m.ty = .app → AppPayloadOk m)
     (hid : ∃ j : Fin N, id = nodeId j) (hsn : ∀ m ∈ net, ∃ j : Fin N, m.src = nodeId j)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → SelfMsg id v.ps.term q)
-    (hr : ReachP kk c id net v ps₁) : OutOk N id v ps₁ := by
+    (hr : ReachP kk c id net xnet v ps₁) : OutOk N id v ps₁ := by
   cases hr with
   | stay _ => exact outOk_nil hX
   | recv m _ _ hbe hca hmn _ hm0 hty h =>
@@ -784,18 +784,24 @@ theorem outOk_reachP {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps�
     rcases h with rfl | ⟨-, -, hcs⟩
     · exact outOk_nil hX
     · exact outOk_campaignSends hX hcs
+  | sends _ _ _ hl h => exact outOk_sends hX hl h
+  | adoptX x _ _ _ _ _ _ => exact outOk_nil (show (pbecomeFollower v.ps _ _).outbox = [] from hX)
+  | campX x p1 _ _ _ _ _ _ _ hp1 h =>
+    rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩
+    · exact outOk_campaignSends (show (pbecomeFollower v.ps _ _).outbox = [] from hX) h.sends
+    · exact outOk_campaignSends hX h.sends
 
 /-- **Every message to another voter in the outbox of the state a `Ready` is taken at is
 `PendOk`** at the view moved there (`outOk_reachP`). A received `MsgApp`'s batch is `AppPayloadOk`
 (C4's `NetShape`: its sender's `AppOk`); a received message is from a server (`NetOk`); the queued
 messages not pre-votes are `QsOk`'s self-acknowledgements and self-votes. For the runs a mask below
-`mskB1r` admits. -/
-theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+`mskB1` admits. -/
+theorem outOk_reach {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
     (hr : ReachIn msk R dec Adm net xnet n v r₁) : OutOk R.N (nodeId n) v r₁.p := by
-  obtain ⟨hmd, -⟩ := hin.b1r hmsk
+  obtain ⟨hmd, -⟩ := hin.b1 hmsk
   refine outOk_reachP hv.facts.outbox (hv.facts.snap0 (by rw [hmd])).1 rfl
     (fun m hmn => (hnet.2.2.1 m hmn).1) ⟨n, rfl⟩
     (fun m hmn => by obtain ⟨i, hi, -⟩ := (hnet.1 m hmn).2.1; exact ⟨i, hi⟩) (fun q hq hne => ?_)
@@ -961,12 +967,12 @@ theorem leadHint_tickP {c : CfgM} {id : w64} {s s' : PState} (hid : id ≠ W64 0
 /-- **The leader hint along `ReachP`**: a received message is from another node, one of the
 servers; `Advance` steps the node's own acknowledgements and vote responses, or a pre-candidate's
 self pre-votes (nothing or the campaign). -/
-theorem leadHint_reachP {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
+theorem leadHint_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState}
     (h : LeadHint N id v.ps) (hid : id ≠ W64 0) (hin : ∃ j : Fin N, id = nodeId j)
     (hsd : ∀ m ∈ net, m.ty ≠ .readIndex → m.src ≠ m.dst)
     (hsn : ∀ m ∈ net, ∃ j : Fin N, m.src = nodeId j)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → (q.ty = .appResp ∨ q.ty = .voteResp) ∧ q.src = id)
-    (hr : ReachP kk c id net v ps₁) : LeadHint N id ps₁ := by
+    (hr : ReachP kk c id net xnet v ps₁) : LeadHint N id ps₁ := by
   cases hr with
   | stay _ => exact h
   | recv m _ _ _ _ hmn hmd _ hty hO =>
@@ -984,11 +990,14 @@ theorem leadHint_reachP {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {p
     rcases ha with rfl | ⟨-, -, hcs⟩
     · exact h
     · exact leadHint_campaignSends hid hcs
+  | sends _ _ _ _ hs => obtain ⟨ms, -, rfl⟩ := hs; exact h.keep (pkeep_psend _ _)
+  | adoptX x _ _ _ _ _ _ => exact ⟨fun _ => Ne.symm hid, .inl rfl⟩
+  | campX x p1 _ _ _ _ _ _ _ _ hc => exact leadHint_campaignSends hid hc.sends
 
 /-- **The leader hint is kept along `Reach`** (C1's `LeadOk` at the state a `Ready` is taken at,
 `leadHint_reachP`): a received message is from another node (C4's `NetShape`) but a forwarded read
-request, one of the servers (`NetOk`). For the runs a mask below `mskB1r` admits. -/
-theorem reach_leadOk {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+request, one of the servers (`NetOk`). For the runs a mask below `mskB1` admits. -/
+theorem reach_leadOk {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
@@ -1231,11 +1240,11 @@ theorem readSrc_adv {c : CfgM} {id : w64} {s s' : PState} {qs : List Msg} (h : R
 (whose sender is a node, `NetOk`) or the local `readMsg` (source `0`); the release and the
 acknowledgement move requests between the deferred list and the queue, or answer them; a new role
 resets the queue. -/
-theorem readSrc_reachP {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
+theorem readSrc_reachP {c : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState}
     (h : ReadSrc N cc v.ps) (hsn : ∀ m ∈ net, ∃ j : Fin N, m.src = nodeId j)
     (hen : ∀ m ∈ net, cc = false → EntsNormal m.entries)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → q.ty = .appResp ∨ q.ty = .voteResp)
-    (hr : ReachP kk c id net v ps₁) : ReadSrc N cc ps₁ := by
+    (hr : ReachP kk c id net xnet v ps₁) : ReadSrc N cc ps₁ := by
   cases hr with
   | stay _ => exact h
   | recv m _ _ _ _ hmn _ _ hty hO => exact readSrc_recv h hty (fun _ => ⟨.inr (hsn m hmn), hen m hmn⟩) hO
@@ -1272,11 +1281,16 @@ theorem readSrc_reachP {c : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps
     rcases ha with rfl | ⟨-, -, hcs⟩
     · exact h
     · obtain ⟨peers, -, rfl⟩ := hcs; exact h.nl rfl (by simp [psendMsgs, pbecomeCandidate])
+  | sends _ _ _ _ hs => exact readSrc_sends h hs
+  | adoptX x _ _ _ _ _ _ => exact h.nl rfl (by simp [pbecomeFollower])
+  | campX x p1 _ _ _ _ _ _ _ hp1 hc =>
+    obtain ⟨-, peers, -, rfl⟩ := hc
+    rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> exact h.nl rfl (by simp [psendMsgs, pbecomeCandidate])
 
 /-- **The read requests' sources along `Reach`** (`NodeFacts.readSrc` at the state a `Ready` is
 taken at, `readSrc_reachP`): the view's (`NodeFacts.readSrc`), a received message's sender a server
-(`NetOk`). For the runs a mask below `mskB1r` admits. -/
-theorem readSrc_reach {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+(`NetOk`). For the runs a mask below `mskB1` admits. -/
+theorem readSrc_reach {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : AntCheck.State} {net : List Msg} {xnet : List XMsg}
     {n : Fin R.N} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v) (hr : ReachIn msk R dec Adm net xnet n v r₁) :

@@ -34,24 +34,6 @@ open AntCheck
 section xmsgs
 variable [GooseExts]
 
-/-- Below `mskB1`, the driver neither batches, splits nor writes in parallel. -/
-theorem InMask.b1 {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {net : List Msg}
-    {xnet : List XMsg} (h : InMask msk R net xnet) :
-    R.drv.batch = false ∧ R.drv.parallel = false ∧ R.drv.split = 0 := by
-  obtain ⟨-, -, -, -, c1, c2, c3, -⟩ := hmsk
-  obtain ⟨-, -, d1, d2, d3, -⟩ := h
-  simp only [BLe, mskB1] at c1 c2 c3 d1 d2
-  refine ⟨?_, ?_, ?_⟩
-  · cases hb : R.drv.batch
-    · rfl
-    · exact absurd (c1 (d1 hb)) (by decide)
-  · cases hb : R.drv.parallel
-    · rfl
-    · exact absurd (c2 (d2 hb)) (by decide)
-  · by_cases hs : R.drv.split = 0
-    · exact hs
-    · exact absurd (c3 (d3 hs)) (by decide)
-
 theorem orM_ok_true_x (b : Bool) : AntCheck.orM (.ok b) (.ok true) = .ok true := by cases b <;> rfl
 
 theorem isForwarded_transfer : isForwarded go!"transfer" = true := by decide
@@ -162,7 +144,7 @@ theorem antSim_sendX_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
       SimStep R dec evs G (evSendX (nodeId n) (V n).byE x)
         (setV V n { V n with xpend := rest, undo := none, made := true }) net (xnet ++ [x]) := by
   intro R dec S V net xnet evs G n x rest hin ⟨hp, hs, hl, hgo⟩ hasync hxp _ hxf
-  obtain ⟨hbt, hpar, hspl⟩ := hin.b1 hmsk
+  obtain ⟨-, hbt, hpar, hspl, -⟩ := hin.b1 hmsk
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
   obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs1
   have hc : S1.cfg = R.cfg := hsh.1

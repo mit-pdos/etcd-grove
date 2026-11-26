@@ -81,15 +81,15 @@ theorem recv_eq {R : RunCfg} {S : State} (n : Fin R.N) (m : Msg) (hc : S.cfg = R
   · simp only [hq, decide_false, Bool.false_eq_true, ite_false]
     rfl
 
-/-- **`recv`** (B 199-204), for the runs a mask below `mskB1r` admits (no snapshot message: `MsgMask`). -/
-theorem antSim_recv_in (msk : SimMask) (hmsk : msk ≤ mskB1r) :
+/-- **`recv`** (B 199-204), for the runs a mask below `mskB1` admits (no snapshot message: `MsgMask`). -/
+theorem antSim_recv_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (m : Msg),
       InMask msk R net xnet →
       SimPre R dec S V net xnet evs G → m ∈ net → m.dst = nodeId n → (V n).cause = some m →
       SimStep R dec evs G (evRecv (nodeId n) m) (setV V n { V n with told := true }) net xnet := by
   intro R dec S V net xnet evs G n m hin ⟨hp, hs, hl, hgo⟩ hm hdst hcause
-  have hmd := (hin.b1r hmsk).1
+  have hmd := (hin.b1 hmsk).1
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
   obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs1
   have hc : S1.cfg = R.cfg := hsh.1

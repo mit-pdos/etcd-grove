@@ -138,6 +138,21 @@ theorem queued_recv (S : State) (n : Nat) (id : w64) (r : Role) (t v c : w64) (e
       .ok { ev := evReady id go!"recv" (roleOf r) t v c es, m := [msgOf m id] } := by
   rw [queued_ready, if_pos rfl, hp]
 
+/-- `pending[n]` once a transfer message's `recv` is reported (`NodeOk.told`; no protocol cause
+with a transfer one). -/
+theorem pendingX_of {S : State} {net : List Msg} {n : Fin R.N} {v : NodeView} {x : XMsg}
+    (hv : NodeOk R dec S net n v) (ht : v.told = true) (hxc : v.xcause = some x) :
+    S.pending[n.val]! = [xmsgOf x] := by
+  rcases hv.told ht with ⟨m', h1, -⟩ | ⟨x', h1, h2⟩
+  · rw [(hv.xcause x hxc).2] at h1; cases h1
+  · rw [hxc] at h1; cases h1; exact h2
+
+theorem queued_recvX (S : State) (n : Nat) (id : w64) (r : Role) (t v c : w64) (es : List EntryM) (x : XMsg)
+    (hp : S.pending[n]! = [xmsgOf x]) :
+    S.queued n (evReady id go!"recv" (roleOf r) t v c es) =
+      .ok { ev := evReady id go!"recv" (roleOf r) t v c es, m := [xmsgOf x] } := by
+  rw [queued_ready, if_pos rfl, hp]
+
 theorem queued_other (S : State) (n : Nat) (id : w64) (b : Str) (r : Role) (t v c : w64) (es : List EntryM)
     (hb : b ≠ go!"recv") :
     S.queued n (evReady id b (roleOf r) t v c es) =
@@ -542,7 +557,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       (hx.qs_fol hpr) (fun h _ => absurd hpr h)
     rw [hpr] at hok
     exact hx.finish hpr (ready_of hq0 hm rfl (queued_ready ..) hod) hok
-  | camp hnl0 hpt hpv hpr hpl hpc hen hvot hvo0 =>
+  | camp hpt hpv hpr hpl hpc hen hvot hvo0 =>
     rw [hen, hpv, hpr]
     have htz : uint.Z r₁.p.term = uint.Z (V n).ps.term + 1 := by
       rw [hpt]; have := htb; word
@@ -825,6 +840,28 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   | win src rej mt h1 h2 h3 h4 h5 h6 h7 => exact hwin src rej mt h1 h2 h3 h4 h5 h6 h7
   | prop es h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hprop es h1 h2 h3 h4 h5 h6 h7 h8 h9
   | cmt h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hcmt h1 h2 h3 h4 h5 h6 h7 h8 h9
+  | adoptX x hbe hxc hxn hxd hlt hpt hpv hpr hpl hpc hen =>
+    rw [hen, hbe, hpv, hpr]
+    have hpend := pendingX_of (hno n) (htold hbe) hxc
+    obtain ⟨i, hti⟩ := (hs1.2.2.2.1 x hxn).1
+    have hin' : i ≠ n := fun h => by subst h; rw [d1] at hti; omega
+    have hm' := inMemory_nl_eq n hc go!"recv" (hbe ▸ hbyE) .follower (by decide) r₁.p.term (W64 0)
+      r₁.p.commit [] (fun h => by cases h)
+    obtain ⟨p, hpm, hod⟩ := onDisk_adoptX n hc r₁.p.term r₁.p.commit x (S1.role.set n.val (roleOf .follower))
+      S1.leaders S1.ledLog S1.chain S1.termLen S1.viol hpt.symm (by rw [d1, hpt]; exact hlt)
+      ⟨i, hin', by rw [hpt]; exact hti⟩ (by rw [hpc, d4]) (get!_set_self _ hn3)
+    have hok := readyOk_plain hx (vo := none) (M := S1.msgs) (Vs := S1.votes) (p := p)
+      (by rw [hpr]; decide) hpl hpc (by rw [hpt]; exact Int.le_of_lt hlt)
+      (fun h => by rw [hpr] at h; cases h)
+      (.inr ⟨by rw [hpt]; exact hlt, hpv⟩) (fun f hf => hf)
+      (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
+      (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
+      (hx.qs_fol hpr) (fun h _ => absurd hpr h)
+    rw [hpr] at hok
+    exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recvX _ _ _ _ _ _ _ _ _ hpend) hod) hok
+  | campX x hxc hxn hxd hty hlt _ =>
+    have h1 := (hs1.2.2.2.1 x hxn).2 hty n hxd
+    rw [d1] at h1; omega
 
 set_option maxHeartbeats 2000000 in
 /-- **A follower's store** (`store` with entries from the first conflict): `onDisk_fstore`. -/

@@ -10,8 +10,8 @@ never restating. A `SimMask` is that mask: the RawNode features (`RnMode`), the 
 (`NodeK`), the inputs outside both (`Campaign`, `ReportUnreachable`) and the driver's modes (batch,
 parallel, split, restarts). `InMask msk R net xnet` says the run and what it sent are within `msk`;
 `ReachIn msk`/`QuietIn msk` are `Reach`/`Quiet` with the input admitted by `msk`
-(`Input.InMask`). Each migrated statement is `antSim_X_in msk (hmsk : msk ≤ mskB1r)` (parity B1, stage B); B1 widens it to
-`mskB1`, and at `mskTop` it gives the plain `antSim_X : antSim_X.stmt` (`ReachIn.ofReach_top`).
+(`Input.InMask`). Each migrated statement is `antSim_X_in msk (hmsk : msk ≤ mskB1)` (parity B1); later batches widen it,
+and at `mskTop` it gives the plain `antSim_X : antSim_X.stmt` (`ReachIn.ofReach_top`).
 -/
 module
 
@@ -62,21 +62,16 @@ instance : LE SimMask := ⟨SimMask.Le⟩
 /-- The first harness's scope (S4): sync storage, no feature, recv/tick/propose only. -/
 def mskS4 : SimMask := {}
 
-/-- Parity B1's scope: pre-vote, check quorum, reads, transfer, non-voters, each node's flags,
-`Campaign`, `ReportUnreachable`; sync storage, no snapshot, no conf change, no driver mode. -/
+/-- **Parity B1's scope**: `mskS4` with `Campaign`, `ReportUnreachable`, non-voters (servers outside
+the initial configuration, `R.K < R.N`), pre-vote, check quorum (features and node flags), each
+node's `StepDownOnRemoval`, reads and transfer; sync storage, no snapshot, no conf change, no driver
+mode. B1's other run freedoms need no mask field, as no statement reads them: duplication
+(`R.drv.maxDeliveries`: a message received stays on the network, so it can be received again), the
+limits (`MaxInflightMsgs`, `MaxSizePerMsg`: the relations admit any `SendOk` sends) and
+bootstrapping (`R.boot`: every statement is over every `R`). -/
 def mskB1 : SimMask :=
   { md := { prevote := true, cq := true, reads := true, transfer := true, nonVoters := true },
     k := { prevote := true, cq := true, sdr := true }, campaign := true, unreachable := true }
-
-/-- **Parity B1, stage B (reads)**: `mskS4` with `Campaign`, non-voters (servers outside the
-initial configuration, `R.K < R.N`), pre-vote, check quorum (features and node flags), each node's
-`StepDownOnRemoval`, and reads. B1's other run freedoms need no mask field, as no statement reads
-them: duplication (`R.drv.maxDeliveries`: a message received stays on the network, so it can be
-received again), the limits (`MaxInflightMsgs`, `MaxSizePerMsg`: the relations admit any
-`SendOk` sends) and bootstrapping (`R.boot`: every statement is over every `R`). -/
-def mskB1r : SimMask :=
-  { md := { prevote := true, cq := true, reads := true, nonVoters := true },
-    k := { prevote := true, cq := true, sdr := true }, campaign := true }
 
 /-- Everything: the plain statements. -/
 def mskTop : SimMask :=
@@ -169,14 +164,15 @@ theorem QuietIn.ofQuiet_top {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CC
   | noReady _ h1 h2 h3 h4 h5 h6 h7 h8 => exact .noReady _ _ (ReachIn.ofReach_top h1) h2 h3 h4 h5 h6 h7 h8
   | silentReady _ _ h1 h2 h3 => exact .silentReady _ _ _ (ReachIn.ofReach_top h1) h2 h3
 
-/-! ## Parity B1, stage B: pre-vote, check quorum and reads (`mskB1r`)
+/-! ## Parity B1: pre-vote, check quorum, reads, transfer and `ReportUnreachable` (`mskB1`)
 
-`mskS4` with `Campaign`, non-voters, pre-vote and check quorum on (RawNode features and node flags), each node's
-`StepDownOnRemoval`, and reads (`ReadIndex` inputs, read requests forwarded and answered, heartbeats
-with read contexts, deferred requests released). The per-input end relations are read on the
-protocol state as below: the readings (`PreEndO`, `HandleEndO`, `RecvEndO`, `TickEndO`,
-`AdvanceEndO`: `InputEnd.lean`'s relations without the pre-vote and check-quorum arms) and the new
-arms (`RecvEndP`, `TickEndP`, `advanceEnd_pre`). -/
+`mskS4` with `Campaign`, `ReportUnreachable`, non-voters, pre-vote and check quorum on (RawNode
+features and node flags), each node's `StepDownOnRemoval`, reads (`ReadIndex` inputs, read requests
+forwarded and answered, heartbeats with read contexts, deferred requests released) and transfer
+(`TransferLeader` inputs, `MsgTransferLeader`/`MsgTimeoutNow` received). The per-input end relations
+are read on the protocol state as below: the readings (`PreEndO`, `HandleEndO`, `RecvEndO`,
+`TickEndO`, `AdvanceEndO`: `InputEnd.lean`'s relations without the pre-vote and check-quorum arms)
+and the new arms (`RecvEndP`, `TickEndP`, `advanceEnd_pre`, and `ReachP`'s transfer arms). -/
 
 /-- `RawNode.Campaign` is a tick's campaign or pre-campaign step (whatever the node's pre-vote). -/
 theorem tickEndR_of_campaignEndR' {k : NodeK} {id : w64} {r r' : RState}
@@ -186,12 +182,14 @@ theorem tickEndR_of_campaignEndR' {k : NodeK} {id : w64} {r r' : RState}
   · exact ⟨.inr (.inl ⟨hnl, hk, hce⟩), hkc, hfp, hsn, hpci⟩
   · exact ⟨.inr (.inr (.inl ⟨hnl, hk', hpc⟩)), hkc, hfp, hsn, hpci⟩
 
-/-- Below `mskB1r`, the mask admits only recv, tick, propose, campaign and read requests. -/
-theorem Input.inMask_b1r {msk : SimMask} (hmsk : msk ≤ mskB1r) {inp : Input} (h : inp.InMask msk) :
+/-- Below `mskB1`, the mask admits only recv, tick, propose, campaign, read requests, the transfer
+inputs and `ReportUnreachable`. -/
+theorem Input.inMask_b1 {msk : SimMask} (hmsk : msk ≤ mskB1) {inp : Input} (h : inp.InMask msk) :
     (∃ m, inp = .recv m) ∨ inp = .tick ∨ (∃ d, inp = .propose d) ∨ inp = .campaign ∨
-      ∃ c, inp = .readIndex c := by
+      (∃ c, inp = .readIndex c) ∨ (∃ x, inp = .recvX x) ∨ (∃ to, inp = .transfer to) ∨
+      ∃ t, inp = .unreachable t := by
   obtain ⟨⟨_, _, _, h4, _, h6, h7, h8, _⟩, _, _, h12, _⟩ := hmsk
-  cases inp <;> simp_all [Input.InMask, BLe, mskB1r]
+  cases inp <;> simp_all [Input.InMask, BLe, mskB1]
 
 /-- The S4 types (and a proposal). -/
 def S4Ty (t : MsgType) : Prop :=
@@ -201,20 +199,21 @@ def S4Ty (t : MsgType) : Prop :=
 /-- The types the readings read (`RecvEndO`): the S4 types and the read-index request and response. -/
 def RdTy (t : MsgType) : Prop := S4Ty t ∨ t = .readIndex ∨ t = .readIndexResp
 
-/-- The types of `mskB1r`'s network: the readings' and the pre-vote request and response. -/
+/-- The types of `mskB1`'s network: the readings' and the pre-vote request and response. -/
 def B1rTy (t : MsgType) : Prop := RdTy t ∨ t = .preVote ∨ t = .preVoteResp
 
-/-- Below `mskB1r`, the run has pre-vote, check quorum, reads and non-voters at most, no driver
-mode, and its network only `B1rTy`. -/
-theorem InMask.b1r {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {net : List Msg}
+/-- Below `mskB1`, the run has pre-vote, check quorum, reads, transfer and non-voters at most, no
+driver mode, and its network only `B1rTy`. -/
+theorem InMask.b1 {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {net : List Msg}
     {xnet : List XMsg} (h : InMask msk R net xnet) :
-    R.md = { prevote := R.md.prevote, cq := R.md.cq, reads := R.md.reads, nonVoters := R.md.nonVoters } ∧
+    R.md = { prevote := R.md.prevote, cq := R.md.cq, reads := R.md.reads, transfer := R.md.transfer,
+             nonVoters := R.md.nonVoters } ∧
     R.drv.batch = false ∧ R.drv.parallel = false ∧ R.drv.split = 0 ∧ R.drv.restarts = false ∧
-    xnet = [] ∧ ∀ m ∈ net, B1rTy m.ty := by
+    ∀ m ∈ net, B1rTy m.ty := by
   obtain ⟨⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩, ⟨k1, k2, k3⟩, c1, c2, c3, c4, c5, c6⟩ := hmsk
   obtain ⟨⟨b1, b2, b3, b4, b5, b6, b7, b8, b9⟩, hk, d1, d2, d3, d4, hnet, hx⟩ := h
-  simp only [BLe, mskB1r] at *
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  simp only [BLe, mskB1] at *
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · cases hR : R.md; simp_all
   · cases h : R.drv.batch <;> simp_all
   · cases h : R.drv.parallel <;> simp_all
@@ -222,27 +221,49 @@ theorem InMask.b1r {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {net : L
     | zero => rfl
     | succ _ => exact absurd (d3 (by simp [h])) (by simp_all)
   · cases h : R.drv.restarts <;> simp_all
-  · cases h : msk.md.transfer <;> simp_all
   · intro m hm; rcases hnet m hm with h | h
     · simp only [NetTy] at h
       rcases h with h | h | h | h | h | h | ⟨-, h | h⟩ | ⟨-, h | h⟩ | ⟨hp, _⟩ <;>
         simp_all [B1rTy, RdTy, S4Ty]
     · simp [B1rTy, RdTy, S4Ty, h]
 
-/-- **An input below `mskB1r`**: a message received, a proposal, a tick's step (a tick, or
-`Campaign`: `tickEndR_of_campaignEndR'`), or a read request. -/
-theorem Input.step_b1r {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+/-- **An input below `mskB1`**: a message received, a proposal, a tick's step (a tick, or
+`Campaign`: `tickEndR_of_campaignEndR'`), a read request, a transfer message received, a transfer,
+or `ReportUnreachable` (nothing changed). -/
+theorem Input.step_b1 {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {n : Fin R.N}
     {r r₁ : RState} {inp : Input}
     (h : inp.InMask msk) (hs : InputStep R dec Adm n r inp r₁) :
     (∃ m, inp = .recv m) ∨ ((inp = .tick ∨ inp = .campaign) ∧ InputStep R dec Adm n r .tick r₁) ∨
-      (∃ d, inp = .propose d) ∨ ∃ c, inp = .readIndex c := by
-  rcases Input.inMask_b1r hmsk h with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩ | rfl | ⟨c, rfl⟩
+      (∃ d, inp = .propose d) ∨ (∃ c, inp = .readIndex c) ∨ (∃ x, inp = .recvX x) ∨
+      (∃ to, inp = .transfer to) ∨ ((∃ t, inp = .unreachable t) ∧ r₁ = r) := by
+  rcases Input.inMask_b1 hmsk h with ⟨m, rfl⟩ | rfl | ⟨d, rfl⟩ | rfl | ⟨c, rfl⟩ | ⟨x, rfl⟩ | ⟨to, rfl⟩ |
+      ⟨t, rfl⟩
   · exact .inl ⟨m, rfl⟩
   · exact .inr (.inl ⟨.inl rfl, hs⟩)
   · exact .inr (.inr (.inl ⟨d, rfl⟩))
   · exact .inr (.inl ⟨.inr rfl, tickEndR_of_campaignEndR' hs⟩)
-  · exact .inr (.inr (.inr ⟨c, rfl⟩))
+  · exact .inr (.inr (.inr (.inl ⟨c, rfl⟩)))
+  · exact .inr (.inr (.inr (.inr (.inl ⟨x, rfl⟩))))
+  · exact .inr (.inr (.inr (.inr (.inr (.inl ⟨to, rfl⟩)))))
+  · exact .inr (.inr (.inr (.inr (.inr (.inr ⟨⟨t, rfl⟩, hs⟩)))))
+
+/-- The transfer inputs and `ReportUnreachable` keep the configuration, the ghost prefix and the
+restored flag. -/
+theorem inputStep_x_keep {R : RunCfg} {dec : CCDec} {Adm : List EntryM → CCState → Prop} {n : Fin R.N}
+    {r r₁ : RState} {inp : Input}
+    (hx : (∃ x, inp = .recvX x) ∨ (∃ to, inp = .transfer to) ∨ ((∃ t, inp = .unreachable t) ∧ r₁ = r))
+    (hs : InputStep R dec Adm n r inp r₁) : r₁.cfg = r.cfg ∧ r₁.fp = r.fp ∧ r₁.snap = r.snap := by
+  rcases hx with ⟨x, rfl⟩ | ⟨to, rfl⟩ | ⟨-, rfl⟩
+  · rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨-, -, ⟨-, -, hc⟩, hfp, hsn, -⟩⟩ |
+        ⟨-, ⟨-, -, rfl⟩ | ⟨-, hT⟩ | ⟨-, rfl⟩⟩
+    · exact ⟨rfl, rfl, rfl⟩
+    · exact ⟨hc, hfp, hsn⟩
+    · exact ⟨rfl, rfl, rfl⟩
+    · exact ⟨hT.2.2.1, hT.2.2.2.1, hT.2.2.2.2.1⟩
+    · exact ⟨rfl, rfl, rfl⟩
+  · exact ⟨hs.2.2.1, hs.2.2.2.1, hs.2.2.2.2.1⟩
+  · exact ⟨rfl, rfl, rfl⟩
 
 /-! ### The readings -/
 
@@ -365,7 +386,7 @@ theorem handleEnd_preVoteResp {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} 
     · exact .inr ⟨hfl.1, hfl.2, hrj, hcs⟩
   · exact .inl h
 
-/-- **`RecvEnd` below `mskB1r`** (a `B1rTy` type) is the reading `RecvEndO` (of a `RdTy` type, or
+/-- **`RecvEnd` below `mskB1`** (a `B1rTy` type) is the reading `RecvEndO` (of a `RdTy` type, or
 changing nothing) or a pre-vote/check-quorum arm (`RecvEndP`). -/
 theorem recvEnd_split {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
     (hty : B1rTy m.ty) (h : RecvEnd k c id s m s') :
@@ -499,7 +520,7 @@ theorem advanceEnd_pre {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {qs : L
         · rw [hc] at h'; cases h'
       rw [this]; exact hcs
 
-/-! ## `Advance` and `Reach` read on the protocol state below `mskB1r` -/
+/-! ## `Advance` and `Reach` read on the protocol state below `mskB1` -/
 
 /-- **`QsOk` of a message other than a pre-vote response**: the S4 shape, a self-acknowledgement
 or a self-vote at the node's term. -/
@@ -555,36 +576,51 @@ theorem AdvanceEnd.split {R : RunCfg} {S : AntCheck.State} {n : Fin R.N} {v : No
 (`tickEndR_of_campaignEndR'`). -/
 def TickBy (b : AntCheck.Str) : Prop := b = go!"tick" ∨ b = go!"campaign"
 
-/-- **`Reach` read on the protocol state** (below `mskB1r`: the inputs a message received, a tick,
+/-- **`Reach` read on the protocol state** (below `mskB1`: the inputs a message received, a tick,
 a proposal or a read request, the configuration `c` fixed): no input; a received message (sent to
 the node, of a nonzero term but a forwarded read request) of a type the readings read stepped as the
 reading (`RecvEndO`) or a pre-vote/check-quorum arm (`RecvEndP`; a granted pre-vote response to a
 voter); a tick stepped as the reading (`TickEndO`) or a pre-campaign or check-quorum step-down
 (`TickEndP`); a proposal (`ProposeEnd`); a read request (`ReadIdxEnd` at `readMsg`); `Advance`
 stepping the queued self-acknowledgements and self-votes (`AdvanceEndO`), or a voter's queued self
-pre-votes: nothing or the campaign (`AdvanceEnd.split`). -/
-inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) : NodeView → PState → Prop
-  | stay (v : NodeView) : v.Idle → DrainBy v.byE → ReachP kk c id net v v.ps
+pre-votes: nothing or the campaign (`AdvanceEnd.split`); a leader's appends (`SendsEnd`: a transfer,
+a transfer message received at the node's term); a transfer message received (`xnet`) of a higher
+term adopted (a follower with no leader); a `MsgTimeoutNow` received, at the node's term or after
+adopting its higher one, starting the transfer's campaign (`CampaignEnd` at `ctxTransfer`). The
+other transfer steps change nothing (`stay`), as does `ReportUnreachable`. -/
+inductive ReachP (kk : NodeK) (c : CfgM) (id : w64) (net : List Msg) (xnet : List XMsg) :
+    NodeView → PState → Prop
+  | stay (v : NodeView) : v.Idle → DrainBy v.byE → ReachP kk c id net xnet v v.ps
   | recv (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
       m ∈ net → m.dst = id → (m.ty ≠ .readIndex → m.term ≠ W64 0) → RdTy m.ty →
-      RecvEndO kk c id v.ps m ps₁ → ReachP kk c id net v ps₁
+      RecvEndO kk c id v.ps m ps₁ → ReachP kk c id net xnet v ps₁
   | recvP (v : NodeView) (m : Msg) (ps₁ : PState) : v.Idle → v.byE = go!"recv" → v.cause = some m →
       m ∈ net → m.dst = id → m.term ≠ W64 0 → (m.ty = .preVoteResp → m.reject = false → id ∈ c.voters) →
-      RecvEndP kk c id v.ps m ps₁ → ReachP kk c id net v ps₁
+      RecvEndP kk c id v.ps m ps₁ → ReachP kk c id net xnet v ps₁
   | tick (v : NodeView) (ps₁ : PState) : v.Idle → TickBy v.byE → TickEndO kk c id v.ps ps₁ →
-      ReachP kk c id net v ps₁
+      ReachP kk c id net xnet v ps₁
   | tickP (v : NodeView) (ps₁ : PState) : v.Idle → TickBy v.byE → TickEndP kk c id v.ps ps₁ →
-      ReachP kk c id net v ps₁
+      ReachP kk c id net xnet v ps₁
   | propose (v : NodeView) (d : List w8) (ps₁ : PState) : v.Idle → v.byE = go!"propose" →
-      ProposeEnd c id v.ps (propMsg id d) ps₁ → ReachP kk c id net v ps₁
+      ProposeEnd c id v.ps (propMsg id d) ps₁ → ReachP kk c id net xnet v ps₁
   | read (v : NodeView) (d : List w8) (ps₁ : PState) : v.Idle → v.byE = go!"read" →
-      ReadIdxEnd c id v.ps (readMsg d) ps₁ → ReachP kk c id net v ps₁
+      ReadIdxEnd c id v.ps (readMsg d) ps₁ → ReachP kk c id net xnet v ps₁
   | advance (v : NodeView) (ps₁ : PState) : v.pend = [] → v.ce = [] → DrainBy v.byE →
-      (∀ q ∈ v.qs, q.ty ≠ .preVoteResp) → AdvanceEndO kk c id v.ps v.qs ps₁ → ReachP kk c id net v ps₁
+      (∀ q ∈ v.qs, q.ty ≠ .preVoteResp) → AdvanceEndO kk c id v.ps v.qs ps₁ → ReachP kk c id net xnet v ps₁
   | advP (v : NodeView) (ps₁ : PState) : v.pend = [] → v.ce = [] → DrainBy v.byE →
       (∀ q ∈ v.qs, q.ty = .preVoteResp ∧ q.reject = false) → id ∈ c.voters → kk.prevote = true →
       (ps₁ = v.ps ∨ (v.ps.role = .follower ∧ v.ps.lead = W64 0 ∧ CampaignSends c id v.ps [] ps₁)) →
-      ReachP kk c id net v ps₁
+      ReachP kk c id net xnet v ps₁
+  | sends (v : NodeView) (ps₁ : PState) : v.Idle → DrainBy v.byE → v.ps.role = .leader →
+      SendsEnd c id v.ps ps₁ → ReachP kk c id net xnet v ps₁
+  | adoptX (v : NodeView) (x : XMsg) : v.Idle → v.byE = go!"recv" → v.xcause = some x → x ∈ xnet →
+      x.dst = id → uint.Z v.ps.term < uint.Z x.term →
+      ReachP kk c id net xnet v (pbecomeFollower v.ps x.term (W64 0))
+  | campX (v : NodeView) (x : XMsg) (p1 ps₁ : PState) : v.Idle → v.byE = go!"recv" →
+      v.xcause = some x → x ∈ xnet → x.dst = id → x.ty = .timeoutNow →
+      ((uint.Z v.ps.term < uint.Z x.term ∧ p1 = pbecomeFollower v.ps x.term (W64 0)) ∨
+        (x.term = v.ps.term ∧ p1 = v.ps)) →
+      CampaignEnd c id p1 ctxTransfer ps₁ → ReachP kk c id net xnet v ps₁
 
 /-- A proposal's step is the reading (no new arm reads a proposal). -/
 theorem recvEndO_of_prop {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {d : List w8}
@@ -603,18 +639,27 @@ theorem recvEnd_readMsg {k : NodeK} {c : CfgM} {id : w64} {s s' : PState} {d : L
   · simp only [HandleEnd, readMsg] at hh; exact hh
   all_goals exact absurd rfl h0
 
-/-- **`ReachIn` below `mskB1r` is its protocol reading** at the node's configuration. -/
-theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
+/-- `TransferEndR`'s protocol state: kept, or a leader's appends. -/
+theorem transferEndR_p {id to : w64} {r r' : RState} (h : TransferEndR id r to r') :
+    r'.p = r.p ∨ (r.p.role = .leader ∧ SendsEnd r.cfg.cfg id r.p r'.p) := by
+  obtain ⟨-, -, -, -, -, -, h | ⟨hl, -, -, hs⟩⟩ := h
+  · exact .inl h
+  · exact .inr ⟨hl, hs⟩
+
+/-- **`ReachIn` below `mskB1` is its protocol reading** at the node's configuration. -/
+theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {net : List Msg} {xnet : List XMsg} {n : Fin R.N}
     {S : AntCheck.State} {v : NodeView} {r₁ : RState} (hin : InMask msk R net xnet)
     (hnet : NetOk R S net) (hv : NodeOk R dec S net n v)
-    (hr : ReachIn msk R dec Adm net xnet n v r₁) : ReachP (R.k n) v.r.cfg.cfg (nodeId n) net v r₁.p := by
-  obtain ⟨hmd, -, -, -, -, -, hty⟩ := hin.b1r hmsk
+    (hr : ReachIn msk R dec Adm net xnet n v r₁) :
+    ReachP (R.k n) v.r.cfg.cfg (nodeId n) net xnet v r₁.p := by
+  obtain ⟨hmd, -, -, -, -, hty⟩ := hin.b1 hmsk
   have hcc : R.md.confChanges = false := by rw [hmd]
   cases hr with
   | stay hi hb => exact .stay _ hi hb
-  | input inp _ hinp hi hbe hca _ hm _ hs =>
-    rcases Input.step_b1r hmsk hinp hs with ⟨m, rfl⟩ | ⟨hti, hs⟩ | ⟨d, rfl⟩ | ⟨d, rfl⟩
+  | input inp _ hinp hi hbe hca hxc hm hx hs =>
+    rcases Input.step_b1 hmsk hinp hs with ⟨m, rfl⟩ | ⟨hti, hs⟩ | ⟨d, rfl⟩ | ⟨d, rfl⟩ | ⟨x, rfl⟩ |
+        ⟨to, rfl⟩ | ⟨⟨t, rfl⟩, rfl⟩
     · obtain ⟨hmn, hmd', hm0⟩ := hm m rfl
       rcases recvEnd_split (hty m hmn) hs.1 with ⟨h, h4 | he⟩ | h
       · exact .recv _ m _ hi hbe hca hmn hmd' hm0 h4 h
@@ -635,6 +680,29 @@ theorem ReachIn.toP {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : 
       · exact absurd rfl h0
       · exact absurd rfl h0
     · exact .read _ d _ hi hbe (recvEnd_readMsg hs.2.1)
+    · obtain ⟨hxn, hxd⟩ := hx x rfl
+      have hdb : DrainBy v.byE := .inr ⟨.recvX x, hbe⟩
+      have hxc' : v.xcause = some x := hxc
+      rcases hs with ⟨hty, ⟨-, rfl⟩ | ⟨hle, ⟨p1, hp1, hend⟩, -⟩⟩ | ⟨-, ⟨-, -, rfl⟩ | ⟨-, hT⟩ | ⟨hlt, rfl⟩⟩
+      · exact .stay _ hi hdb
+      · rcases hend with he | ⟨hl, hse⟩ | hce
+        · rw [he]
+          rcases hp1 with ⟨hlt, rfl⟩ | ⟨-, rfl⟩
+          · exact .adoptX _ x hi hbe hxc' hxn hxd hlt
+          · exact .stay _ hi hdb
+        · rcases hp1 with ⟨-, rfl⟩ | ⟨-, rfl⟩
+          · exact absurd hl (by simp [pbecomeFollower])
+          · exact .sends _ _ hi hdb hl hse
+        · exact .campX _ x p1 _ hi hbe hxc' hxn hxd hty hp1 hce
+      · exact .stay _ hi hdb
+      · rcases transferEndR_p hT with he | ⟨hl, hse⟩
+        · rw [he]; exact .stay _ hi hdb
+        · exact .sends _ _ hi hdb hl hse
+      · exact .adoptX _ x hi hbe hxc' hxn hxd hlt
+    · rcases transferEndR_p hs with he | ⟨hl, hse⟩
+      · rw [he]; exact .stay _ hi (.inr ⟨.transfer to, hbe⟩)
+      · exact .sends _ _ hi (.inr ⟨.transfer to, hbe⟩) hl hse
+    · exact .stay _ hi (.inr ⟨.unreachable t, hbe⟩)
   | advance _ hpd _ hce _ hb ha _ =>
     rcases AdvanceEnd.split hv.qs (advanceEndR_toP ha) with ⟨h, hno⟩ | ⟨hpr, hvt, hpv, h⟩
     · exact .advance _ _ hpd hce hb hno h

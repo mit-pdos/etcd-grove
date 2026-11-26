@@ -700,8 +700,8 @@ theorem pendOk_shape {N : Nat} {id : w64} {v : NodeView} {q : Msg} (h : PendOk N
     all_goals exact ⟨fun _ => hc.1, by simp, by simp⟩
   exact ⟨key.2.1, fun hr e => hne (e.symm.trans (key.1 hr)), key.2.2⟩
 
-/-- **`send`** (`drain`, B 510-593), for the runs a mask below `mskB1r` admits (sync). -/
-theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1r) :
+/-- **`send`** (`drain`, B 510-593), for the runs a mask below `mskB1` admits (sync). -/
+theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N) (q : Msg)
       (rest : List Msg),
@@ -711,7 +711,7 @@ theorem antSim_send_in (msk : SimMask) (hmsk : msk ≤ mskB1r) :
       SimStep R dec evs G (evSend (nodeId n) (V n).byE q)
         (setV V n { V n with pend := rest, undo := none, made := true }) (net ++ [q]) xnet := by
   intro R dec S V net xnet evs G n q rest hin ⟨hp, hs, hl, hgo⟩ hasync hpend htold hmf
-  obtain ⟨hmd, hbt, hpar, hspl, _, _, _⟩ := hin.b1r hmsk
+  obtain ⟨hmd, hbt, hpar, hspl, _, _⟩ := hin.b1 hmsk
   have hq7 : q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .heartbeat ∨
       q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp ∨
       q.ty = .readIndex ∨ q.ty = .readIndexResp := by

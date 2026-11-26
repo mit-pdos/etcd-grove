@@ -405,6 +405,21 @@ theorem mo_entries : (msgOf m to).entries_ = .ok (logOf m.entries) := rfl
 theorem mo_commit : (msgOf m to).commit_ = .ok (uint.Z m.commit) := rfl
 theorem mo_reject : (msgOf m to).reject_ = .ok m.reject := rfl
 
+/-- A transfer message's type string (`xmsgOf`). -/
+def xtyStr : XTy → Str
+  | .transferLeader => go!"transfer"
+  | .timeoutNow => go!"timeoutnow"
+theorem xmo_typ (x : XMsg) : (xmsgOf x).typ = .ok (xtyStr x.ty) := by
+  obtain ⟨ty, _, _, _⟩ := x; cases ty <;> rfl
+theorem xmo_from (x : XMsg) : (xmsgOf x).from_ = .ok (nameOf x.src) := rfl
+theorem xmo_to (x : XMsg) : (xmsgOf x).to_ = .ok (nameOf x.dst) := rfl
+theorem xmo_term (x : XMsg) : (xmsgOf x).term_ = .ok (uint.Z x.term) := rfl
+theorem xmo_index (x : XMsg) : (xmsgOf x).index_ = .ok 0 := rfl
+theorem xmo_logTerm (x : XMsg) : (xmsgOf x).logTerm_ = .ok 0 := rfl
+theorem xmo_entries (x : XMsg) : (xmsgOf x).entries_ = .ok [] := rfl
+theorem xmo_commit (x : XMsg) : (xmsgOf x).commit_ = .ok 0 := rfl
+theorem xmo_reject (x : XMsg) : (xmsgOf x).reject_ = .ok false := rfl
+
 /-- A vote request's fact (B 63-65). -/
 def vfOf : Fact :=
   { type := go!"vote", src := nameOf m.src, term := uint.Z m.term, lastLogIndex := uint.Z m.index,
@@ -556,6 +571,37 @@ theorem onDisk_adopt {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
       exact ⟨fun h => hj (Fin.ext h), htj⟩
   od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
     hcm', hadv, hro, hany, h0]
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
+
+/-- **A transfer message's higher term adopted** (`onDisk_adopt` with the transfer message
+`xmsgOf x` queued): the same check of its term and of a server at it. -/
+theorem onDisk_adoptX {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (t c : w64) (xm : XMsg)
+    (ro : List Str) (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry)
+    (tl : TermFn Int) (vi : SSet) (hmt : xm.term = t)
+    (ht : S.currentTerm[n.val]! < uint.Z t) (hj : ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
+    (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = follower) :
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
+      S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t (W64 0) c [], [xmsgOf xm]⟩ false ro ld
+          ll ch tl vi
+        = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
+            S.msgs S.votes ld ll p ch tl vi)) := by
+  subst hmt
+  obtain ⟨j, hj, htj⟩ := hj
+  have hcm' : (uint.Z c != S.commitIndex[n.val]!) = false := by rw [hcm]; exact bne_self_eq_false _
+  have hadv : decide (uint.Z c > S.commitIndex[n.val]!) = false := decide_eq_false (by omega)
+  have hne : (uint.Z xm.term != S.currentTerm[n.val]!) = true := by rw [bne_iff_ne]; omega
+  have hge : decide (uint.Z xm.term ≥ S.currentTerm[n.val]!) = true := decide_eq_true (by omega)
+  have h0 : nameOf (W64 0) = [] := by simp [nameOf]
+  have hany : ((List.range (List.length S.cfg.server)).any fun k =>
+      k != n.val && decide (S.currentTerm[k]! ≥ uint.Z xm.term)) = true := by
+    rw [List.any_eq_true]
+    refine ⟨j.val, ?_, ?_⟩
+    · rw [List.mem_range, server_length hc]; exact j.isLt
+    · simp only [Bool.and_eq_true, bne_iff_ne, ne_eq, decide_eq_true_eq]
+      exact ⟨fun h => hj (Fin.ext h), htj⟩
+  od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
+    hcm', hadv, hro, hany, h0, xmo_typ, xmo_from, xmo_to, xmo_term, xmo_index, xmo_logTerm, xmo_entries,
+    xmo_commit, xmo_reject]
   exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 end pieces

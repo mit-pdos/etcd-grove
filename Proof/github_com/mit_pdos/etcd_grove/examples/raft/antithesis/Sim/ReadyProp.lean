@@ -56,9 +56,9 @@ theorem logIdx_len_lt {l : List EntryM} (hl : LogIdx l) (hne : l ≠ []) : (l.le
   omega
 
 /-- A proposal's state keeps the `Match` values (`ProposeEnd`: `pappend` and `psendMsgs`). -/
-theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
+theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {xnet : List XMsg} {v : NodeView} {ps₁ : PState}
     {ents : List EntryM}
-    (hr : ReachP kk cf id net v ps₁) (hby : v.byE = go!"propose") (hvl : v.ps.role = .leader)
+    (hr : ReachP kk cf id net xnet v ps₁) (hby : v.byE = go!"propose") (hvl : v.ps.role = .leader)
     (hne : ents ≠ []) (hplog : ps₁.log = v.ps.log ++ ents)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
     ps₁.matched = v.ps.matched := by
@@ -110,6 +110,11 @@ theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : N
     · exact absurd hL.2.2.2.2.1 hlne
     · rw [hvl] at hc; cases hc
     · rw [hvl] at hc; cases hc
+  | sends _ _ _ _ h => obtain ⟨ms, -, rfl⟩ := h; exact absurd rfl hlne
+  | adoptX x _ _ _ _ _ _ => exact absurd rfl hlne
+  | campX x p1 _ _ hbe =>
+    have h' : (go!"propose" : Str) ≠ go!"recv" := by decide
+    rw [hby] at hbe; exact absurd hbe h'
 
 /-- No conf-change entry among normal entries. -/
 theorem confCount_normal {es : List EntryM} (h : ∀ e ∈ es, e.Type' = W32 0) : confCount es = 0 := by
