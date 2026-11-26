@@ -9,8 +9,9 @@ caller meets (`grpcSvcAt`, `grpcStreamSvcAt`). What makes this sound is `Server.
 takes `grpcServeTok gs lis a Svc`: Go's configuration being built (`grpcSrvNew`) with the node's open
 listener at `a`, `a` serving `Svc`, and `grpcServes Svc`: a clause per entry kind (`grpcServesEnt`), a
 unary entry naming no stream (C3) and met by the handler `gs` registers under its name as a run
-(`grpcRunOkMd`, the run contract: a run is given the fork's thread token and one later credit, returns
-the token), a stream entry naming no unary method (C3's mirror) and met by the stream `gs` registers
+(`grpcRunOkMd`, the run contract: a run is given the fork's thread token and one later credit, gets
+the call's deposit from a successful `dec`, returns the token; or, interim for Go's single-process
+table, `grpcRunPreOkMd`, the deposit in the run's precondition), a stream entry naming no unary method (C3's mirror) and met by the stream `gs` registers
 under its name as a run (`grpcStreamRunOk`), through the conversions between the entry's content and
 the handler's own. `Serve`'s post is `True`; its axiom says the server meets `Svc` on every connection
 to `a`, as the opaque protocols `grpcCliPI Svc`/`grpcSrvPI Svc` state it: no program but grpc's
@@ -40,7 +41,7 @@ streams). The message models are the client's registered ones (model-param, opti
 invoker contract (`grpcInvokerOk`) takes `grpcReqModelOf GF Req.ty = some Req` and
 `grpcRepModelOf GF Rep.ty = some Rep` before the deposit, and a table's entry is at the registered
 models' wire parts (`grpcServes`). Go facts, not pair facts: `(name, mh, srv) ∈ c.regs` (Go's
-dispatch), `grpcSrvChainAll c.ics`, `grpcSrvStreamChainAll c.sics`, `grpcDecOk`, `grpcRunCtx`.
+dispatch), `grpcSrvChainAll c.ics`, `grpcSrvStreamChainAll c.sics`, `grpcDecDepOk`/`grpcDecOk`, `grpcRunCtx`.
 -/
 module
 
@@ -138,7 +139,10 @@ instance grpcSrvStreamChainAll_persistent (sics : List GoFunc) (si : GoFunc) :
 /-- **What `gs` serves for the entry `ent` of the name `name`**: a clause per kind.
 * A unary entry names no stream (C3 of `notes/axiom-review/s2-interface.md`: a unary call of a
   stream's name would run the stream's handler), and a unary method `gs` registers under its name has
-  that entry, at its registered message models, met by its handler as a run (`grpcRunOkMd`).
+  that entry, at its registered message models, met by its handler as a run: dec-shaped
+  (`grpcRunOkMd`: the run gets the call's deposit from a successful `dec`), or, interim for Go's
+  single-process table until W4, deposit-at-start (`grpcRunPreOkMd`: the deposit in the run's
+  precondition; phase 7's SW2, `notes/axiom-review/phase7-switch-dec.md`).
 * A stream entry names no unary method (C3's mirror: a `NewStream` of a unary method's name runs the
   wrapped unary handler on a stream, the model's `server.go:778-785`), and a stream `gs` registers
   under its name has that entry, at its registered message models: the entry's request content gives
@@ -153,7 +157,7 @@ def grpcServesEnt (ics sics : List GoFunc) (regs sregs : List (GoString × GoFun
       ∃ (Req Rep : ProtoMsgT GF) (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
         ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep ∧
           e = ⟨Req.toProtoMsg.wire, Rep.toProtoMsg.wire, Spec⟩⌝ ∗
-        grpcRunOkMd #mh srv ics Spec)
+        (grpcRunOkMd #mh srv ics Spec ∨ grpcRunPreOkMd #mh srv ics Spec))
   | .stream e => iprop(⌜name ∉ regs.map Prod.fst⌝ ∗ ∀ (mh : GoFunc) (srv : GoInterface),
       ⌜(name, mh, srv) ∈ sregs⌝ -∗
       ∃ (Req Rep : StreamMsgT GF) (up₀ : Nat → Req.M → IProp GF)
@@ -223,21 +227,21 @@ def grpcServeTok (gs : Loc) (lis : GoInterface) (a : GoString) (Svc : GrpcSvc GF
     grpcServes Svc c.ics c.sics c.regs c.sregs)
 
 /-- **Go's configuration's entry for a registered method is met by its handler** (one process): under
-distinct full names, the handler `gs` registers under `name` meets `grpcGoEntry`'s spec, whose
-caller's run contract is the registered handler's (`grpc_regs_unique`). -/
-theorem grpcRunOkMd_goEntry (ics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
+distinct full names, the handler `gs` registers under `name` meets `grpcGoEntry`'s spec as a
+deposit-at-start run, whose caller's run contract is the registered handler's (`grpc_regs_unique`). -/
+theorem grpcRunPreOkMd_goEntry (ics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
     (name : GoString) (mh : GoFunc) (srv : GoInterface) (Req Rep : ProtoMsgT GF)
     (hnd : ((regs ++ sregs).map Prod.fst).Nodup) (hin : (name, mh, srv) ∈ regs) :
-    ⊢ grpcRunOkMd (Req := Req.toProtoMsg) (Rep := Rep.toProtoMsg) #mh srv ics
+    ⊢ grpcRunPreOkMd (Req := Req.toProtoMsg) (Rep := Rep.toProtoMsg) #mh srv ics
       (grpcGoEntry ics regs name Req Rep).spec := by
-  unfold grpcRunOkMd
+  unfold grpcRunPreOkMd
   iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
   iunfold grpcSpecAt at HSpec
   icases HSpec with ⟨%md, Hmd, HS⟩
   unfold grpcGoEntry
   icases HS with ⟨%mh', %srv', %S, %hin', #Hrun, HS⟩
   obtain ⟨rfl, rfl⟩ := grpc_regs_unique regs sregs name mh mh' srv srv' hnd hin hin'
-  iunfold grpcRunOkMd at Hrun
+  iunfold grpcRunPreOkMd at Hrun
   iapply Hrun $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch Hmd HS] HΨ
   iframe
   unfold grpcSpecAt
@@ -328,7 +332,7 @@ theorem grpcStartSvc_inv (ics : List GoFunc) (regs : List (GoString × GoFunc ×
 
 /-- **Go's configuration serves its table** (one process): a unary entry of `grpcStartSvc` is a
 registered unary method's, so it names no stream (distinct full names), at the models `tys` gives
-(registered, `htys`), met by its handler (`grpcRunOkMd_goEntry`); a stream entry is a registered
+(registered, `htys`), met by its handler as a deposit-at-start run (`grpcRunPreOkMd_goEntry`); a stream entry is a registered
 stream's of `sms`, so it names no unary method, at its registered models, with the identity
 conversions, met by its handler (the premise). -/
 theorem grpcServes_start (ics sics : List GoFunc) (regs sregs : List (GoString × GoFunc × GoInterface))
@@ -356,7 +360,8 @@ theorem grpcServes_start (ics sics : List GoFunc) (regs sregs : List (GoString �
     isplitr
     · ipureintro
       exact ⟨(htys name Req Rep hty).1, (htys name Req Rep hty).2, rfl⟩
-    iapply grpcRunOkMd_goEntry ics regs sregs name mh srv Req Rep hnd hin
+    iright
+    iapply grpcRunPreOkMd_goEntry ics regs sregs name mh srv Req Rep hnd hin
   · simp only [grpcServesEnt]
     isplitr
     · ipureintro
@@ -406,7 +411,8 @@ instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
 `ics`, the registrations `regs` and the table's models `tys` (`grpcServerAt`, made by `grpc.start'`),
 each registered with its handler and service, at its models, and meeting its run contract
 (`grpcRunOkMd`), are registered at `addr` (`isGrpcRpcMd`): the table's entry is met by the method's
-spec (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`). What runs the handlers is `Server.Serve` (its
+spec (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`), whose run contract gives the entry's
+deposit-at-start one (`grpcRunPreOkMd_of_run`). What runs the handlers is `Server.Serve` (its
 trust-boundary axiom). -/
 theorem grpc.serve (addr : GoString) (ics : List GoFunc)
     (regs : List (GoString × GoFunc × GoInterface))
@@ -449,7 +455,8 @@ theorem grpc.serve (addr : GoString) (ics : List GoFunc)
       isplitr
       · ipureintro; exact hreg m hm
       iframe HS
-      iexact Hr)
+      ihave #Hpre := grpcRunPreOkMd_of_run _ _ _ _ $$ Hr
+      iexact Hpre)
   ihave Hw := Hm $$ []
   · imodintro; iexact Ha
   iapply BigSepL.bigSepL_wand $$ Hms Hw
@@ -613,7 +620,7 @@ theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfa
   iintro ⟨#Hm, #Hp1, #Hp2, #Hp3⟩
   iunfold grpcMethodOkMd at Hm
   unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨Htok, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨Htok, Hlc, Hctx, Hrc, HD, Hd, Hch⟩ HΨ
   icases (threadTok_levels0123 (GF := GF) HT).1 $$ Htok with ⟨H0, H1, H2, H3, H4⟩
   imod threadPool.borrowL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 H1] with ⟨HR1, Hl1⟩
   · iframe; iframe #
@@ -625,10 +632,10 @@ theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfa
   · inext; iframe
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc HR with HR
   iapply wp_fupd
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [H0 HR Hctx Hrc Hd Hch HSpec]
+  iapply Hm $$ %D %Got %ci %cd %dec %ui [H0 HR Hctx Hrc HD Hd Hch]
   · iframe
   inext
-  iintro %resp %err ⟨⟨H0, HB1, HB2, HB3⟩, Hok, Herr, Hsrv⟩
+  iintro %resp %err ⟨⟨H0, HB1, HB2, HB3⟩, Hout⟩
   imod threadPool.giveBackL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 Hl1 HB1] with H1
   · iframe; iframe #
   imod threadPool.giveBackL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Hl2 HB2] with H2

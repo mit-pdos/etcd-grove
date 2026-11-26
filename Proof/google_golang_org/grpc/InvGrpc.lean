@@ -133,30 +133,38 @@ theorem isGrpcRpcs_of_all {Req Rep : ProtoMsg GF} (addrs : List GoString) (name 
       iframe Ha
       iapply ih $$ Hr
 
-/-- A method meeting `Spec` meets a stronger request precondition `Spec'` (`Spec` occurs only in
-the run's precondition). -/
-theorem grpcMethodOk_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpec Req Rep)
-    (h : ∀ m Φ, Spec' m Φ ⊢ Spec m Φ) :
-    grpcMethodOk mh srv ics S Spec ⊢ grpcMethodOk mh srv ics S Spec' := by
+/-- A method meeting the metadata-indexed `Spec` meets a `Spec'` that gives `Spec` after an update
+(`dec`'s contract is converted, `grpcDecDepOk_mono_upd`). -/
+theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
+    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' := by
   iintro #Hm
-  unfold grpcMethodOk
-  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-  iapply (h m Φ) $$ HSpec
+  unfold grpcMethodOkMd
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, HD, #Hd, Hch⟩ HΨ
+  ihave #Hd' := (grpcDecDepOk_mono_upd dec Spec Spec' h ci D Got) $$ Hd
+  iapply Hm $$ %D %Got %ci %cd %dec %ui [HS Hctx Hrc HD Hch] HΨ
+  iframe; iframe #
 
 /-- A method meeting the metadata-indexed `Spec` meets a stronger `Spec'`. -/
 theorem grpcMethodOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
     (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
-    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' := by
-  iintro #Hm
-  unfold grpcMethodOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-  iapply (grpcSpecAt_mono Spec Spec' h ci m Φ Ψe) $$ HSpec
+    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' :=
+  grpcMethodOkMd_mono_upd mh srv ics S Spec Spec' (fun md m Φ Ψe => (h md m Φ Ψe).trans BIUpdate.intro)
+
+/-- A method meeting `Spec` meets a stronger request precondition `Spec'`. -/
+theorem grpcMethodOk_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpec Req Rep)
+    (h : ∀ m Φ, Spec' m Φ ⊢ Spec m Φ) :
+    grpcMethodOk mh srv ics S Spec ⊢ grpcMethodOk mh srv ics S Spec' := by
+  iintro H
+  ihave H := (grpcMethodOk_md mh srv ics S Spec).1 $$ H
+  iapply (grpcMethodOk_md mh srv ics S Spec').2
+  iapply (grpcMethodOkMd_mono mh srv ics S (GrpcSpec.md Spec) (GrpcSpec.md Spec') (fun md m Φ Ψe => by
+    simp only [GrpcSpec.md]; iintro ⟨H, #H'⟩; isplitl [H]
+    · iapply (h m Φ) $$ H
+    · iexact H')) $$ H
 
 /-- A registration with the metadata-indexed `Spec` is one with a `Spec'` that gives `Spec` after an
 update (through `grpcSvcAt_mono_upd`). -/
@@ -191,31 +199,19 @@ theorem isGrpcRpc_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
   · iapply (h m Φ) $$ H
   iexact H'
 
-/-- A method meeting the metadata-indexed `Spec` meets a `Spec'` that gives `Spec` after an update
-(`Spec` is only the method triple's precondition, where an update is eliminated). -/
-theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
-    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
-    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' := by
-  iintro #Hm
-  unfold grpcMethodOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  ihave HSpec := (grpcSpecAt_mono_upd Spec Spec' h ci m Φ Ψe) $$ HSpec
-  imod HSpec
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-
 /-! ## The single-process table: Go's configuration -/
 
 /-- **The entry of Go's configuration for `name` at the message models `Req`, `Rep`** (heap-dependent:
 for one process, whose start sets the table): a caller's
-precondition is some spec `S` that a handler registered under `name` meets as a run
-(`grpcRunOkMd`), with `S`'s precondition. -/
+precondition is some spec `S` that a handler registered under `name` meets as a run, with `S`'s
+precondition. The run is the deposit-at-start contract (`grpcRunPreOkMd`, interim until W4): a spec
+chosen by the caller has no dec-shaped contract to run against, since `dec` reveals it only mid-run
+(phase 7's SW2; `grpc.serve` converts a handler's run contract, `grpcRunPreOkMd_of_run`). -/
 def grpcGoEntry (ics : List GoFunc) (regs : List (GoString × GoFunc × GoInterface)) (name : GoString)
     (Req Rep : ProtoMsgT GF) : GrpcEntry GF :=
   ⟨Req.toProtoMsg.wire, Rep.toProtoMsg.wire, fun md m Φ Ψe =>
     iprop(∃ (mh : GoFunc) (srv : GoInterface) (S : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg),
-      ⌜(name, mh, srv) ∈ regs⌝ ∗ □ grpcRunOkMd #mh srv ics S ∗ S md m Φ Ψe)⟩
+      ⌜(name, mh, srv) ∈ regs⌝ ∗ □ grpcRunPreOkMd #mh srv ics S ∗ S md m Φ Ψe)⟩
 
 /-- **Go's configuration as a service table** (one process): an entry for each
 registered unary method `tys` gives message models for (`tys`: the program's unary methods by full

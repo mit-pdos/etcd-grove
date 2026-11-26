@@ -21,9 +21,11 @@ for the handler to answer some `m'` with `Φ m'`.
 **The server side** (unit P3b: the boundary below etcd's generated handlers and interceptors).
 A service method `h` meets `Spec` with the per-run resource `S` (`grpcHandlerOk h S Spec`). grpc's
 runtime runs, for a call of a registered method, its `MethodDesc.Handler` `mh` on the registered
-service value `srv`, with grpc's `dec` (`grpcDecOk`) and the interceptor it composes for the
-server's chain `ics` (`grpcSrvChain`, `srvChainWP`); `grpcMethodOk mh srv ics S Spec` is what
-such a run must meet. Since per-type stage B (B1b), a run is a fork of grpc's `Server.Serve`
+service value `srv`, with grpc's `dec` and the interceptor it composes for the server's chain `ics`
+(`grpcSrvChain`, `srvChainWP`); `grpcMethodOk mh srv ics S Spec` is what such a run must meet. The
+run is dec-shaped (phase 7's SW2, decision D1): its `dec` delivers the call's deposit
+(`grpcDecDepOk`), so a run gets the caller's request precondition only from a successful `dec`, and
+returns `grpcRunOut`. Since per-type stage B (B1b), a run is a fork of grpc's `Server.Serve`
 (its trusted model, `TrustedCode/google_golang_org/grpc.lean`), given the fork's thread
 token and one later credit and returning the token (`grpcRunOkMd`, the run contract; handlers
 proved against `grpcMethodOkMd` at a bundle get it from the adapters, `InvGrpcRun.lean`). The server's
@@ -705,7 +707,8 @@ error `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: `serverStre
 `*status.Error`s and the raw `io.ErrUnexpectedEOF` of its second `recv`, a leaf). That holds for
 `Server.Serve`'s HTTP/2 transport only, the one `Server.Serve`'s axiom covers: under `ServeHTTP`,
 `mapRecvMsgError` returns a raw `transport.ConnectionError`, not a leaf
-(`notes/axiom-review/hs6.md`). -/
+(`notes/axiom-review/hs6.md`). Since phase 7's SW2 (decision D1) only the deposit-at-start run
+contract `grpcRunPreOkMd` gives it; the run contracts give `grpcDecDepOk`. -/
 def grpcDecOk (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) : IProp GF :=
   iprop(∀ l : Loc, {{ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))
@@ -718,96 +721,128 @@ instance grpcDecOk_persistent (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) :
     Persistent (grpcDecOk dec Req m) := by
   unfold grpcDecOk; infer_instance
 
-/-- grpc's `dec`, at the Go type `T` of the request (`Req.ty = T`). -/
-theorem grpcDecOk_ty (dec : GoFunc) (Req : ProtoMsg GF) (m : Req.M) (T : go.GoType)
+/-- **grpc's `dec` for a unary run, delivering the call's deposit** (persistent; phase 7's SW2,
+decision D1, S2's end-state run contract): called with `D` (the run's right to the one request
+message, exclusive, abstract: `Serve`'s proof chooses it) on a zero `*T` of the request's type
+(`Req.blank`), it decodes the request into it and gives the caller's request precondition at the
+run's incoming metadata (`grpcSpecAt`), at some `m`, `Φ`, `Ψe`, with the receipt `Got Φ Ψe`
+(abstract: `Serve`'s proof chooses it, to answer the call at those `Φ`/`Ψe`); or it fails with an
+error grpc's `status` takes that no handler makes (`statusErrOk`, as `grpcDecOk`'s), giving `D`
+back. The unary instance of a stream's `RecvMsg` at one message. -/
+def grpcDecDepOk (dec : GoFunc) {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)
+    (ci : GoInterfaceOk) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF) : IProp GF :=
+  iprop(□ ∀ l : Loc, {{ D ∗ Req.blank l }}
+      (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType Req.ty) #l : GoInterface)))
+    {{ (err : GoInterface), RET #err;
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF),
+            Req.recv l m ∗ Req.recvOwn l m ∗ grpcSpecAt Spec ci m Φ Ψe ∗ Got Φ Ψe) ∨
+        (D ∗ notHandlerErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err) }})
+
+instance grpcDecDepOk_persistent (dec : GoFunc) {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)
+    (ci : GoInterfaceOk) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF) :
+    Persistent (grpcDecDepOk dec Spec ci D Got) := by
+  unfold grpcDecDepOk; infer_instance
+
+/-- grpc's `dec` for a unary run, at the Go type `T` of the request (`Req.ty = T`). -/
+theorem grpcDecDepOk_ty (dec : GoFunc) {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep)
+    (ci : GoInterfaceOk) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF) (T : go.GoType)
     (hT : Req.ty = T) :
-    grpcDecOk (GF := GF) dec Req m ⊢ iprop(∀ l : Loc, {{ Req.blank l }}
+    grpcDecDepOk (GF := GF) dec Spec ci D Got ⊢ iprop(□ ∀ l : Loc, {{ D ∗ Req.blank l }}
       (App (Val #dec) (Val #(interface.mkOk (go.GoType.PointerType T) #l : GoInterface)))
     {{ (err : GoInterface), RET #err;
-        (⌜err = GoInterface.nil⌝ ∗ Req.recv l m ∗ Req.recvOwn l m) ∨
-          (notHandlerErr err ∗
-            go_etcd_io.etcd.cache.v3.statusErrOk err) }}) := by
-  subst hT; unfold grpcDecOk; exact .rfl
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF),
+            Req.recv l m ∗ Req.recvOwn l m ∗ grpcSpecAt Spec ci m Φ Ψe ∗ Got Φ Ψe) ∨
+        (D ∗ notHandlerErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err) }}) := by
+  subst hT; unfold grpcDecDepOk; exact .rfl
 
-/-- **The method handler `mh` with the service `srv`, under the chain `ics`, meets `Spec` with
-the per-run resource `S`** (persistent; unit P3b: what grpc's runtime runs for a call): a run,
-given `S`, the run's context (`isContext`, `grpcRunCtx`), grpc's `dec` for the request at `m`,
-the chain's interceptor (`grpcSrvChain`) and `Spec m Φ`, returns `S` and, on success, a response
-`*T` (as `any`) at some `m'` with `Φ m'`. -/
+/-- `dec`'s contract at a spec is one at a spec its precondition gives after an update (the update
+is done in `dec`'s postcondition). -/
+theorem grpcDecDepOk_mono_upd (dec : GoFunc) {Req Rep : ProtoMsg GF} (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) (ci : GoInterfaceOk) (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF) :
+    grpcDecDepOk (GF := GF) dec Spec' ci D Got ⊢ grpcDecDepOk dec Spec ci D Got := by
+  unfold grpcDecDepOk
+  iintro #Hd !> %l !> %Ψ HP HΨ
+  iapply wp_fupd
+  iapply Hd $$ %l HP
+  inext
+  iintro %err Herr
+  icases Herr with (⟨%he, %m, %Φ, %Ψe, #Hr, Ho, HSp, HG⟩ | ⟨HD, #Hnh, #Hse⟩)
+  · imod (grpcSpecAt_mono_upd Spec Spec' h ci m Φ Ψe) $$ HSp with HSp
+    imodintro
+    iapply HΨ
+    ileft
+    isplitr
+    · ipureintro; exact he
+    iexists m, Φ, Ψe
+    iframe; iframe #
+  · imodintro
+    iapply HΨ
+    iright
+    iframe; iframe #
+
+/-- **What a unary run returns** (phase 7's SW2, decision D1): the token-free part of the run
+contracts' postcondition, shared by `grpcMethodOkMd` and `grpcRunOkMd`. An error grpc's server
+handles (`srvErrOk`), and either the run never decoded its request (`D` back, with a non-nil error no
+handler makes), or it decoded, holds the receipt `Got Φ Ψe` of the deposit `dec` gave, and answers
+its `Φ`/`Ψe`: on success a response `*T` (as `any`) at some `m'` with `Φ m'`, on a handler's error
+its `Ψe`. -/
+def grpcRunOut {Rep : ProtoMsg GF} (D : IProp GF)
+    (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF) (resp err : GoInterface) :
+    IProp GF :=
+  iprop(go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+    ((D ∗ ⌜err ≠ GoInterface.nil⌝ ∗ notHandlerErr err) ∨
+     ∃ (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF), Got Φ Ψe ∗
+       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
+          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
+       handlerErrOut Ψe err))
+
+/-- **The method handler `mh` with the service `srv`, under the chain `ics`, meets the plain `Spec`
+with the per-run resource `S`** (persistent; unit P3b: what grpc's runtime runs for a call; the
+dec-shaped form since phase 7's SW2, decision D1): `grpcMethodOkMd`'s text at the plain spec's
+metadata form `GrpcSpec.md Spec` (`grpcMethodOk_md`). -/
 def grpcMethodOk {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Spec : GrpcSpec Req Rep) : IProp GF :=
-  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChainAll ics ui ∗
-        Spec m Φ }}
+  iprop(∀ (D : IProp GF) (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
+      (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗
+        grpcDecDepOk dec (GrpcSpec.md Spec) ci D Got ∗ grpcSrvChainAll ics ui }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
-    {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-        go_etcd_io.etcd.cache.v3.srvErrOk err }})
+    {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ grpcRunOut D Got resp err }})
 
 instance grpcMethodOk_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
     Persistent (grpcMethodOk mh srv ics S Spec) := by
   unfold grpcMethodOk; infer_instance
 
-/-- **The method handler `mh` meets the metadata-indexed `Spec`** (persistent; the auth plan's
-E3zb): as `grpcMethodOk`, the run's request precondition at its context's incoming metadata
-(`grpcSpecAt`): what grpc delivers of the attempt's metadata. A plain spec's is
+/-- **The method handler `mh` meets the metadata-indexed `Spec` with the per-run resource `S`**
+(persistent; the auth plan's E3zb; dec-shaped since phase 7's SW2, decision D1): a run, given `S`,
+the run's context (`isContext`, `grpcRunCtx`), the right `D` to the request and grpc's `dec`
+delivering the call's deposit with it (`grpcDecDepOk`: the request precondition at the run's
+incoming metadata, `grpcSpecAt`, and its receipt `Got`), and the chain's interceptor
+(`grpcSrvChainAll`), returns `S` and what a run returns (`grpcRunOut`). A plain spec's is
 `grpcMethodOk` (`grpcMethodOk_md`). -/
 def grpcMethodOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Spec : GrpcSpecMd Req Rep) : IProp GF :=
-  iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChainAll ics ui ∗
-        grpcSpecAt Spec ci m Φ Ψe }}
+  iprop(∀ (D : IProp GF) (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
+      (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗ grpcDecDepOk dec Spec ci D Got ∗
+        grpcSrvChainAll ics ui }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
-    {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
-          ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-        handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
+    {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ grpcRunOut D Got resp err }})
 
 instance grpcMethodOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
     Persistent (grpcMethodOkMd mh srv ics S Spec) := by
   unfold grpcMethodOkMd; infer_instance
 
-theorem grpcMethodOk_md [EtcdGrove.ErrorStringLeaf] {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
+theorem grpcMethodOk_md {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Spec : GrpcSpec Req Rep) :
     grpcMethodOk mh srv ics S Spec ⊣⊢ grpcMethodOkMd mh srv ics S (GrpcSpec.md Spec) := by
-  constructor
-  · iintro #Hh
-    unfold grpcMethodOkMd
-    iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-    ihave ⟨HSpec, #Hall⟩ := grpcSpecAt_md_elim _ _ _ _ _ $$ HSpec
-    iunfold grpcMethodOk at Hh
-    iapply Hh $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
-    · iframe
-    inext
-    iintro %resp %err ⟨HS, Hok, #Hse⟩
-    iapply HΨ
-    iframe
-    isplitl
-    · iapply (handlerErrOut_allSrv _ err) $$ Hall Hse
-    · iexact Hse
-  · iintro #Hh
-    unfold grpcMethodOk
-    iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-    iunfold grpcMethodOkMd at Hh
-    iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
-    · ihave #Hrc' := Hrc
-      iframe
-      iframe #
-      iapply (grpcSpecAt_md_intro Spec ci m Φ (fun _ => iprop(True)))
-      iframe HSpec Hrc'
-      imodintro
-      iintro %_
-      itrivial
-    inext
-    iintro %resp %err ⟨HS, Hok, -, #Hse⟩
-    iapply HΨ
-    iframe
-    iexact Hse
+  unfold grpcMethodOk grpcMethodOkMd; exact .rfl
 
 /-- **The interceptor `ic` is transparent, with its per-run resource `R`, for requests with
 `Q`** (persistent; unit P3b: what etcd's `newUnaryInterceptor` and `newLogUnaryInterceptor`
@@ -1096,19 +1131,64 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The run contract of a unary handler**: `grpcMethodOkMd`'s text with the per-run resource fixed
-to what a run is given, the fork's thread token and later credit (`wp_fork_tok_upd`), in the pre, and
-the token in the post. A run, given the token and the credit, the run's context (`isContext`,
-`grpcRunCtx`), grpc's `dec` for the request at `m`, the chain's interceptor (`grpcSrvChain`) and
-`Spec md m Φ Ψe` at the context's incoming metadata, returns the token and, on success, a response
-`*T` (as `any`) at some `m'` with `Φ m'`, on a handler's error its `Ψe`, and an error grpc's
-`status.FromError` takes. Handlers are proved against `grpcMethodOkMd` at their bundle; the adapters
-(`grpcRunOkMd_of_pools`) give this contract. Since 2026-11-23 (#24's S2 signatures) the chain's
-interceptor is given at every resource (`grpcSrvChainAll`): the run holds its `threadTok`
-throughout, from its fork to its return (grpc-go v1.84 runs each call's handler and its whole
-interceptor chain on the goroutine `Server.handleStream` started for it, synchronously), and passes
-what it holds, the token or the loans it borrows with it, along the chain. -/
+/-- **The run contract of a unary handler** (dec-shaped since phase 7's SW2, decision D1, S2's end
+state): `grpcMethodOkMd`'s text with the per-run resource fixed to what a run is given, the fork's
+thread token and one later credit (`wp_fork_tok_upd`), in the pre, and the token in the post. A run,
+given the token and the credit, the run's context (`isContext`, `grpcRunCtx`), the right `D` to the
+request and grpc's `dec` delivering the call's deposit with it (`grpcDecDepOk`), and the chain's
+interceptor (`grpcSrvChainAll`), returns the token and what a run returns (`grpcRunOut`): `D` back
+with an error no handler makes, or the receipt `Got Φ Ψe` of the deposit `dec` gave with its answer.
+The run is given the deposit only from a successful `dec`, as grpc-go v1.84 and the model run a
+unary handler before its request's data arrives (`wrapUnaryHandler`'s `dec` is the stream's
+`RecvMsg`). Handlers are proved against `grpcMethodOkMd` at their bundle; the adapters
+(`grpcRunOkMd_of_pools`) give this contract. The chain's interceptor is given at every resource
+(`grpcSrvChainAll`): the run holds its `threadTok` throughout, from its fork to its return (grpc-go
+v1.84 runs each call's handler and its whole interceptor chain on the goroutine
+`Server.handleStream` started for it, synchronously), and passes what it holds, the token or the
+loans it borrows with it, along the chain. -/
 def grpcRunOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
+    (Spec : GrpcSpecMd Req Rep) : IProp GF :=
+  iprop(∀ (D : IProp GF) (Got : (Rep.M → IProp GF) → (GoString → IProp GF) → IProp GF)
+      (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
+    {{ threadTok ∗ £ 1 ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ D ∗
+        grpcDecDepOk dec Spec ci D Got ∗ grpcSrvChainAll ics ui }}
+      (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
+    {{ (resp err : GoInterface), RET (PairV #resp #err); threadTok ∗ grpcRunOut D Got resp err }})
+
+instance grpcRunOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
+    Persistent (grpcRunOkMd mh srv ics Spec) := by
+  unfold grpcRunOkMd; infer_instance
+
+/-- A run contract at a spec is one at a spec that gives it after an update (`dec`'s contract is
+converted, `grpcDecDepOk_mono_upd`). -/
+theorem grpcRunOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
+    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
+  iintro #Hm
+  unfold grpcRunOkMd
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, HD, #Hd, Hch⟩ HΨ
+  ihave #Hd' := (grpcDecDepOk_mono_upd dec Spec Spec' h ci D Got) $$ Hd
+  iapply Hm $$ %D %Got %ci %cd %dec %ui [HT Hlc Hctx Hrc HD Hch] HΨ
+  iframe; iframe #
+
+/-- A run contract at a spec is one at a stronger spec. -/
+theorem grpcRunOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
+    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' :=
+  grpcRunOkMd_mono_upd mh srv ics Spec Spec' (fun md m Φ Ψe => (h md m Φ Ψe).trans BIUpdate.intro)
+
+/-- **The deposit-at-start run contract** (interim, phase 7's SW2, decision D1; for Go's
+single-process table only, `grpcGoEntry`, and deleted with it at W4): the run contract's text before
+SW2. A run, given the token and the credit, the run's context, grpc's `dec` for the request at `m`
+(`grpcDecOk`), the chain's interceptor and `Spec md m Φ Ψe` at the context's incoming metadata
+(`grpcSpecAt`), returns the token and, on success, a response `*T` (as `any`) at some `m'` with
+`Φ m'`, on a handler's error its `Ψe`, and an error grpc's `status.FromError` takes. The dec-shaped
+contract implies it (`grpcRunPreOkMd_of_run`); unlike it, it is closed under a spec chosen by the
+caller (`grpcGoEntry`'s `∃ S`). -/
+def grpcRunPreOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (Spec : GrpcSpecMd Req Rep) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
@@ -1120,35 +1200,62 @@ def grpcRunOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : Li
           ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
         handlerErrOut Ψe err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
-instance grpcRunOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+instance grpcRunPreOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
-    Persistent (grpcRunOkMd mh srv ics Spec) := by
-  unfold grpcRunOkMd; infer_instance
+    Persistent (grpcRunPreOkMd mh srv ics Spec) := by
+  unfold grpcRunPreOkMd; infer_instance
 
-/-- A run contract at a spec is one at a stronger spec. -/
-theorem grpcRunOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
-    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) :
-    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
+/-- **The dec-shaped run contract implies the deposit-at-start one** (phase 7's SW2): run it at
+`D := grpcSpecAt Spec ci m Φ Ψe` (the deposit, held from the start) and the receipt
+`Got Φ' Ψe' := ⌜Φ' = Φ ∧ Ψe' = Ψe⌝`; grpc's `dec` at `m` delivers that deposit with that receipt
+(`grpcDecOk`), and gives `D` back on its error. On the `D` arm the error is no handler's
+(`handlerErrOut_not`); on the receipt's, its `Φ'`/`Ψe'` are the call's. -/
+theorem grpcRunPreOkMd_of_run {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (Spec : GrpcSpecMd Req Rep) :
+    grpcRunOkMd mh srv ics Spec ⊢ grpcRunPreOkMd mh srv ics Spec := by
   iintro #Hm
-  unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-  iapply (grpcSpecAt_mono Spec Spec' h ci m Φ Ψe) $$ HSpec
-
-/-- A run contract at a spec is one at a spec that gives it after an update. -/
-theorem grpcRunOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
-    (ics : List GoFunc) (Spec Spec' : GrpcSpecMd Req Rep)
-    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) :
-    grpcRunOkMd mh srv ics Spec ⊢ grpcRunOkMd mh srv ics Spec' := by
-  iintro #Hm
-  unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  ihave HSpec := (grpcSpecAt_mono_upd Spec Spec' h ci m Φ Ψe) $$ HSpec
-  imod HSpec
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
+  unfold grpcRunPreOkMd
+  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, #Hd, Hch, HSpec⟩ HΨ
+  ihave #Hdd : grpcDecDepOk dec Spec ci (grpcSpecAt Spec ci m Φ Ψe)
+      (fun Φ' Ψe' => iprop(⌜Φ' = Φ ∧ Ψe' = Ψe⌝)) $$ []
+  · unfold grpcDecDepOk
+    iintro !> %l !> %Ψ' ⟨HSp, Hb⟩ HΨ'
+    iunfold grpcDecOk at Hd
+    iapply Hd $$ %l Hb
+    inext
+    iintro %err Herr
+    icases Herr with (⟨%he, #Hr, Ho⟩ | ⟨#Hnh, #Hse⟩)
+    · iapply HΨ'
+      ileft
+      isplitr
+      · ipureintro; exact he
+      iexists m, Φ, Ψe
+      isplitr
+      · iexact Hr
+      isplitl [Ho]
+      · iexact Ho
+      isplitl [HSp]
+      · iexact HSp
+      ipureintro; exact ⟨rfl, rfl⟩
+    · iapply HΨ'
+      iright
+      iframe; iframe #
+  iunfold grpcRunOkMd at Hm
+  iapply Hm $$ %(grpcSpecAt Spec ci m Φ Ψe) %(fun Φ' Ψe' => iprop(⌜Φ' = Φ ∧ Ψe' = Ψe⌝)) %ci %cd
+    %dec %ui [HT Hlc Hctx Hrc HSpec Hch]
+  · iframe; iframe #
+  inext
+  iintro %resp %err ⟨HT, Hout⟩
+  iapply HΨ
+  iunfold grpcRunOut at Hout
+  icases Hout with ⟨#Hse, (⟨-, %Hne, #Hnh⟩ | ⟨%Φ', %Ψe', %Heq, Hok, Herr⟩)⟩
+  · iframe HT Hse
+    isplitl
+    · iintro %Hnil
+      exact absurd Hnil Hne
+    · iapply handlerErrOut_not $$ Hnh
+  · obtain ⟨rfl, rfl⟩ := Heq
+    iframe; iframe #
 
 end run
 

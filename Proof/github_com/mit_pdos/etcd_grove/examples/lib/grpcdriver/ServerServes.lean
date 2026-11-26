@@ -159,10 +159,10 @@ theorem echo_runOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
   ihave #Hh := echo_handlerOk wp_Echo γid s iprop((True : IProp GF) ∗ [∗list] R ∈ ([] : List (IProp GF)), R) $$ Hs
   ihave #Hh' := grpcHandlerOkMd_own _ _ _ $$ Hh
   unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, #Hd, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, HD, #Hd, #Hch⟩ HΨ
   iapply (wp_H (pbStringValueT (GF := GF)).toProtoMsg (pbStringValueRT (GF := GF)).toProtoMsg
     (echoSpec γid) ⟨go.GoType.PointerType server.ty, #s⟩ iprop(True) [] [] (fun _ => iprop(True))
-    m Φ Ψe ci cd dec ui rfl rfl server_isDriverServer) $$ [HSpec]
+    D Got ci cd dec ui rfl rfl server_isDriverServer) $$ [HD]
   · isplitr
     · iexact Hsvc
     isplitr
@@ -175,7 +175,7 @@ theorem echo_runOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
     · simp only [srvInterceptorsOk]
       itrivial
     isplitr
-    · iintro !> %l -
+    · iintro !> %l %_ -
       itrivial
     isplitr
     · itrivial
@@ -184,9 +184,8 @@ theorem echo_runOk (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
       itrivial
     iframe; iframe #
   inext
-  iintro %resp %err ⟨-, -, Hres, Herr, #Hse⟩
+  iintro %resp %err ⟨-, -, Hout⟩
   iapply HΨ
-  iframe Hse
   iframe
 
 /-- **The generated `Fail` handler on the server `s` meets `failSpec` as a run** (no
@@ -203,10 +202,10 @@ theorem fail_runOk (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
   ihave #Hh := fail_handlerOk wp_Fail s iprop((True : IProp GF) ∗ [∗list] R ∈ ([] : List (IProp GF)), R) $$ Hpkg
   ihave #Hh' := grpcHandlerOkMd_own _ _ _ $$ Hh
   unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, #Hd, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, HD, #Hd, #Hch⟩ HΨ
   iapply (wp_H (pbStringValueT (GF := GF)).toProtoMsg (pbStringValueRT (GF := GF)).toProtoMsg
     failSpec ⟨go.GoType.PointerType server.ty, #s⟩ iprop(True) [] [] (fun _ => iprop(True))
-    m Φ Ψe ci cd dec ui rfl rfl server_isDriverServer) $$ [HSpec]
+    D Got ci cd dec ui rfl rfl server_isDriverServer) $$ [HD]
   · isplitr
     · iexact Hsvc
     isplitr
@@ -219,7 +218,7 @@ theorem fail_runOk (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
     · simp only [srvInterceptorsOk]
       itrivial
     isplitr
-    · iintro !> %l -
+    · iintro !> %l %_ -
       itrivial
     isplitr
     · itrivial
@@ -228,9 +227,8 @@ theorem fail_runOk (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
       itrivial
     iframe; iframe #
   inext
-  iintro %resp %err ⟨-, -, Hres, Herr, #Hse⟩
+  iintro %resp %err ⟨-, -, Hout⟩
   iapply HΨ
-  iframe Hse
   iframe
 
 /-- **The server's registrations serve the table's `Echo` entry** (`grpcServesEnt`): for
@@ -258,6 +256,7 @@ theorem echo_servesEnt (wp_Echo : server.Echo.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  ileft
   iapply echo_runOk wp_Echo wp_H γid s
   iframe #
 
@@ -285,6 +284,7 @@ theorem fail_servesEnt (wp_Fail : server.Fail.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  ileft
   iapply fail_runOk wp_Fail wp_H s
   iframe #
 
@@ -302,10 +302,10 @@ theorem meta_runOk (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
   ihave #Hh := meta_handlerOk wp_Meta s iprop((True : IProp GF) ∗ [∗list] R ∈ ([] : List (IProp GF)), R) $$ Hpkg
   ihave #Hh' := grpcHandlerOkMd_own _ _ _ $$ Hh
   unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, #Hd, #Hch, HSpec⟩ HΨ
+  iintro %D %Got %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, #Hctx, #Hrc, HD, #Hd, #Hch⟩ HΨ
   iapply (wp_H (pbStringValueT (GF := GF)).toProtoMsg (pbStringValueRT (GF := GF)).toProtoMsg
     metaSpec ⟨go.GoType.PointerType server.ty, #s⟩ iprop(True) [] [] (fun _ => iprop(True))
-    m Φ Ψe ci cd dec ui rfl rfl server_isDriverServer) $$ [HSpec]
+    D Got ci cd dec ui rfl rfl server_isDriverServer) $$ [HD]
   · isplitr
     · iexact Hsvc
     isplitr
@@ -318,7 +318,7 @@ theorem meta_runOk (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
     · simp only [srvInterceptorsOk]
       itrivial
     isplitr
-    · iintro !> %l -
+    · iintro !> %l %_ -
       itrivial
     isplitr
     · itrivial
@@ -327,9 +327,8 @@ theorem meta_runOk (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
       itrivial
     iframe; iframe #
   inext
-  iintro %resp %err ⟨-, -, Hres, Herr, #Hse⟩
+  iintro %resp %err ⟨-, -, Hout⟩
   iapply HΨ
-  iframe Hse
   iframe
 
 /-- **The server's registrations serve the table's `Meta` entry** (`grpcServesEnt`), as
@@ -356,6 +355,7 @@ theorem meta_servesEnt (wp_Meta : server.Meta.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro
     exact ⟨pbStringValueT_reqReg, pbStringValueRT_repReg, rfl⟩
+  ileft
   iapply meta_runOk wp_Meta wp_H s
   iframe #
 
