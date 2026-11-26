@@ -174,10 +174,10 @@ local macro "early_return" e:term : tactic => `(tactic| (
     split <;> omega
   ipureintro
   intro md hmd
-  exfalso
   first
-  | exact netTypesK_not_local (Hscp md hmd).1 (of_decide_eq_true Hb1.symm)
-  | exact HnnF ⟨md, hmd⟩ Hif))
+  | exact absurd (of_decide_eq_true Hb1.symm) (netTypesK_not_local (Hscp md hmd).1)
+  -- (antithesis parity B1) a sender with no `Progress` (at non-voters on): the state unchanged
+  | exact .inl ⟨rfl, rfl⟩))
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type `RawNode.Step` does not take: vacuous. -/
@@ -490,12 +490,12 @@ local macro "step_tail" : tactic => `(tactic| (
           (fun _ => ⟨Hpv, Hsn, (Hx md h).2⟩) (Hxs md h) (HroleF md h) Hdom0 Hdom1)
         Hsg (hfl := ⟨Hpre, Hcq', Hsdr'⟩)
         (hx := fun md h _ HX0 => by
-          obtain ⟨hl0, hw0, -⟩ := HX0
-          refine ⟨?_, fun p hp => ?_, Hlt'⟩
+          obtain ⟨hl0, hw0, ht0⟩ := HX0
+          refine ⟨fun hnv => ?_, fun p hp => ?_, Hlt'⟩
           · rcases (Hlifted md h).2.2.2 with e | e | e | ⟨e, hr⟩
-            · rw [e]; exact hl0
+            · rw [e]; exact hl0 hnv
             · exact .inl e
-            · rw [e]; exact .inr (Hscp md h).2.2
+            · rw [e]; exact .inr ((Hscp md h).2.2 hnv)
             · rw [e]; right
               refine id_mem_of_roleFn (hsc0 md h).2.1 (Hscope md h).1 (Hscope md h).2.1 (HCf md h).1
                 (HCf md h).2.1 (HroleF md h).2 Hdom0 (fun hf => ?_)
@@ -504,8 +504,10 @@ local macro "step_tail" : tactic => `(tactic| (
             · obtain ⟨-, -, -, Hgrow⟩ := Hxwf hx
               rcases Hgrow p hp with hp' | ⟨rfl, hr, hl0'⟩
               · exact hw0 _ hp'
-              · have hld : (toPState s).lead = s.lead := toPState_lead_nonpre s (by rw [hr]; decide)
-                rcases hl0 with h' | h'
+              · -- the forward's record: the follower's known leader, at its term (past `0`)
+                have hld : (toPState s).lead = s.lead := toPState_lead_nonpre s (by rw [hr]; decide)
+                refine ⟨fun hnv => ?_, ht0 (by rw [hld]; exact hl0')⟩
+                rcases hl0 hnv with h' | h'
                 · exact absurd (hld.symm.trans h') hl0'
                 · rw [hld] at h'; exact h'
             · obtain ⟨-, -, -, -, -, -, -, a8, -, -⟩ :=
@@ -546,7 +548,7 @@ local macro "step_tail" : tactic => `(tactic| (
       ipureintro
       intro md hmd
       subst Hps
-      exact ⟨(Hlifted md hmd).1, HX md hmd, (Hlifted md hmd).2.1⟩))
+      exact .inr ⟨(Hlifted md hmd).1, HX md hmd, (Hlifted md hmd).2.1⟩))
 
 set_option maxHeartbeats 1000000 in
 /-- **`RawNode.Step`, strengthened** (`RawNode.Step.absSpec`). -/
@@ -564,7 +566,7 @@ theorem RawNode.Step.wp_absProof
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hscp0 Hmtc Htn ⊢
   have Hscp : ∀ md, sc = some md → m.Type' ∈ netTypesK ∧ m.Type' ∈ stepTypes md ∧
-      m.From' ∈ γ.reCfg := fun md h => by
+      (md.nonVoters = false → m.From' ∈ γ.reCfg) := fun md h => by
     obtain ⟨h1, -, h3⟩ := Hscp0 md h
     obtain ⟨hs, -, hf, ha⟩ := hsc0 md h
     exact ⟨stepTypes_sub hs hf ha h1, h1, h3⟩
@@ -608,8 +610,6 @@ theorem RawNode.Step.wp_absProof
     exact ⟨liftScopeK_of (hsc0 md h).2.1 Hs Hc Hk HC Hpre0 Hfv Hdom0.1 Hdom0.2, Hal0 HC.2.1⟩
   have Hp0 : ∀ md, sc = some md → uint.Z s.logst.prev.index' = 0 := fun md h => by
     rw [((Hscope md h).1.2.2.2.2.1 (hsc0 md h).1).2.1]; rfl
-  have HfromIds : (∃ md, sc = some md) → m.From' ∈ cf.ids := fun ⟨md, h⟩ =>
-    GMap.elem_of_union_l cf.learners (by rw [(HCf md h).1.voters]; exact (Hscp md h).2.2)
   ihave %Hwfa : ⌜m.Type' = MsgApp → PlogWf (entryID.mk m.LogTerm' m.Index') ents⌝ $$ []
   · by_cases Happ : m.Type' = MsgApp
     · ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Happ]; exact mtypeOf_MsgApp) %(by decide)
@@ -632,7 +632,6 @@ theorem RawNode.Step.wp_absProof
   all_goals try (
     icases ownRaftPhysC_tracker_same cf rnv.raft' id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-    icases ownTrackerC_getD_nn cf tv _ m.From' (∃ md, sc = some md) HfromIds Hdom $$ Htrk with ⟨%HnnF, Htrk⟩
     try wp_auto
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _ m.From' _

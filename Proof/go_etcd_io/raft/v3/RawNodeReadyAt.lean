@@ -281,7 +281,7 @@ theorem rnScopeAt_keepSomeX {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : 
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
     (hk : rs'.k = rs.k := by rfl)
-    (hx : md.transfer = true → XScopeOk γ s → XScopeOk γ s') :
+    (hx : md.transfer = true → XScopeOk γ md s → XScopeOk γ md s') :
     rnScopeAt (GF := GF) γ id (some md) rs s ⊢ rnScopeAt γ id (some md) rs' s' := by
   unfold rnScopeAt
   iintro ⟨%Hs, #Hc⟩
@@ -296,7 +296,7 @@ part. -/
 theorem rnScopeAt_pureOpt {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs : RNState) (s : NState) :
     rnScopeAt (GF := GF) γ id sc rs s ⊢
       ⌜∀ md, sc = some md → RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
-        (md.transfer = true → XScopeOk γ s)⌝ ∗ rnScopeAt γ id sc rs s := by
+        (md.transfer = true → XScopeOk γ md s)⌝ ∗ rnScopeAt γ id sc rs s := by
   cases sc with
   | none => iintro H; iframe H; ipureintro; intro md h; cases h
   | some md0 =>
@@ -328,7 +328,7 @@ theorem rnScopeAt_keepOpt {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs r
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
     (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
     (hk : rs'.k = rs.k := by rfl)
-    (hx : ∀ md, sc = some md → md.transfer = true → XScopeOk γ s → XScopeOk γ s') :
+    (hx : ∀ md, sc = some md → md.transfer = true → XScopeOk γ md s → XScopeOk γ md s') :
     rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
   cases sc with
   | none => unfold rnScopeAt; iintro _; iempintro

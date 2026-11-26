@@ -6784,3 +6784,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`isCluster_rdMint`); node__start's antCluster pattern gains one component.
 - **Decision.** The Antithesis lead (Q2, Q3, (a) approved; the credits from the cluster's read-credit exchange, no new raft law). No
   axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: raft's transfer and sender facts at non-voters on (#33)
+- **Spec (lead-approved).** RawNodeAt.lean `XScopeOk γ md s` (gains the mode): the known leader's membership only at
+  `md.nonVoters = false`; each `NGhost.xw` record `(p.1, p.2)` past term `0` (`p.2 ≠ 0`, unguarded) and, at non-voters
+  off only, `p.1 ∈ γ.reCfg`; `lead ≠ 0 → term ≠ 0` unchanged. InvRaftPhys.lean `XfOk` clause 3: a queued
+  `MsgTransferLeader` is recorded in `xw` at any term (the `Term' ≠ 0 →` guard dropped; `raft.send`'s spec already
+  gives the record unguarded). RawNodeAbsSpecs.lean `XReadyOk γ md id p x` (gains the mode): every transfer message to
+  another node at a term at most the node's (the `timeoutNow ∨ term ≠ 0` guard dropped), a new
+  `x.ty = .transferLeader → x.term ≠ 0`, and the forward's destination in `γ.reCfg` only at `md.nonVoters = false`
+  (its `term ≠ 0` guard dropped). `RawNode.Step.form`: the scope premise's `From' ∈ γ.reCfg` only at
+  `md.nonVoters = false`; `%Hend` gains a first arm `(r' = r ∧ ip' = ip) ∨ (the RecvEndR / XMsg / ip conjunction)`.
+  RawNodeApi.lean `rawNode_scope.law`: the `md.nonVoters = false →` premise dropped; only its `id ∈ γ.reCfg` conjunct
+  is guarded by it (`RnCfgIn`'s).
+- **Defect.** With non-voters on, the harness cannot show a message's sender to be a voter (group D: the
+  `isMessage`/`isLeader` route gives no membership: `isLeader` is `isWin`; `reWins`/`isCampK` carry none). Raft returns
+  `errStepPeer` with its state unchanged for a response from a sender with no `Progress`, so the sender premise and the
+  leader-membership facts it fed are needed only at non-voters off. The drain needs a handed-out `MsgTransferLeader`'s
+  term past `0` without assuming it.
+- **Deviation from the requested text.** The unchanged arm has no `err = errStepPeer` conjunct: that error value is
+  existential inside `isInitialized` (Base.lean), not a term a spec can name. The driver reads `Step`'s error only for
+  `MsgProp` (node.go); the arm is taken only for response types, so never for a `MsgProp` (group D agreed).
+- **Evidence.** A stamped forward is recorded only at a follower's `(lead, term)` with `lead ≠ 0` (`%Hxwframe`'s growth
+  conjunct), and `XScopeOk`'s last clause gives `term ≠ 0`. RawNode__StepAbs's `errStepPeer` early return proves the new
+  arm (`errStepLocal` is still impossible in the scope). Mechanical: `XfOk.of_fields`/`xw_insert`/`snoc`,
+  `ownRaftPhysC_msgs(AA)`'s premise, raft__send's transfer case, LemmasReadyR's three `Hxw` arguments
+  (`fun h _ => …`), the XScopeOk keep sites (Start, Advance, Campaign, Tick, Propose, TransferLeader, Step, Ready).
+- **Decision.** The Antithesis lead (approved via group D, 2026-11-26). No axiom, no top-level premise.

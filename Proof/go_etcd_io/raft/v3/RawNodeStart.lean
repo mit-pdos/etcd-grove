@@ -432,7 +432,7 @@ private theorem pendAt_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
 private theorem rnScopeAt_start {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs : RNState)
     (s : NState) (st : Storage) (Hst : s.logst.storage = st)
     (H : ∀ md, sc = some md → RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
-      (md.transfer = true → XScopeOk γ s)) :
+      (md.transfer = true → XScopeOk γ md s)) :
     □ (∀ md, ⌜sc = some md⌝ -∗ ⌜md.snapshots = false⌝ -∗ storCapF (GF := GF) st 0) ⊢
       rnScopeAt γ id sc rs s := by
   cases sc with
@@ -980,9 +980,10 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     show NodeK.mk s.prevote s.cq s.sdr = cfgK cv
     rw [Hpvoff, Hcq, Hsdr]; rfl
   -- (antithesis parity B1, Q3 item 2) the transfer scope's facts: no leader known, none stamped
-  have HxR : XScopeOk γ.raft s1 := by
+  have HxR : ∀ md : RnMode, XScopeOk γ.raft md s1 := by
+    intro md
     have Hl : (toPState s1).lead = W64 0 := by rw [HtoP1]; rfl
-    refine ⟨.inl Hl, fun p hp => ?_, fun h => absurd Hl h⟩
+    refine ⟨fun _ => .inl Hl, fun p hp => ?_, fun h => absurd Hl h⟩
     change (s.gh.xw !! p).isSome = true at hp
     rw [Hgh] at hp; simp at hp
   ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rsK (toRState rsK fp s1) []
@@ -1021,7 +1022,7 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     · iapply durTie_congr γ.raft (rs := rs0) (s := s1) (by rfl) (by rfl) (by rfl) (by rfl) (by rfl) $$ Hdurt
     · iapply rnTrace_none (GF := GF) γ.raft rnv.raft' cv.ID' _ _ s1 (by show s.gh.tr = none; rw [Hgh])
     · iapply rnScopeAt_start sc rsK s1 (interface.ok si) Hsg
-        (fun md h => ⟨HscR md h, HcinR md h, HkR, fun _ => HxR⟩) $$ Hscp
+        (fun md h => ⟨HscR md h, HcinR md h, HkR, fun _ => HxR md⟩) $$ Hscp
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- the post: the node at `rawNodeRestarted`, its committed log, the slot's generation, the

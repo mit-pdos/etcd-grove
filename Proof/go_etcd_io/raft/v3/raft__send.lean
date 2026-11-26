@@ -582,7 +582,7 @@ theorem raft.send.wp_proof
         · assumption
       simp only
       refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
-        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_,
+        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h => ?_, fun htr => ?_,
         fun hx => absurd (Hxs.symm.trans hx) Bool.noConfusion, ⟨fun h => ⟨?_, ?_⟩, fun h => ⟨?_, ?_⟩, fun h => ?_⟩⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)

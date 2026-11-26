@@ -180,7 +180,7 @@ theorem rnScopeAt_ktie {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s
 storage never compacted past `0` without snapshots. -/
 theorem rnScopeAt_someMd {γ : RaftNames} {id : w64} (md : RnMode) (rs : RNState) (s : NState) :
     rnScopeAt (GF := GF) γ id (some md) rs s ⊢
-      ⌜RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧ (md.transfer = true → XScopeOk γ s)⌝ ∗
+      ⌜RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧ (md.transfer = true → XScopeOk γ md s)⌝ ∗
       □ (⌜md.snapshots = false⌝ -∗ storCapF s.logst.storage 0) ∗ rnScopeAt γ id (some md) rs s := by
   unfold rnScopeAt
   iintro ⟨%H, #Hc⟩

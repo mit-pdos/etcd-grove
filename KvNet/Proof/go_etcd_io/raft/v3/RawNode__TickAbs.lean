@@ -256,10 +256,11 @@ theorem RawNode.Tick.wp_absProof
         (hx := fun md h _ HX0 => by
           obtain ⟨hl0, hw0, ht0⟩ := HX0
           rcases tickEnd_lead (Hlifted md h).1 with e | e
-          · refine ⟨by rw [e]; exact hl0, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => ?_⟩
+          · refine ⟨(fun hnv => by rw [e]; exact hl0 hnv), fun p hp => hw0 p (by rw [Hgh] at hp; exact hp),
+              fun hne => ?_⟩
             have h1 := ht0 (by rw [← e]; exact hne)
             intro e0; apply h1; rw [e0] at Ht1; word
-          · exact ⟨.inl e, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => absurd e hne⟩) $$ Hsc
+          · exact ⟨fun _ => .inl e, fun p hp => hw0 p (by rw [Hgh] at hp; exact hp), fun hne => absurd e hne⟩) $$ Hsc
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgh]; exact Hgtr.trans HtrG)
       iapply HΦ $$ %s'.term %(toRState { rs with term := s'.term } fp s') %(uint.nat s'.logst.inprogress - 1)

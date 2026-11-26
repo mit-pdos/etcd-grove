@@ -67,25 +67,24 @@ theorem mtypeOf_none_of_xmsgOf {st : MsgSt} {x : XMsg} (hx : xmsgOf st = some x)
     · cases hx
 
 /-- (step C4) **A handed-out transfer message against the node** (`XReadyOk`): the queued message's
-facts (`XQOk`; a stamped transfer request's `NGhost.xw` record) and the scope's (`XScopeOk`: the records'
-destinations members of the names' voters). -/
-theorem xReadyOk_of {γ : RaftNames} {id : w64} {s : NState} {st : MsgSt} {x : XMsg}
-    (hq : XQOk id s st) (hw : st.msg.Type' = MsgTransferLeader → st.msg.Term' ≠ W64 0 →
+facts (`XQOk`; a stamped transfer request's `NGhost.xw` record) and the scope's (`XScopeOk`: the records
+past term `0`, and with non-voters off their destinations members of the names' voters). -/
+theorem xReadyOk_of {γ : RaftNames} {md : RnMode} {id : w64} {s : NState} {st : MsgSt} {x : XMsg}
+    (hq : XQOk id s st) (hw : st.msg.Type' = MsgTransferLeader →
       (s.gh.xw !! (st.msg.To', st.msg.Term')).isSome)
-    (hxw : ∀ p : w64 × w64, (s.gh.xw !! p).isSome → p.1 ∈ γ.reCfg)
-    (hx : xmsgOf st = some x) : XReadyOk γ id (toPState s) x := by
+    (hxw : ∀ p : w64 × w64, (s.gh.xw !! p).isSome →
+      (md.nonVoters = false → p.1 ∈ γ.reCfg) ∧ p.2 ≠ W64 0)
+    (hx : xmsgOf st = some x) : XReadyOk γ md id (toPState s) x := by
   unfold xmsgOf at hx
   split at hx
   · rename_i e
     cases hx
-    exact ⟨fun _ => hq.1 e, fun _ => hq.2.1 (.inl e), fun h => by cases h⟩
+    exact ⟨fun _ => hq.1 e, hq.2.1 (.inl e), (fun h => by cases h), fun _ h => by cases h⟩
   · split at hx
     · rename_i e
       cases hx
-      refine ⟨(fun h => by cases h), fun h => ?_, fun _ ht => hxw _ (hw e ht)⟩
-      rcases h with h | h
-      · cases h
-      · exact hq.2.1 (.inr ⟨e, h⟩)
+      have ht : st.msg.Term' ≠ W64 0 := (hxw _ (hw e)).2
+      exact ⟨(fun h => by cases h), hq.2.1 (.inr ⟨e, ht⟩), (fun _ => ht), fun hnv _ => (hxw _ (hw e)).1 hnv⟩
     · cases hx
 
 end pure
@@ -104,7 +103,7 @@ theorem ownRawNodeReadyS_xq (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     (ce es : List EntryM) (ms : List QMsg) (h : Bool) (L : Option SnapLoan) (s : NState) :
     ownRawNodeReadyS (GF := GF) γ rn id rs rd ce es ms h L s ⊢
       ⌜∀ q ∈ ms, XQOk id s q.st ∧ SentMsgShape q.st ∧
-        (q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
+        (q.st.msg.Type' = MsgTransferLeader →
           (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome) ∧
         (s.gh.xs = false → mtypeOf q.st.msg.Type' ≠ none) ∧
         (mtypeOf q.st.msg.Type' ≠ none → (absMsgOf q.st).isSome)⌝ ∗
@@ -171,7 +170,7 @@ theorem RawNode.Ready.wp_absProof
     · exact .inr (xmsgOf_isSome_of_shape (Hxq q hq).2.1 hm)
     · exact .inl ((Hxq q hq).2.2.2.2 hm)
   have Hxr : ∀ md, sc = some md → ∀ q ∈ ms, ∀ x, xmsgOf q.st = some x →
-      XReadyOk γ id (toPState s) x := fun md h q hq x hx => by
+      XReadyOk γ md id (toPState s) x := fun md h q hq x hx => by
     obtain ⟨h1, -, h3, h4, -⟩ := Hxq q hq
     cases ht : md.transfer
     · exact absurd (mtypeOf_none_of_xmsgOf hx) (h4 ((Hscope1 md h).1.2.2.2.2.2.1 ht))

@@ -131,7 +131,7 @@ theorem rawNode_logTerms : rawNode_logTerms.law (GF := GF) := by
   exact Ht e.Index' e.Term' (plogTermAt_lookup r.p.base r.p.log e.Index' k e hk' (Hw k e hk'))
 
 theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
-  intro md _ hcc _ _ hnv γ rn id rs r qs ip
+  intro md _ hcc _ _ γ rn id rs r qs ip
   refine entails_wand (persistent_entails_right ?_)
   unfold rawNode ownRawNodeAt
   iintro H
@@ -139,7 +139,7 @@ theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
   icases rnScopeAt_pureOpt (some md) rs s $$ Hsc with ⟨%Hscope, -⟩
   ipureintro
   obtain ⟨Hs, Hc, -, -⟩ := Hscope md rfl
-  exact ⟨Hc.1 hnv, Hc.2.2.1, fun h => ⟨(Hc.2.1 hcc).1 h, Hs.1 hcc h⟩⟩
+  exact ⟨Hc.1, Hc.2.2.1, fun h => ⟨(Hc.2.1 hcc).1 h, Hs.1 hcc h⟩⟩
 
 theorem rawNode_phsTerm : rawNode_phsTerm.law (GF := GF) := by
   intro md hsn _ _ _ γ rn id rs r qs ip

@@ -280,20 +280,22 @@ theorem RnCfgIn.keep {md : RnMode} {γ : RaftNames} {id : w64} {rs rs' : RNState
     (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg) (H : RnCfgIn md γ id rs) : RnCfgIn md γ id rs' := by
   unfold RnCfgIn at *; rw [hcf.1, hcf.2]; exact H
 
-/-- (antithesis parity B1, Q3 item 2) **The transfer scope's membership facts**: the leader the
-node knows (`toPState`'s, a pre-candidate's none) none or a member of the names' configuration (it
-came from a leader's message, `Step.form`'s `From' ∈ γ.reCfg`), every stamped transfer request's
-destination (`NGhost.xw`, the leader the follower forwarded to) a member, and a known leader only past
-term `0`. A `Ready` reads them for the forwarded `MsgTransferLeader`'s destination (`XReadyOk`). -/
-def XScopeOk (γ : RaftNames) (s : NState) : Prop :=
-  ((toPState s).lead = W64 0 ∨ (toPState s).lead ∈ γ.reCfg) ∧
-  (∀ p : w64 × w64, (s.gh.xw !! p).isSome → p.1 ∈ γ.reCfg) ∧
+/-- (antithesis parity B1, Q3 item 2) **The transfer scope's facts**: with non-voters off, the
+leader the node knows (`toPState`'s, a pre-candidate's none) none or a member of the names'
+configuration (it came from a leader's message, `Step.form`'s `From' ∈ γ.reCfg`, a premise at
+non-voters off only); every stamped transfer request (`NGhost.xw`: a follower's forward to its known
+leader, at its term) past term `0` and, with non-voters off, to a member; and a known leader only past
+term `0`. A `Ready` reads them for the forwarded `MsgTransferLeader`'s term and destination
+(`XReadyOk`). -/
+def XScopeOk (γ : RaftNames) (md : RnMode) (s : NState) : Prop :=
+  (md.nonVoters = false → (toPState s).lead = W64 0 ∨ (toPState s).lead ∈ γ.reCfg) ∧
+  (∀ p : w64 × w64, (s.gh.xw !! p).isSome → (md.nonVoters = false → p.1 ∈ γ.reCfg) ∧ p.2 ≠ W64 0) ∧
   ((toPState s).lead ≠ W64 0 → s.term ≠ W64 0)
 
 /-- `XScopeOk` across a step that keeps the known leader, the stamped requests and the term. -/
-theorem XScopeOk.keep {γ : RaftNames} {s s' : NState} (H : XScopeOk γ s)
+theorem XScopeOk.keep {γ : RaftNames} {md : RnMode} {s s' : NState} (H : XScopeOk γ md s)
     (hx : (toPState s').lead = (toPState s).lead ∧ s'.gh.xw = s.gh.xw ∧ s'.term = s.term) :
-    XScopeOk γ s' := by
+    XScopeOk γ md s' := by
   unfold XScopeOk at *; rw [hx.1, hx.2.1, hx.2.2]; exact H
 
 /-- **The harness's scope, owned part**: at `some md` `RnScope md`, the node in the harness's
@@ -306,7 +308,7 @@ def rnScopeAt (γ : RaftNames) (id : w64) (sc : Option RnMode) (rs : RNState) (s
   match sc with
   | none => iprop(emp)
   | some md => iprop(⌜RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
-                       (md.transfer = true → XScopeOk γ s)⌝ ∗
+                       (md.transfer = true → XScopeOk γ md s)⌝ ∗
                      □ (⌜md.snapshots = false⌝ -∗ storCapF s.logst.storage 0))
 
 /-- **A `RawNode` at its protocol state** (see the file header): `ownRawNode`'s body, conjunct for

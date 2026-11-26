@@ -261,20 +261,16 @@ destination facts it leaves to the caller: a `MsgTimeoutNow`'s destination a ser
 `isRaftMsg`'s acknowledgement clause and the acknowledgements' names, or the driver), a
 `MsgTransferLeader`'s term past `0` (raft stamps a forward with the node's term, which a node with a
 leader has: `XScopeOk`), and the initial voters servers. -/
-theorem xPendOk_of {R : AntSim.RunCfg} {γ : RaftNames} {id : w64} {p : PState} {x : XMsg}
-    (hok : XReadyOk γ id p x) (hcfg : ∀ a ∈ γ.reCfg, ∃ j : Fin R.N, a = AntSim.nodeId j)
-    (htn : x.ty = .timeoutNow → ∃ j : Fin R.N, x.dst = AntSim.nodeId j)
-    (htl : x.ty = .transferLeader → x.term ≠ W64 0) :
+theorem xPendOk_of {R : AntSim.RunCfg} {γ : RaftNames} {md : RnMode} {id : w64} {p : PState}
+    {x : XMsg} (hok : XReadyOk γ md id p x) (hnv : md.nonVoters = false)
+    (hcfg : ∀ a ∈ γ.reCfg, ∃ j : Fin R.N, a = AntSim.nodeId j)
+    (htn : x.ty = .timeoutNow → ∃ j : Fin R.N, x.dst = AntSim.nodeId j) :
     AntSim.XPendOk R.N id p x := by
-  obtain ⟨h1, h2, h3⟩ := hok
+  obtain ⟨h1, ⟨hd, ht⟩, -, h4⟩ := hok
   cases hty : x.ty with
-  | timeoutNow =>
-    obtain ⟨hd, ht⟩ := h2 (Or.inl hty)
-    exact ⟨hd, htn hty, ht, fun _ => (h1 hty).1⟩
+  | timeoutNow => exact ⟨hd, htn hty, ht, fun _ => (h1 hty).1⟩
   | transferLeader =>
-    have hz := htl hty
-    obtain ⟨hd, ht⟩ := h2 (Or.inr hz)
-    exact ⟨hd, hcfg _ (h3 hty hz), ht, fun h => by rw [hty] at h; cases h⟩
+    exact ⟨hd, hcfg _ (h4 hnv hty), ht, fun h => by rw [hty] at h; cases h⟩
 
 end pure
 

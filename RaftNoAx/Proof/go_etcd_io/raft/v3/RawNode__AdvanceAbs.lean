@@ -493,7 +493,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
           AdvanceEndR Adm dec rs.k id ps qs re⌝ ∗
       -- (#33 S4) the scope at the current state; (antithesis parity B1, step C3) at the mode `md`, with
       -- the transfer facts
-      "%Hsc1" ∷ ⌜RnScope md id rs s1 ∧ (md.transfer = true → XScopeOk γ s1)⌝ ∗
+      "%Hsc1" ∷ ⌜RnScope md id rs s1 ∧ (md.transfer = true → XScopeOk γ md s1)⌝ ∗
       "Hpend" ∷ ([∗list] l;x ∈ steps.drop (sint.nat n);(sts.drop (sint.nat n)).zip
           (rs.steps.drop (sint.nat n)),
         msgIn l DFrac.discard x.1 ∗ pendingRel γ id rs.bw x.1 x.2))
@@ -666,7 +666,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       Hcfe Hlift1 hq1 Hpst Hend2 HAk2 HNs2 Hsn2 Hpv2 (fun h => (Hrl2 h).1)
     icases ownRaftPhysC_trkDoms cf rnv.raft' id s2 $$ Hphys with ⟨%Hdom2, Hphys⟩
     icases ownStepGhost_leadNz γ _ cf id s2 $$ Hghost with ⟨%Hlt2, Hghost⟩
-    have Hsc2 : RnScope md id rs s2 ∧ (md.transfer = true → XScopeOk γ s2) := by
+    have Hsc2 : RnScope md id rs s2 ∧ (md.transfer = true → XScopeOk γ md s2) := by
       refine ⟨RnScope.step hmd.2.1 Hsc1.1 Hcin HC HCl Hcfe ⟨rfl, rfl, rfl⟩ Hsg2.2.1 Hcqv
         (fun hr => ?_) (fun _ => ⟨Hpv2, Hsn2, HNs2⟩) (fun _ => by rw [Hsg2.2.2]) HP.2.2.1 Hdom1 Hdom2,
         fun ht => ?_⟩
@@ -674,9 +674,9 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
         have H := HP.2.1 hpd ((roEmpty_iff s1).1 hp)
         exact ⟨H.1, fun _ => H.2⟩
       · obtain ⟨hl0, hw0, -⟩ := Hsc1.2 ht
-        refine ⟨?_, fun p hp => hw0 p (by rw [Hsg2.2.2] at hp; exact hp), Hlt2⟩
+        refine ⟨fun hnv => ?_, fun p hp => hw0 p (by rw [Hsg2.2.2] at hp; exact hp), Hlt2⟩
         rcases HP.2.2.2 with e | e | ⟨e, hr⟩
-        · rw [e]; exact hl0
+        · rw [e]; exact hl0 hnv
         · exact .inl e
         · rw [e]; right
           refine id_mem_of_roleFn hmd.2.1 Hsc1.1 Hcin HC HCl HP.2.2.1.2 Hdom1 (fun hf => ?_)

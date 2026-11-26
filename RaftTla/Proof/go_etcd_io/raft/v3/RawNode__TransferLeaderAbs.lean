@@ -342,11 +342,13 @@ theorem RawNode.TransferLeader.wp_absProof
       obtain ⟨hl, hw, ht⟩ := Hx
       have hlead : (toPState s').lead = (toPState s).lead := by rw [Hse]; rfl
       have hterm : s'.term = s.term := by rw [Hse]
-      refine ⟨by rw [hlead]; exact hl, fun p hp => ?_, by rw [hlead, hterm]; exact ht⟩
+      refine ⟨(fun hnv => by rw [hlead]; exact hl hnv), fun p hp => ?_, by rw [hlead, hterm]; exact ht⟩
       rcases Hgrow p hp with hp' | ⟨rfl, hr, hl0⟩
       · exact hw p hp'
-      · have hld : (toPState s).lead = s.lead := toPState_lead_nonpre s (by rw [hr]; decide)
-        rcases hl with h | h
+      · -- the forward's record: the follower's known leader, at its term (past `0`: `XScopeOk`'s last)
+        have hld : (toPState s).lead = s.lead := toPState_lead_nonpre s (by rw [hr]; decide)
+        refine ⟨fun hnv => ?_, ht (by rw [hld]; exact hl0)⟩
+        rcases hl hnv with h | h
         · exact absurd (hld.symm.trans h) hl0
         · rw [hld] at h; exact h) $$ Hsc
   ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'

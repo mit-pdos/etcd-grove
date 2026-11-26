@@ -26,7 +26,8 @@ configuration the node's `r.cfg.cfg` (until then the names' `rnCfg γ`); `HasRea
 Deviations from the design's table (§2.6 of the design): the pre is at any queue `qs` (not `[]`:
 the old `Step`, `Tick`, `Propose` specs allow a `Ready` outstanding), kept by those three; `Step` in
 the scope only for the harness's network types (`stepTypes md`; the old premises otherwise), with
-reads off a heartbeat response with no context, a sender among the voters (`errStepPeer`);
+reads off a heartbeat response with no context, at non-voters off a sender among the voters (else
+`errStepPeer`'s unchanged arm);
 `ProposeEnd` at the proposal message (`InputEnd.lean`'s form); `Ready`'s post at `pAccepted ps` (the
 read states cleared too, `acceptReady`'s `r.readStates = nil`) with the queue and `ReadyOut` guarded;
 `PIdle` without the id (unused); `ReadyOut` without the voters (2026-11-24: a response goes to
@@ -142,18 +143,20 @@ def ReadyOut (id : w64) (rs : RNState) (ps : PState) (h : HardStateM)
   L = none
 
 /-- (antithesis parity B1, Q3) **A `Ready`'s untyped message against the node's protocol state** at
-the call (`p`): a `MsgTimeoutNow` from the node at a term past `0`; a `MsgTimeoutNow` or a stamped
-`MsgTransferLeader` to another node, of a term at most the node's (`XQOk`); a stamped forward to a
-member of the configuration (its destination the node's leader when it forwarded, `XScopeOk`). No
+the call (`p`) and the mode `md`: a `MsgTimeoutNow` from the node at a term past `0`; every one to
+another node, of a term at most the node's (`XQOk`); a forwarded `MsgTransferLeader` past term `0`
+(its `NGhost.xw` record's, `XScopeOk`: raft forwards at a known leader's term) and, with non-voters off,
+to a member of the configuration (its destination the node's leader when it forwarded, `XScopeOk`). No
 destination fact for a `MsgTimeoutNow` (the driver routes by destination, dropping one to a
 non-server; the lead's decision, Q3 option 1): what a `MsgTimeoutNow` says of its destination is
 `isRaftMsg`'s timeout clause (antithesis parity B1, option (b): the destination acknowledged an index
 past `0` at the message's term, durable `isAcked`, from the sender's `NGhost.xt` witnesses), which the
 `Ready` hands out with every message (`"#Hlead"`, `isRaftMsg`). -/
-def XReadyOk (γ : RaftNames) (id : w64) (p : PState) (x : XMsg) : Prop :=
+def XReadyOk (γ : RaftNames) (md : RnMode) (id : w64) (p : PState) (x : XMsg) : Prop :=
   (x.ty = .timeoutNow → x.src = id ∧ x.term ≠ W64 0) ∧
-  (x.ty = .timeoutNow ∨ x.term ≠ W64 0 → x.dst ≠ id ∧ uint.Z x.term ≤ uint.Z p.term) ∧
-  (x.ty = .transferLeader → x.term ≠ W64 0 → x.dst ∈ γ.reCfg)
+  (x.dst ≠ id ∧ uint.Z x.term ≤ uint.Z p.term) ∧
+  (x.ty = .transferLeader → x.term ≠ W64 0) ∧
+  (md.nonVoters = false → x.ty = .transferLeader → x.dst ∈ γ.reCfg)
 
 end pure
 
@@ -175,13 +178,14 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState �
     (ml : Loc) (st : MsgSt),
   NetMsgOk id st →
   -- (#33 S3c) in the scope, a message of the harness's network at the mode (antithesis parity B1:
-  -- `stepTypes md`), with reads off a heartbeat response with no read-index context, from a voter
-  -- (2026-11-24: a response from a sender outside the progress map returns `errStepPeer` with the state
-  -- unchanged, not `RecvEnd`'s step-down to a higher term; notes/specs-only/ledger.md. Antithesis parity
-  -- B1, the lead's decision: kept at non-voters on, a non-voter never sends in B1)
+  -- `stepTypes md`), with reads off a heartbeat response with no read-index context, with non-voters
+  -- off from a voter (2026-11-24: a response from a sender outside the progress map returns
+  -- `errStepPeer` with the state unchanged, not `RecvEnd`'s step-down to a higher term;
+  -- notes/specs-only/ledger.md. Antithesis parity B1, lead-approved: with non-voters on the sender may
+  -- be outside it, `%Hend`'s unchanged arm)
   (∀ md, S md → st.msg.Type' ∈ stepTypes md ∧
     (md.reads = false → st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
-    st.msg.From' ∈ γ.reCfg) →
+    (md.nonVoters = false → st.msg.From' ∈ γ.reCfg)) →
   uint.Z st.msg.Term' ≤ uint.Z rs.tc →
   (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
   rs.flw = false →
@@ -214,12 +218,15 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState �
                    (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ ∗
       -- (#33 S3c) the exact effect (`Protocol/InputEnd.lean`): at the message's protocol reading
       -- `RecvEndR`; (antithesis parity B1) at its transfer reading (`xmsgOf`: no protocol reading) the
-      -- Sim's `InputStep .recvX` (`TimeoutNowEndR` or `TransferRecvEndR`)
-      "%Hend" ∷ ⌜∀ md, S md → (∀ ty, mtypeOf st.msg.Type' = some ty → ∀ Adm,
-        RecvEndR Adm rs.k id r (absMsg ty st.msg st.ents st.ctx) r') ∧
+      -- Sim's `InputStep .recvX` (`TimeoutNowEndR` or `TransferRecvEndR`); (antithesis parity B1,
+      -- lead-approved) or, a response from a sender with no `Progress` (`errStepPeer`, at non-voters
+      -- on), unchanged: taken only for response types, so not for a `MsgProp` and the error unread
+      "%Hend" ∷ ⌜∀ md, S md → (r' = r ∧ ip' = ip) ∨
+        ((∀ ty, mtypeOf st.msg.Type' = some ty → ∀ Adm,
+          RecvEndR Adm rs.k id r (absMsg ty st.msg st.ents st.ctx) r') ∧
         (∀ x, xmsgOf st = some x → (x.ty = .timeoutNow ∧ TimeoutNowEndR id r x r') ∨
           (x.ty = .transferLeader ∧ TransferRecvEndR id r x r')) ∧
-        ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
+        ip' = min ip (lcpLen r.p.log r'.p.log))⌝ }}
 
 /-- **`RawNode.Step`, strengthened** (design §2.2's table), at every scope `sc` (antithesis parity B1,
 step C1: at a mode without snapshots, configuration changes, forwarding or asynchronous storage, the
@@ -501,7 +508,7 @@ abbrev RawNode.Ready.form (R : RaftNames → Loc → w64 → RNState → RState 
         -- (#33 S4, 2026-11-24) every message handed out reads as a protocol message or (antithesis
         -- parity B1, Q3) as a transfer message (`xmsgOf`), each of those against the node (`XReadyOk`)
         (∀ q ∈ ms, (absMsgOf q.st).isSome ∨ (xmsgOf q.st).isSome) ∧
-        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ id r.p x) ∧
+        (∀ q ∈ ms, ∀ x, xmsgOf q.st = some x → XReadyOk γ md id r.p x) ∧
         -- (antithesis parity B1, group E's S4) the role reported a pre-candidate only with the node
         -- constant's pre-vote on, and the read states handed out the node's
         (roleAfter rs.role ss = StatePreCandidate → rs.k.prevote = true) ∧ sts = r.p.rd.states⌝ }}

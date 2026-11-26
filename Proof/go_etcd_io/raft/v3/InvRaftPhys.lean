@@ -474,7 +474,8 @@ and with transfer off every queued message `SentMsgOk` -- and, 2026-10-22, D38a,
 def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   (∀ m ∈ l, SentMsgShape m.st) ∧
   (∀ m ∈ l, replicationFrom id m.st) ∧
-  (∀ m ∈ l, m.st.msg.Type' = MsgTransferLeader → m.st.msg.Term' ≠ W64 0 →
+  -- (antithesis parity B1, lead-approved) at any term (`send` records the forward unguarded)
+  (∀ m ∈ l, m.st.msg.Type' = MsgTransferLeader →
      (s.gh.xw !! (m.st.msg.To', m.st.msg.Term')).isSome) ∧
   ((s.role = .leader ∨ s.role = .candidate) → s.term ≠ W64 0) ∧
   -- (2026-11-12, trace-check implementation step 3; design §3.6, the physical half) at a traced node
@@ -553,10 +554,10 @@ theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s
     (hlt : s'.lt = s.lt := by first | rfl | simp_all)
     (hxt : s'.gh.xt = s.gh.xt := by first | rfl | assumption) : XfOk id s' l := by
   obtain ⟨H1, H2, H3, H4, H5, H6, H7⟩ := H
-  refine ⟨H1, H2, fun m hm h1 h2 => ?_, fun h => ?_, fun h => H5 (htr ▸ h),
+  refine ⟨H1, H2, fun m hm h1 => ?_, fun h => ?_, fun h => H5 (htr ▸ h),
     fun h => by rw [hlt]; exact H6 (hxs ▸ h),
     fun m hm => (H7 m hm).mono (by rw [ht]; exact Int.le_refl _) (fun _ h => by rw [hxt]; exact h)⟩
-  · rw [hx]; exact H3 m hm h1 h2
+  · rw [hx]; exact H3 m hm h1
   · rw [ht]; rw [hr] at h; exact H4 h
 
 /-- The term raised. -/
@@ -582,8 +583,8 @@ theorem XfOk.role {id : w64} {s : NState} {l : List QMsg} {ro : PRole} (H : XfOk
 theorem XfOk.xw_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l) (p : w64 × w64) :
     XfOk id { s with gh := { s.gh with xw := insert p s.gh.xw } } l := by
   obtain ⟨H1, H2, H3, H4, H5, H6⟩ := H
-  refine ⟨H1, H2, fun m hm h1 h2 => ?_, H4, H5, H6⟩
-  have h := H3 m hm h1 h2
+  refine ⟨H1, H2, fun m hm h1 => ?_, H4, H5, H6⟩
+  have h := H3 m hm h1
   show ((<[p := ()]> s.gh.xw) !! (m.st.msg.To', m.st.msg.Term')).isSome = true
   by_cases hp : p = (m.st.msg.To', m.st.msg.Term')
   · rw [hp, GMap.lookup_insert]; rfl
@@ -597,7 +598,7 @@ theorem XfOk.xt_insert {id : w64} {s : NState} {l : List QMsg} (H : XfOk id s l)
 /-- A message queued: its own facts. -/
 theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
     (hsh : SentMsgShape q.st) (hfr : replicationFrom id q.st)
-    (hxw : q.st.msg.Type' = MsgTransferLeader → q.st.msg.Term' ≠ W64 0 →
+    (hxw : q.st.msg.Type' = MsgTransferLeader →
       (s.gh.xw !! (q.st.msg.To', q.st.msg.Term')).isSome)
     (hty : s.gh.tr.isSome → mtypeOf q.st.msg.Type' ≠ none)
     (hxs : s.gh.xs = false → mtypeOf q.st.msg.Type' ≠ none)
@@ -2901,7 +2902,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            -- (raft-final, 2026-10-29, U7) the shape raft sends, a `MsgApp` the node's own, a
            -- stamped transfer request recorded (`XfOk`; until then the modes' facts, D21 M2r)
            ⌜SentMsgShape st' ∧ replicationFrom id st' ∧
-             (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
+             (st'.msg.Type' = MsgTransferLeader →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
              (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none) ∧
@@ -2988,7 +2989,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            -- (raft-final, 2026-10-29, U7) the shape raft sends, a `MsgApp` the node's own, a
            -- stamped transfer request recorded (`XfOk`; until then the modes' facts, D21 M2r)
            ⌜SentMsgShape st' ∧ replicationFrom id st' ∧
-             (st'.msg.Type' = MsgTransferLeader → st'.msg.Term' ≠ W64 0 →
+             (st'.msg.Type' = MsgTransferLeader →
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
              (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none) ∧

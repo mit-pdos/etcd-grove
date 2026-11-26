@@ -157,10 +157,9 @@ mode the node's configuration simple over the names' voters. -/
 abbrev rawNode_scope.law : Prop :=
   ∀ md : RnMode, md.snapshots = false → md.confChanges = false → md.forwarding = false →
     md.async = false →
-    md.nonVoters = false →
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat),
   ⊢ rawNode (GF := GF) γ md rn id rs r qs ip -∗
-    ⌜id ∈ γ.reCfg ∧ γ.reTrace = none ∧
+    ⌜(md.nonVoters = false → id ∈ γ.reCfg) ∧ γ.reTrace = none ∧
       (rs.mode.isDyn = true → rs.cfg.cfg.incoming = γ.reCfg ∧ rs.cfg.cfg.outgoing = ∅)⌝ ∗
     rawNode γ md rn id rs r qs ip
 
