@@ -2,8 +2,9 @@
 Package initialization of `io.ioutil`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates `Discard`, initializes its import `io` and
-copies `io.Discard` (which io's fact holds, read-only) into `Discard`.
+Its fact (`Base.lean`): `Discard` holds some writer, read-only for good (dsv-retire-3,
+2026-11-26: zerolog's `New(nil)` reads it; until then `True`). Its initializer allocates `Discard`,
+initializes its import `io` and copies `io.Discard` (which io's fact holds, read-only) into `Discard`.
 -/
 module
 
@@ -47,6 +48,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) Discard _ as HDiscard
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
@@ -55,8 +57,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   icases IO with ⟨⟨%wd, #Hiod⟩, -⟩
   wp_auto
   -- translated initializer of _root_.Perennial.io.Discard))
+  ipersist HDiscard
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try imodintro
+  iexists _
+  iexact HDiscard
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

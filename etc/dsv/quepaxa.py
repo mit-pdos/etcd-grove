@@ -82,12 +82,14 @@ def special(g):
     SPECIAL = {}
     # (dsv-retire-1-inits) io/ioutil: `var Discard io.Writer = io.Discard`, its only initializer
     SPECIAL['io.ioutil'] = dict(
-        doc='''Its fact is `True`. Its initializer allocates `Discard`, initializes its import `io` and
-copies `io.Discard` (which io's fact holds, read-only) into `Discard`.''',
+        doc='''Its fact (`Base.lean`): `Discard` holds some writer, read-only for good (dsv-retire-3,
+2026-11-26: zerolog's `New(nil)` reads it; until then `True`). Its initializer allocates `Discard`,
+initializes its import `io` and copies `io.Discard` (which io's fact holds, read-only) into `Discard`.''',
         alloc_types={'Discard': 'GoInterface'},
         before={'Discard': ['ihave #IO := _root_.Perennial.io.isInit_access $$ {Hd:io}',
                             'icases IO with ⟨⟨%wd, #Hiod⟩, -⟩',
-                            'wp_auto']})
+                            'wp_auto']},
+        finish=['ipersist HDiscard'] + g.FIN_PRE[:6] + ['try imodintro', 'iexists _', 'iexact HDiscard'])
     # (dsv-retire-2, 2026-11-25) grpc's `internal` and `codes`, the part's own translations (`OWN`), as
     # the main tree's (etc/gen-init.py's `SPECIAL` for them) but over the part's one hook cell
     GI, GC = 'google_golang_org.grpc.internal', 'google_golang_org.grpc.codes'

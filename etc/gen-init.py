@@ -5312,6 +5312,12 @@ def _gen(p, cfg=None):
             A(f'  wp_call  -- {x}: its trusted initializer does nothing')
         elif kind == 'opaqueinitfn':
             A(f'  wp_apply (initFuncsOk {x} (by mem_tac))')
+        elif kind == 'initfn' and x in cfg.get('initfn_apply', {}):
+            # (dsv-retire-3, 2026-11-26) a translated `init` with a spec of its own (a loop: zerolog's
+            # `internal/json`), applied instead of stepped into
+            A(f'  -- the translated {x}, by its spec')
+            for l in cfg['initfn_apply'][x]:
+                A('  ' + hdsub(l))
         elif kind == 'initfn':
             A(f'  -- the translated {x}')
             A('  wp_func_call')

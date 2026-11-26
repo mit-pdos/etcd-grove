@@ -49,6 +49,7 @@ PKGS = ['os.signal'] + [f'rabia.{p}' for p in ['internal.config', 'internal.mess
                                'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
                                'roles.server.layers.network', 'roles.server.layers.consensus',
                                'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
+    ['github_com.rs.zerolog.internal.json', 'github_com.rs.zerolog'] + \
     [f'rabia.examples.rabianet.cmd.{n}' for n in RABIA_NODES]
 PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
             f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in RABIA_NODES}
@@ -63,9 +64,11 @@ MAIN = ['bufio', 'container.heap', 'path', 'path.filepath', 'internal.filepathli
 # premise (gen-init's `DSV_PREMISE_INITS`: its axiom review refuted it). Not math/rand (math-rand-isinit, 2026-11-24): Perennial proves its
 # `wp_initialize'` (`Perennial.Proof.math.rand.Link`), external like Perennial's other packages, so
 # neither here nor in `MAIN`
-HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
+HYP_INITS = ['github_com.gogo.protobuf.proto',
              'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
              'github_com.go_redis.redis.v8.internal.proto']
+# Not zerolog nor its `internal/json` (dsv-retire-3, 2026-11-26): translated with bodies, their
+# `Init.lean` generated (`PKGS`) with a proved `wp_initialize'`.
 # Not os/signal (dsv-retire-1-inits, 2026-11-25): its variables and `init` are translated, its
 # `Init.lean` generated (`PKGS`) with a proved `wp_initialize'`
 
@@ -150,6 +153,58 @@ allocates `Conf` and initializes its imports.''',
        errorf={'ErrInvalidLengthMessage': 'proto: negative length found during unmarshaling',
                'ErrIntOverflowMessage': 'proto: integer overflow',
                'ErrUnexpectedEndOfGroupMessage': 'proto: unexpected end of group'})
+
+    # (dsv-retire-3, 2026-11-26) zerolog's `internal/json`: `JSONMarshalFunc` (no initializer, so
+    # `nil`; zerolog's `init` sets it) and `noEscapeTable` (a zero `[256]bool`, then `init.0`'s loop)
+    ZJ, ZL = 'github_com.rs.zerolog.internal.json', 'github_com.rs.zerolog'
+    SPECIAL[ZJ] = dict(
+        doc='''Its fact (`jsonInit`, `Base.lean`): the invariant of its hook cell `JSONMarshalFunc`
+(`hookCell`, `Proof/runtime/InitInv.lean`), which zerolog's initializer, holding its package state, opens
+for a plain store, and `noEscapeTable`, read-only for good. Its initializer allocates both (no
+initializer for `JSONMarshalFunc`, so `nil`; a zero array for the table), initializes its imports and
+runs its translated `init`, whose loop fills the table (`wp_init0`, `InitLoop.lean`). (dsv-retire-3,
+2026-11-26: until then names only, zerolog's `wp_initialize'` a trust-boundary axiom.)''',
+        alloc_types={'JSONMarshalFunc': 'GoFunc', 'noEscapeTable': 'GoArray Bool 256'},
+        initfn_apply={'init.«0»': ['wp_apply (wp_init0 _) $$ [HnoEscapeTable] as ⟨%tb, HnoEscapeTable⟩',
+                                  'try wp_auto']},
+        imports=['Dsverify.Proof.github_com.rs.zerolog.internal.json.InitLoop'],
+        finish=['imod (EtcdGrove.grpcInternal.hookCell_alloc (hG := hG) (V := GoFunc) ⊤ _ _) '
+                '$$ HJSONMarshalFunc with #CJSONMarshalFunc', 'ipersist HnoEscapeTable']
+        + g.FIN_PRE[:6] + ['try imodintro', f'unfold _root_.Perennial.{ZJ}.jsonInit',
+                           'iframe CJSONMarshalFunc', 'iexists _', 'iexact HnoEscapeTable'],
+    )
+    SPECIAL[ZL] = dict(
+        doc='''Its fact is `True`. Its initializer allocates its translated variables, initializes its imports,
+runs their translated initializers (constants, function literals, `sync.Pool` literals, `new(int32)`)
+and its two translated `init`s: `init.0` (`ctx.go`: `SetGlobalLevel(TraceLevel)`, `disabledLogger =
+&Nop()`) and `init.1` (`encoder_json.go`), which stores a closure in `internal/json`'s
+`JSONMarshalFunc`, another package's variable: through `internal/json`'s invariant, lending the
+initializer's package state (`EtcdGrove.grpcInternal.wp_store_hook`). (dsv-retire-3, 2026-11-26: until
+then names only, its `wp_initialize'` a trust-boundary axiom.)''',
+        alloc_types={'arrayPool': 'Loc', 'consoleBufPool': '_root_.Perennial.sync.Pool',
+                     'th': f'_root_.Perennial.{ZL}.timestampHook', 'disabledLogger': 'Loc',
+                     'enc': f'_root_.Perennial.{ZJ}.Encoder', 'eventPool': 'Loc',
+                     **{x: 'GoString' for x in ['TimestampFieldName', 'LevelFieldName', 'LevelTraceValue',
+                                                'LevelDebugValue', 'LevelInfoValue', 'LevelWarnValue',
+                                                'LevelErrorValue', 'LevelFatalValue', 'LevelPanicValue',
+                                                'MessageFieldName', 'ErrorFieldName', 'CallerFieldName',
+                                                'ErrorStackFieldName', 'TimeFieldFormat']},
+                     **{x: 'GoFunc' for x in ['LevelFieldMarshalFunc', 'CallerMarshalFunc', 'ErrorStackMarshaler',
+                                              'ErrorMarshalFunc', 'InterfaceMarshalFunc', 'TimestampFunc',
+                                              'ErrorHandler']},
+                     'CallerSkipFrameCount': 'w64', 'DurationFieldUnit': 'w64', 'DurationFieldInteger': 'Bool',
+                     'gLevel': 'Loc', 'disableSampling': 'Loc', 'Often': 'w32', 'Sometimes': 'w32',
+                     'Rarely': 'w32'},
+        after={'init.«1»': [
+            f'ihave #Hfj : (_root_.Perennial.{ZJ}.jsonInit (hG := hG) : IProp GF) $$ []',
+            f'· iapply isPkgInit_access $$ {{Hd:{ZJ}}}',
+            'try wp_auto',
+            f'unfold _root_.Perennial.{ZJ}.jsonInit',
+            'icases Hfj with ⟨#Hfc, -⟩',
+            'wp_apply (EtcdGrove.grpcInternal.wp_store_hook (hG := hG) (V := GoFunc) _ _ _ _) $$ [Hfc Hown] as Hown',
+            '· iframe Hown Hfc',
+            'try wp_auto']},
+    )
     return SPECIAL
 
 
