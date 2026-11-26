@@ -6561,3 +6561,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `PState` (its ignoring is the `r'.p = p1` arm). Nothing proves `TimeoutNowEndR` yet; the Sim does not use the looser
   form. Part copies.
 - **Decision.** Sim helper's request via the lead (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step B: `StepEnd.xstale`, a stale received `MsgTransferLeader` (#33)
+- **Spec (strengthened end state; additive).** `StepEnd` (LemmasStepGates.lean, `raft.Step.spec`'s post) gains a fifth
+  field `xstale : StaleMsg s m → m.Type' = MsgTransferLeader → ∃ X Y b, s' = { s with gh := { s.gh with xw := X, xt := Y,
+  xs := b } }`. Defect: `xfer` covers only a fresh request and `gated` excludes the type, so `StepEnd` said nothing of a
+  stale forwarded transfer request (a follower's forward stamped with an older term), while `TransferRecvEndR`'s first
+  arm needs the `RState` kept. Evidence: Go's `Step` (`raft.go`, `m.Term < r.Term` arm) ignores a stale
+  `MsgTransferLeader` (neither a leader message nor a pre-vote, so no answer); `raft__Step.lean`'s transfer branch already
+  had it (`(Hend (.inr hT)).1 hst : s' = s_x ∨ LowSend …`, `LowSend` impossible by type). `raft.Step.spec`'s text
+  unchanged. Constructors extended: `raft__Step.lean`'s `end_mk`/`end_ty` macros and its two explicit tuples (the transfer
+  branch, from `Hend`'s stale conjunct; the pre-vote branch, vacuous by type).
+- **Use.** `transferRecvEndR_of_stale` / `transferRecvEndR_of_stepEnd` (RawNode__TransferLeaderAbs.lean):
+  `TransferRecvEndR` at the `RState` reading for every received transfer request (stale, higher term, current).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise.

@@ -294,7 +294,8 @@ function through the coercion below, so its readers write `h hty hx`), and (#33 
 `MsgTransferLeader` (`xfer`: the step function's result at the transfer's ghost record, `gh.xw`,
 (option (b)) `gh.xt` and `gh.xs`, which `Step` writes before it). (antithesis parity B1, option (b))
 `gated` but on an append response `Step` may record (`XtRec`), which `xtr` describes at the state with
-the record (`gh.xt`). Nothing on the other types. -/
+the record (`gh.xt`). (antithesis parity B1, phase 2) A stale `MsgTransferLeader` (`xstale`): ignored, but
+for the transfer's ghost record `Step` writes before it. Nothing on the other types. -/
 structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx : List w8)
     (s s' : NState) : Prop where
   gated : StepEndTy m.Type' → ¬ XtRec id m s → StepEndBody c id m ents ctx s s'
@@ -304,6 +305,8 @@ structure StepEnd (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM) (ctx
       StepFnEnd c id (preState { s with gh := { s.gh with xw := X, xt := Y, xs := b } } m pvs) m ents ctx s'
   xtr : XtRec id m s →
     ∃ Y : GMap (w64 × w64) Unit, StepEndBody c id m ents ctx { s with gh := { s.gh with xt := Y } } s'
+  xstale : StaleMsg s m → m.Type' = MsgTransferLeader →
+    ∃ (X Y : GMap (w64 × w64) Unit) (b : Bool), s' = { s with gh := { s.gh with xw := X, xt := Y, xs := b } }
 
 instance StepEnd.coeFun {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} :
