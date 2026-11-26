@@ -2194,24 +2194,24 @@ theorem etcd_compactMethodM (p q s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
       simp only [GrpcSpec.md, etcdCompactSpecM, etcdCompactSpecMW, etcdCompactSpec]; iintro ⟨⟨-, H⟩, #Hd⟩; isplitl [H]
       · iexact H
       · iexact Hd)) $$ Hmc'
-  · -- auth on: the method's spec is vacuous, so the handler meets it; the run's deposit comes out of
-    -- its `dec` (phase 7's SW2), so the generated handler is run up to it
-    ihave #Hv : grpcHandlerOwnOk (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Compact")
+  · -- auth on: the method's spec is vacuous; the run's deposit comes out of its `dec` (phase 7's
+    -- SW2), so the generated handler is run, over a service method meeting the empty spec
+    ihave #Hv : grpcHandlerOwnOk (Req := pbCompactionRequest) (Rep := pbCompactionResponse)
+        (q @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty @!! go!"Compact")
         iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
-        (etcdCompactSpecM true E ρ cid mid) $$ []
+        (fun _ _ => iprop(⌜False⌝)) $$ []
     · unfold grpcHandlerOwnOk
-      iintro %m %Φ %ci %cd %r !> %Ψ ⟨-, -, -, -, -, HSpec⟩ -
-      simp only [etcdCompactSpecM, etcdCompactSpecMW]
-      icases HSpec with ⟨%h, -⟩
-      cases h
+      iintro %m %Φ %ci %cd %r !> %Ψ ⟨-, -, -, -, -, %hF⟩ -
+      exact hF.elim
     ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
     · iPkgInit
-    ihave #Hmc := etcd_compactMethodOk q (etcdCompactSpecM true E ρ cid mid)
+    ihave #Hmc := etcd_compactMethodOk q (fun _ _ => iprop(⌜False⌝))
       iprop(etcdKVSlot s E γr ∗ srvBemuReader s) ics (etcdIcRs s) $$ [Hv Ppb Hics]
     · iframe #
     ihave #Hmc' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hmc
     unfold etcdGrpcSlot
-    iexact Hmc'
+    iapply (grpcMethodOkMd_mono _ _ _ _ _ _ (fun _ _ _ _ => by
+      simp only [GrpcSpec.md, etcdCompactSpecM, etcdCompactSpecMW]; iintro ⟨⟨%h, -⟩, -⟩; cases h)) $$ Hmc'
 
 /-- **A method of a quota wrapper proved at a resource `K` and the quota readers, at the run's lent
 form** (per-type stage B3): the handler is handed `K`, the check's `bemu` reader and the
