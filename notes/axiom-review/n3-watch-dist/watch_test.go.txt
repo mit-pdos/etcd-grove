@@ -1,0 +1,273 @@
+// Scratch tests for the N3 axiom review (Watch_dist, RequestProgress_dist): what the pinned
+// clientv3 watcher (and grpc-go v1.84) delivers on a watch channel when the server is a fake gRPC
+// Watch server, an empty gRPC server or a raw listener. Not part of the repository.
+package n3review
+
+import (
+	"context"
+	"net"
+	"sync"
+	"testing"
+	"time"
+
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+type fakeWatch struct {
+	pb.UnimplementedWatchServer
+	mu     sync.Mutex
+	starts []int64 // StartRevision of each create request seen
+	n      int     // streams opened
+	handle func(n int, srv pb.Watch_WatchServer, creq *pb.WatchCreateRequest) error
+}
+
+func (f *fakeWatch) Watch(srv pb.Watch_WatchServer) error {
+	f.mu.Lock()
+	f.n++
+	n := f.n
+	f.mu.Unlock()
+	for {
+		req, err := srv.Recv()
+		if err != nil {
+			return err
+		}
+		if c := req.GetCreateRequest(); c != nil {
+			f.mu.Lock()
+			f.starts = append(f.starts, c.StartRevision)
+			f.mu.Unlock()
+			return f.handle(n, srv, c)
+		}
+	}
+}
+
+func (f *fakeWatch) Starts() []int64 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]int64(nil), f.starts...)
+}
+
+func serveFake(t *testing.T, f *fakeWatch) string {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gs := grpc.NewServer()
+	if f != nil {
+		pb.RegisterWatchServer(gs, f)
+	}
+	go gs.Serve(lis)
+	t.Cleanup(gs.Stop)
+	return lis.Addr().String()
+}
+
+func newClient(t *testing.T, eps ...string) *clientv3.Client {
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints:   eps,
+		DialOptions: []grpc.DialOption{grpc.WithNoProxy()},
+		Logger:      zap.NewNop(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cli
+}
+
+func hdr(rev int64) *pb.ResponseHeader { return &pb.ResponseHeader{Revision: rev} }
+
+func put(key string, rev int64) *mvccpb.Event {
+	return &mvccpb.Event{Type: mvccpb.PUT, Kv: &mvccpb.KeyValue{Key: []byte(key), Value: []byte("v"),
+		CreateRevision: rev, ModRevision: rev, Version: 1}}
+}
+
+// drain collects the channel's responses until it closes or the timeout passes.
+func drain(t *testing.T, ch clientv3.WatchChan, d time.Duration) (rs []clientv3.WatchResponse, closed bool) {
+	tm := time.After(d)
+	for {
+		select {
+		case r, ok := <-ch:
+			if !ok {
+				return rs, true
+			}
+			rs = append(rs, r)
+		case <-tm:
+			return rs, false
+		}
+	}
+}
+
+func describe(rs []clientv3.WatchResponse) []string {
+	var out []string
+	for _, r := range rs {
+		s := "events"
+		if r.Err() != nil {
+			s = "err: " + r.Err().Error()
+		} else if r.IsProgressNotify() {
+			s = "progress"
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// T1: a server cancel with no reason and no compaction (Canceled, CompactRevision 0) after the
+// create: the channel closes with no error response.
+func TestServerCancelClosesSilently(t *testing.T) {
+	f := &fakeWatch{handle: func(n int, srv pb.Watch_WatchServer, c *pb.WatchCreateRequest) error {
+		srv.Send(&pb.WatchResponse{Header: hdr(1), WatchId: 0, Created: true})
+		srv.Send(&pb.WatchResponse{Header: hdr(2), WatchId: 0, Events: []*mvccpb.Event{put("k", 2)}})
+		srv.Send(&pb.WatchResponse{Header: hdr(2), WatchId: 0, Canceled: true})
+		<-srv.Context().Done()
+		return nil
+	}}
+	cli := newClient(t, serveFake(t, f))
+	defer cli.Close()
+	rs, closed := drain(t, cli.Watch(context.Background(), "k", clientv3.WithRev(1)), 5*time.Second)
+	t.Logf("server cancel: responses %v, closed %v", describe(rs), closed)
+	if !closed || len(rs) != 1 || rs[0].Err() != nil {
+		t.Fatalf("unexpected")
+	}
+}
+
+// T2: an empty gRPC server (no Watch registered): one error response (Unimplemented), then closed.
+func TestEmptyServer(t *testing.T) {
+	cli := newClient(t, serveFake(t, nil))
+	defer cli.Close()
+	rs, closed := drain(t, cli.Watch(context.Background(), "k", clientv3.WithRev(1)), 5*time.Second)
+	t.Logf("empty server: responses %v, closed %v", describe(rs), closed)
+	if !closed || len(rs) != 1 || status.Code(rs[0].Err()) != codes.Unimplemented {
+		t.Fatalf("unexpected")
+	}
+}
+
+// T3: a raw listener that accepts and writes nothing: no response; Watch returns only when the
+// caller's context ends (a closed channel).
+func TestRawListener(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lis.Close()
+	go func() {
+		for {
+			c, err := lis.Accept()
+			if err != nil {
+				return
+			}
+			_ = c // hold it open, write nothing
+		}
+	}()
+	cli := newClient(t, lis.Addr().String())
+	defer cli.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	start := time.Now()
+	ch := cli.Watch(ctx, "k", clientv3.WithRev(1))
+	rs, closed := drain(t, ch, 5*time.Second)
+	t.Logf("raw listener: Watch returned after %v; responses %v, closed %v", time.Since(start).Round(time.Millisecond), describe(rs), closed)
+	if len(rs) != 0 {
+		t.Fatalf("unexpected")
+	}
+}
+
+// T4: the caller's context canceled after the create: the channel closes with no error response.
+func TestCallerCancelClosesSilently(t *testing.T) {
+	f := &fakeWatch{handle: func(n int, srv pb.Watch_WatchServer, c *pb.WatchCreateRequest) error {
+		srv.Send(&pb.WatchResponse{Header: hdr(1), WatchId: 0, Created: true})
+		<-srv.Context().Done()
+		return nil
+	}}
+	cli := newClient(t, serveFake(t, f))
+	defer cli.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := cli.Watch(ctx, "k", clientv3.WithRev(1))
+	time.Sleep(300 * time.Millisecond)
+	cancel()
+	rs, closed := drain(t, ch, 5*time.Second)
+	t.Logf("caller cancel: responses %v, closed %v", describe(rs), closed)
+	if !closed || len(rs) != 0 {
+		t.Fatalf("unexpected")
+	}
+}
+
+// T5: Client.Close with a live watch: the channel closes with no error response.
+func TestClientCloseClosesSilently(t *testing.T) {
+	f := &fakeWatch{handle: func(n int, srv pb.Watch_WatchServer, c *pb.WatchCreateRequest) error {
+		srv.Send(&pb.WatchResponse{Header: hdr(1), WatchId: 0, Created: true})
+		<-srv.Context().Done()
+		return nil
+	}}
+	cli := newClient(t, serveFake(t, f))
+	ch := cli.Watch(context.Background(), "k", clientv3.WithRev(1))
+	time.Sleep(300 * time.Millisecond)
+	if err := cli.Close(); err != nil {
+		t.Logf("Close: %v", err)
+	}
+	rs, closed := drain(t, ch, 5*time.Second)
+	t.Logf("client close: responses %v, closed %v", describe(rs), closed)
+}
+
+// T6: resumption after Unavailable (two endpoints): the first stream (at whichever endpoint the
+// balancer picks) sends events at revisions 2 and 3 and fails with Unavailable; every re-sent create
+// starts at the cursor plus one, 4.
+func TestResumeFromCursorPlusOne(t *testing.T) {
+	var mu sync.Mutex
+	var starts []int64
+	var addrs []string
+	first := true
+	mk := func(name string) *fakeWatch {
+		return &fakeWatch{handle: func(n int, srv pb.Watch_WatchServer, c *pb.WatchCreateRequest) error {
+			mu.Lock()
+			starts = append(starts, c.StartRevision)
+			addrs = append(addrs, name)
+			isFirst := first
+			first = false
+			mu.Unlock()
+			if isFirst {
+				srv.Send(&pb.WatchResponse{Header: hdr(1), WatchId: 0, Created: true})
+				srv.Send(&pb.WatchResponse{Header: hdr(3), WatchId: 0, Events: []*mvccpb.Event{put("k", 2), put("k", 3)}})
+				time.Sleep(200 * time.Millisecond)
+				return status.Error(codes.Unavailable, "member going away")
+			}
+			srv.Send(&pb.WatchResponse{Header: hdr(3), WatchId: 0, Created: true})
+			<-srv.Context().Done()
+			return nil
+		}}
+	}
+	cli := newClient(t, serveFake(t, mk("A")), serveFake(t, mk("B")))
+	defer cli.Close()
+	ch := cli.Watch(context.Background(), "k", clientv3.WithRev(1))
+	rs, _ := drain(t, ch, 4*time.Second)
+	mu.Lock()
+	defer mu.Unlock()
+	t.Logf("resume: responses %v; creates %v at %v", describe(rs), starts, addrs)
+	if len(starts) < 2 || starts[0] != 1 {
+		t.Fatalf("unexpected")
+	}
+	for _, s := range starts[1:] {
+		if s != 4 {
+			t.Fatalf("re-sent create at %d", s)
+		}
+	}
+}
+
+// T7: RequestProgress with no watch on the context's key opens a stream (the fake records it)
+// and returns nil; after Close it returns the closed watcher's error.
+func TestRequestProgress(t *testing.T) {
+	f := &fakeWatch{handle: func(n int, srv pb.Watch_WatchServer, c *pb.WatchCreateRequest) error { return nil }}
+	cli := newClient(t, serveFake(t, f))
+	err := cli.RequestProgress(context.Background())
+	time.Sleep(300 * time.Millisecond)
+	f.mu.Lock()
+	n := f.n
+	f.mu.Unlock()
+	t.Logf("RequestProgress: err %v, streams opened %d", err, n)
+	cli.Close()
+	err = cli.Watcher.RequestProgress(context.Background())
+	t.Logf("RequestProgress after Close: err %v", err)
+}

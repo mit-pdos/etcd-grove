@@ -79,7 +79,8 @@ theorem watcher.Close.wp_proof
     · imodintro
       iintro %i %key %v ⟨%Hki, %Hmv⟩ ⟨%v0, %e, Hws, err, #Hse⟩
       wp_auto
-      ihave ⟨%G, %HG, #HG⟩ := BigSepM.bigSepM_lookup Hmv $$ HMs
+      ihave ⟨%G, %HG, #HGg⟩ := BigSepM.bigSepM_lookup Hmv $$ HMs
+      ihave #HGw := wgsGuard_elim V G callSl $$ [$Hf $HGg]
       rw [← HG.1]
       wp_apply wp_close V G callSl $$ [] as %werr #Hwe
       · iframe #

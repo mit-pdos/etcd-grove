@@ -45,8 +45,7 @@ dev KV_Get_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`
 dev KV_Get_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
 dev KV_Get_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
 dev KV_Get_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
-dev KV_Get_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
-dev KV_Get_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Get_dist.wp_proof <<< kvErr ||| statusErrOk >>> the error arm's `kvErr` weakened to its `statusErrOk` (2026-11-26, F6: the error is built at the caller's machine, as in one process; `clientErr`/`errCellOk` not claimed; notes/axiom-review/kv-get-dist-statuserr.md)
 dev KV_Get_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
 dev KV_Get_dist.wp_proof <<< ) |||  >>> the closing parenthesis of `isKv`'s group, or of `□?dup (…)` (layout)
 
@@ -106,3 +105,24 @@ dev bootstrap.wp_proof_dist <<<  ||| etcd_dist.bootRTOk ( hG := hG ) γ ( bootGo
 nosource Serve_dist.wp_proof `etcdstart.Serve.spec` is its in-process analogue, not its source: it consumes `etcdstart.memberUp` and serves the view's table `etcdSvc Γ mid` at `etcdAddrAt` (N2 review, notes/axiom-review/n2-kv-dist.md); nothing to compare token by token
 nosource NewPeerHandler_dist.wp_proof `etcdhttp` is untranslated: no in-process spec of `NewPeerHandler` exists (plan §17.3 review: sound)
 nosource PeerServe_dist.wp_proof `http.Serve` of etcd's peer handler (`peerHandlerOf`) at the member's peer address: the in-process proofs apply Perennial's `http.Serve_ok` to the raft handler at the in-process network, a different statement (plan §17.3 reviews)
+
+# (2026-11-26) N3's watch contracts (notes/axiom-review/n3-watch-dist.md; plan §22.4, §22.7, §25): the watcher's
+# environment replaced by the cluster view, as the file header of WatchDist.lean lists.
+pair Watch_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean Watch_dist.spec Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean watcher.Watch.spec
+dev Watch_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`watchClientAt`'s endpoints are over it)
+dev Watch_dist.wp_proof <<<  ||| cl >>> binders: the client `cl` whose `Watcher` field is `w` (`watchClientAt`)
+dev Watch_dist.wp_proof <<<  ||| ) ( eps : List GoString >>> binders: the endpoints `eps` the client dials
+dev Watch_dist.wp_proof <<< γ ||| Γ >>> binders: the cluster's view `Γ` in place of the KV names `γ` (`γ := Γ.kv`)
+dev Watch_dist.wp_proof <<< KVNames ||| DistView >>> binders: the view's type
+dev Watch_dist.wp_proof <<< ( n : Nat ) |||  >>> binders: no auth bound `n`: the auth row is dropped (below)
+dev Watch_dist.wp_proof <<< isClientWatcher ||| watchClientAt cl w eps >>> `isClientWatcher V w` replaced by `watchClientAt cl w eps V Γ` (New's client of the endpoints, no proxy dial path, its watcher over `V.atEps eps` by `isNewClient`, every endpoint serving a member of `Γ`: `membersAt`; N3 review, §25)
+dev Watch_dist.wp_proof <<< w ∗ ⌜ V.kst = γ.st ⌝ ||| Γ >>> the rest of that replacement: the tie of the watcher's KV state names to `γ` goes with `isClientWatcher`; `γ := Γ.kv` and the post reads only `Γ.kv`, which every endpoint's member serves (`membersAt`, `kvCongr`); judged sound in notes/axiom-review/n3-watch-dist.md and notes/axiom-review/wenv-isnewclient.md
+dev Watch_dist.wp_proof <<< ⌜ V.nm = 1 ∧ 0 < n ⌝ → auth.authPubLbM ( V.mem 0 ) .2.E.authMode n ) ∗ □ ( |||  >>> the auth row's premise dropped (it reads member 0's auth names, which the view lacks: N11); not a strengthening: the source at `n = 0` has it vacuous and the stronger post (its `watchCheckOk` slot, below)
+dev Watch_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev Watch_dist.wp_proof <<< V.kv ||| Γ.kv >>> the elements' KV names: the view's `Γ.kv` in place of the watcher environment's `V.kv` (the post reads nothing of `V`, §25)
+dev Watch_dist.wp_proof <<< □ ( ⌜ V.nm = 1 ⌝ → watchCheckOk ( V.mem 0 ) .2.tag ( V.mem 0 ) .2.s V.conn om n ( opWatchModel key opts ) .key ( opWatchModel key opts ) .base.rangeEnd ) ||| True >>> the auth row's slot `True`: a weaker post (no `watchCheckOk` claimed)
+pair RequestProgress_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean RequestProgress_dist.spec Spec/go_etcd_io/etcd/client/v3/watcher__RequestProgress.lean watcher.RequestProgress.spec
+dev RequestProgress_dist.wp_proof <<<  ||| [ π : NetProtoGS ] ( cl w : Loc ) ( eps : List GoString ) >>> binders: the net extension's protocol ghost state, the client `cl`, its watcher `w` and the endpoints `eps` (`watchClientAt`)
+dev RequestProgress_dist.wp_proof <<< w ||| Γ >>> two places: the binder `Γ` (the view) where the source binds `w` (now bound with `cl`, above), and `watchClientAt`'s last argument `Γ` where `isClientWatcher V w` ends with `w`
+dev RequestProgress_dist.wp_proof <<< Loc ||| DistView >>> binders: the view's type
+dev RequestProgress_dist.wp_proof <<< isClientWatcher ||| watchClientAt cl w eps >>> `isClientWatcher V w` replaced by `watchClientAt cl w eps V Γ` (as `Watch_dist`'s); the post is the source's (`statusErrOk err`)
