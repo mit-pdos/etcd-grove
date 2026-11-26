@@ -23,6 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.M
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.AdequacyClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Shares
 
 @[expose] public section
 
@@ -223,33 +224,6 @@ theorem nodeList_addr {d : Deployment} {w : Workload} {ns : List GoString} (hw :
 theorem nodeList_length {d : Deployment} {w : Workload} {ns : List GoString} (hw : d.workloads = [w])
     (hn : d.nodes = [ns]) : d.nodeList.length = ns.length := by
   simp [Deployment.nodeList, hw, hn]
-
-theorem mem_rotateL {α : Type} [Inhabited α] {xs : List α} {i : Nat} {x : α} (h : x ∈ rotateL xs i) :
-    x ∈ xs := by
-  unfold rotateL at h
-  obtain ⟨j, hj, rfl⟩ := List.mem_map.1 h
-  have hlen : 0 < xs.length := by have := List.mem_range.1 hj; omega
-  have hk : (i + j) % xs.length < xs.length := Nat.mod_lt _ hlen
-  first
-    | (rw [getElem!_pos xs ((i + j) % xs.length) hk]; exact List.getElem_mem hk)
-    | (simp only [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some];
-       exact List.getElem_mem hk)
-    | simp [hk]
-
-/-- The rotated client addresses of a well-formed deployment are plain endpoints. -/
-theorem rotateL_plain {d : Deployment} (Hd : d.WellFormed) (c : Nat) :
-    plainEndpoints (rotateL (d.members.map Member.client) c) := by
-  obtain ⟨hne, -⟩ := Hd.members
-  refine ⟨fun h => ?_, fun ep hep => ?_⟩
-  · have := congrArg List.length h
-    rw [rotateL_length, List.length_map] at this
-    exact hne (List.eq_nil_of_length_eq_zero this)
-  · have hmem := mem_rotateL hep
-    obtain ⟨m, hm', rfl⟩ := List.mem_map.1 hmem
-    apply addrOk_plainEndpoint
-    apply Hd.addrs.2
-    simp only [Deployment.addrs]
-    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm', by simp⟩)
 
 end shape
 

@@ -471,23 +471,29 @@ theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdG
     iexact Hsl
   · iexact Hsl
 
-/-- **The cluster's start at the members' shares, at the lease mode `lm`** (see the file header): for a well-formed deployment `d` at the
-bootstrap log `boot` (`BootFacts`), from the protocol registry and every member's peer and client addresses unset,
-the cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their lessor and auth names
-injective), with auth off in the lease mode `none` the client's `etcdKV` at the boot state, every member's lessor slot,
-every member's client address fact at the view `c.view d.cfg.auth`, and every member's share. The cluster is allocated
-in the deployment's auth mode (#50 F7 S2 step 4; with auth on the compactor off, `compactorCfg_of_wf_auth`). -/
-theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
-    (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids) :
+/-- **The cluster's start at the members' shares, at the lease mode `lm` and the compaction setting `(cmp, cret)`**
+(see the file header; F8, `notes/etcd-dist-plan.md` §27.2 step 2): for a well-formed deployment `d` at the bootstrap log
+`boot` (`BootFacts`), a compaction mode and retention the deployment's compactor slot admits (`v3compactor.bootCfg`)
+and, with auth on, no compaction, from the protocol registry and every member's peer and client addresses unset, the
+cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their compaction setting `(cmp, cret)`,
+their lessor and auth names injective), the cluster's persistent facts (`clusterFactsOf`: with auth off its KV invariant
+`kvInv ⟨c.γ, [], 0⟩ c.γk`, `kvInv_of_clusterFacts`), with auth off in the lease mode `none` the client's `etcdKV` at the
+boot state, every member's lessor slot, every member's client address fact at the view `c.view d.cfg.auth`, and every
+member's share. -/
+theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids)
+    (cmp : Bool) (cret : Nat) (Hcmp : v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret)
+    (Hon : d.cfg.auth = true → cmp = false ∧ cret = 0) :
     ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
-      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.NamesInj⌝ ∗
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.γk.cmp = cmp ∧ c.γk.cret = cret ∧
+          c.NamesInj⌝ ∗
+        clusterFactsOf (GF := GF) c d.cfg.auth ∗
         (if d.cfg.auth then iprop(True) else if decide (lm ≠ .none) then iprop(True) else
           etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
         clientSvcFacts (cmsD d) (c.view d.cfg.auth) ∗
         ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
         [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
   have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
-  obtain ⟨cmp, cret, Hcmp, Hon⟩ := compactorCfg_of_wf_auth Hd
   obtain ⟨hne, -, -, hlen, -⟩ := Hd.members
   have hperm : (distPs d).Perm d.ids := (BootGoD.of_wf Hd).perm
   obtain ⟨m0, ms, hm0⟩ : ∃ m0 ms, d.members = m0 :: ms := by
@@ -520,7 +526,10 @@ theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
   iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩
   isplitr
   · ipureintro
-    exact ⟨Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.2.2.2.2.1, Hinj⟩
+    exact ⟨Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.2.2.1,
+      Hγ.2.2.2.2.2.2.2.2.2.2.2.1, Hinj⟩
+  isplitr
+  · iexact Hf
   isplitl [Hetcd]
   · iexact Hetcd
   isplitr
@@ -531,6 +540,43 @@ theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
   · iexact Hsl8
   iapply (memberShares_of d boot ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ lm cmp cret Hγ Hcmp
     Hinj) $$ Hf Hpf Hsl Hcs Hnm
+
+/-- **The cluster's facts give its KV invariant** with auth off (`kvInvM false` is `kvInv`): what the compact
+workload's share takes (`compactShare`'s `kvInv γr Γ.kv`). -/
+theorem kvInv_of_clusterFacts (c : ClusterNames) :
+    clusterFactsOf (GF := GF) c false ⊢ kvInv (GF := GF) ⟨c.γ, [], W64 0⟩ c.γk := by
+  unfold clusterFactsOf clusterFacts
+  rw [kvInvM_false]
+  iintro ⟨-, -, -, -, -, H⟩
+  iexact H
+
+/-- **The cluster's start at the members' shares, at the lease mode `lm`** (`clusterStartDC` at the compaction
+setting `compactorCfg_of_wf_auth` chooses; see the file header): for a well-formed deployment `d` at the
+bootstrap log `boot` (`BootFacts`), from the protocol registry and every member's peer and client addresses unset,
+the cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their lessor and auth names
+injective), with auth off in the lease mode `none` the client's `etcdKV` at the boot state, every member's lessor slot,
+every member's client address fact at the view `c.view d.cfg.auth`, and every member's share. The cluster is allocated
+in the deployment's auth mode (#50 F7 S2 step 4; with auth on the compactor off, `compactorCfg_of_wf_auth`). -/
+theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids) :
+    ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.NamesInj⌝ ∗
+        (if d.cfg.auth then iprop(True) else if decide (lm ≠ .none) then iprop(True) else
+          etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
+        clientSvcFacts (cmsD d) (c.view d.cfg.auth) ∗
+        ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
+        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
+  obtain ⟨cmp, cret, Hcmp, Hon⟩ := compactorCfg_of_wf_auth Hd
+  iintro #Hreg Hs
+  imod (clusterStartDC d Hd boot Hbf Hrb lm hap cmp cret Hcmp Hon) $$ Hreg Hs
+    with ⟨%c, %Hc, -, Hetcd, #Hcs, #Hsl, Hms⟩
+  imodintro
+  iexists c
+  isplitr
+  · ipureintro
+    exact ⟨Hc.1, Hc.2.1, Hc.2.2.2.2⟩
+  iframe Hetcd Hms
+  iframe #
 
 /-- **The cluster's start at the members' shares, lease mode `none`, auth off** (`clusterStartDL` at `.none`): the
 client's `etcdKV` at the boot state. -/
