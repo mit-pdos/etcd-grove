@@ -68,6 +68,62 @@ theorem meta_root_view (mp : Loc) (mv : Meta) (dq : DFrac) :
   iStructNamed Hmv
   iexact root
 
+set_option hygiene false in
+/-- The root page's check, the rest of the proof after the freelist page's (both branches). -/
+macro "vmop_root" : tactic => `(tactic| (
+  wp_apply hRootBucket
+  ihave #HR := meta_root_view _ _ _ $$ HM
+  wp_apply hRootPage _ _ _ $$ [HR] as -
+  · iexact HR
+  wp_auto
+  wp_if_destruct
+  · -- the root page past the buffer
+    try wp_auto
+    iapply HΦ
+    iframe Hps
+    ipureintro
+    intro _ h
+    unfold metaOverPages at h
+    have h4 := h.2.2.2.1
+    rw [hmv] at h4
+    word
+  have hrB : mv.root'.root'.toNat < B.length / 4096 := by word
+  wp_apply hPIB db sl mv.root'.root' dqp (by word) (by word) Hp $$ [Hps] as Hps
+  · iframe Hps; iframe #
+  icases bytesPointsto_view_read (V := Page) sl.ptr DFrac.discard B (mv.root'.root'.toNat * 4096) _
+    rfl (by omega) Hp $$ Hbs with ⟨#HQ, -⟩
+  rw [← pageHdr_view B mv.root'.root'.toNat]
+  generalize hqv : pageHdr (bytesAt B (4096 * mv.root'.root'.toNat) 4096) = qv
+  wp_auto
+  wp_apply hIsLeaf _ _ _ $$ [HQ] as -
+  · iexact HQ
+  by_cases hleaf : qv.flags' = W16 2
+  · simp only [hleaf, decide_true]
+    wp_auto
+    iapply HΦ
+    iframe Hps
+    ipureintro
+    intro h; cases h
+  · simp only [hleaf, decide_false]
+    wp_auto
+    wp_apply hIsBranch _ _ _ $$ [HQ] as -
+    · iexact HQ
+    wp_auto
+    iapply HΦ
+    iframe Hps
+    ipureintro
+    intro hr h
+    unfold metaOverPages at h
+    have h5 := h.2.2.2.2
+    rw [hmv] at h5
+    unfold pageFlags leafPageFlag branchPageFlag at h5
+    rw [hqv] at h5
+    by_cases hbr : qv.flags' = W16 1
+    · simp [hbr] at hr
+    · rcases h5 with h5 | h5
+      · exact hleaf (by word)
+      · exact hbr (by word)))
+
 theorem DB.validMetaOverPages.wp_proof
     (hPIB : DB.pageInBuffer.spec_own (GF := GF) (hG := hG))
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
@@ -94,6 +150,7 @@ theorem DB.validMetaOverPages.wp_proof
     iframe Hps
     ipureintro
     intro _ h
+    unfold metaOverPages at h
     have h1 := h.1
     word
   have hiB : i < B.length / 4096 := by word
@@ -129,6 +186,7 @@ theorem DB.validMetaOverPages.wp_proof
     iframe Hps
     ipureintro
     intro _ h
+    unfold metaOverPages at h
     have h2 := h.2.1
     rw [hmv] at h2
     exact nomatch He1.2 h2
@@ -150,6 +208,7 @@ theorem DB.validMetaOverPages.wp_proof
       iframe Hps
       ipureintro
       intro _ h
+      unfold metaOverPages at h
       have h3 := (h.2.2.1 _ (by rw [hmv]; exact hfl)).1
       word
     have hfB : mv.freelist'.toNat < B.length / 4096 := by word
@@ -175,25 +234,28 @@ theorem DB.validMetaOverPages.wp_proof
         iframe Hps
         ipureintro
         intro _ h
+        unfold metaOverPages at h
         have h3 := (h.2.2.1 _ (by rw [hmv]; exact hfl)).2.2
         unfold pageId at h3
         rw [hpv] at h3
         apply Hif
         word
       · try wp_auto
-        done
+        vmop_root
     · simp only [hflag, decide_false]
       wp_auto
       iapply HΦ
       iframe Hps
       ipureintro
       intro _ h
+      unfold metaOverPages at h
       have h3 := (h.2.2.1 _ (by rw [hmv]; exact hfl)).2.1
       unfold pageFlags freelistPageFlag at h3
       rw [hpv] at h3
       apply hflag
       word
-  · done
+  · try wp_auto
+    vmop_root
 
 end proof
 
