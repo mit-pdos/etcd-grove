@@ -23,9 +23,11 @@ bbolt at the fork's `ea5656d` (P13's init fix; `e1fae5c` is the `WriteTo` fix ci
 - **Sufficiency.** Under the restated premise, a slot that validates after a crash is, byte for byte, its
   durable state or the meta being written. With that, `dbCrash` holds of every image tried, the
   double-crash revival included.
-- **Truth on C, for bbolt's file.** True, and with room to spare: on C, bbolt's meta slot does not tear at
-  all.
-  - bbolt's meta buffer is page-aligned, so mechanism A has no source page boundary to cut at.
+- **Truth on C, for bbolt's file** (corrected 2026-11-26). Not "no tear at all": one `pwrite` can be cut at an
+  arbitrary byte even from a page-aligned source (`MADV_COLLAPSE`, measured in the page cache;
+  `notes/axiom-review/cstar-independent.md`). A cut inside the field bytes over torn residue can rebuild an older
+  meta with no collision (`notes/axiom-review/t1b-options.md`), which the premise excludes. The exclusion holds only
+  up to an FNV-64a coincidence once residue cannot survive a reopen (an open decision: option C★, `Open` poisons an invalid slot; pending).
   - The meta lies inside sector 0.
   - A completed `fdatasync` comes between any two writes of a slot, so mechanism B is absent.
 - **Two docstring errors.**

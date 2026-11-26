@@ -25,8 +25,17 @@ the first 56 meta bytes in bytes 56 to 64), its first 56 meta bytes are the slot
   the next write of a slot is two commits later), so (B) never reaches a meta slot of a database opened
   syncing, and after a reboot the slot's durable bytes are not under writeback. (A database opened with
   `NoSync`, defrag's temporary one, can reach (B); the premise holds there up to an FNV-64a collision.)
-  In fact a bbolt meta page does not tear on C at all: its 4096-byte buffer is page-aligned (no source
-  boundary for (A)), and the meta lies in sector 0 (review `c-i1-monotone.md`).
+  Tears are not confined to a source page boundary: on C one `pwrite` can be cut at an arbitrary byte, from
+  a page-aligned source buffer too (a source page moved during the copy, e.g. by `MADV_COLLAPSE`: measured in
+  the page cache, unmeasured on disk; `notes/axiom-review/cstar-independent.md`). A cut inside the 56 field bytes
+  mixes two writes' fields, and the premise excludes such a slot if it validates:
+  - over a valid older meta, that needs an FNV-64a prefix collision between bbolt-written bytes;
+  - over the torn residue of an earlier crash, which bbolt keeps across a reopen, it can rebuild an older
+    meta byte for byte with no collision (`notes/axiom-review/t1b-options.md`). That is harmless to bbolt (the
+    rebuilt meta's txid is the older one), but it is outside the premise.
+
+  Justifying the exclusion up to an accidental FNV-64a coincidence needs torn residue not to survive a
+  reopen: an open decision (option C★: `Open` poisons an invalid slot), pending.
 - So in a crash image of a meta slot, a byte at a higher offset is as of the same change as one at a
   lower offset, or an older one: the 56 field bytes as of `n` (for a validating slot, by FNV-64a the
   fields and the checksum cannot come from two different metas but by a 2^-64 collision, the
