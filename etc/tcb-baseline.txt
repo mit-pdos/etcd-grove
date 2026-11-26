@@ -125,6 +125,11 @@ axiom etcd_dist.RequestProgress_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.Txn_Commit_dist.wp_proof
 axiom etcd_dist.Watch_dist.wp_proof
+axiom etcd_dist.authd.Auth_AuthEnable_dist.wp_proof
+axiom etcd_dist.authd.Auth_RoleAdd_dist.wp_proof
+axiom etcd_dist.authd.Auth_RoleGrantPermission_dist.wp_proof
+axiom etcd_dist.authd.Auth_UserAdd_dist.wp_proof
+axiom etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof
 axiom etcd_dist.authd.KV_DeleteOn_dist.wp_proof
 axiom etcd_dist.authd.KV_GetOn_dist.wp_proof
 axiom etcd_dist.authd.KV_PutOn_dist.wp_proof

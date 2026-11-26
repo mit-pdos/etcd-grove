@@ -1938,3 +1938,23 @@ context rule while the first build ran). No `sorry`, no axiom.
   `congrArg List.length h5` with `List.length_map`), l.315 `decide` in `cases tw <;> simp [typed.Workload.kindW] <;> decide`
   ("expected type must not contain free variables": drop the `<;> decide`, close by `simp` or `exact absurd e (by decide)`
   per case as `kinds_nodup` does).
+
+### B-1 done (2026-11-26; S14 built; branch `etcd-safe-f7-rlog`)
+
+- **Fixes** to B-1's commit: `class_auth` (`DeploymentClass.lean`: the length by `congrArg List.length h5` and
+  `List.length_map`; the kind cases closed as `kinds_nodup`'s, unfolding `typed.Workload.kind` too); `etcd_startAuth`
+  (`StartAuth.lean`: the let-bound `γR`/`Γ.kv` rewritten to `⟨c.γ, [], W64 0⟩`/`c.γk` by `rfl` before `iexact Hkvi`
+  and `iframe Hetcd`). `Shares`, `MainReady`, `DispatchLinked` and `TopLevelRobustness` built as written:
+  `wp_MainReadyAuth`'s `[examples.etcd.auth.Assumptions]` resolves in `DispatchLinked` (no new binder).
+  `AuthShares.lean`'s header updated (kind 5 is `authShare`/`authNodePre`, no longer `False`).
+- **Statement**: `theorem etcd_safe_nocrash (HauthLease : EtcdAuthLeaseBootNC) : etcd_robust_nocrash.spec`
+  (`Hauth` dropped; the spec file untouched).
+- **Full build** green (fk-lean2).
+- **Trust base**: exactly the five admin axioms `etcd_dist.authd.Auth_{AuthEnable,RoleAdd,RoleGrantPermission,
+  UserAdd,UserGrantRole}_dist.wp_proof` newly reached (tcb baseline and the `etcd-dist` collection, +5 each);
+  axiom-tok entries (rule 2 `8/1`, rule 7 `P`, as `KV_PutOn_dist`'s) and `trunc` lines in a "F7 S14" block, for the
+  lead's confirmation; `axiom-tok --check` and its selftest pass.
+- **Gates**: tier, lease-order, bounds (389/389), dist-axiom-diff ok; gen-link all 60 modes identical on fk-lean2
+  (run with `LAKE_OPTS=--packages=.lake/package-overrides.json`: without it `proof_roots` finds no Perennial there
+  and `--bbolt`, `--kvraft`, `--kvraft-udp`, `--wal-tester`, `--walfs` drop Perennial-linked results).
+- **Next**: the lead's confirmation of the S14 axiom-tok entries; F7 S4 (`EtcdAuthLeaseBootNC`), the last hypothesis.

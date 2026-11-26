@@ -371,6 +371,24 @@ trunc Perennial.EtcdGrove.etcd_dist.authd.KV_GetOn_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.authd.Txn_CommitOn_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.authd.WatchOn_dist.wp_proof
 trunc Perennial.EtcdGrove.etcd_dist.authd.New_user_dist.wp_proof
+# --- F7 S14 (etcd-safe-f7-rlog, 2026-11-26): the five authd admin axioms, reached by `etcd_safe_nocrash` once
+# `wlShare`'s kind 5 is `authShare` and `DispatchLinked` links `wp_MainReadyAuth` (the set-up's `UserAdd`,
+# `UserGrantRole`, `RoleAdd`, `RoleGrantPermission`, `AuthEnable` over the root client). The same keys as the S13
+# entries' `KV_PutOn_dist` and the auth-off `KV_Put_dist`: rule 2 (8/1), the caller's one `levelTok 0` lent to one
+# interceptor call at a time through `isNewClient`'s four connections' contracts and given back; rule 7 `P`, the
+# contracts' context's Done proposition. Truncation notes as the S13 block's (`isCancelCtx{,Of}`, `isChan`,
+# `status.statusAt{,Raw}`, `cd.4`, the models' projections, `dghostVar`, `named`, `isMutex`). For the lead's
+# confirmation. ---
+entry Perennial.EtcdGrove.etcd_dist.authd.Auth_AuthEnable_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), for the admin RPC `AuthEnable`
+entry Perennial.EtcdGrove.etcd_dist.authd.Auth_RoleAdd_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), for the admin RPC `RoleAdd`
+entry Perennial.EtcdGrove.etcd_dist.authd.Auth_RoleGrantPermission_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), for the admin RPC `RoleGrantPermission`
+entry Perennial.EtcdGrove.etcd_dist.authd.Auth_UserAdd_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), for the admin RPC `UserAdd`
+entry Perennial.EtcdGrove.etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_PutOn_dist's (the S13 and S14 section headers), for the admin RPC `UserGrantRole`
+trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_AuthEnable_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_RoleAdd_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_RoleGrantPermission_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_UserAdd_dist.wp_proof
+trunc Perennial.EtcdGrove.etcd_dist.authd.Auth_UserGrantRole_dist.wp_proof
 # --- dsv-fix3 (2026-11-25): the names-only initializers' per-package init axioms ---
 # `<pkg>.wp_initialize'` of the `HYP_INITS` packages whose `axiom`-skill review survived
 # (Dsverify/Proof/<pkg>/Init.lean; notes/axiom-review/dsv-inits/): as Net's above, the walk stops at
