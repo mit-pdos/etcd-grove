@@ -2,7 +2,9 @@
 Package initialization of `github_com.rs.zerolog`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its translated variables, initializes its imports,
+Its fact (`zerologInit`, `Base.lean`): `gLevel`'s cell in an invariant, `LevelFieldName`,
+`LevelFieldMarshalFunc` with its spec on the five levels, `enc`, `eventPool`'s `sync.Pool` of events and
+`ioutil.Discard`'s value, read-only for good. Its initializer allocates its translated variables, initializes its imports,
 runs their translated initializers (constants, function literals, `sync.Pool` literals, `new(int32)`)
 and its two translated `init`s: `init.0` (`ctx.go`: `SetGlobalLevel(TraceLevel)`, `disabledLogger =
 &Nop()`) and `init.1` (`encoder_json.go`), which stores a closure in `internal/json`'s
@@ -73,6 +75,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := w32) Rarely _ as HRarely
   wp_apply wp_GlobalAlloc (V := w32) Sometimes _ as HSometimes
   wp_apply wp_GlobalAlloc (V := w32) Often _ as HOften
@@ -174,8 +177,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of Often))
   -- translated initializer of Sometimes))
   -- translated initializer of Rarely))
-  rename_i _ _ pgl
+  rename_i _ pep pgl
   irename: (pgl ↦ (_ : w32) : IProp GF) => HgCell
+  irename: (pep ↦ (_ : _root_.Perennial.sync.Pool) : IProp GF) => HepCell
   -- the translated init.«0»
   wp_func_call
   wp_call
@@ -202,6 +206,37 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   icases ID with ⟨%wdis, #HDis⟩
   wp_apply (wp_Nop wdis) $$ HDis as %lnop -
   try wp_auto
+  -- the fact (`zerologInit`, `Base.lean`)
+  imod inv_alloc _root_.Perennial.github_com.rs.zerolog.gLevelN ⊤ (iprop(∃ v : w32, pgl ↦ v)) $$ [HgCell] with #IgCell
+  · inext; iexists _; iexact HgCell
+  imod sync.init_Pool pep _ iprop(True) _root_.Perennial.github_com.rs.zerolog.eventElem ⊤ ?_ $$ [HepCell] with #Hpool
+  rotate_left
+  · iframe HepCell
+    iapply sync.newSpec_of_true
+    iright
+    wp_start
+    dsimp only
+    wp_auto
+    wp_apply (wp_slice_make3 (V := w8) (W64 0) (W64 500) (by decide)) as %sb ⟨Hsb, Hcap, -⟩
+    wp_alloc le as Hle
+    wp_auto
+    iapply HΦ
+    unfold _root_.Perennial.github_com.rs.zerolog.eventElem
+    iexists le, _, _
+    iframe Hle
+    isplitr
+    · ipureintro; rfl
+    iframe
+  ipersist HgLevel
+  ipersist HLevelFieldName
+  ipersist HLevelTraceValue
+  ipersist HLevelDebugValue
+  ipersist HLevelInfoValue
+  ipersist HLevelWarnValue
+  ipersist HLevelErrorValue
+  ipersist HLevelFieldMarshalFunc
+  ipersist Henc
+  ipersist HeventPool
   -- the translated init.«1»
   wp_func_call
   wp_call
@@ -215,7 +250,35 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iframe Hown Hfc
   try wp_auto
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try imodintro
+  unfold _root_.Perennial.github_com.rs.zerolog.zerologInit
+  isplitl []
+  · iexists pgl; iframe #
+  isplitl []
+  · iexact HLevelFieldName
+  isplitl []
+  · iexists _; iframe HLevelFieldMarshalFunc
+    unfold _root_.Perennial.github_com.rs.zerolog.marshalSpec
+    iintro %lv
+    wp_start as %hlv
+    haveI : go.NotInterface go.int8 := ⟨by simp [go.int8]⟩
+    simp only [_root_.Perennial.github_com.rs.zerolog.fiveLevels, List.mem_cons, List.not_mem_nil,
+      _root_.or_false] at hlv
+    rcases hlv with rfl | rfl | rfl | rfl | rfl
+    all_goals (repeat (first | wp_method_call | wp_call | wp_auto))
+    all_goals (simp (config := { decide := true }) only
+      [_root_.Perennial.github_com.rs.zerolog.levelString, ↓reduceIte]; iapply HΦ; itrivial)
+  isplitl []
+  · iexact Henc
+  isplitl []
+  · iexists pep, _; iframe #; ipureintro; simp [func.nil]
+  iexists wdis; iexact HDis
+  rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

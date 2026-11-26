@@ -173,8 +173,15 @@ runs its translated `init`, whose loop fills the table (`wp_init0`, `InitLoop.le
         + g.FIN_PRE[:6] + ['try imodintro', f'unfold _root_.Perennial.{ZJ}.jsonInit',
                            'iframe CJSONMarshalFunc', 'iexists _', 'iexact HnoEscapeTable'],
     )
+    # (dsv-retire-3) zerolog's fact (`zerologInit`, `Base.lean`): `gLevel`'s cell into its invariant,
+    # `eventPool` into a `sync.Pool` of events, the variables the fact keeps read-only (made at the end of
+    # `init.0`, while the goal is still a WP), and the fact itself after `is_pkg_init_finish`
+    ZL_FACT = ['-- the fact (`zerologInit`, `Base.lean`)', 'imod inv_alloc _root_.Perennial.github_com.rs.zerolog.gLevelN ⊤ (iprop(∃ v : w32, pgl ↦ v)) $$ [HgCell] with #IgCell', '· inext; iexists _; iexact HgCell', 'imod sync.init_Pool pep _ iprop(True) _root_.Perennial.github_com.rs.zerolog.eventElem ⊤ ?_ $$ [HepCell] with #Hpool', 'rotate_left', '· iframe HepCell', '  iapply sync.newSpec_of_true', '  iright', '  wp_start', '  dsimp only', '  wp_auto', '  wp_apply (wp_slice_make3 (V := w8) (W64 0) (W64 500) (by decide)) as %sb ⟨Hsb, Hcap, -⟩', '  wp_alloc le as Hle', '  wp_auto', '  iapply HΦ', '  unfold _root_.Perennial.github_com.rs.zerolog.eventElem', '  iexists le, _, _', '  iframe Hle', '  isplitr', '  · ipureintro; rfl', '  iframe', 'ipersist HgLevel', 'ipersist HLevelFieldName', 'ipersist HLevelTraceValue', 'ipersist HLevelDebugValue', 'ipersist HLevelInfoValue', 'ipersist HLevelWarnValue', 'ipersist HLevelErrorValue', 'ipersist HLevelFieldMarshalFunc', 'ipersist Henc', 'ipersist HeventPool']
+    ZL_FIN = ['try imodintro', 'unfold _root_.Perennial.github_com.rs.zerolog.zerologInit', 'isplitl []', '· iexists pgl; iframe #', 'isplitl []', '· iexact HLevelFieldName', 'isplitl []', '· iexists _; iframe HLevelFieldMarshalFunc', '  unfold _root_.Perennial.github_com.rs.zerolog.marshalSpec', '  iintro %lv', '  wp_start as %hlv', '  haveI : go.NotInterface go.int8 := ⟨by simp [go.int8]⟩', '  simp only [_root_.Perennial.github_com.rs.zerolog.fiveLevels, List.mem_cons, List.not_mem_nil,', '    _root_.or_false] at hlv', '  rcases hlv with rfl | rfl | rfl | rfl | rfl', '  all_goals (repeat (first | wp_method_call | wp_call | wp_auto))', '  all_goals (simp (config := { decide := true }) only', '    [_root_.Perennial.github_com.rs.zerolog.levelString, ↓reduceIte]; iapply HΦ; itrivial)', 'isplitl []', '· iexact Henc', 'isplitl []', '· iexists pep, _; iframe #; ipureintro; simp [func.nil]', 'iexists wdis; iexact HDis', 'rfl']
     SPECIAL[ZL] = dict(
-        doc='''Its fact is `True`. Its initializer allocates its translated variables, initializes its imports,
+        doc='''Its fact (`zerologInit`, `Base.lean`): `gLevel`'s cell in an invariant, `LevelFieldName`,
+`LevelFieldMarshalFunc` with its spec on the five levels, `enc`, `eventPool`'s `sync.Pool` of events and
+`ioutil.Discard`'s value, read-only for good. Its initializer allocates its translated variables, initializes its imports,
 runs their translated initializers (constants, function literals, `sync.Pool` literals, `new(int32)`)
 and its two translated `init`s: `init.0` (`ctx.go`: `SetGlobalLevel(TraceLevel)`, `disabledLogger =
 &Nop()`) and `init.1` (`encoder_json.go`), which stores a closure in `internal/json`'s
@@ -200,7 +207,9 @@ then names only, its `wp_initialize'` a trust-boundary axiom.)''',
         # `sync.Pool` literals, `new(int32)`s
         before={'arrayPool': ['repeat (first | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto) | (wp_func_lits; wp_auto) | wp_auto)'],
                 # `gLevel`'s cell (`new(int32)`, shadowed by `disableSampling`'s), named for `SetGlobalLevel`
-                '$inits': ['rename_i _ _ pgl', 'irename: (pgl ↦ (_ : w32) : IProp GF) => HgCell']},
+                # and `eventPool`'s `sync.Pool` (`new(Pool)`'s cell), for the fact
+                '$inits': ['rename_i _ pep pgl', 'irename: (pgl ↦ (_ : w32) : IProp GF) => HgCell',
+                           'irename: (pep ↦ (_ : _root_.Perennial.sync.Pool) : IProp GF) => HepCell']},
         after={'init.«0»': [
             "-- `SetGlobalLevel(TraceLevel)`: the atomic store into `gLevel`'s cell, owned here",
             'unfold TraceLevel',
@@ -223,7 +232,7 @@ then names only, its `wp_initialize'` a trust-boundary axiom.)''',
             '· iapply isPkgInit_access $$ {Hd:io.ioutil}',
             'icases ID with ⟨%wdis, #HDis⟩',
             'wp_apply (wp_Nop wdis) $$ HDis as %lnop -',
-            'try wp_auto'],
+            'try wp_auto'] + ZL_FACT,
             'init.«1»': [
             f'ihave #Hfj : (_root_.Perennial.{ZJ}.jsonInit (hG := hG) : IProp GF) $$ []',
             f'· iapply isPkgInit_access $$ {{Hd:{ZJ}}}',
@@ -233,6 +242,7 @@ then names only, its `wp_initialize'` a trust-boundary axiom.)''',
             'wp_apply (EtcdGrove.grpcInternal.wp_store_hook (hG := hG) (V := GoFunc) _ _ _ _) $$ [Hfc Hown] as Hown',
             '· iframe Hown Hfc',
             'try wp_auto']},
+        finish=g.FIN_PRE[:6] + ZL_FIN,
     )
     return SPECIAL
 
