@@ -45,9 +45,6 @@ REVIEWED = {
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
-    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
-        "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "
-        '(examples/premisefix/fmtarg)',
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
         'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '

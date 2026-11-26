@@ -7113,3 +7113,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
   translation and the two axioms deleted.
 - **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).
+## 2026-11-26: `grpcErrMap`'s and `grpcErrOut`'s map at `v3rpc.errKeys`; `toGRPCErrorMap_init` was false (grpcerrmap)
+
+- **Spec.** `v3rpc.grpcErrMap` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Base.lean`, in the package
+  fact `v3rpcInit`), `v3rpc.grpcErrOut` (`InvKV.lean`), and the trust-boundary axiom `toGRPCErrorMap_init`
+  (`v3rpc/Init.lean`) that gave the former.
+- **Defect.** The map points-to `mp ↦$□ M` was at Perennial's interface keys (`nil` or pointers), while the
+  same fact says `context.DeadlineExceeded`'s value, the struct `deadlineExceededError{}`, is a key: the post
+  was unsatisfiable, and the axiom false.
+- **Evidence.** `notes/axiom-review/togrpcerrormap-keys.md`; `util.go:91` (the struct key is real).
+- **Proposed change.** Own the map at `v3rpc.errKeys` (the `errKeyOk` keys) in both; `togRPCError`'s lookup
+  through `wp_errMap_lookup2_at`. Translate the initializer and prove it (the axiom deleted). To give the
+  initializer its keys' and values' facts: `rpctypesInit` gains a last conjunct `rpctypesMapVals` (the map's
+  51 values, each `statusErrOk` with its description; proved by `rpctypes`' initializer), `etcdserver/version`'s
+  fact (`True`) becomes `errorsNewVars versionErrMsgs`, and `v3rpc.toml` imports `etcdserver/errors` (which
+  `util.go` imports; its initializer ran only through `etcdserver`'s). Strengthenings, but the key class,
+  which replaces a false statement; no top-level statement changes.
+- **Decision.** Within the brief's rule for false axioms (fix the spec, record it, say so).
