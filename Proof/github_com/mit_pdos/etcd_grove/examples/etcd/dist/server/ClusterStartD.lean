@@ -162,6 +162,21 @@ theorem compactorCfg_of_wf {d : Deployment} (Hd : d.WellFormed) :
     rw [hm]
     exact v3compactor.bootCfg_periodic _ _ (by omega) rfl
 
+/-- **`compactorCfg_of_wf` with the token provider's tie** (#50 F7 S2 step 4): with auth on the deployment's
+compactor is off (`Deployment.WellFormed.authCompactorOff`), so the slot is chosen as no compaction (`cmp = false`,
+`cret = 0`), what the auth-on allocation (`clusterAllocN`'s `Hon`) takes. -/
+theorem compactorCfg_of_wf_auth {d : Deployment} (Hd : d.WellFormed) :
+    ∃ (cmp : Bool) (cret : Nat), v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret ∧
+      (d.cfg.auth = true → cmp = false ∧ cret = 0) := by
+  cases hau : d.cfg.auth
+  · obtain ⟨cmp, cret, h⟩ := compactorCfg_of_wf Hd
+    exact ⟨cmp, cret, h, fun h' => nomatch h'⟩
+  · have hc := Hd.authCompactorOff hau
+    refine ⟨false, 0, v3compactor.bootCfg_off _ _ _ _ ?_, fun _ => ⟨rfl, rfl⟩⟩
+    first
+      | (apply BitVec.eq_of_toInt_eq; simp only [sint.Z] at hc; rw [hc]; try (first | rfl | decide); done)
+      | word
+
 end compactor
 
 /-! ## The start -/
@@ -401,21 +416,21 @@ theorem names_members (c : ClusterNames) (d : Deployment) :
 client address facts, at names `c` the allocation made true (`ClusterOk`) and a compactor slot the deployment's
 configuration meets. -/
 theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterNames) (lm : lease.Mode) (cmp : Bool)
-    (cret : Nat) (Hok : ClusterOk c (distPs d) boot lm cmp cret d.ids)
+    (cret : Nat) (Hok : ClusterOk c (distPs d) boot lm cmp cret d.ids d.cfg.auth)
     (Hcmp : v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret) (Hinj : c.NamesInj) :
-    ⊢ clusterFactsOf (GF := GF) c -∗ peerAddrFactsAt (GF := GF) c.γ (cmsD d) -∗
+    ⊢ clusterFactsOf (GF := GF) c d.cfg.auth -∗ peerAddrFactsAt (GF := GF) c.γ (cmsD d) -∗
       ([∗list] id ∈ d.ids, memberSliceOf (GF := GF) c d.ids (distPs d) (distCtxs d) (LogEntry.toEntries boot 0) id) -∗
-      clientSvcFacts (GF := GF) (cmsD d) c.view -∗
+      clientSvcFacts (GF := GF) (cmsD d) (c.view d.cfg.auth) -∗
       ([∗list] id ∈ d.ids, memberNamesShare (GF := GF) (c.ls id) (c.au id)) -∗
       [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
   iintro #Hcf #Hpf Hsl #Hcs Hnm
   ihave Hsl := slices_members c d (distPs d) (distCtxs d) (LogEntry.toEntries boot 0) $$ Hsl
   ihave Hnm := names_members c d $$ Hnm
-  ihave #Hcs' := clientSvc_members d c.view $$ Hcs
+  ihave #Hcs' := clientSvc_members d (c.view d.cfg.auth) $$ Hcs
   ihave Hb : [∗list] m ∈ d.members,
       (memberSliceOf (GF := GF) c d.ids (distPs d) (distCtxs d) (LogEntry.toEntries boot 0)
           (memberId (go!"http://" ++ m.peer) d.token) ∗
-        etcdAddrAt (GF := GF) m.client c.view (memberId (go!"http://" ++ m.peer) d.token)) $$ [Hsl]
+        etcdAddrAt (GF := GF) m.client (c.view d.cfg.auth) (memberId (go!"http://" ++ m.peer) d.token)) $$ [Hsl]
   · iapply BigSepL.bigSepL_sep_eqv.2
     isplitl [Hsl]
     · iexact Hsl
@@ -438,6 +453,10 @@ theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterName
   iframe Hs Hn
   iframe #
 
+/-- Forget the auth-on arm of a two-mode resource. -/
+theorem ite_drop_left (b : Bool) (P Q : IProp GF) : (if b then P else Q) ⊢ if b then iprop(True) else Q := by
+  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> first | exact .rfl | exact BI.true_intro
+
 /-- **The members' lessor slots, kept with their names' shares** (persistent: `lease.lessorSlot`). -/
 theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdGrove.auth.AuthNames) :
     ([∗list] id ∈ ids, memberNamesShare (GF := GF) (ls id) (au id)) ⊢
@@ -455,19 +474,20 @@ theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdG
 /-- **The cluster's start at the members' shares, at the lease mode `lm`** (see the file header): for a well-formed deployment `d` at the
 bootstrap log `boot` (`BootFacts`), from the protocol registry and every member's peer and client addresses unset,
 the cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their lessor and auth names
-injective), in the lease mode `none` the client's `etcdKV` at the boot state, every member's lessor slot, every member's
-client address fact at the view `c.view`, and every member's share. -/
+injective), with auth off in the lease mode `none` the client's `etcdKV` at the boot state, every member's lessor slot,
+every member's client address fact at the view `c.view d.cfg.auth`, and every member's share. The cluster is allocated
+in the deployment's auth mode (#50 F7 S2 step 4; with auth on the compactor off, `compactorCfg_of_wf_auth`). -/
 theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
     (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids) :
     ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
       ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.NamesInj⌝ ∗
-        (if decide (lm ≠ .none) then iprop(True) else
+        (if d.cfg.auth then iprop(True) else if decide (lm ≠ .none) then iprop(True) else
           etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
-        clientSvcFacts (cmsD d) c.view ∗
+        clientSvcFacts (cmsD d) (c.view d.cfg.auth) ∗
         ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
         [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
   have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
-  obtain ⟨cmp, cret, Hcmp⟩ := compactorCfg_of_wf Hd
+  obtain ⟨cmp, cret, Hcmp, Hon⟩ := compactorCfg_of_wf_auth Hd
   obtain ⟨hne, -, -, hlen, -⟩ := Hd.members
   have hperm : (distPs d).Perm d.ids := (BootGoD.of_wf Hd).perm
   obtain ⟨m0, ms, hm0⟩ : ∃ m0 ms, d.members = m0 :: ms := by
@@ -488,12 +508,13 @@ theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
   ihave Hp := peers_cms d $$ Hp
   ihave Hc := clients_cms d $$ Hc
   imod (clusterAllocN (GF := GF) d.ids (distPs d) hperm _ hid0 (distCtxs d) boot Hbc (by omega) (by omega)
-      lm hap cmp cret)
+      lm hap cmp cret d.cfg.auth Hon)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
-  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
+  ihave Hetcd := ite_drop_left d.cfg.auth _ _ $$ Hetcd
   imod (memberNames_alloc (GF := GF) d.ids Hd.idsNodup.1) with ⟨%ls, %au, %Hinj, Hnm⟩
   imod (peersAt_start γ (cmsD d)) $$ Hreg Hp with #Hpf
-  imod (clientsAt_start (ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩) (cmsD d))
+  imod (clientsAt_start (ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ d.cfg.auth)
+      (cmsD d))
     $$ Hreg Hc with #Hcs
   imodintro
   iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩
@@ -511,10 +532,10 @@ theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntr
   iapply (memberShares_of d boot ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ lm cmp cret Hγ Hcmp
     Hinj) $$ Hf Hpf Hsl Hcs Hnm
 
-/-- **The cluster's start at the members' shares, lease mode `none`** (`clusterStartDL` at `.none`): the client's
-`etcdKV` at the boot state. -/
+/-- **The cluster's start at the members' shares, lease mode `none`, auth off** (`clusterStartDL` at `.none`): the
+client's `etcdKV` at the boot state. -/
 theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
-    (Hrb : receiptBound GF ≤ 2 ^ 60) :
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (Hauth : d.cfg.auth = false) :
     ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
       ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []]⌝ ∗
         etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) ∗
@@ -523,7 +544,7 @@ theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry
   iintro #Hreg Hs
   imod (clusterStartDL d Hd boot Hbf Hrb .none (fun h => nomatch h)) $$ Hreg Hs
     with ⟨%c, %Hc, Hetcd, #Hcs, -, Hms⟩
-  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  isimp only [Hauth, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   imodintro
   iexists c
   isplitr
@@ -531,7 +552,7 @@ theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry
   isplitl [Hetcd]
   · iexact Hetcd
   isplitr
-  · iexact Hcs
+  · iExactEq Hcs; rw [Hauth]
   iexact Hms
 
 end start

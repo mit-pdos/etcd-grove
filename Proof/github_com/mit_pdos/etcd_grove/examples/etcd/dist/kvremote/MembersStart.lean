@@ -87,12 +87,12 @@ theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) 
 /-- **`member_boot_dist.law`, proved at N5's shares** (see the file header): for a well-formed deployment at the
 bootstrap log `boot` (`BootFacts`) and a receipt budget of at most `2 ^ 60`. -/
 theorem member_boot_dist_law (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry)
-    (Hbf : BootFacts d boot) (Hrb : receiptBound GF ≤ 2 ^ 60) :
+    (Hbf : BootFacts d boot) (Hrb : receiptBound GF ≤ 2 ^ 60) (Hauth : d.cfg.auth = false) :
     member_boot_dist.law (Gg := Gg) d (membersShareKv d boot) := by
   have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
   unfold member_boot_dist.law
   iintro #Hreg Hs
-  imod (clusterStartD (G := Gg) d Hd boot Hbf Hrb) $$ Hreg Hs with ⟨%c, %Hlog, Hkv, #Hcs, Hms⟩
+  imod (clusterStartD (G := Gg) d Hd boot Hbf Hrb Hauth) $$ Hreg Hs with ⟨%c, %Hlog, Hkv, #Hcs, Hms⟩
   imodintro
   iexists c.view
   isplitr

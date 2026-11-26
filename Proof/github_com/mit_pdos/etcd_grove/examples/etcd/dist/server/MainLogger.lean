@@ -104,6 +104,7 @@ theorem MainLogger.wp_proof
   -- the share of the start
   icases Hshare with ⟨%c, Hshare⟩
   iunfold memberShareD at Hshare
+  isimp only [Hauth] at Hshare
   icases Hshare with ⟨%cmp, %cret, %Hsh, #Hcf, #Hpaf, Hsl, #Hat, Hnames⟩
   -- the member's lessor name's half and slot (`NewServer_dist`'s `Hlslot`); its auth names are unused (auth off)
   iunfold memberNamesShare at Hnames

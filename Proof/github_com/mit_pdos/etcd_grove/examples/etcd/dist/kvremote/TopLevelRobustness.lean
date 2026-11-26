@@ -354,7 +354,7 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
       exact List.eq_nil_of_length_eq_zero this
     subst hc0 hn0'
     simp only [Deployment.addrs, hn0, List.flatten_nil, List.append_nil]
-    imod (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb) $$ Hreg Hs with ⟨%Γ, -, -, -, HMS⟩
+    imod (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb Hscope.2) $$ Hreg Hs with ⟨%Γ, -, -, -, HMS⟩
     iunfold membersShareKv at HMS
     icases HMS with ⟨%c, -, HMS⟩
     imodintro
@@ -388,7 +388,7 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
       simp [servers, clients, Hσs.1]
     imod (kv_start_deployment (GF := etcdDistGF) d w ns hw1 hn1 Hd.addrs.1
         ⟨by unfold etcdSteps at hb; omega, hb1, hb2, hb3⟩ (membersShareKv (GF := etcdDistGF) d boot)
-        (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb)) $$ Hreg Hs
+        (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb Hscope.2)) $$ Hreg Hs
       with ⟨%Γ, %ρ, %Hauth, HMS, Ho, #Hmem, #Ha⟩
     iunfold membersShareKv at HMS
     icases HMS with ⟨%c, -, HMS⟩
