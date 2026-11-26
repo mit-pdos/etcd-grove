@@ -13,6 +13,12 @@ The vocabulary (see the note, "The view"):
 * `A : w64 → auth.AuthNames`, member `mid`'s auth names (joins `DistView` as `au` at implementation, with
   the Prove item P-A1, `NewServer` taking `γa` from the start as P-L1 takes the lessor's); only the member-local
   facts read it (the published index `auth.authPubLbM`, a member's read and lease checks);
+* **distinct names** (the lease review, `rev-f2-report.md`, 2026-11-26: `DistView.ofKV` gives every member
+  the same lessor name, `ls := fun _ => 0`, which lets a fact about member A's names be used at member B):
+  every draft that reads a per-member name takes `∀ a b, A a = A b → a = b` (and, where it reads `Γ.ls`,
+  `∀ a b, Γ.ls a = Γ.ls b → a = b`), the lease review's form; `ofKV` fails it. Over every `w64`, not a member
+  set: `DistView` has none. The start discharges it once it allocates the names per member (P-A1, P-L1),
+  completing the map off the members with names it never owns;
 * a call's principal is the client's configured user name (`principalOf cfg`, from `New`'s `cfg` field),
   never a token. (Note, 2026-11-26: a simple token is NOT only its issuing member's: `EtcdServer.Authenticate`
   draws the prefix at the receiving member and proposes it through raft, and every member's apply assigns
@@ -235,6 +241,7 @@ are the error arm. -/
 abbrev New_user_dist.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 30)] [NetProtoGS] (cfg : go_etcd_io.etcd.client.v3.Config)
     (eps : List GoString) (V : WEnv GF) (Γ : DistView) (A : w64 → auth.AuthNames),
+  (∀ a b : w64, A a = A b → a = b) →
   Γ.auth = true → principalOf cfg = some cfg.Username' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗
@@ -322,6 +329,7 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
     (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (L₀ : List EntryModel) (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd)
     (b : TxnBuild) (Q : KVState → IProp GF),
+  (∀ a b : w64, A a = A b → a = b) →
   Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
@@ -371,6 +379,7 @@ abbrev KV_GetOn_dist.spec : Prop :=
     (L₀ : List EntryModel)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd) (key : GoString)
     (opts_sl : GoSlice) (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
+  (∀ a b : w64, A a = A b → a = b) →
   Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
@@ -518,6 +527,7 @@ abbrev Lease_GrantOn_dist.spec : Prop :=
     (L₀ : List EntryModel) (n₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (ttl : w64)
     (Q : w64 → KVState → IProp GF),
+  (∀ a b : w64, A a = A b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
@@ -547,6 +557,7 @@ abbrev Lease_RevokeOn_dist.spec : Prop :=
     (L₀ : List EntryModel) (n₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (id : w64)
     (Q : KVState → IProp GF),
+  (∀ a b : w64, A a = A b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
@@ -575,6 +586,7 @@ abbrev Lease_TimeToLiveKeysOn_dist.spec : Prop :=
     (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (n₀ m₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (id : w64)
     (sl : GoSlice) (gs : List (Bool → Bool)),
+  (∀ a b : w64, A a = A b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   Γ.auth = true → outTokOk (principalOf cfg) om → leaseKeysFold gs false = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
@@ -597,6 +609,7 @@ abbrev Lease_LeasesOn_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
     (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (n₀ m₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd),
+  (∀ a b : w64, A a = A b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗

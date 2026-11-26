@@ -29,15 +29,45 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- **PLACEHOLDER: `γa`'s fresh authorities, which P-A1 moves from `NewServer` to the start.** Today
-`NewAuthStore` allocates the auth names inside the server (`NewServer`'s post's `∃ γa`); with P-A1 the
-start allocates them per member (as `clusterAllocN` does the KV names) and hands `NewServer` their
-authorities. Only the token rights' authority (`authFreshInit (.on γa)`, the one a store construction
-hands to the server, `authApplyResPre`) is named here; S2 lists the rest from `NewAuthStore`'s
-allocation (the history, the current state, the tokens, the publication, `fen`, `fca`, `cap`, the
-backend's names). A review must treat this conjunct as incomplete. -/
+/-- **`γa`'s fresh authorities, which P-A1 moves from `NewServer` to the start** (one per name of
+`auth.AuthNames`, each at the value the server's boot allocates today). Today they are allocated inside
+`NewServer` (its post's `∃ γa`): the history and its companions by `auth.authBoot_alloc` /
+`auth.authHist_alloc` (`auth/Boot.lean`, `auth/Model.lean`), inside `NewAuthStore`'s boot proof
+(`auth.newAuthStore_boot`, `auth_store_boot_on` in `etcdserver/Results.lean`); the token names by the
+simple provider (`newTokenProviderSimple.lean`: `γf` an empty map, `γt` by `auth.tokAlloc γf`); the
+readiness cell `γy` by `srvTpInv_alloc` (`InvStart.lean`). With P-A1 the start allocates them per member
+(as `clusterAllocN` does the KV names) and hands them over:
+* `hist`: the history's whole authority at the boot state `[bootState]` (`authHist_alloc` at
+  `hs := [bootState]`; split into `authHist`'s three quarters and `authHistRev`'s quarter, `authHist_full`);
+* `cur`: the latest state's ghost variable, whole, at `bootState` (`authHist_alloc` splits it in halves);
+* `tok`: the issued tokens' authority, none issued (`auth.tokAuth γa.tok γa.fresh ∅`, `tokAlloc`);
+* `fresh`: the issue rights' authority, none minted (`authFreshInit (.on γa)`);
+* `pub`: the published index's authority at `0` (`auth.authPubAuth γa 0`);
+* `fen`, `fca`: the `enabled` field's and the permission cache's ghost variables, at `false` and
+  `(null, 0)`;
+* `cap`: the cap's authority at `[bootState, bump bootState]` (`auth.capAuth`; its lower bound
+  `capLb` follows from it);
+* `bk`: the current backend's ghost variable, unset (any value), whole;
+* `succ`: the succession token;
+* `rdt`: the readers' tickets' authority, none out (`ownTokAuth γa.rdt 0`);
+* `rdy`: the readiness cell's mono-nat authority at `0`, whole (`srvTpInv_alloc`'s; `NewServer` keeps a
+  half and puts the other in the readiness invariant, which names the server's location).
+Not here: the simple provider's token keeper map (`γk`, a ghost map of `Loc`s, not an `AuthNames`
+field: the provider's own, allocated in `NewServer` as now) and the backend's names (`d.γB`, the
+member's backend, allocated by `NewServer`'s backend construction). -/
 def authNamesFreshD (γa : auth.AuthNames) : IProp GF :=
-  authFreshInit (.on γa)
+  iprop(monoListAuthOwn γa.hist 1 [auth.bootState] ∗
+    ghostVar γa.cur 1 auth.bootState ∗
+    auth.tokAuth γa.tok γa.fresh ∅ ∗
+    authFreshInit (.on γa) ∗
+    auth.authPubAuth γa 0 ∗
+    ghostVar γa.fen 1 false ∗
+    ghostVar γa.fca 1 ((null : Loc), 0) ∗
+    auth.capAuth γa [auth.bootState, auth.bump auth.bootState] ∗
+    (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗
+    token γa.succ ∗
+    ownTokAuth γa.rdt 0 ∗
+    monoNatAuthOwn γa.rdy 1 0)
 
 end defs
 
@@ -171,6 +201,8 @@ abbrev Serve_dist_proposed.spec (A : w64 → auth.AuthNames) : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (Γ : DistView),
+  -- (F7: PROPOSED) distinct auth names per member (the lease review's form; `AuthViewDist.lean`'s header)
+  (∀ a b : w64, A a = A b → a = b) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
       ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ srvLevels (GF := GF) ∧
