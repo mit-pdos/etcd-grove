@@ -83,7 +83,6 @@ theorem Client.dialWithBalancer.wp_proof
     rw [List.nil_append]
     iframe Ho2
     iapply BigSepL2.bigSepL2_singleton.2; iexact Ho
-  wp_auto
   iapply HΦ
   iexact Hres
 
