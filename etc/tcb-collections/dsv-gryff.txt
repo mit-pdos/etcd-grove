@@ -23,4 +23,3 @@ axiom Perennial.math.rand.Seed.wp_proof
 axiom Perennial.net.http.wp_init_first
 axiom Perennial.net.http.wp_initialize'
 axiom Perennial.net.rpc.wp_initialize'
-axiom math.Pow.wp_proof

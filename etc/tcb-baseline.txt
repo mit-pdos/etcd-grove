@@ -196,8 +196,6 @@ axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
-axiom math.Ceil.wp_proof
-axiom math.Pow.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
