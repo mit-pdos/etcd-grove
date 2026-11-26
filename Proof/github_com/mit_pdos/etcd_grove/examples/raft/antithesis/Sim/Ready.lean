@@ -305,9 +305,9 @@ theorem RdCtx.logIdx1 {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → No
 /-- **`RdCtx` from `antSim_ready`'s premises** below `mskB1`. -/
 theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CCDec} {S : State}
     {V : Fin R.N → NodeView} {net : List Msg} {xnet : List XMsg} {evs : List Event} {G : RaftFacts}
-    {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
+    {n : Fin R.N} {r₁ : RState} {rd : ReadyD} {Adm : List EntryM → CCState → Prop}
     (hin : InMask msk R net xnet) (hpre : SimPre R dec S V net xnet evs G)
-    (hr : ReachIn msk R dec (admOf G) net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd)
+    (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd)
     (hrep : Reported (V n) rd) (htold : Told (V n)) (hrf : ReadyFacts G (nodeId n) r₁)
     (htb : TermRoom (V n)) :
     ∃ S1, RdCtx R dec S V net xnet evs G n r₁ rd S1 := by

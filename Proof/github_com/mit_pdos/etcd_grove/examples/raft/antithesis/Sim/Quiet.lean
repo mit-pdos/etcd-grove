@@ -1021,10 +1021,11 @@ theorem nodeOk_quiet {msk : SimMask} (hmsk : msk ≤ mskB1) {dec : CCDec}
 the relation, `S` unchanged. -/
 theorem antSim_quiet_in (msk : SimMask) (hmsk : msk ≤ mskB1) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
-      (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (v' : NodeView),
+      (xnet : List XMsg) (G : RaftFacts) (n : Fin R.N) (v' : NodeView)
+      {Adm : List EntryM → CCState → Prop},
       InMask msk R net xnet → AntSim R dec S V net xnet → RaftLaws G → GlobalOk R S net G →
-      QuietIn msk R dec (admOf G) net xnet n (V n) v' → AntSim R dec S (setV V n v') net xnet := by
-  intro R dec S V net xnet G n v' hin hsim _ _ hq
+      QuietIn msk R dec Adm net xnet n (V n) v' → AntSim R dec S (setV V n v') net xnet := by
+  intro R dec S V net xnet G n v' Adm hin hsim _ _ hq
   obtain ⟨hsh, hb, hnet, hxn, hall⟩ := hsim
   refine ⟨hsh, hb, hnet, hxn, fun j => ?_⟩
   unfold setV

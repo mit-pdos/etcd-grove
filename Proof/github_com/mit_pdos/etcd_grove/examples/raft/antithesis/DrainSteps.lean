@@ -166,10 +166,10 @@ abbrev readView (v : AntSim.NodeView) (rs : ReadStateM) (rest : List ReadStateM)
 /-- **`antSim_ready_in`'s statement at any admissibility `Adm`** (the Sim's theorem is at
 `admOf G`; its proof reads the `Reach` only through `ReachIn.toP`, which is at any `Adm`). -/
 abbrev antSim_readyA.law : Prop :=
-  ∀ (R : AntSim.RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (S : AntCheck.State)
+  ∀ (R : AntSim.RunCfg) (dec : CCDec) (S : AntCheck.State)
     (V : Fin R.N → AntSim.NodeView) (net : List Msg) (xnet : List XMsg)
     (evs : List AntCheck.Event) (G : AntSim.RaftFacts) (n : Fin R.N) (r₁ : RState)
-    (rd : AntSim.ReadyD),
+    (rd : AntSim.ReadyD) {Adm : List EntryM → CCState → Prop},
     AntSim.InMask AntSim.mskB1 R net xnet →
     AntSim.SimPre R dec S V net xnet evs G → R.md.async = false →
     AntSim.ReachIn AntSim.mskB1 R dec Adm net xnet n (V n) r₁ → AntSim.ReadyOutP R n (V n) r₁ rd →
@@ -208,7 +208,7 @@ theorem readyHstep (h_ready : antSim_readyA.law) {R : AntSim.RunCfg} {dec : CCDe
   have hr := reachIn_b1 hcc hby hreach hn hx
   refine ⟨?_, hL, setV_logs hlogs hle.2.2.2.1 hrf.1⟩
   simp only [List.append_nil]
-  exact h_ready R dec Adm S V net xnet evs G j r₁ rd (hinm S V net xnet hpre.2.1) hpre' hasync hr
+  exact h_ready R dec S V net xnet evs G j r₁ rd (hinm S V net xnet hpre.2.1) hpre' hasync hr
     hout hrep htold hrf hterm
 
 /-- **A `send` report's step** (the next pending message `q`; raft's facts grown by the message's,

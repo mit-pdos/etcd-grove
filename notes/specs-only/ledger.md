@@ -6700,3 +6700,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   producer is `RunCluster.viewInit_fresh` (`viewInit`'s `rd` is `{}`: still `rfl`). Sim/Init.lean derives the old
   `rd.pend = []` from it; Sim/Boot.lean and `HarnessStart.fresh_dur` ignore the conjunct.
 - **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S1): the Sim's ready and quiet theorems at any admissibility (#33)
+- **Spec.** `AntSim.rdCtx_of`, `AntSim.antSim_ready_in`, `AntSim.antSim_quiet_in` (Sim/Ready, ReadyAll, Quiet) and
+  HarnessInput's `antSim_quiet_in.law`: the `Reach`/`Quiet` premise at an implicit `{Adm}` instead of `admOf G`
+  (a generalization: `admOf G` is one instance).
+- **Defect.** The harness's `.loop` phase carries `Reach … (AdmFold γ.dec γ.R.c0)`, and a `StepR` derivation at `AdmFold`
+  does not transport to `admOf G`; the drain could not apply the theorems.
+- **Evidence.** The proofs read `Adm` only through `ReachIn.toP` and `nodeOk_quiet`, both `Adm`-generic: no proof edit
+  beyond the binder.
+- **Decision.** The Antithesis lead (S1, approved). No axiom, no top-level premise.
