@@ -518,7 +518,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
       nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1))
         (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
       ⌜rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
-      rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
+      rawNode γ.raft.raftNames {} rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
       ⌜RsView rs v ∧ v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length ∧
         rs.k = γ.R.k j⌝ ∗
       hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
