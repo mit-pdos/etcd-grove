@@ -286,7 +286,7 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
       (fun h => Hnz _ (hperm.subset h) rfl)) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %gen, %γk, %Hγ, -, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns, Hpis⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hklm, -, -⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hgen, hkc, hklm, -, -, -⟩ := Hγ
   ihave Hpis' := (BigSepL.bigSepL_perm hperm).1 $$ Hpis
   icases Hpis' with ⟨#Hpi₁, #Hpi₂, #Hpi₃, -⟩
   have hklg : γk.lg = false := by rw [KVNames.lg_eq, hklm]; rfl
