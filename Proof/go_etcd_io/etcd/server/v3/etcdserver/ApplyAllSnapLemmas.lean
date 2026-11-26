@@ -172,12 +172,15 @@ theorem snapRecv_imageR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i 
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
   have hbl : γr.raft.raft.boot.length ≤ (γr.raft.pre ++ A').length := by
     rw [hpre0, hrr, List.nil_append]; omega
-  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.cfg m.data := by
+  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccWideOk γr.raft.raft.cfg m.data := by
     rw [hpre0, List.nil_append]
     intro m hm ht
-    exact ccPolOk_static _ _ (Hcc m hm ht)
+    exact ccPolOk_wide _ _ (Hcc m hm ht)
+  -- (route B) the entries within the boot log's length the boot policy's
+  ihave %hbcc' := srv_bootPrefix_ccBoot γr.raft (γr.raft.pre ++ A') $$ [HrI HA'']
+  · iframe HrI HA''
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' hbcc'
     (by rw [hpre0, List.nil_append]; exact Hver) _ hids $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   imodintro
@@ -299,12 +302,15 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
   have hbl : γr.raft.raft.boot.length ≤ (γr.raft.pre ++ A').length := by
     rw [hpre0, hrr, List.nil_append]; omega
-  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.cfg m.data := by
+  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccWideOk γr.raft.raft.cfg m.data := by
     rw [hpre0, List.nil_append]
     intro m hm ht
-    exact ccPolOk_static _ _ (Hcc m hm ht)
+    exact ccPolOk_wide _ _ (Hcc m hm ht)
+  -- (route B) the entries within the boot log's length the boot policy's
+  ihave %hbcc' := srv_bootPrefix_ccBoot γr.raft (γr.raft.pre ++ A') $$ [HrI HA'']
+  · iframe HrI HA''
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc'
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' hbcc'
     (by rw [hpre0, List.nil_append]; exact Hver) _ (fun k => by rw [apply.restLeasesWith_mem]; exact hids k)
     $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩

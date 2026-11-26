@@ -188,7 +188,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: the key-value map of the ghost layer (see the file header). -/
-def kvR (g : GN) : RBase GF VsrModel.Store KIn KOut where
+def kvR (g : GN) : RBase GF VsrModel.Store KIn KIn KOut where
   B := kvB
   sysState σ := absOwnI g σ
   Eop := vsrE
@@ -214,7 +214,8 @@ client registers with its request: `ghost_register`), for the caller's postcondi
 output. -/
 theorem lin_AUof [NetProtoGS] (g : GN) (i : KIn) (Φ : KOut → IProp GF) :
     lin (Gg := Gg) (kvR g) i Φ ⊢ AUof g i.1 (fun _ _ o => Φ (bndO o)) := by
-  unfold lin AUof
+  refine (lin_linF (kvR g) i Φ).trans ?_
+  unfold linF AUof
   simp only [kvR, kvB]
   iintro H
   imod H with ⟨%σ, Hσ, Hc⟩

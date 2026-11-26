@@ -96,7 +96,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
 
 /-- **The far side's store**: the replicas' key-value store (see the file header). -/
-def epR (γ : EpNames) : RBase GF KvS EIn BStr where
+def epR (γ : EpNames) : RBase GF KvS EIn EIn BStr where
   B := epB
   sysState σ := own_state γ σ
   Eop := epEop
@@ -134,7 +134,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 postcondition read on the output's bytes, bounded). -/
 theorem lin_opU [RemoteGS] (γ : EpNames) (i : EIn) (Φ : BStr → IProp GF) :
     lin (Gg := Gg) (epR γ) i Φ ⊢ opU γ i.1 (fun o => Φ (bnd (outBytes o))) := by
-  unfold lin opU
+  refine (lin_linF (epR γ) i Φ).trans ?_
+  unfold linF opU
   simp only [epR, epB]
   exact .rfl
 

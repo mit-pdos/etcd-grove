@@ -100,7 +100,7 @@ variable [GooseExts] [GoGlobalContext] {GF : BundledGFunctors}
 
 /-- **The far side's store** over the base state `sys` of the map and the mask `E` of its update
 (see the file header). -/
-def swR (sys : St → IProp GF) (E : CoPset) : RBase GF St KIn BStr where
+def swR (sys : St → IProp GF) (E : CoPset) : RBase GF St KIn KIn BStr where
   B := swB
   sysState := sys
   Eop := E

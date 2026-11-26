@@ -11,7 +11,9 @@ axiom and no `opaque`:
 * `httpAddrAt a`: the peer address `a` serves rafthttp's protocol for the deployment's cluster (persistent,
   global ghost state: no heap), the counterpart of S2's `grpcAddrAt`;
 * `http_addr_set`: the start law, spending `addrUnset a` (the net library's), which replaces the
-  single-process `http.reserve` from `httpProtoFree` (whose only source is the one-process start axiom).
+  single-process `http.reserve` from `httpProtoFree` (whose only source is the one-process start axiom; since
+  2026-11-24 `http.reserve` takes the address's net protocols as net/http's, `httpAddrNet`, whose producer spends the
+  pending set, so the two are exclusive per address).
 To be added with S5's agreement: the member's side (`Serve_s5`: the raft handler served at a peer address
 set by `http_addr_set`) and the peers' round trips over it. When S5 lands, each field becomes its
 definition or theorem and the structure goes.
