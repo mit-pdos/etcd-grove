@@ -183,6 +183,17 @@ theorem srem_eq_umodD (x y : w64) (hx : x.toNat < 2 ^ 63) (hy : y.toNat < 2 ^ 63
   simp only [BitVec.srem, h1, h2]
   rfl
 
+/-- One of the members' addresses serves a member. -/
+theorem membersAt_of_mem [π : NetProtoGS] (addrs : List GoString) (Γ : DistView) (a : GoString)
+    (ha : a ∈ addrs) :
+    membersAt (Gg := hG.goose_globalGS) addrs Γ ⊢ membersAt (Gg := hG.goose_globalGS) [a] Γ := by
+  obtain ⟨i, hi⟩ := List.getElem?_of_mem ha
+  iintro #H
+  iunfold membersAt at H
+  ihave ⟨%mid, #Ha⟩ := BigSepL.bigSepL_lookup hi $$ H
+  iapply membersAt_one (Gg := hG.goose_globalGS) a Γ mid
+  iexact Ha
+
 /-- **The anonymous client** (`newClient`'s result at one endpoint) is a user client with no principal. -/
 theorem anonCli_of_new (cl : Loc) (a : GoString) (V : WEnv GF) :
     isNewClient cl [a] V ∗ clientNoProxy cl ∗ (∃ cfg : go_etcd_io.etcd.client.v3.Config,

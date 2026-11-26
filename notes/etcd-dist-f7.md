@@ -1744,3 +1744,20 @@ watch.
   `then_commit_nested_refused`'s with `akWriteAuD` and `t4M_not_granted`.
 - Next: the contract change above (a spec change: the lead's approval and a review), then `principalOp.wp_proof`
   (W-2's last paragraph) and the links.
+
+### Handoff W-4 (2026-11-26; S12: `principalOp.wp_proof` and `principalClient.wp_proof` proved)
+
+- `Spec/.../dist/client/principalClient.lean` (new): `principalClient.spec`, from `eps ↦*□ addrs` and
+  `membersAt addrs Γ` (auth on, `addrs ≠ []`, plain): `nil` and `userCli cl a V cfg` at some `a ∈ addrs` with
+  `principalOf cfg = none ∨ (= some who ∧ who ∈ {u, v})` (exactly `Work.spec_dist`'s premise), or an error.
+- `Proof/.../dist/client/principalClient.lean`: `principalClient.wp_proof` (callees `newClient`, `newUserClient`):
+  the four arms, `eps[c % k]` via `mod_len_sintD`/`srem_eq_umodD`, anon arms via `anonCli_of_new`.
+- `Proof/.../dist/client/principalOp.lean`: `principalOp.wp_proof` (callees `principalClient.spec`,
+  `etcd_auth.Work.spec_dist`, `Client.Close.spec`): error → `false`; else `userClientAt_of_userCli`,
+  `watchClient_of_userCli`, `Work`, the deferred `Close` (`clientCoreAt_of_new`), `true`.
+- `membersAt_of_mem` added to `AuthLeaseRunLemmas.lean` (defs; both proofs use it).
+- Built (lake, fk-lean1, both targets, no warnings in the new files). tier-check ok; bounds-check and the
+  lease-order check were NOT rerun (stopped by the coordinator's order; nothing bounds-relevant added).
+- Not linked. Next: run `python3 etc/bounds-check.py --check` and the lease-order check; link `principalOp`
+  (with `principalClient`, `Work.wp_proof_dist` — which still takes `then_commit_nested_refusedD.law`, W-3's T4
+  gap) into `PrincipalsLinked`/`NodeMainAuth`; the T4 contract change (W-3) remains open.
