@@ -361,6 +361,13 @@ theorem queued_ready (S : State) (n : Nat) (id : w64) (b : Str) (r : Role) (t v 
   · subst hb; simp only [evReady, need, eok_bind, epure, str_beq, decide_true, ite_true]
   · simp only [evReady, need, eok_bind, epure, str_beq, hb, decide_false, Bool.false_eq_true, ite_false]
 
+/-- The announced write `OnDisk` records (`pre`, B 349-359) at node `n` whose new log is `L1`: not
+made, the node's term, vote record and commit before it, and the new log's kept prefix with the
+suffix it replaced the log before it. -/
+def PreOk (S : State) (n : Nat) (L1 : List Entry) (p : Pre) : Prop :=
+  p.made = false ∧ p.term = S.currentTerm[n]! ∧ p.voteTerm = S.voteTerm[n]! ∧ p.voteFor = S.voteFor[n]! ∧
+    p.commit = S.commitIndex[n]! ∧ L1.take p.keep.toNat ++ p.suffix = S.log[n]!
+
 /-- `OnDisk`'s successor (B 534-560, more false): at node `n` the term `t1`, a vote written `vo`
 (at `t1`), the log `L1`, the commit `c`, the confirmation `cf`; the roles `ro`, the facts `msgs`,
 `votes`, the leaders and leader logs given, the announced write `p`, `chain`, `termLen`, `viol`. -/
@@ -441,7 +448,7 @@ theorem onDisk_camp {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) 
     (tl : TermFn Int) (vi : SSet)
     (ht : uint.Z t = S.currentTerm[n.val]! + 1) (hcm : uint.Z c = S.commitIndex[n.val]!)
     (hro : ro[n.val]! = candidate) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) go!"tick" (roleOf .candidate) t (nodeId n) c [], []⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) (some (nameOf (nodeId n))) (S.log[n.val]!) (uint.Z c) ro
             (S.confirmed[n.val]!) (lset.add S.msgs (S.voteRequest n.val (uint.Z t)))
@@ -456,7 +463,7 @@ theorem onDisk_camp {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) 
   have hst : (uint.Z t == S.currentTerm[n.val]! + 1) = true := by rw [ht]; exact beq_self_eq_true _
   od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hst, hne, hge,
     hcm', hadv, hvn, hro]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 /-- **A vote granted** (`HandleEnd`'s grant, after the preamble): the vote for the request's sender
 written at the request's term, which is the node's (`hT`: the same, `V1` then empty, or adopted from
@@ -469,7 +476,7 @@ theorem onDisk_grant {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
       (S.currentTerm[n.val]! < uint.Z t ∧ ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!))
     (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = follower)
     (hf1 : S.msgs.contains (vfOf m) = true) (hf2 : S.upToDate (vfOf m) n.val = true) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t m.src c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) (some (nameOf m.src)) (S.log[n.val]!) (uint.Z c) ro
@@ -485,7 +492,7 @@ theorem onDisk_grant {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
     have hge : decide (uint.Z m.term ≥ S.currentTerm[n.val]!) = true := decide_eq_true (by omega)
     od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
       hcm', hadv, hsrc', hro, hv, hty, hf1, hf2]
-    exact ⟨_, rfl, rfl⟩
+    exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
   · have hne : (uint.Z m.term != S.currentTerm[n.val]!) = true := by rw [bne_iff_ne]; omega
     have hge : decide (uint.Z m.term ≥ S.currentTerm[n.val]!) = true := decide_eq_true (by omega)
     have hany : ((List.range (List.length S.cfg.server)).any fun k =>
@@ -497,7 +504,7 @@ theorem onDisk_grant {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
         exact ⟨fun h => hj (Fin.ext h), htj⟩
     od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
       hcm', hadv, hsrc', hro, hty, hf1, hf2, hany]
-    exact ⟨_, rfl, rfl⟩
+    exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 /-- **A role change only** (`HandleEnd`'s loss, `padoptLeader` at the node's term with nothing
 stored or committed): the term, vote, log and commit as they were. -/
@@ -506,7 +513,7 @@ theorem onDisk_same {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) 
     (ch : List Entry) (tl : TermFn Int) (vi : SSet) (hr : r ≠ .leader)
     (ht : uint.Z t = S.currentTerm[n.val]!) (hv : nameOf v = S.vote n.val)
     (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = roleOf r) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) b (roleOf r) t v c [], M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p ch tl vi)) := by
@@ -518,7 +525,7 @@ theorem onDisk_same {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) 
   have hrl : (roleOf r == leader) = false := by rw [roleOf_beq_leader]; exact decide_eq_false hr
   od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
     hcm', hadv, hv', hro, hrl]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 /-- **A term adopted only** (`PreEnd`'s `pbecomeFollower` at the handled message's term, no vote,
 nothing stored or committed; a node of that term sent it, `hj`). -/
@@ -527,7 +534,7 @@ theorem onDisk_adopt {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
     (tl : TermFn Int) (vi : SSet) (hmt : m.term = t)
     (ht : S.currentTerm[n.val]! < uint.Z t) (hj : ∃ j : Fin R.N, j ≠ n ∧ uint.Z t ≤ S.currentTerm[j.val]!)
     (hcm : uint.Z c = S.commitIndex[n.val]!) (hro : ro[n.val]! = follower) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t (W64 0) c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
@@ -548,7 +555,7 @@ theorem onDisk_adopt {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg)
       exact ⟨fun h => hj (Fin.ext h), htj⟩
   od_run [ox_L1_nil hX, ox_acks_nil hX hcm', ox_conf1_nil hX hcm', ox_ch1_noadv hX hadv, hne, hge,
     hcm', hadv, hro, hany, h0]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 end pieces
 

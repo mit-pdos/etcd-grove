@@ -431,7 +431,7 @@ theorem onDisk_fcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
     (hcs : comparable ch ((S.log[n.val]!).take (uint.Z c).toNat) = .ok true)
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t v c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro
@@ -467,7 +467,12 @@ theorem onDisk_fcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
     ox_ackAt hX hs hr, ox_ch1 hX (ox_L1_nil hX) hcL, ox_newC hX (ox_L1_nil hX) hcL, hcm', hadv, hge', hcL',
     hcc', hv, hro, hty, hany, hsend, hprev, hfirst, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
     isPrefix_take, hcb, take_len_c hcL, hcc]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
+
+/-- The announced write's log of a store at `k + 1` (`keep = k`, the suffix from there). -/
+theorem pre_store_log (L0 X : List Entry) (k : Nat) (hk : k ≤ L0.length) :
+    (L0.take k ++ X).take k ++ L0.drop k = L0 := by
+  rw [List.take_append_of_le_length (by simp [hk]), List.take_take, Nat.min_self, List.take_append_drop]
 
 /-- **A follower's store on a `MsgApp`** (`appAccept` with a conflict or new entries:
 `plogMaybeAppend` appends the request's entries from the first conflict `K`), with its commit
@@ -506,7 +511,7 @@ theorem onDisk_fstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat =
       ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat)
     (hcch : uint.Z c = S.commitIndex[n.val]! → uint.Z c ≤ ch.length) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t v c (e :: es'), [msgOf m (nodeId n)]⟩ false
           ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none
@@ -573,13 +578,13 @@ theorem onDisk_fstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
         hge', hv, hro, hty, hany, hsend, hprev, hhf, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
         isPrefix_take, hcb, take_len_c hcL, hcc hlt, hsubE, hsuf, hK1', hK2', he1, hat, hneq hfl, hfl, hee,
         anyM_lm hlm, hcL', firstOf]
-      exact ⟨_, rfl, rfl⟩
+      exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl⟩
     · od_run2 [hL1 hX, ox_fm hX hs, ox_f hX hs hr, ox_acks_app hX hty hr, ox_conf1_app hX hty hr,
         ox_k hX hs hr, ox_ackAt hX hs hr, ox_ch1 hX (hL1 hX) hcL, ox_newC hX (hL1 hX) hcL, hcm', hadv,
         hge', hv, hro, hty, hany, hsend, hprev, hhf, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
         isPrefix_take, hcb, take_len_c hcL, hcc hlt, hsubE, hsuf, hK1', hK2', he1, hne1 hfl, hfl, hee,
         anyM_lm hlm, hcL', firstOf]
-      exact ⟨_, rfl, rfl⟩
+      exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl⟩
   · have hcm' : (uint.Z c != S.commitIndex[n.val]!) = false := by rw [heq]; exact bne_self_eq_false _
     have hadv : decide (uint.Z c > S.commitIndex[n.val]!) = false := decide_eq_false (by omega)
     have hnlt : ¬ S.commitIndex[n.val]! < uint.Z c := by omega
@@ -595,13 +600,13 @@ theorem onDisk_fstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
         hge', hv, hro, hty, hany, hsend, hprev, hhf, snapOk_msgOf _ _ _ hs, hsub0,
         isPrefix_take, hsubE, hsuf, hK1', hK2', he1, hat, hneq hfl, hfl, hee,
         anyM_lm hlm, firstOf]
-      exact ⟨_, rfl, rfl⟩
+      exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl⟩
     · od_run2 [hL1 hX, ox_fm hX hs, ox_f hX hs hr, ox_acks_app hX hty hr, ox_conf1_app hX hty hr,
         ox_k hX hs hr, ox_ackAt hX hs hr, ox_ch1_noadv hX hadv, hcm', hadv,
         hge', hv, hro, hty, hany, hsend, hprev, hhf, snapOk_msgOf _ _ _ hs, hsub0,
         isPrefix_take, hsubE, hsuf, hK1', hK2', he1, hne1 hfl, hfl, hee,
         anyM_lm hlm, firstOf]
-      exact ⟨_, rfl, rfl⟩
+      exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl⟩
 
 /-- **A follower's commit on a heartbeat** (`handleHeartbeat`'s `commitTo(m.Commit)`), at the
 heartbeat's term (the node's, or adopted): nothing recorded; `CommitBeyondConfirmed` (B 435) passes
@@ -622,7 +627,7 @@ theorem onDisk_fhb {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (
     (hcs : comparable ch ((S.log[n.val]!).take (uint.Z c).toNat) = .ok true)
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) go!"recv" (roleOf .follower) t v c [], [msgOf m (nodeId n)]⟩ false ro ld
           ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
@@ -653,7 +658,7 @@ theorem onDisk_fhb {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg) (
     ox_ch1 hX (ox_L1_nil hX) hcL, ox_newC hX (ox_L1_nil hX) hcL, hcm', hadv, hge', hcL',
     hv, hro, hty, hany, hsend, snapOk_msgOf _ _ _ hs, hcs, anyM_lc hlc, hsub,
     isPrefix_take, hcb1, hcb2, take_len_c hcL, hcc]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 /-- **A leader's commit, nothing stored** (`AppRespEnd`'s `maybeCommit`, or a drain's later
 `Ready` after `Advance` stepped the leader's self-acknowledgement): its own request with the commit
@@ -670,7 +675,7 @@ theorem onDisk_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
     (hcs : comparable ch ((S.log[n.val]!).take (uint.Z c).toNat) = .ok true)
     (hlc : ∀ p ∈ ll, p.1 > uint.Z t → isPrefix ((S.log[n.val]!).take (uint.Z c).toNat) p.2 = .ok true)
     (hch : uint.Z c ≤ ch.length → ch.take (uint.Z c).toNat = (S.log[n.val]!).take (uint.Z c).toNat) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val (S.log[n.val]!) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c [], M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none (S.log[n.val]!) (uint.Z c) ro (S.confirmed[n.val]!)
             S.msgs S.votes ld ll p
@@ -691,7 +696,7 @@ theorem onDisk_lcommit {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cf
   od_run2 [ox_L1_nil hX, ox_f_lnil hX rfl, ox_acks_lnil hX rfl, ox_conf1_lnil hX rfl,
     ox_ch1 hX (ox_L1_nil hX) hcL, ox_newC hX (ox_L1_nil hX) hcL, hne, hge, hv', hst, hcm', hadv, hcL',
     hro, hsend, hcs, anyM_lc hlc, hsub, isPrefix_take, hcb1, hcb2, take_len_c hcL]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, by simp⟩, rfl⟩
 
 /-- **A leader's store** (`WinEnd`'s empty entry, `ProposeEnd`'s proposal: `appendEntry` at the
 log's end), its commit unchanged: its own request `Sendable` from its leader log `lT` at its term
@@ -714,7 +719,7 @@ theorem onDisk_lstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
     (hcch : uint.Z c ≤ ch.length)
     (hch : ch.take (uint.Z c).toNat =
       ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')).take (uint.Z c).toNat) :
-    ∃ p : Pre, p.made = false ∧
+    ∃ p : Pre, PreOk S n.val ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) p ∧
       S.onDisk n.val ⟨evReady (nodeId n) b (roleOf .leader) t v c (e :: es'), M⟩ false ro ld ll ch tl vi
         = .ok (some (odS S n.val (uint.Z t) none
             ((S.log[n.val]!).take (uint.Z e.Index' - 1).toNat ++ logOf (e :: es')) (uint.Z c) ro
@@ -744,7 +749,7 @@ theorem onDisk_lstore {S : State} {R : RunCfg} (n : Fin R.N) (hc : S.cfg = R.cfg
   od_run2 [hL1 hX, ox_f_lcons hX rfl hll, ox_acks_lcons hX rfl, ox_conf1_lcons hX rfl hll,
     ox_ackAt_lcons hX rfl hll, ox_ch1_noadv hX hadv, hne, hge, hv', hst, hcm', hadv, hro, hsend, hfe,
     hsuf, hsub0, isPrefix_take, hee, anyM_lm hlm, firstOf]
-  exact ⟨_, rfl, rfl⟩
+  exact ⟨_, ⟨rfl, rfl, rfl, rfl, rfl, pre_store_log _ _ _ (by simp only; omega)⟩, rfl⟩
 
 end kinds
 

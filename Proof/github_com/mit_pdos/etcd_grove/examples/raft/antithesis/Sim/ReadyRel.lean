@@ -31,8 +31,8 @@ variable [GooseExts]
 
 /-! ## Helpers: lists, leader logs, `Sendable` -/
 
-theorem rr_set_get {α : Type} [Inhabited α] {l : List α} {n : Fin 3} (x : α) (hl : l.length = 3)
-    (k : Fin 3) : (l.set n.val x)[k.val]! = if k = n then x else l[k.val]! := by
+theorem rr_set_get {α : Type} [Inhabited α] {N : Nat} {l : List α} {n : Fin N} (x : α) (hl : l.length = N)
+    (k : Fin N) : (l.set n.val x)[k.val]! = if k = n then x else l[k.val]! := by
   by_cases h : k = n
   · subst h; rw [if_pos rfl, get!_set_self _ (by omega)]
   · rw [if_neg h, get!_set_ne _ _ (fun e => h (Fin.ext e))]
@@ -242,7 +242,8 @@ extending what was there); `chain` extended, `termLen` dominated, the node's com
 agreeing with `chain`, recorded; the confirmation kept or moved to the new term (never lower at
 the same term), a prefix of its term's leader log; the node's C2 and drain facts at the new
 state. -/
-structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : RaftFacts) (n : Fin 3)
+structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView) (net : List Msg)
+    (G : RaftFacts) (n : Fin R.N)
     (w : NodeView) (t1 : Int) (vo : Option Str) (L1 : List Entry) (c : Int)
     (ro : List Str) (cf : Confirmed) (M : List Fact) (Vs : List VoteRec) (ld : List LeaderRec)
     (ll : TermFn (List Entry)) (p : Pre) (ch : List Entry) (tl : TermFn Int) (vi : SSet)
@@ -251,26 +252,35 @@ structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : Raf
   hterm : t1 = uint.Z w.ps.term
   tge : S.currentTerm[n.val]! ≤ t1
   hvote : match vo with
-    | some x => x = nameOf w.ps.vote ∧ 0 < t1
+    | some x => x = nameOf w.ps.vote ∧ S.bootTerm < t1
     | none => (t1 = S.currentTerm[n.val]! ∧ S.vote n.val = nameOf w.ps.vote) ∨
         (S.currentTerm[n.val]! < t1 ∧ w.ps.vote = W64 0)
   hlog : L1 = logOf w.ps.log
   hcommit : c = uint.Z w.ps.commit
   cge : S.commitIndex[n.val]! ≤ c
-  hrole : ro[n.val]! = roleOf w.ps.role
-  rlen : ro.length = 3
-  rother : ∀ k : Fin 3, k ≠ n → ro[k.val]! = S.role[k.val]!
+  hrole : ro[n.val]! = roleS w
+  rlen : ro.length = R.N
+  rother : ∀ k : Fin R.N, k ≠ n → ro[k.val]! = S.role[k.val]!
   rstay : S.role[n.val]! = leader → t1 = S.currentTerm[n.val]! → ro[n.val]! = leader
   hdel : w.delivered = (V n).delivered
-  wf : w.ps.outbox = [] ∧ w.ps.base = base0 ∧ LogIdx w.ps.log ∧ w.delivered ++ w.ce <+: w.ps.log ∧
-    (w.delivered ++ w.ce).length ≤ uint.nat w.ps.commit
+  -- the node's view: its disk raft's state (no ghost prefix), the announced write the old disk,
+  -- not made; queue, reads and configuration kept; raft's facts
+  hfp : w.r.fp = []
+  hdur : w.dur = durOf w.r
+  hundo : w.undo = some (V n).dur
+  hmade : w.made = false
+  hmems : w.mems = (V n).mems
+  hreads : w.reads = (V n).reads
+  hcfg : w.conf = (V n).conf ∧ w.confAt = (V n).confAt
+  confLag : ConfLag dec R w
+  facts : NodeFacts R w
   hmem : r.config = S.config ∧ r.confAt = S.confAt
   hviol : vi = []
-  made : p.made = false
+  pre : PreOk S n.val L1 p
   -- facts, votes, leaders
   msub : ∀ f ∈ S.msgs, f ∈ M
   mnew : ∀ f ∈ M, f ∉ S.msgs → f.type = go!"vote" ∨
-    (f.type = go!"ack" ∧ f.src = nameOf (nodeId n) ∧ (∃ j : Fin 3, f.dst = nameOf (nodeId j)) ∧
+    (f.type = go!"ack" ∧ f.src = nameOf (nodeId n) ∧ (∃ j : Fin R.N, f.dst = nameOf (nodeId j)) ∧
       f.term = t1 ∧ ((cf.term = f.term ∧ f.index ≤ cf.index) ∨ f.index ≤ c))
   vsub : ∀ y ∈ S.votes, y ∈ Vs
   vnew : ∀ y ∈ Vs, y ∉ S.votes →
@@ -305,20 +315,23 @@ structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : Raf
   -- the node's C2 and drain facts
   lpart : LeaderPart (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w
   cpart : CandPart (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w
-  hpend : ∀ q ∈ w.pend, PendOk (nodeId n) w q
+  hpend : ∀ q ∈ w.pend, PendOk R.N (nodeId n) w q
+  hxpend : ∀ x ∈ w.xpend, XPendOk R.N (nodeId n) x
   hqs : ∀ q ∈ w.qs, QsOk (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) n w q
-  drain : w.told = (V n).told ∧ w.cause = (V n).cause
+  drain : w.told = (V n).told ∧ w.cause = (V n).cause ∧ w.xcause = (V n).xcause
   hlead : LeadOk n w
   hvself : VoteSelf n w
   -- C3's recorded commits, C4's leader commits
   rnf : ro[n.val]! ≠ follower → t1 = S.currentTerm[n.val]! → S.role[n.val]! ≠ follower
   tlMono : ∀ T, tlOld S.termLen T ≤ tlOld tl T
   tlNew : ∀ T, tlOld S.termLen T < tlOld tl T → T = t1 ∧ (∃ l ∈ ld, l.term = t1) ∧
-    ∀ k : Fin 3, k ≠ n → S.role[k.val]! = leader → S.currentTerm[k.val]! = t1 →
+    ∀ k : Fin R.N, k ≠ n → S.role[k.val]! = leader → S.currentTerm[k.val]! = t1 →
       tlOld tl t1 ≤ S.commitIndex[k.val]!
   tlSelf : ro[n.val]! = leader → (termAt L1 c = t1 → c ≤ tlOld tl t1) ∧ tlOld tl t1 ≤ c
   -- C3's leader configurations
-  lconf : ∀ T, ll.has T = true → r.ledConf.get T = .ok cfg3.initConf
+  lconf : ∀ T, ll.has T = true → ∃ (l : List EntryM) (a : Nat) (cs : CCState),
+    ll.get T = .ok (logOf l) ∧ r.ledAt.get T = .ok (a : Int) ∧ cfgFold dec R.c0 (l.take a) = some cs ∧
+    r.ledConf.get T = .ok (confView R.N cs)
   -- C3's `termLen` sorted
   tlSort : tl.Pairwise (fun a b => a.1 < b.1)
 
@@ -326,7 +339,7 @@ structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : Raf
 /-! ## The new state, piece by piece -/
 
 section main
-variable {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} {n : Fin 3}
+variable {R : RunCfg} {dec : CCDec} {xnet : List XMsg} {S : State} {V : Fin R.N → NodeView} {net : List Msg} {G : RaftFacts} {n : Fin R.N}
     {w : NodeView} {t1 : Int} {vo : Option Str} {L1 : List Entry} {c : Int} {ro : List Str}
     {cf : Confirmed} {M : List Fact} {Vs : List VoteRec} {ld : List LeaderRec}
     {ll : TermFn (List Entry)} {p : Pre} {ch : List Entry} {tl : TermFn Int} {vi : SSet}
@@ -341,22 +354,21 @@ set_option hygiene false in
 local notation "S₂[" v "]" => readyS S n.val t1 v L1 c ro cf M Vs ld ll p ch tl vi r
 
 /-- What the vote is at the new state. -/
-def VoteAt (S S2 : State) (n : Fin 3) (w : NodeView) (t1 : Int) (Vs : List VoteRec) : Prop :=
+def VoteAt (S S2 : State) (n : Fin R.N) (w : NodeView) (t1 : Int) (Vs : List VoteRec) : Prop :=
   S2.vote n.val = nameOf w.ps.vote ∧
     (S2.vote n.val ≠ [] → { voter := nameOf (nodeId n), term := t1, cand := S2.vote n.val } ∈ Vs) ∧
-    (∀ k : Fin 3, k ≠ n → S2.vote k.val = S.vote k.val) ∧
-    S2.voteTerm[n.val]! ≤ t1 ∧ (∀ k : Fin 3, k ≠ n → S2.voteTerm[k.val]! = S.voteTerm[k.val]!)
+    (∀ k : Fin R.N, k ≠ n → S2.vote k.val = S.vote k.val) ∧
+    S2.voteTerm[n.val]! ≤ t1 ∧ (∀ k : Fin R.N, k ≠ n → S2.voteTerm[k.val]! = S.voteTerm[k.val]!)
 
-theorem rr_vote_some {x : Str} (hs : AntSim S V net)
-    (hok : ReadyOk S V net G n w t1 (some x) L1 c ro cf M Vs ld ll p ch tl vi r) :
+theorem rr_vote_some {x : Str} (hs : AntSim R dec S V net xnet)
+    (hok : ReadyOk R dec S V net G n w t1 (some x) L1 c ro cf M Vs ld ll p ch tl vi r) :
     VoteAt S (S₂[some x]) n w t1 Vs := by
-  obtain ⟨⟨sh0, sh1, sh2, sh3, -⟩, -, -, -⟩ := hs
+  obtain ⟨⟨sh0, sh1, sh2, sh3, -⟩, -, -, -, -⟩ := hs
   have hct : (S₂[some x]).currentTerm[n.val]! = t1 := by
     show (S.currentTerm.set n.val t1)[n.val]! = t1; rw [get!_set_self _ (by omega)]
-  have hcto : ∀ k : Fin 3, k ≠ n → (S₂[some x]).currentTerm[k.val]! = S.currentTerm[k.val]! := fun k hk => by
+  have hcto : ∀ k : Fin R.N, k ≠ n → (S₂[some x]).currentTerm[k.val]! = S.currentTerm[k.val]! := fun k hk => by
     show (S.currentTerm.set n.val t1)[k.val]! = _; rw [get!_set_ne _ _ (fun e => hk (Fin.ext e))]
-  have hboot : S.bootTerm = 0 := by unfold State.bootTerm; rw [sh0]; rfl
-  have hvo : ∀ k : Fin 3, (S₂[some x]).vote k.val =
+  have hvo : ∀ k : Fin R.N, (S₂[some x]).vote k.val =
       S.voteOf ((S₂[some x]).voteTerm[k.val]!) ((S₂[some x]).voteFor[k.val]!)
         ((S₂[some x]).currentTerm[k.val]!) := fun k => rfl
   obtain ⟨hx, ht0⟩ := hok.hvote
@@ -365,7 +377,7 @@ theorem rr_vote_some {x : Str} (hs : AntSim S V net)
   have hvf : (S₂[some x]).voteFor[n.val]! = x := by
     show (S.voteFor.set n.val x)[n.val]! = x; rw [get!_set_self _ (by omega)]
   have hvn : (S₂[some x]).vote n.val = x := by
-    rw [hvo, hvt, hvf, hct]; unfold State.voteOf; rw [hboot]; simp [ht0]
+    rw [hvo, hvt, hvf, hct]; unfold State.voteOf; simp [ht0]
   refine ⟨hvn.trans hx, fun _ => by rw [hvn, hx]; exact hok.vin (by simp), fun k hk => ?_, by rw [hvt]; exact Int.le_refl _,
     fun k hk => ?_⟩
   · rw [hvo, hcto k hk]
@@ -373,24 +385,24 @@ theorem rr_vote_some {x : Str} (hs : AntSim S V net)
     rw [get!_set_ne _ _ (fun e => hk (Fin.ext e)), get!_set_ne _ _ (fun e => hk (Fin.ext e))]; rfl
   · show (S.voteTerm.set n.val t1)[k.val]! = _; rw [get!_set_ne _ _ (fun e => hk (Fin.ext e))]
 
-theorem rr_vote_none (hs : AntSim S V net)
-    (hok : ReadyOk S V net G n w t1 none L1 c ro cf M Vs ld ll p ch tl vi r) :
+theorem rr_vote_none (hs : AntSim R dec S V net xnet)
+    (hok : ReadyOk R dec S V net G n w t1 none L1 c ro cf M Vs ld ll p ch tl vi r) :
     VoteAt S (S₂[none]) n w t1 Vs := by
-  obtain ⟨⟨sh0, sh1, sh2, sh3, -⟩, ⟨-, -, -, -, -, -, -, -, -, -, -, -, hb13, -, hb15, -⟩, -, -⟩ := hs
+  obtain ⟨⟨sh0, sh1, sh2, sh3, -⟩, ⟨-, -, -, -, -, -, -, -, -, -, hb11, -, hb13, -⟩, -, -, -⟩ := hs
   have hct : (S₂[none]).currentTerm[n.val]! = t1 := by
     show (S.currentTerm.set n.val t1)[n.val]! = t1; rw [get!_set_self _ (by omega)]
-  have hcto : ∀ k : Fin 3, k ≠ n → (S₂[none]).currentTerm[k.val]! = S.currentTerm[k.val]! := fun k hk => by
+  have hcto : ∀ k : Fin R.N, k ≠ n → (S₂[none]).currentTerm[k.val]! = S.currentTerm[k.val]! := fun k hk => by
     show (S.currentTerm.set n.val t1)[k.val]! = _; rw [get!_set_ne _ _ (fun e => hk (Fin.ext e))]
-  have hvo : ∀ k : Fin 3, (S₂[none]).vote k.val =
+  have hvo : ∀ k : Fin R.N, (S₂[none]).vote k.val =
       S.voteOf (S.voteTerm[k.val]!) (S.voteFor[k.val]!) ((S₂[none]).currentTerm[k.val]!) := fun k => rfl
   have htge := hok.tge
-  have hvo2 : ∀ k : Fin 3, k ≠ n → (S₂[none]).vote k.val = S.vote k.val := fun k hk => by
+  have hvo2 : ∀ k : Fin R.N, k ≠ n → (S₂[none]).vote k.val = S.vote k.val := fun k hk => by
     rw [hvo, hcto k hk]; rfl
-  have hvt := hb15 n
+  have hvt := hb13 n
   rcases hok.hvote with ⟨h1, h2⟩ | ⟨h1, h2⟩
   · have hvn : (S₂[none]).vote n.val = S.vote n.val := by rw [hvo, hct, h1]; rfl
     refine ⟨hvn.trans h2, fun hne => ?_, hvo2, ?_, fun k _ => rfl⟩
-    · rw [hvn] at hne ⊢; rw [h1]; exact hok.vsub _ (hb13 n hne)
+    · rw [hvn] at hne ⊢; rw [h1]; exact hok.vsub _ (hb11 n hne)
     · show S.voteTerm[n.val]! ≤ t1; omega
   · have hvn : (S₂[none]).vote n.val = [] := by
       rw [hvo, hct]; unfold State.voteOf
@@ -399,14 +411,14 @@ theorem rr_vote_none (hs : AntSim S V net)
     refine ⟨by rw [hvn, h2, rr_nameOf_zero], fun hne => absurd hvn hne, hvo2, ?_, fun k _ => rfl⟩
     show S.voteTerm[n.val]! ≤ t1; omega
 
-theorem rr_vote (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+theorem rr_vote (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
     VoteAt S (S₂) n w t1 Vs := by
   cases vo with
   | some x => exact rr_vote_some hs hok
   | none => exact rr_vote_none hs hok
 
 /-- The leader logs only grow. -/
-theorem rr_ll (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+theorem rr_ll (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
     (∀ t l, S.ledLog.get t = .ok l → ∃ e, ll.get t = .ok (l ++ e)) ∧
     (∀ t, S.ledLog.has t = true → ll.has t = true) := by
   rcases hok.hll with h | ⟨h, -, -, hpre, -⟩
@@ -419,21 +431,21 @@ theorem rr_ll (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl v
       exact ⟨e, by rw [rr_get_with_self, he]⟩
     · exact ⟨[], by rw [rr_get_with_ne _ _ ht, hl, List.append_nil]⟩
 
-theorem rr_ct_n (h : S.currentTerm.length = 3) : (S₂).currentTerm[n.val]! = t1 :=
+theorem rr_ct_n (h : S.currentTerm.length = R.N) : (S₂).currentTerm[n.val]! = t1 :=
   get!_set_self _ (by omega)
-theorem rr_ct_o {k : Fin 3} (hk : k ≠ n) : (S₂).currentTerm[k.val]! = S.currentTerm[k.val]! :=
+theorem rr_ct_o {k : Fin R.N} (hk : k ≠ n) : (S₂).currentTerm[k.val]! = S.currentTerm[k.val]! :=
   get!_set_ne _ _ (fun e => hk (Fin.ext e))
-theorem rr_log_n (h : S.log.length = 3) : (S₂).log[n.val]! = L1 := get!_set_self _ (by omega)
-theorem rr_log_o {k : Fin 3} (hk : k ≠ n) : (S₂).log[k.val]! = S.log[k.val]! :=
+theorem rr_log_n (h : S.log.length = R.N) : (S₂).log[n.val]! = L1 := get!_set_self _ (by omega)
+theorem rr_log_o {k : Fin R.N} (hk : k ≠ n) : (S₂).log[k.val]! = S.log[k.val]! :=
   get!_set_ne _ _ (fun e => hk (Fin.ext e))
-theorem rr_cm_n (h : S.commitIndex.length = 3) : (S₂).commitIndex[n.val]! = c := get!_set_self _ (by omega)
-theorem rr_cm_o {k : Fin 3} (hk : k ≠ n) : (S₂).commitIndex[k.val]! = S.commitIndex[k.val]! :=
+theorem rr_cm_n (h : S.commitIndex.length = R.N) : (S₂).commitIndex[n.val]! = c := get!_set_self _ (by omega)
+theorem rr_cm_o {k : Fin R.N} (hk : k ≠ n) : (S₂).commitIndex[k.val]! = S.commitIndex[k.val]! :=
   get!_set_ne _ _ (fun e => hk (Fin.ext e))
-theorem rr_cf_n (h : S.confirmed.length = 3) : (S₂).confirmed[n.val]! = cf := get!_set_self _ (by omega)
-theorem rr_cf_o {k : Fin 3} (hk : k ≠ n) : (S₂).confirmed[k.val]! = S.confirmed[k.val]! :=
+theorem rr_cf_n (h : S.confirmed.length = R.N) : (S₂).confirmed[n.val]! = cf := get!_set_self _ (by omega)
+theorem rr_cf_o {k : Fin R.N} (hk : k ≠ n) : (S₂).confirmed[k.val]! = S.confirmed[k.val]! :=
   get!_set_ne _ _ (fun e => hk (Fin.ext e))
-theorem rr_ct_ge (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r)
-    (k : Fin 3) : S.currentTerm[k.val]! ≤ (S₂).currentTerm[k.val]! := by
+theorem rr_ct_ge (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r)
+    (k : Fin R.N) : S.currentTerm[k.val]! ≤ (S₂).currentTerm[k.val]! := by
   by_cases hk : k = n
   · rw [hk, rr_ct_n hs.1.2.1]; exact hok.tge
   · rw [rr_ct_o hk]; exact Int.le_refl _
@@ -441,28 +453,20 @@ theorem rr_ct_ge (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c r
 theorem rr_vote_ne_ack : (go!"vote" : Str) ≠ go!"ack" := by decide
 
 /-- C3 at the new state. -/
-theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
-    BindingOk (S₂) := by
+theorem rr_binding (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+    BindingOk R dec (S₂) := by
   have hv := rr_vote hs hok
   have hge := rr_ct_ge hs hok
   have hllm := rr_ll hok
-  obtain ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩, hb, -, -⟩ := hs
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18,
-    hb19⟩ := hb
-  refine ⟨hok.hviol, hb2, ?_, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hok.tlSort⟩
-  · -- undo
-    intro k q hq
-    change (S.undo.set n.val (some p))[k.val]! = some q at hq
-    rw [rr_set_get _ sh11] at hq
-    split at hq
-    · obtain rfl := Option.some.inj hq; exact hok.made
-    · exact hb3 k q hq
+  obtain ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩, hb, -, -, -⟩ := hs
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
+  refine ⟨hok.hviol, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hok.tlSort⟩
   · -- commits within chain
     intro k
     by_cases hk : k = n
     · rw [hk, rr_cm_n sh5, rr_log_n sh4]; exact hok.chainC
     · rw [rr_cm_o hk, rr_log_o hk]
-      obtain ⟨h1, h2⟩ := hb5 k
+      obtain ⟨h1, h2⟩ := hb3 k
       have hl := hok.hchain.length_le
       refine ⟨show S.commitIndex[k.val]! ≤ (ch.length : Int) by omega, ?_⟩
       show ch.take _ = _
@@ -472,7 +476,7 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     by_cases hk : k = n
     · rw [hk, rr_cm_n sh5, rr_ct_n sh1]; exact hok.tlC
     · rw [rr_cm_o hk, rr_ct_o hk]
-      rcases hb6 k with h | ⟨q, hq, h1, h2⟩
+      rcases hb4 k with h | ⟨q, hq, h1, h2⟩
       · exact .inl h
       · obtain ⟨q', hq', e1, e2⟩ := hok.tlDom q hq
         exact .inr ⟨q', hq', by omega, by omega⟩
@@ -483,19 +487,19 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     · rw [rr_cf_o hk] at hlg ⊢; rw [rr_log_o hk]
       change ll.get (S.confirmed[k.val]!).term = .ok l at hlg
       rcases hok.hll with heq | ⟨heq, -, ht1, hpre, -⟩
-      · rw [heq] at hlg; exact hb7 k l hlg
+      · rw [heq] at hlg; exact hb5 k l hlg
       · by_cases hT : (S.confirmed[k.val]!).term = t1
         · rw [heq, hT, rr_get_with_self] at hlg
           obtain rfl := Except.ok.inj hlg
-          rcases (hb16 k).1 with h0 | hhas | hall
+          rcases (hb14 k).1 with h0 | hhas | hall
           · rw [h0]; simp
           · obtain ⟨l0, hl0⟩ := rr_get_of_has hhas
             have hp0 := hpre l0 (hT ▸ hl0)
-            obtain ⟨o1, o2, o3⟩ := hb7 k l0 hl0
+            obtain ⟨o1, o2, o3⟩ := hb5 k l0 hl0
             have hlen := hp0.length_le
             exact ⟨o1, by omega, by rw [o3, rr_take_prefix hp0 (by omega)]⟩
           · have := hall n; omega
-        · rw [heq, rr_get_with_ne _ _ hT] at hlg; exact hb7 k l hlg
+        · rw [heq, rr_get_with_ne _ _ hT] at hlg; exact hb5 k l hlg
   · -- acks within confirmation or commit
     intro k a ha hty hsrc hterm
     change a ∈ M at ha
@@ -503,15 +507,15 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     · by_cases hk : k = n
       · rw [hk] at hsrc hterm ⊢
         rw [rr_ct_n sh1] at hterm; rw [rr_cf_n sh10, rr_cm_n sh5]
-        have hle := hb14 n a hm hty hsrc
+        have hle := hb12 n a hm hty hsrc
         have htg := hok.tge
-        have old := hb8 n a hm hty hsrc (by omega)
+        have old := hb6 n a hm hty hsrc (by omega)
         rcases hok.cmono with e | ⟨e1, -, e3⟩
         · rw [e]; exact old.imp id (fun h => Int.le_trans h hok.cge)
         · rcases old with ⟨o1, o2⟩ | o
           · exact .inl ⟨e1.trans hterm.symm, Int.le_trans o2 (e3 (o1.trans hterm))⟩
           · exact .inr (Int.le_trans o hok.cge)
-      · rw [rr_ct_o hk] at hterm; rw [rr_cf_o hk, rr_cm_o hk]; exact hb8 k a hm hty hsrc hterm
+      · rw [rr_ct_o hk] at hterm; rw [rr_cf_o hk, rr_cm_o hk]; exact hb6 k a hm hty hsrc hterm
     · rcases hok.mnew a ha hm with hvt | ⟨-, hsrc', -, ht', hcov⟩
       · rw [hvt] at hty; exact absurd hty rr_vote_ne_ack
       · have hkn : k = n := name_inj (hsrc.symm.trans hsrc')
@@ -520,36 +524,38 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     intro q hq
     change q ∈ ll at hq
     rcases hok.hll with heq | ⟨heq, -, -, -, hin, -⟩
-    · rw [heq] at hq; obtain ⟨l, hl, e⟩ := hb9 q hq; exact ⟨l, hok.lsub l hl, e⟩
+    · rw [heq] at hq; obtain ⟨l, hl, e⟩ := hb7 q hq; exact ⟨l, hok.lsub l hl, e⟩
     · rw [heq] at hq
       rcases rr_mem_with hq with hq | rfl
-      · obtain ⟨l, hl, e⟩ := hb9 q hq; exact ⟨l, hok.lsub l hl, e⟩
+      · obtain ⟨l, hl, e⟩ := hb7 q hq; exact ⟨l, hok.lsub l hl, e⟩
       · exact ⟨_, hin, rfl⟩
   · -- leaders at their current term
     intro k l hl hsv
     change l ∈ ld at hl
     by_cases hm : l ∈ S.leaders
-    · have old := hb10 k l hm hsv
+    · have old := hb8 k l hm hsv
       by_cases hk : k = n
       · rw [hk] at old ⊢; rw [rr_ct_n sh1]
-        show _ ∨ (_ ∧ ro[n.val]! = leader)
+        show _ ∨ (_ ∧ (ro[n.val]! = leader ∨ _))
         have htg := hok.tge
         rcases old with h | ⟨h1, h2⟩
         · exact .inl (by omega)
         · by_cases he : t1 = S.currentTerm[n.val]!
-          · exact .inr ⟨by omega, hok.rstay h2 he⟩
+          · rcases h2 with h2 | h2
+            · exact .inr ⟨by omega, .inl (hok.rstay h2 he)⟩
+            · exact .inr ⟨by omega, .inr h2⟩
           · exact .inl (by omega)
       · rw [rr_ct_o hk]
-        show _ ∨ (_ ∧ ro[k.val]! = leader)
+        show _ ∨ (_ ∧ (ro[k.val]! = leader ∨ _))
         rw [hok.rother k hk]; exact old
     · obtain ⟨rfl, hro, -⟩ := hok.lnew l hl hm
       have hkn : k = n := name_inj hsv.symm
-      rw [hkn, rr_ct_n sh1]; exact .inr ⟨rfl, hro⟩
+      rw [hkn, rr_ct_n sh1]; exact .inr ⟨rfl, .inl hro⟩
   · -- facts' servers
     intro f hf hty
     change f ∈ M at hf
     by_cases hm : f ∈ S.msgs
-    · exact hb11 f hm hty
+    · exact hb9 f hm hty
     · rcases hok.mnew f hf hm with h | ⟨-, h1, h2, -⟩
       · exact absurd h hty
       · exact ⟨⟨n, h1⟩, h2⟩
@@ -557,18 +563,18 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     intro y hy
     change y ∈ Vs at hy
     by_cases hm : y ∈ S.votes
-    · exact hb12 y hm
+    · exact hb10 y hm
     · exact ⟨n, by rw [(hok.vnew y hy hm).1]⟩
   · -- a node's vote recorded
     intro k hne
     by_cases hk : k = n
     · rw [hk] at hne ⊢; rw [rr_ct_n sh1]; exact hv.2.1 hne
-    · rw [hv.2.2.1 k hk] at hne ⊢; rw [rr_ct_o hk]; exact hok.vsub _ (hb13 k hne)
+    · rw [hv.2.2.1 k hk] at hne ⊢; rw [rr_ct_o hk]; exact hok.vsub _ (hb11 k hne)
   · -- AckTermsOk
     intro k a ha hty hsrc
     change a ∈ M at ha
     by_cases hm : a ∈ S.msgs
-    · exact Int.le_trans (hb14 k a hm hty hsrc) (hge k)
+    · exact Int.le_trans (hb12 k a hm hty hsrc) (hge k)
     · rcases hok.mnew a ha hm with hvt | ⟨-, hsrc', -, ht', -⟩
       · rw [hvt] at hty; exact absurd hty rr_vote_ne_ack
       · have hkn : k = n := name_inj (hsrc.symm.trans hsrc')
@@ -577,26 +583,26 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     intro k
     by_cases hk : k = n
     · rw [hk, rr_ct_n sh1]; exact hv.2.2.2.1
-    · rw [rr_ct_o hk, hv.2.2.2.2 k hk]; exact hb15 k
+    · rw [rr_ct_o hk, hv.2.2.2.2 k hk]; exact hb13 k
   · -- ConfirmedOk
     intro j
     have hold : ∀ C : Confirmed, ((C.index = 0 ∨ S.ledLog.has C.term = true ∨
-        ∀ i : Fin 3, C.term < S.currentTerm[i.val]!)) →
-        (C.index = 0 ∨ ll.has C.term = true ∨ ∀ i : Fin 3, C.term < (S₂).currentTerm[i.val]!) :=
+        ∀ i : Fin R.N, C.term < S.currentTerm[i.val]!)) →
+        (C.index = 0 ∨ ll.has C.term = true ∨ ∀ i : Fin R.N, C.term < (S₂).currentTerm[i.val]!) :=
       fun C h => h.imp id (Or.imp (hllm.2 _) (fun h i => Int.lt_of_lt_of_le (h i) (hge i)))
     by_cases hj : j = n
     · rw [hj, rr_cf_n sh10, rr_ct_n sh1]
       rcases hok.cmono with e | ⟨e1, e2, -⟩
-      · rw [e]; exact ⟨hold _ (hb16 n).1, Int.le_trans (hb16 n).2 hok.tge⟩
+      · rw [e]; exact ⟨hold _ (hb14 n).1, Int.le_trans (hb14 n).2 hok.tge⟩
       · exact ⟨.inr (.inl (e1 ▸ e2)), Int.le_of_eq e1⟩
-    · rw [rr_cf_o hj, rr_ct_o hj]; exact ⟨hold _ (hb16 j).1, (hb16 j).2⟩
+    · rw [rr_cf_o hj, rr_ct_o hj]; exact ⟨hold _ (hb14 j).1, (hb14 j).2⟩
   · -- TermLenOk
     refine ⟨fun T hT => ?_, fun k hk => ?_⟩
     · change 0 < tlOld tl T at hT
       by_cases hlt : tlOld S.termLen T < tlOld tl T
       · obtain ⟨e1, ⟨l, hl, hlt'⟩, -⟩ := hok.tlNew T hlt
         exact .inl ⟨l, hl, hlt'.trans e1.symm⟩
-      · rcases hb17.1 T (by omega) with ⟨l, hl, hlt'⟩ | h
+      · rcases hb15.1 T (by omega) with ⟨l, hl, hlt'⟩ | h
         · exact .inl ⟨l, hok.lsub l hl, hlt'⟩
         · exact .inr fun i => Int.lt_of_lt_of_le (h i) (hge i)
     · change ro[k.val]! = leader at hk
@@ -608,7 +614,7 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
         rw [rr_ct_n sh1, rr_cm_n sh5, rr_log_n sh4]; exact hok.tlSelf hk
       · rw [rr_ct_o hkn, rr_cm_o hkn, rr_log_o hkn]
         have hk' : S.role[k.val]! = leader := by rw [← hok.rother k hkn]; exact hk
-        obtain ⟨o1, o2⟩ := hb17.2 k hk'
+        obtain ⟨o1, o2⟩ := hb15.2 k hk'
         refine ⟨fun h => Int.le_trans (o1 h) (hok.tlMono _), ?_⟩
         by_cases hlt : tlOld S.termLen (S.currentTerm[k.val]!) < tlOld tl (S.currentTerm[k.val]!)
         · obtain ⟨e1, -, e3⟩ := hok.tlNew _ hlt
@@ -618,16 +624,16 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
     exact hok.lconf
 
 /-- C4 at the new state. -/
-theorem rr_net (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
-    NetOk (S₂) net := by
+theorem rr_net (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+    NetOk R (S₂) net := by
   have hge := rr_ct_ge hs hok
   have hllm := rr_ll hok
-  obtain ⟨⟨sh0, sh1, -, -, -, sh5, -, -, -, -, sh10, -⟩, hb, hn, -⟩ := hs
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hb16, -⟩ := hb
-  obtain ⟨hn1, hn2, hn3, hn4⟩ := hn
+  obtain ⟨⟨sh0, sh1, -, -, -, sh5, -, -, -, -, sh10, -⟩, hb, hn, -, -⟩ := hs
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hb16, -⟩ := hb
+  obtain ⟨hn1, hn2, hn3, hn4, hn5⟩ := hn
   have hsend : ∀ f, S.sendable f = .ok true → (S₂).sendable f = .ok true := fun f h =>
     rr_sendableIn_mono hok.lsub hllm.1 hok.hchain hok.tlDom h
-  refine ⟨fun m hm => ?_, ?_, hn3, fun m hm hty i hsrc hro hct => ?_⟩
+  refine ⟨fun m hm => ?_, ?_, hn3, fun m hm hty i hsrc hro hct => ?_, hn5⟩
   rotate_left 2
   · change ro[i.val]! ≠ follower at hro
     by_cases hin : i = n
@@ -665,16 +671,20 @@ theorem rr_net (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro 
     · rw [rr_cf_o hj, rr_cm_o hj]; exact old
 
 /-- Another node's facts at the new state. -/
-theorem rr_node_other (hs : AntSim S V net) (hgo : GlobalOk S net G) (hl : RaftLaws G)
-    (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) {k : Fin 3} (hk : k ≠ n) :
-    NodeOk (S₂) net k (V k) := by
+theorem rr_node_other (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G) (hl : RaftLaws G)
+    (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) {k : Fin R.N} (hk : k ≠ n) :
+    NodeOk R dec (S₂) net k (V k) := by
   have hv := rr_vote hs hok
-  obtain ⟨⟨⟨d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13⟩, hL, hC, hP, hQ, hT, hca, hlo⟩⟩ :=
-    (⟨hs.2.2.2 k⟩ : Nonempty (NodeOk S net k (V k)))
-  refine ⟨⟨by rw [rr_ct_o hk]; exact d1, by rw [hv.2.2.1 k hk]; exact d2, by rw [rr_log_o hk]; exact d3,
-    by rw [rr_cm_o hk]; exact d4, by show ro[k.val]! = _; rw [hok.rother k hk]; exact d5, d6, d7, d8, d9,
-    by show r.config[k.val]! = _; rw [hok.hmem.1]; exact d10,
-    by show r.confAt[k.val]! = _; rw [hok.hmem.2]; exact d11, d12, d13⟩, ?_, ?_, hP, ?_, hT, hca, hlo⟩
+  obtain ⟨d1, d2, d3, d4, d5, d6, d7, d8, hL, hC, d11, d12, hQ, d14, d15, d16, d17, d18⟩ := hs.2.2.2.2 k
+  have hne : k.val ≠ n.val := fun e => hk (Fin.ext e)
+  have hu : (S₂).undo[k.val]! = S.undo[k.val]! := get!_set_ne _ _ hne
+  refine ⟨⟨by rw [rr_ct_o hk]; exact d1.1, by rw [hv.2.2.1 k hk]; exact d1.2.1,
+    by rw [rr_log_o hk]; exact d1.2.2.1, by rw [rr_cm_o hk]; exact d1.2.2.2⟩,
+    ⟨by show ro[k.val]! = _; rw [hok.rother k hk]; exact d2.1, d2.2.1,
+      by show r.config[k.val]! = _; rw [hok.hmem.1]; exact d2.2.2.1,
+      by show r.confAt[k.val]! = _; rw [hok.hmem.2]; exact d2.2.2.2⟩, d3,
+    by unfold UndoIs at d4 ⊢; rw [hu, rr_log_o hk]; exact d4, d5, d6, d7, d8, ?_, ?_, d11, d12, ?_, d14,
+    d15, d16, d17, d18⟩
   · intro hlk
     obtain ⟨l1, l2, l3, l4, l5⟩ := hL hlk
     refine ⟨List.contains_iff_mem.mpr (hok.lsub _ (List.contains_iff_mem.mp l1)), ?_,
@@ -704,29 +714,47 @@ theorem rr_node_other (hs : AntSim S V net) (hgo : GlobalOk S net G) (hl : RaftL
     exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, AckIn.mono hok.msub h.2⟩) (fun h => ⟨h.1, hok.vsub _ h.2⟩)⟩
 
 /-- The node's facts at the new state. -/
-theorem rr_node_self (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
-    NodeOk (S₂) net n w := by
+theorem rr_node_self (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+    NodeOk R dec (S₂) net n w := by
   have hv := rr_vote hs hok
   have sh := hs.1
-  obtain ⟨⟨-, -, -, -, -, d6, -, -, -, d10, d11, -, -⟩, -, -, -, -, hT, hca, -⟩ := hs.2.2.2 n
-  obtain ⟨w1, w2, w3, w4, w5⟩ := hok.wf
-  refine ⟨⟨by rw [rr_ct_n sh.2.1]; exact hok.hterm, hv.1, by rw [rr_log_n sh.2.2.2.2.1]; exact hok.hlog,
-    by rw [rr_cm_n sh.2.2.2.2.2.1]; exact hok.hcommit, hok.hrole, by rw [hok.hdel]; exact d6, w1, w2, w3,
-    by show r.config[n.val]! = _; rw [hok.hmem.1]; exact d10,
-    by show r.confAt[n.val]! = _; rw [hok.hmem.2]; exact d11, w4, w5⟩,
-    hok.lpart, hok.cpart, hok.hpend, hok.hqs, ?_, ?_, hok.hlead, hok.hvself⟩
+  obtain ⟨d1, d2, d3, -, d5, d6, -, -, -, -, -, -, -, d14, d15, d16, -, -⟩ := hs.2.2.2.2 n
+  have hfull : w.r.full = w.ps.log := by unfold RState.full; rw [hok.hfp]; rfl
+  have hu : (S₂).undo[n.val]! = some p := get!_set_self _ (by rw [sh.2.2.2.2.2.2.2.2.2.2.2.1]; exact n.isLt)
+  refine ⟨⟨by rw [rr_ct_n sh.2.1, hok.hterm, hok.hdur]; rfl, by rw [hv.1, hok.hdur]; rfl,
+      by rw [rr_log_n sh.2.2.2.2.1, hok.hlog, hok.hdur]; show logOf w.ps.log = logOf w.r.full; rw [hfull],
+      by rw [rr_cm_n sh.2.2.2.2.2.1, hok.hcommit, hok.hdur]; rfl⟩,
+    ⟨hok.hrole, by rw [hok.hdel]; exact d2.2.1,
+      by show r.config[n.val]! = _; rw [hok.hmem.1, hok.hcfg.1]; exact d2.2.2.1,
+      by show r.confAt[n.val]! = _; rw [hok.hmem.2, hok.hcfg.2]; exact d2.2.2.2⟩,
+    fun a b c e => ⟨by rw [hok.hmems]; exact (d3 a b c e).1, hok.hdur, fun _ => hok.hmade⟩,
+    ⟨by rw [hu, hok.hundo]; simp, fun q hq => ?_⟩,
+    by unfold QueueIs; rw [hok.hmems]; exact d5, by unfold ReadsIs; rw [hok.hreads]; exact d6,
+    hok.confLag, hok.facts, hok.lpart, hok.cpart, hok.hpend, hok.hxpend, hok.hqs, ?_, ?_, ?_,
+    hok.hlead, hok.hvself⟩
+  · rw [hu] at hq
+    obtain rfl := Option.some.inj hq
+    obtain ⟨pm, pt, pvt, pvf, pc, plog⟩ := hok.pre
+    refine ⟨pm.trans hok.hmade.symm, (V n).dur, hok.hundo, by rw [pt]; exact d1.1, ?_,
+      by rw [pc]; exact d1.2.2.2, ?_⟩
+    · rw [pt, pvt, pvf]; exact d1.2.1
+    · rw [rr_log_n sh.2.2.2.2.1]; exact plog.trans d1.2.2.1
   · intro ht
     rw [hok.drain.1] at ht
-    obtain ⟨m, hm, hp⟩ := hT ht
-    exact ⟨m, hok.drain.2 ▸ hm, hp⟩
+    rw [hok.drain.2.1, hok.drain.2.2]
+    exact d14 ht
   · intro m hm
-    rw [hok.drain.2] at hm
-    exact hca m hm
+    rw [hok.drain.2.1] at hm
+    exact d15 m hm
+  · intro x hx
+    rw [hok.drain.2.2] at hx
+    rw [hok.drain.2.1]
+    exact d16 x hx
 
 /-- C5 at the new state. -/
-theorem rr_global (hs : AntSim S V net) (hgo : GlobalOk S net G)
-    (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
-    GlobalOk (S₂) net G := by
+theorem rr_global (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G)
+    (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+    GlobalOk R (S₂) net G := by
   have sh4 := hs.1.2.2.2.2.1
   obtain ⟨g1, g2, g3, g4, g5, g6, g7⟩ := hgo
   refine ⟨fun l hl => ?_, fun y hy => ?_, fun k => ?_, fun q hq => ?_, hok.chainG, hok.tlG, g7⟩
@@ -752,37 +780,40 @@ theorem rr_global (hs : AntSim S V net) (hgo : GlobalOk S net G)
       · exact ⟨w.ps.log, hok.logG, hok.hlog, hcamp⟩
 
 /-- The binding's lists at the new state. -/
-theorem rr_shape (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
-    Shape (S₂) := by
+theorem rr_shape (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+    Shape R (S₂) := by
   obtain ⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩ := hs.1
-  refine ⟨sh0, by show (S.currentTerm.set _ _).length = 3; rw [List.length_set]; exact sh1, ?_, ?_,
-    by show (S.log.set _ _).length = 3; rw [List.length_set]; exact sh4,
-    by show (S.commitIndex.set _ _).length = 3; rw [List.length_set]; exact sh5, hok.rlen, sh7,
-    by show r.config.length = 3; rw [hok.hmem.1]; exact sh8,
-    by show r.confAt.length = 3; rw [hok.hmem.2]; exact sh9,
-    by show (S.confirmed.set _ _).length = 3; rw [List.length_set]; exact sh10,
-    by show (S.undo.set _ _).length = 3; rw [List.length_set]; exact sh11, sh12, sh13, sh14⟩
-  · show (match vo with | some _ => S.voteTerm.set n.val t1 | none => S.voteTerm).length = 3
+  refine ⟨sh0, by show (S.currentTerm.set _ _).length = R.N; rw [List.length_set]; exact sh1, ?_, ?_,
+    by show (S.log.set _ _).length = R.N; rw [List.length_set]; exact sh4,
+    by show (S.commitIndex.set _ _).length = R.N; rw [List.length_set]; exact sh5, hok.rlen, sh7,
+    by show r.config.length = R.N; rw [hok.hmem.1]; exact sh8,
+    by show r.confAt.length = R.N; rw [hok.hmem.2]; exact sh9,
+    by show (S.confirmed.set _ _).length = R.N; rw [List.length_set]; exact sh10,
+    by show (S.undo.set _ _).length = R.N; rw [List.length_set]; exact sh11, sh12, sh13, sh14⟩
+  · show (match vo with | some _ => S.voteTerm.set n.val t1 | none => S.voteTerm).length = R.N
     cases vo <;> simp only [List.length_set, sh2]
-  · show (match vo with | some x => S.voteFor.set n.val x | none => S.voteFor).length = 3
+  · show (match vo with | some x => S.voteFor.set n.val x | none => S.voteFor).length = R.N
     cases vo <;> simp only [List.length_set, sh3]
 
 end main
 
 /-- **The relation after a `ready`**, and no violation. -/
-theorem ready_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} {n : Fin 3}
+theorem ready_rel {R : RunCfg} {dec : CCDec} {xnet : List XMsg} {S : State} {V : Fin R.N → NodeView} {net : List Msg} {G : RaftFacts} {n : Fin R.N}
     {w : NodeView} {t1 : Int} {vo : Option Str} {L1 : List Entry} {c : Int} {ro : List Str}
     {cf : Confirmed} {M : List Fact} {Vs : List VoteRec} {ld : List LeaderRec}
     {ll : TermFn (List Entry)} {p : Pre} {ch : List Entry} {tl : TermFn Int} {vi : SSet}
     {r : MemResult}
-    (hs : AntSim S V net) (hgo : GlobalOk S net G) (hl : RaftLaws G)
-    (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
-    AntSim (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) (setV V n w) net ∧
-      GlobalOk (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) net G ∧
+    (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G) (hl : RaftLaws G)
+    (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
+    AntSim R dec (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) (setV V n w) net xnet ∧
+      GlobalOk R (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) net G ∧
       violated (readyS S n.val t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) = [] := by
   have hg := rr_global hs hgo hok
-  refine ⟨⟨rr_shape hs hok, rr_binding hs hok, rr_net hs hok, fun k => ?_⟩, hg,
+  have hge := rr_ct_ge hs hok
+  refine ⟨⟨rr_shape hs hok, rr_binding hs hok, rr_net hs hok, fun x hx => ?_, fun k => ?_⟩, hg,
     violated_nil hok.hviol hl hg⟩
+  · obtain ⟨⟨i, h1, h2⟩, h3⟩ := hs.2.2.2.1 x hx
+    exact ⟨⟨i, h1, Int.le_trans h2 (hge i)⟩, h3⟩
   by_cases hk : k = n
   · simp only [setV, hk, ite_true]; exact rr_node_self hs hok
   · simp only [setV, hk, ite_false]; exact rr_node_other hs hgo hl hok hk
