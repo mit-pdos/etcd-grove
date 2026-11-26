@@ -227,15 +227,15 @@ theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartServer.wp_proof wp_newServer EtcdServer.wp_Start
 
-theorem wp_newServerModeAt [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem wp_newServerModeAt [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.newServerMode.specAt (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServerMode.wp_proofAt features.wp_NewDefaultServerFeatureGate wp_NewServerAt
 
-theorem wp_newServerAt [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem wp_newServerAt [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.newServer.specAt (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.newServer.wp_proofAt wp_newServerModeAt
 
-theorem wp_StartServerAt [go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+theorem wp_StartServerAt [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartServer.specAt (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartServer.wp_proofAt wp_newServerAt EtcdServer.wp_Start
 
