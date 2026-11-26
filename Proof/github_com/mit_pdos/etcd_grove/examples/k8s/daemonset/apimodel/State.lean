@@ -476,8 +476,9 @@ def dsStatusEqNoTimes (a b : kd.apps.DaemonSetStatus) : Prop :=
 /-- **`UpdateStatus`'s mutation** (the status strategy, `updateDaemonSetStatus`): the stored
 DaemonSet with the request's status, or nothing when the status is unchanged. Unchanged is
 `daemonSetStatusEqual`, whose conditions' transition times compare by `time.Time.Equal`, which
-Perennial specifies as some `bool` (`Perennial/Spec/time/Time__Equal.lean`): so a write of nothing
-needs only `dsStatusEqNoTimes`, and any status may be written. -/
+this model's `metav1.Time.Equal` spec takes as some `bool` (weaker than Perennial's
+`Perennial/Spec/time/Time__Equal.lean`, Go's value): so a write of nothing needs only
+`dsStatusEqNoTimes`, and any status may be written. -/
 def dsStatusMut (st req : Obj) (res : Option Obj) : Prop :=
   match st, req with
   | .ds s, .ds q =>

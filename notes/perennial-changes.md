@@ -40,7 +40,12 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   That call is not reachable from Go (`cancelCtx` is unexported; `WithCancel`'s callers get only the
   `CancelFunc`, which passes `Canceled`), so the axiom is true of Go; the ghost set is what makes the
   invariant say so. General: any program that tells a cancelled context from an expired one needs it.
-- **Status.** Workaround in place (the interim axiom); the Perennial change is not started.
+- **Status.** Done (2026-11-25): Perennial `lean` `0fd2c2394` (perennial#705). `cancelCtxInv` has an index
+  `A : GoInterface → Prop`, the errors `err` may take, fixed when the context is made (`withCancel`'s new
+  argument); `isCancelCtxOfA c γ P A` is what `c.cancel` needs (with `A err`), `isCancelCtxOf` is `∃ A`
+  (no right to cancel), `cancelCtx.Err` returns an error `A` allows. New `wp_WithCancel_genA` and
+  `wp_WithCancel_Background_canceled` (allowed errors `(· = Canceled's value)`). The interim axiom is now a
+  theorem from the latter (pin bump branch `context-canceled-proof/2026-11-25`).
 - **Workaround here.** None yet: the premise is stated; the driver cannot produce it until Perennial does.
 - **Proposed change.** `cancel()`'s post also gives that the new context's `Err()` returns `Canceled`'s
   value on every call when the parent was not done first (for instance a parent whose `PDone` is `False`,
@@ -392,10 +397,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   - `context.WithCancelValCtx`: unchanged (`propagateCancel`'s goroutine branch);
     `context.madeCancelCtx_of_isCancelCtx` is a trusted law of the local opaque `madeCancelCtx`, not a
     missing Perennial spec: it goes only if Perennial exports a "made by `context`" fact of a `*cancelCtx`;
+    known limitation (2026-11-26): a `reflect.New` zero `cancelCtx` counts as made by `context`
+    (`reflect.New.spec` with `reflNew_pointsto` gives its points-tos, hence `isCancelCtxOfA`); sound because
+    no consumer reads its `Context` field (`madeCancelCtx`'s docstring lists them;
+    `notes/axiom-review/madecancelctx-per-index.md`);
   - `fmt.SprintfSlice`, `fmt.ErrorfSlice` (`[]Decision`, a slice of structs: `printValue`, stuck by
     design in the model and in real `fmt`: a fork rewrite per perennial#671), `fmt.ErrorfStrs` (`%q` of a
     `[]string`: real `fmt` stage 1.5), `fmt.Sscanf`/`SscanfWalName` (no `Sscanf` in Perennial);
   - `time.Time.Format.wp_proofBroken`: `time`'s formatting is names only.
+- **Retired (2026-11-26, branch `strings-contains/2026-11-26`).** `strings.Contains`: Perennial branch
+  `strings-contains` (`200ab1aa8`, off its `lean` `62ed5bb7f`, not landed) adds `Contains` to
+  `strings.toml`'s `translate` (the real Go, `Index(s, substr) >= 0`, over the already translated
+  `Index`) and proves `strings.wp_Contains` (`RET #(decide (substr <:+: s)); True`), so
+  `Proof/strings/Contains.lean` is a theorem from it (statement unchanged; the proof takes
+  `[strings.Assumptions]`, which every caller's package assumptions give, as for `HasSuffix`).
 
 ### otel trace's `maxSpan` and `var _` assertions: two goose limits (2026-11-21, prove-otel4)
 
@@ -4792,3 +4807,14 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   so that named array types slice as their underlying type (with a goose example slicing a named array).
   A Perennial change, reviewed on its own.
 - **Status.** Open.
+
+## `time.Time` comparisons specified as some `bool` (2026-11-26, time-compare, perennial#642)
+
+- **Limitation.** Perennial's `Time.Before`/`After`/`Equal` specs returned some `bool`, `sec`/`nsec` some
+  integer and `stripMono` some new value, so no client could use what a comparison of times returns.
+- **Change (general).** Perennial branch `time-compare-specs`: the six specs return Go's functions of the
+  fields (`Perennial/Proof/time/Base.lean`: `Time.hasMono`, `Time.secOf`, `Time.nsecOf`, `Time.before`,
+  `Time.after` (`before` swapped), `Time.equal`, `Time.stripMonoOf`), proved over the translated code; no
+  precondition changed. Here only the callers' `wp_apply … as %b -` change (the result is no longer an
+  existential; `generalize` where the proof cases on it), on branch `time-compare/2026-11-26`.
+- **Status.** Proposed (the pin bump waits for the coordinator).

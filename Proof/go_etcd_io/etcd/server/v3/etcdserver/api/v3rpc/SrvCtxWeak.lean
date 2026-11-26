@@ -308,8 +308,11 @@ theorem v3rpc.ctxDoneErr_of_srvCtxWeak (c : GoInterfaceOk) (s : context.ContextD
   · ipureintro; exact Hne
   iintro !> %p #Hp
   iapply HΦ
-  iapply context.madeCancelCtx_of_isCancelCtx
-  iexact Hp
+  iunfold _root_.Perennial.context.isCancelCtx at Hp
+  icases Hp with ⟨%γ, %P, #Hp⟩
+  ihave ⟨%A, #HA⟩ := _root_.Perennial.context.isCancelCtxOf_A p γ P $$ Hp
+  iapply context.madeCancelCtx_of_isCancelCtx p γ P A
+  iexact HA
 
 /-- **A context is a `ctxDoneErr`.** -/
 theorem v3rpc.ctxDoneErr_of_isContext (c : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) :
