@@ -296,9 +296,14 @@ from `a276f9570e` and re-indexed to M1's view (no `svc` parameter: `etcdAddrAt`,
 - *`NewServer_dist`'s text:* `NewServer.specG_dist_proposed` (`Spec/.../dist/NewServerDist.lean`): the binder `γl`, the
   premise `"Hlslot"`, the post's `mvcc.api.mvccLeases E.γ = γl`. **Stopped here for review**, together with F7's P-A1
   change to the same axiom.
+- *`Serve_dist`'s text* (the auth-lease review's F2, `/shared/tmp/coord-03/rev-f7c-report.md`: distinct names are not
+  enough, a start could serve a `Γ` whose lessor names it owns): `Serve_dist.spec_proposed` (`Spec/.../dist/ServeDist.lean`)
+  takes `etcdstart.memberUpL … Γ.kv.lm (Γ.ls mid)` (`Proof/.../dist/MemberLessor.lean`: `memberUp` with
+  `mvccLeases E.γ = γl`, at the view's lease mode) in place of `memberUp`. Also for review with F7's P-A1.
 
 **Next, in order (after the review):**
-1. Merge the reviewed text into `NewServer.specG_dist` (with F7's), and carry `NewServer.specG` to the name: a variant
+1. Merge the reviewed texts into `NewServer.specG_dist` and `Serve_dist` (with F7's); the start then gives `memberUpL`
+   (from `NewServer_dist`'s `mvccLeases E.γ = γl`; `memberUp`'s users unchanged). Carry `NewServer.specG` to the name: a variant
    whose proof calls `lease.NewLessor.specAt` (its `Link` entry: `etc/gen-link.py --server`), `specG` derived by
    allocating the name and slot as `newLessor.wp_proof` does.
 2. The member boot (`member_boot_dist`) passes its half and the slot; the start allocates, per member, a distinct `γl`

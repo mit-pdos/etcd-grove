@@ -41,6 +41,11 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `NewServer` makes that member's lessor at exactly that name. The docstrings also say monotone mode needs
   `lease.leasesNoExpiry` from the member's start.
 - **Decision.** Accepted (the coordinator, 2026-11-26); a fresh review follows.
+- **Follow-up (the auth-lease review's F2, 2026-11-26):** distinct names are not enough: a start could serve a `Γ`
+  whose lessor names it allocated and owns (`etcdAddr_set` takes any `Γ`). Proposed (for review with F7's P-A1):
+  `Serve_dist.spec_proposed` requires the serving member's lessor at `Γ.ls mid` and its lease mode `Γ.kv.lm`
+  (`etcdstart.memberUpL`); `NewServer.specG_dist_proposed` gives `mvccLeases E.γ = γl`. The distinct-names premise is
+  then redundant; kept.
 
 ## 2026-11-26: `lessorAbsentStays_dist.law` (N9b's draft law) -- a premise no client can hold; proved over a heap-free lessor slot
 
