@@ -44,15 +44,21 @@ member publishes anything and nothing about it changes across a restart.
   Prove item P-L1 (`NewServer` taking the lessor's name from the start), and until then the starts set it
   to a constant (`ClusterNames.view`).
 * `auth`: the cluster's auth mode. The KV write contracts are for `auth = false` only (refusal-free
-  members: a write is sent at most once); a member `Serve_dist` serves runs auth off (`memberUp`). -/
+  members: a write is sent at most once); a member `Serve_dist` serves runs auth off (`memberUp`).
+* `au mid`: member `mid`'s auth names (F7, 2026-11-26, the approved design's P-A1, `notes/etcd-dist-f7.md`).
+  No axiom reads it yet: the auth-on drafts (`AuthViewDist.lean`) read it, and are sound only once
+  `Serve_dist` requires the member's auth store at `Γ.au mid` (`AuthServeProposed.lean`, the review
+  `notes/axiom-review/f7-a.md`); until P-A1's start the starts set it to a constant (`ofKV`). -/
 structure DistView [GooseExts] where
   kv : KVNames
   ls : w64 → GName
   auth : Bool
+  au : w64 → EtcdGrove.auth.AuthNames
 
-/-- **The auth-off view at the KV names `γk`**, its lessor names a constant until P-L1 (no contract reads
-them yet): a start's view (`ClusterNames.view`). -/
-def DistView.ofKV [GooseExts] (γk : KVNames) : DistView := ⟨γk, fun _ => 0, false⟩
+/-- **The auth-off view at the KV names `γk`**, its lessor names a constant until P-L1 and its auth names a
+constant until P-A1's start (no contract reads either yet): a start's view (`ClusterNames.view`). -/
+def DistView.ofKV [GooseExts] (γk : KVNames) : DistView :=
+  ⟨γk, fun _ => 0, false, fun _ => ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0⟩⟩
 
 /-! ## The address fact (over phase 7 S2's interface; the table axiomatized: see `etcdSvc`) -/
 

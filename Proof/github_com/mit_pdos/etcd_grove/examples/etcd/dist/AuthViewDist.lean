@@ -10,15 +10,21 @@ The vocabulary (see the note, "The view"):
 * the cluster's auth history is `Γ.kv.hist` (one name for every member: `etcdstart.memberGOkOn`), and the
   requested log `Γ.kv.rlog` (`srvReqLogLb γR L` at any `γR` with `γR.raft.log = Γ.kv.rlog`, the one field
   it reads);
-* `A : w64 → auth.AuthNames`, member `mid`'s auth names (joins `DistView` as `au` at implementation, with
-  the Prove item P-A1, `NewServer` taking `γa` from the start as P-L1 takes the lessor's); only the member-local
-  facts read it (the published index `auth.authPubLbM`, a member's read and lease checks);
+* `Γ.au mid`, member `mid`'s auth names (`DistView.au`, F7 review A/C, 2026-11-26: until then a free binder
+  `A`, which a caller could instantiate with names whose history it owns and so refute every success arm;
+  `notes/axiom-review/f7-a.md`). Only the member-local facts read it (the published index
+  `auth.authPubLbM`, a member's read and lease checks). They are sound only through `Serve_dist_proposed`
+  (`AuthServeProposed.lean`), whose premise `memberUpOn … (Γ.au mid)` holds the member's exclusive auth
+  resources at `Γ.au mid`: address facts are minted for any `Γ` (`etcdAddr_set`), so Serve's premise is the
+  only tie. It needs the Prove item P-A1 (`NewServer` taking `γa` from the start, as P-L1 the lessor's);
+  `ofKV` sets it to a constant until then;
 * **distinct names** (the lease review, `rev-f2-report.md`, 2026-11-26: `DistView.ofKV` gives every member
   the same lessor name, `ls := fun _ => 0`, which lets a fact about member A's names be used at member B):
-  every draft that reads a per-member name takes `∀ a b, A a = A b → a = b` (and, where it reads `Γ.ls`,
-  `∀ a b, Γ.ls a = Γ.ls b → a = b`), the lease review's form; `ofKV` fails it. Over every `w64`, not a member
-  set: `DistView` has none. The start discharges it once it allocates the names per member (P-A1, P-L1),
-  completing the map off the members with names it never owns;
+  every draft that reads a per-member name takes `∀ a b, Γ.au a = Γ.au b → a = b` (and, where it reads
+  `Γ.ls`, `∀ a b, Γ.ls a = Γ.ls b → a = b`), the lease review's form; `ofKV` fails it. Over every `w64`, not
+  a member set: `DistView` has none. With Serve's tie (above) it is redundant, kept (harmless). The start
+  discharges it once it allocates the names per member (P-A1, P-L1), completing the map off the members
+  with names it never owns;
 * a call's principal is the client's configured user name (`principalOf cfg`, from `New`'s `cfg` field),
   never a token. (Note, 2026-11-26: a simple token is NOT only its issuing member's: `EtcdServer.Authenticate`
   draws the prefix at the receiving member and proposes it through raft, and every member's apply assigns
@@ -160,29 +166,29 @@ def readAuthedD (γk : KVNames) (P : Option GoString) (L₀ : List EntryModel) (
 /-- **Member `mid`'s published auth index is at least `m`, and its state at an index `i ≤ m` is the
 history's after a requested prefix `L ⊒ L₀`** (persistent; `authFloorAt` at the cluster, over the
 requested log): the floor a linearizable read's barrier leaves (`KV_GetOn_dist`), which a member-local
-lease check at `A mid` needs. -/
-def authFloorD (A : w64 → auth.AuthNames) (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
+lease check at `Γ.au mid` needs. -/
+def authFloorD (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
     (L₀ : List EntryModel) (m : Nat) : IProp GF :=
-  iprop(auth.authPubLbM (.on (A mid)) m ∗ ∃ (L : List EntryModel) (i : Nat), ⌜L₀ <+: L ∧ i ≤ m⌝ ∗
-    srvReqLogLb γR L ∗ auth.authStateAt (A mid) i (srvAuthAtLog Γ.kv srvAuthSt0 L))
+  iprop(auth.authPubLbM (.on (Γ.au mid)) m ∗ ∃ (L : List EntryModel) (i : Nat), ⌜L₀ <+: L ∧ i ≤ m⌝ ∗
+    srvReqLogLb γR L ∗ auth.authStateAt (Γ.au mid) i (srvAuthAtLog Γ.kv srvAuthSt0 L))
 
 /-- **A successful linearizable range's check** (persistent; `v3rpc.rangeAuthed` at the cluster):
 member `mid` of the endpoints served it, its verdict (`rangeClassFrom`) passed for `info` at its auth
 state of index `m` (published, `authFloorD`'s floor above `L₀`), `info`'s user one `P` may be bound to; and
 the cluster-level check (`readAuthedD`). -/
-def readCheckedD [NetProtoGS] (eps : List GoString) (A : w64 → auth.AuthNames) (Γ : DistView)
+def readCheckedD [NetProtoGS] (eps : List GoString) (Γ : DistView)
     (γR : ServerRaftNames) (P : Option GoString) (L₀ : List EntryModel) (o : OpFull) : IProp GF :=
   iprop(∃ (mid : w64) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat),
     servedBy eps Γ mid ∗ ⌜userOk P info.Username' ∧ readAuthedD Γ.kv P L₀ o⌝ ∗
-    apply.rangeClassFrom (.on (A mid)) m info o ∗ authFloorD A Γ γR mid L₀ m)
+    apply.rangeClassFrom (.on (Γ.au mid)) m info o ∗ authFloorD Γ γR mid L₀ m)
 
 /-- **A successful read-only transaction's check** (`readCheckedD`'s, at `txnClassFrom`: every
 range of the transaction, nested ones included, checked at the member's state `m`). -/
-def txnReadCheckedD [NetProtoGS] (eps : List GoString) (A : w64 → auth.AuthNames) (Γ : DistView)
+def txnReadCheckedD [NetProtoGS] (eps : List GoString) (Γ : DistView)
     (γR : ServerRaftNames) (P : Option GoString) (L₀ : List EntryModel) (t : TxnModel) : IProp GF :=
   iprop(∃ (mid : w64) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat),
     servedBy eps Γ mid ∗ ⌜userOk P info.Username'⌝ ∗
-    txnClassFrom (.on (A mid)) m info t ∗ authFloorD A Γ γR mid L₀ m)
+    txnClassFrom (.on (Γ.au mid)) m info t ∗ authFloorD Γ γR mid L₀ m)
 
 /-- **A member-local lease call's check at `γa` and index `n`** (`leaseCheckFrom` with the binding
 `principalBound T E.authMode tok` replaced by `userOk P`): auth disabled at a state of index at least `n`,
@@ -240,8 +246,8 @@ with no token (`enabledVerdict … false`). A wrong password, an unknown user an
 are the error arm. -/
 abbrev New_user_dist.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 30)] [NetProtoGS] (cfg : go_etcd_io.etcd.client.v3.Config)
-    (eps : List GoString) (V : WEnv GF) (Γ : DistView) (A : w64 → auth.AuthNames),
-  (∀ a b : w64, A a = A b → a = b) →
+    (eps : List GoString) (V : WEnv GF) (Γ : DistView),
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   Γ.auth = true → principalOf cfg = some cfg.Username' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ levelTok 0 ∗
@@ -251,8 +257,8 @@ abbrev New_user_dist.spec : Prop :=
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗
       ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientF cl go!"cfg" ↦□ cfg ∗
           ∃ (mid : w64) (rev : w64), servedBy eps Γ mid ∗
-            (auth.passwordChecked (.on (A mid)) cfg.Username' rev GoInterface.nil ∨
-              auth.enabledVerdict (.on (A mid)) false)) ∨
+            (auth.passwordChecked (.on (Γ.au mid)) cfg.Username' rev GoInterface.nil ∨
+              auth.enabledVerdict (.on (Γ.au mid)) false)) ∨
         ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 /-! ### KV writes -/
@@ -326,10 +332,10 @@ next endpoint on `Unavailable`), its success the member's check (`txnReadChecked
 operations included). The error arm claims nothing. -/
 abbrev Txn_CommitOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api txn_ptr : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
-    (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (L₀ : List EntryModel) (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd)
     (b : TxnBuild) (Q : KVState → IProp GF),
-  (∀ a b : w64, A a = A b → a = b) →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
@@ -359,7 +365,7 @@ abbrev Txn_CommitOn_dist.spec : Prop :=
               (txnWireOf b.model)).2.1))⌝ ∗
         client.txnRevLb Γ.kv (txnWireOf b.model) m ∗
         (if txn.txnReadonly (txnWireOf b.model) then
-          txnReadCheckedD eps A Γ γR (principalOf cfg) L₀ (txnWireOf b.model)
+          txnReadCheckedD eps Γ γR (principalOf cfg) L₀ (txnWireOf b.model)
         else iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = txnWireOf b.model⌝ ∗
           writeCheckedD eps Γ γR (principalOf cfg) (irrTxn tw) L₀))) ∨
       ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
@@ -375,11 +381,11 @@ cluster-level `readAuthedD`). Serializable reads are not covered (no workload se
 `serializable = false` is a premise. -/
 abbrev KV_GetOn_dist.spec : Prop :=
   ∀ [NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
-    (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (L₀ : List EntryModel)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (om : GrpcMd) (key : GoString)
     (opts_sl : GoSlice) (opts : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF),
-  (∀ a b : w64, A a = A b → a = b) →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗
@@ -399,7 +405,7 @@ abbrev KV_GetOn_dist.spec : Prop :=
             txn.srvRangeOk (rangeWireOf (opGetModel key opts))
               (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs m.kvs m.more ∧
             m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝ ∗
-          readCheckedD eps A Γ γR (principalOf cfg) L₀ (rangeWireOf (opGetModel key opts))) ∨
+          readCheckedD eps Γ γR (principalOf cfg) L₀ (rangeWireOf (opGetModel key opts))) ∨
         ⌜err ≠ GoInterface.nil ∧ resp = null⌝)) }}
 
 /-! ### Admin calls (sent by the set-up's anonymous client; stated for either auth mode of the history) -/
@@ -416,8 +422,12 @@ abbrev Auth_UserAdd_dist.spec : Prop :=
   Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       authClientAt cl ap eps V Γ cfg ∗ metadata.outMD ctx om ∗
-      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗ ⌜strsSizeOk [name, pw]⌝ ∗
-      (∀ um : apply.UserAddModel, ⌜um.name = name ∧ um.noPassword = false⌝ -∗
+      ctxOk ctx ctx_desc ∗ ctxErrClient ctx ctx_desc ∗
+      -- (F7 review B, 2026-11-26) the server's name bound, as the siblings and `etcdUserAddSpecW`: an
+      -- over-long name makes every member that applies the entry `lg.Fatal`
+      -- (`issues/etcd-auth-useradd-long-name-fatal.md`)
+      ⌜strsSizeOk [name, pw] ∧ name.length ≤ backend.maxKeySize⌝ ∗
+      □ (∀ um : apply.UserAddModel, ⌜um.name = name ∧ um.noPassword = false⌝ →
         histAu γR Γ.kv srvAuthSt0 (fun hm => iprop(⌜userOk (principalOf cfg) hm.username⌝))
           (irrUserAdd um) Q) }}
     (App (App (App (Val (ap @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty @!!
@@ -523,15 +533,15 @@ member's own check (`requireAuthInfo`'s, `leaseCheckD … True`) at its publishe
 caller's `n₀`). -/
 abbrev Lease_GrantOn_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (L₀ : List EntryModel) (n₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (ttl : w64)
     (Q : w64 → KVState → IProp GF),
-  (∀ a b : w64, A a = A b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
-      srvReqLogLb γR L₀ ∗ auth.authPubLbM (.on (A mid)) n₀ ∗
+      srvReqLogLb γR L₀ ∗ auth.authPubLbM (.on (Γ.au mid)) n₀ ∗
       □ (∀ id : w64, writeAuD Γ.kv (principalOf cfg) (.leaseGrant id ttl) L₀ (Q id)) }}
     (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
       (Val #(GoInterface.ok ctx))) (Val #ttl))
@@ -542,8 +552,8 @@ abbrev Lease_GrantOn_dist.spec : Prop :=
         ⌜m.id ≠ W64 0⌝ ∗ (∃ (i : Nat) (l : Loc),
           lease.leaseLiveFrom (Γ.ls mid) i m.id l ∗ lease.leaseReqIs (Γ.ls mid) m.id ttl) ∗
         (∃ σ : KVState, Q m.id σ) ∗
-        ∃ n : Nat, ⌜n₀ ≤ n⌝ ∗ auth.authPubLbM (.on (A mid)) n ∗
-          leaseCheckD (A mid) (principalOf cfg) n (fun _ => iprop(True))) ∨
+        ∃ n : Nat, ⌜n₀ ≤ n⌝ ∗ auth.authPubLbM (.on (Γ.au mid)) n ∗
+          leaseCheckD (Γ.au mid) (principalOf cfg) n (fun _ => iprop(True))) ∨
       ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 /-- **DRAFT `Lease_RevokeOn_dist`: `(*lessor).Revoke(ctx, id)` at member `mid`, auth on** (mirrors
@@ -553,15 +563,15 @@ apply-time `checkLeasePuts`, write permission on every attached key, or an admin
 `requireAuthInfo` (`leaseCheckD … True`) at its published index at least `n₀`). -/
 abbrev Lease_RevokeOn_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (γR : ServerRaftNames)
     (L₀ : List EntryModel) (n₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (id : w64)
     (Q : KVState → IProp GF),
-  (∀ a b : w64, A a = A b → a = b) →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
-      srvReqLogLb γR L₀ ∗ auth.authPubLbM (.on (A mid)) n₀ ∗
+      srvReqLogLb γR L₀ ∗ auth.authPubLbM (.on (Γ.au mid)) n₀ ∗
       writeAuD Γ.kv (principalOf cfg) (.leaseRevoke id) L₀ Q }}
     (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
       (Val #(GoInterface.ok ctx))) (Val #id))
@@ -569,8 +579,8 @@ abbrev Lease_RevokeOn_dist.spec : Prop :=
       ((⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗
         (∃ σ : KVState, Q σ) ∗
         writeCheckedD [ep] Γ γR (principalOf cfg) (irrLeaseRevoke id) L₀ ∗
-        ∃ n : Nat, ⌜n₀ ≤ n⌝ ∗ auth.authPubLbM (.on (A mid)) n ∗
-          leaseCheckD (A mid) (principalOf cfg) n (fun _ => iprop(True))) ∨
+        ∃ n : Nat, ⌜n₀ ≤ n⌝ ∗ auth.authPubLbM (.on (Γ.au mid)) n ∗
+          leaseCheckD (Γ.au mid) (principalOf cfg) n (fun _ => iprop(True))) ∨
       ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 /-- **DRAFT `Lease_TimeToLiveKeysOn_dist`: `(*lessor).TimeToLive(ctx, id, WithAttachedKeys())` at member
@@ -583,22 +593,24 @@ attached key readable) at its published auth index `n ≥ n₀` and its lessor's
 member's admin pass). -/
 abbrev Lease_TimeToLiveKeysOn_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (n₀ m₀ : Nat)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (n₀ m₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (id : w64)
     (sl : GoSlice) (gs : List (Bool → Bool)),
-  (∀ a b : w64, A a = A b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
-  Γ.auth = true → outTokOk (principalOf cfg) om → leaseKeysFold gs false = true →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
+  -- (F7 review C, 2026-11-26) the revocable mode, as `Lease_LeasesOn_dist`: Serve ties `Γ.ls mid` to the
+  -- member's lessor at the view's mode `Γ.kv.lm` (`Serve_dist_proposed`)
+  Γ.auth = true → Γ.kv.lm = .revocable → outTokOk (principalOf cfg) om → leaseKeysFold gs false = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
-      leaseOptsAt sl gs ∗ auth.authPubLbM (.on (A mid)) n₀ ∗ lease.lessorLb (Γ.ls mid) m₀ }}
+      leaseOptsAt sl gs ∗ auth.authPubLbM (.on (Γ.au mid)) n₀ ∗ lease.lessorLb (Γ.ls mid) m₀ }}
     (App (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!!
         go!"TimeToLive")) (Val #(GoInterface.ok ctx))) (Val #id)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
       ((⌜err = GoInterface.nil⌝ ∗
           structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"ID" resp ↦□ id ∗
-          ∃ n j : Nat, ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ ∗ auth.authPubLbM (.on (A mid)) n ∗ lease.lessorLb (Γ.ls mid) j ∗
-            leaseCheckD (A mid) (principalOf cfg) n
-              (fun info => leaseKeysVerdictFrom (.on (A mid)) n info (Γ.ls mid) j id .read)) ∨
+          ∃ n j : Nat, ⌜n₀ ≤ n ∧ m₀ ≤ j⌝ ∗ auth.authPubLbM (.on (Γ.au mid)) n ∗ lease.lessorLb (Γ.ls mid) j ∗
+            leaseCheckD (Γ.au mid) (principalOf cfg) n
+              (fun info => leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id .read)) ∨
         ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 /-- **DRAFT `Lease_LeasesOn_dist`: `(*lessor).Leases(ctx)` at member `mid`, auth on, revocable mode**
@@ -607,23 +619,23 @@ listing at an index `j ≥ m₀`, and its check at its published auth index `n �
 listed lease's attached keys readable (`leaseKeysVerdictFrom` at `j`)). -/
 abbrev Lease_LeasesOn_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl lp : Loc) (ep : GoString) (V : WEnv GF) (Γ : DistView) (mid : w64)
-    (A : w64 → auth.AuthNames) (cfg : go_etcd_io.etcd.client.v3.Config) (n₀ m₀ : Nat)
+    (cfg : go_etcd_io.etcd.client.v3.Config) (n₀ m₀ : Nat)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (om : GrpcMd),
-  (∀ a b : w64, A a = A b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) → (∀ a b : w64, Γ.ls a = Γ.ls b → a = b) →
   Γ.auth = true → Γ.kv.lm = .revocable → outTokOk (principalOf cfg) om →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
       leaseUserAt cl lp ep V Γ mid cfg ∗ metadata.outMD ctx om ∗ ctxOk ctx cd ∗ ctxErrClient ctx cd ∗
-      auth.authPubLbM (.on (A mid)) n₀ ∗ lease.lessorLb (Γ.ls mid) m₀ }}
+      auth.authPubLbM (.on (Γ.au mid)) n₀ ∗ lease.lessorLb (Γ.ls mid) m₀ }}
     (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Leases"))
       (Val #(GoInterface.ok ctx)))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (ids : List w64) (sl : GoSlice) (j n : Nat),
           structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"Leases" resp ↦□ sl ∗
           sl ↦* (ids.map (fun id => (go_etcd_io.etcd.client.v3.LeaseStatus.mk id))) ∗
-          ⌜m₀ ≤ j ∧ n₀ ≤ n⌝ ∗ lease.leaseIdsAt (Γ.ls mid) j ids ∗ auth.authPubLbM (.on (A mid)) n ∗
-          leaseCheckD (A mid) (principalOf cfg) n
+          ⌜m₀ ≤ j ∧ n₀ ≤ n⌝ ∗ lease.leaseIdsAt (Γ.ls mid) j ids ∗ auth.authPubLbM (.on (Γ.au mid)) n ∗
+          leaseCheckD (Γ.au mid) (principalOf cfg) n
             (fun info => iprop([∗list] id ∈ ids,
-              leaseKeysVerdictFrom (.on (A mid)) n info (Γ.ls mid) j id .read))) ∨
+              leaseKeysVerdictFrom (.on (Γ.au mid)) n info (Γ.ls mid) j id .read))) ∨
         ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }}
 
 end spec

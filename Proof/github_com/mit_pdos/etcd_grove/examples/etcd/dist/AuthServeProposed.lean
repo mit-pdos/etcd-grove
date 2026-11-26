@@ -5,13 +5,17 @@
 PROPOSALS ONLY: definitions, no axiom, no proof, no `sorry`; nothing imports this file. The current axioms
 (`Serve_dist.wp_proof`, `NewServer.wp_specG_dist`, their Spec files `ServeDist.lean`, `NewServerDist.lean`)
 are unchanged. Each proposal replaces its current text only after a fresh `axiom`-skill re-review
-(`notes/etcd-dist-f7-reviews.md`), in step S2 (with P-A1 and P-L1). `A : w64 → auth.AuthNames` stands for
-`Γ.au` until `DistView` gains it.
+(`notes/etcd-dist-f7-reviews.md`), in step S2 (with P-A1 and P-L1). The member's auth names are the view's
+`Γ.au mid` (`DistView.au`; until the reviews of 2026-11-26 a free binder `A`, `notes/axiom-review/f7-{a,c}.md`).
+
+`MemberLessor.lean` (F2's P-L1, `etcdstart.memberUpL`) is a copy of `etcd-safe-f2`'s file, identical, so that
+the proposed Serve below states the lessor part with F2's text; it merges cleanly with F2's branch.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.NewServerDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 
 @[expose] public section
 
@@ -179,6 +183,38 @@ abbrev NewServer.specG_dist_proposed [π : Net.NetProtoGS] (on cmp : Bool) : Pro
 
 end spec
 
+namespace etcdstart
+
+section defsL
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **`memberUpOn` with the lessor at `γl`** (PROPOSED, F7 review C's F2, 2026-11-26; F2's `memberUpL`
+with auth on): `memberUpOn`'s body verbatim, at the lease mode `m`, and `mvcc.api.mvccLeases E.γ = γl` for its
+environment `E` (the name the lessor was made at: F2's `NewServer.specG_dist_proposed`, P-L1). -/
+def memberUpOnL (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (γa : auth.AuthNames) (m : lease.Mode) (γl : GName) : IProp GF :=
+  iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
+    ⌜envAgree E E₀ ∧ E.authMode = .on γa ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
+      cfg.WatchProgressNotifyInterval' = 0 ∧ mvcc.api.mvccLeases E.γ = γl⌝ ∗
+    srvServeStock s E ∗ srvRunReadStock s ρ.rd ∗
+    isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
+    srvGoRes s ∗ srvLgReader s ∗
+    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
+    srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
+    srvBemuReader s ∗
+    srvPeerCtl γn s id ∗
+    □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗
+    srvLeaseRd s E m)
+
+end defsL
+
+end etcdstart
+
 namespace etcd_dist
 
 section spec2
@@ -189,26 +225,37 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **PROPOSED `Serve_dist.spec` for auth on** (the current text with two changes): the pure premise
-`kvCongr ρ.rd.kv Γ.kv ∧ Γ.auth = false` becomes `kvCongr ρ.rd.kv Γ.kv ∧ (Γ.auth = false ∨ ρ.rd.kv.hist =
-Γ.kv.hist)` (`kvCongr` leaves `hist` out; with auth on every member's history is the cluster's,
-`kvCongrOn`), and the member's serving resources are `etcdstart.memberUpOn … (A mid)` with auth on (its
-`E.authMode = .on (A mid)`: the member's auth names the view's) and `etcdstart.memberUp` with auth off, as
-now. `etcdSvc`'s intended interpretation then says that an auth-on member's entries are the
+/-- **PROPOSED `Serve_dist.spec` for auth on, with P-L1's lessor** (the current text with three changes):
+* the pure premise `kvCongr ρ.rd.kv Γ.kv ∧ Γ.auth = false` becomes `kvCongr ρ.rd.kv Γ.kv ∧ (Γ.auth = false ∨
+  ρ.rd.kv.hist = Γ.kv.hist)` (`kvCongr` leaves `hist` out; with auth on every member's history is the
+  cluster's, `kvCongrOn`);
+* the member's serving resources are, with auth on, `etcdstart.memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)`
+  (`memberUpOn`'s, its `E.authMode = .on (Γ.au mid)`: the member's auth names the view's), and with auth off
+  F2's `etcdstart.memberUpL … Γ.kv.lm (Γ.ls mid)` (`memberUp`'s);
+* in both, the member's lessor is at the view's name `Γ.ls mid` and its lease subsystem at the view's mode
+  `Γ.kv.lm` (P-L1, F2's `Serve_dist.spec_proposed` on `etcd-safe-f2`, reviewed with this one).
+Why (F7 reviews A and C, 2026-11-26): address facts are minted for any `Γ` (`etcdAddr_set`), so without these
+premises a start could publish a `Γ` whose `au`/`ls` names it allocated and owns, and refute every auth-on and
+lease axiom's success arm. With them, `Γ.au mid` and `Γ.ls mid` are the serving member's real names, held
+through the member's exclusive resources (`NewServer`'s fresh authorities, P-A1's `authNamesFreshD` and
+P-L1's lessor), so two members cannot share them and the drafts' distinct-names premises (kept here too)
+are redundant. `etcdSvc`'s intended interpretation then says that an auth-on member's entries are the
 `etcd*SpecOn` handlers at `T := False` (no TLS identity: `ClientCertAuthEnabled` false in `deployment`'s
-configuration). The lease mode stays the default (`.none`), as now; P-L1 sets it. -/
-abbrev Serve_dist_proposed.spec (A : w64 → auth.AuthNames) : Prop :=
+configuration). -/
+abbrev Serve_dist_proposed.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (mid : w64) (Γ : DistView),
-  -- (F7: PROPOSED) distinct auth names per member (the lease review's form; `AuthViewDist.lean`'s header)
-  (∀ a b : w64, A a = A b → a = b) →
+  -- (F7: PROPOSED) distinct auth names per member (the lease review's form; redundant given the tie below)
+  (∀ a b : w64, Γ.au a = Γ.au b → a = b) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
       ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ srvLevels (GF := GF) ∧
         kvCongr ρ.rd.kv Γ.kv ∧ (Γ.auth = false ∨ ρ.rd.kv.hist = Γ.kv.hist)⌝ ∗
-      (if Γ.auth then etcdstart.memberUpOn s ρ E₀ lg γn mid (A mid)
-        else etcdstart.memberUp s ρ E₀ lg γn mid) ∗
+      -- (F7 + F2's P-L1: PROPOSED) the member's auth names `Γ.au mid`, its lessor `Γ.ls mid`, its lease
+      -- mode `Γ.kv.lm`
+      (if Γ.auth then etcdstart.memberUpOnL s ρ E₀ lg γn mid (Γ.au mid) Γ.kv.lm (Γ.ls mid)
+        else etcdstart.memberUpL s ρ E₀ lg γn mid Γ.kv.lm (Γ.ls mid)) ∗
       etcdAddrAt (Gg := hG.goose_globalGS) a Γ mid }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve)) (Val #s))
       (Val #a))
