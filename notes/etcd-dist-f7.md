@@ -1010,3 +1010,23 @@ this with its lease premises (`Spec/.../etcd/all/TopLevelRobustness.lean`, aroun
    kvremote's call (line 119).
 3. Build `MainLogger`, `AdequacyMember`, the dist `TopLevelRobustness` leaves, `etcdstart.Link`, and `auth.Link`.
    Then run tier-check and lease-order. kvremote's statement text stays unchanged.
+
+### S2 step 4 done (2026-11-26, after Handoff S2-6)
+
+- **Confirmation build** of `f27e3cd99d` (`MainLogger`, `etcdstart.Link`): EXIT 0. `Start`'s `.olean` matched the
+  commit's source, and `MemberSplit`, which imports it, was rebuilt. So the auth-on chain did compile; the 0.6s
+  lean-check was incremental.
+- **`df93c75c28`**, one commit:
+  - `MainLogger` splits on `cases hau : d.cfg.auth`, after the common prefix (the share split once,
+    `Hau` kept, `hch` rewritten per branch).
+  - The auth-on branch follows the handoff's list. It has three new pieces:
+    - `memberCfg_on` (`MemberSplit.lean`, beside `memberCfg_off`);
+    - `memberCfg_tokenOk` (`NewServer_dist`'s token premise; `by decide` and `word` do not work inside the
+      `wp_apply` term);
+    - `NewServer`'s `cfg` given explicitly, as the goal's literal `configOf` record.
+  - Option (a) is applied in `MainLogger`, `MainDeploymentLogger` and `MainDeployment`.
+  - `member_boot_dist`'s `Hauth` is the same premise, now bound after `lm`. kvremote passes `fun _ h => nomatch h`, and
+    `kvMemberBoot`'s scope binder becomes `_Hscope`, its statement unchanged.
+  - Ledger entry marked applied.
+- **Built** on fk-lean2: `MainLogger`, `etcdstart.Link`, the dist/kvremote/putget/putgetk `TopLevelRobustness`, EXIT 0.
+  `tier-check` ok (208 known); `lease-order` ok. No `sorry`, no axiom.
