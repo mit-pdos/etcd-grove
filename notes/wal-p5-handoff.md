@@ -10,6 +10,20 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-26, **P5 session 7**, stopped at the context rule): **(b) step 1 and `raftState_logViewE`
+  written, UNBUILT** (`0612182c1f`, under session 6's handoff `16fb93b1de`). Step 1: `isWalStorage`'s
+  `Save`/`SaveSnap` updates over `walHistH` (no fold, no premise); direct laws `walSaveHist_spec`/
+  `walSaveSnapHist_spec` (`WalApi.lean`); `walSaveSized_spec`/`walSaveSnapH_spec` derived through
+  `walRecsH_au_toHist` (`WalRecsH.lean`; `Save`'s refusal arm now hands back the history's update, which its
+  only user `walSaveRn_spec` drops); `walSave_law`/`walSaveSnap_law` (`RnNewStorage.lean`) through
+  `walHistH_saveAU`/`walHistH_saveSnapAU`; `walSaveH.law`/`walSaveSnapH.law` restated over `walHistH`
+  (`walSaveH_law_holds` = `walSaveHist_spec`); ledger entry 2026-11-26 "the WAL contract's `Save`/`SaveSnap`".
+  `raftState_logViewE` (`raft/v3/DurableLogView.lean`, mask `Em ⊇ ↑N`; `raftState_logView` its `⊤` case); its
+  `RaftNoAx/` copy updated by hand with copy-part's import rewrite (`etc/copy-part.py` crashed here in
+  `gen-init.py`, `KeyError: 'internal.testlog'`: rerun it on the build host before relying on `--check`).
+  Session 6's queued build never ran (lake refused the `notes.*` targets). **Next**: build `16fb93b1de` with
+  `/shared/tmp/p5-s6-leaves-nonotes.txt` plus `etc/importers.py --leaves --git a601c25a54` (no `notes.*`); fix;
+  then (b) steps 2-5 as below.
 - **State** (2026-11-26, **P5 session 6**): **(a)'s P5 part done (`rnDurK_crash.law` gives the certificates);
   (b) planned under the approved alternative, no (b) Lean yet.** Merged `etcd-safe-main-r4/2026-11-25` @
   `1b9cef43df` (`3dfa5ac91a`; notes and `etc/tcb-collections/etcd-dist.txt` only). The lead approved (b)'s
