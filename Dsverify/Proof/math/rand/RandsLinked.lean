@@ -1,13 +1,13 @@
 /-
 `math.rand.Hyps` (`Spec.lean`; until dsv-fix4 a premise of rabia's and swiftpaxos's statements)
-**holds**, from per-function trust-boundary axioms over fixed tokens (`RngDefs.lean`: `isRngSource`,
-`ownRngRand`, over the opaque `rngTok`): `NewSource` and `New` (names only in Perennial) are the
-axioms `math.rand.NewSource.wp_proof` and `math.rand.New.wp_proof`, and so is
-`(*rngSource).Int63` (`rngSource__Int63.lean`); `(*Rand).Intn` is translated, and its spec over
+**holds**, from per-function specs over fixed tokens (`RngDefs.lean`: `isRngSource`, `ownRngRand`,
+over `rngTok`, Perennial's `ownRngSource`): `NewSource`, `New` and `(*rngSource).Int63`
+(`NewSource.lean`, `New.lean`, `rngSource__Int63.lean`) are Perennial's linked results (trust-boundary
+axioms from dsv-fix4 until dsv-retire-2, #49 step 2); `(*Rand).Intn` is translated, and its spec over
 `ownRngRand` is **proved** here from its body (`Intn` → `Int31n`/`Int63n` → `Int31`/`Int63` → the
 source's `Int63`), as Perennial proves it over the runtime's source
 (`Perennial/Proof/math/rand/Rand__*.lean`), with the token threaded through. A linking module (it
-applies the axioms); the kits' top-level proofs discharge the former premise with `hyps_holds`.
+applies linked results); the kits' top-level proofs discharge the former premise with `hyps_holds`.
 (Until dsv-fix4 the test-only `RandsInstancesLinked.lean`, with the three axioms local.)
 -/
 module
@@ -45,7 +45,7 @@ theorem Rand_Int63_rng : ∀ (r : Loc),
   iStructNamed Hr
   wp_auto
   simp only [Hsrc, interface.mkOk]
-  wp_apply math.rand.rngSource.Int63.wp_proof $$ Htok as %x ⟨Htok, %Hx⟩
+  wp_apply rngSource_Int63_rng $$ Htok as %x ⟨Htok, %Hx⟩
   iapply HΦ
   isplitl [Htok]
   · iunfold ownRngRand
@@ -164,10 +164,10 @@ theorem Rand_Intn_rng : math.rand.Rand.Intn.ownSpec (GF := GF) ownRngRand := by
     ipureintro
     word
 
-/-- **`math.rand.Hyps` holds** (a theorem, not an instance): from the per-function axioms of
-`NewSource` and `New` and the proof of `(*Rand).Intn` above. -/
+/-- **`math.rand.Hyps` holds** (a theorem, not an instance): from the specs of `NewSource` and
+`New` (Perennial's) and the proof of `(*Rand).Intn` above. -/
 theorem hyps_holds : math.rand.Hyps GF :=
-  ⟨⟨isRngSource, ownRngRand, ⟨math.rand.NewSource.wp_proof, math.rand.New.wp_proof, Rand_Intn_rng⟩⟩⟩
+  ⟨⟨isRngSource, ownRngRand, ⟨NewSource_rng, New_rng, Rand_Intn_rng⟩⟩⟩
 
 end proof
 

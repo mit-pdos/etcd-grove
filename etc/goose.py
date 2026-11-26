@@ -918,6 +918,8 @@ PROJECTS = [
                   # net/rpc's driver (notes/library-drivers.md)
                   "./rpcdriver", "./rpcdriver/service", "./rpcdriver/cmd/server",
                   "./rpcdriver/cmd/client",
+                  # net/http's driver (notes/library-drivers.md)
+                  "./httpdriver", "./httpdriver/cmd/server", "./httpdriver/cmd/client",
                   # each node a command of its example, its own process (examples/net/README.md)
                   "./echo/cmd/server",
                   "./echo/cmd/client",

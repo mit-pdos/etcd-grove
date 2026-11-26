@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/anishathalye/porcupine"
+	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 )
 
@@ -99,20 +100,33 @@ func (s *Server) Apply(input any) any {
 	return s.Get()
 }
 
-// Check runs clients clients of a fresh server, each running ops operations (client i writes a
-// value of its own if i is even and reads otherwise), traced with the given clock, and checks the
-// trace with porcupine.
+// Check runs clients clients of a fresh server, each running ops operations, each at random a
+// write of one of eight values or a read, traced with the given clock, and checks the trace with
+// porcupine.
 func Check(clock lintest.Clock, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
 	s := New()
-	vals := []string{"a", "b", "c", "d"}
-	gen := func(id int) any { return Op{Put: id%2 == 0, Val: vals[id%4]} }
+	vals := []string{"a", "b", "c", "d", "e", "f", "g", "h"}
+	gen := func(id int) any {
+		return Op{Put: primitive.RandomUint64()%2 == 0, Val: vals[primitive.RandomUint64()%8]}
+	}
 	return lintest.Run(Model(), s.Apply, gen, clock, clients, ops, timeout)
 }
 
-// Main runs 4 clients of 10 operations each against the server, traced with a counter clock,
-// checks the trace with porcupine (no timeout), and panics unless porcupine answers Ok.
+// MaxClients and MaxOps cap Main's random workload: it runs between 1 and MaxClients clients of
+// between 1 and MaxOps operations each, well within Run's bounds (clients < 2^31,
+// clients*ops < 2^60).
+const (
+	MaxClients = 8
+	MaxOps     = 32
+)
+
+// Main runs a random number of clients (at most MaxClients), each running a random number of
+// random operations (at most MaxOps) against the server, traced with a counter clock, checks the
+// trace with porcupine (no timeout), and panics unless porcupine answers Ok.
 func Main() {
-	if r := Check(lintest.CounterClock(), 4, 10, 0); r != porcupine.Ok {
+	clients := 1 + int(primitive.RandomUint64()%MaxClients)
+	ops := 1 + int(primitive.RandomUint64()%MaxOps)
+	if r := Check(lintest.CounterClock(), clients, ops, 0); r != porcupine.Ok {
 		panic("porcupine rejected a linearizable register's trace")
 	}
 }

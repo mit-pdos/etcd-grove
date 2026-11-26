@@ -36,8 +36,4 @@ axiom Perennial.github_com.rs.zerolog.New.wp_proof
 axiom Perennial.github_com.rs.zerolog.ParseLevel.wp_proofWarn
 axiom Perennial.github_com.rs.zerolog.SetGlobalLevel.wp_proof
 axiom Perennial.github_com.rs.zerolog.wp_initialize'
-axiom Perennial.math.rand.New.wp_proof
-axiom Perennial.math.rand.NewSource.wp_proof
-axiom Perennial.math.rand.rngSource.Int63.wp_proof
 axiom Perennial.os.signal.Notify.wp_proofQuietSigs
-axiom Perennial.os.signal.wp_initialize'

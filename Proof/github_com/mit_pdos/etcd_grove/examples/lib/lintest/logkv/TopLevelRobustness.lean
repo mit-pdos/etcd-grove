@@ -27,7 +27,7 @@ namespace logkv
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] Robustness.noExts Robustness.noExtsSemantics Robustness.noExtsInterp
 
 section adequacy
 
@@ -40,7 +40,7 @@ theorem logkv_robust : logkv_robust.spec := by
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
       (logkv_adequate
-        σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
+        σ g hf.1 hf.2.1 hf.2.2 n hn κs t2 σ2 Hsteps).2
 
 end adequacy
 end logkv

@@ -26,7 +26,6 @@ public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.os.signal.Init
 
 @[expose] public section
 

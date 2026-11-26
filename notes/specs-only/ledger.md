@@ -7053,3 +7053,20 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   premise from `statusCodeIs` (`statusCodeIs_notEtcd`).
 - **Decision.** (1) #24 7175612915 (asked), (2) and the do-nothing genproto/anypb `init`s: coordinator-E,
   #24 7175520513; (3) within the user's rule (a trust-boundary spec may change when every caller still proves).
+## 2026-11-25: `uuid.New.spec` takes `uuid.Assumptions`, `UUID.ID.spec` takes `isPkgInit uuid` (dsv-retire-2)
+
+- **Spec.** `github_com.google.uuid.New.spec` and `github_com.google.uuid.UUID.ID.spec`
+  (`Dsverify/Proof/github_com/imdea_software/swiftpaxos/lib/LibSpecs.lean`), the trust-boundary axioms
+  `New.wp_proof`, `UUID.ID.wp_proof` of dsv-fix4 (`Dsverify/Proof/github_com/google/uuid/`).
+- **Defect.** Neither is provable from uuid's translation (from its model `models/uuid`, dsv-retire-2): `New.spec`
+  takes no `[github_com.google.uuid.Assumptions]`, so `New` (a `functions` value) cannot be unfolded to its
+  body; `UUID.ID.spec`'s precondition is `True`, while `ID`'s body calls `(*bigEndian).Uint32` on
+  `&binary.BigEndian`, which loads that global: its initialized value comes only from `isPkgInit
+  encoding/binary`, reachable from `isPkgInit uuid`.
+- **Evidence.** `notes/axiom-review/dsv-fix4/google-uuid.md`, last section; the translated bodies
+  (`Dsverify/Code/github_com/google/uuid.lean`).
+- **Proposed change.** `New.spec` gains the instance argument `[github_com.google.uuid.Assumptions]` (as
+  `UUID.ID.spec` has), and `UUID.ID.spec`'s precondition becomes `isPkgInit uuid`. Their one caller,
+  `client.NewClientLog.wp_proof`, has both; no top-level statement changes. Then both are proved from the
+  translation and the two axioms deleted.
+- **Decision.** Approved by the coordinator, 2026-11-25 (#49 step 2).

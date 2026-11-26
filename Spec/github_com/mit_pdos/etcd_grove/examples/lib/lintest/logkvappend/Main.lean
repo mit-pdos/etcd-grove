@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (logkvappend.go): `Check(lintest.CounterClock(), 4, 10, 0)`, then a panic unless the
-result is `porcupine.Ok`. It returns (never panics) for executions of fewer than `2^63` steps
+`Main()` (logkvappend.go): `Check(lintest.CounterClock(), clients, ops, 0)`, with `clients` and
+`ops` drawn by `primitive.RandomUint64` between 1 and the caps `MaxClients = 8` and
+`MaxOps = 32`, then a panic unless the result is `porcupine.Ok`. It returns (never panics) for executions of fewer than `2^63` steps
 (`receiptBound GF ≤ 2^63`, `CounterClock`'s premise: the clock does not wrap around), given
 `context`'s `isClosedchanInit` (which porcupine's `WithCancel(Background())` needs and
 `isPkgInit` does not give; the adequacy theorem gets it from the program's initialization,

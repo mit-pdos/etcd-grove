@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.os
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Dsverify.Code.os.signal
 
@@ -25,12 +27,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.signal.Assumptions]
 
 noncomputable instance stopping_typed_pointsto :
-    TypedPointsto (GF := GF) os.signal.stopping :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.signal.stopping where
+  typedPointstoDef l v dq := iprop(
+    "c" ∷ typedPointsto (structFieldRef os.signal.stopping go!"c" l) v.c' dq ∗
+    "h" ∷ typedPointsto (structFieldRef os.signal.stopping go!"h" l) v.h' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance stopping_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.signal.stopping os.signal.stopping.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.signal.stopping os.signal.stopping.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance stopping_access_load_c (l : Loc) (v : os.signal.stopping) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.stopping go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef os.signal.stopping go!"c" l) v.c' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance stopping_access_store_c (l : Loc) (v : os.signal.stopping) (c' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.stopping go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.signal.stopping go!"c" l) c' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : os.signal.stopping) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance stopping_access_load_h (l : Loc) (v : os.signal.stopping) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.stopping go!"h" l) v.h' dq)
+      (typedPointsto (structFieldRef os.signal.stopping go!"h" l) v.h' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance stopping_access_store_h (l : Loc) (v : os.signal.stopping) (h' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.stopping go!"h" l) v.h' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.signal.stopping go!"h" l) h' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h' := h' } : os.signal.stopping) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end stopping
@@ -93,6 +133,97 @@ noncomputable instance signalCtx_into_val_typed :
 
 end def_
 end signalCtx
+
+namespace «struct#c69a5a71»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : os.signal.Assumptions]
+
+noncomputable instance «struct#c69a5a71_typed_pointsto» :
+    TypedPointsto (GF := GF) os.signal.«struct#c69a5a71» where
+  typedPointstoDef l v dq := iprop(
+    "Mutex" ∷ typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"Mutex" l) v.Mutex' dq ∗
+    "m" ∷ typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"m" l) v.m' dq ∗
+    "ref" ∷ typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"ref" l) v.ref' dq ∗
+    "stopping" ∷ typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"stopping" l) v.stopping' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#c69a5a71_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) os.signal.«struct#c69a5a71» os.signal.«struct#c69a5a71».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#c69a5a71_access_load_Mutex» (l : Loc) (v : os.signal.«struct#c69a5a71») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_store_Mutex» (l : Loc) (v : os.signal.«struct#c69a5a71») (Mutex' : _root_.Perennial.sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"Mutex" l) Mutex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : os.signal.«struct#c69a5a71») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_load_m» (l : Loc) (v : os.signal.«struct#c69a5a71») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"m" l) v.m' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_store_m» (l : Loc) (v : os.signal.«struct#c69a5a71») (m' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"m" l) v.m' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"m" l) m' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := m' } : os.signal.«struct#c69a5a71») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_load_ref» (l : Loc) (v : os.signal.«struct#c69a5a71») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"ref" l) v.ref' dq)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"ref" l) v.ref' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_store_ref» (l : Loc) (v : os.signal.«struct#c69a5a71») (ref' : (GoArray w64 65)) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"ref" l) v.ref' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"ref" l) ref' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ref' := ref' } : os.signal.«struct#c69a5a71») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_load_stopping» (l : Loc) (v : os.signal.«struct#c69a5a71») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"stopping" l) v.stopping' dq)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"stopping" l) v.stopping' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#c69a5a71_access_store_stopping» (l : Loc) (v : os.signal.«struct#c69a5a71») (stopping' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"stopping" l) v.stopping' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.signal.«struct#c69a5a71» go!"stopping" l) stopping' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopping' := stopping' } : os.signal.«struct#c69a5a71») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#c69a5a71»
 
 end os.signal
 end

@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # lintest/logkvrw: the results (2026-10-28)
 
 - **`logkvrw.wp_Main`** (`Link.lean`): `Main()` returns (never panics), so porcupine answered `Ok`
-  on the trace of 4 clients of 10 operations of the log-applied register, for executions of
+  on the trace of 1 to 8 clients of 1 to 32 random operations each of the log-applied register, for executions of
   fewer than `2^63` steps (`receiptBound GF ≤ 2^63`, `CounterClock`'s premise) with fewer than
   `2^30` live threads (`threadBound GF ≤ 2^30`, `New`'s premise), given
   `context`'s `isClosedchanInit`; every callee linked (the register's proofs, the driver's and

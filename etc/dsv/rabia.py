@@ -42,7 +42,7 @@ GOOSE = dict(
 # etc/gen-init.py: Rabia's packages, the names-only libraries the lab modelled, the kit and its
 # programs
 RABIA_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
-PKGS = [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
+PKGS = ['os.signal'] + [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
                                'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
                                'roles.server.layers.network', 'roles.server.layers.consensus',
                                'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
@@ -62,12 +62,23 @@ MAIN = ['bufio', 'container.heap', 'path']
 # neither here nor in `MAIN`
 HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
              'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
-             'github_com.go_redis.redis.v8.internal.proto', 'os.signal']
+             'github_com.go_redis.redis.v8.internal.proto']
+# Not os/signal (dsv-retire-1-inits, 2026-11-25): its variables and `init` are translated, its
+# `Init.lean` generated (`PKGS`) with a proved `wp_initialize'`
 
 
 def special(g):
     """Configurations of the kit's packages (`g`: etc/gen-init.py's globals)."""
     SPECIAL, newvars_cfg, FIN_PRE = {}, g.newvars_cfg, g.FIN_PRE
+    # (dsv-retire-1-inits) os/signal: the zero-valued `handlers`, `watchSignalLoopOnce`,
+    # `watchSignalLoop`, and `init.0` (`watchSignalLoop = loop`)
+    SPECIAL['os.signal'] = dict(
+        doc='''Its fact is `True`. Its initializer allocates `handlers`, `watchSignalLoopOnce` and
+`watchSignalLoop` (zero values), initializes its imports `os` and `sync`, and runs its `init`, which
+stores the function value `loop` (not called) in `watchSignalLoop`.''',
+        alloc_types={'handlers': '_root_.Perennial.os.signal.«struct#c69a5a71»',
+                     'watchSignalLoopOnce': '_root_.Perennial.sync.Once',
+                     'watchSignalLoop': 'GoFunc'})
     SPECIAL['rabia.internal.config'] = dict(
         doc='''Its fact (`Base.lean`): `Conf`'s invariant `confInv`, as initialized. Its initializer
 allocates `Conf` and initializes its imports.''',

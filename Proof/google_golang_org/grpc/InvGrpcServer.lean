@@ -14,13 +14,24 @@ it, `k`:
   the server's chain in order (grpc's `chainUnaryServerInterceptors`; no `UnaryInterceptor`
   option is specified, so the chain is these lists, concatenated);
 * `.chainStream ics` (`ChainStreamInterceptor(ics...)`): likewise for streams;
-* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's): `h` added to
-  the server's stats handlers; it adds no value under etcd's context keys (`grpcRunCtx`);
+* `.stats h` (`StatsHandler(h)`, of a handler with `grpcStatsHandlerOk`: otelgrpc's, which the kind
+  carries): `h` added to the server's stats handlers; it adds no value under etcd's context keys
+  (`grpcRunCtx`);
 * `.neutral`: an option that does not change which handler runs for a method, nor what a run is
-  given (the run's context, `grpcRunCtx`; the decoded request, `grpcDecOk`): message size limits
-  (a call over the limit fails before its handler runs, or its response is not delivered: an error
-  for the client), `MaxConcurrentStreams` (calls wait), a protobuf codec (`CustomCodec` of a codec with `grpcProtoCodec`: the wire models `ProtoMsg` are protobuf's),
-  the keepalive enforcement policy.
+  given (the run's context, `grpcRunCtx`; the decoded request, `grpcDecOk`), nor how requests are
+  decoded: it changes only the fields of a whitelist (`srvOptsSameBut`: message size limits, a call
+  over the limit failing before its handler runs or its response not delivered, an error for the
+  client; `MaxConcurrentStreams`, calls wait; flow-control windows, buffers, header limits,
+  keepalive parameters and enforcement policy, the connection timeout, server workers, waiting for
+  handlers), and the codec only to a protobuf codec's (`srvCodecOk`: `CustomCodec` of a codec with
+  `grpcProtoCodec`, so the wire models `ProtoMsg` are protobuf's). Every other field stays: an
+  option setting `UnaryInterceptor`/`StreamInterceptor`, credentials, a compressor, an unknown-service
+  handler, a stream wrapper or a non-protobuf codec is of no kind (2026-11-26,
+  `notes/axiom-review/grpc-neutral-narrow.md`: until then only the chains and the stats handlers
+  were fixed, so a closure setting any other field was `.neutral`, e.g. `Creds(tlsCreds)`'s once its
+  body is translated, while the model's `NewServer` panics on non-insecure credentials; no
+  translated closure sets such a field today, so the hole was latent). The other kinds fix the
+  same fields.
 
 **The server being built** (`grpcSrvNew gs ics sics svcs regs sregs`, exclusive, axiomatized):
 `NewServer`'s `*grpc.Server` `gs`, not serving yet, with the unary and stream chains `ics`,
@@ -279,31 +290,72 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **`so'` is `so` but for the fields no handler, run context or decoding depends on**, and for
+the codec, the two interceptor chains and the stats handlers, which each option kind's clause of
+`srvOptFnOk` states (2026-11-26, `notes/axiom-review/grpc-neutral-narrow.md`). The whitelist, of
+grpc-go v1.84's `serverOptions` (`models/grpc/server.go`): the stream limit, the message size limits,
+the keepalive parameters and enforcement policy, the flow-control windows (`initialWindowSize`,
+`initialConnWindowSize`, `staticWindowSize`), the transport's buffers (`writeBufferSize`,
+`readBufferSize`, `sharedWriteBuffer`), the connection timeout, the header limits
+(`maxHeaderListSize`, `headerTableSize`), the server workers (`numServerWorkers`, which run the same
+`handleStream`; the model has none) and `waitForHandlers` (read by `Stop` only). Every other field
+(`creds`, `cp`, `dc`, `unaryInt`, `streamInt`, `unknownStreamDesc`, `streamWrapper`, and any field
+grpc adds) is `so`'s. -/
+def srvOptsSameBut (so so' : google_golang_org.grpc.serverOptions) : Prop :=
+  so' = { so with
+    codec' := so'.codec', chainUnaryInts' := so'.chainUnaryInts',
+    chainStreamInts' := so'.chainStreamInts', statsHandlers' := so'.statsHandlers',
+    maxConcurrentStreams' := so'.maxConcurrentStreams',
+    maxReceiveMessageSize' := so'.maxReceiveMessageSize',
+    maxSendMessageSize' := so'.maxSendMessageSize',
+    keepaliveParams' := so'.keepaliveParams', keepalivePolicy' := so'.keepalivePolicy',
+    initialWindowSize' := so'.initialWindowSize',
+    initialConnWindowSize' := so'.initialConnWindowSize',
+    writeBufferSize' := so'.writeBufferSize', readBufferSize' := so'.readBufferSize',
+    sharedWriteBuffer' := so'.sharedWriteBuffer', connectionTimeout' := so'.connectionTimeout',
+    maxHeaderListSize' := so'.maxHeaderListSize', headerTableSize' := so'.headerTableSize',
+    numServerWorkers' := so'.numServerWorkers', waitForHandlers' := so'.waitForHandlers',
+    staticWindowSize' := so'.staticWindowSize' }
+
+/-- **The codec of `so'` is `so`'s, or a protobuf codec's**: `CustomCodec(c)` of a codec with
+`grpcProtoCodec c` stores `newCodecV0Bridge(c)`, the value `codecV0Bridge{codec: c}` (as `any`),
+whose `Marshal`/`Unmarshal` are `c`'s (`models/grpc/codec.go`). -/
+def srvCodecOk (so so' : google_golang_org.grpc.serverOptions) : Prop :=
+  so'.codec' = so.codec' ∨ ∃ c : GoInterface, grpcProtoCodec c ∧
+    so'.codec' = interface.mkOk google_golang_org.grpc.codecV0Bridge.ty
+      #(google_golang_org.grpc.codecV0Bridge.mk c)
+
 /-- **What the closure `f` of a server option of the kind `k` does to `*serverOptions`**
 (persistent; phase 7 S1, `notes/phase7-plan.md`: grpc is the model's, `models/grpc`): applied to a
-`p ↦ so`, it returns with `p ↦ so'`, where
-* `.neutral`: the unary and stream chains and the stats handlers are `so`'s (any other field may
-  change: a size limit, the stream limit, the codec, the keepalive policy);
+`p ↦ so`, it returns with `p ↦ so'`, where `so'` is `so` but for the whitelisted fields
+(`srvOptsSameBut`) and
+* `.neutral`: the unary and stream chains and the stats handlers are `so`'s, the codec is `so`'s or a
+  protobuf codec's (`srvCodecOk`);
 * `.chainUnary ics` (`.chainStream ics`): the chain, whose elements `us` and capacity it is given,
-  is `us ++ ics` (`append(o.chainUnaryInts, interceptors...)`), the other chain and the stats
-  handlers are `so`'s;
-* `.stats h`: the stats handlers, whose elements `hs` and capacity it is given, are `hs ++ [h]` if
-  `h` is not nil, `hs` if it is (grpc logs and ignores a nil handler), the chains are `so`'s.
+  is `us ++ ics` (`append(o.chainUnaryInts, interceptors...)`), the other chain, the stats
+  handlers and the codec are `so`'s;
+* `.stats h`: `h` has `grpcStatsHandlerOk` (the server calls its `TagConn` on every connection and
+  its `TagRPC` on every call, so the kind is only of a handler that lets them run, not of every
+  closure that appends to `statsHandlers`), and the stats handlers, whose elements `hs` and capacity
+  it is given, are `hs ++ [h]` if `h` is not nil, `hs` if it is (grpc logs and ignores a nil
+  handler), the chains and the codec are `so`'s.
 The ownership each kind is given is what its closure reads and writes, so that `NewServer`, which
 applies the options in order to one `serverOptions`, can hold it. -/
 def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
   | .neutral => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (Φ : val → IProp GF),
       p ↦ so -∗ ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
-        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.chainStreamInts' = so.chainStreamInts' ∧
-          so'.statsHandlers' = so.statsHandlers'⌝ -∗ Φ #()) -∗
+        ⌜srvOptsSameBut so so' ∧ srvCodecOk so so' ∧ so'.chainUnaryInts' = so.chainUnaryInts' ∧
+          so'.chainStreamInts' = so.chainStreamInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
   | .chainUnary ics => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (us : List GoFunc) (Φ : val → IProp GF),
       p ↦ so -∗ so.chainUnaryInts' ↦* us -∗ ownSliceCap GoFunc so.chainUnaryInts' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
         so'.chainUnaryInts' ↦* (us ++ ics) -∗ ownSliceCap GoFunc so'.chainUnaryInts' (DFrac.own 1) -∗
-        ⌜so'.chainStreamInts' = so.chainStreamInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        ⌜srvOptsSameBut so so' ∧ so'.codec' = so.codec' ∧ so'.chainStreamInts' = so.chainStreamInts' ∧
+          so'.statsHandlers' = so.statsHandlers'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
   | .chainStream ics => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
@@ -311,16 +363,18 @@ def srvOptFnOk (f : GoFunc) : SrvOptKind → IProp GF
       p ↦ so -∗ so.chainStreamInts' ↦* us -∗ ownSliceCap GoFunc so.chainStreamInts' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
         so'.chainStreamInts' ↦* (us ++ ics) -∗ ownSliceCap GoFunc so'.chainStreamInts' (DFrac.own 1) -∗
-        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.statsHandlers' = so.statsHandlers'⌝ -∗
+        ⌜srvOptsSameBut so so' ∧ so'.codec' = so.codec' ∧ so'.chainUnaryInts' = so.chainUnaryInts' ∧
+          so'.statsHandlers' = so.statsHandlers'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
-  | .stats h => iprop(□ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
+  | .stats h => iprop(⌜grpcStatsHandlerOk h⌝ ∗ □ ∀ (p : Loc) (so : google_golang_org.grpc.serverOptions)
       (hs : List GoInterface) (Φ : val → IProp GF),
       p ↦ so -∗ so.statsHandlers' ↦* hs -∗ ownSliceCap GoInterface so.statsHandlers' (DFrac.own 1) -∗
       ▷ (∀ so' : google_golang_org.grpc.serverOptions, p ↦ so' -∗
         so'.statsHandlers' ↦* (hs ++ (if h = interface.nil then [] else [h])) -∗
         ownSliceCap GoInterface so'.statsHandlers' (DFrac.own 1) -∗
-        ⌜so'.chainUnaryInts' = so.chainUnaryInts' ∧ so'.chainStreamInts' = so.chainStreamInts'⌝ -∗
+        ⌜srvOptsSameBut so so' ∧ so'.codec' = so.codec' ∧ so'.chainUnaryInts' = so.chainUnaryInts' ∧
+          so'.chainStreamInts' = so.chainStreamInts'⌝ -∗
         Φ #()) -∗
       WP (App (Val #f) (Val #p)) {{ Φ }})
 

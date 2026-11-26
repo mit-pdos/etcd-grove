@@ -40,6 +40,7 @@ public import Proof.google_golang_org.grpc.status.StatusRO
 public import Proof.google_golang_org.genproto.googleapis.rpc.status.Base
 public import Proof.crypto.tls.PkgInit
 public import Proof.google_golang_org.protobuf.PkgInit
+public import Proof.runtime.InitInv
 
 @[expose] public section
 
@@ -173,18 +174,7 @@ instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf
 
-/-- **An init-time invariant** (phase7-inits, 2026-11-25; the mechanism of phase 7 S2 core's
-`fromOutRawInv`): a resource `R` that only package initializers use, shared between packages (one
-allocates it, others use it, and a package fact is persistent). Two states. *Held*: `R` and the whole of
-the ghost variable `γI`. *Lent*: a package initializer's exclusive package state (`ownGoState σ`, the
-program's half of the package map with the authority of the initialized packages) and half of `γI` at
-`σ`. A package initializer, which holds its `ownGoState`, takes `R` out by lending its package state (so
-no other holder of a package state can take it meanwhile: two `ownGoState`s conflict), uses it with plain
-(non-atomic) steps, and puts it back, getting its own package state back (`γI`'s halves agree):
-`grpc/internal/Hooks.lean`, `initInv_acc`. -/
-def initInv (R : IProp GF) (γI : GName) : IProp GF :=
-  iprop((R ∗ ∃ x : GMap GoString Bool, ghost_var γI (DFrac.own 1) x) ∨
-    (∃ σ : GMap GoString Bool, ownGoState σ ∗ ghost_var γI (DFrac.own (1 : Qp).half) σ))
+-- `initInv` (the init-time invariant): `Proof/runtime/InitInv.lean` (dsv-retire-2, 2026-11-25)
 
 -- grpc's `grpclog` and `grpclog/internal` (types and names only, but `grpclog`'s `cache` and
 -- `Component`), before `connectivity`, `credentials`, `health` and grpc, whose `logger`s call
@@ -235,29 +225,7 @@ instance grpc_connectivity_get_is_pkg_init_wf_inst :
 -- them
 namespace google_golang_org.grpc.internal
 
-/-- The namespace of the hook cells' invariants. -/
-def hookN : Namespace := nroot.@"grpcInternalHook"
-
-/-- **A hook cell's invariant**: the cell `a`, with some value, in an init-time invariant (`initInv`).
-The cell is another package's: `internal`'s initializer allocates it, the `init` of grpc, `codes`,
-`metadata` or `health` writes it. -/
-def hookInv (V : Type) [TypedPointsto (GF := GF) V] (a : Loc) (γI : GName) : IProp GF :=
-  initInv iprop(∃ v : V, a ↦ v) γI
-
-/-- A write-only hook cell: `a`'s invariant, at some ghost name. -/
-def hookCell (V : Type) [TypedPointsto (GF := GF) V] (a : Loc) : IProp GF :=
-  iprop(∃ γI : GName, inv hookN (hookInv V a γI))
-
-/-- The hook cells of the variables `xs`, of Lean type `V`. -/
-def hookCells (V : Type) [TypedPointsto (GF := GF) V] : List GoString → IProp GF
-  | [] => iprop(True)
-  | x :: xs => iprop(hookCell V (globalAddr x) ∗ hookCells V xs)
-
-instance hookCells_persistent (V : Type) [TypedPointsto (GF := GF) V] (xs : List GoString) :
-    Persistent (hookCells (GF := GF) V xs) := by
-  induction xs with
-  | nil => unfold hookCells; infer_instance
-  | cons x xs ih => unfold hookCells hookCell; infer_instance
+-- `hookN`, `hookInv`, `hookCell`, `hookCells`: `Proof/runtime/InitInv.lean` (dsv-retire-2, 2026-11-25)
 
 /-- The hook variables of type `any` the translated `init`s set: `metadata`'s, `codes`', grpc's
 (`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s. -/
