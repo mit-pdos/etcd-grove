@@ -512,3 +512,55 @@ commit, which is NOT yet built: rebuild the same targets first.
 - **Next (held for the lead's putgetK verdict, relayed by the coordinator):** the replacement texts of
   `NewServer.specG_dist`/`Serve_dist.spec` (Handoff 4, "Step 3"), `MainLogger` over the L lemmas, putget's `Member`
   without `memberUpL_memberUp`, and putgetK's (a) or (b).
+
+### Handoff 6 (2026-11-26, step 3 replacement built and pushed; the lease link not started)
+
+**Done** (`eb138f6f8c`, one commit, pushed; fk-lean2 EXIT 0 on putget/putgetk/kvremote `TopLevelRobustness`,
+`putgetk.Start`, `etcdstart.Link`, `etcdserver.Results`):
+- `NewServer.specG_dist` (Spec `NewServerDist.lean`): the reviewed text (binders `γa`, `γl`; `"Hlslot"`, `"Hγa"` last in
+  the pre; post `on = true → E.authMode = .on γa` and `mvccLeases E.γ = γl`) plus `etcdURLsFit U.peer → etcdURLsFit
+  U.client →` after `peerURLsDir`; the header lists every change; the `Hsdo` comment is the in-process one.
+- `Serve_dist.spec` (Spec `ServeDist.lean`): the reviewed text verbatim; the old text deleted; both axioms' docstrings
+  updated (the stale `specGAt` and distinct-names sentences fixed).
+- putgetK (option (a)): `StartMember_dist.spec` has a binder `γl`, the post `memberUpL s ρ E₀ lg γn id lm γl`, and
+  `addrFits peerAddr → addrFits client →` back. Its header says it is stronger than what `StartMember` can meet at
+  putgetK's names (no lessor slot; `ClusterNames.lsNone`): a hypothesis (`HSM`), no axiom.
+- `MainLogger`: `memberShareD`'s `memberNamesShare` unpacked (`Hlslot`; the auth names unused at auth off),
+  `etcdURLsFit` from `Hwf.addrs` via `addrOk_addrFits`/`etcdURLsFit_httpURL`, `memberBuiltL`/`memberBuiltL_split`/
+  `wp_Start_builtL`/`memberUpL_req`, `Serve_dist` at `c.view` (`hklg`). putget's and putgetK's `Member`: `Serve_dist`
+  at `memberUpL` directly (`Hlm` / `hklg`). The auth-off branch is reached by `simp only [ClusterNames.view,
+  Bool.false_eq_true, ↓reduceIte, …]`; the guarded premise by `fun h => absurd h Bool.false_ne_true` (`by decide`
+  fails: free variables).
+- `AuthServeProposed.lean` deleted; `MemberNames` imports `MemberLessor`; `S2Interim`/`AuthViewDist` docstrings updated.
+- `etc/lease-order-check.py` ok; `etc/tier-check.py --check` ok (208 known).
+- Notes: `axiom-review/f7-diff-vs-inprocess.md` (final texts, items 1-3 resolved), `etcd-dist-f9-f2f7-rows.md`, STATUS.
+
+**Left on purpose (to avoid rebuilding `etcdstart.Start`'s whole cone, every etcd example's `Results`):**
+`MemberLessor.lean`'s header and two docstrings still name `AuthServeProposed.lean`/`specG_dist_proposed`, and
+`etcdstart.memberUpL_memberUp` is now unused; `MemberSplit`'s `memberBuilt_split`/`memberUp_req` are unused too. Fix
+them with the next change that rebuilds that cone anyway.
+
+**Not done:**
+1. **`etc/axiom-tok-allow.txt`**: `Serve_dist.wp_proof`'s entry (line 196) and `trunc` line are keyed to the old
+   `memberUp` handles. `memberUpOnL` adds `srvAuthLb`/`srvAuthStoreOn`/`isServerReqM true` (new keys likely), and
+   `NewServer_dist` takes `authNamesFreshD`. Re-key from a run of `etc/axiom-tok-check.py` (needs `.lake/tcb.json` from
+   `etc/tcb-report.py`, which needs every root built: run both on fk-lean2 under `systemd-run --user --scope -p
+   MemoryMax=55G`, after `lake build` of what `tcb-report` names). `etc/tcb-baseline.txt` should not change (no axiom
+   added or removed by step 3).
+2. **Step 4, linking leaseRead/leaseCatchup/leaseExpiry** (as N7-kv linked kv, `client/KvLinked.lean`). What it needs:
+   - `MainReady.spec` is kv-only (`⌜w.kind = W64 0⌝`, `OP ns w.ops`; `MainDeployment`/`Orchestrator` the same). Add per-kind
+     variants for kinds LeaseRead/LeaseCatchup/LeaseExpiry whose share is the `RunLease*.spec` pre (`Γ`, `eps ↦*□ addrs`,
+     the members' client facts, `Γ.kv.lm = .mono`/`.revocable` for catchup/expiry, distinct `Γ.ls`), proofs by the
+     `switch` in `client.go:143`.
+   - A `client/LeaseLinked.lean` (linking): `RunLeaseRead.wp_proof` over `leaseReadCheck`/`checked`/`ended`;
+     `RunLeaseCatchup.wp_proof` over `newClient`, `leaseGrant.specMono`, `leaseList.specGranted`, `listed`; 
+     `RunLeaseExpiry.wp_proof` over `leaseGrant.spec`, `leaseList.specLive`, `gone`, `listed`; each callee's proof over
+     the six lease axioms; then `wp_OrchestratorLease*` as `wp_OrchestratorKv`.
+   - For the axioms to enter the trust base a root must reach them (`etc/proof_roots.py`: `Link`/`MainLinked`/
+     `Results`/`TopLevelRobustness`): `KvLinked` is reached through kvremote's `TopLevelRobustness`. Catchup and expiry
+     need a cluster in mode `.mono`/`.revocable`, but `memberShareD`/`ClusterOk` fix `.none` and `MainLogger` serves at
+     `.none`: a lease-mode start (the share at `lm`, `memberBoot_of_slice … lm`, `lease.bootCfg` at `lm`) is a
+     prerequisite of any top-level use. Decide with the lead whether step 4 is the `LeaseLinked` theorems only (no
+     root: the tcb report does not change) or a root (a `Results.lean` restating them, then a collection
+     `etc/tcb-collections/etcd-dist-lease.txt` and `tcb-report --check --update` for exactly the six axioms).
+   - The ordering gate then passes (`Serve_dist` ties `Γ.ls mid`).

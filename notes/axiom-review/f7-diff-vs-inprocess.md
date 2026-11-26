@@ -2,7 +2,24 @@
 
 2026-11-26, worktree `etcd-safe-f7` @ `d3c3a29b87` (#50, the lead's request). Read-only: no build, no proof.
 
-**Summary: UNJUSTIFIED / suspicious.**
+**Final texts (2026-11-26, `etcd-safe-f7` @ `eb138f6f8c`, F7 step 3, the lead's option (a)).** The replacement is made:
+`NewServer.specG_dist` is the proposed text below plus `etcdURLsFit U.peer → etcdURLsFit U.client →` (after `peerURLsDir`,
+as in-process), `Serve_dist.spec` is the proposed text (the old one deleted), `AuthServeProposed.lean` is deleted, and
+`StartMember_dist` has `addrFits peerAddr → addrFits client →` back and the post `memberUpL … lm γl` (new binder `γl`).
+All three items of the summary below are resolved:
+1. resolved: `specG_dist` takes `etcdURLsFit` (MainLogger discharges it from the deployment's `addrOk`,
+   `etcd_dist.addrOk_addrFits`, `etcdstart.etcdURLsFit_httpURL`); its header lists every change and no longer says the rest
+   is verbatim except them.
+2. resolved: `StartMember_dist` takes `addrFits` again (putgetK's member discharges it from `memberShareK`'s `addrOk`).
+   New, recorded in its header: its post `memberUpL … lm γl` is stronger than what `StartMember` can be proved to meet at
+   putgetK's names (no lessor slot: putgetK's start passes `ClusterNames.lsNone`); it is a hypothesis (`HSM`), no axiom.
+3. resolved: `Serve_dist` ties `Γ.ls mid`, `Γ.kv.lm` and (auth on) `Γ.au mid`; `etc/lease-order-check.py` passes.
+The two doc nits are fixed (the `specGAt` sentence is now "the lessor part is proved in one process"; the
+distinct-names sentence says only the auth one is kept, the lessor's stays a premise of the four lease axioms), and
+the `Hsdo` comment is the in-process text. The sections below keep the pre-replacement comparison; "PROPOSED"
+now means the text the axiom has.
+
+**Summary (before the replacement): UNJUSTIFIED / suspicious.**
 1. UNJUSTIFIED: `NewServer.specG_dist` (and the proposed `specG_dist_proposed`) drop `etcdURLsFit U.peer → etcdURLsFit U.client →`, and the header says "nothing else". Decided: carry them into the replacement. The other `StartMember_dist` drop is item 2.
 2. UNJUSTIFIED (placeholder, not an axiom): `StartMember_dist` drops `addrFits peerAddr → addrFits client →`, the premise that discharges item 1 at the boot, and its "What changes" list does not mention it.
 3. Suspicious, known (F2 review, `f2-lease-axioms.md`): the current `Serve_dist` serves `memberUp` at lease mode `.none` (the default) and does not tie `Γ.ls mid`. The proposed text fixes both, and the lease axioms are unlinked.
@@ -46,8 +63,9 @@ Counterpart: `Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean:151`. Dis
 No other difference: every other premise and post conjunct is token-identical. Only comments differ, at `Hsdo`, whose
 comment is stale in the dist file.
 
-## PROPOSED `NewServer.specG_dist_proposed` ↔ `NewServer.specG` (and ↔ the current `specG_dist`)
-Proposed text: `Proof/…/etcd/dist/AuthServeProposed.lean:104`. Compared with the current `specG_dist`, it has exactly the intended additions:
+## PROPOSED (now the axiom's, plus `etcdURLsFit`) `NewServer.specG_dist_proposed` ↔ `NewServer.specG` (and ↔ the then-current `specG_dist`)
+Proposed text: `Proof/…/etcd/dist/AuthServeProposed.lean:104` (deleted; now `Spec/…/etcd/dist/NewServerDist.lean`, with
+`Hlslot`/`Hγa` last in the precondition and `etcdURLsFit` carried). Compared with the current `specG_dist`, it has exactly the intended additions:
 
 | difference | kind | justification |
 |---|---|---|
@@ -79,8 +97,8 @@ differ: the in-process spec takes the caller's ghost step and gives `Q`; the dis
 | post `err ≠ nil ∨ (nil ∗ Q …)` → `True` | post weakened | conservative |
 | `memberUp … mid` at its default lease mode `.none`; nothing ties `Γ.ls mid` | missing tie | **Suspicious, known** (F2 review: `Lease_LeasesGranted_dist` with `Lease_Grant_dist` UNSOUND today; unlinked). `kvCongr` ties `ρ.rd.kv.lm = Γ.kv.lm`, but nothing ties the member's lessor mode or name to `Γ`. Fixed by the proposal |
 
-## PROPOSED `Serve_dist_proposed.spec` ↔ `etcdstart.Serve.spec` (and ↔ the current `Serve_dist`)
-Proposed text: `AuthServeProposed.lean:283`. It differs from the current `Serve_dist` in exactly these rows:
+## PROPOSED (now the axiom's) `Serve_dist_proposed.spec` ↔ `etcdstart.Serve.spec` (and ↔ the then-current `Serve_dist`)
+Proposed text: `AuthServeProposed.lean:283` (deleted; now `Spec/…/etcd/dist/ServeDist.lean`, verbatim). It differs from the current `Serve_dist` in exactly these rows:
 
 | difference | kind | justification |
 |---|---|---|

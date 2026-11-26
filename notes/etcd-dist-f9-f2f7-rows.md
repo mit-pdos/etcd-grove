@@ -5,16 +5,17 @@ two axioms it replaces. Reviews are in `notes/axiom-review/`. The ordering gate 
 `etc/gates.sh`) refuses a link of the six lease axioms while any serve axiom of etcd's table does not tie the
 member's lessor to `Γ.ls mid` (f7-combined.md §3's caveat).
 
-**State (2026-11-26, this session's handoff):** the rows below are the target. The replacement commit (both axioms
-at once, the current `Serve_dist` deleted in it) is **not made yet**: it breaks putget's and putgetk's results, see
-`notes/etcd-dist-f7.md`, "Replacing the two axioms: the conflict". The six lease axioms are still unlinked.
+**State (2026-11-26, `eb138f6f8c`):** the replacement is made (both axioms in one commit, the old `Serve_dist` deleted;
+the lead's option (a): `putgetK_safe` stays, its placeholder `StartMember_dist` gives `memberUpL`), built on fk-lean2
+(putget/putgetk/kvremote `TopLevelRobustness`, `etcdstart.Link`, `etcdserver.Results`). The six lease axioms are still
+unlinked (`notes/etcd-dist-f7.md`, Handoff 6).
 
 ## The replaced axioms
 
 | axiom | Today | With this change |
 |---|---|---|
-| `etcd_dist.NewServer_dist.wp_proof` (`Spec/.../dist/NewServerDist.lean`) | `NewServer.specG_dist`: the server's auth names are `∃ γa` in the post, its lessor name is NewServer's own | `NewServer.specG_dist_proposed` (`AuthServeProposed.lean:104`): binders `γa`, `γl`; premises `"Hγa"` (auth on: `authNamesFreshD γa`) and `"Hlslot"` (`ghostMapAuth γl ½ ∅ ∗ lease.lessorSlot γl`); post `E.authMode = .on γa` (auth on) and `mvccLeases E.γ = γl`. Review: `f7-combined.md` §1, SOUND. |
-| `etcd_dist.Serve_dist.wp_proof` (`Spec/.../dist/ServeDist.lean`) | auth off only (`Γ.auth = false`), `etcdstart.memberUp` (no tie of the member's lessor or auth names to `Γ`) | `Serve_dist_proposed.spec` (`AuthServeProposed.lean:283`): `kvCongr ∧ (Γ.auth = false ∨ hist agrees)`, `memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)` (auth on) or `memberUpL … Γ.kv.lm (Γ.ls mid)` (auth off), distinct `Γ.au` with auth on. Review: `f7-combined.md` §1, §3, SOUND provided it replaces the current one (the gate enforces the order). |
+| `etcd_dist.NewServer_dist.wp_proof` (`Spec/.../dist/NewServerDist.lean`) | (before `eb138f6f8c`) `NewServer.specG_dist`: the server's auth names are `∃ γa` in the post, its lessor name is NewServer's own; `etcdURLsFit` dropped | `NewServer.specG_dist` (since `eb138f6f8c`): binders `γa`, `γl`; premises `etcdURLsFit U.peer → etcdURLsFit U.client →` (carried back from `NewServer.specG`), `"Hγa"` (auth on: `authNamesFreshD γa`) and `"Hlslot"` (`ghostMapAuth γl ½ ∅ ∗ lease.lessorSlot γl`); post `E.authMode = .on γa` (auth on) and `mvccLeases E.γ = γl`. Review: `f7-combined.md` §1, SOUND; `f7-diff-vs-inprocess.md`. |
+| `etcd_dist.Serve_dist.wp_proof` (`Spec/.../dist/ServeDist.lean`) | (before `eb138f6f8c`) auth off only (`Γ.auth = false`), `etcdstart.memberUp` (no tie of the member's lessor or auth names to `Γ`) | `Serve_dist.spec` (since `eb138f6f8c`, the reviewed text verbatim): `kvCongr ∧ (Γ.auth = false ∨ hist agrees)`, `memberUpOnL … (Γ.au mid) Γ.kv.lm (Γ.ls mid)` (auth on) or `memberUpL … Γ.kv.lm (Γ.ls mid)` (auth off), distinct `Γ.au` with auth on. Review: `f7-combined.md` §1, §3, SOUND provided it replaces the current one (the gate enforces the order). |
 
 ## The new axioms (in the trust base once leaseRead/leaseCatchup/leaseExpiry are linked)
 
