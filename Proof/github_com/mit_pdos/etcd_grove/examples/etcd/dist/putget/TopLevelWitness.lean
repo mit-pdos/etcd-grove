@@ -306,7 +306,11 @@ theorem putget_safe.premisesSat :
     rcases hm with rfl | rfl <;> exact fresh_freshState _
   · intro m hm
     simp only [system, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hm
-    rcases hm with rfl | rfl <;> exts_init
+    -- (etcd_safe crash line, D4a) `etcdFsSem`'s `initLocal` is `FsInit`: given explicitly
+    rcases hm with rfl | rfl
+    · exact ⟨trivial, memberRoots_init, by first | trivial | rfl | (simp <;> trivial), trivial⟩
+    · exact ⟨trivial, fsInit_fsOneRoot _ tmp_rootForm, by first | trivial | rfl | (simp <;> trivial),
+        trivial⟩
 
 end etcd_putget_dist
 end EtcdGrove
