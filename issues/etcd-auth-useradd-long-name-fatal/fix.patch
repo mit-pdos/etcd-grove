@@ -1,0 +1,123 @@
+From 59a2722618fb6538c5b8dac0b69a63d29e6da01f Mon Sep 17 00:00:00 2001
+From: Frans Kaashoek <kaashoek@mit.edu>
+Date: Thu, 26 Nov 2026 02:57:01 +0000
+Subject: [PATCH 1/2] tests: test adding a user or role whose name exceeds the
+ max key size
+
+Signed-off-by: Frans Kaashoek <kaashoek@mit.edu>
+---
+ tests/common/role_test.go | 3 +++
+ tests/common/user_test.go | 7 +++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/tests/common/role_test.go b/tests/common/role_test.go
+index 2eb1af1e6..e77106eba 100644
+--- a/tests/common/role_test.go
++++ b/tests/common/role_test.go
+@@ -16,6 +16,7 @@ package common
+ 
+ import (
+ 	"context"
++	"strings"
+ 	"testing"
+ 	"time"
+ 
+@@ -59,6 +60,8 @@ func TestRoleAdd_Error(t *testing.T) {
+ 		require.ErrorContainsf(t, err, rpctypes.ErrRoleAlreadyExist.Error(), "want (%v) error, but got (%v)", rpctypes.ErrRoleAlreadyExist, err)
+ 		_, err = cc.RoleAdd(ctx, "")
+ 		require.ErrorContainsf(t, err, rpctypes.ErrRoleEmpty.Error(), "want (%v) error, but got (%v)", rpctypes.ErrRoleEmpty, err)
++		_, err = cc.RoleAdd(ctx, strings.Repeat("a", 32*1024+1))
++		require.ErrorContainsf(t, err, "role name", "want an error for a role name longer than the maximum key size, but got (%v)", err)
+ 	})
+ }
+ 
+diff --git a/tests/common/user_test.go b/tests/common/user_test.go
+index dc8e64871..8abff5638 100644
+--- a/tests/common/user_test.go
++++ b/tests/common/user_test.go
+@@ -16,6 +16,7 @@ package common
+ 
+ import (
+ 	"context"
++	"strings"
+ 	"testing"
+ 	"time"
+ 
+@@ -43,6 +44,12 @@ func TestUserAdd_Simple(t *testing.T) {
+ 			// different error structures.
+ 			expectedError: "user name",
+ 		},
++		{
++			name:          "too_long_username_not_allowed",
++			username:      strings.Repeat("a", 32*1024+1),
++			password:      "foobar",
++			expectedError: "user name",
++		},
+ 		{
+ 			// Can create a user with no password, restricted to CN auth
+ 			name:       "no_password_with_noPassword_set",
+-- 
+2.53.0
+
+
+From e29a6d3706ad8a77a3ac1290567a1f97a6e009b5 Mon Sep 17 00:00:00 2001
+From: Frans Kaashoek <kaashoek@mit.edu>
+Date: Thu, 26 Nov 2026 02:58:16 +0000
+Subject: [PATCH 2/2] server/auth: reject user and role names longer than the
+ max key size
+
+bbolt cannot store such a name as a key, and the failed write made every member exit while applying the request.
+
+Signed-off-by: Frans Kaashoek <kaashoek@mit.edu>
+---
+ server/auth/store.go | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/server/auth/store.go b/server/auth/store.go
+index 49cc4d06d..07fbce8f9 100644
+--- a/server/auth/store.go
++++ b/server/auth/store.go
+@@ -33,6 +33,7 @@ import (
+ 	"google.golang.org/grpc/metadata"
+ 	"google.golang.org/grpc/peer"
+ 
++	bolt "go.etcd.io/bbolt"
+ 	"go.etcd.io/etcd/api/v3/authpb"
+ 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+ 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+@@ -47,10 +48,12 @@ var (
+ 	ErrRootRoleNotExist     = errors.New("auth: root user does not have root role")
+ 	ErrUserAlreadyExist     = errors.New("auth: user already exists")
+ 	ErrUserEmpty            = errors.New("auth: user name is empty")
++	ErrUserNameTooLong      = errors.New("auth: user name is too long")
+ 	ErrUserNotFound         = errors.New("auth: user not found")
+ 	ErrRoleAlreadyExist     = errors.New("auth: role already exists")
+ 	ErrRoleNotFound         = errors.New("auth: role not found")
+ 	ErrRoleEmpty            = errors.New("auth: role name is empty")
++	ErrRoleNameTooLong      = errors.New("auth: role name is too long")
+ 	ErrPermissionNotGiven   = errors.New("auth: permission not given")
+ 	ErrAuthFailed           = errors.New("auth: authentication failed, invalid user ID or password")
+ 	ErrNoPasswordUser       = errors.New("auth: authentication failed, password was given for no password user")
+@@ -424,6 +427,9 @@ func (as *authStore) UserAdd(r *pb.AuthUserAddRequest) (*pb.AuthUserAddResponse,
+ 	if len(r.Name) == 0 {
+ 		return nil, ErrUserEmpty
+ 	}
++	if len(r.Name) > bolt.MaxKeySize {
++		return nil, ErrUserNameTooLong
++	}
+ 
+ 	tx := as.be.BatchTx()
+ 	tx.Lock()
+@@ -765,6 +771,9 @@ func (as *authStore) RoleAdd(r *pb.AuthRoleAddRequest) (*pb.AuthRoleAddResponse,
+ 	if len(r.Name) == 0 {
+ 		return nil, ErrRoleEmpty
+ 	}
++	if len(r.Name) > bolt.MaxKeySize {
++		return nil, ErrRoleNameTooLong
++	}
+ 
+ 	tx := as.be.BatchTx()
+ 	tx.Lock()
+-- 
+2.53.0
+
