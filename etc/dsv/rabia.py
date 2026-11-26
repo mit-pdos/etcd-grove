@@ -21,12 +21,13 @@ GOOSE = dict(
     expand_comment_tabs=True,
     lean_roots=["rabia=Dsverify", "github.com/rs/zerolog=Dsverify",
                 "github.com/gogo/protobuf=Dsverify", "github.com/go-redis/redis/v8=Dsverify",
-                "os/signal=Dsverify",
+                "os/signal=Dsverify", "io/ioutil=Dsverify",
+                "encoding/json=", "path/filepath=", "internal/filepathlite=",
                 "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
                 "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                 "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
                 "bufio=", "container/heap=", "path="],
-    packages=["github.com/rs/zerolog", "github.com/gogo/protobuf/proto",
+    packages=["github.com/rs/zerolog", "github.com/rs/zerolog/internal/json", "github.com/gogo/protobuf/proto",
               "github.com/gogo/protobuf/gogoproto", "github.com/go-redis/redis/v8",
               "github.com/go-redis/redis/v8/internal/proto", "os/signal", "./internal/config", "./internal/message", "./internal/queue", "./internal/ledger",
               "./internal/tcp", "./internal/logger", "./internal/system",
@@ -35,6 +36,8 @@ GOOSE = dict(
               "./examples/rabianet/cmd/orch"]
              + ["./examples/rabianet/cmd/client%d" % c for c in range(6)]
              + ["./examples/rabianet/cmd/server%d" % s for s in range(1, 6)],
+    # (dsv-retire-3) zerolog's `InterfaceMarshalFunc = json.Marshal`: encoding/json the model's names
+    std_models=["encoding/json"],
     owned=["rabia", os.path.join("github_com", "rs"), os.path.join("github_com", "gogo"),
            os.path.join("github_com", "go_redis"), os.path.join("os", "signal")],
 )
@@ -53,7 +56,7 @@ PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
 # (their `Init.lean` the main tree's, etc/gen-init.py's `shared_inits`, as `Net/`'s `NET_MAIN`'s; the
 # instances of `container.heap` and `path` the main tree's `Proof/<pkg>/PkgInit.lean` (L1,
 # 2026-11-24); `internal.bytealg` is Perennial's)
-MAIN = ['bufio', 'container.heap', 'path']
+MAIN = ['bufio', 'container.heap', 'path', 'path.filepath', 'internal.filepathlite', 'encoding.json']
 # the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a
 # trust-boundary axiom (`Dsverify/Proof/<pkg>/Init.lean`; dsv-fix3, #8 2026-11-25T02:20:53Z: until
 # then the class `InitHyp`, a premise of the statement), but go-redis's, still `InitHyp` and a

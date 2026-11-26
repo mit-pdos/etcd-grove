@@ -183,3 +183,53 @@ incrementally there, 4761 jobs green at `1c7a88da48`). Base: `dsv-retire-1` @ `6
    `etc/gen-init.py --check`; `etc/gates.sh` on fk-lean2 (`FKLEAN1_GATES=1 FKLEAN_HOST=fk-lean2
    /shared/tmp/fklean1-check.sh /shared/etcd-grove-dsvretire2 dsv-retire-2 -`); push `dsv-retire-2` over https;
    STATUS.md "Last updated" entry.
+
+## Step 3, zerolog (branch `dsv-retire-3`, 2026-11-26): state and handoff
+
+**Done.** zerolog v1.23.0 is translated with bodies, with `internal/json` (`Dsverify/Code/github_com/rs/zerolog.toml`:
+everything but `Context.Caller`, which stays a name, and the `[[skip]]`ped initializer `ch`; goose refuses a
+skipped variable read by translated code, so `Context.Caller` has to go too). Project `dsv-rabia`
+(`etc/dsv/rabia.py`) gained the package `internal/json`, the roots `io/ioutil=Dsverify`, `encoding/json=`,
+`path/filepath=`, `internal/filepathlite=` (zerolog's imports, each with a proved initializer: Perennial's, the
+main tree's, or `Dsverify`'s `io/ioutil`), `std_models=["encoding/json"]` (`InterfaceMarshalFunc = json.Marshal`
+names the model's `Marshal`) and, in gen-init's `MAIN`, `path.filepath`, `internal.filepathlite`,
+`encoding.json`. `etc/gen-init.py` regenerated the rabia `PkgTable`s (zerolog's imports now in them).
+zerolog is still in `HYP_INITS` (its `wp_initialize'` still the axiom).
+
+**Not done: the tree does not build yet.** `internal/json` has no `Base.lean` (no `isPkgInit` instance), which
+the regenerated `PkgTable`s name. Next steps, in order:
+
+1. `Dsverify/Proof/github_com/rs/zerolog/internal/json/Base.lean`: the fact. `init.0` (string.go) fills
+   `noEscapeTable` in a loop over `0..0x7e`; zerolog's `init.1` **stores into `json.JSONMarshalFunc`**, another
+   package's variable, so `internal/json`'s fact must hand out a writable cell: `inv (∃ f, JSONMarshalFunc ↦ f)`
+   (or a full points-to through gen-init's `newvars`, as the main tree does for cross-package stores: grep
+   gen-init for an example). `AppendString` indexes `noEscapeTable[s[i]]` (a `[256]bool` by a byte: in
+   bounds) and `hex[b>>4]`: the fact needs only `noEscapeTable ↦□ some array`, not its contents.
+2. Move `github_com.rs.zerolog.internal.json` and `github_com.rs.zerolog` from `HYP_INITS` to `PKGS` (rabia.py)
+   with `SPECIAL` configs (gen-init cannot step the loop of `internal/json`'s `init.0`, nor the calls in
+   zerolog's `init.0`: `SetGlobalLevel(TraceLevel)` (an atomic store to `*gLevel`, held at init) and
+   `disabledLogger = &Nop()` = `New(nil).Level(Disabled)`, which reads `ioutil.Discard`: `io/ioutil`'s fact
+   (`Dsverify/Proof/io/ioutil/Base.lean`, `True` today) must keep `∃ w, Discard ↦□ w`, which its init has from
+   `io.isInit`). The three `sync.Pool` literals (`eventPool`, `arrayPool`, console's buffer pool): Perennial's
+   `init_Pool` (`Perennial/Proof/sync/PoolDefs.lean`). Delete zerolog's `Init.lean` axiom.
+3. zerolog's fact (`Base.lean`, `True` today), for the function proofs: `gLevel ↦□ p ∗ inv (∃ v, p ↦ v)`,
+   `LevelFieldName ↦□ "level"`, `LevelFieldMarshalFunc ↦□ f` with `f`'s spec (`Level.String`),
+   `enc ↦□ Encoder{}`, `eventPool`'s `isPool` with `P` = "a `*Event` with its buffer owned"; persistent
+   (`↦□`), so no client can write zerolog's variables (the dsv-fix6 review's condition 1).
+4. Define the tokens, opaque today: `loggerMade lg` := "`lg` is `New(nil)`'s logger" (`∃ w, ioutil.Discard ↦□ w`
+   and `lg` = `Logger{w := (w as a LevelWriter, or levelWriterAdapter{w}), level := TraceLevel}`, other fields
+   zero); `eventTok e` := `e = null ∨` "`e ↦` an `Event` whose buffer is owned, non-empty (`AppendKey` reads
+   `dst[len(dst)-1]`), `w` a logger's, `done`/`ch` nil, level one of the five". As retire-2's `rngTok :=
+   ownRngSource`: the axioms' statements are unchanged, their vocabulary gets its meaning.
+5. Prove, riskiest first: `Logger.{Trace,..,Error}` (`should`, `GlobalLevel`, `eventPool.Get`, `.(*Event)`,
+   `e.Str(LevelFieldName, LevelFieldMarshalFunc(level))`), `Event.Str` (`AppendKey`, `AppendString` and its
+   `appendStringComplex` loop over Perennial's `utf8.DecodeRuneInString`), `New`, `ParseLevel` (`"warn"`),
+   `SetGlobalLevel`.
+
+**Blocked by Perennial (recorded in `notes/perennial-changes.md`, 2026-11-26)**: `Event.{Int,Ints,Int64,Uint32,
+Bool,Float64}` call `strconv.AppendInt`/`AppendUint`/`AppendBool`/`AppendFloat`, names only in Perennial;
+`Event.Msg` writes to `ioutil.Discard`, whose value `io.isInit` hides. These seven stay axioms; once `eventTok`
+and `loggerMade` are concrete (step 4) their preconditions narrow but their posts become concrete too (a field
+method gives back `e ↦` an event with its buffer), so they must be re-reviewed with the `axiom` skill over the
+concrete tokens before that lands. So at most 9 of the 16 function axioms
+plus the initializer retire on this route.
