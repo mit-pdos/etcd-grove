@@ -402,10 +402,9 @@ PROJECTS = [
         # `%p` of the client, which real `fmt` does not cover (the decision on #9,
         # issuecomment-7122889900: fork rewrites, no `%p` axiom).
         # Then (F7 fork, 2026-11-26, SPECULATIVE, branch etcd-safe-f7-fork/2026-11-26 only)
-        # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; local, NOT pushed): `LeaseTimeToLive`
+        # d26dd5da6 (branch `goose-lean-ttlkeys`, on df6af0c36; pushed 2026-11-26): `LeaseTimeToLive`
         # checks read permission on the keys it returns (`checkLeaseTimeToLiveKeys`,
-        # issues/etcd-lease-timetolive-keys-toctou.md). Until pushed, `--check` needs
-        # `--src etcd=/shared/etcd-fork-ttlkeys` (notes/etcd-dist-f7-fork.md).
+        # issues/etcd-lease-timetolive-keys-toctou.md).
         rev="d26dd5da6f383bc9b06a957d685360dc12f8faf2",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
