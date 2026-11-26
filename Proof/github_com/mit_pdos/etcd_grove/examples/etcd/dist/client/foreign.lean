@@ -95,17 +95,16 @@ theorem foreign.wp_proof
   ihave #Hopts := leaseOptsAt_one_d (GF := GF) _ f (fun _ => true) $$ [Hslo Hf]
   · iframe #
   (try wp_auto)
-  have hk : leaseKeysFold [fun _ => true] false = true := rfl
-  have wp_T := wp_TimeToLive cl lp addr V Γ mid cfg n₀ m₀ ci cd (reqMd who) id slo [fun _ => true] Hau Hls
-    Hauth Hrev hout
-  simp only [hk, ↓reduceIte] at wp_T
-  wp_apply wp_T $$ [$Hlt] as %r %err ⟨Hlt, Hr⟩
+  wp_apply (wp_TimeToLive cl lp addr V Γ mid cfg n₀ m₀ ci cd (reqMd who) id _ [fun _ => true] Hau Hls Hauth
+      Hrev hout) $$ [$Hlt] as %r %err ⟨Hlt, Hr⟩
   · iframe #
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
   icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck⟩ | %Herr)
   · iapply fupd_wp
+    have hk : leaseKeysFold [fun _ => true] false = true := rfl
+    simp only [hk, ↓reduceIte]
     imod HnoT $$ %n %j %Hnj Hck HR with ⟨⟩
   wp_apply (wp_refused who _ err Herr.1)
   (try wp_auto)
