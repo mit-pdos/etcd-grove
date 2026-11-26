@@ -55,7 +55,7 @@ theorem remoteWriters.wp_proof
     (wp_writerCodec : writerCodec.spec (GF := GF) (hG := hG))
     (wp_writerAttempt : writerAttempt.spec (GF := GF) (hG := hG)) :
     remoteWriters.spec (GF := GF) (hG := hG) := by
-  intro π ρ nodes tsl ns trs nops Γ n Htb Hn0 Hn56 Hlen Hps
+  intro π ρ nodes tsl ns trs nops Γ n Htb Hn0 Hlen Htr56 Hps
   wp_start as ⟨Htok, #Hns, #Htr, Hws, #Hkm, #Hlb⟩
   ihave %Hnl := ownSlice_len _ _ _ $$ Hns
   ihave %Htl := ownSlice_len _ _ _ $$ Htr
@@ -64,6 +64,11 @@ theorem remoteWriters.wp_proof
   have hNZ : (ns.length : Int) = sint.Z nodes.len := by rw [Hnl.1]; have := Hnl.2; word
   have htrs : (trs.length : Int) = ns.length * (sint.nat nops) := by rw [Hlen, hmZ]
   have htlen : (trs.length : Int) = sint.Z tsl.len := by rw [Htl.1]; word
+  -- a writer's Puts fewer than `2 ^ 56`: one of `ns.length ≥ 1` writers, `trs.length < 2 ^ 56` in all
+  have htrsN : trs.length = ns.length * sint.nat nops := by exact_mod_cast htrs
+  have hnops : 0 < ns.length → sint.nat nops < 2 ^ 56 := fun h => by
+    have := Nat.mul_le_mul_right (sint.nat nops) (by omega : 1 ≤ ns.length)
+    omega
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := GoInterface) nodes.len) as %insl ⟨Hins, -⟩
   · ipureintro; exact Hnl.2
@@ -139,7 +144,7 @@ theorem remoteWriters.wp_proof
           have := kvsBytes_length_le (writerPuts trs (sint.nat nops) (sint.nat k))
             (fun p hp => (Hps p (mem_writerPuts hp)).2)
           have := writerPuts_length_le trs (sint.nat nops) (sint.nat k)
-          have hm56 : sint.nat nops < 2 ^ 56 := by omega
+          have hm56 : sint.nat nops < 2 ^ 56 := hnops (by omega)
           simp only
           omega
         rw [e1, e2]
@@ -198,7 +203,7 @@ theorem remoteWriters.wp_proof
       iframe Hkm Hlb
       ipureintro
       exact ⟨fun p hp => Hps p (mem_writerPuts hp),
-        by have := writerPuts_length_le trs (sint.nat nops) c; omega⟩
+        by have := writerPuts_length_le trs (sint.nat nops) c; have := hnops (by omega); omega⟩
     · iintro %o Ho
       iexact Ho
   -- the answering writers' logs: `all = append(all, outs[c].([]etcdstart.PutRec)...)`

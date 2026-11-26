@@ -20,9 +20,12 @@ member of it, the cluster's client half at the boot's state, the writer machines
 **The pure premises** (facts of the deployment or of the logic): a watch environment (`newClient`'s
 client; the watch contract reads none of it), the logic's thread bound and plain endpoints
 (`newClient`'s), and the writers' count fits (`0 ≤ nops`, `len(nodes) * nops < 2 ^ 63`: `WellFormed`'s
-bounds); and (2026-11-26) `nops < 2 ^ 56`, so that a writer's Puts and log encode in one message (the
-writer's wire, `WriterWire.lean`): **stronger than `WellFormed`'s bound for Watch** (`nops ≤ (2^62-1)/clients`),
-so the dispatch needs `boundsOk` tightened (`notes/etcd-dist-plan.md` §24.7).
+bounds); and the logic's receipt bound `receiptBound GF ≤ 2 ^ 56` (the start's `receiptBound ≤ etcdSteps =
+2 ^ 48`, not a premise of the deployment): `GenAll` takes a counted step per Put
+(`GenAll_receipts.spec`, `GenAllR.lean`), so `len(nodes) * nops < receiptBound GF ≤ 2 ^ 56` and each
+writer's Puts and log encode in one message (the writer's wire, `WriterWire.lean`; `remoteWriters`'
+`trs.length < 2 ^ 56`). (2026-11-26 until §24.7: the premise `nops < 2 ^ 56`, which no deployment
+supplied.)
 -/
 module
 
@@ -53,7 +56,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 abbrev RunWatch.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (eps nodes : GoSlice) (addrs ns : List GoString) (nops : w64) (ready : GoFunc),
   Nonempty (WEnv GF) → threadBound GF ≤ 2 ^ 30 → plainEndpoints addrs →
-  0 ≤ sint.Z nops → sint.Z nops < 2 ^ 56 → ns.length * sint.Z nops < 2 ^ 63 →
+  0 ≤ sint.Z nops → ns.length * sint.Z nops < 2 ^ 63 → receiptBound GF ≤ 2 ^ 56 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       levelTok 0 ∗ eps ↦*□ addrs ∗ nodes ↦*□ ns ∗
       ({{ True }} (App (Val #ready) (Val #())) {{ RET #(); True }}) ∗

@@ -2,7 +2,7 @@
 
 # `etcd/dist`: every machine's boot on a malformed deployment
 
-`etcdBootNCBad_holds`: `EtcdBootNCBad` (`TopLevelRobustness.lean`), each machine's boot program safe from
+`etcdBootNCBad_holds`: `EtcdBootNCBad` (`BootSkel.lean`), each machine's boot program safe from
 `True` when `¬ d.WellFormed`. Every program initializes its package (`server` or `client`: the machine's
 prometheus registration rights allocated here, from no package initialized), evaluates the deployment's
 literal (`wp_deploymentLit`), calls its entry point (`server.MainDeployment`, `client.Orchestrator`,
@@ -16,7 +16,7 @@ The deployment check is `deployment`'s linked `wp_WellFormed` (`deployment/Link.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootSkel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.PkgTable
