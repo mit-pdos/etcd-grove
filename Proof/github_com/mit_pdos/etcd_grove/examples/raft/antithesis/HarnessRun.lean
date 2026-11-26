@@ -158,11 +158,12 @@ def ByOk (b : AntCheck.Str) : Prop :=
 /-- **The masked-off bits a node's input paths test** (`node.go`), off in a run of B1's mask: no
 batching (`flush`, `note`), synchronous storage (`drainAsync`), no parallel or split writes
 (`parallel`, `parts`), no snapshots and no snapshot reports (`drain`'s snapshot branch, `sent`), no
-conf changes, no restarts (`emit`'s fuse). -/
+conf changes, no restarts (`emit`'s fuse); the scope without forwarding and async storage (the RawNode
+apiSpecs' premises at `γ.R.md = scopeMd γ.scope`). -/
 def DrainB1 (scope : H.Scope) (mode : H.Mode) : Prop :=
   mode.Batch' = false ∧ mode.Async' = false ∧ mode.Parallel' = false ∧ mode.Split' = W64 0 ∧
   mode.SnapStatus' = false ∧ mode.Restarts' = false ∧ scope.Snapshots' = false ∧
-  scope.ConfChanges' = false
+  scope.ConfChanges' = false ∧ scope.Forwarding' = false ∧ scope.Async' = false
 
 /-- `InScope b1Scope` gives every bit `DrainB1` tests. -/
 abbrev drainB1_of_inScope.law : Prop :=
@@ -518,7 +519,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
       nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1))
         (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
       ⌜rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
-      rawNode γ.raft.raftNames {} rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
+      rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
       ⌜RsView rs v ∧ v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length ∧
         rs.k = γ.R.k j⌝ ∗
       hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗

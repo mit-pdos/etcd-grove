@@ -33,7 +33,7 @@ theorem finRange_getElem?_val {N : Nat} {k : Nat} {y : Fin N} (h : (List.finRang
 theorem drainB1_of_inScope [GooseExts] : drainB1_of_inScope.law := by
   intro m h
   obtain ⟨-, -, -, -, -, -, -, -, hA, hB, hP, hS, -, -, hR, hSn, -, hSS, -, -, -⟩ := h
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, rfl, rfl⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, rfl, rfl, rfl, rfl⟩
   · cases hb : m.Batch' <;> simp_all [b1Scope]
   · cases hb : m.Async' <;> simp_all [b1Scope]
   · cases hb : m.Parallel' <;> simp_all [b1Scope]

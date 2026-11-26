@@ -113,7 +113,7 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
     nodeOwn (GF := GF) c γ j n v .idle ⊢
       ∃ (rn : Loc) (rs : RNState),
         n.[H.node, go!"rn"] ↦ rn ∗
-        rawNode γ.raft.raftNames {} rn (AntSim.nodeId j) rs v.r [] v.r.p.log.length ∗
+        rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs v.r [] v.r.p.log.length ∗
         rnTermLB γ.raft rs.tc ∗ □ rnBudget γ.raft ∗
         ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = γ.R.voters0 ∧
           γ.raft.raftNames.maxData = none⌝ ∗
@@ -122,7 +122,7 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
         (∀ (rs' : RNState) (r₁ : RState) (ip' : Nat) (inp : AntSim.Input) (net₀ : List Msg)
             (xnet₀ : List XMsg) (xs₁ : List XMsg) (cl : Loc),
           n.[H.node, go!"rn"] ↦ rn -∗
-          rawNode γ.raft.raftNames {} rn (AntSim.nodeId j) rs' r₁ [] ip' -∗
+          rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs' r₁ [] ip' -∗
           ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ rs'.k = rs.k ∧ RsView rs' (v.noteInput inp) ∧
             AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput inp) r₁ ∧
             ip' = lcpLen v.r.p.log r₁.p.log ∧ ByOk inp.byE ∧ ViewNormal (v.noteInput inp)⌝ -∗
