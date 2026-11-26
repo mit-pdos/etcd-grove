@@ -2860,6 +2860,35 @@ check they still build). *Stage 5*: `ApplyAdmin`'s `adminOut … k`, `ApplyAdmin
 Pre Post k`), then `AdminEntryOn`: `cPost v3 Pre Post (st' = st)` inside `∃ hs' st'`, from `result_keep` in the
 `Pre` branch (choose `hs' := hs`); the rest of T10s2-1's stage-5 list. Not yet run: full build, gates, `tcb --check`.
 
+**Handoff T10s2-5** (session 5 stopped at the context rule; head = this commit, pushed; WIP, no `sorry`, no axiom).
+Last build: the stage-4 targets plus the `quotaApplierV3__*`/`authApplierV3__*`/`newAuth`/`newQuota` modules
+(`/shared/tmp/t10b-s4targets.txt`, `/shared/tmp/t10b-g2.txt`) on fk-lean1, exit 1.
+
+*Done (built green)*: `applierV3Corrupt__LeaseRevoke` (Pre site `⟨trivial, revokeIds_rejected, revokeRest_rejected⟩`),
+`applierV3backend__Txn` (read-only site: `txnChs = []`), `newApplierV3Backend`, `newApplierV3Corrupt` (`simp
+[chainCompacts]`), `AuthLemmas` (`auth_reject_kvPost`/`auth_pass_kvPost` take `N`, the reject one `hN`),
+`authApplierV3__LeaseRevoke`, `AuthApplyLatest` (`auth_reject_kvPostFL` takes optional `N`, `hN := by trivial`),
+`AuthApplyLatestRevoke` (`auth_pass_kvPostFL_nil` takes `N`), `uberApplier__dispatch` (`simp_all` gone: local
+lemmas `restAfter_kind`, `chainStep_logAfter_of`, `dispatchNoEff_plain`, `dispatchNoEff_rest`; `noeff` = plain
+kinds / rejected grant / compaction (`hcr`); cluster sites in `cpost_gen` through `dispatchNoEff_rest`; Range
+site's fact by `chainStep_logAfter_of`; revoke site inlined), `CompactArm`, `newAuthApplierV3`,
+`newQuotaApplierV3`. **`Chain.grantPost` changed** (needed by dispatch's grant site): its `mPostW … Pre Post`
+is now `mPostW … iprop(Pre ∗ ⌜∃ e, o = .rejected e⌝) Post` (the Pre disjunct only at a rejection);
+`applierV3{backend,Corrupt,Capped}__LeaseGrant`, `quotaApplierV3__LeaseGrant` adjusted, green.
+
+*Failing (first error each)*:
+- `DispatchKVL.lean:747`: `icases: cannot destruct Pre` (the grant row: the new `grantPost` Pre disjunct `Pre ∗
+  ⌜∃ e, o = .rejected e⌝`; do as `uberApplier__dispatch`'s `noeff` grant alternative); `:954`: application type
+  mismatch (not looked at; likely the same change).
+- `uberApplier__Apply.lean:61`, `ApplyAdmin.lean:44` (also `:63`, `:122`): stage 5, not started.
+- `Results.lean`: edited, not yet built: `chain_put`/`chain_deleteRange`/`chain_txn` now post `(Post ∨ (Pre ∗
+  ⌜oc.logAfter log = log⌝))` (converted from the `kvPostF` fact's `.1`), `chain_revoke` `(Post ∨ (Pre ∗
+  ⌜oc.logAfter log = log ∧ revokeNoEff rq T rs oc⌝))`. Check it once `DispatchKVL` builds.
+- Not built (behind the failures): `quotaApplierV3__LeaseRevoke` and the rest of `Link`'s closure.
+
+*Then*: stage 5 (`ApplyAdmin`/`ApplyAdminL`, `AdminEntryOn` with `result_keep`, `uberApplier__Apply`, the server),
+full build, gates in full, `tcb --check`.
+
 **Handoff T10s2-4** (session 4 stopped at the context rule; head = this commit, pushed; WIP: the files marked
 failing do not build yet, no `sorry`, no axiom). Last build: the stage-4 targets (`/shared/tmp/t10b-s4targets.txt`,
 `lake build` on fk-lean1).
