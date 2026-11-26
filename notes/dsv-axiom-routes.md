@@ -398,6 +398,33 @@ same command then copies `etc/tcb-baseline.txt` and `etc/tcb-collections/dsv-rab
    numbers in `notes/STATUS.md`'s dsv-retire-3 entry ("the level methods' removal pending the build").
 2. `etc/gates.sh` once, in the background on fk-lean1, logged; fix and re-check.
 3. `notes/axiom-review/dsv-zerolog-remaining.md` is updated (7 left) and ready for the coordinator's review.
-(Correction, same session: the trust-base run finished before the handoff commit, and `b15cc31bb4` already
-holds its result: exactly the five `Logger.*.wp_proof` removed, base 356, `dsv-rabia` 16, `dsv-quepaxa`
+(Correction, same session: the trust-base run finished before the handoff commit (its files were committed in
+`ac8105fb09`, session 8): exactly the five `Logger.*.wp_proof` removed, base 356, `dsv-rabia` 16, `dsv-quepaxa`
 unchanged (6), axiom-tok ok. Item 1 is done but for the numbers in `notes/STATUS.md`; next is `etc/gates.sh`.)
+
+**Session 8 (2026-11-26).** Trust-base files of the level methods committed (`ac8105fb09`: base 356, `dsv-rabia`
+16). `etc/gates.sh` on fk-lean1: all passed (log `~/eg/logs/dsv-retire-3-gates-s8b.log`; the first run,
+`-s8.log`, failed only the Go-test checks because `/shared/tmp` does not exist there: rerun with
+`GATES_GO_TMPDIR`/`GATES_K8S_LOCK` under `~/eg/tmp`). The review of the 7 remaining axioms
+(`notes/axiom-review/dsv-zerolog-remaining-review.md`, tests `dsv-zerolog-gotest/`): six sound, `Ints`
+conditional; the coordinator dropped `Ints` and `Int64` (rabia calls neither): fields removed from `EventSpecs`,
+axiom files deleted, `HypsHoldLinked` updated; build green, base 354, `dsv-rabia` 14 (only those two), every other
+collection unchanged, axiom-tok, tier and gen-init ok.
+
+## zerolog step 3: result
+
+- **Retired: 12 axioms.** Proved (10; statements unchanged): zerolog's `wp_initialize'` (the package fact
+  `zerologInit`, by the generated initializer; `internal/json`'s too), `New.wp_proof`, `SetGlobalLevel.wp_proof`,
+  `ParseLevel.wp_proofWarn`, `Event.Str.wp_proof`, `Logger.{Trace,Debug,Info,Warn,Error}.wp_proof`. Dropped (2,
+  unused by rabia; the review found `Ints` conditional): `Event.{Ints,Int64}.wp_proof`, with their `EventSpecs`
+  fields. Trust base: base 361 -> 354 over sessions 7-8 (`Str`, the five levels, the two dropped), `dsv-rabia`
+  21 -> 14.
+- **Left: 5**, all blocked by Perennial (`notes/perennial-changes.md`, 2026-11-26), all reviewed sound over the
+  defined `eventTok`: `Event.{Int,Uint32,Bool,Float64}.wp_proof` (`strconv.AppendInt`/`AppendUint`/`AppendBool`/
+  `AppendFloat` are names only) and `Event.Msg.wp_proof` (writes to `ioutil.Discard`, whose `Write` `io.isInit`
+  hides).
+- **Gates:** all passed (session 8, before the drop); after the drop the touched checks (tcb and every
+  collection, axiom-tok, tier, gen-init) pass.
+- **Workaround:** `wp_auto` does not load a field through a fractional points-to `l ↦{dq} lg` (its `Access`
+  search fails); the generated `Logger_access_load_<field>` instance, applied by hand with `.access_strict`,
+  works (`LoggerNewEvent.lean`). A candidate Perennial fix, not filed.

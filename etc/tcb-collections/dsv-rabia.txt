@@ -22,8 +22,6 @@ axiom Perennial.github_com.gogo.protobuf.proto.wp_initialize'
 axiom Perennial.github_com.rs.zerolog.Event.Bool.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Float64.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Int.wp_proof
-axiom Perennial.github_com.rs.zerolog.Event.Int64.wp_proof
-axiom Perennial.github_com.rs.zerolog.Event.Ints.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Msg.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Uint32.wp_proof
 axiom Perennial.internal.runtime.sys.opaqueInitsOk

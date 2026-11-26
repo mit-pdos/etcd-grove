@@ -16,8 +16,6 @@ public import Dsverify.Proof.github_com.rs.zerolog.Logger__Warn
 public import Dsverify.Proof.github_com.rs.zerolog.Logger__Error
 public import Dsverify.Proof.github_com.rs.zerolog.Event__Str
 public import Dsverify.Proof.github_com.rs.zerolog.Event__Int
-public import Dsverify.Proof.github_com.rs.zerolog.Event__Ints
-public import Dsverify.Proof.github_com.rs.zerolog.Event__Int64
 public import Dsverify.Proof.github_com.rs.zerolog.Event__Uint32
 public import Dsverify.Proof.github_com.rs.zerolog.Event__Bool
 public import Dsverify.Proof.github_com.rs.zerolog.Event__Float64
@@ -43,8 +41,8 @@ variable [sem : go.Semantics] [package_sem : github_com.rs.zerolog.Assumptions]
 /-- **`zerolog.Hyps` holds** (a theorem, not an instance): the file header. -/
 theorem hyps_holds : Hyps GF := by
   refine ⟨⟨eventTok, ?_⟩, ParseLevel.wp_proofWarn, SetGlobalLevel.wp_proof, New.wp_proof⟩
-  refine ⟨?_, Event.Str.wp_proof unicode.utf8.wp_DecodeRuneInString, Event.Int.wp_proof, Event.Ints.wp_proof, Event.Int64.wp_proof,
-    Event.Uint32.wp_proof, Event.Bool.wp_proof, Event.Float64.wp_proof, Event.Msg.wp_proof⟩
+  refine ⟨?_, Event.Str.wp_proof unicode.utf8.wp_DecodeRuneInString, Event.Int.wp_proof, Event.Uint32.wp_proof,
+    Event.Bool.wp_proof, Event.Float64.wp_proof, Event.Msg.wp_proof⟩
   have wp_Str := Event.Str.wp_proof (GF := GF) unicode.utf8.wp_DecodeRuneInString
   intro m hm
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hm

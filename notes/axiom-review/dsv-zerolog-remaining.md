@@ -45,13 +45,19 @@ names-only version, where the package fact was `True`.
   passed by `HypsHoldLinked.lean` from `Event.Str.wp_proof`). The level methods' statements are unchanged;
   each takes `Event.Str.spec eventTok` as a callee hypothesis.
 
-## Remaining (7), statements unchanged
+## Dropped (session 8, the coordinator's decision after the review)
 
-- `Event.{Int,Ints,Int64,Uint32,Bool,Float64}.wp_proof`: blocked by Perennial (`strconv.AppendInt`,
+- `Event.{Ints,Int64}.wp_proof` and their `EventSpecs` fields `Event_Ints`/`Event_Int64`: rabia calls
+  neither (`executor.go:523,541` are commented out); the review found `Ints` conditional (it reads the
+  caller's slice with no permission). `notes/axiom-review/dsv-zerolog-remaining-review.md`.
+
+## Remaining (5), statements unchanged
+
+- `Event.{Int,Uint32,Bool,Float64}.wp_proof`: blocked by Perennial (`strconv.AppendInt`,
   `AppendUint`, `AppendBool`, `AppendFloat` are names only; `notes/perennial-changes.md`, 2026-11-26).
 - `Event.Msg.wp_proof`: blocked by Perennial (writes to `ioutil.Discard`, whose `Write` `io.isInit` hides).
 
-What to attack: whether the seven event axioms are true real-zerolog facts **over the defined
+Reviewed (`dsv-zerolog-remaining-review.md`: sound but `Ints`, now dropped). What was attacked: whether the seven event axioms are true real-zerolog facts **over the defined
 `eventTok`** — in particular that no field method or `Msg` needs more of the event than the definition
 holds (the level methods' proofs show the definition is what a `New(nil)` logger's events satisfy, so a
 too-strong token would have failed there), and that a client cannot build the token for an event the real

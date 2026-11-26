@@ -120,16 +120,6 @@ structure EventSpecs [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog ∗ ownEvent e }}
       (App (App (Val (e @!! go.GoType.PointerType Event.ty @!! go!"Int")) (Val #k)) (Val #x))
     {{ RET #e; ownEvent e }}
-  /-- `(*Event).Ints(k, x)` returns its receiver, the token kept. -/
-  Event_Ints : ∀ (e : Loc) (k : GoString) (x : GoSlice),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog ∗ ownEvent e }}
-      (App (App (Val (e @!! go.GoType.PointerType Event.ty @!! go!"Ints")) (Val #k)) (Val #x))
-    {{ RET #e; ownEvent e }}
-  /-- `(*Event).Int64(k, x)` returns its receiver, the token kept. -/
-  Event_Int64 : ∀ (e : Loc) (k : GoString) (x : w64),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog ∗ ownEvent e }}
-      (App (App (Val (e @!! go.GoType.PointerType Event.ty @!! go!"Int64")) (Val #k)) (Val #x))
-    {{ RET #e; ownEvent e }}
   /-- `(*Event).Uint32(k, x)` returns its receiver, the token kept. -/
   Event_Uint32 : ∀ (e : Loc) (k : GoString) (x : w32),
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog ∗ ownEvent e }}
