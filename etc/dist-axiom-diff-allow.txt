@@ -592,3 +592,23 @@ dev Lease_TimeToLiveOn_dist.wp_proof <<< Q m ||| leaseCheckD ( Γ.au mid ) ( pri
 dev Lease_TimeToLiveOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev Lease_TimeToLiveOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
 dev Lease_TimeToLiveOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+# (etcd_safe S0, 2026-11-26: DRAFTS, unreached, not reviewed; plans/etcd-safe-restart-design.md §3)
+pair NewServerC_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/NewServerCDist.lean NewServer.specC_dist Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServerCrash.lean NewServer.specC
+pair Serve_distR.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ServeDistR.lean Serve_distR.spec Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ServeDist.lean Serve_dist.spec
+dev NewServerC_dist.wp_proof <<<  ||| [ π : Net.NetProtoGS ] >>> the net extension's protocol ghost state (`httpAddrAt` is over it), as NewServer_dist
+dev NewServerC_dist.wp_proof <<< GF ) ( γn : NetNames |||  >>> the network's names `γn` are no binder: the post gives them, as NewServer_dist
+dev NewServerC_dist.wp_proof <<< netHttpOk γn ||| ( □ ∀ ( pid : w64 ) ( a : GoString ) , ⌜ pid ∈ γ.vs ∧ pid ≠ >>> `#Hnet` replaced by `#Hpeers` (every other peer's directory address set to etcd's peer protocols, `httpAddrAt`), NewServer_dist's text
+dev NewServerC_dist.wp_proof <<<  ||| ∧ go!"http://" ++ a ∈ dir pid ⌝ - >>> the rest of `#Hpeers`' premise (as above)
+dev NewServerC_dist.wp_proof <<< ⌜ γn.N = srvNet ||| etcd_dist.httpAddrAt ( Gg := hG.goose_globalGS ) >>> `#Hpeers`' conclusion; the pure premise `%Hγn` moves to the post with `γn`
+dev NewServerC_dist.wp_proof <<< ∧ γn.dir = dir ⌝ ||| pid a ) ∗ etcd_dist.noProxyEnv >>> the rest of `%Hγn` (moved to the post), and `#Hnoproxy` added, as NewServer_dist
+dev NewServerC_dist.wp_proof <<<  ||| γn : NetNames GF ) ( >>> the post's `∃ γn` (the network names the member's transport is at)
+dev NewServerC_dist.wp_proof <<<  ||| γn.N = srvNet γ ∧ γn.dir = dir ∧ >>> the post's pure facts of `γn`, `%Hγn`'s before
+dev Serve_distR.wp_proof <<<  ||| ( γl : GName ) >>> the binder `γl`: the restarted incarnation's own lessor name (its `NewLessor`'s)
+dev Serve_distR.wp_proof <<< ( |||  >>> the parenthesis of the guarded distinct-auth-names premise, replaced (below)
+dev Serve_distR.wp_proof <<< true ||| false >>> the class premise: auth off (in place of the guard `Γ.auth = true → …`)
+dev Serve_distR.wp_proof <<< ∀ a b : w64 , Γ.au a ||| Γ.kv.lm >>> the class premise: lease mode `.none` (no lease axiom reads `Γ.ls` there); the distinct-auth-names premise binds only auth-on views
+dev Serve_distR.wp_proof <<< Γ.au b → a = b ) ||| .none >>> the rest of the lease-mode premise (as above)
+dev Serve_distR.wp_proof <<< ( if Γ.auth then etcdstart.memberUpOnL s ρ E₀ lg γn mid ( Γ.au mid ) Γ.kv.lm ( Γ.ls mid ) else |||  >>> auth off: only `memberUpL`'s branch
+dev Serve_distR.wp_proof <<< Γ.kv.lm ( Γ.ls mid ) ) ||| .none γl >>> the member at lease mode `.none` with its own lessor `γl` in place of the view's `Γ.ls mid` (restarts: `Serve_dist`'s "Restarts are outside it")
+nosource GracefulStop_dist.wp_proof grpc-go's `GracefulStop` has no in-process spec (the planned one is `SpecPlan/Spec/google_golang_org/grpc/Server__GracefulStop.lean`, not in `Spec/`); the axiom speaks of the member's serving stocks (`grpcServing`, `srvStopReaders`), nothing to compare token by token
