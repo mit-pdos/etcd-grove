@@ -206,15 +206,15 @@ instance authIsL_persistent (E : AEnv GF) (p : Loc) (L : List auth.AuthState →
     Persistent (authIsL E p L) := by
   unfold authIsL; infer_instance
 
-/-- `kvPostF` with the outcome's property `X` (`authOutL` for the auth applier's methods); (auth-lease
+/-- `kvPostF` (with its `N`) with the outcome's property `X` (`authOutL` for the auth applier's methods); (auth-lease
 S2, Q5) with `kvPostF`'s lease class at the owner's item map of the state before the request; (S3a,
 Draft rev 5 §3a) with `kvPostF`'s lease exactness at the live set of `kvOwnAt`. -/
 def kvPostFL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF)
-    (X : Outcome → Prop) : IProp GF :=
+    (X : Outcome → Prop) (N : Outcome → Prop := fun _ => True) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc ∧ X oc⌝ ∗ R oc ∗
     (∃ L : List w64, ⌜leaseExactL L rq log oc⌝ ∗ kvOwnAt E (oc.logAfter log) L) ∗
-    chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    chainRes c a info ∗ (Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ N oc⌝)) ∗ chainClass E.authMode info c rq oc ∗
     chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `rangePost` with the outcome's property `X`. -/
@@ -382,7 +382,7 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
   isplitl [Hinfo Hres]
   · iapply chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
-  · iright; iexact HPre
+  · iright; iframe HPre; ipureintro; simp [Outcome.logAfter]
   isplitl []
   · iapply chainClass_auth_rejected
   · iapply chainLeaseClass_auth_rejected

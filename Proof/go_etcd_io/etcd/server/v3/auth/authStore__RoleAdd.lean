@@ -61,7 +61,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
     iapply HΦ
     iexists b0, sc0
     isplitl [Hcs]
-    · iapply csContract_noWrite $$ Hcs
+    · iapply csContract_noWriteF P f Pre Q Post (by nofun) $$ Hcs
     isplitl [Hbe HT Hfl Hca]
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr

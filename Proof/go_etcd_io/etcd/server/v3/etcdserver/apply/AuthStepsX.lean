@@ -79,8 +79,8 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜∀ en : Bool, auth.stepOk M hs (auth.stepOf (auth.authEnableF en))⌝ ∗
           auth.capNextM M hs auth.authEnableOwnR }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ W ∗ applyErrIs err ∗
-          ∃ en : Bool, auth.enabledVerdict M en ∗
+      {{ (err : GoInterface), RET #err; W ∗ applyErrIs err ∗
+          ∃ en : Bool, (Post ∨ (Pre ∗ ⌜en = true⌝)) ∗ auth.enabledVerdict M en ∗
             auth.adminOutX M (ownX M X) hs (authEnableR M en) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
@@ -88,7 +88,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.userAddF name)) }}
         (App (Val #(methods ai.ty go!"UserAdd" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserAddResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
@@ -97,7 +97,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.stepOf (auth.roleAddF name))⌝ ∗
           auth.capNextM M hs (auth.stepOf (auth.roleAddF name)) }}
         (App (Val #(methods ai.ty go!"RoleAdd" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleAddResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.roleAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString),
@@ -108,7 +108,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.userGrantRoleR user role)⌝ ∗
           auth.capNextM M hs (auth.userGrantRoleR user role) }}
         (App (Val #(methods ai.ty go!"UserGrantRole" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.userGrantRoleR user role) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString)
@@ -118,7 +118,7 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMo
           ⌜auth.stepOk M hs (auth.roleGrantPermissionR name w)⌝ ∗
           auth.capNextM M hs (auth.roleGrantPermissionR name w) }}
         (App (Val #(methods ai.ty go!"RoleGrantPermission" ai.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
           auth.adminOutX M (ownX M X) hs (auth.roleGrantPermissionR name w) auth.noExtra err }}) ∗
     -- (C1's A2) `Authenticate`, which writes nothing: at the reader resource `RD` (`IsAuthEnabled`
@@ -175,7 +175,7 @@ theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : 
   · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, ⟨HW, HY⟩, Hw1, Hw2, Hw3, Hcs, Hok, Hcap⟩ HΦ
     iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hw1 Hw2 Hw3 Hcs Hok Hcap]
     · iframe
-    iintro !> %err ⟨HPP, HW, Hrest⟩
+    iintro !> %err ⟨HW, Hrest⟩
     iapply HΦ
     iframe
   isplitr
@@ -347,7 +347,7 @@ theorem isAuthStepsX_of_authInvT
     · iframe; iframe #
     iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
-    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iintro !> %err ⟨%b, %sc, HA, HWR, %en, %Hen, HPP, #Hv, Hout⟩
     icases auth.authWRx_split st M P f T Wb b sc $$ HWR with ⟨HW, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
     · iframe; iframe #
@@ -357,8 +357,8 @@ theorem isAuthStepsX_of_authInvT
         subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
-    iframe HPP HW HA Ha
-    iexists en; iframe Hv; iexact Hout
+    iframe HW HA Ha
+    iexists en; iframe HPP Hv; iexact Hout
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨HW, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
@@ -484,7 +484,7 @@ theorem isAuthStepsX_of_authInvTB
     · iunfold auth.authWRxB; iframe; iframe #
     iapply (hEnable st R M P f T Wb hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hw1 Hw2 Hw3 Hcs]
     · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
-    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iintro !> %err ⟨%b, %sc, HA, HWR, %en, %Hen, HPP, #Hv, Hout⟩
     iunfold auth.authWRxB at HWR
     icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
     ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
@@ -495,10 +495,10 @@ theorem isAuthStepsX_of_authInvTB
         subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
     icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
     iapply HΦ
-    iframe HPP HA Ha
+    iframe HA Ha
     isplitl [Hbe HT]
     · iexists be; iframe Hbe HT HΨ
-    iexists en; iframe Hv; iexact Hout
+    iexists en; iframe HPP Hv; iexact Hout
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hw1, Hw2, Hcs, %Hok, #Hcap⟩ HΦ
     iunfold auth.tieRes at HX
@@ -885,6 +885,7 @@ theorem applierV3backend.UserAdd.wp_stepX
   · iframe Hcap Hr Hsure; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
+  ihave HPP := orPre_forget _ _ _ $$ HPP
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
   ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
@@ -927,6 +928,7 @@ theorem applierV3backend.RoleAdd.wp_stepX
   · iframe Hcap Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
+  ihave HPP := orPre_forget _ _ _ $$ HPP
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
   ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
@@ -971,6 +973,7 @@ theorem applierV3backend.UserGrantRole.wp_stepX
     isplitr
     · ipureintro; exact hb
     ipureintro; exact hok
+  ihave HPP := orPre_forget _ _ _ $$ HPP
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
   ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
@@ -1013,6 +1016,7 @@ theorem applierV3backend.RoleGrantPermission.wp_stepX
   · iframe Hcap Hr; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
+  ihave HPP := orPre_forget _ _ _ $$ HPP
   iunfold auth.respOk at Hresp
   icases Hresp with ⟨%Hnn, Hhdr⟩
   ihave Hrn : ⌜err = GoInterface.nil → resp ≠ null⌝ $$ []
@@ -1051,10 +1055,11 @@ theorem applierV3backend.AuthEnable.wp_stepX
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as %err ⟨HPP, HW, #HeI, %en, #Hv, Hout⟩
+  wp_apply HM $$ %hs %Pre %Q %Post [$Ho $HX $HW $Hw1 $Hw2 $Hw3 $Hcs] as %err ⟨HW, #HeI, %en, HPP, #Hv, Hout⟩
   · iframe Hcap; isplitr
     · ipureintro; exact hon
     ipureintro; exact hok
+  ihave HPP := orPre_forget _ _ _ $$ HPP
   rcases err with ei | _
   · -- the store's error
     wp_auto

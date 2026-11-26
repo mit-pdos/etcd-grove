@@ -60,7 +60,7 @@ theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Cha
   isplitl [Hinfo Hres]
   · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
-  · iright; iexact HPre
+  · iright; iframe HPre; ipureintro; simp
   isplitl []
   · iapply apply.chainClass_auth_rejected
   · iapply apply.chainLeaseClass_auth_rejected
@@ -118,7 +118,7 @@ theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chai
   isplitl [Hinfo Hres]
   · iapply apply.chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
-  · iright; iexact HPre
+  · iright; iframe HPre; ipureintro; simp
   isplitl []
   · iapply apply.chainClass_auth_rejected
   · iapply apply.chainLeaseClass_auth_rejected
