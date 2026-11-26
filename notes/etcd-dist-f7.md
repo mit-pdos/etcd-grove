@@ -1499,3 +1499,19 @@ then `CHECK=1 /shared/tmp/f7ra-rb.sh <file>` on each file below, in order, and f
   the Put's pure premise (`putWireOf … leaseID`).
 - Not done: a `Link` entry (not linkable while `PS` is open); task 3 (`etcd_auth.Work`'s dist spec and proof) not
   started; `tier-check`/`lease-order` not run.
+
+### RA-2 built (2026-11-26; S6 `RunAuth`: everything of RA-2 compiles)
+
+All of RA-2's files build on fk-lean1 (`lake build` of `AuthLeaseRunLemmas`, `AuthRunDefs`, `AuthWatchRefusal`, the two
+`collectFor`, the `remotePrincipals`/`RunAuth` specs, `RunAuth` and `RunAuthLease`: exit 0); `tier-check --check` and
+`lease-order-check --check` ok. Fixes: `collectFor` (the `wp_start` pattern missed `isRespChan`; `cancel`'s
+`□ ∀ Ψ, ▷ Ψ #() -∗ WP …` is used by a bare `wp_apply`, no `as`); `RunAuth` (`watchFloorsD_one` by `bigSepL_singleton`,
+`optsAt_nil` without `$$ []`, the root client's `KV` field from `userClientAt`/`kvClientAt` before its `Put`, the
+`putWireOf (opPutModel k v []) = putKeyOp k v` bridge for `z/end`'s update, `outgoingCtxOkC_bgFrom` for both watch
+contexts). Not done: as RA-2 (no `Link` entry while `PS` is open; `etcd_auth.Work`'s dist spec and proof, and the
+principal service of RA-1's contract gap, not started).
+
+fk-lean1 note: the seed copy left cache-restored `.ilean` files read-only (hard links into `~/eg/lake-cache`); a
+rebuild of such a module fails with `permission denied` on its `.ilean`, and two concurrent Lake runs (lean-check
+opening several files) trigger it. Fix used: stop the lean-check server, delete the read-only `.ilean` files restored
+today (`find .lake/build/lib/lean -name '*.ilean' ! -writable -newermt … -delete`), check one file at a time.
