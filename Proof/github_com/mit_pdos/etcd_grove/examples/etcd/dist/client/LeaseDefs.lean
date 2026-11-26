@@ -42,7 +42,7 @@ namespace EtcdGrove
 namespace etcd_dist_client
 
 open Iris Iris.BI Iris.ProofMode Net client
-open etcd_dist.view
+open etcd_dist etcd_dist.view
 
 section member
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
