@@ -45,7 +45,6 @@ axiom Perennial.github_com.rs.zerolog.SetGlobalLevel.wp_proof
 axiom Perennial.github_com.rs.zerolog.wp_initialize'
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
