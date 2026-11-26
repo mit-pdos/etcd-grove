@@ -1032,6 +1032,206 @@ theorem recvEnd_of_stepEnd_preVoteK {c : CfgM} {id : w64} {m : MessageM} {ents :
     · exact Or.inr (Or.inr ⟨hgt, Or.inl rfl, rfl⟩)
     · exact Or.inr (Or.inl ⟨by show m.Term' = s.term; word, rfl⟩)
 
+/-- A quorum of a larger set: `IsQuorum` is monotone in the voters it counts. -/
+theorem ie_isQuorum_mono {cfg q q' : GSet w64} (h : q ⊆ q') (hq : IsQuorum cfg q) :
+    IsQuorum cfg q' := by
+  unfold IsQuorum at *
+  have hs : q ∩ cfg ⊆ q' ∩ cfg := by
+    rw [GMap.elem_of_subseteq] at h ⊢; set_solver
+  have := GMap.subseteq_size hs
+  omega
+
+/-- A recorded rejection adds no grant, so it does not make a tally a quorum. -/
+theorem ie_not_jquorum_reject {c : CfgM} {votes : GMap w64 Bool} {src : w64}
+    (h : ¬ JQuorum c (granted votes)) : ¬ JQuorum c (granted (recordVote votes src false)) := by
+  have hsub : granted (recordVote votes src false) ⊆ granted votes := by
+    rw [GMap.elem_of_subseteq]
+    intro v hv
+    rcases elem_of_granted_recordVote votes src false v hv with h1 | ⟨-, h2⟩
+    · exact h1
+    · cases h2
+  rintro ⟨h1, h2⟩
+  refine h ⟨?_, ?_⟩
+  · rcases h1 with h1 | h1
+    · exact .inl h1
+    · exact .inr (ie_isQuorum_mono hsub h1)
+  · rcases h2 with h2 | h2
+    · exact .inl h2
+    · exact .inr (ie_isQuorum_mono hsub h2)
+
+/-- (antithesis parity B1, step B) `Step`'s `MsgPreVoteResp` at the protocol level (`HandleEnd`'s
+`.preVoteResp` arm): ignored at a follower, a candidate and a leader; at a pre-candidate (a follower
+with no leader in `PState`) a pending or lost tally leaves `PState` as it is, and a win campaigns
+(`CampaignSends`), only on a grant: the tally before it is not a quorum (`hq`, `RnScope`'s
+pre-candidate conjunct) and a recorded rejection adds no grant. -/
+theorem ie_handle_preVoteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s' : NState} (hsc : FnScope c id t) (hty : m.Type' = MsgPreVoteResp)
+    (hq : t.role = .preCandidate → ¬ JQuorum c (granted t.votes))
+    (H : StepFnEnd c id t m ents ctx s') :
+    HandleEnd k c id (toPState t) (absMsg .preVoteResp m ents ctx) (toPState s') := by
+  obtain ⟨hf, hc, hl⟩ := H
+  unfold HandleEnd
+  dsimp only [absMsg, absMsgFrom]
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    split
+    · exact Or.inl rfl
+    · rfl
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_neg (by rw [hr]; decide)] at hres
+    subst hres
+    rw [if_neg (fun h => by rw [toPState_role, hr] at h; simp [proleRole] at h)]
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, rfl⟩ := hres
+    rw [if_neg (fun h => by rw [toPState_role, hr] at h; simp [proleRole] at h)]
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_pos hr] at hres
+    obtain ⟨won, lost, peers, pvs, hwon, -, rfl⟩ := hres
+    have hlead : t.lead = W64 0 := hsc.1 hr
+    have hpf : (toPState t).role = .follower ∧ (toPState t).lead = W64 0 := by
+      simp [toPState, hr, hlead, proleRole]
+    rw [if_pos hpf]
+    have Hs1 : toPState { t with votes := recordVote t.votes m.From' (!m.Reject') } = toPState t :=
+      toPState_votes_pre _ _ hr
+    cases won
+    · refine Or.inl ?_
+      cases lost
+      · show toPState { { t with votes := recordVote t.votes m.From' (!m.Reject') } with prvals := pvs } = _
+        rw [toPState_prvals_nl _ pvs (by simp [hr]), Hs1]
+      · show toPState { becomeFollower { t with votes := recordVote t.votes m.From' (!m.Reject') }
+            t.term (W64 0) with prvals := pvs } = _
+        rw [toPState_prvals_nl _ pvs (by simp [becomeFollower]), toPState_becomeFollower, Hs1]
+        simp [pbecomeFollower, toPState, hr, hlead, rdNL_rdNL, proleRole]
+    · obtain ⟨hjq, hperm⟩ := hwon rfl
+      refine Or.inr ⟨?_, peers, hperm, ?_⟩
+      · cases hrj : m.Reject'
+        · rfl
+        · rw [hrj] at hjq
+          exact absurd hjq (ie_not_jquorum_reject (hq hr))
+      · show toPState { campaignState id { t with votes := recordVote t.votes m.From' (!m.Reject') }
+            false peers with prvals := pvs } = _
+        rw [toPState_prvals_nl _ _ (by simp [campaignState, sendMsgs, becomeCandidate])]
+        simp only [campaignState, Bool.false_eq_true, ↓reduceIte]
+        rw [toPState_sendMsgs, toPState_becomeCandidate, Hs1]
+        rfl
+
+/-- (antithesis parity B1, step B) **`MsgPreVoteResp`** over `LiftScopeK`: stale, ignored; a grant
+keeps the preamble's state (`PreTermKeep`, at a higher term too); a rejection of a higher term steps
+down (the preamble), which then ignores it; the step function's answer `ie_handle_preVoteResp`, with
+the pre-candidate's tally not a quorum (`hq`, from `RnScope`). -/
+theorem recvEnd_of_stepEnd_preVoteRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hq : s.role = .preCandidate → ¬ JQuorum c (granted s.votes))
+    (hty : m.Type' = MsgPreVoteResp) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .preVoteResp m ents ctx) (toPState s') := by
+  have hT : StepEndTy m.Type' := by unfold StepEndTy; ie_tyclose hty
+  have hpv : m.Type' ≠ MsgPreVote := by rw [hty]; ie_tyclose MsgPreVote
+  by_cases hst : StaleMsg s m
+  · exact ie_recvEnd_staleK ⟨hsc.1, hsc.2.1⟩ (by rw [hty]; rfl) hpv hst (h hT (by xtrec_tac))
+  obtain ⟨-, -, -, hfn⟩ := h hT (by xtrec_tac)
+  obtain ⟨pvs, H⟩ := hfn hst (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote)
+  have hfs := FnScope.of_preStateK hsc hpd (m := m) pvs
+  have h2 : ¬ uint.Z m.Term' < uint.Z s.term := fun hl => hst ⟨h0, hl⟩
+  cases hrj : m.Reject'
+  · -- a grant: the preamble keeps the state
+    have hnb : ¬ PreBF m s := fun hb => hb.2.2 ⟨hty, hrj⟩
+    have hps : preState s m pvs = s := by unfold preState; rw [if_neg hnb]
+    rw [hps] at H hfs
+    refine Or.inr (Or.inr (Or.inr ⟨h0, toPState s, ?_, ie_handle_preVoteResp hfs hty hq H⟩))
+    by_cases hgt : uint.Z s.term < uint.Z m.Term'
+    · exact Or.inr (Or.inr ⟨hgt, Or.inr ⟨rfl, by show m.Reject' = false; exact hrj⟩, rfl⟩)
+    · exact Or.inr (Or.inl ⟨by show m.Term' = s.term; word, rfl⟩)
+  · -- a rejection: the preamble as for the other types
+    have hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term' :=
+      ⟨fun hb => hb.1, fun hgt => ⟨hgt, hpv, fun hh => by rw [hrj] at hh; exact absurd hh.2 (by decide)⟩⟩
+    have hpk : ¬ PreTermKeep (absMsg .preVoteResp m ents ctx) := by
+      rintro (hh | ⟨-, hh⟩)
+      · exact absurd (show MsgType.preVoteResp = MsgType.preVote from hh) (by decide)
+      · have : m.Reject' = false := hh
+        rw [hrj] at this; exact absurd this (by decide)
+    have hq' : (preState s m pvs).role = .preCandidate →
+        ¬ JQuorum c (granted (preState s m pvs).votes) := by
+      unfold preState
+      split
+      · intro hr; simp [becomeFollower] at hr
+      · exact hq
+    exact Or.inr (Or.inr (Or.inr ⟨h0, _,
+      ie_preEnd_preState pvs h0 hst hbf (by unfold preLead; ie_tyclose hty) hpk,
+      ie_handle_preVoteResp hfs hty hq' H⟩))
+
+/-- (antithesis parity B1, step B) `Step`'s `MsgReadIndexResp` at the protocol level (`HandleEnd`'s
+`.readIndexResp` arm): a follower records the read state of a one-entry response (`stepFollower`'s
+`addReadState`) and ignores any other; a candidate, a pre-candidate (a follower with no leader in
+`PState`) and a leader ignore it. -/
+theorem ie_handle_readIndexResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
+    {ents : List EntryM} {ctx : List w8} {s' : NState} (hsc : FnScope c id t)
+    (hty : m.Type' = MsgReadIndexResp) (H : StepFnEnd c id t m ents ctx s') :
+    HandleEnd k c id (toPState t) (absMsg .readIndexResp m ents ctx) (toPState s') := by
+  obtain ⟨hf, hc, hl⟩ := H
+  unfold HandleEnd
+  dsimp only [absMsg, absMsgFrom]
+  cases hr : t.role with
+  | follower =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hf hr
+    unfold FollowerStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_pos (by rw [toPState_role, hr]; rfl)]
+    rcases ents with _ | ⟨e, _ | ⟨e2, es⟩⟩
+    · simp only at hres; subst hres; exact Or.inr (Or.inl ⟨by simp, rfl⟩)
+    · simp only at hres; subst hres
+      refine Or.inl ⟨e, rfl, ?_⟩
+      have hnl : t.role ≠ .leader := by rw [hr]; decide
+      simp [addReadState, toPState, hnl, hr, rdNL]
+    · simp only at hres; subst hres; exact Or.inr (Or.inl ⟨by simp, rfl⟩)
+  | candidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inl hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    rw [if_neg (by rw [toPState_role, hr]; decide)]
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    rw [if_pos (by simp [toPState, hr, proleRole])]
+    exact Or.inr (Or.inr ⟨by simp [toPState, hr, hsc.1 hr], rfl⟩)
+  | leader =>
+    obtain ⟨d, hres⟩ := hl hr
+    unfold LeaderStepResultC LeaderNonpropResultC at hres
+    ie_tysimp hty at hres
+    obtain ⟨-, rfl⟩ := hres
+    rw [if_neg (by rw [toPState_role, hr]; decide)]
+
+/-- (antithesis parity B1, step B) **`MsgReadIndexResp`** over `LiftScopeK` (a leader's answer,
+stamped with its term): stale, ignored; else after the preamble `ie_handle_readIndexResp`. -/
+theorem recvEnd_of_stepEnd_readIndexRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgReadIndexResp) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .readIndexResp m ents ctx) (toPState s') :=
+  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+    (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
+    (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
+    (ie_not_preTermKeep (by decide) (by decide))
+    (fun _ hsc' _ H => ie_handle_readIndexResp hsc' hty H)
+    (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+
 /-- **`MsgProp`** (term `0`: `RawNode.Propose`'s, or a forwarded one), as `ProposeEnd`. -/
 theorem proposeEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
     {ctx : List w8} {s s' : NState} (hsc : LiftScope c id s) (hty : m.Type' = MsgProp)
