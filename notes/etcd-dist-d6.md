@@ -3140,6 +3140,52 @@ no axiom, `sorry`, `Spec/` or trusted text changed).
 * *Next*: B1 green, then the lead's decision on B3/B5/B6's `Spec/` changes (the exact lines above); B2 by
   that decision.
 
+### T10 step 3 (B), session 2 (2026-11-26, branch `etcd-safe-t10s3b/2026-11-26`)
+
+Scope: only the items with no `Spec/` change (B1, B2); B3, B5, B6 wait for the lead.
+
+**B1 done.** `/shared/tmp/t10s3b-b1.patch` applied (`rnLeadLaw`, `rnLeadLaw_persistent`, `rnLeadLaw_enter`,
+`ReplayJob.lean`), with the handoff's fix: `have hfix := srv_confFixed (GF := GF) γr ⊤ …; rw [hγ] at hfix`
+before `ihave #Hfix := hfix $$ Hinv`. Built with `ReplayJob`, `NewServerCrash` and the server's `Link`
+(exit 0, log `/shared/tmp/t10s3b-build2.log`); with B2 (below) again green, 10084 jobs (`/shared/tmp/t10s3b-build3.log`).
+
+**B2: the layer done, the switch left for B3/B4** (it pays off only there: the history form's consumers
+are B3's payload and B4's job; `rnReplayState.job`, the one consumer today, reads `replayPending`).
+Added, no old user changed:
+* `ReplaySeed.lean`: `replaySeed_history` (pure): from `StorageHolds S σ`, `PlogWf S.base S.ents` and the
+  slice's order (the same premises as `replaySeed_pending`), `replayHistoryMatches (σ.ents … foldl
+  replayAddEntry []) S σ.b`.
+* `ReplayWorkerTerms.lean`: `rnReplayHist γ view S n := ∃ runs, view ↦*□ runs ∗ ⌜replayPending runs γ.a0 n
+  ∧ replayHistoryMatches runs S n⌝` (persistent), with `.state` (⊢ `rnReplayState γ view n`, so `.job`
+  still applies), `.describe` (⊢ `∃ runs, view ↦*□ runs ∗ ⌜replayRunsDescribe runs S n⌝`: B3's payload),
+  `.intro` (the seed from both facts), `.advance` (same `base`/`ents`, `a ≤ b`: `replayHistoryMatches_same`),
+  `.empty` (premise: `S` has no term above `n`), `.appendEntries` (`S` to `S'`, premises `below` (`S'`
+  keeps `S`'s terms below the batch's first index, all of them for an empty batch) and `here` (the batch's
+  terms from its first index): `plogTermAt_next_batch` gives both at `S.next … none (es.map toM)`),
+  `.after` (`replayHistoryMatches_after`); the old `.after`'s pure part is now `replayPending_after`, shared.
+
+**What B3/B4 switch** (in order; each is Proof/ only, given B3's `Spec/` change):
+1. `InvRaftNode.lean`: `rnWorkerStartTok`'s seed (line ~2482) `rnReplayState γ terms γ.snap0` →
+   `∃ S, rnReplayHist γ terms S γ.snap0` tied to the driver's start state (the `S` of `rnLoopTokP`'s
+   `rnDrv` at the first Ready), and `rnLoopTokP` exposes its `S` (a parameter, or the loop's
+   `Hhistory` moved inside it), so the loop invariant can name it. (`rnReplayHist` then moves down to
+   `InvRaftNode.lean` beside `rnReplayState`, or `rnWorkerStartTok` moves up; `ReplayWorkerTerms` is
+   above `InvRaftNode`.)
+2. The seed: `NodeStartLinked.lean:202` (first start: `runs = []`, `.empty`'s premise from the boot
+   state) and `:494`/`:502` (restart: `replaySeed_history S σ Hhold hseed.2.1 (hseed.1.imp …)` beside
+   `replaySeed_pending`, then `.intro`); `NodeStart.lean:147`'s field.
+3. The loop, `raftNode__start.lean`: `:156` `.advance` → `rnReplayHist.advance` (same log); `:158`
+   `"#Hhistory" ∷ rnReplayHist γ view S (rnLogOf γ L').length` at `rnLoopTokP`'s `S`; the snapshot
+   arm `:523/:526` (`.empty` at the installed snapshot's state, then `.appendEntries`); the entries arm
+   `:1368` (`.appendEntries` with `below`/`here` from `plogTermAt_next_batch` at the entered state, its
+   `PlogWf` from raft's `raftState_logView`), `:1376` (the join), `:1405` (`.after`), and `:1484`
+   (`rnReplayState.job` via `.state` until B4; with B3, `.describe` for the payload's `∃ S,
+   replayRunsDescribe runs S n ∧ S.term = rt`).
+4. B4: `rnReplayState.job` retires (`rnReplayJob_of_history` + `rnReplayJob_premise_of_lead` in
+   `applyAll`), and `replayPending` leaves `rnReplayHist` (and `rnReplayState` with it).
+
+No axiom, `sorry`, `Spec/` or trusted text changed.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

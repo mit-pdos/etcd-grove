@@ -120,5 +120,47 @@ theorem srv_confFixed [go_etcd_io.raft.v3.Assumptions] (γ : ServerRaftNames) (E
   iapply srv_confAt_simple γ l l.length (Nat.le_refl _) E hC hL
   iframe Hinv Hl
 
+/-- (T10 step 3 (B), B1; option (a) item 2) **L2's law at a durable state, for the replay job**: when the
+restart's backend log `a0` is non-empty and `S`'s term is past the restart's `t0`, a leadership of
+`S.term` shows `S`'s log agrees with `a0` (`raftState_leadAgree`'s wand). Made at each *enter*
+(`rnLeadLaw_enter`); `rnReplayJob_premise_of_lead` turns it into the replay job's premise. -/
+def rnLeadLaw (γ : RNNames GF) (S : RaftState) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  iprop(□ (⌜γ.a0 ≠ [] ∧ uint.Z γ.t0 < uint.Z S.term⌝ -∗
+    □ (snapshotLeader γ.node.cl γ.id S.term ={⊤}=∗ ⌜durLogAgrees S (γ.a0.map EntryModel.toLE)⌝)))
+
+instance rnLeadLaw_persistent (γ : RNNames GF) (S : RaftState) :
+    Persistent (rnLeadLaw (GF := GF) γ S) := by
+  unfold rnLeadLaw; infer_instance
+
+/-- (T10 step 3 (B), B1) **The law at an *enter***: with the restart data (`rnRestart_cmtBefore`), the
+cluster, the server's log invariant (`srv_confFixed`) and the node's durable state `S`, raft's
+`raftState_leadAgree` gives `rnLeadLaw γ S` (trivially when `a0 = []` or `S.term ≤ t0`). -/
+theorem rnLeadLaw_enter [go_etcd_io.raft.v3.Assumptions] (γ : RNNames GF) (γr : ServerRaftNames)
+    (S : RaftState) (hγ : γr.raft = γ.node) :
+    letI := srvStor (GF := GF) γ.node
+    rnRestartOk γ ∗ isCluster γ.node.cl srvClusterN ∗ srvRaftLogInv γr ∗ raftState γ.node.cl γ.id S ⊢
+      |={⊤}=> raftState γ.node.cl γ.id S ∗ rnLeadLaw γ S := by
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨#Hrok, #Hcl, #Hinv, Hst⟩
+  by_cases hc : γ.a0 ≠ [] ∧ uint.Z γ.t0 < uint.Z S.term
+  · have hfix := srv_confFixed (GF := GF) γr ⊤ (by simp) (by simp)
+    rw [hγ] at hfix
+    ihave #Hfix := hfix $$ Hinv
+    ihave #Hcb := rnRestart_cmtBefore γ $$ Hrok %hc.1
+    imod raftState_leadAgree γ.node.cl srvClusterN ⊤ (by simp) _ γ.id γ.t0 S _ hc.2 $$
+      [Hcl Hfix Hcb Hst] with ⟨Hst, #Hlaw⟩
+    · iframe Hcl Hfix Hcb Hst
+    imodintro
+    iframe Hst
+    iunfold rnLeadLaw
+    iintro !> %_
+    iexact Hlaw
+  · imodintro
+    iframe Hst
+    iunfold rnLeadLaw
+    iintro !> %h
+    exact absurd h hc
+
 end EtcdGrove
 end Perennial

@@ -63,6 +63,34 @@ theorem replaySeed_pending (S : RaftState) (σ : StorContents) (A : List EntryMo
   change replayHasTerm _ e.Index' e.Term' at covered
   rwa [hidx, hterm] at covered
 
+/-- (T10 step 3 (B), B2) **The seed in the history form**: the initial slice describes the durable
+state `S` above the storage's base (`replayHistoryMatches`), for every term `S` has there, not only
+the backend's last (`replaySeed_pending`). -/
+theorem replaySeed_history (S : RaftState) (σ : StorContents)
+    (hold : StorageHolds S σ) (hw : PlogWf S.base S.ents)
+    (ordered : (σ.ents.map EntryModel.ofM).Pairwise (fun a b => uint.nat a.index < uint.nat b.index)) :
+    replayHistoryMatches ((σ.ents.map EntryModel.ofM).foldl replayAddEntry []) S σ.b := by
+  obtain ⟨layout, _, listed⟩ := replayFold_coverage [] _ (by simp [replayLayout]) ordered (by simp)
+  refine ⟨layout, ?_⟩
+  intro ci t hn ht
+  have hb := hold.1
+  change uint.nat σ.base.index' < uint.nat ci at hn
+  have hlt : uint.Z S.base.index' < uint.Z ci := by word
+  obtain ⟨e, he, hidx, hterm⟩ := plogTermAt_some_entry S.base S.ents ci _
+    (PlogWf_wfR _ _ hw) ht hlt
+  have hs : e ∈ σ.ents := by
+    rw [hold.2.2.1, RaftState.entsFrom]
+    let k := (uint.Z ci - uint.Z σ.base.index' - 1).toNat
+    apply List.mem_of_getElem? (i := k)
+    rw [List.getElem?_drop]
+    have hk : (uint.Z σ.base.index' - uint.Z S.base.index').toNat + k =
+        (uint.Z ci - uint.Z S.base.index' - 1).toNat := by
+      dsimp [k]; have := uint_nat_eq σ.base.index'; have := uint_nat_eq ci; omega
+    rwa [hk]
+  have covered := listed (EntryModel.ofM e) (List.mem_map_of_mem hs)
+  change replayHasTerm _ e.Index' e.Term' at covered
+  rwa [hidx, hterm] at covered
+
 variable [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics] [package_sem : go_etcd_io.raft.v3.Assumptions]
