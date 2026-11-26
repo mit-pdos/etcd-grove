@@ -3,7 +3,9 @@
 Branch `etcd-safe-crash-b4/2026-11-26`, from `etcd-safe-crash-s0/2026-11-26` @9e66b4dbac. Helper of the
 etcd_safe lead. **Design only: no Lean edit for B4.** The design changes S0 statements and needs trusted
 changes besides `NewServer_dist`'s text, so it went to the lead before any re-proof (§7). The decisions taken
-are in §7a. The re-proof waits on T10, T6 and kaashoek's case (D-B4-7); §8 is the handoff, §9 the layering. Paths: `P/` = `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/`,
+are in §7a. The re-proof waits on T10, T6 and kaashoek's case (D-B4-7); §8 is the handoff, §9 the layering.
+**Revision 1** (branch `etcd-safe-crash-b4r/2026-11-26`, at the end of this note) applies review D5, withdraws
+D-B4-6, and revises §9. Where it differs from §2–§9, Revision 1 wins. Paths: `P/` = `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/`,
 `S/` = `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/`, `E/` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/`.
 
 ## 0. Summary
@@ -88,7 +90,8 @@ The rows `memberFirst` needs that are **not** in the slot, and how B4 gets them 
 * the fresh names (`Hkvs`, `Hcok`, `Hrev`, `Hrd`, the registry): allocated again.
 * `idShare`/`idWaitTok`: from the issue record's crash rest (B6 (b), `idPfxInv_crash`).
 * the lessor slot `Hlslot` at the start's `γl`: **cannot** be handed back; it is consumed by `NewLessor` and
-  `γl` is fixed by the view. See D-B4-6.
+  `γl` is fixed by the view. (Revision 1, F-A6) The boot's first-start arm allocates a fresh lessor name and
+  its slot (`lease.lessorSlot_alloc`), and the call is made at that name. D-B4-6 is withdrawn.
 
 **A restart generation** (`specC`'s case):
 
@@ -225,7 +228,8 @@ make the spec claim to produce `False`.
    `newRaftNode` …, or with an unsaved first `Save`" becomes "until the WAL holds a `Save` (the fork's
    `DiscardUnsaved`)". `memberKeepR` (:822) is restated over `srvKeep*` (`memberDurKeep` moves to etcdserver).
 4. `memberKeepRc` (:118): docstring only (it also describes a restart before its backend is open).
-5. `memberFirst_of_share.law` / `memberFirst`: D-B4-6's decision on the lessor slot.
+5. `memberFirst_of_share.law` / `memberFirst`: (Revision 1, F-A6) `memberGen_boot.law`'s first-start arm gains
+   `∃ γl, ghostMapAuth γl ½ ∅ ∗ lease.lessorSlot γl` (`lease.lessorSlot_alloc`). D-B4-6 is withdrawn.
 
 ## 7. Decisions for the coordinator (each with a recommendation)
 
@@ -249,7 +253,7 @@ make the spec claim to produce `False`.
   token), and `rnDurInvK` is allocated after bootstrap's read, at `newRaftNode`'s entry as at a first start.
   Recommended: (b). It touches no trusted contract, provided C-I2's post says the records `bootstrap` read
   still hold `S`, which it does through `walReadFacts`.
-* **D-B4-6. The lessor slot at a first start.** `Hlslot` at the view's `γl` is consumed by `NewLessor` and
+* **D-B4-6 (WITHDRAWN, Revision 1; replaced by review D5's F-A6, §R1.2). The lessor slot at a first start.** `Hlslot` at the view's `γl` is consumed by `NewLessor` and
   cannot come back after a crash. Recommended for the crash class (lease mode `.none`): `NewServer_dist`
   allocates its own lessor name there, as `specG` does (`lessorSlot_alloc`), with `Hlslot` only when
   `lm ≠ .none`. That is a further change to `NewServer_dist`'s text, in the same packet. Alternative: a
@@ -261,15 +265,16 @@ make the spec claim to produce `False`.
 ## 7a. Decisions taken (the lead, with the coordinator, 2026-11-26)
 
 * **Decided as recommended:** D-B4-1 to D-B4-5 and D-B4-7.
-* **D-B4-6: drafted as recommended.** At `lm = .none`, `NewServer_dist` allocates its own lessor name
-  (`lessorSlot_alloc`, as `specG`), and takes `Hlslot` only when `lm ≠ .none`. It is a trusted text change,
-  so it stays a draft until Upamanyu decides it with the crash packet.
+* ~~**D-B4-6: drafted as recommended.**~~ **Withdrawn** (Revision 1, the coordinator and the lead,
+  2026-11-26). It broke the proved member proof at `lm = .none` (`server/MainLogger.lean`, review D5's F-A6).
+  `NewServer_dist`'s lessor text stays unchanged. The boot allocates a fresh lessor name for a first start
+  after a crash, and the axiom pairs with `specGAtK` (§R1.2).
 * **The re-proof waits on its dependencies** (D-B4-7): T10's concrete `KeepB`, T6's first-start
   `snapDirKeep`, and kaashoek's `σ.commit < i` case.
 
 ## 8. Handoff (this session's end state)
 
-* `NewServer_dist`'s and `NewServerC_dist`'s final draft text (B4 + D-B4-6), with the slot's docstring
+* (Superseded by §R1.7.) `NewServer_dist`'s and `NewServerC_dist`'s draft text (B4, rev 0), with the slot's docstring
   (what it holds, and why each piece survives a real crash), is outside the repo, for the packet:
   `/home/ubuntu/.claude-E/jobs/b20ef685/tmp/b4-scratch/newserver-dist-before-after.md`.
 * Not applied in Lean: it names §9's vocabulary, which is not written.
@@ -366,3 +371,240 @@ def memberKeepS (C) (cfg) (id) (γd) (KeepB KeepBc : GooseLocalGS GF → SrvKN G
 * `memberStop.law` moves the phase from `.restart true` to `.stopped` at `DB.Close`'s commit point. For a
   first generation's stop, the move from `.first true true true` to `.stopped` needs the restart facts `Xr`
   and the spine, which the stop has: `srvStopReq`'s boot evidence, and the persistent spine.
+## Revision 1 (2026-11-26): review D5 applied, D-B4-6 withdrawn, P5's G2/G3 folded
+
+Branch `etcd-safe-crash-b4r/2026-11-26`, from `etcd-safe-crash-b4/2026-11-26` @a45701179d. This is draft text
+only: no Lean edit and no re-proof.
+
+Inputs:
+- review D5, `coordinator-notes/plans/review-d5-newserver-slot.md`;
+- P5's gaps G2/G3, `notes/etcd-dist-p5s.md` on `etcd-safe-crash-p5s/2026-11-26`;
+- the lead's and the coordinator's decisions of 2026-11-26.
+
+Outputs, outside the repo, for the crash packet:
+- `b4-scratch/newserver-dist-before-after.md` (rev 1; rev 0 kept as `…rev0.md`);
+- `b4-scratch/c-i2-before-after.md` (new).
+
+### R1.1 Each fix, and where it went
+
+| Fix | What | Where |
+|---|---|---|
+| F-A1 (generation) | binder `L` dropped; the slot is at `hG.goose_localGS` | scratch §A.1, §A.3; §R1.3 |
+| F-A1 (arm) | the vacancy's arm tied to the slot's crash token by a proved raft lemma, `nodeVacantA_crashTok_agree` | §R1.6 (stated, with a proof sketch; not proved in Lean); scratch §A.2, docstring item 2 |
+| F-A2 (spine) | item 6 rewritten. The spine is in the slot at a restart, and in a first generation only from `be` on (G3); before that a first generation holds none | scratch §A.7(b) item 6; §R1.3 `.first`. **See §R1.8 (1)**: decision 2's "restart-only" and decision 5's G3 conflict, and F-A2 names G3's option as its alternative |
+| F-A3 (what a crash leaves) | the sentence replaced by F-A3's wording. It names directories, `.touch` files, the unsaved WAL, the backend file that no later start removes (a crash between `OpenBackend` and `wal.Create`'s rename), and bbolt's init-window file | scratch §A.7(b), "So a crash at any step …" |
+| F-A4 (`wal.Discard`) | item 4 uses `wal.Discard` (fork `251a430ce`, after `wal.Unsaved` and `removeBackendDurably`) | scratch §A.7(b) item 4 |
+| F-A4 (duplicates) | the existing paragraph on duplicates is at `nodeVacantA` and `Hph` | scratch §A.7(a) |
+| dedup | rev 0's "Nothing else is in the slot" and "What the slot cannot do" are merged into one paragraph | scratch §A.7(b) |
+| F-A5 | not applicable (D-B4-6 withdrawn) | — |
+| F-A6 | `Hlslot` and `mvccLeases E.γ = γl` unchanged. The boot allocates a fresh lessor name for a first start after a crash. The axiom pairs with `specGAtK` | scratch §A.3', §A.6, §A.8; §R1.2; §2, §6 item 5, §7, §7a |
+| F-B1 | premise `γ.cl.bootLen ≤ σ.commit →` in `specC_dist` and `specCK` | scratch §B.3 |
+| F-B2 | premise `σ.b ≤ uint.nat i →` in both | scratch §B.3; the rename-window phase is in `c-i2-before-after.md` §4 |
+| F-B3 (rows) | `"Hvac" ∷ nodeVacantA γ.cl id νk.x`, `"Hrauth" ∷ memStorRegAuth M`, and the removal counter `"Hrmc"` (F-B3's third row) | scratch §B.5 (with a table of where each of `srvCrashImageAt`'s rows went) |
+| F-B3 (tie) | the slot's witness `k` is tied to `νk h D` (and `ρo`, `γm`) by the restart key `srvKeyR ρo νk h γm D`. `S σ` are tied through `Hloop`'s view half | scratch §B.5; §R1.3 |
+| F-B4 | the crash-aware C-I2 (`bootstrapCrashContractK`), with `#HbootC` moved to it in both texts | `c-i2-before-after.md`; scratch §B.4, §B.7 |
+| F-B5 | the duplicate sentence is at `Hvac` and `rnDurInvK` | scratch §B.7 |
+| G2 | the raft loop's stop mode (keep) is fixed at `newRaftNode`; the posts' built part and stop keep are at `(sm := rnStopMode.keep)` | §R1.4; scratch §A.5, §B.6 |
+| G3 | `.first _ _ true` gains the spine, and the restart facts `Xr`, through the key. **This departs from a literal "`.first _ _ true` gains `Xr`"**: see §R1.5 | §R1.3, §R1.5 |
+| (new) restart error arm | `NewServerC_dist`'s error post admits `.stopped`: `bootstrap.go` and `NewServer`'s deferred `b.Close()` close the backend on an error | scratch §B.6; `c-i2-before-after.md` §3.2 |
+
+### R1.2 D-B4-6 withdrawn: the F-A6 route
+
+- `NewServer_dist`'s lessor text is unchanged: `Hlslot` at `γl` and `mvccLeases E.γ = γl`.
+- `memberGen_boot.law`'s first-start arm gains `∃ γl, ghostMapAuth γl (1 : Qp).half ∅ ∗ lease.lessorSlot γl`, from the
+  proved `lease.lessorSlot_alloc`, as `NewServer.wp_proofG` derives `specG` from `specGAt`. A first start after a
+  crash is called at that fresh name.
+- `NewServer_dist` pairs with `NewServer.specGAtK`, which is `specGAt` plus the B4 rows, stated with `Hlslot` last
+  as in the dist text. The `mvccLeases` dev line is deleted, and the `γl`/`Hlslot` parts of lines 12–13 go.
+- `server/MainLogger.lean`'s `lm = .none` case keeps working.
+
+### R1.3 §9 revised: self-contained replacement code (for `E/SrvKeep.lean`)
+
+**What changes from §9.** Apply these on top of §9's verbatim move. Everything not listed stays as §9 has it:
+`SrvKN`, `osSpineDur`/`osPathDur`, `srvDurKeep`, `srvWalKeep`, `srvSnapKeepK`, `srvKNOk`, `srvKeepPh`, `srvKeepN`.
+1. **`srvKeepAt`/`srvKeepInv` lose the parameter `Xr`** and gain a key `kr : SrvKeepKey GF`. `.restart`/`.stopped`
+   drop the conjunct `Xr k`. The restart facts move to `memberKeepS`, through the key (§R1.5).
+2. **Each `SrvKN` witness must satisfy the key** `kr ph k` at its phase. This is F-B3's tie. `SrvKeepPh` stays
+   unparameterized: a `ghostVar` over `SrvKN GF` would need `Pos.Countable`, which `WalH GF`'s instance fields do not
+   have.
+3. **`.first` is restated under one set of witnesses** `h νk γm`, and its `be` arm's `k` must agree with them
+   (`k.h = h ∧ k.νk = νk ∧ k.γm = γm`). The `be` arm also gains the spine (G3). So at `.first true true true` one
+   `k` carries everything `.stopped` needs, which P5's `kbClose.law` move uses.
+
+```lean
+/-- (unchanged from §9) -/
+inductive SrvKeepPh | first (node snap be : Bool) | restart («open» : Bool) | stopped
+
+/-- **The slot's key** (Revision 1, review D5 F-B3): which witnesses `k` a phase may hold. It is pure and fixed for
+the generation, so the specs tie the slot's pieces to their binders without a ghost variable over `SrvKN`. -/
+abbrev SrvKeepKey (GF : BundledGFunctors) := SrvKeepPh → SrvKN GF → Prop
+
+/-- **A first start's key**: the pieces are this run's (`k.ρo = ρ`). -/
+def srvKeyF (ρ : ReqNames) : SrvKeepKey GF := fun _ k => k.ρo = ρ
+
+/-- **A restart's key**: the names the boot allocated from the image. They are raft's crash-aware durability `νk`,
+the WAL `h`, the removal counter `γm` and the image's writer `ρo`. While the backend is closed and not yet opened
+(`.restart false`), its file is at the image's data `D`. That constraint is phase-indexed: `.stopped` holds the data
+the stop closed. -/
+def srvKeyR (ρo : ReqNames) (νk : WalNamesK GF) (h : WalH GF) (γm : GName) (D : backend.Data) : SrvKeepKey GF :=
+  fun ph k => k.ρo = ρo ∧ k.νk = νk ∧ k.h = h ∧ k.γm = γm ∧ (ph = .restart false → k.Dn = D)
+
+/-- What the slot holds at phase `ph`, for member `id` of raft names `γ` with data directory `dd`, over the backend's
+open and closed keeps `Kb`/`Kbc` (T10's: fixed definitions in the specs, never binders) and the key `kr`. -/
+def srvKeepAt (γ : SrvRaft) (id : w64) (dd : GoString) (γd : GName)
+    (Kb Kbc : SrvKN GF → IProp GF) (kr : SrvKeepKey GF) : SrvKeepPh → IProp GF
+  | .first n s e => iprop(∃ (h : WalH GF) (νk : WalNamesK GF) (γm : GName),
+      ⌜h.dir = srvWalDirOf dd⌝ ∗ srvWalKeep h ∗
+      (if n then srvDurKeep γ id νk h
+       else raftState γ.cl id RaftState.init ∗ ∃ x, nodeCrashTok γ.cl id x) ∗
+      (if s then snapDirKeep (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
+                   (fun j => monoNatLbOwn γm (uint.nat j + 1))
+       else ghostMapAuth γd 1 (∅ : GMap w64 Unit)) ∗
+      -- (G3) from the backend's move on: the backend's crash keep and the durable spine, at one witness
+      -- agreeing with the arms above
+      (if e then ∃ k : SrvKN GF,
+          ⌜srvKNOk γ id dd k ∧ kr (.first n s e) k ∧ k.h = h ∧ k.νk = νk ∧ k.γm = γm⌝ ∗
+          osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ Kb k
+       else True))
+  | .restart o => iprop(∃ k : SrvKN GF, ⌜srvKNOk γ id dd k ∧ kr (.restart o) k⌝ ∗
+      srvDurKeep k.γ id k.νk k.h ∗ srvWalKeep k.h ∗ srvSnapKeepK k dd ∗
+      osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ (if o then Kb k else Kbc k))
+  | .stopped => iprop(∃ k : SrvKN GF, ⌜srvKNOk γ id dd k ∧ kr .stopped k⌝ ∗
+      srvDurKeep k.γ id k.νk k.h ∗ srvWalKeep k.h ∗ srvSnapKeepK k dd ∗
+      osSpineDur k.jd [go!"member", go!"snap"] k.J ∗ Kbc k)
+
+/-- The slot (persistent), at the generation `L`. The specs pass the generation they run in (`hG.goose_localGS`,
+review D5 F-A1). -/
+def srvKeepInv (γ : SrvRaft) (id : w64) (dd : GoString) (γd : GName) (Kb Kbc : SrvKN GF → IProp GF)
+    (kr : SrvKeepKey GF) (γph : GName) (L : GooseLocalGS GF) : IProp GF :=
+  letI : HeapGS HasLC.hasLC GF := ⟨G, L⟩
+  inv srvKeepN (∃ ph, srvKeepPh γph (1 : Qp).half ph ∗ srvKeepAt γ id dd γd Kb Kbc kr ph)
+```
+
+`memberKeep*` are restated over this. This replaces §9's `memberKeepS` block; it lives in S0/T7's files, not in
+etcdserver:
+
+```lean
+def memberKeepS (C) (cfg) (id) (γd) (KeepB KeepBc : GooseLocalGS GF → SrvKN GF → IProp GF) (kr : SrvKeepKey GF)
+    (γph) (L) : IProp GF :=
+  memberClusterFacts C ∗ £ 1 ∗
+    srvKeepInv C.γ id cfg.DataDir' γd (KeepB L) (KeepBc L) kr γph L ∗
+    -- (G3, §R1.5) the restart facts at every witness the key admits, in any phase: the boot proves it at
+    -- allocation (a restart from the image's, a first start from `memberBoot_restartFacts` at the run's names)
+    □ (∀ (ph : SrvKeepPh) (k : SrvKN GF), ⌜srvKNOk C.γ id cfg.DataDir' k ∧ kr ph k⌝ →
+        etcdstart.memberRestartFacts k.γ k.ρo id)
+```
+
+Uses:
+- `memberGen_boot.law`'s output gains `∃ γph, srvKeepInv … kr γph L ∗ srvKeepPh γph ½ ph₀`, where either:
+  - `kr = srvKeyF ρ` and `ph₀ = .first false false false`, plus the armed vacancy `nodeVacantA γ.cl id x` with the
+    slot's `nodeCrashTok … x` and F-A6's fresh lessor slot; or
+  - `kr = srvKeyR ρo νk h γm D` and `ph₀ = .restart false`, plus the call's rows of scratch §B.5 (`srvDurLoop`,
+    `Hvac`, `Hrauth`, `Hrmc`, `srvCrashImagePure`).
+- An unsaved image (`σ.commit < bootLen`) goes to the first-start arm (F-B1).
+
+### R1.4 G2: the raft loop's stop mode is fixed at `newRaftNode`
+
+`bootstrappedRaft.newRaftNode` gets a keep-mode spec (`newRaftNode.specK`, untrusted, part of §4's
+`newRaftNode` row).
+- **At a first start** it takes the slot at `.first false s e`. In one ghost step at entry it allocates
+  `rnDurInvK` with `rnDurK_alloc.law`, from the slot's `raftState … init` and the WAL's records. It puts
+  `srvDurKeep γ id νk h` into the slot, including `token νk.ν.stop` and the arm's crash token at `νk.x`. That needs
+  `x` = the arm of `Hnboot`'s vacancy, which §R1.6's lemma gives. The phase moves to `.first true s e`.
+- **At a restart** it takes the loop's side `srvDurLoop` (the slot already at `.restart true`) and moves nothing.
+- **Either way** it starts the loop in the keep stop mode: `rnStopMode.keep`, whose `onStop` uses no
+  `rnDurK_take` and puts `rnStopImageK γ := ∃ x, nodeVacantA …` into `done`'s escrow `rnDoneEscK` (P5 §2.3).
+  The wrapper predicate it returns carries the mode.
+- So the built part and the stop keep in `specGAtK`/`specCK`, and in the two dist texts, are at
+  `(sm := rnStopMode.keep)` (scratch §A.5, §B.6). Today's `specG`/`specC` are the `.take` instances. The argument's
+  final name and position are P5's.
+
+### R1.5 G3: the spine and the restart facts for `.first _ _ true` → `.stopped`
+
+- **The spine** is in `.first _ _ true` (§R1.3). It exists from `bootstrap`'s `TouchDirAll`s, before the backend
+  opens. The call needs `bootOk` to expose it (§5, T8: a change to `bootstrap.wp_proof_dist`/`wp_proofOne`'s post,
+  or derived from what `bootOk` gives).
+- **The restart facts `Xr`** are **not** a conjunct of `.first _ _ true`. Instead, `memberKeepS` holds their
+  evidence over the key, persistently, from allocation (§R1.3), and `.restart`/`.stopped` drop `Xr k` too. Why
+  this departs from P5's literal recommendation:
+  - An in-process `specGAtK` (or `NewServer_dist`) that must *put* `Xr k` into the slot at `be` must produce it.
+    For a parameter `Xr` it cannot: `Xr := False` would make the post claim `False`, the §4 lesson about `KeepB`.
+  - Fixing `Xr := memberRestartFacts` in the etcdserver text is not possible either. etcdserver cannot name it
+    (it is in `examples/etcd/restart`), and it holds only in the crash class (auth off, no compaction,
+    `lease.runCfg … .none`, `¬ clusterNoSnap`), while `NewServer_dist` covers every mode.
+  - With the evidence in `memberKeepS`, the consumers (the member layer's crash law and `memberGen_boot` after a
+    first generation's first `Save`) instantiate it at the slot's `k`, which the key admits. P5's `kbClose.law`
+    then needs no `Xr`.
+- **The literal alternative,** if the lead prefers it: keep `Xr` as a parameter of `srvKeepAt`, put `Xr k` in
+  `.first _ _ true`'s `be` arm and in `.restart`/`.stopped` (as §9), and make `srvKeepInv` carry the persistent
+  evidence `□ ∀ ph k, ⌜srvKNOk γ id dd k ∧ kr ph k⌝ → Xr k` beside the `inv`, so the call gets `Xr k` from the slot
+  itself. That is sound, but the two copies of `Xr` are redundant.
+
+### R1.6 The raft lemma tying the vacancy's arm (F-A1)
+
+The lemma is stated here; it is not written in Lean (no edit on this branch). It goes in
+`Proof/go_etcd_io/raft/v3/InvNodeRule.lean`, beside `nodeCrash`:
+
+```lean
+variable [CrashGS GF] in
+/-- **The armed vacancy and a crash token of one id are of one arm** while the generation runs. Both hold the
+arm's crash invariant `nodeCrashInv` (`raftArmed`, `raftCrashTok`), which `nodeCrashInv_agree` makes one. -/
+theorem nodeVacantA_crashTok_agree (γ : Cluster) (N : Namespace) (id : w64) (x y : CrashNames) (E : CoPset)
+    (HE : ↑N ⊆ E) :
+    ⊢ isCluster (GF := GF) γ N -∗ notCrashed -∗ nodeVacantA γ id x -∗ nodeCrashTok γ id y ={E}=∗
+      notCrashed ∗ nodeVacantA γ id x ∗ nodeCrashTok γ id y ∗ ⌜x = y⌝
+```
+
+- **Proof sketch** (about 15 lines):
+  1. Unfold `nodeVacantA`/`nodeCrashTok` to `raftArmed γ.raft id x` and `raftCrashTok γ.raft id y`. Each contains
+     the persistent `nodeCrashInv γ.raft id _`.
+  2. `isCluster` gives `γ.raft.reNs = N .@ "raft"`, so `↑(crashNs γ.raft id) ⊆ ↑(raftN γ.raft) ⊆ ↑N ⊆ E`
+     (`crashNs_raftN`).
+  3. Apply `nodeCrashInv_agree`.
+- **Why not proved:** it needs a build of raft's `InvNodeRule` in a worktree with no built `.olean`s.
+- **Review D5's form** (`notCrashed -∗ nodeVacantA -∗ nodeCrashTok ={E}=∗ notCrashed ∗ ⌜x = y⌝`) would consume both
+  exclusive resources. This statement gives them back.
+- **Where it is used:** in `newRaftNode.specK`'s move (§R1.4), which needs `notCrashed`. `StartNode`'s update does
+  not hand it out; only `RestartNode`'s does (`InvNodeRule.lean:1331`). So the move must be made at a step whose
+  proof can take the generation's `notCrashed` from the state interpretation, as the WAL's crash steps do
+  (`InvWalCrashSteps.lean`).
+- **Fallback:** if no such step exists at `newRaftNode`'s entry, use F-A1's text option: a binder
+  `(x : CrashNames)`, `nodeVacantA γ.cl id x` in `Hnboot`, and `.first`'s `nodeCrashTok γ.cl id x` (the arm a
+  parameter of `srvKeepAt`, as kvnet's `fl.x`).
+- **At a restart** no lemma is needed: the key pins `k.νk = νk`, and `Hvac` is at `νk.x`.
+
+### R1.7 Handoff
+
+- The draft texts, outside the repo, for the crash packet and the delta review:
+  - `/home/ubuntu/.claude-E/jobs/b20ef685/tmp/b4-scratch/newserver-dist-before-after.md` (rev 1);
+  - `…/newserver-dist-before-after.rev0.md` (rev 0, kept for the diff);
+  - `…/c-i2-before-after.md` (new, the crash-aware C-I2).
+- No Lean is changed on this branch. §R1.3 is ready for kaashoek's `E/SrvKeep.lean`
+  (`etcd-safe-crash-b4move/2026-11-26`) as a delta on §9's verbatim move.
+
+### R1.8 Still open (for the lead and the delta review)
+
+1. **The spine's wording (F-A2 against G3).** Decision 2 says "the spine is restart-only". Decision 5 folds G3,
+   which puts the spine in `.first _ _ true`. F-A2 itself names G3's option as its alternative. I applied G3: the
+   spine is in the slot at a restart, and in a first generation from `be` on; a first generation holds none
+   before. If the lead wants "restart-only" literally, G3's first-generation stop needs another source for the
+   spine.
+2. **D-B4-5 is not what the texts do.** §7a records (b): `rnDurInvK` is allocated after bootstrap's read, at
+   `newRaftNode`'s entry. But §3.2, §9 and both rev 0 and rev 1 of `NewServerC_dist`/`specCK` allocate it at the
+   restart's boot: `srvDurLoop` is in the precondition, and `.restart` holds `srvDurKeep`. That is (a)'s shape.
+   Rev 1 keeps it, because F-B3's tie and the crash-aware C-I2 are written for it. It needs `ReadAll`'s
+   torn-tail cut to be a step that keeps `rnDurInvK`'s records at `σ` (a new law if the history changes under
+   it). `Discard` is excluded by F-B1. The lead should either re-decide D-B4-5 as (a), or have §B restated to
+   (b): `.restart` gains a `node` flag, the precondition loses `srvDurLoop`, and the C-I2-K contract carries the
+   raw `raftState S`.
+3. **The success posts' pure claims.** Each success post's phase (`.first true true true`, `.restart true`) claims
+   a witness with `srvKNOk γ id dd k`. Its pure rows (roots in `k.h.R`, `PathFits` of every `.snap.db` path, …)
+   must follow from the precondition. Otherwise the in-process spec is unprovable and the interim axiom would
+   give `False`. Someone has to check each row against `wal.bootRes`/`bootCfgOk`/`srvCrashImagePure` before the
+   packet goes out.
+4. **G1** (the backend in T10's crash mode inside `srvBuiltG`/`srvStop.keep`, and `bootOkRK`'s backend rows) is
+   not in rev 1. It needs T10's decision.
+5. **`srvKb`/`srvKbc`, `wal.restartOkK`, `srvCrashImagePure`, `(sm := …)`** are placeholders until T10, T5 and P5
+   write them. The gate's token-identity with `specGAtK`/`specCK` can only be checked against the written specs.
+6. **The crash-mode bbolt `Open`** (D-B4-3) is a dependency of C-I2-K's commit point. It is the bbolt-crash
+   lead's.
