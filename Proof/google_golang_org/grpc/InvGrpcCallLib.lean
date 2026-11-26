@@ -1142,6 +1142,218 @@ def srvFramesPos : Nat → List SrvFrame → Option Nat
   | j, [] => some j
   | j, f :: F => (srvFrameStep f j).bind fun j' => srvFramesPos j' F
 
+/-! ### Parsing the frames -/
+
+/-- A data frame followed by anything, a prefix of another followed by anything, is that frame. -/
+theorem dataFrame_append_prefix {a b r r' : List w8} (ha : a.length < 2 ^ 32)
+    (hb : b.length < 2 ^ 32) (h : dataFrame a ++ r <+: dataFrame b ++ r') : a = b ∧ r <+: r' := by
+  obtain ⟨z, hz⟩ := h
+  simp only [dataFrame, grpcMsgHdr, List.cons_append, List.cons.injEq, _root_.true_and,
+    List.append_assoc] at hz
+  obtain ⟨hl, hz⟩ := be32_append_inj ha hb hz
+  have hab := (List.append_inj hz hl).1
+  subst hab
+  exact ⟨rfl, ⟨z, List.append_cancel_left hz⟩⟩
+
+/-- A data frame is no prefix of what a client writes after its data frames. -/
+theorem dataFrame_ne_ctl (a y c x : List w8) (hc : c = [] ∨ c = closeFrame)
+    (hx : x = [] ∨ x = cancelFrame) : ¬ (dataFrame a ++ y <+: c ++ x) := by
+  intro h
+  rcases hc with rfl | rfl <;> rcases hx with rfl | rfl <;>
+    simp (config := { decide := true }) [dataFrame, closeFrame, cancelFrame, frameData, frameClose,
+      frameCancel] at h
+
+/-- **The data frames a reader read are a prefix of the writer's.** -/
+theorem dataFrames_prefix : ∀ (A B : List (List w8)) (c x : List w8),
+    (∀ bs ∈ A, bs.length < 2 ^ 32) → (∀ bs ∈ B, bs.length < 2 ^ 32) →
+    (c = [] ∨ c = closeFrame) → (x = [] ∨ x = cancelFrame) →
+    (A.map dataFrame).flatten <+: (B.map dataFrame).flatten ++ c ++ x → A <+: B
+  | [], _, _, _, _, _, _, _, _ => List.nil_prefix
+  | a :: A, [], c, x, _, _, hc, hx, h => by
+    exfalso
+    simp only [List.map_cons, List.flatten_cons, List.map_nil, List.flatten_nil,
+      List.nil_append] at h
+    exact dataFrame_ne_ctl a _ c x hc hx h
+  | a :: A, b :: B, c, x, hA, hB, hc, hx, h => by
+    simp only [List.map_cons, List.flatten_cons, List.append_assoc] at h
+    obtain ⟨rfl, h'⟩ := dataFrame_append_prefix (hA a (by simp)) (hB b (by simp)) h
+    rw [← List.append_assoc] at h'
+    exact (List.prefix_cons_inj a).2 (dataFrames_prefix A B c x
+      (fun bs hm => hA bs (by simp [hm])) (fun bs hm => hB bs (by simp [hm])) hc hx h')
+
+/-- **A close a reader read follows all of the writer's data frames.** -/
+set_option linter.unusedSimpArgs false in
+theorem dataFrames_close : ∀ (A B : List (List w8)) (c x : List w8),
+    (∀ bs ∈ A, bs.length < 2 ^ 32) → (∀ bs ∈ B, bs.length < 2 ^ 32) →
+    (c = [] ∨ c = closeFrame) → (x = [] ∨ x = cancelFrame) →
+    (A.map dataFrame).flatten ++ closeFrame <+: (B.map dataFrame).flatten ++ c ++ x →
+    A = B ∧ c = closeFrame
+  | [], [], c, x, _, _, hc, hx, h => by
+    simp only [List.map_nil, List.flatten_nil, List.nil_append] at h
+    rcases hc with rfl | rfl <;> rcases hx with rfl | rfl <;>
+      simp (config := { decide := true }) [closeFrame, cancelFrame, frameClose, frameCancel] at h ⊢
+  | [], b :: B, c, x, _, _, _, _, h => by
+    exfalso
+    simp (config := { decide := true }) [dataFrame, closeFrame, frameData, frameClose] at h
+  | a :: A, [], c, x, _, _, hc, hx, h => by
+    exfalso
+    simp only [List.map_cons, List.flatten_cons, List.map_nil, List.flatten_nil,
+      List.nil_append, List.append_assoc] at h
+    exact dataFrame_ne_ctl a _ c x hc hx h
+  | a :: A, b :: B, c, x, hA, hB, hc, hx, h => by
+    simp only [List.map_cons, List.flatten_cons, List.append_assoc] at h
+    obtain ⟨rfl, h'⟩ := dataFrame_append_prefix (hA a (by simp)) (hB b (by simp)) h
+    rw [← List.append_assoc (List.map dataFrame B).flatten] at h'
+    obtain ⟨h1, h2⟩ := dataFrames_close A B c x (fun bs hm => hA bs (by simp [hm]))
+      (fun bs hm => hB bs (by simp [hm])) hc hx h'
+    exact ⟨by rw [h1], h2⟩
+
+/-- A server frame's kind byte. -/
+def srvFrameKind : SrvFrame → w8
+  | .header _ => frameHeader
+  | .data _ => frameData
+  | .trailer _ => frameTrailer
+  | .reset _ => frameReset
+  | .oversized k => k
+
+theorem srvFrameBytes_cons (f : SrvFrame) :
+    srvFrameBytes f = srvFrameKind f :: (srvFrameBytes f).tail := by
+  cases f <;> rfl
+
+/-- A header list within the limit has a block length within it. -/
+theorem headerBlock_len_le {fs : List (GoString × GoString)} (h : headerListOk fs) :
+    4 + (fs.map fun f => 8 + f.1.length + f.2.length).sum ≤ maxHeaderBlock := by
+  unfold headerListOk at h
+  have h24 : ∀ l : List (GoString × GoString),
+      (l.map fun f => 8 + f.1.length + f.2.length).sum + 24 * l.length =
+        (l.map fun f => 32 + f.1.length + f.2.length).sum := by
+    intro l
+    induction l with
+    | nil => simp
+    | cons a l ih => simp only [List.map_cons, List.sum_cons, List.length_cons]; omega
+  have := h24 fs
+  cases fs with
+  | nil => simp [maxHeaderBlock]
+  | cons a l => simp only [List.length_cons] at this; omega
+
+theorem maxHeaderBlock_succ_lt : maxHeaderBlock + 1 < 2 ^ 32 := by
+  unfold maxHeaderBlock; decide
+
+/-- A header block within the limit is no oversized marker of its kind. -/
+theorem headerBlock_ne_oversized {k : w8} {fs : List (GoString × GoString)} (h : headerListOk fs)
+    {r r' : List w8} :
+    ¬ (headerBlock k fs ++ r <+: (k :: be32 (maxHeaderBlock + 1)) ++ r') ∧
+      ¬ ((k :: be32 (maxHeaderBlock + 1)) ++ r <+: headerBlock k fs ++ r') := by
+  have hl := headerBlock_len_le h
+  have hlt : 4 + (fs.map fun f => 8 + f.1.length + f.2.length).sum < 2 ^ 32 := by
+    have := maxHeaderBlock_succ_lt; omega
+  constructor
+  · rintro ⟨z, hz⟩
+    simp only [headerBlock, List.cons_append, List.cons.injEq, _root_.true_and, List.append_assoc] at hz
+    have := (be32_append_inj hlt maxHeaderBlock_succ_lt hz).1
+    omega
+  · rintro ⟨z, hz⟩
+    simp only [headerBlock, List.cons_append, List.cons.injEq, _root_.true_and, List.append_assoc] at hz
+    have := (be32_append_inj maxHeaderBlock_succ_lt hlt hz).1
+    omega
+
+theorem headerBlock_append_prefix {k : w8} {fs fs' : List (GoString × GoString)} {r r' : List w8}
+    (h : headerListOk fs) (h' : headerListOk fs')
+    (hp : headerBlock k fs ++ r <+: headerBlock k fs' ++ r') : fs = fs' ∧ r <+: r' := by
+  obtain ⟨z, hz⟩ := hp
+  rw [List.append_assoc] at hz
+  obtain ⟨rfl, h2⟩ := headerBlock_append_inj (headOk_of_listOk h) (headOk_of_listOk h') hz
+  exact ⟨rfl, ⟨z, h2⟩⟩
+
+/-- **A well-formed server frame is determined by its bytes.** -/
+theorem srvFrame_append_prefix (f g : SrvFrame) (hf : srvFrameWf f) (hg : srvFrameWf g)
+    {r r' : List w8} (h : srvFrameBytes f ++ r <+: srvFrameBytes g ++ r') : f = g ∧ r <+: r' := by
+  have hk : srvFrameKind f = srvFrameKind g := by
+    have h' := h
+    rw [srvFrameBytes_cons f, srvFrameBytes_cons g] at h'
+    simp only [List.cons_append, List.cons_prefix_cons] at h'
+    exact h'.1
+  cases f with
+  | header fs =>
+    cases g with
+    | header fs' =>
+      obtain ⟨rfl, h2⟩ := headerBlock_append_prefix hf hg h
+      exact ⟨rfl, h2⟩
+    | oversized k =>
+      simp only [srvFrameKind] at hk
+      subst hk
+      exact absurd h (headerBlock_ne_oversized hf).1
+    | _ => simp only [srvFrameKind] at hk; exact absurd hk (by decide)
+  | trailer fs =>
+    cases g with
+    | trailer fs' =>
+      obtain ⟨rfl, h2⟩ := headerBlock_append_prefix hf hg h
+      exact ⟨rfl, h2⟩
+    | oversized k =>
+      simp only [srvFrameKind] at hk
+      subst hk
+      exact absurd h (headerBlock_ne_oversized hf).1
+    | _ => simp only [srvFrameKind] at hk; exact absurd hk (by decide)
+  | data bs =>
+    cases g with
+    | data bs' =>
+      obtain ⟨rfl, h2⟩ := dataFrame_append_prefix hf hg h
+      exact ⟨rfl, h2⟩
+    | oversized k =>
+      simp only [srvFrameKind, srvFrameWf] at hk hg
+      rcases hg with rfl | rfl <;> exact absurd hk (by decide)
+    | _ => simp only [srvFrameKind] at hk; exact absurd hk (by decide)
+  | reset c =>
+    cases g with
+    | reset c' =>
+      obtain ⟨z, hz⟩ := h
+      simp only [srvFrameBytes, List.cons_append, List.cons.injEq, _root_.true_and,
+        List.append_assoc] at hz
+      obtain ⟨rfl, hz⟩ := be32_append_inj hf hg hz
+      exact ⟨rfl, ⟨z, List.append_cancel_left hz⟩⟩
+    | oversized k =>
+      simp only [srvFrameKind, srvFrameWf] at hk hg
+      rcases hg with rfl | rfl <;> exact absurd hk (by decide)
+    | _ => simp only [srvFrameKind] at hk; exact absurd hk (by decide)
+  | oversized k =>
+    simp only [srvFrameWf] at hf
+    cases g with
+    | oversized k' =>
+      simp only [srvFrameKind] at hk
+      subst hk
+      obtain ⟨z, hz⟩ := h
+      simp only [srvFrameBytes, List.cons_append, List.cons.injEq, _root_.true_and,
+        List.append_assoc, List.append_cancel_left_eq] at hz
+      exact ⟨rfl, ⟨z, by simpa using hz⟩⟩
+    | header fs' =>
+      simp only [srvFrameKind] at hk
+      subst hk
+      exact absurd h (headerBlock_ne_oversized hg).2
+    | trailer fs' =>
+      simp only [srvFrameKind] at hk
+      subst hk
+      exact absurd h (headerBlock_ne_oversized hg).2
+    | _ =>
+      simp only [srvFrameKind] at hk
+      rcases hf with rfl | rfl <;> exact absurd hk (by decide)
+
+/-- **The well-formed frames a reader read are a prefix of the writer's.** -/
+theorem srvFrames_prefix : ∀ (F G : List SrvFrame), (∀ f ∈ F, srvFrameWf f) →
+    (∀ g ∈ G, srvFrameWf g) → (F.map srvFrameBytes).flatten <+: (G.map srvFrameBytes).flatten →
+    F <+: G
+  | [], _, _, _, _ => List.nil_prefix
+  | f :: F, [], _, _, h => by
+    exfalso
+    simp only [List.map_cons, List.flatten_cons, List.map_nil, List.flatten_nil,
+      List.prefix_nil] at h
+    rw [srvFrameBytes_cons f] at h
+    simp at h
+  | f :: F, g :: G, hF, hG, h => by
+    simp only [List.map_cons, List.flatten_cons] at h
+    obtain ⟨rfl, h'⟩ := srvFrame_append_prefix f g (hF f (by simp)) (hG g (by simp)) h
+    exact (List.prefix_cons_inj f).2 (srvFrames_prefix F G (fun x hx => hF x (by simp [hx]))
+      (fun x hx => hG x (by simp [hx])) h')
+
 section head
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -1429,6 +1641,310 @@ def grpcSrvP (Svc : GrpcSvc GF) : Net.Proto GF := fun cn W =>
 
 instance grpcSrvP_persistent Svc cn W : Persistent (grpcSrvP (GF := GF) Svc cn W) := by
   unfold grpcSrvP; infer_instance
+
+/-! ### The protocols' laws -/
+
+/-- A client that wrote nothing but its preface and a head meets its protocol. -/
+theorem grpcCliP_head (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (κ : CallNames) (ent : GrpcSvcEntry GF) (hok : headOk fs) :
+    callHeadIs Svc cn fs κ ent ⊢ grpcCliP Svc cn (clientPrefaceBytes ++ headFrame fs) := by
+  unfold grpcCliP cliFramesOk
+  iintro #H
+  iright
+  iexists fs, κ, ent, []
+  isplitr
+  · ipureintro; exact ⟨by simp, hok⟩
+  iframe H
+  imodintro
+  iexists [], [], []
+  isplitr
+  · ipureintro; exact ⟨by simp, by simp, Or.inl rfl⟩
+  isplitr
+  · imodintro
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  ileft; ipureintro; rfl
+
+/-- A server that wrote its preface meets its protocol. -/
+theorem grpcSrvP_preface (Svc : GrpcSvc GF) (cn : Nat) : ⊢ grpcSrvP Svc cn settingsBytes := by
+  unfold grpcSrvP
+  ileft; ipureintro; exact List.prefix_refl _
+
+theorem cl_ctl_cases (c : List w8) (X : IProp GF) :
+    iprop(⌜c = []⌝ ∨ ⌜c = closeFrame⌝ ∗ X) ⊢ ⌜c = [] ∨ c = closeFrame⌝ := by
+  iintro (%h | ⟨%h, -⟩)
+  · ipureintro; exact .inl h
+  · ipureintro; exact .inr h
+
+/-- **What a server read of its client's bytes, a whole head and more**: the head's call, and the
+client's frames after it, of which what it read is a prefix. -/
+theorem cli_read_core (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (Y : List w8) (hok : headOk fs) :
+    protoPrefix (grpcCliP Svc) cn (clientPrefaceBytes ++ headFrame fs ++ Y) ⊢
+      ∃ (κ : CallNames) (ent : GrpcSvcEntry GF) (rest : List w8),
+        callHeadIs Svc cn fs κ ent ∗ cliFramesOk κ.s ent.wq rest ∗ ⌜Y <+: rest⌝ := by
+  unfold protoPrefix
+  iintro (%h0 | ⟨%ext, %hext, #HP⟩)
+  · exfalso
+    simp [headFrame, headerBlock] at h0
+  unfold grpcCliP
+  icases HP with (%hpre | ⟨%fs0, %κ, %ent, %rest, ⟨%hW, %hok0⟩, #Hh, #Hf⟩)
+  · exfalso
+    have h1 := (hext.trans hpre).length_le
+    simp only [List.length_append, headFrame, headerBlock, List.length_cons] at h1
+    omega
+  subst hW
+  have hh : clientPrefaceBytes ++ headFrame fs <+: clientPrefaceBytes ++ headFrame fs0 ++ rest :=
+    (List.prefix_append _ _).trans hext
+  obtain rfl := head_prefix_inj hok hok0 hh
+  have hY : Y <+: rest := (List.prefix_append_right_inj _).1 hext
+  iexists κ, ent, rest
+  iframe Hh Hf
+  ipureintro; exact hY
+
+/-- **The server reads a head** (whole): the call it opens. -/
+theorem cli_read_head (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (hok : headOk fs) :
+    protoPrefix (grpcCliP Svc) cn (clientPrefaceBytes ++ headFrame fs) ⊢
+      ∃ (κ : CallNames) (ent : GrpcSvcEntry GF), callHeadIs Svc cn fs κ ent := by
+  iintro #H
+  rw [← List.append_nil (clientPrefaceBytes ++ headFrame fs)]
+  icases cli_read_core Svc cn fs [] hok $$ H with ⟨%κ, %ent, %rest, #Hh, -, -⟩
+  iexists κ, ent
+  iexact Hh
+
+/-- **The server reads data frames after a head**: the call, and each frame's request at its
+position. -/
+theorem cli_read_data (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (A : List (List w8)) (hok : headOk fs) (hA : ∀ bs ∈ A, bs.length < 2 ^ 32) :
+    protoPrefix (grpcCliP Svc) cn (clientPrefaceBytes ++ headFrame fs ++ (A.map dataFrame).flatten) ⊢
+      ∃ (κ : CallNames) (ent : GrpcSvcEntry GF), callHeadIs Svc cn fs κ ent ∗
+        [∗list] i ↦ bs ∈ A, ∃ m : ent.wq.M, upAt (Req := ProtoWire.msg (GF := GF) ent.wq) κ.s i m ∗
+          ⌜protoEncodes ent.wq.ty (ent.wq.tree m) bs⌝ := by
+  iintro #H
+  icases cli_read_core Svc cn fs _ hok $$ H with ⟨%κ, %ent, %rest, #Hh, #Hf, %hY⟩
+  unfold cliFramesOk
+  icases Hf with ⟨%ds, %c, %x, ⟨%hr, %hds, %hx⟩, #Hds, #Hc⟩
+  ihave %hc := cl_ctl_cases c _ $$ Hc
+  obtain ⟨H, rfl⟩ := dataFrames_prefix A ds c x hA hds hc hx (hY.trans hr)
+  iexists κ, ent
+  iframe Hh
+  icases BigSepL.bigSepL_append.1 $$ Hds with ⟨HA, -⟩
+  iexact HA
+
+/-- **The server reads a close after data frames**: the call, and its up queue closed after as
+many requests. -/
+theorem cli_read_close (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (A : List (List w8)) (hok : headOk fs) (hA : ∀ bs ∈ A, bs.length < 2 ^ 32) :
+    protoPrefix (grpcCliP Svc) cn
+        (clientPrefaceBytes ++ headFrame fs ++ ((A.map dataFrame).flatten ++ closeFrame)) ⊢
+      ∃ (κ : CallNames) (ent : GrpcSvcEntry GF), callHeadIs Svc cn fs κ ent ∗
+        ∃ L : List ent.wq.M, upClosed (Req := ProtoWire.msg (GF := GF) ent.wq) κ.s L ∗
+          upLb (Req := ProtoWire.msg (GF := GF) ent.wq) κ.s L ∗ ⌜L.length = A.length⌝ := by
+  iintro #H
+  icases cli_read_core Svc cn fs _ hok $$ H with ⟨%κ, %ent, %rest, #Hh, #Hf, %hY⟩
+  unfold cliFramesOk
+  icases Hf with ⟨%ds, %c, %x, ⟨%hr, %hds, %hx⟩, -, #Hc⟩
+  ihave %hc := cl_ctl_cases c _ $$ Hc
+  obtain ⟨rfl, hcc⟩ := dataFrames_close A ds c x hA hds hc hx (hY.trans hr)
+  icases Hc with (%hc0 | ⟨-, %L, #Hcl, #Hlb, %hL⟩)
+  · exfalso; rw [hc0] at hcc; simp [closeFrame] at hcc
+  iexists κ, ent
+  iframe Hh
+  iexists L
+  iframe Hcl Hlb
+  ipureintro; exact hL
+
+theorem srvFramesOk_prefix (Svc : GrpcSvc GF) (cn : Nat) :
+    ∀ (j : Nat) (F G : List SrvFrame), srvFramesOk Svc cn j (F ++ G) ⊢ srvFramesOk Svc cn j F := by
+  intro j F
+  induction F generalizing j with
+  | nil =>
+    intro G
+    simp only [srvFramesOk]
+    iintro -
+    itrivial
+  | cons f F ih =>
+    intro G
+    simp only [List.cons_append, srvFramesOk]
+    rcases hs : srvFrameStep f j with _ | j'
+    · iintro #H
+      iexact H
+    · iintro #⟨H1, H2⟩
+      imodintro
+      iframe H1
+      iapply ih j' G $$ H2
+
+/-- **A frame's fact at its position**, from the facts of the frames before and after it. -/
+theorem srvFramesOk_at (Svc : GrpcSvc GF) (cn : Nat) :
+    ∀ (j : Nat) (F : List SrvFrame) (f : SrvFrame) (G : List SrvFrame) (j' : Nat),
+      srvFramesPos j F = some j' →
+      srvFramesOk Svc cn j (F ++ f :: G) ⊢ srvFrameOkAt Svc cn j' f := by
+  intro j F
+  induction F generalizing j with
+  | nil =>
+    intro f G j' h
+    simp only [srvFramesPos, Option.some.injEq] at h
+    subst h
+    simp only [List.nil_append, srvFramesOk]
+    iintro #⟨H, -⟩
+    iexact H
+  | cons g F ih =>
+    intro f G j' h
+    simp only [srvFramesPos] at h
+    rcases hs : srvFrameStep g j with _ | j1
+    · simp [hs] at h
+    · simp only [hs, Option.bind_some] at h
+      simp only [List.cons_append, srvFramesOk, hs]
+      iintro #⟨-, H2⟩
+      iapply ih j1 f G j' h $$ H2
+
+/-- **The client reads the server's frames** (whole, well formed): each frame's fact at its
+position. -/
+theorem srv_frames_read (Svc : GrpcSvc GF) (cn : Nat) (F : List SrvFrame)
+    (hF : ∀ f ∈ F, srvFrameWf f) :
+    protoPrefix (grpcSrvP Svc) cn (settingsBytes ++ (F.map srvFrameBytes).flatten) ⊢
+      srvFramesOk Svc cn 0 F := by
+  unfold protoPrefix
+  iintro (%h0 | ⟨%ext, %hext, #HP⟩)
+  · exfalso; simp [settingsBytes] at h0
+  unfold grpcSrvP
+  icases HP with (%hpre | ⟨%G, ⟨%hW, %hG⟩, #HG⟩)
+  · have hl := (hext.trans hpre).length_le
+    cases F with
+    | nil =>
+      simp only [srvFramesOk]
+      itrivial
+    | cons f F =>
+      exfalso
+      simp only [settingsBytes, List.length_append, List.map_cons, List.flatten_cons,
+        List.length_singleton] at hl
+      rw [srvFrameBytes_cons f] at hl
+      simp only [List.length_cons] at hl
+      omega
+  subst hW
+  have hp := (List.prefix_append_right_inj _).1 hext
+  obtain ⟨H, rfl⟩ := srvFrames_prefix F G hF hG hp
+  iapply srvFramesOk_prefix Svc cn 0 F H $$ HG
+
+/-- **A data frame on the client's own call's connection**: the response at its position. -/
+theorem srvFrame_data (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (κ : CallNames) (α : AttNames) (ent : GrpcSvcEntry GF) (j : Nat) (bs : List w8) :
+    callKeyOf Svc cn fs κ α ent ∗ srvFrameOkAt Svc cn j (.data bs) ⊢
+      ∃ m : ent.wp.M, downAt (Rep := ProtoWire.msg (GF := GF) ent.wp) κ.s j m ∗
+        ⌜protoEncodes ent.wp.ty (ent.wp.tree m) bs⌝ := by
+  simp only [srvFrameOkAt]
+  iintro ⟨#Hk, #Hf⟩
+  icases Hf with ⟨%fs', %κ', %α', %ent', %m, #Hk', #Hd, %he⟩
+  icases callKeyOf_agree Svc cn fs fs' κ κ' α α' ent ent' $$ [Hk Hk'] with %h
+  · iframe Hk Hk'
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+  iexists m
+  iframe Hd
+  ipureintro; exact he
+
+/-- **A trailer on the client's own call's connection**: the call's end, at the trailer's position. -/
+theorem srvFrame_trailer (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (κ : CallNames) (α : AttNames) (ent : GrpcSvcEntry GF) (j : Nat)
+    (fs' : List (GoString × GoString)) (o : Option GoString) (ho : trailerEnd fs' = some o) :
+    callKeyOf Svc cn fs κ α ent ∗ srvFrameOkAt Svc cn j (.trailer fs') ⊢ callEndIs κ j o := by
+  simp only [srvFrameOkAt]
+  iintro ⟨#Hk, #Hf⟩
+  ihave Hx := Hf $$ %o
+  ihave Hy := Hx $$ []
+  · ipureintro; exact ho
+  icases Hy with ⟨%fs1, %κ1, %α1, %ent1, #Hk1, #HE⟩
+  icases callKeyOf_agree Svc cn fs fs1 κ κ1 α α1 ent ent1 $$ [Hk Hk1] with %h
+  · iframe Hk Hk1
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+  iexact HE
+
+/-- **A `REFUSED_STREAM` reset on the client's own call's connection**: its attempt was refused. -/
+theorem srvFrame_reset (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (κ : CallNames) (α : AttNames) (ent : GrpcSvcEntry GF) (j : Nat) :
+    callKeyOf Svc cn fs κ α ent ∗ srvFrameOkAt Svc cn j (.reset errCodeRefusedStream) ⊢
+      attRefused α := by
+  simp only [srvFrameOkAt]
+  iintro ⟨#Hk, #Hf⟩
+  ihave Hy := Hf $$ []
+  · ipureintro; trivial
+  icases Hy with ⟨%fs1, %κ1, %α1, %ent1, #Hk1, #HR⟩
+  icases callKeyOf_agree Svc cn fs fs1 κ κ1 α α1 ent ent1 $$ [Hk Hk1] with %h
+  · iframe Hk Hk1
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+  iexact HR
+
+/-- **A relay carries a server frame's fact** from its dialed connection `cn1` to its accepted
+connection `cn0`, both carrying the attempt (`callHead_relay`). -/
+theorem srvFrameOkAt_relay (Svc : GrpcSvc GF) (cn0 cn1 : Nat) (fs : List (GoString × GoString))
+    (κ : CallNames) (α : AttNames) (ent : GrpcSvcEntry GF) (j : Nat) (f : SrvFrame) :
+    callKeyOf Svc cn1 fs κ α ent ∗ callKeyOf Svc cn0 fs κ α ent ∗ srvFrameOkAt Svc cn1 j f ⊢
+      srvFrameOkAt Svc cn0 j f := by
+  cases f with
+  | data bs =>
+    simp only [srvFrameOkAt]
+    iintro ⟨#K1, #K0, #Hf⟩
+    icases Hf with ⟨%fs', %κ', %α', %ent', %m, #Hk', #Hd, %he⟩
+    icases callKeyOf_agree Svc cn1 fs fs' κ κ' α α' ent ent' $$ [K1 Hk'] with %h
+    · iframe K1 Hk'
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+    imodintro
+    iexists fs, κ, α, ent, m
+    iframe K0 Hd
+    ipureintro; exact he
+  | trailer fs' =>
+    simp only [srvFrameOkAt]
+    iintro ⟨#K1, #K0, #Hf⟩
+    imodintro
+    iintro %o %ho
+    ihave Hx := Hf $$ %o
+    ihave Hy := Hx $$ []
+    · ipureintro; exact ho
+    icases Hy with ⟨%fs1, %κ1, %α1, %ent1, #Hk1, #HE⟩
+    icases callKeyOf_agree Svc cn1 fs fs1 κ κ1 α α1 ent ent1 $$ [K1 Hk1] with %h
+    · iframe K1 Hk1
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+    iexists fs, κ, α, ent
+    iframe K0 HE
+  | reset c =>
+    simp only [srvFrameOkAt]
+    iintro ⟨#K1, #K0, #Hf⟩
+    imodintro
+    iintro %hc
+    ihave Hy := Hf $$ []
+    · ipureintro; exact hc
+    icases Hy with ⟨%fs1, %κ1, %α1, %ent1, #Hk1, #HR⟩
+    icases callKeyOf_agree Svc cn1 fs fs1 κ κ1 α α1 ent ent1 $$ [K1 Hk1] with %h
+    · iframe K1 Hk1
+    obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+    iexists fs, κ, α, ent
+    iframe K0 HR
+  | header _ =>
+    simp only [srvFrameOkAt]
+    iintro -
+    itrivial
+  | oversized _ =>
+    simp only [srvFrameOkAt]
+    iintro -
+    itrivial
+
+/-- **A relay's dialed connection meets the client's protocol** for what the client wrote on its
+accepted one. -/
+theorem grpcCliP_relay (Svc : GrpcSvc GF) (cn0 cn1 : Nat) (fs : List (GoString × GoString))
+    (κ : CallNames) (α : AttNames) (ent : GrpcSvcEntry GF) (W : List w8) :
+    callHeadIs Svc cn1 fs κ ent ∗ callKeyOf Svc cn0 fs κ α ent ∗ grpcCliP Svc cn0 W ⊢
+      grpcCliP Svc cn1 W := by
+  unfold grpcCliP
+  iintro ⟨#H1, #K0, (%hp | ⟨%fs', %κ', %ent', %rest, %hW, #Hh, #Hf⟩)⟩
+  · ileft; ipureintro; exact hp
+  icases callHeadIs_key Svc cn0 fs' κ' ent' $$ Hh with ⟨%α', #K'⟩
+  icases callKeyOf_agree Svc cn0 fs fs' κ κ' α α' ent ent' $$ [K0 K'] with %h
+  · iframe K0 K'
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := h
+  iright
+  iexists fs, κ, ent, rest
+  iframe H1 Hf
+  ipureintro; exact hW
 
 end head
 

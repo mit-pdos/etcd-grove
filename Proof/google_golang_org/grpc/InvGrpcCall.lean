@@ -1,10 +1,11 @@
 /-
 **grpc's calls: a stream's ghost names and its dispatched metadata** (`notes/phase7-endstate.md`
-§1.2, §1.4). The defs module the call protocol (S3.1: `CallParams`,
-`callInv`, `callDeposit`, `callHeadIs`) grows in; for now the names of a call (`StreamNames`, moved
+§1.2, §1.4). The names of a call (`StreamNames`, moved
 here from `InvGrpcStream.lean`, with the dispatch's name `md`, and countable: the call's slot is keyed
 by them) and the one fact the client learns of the dispatch: `streamDispIs γ a md`, the stream `γ` was
 dispatched to the address `a` with the metadata `md` (persistent, set once; `streamDispIs_agree`).
+The call protocol over them (S3.1: `CallParams`, `callInv`, `callDeposit`, `callHeadIs`) is
+`InvGrpcCallLib.lean`, which needs the service table and the stream tokens above this module.
 
 **The metadata in ghost state** (a deviation from the plan's text, recorded there in §1.5): a ghost
 variable holds a countable value, and `GrpcMd` (a function of the key) is not countable. What is
