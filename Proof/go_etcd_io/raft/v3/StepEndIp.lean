@@ -114,7 +114,12 @@ theorem logGrow_fn_heartbeat {c : CfgM} {id : w64} {t : NState} {m : MessageM} {
     se_tysimp hty at hres
     obtain ⟨-, -, pvs, rfl⟩ := hres
     exact LogGrow.keep rfl rfl
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, pvs, rfl⟩ := hres
+    exact LogGrow.keep rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -139,7 +144,12 @@ theorem logGrow_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {en
     se_tysimp hty at hres
     obtain ⟨-, -, rfl⟩ := hres
     exact LogGrow.keep rfl rfl
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact LogGrow.keep rfl rfl
   | leader =>
     obtain ⟨hpend, -, -⟩ := hsc.2.2 (by rw [hr]; decide)
     obtain ⟨d, hres⟩ := hl hr
@@ -205,7 +215,12 @@ theorem logGrow_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : Message
     se_tysimp hty at hres
     obtain ⟨-, -, rfl⟩ := hres
     exact LogGrow.keep rfl rfl
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact LogGrow.keep rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -238,7 +253,14 @@ theorem logGrow_fn_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {e
       · exact LogGrow.keep rfl rfl
       · exact LogGrow.keep rfl rfl
     · exact ⟨rfl, _, (List.append_assoc _ _ _).symm⟩
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_pos hr] at hres
+    subst hres
+    exact LogGrow.keep rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -286,7 +308,12 @@ theorem app_fn_logst {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : L
     se_tysimp hty at hres
     obtain ⟨-, -, pvs, hres⟩ := hres
     exact hres_of _ (by rfl) hres
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, pvs, hres⟩ := hres
+    exact hres_of _ (by rfl) hres
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres

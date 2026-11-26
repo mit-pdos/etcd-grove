@@ -139,7 +139,12 @@ theorem bk_fn_heartbeat {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents 
     se_tysimp hty at hres
     obtain ⟨-, -, pvs, rfl⟩ := hres
     exact BkFn.nl rfl (by simp [heartbeatResult, sendMsgs, becomeFollower])
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, pvs, rfl⟩ := hres
+    exact BkFn.nl rfl (by simp [heartbeatResult, sendMsgs, becomeFollower])
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -166,7 +171,13 @@ theorem bk_fn_app {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : List
     obtain ⟨-, -, pvs, hres⟩ := hres
     obtain ⟨hro, hap⟩ := bk_handleApp hres
     exact BkFn.nl hap (by rw [hro]; simp [becomeFollower])
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, pvs, hres⟩ := hres
+    obtain ⟨hro, hap⟩ := bk_handleApp hres
+    exact BkFn.nl hap (by rw [hro]; simp [becomeFollower])
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -191,7 +202,12 @@ theorem bk_fn_appResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents : 
     se_tysimp hty at hres
     obtain ⟨-, -, rfl⟩ := hres
     exact BkFn.keep rfl rfl rfl
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact BkFn.keep rfl rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -232,7 +248,12 @@ theorem bk_fn_heartbeatResp {c : CfgM} {id : w64} {t : NState} {m : MessageM}
     se_tysimp hty at hres
     obtain ⟨-, -, rfl⟩ := hres
     exact BkFn.keep rfl rfl rfl
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, rfl⟩ := hres
+    exact BkFn.keep rfl rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
@@ -265,7 +286,14 @@ theorem bk_fn_voteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ents :
       · exact BkFn.keep rfl rfl rfl
       · exact BkFn.nl rfl (by simp [voteRespResult, becomeFollower])
     · exact ⟨rfl, fun _ => .inr ⟨hr, rfl⟩⟩
-  | preCandidate => exact absurd hr hsc.1
+  | preCandidate =>
+    obtain ⟨scfg, sv, d, c', hres⟩ := hc (.inr hr)
+    unfold CandidateStepResultC at hres
+    se_tysimp hty at hres
+    obtain ⟨-, -, hres⟩ := hres
+    rw [if_pos hr] at hres
+    subst hres
+    exact BkFn.keep rfl rfl rfl
   | leader =>
     obtain ⟨d, hres⟩ := hl hr
     unfold LeaderStepResultC LeaderNonpropResultC at hres
