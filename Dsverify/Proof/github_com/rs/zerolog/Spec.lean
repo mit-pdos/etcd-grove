@@ -28,12 +28,12 @@ or nothing; output is not modelled):
 (`∃ ownEvent, EventSpecs ownEvent`); real zerolog's is "`e` is `nil`, or a pooled `*Event` of one of
 the five levels that the holder alone uses". The proofs name it `ownEvent` (chosen, with its specs
 `eventSpecs`). `loggerOk lg` (dsv-fix6) is fixed: "`lg` was made by `New(nil)`" (its writer
-`ioutil.Discard`, the other fields those `New` sets), persistent, `□` of the opaque `loggerMade`, which
-has no law: only `New(nil)`'s spec gives it.
+`ioutil.Discard`, the other fields those `New` sets), persistent, `□` of `loggerMade` (since dsv-retire-3,
+defined: `lg = newLogger w` for `ioutil.Discard`'s value `w`; opaque until then).
 -/
 module
 
-public import Dsverify.Proof.github_com.rs.zerolog.Base
+public import Dsverify.Proof.github_com.rs.zerolog.NewNil
 
 @[expose] public section
 
@@ -43,15 +43,24 @@ namespace Perennial.github_com.rs.zerolog
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
-/-- `lg` was made by `New(nil)` (the file header). Opaque: real zerolog's. -/
-opaque loggerMade [GooseExts] {GF : BundledGFunctors} : Logger → IProp GF := fun _ => iprop(True)
+section logger
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
+
+/-- `lg` was made by `New(nil)` (the file header): it is `newLogger w` (`NewNil.lean`: the writer
+`ioutil.Discard`'s value `w`, as a `LevelWriter`, level `TraceLevel`, the other fields zero), for `w`
+the value `ioutil.Discard` holds for good. (dsv-retire-3, 2026-11-26: opaque until then.) -/
+def loggerMade (lg : Logger) : IProp GF :=
+  iprop(∃ w : GoInterface, globalAddr _root_.Perennial.io.ioutil.Discard ↦□ w ∗ ⌜lg = newLogger w⌝)
 
 /-- The persistent logger fact: `□ loggerMade lg` (the file header). -/
-def loggerOk [GooseExts] {GF : BundledGFunctors} (lg : Logger) : IProp GF := iprop(□ loggerMade lg)
+def loggerOk (lg : Logger) : IProp GF := iprop(□ loggerMade lg)
 
-instance loggerOk_persistent [GooseExts] {GF : BundledGFunctors} (lg : Logger) :
+instance loggerOk_persistent (lg : Logger) :
     Persistent (loggerOk (GF := GF) lg) := by
   unfold loggerOk; infer_instance
+
+end logger
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]

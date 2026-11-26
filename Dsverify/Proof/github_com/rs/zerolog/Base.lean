@@ -100,5 +100,17 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.rs.
 
 end def_
 
+section access
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
+
+/-- `isPkgInit` of zerolog holds its fact. -/
+theorem zerologInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.rs.zerolog ⊢ zerologInit (GF := GF) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.github_com.rs.zerolog
+
+
+end access
+
 end github_com.rs.zerolog
 end Perennial
