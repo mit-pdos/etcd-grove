@@ -164,3 +164,46 @@ a fresh delta review (`axiom` skill).
   (principalOf cfg) n (fun info => [∗list] k ∈ kss, auth.permVerdictFrom (.on (Γ.au mid)) n info k [] .read
   GoInterface.nil)` (`n` the member's published auth index `≥ n₀`, as the existing keys verdict); dist-axiom-diff's
   dev lines rewritten (ok). axiom-tok keys: to check after the full build (`axiom-tok-check.py --check`).
+
+### Handoff K-2 (2026-11-26; steps a-d done, e half started, f-g not started; context limit)
+
+Branch `etcd-safe-f7-fork/2026-11-26`, worktree `/shared/etcd-grove-f7fork`. No `sorry`, no axiom added; the
+only trusted text changes are the two approved ones (change 1 `EtcdServer.leaseTimeToLive.spec`, change 2
+`Lease_TimeToLiveOn_dist.spec`, both above).
+
+- **Build host** fk-lean2, tree `~/eg/wt/etcd-safe-f7-rlog` (content `c5b8bb0348` plus this branch's diff):
+  `/shared/tmp/f7fork-rb.sh [targets]` syncs `git diff --no-renames c5b8bb0348` (+ untracked, deletions) and runs
+  `lake build` under flock/MemoryMax=55G (log `~/eg/logs/f7fork-build.log`); `CHECK=1 … -a -q FILE` runs
+  `etc/lean-check.py`; `/shared/tmp/f7fork-chk.sh FILES` checks files in turn; `/shared/tmp/f7fork-gl.sh MODE
+  OUTFILE` runs gen-link there and copies the file back. Lean-checked green on fk-lean2: `checkLeaseTimeToLiveKeys`,
+  `LeaseTimeToLive`, `ServerLeaseRead`, dist `noAuth`, dist `foreign` (the last two only their `icases` patterns:
+  `Hck, -⟩`, the new conjunct dropped). A build of `etcdserver.Link` + `v3rpc.Results` was started at handoff (no
+  result recorded here: rerun it).
+- **e. Reviews**: review 1 (change 1) was launched as a subagent writing
+  `notes/axiom-review/f7fork-leasettl-keys-contract.md` (+ `f7fork-leasettl-keys-gotest/`); if that file is absent
+  or unfinished, rerun it (the brief: delta = the new conjunct; settle the follower's decode aliasing in code and
+  by a test). Review 2 (change 2, `notes/axiom-review/f7fork-ttl-dist-keys.md`, cited in the axiom's docstring)
+  NOT started: after review 1, one subagent with the `axiom` skill; the delta is the `if leaseKeysFold gs false
+  then ∃ ks kbs kss, …` conjunct; evidence the fork's `checkLeaseTimeToLiveKeys` and the in-process
+  `EtcdServer.LeaseTimeToLive.spec` keys conjunct; points to probe: the client's `Keys` field aliasing the `pb`
+  response (`lease.go:257`), grpc's decode buffer pooling (protobuf copies), the index `n` (member-local auth
+  state, a revoked-at-leader grant passes), the admin arm.
+- **f. Not started.** Plan: (1) Go: `examples/etcd/dist/client/authlease.go` `foreign`: TimeToLive with keys
+  panics only if it succeeds AND a returned key is one the user may not read (the forbidden key passed in: `zK` for
+  u/`Lz`, `aK` for v/`Lu`, as `RunAuthLease` calls it); Leases: keep the call, no panic (its reply carries no key,
+  and at a member applying a snapshot its refusal is false, `notes/etcd-dist-f7-bprime.md`); retranslate
+  (`etc/goose.py --project putget-dist`, check which project owns `examples/etcd/dist/client`), `go test
+  ./etcd/dist/`. (2) Spec `Spec/.../dist/client/foreign.lean`: the TimeToLive refutation premise becomes one over
+  the forbidden key: `□ (∀ n info-free…, leaseCheckD (Γ.au mid) (principalOf cfg) n (fun info => permVerdictFrom
+  (.on (Γ.au mid)) n info k [] .read nil) -∗ R ={⊤}=∗ False)` for `n ≥ n₀`; the Leases premise and `m₀`/`Γ.ls`
+  injectivity go. (3) `foreignReads.law` (`ForeignReadsLaw.lean`) is then replaced by a PROVED lemma from the frozen
+  auth floor (`authFloorD_frozen`, `leaseCheckD_none_frozen`-style: u may not read `z/`, v may not read `a/` at
+  `setupSt r`), no lessor law needed; `RunAuthLease.lean` passes it instead of `hlaw`. (4) Link `RunAuthLease`
+  (Handoff S5-7 "Left"; nothing to port from `etcd-safe-f7-bprime` @ `6e76f1ae90` but its Go test, which narrowed
+  to option (b) instead) and close `EtcdAuthLeaseBootNC` as `EtcdAuthBootNC` was (Handoff W-6 items 2-6 / B-1 for
+  kind 6: the auth-on start at the revocable mode for `[authLease]`, `wlShare` kind 6, `MainReady`'s kind-6 arm,
+  assembly); `etcd_safe_nocrash` drops `HauthLease`, its statement and `etcd_robust_nocrash.spec` otherwise
+  byte-identical.
+- **g. Not started**: full build, `etc/gates.sh` in full (with `LAKE_OPTS=--packages=.lake/package-overrides.json`
+  on fk-lean2), `axiom-tok-check.py --check` (the two changed axioms' keys), `tcb-report --check` (names
+  unchanged expected; `foreignReads.law` is a hypothesis, not an axiom), then push.

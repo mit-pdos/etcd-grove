@@ -107,7 +107,7 @@ theorem noAuth.wp_proof
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
-  icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck⟩ | %Herr)
+  icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck, -⟩ | %Herr)
   · imod Hno $$ %n %_ %Hnj.1 Hck with ⟨⟩
   wp_apply (wp_refused who _ err Herr.1)
   (try wp_auto)
@@ -131,7 +131,7 @@ theorem noAuth.wp_proof
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
-  icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck⟩ | %Herr)
+  icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck, -⟩ | %Herr)
   · imod Hno $$ %n %_ %Hnj.1 Hck with ⟨⟩
   wp_apply (wp_refused who _ err Herr.1)
   (try wp_auto)

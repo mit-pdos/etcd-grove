@@ -101,7 +101,7 @@ theorem foreign.wp_proof
   (try wp_auto)
   wp_apply Hcancel
   (try wp_auto)
-  icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck⟩ | %Herr)
+  icases Hr with (⟨-, -, %n, %j, %Hnj, -, -, Hck, -⟩ | %Herr)
   · iapply fupd_wp
     have hk : leaseKeysFold [fun _ => true] false = true := rfl
     try simp only [hk, ↓reduceIte]
