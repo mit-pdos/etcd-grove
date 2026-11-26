@@ -498,7 +498,7 @@ theorem rnScopeAt_keepIf {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNSta
       have H0 := (RnScope_empty rs s).1 Hs.1
       have H1 := H rfl H0
       exact ⟨(RnScope_empty rs' s').2 H1, RnCfgIn.keep hcf Hs.2.1,
-        Hs.2.2.keep_basic H0 H1 (hsdr rfl) hk⟩
+        Hs.2.2.1.keep_basic H0 H1 (hsdr rfl) hk, fun h => absurd h (by decide)⟩
     · imodintro; iexact Hc
 
 end ghost

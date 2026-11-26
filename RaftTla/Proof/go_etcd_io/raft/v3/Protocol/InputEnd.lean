@@ -380,8 +380,12 @@ def HandleEnd (_k : NodeK) (c : CfgM) (id : w64) (s : PState) (m : Msg) (s' : PS
   | .preVote => PreVoteEndP id s m s'
   | .preVoteResp =>
     -- a pre-candidate reads as a follower with no leader (`toPState`): its tally pending or lost
-    -- (`becomeFollower(r.Term, None)`) leaves `PState` as it is; a win is `campaign(campaignElection)`
-    if s.role = .follower ∧ s.lead = W64 0 then s' = s ∨ CampaignSends c id s [] s' else s' = s
+    -- (`becomeFollower(r.Term, None)`) leaves `PState` as it is; a win is `campaign(campaignElection)`,
+    -- only on a grant (`poll` records a rejection as a "no", and `recordVote` keeps an earlier
+    -- answer, so a rejection never turns a pending tally into a win; a won tally has campaigned)
+    if s.role = .follower ∧ s.lead = W64 0 then
+      s' = s ∨ (m.reject = false ∧ CampaignSends c id s [] s')
+    else s' = s
   | .readIndex => ReadIdxEnd c id s m s'
   | .readIndexResp =>
     -- `stepFollower` records it; `stepCandidate` and `stepLeader` ignore it (a pre-candidate reads as
