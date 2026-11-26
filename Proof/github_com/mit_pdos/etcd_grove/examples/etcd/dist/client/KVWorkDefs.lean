@@ -353,19 +353,6 @@ def pgFired (γP : GName) (k : GoString) : IProp GF :=
 instance pgFired_persistent (γP : GName) (k : GoString) : Persistent (pgFired (GF := GF) γP k) := by
   unfold pgFired; infer_instance
 
-/-- **putget's invariant, allocated** from the owner's half at `[]`. -/
-theorem pgInv_alloc (γ : GName) (E : CoPset) :
-    ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗ ∃ γP, pgInv γ γP := by
-  iintro Hh
-  imod (mono_list_own_alloc (GF := GF) ([] : List GoString)) with ⟨%γP, Ha, -⟩
-  imod (inv_alloc (client.kvClientN .@ "pg") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
-      pgW γP v)) $$ [Hh Ha] with #Hinv
-  · inext; iexists []; iframe Hh
-    iunfold pgW; iexists []; iframe Ha; ipureintro; exact pgOk_nil
-  imodintro
-  iexists γP
-  iunfold pgInv
-  iexact Hinv
 
 /-- **A put's update** of `k ↦ pgVal k` (fired at most once), result `pgFired γP k`. -/
 theorem pgPutAu (γk : KVNames) (γ γP : GName) (k : GoString) (hk : putgetPfx <+: k) :
@@ -457,57 +444,6 @@ def durFired (γF : GName) (j : Nat) : IProp GF :=
 instance durFired_persistent (γF : GName) (j : Nat) : Persistent (durFired (GF := GF) γF j) := by
   unfold durFired; infer_instance
 
-/-- `n` tokens. -/
-theorem tokens_alloc (n : Nat) :
-    ⊢ |==> ∃ γs : List GName, ⌜γs.length = n⌝ ∗ [∗list] g ∈ γs, token (GF := GF) g := by
-  induction n with
-  | zero =>
-    imodintro
-    iexists []
-    isplitr
-    · ipureintro; rfl
-    · iapply BigSepL.bigSepL_nil.2
-      itrivial
-  | succ n ih =>
-    ihave H := ih
-    imod H with ⟨%γs, %hl, Hs⟩
-    imod (token_alloc (GF := GF)) with Hγ
-    icases Hγ with ⟨%g, Hg⟩
-    imodintro
-    iexists (γs ++ [g])
-    isplitr
-    · ipureintro; simp [hl]
-    · iapply BigSepL.bigSepL_append.2
-      iframe Hs
-      iapply BigSepL.bigSepL_cons.2
-      iframe Hg
-      iapply BigSepL.bigSepL_nil.2
-      itrivial
-
-/-- **durable's invariant, allocated** from the owner's half at `[]`, with `n` puts' tokens (each
-`token γs[j]` for put `j`). -/
-theorem durInv_alloc (γ : GName) (n : Nat) (E : CoPset) :
-    ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗ ∃ (γF : GName) (γs : List GName),
-      ⌜γs.length = n⌝ ∗ durInv γ γF γs n ∗ [∗list] g ∈ γs, token g := by
-  iintro Hh
-  ihave H := tokens_alloc (GF := GF) n
-  imod H with ⟨%γs, %hl, Hts⟩
-  imod (mono_list_own_alloc (GF := GF) ([] : List Nat)) with ⟨%γF, Ha, -⟩
-  imod (inv_alloc (client.kvClientN .@ "du") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
-      durW γF γs n v)) $$ [Hh Ha] with #Hinv
-  · inext; iexists []; iframe Hh
-    iunfold durW; iexists []; iframe Ha
-    isplitl
-    · iapply BigSepL.bigSepL_nil.2
-      itrivial
-    ipureintro; exact durOk_nil n
-  imodintro
-  iexists γF, γs
-  isplitr
-  · ipureintro; exact hl
-  iframe Hts
-  iunfold durInv
-  iexact Hinv
 
 
 /-- **The puts of `S` fired** (persistent). -/
@@ -646,6 +582,82 @@ theorem durGetAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n : Nat) (
     exact durReadOk_of Hok (fun j hj => Hpre.2.subset (Hl j hj))
 
 end ghost
+
+/-! The invariants' allocations, at a machine (as `CompactWorkDefs.cwInv_alloc`: an update the
+orchestrator's proof `imod`s at its own `HeapGS`). -/
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **putget's invariant, allocated** from the owner's half at `[]`. -/
+theorem pgInv_alloc (γ : GName) (E : CoPset) :
+    ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗ ∃ γP, pgInv (Gg := hG.goose_globalGS) γ γP := by
+  iintro Hh
+  imod (mono_list_own_alloc (GF := GF) ([] : List GoString)) with ⟨%γP, Ha, -⟩
+  imod (inv_alloc (client.kvClientN .@ "pg") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
+      pgW γP v)) $$ [Hh Ha] with #Hinv
+  · inext; iexists []; iframe Hh
+    iunfold pgW; iexists []; iframe Ha; ipureintro; exact pgOk_nil
+  imodintro
+  iexists γP
+  iunfold pgInv
+  iexact Hinv
+
+/-- `n` tokens. -/
+theorem tokens_alloc (n : Nat) :
+    ⊢ |==> ∃ γs : List GName, ⌜γs.length = n⌝ ∗ [∗list] g ∈ γs, token (GF := GF) g := by
+  induction n with
+  | zero =>
+    imodintro
+    iexists []
+    isplitr
+    · ipureintro; rfl
+    · iapply BigSepL.bigSepL_nil.2
+      itrivial
+  | succ n ih =>
+    ihave H := ih
+    imod H with ⟨%γs, %hl, Hs⟩
+    imod (token_alloc (GF := GF)) with Hγ
+    icases Hγ with ⟨%g, Hg⟩
+    imodintro
+    iexists (γs ++ [g])
+    isplitr
+    · ipureintro; simp [hl]
+    · iapply BigSepL.bigSepL_append.2
+      iframe Hs
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hg
+      iapply BigSepL.bigSepL_nil.2
+      itrivial
+
+/-- **durable's invariant, allocated** from the owner's half at `[]`, with `n` puts' tokens (each
+`token γs[j]` for put `j`). -/
+theorem durInv_alloc (γ : GName) (n : Nat) (E : CoPset) :
+    ghostVar (GF := GF) γ (1 : Qp).half ([] : List EtcdKv) ={E}=∗ ∃ (γF : GName) (γs : List GName),
+      ⌜γs.length = n⌝ ∗ durInv (Gg := hG.goose_globalGS) γ γF γs n ∗ [∗list] g ∈ γs, token g := by
+  iintro Hh
+  ihave H := tokens_alloc (GF := GF) n
+  imod H with ⟨%γs, %hl, Hts⟩
+  imod (mono_list_own_alloc (GF := GF) ([] : List Nat)) with ⟨%γF, Ha, -⟩
+  imod (inv_alloc (client.kvClientN .@ "du") E iprop(∃ v, ghostVar (GF := GF) γ (1 : Qp).half v ∗
+      durW γF γs n v)) $$ [Hh Ha] with #Hinv
+  · inext; iexists []; iframe Hh
+    iunfold durW; iexists []; iframe Ha
+    isplitl
+    · iapply BigSepL.bigSepL_nil.2
+      itrivial
+    ipureintro; exact durOk_nil n
+  imodintro
+  iexists γF, γs
+  isplitr
+  · ipureintro; exact hl
+  iframe Hts
+  iunfold durInv
+  iexact Hinv
+
+end alloc
 
 /-! ## The orchestrator's shares (global) -/
 

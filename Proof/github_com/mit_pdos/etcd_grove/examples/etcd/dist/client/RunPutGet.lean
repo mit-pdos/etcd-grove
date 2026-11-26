@@ -69,7 +69,7 @@ theorem RunPutGet.wp_proof
   iunfold kvPfxShare at Hsh
   icases Hsh with ⟨%Γ, %γ, %Hauth, #Hms, #Hpfx, Hhalf⟩
   -- putget's invariant, from the owner's half
-  ihave Hpg0 := pgInv_alloc (Gg := hG.goose_globalGS) γ ⊤ $$ Hhalf
+  ihave Hpg0 := pgInv_alloc γ ⊤ $$ Hhalf
   imod Hpg0 with ⟨%γP, #Hpg⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init

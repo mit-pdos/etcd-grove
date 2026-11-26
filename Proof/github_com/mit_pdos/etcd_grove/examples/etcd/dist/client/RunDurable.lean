@@ -146,7 +146,7 @@ theorem RunDurable.wp_proof
   · iframe #
   ihave #Hnil := optsAt_nil (GF := GF)
   -- durable's invariant, with the `n` puts' tokens
-  ihave Hdi0 := durInv_alloc (Gg := hG.goose_globalGS) γ (sint.nat m) ⊤ $$ Hhalf
+  ihave Hdi0 := durInv_alloc γ (sint.nat m) ⊤ $$ Hhalf
   imod Hdi0
     with ⟨%γF, %γs, %Hγs, #Hdi, Htoks⟩
   ihave Hfa := durFiredAll_none (Gg := hG.goose_globalGS) γF
