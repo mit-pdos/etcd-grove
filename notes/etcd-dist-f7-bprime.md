@@ -7,7 +7,7 @@ decides. Context: `notes/etcd-dist-f7.md`, "Handoff S5-3".
 discloses a key the caller may not read ("refused, or the reply's keys are keys the user may read").
 
 **Result: (b') is false for TimeToLive with keys, at a follower applying a snapshot.** Checked before any
-change, as asked; so no Go, spec or Lean change is on this branch (stopped at step 1).
+change, as asked; so no (b') change was made. The branch now carries option (b) instead (last section).
 
 ## Why (Go, pinned etcd `df6af0c36a`)
 
@@ -69,3 +69,27 @@ rangePermitted (authAt Γ mid) user k` (the auth state the revision re-check pin
 - Fix etcd on the fork (re-check the returned keys) and then (b') holds for TimeToLive; the dist spec's post
   gets the claim above, proved through the fixed `LeaseTimeToLive`, or as a reviewed interim axiom.
 - (a)/(c) of Handoff S5-3.
+
+## (b) on this branch (2026-11-26; the lead's choice, pending Upamanyu)
+
+Since (b') is false, this branch now carries option (b): the dist `foreign` keeps only the Revoke refusal.
+
+- **Go** (`examples/etcd/dist/client/authlease.go`): `foreign` drops its TimeToLive-with-keys and Leases calls
+  (a comment says why, pointing to `issues/etcd-lease-timetolive-keys-toctou.md` and the snapshot window above);
+  `RunAuthLease`'s docstring says checks 3-5 are narrowed to 3. The dist `foreign` was already a copy of
+  authlease's (`examples/etcd/authlease/authlease.go`), so no single-process file changed. Retranslated
+  (`etc/goose.py --project putget-dist`, `--check` clean). `go test ./etcd/dist/` passes, and a short
+  `DIST_RUN=1 DIST_WANT=authLease` round (3 members, snapshots 10/5, auth on) ends `authLease: checked`.
+- **Spec** (`Spec/.../dist/client/foreign.lean`): the two lessor-read refutation premises go, and with them what
+  only they used (`Γ.ls` injective, `m₀`, `lease.lessorLb (Γ.ls mid) m₀`). Left: the Revoke refutation
+  (`∀ σ, Qr σ -∗ writeCheckedD [addr] Γ γR (principalOf cfg) (irrLeaseRevoke id) L₀ -∗ R ={⊤}=∗ False`), the
+  `writeAuD … (.leaseRevoke id) L₀ Qr` offer and `authPubLbM … n₀`, as `Lease_RevokeOn_dist` takes them.
+- **Proof** (`Proof/.../dist/client/foreign.lean`): the Revoke part of the old proof, unchanged; callees
+  `reqCtx`, `refused`, `Lease_RevokeOn_dist` (`WithAttachedKeys`, `Lease_TimeToLiveOn_dist`,
+  `Lease_LeasesOn_dist` no longer). No `sorry`, no axiom. Not yet linked (no dist `Link` lists `foreign`).
+- **Why this is the claim that holds**: Revoke's auth check runs at apply over the replicated auth state
+  (`writeCheckedD`), so its refusal holds whichever member receives it; TimeToLive and Leases are checked over
+  the receiving member's lessor, which a snapshot leaves keyless for a window. The dist `authLease` claim is
+  narrower than the single-process `etcd_authlease`'s (which keeps all three: one process applies no snapshot
+  between check and answer).
+- **Next**: `RunAuthLease` (Handoff S5-3, option (b)), the cell at the view for the Revoke refutation.
