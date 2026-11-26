@@ -126,7 +126,8 @@ def akDistEnvG [NetProtoGS] (addrs : List GoString) (Γ : DistView) (γR : Serve
   iprop(∃ (γz : GName) (hs : List auth.AuthState) (Lset : List EntryModel) (r : Nat),
     kvInvOn γR Γ.kv srvAuthSt0 ∗ akHistInvG Γ.kv ∗ authHistFrozenG Γ.kv γz hs ∗
     srvReqLogLb γR Lset ∗ watchFloorsDG addrs Γ γR Lset ∗
-    ⌜admStates Γ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog Γ.kv srvAuthSt0 Lset = etcd_auth.setupSt r⌝)
+    ⌜admStates Γ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog Γ.kv srvAuthSt0 Lset = etcd_auth.setupSt r ∧
+      γR.raft.log = Γ.kv.rlog⌝)
 
 /-- **What a principal machine is given with its name** (see the file header). -/
 def prP [NetProtoGS] (Γ : DistView) (γR : ServerRaftNames) (addrs : List GoString) (w : GoString) : IProp GF :=

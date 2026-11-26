@@ -65,35 +65,6 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **A write the history admits, under the history invariant, is an auth-on write update** (its grant
-ignored: `akHist_writeAu` at `G := opGrantD …`). -/
-theorem akHist_writeAuD (γk : KVNames) (P : Option GoString) (op : KVOp) (L₀ : List EntryModel)
-    (hop : opHistOk op) :
-    akHistInv (GF := GF) γk ⊢ writeAuD γk P op L₀ (fun _ => iprop(True)) := by
-  iintro #Hinv
-  ihave #Hau := akHist_writeAu γk op (opGrantD γk P op L₀) (fun _ => iprop(True)) $$ [Hinv]
-  · isplitl []
-    · iexact Hinv
-    · iintro !> %σ -
-      imodintro
-      isplitl []
-      · ipureintro; exact hop
-      · itrivial
-  iunfold writeAuD
-  imodintro
-  iexact Hau
-
-/-- A user client of one endpoint is a watch client of it. -/
-theorem watchClient_of_userCli [π : NetProtoGS] (cl : Loc) (a : GoString) (V : WEnv GF)
-    (cfg : go_etcd_io.etcd.client.v3.Config) (Γ : DistView) :
-    userCli cl a V cfg ∗ membersAt (Gg := hG.goose_globalGS) [a] Γ ⊢
-      ∃ w : Loc, watchClientAt cl w [a] V Γ := by
-  iintro ⟨#Hu, #Hms⟩
-  iunfold userCli at Hu
-  icases Hu with ⟨#Hnc, #Hnp, -, -⟩
-  iapply watchClient_of_new cl [a] V Γ
-  iframe #
-
 /-- Barrier 1's floor at one endpoint is `WatchOn_dist`'s floors there. -/
 theorem watchFloorsD_one [π : NetProtoGS] (Γ : DistView) (γR : ServerRaftNames) (L₀ : List EntryModel)
     (a : GoString) :
@@ -296,7 +267,7 @@ theorem RunAuth.wp_proof
       iintro #H
       iunfold barrierFloor at H
       iexact H
-    ipureintro; exact Hset
+    ipureintro; exact ⟨Hset.1, Hset.2, hγR⟩
   wp_apply (wp_rp nodes ns addrs Γ γR Htb) $$ [$Hlt HPS] as %np Hlt
   · iframe HPS; iframe #
   (try wp_auto)

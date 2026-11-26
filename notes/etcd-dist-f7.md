@@ -1678,3 +1678,48 @@ Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked`
 
 **Next:** (1) the build above; (2) `etcd_auth.Work`'s dist spec (design above), then `principalOp.wp_proof`, the
 refused watch first; (3) link `NodeMainAuth`/`principalOp` once `principalOp` is proved.
+
+### Handoff W-2 (2026-11-26; S9: `Work.spec_dist`, the watch's pieces, a contract gap fixed; proofs not started)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 (`/shared/tmp/f7ra-rb.sh`). No
+`sorry`, no new axiom, no top-level statement changed, nothing linked into a `Results` root.
+
+**Done.**
+- W-1's build of `NodeMainAuth`/`PrincipalsLinked`: `EXIT 0`.
+- **Contract gap, fixed:** `principalOp.spec` gives no tie `γR.raft.log = Γ.kv.rlog`, which every `On_dist` contract
+  takes (`KV_PutOn_dist`, `KV_GetOn_dist`, `WatchOn_dist`, ...): `principalOp` could not call any. Added to
+  `akDistEnv`'s (and `akDistEnvG`'s) pure conjunct; `RunAuth` discharges it with its `hγR`. Not a top-level
+  statement (`akDistEnv`/`prP` are defs only `RunAuth`, `remotePrincipals`, `principalOp`, `NodeMainAuth` name).
+- `Spec/.../auth/WorkDist.lean`: `etcd_auth.Work.spec_dist` (a user client `userClientAt cl api [a] V Γ cfg` and
+  `watchClientAt cl w [a] V Γ` at one endpoint `a ∈ addrs`, `principalOf cfg = none ∨ (= some who ∧ who ∈ {u, v})`,
+  `akDistEnv addrs Γ γR`, `Γ.au` injective; post `levelTok 0`).
+- `AuthRunDefs.lean` (defs): `watchFloorsD_of_mem` (narrows `addrs` to `[a]`); `akDistEnv_watch` (from
+  `akDistEnv`: `L₀` = the set-up's prefix, the tie, `srvReqLogLb γR L₀`, `watchFloorsD [a] … L₀`, and
+  `□ ∀ E, authTieReadMask ⊆ E → watchCheckedD [a] Γ γR P L₀ "c/" "c0" ={E}=∗ False` for `P ∈ {none, u, v}`);
+  `watch_c_okD` (the watch's request premise); `akHist_writeAuD` and `watchClient_of_userCli` moved down from
+  `RunAuth.lean` (a proof module: `Work`'s and `principalOp`'s proofs could not import them).
+- Built: `RunAuth`, `PrincipalsLinked`, `NodeMainAuth`, `Spec…auth.WorkDist` (lake, fk-lean1). tier, lease-order,
+  bounds (389/389) ok.
+
+**Next: `Work.wp_proof_dist`** (`Proof/.../auth/WorkDist.lean`; template `Work.lean`, 814 lines, and
+`WorkCallsLinked.lean`'s five laws). Callees: as `Work.wp_proof`'s, with `KV_PutOn_dist`, `KV_DeleteOn_dist`,
+`KV_GetOn_dist`, `Txn_CommitOn_dist`, `WatchOn_dist` in place of the in-process laws/`watcher.Watch`. Calls through
+`cli.Put` etc. are the promoted methods: `rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]`
+(`RunAuth.lean`, root's Put of `z/end`). Start: `icases` `akDistEnv` once, and `akDistEnv_watch … ha P hP` for the
+watch.
+- **The watch (riskiest, pieces ready):** ctx metadata `akOut who` (= `reqMd who`, same body: `unfold`);
+  `outTokOkS_reqMd P who (fun h => …)` (from the premise: `who = bad` → `P = none`); `watchClientAt` and the cfg
+  from `userClientAt`; floors from `akDistEnv_watch`; `watch_c_okD`; `Q := fun σ => ⌜stateHistOk σ⌝` from
+  `akHist_readAu` (as `RunAuth`'s root watch); rewrite the row's key/range end with `watch_c_ok.2`; on events,
+  `imod (Hrefute ⊤ (fun _ _ => CoPset.mem_full)) $$ Hw`.
+- **Writes (open point):** each write needs `writeAuD Γ.kv P op L₀ Q`; `akHist_writeAuD` wants `opHistOk op`
+  unconditionally, which v's/bad's/anon's put of `a/<who>/0` and every write to `c/…` lack (in one process they are
+  admitted through the grant: `akWriteAu`, `WorkCalls.lean` l.740, `akHist_writeAu` at `G`). Needed: a dist
+  `akWriteAuD` taking `opGrantD Γ.kv P op L₀ σ ⊢ ⌜opHistOk op⌝` under the frozen history (the refutation of
+  the grant: `akGrantedL_of_writeGrantGD`, `AuthLeaseRefusals.lean`), then `writeAuD`. Then each refusal:
+  the post's `writeCheckedD`/`readCheckedD` refuted at the frozen history (templates: dist `foreign`/`noAuth`,
+  `RunAuthLease`'s refusals).
+**Then `principalOp.wp_proof`:** `principalClient`'s four arms (`newUserClient` for u/v at `eps[1%k]`/`eps[2%k]`:
+`principalOf cfg = some who`; `newClient` + `anonCli_of_new` for bad/anon), `userClientAt_of_userCli`,
+`watchClient_of_userCli`, `a ∈ addrs` from the index (`mod_len_sintD`), `defer cli.Close()` (`barrier.lean`'s
+`wp_Close`), `Work.spec_dist`, answer `true`. Then link `NodeMainAuth`/`principalOp`.
