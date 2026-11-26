@@ -3238,6 +3238,21 @@ name `rnReplayHist` in `rnWorkerStartTok`. Build: `ReplaySeed`, `ReplayWorkerTer
 
 No axiom, `sorry`, `Spec/` or trusted text changed.
 
+### T10 step 3 (B), session 4 (2026-11-26, branch `etcd-safe-t10s3b/2026-11-26`)
+
+**Does (B) need (A)'s row?** No: B3-B8 can close `NewServer.wp_proofC`'s `sorry` with `consInv` at `.triv`.
+`NewServer.specC` *consumes* the image: `srvCrashImageAt` carries every backend fact the restart uses
+(`imageRestAt … i (pre ++ A) D`, `mvccImage D (kvModel A)`, `confRowW`, and in the snapshot window
+`snapRowB2`'s `□ srvImageM γ.authOn γ j Ds`, the receiver's certificate), and its post (`srvBuiltR`, hence
+`isServer`) is at the default row. The row's only consumer is the crash law that *produces* the next
+generation's `srvCrashImageAt` (`dist/crash/BackendImage.lean`'s `bkImg`, the "image rows T10 owes T7").
+Inside (B) the row appears only as `□ Rw.IR` obligations of `consInv` (`skip_doneR`, `wp_ci_swapR`,
+`consInv_allocR`), all `True` at `.triv`; the facts B1-B4 need (the replayed entries are `A`'s:
+`durLogAgrees`, the replay job) are raft's log agreement, and B5's keep case reads the snapshot's image off
+raft's snapshot certificate, not off the row. When (A) lands, `isServer` at the row makes the restart
+allocate it at the image's `(eff, p)`, from the same `srvCrashImageAt` facts: (A)'s boot-spec change,
+shared by the graceful and crash branches through `specRAt`, which does not undo (B)'s work.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
