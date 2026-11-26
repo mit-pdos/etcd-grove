@@ -1899,3 +1899,37 @@ ops' `AppendToOutgoingContext`). The `Auth_*` admin axioms are not reached (the 
 **Gates:** tier, lease-order, bounds, dist-axiom-diff, tcb-report `--check` and every collection, axiom-tok: ok.
 gen-link: five Links unrelated to this branch differ (`bbolt`, `kvraft`, `kvraft-udp`, `wal-tester`, `walfs`); they
 differ already at the base `7bf098247e` (inherited, not this branch's).
+
+### Handoff B-1 (2026-11-26; S14: `EtcdAuthBootNC` written, **not built**; branch `etcd-safe-f7-rlog`)
+
+One WIP commit on `e6d827e5b2`, written in full but **neither built nor lean-checked** (the session stopped at the
+context rule while the first build ran). No `sorry`, no axiom.
+- **Step 1, the auth-on start** (`dist/StartAuth.lean`, new, defs): `bootStOn_changes` (the boot state in mode `on`
+  has only empty changes, via `kvRaftOfOn_conf`), `kvInvOn_of_clusterFacts`, `etcd_startAuth` (`etcd_start`'s
+  conclusion for `d.workloads.map kind = [W64 5]`: `clusterStartDC`'s auth arm with the rlog tie, `Γ := c.view true`,
+  `γR := ⟨c.γ, [], W64 0⟩`, `srvReqLogLb` from `monoListLbOwn_nil`, the principals by `mapCtx_alloc`/`addrs_set_proto`
+  at `principalSvcG Γ γR eps`; orchestrator `authShare`, nodes `authNodePre` via `nodes_of_sole`).
+  `DeploymentClass.lean`: new `class_auth` (auth on, `workloads = [w]`, `nodes = [ns]`, `ns.length = 4`).
+  `Start.lean`: `leaseMembers_of` takes `(on : Bool := false)` (callers unchanged).
+- **Step 2, the share**: `client/Shares.lean` `wlShare` kind 5 := `authShare eps ns`, `wlShare_auth` accordingly;
+  `client/MainReady.lean` `MainReady.wp_proof` takes `hA : MainReadyAuth.spec` (auth bullet `wp_apply hA`);
+  `client/DispatchLinked.lean` imports `RunAuthLinked`, passes `wp_MainReadyAuth`.
+- **Step 3, assembly** (`dist/TopLevelRobustness.lean`): `etcdBootNCOffAuth_holds` (the old auth-off proof at
+  `auth = false ∨ kinds = [5]`, start by `Or.elim` over `etcd_start`/`etcd_startAuth`); `etcdBootNCOff_holds` and
+  `etcdAuthBootNC_holds` its two cases; `etcd_safe_nocrash (HauthLease)` (the `Hauth` premise dropped, body passes
+  `etcdAuthBootNC_holds`). `etcd_robust_nocrash.spec` untouched.
+- **Likely first errors** (fix forward): `simp only [hon, ↓reduceIte] at hcs` may leave `if true = true` (add
+  `if_pos rfl`/`eq_self_iff_true`); the `rw [hns, List.flatten_cons, ...]` on the Iris goal; `simp only [Nat.add_zero]
+  at he ⊢` after `bigSepL_singleton.2`; `class_auth`'s `cases tw <;> simp [typed.Workload.kindW] <;> decide`;
+  whether `wp_MainReadyAuth`'s `[auth.Assumptions]` resolves in `DispatchLinked`; `AuthShares.lean`'s header still
+  says kind 5 is `False` in `Shares` (update).
+- **Build running at stop**: `/shared/tmp/f7rl-rb.sh Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness`
+  (fk-lean2, log `~/eg/logs/f7rl-build.log`); `CHECK=1` with a file path for the edit loop.
+- **Next**: (1) green build of `TopLevelRobustness`; then a full build. (2) Trust base: the `Auth_*` admin axioms
+  (`Auth_UserAdd/UserGrantRole/RoleAdd/RoleGrantPermission/AuthEnable_dist`) become reachable: `etc/tcb-report.py
+  --check --update` and `--collection etc/tcb-collections/etcd-dist.txt --check --update`; axiom-tok entries modelled
+  on the F7 S13 ones (`etc/axiom-tok-allow.txt` line ~351; the coordinator confirmed the S13 entries). (3) Gates:
+  tier, lease-order, bounds, dist-axiom-diff, tcb `--check`, axiom-tok; gen-link **every mode** on fk-lean2 inside
+  the built environment: `lake env python3 etc/gen-link.py <mode> > .lake/gl.lean; cmp -s .lake/gl.lean <Link.lean>`
+  (same package overrides as the build), including `--kvraft`, `--kvraft-udp`, `--wal-tester`, `--walfs`; report any
+  that differ with a short diff. (4) Push `git push https://github.com/mit-pdos/etcd-grove.git etcd-safe-f7-rlog`.

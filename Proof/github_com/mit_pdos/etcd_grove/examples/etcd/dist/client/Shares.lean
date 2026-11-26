@@ -14,7 +14,8 @@ the boot's), under the net extension's registry `π` and the remote library's na
   | 2 `cache` | `cacheShare eps ns` (F6; the same as watch's) |
   | 3 `compact` | `compactShare eps` (F5) |
   | 4 `putget` | `putgetShare eps` (N9a) |
-  | 5 `auth`, 6 `authLease` | `False` (D2: their classes are boot hypotheses, `AuthBootNC`/`AuthLeaseBootNC`) |
+  | 5 `auth` | `authShare eps ns` (`client/AuthShares.lean`; F7 S14) |
+  | 6 `authLease` | `False` (D2: its class is a boot hypothesis, `AuthLeaseBootNC`) |
   | 7 `leaseRead` | `∃ Γ, [∗list] a ∈ eps, leaseMember Γ a` |
   | 8 `leaseCatchup` | the same with `Γ.kv.lm = .mono` and `Γ.ls` injective |
   | 9 `leaseExpiry` | the same at `.revocable` |
@@ -194,7 +195,7 @@ def wlShare (w : Workload) (eps ns : List GoString) : IProp GF :=
   else if w.kind = W64 2 then cacheShare (Gg := Gg) eps ns
   else if w.kind = W64 3 then compactShare (Gg := Gg) eps
   else if w.kind = W64 4 then putgetShare (Gg := Gg) eps
-  else if w.kind = W64 5 then iprop(False)
+  else if w.kind = W64 5 then authShare (Gg := Gg) eps ns
   else if w.kind = W64 6 then iprop(False)
   else if w.kind = W64 7 then leaseShare (Gg := Gg) (fun _ => True) eps
   else if w.kind = W64 8 then
@@ -235,7 +236,7 @@ theorem wlShare_compact (h : w.kind = W64 3) : wlShare (Gg := Gg) w eps ns = com
 theorem wlShare_putget (h : w.kind = W64 4) : wlShare (Gg := Gg) w eps ns = putgetShare (Gg := Gg) eps := by
   unfold wlShare; rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 
-theorem wlShare_auth (h : w.kind = W64 5) : wlShare (Gg := Gg) w eps ns = iprop(False) := by
+theorem wlShare_auth (h : w.kind = W64 5) : wlShare (Gg := Gg) w eps ns = authShare (Gg := Gg) eps ns := by
   unfold wlShare; rw [if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_neg (by rw [h]; decide), if_pos h]
 
 theorem wlShare_authLease (h : w.kind = W64 6) : wlShare (Gg := Gg) w eps ns = iprop(False) := by

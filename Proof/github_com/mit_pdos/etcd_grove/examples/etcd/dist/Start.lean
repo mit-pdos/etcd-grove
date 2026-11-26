@@ -292,21 +292,21 @@ theorem slots_members (d : Deployment) (c : ClusterNames) :
 
 /-- **Every member's `leaseMember`** (persistent; §27.2 step 3): its client address valid, serving the member at
 the view, whose lessor name has its slot. -/
-theorem leaseMembers_of (d : Deployment) (Hd : d.WellFormed) (c : ClusterNames) :
-    clientSvcFacts (G := Gg) (cmsD d) c.view ∗ ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ⊢
-      [∗list] a ∈ d.members.map Member.client, leaseMember (Gg := Gg) c.view a := by
+theorem leaseMembers_of (d : Deployment) (Hd : d.WellFormed) (c : ClusterNames) (on : Bool := false) :
+    clientSvcFacts (G := Gg) (cmsD d) (c.view on) ∗ ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ⊢
+      [∗list] a ∈ d.members.map Member.client, leaseMember (Gg := Gg) (c.view on) a := by
   rw [BigSepL.bigSepL_map]
   iintro ⟨#Hcs, #Hsl⟩
-  ihave #Hcs := clientSvc_members (G := Gg) d c.view $$ Hcs
+  ihave #Hcs := clientSvc_members (G := Gg) d (c.view on) $$ Hcs
   ihave #Hsl := slots_members (GF := GF) d c $$ Hsl
   ihave #H : [∗list] m ∈ d.members,
-      (etcdAddrAt (GF := GF) m.client c.view (memberId (go!"http://" ++ m.peer) d.token) ∗
+      (etcdAddrAt (GF := GF) m.client (c.view on) (memberId (go!"http://" ++ m.peer) d.token) ∗
         lease.lessorSlot (GF := GF) (c.ls (memberId (go!"http://" ++ m.peer) d.token))) $$ []
   · iapply BigSepL.bigSepL_sep_eqv.2
     isplitl []
     · iexact Hcs
     · iexact Hsl
-  iapply (BigSepL.bigSepL_impl (Ψ := fun (_ : Nat) (m : Member) => leaseMember (Gg := Gg) c.view m.client)) $$ H
+  iapply (BigSepL.bigSepL_impl (Ψ := fun (_ : Nat) (m : Member) => leaseMember (Gg := Gg) (c.view on) m.client)) $$ H
   imodintro
   iintro %k %m %hk ⟨#Ha, #Hs⟩
   iunfold leaseMember
@@ -316,7 +316,7 @@ theorem leaseMembers_of (d : Deployment) (Hd : d.WellFormed) (c : ClusterNames) 
     simp only [Deployment.addrs]
     exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, List.mem_of_getElem? hk, by simp⟩)
   iexists memberId (go!"http://" ++ m.peer) d.token
-  rw [show c.view.ls = c.ls from rfl]
+  rw [show (c.view on).ls = c.ls from rfl]
   isplitl []
   · iexact Ha
   · iexact Hs
