@@ -2747,3 +2747,15 @@ position. `etc/bounds-allow.txt` gains kvremote's two machine preconditions: `kv
 - **`#print axioms etcd_kv_safe_nocrash`:** `propext`, `Classical.choice`, `Quot.sound` and the same 132
   repository axioms.
 - **Not done:** the merge of `lean` and the landing; the lead decides.
+
+### 21.3 `lean` merged for the queue (2026-11-26)
+
+One merge of `lean` @ `4ace26632f` (Perennial pin `8fb3c9fd5`). Conflicts only in tables and notes (gen-init's
+ROOTS/PROGRAMS, the premise-witness, tcb and putget-dist baselines, the axiom-review index, STATUS), both sides
+kept; gen-init and gen-specs-pkginit regenerated at the new pin; no proof needed adapting. Checked: goose `--check`
+(every project), gen-init, gen-specs-pkginit, gen-raft-tla, copy-part, kitgen, every gen-link mode (61, btree's too),
+tier (208), bounds (390), premise-witness (50 statements), iris-premise (16); full VM build green (29404 jobs).
+`tcb-report --check`: 385 axioms, 0 `sorry`, i.e. `lean`'s 376 minus `Client_Put/Get_dist` plus M1's 11. Every
+collection but `etcd-dist` matched unchanged; `etcd-dist` (127 axioms) took `lean`'s gRPC changes:
++`grpclog.initFuncsOk`, +`streamIcMdIs` (for `etcdStreamInterceptor`), −`grpc.opaqueInitsOk`,
+−`grpc.credentials.opaqueInitsOk`, −`grpc.health.{initFuncsOk,opaqueInitsOk}`, −`grpcAddrIsRaw`, −`grpcSrvCfgRaw`.
