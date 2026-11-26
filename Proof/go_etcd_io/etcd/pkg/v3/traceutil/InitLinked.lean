@@ -12,8 +12,8 @@ public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.math.rand.Link
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.time.Link
-public import Proof.go_opentelemetry_io.otel.trace.Init
-public import Proof.go_opentelemetry_io.otel.trace.noop.Init
+public import Proof.go_opentelemetry_io.otel.trace.InitLinked
+public import Proof.go_opentelemetry_io.otel.trace.noop.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
 

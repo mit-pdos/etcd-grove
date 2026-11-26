@@ -1,9 +1,10 @@
 /-
-The trust boundary of `strings.Contains` (see its spec).
+`strings.Contains`: Perennial's proof of the real Go (`strings.wp_Contains`).
 -/
 module
 
 public import Spec.strings.Contains
+public import Perennial.Proof.strings.Link
 
 @[expose] public section
 
@@ -19,9 +20,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.strings.Assumptions]
 
-/-- The trust boundary (see the spec's file header). -/
-axiom strings.Contains.wp_proof : strings.Contains.spec (GF := GF) (hG := hG)
+theorem strings.Contains.wp_proof : strings.Contains.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.strings.wp_Contains
 
 end proof
 

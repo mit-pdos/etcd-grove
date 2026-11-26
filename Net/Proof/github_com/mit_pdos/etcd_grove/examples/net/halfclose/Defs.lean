@@ -7,8 +7,7 @@ the shared per-address protocol (`wire/Addr.lean`) and the stream bookkeeping of
   ghost map `γm`), one `DirNames` per direction (`ns.u` from the dialer, `ns.d` from the acceptor),
   and a state (`hcConn cn ns`): for each direction its unread bytes (`netDir`), the invariant's
   halves of what its writer wrote (`W`) and its reader read (`R`), agreeing (`DirOk`), and the
-  crux, `HcOk`: the dialer wrote a prefix of `"hello"` (`WU <+: hello`), and the acceptor wrote a
-  prefix of what it read (`WD <+: RU`). All connections' states are in one invariant
+  crux, `HcOk`: the acceptor wrote a prefix of what it read (`WD <+: RU`). All connections' states are in one invariant
   (`hcState γm`), so that every resource the protocol moves is timeless.
 * **The connection's protocol** `connProto γm cn`, which every dialer deposits in `srvAddr`'s
   invariant (`hc_deposit`, through `wire.dial_both_au`) and the server takes when it accepts `cn`
@@ -22,13 +21,14 @@ the shared per-address protocol (`wire/Addr.lean`) and the stream bookkeeping of
 
 The client's check (`client_check`): what it read from the down direction (`RD`) is a prefix of
 what the server wrote (`WD`, `DirOk`), a prefix of what the server read (`RU`, `HcOk`), a prefix of
-what the client wrote (`WU`, `DirOk`), a prefix of `"hello"` (`HcOk`). No FIN or EOF reasoning:
+what the client wrote (`WU`, `DirOk`), which the client knows, holding the writer's half of `WU`:
+its request (a random one). No FIN or EOF reasoning:
 EOF guarantees nothing (a killed process's kernel sends a FIN, `Impl.lean`, D1). Crashes change
 nothing: the invariants are global.
 
 The updates of the operations, each opening the connection's state: a `Write` is a loop of steps
-(D2), each step's bytes extending what the writer wrote, by `client_write_au` (`W ++ rs <+: hello`)
-and `server_write_au` (`W ++ rs <+: R`, the bytes it read), with the writer predicates `cliW`,
+(D2), each step's bytes extending what the writer wrote, by `client_write_au` and `server_write_au`
+(`W ++ rs <+: R`, the bytes it read), with the writer predicates `cliW`,
 `srvW` and the accessors `net.Conn.Write.spec` takes, `client_write_acc`, `server_write_acc`;
 `client_read_acc`, `server_read_acc` (the accessors of `readAll`), `hc_close_au`,
 `hc_closeWrite_au`.
@@ -54,29 +54,26 @@ namespace github_com.mit_pdos.etcd_grove.examples.net.halfclose
 /-- The server's address, as a Go string. -/
 abbrev srvAddr : GoString := go!"127.0.0.1:7105"
 
-/-- The request's bytes. -/
-abbrev hello : List w8 := go!"hello"
-
 def addrN : Namespace := nroot.@"halfclose_addr"
 def hcN : Namespace := nroot.@"halfclose_conns"
 
 /-! ## The pure part -/
 
 /-- The connection's protocol, on the up direction (`dU`, written `WU`, read `RU`) and the down
-direction (`dD`, `WD`, `RD`): each direction's bookkeeping agrees (`DirOk`), the dialer wrote a
-prefix of `"hello"`, the acceptor a prefix of what it read. -/
+direction (`dD`, `WD`, `RD`): each direction's bookkeeping agrees (`DirOk`), the acceptor wrote a
+prefix of what it read. -/
 def HcOk (dU : NetDir) (WU RU : List w8) (dD : NetDir) (WD RD : List w8) : Prop :=
-  DirOk dU WU RU ∧ DirOk dD WD RD ∧ WU <+: hello ∧ WD <+: RU
+  DirOk dU WU RU ∧ DirOk dD WD RD ∧ WD <+: RU
 
 /-- Nothing written or read. -/
 theorem hcOk_nil {dU dD : NetDir} (hU : DirOk dU [] []) (hD : DirOk dD [] []) :
     HcOk dU [] [] dD [] [] :=
-  ⟨hU, hD, List.nil_prefix, List.nil_prefix⟩
+  ⟨hU, hD, List.nil_prefix⟩
 
-/-- What the dialer read is a prefix of `"hello"`. -/
+/-- What the dialer read is a prefix of what it wrote. -/
 theorem hcOk_check {dU dD : NetDir} {WU RU WD RD : List w8} (h : HcOk dU WU RU dD WD RD) :
-    RD <+: hello :=
-  (dirOk_prefix h.2.1).trans (h.2.2.2.trans ((dirOk_prefix h.1).trans h.2.2.1))
+    RD <+: WU :=
+  (dirOk_prefix h.2.1).trans (h.2.2.trans (dirOk_prefix h.1))
 
 /-! ## The ghost names -/
 
@@ -335,22 +332,20 @@ theorem hcConn_dir (cn : Nat) (ns : HcNames) (s : Bool) :
     iexists d', WU, RU, dD, WD, RD
     iframe HdU HwU HrU HdD HwD HrD
     ipureintro
-    exact ⟨Hd' _ _ Hok.1, Hok.2.1, Hok.2.2.1, Hok.2.2.2⟩
+    exact ⟨Hd' _ _ Hok.1, Hok.2.1, Hok.2.2⟩
   · iexists dD
     iframe HdD
     iintro %d' %Hd' HdD
     iexists dU, WU, RU, d', WD, RD
     iframe HdU HwU HrU HdD HwD HrD
     ipureintro
-    exact ⟨Hok.1, Hd' _ _ Hok.2.1, Hok.2.2.1, Hok.2.2.2⟩
+    exact ⟨Hok.1, Hd' _ _ Hok.2.1, Hok.2.2⟩
 
 /-! ## The updates -/
 
 /-- One step of the dialer's `Write` on `cn` (its end's state `st`), of the bytes `rs` it has not
-written yet, having written `W`, with `W ++ rs` a prefix of `"hello"`: it has then written
-`W ++ rs.take k`. -/
-theorem client_write_au (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) (W rs : List w8)
-    (h : W ++ rs <+: hello) :
+written yet, having written `W`: it has then written `W ++ rs.take k`. -/
+theorem client_write_au (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) (W rs : List w8) :
     ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ netEnd G cn false st -∗
       sentAll ns.u W -∗
       |={⊤,∅}=> ∃ st0 d, netEnd G cn false st0 ∗ netDir G cn false d ∗
@@ -374,30 +369,29 @@ theorem client_write_au (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) (W
     iexists d', WU ++ rs.take k, RU, dD, WD, RD
     iframe HdU HwU HrU HD
     ipureintro
-    exact ⟨dirOk_write Hok.1 Hwr, Hok.2.1,
-      ((List.prefix_append_right_inj WU).2 (List.take_prefix k rs)).trans h, Hok.2.2.2⟩
+    exact ⟨dirOk_write Hok.1 Hwr, Hok.2.1, Hok.2.2⟩
   imodintro
   iframe Hend Hw
 
 /-- The dialer's writer predicate of `net.Conn.Write.spec` on `cn`: its end's state, and the bytes
-`w` its `Write` of `"hello"` has written so far (all it has written). -/
+`w` its `Write` of its request has written so far (all it has written). -/
 def cliW (ns : HcNames) (cn : Nat) (st : NetEnd) (w : List w8) : IProp GF :=
   iprop(netEnd G cn false st ∗ sentAll (Gg := Gg) ns.u w)
 
-/-- The accessor of the dialer's `Write` of `"hello"`, for `cliW`: each step's bytes extend what
-it wrote, a prefix of `"hello"` (`client_write_au`). -/
-theorem client_write_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) :
+/-- The accessor of the dialer's `Write` of its request `bs`, for `cliW`: each step's bytes extend
+what it wrote (`client_write_au`). -/
+theorem client_write_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) (bs : List w8) :
     inv hcN (hcState (Gg := Gg) γm) ∗ hcName γm cn ns ⊢
-      □ (∀ (w rs : List w8), ⌜w ++ rs = hello⌝ -∗ cliW ns cn st w -∗
+      □ (∀ (w rs : List w8), ⌜w ++ rs = bs⌝ -∗ cliW ns cn st w -∗
         |={⊤,∅}=> ∃ st0 d, netEnd G cn false st0 ∗ netDir G cn false d ∗
           ∀ k res d', ⌜WriteOutcome st0 d rs k res d'⌝ -∗ netEnd G cn false st0 -∗
             netDir G cn false d' ={∅,⊤}=∗ cliW ns cn st (w ++ rs.take k)) := by
   iintro ⟨#Hinv, #Hname⟩
   imodintro
-  iintro %w %rs %Hbs HP
+  iintro %w %rs %_ HP
   unfold cliW
   icases HP with ⟨Hend, Hw⟩
-  iapply client_write_au γm cn ns st w rs (by rw [Hbs]; exact List.prefix_refl _) $$ Hinv Hname Hend Hw
+  iapply client_write_au γm cn ns st w rs $$ Hinv Hname Hend Hw
 
 /-- One step of the server's `Write` on `cn` (its end's state `st`), of the bytes `rs` it has not
 written yet, having written `W` and read `R`, with `W ++ rs` a prefix of `R`: it has then written
@@ -431,7 +425,7 @@ theorem server_write_au (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) (W
     iexists dU, WU, RU, d', WD ++ rs.take k, RD
     iframe HdU HwU HrU HdD HwD HrD
     ipureintro
-    exact ⟨Hok.1, dirOk_write Hok.2.1 Hwr, Hok.2.2.1,
+    exact ⟨Hok.1, dirOk_write Hok.2.1 Hwr,
       ((List.prefix_append_right_inj WD).2 (List.take_prefix k rs)).trans h⟩
   imodintro
   iframe Hend Hw Hr
@@ -492,8 +486,7 @@ theorem server_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) :
     iexists d', WU, RU ++ r.got, dD, WD, RD
     iframe HdU HwU HrU HD
     ipureintro
-    exact ⟨dirOk_read Hok.1 Hrd, Hok.2.1, Hok.2.2.1,
-      Hok.2.2.2.trans (List.prefix_append RU r.got)⟩
+    exact ⟨dirOk_read Hok.1 Hrd, Hok.2.1, Hok.2.2.trans (List.prefix_append RU r.got)⟩
   imodintro
   iframe Hend Hr
 
@@ -533,30 +526,33 @@ theorem client_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : NetEnd) :
     iexists dU, WU, RU, d', WD, RD ++ r.got
     iframe HU HdD HwD HrD
     ipureintro
-    exact ⟨Hok.1, dirOk_read Hok.2.1 Hrd, Hok.2.2.1, Hok.2.2.2⟩
+    exact ⟨Hok.1, dirOk_read Hok.2.1 Hrd, Hok.2.2⟩
   imodintro
   iframe Hend Hr
 
-/-- The client's check on `cn`: what it read from the down direction is a prefix of
-`"hello"`. -/
-theorem client_check (γm : GName) (cn : Nat) (ns : HcNames) (R : List w8) :
-    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ rcvdAll ns.d R ={⊤}=∗
-      ⌜R <+: hello⌝ ∗ rcvdAll ns.d R := by
-  iintro #Hinv #Hname Hr
+/-- The client's check on `cn`: what it read from the down direction is a prefix of what it wrote
+(`W`, its writer's half). -/
+theorem client_check (γm : GName) (cn : Nat) (ns : HcNames) (W R : List w8) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ sentAll ns.u W -∗ rcvdAll ns.d R ={⊤}=∗
+      ⌜R <+: W⌝ ∗ sentAll ns.u W ∗ rcvdAll ns.d R := by
+  iintro #Hinv #Hname Hw Hr
   imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
   unfold hcConn dirPart
-  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, HU, ⟨HdD, HwD, HrD⟩, %Hok⟩
+  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, HwU, HrU⟩, ⟨HdD, HwD, HrD⟩, %Hok⟩
   letI := (G (Gg := Gg)).allG
   unfold rcvdAll
   icases ghostVar_agree $$ HrD Hr with %HeqR
   subst HeqR
-  imod Hclose $$ [HU HdD HwD HrD] with -
+  unfold sentAll
+  icases monoListAuthOwn_agree ns.u.w _ _ WU W $$ HwU Hw with %Hag
+  obtain ⟨-, rfl⟩ := Hag
+  imod Hclose $$ [HdU HwU HrU HdD HwD HrD] with -
   · try unfold hcConn dirPart
     iexists dU, WU, RU, dD, WD, RD
-    iframe HU HdD HwD HrD
+    iframe HdU HwU HrU HdD HwD HrD
     ipureintro; exact Hok
   imodintro
-  iframe Hr
+  iframe Hr Hw
   ipureintro; exact hcOk_check Hok
 
 /-- A close of the end `s` of `cn` (its state `st` the thread's): the direction from it shut

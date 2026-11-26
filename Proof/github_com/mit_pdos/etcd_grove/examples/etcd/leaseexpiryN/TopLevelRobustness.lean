@@ -39,7 +39,7 @@ variable [go_gctx : GoGlobalContext]
 /-- `etcd_leaseexpiryN_robust_single_process.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean`). -/
 theorem etcd_leaseexpiryN_robust_single_process : etcd_leaseexpiryN_robust_single_process.spec := by
-  intro lctx sem package_sem cache_sem _ _ k ids ps ctxs boot Hlen Hbf Hap Haf Hbuq
+  intro lctx sem package_sem cache_sem _ k ids ps ctxs boot Hlen Hbf Hap Haf Hbuq
     Hrf Hdbo Hlp HAs HDs HEnv Hprem σ g Hfs HWal
   exact
     robust_of_single_below_init fun hf hg _ n κs t2 σ2 hn Hsteps =>

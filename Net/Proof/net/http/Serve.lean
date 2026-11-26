@@ -67,6 +67,11 @@ theorem Serve.wp_proof_rpc (wp_ServeH : Serve.specHandler (GF := GF) (hG := hG))
     iapply HΦ
     iexact Htok
 
+/-- **Trust-boundary axiom, interim**: `http.Serve` meets `Serve.spec` (over an HTTP handler;
+httpdriver). Interim, retired by phase 7's S5 (`conn.serve` on general requests: `readRequest`, the
+response writer, `finishRequest`, the `400` answer; its `Serve.specHandler` covers net/rpc's `CONNECT`). -/
+axiom Serve.wp_proof [hπ : HttpProtoGS] : Serve.spec (GF := GF) (hG := hG)
+
 end proof
 
 end net.http

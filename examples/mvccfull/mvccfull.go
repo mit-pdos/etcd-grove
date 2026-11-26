@@ -8,9 +8,16 @@
 // Every choice the tester makes (which operation, which keys, values, leases, revisions, which
 // member, when to compact, restart or restore, which watchers to register or cancel) comes from
 // primitive.RandomUint64, which in Go is random and in GooseLang returns any value. So a theorem
-// that Run(cfg) never fails, for every cfg, quantifies over every sequence of choices, every
-// interleaving of the goroutines and every configuration: the executions it covers are all those
-// of a two-member etcd cluster's use of mvcc, up to cfg's sizes (except the restrictions below).
+// that Run(cfg) never fails quantifies over every sequence of choices and every interleaving of
+// the goroutines: the executions it covers are all those of a two-member etcd cluster's use of
+// mvcc, up to cfg's sizes, among the alternatives cfg's Mix allows (except the restrictions below).
+//
+// The proved theorem (mvccfull_robust, Spec/.../mvccfull/TopLevelRobustness.lean) is about
+// MainAt, which draws its Config at random (drawConfig: every field any value) and runs it if it
+// is in the proof's range (inScope), so about every Config in that range: its sizes bounded as
+// inScope says, and every Mix whose Read weights rule out the corruption checker's hashes
+// (HashByRev, Hashes; Run's final hashes() is skipped too, hashing), which stay outside until
+// hashing is verified (stage F2).
 //
 // # Auditing
 //

@@ -41,7 +41,7 @@ theorem Time.Equal.wp_proof (wp_Equal : time.Time.Equal.spec (GF := GF) (hG := h
   wp_method_call
   wp_call
   wp_auto
-  wp_apply wp_Equal as %eq -
+  wp_apply wp_Equal
   iapply HΦ
   iframe
 

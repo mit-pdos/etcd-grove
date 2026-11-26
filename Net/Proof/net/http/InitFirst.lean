@@ -15,7 +15,10 @@ Each conjunct, from the line that sets it in the model's Go source `models/net/h
   initializer registers on `DefaultServeMux` (expvar, net/http/pprof, x/net/trace) needs a first-init
   spec that consumes it; a standard-shape `wp_initialize'` axiom for one would contradict this one.
 * `use121` (`servemux121.go:27`, `var use121 bool`; set to `true` only by `init`, `servemux121.go:31-36`,
-  the approved model `Net/TrustedCode/net/http.lean`): some boolean.
+  the approved model `Net/TrustedCode/net/http.lean`): some boolean, `true` only if the run's
+  `httpmuxgo121` setting is `"1"` (`godebugHttpmuxgo121`; the model's `init` stores `true` only then:
+  httpdriver, 2026-11-25, so that under the environment premise `GodebugHttpmuxgo121Not1` the
+  program learns `use121 = false`, #18's option (a)).
 * `maxSlice` (`mapping.go:22`, `var maxSlice int = 8`, translated): `8`.
 * `serveEnv` (`ServeLoopDefs.lean`): `testHookServerServe` `nil` (`server.go:3430`, no initializer,
   assigned only by net/http's tests) and `DefaultServeMux = &defaultServeMux` (`server.go:2611`,
@@ -67,7 +70,7 @@ variable [package_sem' : net.http.Assumptions]
 /-- What net/http's first initialization leaves (see the file header). -/
 def initFirstRes : IProp GF :=
   iprop(globalAddr net.http.defaultServeMux ↦ (zero_val net.http.ServeMux) ∗
-    (∃ b : Bool, globalAddr net.http.use121 ↦□ b) ∗
+    (∃ b : Bool, globalAddr net.http.use121 ↦□ b ∗ ⌜b = true → godebugHttpmuxgo121 = go!"1"⌝) ∗
     globalAddr net.http.maxSlice ↦□ (W64 8) ∗
     serveEnv ∗ ctxKeys ∗ (∃ tm : time.Time, globalAddr net.http.aLongTimeAgo ↦□ tm) ∗ wPools ∗ rPool)
 
@@ -127,17 +130,14 @@ theorem wp_init_first_mux (g g' : GoString → IProp GF)
   inext
   iintro ⟨Hown, #Hpkg, Hres⟩
   iunfold initFirstRes at Hres
-  icases Hres with ⟨Hm, ⟨%b, #Hu⟩, #Hms, #Hse, #Hck, #Htm, #Hwp, #Hrp⟩
-  ihave #Hse2 := Hse
-  iunfold serveEnv at Hse2
-  icases Hse2 with ⟨-, #Hd⟩
-  imod muxOwnS_init (GF := GF) (hG := hG) (E := ⊤) _ b (W64 8) Hb $$ Hm Hu Hd Hms with Hmux
+  icases Hres with ⟨Hm, ⟨%b, #Hu, %_⟩, #Hms, #Hse, #Hck, #Htm, #Hwp, #Hrp⟩
+  imod muxOwnS_init (GF := GF) (hG := hG) (E := ⊤) _ b (W64 8) Hb $$ Hm Hu Hms with Hmux
   imodintro
   iapply HΦ
   iframe Hown
   iframe #
   isplitl [Hmux]
-  · iunfold muxOwn; iexact Hmux
+  · iunfold muxOwn; iframe Hmux; iexact Hse
   iunfold httpSrvEnv
   iframe #
   isplitl []

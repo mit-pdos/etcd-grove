@@ -80,7 +80,7 @@ theorem wp_ClientStep :
     EtcdGrove.cluster3.ClientStep.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.ClientStep.wp_proof bridge.bridge.wp_Blackhole bridge.bridge.wp_Unblackhole bridge.bridge.wp_DropConnections
 
-theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_NewClient :
     EtcdGrove.cluster3.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.NewClient.wp_proof etcdstart.wp_NewClients
 

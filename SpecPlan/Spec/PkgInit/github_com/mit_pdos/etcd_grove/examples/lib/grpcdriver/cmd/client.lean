@@ -19,7 +19,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client :=
+instance pkgInit_github_com_mit_pdos_etcd_grove_examples_lib_grpcdriver_cmd_client : IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client)
 end
 

@@ -49,16 +49,22 @@ abbrev github_com.imdea_software.swiftpaxos.usr1Sigs : List os.Signal := os.sign
 `UUID`. Go's `New` is `Must(NewRandom())`: it reads 16 bytes from `crypto/rand.Reader` (the OS's
 randomness) and panics if that read fails. That it does not fail is **an assumption of the
 environment**, not a fact of the library: so this is the separate class `SwiftOsRandom`
-(Hyps.lean), not a `SwiftHyps` field. -/
-abbrev github_com.google.uuid.New.spec : Prop :=
+(Hyps.lean), not a `SwiftHyps` field. (Since dsv-retire-2, #49 step 2, uuid is translated from
+its model `models/uuid` and this is proved, `Dsverify/Proof/github_com/google/uuid/New.lean`: the
+instance argument `[github_com.google.uuid.Assumptions]` lets the proof unfold `New` to its body;
+ledger `notes/specs-only/ledger.md`, 2026-11-25.) -/
+abbrev github_com.google.uuid.New.spec [github_com.google.uuid.Assumptions] : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid }}
       (App (Val (@! github_com.google.uuid.New)) (Val #()))
     {{ (u : github_com.google.uuid.UUID), RET #u; True }}
 
-/-- lab `uuid.wp_ID` (see the file header). -/
+/-- lab `uuid.wp_ID` (see the file header). The precondition `isPkgInit uuid` (since dsv-retire-2,
+#49 step 2; ledger `notes/specs-only/ledger.md`, 2026-11-25): `ID`'s body calls `(*bigEndian).Uint32`
+on `&binary.BigEndian`, whose initialized global comes from `encoding/binary`'s `isPkgInit`, which
+uuid's gives. -/
 abbrev github_com.google.uuid.UUID.ID.spec [github_com.google.uuid.Assumptions] : Prop :=
   ∀ (u : github_com.google.uuid.UUID),
-    {{ (True : IProp GF) }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid }}
       (App (Val (u @!! github_com.google.uuid.UUID.ty @!! go!"ID")) (Val #()))
     {{ (x : w32), RET #x; True }}
 

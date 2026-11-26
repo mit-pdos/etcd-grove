@@ -27,6 +27,7 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.cmd.ser
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.cmd.client.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.echo.cmd.client.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
@@ -156,7 +157,7 @@ theorem echo_netfs_mixed_robust [GoGlobalContext] [lctx : GoLocalContext] [sem :
       rw [show boot_clientNF = bootNF cmd.client.initialize' cmd.client.main from rfl]
       iapply wp_bootNF cmd.client.initialize' cmd.client.main _ cmd.client.getIsPkgInit
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf) _
-          (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          (cmd.client.wp_main wire.wp_RandomBytes net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
             net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
       iframe Hinvs Hplan
   isplitl []

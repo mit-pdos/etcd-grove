@@ -45,7 +45,7 @@ theorem errors.IsCtxErr.wp_proof
   obtain ⟨tii, rfl, -, -, htshape⟩ := Hts
   ihave #Htree := _root_.Perennial.errors.errorWalkTree_leaf (GF := GF) ii (GoInterface.ok tii)
     hleaf hIs
-  have hcmp : _root_.Perennial.errors.ComparableTarget (· = GoInterface.ok ii)
+  have hcmp : _root_.Perennial.errors.ComparableTarget (GF := GF) (· = GoInterface.ok ii)
       (GoInterface.ok tii) := by
     intro tii' ht
     cases ht

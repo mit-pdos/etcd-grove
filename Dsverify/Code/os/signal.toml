@@ -1,8 +1,15 @@
 # names only (project dsv-rabia, notes/dsv-rabia.md): the lab replaced this library by its own
 # model (harness/rpcmodel); this repository has no model of it yet, so the kit's proof takes the
 # specs of what it calls as hypotheses.
-translate = ["!*"]
-imports = ["!*"]
+# The package's initializers are translated (dsv-retire-1-inits, 2026-11-25): the zero-valued
+# variables `handlers`, `watchSignalLoopOnce`, `watchSignalLoop` and `init.0` (signal_unix.go:
+# `watchSignalLoop = loop`, a function value, not called), so that its `wp_initialize'` is proved
+# (`Dsverify/Proof/os/signal/Init.lean`, generated) instead of a trust-boundary axiom. `loop` and
+# the runtime hooks stay names. Its imports `os` and `sync` (the main tree's and Perennial's, whose
+# `wp_initialize'` are proved) are translated so that `handlers`' type is (its fields name `os.Signal`
+# and `sync.Mutex`); `context` and `slices` stay out (no initializer names them).
+translate = ["!*", "handlers", "watchSignalLoopOnce", "watchSignalLoop", "init.0"]
+imports = ["!*", "os", "sync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

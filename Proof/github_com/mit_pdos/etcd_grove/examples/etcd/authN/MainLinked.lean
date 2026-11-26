@@ -61,12 +61,12 @@ theorem etcd_authN.wp_StartMembersAuth :
   etcdstart.StartMembersAuth.wp_proof etcd_authN.wp_StartMemberAuth
 
 /-- **authN's `newUserClient`** (auth3's copy), over `clientv3.New`. -/
-theorem etcd_authN.wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_newUserClient :
     etcd_authN.newUserClient.spec (GF := GF) (hG := hG) :=
   etcd_authN.newUserClient.wp_proof client.v3.clientv3.wp_New
 
 /-- **authN's `barrier`**: root's linearizable read at a member (`barrier.lean`). -/
-theorem etcd_authN.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_barrier :
     etcd_authN.barrier.spec (GF := GF) (hG := hG) :=
   etcd_authN.barrier.wp_proof etcd_authN.wp_newUserClient context.wp_ErrAny
     etcd_auth.context.wp_WithTimeoutBackground etcd_auth.client_Get_on_law_holds
@@ -74,8 +74,7 @@ theorem etcd_authN.wp_barrier [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 /-- **authN's `run`**: authkv's run across the `k` members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/
-theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_authN.run.spec (GF := GF) (hG := hG) :=
   etcd_authN.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authN.wp_newUserClient etcd_authN.wp_barrier
@@ -87,7 +86,7 @@ theorem etcd_authN.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **authN's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Main.lean`). -/
-theorem etcd_authN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_Main :
     etcd_authN.Main.spec (GF := GF) (hG := hG) :=
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     etcd_authN.wp_StartMembersAuth etcd_authN.wp_run

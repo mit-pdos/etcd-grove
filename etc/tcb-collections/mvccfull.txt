@@ -11,7 +11,6 @@
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
@@ -34,6 +33,7 @@ axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewGauge.wp_proof
 axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewHistogram.wp_proof
+axiom proto.EqualStatus.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Float64.wp_proof
@@ -42,7 +42,5 @@ axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom semver.NewVersion.wp_proof
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom strings.ToLower.wp_proof
 axiom zap.Stack.wp_proof

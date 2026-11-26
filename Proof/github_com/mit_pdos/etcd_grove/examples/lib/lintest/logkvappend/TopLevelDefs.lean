@@ -3,14 +3,15 @@
 # `lib/lintest/logkvappend`: the definitions its top-level statement is written in
 
 The program the example's top-level theorem is about, and the other definitions its statement
-names, moved here unchanged out of `Adequacy.lean` so that the statement
-(`Spec/.../TopLevelRobustness.lean`) imports no proof (CLAUDE.md, "Import tiers").
+names, in a defs module so that the statement (`Spec/.../TopLevelRobustness.lean`) imports no
+proof (CLAUDE.md, "Import tiers").
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Robustness.NoExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.PkgTable
 public import Proof.runtime.Threads
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.StepBound
 public import Robustness.Statement
 
 @[expose] public section
@@ -31,7 +32,7 @@ namespace logkvappend
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] Robustness.noExts Robustness.noExtsSemantics Robustness.noExtsInterp
 
 section adequacy
 

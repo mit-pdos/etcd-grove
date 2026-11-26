@@ -25,6 +25,7 @@ public import Spec.google_golang_org.grpc.WithTransportCredentials
 public import Spec.google_golang_org.grpc.credentials.insecure.NewCredentials
 public import Spec.google_golang_org.grpc.ClientConn__Close
 public import Spec.google_golang_org.grpc.status.Code
+public import Proof.google_golang_org.grpc.internal.status.Methods
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.ServerServes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.ServerServesStream
 public import Perennial.Spec.context.Background
@@ -123,7 +124,7 @@ theorem Client.wp_proof
     (wp_WithTC : grpc.WithTransportCredentials.spec (GF := GF) (hG := hG))
     (wp_NewClient : grpc.NewClient.spec (GF := GF) (hG := hG))
     (wp_Close : grpc.ClientConn.Close.spec (GF := GF) (hG := hG))
-    (wp_Code : status.Code.spec (GF := GF) (hG := hG)) :
+    (wp_Code : status.Code.specNE (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro hX π σ γid
   wp_start as ⟨%Hb, Htok, #Hpkg, #Haddr, Hauth⟩
@@ -303,7 +304,8 @@ theorem Client.wp_proof
       · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
       ipureintro; intro v hv; cases hv
     try wp_auto
-    wp_apply wp_Code err2 (W32 1) $$ []
+    ihave %hne := statusCodeIs_notEtcd _ (W32 1) (Or.inl ⟨by decide, by decide⟩) $$ Hcode
+    wp_apply wp_Code err2 (W32 1) hne $$ []
     · iframe #
     try wp_auto
     try wp_bind (App (Val #fr) (Val _))

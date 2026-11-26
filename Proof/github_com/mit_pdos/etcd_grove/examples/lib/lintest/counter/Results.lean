@@ -15,10 +15,11 @@ around), with the clock's invariant at any namespace `N` other than `lintestN`.
   (`porcupine/Link.lean`: the whole checker). Its `#print axioms` is the trust base of the
   example, end to end.
 
-Both assume an instance `[NaInvG GF]` (iris-lean's camera of non-atomic invariants, in which
-porcupine's `checkSingle` shares the model's state values, `porcupine/Shared.lean`), which
-Perennial's `allG` does not provide yet and nothing in this repository provides: until it does,
-the result is conditional on that instance (`notes/STATUS.md`, "Porcupine").
+Both are stated for any ghost-state bundle `GF` with an instance `[NaInvG GF]` (iris-lean's
+camera of non-atomic invariants, in which porcupine's `checkSingle` shares the model's state
+values, `porcupine/Shared.lean`; Perennial's `allG` does not provide it). The closed theorem
+`counter_adequate` (`Adequacy.lean`) instantiates them at its concrete bundle `counterGF`, which
+has a slot for that camera, so the end-to-end result assumes no instance.
 -/
 module
 
@@ -51,7 +52,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Assumptions]
--- porcupine's camera of non-atomic invariants, not yet in Perennial's `allG` (see the header)
+-- porcupine's camera of non-atomic invariants, not in Perennial's `allG` (see the header)
 variable [NaInvG GF]
 
 /-- `Check(lintest.CounterClock(), clients, ops, timeout)` (see the file header). -/

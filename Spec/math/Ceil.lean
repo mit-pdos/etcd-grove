@@ -1,6 +1,8 @@
 /-
-`math.Ceil(x)`: Perennial translates `math` but specifies no float operation. Lean-first (no Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13:
-`notes/decisions.md`), for `NewServer`.
+`math.Ceil(x)`: some `float64`. Perennial translates the real Go (`archCeil` on amd64, assembly with a
+trusted model) and proves it (`math.wp_Ceil`); `Proof/math/Ceil.lean` is that proof. Lean-first (no
+Rocq counterpart); the server-construction unit, stage N0 (2026-10-16, D13: `notes/decisions.md`),
+for `NewServer`.
 -/
 module
 

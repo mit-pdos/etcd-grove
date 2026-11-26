@@ -12,7 +12,7 @@ public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

@@ -17,7 +17,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.bufio.Init
 public import Proof.github_com.anishathalye.porcupine.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.net.Init
 public import Dsverify.Proof.raxos.configuration.Init
 public import Dsverify.Proof.raxos.proto.client.Init
@@ -25,10 +25,8 @@ public import Dsverify.Proof.raxos.replica.src.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.io.ioutil.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.google_golang_org.grpc.Init
-public import Dsverify.Proof.google_golang_org.grpc.codes.Init
 
 @[expose] public section
 

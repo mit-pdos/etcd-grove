@@ -1,0 +1,22 @@
+# (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) Types and names only: `Event` (an
+# `atomic.Bool` and a channel), the type of `grpc.Server`'s `quit` and `done` fields, so that goose
+# translates `Server`; `NewEvent`'s name.
+translate = ["!*"]
+imports = ["!*", "sync/atomic"]
+translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them.
+[[skip]]
+names = ["ErrSerializerClosed"]
+reason = """
+`errors.New` of a constant message: an allocation, no panic, no effect beyond its variable."""
+
+[[skip]]
+names = ["logger"]
+reason = """
+`grpclog.Component("grpcsync")`: a lookup and an insertion in grpclog's `cache` map (an allocation, no
+panic). Its only effect beyond its variable is the map's `"grpcsync"` entry, which only a later
+`Component("grpcsync")` reads, and no other code of the model calls `Component` with that name
+(checked: `grep -rn '"grpcsync"' models/grpc`), so not running it is unobservable."""

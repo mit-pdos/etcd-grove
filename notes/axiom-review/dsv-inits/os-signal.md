@@ -1,5 +1,12 @@
 # Axiom review: `os/signal`'s package initializer (`os.signal.wp_initialize'`)
 
+**Retired** (2026-11-25, branch `dsv-retire-1-inits`, mit-pdos/etcd-grove#49): the axiom is gone;
+its variables `handlers`, `watchSignalLoopOnce`, `watchSignalLoop` (zero values) and `init.0`
+(`watchSignalLoop = loop`, a function value) are translated with its imports `os` and `sync`
+(`Dsverify/Code/os/signal.toml`), and `wp_initialize'` is a theorem, proved in the generated
+`Dsverify/Proof/os/signal/Init.lean`. The two `Notify` axioms (dsv-fix4) are unchanged.
+The review below is of the axiom as it was.
+
 Reviewed 2026-11-25 by the `axiom` skill (an independent reviewer), in the worktree
 `/shared/etcd-grove-mathrand` at `23a50393f5` (the brief named branch `dsv-fix3`; the worktree's
 branch was `dsv-fix2b`); Perennial `fce59af75`; Go at the pinned toolchain go1.27.3

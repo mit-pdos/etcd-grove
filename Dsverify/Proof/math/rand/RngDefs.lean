@@ -1,11 +1,15 @@
 /-
-The vocabulary of `math/rand`'s per-function axioms (`NewSource.lean`, `New.lean`,
-`rngSource__Int63.lean`; dsv-fix4, mit-pdos/etcd-grove#49 fix 4): fixed predicates, so that the
+The vocabulary of `math/rand`'s per-function specs (`NewSource.lean`, `New.lean`,
+`rngSource__Int63.lean`; dsv-fix4, mit-pdos/etcd-grove#49 fix 4; axioms until dsv-retire-2, proved from
+Perennial's linked results since): fixed predicates, so that the
 specs of `math.rand.Hyps` (`Spec.lean`) become axioms of the real functions (until dsv-fix4 the
 statement's premise `math.rand.Hyps` said only that **some** pair of tokens makes them true).
 
 * `rngTok p`: the exclusive token of the state of the `*rngSource` at `p` (its `tap`, `feed` and
-  `vec`, which `Int63` writes: Go's `rngSource` is not safe for concurrent use). Opaque: real Go's.
+  `vec`, which `Int63` writes: Go's `rngSource` is not safe for concurrent use): Perennial's
+  `math.rand.ownRngSource p` (the source's points-to, its indices in range), since dsv-retire-2
+  (#49 step 2), when Perennial translated `NewSource`, `New` and `rngSource`'s methods; until then
+  an opaque predicate of trust-boundary axioms.
 * `isRngSource src`: `src` is a `*rngSource`, with its token (what `NewSource` returns).
 * `ownRngRand r`: `r` is a `*Rand` (never written after `New`: only `Seed`/`Read` write one) whose
   source is such a `*rngSource`, with the source's token (what `New` returns).
@@ -29,8 +33,8 @@ section tokens
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
-/-- The exclusive token of a `*rngSource`'s state (the file header). Opaque: real Go's. -/
-opaque rngTok : Loc → IProp GF := fun _ => iprop(True)
+/-- The exclusive token of a `*rngSource`'s state (the file header): Perennial's. -/
+def rngTok (p : Loc) : IProp GF := ownRngSource p
 
 /-- `src` is a `*rngSource`, with its token (what `NewSource` returns). -/
 def isRngSource (src : GoInterface) : IProp GF :=

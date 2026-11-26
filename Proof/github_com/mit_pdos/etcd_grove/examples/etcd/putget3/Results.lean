@@ -39,7 +39,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_putget3.wp_Main`). -/
-theorem putget3_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem putget3_Main :
     etcd_putget3.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget3.wp_Main
 

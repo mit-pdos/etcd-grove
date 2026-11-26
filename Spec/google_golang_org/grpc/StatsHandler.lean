@@ -5,6 +5,7 @@ server handler when distributed tracing is on.
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcServer
+public import Proof.google_golang_org.grpc.InvGrpcStats
 
 @[expose] public section
 

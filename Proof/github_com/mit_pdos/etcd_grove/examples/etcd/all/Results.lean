@@ -50,16 +50,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumpt
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_all.wp_Main`). -/
-theorem etcd_all_Main
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_all_Main :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=
   etcd_all.wp_Main
 
 /-- **`MainChecked`, the program's entry point, does not panic** (`MainLinked.lean`'s
 `etcd_all.wp_MainChecked`). -/
-theorem etcd_all_MainChecked
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    :
+theorem etcd_all_MainChecked :
     etcd_all.MainChecked.spec (GF := GF) (hG := hG) :=
   etcd_all.wp_MainChecked
 
@@ -79,7 +76,7 @@ with one thread and a network with no connection, along which fewer than `2 ^ 28
 in a panic, and the main thread's result, if any, is `#()`. -/
 theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [log.NewModel]
     -- KV: txnlinfaultsN's cluster, `k₁` members
     (k₁ : w64) (ids₁ ps₁ : List w64) (ctxs₁ : List (List w8))
     (boot₁ : List LogEntry) (Hlen₁ : ids₁.length = uint.nat k₁)

@@ -4,9 +4,10 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.version`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and
-runs their translated initializers (`errors.go`: `errors.New` calls; until 2026-11-19 untranslated,
-`opaqueInitsOk`).
+Its fact (`membership/PkgInit.lean`; grpcerrmap, 2026-11-26, `True` until then): every error
+variable its `errors.New` error (`errorsNewVars versionErrMsgs`), keys of `v3rpc`'s error map. Its
+initializer initializes its imports, allocates its variables and runs their translated initializers
+(`errors.go`: `errors.New` calls; until 2026-11-19 untranslated, `opaqueInitsOk`).
 -/
 module
 

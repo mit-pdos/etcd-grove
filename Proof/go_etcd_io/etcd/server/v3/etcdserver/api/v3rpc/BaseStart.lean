@@ -13,6 +13,7 @@ public import Perennial.Proof.sync.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.Defs
+public import Proof.google_golang_org.grpc.InvGrpcProm
 
 @[expose] public section
 

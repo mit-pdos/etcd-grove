@@ -74,7 +74,7 @@ theorem Server.wp_proof
     iintro %sys %i %Φ
     iintro !> %Φr ⟨Htok, HL, -⟩ HΦr
     ihave HL : lin (Gg := hG.goose_globalGS) (cR γs) i Φ $$ [HL]
-    · cases hw : (cR (GF := GF) γs).B.isWrite i
+    · cases hw : (cR (GF := GF) γs).B.isWrite ((cR (GF := GF) γs).mi i)
       · rw [slotUpd_read _ hw]
         icases HL with #HL
         iexact HL
@@ -89,7 +89,8 @@ theorem Server.wp_proof
       unfold syncInv
       iinv Hsync' with >Hi Hclose
       icases Hi with ⟨%n, Hg, Hcs⟩
-      unfold lin
+      ihave HL := lin_linF (Gg := hG.goose_globalGS) (cR γs) i Φ $$ HL
+      unfold linF
       have hE : (cR (GF := GF) γs).Eop = ↑syncN := rfl
       rw [hE]
       imod HL with ⟨%st, Hst, Hk⟩
@@ -103,7 +104,7 @@ theorem Server.wp_proof
       iframe Hcs
       iintro Hcs
       imod ghostVar_update_halves (counterNext n (boxB i)) γs _ _ $$ Hg Hst with ⟨Hg, Hst⟩
-      have hst : (cR (GF := GF) γs).B.step i n = (counterNext n (boxB i), counterNext n (boxB i)) :=
+      have hst : (cR (GF := GF) γs).B.step ((cR (GF := GF) γs).mi i) n = (counterNext n (boxB i), counterNext n (boxB i)) :=
         cB_step_eq i n
       rw [hst]
       have hs1 : ghostVar γs (1 : Qp).half (counterNext n (boxB i)) ⊢

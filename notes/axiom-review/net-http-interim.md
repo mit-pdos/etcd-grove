@@ -67,3 +67,85 @@ gives the old `muxOwn … []` and `httpSrvEnv`. Two caveats, recorded in the doc
 2. The pools' predicates (`wPoolP`, `rPoolP`) are chosen by the axiom. That is sound only because the pool
    variables are untranslated and allocated inside their opaque initializers, so nothing else yields their
    points-to; translating them reopens the question.
+
+**2026-11-25: httpdriver's interim axioms, reviewed** (zeldovich-proving-2, #24 issuecomment-7144119919;
+go1.27.3 tests in their review). `ServeMux.HandleFunc.wp_proof`, `ReadResponse.wp_proof_resp` and the C6
+departure (`HProto.respEnd`) sound. Five findings, fixed over S5's landed vocabulary (after the merge of
+`lean`, the axioms are restated over `MuxDefs`' refined `muxOwn`/`muxRoute`):
+1. **`Serve.wp_proof`: more than 500 header values (counting `Host`) get a `431`, then the connection
+   closes** (`server.go:2087`, `maxHeaderValueCount`), not an answer `httpRespP` allows. **Fix:** `reqOk`
+   requires `R.hdr.length + 1 ≤ 500` (`WireDefs.lean`).
+2. **`ServeMux.ServeHTTP.wp_proof`: Go 1.22's mux redirects with `307`** (`StatusTemporaryRedirect`,
+   `server.go:2743/2759/2768`), not `301` (only `httpmuxgo121=1`'s matcher answers `301`). **Fix:** `307` in
+   `muxNoRoute`, and the axiom covers Go 1.22's matcher only: its precondition has `use121 ↦□ false`. Where it
+   comes from (#18's option (a)): net/http's `initFirstRes` now ties `use121` to the setting (`∃ b, use121 ↦□ b
+   ∗ ⌜b = true → godebugHttpmuxgo121 = "1"⌝`, what the approved trusted `init` model does: a strengthening of
+   the reviewed `wp_init_first`, to re-review), and the top-level statement takes the environment premise
+   `GodebugHttpmuxgo121Not1` (`HEnv`, baseline-listed as opaque in `etc/premise-witness-baseline.txt`).
+3. **`ServeMux.ServeHTTP.wp_proof`: the trailing-slash redirect** happens exactly when the path is not a
+   pattern, does not end in `/`, and `path ++ "/"` is a pattern, even when a shorter subtree pattern routes it
+   (`/` and `/a/` registered: `GET /a` is `307`; `/a//` registered: `GET /a/` is `404`). **Fix:** `muxRedirect Ps
+   p := ¬ pathClean p ∨ (p ∉ Ps ∧ p.getLast? ≠ some '/' ∧ p ++ "/" ∈ Ps)`, checked first (`findHandler`'s
+   order); then the longest pattern the path is under; then `404`.
+4. **`Serve.wp_proof`: `Pragma: no-cache` makes `readRequest` add `Cache-Control: no-cache`**
+   (`request.go:1176`), so the handler's header map is not `R.hdr`. **Fix:** `Pragma` in `reqKeysOut`.
+5. **`ServeMux.ServeHTTP.wp_proof` called directly: the fields the mux reads and writes were not in the
+   precondition.** **Fix:** `srvReq` pins `RequestURI` (the path: never `"*"`), `Host`, `URL` (the URL of the
+   path alone: no `Host`, no `RawPath`), the protocol (`HTTP/1.1`), and `servePre` the method (`methOk`: not
+   `CONNECT`) and the owned `Pattern`, `pat`, `matches` (`reqMuxFields`).
+Also, from the merge: `muxSh` no longer holds `DefaultServeMux ↦□ m` (which made `muxOwn m` unsatisfiable
+for a mux of the program's own); `http.Handle`'s lemma takes it, and `muxOwn` carries `serveEnv` for it
+(proofs only, no trusted text). `ServeMux.HandleFunc.wp_proof` stays an axiom for this review; it is provable
+like `wp_Handle_lit` (`wp_register_lit`, `wp_mux121_handle`) and will be proved in the proof stage.
+
+**2026-11-25: re-review of `f7b2807d4a`** (zeldovich-proving-2, #24 issuecomment-7155892191; go1.27.3 tests
+on tundra, `/shared/tmp/ps2/revhttp2/`). The five findings above: fixed, each rerun against Go. `Serve` (user
+handler), `HandleFunc`, `ReadResponse`, `wp_init_first`'s `use121` clause and the proof-only edits: sound;
+`ServeMux.ServeHTTP` matched Go on 24,000 random cases outside the case below. One new finding, fixed:
+- **N1, `ServeMux.ServeHTTP.wp_proof`: an empty segment of a literal pattern acts as a wildcard**
+  (`routing_tree.go:69-72` keys it like a single wildcard: with `//` registered, `GET /a/` runs its handler and
+  `GET /ab` gets a `307`; with `/a//b`, `GET /a/zzz/b` gets a `200`). **Fix:** the axiom takes
+  `∀ ph ∈ L, litPattern ph.1 ∧ pathClean ph.1` (a premise only; `litPattern`, `Handle.spec`,
+  `Serve.spec_rpc` unchanged). The driver's patterns `/echo`, `/status` are clean.
+- **M1, wording:** `godebugHttpmuxgo121` is one constant, so `GodebugHttpmuxgo121Not1` is about every
+  machine of a deployment: said so in its docstring and the statement's description.
+With N1 fixed: `done: OK` from zeldovich-proving-2 (no further round).
+
+**2026-11-25: proof stage, a gap the client proof hits (httpdriver proof agent; proposed, not applied).** The
+client wraps each connection in `bufio.NewReader`, whose spec asks the stream's law `□ ∀ r, S r -∗
+⌜r.length + 2 ^ 12 < 2 ^ 62⌝`; the stream's bytes are what `httpRespP` lets the server write, and nothing there
+bounds an answer's head: `hdrView hs hc` only pins `hc` at the keys outside `srvKeys`, so `hc` may hold any
+number of other keys with empty values, and the `srvKeys` values have no length bound; and `muxNoRoute` makes a
+protocol accept the mux's `404`/`307` for every `hs`, so the driver's `P` cannot bound `hs` either. Related:
+`ReadResponse.wp_proof_resp` reads a head of any size (the model's `modelReadMIMEHeader(r, math.MaxInt64)`)
+through `bufio` over a `readerStreamNE` whose `Read` is specified only below `2 ^ 62` bytes, yet its
+precondition has no length law: over a reader that fails past `2 ^ 62` bytes (it meets `readerStreamNE`) and a
+stream the precondition allows (a head of `2 ^ 62` bytes is `respOk`), the asserted WP is false. Proposed
+(each trusted text): (1) `ReadResponse.spec_resp` takes `(□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝)`, as
+`bufio.NewReader` does; (2) `hdrsOk hs` (`WireDefs.lean`) adds `(hs.flatMap hdrLineWire).length ≤ 2 ^ 21` (a
+handler's committed header block; the mux's own `307` carries a `Location` of a path of at most `2 ^ 20`
+bytes); (3) `respFacts` (`ProtoDefs.lean`) adds, for `.ans ρ`, `(respHeadWire ρ.st ρ.reason ρ.hc).length ≤
+2 ^ 22`, and the same for `.chunked st reason hc` (Go's server writes the status line, at most 46 bytes, the
+handler's lines, and its own `Date`, `Content-Type`, `Content-Length`, `Connection`, `Transfer-Encoding`
+lines, under 512 bytes). And one driver change, not trust: the client's loop leaves a connection after a
+`400` (`resp.StatusCode == http.StatusBadRequest`, the server closes it), not only after its junk request:
+after a close-delimited answer whose body ended early (a cut connection), the reader's bytes are a prefix of
+the `400` answer that no further `ReadResponse` precondition covers.
+
+**2026-11-25: the three changes applied** (approved as interim text by the dsverify-net lead; (2) and (3) are new
+claims about Go, for zeldovich-proving-2 to check against go1.27.3): (1) `ReadResponse.spec_resp` takes
+`(□ ∀ r, S r -∗ ⌜r.length + 2 ^ 12 < 2 ^ 62⌝)` (a weakening); (2) `hdrsOk hs` adds `(hs.flatMap
+hdrLineWire).length ≤ 2 ^ 21`: an obligation of whoever commits through `respOps`, so weaker for `Serve.wp_proof`
+(its handler premise and the writer it gives), but **stronger for `ServeMux.ServeHTTP.wp_proof`**, which asserts a
+run of the mux from a `servePre` whose writer takes only such blocks: the mux's own answers must meet it (its `404`:
+`Content-Type`, `X-Content-Type-Options`; its `307`: `Location` of a path of at most `2 ^ 20` bytes, and
+`Content-Type`); (3) `respFacts` bounds a handler's answer's head to `2 ^ 22` bytes (`.ans`, `.chunked`): a
+strengthening of `Serve.wp_proof` (the server's writes). The driver's client leaves a connection after a `400`.
+`ServeMux.HandleFunc.wp_proof` is a theorem (translated `HandleFunc`, as `wp_Handle_lit`).
+**(2'), the companion of (2)** (approved by the dsverify-net lead; for zeldovich-proving-2's Go check with (2) and
+(3), and Upamanyu's packet). Found while writing this note: with (2)'s
+absolute bound, `ServeMux.ServeHTTP.wp_proof` was unsound for a path over about `2 ^ 21` bytes (its `307`'s
+`Location` holds the path, and `servePre` did not bound it). Fixed: `servePre`'s pure conjunct adds
+`R.path.length ≤ 2 ^ 20` (a premise of `ServeMux.ServeHTTP.wp_proof`, so weaker; what `Serve.wp_proof` gives a
+handler: a stronger promise, derived from the reviewed `reqOk` bound, since the path is part of the head and
+`(reqWire R []).length ≤ 2 ^ 20` covers it).

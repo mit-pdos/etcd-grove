@@ -10,7 +10,7 @@
 #
 # `roots PATTERN`: every etcd and Kubernetes example's result (the single-process theorems, the
 # drivers' linked `Main`s, putget's distributed `putget_safe_of_*`) and every top-level robustness
-# theorem of every tree (mvccfull and mvccrand among them).
+# theorem of every tree (mvccfull among them).
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/(etcd|k8s)/
 roots TopLevelRobustness\.lean$
 # `axioms PATTERN`: the family, by declaring module or name (etc/tcb-report.py --help): grpc and its
@@ -39,8 +39,6 @@ axioms ^rafthttp\.netErrNotRemoved_ok$
 axiom Client.Close.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
-axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.net.http.initFuncsOk
 axiom WithRequireLeader.wp_proof
@@ -52,7 +50,6 @@ axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcd_noRefusal
 axiom grpc.ClientConn.Close.wp_proof
@@ -153,10 +150,6 @@ axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom status.Code.wp_proof
-axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
-axiom status.Status.Code.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof

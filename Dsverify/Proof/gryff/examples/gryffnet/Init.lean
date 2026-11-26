@@ -17,7 +17,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.bufio.Init
 public import Proof.github_com.anishathalye.porcupine.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Dsverify.Proof.gryff.src.genericsmrproto.Init
 public import Dsverify.Proof.gryff.src.gryff.Init

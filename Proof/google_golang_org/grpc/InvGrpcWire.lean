@@ -1,9 +1,11 @@
 /-
-**grpc's wire as net-library protocols** (phase 7 S2's core; `notes/phase7-plan.md`, "S2 draft
-signatures", §1.2, as amended in §0a): what the grpc model (`models/grpc`) writes on a connection,
-as Lean functions of its Go code's bytes, and the protocols (`Net.Proto`) of a connection to an
-address that serves a table of unary methods `Svc`, with the unary call's deposit in the
-connection's slot (`GooseLang/Ext/Net/Slot.lean`). Definitions and their laws; no axiom (two opaques, `grpcCliPI`/`grpcSrvPI`, below).
+**grpc's wire: the model's bytes, the service table and the address facts** (phase 7; S2's
+core, `notes/phase7-plan.md`, "S2 draft signatures", and SW1, `notes/phase7-endstate.md` §1.2): what
+the grpc model (`models/grpc`) writes on a connection, as Lean functions of its Go code's bytes, the
+service table an address serves, and what an address serving it is. Definitions and their laws; no
+axiom (two opaques, `grpcCliPI`/`grpcSrvPI`, below). The connection's protocols over these bytes,
+`grpcCliP`/`grpcSrvP`, are the call library's (`InvGrpcCallLib.lean`, S3.1), which replaced the
+per-data-frame unary slot of S2's §0a that was here.
 
 **The model's bytes** (`models/grpc/model_wire.go`; one stream per connection). A frame is a kind
 byte and a body. `be32 n` is `binary.BigEndian.AppendUint32(nil, uint32(n))`; `headerBlock kind fs`
@@ -25,44 +27,21 @@ raw standard encodings `b64Raw` of the metadata's, which is what grpc's client w
 `encodeBinHeader`); and no key with no values. `grpcMsgDecode` is `decodeGrpcMessage` (the
 `grpc-message` field's percent-decoding, `model_http_util.go`).
 
-**The protocols.** `grpcCliP Svc` (what a dialer writes): a prefix of the preface; or the preface,
-a head `fs`, and a rest that, if `fs` names a unary method of `Svc` (`grpcUnaryOf Svc fs`), is empty,
-a cancel, or one data frame of bytes `bs` carrying the attempt's slot (`grpcAttemptSlot Svc cn fs
-bs`), then anything. The slot holds the deposit, `▷` the method's spec at every metadata the server
-may make of `fs` (`grpcDeposit`), claimable once the server read the whole data frame (`msgReady fs
-bs`: correction 1 of §0a, the deposit rides with the message, to the server's `dec`), and its
-outcome `GrpcOut` (`.ok bs'`: a reply some `m'` encodes to, with `Φ m'`; `.err d`: a handler's
-description's `Ψe d`, `grpcSlotCont`). `grpcSrvP Svc` (what an acceptor writes): a prefix of its
-preface, or its preface and whole frames, each meeting `srvFrameOk`: a data frame answers the slot
-`.ok` with its bytes, a trailer whose decoded `grpc-message` is a handler's description answers it
-`.err`, unless the connection's head is no unary method of `Svc` (`streamConn`); a `REFUSED_STREAM`
-reset (code 7) says the server refused the connection (`connRefused`).
-
 **Addresses.** `grpcAddrAt a Svc` (persistent): `a`'s protocols are grpc's for `Svc` as the S2
 interface states them, the **opaque** `grpcCliPI Svc`/`grpcSrvPI Svc` (trusted text with no law,
 `notes/audit.md`; their intended reading is `grpcCliP Svc`/`grpcSrvP Svc`, which take their place
-once S2 proves `ClientConn.Invoke` and `Server.Serve` over the model: over the defined protocols,
+once S2 and S3 prove `ClientConn.Invoke`, `NewStream` and `Server.Serve` over the model: over the defined protocols,
 a raw Go program could dial or listen on a grpc address and write or read the model's frames, a
 head with no data frame or a reader expecting `settingsBytes` of real HTTP/2, so an axiom over
-`grpcAddrAt` would be unsound), and the slot map exists; until then `grpcCliP`/`grpcSrvP` and the
-parse laws below are a library no address uses; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq Wp Spec`
+`grpcAddrAt` would be unsound), and the slot map exists; until then `grpcCliP`/`grpcSrvP` and their
+parse laws are a library no address uses; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq Wp Spec`
 (persistent, heap-free): the table `a` serves has an entry for `name` at the wire parts `Wq`, `Wp`,
 and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`).
 
 **Parsing.** A well-formed head (`headOk`: its block's length fits its `uint32`; the model's
 check before it writes a block, `headerListOk`, gives it: `headOk_of_listOk`, F1 of §0a) and a data
 frame of a message below `2 ^ 32` bytes are determined by their bytes (`head_prefix_inj`,
-`dataFrame_prefix_inj`), so: a server that read the preface, a unary head and a data frame has the
-attempt's slot (`cli_read_slot`); a client on its unary attempt's connection that reads a server's
-data frame or a trailer with a handler's description has its slot's answer
-(`srv_data_answered`, `srv_trailer_answered`; `streamConn_unary`).
-
-**Not yet** (S2's later steps): the parse of the server's frame sequence (a client's read of
-`settingsBytes` and whole frames gives each frame's `srvFrameOk`; the server's blocks are within
-the limit, or the marker `.oversized`, since F1's fix), the client attempt's proof (`newClientTransportStream`,
-`createHeaderFields`), and the codec's laws for `protoEncodes` (O7: a message's wire part is its
-tree, `ProtoMsg.wire`, O3, and its bytes are any `protoEncodes` relates to the tree, an opaque
-relation in `Store.lean` with no law yet).
+`dataFrame_prefix_inj`); the parse laws of whole frame sequences are the call library's.
 -/
 module
 
@@ -425,35 +404,6 @@ theorem listOk_field (fs : List (GoString × GoString)) (h : headerListOk fs) (n
         have := ih n (by simpa using hn); omega
   omega
 
-/-! ## Outcomes, keys, readiness -/
-
-/-- **What the server answered a unary attempt's slot**: a reply's bytes, or a handler's error
-description. -/
-inductive GrpcOut where
-  | ok (bs : List w8)
-  | err (d : GoString)
-deriving DecidableEq
-
-def GrpcOut.enc : GrpcOut → List w8 ⊕ GoString
-  | .ok bs => .inl bs
-  | .err d => .inr d
-
-instance GrpcOut.countable : Pos.Countable GrpcOut :=
-  .ofInjective (fun o => Pos.Countable.encode o.enc) (fun a b h => by
-    have h' := Pos.encode_inj h
-    cases a <;> cases b <;> simp_all [GrpcOut.enc])
-
-/-- A unary attempt's slot key: its head's fields and its request's bytes. -/
-abbrev GrpcKey : Type := List (GoString × GoString) × List w8
-
-/-- **The client has written its whole request message**: after this the server may claim. -/
-def msgReady (fs : List (GoString × GoString)) (bs : List w8) (W : List w8) : Prop :=
-  clientPrefaceBytes ++ headFrame fs ++ dataFrame bs <+: W
-
-theorem msgReady_ready (fs : List (GoString × GoString)) (bs : List w8) :
-    SlotReady (msgReady fs bs) where
-  mono _ _ ha hab := ha.trans hab
-
 /-! ## The service table -/
 
 section svc
@@ -501,23 +451,6 @@ inductive GrpcSvcEntry (GF : BundledGFunctors) [GooseExts] where
 (since phase 7, SW1). -/
 abbrev GrpcSvc (GF : BundledGFunctors) [GooseExts] := GoString → Option (GrpcSvcEntry GF)
 
-/-- The head `fs` names a unary method of `Svc`. -/
-def grpcUnaryOf (Svc : GrpcSvc GF) (fs : List (GoString × GoString)) : Prop :=
-  ∃ name e, pathOf fs = some name ∧ Svc name = some (.unary e)
-
-/-- **What a unary attempt deposits** for the entry `e` and the head `fs`: its request's
-precondition at every metadata the server may make of `fs`, a step later, after an update. -/
-def grpcDeposit (e : GrpcEntry GF) (fs : List (GoString × GoString)) (m : e.Wq.M)
-    (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF) : IProp GF :=
-  iprop(▷ ∀ md, ⌜grpcFieldsMd fs md⌝ -∗ |==> e.spec md m Φ Ψe)
-
-/-- **What the attempt gets back for an outcome**: a reply whose bytes are some `m'`'s, with
-`Φ m'`; or, for a handler's description, its `Ψe`. -/
-def grpcSlotCont (e : GrpcEntry GF) (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF) :
-    GrpcOut → IProp GF
-  | .ok bs => iprop(∃ m', ⌜protoEncodes e.Wp.ty (e.Wp.tree m') bs⌝ ∗ Φ m')
-  | .err d => iprop(⌜d ∈ handlerDescs⌝ -∗ Ψe d)
-
 /-- **What a dialer writes on a connection to an address serving `Svc`, as the S2 interface states
 it** (opaque until S2 proves `ClientConn.Invoke` and `Server.Serve` over the model; then `grpcCliP
 Svc` takes its place): the bytes grpc's own transport writes. Opaque so that no program but grpc's
@@ -542,54 +475,6 @@ include Gg
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 variable [π : NetProtoGS] [σ : NetSlotGS]
-
-/-- **The slot of a unary attempt on `cn`** (persistent): the head `fs` names `e`'s method, the
-request's bytes `bs` are some `m`'s, and the slot holds the deposit at `fs`. -/
-def grpcAttemptSlot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (bs : List w8) : IProp GF :=
-  iprop(∃ (name : GoString) (e : GrpcEntry GF) (γ : SlotNames) (m : e.Wq.M)
-      (Φ : e.Wp.M → IProp GF) (Ψe : GoString → IProp GF),
-    ⌜pathOf fs = some name ∧ Svc name = some (.unary e) ∧ protoEncodes e.Wq.ty (e.Wq.tree m) bs⌝ ∗
-    depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) ∗
-    depSlotInv (Gg := Gg) cn γ (msgReady fs bs) (grpcDeposit e fs m Φ Ψe) (grpcSlotCont e Φ Ψe))
-
-/-- What a client may write after the head `fs` (see the file header). -/
-def cliRest (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (rest : List w8) :
-    IProp GF :=
-  iprop(⌜¬ grpcUnaryOf Svc fs⌝ ∨ ⌜rest = [] ∨ rest = cancelFrame⌝ ∨
-    ∃ bs tl, ⌜rest = dataFrame bs ++ tl ∧ bs.length < 2 ^ 32⌝ ∗
-      grpcAttemptSlot (Gg := Gg) Svc cn fs bs)
-
-/-- **What a client writes** on a connection to an address serving `Svc`: every head well formed
-(`headOk`). -/
-def grpcCliP (Svc : GrpcSvc GF) : Proto GF := fun cn W =>
-  iprop(⌜W <+: clientPrefaceBytes⌝ ∨
-    ∃ fs rest, ⌜W = clientPrefaceBytes ++ headFrame fs ++ rest ∧ headOk fs⌝ ∗
-      cliRest (Gg := Gg) Svc cn fs rest)
-
-/-- The connection's client wrote a head that names no unary method of `Svc` (persistent). -/
-def streamConn (Svc : GrpcSvc GF) (cn : Nat) : IProp GF :=
-  iprop(∃ fs, sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗
-    ⌜headOk fs ∧ ¬ grpcUnaryOf Svc fs⌝)
-
-/-- **What a server frame says** (see the file header). -/
-def srvFrameOk (Svc : GrpcSvc GF) (cn : Nat) : SrvFrame → IProp GF
-  | .header _ => iprop(True)
-  | .data bs => iprop(streamConn (Gg := Gg) Svc cn ∨
-      ∃ (γ : SlotNames) (k : GrpcKey), depSlotOf (Gg := Gg) cn γ k ∗
-        slotDone (Gg := Gg) γ (GrpcOut.ok bs))
-  | .trailer fs => iprop(streamConn (Gg := Gg) Svc cn ∨
-      ∀ v, ⌜fieldLast fs go!"grpc-message" = some v ∧ grpcMsgDecode v ∈ handlerDescs⌝ -∗
-        ∃ (γ : SlotNames) (k : GrpcKey), depSlotOf (Gg := Gg) cn γ k ∗
-          slotDone (Gg := Gg) γ (GrpcOut.err (grpcMsgDecode v)))
-  | .reset c => iprop(⌜c = errCodeRefusedStream⌝ -∗ connRefused (Gg := Gg) cn)
-  | .oversized _ => iprop(True)
-
-/-- **What a server writes** on a connection to an address serving `Svc`. -/
-def grpcSrvP (Svc : GrpcSvc GF) : Proto GF := fun cn W =>
-  iprop(⌜W <+: settingsBytes⌝ ∨
-    ∃ frames : List SrvFrame, ⌜W = settingsBytes ++ (frames.map srvFrameBytes).flatten⌝ ∗
-      [∗list] f ∈ frames, □ srvFrameOk (Gg := Gg) Svc cn f)
 
 /-- **The address `a` serves `Svc`** (persistent): its protocols are grpc's for `Svc`, as the S2
 interface states them (the opaque `grpcCliPI`/`grpcSrvPI`, so that a program other than grpc's
@@ -621,17 +506,6 @@ def grpcStreamSvcAt (a name : GoString) (Wq Wp : ProtoWire) (Up : Nat → Wq.M �
     (□ ∀ md γ, spec₀ md γ (dn₀ md γ)) ∗
     (□ ∀ i m, Up i m ==∗ up₀ i m) ∗ (□ ∀ md γ Dn, spec₀ md γ Dn -∗ Spec md γ Dn))
 
-instance grpcAttemptSlot_persistent Svc cn fs bs :
-    Persistent (grpcAttemptSlot (Gg := Gg) Svc cn fs bs) := by
-  unfold grpcAttemptSlot; infer_instance
-instance cliRest_persistent Svc cn fs rest : Persistent (cliRest (Gg := Gg) Svc cn fs rest) := by
-  unfold cliRest; infer_instance
-instance grpcCliP_persistent Svc cn W : Persistent (grpcCliP (Gg := Gg) Svc cn W) := by
-  unfold grpcCliP; infer_instance
-instance streamConn_persistent Svc cn : Persistent (streamConn (Gg := Gg) Svc cn) := by
-  unfold streamConn; infer_instance
-instance grpcSrvP_persistent Svc cn W : Persistent (grpcSrvP (Gg := Gg) Svc cn W) := by
-  unfold grpcSrvP; infer_instance
 instance grpcAddrAt_persistent a Svc : Persistent (grpcAddrAt (Gg := Gg) a Svc) := by
   unfold grpcAddrAt; infer_instance
 instance grpcSvcAt_persistent a name Wq Wp Spec :
@@ -664,97 +538,6 @@ theorem grpc_addr_set (E : CoPset) (a : GoString) (Svc : GrpcSvc GF) :
   imodintro
   unfold grpcAddrAt
   iframe Hp Hs
-
-/-- **A unary attempt's connection is no stream connection**: its client wrote a well-formed head
-naming a unary method of `Svc`, so the server's frames answer its slot. -/
-theorem streamConn_unary (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (hok : headOk fs) (hu : grpcUnaryOf Svc fs) :
-    sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗ streamConn (Gg := Gg) Svc cn ⊢
-      (False : IProp GF) := by
-  unfold streamConn
-  iintro ⟨#H1, %fs', #H2, %hfs'⟩
-  icases sentLb_agree cn false (clientPrefaceBytes ++ headFrame fs)
-    (clientPrefaceBytes ++ headFrame fs') $$ [H1 H2] with %h
-  · iframe H1 H2
-  exfalso
-  obtain ⟨hok', hnu⟩ := hfs'
-  rcases h with h | h
-  · exact hnu (head_prefix_inj (y := []) hok hok' (by simpa using h) ▸ hu)
-  · exact hnu (head_prefix_inj (y := []) hok' hok (by simpa using h) ▸ hu)
-
-/-- **The server reads a unary request whole**: what it read, the preface, a well-formed head
-naming a unary method of `Svc` and a data frame, met the client's protocol, so the data frame
-carries the attempt's slot. -/
-theorem cli_read_slot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (bs : List w8) (hok : headOk fs) (hu : grpcUnaryOf Svc fs) (hbs : bs.length < 2 ^ 32) :
-    protoPrefix (grpcCliP (Gg := Gg) Svc) cn (clientPrefaceBytes ++ headFrame fs ++ dataFrame bs) ⊢
-      grpcAttemptSlot (Gg := Gg) Svc cn fs bs := by
-  unfold protoPrefix
-  iintro (%h0 | ⟨%ext, %hext, #HP⟩)
-  · exfalso
-    have := congrArg List.length h0
-    simp [dataFrame_length] at this
-  unfold grpcCliP
-  icases HP with (%hpre | ⟨%fs0, %rest, ⟨%hW, %hok0⟩, #Hr⟩)
-  · exfalso
-    have h1 := (hext.trans hpre).length_le
-    simp only [List.length_append, dataFrame_length, clientPrefaceBytes] at h1
-    simp at h1
-    omega
-  subst hW
-  have hh : clientPrefaceBytes ++ headFrame fs <+: clientPrefaceBytes ++ headFrame fs0 ++ rest :=
-    (List.prefix_append _ _).trans hext
-  obtain rfl := head_prefix_inj hok hok0 hh
-  have hd : dataFrame bs <+: rest := (List.prefix_append_right_inj _).1 hext
-  unfold cliRest
-  icases Hr with (%hnu | %hr | ⟨%bs0, %tl, ⟨%hrest, %hbs0⟩, #Hs⟩)
-  · exfalso; exact hnu hu
-  · exfalso
-    have h1 := hd.length_le
-    rcases hr with rfl | rfl <;> (simp [dataFrame_length, cancelFrame] at h1 <;> omega)
-  · subst hrest
-    obtain rfl := dataFrame_prefix_inj hbs hbs0 hd
-    iexact Hs
-
-/-- **The client reads a reply's data frame**: on its unary attempt's connection, a server's data
-frame of bytes `bs'` answered its slot `.ok bs'`. -/
-theorem srv_data_answered (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
-    (bs bs' : List w8) (γ : SlotNames) (hok : headOk fs) (hu : grpcUnaryOf Svc fs) :
-    ⊢ sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) -∗
-      depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) -∗ srvFrameOk (Gg := Gg) Svc cn (.data bs') -∗
-      slotDone (Gg := Gg) γ (GrpcOut.ok bs') := by
-  iintro #Hlb #Hs Hf
-  unfold srvFrameOk
-  icases Hf with (#Hst | ⟨%γ', %k', #Hs', #Hd⟩)
-  · iexfalso
-    iapply streamConn_unary Svc cn fs hok hu $$ [Hlb Hst]
-    iframe Hlb Hst
-  · icases depSlotOf_agree cn γ γ' ((fs, bs) : GrpcKey) k' $$ Hs Hs' with %h
-    obtain ⟨rfl, -⟩ := h
-    iexact Hd
-
-/-- **The client reads a trailer**: on its unary attempt's connection, a trailer whose decoded
-`grpc-message` is a handler's description answered its slot `.err` with it. -/
-theorem srv_trailer_answered (Svc : GrpcSvc GF) (cn : Nat) (fs fst : List (GoString × GoString))
-    (bs v : List w8) (γ : SlotNames) (hok : headOk fs) (hu : grpcUnaryOf Svc fs)
-    (hv : fieldLast fst go!"grpc-message" = some v) (hd : grpcMsgDecode v ∈ handlerDescs) :
-    ⊢ sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) -∗
-      depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) -∗
-      srvFrameOk (Gg := Gg) Svc cn (.trailer fst) -∗
-      slotDone (Gg := Gg) γ (GrpcOut.err (grpcMsgDecode v)) := by
-  iintro #Hlb #Hs Hf
-  unfold srvFrameOk
-  icases Hf with (#Hst | Hw)
-  · iexfalso
-    iapply streamConn_unary Svc cn fs hok hu $$ [Hlb Hst]
-    iframe Hlb Hst
-  · ihave Hx := Hw $$ %v
-    ihave Hy := Hx $$ []
-    · ipureintro; exact ⟨hv, hd⟩
-    icases Hy with ⟨%γ', %k', #Hs', #Hd⟩
-    icases depSlotOf_agree cn γ γ' ((fs, bs) : GrpcKey) k' $$ Hs Hs' with %h
-    obtain ⟨rfl, -⟩ := h
-    iexact Hd
 
 /-- An entry of the table `a` serves is a registration of its method. -/
 theorem grpcSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry GF)

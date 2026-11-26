@@ -3,8 +3,8 @@
 # `lib/grpcdriver`: the driver's functions linked to their callees' proofs
 
 Each function's proof (`<F>.wp_proof`) with its callees' linked results: grpc's (its interim axioms and
-proofs, `Proof/google_golang_org/grpc/`), the context interim axiom
-(`context.WithCancelBackground.wp_proof_canceled`), the `StringValue` codec (`wrapperspb.String`'s
+proofs, `Proof/google_golang_org/grpc/`), `context.WithCancelBackground.wp_proof_canceled` (proved
+from Perennial's `wp_WithCancel_Background_canceled`, an interim axiom until perennial#705), the `StringValue` codec (`wrapperspb.String`'s
 proof), net's `Listen`, Perennial's. Written by hand (`etc/gen-link.py` does not cover this part yet); its
 results are in `EtcdGrove.grpcdriver`, under the prefix every `Link.lean` shares (`etc/proof_roots.py`).
 -/
@@ -69,7 +69,7 @@ public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.google_golang_org.grpc.WithTransportCredentials
 public import Proof.google_golang_org.grpc.credentials.insecure.NewCredentials
 public import Proof.google_golang_org.grpc.status.Code
-public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.ErrorLinked
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.google_golang_org.grpc.metadata.AppendToOutgoingContext
 public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
@@ -116,7 +116,7 @@ theorem wp_take : counter.take.spec (GF := GF) (hG := hG) := counter.take.wp_pro
 theorem wp_freshValue : freshValue.spec (GF := GF) (hG := hG) :=
   freshValue.wp_proof wp_take wp_randomWord _root_.Perennial.strconv.wp_FormatUint
 
-theorem wp_errOk : errOk.spec (GF := GF) (hG := hG) := errOk.wp_proof status.FromError.wp_proof
+theorem wp_errOk : errOk.spec (GF := GF) (hG := hG) := errOk.wp_proof status.FromError.wp_proofNE
 
 theorem wp_checkErr : checkErr.spec (GF := GF) (hG := hG) := checkErr.wp_proof wp_errOk
 
@@ -167,7 +167,7 @@ theorem wp_meta : «meta».spec (GF := GF) (hG := hG) :=
 
 theorem wp_canceled : canceled.spec (GF := GF) (hG := hG) :=
   canceled.wp_proof wp_freshValue wp_EchoStub_done wp_String _root_.Perennial.context.wp_Background
-    context.WithCancelBackground.wp_proof_canceled status.Code.wp_proof
+    context.WithCancelBackground.wp_proof_canceled (status.Code.wp_proofNE status.FromError.wp_proofNE)
 
 theorem wp_serverStream : serverStream.spec (GF := GF) (hG := hG) :=
   serverStream.wp_proof wp_randomWord wp_checkErr wp_ServerStreamStub wp_String
@@ -188,13 +188,13 @@ theorem wp_Client : Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof github_com.goose_lang.primitive.wp_RandomUint64 wp_below wp_work wp_freshValue
     wp_EchoStub_done svc.NewDriverClient.wp_proof wp_String _root_.Perennial.context.wp_Background
     insecure.NewCredentials.wp_proof grpc.WithTransportCredentials.wp_proof grpc.NewClient.wp_proof
-    grpc.ClientConn.Close.wp_proof status.Code.wp_proof
+    grpc.ClientConn.Close.wp_proof (status.Code.wp_proofNE status.FromError.wp_proofNE)
 
 theorem wp_sEcho : server.Echo.spec (GF := GF) (hG := hG) :=
   server.Echo.wp_proof _root_.Perennial.strconv.wp_FormatUint wp_String
 
 theorem wp_sFail : server.Fail.spec (GF := GF) (hG := hG) :=
-  server.Fail.wp_proof _root_.Perennial.strings.wp_HasPrefix status.Error.wp_proof
+  server.Fail.wp_proof _root_.Perennial.strings.wp_HasPrefix status.Error.wp_linked
 
 theorem wp_sMeta : server.Meta.spec (GF := GF) (hG := hG) :=
   server.Meta.wp_proof metadata.FromIncomingContext.wp_proof

@@ -16,9 +16,9 @@
 # `axiom X`/`sorry X`: the baseline. Written by hand (2026-11-23, from `#print axioms` of the closed
 # theorem): this repository's axioms and `sorry`s the roots rest on, none.
 roots ^Dsverify/Proof/github_com/despreston/go_craq/
-axiom Perennial.net.http.wp_init_first
-axiom Perennial.net.http.wp_initialize'
-axiom Perennial.net.rpc.wp_initialize'
 axiom Perennial.github_com.despreston.go_craq.LogDefault.wp_proof
 axiom Perennial.github_com.despreston.go_craq.LoggerPrintf.wp_proof
 axiom Perennial.github_com.despreston.go_craq.LoggerPrintln.wp_proof
+axiom Perennial.net.http.wp_init_first
+axiom Perennial.net.http.wp_initialize'
+axiom Perennial.net.rpc.wp_initialize'

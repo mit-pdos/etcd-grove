@@ -161,6 +161,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsLocalMemberLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__PromoteMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ValidateConfigurationChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Version
@@ -1572,6 +1573,10 @@ theorem membership.RaftCluster.wp_AddMember :
     membership.RaftCluster.AddMember.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.AddMember.wp_proof membership.RaftCluster.wp_updateMembershipMetric membership.wp_setIsLearnerMetric types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String zap.wp_Strings zap.wp_Bool
 
+theorem membership.RaftCluster.wp_PromoteMember :
+    membership.RaftCluster.PromoteMember.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.PromoteMember.wp_proof types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String
+
 theorem membership.RaftCluster.wp_RemoveMember :
     membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.RemoveMember.wp_proof membership.RaftCluster.wp_updateMembershipMetric types.ID.wp_String_ptr zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String zap.wp_Strings zap.wp_Bool
@@ -2397,7 +2402,7 @@ theorem EtcdServer.wp_isLeader :
 
 theorem errors.wp_IsStatusErr :
     errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
-  errors.IsStatusErr.wp_proof
+  errors.IsStatusErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem EtcdServer.wp_LeaseRenew :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) :=
@@ -3097,7 +3102,7 @@ theorem rafthttp.Transport.wp_RemovePeer :
 
 theorem EtcdServer.wp_applyConfChange :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyConfChange.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID membership.RaftCluster.wp_ValidateConfigurationChange membership.RaftCluster.wp_AddMember membership.RaftCluster.wp_RemoveMember schema.membershipBackend.wp_MustSaveMemberToBackend schema.membershipBackend.wp_MustDeleteMemberFromBackend schema.membershipBackend.wp_MustReadMembersFromBackend storage.BackendHooks.wp_SetConfState consistentIndex.wp_ConsistentApplyingIndex rafthttp.Transport.wp_RemovePeer raftpb.ConfChange.wp_GetType raftpb.ConfChange.wp_GetNodeId encoding.json.wp_Unmarshal zap.Logger.wp_Error zap.wp_Bool zap.wp_Error
+  EtcdServer.applyConfChange.wp_proof EtcdServer.wp_Logger EtcdServer.wp_MemberID membership.RaftCluster.wp_ValidateConfigurationChange membership.RaftCluster.wp_AddMember membership.RaftCluster.wp_PromoteMember membership.RaftCluster.wp_RemoveMember schema.membershipBackend.wp_MustSaveMemberToBackend schema.membershipBackend.wp_MustDeleteMemberFromBackend schema.membershipBackend.wp_MustReadMembersFromBackend storage.BackendHooks.wp_SetConfState consistentIndex.wp_ConsistentApplyingIndex rafthttp.Transport.wp_RemovePeer raftpb.ConfChange.wp_GetType raftpb.ConfChange.wp_GetNodeId encoding.json.wp_Unmarshal zap.Logger.wp_Error zap.wp_Bool zap.wp_Error
 
 theorem EtcdServer.wp_apply [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.apply.spec (GF := GF) (hG := hG) :=

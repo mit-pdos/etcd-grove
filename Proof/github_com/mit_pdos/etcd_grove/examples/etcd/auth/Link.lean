@@ -213,7 +213,7 @@ theorem wp_SetUp :
     EtcdGrove.etcd_auth.SetUp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_auth.SetUp.wp_proof context.wp_WithTimeoutBackgroundMd context.wp_ErrAny wp_Principals wp_keyOf client.v3.authClient.wp_UserAdd client.v3.authClient.wp_UserGrantRole client.v3.authClient.wp_RoleAdd client.v3.authClient.wp_RoleGrantPermission client.v3.authClient.wp_AuthEnable client_Put_on_law_holds
 
-theorem wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_newUserClient :
     EtcdGrove.etcd_auth.newUserClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_auth.newUserClient.wp_proof client.v3.clientv3.wp_New
 
@@ -237,7 +237,7 @@ theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
 
-theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcd_auth.Run.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_auth.Run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground etcdstart.wp_Collect client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithRange wp_Permitted mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
@@ -254,7 +254,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 variable (h_auth_startServer : EtcdGrove.etcd_auth.startServer.spec (GF := GF) (hG := hG))
 include h_auth_startServer
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcd_auth.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_auth.Main.wp_proof zap.wp_NewNop h_auth_startServer wp_Run mvcc.api.mvccApi_names_nonempty_law_holds _root_.Perennial.EtcdGrove.proto.MarshalBootConfChange.wp_proof
 

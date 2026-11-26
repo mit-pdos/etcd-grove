@@ -7,7 +7,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.all.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.all.spawn
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.RunChecksJoin
+public import Proof.sync.WaitGroupAddMany
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -64,7 +64,7 @@ theorem Main.wp_proof
   imod (sync.join.init _ γwg) $$ [Hctr Hwaiters] with Hadd
   · iframe #; iframe
   -- `wg.Add(3)`
-  wp_apply (mvccrand.wp_Add_many sync.WaitGroup.wp_Add wg_ptr iprop(True)
+  wp_apply (waitGroup.wp_Add_many sync.WaitGroup.wp_Add wg_ptr iprop(True)
     [iprop(True), iprop(True), iprop(True)] (by simp)) $$ [Hadd] as ⟨Hadd, Hd1, Hd2, Hd3, -⟩
   · iframe #; iframe
   (try wp_auto)

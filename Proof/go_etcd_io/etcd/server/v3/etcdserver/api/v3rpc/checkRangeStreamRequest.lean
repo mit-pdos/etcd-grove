@@ -97,10 +97,10 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
         v3rpc.w64_of_w32_eq order 1 (by decide) (by decide)]
     wp_if_destruct
     rotate_left
-    · wp_apply (hErrf (W32 12)) as %e2 %He2
+    · wp_apply (hErrf (W32 12)) as %e2 ⟨%He2, -⟩
       · ipureintro
         simp only [google_golang_org.grpc.codes.OK]
-        exact fun h => absurd (go.intoVal_inj h) (by decide)
+        exact ⟨fun h => absurd (go.intoVal_inj h) (by decide), by decide⟩
       iapply HΦ
       iframe Hr
       ipureintro
@@ -112,10 +112,10 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
     cases hrf : txn.hasRevFilters o
     rotate_left
     · wp_auto
-      wp_apply (hErrf (W32 12)) as %e2 %He2
+      wp_apply (hErrf (W32 12)) as %e2 ⟨%He2, -⟩
       · ipureintro
         simp only [google_golang_org.grpc.codes.OK]
-        exact fun h => absurd (go.intoVal_inj h) (by decide)
+        exact ⟨fun h => absurd (go.intoVal_inj h) (by decide), by decide⟩
       iapply HΦ
       iframe Hr
       ipureintro

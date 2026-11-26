@@ -1,10 +1,12 @@
 # putget_safe (examples/etcd/dist/putget, notes/putget-dist-plan.md): etcd's first distributed theorem,
 # one member machine and one client machine, no crash: `theorem putget_safe : putget_safe.spec`
 # (Proof/.../examples/etcd/dist/putget/TopLevelRobustness.lean), no hypothesis. Its cross-machine steps
-# rest on the four interim axioms of notes/putget-dist-plan.md §12 (the table `etcd_dist.etcdSvc`,
-# `etcd_dist.Serve_dist.wp_proof`, `etcd_dist.Client_Put_dist.wp_proof`,
-# `etcd_dist.Client_Get_dist.wp_proof`; since the S2 interface switch the address fact is grpc's
-# `grpcAddrAt` and `etcdAddr_set` a theorem), retired by S2's `etcdSvc` and proofs. The rest is the
+# rest on the four interim axioms of notes/putget-dist-plan.md §12 and notes/etcd-dist-plan.md §18 (the table
+# `etcd_dist.etcdSvc`, `etcd_dist.Serve_dist.wp_proof` and the clientv3 contracts
+# `etcd_dist.KV_Put_dist.wp_proof`, `etcd_dist.KV_Get_dist.wp_proof`, at the cluster's view, O1 option B,
+# 2026-11-25: until then `Client_Put_dist`/`Client_Get_dist` were axioms over a published view, now theorems;
+# since the S2 interface switch the address fact is grpc's `grpcAddrAt` and `etcdAddr_set` a theorem),
+# retired by S2's `etcdSvc` and proofs. The rest is the
 # single-process member's and client's trust base. Baseline written by --check --update after a full
 # VM build.
 #
@@ -17,9 +19,7 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom NewRaftLoggerZap.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
-axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
@@ -37,10 +37,9 @@ axiom bootstrap.wp_proofOne
 axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
-axiom etcd_dist.Client_Get_dist.wp_proof
-axiom etcd_dist.Client_Put_dist.wp_proof
+axiom etcd_dist.KV_Get_dist.wp_proof
+axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.etcdSvc
 axiom fmt.SscanfWalName.wp_proof
@@ -74,7 +73,6 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.Lease.expired.wp_proof
-axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
@@ -107,6 +105,7 @@ axiom prometheus.NewHistogramVec.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualStatus.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
@@ -139,13 +138,9 @@ axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Code.wp_proof
-axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
-axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof

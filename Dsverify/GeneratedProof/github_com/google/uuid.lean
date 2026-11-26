@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.encoding.binary
+public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.google.uuid
 
@@ -15,63 +17,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.google.uuid
-
-namespace NullUUID
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.uuid.Assumptions]
-
-noncomputable instance NullUUID_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.google.uuid.NullUUID where
-  typedPointstoDef l v dq := iprop(
-    "UUID" ∷ typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' dq ∗
-    "Valid" ∷ typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance NullUUID_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.google.uuid.NullUUID github_com.google.uuid.NullUUID.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance NullUUID_access_load_UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' dq)
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance NullUUID_access_store_UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (UUID' : github_com.google.uuid.UUID) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) UUID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UUID' := UUID' } : github_com.google.uuid.NullUUID) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance NullUUID_access_load_Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' dq)
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance NullUUID_access_store_Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (Valid' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) Valid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Valid' := Valid' } : github_com.google.uuid.NullUUID) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end NullUUID
 
 namespace invalidLengthError
 section def_

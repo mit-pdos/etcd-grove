@@ -30,7 +30,7 @@ theorem time.Time.After.wp_proof : time.Time.After.spec (GF := GF) (hG := hG) :=
   intro p t u dq
   wp_start as Hp
   wp_auto
-  wp_apply _root_.Perennial.time.Time.wp_After as %b -
+  wp_apply _root_.Perennial.time.Time.wp_After
   iapply HΦ $$ Hp
 
 end proof

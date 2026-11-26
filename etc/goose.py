@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvraft, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -144,6 +144,13 @@ class Project:
     # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
     # builds. None: every module from the module cache.
     module_models: dict = None
+    # Modules the translation takes from a fork (module path -> (the fork's module path, its
+    # pseudo-version at the pinned commit, the `h1:` sums of its zip and of its go.mod, as go.sum
+    # lists them)), put in place as module_models are (`replace <path> => <fork> <version>`, the sums
+    # in the temporary go.work.sum or go.sum, checked against sum.golang.org by the go command), for a
+    # dependency whose code needs a behaviour-preserving rewrite to translate, kept upstream's
+    # everywhere else (the Go builds of the fork and of the examples use the module itself). None: none.
+    module_forks: dict = None
     # Expand tabs in the translation's comments to four spaces (Go doc comments indented with tabs:
     # goose copies them into `/-- … -/`, where Lean rejects a tab at the start of a line; a goose gap,
     # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
@@ -410,6 +417,17 @@ PROJECTS = [
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
         module_models={"google.golang.org/grpc": "models/grpc"},
+        # (prove-otel-encoderid, 2026-11-25, mit-pdos/etcd-grove#24 7167334725: a fork rewrite) otel
+        # v1.47.0 (etcd's go.mod) from the fork zeldovich-agent/opentelemetry-go, branch
+        # `goose-lean-encoderid` (8717f503c, on the tag v1.47.0): `attribute`'s `defaultEncoderID =
+        # NewEncoderID()` becomes a zero variable set by an `init` through a local variable
+        # (`id := NewEncoderID(); defaultEncoderID = id`), the same behaviour, which goose's modelcheck
+        # (R4) accepts; it refuses a call building a pointer-free struct in a package variable's
+        # initializer. Until then that initializer was the axiom `attribute.opaqueInitsOk`.
+        module_forks={"go.opentelemetry.io/otel": (
+            "github.com/zeldovich-agent/opentelemetry-go", "v1.47.1-0.20261126012358-8717f503c574",
+            "h1:X4CXKoj7WdN8IWHyeSnnJn7gOmiBuxdu4rfnKZmFIbE=",
+            "h1:8wS9O2qfXrYrzp6hIF/HOYJJf/wIhFPhR2xLuP+iXQU=")},
         # (#24 J3, 2026-11-23) membership's records with the encoding/json model's same-package methods
         # (`JSONModel*`, over models.lab/jsoncodec: the part Net/'s translation, `models.lab=Net`):
         # the member records the backend, the v2 store and the conf-change contexts hold
@@ -501,6 +519,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
             # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
             "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
+            # (etcd-dist D2, 2026-11-24) names only: the multi-machine server's `NewPeerHandler`
+            "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             # with bodies (etcdserver/api/v3compactor.toml): the auto-compactor (the spec-first
             # pilot, notes/compactor-pilot-plan.md)
@@ -633,8 +653,16 @@ PROJECTS = [
             # names only: what `clientv3.WatchResponse.Err` calls
             "google.golang.org/grpc/codes",
             "google.golang.org/grpc/status",
-            # names only: the target of the alias grpc/status.Status (client/v3/leasing)
+            # (status-bodies, 2026-11-25) with some bodies: `New` and the `Status`/`Error` methods
+            # (Code/google_golang_org/grpc/internal/status.toml); until then names only, the target
+            # of the alias grpc/status.Status (client/v3/leasing)
             "google.golang.org/grpc/internal/status",
+            # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) types only: `grpcsync.Event`, the
+            # type of `grpc.Server`'s `quit`/`done` fields
+            "google.golang.org/grpc/internal/grpcsync",
+            # (status-bodies) types only: the message `internal/status.Status` holds
+            "google.golang.org/genproto/googleapis/rpc/status",
+            "google.golang.org/protobuf/types/known/anypb",
             # (phase7-inits, 2026-11-25; first phase 7 S2 core, 2026-11-23) names only but the hook
             # variables the translated `init`s of grpc, `codes`, `metadata` and `health` set
             # (`Code/google_golang_org/grpc/internal.toml`), and `FromOutgoingContextRaw`, which grpc's
@@ -667,7 +695,7 @@ PROJECTS = [
             # names only (item 5, client construction): what `clientv3.New`'s dial names:
             # the credentials requirement of an endpoint, grpc's keepalive parameters, insecure
             # credentials and resolver builders (the type of `grpc.WithResolvers`'s parameter,
-            # for the trusted body of `dialWithBalancer`), and the type of `Config.TLS`
+            # which `dialWithBalancer` converts to), and the type of `Config.TLS`
             # (crypto/tls, a standard-library package Perennial does not translate)
             "go.etcd.io/etcd/client/v3/internal/endpoint",
             "google.golang.org/grpc/keepalive",
@@ -926,6 +954,8 @@ PROJECTS = [
                   # net/rpc's driver (notes/library-drivers.md)
                   "./rpcdriver", "./rpcdriver/service", "./rpcdriver/cmd/server",
                   "./rpcdriver/cmd/client",
+                  # net/http's driver (notes/library-drivers.md)
+                  "./httpdriver", "./httpdriver/cmd/server", "./httpdriver/cmd/client",
                   # each node a command of its example, its own process (examples/net/README.md)
                   "./echo/cmd/server",
                   "./echo/cmd/client",
@@ -1087,15 +1117,36 @@ PROJECTS = [
         # putget_safe's two programs (notes/putget-dist-plan.md): the member machine's
         # (`putget.Member`: etcdstart's StartServer and Serve) and the client machine's
         # (`putget.Client`: Put, Get, check), of
-        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md; its server and client
-        # packages are stage D2's). A package of the examples' Go module (examples/go.mod), as putget.
+        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md), and (D2) etcd_safe's
+        # packages below. Packages of the examples' Go module (examples/go.mod), as putget.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "dist"),
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    # (2026-11-24, notes/etcd-dist-plan.md "Interim transport") `server`'s proxy check reads the
+                    # environment through this repository's `os` (its `Getenv` spec), as etcd's packages
+                    "os=", "io/fs="],
+        # (etcd-dist D2, 2026-11-24) etcd_safe's programs: the deployment and its check, the member
+        # machine's server, the orchestrators' and client machines' client, kvremote, enc
+        packages=["./putget", "./deployment", "./enc", "./kvremote", "./server", "./client"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+    ),
+    Project(
+        name="putgetk-dist",
+        # putgetK_safe's programs (notes/putget-dist-plan.md §13): member i of a k-member cluster on a
+        # machine of its own (`putgetk.Member`: the cluster's map, etcdstart's StartMember and Serve)
+        # and the client machine's (`putgetk.Client`: putget-dist's `putget.Client`). A package of the
+        # examples' Go module (examples/go.mod), as putget-dist, whose `dist` directory it is inside
+        # (its own `dist/putgetk`, which putget-dist's output skips: others_owned).
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "dist"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
-        packages=["./putget"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+        packages=["./putgetk"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist", "putgetk")],
     ),
     Project(
         name="grpcdriver",
@@ -1241,24 +1292,6 @@ PROJECTS = [
                     "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "partition")],
-    ),
-    Project(
-        name="mvccrand",
-        # mvcc's randomized tester (notes/mvccrand.md): the watchable store over a real backend and
-        # lessor with a post-lock hook, one writer, concurrent floored readers and a watch stream,
-        # each result checked against the history. A package of the examples' Go module
-        # (examples/go.mod); its imports are the etcd project's translations (names reached through
-        # the empty root).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "mvccrand"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
-                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
-                    # (P3, 2026-11-24) `MainAt`'s `os.Lstat`: the os over the file extension
-                    "os=", "io/fs="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
     ),
     Project(
         name="mvccfull",
@@ -2422,10 +2455,14 @@ def module_models_env(proj, src, env, tmp):
     module by its model, named by GOWORK or GOFLAGS' -modfile; and, for a project with model files
     (`model_files_roots`), models.lab added (a `use` of models/ in a workspace, else a `require` and
     `replace`). `env` itself if there are none."""
-    if not proj.module_models and not model_files_roots(proj):
+    if not proj.module_models and not proj.module_forks and not model_files_roots(proj):
         return env
     env = dict(os.environ if env is None else env)
     reps = {m: os.path.join(ROOT, d) for m, d in sorted((proj.module_models or {}).items())}
+    # a fork: `<fork> <version>` in go.work, `<fork>@<version>` for go mod edit
+    forks = {m: (f, v) for m, (f, v, _, _) in sorted((proj.module_forks or {}).items())}
+    fork_sums = [f"{f} {v}{suffix} {h}\n" for m, (f, v, hz, hm) in sorted((proj.module_forks or {}).items())
+                 for suffix, h in (("", hz), ("/go.mod", hm))]
     uses = [os.path.join(ROOT, MODEL_MODULE[1])] if model_files_roots(proj) else []
     if os.path.exists(os.path.join(src, "go.work")):
         j = json.loads(subprocess.run(["go", "work", "edit", "-json", "go.work"], cwd=src,
@@ -2434,7 +2471,7 @@ def module_models_env(proj, src, env, tmp):
         lines += ["use ("] + ["\t" + os.path.normpath(os.path.join(src, u["DiskPath"]))
                               for u in j["Use"]] + ["\t" + u for u in uses] + [")"]
         for r in j.get("Replace") or []:
-            if r["Old"]["Path"] in reps:
+            if r["Old"]["Path"] in reps or r["Old"]["Path"] in forks:
                 continue
             new = r["New"]["Path"]
             if not r["New"].get("Version") and new.startswith("."):
@@ -2443,11 +2480,15 @@ def module_models_env(proj, src, env, tmp):
             lines.append(f"replace {old} => {new}" +
                          (" " + r["New"]["Version"] if r["New"].get("Version") else ""))
         lines += [f"replace {m} => {d}" for m, d in reps.items()]
+        lines += [f"replace {m} => {f} {v}" for m, (f, v) in forks.items()]
         work = os.path.join(tmp, "go.work")
         with open(work, "w") as f:
             f.write("\n".join(lines) + "\n")
         if os.path.exists(os.path.join(src, "go.work.sum")):
             shutil.copyfile(os.path.join(src, "go.work.sum"), work + ".sum")
+        if fork_sums:
+            with open(work + ".sum", "a") as f:
+                f.writelines(fork_sums)
         env["GOWORK"] = work
         return env
     modfile = os.path.join(tmp, "go.mod")
@@ -2459,10 +2500,15 @@ def module_models_env(proj, src, env, tmp):
     edits = []
     for r in j.get("Replace") or []:
         new = r["New"]["Path"]
-        if not r["New"].get("Version") and new.startswith(".") and r["Old"]["Path"] not in reps:
+        if not r["New"].get("Version") and new.startswith(".") and r["Old"]["Path"] not in reps \
+                and r["Old"]["Path"] not in forks:
             old = r["Old"]["Path"] + ("@" + r["Old"]["Version"] if r["Old"].get("Version") else "")
             edits.append(f"-replace={old}={os.path.normpath(os.path.join(src, new))}")
     edits += [f"-replace={m}={d}" for m, d in reps.items()]
+    edits += [f"-replace={m}={f}@{v}" for m, (f, v) in forks.items()]
+    if fork_sums:
+        with open(os.path.join(tmp, "go.sum"), "a") as f:
+            f.writelines(fork_sums)
     if uses:
         edits += [f"-require={MODEL_MODULE[0]}@v0.0.0-00010101000000-000000000000",
                   f"-replace={MODEL_MODULE[0]}={uses[0]}"]
