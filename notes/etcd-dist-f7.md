@@ -1161,3 +1161,33 @@ since `setupSt` has auth enabled), `foreign` (callees as they are; premises: the
    `leaseCheckD`'s info arm is false outright; its disabled arm meets `setupSt`'s `enabled = true`.
 4. **`RunAuthLease`**, its `Results` root and the collection: Handoff S3-1, items 4-5. Then `tcb-report --check`
    (base diff = the auth axioms the root reaches), `--check --update` (base and collection), tier-check, lease-order.
+
+### Handoff S5-2 (2026-11-26; S5 items 1-3 done; the S5 review's fixes applied; `RunAuthLease` next)
+
+**Done** (branch `etcd-safe-f7`; no `sorry`, no new axiom, no top-level statement changed):
+- `11a631e918`: `NewClients.lean` after `iframe #`: `ipureintro` and the pure facts. The seven targets of S5-1 built (EXIT 0).
+- `0f5c9642ac` (+ the fixes below): `dist/client/AuthFrozenFloor.lean` (defs): `authFloorD_frozen`: from `kvInvOn γR
+  Γ.kv srvAuthSt0` (**a premise the S5-1 plan did not name**: `srvReqLogLb` gives `authHistLb` only through the KV
+  invariant, `authHistLb_of_reqLogLb`; `RunAuthLease.spec` must take it, e.g. from `clusterFacts … true`'s
+  `kvInvM true`), `authHistFrozen Γ.kv γz hs`, the floor `authFloorD Γ γR mid L₀ m` with `Lset <+: L₀`,
+  `admStates … Lset = hs`, `srvAuthAtLog … Lset = setupSt r`, at a mask `E ⊇ authTieReadMask`: `∃ i ≤ m, □ ∀ j st,
+  ⌜i ≤ j⌝ -∗ authStateAt (Γ.au mid) j st ={E}=∗ ⌜st = setupSt r⌝`; `leaseCheckD_none_frozen` (an anonymous lease
+  check at `n ≥ i` is `False`); `leaseOptsAt_nil_d`/`_one_d`.
+- `9c78e74253`: `dist/client/noAuth` (spec + proof, built): pre `userCli`, `etcdAddrAt addr Γ mid`, `srvReqLogLb γR
+  L₀`, `authPubLbM n₀`, `lessorLb m₀`, the Grant/Revoke offers, `principalOf cfg = none`, and the refutation `□ ∀ n
+  K, ⌜n₀ ≤ n⌝ -∗ leaseCheckD (Γ.au mid) (principalOf cfg) n K ={⊤}=∗ False` (its caller: `leaseCheckD_none_frozen`).
+- `3eaa8ff4a7`: `dist/client/foreign` (spec + proof): premises the caller's refutations with `R` (Revoke's `Qr σ`
+  and `writeCheckedD`; TimeToLive-with-keys' `leaseCheckD … (leaseKeysVerdictFrom …)`; Leases' at
+  `leaseIdsAt (Γ.ls mid) j ids`), `who = "bad" → principalOf cfg = none`.
+- `1c2f9bcd0a`: the review `notes/axiom-review/f7-s5-review.md` and its Go test (`f7-s5-gotest/`).
+- `1b320c387a`, `f6d33a2204`, `708c342561`: its fixes (the coordinator's instruction): `outTokOk` covers `token` and
+  `authorization` with `Bearer ` trimmed (+ `outTokOk_none`; discharges in `absent`, `grantPut`, `barrier`,
+  `SetUpDist`, `outTokOk_reqMd` re-proved); `authFloorD`'s later-state conjunct under `={E'}=∗` with
+  `authTieReadMask ⊆ E'`; `KV_GetOn_dist`'s R1 docstring names the alignment lemma (§2.1); 13 F9 rows annotated.
+  Confirming-review targets: `/shared/tmp/coord-03/f7-s5-fix-targets.md`. Built on fk-lean2: the 23 `--leaves` of
+  `AuthViewDist.lean` (the 14 axiom pairs, `SetUpDist`, the dist helpers with `noAuth`/`foreign`), EXIT 0.
+
+**Next:** `RunAuthLease` (Handoff S3-1, items 4-5): its spec takes `kvInvOn γR Γ.kv srvAuthSt0` besides S3-1's list;
+per member, `barriers`' `barrierFloor` + `authFloorD_frozen` give `noAuth`'s refutation; then the root
+`dist/client/auth/Results.lean`, the collection `etc/tcb-collections/etcd-dist-auth.txt`, `tcb-report --check`
+(base diff = the auth axioms the root reaches), `--check --update`, tier-check, lease-order.
