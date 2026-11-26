@@ -1565,3 +1565,14 @@ NodeMain's auth arm (`NodeMainWatch` as template: `ServeClient` with `principalO
 (`principalClient`), not once by `NodeMain`, so `principalTok` holds the addresses, not a client; and
 `remotePrincipals` sends `auth.Principals()` (4) to `nodes`, so `reportAll`'s `xs.length = ns.length` needs
 `ns.length = 4`, which `principalsShare` carries (the deployment's `NodeCount(Auth) = 4`).
+
+**PS-1 done (2026-11-26):** the merge's full build ended `EXIT 0`; every piece above builds (`lake build`, no
+`sorry`, no axiom). Fixes: `strBytes_dec`'s last `omega`; `PrincipalWire`'s svc section needed the v3rpc and
+client assumptions (`watchFloorsDG`'s `etcdAddrAt`); `remotePrincipals`: a `wp_auto` before `wp_Principals`,
+`akDistEnv` → `akDistEnvG` by `rw [← akDistEnv_eq_G]` on the goal (not `rw … at` an Iris hypothesis), the attempt
+`W64 180000000000` (`principalAttempt`) given explicitly, `prRes` stated with the wire's answer unfolded
+(`∃ o : Bool, ⌜v = mkOk go.bool #o⌝ ∗ True) ∨ False`, as `wp_reportAll`'s post comes back), the type assertion's
+bounds `simp` after `wp_auto`; `RunAuth`'s spec imports remote's `Defs` (`RemoteGS`); `PrincipalsLinked` needs
+`[NaInvG GF]`. `etc/bounds-allow.txt`: `remotePrincipals`, `principalOp`. (`bounds-check --check` still fails on
+this branch, 424 against 389, as it did at `05c8bc09ba`: other packages' debt from the merge; `RunAuth.lean`'s
+`threadBound` is one of them, the orchestrator's, as `RunWatch`'s allowed one.)

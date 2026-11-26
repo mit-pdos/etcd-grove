@@ -178,6 +178,11 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newC
 # `reportAll` and `CallAll` (one goroutine per writer: `sync.tokJoinL`'s wait group counter). Discharged
 # from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunWatch|remoteWriters|reportAll|CallAll)\.lean$
+# (F7 S7, 2026-11-26) the auth workload's principal service, the writers' pattern: `remotePrincipals` (the
+# orchestrator's `reportAll` at the principals: `CallAll`'s goroutine per principal) and `principalOp` (the
+# principal machine's op, over `newClient`'s premise) take the logic's thread bound (`threadBound GF ≤ 2 ^ 30`),
+# discharged from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(remotePrincipals|principalOp)\.lean$
 # (N10a2 §24.7, 2026-11-26) the writers' Puts counted by receipts: `GenAll_receipts` (`GenAllR`: the Puts fewer
 # than `receiptBound`, one receipt per iteration) and `RunWatch`'s and `RunCache`'s `receiptBound GF ≤ 2 ^ 56`. Discharged at the
 # machine's boot from the start's `receiptBound ≤ etcdSteps`, not a top-level premise (as kvremote's `Orch`).
