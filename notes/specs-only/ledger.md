@@ -5909,3 +5909,31 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`applied` frozen at the start's); a self-addressed response is `RecvEndR` there (`recvEndR_advR`, the
   bookkeeping from `bk_of_stepEnd_net`), an acknowledgement leaves it (`advR_ack`, from `AckEnd`).
 - **Decision.** No new axiom, no new top-level premise; `#print axioms RawNode.*.wp_apiProof` std only.
+
+## 2026-11-26 — antithesis parity B1: `Cluster.spawn.spec` at a function value whose call ends normally (#33)
+
+- **Files.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Cluster__spawn.lean`; the proof
+  `Proof/…/antithesis/Cluster__spawn.lean` (`Cluster.spawn.wp_proof : Cluster.spawn.spec`).
+- **Correction (lead's Q1, approved).** The statement was false: `f : val` may be a panic value (the
+  call's beta step and `spawn`'s `GoAlloc` of `f` need a value `#f`), and the premise
+  `threadTok -∗ WP (f #()) {{ fun _ => threadTok }}` lets `f` end in a panic on the forked goroutine.
+  **Now:** `(f : GoFunc)`, the call `spawn(#f)`, and the premise
+  `threadTok -∗ WP (#f #()) {{ v, ⌜v = #()⌝ ∗ threadTok }}`. The post is unchanged.
+- **Callers.** `RunCluster` (the behaviours' spawns, not yet proved) passes each behaviour's method
+  value and its spec's `{{ RET #(); threadTok }}`, which is this premise.
+- **Decision.** No new axiom, no new top-level premise (a driver-internal spec).
+
+## 2026-11-26 — antithesis parity B1 phase 2: `RawNode.Campaign` over `ownRawNodeAt`, `CampaignEndR`'s election context existential (#33)
+
+- **Files.** `Proof/go_etcd_io/raft/v3/Protocol/InputEnd.lean` (`CampaignEndR`), `RawNodeAbsSpecs.lean`
+  (`RawNode.Campaign.form`/`absSpec`, new), `RawNodeApi.lean` (`RawNode.Campaign.apiSpec`, new),
+  `RawNode__CampaignAbs.lean` (new: `RawNode.Campaign.wp_absProof`), `RawNodeApiLinked.lean`
+  (`RawNode.Campaign.apiSpec_of_abs`, `wp_apiProof`), `StepEndIp.lean` (`campaignEndR_of_stepEnd_hup`).
+- **Change.** `CampaignEndR`'s election arm `k.prevote = false ∧ ∃ cl, CampaignEnd r.cfg.cfg id r.p cl r'.p`
+  (was `cl = []`): `hup`'s spec (`HupGuard`) leaves the request context existential; design §1.2 allows the
+  `∃ cl` form until it is pinned (lead's decision 2026-11-26: tighten back to `[]` once `HupGuard` is pinned).
+  `RawNode.Campaign`'s strengthened triple: the old spec's premises and post, plus in the scope `md = {}`
+  `CampaignEndR rs.k id r r'` and the in-progress boundary `min ip (lcpLen …)`. The old
+  `RawNode.Campaign.spec` keeps its own proof (no `spec_of_abs`).
+- **Decision.** Approved by the lead (B1 phase 2, item 2). No new axiom, no new top-level premise; `#print axioms
+  RawNode.Campaign.wp_absProof` std only.

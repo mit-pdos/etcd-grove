@@ -27,19 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
-/-- `Cluster.spawn.spec` as it needs to be (proposed to the lead): the behaviour a function value
-`f : GoFunc` (`#f` cannot panic, so `spawn`'s call and its `GoAlloc` of `f` step), whose call ends
-normally (`⌜v = #()⌝`: a forked goroutine that panics is not a thread the fork rule takes). The
-committed spec takes `f : val` and `{{ fun _ => threadTok }}`, which a panic value satisfies. -/
+/-- `spawn`'s call and its `GoAlloc` of `f` step as `f : GoFunc`; the goroutine's `f()` ends
+normally (`⌜v = #()⌝`), then `behWg.Done()`. -/
 theorem Cluster.spawn.wp_proof (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG)) :
-    ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (f : GoFunc) (k : w32) (P : IProp GF),
-      sint.Z k < 2 ^ 31 - 1 →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-        sync.join.ownAdder (c.[H.Cluster, go!"behWg"]) k P ∗ threadTok ∗
-        (threadTok -∗ WP (App (Val #f) (Val #())) {{ v, ⌜v = #()⌝ ∗ threadTok }}) }}
-      (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"spawn")) (Val #f))
-    {{ RET #(); sync.join.ownAdder (c.[H.Cluster, go!"behWg"]) (k + W32 1) iprop(P ∗ True) ∗ threadTok }} := by
+    Cluster.spawn.spec (GF := GF) (hG := hG) := by
   intro _ c f k P hk
   wp_start as ⟨Had, Htok, Hf⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -61,7 +53,6 @@ theorem Cluster.spawn.wp_proof (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG 
     · iframe Hdone
     try wp_auto
     iframe Htt
-    try (ipureintro; rfl)
   try wp_auto
   iapply HΦ
   iframe
