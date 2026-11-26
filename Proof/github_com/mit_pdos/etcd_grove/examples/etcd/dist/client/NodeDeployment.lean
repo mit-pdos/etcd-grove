@@ -201,7 +201,7 @@ theorem NodeDeployment.wp_proof
         iframe
         ipureintro
         exact ⟨wellFormed_wlPure hwf (List.mem_of_getElem? hw), by rw [List.length_map]; exact hml,
-          rotateL_plain hwf _, Hm⟩
+          members_plain hwf, Hm⟩
       iapply HΦ; ipureintro; trivial
 
 end proofFull

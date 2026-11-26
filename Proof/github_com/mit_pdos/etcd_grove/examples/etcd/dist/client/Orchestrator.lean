@@ -63,7 +63,7 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 theorem Orchestrator.wp_proof
     (hMD : MainDeployment.spec (GF := GF) (hG := hG)) :
     Orchestrator.spec (GF := GF) (hG := hG) := by
-  intro π ρ v d j
+  intro π ρ errA fmtA rpcA v d j
   wp_start as ⟨%Hp, Htok, #Hd, Hsh⟩
   wp_auto
   wp_apply (hMD v d j _) $$ [Htok Hsh] as %r -

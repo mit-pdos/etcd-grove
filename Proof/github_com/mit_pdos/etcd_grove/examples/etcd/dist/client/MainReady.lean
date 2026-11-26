@@ -97,7 +97,7 @@ theorem MainReady.wp_proof
     (hLC : RunLeaseCatchup.spec (GF := GF) (hG := hG))
     (hLE : RunLeaseExpiry.spec (GF := GF) (hG := hG)) :
     MainReady.spec (GF := GF) (hG := hG) := by
-  intro π ρ w eps nodes epsL ns ready
+  intro π ρ errA fmtA rpcA w eps nodes epsL ns ready
   by_cases hk0 : w.kind = W64 0
   · -- kv: M1's arm
     rw [wlShare_kv hk0]

@@ -6,8 +6,8 @@ ready)`. F8's `MainReady.spec` reaches this arm with a `False` share (D2); this 
 
 **The triple:** from the auth workload's orchestrator share `authShare epsL ns` (`client/AuthShares.lean`, the
 candidate for `wlShare`'s kind-5 arm), its thread token and the machine-level pure facts (`orchMachinePure`),
-`MainReady` does not panic. It binds the three `Assumptions` instances `RunAuth.spec` binds, which `MainReady.spec`
-does not (W-6's contract item). Lean-first (no Rocq counterpart).
+`MainReady` does not panic. It binds the three `Assumptions` instances `RunAuth.spec` binds, as `MainReady.spec`
+does since F7 S13 (W-6's contract item). Lean-first (no Rocq counterpart).
 -/
 module
 

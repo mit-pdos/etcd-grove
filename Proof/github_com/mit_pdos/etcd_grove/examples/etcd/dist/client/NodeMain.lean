@@ -120,7 +120,7 @@ theorem NodeMain.wp_proof
       isplitr [Hlt Hsh]
       · ipureintro; exact ⟨hk12, fun _ _ => by omega⟩
       iintro %_
-      iapply (nodeWatchPre_of addr _ hV htb hpl hAs)
+      iapply (nodeWatchPre_of addr _ hV htb (plainEndpoints_rotateL hpl _) hAs)
       iframe
     iapply HΦ; ipureintro; trivial
   by_cases hk5 : w.kind = W64 5

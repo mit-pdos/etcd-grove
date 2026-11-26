@@ -115,7 +115,7 @@ theorem MainDeployment.wp_proof
     (hEp : Deployment.Endpoints.spec (GF := GF) (hG := hG))
     (hMR : MainReady.spec (GF := GF) (hG := hG)) :
     MainDeployment.spec (GF := GF) (hG := hG) := by
-  intro π ρ v d j ready
+  intro π ρ errA fmtA rpcA v d j ready
   wp_start as ⟨%Hp, Htok, #Hd, #Hready, Hsh⟩
   obtain ⟨Hfips, Hm⟩ := Hp
   wp_auto

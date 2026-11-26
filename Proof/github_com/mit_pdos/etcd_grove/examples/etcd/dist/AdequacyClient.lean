@@ -48,6 +48,8 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 
 /-- **Workload `j`'s orchestrator machine** (see the file header), from its share `orchShareF d j`. -/
 theorem orchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat) (σ : state)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] (ρ : RemoteGS) :

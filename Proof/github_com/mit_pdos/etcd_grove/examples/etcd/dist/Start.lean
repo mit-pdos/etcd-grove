@@ -7,7 +7,7 @@ library's names `ρ` and every machine's share (`startShares d boot ρ i`, in th
 - member `i`: `∃ c, memberShareD c (lmOf d) d (distPs d) (distCtxs d) boot i`;
 - orchestrator `j`: `orchAt d j`, its workload's `wlShare w eps ns` (`client/Shares.lean`) at the members' client
   addresses `eps` and its client machines `ns`;
-- client machine `n`: `nodeAt d n`, its `wlNodeShare w (W64 c) a (rotateL eps c)`.
+- client machine `n`: `nodeAt d n`, its `wlNodeShare w (W64 c) a eps` (rotated by `c` inside its arms).
 In order (§27.2): the cluster (`clusterStartDC` at `lmOf d` and `cmpOf d`), the persistent client facts
 (`membersAt`, every member's `leaseMember`, `leaseMembers_of`; the cluster's KV invariant, `kvInv_of_clusterFacts`),
 then by the deployment's class (`class_authOff`):
@@ -136,10 +136,10 @@ def orchAt (d : Deployment) (j : Nat) : IProp GF :=
   | _, _ => iprop(True)
 
 /-- **Client machine `n`'s share**: its `wlNodeShare` at its index `c` in its workload, its address, and the
-members' client addresses rotated by `c` (`nodeShareF d (W64 n)` for `n < 2 ^ 63`). -/
+members' client addresses (`nodeShareF d (W64 n)` for `n < 2 ^ 63`). -/
 def nodeAt (d : Deployment) (n : Nat) : IProp GF :=
   match d.nodeList[n]? with
-  | some (w, c, a) => wlNodeShare (Gg := Gg) w (W64 c) a (rotateL (d.members.map Member.client) c)
+  | some (w, c, a) => wlNodeShare (Gg := Gg) w (W64 c) a (d.members.map Member.client)
   | none => iprop(True)
 
 /-- **Every machine's share of the start** (see the file header), in `machines`' order: the members, then the
@@ -157,7 +157,7 @@ theorem orchAt_eq {d : Deployment} {j : Nat} {w : Workload} {ns : List GoString}
 
 theorem nodeAt_eq {d : Deployment} {n : Nat} {w : Workload} {c : Nat} {a : GoString}
     (hn : d.nodeList[n]? = some (w, c, a)) :
-    nodeAt (Gg := Gg) d n = wlNodeShare (Gg := Gg) w (W64 c) a (rotateL (d.members.map Member.client) c) := by
+    nodeAt (Gg := Gg) d n = wlNodeShare (Gg := Gg) w (W64 c) a (d.members.map Member.client) := by
   unfold nodeAt; rw [hn]
 
 theorem W64_nat_bounds (j : Nat) (hj : j < 2 ^ 63) : 0 ≤ sint.Z (W64 (j : Int)) ∧ sint.nat (W64 (j : Int)) = j := by
@@ -478,7 +478,7 @@ theorem nodes_of_sole [ρ : RemoteGS] {d : Deployment} (boot : List LogEntry) {j
     (hoth : ∀ (j' : Nat) (ns' : List GoString), d.nodes[j']? = some ns' → j' ≠ j → ns' = [])
     (Q : IProp GF) (X : GoString → IProp GF)
     (hX : ∀ (c : Nat) (a : GoString), a ∈ ns →
-      Q ∗ X a ⊢ wlNodeShare (Gg := Gg) s (W64 c) a (rotateL (d.members.map Member.client) c)) :
+      Q ∗ X a ⊢ wlNodeShare (Gg := Gg) s (W64 c) a (d.members.map Member.client)) :
     □ (Q ∗ [∗list] a ∈ ns, X a) ⊢
       [∗list] n ↦ _x ∈ d.nodeList, startShares (Gg := Gg) d boot (d.members.length + d.workloads.length + n) := by
   refine BigSepL.bigSepL_intro (fun n x hx => ?_)
@@ -638,14 +638,14 @@ theorem etcd_start (d : Deployment) (Hd : d.WellFormed) (ha : d.cfg.auth = false
         iexact Ho
       · have hX : ∀ (c' : Nat) (a : GoString), a ∈ ns →
             membersAt (Gg := Gg) eps c.view ∗ remoteAddr (Gg := Gg) (kvR (GF := GF) c.γk) a ⊢
-              wlNodeShare (Gg := Gg) (ρ := ρ) s (W64 c') a (rotateL eps c') := by
+              wlNodeShare (Gg := Gg) (ρ := ρ) s (W64 c') a eps := by
           intro c' a _
           rw [wlNodeShare_kv hk0]
           iintro ⟨#Hm', #Ha'⟩
           iunfold kvNodePre
           iexists c.view
           isplitr
-          · ipureintro; exact ⟨rfl, rotateL_plain Hd c', hAs, hV⟩
+          · ipureintro; exact ⟨rfl, rotateL_plain Hd _, hAs, hV⟩
           isplitl []
           · iapply (membersAt_sub c.view (fun a h => mem_rotateL h)) $$ Hm'
           · rw [show c.view.kv = c.γk from rfl]
@@ -678,7 +678,7 @@ theorem etcd_start (d : Deployment) (Hd : d.WellFormed) (ha : d.cfg.auth = false
           iexact Hw
       · have hX : ∀ (c' : Nat) (a : GoString), a ∈ ns →
             membersAt (Gg := Gg) eps c.view ∗ svcAddr (Gg := Gg) (ρ := ρ) (writerSvcG (Gg := Gg) c.view) a ⊢
-              wlNodeShare (Gg := Gg) (ρ := ρ) s (W64 c') a (rotateL eps c') := by
+              wlNodeShare (Gg := Gg) (ρ := ρ) s (W64 c') a eps := by
           intro c' a _
           rw [wlNodeShare_writer hk12]
           iintro ⟨#Hm', #Ha'⟩

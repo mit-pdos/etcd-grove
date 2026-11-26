@@ -1832,3 +1832,51 @@ Next session: take `threadTok`/the owner's handle instead (CLAUDE.md "Bounds"), 
    loses `Hauth`.
 
 Order: 2a is the risk and the cost (a server-level statement change); 3 and 4 are the lead's definitions.
+
+### Handoff RL-1 (2026-11-26; S13: W-6's three gaps edited, not built; branch `etcd-safe-f7-rlog`)
+
+Branch `etcd-safe-f7-rlog` off `etcd-safe-f7-runauth` @ `7bf098247e`. Two commits, **neither built nor
+lean-checked** (the session stopped at the context rule before the seed finished). No `sorry`, no axiom, no
+`TopLevelRobustness`/`TrustedCode/` edit.
+
+**Commit 1, gap 1 (the rlog tie)**:
+- `NewServerAllocOn.lean`: `srvClusterBootOn_alloc`/`_allocG`'s pure post gains `∧ γk.rlog = γ.log` (last
+  conjunct; proved by one more `rfl`); `Results.lean`'s restatement `server_cluster_alloc_on` the same.
+- Destructuring sites get one more `-`: `AllocNOn.lean`, `Alloc3On.lean`, `auth/MainAlloc.lean`.
+- `AllocN.lean` `clusterAllocN`: the `on` arm is `iprop(⌜γk.rlog = γ.log⌝ ∗ etcdKV … ∗ authHistView …)` (names it
+  `hrl`, `iframe %hrl`).
+- `server/ClusterStartD.lean` `clusterStartDC`: keeps the auth-on arm, `iprop(⌜c.γk.rlog = c.γ.log⌝ ∗ etcdKV c.γk
+  (kvStateOf (kvModelOn c.γk srvAuthSt0 (bootEntries …))) ∗ authHistView c.γk [srvAuthSt0])` (the
+  `ite_drop_left` line removed); `clusterStartDL` now drops it (`ite_drop_left` after its `imod`), so
+  `clusterStartDL`'s statement is unchanged. `Start.lean` (auth off, `simp only [ha]`) should be unaffected.
+**Commit 2, gaps 2 and 3**:
+- Gap 2 (rotation): `client/Shares.lean` `wlNodeShare w c addr eps` takes `eps` unrotated and rotates by `sint.nat c`
+  in its kv and writer arms; `nodeShareF`/`nodeShareF_eq` pass `d.members.map Member.client`; new
+  `plainEndpoints_rotateL` (`rotateL_plain` derived). **Kind 5 stays `False`**: making it `authNodePre addr eps`
+  forces `NodeMain.wp_proof`'s auth bullet to use `wp_NodeMainAuth` in `DispatchLinked`, which brings the authd
+  interim axioms (`KV_PutOn_dist`, `KV_DeleteOn_dist`, `KV_GetOn_dist`, `Txn_CommitOn_dist`, `WatchOn_dist`, ...) into
+  `etcd_safe_nocrash`'s trust base (`etc/tcb-collections/etcd-dist.txt` changes): for the lead. Then
+  `NodeMain.wp_proof` takes `hA : NodeMainAuth.spec` and its bullet is `nodeAuthPre_of addr epsL hV htb hpl hAs`.
+  `Spec/.../client/NodeMain.lean`: `NodeMain.spec`'s share is `wlNodeShare w c addr epsL` and its pure
+  `plainEndpoints epsL` (was the rotated list); proof `client/NodeMain.lean` (writer arm: `plainEndpoints_rotateL
+  hpl _`), `client/NodeDeployment.lean` (`members_plain hwf`), `Start.lean` (`nodeAt`, `nodeAt_eq`,
+  `nodes_of_sole`'s `hX`, the two `hX`s: `eps` unrotated, `rotateL_plain Hd _`).
+- Gap 3 (instances): `∀ … [errors.Assumptions] [fmt.Assumptions] [rpctypes.Assumptions]` after `[ρ]` in
+  `Spec/.../client/{MainReady,MainDeployment,Orchestrator}.lean`; the three proofs `intro π ρ errA fmtA rpcA …`;
+  `AdequacyClient.lean` `orchBoot` binds the three (discharged in `etcdBootNCOff_holds` from `EtcdBootNCAt`'s; the
+  top level unchanged). `Spec/.../client/MainReadyAuth.lean`: a comment only.
+- `Spec/` files edited: `client/NodeMain.lean`, `client/MainReady.lean`, `client/MainDeployment.lean`,
+  `client/Orchestrator.lean`, `client/MainReadyAuth.lean` (comment).
+
+**fk-lean2**: worktree `~/eg/wt/etcd-safe-f7-rlog` (detached at `7bf098247e`), `.lake/package-overrides.json` copied
+(perennial `a706aeb9a`, matches the pin), `.lake/build` being seeded by `cp -a` from `~/eg/wt/etcd-safe-f7` (62 GB; was
+at 20 GB; check it finished: `du -sh`, no `cp` running). Script `/shared/tmp/f7rl-rb.sh <targets>` syncs the local
+worktree's diff vs `7bf098247e` (`REF=<commit>` syncs a commit instead), then `lake build` under flock and
+`MemoryMax=55G`; log `~/eg/logs/f7rl-build.log`; `CHECK=1` runs `etc/lean-check.py`. Delete read-only `.ilean`s
+that fail with `permission denied`.
+
+**Next**: (1) `CHECK=1 /shared/tmp/f7rl-rb.sh` on `NewServerAllocOn.lean`, `AllocN.lean`, `ClusterStartD.lean`,
+then `Shares.lean`, `NodeMain.lean`, `MainReady.lean`, `Start.lean`; fix forward (`etc/importers.py --uses NAME FILE
+--files`: `clusterStartDC`, `clusterAllocN`, `srvClusterBootOn_alloc(G)`, `wlNodeShare`, `nodeShareF`). (2) Full
+build. (3) tier, lease-order, bounds, gen-link, axiom-tok, dist-axiom-diff, `tcb-report.py --check` (baseline must be
+unchanged). (4) Gap 2's kind 5 after the lead's decision on the trust base.
