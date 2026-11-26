@@ -828,3 +828,59 @@ HasLC.hasLC GF] [GoLocalContext]`; HeapGS callers reach them through `HeapGS.goo
 `StartMemberAuth.lean:186-240`; `MainLogger` split on `d.cfg.auth` (its off-only spots are listed in Handoff S2-1).
 
 **Next:** (1) the leaves build's result (fix if red). (2) The lead's choice among (a)/(b)/(c) above. (3) Move `kvInvOn` and `kvInvOn_alloc_boot` (and what its proof uses) to heap-free sections; build `etcdserver.Results`. (4) `srvClusterBootOn_allocG`, then the design's steps in order, building and pushing after each.
+
+### Handoff S2-3 (2026-11-26; steps 1-2 written and building, option (a) in WellFormed; step 3 analysed, not written)
+
+**Option (a) approved by the lead (#50, 05:15Z) and done** (`1bdfd5798e`): Go `WellFormed` refuses
+`c.Auth && c.Retention != 0` ("the token provider beside an auto-compactor"), `randomCfg` sets no compactor beside
+the token provider, `TestWellFormed` has two cases (revision and periodic compactor beside `auth`) that fail without
+the check (checked by disabling it), retranslated (`etc/goose.py --project putget-dist`, one file). Lean: typed
+`WellFormed`'s conjunct `(d.cfg.auth = true → d.cfg.compactor = .off)` right after Q1; item 5 of its doc comment
+fixed (Q1 keeps the `compact` *workload* from auth; the server's compactor sets `cmp` by itself); `goWellFormed`
+gains `(d.cfg.auth = true → d.cfg.retention = W64 0)` before the sizes, `goWellFormed_sound` maps it through
+`typedCfg`; `WellFormed.wp_proof`'s tail gets `hacmp` from the new `if` (`‹d.cfg.retention = W64 0›`);
+positional uses shifted (`WellFormed.members`, `.urlBounds`, `satD_wf`); new
+`Deployment.WellFormed.authCompactorOff : d.WellFormed → d.cfg.auth = true → sint.Z d.cfg.retention = 0`, which
+discharges what the brief called `Hauthcmp` (with `v3compactor.bootCfg_off`, choose `cmp = false`, `cret = 0`).
+
+**Step 1** (`f05dedcae7`, proof-only): `kvModelOn`…`kvWorkOn_of_kvWork`, `kvInvOn`, `kvInvM` (+ instances,
+`kvInvM_false/true`) and `authHist_split` (`KVAuthModel.lean`), `onGhostVarHalves` and `kvInvOn_alloc_boot`
+(`ServerOn.lean`, new section `lemmasHF`) moved to heap-free sections (`GooseGlobalGS` + `GoLocalContext`,
+`gooseInvGS` local instance), as `kvInv`. **Step 2** (`bdc7514127`): `srvClusterBootOn_allocG`
+(`NewServerAllocOn.lean`, section `allocG`): `srvClusterBoot_allocG`'s text with `srvLogInv_alloc … true`, no
+`cmp`/`cret` parameters (post `γk.cmp = false ∧ γk.cret = 0`, `ch0 = alarmChain true false false`), the KV part
+from `srvClusterBootOn_alloc` (post `kvInvOn … srvAuthSt0 ∗ etcdKV γk (kvStateOf (kvModelOn …)) ∗ authHistView γk
+[srvAuthSt0]`, unconditional: no `if γk.lg`). Build at `1bdfd5798e` of `NewServerAllocOn`, `etcdserver.Results`,
+`dist.deployment.Link`, `dist.BootFactsSat`: client copy `/shared/tmp/f7s2-b3.out`; read it first (the WellFormed
+proof's new `if` step and `hacmp` were written blind; `kvInvOn_alloc_boot`'s `package_sem` instance in HF
+unverified).
+
+**Step 3, analysed (not written): `ClusterOk` is coupled to `clusterAllocN`'s pure post.** `ClusterStart.lean`
+proves `⌜ClusterOk …⌝` by `exact Hγ` from `clusterAllocN`'s post, and `ClusterStartD` passes `Hγ` to
+`memberShares_of` as `ClusterOk` and projects it positionally (`Hγ.2.2.2.2.2.1`, `Hγ.2^12.1`). So adding
+`(on : Bool := false)` to `ClusterOk` (`ch0 = alarmChain on false false`, a trailing `∧ (on = true → cmp = false)`)
+must be done together with `clusterAllocN (on := false)` (post the same text, plus `clusterFacts … on`; hypothesis
+`on = true → cmp = false ∧ cret = 0`; proof split on `on`, the `true` arm via `srvClusterBootOn_allocG`), and the
+`etcdKV` tail of its post must become `if on then etcdKV γk (kvStateOf (kvModelOn …)) ∗ authHistView γk
+[srvAuthSt0] else <today's>` (callers' `isimp … Bool.false_eq_true, ↓reduceIte` reduce it). Destructurings of
+`ClusterOk` to fix: only `MainLogger.lean:112` binds the last conjunct (`hgps` → `hgps, -`); `StartOneSlice:87`,
+`putgetk/Member:283`, `putget/Member:97` end in `-`. `clusterFacts` (`etcdstart/AllocN.lean:197`) gets
+`(on : Bool := false)` with `kvInvM on ⟨γ, [], W64 0⟩ γk srvAuthSt0` last (`srvAuthSt0`: `KVModelM.lean`); it is
+unfolded only in `AllocN` (instance, `clusterAllocN`'s `iframe #`: needs `rw [kvInvM_false]` or defeq,
+`memberBoot_of_slice`'s `$$ Hkv`: defeq); `clusterFactsOf c (on := false) := clusterFacts … on`;
+`ClusterNames.view c (on := false) := ⟨c.γk, c.ls, on, c.au⟩`.
+
+**Build result (`/shared/tmp/f7s2-b3.out`, EXIT 1):** `KVAuthModel` and `BootFactsSat` built; the one failure
+is `dist/deployment/WellFormed.lean`'s tail (lines 588-615): the new `if c.Auth && c.Retention != 0` makes
+`repeat' wp_if_destruct` leave extra goals that `err_exit` does not close: some auth-on / `nb = false` branches
+reach `hneed` (595: unsolved `∃ w ∈ d.workloads, kindAlone …`), some Iris goals are `⊢ False` with contradictory
+loop-exit `Hif`s (602: `iapply HΦ` cannot apply to `False`), and the old `first | exact Hif | …` at 584 now reports
+its type mismatch. `NewServerAllocOn`/`ServerOn`/`etcdserver.Results` did not appear in the log (not reached before
+the failure): build them again. To debug: on fk-lean2, `etc/lean-check.py --fast --goal 593 <file>` (37 goals; a
+dump was in `/tmp/f7g.txt` there). Likely fix: run `wp_auto` between the two `if`s per branch (split on
+`d.cfg.retention = W64 0` explicitly, as the `rcases hau`/`hnb` split does), close the `False` goals by the
+contradictory `Hif`s before `hneed`, and keep `hacmp` from the retention split.
+
+**Next:** (1) fix `WellFormed.wp_proof`'s tail as above; build `NewServerAllocOn`, `etcdserver.Results`,
+`dist.deployment.Link`, then the dist `TopLevelRobustness` leaves. (2) Step 3 as above, in one commit with `clusterAllocN`'s `on`. (3) Step 4 (the auth-on
+member chain), unchanged from S2-2's design; `Hauthcmp` comes from `WellFormed.authCompactorOff`.
