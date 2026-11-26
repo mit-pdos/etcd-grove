@@ -173,16 +173,16 @@ instance peerAddrFactsAt_persistent (γ : SrvRaft) (ms : List ClusterMember) :
   unfold peerAddrFactsAt; infer_instance
 
 /-- **Member `i`'s share of the cluster's start** (of the deployment `d`, at the cluster's names `c`): the
-names as the start chose them (`ClusterOk`, lease mode `none`, at a compaction mode `cmp` and retention `cret`
-whose compactor slot the deployment's configuration meets), the cluster's facts, every member's peer address fact
+names as the start chose them (`ClusterOk`, at the lease mode `lm`, and at a compaction mode `cmp` and retention
+`cret` whose compactor slot the deployment's configuration meets), the cluster's facts, every member's peer address fact
 (`peerAddrFactsAt`, of `c`'s cluster), member `i`'s slice, and its client address set to serve etcd's table for its
 id at the cluster's view (`etcdAddrAt … c.view …`; O1 option B, `notes/etcd-dist-plan.md` §18.3, no publication),
 and (#50 F7, L4) its lessor and auth names (`memberNamesShare` at `c.ls id`, `c.au id`), distinct per member
 (`ClusterNames.NamesInj`). putgetK's `memberShareK` at the deployment's members. -/
-def memberShareD (c : ClusterNames) (d : Deployment) (ps : List w64) (ctxs : List (List w8))
+def memberShareD (c : ClusterNames) (lm : lease.Mode) (d : Deployment) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) (i : Nat) : IProp GF :=
   iprop(∃ (cmp : Bool) (cret : Nat),
-    ⌜ClusterOk c ps boot .none cmp cret d.ids ∧
+    ⌜ClusterOk c ps boot lm cmp cret d.ids ∧
       v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret ∧ c.NamesInj⌝ ∗
     clusterFactsOf c ∗ peerAddrFactsAt c.γ (cmsD d) ∗
     memberSliceOf c d.ids ps ctxs (LogEntry.toEntries boot 0) (d.ids.getD i (W64 0)) ∗

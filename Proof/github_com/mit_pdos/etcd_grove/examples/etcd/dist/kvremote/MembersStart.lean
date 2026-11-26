@@ -58,7 +58,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 def membersShareKv (d : Deployment) (boot : List LogEntry) (Γ : DistView) : IProp GF :=
   iprop(∃ c : ClusterNames, ⌜c.view = Γ⌝ ∗
     [∗list] i ↦ _m ∈ d.members,
-      memberShareD (GF := GF) (G := Gg) c d (distPs d) (distCtxs d) boot i)
+      memberShareD (GF := GF) (G := Gg) c .none d (distPs d) (distCtxs d) boot i)
 
 /-- **The cluster's KV at the boot state is the kv store's state at the model's start** (see the file header). -/
 theorem kvSys_boot (γk : KVNames) (hlog : γk.log0 = [[], []]) (ps : List w64) (bl : List EntryM)

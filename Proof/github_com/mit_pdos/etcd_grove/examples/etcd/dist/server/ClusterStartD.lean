@@ -400,14 +400,14 @@ theorem names_members (c : ClusterNames) (d : Deployment) :
 /-- **Every member's share** (`memberShareD`) from the cluster's facts, the peer facts, the members' slices and their
 client address facts, at names `c` the allocation made true (`ClusterOk`) and a compactor slot the deployment's
 configuration meets. -/
-theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterNames) (cmp : Bool) (cret : Nat)
-    (Hok : ClusterOk c (distPs d) boot .none cmp cret d.ids)
+theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterNames) (lm : lease.Mode) (cmp : Bool)
+    (cret : Nat) (Hok : ClusterOk c (distPs d) boot lm cmp cret d.ids)
     (Hcmp : v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret) (Hinj : c.NamesInj) :
     ⊢ clusterFactsOf (GF := GF) c -∗ peerAddrFactsAt (GF := GF) c.γ (cmsD d) -∗
       ([∗list] id ∈ d.ids, memberSliceOf (GF := GF) c d.ids (distPs d) (distCtxs d) (LogEntry.toEntries boot 0) id) -∗
       clientSvcFacts (GF := GF) (cmsD d) c.view -∗
       ([∗list] id ∈ d.ids, memberNamesShare (GF := GF) (c.ls id) (c.au id)) -∗
-      [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c d (distPs d) (distCtxs d) boot i := by
+      [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
   iintro #Hcf #Hpf Hsl #Hcs Hnm
   ihave Hsl := slices_members c d (distPs d) (distCtxs d) (LogEntry.toEntries boot 0) $$ Hsl
   ihave Hnm := names_members c d $$ Hnm
@@ -424,7 +424,7 @@ theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterName
   · isplitl [Hb]
     · iexact Hb
     · iexact Hnm
-  iapply (BigSepL.bigSepL_impl (Ψ := fun k _ => memberShareD (GF := GF) c d (distPs d) (distCtxs d) boot k)) $$ Hb
+  iapply (BigSepL.bigSepL_impl (Ψ := fun k _ => memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot k)) $$ Hb
   imodintro
   iintro %k %m %hk Hx
   icases Hx with ⟨⟨Hs, #Ha⟩, Hn⟩
@@ -438,17 +438,33 @@ theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterName
   iframe Hs Hn
   iframe #
 
-/-- **The cluster's start at the members' shares** (see the file header): for a well-formed deployment `d` at the
+/-- **The members' lessor slots, kept with their names' shares** (persistent: `lease.lessorSlot`). -/
+theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdGrove.auth.AuthNames) :
+    ([∗list] id ∈ ids, memberNamesShare (GF := GF) (ls id) (au id)) ⊢
+      ([∗list] id ∈ ids, memberNamesShare (GF := GF) (ls id) (au id)) ∗
+        [∗list] id ∈ ids, lease.lessorSlot (GF := GF) (ls id) := by
+  refine .trans (BigSepL.bigSepL_mono (Ψ := fun _ id => iprop(memberNamesShare (GF := GF) (ls id) (au id) ∗
+    lease.lessorSlot (GF := GF) (ls id))) (fun {k y} _ => ?_)) BigSepL.bigSepL_sep_eqv.1
+  unfold memberNamesShare
+  iintro ⟨Ha, #Hsl, Hf⟩
+  isplitl [Ha Hf]
+  · iframe
+  · iexact Hsl
+
+/-- **The cluster's start at the members' shares, at the lease mode `lm`** (see the file header): for a well-formed deployment `d` at the
 bootstrap log `boot` (`BootFacts`), from the protocol registry and every member's peer and client addresses unset,
-the cluster's names `c` (their KV start log the empty one), the client's `etcdKV` at the boot state, every member's
+the cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their lessor and auth names
+injective), in the lease mode `none` the client's `etcdKV` at the boot state, every member's lessor slot, every member's
 client address fact at the view `c.view`, and every member's share. -/
-theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
-    (Hrb : receiptBound GF ≤ 2 ^ 60) :
+theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids) :
     ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
-      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []]⌝ ∗
-        etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) ∗
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.NamesInj⌝ ∗
+        (if decide (lm ≠ .none) then iprop(True) else
+          etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
         clientSvcFacts (cmsD d) c.view ∗
-        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c d (distPs d) (distCtxs d) boot i := by
+        ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
+        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
   have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
   obtain ⟨cmp, cret, Hcmp⟩ := compactorCfg_of_wf Hd
   obtain ⟨hne, -, -, hlen, -⟩ := Hd.members
@@ -471,9 +487,8 @@ theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry
   ihave Hp := peers_cms d $$ Hp
   ihave Hc := clients_cms d $$ Hc
   imod (clusterAllocN (GF := GF) d.ids (distPs d) hperm _ hid0 (distCtxs d) boot Hbc (by omega) (by omega)
-      .none (fun h => nomatch h) cmp cret)
+      lm hap cmp cret)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
-  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   imod (memberNames_alloc (GF := GF) d.ids Hd.idsNodup.1) with ⟨%ls, %au, %Hinj, Hnm⟩
   imod (peersAt_start γ (cmsD d)) $$ Hreg Hp with #Hpf
   imod (clientsAt_start (ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩) (cmsD d))
@@ -482,13 +497,40 @@ theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry
   iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩
   isplitr
   · ipureintro
-    exact Hγ.2.2.2.2.2.1
+    exact ⟨Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.2.2.2.2.1, Hinj⟩
   isplitl [Hetcd]
   · iexact Hetcd
   isplitr
   · iexact Hcs
-  iapply (memberShares_of d boot ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ cmp cret Hγ Hcmp
+  ihave Hnm := lessorSlots_of (GF := GF) d.ids ls au $$ Hnm
+  icases Hnm with ⟨Hnm, #Hsl8⟩
+  isplitr
+  · iexact Hsl8
+  iapply (memberShares_of d boot ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ lm cmp cret Hγ Hcmp
     Hinj) $$ Hf Hpf Hsl Hcs Hnm
+
+/-- **The cluster's start at the members' shares, lease mode `none`** (`clusterStartDL` at `.none`): the client's
+`etcdKV` at the boot state. -/
+theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) :
+    ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []]⌝ ∗
+        etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) ∗
+        clientSvcFacts (cmsD d) c.view ∗
+        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c .none d (distPs d) (distCtxs d) boot i := by
+  iintro #Hreg Hs
+  imod (clusterStartDL d Hd boot Hbf Hrb .none (fun h => nomatch h)) $$ Hreg Hs
+    with ⟨%c, %Hc, Hetcd, #Hcs, -, Hms⟩
+  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  imodintro
+  iexists c
+  isplitr
+  · ipureintro; exact Hc.1
+  isplitl [Hetcd]
+  · iexact Hetcd
+  isplitr
+  · iexact Hcs
+  iexact Hms
 
 end start
 

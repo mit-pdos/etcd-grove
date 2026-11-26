@@ -14,7 +14,7 @@ member's lessor at `c.ls id`, its half and slot from the share's `memberNamesSha
 deployment's `addrOk`), its post made `memberBuiltL` (as `etcdstart.newServerMode`) and split (`memberBuiltL_split`)
 before `s.Start()` (`wp_Start_builtL`); `net.Listen` at the member's own peer address (its `httpAddrAt`), etcd's peer handler served on
 it by a goroutine (`NewPeerHandler_dist`, `PeerServe_dist`); `<-s.ReadyNotify()` (the broadcast idiom's receive);
-`etcdstart.Serve` on a member machine (`Serve_dist`, at the view's lessor `c.ls id` and mode `.none`);
+`etcdstart.Serve` on a member machine (`Serve_dist`, at the view's lessor `c.ls id` and the start's lease mode `lm`);
 `holdForever()` does not return.
 -/
 module
@@ -81,7 +81,7 @@ theorem MainLogger.wp_proof
       _root_.Perennial.EtcdGrove.bootstrap.specDist (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     MainLogger.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB cv lg d i m ps ctxs boot Hwf Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB cv lg d i m ps ctxs boot lm Hwf Hm Hauth Hfips Hbf Hbgo Hrun HLv Haf Hbuq Hrf Hdbo Hms
   have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
   have Hrb48 : receiptBound GF ≤ 2 ^ 48 := RB.receiptBound_le
   have HrbN : receiptBound GF ≤ (2 ^ 48 - 1) + 1 := by have := Hrb48; omega
@@ -109,7 +109,7 @@ theorem MainLogger.wp_proof
   iunfold memberNamesShare at Hnames
   icases Hnames with ⟨Hlh, Hlslot, -⟩
   obtain ⟨Hcok, Hbcfg, -⟩ := Hsh
-  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, -⟩ := Hcok
+  obtain ⟨hvs, hrule, hboot, hc0, hch, hlog, hiss, hwn, hfs, hgen, hkc, hkr, hklg, hpo, hns, hgps⟩ := Hcok
   rw [members_getD d i m Hm]
   generalize hidm : d.ids.getD i (W64 0) = idm
   have hidm' : idm = memberId (go!"http://" ++ m.peer) d.token := by
@@ -166,7 +166,7 @@ theorem MainLogger.wp_proof
       c.issued c.cnt c.wn c.fs c.gen c.γk (fun _ => srvFloorFacts (GF := GF) (c.idx idm).slog)
       idm γm (c.idx idm) (c.cok idm) (c.rev idm)
       (xsOf d.ids c.idx (idPfxOf (W16 (uint.Z idm))))
-      Hx hiss hwn hfs hgen hc0 hch hlog hvs cmp hkc .none lease.runCfg_none hklg (fun h => nomatch h)
+      Hx hiss hwn hfs hgen hc0 hch hlog hvs cmp hkc lm Hrun hklg (fun h => hgps idm hidmem h)
       hpo rfl hns) $$ Hmarsh Hcf Hsl with ⟨%ρ, %Hρ, Hmb⟩
   -- the request names' KV names agree with the cluster's view's
   have Hcg : kvCongr ρ.rd.kv c.view.kv := Hρ.2.2.2.2.2
@@ -244,7 +244,7 @@ theorem MainLogger.wp_proof
   wp_apply (wpNS _ ⟨[httpURL m.peer], [httpURL m.client], M, iuOf (gmsD d)⟩
       { c.γ with reg := c.reg idm } idm ctxs ρ
       (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) (2 ^ 48 - 1)
-      (fun _ => srvFloorFacts (GF := GF) (c.idx idm).slog) (dirD d) γd .none (c.au idm) (c.ls idm)
+      (fun _ => srvFloorFacts (GF := GF) (c.idx idm).slog) (dirD d) γd lm (c.au idm) (c.ls idm)
       hraft hrule' (fun h => absurd h Hnsn) hc0' hch' hlog' hkcmp
       (show mvcc.batchLimitOk (W64 0) from ⟨by simp, by simp [mvcc.rangeLimitMax]⟩)
       (show v3rpc.etcdMaxRequestBytesOk (uint.nat (W64 1572864)) by
@@ -332,10 +332,10 @@ theorem MainLogger.wp_proof
       · iExactEq Hmf; rfl
       iexact Hfgc
     iExactEq Hmw; rfl
-  ihave #Hlr : srvLeaseRd srv E .none $$ []
-  · iapply srvLeaseRd_of_srvInv srv E .none _ $$ Hlsrv
+  ihave #Hlr : srvLeaseRd srv E lm $$ []
+  · iapply srvLeaseRd_of_srvInv srv E lm _ $$ Hlsrv
   ihave Hmb : memberBuiltL srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm
-      (2 ^ 48 - 1) false .none (c.ls idm) $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp HServeR Hkeep]
+      (2 ^ 48 - 1) false lm (c.ls idm) $$ [Hstk Hsb Hserve Hsv Hlgm Hrc Htokp HServeR Hkeep]
   · iunfold memberBuiltL
     iexists γA, ci, TM, E, γrn, b, _, γk, τ
     isplitr
@@ -369,11 +369,11 @@ theorem MainLogger.wp_proof
     ipureintro; exact ⟨HEa, HEon, rfl, rfl, rfl, HEl⟩
   -- split before `Start`: the ready channel's receiver share, the peer handler's server's resources
   icases memberBuiltL_split srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm
-    (2 ^ 48 - 1) .none (c.ls idm) $$ Hmb with ⟨Hmb, #Hrr, %τ', #Hnm', Hsr⟩
+    (2 ^ 48 - 1) lm (c.ls idm) $$ Hmb with ⟨Hmb, #Hrr, %τ', #Hnm', Hsr⟩
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_Start_builtL wp_Start srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn
-      idm (2 ^ 48 - 1) true HrbN .none (c.ls idm) Hrb48) $$ [Hmb Htok] as Hup
+      idm (2 ^ 48 - 1) true HrbN lm (c.ls idm) Hrb48) $$ [Hmb Htok] as Hup
   · isplitl [Hmb]
     · iexact Hmb
     iexact Htok
@@ -394,7 +394,7 @@ theorem MainLogger.wp_proof
   subst Hle
   (try wp_auto)
   -- `go http.Serve(pl, etcdhttp.NewPeerHandler(lg, s))`
-  icases memberUpL_req srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm .none (c.ls idm)
+  icases memberUpL_req srv ρ (env₀ γm (c.idx idm) (c.rev idm) (srvApi.kvNx ρ.rd false) cmp) lg γn idm lm (c.ls idm)
     $$ Hup with ⟨Hup, %Er, %ρr, #Hreq⟩
   wp_apply (wp_NewPeerHandler_dist lg srv γn idm τ' false Er ρr) $$ [] as %h #Hh
   · isplitr
@@ -437,7 +437,7 @@ theorem MainLogger.wp_proof
     isplitr
     · ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, Hcg, Or.inl rfl⟩
     isplitl [Hup]
-    · -- the auth-off branch, at the view's lessor `c.ls idm` and mode `c.γk.lm = .none` (`ClusterOk`'s)
+    · -- the auth-off branch, at the view's lessor `c.ls idm` and mode `c.γk.lm = lm` (`ClusterOk`'s)
       simp only [ClusterNames.view, Bool.false_eq_true, ↓reduceIte, hklg]
       iexact Hup
     iexact Hat

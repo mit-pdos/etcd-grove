@@ -46,13 +46,16 @@ abbrev MainLogger.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)]
     (cv : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Config) (lg : Loc) (d : Deployment)
-    (i : Nat) (m : Member) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry),
+    (i : Nat) (m : Member) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (lm : lease.Mode),
   d.WellFormed → d.members[i]? = some m →
   -- the scope: no token provider (`Serve_dist` serves a member with auth off)
   d.cfg.auth = false →
   crypto.fips140.GodebugFips140Off →
   -- `bootstrap`'s results as Go computes them (`BootCore`, `BootGoD`)
   BootCore ps ctxs boot → BootGoD d ps ctxs →
+  -- the lease mode `lm` the start chose, with the running server's lease premise at it
+  lease.runCfg (GF := GF) lm lm →
   srvLevels (GF := GF) →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
@@ -62,7 +65,7 @@ abbrev MainLogger.spec : Prop :=
       ⌜EtcdVerifyOff⌝ ∗ memberAreasFresh (GF := GF) (memberDataDir m.name) ∗
       -- its share of the cluster's start
       ∃ c : ClusterNames,
-        memberShareD (G := hG.goose_globalGS) c d ps ctxs boot i }}
+        memberShareD (G := hG.goose_globalGS) c lm d ps ctxs boot i }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.MainLogger)) (Val #cv))
       (Val #lg))
   {{ RET #(); True }}

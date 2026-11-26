@@ -98,7 +98,7 @@ theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.
       iempintro
 
 /-- **Member `i`'s machine's boot at M1's premises** (`EtcdKvBootNC`'s member part): N5's `member_boot_dist`
-from its share `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`, its start state `σs[i]` given by
+from its share `∃ c, memberShareD c .none d (distPs d) (distCtxs d) boot i`, its start state `σs[i]` given by
 `Hσs` and the scope's `d.cfg.auth = false`. -/
 theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -111,12 +111,12 @@ theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
     (i : Nat) (σ : state) (hi : σs[i]? = some σ)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ
-      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) := by
+      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i)) := by
   obtain ⟨hiσ, rfl⟩ := List.getElem?_eq_some_iff.1 hi
   have hl : i < d.members.length := Hσs.1 ▸ hiσ
   have Hst := Hσs.2 (d.members[i], σs[i]) (List.mem_iff_getElem.mpr
     ⟨i, by simp [List.length_zip]; omega, by simp [List.getElem_zip]⟩)
-  exact server.member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips i d.members[i]
+  exact server.member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips .none (fun h => nomatch h) i d.members[i]
     (List.getElem?_eq_getElem hl) σs[i] Hst
 
 
@@ -304,7 +304,7 @@ member `i`'s `memberShareD`, then the orchestrator's `kvOrchPre`, then each clie
 def kvShares (d : Deployment) (boot : List LogEntry) (w : Workload) (ns : List GoString) (ρ : RemoteGS) (i : Nat) :
     IProp etcdDistGF :=
   if i < d.members.length then
-    iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)
+    iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i)
   else if i = d.members.length then kvOrchPre (GF := etcdDistGF) (ρ := ρ) ns w.ops
   else match d.nodeList[i - (d.members.length + 1)]? with
     | some (_, c, a) =>
@@ -314,7 +314,7 @@ def kvShares (d : Deployment) (boot : List LogEntry) (w : Workload) (ns : List G
 theorem kvShares_member {d : Deployment} {boot : List LogEntry} {w : Workload} {ns : List GoString}
     {ρ : RemoteGS} {i : Nat} (h : i < d.members.length) :
     kvShares d boot w ns ρ i =
-      iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i) := by
+      iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i) := by
   unfold kvShares; rw [if_pos h]
 
 theorem kvShares_orch {d : Deployment} {boot : List LogEntry} {w : Workload} {ns : List GoString}
@@ -358,7 +358,7 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
     iunfold membersShareKv at HMS
     icases HMS with ⟨%c, -, HMS⟩
     imodintro
-    iexists (fun i => iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i))
+    iexists (fun i => iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i))
     isplitr
     · ipureintro
       intro i m hm
@@ -368,9 +368,9 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
       exact kvMemberBoot d Hd Hscope boot Hbf Henv HEnv Hfips σs Hσs i σ hσ
     · simp only [machines, clients, nodeMachines, List.mapIdx_nil, List.append_nil]
       iapply (bigSepL_idx' (fun i => iprop(∃ c : ClusterNames,
-        memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) d.members (servers d σs) hsl.symm)
+        memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i)) d.members (servers d σs) hsl.symm)
       iapply (BigSepL.bigSepL_impl (Ψ := fun i _ => iprop(∃ c : ClusterNames,
-        memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i))) $$ HMS
+        memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i))) $$ HMS
       imodintro
       iintro %k %x %_ H
       iexists c

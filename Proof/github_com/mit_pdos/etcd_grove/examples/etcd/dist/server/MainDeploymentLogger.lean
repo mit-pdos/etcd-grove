@@ -44,7 +44,7 @@ theorem MainDeploymentLogger.wp_proof
     (wp_ConfigOf : ConfigOf.spec (GF := GF) (hG := hG))
     (wp_MainLogger : MainLogger.spec (GF := GF) (hG := hG)) :
     MainDeploymentLogger.spec (GF := GF) (hG := hG) := by
-  intro CS π TB RB v d i m lg ps ctxs boot Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB v d i m lg ps ctxs boot lm Hm Hauth Hfips Hbf Hbgo Hrun HLv Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨#Hzlg, Htok, #Hrepr, #Hvoff, Hwa, Hshare⟩
   ihave #Pdep : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment $$ []
@@ -87,7 +87,7 @@ theorem MainDeploymentLogger.wp_proof
     iexact Hns
   (try wp_auto)
   ihave Hsh := Hshare $$ %Hd
-  wp_apply (wp_MainLogger cv lg d i m ps ctxs boot Hd Hm Hauth Hfips Hbf Hbgo HLv Haf Hbuq Hrf Hdbo Hms)
+  wp_apply (wp_MainLogger cv lg d i m ps ctxs boot lm Hd Hm Hauth Hfips Hbf Hbgo Hrun HLv Haf Hbuq Hrf Hdbo Hms)
     $$ [Htok Hwa Hsh]
   · iframe; iframe #
   (try wp_auto)

@@ -564,3 +564,55 @@ them with the next change that rebuilds that cone anyway.
      root: the tcb report does not change) or a root (a `Results.lean` restating them, then a collection
      `etc/tcb-collections/etcd-dist-lease.txt` and `tcb-report --check --update` for exactly the six axioms).
    - The ordering gate then passes (`Serve_dist` ties `Γ.ls mid`).
+
+### Handoff 7 (2026-11-26, steps 2 and 4 written, NOT built; step 1 run in flight; context limit)
+
+**The lead's decision (#50 03:48Z, via the coordinator):** no new `TopLevelRobustness` statements (F8 proves the full
+`etcd_robust_nocrash.spec`); instead the linked `wp_RunLeaseRead`/`Catchup`/`Expiry` at the axioms in a non-statement
+linking module, root of a new collection `etc/tcb-collections/etcd-dist-lease.txt`, then `tcb-report --check --update`.
+Generalizing the start over the lease mode: approved. Axiom-tok re-key on this branch: fine (at the later merge of M1's
+head keep our `Serve_dist`/`NewServer_dist` entries, drop M1's old ones).
+
+**Step 1 (axiom-tok re-key): run in flight, not read.** fk-lean2, script `~/eg/logs/f7atok.sh` (copy
+`/shared/tmp/f7atok.sh`): `etc/AxiomTokCheck.lean` on `Serve_dist.wp_proof` and `NewServer_dist.wp_proof` only
+(names `~/eg/logs/f7atok.names`, a two-line fake tcb `~/eg/logs/f7atok.tcb.json`) over the built
+`kvremote.TopLevelRobustness` at `fb1ca9b3bd`; raw `~/eg/logs/f7atok.raw`, judged log `~/eg/logs/f7atok.log` (ends
+`EXIT n`; ignore its stale-entry lines for every other axiom: the fake json names only the two). Next: take the
+`Serve_dist` (and, if it now has findings, `NewServer_dist`) keys from the log and replace line 196's entry and the
+`trunc` line (228) of `etc/axiom-tok-allow.txt` accordingly (drop the `trunc` line if the walk no longer truncates).
+
+**Step 2 (lease-mode start), committed as WIP, NOT built:**
+- `memberShareD c lm d …` (`server/MemberDefs.lean`): `ClusterOk … lm …`. (`lease.runCfg` cannot go in it: it
+  needs `HeapGS`, the share has only `GooseGlobalGS`.)
+- `MainLogger.spec`/`MainDeploymentLogger.spec`/server `MainDeployment.spec`: binder `lm` after `boot`, premise
+  `lease.runCfg lm lm →` after `BootGoD`; proofs pass `lm`/`Hrun`. `MainLogger` proof: every `.none` → `lm`,
+  `memberBoot_of_slice … lm Hrun hklg (fun h => hgps idm hidmem h)` (ClusterOk's last conjunct).
+- `server/AdequacyMember.member_boot_dist`: `(lm) (Hlm : lm = .mono → lease.leasesNoExpiry)`, builds `Hrun` by cases
+  (`runCfg_none`/`runCfg_mono`/`runCfg_revocable (srvRevokeLevels_of_srvLevels HLv) (srvRevokeOpen_intro
+  EtcdServer.wp_revokeExpiredLeases)`).
+- `server/ClusterStartD.lean`: `memberShares_of … lm …`; new `clusterStartDL d Hd boot Hbf Hrb lm hap` (post:
+  `c.γk.log0 = [[],[]] ∧ c.γk.lm = lm ∧ c.NamesInj`, `etcdKV` only `if lm = .none`, every member's
+  `lease.lessorSlot (c.ls id)`), `lessorSlots_of`; `clusterStartD` is now the `.none` wrapper (statement unchanged
+  but `memberShareD c .none`).
+- kvremote (`TopLevelRobustness`, `MembersStart`): `.none` instantiated; statement text unchanged.
+- Likely build spots: `lessorSlots_of`'s `refine .trans (bigSepL_mono …) bigSepL_sep_eqv.1` (direction of
+  `sep_eqv`), `Hγ.2.….1` projection for `c.γk.lm` (13th conjunct), `lease.runCfg` instance arguments in the Spec
+  files (raft/etcdserver `Assumptions`), `EtcdServer.wp_revokeExpiredLeases`' instance args in AdequacyMember.
+
+**Step 3 (MainReady/MainDeployment/Orchestrator lease variants): not started** (the lead's answer makes the roots the
+linked runs only; the orchestrator dispatch is follow-up).
+
+**Step 4, written, NOT built:** `Proof/.../dist/client/Results.lean` (named `Results`, not `LeaseResults`, because
+`etc/proof_roots.py` takes roots only from `Link`/`MainLinked`/`Results`/`TopLevelRobustness`; linking by name, no
+`tier-linking.txt` entry needed): `wp_newClientDist`, `wp_RunLeaseRead`, `wp_RunLeaseCatchup`, `wp_RunLeaseExpiry`.
+Collection `etc/tcb-collections/etcd-dist-lease.txt` (roots line only; baseline to write). Next: build it, fix imports
+(`time.wp_Sleep` from `Perennial.Proof.time.Link`; the axioms' namespace `etcd_dist.view`), then
+`etc/tcb-report.py --collection etc/tcb-collections/etcd-dist-lease.txt --check --update` and the base
+`--check --update` for exactly the six lease axioms (needs every root built, under the memory cap),
+`etc/tier-check.py --check`, `etc/lease-order-check.py`.
+
+**Build next:** `/shared/tmp/f7sync.sh` with targets `Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Results`
+`…dist.kvremote.TopLevelRobustness` `…dist.putget.TopLevelRobustness` `…dist.putgetk.TopLevelRobustness` (after the
+axiom-tok run exits: same worktree and lock).
+
+**Step 5:** skipped (`MemberLessor.lean` is not in this change's cone).
