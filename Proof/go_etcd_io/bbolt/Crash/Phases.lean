@@ -693,7 +693,7 @@ theorem bDur_init_done (a : BAbs) (ha : a.phase = .init) (m : OsMeta) (H F T : L
   have hl : (H ++ (F ++ T)).length = m.size := hW.1
   have hsb := csSynced_bs m H F T fa fb hF
   obtain ⟨hi, hm, ht, hfl, hh, h1, h2, -⟩ := initImg_ok
-  have hR : RefImg initImg initC := ⟨hi, hm, ht, hfl, hh, h1, h2, initImg_tails⟩
+  have hR : RefImg initImg initC := ⟨hi, hm, ht, hfl, hh, h1, h2⟩
   have hhwm : initC.hwm * 4096 ≤ m.size := by
     have h4 : initC.hwm = 4 := rfl
     rw [h4, hsz]; decide

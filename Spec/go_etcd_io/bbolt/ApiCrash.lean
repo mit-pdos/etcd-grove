@@ -50,20 +50,6 @@ variable [go_gctx : GoGlobalContext]
 variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
-/-- **The one interim hypothesis of C-I1's laws** (W3; only `boltCrashRec_new`, C-I1's `_new`, takes
-it): every database image `Open` accepts (`boltImage`) has zero meta tails, bytes 80 to 4096 of its
-two meta pages. Not true of every image `boltImage` accepts (`plans/bbolt-crash-plan.md` §8: a
-foreign file's tails), so a hypothesis, used only through `crashMode_on`, until the pending decision
-makes `Open`'s crash branch need no condition on the tails (option (iii): `Open` zeroes them) or the
-tails come from `Open`'s premise (option (i)); then it goes. -/
-def TailsZeroOnOpen : Prop :=
-  ∀ (X0 : List w8) (D : Data), boltImage X0 D →
-    ∀ j < 2, ∀ k, 80 ≤ k → k < 4096 → ∀ v, X0[4096 * j + k]? = some v → v = 0
-
-private theorem tailsZeroOnOpenI_of (hT : TailsZeroOnOpen) : tailsZeroOnOpenI := by
-  intro X0 D hD hl1 hl2
-  exact hT X0 D ⟨⟨hl1, hl2⟩, hD⟩
-
 /-- **The crash record's evidence** at version `ν` (see the file header). -/
 private def cRecDef (B : BNs) (N : Namespace) (i0 : Ino) (c : CsN) (Dl Dn : Data) (ν : Nat) : IProp GF :=
   iprop(⌜c.gc = B.bq ∧ c.N = crashN N ∧ FsNoErr⌝ ∗ csInvIR c.N i0 c.g c.ga c.gc bCsOk (bR c.cg) ∗
@@ -162,9 +148,8 @@ theorem boltCrashRec_close (γ : BoltName) (i0 : Ino) (Dl Dn : Data) :
 /-- **C-I1's `_new`**: a fresh write transaction (it holds `rwlock`: its registration carries the
 synced mark of its view's version, `regX`), the database syncing (`boltSyncs`) in a run where the
 file system does not fail, and the half of the committed data give the record at `(D, D)`, its
-evidence the synced mark. Crash mode is on by `crashMode_on`, whose one hypothesis is
-`TailsZeroOnOpen`. -/
-theorem boltCrashRec_new (hT : TailsZeroOnOpen) (hfs : Fs.FsNoErr) (γ : BoltName) (i0 : Ino) (D : Data)
+evidence the synced mark. Crash mode is on by `crashMode_on`. -/
+theorem boltCrashRec_new (hfs : Fs.FsNoErr) (γ : BoltName) (i0 : Ino) (D : Data)
     (tx : Loc) :
     boltSyncs (GF := GF) γ ∗ boltIno γ i0 ∗ boltState γ (1 : Qp).half D ∗ boltTx tx γ 1 (TxView.wr D) ⊢
       boltCrashRec γ i0 D D ∗ boltTx tx γ 1 (TxView.wr D) := by
@@ -178,7 +163,7 @@ theorem boltCrashRec_new (hT : TailsZeroOnOpen) (hfs : Fs.FsNoErr) (γ : BoltNam
   · unfold BC.full isBoltP; icases Hfull with ⟨$, -⟩
   rw [hKB, hKN]
   -- crash mode
-  ihave %hcm := crashMode_on (tailsZeroOnOpenI_of hT) _ γ.ns K.db db' K.p K.sp K.t0
+  ihave %hcm := crashMode_on _ γ.ns K.db db' K.p K.sp K.t0
     $$ [Hdl' Hns Hngs Hcore]
   · iframe Hdl'; iframe #; ipureintro; exact hfs
   obtain ⟨cc, hcc, hcN, hcgc⟩ := hcm
@@ -390,7 +375,7 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
     refine ⟨rfl, hfs', hfs', hfs', by rw [← hfs']; exact hpos, rfl, ⟨[f.size], rfl, fun x hx => by
       rw [List.mem_singleton] at hx; rw [hx]; exact hfs'⟩, ?_, ?_⟩
     · rw [← hfs']; exact ⟨hg.2.1, hg.1⟩
-    · unfold boltMaxMapSize; rw [← hfs']; exact hg.2.2.1
+    · unfold boltMaxMapSize; rw [← hfs']; exact hg.2.2
   unfold fileRcpt
   iright
   iexists a.cur.txid

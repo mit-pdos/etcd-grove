@@ -1058,26 +1058,21 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     ipureintro; exact Hlgty
   iclear HNFS
   -- the file's mode (W1, `Open/Mode`): crash mode iff `NoSync` and `NoGrowSync` are off and the
-  -- file system does not fail (and, interim, the meta tails are zero); the file's bytes as bbolt's
-  -- invariants hold them
+  -- file system does not fail; the file's bytes as bbolt's invariants hold them
   ihave #Hngs0 : (∃ b : Bool, dbl.[DB, go!"NoGrowSync"] ↦□ b) $$ []
   · iexists _; iexact NoGrowSync
   icases Hngs0 with ⟨%ngs, #Hngs⟩
   iapply wp_open_mode _ _ _ _ rfl γbq N dbl p fd C { m' with maps := GMap.singleton base L } xs'
-    nos ngs hxl' (fun hfs htz hnos hngs => by
+    nos ngs hxl' (fun hfs hnos hngs => by
       obtain ⟨hms, hxss⟩ := hsync hnos
       have hone : XsOne m' := by rw [hms]; exact xsOne_synced _
       have hdur : ∀ y ∈ xs', y = durB y.1 := by
         rw [hxss]; intro y hy; obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
       refine ⟨by show m'.dhi ≤ m'.dlo; rw [hms]; exact Nat.le_refl _, hdur,
         fun l hl x hx => hone l hl x hx, ?_⟩
-      exact open_bDur C D m' _ xs' hC rfl htz hxl' HL.2.2.2.1 hdur
+      exact open_bDur C D m' _ xs' hC rfl hxl' HL.2.2.2.1 hdur
         (by show m'.lo = m'.size; rw [hms]; rfl) (by show m'.hi = m'.size; rw [hms]; rfl)
         (by show m'.xs = some [m'.size]; rw [hms]; rfl) hsz'.2)
-    ⟨D, .inr ⟨C, hC.1, hC.2.1, hC.2.2.1, hC.2.2.2.1,
-      by rw [List.length_map, hxl']; exact hC.2.2.2.2.1, hC.2.2.2.2.2.1, hC.2.2.2.2.2.2.1,
-      hC.2.2.2.2.2.2.2⟩, by rw [List.length_map, hxl']; exact hsz'.1,
-      by rw [List.length_map, hxl']; exact hsz'.2⟩
   iframe NoSync Hngs path Hfm Hxs HrcC
   iintro %cs %gcn %m'' %Hm'' #Hmode Hseed path Hfm Hxs
   -- the database's names (W6: allocated here, ahead of the core phase, `openNames`)

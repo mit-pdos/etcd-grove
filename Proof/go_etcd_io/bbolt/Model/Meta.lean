@@ -57,6 +57,40 @@ def metaValid (m : Meta) : Prop :=
 
 instance (m : Meta) : Decidable (metaValid m) := by unfold metaValid; infer_instance
 
+theorem decode_zero_meta : (decode (List.replicate 64 (W8 0)) : Meta).magic' = W32 0 := rfl
+
+theorem not_metaValid_zero (xs : List w8) (h : bytesAt xs 16 64 = List.replicate 64 (W8 0)) :
+    ¬ metaValid (metaOf xs) := by
+  unfold metaValid metaOf
+  rw [h, decode_zero_meta]
+  simp [boltMagic]
+
+/-- **A meta page's tail is zero**: its bytes from 80 on (after the page header and the meta). Every
+meta page bbolt writes is a zeroed buffer with a header and a meta (`writeMeta`'s `metaBuf`, `init`'s
+two meta pages, `Tx.WriteTo`'s). -/
+def metaTailZero (pg : List w8) : Prop := ∀ b ∈ pg.drop 80, b = 0
+
+omit [GooseExts] in
+theorem mem_drop_of_le {xs : List w8} {b : w8} {j k : Nat} (hjk : j ≤ k) (h : b ∈ xs.drop k) :
+    b ∈ xs.drop j := by
+  obtain ⟨i, e⟩ := List.mem_iff_getElem?.1 h
+  rw [List.getElem?_drop] at e
+  refine List.mem_iff_getElem?.2 ⟨k - j + i, ?_⟩
+  rw [List.getElem?_drop, show j + (k - j + i) = k + i by omega]
+  exact e
+
+/-- **A zero tail holds no valid meta at an offset past the meta** (`getPageSize`'s probes at 1024
+and 2048 of a 4096-byte page). -/
+theorem metaTailZero_probe (pg : List w8) (h : metaTailZero pg) (o : Nat) (ho : 80 ≤ o)
+    (hl : o + 80 ≤ pg.length) : ¬ metaValid (metaOf (pg.drop o)) := by
+  apply not_metaValid_zero
+  unfold bytesAt
+  apply List.eq_replicate_iff.2
+  refine ⟨?_, ?_⟩
+  · simp only [List.length_take, List.length_drop]; omega
+  · intro b hb
+    exact h b (mem_drop_of_le ho (List.mem_of_mem_drop (List.mem_of_mem_take hb)))
+
 /-- The meta with its checksum (`Meta.Write`'s `m.checksum = m.Sum64()`; moved from U10's
 `Commit/MetaBuf` by batch 37). -/
 def metaSummed (mv : Meta) : Meta := { mv with checksum' := metaSum mv }
@@ -134,13 +168,16 @@ def CommitSt.isMeta (C : CommitSt) (m : Meta) : Prop :=
 /-- **`fileHolds`' meta clauses** (and the fields of the record are the current meta's):
 - both slots 4096 bytes;
 - every valid meta records page size 4096;
-- no valid meta at offsets 1024 and 2048 of slot 0 (`getPageSize`'s probes, D18);
+- both slots' tails zero (`metaTailZero`, bytes 80 to 4096: every meta page bbolt writes is a zeroed
+  buffer with a header and a meta). So no valid meta at offsets 1024 and 2048 of slot 0
+  (`getPageSize`'s probes, D18, `metaOk_probes`), and a crash image's meta pages, whose tails a commit
+  rewrites, keep them (W7 of the bbolt-crash plan, replacing the probes' two clauses);
 - the current meta is valid, lies at slot `txid % 2`, and its txid is strictly higher than any
   other valid meta's (so that a torn write of the other slot leaves it current). -/
 def CommitSt.metaOk (C : CommitSt) : Prop :=
   C.m0.length = 4096 ∧ C.m1.length = 4096 ∧
   (∀ i, metaValid (metaOf (C.slot i)) → (metaOf (C.slot i)).pageSize'.toNat = 4096) ∧
-  ¬ metaValid (metaOf (C.m0.drop 1024)) ∧ ¬ metaValid (metaOf (C.m0.drop 2048)) ∧
+  metaTailZero C.m0 ∧ metaTailZero C.m1 ∧
   metaValid (metaOf (C.slot C.txid)) ∧ C.isMeta (metaOf (C.slot C.txid)) ∧
   (metaValid (metaOf (C.slot (C.txid + 1))) →
     (metaOf (C.slot (C.txid + 1))).txid'.toNat < C.txid)
@@ -158,6 +195,13 @@ def CommitSt.publish (C : CommitSt) (buf : List w8) (m : Meta) (pages : Pages) :
 proj_simps CommitSt.publish
 
 /-! ## Lemma statements (U1, U10) -/
+
+/-- **No valid meta at `getPageSize`'s probes of slot 0** (offsets 1024 and 2048), from its zero
+tail. -/
+theorem metaOk_probes (C : CommitSt) (h : C.metaOk) :
+    ¬ metaValid (metaOf (C.m0.drop 1024)) ∧ ¬ metaValid (metaOf (C.m0.drop 2048)) :=
+  ⟨metaTailZero_probe _ h.2.2.2.1 1024 (by omega) (by rw [h.1]; omega),
+    metaTailZero_probe _ h.2.2.2.1 2048 (by omega) (by rw [h.1]; omega)⟩
 
 /-- The current meta is the one at slot `txid % 2`. Used by U4 (`DB.meta`) and U5 (`Tx.init`). -/
 theorem metaPick_current (C : CommitSt) (h : C.metaOk) :
@@ -181,12 +225,12 @@ theorem metaPick_current (C : CommitSt) (h : C.metaOk) :
       simp only [hlt, ↓reduceIte, hn, hv]
 
 /-- **A commit's meta write keeps `metaOk`** (design §3.12, "meta parity"): the meta of txid
-`C.txid + 1`, valid, of page size 4096, written into a page whose probed offsets hold no valid
-meta, at the slot the current meta is not on. Used by U10 (`writeMeta`'s commit point). -/
+`C.txid + 1`, valid, of page size 4096, written into a page whose tail is zero, at the
+slot the current meta is not on. Used by U10 (`writeMeta`'s commit point). -/
 theorem metaOk_parity_write (C : CommitSt) (buf : List w8) (m : Meta) (pages : Pages)
     (hC : C.metaOk) (hlen : buf.length = 4096) (hm : metaOf buf = m) (hv : metaValid m)
     (ht : m.txid'.toNat = C.txid + 1) (hps : m.pageSize'.toNat = 4096)
-    (hz : ¬ metaValid (metaOf (buf.drop 1024)) ∧ ¬ metaValid (metaOf (buf.drop 2048))) :
+    (hz : metaTailZero buf) :
     (C.publish buf m pages).metaOk := by
   have hslot : ∀ i, (C.publish buf m pages).slot i =
       if i % 2 = m.txid'.toNat % 2 then buf else C.slot i := by
@@ -205,11 +249,11 @@ theorem metaOk_parity_write (C : CommitSt) (buf : List w8) (m : Meta) (pages : P
     · simp_all
     · rename_i hne; rw [ite_eq_right hne] at hi; exact hpsz i hi
   · simp only [CommitSt.publish]; split
-    · exact hz.1
+    · exact hz
     · exact hz1
   · simp only [CommitSt.publish]; split
-    · exact hz.2
     · exact hz2
+    · exact hz
   · rw [htx, hslot, ite_eq_left (by rw [ht])]; rw [hm]; exact hv
   · rw [htx, hslot, ite_eq_left (by rw [ht]), hm]
     refine ⟨?_, ?_, ?_, ?_⟩ <;> simp [CommitSt.publish, ht]

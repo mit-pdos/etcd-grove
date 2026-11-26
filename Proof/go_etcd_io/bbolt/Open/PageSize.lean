@@ -82,7 +82,8 @@ theorem metaOk_pageSize (X : List w8) (C : CommitSt) (h : C.metaOk)
       metaValid (metaOf (bytesAt X 4096 4096)) ∧
         (metaOf (bytesAt X 4096 4096)).pageSize'.toNat = 4096) ∧
     ¬ metaValid (metaOf (bytesAt X 1024 4096)) ∧ ¬ metaValid (metaOf (bytesAt X 2048 4096)) := by
-  obtain ⟨-, -, hps, h1k, h2k, hv, -⟩ := h
+  obtain ⟨h1k, h2k⟩ := metaOk_probes C h
+  obtain ⟨-, -, hps, -, -, hv, -⟩ := h
   have s0 : C.slot 0 = C.m0 := by simp [CommitSt.slot]
   have s1 : C.slot 1 = C.m1 := by simp [CommitSt.slot]
   refine ⟨fun hv0 => ?_, fun hv0 => ?_, ?_, ?_⟩

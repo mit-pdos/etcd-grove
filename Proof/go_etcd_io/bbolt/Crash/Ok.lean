@@ -118,12 +118,8 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
       (fun b _ h2 => hagm b (by omega))
   have hok := fileOK_transfer X f.contents C hR (by omega) hag (by rw [hm0, hm1]; exact hR.mok)
   rw [hyl] at hok
-  have htz : metaTailsZero f.contents := by
-    intro j hj k hk1 hk2 v hv
-    rw [hagm _ (by omega)] at hv
-    exact hR.tails j hj k hk1 hk2 v hv
   obtain ⟨hb1, hb2⟩ := maxBytes_bounds _ hV.max
-  refine ⟨⟨hok, hb1, hb2, htz⟩, fun hcs => ?_,
+  refine ⟨⟨hok, hb1, hb2⟩, fun hcs => ?_,
     txidLe_of f C (by rw [hm0, hm1]; exact hR.mok) (Nat.le_refl _)⟩
   obtain ⟨l, hl, hla, htr, hwone⟩ := hxa
   rcases hcs l hl with hin | hb
@@ -226,10 +222,11 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
         rw [hslp]; exact hPis
       · rw [slot_with]; show metaValid (metaOf (bytesAt f.contents (4096 * ((P.txid + 1) % 2)) 4096)) → _
         rw [hjp]; exact hoth
-      · exact tails_drop1024 _ htz
+      · exact metaTailsZero_slot _ htz 0 (by omega)
+      · exact metaTailsZero_slot _ htz 1 (by omega)
     have hok := fileOK_transfer Xp f.contents P hRp (by rw [hyl, hfsz]; exact hhp) hagp hm
     rw [hyl] at hok
-    exact ⟨⟨hok, hb1, hb2, htz⟩, txidLe_of f P hm (by omega)⟩
+    exact ⟨⟨hok, hb1, hb2⟩, txidLe_of f P hm (by omega)⟩
   -- the meta of the slot being written
   have hraw := metaSlot_raw f (C.txid % 2) (by omega)
   by_cases hv : metaValid (metaOf (bytesAt f.contents (4096 * (C.txid % 2)) 4096))
@@ -326,37 +323,18 @@ theorem commit_view {C P : CommitSt} {Xc Xp : List w8} {s : CSt} {f : OsFile} (h
           show metaValid (metaOf (bytesAt f.contents (4096 * ((C.txid + 1) % 2)) 4096)) → _
           rw [hslc]; intro _
           exact ⟨hPps _ hPv, by show _ < C.txid; rw [hPis.1, htx]; omega⟩
-        · exact tails_drop1024 _ htz
+        · exact metaTailsZero_slot _ htz 0 (by omega)
+        · exact metaTailsZero_slot _ htz 1 (by omega)
       have hok := fileOK_transfer Xc f.contents C hRc (by rw [hyl, hfsz]; exact hhc) hagc hm
       rw [hyl] at hok
-      exact ⟨Or.inl ⟨hok, hb1, hb2, htz⟩, txidLe_of f C hm (Nat.le_refl _)⟩
+      exact ⟨Or.inl ⟨hok, hb1, hb2⟩, txidLe_of f C hm (Nat.le_refl _)⟩
   · exact (fun h => ⟨Or.inr h.1, h.2⟩) (hgoodP (fun h => absurd h hv))
 
 /-! ## Init -/
 
-/-- The bytes 80 to 4096 of a meta buffer are zero. -/
-theorem metaBuf_tail (mv : Meta) (k : Nat) (h1 : 80 ≤ k) (h2 : k < 4096) :
-    (metaBuf mv)[k]? = some 0 := by
-  unfold metaBuf
-  rw [List.getElem?_append_right (by simp only [List.length_append, ByteEncoding.encode_length]; omega)]
-  simp only [List.length_append, ByteEncoding.encode_length]
-  rw [List.getElem?_replicate, if_pos (by omega)]; rfl
-
-/-- **`init`'s image has zero meta tails.** -/
-theorem initImg_tails : metaTailsZero initImg := by
-  intro j hj k hk1 hk2 v hv
-  have e : initImg = metaBuf (initMv 0) ++
-      (metaBuf (initMv 1) ++ (emptyPg 2 (W16 16) ++ emptyPg 3 (W16 2))) := by
-    simp only [initImg, List.append_assoc]
-  rw [e] at hv
-  rcases (show j = 0 ∨ j = 1 by omega) with rfl | rfl
-  · rw [show 4096 * 0 + k = k by omega,
-      List.getElem?_append_left (by rw [metaBuf_length]; omega), metaBuf_tail _ k hk1 hk2] at hv
-    cases hv; rfl
-  · rw [List.getElem?_append_right (by rw [metaBuf_length]; omega), metaBuf_length,
-      show 4096 * 1 + k - 4096 = k by omega,
-      List.getElem?_append_left (by rw [metaBuf_length]; omega), metaBuf_tail _ k hk1 hk2] at hv
-    cases hv; rfl
+/-- **`init`'s image has zero meta tails** (its metas' zero tails, `initC_metaOk`). -/
+theorem initImg_tails : metaTailsZero initImg :=
+  fileImage_tails _ _ initImg_ok.1 initImg_ok.2.1
 
 /-- **`init`'s whole image is a good image of the empty data.** -/
 theorem bGood_initImg (f : OsFile) (hsz : f.size = 16384)
@@ -370,7 +348,7 @@ theorem bGood_initImg (f : OsFile) (hsz : f.size = 16384)
     · rw [List.getElem?_eq_none (by rw [contents_length']; omega),
         List.getElem?_eq_none (by rw [initImg_length]; omega)]
   obtain ⟨hi, hm, ht, hfl, hh, h1, h2, hd⟩ := initImg_ok
-  refine ⟨?_, ⟨by omega, by omega⟩, by omega, by rw [hc]; exact initImg_tails⟩
+  refine ⟨?_, ⟨by omega, by omega⟩, by omega⟩
   rw [hc, hsz]
   exact Or.inr ⟨initC, hi, hm, ht, hfl, by rw [initImg_length] at hh; exact hh, h1, h2, hd⟩
 

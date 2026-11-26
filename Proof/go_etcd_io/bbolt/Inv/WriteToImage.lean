@@ -147,8 +147,8 @@ theorem wtSt_metaOk (C : CommitSt) (hmeta : C.metaOk) (htx1 : 1 ≤ C.txid) : (w
     split <;> rw [metaOf_metaBuf, metaSummed_pageSize]
     · exact hpsz
     · unfold metaDec; exact hpsz
-  · rw [hm0]; unfold wtMeta0; split <;> exact (metaBuf_probes _).1
-  · rw [hm0]; unfold wtMeta0; split <;> exact (metaBuf_probes _).2
+  · rw [hm0]; unfold wtMeta0; split <;> exact metaBuf_tail _
+  · rw [hm1]; unfold wtMeta1; split <;> exact metaBuf_tail _
   · rw [htx, hslot, if_pos rfl, metaOf_metaBuf]
     exact metaValid_metaSummed mv hv.1 hv.2.1
   · rw [htx, hslot, if_pos rfl, metaOf_metaBuf]

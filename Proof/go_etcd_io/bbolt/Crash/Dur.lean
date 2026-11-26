@@ -26,7 +26,7 @@ good (`bDur_okS`, through `FileOkS` under the premise `BoltCrashWhole` of the fi
 * init: at most four pages, every candidate of every byte zero or `init`'s byte.
 
 Unprotected bytes may hold anything; the meta pages' tails (bytes 80 to 4096) are zero in both
-reference images, and so in every crash image (`metaOk`'s probes at offsets 1024 and 2048).
+reference images, and so in every crash image (`metaOk`'s slot tails).
 
 **The size.** A crash image's size is at least `hwm · 4096` (the bounds `[lo, hi]`), and a whole
 number of pages: while idle, from the exact crash sizes the ghost state knows (`OsMeta.xs`, `XsAl`:
