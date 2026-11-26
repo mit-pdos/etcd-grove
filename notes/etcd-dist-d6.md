@@ -2009,3 +2009,45 @@ Fix what fails. The likely spots are `Next`'s new agreement steps (the `ig.2`/`i
 `bigSepM_lookup_acc`'s `Φ`, and `rcases ig'` under `hIp`) and `NewGenerator`'s `∃ v` frame.
 
 **B6:** the lead (coordinator-E) had not answered on #50 by this session. Recommended option: (b).
+### T10 status and handoff, session 6 (2026-11-26, branch `etcd-safe-t10`)
+
+**Session 5's build** (`/shared/tmp/t10-s5-build2.log`) failed once, `Restart.lean:196` (`idKeyFact_pfxOk`
+destructured `idClusterOk` into six parts; five since B6's first step). Fixed by name: `Defs.lean` has
+`idClusterOk.issued/pfx/gen/domR/domF` and `idClusterOk.mk` (outside the instance-carrying `section ghost`, or
+they pick up `[GooseExts] …`); `Restart.lean`, `Next`, `NewGenerator`, `Lemmas` and `Defs` itself use them. The
+other positional reads left are IPM patterns over `idGen` (`SrvRaftLog`, `Lemmas`), whose trailing pattern
+absorbs the rest. Build 1 (`/shared/tmp/t10-s6-build1.log`) got past `Restart` but failed in `Next` on the
+section-variable problem (fixed since), and its target `backend.BackendImage` was misnamed: the module is
+`Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.BackendImage`.
+
+**B6 (b)** (etcd-grove-03 on #50, 00:33Z; the coordinator says the lead confirmed). Ledger 2026-11-26, "B6 (b)"
+(it says why a `cinv` with a keep token cannot work: `Next` holds only the persistent `idGen`). Applied, **not
+yet built green**:
+* `GooseLang/Ext/IdIssue/Specs.lean`: `idIssueDeadAt hL` (the record's full authority), `idIssueCtx_dead`,
+  `wp_IdIssue_live` (the update may give up with `idIssueDeadAt`), instance-free `idIssuePastD`/`idIssueDeadD`
+  with `_eq` and `idIssueFragD_pastD`. `Crash.lean`: `idIssueCrashStart_dead`, `idIssue{Frag,Past}D_crash_pastD`.
+* `idutil/Defs.lean`: `idPfxIdFact γgp id ig := (FragD id g ∗ g ↪[γgp]□ inc) ∨ PastD id`; `idPfxBody γip γgp :=
+  GpPart ∗ (IpPart ∨ idIssueDeadD)`. `NewGenerator` uses only `GpPart`; `Next` uses `wp_IdIssue_live` (dead →
+  give up; past entries refuted by `idIssueFragD_pastD`).
+* `idutil/PfxCrash.lean` (new, defs tier): `idPfxInv_crash L L' gen p : idPfxInv(L) -∗ idIssueCrashStart(L,L')
+  ={⊤}=∗ idPfxInv(L')`.
+* `dist/crash/MemberGen.lean`: `memberGen_crash.law` gains `[HasExt idIssueExt]` and the hypothesis
+  `idIssueCrashStart (gooseIdIssueGS L) (gooseIdIssueGS L')` (before `osInv L'`). `MemberCrash.lean`:
+  `memberPfx.law` deleted, `hB6` dropped, the restart case reads the old `idPfxInv` out of `memberRestartFacts`
+  and applies `idPfxInv_crash` (L, L' as the tuples `⟨fl, lc', …⟩`, `⟨fl', lc', …⟩`; `memberRestartFacts_gen`
+  wants it at `atCtx L'`, defeq). Whoever applies `memberGen_crash.law` must pass the issue record's crash rest
+  (`etcdstart/NetExtsCrash.lean`, `etcdNet_crashStart_split`).
+
+**Build at handoff: build 3 running, result not seen** (fk-lean1, at `b663695717`: Specs/Defs/Next/NewGenerator/PfxCrash, **not** the
+MemberGen/MemberCrash commit `80abc88fff`): log **`/shared/tmp/t10-s6-build3.log`** (ends `EXIT n`). Next
+session: read it, then rerun with MemberGen/MemberCrash added (incremental, `FKLEAN_HOST=fk-lean1`):
+`/shared/tmp/fklean1-check.sh /shared/etcd-grove-t10 etcd-safe-t10 $(cat /shared/tmp/t10s5/users.txt)
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.BackendImage
+Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerCrash Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashInterim
+Proof.go_etcd_io.etcd.pkg.v3.idutil.PfxCrash Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.MemberCrash`.
+Likely spots: `PfxCrash` (the `pure_forall` step building `Hall`, `ghost_map_lookup`'s instance under
+`letI … idIssueAllG`, `inv_alloc`'s mask `⊤ \ ↑idPfxN` while the old invariant is open), `Next`'s dead branch
+(`rw [idIssueDeadD_eq]` rewrites the IPM context) and the `rotate_left`s after `icases … (A | B)`, `MemberCrash`'s
+`icases Hrf with ⟨⟨-, -, -, -, #Hp, -⟩, -⟩` (the fifth row of `memberRestartFacts` is `idPfxInv`).
+No axiom, `sorry`, trusted text or top-level change.
+
