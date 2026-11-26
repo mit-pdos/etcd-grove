@@ -616,3 +616,11 @@ Collection `etc/tcb-collections/etcd-dist-lease.txt` (roots line only; baseline 
 axiom-tok run exits: same worktree and lock).
 
 **Step 5:** skipped (`MemberLessor.lean` is not in this change's cone).
+
+**Addendum to Handoff 7 (the step-1 run finished):** `~/eg/logs/f7atok.log` on fk-lean2 (EXIT 1, raw kept in
+`~/eg/logs/f7atok.raw`): `NewServer_dist.wp_proof` 200 findings, including a `TOKEN: level *: handed to a callback 2,
+supplied directly 1` and `depth:` truncation (`ownMap`, `backend.bbAt`, `bbolt.isBolt`); `Serve_dist.wp_proof` 32
+findings; FAILED counts: 2 unknown (scenario cap), 1 unknown (truncated), and the 50 stale entries that come from the
+two-name json (ignore them). Before re-keying: `--reuse-raw ~/eg/logs/f7atok.raw -v` with the same fake json to print
+each finding's key, and check whether the full gate (`etc/gates.sh`'s run, default depth) caps the same two walks;
+`NewServer_dist` had no entry before, so its new findings may need the lead's review rather than an entry.
