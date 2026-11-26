@@ -18,11 +18,13 @@ such a source, used by its holder alone". So `r.Intn` is not claimed of a `Rand`
 (Until 2026-11-24, math-rand-isinit, the class also had the package-level `Intn` as a field, and
 `Rand.Intn`'s spec was named `math.rand.Rand.Intn.spec`. Perennial 47ec64a9d translates and proves
 `Intn` (and `Rand.Intn`, over the runtime's source), and declares both names: the package-level one
-is Perennial's now (`IntnPos.lean`), and this one is `Rand.Intn.ownSpec`. `NewSource`/`New` stay
-names only at that pin, so `rands` stays a hypothesis.)
+is Perennial's now (`IntnPos.lean`), and this one is `Rand.Intn.ownSpec`. `NewSource`/`New` stayed
+names only at that pin, so `rands` stayed a hypothesis.) Perennial 8fb3c9fd5 declares
+`math.rand.NewSource.spec` and `New.spec` too (its own, over `ownRngSource`): the specs here over a
+pair of tokens are `NewSource.ownSpec` and `New.ownSpec` since dsv-retire-2 (#49 step 2).
 
 
-**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `NewSource`/`New`/`(*rngSource).Int63` are trust-boundary axioms over the fixed tokens of `RngDefs.lean`, `Seed` one too (review `notes/axiom-review/dsv-fix4/math-rand-{rng,seed}.md`); `RandsLinked.lean` proves `Hyps` from them.
+**dsv-fix4** (mit-pdos/etcd-grove#49 fix 4): no longer a statement premise: `NewSource`/`New`/`(*rngSource).Int63` are trust-boundary axioms over the fixed tokens of `RngDefs.lean` (proved from Perennial's linked results since dsv-retire-2, #49 step 2), `Seed` one too (review `notes/axiom-review/dsv-fix4/math-rand-{rng,seed}.md`); `RandsLinked.lean` proves `Hyps` from them.
 -/
 module
 
@@ -41,14 +43,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
 /-- `NewSource(seed)`: a fresh `Source`, with its token. -/
-abbrev math.rand.NewSource.spec (isSource : GoInterface → IProp GF) : Prop :=
+abbrev math.rand.NewSource.ownSpec (isSource : GoInterface → IProp GF) : Prop :=
   ∀ (seed : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
       (App (Val (@! math.rand.NewSource)) (Val #seed))
     {{ (src : GoInterface), RET #src; isSource src }}
 
 /-- `New(src)` of a source from `NewSource`: a fresh `*Rand`, with its token. -/
-abbrev math.rand.New.spec (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF) : Prop :=
+abbrev math.rand.New.ownSpec (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF) : Prop :=
   ∀ (src : GoInterface),
     {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand ∗ isSource src }}
       (App (Val (@! math.rand.New)) (Val #src))
@@ -76,8 +78,8 @@ end spec
 structure math.rand.RandSpecs [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics]
     (isSource : GoInterface → IProp GF) (ownRand : Loc → IProp GF) : Prop where
-  NewSource : math.rand.NewSource.spec (GF := GF) isSource
-  New : math.rand.New.spec (GF := GF) isSource ownRand
+  NewSource : math.rand.NewSource.ownSpec (GF := GF) isSource
+  New : math.rand.New.ownSpec (GF := GF) isSource ownRand
   Rand_Intn : math.rand.Rand.Intn.ownSpec (GF := GF) ownRand
 
 /-- **The hypotheses** (the header). -/

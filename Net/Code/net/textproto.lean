@@ -175,6 +175,75 @@ noncomputable def isASCIILetter [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/textproto.NewWriter"
 
+/-- Set sets the header entries associated with key to
+    the single element value. It replaces any existing
+    values associated with key.
+
+    go: header.go:21:21 -/
+noncomputable def MIMEHeader.Set.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "key"
+  (Lam "value"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc MIMEHeader.ty))) (Var "h"))
+  (Let "value" (App (Val (GoInstruction (GoAlloc go.string))) (Var "value"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "value"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "h"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve CanonicalMIMEHeaderKey []))) (Val #())) (Var "$a0")))) (Var "$r0"))))))))
+  (Val #())))))
+
+/-- Get gets the first value associated with the given key.
+    It is case insensitive; [CanonicalMIMEHeaderKey] is used
+    to canonicalize the provided key.
+    If there are no values associated with the key, Get returns "".
+    To use non-canonical keys, access the map directly.
+
+    go: header.go:30:21 -/
+noncomputable def MIMEHeader.Get.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "key"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc MIMEHeader.ty))) (Var "h"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "h"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve CanonicalMIMEHeaderKey []))) (Val #())) (Var "$a0"))))
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "v")) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "v") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals MIMEHeader.ty))) (Pair (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "h")) (App (Val (GoInstruction (Convert go.untypedNil MIMEHeader.ty))) (Val UntypedNil)))))
+  (Let "$r0" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- Del deletes the values associated with key.
 
     go: header.go:54:21 -/
@@ -367,14 +436,24 @@ class MIMEHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   method_set : go.MethodSetIs MIMEHeader.ty [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MIMEHeader.ty) [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])))]
   Del_unfold : MethodUnfold MIMEHeader.ty go!"Del" MIMEHeader.Del.impl
+  Get_unfold : MethodUnfold MIMEHeader.ty go!"Get" MIMEHeader.Get.impl
+  Set_unfold : MethodUnfold MIMEHeader.ty go!"Set" MIMEHeader.Set.impl
   ptr_Del_unfold : MethodUnfold (go.GoType.PointerType MIMEHeader.ty) go!"Del" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve MIMEHeader.ty go!"Del"))) (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "$r"))))
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType MIMEHeader.ty) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve MIMEHeader.ty go!"Get"))) (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "$r"))))
+  ptr_Set_unfold : MethodUnfold (go.GoType.PointerType MIMEHeader.ty) go!"Set" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve MIMEHeader.ty go!"Set"))) (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "$r"))))
 
 attribute [instance] MIMEHeader.TypeAssumptions.underlying
   MIMEHeader.TypeAssumptions.method_set
   MIMEHeader.TypeAssumptions.ptr_method_set
   MIMEHeader.TypeAssumptions.Del_unfold
+  MIMEHeader.TypeAssumptions.Get_unfold
+  MIMEHeader.TypeAssumptions.Set_unfold
   MIMEHeader.TypeAssumptions.ptr_Del_unfold
+  MIMEHeader.TypeAssumptions.ptr_Get_unfold
+  MIMEHeader.TypeAssumptions.ptr_Set_unfold
 
 opaque Pipeline.nonempty_type : NonemptyType.{0}
 def Pipeline : Type := Pipeline.nonempty_type.type

@@ -2434,6 +2434,51 @@ noncomputable def cloneTLSConfig [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultTransportDialContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.defaultTransportDialContext"
 
+/-- Set sets the header entries associated with key to the
+    single element value. It replaces any existing values
+    associated with key. The key is case insensitive; it is
+    canonicalized by [textproto.CanonicalMIMEHeaderKey].
+    To use non-canonical keys, assign to the map directly.
+
+    go: header.go:39:17 -/
+noncomputable def Header.Set.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "key"
+  (Lam "value"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "h"))
+  (Let "value" (App (Val (GoInstruction (GoAlloc go.string))) (Var "value"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "value"))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.textproto.MIMEHeader.ty go!"Set"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "h"))) (Var "$a0")) (Var "$a1")))))))))
+  (Val #())))))
+
+/-- Get gets the first value associated with the given key. If
+    there are no values associated with the key, Get returns "".
+    It is case insensitive; [textproto.CanonicalMIMEHeaderKey] is
+    used to canonicalize the provided key. Get assumes that all
+    keys are stored in canonical form. To use non-canonical keys,
+    access the map directly.
+
+    go: header.go:49:17 -/
+noncomputable def Header.Get.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "key"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "h"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.textproto.MIMEHeader.ty go!"Get"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "h"))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- get is like Get, but key must already be in CanonicalHeaderKey form.
 
     go: header.go:63:17 -/
@@ -9478,6 +9523,38 @@ noncomputable def response.closeNotify.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef response.ty go!"lazyCloseNotifyMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "w")))) (Val #())))))))
   (Val #()))))
 
+/-- ServeHTTP calls f(w, r).
+
+    go: server.go:2308:22 -/
+noncomputable def HandlerFunc.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "w"
+  (Lam "r"
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc HandlerFunc.ty))) (Var "f"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Request.ty)))) (Var "r"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc ResponseWriter.ty))) (Var "w"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad ResponseWriter.ty))) (Var "w"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (GoLoad HandlerFunc.ty))) (Var "f")) (Var "$a0")) (Var "$a1")))))))))
+  (Val #())))))
+
+/-- NewServeMux allocates and returns a new [ServeMux].
+
+    go: server.go:2606:6 -/
+noncomputable def NewServeMux.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServeMux.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType ServeMux.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc ServeMux.ty))) (App (Val (GoInstruction (CompositeLiteral ServeMux.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType ServeMux.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (Var "$res0")))))
+
 /-- Handler returns the handler to use for the given request,
     consulting r.Method, r.Host, and r.URL.Path. It always returns
     a non-nil handler. If the path is not in its canonical form, the
@@ -10192,6 +10269,32 @@ noncomputable def ServeMux.Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad Handler.ty))) (Var "handler"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServeMux.ty) go!"register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1"))))))))))
+  (Val #())))))
+
+/-- HandleFunc registers the handler function for the given pattern.
+    If the given pattern conflicts with one that is already registered
+    or if the pattern is invalid, HandleFunc panics.
+
+    See [ServeMux] for details on valid patterns and conflict rules.
+
+    go: server.go:2898:22 -/
+noncomputable def ServeMux.HandleFunc.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "mux"
+  (Lam "pattern"
+  (Lam "handler"
+  (Seq (App (Val exceptionDo)
+  (Let "mux" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServeMux.ty)))) (Var "mux"))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Var "handler"))
+  (Let "pattern" (App (Val (GoInstruction (GoAlloc go.string))) (Var "pattern"))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (GlobalVarAddr use121))) (Val #())))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Var "handler"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType serveMux121.ty) go!"handleFunc"))) (App (Val (GoInstruction (StructFieldRef ServeMux.ty go!"mux121"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (Var "mux")))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "pattern"))
+  (Let "$a1" (App (Val (GoInstruction (Convert HandlerFunc.ty Handler.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [ResponseWriter.ty, (go.GoType.PointerType Request.ty)] false []))))) (Var "handler")))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServeMux.ty) go!"register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (Var "mux"))) (Var "$a0")) (Var "$a1"))))))))))
   (Val #())))))
 

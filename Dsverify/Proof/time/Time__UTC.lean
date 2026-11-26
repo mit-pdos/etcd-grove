@@ -1,13 +1,13 @@
 /-
-**Trust-boundary axiom** (dsv-fix4, mit-pdos/etcd-grove#49 fix 4): `t.UTC()` on a `time.Time` value returns some `Time` (the spec `raxos.hyp.time.Time.UTC.spec`,
-`Dsverify/Proof/raxos/Hyp.lean`). Perennial leaves `Time.UTC` untranslated
-(`Perennial/Code/time.toml`). Go's `time.go`: `func (t Time) UTC() Time { t.setLoc(&utcLoc);
-return t }`, and `setLoc` on a value receiver's copy writes only that copy: no panic, no state. The
-premise `raxos.hyp.UtcHyp` of QuePaxa's statement until dsv-fix4, its field verbatim. Review: `notes/axiom-review/dsv-fix4/quepaxa-misc.md`.
+`t.UTC()` on a `time.Time` value returns some `Time` (the spec `raxos.hyp.time.Time.UTC.spec`,
+`Dsverify/Proof/raxos/Hyp.lean`), from Perennial's translation of `Time.UTC` and `Time.setLoc`
+(`t.setLoc(&utcLoc); return t`, go time.go:1368) and its proof `time.Time.wp_UTC`. Until #49 step 1 (2026-11-25) a trust-boundary axiom of dsv-fix4
+(`notes/axiom-review/dsv-fix4/quepaxa-misc.md`), retired by the translation.
 -/
 module
 
 public import Dsverify.Proof.raxos.Hyp
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -17,13 +17,15 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section ax
+section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.time.Assumptions]
 
-/-- **Trust-boundary axiom** (the file header). -/
-axiom raxos.hyp.time.Time.UTC.wp_proof : raxos.hyp.time.Time.UTC.spec (GF := GF) (hG := hG)
+/-- Perennial's linked result, at the hypothesis' statement (the file header). -/
+theorem raxos.hyp.time.Time.UTC.wp_proof : raxos.hyp.time.Time.UTC.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.time.Time.wp_UTC
 
-end ax
+end proof
 
 end Perennial

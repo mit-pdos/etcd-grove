@@ -2,8 +2,9 @@
 swiftpaxos's library classes (`Hyps.lean`: `SwiftHyps`, `SwiftOsRandom`; until dsv-fix4 premises
 of its statement, over quantified libraries `l`) **hold** at the fixed libraries
 `encoding.gob.swiftLibsOf π` (`Dsverify/Proof/encoding/gob/Vocab.lean`), from the per-function
-trust-boundary axioms of `encoding/gob` (`Dsverify/Proof/encoding/gob/`) and `google/uuid`
-(`Dsverify/Proof/github_com/google/uuid/`). A linking module: the kit's top-level proof discharges
+trust-boundary axioms of `encoding/gob` (`Dsverify/Proof/encoding/gob/`) and the proofs of
+`google/uuid`'s `New` and `UUID.ID` (`Dsverify/Proof/github_com/google/uuid/`; axioms until
+dsv-retire-2). A linking module: the kit's top-level proof discharges
 the former premises with these.
 -/
 module
@@ -43,7 +44,7 @@ theorem swiftHyps_holds (π : Net.NetProtoGS) :
 theorem swiftOsRandom_holds (π : Net.NetProtoGS) :
     letI := encoding.gob.swiftLibsOf (GF := GF) π; SwiftOsRandom GF := by
   letI := encoding.gob.swiftLibsOf (GF := GF) π
-  exact ⟨github_com.google.uuid.New.wp_proof⟩
+  exact ⟨fun {_} => github_com.google.uuid.New.wp_proof⟩
 
 end holds
 
