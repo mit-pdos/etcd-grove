@@ -1778,7 +1778,9 @@ _G['alloc_types']['defaultServerOptions'] = 'google_golang_org.grpc.serverOption
 _G['before']['defaultServerOptions'] = ['try wp_auto']
 _G['finish'] = (['ipersist HEnableTracing', 'ipersist HmetadataFromOutgoingContextRaw',
                  'ipersist HglobalServerOptions', 'ipersist HdefaultServerOptions'] + FIN_PRE +
-                [f'unfold {_CB}.grpcInit', 'iframe HEnableTracing HmetadataFromOutgoingContextRaw HglobalServerOptions',
+                # (the fact's first conjunct may be split off by FIN_PRE's `try (isplitl []; …)`)
+                [f'try unfold {_CB}.grpcInit', 'try iframe HEnableTracing',
+                 'iframe HmetadataFromOutgoingContextRaw HglobalServerOptions',
                  'iexists _; iframe HdefaultServerOptions', 'ipureintro',
                  f'simp only [{_CB}.grpcDefaultSrvOpts]',
                  'exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩'])

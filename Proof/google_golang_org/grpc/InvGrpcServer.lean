@@ -250,6 +250,25 @@ embed the `Unsafe*Server` interfaces, not `Unimplemented*Server` by value): the 
 def grpcNoTestEmbedded (ss : GoInterface) : Prop :=
   ∃ si : GoInterfaceOk, ss = GoInterface.ok si ∧ go.typeSetContains si.ty testEmbeddedIface = false
 
+/-- **A registered service** (one `RegisterService`): its descriptor `sd` (`grpcDescIs`), service name
+`sn`, handler type `ht`, methods `mds`, streams `sds`, and service value `ss`. -/
+structure GrpcSrvReg where
+  sd : Loc
+  sn : GoString
+  ht : GoInterface
+  mds : List google_golang_org.grpc.MethodDesc
+  sds : List google_golang_org.grpc.StreamDesc
+  ss : GoInterface
+
+/-- **The `streams` map `register` builds for the descriptor with method and stream slices `msl`,
+`ssl`**: each stream's name to its descriptor in `ssl` (`&sd.Streams[i]`), then each method's name to
+the fresh descriptor `mls[j]` (`register`'s order; the names are distinct, `RegisterService`'s
+premise). -/
+def srvStreamsL (r : GrpcSrvReg) (ssl : GoSlice) (mls : List Loc) : List (GoString × Loc) :=
+  (r.sds.zipIdx.map fun (d, i) =>
+      (d.StreamName', sliceIndexRef google_golang_org.grpc.StreamDesc (i : Int) ssl)) ++
+    (r.mds.zip mls).map fun (d, l) => (d.MethodName', l)
+
 end pure
 
 section defs
@@ -440,25 +459,6 @@ def srvStatsIs (v : GoInterface) (sl : GoSlice) (hs : List GoInterface) : IProp 
       ∃ l : Loc, ⌜2 ≤ hs.length ∧ v = interface.mkOk
           (go.GoType.PointerType google_golang_org.grpc.internal.stats.combinedHandler.ty) #l⌝ ∗
         l ↦□ google_golang_org.grpc.internal.stats.combinedHandler.mk sl))
-
-/-- **A registered service** (one `RegisterService`): its descriptor `sd` (`grpcDescIs`), service name
-`sn`, handler type `ht`, methods `mds`, streams `sds`, and service value `ss`. -/
-structure GrpcSrvReg where
-  sd : Loc
-  sn : GoString
-  ht : GoInterface
-  mds : List google_golang_org.grpc.MethodDesc
-  sds : List google_golang_org.grpc.StreamDesc
-  ss : GoInterface
-
-/-- **The `streams` map `register` builds for the descriptor with method and stream slices `msl`,
-`ssl`**: each stream's name to its descriptor in `ssl` (`&sd.Streams[i]`), then each method's name to
-the fresh descriptor `mls[j]` (`register`'s order; the names are distinct, `RegisterService`'s
-premise). -/
-def srvStreamsL (r : GrpcSrvReg) (ssl : GoSlice) (mls : List Loc) : List (GoString × Loc) :=
-  (r.sds.zipIdx.map fun (d, i) =>
-      (d.StreamName', sliceIndexRef google_golang_org.grpc.StreamDesc (i : Int) ssl)) ++
-    (r.mds.zip mls).map fun (d, l) => (d.MethodName', l)
 
 /-- **The registered service `r` at the `*serviceInfo` `il` of the server `gs`** (`register`,
 `server.go:759-788`): its descriptor; `il` holds `r.ss`, a `streams` map with `srvStreamsL`'s

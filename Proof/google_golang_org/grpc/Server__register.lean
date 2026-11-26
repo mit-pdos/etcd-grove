@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section pure
-variable [GooseExts] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 theorem grpcReg_lookupL_snoc {K V : Type} [DecidableEq K] (n k : K) (v : V) :
     ∀ (l : List (K × V)), k ∉ l.map Prod.fst →

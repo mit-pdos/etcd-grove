@@ -242,8 +242,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
-  unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.grpcInit
-  iframe HEnableTracing HmetadataFromOutgoingContextRaw HglobalServerOptions
+  try unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.grpcInit
+  try iframe HEnableTracing
+  iframe HmetadataFromOutgoingContextRaw HglobalServerOptions
   iexists _; iframe HdefaultServerOptions
   ipureintro
   simp only [_root_.Perennial.go_etcd_io.etcd.cache.v3.grpcDefaultSrvOpts]
