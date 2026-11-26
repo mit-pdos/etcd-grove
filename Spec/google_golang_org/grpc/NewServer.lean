@@ -1,5 +1,5 @@
 /-
-`grpc.NewServer(opts...)` (names only; item 4, the server start): the server being built, with the
+`grpc.NewServer(opts...)` (the model's body since W1, 2026-11-26; item 4, the server start): the server being built, with the
 options' interceptor chains.
 The vocabulary: `Proof/google_golang_org/grpc/InvGrpcServer.lean`.
 -/
