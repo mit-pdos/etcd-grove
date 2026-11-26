@@ -6811,3 +6811,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `ownRaftPhysC_msgs(AA)`'s premise, raft__send's transfer case, LemmasReadyR's three `Hxw` arguments
   (`fun h _ => …`), the XScopeOk keep sites (Start, Advance, Campaign, Tick, Propose, TransferLeader, Step, Ready).
 - **Decision.** The Antithesis lead (approved via group D, 2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: node.sendMsg proved; its spec's no-responses premise (#33)
+- **Spec (lead-approved, option (B)).** `Spec/.../antithesis/node__sendMsg.lean` `node.sendMsg.spec` gains
+  `⌜st.resps = []⌝` after `⌜γ.mode.SnapStatus' = false⌝`.
+- **Defect.** Go clones the message (`proto.Clone`) before `Cluster.send` drops it; the clone's law (`cloneMsg.law`,
+  the registered `ClonePb`) needs a message with no responses. `sendFacts`' protocol and transfer arms give it
+  (`NetMsgOk`'s last conjunct), but its first arm (a `MsgProp` at forwarding off) does not.
+- **Evidence.** The caller (the drain) has, for each message of a `Ready`, raft's `isRaftMsg` (`Henter`), whose
+  `SentMsgShape` ends in `st.resps = []`. `sendFacts` unchanged (the alternative, (A), was a conjunct of its first arm).
+- **Proof.** `node.sendMsg.wp_proof` (node__sendMsg.lean, NEW): `msgPtsCC_ro_split` (the content read-only, the
+  capacity kept), `cloneMsg_law_of`, `msgPtsCC_clone_net`, `Cluster.send.spec`. `#print axioms`: std +
+  `pbMessageC_reg` (baseline TCB, as `Cluster.send`'s).
+- **Decision.** The Antithesis lead (2026-11-26). No new axiom, no top-level premise.

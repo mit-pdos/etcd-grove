@@ -1,7 +1,8 @@
 /-
 Lean-first (no Rocq counterpart). #33 parity B1, specs first (`notes/antithesis-parity-design.md` §3;
 the vocabulary is `HarnessRun.lean`'s).
-`(*node).sendMsg(m)`: a node not dead hands a clone of `m` to the network (`Cluster.send`).
+`(*node).sendMsg(m)`: a node not dead hands a clone of `m` to the network (`Cluster.send`). The message
+has no responses (`proto.Clone`'s premise; a `Ready`'s message has none, `isRaftMsg`'s `SentMsgShape`).
 -/
 module
 
@@ -34,7 +35,8 @@ abbrev node.sendMsg.spec : Prop :=
     (cap : Bool) (st : MsgSt) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antCluster c γ ∗ nodeRO c γ n j ∗ emitOk n ∗ netAdder c γ q ∗ threadTok ∗
-      msgPtsC ml DFrac.discard DFrac.discard cap st ∗ sendFacts γ st ∗ ⌜γ.mode.SnapStatus' = false⌝ }}
+      msgPtsC ml DFrac.discard DFrac.discard cap st ∗ sendFacts γ st ∗ ⌜γ.mode.SnapStatus' = false⌝ ∗
+      ⌜st.resps = []⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"sendMsg")) (Val #ml))
   {{ RET #(); emitOk n ∗ netAdder c γ q ∗ threadTok ∗ msgPtsC ml DFrac.discard DFrac.discard cap st }}
 
