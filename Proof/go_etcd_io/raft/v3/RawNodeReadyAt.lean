@@ -291,6 +291,50 @@ theorem rnScopeAt_keepSomeX {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : 
     exact ⟨H Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => hx h (Hs.2.2.2 h)⟩
   · imodintro; iexact Hc
 
+/-- (antithesis parity B1, step C) **The scope at an option, read out**: at every mode it names, its pure
+part. -/
+theorem rnScopeAt_pureOpt {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs : RNState) (s : NState) :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢
+      ⌜∀ md, sc = some md → RnScope md id rs s ∧ RnCfgIn md γ id rs ∧ KTie rs s ∧
+        (md.transfer = true → XScopeOk γ s)⌝ ∗ rnScopeAt γ id sc rs s := by
+  cases sc with
+  | none => iintro H; iframe H; ipureintro; intro md h; cases h
+  | some md0 =>
+    unfold rnScopeAt
+    iintro ⟨%H, #Hc⟩
+    isplitr
+    · ipureintro; intro md h; cases h; exact H
+    · isplitr
+      · ipureintro; exact H
+      · imodintro; iexact Hc
+
+/-- The storage never compacted past `0`, at a mode without snapshots. -/
+theorem rnScopeAt_capOpt {γ : RaftNames} {id : w64} {sc : Option RnMode} {md : RnMode} (h : sc = some md)
+    (hs : md.snapshots = false) (rs : RNState) (s : NState) :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢ storCapF s.logst.storage 0 ∗ rnScopeAt γ id sc rs s := by
+  subst h
+  unfold rnScopeAt
+  iintro ⟨%H, #Hc⟩
+  isplitr
+  · iapply Hc; ipureintro; exact hs
+  · isplitr
+    · ipureintro; exact H
+    · imodintro; iexact Hc
+
+/-- `rnScopeAt_keepSomeX` at an option: at each mode it names, `RnScope` kept and the transfer facts. -/
+theorem rnScopeAt_keepOpt {γ : RaftNames} {id : w64} (sc : Option RnMode) (rs rs' : RNState)
+    (s s' : NState) (H : ∀ md, sc = some md → RnScope md id rs s → RnScope md id rs' s')
+    (Hst : s'.logst.storage = s.logst.storage)
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
+    (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
+    (hk : rs'.k = rs.k := by rfl)
+    (hx : ∀ md, sc = some md → md.transfer = true → XScopeOk γ s → XScopeOk γ s') :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
+  cases sc with
+  | none => unfold rnScopeAt; iintro _; iempintro
+  | some md =>
+    exact rnScopeAt_keepSomeX md rs rs' s s' (H md rfl) Hst hcf hfl hk (hx md rfl)
+
 /-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`), the storage, the
 `Config` flags and the node constant. -/
 theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)

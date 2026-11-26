@@ -81,6 +81,15 @@ theorem antStep_mtype {t : w32} (h : t ∈ antStepTypes) : ∃ ty, mtypeOf t = s
   simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at h
   rcases h with rfl | rfl | rfl | rfl | rfl | rfl <;> exact ⟨_, rfl⟩
 
+/-- A message of the harness's network types has no transfer reading. -/
+theorem antStep_xmsg_none {st : MsgSt} (h : st.msg.Type' ∈ antStepTypes) : xmsgOf st = none := by
+  unfold xmsgOf
+  unfold antStepTypes at h
+  simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at h
+  rcases h with e | e | e | e | e | e <;>
+    simp [e, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgTimeoutNow,
+      MsgTransferLeader]
+
 -- (antithesis parity) `handleEnd_rd_pend`, `recvEnd_rd_pend`: `RawNodeAtScope.lean`'s
 
 end pure
@@ -457,7 +466,10 @@ local macro "step_tail" : tactic => `(tactic| (
       intro md hmd
       have h := hsct md hmd
       subst Hps
-      exact ⟨(Hlifted h).1, (Hlifted h).2.2.1⟩))
+      refine ⟨(Hlifted h).1, ?_, (Hlifted h).2.2.1⟩
+      intro x hx
+      rw [antStep_xmsg_none (st := ⟨m, ents, sn, ctx, rsp⟩) (Hscp h).1] at hx
+      cases hx))
 
 set_option maxHeartbeats 1000000 in
 /-- **`RawNode.Step`, strengthened** (`RawNode.Step.absSpec`). -/
@@ -478,7 +490,10 @@ theorem RawNode.Step.wp_absProof
     · rfl
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
   simp only at Hok Hscp0 Hmtc Htn ⊢
-  have Hscp := fun h : sc = true => Hscp0 {} (by subst h; rfl)
+  have Hscp : sc = true → m.Type' ∈ antStepTypes ∧ (m.Type' = MsgHeartbeatResp → ctx = []) ∧
+      m.From' ∈ γ.reCfg := fun h => by
+    obtain ⟨h1, h2, h3⟩ := Hscp0 {} (by subst h; rfl)
+    rw [stepTypes_empty] at h1; exact ⟨h1, h2 rfl, h3⟩
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty

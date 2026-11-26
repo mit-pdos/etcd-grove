@@ -65,6 +65,23 @@ theorem antStepTypes_sub_netTypesK {t : w32} (h : t ∈ antStepTypes) : t ∈ ne
   simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at h ⊢
   rcases h with e | e | e | e | e | e <;> simp [e]
 
+/-- (antithesis parity B1) **`RawNode.Step`'s types at a mode without snapshots, forwarding or
+asynchronous storage** are B1's network types. -/
+theorem stepTypes_sub {md : RnMode} (hs : md.snapshots = false) (hf : md.forwarding = false)
+    (ha : md.async = false) {t : w32} (h : t ∈ stepTypes md) : t ∈ netTypesK := by
+  unfold stepTypes at h
+  simp only [hs, hf, ha, Bool.false_eq_true, ↓reduceIte, List.mem_append, List.not_mem_nil,
+    _root_.or_false] at h
+  rcases h with ((h | h) | h) | h
+  · exact antStepTypes_sub_netTypesK h
+  all_goals
+    revert h
+    split
+    · intro h
+      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at h
+      rcases h with rfl | rfl <;> simp [netTypesK]
+    · intro h; simp at h
+
 theorem LogGrow.of_eq {ls ls' : LogState} (h : ls' = ls) : LogGrow ls ls' :=
   LogGrow.keep (by rw [h]) (by rw [h])
 

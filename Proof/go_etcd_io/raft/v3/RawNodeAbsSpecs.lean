@@ -24,8 +24,8 @@ configuration the node's `r.cfg.cfg` (until then the names' `rnCfg γ`); `HasRea
 
 Deviations from the design's table (§2.6 of the design): the pre is at any queue `qs` (not `[]`:
 the old `Step`, `Tick`, `Propose` specs allow a `Ready` outstanding), kept by those three; `Step` in
-the scope only for the harness's network types (`antStepTypes`; the old premises otherwise), a
-heartbeat response with no context, a sender among the voters (`errStepPeer`);
+the scope only for the harness's network types (`stepTypes md`; the old premises otherwise), with
+reads off a heartbeat response with no context, a sender among the voters (`errStepPeer`);
 `ProposeEnd` at the proposal message (`InputEnd.lean`'s form); `Ready`'s post at `pAccepted ps` (the
 read states cleared too, `acceptReady`'s `r.readStates = nil`) with the queue and `ReadyOut` guarded;
 `PIdle` without the id (unused); `ReadyOut` without the voters (2026-11-24: a response goes to
@@ -75,6 +75,21 @@ def rnCfg (γ : RaftNames) : CfgM := CfgM.simple γ.reCfg ∅
 election (no pre-vote, read-index, transfer, snapshot or local report). -/
 def antStepTypes : List w32 :=
   [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp]
+
+/-- (antithesis parity B1, design §2) **The message types the harness's network delivers to
+`RawNode.Step` at the mode `md`**: `antStepTypes`, and each feature's types when it is on (the
+pre-vote pair, the read-index pair, the transfer pair, a forwarded proposal, a snapshot, the storage
+acknowledgements). -/
+def stepTypes (md : RnMode) : List w32 :=
+  antStepTypes ++ (if md.prevote then [MsgPreVote, MsgPreVoteResp] else []) ++
+  (if md.reads then [MsgReadIndex, MsgReadIndexResp] else []) ++
+  (if md.transfer then [MsgTransferLeader, MsgTimeoutNow] else []) ++
+  (if md.forwarding then [MsgProp] else []) ++ (if md.snapshots then [MsgSnap] else []) ++
+  (if md.async then [MsgStorageAppendResp, MsgStorageApplyResp] else [])
+
+/-- The first harness's types: every feature off. -/
+theorem stepTypes_empty : stepTypes {} = antStepTypes := by
+  simp [stepTypes]
 
 /-- The initial protocol state of a node of a cluster without a bootstrap log: term `0`, no vote,
 a follower with no leader, no tally, nothing queued, the empty log at `base0`, commit `0`. -/
@@ -158,11 +173,13 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState �
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : RState) (qs : List Msg) (ip : Nat)
     (ml : Loc) (st : MsgSt),
   NetMsgOk id st →
-  -- (#33 S3c) in the scope, a message of the harness's network, a heartbeat response with no
-  -- read-index context (`recvEnd_of_stepEnd_heartbeatResp`'s premise), from a voter (2026-11-24: a
-  -- response from a sender outside the progress map returns `errStepPeer` with the state unchanged,
-  -- not `RecvEnd`'s step-down to a higher term; notes/specs-only/ledger.md)
-  (∀ md, S md → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
+  -- (#33 S3c) in the scope, a message of the harness's network at the mode (antithesis parity B1:
+  -- `stepTypes md`), with reads off a heartbeat response with no read-index context, from a voter
+  -- (2026-11-24: a response from a sender outside the progress map returns `errStepPeer` with the state
+  -- unchanged, not `RecvEnd`'s step-down to a higher term; notes/specs-only/ledger.md. Antithesis parity
+  -- B1, the lead's decision: kept at non-voters on, a non-voter never sends in B1)
+  (∀ md, S md → st.msg.Type' ∈ stepTypes md ∧
+    (md.reads = false → st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
     st.msg.From' ∈ γ.reCfg) →
   uint.Z st.msg.Term' ≤ uint.Z rs.tc →
   (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
@@ -194,9 +211,13 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → RState �
                (st.msg.Type' ≠ MsgPreVoteResp →
                  uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
                    (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ ∗
-      -- (#33 S3c) the exact effect (`Protocol/InputEnd.lean`)
+      -- (#33 S3c) the exact effect (`Protocol/InputEnd.lean`): at the message's protocol reading
+      -- `RecvEndR`; (antithesis parity B1) at its transfer reading (`xmsgOf`: no protocol reading) the
+      -- Sim's `InputStep .recvX` (`TimeoutNowEndR` or `TransferRecvEndR`)
       "%Hend" ∷ ⌜∀ md, S md → (∀ ty, mtypeOf st.msg.Type' = some ty → ∀ Adm,
         RecvEndR Adm rs.k id r (absMsg ty st.msg st.ents st.ctx) r') ∧
+        (∀ x, xmsgOf st = some x → (x.ty = .timeoutNow ∧ TimeoutNowEndR id r x r') ∨
+          (x.ty = .transferLeader ∧ TransferRecvEndR id r x r')) ∧
         ip' = min ip (lcpLen r.p.log r'.p.log)⌝ }}
 
 /-- **`RawNode.Step`, strengthened** (design §2.2's table). -/

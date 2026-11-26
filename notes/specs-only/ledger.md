@@ -6575,3 +6575,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Use.** `transferRecvEndR_of_stale` / `transferRecvEndR_of_stepEnd` (RawNode__TransferLeaderAbs.lean):
   `TransferRecvEndR` at the `RState` reading for every received transfer request (stale, higher term, current).
 - **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C0: `RawNode.Step.form` at the mode's types, the transfer arm (#33)
+- **Spec (the lead's statement, design §2/§4).** RawNodeAbsSpecs.lean: new `stepTypes md` (design §2's text:
+  `antStepTypes` and the pre-vote, read-index, transfer, forwarding, snapshot and storage-acknowledgement types by flag;
+  `stepTypes_empty : stepTypes {} = antStepTypes`). `RawNode.Step.form`'s scope premise: the type in `stepTypes md`
+  (was `antStepTypes`), a heartbeat response's empty context only at `md.reads = false`, the sender still in
+  `γ.reCfg` (the lead's decision 2: in B1 a non-voter never sends; `γ.ids` and an `errStepPeer` arm are a B3 item).
+  Post `%Hend` gains the Sim's `InputStep .recvX` text (Sim/Stmts.lean:106-108) at the message's transfer reading:
+  `∀ x, xmsgOf st = some x → (x.ty = .timeoutNow ∧ TimeoutNowEndR id r x r') ∨ (x.ty = .transferLeader ∧
+  TransferRecvEndR id r x r')`. No `errStepPeer` disjunct: with the sender in `γ.reCfg` and no configuration change
+  the sender has a `Progress`, so the path is not taken (the lead's decision 3, "whichever is simpler and sound").
+  At `md = {}` (the only scope proved so far) the new conjunct is vacuous (`antStep_xmsg_none`).
+  StepEndNetK.lean: `stepTypes_sub` (snapshots, forwarding, async off → `stepTypes md ⊆ netTypesK`).
+- **Decision.** The Antithesis lead (2026-11-26, decisions 1-3). No axiom, no premise.
