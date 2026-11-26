@@ -414,3 +414,29 @@ no `sorry` and no new axiom. No `Spec/`, axiom or `Spec/.../TopLevelRobustness` 
 - **Next:** fix the three failures above. Then rerun `GATES_FAILFAST=0`, or plain, with `/shared/tmp/f7fork-gates.sh`
   (scp it to `~/eg/`; it sets PERENNIAL_DIR, TCB_CACHE and GATES_GO_TMPDIR for fk-lean2). Sync the tree first: push,
   then on fk-lean2 `git fetch` this branch and run `git reset FETCH_HEAD` (that tree is git-synced to `a642733434`).
+
+### Handoff K-8 (2026-11-26; gates run in full)
+
+- **The grpc API failure.** Lean's `phase7-seal` made `Proof.google_golang_org.grpc.WithNoProxy` non-importable,
+  and `client.PrincipalsLinked` imported it for `newUserClient`'s link. `PrincipalsLinked` now takes
+  `EtcdGrove.etcdstart.grpc.wp_WithNoProxy` from etcdstart's `Link.lean`, which it already imported (a `Link` is
+  exempt from rule 1), and drops the import (`44afe36713`). `etc/api/grpc.txt` is unchanged, and every
+  `etc/api/*.txt --check` passes.
+- **Gates (`GATES_FAILFAST=0`, fk-lean2, `~/eg/f7fork-gates.sh` with flock and MemoryMax=55G, 431s).** `bgcancel` now
+  reads `.lake/packages/perennial`, a symlink to `~/eg/perennial-da0a82c26`. Build ok (29610 jobs). tcb ok (385
+  axioms, 0 sorries). collections: 69 match. axiom-tok ok (368 Prop axioms: 306 pass, 62 by an entry or pair), so
+  K-7's four `authd.Lease_{GrantOn,LeasesOn,RevokeOn,TimeToLiveOn}_dist` entries clear the rule-5 cascade. axiom-tok
+  selftest, errorf-wrap, exit-check, dist-axiom-diff, api and bgcancel: ok. FAILED:
+  - `mode`: inherited, as in K-7 (20 lit-modes in etcdstart `Start.lean`, `MemberLessor`, `MemberSplit`,
+    `AuthViewDist`, `MainLogger:637`).
+  - `errdesc-check`: inherited (`KVGetDist.lean`, `WatchDist.lean`).
+  - `model-param` (new: K-7's failfast run never reached it): 310 findings (286 rule 1, 24 rule 2), 13 per axiom on 24 F7-line
+    dist axioms with no `etc/model-param-allow.txt` entries: `KV_Compact_dist`, `RequestProgress_dist`, `Watch_dist`,
+    `authd.{Auth_AuthEnable,Auth_RoleAdd,Auth_RoleGrantPermission,Auth_UserAdd,Auth_UserGrantRole,KV_DeleteOn,
+    KV_GetOn,KV_PutOn,Lease_GrantOn,Lease_LeasesOn,Lease_RevokeOn,Lease_TimeToLiveOn,New_user,Txn_CommitOn,
+    WatchOn}_dist`, `view.{Client_LeaseLeases,Client_LeaseTimeToLive,Lease_GrantLive,Lease_Grant,
+    Lease_LeasesGranted,Lease_LeasesLive}_dist` (New_user_dist has 11). The binders are `etcdInterceptorOk{,M}/{Req,Rep}.toProtoMsg.M`
+    and `grpc{Svc,StreamSvc}At/Svc?.{unary,stream}.e.{Wp,Wq}.M`. Lean's allow file has the N2
+    `KV_{Put,Get,...}_dist` pair entries for these (lines ~103-111). The F7 axioms need the same kind of pair
+    entries, which are trust-review entries for the lead. Not added.
+- **Next:** the lead classifies the three trust-review gates (mode-allow, errdesc REVIEWED, model-param-allow pairs).
