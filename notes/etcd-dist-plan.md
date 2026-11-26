@@ -2767,7 +2767,9 @@ collection but `etcd-dist` matched unchanged; `etcd-dist` (127 axioms) took `lea
     `Client_{Put,Get}_dist`'s stale entries), for `NewPeerHandler_dist`, `PeerServe_dist`, `bootstrap.wp_proof_dist`
     and `NewServer_dist`, each traced from the raw walk (`etc/axiom-tok-allow.txt`'s section headers).
   - `NewServer_dist`'s walk is capped. The cap is global, `MAXSCEN`, and was not changed. Its entry rests on a trace,
-    `notes/axiom-review/newserver-dist-axiom-tok.md`, which is waiting for an independent triage.
+    `notes/axiom-review/newserver-dist-axiom-tok.md`. An independent triage found it justified with corrections
+    (`newserver-dist-axiom-tok-triage.md`): the source of the 2b token key, the depth-cutoff origin of `3:Dep`, and
+    the textual form of the subset argument. The corrections are applied; no key changed.
 - **`NewServer.specG_dist` lacked `specG`'s `etcdURLsFit` premises.** It had been copied before `specG` took them.
   The premises are restored, and `MainLogger` discharges them.
 - **The new gate `etc/dist-axiom-diff.py`** (`notes/axiom-review/dist-axiom-diff.md`) checks every copied dist axiom

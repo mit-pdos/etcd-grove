@@ -4,6 +4,16 @@ This note records the reasoning behind `etc/axiom-tok-allow.txt`'s entry for
 `etcd_dist.NewServer_dist.wp_proof`. It is a trace, not an `axiom`-skill review. The axiom's soundness reviews are
 in `notes/etcd-dist-plan.md` §17.3.
 
+**Corrected after an independent triage** (`newserver-dist-axiom-tok-triage.md`, verdict "justified with
+corrections", no key changed). Its three corrections are applied below:
+
+- the source of the rule-2b token key (§Rule 2);
+- why `3:Dep` differs from the proved walks;
+- the subset argument, restated as a textual argument (§Rules 3 and 7).
+
+This trace's first instrumented run recorded only `walkI`'s unfolds, not `walkProp`'s. So it read two tokens of a
+`Prop`-level premise as the post's.
+
 ## The walk is capped, and the cap is global
 
 The scenario cap is `MAXSCEN = 1024`, a constant of the checker (`etc/AxiomTokCheck.lean:163`). It applies to every
@@ -28,33 +38,38 @@ consumes at most what each consumes. Every later step of the walk is monotone in
 "Scenario sets"). A scenario that produced more tokens than it consumed would therefore fail rule 2 after the collapse
 as well. No token is produced beyond what is consumed.
 
-**`2:*:handedtoacallback2/supplieddirectly1`** (rule 2b) is not a mint. It was traced with a diagnostic copy of the
-checker that prints the stack of unfolded definitions at each token it tags as handed to a user-supplied callback
-(`cb:`) or handed back by one (`ret:`):
+**`2:*:handedtoacallback2/supplieddirectly1`** (rule 2b) is not a mint. The triage traced it with an unfold stack
+that both `walkI` and `walkProp` push (its run2):
 
 ```
-RETTOK threadTok fl=1 flips=3 stack=[lessorOk, srvFieldsAt]
-CBTOK  threadTok fl=1 flips=4 stack=[lessorOk, srvFieldsAt]
-CBTOK  threadTok fl=1 flips=2 stack=[]
-RETTOK threadTok fl=1 flips=3 stack=[]
+TOK threadTok pol=neg cb=0 flips=1 stack=[named, specG_dist]                        -- the pre's Htok (direct)
+TOK threadTok pol=pos cb=0 flips=2 stack=[specG_dist]  (x2)                          -- the post's threadTok, both arms
+TOK threadTok pol=pos cb=1 flips=2 stack=[spec, srvRevokeOpen, bootCfg, specG_dist]  -- cb
+TOK threadTok pol=neg cb=1 flips=3 stack=[spec, srvRevokeOpen, bootCfg, specG_dist]  -- ret
+TOK threadTok pol=pos cb=1 flips=4 stack=[lessorOk, srvFieldsAt, spec, srvRevokeOpen, bootCfg, specG_dist] -- cb
+TOK threadTok pol=neg cb=1 flips=3 stack=[lessorOk, srvFieldsAt, spec, srvRevokeOpen, bootCfg, specG_dist] -- ret
 ```
 
-The two tokens counted as handed to a callback are these:
+**The post's `threadTok` is not under a callback (`cb=0`).** Every token that is under a callback sits inside the
+caller-supplied premise `lease.bootCfg` (`LeaseApi.lean:69`). Its revocable conjunct is `srvRevokeOpen`
+(`LeaseRun.lean:50`), and `srvRevokeOpen` is `EtcdServer.revokeExpiredLeases.spec`, a triple the caller proves and
+the axiom may use. It accounts for the two pairs:
 
-1. **The post's `threadTok`** (`flips=2`, at the top level). The axiom hands it to the triple's continuation (the
-   user's `Φ`), as every triple that takes a token and gives it back does. It is paid for by the pre's `threadTok`,
-   which is supplied directly.
-2. **The post of `lessorOk`'s `□ ({{ threadTok }} Promote d {{ RET #(); threadTok }})`.** This is the lessor's
-   `Promote` contract (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvApplier.lean:614-617`, reached through
-   `srvFieldsAt` in the post's server fields).
-   - The contract sits inside the post, so it is under the continuation (`fl=1`).
-   - The checker therefore counts the token its pre takes as "handed back by a callback" (`ret:`, subtracted from
-     what is supplied directly).
-   - It counts the token its post gives back as "handed to a callback".
-   - The method takes one token from its caller and returns it: nothing is minted.
+1. **`revokeExpiredLeases`'s own token.** Its pre takes a `threadTok`, which the axiom hands to the callback (`cb`).
+   Its post returns the token (`ret`). This pair is paid by the pre's `Htok`, which is supplied directly: if the
+   callback never returns, the axiom loses that token, and it gains none.
+2. **`Promote`'s token.** The callback's pre holds `srvFieldsAt`, which holds `lessorOk`
+   (`InvApplier.lean:614-617`), with `□ ∀ d, {{ threadTok }} Promote d {{ RET #(); threadTok }}`. When the callback
+   calls `Promote`, it gives a token, which the walker counts as handed back (`ret`). The axiom returns it in
+   `Promote`'s post, which the walker counts as handed to a callback (`cb`). This is a borrow within one call: the
+   walker does not pair a nested method's pre and post.
 
-So `2b` sums the continuation's token and `Promote`'s returned token (2), against one token supplied directly. In-process,
-the proved `NewServer.specG` has the same `lessorOk` in the same post.
+So 2b counts 2 tokens handed to callbacks against 1 supplied directly. Plain rule 2 passes: 3 tokens produced, 3
+consumed. The proved theorems carry the identical premise (`specG`'s text) and the identical four tokens, which is
+why they have the same 2b key. The triage notes that 2b is not monotone under the collapse; that does not matter here,
+because the provenance enumerates every token occurrence, and the worst uncollapsed scenario is exactly 2 against 1.
+The same reading is in the F7 team's independent walk (`origin/etcd-safe-f7` `625dda2fae`,
+`notes/axiom-review/f7-newserver-atok.md`).
 
 ## Rules 3 and 7: compared with the proved `wp_NewServer`
 
@@ -79,13 +94,30 @@ The walks were run in one go on the head after the merge of lean `009822ac30`: `
 - **The two theorems together have 44 of the dist axiom's 45 keys.** This includes the token key
   `2:*:handedtoacallback2/supplieddirectly1`, which both proved theorems have.
 - **No key of the theorems is missing from the dist axiom.**
-- **The one extra key, `3:Dep:produced1/consumed0`, was traced.** A diagnostic copy of the checker prints the
-  unfold stack at each `Dep` atom. The atom is produced once, six flips and three callbacks deep, at
-  `srvBuiltG > srvReadBuiltNK > isApplyLessor > revokeClause > mvccDeleter > mvccTxn > mvccTxnI > isTxnWriteT >
-  storeTxnWriteIs > batchTxSpecG`. That is CP3's attribution for `EtcdServer.leaseTimeToLive`'s same key: the
-  revoke's backend batch-transaction callbacks, inside the server's read handle. The proved theorems have the
-  matching transfer `7:Dep:IPropGF`. Their walks collapse at other points, so the rule-3 count of `Dep` differs
-  between the three capped walks.
+- **The one extra key, `3:Dep:produced1/consumed0`, comes from the depth cutoff, not the collapse.**
+  - Its `∃ Dep` binder is in `storeTxnWriteIs` and is used at `batchTxSpecG`, on the path `srvBuiltG > srvReadBuiltNK >
+    isApplyLessor > revokeClause > mvccDeleter > mvccTxn > mvccTxnI > isTxnWriteT > storeTxnWriteIs > batchTxSpecG`,
+    14 unfolds deep. This is CP3's attribution for `EtcdServer.leaseTimeToLive`'s same key.
+  - The proved statements are one `Prop` unfold deeper (`NewServer.spec`/`specM` → `specG`), so their walks stop above
+    `batchTxSpecG` at `--depth` 14. They have the matching transfer `7:Dep:IPropGF`.
+  - The triage confirmed this both ways. At `--depth=15` both proved theorems report the same key. At `--depth=13`
+    the dist axiom loses it and keeps every other rule-2 and rule-3 key.
+
+**Why the shared keys are enough: the textual argument.** Key equality across capped walks is weak evidence on its
+own: each collapse happens at a different point, and a key is a binder name plus counts. The argument that holds is
+textual:
+- Every finding is of a binder inside text the proved statements share verbatim: the post, and every premise but the
+  deviations `etc/dist-axiom-diff.py` lists.
+- A rule-3 or rule-7 verdict for a binder depends only on the subterm under it (`bindVar`/`closeAtom`).
+- So every such finding is a finding of the text that the proved `wp_NewServer`/`server_new_auth_on` establish in
+  process. This covers the 44 shared keys and `3:Dep`, whatever their counts.
+
+**The moved `γn`.**
+- The top-level `∃ γn` is neutral: the walk never finds it naked.
+- The `7:γn:NetNamesGF` key belongs to `srvApplyAllBuilt`'s inner binder, which is shared text.
+- The post's `γn.N = srvNet γ` fixes the one `IProp`-carrying field of `γn`.
+- The deviations' premises, `Hpeers` and `noProxyEnv`, are consumed. A consumed premise only adds to what the axiom
+  consumes, and the run reports no rule-6 holder that could credit one. (Triage §3.)
 
 The keys are in `etc/axiom-tok-allow.txt`'s entry, one per finding class; the walk's raw output is not kept.
 
