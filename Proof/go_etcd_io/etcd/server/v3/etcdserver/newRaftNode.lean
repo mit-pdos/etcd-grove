@@ -12,7 +12,7 @@ contracts the spec takes (`InvNodeStart.lean`).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZapNN
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
 public import Spec.go_etcd_io.etcd.pkg.v3.contention.NewTimeoutDetector
 public import Perennial.Proof.time
 public import Perennial.Spec.time.NewTicker
@@ -43,7 +43,7 @@ theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames GF) (h : γ1.cum = γ2.cum)
     (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key)
     (hwal : γ1.wal = γ2.wal) (ha : γ1.a0 = γ2.a0) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnView rnGhost rnRtOk rnReplayJob rnMessageSource rnBatchSource rnLogOf RNNames.srv
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnView rnGhost rnRtOk rnReplayJob rnBatchSource rnLogOf RNNames.srv
     rnWalHanded
   rw [h, hγs, hpre, hn, hnl, hid, hkey, hwal, ha]
 
@@ -54,7 +54,7 @@ theorem newRaftNode.wp_proof
     (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG))
     -- (premises to axioms, 2026-11-24: until then the spec's premises `rnLoggerZapOk` and
     -- `rnTimeoutDetectorOk`) the trust-boundary specs of `NewRaftLoggerZap` and `contention.NewTimeoutDetector`
-    (wp_NewRaftLoggerZap : _root_.Perennial.EtcdGrove.NewRaftLoggerZap.specNN (GF := GF) (hG := hG))
+    (wp_NewRaftLoggerZap : _root_.Perennial.EtcdGrove.NewRaftLoggerZap.spec (GF := GF) (hG := hG))
     (wp_NewTimeoutDetector : contention.NewTimeoutDetector.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E node id nl pre ms γs key wal ss cv a0 t0 L₀ commit0 snap0
@@ -108,7 +108,7 @@ theorem newRaftNode.wp_proof
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
-      storage.walOpen wal.ν.h (1 : Qp).half ∗ token wal.ν.app)) _ stc γst (by trivial)
+      storage.walOpen wal.h (1 : Qp).half ∗ token wal.app)) _ stc γst (by trivial)
     $$ Hstc Hsto with #Hstb
   imod start_sspsc (V := toApply) apc
     (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, ss, sc, a0, t0, commit0, snap0⟩)

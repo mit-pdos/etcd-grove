@@ -4,7 +4,7 @@ spec file for the statement and why it is true.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZapNN
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
 
 @[expose] public section
 
@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The trust boundary**: `NewRaftLoggerZap`, as the spec states it (interim, until zap's specs). -/
-axiom NewRaftLoggerZap.wp_proofNN : NewRaftLoggerZap.specNN (GF := GF) (hG := hG)
+axiom NewRaftLoggerZap.wp_proof : NewRaftLoggerZap.spec (GF := GF) (hG := hG)
 
 end proof
 

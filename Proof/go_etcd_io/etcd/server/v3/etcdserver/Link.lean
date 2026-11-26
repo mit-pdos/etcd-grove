@@ -151,7 +151,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersB
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZapNN
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
@@ -783,7 +783,6 @@ public import Proof.bytes.BufferLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
 public import Proof.os.File__SyncS
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewRaftLoggerZap
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__advertiseMatchesCluster
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootClusterRows
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootFsTouchData
@@ -3372,9 +3371,9 @@ theorem EtcdServer.wp_revokeExpiredLeases :
     EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.revokeExpiredLeases.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_ensureLeadership EtcdServer.wp_MemberID EtcdServer.wp_LeaseRevoke auth.authStore.wp_WithRoot zap.wp_Uint64 zap.wp_String zap.wp_Error zap.Logger.wp_Warn
 
-theorem wp_NewRaftLoggerZapNN :
-    NewRaftLoggerZap.specNN (GF := GF) (hG := hG) :=
-  NewRaftLoggerZap.wp_proofNN
+theorem wp_NewRaftLoggerZap :
+    NewRaftLoggerZap.spec (GF := GF) (hG := hG) :=
+  NewRaftLoggerZap.wp_proof
 
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
@@ -3502,7 +3501,7 @@ theorem contention.wp_NewTimeoutDetector :
 
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=
-  newRaftNode.wp_proof wp_SetLogger _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop wp_NewRaftLoggerZapNN contention.wp_NewTimeoutDetector
+  newRaftNode.wp_proof wp_SetLogger _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop wp_NewRaftLoggerZap contention.wp_NewTimeoutDetector
 
 theorem bootstrappedRaft.wp_newRaftNode [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) :=

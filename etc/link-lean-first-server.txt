@@ -270,7 +270,7 @@ IsEmptySnap: @
 SetLogger: @
 # (premises to axioms, 2026-11-24) `newRaftNode`'s names-only callees, trust-boundary axioms (until then
 # the contracts `rnLoggerZapOk`, `rnTimeoutDetectorOk`, premises of every closed theorem)
-NewRaftLoggerZap+NN:
+NewRaftLoggerZap:
 contention_NewTimeoutDetector:
 zap_Duration:
 zap_Time:
@@ -722,7 +722,7 @@ auth_authStore__GenTokenPrefix:
 # (D17d, 2026-10-18) `NewServer` reads `run`'s snapshot contract off the storage's application
 # token through `MemoryStorage.Snapshot`'s application triple (`rnSnapOnce_of_tok`).
 MemoryStorage__Snapshot: @
-newRaftNode: SetLogger =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop NewRaftLoggerZap+NN contention_NewTimeoutDetector
+newRaftNode: SetLogger =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop NewRaftLoggerZap contention_NewTimeoutDetector
 bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRaftNode =rnNewStorageOk_law_holds~raftpb.SnapshotMetadata.wp_GetIndex =rnRestartAllocK_law_holds
 # The server's construction (server.go's `NewServer`; the server-construction unit, stage N0,
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).

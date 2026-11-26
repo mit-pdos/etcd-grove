@@ -8,7 +8,7 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   triples the specs take in their preconditions (as `isServerBuilt` takes the names-only parts'
   contracts, `clusterVersionOk`): `NewRaftLoggerZap` (`zap_raft.go`, names-only: some logger
   interface; until 2026-11-24 the contract `rnLoggerZapOk`, since then the axiom
-  `NewRaftLoggerZap.wp_proofNN`, a callee of `newRaftNode`'s proof); (until premise-fixes-4, 2026-11-10, raft's `SetLogger` too,
+  `NewRaftLoggerZap.wp_proof`, a callee of `newRaftNode`'s proof); (until premise-fixes-4, 2026-11-10, raft's `SetLogger` too,
   `rnSetLoggerOk`, false in the model: raft's initializer dropped its globals; since, raft keeps
   `raftLoggerMu` owning `raftLogger` in `isInitialized` and proves `SetLogger.spec`, a callee of
   `newRaftNode`'s proof); `contention.NewTimeoutDetector`

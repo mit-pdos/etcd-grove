@@ -5742,7 +5742,7 @@ noncomputable def EtcdServer.HardStop.impl [GooseExts] [GoGlobalContext] : val :
 /-- ReadyNotify returns a channel that will be closed when the server
     is ready to serve client requests
 
-    go: server.go:1368:22 -/
+    go: server.go:1390:22 -/
 noncomputable def EtcdServer.ReadyNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
