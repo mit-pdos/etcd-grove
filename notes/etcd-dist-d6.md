@@ -2667,6 +2667,21 @@ which the row alone does not give.
 
 No axiom, `sorry`, trusted text, top-level premise or top-level statement changed.
 
+**Handoff T10b-1** (stopped at the context rule; head = this commit, pushed):
+* Item 2 (P5-RESTART): blocked, waiting on the lead's choice (A) or (B) above. C-I2 unchanged.
+* Steps 2 and 3: not started (reasons above).
+* The merge with p5r (`ada6d74e2c`) is **unbuilt**; no full build or gates ran.
+* fk-lean1 seed copy **in progress at handoff**: `cd ~/eg/wt && cp -a etcd-safe-f7-runauth/.lake etcd-safe-t10b/`
+  (source `~/eg/wt/etcd-safe-f7-runauth/.lake`, 63 GB, Perennial `a706aeb9a`; destination `~/eg/wt/etcd-safe-t10b/.lake`,
+  a worktree of `~/eg/etcd-grove.git` checked out at `ada6d74e2c`; then `rm -rf .lake/lean-check`). Disk was 52 GB free
+  at 17 GB copied: check `df -h ~` once it ends (about 6 GB left after it). If the copy is incomplete, `rm -rf` the
+  destination's `.lake` and redo it.
+* Sync and build: `/shared/tmp/t10b-rb.sh [targets]` (diff vs `ada6d74e2c`, deletes removed files; flock
+  `~/eg/build.lock`, `MemoryMax=55G`, `--packages=.lake/package-overrides.json`); `GATES=1` runs `etc/gates.sh`
+  (with `LAKE_PACKAGES`/`LAKE_OPTS` set). Logs `~/eg/logs/t10b-{build,gates}.log`. Delete read-only `.ilean`s on
+  `permission denied`.
+* Next: once the copy ends, the full build of the head, then gates in full; then item 2 by the lead's choice.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
