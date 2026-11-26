@@ -2838,6 +2838,7 @@ no counterexample.**
 - The review is in (25.5): all sound.
 - The docstring fixes F1–F4 are applied (25.5). The three touched modules build on the VM (4655 jobs);
   `tcb-report --check` matches the baseline (364 axioms, 0 sorries) and `etcd-dist` (0, 0).
+
 ## 23. N9a: the putget and durable workloads across machines (2026-11-25, branch `etcd-safe-n9a/2026-11-25`)
 
 #50's N9a (coordinator-E's brief): `RunPutGet` and `RunDurable` of `examples/etcd/dist/client`, for the full
@@ -2906,3 +2907,100 @@ current key-value). A deployment with a sole writer (kv, watch, cache, auth) giv
 See the commits on the branch for the build state of each module (the VM was held for M1's build; proofs
 written, building in this order: `KVPfxDist`, `KVWorkDefs`, `KVCallsDist`, the helper proofs, `RunPutGet`,
 `RunDurable`, `KVWorkLinked`).
+
+## 26. F5: compact (2026-11-26, branch `etcd-safe-f5/2026-11-26`)
+
+#50's F5 (`etcd-nocrash-plan.md`): `RunCompact` of `examples/etcd/dist/client` across machines. Base
+`etcd-safe-wenv/2026-11-26` @ `bd5984c79e`, with `etcd-safe-n9a/2026-11-25` @ `943a376ab5` merged (KVPfxDist).
+Untrusted proof work: no new axiom, `sorry`, top-level premise or Go change.
+
+### 26.1 What compact needs that N9a's shared KV did not give
+
+compactwatch's argument (`compactwatch/Rounds.lean`) is over the whole KV: the rounds' invariant holds `etcdKV`
+and reads the state's past (a get at an old revision, the watch's events) and a revision counter. In a
+deployment compact shares the cluster's KV with putget and durable (`kvPfxShare`), and an owner's view there
+(`pfxView`, the current key-values under its prefix) says nothing of the past. So `KVPfxDist`'s invariant now
+also keeps (`KVPfxDist.lean`'s header, "The history"):
+- the list of the state's changes (`monoListAuthOwn γh`, append-only): every update is an owner's, local to its
+  prefix (`PfxLocal` now includes the history: it keeps the compaction revision and base, every state extending
+  the start's, `KVExt σ₀`, and appends changes, all of keys under the owner's prefix);
+- each prefix's discipline over its keys' changes (`ok p`, `PfxChOk`): compact's `cwOk` (every change of a
+  `cw/` key is a put of `v`); `fun _ => True` for putget and durable.
+
+`kvPfxH γk p γ okp γh σ₀` is the owner's fact with the discipline and the history's names; `kvPfx` (N9a's) is
+`kvPfxH` at no discipline. New laws: `kvPfx_au1H` (the step learns `KVExt σ₀ σ`, the discipline, and gets a
+lower bound of the changes after the update), `kvPfx_readAuH` (the same for a read, from the caller's lower
+bound `l0`), `kvPfx_seen` (with `kvInv`, outside every update: a revision the cluster reached, `kvRevLbZ`,
+bounds a lower bound of the changes; `kv_revLbZ_le` over the shared invariant). N9a's `kvPfx_au1` and
+`kvPfx_readAu` keep their statements (`kvPfx_au1` is `kvPfx_au1H` at no discipline), so putget's and durable's
+proofs are unchanged; `kvPfx_alloc` takes the disciplines and a start with no change, and returns `kvPfxH`.
+
+### 26.2 Specs (`Spec/.../dist/client/`)
+
+- `RunCompact.spec`: `{isPkgInit client ∗ levelTok 0 ∗ eps ↦*□ addrs ∗ compactShare addrs} RunCompact(eps)
+  {r. levelTok 0}` (no panic: every check holds), the pure premises `RunPutGet.spec`'s (`Nonempty (WEnv GF)`,
+  `threadBound GF ≤ 2^30`, `plainEndpoints addrs`, `errors.AsTarget rpctypes.EtcdError`).
+- `checkCompactRev.spec`: from `RunCompact`'s client (`isNewClient`, `clientNoProxy`, `membersAt eps Γ`),
+  `Γ.kv.cret = 1`, `kvInv`, compact's `kvPfxH` and `cwInv`, a fired key under `cw/` and a lower bound of the
+  history: returns with the token.
+- `compactShare eps` (`CompactWorkDefs.lean`, global): `∃ Γ γr γ γh σ₀, ⌜Γ.auth = false ∧ Γ.kv.cmp = true ∧
+  Γ.kv.cret = 1 ∧ 1 ≤ σ₀.rev⌝ ∗ membersAt eps Γ ∗ kvInv γr Γ.kv ∗ kvPfxH Γ.kv cw/ γ cwOk γh σ₀ ∗ ghostVar γ ½ []`.
+
+### 26.3 The proofs
+
+`CompactWorkDefs.lean`: compact's invariant `cwInv` (the `cw/` view: every value `v`, every fired key
+present: putget's argument at a constant value), `cwPutAu` (the put's one-shot update over `kvPfx_au1H`,
+result `cwPutQ`: fired, the state it met extending the start's, the history's bound after it), `cwReadAu`
+(the read update over `kvPfx_readAuH`, result `cwSeen`: the bound, `KVExt`, the discipline, the fired key reads
+`v`); pure: `KVExt.at_eq` (two extensions agree at the shorter one's revisions: the get at the previous put's
+revision reads that put's state, `cwAt_put`), `evsOfRevM_of`/`rangeEvents_cw` (an event's key and value are its
+change's, so under `cwOk` a watch of a `cw/` key sees only `v`). `CompactCallsDist.lean`: `cli.Put`/`cli.Get`/
+`cli.Compact` over `KV_Put_dist`/`KV_Get_dist`/`KV_Compact_dist` (hypotheses), keeping the replies' revisions
+and the put's `kvRevLb`. `checkCompactRev.lean`, `RunCompact.lean`: compactwatch's proofs at the view, the
+checks as there: the latest get's revision from the put's history bound, the old get's value from
+`cwAt_put`, the watch's values from `resp_cw`, the compaction revision's permit (`cmpOkOf_permit`: its
+revision plus the retention reached) through `kvPfx_seen`. The compaction `Compact(rev - 1)` is allowed by
+`KV_Compact_dist` because the put's reply reached `rev` and the retention is `1`. `CompactLinked.lean`: both at
+the linked callees and the interim axioms `KV_Put_dist`, `KV_Get_dist`, `KV_Compact_dist`, `Watch_dist`; with it,
+`Serve_dist`'s docstring names the watch streams (the N3 review's F4, §22.7).
+
+### 26.4 What the start (F8) must allocate
+
+- At the cluster's boot state `σ₀` (no key-value, every change empty: `[[]]`, revision 1):
+  `kvPfx_alloc Γ.kv σ₀ h0 hc0 [pg/, du/, cw/] hap ok` with `ok cw/ = cwOk` and `True` for the others
+  (`kvPfx_of_H` gives putget's and durable's `kvPfx`); compact's `kvPfxH` and the `cw/` half.
+- `kvInv ⟨c.γ, [], 0⟩ c.γk` from `clusterFacts` (persistent), `membersAt` from `clientSvcFacts`.
+- The cluster's compaction mode on and retention 1 (`ClusterOk`'s `c.γk.cmp = true`, `c.γk.cret = 1`) when
+  the deployment has a compact workload. `NewServer`'s `v3compactor.bootCfg` allows it at every compactor
+  `WellFormed` allows with compact: off (any `cret`), revision mode at a retention `r ≥ 1` (`Supported`) with
+  `cret = 1 ≤ r`; the periodic compactor is excluded with compact (`WellFormed`, review F5). So no Go change:
+  `cret ≥ 1` is the start's choice, and Go's `deployment.WellFormed` (and Lean's) already rules out the only
+  compactor that would forbid it.
+- **Open for F7/F8**: `NewServer`'s `cmp = true → on = false`. With M1's `d.cfg.auth = false` it holds. Go's
+  `WellFormed` allows a compact workload with the token provider on (`Cfg.Auth = true`, compact needs no auth and
+  is not alone); if F7 lets `on` follow `d.cfg.auth`, such a deployment cannot run in compaction mode, and
+  `KV_Compact_dist` needs it. Either `WellFormed` excludes compact under the token provider (a Go+Lean check,
+  like review F10's lease one; not done here, not approved yet) or the auth-on server gains a compaction mode.
+
+### 26.5 Checkpoints
+
+- `2e335fc137`: specs, `CompactWorkDefs`, `KVPfxDist`'s history; built on the VM (with `KVWorkDefs`).
+- `75df6cbc69`: `CompactCallsDist`, `checkCompactRev.wp_proof`, `RunCompact.wp_proof` (callee hypotheses), VM-built.
+- Linking commit (this section's last edit): `CompactLinked.lean` and `Serve_dist`'s F4 text; VM-built (with
+  `ServeDist`). `#print axioms etcd_dist_client.wp_RunCompact` (73 lines, `sorryAx` absent): of this
+  repository's interim ones exactly `etcdSvc`, `KV_Put_dist`, `KV_Get_dist`, `KV_Compact_dist`, `Watch_dist` and
+  `Client.Close.wp_proof`, plus the existing package/trust-boundary ones. `tier-check --check` ok (208 known);
+  `bounds-check --check` ok (390) after `etc/bounds-allow.txt`'s dist/client `spec-thread` line gains `RunCompact`
+  (the machine's thread bound, as putget's). `tcb-report` not rerun: no exported result imports `CompactLinked`
+  yet (F8's dispatch will; `KV_Compact_dist` and `Watch_dist` then enter the baseline and the `etcd-dist`
+  collection).
+
+### 26.6 Notes for the other pieces
+
+- N9a's `RunPutGet`/`RunDurable` call `clientCoreAt_of_new` (F2's `LeaseDefs.lean`, not on N9a's branch) and
+  `KVCallsDist.wp_cliGet`'s `isimp … at HQ` uses `hser` at `rangeWireOf`'s form where `HQ` has `opGetModel`'s
+  (the fix is `CompactCallsDist.wp_cliGetR`'s `hser'`). This branch has `clientCore_of_new` (the same lemma,
+  another name); one goes when F2 and this branch meet.
+- `prevOk`/`resp_cw` are `RunCompact`'s; the watch request lemmas (`cw_watch_ok`, `cw_watchNorm`) are in
+  `CompactWorkDefs` (shared by both proofs).
+
