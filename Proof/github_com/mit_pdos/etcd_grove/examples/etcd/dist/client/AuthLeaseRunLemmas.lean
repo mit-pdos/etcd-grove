@@ -31,14 +31,14 @@ variable [GooseExts]
 theorem leaseTxnD_model (k : GoString) (L : w64) :
     TxnModel.plain (leaseTxn k L) ∧ txnModelIn (txnWireOf (leaseTxn k L)) := by
   constructor
-  · simp [TxnModel.plain, leaseTxn, TxnOp.plain]
+  · simp [TxnModel.plain, TxnOp.plain]
   · intro o ho
-    simp [leaseTxn, txnWireOf, opWire] at ho
+    simp [txnWireOf, opWire] at ho
 
 end pure
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -88,6 +88,65 @@ theorem uPutA_neqD (γk : KVNames) (γz : GName) (hs : List auth.AuthState) (Lse
   · imodintro
     ipureintro
     exact hil
+
+/-- **Root's grant fixed, then its put of `z/lease`** (`grantPut.spec`'s step for root's `grantPut(root,
+zKey)`, any principal): the granted id is recorded first in the cell (`cell_fix`), and the put's update
+records the first attachment (`cell_putZAu`). -/
+theorem fixZD (γk : KVNames) (γc : CellNames) (P : Option GoString) (L₀ : List EntryModel) :
+    cellInv (GF := GF) γk γc ∗ monoListLbOwn γc.ps ([] : List Nat) ⊢
+      ∀ id : w64, ⌜id ≠ W64 0⌝ -∗ (∃ σ, gsHas γc id σ) -∗ monoListAuthOwn γc.ids (1 : Qp).half ([] : List w64)
+        ={⊤}=∗ (monoListAuthOwn γc.ids (1 : Qp).half [id] ∗ monoListLbOwn γc.ids [id] ∗ ⌜id ≠ W64 0⌝) ∗
+          writeAuD γk P (.put (grantPutOp zK id)) L₀ (fun _ => psAtLeast γc 1) := by
+  iintro ⟨#Hinv, #Hp0⟩ %id %hid ⟨%σ, Hg⟩ HR
+  iunfold gsHas at Hg
+  icases Hg with ⟨%gs, #Hgs, %hgs⟩
+  imod (cell_fix γk γc [] id [] hid (by simp) (by simp) ⊤ (by simp)) $$ [HR] with ⟨HR', #Hlb⟩
+  · iframe HR; iframe #
+  imodintro
+  ihave #Hlb1 : monoListLbOwn γc.ids [id] $$ []
+  · iExactEq Hlb; simp
+  isplitl [HR']
+  · isplitl [HR']
+    · iExactEq HR'; simp
+    iframe Hlb1
+    ipureintro; exact hid
+  iunfold writeAuD
+  simp only [grantPutOp, leasePut_wire]
+  ihave #Hpz := cell_putZAu γk γc id gs hgs (opGrantD γk P (.put (leasePutOp zK id)) L₀) $$ [Hlb1]
+  · iframe #
+  iexact Hpz
+
+/-- **u's grant fixed, then its put of `a/lease`** (`grantPut.spec`'s step for `grantPut(ucli, aKey)`):
+the id recorded second (`cell_fix`), the put's update recording the second attachment (`cell_putAAu`), its
+premise `Lu ≠ Lz` from `uPutA_neqD`. -/
+theorem fixAD (γk : KVNames) (γc : CellNames) (γz : GName) (hs : List auth.AuthState) (Lset : List EntryModel)
+    (r : Nat) (hadm : admStates γk srvAuthSt0 Lset = hs) (hst : srvAuthAtLog γk srvAuthSt0 Lset = etcd_auth.setupSt r)
+    (Lz : w64) (hLz : Lz ≠ W64 0) (ps1 : List Nat) (h1 : 1 ≤ ps1.length) :
+    cellInv (GF := GF) γk γc ∗ monoListLbOwn γc.ps ps1 ∗ authHistFrozen γk γz hs ⊢
+      ∀ id : w64, ⌜id ≠ W64 0⌝ -∗ (∃ σ, gsHas γc id σ) -∗ monoListAuthOwn γc.ids (1 : Qp).half [Lz]
+        ={⊤}=∗ (monoListAuthOwn γc.ids (1 : Qp).half [Lz, id] ∗ monoListLbOwn γc.ids [Lz, id] ∗
+            ⌜id ≠ W64 0⌝) ∗
+          writeAuD γk (some go!"u") (.put (grantPutOp aK id)) Lset (fun _ => psAtLeast γc 2) := by
+  iintro ⟨#Hinv, #Hps1, #Hz⟩ %id %hid ⟨%σ, Hg⟩ HR
+  iunfold gsHas at Hg
+  icases Hg with ⟨%gs, #Hgs, %hgs⟩
+  imod (cell_fix γk γc [Lz] id ps1 hid (by simp) (by simp; omega) ⊤ (by simp)) $$ [HR] with ⟨HR', #Hlb⟩
+  · iframe HR; iframe #
+  imodintro
+  ihave #Hlb1 : monoListLbOwn γc.ids [Lz, id] $$ []
+  · iExactEq Hlb; simp
+  isplitl [HR']
+  · isplitl [HR']
+    · iExactEq HR'; simp
+    iframe Hlb1
+    ipureintro; exact hid
+  iunfold writeAuD
+  simp only [grantPutOp, leasePut_wire]
+  ihave #Hne := uPutA_neqD γk γz hs Lset r hadm hst Lz id hLz $$ Hz
+  ihave #Hpa := cell_putAAu γk γc Lz id gs ps1 hgs h1 (opGrantD γk (some go!"u") (.put (leasePutOp aK id)) Lset)
+    $$ [Hlb1]
+  · iframe #
+  iexact Hpa
 
 end lemmas
 
