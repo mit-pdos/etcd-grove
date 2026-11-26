@@ -538,6 +538,34 @@ are deleted (W5).
    - Between commits (2) and (6), `grpcServes` refuses stream entries (a `False` clause), so the
      interim `Serve` axiom says nothing new about them before their clause exists.
 
+14. **S3.1 as built (2026-11-26, branch `phase7-s3-calllib/2026-11-26`), where §1.4's text had to change.**
+   - **The module is `InvGrpcCallLib.lean`**, above `InvGrpcStream.lean`: the library needs the table
+     (`InvGrpcWire`) and the stream tokens (`InvGrpcStream`), while `InvGrpcCall.lean` sits below
+     `InvGrpcWire` and holds trusted text (`StreamNames`, `streamDispIs`), which stays where it is. So at
+     W5, `grpcAddrAt` (in `InvGrpcWire`) cannot name `grpcCliP` without a module move.
+   - **A call's names are `CallNames`** (`s : StreamNames`, `fin`, `finTok`): the end's status needs a
+     name, `StreamNames` (trusted) has none to spare, and all ghost state at a name shares one camera.
+   - **Indexed by the dispatch address** (SW1's `streamDispIs γ a md`): `CallParams.Md a md`,
+     `dn a md`, `fin a md o`; `callDeposit ent fs κ a P` takes the attempt's address, which the server's
+     `call_dispatch` sets. The dispatch's agreement is SW1's `streamDispIs_agree`.
+   - **The request content is address-generic** (a transparent retry may re-pick an address whose
+     table entry differs): `unaryParams Wq Wp Md S Φ Ψe` carries the caller's spec `S`, and
+     `streamParams Wq Wp Md up dn` the client's content; `callAdmits ent γ a P` ties `P` to the entry at
+     the attempt's address, and `callFacts` (in the deposit) carries the conversions (`S ==∗ e.spec`,
+     `up ==∗ e.up`) and, for a stream, `□ ∀ md, P.Md a md -∗ e.spec md γ (e.dn md γ)`. The invariant
+     stores `□ P.Md a md` at the dispatch.
+   - **The head slot is keyed by the call** (the SW1 review's finding 3, resolved): the connection's slot
+     (`Slot.lean`, unchanged) holds an attempt's ticket, keyed by `(fs, κ, α)`; the deposit sits in the
+     attempt's invariant (`attInv α`). The ticket's holder dispatches (`att_claim`) or refuses
+     (`att_refuse`: `attRefused α`, which a `REFUSED_STREAM` frame states instead of `connRefused cn`);
+     the client takes the deposit back (`att_takeRefused`, or `att_cancel` after `callHead_withdraw`). A
+     relay claims the ticket on its accepted connection and registers it on its dialed one
+     (`callHead_relay`); `srvFrameOkAt_relay` and `grpcCliP_relay` carry the frames' facts across.
+   - **Laws** take `£ 1` and the mask `↑(callN κ)`; besides §1.4's list, `call_alloc`, `call_end_closed`
+     (the `io.EOF` arm's `downClosed`), and a client token `callFinTok` for `call_take_fin`.
+   - **Frames**: `grpcSrvP` requires well-formed frames (`srvFrameWf`: header lists within the limit,
+     which separates a block from the oversized marker); a trailer's end is the function `trailerEnd`.
+
 ## 2. The two `NewStream` defects
 
 Both are overclaims of a trust-boundary axiom: false of grpc-go v1.84 and of the model, which keeps

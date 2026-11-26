@@ -111,7 +111,11 @@ Session__Done:
 # (strings.Compare, strings.TrimPrefix, errors.As, (*time.Time).Add) are Perennial's specs.
 rpctypes_EtcdError__Error:
 status_FromError: rpctypes_EtcdError__Error
-status_Error:
+# (prove-statuserror, 2026-11-26) `status.Error` over grpc's bodies: `fmt.Sprintf`, `codes.Code.String`
+# (over `strconv.FormatInt`) and the trust boundary `proto.Equal` of two `*spb.Status`
+codes_Code__String: =_root_.Perennial.strconv.wp_FormatInt
+proto_EqualStatus:
+status_Error: =_root_.Perennial.fmt.wp_Sprintf codes_Code__String proto_EqualStatus
 # Unit 5 (the monitors' callees): the clientv3 and concurrency functions they call.
 WithRev:
 Client__Ctx:

@@ -47,7 +47,7 @@ header; `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN/Main.le
 premises of its callees' linked results (partition's and putgetN's). -/
 theorem etcd_txnlinfaultsN.wp_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     etcd_txnlinfaultsN.Main.spec (GF := GF) (hG := hG) :=
   etcd_txnlinfaultsN.Main.wp_proof zap.NewNop.wp_proof
     (etcd_txnlinfaultsN.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers

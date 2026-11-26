@@ -1,10 +1,12 @@
 # putget_safe (examples/etcd/dist/putget, notes/putget-dist-plan.md): etcd's first distributed theorem,
 # one member machine and one client machine, no crash: `theorem putget_safe : putget_safe.spec`
 # (Proof/.../examples/etcd/dist/putget/TopLevelRobustness.lean), no hypothesis. Its cross-machine steps
-# rest on the four interim axioms of notes/putget-dist-plan.md §12 (the table `etcd_dist.etcdSvc`,
-# `etcd_dist.Serve_dist.wp_proof`, `etcd_dist.Client_Put_dist.wp_proof`,
-# `etcd_dist.Client_Get_dist.wp_proof`; since the S2 interface switch the address fact is grpc's
-# `grpcAddrAt` and `etcdAddr_set` a theorem), retired by S2's `etcdSvc` and proofs. The rest is the
+# rest on the four interim axioms of notes/putget-dist-plan.md §12 and notes/etcd-dist-plan.md §18 (the table
+# `etcd_dist.etcdSvc`, `etcd_dist.Serve_dist.wp_proof` and the clientv3 contracts
+# `etcd_dist.KV_Put_dist.wp_proof`, `etcd_dist.KV_Get_dist.wp_proof`, at the cluster's view, O1 option B,
+# 2026-11-25: until then `Client_Put_dist`/`Client_Get_dist` were axioms over a published view, now theorems;
+# since the S2 interface switch the address fact is grpc's `grpcAddrAt` and `etcdAddr_set` a theorem),
+# retired by S2's `etcdSvc` and proofs. The rest is the
 # single-process member's and client's trust base. Baseline written by --check --update after a full
 # VM build.
 #
@@ -17,7 +19,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom NewRaftLoggerZap.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
@@ -37,8 +38,8 @@ axiom contention.NewTimeoutDetector.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom etcdResolver_grpc
-axiom etcd_dist.Client_Get_dist.wp_proof
-axiom etcd_dist.Client_Put_dist.wp_proof
+axiom etcd_dist.KV_Get_dist.wp_proof
+axiom etcd_dist.KV_Put_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.etcdSvc
 axiom fmt.SscanfWalName.wp_proof
@@ -104,6 +105,7 @@ axiom prometheus.NewHistogramVec.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualStatus.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
@@ -136,7 +138,6 @@ axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.ReleaseSnapDBs.wp_proof
 axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
-axiom status.Error.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
@@ -150,3 +151,56 @@ axiom types.NewURLs.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Stack.wp_proof
+opaque apply.backendUnderQuota
+opaque apply.irrDecodeRest
+opaque apply.memberEnc
+opaque apply.semverAtMostServer
+opaque apply.semverIsCore
+opaque apply.semverNorm
+opaque apply.semverValid
+opaque auth.roleEncode
+opaque auth.userEncode
+opaque authRecordsFit
+opaque backend.readerStreams
+opaque backend.renameOk
+opaque credsYieldRaw
+opaque etcdVerifyEnv
+opaque grpcCliPI
+opaque grpcConnClosedRaw
+opaque grpcConnOptsRaw
+opaque grpcRepModelOf
+opaque grpcRepliesFit
+opaque grpcReqModelOf
+opaque grpcSrvPI
+opaque hsDecode
+opaque http.httpProtoAtRaw
+opaque http.netErrRaw
+opaque http.reqCtxRaw
+opaque http.reqRestRaw
+opaque http.reqStreamRaw
+opaque http.respCloserRaw
+opaque http.respHdrs
+opaque http.respReadAnyRaw
+opaque http.respReader
+opaque http.respWriter
+opaque http.urlHostOk
+opaque http.urlOf
+opaque io.pipeW
+opaque lease.leaseEnc
+opaque lease.leasesNoExpiry
+opaque membership.memBucketsOk
+opaque membership.membersOf
+opaque membership.peerURLsOk
+opaque metadata.builtRawMDRaw
+opaque metadata.transportMDRaw
+opaque mvcc.kvEncode
+opaque mvcc.viewFk
+opaque noRefusalAt
+opaque pbModelOf
+opaque peer.transportPeer
+opaque prometheus.vecLabels
+opaque snap.dirReadOk
+opaque snapDecode
+opaque storage.dbOpensOk
+opaque trace.otelSpan
+opaque v3rpc.ctxCauseOkRaw

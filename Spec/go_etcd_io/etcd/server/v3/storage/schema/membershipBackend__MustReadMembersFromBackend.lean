@@ -33,12 +33,18 @@ thread token (`backend.bkRPool`, `threadTok`: one read transaction, its slot bor
 and **the idle part of the membership buckets** at `bk` (`rbOwnIn d.γB membership.memberBkts bk`),
 which are as the apply thread writes them (`membership.membersDecode bk`: members' keys to members'
 encodings, removed members' keys), it returns the members' map and the removed map they decode to
-(`membersOfBk bk`: the members' records with their peer URLs, `membersRead`, and the removed ids).
-Go (`schema/membership.go:83-122`): `readMembersFromBackend` reads both buckets through
+(`membersOfBk bk`: the members' records with their peer URLs and, route B 2026-11-25, their
+`IsLearner` flags, `membersRead`, and the removed ids). Go (at the etcd pin `6b942d23f`:
+`schema/membership.go:84-117`): `readMembersFromBackend` reads both buckets through
 `be.ReadTx()` (`RLock`, two `UnsafeForEach`, `RUnlock`), which sees the idle part's contents (the
 file header's Go basis: no write to them since the holder's last `Unlock`); every key parses
-(`mustParseMemberIDFromBytes` of `BackendMemberKey`'s hex) and every value unmarshals to a non-nil
+(`snapshotmeta.MustParseMemberID` for a member, `mustParseMemberIDFromBytes` for a removed one, of `BackendMemberKey`'s hex) and every value unmarshals to a non-nil
 member (`json.Marshal` of a `*Member` is a JSON object), so no `lg.Panic` and a record per key.
+Each record is fresh (`schema/snapshotmeta/read.go:54-70`, `ReadMembers`, which
+`readMembersFromBackend` calls through `UnsafeReadMembers`: `m := &membership.Member{ID: memberID}`,
+then `json.Unmarshal(v, &m)`, which decodes into `*m`), so the caller owns its fields, `RaftAttributes.PeerURLs` (a fresh slice)
+and `RaftAttributes.IsLearner` among them; which values they hold is `membersOf`'s
+(`membersOf_decode`).
 (Until 2026-11-01 the pre took the writer's half `rbOwn d.γB bk`, the store's reader token and no
 decoding premise, which made it false: a caller inside a batch with a pending delete of a member
 reads the old member, `TestBksReadInsidePendingBatch`; an undecodable key panics,

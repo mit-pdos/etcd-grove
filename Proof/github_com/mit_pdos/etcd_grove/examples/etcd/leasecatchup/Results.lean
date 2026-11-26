@@ -44,7 +44,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchu
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_leasecatchup.wp_Main`). -/
 theorem leasecatchup_Main [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    :
     etcd_leasecatchup.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasecatchup.wp_Main
 

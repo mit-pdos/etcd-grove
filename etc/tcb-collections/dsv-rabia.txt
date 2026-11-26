@@ -28,3 +28,5 @@ axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.os.signal.Notify.wp_proofQuietSigs
 axiom Perennial.runtime.initFuncsOk
 axiom Perennial.runtime.opaqueInitsOk
+opaque Perennial.github_com.rs.zerolog.eventTok
+opaque Perennial.github_com.rs.zerolog.loggerMade

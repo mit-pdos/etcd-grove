@@ -97,6 +97,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeReq
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStreamRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
+public import Proof.google_golang_org.grpc.codes.Code__String
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestBytesWithOverhead
 public import Proof.context.TODO
 public import Proof.errors.Is
@@ -155,6 +156,7 @@ public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prome
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics__StreamServerInterceptor
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.ServerMetrics__UnaryServerInterceptor
 public import Proof.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus.WithServerHandlingTimeHistogram
+public import Proof.google_golang_org.protobuf.proto.EqualStatus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Txn
@@ -225,9 +227,17 @@ theorem errors.wp_IsDeadlineExceeded :
     EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsDeadlineExceeded.wp_proof _root_.Perennial.errors.wp_Is
 
+theorem codes.Code.wp_String :
+    EtcdGrove.codes.Code.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.codes.Code.String.wp_proof _root_.Perennial.strconv.wp_FormatInt
+
+theorem proto.wp_EqualStatus :
+    EtcdGrove.proto.EqualStatus.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.EqualStatus.wp_proof
+
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
+  EtcdGrove.status.Error.wp_proof _root_.Perennial.fmt.wp_Sprintf codes.Code.wp_String proto.wp_EqualStatus
 
 theorem wp_togRPCError :
     EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=

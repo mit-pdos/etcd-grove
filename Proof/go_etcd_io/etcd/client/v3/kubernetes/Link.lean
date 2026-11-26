@@ -176,7 +176,7 @@ theorem Client.wp_OptimisticPut :
     EtcdGrove.kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kubernetes.Client.OptimisticPut.wp_proof v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_ModRevision v3.wp_Compare wp_kvFromTxnResponse client.v3.kv.wp_Txn client.v3.txn.wp_If client.v3.txn.wp_Then client.v3.txn.wp_Else etcd_txnlin.txn_Commit_st_law_holds
 
-theorem wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.kubernetes.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kubernetes.New.wp_proof client.v3.clientv3.wp_New
 

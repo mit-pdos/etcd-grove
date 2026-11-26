@@ -41,27 +41,28 @@ M5b′: the backend's read contract names them). -/
 
 /-- The backend's read of the members (`c.be`, the interface `bi`,
 `MustReadMembersFromBackend()`), by the caller's triple (persistent): from `Pr`, the members map
-(`membersRead` of `mems`) and the removed map `rmv`, and `Pr` back. -/
-def membership.beReadOk (bi : GoInterfaceOk) (Pr : IProp GF) (mems : GMap w64 (List GoString))
+(`membersRead` of `mems`, their peer URLs and learner flags) and the removed map `rmv`, and `Pr` back. -/
+def membership.beReadOk (bi : GoInterfaceOk) (Pr : IProp GF) (mems : GMap w64 (List GoString × Bool))
     (rmv : GMap w64 Bool) : IProp GF :=
   iprop(□ ({{ Pr }}
     (App (Val #(methods bi.ty go!"MustReadMembersFromBackend" bi.v)) (Val #()))
     {{ (mp rp : Loc), RET (PairV #mp #rp); Pr ∗ membership.membersRead mp mems ∗ rp ↦$ rmv }}))
 
 instance membership.beReadOk_persistent (bi : GoInterfaceOk) (Pr : IProp GF)
-    (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) :
+    (mems : GMap w64 (List GoString × Bool)) (rmv : GMap w64 Bool) :
     Persistent (membership.beReadOk (GF := GF) bi Pr mems rmv) := by
   unfold membership.beReadOk; infer_instance
 
 /-- `c.ValidateConfigurationChange(cc, v3)`, of a change `m` (read-only at `dq`) an `AddNode` (its
-context decoding to a member, not a promotion) or a `RemoveNode`: with `v3`, it reads the backend
+context decoding to a member; route B, 2026-11-25: a promotion too, until then not) or a
+`RemoveNode`: with `v3`, it reads the backend
 by the caller's triple and returns `nil` exactly when the change validates (`ccValidM`), else an
 error; without, `nil`. -/
 abbrev membership.RaftCluster.ValidateConfigurationChange.spec : Prop :=
   ∀ (c cc : Loc) (dq dqb : DFrac) (m : ConfChangeM) (v3 : Bool) (bi : GoInterfaceOk) (Pr : IProp GF)
-    (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool),
+    (mems : GMap w64 (List GoString × Bool)) (rmv : GMap w64 Bool),
   (m.type = W32 0 ∨ m.type = W32 1) →
-  (m.type = W32 0 → ∃ i, membership.ccContextOf m.context = some (i, false)) →
+  (m.type = W32 0 → ∃ i b, membership.ccContextOf m.context = some (i, b)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ ownConfChange cc dq m ∗
       (if v3 then iprop(membership.beReadOk bi Pr mems rmv ∗ Pr) else iprop(True)) }}

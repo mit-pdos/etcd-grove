@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, putget, putget-dist, putgetk-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvraft, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -508,6 +508,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
             # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
             "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
+            # (etcd-dist D2, 2026-11-24) names only: the multi-machine server's `NewPeerHandler`
+            "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             # with bodies (etcdserver/api/v3compactor.toml): the auto-compactor (the spec-first
             # pilot, notes/compactor-pilot-plan.md)
@@ -682,7 +684,7 @@ PROJECTS = [
             # names only (item 5, client construction): what `clientv3.New`'s dial names:
             # the credentials requirement of an endpoint, grpc's keepalive parameters, insecure
             # credentials and resolver builders (the type of `grpc.WithResolvers`'s parameter,
-            # for the trusted body of `dialWithBalancer`), and the type of `Config.TLS`
+            # which `dialWithBalancer` converts to), and the type of `Config.TLS`
             # (crypto/tls, a standard-library package Perennial does not translate)
             "go.etcd.io/etcd/client/v3/internal/endpoint",
             "google.golang.org/grpc/keepalive",
@@ -1102,15 +1104,36 @@ PROJECTS = [
         # putget_safe's two programs (notes/putget-dist-plan.md): the member machine's
         # (`putget.Member`: etcdstart's StartServer and Serve) and the client machine's
         # (`putget.Client`: Put, Get, check), of
-        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md; its server and client
-        # packages are stage D2's). A package of the examples' Go module (examples/go.mod), as putget.
+        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md), and (D2) etcd_safe's
+        # packages below. Packages of the examples' Go module (examples/go.mod), as putget.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "dist"),
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    # (2026-11-24, notes/etcd-dist-plan.md "Interim transport") `server`'s proxy check reads the
+                    # environment through this repository's `os` (its `Getenv` spec), as etcd's packages
+                    "os=", "io/fs="],
+        # (etcd-dist D2, 2026-11-24) etcd_safe's programs: the deployment and its check, the member
+        # machine's server, the orchestrators' and client machines' client, kvremote, enc
+        packages=["./putget", "./deployment", "./enc", "./kvremote", "./server", "./client"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+    ),
+    Project(
+        name="putgetk-dist",
+        # putgetK_safe's programs (notes/putget-dist-plan.md §13): member i of a k-member cluster on a
+        # machine of its own (`putgetk.Member`: the cluster's map, etcdstart's StartMember and Serve)
+        # and the client machine's (`putgetk.Client`: putget-dist's `putget.Client`). A package of the
+        # examples' Go module (examples/go.mod), as putget-dist, whose `dist` directory it is inside
+        # (its own `dist/putgetk`, which putget-dist's output skips: others_owned).
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "dist"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
-        packages=["./putget"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
+        packages=["./putgetk"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist", "putgetk")],
     ),
     Project(
         name="grpcdriver",

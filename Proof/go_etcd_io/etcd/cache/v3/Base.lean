@@ -950,6 +950,74 @@ def rpctypesEtcdErrorTy : Prop :=
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Error" =
     some EtcdGrove.noArgStringSig
 
+/-- **`X` holds an error grpc's `status` accepts, of description `m`** (persistent; grpcerrmap,
+2026-11-26): what `v3rpc`'s error map `toGRPCErrorMap` takes of each of its values. -/
+abbrev statusErrVar (X m : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr X ↦□ GoInterface.ok e ∗ statusErrOk (GoInterface.ok e) ∗
+    descIs (GoInterface.ok e) m)
+
+/-- **The values of `v3rpc`'s error map** (grpcerrmap, 2026-11-26; `v3rpc/util.go`'s
+`toGRPCErrorMap`, in the literal's order, each once): `rpctypes`' errors, each with its description
+(`error.go`: the `status.Error` errors' messages, and `ErrMemberNotEnoughStarted`'s and
+`ErrTooManyRequests`' those of the `ErrGRPC*` errors they are `Error` of). -/
+abbrev rpctypesMapVals : IProp GF :=
+  iprop(
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotFound go!"etcdserver: member not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberExist go!"etcdserver: member ID already exist" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPeerURLExist go!"etcdserver: Peer URLs already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotLearner go!"etcdserver: can only promote a learner member" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyLearners go!"etcdserver: too many learner members in cluster" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrMemberNotEnoughStarted go!"etcdserver: re-configuration failed due to not enough started members" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLearnerNotReady go!"etcdserver: can only promote a learner member which is in sync with leader" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted go!"etcdserver: mvcc: required revision has been compacted" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev go!"etcdserver: mvcc: required revision is a future revision" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRequestTooLarge go!"etcdserver: request is too large" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace go!"etcdserver: mvcc: database space exceeded" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrTooManyRequests go!"etcdserver: too many requests" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader go!"etcdserver: no leader" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotLeader go!"etcdserver: not leader" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaderChanged go!"etcdserver: leader changed" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCanceled go!"etcdserver: request canceled" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCStopped go!"etcdserver: server stopped" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeout go!"etcdserver: request timed out" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToLeaderFail go!"etcdserver: request timed out, possibly due to previous leader failure" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToConnectionLost go!"etcdserver: request timed out, possibly due to connection lost" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutWaitAppliedIndex go!"etcdserver: request timed out, waiting for the applied index took too long" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUnhealthy go!"etcdserver: unhealthy cluster" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound go!"etcdserver: key not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCorrupt go!"etcdserver: corrupt cluster" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCBadLeaderTransferee go!"etcdserver: bad leader transferee" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCClusterVersionUnavailable go!"etcdserver: cluster version not found during downgrade" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWrongDowngradeVersionFormat go!"etcdserver: wrong downgrade target version format" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidDowngradeTargetVersion go!"etcdserver: invalid downgrade target version" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDowngradeInProcess go!"etcdserver: cluster has a downgrade job in progress" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoInflightDowngrade go!"etcdserver: no inflight downgrade job" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotFound go!"etcdserver: requested lease not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseExist go!"etcdserver: lease already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseTTLTooLarge go!"etcdserver: too large lease TTL" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootUserNotExist go!"etcdserver: root user does not exist" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootRoleNotExist go!"etcdserver: root user does not have root role" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserAlreadyExist go!"etcdserver: user name already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty go!"etcdserver: user name is empty" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserNotFound go!"etcdserver: user name not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleAlreadyExist go!"etcdserver: role name already exists" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotFound go!"etcdserver: role name not found" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleEmpty go!"etcdserver: role name is empty" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthFailed go!"etcdserver: authentication failed, invalid user ID or password" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGiven go!"etcdserver: permission not given" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied go!"etcdserver: permission denied" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotGranted go!"etcdserver: role is not granted to the user" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGranted go!"etcdserver: permission is not granted to the role" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthNotEnabled go!"etcdserver: authentication is not enabled" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken go!"etcdserver: invalid auth token" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthMgmt go!"etcdserver: invalid auth management" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision go!"etcdserver: revision of auth store is old" ∗
+    statusErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDeadlineExceeded go!"etcdserver: context deadline exceeded")
+
+set_option synthInstance.maxSize 4096 in
+instance rpctypesMapVals_persistent : Persistent (rpctypesMapVals (GF := GF)) := by
+  unfold rpctypesMapVals statusErrVar; infer_instance
+
 /-- `rpctypes`' package facts: the two errors the store returns (`EtcdError` values, k8s etcd3 7e-2's
 D1, `examples/k8s7e2attack`'s `TestRpctypesErrTypes`); `ErrCompacted.Error()`
 (the watcher's `Compact` puts it in the cancel response) returns some string, and so does
@@ -962,7 +1030,8 @@ returns their description); and (unit P3a: `rpctypes.Error` is translated) the m
 `ErrGRPCNotSupportedForLearner` (a `*status.Error`, a pointer); and (item 8, 2026-10-17: moved here
 from `auth`'s facts, so that `rpctypes`' initializer proves them) the token keys
 `TokenFieldNameGRPC`, `TokenFieldNameSwagger` (`"token"`, `"authorization"`; the strings since the
-auth plan's E2c). -/
+auth plan's E2c); and (grpcerrmap, 2026-11-26) the values of `v3rpc`'s error map, each an error grpc's
+`status` accepts with its description (`rpctypesMapVals`: the last conjunct). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e ∗
@@ -1103,7 +1172,9 @@ abbrev rpctypesInit : IProp GF :=
       descIs (GoInterface.ok e) go!"etcdserver: no leader") ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□ GoInterface.ok e ∗
-      descIs (GoInterface.ok e) go!"etcdserver: not capable"))
+      descIs (GoInterface.ok e) go!"etcdserver: not capable") ∗
+    -- (grpcerrmap, 2026-11-26) the values of `v3rpc`'s error map, which its initializer reads
+    rpctypesMapVals)
 
 instance rpctypes_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=

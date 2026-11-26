@@ -7,7 +7,11 @@
 # struct, which Perennial's `errors.wp_Is` does not take). `errors.Is` is otherwise Perennial's
 # (proved, the server's spec file). The error map, the checks' rpctypes errors, the sort-name maps
 # and `context.Canceled`'s pointer error are the package's facts (Base.lean), not axioms.
-status_Error:
+# (prove-statuserror, 2026-11-26) `status.Error` over grpc's bodies: `fmt.Sprintf`, `codes.Code.String`
+# (over `strconv.FormatInt`) and the trust boundary `proto.Equal` of two `*spb.Status`
+codes_Code__String: =_root_.Perennial.strconv.wp_FormatInt
+proto_EqualStatus:
+status_Error: =_root_.Perennial.fmt.wp_Sprintf codes_Code__String proto_EqualStatus
 status_Errorf: =_root_.Perennial.fmt.wp_Sprintf status_Error
 errors_Is:
 errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
