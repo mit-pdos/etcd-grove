@@ -32,11 +32,98 @@ theorem inScope.wp_proof (wp_hashing : hashing.spec (GF := GF) (hG := hG))
   intro cfg wr dq
   wp_start as Hw
   wp_auto
+  -- `cfg.Ops < 0 || cfg.Ops >= 1<<38`
   wp_if_destruct
   · (try wp_auto)
     iapply HΦ; iframe; ipureintro; intro h; cases h
-  sorry
-
+  have hops0 : 0 ≤ sint.Z cfg.Ops' := by revert Hif; word
+  (try wp_auto)
+  wp_if_destruct
+  · (try wp_auto)
+    iapply HΦ; iframe; ipureintro; intro h; cases h
+  have hops : sint.Z cfg.Ops' < 2 ^ 38 := by revert Hif; word
+  (try wp_auto)
+  -- `rd`: `max 0 cfg.Readers`
+  wp_if_destruct
+  · (try wp_auto)
+    ihave Hrd : (∃ v : w64, rd_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Readers')⌝ : IProp GF)
+      $$ [rd]
+    · iexists _; iframe; ipureintro; revert Hif; word
+    icases Hrd with ⟨%rdv, rd, %Hrdv⟩
+    (try wp_auto)
+  · (try wp_auto)
+    ihave Hrd : (∃ v : w64, rd_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Readers')⌝ : IProp GF)
+      $$ [rd]
+    · iexists _; iframe; ipureintro; revert Hif; word
+    icases Hrd with ⟨%rdv, rd, %Hrdv⟩
+    (try wp_auto)
+  -- `st`: `max 0 cfg.Streams`
+  all_goals
+    wp_if_destruct
+    · (try wp_auto)
+      ihave Hst : (∃ v : w64, st_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Streams')⌝ : IProp GF)
+        $$ [st]
+      · iexists _; iframe; ipureintro; revert Hif; word
+      icases Hst with ⟨%stv, st, %Hstv⟩
+      (try wp_auto)
+    · (try wp_auto)
+      ihave Hst : (∃ v : w64, st_ptr ↦ v ∗ ⌜sint.Z v = max 0 (sint.Z cfg.Streams')⌝ : IProp GF)
+        $$ [st]
+      · iexists _; iframe; ipureintro; revert Hif; word
+      icases Hst with ⟨%stv, st, %Hstv⟩
+      (try wp_auto)
+  all_goals
+    -- `rd >= 1<<28 || st >= 1<<28 || 2*rd+4*st+3 > 1<<28`
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hrd28 : sint.Z rdv < 2 ^ 28 := by revert Hif; word
+    (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hst28 : sint.Z stv < 2 ^ 28 := by revert Hif; word
+    (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hrs : 2 * max 0 (sint.Z cfg.Readers') + 4 * max 0 (sint.Z cfg.Streams') + 3 ≤ 2 ^ 28 := by
+      rw [← Hrdv, ← Hstv]; revert Hif; have := Hrdv; have := Hstv; word
+    (try wp_auto)
+    -- `cfg.BatchLimit > 1<<57 || cfg.CompactionBatchLimit > 1<<56`
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hbl : sint.Z cfg.BatchLimit' ≤ 2 ^ 57 := by revert Hif; word
+    (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hcbl : sint.Z cfg.CompactionBatchLimit' ≤ 2 ^ 56 := by revert Hif; word
+    (try wp_auto)
+    -- `cfg.Depth > 37 || cfg.MaxVal > 1<<20`
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hd : sint.Z cfg.Depth' ≤ 37 := by revert Hif; word
+    (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
+    have hmv : sint.Z cfg.MaxVal' ≤ 2 ^ 20 := by revert Hif; word
+    (try wp_auto)
+    -- `!hashing(cfg.Mix.Read) && weightsFit(cfg.Mix.Read)`
+    wp_apply wp_hashing $$ [Hw] as %hh Hw
+    (try wp_auto)
+    wp_if_destruct
+    · (try wp_auto)
+      wp_apply wp_weightsFit $$ [Hw] as %hf Hw
+      (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro hb
+      exact runCfgOk_of cfg wr hops0 hops hrs hbl hcbl hd hmv
+        (by revert Hif hh; cases hashingM (wr.map sint.Z) <;> simp) (hf hb)
+    · (try wp_auto)
+      iapply HΦ; iframe; ipureintro; intro h; cases h
 end proof
 
 end mvccfull
