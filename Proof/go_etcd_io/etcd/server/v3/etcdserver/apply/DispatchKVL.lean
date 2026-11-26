@@ -742,8 +742,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
       simp only [apply.kvOutL, hk]; exact ⟨x, hs, Hst0.2⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
-    · iright; iexact HPre
+    ihave HPP : iprop(Post ∨ (Pre ∗ ⌜oc.logAfter log = log ∧ True⌝)) $$ [HPre]
+    · iright; iframe HPre; ipureintro
+      refine ⟨apply.chainStep_logAfter_of rq log (fun o h => ?_) c oc Hst, trivial⟩
+      simp only [apply.backendStep, hk] at h; subst h; rfl
     fin_kvL
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
@@ -950,8 +952,10 @@ theorem apply.uberApplier.dispatch.wp_kvL
       icases HPP with (HP | ⟨HP, %hN⟩)
       · ileft; iexact HP
       · iright; iframe HP; ipureintro
-        rw [apply.restAfter_other _ _ _ (by first | assumption | simp_all) (by first | assumption | simp_all)]
-        exact ⟨hN.1, hN.2⟩
+        have hra := apply.restAfter_other rq true rs (by first | assumption | simp_all) (by first | assumption | simp_all)
+        obtain ⟨h1, h2, h3⟩ := hN
+        rw [hra] at h3 ⊢
+        exact ⟨h1, h2, h3⟩
     isplitr
     · ipureintro
       refine ⟨?_, Or.inl rfl, by simp [apply.kvFloorOk, apply.isFloorKind, hk], rfl, rfl⟩

@@ -128,38 +128,6 @@ local macro "grant_same" : tactic => `(tactic| (
       | exact apply.grantOutOk_noV3 _ _ _ _
       | exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])))
 
-/-- A request whose backend step keeps the log keeps it through every chain (a layer's rejection
-keeps it too). -/
-theorem apply.chainStep_logAfter_of (rq : IRRModel) (log : mvcc.Log)
-    (hB : ∀ o, apply.backendStep rq log o → o.logAfter log = log) :
-    ∀ (c : apply.Chain) (o : apply.Outcome), apply.chainStep apply.backendStep c rq log o →
-      o.logAfter log = log
-  | .backend, o, h => hB o h
-  | .corrupt c, o, h => by
-    simp only [apply.chainStep] at h
-    split at h
-    · subst h; rfl
-    · exact apply.chainStep_logAfter_of rq log hB c o h
-  | .capped c, o, h => by
-    simp only [apply.chainStep] at h
-    split at h
-    · subst h; rfl
-    · split at h
-      · rcases h with rfl | h
-        · rfl
-        · exact apply.chainStep_logAfter_of rq log hB c o h
-      · exact apply.chainStep_logAfter_of rq log hB c o h
-  | .auth _ c, o, h => by
-    simp only [apply.chainStep] at h
-    split at h
-    · rcases h with ⟨-, rfl⟩ | h
-      · rfl
-      · exact apply.chainStep_logAfter_of rq log hB c o h
-    · exact apply.chainStep_logAfter_of rq log hB c o h
-  | .quota c, o, h => by
-    simp only [apply.chainStep] at h
-    exact apply.chainStep_logAfter_of rq log hB c o h
-
 /-- `dispatchNoEff` at an unchanged log and rest state, for a kind that is no compaction, grant or
 revoke (the cluster setters, given that their effect is the identity). -/
 theorem apply.dispatchNoEff_rest (c : apply.Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log)
