@@ -9,6 +9,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.raft.antithesis
