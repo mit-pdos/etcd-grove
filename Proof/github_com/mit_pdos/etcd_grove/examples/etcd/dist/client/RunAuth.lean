@@ -98,13 +98,10 @@ theorem watchClient_of_userCli [π : NetProtoGS] (cl : Loc) (a : GoString) (V : 
 theorem watchFloorsD_one [π : NetProtoGS] (Γ : DistView) (γR : ServerRaftNames) (L₀ : List EntryModel)
     (a : GoString) :
     barrierFloor (GF := GF) Γ γR L₀ a ⊢ watchFloorsD [a] Γ γR L₀ := by
-  iintro #H
-  iunfold watchFloorsD
-  iunfold barrierFloor at H
-  simp only [BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  isplitl
-  · iexact H
-  · itrivial
+  unfold watchFloorsD barrierFloor
+  exact (BigSepL.bigSepL_singleton (PROP := IProp GF)
+    (Φ := fun _ a => iprop(∃ (mid : w64) (m : Nat),
+      etcdAddrAt (Gg := hG.goose_globalGS) a Γ mid ∗ authFloorD Γ γR mid L₀ m))).2
 
 end lemmas
 
@@ -314,6 +311,11 @@ theorem RunAuth.wp_proof
     iPkgInit
   ihave ⟨%rapi, #Hrcu⟩ := userClientAt_of_userCli rcl a0 V rcfg Γ $$ [Hru Hm0]
   · iframe #
+  ihave #Hrcu' := Hrcu
+  iunfold etcd_dist.authd.userClientAt at Hrcu'
+  icases Hrcu' with ⟨#Hrkc, -⟩
+  iunfold kvClientAt at Hrkc
+  icases Hrkc with ⟨-, -, #Hrkvf, -⟩
   wp_apply context.wp_Background
   (try wp_auto)
   wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
@@ -322,7 +324,7 @@ theorem RunAuth.wp_proof
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   (try wp_auto)
-  ihave #Hopts0 := optsAt_nil (GF := GF) $$ []
+  ihave #Hopts0 := optsAt_nil (GF := GF)
   ihave #Hwend := akHist_writeAuD Γ.kv (principalOf rcfg) (.put (client.putKeyOp endKey go!"end")) Lset
     (opHistOk_endPut _) $$ Hhist
   wp_apply (wp_Put rcl rapi [a0] V Γ rcfg γR Lset ectx ecd none endKey go!"end" slice.nil []
@@ -334,7 +336,8 @@ theorem RunAuth.wp_proof
       · simp [opPutModel, OpFull.putPanics, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero]
       · simp [opPutModel, putWireOf, opFold, OpFull.putInit, OpFull.newOp, OpModel.zero]
     isplitl []
-    · iexact Hwend
+    · rw [show putWireOf (opPutModel endKey go!"end" []) = client.putKeyOp endKey go!"end" from rfl]
+      iexact Hwend
     ipureintro
     exact opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _) (by decide)
       (by decide) (by decide)
@@ -357,6 +360,7 @@ theorem RunAuth.wp_proof
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
     as %hctx %γhctx %hcancel ⟨#Hhcancel, #Hhctx, -, #hctxFrom⟩
+  ihave #hctxO := metadata.outgoingCtxOkC_bgFrom hctx $$ hctxFrom
   ihave #hctxM := metadata.outMD_bgFrom hctx $$ hctxFrom
   ihave #Hhc : iprop(□ (∀ Ψ : val → IProp GF, ▷ Ψ #() -∗ WP (App (Val #hcancel) (Val #())) {{ Ψ }})) $$ []
   · iintro !> %Ψ HΨ
@@ -441,6 +445,7 @@ theorem RunAuth.wp_proof
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
     as %uctx %γuctx %ucancel ⟨#Hucancel, #Huctx, -, #uctxFrom⟩
+  ihave #uctxO := metadata.outgoingCtxOkC_bgFrom uctx $$ uctxFrom
   ihave #uctxM := metadata.outMD_bgFrom uctx $$ uctxFrom
   ihave #Huc : iprop(□ (∀ Ψ : val → IProp GF, ▷ Ψ #() -∗ WP (App (Val #ucancel) (Val #())) {{ Ψ }})) $$ []
   · iintro !> %Ψ HΨ
