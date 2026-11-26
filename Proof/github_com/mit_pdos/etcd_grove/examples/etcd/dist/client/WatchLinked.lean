@@ -15,6 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.wri
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WriterDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMainWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.writerAttempt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.writerCodec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.remoteWriters
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.reportAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CallAll
@@ -77,14 +78,16 @@ theorem wp_writerOp : writerOp.spec (GF := GF) (hG := hG) :=
   writerOp.wp_proof (Writer_dist.wp_proof EtcdGrove.etcdstart.context.wp_WithTimeoutBackground EtcdGrove.context.wp_ErrAny
     KV_Put_dist.wp_proof)
 
-section codec
-variable (hCodec : writerCodec.spec (GF := GF) (hG := hG))
-include hCodec
+/-- The writers' codec, linked over `enc`. -/
+theorem wp_writerCodec : writerCodec.spec (GF := GF) (hG := hG) :=
+  writerCodec.wp_proof EtcdGrove.enc.Enc.wp_Int EtcdGrove.enc.Enc.wp_Str EtcdGrove.enc.Enc.wp_I64
+    EtcdGrove.enc.wp_NewDec EtcdGrove.enc.Dec.wp_Int EtcdGrove.enc.Dec.wp_Str EtcdGrove.enc.Dec.wp_I64
+    EtcdGrove.enc.Dec.wp_Done
 
 /-- The writers' remote calls, linked (`Report` at the writers' wire, `CallAll`'s goroutines). -/
 theorem wp_remoteWriters : remoteWriters.spec (GF := GF) (hG := hG) :=
   remoteWriters.wp_proof (reportAll.wp_proof CallAll.wp_proof (fun {_ _ _ _ _ _} => EtcdGrove.remote.wp_Report))
-    hCodec writerAttempt.wp_proof
+    wp_writerCodec writerAttempt.wp_proof
 
 /-- **The watch workload's orchestrator, linked**: over `Watch_dist` (N3's interim contract) and the
 writers' calls. -/
@@ -92,15 +95,14 @@ theorem wp_RunWatch : RunWatch.spec (GF := GF) (hG := hG) :=
   RunWatch.wp_proof EtcdGrove.etcdstart.wp_GenAll wp_newClient ended.wp_proof checked.wp_proof
     Watch_dist.wp_proof (WithPrefix.wp_proof getPrefix.wp_proof) WithRev.wp_proof
     WithProgressNotify.wp_proof WithCreatedNotify.wp_proof
-    (wp_remoteWriters hCodec) time.wp_AfterFunc time.Timer.wp_Stop EtcdGrove.etcdstart.wp_MaxRev
+    wp_remoteWriters time.wp_AfterFunc time.Timer.wp_Stop EtcdGrove.etcdstart.wp_MaxRev
     EtcdGrove.etcdstart.wp_Collect EtcdGrove.etcdstart.wp_Check
 
 /-- **A watch writer machine, linked**: `NodeMain`'s watch arm, its calls `writerOp` over `KV_Put_dist`. -/
 theorem wp_NodeMainWatch : NodeMainWatch.spec (GF := GF) (hG := hG) :=
-  NodeMainWatch.wp_proof wp_NodeCount Rotate.wp_proof wp_newClient hCodec writerAttempt.wp_proof
+  NodeMainWatch.wp_proof wp_NodeCount Rotate.wp_proof wp_newClient wp_writerCodec writerAttempt.wp_proof
     wp_writerOp (fun {_ _} => EtcdGrove.remote.wp_ServeClient)
 
-end codec
 
 end links
 
