@@ -412,6 +412,33 @@ theorem srvStopRight_dd (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNa
   iexists stc, dnc, γst, γd, c
   iframe Hs Hb Hd Hdn Hc Hdd
 
+/-- **What `done`'s close announces, generalized** (etcd_safe P5, 2026-11-26, `notes/etcd-dist-p5s.md` §2.1): the
+escrow `Img`, for the holder of the claim `c`. `srvDoneInv` is its instance at the stopped member's image
+(`srvDoneInv_eq_G`); the crash-aware stop's is at `True` (its image comes back through the crash). -/
+def srvDoneInvG (Img : IProp GF) (c : GName) : IProp GF :=
+  inv srvStopN iprop(Img ∨ token c)
+
+instance srvDoneInvG_persistent (Img : IProp GF) (c : GName) : Persistent (srvDoneInvG (GF := GF) Img c) := by
+  unfold srvDoneInvG; infer_instance
+
+theorem srvDoneInv_eq_G (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (c : GName) :
+    srvDoneInv (GF := GF) γ ρ id dd c = srvDoneInvG (srvDiskImage γ ρ id dd) c := rfl
+
+/-- **The right to stop the started server `s`, at the escrow `Img`** (etcd_safe P5, `notes/etcd-dist-p5s.md`
+§2.1): `srvStopRight`'s rows with `done` announcing `srvDoneInvG Img c`. `srvStopRight` is its instance at the
+stopped member's image (`srvStopRight_eq_G`). Sealed as `srvStopRight`. -/
+@[no_expose] def srvStopRightG (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) (Img : IProp GF) :
+    IProp GF :=
+  iprop(∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
+    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
+    srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInvG Img c) .Unknown ∗
+    token c ∗ srvCfgFieldAddr s go!"DataDir" ↦□ dd)
+
+/-- `srvStopRight` is `srvStopRightG` at the stopped member's image. -/
+theorem srvStopRight_eq_G (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) :
+    srvStopRight (GF := GF) s E γ ρ id dd = srvStopRightG s E ρ dd (srvDiskImage γ ρ id dd) := by
+  unfold srvStopRight srvStopRightG srvDoneInv srvDoneInvG; rfl
+
 /-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
 thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s
 with auth off, the user's decision: `notes/axiom-review/auth-close.md`), what `Cleanup`'s closer is
@@ -805,6 +832,29 @@ theorem kvInv_restartNames (γs : ServerRaftNames) {ρ ρ' : ReqNames} (h : rest
   (kvInv_congr γs _ _ h.2.1).symm
 
 end restartKV
+
+section stopG
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **`s.HardStop()` at any escrow** (etcd_safe P5, 2026-11-26, `notes/etcd-dist-p5s.md` §2.1;
+`EtcdServer.HardStop.wp_proofG`): `EtcdServer.HardStop.spec` with the stop right's escrow a parameter `Img`,
+which the stop takes out of `done`'s invariant. `HardStop.spec` is its instance at the stopped member's image
+(`srvStopRight_eq_G`). The crash-aware stop (the dist line's crash proof, P4) uses it at `Img := True`: there the
+process exits after the stop and the next generation's image comes back through the crash (design §4.3, row
+P3′); what the shutdown keeps for that crash is the crash-aware `run`'s (`notes/etcd-dist-p5s.md` §2.2), not
+`HardStop`'s, which only signals and waits. -/
+abbrev EtcdServer.HardStop.specG : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) (Img : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvStopRightG s E ρ dd Img ∗ srvStopReq s E ρ dd }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
+  {{ RET #(); Img }}
+
+end stopG
 
 end EtcdGrove
 end Perennial

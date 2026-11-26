@@ -143,7 +143,14 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
     □ (∀ (sized : Bool) (σ : StorContents) (id cid : w64),
       {{ storage.walOpen h 1 ∗ walRecs h σ sized ∗ walMetaIs h id cid ∗ walPurgeRight h ∗ ⌜σ.b ≤ σ.commit⌝ }}
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }}))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }}) ∗
+    -- (etcd_safe P5, 2026-11-26) the crash-aware `Close`: the records stay where the caller keeps them
+    □ (∀ (Q : IProp GF),
+      {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
+        (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }}))
 
 instance isWalStorage_persistent (st : GoInterface) (h : WalH GF) (ss : Loc) :
     Persistent (isWalStorage (GF := GF) st h ss) := by
@@ -209,7 +216,13 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     (hClose : ∀ (sized : Bool) (σ : StorContents) (id cid : w64), R ⊢
       {{ storage.walOpen h 1 ∗ walRecs h σ sized ∗ walMetaIs h id cid ∗ walPurgeRight h ∗ ⌜σ.b ≤ σ.commit⌝ }}
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }}) :
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }})
+    (hCloseK : ∀ (Q : IProp GF), R ⊢
+      {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
+        (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }}) :
     R ⊢ isWalStorage st h ss := by
   unfold isWalStorage
   iintro #HR
@@ -241,9 +254,14 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     iintro %q %sn %mp %dq %dq' %md %sd %γd %img %Rm %i %m %Q
     iapply (hRel q sn mp dq dq' md sd γd img Rm i m Q)
     iexact HR
+  isplitr
+  · iintro !>
+    iintro %sized %σ %id %cid
+    iapply (hClose sized σ id cid)
+    iexact HR
   iintro !>
-  iintro %sized %σ %id %cid
-  iapply (hClose sized σ id cid)
+  iintro %Q
+  iapply (hCloseK Q)
   iexact HR
 
 /-- The storage is an interface value (spec review 2: what the laws' `si` is). -/
@@ -634,10 +652,28 @@ theorem walClose_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterf
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ walFiles h.toWalA id cid σ sized }} := by
   unfold isWalStorage
-  iintro ⟨-, %si', %Heq, -, -, -, -, #HC⟩
+  iintro ⟨-, %si', %Heq, -, -, -, -, #HC, -⟩
   rw [hst] at Heq; cases Heq
   ispecialize HC $$ %sized %σ %id %cid
   iexact HC
+
+/-- (etcd_safe P5, 2026-11-26; `notes/etcd-dist-p5s.md` §2.3) **The crash-aware `Close`** (the contract's law):
+`Close` reads the WAL's durable state and leaves it unchanged, through an identity update over the records with
+their history, which the caller keeps in its invariant (the crash-aware durability `rnDurInvK`'s live body), so
+that a crash during or after the stop still finds them there. No error arm (`h.cov`). -/
+theorem walCloseK_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
+    (hst : st = GoInterface.ok si) (Q : IProp GF) :
+    isWalStorage (GF := GF) st h ss ⊢
+      {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
+        (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }} := by
+  unfold isWalStorage
+  iintro ⟨-, %si', %Heq, -, -, -, -, -, #HK⟩
+  rw [hst] at Heq; cases Heq
+  ispecialize HK $$ %Q
+  iexact HK
 
 /-- **`serverstorage.NewStorage(lg, w, ss)`** (translated, wal-link L2): over the open WAL `h` at `w = h.w`
 (the WAL `bootstrap` opened and read: `wal.bootOk`'s, `wal.restartOk`'s) and the snapshotter `ss`, the storage

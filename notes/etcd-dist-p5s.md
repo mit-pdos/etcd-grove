@@ -1,7 +1,7 @@
 # etcd_safe P5: the crash-aware stop, spec-first draft (2026-11-26)
 
 Branch `etcd-safe-crash-p5s/2026-11-26`, from `etcd-safe-crash-s0/2026-11-26` @9e66b4dbac. Helper of the etcd_safe
-lead. **Draft only: no Lean beyond `memberStop_law_holds`.** Built on B4's slot vocabulary
+lead. Draft approved by the lead (2026-11-26, shape of §2); the startable parts are done (§7). Built on B4's slot vocabulary
 (`notes/etcd-dist-b4.md` §9 in the B4 worktree, not pushed yet when this was written: `srvKeepInv`, `srvKeepAt`,
 `SrvKeepPh`, `srvKeepPh`, `Kb`/`Kbc`/`Xr`). Paths: `E/` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/`,
 `SE/` = `Spec/go_etcd_io/etcd/server/v3/etcdserver/`, `P/` = `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/`.
@@ -270,3 +270,28 @@ Order:
 2. Then the raft keep mode, once B4 fixes `newRaftNode`'s restatement.
 3. Then `Cleanup.specK` over H1.
 4. `run`/`Start` last, after T10's G1 decision.
+
+## 7. Progress (2026-11-26, after the lead's approval)
+
+Approved: §2's shape. G1 is with T10 (kaashoek); G2/G3 go into B4's draft after its review; H1/H2 stay named
+hypotheses. Done on this branch (proof-only, no Spec/ change):
+
+* **§2.1.** `srvDoneInvG`, `srvStopRightG` (sealed), `srvDoneInv_eq_G`, `srvStopRight_eq_G` and
+  `EtcdServer.HardStop.specG` are in `E/InvRestart.lean`. `EtcdServer.HardStop.wp_proofG` proves `specG`, and
+  `HardStop.wp_proof` now follows from it (`E/EtcdServer__HardStop.lean`), with `HardStop.spec` unchanged.
+  `memberStop.law`, `memberStop_law_holds` and `hardStop_frame` are deleted from `P/crash/MemberBoot.lean`.
+  `member_crash_boot`'s `hstop` is now `∀ L, EtcdServer.HardStop.specG` at the generation's heap
+  (`P/crash/MemberCrashBoot.lean`).
+* **§2.3, the WAL half.** `isWalStorage` has a sixth conjunct, the crash-aware `Close`, with an identity update over
+  `walRecsH` and post `⌜err = nil⌝ ∗ Q`. Pieces:
+  * `walCloseK_spec` (`E/WalApi.lean`);
+  * `walCloseK_law`, proved from `storage.Close.spec` through `walRecsH_closeAU` (`storage/WalRecsH.lean`);
+  * a new `isWalStorage_intro` hypothesis, `hCloseK`;
+  * `rnNewStorageOk_holds` extended (`E/RnNewStorage.lean`).
+
+  The unlocked token and the directory's call permission, which `Close` also returns, are dropped from the post:
+  under R-A nothing reopens the WAL in the same process.
+* **G4: checked, covered.** `walInv_crash` (`storage/wal/Crash.lean:257`) takes only the invariant, `crashed`,
+  `walCrashTok`, `osSharedInv` and the crash rest. It opens `walInv` in whatever state it is, parked included
+  (`walParked`, :295), and constrains no state. `rnDurK_crash.law` reads `walRecsH` from `rnDurInvK`'s live body,
+  where `walCloseK` leaves it. So a crash after the crash-aware `Close` is covered by the proved laws as they are.

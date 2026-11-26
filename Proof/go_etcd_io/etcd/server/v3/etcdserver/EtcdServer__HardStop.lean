@@ -25,11 +25,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- Taking the escrowed image out of `done`'s invariant with the claim. -/
-theorem srvDoneInv_take (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (c : GName) :
-    srvDoneInv (GF := GF) γ ρ id dd c -∗ token c ={⊤}=∗ ▷ srvDiskImage γ ρ id dd := by
+/-- Taking the escrow out of `done`'s invariant with the claim. -/
+theorem srvDoneInvG_take (Img : IProp GF) (c : GName) :
+    srvDoneInvG (GF := GF) Img c -∗ token c ={⊤}=∗ ▷ Img := by
   iintro #Hi Hc
-  iunfold srvDoneInv at Hi
+  iunfold srvDoneInvG at Hi
   iinv Hi with Hx Hclose
   icases Hx with (Himg | Hc')
   · imod Hclose $$ [Hc]
@@ -39,10 +39,11 @@ theorem srvDoneInv_take (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString
     iexfalso
     iapply token_exclusive c $$ Hc Hc'
 
-theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG := hG) := by
-  intro s E γ ρ id dd
+/-- `HardStop` at any escrow (`InvRestart.lean`'s `HardStop.specG`; etcd_safe P5). -/
+theorem EtcdServer.HardStop.wp_proofG : EtcdServer.HardStop.specG (GF := GF) (hG := hG) := by
+  intro s E ρ dd Img
   wp_start as ⟨Hr, Hba⟩
-  iunfold srvStopRight at Hr
+  iunfold srvStopRightG at Hr
   icases Hr with ⟨%stc, %dnc, %γst, %γd, %c, #Hstc, #Hbag, #Hdnc, #Hdn, Hc, -⟩
   ihave #Hdch := ownBroadcastChan_is_chan _ _ _ _ $$ Hdn
   wp_auto_lc 4
@@ -65,7 +66,7 @@ theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG :
     iintro ⟨Hlc5, Hlc6, Hlc7, _⟩
     iapply broadcast_chan_receive dnc γd _ _ .Unknown $$ Hdn
     iintro ⟨#Hinv, _⟩
-    imod srvDoneInv_take γ ρ id dd c $$ Hinv Hc with Himg
+    imod srvDoneInvG_take Img c $$ Hinv Hc with Himg
     imod (lc_fupd_elim_later (E := ⊤)) $$ Hlc5 Himg with Himg
     wp_auto
     iapply HΦ
@@ -82,13 +83,18 @@ theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG :
     · iexact Hdch
     iapply broadcast_chan_receive dnc γd _ _ .Unknown $$ Hdn
     iintro ⟨#Hinv, _⟩
-    imod srvDoneInv_take γ ρ id dd c $$ Hinv Hc with Himg
+    imod srvDoneInvG_take Img c $$ Hinv Hc with Himg
     imod (lc_fupd_elim_later (E := ⊤)) $$ Hlc3 Himg with Himg
     wp_auto
     iapply HΦ
     iexact Himg
   iapply BigAndL.bigAndL_nil.2
   itrivial
+
+theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG := hG) := by
+  intro s E γ ρ id dd
+  rw [srvStopRight_eq_G]
+  exact EtcdServer.HardStop.wp_proofG s E ρ dd (srvDiskImage γ ρ id dd)
 
 end proof
 

@@ -400,6 +400,32 @@ theorem walClose_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized : B
       iframe Hsy Hu Hp
   · exact absurd h.cov Hbad.2
 
+/-- (etcd_safe P5, 2026-11-26) **The crash-aware `Close`'s law** from the storage's `Close`: the caller's identity
+update over the records with their history turned into layer 1's (`walRecsH_closeAU`); no error under `h.cov`. -/
+theorem walCloseK_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (Q : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
+      {{ storage.walOpen h 1 ∗ walPurgeRight h ∗
+          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist) (s : Bool), walRecsH h σ Hs s }> @ WalFs.walAuMask, ∅
+            <{ walRecsH h σ Hs s, COMM Q }> }}
+        (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) go!"Close" #p))
+          (Val #()))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ Q }} := by
+  letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj; haveI := h.sat; haveI := h.satL
+  obtain ⟨-, -, -, hClose, -⟩ := hS
+  iintro ⟨#Hpkg, #Hover⟩
+  iintro !> %Φ ⟨Ho, Hpr, HAU⟩ HΦ
+  iunfold storage.walOpen at Ho
+  icases Ho with ⟨Hws, #Harea, -⟩
+  iunfold walPurgeRight at Hpr
+  ihave HAU := walRecsH_closeAU h Q $$ HAU
+  wp_apply (hClose p ss h.R h.jr h.r h.w h.dir h.γ (fun _ => Q)) $$ [Hws Hpr HAU] as %err Hpost
+  · iframe Hover Harea Hws Hpr HAU
+  icases Hpost with (⟨%he, %d, HQ, -, -, -⟩ | %Hbad)
+  · iapply HΦ
+    iframe HQ
+    ipureintro; exact he h.cov
+  · exact absurd h.cov Hbad.2
+
 /-- **`NewStorage`'s contract** (`rnNewStorageOk`, wal-link L3): `NewStorage` gives the storage's facts
 (`storageOver`) and two reader tokens; each of the contract's laws is the storage method's (`walSave_law`, ...,
 under `hS`), with the snapshotter for `Release`. -/
@@ -437,6 +463,10 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
       (fun sized σ id cid => by
         iintro ⟨#H1, #H2, -⟩
         iapply (walClose_law h (hS h) p ss sized σ id cid)
+        iframe H1 H2)
+      (fun Q => by
+        iintro ⟨#H1, #H2, -⟩
+        iapply (walCloseK_law h (hS h) p ss Q)
         iframe H1 H2))
     iframe Hpkg Hover Hss
   isplitl [Hr1]

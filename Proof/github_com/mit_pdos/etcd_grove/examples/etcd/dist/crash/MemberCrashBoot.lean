@@ -15,7 +15,8 @@
 * `memberFirst_of_share.law` (P3): the start's share of member `i`, the file extension's start resources of its
   machine and the empty package state give the first generation's `memberPcD`.
 * `member_crash_boot` (P4): member `i`'s boot program is safe in every generation from `memberPcD`, over P3's
-  `memberGen_boot.law`, P5's `memberStop.law` and the crash law at the keep with the stopped case
+  `memberGen_boot.law`, `HardStop` at any escrow (`EtcdServer.HardStop.specG`, proved: `wp_proofG`; it replaced
+  S0's `memberStop.law`, P5) and the crash law at the keep with the stopped case
   (`memberGenS_crash_law_holds`, P6).
 * `EtcdBootCAt P`, `etcdBootCOff_holds` (A): `EtcdBootC` at the deployments of a class, and its proof for the class
   `etcd_safe` closes first: auth off, lease mode `.none`, no compaction mode (the restart specs' scope:
@@ -125,7 +126,9 @@ abbrev memberFirst_of_share.law [GoGlobalContext] [lctx : GoLocalContext] [sem :
 deployment of the first class (auth off, lease mode `.none`, no compaction mode), member `i`'s boot program
 `serverProg d i` is safe in every generation (`Net.CrashBootWpGT` at `etcdFsSem`'s crash premise `etcdCQ`, the
 issue record's crash rest, the thread bound `etcdThreads`, every receipt bound up to `etcdSteps`) from
-`memberPcD`. Over named hypotheses only: P3's boot (`hboot`), P5's stop (`hstop`) and the crash law at the keep
+`memberPcD`. Over named hypotheses only: P3's boot (`hboot`), `HardStop` at any escrow (`hstop`: the proved
+`EtcdServer.HardStop.specG`, used at `True`; the crash-aware shutdown is the crash-aware `run`'s, which
+`NewServer`'s and `Start`'s crash forms carry, `notes/etcd-dist-p5s.md`) and the crash law at the keep
 with the stopped case (`hcrash`: `memberGenS_crash_law_holds` at `etcdCQ`, whose `hA1` needs the open decision on
 `BoltCrashWhole`, crash-left §3), each at the generation's keep pieces `KeepF`, `KeepB`, `KeepBc` (T7's B4, T10's
 open and closed backend keeps). The proof follows `server.member_boot_dist` (P0-P2) per generation, with the keep
@@ -149,7 +152,8 @@ theorem member_crash_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Se
     (KeepB KeepBc : GooseLocalGS etcdDistGF → memberCrash.MemberKN etcdDistGF → IProp etcdDistGF)
     (hboot : ∀ L : GooseLocalGS etcdDistGF, memberGen_boot.law (GF := etcdDistGF) (hG := ⟨G, atCtx L⟩)
       (memberClD c d boot) (memberCfgD d i) (memberIdD d i))
-    (hstop : memberCrash.memberStop.law (memberClD c d boot) (memberCfgD d i) (memberIdD d i) KeepF KeepB KeepBc)
+    (hstop : ∀ L : GooseLocalGS etcdDistGF,
+      EtcdServer.HardStop.specG (GF := etcdDistGF) (hG := ⟨G, atCtx L⟩))
     (hcrash : memberGen_crash.law (memberClD c d boot) (memberCfgD d i) (memberIdD d i)
       (memberCrash.memberKeepS (memberClD c d boot) (memberCfgD d i) (memberIdD d i) KeepF KeepB KeepBc)
       etcdCQ) :
