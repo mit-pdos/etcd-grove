@@ -2769,7 +2769,28 @@ What `Watch_dist`/`RequestProgress_dist` must keep of the lock after adding a st
   `V.addrs = eps` it needs either the serving-based law above or the client-view split with the table's
   join agreement (25.2). Both belong to S2's stream work.
 
-### 25.5 Not done here (follow-ups)
+### 25.5 Trust impact (one item for the F9 batch)
+
+No axiom's text changes, and no trusted file is touched. But `isNewClient`, an untrusted definition,
+appears in trusted axioms' preconditions, so changing it changes what those axioms assert (a weaker
+precondition would make an axiom stronger).
+
+- **Before** (`923a4ae72c`): the watcher conjunct was `∃ w conn wc lg ics, Watcher field ∗ grpcConn conn
+  eps ics [] clientRes ∗ isClientWatcherCore { V with conn, ics, wc, lg } w`, whose lock (`watcherMu`)
+  kept `isWGS V G` for each stream, with `watchSrvFacts V` inside.
+- **After** (`046615a437`): the same conjunct at `{ V.atEps eps with conn, ics, wc, lg }`, whose lock
+  keeps `wgsGuard V G = □ (watchSrvFacts V -∗ isWGS V G)` for each stream. Every other conjunct of
+  `isNewClient` is unchanged.
+- **Which axioms reach it**: `Watch_dist`, `RequestProgress_dist` (through `watchClientAt`); `KV_Put_dist`,
+  `KV_Get_dist`, `KV_Delete_dist`, `KV_Compact_dist`, the txn axiom of `TxnCommitDist.lean` (through
+  `kvClientAt`); the axioms of `ClientPutDist.lean` and `ClientGetDist.lean` (directly). On this line, none of
+  them is reached by an exported result through this definition change: `tcb-report --check` is unchanged
+  (364 axioms; the `etcd-dist` collection has 0).
+- **Review**: a fresh `axiom`-skill review of all of them under the new definition,
+  `notes/axiom-review/wenv-isnewclient.md`. Verdict: (pending; recorded here when it lands).
+- **Landing**: after M1 lands, not into M1's landing line (the lead, 2026-11-26).
+
+### 25.6 Not done here (follow-ups)
 
 - The axioms' header (`Proof/.../dist/WatchDist.lean`, "The `∀ V` form") still says the triples are
   not valid at today's `watcherMu`. It is a trusted file, so it is left for the adoption commit (with F4).
@@ -2778,6 +2799,13 @@ What `Watch_dist`/`RequestProgress_dist` must keep of the lock after adding a st
 - 25.2's full split, with route (a).
 - 25.3's cosmetic `isWGS` cleanup.
 
-### 25.6 Checkpoints
+### 25.7 Checkpoints
 
-(updated as work lands)
+- `ea847052eb`: the design.
+- `05325ced29`: `wgsGuard`, `WEnv.atEps`, the lock proofs, `isNewClient`, `newClient`, two callers.
+- `046615a437`: `WatchEnvN`'s fix. **Full VM build green (28962 jobs)**. Through `vmlake env`: every
+  `gen-link` and `gen-btree-link` output matches its `Link.lean`; `tier-check --check` ok (208 known
+  violations, none new); `bounds-check --check` ok (390, baseline 390); `tcb-report --check` matches
+  `etc/tcb-baseline.txt` (364 axioms, 0 sorries); every collection matches, `etcd-dist` with 0 axioms
+  and 0 sorries. The watch, cache and compact theorems are in the full build.
+- Next: the review (25.5).
