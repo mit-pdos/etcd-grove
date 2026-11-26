@@ -274,15 +274,14 @@ above (zerolog's fact, `eventTok`/`loggerMade` definitions, the nine proofs, the
   (`lean-check -a`, 0 errors); zerolog's `Init.lean` axiom is gone.
 - `quepaxa.py` io/ioutil `finish`: `try iexists _`, `try iexact HDiscard` (`is_pkg_init_finish` already closes it).
 
-**Running when stopped (result unknown)**: on fk-lean1, `/shared/tmp/dsvr3-rb.sh` with targets
-`Dsverify.Proof.rabia.examples.rabianet.TopLevelRobustness Dsverify.Proof.rabia.roles.server.Link
-Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness Dsverify.Proof.raxos.{Proposer,Proxy,Replica}.Results`;
-its output was going to the session's task file (lost with the session): rerun that command (incremental). Tools:
+**Built green** (fk-lean1, at `150c26d79a`, 3811 jobs): `Dsverify.Proof.rabia.examples.rabianet.TopLevelRobustness
+Dsverify.Proof.rabia.roles.server.Link Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness
+Dsverify.Proof.raxos.{Proposer,Proxy,Replica}.Results` (step 3 of the brief done). Tools:
 `/shared/tmp/dsvr3-rb.sh <targets>` (lake build there; now syncs every file changed since the remote's base
 `04c16d3753`, committed or not), `/shared/tmp/dsvr3-lc.sh [-a|-q|--goal L] FILE` (`etc/lean-check.py` there;
 use `-a`: the incremental report can show a stale error).
 
-**Next, in order**: fix that build until green; then step 3's list above from item 3 (zerolog's fact: `gLevel ↦□ p ∗
+**Next, in order**: step 3's list above from item 3 (zerolog's fact: `gLevel ↦□ p ∗
 inv (∃ v, p ↦ v)` from `HgCell` in `finish`, the level strings and `LevelFieldMarshalFunc` `↦□`, `eventPool`'s
 `isPool`); `loggerMade lg := ∃ w, Discard ↦□ w ∗ ⌜lg = newLogger w⌝` (needs the defs' instance context in
 `Spec.lean`); `New.wp_proof` from `wp_New_nil`; `SetGlobalLevel`; `ParseLevel("warn")` (it calls
