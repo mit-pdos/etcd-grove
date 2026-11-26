@@ -1723,3 +1723,24 @@ watch.
 `principalOf cfg = some who`; `newClient` + `anonCli_of_new` for bad/anon), `userClientAt_of_userCli`,
 `watchClient_of_userCli`, `a ∈ addrs` from the index (`mod_len_sintD`), `defer cli.Close()` (`barrier.lean`'s
 `wp_Close`), `Work.spec_dist`, answer `true`. Then link `NodeMainAuth`/`principalOp`.
+
+### Handoff W-3 (2026-11-26; S11: `Work.wp_proof_dist` proved, over one hypothesis for T4)
+
+- `Proof/.../auth/WorkCallsDist.lean` (defs): `akCallEnvD` (a principal's call environment, from `akDistEnv` by
+  `akCallEnvD_of`), `akPrin` (the spec's principal premise; `akPrin_bad`, `akPrin_user`, `akPrin_three`),
+  `readCheckedD_granted` (a get's check read at the frozen history: `setupSt r`'s grant to a user of `who`'s),
+  `work_putD`, `work_deleteD`, `work_getD`, `work_commitD` (the single-process laws' posts, over
+  `KV_PutOn_dist`/`KV_DeleteOn_dist`/`KV_GetOn_dist`/`Txn_CommitOn_dist`; writes via `akWriteAuD` at `L₀ := Lset`),
+  `read_ab_uD`, `read_c_refusedD`, `read_past_refusedD`.
+- `Proof/.../auth/WorkDist.lean`: `Work.wp_proof_dist : Work.spec_dist`, `Work.lean`'s text section by section; the
+  watch over `WatchOn_dist` (`akDistEnv_watch`'s refusal on events). Built (lake, fk-lean1); not linked.
+- **Contract gap (T4):** `Txn_CommitOn_dist` takes `TxnModel.plain b.model`; T4's transaction (`t4M`: a nested
+  `OpTxn` in its then branch) is not plain (`TxnOp.plain (.txn …) = False`), so its `Commit` cannot be called
+  through the contract (the in-process `client_txn_on` has no such premise: it needs `txnNestOk` only, which
+  `t4M_upd` gives). `Work.wp_proof_dist` takes `then_commit_nested_refusedD.law` (`WorkCallsDist.lean`: `Then` of
+  the nested op, whose `Commit` errors) as a hypothesis. Needed to discharge it: `Txn_CommitOn_dist`'s write arm
+  admitting a writing transaction with nested transactions (`txn.txnPlain ∧ txnNoZeroEnd ∧ txnNestOk`, as
+  `client.txnUpdAtOn`), `TxnModel.plain` dropped or weakened for it; then the law's proof is
+  `then_commit_nested_refused`'s with `akWriteAuD` and `t4M_not_granted`.
+- Next: the contract change above (a spec change: the lead's approval and a review), then `principalOp.wp_proof`
+  (W-2's last paragraph) and the links.
