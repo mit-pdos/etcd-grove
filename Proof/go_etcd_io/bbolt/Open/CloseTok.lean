@@ -17,6 +17,7 @@ public import Proof.go_etcd_io.bbolt.Open.Close
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGather
 public import Proof.go_etcd_io.bbolt.Mmap.RemapLost
 public import Perennial.Proof.sync.Results
+public import Spec.go_etcd_io.bbolt.fdatasync
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -133,16 +134,18 @@ theorem close_gather (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (b : Loc) (
   iframe
 
 /-- **What `Close` unmaps, gathered** (the idle writer side's resources and `Pm 1`'s): the
-mapping's `closeMapRes`, the mapping's ghost state cleared. -/
+mapping's `closeMapRes`, the mapping's ghost state cleared; the file's `OsMeta` `m` has the writer
+side's mappings (`w.m`'s, or `Close`'s sync's of the same mappings). -/
 theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
-    (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) (hns : bNsOk p) :
+    (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) (hns : bNsOk p) (m : OsMeta)
+    (hmm : m.maps = w.m.maps) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ bCsInv p -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
       ghostVar B.map (1 : Qp).half w.ms -∗ ghostVar B.map (1 : Qp).half.half w.ms -∗
       ghostVar B.mtok 1 () -∗
       ghostVar B.wv (1 : Qp).half wIdle -∗ ghostVar B.out (1 : Qp).half false -∗
       metaCellsQ (GF := GF) (1 : Qp).half.half w.ms w.C -∗
-      wCells (GF := GF) w.ms w.W -∗ bMeta p w.C [] w.m -∗
+      wCells (GF := GF) w.ms w.W -∗ bMeta p w.C [] m -∗
     |={⊤}=> closeMapRes (GF := GF) p w.ms ∗
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗
@@ -163,12 +166,12 @@ theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w
     imodintro
     unfold closeMapRes
     isplitl [Hosm Hc]
-    · iexists w.C, [], w.m, vf
+    · iexists w.C, [], m, vf
       iframe
       isplitr
       · ipureintro
         refine ⟨by have := hL b l hms; omega, ?_, hns⟩
-        rw [hok.1 b l hms]; exact GMap.lookup_singleton _ _
+        rw [hmm, hok.1 b l hms]; exact GMap.lookup_singleton _ _
       iexact Hci
     iframe Hcur Hfl
     isplitl [Hmap]
@@ -218,12 +221,14 @@ private theorem DB.close.spec_ownedQ_of (h : DB.close.spec_owned (GF := GF) (hG 
   iexact Hpost
 
 /-- **`DB.Close`, generic in its `close`'s error** (`Q`, which `nil` satisfies: `close` of a closed
-database returns `nil`). -/
+database returns `nil`): the error returned is `close`'s, or the sync's before it (the fork's
+`1710e5c`), which only a failing file system gives. -/
 private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.nil)
-    (hOwned : DB.close.spec_ownedQ (GF := GF) (hG := hG) Q) (db : Loc) (γ : BoltName) :
+    (hOwned : DB.close.spec_ownedQ (GF := GF) (hG := hG) Q)
+    (hSyncR : fdatasync.specR (GF := GF) (hG := hG)) (db : Loc) (γ : BoltName) :
     {{ isBolt (GF := GF) db γ ∗ boltCloser γ }}
       (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
-    {{ (err : GoInterface), RET #err; ⌜Q err⌝ }} := by
+    {{ (err : GoInterface), RET #err; ⌜Q err ∨ ¬ FsNoErr⌝ }} := by
   wp_start as ⟨#Hdb, Hclo⟩
   iunfold boltCloser at Hclo
   unfold isBolt isBoltDef isBoltP
@@ -235,7 +240,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   · iPkgInit
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
-  icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, #Hro, -⟩
+  icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, #Hro, -, -, ⟨%nos, #Hns⟩, -⟩
   unfold dbLogger
   wp_auto
   wp_bind (App (Val wrapDefer) _)
@@ -295,13 +300,50 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   · iframe
   ihave Hwa := pt_join _ _ $$ [Hwa Hwa']
   · iframe
+  -- `Close`'s sync (the fork's `1710e5c`): unless `NoSync`, `fdatasync(db)`, the file's `OsMeta` back
+  -- with the same mappings, or an error only a failing file system gives
+  wp_join iprop(∃ (e : GoInterface) (m' : OsMeta), err_ptr ↦ e ∗ db_ptr ↦ db ∗
+      db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"file"] ↦ w.f ∗
+      fileOwn w.f w.fd p.path (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) (dbFd p.ino) ∗
+      bMeta p w.C [] m' ∗ ⌜m'.maps = w.m.maps ∧ (e ≠ interface.nil → ¬ FsNoErr)⌝)
+    at next with [err db Hop Hfile Hfo Hfd Hosm]
+    as ⟨%e, %m', err, db, Hop, Hfile, Hfo, Hfd, Hosm, %hsy⟩
+  · try wp_auto
+    cases nos
+    · -- `NoSync` false: the sync
+      try wp_auto
+      wp_apply hSyncR db w.f w.fd p w.C [] w.m [] (fun _ => []) (DFrac.own 1) (DFrac.own 1) hnsp
+          (fun _ => ⟨List.nodup_nil, (fun s hs => by cases hs), (fun r hr => by cases hr)⟩)
+        $$ [Hfile Hfo Hfd Hosm] as %serr ⟨Hfile, Hfo, Hfd, -, Hsr⟩
+      · iframe; iframe #
+        try (iapply BigSepL.bigSepL_nil.2; iempintro)
+      try wp_auto
+      icases Hsr with (⟨%he, %m2, Hosm, %hm2⟩ | ⟨%he, -, Hosm⟩)
+      · subst he
+        wp_join_done
+        iexists _, m2
+        iframe
+        ipureintro
+        exact ⟨hm2.2.1, fun h => absurd rfl h⟩
+      · wp_join_done
+        iexists _, w.m
+        iframe
+        ipureintro
+        exact ⟨rfl, fun _ => he.2⟩
+    · -- `NoSync` true: no sync
+      try wp_auto
+      wp_join_done
+      iexists _, w.m
+      iframe
+      ipureintro
+      exact ⟨rfl, fun h => absurd rfl h⟩
   have hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l := by
     intro b l h
     have h1 := Hwok.2.2.2.2.2.2.2.2.1 b l h
     have h2 := treeOK_root' w.C htree
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  imod close_res _ γ.ns p w Hwok hL hnsp $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
+  imod close_res _ γ.ns p w Hwok hL hnsp m' hsy.1 $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
     Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the `flock` token (`dbPathLk`), for `close`'s `funlock` and `File.Close`
@@ -309,10 +351,26 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   icases Hpath with ⟨Hpath, Htok, -⟩
   wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
     Hres Hfile Hfo Hfd Htok]
-    as %err ⟨%hq, -, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
+    as %cerr ⟨%hq, -, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
   · iframe; iframe #
     iright; iexists w.fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
   try wp_auto
+  -- `if err == nil { err = cerr }`: the sync's error, else `close`'s
+  wp_join iprop(∃ v : GoInterface, err_ptr ↦ v ∗ ⌜Q v ∨ ¬ FsNoErr⌝) at next with [err cerr]
+    as ⟨%v, err, %hv⟩
+  · cases e with
+    | nil =>
+      try wp_auto
+      wp_join_done
+      iexists _
+      iframe
+      ipureintro; left; exact hq
+    | ok ei =>
+      try wp_auto
+      wp_join_done
+      iexists _
+      iframe
+      ipureintro; right; exact hsy.2 (fun h => nomatch h)
   -- the deferred unlocks
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩
   icases pt_split _ _ $$ Hfile with ⟨Hfile, -⟩
@@ -345,7 +403,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
     iframe
   try wp_auto
   iapply HΦ
-  ipureintro; exact hq
+  ipureintro; exact hv
 
 /-- **`db.Close()` by the closer token's holder, nothing about the file** (an internal spec, session
 S3f: `Open`'s error exits after the database is built close it while keeping the client's
@@ -358,11 +416,12 @@ abbrev DB.Close.specTok : Prop :=
 
 omit [ExtSemantics fsExt] [FsSemOk] hos in
 theorem DB.Close.wp_proofTok
-    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG)) :
+    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG))
+    (hSyncR : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.specR (GF := GF) (hG := hG)) :
     DB.Close.specTok (GF := GF) (hG := hG) := by
   intro _ _ _ db γ
   iintro %Φ Hpre HΦ
-  iapply DB.Close.wp_proofQ (fun _ => True) trivial (DB.close.spec_ownedQ_of hOwned) db γ $$ Hpre
+  iapply DB.Close.wp_proofQ (fun _ => True) trivial (DB.close.spec_ownedQ_of hOwned) hSyncR db γ $$ Hpre
   inext
   iintro %err -
   iapply HΦ

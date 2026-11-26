@@ -1115,13 +1115,29 @@ theorem DB.wp_close_ownedNoErrM :
     _root_.Perennial.EtcdGrove.bbolt.DB.close.spec_ownedNoErrM (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.close.wp_proof_ownedNoErrM _root_.Perennial.EtcdGrove.bbolt.DB.wp_munmapNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_Flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Close
 
+theorem syscall.wp_FdatasyncB :
+    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specB (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proofB
+
+theorem syscall.wp_FdatasyncCrashILR :
+    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashILR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashILR
+
+theorem wp_fdatasyncR :
+    _root_.Perennial.EtcdGrove.bbolt.fdatasync.specR (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashILR _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
+
 theorem DB.wp_Close :
     _root_.Perennial.EtcdGrove.bbolt.DB.Close.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_ownedNoErrM
+  _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_ownedNoErrM _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncR
+
+theorem DB.wp_CloseC :
+    _root_.Perennial.EtcdGrove.bbolt.DB.Close.specC (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proofC _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_ownedNoErrM _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncR
 
 theorem DB.wp_CloseTok :
     _root_.Perennial.EtcdGrove.bbolt.DB.Close.specTok (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proofTok _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned
+  _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proofTok _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncR
 
 theorem DB.wp_Info :
     _root_.Perennial.EtcdGrove.bbolt.DB.Info.spec (GF := GF) (hG := hG) :=
@@ -1287,10 +1303,6 @@ theorem os.File.wp_WriteAt :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof
 
-theorem syscall.wp_FdatasyncB :
-    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specB (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proofB
-
 theorem wp_fdatasyncW :
     _root_.Perennial.EtcdGrove.bbolt.fdatasync.specW (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofW _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
@@ -1414,14 +1426,6 @@ theorem os.File.wp_WriteAtExt :
 theorem os.File.wp_WriteAtCrashILLongR :
     _root_.Perennial.EtcdGrove.os.File.WriteAt.specCrashILLongR (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.os.File.WriteAt.wp_proof_crashILLongR
-
-theorem syscall.wp_FdatasyncCrashILR :
-    _root_.Perennial.EtcdGrove.syscall.Fdatasync.specCrashILR (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.syscall.Fdatasync.wp_proof_crashILR
-
-theorem wp_fdatasyncR :
-    _root_.Perennial.EtcdGrove.bbolt.fdatasync.specR (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.fdatasync.wp_proofR _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncB _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FdatasyncCrashILR _root_.Perennial.EtcdGrove.bbolt.errnoErrOk_holds
 
 theorem TxStats.wp_IncWrite :
     _root_.Perennial.EtcdGrove.bbolt.TxStats.IncWrite.spec (GF := GF) (hG := hG) :=

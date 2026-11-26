@@ -1,12 +1,14 @@
 /-
 `DB.Close` (bbolt): its spec in bbolt's API (the frozen spec of 2026-11-03; the vocabulary in
 `Spec/go_etcd_io/bbolt/Api.lean`, the decisions in `notes/bbolt-spec-decisions.md`). Proof:
-`Proof/go_etcd_io/bbolt/DB__Close.lean` (unfinished until bbolt's invariants are designed).
+`Proof/go_etcd_io/bbolt/DB__Close.lean`. Also `DB.Close.specC` (W5): the crash-mode `Close`, which
+hands bbolt's crash record (`Spec/go_etcd_io/bbolt/ApiCrash.lean`) over for the durable file.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Api
 public import GooseLang.Ext.Fs.FsNoErr
+public import Spec.go_etcd_io.bbolt.ApiCrash
 
 @[expose] public section
 
@@ -51,6 +53,27 @@ abbrev DB.Close.spec : Prop :=
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ fileHoldsM i D) ∨ ⌜¬ FsNoErr⌝ }}
+
+/-- **`db.Close()` handing the crash record over** (W5; crash mode's `Close`): as `DB.Close.spec`, but
+the closer holds half of the committed data (`boltState γ ½ D`), and the other half is in bbolt's
+crash record `boltCrashRec γ i Dl Dn` (C-I1's `dbCrashKeep`), which the caller's invariant keeps and
+reaches through the atomic update (mask as `Tx.Commit`'s). `Close` syncs the file first (the fork's
+`f55d3ca`: a commit that failed at `maxBytes` can leave unsynced pages and an announced size); the
+commit point is where it takes the file out of bbolt's crash invariant (all three locks held, no
+transaction live): the update consumes the record and gives back the file, every byte durable and
+its size settled (`fileHoldsMDur i D`), and `Dn = D`. So a crash before the commit point finds the
+record whole (C-I1's `dbCrash`), one after it the durable file (`backend.fileHoldsMDur_crash`).
+Outcomes: `nil` and the update's `Q`; or `¬ FsNoErr` (as `DB.Close.spec`'s; the update then may not
+have fired, and the record stays with the caller). Outside crash mode no record exists: an opened
+update's record contradicts the mode, so the spec takes no premise on it. -/
+abbrev DB.Close.specC : Prop :=
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) (i : Ino) (D : Data)
+    (Q : IProp GF),
+  {{ isBolt (GF := GF) db γ ∗ boltIno γ i ∗ boltState γ (1 : Qp).half D ∗ boltCloser γ ∗
+      AU <{ ∃∃ (Dl Dn : Data), boltCrashRec γ i Dl Dn }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ⌜Dn = D⌝ ∗ fileHoldsMDur i D, COMM Q }> }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; (⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ FsNoErr⌝ }}
 
 end spec
 
