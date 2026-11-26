@@ -5980,7 +5980,8 @@ NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.lib.remote.counter'] + \
 NET_NODES = {'echo': ['server', 'client', 'junk'], 'framed': ['server', 'client', 'junk'],
             'acceptloop': ['server', 'client'], 'duplex': ['server', 'client'],
             'halfclose': ['server', 'client'], 'preface': ['server', 'client', 'junk'],
-            'shutdown': ['node'], 'rpcdriver': ['server', 'client']}
+            'shutdown': ['node'], 'rpcdriver': ['server', 'client'],
+            'httpdriver': ['server', 'client']}
 # (2026-11-24) net/rpc's driver (notes/library-drivers.md): its package and its service's
 NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.rpcdriver',
              'github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service']
@@ -5996,6 +5997,14 @@ and net/http's by their interim axioms, `Net/Proof/net/{rpc,http}/Init.lean`) an
                          'wp_apply (wp_slice_literal (l := [go!"driver: no such key", go!"driver: not leader", go!"driver: x"]));'
                          ' isplitr; (· ipureintro; rfl); iintro %sf -',
                          'try wp_auto']})
+# (2026-11-24) net/http's driver (notes/library-drivers.md): its fact is `True`; its one variable,
+# `reached`, a function value, is allocated and stored
+NET_PKGS += ['github_com.mit_pdos.etcd_grove.examples.net.httpdriver']
+NET_SPECIAL['github_com.mit_pdos.etcd_grove.examples.net.httpdriver'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variable, initializes its imports (net/http's by
+its interim axiom, `Net/Proof/net/http/Init.lean`) and stores `reached`'s function value.''',
+    alloc_types=_ALLOC_ANY,
+    before={'reached': ['try wp_auto']})
 # (rpc-driver, 2026-11-24) The part's packages whose `wp_initialize'` is an interim trust-boundary
 # axiom (`Net/Proof/<pkg>/Init.lean`, hand-written; its fact in `PkgInit.lean`): net/rpc's and
 # net/http's models, whose closures reach initializers not translated (retired by L2 step 6,
@@ -6253,6 +6262,12 @@ def dsv_special():
     g = types.SimpleNamespace(**globals())
     for k in DSV_KITS:
         for p, cfg in (k.special(g) if hasattr(k, 'special') else {}).items():
+            if p in SPECIAL and p in getattr(k, 'OWN', ()):
+                # (dsv-retire-2, 2026-11-25) the kit's own translation of a package the main tree
+                # configures too (grpc's `codes` and `internal`): the kit's configuration, for its
+                # own generation only
+                DSV_OWN_CFG[(k.KIT, p)] = cfg
+                continue
             if p in SPECIAL:
                 sys.exit(f'gen-init: etc/dsv/{k.KIT}.py configures {p}, which already has a configuration')
             SPECIAL[p] = cfg
@@ -6260,6 +6275,7 @@ def dsv_special():
 
 
 DSV_CFG = {}  # a kit-configured package -> its kit
+DSV_OWN_CFG = {}  # (kit, package) -> the kit's configuration of its own translation of a main-tree package
 dsv_special()
 
 
@@ -6331,7 +6347,8 @@ def dsv_kit_raw(k, base):
         need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
         inst.update(dsv_inst)
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
-               for path, txt in gen(p, None if p in own and DSV_CFG.get(p) != k.KIT
+               for path, txt in gen(p, DSV_OWN_CFG[(k.KIT, p)] if (k.KIT, p) in DSV_OWN_CFG
+                                    else None if p in own and DSV_CFG.get(p) != k.KIT
                                     else SPECIAL.get(p))]
         for p, path in programs.items():
             path, txt = gen_table(p, path)

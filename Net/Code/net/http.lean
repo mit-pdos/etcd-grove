@@ -189,6 +189,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   http1ServerSupportsRequest_unfold : FuncUnfold http1ServerSupportsRequest [] http1ServerSupportsRequest.impl
   badRequestError_unfold : FuncUnfold badRequestError [] badRequestError.impl
   isCommonNetReadError_unfold : FuncUnfold isCommonNetReadError [] isCommonNetReadError.impl
+  NewServeMux_unfold : FuncUnfold NewServeMux [] NewServeMux.impl
   urlFromEscaped_unfold : FuncUnfold urlFromEscaped [] urlFromEscaped.impl
   exactMatch_unfold : FuncUnfold exactMatch [] exactMatch.impl
   Handle_unfold : FuncUnfold Handle [] Handle.impl
@@ -406,6 +407,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.http1ServerSupportsRequest_unfold
   Assumptions.badRequestError_unfold
   Assumptions.isCommonNetReadError_unfold
+  Assumptions.NewServeMux_unfold
   Assumptions.urlFromEscaped_unfold
   Assumptions.exactMatch_unfold
   Assumptions.Handle_unfold

@@ -61,10 +61,12 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
 `crypto/rand.Reader` does not fail, so `uuid.New()` (`Must(NewRandom())`, which panics when it
 fails) returns (`lib/LibSpecs.lean`, `github_com.google.uuid.New.spec`, lab `uuid.wp_New`). A
 premise of `swiftpaxos_remote_robust` beside the library hypotheses and `os.signal.NoSignals
-usr1Sigs`, kept apart from them. -/
+usr1Sigs`, kept apart from them, until dsv-fix4; proved since dsv-retire-2 (#49 step 2) from uuid's
+translation (its model `models/uuid`, whose premise is that `crypto/rand.Reader` is never reassigned
+and not boringcrypto's: `Dsverify/Proof/github_com/google/uuid/New.lean`). -/
 class SwiftOsRandom [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
     [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  uuid_New : github_com.google.uuid.New.spec (GF := GF)
+  uuid_New : ∀ [github_com.google.uuid.Assumptions], github_com.google.uuid.New.spec (GF := GF)
 
 end github_com.imdea_software.swiftpaxos
 
@@ -103,7 +105,8 @@ theorem Decoder.Decode.wp_hyp : Decoder.Decode.spec (GF := GF) := h.gob_Decode
 end encoding.gob
 
 namespace github_com.google.uuid
-theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] : New.spec (GF := GF) :=
+theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] [github_com.google.uuid.Assumptions] :
+    New.spec (GF := GF) :=
   hr.uuid_New
 theorem wp_ID [github_com.google.uuid.Assumptions] : UUID.ID.spec (GF := GF) := h.uuid_ID
 end github_com.google.uuid
