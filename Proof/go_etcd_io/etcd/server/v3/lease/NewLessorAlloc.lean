@@ -371,13 +371,7 @@ theorem newLessor_alloc (lp lm im np : Loc) (h : GoSlice) (hx : List (Loc × w64
       lessorAt γl 0 (recMap (recs.zip ls), ∅, recTTLs mt recs) ∗ notifRTok γl ∗
       ownBroadcastChan dc γdc iprop(True) .Pending := by
   iintro H
-  imod (ghost_map_alloc_empty (GF := GF) (K := Bool) (V := LessorGV)) with ⟨%γl, Ha⟩
-  icases (ghostMapAuth_halves γl (∅ : GMap Bool LessorGV)).1 $$ Ha with ⟨Ha1, Ha2⟩
-  imod (inv_alloc lessorSlotN ⊤ iprop(ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∨
-      (lessorHistOk γl ∗ ∃ γr : LessorRdNames, lessorPinR γl γr))) $$ [Ha2] with #Hs
-  · inext; ileft; iexact Ha2
-  ihave #Hslot : lessorSlot (GF := GF) γl $$ []
-  · iunfold lessorSlot; iexact Hs
+  imod (lessorSlot_alloc (GF := GF) ⊤ []) with ⟨%γl, -, Ha1, #Hslot⟩
   imod (newLessor_alloc_at γl lp lm im np h hx b mt ec sc dc γec γsc γdc GA mono recs ls reqOf Lr
     hlp hlen hnd hrq hLr) $$ [Ha1 H] with Hpost
   · isplitl [Ha1]

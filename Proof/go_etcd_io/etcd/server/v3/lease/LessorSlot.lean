@@ -118,6 +118,25 @@ theorem lessorSlot_absent_stays (γl : GName) (i k j : Nat) (σ ρ τ : LSnap) (
     imodintro
     ipureintro; exact Hτ
 
+/-- **The start's allocation of a lessor name and its slot** (P-L1's L2, `notes/axiom-review/f7-combined.md`):
+a name `γl` outside `used`, half of its ghost map's authority at `∅` (the member's, which
+`newLessor_alloc_at` and `NewServer_dist` take) and the slot `lessorSlot γl` holding the other half. -/
+theorem lessorSlot_alloc (E : CoPset) (used : List GName) :
+    ⊢ |={E}=> ∃ γl : GName, ⌜γl ∉ used⌝ ∗
+      ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∗ lessorSlot γl := by
+  iintro
+  imod (ghost_map_alloc_strong_empty (GF := GF) (K := Bool) (V := LessorGV) (· ∉ used)
+    (pred_infinite_not_mem used)) with ⟨%γl, %Hγ, Ha⟩
+  icases (ghostMapAuth_halves γl (∅ : GMap Bool LessorGV)).1 $$ Ha with ⟨Ha1, Ha2⟩
+  imod (inv_alloc lessorSlotN E iprop(ghostMapAuth (GF := GF) γl (1 : Qp).half (∅ : GMap Bool LessorGV) ∨
+      (lessorHistOk γl ∗ ∃ γr : LessorRdNames, lessorPinR γl γr))) $$ [Ha2] with #Hs
+  · inext; ileft; iexact Ha2
+  imodintro
+  iexists γl
+  iunfold lessorSlot
+  iframe Ha1 Hs
+  ipureintro; exact Hγ
+
 end slot
 
 section rd
