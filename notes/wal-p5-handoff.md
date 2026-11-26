@@ -2,7 +2,7 @@
 
 ## START HERE
 
-- **Date**: 2026-11-25 (session 1; session 4 the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
+- **Date**: 2026-11-25 (session 1; session 6, 2026-11-26, the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
 - **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7`, then its P7 update `5a1c41d945` merged in
   (`fd7630f9da`) (posted green on #50 07:18Z; same Perennial pin
   `fce59af75`), with `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4` merged (`97ef57a342`: P8's
@@ -10,6 +10,39 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-26, **P5 session 6**): **(a)'s P5 part done (`rnDurK_crash.law` gives the certificates);
+  (b) planned under the approved alternative, no (b) Lean yet.** Merged `etcd-safe-main-r4/2026-11-25` @
+  `1b9cef43df` (`3dfa5ac91a`; notes and `etc/tcb-collections/etcd-dist.txt` only). The lead approved (b)'s
+  server-side alternative (#50 2026-11-25T18:04:00Z, item 6: `v'.l := L` at *enter* from `raftState_logView`,
+  the crash law entering the pending batch first; only `rnDurK_save`/`rnDurK_enter.law` change; the raft law
+  withdrawn) and (a)'s image route (16:06:56Z: T10 does `walFilesC`/`srvFilesC`/`bootstrapCrashContract`, P5
+  gives the certificates). Done: **`rnDurK_crash.law`** (ledger 2026-11-26): `Φ : WalHist → StorContents →
+  IProp`, the callback gives `Φ (Hs.take j) σ`, the post's live disjunct `∃ S σ l Hc, Φ Hc σ ∗ … ∗
+  ⌜… ∧ walRead Hc = some σ⌝ ∗ … ∗ walHistCerts γn.cl νk.sd Hc` (`walHistCerts_take`, `InvWalCrashLaws.lean`);
+  T7's `memberDur_crash` passes `fun _ σ => walFilesC …` and drops `Hc`'s facts (T10 threads them into
+  `walFilesC`'s history and the image row). Builds: see the session's commit message/STATUS line.
+  **(b) plan under the alternative** (next session, in order):
+  1. The contract over `walHistH`: `isWalStorage`'s `Save`/`SaveSnap` AUs become `AU <{ ∃∃ Hs, walHistH h Hs
+     sized }> <{ walHistH h (Hs ++ [op]) sized, COMM Q Hs }>` (layer 1 needs no `WalSaveOk`/term premise:
+     `walHistH_saveAU`/`walHistH_saveSnapAU` are the proofs in `RnNewStorage`); keep `walSaveSized_spec`/
+     `walSaveSnapH_spec` (`WalApi.lean`) as derived laws over `walRecsH` by a conversion `AU_R ⊢ AU_H` (open:
+     `walRecsH_iff_hist`; commit: the eager fold's step, as in `walRecsH_saveAU`), so `raftNode__start` and
+     `RaftLoopFreeze` need not move in step 1. Only the error arm differs (it returns `AU_H`): its callers
+     refute it by the batch size, check each. `walSaveH.law`/`walSaveSnapH.law` restated over `walHistH`.
+  2. The body: `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝` in place of `walRecsH h (recsOf vk.1 σ) Hs true`
+     (`recsOf` only for the pending received snapshot), `HistOkK` without `walCommitLeFrom walFresh Hs`.
+  3. The pending batch's images (`crashOk`, `j > pos`) no longer `ImgOk vk.1.S vk.1.l σ` at the `Save`, but
+     "for every committed log `L` that `vk.1.S` agrees with up to its commit (`DurAgrees`, `|L| = commit`),
+     with the read's snapshot term in `L` (from its certificate), `ImgOk vk.1.S L σ`" (pure, quantified over
+     `L`). Discharged with `L` from `raftState_logView` on the entered state: at *enter* (the view moves to
+     `{v' with l := L}`; `monoListAuth` grows from `v'.l`, a prefix by `isCommittedLogLb_agree`), and in the
+     crash law after `readyCrashEnter` (the post's `l := L`). Caution: `raftState_logView` is at `⊤`; the
+     crash law runs at `E \ rnDurKN` and *enter* inside `iinv`: a masked variant (`↑N ⊆ E`) of it is needed
+     (raft's file `DurableLogView.lean`, additive; or call it after closing the invariant at *enter*).
+  4. The step laws' proofs (`InvWalCrashPure`, `InvWalCrashSteps`, `InvWalCrashLaws`) and
+     `wal.restartOk`'s body; `raftNode__start`'s call sites if `rnDurK_save`/`rnDurK_enter`'s shapes change.
+  5. Delete `walRecsH` once unused. Then P5-RESTART (the restart slot's certificates arrive through T10's
+     `bootstrapCrashContract.law` pass-through).
 - **State** (2026-11-25, session 5): **stopped (priorities: M1 first, #50 16:48Z); raft law not
   provable additively; no Lean changed.** Merged
   `etcd-safe-main-r4/2026-11-25` @ `1c2958cbb4` (`b11c0ca87c`, clean; `etc/api/raft.txt` keeps r4's
