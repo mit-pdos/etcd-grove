@@ -189,7 +189,8 @@ def durReadOk (n : Nat) (S : Nat → Prop) (σ : KVState) : Prop :=
 theorem durOk_nil (n : Nat) : DurOk n [] [] := ⟨by simp, by simp⟩
 
 /-- A put of `durKey j ↦ durVal j`, `j` not fired, keeps the facts, `j` fired. -/
-theorem durOk_put {n : Nat} {F : List Nat} {σ : KVState} {j : Nat} (hjn : j < n) (hjF : j ∉ F)
+theorem durOk_put {n : Nat} {F : List Nat} {σ : KVState} {j : Nat} (hn : n ≤ 256) (hjn : j < n)
+    (hjF : j ∉ F)
     (h : DurOk n F (pfxView durablePfx σ)) :
     DurOk n (F ++ [j]) (pfxView durablePfx (kvOpStep (.put (putKeyOp (durKey j) (durVal j))) σ)) := by
   obtain ⟨h1, h2⟩ := h
@@ -234,7 +235,7 @@ theorem acks_set (acks : List Bool) (N : Nat) (b : Bool) (h : acks.length < N) :
       (acks ++ [b]) ++ List.replicate (N - (acks ++ [b]).length) false := by
   have e : N - acks.length = (N - (acks.length + 1)) + 1 := by omega
   rw [e, List.replicate_succ, List.length_append, List.length_singleton]
-  simp [List.set_append]
+  simp
 
 theorem acks_snoc_true {acks : List Bool} {j : Nat} (h : (acks ++ [true])[j]? = some true) :
     acks[j]? = some true ∨ j = acks.length := by
@@ -368,7 +369,7 @@ theorem pgInv_alloc (γ : GName) (E : CoPset) :
 
 /-- **A put's update** of `k ↦ pgVal k` (fired at most once), result `pgFired γP k`. -/
 theorem pgPutAu (γk : KVNames) (γ γP : GName) (k : GoString) (hk : putgetPfx <+: k) :
-    kvPfx γk putgetPfx γ ∗ pgInv γ γP ⊢
+    kvPfx (GF := GF) γk putgetPfx γ ∗ pgInv γ γP ⊢
       AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γk (kvOpStep (.put (putKeyOp k (pgVal k))) σ) ∗ ⌜kvRoom σ⌝,
            COMM pgFired γP k }> := by
@@ -397,7 +398,7 @@ theorem pgPutAu (γk : KVNames) (γ γP : GName) (k : GoString) (hk : putgetPfx 
 
 /-- **A get's read update** of `k` after its put fired: `pgReadOk k`. -/
 theorem pgGetAu (γk : KVNames) (γ γP : GName) (k : GoString) (hk : putgetPfx <+: k) :
-    kvPfx γk putgetPfx γ ∗ pgInv γ γP ∗ pgFired γP k ⊢
+    kvPfx (GF := GF) γk putgetPfx γ ∗ pgInv γ γP ∗ pgFired γP k ⊢
       kvReadAu γk (fun σ => iprop(⌜pgReadOk k σ⌝)) := by
   iintro ⟨#Hp, #Hi, #Hf⟩
   iunfold pgInv at Hi
@@ -424,7 +425,7 @@ theorem pgGetAu (γk : KVNames) (γ γP : GName) (k : GoString) (hk : putgetPfx 
 
 /-- Round `s`'s put's update (`pgPutAu` at `pg/k<s> ↦ v<s>`). -/
 theorem pgPutAu_round (γk : KVNames) (γ γP : GName) (s : GoString) :
-    kvPfx γk putgetPfx γ ∗ pgInv γ γP ⊢
+    kvPfx (GF := GF) γk putgetPfx γ ∗ pgInv γ γP ⊢
       AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γk (kvOpStep (.put (putKeyOp (go!"pg/k" ++ s) (go!"v" ++ s))) σ) ∗ ⌜kvRoom σ⌝,
            COMM pgFired γP (go!"pg/k" ++ s) }> := by
@@ -531,7 +532,8 @@ theorem durFiredAll_none (γF : GName) : ⊢ |==> durFiredAll (GF := GF) γF (fu
 theorem durFiredAll_mono (γF : GName) (S S' : Nat → Prop) (h : ∀ j, S' j → S j) :
     durFiredAll (GF := GF) γF S ⊢ durFiredAll γF S' := by
   iintro #H
-  iunfold durFiredAll at H ⊢
+  iunfold durFiredAll at H
+  iunfold durFiredAll
   icases H with ⟨%l, #Hlb, %Hl⟩
   iexists l
   iframe Hlb
@@ -543,7 +545,8 @@ theorem durFiredAll_mono (γF : GName) (S S' : Nat → Prop) (h : ∀ j, S' j �
 theorem durFiredAll_add (γF : GName) (S : Nat → Prop) (j : Nat) :
     durFiredAll (GF := GF) γF S ∗ durFired γF j ⊢ durFiredAll γF (fun j' => S j' ∨ j' = j) := by
   iintro ⟨#H, #Hj⟩
-  iunfold durFiredAll at H ⊢
+  iunfold durFiredAll at H
+  iunfold durFiredAll
   iunfold durFired at Hj
   icases H with ⟨%l, #Hlb, %Hl⟩
   icases Hj with ⟨%l', #Hlb', %Hl'⟩
@@ -566,9 +569,10 @@ theorem durFiredAll_add (γF : GName) (S : Nat → Prop) (j : Nat) :
 
 /-- **Put `j`'s update** of `durKey j ↦ durVal j` (fired at most once: it holds put `j`'s token, which it
 gives to the invariant), result `durFired γF j`. -/
-theorem durPutAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n j : Nat) (g : GName) (hjn : j < n)
+theorem durPutAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n j : Nat) (g : GName) (hn : n ≤ 256)
+    (hjn : j < n)
     (hg : γs[j]? = some g) :
-    kvPfx γk durablePfx γ ∗ durInv γ γF γs n ∗ token g ⊢
+    kvPfx (GF := GF) γk durablePfx γ ∗ durInv γ γF γs n ∗ token g ⊢
       AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γk (kvOpStep (.put (putKeyOp (durKey j) (durVal j))) σ) ∗ ⌜kvRoom σ⌝,
            COMM durFired γF j }> := by
@@ -607,7 +611,7 @@ theorem durPutAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n j : Nat)
         ipureintro; exact hg
       iapply BigSepL.bigSepL_nil.2
       itrivial
-    ipureintro; exact durOk_put hjn hjF Hok
+    ipureintro; exact durOk_put hn hjn hjF Hok
   · iunfold durFired
     iexists (F ++ [j])
     iframe Hlb
@@ -615,7 +619,7 @@ theorem durPutAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n j : Nat)
 
 /-- **The range's read update**: `durReadOk n S`, for fired puts `S`. -/
 theorem durGetAu (γk : KVNames) (γ γF : GName) (γs : List GName) (n : Nat) (S : Nat → Prop) :
-    kvPfx γk durablePfx γ ∗ durInv γ γF γs n ∗ durFiredAll γF S ⊢
+    kvPfx (GF := GF) γk durablePfx γ ∗ durInv γ γF γs n ∗ durFiredAll γF S ⊢
       kvReadAu γk (fun σ => iprop(⌜durReadOk n S σ⌝)) := by
   iintro ⟨#Hp, #Hi, #Hf⟩
   iunfold durInv at Hi

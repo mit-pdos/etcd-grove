@@ -449,7 +449,7 @@ theorem kvPfx_alloc (γk : KVNames) (σ₀ : KVState) (h0 : σ₀.kvs = []) (pfx
       [∗list] _k ↦ e ∈ pfxs.zip γs, ghostVar e.2 (1 : Qp).half (pfxView e.1 σ))) $$ [Hσ Hinvs]
     with #Hinv
   · inext; iexists σ₀; iframe Hσ Hinvs
-  have hall : kvPfxInv (GF := GF) γk (pfxs.zip γs) ⊢
+  have hall : □ kvPfxInv (GF := GF) γk (pfxs.zip γs) ⊢
       [∗list] e ∈ pfxs.zip γs, kvPfx (GF := GF) γk e.1 e.2 := by
     apply BigSepL.bigSepL_intro
     intro k e he

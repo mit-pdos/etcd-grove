@@ -189,7 +189,7 @@ theorem RunDurable.wp_proof
     wp_apply (wp_durableValue j Hj.2.2) as %v %Hv
     subst Hk Hv
     (try wp_auto)
-    ihave Hau := durPutAu (Gg := hG.goose_globalGS) Γ.kv γ γF γs (sint.nat m) (sint.nat j) g hjm
+    ihave Hau := durPutAu (Gg := hG.goose_globalGS) Γ.kv γ γF γs (sint.nat m) (sint.nat j) g hmN hjm
       (by rw [Hj.1]; exact hg) $$ [Hg]
     · iframe Hg
       iframe #
