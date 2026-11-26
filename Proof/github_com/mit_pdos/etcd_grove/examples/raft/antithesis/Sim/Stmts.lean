@@ -97,7 +97,8 @@ def propConfMsg (id : w64) (ty : w32) (data : List w8) : Msg :=
 def admOf (G : RaftFacts) : List EntryM → CCState → Prop := fun l cs => (l, cs) ∈ G.confs
 
 /-- What one input does to node `n`'s state (design §3.4). A
-conf change is proposed only with conf changes on. `ApplyConfChange` is no input here: the driver
+conf change is proposed only with conf changes on, a read asked only with reads on (the driver's
+reader runs only then). `ApplyConfChange` is no input here: the driver
 reports `conf` at the apply, in the node's goroutine, so `antSim_conf` takes it and its report as one
 step (`ApplyConfEndR`). -/
 def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (n : Fin R.N)
@@ -109,7 +110,7 @@ def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop
   | .propose d, r' => RecvEndR Adm (R.k n) (nodeId n) r (propMsg (nodeId n) d) r'
   | .proposeConf ty d, r' =>
       R.md.confChanges = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r'
-  | .readIndex c, r' => RecvEndR Adm (R.k n) (nodeId n) r (readMsg c) r'
+  | .readIndex c, r' => R.md.reads = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (readMsg c) r'
   | .campaign, r' => CampaignEndR (R.k n) (nodeId n) r r'
   | .transfer to, r' => TransferEndR (nodeId n) r to r'
   | .snapStatus to ok, r' => SnapStatusEndR (nodeId n) r r'
@@ -140,7 +141,7 @@ def DrainBy (b : AntCheck.Str) : Prop := b = go!"boot" ∨ ∃ inp : Input, b = 
 
 /-- **How node `n` reached the state `r₁` a `Ready` (or `HasReady`) is taken at**, from its view `v`: no input taken (a drain's, at the view's own
 state), an input taken between inputs (`v` noted it; a message received was sent to it; a protocol
-message has a nonzero term), or `Advance` at the end of a `Ready` whose reports are all made
+message has a nonzero term, but a forwarded read request, which `send` stamps none on), or `Advance` at the end of a `Ready` whose reports are all made
 (`AdvanceEndR` stepping the `Ready`'s self-addressed messages; with snapshots off, applying none:
 `AdvanceNoSnap`). -/
 inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop) (net : List Msg)
@@ -148,7 +149,7 @@ inductive Reach (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Pr
   | stay (v : NodeView) : v.Idle → DrainBy v.byE → Reach R dec Adm net xnet n v v.r
   | input (v : NodeView) (inp : Input) (r₁ : RState) :
       v.Idle → v.byE = inp.byE → v.cause = inp.cause → v.xcause = inp.xcause →
-      (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ m.term ≠ W64 0) →
+      (∀ m, inp = .recv m → m ∈ net ∧ m.dst = nodeId n ∧ (m.ty ≠ .readIndex → m.term ≠ W64 0)) →
       (∀ x, inp = .recvX x → x ∈ xnet ∧ x.dst = nodeId n) →
       InputStep R dec Adm n v.r inp r₁ → Reach R dec Adm net xnet n v r₁
   | advance (v : NodeView) (r₁ : RState) :

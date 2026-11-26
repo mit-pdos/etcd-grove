@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # The refinement to Antithesis's binding: `antSim_ready` (#33 S4, the invariant phase; parity B1)
 
 A reported `Ready` (`notes/antithesis-rawnode-design.md` §3.3, "`antSim_ready`, guard by guard";
-`notes/antithesis-parity-design.md` §3.5), for the runs a mask below `mskB1p` admits: `antSim_gc` to
+`notes/antithesis-parity-design.md` §3.5), for the runs a mask below `mskB1r` admits: `antSim_gc` to
 `S1`; the protocol readings (`ReachP`, `ReadyOutO`, `ReportedO`) and the old disk facts of the node
 collected in `RdCtx` (`rdCtx_of`); the kind-independent fields of the new view (`AfterOk`); the
 `Ready`'s kind (`ready_kind`); per kind, `InMemory` and `OnDisk` of its `ready` report evaluated
@@ -90,19 +90,19 @@ structure AfterOk (R : RunCfg) (dec : CCDec) (V : Fin R.N → NodeView) (n : Fin
   drain : w.told = (V n).told ∧ w.cause = (V n).cause ∧ w.xcause = (V n).xcause
   hlead : LeadOk n w
 
-/-- **`AfterOk` of a `Ready`'s view** below `mskB1p` (`nodeOk_quiet`'s `silentReady` for any `Ready`):
+/-- **`AfterOk` of a `Ready`'s view** below `mskB1r` (`nodeOk_quiet`'s `silentReady` for any `Ready`):
 the configuration, ghost prefix and snapshot flag kept along `Reach` (`reach_keep`), the new full
 log normal (`msgShape_core`), the `Ready`'s messages under the mask (`MShape` and no snapshot),
 `PendOk` (`pendOk_of_reach`), no transfer message, the leader hint (`reach_leadOk`) and a leader's
 empty read-only queue (`reach_roOk`); a reported pre-candidate a follower at a pre-vote node
 (`ReadyOutP`). -/
-theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : CCDec}
+theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec}
     {Adm : List EntryM → CCState → Prop} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
     {xnet : List XMsg} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hs : AntSim R dec S V net xnet)
     (hr : ReachIn msk R dec Adm net xnet n (V n) r₁) (hro : ReadyOutP R n (V n) r₁ rd) :
     AfterOk R dec V n ((V n).afterReady r₁ rd) := by
-  obtain ⟨hmd, -, -, -, -, -, -⟩ := hin.b1p hmsk
+  obtain ⟨hmd, -, -, -, -, -, -⟩ := hin.b1r hmsk
   have hnet := hs.2.2.1
   have hv := hs.2.2.2.2 n
   have hcc : R.md.confChanges = false := by rw [hmd]
@@ -118,9 +118,9 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : C
   obtain ⟨hR, hpre, -, -, -, -, -, -, hsync, -, hxm, hpfx, hlen, -, hsnapC, hidx, -⟩ := hro
   obtain ⟨hb0, -, hnosnap⟩ := hsnapC hsn
   have hmsg := (hsync (by rw [hmd])).2
-  have hcm : ∀ m, (V n).cause = some m → m.ty = .app ∨ m.ty = .propose → EntsNormal m.entries :=
+  have hcm0 : ∀ m, (V n).cause = some m → EntsNormal m.entries :=
     fun m hm => (hnet.2.2.2.2.1 m (hv.cause m hm).1).1 hcc
-  obtain ⟨hfl, hms⟩ := msgShape_core hmsk hin hnet hv hr hmsg hfn (hv.facts.roPend (by rw [hmd])) hcm
+  obtain ⟨hfl, hms⟩ := msgShape_core hmsk hin hnet hv hr hmsg hfn hcm0
   have f3 := hv.facts.conf0
   have hroOk := reach_roOk hmsk hin hnet hv hr
   refine {
@@ -139,7 +139,8 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : C
       fun h => ⟨by show r₁.cfg.cfg = _; rw [hcfg]; exact (f3 h).1, hfl, hfl⟩, hidx, hpfx, hlen,
       fun q hq => ?_, Int.le_refl _,
       (fun h => by change rd.pre = true at h; show r₁.p.role = .follower; rw [← hR]; exact (hpre h).1),
-      (fun _ => hroOk), (fun h => (hpre h).2)⟩
+      (fun h => hroOk h), (fun h => (hpre h).2),
+      by have h := readSrc_reach hmsk hin hnet hv hr; exact h⟩
     hpend := by have h := pendOk_of_reach hmsk hin hnet hv hr hro'; exact h
     hxpend := fun x hx => hxm x hx
     drain := ⟨rfl, rfl, rfl⟩
@@ -147,7 +148,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : C
   have hmq := hms q hq
   obtain ⟨-, h2', h3', -, -⟩ := id hmq
   have hqo : q ∈ r₁.p.outbox := (List.mem_filter.mp ((hmsg.mem_iff).mp hq)).1
-  exact ⟨fun _ _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (hv.cause m hm).1) hmq⟩
+  exact ⟨fun _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (hv.cause m hm).1) hmq⟩
 
 /-! ## The drain's `by` and the campaign -/
 
@@ -160,6 +161,7 @@ theorem reach_byE {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
   | tick _ _ hbe => exact hbe.elim (fun h => .inr ⟨.tick, h⟩) (fun h => .inr ⟨.campaign, h⟩)
   | tickP _ _ hbe => exact hbe.elim (fun h => .inr ⟨.tick, h⟩) (fun h => .inr ⟨.campaign, h⟩)
   | propose d _ _ hbe => exact .inr ⟨.propose d, hbe⟩
+  | read d _ _ hbe => exact .inr ⟨.readIndex d, hbe⟩
   | advance _ _ _ hb => exact hb
   | advP _ _ _ hb => exact hb
 
@@ -216,14 +218,14 @@ theorem roleOf_follower_iff (r : Role) : roleOf r = follower ↔ r = .follower :
 theorem roleOf_candidate_iff (r : Role) : roleOf r = candidate ↔ r = .candidate := by
   cases r <;> decide
 
-/-! ## The context of a reported `Ready` below `mskB1p` -/
+/-! ## The context of a reported `Ready` below `mskB1r` -/
 
-/-- **What a reported `Ready` at node `n` starts from** (below `mskB1p`), after `GC` to `S1`: the
+/-- **What a reported `Ready` at node `n` starts from** (below `mskB1r`), after `GC` to `S1`: the
 checker's prefix and steps, the relation and `GlobalOk` at `S1`; the node's old disk facts on its
 protocol state (`v.ps`: the disk is raft's own state with no ghost prefix); its configuration the
 initial one; no write queued, a reported pre-candidate a follower, no snapshot; the new state's
 full log its protocol log, `ReadyFacts`; the protocol readings of `Reach` and `ReadyOutP`;
-the messages sent of the S4 types `InMsg`, the queued self-messages but pre-votes (a candidate's all
+the messages sent of the readings' types `InMsg`, the queued self-messages but pre-votes (a candidate's all
 self-votes), the new outbox's self-addressed messages; a non-follower's vote its own before and
 after; the new view's kind-independent fields; the kind. -/
 structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView) (net : List Msg)
@@ -259,7 +261,7 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   hro : ReadyOutO R.N (nodeId n) (V n) r₁.p rd
   htold : (V n).byE = go!"recv" → (V n).told = true
   htb : uint.Z (V n).ps.term + 1 < 2 ^ 64
-  hin : ∀ m ∈ net, S4Ty m.ty → InMsg m
+  hin : ∀ m ∈ net, RdTy m.ty → InMsg m
   hqs : ∀ q ∈ (V n).qs, q.ty ≠ .preVoteResp → SelfMsg (nodeId n) (V n).ps.term q
   hqc : (V n).ps.role = .candidate → ∀ q ∈ (V n).qs, q.ty ≠ .preVoteResp → q.ty = .voteResp
   hso : SelfOut (CfgM.simple R.voters0 ∅) (R.k n) (nodeId n) r₁.p
@@ -280,8 +282,8 @@ theorem RdCtx.boot1 {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → Node
     unfold State.bootTerm; rw [hx.hc]; show (if R.boot = true then (1 : Int) else 0) = 1; simp [hb]
   rw [hx.d1] at h1; omega
 
-/-- **`RdCtx` from `antSim_ready`'s premises** below `mskB1p`. -/
-theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : CCDec} {S : State}
+/-- **`RdCtx` from `antSim_ready`'s premises** below `mskB1r`. -/
+theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1r) {R : RunCfg} {dec : CCDec} {S : State}
     {V : Fin R.N → NodeView} {net : List Msg} {xnet : List XMsg} {evs : List Event} {G : RaftFacts}
     {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
     (hin : InMask msk R net xnet) (hpre : SimPre R dec S V net xnet evs G)
@@ -290,7 +292,7 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : CCD
     (htb : TermRoom (V n)) :
     ∃ S1, RdCtx R dec S V net xnet evs G n r₁ rd S1 := by
   obtain ⟨hp, hs, hl, hgo⟩ := hpre
-  obtain ⟨hmd, hbt, hpar, hspl, -, -, hty⟩ := hin.b1p hmsk
+  obtain ⟨hmd, hbt, hpar, hspl, -, -, hty⟩ := hin.b1r hmsk
   have ha := afterOk_of hmsk hin hs hr hro
   have hfp : r₁.fp = [] := ha.hfp
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
@@ -320,7 +322,7 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskB1p) {R : RunCfg} {dec : CCD
     · rw [hsn0.2.2] at h; cases h
   have d7 : (V n).ps.outbox = [] := hv.facts.outbox
   have d8 : (V n).ps.base = base0 := hsn0.1
-  have hin' : ∀ m ∈ net, S4Ty m.ty → InMsg m := fun m hm h4 => ⟨ty7_of_s4 h4, hnet.2.2.1 m hm⟩
+  have hin' : ∀ m ∈ net, RdTy m.ty → InMsg m := fun m hm h4 => ⟨h4, hnet.2.2.1 m hm⟩
   have hqs : ∀ q ∈ (V n).qs, q.ty ≠ .preVoteResp → SelfMsg (nodeId n) (V n).ps.term q :=
     fun q hq hne => (hv.qs q hq).self hne
   have hqc : (V n).ps.role = .candidate → ∀ q ∈ (V n).qs, q.ty ≠ .preVoteResp → q.ty = .voteResp :=

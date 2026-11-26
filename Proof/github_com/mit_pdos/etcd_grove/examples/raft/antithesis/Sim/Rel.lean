@@ -281,12 +281,13 @@ def NetTy (md : RnMode) (ty : MsgType) : Prop :=
   (md.prevote = true ∧ (ty = .preVote ∨ ty = .preVoteResp)) ∨
   (md.reads = true ∧ (ty = .readIndex ∨ ty = .readIndexResp)) ∨ (md.snapshots = true ∧ ty = .snap)
 
-/-- **A message under the run's mask** (`MsgMask`): without conf changes an append's or a
-proposal's entries are normal; without snapshots it is no snapshot; it is of a type the network
+/-- **A message under the run's mask** (`MsgMask`): without conf changes its entries are normal
+(only an append, a proposal and a read request or its answer carry entries; a read request's is
+its context); without snapshots it is no snapshot; it is of a type the network
 carries under the run's features, or a (forwarded) proposal; without reads a heartbeat or its
 response carries no context (a leader's queue is empty, `hbCtx`, and a response echoes it). -/
 def MsgMask (R : RunCfg) (m : Msg) : Prop :=
-  (R.md.confChanges = false → (m.ty = .app ∨ m.ty = .propose) → EntsNormal m.entries) ∧
+  (R.md.confChanges = false → EntsNormal m.entries) ∧
   (R.md.snapshots = false → m.ty ≠ .snap) ∧ (NetTy R.md m.ty ∨ m.ty = .propose) ∧
   (R.md.reads = false → (m.ty = .heartbeat ∨ m.ty = .heartbeatResp) → m.ctx = [])
 
@@ -300,7 +301,12 @@ candidate's records at raft's term); a reported pre-candidate is a follower to r
 that a leader's binding role is `leader`; without reads no read request is deferred (`rd.pend`, which only `MsgReadIndex` fills) and a leader has none pending (it
 becomes leader with the read-only queue reset, `pbecomeLeader`, and none is queued without reads:
 a tick's heartbeats carry no context, `hbCtx`); a reported pre-candidate is at a node with
-pre-vote on (a `Ready` reports `PreCandidate` only when raft campaigned with pre-vote). -/
+pre-vote on (a `Ready` reports `PreCandidate` only when raft campaigned with pre-vote); every read
+request's source, deferred (`rd.pend`) or in a leader's read-only queue, is local (`0`) or a node, so
+that its answer (`preadRespond`: a `MsgReadIndexResp` unless local) is to a server (the sources
+enter only with a `MsgReadIndex`: the local one's `0`, a network one's sender; `pbecomeLeader` resets
+the queue), and without conf changes its entries (the context the answer carries) are normal (the
+local request's entry is normal, `readMsg`; a network one's by `MsgMask`). -/
 def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
@@ -310,7 +316,11 @@ def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   (∀ q ∈ v.pend, MsgMask R q) ∧ uint.Z v.dur.term ≤ uint.Z v.ps.term ∧
   (v.pre = true → v.ps.role = .follower) ∧
   (R.md.reads = false → v.ps.rd.pend = [] ∧ (v.ps.role = .leader → v.ps.rd.ro.pending = [])) ∧
-  (v.pre = true → (R.k n).prevote = true)
+  (v.pre = true → (R.k n).prevote = true) ∧
+  (∀ p ∈ v.ps.rd.pend, (p.1.From' = W64 0 ∨ ∃ j : Fin R.N, p.1.From' = nodeId j) ∧
+    (R.md.confChanges = false → EntsNormal p.2)) ∧
+  (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
+    (R.md.confChanges = false → EntsNormal q.ents))
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -359,7 +369,8 @@ the commit index, B 577-580; or a stale `MsgApp`/`MsgHeartbeat`'s empty answer a
 `StaleEnd`), a heartbeat response is at the node's term; a forwarded proposal is
 unchecked (B 524, 586), from the node at term `0` (`ProposeEnd`'s forward); a pre-vote request or
 response, a read-index request (local, forwarded) or response is unchecked (`isUnmodelled`, B 702)
-but for its sender, and a pre-vote request is a voter's (`PreCampaignEnd`), a granted pre-vote
+but for its sender (a forwarded request at term `0` from its source, a node: a follower passing one on
+keeps its `From`; a response at the node's term, `preadRespond`), and a pre-vote request is a voter's (`PreCampaignEnd`), a granted pre-vote
 response answers the handled `MsgPreVote` (so that its receiver, which may campaign on it with no
 promotability test, `CampaignSends`, is a voter: the binding's `Unpromotable`); a snapshot is a leader's (parity B3 states what `snapOk` needs). A heartbeat
 carries no index, term or entries (`sendHeartbeat`), which the binding's `Sendable` reads (B 120-124).
@@ -390,8 +401,8 @@ def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
   | .preVote => q.src = id ∧ id ∈ v.r.cfg.cfg.voters
   | .preVoteResp => q.src = id ∧ (q.reject = false → ∃ m, v.cause = some m ∧ m.ty = .preVote ∧ q.dst = m.src) ∧
       (q.reject = true → q.term = v.ps.term)
-  | .readIndex => q.src = id
-  | .readIndexResp => q.src = id
+  | .readIndex => q.term = W64 0 ∧ ∃ j : Fin N, q.src = nodeId j
+  | .readIndexResp => q.src = id ∧ q.term = v.ps.term
   | .snap => q.src = id ∧ v.ps.role = .leader
 
 /-- The self-addressed messages `Advance` steps (`stepsOnAdvance`): a leader's self-acknowledgement
@@ -607,7 +618,15 @@ theorem NodeFacts.pend0 {R : RunCfg} {n : Fin R.N} {v : NodeView}
 theorem NodeFacts.preVote {R : RunCfg} {n : Fin R.N} {v : NodeView}
     (h : NodeFacts R n v) :
     v.pre = true → (R.k n).prevote = true :=
-  h.2.2.2.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.2.2.2.1
+
+theorem NodeFacts.readSrc {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) :
+    (∀ p ∈ v.ps.rd.pend, (p.1.From' = W64 0 ∨ ∃ j : Fin R.N, p.1.From' = nodeId j) ∧
+      (R.md.confChanges = false → EntsNormal p.2)) ∧
+    (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
+      (R.md.confChanges = false → EntsNormal q.ents)) :=
+  h.2.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 
@@ -767,12 +786,15 @@ def LeadCommitMsgOk (N : Nat) (S : AntCheck.State) (net : List Msg) : Prop :=
     uint.Z m.commit ≤ S.commitIndex[i.val]!
 
 /-- **C4, a message's shape**: an append carries a well-formed payload that does not wrap
-(`AppPayloadOk`, what `RecvEnd` reads of a received `MsgApp`), no message is to its sender, and a
-forwarded proposal is at term `0` (`ProposeEnd`'s forward). `send` keeps them from `PendOk`
+(`AppPayloadOk`, what `RecvEnd` reads of a received `MsgApp`), no message is to its sender but a
+forwarded read request (a follower passing one on to its leader keeps its `From`, which may be that
+leader: raft answers it locally, `preadRespond`), and a forwarded proposal or read request is at term
+`0` (`send` stamps none: `ProposeEnd`'s, `ReadIdxEnd`'s forward). `send` keeps them from `PendOk`
 (`AppOk`'s `AppPayloadOk` and `dst ≠ id`); with `Reach.input`'s `m.term ≠ 0`, a received message is
 never a proposal. -/
 def MsgShape (m : Msg) : Prop :=
-  (m.ty = .app → AppPayloadOk m) ∧ m.src ≠ m.dst ∧ (m.ty = .propose → m.term = W64 0)
+  (m.ty = .app → AppPayloadOk m) ∧ (m.ty ≠ .readIndex → m.src ≠ m.dst) ∧
+    ((m.ty = .propose ∨ m.ty = .readIndex) → m.term = W64 0)
 
 /-- Every message sent has `MsgShape`. -/
 def NetShape (net : List Msg) : Prop := ∀ m ∈ net, MsgShape m

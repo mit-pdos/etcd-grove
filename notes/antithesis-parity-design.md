@@ -1045,3 +1045,7 @@ On the RawNode/InputEnd side (joint with them, after antithesis-s4 lands):
    `AdvanceNoSnap` (`AckEndR`'s first two arms only; `Stmts.lean`). B3 lifts it with snapshots, where
    raft applying only a pending snapshot (an `applySnap` premise `sn = true → r.snap = true`, a raft-wide
    change) may be needed.
+8. **A restarted node's deferred read requests** (B2, from B1's reads, 2026-11-26). `NodeFacts`'s read-source
+   conjunct (every `rd.pend` request's `From` is `0` or a node; a leader's read-only queue's sources likewise)
+   must hold at `antSim_bootR`'s restarted view. `RestartR` (Stmts) does not say `r0.p.rd.pend = []`; B2 adds it
+   (raft restarts with no pending `MsgReadIndex`; `restartAtSpec`'s post should give it) or derives the sources.

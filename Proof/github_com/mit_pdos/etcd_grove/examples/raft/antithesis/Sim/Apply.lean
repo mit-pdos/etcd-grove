@@ -127,8 +127,8 @@ theorem apply_eq {R : RunCfg} {S : State} (n : Fin R.N) (v : NodeView) (hc : S.c
     hs3, decide_eq_true hlogn, decide_eq_true hch, Bool.and_self, hmem, hnot]
   rfl
 
-/-- **`apply`** (B 598-609), for the runs a mask below `mskB1p` admits (sync: no queued write). -/
-theorem antSim_apply_in (msk : SimMask) (hmsk : msk ≤ mskB1p) :
+/-- **`apply`** (B 598-609), for the runs a mask below `mskB1r` admits (sync: no queued write). -/
+theorem antSim_apply_in (msk : SimMask) (hmsk : msk ≤ mskB1r) :
     ∀ (R : RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → NodeView) (net : List Msg)
       (xnet : List XMsg) (evs : List AntCheck.Event) (G : RaftFacts) (n : Fin R.N),
       InMask msk R net xnet →
@@ -137,7 +137,7 @@ theorem antSim_apply_in (msk : SimMask) (hmsk : msk ≤ mskB1p) :
         (setV V n { V n with delivered := (V n).delivered ++ (V n).ce, ce := [], undo := none,
                              made := true }) net xnet := by
   intro R dec S V net xnet evs G n hin ⟨hp, hs, hl, hgo⟩ hasync hce _
-  obtain ⟨_, hbt, hpar, hspl, _, _, _⟩ := hin.b1p hmsk
+  obtain ⟨_, hbt, hpar, hspl, _, _, _⟩ := hin.b1r hmsk
   obtain ⟨S1, hgc, hs1, hgo1⟩ := antSim_gc R dec S V net xnet G hs hl hgo
   obtain ⟨hsh, hb, hn, hxn, hno⟩ := hs1
   have hc : S1.cfg = R.cfg := hsh.1

@@ -74,8 +74,11 @@ structure SendOk (R : RunCfg) (S : State) (n : Fin R.N) (q : Msg) (M : List Fact
   acks : ∀ a ∈ M, a.type = go!"ack" → a.src = nameOf (nodeId n) → a.term = S.currentTerm[n.val]! →
     ((C[n.val]!).term = a.term ∧ a.index ≤ (C[n.val]!).index) ∨ a.index ≤ S.commitIndex[n.val]!
   ty : q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
-    q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp
-  src : q.src = nodeId n ∧ (PreTermKeep q ∨ uint.Z q.term ≤ S.currentTerm[n.val]!)
+    q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp ∨
+    q.ty = .readIndex ∨ q.ty = .readIndexResp
+  src : q.ty ≠ .readIndex → q.src = nodeId n ∧ (PreTermKeep q ∨ uint.Z q.term ≤ S.currentTerm[n.val]!)
+  /-- a forwarded read request: at term `0`, from its source, a node -/
+  fwd : q.ty = .readIndex → q.term = W64 0 ∧ ∃ i : Fin R.N, q.src = nodeId i
   pvo : PreVoterOk R q
   dst : ∃ j : Fin R.N, q.dst = nodeId j
   req : (q.ty = .app ∨ q.ty = .heartbeat) → (toAppendFact (msgOf q q.dst) >>= S.sendable) = .ok true
@@ -146,7 +149,7 @@ theorem SendOk.tyNet {R : RunCfg} {S : State} {n : Fin R.N} {q : Msg} {M : List 
     q.ty = .vote ∨ q.ty = .voteResp ∨ q.ty = .app ∨ q.ty = .appResp ∨ q.ty = .heartbeat ∨
       q.ty = .heartbeatResp ∨ q.ty = .propose ∨ q.ty = .preVote ∨ q.ty = .preVoteResp ∨
       q.ty = .readIndex ∨ q.ty = .readIndexResp ∨ q.ty = .snap := by
-  rcases hok.ty with h | h | h | h | h | h | h | h | h <;> simp [h]
+  rcases hok.ty with h | h | h | h | h | h | h | h | h | h | h <;> simp [h]
 
 /-- **The relation after a `send`**. -/
 theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
@@ -220,7 +223,15 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
       · rw [List.mem_singleton] at hm
         subst hm
         obtain ⟨j, hj⟩ := hok.dst
-        exact ⟨hok.tyNet, ⟨n, hok.src.1, hok.src.2⟩, j, hj, fun _ => ⟨hok.req, hok.vote, hok.grant, hok.ack⟩⟩
+        refine ⟨hok.tyNet, ?_, j, hj, fun _ => ⟨hok.req, hok.vote, hok.grant, hok.ack⟩⟩
+        by_cases hri : m.ty = .readIndex
+        · obtain ⟨h0, i, hi⟩ := hok.fwd hri
+          refine ⟨i, hi, .inr ?_⟩
+          change uint.Z m.term ≤ S.currentTerm[i.val]!
+          rw [h0, (hno i).disk.1]
+          have : 0 ≤ uint.Z (V i).dur.term := by word
+          simpa using this
+        · exact ⟨n, (hok.src hri).1, (hok.src hri).2⟩
     · intro m hm hty j hdst hle
       change ((C[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (C[j.val]!).index) ∨
         uint.Z m.commit ≤ S.commitIndex[j.val]!
@@ -248,7 +259,7 @@ theorem send_rel {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeVie
       · exact hn.2.2.2.1 m hm hty i hsrc hro hct
       · rw [List.mem_singleton] at hm
         subst hm
-        have hi : i = n := nodeId_inj (hsrc.symm.trans hok.src.1)
+        have hi : i = n := nodeId_inj (hsrc.symm.trans (hok.src (by rcases hty with h | h <;> rw [h] <;> decide)).1)
         subst hi
         exact hok.lcm hty hro hct
     · rcases List.mem_append.mp hm with hm | hm

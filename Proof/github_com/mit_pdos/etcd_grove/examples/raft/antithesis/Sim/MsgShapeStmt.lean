@@ -50,9 +50,10 @@ def EntsHarness (es : List EntryM) : Prop := EntsNormal es
 
 /-- **A `Ready`'s message to another node, as the drain hands it out** (from node `id`): from `id`;
 of a type the network carries, or a (forwarded) proposal; without reads, a heartbeat or a heartbeat
-response with no context; its entries the harness's. -/
+response with no context; its entries the harness's. (A read request passed on to the leader keeps
+its source's `From`.) -/
 def ReadyMsgShape (md : RnMode) (id : w64) (q : Msg) : Prop :=
-  q.src = id ∧ (NetTy md q.ty ∨ q.ty = .propose) ∧
+  (q.ty ≠ .readIndex → q.src = id) ∧ (NetTy md q.ty ∨ q.ty = .propose) ∧
   (md.reads = false → (q.ty = .heartbeat ∨ q.ty = .heartbeatResp) → q.ctx = []) ∧
   EntsHarness q.entries
 

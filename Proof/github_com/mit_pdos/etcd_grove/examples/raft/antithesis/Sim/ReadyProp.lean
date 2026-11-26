@@ -93,6 +93,9 @@ theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : N
     rcases hs with rfl | ⟨es, ms, -, -, rfl⟩
     · exact absurd rfl hlne
     · rfl
+  | read d _ _ hbe =>
+    have h' : (go!"propose" : Str) ≠ go!"read" := by decide
+    rw [hby] at hbe; exact absurd hbe h'
   | advP _ _ _ _ _ _ _ h =>
     rcases h with rfl | ⟨-, -, peers, -, rfl⟩
     · exact absurd rfl hlne

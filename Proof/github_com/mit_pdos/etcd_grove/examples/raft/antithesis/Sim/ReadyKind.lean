@@ -50,9 +50,9 @@ section kind
 variable [GooseExts]
 variable {cf : CfgM} {N : Nat} {kk : NodeK}
 
-/-! ## The protocol reading of a `Ready` below `mskB1p` -/
+/-! ## The protocol reading of a `Ready` below `mskB1r` -/
 
-/-- **`ReadyOutP` read on the protocol state** (parity B1, below `mskB1p`: sync, no snapshot, no
+/-- **`ReadyOutP` read on the protocol state** (parity B1, below `mskB1r`: sync, no snapshot, no
 ghost prefix, the disk raft's own state): the `Ready` at `ps` from the view `v` reports `ps`'s role
 and hard state, its entries cut `v.ps.log` (the view's log, which is its disk's), its
 self-addressed messages and those to others are `ps`'s outbox split by destination, its committed
@@ -73,7 +73,7 @@ def ReportedO (v : NodeView) (rd : ReadyD) : Prop :=
   rd.term ≠ v.ps.term ∨ rd.vote ≠ v.ps.vote ∨ rd.commit ≠ v.ps.commit ∨ rd.ents ≠ [] ∨
     rd.role ≠ v.ps.role
 
-/-- `ReadyOutP` below `mskB1p` (sync, snapshots off, no ghost prefix before or after, the disk's log
+/-- `ReadyOutP` below `mskB1r` (sync, snapshots off, no ghost prefix before or after, the disk's log
 the view's full log) is its protocol reading. -/
 theorem readyOutO_of {R : RunCfg} {n : Fin R.N} {v : NodeView} {r : RState}
     {rd : ReadyD} (h : ReadyOutP R n v r rd) (hasync : R.md.async = false)
@@ -192,23 +192,171 @@ theorem stay_quiet {id : w64} {v : NodeView} {rd : ReadyD} (hro : ReadyOutO N id
     ¬ ReportedO v rd :=
   fun hrep => not_reported hro hrep rfl rfl rfl rfl rfl
 
+/-! ## The read-index steps -/
+
+/-- **`s'` is `s` but for its read-index state and outbox** (what every read-index step changes:
+a request deferred, queued or answered, a read state recorded, heartbeats sent). -/
+def RdKeep (s s' : PState) : Prop :=
+  s'.term = s.term ∧ s'.vote = s.vote ∧ s'.lead = s.lead ∧ s'.role = s.role ∧ s'.votes = s.votes ∧
+    s'.base = s.base ∧ s'.log = s.log ∧ s'.commit = s.commit ∧ s'.matched = s.matched
+
+/-- The messages `s'` adds to `s`'s outbox are to other nodes. -/
+def OutOther (id : w64) (s s' : PState) : Prop := ∀ q ∈ s'.outbox, q ∈ s.outbox ∨ q.dst ≠ id
+
+theorem RdKeep.refl (s : PState) : RdKeep s s := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+
+theorem RdKeep.trans {s s1 s2 : PState} (h1 : RdKeep s s1) (h2 : RdKeep s1 s2) : RdKeep s s2 := by
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := h1
+  obtain ⟨b1, b2, b3, b4, b5, b6, b7, b8, b9⟩ := h2
+  exact ⟨b1.trans a1, b2.trans a2, b3.trans a3, b4.trans a4, b5.trans a5, b6.trans a6, b7.trans a7,
+    b8.trans a8, b9.trans a9⟩
+
+theorem OutOther.refl (id : w64) (s : PState) : OutOther id s s := fun q h => .inl h
+
+theorem OutOther.trans {id : w64} {s s1 s2 : PState} (h1 : OutOther id s s1) (h2 : OutOther id s1 s2) :
+    OutOther id s s2 := fun q hq => (h2 q hq).elim (fun h => h1 q h) .inr
+
+theorem rdKeep_send (s : PState) (ms : List Msg) : RdKeep s (psendMsgs s ms) := RdKeep.refl s
+
+theorem rdKeep_rd (s : PState) (rd : RdState) : RdKeep s { s with rd := rd } := RdKeep.refl s
+
+theorem outOther_send {id : w64} {s : PState} {ms : List Msg} (h : ∀ q ∈ ms, q.dst ≠ id) :
+    OutOther id s (psendMsgs s ms) := by
+  intro q hq
+  rw [psendMsgs_outbox] at hq
+  rcases List.mem_append.mp hq with hq | hq
+  · exact .inl hq
+  · exact .inr (h q hq)
+
+theorem outOther_rd {id : w64} (s : PState) (rd : RdState) : OutOther id s { s with rd := rd } :=
+  OutOther.refl id s
+
+/-- An answer (`preadRespond`): a read state, or a `MsgReadIndexResp` to another node. -/
+theorem respond_keep {id : w64} (s : PState) (q : ReadReq) :
+    RdKeep s (preadRespond id s q) ∧ OutOther id s (preadRespond id s q) := by
+  unfold preadRespond
+  split
+  · split
+    · exact ⟨rdKeep_rd _ _, outOther_rd _ _⟩
+    · exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
+  · rename_i hq
+    refine ⟨rdKeep_send _ _, outOther_send fun x hx => ?_⟩
+    rw [List.mem_singleton] at hx; subst hx
+    exact fun h => hq (.inr h)
+
+theorem respondAll_keep {id : w64} (s : PState) (qs : List ReadReq) :
+    RdKeep s (preadRespondAll id s qs) ∧ OutOther id s (preadRespondAll id s qs) := by
+  induction qs generalizing s with
+  | nil => exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
+  | cons q qs ih =>
+    rw [preadRespondAll_cons]
+    obtain ⟨h1, h2⟩ := respond_keep (id := id) s q
+    obtain ⟨h3, h4⟩ := ih (preadRespond id s q)
+    exact ⟨h1.trans h3, h2.trans h4⟩
+
+theorem sends_keep {c : CfgM} {id : w64} {s s' : PState} (h : SendsEnd c id s s') :
+    RdKeep s s' ∧ OutOther id s s' := by
+  obtain ⟨ms, hms, rfl⟩ := h
+  exact ⟨rdKeep_send _ _, outOther_send fun q hq => (hms q hq).1.2.2.2.1⟩
+
+theorem hbs_keep {c : CfgM} {id : w64} {s s' : PState} {ms : List Msg} {P : Msg → Prop}
+    (hms : ∀ x ∈ ms, HbSendOk c id s x ∧ P x) (h : s' = psendMsgs s ms) :
+    RdKeep s s' ∧ OutOther id s s' := by
+  subst h
+  exact ⟨rdKeep_send _ _, outOther_send fun q hq => (hms q hq).1.1.2.2.2.1⟩
+
+/-- `releasePendingReadIndexMessages` (`ReleaseEnd`) changes only the read-index state and sends
+heartbeats and answers to other nodes. -/
+theorem release_keep {c : CfgM} {id : w64} {s s' : PState} (h : ReleaseEnd c id s s') :
+    RdKeep s s' ∧ OutOther id s s' := by
+  rcases h with ⟨-, hb, hbok, rfl⟩ | ⟨-, rfl⟩
+  · exact ⟨rdKeep_send _ _, outOther_send fun q hq => (hbok q hq).1.1.2.2.2.1⟩
+  · obtain ⟨h1, h2⟩ := respondAll_keep (id := id) { s with rd := { s.rd with pend := [] } }
+      (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩))
+    exact ⟨(rdKeep_rd _ _).trans h1, (outOther_rd _ _).trans h2⟩
+
+/-- A read acknowledgement (`ReadAckEnd`): the read-only queue advanced, its confirmed requests
+answered. -/
+theorem readAck_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : ReadAckEnd c id s m s') :
+    RdKeep s s' ∧ OutOther id s s' := by
+  rcases h with ⟨-, rfl⟩ | ⟨N, -, rfl⟩
+  · exact ⟨rdKeep_rd _ _, outOther_rd _ _⟩
+  · obtain ⟨h1, h2⟩ := respondAll_keep (id := id)
+      { s with rd := { s.rd with ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } }
+      (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
+    exact ⟨(rdKeep_rd _ _).trans h1, (outOther_rd _ _).trans h2⟩
+
+/-- A read request (`ReadIdxEnd`): deferred, answered, queued with heartbeats, forwarded to the
+leader hint (another node, `LeadOk`), or dropped. -/
+theorem readIdx_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg} (h : ReadIdxEnd c id s m s') :
+    RdKeep s s' ∧ ((s.role ≠ .leader → s.lead ≠ id) → OutOther id s s') := by
+  unfold ReadIdxEnd at h
+  split at h
+  · rcases h with ⟨-, pm, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, ms, hms, rfl⟩
+    · exact ⟨rdKeep_rd _ _, fun _ => outOther_rd _ _⟩
+    · exact ⟨(respondAll_keep _ _).1, fun _ => (respondAll_keep _ _).2⟩
+    · exact ⟨(rdKeep_rd _ _).trans (rdKeep_send _ _),
+        fun _ => (outOther_rd _ _).trans (outOther_send fun q hq => (hms q hq).1.1.2.2.2.1)⟩
+  · rename_i hnl
+    split at h
+    · subst h
+      refine ⟨rdKeep_send _ _, fun hld => outOther_send fun q hq => ?_⟩
+      rw [List.mem_singleton] at hq; subst hq
+      exact hld hnl
+    · subst h; exact ⟨RdKeep.refl _, fun _ => OutOther.refl _ _⟩
+
+/-- A read-index response (`HandleEndO`'s arm): a follower's read state recorded, or nothing. -/
+theorem readResp_keep {s s' : PState} {m : Msg}
+    (h : if s.role = .follower then
+      (∃ e, m.entries = [e] ∧
+        s' = { s with rd := { s.rd with states := s.rd.states ++ [⟨m.index, e.Data'⟩] } }) ∨
+      (m.entries.length ≠ 1 ∧ s' = s) ∨ (s.lead = W64 0 ∧ s' = s)
+    else s' = s) (id : w64) : RdKeep s s' ∧ OutOther id s s' := by
+  split at h
+  · rcases h with ⟨e, -, rfl⟩ | ⟨-, rfl⟩ | ⟨-, rfl⟩
+    · exact ⟨rdKeep_rd _ _, outOther_rd _ _⟩
+    · exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
+    · exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
+  · subst h; exact ⟨RdKeep.refl _, OutOther.refl _ _⟩
+
+/-- A leader's heartbeat response (`HandleEndO`'s arm at a leader): the appends, then maybe the
+read acknowledgement. -/
+theorem hbResp_keep {c : CfgM} {id : w64} {s s' : PState} {m : Msg}
+    (h : ∃ s2, SendsEnd c id s s2 ∧
+      ((m.ctx = [] ∨ s.matched !! m.src = none) ∧ s' = s2 ∨ m.ctx ≠ [] ∧ ReadAckEnd c id s2 m s')) :
+    RdKeep s s' ∧ OutOther id s s' := by
+  obtain ⟨s2, hs, ⟨-, rfl⟩ | ⟨-, ha⟩⟩ := h
+  · exact sends_keep hs
+  · obtain ⟨a1, a2⟩ := sends_keep hs
+    obtain ⟨b1, b2⟩ := readAck_keep ha
+    exact ⟨a1.trans b1, a2.trans b2⟩
+
+/-- A `Ready` at a state that only a read-index step changed is not reported. -/
+theorem RdKeep.not_rep {id : w64} {v : NodeView} {ps : PState} {rd : ReadyD} (hk : RdKeep v.ps ps)
+    (hro : ReadyOutO N id v ps rd) (hrep : ReportedO v rd) : False :=
+  not_reported hro hrep hk.1 hk.2.1 hk.2.2.2.2.2.2.2.1 hk.2.2.2.2.2.2.1 hk.2.2.2.1
+
 /-! ## The kinds -/
 
 /-- What the classification needs of a message delivered to the node (C4: a type in scope and
 `MsgShape`). -/
 def InMsg (m : Msg) : Prop :=
-  (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
-    m.ty = .heartbeatResp ∨ m.ty = .propose) ∧
-  (m.ty = .app → AppPayloadOk m) ∧ m.src ≠ m.dst ∧ (m.ty = .propose → m.term = W64 0)
+  RdTy m.ty ∧ (m.ty = .app → AppPayloadOk m) ∧ (m.ty ≠ .readIndex → m.src ≠ m.dst) ∧
+    ((m.ty = .propose ∨ m.ty = .readIndex) → m.term = W64 0)
 
-/-- A message of the S4 types keeps no term (`PreTermKeep`: a pre-vote message). -/
-theorem InMsg.notPre {m : Msg} (h : InMsg m) : ¬ PreTermKeep m := by
-  rintro (h' | ⟨h', -⟩) <;> rcases h.1 with h1 | h1 | h1 | h1 | h1 | h1 | h1 <;> rw [h1] at h' <;> cases h'
+/-- The readings' types, in `HandleEndO`'s order. -/
+theorem RdTy.cases {t : MsgType} (h : RdTy t) :
+    t = .vote ∨ t = .voteResp ∨ t = .app ∨ t = .appResp ∨ t = .heartbeat ∨ t = .heartbeatResp ∨
+      t = .propose ∨ t = .readIndex ∨ t = .readIndexResp := by
+  rcases h with (h | h | h | h | h | h | h) | h | h <;> simp [h]
+
+/-- A message the readings read keeps no term (`PreTermKeep`: a pre-vote message). -/
+theorem InMsg.notPre {m : Msg} (h : InMsg m) : ¬ PreTermKeep m := not_preTy h.1
 
 /-- The message a drain caused by a `recv` handles (`Reach.input`'s): the drain's cause, sent to
-the node, of a nonzero term. -/
+the node, of a nonzero term but a forwarded read request. -/
 def RecvAt (id : w64) (net : List Msg) (v : NodeView) (m : Msg) : Prop :=
-  v.byE = go!"recv" ∧ v.cause = some m ∧ m ∈ net ∧ m.dst = id ∧ m.term ≠ W64 0
+  v.byE = go!"recv" ∧ v.cause = some m ∧ m ∈ net ∧ m.dst = id ∧ (m.ty ≠ .readIndex → m.term ≠ W64 0)
 
 /-- The term and vote after a message handled by a non-leader (a `MsgApp`, a heartbeat): the
 message's higher term adopted (the vote reset), or the node's own term, the node not a leader,
@@ -434,9 +582,12 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
     (h : HandleEndO kk cf id s1 m ps₁) : ReadyKind cf id net v ps₁ rd := by
   have hnp := hm.notPre
   obtain ⟨hsc, hpay, -, hprop⟩ := hm
-  have hm0 : m.term ≠ W64 0 := hat.2.2.2.2
+  have hkeep : RdKeep s1 ps₁ → ReadyKind cf id net v ps₁ rd := fun hk =>
+    kind_of_s1 hro hrep hat hnp ht1 hl1 hc1 hpre hk.1 hk.2.1 hk.2.2.2.1 hk.2.2.2.2.2.2.1
+      hk.2.2.2.2.2.2.2.1
   unfold HandleEndO at h
-  rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
+  rcases hsc.cases with hty | hty | hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;>
+    simp only at h
   · -- a vote request
     rcases h with ⟨hcv, hup, rfl⟩ | ⟨-, rfl⟩
     · rcases hpre with ⟨hlt, -, hrf⟩ | ⟨hmt, rfl⟩
@@ -517,8 +668,8 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
     · rename_i hlead
       rcases hpre with ⟨-, -, hrf⟩ | ⟨hmt, rfl⟩
       · rw [hrf] at hlead; cases hlead
-      · unfold AppRespEndO at h
-        rcases h with ⟨-, rfl⟩ | ⟨-, -, ms, -, rfl⟩ | ⟨-, x, n, -, hn, ms, hms, rfl⟩
+      · rcases h with ⟨-, rfl⟩ | ⟨-, -, ms, -, rfl⟩ | ⟨-, x, n, -, hn, ms, hms, rfl⟩ |
+            ⟨-, x, n, s2, -, hpc, hrel, hse⟩
         · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
         · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
         · rcases hn with rfl | hpc
@@ -526,6 +677,19 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
           · exact .cmt hlead hlead rfl rfl rfl (ents_nil_of_log hro rfl) hpc.1
               ⟨hpc.2.1, hpc.2.2.1, hpc.2.2.2⟩
               (fun q hq => (hms q (mem_psend (X := { v.ps with matched := _, commit := n }) hX hq)).1.2.2.2.1)
+        · -- the commit releases the deferred read requests (`ReleaseEnd`), then the appends
+          obtain ⟨k1, o1⟩ := release_keep hrel
+          obtain ⟨k2, o2⟩ := sends_keep hse
+          have hk := k1.trans k2
+          obtain ⟨t1, t2, -, t4, -, t6, t7, t8, t9⟩ := hk
+          refine .cmt hlead (t4.trans hlead) t1 t2 t7 (ents_nil_of_log hro t7) (by rw [t8]; exact hpc.1)
+            ⟨by rw [t8, t6, t7]; exact hpc.2.1, by rw [t8, t6, t7, t1]; exact hpc.2.2.1, ?_⟩ ?_
+          · have hq := hpc.2.2.2
+            unfold ackedBy at hq ⊢; rw [t9, t8]; exact hq
+          · intro q hq
+            rcases (o1.trans o2) q hq with h | h
+            · rw [hX] at h; cases h
+            · exact h
     · subst h; exact kind_of_s1 hro hrep hat hnp ht1 hl1 hc1 hpre rfl rfl rfl rfl rfl
   · -- a heartbeat
     split at h
@@ -552,9 +716,11 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
     · rename_i hlead
       rcases hpre with ⟨-, -, hrf⟩ | ⟨hmt, rfl⟩
       · rw [hrf] at hlead; cases hlead
-      · obtain ⟨ms, -, rfl⟩ := h; exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
+      · exact ((hbResp_keep (id := id) h).1.not_rep hro hrep).elim
     · subst h; exact kind_of_s1 hro hrep hat hnp ht1 hl1 hc1 hpre rfl rfl rfl rfl rfl
-  · exact absurd (hprop hty) hm0
+  · exact absurd (hprop (.inl hty)) (hat.2.2.2.2 (by rw [hty]; decide))
+  · exact hkeep (readIdx_keep h).1
+  · exact hkeep (readResp_keep h id).1
 
 /-- **A received message's step** (`RecvEndO`, its term not `0`), reported: its kind. -/
 theorem kind_recv {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
@@ -562,8 +728,11 @@ theorem kind_recv {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {r
     (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
     (hat : RecvAt id net v m) (hm : InMsg m) (h : RecvEndO kk cf id v.ps m ps₁) (hX : v.ps.outbox = []) :
     ReadyKind cf id net v ps₁ rd := by
-  rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
-  · exact absurd h0 hat.2.2.2.2
+  rcases h with ⟨h0, hh⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
+  · by_cases hri : m.ty = .readIndex
+    · unfold HandleEndO at hh; rw [hri] at hh; simp only at hh
+      exact ((readIdx_keep hh).1.not_rep hro hrep).elim
+    · exact absurd h0 (hat.2.2.2.2 hri)
   · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · rcases hpre with ⟨hlt, rfl⟩ | ⟨hmt, rfl⟩
     · have hne : m.term ≠ v.ps.term := fun h => by rw [h] at hlt; exact Int.lt_irrefl _ hlt
@@ -670,15 +839,14 @@ theorem leadC_step {id : w64} {y s s' : PState} {q : Msg} (hL : LeadC cf id y s)
   unfold HandleEndO at h
   rcases hty with hty | hty <;> rw [hty] at h <;> simp only at h
   · rw [if_pos hr] at h
-    unfold AppRespEndO at h
-    rcases h with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, n, hx, hn, ms, -, rfl⟩
+    have hyc : uint.Z y.commit ≤ uint.Z s.commit := by
+      rcases hc with hc | hc
+      · rw [hc]; exact Int.le_refl _
+      · exact Int.le_of_lt hc.1
+    rcases h with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, n, hx, hn, ms, -, rfl⟩ | ⟨-, x, n, s2, hx, hpc, hrel, hse⟩
     · exact ⟨hr, ht, hv, hb, hl, hm, hc⟩
     · rw [hrj] at h'; cases h'
-    · have hyc : uint.Z y.commit ≤ uint.Z s.commit := by
-        rcases hc with hc | hc
-        · rw [hc]; exact Int.le_refl _
-        · exact Int.le_of_lt hc.1
-      refine ⟨hr, ht, hv, hb, hl, fun j hj => ?_, ?_⟩
+    · refine ⟨hr, ht, hv, hb, hl, fun j hj => ?_, ?_⟩
       · show (<[q.src := _]> s.matched) !! j = _
         rw [hqs, GMap.lookup_insert_ne _ _ (fun h => hj h.symm)]; exact hm j hj
       · rcases hn with rfl | hpc
@@ -686,6 +854,14 @@ theorem leadC_step {id : w64} {y s s' : PState} {q : Msg} (hL : LeadC cf id y s)
           · exact .inl hc
           · exact .inr ⟨hlt, cmtOk_raise hcm rfl rfl rfl hx (raise_ge x q.index) rfl⟩
         · exact .inr ⟨Int.lt_of_le_of_lt hyc hpc.1, hpc.2.1, hpc.2.2.1, hpc.2.2.2⟩
+    · obtain ⟨t1, t2, -, t4, -, t6, t7, t8, t9⟩ := (release_keep hrel).1.trans (sends_keep hse).1
+      refine ⟨t4.trans hr, t1.trans ht, t2.trans hv, t6.trans hb, t7.trans hl, fun j hj => ?_, ?_⟩
+      · rw [t9]
+        show (<[q.src := _]> s.matched) !! j = _
+        rw [hqs, GMap.lookup_insert_ne _ _ (fun h => hj h.symm)]; exact hm j hj
+      · have hq := hpc.2.2.2
+        refine .inr ⟨by rw [t8]; exact Int.lt_of_le_of_lt hyc hpc.1, by rw [t8, t6, t7]; exact hpc.2.1,
+          by rw [t8, t6, t7, t1]; exact hpc.2.2.1, by unfold ackedBy at hq ⊢; rw [t9, t8]; exact hq⟩
   · rw [if_neg (by rw [hr]; decide)] at h
     subst h; exact ⟨hr, ht, hv, hb, hl, hm, hc⟩
 
@@ -696,8 +872,7 @@ theorem noSelf_step {id : w64} {s s' : PState} {q : Msg} (hr : s.role = .leader)
   unfold HandleEndO at h
   rcases hty with hty | hty <;> rw [hty] at h <;> simp only at h
   · rw [if_pos hr] at h
-    unfold AppRespEndO at h
-    rcases h with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, c, -, -, ms, hms, rfl⟩
+    rcases h with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, c, -, -, ms, hms, rfl⟩ | ⟨-, x, c, s2, -, -, hrel, hse⟩
     · exact hn
     · rw [hrj] at h'; cases h'
     · intro y hy
@@ -705,6 +880,10 @@ theorem noSelf_step {id : w64} {s s' : PState} {q : Msg} (hr : s.role = .leader)
       rcases List.mem_append.mp hy with hy | hy
       · exact hn y hy
       · exact (hms y hy).1.2.2.2.1
+    · intro y hy
+      rcases ((release_keep hrel).2.trans (sends_keep hse).2) y hy with hy | hy
+      · exact hn y hy
+      · exact hy
   · rw [if_neg (by rw [hr]; decide)] at h
     subst h; exact hn
 
@@ -823,7 +1002,7 @@ reaching `ps₁` (`Reach`; the messages sent of a type in scope and `MsgShape`),
 theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hr : ReachP kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hin : ∀ m ∈ net, S4Ty m.ty → InMsg m)
+    (hin : ∀ m ∈ net, RdTy m.ty → InMsg m)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → SelfMsg id v.ps.term q)
     (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → q.ty = .voteResp)
     (hX : v.ps.outbox = []) :
@@ -832,10 +1011,12 @@ theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {
   | stay _ _ => exact absurd hrep (stay_quiet hro)
   | recv m _ _ hbe hca hmn hmd hm0 h4 hs =>
     exact kind_recv hro hrep hb hid0 hvs ⟨hbe, hca, hmn, hmd, hm0⟩ (hin m hmn h4) hs hX
-  | recvP m _ _ hbe hca hmn hmd hm0 hvo hs => exact kind_recvP hro hrep ⟨hbe, hca, hmn, hmd, hm0⟩ hvo hs
+  | recvP m _ _ hbe hca hmn hmd hm0 hvo hs =>
+    exact kind_recvP hro hrep ⟨hbe, hca, hmn, hmd, fun _ => hm0⟩ hvo hs
   | tick _ _ _ hs => exact kind_tick hro hrep hs
   | tickP _ _ _ hs => exact kind_tickP hro hs
   | propose d _ _ hbe hs => exact kind_propose hro hrep hbe hs
+  | read d _ _ _ hs => exact ((readIdx_keep hs).1.not_rep hro hrep).elim
   | advance _ _ _ _ hno ha =>
     exact kind_advance hro hrep (fun q hq => hqs q hq (hno q hq)) (fun hc q hq => hqc hc q hq (hno q hq)) ha hX
   | advP _ _ _ _ _ hvo _ h => exact kind_advP hro hrep hvo h
@@ -897,16 +1078,24 @@ theorem selfOut_sends {id : w64} {X s' : PState} (hX : X.outbox = []) (h : Sends
   obtain ⟨ms, hms, rfl⟩ := h
   exact selfOut_none hX fun x hx => (hms x hx).1.2.2.2.1
 
+/-- A step that added only messages to other nodes (`OutOther`) from an empty outbox. -/
+theorem selfOut_out {id : w64} {s s' : PState} (hX : s.outbox = []) (h : OutOther id s s') :
+    SelfOut cf kk id s' := by
+  intro q hq hd
+  rcases h q hq with h | h
+  · rw [hX] at h; cases h
+  · exact absurd hd h
+
 /-- The type switch's messages (at the state after the preamble, nothing queued) for a received
 message from another node: answers to its sender, a leader's `MsgApp`s, a win's
-self-acknowledgement. -/
+self-acknowledgement, read states. -/
 theorem selfOut_handle {id : w64} {s1 s' : PState} {m : Msg} (hX : s1.outbox = [])
     (hne : m.src ≠ id)
     (hsc : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
-      m.ty = .heartbeatResp)
+      m.ty = .heartbeatResp ∨ m.ty = .readIndexResp)
     (h : HandleEndO kk cf id s1 m s') : SelfOut cf kk id s' := by
   unfold HandleEndO at h
-  rcases hsc with hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
+  rcases hsc with hty | hty | hty | hty | hty | hty | hty <;> rw [hty] at h <;> simp only at h
   · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩
     · exact selfOut_one (X := { s1 with vote := m.src }) hX hne
     · exact selfOut_one hX hne
@@ -923,18 +1112,20 @@ theorem selfOut_handle {id : w64} {s1 s' : PState} {m : Msg} (hX : s1.outbox = [
       · exact selfOut_one hX hne
       · exact selfOut_one (X := padoptLeader s1 m.src) hX hne
   · split at h
-    · unfold AppRespEndO at h
-      rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩
+    · rcases h with ⟨-, rfl⟩ | ⟨-, -, hs⟩ | ⟨-, x, n, -, -, hs⟩ | ⟨-, x, n, s2, -, -, hrel, hse⟩
       · exact selfOut_nil hX
       · exact selfOut_sends hX hs
       · exact selfOut_sends (X := { s1 with matched := _, commit := n }) hX hs
+      · exact selfOut_out (s := { s1 with matched := _, commit := n }) hX
+          ((release_keep hrel).2.trans (sends_keep hse).2)
     · subst h; exact selfOut_nil hX
   · split at h
     · subst h; exact selfOut_nil hX
     · subst h; exact selfOut_one hX hne
   · split at h
-    · exact selfOut_sends hX h
+    · exact selfOut_out hX (hbResp_keep h).2
     · subst h; exact selfOut_nil hX
+  · exact selfOut_out hX (readResp_keep h id).2
 
 /-- A campaign's messages: the self-vote (a candidate at the next term) and requests to the other
 voters. -/
@@ -985,31 +1176,43 @@ self-acknowledgement, a candidate's self-vote or a pre-candidate's self pre-vote
 and the messages sent (`InMsg` for the S4 types; none to its sender). -/
 theorem selfOut_reach {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
     (hr : ReachP kk cf id net v ps₁) (hX : v.ps.outbox = [])
-    (hlo : v.ps.role ≠ .leader → v.ps.lead ≠ id) (hin : ∀ m ∈ net, S4Ty m.ty → InMsg m)
-    (hsd : ∀ m ∈ net, m.src ≠ m.dst)
+    (hlo : v.ps.role ≠ .leader → v.ps.lead ≠ id) (hin : ∀ m ∈ net, RdTy m.ty → InMsg m)
+    (hsd : ∀ m ∈ net, m.ty ≠ .readIndex → m.src ≠ m.dst)
     (hqs : ∀ q ∈ v.qs, q.ty ≠ .preVoteResp → SelfMsg id v.ps.term q) : SelfOut cf kk id ps₁ := by
   cases hr with
   | stay _ _ => exact selfOut_nil hX
   | recv m _ _ _ _ hmn hmd hm0 h4 hs =>
-    obtain ⟨hsc, -, hsd, hprop⟩ := hin m hmn h4
-    have hne : m.src ≠ id := hmd ▸ hsd
+    obtain ⟨hsc, -, hsd', hprop⟩ := hin m hmn h4
+    by_cases hri : m.ty = .readIndex
+    · rcases hs with ⟨-, hh⟩ | ⟨h0, -⟩ | ⟨h0, -⟩
+      · unfold HandleEndO at hh; rw [hri] at hh; simp only at hh
+        exact selfOut_out hX ((readIdx_keep hh).2 hlo)
+      · exact absurd (hprop (.inr hri)) h0
+      · exact absurd (hprop (.inr hri)) h0
+    have hne : m.src ≠ id := hmd ▸ hsd' hri
+    have hm0' := hm0 hri
     have hsc' : m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨
-        m.ty = .heartbeat ∨ m.ty = .heartbeatResp := by
-      rcases hsc with h | h | h | h | h | h | h
+        m.ty = .heartbeat ∨ m.ty = .heartbeatResp ∨ m.ty = .readIndexResp := by
+      rcases hsc.cases with h | h | h | h | h | h | h | h | h
       · exact .inl h
       · exact .inr (.inl h)
       · exact .inr (.inr (.inl h))
       · exact .inr (.inr (.inr (.inl h)))
       · exact .inr (.inr (.inr (.inr (.inl h))))
-      · exact .inr (.inr (.inr (.inr (.inr h))))
-      · exact absurd (hprop h) hm0
+      · exact .inr (.inr (.inr (.inr (.inr (.inl h)))))
+      · exact absurd (hprop (.inl h)) hm0'
+      · exact absurd h hri
+      · exact .inr (.inr (.inr (.inr (.inr (.inr h)))))
     rcases hs with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
-    · exact absurd h0 hm0
+    · exact absurd h0 hm0'
     · exact selfOut_nil hX
     · exact selfOut_handle ((preEnd_facts hpre).1.trans hX) hne hsc' hh
   | recvP m _ _ _ _ hmn hmd _ _ hs =>
-    have hne : m.src ≠ id := hmd ▸ hsd m hmn
+    have hne : m.src ≠ id := hmd ▸ hsd m hmn (by
+      rcases hs with ⟨-, -, h1 | h1, -⟩ | ⟨-, h1, -⟩ | ⟨⟨-, h1 | h1, -⟩, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ | ⟨h1, -⟩ <;>
+        rw [h1] <;> decide)
     exact selfOut_recvP hX hne hs
+  | read d _ _ _ hs => exact selfOut_out hX ((readIdx_keep hs).2 hlo)
   | tick _ _ _ hs =>
     rcases hs with rfl | ⟨-, -, peers, cl, hperm, rfl⟩ | ⟨-, ms, hms, rfl⟩
     · exact selfOut_nil hX

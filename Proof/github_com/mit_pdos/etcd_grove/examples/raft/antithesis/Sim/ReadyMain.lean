@@ -517,13 +517,13 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   have htb := hx.htb
   have hbyE := reach_byE hr
   -- the sender of a received message: another node, at a term it has
-  have hsender : ∀ m, RecvAt (nodeId n) net (V n) m → ¬ PreTermKeep m → ∃ i : Fin R.N, i ≠ n ∧
-      m.src = nodeId i ∧ uint.Z m.term ≤ S1.currentTerm[i.val]! := by
-    intro m hm hnp
+  have hsender : ∀ m, RecvAt (nodeId n) net (V n) m → ¬ PreTermKeep m → m.ty ≠ .readIndex →
+      ∃ i : Fin R.N, i ≠ n ∧ m.src = nodeId i ∧ uint.Z m.term ≤ S1.currentTerm[i.val]! := by
+    intro m hm hnp hri
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
     refine ⟨i, fun h => ?_, hi, hti.resolve_left hnp⟩
     subst h
-    exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
+    exact (hnet.2.2.1 m hm.2.2.1).2.1 hri (by rw [hi, hm.2.2.2.1])
   unfold ReadyGoal
   cases hx.hk with
   | follow hpr hpt hpv hpl hpc hen =>
@@ -596,7 +596,9 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   | adopt m hm hlt hpt hpv hpr hpl hpc hen hnp =>
     rw [hen, hm.1, hpv, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm hnp
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm hnp (fun hri => by
+      have h0 := (hnet.2.2.1 m hm.2.2.1).2.2 (.inr hri)
+      rw [h0] at hlt; have := uint_Z_nonneg (V n).ps.term; simp at hlt; try omega)
     have hm' := inMemory_nl_eq n hc go!"recv" (hm.1 ▸ hbyE) .follower (by decide) r₁.p.term (W64 0)
       r₁.p.commit [] (fun h => by cases h)
     obtain ⟨p, hpm, hod⟩ := onDisk_adopt n hc r₁.p.term r₁.p.commit m (S1.role.set n.val (roleOf .follower))
@@ -614,7 +616,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   | grant m hm hty hTT hutd hpt hpv hpr hpl hpc hen =>
     rw [hen, hm.1, hpv, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide))
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide)) (by rw [hty]; decide)
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hTT with h | ⟨h, -⟩
       · exact Int.le_of_lt h
@@ -656,7 +658,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
   | hb m hm hty hft hpt hpr hpl hlt hpc hen =>
     rw [hen, hm.1, hpr]
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide))
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide)) (by rw [hty]; decide)
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩
       · exact Int.le_of_lt h
@@ -709,7 +711,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
     exact hx.finish hpr (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
   | store m hm hty hft hpt hpr hpc0 hprv hsl hcmv hchg =>
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
-    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide))
+    obtain ⟨i, hin', hsi, hti⟩ := hsender m hm (notPre_ty hty (by decide) (by decide)) (by rw [hty]; decide)
     have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩
@@ -871,7 +873,7 @@ theorem ready_storeB {S : State} {V : Fin R.N → NodeView} {net : List Msg} {ev
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
     refine ⟨i, fun h => ?_, hi, hti.resolve_left (notPre_ty hty (by decide) (by decide))⟩
     subst h
-    exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
+    exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hty]; decide) (by rw [hi, hm.2.2.2.1])
   have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty
   have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
     rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩

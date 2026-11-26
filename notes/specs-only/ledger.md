@@ -6495,3 +6495,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **`memoryOf.spec`.** The post also returns `memLog γs 0 DFrac.discard [zero_val EntryM]` (`NewMemoryStorage`'s
   dummy entry; `node.start`'s `Term(0)` in a run without boot reads it).
 - **Decision.** Lead (2026-11-26), all three. No axiom, no top-level premise (driver-internal statements).
+
+
+## 2026-11-26 — antithesis parity B1 (Sim stage B, reads): the read-index messages, a forwarded read request at term 0, reads only with reads on (#33)
+- **Rel (C4).** `MsgShape`: `m.src ≠ m.dst` only for `m.ty ≠ .readIndex`, and a read request is at term `0` with a
+  proposal (`(m.ty = .propose ∨ m.ty = .readIndex) → m.term = W64 0`). A follower passing a forwarded `MsgReadIndex`
+  on to its leader keeps its `From` (raft's `send` stamps `From` only when unset), which may be that leader (A forwards
+  to B; B, now A's follower, sends it back to A with `From = A`; raft answers it locally, `preadRespond`; raft's
+  `NetMsgOk` allows it); `send` stamps no term on it.
+- **Rel (C1).** `PendOk .readIndex`: `q.term = W64 0 ∧ ∃ j, q.src = nodeId j` (was `q.src = id`: the forward keeps the
+  source); `PendOk .readIndexResp`: `q.src = id ∧ q.term = v.ps.term` (`preadRespond` stamps the node's term; `send`
+  needs `NetOk`'s sender term). `NodeFacts` gains a 12th conjunct (`NodeFacts.readSrc`): every deferred request's
+  `From` and a leader's read-only queue's sources are `0` or a node, so that an answer (`MsgReadIndexResp`) is to a
+  server (`PendOk`); sources enter only with a `MsgReadIndex` (`ReadIdxEnd`), `pbecomeLeader` resets the queue.
+- **Rel (C4, C1), entries.** `MsgMask`'s first conjunct `R.md.confChanges = false → (app ∨ propose) → EntsNormal
+  m.entries` → `R.md.confChanges = false → EntsNormal m.entries` for every type (only an append, a proposal, a read
+  request and its answer carry entries; a read request's is its context, which `preadRespond` hands back in the
+  `MsgReadIndexResp`, and `ReadyMsgShape` needs it normal). `NodeFacts`' 12th conjunct (`NodeFacts.readSrc`) also states,
+  without conf changes, `EntsNormal` of every deferred request's entries (`rd.pend`) and of a leader's queued requests'
+  (`ro.pending`): they enter only with a `MsgReadIndex` (`ReadIdxEnd`), the local one's entry normal (`readMsg`), a
+  network one's by `MsgMask`.
+- **Stmts.** `Reach.input`'s recv premise `m.term ≠ W64 0` → `(m.ty ≠ .readIndex → m.term ≠ W64 0)`: a forwarded
+  read request is at term `0` and is delivered (the driver drops only `MsgProp` with Forward off); raft's `Step` takes
+  it (`m.Term == 0`, `RecvEnd`'s first arm). `InputStep`'s `.readIndex c` arm gains `R.md.reads = true` (the driver's
+  reader runs only with reads on; raft's `ReadIndex` spec gives `RecvEndR` only then); without it the plain statements
+  are false at `R.md.reads = false` (`NodeFacts.roPend`, `MsgMask`'s `NetTy`). Harness obligations: the recv premise
+  from raft's stamped-type message facts (as at S4), `R.md.reads = true` at a `ReadIndex` input.
+- **MsgShapeStmt.** `ReadyMsgShape`'s `q.src = id` only for `q.ty ≠ .readIndex` (same reason as `MsgShape`).
+- **Open (B2).** `RestartR` lacks `r0.p.rd.pend = []` for the read-source conjunct at `bootR` (design §7 item 8).
+- **Decision.** Lead-approved (the Antithesis lead, 2026-11-26). No axiom, no top-level premise beyond the two
+  harness-discharged hypotheses above.
