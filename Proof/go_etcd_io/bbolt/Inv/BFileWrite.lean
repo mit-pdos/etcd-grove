@@ -139,7 +139,7 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     iframe Hf Hsl Hfd
     have hbl' : bs'.length = m'.size :=
       (wreach_inside hR hin hbl hW0.2.2.1 hW0.2.2.2).2.2.2.1.trans hsz.symm
-    obtain ⟨-, hlo', hhi', -, -, hout, -⟩ := wreach_inside hR hin hbl hW0.2.2.1 hW0.2.2.2
+    obtain ⟨hs', -, -, -, -, hout, hxs'⟩ := wreach_inside hR hin hbl hW0.2.2.1 hW0.2.2.2
     have hyl : ((bs'.drop off.toNat).take data.length).length = data.length := by
       simp only [List.length_take, List.length_drop]; omega
     have hdo : DurOut ((off.toNat, data.length) :: L) bs' := by
@@ -160,7 +160,8 @@ theorem wp_bWriteAt (hW : os.File.WriteAt.specExt (GF := GF) (hG := hG))
         exact wrote_vals bs' off.toNat data (by omega) hvals
       isplitl [Hown Ha]
       · iapply bMeta_of_own p c hc C ((off.toNat, data.length) :: L) m' bs' a
-          ⟨hph, hcur, hdo, hfs, by omega⟩ $$ [Hown Ha]
+          ⟨hph, hcur, hdo, hfs, fun l hl x hx => by
+            rw [hs']; rw [hxs'] at hl; exact hlh l hl x hx⟩ $$ [Hown Ha]
         rw [hsz]; iframe
       isplitl [Hys Hg]
       · iapply (bBytes_os p off.toNat (DFrac.own 1) _).2

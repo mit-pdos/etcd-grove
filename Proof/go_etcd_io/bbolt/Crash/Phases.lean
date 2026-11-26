@@ -105,8 +105,19 @@ theorem idleOk_mono {C : CommitSt} {X : List w8} {s s' : CSt} (hI : IdleOk C X s
 /-- A synced state's crash sizes: its size alone. -/
 theorem csSynced_xsAl (m : OsMeta) (H F T : List ByteG) (fa fb : Nat) (hal : m.size % 4096 = 0) :
     XsAl (csSynced m H F T fa fb) :=
-  ⟨⟨[m.size], rfl, fun x hx => by simp only [List.mem_singleton] at hx; rw [hx]; exact hal⟩,
+  ⟨[m.size], rfl, fun x hx => by simp only [List.mem_singleton] at hx; rw [hx]; exact hal,
     (fun _ _ _ h => by cases h), (fun _ _ _ _ h => by cases h)⟩
+
+/-- A synced `OsMeta`'s crash sizes are its size alone. -/
+theorem xsOne_synced (m : OsMeta) : XsOne m.synced := fun l hl x hx => by
+  have e : m.synced.xs = some [m.size] := rfl
+  rw [e, Option.some.injEq] at hl; subst hl
+  simp only [List.mem_singleton] at hx; exact hx
+
+/-- An announce keeps the crash sizes the size alone (a failed truncate). -/
+theorem xsOne_announce {m : OsMeta} (h : XsOne m) (lo hi tg : Nat) : XsOne (m.announce lo hi tg) := by
+  intro l hl x hx
+  rw [OsMeta.announce_xs] at hl; rw [announce_size]; exact h l hl x hx
 
 /-! ## A sync -/
 
@@ -153,7 +164,7 @@ theorem bDur_trunc_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
   have hlo : m.lo ≤ m.size := hW.2.2.1
   have hhi : m.size ≤ m.hi := hW.2.2.2
   have hal0 : m.size % 4096 = 0 := hI.2.2.2.2.1
-  obtain ⟨⟨l, hxl, hla⟩, -, -⟩ : XsAl ⟨m, bs, fa, fb, .idle⟩ := hI.2.2.2.2.2.2
+  obtain ⟨l, hxl, hla, -, -⟩ : XsAl ⟨m, bs, fa, fb, .idle⟩ := hI.2.2.2.2.2.2
   -- the reached state: its size, bounds, bytes and crash sizes
   have key : m'.lo = m.lo ∧ m.size ≤ m'.size ∧ m'.size ≤ m'.hi ∧ m'.size ≤ sz ∧
       m'.size % 4096 = 0 ∧ bs'.length = m'.size ∧ (∀ b, b < m.size → bs'[b]? = bs[b]?) ∧
@@ -182,7 +193,7 @@ theorem bDur_trunc_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
     intro busy hnw htr
     refine idleOk_mono hI (fun b v _ hb => ?_) (fun _ _ t off data n h => absurd h (hnw t off data n))
       (by show m.lo ≤ m'.lo; omega) hal' (fun t off data n h => absurd h (hnw t off data n))
-      ⟨⟨l', hxl', hla'⟩, htr, fun t off data n h => absurd h (hnw t off data n)⟩
+      ⟨l', hxl', hla', htr, fun t off data n h => absurd h (hnw t off data n)⟩
     have hb' : bs[b]? = some (durB v) := hb
     show bs'[b]? = _
     have : b < m.size := by have := (List.getElem?_eq_some_iff.1 hb').1; omega
@@ -220,14 +231,14 @@ theorem wreach_inside {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8
         rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by omega)]
 
 /-- **A write of unprotected bytes inside the file keeps the idle facts** (`Tx.write`'s dirty pages,
-`commitFreelist`'s page: pages free for the committed state, not a meta slot), the size not moved
-since the last sync (`DB.grow` syncs its truncate first), in every state of `WReach`, idle and with
+`commitFreelist`'s page: pages free for the committed state, not a meta slot), the crash sizes the
+size alone (`XsOne`: `DB.grow` syncs its truncate first), in every state of `WReach`, idle and with
 the next attempt in flight. -/
 theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : List ByteG)
     (fa fb off : Nat) (data : List w8) (h : BDur a ⟨m, bs, fa, fb, .idle⟩)
     (hin : off + data.length ≤ m.size)
     (hun : ∀ b, off ≤ b → b < off + data.length → 8192 ≤ b ∧ ¬ protData a.xcur a.cur b)
-    (hlh : m.lo = m.hi)
+    (hone : XsOne m)
     (nn : Nat) (m' : OsMeta) (bs' : List ByteG) (hR : WReach m bs off data nn m' bs') :
     BDur a ⟨m', bs', fa, fb, .idle⟩ ∧ (nn < data.length → ∀ t n,
       PwFresh m' bs' (off + nn) (data.drop nn) n →
@@ -239,11 +250,12 @@ theorem bDur_write_idle (a : BAbs) (ha : a.phase = .idle) (m : OsMeta) (bs : Lis
   have hhi : m.size ≤ m.hi := hW.2.2.2
   obtain ⟨hs, hlo', hhi', hl', hnn, hout, hxs'⟩ := wreach_inside hR hin hl hlo hhi
   have hal : m.size % 4096 = 0 := hI.2.2.2.2.1
-  obtain ⟨⟨l, hxl, hla⟩, -, -⟩ : XsAl ⟨m, bs, fa, fb, .idle⟩ := hI.2.2.2.2.2.2
+  obtain ⟨l, hxl, hla, -, -⟩ : XsAl ⟨m, bs, fa, fb, .idle⟩ := hI.2.2.2.2.2.2
+  have hxl0 : m.xs = some l := hxl
   have hxa : ∀ busy : CBusy, (∀ t sz n, busy ≠ .trunc t sz n) →
       XsAl ⟨m', bs', fa, fb, busy⟩ := fun busy hnt =>
-    ⟨⟨l, by show m'.xs = _; rw [hxs']; exact hxl, hla⟩, fun t sz n h => absurd h (hnt t sz n),
-      fun _ _ _ _ _ => by show m'.lo = m'.hi; omega⟩
+    ⟨l, by show m'.xs = _; rw [hxs']; exact hxl, hla, fun t sz n h => absurd h (hnt t sz n),
+      fun _ _ _ _ _ x hx => by show x = m'.size; rw [hs]; exact hone l hxl0 x hx⟩
   have hprot : ∀ b, (b < 8192 ∨ protData a.xcur a.cur b) → b < off ∨ off + data.length ≤ b := by
     intro b hb
     apply Classical.byContradiction; intro hc

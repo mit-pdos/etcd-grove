@@ -6,7 +6,7 @@ counterpart).
 * `wp_bTruncate`: a growing truncate to a whole number of pages: outside a crash invariant
   `File.Truncate.spec`; inside one the local crash spec (`os.File.Truncate.specCrashIL`), the
   obligation from `bDur_trunc_idle`, the new bytes' exclusivity tokens added to the authority
-  (`exMap_grow`). Grown, the share is `bMetaT` (the crash size bounds apart until the sync), the grown
+  (`exMap_grow`). Grown, the share is `bMetaT` (the crash sizes the old size and the new one until the sync), the grown
   range joining the ranges since the last sync.
 * `wp_bSync`: `File.Sync` from `bMetaT`, as `wp_bFdatasync` (`Inv/BFileSync.lean`).
 -/
@@ -324,7 +324,7 @@ theorem wp_bSync (hS : os.File.Sync.specB (GF := GF) (hG := hG))
       isplitl [Hown Ha]
       · iapply bMeta_of_own p c hc C [] m.synced (bs.map (fun x => durB x.1)) a
           ⟨hph, hcur, fun k x hk _ => by
-            obtain ⟨y, -, rfl⟩ := List.mem_map.1 (List.mem_of_getElem? hk); rfl, hfs, rfl⟩
+            obtain ⟨y, -, rfl⟩ := List.mem_map.1 (List.mem_of_getElem? hk); rfl, hfs, xsOne_synced m⟩
           $$ [Hown Ha]
         iframe
       isplitl [HR HG]

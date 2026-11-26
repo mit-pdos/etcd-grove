@@ -84,21 +84,16 @@ theorem idle_view {C : CommitSt} {X : List w8} {s : CSt} {f : OsFile} (hW : BWf 
     exact hR.tails j hj k hk1 hk2 v hv
   obtain ⟨hb1, hb2⟩ := maxBytes_bounds _ hV.max
   refine ⟨⟨hok, hb1, hb2, htz⟩, fun hcs => ?_⟩
-  obtain ⟨⟨l, hl, hla⟩, htr, hwlh⟩ := hxa
-  by_cases he : s.vmeta.lo = s.vmeta.hi
-  · have := hV.hi; have := size_le_vmeta_hi s hW; have := hW.2.2.1
-    have : f.size = s.m.size := by omega
-    rw [this]; exact hal
-  · rcases hcs l hl with hin | hb
-    · exact hla _ hin
-    · revert hb
-      rcases hbs : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩ <;> intro hb
-      · exact (hb : False).elim
-      · exfalso; apply he
-        rw [hlo, vmeta_hi_of s hW hwr (fun t sz n h => by rw [hbs] at h; cases h)]
-        exact hwlh t off data n hbs
-      · have hb' : f.size = sz := hb
-        rw [hb']; exact htr t sz n hbs
+  obtain ⟨l, hl, hla, htr, hwone⟩ := hxa
+  rcases hcs l hl with hin | hb
+  · exact hla _ hin
+  · revert hb
+    rcases hbs : s.busy with _ | ⟨t, off, data, n⟩ | ⟨t, sz, n⟩ <;> intro hb
+    · exact (hb : False).elim
+    · rw [CSt.crashSize_write_in hbs (hwr t off data n hbs) hl (hwone t off data n hbs) hcs]
+      exact hal
+    · have hb' : f.size = sz := hb
+      rw [hb']; exact htr t sz n hbs
 
 /-! ## Committing -/
 

@@ -362,9 +362,10 @@ caller's token of the invariant's state `⟨m, bs, 0, 0, .idle⟩` (the file's b
 frozen), the authority of the bytes' exclusivity tokens (`bGhost`) and value `a`, idle at `C`; the
 bytes outside the ranges `L` written since the last successful sync are durable (`DurOut`; between
 the writer's operations `L = []`), the file system does not fail (`FsNoErr`: crash mode is chosen
-only then, so every error arm of a call in crash mode is refuted), and the crash size bounds agree
-(`lo = hi`: `DB.grow` syncs its truncate; `lh`, see `bMeta`/`bMetaT`) (the invariant itself is
-`bCsInv p`). -/
+only then, so every error arm of a call in crash mode is refuted), and the crash sizes the
+`OsMeta` knows are the size alone (`XsOne`: a sync leaves it, a write inside the file and a failed
+truncate keep it, `DB.grow`'s truncate adds its target until its sync; `lh`, see `bMeta`/`bMetaT`)
+(the invariant itself is `bCsInv p`). -/
 def bMetaG (lh : Bool) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
   match p.cs with
   | none => osMeta p.ino (DFrac.own 1) m
@@ -372,15 +373,16 @@ def bMetaG (lh : Bool) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : O
       ghostMapAuth (K := Nat) (V := Unit) c.ex 1 (exMap m.size) ∗
       ∃ (bs : List ByteG) (a : BAbs), csTokI c.g c.ga a (⟨m, bs, 0, 0, .idle⟩ : CSt) ∗
         ⌜(⟨m, bs, 0, 0, .idle⟩ : CSt).Wf ∧ a.phase = .idle ∧ a.cur = C ∧ DurOut L bs ∧
-          FsNoErr ∧ (lh = true → m.lo = m.hi)⌝)
+          FsNoErr ∧ (lh = true → XsOne m)⌝)
 
-/-- **The writer's whole share of the file's `OsMeta` `m`** (`bMetaG`, the crash size bounds agreeing:
-what the writer's state holds and every operation but `DB.grow`'s truncate keeps). -/
+/-- **The writer's whole share of the file's `OsMeta` `m`** (`bMetaG`, the crash sizes the size
+alone: what the writer's state holds and every operation but `DB.grow`'s truncate keeps; a write in
+flight needs it, `bDur_write_idle`). -/
 def bMeta (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
   bMetaG true p C L m
 
-/-- **The share right after a growing truncate**, before its sync (`bMetaG`, the crash size bounds
-apart: a crash may leave the old size or the new one). -/
+/-- **The share right after a growing truncate**, before its sync (`bMetaG`, the crash sizes not
+the size alone: a crash may leave the old size or the new one, so no write may start). -/
 def bMetaT (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) : IProp GF :=
   bMetaG false p C L m
 
