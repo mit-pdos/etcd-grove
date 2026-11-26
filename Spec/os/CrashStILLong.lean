@@ -13,6 +13,7 @@ Rocq counterpart).
 module
 
 public import Spec.os.CrashStIL
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -120,7 +121,8 @@ variable [os.Assumptions] in
 /-- **`os.File.Truncate.specCrashIL` for a target past `maxBytes`**: the model's `ftruncate` fails
 (`EFBIG`, `FtruncateFinish` of `Impl.lean`, whatever the file system's errors), retried on `EINTR`;
 the file as the first attempt announced it (`TReach.ann`: the bytes it announced past the size keep
-their new candidates), of which, and of the start and the attempts in flight, the caller shows
+their new candidates); the error is the model's `*PathError`, one `fmt` formats (`fmtErrorOk`). Of
+the announced state, and of the start and the attempts in flight, the caller shows
 `Ok`. -/
 abbrev os.File.Truncate.specCrashILBig : Prop :=
   ∀ {A : Type} [Pos.Countable A] (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64)
@@ -135,7 +137,7 @@ abbrev os.File.Truncate.specCrashILBig : Prop :=
       mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ⌜err ≠ interface.nil⌝ ∗
+      ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
       csOwnIL i γ γa ⟨m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
         bs, 0, 0, .idle⟩ a ∗
       mcellsAny m.maps m.size (rsHi true m.size sz.toNat) }}
