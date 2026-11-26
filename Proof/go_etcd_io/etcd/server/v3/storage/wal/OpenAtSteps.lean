@@ -36,22 +36,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **The pinned halves back** (see the file header). -/
 theorem walInv_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (S : List SegG) (write : Bool)
-    (hS : ∀ g ∈ S, g.om.size = g.bs.length) :
+    (hS : ∀ g ∈ S, g.om.size = g.bs.length) (I : GMap GoString Nat) (i : Nat) (hi : incOf I dir = i) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walLockedTok (W := W) -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
+      walLockedTokI (W := W) I -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ -∗
       ([∗list] g ∈ S, segRes (L := L) g) -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
-      (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) -∗ walDirKey (W := W) dir j X ={⊤}=∗
+      (if write then walTmpsRes (hG := ⟨G, L⟩) j ∗ walIncEAny (W := W) else emp) -∗
+      walDirKey (W := W) dir i j X ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Hl Htf Ho HS Hn Ht #Hk
   iapply walInv_step C Mr R jr r
-    iprop(walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
+    iprop(walLockedTokI (W := W) I ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
       ([∗list] g ∈ S, segRes (L := L) g) ∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-      (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) ∗ walDirKey (W := W) dir j X)
+      (if write then walTmpsRes (hG := ⟨G, L⟩) j ∗ walIncEAny (W := W) else emp) ∗
+      walDirKey (W := W) dir i j X)
     (walUnlockedTok (W := W)) ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨Hl, ⟨Htf, Hnf⟩, Ho, HS, Hn, Ht, Hk⟩
-      imod walInvBody_unpin C Mr R jr r s dir j X hj S write hS $$ Hb Hl Htf Hnf Ho HS Hn Ht Hk
+      imod walInvBody_unpin C Mr R jr r s dir j X hj S write hS I i hi $$ Hb Hl Htf Hnf Ho HS Hn Ht Hk
         with ⟨Hb, Hu⟩
       imodintro
       iframe)
@@ -61,14 +63,15 @@ theorem walInv_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r 
 
 /-- The ghost handle minted from the lock token, on the invariant's contents. -/
 theorem walInvBody_mintOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTok (W := W) ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walOpening (W := W) w dir sn := by
+    (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) (I : GMap GoString Nat) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTokI (W := W) I ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walOpening (W := W) w dir sn (incOf I dir) := by
   iintro Hb Hl
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  imod walGhost_lockedI_incLb s I dir $$ Hg Hl with ⟨Hg, Hl, #Hil⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
-  imod walOpening_mint (W := W) w dir sn $$ Ha Hl with ⟨Ha, Ho⟩
+  imod walOpening_mint (W := W) w dir sn I $$ Ha Hl Hil with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
   imodintro
   iframe Ho
@@ -77,14 +80,15 @@ theorem walInvBody_mintOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr 
 
 /-- **The ghost handle minted** (see the file header). -/
 theorem walInv_mintOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (w : Loc) (dir : GoString) (sn : w64 × w64) :
+    (w : Loc) (dir : GoString) (sn : w64 × w64) (I : GMap GoString Nat) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walLockedTok (W := W) ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗ walOpening (W := W) w dir sn := by
+      walLockedTokI (W := W) I ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗
+        walOpening (W := W) w dir sn (incOf I dir) := by
   iintro #Hinv Hnc Hl
-  iapply walInv_step C Mr R jr r (walLockedTok (W := W)) (walOpening (W := W) w dir sn) ⊤
+  iapply walInv_step C Mr R jr r (walLockedTokI (W := W) I) (walOpening (W := W) w dir sn (incOf I dir)) ⊤
     CoPset.subseteq_top (fun s => by
       iintro Hb Hl
-      imod walInvBody_mintOpening C Mr R jr r s w dir sn $$ Hb Hl with ⟨Hb, Ho⟩
+      imod walInvBody_mintOpening C Mr R jr r s w dir sn I $$ Hb Hl with ⟨Hb, Ho⟩
       imodintro
       iframe)
     $$ Hinv Hnc Hl

@@ -121,11 +121,20 @@ theorem walTie_locks :
   | _ :: _, [], _, hl => by simp at hl
 
 /-- See the file header. -/
-theorem walOpening_lockedTok (w : Loc) (dir : GoString) (s : w64 × w64) :
-    walOpening (W := W) w dir s ⊢ walLockedTok (W := W) := by
-  unfold walOpening walHandleP
-  iintro ⟨%γ, -, -, -, Hl⟩
-  iexact Hl
+theorem walOpening_lockedTok (w : Loc) (dir : GoString) (s : w64 × w64) {ic : Nat} :
+    walOpening (W := W) w dir s ic ⊢ walLockedTok (W := W) := by
+  unfold walOpening walHandlePI walLockedTok
+  iintro ⟨%γ, %I, -, -, -, Hl, -⟩
+  iexists I; iexact Hl
+
+/-- `walOpening_lockedTok` at the handle's incarnation. -/
+theorem walOpening_lockedTokI (w : Loc) (dir : GoString) (s : w64 × w64) {ic : Nat} :
+    walOpening (W := W) w dir s ic ⊢ ∃ I, walLockedTokI (W := W) I ∗ ⌜incOf I dir = ic⌝ := by
+  unfold walOpening walHandlePI
+  iintro ⟨%γ, %I, -, -, -, Hl, %h⟩
+  iexists I
+  iframe Hl
+  ipureintro; exact h
 
 end files
 

@@ -376,8 +376,9 @@ theorem Cluster.handleReady.wp_proof
         ihave Hci : ownConfChangeI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty)
             #«$r0_ptr») DFrac.discard (some (.v1 cm)) $$ []
         · simp only [ownConfChangeI]; iexists «$r0_ptr»; iframe Hccm; ipureintro; rfl
-        have Hsk := skippedIn_noConf (GF := GF) W.cl (D ++ ce) v'.applied (D.length + sint.nat j) Hvn
-        ihave #Hsk' := Hsk
+        -- (2026-11-24, option D) the view's membership at the entry
+        ihave #Hsk' : confAt W.cl (D.length + sint.nat j) v'.membership $$ []
+        · rw [Hvm]; iexact Hcap
         try wp_auto
         wp_apply wp_ACC n W.cl tcRaftN id _ (.v1 cm) (.v1 cm) (D ++ ce) (D.length + sint.nat j) en v'
             (tcMem W.nv) Hva Hpos (.inl Ht1) (by rw [Hvm]; exact Hap) (by rw [Hvm]; exact Hap)

@@ -168,6 +168,8 @@ theorem wtxWQ_handle (K : BC) (tx : Loc) (r r' : TxReg) (m : Bool) (q : Qp) (X :
   iintro ⟨⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, ⟨Hbk, #Hf⟩, Hnl, Hdb, Hview, Hst⟩, Hcells,
     Hmap⟩, #Hreg', Hh'⟩
   iunfold reg at Hreg Hreg'
+  icases Hreg with ⟨#Hreg, #Hreg_x⟩
+  icases Hreg' with ⟨#Hreg', -⟩
   icombine Hreg Hreg' gives %hr
   obtain ⟨-, rfl⟩ := hr
   rw [if_pos Hr.2.1]
@@ -176,7 +178,7 @@ theorem wtxWQ_handle (K : BC) (tx : Loc) (r r' : TxReg) (m : Bool) (q : Qp) (X :
   · iframe; iframe #
     isplitr
     · ipureintro; exact Hr
-    unfold reg; iexact Hreg
+    unfold reg; iframe #
   ipureintro; exact ⟨rfl, Hl⟩
 
 /-- **A key and a live slice's bytes, read together** out of `wtxWQ`, and back. -/

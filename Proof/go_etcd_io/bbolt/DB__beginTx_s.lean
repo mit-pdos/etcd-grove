@@ -51,7 +51,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   unfold sparePair rdPair
   icases Hpair with ⟨⟨Hmtok, Hstok⟩, Hsp⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -60,7 +60,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   wp_apply sync.RWMutex.wp_RLock $$ [$Hsync $Hmtok] as ⟨Hrl, HP⟩
   iunfold metaR at HR
-  icases HR with ⟨%C', %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
+  icases HR with ⟨%C', %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
   iunfold Pm at HP
   icases HP with ⟨%ms, Hmap', Hmf, Hmt, Hpf⟩
   icombine Hcur Hcur' gives % ⟨_, hC⟩
@@ -140,9 +140,11 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [reduceCtorEq, ↓reduceIte]
       iframe
-    · iunfold readerHandles
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iexists ∅; iexact Hrbk
+    · isplitl [Hrbk]
+      · iunfold readerHandles
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexists ∅; iexact Hrbk
+      · iapply regX_ro; rfl
   simp only [initMeta, Bool.false_eq_true, ↓reduceIte]
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
@@ -180,7 +182,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
         Hvc Hmap' Hmf Hvw Hrcm Hpf Hrds2 Hsr] with Hrd
     · iframe; iframe #
       simp only [reduceCtorEq, ↓reduceIte]; iexact Hsr
-    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
+    wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hmlk Hfa Hspr Hro]
     · iunfold metaR
       iexists C, _, false, _, wa
       iframe Hrcm

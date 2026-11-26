@@ -1333,6 +1333,9 @@ theorem ownRaftGhost_step_win_reg (γ : RaftNames) (c : CfgM) (id : w64) (s : PS
     rw [List.getLast?_append]
     simp only [List.getLast?_singleton, Option.some_or]
     exact Heterm
+  ihave #Hclink2 : campLink γ id (virt V πc).camps s2.term (fp ++ s2.log) $$ []
+  · rw [Hs2term]
+    iapply campLink_prefix γ id _ s.term _ _ (by rw [HF2]; exact List.prefix_append _ _) $$ Hclink
   ihave Htlog' : leadLogOwn γ s2 (<[s.term := ((γt, s.base), s.log)]> terms) $$ [Htauth]
   · rw [leadLogOwn_leader γ s2 _ Hs2role, Hs2term, Hs2base]
     iexists γt, ({[e.Index' := (e, pt0)]} : GMap w64 (EntryM × w64)), s.log
@@ -2305,6 +2308,7 @@ theorem virt_evs_prefix (W : DurMaps) (π : List Prom) : W.evs <+: (virt W π).e
     | vote _ _ _ _ => exact List.prefix_append _ _
     | ack _ _ => exact List.prefix_append _ _
     | camp _ _ _ => exact List.prefix_refl _
+    | close _ => exact List.prefix_refl _
 
 variable [CrashGS GF] in
 /-- (stage II helper) The event history's invariants, from the log ghost state. -/
@@ -2327,7 +2331,7 @@ theorem ownLogGhost_ack_le (E : CoPset) (γ : RaftNames) (v : w64) (s : PState) 
       ⌜uint.Z t ≤ uint.Z s.term⌝ := by
   intro Hs HE HC
   unfold ackEv
-  iintro Hnc #Hslot Hv Hlg ⟨%γe', %L, %HL, #Hlb⟩
+  iintro Hnc #Hslot Hv Hlg ⟨%γe', %L, %HL, #Hlb, -⟩
   obtain ⟨Hγe', Hin, -⟩ := HL
   imod slot_openV E γ v γs V Hs HE HC $$ Hnc Hslot Hv with ⟨Hnc, Hv, %E0, %HEV, Hsh, Hcl⟩
   icases durShares_evs γ v _ E0 γe' L Hγe' $$ Hsh Hlb with ⟨%Hp, Hsh⟩
@@ -2785,6 +2789,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
       exact ⟨Heq, Hs⟩
   ihave #Hb := ownLogGhost_base $$ Hlg
   -- learn the leader
+  ihave #Hl0 := Hl
   iunfold isLeader at Hl
   icases Hl with ⟨%qw, #Hwin⟩
   imod vote_excl _ γ id s γs V πc m.src qw Hsname slotN_sub_reg crashNs_sub_reg Hhist $$ Hnc Hslot Hvirt Hwin
@@ -2882,6 +2887,11 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
             by rw [full_last_index _ _ _ Hf]; exact Hcl⟩)
           (Hlow s.commit Hcidx).symm $$ HrF HrF'
         rw [← Htk]; iexact Hcm0
+    isplitr
+    rotate_left
+    · iright; iexists m.src
+      isplitl; · first | iexact Hl0 | (rw [← Hterm]; iexact Hl0)
+      ipureintro; exact Hfid
     · imodintro
       iintro %t %i %Ht #Hh
       simp only [bnd, padoptLeader]
@@ -3340,6 +3350,11 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       | some y =>
         simp only [Option.some_or]
         exact (Hnwk _ y (getLast?_some_getElem? _ _ Hy)).2
+  ihave #Hclink' : campLink γ id (virt V πc).camps (pappend s nw).term (fp ++ (pappend s nw).log) $$ []
+  · rw [show (pappend s nw).term = s.term from rfl]
+    iapply campLink_prefix γ id _ s.term _ _ (by
+      rw [show (pappend s nw).log = s.log ++ nw from rfl, ← List.append_assoc]
+      exact List.prefix_append _ _) $$ Hclink
   ihave #Hhists' : histsOk γ (pappend s nw) kl (fp ++ (pappend s nw).log) (virt V πc).acks $$ []
   · unfold histsOk
     iapply BigSepM.bigSepM_impl $$ Hhists
@@ -3725,6 +3740,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
       uint.Z m.index := by
     unfold plogLastIndexZ; rw [List.append_nil, base0_index, Hfp'.1]; simp
   -- learn the leader
+  ihave #Hl0 := Hl
   iunfold isLeader at Hl
   icases Hl with ⟨%q, #Hwin⟩
   imod vote_excl _ γ id s γs V πc m.src q Hsname slotN_sub_reg crashNs_sub_reg Hhist $$ Hnc Hslot Hvirt Hwin
@@ -3774,6 +3790,11 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
     isplitr
     · simp only [cprefix, List.append_nil, List.take_take, Nat.min_self]
       iexact Hmcm
+    isplitr
+    rotate_left
+    · iright; iexists m.src
+      isplitl; · first | iexact Hl0 | (rw [← Hterm]; iexact Hl0)
+      ipureintro; exact Hfid
     · imodintro
       iintro %t %i %Ht #Hh
       simp only [bnd, padoptLeader]
@@ -5318,7 +5339,8 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   icases Hown with ⟨%γs, %V, %πc, %kl, H⟩
   iNamed H
   icases ownLogGhost_campaign γ id s kl (virt V πc) Hrole Hnw $$ Hlg with
-    ⟨%F, %Hcfree, Hlg, #Hjc, #HrF, %HF, #Hvh, %fp0, %HF0, #Hfr0, #Hcm0⟩
+    ⟨%F, %Hcf, Hlg, #Hjc, #HrF, %HF, #Hvh, %fp0, %HF0, #Hfr0, #Hcm0⟩
+  obtain ⟨Hcfree, Hcne⟩ := Hcf
   have Ht' : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
   have Hfree : (virt V πc).voted !! (s.term + W64 1) = none :=
     vote_hist_fresh (virt V πc).voted s _ Hhist (by omega)
@@ -5357,9 +5379,10 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   · unfold promJust promNeed durFrags
     imodintro
     iintro ⟨-, -, #Hcs, -⟩
-    ihave #HcK := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
-      isCampK (GF := GF) γ id t x.1 x.2)
+    ihave #HcF := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
+      campFrag (GF := GF) γ id t x)
       (GMap.lookup_insert_eq (virt V πc).camps (s.term + W64 1) (F, s.commit)) $$ Hcs
+    ihave #HcK := campFrag_campK γ id (s.term + W64 1) (F, s.commit) Hcne $$ HcF
     iexists F
     isplitr; · iapply isCampK_camp $$ HcK
     isplitr; · iexact HrF
@@ -5427,9 +5450,10 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
         rw [Happ]
         unfold durFrags
         icases Hf with ⟨-, -, #Hcs, -⟩
-        ihave #HcK := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
-          isCampK (GF := GF) γ id t x.1 x.2)
+        ihave #HcF := BigSepM.bigSepM_lookup (Φ := fun (t : w64) (x : List EntryM × w64) =>
+          campFrag (GF := GF) γ id t x)
           (GMap.lookup_insert_eq (virt V πc).camps (s.term + W64 1) (F, s.commit)) $$ Hcs
+        ihave #HcK := campFrag_campK γ id (s.term + W64 1) (F, s.commit) Hcne $$ HcF
         ihave #Hcamp := isCampK_camp γ id (s.term + W64 1) F s.commit $$ HcK
         ihave #Hcd := Hcdw $$ HcK
         simp only [pbecomeCandidate]

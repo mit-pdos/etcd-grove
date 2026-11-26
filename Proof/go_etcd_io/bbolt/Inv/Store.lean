@@ -62,7 +62,7 @@ def viewCells (q : Qp) (v : View) : IProp GF :=
 
 /-- The page-cache bytes of slot `s` of the file `p`, all of them, holding `bs`. -/
 def osSlot (p : BFile) (s : Nat) (bs : List w8) : IProp GF :=
-  iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
+  iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
 
 /-- **The store slots' page-cache bytes while the database is open** (session bbolt-inv, for
 `Close`'s hand-back of the file, `DB.Close_own.spec`): `cls`'s quarter at `false` with every slot's
@@ -88,8 +88,8 @@ abbrev slotsOsO (B : BNs) (p : BFile) (S X : List Nat) (bs : Nat → List w8) : 
 omit go_gctx sem in
 instance slotsOs_timeless (B : BNs) (p : BFile) (S X : List Nat) (bs : Nat → List w8)
     (wtx : Option Nat) (ms : MapSt) : Timeless (slotsOs (GF := GF) B p S X bs wtx ms) := by
-  have : ∀ off dq xs, Timeless (osBytes (GF := GF) p.ino off dq xs) := fun _ _ _ => by
-    unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+  have : ∀ off dq xs, Timeless (bBytes (GF := GF) p off dq xs) := fun _ _ _ => by
+    infer_instance
   have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
     intro s bs; unfold osSlot; infer_instance
   have h4 : ∀ s bs, Timeless (osSlotH (GF := GF) p s bs) := by
@@ -201,7 +201,7 @@ theorem osSlot_halves (p : BFile) (s : Nat) (a : List w8) :
     osSlot (GF := GF) p s a ⊢ osSlotH p s a ∗ osSlotH p s a := by
   unfold osSlot osSlotH
   iintro ⟨%xs, H, %h⟩
-  icases (osBytes_halves p.ino (4096 * s) xs).1 $$ H with ⟨H1, H2⟩
+  icases (bBytes_halves p (4096 * s) xs).1 $$ H with ⟨H1, H2⟩
   isplitl [H1]
   · iexists xs; iframe; ipureintro; exact h
   · iexists xs; iframe; ipureintro; exact h
@@ -214,13 +214,13 @@ theorem osSlotH_join (p : BFile) (s : Nat) (a b : List w8) (hab : a.length = b.l
   have hl : xs.length = ys.length := by
     have e1 := congrArg List.length h1; have e2 := congrArg List.length h2
     simp only [List.length_map] at e1 e2; omega
-  icases osBytes_agree_s p.ino xs ys (4096 * s) _ _ hl $$ [H1 H2] with ⟨H1, H2, %he⟩
+  icases bBytes_agree p _ _ xs ys (4096 * s) hl $$ [H1 H2] with ⟨H1, H2, %he⟩
   · iframe
   subst he
   isplitl [H1 H2]
   · iexists xs
     isplitl [H1 H2]
-    · iapply (osBytes_halves p.ino (4096 * s) xs).2; iframe
+    · iapply (bBytes_halves p (4096 * s) xs).2; iframe
     ipureintro; exact h1
   · ipureintro; rw [← h1, ← h2]
 
@@ -393,12 +393,12 @@ theorem flatMap_chunk_get (g : Nat → List w8) :
 spec takes), and back. -/
 theorem slots_held (p : BFile) (dq : DFrac) (bs : Nat → List w8) :
     ∀ S : List Nat,
-    ([∗list] s ∈ S, ∃ xs : List ByteG, osBytes (GF := GF) p.ino (4096 * s) dq xs ∗
+    ([∗list] s ∈ S, ∃ xs : List ByteG, bBytes (GF := GF) p (4096 * s) dq xs ∗
         ⌜xs.map Prod.fst = bs s⌝) ⊢
       ∃ rs : List (Nat × DFrac × List ByteG), ([∗list] r ∈ rs, osBytes p.ino r.1 r.2.1 r.2.2) ∗
         ⌜∀ s ∈ S, ∀ j b, (bs s)[j]? = some b → os.heldByte rs (4096 * s + j) b⌝ ∗
         (([∗list] r ∈ rs, osBytes p.ino r.1 r.2.1 r.2.2) -∗
-          [∗list] s ∈ S, ∃ xs : List ByteG, osBytes p.ino (4096 * s) dq xs ∗
+          [∗list] s ∈ S, ∃ xs : List ByteG, bBytes p (4096 * s) dq xs ∗
             ⌜xs.map Prod.fst = bs s⌝)
   | [] => by
     iintro -
@@ -411,15 +411,16 @@ theorem slots_held (p : BFile) (dq : DFrac) (bs : Nat → List w8) :
   | s :: S => by
     iintro H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨%xs, Hx, %hx⟩, H⟩
+    icases (bBytes_os p (4096 * s) dq xs).1 $$ Hx with ⟨Hx, Gx⟩
     icases slots_held p dq bs S $$ H with ⟨%rs, Hrs, %hrs, Hback⟩
-    iexists (4096 * s, dq, xs) :: rs
+    iexists (4096 * s, p.dq dq, xs) :: rs
     isplitl [Hx Hrs]
     · iapply BigSepL.bigSepL_cons.2; iframe
     isplitr
     · ipureintro
       intro t ht j b hj
       rcases List.mem_cons.1 ht with rfl | ht
-      · refine ⟨(4096 * t, dq, xs), List.mem_cons_self .., by omega, ?_⟩
+      · refine ⟨(4096 * t, p.dq dq, xs), List.mem_cons_self .., by omega, ?_⟩
         simp only [Nat.add_sub_cancel_left]
         rw [← List.getElem?_map, hx]; exact hj
       · obtain ⟨r, hr, h1, h2⟩ := hrs t ht j b hj
@@ -427,8 +428,11 @@ theorem slots_held (p : BFile) (dq : DFrac) (bs : Nat → List w8) :
     · iintro Hrs
       icases BigSepL.bigSepL_cons.1 $$ Hrs with ⟨Hx, Hrs⟩
       iapply BigSepL.bigSepL_cons.2
-      isplitl [Hx]
-      · iexists xs; iframe; ipureintro; exact hx
+      isplitl [Hx Gx]
+      · iexists xs
+        isplitl [Hx Gx]
+        · iapply (bBytes_os p (4096 * s) dq xs).2; iframe
+        ipureintro; exact hx
       · iapply Hback $$ Hrs
 
 theorem heldByte_append_l (rs rs' : List (Nat × DFrac × List ByteG)) (i : Nat) (b : w8)
@@ -1563,8 +1567,8 @@ set_option linter.unusedSectionVars false
 
 private theorem osBytes_cons' (p : BFile) (off : Nat) (dq : DFrac) (x : ByteG)
     (xs : List ByteG) :
-    osBytes (GF := GF) p.ino off dq (x :: xs) ⊣⊢ osByte p.ino off dq x ∗ osBytes p.ino (off + 1) dq xs := by
-  unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
+    bBytes (GF := GF) p off dq (x :: xs) ⊣⊢ bByte p off dq x ∗ bBytes p (off + 1) dq xs := by
+  exact bBytes_cons _ _ _ _ _
 
 private theorem cellsR_cons' (base : Loc) (lo n : Nat) (vf : Nat → val) :
     cellsR (GF := GF) base lo (n + 1) vf ⊣⊢
@@ -1581,9 +1585,9 @@ private theorem cellsR_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv 
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
-    ⊢ osInv -∗ osMeta p.ino dqm m -∗ osBytes p.ino lo dqb xs -∗
+    ⊢ osInv -∗ osMeta p.ino dqm m -∗ bBytes p lo dqb xs -∗
       cellsR base lo xs.length vf -∗
-      (osMeta p.ino dqm m -∗ osBytes p.ino lo dqb xs -∗
+      (osMeta p.ino dqm m -∗ bBytes p lo dqb xs -∗
         bytesPointsto (base +ₗ ((lo : Nat) : Int)) (DFrac.own (1 : Qp).half) (xs.map Prod.fst) -∗
         WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
@@ -1596,16 +1600,18 @@ private theorem cellsR_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv 
     simp only [List.length_cons] at hl
     iintro #Hinv Hm Hb Hc HΦ
     icases (osBytes_cons' _ _ _ _ _).1 $$ Hb with ⟨Hx, Hb⟩
+    iunfold bByte at Hx
+    icases Hx with ⟨Hx, Gx⟩
     simp only [List.length_cons]
     icases (cellsR_cons' _ _ _ _).1 $$ Hc with ⟨Hcx, Hc⟩
-    iapply osCell_agree e htv p.ino dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
+    iapply osCell_agree e htv p.ino dqm m base len lo hb (by omega) (p.dq dqb) x _ (vf lo) hE Φ
       $$ Hinv Hm Hx Hcx
     iintro %Hv Hm Hx Hcx
     iapply cellsR_agree_bytes s E e htv p dqm m base len hb dqb hE Φ xs (lo + 1) vf (by omega)
       $$ Hinv Hm Hb Hc
     iintro Hm Hb Hc
-    iapply HΦ $$ Hm [Hx Hb] [Hcx Hc]
-    · iapply (osBytes_cons' _ _ _ _ _).2; iframe
+    iapply HΦ $$ Hm [Hx Gx Hb] [Hcx Hc]
+    · iapply (osBytes_cons' _ _ _ _ _).2; unfold bByte; iframe
     · simp only [List.map_cons, bytesPointsto]
       rw [Hv]
       have e1 : base +ₗ ((lo : Nat) : Int) +ₗ 1 = base +ₗ (((lo + 1 : Nat) : Nat) : Int) := by
@@ -1635,7 +1641,7 @@ private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv :
     iintro #Hinv Hm Ho Hc HΦ
     icases BigSepL.bigSepL_cons.1 $$ Ho with ⟨Hx, Ho⟩
     icases (show osSlot (GF := GF) p t (bs t) ⊢ ∃ xs : List ByteG,
-        osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs t⌝ by
+        bBytes p (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs t⌝ by
         unfold osSlot; exact .rfl) $$ Hx with ⟨%xs, Hx, %Hxs⟩
     icases BigSepL.bigSepL_cons.1 $$ Hc with ⟨⟨%vf, Hcx⟩, Hc⟩
     obtain ⟨ht1, ht2⟩ := hS t (List.mem_cons_self ..)
@@ -1652,7 +1658,7 @@ private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv :
     iapply HΦ $$ Hm [Hx Ho] [Hcx Hc]
     · iapply BigSepL.bigSepL_cons.2
       iframe
-      iapply (show (∃ xs : List ByteG, osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗
+      iapply (show (∃ xs : List ByteG, bBytes p (4096 * t) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = bs t⌝) ⊢ osSlot (GF := GF) p t (bs t) by unfold osSlot; exact .rfl)
       iexists xs; iframe; ipureintro; exact Hxs
     · iapply BigSepL.bigSepL_cons.2

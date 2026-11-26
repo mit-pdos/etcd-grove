@@ -13,27 +13,27 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [go.Semantics] [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-def probeHandles (R : Roots) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
+def probeHandles (R : Roots) (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
     (qd qc : Qp) (o : WalOut) (γ : GName) (Lk : GMap GoString Nat) : IProp GF :=
   iprop(osPathS R dir (DFrac.own qd) j ∗ osCallPerm (callKey R dir) qc ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗ walOutFrag (W := W) o ∗
-    walTailsFrag (W := W) (<[dir := γ]> ∅) Lk)
+    walTailsFrag (W := W) (<[dir := γ]> ∅) Lk ∗ walIncQ (W := W) I)
 
 /-- The previous probe's file can be returned before the next Go step. -/
 def probeAccess (P : IProp GF) : IProp GF :=
   iprop(notCrashed (hC := hG.goose_localGS.goose_crashGS) ={⊤}=∗
     notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ P)
 
-def prefixScanState (R : Roots) (jr : Ino) (r dir : GoString) (j : Ino) (X : List GoString)
+def prefixScanState (R : Roots) (jr : Ino) (r dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString)
     (hj : NamesH) (qd qc : Qp) (o : WalOut) (γ : GName) (Lk : GMap GoString Nat)
     (M : WalMarshal) (lg : Loc) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
     osInv ∗ osSharedInv R ∗ walInv (L := hG.goose_localGS) (W := W) walCodec M R jr r ∗
-    walDirKey (W := W) dir j X ∗ probeAccess (probeHandles R dir j X hj qd qc o γ Lk))
+    walDirKey (W := W) dir (incOf I dir) j X ∗ probeAccess (probeHandles R dir I j X hj qd qc o γ Lk))
 
 theorem readAll_prefix_file (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
     (wp_probe : wal.segmentContainsSnapshot.spec (GF := GF) U)
-    (R : Roots) (jr : Ino) (r dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
+    (R : Roots) (jr : Ino) (r dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH)
     (qd qc : Qp) (γ : GName) (Lk : GMap GoString Nat) (gs : List SegG) (o : WalOut)
     (lg : Loc) (k i : Nat) (name : GoString) (index : w64)
     (hdir : PathFits dir) (hX : ∀ b ∈ X, walNameP b = false)
@@ -42,7 +42,7 @@ theorem readAll_prefix_file (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
     (hnm : ∀ g ∈ gs, hj.cur !! g.name = some (.file g.ino))
     (hhead : ∀ nm, (walNames hj.cur)[k]? = some nm → ∀ sq ix,
       nm = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat index) :
-    wal.prefixFileMiss (prefixScanState (W := W) R jr r dir j X hj qd qc o γ Lk M lg) lg dir name index := by
+    wal.prefixFileMiss (prefixScanState (W := W) R jr r dir I j X hj qd qc o γ Lk M lg) lg dir name index := by
   iintro %Φ HP HΦ
   iunfold prefixScanState at HP
   icases HP with ⟨#Hpkg, #Hzap, #Hoi, #Hsi, #Hinv, #Hk, Hget⟩
@@ -51,12 +51,12 @@ theorem readAll_prefix_file (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
   iunfold probeAccess at Hget
   imod Hget $$ Hnc with ⟨Hnc, HP⟩
   iunfold probeHandles at HP
-  icases HP with ⟨Hpd, Hperm, Hn, Ho, Htf⟩
+  icases HP with ⟨Hpd, Hperm, Hn, Ho, Htf, HIq⟩
   imod walInv_open walCodec M R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
     with ⟨⟨%st, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_takeProbe M U hU R jr r st dir j X hj _ Lk gs o k i name index
-    ho hi hk hn hdrop hnm hhead $$ Hb Hk Hn Htf Ho with
-    ⟨Hb, Hn, Htf, %g, ⟨%hname, %hino, %hsize, %hok, %hlen, %hp, %hbelow⟩, Ho, Hg⟩
+  imod walInvBody_takeProbe M U hU R jr r st dir I j X hj _ Lk gs o k i name index
+    ho hi hk hn hdrop hnm hhead $$ Hb Hk HIq Hn Htf Ho with
+    ⟨Hb, Hn, HIq, Htf, %g, ⟨%hname, %hino, %hsize, %hok, %hlen, %hp, %hbelow⟩, Ho, Hg⟩
   imod Hcl $$ [Hb] with -
   · iexists st; iexact Hb
   imodintro; iframe Hnc
@@ -80,8 +80,8 @@ theorem readAll_prefix_file (M : WalMarshal) (U : WalUnmarshal) (hU : U.Ok M)
   iintro Hnc
   imod walInv_open walCodec M R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
     with ⟨⟨%st', Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_putProbe M R jr r st' dir j X hj γ Lk gs o k i name g ho hi hk hn hdrop hnm hino hsize
-    $$ Hb Hk Hn Htf [Ho Hg] with ⟨Hb, Hn, Htf, Ho⟩
+  imod walInvBody_putProbe M R jr r st' dir I j X hj γ Lk gs o k i name g ho hi hk hn hdrop hnm hino hsize
+    $$ Hb Hk HIq Hn Htf [Ho Hg] with ⟨Hb, Hn, HIq, Htf, Ho⟩
   · iframe
   imod Hcl $$ [Hb] with -
   · iexists st'; iexact Hb

@@ -67,9 +67,12 @@ def byt : w8 := 2
 /-- A crash leaving `ofDisk img sz`: a size in range and each byte a candidate. -/
 theorem crashFile_of (st : OsState) (i : Ino) (f : OsFile) (img : Nat → w8) (sz : Nat)
     (hlo : f.sizeLo ≤ sz) (hhi : sz ≤ f.sizeHi) (hc : ∀ b, ∃ s, (img b, s) ∈ f.cand b)
-    (hmax : sz ≤ maxBytes := by simp [maxBytes, OsFile.ofBytes]) :
+    (hmax : sz ≤ maxBytes := by simp [maxBytes, OsFile.ofBytes])
+    (hsc : sz = f.size ∨ sz = f.sizeLo ∨ f.szCrash sz := by
+      first | exact .inl rfl | exact .inr (.inl rfl) | simp [OsFile.ofBytes, OsFile.ofDisk]) :
     CrashFile st i f (OsFile.ofDisk img sz) :=
-  ⟨sz, img, ⟨.inl hlo, .inl hhi⟩, hmax, fun b => .inl (hc b), rfl⟩
+  ⟨sz, img, ⟨.inl hlo, .inl hhi, hsc.elim .inl (fun h => .inr (h.elim .inl (fun h => .inr (.inl h))))⟩, hmax,
+    fun b => .inl (hc b), rfl⟩
 
 /-- Write `c` at offset 0 as the change numbered `n`, announced and landed whole. -/
 def wr (f : OsFile) (c : List w8) (n : Nat) : OsFile :=
@@ -237,6 +240,7 @@ theorem crash_mix (st : OsState) (i : Ino) (o x : List w8) (ho : o.length = 4096
   have hs0 : (OsFile.ofBytes o).size = 4096 := ho
   refine crashFile_of _ _ _ _ _ (by simp only [fMix, OsFile.land, OsFile.announce]; rw [hs0]; simp [OsFile.ofBytes, OsFile.ofDisk, ho]; omega)
     (by simp only [fMix, OsFile.land, OsFile.announce]; rw [hs0]; simp [OsFile.ofBytes, OsFile.ofDisk, ho]; omega) (fun b => ?_)
+    (hsc := .inr (.inl (by simp only [fMix, OsFile.land, OsFile.announce]; rw [hs0]; simp [OsFile.ofBytes, OsFile.ofDisk, ho]; omega)))
   show ∃ s, (img b, s) ∈ ((OsFile.ofBytes o).announce (OsChange.ofWrite 0 (OsFile.ofBytes o) 0 x) n).cand b
   obtain ⟨hlt, hge⟩ := himg b
   have hbase : (diskByte (fun b => o.getD b 0) o.length b, 0) ∈ (OsFile.ofBytes o).cand b := by
@@ -273,7 +277,7 @@ theorem crash_after_sync (st : OsState) (i : Ino) (f f' : OsFile)
     (hnone : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i)
     (hc : CrashFile st i (f.synced (fun _ => False)) f') :
     f'.contents = f.contents := by
-  obtain ⟨sz, img, ⟨hlo, hhi⟩, -, himg, rfl⟩ := hc
+  obtain ⟨sz, img, ⟨hlo, hhi, -⟩, -, himg, rfl⟩ := hc
   have hsz : sz = f.size := by
     rcases hlo with h | ⟨t, c, ht, hi, -⟩
     · rcases hhi with h' | ⟨t, c, ht, hi, -⟩
@@ -319,6 +323,7 @@ theorem crash_wb_tail_zero (st : OsState) (i : Ino) (img : Nat → w8) (n : Nat)
     (hz : ∀ b, 4096 ≤ b → img b = 0) :
     CrashFile st i (fApp img n) (OsFile.ofDisk (fun b => if b = 1 then 0 else img b) 2) := by
   refine ⟨2, _, ⟨.inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk]),
+    .inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk]),
     .inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk])⟩, by simp [maxBytes], fun b => ?_, rfl⟩
   by_cases hb1 : b = 1
   · subst hb1
@@ -367,6 +372,21 @@ theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Na
       simp at h; exact h.1
     · exact (Prod.mk.inj h).1
   simp only [OsFile.ofDisk, diskByte, hv]; split <;> rfl
+
+/-- **A truncate's size is exact at a crash** (a guarantee, `data_truncate_size_exact.go`): with
+no change in flight, a crash after the file of size 1 was grown to 8192 by `ftruncate` and not
+synced leaves it at 1 or 8192, never in between. -/
+theorem crash_trunc_size_exact (st : OsState) (i : Ino) (img : Nat → w8) (n : Nat) (f' : OsFile)
+    (hnone : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i)
+    (hc : CrashFile st i (fGrow img n) f') : f'.size = 1 ∨ f'.size = 8192 := by
+  obtain ⟨sz, img', ⟨-, -, h⟩, -, -, rfl⟩ := hc
+  simp only [OsFile.ofDisk]
+  rcases h with h | h | h | ⟨t, c, ht, hi, -⟩
+  · right; simpa [fGrow, OsFile.land, OsFile.announce, OsChange.ofResize] using h
+  · left; simpa [fGrow, OsFile.land, OsFile.announce, OsChange.ofResize, OsFile.ofDisk] using h
+  · simpa [fGrow, OsFile.land, OsFile.announce, OsChange.ofResize, OsFile.ofDisk,
+      OsChangeKind.isTrunc] using h
+  · exact absurd hi (hnone t c ht)
 
 /-- A file of size 5000 as a crash may find it on disk (its bytes `img`, stale past its end),
 truncated to the same size as change `n` (`ftruncate(5000)`), then synced. -/
@@ -998,6 +1018,49 @@ theorem pageCut_one_page {off len k : Nat} (hoff : off % osPageSize = 0) (hlen :
   · rcases Nat.eq_zero_or_pos k with h0 | h0
     · exact Or.inl h0
     · right; omega
+
+/-! ## A crash that leaves every named file as of its last sync
+
+From `P1Sat.lean` (minibolt), shared with the bbolt crash premise's satisfiability
+(`backend.boltCrashWhole_exists`): from a reachable state with a machine crash, the crash with the
+same tree that leaves every named file as of its last sync is a machine crash. -/
+
+/-- Each file as of its last sync. -/
+noncomputable def durFile (f : OsFile) : OsFile :=
+  OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo
+
+open Classical in
+/-- The files of `durCrash`. -/
+noncomputable def durFiles (st st' : OsState) : GMap Ino OsFile :=
+  GMap.fmap durFile (GMap.filter (fun i _ => decide (Named st'.fs.treeDur i)) st.fs.files)
+
+/-- `st'` with every named file replaced by its pre-crash file as of its last sync. -/
+noncomputable def durCrash (st st' : OsState) : OsState :=
+  ⟨⟨st'.fs.roots, st'.fs.treeDur, st'.fs.metaLog, st'.fs.committed, durFiles st st',
+    st'.fs.nextIno, st'.fs.stamp⟩, st'.proc⟩
+
+open Classical in
+theorem durCrash_files (st st' : OsState) (i : Ino) :
+    (durCrash st st').fs.files !! i =
+      if Named st'.fs.treeDur i then (st.fs.files !! i).map durFile else none := by
+  show ((st.fs.files.lookup i).filter _).map durFile = _
+  by_cases h : Named st'.fs.treeDur i
+  · rw [if_pos h]; cases st.fs.files.lookup i <;> simp [h] <;> rfl
+  · rw [if_neg h]; cases st.fs.files.lookup i <;> simp [h]
+
+theorem durCrash_machine {st st' : OsState} (hok : CacheOk st) (hc : MachineCrash st st') :
+    MachineCrash st (durCrash st st') := by
+  obtain ⟨hp, hr, hl, hcm, hn, hs, hS, hfiles⟩ := hc
+  refine ⟨hp, hr, hl, hcm, hn, hs, hS, fun i => ⟨fun hN => ?_, fun hN => ?_⟩⟩
+  · obtain ⟨f, f', hf, -, -⟩ := (hfiles i).1 hN
+    have hcc := hok.1 i f hf
+    refine ⟨f, durFile f, hf, (sectorWhole_durable st i f
+      (Nat.le_trans hcc.2.1 hcc.2.2.1) (Nat.le_trans hcc.2.1 (Nat.le_trans hcc.2.2.1 hcc.2.2.2))
+      hcc.1.2).1, ?_⟩
+    simp only [durCrash] at hN
+    rw [durCrash_files, if_pos hN, hf]; rfl
+  · simp only [durCrash] at hN
+    rw [durCrash_files, if_neg hN]
 
 end Tests
 end Fs

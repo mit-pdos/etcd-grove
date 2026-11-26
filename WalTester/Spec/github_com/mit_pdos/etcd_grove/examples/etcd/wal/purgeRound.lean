@@ -35,13 +35,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- See the file header. -/
 abbrev purgeRound.spec : Prop :=
   ∀ (W : WalGS GF) (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (lg w : Loc) (dir : GoString) (mx : w64) (Pc : IProp GF),
+    (lg w : Loc) (dir : GoString) (i : Nat) (mx : w64) (Pc : IProp GF),
   uint.nat mx < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ WalFs.walInv (W := W) walCodec Mr R jr r ∗
-      walOpenWF (W := W) P Mr w dir ∗ walPurgeAcc (W := W) dir Pc ∗ Pc }}
+      walOpenWFI (W := W) P Mr w dir i ∗ walPurgeAcc (W := W) dir i Pc ∗ Pc }}
     (App (App (App (Val (@! purgeRound)) (Val #lg)) (Val #dir)) (Val #mx))
-  {{ RET #(); walOpenWF (W := W) P Mr w dir ∗ Pc }}
+  {{ RET #(); walOpenWFI (W := W) P Mr w dir i ∗ Pc }}
 
 end spec
 

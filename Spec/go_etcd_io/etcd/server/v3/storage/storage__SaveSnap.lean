@@ -47,12 +47,12 @@ abbrev storage.storage.SaveSnap.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :
       ⌜walCov Sio → DirFits dir ∧ ∀ b, Sio.path (child dir b)⌝ ∗
       ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗ ⌜uint.nat m.model.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜(Mr.encSnap m.model al).length < 2 ^ 40⌝ ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap m.model al] }, COMM Q d }> }}
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir γ.inc { d with H := d.H ++ [WalOpG.snap m.model al] }, COMM Q d }> }}
     (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty @!! go!"SaveSnap")) (Val #sn))
   {{ (err : GoInterface), RET #err; storageRd p w ∗ sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
       ((⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walLenLb w dir (d.H.length + 1) ∗ WalFs.walSyncedLb dir (d.H.length + 1)) ∨
+          WalFs.walLenLb w dir γ.inc (d.H.length + 1) ∗ WalFs.walSyncedLb dir γ.inc (d.H.length + 1)) ∨
       (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d)) }}
 
 end spec

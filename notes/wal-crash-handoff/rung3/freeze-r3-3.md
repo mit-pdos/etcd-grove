@@ -435,7 +435,7 @@ not take the arm at all.
 | `Open`'s step (`boltOpened`) | Scope exp. B: 10/1,160 violations without the sync, 0 with it; `issues/bbolt-open-unsynced-meta-kill-then-power-loss.md` (12/1,160 at upstream). R3-0 negative controls: the same tester at the unfixed `743299d8` (§5.1, §5.2: the corruption shows once the db spans several pages and the consistent index is loaded as `bootstrapBackend` does; 0 at the D7 fork). The tester records `ciLast := ci` after the open, so a revert below what the open read is a violation even without corruption. |
 | `Commit`'s two updates; the error arm keeps the flight | Code: `tx.go:171` (start), `:551/574` (pages), `:613/621` (meta). Exp. A's images at every event of the commit; an error after `:613` is the "in flight" row. |
 | `named`, vanish, `"BoltNamed"` | Scope exp. A without the directory sync: "db file missing" 2/120; exp. C without it: 66/1,800 "db missing" after commits returned; with it: 0. R3-0: `syncDir` at every boot, 0 "db missing" after a returned commit. |
-| `BoltOpen` on absent / zero-length file reads `∅` | `B/db.go:702-760` (init re-runs on zero metas; `nonissues/bbolt-init-not-crash-safe.md`); exp. C: "db absent before any commit returned" 31 images opened to the empty state. |
+| `BoltOpen` on absent / zero-length file reads `∅` | `B/db.go:702-760` (init re-runs on zero metas; `issues/bbolt-init-not-crash-safe.md`); exp. C: "db absent before any commit returned" 31 images opened to the empty state. |
 | Paths (§2.4) | by construction (names); no experiment. |
 
 ### 5.1 The R3-0 matrix

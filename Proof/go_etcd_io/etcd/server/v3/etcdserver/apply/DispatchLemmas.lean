@@ -420,5 +420,38 @@ theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
 end errIs
 
 end apply
+
+/-- A request whose backend step keeps the log keeps it through every chain (a layer's rejection
+keeps it too). -/
+theorem apply.chainStep_logAfter_of (rq : IRRModel) (log : mvcc.Log)
+    (hB : ∀ o, apply.backendStep rq log o → o.logAfter log = log) :
+    ∀ (c : apply.Chain) (o : apply.Outcome), apply.chainStep apply.backendStep c rq log o →
+      o.logAfter log = log
+  | .backend, o, h => hB o h
+  | .corrupt c, o, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · subst h; rfl
+    · exact apply.chainStep_logAfter_of rq log hB c o h
+  | .capped c, o, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · subst h; rfl
+    · split at h
+      · rcases h with rfl | h
+        · rfl
+        · exact apply.chainStep_logAfter_of rq log hB c o h
+      · exact apply.chainStep_logAfter_of rq log hB c o h
+  | .auth _ c, o, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · rcases h with ⟨-, rfl⟩ | h
+      · rfl
+      · exact apply.chainStep_logAfter_of rq log hB c o h
+    · exact apply.chainStep_logAfter_of rq log hB c o h
+  | .quota c, o, h => by
+    simp only [apply.chainStep] at h
+    exact apply.chainStep_logAfter_of rq log hB c o h
+
 end EtcdGrove
 end Perennial

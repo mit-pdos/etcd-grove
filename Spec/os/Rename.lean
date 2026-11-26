@@ -39,12 +39,14 @@ inode (`bClosed` after its `Close`). Until S5 an axiom over the abstract `srvFil
 option B1) The two names in one directory (`parentOf src = parentOf dst`): the model's rename needs
 both in one root's tree (`SameRootR`, the per-root call model), which a spine of their common
 directory gives (`osPathS_sameRoot`); the server's rename is in the snapshot directory
-(`snap.snapDBPath`, `config.backendPathOf`). -/
+(`snap.snapDBPath`, `config.backendPathOf`). (pin e94f33b50, 2026-11-25) The rename's log entry
+(`renamed src dst`: the log past it), for the directory sync after it to commit. -/
 abbrev os.Rename.spec : Prop :=
   ∀ (src dst : GoString) (D : Data) (γ : DBNames), parentOf src = parentOf dst →
   {{ fileAt (GF := GF) src D ∗ bPath γ dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ fileAt dst D ∗ fileFree src }}
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ fileAt dst D ∗ fileFree src ∗
+      renamed src dst }}
 
 end spec
 

@@ -1,0 +1,4 @@
+github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339 h1:bxRn1j3ivHlGeVBR5tFCOudicfAVj/s3yf/Pd7OQDt0=
+github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339/go.mod h1:mkltfYE5aUHQxUct9N9V+Kp7aSjFqjgrhcXIS70Lrdk=
+golang.org/x/sys v0.45.0 h1:dO4czNzziLiiXplLQgBCEpCvXQ3dnkn0SdaZSYdQ+FY=
+golang.org/x/sys v0.45.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=

@@ -241,7 +241,10 @@ def strip(mod, src):
 # these do not build in RaftNoAx (VM build, 2026-11-24); KvRaft uses none of them.
 NOT_NOAX = {"Proof.go_etcd_io.raft.v3.raftpb.CCEnumName", "Proof.go_etcd_io.raft.v3.PbMessage",
             "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String",
-            "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__String"}
+            "Spec.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__String",
+            # (2026-11-25) `bootMarshal` from `proto.Marshal`'s boot axiom: the noax raft's `Bootstrap`
+            # marshals with `raftpb.MarshalConfChangeV1`, not `proto.Marshal`
+            "Proof.go_etcd_io.raft.v3.BootMarshal"}
 
 
 def raft_api_roots():

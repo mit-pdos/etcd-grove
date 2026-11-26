@@ -125,7 +125,8 @@ theorem walTailsRes_purge (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState)
       iframe Hv
       ipureintro
       exact ⟨hd', by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', hg1, hZ', hB'⟩
-  · iapply walLentRes_insert_same T _ dir lay (purgeLayP lay g0) hl rfl id Or.inr (fun _ h => h)
+  · iapply walLentRes_insert_same T _ dir lay (purgeLayP lay g0) hl rfl id
+      (fun _ h => Or.inr (repOld_purgeLayP hg h)) (fun _ h => h)
       (fun _ h => h.imp id (repOld_purgeLayP hg)) $$ HL
 
 /-- `walOthersL` with one claim replaced by one whose others are a submap of the old one's. -/

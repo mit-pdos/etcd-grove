@@ -304,6 +304,11 @@ structure StorNames where
   history : Nat := 0
   /-- The committed bounds and successful snapshot installations of this attachment. -/
   installs : Nat := 0
+  /-- (2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) the stored term at the
+  attach (`σ.hs.Term`, the term `newRaft` loads; `0` for a fresh node): the node's term never goes
+  below it, and a term it leads or campaigns at in this attachment is past it (`LifeOk`), so every
+  `MsgSnap` its `Ready`s hand out is past it (`handoutOrigins`) -/
+  t0 : w64 := W64 0
 
 /-- (durability stage I-6) The same names with no attach record: raft's view of its storage before
 it has caught up with the record (`newRaft`'s window between `InitialState` and `appliedTo`: the

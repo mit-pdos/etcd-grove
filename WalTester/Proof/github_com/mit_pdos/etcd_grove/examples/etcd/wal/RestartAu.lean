@@ -81,8 +81,8 @@ theorem tRelW_withOpens (W : WalGS GF) (area : GoString) (o : TOracle) (cd : TCa
 `Repair`). -/
 theorem tInv_dirAu (W : WalGS GF) (e : TEnv) (γ : TGS) (od : Option WalDur) :
     TInv (W := W) e γ ∗ tWalOwn γ od ⊢
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs (W := W) (tWalDir e.area) o }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDirIs (W := W) (tWalDir e.area) o, COMM ⌜o = od⌝ ∗ tWalOwn γ od }> := by
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI (W := W) (tWalDir e.area) 0 o }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDirIsI (W := W) (tWalDir e.area) 0 o, COMM ⌜o = od⌝ ∗ tWalOwn γ od }> := by
   iintro ⟨#Hinv, Hwo⟩
   iauintro
   unfold atomic_acc
@@ -116,8 +116,8 @@ theorem tInv_dirAu (W : WalGS GF) (e : TEnv) (γ : TGS) (od : Option WalDur) :
 /-- **`ReadAll`'s update, committed with the state unchanged**, given its premise on the state. -/
 theorem tInv_readAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) (P : WalDur → Prop) (hP : P d) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ⊢
-      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAt (W := W) (tWalDir e.area) d' ∗ ⌜P d'⌝ }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDiskAt (W := W) (tWalDir e.area) d', COMM ⌜d' = d⌝ ∗ tWalOwn γ (some d) }> := by
+      AU <{ ∃∃ d' : WalDur, WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 d' ∗ ⌜P d'⌝ }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDiskAtI (W := W) (tWalDir e.area) 0 d', COMM ⌜d' = d⌝ ∗ tWalOwn γ (some d) }> := by
   iintro ⟨#Hinv, Hwo⟩
   iauintro
   unfold atomic_acc
@@ -131,7 +131,7 @@ theorem tInv_readAu (W : WalGS GF) (e : TEnv) (γ : TGS) (d : WalDur) (P : WalDu
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask \ ↑tN from LawfulSet.empty_subset)
   iintro Hclose2
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  unfold WalFs.walDiskAt
+  unfold WalFs.walDiskAtI
   iexists d
   iframe Hwd
   isplitr
@@ -159,8 +159,8 @@ theorem tInv_openAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o1 : TOracle) (cd : TC
     (s : w64 × w64) (hcd : cd ∈ o1.cands)
     (hok : tCandOk o1 cd (walOpenRaise s d)) :
     TInv (W := W) e γ ∗ tOrOwn γ o1 none ∗ tWalOwn γ (some d) ∗ tRelW (W := W) e.area o1 cd ⊢
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs (W := W) (tWalDir e.area) o }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDirIs (W := W) (tWalDir e.area) (o.map (fun d =>
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI (W := W) (tWalDir e.area) 0 o }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDirIsI (W := W) (tWalDir e.area) 0 (o.map (fun d =>
             { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) })),
           COMM ⌜o = some d⌝ ∗ tOrOwn γ o1 none ∗ tWalOwn γ (some (walOpenRaise s d)) }> := by
   iintro ⟨#Hinv, Ho, Hwo, #HrW⟩

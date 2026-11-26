@@ -129,7 +129,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
     have wpM := wp_Marshal pbRecordC pbRecordC_reg rp (recOf ⟨t, hash.crc32.crc32c c d, d⟩)
       trivial (by simp only [pbRecordC_size]; omega)
     simp only [pbRecordC_ty, pbRecordC_roC, pbEncC_pbRecordC] at wpM
-    wp_apply wpM $$ [] as %dat ⟨Hdat, Hcap⟩
+    wp_apply wpM $$ [] as %dat ⟨Hdat, Hcap, -⟩
     · iframe #
     try wp_auto
     wp_apply (wp_pad dat (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)) (by omega))

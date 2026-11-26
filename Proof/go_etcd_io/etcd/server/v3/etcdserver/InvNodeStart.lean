@@ -327,21 +327,38 @@ def rnBootPre (γr : SrvRaft) (bv : bootstrappedRaft) (cv : Config) (lok : GoInt
 `nodeStartedFresh`; the driver at its start; the durable state at `RaftState.init`; the view at the
 peers' membership: until then the spec's own conjuncts); at `restart σ cs S a m A₀`, `RestartNode`'s
 (the committed log `l` of the restored base, the driver at it with the restored hard state, the
-durable state `S` and the follower's role; the view at `(a, m)`). -/
+durable state `S` and the follower's role; the view at `(a, m)`; (2026-11-24, the lifetime law) the
+node's start term, the durable state's: `nodeStartTerm`, by which its `Ready`s' `MsgSnap`s are past it). -/
 def rnBootPost (γr : SrvRaft) (n : NodeH) (K : GName) (bv : bootstrappedRaft) (cv : Config)
     (ps : List w64) (ctxs : List (List w8)) : RNBoot → IProp GF
   | .fresh =>
     letI := srvStor (GF := GF) γr
     iprop(nodeStartedFresh n γr.cl srvClusterN ps ctxs cv.ID' ∗
       nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage') K) ∗
-      raftState γr.cl cv.ID' RaftState.init ∗
       nodeConfig n γr.cl srvClusterN ⟨0, Membership.simple (GMap.listToSet ps)⟩)
   | .restart σ _ S a m _ =>
     letI := srvStor (GF := GF) γr
     iprop(∃ l : List LogEntry, isCommittedLogLb γr.cl l ∗ ⌜l.length = σ.b⌝ ∗
       nodeDriver n γr.cl srvClusterN ⟨memStorIface bv.storage', l, σ.hs, none, K, S, StateFollower⟩ ∗
-      raftState γr.cl cv.ID' S ∗
-      nodeConfig n γr.cl srvClusterN ⟨a, m⟩)
+      nodeConfig n γr.cl srvClusterN ⟨a, m⟩ ∗
+      nodeStartTerm n S.term)
+
+/-- (P5, 2026-11-25) **The WAL view the boot starts the loop at**: `walView0` fresh; at a restart the
+durable state `S`, the restored hard state and the backend's log up to the records' base (Q34 (a)). -/
+def RNBoot.view (γr : SrvRaft) : RNBoot → WalView
+  | .fresh => walView0
+  | .restart σ _ S _ _ A₀ => ⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩
+
+/-- (P5, 2026-11-25) **The WAL as the boot hands it to the wrapper**, for the crash-aware durability's
+allocation once the node is started (raft's durable state only then the wrapper's): fresh, the empty
+history (`wal.bootOk_startK`; it reads as `walFresh`); at a restart, the restart's handover
+(`rnRestartWal`) with the records describing the boot's view (`ViewOk`), their certificate and the
+view's handed log committed. -/
+def rnBootWal (γr : SrvRaft) (h : WalH GF) : RNBoot → IProp GF
+  | .fresh => walHistH h [] true
+  | .restart σ _ S _ _ A₀ =>
+    iprop(rnRestartWal h σ ∗ ⌜ViewOk ⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ σ⌝ ∗
+      walSnapCert γr.cl σ ∗ isCommittedLogLb γr.cl (srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)))
 
 end defs
 

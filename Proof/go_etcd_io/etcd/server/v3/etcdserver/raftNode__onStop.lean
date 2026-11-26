@@ -4,6 +4,7 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__onStop.lean`. Lean
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__onStop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 
 @[expose] public section
 
@@ -26,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r
-  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%S, %p, %L, %sent, HrS, Hwvo, Hprod, #Hidx, %Ha0, #HcL⟩,
+  wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%S, %p, %L, %sent, Hwvo, Hprod, #Hidx, %Ha0, #HcL⟩,
     ⟨%stm, %cid, #Hstm, Hmeta, Hpurge⟩⟩
   iunfold isRaftNode at Hr
   iNamed Hr
@@ -48,11 +49,6 @@ theorem raftNode.onStop.wp_proof :
   icombine Hst Hstm gives %Hsteq2
   have Hsteq2' : stm = st' := by first | exact Hsteq2.symm | exact Hsteq2.2.symm
   subst Hsteq2'
-  iunfold rnWalView at Hwvo
-  icases Hwvo with ⟨Hwv, Hwok⟩
-  -- (R2b-1 stage 6) the records, taken out of the durability invariant (`rnDur_take`)
-  imod rnDur_take γ.node.cl γ.wal γ.wal.h _ rfl $$ Hdur Hwst Hwap Hwv Hwok
-    with ⟨%σ, Hrecs, %Hσ, #Hσc⟩
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', %st2, #Hdnc', #Hst2, Hbc⟩
   icombine Hdnc Hdnc' gives %Heq
@@ -62,7 +58,17 @@ theorem raftNode.onStop.wp_proof :
   subst Hsteq3'
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
-  wp_auto
+  wp_auto_lc 1
+  -- (R2b-1 stage 6) the records, taken out of the durability invariant; (P5) with raft's durable
+  -- state, at the generation not crashed (`rnDurK_take.law`)
+  iunfold rnWalView at Hwvo
+  iapply (wp_ncfupd _ _ (by rfl))
+  unfold ncfupd
+  iintro Hnc
+  imod rnDurK_take_law_holds γ.node γ.id γ.walK γ.wal.h _ rfl $$ Hdur Hnc Hlc1 Hwst Hwap Hwvo
+    with ⟨Hnc, -, HrS, %σ, Hrecs, %Hσ, #Hσc⟩
+  imodintro
+  iframe Hnc
   rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Stop")]
   wp_auto
   rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Stop")]

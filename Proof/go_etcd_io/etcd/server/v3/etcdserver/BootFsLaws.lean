@@ -97,10 +97,10 @@ theorem bootFs.touchData_law_holds
 
 /-- **An update over the WAL directory `dir`, from `dir`'s own claim of no WAL** (`walAbsent`),
 committed with the state unchanged: `wal.Exist`'s update on the fresh area. -/
-theorem bootFs.walAbsent_au [W : WalFs.WalGS GF] (dir : GoString) :
-    WalFs.walAbsent (W := W) dir ⊢
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs (W := W) dir o }> @ WalFs.walAuMask, ∅
-        <{ WalFs.walDirIs (W := W) dir o, COMM ⌜o = none⌝ ∗ WalFs.walAbsent (W := W) dir }> := by
+theorem bootFs.walAbsent_au [W : WalFs.WalGS GF] (dir : GoString) (i : Nat) :
+    WalFs.walAbsentI (W := W) dir i ⊢
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI (W := W) dir i o }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDirIsI (W := W) dir i o, COMM ⌜o = none⌝ ∗ WalFs.walAbsentI (W := W) dir i }> := by
   iintro Ha
   iauintro
   unfold atomic_acc
@@ -108,20 +108,20 @@ theorem bootFs.walAbsent_au [W : WalFs.WalGS GF] (dir : GoString) :
   iintro Hclose
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iexists none
-  iunfold WalFs.walAbsent at Ha
+  iunfold WalFs.walAbsentI at Ha
   iframe Ha
   isplit
   · iintro Hd
     imod Hclose with -
     imodintro
-    iunfold WalFs.walAbsent
+    iunfold WalFs.walAbsentI
     iexact Hd
   · iintro Hd
     imod Hclose with -
     imodintro
     isplitr
     · ipureintro; rfl
-    iunfold WalFs.walAbsent
+    iunfold WalFs.walAbsentI
     iexact Hd
 
 /-- **`bootFs.walExist.law`** from `wal.Exist.spec` at the WAL area's file-extension instances: the
@@ -145,9 +145,12 @@ theorem bootFs.walExist_law_holds
       ⟨by have := a.fits.1; omega, a.fits.2⟩⟩
   have hnm : NameOk go!"wal" := by unfold NameOk; decide
   rw [hdd, ← hdir]
-  ihave Hau := bootFs.walAbsent_au (W := a.W) a.dir $$ Habs
+  iunfold WalFs.walAbsent at Habs
+  icases (WalFs.walDirIs_inc (W := a.W) a.dir none).1 $$ Habs with ⟨%ia, Habs⟩
+  ihave Hau := bootFs.walAbsent_au (W := a.W) a.dir ia $$ [Habs]
+  · iunfold WalFs.walAbsentI; iexact Habs
   wp_apply (@hE a.ext a.semOk a.has a.W a.R a.jr a.r a.dir go!"wal" 1
-      (fun o => iprop(⌜o = none⌝ ∗ WalFs.walAbsent (W := a.W) a.dir)) hin hnm)
+      (fun o => iprop(⌜o = none⌝ ∗ WalFs.walAbsentI (W := a.W) a.dir ia)) ia hin hnm)
     $$ [Hp Hres Hperm Hu Hau] as %b ⟨Hp, Hres, Hperm, Hu, %o, ⟨%ho, Habs⟩, -, %hf⟩
   · iframe; iframe #
   subst ho
@@ -161,7 +164,10 @@ theorem bootFs.walExist_law_holds
   iexists a
   isplitr
   · ipureintro; exact ⟨hdir, hin, hcl, hpath⟩
-  iframe Hok Hdur Hp Hres Hperm Hu Habs
+  iframe Hok Hdur Hp Hres Hperm Hu
+  iunfold WalFs.walAbsent
+  iunfold WalFs.walAbsentI at Habs
+  iapply WalFs.walDirIsI_dirIs (W := a.W) a.dir ia none $$ Habs
 
 end laws
 

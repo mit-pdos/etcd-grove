@@ -42,7 +42,8 @@ ever had `U` with an applied grant's id added (`everOwn`, `grantFresh`: the leas
 (c), 2026-11-05). (The lease-expiry plan's S2–S4, Q-S6 (A-ii), 2026-11-05) The
 record's TTL `t` at least the grant's request (`grantTTLOk`). (Auth-lease S4 item 7b, 2026-11-17)
 In a cluster that grants leases, the lessor window's target for the request (`winTgt`), asked only with `v3`
-(without it nothing reaches the backend). -/
+(without it nothing reaches the backend). (T10 step 2) Its no-lock outcome changed nothing the server's
+models track (`applyNoEff`). -/
 abbrev apply.uberApplier.Apply.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (x : apply.ApplyKV) (r : Loc)
     (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM)
@@ -61,7 +62,8 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       apply.cmpOwn E x.crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.applyTok E ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
-      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
+      apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗
+      apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x x' T rs out) ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
       apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
       (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out

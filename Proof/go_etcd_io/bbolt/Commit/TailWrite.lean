@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Commit.TailAcc
 public import Spec.go_etcd_io.bbolt.Tx__write_ext
+public import Proof.go_etcd_io.bbolt.Commit.CrashProt
 
 @[expose] public section
 
@@ -89,7 +90,10 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
     (hinW : ∀ s ∈ w.W, l / 4096 ≤ s → 4096 * (s + 1) ≤ w.m.size)
     (hpart : ∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) →
       w.m.size - 4096 * s ≤ (w.wb s).length)
-    (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = []) :
+    (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = [])
+    -- crash mode: the dirty pages inside the file (`DB.grow`)
+    (hcin : K.p.cs ≠ none → ∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ w.m.size)
+    (hWts : ∀ s ∈ bufSlots X.t.bufs, s ∉ treeSlots w.C ∧ s ∉ pendSlots w.fl) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx ws w }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
     {{ (err : GoInterface), RET #err; ∃ (pml : Loc) (m' : OsMeta) (wb' : Nat → List w8),
@@ -106,7 +110,8 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
               ∀ j < 1 + pageOverflow pg, wb' (id.toNat + j) = pageChunk pg j) ∧
             (∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * s < m'.size →
               m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length) ∧
-            (m'.size = w.m.size ∨ m'.size % 4096 = 0)⌝ ∗
+            (m'.size = w.m.size ∨ m'.size % 4096 = 0) ∧
+            (K.p.cs ≠ none → m'.lo = m'.size ∧ m'.hi = m'.size)⌝ ∗
           wdbLive K.B K.db K.p K.sp K.t0 tx ws
             (w.reslot m' (cmTail w (bufSlots X.t.bufs) l ++
                 wMinus w.W (bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l))
@@ -152,21 +157,26 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
       · exact List.mem_append_right _ ((mem_cmTail _ _ _ s).2 ⟨hlt, hsW, hgt, hSB⟩)
     · exact hinW s hsW (by omega)
   icases cm_write_acc K tx r false X $$ Hw with ⟨#Hcore, #Hreg, Hst, Hdb, Hpg, Hpm, Hbufs, Hwb⟩
-  icases cm_file_acc K.B K.db K.p K.sp K.t0 tx ws w hX $$ Hd
+  -- the dirty pages' bytes are no protected data of the committed state (crash mode)
+  icases BC.core_bfile K $$ Hcore with ⟨#Hci, -⟩
+  icases BC.core_crash K $$ Hcore with ⟨-, %hN, -⟩
+  imod cm_file_accP K tx ws w hX (fun k => k / 4096 ∈ bufSlots X.t.bufs)
+      (fun k hk => hWts _ hk) (by rw [hms]; exact fun h => nomatch h) hN $$ [Hd]
     with ⟨Hfile, Hwa, Hfo, Hfd, Hom, Hwc, Hwbs, Hdb'⟩
+  · iframe; iframe #
   rw [hms]
   icases wSlots_carveSz b l K.p w.W _ w.wb w.m.size (cmTail_nodup w _ l hnd) hsub' hin
     $$ [Hwc Hwbs] with ⟨Hs, Hwc, Hwbs⟩
   · iframe
   wp_apply wp_write K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.pages' X.t.pm X.t.bufs
-    (cmTail w (bufSlots X.t.bufs) l) w.wb w.f w.fd w.m b l (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
+    (cmTail w (bufSlots X.t.bufs) l) w.wb w.f w.fd w.C w.m b l (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
     hpm hbok hsz hl hmaps (cmTail_nodup w _ l hnd)
     (fun s hs => ((mem_cmTail _ _ _ s).1 hs).1)
     (fun s hs hgt => by
       by_cases hSB : s ∈ bufSlots X.t.bufs
       · exact Or.inl hSB
       · exact Or.inr ((mem_cmTail _ _ _ s).2 ⟨hs, hW s hs hgt, hgt, hSB⟩))
-    (fun s hs hz => hlen s (hsub' s hs) hz) (fun s _ h1 h2 => hpart s h1 h2)
+    (fun s hs hz => hlen s (hsub' s hs) hz) (fun s _ h1 h2 => hpart s h1 h2) hcin
     $$ [Hst Hdb Hpg Hpm Hbufs Hfile Hwa Hfo Hfd Hom Hs]
     as %err ⟨Hst, Hdb, ⟨%pml, Hpg, Hpm⟩, Hfile, Hwa, Hfo, Hfd, %om', %wb', Hom, %Hom', Hres⟩
   · iframe; iframe #

@@ -59,10 +59,10 @@ def lfOK (N : Namespace) (db : Loc) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMe
 
 /-- **What `loadFreelist` takes at `Open`**: `open_core`'s inputs, the mapping's client halves
 not yet carved (the file's bytes at a half, the rest any cells). -/
-def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) (b : Loc)
-    (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
+def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) (C : CommitSt)
+    (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed γbq N db sp ∗
-      ghostVar γbq 1 () ∗
+      ghostVar γbq 1 () ∗ cpart (p.cs.map CsN.cg) 1 (treeData C) C.txid ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
       db.[DB, go!"statlock"] ↦ (zero_val sync.RWMutex) ∗
@@ -72,9 +72,9 @@ def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) 
       db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ dbPathLk db p fd ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      bMeta p C [] m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) (dbFd p.ino) ∗ Ps sp 1 ∗
-      osBytes p.ino 0 (DFrac.own 1) xs ∗
+      bBytes p 0 (DFrac.own 1) xs ∗
       bytesPointsto b (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
       ∃ vf, cellsR b xs.length (L - xs.length) vf)
 
@@ -89,19 +89,19 @@ def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile)
   iprop(∃ (B : BNs) (fl : FLPg) (fli : GoInterface),
     isBoltCoreP B N db p sp C.txid ∗
     threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
-    wdbCore B db p (lfW C b L m xs f fd fl fli) ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
+    wdbCore B db p (lfW C b L m xs f fd fl fli) ∗ ghostVar B.st (1 : Qp).half.half (treeData C, C.txid) ∗
     flPgOwn fli fl ∗ sparePair B db sp ∗ ghostVar B.cls (1 : Qp).half false ∗
     boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗ ghostVar B.clo 1 () ∗
     ⌜wdbOK (lfW C b L m xs f fd fl fli) ∧ B.bq = γbq⌝)
 
 /-- **`db.loadFreelist()` at `Open`**. -/
 abbrev DB.loadFreelist.spec_open : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq : GName) (N : Namespace)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq γcn : GName) (N : Namespace)
     (db sp f : Loc) (fd : w64) (p : BFile)
     (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
   lfOK N db C b L m xs → 0 ≤ fd.toInt →
-  {{ lfPre (GF := GF) γbq N db sp f fd p b L m xs ∗
-      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid }}
+  {{ lfPre (GF := GF) γbq N db sp f fd p C b L m xs ∗
+      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) ∗ ⧖ C.txid ∗ bMode γbq γcn N db p }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))
   {{ RET #(); lfPost γbq N db sp f fd p C b L m xs }}
 

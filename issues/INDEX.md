@@ -33,6 +33,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [clientv3/leasing: a key read just before the leasing session expires keeps serving its old value after other clients write it](leasing-stale-entry-after-reset.md) | yes | etcd-io/etcd#19091 issue closed; etcd-io/etcd#19092 pr closed; etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a range delete goes through while another client still caches a key in the range](leasing-wait-rescind-no-delete.md) | yes | etcd-io/etcd#20704 issue closed |
 | [raft: calling `Advance` before applying a conf change, as `Node.Advance` allows, lets two nodes commit different entries at one index](raft-advance-before-applyconfchange.md) | yes | etcd-io/etcd#4203 issue closed; etcd-io/raft#80 issue open; etcd-io/raft#234 issue closed; etcd-io/raft#456 issue open; etcd-io/etcd#12136 issue closed; etcd-io/raft#469 pr open |
+| [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | yes | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: a snapshot received while a conf change is being applied leaves a follower with the wrong configuration, or panics](raft-snapshot-during-apply-stale-confchange.md) | yes |  |
 | [raft: after a delayed stale-term message, a new leader sends a snapshot to a follower that is already caught up](raft-stale-term-appresp-index-zero-ack.md) | yes | etcd-io/raft#52 pr merged; etcd-io/raft#148 issue closed; etcd-io/raft#149 pr merged |
 | [raft: TLA+ trace validation rejects a new member that applies the bootstrap entries one at a time](raft-tla-bootstrap-entries-full-config.md) | yes |  |
@@ -82,7 +83,6 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [klog: Infof, Warningf and Errorf panic on an empty message when a logger is set](klog-printf-empty-with-logger.md) | no | kubernetes/klog#272 pr merged |
 | [clientv3/leasing: a `WithFromKey` delete does not make other leasing clients drop the keys they cache](leasing-delete-fromkey-skips-revoke.md) | no | etcd-io/etcd#22083 issue open; etcd-io/etcd#22118 pr open; etcd-io/etcd#20704 issue closed |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
-| [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | no | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
 | [The noax Raft fork rejects a configuration change carrying an optional protobuf field](raft-noax-confchange-wire-compat.md) | no |  |
 | [A healthy shared Raft witness cannot help a joint configuration commit](raft-witness-joint-progress.md) | no |  |
@@ -101,10 +101,11 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (29)
+## Reported by others (30)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
+| [bbolt: a crash while creating a new database can leave a file that never opens](bbolt-init-not-crash-safe.md) | yes | etcd-io/bbolt#567 issue closed; etcd-io/bbolt#1151 pr merged; etcd-io/etcd#16596 issue closed |
 | [backend: after two puts of one key in one write session, reads return the older value until the next commit](etcd-backend-duplicate-put-stale-read.md) | yes | etcd-io/etcd#21986 issue open; etcd-io/etcd#21987 pr open; etcd-io/etcd#22298 pr open; etcd-io/etcd#21985 pr closed |
 | [mvcc: compacting at the revision of a txn that deletes a key and puts it again loses the key's value](etcd-compaction-delete-then-put.md) | yes | etcd-io/etcd#22376 issue open; etcd-io/etcd#22377 pr open; etcd-io/etcd#22395 pr open |
 | [clientv3: after a keep-alive stream loses its leader, canceling one `KeepAlive` closes another caller's channel](etcd-lease-close-require-leader-ctx-misaligned.md) | yes | etcd-io/etcd#22081 issue open; etcd-io/etcd#22087 pr open; etcd-io/etcd#21872 pr closed; etcd-io/etcd#22094 issue open |

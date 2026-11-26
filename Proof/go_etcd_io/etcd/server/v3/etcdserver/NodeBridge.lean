@@ -358,18 +358,21 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames GF)
 
 /-- **The node meets `raftApplyCC`** (D43 M3; 2026-10-27: over the node API; 2026-10-30, the
 repair: `node.ApplyConfChange.spec`, the decision the cluster's rule's by `confPolicy_decide`
-(`srvClusterOk`'s policy, the committed log delivered, `deliveredLogLb_committed`, the membership
-at `k` from the view's by `nodeConfig_confAt` and `confAt_noConf`), the conf entries between the
-view and `k` none, `skippedIn_noConf`; the stopped answer refuted by the running token's share,
+(`srvClusterOk`'s policy, the committed log delivered, `deliveredLogLb_committed`); the membership
+at `k` the view's (2026-11-24, raft's option D: `node.ApplyConfChange.spec` takes `confAt` at `k`,
+until then the conf entries between the view and `k` skipped, `skippedIn_noConf`): both the
+voters' (`srv_confAt_simple` at `k` and at the view's index, `confAt_agree` with
+`nodeConfig_confAt`); the stopped answer refuted by the running token's share,
 `nodeRunning_stopped`; until then `node.ApplyConfChange.dynamicSpec` at the decoder): with the
 driver's view and the committed log delivered; its answer is the view at `⟨k + 1, m'⟩`. -/
-theorem raftApplyCC_of_isNode (γ : RNNames GF)
+theorem raftApplyCC_of_isNode (γr : ServerRaftNames) (γ : RNNames GF) (Hraft : γr.raft = γ.node)
     (wp_ApplyConfChange : letI := srvStor (GF := GF) γ.node;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ∗ srvClusterOk γ.srv ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ∗ srvClusterOk γ.srv ∗
+      srvRaftLogInv γr ⊢
       raftApplyCC γ.srv γ.nl (rnNodeIface γ) := by
   letI := srvStor (GF := GF) γ.node
-  iintro ⟨#Hpraft, #Hnode, #Hcl⟩
+  iintro ⟨#Hpraft, #Hnode, #Hcl, #Hinv⟩
   iunfold rnIsNode at Hnode
   ihave %Huntr := srvClusterOk_untraced γ.srv $$ Hcl
   iunfold srvClusterOk at Hcl
@@ -379,13 +382,26 @@ theorem raftApplyCC_of_isNode (γ : RNNames GF)
   isplitr
   · ipureintro; rfl
   iintro !> %c %cm %l %v %k %e %m' %q %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl, Hrun⟩ HΦ
-  obtain ⟨h1, h2, h3, h4, o', h5, h6, h7, -⟩ := Hpre
+  obtain ⟨h1, h2, h3, o', h5, h6, h7, -⟩ := Hpre
   have hk : k ≤ l.length := Nat.le_of_lt (List.getElem?_eq_some_iff.1 h2).1
   ihave ⟨Hcfg, #Hca⟩ := nodeConfig_confAt γ.nl γ.node.cl srvClusterN v $$ Hcfg
   ihave #Hcom := deliveredLogLb_committed γ.nl γ.node.cl srvClusterN l $$ Hdl
+  -- the voters' membership at every index of the committed log delivered (D3)
+  have Hsimp : ∀ j, j ≤ l.length →
+      srvRaftLogInv (GF := GF) γr ∗ isCommittedLogLb γ.node.cl l ⊢
+        |={⊤}=> confAt γ.node.cl j (Membership.simple γ.node.cfg) := by
+    intro j hj
+    rw [← Hraft]
+    exact srv_confAt_simple γr l j hj ⊤ (by simp) (by simp)
+  imod (Hsimp v.applied (Nat.le_trans h1 hk)) $$ [Hinv Hcom] with #Hsv0
+  · iframe Hinv Hcom
+  imod (Hsimp k hk) $$ [Hinv Hcom] with #Hsk
+  · iframe Hinv Hcom
+  ihave %Hv0 := confAt_agree γ.node.cl v.applied v.membership (Membership.simple γ.node.cfg)
+    $$ [Hca Hsv0]
+  · iframe Hca Hsv0
   ihave #Hck : confAt γ.node.cl k v.membership $$ []
-  · iapply confAt_noConf γ.node.cl l v.applied k v.membership h4 h1 hk
-    iframe Hcom Hca
+  · rw [Hv0]; iexact Hsk
   have hstep : (ConfDecision.ofRule (γ.node.rule (List.take k l) v.membership e)).step
       v.membership = some m' := by
     rw [h5]; exact h6
@@ -396,7 +412,6 @@ theorem raftApplyCC_of_isNode (γ : RNNames GF)
   · rw [show ConfDecision.apply o' = ConfDecision.ofRule (γ.node.rule (List.take k l)
       v.membership e) by rw [h5]; rfl]
     iexact Hdec
-  ihave #Hsk := skippedIn_noConf γ.node.cl l v.applied k h4
   wp_apply (wp_ApplyConfChange γ.nl γ.node.cl srvClusterN γ.id c (.v1 cm) o' l k e v m'
       h1 h2 h3 h6 h7 (fun h => absurd Huntr h)) $$ [Hc Hcfg] as %csp %cs Hres
   · iframe #
@@ -463,8 +478,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply raftApplyCC_of_isNode γ wp_ApplyConfChange
-    iframe Hpraft Hnode Hcl
+  · iapply raftApplyCC_of_isNode E.γr.raft γ Hraft wp_ApplyConfChange
+    iframe Hpraft Hnode Hcl Hinv
   isplitr
   · -- `Ready`
     iintro !> %Φ !> - HΦ
@@ -476,26 +491,52 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
   · -- `Advance`, after a `Ready` without a snapshot
     iintro !> %d %ce %es %p %S %r %Φ !> ⟨Hbusy, Hcv, Hrcpt, Hrun⟩ HΦ
     iunfold rnBusyN at Hbusy
-    icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
     iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
     -- (R2d'a A6) the view is over the ghost log, of which the log handed out is a prefix
-    have Hnc : NoConfChangeIn (srvLE γ.srv (d ++ ce)) v.applied (srvLE γ.srv (d ++ ce)).length := by
-      have h := Hok.2.1
-      have e : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).map EntryModel.toLE =
-          srvLE γ.srv (d ++ ce) ++
-            (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE := by
-        simp [rnGhost, srvLE]
-      have el : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).length =
-          (srvLE γ.srv (d ++ ce) ++
-            (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE).length := by
-        rw [← e, List.length_map]
-      rw [e, el] at h
-      exact NoConfChangeIn_prefix _ _ _ h
-    ihave #Hsk := skippedIn_noConf γ.node.cl (srvLE γ.srv (d ++ ce)) v.applied _ Hnc
+    have e : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).map EntryModel.toLE =
+        srvLE γ.srv (d ++ ce) ++
+          (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE := by
+      simp [rnGhost, srvLE]
+    have el : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).length =
+        (srvLE γ.srv (d ++ ce) ++
+          (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE).length := by
+      rw [← e, List.length_map]
+    have Hlen : (srvLE γ.srv (d ++ ce)).length ≤
+        (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).length := by
+      rw [el, List.length_append]; omega
+    -- (2026-11-24, option D) the view's membership at the committed log handed out, where
+    -- `Advance` moves the view
+    ihave ⟨Hcfg, #Hca⟩ := nodeConfig_confAt γ.nl γ.node.cl srvClusterN v $$ Hcfg
+    ihave ⟨Hbusy, #Hdl⟩ := nodeDriver_deliveredLogLb _ _ _ _ $$ Hbusy
+    ihave #Hcom := deliveredLogLb_committed γ.nl γ.node.cl srvClusterN _ $$ Hdl
+    -- the delivered log's end: the voters' membership there and at the view's index, if within
+    -- (D3, `srv_confAt_simple`, `confAt_agree`); else the view's own
+    have Hsimp : ∀ j, j ≤ (srvLE γ.srv (d ++ ce)).length →
+        srvRaftLogInv (GF := GF) E.γr.raft ∗
+          isCommittedLogLb γ.node.cl (srvLE γ.srv (d ++ ce)) ⊢
+          |={⊤}=> confAt γ.node.cl j (Membership.simple γ.node.cfg) := by
+      intro j hj
+      rw [← Hraft]
+      exact srv_confAt_simple E.γr.raft _ j hj ⊤ (by simp) (by simp)
+    imod (Hsimp (min v.applied (srvLE γ.srv (d ++ ce)).length) (Nat.min_le_right _ _))
+      $$ [Hinv Hcom] with #Hsv0
+    · iframe Hinv Hcom
+    imod (Hsimp _ (Nat.le_refl _)) $$ [Hinv Hcom] with #Hsl
+    · iframe Hinv Hcom
+    ihave #Hsk : confAt γ.node.cl (max v.applied (srvLE γ.srv (d ++ ce)).length) v.membership $$ []
+    · rcases Nat.le_total v.applied (srvLE γ.srv (d ++ ce)).length with h | h
+      · rw [Nat.max_eq_right h]
+        ihave %Hv0 := confAt_agree γ.node.cl v.applied v.membership
+          (Membership.simple γ.node.cfg) $$ [Hca Hsv0]
+        · iframe Hca
+          iExactEq Hsv0
+          rw [Nat.min_eq_left h]
+        rw [Hv0]; iexact Hsl
+      · rw [Nat.max_eq_left h]; iexact Hca
     wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
         ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none), γ.key, S, r⟩
         (es.map EntryModel.toM) none v rfl (fun _ h => by cases h)) $$ [Hbusy Hrcpt Hcfg]
@@ -505,17 +546,19 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
     icases Hres with (⟨Hdrv, #Hal, Hcfg⟩ | ⟨#Hst, -⟩)
     · iapply HΦ
       iframe Hrun
-      isplitl [Hdrv Hcfg HrS]
+      isplitl [Hdrv Hcfg]
       · iunfold rnDrv
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
-        iframe HrS
         iunfold rnCfgAt
         iunfold rnView
         iunfold srvCfgView
-        iexists v
+        iexists ⟨max v.applied (srvLE γ.srv (d ++ ce)).length, v.membership⟩
         iframe Hcfg
-        ipureintro; exact Hok
+        ipureintro
+        obtain ⟨Ho1, Ho3⟩ := Hok
+        refine ⟨Nat.max_le.2 ⟨Ho1, ?_⟩, Ho3⟩
+        simp only [List.nil_append] at Hlen ⊢; omega
       iapply nodeAppliedLb_mono γ.node.cl γ.key _ _ (by simp [srvLE]) $$ Hal
     · iexfalso
       iapply nodeRunning_stopped γ.nl γ.node.cl srvClusterN _ $$ [Hrun Hst]
@@ -525,7 +568,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
     -- `srv_confAt_simple` at the snapshot's committed log, `confAt_agree`)
     iintro !> %d %A' %es %p %l %S %r %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
-    icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
+    icases Hbusy with ⟨Hdrv, Hcv, %Hsn⟩
     obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
     -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
@@ -535,7 +578,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
     iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
-    obtain ⟨hva, -, W, hW, -, -, hW0, hWs⟩ := Hok
+    obtain ⟨hva, W, hW, -, -, hW0, hWs⟩ := Hok
     ihave #Hsv := snapshotCert_valid γ.node.cl srvClusterN l.snap hpos h61 $$ [Hisc Hcert]
     · iframe Hisc Hcert
     iunfold snapshotValid at Hsv
@@ -598,11 +641,10 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
       · rw [hls]; iframe Hca Hms
       iapply HΦ
       iframe Hrun
-      isplitl [Hdrv Hcfg HrS]
+      isplitl [Hdrv Hcfg]
       · iunfold rnDrv
         isplitl [Hdrv]
         · iExactEq Hdrv; rfl
-        iframe HrS
         iunfold rnCfgAt
         iunfold rnView
         rw [hgA]
@@ -613,13 +655,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames GF) (s : Loc) (issu
         rw [List.nil_append]
         have hm : m = Membership.simple γ.node.cfg := Hm'.trans Hms
         subst hm
-        refine ⟨by simp only [List.length_map]; omega, ?_, γ.node.cfg, rfl, fun _ h => h,
+        exact ⟨by have := hlA; simp only [List.length_append] at this ⊢; omega, γ.node.cfg, rfl, fun _ h => h,
           fun _ h1 h2 => absurd h1 h2, hW0, hWs⟩
-        intro k e hk1 hk2 _
-        (try simp only [List.length_append] at hk2)
-        (try simp only at hk1)
-        have := hlA; simp only [List.length_append] at this
-        omega
       iapply nodeAppliedLb_mono γ.node.cl γ.key _ _ (by
         simp only [srvLE, List.length_map]; omega) $$ Hal
     · iexfalso

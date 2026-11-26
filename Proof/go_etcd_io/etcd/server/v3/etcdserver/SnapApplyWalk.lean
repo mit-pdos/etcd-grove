@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 -- (the lease-expiry plan's step 2) the range deleter's argument, `traceutil.TODO()`
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps
 
 @[expose] public section
 
@@ -75,7 +76,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
-    (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
+    (hle : uint.Z (ciEff γ st.k) < uint.Z sv.Metadata'.Index') (hpd : st.pending = false)
     (hLR : lease.lessor.Recover.spec (GF := GF) (hG := hG))
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
@@ -198,7 +199,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
        (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
-       inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd img (snapRmM γt)) ∗
+       snapDirInvH (config.snapDirOf cfg.DataDir') γd img (snapRmM γt) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
@@ -301,6 +302,25 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       iprop(True) $$ [Hrcv] as ⟨Hrcv, %iw, %mw, #Hwrec, %Hmw⟩
   · iframe #; iexact Hrcv
   (try wp_auto)
+  -- (D6 T4 round 3, the fork guard) `if ci := s.consistIndex.ConsistentIndex(); GetIndex() <= ci`:
+  -- not taken, the consistent index strictly below the snapshot (`hle`)
+  ihave #HsrvCI := Hsrv
+  iunfold isServerM at HsrvCI
+  icases HsrvCI with ⟨-, #HCI, -⟩
+  iunfold isServerCI at HCI
+  icases HCI with ⟨#Hcif, #Hisci, #Hinv⟩
+  ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg γ ci b st hpd) $$ [Hst Hab] as ⟨Hst, Hab⟩
+  · iframe #; iframe Hst Hab
+  (try wp_auto)
+  wp_apply hGI $$ [Hsm] as -
+  · iframe #
+  (try wp_auto)
+  wp_if_destruct
+  · exfalso; word
+  (try wp_auto)
   -- `s.bemu.Lock()`: `bemu`'s whole lock invariant
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -309,11 +329,6 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   -- `OpenSnapshotBackend(s.Cfg, s.snapshotter, snapshot, s.beHooks)`: the snapshot's backend, its
   -- names announced (`snap_create`), the store's late registration slot fresh
-  ihave #HsrvCI := Hsrv
-  iunfold isServerM at HsrvCI
-  icases HsrvCI with ⟨-, #HCI, -⟩
-  iunfold isServerCI at HCI
-  icases HCI with ⟨#Hcif, #Hisci, #Hinv⟩
   -- (strict M1) the store's registration and the write invariant the backend is opened at
   imod hWA with ⟨%gx', HwReg, HlateW⟩
   imod (ghostVar_alloc (GF := GF) sv.Metadata'.Index') with ⟨%γmt0, Hmt0⟩
@@ -321,16 +336,14 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γwr0, Hwr0⟩
   imod (token_alloc (GF := GF)) with ⟨%γpd0, Hpd0⟩
   let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (sv.Metadata'.Index', tI), γmt0, γmt0⟩
-  ihave Hcreate := snap_create γ π0 d.P D (mvcc.api.mvccW gx') hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
+  ihave Hcreate := snap_create (IR := fun _ _ => iprop(True)) γ π0 d.P D (mvcc.api.mvccW gx') hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
   · iPkgInit
   ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
-  ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
-  · iPkgInit
-  ihave #Hhooks := hooksOk_server_fut hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
+  ihave #Hhooks := hooksOk_server_fut (IR := fun _ _ => iprop(True)) hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
     (fun _ => mvcc.api.mvccW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $Hinv]
   -- (2026-11-06, `notes/begin-tok-plan.md`) `OpenSnapshotBackend`'s instance, from the server's bound
   ihave %Htb0 : ⌜threadBound GF ≤ backend.rdPoolN⌝ $$ [Hsrv]
@@ -350,7 +363,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     isplitr
     · ipureintro; exact ⟨hdbo, hmmap, hP.1, hP.2.1⟩
     iexact Hcreate
-  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, Hγt, #HnFile⟩ | ⟨%Herr, -, -⟩)
+  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, Hγt, #HnFile, -⟩ | ⟨%Herr, -, -⟩)
   rotate_left
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
@@ -393,8 +406,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iPkgInit
   let π' := futPhys π0 d'.γB
   let s' : ApplyState := ⟨W64 0, sv.Metadata'.Index', sv.Metadata'.Index', false⟩
-  wp_apply (wp_ci_swap hSB γ ci st s' π' jf γcf b _ rfl rfl
-      ⟨by simp [s', ciEff, π', π0], by simp [s', ciEff, π', π0]⟩ (by simpa [π', π0] using hle))
+  wp_apply (wp_ci_swap hSB γ ci (stLoaded γ st) s' π' jf γcf b _ rfl rfl
+      ⟨by simp [s', ciEff, π', π0], by simp [s', ciEff, π', π0]⟩
+      (by rw [stLoaded_ciEff]; simpa [π', π0] using Int.le_of_lt hle))
     $$ [Hst Hown Hmt0b Hwr0 Htcf] as ⟨Hst, #Hreg', Hfs, Hown⟩
   · iframe #; iframe Hst Hown Hmt0b Hwr0 Htcf
   -- the new backend's payment rights, back from the futures: its write-back tokens, its open
@@ -757,7 +771,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #d'.be) $$ [Hown]
   · iunfold applyBackend; iframe Hown HmB'
-  wp_apply (wp_ci_get hCIg (γ.withPh π') ci _ s' rfl) $$ [Hst Hab'] as ⟨Hst, Hab'⟩
+  wp_apply (wp_ci_get (IR := fun _ _ => iprop(True)) hCIg (γ.withPh π') ci _ s' rfl) $$ [Hst Hab'] as ⟨Hst, Hab'⟩
   · iframe #; iframe Hst Hab'
     rw [show consInv (GF := GF) (γ.withPh π') = consInv γ from rfl]
     iexact Hinv
@@ -786,7 +800,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   -- (wal-link L3) the WAL contract's `Release` law, at the apply thread's share (`rnWalTokA`): the
   -- records read (`rnDur_read_au`), the snapshot's record from `notifyc`'s first receive
   iunfold rnWalTokA at HwT
-  icases HwT with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave⟩
+  icases HwT with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave, %Hsd⟩
   icombine Hstpf Hst0 gives %Hsteq
   have Hsteq' : st0 = interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
@@ -799,7 +813,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   subst Hss
   ihave %Hsok := isWalStorage_ok _ _ _ $$ Hsave
   obtain ⟨si, Hsieq⟩ := Hsok
-  ihave HRAU := rnDur_read_au γw.node.cl γw.wal γw.wal.h $$ Hdur Hwap
+  ihave HRAU := rnDurK_read_au γw.node γw.id γw.walK γw.wal.h $$ Hdur Hwap
   ihave #HRel := walRelease_spec _ γw.wal.h γw.ss _ Hsieq q sn smp DFrac.discard DFrac.discard
       sv.Metadata' (config.snapDirOf cfg.DataDir') γd img (snapRmM γt) iw mw (token γw.wal.app) Hmw $$ Hsave
   have Hsieq0 := Hsieq
@@ -816,7 +830,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     · exact absurd (hsop.1 γw.ss) h
   subst hrerr
   ihave HwT : rnWalTokA γw (srvRAddr s) q $$ [Hwo Hwap Hrdw]
-  · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave
+  · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave; ipureintro; exact Hsd
   (try wp_auto)
   -- `s.alarmStore.Recover(schema.NewAlarmBackend(lg, newbe))`: the alarm store on the new backend
   wp_apply hInfo $$ []

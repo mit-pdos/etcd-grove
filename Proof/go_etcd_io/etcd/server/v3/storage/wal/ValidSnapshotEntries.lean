@@ -13,7 +13,7 @@ public import Spec.go_uber_org.zap.Int
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.VsePin
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.NameLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 
@@ -190,7 +190,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     wal.ValidSnapshotEntries.spec (W := W) Mr := by
-  intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  intro lg R jr r dir nm qp Q ic hin hnmO hr hdl
   have hdl' : dir.length < 4096 := hdl.1
   iintro %Φ ⟨#Hpkg, #Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩ HΦ
   ihave #Hok' := Hok
@@ -204,9 +204,9 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
   have hdc := dir_child hin
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q hin (hok.1 nm hnm)
+  imod walInv_openAll walCodec Mr R jr r dir nm N _ h Wn Q ic hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
-  icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%d, %lay, %X, %hj, ⟨%hle, %hpin⟩, Hpin⟩)
+  icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%d, %lay, %X, %hj, ⟨%hle, %hpin⟩, Hpin, -⟩)
   · -- no WAL: every attempt fails at `readWALNames`
     subst ho
     imodintro
@@ -250,8 +250,11 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
   · -- a WAL: every segment pinned
     obtain ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn⟩ := hpin
     unfold walPinAllRes
-    icases Hpin with ⟨#Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj⟩
-    imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
+    icases Hpin with ⟨%I, #Hkey, Hl, ⟨Htf, Hnf⟩, Ho, HS, Hj⟩
+    icases walLockedTokI_incQ (W := W) I $$ Hl with ⟨HI, Hl⟩
+    imod walInv_dirPath walCodec Mr R jr r dir I lay.j X [] $$ Hinv Hnc Hnf Hkey HI
+      with ⟨Hnc, HI, %nmd, %qd, %hdn, Hnf, Hpd⟩
+    ihave Hl := Hl $$ HI
     imodintro
     iframe Hnc
     have hS : ∀ g ∈ lay.segs, g.om.size = g.bs.length := fun g hg => (habs.metas g hg).1
@@ -286,9 +289,10 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
       $$ [Hpd Hperm HS Hj Hp HN Hsf Hcl HQ Hl Htf Hnf Ho] as %sl %err HΨ
     · iframe; iframe #
       iintro %sl %err ⟨-, -, -, Hpd, Hperm, HS, Hj⟩ Hout Hnc
+      imod walInv_dirPathRetD walCodec Mr R jr r dir nmd qd lay.j hdn $$ Hinv Hnc Hnf Hpd with ⟨Hnc, Hnf⟩
       imod walInv_unpinAll walCodec Mr R jr r dir lay X hj hS $$ Hinv Hnc [Hl Htf Hnf Ho HS Hj]
         with ⟨Hnc, Hu⟩
-      · unfold walPinAllRes; iframe; iframe #
+      · unfold walPinAllRes; iexists I; iframe; iframe #
       imodintro
       iframe Hnc Hperm Hu
       isplitl [HN Hsf Hcl]

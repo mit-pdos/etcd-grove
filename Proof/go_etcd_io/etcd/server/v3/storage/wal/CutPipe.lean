@@ -47,14 +47,14 @@ theorem tmpClaim_absent (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b =
 /-- **`w.fp.Open()` from the handle's pipeline**; an error witnessed (`pipeErrW dir`). -/
 theorem wp_walPipeH_open
     (wp_Open : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.spec (GF := GF) (hG := hG))
-    (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (hk : k + 2 < 2 ^ 63) :
-    {{ walPipeH (GF := GF) fp dir j k }}
+    (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) {pp : Roots → DFrac → Prop} (hk : k + 2 < 2 ^ 63) :
+    {{ walPipeH (GF := GF) fp dir j k pp }}
       (App (Val (fp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.filePipeline.ty
         @!! go!"Open")) (Val #()))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
         (⌜err = interface.nil⌝ ∗ ∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64)
             (n : Nat), isFilePipe fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ pipeFile j dir n lf ∗
-            ⌜n ≤ k ∧ R = W.roots⌝) ∨
+            ⌜n ≤ k ∧ R = W.roots ∧ pp R dq⌝) ∨
         ⌜err ≠ interface.nil ∧ pipeErrW dir⌝ }} := by
   iintro %Φ Hp HΦ
   iunfold walPipeH at Hp
@@ -75,16 +75,17 @@ theorem wp_walPipeH_open
     iframe
     isplitl []
     · iexact Hfp
-    ipureintro; exact ⟨hn, hfr.2⟩
+    ipureintro; exact ⟨hn, hfr.2, hn2.2⟩
   · iright
     ipureintro; exact ⟨he, hw⟩
 
 /-- **The handle's pipeline after a cut**: the claim on the renamed file's name, `pipeTmp n`, is
 the one the next `Open` hands back. -/
 theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R : Roots)
-    (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) (hfp : fp ≠ null) (hR : R = W.roots) :
+    (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) (hfp : fp ≠ null) (hR : R = W.roots)
+    {pp : Roots → DFrac → Prop} (hpp : pp R dq) :
     isFilePipe (GF := GF) fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ tmpClaim j (pipeTmp n) ⊢
-      walPipeH fp dir j (k + 1) := by
+      walPipeH fp dir j (k + 1) pp := by
   iintro ⟨#Hfp, Hmain, Hc⟩
   iunfold walPipeH
   iexists γ, R, dq, sz, n + 1
@@ -92,7 +93,7 @@ theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R 
   rw [show n + 1 + 1 = n + 2 by omega, pipeTmp_add_two]
   iframe Hc
   isplitr
-  · ipureintro; exact ⟨by omega, trivial⟩
+  · ipureintro; exact ⟨by omega, hpp⟩
   · ipureintro; exact ⟨hfp, hR⟩
 
 end iris

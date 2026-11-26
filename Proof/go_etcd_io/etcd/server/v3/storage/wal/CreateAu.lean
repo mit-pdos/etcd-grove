@@ -112,12 +112,12 @@ the segment `g` whole (its `OsMeta`, its
 bytes). The lock token (its parking flag `false`: the new WAL's segment and directory claim stay out,
 the handle's) is the invariant's while the creating entry exists (`walCreatingAuth`); the commit
 gives it back. -/
-def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
+def walCreateP (dir : GoString) (i : Nat) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (Pv : Option WalDur → Prop) (Wn : List GoString)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : IProp GF :=
   iprop(walCreating (W := W) dir N h J ∗
-    (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
-      <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
+    (AU <{ ∃∃ o : Option WalDur, walDirIsI (W := W) dir i o ∗ ⌜Pv o⌝ }> @ walAuMask, ∅
+      <{ walDiskAtI (W := W) dir i (walDurFresh md), COMM Q }>) ∗
     walSplitFrag (W := W) Wn ∗
     osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
     osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs ∗
@@ -139,16 +139,24 @@ pipeline names: `WalOut.create`, the handle's to carry), the new WAL's tail regi
 (`walTailReg dir t`, `t` the tail record: the commit is the one step that knows the fresh WAL's
 layout, which the handle's encoder and offset must match; W4 log, twenty-third session), and the new
 WAL's directory key (`walDirKey dir J X`: the invariant holds the other half of `J`'s claim, once). -/
-def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
-    (Pv : Option WalDur → Prop) (Wn : List GoString)
-    (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) (t : TailG) : Option (Nat × Nat) → IProp GF
-  | none => walCreateP (W := W) dir N h md Q Pv Wn J X hJ g
-  | some _ => iprop(Q ∗ walSplitFrag (W := W) Wn ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
-      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗ walLockedTok (W := W) ∗
+def walCreateQK (dir : GoString) (i : Nat) (md : List w8) (Q : IProp GF) (Wn : List GoString)
+    (J : Ino) (X : List GoString) (g : SegG) (t : TailG) : IProp GF :=
+  iprop(Q ∗ walSplitFrag (W := W) Wn ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
+      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailReg (W := W) dir t ∗
       walNamesFrag (W := W) (some dir) ∗
-      walDirKey (W := W) dir J X ∗
-      ∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! dir = some (walDurFresh md)⌝)
+      walDirKey (W := W) dir i J X ∗
+      ∃ (s' : AbsDiskState) (I : GMap GoString Nat), walLockedTokI (W := W) I ∗ walPastI (W := W) (s', I) ∗
+        ⌜incOf I dir = i ∧ s'.wal !! dir = some (walDurFresh md)⌝)
+
+/-- `walCreateQ … (some _)`: `walCreateQK` and the pipeline's eighth of the incarnations (the reserve
+the commit took out with the pipeline names, `walParked_create`; `RenameWALOk`'s spine law gives it to
+the pipeline, `walPipeKey`). -/
+def walCreateQ (dir : GoString) (i : Nat) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
+    (Pv : Option WalDur → Prop) (Wn : List GoString)
+    (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) (t : TailG) : Option (Nat × Nat) → IProp GF
+  | none => walCreateP (W := W) dir i N h md Q Pv Wn J X hJ g
+  | some _ => iprop(walCreateQK (W := W) dir i md Q Wn J X g t ∗ walIncEAny (W := W))
 
 /-- **While `Create` of `dir` is creating, no WAL is in `dir`** (`notes/wal-units/fresh.md`): the
 creating entry holds the free lock token in the invariant (`walCreatingAuth`), so no registration is
@@ -169,10 +177,10 @@ theorem walCreating_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   icases Hc with (%he | ⟨%he, Hu⟩ | ⟨%he, Hu⟩)
   · subst he; simp at hcr
   · unfold walUnlockedTok
-    icases Hu with ⟨H1, H2, H3, H4, H5, H6⟩
+    icases Hu with ⟨H1, H2, H3, H4, H5, H6, H7⟩
     unfold walNamesRes
-    icases Hn with ⟨%o, %Wn', Hna, Hsa, %hf, %hun, Hsp, Hl⟩
-    icases walNames_agree (W := W) o none $$ Hna H6 with %ho
+    icases Hn with ⟨%o, %Wn', Hna, Hsa, %hf, %hun, %hst, Hsp, Hl⟩
+    icases walNamesS_agree (W := W) o _ $$ Hna H6 with %ho
     icases walSplit_agree (W := W) Wn' Wn $$ Hsa Hf with %hw
     subst ho hw
     have hsd : s.wal !! dir = none := by
@@ -180,17 +188,19 @@ theorem walCreating_absent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
       | none => rfl
       | some d => exact absurd (split_present hok hf.2 hin e).1 hnW
     iframe Hm Hf
-    isplitl [H1 H2 H3 H4 H5 H6]
+    isplitl [H1 H2 H3 H4 H5 H6 H7]
     · iright; ileft
       isplitr
       · ipureintro; exact he
       iframe
     isplitl
-    · iexists none, Wn'
+    · iexists ⟨none, none, []⟩, Wn'
       iframe
       isplitr
       · ipureintro; exact hf
-      ipureintro; exact hun
+      isplitr
+      · ipureintro; exact hun
+      ipureintro; exact hst
     ipureintro; exact hsd
   · obtain ⟨x', rfl⟩ := he
     by_cases e : dir = cleanKey
@@ -207,7 +217,7 @@ names take (`hJC`: every `.wal` entry a file, the segment's file only at its nam
 are after any crash keeping `J`'s entries, as every crash does once the commit bound `m` (the
 program's `osCommitLb m`) is past them (`hJm`). -/
 theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir nm tmp : GoString) (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop)
+    (dir nm tmp : GoString) (i : Nat) (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop)
     (Wn : List GoString) (hnW : nm ∉ Wn) (N : NameSet) (h : NamesH) (J : Ino)
     (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG) (lb : Nat)
     (hin : InArea r dir nm) (hne : tmp ≠ nm) (hnmN : N.Mem nm) (htmpN : N.Mem tmp)
@@ -228,14 +238,14 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
     (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
     ⊢ walInv (W := W) C Mr R jr r -∗ osCommitLb m -∗
-      walCreateP (W := W) dir N h md Q Pv Wn J X hJ g -∗
+      walCreateP (W := W) dir i N h md Q Pv Wn J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
-        (walCreateQ (W := W) dir N h md Q Pv Wn J X hJ g (tailG (walDurFresh md) lay g.ino none)) := by
+        (walCreateQ (W := W) dir i N h md Q Pv Wn J X hJ g (tailG (walDurFresh md) lay g.ino none)) := by
   have hex : TailExact lay := fun g1 hg1 => by
     rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1; exact hg1 ▸ hgx
   iintro #Hinv #Hcmm HP
-  iapply osAUnc_coiter _ _ _ (walCreateP (W := W) dir N h md Q Pv Wn J X hJ g) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (walCreateP (W := W) dir i N h md Q Pv Wn J X hJ g) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -359,8 +369,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       irevert Hab0
       dsimp only [Std.Tele.app]
       iintro ⟨Hab0, -⟩
-      unfold walDirIs
-      icases Hab0 with ⟨%M, HM, -⟩
+      unfold walDirIsI
+      icases Hab0 with ⟨%M, %Iv, HM, HIv, -, %hIv⟩
       have hLd : Ls !! dir = none := Hok.2.1 dir hsd
       -- the new segment is none of the layouts'
       obtain ⟨y, ys, hgbs⟩ : ∃ y ys, g.bs = y :: ys := by
@@ -387,19 +397,26 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz (by rw [hsegs]; simp)
         hdisj (by rw [hsegs]; simpa using hcut) hpg Han.2 htmpS
       -- the ghost state, the client's commit, the creating entry
-      imod walGhost_upd s (createSt s dir md) M (absLe_createSt hsd)
+      icases walGhost_inc s Iv $$ Hg HIv with ⟨Hg, HIv⟩
+      imod walGhostI_upd s (createSt s dir md) Iv M (absLe_createSt hsd)
         (walKeysInArea_createSt hin') (fun n hn => hn.insert rfl (by simp [walDurFresh]))
         (unlMono_insert s dir _ (fun d h => by rw [hsd] at h; cases h)) $$ Hg HM with
         ⟨-, Hg, HM, #Hp⟩
-      imod Hco $$ [HM] with HQ
-      · unfold walDiskAt walDirIs
-        iexists (createSt s dir md).wal
-        iframe HM
+      imod Hco $$ [HM HIv] with HQ
+      · unfold walDiskAtI walDirIsI
+        iexists (createSt s dir md).wal, Iv
+        iframe HM HIv
         ipureintro
         simp only [createSt, GMap.lookup_insert_eq]
-        exact walDurLe_refl _
+        exact ⟨walDurLe_refl _, hIv⟩
       imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
       imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, Htf, Hnf, -⟩
+      iunfold walLockedTok at HLk
+      icases HLk with ⟨%Il, HLk⟩
+      icases walGhostI_lockedI_agree (createSt s dir md) Iv Il $$ Hg HLk with ⟨Hg, HLk, %hIl⟩
+      subst hIl
+      ihave Hg : walGhost (W := W) (createSt s dir md) $$ [Hg]
+      · unfold walGhost; iexists Il; iexact Hg
       -- the new WAL's name: committed, its registration pending (G-spine)
       have hnewNm : ∀ dir' lay', Ls !! dir' = some lay' → lay'.nm ≠ lay.nm := by
         intro dir' lay' hl' he
@@ -437,10 +454,12 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         | some v =>
           obtain ⟨lay1, -, hl1, -⟩ := Hdko.1 dir v.1 v.2 e
           rw [hLd] at hl1; cases hl1
-      imod walDirKey_insert K dir J X hKd hXt $$ Hdk with ⟨Hdk, #Hkey⟩
+      icases walLockedTokI_incQ (W := W) Il $$ HLk with ⟨HIl, HLk⟩
+      imod walDirKey_insert K dir J X Il hKd hXt $$ Hdk HIl with ⟨Hdk, #Hkey, HIl⟩
+      ihave HLk := HLk $$ HIl
       imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
         (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
-        hsegs hpg hino hJo $$ Hpk Ho Hth with ⟨Hpk, Ho⟩
+        hsegs hpg hino hJo rfl $$ Hpk Ho Hth with ⟨Hpk, Ho, Hres⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
       -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)
@@ -518,18 +537,20 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         ipureintro
         exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
           hlay, walsBounded_ins Hbd.1 rfl
-            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, walDurFresh]⟩, Hbd.2⟩
+            ⟨hmd, hmdne, by simp [walHasMaxIdx, histM, histN, normH, normFrom, walDurFresh]⟩, Hbd.2⟩
       imodintro
-      dsimp only [walCreateQ]
+      dsimp only [walCreateQ, walCreateQK]
       rw [hgbs]
-      iframe HQ Hsf Hm2 Hb2 Hkey
-      iframe HLk Ho Hnf
+      isimp only [hIv] at Hkey
+      iframe HQ Hsf Hm2 Hb2 Hkey Hres
+      iframe Ho Hnf
       isplitl [Htf Htk Htv]
       · unfold walTailReg; iexists γt; iframe
-      iexists (createSt s dir md)
-      iframe Hp
+      iexists (createSt s dir md), Il
+      iframe HLk Hp
       ipureintro
       simp only [createSt, GMap.lookup_insert_eq]
+      exact ⟨hIv, trivial⟩
 
 end au
 

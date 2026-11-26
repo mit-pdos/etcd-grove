@@ -35,7 +35,10 @@ fails collecting the missing directories, `MkdirAll`s `d`, syncs the parent of e
 collected (outermost first; `d`'s parent last, F-N2), and probes `d/.touch` (`IsDirWriteable`). On
 success `name` holds a new empty directory `J` (its whole claim), and every entry that wrote `name` is
 committed (`osCommitLb n`, `h'.next ≤ n`): `d`'s entry survives any crash once `parent`'s does (the old
-spec's `dirDurable d`, which the WAL layer derives from it). On an error (one `fmt` formats, `fmtErrorOk`), `name` holding nothing or a
+spec's `dirDurable d`, which the WAL layer derives from it); (D6-T6, P7, 2026-11-25) so is every entry of the
+new directory's claim on a name other than `.touch` (those `mkdir` logged, before the parent's sync): a crash
+leaves each such name of `J` as it is, empty (what the snapshot directory's free names need,
+`bootstrapSnapshot`). On an error (one `fmt` formats, `fmtErrorOk`), `name` holding nothing or a
 directory of files, both claims whole (`tmpDirH`; until `wal-leaf4` the weaker `osSubtreeH`). Statement changes (sixth session): `name` absent (the os layer has no spec of a create
 over an existing `.touch` nor of `MkdirAll`/`Stat` of an existing name whose subtree the caller holds
 only as claims; `Create` removes a leftover `dir.tmp` first); `isPkgInit fileutil`; `d`'s length bound
@@ -50,7 +53,8 @@ abbrev fileutil.TouchDirAll.spec : Prop :=
   {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm (callKey R parent) 1 ∗
       ((⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ h', tmpDirH jp name h') ∨
         (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino) (n : Nat),
-          ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅⌝ ∗
+          ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅ ∧
+            ∀ xe ∈ hJ.ents, ∀ b, b ≠ go!".touch" → xe.2.1.op.Writes J b → xe.1 < n⌝ ∗
           osNames jp (.only [name]) (DFrac.own 1) h' ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
           osCommitLb n)) }}
 

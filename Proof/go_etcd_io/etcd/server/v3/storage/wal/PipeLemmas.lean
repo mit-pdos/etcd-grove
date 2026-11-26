@@ -338,17 +338,17 @@ theorem wp_createTmp
     (wp_create : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF)
       (hG := hG))
     (wp_open : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))
-    (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString) (X : List GoString)
+    (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString)
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (hb : NameOk b)
     (hbt : b ∈ walTmps) :
     {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-        osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
+        osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walPipeKey (W := W) dir j ∗
         osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ tmpClaim j b }}
       (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
           [go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty]))
           (Val #(child dir b))) (Val #true))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
-        osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+        walPipeKey (W := W) dir j ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
         ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (h : NamesH) (lo lk : Option Bool),
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
@@ -356,7 +356,7 @@ theorem wp_createTmp
             trFile i True ∗ osNames j (.only [b]) (DFrac.own qTmp) h ∗
             ⌜0 ≤ fd.toInt ∧ h.cur !! b = some (.file i)⌝) ∨
          (⌜err ≠ interface.nil⌝ ∗ tmpClaim j b ∗ ⌜¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)) }} := by
-  iintro %Φ ⟨#Hos, #Hpkg, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hc⟩ HΦ
+  iintro %Φ ⟨#Hos, #Hpkg, #Hsi, #Hwi, Hkey, Hp, Hperm, Hc⟩ HΦ
   unfold tmpClaim
   icases Hc with ⟨%h, Hn, Hent⟩
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_ok
@@ -364,26 +364,27 @@ theorem wp_createTmp
   | none =>
     -- the name absent: a create, under the WAL invariant (its half of the claim, `walTmp_osAUnc`)
     let A : Option (Nat × Nat × Ino) → Bool → IProp GF := fun o ok =>
-      iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+      iprop(walPipeKey (W := W) dir j ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
         crOut j b h (DFrac.own qTmp) o ∗
         crTr (ok = true) o ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
     have hT : fileutil.OpenTriple
         iprop(isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           osNames j (.only [b]) (DFrac.own qTmp) h ∗ walInv (W := W) C Mr R jr r ∗
-          walDirKey (W := W) dir j X)
+          walPipeKey (W := W) dir j)
         (child dir b) (wal.walOpenFlag true) (W32 384) A (crIno b h) := by
       unfold fileutil.OpenTriple
-      iintro %Ψ ⟨#Hosp, #Hos, #Hsi, Hp, Hperm, Hn, #Hwi, #Hkey⟩ HΨ
+      iintro %Ψ ⟨#Hosp, #Hos, #Hsi, Hp, Hperm, Hn, #Hwi, Hkey⟩ HΨ
       icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
-      ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat × Ino)) C Mr R jr r dir j X b hbt h
-        (crOut j b h) (crHist j b h) (crOut_tmpSplit j b h) (crHist_fo j b h) $$ Hwi [Hr]
-      · iunfold walTmpP; iframe Hr; iexact Hkey
+      ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat × Ino)) C Mr R jr r dir j b hbt h
+        (crOut j b h) (crHist j b h) (crOut_tmpSplit j b h) (crHist_fo j b h) $$ Hwi [Hr Hkey]
+      · iunfold walTmpP; iframe Hr Hkey
       iapply wp_open dir b (wal.walOpenFlag true) (W32 384) R j dq h (1 : Qp).half
         (1 : Qp).half (1 : Qp).half.half
-        (crOut j b h (DFrac.own (1 : Qp).half.half)) hfl hcr htr hb hcur
+        (fun o => iprop(crOut j b h (DFrac.own (1 : Qp).half.half) o ∗ walPipeKey (W := W) dir j))
+        hfl hcr htr hb hcur
         (Qp.half_add_half 1) $$ [$Hosp $Hos $Hsi $Hp $Hperm $Hn $Hau]
       inext
-      iintro %f %err ⟨Hp, Hperm, %o, Ho1, Ho2, Htr, Hr⟩
+      iintro %f %err ⟨Hp, Hperm, %o, ⟨Ho1, Hkey⟩, Ho2, Htr, Hr⟩
       iapply HΨ
       unfold fileutil.openPost
       iexists o
@@ -393,7 +394,7 @@ theorem wp_createTmp
         ileft
         isplitr
         · ipureintro; rfl
-        isplitl [Hp Hperm Ho Htr]
+        isplitl [Hp Hperm Ho Htr Hkey]
         · simp only [A]
           iframe
           ipureintro; nofun
@@ -418,9 +419,9 @@ theorem wp_createTmp
     unfold fileutil.lockPostW
     icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
     · simp only [A]
-      icases HA with ⟨Hp, Hperm, Ho, Htr, -⟩
+      icases HA with ⟨Hkey, Hp, Hperm, Ho, Htr, -⟩
       iapply HΦ
-      iframe Hp Hperm
+      iframe Hkey Hp Hperm
       ileft
       isplitr
       · ipureintro; exact he
@@ -440,9 +441,9 @@ theorem wp_createTmp
         iframe
         ipureintro; exact ⟨hfd, by simp [NamesH.log]⟩
     · simp only [A]
-      icases HA with ⟨Hp, Hperm, Ho, Htr, %hWo⟩
+      icases HA with ⟨Hkey, Hp, Hperm, Ho, Htr, %hWo⟩
       iapply HΦ
-      iframe Hp Hperm
+      iframe Hkey Hp Hperm
       iright
       isplitr
       · ipureintro; exact he.1
@@ -525,7 +526,7 @@ theorem wp_createTmp
         icases HA with ⟨Hp, Hn, Hperm, Htr, -⟩
         obtain ⟨hfd, rfl⟩ := hc
         iapply HΦ
-        iframe Hp Hperm
+        iframe Hkey Hp Hperm
         ileft
         isplitr
         · ipureintro; exact he
@@ -538,7 +539,7 @@ theorem wp_createTmp
       · simp only [A]
         icases HA with ⟨Hp, Hn, Hperm, Htr, %hWo⟩
         iapply HΦ
-        iframe Hp Hperm
+        iframe Hkey Hp Hperm
         iright
         isplitr
         · ipureintro; exact he.1
@@ -586,26 +587,28 @@ theorem rmFile_tmpClaim (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
 /-- **The unlink of the pipeline's file** `b` (`run`'s on `donec`, `Close`'s leftover), by the holder
 of the program's three quarters of its claim, under the WAL invariant (its half, `walTmp_osAUnc`). -/
 theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
-    (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString) (X : List GoString)
+    (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString)
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hbt : b ∈ walTmps) (hcur : h.cur !! b = some (.file i)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walPipeKey (W := W) dir j ∗
         osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.only [b]) (DFrac.own qTmp) h ∗ trFile i False }}
       (App (Val (@! os.Remove)) (Val #(child dir b)))
-    {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ tmpClaim j b }} := by
-  iintro %Φ ⟨#Hpk, #Hos, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
+    {{ (err : GoInterface), RET #err; walPipeKey (W := W) dir j ∗ osPathS R dir dq j ∗
+        osCallPerm (callKey R dir) qc ∗ tmpClaim j b }} := by
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, #Hwi, Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
   icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
-  ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat)) C Mr R jr r dir j X b hbt h
-    (rmFileOut j b i h) (rmHist j b i h) (rmFileOut_tmpSplit j b i h) (rmHist_fo j b i h) $$ Hwi [Hr]
-  · iunfold walTmpP; iframe Hr; iexact Hkey
+  ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat)) C Mr R jr r dir j b hbt h
+    (rmFileOut j b i h) (rmHist j b i h) (rmFileOut_tmpSplit j b i h) (rmHist_fo j b i h) $$ Hwi [Hr Hkey]
+  · iunfold walTmpP; iframe Hr Hkey
   iapply wp_Remove dir b j i R dq h (1 : Qp).half (1 : Qp).half qc
-    (rmFileOut j b i h (DFrac.own (1 : Qp).half.half)) hb hcur (Qp.half_add_half 1)
+    (fun o => iprop(rmFileOut j b i h (DFrac.own (1 : Qp).half.half) o ∗ walPipeKey (W := W) dir j))
+    hb hcur (Qp.half_add_half 1)
     $$ [$Hpk $Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
-  iintro %err ⟨-, Hp, Hperm, %o, -, Ho1, Ho2⟩
+  iintro %err ⟨-, Hp, Hperm, %o, -, ⟨Ho1, Hkey⟩, Ho2⟩
   iapply HΦ
-  iframe Hp Hperm
+  iframe Hkey Hp Hperm
   iapply rmFile_tmpClaim j b i h o hcur $$ [$Ho1 $Ho2 $Ht]
 
 end irisW

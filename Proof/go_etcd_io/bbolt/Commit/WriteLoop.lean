@@ -61,9 +61,9 @@ theorem wr_keys_le (keys : List w64) (lim : Nat) (hnd : keys.Nodup)
 theorem cur_any (b : Loc) (p : BFile) (k c' w cs r : Nat) (ysd ys : List ByteG)
     (P : List w8) (hysd : ysd.length = w) (hP : P.length = w) (hys : ys.length = cs)
     (htot : w + cs + r = 4096 * c') :
-    osBytes (GF := GF) p.ino (4096 * k) (DFrac.own 1) ysd ∗
+    bBytes (GF := GF) p (4096 * k) (DFrac.own 1) ysd ∗
       bytesPointsto (b +ₗ ((4096 * k : Nat) : Int)) (DFrac.own (1 : Qp).half) P ∗
-      osBytes p.ino (4096 * k + w) (DFrac.own 1) ys ∗ cAny b (4096 * k + w) cs ∗
+      bBytes p (4096 * k + w) (DFrac.own 1) ys ∗ cAny b (4096 * k + w) cs ∗
       oAny p (4096 * k + w + cs) r ∗ cAny b (4096 * k + w + cs) r ⊢
       [∗list] s ∈ List.range' k c', slotAny b p s := by
   iintro ⟨H1, H2, H3, H4, H5, H6⟩

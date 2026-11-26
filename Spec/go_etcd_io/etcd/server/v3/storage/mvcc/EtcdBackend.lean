@@ -115,6 +115,26 @@ instance mvccImage_persistent (D : backend.Data) (L : Log) (c : Int) (u : Bool) 
 
 end vocab
 
+section gen
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
+variable {GF : BundledGFunctors}
+variable [sem : go.Semantics]
+
+/-- **`mvccImage` is the same at every generation** (both at the Go context `lctx` of the program's
+instances) (D6-T7, the coordinator's option (a), 2026-11-25;
+ledger, "T6's `snapDir_crash.law` keeps the image predicate `img` of the old generation"): its body, the
+receipt `⧖` and a pure fact, reads only the global ghost state (`GooseGlobalGS`'s `AllG` and
+`ReceiptGS`), never the generation's (`GooseLocalGS`). What a crash law needs to carry an image
+certificate from the old generation to the new one; the predicate stays sealed. -/
+theorem mvccImage_gen (G : GooseGlobalGS HasLC.hasLC GF) (L L' : GooseLocalGS GF) (D : backend.Data)
+    (Lg : Log) (c : Int) (u : Bool) :
+    mvccImage (hG := ⟨G, { L with goose_go_local_context := lctx }⟩) D Lg c u ⊣⊢
+      mvccImage (hG := ⟨G, { L' with goose_go_local_context := lctx }⟩) D Lg c u :=
+  .rfl
+
+end gen
+
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

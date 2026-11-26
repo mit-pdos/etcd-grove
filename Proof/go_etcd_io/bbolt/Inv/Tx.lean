@@ -37,13 +37,7 @@ variable [sem : go.Semantics]
 /-- `tx`'s share of `tx.db` at fraction `q` (`q · ¾`: `txsInv` holds the other quarter). -/
 def txDbQ (q : Qp) : Qp := QpMul q (1 : Qp).half + QpMul q (1 : Qp).half.half
 
-/-- **The transaction's view is `v`** (persistent, agreeing): its registry's entry at the fixed
-key `null`, for both kinds (maintainer R's U6g item 2 for readers; U6w, the review's F2, for
-writers: two fragments agree, so a cursor's, a handle's or a slice's view is the writer's current
-`X.v` on a later call). A writer's base view, minted at `beginRWTx`; its re-based views (a remap
-in `Commit`) are `viewBase`. -/
-def viewOf (r : TxReg) (v : View) : IProp GF :=
-  iprop(null ↪[r.n.vw]□ v)
+-- `viewOf` (the transaction's view at `null`): `Inv/Txs.lean` (W3: a writer's `reg` names it).
 
 /-- **A writer's view registered at its base** (batch 37.3: what a remap re-bases, `vwOwn`'s
 entries at their keys). -/
@@ -423,7 +417,7 @@ mapping fields at `q · ¼` (the base view's pages inside the mapping, as a read
 facts (batch 43/44: `wrFacts`; maintainer 16: ending with the cursor facts `wrCurFacts`). -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
-    viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
+    viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) (T.base, X.v.txid) ∗
     hdlAuth r q X.handles ∗ nlAuth r q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
@@ -774,7 +768,7 @@ private theorem wtxFrac_fractional (B : BNs) (tx : Loc) (r : TxReg) (T : TxView)
       fun b => exField_fractional _ _
     infer_instance
   have h3 := QpMul_frac (fun q => viewCells (GF := GF) q X.v) wq
-  have h4 := QpMul_frac (fun q => ghostVar (GF := GF) B.st q T.base) (1 : Qp).half.half
+  have h4 := QpMul_frac (fun q => ghostVar (GF := GF) B.st q (T.base, X.v.txid)) (1 : Qp).half.half
   have h7 := fractional_comp (fun q => (tx.[Tx, go!"db"] ↦{DFrac.own q} r.db : IProp GF))
     txDbQ txDbQ_add
   have h8 : Fractional (fun q => iprop(∃ l : Nat,
@@ -962,6 +956,8 @@ private theorem rdTx_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView
   · iintro ⟨⟨%db, %pa, %sp, %t0, %r, %c, %v, %mv, %k, %Hc, #Hreg, #Hb, Hv, Hex, Hw, #Hp⟩,
       ⟨%db2, %pa2, %sp2, %t02, %r2, %c2, %v2, %mv2, %k2, %Hc2, #Hreg2, -, Hv2, Hex2, Hw2, -⟩⟩
     iunfold reg at Hreg Hreg2
+    icases Hreg with ⟨#Hreg, #Hreg_x⟩
+    icases Hreg2 with ⟨#Hreg2, -⟩
     icombine Hreg Hreg2 gives %hr
     obtain ⟨-, rfl⟩ := hr
     icombine Hv Hv2 gives %hv
@@ -973,7 +969,7 @@ private theorem rdTx_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView
     · ipureintro; exact Hc
     iframe Hb Hp
     isplitr
-    · iunfold reg; iexact Hreg
+    · iunfold reg; iframe #
     rw [Qp_half_add]
     isplitl [Hv Hv2]
     · iapply ((ghostVar_fractional r.n.v (c, TxX.rd v mv k)).fractional _ _).2; iframe
@@ -998,6 +994,8 @@ theorem boltTxDef_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) :
     · iintro ⟨⟨%db, %pa, %sp, %t0, %r, %c, %X, %Hc, #Hreg, #Hb, Hv, Hex, Hw⟩,
         ⟨%db2, %pa2, %sp2, %t02, %r2, %c2, %X2, %Hc2, #Hreg2, -, Hv2, Hex2, Hw2⟩⟩
       iunfold reg at Hreg Hreg2
+      icases Hreg with ⟨#Hreg, #Hreg_x⟩
+      icases Hreg2 with ⟨#Hreg2, -⟩
       icombine Hreg Hreg2 gives %hr
       obtain ⟨-, rfl⟩ := hr
       icombine Hv Hv2 gives %hv
@@ -1008,7 +1006,7 @@ theorem boltTxDef_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) :
       isplitr
       · ipureintro; exact Hc
       isplitr
-      · iunfold reg; iexact Hreg
+      · iunfold reg; iframe #
       iframe Hb
       rw [Qp_half_add]
       isplitl [Hv Hv2]
@@ -1036,6 +1034,8 @@ theorem boltTxDef_agree (B : BNs) (N : Namespace) (tx : Loc) (q1 q2 : Qp) (T1 T2
   icases boltTxDef_ex B N tx q1 T1 $$ H1 with ⟨%r1, Hr1, -, ⟨%c1, %x1, Hv1, %h1⟩, -⟩
   icases boltTxDef_ex B N tx q2 T2 $$ H2 with ⟨%r2, Hr2, -, ⟨%c2, %x2, Hv2, %h2⟩, -⟩
   unfold reg
+  icases Hr1 with ⟨#Hr1, -⟩
+  icases Hr2 with ⟨#Hr2, -⟩
   icombine Hr1 Hr2 gives %hr
   obtain ⟨-, rfl⟩ := hr
   icombine Hv1 Hv2 gives %hv
@@ -1072,11 +1072,11 @@ theorem boltTxDef_base (B : BNs) (N : Namespace) (tx : Loc) (q q' : Qp) (T : TxV
   unfold boltTxDef
   split
   · iintro ⟨⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, -, -, -, -, Hw⟩, Hs⟩
-    unfold wtxFrac boltStateDef
+    unfold wtxFrac boltStateDef boltStateVDef
     icases Hw with ⟨-, -, -, Hst, -⟩
-    icases Hs with ⟨Hs, -⟩
+    icases Hs with ⟨%ν, Hs, -⟩
     icombine Hst Hs gives %h
-    ipureintro; intro _; exact h.2
+    ipureintro; intro _; exact (Prod.mk.inj h.2).1
   · rename_i h
     iintro -
     ipureintro; intro h'; exact absurd h' h
@@ -1125,8 +1125,8 @@ theorem boltTxDef_fill (B : BNs) (N : Namespace) (tx b : Loc) (T : TxView) (n : 
           boltTxDef B N tx 1 T) := by
   unfold boltTxDef boltBktDef reg
   simp only [hrw, ↓reduceIte]
-  iintro ⟨⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, #Hreg, Hb, Hv, Hex, Hw⟩,
-    ⟨%r', #Hreg', -, Hh', -⟩⟩
+  iintro ⟨⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, ⟨#Hreg, #Hreg_x⟩, Hb, Hv, Hex, Hw⟩,
+    ⟨%r', ⟨#Hreg', -⟩, -, Hh', -⟩⟩
   icombine Hreg Hreg' gives %hr
   obtain ⟨-, rfl⟩ := hr
   unfold handleFrag
@@ -1143,7 +1143,7 @@ theorem boltTxDef_fill (B : BNs) (N : Namespace) (tx b : Loc) (T : TxView) (n : 
   isplitr
   · ipureintro; exact Hc
   isplitr
-  · iexact Hreg
+  · iframe Hreg Hreg_x
   iframe Hb Hv Hex Hheap Hcells Hst Hbk Hrest
   isplitl [Hfb Hfp]
   · iapply Hfb

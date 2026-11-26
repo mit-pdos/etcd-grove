@@ -85,9 +85,11 @@ def os.truncAuW (K : IProp GF) (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List By
 
 /-- **The supply of a resize of `p` to `tg`**, the caller's tie `K` (persistent): for any state `m0`,
 the caller's halves and `K` make the attempt's updates. The supply is told that `m0` has the caller's
-property `P`: `os.File.Truncate.specAu` takes `P` of the state it starts from and of every state at
-most as long as it or the target whose least crash size is at most the smaller of that state's and the
-target (every later attempt starts from a state an attempt announced or landed, `lo := min lo tg`). `P` is `True` by default; the WAL's tail passes "no
+property `P`: `os.File.Truncate.specAu` takes `P` of the state it starts from and of every state as
+long as it or the target whose least crash size is at most the smaller of that state's and the target
+(every later attempt starts from the state an attempt announced, `lo := min lo tg`, its size unchanged, or
+landed, its size the target; P6: `Repair`'s truncate past `wr` needs `tg ≤ size` at every attempt,
+`notes/wal-p6-handoff.md`). `P` is `True` by default; the WAL's tail passes "no
 resize window open, or `lo ≤ wr`" for its truncate at the write position (`LoWr`; I3b; W6 log,
 twenty-second session: it needs `lo ≤ wr` of a window, which only the handle knows), and `lo ≤ wr` for
 `ZeroToEnd`'s growing truncate back to the size, with the size at most the target (`wal-tc19`: the
@@ -103,14 +105,14 @@ instance os.truncSup_persistent (K : IProp GF) (p : Ino) (tg : Nat) (P : OsMeta 
   unfold os.truncSup; infer_instance
 
 /-- See the file header. `P` is the caller's property of the state the truncate starts from and of
-every state at most as long as it or the target and of a least crash size at most the smaller of its
+every state as long as it or the target and of a least crash size at most the smaller of its
 and the target, which the supply is told
 of at every attempt (`os.truncSup`). -/
 abbrev os.File.Truncate.specAu : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
     (m : OsMeta) (xs : List ByteG) (K : IProp GF) (P : OsMeta → Prop),
   0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.maps = ∅ → xs.length = m.size - sz.toNat →
-  P m → (∀ m' : OsMeta, m'.lo ≤ min m.lo sz.toNat → m'.size ≤ max m.size sz.toNat → P m') →
+  P m → (∀ m' : OsMeta, m'.lo ≤ min m.lo sz.toNat → m'.size = m.size ∨ m'.size = sz.toNat → P m') →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
       osMeta (GF := GF) d.ino (DFrac.own (1 : Qp).half) m ∗
       osBytes (GF := GF) d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs ∗

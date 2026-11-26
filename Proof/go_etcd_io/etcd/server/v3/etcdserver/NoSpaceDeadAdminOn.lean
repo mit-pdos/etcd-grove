@@ -84,45 +84,45 @@ theorem adminOutX_authApplyErrIs (M : auth.AuthMode) (Own : List auth.AuthState 
 (kept). -/
 theorem adminReqResult_authApplyErrIs (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (resp : Loc)
-    (err : GoInterface) (ad : apply.AdminReq) :
+    (err : GoInterface) (k : Prop) (ad : apply.AdminReq) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ⊢
-      ad.result Own γa M hs resp err -∗ ad.result Own γa M hs resp err ∗ authApplyErrIs err := by
+      ad.result Own γa M hs resp err k -∗ ad.result Own γa M hs resp err k ∗ authApplyErrIs err := by
   iintro #Hpkg H
   cases ad with
   | userAdd n =>
     simp only [apply.AdminReq.result]
-    icases H with ⟨H, %Hrn⟩
+    icases H with ⟨H, %Hrn, %Hk⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
     isplitl [H]
-    · iframe H; ipureintro; exact Hrn
+    · iframe H; ipureintro; exact ⟨Hrn, Hk⟩
     · iexact HA
   | roleAdd n =>
     simp only [apply.AdminReq.result]
-    icases H with ⟨H, %Hrn⟩
+    icases H with ⟨H, %Hrn, %Hk⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
     isplitl [H]
-    · iframe H; ipureintro; exact Hrn
+    · iframe H; ipureintro; exact ⟨Hrn, Hk⟩
     · iexact HA
   | userGrantRole u ro =>
     simp only [apply.AdminReq.result]
-    icases H with ⟨H, %Hrn⟩
+    icases H with ⟨H, %Hrn, %Hk⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
     isplitl [H]
-    · iframe H; ipureintro; exact Hrn
+    · iframe H; ipureintro; exact ⟨Hrn, Hk⟩
     · iexact HA
   | roleGrantPermission n w =>
     simp only [apply.AdminReq.result]
-    icases H with ⟨H, %Hrn⟩
+    icases H with ⟨H, %Hrn, %Hk⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
     isplitl [H]
-    · iframe H; ipureintro; exact Hrn
+    · iframe H; ipureintro; exact ⟨Hrn, Hk⟩
     · iexact HA
   | authEnable =>
     simp only [apply.AdminReq.result]
-    icases H with ⟨%en, #Hev, H, %Hrn⟩
+    icases H with ⟨%en, #Hev, H, %Hrn, %Hk⟩
     ihave ⟨H, #HA⟩ := adminOutX_authApplyErrIs _ _ _ _ _ err $$ Hpkg H
     isplitl [H]
-    · iexists en; iframe Hev H; ipureintro; exact Hrn
+    · iexists en; iframe Hev H; ipureintro; exact ⟨Hrn, Hk⟩
     · iexact HA
   | authenticate n pre =>
     simp only [apply.AdminReq.result]
@@ -145,12 +145,12 @@ admin outcome): `nil`, or its `Err` is not `ErrNoSpace`'s (`applyResultIs_notNoS
 counterpart for the admin entries). -/
 theorem applyResultIs_notNoSpaceAdmin (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState) (rq : apply.IRRModel)
-    (log : mvcc.Log) (ar : Loc) (out : apply.ApplyOut) :
+    (log : mvcc.Log) (ar : Loc) (k : Prop) (out : apply.ApplyOut) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars ⊢
-      apply.applyResultIs rq true log ar out -∗ apply.adminOut Own γa M hs rq true ar out -∗
+      apply.applyResultIs rq true log ar out -∗ apply.adminOut Own γa M hs rq true ar k out -∗
       apply.adminRejErr ar out -∗
-      apply.applyResultIs rq true log ar out ∗ apply.adminOut Own γa M hs rq true ar out ∗
+      apply.applyResultIs rq true log ar out ∗ apply.adminOut Own γa M hs rq true ar k out ∗
       (⌜ar = null⌝ ∨ ∃ err : GoInterface,
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) := by
@@ -178,7 +178,7 @@ theorem applyResultIs_notNoSpaceAdmin (Own : auth.AuthNames → List auth.AuthSt
   | dispatched o skip =>
     simp only [apply.adminOut, apply.adminDone, ↓reduceIte]
     icases Hout with ⟨%v, %ad, %resp, %had, #Hvv, Hres⟩
-    ihave ⟨Hres, #HA⟩ := adminReqResult_authApplyErrIs Own γa M hs resp v.Err' ad $$ Hpkg Hres
+    ihave ⟨Hres, #HA⟩ := adminReqResult_authApplyErrIs Own γa M hs resp v.Err' k ad $$ Hpkg Hres
     iframe H
     isplitl [Hres]
     · iexists v, ad, resp; iframe Hvv Hres; ipureintro; exact had

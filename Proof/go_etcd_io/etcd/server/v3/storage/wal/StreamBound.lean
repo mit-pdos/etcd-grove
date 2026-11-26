@@ -192,14 +192,19 @@ theorem cutStream_lt (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
   split <;> simp only [List.length_append, List.length_nil] <;> omega
 
 /-- **A `Save`'s new tail stream**: the old one plus the batch's frames, below ext4's maximum offset when the
-old one is below `2 ^ 43`. -/
+old one is below `2 ^ 43` (the state written, `saveHS`, encoded below `2 ^ 32`). -/
 theorem saveStream_le (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (hs : HardStateM) (es : List EntryM) (hc : ∀ b ∈ cuts, b ≤ H.length)
-    (hS : (Mr.encState hs).length < 2 ^ 32) (hE : walBatchBytes Mr es < 2 ^ 40)
+    (hS : (Mr.encState (saveHS (walLastHS (H.map WalOpG.toM)) hs es)).length < 2 ^ 32)
+    (hE : walBatchBytes Mr es < 2 ^ 40)
     (h0 : (tailStream Mr H md cuts).length < 2 ^ 43) :
     (tailStream Mr (H ++ [(WalOpG.save hs es).toRaw]) md cuts).length ≤ 0xffffffff000 := by
   rw [tailStream_snoc Mr H md cuts _ hc, List.length_append]
-  have := saveOp_frames_le Mr hs es hS hE (chainEnd walCodec 0#32 (allRecs Mr H md cuts))
+  have := saveOp_frames_le Mr _ es hS hE (chainEnd walCodec 0#32 (allRecs Mr H md cuts))
+  have hw : wop H (WalOpG.save hs es).toRaw =
+      (WalOpG.save (saveHS (walLastHS (H.map WalOpG.toM)) hs es) es).toRaw.toM := by
+    simp only [wop, WalOpG.toM_toRaw, normOp_save_eq]
+  rw [hw]
   omega
 
 end pure

@@ -31,8 +31,10 @@ the instance's encoder axiom), not from this spec.
 Against protobuf-go v1.36.12 (`proto/encode.go:105`, `:174`): `Marshal` sizes, allocates and
 appends the encoding (`internal/impl/encode.go`); it fails only on a missing required field,
 invalid UTF-8 in a proto3 string or a message changed while it is encoded, which `marshals` and
-the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes;
-an empty encoding is a non-nil empty slice. -/
+the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes.
+The result is not `nil` for a non-nil `*T` (`l ≠ null`): an empty encoding is
+`emptyBytesForMessage(m)` (`proto/encode.go:119-146`), the non-nil `emptyBuf[:]` for a valid message;
+a nil `*T` is an invalid message, for which it is `nil`. -/
 abbrev proto.MarshalPb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (l : Loc) (c : I.data.C), I.data.marshals (I.data.modelOf c) → I.data.size c < 2 ^ 48 →
@@ -40,7 +42,7 @@ abbrev proto.MarshalPb.spec : Prop :=
     (App (Val (@! google_golang_org.protobuf.proto.Marshal))
       (Val #(interface.mkOk (go.GoType.PointerType I.data.ty) #l)))
   {{ (d : GoSlice), RET (PairV #d #(GoInterface.nil));
-      d ↦* pbEncC I c ∗ ownSliceCap w8 d (DFrac.own 1) }}
+      d ↦* pbEncC I c ∗ ownSliceCap w8 d (DFrac.own 1) ∗ ⌜l ≠ null → d ≠ slice.nil⌝ }}
 
 end spec
 

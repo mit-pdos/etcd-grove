@@ -133,7 +133,9 @@ theorem readFiles_hasMd {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal}
       td.1 = metadataType := by
   refine ⟨(metadataType, d.metadata), ?_, rfl⟩
   obtain ⟨-, -, hfl⟩ := hab.cuts
-  rw [walReadFiles_running hC hab hex hwr kk hkk]
+  obtain ⟨es, -, hrun⟩ := walReadFiles_running hC hab hex hwr kk hkk
+  rw [hrun, List.map_append]
+  apply List.mem_append_left
   generalize hSs : segsOf (histM d) lay.cuts = Ss
   have hSl : Ss.length = lay.cuts.length + 1 := by rw [← hSs]; simp [segsOf]
   generalize hp : lay.first + kk = p
@@ -165,11 +167,22 @@ theorem readFiles_hasMd {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal}
 theorem readAll_md_some {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarshal}
     {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
     (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
-    (hkk : kk < lay.segs.length) {s : w64 × w64} {st : RAState} {acc : List WalRec}
-    (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc)
+    (hkk : kk < lay.segs.length) {s : w64 × w64} {st : RAState} {acc accP : List WalRec}
+    (hacc : (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs = acc ++ accP)
+    (hP : ∀ r ∈ accP, r.typ = entryType)
     (hf : (acc.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st) :
     ∃ md, st.md = some md := by
-  have := foldlM_raStep_mdSome _ _ _ hf (.inr (hacc ▸ readFiles_hasMd hC hab hex hwr kk hkk))
+  obtain ⟨td, htd, hmt⟩ := readFiles_hasMd hC hab hex hwr kk hkk
+  rw [hacc, List.map_append, List.mem_append] at htd
+  have hin : ∃ td ∈ acc.map (fun r => (r.typ, r.data)), td.1 = metadataType := by
+    rcases htd with h | h
+    · exact ⟨td, h, hmt⟩
+    · obtain ⟨r, hr, rfl⟩ := List.mem_map.1 h
+      have := hP r hr
+      simp only at hmt
+      rw [this] at hmt
+      exact absurd hmt (by decide)
+  have := foldlM_raStep_mdSome _ _ _ hf (.inr hin)
   exact Option.isSome_iff_exists.1 this
 
 /-! ## (e) The encoder at the tail's end -/
@@ -184,7 +197,7 @@ theorem walHS_split_read (Mr : WalMarshal) (h : WalHS) (hr : h.rest = 0) (ho : h
 /-- **The encoder's CRC of a quiescent handle is the chain's after every record.** -/
 theorem walHS_crc_read (Mr : WalMarshal) (h : WalHS) (hr : h.rest = 0) :
     WalHS.crc Mr h = chainEnd walCodec 0#32
-      (recsOfSegs walCodec Mr h.md (segsOf (h.H.map WalOpG.toM) h.cuts)) := by
+      (recsOfSegs walCodec Mr h.md (segsOf (histN h.H) h.cuts)) := by
   unfold WalHS.crc allRecs
   rw [hr, Nat.sub_zero, List.take_length]
 

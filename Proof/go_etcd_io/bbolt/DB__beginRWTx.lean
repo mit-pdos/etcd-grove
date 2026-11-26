@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.bbolt.Txn.Txs
 public import Proof.go_etcd_io.bbolt.Txn.WInitH
 public import Proof.go_etcd_io.bbolt.Txn.WRelease
 public import Proof.go_etcd_io.bbolt.Txn.Begin
+public import Proof.go_etcd_io.bbolt.Inv.BFileSynced
 public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Model
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.sync.Link
@@ -148,7 +149,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
-  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
+  icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
@@ -173,7 +174,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   try wp_auto
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa, Hro, #Hrcm,
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hmlk, Hfa, Hro, #Hrcm,
     %Hok, %HF⟩
   iunfold rwR at HW
   icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo)
@@ -187,7 +188,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       Hst2 Hfl2 Hmap2 Hmf2 Hout2 Hwv2 Hop2 Hfli2 Hwa2]
     · iunfold rwR; iright; iunfold closedR; iframe
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-      Hfl' Hwa' Hob Hmlk Hfa Hro]
+      Hfl' Hwa' Hmlk Hfa Hro]
     · iunfold metaR; iexists C, F, cl, fli, wa; iframe Hrcm; iframe; ipureintro; exact ⟨Hok, HF⟩
     iapply HΦ
     iright
@@ -204,6 +205,9 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   iunfold wdbCoreG at Hcg
   icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
     Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩
+  -- W3: the synced mark of the committed version, for the writer's registration (`regX`)
+  ihave #Hmd := BC.core_mode K $$ Hcore
+  imod bMeta_syncedB K.B K.N K.db K.p w.C [] w.m $$ Hmd Hosm with ⟨Hosm, #Hsyncd⟩
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
   obtain ⟨hok, htree, htx1⟩ := Hok rfl
@@ -227,7 +231,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe
       try (ipureintro; exact Hwok)
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-      Hfl' Hwa' Hob Hmlk Hfa Hro]
+      Hfl' Hwa' Hmlk Hfa Hro]
     · iunfold metaR; iexists w.C, F, false, w.fli, wa; iframe Hrcm; iframe; ipureintro
       exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
     iapply HΦ
@@ -363,16 +367,22 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       htree⟩
   ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ [Hvwo]
   · iunfold readerHandles; simp only [↓reduceIte]; iexact Hvwo
+  ihave #HrX : regX (GF := GF) K.B (⟨K.db, n, true, .loan⟩ : TxReg) $$ []
+  · unfold regX viewOf
+    simp only [↓reduceIte]
+    iexists (View.ofC b w.C)
+    simp only [View.ofC.proj_txid]
+    iframe #
   imod txs_register K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top «$r0_ptr»
     ⟨K.db, n, true, .loan⟩ _ $$ [Hti Hdb stats Hx Hd2 Hrh] with ⟨#Hreg, Hdb⟩
-  · iframe Hti Hdb stats Hd2 Hx Hrh
+  · iframe Hti Hdb stats Hd2 Hx Hrh; iframe #
   -- `metalock` unlocked (deferred), the transaction returned
   ihave Hro : flRoOpt w.fli F $$ [Hrol]
   · iunfold flRoOpt; simp only [Hfln, ↓reduceIte]
     iexists _; iframe Hrol; ipureintro; exact (sortPgids_perm ro).trans Hperm
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-    Hfl' Hwa' Hob Hmlk Hfa Hspr Hro]
+    Hfl' Hwa' Hmlk Hfa Hspr Hro]
   · iunfold metaR; iexists w.C, F, false, w.fli, wa; iunfold fltxAuth; iframe Hrcm; iframe; ipureintro
     exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
   iapply HΦ
@@ -401,7 +411,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   unfold wtxFrac
   simp only [QpMul_one_rw, txDbQ_one_rw]
   iframe Hheap
-  try simp only [wx0]
+  try simp only [wx0, View.ofC.proj_txid]
   iframe Hvc Hst Hbka Hnla Hdb
   isplitl []
   · unfold fills; simp; try iempintro

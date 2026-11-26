@@ -4,13 +4,19 @@
 
 `Repair` registers its WAL's tail pending after `openLast` (`walInvRegisterPendLaw`: the pending token
 `walPendTok dir γ |old|`, kind `true`), reads it to the end (`io.Copy` into the `.broken` file), then
-truncates it at the last record's end (`wr`) and fsyncs it. Its handle's tail is `walTailP` with the
+truncates it at the end of the frames it read (`tg`: `wr`, or past it the end of a pending run, P6) and
+fsyncs it. Its handle's tail is `walTailP` with the
 offset as a parameter (`walTailPO`): after `io.Copy` the file's offset is its end, not `wr`, and neither
 the truncate nor the fsync touches it.
 
 * `TailMetaRW`: the tail after the truncate landed (`TailMetaR` with a resize window open: `lo ≤ size ≤
   hi`).
-* `walTailPO`: `walTailP` with the offset `off` for `o0 + |out|` (`walTailP_po`).
+* `TailMetaRP`: the tail before the truncate (`TailMetaR`), and, the target `tg` past `o0`, a nonzero
+  byte in `[o0, tg)` (the length word of the run's first frame; P6, `walTail_truncSupR`'s tie), and the
+  reader's stop at `o0` on the bytes below `tg` (`PendStop`: the run, then nothing); `TailMetaRWP`:
+  `TailMetaRW` with that stop, what the fsync needs (`syncLay_anyE`).
+* `walTailPO`: `walTailP` with the offset `off` for `o0 + |out|` (`walTailP_po`), without `LoWr` (P6: past
+  the truncate to `tg > o0` the window's `lo` is `tg`; the truncate reads it off `TailMetaR`).
 -/
 module
 
@@ -31,6 +37,23 @@ window open on it (a crash may leave any size from `lo` to `hi`). -/
 def TailMetaRW (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
   bs.length = m.size ∧ m.maps = ∅ ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi
 
+/-- **The tail before `Repair`'s truncate to `tg`** (see the file header): the reader, from `o0` at the
+chain value `c`, accepts a run of entry records in the bytes below `tg`, then nothing (`PendStop`). -/
+def TailMetaRP [GooseExts] (Mr : WalMarshal) (c : w32) (o0 tg : Nat) (m : Fs.OsMeta) (bs : List Fs.ByteG) :
+    Prop :=
+  TailMetaR m bs ∧ (tg = o0 ∨ ∃ b x, o0 ≤ b ∧ b < tg ∧ bs[b]? = some x ∧ x.1 ≠ 0) ∧
+    PendStop walCodec Mr ((bs.take tg).map (·.1)) o0 c
+
+/-- **The tail after `Repair`'s truncate to `tg` landed**: `TailMetaRW`, and the reader's stop of
+`TailMetaRP` on its bytes. -/
+def TailMetaRWP [GooseExts] (Mr : WalMarshal) (c : w32) (o0 : Nat) (m : Fs.OsMeta) (bs : List Fs.ByteG) :
+    Prop :=
+  TailMetaRW m bs ∧ o0 ≤ m.size ∧ PendStop walCodec Mr (bs.map (·.1)) o0 c
+
+theorem TailMetaRWP.tailMetaE [GooseExts] {Mr : WalMarshal} {c : w32} {o0 : Nat} {m : Fs.OsMeta}
+    {bs : List Fs.ByteG} (h : TailMetaRWP Mr c o0 m bs) : TailMetaE Mr c o0 m bs :=
+  ⟨h.1.1, h.1.2.1, h.2.1, h.2.2⟩
+
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -50,7 +73,7 @@ def walTailPO (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GNam
     os.ownOff f off ∗ walLentTokB (W := W) dir γ k p ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-    ⌜m.size = sz ∧ tm m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt ∧ LoWr m o0⌝ ∗
+    ⌜m.size = sz ∧ tm m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0, i, none) : TailG))
 
 /-- `walTailP` at an empty `out` is `walTailPO` at the write position (forgetting that the tail is locked,
@@ -69,7 +92,7 @@ theorem walTailP_po (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ 
   · iexists rd, lo, lk; iframe Hfd; iapply fdLocksW_locks $$ Hl
   iexists m, bs
   iframe
-  ipureintro; exact hp
+  ipureintro; exact ⟨hp.1, hp.2.1, hp.2.2.1, hp.2.2.2.1⟩
 
 end handle
 

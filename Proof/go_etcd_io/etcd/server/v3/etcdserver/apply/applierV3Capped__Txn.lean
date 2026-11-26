@@ -88,8 +88,8 @@ theorem apply.applierV3Capped.Txn.wp_proof
       iexists eN
       iframe HeN
       ipureintro; rfl
-    iright
-    iexact HPre
+    iright; iframe HPre; ipureintro
+    (first | exact ⟨rfl, trivial⟩ | (simp only [apply.Outcome.logAfter]; exact ⟨rfl, trivial⟩) | simp_all [apply.Outcome.logAfter, apply.revokeIds_rejected, apply.grantRest_rejected, apply.revokeRest_rejected])
   · -- the inner applier's `Txn`
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ Hc Hres
     wp_apply HTxn $$ %r %skip %rq %t %log %F %Pre %Q %Post [Htt Hm Hres]

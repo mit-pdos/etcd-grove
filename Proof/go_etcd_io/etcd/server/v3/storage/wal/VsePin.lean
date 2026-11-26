@@ -9,6 +9,8 @@ mode (no pipeline names): `walInv_openAll`. It does so once, before `ValidSnapsh
 that every attempt reads the same pinned segments; the put-back after the loop is `walInv_unpin` in read
 mode over every segment (`walInv_unpinAll`). Besides the pin, the client's state `o` is below the pinned
 one (`walOptLe`): the same history and read position, so the result's `walValidSnaps` is the client's.
+The pin also returns the step bound `⧖ |d.H|` (`walInvBody_stepsAt`), which `Unsaved` uses to bound the
+first segment's sequence (P6).
 -/
 module
 
@@ -44,7 +46,7 @@ def VsePinOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (d : WalDur) (lay : Wal
 names' program halves, the out record of the segments and of the directory's claim, the program's
 halves of every segment and of the claim. -/
 def walPinAllRes (dir : GoString) (lay : WalLay) (X : List GoString) (hj : NamesH) : IProp GF :=
-  iprop(walDirKey (W := W) dir lay.j X ∗ walLockedTok (W := W) ∗
+  iprop(∃ I : GMap GoString Nat, walDirKey (W := W) dir (incOf I dir) lay.j X ∗ walLockedTokI (W := W) I ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨lay.segs.map (·.ino), [(lay.j, .except X)], []⟩ ∗
     ([∗list] g ∈ lay.segs, segRes (L := L) g) ∗
@@ -58,7 +60,7 @@ theorem walInvBody_pinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
         ⌜VsePinOk C Mr jr d lay X hj⌝ ∗ walPinAllRes (L := L) (W := W) dir lay X hj := by
   iintro Hb Hu
   imod walInvBody_pinIdle C Mr R jr r s dir d hd (fun _ => 0) $$ Hb Hu with
-    ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj⟩
+    ⟨%lay, %X, %hj, %I, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj⟩
   obtain ⟨-, h1, h2, h3, h4, h5, h6, h7⟩ := hp
   simp only [List.drop_zero]
   imodintro
@@ -67,6 +69,22 @@ theorem walInvBody_pinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   isplitr
   · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
   unfold walPinAllRes
+  iexists I
+  iframe
+
+/-- **The WALs' step bound at `dir`, at a look** (`walGhost_steps`, `walStepsLb_at`; Steps.lean's
+`walInvBody_tailSteps` without a tail record): the history of the WAL at `dir` is within it. -/
+theorem walInvBody_stepsAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ ⧖ d.H.length := by
+  iintro Hb
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  icases walGhost_steps (W := W) s $$ Hg with ⟨Hg, #Hst⟩
+  ihave #Hd := walStepsLb_at s dir d hd $$ Hst
+  iframe Hd
+  iexists Ls, cl, n, F
   iframe
 
 /-- **`ValidSnapshotEntries`' update and pin** (see the file header): the update committed unchanged;
@@ -74,19 +92,19 @@ the WAL absent (the area holds nothing at `nm`, the token kept), or the pin of e
 `d`, the client's state below it. -/
 theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm : GoString) (N : NameSet) (dq : DFrac)
-    (h : NamesH) (Wn : List GoString) (Q : Option WalDur → IProp GF)
+    (h : NamesH) (Wn : List GoString) (Q : Option WalDur → IProp GF) (ic : Nat)
     (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
-      (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o }> @ walAuMask, ∅
-        <{ walDirIs (W := W) dir o, COMM Q o }>) -∗
+      (AU <{ ∃∃ o : Option WalDur, walDirIsI (W := W) dir ic o }> @ walAuMask, ∅
+        <{ walDirIsI (W := W) dir ic o, COMM Q o }>) -∗
       osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
       ∃ o : Option WalDur, Q o ∗
         ((⌜o = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
          (∃ (d : WalDur) (lay : WalLay) (X : List GoString) (hj : NamesH),
            ⌜walOptLe o (some d) ∧ VsePinOk C Mr jr d lay X hj⌝ ∗
-           walPinAllRes (L := L) (W := W) dir lay X hj)) := by
+           walPinAllRes (L := L) (W := W) dir lay X hj ∗ ⧖ d.H.length)) := by
   iintro #Hinv #Hsi Hnc Hu Hau Hn Hsf
   imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   imod walInvBody_areaAt C Mr R jr r s dir nm N dq h Wn hin hN walN_osShN_top' $$ Hb Hsi Hn Hsf
@@ -97,13 +115,13 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%o, Ho, Hucl⟩
-  unfold walDirIs
-  icases Ho with ⟨%M, HM, %HMd⟩
+  unfold walDirIsI
+  icases Ho with ⟨%M, %I, HM, HI, %HMd, %hic⟩
   icases walInvBody_mapLe C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-  imod Hcommit $$ [HM] with HQ
-  · iexists M; iframe HM; ipureintro; exact HMd
+  imod Hcommit $$ [HM HI] with HQ
+  · iexists M, I; iframe HM HI; ipureintro; exact ⟨HMd, hic⟩
   cases o with
   | none =>
     have hMd : M !! dir = none := (walOptLe_none_iff _).1 HMd
@@ -124,6 +142,7 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
       have h1 := HMs dir
       rw [hM0] at h1
       exact (walOptLe_some_iff _ _).1 h1
+    icases walInvBody_stepsAt C Mr R jr r s dir ds hsd $$ Hb with ⟨Hb, #Hst⟩
     imod walInvBody_pinAll C Mr R jr r s dir ds hsd $$ Hb Hu with ⟨Hb, %lay, %X, %hj, %hp, Hp⟩
     imod Hcl $$ [Hb] with -
     · iexists s; iexact Hb
@@ -133,7 +152,7 @@ theorem walInv_openAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     iframe HQ
     iright
     iexists ds, lay, X, hj
-    iframe Hp
+    iframe Hp Hst
     ipureintro; exact ⟨walDurLe_trans hle0 hle1, hp⟩
 
 /-- **The put-back of every pinned segment, unchanged** (`walInv_unpin` in read mode). -/
@@ -145,8 +164,8 @@ theorem walInv_unpinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Hp
   unfold walPinAllRes
-  icases Hp with ⟨#Hk, Hl, Htf, Ho, HS, Hn⟩
-  iapply walInv_unpin C Mr R jr r dir lay.j X hj lay.segs false hS $$ Hinv Hnc Hl Htf
+  icases Hp with ⟨%I, #Hk, Hl, Htf, Ho, HS, Hn⟩
+  iapply walInv_unpin C Mr R jr r dir lay.j X hj lay.segs false hS I _ rfl $$ Hinv Hnc Hl Htf
     [Ho] HS Hn [] Hk
   · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Ho
   · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro

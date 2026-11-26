@@ -1726,6 +1726,49 @@ initializers, which this line's configuration already generates from the main tr
 premise-witness, api, import-all; every `Link` regenerated on the VM matches; full VM build green (28661 jobs);
 `tcb-report --check` (338 axioms, 0 sorries) and every collection unchanged.
 
+### 16.3c Round 4 of the crash line (2026-11-25): T4 and T7's line
+
+Branch `etcd-safe-main-r4/2026-11-25`, from `etcd-safe-main-r3/2026-11-25` @ `5a1c41d945`. Merged heads, in order:
+
+| # | branch | head |
+|---|---|---|
+| 1 | `etcd-safe-d6t4b/2026-11-24` (D6 T4: raft's L1/L2 `LeaderCompleteLaw`, the campaign map's closure and `raftState_leadAgree`, the lifetime mark `nodeStartTerm` in `RestartNode`'s post, `rnReplayJob` an update, `rnRestart_cmtBefore`, `ReplayCoverage`; `NewServer.wp_proofC` still an unlinked `sorry`) | `f5cbaf3dbe` |
+| 2 | `etcd-safe-t7` (etcd-grove-03: round 3, P6b @ `2d2f3cc470`, P5 @ `f353cbb2fb`, T7's `memberGen_crash_law_holds`) | `7f26ddec0a` |
+
+What the merges needed:
+- **T4** (branched at `419753d989`, before rounds 2-3): modify/delete conflicts on files this line had retired
+  (`RaftTla/Proof/runtime/PkgInitExt.lean`, gone with L1's single `PkgInitExt`; the kv, kvdurable, kvreconf and
+  kvdurablenoax client proofs, gone with `lean`'s retirements): they stay deleted. T4's change to them (one more `-`
+  for `RestartNode`'s new conjunct) reached `kvraft/start.lean` through git's KvNet → KvRaft rename. T4's KvNet copy
+  of `LeaderCompleteLaw` came in under the old part name, and copy-part took it for one of KvRaft's own files and kept
+  it. The first build caught that (`unknown module prefix 'KvNet'`); the copy was removed and regenerated. Copies:
+  gen-raft-tla and copy-part regenerated; `etc/api/raft.txt` lists `LeaderCompleteLaw` (T4's).
+- **T7**: three Lean conflicts, all T4's lifetime mark against P5's restart slot, all resolved by keeping both.
+  `rnBootPost`'s restart case is P5's (no `raftState`: the wrapper's crash-aware durability takes it through
+  `hRestartAlloc`) plus T4's `nodeStartTerm n S.term`. `bootstrappedRaft.newRaftNode` destructures `RestartNode`'s
+  post with P5's `#Harm` and T4's `#Hst0`, follows P5's structure, and frames `Hst0` into `rnBootPost`.
+  `raftNode_of_RestartNode` takes `Hbpost` as P5 does, with T4's `#Hst0`. T4's `raftState_cmtBefore` at the restored
+  state (before the boot call) is unchanged. `notes/etcd-dist-d6.md`: both sides only appended, so T4's sections come
+  first, then T7's (from §10T2 on). No design choice was needed.
+- No new axiom, `sorry` or top-level premise; no Go change; no `lean` merge.
+
+**Checked:** gen-raft-tla, copy-part, gen-init, gen-specs-pkginit (`PERENNIAL_DIR` a checkout at the manifest's
+`fce59af75`); api (raft); tier (208 known); bounds (390). The merged modules and their importers were built on the VM
+first (only the KvRaft copy failed). Then the full VM build went green at `1c2958cbb4` (28669 jobs). Every `Link`
+regenerated on the VM matches, and so does btree's. The trust-base checks ran through `vmlake env` (re-run after the VM was preempted at 16:12Z: rebuilt with
+no change, then checked):
+- **`tcb-report --check`: one difference, from T7's line, none from T4 or the merges.** `+ sorry
+  rnRestartAllocK_law_holds`. It is P5's labeled hole P5-RESTART (`InvWalCrashSteps.lean`, `a38f75bcc3`: the
+  restart slot does not carry `walHistCerts`, pending the restatement over the reader's fold on #50). It is
+  linked in the server `Link` (`bootstrappedRaft.newRaftNode`'s `rnRestartAllocK.law`), so on `etcd-safe-t7` itself
+  too. That branch's baseline never listed it (`etcd-dist-d6.md`: "needs a local build to update"). No axiom
+  was added or removed. **The baselines were not updated here** (no new `sorry` without a decision). The
+  collections that differ by this `sorry` alone: `server`, `putget-dist`, `etcd-all-single-process`,
+  `k8s-all-single-process`, `leaseexpiryN-single-process`. Every other collection matches.
+- **`etc/tcb-collections/etcd-dist.txt`** (P12, from the draft; roots: the dist `TopLevelRobustness`): baseline
+  empty (0 axioms, 0 sorries; `--check --update`). `etcd_safe_of_boot` and `etcd_safe_nocrash_of_boot` take
+  the boot WPs (`EtcdBootC`/`EtcdBootCBad`, `EtcdBootNC`/`EtcdBootNCBad`) as named hypotheses, so no axiom is
+  reached yet.
 ### 16.3 `bootstrap`'s interim axiom at `etcd_safe`'s shape (2026-11-25, branch `etcd-safe-bootax/2026-11-25`)
 
 `bootstrap.spec` (#34) is false at a cluster of several members (the #34 ledger, B4: `isMemberBootstrapped`'s
@@ -4393,3 +4436,54 @@ When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` b
 - gen-link: every other Link matches; five Links of other projects (bbolt, kvraft, WAL) differ
   from what `gen-link` prints in this worktree with no `.lake`. They are identical to `lean`'s files, so the difference
   comes from this environment.
+
+### 30.7 Round 2 (2026-11-26): the axiom-tok entries and F7's gates merged
+
+**Merged, in order:**
+- `etcd-safe-full-atok/2026-11-26` @ `8b31f9f926`: fast-forward (the nine axiom-tok entries and their `trunc` lines,
+  `notes/axiom-review/full-line-axiom-tok.md`).
+- `etcd-safe-f7` @ `a7e73bb6e0`, then @ `ce1e357c5a` (`bounds-check.py --selftest` for the `decl=` form). F7 carries
+  lean `eb4f1a1633` (T-opaques: `tcb-report`'s opaque lines, the regenerated collections); the only Lean change
+  reaching this line is a comment. Conflicts:
+  - `etc/axiom-tok-allow.txt`: the union. The line's `KV_Compact_dist`/`Watch_dist`/`RequestProgress_dist` entries and
+    `trunc` lines are kept, and F2's six lease entries (identical on both sides) appear once.
+  - `etc/bounds-allow.txt`, `etc/dist-axiom-diff-allow.txt`: both sides' additions (the line's dist/client lines;
+    F7's `decl=` lines and the 20 F2/F7 `pair` blocks).
+  - `dist/client/Results.lean`: comment wrapping, ours.
+  - `notes/STATUS.md`: the merge driver; the G-dial entry it left out is in `status-history.md` already.
+- Generated files: no Lean input changed, and every check is up to date (`gen-init`, `gen-specs-pkginit`,
+  `gen-raft-tla`, `copy-part`; `PERENNIAL_DIR` from Perennial `a706aeb9a` extracted in scratch).
+- The independent triage of `Watch_dist`'s and `RequestProgress_dist`'s entries
+  (`notes/axiom-review/watch-dist-axiom-tok-triage.md`) found them justified with corrections, so three reason texts
+  are corrected: the counted unary contracts are never called by any goroutine of the call. Keys and `trunc` lines
+  are unchanged.
+
+**Checks at `c68ca7c424`** (the build at `3534ba63f1`; the later commit is text only):
+
+| check | result |
+|---|---|
+| full VM build | green (29561 jobs) |
+| `#print axioms etcd_safe_nocrash` | 134 axioms, no `sorryAx`, the same set as round 1 |
+| gen-link, all 60 modes | match: 55 locally, and the five that differ in a worktree with no `.lake` (bbolt, kvraft, kvraft-udp, wal-tester, walfs) match under `vmlake env` |
+| `tier-check` | ok |
+| `bounds-check --check` | ok, 389 against a baseline of 389 (round 1: 423) |
+| `bounds-check --selftest` | ok, 12/12 |
+| `premise-witness --check` | ok (49 statements) |
+| `lease-order-check` and its selftest | ok |
+| `dist-axiom-diff --check` | ok (29 interim axioms, 3 with no source) |
+| `dist-axiom-diff --selftest` | 0 failures |
+| `axiom-tok --check` (`vmlake env`, no `TCB_CACHE`) | ok: 366 Prop axioms walked, 319 pass, 47 by an entry or pair. The walks are unchanged by the merge: no re-key, no taint, no mint |
+| `axiom-tok --selftest --reuse-raw` | 0 failures |
+| `tcb-report --check` (`vmlake env`, no `TCB_CACHE`) | matches the baseline: 383 axioms, 0 `sorry`, 93 opaques |
+| `tcb-report --selftest` | ok |
+| all 69 collections, `--check` | match (`etcd-dist`: 131 axioms and 55 opaques; `etcd-dist-lease`: 29 and 19) |
+
+**The trust base against lean `eb4f1a1633`, by origin.** Nine axioms are added, no opaque line changes, and nothing
+is removed:
+- N2: `KV_Compact_dist`.
+- N3: `Watch_dist` and `RequestProgress_dist`.
+- F2: `view.Lease_Grant_dist`, `Lease_GrantLive_dist`, `Lease_LeasesGranted_dist`, `Lease_LeasesLive_dist`,
+  `Client_LeaseLeases_dist` and `Client_LeaseTimeToLive_dist`.
+
+No root reaches F7's auth-on axioms (they are reached only from the auth classes, §30.4). Round 2 adds no axiom,
+`sorry` or premise, and changes no Go.

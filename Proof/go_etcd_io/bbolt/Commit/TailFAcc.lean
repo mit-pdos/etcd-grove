@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 /-- **A mapped writer ready to close, flagged.** -/
 theorem cm_wtxEnd_live' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb)
     (hwr : X.t.t.writable' = true) (hrl : (X.t.bs !! X.rl).isSome) :
-    K.full (GF := GF) ∗ wtxW K tx r false X ∗ wdbW' fr K tx X.v w ∗ cmExcl K r X (treeData w.C) ⊢
+    K.full (GF := GF) ∗ wtxW K tx r false X ∗ wdbW' fr K tx X.v w ∗ cmExcl K r X (treeData w.C, w.C.txid) ⊢
       wtxEnd' fr K tx r X (wLive X.v w.C) w := by
   unfold wdbW' cmExcl wtxEnd'
   iintro ⟨#Hfull, Hw, ⟨Hl, %Hok, Htok⟩, Hrwl, Hcls, Hv, Hst⟩
@@ -45,7 +45,7 @@ theorem cm_wtxEnd_live' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w 
 theorem cm_wtxEnd_lost' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb)
     (hwr : X.t.t.writable' = true) (hrl : (X.t.bs !! X.rl).isSome) :
     K.full (GF := GF) ∗ wtxLost K tx r false X ∗ wdbLost' fr K tx X.v w ∗
-        cmExcl K r X (treeData w.C) ⊢
+        cmExcl K r X (treeData w.C, w.C.txid) ⊢
       wtxEnd' fr K tx r X (some X.v, some (w.C.txid + 1), false, false) w := by
   unfold wdbLost' cmExcl wtxEnd'
   iintro ⟨#Hfull, Hw, ⟨Hl, %Hok, Htok⟩, Hrwl, Hcls, Hv, Hst⟩

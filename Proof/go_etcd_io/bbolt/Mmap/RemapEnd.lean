@@ -121,10 +121,10 @@ theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (
       dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 (L' : Int) -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (some (b, L') : MapSt) -∗
-      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      bMeta K.p w.C [] m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
       osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
       metaCellsQ (1 : Qp).half.half (some (b, L')) w.C -∗
-      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
+      metaOsBytes K.p (DFrac.own 1) w.C -∗
       wCells (some (b, L')) (w.remap b L' m').W -∗
       wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
       junkRes K.B w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
@@ -178,10 +178,10 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
       K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
       dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 (L' : Int) -∗
-      osMeta K.p.ino (DFrac.own 1) m2 -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      bMeta K.p w.C [] m2 -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
       osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
       metaCellsQ (1 : Qp).half.half (some (base, L')) w.C -∗
-      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
+      metaOsBytes K.p (DFrac.own 1) w.C -∗
       wCells (some (base, L')) (wSlots (max L' w.m.size / 4096) w.C w.fl) -∗
       wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
       junkRes K.B w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗

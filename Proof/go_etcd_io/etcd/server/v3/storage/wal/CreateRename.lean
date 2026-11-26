@@ -61,15 +61,23 @@ theorem osAUnc_mono {A : Type} (α : IProp GF) (β Q Q' : A → IProp GF) :
     iapply HQ $$ HQo
 
 /-- **`Create`'s result of the rename's update**: `walCreateQ`, with the WAL invariant. -/
-def createU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : NamesH) (md : List w8)
+def createU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat) (hC : NamesH) (md : List w8)
     (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (J : Ino) (hJ : NamesH) (g : SegG) (o : Option (Nat × Nat)) : IProp GF :=
   iprop(walInv (W := W) walCodec Mr R jr r ∗
     (∃ m : Nat, ⌜∀ xe ∈ hJ.ents, xe.1 < m⌝ ∗ osCommitLb m) ∗
-    walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps hJ g
+    walCreateQ (W := W) (child r nm) ic (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps hJ g
       (createTailG Mr md jr nm J g) o)
 
+/-- **`Create`'s result once the pipeline has its share** (`renameWAL`'s `UH`): `createU (some _)` but the
+reserve of the incarnations, which the spine law gives the pipeline (`walPipeKey`), and the commit bound,
+which no committed arm uses. -/
+def createUK (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat) (md : List w8)
+    (Q : IProp GF) (Wn : List GoString) (J : Ino) (g : SegG) (_x : Nat × Nat) : IProp GF :=
+  iprop(walInv (W := W) walCodec Mr R jr r ∗
+    walCreateQK (W := W) (child r nm) ic md Q Wn J walTmps g (createTailG Mr md jr nm J g))
+
 /-- **The aborted result rebuilds the update** (`RenameWALOk`'s last conjunct), over the fresh layout. -/
-theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
+theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (ic : Nat)
     (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (hnW : nm ∉ Wn)
     (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
     (m2 mS : OsMeta) (zs2 : List Cands) (ysS : List ByteG) (lb : Nat)
@@ -81,20 +89,20 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
     (hcur : ∀ b, hJ'.cur !! b = if b = walFileName 0 0 then some (.file i) else none)
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
     (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) (hm2m : m2.maps = ∅) :
-    ⊢ createU (W := W) Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+    ⊢ createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
         (createSeg i mS ysS) none -∗
       osAUnc (osNames jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC)
         (renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC (DFrac.own (1 : Qp).half) lb)
-        (createU (W := W) Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+        (createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
           (createSeg i mS ysS)) := by
-  rw [show createU (W := W) Mr R jr r nm hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
+  rw [show createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J (hJ'.restrict J ((NameSet.except []).diff walTmps))
       (createSeg i mS ysS) none = iprop(walInv (W := W) walCodec Mr R jr r ∗
         (∃ m : Nat, ⌜∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents, xe.1 < m⌝ ∗
           osCommitLb m) ∗
-        walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
+        walCreateP (W := W) (child r nm) ic (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)) from rfl]
   iintro ⟨#Hinv, ⟨%m, %hJm, #Hcm⟩, HP⟩
-  ihave Hau := createFresh_osAUnc Mr R jr r nm md Q Pv Wn hnW hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd hmdne
+  ihave Hau := createFresh_osAUnc Mr R jr r nm ic md Q Pv Wn hnW hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd hmdne
     hctmp hJjr hlb hJlb hJcoh m hJm hcur hok hm2s hm2c hm2m $$ Hinv Hcm HP
   iapply osAUnc_mono $$ [] Hau
   iintro !> %o HQ
@@ -139,9 +147,10 @@ parent fsync's naming, `walInv_named`), `c` being the program's half less the tw
 handle holds (`qh` each, pinned in `walOpenWFU`; design P, `notes/wal-units/create.md`: the name is not
 registered until `Create` succeeds), the whole claim on the absent `nm.tmp` (the deferred `RemoveAll`,
 the area's merge), and the area's split record (`nm` not in it). -/
-def createUH (jr J : Ino) (r nm : GoString) (md : List w8) (Q : IProp GF) (Wn : List GoString)
+def createUH (jr J : Ino) (r nm : GoString) (ic : Nat) (md : List w8) (Q : IProp GF) (Wn : List GoString)
     (qh : Qp) (x : Nat × Nat) : IProp GF :=
-  iprop(Q ∗ (∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! child r nm = some (walDurFresh md)⌝) ∗
+  iprop(Q ∗ (∃ (s' : AbsDiskState) (I : GMap GoString Nat), walPastI (W := W) (s', I) ∗
+      ⌜incOf I (child r nm) = ic ∧ s'.wal !! child r nm = some (walDurFresh md)⌝) ∗
     (∃ (c : Qp) (hn : NamesH), osNames jr (.only [nm]) (DFrac.own c) hn ∗
       ⌜qh + (qh + c) = (1 : Qp).half ∧
         hn.cur !! nm = some (.dir J) ∧ ∃ e E, LastWrite hn jr nm x.1 e E ∧ E !! nm = some (.dir J)⌝) ∗
@@ -151,41 +160,50 @@ def createUH (jr J : Ino) (r nm : GoString) (md : List w8) (Q : IProp GF) (Wn : 
 
 /-- **The spine law** (`RenameWALOk`'s third conjunct) of `Create`'s choices: `d + (d + c)` the
 program's half of the new name's claim. -/
-theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString) (hC : NamesH)
+theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString) (ic : Nat) (hC : NamesH)
     (md : List w8) (Q : IProp GF) (Pv : Option WalDur → Prop) (Wn : List GoString) (hJ : NamesH) (g : SegG) (lb : Nat) (d c : Qp)
     (hd : d + (d + c) = (1 : Qp).half) (hnm : walNameOk nm) (hnmO : NameOk nm) :
     ⊢ ∀ x : Nat × Nat, createSp (W := W) Mr R jr r d -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) -∗
+      createU (W := W) Mr R jr r nm ic hC md Q Pv Wn J hJ g (some x) -∗
       renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC
         (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-      createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some x) ∗
+      createUK (W := W) Mr R jr r nm ic md Q Wn J g x ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       osPathS R (child r nm) (DFrac.own d) J ∗
       createSpR (hG := hG) jr J nm c x ∗
-      (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
-        walInv (W := W) C Mr' R jr' r' ∗ walDirKey (W := W) (child r nm) J X) := by
+      (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString),
+        walInv (W := W) C Mr' R jr' r') ∗ walPipeKey (W := W) (child r nm) J := by
   iintro %x Hsp Hnc HU Hout
-  ihave #Hwk : (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
-      walInv (W := W) C Mr' R jr' r' ∗ walDirKey (W := W) (child r nm) J X) $$ [HU]
-  · unfold createU
-    icases HU with ⟨#Hinv, -, HQ⟩
-    simp only [walCreateQ]
-    icases HQ with ⟨-, -, -, -, -, -, -, -, #Hkey, -⟩
-    iexists walCodec, Mr, jr, r, walTmps
-    iframe Hinv Hkey
+  iunfold createU at HU
+  icases HU with ⟨#Hinv0, -, HQ⟩
+  isimp only [walCreateQ, walCreateQK] at HQ
+  icases HQ with ⟨⟨HQ, Hsf, Hm, Hb, Ho, Htr, Hnf, #Hkey, %s', %I, Hl, Hpast, %hIs⟩, Hres⟩
+  icases walPipeKey_ofLocked (W := W) I (child r nm) ic J walTmps hIs.1 $$ Hl Hkey Hres with ⟨Hl, Hpk⟩
+  ihave HU : createUK (W := W) Mr R jr r nm ic md Q Wn J g x $$ [HQ Hsf Hm Hb Ho Htr Hnf Hl Hpast]
+  · unfold createUK walCreateQK
+    iframe Hinv0 HQ Hsf Hm Hb Ho Htr Hnf Hkey
+    iexists s', I
+    iframe Hl Hpast
+    ipureintro; exact hIs
+  ihave #Hwk : (∃ (C : WalCodec) (Mr' : WalMarshal) (jr' : Ino) (r' : GoString),
+      walInv (W := W) C Mr' R jr' r') $$ []
+  · iexists walCodec, Mr, jr, r
+    iexact Hinv0
   unfold createSp
   icases Hsp with ⟨#Hinv, #Hsi, Hp1, Hp2⟩
   obtain ⟨x, s⟩ := x
   unfold renDirOut claimOut logOut osLogged
   icases Hout with ⟨⟨-, -, -, #Hlg⟩, Hn⟩
-  have hT : ⊢ createU (W := W) Mr R jr r nm hC md Q Pv Wn J hJ g (some (x, s)) -∗
+  have hT : ⊢ createUK (W := W) Mr R jr r nm ic md Q Wn J g (x, s) -∗
       walUnlockedTokX (W := W) -∗ False := by
-    unfold createU
-    iintro ⟨-, -, HQ⟩ Hu
-    unfold walCreateQ
-    icases HQ with ⟨-, -, -, -, Hl, -⟩
+    unfold createUK
+    iintro ⟨-, HQ⟩ Hu
+    unfold walCreateQK
+    icases HQ with ⟨-, -, -, -, -, -, -, -, %s', %I, Hl, -⟩
+    ihave Hl : walLockedTok (W := W) $$ [Hl]
+    · unfold walLockedTok; iexists I; iexact Hl
     iapply walLockedTok_exclX $$ Hl Hu
   imod walInv_splitNew walCodec Mr R jr r nm (tmpName nm) _ _ hT hnm (tmpName_ne nm)
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm)
@@ -211,7 +229,7 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   ihave Hs1 := osPathS_child R r nm (DFrac.own d) jr J _ hnmO hn1 $$ Hp1 Hn1
   ihave Hs2 := osPathS_child R r nm (DFrac.own d) jr J _ hnmO hn1 $$ Hp2 Hn2
   imodintro
-  iframe Hnc HU Hs1 Hs2 Hwk
+  iframe Hnc HU Hs1 Hs2 Hwk Hpk
   unfold createSpR
   iexists _, _
   iframe Hnm Htmp Hlg

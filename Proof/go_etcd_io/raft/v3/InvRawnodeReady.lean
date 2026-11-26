@@ -1386,21 +1386,25 @@ def RNMode.foldCfg : RNMode → DecMap → List EntryM → CCState → CCState
 /-- (2026-10-28, stage U3d) **The driver's view of the configuration after `Advance`** of a `Ready`
 with the loan `L` (`node.Advance`), from `x` (its configuration index and configuration) before:
 after a snapshot `Ready`, dynamically, at the snapshot's index and the fold of its committed log
-(what `advRS` installs, `RNMode.foldCfg`); otherwise `x`. -/
-def loanCfg (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) : Nat × CCState :=
+(what `advRS` installs, `RNMode.foldCfg`); (2026-11-24, option D of `notes/raft-restart-confpoint.md`)
+after one without, dynamically, at the committed log handed out `n` if past `x`'s index, the
+configuration kept (until then `x`); statically `x`. -/
+def loanCfg (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) (n : Nat) : Nat × CCState :=
   match L with
-  | none => x
+  | none => if md.isDyn then (max x.1 n, x.2) else x
   | some l => if md.isDyn then (l.dlv.length, md.foldCfg l.decs l.dlv x.2) else x
 
-theorem loanCfg_none (md : RNMode) (x : Nat × CCState) : loanCfg md none x = x := rfl
-
-/-- (U3d) The view the driver expects back on `advancec` after a `Ready` with the loan `L`: none
-without a snapshot (the driver keeps its view), `loanCfg` after one. -/
-def loanReq (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) : Option (Nat × CCState) :=
-  L.map fun _ => loanCfg md L x
+/-- (U3d) The view the driver expects back on `advancec` after a `Ready` with the loan `L`: `loanCfg`
+after a snapshot `Ready`, and (2026-11-24, option D) dynamically after one without; none statically
+without a snapshot (the driver keeps its view). -/
+def loanReq (md : RNMode) (L : Option SnapLoan) (x : Nat × CCState) (n : Nat) :
+    Option (Nat × CCState) :=
+  match L with
+  | none => if md.isDyn then some (loanCfg md L x n) else none
+  | some _ => some (loanCfg md L x n)
 
 theorem loanCfg_static {md : RNMode} (h : md.isDyn = false) (L : Option SnapLoan)
-    (x : Nat × CCState) : loanCfg md L x = x := by
+    (x : Nat × CCState) (n : Nat) : loanCfg md L x n = x := by
   cases L <;> simp [loanCfg, h]
 
 /-- (D22 S-d3a) The node after `Advance` (`RawNode.Advance.spec`): the queue stepped, the term `t`,
@@ -2368,6 +2372,7 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
         obtain ⟨k, hk, hid⟩ := hp
         have he : k.sid.index' = i := (congrArg entryID.index' hid).trans hix
         rw [← he]; iapply Hseen $$ %k %hk
+    isplitr
     · imodintro; iintro %q %hq %sv %hs #Hsi
       have hm := outboxRelP_snapshot Houtbox (Hmslen.subset (List.mem_append_left _ hq)) hs.1 hs.2
       iunfold queuedRestoreTerms at Hqueued
@@ -2376,6 +2381,11 @@ theorem ownRawNodeReady_handout (E : CoPset) (γ : RaftNames) (rn : Loc) (id : w
       ihave %hmem := installSeen_mem rs.sn.installs _ (by exact (show uint.nat sv.Metadata'.Index' ≤ uint.nat s.logst.committed by word)) $$ Hview Hsi
       obtain ⟨k, hk, hi⟩ := List.mem_map.1 hmem
       iexists k; ipureintro; exact ⟨hk, by word⟩
+    -- (2026-11-24, the lifetime law) every `MsgSnap` past the attachment's term floor (`LifeOk`)
+    · ipureintro
+      intro q hq hsnap
+      have h := Hxf.life.2.2 q (Hmslen.subset (List.mem_append_left _ hq)) hsnap
+      rw [Hstor.2, Hgh_unst.1.2.2]; exact h
   ihave %Hag : ⌜L = none → ∀ k e, (s.logst.sents ++ s.logst.uents)[k]? = some e →
       uint.nat s.logst.prev.index' + k < (rs.delivered ++ ce).length →
       (rs.delivered ++ ce)[uint.nat s.logst.prev.index' + k]? = some e⌝ $$ [Hghost]

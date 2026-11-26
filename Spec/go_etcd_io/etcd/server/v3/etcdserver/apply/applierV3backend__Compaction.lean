@@ -32,7 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 reader's token, the supply), then, on success, `KV.Range(context.TODO(), "compaction", nil, {})`
 (its result not `nil`: the context is never done) for the response's header. The chain-`.backend`
 instance of the chain's `Compaction` triple. (Strict M1, 2026-11-05: the draft's
-`applierV3backend.Compaction.specA`, with `1 ≤ rev` in `cmpAdmitRev`, decided by the coordinator.) -/
+`applierV3backend.Compaction.specA`, with `1 ≤ rev` in `cmpAdmitRev`, decided by the coordinator.) (T10 step 2) Without the lock (`ErrCompacted`, `rev` at most `crev`)
+the compacted revision is unchanged. -/
 abbrev apply.applierV3backend.Compaction.spec : Prop :=
   ∀ (E : AEnv GF) (p cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
@@ -44,7 +45,8 @@ abbrev apply.applierV3backend.Compaction.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Compaction")) (Val #cr))
   {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
       RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-      apply.applyTok E ∗ apply.kvOwn E log ∗ (Post ∨ Pre) ∗ apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
+      apply.applyTok E ∗ apply.kvOwn E log ∗ (Post ∨ (Pre ∗ ⌜apply.cmpRevAfter crev rev = crev⌝)) ∗
+      apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
       apply.cmpAnswerIs .backend crev rev resp ch trace err ∗ apply.cmpChan crev rev ch }}
 
 end spec

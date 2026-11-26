@@ -40,6 +40,8 @@ theorem Bucket.Cursor.wp_proof (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasEx
   · rename_i hrw
     icases Ht with ⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, #Hreg, #HbP, Hv, Hex, Hw⟩
     iunfold reg at Hreg Hreg'
+    icases Hreg with ⟨#Hreg, #Hreg_x⟩
+    icases Hreg' with ⟨#Hreg', -⟩
     icombine Hreg Hreg' gives %hr
     obtain ⟨-, rfl⟩ := hr
     ihave #Hcore : BC.core (GF := GF) ⟨bnsOf γ.gs, γ.ns, db, p, sp, t0⟩ $$ []
@@ -82,6 +84,8 @@ theorem Bucket.Cursor.wp_proof (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasEx
     subst hKB hKN
     icases rdTxK_cur_acc _ tx .loan q T v $$ Hk with ⟨%r, #Hcore, #Hreg, #Hvo, %Hro, Hst, Hkb⟩
     iunfold reg at Hreg Hreg'
+    icases Hreg with ⟨#Hreg, #Hreg_x⟩
+    icases Hreg' with ⟨#Hreg', -⟩
     icombine Hreg Hreg' gives %hr
     obtain ⟨-, rfl⟩ := hr
     iapply hcur _ tx r true q b DFrac.discard $$ [Hst]

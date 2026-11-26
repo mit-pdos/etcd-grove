@@ -196,10 +196,16 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     omega
   simp only [mapFields]
   icases Hmf0 with ⟨Hdr, Hdd, Hm0f, Hm1f⟩
-  wp_apply hMmapF db f fd p dq (DFrac.own 1) (DFrac.own 1) mf m nsz slice.nil null (W64 0) hmf
-    (by simp only [sint.Z] at hnszZ; omega) $$ [Hfile Hfo Hfd Hosm Hdr Hdd Hdsz]
+  -- the file outside a crash invariant (before `Open` allocates one, W1): its `OsMeta` whole
+  ihave #Hci : bCsInv (GF := GF) ({ p with cs := none } : BFile) $$ []
+  · iapply bCsInv_none rfl
+  wp_apply hMmapF db f fd { p with cs := none } dq (DFrac.own 1) (DFrac.own 1) mf default [] m nsz
+    slice.nil null (W64 0) hmf (by simp only [sint.Z] at hnszZ; omega) (bNsOk_none rfl)
+    $$ [Hfile Hfo Hfd Hosm Hdr Hdd Hdsz]
     as %e ⟨Hfile, Hfo, Hfd, Hres⟩
-  · iframe; iframe #
+  · simp only [bMeta_none (GF := GF) (p := { p with cs := none }) rfl]
+    iframe; iframe #
+  simp only [bMeta_none (GF := GF) (p := { p with cs := none }) rfl]
   icases Hres with (⟨%base, %hbase, Hdr, Hdd, Hdsz, Hosm, Hmc⟩ | ⟨Hdr, Hdd, Hdsz, %he, #HeS, Hres⟩)
   rotate_left
   · -- `mmap` failed: logged, returned (no deferred unmap yet)
@@ -272,9 +278,12 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   iapply wp_load_bool_split
   ihave Hc0 : cellsR base 0 xs.length (fun i => toCellVal bs'[i]?) $$ [Hc0]
   · rw [hxl]; iexact Hc0
-  iapply (cellsR_agree_bytes _ rfl p (DFrac.own 1) _ base L' hb2 _
+  -- the file's bytes, whole (before `Open`'s crash invariant), as a file outside one (W1)
+  ihave Hxs := (bBytes_none (GF := GF) (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).2 $$ Hxs
+  iapply (cellsR_agree_bytes _ rfl { p with cs := none } (DFrac.own 1) _ base L' hb2 _
     (fun x hx => CoPset.subseteq_top x hx) _ xs 0 _ (by omega)) $$ Hos Hosm Hxs Hc0
   iintro Hosm Hxs Hc0
+  ihave Hxs := (bBytes_none (GF := GF) (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).1 $$ Hxs
   ihave #Hml := HmlW $$ []
   · ipureintro; trivial
   ihave Hml' := bool_heap _ _ _ $$ Hml

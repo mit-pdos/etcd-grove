@@ -336,10 +336,10 @@ theorem wdb_rollback_f (p : BFile) (fr : Bool) (w : WDb) (fl' : FLPg) (S X : Lis
   isplitl [Hb]
   · unfold wBytes
     iapply BigSepL.bigSepL_mono (Φ := fun _ s => (if 4096 * (s + 1) ≤ w.m.size then
-        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = mergeWb S bs w.wb s⌝)
         else if 4096 * s < w.m.size then
-          iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+          iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
             ⌜xs.map Prod.fst = (mergeWb S bs w.wb s).take (w.m.size - 4096 * s)⌝)
         else iprop(emp) : IProp GF)) ?_ $$ Hb
     intro k x hk

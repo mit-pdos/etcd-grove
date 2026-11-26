@@ -1481,7 +1481,7 @@ theorem wp_applyConf_dyn
     rw [← ht, List.take_append_of_le_length (Nat.le_of_lt Hk2)]
   have Hkc : k < uint.nat s.logst.committed := by
     have := uint_nat_eq s.logst.committed; omega
-  have Hnoc' : NoUndecConfIn (effDec dec ds) (rOf s g).full g.cidx k :=
+  have Hnoc' : CfgKeep (effDec dec ds) (rOf s g).full g.cidx k (rOf s g).cfg :=
     Hnoc.prefix Hdp (Nat.le_of_lt Hk2)
   -- the configuration the code sees is the model's
   have Hgood : CCGood rs.cfg := cfgFold_good h1 HI.cfg
@@ -1519,7 +1519,7 @@ theorem wp_applyConf_dyn
       cs' := by
     refine ⟨?_, rfl⟩
     unfold AdmFold
-    have H0 := cfgFold_noUndec (effDec dec ds) c0 Hnoc' Hk1 HI.cfg
+    have H0 := Hnoc'.fold Hk1 HI.cfg
     rw [show (rOf s g).full.take (k + 1) = (rOf s g).full.take k ++ [e] by
       rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
@@ -2490,29 +2490,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- A conf change's premises on the driver's view (a prefix `D` of the committed log handed
-out, the configuration index `ca` of the last applied conf change) carry over to `run`'s
-`RawNode`, whose committed log `D'` extends `D` and whose configuration index `ca'` is past `ca`
-over no conf entry the decoder has not rejected (2026-10-28, the decision switch; until then no conf
-entry): the conf entry at `k`, which it applies, cannot be below `ca'`. -/
+out, the configuration index `ca` of the last applied conf change, the configuration kept from it to
+`k`) carry over to `run`'s `RawNode`, whose committed log `D'` extends `D` and whose configuration
+index `ca'` is at or behind `ca`, over entries keeping the configuration (2026-11-24, option D of
+`notes/raft-restart-confpoint.md`; until then `ca'` past `ca` over skipped entries; until 2026-10-28
+over no conf entry). -/
 theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     {cfg : CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState}
-    (Hp : DynCCPreOp dec D ca cfg op k e cs') (Hpre : D <+: D') (Hca : ca ≤ ca')
-    (Hnc : NoUndecConfIn dec D' ca ca') : DynCCPreOp dec D' ca' cfg op k e cs' := by
+    (Hp : DynCCPreOp dec D ca cfg op k e cs') (Hpre : D <+: D') (Hca : ca' ≤ ca)
+    (Hnc : CfgKeep dec D' ca' ca cfg) : DynCCPreOp dec D' ca' cfg op k e cs' := by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep⟩ := Hp
   have Hke' : D'[k]? = some e := prefix_getElem? Hpre Hke
   have Hlen : D.length ≤ D'.length := Hpre.length_le
-  have Htk : D'.take k = D.take k := by
-    obtain ⟨t, rfl⟩ := Hpre
-    rw [List.take_append_of_le_length (by omega)]
-  have Hk1' : ca' ≤ k := by
-    refine Nat.le_of_not_lt fun h => ?_
-    have := Hnc k e Hk1 h Hke' Hconf
-    rw [Htk, Hdec] at this; cases this
-  refine ⟨Hk1', by omega, Hke', Hconf, ?_, ?_, Hstep⟩
-  · exact (Hnoc.prefix Hpre (by omega)).mono Hca (Nat.le_refl _)
-  · obtain ⟨t, rfl⟩ := Hpre
-    rw [List.take_append_of_le_length (by omega)]
-    exact ⟨op', Hdec, Hstep'⟩
+  refine ⟨by omega, by omega, Hke', Hconf, Hnc.trans (Hnoc.prefix Hpre (by omega)) Hca Hk1, ?_, Hstep⟩
+  obtain ⟨t, rfl⟩ := Hpre
+  rw [List.take_append_of_le_length (by omega)]
+  exact ⟨op', Hdec, Hstep'⟩
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `NoConfIn` over two adjacent ranges. -/
@@ -2593,14 +2586,15 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
   ihave %Hpfx := mono_list_auth_lb_valid _ _ _ _ $$ Hdlm Hlb
-  -- (2026-10-28, the decision switch) the driver's decisions and `run`'s skipped entries, joined
-  icases undecFree_join γ.raft γ.mode _ _ _ M $$ [HM Hinv2] with ⟨%M', #HM', %Hsub, %Hnu⟩
+  -- (2026-10-28, the decision switch) the driver's decisions and `run`'s kept range, joined
+  icases cfgKeepIn_join γ.raft γ.mode _ _ _ _ M $$ [HM Hinv2] with ⟨%M', #HM', %Hsub, %Hnu⟩
   · iframe HM Hinv2
   have Hp' := dynCCPreOp_transfer (Hp.mono_dec (effDec_mono dec Hsub)) Hpfx.2 Hinv.1
     (Hnu dec c0 h0 h1 hm)
   isplitr
   · iexists M'; iframe HM'; ipureintro; exact Hp'
   obtain ⟨Hk1, Hk2, -⟩ := Hp'
+  have Hck := Hp.1
   imod dghostVar_update_halves (k + 1, cs') γ.cap _ _ $$ Hcap_r Hcap with ⟨Hcap_r, Hcap⟩
   imod mono_nat_own_update (k + 1) (by omega) $$ Hcam with ⟨Hcam, #Hlb'⟩
   imodintro
@@ -2617,7 +2611,7 @@ theorem runCfg_confc (γ : NodeNames) (rs : RNState) (ds : List EntryM) (ca : Na
   iframe Hcap_r Hcam
   isplitr
   · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
-  iapply undecFree_empty
+  iapply cfgKeepIn_le _ _ _ _ (Nat.le_refl _)
 
 /-- The `readyc` arm: the committed log handed out grows by the `Ready`'s committed entries
 (the configuration and its index unchanged); a lower bound of it for the driver. (D22 S-d4,
@@ -2674,12 +2668,11 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM) (L 
   isplitr
   · ipureintro
     exact ⟨Hinv.1, fun h => Nat.le_trans (Hinv.2 h) Hext.length_le⟩
-  -- (2026-11-02, stage II (u)) past the committed log handed out only without a gap
-  by_cases hgap : ca_r < rs.capplied
-  · iapply undecFree_prefix γ.raft γ.mode Hext (Hinv.2 hgap)
+  -- (2026-11-24, option D) ahead of `run`'s index only within the committed log handed out
+  by_cases hgap : rs.capplied < ca_r
+  · iapply cfgKeepIn_prefix γ.raft γ.mode Hext (Hinv.2 hgap)
     iexact Hinv2
-  · rw [show rs.capplied = ca_r by have := Hinv.1; omega]
-    iapply undecFree_empty
+  · iapply cfgKeepIn_le _ _ _ _ (by omega)
 
 /-- (D22 S-d4) What `runCfg` says of snapshots: none pending or lent at a node that takes none,
 and one that takes them is outside the no-snapshot mode (until 2026-10-28, stage U3d, also in the
@@ -2700,22 +2693,31 @@ theorem runCfg_snap (γ : NodeNames) (rs : RNState) :
   iframe Hdlm Hrest
   ipureintro; exact Hm0
 
-/-- The `advancec` arm, before `Advance`: the driver's A1 (no conf entry of the committed log
-handed out past its configuration index, a lower bound of `run`'s) is A1 at the `RawNode`. -/
-theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
+/-- The `advancec` arm, before `Advance` (2026-11-24, option D of `notes/raft-restart-confpoint.md`):
+the driver's view moved at the rendezvous to at least the committed log handed out (`ca_d`, a lower
+bound of the index), and `runCfg` keeping the configuration from `run`'s index to the view's, A1 at the
+`RawNode` (until then from the driver's skipped entries). -/
+theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) (hsl : rs.slent = none)
+    (HA : rs.mode.isDyn = true → rs.delivered.length ≤ ca_d) :
     ⊢ runCfg (GF := GF) γ rs -∗ monoNatLbOwn γ.cam ca_d -∗
-      undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length -∗
-      undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length ∗
+      cfgKeepIn γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg ∗
       runCfg γ rs := by
-  iintro Hcfg #Hlb #HA
+  iintro Hcfg #Hlb
   iunfold runCfg at Hcfg
   icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
   ihave %Hle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hlb
   isplitr
-  · rw [Hm0.1]
-    iapply undecFree_mono γ.raft γ.mode (lo := ca_d) (hi := rs.delivered.length)
-      (by have := Hle.2; have := Hinv.1; omega) (Nat.le_refl _)
-    iexact HA
+  · cases hd : rs.mode.isDyn with
+    | false => iapply cfgKeepIn_static γ.raft hd
+    | true =>
+      have h1 := HA hd
+      have h2 := Hle.2
+      rw [rsDlv_none hsl] at Hinv
+      rcases Nat.eq_or_lt_of_le Hinv.1 with h | h
+      · iapply cfgKeepIn_le _ _ _ _ (by omega)
+      · have e : rs.delivered.length = ca_r := by have := Hinv.2 h; omega
+        iExactEq Hinv2
+        rw [Hm0.1, rsDlv_none hsl, e]
   iunfold runCfg
   iframe Hdlm Hdk
   isplitr
@@ -2725,22 +2727,19 @@ theorem runCfg_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
   ipureintro; exact Hinv
 
 /-- (2026-10-28, stage U3d) The `advancec` arm, before `Advance`, from `run`'s side after the
-rendezvous (`runCfgR`): A1 at the `RawNode` (`runCfg_a1`, or the loan's `runCfgLoan`), and,
-dynamically after a snapshot `Ready`, its `ConfState` no auto-leave one. -/
-theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
+rendezvous (`runCfgR`): A1 at the `RawNode` (`runCfg_a1`), after a `Ready` without a snapshot. -/
+theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat)
+    (HA : rs.slent = none → rs.mode.isDyn = true → rs.delivered.length ≤ ca_d) :
     ⊢ runCfgR (GF := GF) γ rs -∗ monoNatLbOwn γ.cam ca_d -∗
-      -- (raft-final phase 2: guarded, as `advRet`'s)
-      □ (⌜rs.slent = none⌝ -∗ undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length) -∗
       -- (raft-final phase 2: the design's A1, as `RawNode.Advance.spec`'s `"#HA1"`; until then
       -- unguarded, from `runCfgLoan`'s A1 after a snapshot `Ready`)
       □ (⌜rs.slent = none⌝ -∗
-        undecFree γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
+        cfgKeepIn γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg) ∗
       runCfgR γ rs := by
-  iintro Hcfg #Hlb #HA
+  iintro Hcfg #Hlb
   by_cases hc : rs.slent = none
   · ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hc)).1 $$ Hcfg
-    ihave #HA0 := HA $$ %hc
-    icases runCfg_a1 γ { rs with flw := false } ca_d $$ Hcfg Hlb HA0 with ⟨#HA1, Hcfg⟩
+    icases runCfg_a1 γ { rs with flw := false } ca_d hc (HA hc) $$ Hcfg Hlb with ⟨#HA1, Hcfg⟩
     ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hc)).2 $$ Hcfg
     iframe Hcfg
     imodintro
@@ -2751,38 +2750,42 @@ theorem runCfgR_a1 (γ : NodeNames) (rs : RNState) (ca_d : Nat) :
     iintro %h
     exact absurd h hc
 
-/-- The `advancec` arm, after `Advance`: the configuration index moved up to at most the
-committed log handed out, over no conf entry (A1), not at all in the static mode. (D22 S-d4,
-2026-10-21) After a snapshot `Ready` the loan is returned and the committed log handed out is the
-loan's (`advRS`), which the authority is already over (`rsDlv`); (2026-10-28, stage U3d)
-dynamically the configuration the snapshot's, which the rendezvous already shared
+/-- The `advancec` arm, after `Advance`: the configuration index moved up to the committed log
+handed out, where the driver's view already is (2026-11-24, option D: the rendezvous moved it,
+`ca_d`; until then the index moved over skipped entries, the view behind), not at all in the static
+mode. (D22 S-d4, 2026-10-21) After a snapshot `Ready` the loan is returned and the committed log
+handed out is the loan's (`advRS`), which the authority is already over (`rsDlv`); (2026-10-28, stage
+U3d) dynamically the configuration the snapshot's, which the rendezvous already shared
 (`runCfgLoan`). -/
 theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     (Hca : (rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
       (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
       (rs.mode = .static → ca = rs.capplied))
-    :
-    -- (raft-final phase 2: guarded, as `RawNode.Advance.spec`'s `"#HA1"`)
-    ⊢ □ (⌜rs.slent = none⌝ -∗
-        undecFree (GF := GF) γ.raft rs.mode rs.delivered rs.capplied rs.delivered.length) -∗
-      runCfgR γ rs -∗ runCfg γ (advRS rs t ca) := by
-  iintro #HA1 Hcfg
+    (Hcm : rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length)
+    (ca_d : Nat) (HA : rs.slent = none → rs.mode.isDyn = true → rs.delivered.length ≤ ca_d) :
+    ⊢ monoNatLbOwn (GF := GF) γ.cam ca_d -∗ runCfgR γ rs -∗ runCfg γ (advRS rs t ca) := by
+  iintro #Hlb Hcfg
   cases hsl : rs.slent with
   | none =>
     ihave Hcfg := (runCfgR_of_runCfg (GF := GF) γ rs (.inl hsl)).1 $$ Hcfg
     iunfold runCfg at Hcfg
     icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+    ihave %Hle := monoNatLbOwn_valid _ _ _ _ $$ Hcam Hlb
     obtain ⟨Hmd, -, -, Hsnm⟩ := Hm0
     simp only [rsDlv, hsl] at Hmd Hsnm Hinv ⊢
     rw [advRS_none t ca hsl]
-    have Hcases : ca = rs.capplied ∨ (rs.mode.isDyn = true ∧ ca ≤ rs.delivered.length) := by
+    have Hcases : ca = rs.capplied ∨ ca = ca_r := by
       cases hm : rs.mode with
       | static => exact .inl (Hca.2.2 hm)
       | dyn _ _ _ _ =>
-        have := (Hca.1 hsl).1; have := (Hca.1 hsl).2
-        by_cases hl : ca ≤ rs.delivered.length
-        · exact .inr ⟨rfl, hl⟩
-        · left; omega
+        right
+        have h1 := Hcm hsl (by rw [hm]; rfl)
+        have h2 := HA hsl (by rw [hm]; rfl)
+        have h3 := Hle.2
+        have h4 := Hinv.1
+        rcases Nat.eq_or_lt_of_le h4 with h | h
+        · omega
+        · have := Hinv.2 h; omega
     iunfold runCfg
     isplitr
     · ipureintro
@@ -2794,17 +2797,14 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
     iexists ca_r
     iframe Hcap_r Hcam
     simp only [rsDlv, hsl]
-    rcases Hcases with h | ⟨hd, h⟩
+    rcases Hcases with h | h
     · rw [h]
       iframe Hinv2
       ipureintro; exact Hinv
-    · isplitr
-      · ipureintro; have := (Hca.1 hsl).1; exact ⟨by have := Hinv.1; omega, fun _ => h⟩
-      iapply undecFree_trans γ.raft γ.mode _ _ rs.capplied
-      iframe Hinv2
-      rw [← Hmd]
-      iapply undecFree_mono γ.raft rs.mode (Nat.le_refl _) h
-      iapply HA1 $$ %(by simp)
+    · subst h
+      isplitr
+      · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
+      iapply cfgKeepIn_le _ _ _ _ (Nat.le_refl _)
   | some l =>
     have Hadv : advRS rs t ca =
         { rs with
@@ -2841,7 +2841,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       rw [Hca0]
       isplitr
       · ipureintro; exact Hinv
-      iapply undecFree_static γ.raft (by rw [← Hmd]; exact hd)
+      iapply cfgKeepIn_static γ.raft (by rw [← Hmd]; exact hd)
     | true =>
       -- dynamically at the snapshot's index and configuration, which the rendezvous shared
       ihave Hcfg := (runCfgR_loan (GF := GF) γ rs l hsl hd).1 $$ Hcfg
@@ -2863,7 +2863,7 @@ theorem runCfg_advance (γ : NodeNames) (rs : RNState) (t : w64) (ca : Nat)
       rw [Hca0]
       isplitr
       · ipureintro; exact ⟨Nat.le_refl _, fun h => absurd h (Nat.lt_irrefl _)⟩
-      iapply undecFree_empty
+      iapply cfgKeepIn_le _ _ _ _ (Nat.le_refl _)
 
 end cfgshare
 

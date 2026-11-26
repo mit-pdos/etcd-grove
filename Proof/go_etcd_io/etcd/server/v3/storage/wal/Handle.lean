@@ -66,21 +66,21 @@ variable [GooseExts]
 def tailStream (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List w8 :=
   recFrames walCodec ((chainSegs walCodec 0#32
-    (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts))).getD cuts.length [])
+    (segsDs Mr md true [] (segsOf (histN H) cuts))).getD cuts.length [])
 
 /-- The records of the last segment (CRCs chained). -/
 def tailRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List WalRec :=
-  (chainSegs walCodec 0#32 (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts))).getD cuts.length []
+  (chainSegs walCodec 0#32 (segsDs Mr md true [] (segsOf (histN H) cuts))).getD cuts.length []
 
 /-- Every record of the WAL (CRCs chained). -/
 def allRecs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) :
     List WalRec :=
-  recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) cuts)
+  recsOfSegs walCodec Mr md (segsOf (histN H) cuts)
 
 /-- **The encoder's CRC after every record of the WAL.** -/
 def tailCrc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) : w32 :=
-  chainEnd walCodec 0#32 (recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) cuts))
+  chainEnd walCodec 0#32 (recsOfSegs walCodec Mr md (segsOf (histN H) cuts))
 
 theorem tailStream_recs (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) : tailStream Mr H md cuts = recFrames walCodec (tailRecs Mr H md cuts) := rfl
@@ -112,6 +112,14 @@ structure WalHS where
   enti : w64
   snapi : w64
   pc : Nat
+  /-- `w.state` may be nil (only after `Create`, until `Save`'s nil check; P6). -/
+  stNil : Bool := false
+  /-- The WAL's incarnation (P6b, `notes/wal-p6b-design.md`): the handle's ghost record's, current while
+  the handle holds the lock (`walOpenWI`). -/
+  inc : Nat := 0
+  /-- The pipeline's fraction of the path to the directory (P6b fix A, loans): the fraction of the WAL's
+  name the handle's record lends it (`walHLoans`), which `Close` returns. -/
+  qp : Qp := 1
 
 /-- The tail's records encoded so far (all but the last `rest`). -/
 def WalHS.encRecs (Mr : WalMarshal) (h : WalHS) : List WalRec :=
@@ -380,6 +388,85 @@ theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {
 
 /-! ## The tail and the handle -/
 
+/-! ## `w.state`: canonical (P6, the torn-`Save` fix)
+
+`Save` with entries and an empty `st` writes `w.state`'s state record (`encodeState(w.state)`), so the
+bytes it marshals to must be the state's encoding `Mr.encState`, also when it is empty: `w.state` is
+only ever `&raftpb.HardState{}`, a state decoded from a record or a non-empty `st`, whose content is
+canonical (a raft `Ready`'s empty hard state, with explicit zero fields, never reaches it).
+`notes/wal-p6-handoff.md`, "Coordinator's answer". -/
+
+section st
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **`pbutil.MustMarshalMessage(sp)` marshals `sp` to `Mr.encState hs`**, a non-nil slice. -/
+def walStMarsh (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) : IProp GF :=
+  iprop(□ ∀ Φ, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil -∗
+    (∀ d : GoSlice, d ↦* Mr.encState hs -∗ ⌜d ≠ slice.nil⌝ -∗ Φ #d) -∗
+    WP (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
+      (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #sp))) {{ Φ }})
+
+instance walStMarsh_persistent (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    Persistent (walStMarsh (GF := GF) Mr sp hs) := by
+  unfold walStMarsh; infer_instance
+
+/-- **`w.state`'s pointer**: it holds `hs` (`P.hsIn`), when not nil marshals to its encoding, and is
+not nil unless `nil` (the handle's `stNil`). -/
+def walStIn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool := false) :
+    IProp GF :=
+  iprop(P.hsIn sp hs ∗ (⌜sp ≠ null⌝ -∗ walStMarsh Mr sp hs) ∗ ⌜nil = false → sp ≠ null⌝)
+
+instance walStIn_persistent (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool) :
+    Persistent (walStIn (GF := GF) P Mr sp hs nil) := by
+  unfold walStIn; infer_instance
+
+theorem walStIn_null (P : WalPbIn GF) (Mr : WalMarshal) (hs : HardStateM) :
+    P.hsIn null hs ⊢ walStIn P Mr null hs true := by
+  iintro #H
+  unfold walStIn
+  isplitr
+  · iexact H
+  isplitr
+  · iintro %h; exact absurd rfl h
+  · ipureintro; intro h; cases h
+
+/-- A non-nil `w.state`, from its parts. -/
+theorem walStIn_intro (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool)
+    (hn : sp ≠ null) : P.hsIn sp hs ∗ walStMarsh Mr sp hs ⊢ walStIn P Mr sp hs nil := by
+  iintro ⟨#H, #M⟩
+  unfold walStIn
+  isplitr
+  · iexact H
+  isplitr
+  · iintro %_; iexact M
+  · ipureintro; intro _; exact hn
+
+/-- A non-nil `w.state` under any nil flag. -/
+theorem walStIn_set (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (b b' : Bool)
+    (hn : sp ≠ null) : walStIn P Mr sp hs b ⊢ walStIn P Mr sp hs b' := by
+  iintro #H
+  unfold walStIn
+  icases H with ⟨#H1, #H2, -⟩
+  iframe H1 H2
+  ipureintro; intro _; exact hn
+
+/-- What a non-nil `w.state` gives. -/
+theorem walStIn_nn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    walStIn P Mr sp hs false ⊢ ⌜sp ≠ null⌝ ∗ P.hsIn sp hs ∗ walStMarsh Mr sp hs := by
+  iintro #H
+  unfold walStIn
+  icases H with ⟨#H1, #H2, %H3⟩
+  have hn := H3 rfl
+  isplitr
+  · ipureintro; exact hn
+  iframe H1
+  iapply H2; ipureintro; exact hn
+
+end st
+
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -498,6 +585,31 @@ def walDirLks (dir : GoString) (hj : NamesH) (nm0 : GoString) (lfs : List Loc) (
     walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
     ([∗list] lf; l ∈ lfs; ls, walLockHI lf l.1 l.2) ∗ ⌜LkRel hj cuts nm0 ls b⌝)
 
+/-- **The lock holder's names record, carried by a handle** (P6b fix A, loans; ledger 2026-11-25, "loans
+carried in the handles"): the ghost variable's half `walNamesFragS ⟨nf, none, Lh⟩`; with no registration
+pending (`nf = none`), `Lh` lists the handle's loans of the WAL's name `nm` (`dir = r'/nm`), one per fraction
+of `qs` (the paths to `dir` the handle holds: its own and its pipeline's), which `Close` returns
+(`walInv_dirPathRetDL`) before it gives the lock token back; with one pending (`Create` before naming), no
+loan. -/
+def walHLoans (dir : GoString) (nf : Option GoString) (qs : List Qp) : IProp GF :=
+  iprop(∃ Lh : List (GoString × Qp), walNamesFragS (W := W) ⟨nf, none, Lh⟩ ∗
+    ⌜(nf = none → ∃ r' nm, InArea r' dir nm ∧ Lh = qs.map (fun q => (nm, q))) ∧
+      (nf ≠ none → Lh = [])⌝)
+
+/-- A handle's record with a registration pending is `walNamesFrag`. -/
+theorem walHLoans_some (dir d : GoString) (qs : List Qp) :
+    walHLoans (W := W) dir (some d) qs ⊣⊢ walNamesFrag (W := W) (some d) := by
+  unfold walHLoans
+  constructor
+  · iintro ⟨%Lh, Hf, %h⟩
+    have hL : Lh = [] := h.2 (by simp)
+    subst hL
+    iexact Hf
+  · iintro Hf
+    iexists []
+    iframe Hf
+    ipureintro; exact ⟨(nomatch ·), fun _ => rfl⟩
+
 /-- **The handle's share of its WAL directory `j`** (W2's `cut`, its rename; the directory-claim map,
 `notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the
 invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's half of that claim
@@ -521,19 +633,19 @@ pipeline's names; W1 log, tenth session); the lock holder's half of the tails' a
 WAL's tail registered (`walTailsFrag`, W1 log, eleventh session), and no name registration pending
 (`walNamesFrag none`): what `Close` needs to give the lock token back (`walLockedTok_unlock`; W10,
 W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they return the handle).
-`nmd` is the naming fact, `walNamed dir` by default; `emp` in the handle before naming
+`nmd` is the naming fact (`walHandleIn`'s default: `walNamed dir h.inc`, the handle's incarnation); `emp` in the handle before naming
 (`walOpenWFU`: `Create` between its commit and the parent's fsync). -/
-def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
-    (lfs : List Loc) (cuts : List Nat)
-    (nmd : Roots → Qp → IProp GF := fun _ _ => walNamed (W := W) dir) (nf : Option GoString := none) :
+def walDirH (dir : GoString) (i : Nat) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+    (lfs : List Loc) (cuts : List Nat) (qp : Qp)
+    (nmd : Roots → Qp → IProp GF) (nf : Option GoString := none) :
     IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
-    walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+    walDirKey (W := W) dir i j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ ⌜R = W.roots⌝ ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
     osDirFdS dfd j ph ∗
     nmd R q ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     walDirLks (W := W) dir hj nm0 lfs cuts ∗
-    walNamesFrag (W := W) nf ∗
+    walHLoans (W := W) dir nf [q, qp] ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∃ pd, name = child pd nm0) ∧
       (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k) ∧
@@ -552,7 +664,7 @@ tests it, S/wal.go:968). With `tm := TailMetaW`, the tail in a resize window (`c
 truncate and its fdatasync, `WAL.sync.specCut`). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
-    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir)
+    (nmd : Loc → Roots → Qp → IProp GF := fun _ _ _ => walNamed (W := W) dir h.inc)
     (nf : Option GoString := none) (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (lg df sp e fp lt f : Loc) (mds locks : GoSlice) (lfs : List Loc) (fd dfd : w64)
@@ -564,7 +676,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
     recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
-    P.hsIn sp h.st ∗
+    walStIn P Mr sp h.st h.stNil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ GoInterface.nil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗
@@ -575,14 +687,14 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc lfs.dropLast h.cuts (nmd f) nf ∗
+    walDirH (W := W) dir h.inc j dfd h.ino name h.pc lfs.dropLast h.cuts h.qp (nmd f) nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapBefore" w ↦□ (null : Loc) ∗
     fileutil.lockedFile lt f ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc pp ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc (fun R dq => pp R dq ∧ dq = DFrac.own h.qp) ∗
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    walOpenW (W := W) w dir ∗
+    walOpenWI (W := W) w dir h.inc ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
       ((h.rest = 0 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) ∧
         walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) ∧
@@ -603,6 +715,36 @@ buffer. -/
   iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
     ⧗ h.pc)
 
+/-- **`walOpenWF` at the incarnation `i`** (P6b, `notes/wal-p6b-design.md`): the handle's state's
+`inc` is `i` (`Create.spec`'s post: the view's incarnation). Sealed; `walOpenWFI_WF` forgets `i`. -/
+@[no_expose] def walOpenWFI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+    ⌜h.inc = i⌝ ∗ ⧗ h.pc)
+
+theorem walOpenWFI_WF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWFI (W := W) P Mr w dir i ⊢ walOpenWF (W := W) P Mr w dir := by
+  unfold walOpenWFI walOpenWF
+  iintro ⟨%h, Hh, %hD, %hmd, -, Hr⟩
+  iexists h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd⟩
+
+/-- `walOpenWFI` unfolded (for the package's proofs). -/
+theorem walOpenWFI_iff (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (i : Nat) :
+    walOpenWFI (W := W) P Mr w dir i ⊣⊢
+      ∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+        ⌜h.inc = i⌝ ∗ ⧗ h.pc :=
+  .rfl
+
+theorem walOpenWF_WFI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    walOpenWF (W := W) P Mr w dir ⊢ ∃ i, walOpenWFI (W := W) P Mr w dir i := by
+  unfold walOpenWFI walOpenWF
+  iintro ⟨%h, Hh, %hD, %hmd, Hr⟩
+  iexists h.inc, h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd, rfl⟩
+
 /-- **The handle before naming** (`Create` after its commit, W4 log, twenty-second session; ledger
 2026-11-14, `renameWALPost`'s arm 2): `walOpenWF` but for the naming fact, and **the WAL's name not yet
 registered** (`walDirH`'s `nf := some dir`: `Create`'s pending registration, `walNamesRes`'s `o`; design P
@@ -619,6 +761,24 @@ in `HandleUnnamed.lean`. -/
       (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
       (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⌜h.Done⌝ ∗
     ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
+
+/-- **`walOpenWFU` at the incarnation `i`** (the handle's state's `inc`): `Create`'s, sealed by
+`walOpenWFUI_seal` into `walOpenWFI … i`; `walOpenWFUI_WFU` forgets `i` (the cleanup's `Close`). -/
+@[no_expose] def walOpenWFUI (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
+    (qp : Qp) (tf : Loc) (i : Nat) : IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW
+      (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝))
+      (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⌜h.Done⌝ ∗
+    ⌜h.md.length < 2 ^ 41⌝ ∗ ⌜h.inc = i⌝ ∗ ⧗ h.pc)
+
+theorem walOpenWFUI_WFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
+    (qp : Qp) (tf : Loc) (i : Nat) :
+    walOpenWFUI (W := W) P Mr w dir Rp qp tf i ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf := by
+  unfold walOpenWFUI walOpenWFU
+  iintro ⟨%h, Hh, %hD, %hmd, -, Hr⟩
+  iexists h
+  iframe Hh Hr
+  ipureintro; exact ⟨hD, hmd⟩
 
 /-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
 its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt

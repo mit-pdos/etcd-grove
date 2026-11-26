@@ -93,7 +93,8 @@ abbrev RawNode.Advance.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hret" ∷ loanRet rs ∗
-      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
+      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗
+        cfgKeepIn γ rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg) ∗
       "#Hbw" ∷ durFrags γ id rs.bw }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();

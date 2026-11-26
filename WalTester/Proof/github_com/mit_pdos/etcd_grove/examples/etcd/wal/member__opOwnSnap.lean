@@ -360,9 +360,11 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and
     -- taken back after it
     iapply fupd_wp
-    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [H14]
-      with ⟨%γs, H14⟩
-    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ H14
+    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ 0 $$ [H14]
+      with ⟨%γs, H14, %hγ0⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ 0 walCov_ioNone $$ H14
+    rcases γs with ⟨γs1, γs2, γsi⟩; dsimp only at hγ0; subst hγ0
+    let γs : WalShN := ⟨γs1, γs2, 0⟩
     imodintro
     wp_apply (lc := 1) (wp_Release W e.R e.jr e.area w (tWalDir e.area) γs 1 a ta (tCandHist o c).length
         (tCandMark (tSnapO o a ta) c) ⟨[W64 1], [], [], [], false⟩
@@ -535,7 +537,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
           iunfold WalFs.walAreaOk at H13c
           icases H13c with ⟨#Hwinv, -⟩
           ihave #Hacc := tInv_purgeAcc W e γ (tPurNames o2) (tPurCand c2) d2.H (tPurNames_all _) $$ H3
-          wp_apply (wp_purge W walRaftP walRaftMr e.R e.jr e.area lg w (tWalDir e.area) (W64 1 + k3)
+          wp_apply (wp_purge W walRaftP walRaftMr e.R e.jr e.area lg w (tWalDir e.area) 0 (W64 1 + k3)
               (tPurgeTok W γ (tPurNames o2) (tPurCand c2) d2.H) (by word)) $$ [H14 H11 H12] as ⟨H14, Htok⟩
           · iframe; iframe #
             unfold tPurgeTok

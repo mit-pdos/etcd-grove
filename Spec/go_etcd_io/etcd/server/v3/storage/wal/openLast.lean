@@ -44,13 +44,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.openLast.spec (Mr : WalMarshal) : Prop :=
-  ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
+  ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF) (ic : Nat),
   InArea r dir nm → NameOk nm → cleanAbsPath r → PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
-        <{ WalFs.walDirIs dir o, COMM Q o }> }}
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIsI dir ic o }> @ walAuMask, ∅
+        <{ WalFs.walDirIsI dir ic o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.openLast)) (Val #lg)) (Val #dir))
   {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err); osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ ∃ o : Option WalDur, Q o ∗

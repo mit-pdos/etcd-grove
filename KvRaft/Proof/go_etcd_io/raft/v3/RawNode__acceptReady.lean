@@ -834,7 +834,7 @@ theorem RawNode.acceptReady.wp_proof
       by rw [a4, Hf_cm]; exact Int.le_refl _⟩, fun _ h => by cases h⟩
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable, HlL]; exact Int.le_refl _
   · ipureintro
-    exact XfOk.nil (fun h => Hxf.term_nz h)
+    exact Hxf.drain
   · rw [List.append_nil]; iapply qSrcs_nil
   -- the node after `Ready`
   have Hlogst : (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)).logst = logAcceptApplying (logAcceptUnstable ls0) ce sz := by

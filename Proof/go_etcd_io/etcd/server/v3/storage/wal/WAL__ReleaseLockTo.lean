@@ -67,7 +67,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hlocked Hlc1
   imodintro
-  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHdl_open Sio P Mr w dir γ.inc $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom, %hinc⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu', Henti, Hsnapi,
@@ -109,11 +109,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   -- the commit, right after the lock, the locked range raised with `unl`
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  icases walOpenWI_incQ (W := W) w dir h.inc $$ Hopen with ⟨%IQ, HIQ, %hIQ, Hopen⟩
   imod walInv_releaseLks walCodec Mr R jr r dir a
-    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q j X hj h.γ
+    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q γ.inc h.inc IQ hIQ j X hj h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) γt b hlkr.2.1
-    $$ Hinv Hnc Hau Hdk Hcl Htk [Hv] Htf with ⟨Hnc, HQ, Hcl, Htk, Hv, %b', Htf, %hb'⟩
+    $$ Hinv Hnc Hau Hdk HIQ Hcl Htk [Hv] Htf with ⟨Hnc, HQ, HIQ, Hcl, Htk, Hv, %b', Htf, %hb'⟩
   · unfold tailVar; iexact Hv
+  ihave Hopen := Hopen $$ HIQ
   iunfold tailVar at Hv
   imodintro
   iframe Hnc
@@ -266,7 +268,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       Hsnapi He Henc Hlocks Hls Hcap Hfp Hpipe Hopen Hf Hfdo Hoff Htk Hm Hbs Hv Hcl Hpd Hperm Hdfd Hout Hnf
       Htf HlksI] with ⟨Hw, Hlocked⟩
     · iframe Hpers Hheld
-      iapply walHdl_close Sio P Mr w dir h hD hmd hroom
+      iapply walHdl_close Sio P Mr w dir h hD hmd hroom _ hinc
       iframe Hr
       iunfold walHandleIn
       iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
@@ -409,7 +411,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
     Hsnapi He Henc Hlocks Hls Hcap Hfp Hpipe Hopen Hf Hfdo Hoff Htk Hm Hbs Hv Hcl Hpd Hperm Hdfd Hout Hnf
     Htf HlksI] with ⟨Hw, Hlocked⟩
   · iframe Hpers Hheld
-    iapply walHdl_close Sio P Mr w dir h hD hmd hroom
+    iapply walHdl_close Sio P Mr w dir h hD hmd hroom _ hinc
     iframe Hr
     iunfold walHandleIn
     iexists lg, df, sp, e, fp, lt, f, mds, slice.slice locks Loc sm' locks.len,

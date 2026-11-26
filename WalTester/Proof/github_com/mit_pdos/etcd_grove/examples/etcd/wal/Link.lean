@@ -10,10 +10,10 @@ edit by hand.
 113 results, 100 of them with no hypothesis. The others take, as hypotheses `h_<name>`, the specs
 with no proof and the premises on the model parameters (the client's protobuf laws, ...) they reach:
 `h_U_Ok` (5), `h_U_SnapCoh` (5), `h_WalDecEnvSupply` (5), `h_WalHsOwn` (5), `h_WalHsOwn_2` (5),
-`h_WalPbIn_CloneHsLaw` (5), `h_WalPbIn_GetIndexLaw` (11), `h_WalPbIn_GetTermLaw` (5),
+`h_WalPbIn_CloneStLaw` (5), `h_WalPbIn_GetIndexLaw` (11), `h_WalPbIn_GetTermLaw` (5),
 `h_WalPbIn_IsEmptyLaw` (11), `h_WalPbIn_MarshalEntLaw` (9), `h_WalPbIn_MarshalHsLaw` (11),
 `h_WalPbIn_MustSyncLaw` (9), `h_WalPbIn_NilLaw` (2), `h_WalPbIn_SizeLaw` (9),
-`h_WalPbIn_UnmarshalEntLaw` (5), `h_WalPbIn_ZeroLaw` (9).
+`h_WalPbIn_UnmarshalEntLaw` (5), `h_WalPbIn_ZeroLaw` (9), `h_WalPbIn_ZeroStLaw` (9).
 
 `#print axioms` on a result is its trust base (`etc/tcb-report.py`).
 -/
@@ -744,10 +744,10 @@ theorem etcd_wal.wp_restartRead
     (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) (h_U_Ok : U.Ok
     walRaftMr) (h_U_SnapCoh : U.SnapCoh) (h_WalDecEnvSupply : WalDecEnvSupply (GF := GF))
     (h_WalHsOwn : WalHsOwn P U HsO) (h_WalHsOwn_2 : WalHsOwn (walRaftP (GF := GF)) U HsO)
-    (h_WalPbIn_CloneHsLaw : WalPbIn.CloneHsLaw (walRaftP (GF := GF))) (h_WalPbIn_GetIndexLaw :
-    WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw : WalPbIn.GetTermLaw
-    (walRaftP (GF := GF))) (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF :=
-    GF)) U) :
+    (h_WalPbIn_CloneStLaw : WalPbIn.CloneStLaw (walRaftP (GF := GF)) walRaftMr HsO)
+    (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw :
+    WalPbIn.GetTermLaw (walRaftP (GF := GF))) (h_WalPbIn_UnmarshalEntLaw :
+    WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF)) U) :
     _root_.Perennial.EtcdGrove.etcd_wal.restartRead.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.restartRead.wp_proof (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.wal.wp_ValidSnapshotEntries walRaftMr P U HsO h_U_Ok
@@ -756,7 +756,7 @@ theorem etcd_wal.wp_restartRead
     h_WalDecEnvSupply)) (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReadAll
     (walRaftP (GF := GF)) walRaftMr U HsO h_U_Ok h_U_SnapCoh h_WalDecEnvSupply h_WalHsOwn_2
-    h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw))
+    h_WalPbIn_CloneStLaw h_WalPbIn_GetIndexLaw h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw))
     (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Close (walRaftP
     (GF := GF)) walRaftMr)) (fun W : WalGS GF => (_root_.Perennial.EtcdGrove.walfs.wal.wp_Repair
@@ -771,14 +771,14 @@ theorem etcd_wal.member.wp_restart
     (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) (h_U_Ok : U.Ok
     walRaftMr) (h_U_SnapCoh : U.SnapCoh) (h_WalDecEnvSupply : WalDecEnvSupply (GF := GF))
     (h_WalHsOwn : WalHsOwn P U HsO) (h_WalHsOwn_2 : WalHsOwn (walRaftP (GF := GF)) U HsO)
-    (h_WalPbIn_CloneHsLaw : WalPbIn.CloneHsLaw (walRaftP (GF := GF))) (h_WalPbIn_GetIndexLaw :
-    WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw : WalPbIn.GetTermLaw
-    (walRaftP (GF := GF))) (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF :=
-    GF)) U) :
+    (h_WalPbIn_CloneStLaw : WalPbIn.CloneStLaw (walRaftP (GF := GF)) walRaftMr HsO)
+    (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw :
+    WalPbIn.GetTermLaw (walRaftP (GF := GF))) (h_WalPbIn_UnmarshalEntLaw :
+    WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF)) U) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.restart.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.restart.wp_proof
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_restartRead P U HsO h_U_Ok h_U_SnapCoh
-    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw
+    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneStLaw h_WalPbIn_GetIndexLaw
     h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw)
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_checkRestart
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle
@@ -791,7 +791,8 @@ theorem etcd_wal.member.wp_save
     (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP
     (GF := GF)) walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
     (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_ZeroLaw :
-    WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP
+    (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.save.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.save.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_hsEmpty
@@ -802,7 +803,8 @@ theorem etcd_wal.member.wp_save
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_phsNext (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save (walRaftP
     (GF := GF)) walRaftMr h_WalPbIn_GetIndexLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw
-    h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw))
+    h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw
+    h_WalPbIn_ZeroStLaw))
 
 theorem etcd_wal.member.wp_opEntries
     (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw :
@@ -810,7 +812,8 @@ theorem etcd_wal.member.wp_opEntries
     (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP
     (GF := GF)) walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
     (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_ZeroLaw :
-    WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP
+    (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.opEntries.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.opEntries.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
@@ -819,7 +822,7 @@ theorem etcd_wal.member.wp_opEntries
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_hs
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_save h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
 
 theorem etcd_wal.member.wp_opResend
     (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw :
@@ -827,7 +830,8 @@ theorem etcd_wal.member.wp_opResend
     (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP
     (GF := GF)) walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
     (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_ZeroLaw :
-    WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP
+    (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.opResend.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.opResend.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_copyOps
@@ -835,7 +839,7 @@ theorem etcd_wal.member.wp_opResend
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_hs
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_save h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
 
 theorem etcd_wal.member.wp_opCommit
     (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw :
@@ -843,14 +847,15 @@ theorem etcd_wal.member.wp_opCommit
     (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP
     (GF := GF)) walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
     (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_ZeroLaw :
-    WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP
+    (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.opCommit.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.opCommit.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_hs
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_save h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
 
 theorem etcd_wal.member.wp_opTerm
     (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw :
@@ -858,14 +863,15 @@ theorem etcd_wal.member.wp_opTerm
     (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP
     (GF := GF)) walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
     (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_ZeroLaw :
-    WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP
+    (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.opTerm.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.opTerm.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_hs
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_save h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
 
 theorem etcd_wal.member.wp_saveSnap
     (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw (walRaftP (GF := GF))) (h_WalPbIn_MarshalHsLaw :
@@ -896,7 +902,8 @@ theorem etcd_wal.member.wp_opRecvSnap
     (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP
     (GF := GF)) walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
     (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_ZeroLaw :
-    WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP
+    (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.opRecvSnap.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.opRecvSnap.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
@@ -905,7 +912,7 @@ theorem etcd_wal.member.wp_opRecvSnap
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_hs
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_save h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_saveSnap h_WalPbIn_IsEmptyLaw
     h_WalPbIn_MarshalHsLaw) _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_sync
 
@@ -913,54 +920,57 @@ theorem etcd_wal.member.wp_step
     (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) (h_U_Ok : U.Ok
     walRaftMr) (h_U_SnapCoh : U.SnapCoh) (h_WalDecEnvSupply : WalDecEnvSupply (GF := GF))
     (h_WalHsOwn : WalHsOwn P U HsO) (h_WalHsOwn_2 : WalHsOwn (walRaftP (GF := GF)) U HsO)
-    (h_WalPbIn_CloneHsLaw : WalPbIn.CloneHsLaw (walRaftP (GF := GF))) (h_WalPbIn_GetIndexLaw :
-    WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw : WalPbIn.GetTermLaw
-    (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw (walRaftP (GF := GF)))
-    (h_WalPbIn_MarshalEntLaw : WalPbIn.MarshalEntLaw (walRaftP (GF := GF)) walRaftMr)
-    (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP (GF := GF)) walRaftMr)
-    (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw :
-    WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw :
-    WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF)) U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw
-    (walRaftP (GF := GF))) :
+    (h_WalPbIn_CloneStLaw : WalPbIn.CloneStLaw (walRaftP (GF := GF)) walRaftMr HsO)
+    (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw :
+    WalPbIn.GetTermLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw
+    (walRaftP (GF := GF))) (h_WalPbIn_MarshalEntLaw : WalPbIn.MarshalEntLaw (walRaftP (GF :=
+    GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP (GF := GF))
+    walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
+    (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr)
+    (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF)) U)
+    (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw :
+    WalPbIn.ZeroStLaw (walRaftP (GF := GF)) walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.member.step.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.member.step.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_fits
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_opEntries h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_opResend h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_opCommit h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_opTerm h_WalPbIn_GetIndexLaw
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_MustSyncLaw
-    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_opOwnSnap h_WalPbIn_IsEmptyLaw
     h_WalPbIn_MarshalHsLaw) (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_opRecvSnap
     h_WalPbIn_GetIndexLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw
-    h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw)
+    h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_sync
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_close
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_restart P U HsO h_U_Ok h_U_SnapCoh
-    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw
+    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneStLaw h_WalPbIn_GetIndexLaw
     h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw)
 
 theorem etcd_wal.wp_Boot
     (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) (h_U_Ok : U.Ok
     walRaftMr) (h_U_SnapCoh : U.SnapCoh) (h_WalDecEnvSupply : WalDecEnvSupply (GF := GF))
     (h_WalHsOwn : WalHsOwn P U HsO) (h_WalHsOwn_2 : WalHsOwn (walRaftP (GF := GF)) U HsO)
-    (h_WalPbIn_CloneHsLaw : WalPbIn.CloneHsLaw (walRaftP (GF := GF))) (h_WalPbIn_GetIndexLaw :
-    WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw : WalPbIn.GetTermLaw
-    (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw (walRaftP (GF := GF)))
-    (h_WalPbIn_MarshalEntLaw : WalPbIn.MarshalEntLaw (walRaftP (GF := GF)) walRaftMr)
-    (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP (GF := GF)) walRaftMr)
-    (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF))) (h_WalPbIn_NilLaw :
-    WalPbIn.NilLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF :=
-    GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF))
-    U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    (h_WalPbIn_CloneStLaw : WalPbIn.CloneStLaw (walRaftP (GF := GF)) walRaftMr HsO)
+    (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw :
+    WalPbIn.GetTermLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw
+    (walRaftP (GF := GF))) (h_WalPbIn_MarshalEntLaw : WalPbIn.MarshalEntLaw (walRaftP (GF :=
+    GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP (GF := GF))
+    walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
+    (h_WalPbIn_NilLaw : WalPbIn.NilLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw :
+    WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw :
+    WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF)) U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw
+    (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP (GF := GF))
+    walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.Boot.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.Boot.wp_proof
     _root_.Perennial.EtcdGrove.walTester.zap.wp_NewNop
@@ -973,36 +983,38 @@ theorem etcd_wal.wp_Boot
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_resume
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_restart P U HsO h_U_Ok h_U_SnapCoh
-    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw
+    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneStLaw h_WalPbIn_GetIndexLaw
     h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw)
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_step P U HsO h_U_Ok h_U_SnapCoh
-    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw
+    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneStLaw h_WalPbIn_GetIndexLaw
     h_WalPbIn_GetTermLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw
-    h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_UnmarshalEntLaw h_WalPbIn_ZeroLaw)
-    _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
+    h_WalPbIn_MustSyncLaw h_WalPbIn_SizeLaw h_WalPbIn_UnmarshalEntLaw h_WalPbIn_ZeroLaw
+    h_WalPbIn_ZeroStLaw) _root_.Perennial.EtcdGrove.walTester.etcd_wal.rnd.wp_choose
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_close
 
 theorem etcd_wal.wp_Main
     (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) (h_U_Ok : U.Ok
     walRaftMr) (h_U_SnapCoh : U.SnapCoh) (h_WalDecEnvSupply : WalDecEnvSupply (GF := GF))
     (h_WalHsOwn : WalHsOwn P U HsO) (h_WalHsOwn_2 : WalHsOwn (walRaftP (GF := GF)) U HsO)
-    (h_WalPbIn_CloneHsLaw : WalPbIn.CloneHsLaw (walRaftP (GF := GF))) (h_WalPbIn_GetIndexLaw :
-    WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw : WalPbIn.GetTermLaw
-    (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw (walRaftP (GF := GF)))
-    (h_WalPbIn_MarshalEntLaw : WalPbIn.MarshalEntLaw (walRaftP (GF := GF)) walRaftMr)
-    (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP (GF := GF)) walRaftMr)
-    (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF))) (h_WalPbIn_NilLaw :
-    WalPbIn.NilLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw (walRaftP (GF :=
-    GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw : WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF))
-    U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw (walRaftP (GF := GF))) :
+    (h_WalPbIn_CloneStLaw : WalPbIn.CloneStLaw (walRaftP (GF := GF)) walRaftMr HsO)
+    (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw (walRaftP (GF := GF))) (h_WalPbIn_GetTermLaw :
+    WalPbIn.GetTermLaw (walRaftP (GF := GF))) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw
+    (walRaftP (GF := GF))) (h_WalPbIn_MarshalEntLaw : WalPbIn.MarshalEntLaw (walRaftP (GF :=
+    GF)) walRaftMr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw (walRaftP (GF := GF))
+    walRaftMr) (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw (walRaftP (GF := GF)))
+    (h_WalPbIn_NilLaw : WalPbIn.NilLaw (walRaftP (GF := GF))) (h_WalPbIn_SizeLaw :
+    WalPbIn.SizeLaw (walRaftP (GF := GF)) walRaftMr) (h_WalPbIn_UnmarshalEntLaw :
+    WalPbIn.UnmarshalEntLaw (walRaftP (GF := GF)) U) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw
+    (walRaftP (GF := GF))) (h_WalPbIn_ZeroStLaw : WalPbIn.ZeroStLaw (walRaftP (GF := GF))
+    walRaftMr) :
     _root_.Perennial.EtcdGrove.etcd_wal.Main.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.Main.wp_proof
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_dirOk
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_Boot P U HsO h_U_Ok h_U_SnapCoh
-    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneHsLaw h_WalPbIn_GetIndexLaw
+    h_WalDecEnvSupply h_WalHsOwn h_WalHsOwn_2 h_WalPbIn_CloneStLaw h_WalPbIn_GetIndexLaw
     h_WalPbIn_GetTermLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw
     h_WalPbIn_MustSyncLaw h_WalPbIn_NilLaw h_WalPbIn_SizeLaw h_WalPbIn_UnmarshalEntLaw
-    h_WalPbIn_ZeroLaw)
+    h_WalPbIn_ZeroLaw h_WalPbIn_ZeroStLaw)
 
 end links_pending
 

@@ -341,12 +341,16 @@ theorem crashTo_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   have hhdr : (lastHdr Mr d lay.cuts).length ≤ j := by omega
   obtain ⟨nI, hnI⟩ : ∃ nI, nI = j - (lastHdr Mr d lay.cuts).length := ⟨_, rfl⟩
   have hIimg := tailImg_walImg Mr d lay.cuts nI hLm hmH (by omega)
-  have hIL := walImg_length_ge hIimg
+  have hIL := walImg_length_ge (walImgS_walImg hIimg)
   have hiI := initSegs_tailImg Mr d nI hsorted hLH
   have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
-    initSegs_of_take hsorted (walImg_take hI0 hm0)
-  have hlastI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
-    rw [lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
+    initSegs_of_take hsorted (walImgS_take hI0 hm0)
+  obtain ⟨es, hes⟩ := histCutRest_pend Mr (lastOps d lay.cuts) nI
+  have hlastI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts ++
+      chainRecs C (chainEnd C (lastC0 C Mr d lay.cuts)
+        (lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts)) (pendDs Mr es) =
+      R.take j := by
+    rw [← hes, lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
   refine Or.inr ⟨q, tailImg Mr d lay.cuts nI, hent, hq, hinos,
     hIimg, by omega, ?_, ?_, ?_⟩
   · exact Nat.le_min.2 ⟨(Nat.le_min.1 hpur).1,
@@ -374,18 +378,31 @@ theorem crashTo_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   · intro g'' hg''
     rw [hg] at hg''
     cases hg''
-    have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length = recFrames C (R.take j) := by
+    generalize hLI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = LI at hlastI
+    have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length =
+        recFrames C LI := by
       show recFrames C (lastSegRecs C Mr _ lay.cuts) = _
-      rw [hlastI]
+      rw [hLI]
     have e2 := chainEnd_allRecs_split C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts
     have e3 : lastC0 C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = lastC0 C Mr d lay.cuts := by
       unfold lastC0; rw [hiI]
-    rw [hlastI, e3] at e2
+    rw [hLI, e3] at e2
     simp only [imgOf, hf, Option.map_some, Option.getD_some]
-    rw [e1]
-    refine ⟨hpre, fun r len c' => ?_⟩
-    have := hrej r len c'
-    rwa [← e2] at this
+    rw [e1, e2]
+    have hfr : recFrames C (R.take j) =
+        recFrames C LI ++ recFrames C (chainRecs C (chainEnd C (lastC0 C Mr d lay.cuts) LI) (pendDs Mr es)) := by
+      rw [← hlastI, recFrames_append]
+    refine ⟨List.IsPrefix.trans (by rw [hfr]; exact List.prefix_append _ _) hpre, es, ?_, ?_, ?_⟩
+    · intro r hr
+      apply hfit
+      have : r ∈ R.take j := by rw [← hlastI]; exact List.mem_append_right _ hr
+      exact List.mem_of_mem_take this
+    · obtain ⟨t, ht⟩ := hpre
+      rw [hfr, List.append_assoc] at ht
+      exact ⟨t, by rw [← ht, List.drop_left]⟩
+    · intro r len c'
+      have := hrej r len c'
+      rwa [hfr, List.length_append, ← hlastI, chainEnd_append, chainEnd_chainRecs] at this
 
 /-- A candidate list's value as of stamp 0 is one of its candidates' values, or zero. -/
 theorem valAt0_casesW (c : Cands) : valAt c 0 = 0 ∨ ∃ s, (valAt c 0, s) ∈ c := by
@@ -432,10 +449,12 @@ theorem fileCrashedR_syncImg {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay 
       · have hhd := habs.winHead g0 hg0 hx
         rcases valAt0_casesW (g0.bs[k]'hk).2 with h0 | h0
         · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
-          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩
+          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩ | hq0
           · exact .inr ⟨by omega, h0⟩
           · rw [segBytesX_getD_lt hk, e] at hs0
             exact .inl ⟨s0, by rw [h0]; exact hs0⟩
+          · rw [segBytesX_getD_lt hk, e] at hq0
+            exact .inl (valAt_mem0 hq0)
         · exact .inl h0
   · intro z hz b hzb hb
     have := hzf z hz; omega

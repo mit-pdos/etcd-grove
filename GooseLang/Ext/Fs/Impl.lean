@@ -172,7 +172,9 @@ crash; a restart of the process is one, by the environment's assumption on resta
 tree is kept with a set of the metadata operations since replayed (the committed ones, closed
 under the journal's order, `Follows`); every file that tree names gets a size between the smallest
 and the largest it had since its last successful sync (ext4's delayed allocation leaves on-disk
-sizes the program never set in between), or towards the target of a change in flight, and **each
+sizes the program never set in between), or towards the target of a change in flight, but **a
+size an `ftruncate` set only exactly** (ext4 sets the on-disk size of a truncate in one journal
+handle: `OsFile.szCrash`, `data_truncate_size_exact.go`, pending the user's review), and **each
 byte any one of its candidates, independently**, or zero at or past the smallest size since the
 last sync (writeback's zeroing, below) (`CrashFile`); every other file, and the process's state,
 is gone. Bytes are independent because
@@ -252,6 +254,16 @@ structure OsFile where
   in flight keeps its candidates across a sync, and stamps are never reused, so an old stamp in the
   list says nothing wrong. `examples/osfs/semantics/model_resize_stamps.go`. -/
   rzs : List Nat := []
+  /-- **The sizes a crash may leave the file at** (2026-11-25, `examples/osfs/semantics/
+  data_truncate_size_exact.go`; **pending the user's review**), apart from the change in flight
+  (`CrashFile`): its size at its last successful sync (or boot, or crash), and for each change
+  landed since, the size an `ftruncate` (or `open`'s `O_TRUNC`) set, exactly, and every size between
+  the old and the new one of a `pwrite` or a `fallocate` (`OsFile.land`). ext4 sets the on-disk size
+  (`i_disksize`) of a truncate to its target in one journal handle (`ext4_setattr`), but moves it
+  through intermediate sizes for writes (delayed allocation's writeback, a range of pages at a
+  time) and `fallocate` (`ext4_alloc_file_blocks`, a chunk at a time). The default (every size) is
+  the weakest. -/
+  szCrash : Nat → Prop := fun _ => True
 
 /-- The page of byte `b` holds a byte below the size `sz` (4096-byte pages, which are the blocks
 of the configuration: the header). -/
@@ -270,7 +282,7 @@ so): the bytes past the size in its last page are whatever `img` holds there (st
 the pages past it zeros (`diskByte`); each byte's one candidate is what it holds. -/
 def OsFile.ofDisk (img : Nat → w8) (sz : Nat) : OsFile :=
   { cache := diskByte img sz, cand := fun b => [(diskByte img sz b, 0)],
-    size := sz, sizeLo := sz, sizeHi := sz }
+    size := sz, sizeLo := sz, sizeHi := sz, szCrash := fun s => s = sz }
 
 /-- A file holding `c`, all of it on disk, zero past its end. -/
 def OsFile.ofBytes (c : List w8) : OsFile := OsFile.ofDisk (fun b => c.getD b 0) c.length
@@ -514,11 +526,19 @@ def OsFile.announce (f : OsFile) (c : OsChange) (n : Nat) : OsFile :=
   { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b,
            rzs := if c.kind.isResize then n :: f.rzs else f.rzs }
 
+/-- The change is an `ftruncate` (or `open`'s `O_TRUNC`), which sets the on-disk size at once. -/
+def OsChangeKind.isTrunc : OsChangeKind → Bool
+  | .truncate _ => true
+  | _ => false
+
 /-- `f` with the change `c` landed up to `e` (`c.lo ≤ e ≤ c.hi`): the bytes `[c.lo, e)` take their
-announced values in the page cache, and the size becomes `sz`; the size range widens to it. -/
+announced values in the page cache, and the size becomes `sz`; the size range widens to it; the
+crash sizes (`szCrash`) gain `sz` for a truncate, every size from the old one to `sz` otherwise. -/
 def OsFile.land (f : OsFile) (c : OsChange) (e sz : Nat) : OsFile :=
   { f with cache := fun b => if inRange c.lo e b then c.val b else f.cache b,
-           size := sz, sizeLo := min f.sizeLo sz, sizeHi := max f.sizeHi sz }
+           size := sz, sizeLo := min f.sizeLo sz, sizeHi := max f.sizeHi sz,
+           szCrash := fun s => f.szCrash s ∨
+             (if c.kind.isTrunc then s = sz else min f.size sz ≤ s ∧ s ≤ max f.size sz) }
 
 /-- `f` after a successful sync: the size is durable; each byte not under an in-flight change
 (`busy`) is durable: its page-cache value in a page that holds a byte below the size, zero in a
@@ -528,7 +548,7 @@ def OsFile.synced (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : OsFi
   { f with
     cache := fun b => if busy b then f.cache b else diskByte f.cache f.size b,
     cand := fun b => if busy b then f.cand b else [(diskByte f.cache f.size b, 0)],
-    sizeLo := f.size, sizeHi := f.size }
+    sizeLo := f.size, sizeHi := f.size, szCrash := fun s => s = f.size }
 
 end effects
 
@@ -1270,7 +1290,11 @@ end step
 
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size between the
 smallest and the largest it had since its last successful sync, or between such a size and the
-target of the change in flight, and never past `maxBytes` (a size the file had: no step makes one
+target of the change in flight; one of its crash sizes (`OsFile.szCrash`: an `ftruncate`'s
+target exactly, any size a `pwrite` or `fallocate` passed through), its size or smallest size since
+the sync (both among them), or, with a change in flight, any such size for a `pwrite` or
+`fallocate`, the target for an `ftruncate` (`data_truncate_size_exact.go`, pending the user's
+review); and never past `maxBytes` (a size the file had: no step makes one
 larger, `data_maxbytes.go`, pending the user's review); each byte
 any one of its crash candidates, each independently (its bytes past the size included), or zero
 at or past the smallest size since the last sync (writeback zeroes the page holding the end past
@@ -1279,7 +1303,9 @@ the pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (img : Nat → w8),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ sz) ∧
-     (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target)) ∧
+     (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target) ∧
+     (sz = f.size ∨ sz = f.sizeLo ∨ f.szCrash sz ∨
+       ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ (c.kind.isTrunc → sz = c.target))) ∧
     sz ≤ maxBytes ∧
     (∀ b, (∃ s, (img b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ img b = 0)) ∧ f' = OsFile.ofDisk img sz
 

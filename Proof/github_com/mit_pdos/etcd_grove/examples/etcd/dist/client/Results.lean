@@ -12,7 +12,8 @@ named `Results.lean`, not `LeaseResults.lean`, because `etc/proof_roots.py` take
   (`Lease_LeasesGranted_dist`);
 - `wp_RunLeaseExpiry` (lease mode `revocable`): `leaseGrant.spec` (`Lease_GrantLive_dist`), `leaseList.specLive`
   (`Lease_LeasesLive_dist`), `gone`.
-The client's `newClient` is over `etcdstart`'s linked `NewClients`, `Client.Close` its trust-boundary axiom, `context`'s and `time.Sleep`'s linked results.
+The client's `newClient` is over `etcdstart`'s linked `NewClients`,
+`Client.Close` its trust-boundary axiom, `context`'s and `time.Sleep`'s linked results.
 
 The lease mode and the lessor names' facts these runs' specs take (`Γ.kv.lm`, distinct `Γ.ls`, every member's
 `leaseMember`) are what the cluster's start at that mode gives (`server/ClusterStartD.lean`, `clusterStartDL`:

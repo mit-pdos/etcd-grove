@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`a.LeaseRevoke(lc)`**: the lessor's `Revoke` (its deletions of the lease's keys committed through the store's writer, in one critical section), then a fresh response with `newHeader()`; the lessor's error. -/
+/-- **`a.LeaseRevoke(lc)`**: the lessor's `Revoke` (its deletions of the lease's keys committed through the store's writer, in one critical section), then a fresh response with `newHeader()`; the lessor's error. (T10 step 2) Without the
+lock (the lease not live) the live set and the rest buckets are unchanged (`kvPost`'s `N`, `revokeNoEff`). -/
 abbrev apply.applierV3backend.LeaseRevoke.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log)
     (T : List w64) (rs : apply.RestM) (Pre Q Post : IProp GF)
@@ -36,7 +37,8 @@ abbrev apply.applierV3backend.LeaseRevoke.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.applyTok E ∗ apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq log
-        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o)) Pre Post }}
+        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o)) Pre Post
+        (apply.revokeNoEff rq T rs) }}
 
 end spec
 

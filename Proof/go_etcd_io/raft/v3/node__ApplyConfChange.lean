@@ -312,19 +312,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- (2026-10-30, stage R3) The configuration after the applied entry: past the skipped ones, then
-the decision at `k`. -/
-private theorem confAt_applied (γ : Cluster) (l : List LogEntry) (k : Nat) (e : LogEntry)
-    (v : ConfigView) (o' : ConfChangeIM) (m' : Membership) :
-    v.applied ≤ k → l[k]? = some e → Membership.applyChange o' v.membership = some m' →
-    ⊢ EtcdGrove.isCommittedLogLb (GF := GF) γ l -∗ confAt γ v.applied v.membership -∗
-      skippedIn γ l v.applied k -∗ confDecided γ k (.apply o') -∗ confAt γ (k + 1) m' := by
-  intro hk he hap
-  have hkl : k < l.length := (List.getElem?_eq_some_iff.mp he).1
-  iintro Hl Hc Hs Hd
-  ihave Hck : confAt (GF := GF) γ k v.membership $$ [Hl Hc Hs]
-  · iapply confAt_skipped γ l v.applied k v.membership hk (by omega)
-    iframe Hl Hc Hs
+/-- (2026-10-30, stage R3) The configuration after the applied entry: the decision at `k`, from the
+membership before it (2026-11-24, option D: the premise's `confAt γ k`; until then past the skipped
+entries from the view's). -/
+private theorem confAt_applied (γ : Cluster) (k : Nat) (v : ConfigView) (o' : ConfChangeIM)
+    (m' : Membership) :
+    Membership.applyChange o' v.membership = some m' →
+    ⊢ confAt (GF := GF) γ k v.membership -∗ confDecided γ k (.apply o') -∗ confAt γ (k + 1) m' := by
+  intro hap
+  iintro Hck Hd
   ihave Hx : (∃ m'', ⌜(ConfDecision.apply o').step v.membership = some m''⌝ ∗ confAt (GF := GF) γ (k + 1) m'') $$ [Hck Hd]
   · iapply confAt_decided γ k v.membership (.apply o')
     iframe Hck Hd
@@ -336,9 +332,10 @@ private theorem confAt_applied (γ : Cluster) (l : List LogEntry) (k : Nat) (e :
 
 /-- `node.ApplyConfChange.spec` from the raw triple (2026-10-28, stage U4a; the conf-change
 decision switch): the cluster's decoder decides nothing, so the node's decisions are the recorded
-ones: the decision at `k` to apply `o'` (`confDecidedU`'s element) and the skips of the conf entries
-between the view and `k` (`skippedIn`), joined into one lower bound of the map (`decLb`) at which the
-node's decoder gives the change at `k` and rejects the entries before it (`DynCCPreOp`). -/
+ones: the decision at `k` to apply `o'` (`confDecidedU`'s element) and those of the view's membership and
+the premise's at `k` (2026-11-24, option D: `confAt_keep_impl`; until then the skips of the conf entries
+between the view and `k`, `skippedIn`), joined into one lower bound of the map (`decLb`) at which the
+node's decoder gives the change at `k` and keeps the configuration before it (`DynCCPreOp`). -/
 private theorem node.wp_ApplyConfChange_impl
     (hA : EtcdGrove.node.ApplyConfChange.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
@@ -346,30 +343,35 @@ private theorem node.wp_ApplyConfChange_impl
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig EtcdGrove.nodeStopped
   intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Htrk
-  haveI := skippedIn_persistent (GF := GF) γ l v.applied k
   haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
+  haveI := EtcdGrove.confAt_persistent (GF := GF) γ k v.membership
   iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, ⟨Hcfg, #Hca⟩, #Hdl, #Hsk⟩ HΦ
   -- (2026-10-30, stage R3) the configuration after the entry
-  ihave Hlc0 : EtcdGrove.isCommittedLogLb (GF := GF) γ l $$ []
-  · unfold EtcdGrove.isCommittedLogLb
-    iunfold ApiImpl.deliveredLogLb at Hdl
-    icases Hdl with ⟨-, #Hlc⟩
-    iexact Hlc
-  ihave Hca1 : EtcdGrove.confAt (GF := GF) γ v.applied v.membership $$ []
-  · unfold EtcdGrove.confAt; iexact Hca
   ihave Hdec1 : EtcdGrove.confDecided (GF := GF) γ k (.apply o') $$ []
   · unfold EtcdGrove.confDecided; iexact Hdec
-  ihave Hca' := confAt_applied γ l k e v o' m' Hk He Hap' $$ Hlc0 Hca1 Hsk Hdec1
+  ihave #Hsk1 : EtcdGrove.confAt (GF := GF) γ k v.membership $$ []
+  · iexact Hsk
+  ihave Hca' := confAt_applied γ k v o' m' Hap' $$ Hsk1 Hdec1
   iunfold isClusterU at Hcl
   icases Hcl with ⟨%Hu, -⟩
   obtain ⟨⟨c0, gd, Hmd0⟩, -, -⟩ := Hu
-  -- the decisions: the one at `k`, the skips before it
+  -- the decisions: the one at `k`, and those keeping the configuration before it
   iunfold confDecidedU at Hdec
   icases Hdec with ⟨%ld, %ed, %md, %md', -, #Hel, -⟩
   ihave #HS := decElem_decLb γ k _ $$ Hel
-  iunfold EtcdGrove.skippedIn at Hsk
   simp only [EtcdGrove.confDecided]
-  icases skipped_range_decLb γ l v.applied k $$ Hsk with ⟨%Mk, #HMk, %PMk⟩
+  -- (2026-11-24, option D) the configuration kept from the view to `k`
+  have Hkl : k < l.length := (List.getElem?_eq_some_iff.mp He).1
+  ihave #Hskc : ApiImpl.confAtU γ k v.membership $$ []
+  · iunfold EtcdGrove.confAt at Hsk; iexact Hsk
+  iunfold deliveredLogLb at Hdl
+  icases Hdl with ⟨⟨%γn2, %id2, %ds, %Hf2, #Hn2, #Htab2, #Hlb⟩, #Hlc⟩
+  obtain ⟨Hnok2, Hds⟩ := Hf2
+  ihave #Hlcs : ApiImpl.isCommittedLogLb γ (strip ds) $$ []
+  · rw [Hds]; iexact Hlc
+  icases ApiImpl.confAt_keep_impl γ c0 gd Hmd0 ds v.applied k v.membership Hk
+    (by rw [← strip_length, Hds]; omega) $$ [Hlcs Hca Hskc] with ⟨%Mk, #HMk, %PMk⟩
+  · iframe Hlcs Hca Hskc
   icases decLb_compat γ.raft Mk (GMap.singleton k (ConfDecision.apply o').toOpt) $$ [HMk HS] with %Hcp
   · iframe HMk HS
   ihave #HU := decLb_union γ.raft Mk (GMap.singleton k (ConfDecision.apply o').toOpt) $$ [HMk HS]
@@ -377,9 +379,6 @@ private theorem node.wp_ApplyConfChange_impl
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn, %id1, %Hf, #Hn1, #Htab1, Hcf⟩
   obtain ⟨Hnok, Hdy, Hgood⟩ := Hf
-  iunfold deliveredLogLb at Hdl
-  icases Hdl with ⟨⟨%γn2, %id2, %ds, %Hf2, #Hn2, #Htab2, #Hlb⟩, #Hlc⟩
-  obtain ⟨Hnok2, Hds⟩ := Hf2
   icases isNode_id_agree γn γn2 id1 id2 n.loc $$ Hn1 Hn2 with %Hid
   subst Hid
   obtain ⟨h0, h1, Hmd1⟩ := Hmd0.mode
@@ -408,16 +407,7 @@ private theorem node.wp_ApplyConfChange_impl
       (stOf m') := by
     refine ⟨Hk, (List.getElem?_eq_some_iff.mp HeM).1, HeM, ?_, ?_, ⟨ccV2Of o', ?_, Hs'⟩, Hs⟩
     · rw [← HeMe] at Hcc; exact Hcc
-    · intro k' e' h1 h2 he hc
-      have hl' : l[k']? = some (LogEntry.ofEntryM e') := by
-        rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
-      have hk' : U.lookup k' = some none :=
-        DecCompat.sub_left Mk _ k' none (PMk k' (LogEntry.ofEntryM e') h1 h2 hl' hc)
-      have hlen : (ds.take k').length = k' := by
-        have := (List.getElem?_eq_some_iff.mp he).1
-        rw [List.length_take]; omega
-      show (U.lookup (ds.take k').length).map ccDecOf = some .reject
-      rw [hlen, hk']; rfl
+    · exact PMk.mono_dec (effDec_mono noDec (DecCompat.sub_left Mk _))
     · have hlen : (ds.take k).length = k := by
         have := (List.getElem?_eq_some_iff.mp HeM).1
         rw [List.length_take]; omega

@@ -1,7 +1,7 @@
 /-
 **The file a closed database gives back** (session bbolt-inv, `DB.Close_own.spec`): the page-cache
 bytes `Close` holds once it has taken the store's slots (`store_close`), the writer side's `W` slots
-(`wBytes`) and the two halves of the metas (`metaOsBytes`, the writer side's and `metaR`'s), as one
+(`wBytes`) and the metas (`metaOsBytes`, the writer side's), as one
 run of the file's bytes from offset 0, whose values are `closeBytes` (`Inv/CloseImage`): the file
 is whole pages (`wdbOK`), each slot one of the three.
 -/
@@ -41,21 +41,21 @@ variable [sem : go.Semantics]
 
 /-- Two runs of a file's bytes, one after the other, as one. -/
 theorem osBytes_app' (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
-    osBytes (GF := GF) p.ino off dq xs ∗ osBytes p.ino (off + xs.length) dq ys ⊢
-      osBytes p.ino off dq (xs ++ ys) := by
-  unfold osBytes; exact (bytesG_append _ _ _ off xs ys).2
+    bBytes (GF := GF) p off dq xs ∗ bBytes p (off + xs.length) dq ys ⊢
+      bBytes p off dq (xs ++ ys) := by
+  exact (bBytes_append _ off _ xs ys).2
 
 /-- A run of a file's bytes, split. -/
 theorem osBytes_split' (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
-    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊢
-      osBytes p.ino off dq xs ∗ osBytes p.ino (off + xs.length) dq ys := by
-  unfold osBytes; exact (bytesG_append _ _ _ off xs ys).1
+    bBytes (GF := GF) p off dq (xs ++ ys) ⊢
+      bBytes p off dq xs ∗ bBytes p (off + xs.length) dq ys := by
+  exact (bBytes_append _ off _ xs ys).1
 
 /-- **Slots `0 … n - 1`, each a whole page, as the file's first `4096 · n` bytes.** -/
 theorem osSlots_range (p : BFile) (g : Nat → List w8) :
     ∀ n, (∀ s, s < n → (g s).length = 4096) →
     ([∗list] s ∈ List.range n, osSlot (GF := GF) p s (g s)) ⊢
-      ∃ xs : List ByteG, osBytes p.ino 0 (DFrac.own 1) xs ∗
+      ∃ xs : List ByteG, bBytes p 0 (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (List.range' 0 n).flatMap g ∧ xs.length = 4096 * n⌝
   | 0, _ => by
     iintro -
@@ -85,21 +85,13 @@ theorem osSlots_range (p : BFile) (g : Nat → List w8) :
           List.range'_append_1.symm, List.flatMap_append, List.range'_one, List.flatMap_cons,
         List.flatMap_nil, List.append_nil, Nat.zero_add]
 
-/-- **The metas' two halves, as slots 0 and 1** (the writer side's and `metaR`'s). -/
+/-- **The metas' bytes, as slots 0 and 1** (the writer side's, W1). -/
 theorem metaOsBytes_slots (p : BFile) (C : CommitSt) (h0 : C.m0.length = 4096)
     (h1 : C.m1.length = 4096) :
-    metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
-      metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ⊢
+    metaOsBytes (GF := GF) p (DFrac.own 1) C ⊢
       osSlot p 0 C.m0 ∗ osSlot p 1 C.m1 := by
   unfold metaOsBytes
-  iintro ⟨⟨%xs, H1, %hx⟩, ⟨%ys, H2, %hy⟩⟩
-  have hl : xs.length = ys.length := by
-    have h1 := congrArg List.length hx
-    have h2 := congrArg List.length hy
-    simp only [List.length_map] at h1 h2
-    omega
-  ihave H := osBytes_join_h p xs ys 0 hl $$ [H1 H2]
-  · iframe
+  iintro ⟨%xs, H, %hx⟩
   have hxl : (xs.take 4096).length = 4096 := by
     have := congrArg List.length hx
     simp only [List.length_map, List.length_append] at this
@@ -123,7 +115,7 @@ theorem close_file_bytes (p : BFile) (w : WDb) (hok : wdbOK w) (bs : Nat → Lis
     (hal : w.m.size % 4096 = 0) (W' : List Nat) (hW' : ∀ s ∈ w.W, s ∈ W') :
     osSlot (GF := GF) p 0 w.C.m0 ∗ osSlot p 1 w.C.m1 ∗
       ([∗list] s ∈ slotsOf w.C w.fl, osSlot p s (bs s)) ∗ wBytes p W' w.wb w.m.size ⊢
-      ∃ xs : List ByteG, osBytes p.ino 0 (DFrac.own 1) xs ∗
+      ∃ xs : List ByteG, bBytes p 0 (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = closeBytes w.C w.fl bs w.wb (w.m.size / 4096) ∧
           xs.length = w.m.size⌝ := by
   have hsz : w.m.size = 4096 * (w.m.size / 4096) := by omega
@@ -177,10 +169,10 @@ theorem close_file_bytes (p : BFile) (w : WDb) (hok : wdbOK w) (bs : Nat → Lis
       (closeSlot w.C w.fl bs w.wb s) $$ [HW]
   · unfold wBytes
     iapply BigSepL.bigSepL_mono (Φ := fun _ s => iprop(if 4096 * (s + 1) ≤ w.m.size then
-        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = w.wb s⌝)
       else if 4096 * s < w.m.size then
-        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, bBytes p (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = (w.wb s).take (w.m.size - 4096 * s)⌝)
       else iprop(emp))) ?_ $$ HW
     intro k s hks
@@ -221,26 +213,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem closeMapResM_res (p : BFile) (m : OsMeta) (ms : MapSt) :
-    closeMapResM (GF := GF) p m ms ⊢ closeMapRes p ms := by
+theorem closeMapResM_res (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta)
+    (ms : MapSt) : closeMapResM (GF := GF) p C L m ms ⊢ closeMapRes p ms := by
   rcases ms with _ | ⟨b, l⟩
   · simp only [closeMapResM, closeMapRes]; exact .rfl
   · simp only [closeMapResM, closeMapRes]
-    iintro ⟨%h, Hm, %vf, Hc⟩
-    iexists m, vf
+    iintro ⟨%h, #Hinv, Hm, %vf, Hc⟩
+    iexists C, L, m, vf
     iframe
-    ipureintro; exact h
+    isplitr
+    · ipureintro; exact h
+    iexact Hinv
 
 /-- `db.munmap()` of what `close` unmaps, with no error: the fields cleared, the `OsMeta` back. -/
 theorem DB.munmap.wp_closeResNoErrM (hMunmap : DB.munmap.specNoErr (GF := GF) (hG := hG))
-    (hne : FsNoErr) (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (m : OsMeta) (hdb : db ≠ null) :
+    (hne : FsNoErr) (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (C : CommitSt)
+    (L : List (Nat × Nat)) (m : OsMeta) (hdb : db ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
         db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
         mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
-        closeMapResM p m ms }}
+        closeMapResM p C L m ms }}
       (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
     {{ RET #(interface.nil : GoInterface); mapFields db (DFrac.own 1) (none : MapSt) ∗
-        db.[DB, go!"datasz"] ↦ W64 0 ∗ closeMapBack p m ms }} := by
+        db.[DB, go!"datasz"] ↦ W64 0 ∗ closeMapBack p C L m ms }} := by
   iintro %Φ ⟨#Hpkg, #Hos, #Hlg, #Hlgok, Hmf, Hdsz, Hmr⟩ HΦ
   rcases ms with _ | ⟨b, l⟩
   · simp only [closeMapResM, closeMapBack, mapLen]
@@ -249,8 +244,9 @@ theorem DB.munmap.wp_closeResNoErrM (hMunmap : DB.munmap.specNoErr (GF := GF) (h
     iapply HΦ
     iframe
   · simp only [closeMapResM, closeMapBack, mapLen]
-    icases Hmr with ⟨%hm, Hosm, %vf, Hc⟩
-    wp_apply hMunmap hne db b l lg p m vf hdb hm.1 hm.2 $$ [Hmf Hdsz Hosm Hc] as ⟨Hmf, Hdsz, Hosm⟩
+    icases Hmr with ⟨%hm, #Hinv, Hosm, %vf, Hc⟩
+    wp_apply hMunmap hne db b l lg p C L m vf hdb hm.1 hm.2.1 hm.2.2 $$ [Hmf Hdsz Hosm Hc]
+      as ⟨Hmf, Hdsz, Hosm⟩
     · iframe; iframe #
     iapply HΦ
     iframe
@@ -260,14 +256,15 @@ for `DB.Close`; the file non-nil): under `FsNoErr`, which refutes the callees' e
 abbrev DB.close.spec_ownedNoErrM : Prop :=
   FsNoErr →
   ∀ (db : Loc) (lg : GoInterface) (dqr : DFrac) (fli : GoInterface) (wa : GoFunc) (s : GoString)
-    (ms : MapSt) (p : BFile) (m : OsMeta) (f : Loc) (fd : w64) (name : GoString) (d : OsFd),
+    (ms : MapSt) (p : BFile) (C : CommitSt) (L : List (Nat × Nat)) (m : OsMeta) (f : Loc) (fd : w64)
+    (name : GoString) (d : OsFd),
   db ≠ null → f ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗ db.[DB, go!"readOnly"] ↦{dqr} false ∗
       db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ fli ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦ wa ∗ db.[DB, go!"path"] ↦ s ∗
       mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
-      closeMapResM p m ms ∗
+      closeMapResM p C L m ms ∗
       db.[DB, go!"file"] ↦ f ∗ fileOwn f fd name (DFrac.own 1) ∗
         osFd fd (DFrac.own 1) d ∗ lockToks fd d }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
@@ -275,7 +272,7 @@ abbrev DB.close.spec_ownedNoErrM : Prop :=
       db.[DB, go!"opened"] ↦ false ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦ func.nil ∗ db.[DB, go!"path"] ↦ (go!"" : GoString) ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-      db.[DB, go!"file"] ↦ null ∗ closeMapBack p m ms }}
+      db.[DB, go!"file"] ↦ null ∗ closeMapBack p C L m ms }}
 
 theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     (hMunmap : DB.munmap.specNoErr (GF := GF) (hG := hG))
@@ -283,11 +280,11 @@ theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     (hFlock : syscall.Flock.spec (GF := GF) (hG := hG))
     (hClose : os.File.Close.spec (GF := GF) (hG := hG)) :
     DB.close.spec_ownedNoErrM (GF := GF) (hG := hG) := by
-  intro hne db lg dqr fli wa s ms p m f fd name d hdb hf
+  intro hne db lg dqr fli wa s ms p C L m f fd name d hdb hf
   wp_start as ⟨#Hos, #Hlg, #Hlgok, Hro, Hop, Hfl, Hwa, Hpath, Hmf, Hdsz, Hmr, Hfile, Hfo, Hfd, Hlt⟩
   wp_auto
   -- `munmap`: `nil`, nothing appended, the `OsMeta` back
-  wp_apply DB.munmap.wp_closeResNoErrM hMunmap hne db lg ms p m hdb $$ [Hmf Hdsz Hmr]
+  wp_apply DB.munmap.wp_closeResNoErrM hMunmap hne db lg ms p C L m hdb $$ [Hmf Hdsz Hmr]
     as ⟨Hmf, Hdsz, Hback⟩
   · iframe; iframe #
   try wp_auto

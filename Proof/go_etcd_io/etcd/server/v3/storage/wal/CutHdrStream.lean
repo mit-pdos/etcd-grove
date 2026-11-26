@@ -56,7 +56,7 @@ theorem segsDs_cut (Mr : WalMarshal) (md : List w8) (H : WalHist) (cuts : List N
 /-- The chain's end over the old records is the tail's CRC. -/
 theorem crcAfter_tailCrc (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     (cuts : List Nat) :
-    crcAfter walCodec 0#32 (segsDs Mr md true [] (segsOf (H.map WalOpG.toM) cuts)).flatten =
+    crcAfter walCodec 0#32 (segsDs Mr md true [] (segsOf (histN H) cuts)).flatten =
       tailCrc Mr H md cuts := by
   unfold tailCrc recsOfSegs
   rw [chainEnd_chainRecs]
@@ -67,8 +67,8 @@ theorem allRecs_cut (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) 
     allRecs Mr (H := H) md (cuts ++ [H.length]) = allRecs Mr H md cuts ++
       chainRecs walCodec (tailCrc Mr H md cuts) (cutHdrDs Mr md (walLastHS (H.map WalOpG.toM))) := by
   unfold allRecs recsOfSegs
-  have hN : H.length = (H.map WalOpG.toM).length := by simp
-  rw [hN, segsDs_cut Mr md _ cuts hs (by rw [← hN]; exact hle), List.flatten_append,
+  have hN : H.length = (histN H).length := by simp
+  rw [hN, segsDs_cut Mr md _ cuts hs (by rw [← hN]; exact hle), walLastHS_histN, List.flatten_append,
     chainRecs_append, crcAfter_tailCrc]
   simp
 
@@ -78,8 +78,8 @@ theorem tailRecs_cut (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8)
     tailRecs Mr H md (cuts ++ [H.length]) =
       chainRecs walCodec (tailCrc Mr H md cuts) (cutHdrDs Mr md (walLastHS (H.map WalOpG.toM))) := by
   unfold tailRecs
-  have hN : H.length = (H.map WalOpG.toM).length := by simp
-  rw [hN, segsDs_cut Mr md _ cuts hs (by rw [← hN]; exact hle), chainSegs_append, crcAfter_tailCrc]
+  have hN : H.length = (histN H).length := by simp
+  rw [hN, segsDs_cut Mr md _ cuts hs (by rw [← hN]; exact hle), walLastHS_histN, chainSegs_append, crcAfter_tailCrc]
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_right
     (by rw [length_chainSegs, length_segsDs, length_segsOf]; simp)]
   rw [length_chainSegs, length_segsDs, length_segsOf]
@@ -90,9 +90,9 @@ theorem tailCrc_cut (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) 
     (hs : cuts.Pairwise (· ≤ ·)) (hle : ∀ b ∈ cuts, b ≤ H.length) :
     tailCrc Mr H md (cuts ++ [H.length]) =
       crcAfter walCodec (tailCrc Mr H md cuts) (cutHdrDs Mr md (walLastHS (H.map WalOpG.toM))) := by
-  have hN : H.length = (H.map WalOpG.toM).length := by simp
+  have hN : H.length = (histN H).length := by simp
   rw [← crcAfter_tailCrc Mr H md (cuts ++ [H.length]), ← crcAfter_tailCrc Mr H md cuts, hN,
-    segsDs_cut Mr md _ cuts hs (by rw [← hN]; exact hle), List.flatten_append]
+    segsDs_cut Mr md _ cuts hs (by rw [← hN]; exact hle), walLastHS_histN, List.flatten_append]
   simp [crcAfter, List.foldl_append]
 
 /-- **The headers' frames**, record by record (`saveCrc`'s, `encode(Metadata)`'s, `saveState`'s),

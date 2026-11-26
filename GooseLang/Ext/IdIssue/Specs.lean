@@ -6,7 +6,9 @@ to generators.
 * The ghost state: a ghost map of the record, its authority and every entry's persistent element in
   the state interpretation. The program owns nothing of it at the start (its start resource is
   `True`, so a `Main` takes nothing for it); it learns facts: `idIssueFrag id g`, `g` issued `id`
-  (persistent; one issuer per id, `idIssueFrag_agree`).
+  (persistent; one issuer per id, `idIssueFrag_agree`), and, after a crash (`Crash.lean`),
+  `idIssuePast id`, an earlier incarnation issued `id` (exclusive with every `idIssueFrag id g`,
+  `idIssueFrag_past`).
 * `wp_IdIssue`: `"Issue"` of `(id, g)` returns `b`, and with `b = true` the fact `idIssueFrag id g`
   (so `b` only if no other generator issued `id`). The mask is open around the step, for a caller
   that updates an invariant at it.
@@ -42,27 +44,79 @@ structure IdIssueGS (GF : BundledGFunctors) where
 section ghost
 variable {GF : BundledGFunctors}
 
-/-- **`id` was issued by the generator `g`** (persistent): the record's element. -/
-def idIssueFragAt (hL : IdIssueGS GF) (id : w64) (g : Loc) : IProp GF :=
+/-- **The record's entry `id ↦ v`** (persistent): the ghost map's element. -/
+def idIssueElemAt (hL : IdIssueGS GF) (id : w64) (v : Option Loc) : IProp GF :=
   letI := hL.idIssueAllG
-  id ↪[hL.idIssueName]□ g
+  id ↪[hL.idIssueName]□ v
+
+instance idIssueElemAt_persistent (hL : IdIssueGS GF) (id : w64) (v : Option Loc) :
+    Persistent (idIssueElemAt hL id v) := by
+  unfold idIssueElemAt; infer_instance
+
+/-- **`id` was issued by the generator `g`** (persistent; of the incarnation of `hL`). -/
+def idIssueFragAt (hL : IdIssueGS GF) (id : w64) (g : Loc) : IProp GF :=
+  idIssueElemAt hL id (some g)
 
 instance idIssueFragAt_persistent (hL : IdIssueGS GF) (id : w64) (g : Loc) :
     Persistent (idIssueFragAt hL id g) := by
   unfold idIssueFragAt; infer_instance
 
+/-- **`id` was issued by an earlier incarnation** (persistent; before a crash of the machine, as seen
+by the incarnation of `hL`: `Crash.lean`). -/
+def idIssuePastAt (hL : IdIssueGS GF) (id : w64) : IProp GF :=
+  idIssueElemAt hL id none
+
+instance idIssuePastAt_persistent (hL : IdIssueGS GF) (id : w64) :
+    Persistent (idIssuePastAt hL id) := by
+  unfold idIssuePastAt; infer_instance
+
+/-- **No generator of an incarnation issues an id an earlier one issued.** -/
+theorem idIssueFragAt_past (hL : IdIssueGS GF) (id : w64) (g : Loc) :
+    ⊢@{IProp GF} idIssueFragAt hL id g -∗ idIssuePastAt hL id -∗ False := by
+  unfold idIssueFragAt idIssuePastAt idIssueElemAt
+  letI := hL.idIssueAllG
+  iintro #H1 #H2
+  ihave %H := ghostMapElem_agree $$ H1 H2
+  cases H
+
 /-- The interpretation of the record `M`: a ghost record `Mg`, part of it (the entries made during
-the run: any initial record is allowed, and the ghost one starts empty), its authority and every
-entry's persistent element. -/
+the run: any initial record is allowed, and the ghost one starts empty; after a crash, the entries
+made before it, as an earlier incarnation's), its authority and every entry's persistent element. -/
 def idIssueCtx (hL : IdIssueGS GF) (M : IdIssueState) : IProp GF :=
   letI := hL.idIssueAllG
   iprop(∃ Mg : IdIssueState, ghostMapAuth hL.idIssueName 1 Mg ∗
-    ([∗map] id ↦ g ∈ Mg, idIssueFragAt hL id g) ∗ ⌜∀ id g, Mg !! id = some g → M !! id = some g⌝)
+    ([∗map] id ↦ v ∈ Mg, idIssueElemAt hL id v) ∗ ⌜∀ id v, Mg !! id = some v → M !! id = some v⌝)
+
+/-- **The incarnation `hL` crashed** (T10 B6 (b), 2026-11-26): its record's authority, which only the
+crash's rest hands over (`Crash.lean`'s `idIssueCrashStart`); while the incarnation runs, its state
+interpretation holds it (`idIssueCtx_dead`). An invariant of the incarnation's facts is cancelled by
+depositing it. -/
+def idIssueDeadAt (hL : IdIssueGS GF) : IProp GF :=
+  letI := hL.idIssueAllG
+  iprop(∃ Mg : IdIssueState, ghostMapAuth hL.idIssueName 1 Mg)
+
+instance idIssueDeadAt_timeless (hL : IdIssueGS GF) : Timeless (idIssueDeadAt hL) := by
+  unfold idIssueDeadAt; infer_instance
+
+/-- **A running incarnation has not crashed.** -/
+theorem idIssueCtx_dead (hL : IdIssueGS GF) (M : IdIssueState) :
+    ⊢@{IProp GF} idIssueCtx hL M -∗ idIssueDeadAt hL -∗ False := by
+  letI := hL.idIssueAllG
+  iintro HM Hd
+  iunfold idIssueCtx at HM
+  icases HM with ⟨%Mg, HA, -, -⟩
+  iunfold idIssueDeadAt at Hd
+  icases Hd with ⟨%Mg', HA'⟩
+  ihave %H := ghostMapAuth_valid_2 hL.idIssueName 1 1 Mg Mg' $$ HA HA'
+  exfalso
+  have h1 : ((1 : Qp) + 1).val ≤ 1 := H.1
+  simp at h1
+  grind
 
 theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) :
     ⊢@{IProp GF} |==> ∃ hL : IdIssueGS GF, idIssueCtx hL M ∗ iprop(True) := by
   letI := hPre.idIssuePreAllG
-  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc)) with ⟨%γ, H⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Option Loc)) with ⟨%γ, H⟩
   imodintro
   iexists (⟨hPre.idIssuePreAllG, γ⟩ : IdIssueGS GF)
   unfold idIssueCtx
@@ -71,7 +125,7 @@ theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) :
     iframe H
     isplitl
     · iapply BigSepM.bigSepM_empty.2; itrivial
-    · ipureintro; intro id g h; simp [GMap.lookup_empty] at h
+    · ipureintro; intro id v h; simp [GMap.lookup_empty] at h
   · itrivial
 
 /-- **The record's step** (ghost): the record after an `"Issue"` of `(id, g)`, and, if it is
@@ -85,52 +139,56 @@ theorem idIssue_ghost_step (hL : IdIssueGS GF) (M : IdIssueState) (id : w64) (g 
   icases HM with ⟨%Mg, HA, #HE, %Hsub⟩
   by_cases hok : idIssueOk M id g = true
   · -- allowed: the physical record has no other generator's entry, so the ghost one has none
-    have hM : M !! id = none ∨ M !! id = some g := by
+    have hM : M !! id = none ∨ M !! id = some (some g) := by
       unfold idIssueOk at hok
       cases h : M !! id with
       | none => exact Or.inl rfl
-      | some g' => rw [h] at hok; simp at hok; exact Or.inr (by rw [hok])
-    have hnext : idIssueNext M id g = M.insert id g := by unfold idIssueNext; rw [hok]; rfl
+      | some o =>
+        rw [h] at hok
+        cases o with
+        | none => simp at hok
+        | some g' => simp at hok; exact Or.inr (by rw [hok])
+    have hnext : idIssueNext M id g = M.insert id (some g) := by unfold idIssueNext; rw [hok]; rfl
     rw [hnext]
     cases hg : Mg !! id with
     | none =>
-      imod ghost_map_insert_persist id g hg $$ HA with ⟨HA, #He⟩
+      imod ghost_map_insert_persist id (some g) hg $$ HA with ⟨HA, #He⟩
       imodintro
       isplitl [HA]
       · iunfold idIssueCtx
-        iexists (Mg.insert id g)
+        iexists (Mg.insert id (some g))
         iframe HA
         isplitl
         · iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := Mg)
-            (Φ := fun i g' => idIssueFragAt hL i g') hg).2
+            (Φ := fun i v => idIssueElemAt hL i v) hg).2
           iframe HE
-          iunfold idIssueFragAt; iexact He
+          iunfold idIssueElemAt; iexact He
         · ipureintro
-          intro i g' h
+          intro i v h
           rw [GMap.lookup_insert_eq_iff] at h ⊢
           by_cases hi : id = i
           · simp only [hi, ite_true] at h ⊢; exact h
-          · simp only [hi, ite_false] at h ⊢; exact Hsub i g' h
-      · iintro -; iunfold idIssueFragAt; iexact He
-    | some g' =>
-      have hg' : g' = g := by
-        have := Hsub id g' hg
+          · simp only [hi, ite_false] at h ⊢; exact Hsub i v h
+      · iintro -; iunfold idIssueFragAt; iunfold idIssueElemAt; iexact He
+    | some v' =>
+      have hg' : v' = some g := by
+        have := Hsub id v' hg
         rcases hM with h | h <;> rw [h] at this <;> cases this; rfl
       subst hg'
       icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Mg)
-        (Φ := fun i g' => idIssueFragAt hL i g') hg).1 $$ HE with ⟨#He, -⟩
+        (Φ := fun i v => idIssueElemAt hL i v) hg).1 $$ HE with ⟨#He, -⟩
       imodintro
       isplitl [HA]
       · iunfold idIssueCtx
         iexists Mg
         iframe HA HE
         ipureintro
-        intro i g'' h
+        intro i v'' h
         rw [GMap.lookup_insert_eq_iff]
         by_cases hi : id = i
         · subst hi; rw [hg] at h; cases h; simp
-        · simp only [hi, ite_false]; exact Hsub i g'' h
-      · iintro -; iexact He
+        · simp only [hi, ite_false]; exact Hsub i v'' h
+      · iintro -; iunfold idIssueFragAt; iexact He
   · -- refused: nothing changes
     have hnext : idIssueNext M id g = M := by
       unfold idIssueNext; rw [if_neg hok]
@@ -176,14 +234,26 @@ def idIssueFrag (id : w64) (g : Loc) : IProp GF := idIssueFragAt (gooseIdIssueGS
 instance idIssueFrag_persistent (id : w64) (g : Loc) : Persistent (idIssueFrag (L := L) id g) := by
   unfold idIssueFrag; infer_instance
 
+/-- **`id` was issued by an earlier incarnation of the machine** (persistent; the program's fact after a
+crash, `Crash.lean`'s `idIssueCrashStart_past`). -/
+def idIssuePast (id : w64) : IProp GF := idIssuePastAt (gooseIdIssueGS (L := L)) id
+
+instance idIssuePast_persistent (id : w64) : Persistent (idIssuePast (L := L) id) := by
+  unfold idIssuePast; infer_instance
+
+/-- **No generator of this incarnation issues an id an earlier one issued.** -/
+theorem idIssueFrag_past (id : w64) (g : Loc) :
+    ⊢@{IProp GF} idIssueFrag (L := L) id g -∗ idIssuePast (L := L) id -∗ False :=
+  idIssueFragAt_past _ id g
+
 /-- **One issuer per id.** -/
 theorem idIssueFrag_agree (id : w64) (g g' : Loc) :
     ⊢@{IProp GF} idIssueFrag (L := L) id g -∗ idIssueFrag (L := L) id g' -∗ ⌜g = g'⌝ := by
-  unfold idIssueFrag idIssueFragAt
+  unfold idIssueFrag idIssueFragAt idIssueElemAt
   letI := (gooseIdIssueGS (L := L)).idIssueAllG
   iintro #H1 #H2
   ihave %H := ghostMapElem_agree $$ H1 H2
-  ipureintro; exact H
+  ipureintro; cases H; rfl
 
 theorem idIssue_local_ctx_eq (M : IdIssueState) :
     ExtInterp.localCtx (E := idIssueExt) (extLocalGS idIssueExt) M ⊣⊢
@@ -200,6 +270,41 @@ theorem wp_IdIssue (id : w64) (g : Loc) (Φ : val → IProp GF) :
   iintro %h %σ %gs Hheap Hl Hg
   imod HAU with Hclose
   icases (idIssue_local_ctx_eq σ).mp $$ Hl with Hl
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨_, h, _, gs, rfl, id, g, rfl, rfl, rfl⟩
+  inext
+  iintro %e' %h' %σ' %gs' %Hst _
+  obtain ⟨rfl, id', g', Hv, rfl, rfl⟩ := Hst
+  obtain ⟨Hid, Hgl⟩ := val.PairV.inj Hv
+  obtain rfl := GoGlobalContext.intoVal_inj_w64 Hid
+  obtain rfl := GoGlobalContext.intoVal_inj_loc Hgl
+  imod (idIssue_ghost_step (gooseIdIssueGS (L := L)) σ id g) $$ Hl with ⟨Hl, #Hfr⟩
+  ihave #Hfr' : iprop(⌜idIssueOk σ id g = true⌝ → idIssueFrag (L := L) id g) $$ []
+  · iunfold idIssueFrag; iexact Hfr
+  imod Hclose $$ %(idIssueOk σ id g) Hfr' with HΦ
+  imodintro
+  iframe Hheap Hg
+  isplitl [Hl]
+  · iapply (idIssue_local_ctx_eq _).mpr; iexact Hl
+  iapply wp_value'
+  iexact HΦ
+
+/-- **`"Issue"`, for a step that may find its incarnation crashed** (T10 B6 (b)): as `wp_IdIssue`, but
+the update may give up with `idIssueDeadAt` of the step's own incarnation (from a cancelled invariant
+it opened), which the step refutes with its state interpretation's authority. -/
+theorem wp_IdIssue_live (id : w64) (g : Loc) (Φ : val → IProp GF) :
+    (|={E,∅}=> idIssueDeadAt (gooseIdIssueGS (L := L)) ∨
+      ∀ b : Bool, (⌜b = true⌝ → idIssueFrag (L := L) id g) ={∅,E}=∗ Φ #b)
+    ⊢ WP (ExternalOp idIssueExt.name "Issue" (Val (PairV (#id) (#g)))) @ s; E {{ Φ }} := by
+  iintro HAU
+  iapply wp_extStep "Issue" (PairV (#id) (#g)) Φ (by simp [val.isPanic])
+  iintro %h %σ %gs Hheap Hl Hg
+  imod HAU with Hclose
+  icases (idIssue_local_ctx_eq σ).mp $$ Hl with Hl
+  icases Hclose with (Hd | Hclose)
+  · iexfalso
+    iapply idIssueCtx_dead _ σ $$ Hl Hd
   imodintro
   isplitr
   · ipureintro; exact ⟨_, h, _, gs, rfl, id, g, rfl, rfl, rfl⟩
@@ -244,7 +349,7 @@ instance idIssueFragD_persistent (id : w64) (g : Loc) : Persistent (idIssueFragD
 
 instance idIssueFragD_timeless (id : w64) (g : Loc) : Timeless (idIssueFragD (L := L) id g) := by
   unfold idIssueFragD; split
-  · unfold idIssueFrag idIssueFragAt; infer_instance
+  · unfold idIssueFrag idIssueFragAt idIssueElemAt; infer_instance
   · infer_instance
 
 /-- Under the instance, the fact itself. -/
@@ -261,6 +366,45 @@ theorem idIssueFragD_agree (id : w64) (g g' : Loc) :
     exact idIssueFrag_agree id g g'
   · unfold idIssueFragD; rw [dif_neg h]
     iintro H; iexfalso; iexact H
+
+open Classical in
+/-- **`id` was issued by an earlier incarnation, read without the instance** (T10 B6 (b)). -/
+noncomputable def idIssuePastD (id : w64) : IProp GF :=
+  if h : HasExt idIssueExt then (haveI := h; idIssuePast (L := L) id) else iprop(False)
+
+instance idIssuePastD_persistent (id : w64) : Persistent (idIssuePastD (L := L) id) := by
+  unfold idIssuePastD; split <;> infer_instance
+
+instance idIssuePastD_timeless (id : w64) : Timeless (idIssuePastD (L := L) id) := by
+  unfold idIssuePastD; split
+  · unfold idIssuePast idIssuePastAt idIssueElemAt; infer_instance
+  · infer_instance
+
+theorem idIssuePastD_eq [h : HasExt idIssueExt] (id : w64) :
+    idIssuePastD (L := L) id = idIssuePast (L := L) id := by
+  unfold idIssuePastD; rw [dif_pos h]
+
+/-- An id this incarnation's generator issued is not an earlier incarnation's. -/
+theorem idIssueFragD_pastD (id : w64) (g : Loc) :
+    ⊢@{IProp GF} idIssueFragD (L := L) id g -∗ idIssuePastD (L := L) id -∗ False := by
+  by_cases h : HasExt idIssueExt
+  · haveI := h
+    rw [idIssueFragD_eq, idIssuePastD_eq]
+    exact idIssueFrag_past id g
+  · unfold idIssueFragD; rw [dif_neg h]
+    iintro H; iexfalso; iexact H
+
+open Classical in
+/-- **This incarnation crashed, read without the instance** (T10 B6 (b); `idIssueDeadAt`). -/
+noncomputable def idIssueDeadD : IProp GF :=
+  if h : HasExt idIssueExt then (haveI := h; idIssueDeadAt (gooseIdIssueGS (L := L))) else iprop(False)
+
+instance idIssueDeadD_timeless : Timeless (idIssueDeadD (L := L)) := by
+  unfold idIssueDeadD; split <;> infer_instance
+
+theorem idIssueDeadD_eq [h : HasExt idIssueExt] :
+    idIssueDeadD (L := L) = idIssueDeadAt (gooseIdIssueGS (L := L)) := by
+  unfold idIssueDeadD; rw [dif_pos h]
 
 end instanceFree
 

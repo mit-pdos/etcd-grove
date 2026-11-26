@@ -116,9 +116,11 @@ There is no token at `cb=0`: neither the pre nor the post has one, and neither h
   (`etcdInterceptorOk`/`etcdInterceptorOkW`) are never called by either function.
 - **The token `run` has is its own.** The proved `watcher.newWatcherGRPCStream` (`watcher__newWatcherGRPCStream.lean`,
   `wp_fork_tok_body`) gives `run` the fresh thread token of its `go`. `watchGRPCStream.run.spec` takes that
-  `threadTok` and returns it, and `run`'s proof splits it into `levelTok 0` around each call (`threadTok_level0`). So
-  a token any connection contract is called with is the forked goroutine's own, from the fork rule, and the caller
-  neither gives nor receives it.
+  `threadTok` and returns it, and `run`'s proof splits it into `levelTok 0` around each call (`threadTok_level0`). The
+  counted contracts are never called; the only connection call, `run`'s stream open, uses the forked goroutine's own
+  token, from the fork rule, and the caller neither gives nor receives it. That fork-token flow is the proved
+  in-process code's: the dist call runs the same translated code, and no proof covers it (the independent triage,
+  [watch-dist-axiom-tok-triage](watch-dist-axiom-tok-triage.md)).
 - **The proved in-process siblings pass with no finding.** `watcher.wp_Watch` has 3 scenarios and
   `wp_RequestProgress` has 2. The instrumented walk of `wp_Watch` meets no token: `isClientWatcher` exposes no
   contract with a token.

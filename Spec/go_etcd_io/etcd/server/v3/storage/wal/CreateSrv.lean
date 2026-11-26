@@ -6,9 +6,12 @@ Lean-first.
 From the WAL area `walAreaFresh dir` (`storage/WalAreaFresh.lean`, what `bootstrap`'s slot `wal.bootRes`
 holds: the area's invariants, its program's part, the whole call permission of its root, the
 generation's lock token and no WAL in `dir`) and the metadata `walMetaEnc id cid`, `Create` **succeeds**,
-and the WAL is open in `dir` with the member's metadata and no records (`walOpened … walFresh`, sized:
+and the WAL is open in `dir` with the member's metadata and no records (`walOpenedH … walFresh []`, sized:
 `Create` writes the metadata, the empty snapshot record and no entry), with the right to close it with
-its files kept (`walPurgeRight`): what `wal.bootOk` holds.
+its files kept (`walPurgeRight`): what `wal.bootOk` holds. (P5, 2026-11-25, approved by coordinator-E on
+#50, 07:04Z) The records' history is stated, and empty (`walRecsH … walFresh []`, where it said
+`walRecs … walFresh`): layer 1's `Create` leaves the fresh durable state `walDurFresh`, whose history is
+`[]`; the crash-aware durability invariant's allocation needs it (`rnDurK_alloc`).
 
 **Not proved: a hypothesis** (`?` in the server's `Link.lean`) of `bootstrapNewWAL`'s linked result,
 #15's to prove (the WAL plan's L5, `notes/wal-link-scope.md`: `bootstrap`'s WAL part). It holds of Go
@@ -60,7 +63,7 @@ abbrev wal.Create.specSrv : Prop :=
       (Val #mp))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       ⌜err = GoInterface.nil⌝ ∗
-      ∃ h : WalH GF, ⌜h.w = w⌝ ∗ walOpened h dir id cid walFresh true ∗ walPurgeRight h }}
+      ∃ h : WalH GF, ⌜h.w = w⌝ ∗ walOpenedH h dir id cid walFresh [] true ∗ walPurgeRight h }}
 
 end spec
 

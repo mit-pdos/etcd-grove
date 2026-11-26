@@ -34,37 +34,44 @@ theorem walCloseLawU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w 
     (γ γt : GName) (ino j : Ino) (X : List GoString) (hj : NamesH) (H : List (WalOpG WalEnt))
     (md : List w8) (cuts : List Nat) (wr : Nat) (m : OsMeta) (bs : List ByteG) (b b' : GoString)
     (hTM : TailMetaS m bs) (hwr : wr = (tailStream Mr H md cuts).length) (hb : b ∈ walTmps)
-    (hb' : b' ∈ walTmps) :
+    (hb' : b' ∈ walTmps) (i : Nat) :
     ⊢ walInv (L := L) (W := W) walCodec Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
       osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs -∗
-      walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
+      walDirKey (W := W) dir i j X -∗ walPipeKey (W := W) dir j -∗
+      osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       tmpClaim (hG := ⟨G, L⟩) j b -∗ tmpClaim (hG := ⟨G, L⟩) j b' -∗
       walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
       walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗
-      walOpenW (W := W) w dir -∗ walPurgeW (W := W) w dir ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTokX (W := W) := by
-  iintro #Hinv Hnc Hk Hv Hm Hbs #Hdk Hn Htb Htb' Ho Htf Hopen -
+      walOpenWI (W := W) w dir i -∗ walPurgeW (W := W) w dir ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ ∃ I, walUnlockedTokXI (W := W) I ∗ ⌜incOf I dir = i⌝ := by
+  iintro #Hinv Hnc Hk Hv Hm Hbs #Hdk Hpk Hn Htb Htb' Ho Htf Hopen -
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   imod walInvBody_untail Mr R jr r s dir γ γt H md cuts wr ino m bs hTM hwr $$ Hb Htf Hk Hv Hm Hbs with
     ⟨%d, -, Hb, Htf, Hm, Hbs⟩
-  unfold walOpenW walLockedTok
-  icases Hopen with ⟨-, Hlk⟩
+  unfold walOpenWI
+  icases Hopen with ⟨%I', -, Hlk, %hI'⟩
+  unfold walPipeKey
+  icases Hpk with ⟨%Ip, %Xp, HIp, -⟩
   have hS : ∀ g ∈ [(⟨go!"", ino, m, bs⟩ : SegG)], g.om.size = g.bs.length := by
     intro g hg; simp only [List.mem_singleton] at hg; subst hg; exact hTM.1.1.symm
-  have hu := walInvBody_unpinX (L := L) (W := W) walCodec Mr R jr r s dir j X hj
-    [(⟨go!"", ino, m, bs⟩ : SegG)] true hS
+  have hu := walInvBody_unpinXI (L := L) (W := W) walCodec Mr R jr r s dir j X hj
+    [(⟨go!"", ino, m, bs⟩ : SegG)] true hS I' i hI'
   simp only [List.map_cons, List.map_nil, ↓reduceIte] at hu
-  imod hu $$ Hb [Hlk] Htf Ho [Hm Hbs] Hn [Htb Htb'] Hdk with ⟨Hb, Hu⟩
-  · unfold walLockedTok; iexact Hlk
+  imod hu $$ Hb Hlk Htf Ho [Hm Hbs] Hn [Htb Htb' HIp] Hdk with ⟨Hb, Hu⟩
   · iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
     unfold segRes; iframe Hm Hbs
-  · iapply tmpClaims_walTmpsRes (L := L) j b b' hb hb'
-    iframe Htb Htb'
+  · isplitl [Htb Htb']
+    · iapply tmpClaims_walTmpsRes (L := L) j b b' hb hb'
+      iframe Htb Htb'
+    · unfold walIncEAny; iexists Ip; iexact HIp
   imod Hcl $$ [Hb] with -
   · iexists s; iexact Hb
   imodintro
-  iframe Hnc Hu
+  iframe Hnc
+  iexists I'
+  iframe Hu
+  ipureintro; exact hI'
 
 end iris
 

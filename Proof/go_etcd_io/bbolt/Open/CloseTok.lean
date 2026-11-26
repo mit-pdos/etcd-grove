@@ -135,20 +135,20 @@ theorem close_gather (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (b : Loc) (
 /-- **What `Close` unmaps, gathered** (the idle writer side's resources and `Pm 1`'s): the
 mapping's `closeMapRes`, the mapping's ghost state cleared. -/
 theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
-    (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) :
-    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
+    (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) (hns : bNsOk p) :
+    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ bCsInv p -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
       ghostVar B.map (1 : Qp).half w.ms -∗ ghostVar B.map (1 : Qp).half.half w.ms -∗
       ghostVar B.mtok 1 () -∗
       ghostVar B.wv (1 : Qp).half wIdle -∗ ghostVar B.out (1 : Qp).half false -∗
       metaCellsQ (GF := GF) (1 : Qp).half.half w.ms w.C -∗
-      wCells (GF := GF) w.ms w.W -∗ osMeta p.ino (DFrac.own 1) w.m -∗
+      wCells (GF := GF) w.ms w.W -∗ bMeta p w.C [] w.m -∗
     |={⊤}=> closeMapRes (GF := GF) p w.ms ∗
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗
       ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗ ghostVar B.mtok 1 () ∗
       ghostVar B.wv (1 : Qp).half wIdle ∗ ghostVar B.out (1 : Qp).half false := by
-  iintro #Hinv Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc Hosm
+  iintro #Hinv #Hci Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc Hosm
   rcases hms : w.ms with _ | ⟨b, l⟩
   · unfold closeMapRes
     imodintro
@@ -163,11 +163,13 @@ theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w
     imodintro
     unfold closeMapRes
     isplitl [Hosm Hc]
-    · iexists w.m, vf
+    · iexists w.C, [], w.m, vf
       iframe
-      ipureintro
-      refine ⟨by have := hL b l hms; omega, ?_⟩
-      rw [hok.1 b l hms]; exact GMap.lookup_singleton _ _
+      isplitr
+      · ipureintro
+        refine ⟨by have := hL b l hms; omega, ?_, hns⟩
+        rw [hok.1 b l hms]; exact GMap.lookup_singleton _ _
+      iexact Hci
     iframe Hcur Hfl
     isplitl [Hmap]
     · iexact Hmap
@@ -226,6 +228,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   iunfold boltCloser at Hclo
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
+  icases isBoltCoreP_bfile _ _ _ _ _ _ $$ Hcore with ⟨#Hci, %hnsp⟩
   unfold isBoltCoreP
   icases Hcore with ⟨-, #Ht0a, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -245,7 +248,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hsync $Hmm] as ⟨Hmml, >HP⟩
   try wp_auto
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa,
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hmlk, Hfa,
     Hrof, #Hrcm, %Hok, %HF⟩
   iunfold rwR at HW
   icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo')
@@ -298,11 +301,12 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
     have h2 := treeOK_root' w.C htree
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  imod close_res _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
+  imod close_res _ γ.ns p w Hwok hL hnsp $$ Hpi Hci Hcur Hgfl Hgmap Hpmap Hptok
+    Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the `flock` token (`dbPathLk`), for `close`'s `funlock` and `File.Close`
   iunfold dbPathLk at Hpath
-  icases Hpath with ⟨Hpath, Htok⟩
+  icases Hpath with ⟨Hpath, Htok, -⟩
   wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
     Hres Hfile Hfo Hfd Htok]
     as %err ⟨%hq, -, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩

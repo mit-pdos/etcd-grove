@@ -87,7 +87,7 @@ crash. etcd treats any commit error as fatal (`batchTx.commit`, S/`storage/backe
   §1.5).
 - A zero-length file or zero metas (`metasZero`, `:748-766`) is (re)initialized by the fork's
   crash-safe `init` (`:686-747`: pages 2-3 written and synced, then both metas, synced;
-  `nonissues/bbolt-init-not-crash-safe.md`).
+  `issues/bbolt-init-not-crash-safe.md`).
 - Otherwise `getPageSize` (`:343-446`; the fork's D18: a read error is returned rather than probing on).
 - `mmapUnlocked` (`:499-593`): file size (`:477-489`, at least two pages), map, `meta0`/`meta1`
   (`:579-580`), validate both; **error only if both are invalid** (`:584-590`).

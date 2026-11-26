@@ -69,9 +69,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofLent
   iunfold fileutil.lockedFile at Hlt0
   iStructNamed Hlt0
   wp_auto
-  wp_apply (wp_FdatasyncP R jr r f fd name dir γ i H md cuts o0 sz k ho0) $$ [Htw Hcf]
+  ihave #Hil := walIncLb_zero (W := W) dir
+  wp_apply (wp_FdatasyncP R jr r f fd name dir γ i H md cuts o0 sz k 0 ho0) $$ [Htw Hcf]
       as %en ⟨Hcf, Hr⟩
-  · iframe; iexact Harea
+  · iframe Hil; iframe; iexact Harea
   icases Hr with (⟨%he, Htw, -⟩ | ⟨%he, Htw⟩)
   -- success: the tail unregistered by its key at the next step
   subst he

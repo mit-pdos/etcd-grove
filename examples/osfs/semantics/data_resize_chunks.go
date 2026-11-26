@@ -7,14 +7,16 @@ import (
 	"syscall"
 )
 
-// A failed or interrupted fallocate or truncate may leave any size between
-// (model decision, audit F5).
+// A failed or interrupted fallocate may leave any size between (model
+// decision, audit F5).
 //
-// Decision: a change of a file's size lands, at a failure or a crash, as any
-// size between the file's size and the target, not only all or nothing.
+// Decision: a fallocate lands, at a failure or a crash, as any size between
+// the file's size and the target, not only all or nothing. An ftruncate does
+// not: its size is exact (data_truncate_size_exact.go, 2026-11-25; until then
+// this file said the same of a truncate).
 //
 // Lean: Impl.lean: CrashFile (a size between the sizes since the last sync and
-// an in-flight change's target), the FallocFinish step's failure branch (any
+// an in-flight change's target; for an ftruncate, its target: OsFile.szCrash), the FallocFinish step's failure branch (any
 // `sz'` between); OsChange.ofResize (the grown bytes' candidate, zero), OsFile.land;
 // notes/axiom-review/fs-v2.md, F5.
 //

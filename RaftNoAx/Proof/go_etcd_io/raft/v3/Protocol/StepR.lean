@@ -120,6 +120,15 @@ theorem NoConfIn.noUndec {dec : CCDec} {l : List EntryM} {lo hi : Nat} (h : NoCo
     NoUndecConfIn dec l lo hi :=
   fun k e h1 h2 he hc => absurd hc (h k e h1 h2 he)
 
+/-- (2026-11-24, `notes/raft-restart-confpoint.md`, option D) **The configuration `cs` kept over the
+positions `[lo, hi)` of `l`**: folding those entries (after the prefix `l.take lo`) from `cs` gives
+`cs` back; vacuous for `hi ≤ lo`. What a configuration index needs to move from `lo` to `hi`: the
+entries passed may be conf changes decided to apply (etcd skips the replayed ones after a restart),
+as long as the configuration at `hi` is the one at `lo`. (Until then `NoUndecConfIn`: every conf entry
+there rejected.) -/
+def CfgKeep (dec : CCDec) (l : List EntryM) (lo hi : Nat) (cs : CCState) : Prop :=
+  cfgFoldFrom dec (l.take lo) cs ((l.take hi).drop lo) = some cs
+
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
 def propBatch (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
     List EntryM × w64 :=
@@ -414,12 +423,12 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [] { r with p := { r.p with matched := mt } }
   /-- `Advance`'s `appliedTo`: `applied` moves up to `a ≤ commit`, the configuration having
   taken every conf entry up to `a` (A1): each one applied (`applyConf`) or, since stage U6m
-  (2026-10-28), rejected by the decoder (`NoUndecConfIn`); the configuration index moves along when
-  it was below. -/
+  (2026-10-28), rejected by the decoder; since 2026-11-24 (option D) any entries over which the
+  configuration stays (`CfgKeep`); the configuration index moves along when it was below. -/
   | advance (r : RState) (a : w64) :
       uint.Z r.applied ≤ uint.Z a →
       uint.Z a ≤ uint.Z r.p.commit →
-      NoUndecConfIn dec r.full r.cidx (uint.nat a) →
+      CfgKeep dec r.full r.cidx (uint.nat a) r.cfg →
       StepR r [] { r with applied := a, cidx := max r.cidx (uint.nat a) }
   /-- `appliedSnap`: a snapshot at index `j` applied, the configuration switched to the
   snapshot's (2026-10-28, stage U0: until then `snapRestore` switched it), the configuration of
@@ -448,7 +457,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       k < uint.nat r.p.commit →
       r.full[k]? = some e →
       IsConfEnt e →
-      NoUndecConfIn dec r.full r.cidx k →
+      CfgKeep dec r.full r.cidx k r.cfg →
       dec (r.full.take k) e = some (.apply op) →
       ccStepB op r.cfg = some cs' →
       Adm (r.full.take (k + 1)) cs' →
@@ -521,6 +530,10 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
 theorem NoUndecConfIn.mono_dec {d1 d2 : CCDec} (h : DecLe d1 d2) {l : List EntryM} {lo hi : Nat}
     (hn : NoUndecConfIn d1 l lo hi) : NoUndecConfIn d2 l lo hi :=
   fun k e h1 h2 he hc => h _ _ _ (hn k e h1 h2 he hc)
+
+theorem CfgKeep.mono_dec {d1 d2 : CCDec} (h : DecLe d1 d2) {l : List EntryM} {lo hi : Nat}
+    {cs : CCState} (hn : CfgKeep d1 l lo hi cs) : CfgKeep d2 l lo hi cs :=
+  cfgFoldFrom_mono h hn
 
 /-- (2026-10-28, the decision switch) **Monotonicity in the decoder**: a step under some
 decisions is one under more. -/

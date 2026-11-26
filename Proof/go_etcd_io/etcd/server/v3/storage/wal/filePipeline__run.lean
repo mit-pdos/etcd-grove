@@ -49,7 +49,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
   · iexact Hfp
   iunfold isFilePipe at Hfp
   icases Hfp with ⟨%lg, #Hlg, #Hdir, #Hsz, #Hfc, #Hec, #Hdc, #Hhsn, #Hspsc, #Hbc, #Hlgok, #Hos,
-    #Hsi, ⟨%C, %Mr, %jr, %r, %X, #Hwi, #Hkey⟩, #Hpkg, %hsz⟩
+    #Hsi, ⟨%C, %Mr, %jr, %r, #Hwi⟩, #Hpkg, %hsz⟩
   (try wp_auto)
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
@@ -108,12 +108,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       wp_apply wp_Name f fd _ _ $$ [$Hf] as Hf
       (try wp_auto)
       iunfold pipeRes at Hres
-      icases Hres with ⟨Hperm, Hp⟩
+      icases Hres with ⟨Hperm, Hp, Hkey⟩
       ihave Ht := zerosA_trFile i m hmaps hcut hlo (OsMeta.ZeroPg.zfGe hzp) $$ [$Hm $Hz]
       ihave #Hpko : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
       · iPkgInit
-      wp_apply wp_removeTmp wp_Remove C Mr jr r X R dir dq j (pipeTmp n) i h _ (pipeTmp_nameOk n)
-        (pipeTmp_mem n) hcur $$ [$Hpko $Hos $Hsi $Hwi $Hkey $Hp $Hperm $Hn $Ht] as %re ⟨Hp, Hperm, Hc⟩
+      wp_apply wp_removeTmp wp_Remove C Mr jr r R dir dq j (pipeTmp n) i h _ (pipeTmp_nameOk n)
+        (pipeTmp_mem n) hcur $$ [$Hpko $Hos $Hsi $Hwi $Hkey $Hp $Hperm $Hn $Ht] as %re ⟨Hkey, Hp, Hperm, Hc⟩
       (try wp_auto)
       wp_method_call
       wp_call
@@ -123,13 +123,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       (try wp_auto)
       wp_for_post
       wp_apply wp_spsc_close γ.e γ.ec (pipeErrP R dir dq j) (pipeErrR γ R dir dq j)
-        ([] : List GoInterface) $$ [$Hspsc $Hprod Hp Hperm Hc]
+        ([] : List GoInterface) $$ [$Hspsc $Hprod Hp Hperm Hc Hkey]
       · iunfold pipeErrR
         iright
         iframe Hcl
         iunfold pipeLeft
         iunfold pipeRes
-        iframe Hperm Hp
+        iframe Hperm Hp Hkey
         iexists pipeTmp n
         iframe Hc
         ipureintro; exact pipeTmp_mem n

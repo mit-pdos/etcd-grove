@@ -79,11 +79,11 @@ theorem auth.authStore.AuthDisable.wp_tie
     isplitl [HA]
 
     · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
-    isplitl [Hcs]
-    · iapply csContract_noWrite $$ Hcs
     isplitl [Hbe HT Hen HenQ Hca]
     · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
+    isplitl [Hcs]
+    · iapply csContract_noWriteF P f Pre Q Post (show false = false from rfl) $$ Hcs
     iframe Hev
     iunfold adminOutP
     iright
@@ -172,11 +172,11 @@ theorem auth.authStore.AuthDisable.wp_tie
   isplitl [HA]
 
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
-  isplitl [HPost]
-  · ileft; iexact HPost
   isplitl [Hbe HT Hen HenQ Hca]
   · iunfold authWRx; iunfold flagAt; iframe HT Hen HenQ Hev2 Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists true
+  isplitl [HPost]
+  · ileft; iexact HPost
   iframe Hev
   iunfold adminOutP
   iright

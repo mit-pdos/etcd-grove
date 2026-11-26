@@ -103,8 +103,10 @@ theorem cm_free_fl (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF)
   · iapply BigSepL.bigSepL_sep_eqv.2; iframe
   have hbm : w.m.maps !! b = some l := by rw [hok.1 b l hms]; simp [GMap.singleton]
   -- the cells' bytes, at the call's step
-  iapply wrSlotsH_agree _ rfl K.p (DFrac.own 1) w.m b l hbm (by simp) w.wb _ _ hlen4 $$ Hos Hom HS
+  icases bMeta_osMeta K.p w.C [] w.m $$ Hom with ⟨%qm, Hom, Homb⟩
+  iapply wrSlotsH_agree _ rfl K.p (DFrac.own qm) w.m b l hbm (by simp) w.wb _ _ hlen4 $$ Hos Hom HS
   iintro Hom HS
+  ihave Hom := Homb $$ Hom
   -- the page's header
   unfold slotsOwnH
   rw [show 1 + pageOverflow (w.wb f) = pageOverflow (w.wb f) + 1 by omega, List.range'_succ]

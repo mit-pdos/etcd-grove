@@ -103,6 +103,8 @@ theorem txBytesDef_acc (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView
     subst hB hN
     icases wtxWQ_reg _ tx r' true q X $$ Hw with ⟨Hw, #Hreg'⟩
     iunfold reg at Hreg Hreg'
+    icases Hreg with ⟨#Hreg, #Hreg_x⟩
+    icases Hreg' with ⟨#Hreg', -⟩
     icombine Hreg Hreg' gives %hr
     obtain ⟨-, rfl⟩ := hr
     ihave %Hvv := viewOf_agree r v X.v $$ [Hvo Hvf]
@@ -130,6 +132,8 @@ theorem txBytesDef_acc (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView
     subst hKB hKN
     icases rdTxK_view_acc _ tx .loan q T v' $$ Hk with ⟨%r', %qc, #Hreg', #Hvo', %Hbase, Hc, Hkb⟩
     iunfold reg at Hreg Hreg'
+    icases Hreg with ⟨#Hreg, #Hreg_x⟩
+    icases Hreg' with ⟨#Hreg', -⟩
     icombine Hreg Hreg' gives %hr
     obtain ⟨-, rfl⟩ := hr
     ihave %Hvv := viewOf_agree r v v' $$ [Hvo Hvo']

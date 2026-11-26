@@ -27,6 +27,7 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.os.NsS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLoans
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
@@ -76,13 +77,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (Q : WalDur → IProp GF) :
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ 1 ∗ WalFs.walPurgeW w dir ∗
-      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir d, COMM Q d }> }}
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAtI dir γ.inc d }> @ walAuMask, ∅
+        <{ WalFs.walDiskAtI dir γ.inc d, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
+          WalFs.walSyncedLb dir γ.inc d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
         ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
   wp_start as ⟨#Harea, Hw, Hpw, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ 1 $$ Hw with ⟨Hw, #Hpers⟩
@@ -99,7 +100,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared
   imod walOpenWS_acquire Sio P Mr w dir γ 1 $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hlocked Hlc1
   imodintro
-  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHdl_open Sio P Mr w dir γ.inc $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom, %hinc⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu', Henti, Hsnapi,
@@ -125,7 +126,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared
   ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt0
   simp only [decide_eq_false hltn]
   (try wp_auto)
-  wp_apply (walCov_syncC P Mr wp_syncC wp_syncCNE R jr r w dir j h (fun _ _ _ => WalFs.walNamed (W := W) dir) none
+  wp_apply (walCov_syncC P Mr wp_syncC wp_syncCNE R jr r w dir j h (fun _ _ _ => WalFs.walNamed (W := W) dir h.inc) none
       hD.1 (fun hc => by have := hroom hc; omega)) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
       Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp Hopen] as %err Hpost
   · iframe Harea
@@ -135,6 +136,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared
       Hlocks Hls Hcap Hlks Hltf Hfp Henv Hcrc Hwpk Hopen
     ipureintro; exact ⟨Hen, Hlt, Hpure⟩
   icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | %Herr)
+  ihave #Hsy' : WalFs.walSyncedLb (W := W) dir γ.inc h.H.length $$ [Hsy]
+  · rw [← hinc]; iexact Hsy
   rotate_left
   · -- the sync failed: returned before the locks, the whole share spent
     rcases err with ei | _
@@ -337,14 +340,26 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared
   -- the put-back, at the next step
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp, Hpkey⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  -- the handle's two loans of the WAL's name returned (P6b fix A)
+  rw [hnp.2.2]
+  ihave Hpd : osPathS (L := hG.goose_localGS) R dir (DFrac.own qd) j $$ [Hpd]
+  · rw [← hWR]; iexact Hpd
+  ihave Hpp : osPathS (L := hG.goose_localGS) R dir (DFrac.own h.qp) j $$ [Hpp]
+  · rw [← hWR]; iexact Hpp
+  icases walOpenWI_incQ (W := W) w dir h.inc $$ Hopen with ⟨%IQ, HIQ, %hIQ, Hopen⟩
+  imod walInv_returnHLoans2 walCodec Mr R jr r dir _ j j j X qd h.qp IQ hIQ $$ Hinv Hnc Hdk HIQ Hnf Hpd Hpp
+    with ⟨Hnc, HIQ, Hnf⟩
+  ihave Hopen := Hopen $$ HIQ
   imod walInv_lksDrop (L := hG.goose_localGS) (W := W) walCodec Mr R jr r _ _ $$ Hinv Hnc Htf with ⟨Hnc, Htf⟩
   imod walCloseLaw (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts (h.o0 + (h.out ++ h.pend).length) m2 bs2
-    b (pipeTmp (np + 1)) Q hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc
-    Hout Htf Hnf Hopen Hpw Hsy Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩
+    b (pipeTmp (np + 1)) Q γ.inc hp2.2.1 hwr hb (pipeTmp_mem _) $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 [Hdk] Hpkey Hcl Htb Hpc
+    Hout Htf Hnf [Hopen] Hpw Hsy' Hau with ⟨Hnc, %d, HQ, #Hsd, Hunl⟩
   · unfold tailVar; iexact Hv2
+  · rw [← hinc]; iexact Hdk
+  · rw [← hinc]; iexact Hopen
   imodintro
   iframe Hnc
   -- the directory's `Close` (no error when covered)
@@ -419,18 +434,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof
     iapply HΦ
     iexact H
   | opening s =>
-    iintro %Φ ⟨#Harea, Hpk, Hop, Hrh, Hperm, Hdf⟩ HΦ
+    iintro %Φ ⟨#Harea, Hpk, Hoh, Hperm, Hdf⟩ HΦ
     iapply (go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening Mr wp_syncIdle wp_fpClose wp_tail
-      wp_Close wp_CloseNil wp_Error wp_LError R jr r w dir s) $$ [Hpk Hop Hrh Hperm Hdf]
-    · iframe Hpk Harea Hop Hrh Hperm Hdf
+      wp_Close wp_CloseNil wp_Error wp_LError R jr r w dir s) $$ [Hpk Hoh Hperm Hdf]
+    · iframe Hpk Harea Hoh Hperm Hdf
     inext
     iintro %err H
     iapply HΦ
     iexact H
-  | unnamed Rp qp tf =>
+  | unnamed Rp qp tf i =>
     iintro %Φ ⟨#Harea, Hw, Hpw⟩ HΦ
     iapply (go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed P Mr wp_syncC wp_fpClose wp_tail
-      wp_Close wp_Error wp_LError R jr r w dir Rp qp tf) $$ [Hw Hpw]
+      wp_Close wp_Error wp_LError R jr r w dir Rp qp tf i) $$ [Hw Hpw]
     · iframe Harea Hw Hpw
     inext
     iintro %err H

@@ -49,20 +49,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 its tail record, a quarter of the WAL claim (the call has another), the handle's record of what is out, the
 lock token's pending-cut flag (`none`), the handle's half of the locked range (`b`), and the caller's commit
 token `Pc`. -/
-def walPurgeP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG)
+def walPurgeP (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG)
     (γt : GName) (b : Nat) (o : WalOut) (Pc : IProp GF) : IProp GF :=
-  iprop(walDirKey (W := W) dir j X ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
+  iprop(walDirKey (W := W) dir (incOf I dir) j X ∗ walIncQ (W := W) I ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
     osNames j (.except X) (DFrac.own qQuarter) hj ∗ walOutFrag (W := W) o ∗ walCutFrag (W := W) none ∗
     walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat)) ∗
     Pc)
 
 /-- **What a purge gets from a removal's update**: with no effect, what it held; after the commit (logged at
 `x` by a call begun at `s0`), the claim's new history (a quarter), the rest as it held it. -/
-def walPurgeQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG)
+def walPurgeQ (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG)
     (γt : GName) (b : Nat) (o : WalOut) (Pc : IProp GF) (bt : GoString) (i : Ino) :
     Option (Nat × Nat) → IProp GF
-  | none => walPurgeP (W := W) dir j X hj γ tg γt b o Pc
-  | some (x, s0) => walPurgeP (W := W) dir j X (purgeClaim j X hj bt i x s0).2.2 γ tg γt b o Pc
+  | none => walPurgeP (W := W) dir I j X hj γ tg γt b o Pc
+  | some (x, s0) => walPurgeP (W := W) dir I j X (purgeClaim j X hj bt i x s0).2.2 γ tg γt b o Pc
 
 /-- **A purge's update for `os.Remove.specFileSncN`** (see the file header). The premises, over the handle's
 view: `bt` names `i` in the claim, the smallest `.wal` name, not the only one; its sequence `sq` below
@@ -70,8 +70,8 @@ view: `bt` names `i` in the claim, the smallest `.wal` name, not the only one; i
 locked segment's (the purger's lock on `i` excludes the latter: `walDirLks_purge`), so the segment ends at
 or before `b` (`LkRel_purge`). -/
 theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG) (γt : GName)
-    (b : Nat) (o : WalOut) (Pc : IProp GF) (bt : GoString) (i : Ino) (sq ix : Nat)
+    (dir : GoString) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (γ : GName) (tg : TailG) (γt : GName)
+    (b : Nat) (o : WalOut) (Pc : IProp GF) (inc : Nat) (bt : GoString) (i : Ino) (sq ix : Nat)
     (nm0 : GoString) (ls : List (GoString × Ino))
     (hoD : (j, NameSet.except X) ∈ o.D)
     (hcur : hj.cur !! bt = some (.file i)) (hbtw : walNameP bt = true)
@@ -79,13 +79,13 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (hlast : ∃ b' n, hj.cur !! b' = some n ∧ walNameP b' = true ∧ go.GoStringLt bt b')
     (hbt : bt = walFileName sq ix) (hsq : sq < 2 ^ 64) (hlk : LkRel hj tg.2.2.1 nm0 ls b)
     (h0 : bt ≠ nm0) (hnl : bt ∉ ls.map (·.1)) :
-    ⊢ walInv (W := W) walCodec Mr R jr r -∗ walPurgeAcc (W := W) dir Pc -∗
-      walPurgeP (W := W) dir j X hj γ tg γt b o Pc -∗
+    ⊢ walInv (W := W) walCodec Mr R jr r -∗ walPurgeAcc (W := W) dir inc Pc -∗
+      walPurgeP (W := W) dir I j X hj γ tg γt b o Pc -∗
       osAUnc (osNames j (.except X) (DFrac.own ((1 : Qp).half + qQuarter)) hj)
         (rmFileOutN j (.except X) bt i hj (DFrac.own ((1 : Qp).half + qQuarter)))
-        (walPurgeQ (W := W) dir j X hj γ tg γt b o Pc bt i) := by
+        (walPurgeQ (W := W) dir I j X hj γ tg γt b o Pc bt i) := by
   iintro #Hinv #Hacc HP
-  iapply osAUnc_coiter _ _ _ (walPurgeP (W := W) dir j X hj γ tg γt b o Pc) $$ [] HP
+  iapply osAUnc_coiter _ _ _ (walPurgeP (W := W) dir I j X hj γ tg γt b o Pc) $$ [] HP
   iintro !> HP
   unfold osAUncPre
   iintro Hnc
@@ -93,11 +93,11 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walPurgeP
-  icases HP with ⟨#Hkey, Hk, Hv, Hq, Ho, Hcf, Htf, HPc⟩
+  icases HP with ⟨#Hkey, HIq, Hk, Hv, Hq, Ho, Hcf, Htf, HPc⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hkey HIq with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
   subst hcl
@@ -143,7 +143,7 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only
-    iframe Hkey Hk Hv Hq Ho Hcf Htf HPc
+    iframe Hkey HIq Hk Hv Hq Ho Hcf Htf HPc
   · iintro %oc Hβ
     rcases oc with _ | ⟨x, s0⟩
     · -- no effect: as the abort
@@ -180,7 +180,7 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walPurgeQ, walPurgeP]
-      iframe Hkey Hk Hv Hq Ho Hcf Htf HPc
+      iframe Hkey HIq Hk Hv Hq Ho Hcf Htf HPc
     · imod Hcl'
       unfold rmFileOutN
       simp only [logOut, claimOut]
@@ -236,8 +236,8 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imod Hac with Hac
       isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hac
       icases Hac with ⟨%dc, Hdc, Hucl⟩
-      unfold walDiskAt walDirIs
-      icases Hdc with ⟨%M, HM, %HMd⟩
+      unfold walDiskAtI walDirIsI
+      icases Hdc with ⟨%M, %Iq, HM, HIq, %HMd, %hIq⟩
       icases walOwn_agree s M $$ Hg HM with %HMs
       icases Hucl with ⟨-, Hcommit⟩
       isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
@@ -251,15 +251,15 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imod walGhost_upd s (purSt s dir d.unl (segStart lay1.cuts (lay1.first + 1))) M (absLe_purSt _ _ _ _)
         (walKeysInArea_upd s dir _) (fun _ hn => hn.upd (fun _ => rfl))
         (unlMono_upd s dir _ (fun _ => Nat.le_refl _)) $$ Hg HM with ⟨-, Hg, HM, -⟩
-      imod Hcommit $$ %d.unl %(segStart lay1.cuts (lay1.first + 1)) [HM] with HPc
+      imod Hcommit $$ %d.unl %(segStart lay1.cuts (lay1.first + 1)) [HM HIq] with HPc
       · isplitr
         · ipureintro
           refine ⟨by rw [hle.2.2.2.1]; exact hcutk, hp, Nat.le_of_eq hle.2.1.symm⟩
-        · iexists (purSt s dir d.unl (segStart lay1.cuts (lay1.first + 1))).wal
-          iframe HM
+        · iexists (purSt s dir d.unl (segStart lay1.cuts (lay1.first + 1))).wal, Iq
+          iframe HM HIq
           ipureintro
           rw [purSt_self hd]
-          exact walDurLe_purD hle _ _
+          exact ⟨walDurLe_purD hle _ _, hIq⟩
       -- the invariant's resources at the new state
       have hpd := purSt_self (p := d.unl) (k := segStart lay1.cuts (lay1.first + 1)) hd
       ihave Htl := walTailsRes_purge walCodec Mr s (purSt s dir d.unl (segStart lay1.cuts (lay1.first + 1)))
@@ -317,7 +317,7 @@ theorem walPurge_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         exact ⟨walsBounded_upd Hbd.1 (fun _ => rfl) (fun _ => rfl), Hbd.2.upd⟩
       imodintro
       dsimp only [walPurgeQ, walPurgeP, purgeClaim, purgeNames]
-      iframe Hkey Hk Hv Hqn Ho Hcf Htf HPc
+      iframe Hkey HIq Hk Hv Hqn Ho Hcf Htf HPc
 end au
 
 end WalFs

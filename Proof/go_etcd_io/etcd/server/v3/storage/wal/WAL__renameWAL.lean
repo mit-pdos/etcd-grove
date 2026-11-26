@@ -95,7 +95,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     iapply HΦ
     unfold renameWALPost
     iframe Hp
-    iright; iright; ileft
+    iright; ileft
     iunfold walLockIn at Hlk
     icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩
     ihave Hlks := fdLocksW_locks _ _ $$ Hlks
@@ -123,7 +123,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   ihave Hlaw := hSp
-  imod Hlaw $$ %x HSp Hnc HU Hout with ⟨Hnc, HU, Hs1, Hs2, HSpR, #Hwk⟩
+  imod Hlaw $$ %x HSp Hnc HU Hout with ⟨Hnc, HU, Hs1, Hs2, HSpR, #Hwk, Hpk⟩
   iframe Hnc
   imodintro
   ihave #Hwi : (wal.walInit : IProp GF) $$ []
@@ -138,7 +138,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   try wp_auto
   have hdl' : (child r nm).length < 2 ^ 60 := by omega
   wp_apply wp_nfp lg (child r nm) (W64 64000000) R dq J (by decide) (by decide) hdl' (by decide)
-    $$ [Hperm1 Hs1 Ht0] as %fp ⟨%hfp, %γ, Hpipe, Hmain⟩
+    $$ [Hperm1 Hs1 Ht0 Hpk] as %fp ⟨%hfp, %γ, Hpipe, Hmain⟩
   · iframe; iframe #; unfold pipeRes; rw [hkc nm]; iframe
   try wp_auto
   wp_apply wp_OpenDir (child r nm) R J dq (1 : Qp).half $$ [Hs2 Hperm2] as %df %err ⟨Hs2, Hperm2, Hod⟩
@@ -163,7 +163,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   · iapply HΦ
     unfold renameWALPost
     iframe Hp
-    iright; iright; iright
+    iright; iright
     isplitr
     · ipureintro; exact herr.1
     iexists x

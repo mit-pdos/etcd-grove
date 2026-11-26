@@ -295,26 +295,28 @@ token's pending-cut flag, the WAL's layout (the segments `pre` then the tail `g0
 claim's `.wal` names give in order) and the invariant's half of the tail; given back, the synced tail
 (`segRes (syncTail g0)`, the step's outcome) or the tail unchanged (a failed sync). -/
 theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+    (r : GoString) (s : AbsDiskState) (dir : GoString) (i : Nat) (I : GMap GoString Nat) (hi : incOf I dir = i)
+    (j : Ino) (X : List GoString) (hj0 : NamesH) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗ walCutFrag (W := W) none -∗
       ∃ (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜lay.segs = pre ++ [g0] ∧ walInos hj0.cur = lay.segs.map (·.ino) ∧
           g0.om.size = g0.bs.length⌝ ∗
-        segRes (L := L) g0 ∗ walDirKey (W := W) dir j X ∗
+        segRes (L := L) g0 ∗ walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
         walTailsFrag (W := W) ∅ ∗ walCutFrag (W := W) none ∗
         ((segRes (L := L) (syncTail g0) -∗ walInvBody (L := L) (W := W) C Mr R jr r s) ∧
          (segRes (L := L) g0 -∗ walInvBody (L := L) (W := W) C Mr R jr r s)) := by
   letI := walAllG (W := W)
-  iintro Hb Hk Hn Hf Hcf
+  iintro Hb Hk HI Hn Hf Hcf
+  subst hi
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCut_agree cp none $$ Hcp Hcf with %Hcpe
   subst Hcpe
-  icases walDirKey_lookup K dir j X $$ Hdk Hk with %hK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hk HI with %hK
   obtain ⟨lay, hj, hl, hlj, -, -, hOnce, -, hOther⟩ := Hdko.1 dir j X hK
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
     cases h : s.wal !! dir with
@@ -358,7 +360,7 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     exact ⟨hs, by rw [h0]; exact habs.names.1, (habs.metas g0 (List.mem_of_getLast? hg0)).1⟩
   isplitl [Hlast]
   · unfold segResF; rw [he0]; iexact Hlast
-  iframe Hk Hn Hf Hcf
+  iframe Hk HI Hn Hf Hcf
   isplit
   · -- synced
     iintro Hseg
@@ -383,8 +385,8 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     isplitl [HTa HL]
     · unfold walTailsRes
       iexists ∅
-      ihave HL := walLentRes_insert_same (W := W) ∅ Ls dir lay (syncLay lay pre g0) hl rfl id Or.inr
-        (fun _ => id) (fun h => absurd (GMap.lookup_empty _) h) $$ HL
+      ihave HL := walLentRes_insert_same (W := W) ∅ Ls dir lay (syncLay lay pre g0) hl rfl id
+        (fun h => absurd (GMap.lookup_empty _) h) (fun _ => id) (fun h => absurd (GMap.lookup_empty _) h) $$ HL
       iframe HTa HL
       isplitr
       · ipureintro; intro i hi; exact absurd (he0 i) hi

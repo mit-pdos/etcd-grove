@@ -264,6 +264,9 @@ noncomputable def hashBucketUpToKey [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newBoltLoggerZap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.newBoltLoggerZap"
 
+noncomputable def syncParentDir [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/etcd/server/v3/storage/backend.syncParentDir"
+
 noncomputable def RegisterSafeRangeBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.RegisterSafeRangeBucket"
 
@@ -312,7 +315,7 @@ noncomputable def VerifyBackendConsistency [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def unsafeVerifyTxConsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.unsafeVerifyTxConsistency"
 
-/-- go: backend.go:182:6 -/
+/-- go: backend.go:183:6 -/
 noncomputable def DefaultBackendConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc BackendConfig.ty))) (App (Val (GoInstruction (GoZeroVal BackendConfig.ty))) (Val #())))
@@ -330,7 +333,7 @@ noncomputable def DefaultBackendConfig.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore BackendConfig.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BackendConfig.ty))) (Var "$res0")))))
 
-/-- go: backend.go:191:6 -/
+/-- go: backend.go:192:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Backend.ty))) (App (Val (GoInstruction (GoZeroVal Backend.ty))) (Val #())))
@@ -345,7 +348,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Backend.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "$res0")))))
 
-/-- go: backend.go:195:6 -/
+/-- go: backend.go:196:6 -/
 noncomputable def WithMmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "size"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc BackendConfigOption.ty))) (App (Val (GoInstruction (GoZeroVal BackendConfigOption.ty))) (Val #())))
@@ -365,7 +368,7 @@ noncomputable def WithMmapSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfigOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BackendConfigOption.ty))) (Var "$res0")))))
 
-/-- go: backend.go:201:6 -/
+/-- go: backend.go:202:6 -/
 noncomputable def WithTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "timeout"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc BackendConfigOption.ty))) (App (Val (GoInstruction (GoZeroVal BackendConfigOption.ty))) (Val #())))
@@ -385,7 +388,7 @@ noncomputable def WithTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfigOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BackendConfigOption.ty))) (Var "$res0")))))
 
-/-- go: backend.go:207:6 -/
+/-- go: backend.go:208:6 -/
 noncomputable def NewDefaultBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "path"
@@ -429,7 +432,7 @@ noncomputable def NewDefaultBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BackendConfig.ty))) (Pair (Var "bcfg") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad Backend.ty))) (Var "$res0")))))))
 
-/-- go: backend.go:217:6 -/
+/-- go: backend.go:218:6 -/
 noncomputable def newBackend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bcfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType backend.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType backend.ty)))) (Val #())))
@@ -565,7 +568,7 @@ noncomputable def newBackend.impl [GooseExts] [GoGlobalContext] : val :=
     write operations. The write result can be retrieved within the same tx immediately.
     The write result is isolated with other txs until the current one get committed.
 
-    go: backend.go:286:19 -/
+    go: backend.go:287:19 -/
 noncomputable def backend.BatchTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -580,7 +583,7 @@ noncomputable def backend.BatchTx.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore BatchTx.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad BatchTx.ty))) (Var "$res0"))))))
 
-/-- go: backend.go:290:19 -/
+/-- go: backend.go:291:19 -/
 noncomputable def backend.SetTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "hook"
@@ -603,7 +606,7 @@ noncomputable def backend.SetTxPostLockInsideApplyHook.impl [GooseExts] [GoGloba
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #()))))))))
   (Val #()))))
 
-/-- go: backend.go:298:19 -/
+/-- go: backend.go:299:19 -/
 noncomputable def backend.ReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -622,7 +625,7 @@ noncomputable def backend.ReadTx.impl [GooseExts] [GoGlobalContext] : val :=
     A) creates and keeps a copy of backend.readTx.txReadBuffer,
     B) references the boltdb read Tx (and its bucket cache) of current batch interval.
 
-    go: backend.go:303:19 -/
+    go: backend.go:304:19 -/
 noncomputable def backend.ConcurrentReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -732,7 +735,7 @@ noncomputable def backend.ConcurrentReadTx.impl [GooseExts] [GoGlobalContext] : 
 
 /-- ForceCommit forces the current batching tx to commit.
 
-    go: backend.go:379:19 -/
+    go: backend.go:380:19 -/
 noncomputable def backend.ForceCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -742,7 +745,7 @@ noncomputable def backend.ForceCommit.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))
   (Val #()))))
 
-/-- go: backend.go:383:19 -/
+/-- go: backend.go:384:19 -/
 noncomputable def backend.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -894,7 +897,7 @@ noncomputable def backend.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType batchTxBuffered.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType batchTxBuffered.ty)))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"batchTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b"))))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad Snapshot.ty))) (Var "$res0"))))))
 
-/-- go: backend.go:457:19 -/
+/-- go: backend.go:458:19 -/
 noncomputable def backend.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -910,7 +913,7 @@ noncomputable def backend.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:461:19 -/
+/-- go: backend.go:462:19 -/
 noncomputable def backend.SizeInUse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -926,7 +929,7 @@ noncomputable def backend.SizeInUse.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:465:19 -/
+/-- go: backend.go:466:19 -/
 noncomputable def backend.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -981,7 +984,7 @@ noncomputable def backend.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))))
   (Val #()))))
 
-/-- go: backend.go:483:19 -/
+/-- go: backend.go:484:19 -/
 noncomputable def backend.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1016,7 +1019,7 @@ noncomputable def backend.Close.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Commits returns total number of commits since start
 
-    go: backend.go:492:19 -/
+    go: backend.go:493:19 -/
 noncomputable def backend.Commits.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1032,7 +1035,7 @@ noncomputable def backend.Commits.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:1088:19 -/
+/-- go: backend.go:1095:19 -/
 noncomputable def backend.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -1090,7 +1093,7 @@ noncomputable def backend.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "$res0"))))))
 
-/-- go: backend.go:1103:19 -/
+/-- go: backend.go:1110:19 -/
 noncomputable def backend.unsafeBegin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "write"
@@ -1130,7 +1133,7 @@ noncomputable def backend.unsafeBegin.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Pair (Var "tx") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Tx.ty)))) (Var "$res0"))))))
 
-/-- go: backend.go:1113:19 -/
+/-- go: backend.go:1120:19 -/
 noncomputable def backend.OpenReadTxN.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1146,7 +1149,7 @@ noncomputable def backend.OpenReadTxN.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: backend.go:1117:19 -/
+/-- go: backend.go:1124:19 -/
 noncomputable def backend.LockForSafeRangeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1156,7 +1159,7 @@ noncomputable def backend.LockForSafeRangeDelete.impl [GooseExts] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))
   (Val #()))))
 
-/-- go: backend.go:1121:19 -/
+/-- go: backend.go:1128:19 -/
 noncomputable def backend.UnlockForSafeRangeDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
@@ -1166,7 +1169,7 @@ noncomputable def backend.UnlockForSafeRangeDelete.impl [GooseExts] [GoGlobalCon
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef backend.ty go!"safeRangeDeleteMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType backend.ty)))) (Var "b")))) (Val #())))))
   (Val #()))))
 
-/-- go: backend.go:1131:20 -/
+/-- go: backend.go:1138:20 -/
 noncomputable def snapshot.UnsafeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "bucket"
@@ -1220,7 +1223,7 @@ noncomputable def snapshot.UnsafeRange.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.bbolt.Bucket.ty)))) (Pair (Var "b") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.byte))))) (Var "$res1")))))))))))
 
-/-- go: backend.go:1139:20 -/
+/-- go: backend.go:1146:20 -/
 noncomputable def snapshot.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "bucket"
@@ -1241,7 +1244,7 @@ noncomputable def snapshot.UnsafeForEach.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: backend.go:1143:20 -/
+/-- go: backend.go:1150:20 -/
 noncomputable def snapshot.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon

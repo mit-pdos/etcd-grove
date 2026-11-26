@@ -81,8 +81,10 @@ private abbrev node.Advance.specRaw : Prop :=
       -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
       -- index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the decision switch) or
       -- skipped, rejected over decisions recorded (`undecFree`); (raft-final, 2026-10-29, the
-      -- design's A1) only after a `Ready` without a snapshot
-      □ (⌜L = none⌝ -∗ undecFree γ.raft γ.mode ds ca ds.length) ∗
+      -- design's A1) only after a `Ready` without a snapshot; (2026-11-24, option D of
+      -- `notes/raft-restart-confpoint.md`) the view's configuration kept up to the committed log
+      -- handed out (`cfgKeepIn`)
+      □ (⌜L = none⌝ -∗ cfgKeepIn γ.raft γ.mode ds ca ds.length cfg) ∗
       -- (2026-11-01, durability stage I-3/I-8) `run`'s halves of the recorded durable state and of
       -- the batch's maps, with the fragments *enter* minted (`advanceP`)
       (∃ (y : RaftState × StateType) (W : DurMaps), dghostVar γ.dur (DFrac.own (1 : Qp).half) y ∗
@@ -92,8 +94,9 @@ private abbrev node.Advance.specRaw : Prop :=
   {{ RET #(); (nodeDriverChan γ id n.loc ds p ∗
       -- (2026-10-28, stage U3d) the view of the configuration: after a snapshot `Ready`,
       -- dynamically, the snapshot's (`loanCfg`), which a snapshot `Ready` has only outside the
-      -- no-snapshot mode
-      nodeCfg γ (loanCfg γ.mode L (ca, cfg)).1 (loanCfg γ.mode L (ca, cfg)).2 ∗
+      -- no-snapshot mode; (2026-11-24, option D) after one without, dynamically, moved to the
+      -- committed log handed out
+      nodeCfg γ (loanCfg γ.mode L (ca, cfg) ds.length).1 (loanCfg γ.mode L (ca, cfg) ds.length).2 ∗
       -- (D19i part 1) the floor's witness for `ds`; (D22 S-d4) after a `Ready` without a snapshot,
       -- unless one was restored since (`reqWit`)
       reqWit γ (reqOf L ds) ∗
@@ -121,8 +124,6 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
   wp_start as ⟨Hcl, Hbusy, Hrcpt, Hcfg, #HA1, Hback0⟩
   unfold nodeDriverBusy
   icases Hbusy with ⟨#Hnode, #Hdlb, -, Hesc, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
-  ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
-  · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
   subst Hds
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -141,31 +142,45 @@ private theorem node.Advance.wp_raw : node.Advance.specRaw (GF := GF) (hG := hG)
     · iapply isAdvChan_isChan $$ Hadvancec
     -- (2026-10-28, stage U3d) after a snapshot `Ready` the view goes with the payload and comes
     -- back moved (`capPay`, `capAns`)
-    ihave ⟨Hpay, Hback⟩ : capPay γ L (ca, cfg) ∗ (capAns γ (loanReq γ.mode L (ca, cfg)) -∗
-        nodeCfg γ (loanCfg γ.mode L (ca, cfg)).1 (loanCfg γ.mode L (ca, cfg)).2) $$ [Hcfg]
+    ihave ⟨Hpay, Hback⟩ : capPay γ L (ca, cfg) ∗
+        (capAns γ (loanReq γ.mode L (ca, cfg) (dlvAfter d ce L).length) -∗
+        nodeCfg γ (loanCfg γ.mode L (ca, cfg) (dlvAfter d ce L).length).1
+          (loanCfg γ.mode L (ca, cfg) (dlvAfter d ce L).length).2) $$ [Hcfg]
     · cases L with
       | none =>
-        isplitr
-        · simp only [capPay]; itrivial
-        iintro -
-        rw [loanCfg_none]
-        iframe Hcfg
+        cases hd : γ.mode.isDyn with
+        | false =>
+          isplitr
+          · simp only [capPay, hd, Bool.false_eq_true, ↓reduceIte]; itrivial
+          iintro -
+          rw [loanCfg_static hd]
+          iframe Hcfg
+        | true =>
+          unfold nodeCfg
+          icases Hcfg with ⟨Hcap, Hccq, -⟩
+          isplitl [Hcap]
+          · simp only [capPay, hd, ↓reduceIte]; iexact Hcap
+          iintro Hans
+          simp only [capAns, loanReq, hd, ↓reduceIte]
+          icases Hans with ⟨Hcap, #Hlb⟩
+          iframe Hcap Hccq Hlb
       | some l =>
         unfold nodeCfg
         icases Hcfg with ⟨Hcap, Hccq, -⟩
         isplitl [Hcap]
         · simp only [capPay]; iexact Hcap
         iintro Hans
-        simp only [capAns, loanReq, Option.map_some]
+        simp only [capAns, loanReq]
         icases Hans with ⟨Hcap, #Hlb⟩
         iframe Hcap Hccq Hlb
-    iapply adv_send_au γ nv.rn' id nv.advancec' (dlvAfter d ce L) L (ca, cfg) q0 ms
+    iapply adv_send_au γ nv.rn' id nv.advancec' (dlvAfter d ce L) L (ca, cfg)
+      (dlvAfter d ce L).length q0 ms
       $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt Hpay Hback0] Hdlb Hr1 Hr2 Hesc Hcl
     · unfold advanceP
       iexists d, ce, es, p'
       iframe Hd1 Hrof Hrcpt Hpay Hback0
-      iexists ca
-      iframe Hcamlb
+      isplitr
+      · ipureintro; rfl
       iexact HA1
     inext
     iintro Hfl Hans Hreq Hesc Ht
@@ -262,10 +277,15 @@ private theorem node.wp_Advance_impl
   -- (2026-11-12, trace-check implementation step 1) the claim, at the driver's node's escrow
   ihave Hclaim := readyToksClaim_at n γ N γn ms Hnok $$ Htb Hclaim
   have Hmd : γn.mode = .dyn noDec (stOf c0) h0 h1 := by rw [Hnok.2.2, Hmd0]
-  -- (raft-final, the design's A1) the skips only after a `Ready` without a snapshot, A1 at raft's
-  -- names; after one, the snapshot's certificate
-  ihave ⟨#HA1, #HskS⟩ : iprop(□ (⌜L = none⌝ -∗ undecFree γn.raft γn.mode ds v.applied ds.length) ∗
-      □ (∀ l, ⌜L = some l⌝ -∗ snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)))
+  -- (raft-final, the design's A1) only after a `Ready` without a snapshot, A1 at raft's names;
+  -- after one, the snapshot's certificate. (2026-11-24, option D of `notes/raft-restart-confpoint.md`)
+  -- A1 from the view's membership and the premise's, the same at the committed log delivered
+  -- (`confAt_keep_impl`; until then from the skips the client recorded, `skippedIn`)
+  icases Hcfg with ⟨Hcfg, #Hcat⟩
+  ihave ⟨#HA1, #HskS, #HskN⟩ : iprop(□ (⌜L = none⌝ -∗
+        cfgKeepIn γn.raft γn.mode ds v.applied ds.length (stOf v.membership)) ∗
+      □ (∀ l, ⌜L = some l⌝ -∗ snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
+      □ (⌜L = none⌝ -∗ ApiImpl.confAtU γ (max v.applied st.delivered.length) v.membership))
     $$ [Hsk]
   · cases L with
     | some l0 =>
@@ -273,36 +293,38 @@ private theorem node.wp_Advance_impl
       · iexact Hsk
       isplitr
       · imodintro; iintro %h; cases h
+      isplitr
       · imodintro; iintro %l %h; cases h; iexact Hsk
+      · imodintro; iintro %h; cases h
     | none =>
-      ihave Hsk : EtcdGrove.skippedIn (GF := GF) γ st.delivered v.applied st.delivered.length
-        $$ [Hsk]
+      ihave #Hsk : ApiImpl.confAtU γ (max v.applied st.delivered.length) v.membership $$ [Hsk]
       · iexact Hsk
-      iunfold EtcdGrove.skippedIn at Hsk
-      simp only [EtcdGrove.confDecided]
-      icases skipped_range_decLb γ st.delivered v.applied st.delivered.length $$ Hsk
-        with ⟨%Mk, #HMk, %PMk⟩
       isplitr
       · imodintro
         iintro -
-        unfold undecFree
-        iexists Mk
-        rw [Hnok.1]
-        iframe HMk
-        ipureintro
-        intro dec c0' h0' h1' hm
-        rw [Hmd] at hm
-        cases hm
-        intro k' e' hk1 hk2 he hc
-        have hl' : st.delivered[k']? = some (LogEntry.ofEntryM e') := by
-          rw [← Hds]; unfold strip; rw [List.getElem?_map, he]; rfl
-        have hlen : (ds.take k').length = k' := by
-          have := (List.getElem?_eq_some_iff.mp he).1
-          rw [List.length_take]; omega
-        have hk2' : k' < st.delivered.length := by rw [← Hds, strip_length]; exact hk2
-        show (Mk.lookup (ds.take k').length).map ccDecOf = some .reject
-        rw [hlen, PMk k' _ hk1 hk2' hl' hc]; rfl
+        rcases Nat.le_total ds.length v.applied with h | h
+        · iapply cfgKeepIn_le _ _ _ _ h
+        · have Hmx : max v.applied st.delivered.length = ds.length := by
+            rw [← Hds, strip_length]; exact Nat.max_eq_right h
+          ihave #Hsk' : ApiImpl.confAtU γ ds.length v.membership $$ []
+          · rw [← Hmx]; iexact Hsk
+          ihave #Hlbs : ApiImpl.isCommittedLogLb γ (strip ds) $$ []
+          · rw [Hds]; iexact Hlb0
+          icases ApiImpl.confAt_keep_impl γ c0 gd Hmr ds v.applied ds.length v.membership h
+            (Nat.le_refl _) $$ [Hlbs Hcat Hsk'] with ⟨%Mk, #HMk, %HK⟩
+          · iframe Hlbs Hcat Hsk'
+          unfold cfgKeepIn
+          iexists Mk
+          rw [Hnok.1]
+          iframe HMk
+          ipureintro
+          intro dec c0' h0' h1' hm
+          rw [Hmd] at hm
+          cases hm
+          exact HK
+      isplitr
       · imodintro; iintro %l %h; cases h
+      · imodintro; iintro -; iexact Hsk
   icases Htok with (⟨%Hh', -, -⟩ | ⟨%es0, %L0, %W, %Hh', Htok, Hdur, Hbw, #Hfr, Hfree, Hgiven⟩)
   · rw [Hh] at Hh'; cases Hh'
   rw [Hh] at Hh'
@@ -337,7 +359,6 @@ private theorem node.wp_Advance_impl
       (1 : Qp).half (1 : Qp).half |>.1 $$ [Hdur] with ⟨Hdur, Hdur2⟩
   · rw [Qp.half_add_half]; iexact Hdur
   ihave %Hgid := EtcdGrove.isNode_id γn id n.loc $$ Hn1
-  icases Hcfg with ⟨Hcfg, Hcat⟩
   iunfold nodeConfig at Hcfg
   icases Hcfg with ⟨%γn2, %id2, %Hf2, #Hn2, #Htab2, Hcf⟩
   icases isNode_id_agree γn γn2 id id2 n.loc $$ Hn1 Hn2 with %Hid
@@ -395,7 +416,11 @@ private theorem node.wp_Advance_impl
   cases L with
   | none =>
     simp only
-    rw [loanCfg_none]
+    have Hlc : loanCfg γn.mode none (v.applied, stOf v.membership) ds.length =
+        (max v.applied st.delivered.length, stOf v.membership) := by
+      simp only [loanCfg, Hmd, RNMode.isDyn, ↓reduceIte]
+      rw [← Hds, strip_length]
+    rw [Hlc]
     isplitr
     · -- (U8 v2) the floor raised to the committed log handed out
       iunfold reqOf at Hw
@@ -408,7 +433,8 @@ private theorem node.wp_Advance_impl
       ileft
       iunfold storFloor at Hx
       iapply monoNatLbOwn_le _ (by rw [← Hds, strip_length]; word) $$ Hx
-    iframe Hcat
+    ihave #Hcat' := HskN $$ %trivial
+    iframe Hcat'
     unfold nodeConfig
     iexists γn, id
     iframe Hn1 Htb Hcf
@@ -454,7 +480,7 @@ private theorem node.wp_Advance_impl
     subst Hxm
     have Hfold : cfgFold (effDec noDec l.decs) (stOf c0) l.dlv = some (stOf x) := by
       rw [cfgFold_decs l.decs c0 Hmr.valid l.dlv, Hx]; rfl
-    have Hlc : loanCfg γn.mode (some l) (v.applied, stOf v.membership) =
+    have Hlc : loanCfg γn.mode (some l) (v.applied, stOf v.membership) l.dlv.length =
         (uint.nat l.snap.Metadata'.Index', stOf x) := by
       unfold loanCfg
       simp only

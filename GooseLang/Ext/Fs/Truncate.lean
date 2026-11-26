@@ -93,9 +93,16 @@ def rsCz (tr : Bool) (m : OsMeta) (tg : Nat) : Nat :=
 theorem le_rsCz (tr : Bool) (m : OsMeta) (tg : Nat) : m.cz ≤ rsCz tr m tg := by
   unfold rsCz; cases tr <;> simp only [Bool.false_eq_true, if_true, if_false] <;> (try split) <;> omega
 
+/-- The crash sizes known after a resize from `m` landed with the size `sz'` (`OsMeta.xs`): an
+`ftruncate` (`tr`) adds `sz'`, the one size its landing adds (`OsFile.land`); an `fallocate` keeps
+them if the size is unchanged, else forgets them. -/
+def rsXs (tr : Bool) (m : OsMeta) (sz' : Nat) : Option (List Nat) :=
+  if tr then m.xs.map (List.insert sz') else if sz' = m.size then m.xs else none
+
 /-- The `OsMeta` after a resize from `m`'s size, to the target `tg`, landed with the size `sz'`. -/
 def rsPost (tr : Bool) (m : OsMeta) (tg sz' : Nat) : OsMeta :=
-  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m tg }
+  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with
+    size := sz', cz := rsCz tr m tg, xs := rsXs tr m sz' }
 
 /-- The candidates known past the size after a resize from `m`'s size to `tg` (`ftruncate`: `tr`)
 lands with the size `sz'`, announced as change `n` (each byte announced with zero, stamped `n`, as
@@ -732,7 +739,25 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
           have h1 := hmo.maps b len; simp only [announce_maps] at h1
           simp only [rsPostK_maps, rsPost, announce_maps]; exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_, fun s hs => ?_, fun z hz b hzb => ?_, fun b hb => ?_⟩
+        fun b hb hbz => ?_, fun s hs => ?_, fun z hz b hzb => ?_, fun b hb => ?_,
+        fun l hl s hs => by
+          change rsXs tr m sz' = some l at hl
+          have hk : c.kind.isTrunc = tr := by rw [hckind]; cases tr <;> rfl
+          unfold rsXs at hl
+          cases tr with
+          | true =>
+            simp only [↓reduceIte, Option.map_eq_some_iff] at hl
+            obtain ⟨l0, hl0, rfl⟩ := hl
+            rcases OsFile.crashSz_land_trunc hk hs with h | h
+            · exact List.mem_insert_of_mem (hmo.xs l0 (by rw [OsMeta.announce_xs]; exact hl0) s h)
+            · subst h; exact List.mem_insert_self
+          | false =>
+            simp only [Bool.false_eq_true, ↓reduceIte] at hl
+            split at hl
+            · rename_i heq
+              exact hmo.xs l (by rw [OsMeta.announce_xs]; exact hl) s
+                (OsFile.crashSz_land_same (by show sz' = f.size; rw [heq]; exact hmsz) hs)
+            · cases hl⟩
       rotate_right 1
       · -- the page cache past the new size's last page
         have hb2 : pageEnd sz' ≤ b := hb
@@ -1089,7 +1114,8 @@ theorem metaOk_rsUnMeta {st : OsState} {p : Ino} {keep tr : Bool} {m : OsMeta} {
     (hcandP : ∀ b c, m.size ≤ b → b < rsHi tr m.size tg → m.pc b = some c → f.cand b = c ++ [(0, n)])
     (hn : keep = true → n ∈ f.rzs) :
     MetaOk st p (rsUnMeta keep tr m tg n) f := by
-  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_, hmo.zc, hmo.ce⟩
+  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_, hmo.zc, hmo.ce,
+    hmo.xs⟩
   · intro b c hb hc
     cases keep with
     | false => exact hmo.tail b c hb hc
