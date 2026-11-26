@@ -782,3 +782,47 @@ split on `d.cfg.auth`. (4) Step 3 (`RunAuthLease` plan): not started.
 `etcdserver.Link`, `dist.MemberNames`; no error). Next is unchanged except item (1): run `etc/tier-check.py --check`
 and `etc/lease-order-check.py`, and build the dist `TopLevelRobustness` leaves (`NewServer.specGAt`'s users are unchanged).
 
+
+### Handoff S2-2 (2026-11-26; step 1 closed, step 2 blocked on one statement-level gap, research done)
+
+**Step 1 (P-A1): done.** `f9b5d39bca`'s build of `etcdserver.Results`, `etcdserver.Link`, `dist.MemberNames` EXIT 0
+(fk-lean2); `etc/tier-check.py --check` ok (208 known), `etc/lease-order-check.py` ok. The dist `TopLevelRobustness`
+leaves (the addendum's) are not rebuilt yet.
+
+**Step 2 (auth-on member boot): blocked before any Lean, on one gap the coordinator's decision assumed away.**
+"Auth on means compaction off; use `WellFormed`" does not hold:
+- `typed.Deployment.WellFormed` (`DeploymentDefs.lean:246`) ties auth only to workloads (Q1:
+  `(d.cfg.auth = true → ∃ w ∈ d.workloads, w.needsAuth = true)`), and the compactor only to `compact`
+  (`(Workload.compact ∈ d.workloads → d.cfg.compactor.isPeriodic = false)`). `ServerCfg.Supported` allows
+  `.revision r`/`.periodic p` with `auth = true`. So `[auth]` with a revision compactor is well formed.
+- `memberShareD`'s `v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret` forces `cmp = true` when
+  the retention is nonzero (`BootCfg.lean`: `ret = W64 0 ∨ (cmp = true ∧ …)`), and `NewServer_dist` (axiom) takes
+  `(cmp = true → on = false)` (`Spec/.../dist/NewServerDist.lean:109`). The member cannot call `NewServer_dist` in
+  that deployment, so `MainLogger` cannot be proved for it, whatever the start allocates.
+- `WellFormed`'s doc comment (item 5) says Q1 "keeps `compact` from auth, which `NewServer`'s `cmp = true → on = false`
+  excludes": true of the `compact` workload, not of the server's compactor, which sets `cmp` alone.
+Options (the lead's): (a) a `WellFormed` conjunct `(t.cfg.auth = true → t.cfg.compactor = .off)` with Go's
+`WellFormed` check and a `TestWellFormed` case (a change to the top-level premise's definition: the deployments
+covered shrink by auth-with-compactor); (b) the three main-program specs keep a narrower premise,
+`d.cfg.auth = true → d.cfg.retention = W64 0`, in place of `d.cfg.auth = false` (intermediate specs only; the
+whole-system proof then still needs (a) or (c) to discharge it); (c) revisit `NewServer_dist`'s `cmp → ¬on` (an
+axiom: a new review). Nothing was changed.
+
+**Second finding (no decision needed, it sizes the work): `kvInvOn` is heap-bound.** `kvInv` is defined over
+`GooseGlobalGS` (`InvRequest.lean:935`, section `kvGhostG1`), which is why `clusterFacts`/`clusterAllocN` run at the
+start's global ghost state. `kvInvOn`, `kvWorkOn`, `kvModelOn`'s neighbours (`KVAuthModel.lean`, sections `defs`
+1753-1816 and 1839-1872, `[hG : HeapGS …]`) and `kvInvOn_alloc_boot` (`ServerOn.lean:644`, HeapGS) are not. The global
+auth-on allocation first moves them into heap-free sections (the file's own `defsHF` pattern: `[Gg : GooseGlobalGS
+HasLC.hasLC GF] [GoLocalContext]`; HeapGS callers reach them through `HeapGS.goose_globalGS`), with whatever lemmas
+`kvInvOn_alloc_boot`'s proof uses (`onGhostVarHalves`, `authHist_split`, …). Then `srvClusterBootOn_allocG` =
+`srvClusterBoot_allocG` (`NewServerAlloc.lean:203`) with its KV part replaced by `srvClusterBootOn_alloc`'s
+(`NewServerAllocOn.lean:197-215`: `mono_list_own_alloc [srvAuthSt0]`, `γk0` at `alarmChain true …`, `cmp = false`,
+`cret = 0`, `kvInvOn_alloc_boot`), post `kvInvOn … srvAuthSt0 ∗ etcdKV … ∗ authHistView γk [srvAuthSt0]`.
+
+**Design for step 2 once unblocked (keeps every caller's text):** a trailing `(on : Bool := false)` on `ClusterOk`
+(`ch0 = alarmChain on false false`, and `on → cmp = false`), `ClusterNames.view` (`auth := on`) and
+`clusterFactsOf` (as `kvInvM on … srvAuthSt0`; `kvInvM_false` gives today's); `memberShareD` passes `d.cfg.auth`;
+`clusterAllocN`/`clusterStartDL` split on `on` (on: `srvClusterBootOn_allocG`); `memberBootOn_of_slice` from
+`memberBootOn_of` (`Alloc3On.lean:140`) as `memberBoot_of_slice` is from `memberBoot_of`; then the member chain
+(`memberBuiltL`/split/`wp_Start_builtL`/`memberUpL_req` at on, `memberUpOn_intro` with `mvccLeases E.γ = γl`) after
+`StartMemberAuth.lean:186-240`; `MainLogger` split on `d.cfg.auth` (its off-only spots are listed in Handoff S2-1).
