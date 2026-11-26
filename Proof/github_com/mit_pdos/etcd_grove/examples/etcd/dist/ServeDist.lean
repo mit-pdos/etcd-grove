@@ -37,8 +37,10 @@ which answers a call successfully (not an HTTP server: `http.register` needs the
 not bridge it: `bridge.New` also consumes `netAddrLeft a` since review 4's fix); no proof establishes the
 opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this axiom's post is `True`. Its claim that no thread of the
 member gets stuck or panics covers every connection a verified program can make to `a`: the client contracts'
-calls, the watch streams of `Watch_dist`/`RequestProgress_dist` (the clientv3 watcher's create, cancel and
-progress requests, under `watcher.Watch.spec`'s preconditions), which the member's watch handler meets as in its
+calls, the watch streams of `Watch_dist`/`RequestProgress_dist`/`WatchOn_dist` (the clientv3 watcher's create, cancel and
+progress requests, under `watcher.Watch.spec`'s preconditions; with auth on, the stream carries the client's own
+token or none, and metadata meeting `outTokOkS`; the handler's refusal path is `isWatchPermitted`'s, proved in
+process: the WatchOn_dist review's F5), which the member's watch handler meets as in its
 in-process proof (`watchUp`; the N3 review's F4, added with the first result resting on those axioms, F5's
 compact workload, 2026-11-26), and raw writes, which establish no protocol (true of grpc-go, which closes a connection on a bad
 preface; re-review after review 4, 2026-11-24; narrowed by the O1-B review's F4, 2026-11-25). Every call that reaches a handler is one a client deposited under `a`'s

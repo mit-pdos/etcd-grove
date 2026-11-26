@@ -294,6 +294,43 @@ theorem auth_class {d : Deployment} (Hd : d.WellFormed) (h : d.cfg.auth = true) 
   revert hwa
   cases w <;> simp [typed.Workload.needsAuth, typed.Workload.kindW, typed.Workload.kind]
 
+/-- **The `auth` class** (F7 S14): a deployment whose one workload is `auth` has auth on, that workload alone and
+one node list, of the four principals' machines (`nodeCount .auth = 4`). -/
+theorem class_auth {d : Deployment} (Hd : d.WellFormed) (h5 : d.workloads.map (·.kind) = [W64 5]) :
+    d.cfg.auth = true ∧ ∃ (w : Workload) (ns : List GoString), d.workloads = [w] ∧ w.kind = W64 5 ∧
+      d.nodes = [ns] ∧ ns.length = 4 := by
+  obtain ⟨w, hw⟩ : ∃ w, d.workloads = [w] := by
+    have hl := congrArg List.length h5
+    rw [List.length_map] at hl
+    obtain ⟨w, hw⟩ := List.length_eq_one_iff.1 hl
+    exact ⟨w, hw⟩
+  have hk : w.kind = W64 5 := by rw [hw] at h5; simpa using h5
+  obtain ⟨t, he, htw⟩ := Hd
+  have hws := he.2.2.2.1
+  have hnn : t.nodes = d.nodes := he.2.2.2.2
+  obtain ⟨tw, htwm, hen⟩ := wf_mem he (show w ∈ d.workloads by rw [hw]; exact List.mem_singleton_self w)
+  have htk : tw = .auth := by
+    have e := hen.kind
+    rw [hk] at e
+    clear htwm hen
+    cases tw <;> simp only [typed.Workload.kindW, typed.Workload.kind] at e ⊢ <;> first | rfl | exact absurd e (by decide)
+  subst htk
+  have hauth : ∀ w ∈ t.workloads, w.needsAuth = true → t.cfg.auth = true := by
+    grind [typed.Deployment.WellFormed]
+  have hta : t.cfg.auth = true := hauth _ htwm rfl
+  have hda : d.cfg.auth = true := by rw [he.2.2.1.2.2.2]; exact hta
+  have htl : t.workloads.length = 1 := by rw [hws.length_eq, hw]; rfl
+  have hl' : t.nodes.length = t.workloads.length := by grind [typed.Deployment.WellFormed]
+  obtain ⟨ns, hns⟩ := List.length_eq_one_iff.1 (show d.nodes.length = 1 by rw [← hnn, hl', htl])
+  obtain ⟨tw', htw'⟩ := List.length_eq_one_iff.1 htl
+  have e' : typed.Workload.auth = tw' := List.mem_singleton.1 (htw' ▸ htwm)
+  obtain ⟨tw0, h0, hl0⟩ := typed.node_at htw (j := 0) (ns := ns) (by rw [hnn, hns]; rfl)
+  rw [htw'] at h0
+  cases h0
+  refine ⟨hda, w, ns, hw, hk, hns, ?_⟩
+  rw [hl0, ← e']
+  rfl
+
 /-- **The lease-granting mode's ids** (`clusterAllocN`'s `hap`): with a `leaseExpiry` workload (a lease-granting
 one) the members' ids are apart in 15 bits (`WellFormed`'s `grantsLeases` clause). -/
 theorem lmOf_revocable_apart {d : Deployment} (Hd : d.WellFormed) :

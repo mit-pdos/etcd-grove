@@ -9,8 +9,10 @@ workload is `auth` or `authLease`):
 - auth off (`EtcdBootNCAt (·.cfg.auth = false)`): every class but A and AL, by the general start
   (`Start.lean`) and the machines' boots (`server.member_boot_dist` at `lmOf d`, `AdequacyClient.lean`'s
   `orchBoot`/`nodeBoot` over the full dispatch);
-- `[auth]` and `[authLease]`: the named hypotheses `EtcdAuthBootNC` and `EtcdAuthLeaseBootNC` (F7 S3/S4 close
-  them: their starts, `RunAuth`, the principal arm; `RunAuthLease` is proved over `foreignReads.law`).
+- `[auth]` (F7 S14): `etcdAuthBootNC_holds`, by the auth class's start `etcd_startAuth` and the same machines' boots
+  (the orchestrator's arm `MainReadyAuth`, the principal machines' `NodeMainAuth`);
+- `[authLease]`: the named hypothesis `EtcdAuthLeaseBootNC` (F7 S4 closes it: its start; `RunAuthLease` is proved
+  over `foreignReads.law`).
 -/
 module
 
@@ -18,6 +20,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRob
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootBad
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.DeploymentClass
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.Start
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.StartAuth
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AdequacyClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.AdequacyMember
 
@@ -78,15 +81,16 @@ theorem etcdBootNC_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = false))
     · exact Ha d Hd h5 σs σc σn Hp Hfips hb
     · exact Hal d Hd h6 σs σc σn Hp Hfips hb
 
-/-- **The well-formed auth-off deployments boot** (every class but A and AL; §27.2-27.4): the net extension's
-registry (`netProto_alloc`), then the full start (`etcd_start`: the remote names `ρ` and every machine's share
-`startShares`), then each machine's boot WP from its share: a member's by `server.member_boot_dist` at the lease mode
-`lmOf d` (its premises from `EtcdEnv`'s `noExpiry`, `lmOf_mono_noExpiry`, and `lmOf_auth_revocable`), an
-orchestrator's by `orchBoot` and a client machine's by `nodeBoot` (the dispatch's shares at the Go index,
-`orchShareF_at`/`nodeShareF_at`; the indices below `2 ^ 63` by `workloads_length_le`/`nodeList_length_lt`). No
-hypothesis. -/
-theorem etcdBootNCOff_holds : EtcdBootNCAt (fun d => d.cfg.auth = false) := by
-  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd ha σs σc σn Hp Hfips G hb
+/-- **The well-formed deployments with auth off or of the `auth` class boot** (every class but AL; §27.2-27.4): the
+net extension's registry (`netProto_alloc`), then the full start (`etcd_start` with auth off, `etcd_startAuth` for
+`[auth]`, F7 S14: the remote names `ρ` and every machine's share `startShares`), then each machine's boot WP from its
+share: a member's by `server.member_boot_dist` at the lease mode `lmOf d` (its premises from `EtcdEnv`'s `noExpiry`,
+`lmOf_mono_noExpiry`, and `lmOf_auth_revocable`), an orchestrator's by `orchBoot` and a client machine's by
+`nodeBoot` (the dispatch's shares at the Go index, `orchShareF_at`/`nodeShareF_at`; the indices below `2 ^ 63` by
+`workloads_length_le`/`nodeList_length_lt`). No hypothesis. -/
+theorem etcdBootNCOffAuth_holds :
+    EtcdBootNCAt (fun d => d.cfg.auth = false ∨ d.workloads.map (·.kind) = [W64 5]) := by
+  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd HP σs σc σn Hp Hfips G hb
   obtain ⟨boot, Hbf, Henv, Hσs, Hσc, Hσn, HEnv⟩ := Hp
   have hrb : receiptBound etcdDistGF ≤ 2 ^ 60 := by unfold etcdSteps at hb; omega
   have hsl : (servers d σs).length = d.members.length := by simp [servers, Hσs.1]
@@ -97,7 +101,9 @@ theorem etcdBootNCOff_holds : EtcdBootNCAt (fun d => d.cfg.auth = false) := by
   have hV := etcd_putget_dist.wenv_nonempty (GF := etcdDistGF) mvcc.api.mvccApi_names_nonempty_law_holds
   iintro Hs
   imod netProto_alloc ⊤ with ⟨%π, #Hreg⟩
-  imod (etcd_start (GF := etcdDistGF) d Hd ha boot Hbf hrb hV EtcdGrove.rpctypesEtcdError_asTarget) $$ Hreg Hs
+  imod (Or.elim HP
+      (fun ha => etcd_start (GF := etcdDistGF) d Hd ha boot Hbf hrb hV EtcdGrove.rpctypesEtcdError_asTarget)
+      (fun h5 => etcd_startAuth (GF := etcdDistGF) d Hd h5 boot Hbf hrb)) $$ Hreg Hs
     with ⟨%ρ, HM, HO, HN⟩
   imodintro
   iexists startShares (GF := etcdDistGF) (ρ := ρ) d boot
@@ -159,6 +165,18 @@ theorem etcdBootNCOff_holds : EtcdBootNCAt (fun d => d.cfg.auth = false) := by
         (Φ := fun n _ => startShares (GF := etcdDistGF) (ρ := ρ) d boot (d.members.length + d.workloads.length + n))
         (fun {n x} _ => by rw [Nat.add_comm])) $$ HN
 
+/-- **The well-formed auth-off deployments boot** (every class but A and AL): `etcdBootNCOffAuth_holds`'s left
+case. -/
+theorem etcdBootNCOff_holds : EtcdBootNCAt (fun d => d.cfg.auth = false) := by
+  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd ha σs σc σn Hp Hfips G hb
+  exact etcdBootNCOffAuth_holds d Hd (Or.inl ha) σs σc σn Hp Hfips hb
+
+/-- **`EtcdAuthBootNC` holds** (F7 S14): the `auth` class's deployments boot, `etcdBootNCOffAuth_holds`'s right
+case (the start `etcd_startAuth`; the orchestrator's arm `MainReadyAuth`, the principal machines' `NodeMainAuth`). -/
+theorem etcdAuthBootNC_holds : EtcdAuthBootNC := by
+  intro gctx lctx sem errA fmtA srvA clA rpcA cacheA logA fieldA d Hd h5 σs σc σn Hp Hfips G hb
+  exact etcdBootNCOffAuth_holds d Hd (Or.inr h5) σs σc σn Hp Hfips hb
+
 /-- **`etcd_safe_nocrash` from the auth-off boot and the two auth classes' boots** (`etcdBootNC_of_split`, the
 skeleton's bridge and malformed case). -/
 theorem etcd_safe_nocrash_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = false))
@@ -167,17 +185,15 @@ theorem etcd_safe_nocrash_of_split (Hoff : EtcdBootNCAt (fun d => d.cfg.auth = f
 
 /-- **`etcd_safe_nocrash`** (`notes/etcd-dist-plan.md` §27, §30): every workload kind of the single-process
 `etcd_robust_single_process` (but its restarts, `etcd_safe`'s), plus `leaseExpiry` and partitions, on any
-deployment, from the auth-off boot `etcdBootNCOff_holds` (proved: every class but the two auth ones) and two
-**named hypotheses**, the boots of the auth classes:
-* `Hauth : EtcdAuthBootNC` — deployments whose one workload is `auth` (F7 S3 closes it: `RunAuth`, the principal
-  arm, the auth-on start);
+deployment, from the boot of every class but AL (`etcdBootNCOff_holds`, `etcdAuthBootNC_holds`: proved) and one
+**named hypothesis**, the boot of the `authLease` class:
 * `HauthLease : EtcdAuthLeaseBootNC` — deployments whose one workload is `authLease` (F7 S4 closes it: the auth-on
   start at the revocable lease mode, and `RunAuthLease`, proved over `foreignReads.law`).
-When both are theorems the hypotheses go, and `etcd_kv_safe_nocrash` becomes `etcd_kv_safe_nocrash_of_full
+When it is a theorem the hypothesis goes, and `etcd_kv_safe_nocrash` becomes `etcd_kv_safe_nocrash_of_full
 etcd_safe_nocrash` (§27.4 Q4). -/
-theorem etcd_safe_nocrash (Hauth : EtcdAuthBootNC) (HauthLease : EtcdAuthLeaseBootNC) :
+theorem etcd_safe_nocrash (HauthLease : EtcdAuthLeaseBootNC) :
     etcd_robust_nocrash.spec :=
-  etcd_safe_nocrash_of_split etcdBootNCOff_holds Hauth HauthLease
+  etcd_safe_nocrash_of_split etcdBootNCOff_holds etcdAuthBootNC_holds HauthLease
 
 #print axioms etcd_safe_nocrash
 

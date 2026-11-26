@@ -3,13 +3,14 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/NodeMain
 - `NodeMain.wp_proofKv` (N7-kv, M1): the kv arm, at `Node.specWith NP`.
 - `NodeMain.wp_proof` (F8): by the workload's kind, the triples of `NodeMain` itself that cover it: kv is
   `NodeMain.specKv` at `kvNodePreL` (the level token, the thread bound and `kvNodePre`); watch and cache are
-  `NodeMainWatch.spec` (its share `nodeWatchPre` from `writerNodePre`, `nodeWatchPre_of`); auth is reached with a
-  `False` share (D2); every other kind has no client machine (`NodeCount` is `0`: it returns).
+  `NodeMainWatch.spec` (its share `nodeWatchPre` from `writerNodePre`, `nodeWatchPre_of`); auth is
+  `NodeMainAuth.spec` (its share `nodeAuthPre` from `authNodePre`, `nodeAuthPre_of`; F7 S13); every other kind has no client machine (`NodeCount` is `0`: it returns).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMain
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMainWatch
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMainAuth
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Rotate
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.NodeWith
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NodeCount
@@ -85,7 +86,8 @@ theorem NodeMain.wp_proof
     (hNC : NodeCount.spec (GF := GF) (hG := hG))
     (hKv : ∀ [π : NetProtoGS] [ρ : RemoteGS],
       NodeMain.specKv (GF := GF) (hG := hG) (kvNodePreL (GF := GF) (ρ := ρ)))
-    (hW : NodeMainWatch.spec (GF := GF) (hG := hG)) :
+    (hW : NodeMainWatch.spec (GF := GF) (hG := hG))
+    (hA : NodeMainAuth.spec (GF := GF) (hG := hG)) :
     NodeMain.spec (GF := GF) (hG := hG) := by
   intro π ρ w c addr eps epsL
   by_cases hk0 : w.kind = W64 0
@@ -120,14 +122,22 @@ theorem NodeMain.wp_proof
       isplitr [Hlt Hsh]
       · ipureintro; exact ⟨hk12, fun _ _ => by omega⟩
       iintro %_
-      iapply (nodeWatchPre_of addr _ hV htb hpl hAs)
+      iapply (nodeWatchPre_of addr _ hV htb (plainEndpoints_rotateL hpl _) hAs)
       iframe
     iapply HΦ; ipureintro; trivial
   by_cases hk5 : w.kind = W64 5
-  · -- auth: no share (D2)
+  · -- auth: the principal machine (`NodeMainAuth`), at the endpoints unrotated
     rw [wlNodeShare_auth hk5]
     wp_start_folded as ⟨%Hp, Hlt, #Heps, Hsh⟩
-    iexfalso; iexact Hsh
+    obtain ⟨hpure, hlen, hpl, hV, htb, hAs⟩ := Hp
+    wp_apply (hA w c addr eps epsL) $$ [Hlt Hsh]
+    · iframe #
+      isplitr [Hlt Hsh]
+      · ipureintro; exact hk5
+      iintro %_
+      iapply (nodeAuthPre_of addr epsL hV htb hpl hAs)
+      iframe
+    iapply HΦ; ipureintro; trivial
   -- no client machine: `NodeCount` is `0`, `NodeMain` returns
   have hgn : w.goNodeCount = W64 0 := by
     unfold Workload.goNodeCount

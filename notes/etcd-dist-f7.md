@@ -1403,6 +1403,179 @@ whole lib, since `TxnCommitOnDist`'s docstring change rebuilds its importers); l
 **Left:** linking (`RunAuthLease` into a `Results` root) waits on `foreignReads.law` (Upamanyu; the side branch drops
 the two lessor reads instead); then Handoff S3-1 item 5 (the `etcd-dist-auth` tcb collection, axiom-tok).
 
+### Handoff RA-1 (2026-11-26; S6 `RunAuth`: refusal pieces and spec drafts; `RunAuth.wp_proof` not started)
+
+Branch `etcd-safe-f7-runauth` (off `etcd-safe-f7` @ `3e36f7cbd9`, with the lead's `etcd-safe-watchon/2026-11-26` @
+`f98b5cfbe5` merged, clean). Builds on fk-lean1 `~/eg/wt/etcd-safe-f7-runauth` (seeded from `dsv-retire-3`, pin
+`a706aeb9a`); `/shared/tmp/f7ra-rb.sh <targets>` syncs the local changes and runs `lake build` there (flock,
+`MemoryMax=50G`; `CHECK=1` runs `etc/lean-check.py` instead). No `sorry`, no new axiom, no statement changed.
+
+**Build status: UNBUILT at handoff.** Background job (local, started this session): waits on fk-lean1 for the
+`.lake/build` seed copy (`cp -a ../dsv-retire-3/.lake/build`, log `~/eg/tmp/f7ra-cp.log`) to finish, then runs
+`/shared/tmp/f7ra-rb.sh` on the four modules below (`Proof...dist.client.AuthWatchRefusal`, `...AuthRunDefs`,
+`Spec...dist.client.remotePrincipals`, `...RunAuth`); log `/shared/tmp/f7ra-build1.log` (ends `EXIT n`). First step
+of the next session: check it ends `EXIT 0` (if the job was killed, rerun the same `f7ra-rb.sh` command once the
+copy is done), fix forward any error. **Outcome:** the job's wait step's ssh exited 255 (connection lost), so the
+build never ran (`f7ra-build1.log` holds only `EXIT 255`); the seed copy itself finished. Rerun
+`/shared/tmp/f7ra-rb.sh` on the four modules. No module has a `sorry`; none is imported by anything else.
+
+**Written, unbuilt:**
+- `Proof/.../dist/client/AuthWatchRefusal.lean` (defs), the riskiest pieces of the lead's discharge list (#50,
+  comment 7189396217):
+  - `streamKeyOf_single_only`: the untrusted variant of `streamKeyOf_single` (metadata with the stream key of
+    `{k: [v]}` has no value under any other key; `mdSortedKeys_mem`);
+  - `outTokOkS_reqMd P who (who = "bad" → P = none)`: `WatchOn_dist`'s `outTokOkS` for `reqMd who` (`bad`'s
+    `token: badtoken` context; `outTokOkS_none` for the others);
+  - `watchCheckedD_c_refuted`: a principal's (`P ∈ {none, u, v}`) `watchCheckedD … "c/" "c0"` refutes at the frozen
+    set-up state (`authHistLb_of_reqLogLb`, `authHistFrozen_prefix`, `srvAuthAtLog_frozen`, `not_granted_c`).
+    The watch's key and range end are `watch_c_ok`'s (`etcd_auth`, WorkCalls).
+- `Proof/.../dist/client/AuthRunDefs.lean` (defs): `akDistEnv addrs Γ γR`, the persistent environment the
+  orchestrator hands each principal machine (KV invariant, `akHistInv Γ.kv`, frozen history, `Lset`, the floors).
+- `Spec/.../dist/client/remotePrincipals.lean`: `remotePrincipals.specWith PS` (pre: share `PS Γ γR ns` and
+  `akDistEnv`; post `levelTok 0`).
+- `Spec/.../dist/client/RunAuth.lean`: `RunAuth.specWith PS`, RunAuthLease's premises minus the lease ones, plus
+  `nodes ↦*□ ns ∗ PS Γ γR ns`, and `∀ cs ∈ σ0.changes, cs = []` (the boot state, as `stateHistOk_boot`) in place of
+  `findKey "a/x" σ0.kvs = none`.
+
+**Contract gap (for the lead): the principal service.** `RunAuth` runs the principals' `auth.Work` remotely
+(`remotePrincipals`, `reportAll` with `principalCodec`); nothing specifies that service yet (cf. `writersShare`,
+`writerSvcG` for the watch workload). Needed: a principal wire (`principalCodec`: a string in, a bool out), a
+service whose request carries the orchestrator's ghost names (`γz`, `hs`, `Lset`, `r`, and `γR`'s, or `γR` fixed by
+the start) and whose `P` is `akDistEnv`'s body at the global ghost state (the `kmInvG`/`kmInv_eq_G` pattern), its
+`principalsShare Γ γR ns`, `remotePrincipals.wp_proof` (`remoteWriters.wp_proof`'s port), and the machines' side:
+`etcd_auth.Work`'s dist spec and proof (port of `Work.lean`/`WorkCalls.lean`, ~1.7k lines, over the `On_dist` axioms,
+`WatchOn_dist` with `outTokOkS_reqMd` and `watchCheckedD_c_refuted`), and NodeMain's auth dispatch. Until then the
+specs are stated over `PS` (`specWith`), which `RunAuth.spec := RunAuth.specWith principalsShare` will fix.
+
+**Next: `RunAuth.wp_proof`** (new proof module `Proof/.../dist/client/RunAuth.lean`), stated
+`theorem RunAuth.wp_proof (PS) (callees…) (wp_rp : remotePrincipals.specWith PS) : RunAuth.specWith PS`.
+Callees: RunAuthLease's `wp_newClient`, `wp_SetUp : etcd_auth.SetUp.spec_dist`, `wp_barriers`, `wp_newUserClient`,
+`wp_ended`, `wp_checked`, `wp_WithTimeout`, `wp_ErrAny`, `wp_Put : KV_PutOn_dist.spec`; plus `wp_Watch :
+WatchOn_dist.spec`, `wp_WithPrefix`, `wp_WithRev`, `wp_WithRange`, `wp_AfterFunc`, `wp_Stop`, `wp_Collect`
+(`collectFor` has no spec: inline it, or give it one, as `RunWatch.lean` l.268-293 does the same three calls),
+`wp_CheckHistory`, `wp_LastIn`, `wp_Permitted` (`etcd_auth`'s). Plan, after RunAuthLease's prefix
+(`RunAuthLease.lean` to barrier 1 and the clients):
+- `akHist_alloc Γ.kv σ0 (stateHistOk_of_changes_nil σ0 h)` on the precondition's `etcdKV Γ.kv σ0` *before*
+  `SetUp`; SetUp's put offers: `akHist_writeAu Γ.kv _ (opGrantD …) True` (its `G` ignored, `opHistOk_setupPut`) gives
+  `writeAuD` directly (`writeAuD` is `□ kvAu1G … (opGrantD …) Q`); `putWireOf (opPutModel k "setup" [])` vs
+  `client.putKeyOp k "setup"`: see how `cell_setupAuD` bridged it in `AuthCell.lean`.
+- `remotePrincipals` with `akDistEnv addrs Γ γR` built from SetUp's post and barrier 1's floors
+  (`[∗list] barrierFloor … Lset a` is `watchFloorsD addrs Γ γR Lset` after `iunfold`).
+- root's Put of `z/end`: `KV_PutOn_dist` with `akHist_writeAu … opHistOk_endPut`.
+- root's watch: `WatchOn_dist` at `eps := [a0]`, `cfg` root's (`Token' = []` from `userCli`), `om := none`
+  (`outTokOkS_none`), floors `watchFloorsD [a0]` (barrier 1's at index 0), `L₀ := Lset`, read update
+  `akHist_readAu Γ.kv` (`Q σ := ⌜stateHistOk σ⌝`; `kvReadAu` is `□ AU`, `icases … with #H`); then
+  `RootWatch.lean`'s `root_resp`/`histOk_of_rootEvOk` (the elements' check slot unused).
+- u's watch: the same at `[au]`, u's `cfg`; `RootWatch.lean`'s `u_resp` (no auth fact: the range filters).
+
+### Handoff RA-2 (2026-11-26; S6 `RunAuth`: `RunAuth.wp_proof` and `collectFor` written, UNBUILT)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 as in RA-1. No `sorry`, no
+new axiom, no statement changed. The session stopped at the context limit with nothing of this handoff checked.
+
+**Update:** the background job was killed (exit 144) before it built anything; the log is empty. Check that the seed copy on fk-lean1 has finished (`pgrep -f "cp -a ../dsv-retire-3"`), then rerun the build.
+**Build status: UNBUILT.** The fk-lean1 seed copy (`cp -a ../dsv-retire-3/.lake/build`) ran while `dsv-retire-3`
+was itself building, so some files were missing when copied (`~/eg/tmp/f7ra-cp.log`): Lake rebuilds what is stale.
+A local background job waits for the copy, then runs `/shared/tmp/f7ra-rb.sh` on RA-1's four modules; log
+`/shared/tmp/f7ra-build1.log` (ends `EXIT n`). First step: read that log (rerun the same command if the job is gone),
+then `CHECK=1 /shared/tmp/f7ra-rb.sh <file>` on each file below, in order, and fix forward.
+
+**Written since RA-1 (none checked by Lean):**
+- `AuthLeaseRunLemmas.lean` (defs): new `section runLemmas` holding `mod_len_sintD`, `srem_eq_umodD`, `anonCli_of_new`,
+  `authClientAt_persistent`, `authClientAt_of_userCli`, moved out of `RunAuthLease.lean` (a proof module, so
+  `RunAuth` may not import it: tier rule). Names and statements are unchanged. `RunAuthLease` already imports this
+  module; rebuild it.
+- `AuthRunDefs.lean`: `watch_all_okD`, `watch_ab_okD` (the `isRangeWatchP`/size premise of `WatchOn_dist` for root's
+  and u's watches); it now imports `auth.RootWatch`.
+- `Spec/.../dist/client/collectFor.lean`, `Proof/.../dist/client/collectFor.lean`: `collectFor.spec` is `Collect.spec`
+  with `cancel`'s `□ ∀ Ψ, ▷ Ψ #() -∗ WP cancel #() {{Ψ}}`. Its proof uses `AfterFunc`, `Collect`, `Stop` and `cancel`,
+  like `RunWatch.lean`'s.
+- `Proof/.../dist/client/RunAuth.lean`: `RunAuth.wp_proof PS (…) (wp_rp : remotePrincipals.specWith PS)
+  (wp_Watch : WatchOn_dist.spec) (wp_collectFor : collectFor.spec) … : RunAuth.specWith PS`. It follows the RA-1
+  plan: `akHist_alloc` before SetUp, `akHist_writeAuD` (a local lemma) for the set-up puts and `z/end`,
+  `akDistEnv` from barrier 1, and root's and u's watches over `akHist_readAu` (`root_resp`, `u_resp`). Its final
+  loop is `auth/Run.lean`'s, copied. Steps most likely to need fixing: the cancel wrappers `Hhc`/`Huc` (iapply goal
+  order), `watchFloorsD_one` (bigSepL singleton simp), the `akDistEnv` floors (`bigSepL_mono` argument shape), and
+  the Put's pure premise (`putWireOf … leaseID`).
+- Not done: a `Link` entry (not linkable while `PS` is open); task 3 (`etcd_auth.Work`'s dist spec and proof) not
+  started; `tier-check`/`lease-order` not run.
+
+### RA-2 built (2026-11-26; S6 `RunAuth`: everything of RA-2 compiles)
+
+All of RA-2's files build on fk-lean1 (`lake build` of `AuthLeaseRunLemmas`, `AuthRunDefs`, `AuthWatchRefusal`, the two
+`collectFor`, the `remotePrincipals`/`RunAuth` specs, `RunAuth` and `RunAuthLease`: exit 0); `tier-check --check` and
+`lease-order-check --check` ok. Fixes: `collectFor` (the `wp_start` pattern missed `isRespChan`; `cancel`'s
+`□ ∀ Ψ, ▷ Ψ #() -∗ WP …` is used by a bare `wp_apply`, no `as`); `RunAuth` (`watchFloorsD_one` by `bigSepL_singleton`,
+`optsAt_nil` without `$$ []`, the root client's `KV` field from `userClientAt`/`kvClientAt` before its `Put`, the
+`putWireOf (opPutModel k v []) = putKeyOp k v` bridge for `z/end`'s update, `outgoingCtxOkC_bgFrom` for both watch
+contexts). Not done: as RA-2 (no `Link` entry while `PS` is open; `etcd_auth.Work`'s dist spec and proof, and the
+principal service of RA-1's contract gap, not started).
+
+fk-lean1 note: the seed copy left cache-restored `.ilean` files read-only (hard links into `~/eg/lake-cache`); a
+rebuild of such a module fails with `permission denied` on its `.ilean`, and two concurrent Lake runs (lean-check
+opening several files) trigger it. Fix used: stop the lean-check server, delete the read-only `.ilean` files restored
+today (`find .lake/build/lib/lean -name '*.ilean' ! -writable -newermt … -delete`), check one file at a time.
+
+### Handoff PS-1 (2026-11-26; S7: the principal service, ported from the writers' pattern; WRITTEN, UNBUILT)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 as in RA-1. No `sorry`, no new
+axiom, no top-level statement changed. The session stopped at the context limit.
+
+**Merged:** the lead's `etcd-safe-full/2026-11-26` @ `8b31f9f926` into this branch (merge `28a07479c3`; clean, only
+STATUS/status-history auto-merged; one copy of each STATUS entry, history appended). **Build of the merge:** a full
+`/shared/tmp/f7ra-rb.sh` (no targets: `lake build` on fk-lean1, flock, MemoryMax=50G) was started before the pieces
+below were written (so it does not contain them); log `/shared/tmp/f7ra-full1.log` (ends `EXIT n`; at handoff it was at
+~15030/15666 jobs, no error seen). First step: read that log; rerun if it did not end `EXIT 0`.
+
+**Written, none checked by Lean** (check one file at a time, `CHECK=1 /shared/tmp/f7ra-rb.sh <file>`, in this order;
+mind the read-only `.ilean` problem of "RA-2 built"):
+1. `Proof/.../dist/client/PrincipalWire.lean` (defs): `principalWire : RWire GF GoString Bool` (one wire: its
+   values are pure, `x = mkOk go.string #w`, `v = mkOk go.bool #b`, so the share and the machine share it; the
+   writers need two); `strBytes_dec`; the global-ghost-state bodies `akHistInvG`, `authHistMarkG`,
+   `authHistFrozenG`, `authFloorDG`, `watchFloorsDG`, `akDistEnvG`; `prP Γ γR addrs w` (`akDistEnvG ∗ ⌜w ∈
+   principals⌝`), `prQ := True`; `principalSvcG Γ γR addrs := reportSvc principalWire prP prQ`; `principalsShare
+   Γ γR addrs ns` (mapCtx at `I := GoString`, `ns.length = 4`, per address `svcAddr ∗ budUnit`); `akDistEnv_eq_G`
+   (`rfl`: the step most likely to fail; if so, check which hG-section body differs, e.g. the fupd instance in
+   `authFloorD`); `principalTok Γ addrs sys` (level token, `sys` the `[]string` of `addrs`, `membersAt addrs Γ`).
+   No ghost names in the request: `akDistEnv`'s run-time names are existentials; `γR`, `addrs` are fixed with the
+   share (the start's).
+2. `Spec/.../principalCodec.lean`, `Proof/.../principalCodec.lean` (writerCodec's pattern over `Enc.Str/Bool`,
+   `NewDec`, `Dec.Str/Bool/Done`).
+3. `Spec/.../principalOp.lean`: `reportOp`'s triple unfolded (as `writerOp.spec`) at `principalWire`/`prP`/`prQ`/
+   `principalTok`; NOT proved (its proof is `etcd_auth.Work`'s dist proof).
+4. `remotePrincipals.specWith`/`RunAuth.specWith`: `PS` now `∀ [NetProtoGS] [RemoteGS], DistView →
+   ServerRaftNames → List GoString → List GoString → IProp GF` (`PS Γ γR addrs ns`; the share must name the
+   members' addresses the floors are at), both specs quantify `[ρ : RemoteGS]`; `RunAuth.wp_proof` adjusted
+   (`intro π ρ …`). New `remotePrincipals.spec := specWith (principalsShare at hG.goose_globalGS)`.
+5. `Proof/.../remotePrincipals.lean`: `remotePrincipals.wp_proof (wp_Principals) (wp_reportAll)
+   (wp_principalCodec) : remotePrincipals.spec` (two `forRange` loops as `remoteWriters`' and `auth/Run.lean`'s;
+   `reportAll` at `principalSvcG`, inputs `prIn c`, `Φ := True`; the count loop's `outs[c].(bool)` from the wire).
+   Likely fix points: the loop IH's `c`/`i` names, the `ins[c] = ps[c]` store's bounds `simp`, `simp only
+   [principalWire] at Hq` (an Iris hypothesis: use `isimp`/`iunfold` instead), the `If (oks[c]) (TypeAssert)`
+   short-circuit after `wp_auto`.
+6. `Proof/.../PrincipalsLinked.lean` (linking): `wp_principalCodec`, `wp_remotePrincipals`.
+
+**Not done:** build and fix the above; `tier-check`, `lease-order`, `bounds-check` (`remotePrincipals.lean`'s
+`threadBound` premise may need the `spec-thread` allow line of `etc/bounds-allow.txt`, as `remoteWriters`');
+NodeMain's auth arm (`NodeMainWatch` as template: `ServeClient` with `principalOp`, `principalCodec`, `principalTok`);
+`etcd_auth.Work`'s dist proof; `RunAuth` linked at `principalsShare`.
+
+**Contract gap found:** none against the Go code: `principalOp`/`remotePrincipals` match the writer pattern
+(`Report`/`reportAll`/`ServeClient`), except that the principal's client is made per call from `sys = eps`
+(`principalClient`), not once by `NodeMain`, so `principalTok` holds the addresses, not a client; and
+`remotePrincipals` sends `auth.Principals()` (4) to `nodes`, so `reportAll`'s `xs.length = ns.length` needs
+`ns.length = 4`, which `principalsShare` carries (the deployment's `NodeCount(Auth) = 4`).
+
+**PS-1 done (2026-11-26):** the merge's full build ended `EXIT 0`; every piece above builds (`lake build`, no
+`sorry`, no axiom). Fixes: `strBytes_dec`'s last `omega`; `PrincipalWire`'s svc section needed the v3rpc and
+client assumptions (`watchFloorsDG`'s `etcdAddrAt`); `remotePrincipals`: a `wp_auto` before `wp_Principals`,
+`akDistEnv` → `akDistEnvG` by `rw [← akDistEnv_eq_G]` on the goal (not `rw … at` an Iris hypothesis), the attempt
+`W64 180000000000` (`principalAttempt`) given explicitly, `prRes` stated with the wire's answer unfolded
+(`∃ o : Bool, ⌜v = mkOk go.bool #o⌝ ∗ True) ∨ False`, as `wp_reportAll`'s post comes back), the type assertion's
+bounds `simp` after `wp_auto`; `RunAuth`'s spec imports remote's `Defs` (`RemoteGS`); `PrincipalsLinked` needs
+`[NaInvG GF]`. `etc/bounds-allow.txt`: `remotePrincipals`, `principalOp`. (`bounds-check --check` still fails on
+this branch, 424 against 389, as it did at `05c8bc09ba`: other packages' debt from the merge; `RunAuth.lean`'s
+`threadBound` is one of them, the orchestrator's, as `RunWatch`'s allowed one.)
 ### Handoff M-merge (2026-11-26; lean merged twice, build green, axiom-tok left)
 
 **Done** (branch `etcd-safe-f7`): lean `776bb603cc` merged (`3e36f7cbd9`), then lean `eb4f1a1633` with G-dial
@@ -1457,3 +1630,331 @@ run started on fk-lean2, `/shared/tmp/f7atok.sh` (`etc/axiom-tok-check.py --raw 
   --check --reuse-raw ~/eg/tmp/f7-atok.jsonl` ok; `--selftest` 0 failures. (Locally the five Perennial-dependent modes
   differ only for want of a Perennial build.)
   No Lean file changed since `351641e79f`'s green build, so no build is needed.
+
+### Handoff W-1 (2026-11-26; S8: bounds, NodeMain's auth arm; `etcd_auth.Work`'s dist proof not started)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 (`/shared/tmp/f7ra-rb.sh`). No
+`sorry`, no new axiom, no top-level statement changed, nothing linked into a `Results` root.
+
+**Step 0, bounds (done):** merged `etcd-safe-f7` @ `ce1e357c5a` (conflicts: `etc/bounds-allow.txt`,
+`etc/dist-axiom-diff-allow.txt`, this file: both sides kept; `etc/axiom-tok-allow.txt`: this branch's side, a superset;
+`dist/client/Results.lean`: a docstring's line breaks). Added a scoped allow (`decl=^RunAuth\.`) for `RunAuth`'s
+orchestrator `threadBound`, as `RunWatch`'s. `etc/bounds-check.py --check`: 389 against 389; `--selftest` ok.
+tier-check, lease-order: ok.
+
+**Step 1, NodeMain's auth arm (checked: `etc/lean-check.py -a` on the proof, 0 errors; `lake build` running at handoff):** `Spec/.../dist/client/NodeMainAuth.lean` (`NodeMainAuth.spec`, kind 5, as
+`NodeMainWatch.spec`: from `⌜0 ≤ c < 4 ∧ eps ≠ []⌝ -∗ nodeAuthPre addr eps`), `nodeAuthPre` in `PrincipalWire.lean`
+(level token; an auth-on view `Γ` with distinct `Γ.au`, `γR`; the pure facts `principalOp.spec` takes; `membersAt
+eps Γ`; `svcAddr (principalSvcG Γ γR eps) addr`: the share's protocols as they are, the principals' wire holds no
+values, so no `svcAddr_…` bridge), and `Proof/.../dist/client/NodeMainAuth.lean` (`NodeMainAuth.wp_proof` over
+`NodeCount`, `principalCodec`, `principalOp.spec`, `ServeClient` at `I := GoString`, `O := Bool`). Proof notes: the
+closure `func(int) any { return eps }` reads `eps` through its variable (`ipersist eps` after the arm's `wp_auto`),
+and `HΨ` needs its `sys` given (`ispecialize HΨ $$ %(interface.mkOk (go.GoType.SliceType go.string) #eps)`). Not
+linked (`principalOp` has no proof); F8's `NodeMain.spec` still reaches the arm with a `False` share (D2): replacing
+it needs `wlNodeShare`'s auth case to be `nodeAuthPre` at the UNROTATED endpoints (the arm does not rotate), a
+change to F8's share.
+
+**Step 2, `principalOp.wp_proof` (not started).** What is known:
+- `principalOp`: `principalClient(eps, who)` (u: `newUserClient(eps[1%k], "u", uPw)`, v: `eps[2%k]`, bad:
+  `newClient([eps[1%k]])`, anonymous: `newClient([eps[0]])`), `defer cli.Close()`, `auth.Work(cli, who)`.
+- Needed first: a dist spec of `etcd_auth.Work` (none exists; the in-process `Work.spec` is over `isNewClient`,
+  `clientTokAt`, `akKVOn`, `akAuthFixed`, one member). Its pre, from what the `On_dist` axioms take
+  (`KV_PutOn_dist`: `userClientAt cl api eps V Γ cfg`, `outTokOk (principalOf cfg) om`, `srvReqLogLb γR L₀`,
+  `writeAuD Γ.kv (principalOf cfg) …`; `WatchOn_dist`: `watchClientAt cl w eps V Γ`, `clientF cl "cfg" ↦□ cfg`,
+  `cfg.Token' = []`, `watchFloorsD eps Γ γR L₀`, `outTokOkS (principalOf cfg) om`): the client at one endpoint
+  `[a]`, `a ∈ addrs`, `cfg` with `principalOf cfg` the principal's user (none for `bad` and the anonymous one), and
+  `akDistEnv addrs Γ γR` (from `prP`); `watchFloorsD [a]` from `watchFloorsD addrs` needs a sublist lemma
+  (`RunAuth.lean`'s `watchFloorsD_one` is the barrier's analogue).
+- The client handles: `RunAuth.lean` l.186-300 (`wp_newClient`, `wp_newUserClient` → `userCli` →
+  `watchClient_of_userCli`) is the template; its two `WatchOn_dist` calls (l.383-480) are the template of the
+  refused watch, with `outTokOkS_reqMd` (`bad`'s `token` metadata) for `outTokOkS` and `watchCheckedD_c_refuted`
+  (`AuthWatchRefusal.lean`) for the events case (in-process: `Work.lean` l.671-814, `akWatch_c_refused`).
+- Riskiest step: that refused watch for `bad` (its context's metadata `token: [badtoken]`, `outTokOkS_reqMd`).
+
+**Build at handoff:** `/shared/tmp/f7ra-rb.sh Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.NodeMainAuth
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.PrincipalsLinked`, log `/shared/tmp/f7ra-nmab.log` (ends
+`EXIT n`; empty at handoff, possibly waiting on fk-lean1's build lock). First step: read it; rerun if it is not `EXIT 0`
+(the merge of `ce1e357c5a` also changed Lean files, so a full build is due before landing).
+
+**Next:** (1) the build above; (2) `etcd_auth.Work`'s dist spec (design above), then `principalOp.wp_proof`, the
+refused watch first; (3) link `NodeMainAuth`/`principalOp` once `principalOp` is proved.
+
+### Handoff W-2 (2026-11-26; S9: `Work.spec_dist`, the watch's pieces, a contract gap fixed; proofs not started)
+
+Branch `etcd-safe-f7-runauth`, worktree `/shared/etcd-grove-f7ra`, builds on fk-lean1 (`/shared/tmp/f7ra-rb.sh`). No
+`sorry`, no new axiom, no top-level statement changed, nothing linked into a `Results` root.
+
+**Done.**
+- W-1's build of `NodeMainAuth`/`PrincipalsLinked`: `EXIT 0`.
+- **Contract gap, fixed:** `principalOp.spec` gives no tie `γR.raft.log = Γ.kv.rlog`, which every `On_dist` contract
+  takes (`KV_PutOn_dist`, `KV_GetOn_dist`, `WatchOn_dist`, ...): `principalOp` could not call any. Added to
+  `akDistEnv`'s (and `akDistEnvG`'s) pure conjunct; `RunAuth` discharges it with its `hγR`. Not a top-level
+  statement (`akDistEnv`/`prP` are defs only `RunAuth`, `remotePrincipals`, `principalOp`, `NodeMainAuth` name).
+- `Spec/.../auth/WorkDist.lean`: `etcd_auth.Work.spec_dist` (a user client `userClientAt cl api [a] V Γ cfg` and
+  `watchClientAt cl w [a] V Γ` at one endpoint `a ∈ addrs`, `principalOf cfg = none ∨ (= some who ∧ who ∈ {u, v})`,
+  `akDistEnv addrs Γ γR`, `Γ.au` injective; post `levelTok 0`).
+- `AuthRunDefs.lean` (defs): `watchFloorsD_of_mem` (narrows `addrs` to `[a]`); `akDistEnv_watch` (from
+  `akDistEnv`: `L₀` = the set-up's prefix, the tie, `srvReqLogLb γR L₀`, `watchFloorsD [a] … L₀`, and
+  `□ ∀ E, authTieReadMask ⊆ E → watchCheckedD [a] Γ γR P L₀ "c/" "c0" ={E}=∗ False` for `P ∈ {none, u, v}`);
+  `watch_c_okD` (the watch's request premise); `akHist_writeAuD` and `watchClient_of_userCli` moved down from
+  `RunAuth.lean` (a proof module: `Work`'s and `principalOp`'s proofs could not import them).
+- Built: `RunAuth`, `PrincipalsLinked`, `NodeMainAuth`, `Spec…auth.WorkDist` (lake, fk-lean1). tier, lease-order,
+  bounds (389/389) ok.
+
+**Next: `Work.wp_proof_dist`** (`Proof/.../auth/WorkDist.lean`; template `Work.lean`, 814 lines, and
+`WorkCallsLinked.lean`'s five laws). Callees: as `Work.wp_proof`'s, with `KV_PutOn_dist`, `KV_DeleteOn_dist`,
+`KV_GetOn_dist`, `Txn_CommitOn_dist`, `WatchOn_dist` in place of the in-process laws/`watcher.Watch`. Calls through
+`cli.Put` etc. are the promoted methods: `rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]`
+(`RunAuth.lean`, root's Put of `z/end`). Start: `icases` `akDistEnv` once, and `akDistEnv_watch … ha P hP` for the
+watch.
+- **The watch (riskiest, pieces ready):** ctx metadata `akOut who` (= `reqMd who`, same body: `unfold`);
+  `outTokOkS_reqMd P who (fun h => …)` (from the premise: `who = bad` → `P = none`); `watchClientAt` and the cfg
+  from `userClientAt`; floors from `akDistEnv_watch`; `watch_c_okD`; `Q := fun σ => ⌜stateHistOk σ⌝` from
+  `akHist_readAu` (as `RunAuth`'s root watch); rewrite the row's key/range end with `watch_c_ok.2`; on events,
+  `imod (Hrefute ⊤ (fun _ _ => CoPset.mem_full)) $$ Hw`.
+- **Writes (open point):** each write needs `writeAuD Γ.kv P op L₀ Q`; `akHist_writeAuD` wants `opHistOk op`
+  unconditionally, which v's/bad's/anon's put of `a/<who>/0` and every write to `c/…` lack (in one process they are
+  admitted through the grant: `akWriteAu`, `WorkCalls.lean` l.740, `akHist_writeAu` at `G`). Needed: a dist
+  `akWriteAuD` taking `opGrantD Γ.kv P op L₀ σ ⊢ ⌜opHistOk op⌝` under the frozen history (the refutation of
+  the grant: `akGrantedL_of_writeGrantGD`, `AuthLeaseRefusals.lean`), then `writeAuD`. Then each refusal:
+  the post's `writeCheckedD`/`readCheckedD` refuted at the frozen history (templates: dist `foreign`/`noAuth`,
+  `RunAuthLease`'s refusals).
+**Then `principalOp.wp_proof`:** `principalClient`'s four arms (`newUserClient` for u/v at `eps[1%k]`/`eps[2%k]`:
+`principalOf cfg = some who`; `newClient` + `anonCli_of_new` for bad/anon), `userClientAt_of_userCli`,
+`watchClient_of_userCli`, `a ∈ addrs` from the index (`mod_len_sintD`), `defer cli.Close()` (`barrier.lean`'s
+`wp_Close`), `Work.spec_dist`, answer `true`. Then link `NodeMainAuth`/`principalOp`.
+
+### Handoff W-3 (2026-11-26; S11: `Work.wp_proof_dist` proved, over one hypothesis for T4)
+
+- `Proof/.../auth/WorkCallsDist.lean` (defs): `akCallEnvD` (a principal's call environment, from `akDistEnv` by
+  `akCallEnvD_of`), `akPrin` (the spec's principal premise; `akPrin_bad`, `akPrin_user`, `akPrin_three`),
+  `readCheckedD_granted` (a get's check read at the frozen history: `setupSt r`'s grant to a user of `who`'s),
+  `work_putD`, `work_deleteD`, `work_getD`, `work_commitD` (the single-process laws' posts, over
+  `KV_PutOn_dist`/`KV_DeleteOn_dist`/`KV_GetOn_dist`/`Txn_CommitOn_dist`; writes via `akWriteAuD` at `L₀ := Lset`),
+  `read_ab_uD`, `read_c_refusedD`, `read_past_refusedD`.
+- `Proof/.../auth/WorkDist.lean`: `Work.wp_proof_dist : Work.spec_dist`, `Work.lean`'s text section by section; the
+  watch over `WatchOn_dist` (`akDistEnv_watch`'s refusal on events). Built (lake, fk-lean1); not linked.
+- **Contract gap (T4):** `Txn_CommitOn_dist` takes `TxnModel.plain b.model`; T4's transaction (`t4M`: a nested
+  `OpTxn` in its then branch) is not plain (`TxnOp.plain (.txn …) = False`), so its `Commit` cannot be called
+  through the contract (the in-process `client_txn_on` has no such premise: it needs `txnNestOk` only, which
+  `t4M_upd` gives). `Work.wp_proof_dist` takes `then_commit_nested_refusedD.law` (`WorkCallsDist.lean`: `Then` of
+  the nested op, whose `Commit` errors) as a hypothesis. Needed to discharge it: `Txn_CommitOn_dist`'s write arm
+  admitting a writing transaction with nested transactions (`txn.txnPlain ∧ txnNoZeroEnd ∧ txnNestOk`, as
+  `client.txnUpdAtOn`), `TxnModel.plain` dropped or weakened for it; then the law's proof is
+  `then_commit_nested_refused`'s with `akWriteAuD` and `t4M_not_granted`.
+- Next: the contract change above (a spec change: the lead's approval and a review), then `principalOp.wp_proof`
+  (W-2's last paragraph) and the links.
+
+### Handoff W-4 (2026-11-26; S12: `principalOp.wp_proof` and `principalClient.wp_proof` proved)
+
+- `Spec/.../dist/client/principalClient.lean` (new): `principalClient.spec`, from `eps ↦*□ addrs` and
+  `membersAt addrs Γ` (auth on, `addrs ≠ []`, plain): `nil` and `userCli cl a V cfg` at some `a ∈ addrs` with
+  `principalOf cfg = none ∨ (= some who ∧ who ∈ {u, v})` (exactly `Work.spec_dist`'s premise), or an error.
+- `Proof/.../dist/client/principalClient.lean`: `principalClient.wp_proof` (callees `newClient`, `newUserClient`):
+  the four arms, `eps[c % k]` via `mod_len_sintD`/`srem_eq_umodD`, anon arms via `anonCli_of_new`.
+- `Proof/.../dist/client/principalOp.lean`: `principalOp.wp_proof` (callees `principalClient.spec`,
+  `etcd_auth.Work.spec_dist`, `Client.Close.spec`): error → `false`; else `userClientAt_of_userCli`,
+  `watchClient_of_userCli`, `Work`, the deferred `Close` (`clientCoreAt_of_new`), `true`.
+- `membersAt_of_mem` added to `AuthLeaseRunLemmas.lean` (defs; both proofs use it).
+- Built (lake, fk-lean1, both targets, no warnings in the new files). tier-check ok; bounds-check and the
+  lease-order check were NOT rerun (stopped by the coordinator's order; nothing bounds-relevant added).
+- Not linked. Next: run `python3 etc/bounds-check.py --check` and the lease-order check; link `principalOp`
+  (with `principalClient`, `Work.wp_proof_dist` — which still takes `then_commit_nested_refusedD.law`, W-3's T4
+  gap) into `PrincipalsLinked`/`NodeMainAuth`; the T4 contract change (W-3) remains open.
+
+**W-4 addendum (checks, 2026-11-26):** lease-order ok, tier ok. **bounds FAILS** (390 against 389): the new
+`principalClient.spec` names `threadBound` (`Spec/.../dist/client/principalClient.lean:40`, kind `spec-thread`).
+Next session: take `threadTok`/the owner's handle instead (CLAUDE.md "Bounds"), or carry the premise only where
+`principalOp.spec` already does; do not raise the baseline. No build running.
+
+### Handoff W-5 (2026-11-26; S11/S12: T4 over the widened `Txn_CommitOn_dist`, principal machine linked)
+
+- Bounds: `principalClient.spec`'s `threadBound` is its callees' (`newClient`, `newUserClient`): a `decl=` allow in
+  `etc/bounds-allow.txt`; bounds 389/389, selftest ok.
+- `Txn_CommitOn_dist` widened (ledger `notes/specs-only/ledger.md`, decision pending the lead): no `TxnModel.plain b.model`,
+  the write arm adds `txnNestOk` (`client.txnUpdAtOn`'s condition); docstrings and two `dist-axiom-diff` entries; callers
+  (`work_commitD`, `RunAuthLease`) pass `txnNestOk_of_plain`. Reviewed SOUND (`notes/axiom-review/f7-txn-nested-review.md`,
+  Go tests `f7-txn-nested-gotest/`). axiom-tok not rerun (needs a full tcb run; no entry names this axiom).
+- `then_commit_nested_refusedD` proved (`WorkCallsDist.lean`, over `Then.spec` and `Txn_CommitOn_dist`); `Work.wp_proof_dist`
+  no longer takes the law.
+- Linked in `PrincipalsLinked`: `wp_newClientA`, `wp_newUserClient` (over `New_user_dist`), `wp_principalClient`,
+  `wp_Work_dist`, `wp_principalOp`, `wp_NodeMainAuth`. Built on fk-lean1; tier, lease-order, bounds, dist-axiom-diff ok.
+- Next: link `RunAuth` at `principalsShare`; the lead's approval of the widening.
+
+### Handoff W-6 (2026-11-26; S12: `RunAuth` linked; the auth boot planned, `MainReady`'s auth arm proved)
+
+- **Linked** (`client/RunAuthLinked.lean`, linking): `RunAuth.spec := RunAuth.specWith principalsShare` (Spec
+  `RunAuth.lean`); `wp_SetUpDist` (`SetUp.wp_proof_dist` over `KV_PutOn_dist` and the five `Auth_*_dist` interim
+  axioms), `wp_barriersA` (over `KV_GetOn_dist`), `wp_RunAuth` (over `wp_remotePrincipals`, `WatchOn_dist` the lead's
+  interim axiom). Built on fk-lean1; tier, lease-order, bounds (389/389) ok.
+- **New, in reach** (`client/AuthShares.lean`, defs): `authShare eps ns` (RunAuth's precondition minus its
+  machine-local parts, at `Gg`) and `authNodePre addr eps` (`nodeAuthPre` minus its token and pure machine facts),
+  `nodeAuthPre_of`; `MainReadyAuth.spec`/`.wp_proof` (MainReady's kind-5 arm from `authShare`, over `NodeCount` and
+  `RunAuth.spec`), linked as `wp_MainReadyAuth`.
+
+**What `EtcdAuthBootNC` still needs** (the auth-off boot `etcdBootNCOff_holds` as the template: start, members'
+`member_boot_dist`, `orchBoot`/`nodeBoot` over the full dispatch):
+1. **Members**: nothing. `server.member_boot_dist` already takes any `lmOf d` with `lmOf_auth_revocable` (F7 S2's
+   `MainLogger` covers auth-on members); the auth class reuses it unchanged.
+2. **The auth-on start** (`etcd_start` takes `ha : auth = false`; an `etcd_startAuth` for `[auth]`):
+   a. **Contract gap (blocking): the rlog tie.** `RunAuth.spec` (and `akDistEnv`) need `γR.raft.log = Γ.kv.rlog`.
+      With auth on nothing states it: `kvInvOn` does not mention `rlog` (auth off, `kvInv`'s pure part has
+      `γk.rlog = γ.raft.log`), and `srvClusterBootOn_allocG` builds `γk0` with `rlog := γ.log` but does not export
+      it. Minimal change: add `γk.rlog = γ.log` (`rfl`) to `srvClusterBootOn_alloc`/`_allocG`'s pure post
+      (`NewServerAllocOn.lean`), carry it in `clusterAllocN`'s auth arm (`⌜γk.rlog = γ.log⌝ ∗ etcdKV … ∗
+      authHistView …`), and have `clusterStartDC` keep that arm (it drops it, `ite_drop_left`). Cost: a statement
+      change under `NewServerAllocOn` rebuilds ~1120 modules (`importers.py --count`); callers to adapt
+      (`AllocNOn`, `AllocN`, `MainAlloc`, `Alloc3On`, `ClusterStartD`'s three).
+   b. Then, at `c` from `clusterStartDC`, `Γ := c.view true`, `γR := ⟨c.γ, [], W64 0⟩`: `kvInvOn` from
+      `clusterFactsOf c true` (`kvInvM_true`), `srvReqLogLb γR []` (`srvReqLogLb_nil`), `leaseMember`s
+      (`leaseMembers_of`), `σ₀ := kvStateOf (kvModelOn c.γk srvAuthSt0 (bootEntries …))` with every change empty (a
+      `bootSt_facts` for `kvModelOn`, to prove), au injective (`c.NamesInj.2`).
+   c. **The principals** (as `watch_start`): `mapCtx_alloc` over `ns` (one call each, `budUnits_one`),
+      `addrs_set_proto` at `principalSvcG Γ γR eps` for every `a ∈ ns`, `ns.length = 4` from `WellFormed`
+      (`nodeCount` of `Auth`). Gives `authShare eps ns` and every `authNodePre a eps` (persistent `svcAddr`).
+3. **The dispatch shares (the lead's `Shares.lean`; proposed, not edited)**:
+   a. `wlShare`'s kind 5 `False` → `authShare (Gg := Gg) eps ns` (law `wlShare_auth` changes accordingly).
+   b. **Contract gap (rotation)**: `NodeMain.spec` gives `wlNodeShare w c addr (rotateL epsL c)`, but the auth arm
+      hands `principalOp` its `eps` unrotated (`nodes.go`), and `principalSvcG Γ γR eps` is at the unrotated list
+      (the orchestrator's `principalsShare` is at `d.Endpoints()`). Proposed: `wlNodeShare` takes the unrotated
+      endpoints and rotates inside its kv/writer arms (`kvNodePre c addr (rotateL eps c)`, `writerNodePre addr
+      (rotateL eps c)`), kind 5 `authNodePre addr eps`; `nodeShareF` and `NodeMain.spec` pass `epsL` (the kv and
+      writer arms then `rw` once); `plainEndpoints eps` (unrotated) from `members_plain`.
+4. **The orchestrator's arm**: `MainReady.wp_proof`'s kind-5 bullet becomes `MainReadyAuth.wp_proof`'s
+   (`rw [wlShare_auth hk]; exact`-style). **Contract gap (instances)**: `RunAuth.spec` (and `MainReadyAuth.spec`)
+   bind `[errors.Assumptions] [fmt.Assumptions] [rpctypes.Assumptions]`; `MainReady.spec`, `MainDeployment.spec`,
+   `Orchestrator.spec` do not. Proposed: the three as `∀`-binders of `MainReady.spec` (threaded through
+   `MainDeployment`/`Orchestrator` and `orchBoot`, which has them from `EtcdBootNCAt`). Same for `RunAuthLease`.
+5. **The principal machines' arm**: `NodeMain.wp_proof`'s kind-5 bullet from `NodeMainAuth.spec` (linked,
+   `wp_NodeMainAuth`) and `nodeAuthPre_of` once 3b lands; `DispatchLinked` passes `wp_NodeMainAuth`,
+   `wp_MainReadyAuth`.
+6. **Assembly**: `etcdAuthBootNC_holds` as `etcdBootNCOff_holds` with `etcd_startAuth`; `etcd_safe_nocrash`
+   loses `Hauth`.
+
+Order: 2a is the risk and the cost (a server-level statement change); 3 and 4 are the lead's definitions.
+
+### Handoff RL-1 (2026-11-26; S13: W-6's three gaps edited, not built; branch `etcd-safe-f7-rlog`)
+
+Branch `etcd-safe-f7-rlog` off `etcd-safe-f7-runauth` @ `7bf098247e`. Two commits, **neither built nor
+lean-checked** (the session stopped at the context rule before the seed finished). No `sorry`, no axiom, no
+`TopLevelRobustness`/`TrustedCode/` edit.
+
+**Commit 1, gap 1 (the rlog tie)**:
+- `NewServerAllocOn.lean`: `srvClusterBootOn_alloc`/`_allocG`'s pure post gains `∧ γk.rlog = γ.log` (last
+  conjunct; proved by one more `rfl`); `Results.lean`'s restatement `server_cluster_alloc_on` the same.
+- Destructuring sites get one more `-`: `AllocNOn.lean`, `Alloc3On.lean`, `auth/MainAlloc.lean`.
+- `AllocN.lean` `clusterAllocN`: the `on` arm is `iprop(⌜γk.rlog = γ.log⌝ ∗ etcdKV … ∗ authHistView …)` (names it
+  `hrl`, `iframe %hrl`).
+- `server/ClusterStartD.lean` `clusterStartDC`: keeps the auth-on arm, `iprop(⌜c.γk.rlog = c.γ.log⌝ ∗ etcdKV c.γk
+  (kvStateOf (kvModelOn c.γk srvAuthSt0 (bootEntries …))) ∗ authHistView c.γk [srvAuthSt0])` (the
+  `ite_drop_left` line removed); `clusterStartDL` now drops it (`ite_drop_left` after its `imod`), so
+  `clusterStartDL`'s statement is unchanged. `Start.lean` (auth off, `simp only [ha]`) should be unaffected.
+**Commit 2, gaps 2 and 3**:
+- Gap 2 (rotation): `client/Shares.lean` `wlNodeShare w c addr eps` takes `eps` unrotated and rotates by `sint.nat c`
+  in its kv and writer arms; `nodeShareF`/`nodeShareF_eq` pass `d.members.map Member.client`; new
+  `plainEndpoints_rotateL` (`rotateL_plain` derived). **Kind 5 stays `False`**: making it `authNodePre addr eps`
+  forces `NodeMain.wp_proof`'s auth bullet to use `wp_NodeMainAuth` in `DispatchLinked`, which brings the authd
+  interim axioms (`KV_PutOn_dist`, `KV_DeleteOn_dist`, `KV_GetOn_dist`, `Txn_CommitOn_dist`, `WatchOn_dist`, ...) into
+  `etcd_safe_nocrash`'s trust base (`etc/tcb-collections/etcd-dist.txt` changes): for the lead. Then
+  `NodeMain.wp_proof` takes `hA : NodeMainAuth.spec` and its bullet is `nodeAuthPre_of addr epsL hV htb hpl hAs`.
+  `Spec/.../client/NodeMain.lean`: `NodeMain.spec`'s share is `wlNodeShare w c addr epsL` and its pure
+  `plainEndpoints epsL` (was the rotated list); proof `client/NodeMain.lean` (writer arm: `plainEndpoints_rotateL
+  hpl _`), `client/NodeDeployment.lean` (`members_plain hwf`), `Start.lean` (`nodeAt`, `nodeAt_eq`,
+  `nodes_of_sole`'s `hX`, the two `hX`s: `eps` unrotated, `rotateL_plain Hd _`).
+- Gap 3 (instances): `∀ … [errors.Assumptions] [fmt.Assumptions] [rpctypes.Assumptions]` after `[ρ]` in
+  `Spec/.../client/{MainReady,MainDeployment,Orchestrator}.lean`; the three proofs `intro π ρ errA fmtA rpcA …`;
+  `AdequacyClient.lean` `orchBoot` binds the three (discharged in `etcdBootNCOff_holds` from `EtcdBootNCAt`'s; the
+  top level unchanged). `Spec/.../client/MainReadyAuth.lean`: a comment only.
+- `Spec/` files edited: `client/NodeMain.lean`, `client/MainReady.lean`, `client/MainDeployment.lean`,
+  `client/Orchestrator.lean`, `client/MainReadyAuth.lean` (comment).
+
+**fk-lean2**: worktree `~/eg/wt/etcd-safe-f7-rlog` (detached at `7bf098247e`), `.lake/package-overrides.json` copied
+(perennial `a706aeb9a`, matches the pin), `.lake/build` being seeded by `cp -a` from `~/eg/wt/etcd-safe-f7` (62 GB; was
+at 20 GB; check it finished: `du -sh`, no `cp` running). Script `/shared/tmp/f7rl-rb.sh <targets>` syncs the local
+worktree's diff vs `7bf098247e` (`REF=<commit>` syncs a commit instead), then `lake build` under flock and
+`MemoryMax=55G`; log `~/eg/logs/f7rl-build.log`; `CHECK=1` runs `etc/lean-check.py`. Delete read-only `.ilean`s
+that fail with `permission denied`.
+
+**Next**: (1) `CHECK=1 /shared/tmp/f7rl-rb.sh` on `NewServerAllocOn.lean`, `AllocN.lean`, `ClusterStartD.lean`,
+then `Shares.lean`, `NodeMain.lean`, `MainReady.lean`, `Start.lean`; fix forward (`etc/importers.py --uses NAME FILE
+--files`: `clusterStartDC`, `clusterAllocN`, `srvClusterBootOn_alloc(G)`, `wlNodeShare`, `nodeShareF`). (2) Full
+build. (3) tier, lease-order, bounds, gen-link, axiom-tok, dist-axiom-diff, `tcb-report.py --check` (baseline must be
+unchanged). (4) Gap 2's kind 5 after the lead's decision on the trust base.
+
+### RL-1 done (2026-11-26; branch `etcd-safe-f7-rlog`)
+
+RL-1's two commits lean-checked with no fix needed; then the lead's two decisions: (1) the four `dist/client` spec
+changes are approved (`notes/specs-only/ledger.md`); (2) kind 5 is real: `wlNodeShare`'s kind-5 arm is `authNodePre
+addr eps` (`client/Shares.lean` imports `AuthShares` and binds `v3rpc.Assumptions`), `NodeMain.wp_proof` takes `hA :
+NodeMainAuth.spec` (auth bullet: `nodeAuthPre_of addr epsL hV htb hpl hAs`), `DispatchLinked` imports
+`PrincipalsLinked` and passes `wp_NodeMainAuth`. Full build green on fk-lean2 (29588 jobs).
+
+**Trust base:** `etcd_safe_nocrash` (statement unchanged) now reaches `etcd_dist.authd.{KV_PutOn,KV_DeleteOn,KV_GetOn,
+Txn_CommitOn,WatchOn,New_user}_dist.wp_proof` (`etc/tcb-baseline.txt`, `etc/tcb-collections/etcd-dist.txt`); the
+collection also gains `metadata.AppendToOutgoingContext.wp_proof` (already in the global baseline: the principal
+ops' `AppendToOutgoingContext`). The `Auth_*` admin axioms are not reached (the orchestrator's kind-5 share is still
+`False`). `etc/axiom-tok-allow.txt`: entries for the six (keys as their auth-off siblings', walk read in
+`notes/axiom-review/f7-auth-axiom-tok.md`) and six `trunc` lines; for the lead's confirmation.
+
+**Gates:** tier, lease-order, bounds, dist-axiom-diff, tcb-report `--check` and every collection, axiom-tok: ok.
+gen-link: five Links unrelated to this branch differ (`bbolt`, `kvraft`, `kvraft-udp`, `wal-tester`, `walfs`); they
+differ already at the base `7bf098247e` (inherited, not this branch's).
+
+### Handoff B-1 (2026-11-26; S14: `EtcdAuthBootNC` written, **not built**; branch `etcd-safe-f7-rlog`)
+
+One WIP commit on `e6d827e5b2`, written in full but **neither built nor lean-checked** (the session stopped at the
+context rule while the first build ran). No `sorry`, no axiom.
+- **Step 1, the auth-on start** (`dist/StartAuth.lean`, new, defs): `bootStOn_changes` (the boot state in mode `on`
+  has only empty changes, via `kvRaftOfOn_conf`), `kvInvOn_of_clusterFacts`, `etcd_startAuth` (`etcd_start`'s
+  conclusion for `d.workloads.map kind = [W64 5]`: `clusterStartDC`'s auth arm with the rlog tie, `Γ := c.view true`,
+  `γR := ⟨c.γ, [], W64 0⟩`, `srvReqLogLb` from `monoListLbOwn_nil`, the principals by `mapCtx_alloc`/`addrs_set_proto`
+  at `principalSvcG Γ γR eps`; orchestrator `authShare`, nodes `authNodePre` via `nodes_of_sole`).
+  `DeploymentClass.lean`: new `class_auth` (auth on, `workloads = [w]`, `nodes = [ns]`, `ns.length = 4`).
+  `Start.lean`: `leaseMembers_of` takes `(on : Bool := false)` (callers unchanged).
+- **Step 2, the share**: `client/Shares.lean` `wlShare` kind 5 := `authShare eps ns`, `wlShare_auth` accordingly;
+  `client/MainReady.lean` `MainReady.wp_proof` takes `hA : MainReadyAuth.spec` (auth bullet `wp_apply hA`);
+  `client/DispatchLinked.lean` imports `RunAuthLinked`, passes `wp_MainReadyAuth`.
+- **Step 3, assembly** (`dist/TopLevelRobustness.lean`): `etcdBootNCOffAuth_holds` (the old auth-off proof at
+  `auth = false ∨ kinds = [5]`, start by `Or.elim` over `etcd_start`/`etcd_startAuth`); `etcdBootNCOff_holds` and
+  `etcdAuthBootNC_holds` its two cases; `etcd_safe_nocrash (HauthLease)` (the `Hauth` premise dropped, body passes
+  `etcdAuthBootNC_holds`). `etcd_robust_nocrash.spec` untouched.
+- **Likely first errors** (fix forward): `simp only [hon, ↓reduceIte] at hcs` may leave `if true = true` (add
+  `if_pos rfl`/`eq_self_iff_true`); the `rw [hns, List.flatten_cons, ...]` on the Iris goal; `simp only [Nat.add_zero]
+  at he ⊢` after `bigSepL_singleton.2`; `class_auth`'s `cases tw <;> simp [typed.Workload.kindW] <;> decide`;
+  whether `wp_MainReadyAuth`'s `[auth.Assumptions]` resolves in `DispatchLinked`; `AuthShares.lean`'s header still
+  says kind 5 is `False` in `Shares` (update).
+- **Build running at stop**: `/shared/tmp/f7rl-rb.sh Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TopLevelRobustness`
+  (fk-lean2, log `~/eg/logs/f7rl-build.log`); `CHECK=1` with a file path for the edit loop.
+- **Next**: (1) green build of `TopLevelRobustness`; then a full build. (2) Trust base: the `Auth_*` admin axioms
+  (`Auth_UserAdd/UserGrantRole/RoleAdd/RoleGrantPermission/AuthEnable_dist`) become reachable: `etc/tcb-report.py
+  --check --update` and `--collection etc/tcb-collections/etcd-dist.txt --check --update`; axiom-tok entries modelled
+  on the F7 S13 ones (`etc/axiom-tok-allow.txt` line ~351; the coordinator confirmed the S13 entries). (3) Gates:
+  tier, lease-order, bounds, dist-axiom-diff, tcb `--check`, axiom-tok; gen-link **every mode** on fk-lean2 inside
+  the built environment: `lake env python3 etc/gen-link.py <mode> > .lake/gl.lean; cmp -s .lake/gl.lean <Link.lean>`
+  (same package overrides as the build), including `--kvraft`, `--kvraft-udp`, `--wal-tester`, `--walfs`; report any
+  that differ with a short diff. (4) Push `git push https://github.com/mit-pdos/etcd-grove.git etcd-safe-f7-rlog`.
+- **Build result (after B-1's commit)**: fails first in `DeploymentClass.lean`'s `class_auth` (nothing downstream
+  checked yet): l.303 `List.length_map (f := (·.kind))` (invalid field notation; use `(f := Workload.kind)` or
+  `congrArg List.length h5` with `List.length_map`), l.315 `decide` in `cases tw <;> simp [typed.Workload.kindW] <;> decide`
+  ("expected type must not contain free variables": drop the `<;> decide`, close by `simp` or `exact absurd e (by decide)`
+  per case as `kinds_nodup` does).
+
+### B-1 done (2026-11-26; S14 built; branch `etcd-safe-f7-rlog`)
+
+- **Fixes** to B-1's commit: `class_auth` (`DeploymentClass.lean`: the length by `congrArg List.length h5` and
+  `List.length_map`; the kind cases closed as `kinds_nodup`'s, unfolding `typed.Workload.kind` too); `etcd_startAuth`
+  (`StartAuth.lean`: the let-bound `γR`/`Γ.kv` rewritten to `⟨c.γ, [], W64 0⟩`/`c.γk` by `rfl` before `iexact Hkvi`
+  and `iframe Hetcd`). `Shares`, `MainReady`, `DispatchLinked` and `TopLevelRobustness` built as written:
+  `wp_MainReadyAuth`'s `[examples.etcd.auth.Assumptions]` resolves in `DispatchLinked` (no new binder).
+  `AuthShares.lean`'s header updated (kind 5 is `authShare`/`authNodePre`, no longer `False`).
+- **Statement**: `theorem etcd_safe_nocrash (HauthLease : EtcdAuthLeaseBootNC) : etcd_robust_nocrash.spec`
+  (`Hauth` dropped; the spec file untouched).
+- **Full build** green (fk-lean2).
+- **Trust base**: exactly the five admin axioms `etcd_dist.authd.Auth_{AuthEnable,RoleAdd,RoleGrantPermission,
+  UserAdd,UserGrantRole}_dist.wp_proof` newly reached (tcb baseline and the `etcd-dist` collection, +5 each);
+  axiom-tok entries (rule 2 `8/1`, rule 7 `P`, as `KV_PutOn_dist`'s) and `trunc` lines in a "F7 S14" block, for the
+  lead's confirmation; `axiom-tok --check` and its selftest pass.
+- **Gates**: tier, lease-order, bounds (389/389), dist-axiom-diff ok; gen-link all 60 modes identical on fk-lean2
+  (run with `LAKE_OPTS=--packages=.lake/package-overrides.json`: without it `proof_roots` finds no Perennial there
+  and `--bbolt`, `--kvraft`, `--kvraft-udp`, `--wal-tester`, `--walfs` drop Perennial-linked results).
+- **Next**: the lead's confirmation of the S14 axiom-tok entries; F7 S4 (`EtcdAuthLeaseBootNC`), the last hypothesis.

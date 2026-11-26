@@ -1,0 +1,522 @@
+// WatchOn_dist review (2026-11-26): the auth row of a cross-machine watch, on a three-member
+// auth-on cluster (simple tokens), at the etcd fork's pin df6af0c36a6b, grpc v1.84.
+//
+//	(a) refusal of c/ for anon, u, v, anon+"badtoken" at every member; the authorization/token
+//	    attacks (an anonymous client sending root's issued token: served as root);
+//	(b) the same at a member that caught up by a snapshot, with probes from its restart on;
+//	    TestWatchOnLaggingEnable: a member that lags across AuthEnable serves its own old state;
+//	(c) u's watch of [a, b) from revision 1 is exactly the KV history of [a, b), at every member;
+//	(d) the stream-key collision: what the server binds.
+//
+// Every line this test prints itself starts with "WATCHON".
+package watchonreview
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
+
+	"go.etcd.io/etcd/api/v3/authpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/tests/v3/framework/integration"
+)
+
+const (
+	rootPw = "root-pw"
+	uPw    = "u-pw"
+	vPw    = "v-pw"
+)
+
+func logf(t *testing.T, f string, args ...any) { t.Logf("WATCHON "+f, args...) }
+
+func newCli(t *testing.T, ep, user, pw string) *clientv3.Client {
+	t.Helper()
+	c, err := clientv3.New(clientv3.Config{Endpoints: []string{ep}, Username: user, Password: pw,
+		DialTimeout: 5 * time.Second, Logger: zap.NewNop()})
+	if err != nil {
+		t.Fatalf("client %s@%s: %v", user, ep, err)
+	}
+	return c
+}
+
+type outcome struct {
+	resps, events int
+	canceled      bool
+	reason        string
+	keys          []string
+}
+
+func (o outcome) String() string {
+	return fmt.Sprintf("resps=%d events=%d canceled=%v reason=%q keys=%v", o.resps, o.events, o.canceled, o.reason, o.keys)
+}
+
+// watchFor reads a watch of key (with opts) under ctx for at most d.
+func watchFor(cli *clientv3.Client, ctx context.Context, d time.Duration, key string, opts ...clientv3.OpOption) outcome {
+	wctx, cancel := context.WithTimeout(ctx, d)
+	defer cancel()
+	var o outcome
+	for r := range cli.Watch(wctx, key, opts...) {
+		o.resps++
+		o.events += len(r.Events)
+		for _, e := range r.Events {
+			o.keys = append(o.keys, string(e.Kv.Key))
+		}
+		if r.Canceled {
+			o.canceled = true
+			if r.Err() != nil {
+				o.reason = r.Err().Error()
+			}
+		}
+	}
+	return o
+}
+
+type ev struct {
+	typ string
+	key string
+	rev int64
+}
+
+// history of writes in [a, b) as root makes them
+type hist struct {
+	mu  sync.Mutex
+	evs []ev
+}
+
+func (h *hist) put(t *testing.T, cli *clientv3.Client, k, v string) {
+	r, err := cli.Put(context.Background(), k, v)
+	for i := 0; err != nil && i < 20; i++ { // a leader change after a stop: retry (a put twice is harmless here)
+		time.Sleep(500 * time.Millisecond)
+		r, err = cli.Put(context.Background(), k, v)
+	}
+	if err != nil {
+		t.Fatalf("put %s: %v", k, err)
+	}
+	if k >= "a" && k < "b" {
+		h.mu.Lock()
+		h.evs = append(h.evs, ev{"PUT", k, r.Header.Revision})
+		h.mu.Unlock()
+	}
+}
+
+func (h *hist) del(t *testing.T, cli *clientv3.Client, k string) {
+	r, err := cli.Delete(context.Background(), k)
+	if err != nil || r.Deleted != 1 {
+		t.Fatalf("delete %s: %v %v", k, err, r)
+	}
+	if k >= "a" && k < "b" {
+		h.mu.Lock()
+		h.evs = append(h.evs, ev{"DELETE", k, r.Header.Revision})
+		h.mu.Unlock()
+	}
+}
+
+// collectRange reads u's watch of [a, b) from revision 1 until n events (or a timeout).
+func collectRange(cli *clientv3.Client, n int, d time.Duration) ([]ev, outcome) {
+	ctx, cancel := context.WithTimeout(context.Background(), d)
+	defer cancel()
+	var got []ev
+	var o outcome
+	for r := range cli.Watch(ctx, "a", clientv3.WithRange("b"), clientv3.WithRev(1)) {
+		o.resps++
+		if r.Canceled {
+			o.canceled = true
+			if r.Err() != nil {
+				o.reason = r.Err().Error()
+			}
+		}
+		for _, e := range r.Events {
+			typ := "PUT"
+			if e.Type == mvccpb.DELETE {
+				typ = "DELETE"
+			}
+			got = append(got, ev{typ, string(e.Kv.Key), e.Kv.ModRevision})
+		}
+		if len(got) >= n {
+			cancel()
+		}
+	}
+	return got, o
+}
+
+func equalEvs(a, b []ev) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// setupAuth: role r READ on [a, b); u with r; v with no role; root with root; auth enabled.
+func setupAuth(t *testing.T, cli *clientv3.Client, withRc bool) {
+	ctx := context.Background()
+	must := func(_ any, err error) {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(cli.RoleAdd(ctx, "r"))
+	must(cli.RoleGrantPermission(ctx, "r", "a", "b", clientv3.PermissionType(authpb.READ)))
+	must(cli.UserAdd(ctx, "u", uPw))
+	must(cli.UserGrantRole(ctx, "u", "r"))
+	must(cli.UserAdd(ctx, "v", vPw))
+	must(cli.UserAdd(ctx, "root", rootPw))
+	must(cli.UserGrantRole(ctx, "root", "root"))
+	must(cli.AuthEnable(ctx))
+}
+
+var cPrefix = []clientv3.OpOption{clientv3.WithPrefix(), clientv3.WithRev(1)}
+
+// refusals checks, at endpoint ep, the four refused principals' watches of c/ and the attacks.
+func refusals(t *testing.T, tag, ep string, rootTok string, bad *atomic.Int64) {
+	anon := newCli(t, ep, "", "")
+	defer anon.Close()
+	u := newCli(t, ep, "u", uPw)
+	defer u.Close()
+	v := newCli(t, ep, "v", vPw)
+	defer v.Close()
+	bg := context.Background()
+	check := func(name string, o outcome, wantEvents bool) {
+		logf(t, "%s %s watch c/: %v", tag, name, o)
+		if (o.events > 0) != wantEvents {
+			bad.Add(1)
+			logf(t, "%s %s UNEXPECTED (want events=%v)", tag, name, wantEvents)
+		}
+	}
+	check("anonymous", watchFor(anon, bg, 2*time.Second, "c/", cPrefix...), false)
+	check("u", watchFor(u, bg, 2*time.Second, "c/", cPrefix...), false)
+	check("v", watchFor(v, bg, 2*time.Second, "c/", cPrefix...), false)
+	check("anonymous+token=badtoken", watchFor(anon, metadata.AppendToOutgoingContext(bg, "token", "badtoken"), 2*time.Second, "c/", cPrefix...), false)
+	check("anonymous+authorization=badtoken", watchFor(anon, metadata.AppendToOutgoingContext(bg, "authorization", "Bearer badtoken"), 2*time.Second, "c/", cPrefix...), false)
+	// the attacks outTokOk/outTokOkS exclude: an issued (root's) token in the context's metadata
+	check("ATTACK anonymous+authorization=<root token>", watchFor(anon, metadata.AppendToOutgoingContext(bg, "authorization", rootTok), 2*time.Second, "c/", cPrefix...), true)
+	check("ATTACK anonymous+authorization=Bearer <root token>", watchFor(anon, metadata.AppendToOutgoingContext(bg, "authorization", "Bearer "+rootTok), 2*time.Second, "c/", cPrefix...), true)
+	check("ATTACK anonymous+token=<root token>", watchFor(anon, metadata.AppendToOutgoingContext(bg, "token", rootTok), 2*time.Second, "c/", cPrefix...), true)
+	// a named client's own per-RPC token wins over an added authorization (and is checked)
+	check("u+authorization=<root token> (u's own token wins)", watchFor(u, metadata.AppendToOutgoingContext(bg, "authorization", rootTok), 2*time.Second, "c/", cPrefix...), false)
+}
+
+func rangeCheck(t *testing.T, tag, ep string, h *hist, bad *atomic.Int64) {
+	u := newCli(t, ep, "u", uPw)
+	defer u.Close()
+	h.mu.Lock()
+	want := append([]ev(nil), h.evs...)
+	h.mu.Unlock()
+	got, o := collectRange(u, len(want), 10*time.Second)
+	ok := equalEvs(got, want)
+	logf(t, "%s u's watch of [a,b) from rev 1: %d events, want %d, exact=%v (canceled=%v %q)", tag, len(got), len(want), ok, o.canceled, o.reason)
+	if !ok {
+		bad.Add(1)
+		logf(t, "%s   got  %v", tag, got)
+		logf(t, "%s   want %v", tag, want)
+	}
+}
+
+// stopIdx is a member that is neither member 0 (the root client's) nor the leader.
+func stopIdx(t *testing.T, clus *integration.Cluster) int {
+	// (clus.WaitLeader reads through anonymous clients, which auth refuses: it never returns)
+	lead := clus.Members[0].Server.Lead()
+	for i := 1; i < 3; i++ {
+		if uint64(clus.Members[i].Server.MemberID()) != lead {
+			return i
+		}
+	}
+	return 2
+}
+
+func TestWatchOnDist(t *testing.T) {
+	integration.BeforeTest(t, integration.WithoutGoLeakDetection())
+	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 3, SnapshotCount: 10, SnapshotCatchUpEntries: 5})
+	defer clus.Terminate(t)
+	var bad atomic.Int64
+	ep := func(i int) string { return clus.Members[i].GRPCURL }
+
+	h := &hist{}
+	pre := newCli(t, ep(0), "", "")
+	for _, k := range []string{"a/1", "a/2", "c/1", "c/2", "b", "z"} {
+		h.put(t, pre, k, "pre")
+	}
+	setupAuth(t, pre, false)
+	pre.Close()
+
+	root := newCli(t, ep(0), "root", rootPw)
+	defer root.Close()
+	h.put(t, root, "a/3", "post")
+	h.put(t, root, "c/3", "post")
+	h.del(t, root, "a/1")
+	h.put(t, root, "a/2", "again")
+	h.del(t, root, "c/1")
+
+	anon0 := newCli(t, ep(0), "", "")
+	ar, err := anon0.Authenticate(context.Background(), "root", rootPw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootTok := ar.Token
+	anon0.Close()
+	logf(t, "root's issued token %q", rootTok)
+
+	// barriers: a linearizable read through every member (the caller's floors)
+	barrier := func(i int) {
+		c := newCli(t, ep(i), "root", rootPw)
+		defer c.Close()
+		if _, err := c.Get(context.Background(), "z"); err != nil {
+			t.Fatalf("barrier %d: %v", i, err)
+		}
+	}
+	for i := 0; i < 3; i++ {
+		barrier(i)
+	}
+
+	// (a) and (c) at every member
+	for i := 0; i < 3; i++ {
+		refusals(t, fmt.Sprintf("[a] member %d", i), ep(i), rootTok, &bad)
+		rangeCheck(t, fmt.Sprintf("[c] member %d", i), ep(i), h, &bad)
+	}
+	// root's watch of everything: every event
+	{
+		o := watchFor(root, context.Background(), 2*time.Second, "", clientv3.WithPrefix(), clientv3.WithRev(1))
+		logf(t, "[c] root watch of everything from rev 1: %v", o)
+	}
+
+	// (d) the stream-key collision, on one anonymous client
+	{
+		mdRoot := metadata.MD{"a": {"1"}, "token": {rootTok}}
+		mdColl := metadata.MD{"a": {"1] token:[" + rootTok}}
+		kR := fmt.Sprintf("%+v", map[string][]string(mdRoot))
+		kC := fmt.Sprintf("%+v", map[string][]string(mdColl))
+		logf(t, "[d] stream keys: root md %q, colliding md %q, equal=%v; colliding md's token values %q", kR, kC, kR == kC, mdColl.Get("token"))
+		// the docstring's example
+		dR := fmt.Sprintf("%+v", map[string][]string{"x": {"1"}, "token": {"t"}})
+		dC := fmt.Sprintf("%+v", map[string][]string{"x": {"1] token:[t"}})
+		logf(t, "[d] outTokOkS docstring example: %q vs %q, equal=%v", dR, dC, dR == dC)
+
+		for _, order := range []string{"root-first", "colliding-first"} {
+			anon := newCli(t, ep(1), "", "")
+			ctxR, cancelR := context.WithCancel(metadata.NewOutgoingContext(context.Background(), mdRoot))
+			ctxC, cancelC := context.WithCancel(metadata.NewOutgoingContext(context.Background(), mdColl))
+			var first, second outcome
+			if order == "root-first" {
+				// keep root's stream open (a live watch of z) while the colliding watch joins it
+				hold := anon.Watch(ctxR, "z")
+				_ = hold
+				time.Sleep(500 * time.Millisecond)
+				first = watchFor(anon, ctxR, 2*time.Second, "c/", cPrefix...)
+				second = watchFor(anon, ctxC, 2*time.Second, "c/", cPrefix...)
+				logf(t, "[d] %s: watch under root md: %v", order, first)
+				logf(t, "[d] %s: watch under colliding md (no token key): %v", order, second)
+				if second.events == 0 {
+					logf(t, "[d] %s: colliding watch not served as root", order)
+				}
+			} else {
+				// an anonymous create is refused and an empty stream closes: create the colliding one,
+				// then at once ten under root's md, so that some join the stream before it closes
+				var wg2 sync.WaitGroup
+				var mu2 sync.Mutex
+				var rs []string
+				wg2.Add(1)
+				go func() { defer wg2.Done(); first = watchFor(anon, ctxC, 3*time.Second, "c/", cPrefix...) }()
+				time.Sleep(200 * time.Microsecond)
+				for j := 0; j < 10; j++ {
+					wg2.Add(1)
+					go func() {
+						defer wg2.Done()
+						o := watchFor(anon, ctxR, 3*time.Second, "c/", cPrefix...)
+						mu2.Lock()
+						rs = append(rs, fmt.Sprintf("events=%d canceled=%v %q", o.events, o.canceled, o.reason))
+						mu2.Unlock()
+					}()
+				}
+				wg2.Wait()
+				sort.Strings(rs)
+				second = outcome{reason: strings.Join(rs, " | ")}
+				logf(t, "[d] %s: watch under colliding md (no token key): %v", order, first)
+				logf(t, "[d] %s: ten watches under root md (root token in its own md), concurrent: %s", order, second.reason)
+			}
+			cancelR()
+			cancelC()
+			anon.Close()
+		}
+	}
+
+	// (b) member 2 stopped, the log compacted past it, restarted: it catches up by a snapshot
+	si := stopIdx(t, clus)
+	m2 := clus.Members[si]
+	m2.Stop(t)
+	logf(t, "[b] member %d (a follower) stopped", si)
+	for i := 0; i < 40; i++ {
+		h.put(t, root, fmt.Sprintf("a/s%02d", i), "x")
+		h.put(t, root, fmt.Sprintf("c/s%02d", i), "x")
+	}
+	logf(t, "[b] 80 puts while member %d is down", si)
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	var probes, probeEvents, probeServed atomic.Int64
+	probe := func(name, user, pw string, md []string) {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			c, err := clientv3.New(clientv3.Config{Endpoints: []string{ep(si)}, Username: user, Password: pw,
+				DialTimeout: 300 * time.Millisecond, Logger: zap.NewNop()})
+			if err != nil {
+				time.Sleep(20 * time.Millisecond)
+				continue
+			}
+			ctx := context.Background()
+			if md != nil {
+				ctx = metadata.AppendToOutgoingContext(ctx, md...)
+			}
+			o := watchFor(c, ctx, 300*time.Millisecond, "c/", cPrefix...)
+			c.Close()
+			probes.Add(1)
+			if o.resps > 0 {
+				probeServed.Add(1)
+			}
+			if o.events > 0 {
+				probeEvents.Add(1)
+				logf(t, "[b] PROBE %s at member %d got events: %v", name, si, o)
+			}
+		}
+	}
+	for _, p := range []struct {
+		name, user, pw string
+		md             []string
+	}{{"anon", "", "", nil}, {"anon2", "", "", nil}, {"bad", "", "", []string{"token", "badtoken"}}, {"u", "u", uPw, nil}, {"v", "v", vPw, nil}} {
+		wg.Add(1)
+		go probe(p.name, p.user, p.pw, p.md)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if err := m2.Restart(t); err != nil {
+		t.Fatal(err)
+	}
+	logf(t, "[b] member %d restarted", si)
+	time.Sleep(6 * time.Second)
+	close(stop)
+	wg.Wait()
+	logf(t, "[b] probes during and after the restart: %d watches, %d answered, %d with events", probes.Load(), probeServed.Load(), probeEvents.Load())
+	if probeEvents.Load() > 0 {
+		bad.Add(1)
+	}
+	barrier(si)
+	// root's old token: the member lost it (simple tokens are in memory, and its Authenticate entry
+	// is inside the snapshot, not replayed); a fresh one, through the member, for the attack lines
+	{
+		a := newCli(t, ep(si), "", "")
+		o := watchFor(a, metadata.AppendToOutgoingContext(context.Background(), "authorization", rootTok), 2*time.Second, "c/", cPrefix...)
+		logf(t, "[b] member %d after snapshot, anonymous+authorization=<root's pre-restart token>: %v", si, o)
+		ar2, err := a.Authenticate(context.Background(), "root", rootPw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rootTok = ar2.Token
+		a.Close()
+		barrier(si)
+	}
+	refusals(t, fmt.Sprintf("[b] member %d after snapshot", si), ep(si), rootTok, &bad)
+	rangeCheck(t, fmt.Sprintf("[b] member %d after snapshot", si), ep(si), h, &bad)
+
+	logf(t, "unexpected outcomes: %d", bad.Load())
+	if bad.Load() != 0 {
+		t.Fail()
+	}
+}
+
+// A member that lags across AuthEnable (stopped before it, caught up by a snapshot after its
+// restart) checks a create against its own state: before it applies the snapshot, anonymous
+// watches pass (auth off there). A floor at another member does not cover it: watchFloorsD puts one
+// at every endpoint's member.
+func TestWatchOnLaggingEnable(t *testing.T) {
+	integration.BeforeTest(t, integration.WithoutGoLeakDetection())
+	clus := integration.NewCluster(t, &integration.ClusterConfig{Size: 3, SnapshotCount: 10, SnapshotCatchUpEntries: 5})
+	defer clus.Terminate(t)
+	ep := func(i int) string { return clus.Members[i].GRPCURL }
+	pre := newCli(t, ep(0), "", "")
+	if _, err := pre.Put(context.Background(), "c/1", "x"); err != nil {
+		t.Fatal(err)
+	}
+	si := stopIdx(t, clus)
+	m2 := clus.Members[si]
+	m2.Stop(t)
+	logf(t, "[lag] member %d (a follower) stopped, auth off there", si)
+	time.Sleep(2 * time.Second)
+	setupAuth(t, pre, false)
+	pre.Close()
+	root := newCli(t, ep(0), "root", rootPw)
+	defer root.Close()
+	hh := &hist{}
+	for i := 0; i < 60; i++ {
+		hh.put(t, root, fmt.Sprintf("c/s%02d", i), "x")
+	}
+	// the floor at member 0 (a linearizable read there)
+	if _, err := root.Get(context.Background(), "c/1"); err != nil {
+		t.Fatal(err)
+	}
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var served []string
+	var probes atomic.Int64
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			c, err := clientv3.New(clientv3.Config{Endpoints: []string{ep(si)}, DialTimeout: 300 * time.Millisecond, Logger: zap.NewNop()})
+			if err != nil {
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+			start := time.Now().Format("15:04:05.000")
+			o := watchFor(c, context.Background(), 300*time.Millisecond, "c/", cPrefix...)
+			c.Close()
+			probes.Add(1)
+			if o.events > 0 {
+				mu.Lock()
+				served = append(served, fmt.Sprintf("create sent at or after %s, read until %s: events=%d keys=%v", start, time.Now().Format("15:04:05.000"), o.events, o.keys[:min(3, len(o.keys))]))
+				mu.Unlock()
+			}
+		}
+	}()
+	time.Sleep(100 * time.Millisecond)
+	if err := m2.Restart(t); err != nil {
+		t.Fatal(err)
+	}
+	logf(t, "[lag] member %d restarted at %s", si, time.Now().Format("15:04:05.000"))
+	time.Sleep(5 * time.Second)
+	close(stop)
+	wg.Wait()
+	sort.Strings(served)
+	logf(t, "[lag] anonymous watches of c/ at member %d from its restart on: %d, with events: %d %s", si, probes.Load(), len(served), strings.Join(served, "; "))
+	// after a barrier at the member itself: refused
+	r2 := newCli(t, ep(si), "root", rootPw)
+	if _, err := r2.Get(context.Background(), "c/1"); err != nil {
+		t.Fatal(err)
+	}
+	r2.Close()
+	anon := newCli(t, ep(si), "", "")
+	o := watchFor(anon, context.Background(), 2*time.Second, "c/", cPrefix...)
+	anon.Close()
+	logf(t, "[lag] after a barrier at member %d: anonymous watch of c/: %v", si, o)
+}

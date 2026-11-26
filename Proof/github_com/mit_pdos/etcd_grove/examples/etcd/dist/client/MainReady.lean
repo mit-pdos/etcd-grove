@@ -3,13 +3,14 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/MainRead
 - `MainReady.wp_proofKv` (N7-kv, M1): the kv arm, at `RunKV.spec OP`.
 - `MainReady.wp_proof` (F8): every arm. The kv arm is `MainReady.specKv` at `kvOrchPre`; each other arm calls its
   workload's `Run*` at the share's parts (`wlShare_*`), the level-`0` token split off the thread token
-  (`threadTok_level0`; `RunCache` takes it whole), and the pure facts; `auth` and `authLease` are reached with a
-  `False` share (D2); an unknown kind returns `ended`.
+  (`threadTok_level0`; `RunCache` takes it whole), and the pure facts; `auth` is `MainReadyAuth.spec`'s arm (F7 S14), `authLease` is reached
+  with a `False` share (D2); an unknown kind returns `ended`.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.MainReady
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunKV
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.MainReadyAuth
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.NodeCount
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunCompact
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunWatch
@@ -95,9 +96,10 @@ theorem MainReady.wp_proof
     (hDu : RunDurable.spec (GF := GF) (hG := hG))
     (hLR : RunLeaseRead.spec (GF := GF) (hG := hG))
     (hLC : RunLeaseCatchup.spec (GF := GF) (hG := hG))
-    (hLE : RunLeaseExpiry.spec (GF := GF) (hG := hG)) :
+    (hLE : RunLeaseExpiry.spec (GF := GF) (hG := hG))
+    (hA : MainReadyAuth.spec (GF := GF) (hG := hG)) :
     MainReady.spec (GF := GF) (hG := hG) := by
-  intro π ρ w eps nodes epsL ns ready
+  intro π ρ errA fmtA rpcA w eps nodes epsL ns ready
   by_cases hk0 : w.kind = W64 0
   · -- kv: M1's arm
     rw [wlShare_kv hk0]
@@ -250,10 +252,15 @@ theorem MainReady.wp_proof
       iapply HΦ; ipureintro; trivial
     · wp_func_call; wp_call; wp_auto
       iapply HΦ; ipureintro; trivial
-  · -- auth: no share (D2)
+  · -- auth: `MainReadyAuth`'s arm (F7 S14), at `authShare`
     rw [wlShare_auth hk]
     wp_start_folded as ⟨%Hp, Htok, #Heps, #Hnodes, #Hready, Hsh⟩
-    iexfalso; iexact Hsh
+    obtain ⟨-, -, hm⟩ := Hp
+    wp_apply (hA w eps nodes epsL ns ready) $$ [Htok Hsh] as %r -
+    · iframe #
+      iframe
+      ipureintro; exact ⟨hk, hm⟩
+    iapply HΦ; ipureintro; trivial
   · -- authLease: no share (D2)
     rw [wlShare_authLease hk]
     wp_start_folded as ⟨%Hp, Htok, #Heps, #Hnodes, #Hready, Hsh⟩

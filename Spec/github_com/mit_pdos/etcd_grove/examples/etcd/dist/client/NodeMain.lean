@@ -2,10 +2,11 @@
 `client.NodeMain(w, c, addr, eps)`: client machine `c` of workload `w`, at `addr`, the members' client
 endpoints `eps`.
 - `NodeMain.spec` (F8, `notes/etcd-dist-plan.md` §27.3): **every arm**, from the client machine's share
-  `wlNodeShare w c addr (Rotate(eps, c))` (`client/Shares.lean`), its level token, and the pure facts the
-  dispatch and the boot give (`wlPure w`: the client count's bound; at most 64 endpoints; the rotated
-  endpoints plain; `nodeMachinePure`). kv: `kvremote.Node`; watch, cache: the writer (`NodeMainWatch.spec`);
-  auth: reached with a `False` share (D2); the other kinds have no client machine (it returns).
+  `wlNodeShare w c addr eps` (`client/Shares.lean`; its kv and writer arms at `Rotate(eps, c)`, its auth arm
+  `authNodePre` at `eps`: F7 S13), its level token, and the pure facts the dispatch and the boot give (`wlPure w`: the client
+  count's bound; at most 64 endpoints; the endpoints plain; `nodeMachinePure`). kv: `kvremote.Node`; watch,
+  cache: the writer (`NodeMainWatch.spec`); auth: the principal machine (`NodeMainAuth.spec`); the other kinds
+  have no client machine (it returns).
 - `NodeMain.specKv` (M1): **the kv arm only**: of a `kv` workload, when `c` is one of its
   client machines and `eps` is not empty, `kvremote.Node(c, addr, Rotate(eps, c))`; otherwise it returns.
 Proved for any precondition `NP` of `Node`. `Rotate`'s index
@@ -68,15 +69,15 @@ environment (its client's `newClient`), the logic's thread bound, and `EtcdError
 abbrev nodeMachinePure : Prop :=
   Nonempty (WEnv GF) ∧ threadBound GF ≤ 2 ^ 30 ∧ errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
 
-/-- Of any workload, from client machine `c`'s share at the rotated endpoints, its level token and the pure
-facts, `NodeMain` does not panic (see the file header). -/
+/-- Of any workload, from client machine `c`'s share at the members' endpoints (`wlNodeShare` rotates them where its
+arm needs it; F7 S13), its level token and the pure facts, `NodeMain` does not panic (see the file header). -/
 abbrev NodeMain.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (w : Workload) (c : w64) (addr : GoString) (eps : GoSlice)
     (epsL : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
-      ⌜wlPure w ∧ epsL.length ≤ 64 ∧ plainEndpoints (rotateL epsL (sint.nat c)) ∧ nodeMachinePure (GF := GF)⌝ ∗
+      ⌜wlPure w ∧ epsL.length ≤ 64 ∧ plainEndpoints epsL ∧ nodeMachinePure (GF := GF)⌝ ∗
       levelTok 0 ∗ eps ↦*□ epsL ∗
-      wlNodeShare (Gg := hG.goose_globalGS) w c addr (rotateL epsL (sint.nat c)) }}
+      wlNodeShare (Gg := hG.goose_globalGS) w c addr epsL }}
     (App (App (App (App (Val (@! client.NodeMain)) (Val #w.val)) (Val #c)) (Val #addr)) (Val #eps))
   {{ RET #(); True }}
 
