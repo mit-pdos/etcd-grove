@@ -7,7 +7,8 @@ records from the floor on is `setupSt r` (`authFloorD_frozen`): the cross-machin
 conjunct), whose admin states are a lower bound of the history (`authHistLb_of_reqLogLb`, the KV invariant),
 so a prefix of the frozen `hs` (`authHistFrozen_prefix`); they extend `Lset`'s, which are `hs`, so they are
 `hs`, and the state is `hs`'s last. An anonymous principal's lease check at or above the floor is then
-refuted (`leaseCheckD_none_frozen`): `setupSt` has auth enabled, and `P = none` binds no user.
+refuted (`leaseCheckD_none_frozen`): `setupSt` has auth enabled, and `P = none` binds no user. Also the dist
+copies of authlease's `leaseOptsAt_nil`/`_one` (`leaseOptsAt_nil_d`, `leaseOptsAt_one_d`), for `noAuth`/`foreign`.
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -93,6 +94,33 @@ theorem leaseCheckD_none_frozen (γa : auth.AuthNames) (i n : Nat) (r : Nat) (hi
     subst Heq
     simp [etcd_auth.setupSt] at Hj
   · cases Hp
+
+/-- No lease option (the dist copy of `etcd_authlease.leaseOptsAt_nil`). -/
+theorem leaseOptsAt_nil_d : ⊢ leaseOptsAt (GF := GF) slice.nil [] := by
+  iunfold leaseOptsAt
+  iexists ([] : List GoFunc)
+  isplitl
+  · iapply ownSlice_nil
+  isplitl
+  · ipureintro; rfl
+  imodintro
+  iintro %i %f %g %Hf %Hg
+  simp at Hf
+
+/-- One lease option (the dist copy of `etcd_authlease.leaseOptsAt_one`). -/
+theorem leaseOptsAt_one_d (sl : GoSlice) (f : GoFunc) (g : Bool → Bool) :
+    sl ↦*□ [f] ∗ leaseOptSpec (GF := GF) f g ⊢ leaseOptsAt sl [g] := by
+  iintro ⟨#Hsl, #Hf⟩
+  iunfold leaseOptsAt
+  iexists [f]
+  iframe Hsl
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %i %f' %g' %Hf' %Hg'
+  rcases i with _ | i
+  · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hf' Hg'; subst Hf' Hg'; iexact Hf
+  · simp at Hf'
 
 end ghost
 
