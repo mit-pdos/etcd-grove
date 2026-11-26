@@ -14,7 +14,8 @@ behaviours than Linux, never fewer), and the specs a raft transport over UDP nee
 | ghost state, its interpretation | `GooseLang/Ext/Udp/Ghost.lean` |
 | the extension's WPs | `GooseLang/Ext/Udp/Specs.lean` |
 | crash interpretation, start resources | `GooseLang/Ext/Udp/Adequacy.lean` |
-| `net`'s UDP models (trusted) | `Net/TrustedCode/net.lean` (the `UDPConn` section), `Net/Code/net.toml` |
+| `net`'s UDP Go model (trusted: its claim to behave as Go's) | `models/net/model.go` (the UDP part: `sysListener.listenUDP`, `UDPConn.readFrom`, `UDPConn.writeTo`, `UDPAddr.String`), its stubs' `.impl` in `Net/TrustedCode/net.lean` (`extUdp*`), `Net/Code/net.toml` |
+| the model's Go evidence | `models/internal/udpdifftest` (rows `net-udp`, `net-udp-kvraft` of `etc/gomodels.py`) |
 | Go-level specs and proofs | `Net/Spec/net/{ListenUDP,UDPConn__*}.lean`, `Net/Proof/net/...` |
 | one Lean `example` per measured row | `GooseLang/Ext/Udp/Tests.lean` |
 
@@ -29,22 +30,34 @@ TCP alone has `[netExt, ...]`, one that also uses UDP adds `udpExt`. The two sha
 kernel that a program could observe through the modeled calls (a TCP and a UDP socket may bind the
 same address and port: separate port spaces).
 
-**`UDPConn` is a trusted type of its own layout**, not Go's `struct{ conn }`: Go's `UDPConn` embeds
-the same `conn` as `TCPConn`, whose trusted methods (`conn.Close`, the deadlines, ...) call the TCP
-extension. A translated `UDPConn` would route `Close` to TCP's model. The model's `UDPConn` is
-`struct{ uid uint64; laddr Addr; net string }` with its own trusted `WriteToUDP` and `ReadFromUDP`.
-`Close` is not modeled: goose resolves the promoted `conn` methods (`Close`, the deadlines, ...)
-through the embedded `conn` field, which this layout lacks, so a program calling one is stuck. A
-program over UDP keeps its socket for its process's life (the kernel closes it at exit or crash,
-U7). Modeling `Close` would need `conn.Close`'s TCP model to dispatch on the network: an edit of
-the TCP models, left for when a program needs it.
+**`UDPConn` is Go's, over a Go model** (etcd-grove#58, 2026-11-25; until then a trusted Lean layout
+`struct{ uid; laddr; net }` with trusted Lean models of `ListenUDP`, `WriteToUDP`, `ReadFromUDP` and
+the premise `net.UdpFieldAssumptions`). Go's `UDPConn` (`struct{ conn }`), `ListenUDP`, `WriteToUDP`,
+`ReadFromUDP`, `readFromUDP` and `conn`'s methods promoted to `*UDPConn` are translated; the Go model
+(`models/net/model.go`) replaces the layer under them, as for TCP: `sysListener.listenUDP` (the
+datagram socket), `UDPConn.readFrom`/`writeTo` (recvfrom(2)/sendto(2) with the sockaddr conversions)
+and `UDPAddr.String`, over the stubs `extUdpListen`, `extUdpSend`, `extUdpRecv`, `extUdpAny*`, one
+UDP-extension operation each. A model UDP socket is a `netFD` with Go's `family` `AF_INET` and
+`sotype` `SOCK_DGRAM`, the extension's id in `pfd.Sysfd`.
 
-**`Close` is an unprovable path, not a no-op and not TCP's `Close`.** With `UDPConn` trusted and
-`UDPConn.Close` not listed, goose emits no unfold of the promoted `conn` methods for it
-(`UDPConn.TypeAssumptions` has only `ptr_ReadFromUDP_unfold` and `ptr_WriteToUDP_unfold`; an earlier
-regeneration, with `UDPConn.Close` listed as trusted, had emitted `ptr_Close_unfold` through the
-embedded field, and was dropped). So a call of `Close`, `Read`, `Write`, the deadlines, `LocalAddr`
-on a `*UDPConn` has no step: no WP of it can be proved, whatever the program relies on.
+**The model's layer: decided at `readFrom`/`writeTo`** (review-trusted criterion 2). The independent
+review-trusted run (2026-11-25) asked for the model one layer lower, at `netFD.readFromInet4`/
+`writeToInet4`, with `UDPConn.readFrom`/`writeTo` translated. That would mean translating and proving
+`zoneCache` (a global `sync.RWMutex` with its package init), `errMissingAddress`, `ipToSockaddrInet4`,
+`IPv4zero`, `AddrError` and the `[4]byte` sockaddr conversion, and it would take only that conversion
+out of the model. Upamanyu decided against it: the go-models rest packet, with this model at
+`readFrom`/`writeTo`, was approved and the lower layer is not required (coordinator-E, etcd-grove#8,
+https://github.com/mit-pdos/etcd-grove/issues/8#issuecomment-7179776557, 2026-11-25).
+
+**`Close` (and every other `conn` method that reaches the socket) is stuck on a UDP socket.** The
+promoted methods are Go's, and reach the TCP models of `netFD`'s methods (`Close`, `Read`, `Write`,
+the deadlines, `setReadBuffer`/`setWriteBuffer`); each of those is stuck (`stuck()`, the shared
+stuck point) on a `netFD` whose `sotype` is `SOCK_DGRAM` (U12), so no proof passes a call of one,
+and TCP's extension never acts on a UDP socket (a TCP `netFD` of the model has `sotype` 0: `fdAt`
+says it is not `SOCK_DGRAM`). `LocalAddr`/`RemoteAddr` are Go's (the socket's addresses: an
+arbitrary `*UDPAddr`, nil). A program over UDP keeps its socket for its process's life (the kernel
+closes it at exit or crash, U7); modeling `Close` would need a UDP-extension operation, left for
+when a program needs it.
 
 **The network is the datagrams sent to each address, never consumed** (as Perennial's Grove
 extension, `GroveGlobalState.groveNet`, Perennial's model of a datagram network since the Rocq
@@ -95,8 +108,8 @@ concise plan). The rows `U1`... are those of `examples/net/semantics/doc.go`.
 The UDP extension of GooseLang [Trusted definitions!]: the semantics of Go's `net` package's UDP
 sockets (`net.ListenUDP`, `(*UDPConn).WriteToUDP`, `ReadFromUDP`), between the nodes of a
 distributed system (Perennial's `DistLang.lean`). Its operations are the socket layer under those
-calls; the trusted models of `net`'s UDP functions and methods (`Net/TrustedCode/net.lean`, the
-`UDP` section) call them. Each decision below has a Go example measured on Linux in
+calls; the trusted models of `net`'s UDP functions and methods (the Go model's `extUdp*` stubs, `models/net/model.go`,
+`Net/TrustedCode/net.lean`) call them. Each decision below has a Go example measured on Linux in
 `examples/net/semantics/udp_*_test.go` (indexed in its `doc.go`, rows `U1`...), and an `example` of
 `GooseLang/Ext/Udp/Tests.lean` (outside the trust base) that the relations allow or exclude what
 the Go example shows; `notes/net-udp.md` gives the reasons.
@@ -178,8 +191,8 @@ ephemeral range). Any other address panics (U13): a use the deployment excludes 
 * U8 initial states: no socket on a node (`UdpLocal.init`), no datagram in the network
   (`UdpGlobal.init`).
 * U9 errors: every failure is D14's kind `sys`, a system call's error (an `*os.SyscallError` with
-  an arbitrary nonzero `Errno`), wrapped by the models in Go's `*OpError`
-  (`Net/TrustedCode/net.lean`). The kinds `closed` and `timeout` cannot occur: no socket is closed
+  an arbitrary nonzero `Errno`), wrapped by Go's code in its `*OpError` (the Go model,
+  `models/net/model.go`, gives the system call's error). The kinds `closed` and `timeout` cannot occur: no socket is closed
   and no deadline set (U12).
 * `"AnyBool"`, `"AnyString"`, `"AnyW64"`, `"AnyErrno"`: an arbitrary value; for `"AnyErrno"` a
   nonzero word (the parts of an error and of an address the model does not explain).
@@ -210,10 +223,11 @@ many concurrent operations on a single file or socket") when more than 1048575 c
 socket's read or write lock; the model lets them wait. A program with more than 2^20 goroutines
 blocked on one socket can panic in Go where the model says it cannot.
 
-**What is not modeled** (U12): `Close` and every other method of `conn` promoted to `*UDPConn`
-(the translation has no unfold of them for the trusted `UDPConn`, `UDPConn.TypeAssumptions` lists
-only `ReadFromUDP` and `WriteToUDP`, so a call is stuck; Go's `Close`, which a program over UDP need
-not call: its process's end closes the socket, U7), deadlines on a `UDPConn`, connected UDP sockets (`DialUDP`, `Read`,
+**What is not modeled** (U12): `Close` and every other method of `conn` promoted to `*UDPConn` that
+reaches the socket (Go's code, translated, reaches a model of `netFD`'s methods that is stuck on a
+`SOCK_DGRAM` socket; Go's `Close`, which a program over UDP need not call: its process's end closes
+the socket, U7), deadlines on a `UDPConn`, connected UDP sockets (`DialUDP`, `Read`,
 `Write`), `ListenPacket`, wildcard and IPv6 addresses, the networks `"udp"` and `"udp6"`,
-broadcast, multicast, `ReadMsgUDP`/`WriteMsgUDP`, socket options and buffer sizes, `LocalAddr`,
-`RemoteAddr`. Their methods have no model, so a program calling one is stuck (no proof).
+broadcast, multicast, `ReadMsgUDP`/`WriteMsgUDP`, socket options and buffer sizes. Their methods
+are not translated or are stuck in the model, so no proof passes a call of one. (`LocalAddr`,
+`RemoteAddr`: Go's, the socket's arbitrary local `*UDPAddr` and nil.)

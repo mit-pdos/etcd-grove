@@ -32,6 +32,11 @@ importable Proof.google_golang_org.grpc.InvGrpcRun
 importable Proof.google_golang_org.grpc.InvGrpcStats
 importable Proof.google_golang_org.grpc.InvGrpcHealth
 importable Proof.google_golang_org.grpc.InvGrpcProm
+# the header block's vocabulary (`HeaderFields`, `InvHeader`: the specs of the header helpers and of
+# `createHeaderFields` are written in it;
+# W1, 2026-11-26)
+importable Proof.google_golang_org.grpc.HeaderFields
+importable Proof.google_golang_org.grpc.InvHeader
 # the package's initialization
 importable Proof.google_golang_org.grpc.Init
 importable Proof.google_golang_org.grpc.InitLinked

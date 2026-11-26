@@ -63,7 +63,6 @@ opaque grpcRepModelOf
 opaque grpcReqModelOf
 opaque grpcSrvPI
 opaque lease.leaseEnc
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

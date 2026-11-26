@@ -8,4 +8,3 @@
 roots ^Proof/go_etcd_io/etcd/cache/v3/Link\.lean$
 roots \bcache_(New|Get|Watch|Watch_delivery|WaitForRevision|WaitForNextResync|Close)$
 axiom proto.EqualStatus.wp_proof
-opaque metadata.builtRawMDRaw

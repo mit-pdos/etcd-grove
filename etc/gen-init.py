@@ -1753,7 +1753,7 @@ _G['doc'] = _G['doc'].replace('''runs the
 untranslated initializers of its other variables''', '''runs the
 translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
 (`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
-(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_proof`) and the slice literals of
+(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_linked`) and the slice literals of
 codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
 translated, goose `[[skip]]`), runs the untranslated initializers of its other variables''')
 newvars_cfg(_G, ['errMalformedFrame', 'errStreamDone', 'errHeaderListTooLarge'])
@@ -1762,7 +1762,7 @@ _G['alloc_types'].update({'ErrClientConnClosing': 'GoInterface', 'transportFailu
 _G['before'].update({
     'ErrClientConnClosing': [
         'try wp_auto',
-        'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %rErrClientConnClosing -',
+        'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_linked as %rErrClientConnClosing -',
         '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)'],
     'transportFailureCodes': [
         'try wp_auto',
@@ -1773,7 +1773,7 @@ _G['before'].update({
         'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %shttp2ErrConvTab ⟨Shttp2ErrConvTab, -⟩',
         'try wp_auto'],
 })
-_G['imports'].append('Proof.google_golang_org.grpc.status.Error')
+_G['imports'].append('Proof.google_golang_org.grpc.status.ErrorLinked')
 # (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(...))`
 # (`stream.go:53`; until then a goose `[[skip]]`): the load through `internal`'s invariant gives
 # `metadata.fromOutgoingContextRaw` (`metadata`'s fact: its `init` stored it), whose type is the asserted one
@@ -2316,6 +2316,26 @@ literal) and initializes its imports.''',
             'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
             'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩'])
+
+# (grpc-health, 2026-11-26) its fact `healthDescs` (`grpc/health/grpc_health_v1/Base.lean`): the
+# descriptor's fields, its methods and stream exactly, as the grpcdriver's
+SPECIAL['google_golang_org.grpc.health.grpc_health_v1'] = dict(
+    doc='''Its fact (`healthDescs`, `grpc_health_v1/Base.lean`): its service descriptor `Health_ServiceDesc`,
+read-only, with its methods and stream exactly. Its initializer allocates and sets the descriptor (a
+`grpc.ServiceDesc` literal, translated since 2026-11-26), initializes its imports and runs its `init`, whose
+trusted model does nothing (`TrustedCode/google_golang_org/grpc/health/grpc_health_v1.lean`).''',
+    alloc_types={'Health_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
+    # the descriptor's two slice literals, before its `init` runs (Go's order: variables, then `init`)
+    before={'$inits': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %pm ⟨Sm, -⟩; try wp_auto',
+                       'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %ps ⟨Ss, -⟩; try wp_auto']},
+    finish=['try wp_auto', 'ipersist Sm', 'ipersist Ss', 'ipersist HHealth_ServiceDesc',
+            'iStructNamed HHealth_ServiceDesc', 'iframe Hown', 'is_pkg_init_finish'] +
+           ['try imodintro', 'unfold google_golang_org.grpc.health.grpc_health_v1.healthDescs go_etcd_io.etcd.cache.v3.pbDescIs',
+            'iframe #',
+            'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize]))',
+            'try (ipureintro; exact ⟨rfl, rfl⟩)', 'try exact ⟨rfl, rfl⟩',
+            # the slice literal's second element, at index `sint.nat 1`
+            'all_goals (simp [sint.nat, BitVec.toInt])'])
 
 SPECIAL['go_etcd_io.etcd.api.v3.etcdserverpb'] = dict(
     doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service

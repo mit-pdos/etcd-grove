@@ -13,7 +13,7 @@ initializer initializes its imports, allocates `EnableTracing` (`var EnableTraci
 `trace.go:33` at v1.84.0: translated, no initializer, so its cell holds `false`), runs the
 translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
 (`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
-(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_proof`) and the slice literals of
+(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_linked`) and the slice literals of
 codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
 translated, goose `[[skip]]`), runs the
 translated initializer of `metadataFromOutgoingContextRaw` (the type assertion of

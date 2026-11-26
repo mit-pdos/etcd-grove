@@ -191,7 +191,6 @@ opaque lease.leasesNoExpiry
 opaque membership.memBucketsOk
 opaque membership.membersOf
 opaque membership.peerURLsOk
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque mvcc.kvEncode
 opaque mvcc.viewFk

@@ -43,7 +43,6 @@ opaque grpcRepModelOf
 opaque grpcRepliesFit
 opaque grpcReqModelOf
 opaque grpcSrvPI
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque noRefusalAt
 opaque peer.transportPeer

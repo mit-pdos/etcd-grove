@@ -405,12 +405,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
 noncomputable instance sysListener_typed_pointsto :
-    TypedPointsto (GF := GF) net.sysListener :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.sysListener where
+  typedPointstoDef l v dq := iprop(
+    "ListenConfig" ∷ typedPointsto (structFieldRef net.sysListener go!"ListenConfig" l) v.ListenConfig' dq ∗
+    "network" ∷ typedPointsto (structFieldRef net.sysListener go!"network" l) v.network' dq ∗
+    "address" ∷ typedPointsto (structFieldRef net.sysListener go!"address" l) v.address' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance sysListener_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.sysListener net.sysListener.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.sysListener net.sysListener.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance sysListener_access_load_ListenConfig (l : Loc) (v : net.sysListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.sysListener go!"ListenConfig" l) v.ListenConfig' dq)
+      (typedPointsto (structFieldRef net.sysListener go!"ListenConfig" l) v.ListenConfig' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sysListener_access_store_ListenConfig (l : Loc) (v : net.sysListener) (ListenConfig' : net.ListenConfig) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.sysListener go!"ListenConfig" l) v.ListenConfig' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.sysListener go!"ListenConfig" l) ListenConfig' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ListenConfig' := ListenConfig' } : net.sysListener) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sysListener_access_load_network (l : Loc) (v : net.sysListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.sysListener go!"network" l) v.network' dq)
+      (typedPointsto (structFieldRef net.sysListener go!"network" l) v.network' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sysListener_access_store_network (l : Loc) (v : net.sysListener) (network' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.sysListener go!"network" l) v.network' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.sysListener go!"network" l) network' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with network' := network' } : net.sysListener) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sysListener_access_load_address (l : Loc) (v : net.sysListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.sysListener go!"address" l) v.address' dq)
+      (typedPointsto (structFieldRef net.sysListener go!"address" l) v.address' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance sysListener_access_store_address (l : Loc) (v : net.sysListener) (address' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.sysListener go!"address" l) v.address' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.sysListener go!"address" l) address' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with address' := address' } : net.sysListener) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end sysListener
@@ -1199,25 +1254,6 @@ noncomputable instance AddrError_into_val_typed :
 end def_
 end AddrError
 
-namespace UnknownNetworkError
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance UnknownNetworkError_typed_pointsto :
-    TypedPointsto (GF := GF) net.UnknownNetworkError :=
-  sorry -- axiomatized type
-
-noncomputable instance UnknownNetworkError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.UnknownNetworkError net.UnknownNetworkError.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnknownNetworkError
-
 namespace InvalidAddrError
 section def_
 
@@ -1922,6 +1958,46 @@ noncomputable instance addrPortUDPAddr_into_val_typed :
 
 end def_
 end addrPortUDPAddr
+
+namespace UDPConn
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions]
+
+noncomputable instance UDPConn_typed_pointsto :
+    TypedPointsto (GF := GF) net.UDPConn where
+  typedPointstoDef l v dq := iprop(
+    "conn" ∷ typedPointsto (structFieldRef net.UDPConn go!"conn" l) v.conn' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance UDPConn_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.UDPConn net.UDPConn.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance UDPConn_access_load_conn (l : Loc) (v : net.UDPConn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPConn go!"conn" l) v.conn' dq)
+      (typedPointsto (structFieldRef net.UDPConn go!"conn" l) v.conn' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance UDPConn_access_store_conn (l : Loc) (v : net.UDPConn) (conn' : net.conn) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.UDPConn go!"conn" l) v.conn' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.UDPConn go!"conn" l) conn' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conn' := conn' } : net.UDPConn) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end UDPConn
 
 namespace UnixAddr
 section def_

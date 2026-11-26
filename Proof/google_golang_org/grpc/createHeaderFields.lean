@@ -23,6 +23,8 @@ public import Spec.strings.ToLower
 public import Spec.strings.TrimSuffix
 public import Spec.time.Until
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Perennial.Proof.fmt.PureArgs
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -65,6 +67,19 @@ local macro "append_hf" : tactic => `(tactic| (
     · iexact Hcap
     iexact Hlsl))
 
+/-- An error grpc's `status` accepts is an argument `fmt` formats by its `Error()`
+(`fmt.isArg_error`): the credentials' error in `status.Errorf`'s `%v`. -/
+theorem grpc.isArg_of_statusErrOk (e : GoInterfaceOk) :
+    go_etcd_io.etcd.cache.v3.statusErrOk (GF := GF) (GoInterface.ok e) ⊢
+      _root_.Perennial.fmt.isArg (GoInterface.ok e) (.method fun _ => True) := by
+  iintro #H
+  ihave #Hs := go_etcd_io.etcd.cache.v3.errStrOk_of_statusErrOk (GoInterface.ok e) $$ H
+  unfold go_etcd_io.etcd.cache.v3.errStrOk
+  icases Hs $$ %e %rfl with ⟨#HE, %hF⟩
+  iapply (fmt.isArg_error _ hF.1 hF.2)
+  iunfold go_etcd_io.etcd.cache.v3.errorStringSpec at HE
+  unfold _root_.Perennial.fmt.stringMethodSpec; iexact HE
+
 set_option maxHeartbeats 2000000 in
 open github_com.mit_pdos.perennial.goose.model.strings in
 theorem grpc.createHeaderFields.wp_proof
@@ -76,7 +91,7 @@ theorem grpc.createHeaderFields.wp_proof
     (wp_ValidatePair : imetadata.ValidatePair.spec (GF := GF) (hG := hG))
     (wp_IsRestricted : istatus.IsRestrictedControlPlaneCode.spec (GF := GF) (hG := hG))
     (wp_FromError : status.FromError.spec (GF := GF) (hG := hG))
-    (wp_Errorf : status.Errorf.spec (GF := GF) (hG := hG))
+    (wp_Errorf : status.Errorf.spec_args (GF := GF) (hG := hG))
     (wp_Error : status.Error.spec (GF := GF) (hG := hG))
     (wp_encodeMetadataHeader : grpc.encodeMetadataHeader.spec (GF := GF) (hG := hG))
     (wp_isReservedHeader : grpc.isReservedHeader.spec (GF := GF) (hG := hG))
@@ -230,8 +245,17 @@ theorem grpc.createHeaderFields.wp_proof
           wp_auto
           isplitl []
           · ipureintro; rfl
-          iintro %asl2 -
-          wp_apply (wp_Errorf (W32 16)) as %e2 %He2
+          iintro %asl2 ⟨Hasl2, -⟩
+          ihave Hargs2 : ([∗list] x;a ∈ [GoInterface.ok e];[_root_.Perennial.fmt.Arg.method fun _ => True],
+              _root_.Perennial.fmt.isArg (GF := GF) x a) $$ []
+          · iapply BigSepL2.bigSepL2_cons.2
+            isplitl
+            · iapply grpc.isArg_of_statusErrOk; iexact Hse
+            · iapply BigSepL2.bigSepL2_nil.2; itrivial
+          wp_apply (wp_Errorf (W32 16) _
+              [.lit go!"transport: per-RPC creds failed due to error: ", .dir none _root_.Perennial.fmt.verb_v] _
+              [GoInterface.ok e] [.method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits))
+            $$ [$Hasl2 $Hargs2] as %e2 ⟨%s2, -, -, -, %He2, -⟩
           · ipureintro
             simp only [google_golang_org.grpc.codes.OK]
             exact fun h => absurd (go.intoVal_inj h) (by decide)
@@ -253,8 +277,17 @@ theorem grpc.createHeaderFields.wp_proof
             wp_auto
             isplitl []
             · ipureintro; rfl
-            iintro %asl2 -
-            wp_apply (wp_Errorf (W32 13)) as %e2 %He2
+            iintro %asl2 ⟨Hasl2, -⟩
+            ihave Hargs2 : ([∗list] x;a ∈ [GoInterface.ok e];[_root_.Perennial.fmt.Arg.method fun _ => True],
+                _root_.Perennial.fmt.isArg (GF := GF) x a) $$ []
+            · iapply BigSepL2.bigSepL2_cons.2
+              isplitl
+              · iapply grpc.isArg_of_statusErrOk; iexact Hse
+              · iapply BigSepL2.bigSepL2_nil.2; itrivial
+            wp_apply (wp_Errorf (W32 13) _
+                [.lit go!"transport: received per-RPC creds error with illegal status: ", .dir none _root_.Perennial.fmt.verb_v] _
+                [GoInterface.ok e] [.method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits))
+              $$ [$Hasl2 $Hargs2] as %e2 ⟨%s2, -, -, -, %He2, -⟩
             · ipureintro
               simp only [google_golang_org.grpc.codes.OK]
               exact fun h => absurd (go.intoVal_inj h) (by decide)
@@ -836,7 +869,7 @@ theorem grpc.createHeaderFields.wp_proof
               simp [Hn.2.2]
             · have hn : sint.nat n = ((Mo !! key).getD []).length := by
                 obtain ⟨hl, _⟩ := Hslen; obtain ⟨_, hle, _⟩ := Hn; word
-              rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
+              simp only [hlt, decide_false, Bool.false_eq_true, decide_eq_true_eq, show (#false : val) ≠ #true from fun h => absurd (go.intoVal_inj h) (by decide), eq_self_iff_true, ↓reduceIte]
               unfold forMapPostcondition
               iright; ileft
               isplitr
@@ -993,7 +1026,7 @@ theorem grpc.createHeaderFields.wp_proof
             simp [Hn.2.2.1, hres]
       · have hn : sint.nat n = row.length := by
           obtain ⟨hl, _⟩ := Hrowlen; obtain ⟨_, hle, _⟩ := Hn; word
-        rw [ite_eq_right (by simp [hlt2]), ite_eq_right (by simp [hlt2])]
+        simp only [hlt2, decide_false, Bool.false_eq_true, decide_eq_true_eq, show (#false : val) ≠ #true from fun h => absurd (go.intoVal_inj h) (by decide), eq_self_iff_true, ↓reduceIte]
         wp_for_post
         iframe
         iexists m + W64 1, kk', rs, _, _
@@ -1024,7 +1057,7 @@ theorem grpc.createHeaderFields.wp_proof
         simp
     · have hm : sint.nat m = rows.length := by
         obtain ⟨hl, _⟩ := Hrsl; obtain ⟨_, hle, _⟩ := Hm; word
-      rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
+      simp only [hlt, decide_false, Bool.false_eq_true, decide_eq_true_eq, show (#false : val) ≠ #true from fun h => absurd (go.intoVal_inj h) (by decide), eq_self_iff_true, ↓reduceIte]
       wp_auto
       ihave Hch : chp ↦{dq} ch $$ [Host Method SendCompress AcceptedCompressors Creds ContentSubtype
         PreviousAttempts Authority]

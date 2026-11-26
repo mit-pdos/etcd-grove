@@ -90,7 +90,6 @@ opaque grpcReqModelOf
 opaque grpcSrvPI
 opaque k8sfeature.featureOffRaw
 opaque k8sfeature.featureOnRaw
-opaque metadata.builtRawMDRaw
 opaque metadata.transportMDRaw
 opaque metrics.latencyTrackerOk
 opaque mvcc.kvEncode

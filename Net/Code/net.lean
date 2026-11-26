@@ -463,8 +463,6 @@ opaque Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque sysDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque sysListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque SRV.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque byPriorityWeight.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -516,8 +514,6 @@ opaque canceledError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 opaque ParseError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque AddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque UnknownNetworkError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque InvalidAddrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1458,6 +1454,15 @@ noncomputable def sotypeToNet [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def setReadMsgCloseOnExec [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.setReadMsgCloseOnExec"
 
+noncomputable def udpFD [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.udpFD"
+
+noncomputable def anyUDPAddr [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.anyUDPAddr"
+
+noncomputable def udpSysErr [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.udpSysErr"
+
 noncomputable def netOk [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.netOk"
 
@@ -1527,6 +1532,27 @@ noncomputable def netClosingErr [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def stuck [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.stuck"
 
+noncomputable def extUdpListen [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpListen"
+
+noncomputable def extUdpSend [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpSend"
+
+noncomputable def extUdpRecv [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpRecv"
+
+noncomputable def extUdpAnyString [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpAnyString"
+
+noncomputable def extUdpAnyW64 [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpAnyW64"
+
+noncomputable def extUdpAnyBool [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpAnyBool"
+
+noncomputable def extUdpAnyErrno [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net.extUdpAnyErrno"
+
 noncomputable def detach [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.detach"
 
@@ -1538,7 +1564,7 @@ noncomputable def errnoCode [GooseExts] [GoGlobalContext] : GoString :=
     D16); the connection's addresses arbitrary (D18); an error is Go's `&OpError{Op: "dial", Net:
     network, Addr: <the resolved address>}` (dialSingle), as Listen's.
 
-    go: model.go:179:6 -/
+    go: model.go:223:6 -/
 noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1608,7 +1634,7 @@ noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
     or poll.ErrDeadlineExceeded (netFD.connect's wait under the dial's deadline). The timeout's value
     is not modelled (any timeout may expire, as D5's deadlines).
 
-    go: model.go:195:6 -/
+    go: model.go:239:6 -/
 noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1695,7 +1721,7 @@ noncomputable def DialTimeout.impl [GooseExts] [GoGlobalContext] : val :=
     the address arbitrary (anyListenAddr: with a nil IP too, Go's for ":p") and the failing system
     call's name too (any of Go's).
 
-    go: model.go:163:6 -/
+    go: model.go:207:6 -/
 noncomputable def Listen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -1802,14 +1828,16 @@ noncomputable def isConnError.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: netFD.Close (fd_posix.go, poll.FD.Close): the extension's Close (D3: success, or
     `closed` for a second close; Linux's close(2) of a socket does not fail).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:69:18 -/
+    go: model.go:90:18 -/
 noncomputable def netFD.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (App (App (Val (GoInstruction (FuncResolve extClose []))) (Val #())) (Var "$a0")))
   (Let "$a1" (Val #(go!"close"))
@@ -1819,12 +1847,17 @@ noncomputable def netFD.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: netFD.closeWrite (fd_posix.go: shutdown(2) with SHUT_WR, wrapSyscallError("shutdown")):
     the extension's CloseWrite (D4).
 
-    go: model.go:75:18 -/
+    go: model.go:99:18 -/
 noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -1846,8 +1879,9 @@ noncomputable def netFD.closeWrite.impl [GooseExts] [GoGlobalContext] : val :=
     poller, wrapped by wrapSyscallError("read")): the extension's Read of len(p) bytes (D1, the
     outcomes of Linux's read(2) with Go's poller), the bytes copied into p; 0 bytes from a
     non-empty p is io.EOF, as poll.FD's ZeroReadIsEOF; an error is the kind's (codeKindErr).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:39:18 -/
+    go: model.go:52:18 -/
 noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "p"
@@ -1858,6 +1892,7 @@ noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
@@ -1915,15 +1950,21 @@ noncomputable def netFD.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "code") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- MODEL: netFD.Write (fd_posix.go, poll.FD.Write's loop): a write(2) of p[nn:] with its wait is
     one step of the extension's Write (D2), which says whether it is the call's first (D25: the
     end's write lock, Go's fd.writeLock()), until a step fails or every byte is written. Go's
     maxRW chunks are among a step's outcomes (any prefix).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:54:18 -/
+    go: model.go:71:18 -/
 noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "p"
@@ -1934,6 +1975,7 @@ noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
@@ -1987,13 +2029,19 @@ noncomputable def netFD.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))))
   (Lam BAnon
-  (Val #()))))))
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
 /-- MODEL: netFD.SetDeadline (fd_posix.go, poll.FD.SetDeadline): the extension's SetDeadline of
     both deadlines (D5; the zero time clears them).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:81:18 -/
+    go: model.go:106:18 -/
 noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2001,6 +2049,7 @@ noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
   (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (Let "$a1" (Val #(W64 0))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
@@ -2011,12 +2060,18 @@ noncomputable def netFD.SetDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: netFD.SetReadDeadline: the read deadline only (D5).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:86:18 -/
+    go: model.go:115:18 -/
 noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2024,6 +2079,7 @@ noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val
   (Seq (App (Val exceptionDo)
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
   (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (Let "$a1" (Val #(W64 1))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
@@ -2034,12 +2090,18 @@ noncomputable def netFD.SetReadDeadline.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: netFD.SetWriteDeadline: the write deadline only (D5).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:91:18 -/
+    go: model.go:124:18 -/
 noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "t"
@@ -2047,6 +2109,7 @@ noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : va
   (Seq (App (Val exceptionDo)
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
   (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (Let "$a1" (Val #(W64 2))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
@@ -2057,14 +2120,19 @@ noncomputable def netFD.SetWriteDeadline.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: netFD.accept (fd_unix.go: accept4(2) through the poller, ECONNABORTED retried, errors
     wrapped by wrapSyscallError("accept4")): the extension's Accept (D7); the new socket's addresses
     arbitrary (D18), its network the listener's (Go's newFD(d, fd.family, fd.sotype, fd.net)).
 
-    go: model.go:98:18 -/
+    go: model.go:134:18 -/
 noncomputable def netFD.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam BAnon
@@ -2903,6 +2971,51 @@ noncomputable def OpError.Temporary.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- go: net.go:603:30 -/
+noncomputable def UnknownNetworkError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc UnknownNetworkError.ty))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"unknown network ")) (App (Val (GoInstruction (GoLoad UnknownNetworkError.ty))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: net.go:604:30 -/
+noncomputable def UnknownNetworkError.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc UnknownNetworkError.ty))) (Var "e"))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: net.go:605:30 -/
+noncomputable def UnknownNetworkError.Temporary.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc UnknownNetworkError.ty))) (Var "e"))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- go: net.go:630:24 -/
 noncomputable def timeoutError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
@@ -2966,8 +3079,9 @@ noncomputable def timeoutError.Is.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setReadBuffer (sockopt_posix.go: SO_RCVBUF, wrapSyscallError("setsockopt")): the
     extension's SetSockopt of an option of no validity condition (D24; Linux clamps the value).
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:108:6 -/
+    go: model.go:145:6 -/
 noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "bytes"
@@ -2975,6 +3089,7 @@ noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "bytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bytes"))
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (Let "$a1" (Val #(W64 0))
   (Let "$a2" (Val #(W64 0))
@@ -2985,12 +3100,18 @@ noncomputable def setReadBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: setWriteBuffer (SO_SNDBUF), as setReadBuffer.
+    Stuck on a datagram (UDP) socket: not modelled there (U12), never the TCP extension's operation.
 
-    go: model.go:113:6 -/
+    go: model.go:154:6 -/
 noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "bytes"
@@ -2998,6 +3119,7 @@ noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "bytes" (App (Val (GoInstruction (GoAlloc go.int))) (Var "bytes"))
   (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))))
   (Let "$a1" (Val #(W64 0))
   (Let "$a2" (Val #(W64 0))
@@ -3008,12 +3130,17 @@ noncomputable def setWriteBuffer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"sotype"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd")))) (Val #(W64 2)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- MODEL: setKeepAlive (SO_KEEPALIVE), whatever the value (D24).
 
-    go: model.go:118:6 -/
+    go: model.go:162:6 -/
 noncomputable def setKeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "keepalive"
@@ -3036,7 +3163,7 @@ noncomputable def setKeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setLinger (SO_LINGER), whatever the value (D24: a resetting Close is a cut, D1).
 
-    go: model.go:123:6 -/
+    go: model.go:167:6 -/
 noncomputable def setLinger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "sec"
@@ -3078,7 +3205,7 @@ noncomputable def TCPAddr.Network.impl [GooseExts] [GoGlobalContext] : val :=
     IP.String formats through net/netip, which nothing translates): an arbitrary string. Go's
     String always returns (a nil receiver gives "<nil>"), with no other effect.
 
-    go: model.go:217:19 -/
+    go: model.go:261:19 -/
 noncomputable def TCPAddr.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
@@ -3518,7 +3645,7 @@ noncomputable def TCPListener.ok.impl [GooseExts] [GoGlobalContext] : val :=
     they change in the kernel is not observable beyond D1's cuts, D24), and with it its reads of
     the test hooks testPreHookSetKeepAlive and testHookSetKeepAlive (nil outside net's tests).
 
-    go: model.go:143:24 -/
+    go: model.go:187:24 -/
 noncomputable def TCPListener.accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ln"
   (Lam BAnon
@@ -3570,7 +3697,7 @@ noncomputable def TCPListener.accept.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: TCPListener.close (tcpsock_posix.go: ln.fd.Close(), close(2) of the listening socket):
     the extension's LisClose (D9), the extension's operation on a listener.
 
-    go: model.go:153:24 -/
+    go: model.go:197:24 -/
 noncomputable def TCPListener.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ln"
   (Lam BAnon
@@ -3590,7 +3717,7 @@ noncomputable def TCPListener.close.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- MODEL: setNoDelay (tcpsockopt_posix.go: TCP_NODELAY), whatever the value (D24).
 
-    go: model.go:128:6 -/
+    go: model.go:172:6 -/
 noncomputable def setNoDelay.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "noDelay"
@@ -3615,7 +3742,7 @@ noncomputable def setNoDelay.impl [GooseExts] [GoGlobalContext] : val :=
     default for 0, nothing for d < 0): the extension's SetSockopt of kind 1 with d, whose
     arithmetic the extension's keepIdleValid transcribes (D24).
 
-    go: model.go:135:6 -/
+    go: model.go:179:6 -/
 noncomputable def setKeepAliveIdle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Lam "d"
@@ -3636,10 +3763,663 @@ noncomputable def setKeepAliveIdle.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
+/-- Network returns the address's network name, "udp".
+
+    go: udpsock.go:42:19 -/
+noncomputable def UDPAddr.Network.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "a"))
+  (Let "$r0" (Val #(go!"udp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- MODEL: UDPAddr.String (udpsock.go: JoinHostPort of ipEmptyString(a.IP), the zone and the port,
+    through net/netip's formatting, which nothing translates): an arbitrary string, as
+    TCPAddr.String's (ListenUDP computes it for its sysListener, whose listenUDP does not read it).
+
+    go: model.go:326:19 -/
+noncomputable def UDPAddr.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "a"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve extUdpAnyString []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: udpsock.go:62:19 -/
+noncomputable def UDPAddr.opAddr.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "a"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType UDPAddr.ty) Addr.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "a")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Addr.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType UDPAddr.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "a")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPAddr.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Addr.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Addr.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad Addr.ty))) (Var "$res0"))))))
+
+/-- ReadFromUDP acts like [UDPConn.ReadFrom] but returns a UDPAddr.
+
+    go: udpsock.go:133:19 -/
+noncomputable def UDPConn.ReadFromUDP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "b"
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Let "addr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPAddr.ty)))) (Val #())))
+  (Let "$res1" (Var "addr")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res2" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (Var "c"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoAlloc UDPAddr.ty))) (App (Val (GoInstruction (CompositeLiteral UDPAddr.ty))) (LiteralValue [])))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPConn.ty) go!"readFromUDP"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))))
+
+/-- readFromUDP implements ReadFromUDP.
+
+    go: udpsock.go:142:19 -/
+noncomputable def UDPConn.readFromUDP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "b"
+  (Lam "addr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPAddr.ty)))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (Var "c"))
+  (Let "addr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPConn.ty) go!"readFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType OpError.ty) go.error))) (App (Val (GoInstruction (GoAlloc OpError.ty))) (Let "$v0" (Val #(go!"read"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"net"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c")))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"laddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c")))))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"raddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c")))))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral OpError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Net")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Source")) (ElementExpression Addr.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Addr")) (ElementExpression Addr.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression go.error (Var "$v4")))])))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "addr") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPConn.ty) go!"ok"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))) (Val #())))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPAddr.ty)))) (Val UntypedNil))
+  (Let "$r2" (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 22)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
+
+/-- WriteToUDP acts like [UDPConn.WriteTo] but takes a [UDPAddr].
+
+    go: udpsock.go:208:19 -/
+noncomputable def UDPConn.WriteToUDP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "b"
+  (Lam "addr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (Var "c"))
+  (Let "addr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPConn.ty) go!"writeTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType OpError.ty) go.error))) (App (Val (GoInstruction (GoAlloc OpError.ty))) (Let "$v0" (Val #(go!"write"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"net"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c")))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad Addr.ty))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"laddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c")))))))
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPAddr.ty) go!"opAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))) (Val #()))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral OpError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Net")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Source")) (ElementExpression Addr.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Addr")) (ElementExpression Addr.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression go.error (Var "$v4")))])))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPConn.ty) go!"ok"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))) (Val #())))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (Val #(W64 22)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- go: udpsock.go:278:6 -/
+noncomputable def newUDPConn.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fd"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPConn.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (Var "fd"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc UDPConn.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "fd"))
+  (App (Val (GoInstruction (CompositeLiteral conn.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType netFD.ty) (Var "$v0")))])))
+  (App (Val (GoInstruction (CompositeLiteral UDPConn.ty))) (LiteralValue [(KeyedElement none (ElementExpression conn.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "$res0")))))
+
+/-- ListenUDP acts like [ListenPacket] for UDP networks.
+
+    The network must be a UDP network name; see func [Dial] for details.
+
+    If the IP field of laddr is nil or an unspecified IP address,
+    ListenUDP listens on all available IP addresses of the local system
+    except multicast IP addresses.
+    If the Port field of laddr is 0, a port number is automatically
+    chosen.
+
+    go: udpsock.go:320:6 -/
+noncomputable def ListenUDP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "network"
+  (Lam "laddr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPConn.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "laddr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))
+  (Let "network" (App (Val (GoInstruction (GoAlloc go.string))) (Var "network"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc sysListener.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "network"))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPAddr.ty) go!"String"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral sysListener.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"network")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"address")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "sl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sysListener.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType sysListener.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType sysListener.ty) go!"listenUDP"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sysListener.ty)))) (Var "sl"))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPConn.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPConn.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert (go.GoType.PointerType OpError.ty) go.error))) (App (Val (GoInstruction (GoAlloc OpError.ty))) (Let "$v0" (Val #(go!"listen"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "network"))
+  (Let "$v2" (Val UntypedNil)
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPAddr.ty) go!"opAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))) (Val #()))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral OpError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Net")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Source")) (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement (some (KeyField go!"Addr")) (ElementExpression Addr.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression go.error (Var "$v4")))])))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "c") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType sysListener.ty)))) (Pair (Var "sl") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType UDPAddr.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPAddr.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc UDPAddr.ty))) (App (Val (GoInstruction (CompositeLiteral UDPAddr.ty))) (LiteralValue [])))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "laddr") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "network"))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"udp6")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"udp4")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"udp"))))))
+  (App (Val doExecute)
+  (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPConn.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert (go.GoType.PointerType OpError.ty) go.error))) (App (Val (GoInstruction (GoAlloc OpError.ty))) (Let "$v0" (Val #(go!"listen"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "network"))
+  (Let "$v2" (Val UntypedNil)
+  (Let "$v3" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType UDPAddr.ty) go!"opAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))) (Val #()))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.string))) (Var "network"))
+  (App (Val (GoInstruction (CompositeLiteral OpError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Net")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Source")) (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement (some (KeyField go!"Addr")) (ElementExpression Addr.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression UnknownNetworkError.ty (Var "$v4")))])))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- MODEL: UDPConn.readFrom (udpsock_posix.go: on an AF_INET socket, fd.readFromInet4, poll.FD's
+    loop over recvfrom(2) through the poller, wrapped by wrapSyscallError("recvfrom"), then the
+    sender's address into *addr): the UDP extension's Recv of len(b) bytes (U4: the first len(b)
+    bytes of a datagram sent to the socket's address, the rest discarded; U5), copied into b; *addr
+    set to an arbitrary address (U10: Go's is the sender's, which the program must not trust); an
+    error is the system call's (U9: `*os.SyscallError` "recvfrom", any nonzero Errno; closed and
+    timeout cannot occur, U12), with a nil address, as Go's. A model UDP socket is AF_INET.
+
+    go: model.go:296:19 -/
+noncomputable def UDPConn.readFrom.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "b"
+  (Lam "addr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPAddr.ty)))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (Var "c"))
+  (Let "addr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))))))))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve extUdpRecv []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (App (Val (GoInstruction (FuncResolve extUdpAnyString []))) (Val #())) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (App (Val (GoInstruction (FuncResolve extUdpAnyW64 []))) (Val #())) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral UDPAddr.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"IP")) (ElementExpression IP.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Port")) (ElementExpression go.int (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore UDPAddr.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr")) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code")) (Val #(W64 0))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPAddr.ty)))) (Val UntypedNil))
+  (Let "$r2" (Let "$a0" (Val #(go!"recvfrom"))
+  (App (App (Val (GoInstruction (FuncResolve udpSysErr []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPAddr.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "code") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
+
+/-- MODEL: UDPConn.writeTo (udpsock_posix.go: ErrWriteToConnected on a connected socket, which a
+    model socket never is; errMissingAddress for a nil addr, not modelled: stuck; on an AF_INET
+    socket ipToSockaddrInet4(addr.IP, addr.Port), then fd.writeToInet4, poll.FD's sendto(2) through
+    the poller, wrapped by wrapSyscallError("sendto")): the UDP extension's Send of b to addr's IP
+    and Port (U2, U3: one datagram; the extension panics unless they make a valid address, U1, as
+    for Go's AddrError on a non-IPv4 IP), (len(b), nil) on success (a datagram is sent whole); an
+    error is the system call's (U9).
+
+    go: model.go:312:19 -/
+noncomputable def UDPConn.writeTo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "b"
+  (Lam "addr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (Var "c"))
+  (Let "addr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"Sysfd"))) (App (Val (GoInstruction (StructFieldRef netFD.ty go!"pfd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"fd"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "c"))))))))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")))
+  (Let "$a2" (App (Val (GoInstruction (Convert IP.ty go.string))) (App (Val (GoInstruction (GoLoad IP.ty))) (App (Val (GoInstruction (StructFieldRef UDPAddr.ty go!"IP"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr")))))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef UDPAddr.ty go!"Port"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr"))))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve extUdpSend []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code")) (Val #(W64 0))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Let "$a0" (Val #(go!"sendto"))
+  (App (App (Val (GoInstruction (FuncResolve udpSysErr []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "code") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType UDPAddr.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "addr")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPAddr.ty)))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- MODEL: sysListener.listenUDP (udpsock_posix.go: internetSocket(ctx, sl.network, laddr, nil,
+    SOCK_DGRAM, 0, "listen", ...): favoriteAddrFamily, socket(2), the default socket options, bind(2)
+    in listenDatagram, the poller's registration, getsockname(2)): for "udp4" (any other network is
+    not modelled: stuck, U12), the UDP extension's Listen of laddr's IP and Port (U1: the extension
+    panics unless they make a valid address, as with a nil or empty IP, Go's wildcard); the socket's
+    local address arbitrary (Go's sockaddrToUDP of getsockname, a non-nil *UDPAddr), no remote address
+    (listenDatagram's setAddr(laddr, nil)). An error is the system call's, an `*os.SyscallError` with
+    an arbitrary name (socket, setsockopt, bind) and nonzero Errno (U9), or a bare nonzero Errno:
+    listenDatagram returns fd.init()'s error unwrapped (sock_posix.go), the epoll registration's
+    ENOMEM/ENOSPC. The ListenConfig's Control hook is not called (ListenUDP's is the zero one).
+
+    go: model.go:275:24 -/
+noncomputable def sysListener.listenUDP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "sl"
+  (Lam "ctx"
+  (Lam "laddr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPConn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType UDPConn.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "sl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sysListener.ty)))) (Var "sl"))
+  (Let "laddr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert IP.ty go.string))) (App (Val (GoInstruction (GoLoad IP.ty))) (App (Val (GoInstruction (StructFieldRef UDPAddr.ty go!"IP"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef UDPAddr.ty go!"Port"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPAddr.ty)))) (Var "laddr"))))
+  (App (App (App (Val (GoInstruction (FuncResolve extUdpListen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef sysListener.ty go!"network"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sysListener.ty)))) (Var "sl"))))
+  (App (App (App (Val (GoInstruction (FuncResolve udpFD []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val (GoInstruction (FuncResolve newUDPConn []))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "code")) (Val #(W64 0))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPConn.ty)))) (Val UntypedNil))
+  (Let "$r1" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve extUdpAnyString []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve udpSysErr []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (App (Val (GoInstruction (FuncResolve extUdpAnyBool []))) (Val #())) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType UDPConn.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert _root_.Perennial.syscall.Errno.ty go.error))) (App (App (Val (GoInstruction (FuncResolve extUdpAnyErrno []))) (Val #())) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType UDPConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "code") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "id") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef sysListener.ty go!"network"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sysListener.ty)))) (Var "sl")))) (Val #(go!"udp4"))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve stuck []))) (Val #())) (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType UDPConn.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
+/-- udpFD: a datagram netFD (Go's newFD(s, AF_INET, SOCK_DGRAM, 0, nw) and setAddr) for the UDP
+    extension's socket `id` (in pfd.Sysfd), on the network nw, with an arbitrary local address and
+    no remote one.
+
+    go: model.go:335:6 -/
+noncomputable def udpFD.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "id"
+  (Lam "nw"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType netFD.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType netFD.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "nw" (App (Val (GoInstruction (GoAlloc go.string))) (Var "nw"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc netFD.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int))) (Var "id"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.internal.poll.FD.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Sysfd")) (ElementExpression go.int (Var "$v0")))])))
+  (Let "$v1" (Val #(W64 2))
+  (Let "$v2" (Val #(W64 2))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.string))) (Var "nw"))
+  (Let "$v4" (App (App (Val (GoInstruction (FuncResolve anyUDPAddr []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral netFD.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"pfd")) (ElementExpression _root_.Perennial.internal.poll.FD.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"family")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"sotype")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"net")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"laddr")) (ElementExpression Addr.ty (Var "$v4")))]))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType netFD.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType netFD.ty)))) (Var "$res0"))))))
+
+/-- anyUDPAddr: a new *UDPAddr with arbitrary fields (as an Addr: Go's sockaddrToUDP of getsockname(2),
+    whose error listenDatagram ignores, leaving a nil address; getsockname of a bound AF_INET socket
+    on Linux fails only where a security module denies it, which the target configuration excludes).
+
+    go: model.go:343:6 -/
+noncomputable def anyUDPAddr.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType UDPAddr.ty) Addr.ty))) (App (Val (GoInstruction (GoAlloc UDPAddr.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (App (Val (GoInstruction (FuncResolve extUdpAnyString []))) (Val #())) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (App (Val (GoInstruction (FuncResolve extUdpAnyW64 []))) (Val #())) (Val #())))
+  (Let "$v2" (App (App (Val (GoInstruction (FuncResolve extUdpAnyString []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral UDPAddr.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"IP")) (ElementExpression IP.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Port")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"Zone")) (ElementExpression go.string (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Addr.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Addr.ty))) (Var "$res0")))))
+
+/-- udpSysErr: a system call's error as wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}`,
+    n arbitrary and nonzero (the UDP extension's AnyErrno, so that a program over UDP alone needs no
+    TCP extension).
+
+    go: model.go:350:6 -/
+noncomputable def udpSysErr.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.os.SyscallError.ty) go.error))) (App (Val (GoInstruction (GoAlloc _root_.Perennial.os.SyscallError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve extUdpAnyErrno []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.os.SyscallError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Syscall")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression _root_.Perennial.syscall.Errno.ty (Var "$v1")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+
 /-- netOk: the networks the model has (D23): "tcp", and "tcp4", which behaves as "tcp" on the
     IPv4 addresses the extension accepts.
 
-    go: model.go:225:6 -/
+    go: model.go:356:6 -/
 noncomputable def netOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3657,7 +4437,7 @@ noncomputable def netOk.impl [GooseExts] [GoGlobalContext] : val :=
     addresses la and ra (Go's newFD and setAddr; the other fields are read only by code the model
     does not translate).
 
-    go: model.go:232:6 -/
+    go: model.go:363:6 -/
 noncomputable def modelFD.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -3685,7 +4465,7 @@ noncomputable def modelFD.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newConn: a new *TCPConn (Go's newTCPConn, as TCPListener.accept's model) for the connection
     end `id`, with arbitrary addresses (D18).
 
-    go: model.go:238:6 -/
+    go: model.go:369:6 -/
 noncomputable def newConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "nw"
@@ -3720,7 +4500,7 @@ noncomputable def newConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- anyTCPAddr: a new *TCPAddr with arbitrary fields (D18: Go's sockaddrToTCP of getsockname or
     getpeername; never nil for a connected or bound IPv4 socket).
 
-    go: model.go:246:6 -/
+    go: model.go:377:6 -/
 noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
@@ -3740,7 +4520,7 @@ noncomputable def anyTCPAddr.impl [GooseExts] [GoGlobalContext] : val :=
     *TCPAddr with a nil IP and an arbitrary port (Go's for an empty host, ":p": internetAddrList's
     inetaddr(IPAddr{}), with "tcp" and "tcp4").
 
-    go: model.go:253:6 -/
+    go: model.go:384:6 -/
 noncomputable def anyListenAddr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Addr.ty))) (App (Val (GoInstruction (GoZeroVal Addr.ty))) (Val #())))
@@ -3768,7 +4548,7 @@ noncomputable def anyListenAddr.impl [GooseExts] [GoGlobalContext] : val :=
     errClosing), poll.ErrDeadlineExceeded for `timeout`, and for `sys` the system call's error as
     wrapSyscallError wraps it, `&os.SyscallError{name, Errno(n)}` with n arbitrary and nonzero.
 
-    go: model.go:263:6 -/
+    go: model.go:394:6 -/
 noncomputable def codeKindErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
@@ -3808,7 +4588,7 @@ noncomputable def codeKindErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- codeErr: nil for success, else codeKindErr.
 
-    go: model.go:274:6 -/
+    go: model.go:405:6 -/
 noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "code"
   (Lam "name"
@@ -3839,7 +4619,7 @@ noncomputable def codeErr.impl [GooseExts] [GoGlobalContext] : val :=
 /-- detach (gc builds only, used by the stubs' bodies): the fd of a socket Go's own code made, as
     a plain blocking socket the stubs use, the netFD Go made closed.
 
-    go: model.go:415:6 -/
+    go: model.go:603:6 -/
 noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fd"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -3901,7 +4681,7 @@ noncomputable def detach.impl [GooseExts] [GoGlobalContext] : val :=
 /-- errnoCode (gc builds only): an errno's code: EBADF `closed`, EAGAIN (a socket timeout)
     `timeout`, any other `sys`.
 
-    go: model.go:427:6 -/
+    go: model.go:615:6 -/
 noncomputable def errnoCode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -4430,24 +5210,54 @@ attribute [instance] ListenConfig.TypeAssumptions.type_repr
   ListenConfig.TypeAssumptions.method_set
   ListenConfig.TypeAssumptions.ptr_method_set
 
-opaque sysListener.nonempty_type : NonemptyType.{0}
-def sysListener : Type := sysListener.nonempty_type.type
-instance sysListener.nonempty : Nonempty sysListener := sysListener.nonempty_type.property
-opaque sysListener.zero_val : ZeroVal sysListener := ⟨Classical.ofNonempty⟩
-attribute [instance] sysListener.zero_val
+structure sysListener [GooseExts] where
+  mk ::
+  ListenConfig' : ListenConfig
+  network' : GoString
+  address' : GoString
+
+noncomputable instance sysListener.zero_val [GooseExts] : ZeroVal sysListener :=
+  ⟨sysListener.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def sysListener.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"ListenConfig" ListenConfig.ty),
+(go.field_decl.FieldDecl go!"network" go.string),
+(go.field_decl.FieldDecl go!"address" go.string)]
+
+@[irreducible] noncomputable def sysListener.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  sysListener.fieldsUnsealed
+
+noncomputable instance equals_unfold_sysListener [GooseExts] [GoGlobalContext] :
+    EqualsUnfold sysListener.fields sysListener.fieldsUnsealed :=
+  ⟨by unfold sysListener.fields; rfl⟩
+
+@[reducible] noncomputable def sysListener.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType sysListener.fields)
 
 class sysListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sysListener.underlying sysListener
   underlying : go.UnderlyingDirectedEq sysListener.ty sysListener.underlying
-  isUnderlying : go.IsUnderlying sysListener.underlying sysListener.underlying
+  get_ListenConfig : ∀ (x : sysListener), go.IsGoStepPureDetTagged under (StructFieldGet sysListener.underlying go!"ListenConfig") #x (Val #(x.ListenConfig'))
+  set_ListenConfig : ∀ (x : sysListener) (y : ListenConfig), go.IsGoStepPureDetTagged under (StructFieldSet sysListener.underlying go!"ListenConfig") (PairV #x #y) (Val #(({ x with ListenConfig' := y } : sysListener)))
+  get_network : ∀ (x : sysListener), go.IsGoStepPureDetTagged under (StructFieldGet sysListener.underlying go!"network") #x (Val #(x.network'))
+  set_network : ∀ (x : sysListener) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet sysListener.underlying go!"network") (PairV #x #y) (Val #(({ x with network' := y } : sysListener)))
+  get_address : ∀ (x : sysListener), go.IsGoStepPureDetTagged under (StructFieldGet sysListener.underlying go!"address") #x (Val #(x.address'))
+  set_address : ∀ (x : sysListener) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet sysListener.underlying go!"address") (PairV #x #y) (Val #(({ x with address' := y } : sysListener)))
   method_set : go.MethodSetIs sysListener.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sysListener.ty) [(go!"Listen", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [Listener.ty, go.error]))), (go!"ListenPacket", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, go.string] false [PacketConn.ty, go.error]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false []))), (go!"net.listenIP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType IPAddr.ty)] false [(go.GoType.PointerType IPConn.ty), go.error]))), (go!"net.listenMPTCP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPListener.ty), go.error]))), (go!"net.listenMulticastUDP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType Interface.ty), (go.GoType.PointerType UDPAddr.ty)] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"net.listenTCP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPListener.ty), go.error]))), (go!"net.listenTCPProto", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType TCPAddr.ty), go.int] false [(go.GoType.PointerType TCPListener.ty), go.error]))), (go!"net.listenUDP", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType UDPAddr.ty)] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"net.listenUnix", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixListener.ty), go.error]))), (go!"net.listenUnixgram", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixConn.ty), go.error])))]
+  ptr_listenUDP_unfold : MethodUnfold (go.GoType.PointerType sysListener.ty) go!"listenUDP" sysListener.listenUDP.impl
 
 attribute [instance] sysListener.TypeAssumptions.type_repr
   sysListener.TypeAssumptions.underlying
-  sysListener.TypeAssumptions.isUnderlying
+  sysListener.TypeAssumptions.get_ListenConfig
+  sysListener.TypeAssumptions.set_ListenConfig
+  sysListener.TypeAssumptions.get_network
+  sysListener.TypeAssumptions.set_network
+  sysListener.TypeAssumptions.get_address
+  sysListener.TypeAssumptions.set_address
   sysListener.TypeAssumptions.method_set
   sysListener.TypeAssumptions.ptr_method_set
+  sysListener.TypeAssumptions.ptr_listenUDP_unfold
 
 opaque SRV.nonempty_type : NonemptyType.{0}
 def SRV : Type := SRV.nonempty_type.type
@@ -5257,24 +6067,34 @@ attribute [instance] AddrError.TypeAssumptions.type_repr
   AddrError.TypeAssumptions.method_set
   AddrError.TypeAssumptions.ptr_method_set
 
-opaque UnknownNetworkError.nonempty_type : NonemptyType.{0}
-def UnknownNetworkError : Type := UnknownNetworkError.nonempty_type.type
-instance UnknownNetworkError.nonempty : Nonempty UnknownNetworkError := UnknownNetworkError.nonempty_type.property
-opaque UnknownNetworkError.zero_val : ZeroVal UnknownNetworkError := ⟨Classical.ofNonempty⟩
-attribute [instance] UnknownNetworkError.zero_val
+abbrev UnknownNetworkError [GooseExts] : Type := GoString
+
+@[reducible] noncomputable def UnknownNetworkError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.string
 
 class UnknownNetworkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying UnknownNetworkError.underlying UnknownNetworkError
   underlying : go.UnderlyingDirectedEq UnknownNetworkError.ty UnknownNetworkError.underlying
-  isUnderlying : go.IsUnderlying UnknownNetworkError.underlying UnknownNetworkError.underlying
   method_set : go.MethodSetIs UnknownNetworkError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnknownNetworkError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  Error_unfold : MethodUnfold UnknownNetworkError.ty go!"Error" UnknownNetworkError.Error.impl
+  Temporary_unfold : MethodUnfold UnknownNetworkError.ty go!"Temporary" UnknownNetworkError.Temporary.impl
+  Timeout_unfold : MethodUnfold UnknownNetworkError.ty go!"Timeout" UnknownNetworkError.Timeout.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType UnknownNetworkError.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve UnknownNetworkError.ty go!"Error"))) (App (Val (GoInstruction (GoLoad UnknownNetworkError.ty))) (Var "$r"))))
+  ptr_Temporary_unfold : MethodUnfold (go.GoType.PointerType UnknownNetworkError.ty) go!"Temporary" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve UnknownNetworkError.ty go!"Temporary"))) (App (Val (GoInstruction (GoLoad UnknownNetworkError.ty))) (Var "$r"))))
+  ptr_Timeout_unfold : MethodUnfold (go.GoType.PointerType UnknownNetworkError.ty) go!"Timeout" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve UnknownNetworkError.ty go!"Timeout"))) (App (Val (GoInstruction (GoLoad UnknownNetworkError.ty))) (Var "$r"))))
 
-attribute [instance] UnknownNetworkError.TypeAssumptions.type_repr
-  UnknownNetworkError.TypeAssumptions.underlying
-  UnknownNetworkError.TypeAssumptions.isUnderlying
+attribute [instance] UnknownNetworkError.TypeAssumptions.underlying
   UnknownNetworkError.TypeAssumptions.method_set
   UnknownNetworkError.TypeAssumptions.ptr_method_set
+  UnknownNetworkError.TypeAssumptions.Error_unfold
+  UnknownNetworkError.TypeAssumptions.Temporary_unfold
+  UnknownNetworkError.TypeAssumptions.Timeout_unfold
+  UnknownNetworkError.TypeAssumptions.ptr_Error_unfold
+  UnknownNetworkError.TypeAssumptions.ptr_Temporary_unfold
+  UnknownNetworkError.TypeAssumptions.ptr_Timeout_unfold
 
 opaque InvalidAddrError.nonempty_type : NonemptyType.{0}
 def InvalidAddrError : Type := InvalidAddrError.nonempty_type.type
@@ -5949,6 +6769,9 @@ class UDPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_Zone : ∀ (x : UDPAddr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet UDPAddr.underlying go!"Zone") (PairV #x #y) (Val #(({ x with Zone' := y } : UDPAddr)))
   method_set : go.MethodSetIs UDPAddr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPAddr.ty) [(go!"AddrPort", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.AddrPort" [])]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [_root_.Perennial.syscall.Sockaddr.ty, go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
+  ptr_Network_unfold : MethodUnfold (go.GoType.PointerType UDPAddr.ty) go!"Network" UDPAddr.Network.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType UDPAddr.ty) go!"String" UDPAddr.String.impl
+  ptr_opAddr_unfold : MethodUnfold (go.GoType.PointerType UDPAddr.ty) go!"opAddr" UDPAddr.opAddr.impl
 
 attribute [instance] UDPAddr.TypeAssumptions.type_repr
   UDPAddr.TypeAssumptions.underlying
@@ -5960,6 +6783,9 @@ attribute [instance] UDPAddr.TypeAssumptions.type_repr
   UDPAddr.TypeAssumptions.set_Zone
   UDPAddr.TypeAssumptions.method_set
   UDPAddr.TypeAssumptions.ptr_method_set
+  UDPAddr.TypeAssumptions.ptr_Network_unfold
+  UDPAddr.TypeAssumptions.ptr_String_unfold
+  UDPAddr.TypeAssumptions.ptr_opAddr_unfold
 
 opaque addrPortUDPAddr.nonempty_type : NonemptyType.{0}
 def addrPortUDPAddr : Type := addrPortUDPAddr.nonempty_type.type
@@ -5980,20 +6806,83 @@ attribute [instance] addrPortUDPAddr.TypeAssumptions.type_repr
   addrPortUDPAddr.TypeAssumptions.method_set
   addrPortUDPAddr.TypeAssumptions.ptr_method_set
 
+structure UDPConn [GooseExts] where
+  mk ::
+  conn' : conn
+
+noncomputable instance UDPConn.zero_val [GooseExts] : ZeroVal UDPConn :=
+  ⟨UDPConn.mk zeroValDef⟩
+
+@[reducible] noncomputable def UDPConn.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"conn" conn.ty)]
+
+@[irreducible] noncomputable def UDPConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  UDPConn.fieldsUnsealed
+
+noncomputable instance equals_unfold_UDPConn [GooseExts] [GoGlobalContext] :
+    EqualsUnfold UDPConn.fields UDPConn.fieldsUnsealed :=
+  ⟨by unfold UDPConn.fields; rfl⟩
+
+@[reducible] noncomputable def UDPConn.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType UDPConn.fields)
+
 class UDPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UDPConn.underlying UDPConn
   underlying : go.UnderlyingDirectedEq UDPConn.ty UDPConn.underlying
+  get_conn : ∀ (x : UDPConn), go.IsGoStepPureDetTagged under (StructFieldGet UDPConn.underlying go!"conn") #x (Val #(x.conn'))
+  set_conn : ∀ (x : UDPConn) (y : conn), go.IsGoStepPureDetTagged under (StructFieldSet UDPConn.underlying go!"conn") (PairV #x #y) (Val #(({ x with conn' := y } : UDPConn)))
   method_set : go.MethodSetIs UDPConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.os.File.ty), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadFromUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"ReadMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [_root_.Perennial.syscall.RawConn.ty, go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"WriteToUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readFromAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.readFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeMsgAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"net.writeToAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error])))]
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"Close" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Close"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_LocalAddr_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"LocalAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"LocalAddr"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"Read" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Read"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
   ptr_ReadFromUDP_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"ReadFromUDP" UDPConn.ReadFromUDP.impl
+  ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"RemoteAddr" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetReadDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"SetWriteDeadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"Write"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
   ptr_WriteToUDP_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"WriteToUDP" UDPConn.WriteToUDP.impl
+  ptr_ok_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"ok" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"ok"))) (App (Val (GoInstruction (StructFieldRef UDPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"readFrom" UDPConn.readFrom.impl
+  ptr_readFromUDP_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"readFromUDP" UDPConn.readFromUDP.impl
+  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType UDPConn.ty) go!"writeTo" UDPConn.writeTo.impl
 
 attribute [instance] UDPConn.TypeAssumptions.type_repr
   UDPConn.TypeAssumptions.underlying
+  UDPConn.TypeAssumptions.get_conn
+  UDPConn.TypeAssumptions.set_conn
   UDPConn.TypeAssumptions.method_set
   UDPConn.TypeAssumptions.ptr_method_set
+  UDPConn.TypeAssumptions.ptr_Close_unfold
+  UDPConn.TypeAssumptions.ptr_LocalAddr_unfold
+  UDPConn.TypeAssumptions.ptr_Read_unfold
   UDPConn.TypeAssumptions.ptr_ReadFromUDP_unfold
+  UDPConn.TypeAssumptions.ptr_RemoteAddr_unfold
+  UDPConn.TypeAssumptions.ptr_SetDeadline_unfold
+  UDPConn.TypeAssumptions.ptr_SetReadBuffer_unfold
+  UDPConn.TypeAssumptions.ptr_SetReadDeadline_unfold
+  UDPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
+  UDPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
+  UDPConn.TypeAssumptions.ptr_Write_unfold
   UDPConn.TypeAssumptions.ptr_WriteToUDP_unfold
+  UDPConn.TypeAssumptions.ptr_ok_unfold
+  UDPConn.TypeAssumptions.ptr_readFrom_unfold
+  UDPConn.TypeAssumptions.ptr_readFromUDP_unfold
+  UDPConn.TypeAssumptions.ptr_writeTo_unfold
 
 opaque UnixAddr.nonempty_type : NonemptyType.{0}
 def UnixAddr : Type := UnixAddr.nonempty_type.type
@@ -6147,7 +7036,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   setLinger_unfold : FuncUnfold setLinger [] setLinger.impl
   setNoDelay_unfold : FuncUnfold setNoDelay [] setNoDelay.impl
   setKeepAliveIdle_unfold : FuncUnfold setKeepAliveIdle [] setKeepAliveIdle.impl
+  newUDPConn_unfold : FuncUnfold newUDPConn [] newUDPConn.impl
   ListenUDP_unfold : FuncUnfold ListenUDP [] ListenUDP.impl
+  udpFD_unfold : FuncUnfold udpFD [] udpFD.impl
+  anyUDPAddr_unfold : FuncUnfold anyUDPAddr [] anyUDPAddr.impl
+  udpSysErr_unfold : FuncUnfold udpSysErr [] udpSysErr.impl
   netOk_unfold : FuncUnfold netOk [] netOk.impl
   modelFD_unfold : FuncUnfold modelFD [] modelFD.impl
   newConn_unfold : FuncUnfold newConn [] newConn.impl
@@ -6171,6 +7064,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   extAnyErrno_unfold : FuncUnfold extAnyErrno [] extAnyErrno.impl
   netClosingErr_unfold : FuncUnfold netClosingErr [] netClosingErr.impl
   stuck_unfold : FuncUnfold stuck [] stuck.impl
+  extUdpListen_unfold : FuncUnfold extUdpListen [] extUdpListen.impl
+  extUdpSend_unfold : FuncUnfold extUdpSend [] extUdpSend.impl
+  extUdpRecv_unfold : FuncUnfold extUdpRecv [] extUdpRecv.impl
+  extUdpAnyString_unfold : FuncUnfold extUdpAnyString [] extUdpAnyString.impl
+  extUdpAnyW64_unfold : FuncUnfold extUdpAnyW64 [] extUdpAnyW64.impl
+  extUdpAnyBool_unfold : FuncUnfold extUdpAnyBool [] extUdpAnyBool.impl
+  extUdpAnyErrno_unfold : FuncUnfold extUdpAnyErrno [] extUdpAnyErrno.impl
   detach_unfold : FuncUnfold detach [] detach.impl
   errnoCode_unfold : FuncUnfold errnoCode [] errnoCode.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
@@ -6275,7 +7175,11 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.setLinger_unfold
   Assumptions.setNoDelay_unfold
   Assumptions.setKeepAliveIdle_unfold
+  Assumptions.newUDPConn_unfold
   Assumptions.ListenUDP_unfold
+  Assumptions.udpFD_unfold
+  Assumptions.anyUDPAddr_unfold
+  Assumptions.udpSysErr_unfold
   Assumptions.netOk_unfold
   Assumptions.modelFD_unfold
   Assumptions.newConn_unfold
@@ -6299,6 +7203,13 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.extAnyErrno_unfold
   Assumptions.netClosingErr_unfold
   Assumptions.stuck_unfold
+  Assumptions.extUdpListen_unfold
+  Assumptions.extUdpSend_unfold
+  Assumptions.extUdpRecv_unfold
+  Assumptions.extUdpAnyString_unfold
+  Assumptions.extUdpAnyW64_unfold
+  Assumptions.extUdpAnyBool_unfold
+  Assumptions.extUdpAnyErrno_unfold
   Assumptions.detach_unfold
   Assumptions.errnoCode_unfold
   Assumptions.import_context_Assumption

@@ -31,7 +31,7 @@ public import Proof.google_golang_org.grpc.resolver.Init
 public import Proof.google_golang_org.grpc.stats.InitLinked
 public import Proof.google_golang_org.grpc.status.InitLinked
 public import Proof.net.Init
-public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.ErrorLinked
 public import Proof.google_golang_org.grpc.grpclog.Component
 public import Proof.runtime.PkgInitExt
 
@@ -119,7 +119,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrClientConnClosing))
   try wp_auto
-  wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %rErrClientConnClosing -
+  wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_linked as %rErrClientConnClosing -
   · ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)
   -- translated initializer of errStreamDone))
   try wp_auto
