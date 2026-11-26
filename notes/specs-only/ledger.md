@@ -142,6 +142,56 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   law's proof are on `etcd-safe-f2`; P-L1 (the `NewLessor`/`NewServer` variants and the start's allocation) is
   F2's item 4.
 
+- **Spec.** `rnDurBodyK`/`HistOkK` (`etcdserver/InvWalCrash.lean`) and the laws over them: `rnDurK_alloc.law`,
+  `rnDurK_save.law`, `rnDurK_saveSnap.law`, `rnDurK_ownSnap.law`, `rnDurK_enter.law`, `rnDurK_crash.law`,
+  `rnRestartWal`/`rnRestartAllocK.law`; the pending batch's image condition `crashOk`.
+- **Defect.** The body holds `walRecsH h (recsOf vk.1 σ) Hs true`: the history's *eager* fold, and
+  `HistOkK` asks `walCommitLeFrom walFresh Hs`. A restarted WAL whose history holds a snapshot record the
+  reader dropped (`walKeep`) has no eager fold equal to what it read (ledger entry "`wal.restartOk` over the
+  reader's fold", defect 2), so `rnRestartAllocK.law` cannot allocate the body at a restart. And the pending
+  batch's images ask `ImgOk vk.1.S vk.1.l σ` at the `Save`, with the handed log `vk.1.l` raft gave at the
+  `Save`, which a crash image above the old commit need not agree with (session 5's finding: the agreement
+  lives in `run`'s state until *enter*).
+- **Evidence.** Step 1 (the entry below) put the contract's `Save`/`SaveSnap` over `walHistH`; the body is
+  the only remaining user of the eager fold besides the derived `walSaveSized_spec`/`walSaveSnapH_spec`.
+  `raftState_logViewE` (`raft/v3/DurableLogView.lean`) gives, at a mask containing raft's, a committed log
+  `L` the entered durable state agrees with up to its commit.
+- **Proposed change.** (2) the body's records `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝`, `recsOf` kept
+  only for a pending received snapshot (`walSnapCert` over `recsOf vk.1 σ`), `HistOkK` without
+  `walCommitLeFrom walFresh Hs`; (3) `crashOk`'s pending case, for `j > pos`: for every committed log `L`
+  that `vk.1.S` agrees with up to its commit (`DurAgrees`, `|L|` its commit) and that has the read's snapshot
+  term, `ImgOk vk.1.S L σ` (pure, quantified over `L`), discharged with `L` from `raftState_logViewE` at
+  *enter* (the view moves to `{v' with l := L}`) and in `rnDurK_crash.law` after the crash's enter; (4) the
+  step laws' updates over `walHistH` (`rnDurK_save.law`/`rnDurK_saveSnap.law`/`rnDurK_ownSnap.law` take the
+  contract's history update, no `WalSaveOk` premise), their proofs and `wal.restartOk`'s body
+  (`rnRestartWal` over `walHistH` and the read); (5) `walRecsH` deleted once unused. No top-level
+  statement, premise or axiom moves.
+- **Decision.** Accepted under the lead's approval of (b) and its server-side alternative (#50 2026-11-25
+  15:33Z, 2026-11-25T18:04:00Z); internal to the server. Applied step by step on `etcd-safe-p5`.
+- **Applied (2026-11-26, P5 session 9, `etcd-safe-p5r/2026-11-26`): (2), (4), (5); (3) not needed for
+  this scope.** The body's records row is `walHistH h Hs true` with the pure row `HistReadsK vk.1 σ Hs`:
+  at every commit `c` at or above the last saved one the history reads (`walReadAt`, the reader's fold at
+  `c`) as `recsAt vk.1 σ c` (`σ`, or the pending received snapshot applied once `c` covers it), along a fold
+  with `committed ≤ lastIndex` (`walCommitLeAt`); `walRead Hs = some σ` and `walCommitLe Hs` are its case
+  at the last commit (`histReadsK_read`). The pure crux is `histReads_save` (`InvWalCrashPure.lean`): a
+  `Save` at a commit at or above the last reads `recsOf vk.1 σ` before it (the pending snapshot is at the
+  saved records' base, at or below their commit) and `walSave …` after. `HistOkK` drops
+  `walCommitLeFrom walFresh Hs`; `rnDurK_save/saveSnap/ownSnap.law` take the contract's history update (no
+  `WalSaveOk`/base-term premise; the snapshot laws' unused `walBaseLb` dropped from their posts);
+  `rnDurK_crash.law`'s callback is over `walHistH` (no records); `rnRestartWal` is over `walHistH` and
+  `HistReads σ Hs` (derived from the slot's eager fold, `histReads_of_fold`); `walRecsH` and its lemmas are
+  deleted (`walOpenedH`, inside the boot slots and `wal.Create.specSrv`, is written as `walHistH h Hs s ∗
+  ⌜walFoldChkFrom walFresh Hs = some σ⌝`, the deleted `walRecsH`'s definition: the same predicate).
+  **Scope (what this does not cover):** `HistReadsK` says no snapshot record but the pending one is above
+  the last saved commit. A restarted history holding a dropped record (a crash between a received
+  snapshot's `SaveSnap` and its `Save`) does not meet it, and (3) would not suffice for it either: the
+  first `Save` committing past the dropped record re-bases the read there, and `StorageHolds` of that read
+  needs raft's durable log above the record to have been written after it (raft's log at the record's
+  index conflicts until rewritten), which nothing exported gives. Today the restart slot (`wal.restartOk`,
+  over the eager fold with `σ.b ≤ σ.commit`) excludes such histories, so `HistReads` follows; when the slot
+  moves to the reader's fold (the 2026-11-25 entry), its producer must give `HistReads` or the invariant
+  needs the general re-keep case.
+
 ## 2026-11-25: `statusErrOk` -- an error's value is of its dynamic type (`stTypedErr`) (#45)
 
 - **Spec.** `statusErrOk` (`Proof/go_etcd_io/etcd/cache/v3/Base.lean`), the predicate of the errors

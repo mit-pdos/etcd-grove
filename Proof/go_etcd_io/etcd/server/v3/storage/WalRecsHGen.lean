@@ -1,12 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
-# The WAL's records do not depend on the generation (etcd-dist D6, T7, 2026-11-25)
+# The WAL's history does not depend on the generation (etcd-dist D6, T7, 2026-11-25)
 
-`walRecsH` (`WalRecsH.lean`, sealed) names only the WAL's ghost state (`walDiskAtI`, the history's
-authority, `walNamed`: global ghost names), none of a generation's local state; so the records the old
-generation's durability invariant holds are the records at the new generation. T2's crash law
-(`rnDurK_crash.law`) hands them to its callback at the old generation, and T5's `walRecsH_crash` reads them
-at the new one (T7's `memberDur_crash`).
+`walHistH` (`WalRecsH.lean`, sealed) names only the WAL's ghost state (`walDiskAtI`, the history's
+authority, `walNamed`: global ghost names), none of a generation's local state; so the history the old
+generation's durability invariant holds is the history at the new generation. T2's crash law
+(`rnDurK_crash.law`) hands it to its callback at the old generation, and T5's `walHistH_crash` reads it
+at the new one (T7's `memberDur_crash`). (P5 (b), 2026-11-26: until then of the records with their
+history, `walRecsH`.)
 -/
 module
 
@@ -29,13 +30,12 @@ variable [lctx : GoLocalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The records at one generation are the records at any other** (both at the Go context `lctx`, which
+/-- **The history at one generation is the history at any other** (both at the Go context `lctx`, which
 the program's instances are over). -/
-theorem walRecsH_gen (L L' : GooseLocalGS GF) (h : WalH GF) (σ : StorContents) (Hs : WalHist)
-    (sized : Bool) :
-    walRecsH (hG := ⟨G, { L with goose_go_local_context := lctx }⟩) h σ Hs sized ⊣⊢
-      walRecsH (hG := ⟨G, { L' with goose_go_local_context := lctx }⟩) h σ Hs sized := by
-  unfold walRecsH; exact .rfl
+theorem walHistH_gen (L L' : GooseLocalGS GF) (h : WalH GF) (Hs : WalHist) (sized : Bool) :
+    walHistH (hG := ⟨G, { L with goose_go_local_context := lctx }⟩) h Hs sized ⊣⊢
+      walHistH (hG := ⟨G, { L' with goose_go_local_context := lctx }⟩) h Hs sized := by
+  unfold walHistH; exact .rfl
 
 end gen
 

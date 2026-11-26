@@ -2,7 +2,11 @@
 
 ## START HERE
 
-- **Date**: 2026-11-25 (session 1; session 8, 2026-11-26, the newest State). **Branch** `etcd-safe-p5`, worktree `/shared/etcd-grove-p5`.
+- **Date**: 2026-11-25 (session 1; session 9, 2026-11-26, the newest State). **Branch** `etcd-safe-p5`
+  (sessions 1-8, kaashoek's), since session 9 **`etcd-safe-p5r/2026-11-26`** (coordinator-E's helper; off
+  `etcd-safe-crash-r5/2026-11-26` @ `93bf2e45d9`, which has `etcd-safe-p5` and `etcd-safe-t10` merged).
+  Session 9 builds on the VM (`/shared/tmp/vm/vmlake build …` from the worktree root); the fk-lean2 /
+  build-slot / manifest paths below are sessions 1-8's setup.
 - **Base**: `etcd-safe-main-r3/2026-11-25` @ `57e4d118b7`, then its P7 update `5a1c41d945` merged in
   (`fd7630f9da`) (posted green on #50 07:18Z; same Perennial pin
   `fce59af75`), with `etcd-safe-d6t2/2026-11-24` @ `efd5966fe4` merged (`97ef57a342`: P8's
@@ -10,6 +14,57 @@
   `etcd-safe-p8-stack`, was cancelled; the work done on it was cherry-picked.)
 - **Build**: `export TMPDIR=/shared/tmp`; `--packages=/shared/tmp/manifest-fce59af7.json` (check r3's
   Perennial pin first); edit loop `etc/lean-check.py`; targeted `/shared/tmp/build-slot.sh lake ... build`.
+- **State** (2026-11-26, **P5 session 9**, branch `etcd-safe-p5r/2026-11-26`): **(b) steps 2, 4, 5 done; step 3
+  not needed for this scope; P5-RESTART still the one `sorry`** (it needs a trust change, below). Ledger entry
+  "`rnDurBodyK` and its step laws" repaired (its header had been split from its body by a merge) and given an
+  "Applied" bullet. What changed:
+  * **The body** (`rnDurBodyK`): `walHistH h Hs true` in place of `walRecsH h (recsOf vk.1 σ) Hs true`, and the
+    pure row gains `HistReadsK vk.1 σ Hs` (`InvWalCrash.lean`): at every commit `c` at or above the last saved
+    one, `walReadAt Hs c` (the reader's fold at `c`) is `recsAt vk.1 σ c` (`σ`, or the pending received
+    snapshot applied once `c` covers it), with `walCommitLeAt Hs c`. `walRead Hs = some σ` and `walCommitLe Hs`
+    are its case at the last commit (`histReadsK_read`). `HistOkK` drops `walCommitLeFrom walFresh Hs`.
+  * **The pure crux** `histReads_save` (`InvWalCrashPure.lean`): a `Save` at a commit at or above the last
+    (`rnDurK_save.law`'s commit-monotone premise) reads `recsOf v σ` before it (the pending snapshot is at the
+    saved records' base, at or below their commit, so the new commit keeps it again: no eager fold needed),
+    hence `walSave (recsOf v σ) hs es` after; `histReads_snapAbove`, `histReads_ownSnap` (an own snapshot below
+    a pending received one commutes with it, `walSaveSnap_own_pend`), `histReads_of_fold` (the slot's eager
+    fold gives the reads), `histReadsK_fold` (nothing pending: the reads give the eager fold, for the stop's
+    `walRecs`). `walOwnSnapStepK` (`InvWalCrashSteps.lean`): the own snapshot moves the records before a
+    pending received one too (`walOwnSnapStep` kept them).
+  * **The laws**: `rnDurK_save/saveSnap/ownSnap.law` take the contract's history update (`AU <{ ∃∃ Hs,
+    walHistH h Hs true }> … <{ walHistH h (Hs ++ [op]) true, COMM … }>`, no `WalSaveOk`/base-term premise);
+    the two snapshot laws' posts lose `walBaseLb` (no caller used it); `rnDurK_alloc.law` takes `walHistH` and
+    `HistReads σ Hs`; `rnDurK_crash.law`'s callback is over `walHistH` (no records argument);
+    `rnRestartWal` is `walHistH` + synced + `walIdxLe` + `HistReads σ Hs`; `rnDurK_read_au` and the contract's
+    `Release` update over `walHistH`. Callers moved: `raftNode__start` (the `SaveSnap` post pattern),
+    `EtcdServer__snapshot` (its `Q`), `walSaveRn_spec` (over `walHistH`, from `walSaveHist_spec`),
+    `walSaveSnapCH_spec` (`RaftLoopFreeze`, from `walSaveSnapHist_spec`), `RnNewStorage`'s `Release`
+    (`walHistH_releaseAU`), `NodeStart`/`InvNodeStart`/`NewServer` (`walHistH h [] true`), `MemberCrash`
+    (`walHistH_crash`, `walHistH_gen`).
+  * **`walRecsH` deleted** with `walSaveSized_spec`, `walSaveSnapH_spec`, `walRecsH_*`, `walRecs_au_toH`,
+    `walRecs_auId_toH`, `walCommitLeFrom_snoc_snap`, `walCommitLeFrom_fresh_nil`. The graceful laws over
+    `walRecs` (`walSaveRnR_spec`, `walSaveSnap_spec`) go through `walRecs_au_toHist`. `walOpenedH` (inside the
+    sealed boot slots `wal.bootOk`/`wal.restartOk` and the hypothesis `wal.Create.specSrv`) is written
+    `walHistH h Hs s ∗ ⌜walFoldChkFrom walFresh Hs = some σ⌝`, which is the deleted `walRecsH`'s definition:
+    the same predicate, so no slot or premise means anything new.
+  **Scope.** `HistReadsK` says no snapshot record but the pending received one is above the last saved
+  commit; the restart slot (eager fold, `σ.b ≤ σ.commit`) excludes a restarted history holding a dropped
+  record, so `HistReads` follows today (`histReads_of_fold`). When the slot moves to the reader's fold (ledger
+  2026-11-25 "`wal.restartOk` over the reader's fold"), the dropped-record case needs either its producer to
+  give `HistReads` or the invariant's general re-keep case, which (session 9's reading) needs raft's durable
+  log above the dropped record to have been rewritten after it, not exported today; step 3's `v'.l := L` alone
+  does not give that.
+  **P5-RESTART** (`rnRestartAllocK_law_holds`): still the `sorry`. Its certificates (`walHistCerts γn.cl sd Hs`
+  for the restart's history) can only come through T10's item 2, not started on `etcd-safe-t10`: `walFilesC`
+  naming its history, the crash image's files row holding `walHistCerts`, `bootstrapCrashContract` handing the
+  pre's certificates to its post and naming the opened WAL's history (`wal.restartOk`'s body, `bootOkR`).
+  Those change the text of `bootstrapCrashContract` (a premise of `NewServer.specC`) and the sealed boot slot:
+  for the coordinator, not done here. On P5's side the rest is small once they exist: `rnRestartWal` gains
+  `walHistCerts cl sd Hs`, `wal.restartOk_startRK` passes it, the `sorry` becomes `iexact`.
+  **Build** (VM): the core (`InvWalCrashSteps`, `RaftLoopFreeze`, `RnNewStorage`, `WalRecsHGen`) green;
+  the change's 49 leaves (`etc/importers.py --leaves --git 93bf2e45d9`, `notes.*` dropped) green on the VM
+  (14,276 jobs, exit 0); then `etcd-safe-crash-r5/2026-11-26` @ `97db5fe85f` merged and the full default
+  target built (see the commit after this one).
 - **State** (2026-11-26, **P5 session 8**): **(b) step 1 built green; steps 2-5 not started (ledger entry
   written).** Build of `f0f5ec4d43` on fk-lean2 (`fklean1-check.sh … etcd-safe-p5` over
   `/shared/tmp/p5-s8-leaves.txt`: `p5-s6-leaves-nonotes.txt` plus `etc/importers.py --leaves --git a601c25a54`,

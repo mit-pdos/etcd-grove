@@ -350,12 +350,12 @@ def RNBoot.view (γr : SrvRaft) : RNBoot → WalView
   | .restart σ _ S _ _ A₀ => ⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩
 
 /-- (P5, 2026-11-25) **The WAL as the boot hands it to the wrapper**, for the crash-aware durability's
-allocation once the node is started (raft's durable state only then the wrapper's): fresh, the records
-`walFresh` with the empty history (`wal.bootOk_startK`); at a restart, the restart's handover
+allocation once the node is started (raft's durable state only then the wrapper's): fresh, the empty
+history (`wal.bootOk_startK`; it reads as `walFresh`); at a restart, the restart's handover
 (`rnRestartWal`) with the records describing the boot's view (`ViewOk`), their certificate and the
 view's handed log committed. -/
 def rnBootWal (γr : SrvRaft) (h : WalH GF) : RNBoot → IProp GF
-  | .fresh => walRecsH h walFresh [] true
+  | .fresh => walHistH h [] true
   | .restart σ _ S _ _ A₀ =>
     iprop(rnRestartWal h σ ∗ ⌜ViewOk ⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ σ⌝ ∗
       walSnapCert γr.cl σ ∗ isCommittedLogLb γr.cl (srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)))

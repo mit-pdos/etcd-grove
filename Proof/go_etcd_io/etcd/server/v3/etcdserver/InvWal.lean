@@ -452,7 +452,7 @@ the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image n
 snapshot is then below their base and changes nothing). Either way the records' hard state is the
 view's. (out_size C3, MAJ-2, 2026-11-12) The records are sized (`walRecs … true`): the server's cluster
 bounds proposed data, the raft loop saves a `Ready`'s entries as handed-out objects of bounded size
-(`walSaveSized_spec`), and a first start's WAL is sized (`wal.bootOk`); so the stop's files are
+(`walSaveRn_spec`), and a first start's WAL is sized (`wal.bootOk`); so the stop's files are
 (`srvFiles`), and a restart's records must come so to allocate this invariant. -/
 def walAsViewed (cl : Cluster) (w : WalH GF) (v : WalView) : IProp GF :=
   iprop(∃ σ : StorContents, walRecs w (recsOf v σ) true ∗ ⌜ViewOk v σ⌝ ∗ walSnapCert cl (recsOf v σ))
