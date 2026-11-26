@@ -19,8 +19,8 @@ here is reached by a result. The deployment-specific statements (`memberDistFact
 * `memberKeepS`: `memberKeep` (T7) or the stopped keep. `memberKeepInv`: the generation's keep slot, an invariant
   holding `memberKeepS` at every step of the run (design §4.3, "a slot allocated at boot"), which the crash
   obligation opens with its later credit.
-* `memberStop.law` (P5): `HardStop` on a started server, with the stop's request, keeps the slot valid: the
-  crash-aware stop (design §4.3, row P3′). Its post is `True`: under R-A the process exits after the stop and the
+* `memberStop.law` (P5, proved: `memberStop_law_holds`, by framing `HardStop.wp_proof`): `HardStop` on a started
+  server, with the stop's request, keeps the slot valid: the crash-aware stop (design §4.3, row P3′). Its post is `True`: under R-A the process exits after the stop and the
   image comes back through the crash (`memberGenS_crash_law_holds`).
 * `memberGenS_crash_law_holds` (P6, `sorry`): T7's crash law at the keep with the stopped case, from T7's named
   hypotheses and T10's `memberBackend.law` at the closed backend keep `KeepBc`.
@@ -28,7 +28,7 @@ here is reached by a result. The deployment-specific statements (`memberDistFact
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.BackendImage
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__HardStop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__HardStop
 
 @[expose] public section
 
@@ -129,6 +129,32 @@ def memberKeepRc (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.confi
 
 end keepDefs
 
+section stopFrame
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+open go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+/-- `HardStop.spec` with any extra resource `P` in the precondition (framed and dropped). -/
+theorem hardStop_frame (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString)
+    (P : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        srvStopRight s E γ ρ id dd ∗ srvStopReq s E ρ dd ∗ P }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨Hpkg, Hr, Hq, -⟩ HΦ
+  iapply EtcdServer.HardStop.wp_proof s E γ ρ id dd $$ [Hpkg Hr Hq]
+  · iframe Hpkg Hr Hq
+  inext
+  iintro -
+  iapply HΦ
+  itrivial
+
+end stopFrame
+
 section keep
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
@@ -170,8 +196,9 @@ holds `memberKeepS`, `s.HardStop()` with the right to stop `s` (`srvStopRight`, 
 inside `rnDurInvK` (`InvWalCrash.lean:256`) and the WAL area's `walInv` across `WAL.Close`, and the backend's close
 moves the slot from the open keep (`KeepB`) to the stopped one (`KeepBc`) at `DB.Close`'s commit point (bbolt-crash's
 crash-mode `DB.Close`, `<<dbCrashKeep γ i0 Dl Dn>> db.Close() <<fileHoldsMDur i0 Dn>>`: before it the open record
-and `dbCrash`, after it the durable file). To be proved over `StopApi`/`StopShutdown`/`StopImage`
-(the in-process shutdown) with the crash-aware invariants. The post is `True`: the member's process exits after
+and `dbCrash`, after it the durable file). Proved (`memberStop_law_holds`) from
+`HardStop.wp_proof` by framing: that shutdown runs in `run`'s deferred code, not in `HardStop`, so its crash-aware
+obligation is the crash-aware `run`'s (P5's finding, 2026-11-26). The post is `True`: the member's process exits after
 the stop (R-A), and the next generation gets the image through the crash (`memberGenS_crash_law_holds`). -/
 abbrev memberStop.law (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id : w64)
     (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → MemberKN GF → IProp GF) : Prop :=
@@ -183,6 +210,20 @@ abbrev memberStop.law (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.
         memberKeepInv C cfg id KeepF KeepB KeepBc L }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"HardStop")) (Val #()))
     {{ RET #(); True }}
+
+/-- **P5: `memberStop.law` holds**, from `EtcdServer.HardStop.wp_proof` with the slot framed. `HardStop` itself only
+sends the stop request on `s.stop` and waits for `done` (`EtcdServer__HardStop.lean`); the shutdown (raft's stop,
+`WAL.Close`, `Cleanup`'s backend close) runs in `run`'s deferred code, on resources `run` holds since `Start`. So
+`HardStop` touches no keep piece, and the slot (an invariant) stays valid by framing. What the slot's contents
+say at a crash during or after that shutdown is the crash-aware `run`'s obligation (through the spec that
+starts the server with the slot), not `HardStop`'s. -/
+theorem memberStop_law_holds (C : etcd_dist.MemberCl) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (id : w64) (KeepF : GooseLocalGS GF → IProp GF) (KeepB KeepBc : GooseLocalGS GF → MemberKN GF → IProp GF) :
+    memberStop.law C cfg id KeepF KeepB KeepBc := by
+  intro L s E γ ρ dd hL
+  -- the triple's `WP` is at `L`, its resources at `atCtx L`: the same generation, by `hL` (structure eta)
+  subst hL
+  exact hardStop_frame (hG := ⟨G, L⟩) s E γ ρ id dd _
 
 end keep
 
