@@ -2,9 +2,9 @@
 The proof of `serveConn` (`Net/Spec/.../lib/remote/serveConn.lean`) on the acceptor's end of `cn`:
 `SetDeadline` (`deadline_au`, its result ignored), `readFrame` (with the reader's `recvTokL`,
 `recvTok_L`); on a frame `bd` read whole, its protocol fact (`recvTokL_later` and a later
-credit, `recvTok_proto`) is the slot's input's (`req_read`: `bd = encIn i`), so `DecIn` returns
-`iv i` if anything. Then the slot's claim (`slot_claim`: the acceptor's fresh token and a credit)
-gives the update `S.upd i Φ`, which `op` takes (`svcOp`); an answered output `o` with `Φ o` is
+credit, `recvTok_proto`) is the slot's input's (`req_read`: `bd = encIn i`), so `DecIn` returns a value
+describing `i` (`ivAt`) if anything. Then the slot's claim (`slot_claim`: the acceptor's fresh token and a credit)
+gives the update `S.upd i Φ`, which `op` takes with the decoded value, describing `i` (`svcOp`); an answered output `o` with `Φ o` is
 recorded in the slot (`slot_done`, a credit), so its reply, as the unknown output's, meets the
 acceptor's protocol `repP`: `EncOut`, then, if the encoding is at most `MaxLen` bytes,
 `SetDeadline` and `writeFrame` with the acceptor's `sendTok`. Last, `Close` (`close_au`).
@@ -55,7 +55,7 @@ theorem serveConn.wp_proof
   icases Hend with ⟨Hsend, Hrecv⟩
   ihave #Hci := sendTok_connIs $$ Hsend
   iunfold wireOk at Hcd
-  icases Hcd with ⟨-, #HDecIn, #HEncOut, -⟩
+  icases Hcd with ⟨-, #HDecIn, #HEncOut, -, #HEncUnk, -⟩
   ihave #Hc' := Hc
   iunfold net.isConn at Hc'
   icases Hc' with ⟨%t, %la, %ra, %Hct, #Hca⟩
@@ -109,7 +109,7 @@ theorem serveConn.wp_proof
   icases req_read S a cn bd hbd $$ Hpp with ⟨%γ, %i, %Ψ, %Hbi, #Hso, #Hsi⟩
   subst Hbi
   wp_auto
-  wp_apply HDecIn $$ %i %b %(DFrac.own 1) [Hb] as %x %good %Hx
+  wp_apply HDecIn $$ %i %b %(DFrac.own 1) [Hb] as %x %good Hx
   · iexact Hb
   cases good
   · -- it does not decode: close
@@ -126,7 +126,7 @@ theorem serveConn.wp_proof
       itrivial
     iapply HΦ
     iexact Htok
-  obtain rfl := Hx rfl
+  ispecialize Hx $$ %rfl
   -- claim the slot's update, and run `op` with it
   -- (the laws' updates are over the global ghost state's invariants, those of `hG` up to unfolding)
   ihave Hcl : (|={⊤}=> S.upd i Ψ ∗ budUnit (Gg := hG.goose_globalGS) a ∗
@@ -135,46 +135,48 @@ theorem serveConn.wp_proof
   imod Hcl with ⟨Hlin, Hu, Hrun⟩
   iunfold svcOp at Hop
   wp_auto
-  wp_apply Hop $$ %sys %i %Ψ [Htok Hlin Hu] as %v ⟨Htok, Hv⟩
-  · iframe Htok Hlin Hu
-  -- the reply: an output the slot records (`slot_done`), or the input's unknown output
-  ihave Hr : (|={⊤}=> □ repP (Gg := hG.goose_globalGS) S cn ([] ++ frame (S.encOut v)) ∗
-      ⌜S.outOk v⌝ : IProp GF) $$ [Hv Hrun Hlc3]
-  · icases Hv with (⟨%o, %Hvo, HΨ⟩ | %Hvu)
+  wp_apply Hop $$ %sys %x %i %Ψ [Htok Hx Hlin Hu] as %v ⟨Htok, Hv⟩
+  · iframe Htok Hx Hlin Hu
+  -- the reply: an output the slot records (`slot_done`), or an answer that is not an output; its
+  -- bytes `bs`, which `EncOut` of `v` gives
+  ihave Hr : (|={⊤}=> ∃ bs : List w8, □ repP (Gg := hG.goose_globalGS) S cn ([] ++ frame bs) ∗
+      {{ True }} (App (Val #cd.EncOut') (Val #v)) {{ (b : GoSlice), RET #b; b ↦* bs }} : IProp GF)
+      $$ [Hv Hrun Hlc3]
+  · icases Hv with (⟨%o, #Hvo, HΨ⟩ | %Hvu)
     · ihave Hd : (|={⊤}=> doneLb (Gg := hG.goose_globalGS) γ o : IProp GF) $$ [Hrun HΨ Hlc3]
       · iapply slot_done S ⊤ CoPset.subseteq_top a γ i Ψ o $$ Hsi Hrun HΨ Hlc3
       imod Hd with #Hdone
       imodintro
-      isplit
+      iexists S.encOut o
+      isplitr
       · imodintro
         iunfold repP
-        iexists γ, i, v
+        iexists γ, i
         iframe Hso
-        isplit
-        · ipureintro; rfl
-        · iright
-          iexists o
-          iframe Hdone
-          ipureintro; exact Hvo
-      · ipureintro; exact Or.inl ⟨o, Hvo⟩
+        iright
+        iexists o
+        iframe Hdone
+        ipureintro; rfl
+      iintro !> %Φ' - HΦ'
+      wp_apply HEncOut $$ %v %o Hvo as %rep Hrep
+      iapply HΦ' $$ Hrep
     · imodintro
-      isplit
+      iexists S.encUnk v
+      isplitr
       · imodintro
         iunfold repP
-        iexists γ, i, v
+        iexists γ, i
         iframe Hso
-        isplit
-        · ipureintro; rfl
-        · ileft
-          ipureintro; exact Hvu
-      · ipureintro; exact Or.inr ⟨i, Hvu⟩
-  imod Hr with ⟨#Hrep, %Hout⟩
-  wp_apply HEncOut $$ %v [] as %rep Hrepb
-  · ipureintro; exact Hout
+        ileft
+        iexists v
+        ipureintro; exact ⟨Hvu, rfl⟩
+      iapply HEncUnk $$ %i %v %Hvu
+  imod Hr with ⟨%bs, #Hrep, #Henc⟩
+  wp_apply Henc $$ [] as %rep Hrepb
   ihave %Hlen := ownSlice_len $$ Hrepb
   wp_if_destruct
   · -- at most `MaxLen` bytes: reply, then close
-    have hlen : (S.encOut v).length ≤ maxLen := by
+    have hlen : bs.length ≤ maxLen := by
       have key : ∀ (n : w64) (L : Nat), L = sint.nat n → 0 ≤ sint.Z n →
           uint.Z n ≤ uint.Z (W64 1048576) → L ≤ 2 ^ 20 := by
         intro n L h1 h2 h3; word
@@ -190,7 +192,7 @@ theorem serveConn.wp_proof
       imod Hk $$ %res %st' %Hdo Hst' with -
       imodintro
       itrivial
-    wp_apply wp_writeFrame _ cn true a (repP S) [] rep (S.encOut v) (DFrac.own 1) ed hlen
+    wp_apply wp_writeFrame _ cn true a (repP S) [] rep bs (DFrac.own 1) ed hlen
       $$ [Hrepb Hsend] as %okw -
     · iframe Hc Hed Hrepb Hsend Hrep
     wp_apply wp_Close t cn true a la ra (fun _ => iprop(True)) as %err'' -

@@ -3247,3 +3247,108 @@ no counterexample.**
 - The review is in (25.5): all sound.
 - The docstring fixes F1–F4 are applied (25.5). The three touched modules build on the VM (4655 jobs);
   `tcb-report --check` matches the baseline (364 axioms, 0 sorries) and `etcd-dist` (0, 0).
+## 28. The remote wire refactor (design, 2026-11-26; branch `etcd-safe-rwire/2026-11-26` off `etcd-safe-m1-top/2026-11-25` @ `1d5fafbae1`)
+
+§24.4 (a), F8's merge-order step 4 (§27). Untrusted: a proof refactor of `Net/{Spec,Proof}/.../examples/lib/remote/`
+(no Go change, no axiom, no `sorry`, no top-level premise). It unblocks `remoteWriters` and `NodeMain`'s writer arm
+(F4 watch, F6 cache).
+
+### 28.1 What is wrong with today's wire
+
+`RWire I O` carries an input `i` as the fixed Go value `iv i` and an output `o` as `ov o`, its bytes as
+`encIn i`/`encOut v`; `wireOk S cd` says `EncIn` (no precondition: it reads no memory) gives `encIn i`, and
+`DecIn`/`DecOut` return exactly the value encoded (`ok → x = iv i`). `writerCodec`'s input is a `[]KV`
+(`EncIn` reads the slice's elements) and its output a `[]PutRec` (`DecOut` returns a fresh slice), so no `RWire`
+describes it.
+
+### 28.2 The generalized contract: persistent value predicates
+
+`RWire GF I O` (now over `GF`):
+- `ivAt x i : IProp GF`, `ovAt v o : IProp GF`, both **persistent** (`ivAt_persistent`, `ovAt_persistent`; instances
+  `RWire.ivAt_pers`/`ovAt_pers`): the Go value `x` describes the input `i` (e.g. `x` is a slice interface whose
+  elements are `↦*□` the model's), `v` the output `o`. Several Go values may describe one model value (a fresh
+  decoded slice and the sender's), and a value describes it only together with memory it reads.
+- `encIn : I → List w8`, `encOut : O → List w8` (**over the model**, no longer over Go values), with the length bounds.
+
+`RSvc GF I O` extends it with the answers that are not outputs, which stay **fixed Go values** (a store's `unk i`;
+none for a report): `unkAns i v : Prop` and their bytes `encUnk v`; and `upd` as before.
+
+`wireOk S cd` (persistent) is six triples:
+- `EncIn`: `{S.ivAt x i} EncIn(x) {b. b ↦* encIn i}`; `DecIn`: `{b ↦*{dq} encIn i} DecIn(b) {x ok. ⌜ok⌝ -∗ S.ivAt x i}`;
+- `EncOut` of an output: `{S.ovAt v o} EncOut(v) {b. b ↦* encOut o}`; `DecOut`: `{b ↦*{dq} encOut o} DecOut(b)
+  {x ok. ⌜ok⌝ -∗ S.ovAt x o}`;
+- `EncOut`/`DecOut` of an unknown answer `v` (`⌜S.unkAns i v⌝ -∗ ...`): as before, bytes `encUnk v`, `ok → x = v`.
+
+What moves with it (all in the library):
+- `repP` (what an acceptor writes): the frame of `encUnk v` for an unknown answer `v` of the slot's input, or of
+  `encOut o` for an output `o` the slot recorded (`doneLb γ o`); `rep_read` gives the same disjunction to the dialer.
+  `reqP`/`req_read` unchanged (the frame of `encIn i`).
+- `svcOp S a tok op`: `op(sys, x)` gets `S.ivAt x i` with the update; its output `v` comes with `S.ovAt v o ∗ Φ o`, or
+  is an unknown answer. `reportOp W P Q tok op`: likewise (`W.ivAt x i ∗ P i`, then `W.ovAt v o ∗ Q i o`).
+- `attempt.spec`'s answer: `rep ↦* encOut o ∗ Φ o`, or `rep ↦* encUnk v ∗ ⌜unkAns i v⌝`.
+- `Report.spec`: the caller passes any `x` with `S.ivAt x i`; `Report` returns `true` with `S.ovAt v o ∗ Φ o` or an
+  unknown answer. (`Report` has no instance yet.)
+- `serveConn`, `Serve`, `ServeClient`, `listen`: statements unchanged (they name `svcAddr`, `wireOk`, `svcOp`); proofs
+  follow the new `repP`/`wireOk`.
+
+### 28.3 The old fixed-value wire as an instance
+
+- **Stores keep `RBase` unchanged** (fixed values `iv`/`ov`/`unk`, bytes `encIn`/`encOut` over Go values): porcupine's
+  history holds the Go values, so a store's model must see fixed ones. `RBase.svc R` instantiates the new wire with
+  `ivAt x i := ⌜x = R.iv i⌝`, `ovAt v o := ⌜v = R.ov o⌝`, `encOut o := R.encOut (R.ov o)`, `unkAns i v := v = R.unk i`,
+  `encUnk := R.encOut`, `upd := slotUpd R`. `codecOk R cd` (unchanged) still gives `wireOk (RBase.svc R) cd`
+  (`codecOk_wireOk`, re-proved), and `opMaybe R` still gives `svcOp (RBase.svc R)` (`opMaybe_svcOp`, re-proved).
+- `RWire.ofValues iv ov encIn encOut` is the fixed-value wire for a report (F7's `principalCodec`: a string in, a bool
+  out).
+- `Do.spec`, `Run.spec`, `Check.spec` are stated over `RBase`/`codecOk`/`remoteAddr`: **unchanged**. `Do.wp_proof`
+  follows `attempt`'s new answer.
+
+### 28.4 Instances, and how each changes
+
+Every instance uses the library through `RBase`, `codecOk`, `opMaybe`, `remoteAddr`, `codecOk_wireOk`,
+`opMaybe_svcOp`, `reqP/repP (RBase.svc _)` (`addrs_set_proto`) and the `Do`/`Run`/`Check`/`ServeClient` specs, none
+of which changes its statement. So **every instance changes by nothing (rebuild only)**:
+- kvremote (M1): `Proof/.../examples/etcd/dist/kvremote/` (`Codec`, `Defs`, `Node`, `Orch`, `Store`, `Start`, its
+  `TopLevelRobustness`) and `dist/client`'s kv part;
+- counter: `Net/Proof/.../lib/remote/counter/`;
+- the dsverify kits over remote: craqnet, swiftnet (swift), epaxosnet, vsrnet, paxosnet, gryffnet, rabianet,
+  quepaxanet (`Dsverify/Proof/.../examples/*net/`), and `etc/kitlibs-check-test`.
+If a proof there breaks on unfolding (e.g. `unfold remoteAddr svcAddr`), the fix is local and its statement stays.
+**As built:** only one instance proof changed. vsrnet's `Op_svcOp` (`Dsverify/.../vsrnet/ClientProofDefs.lean`) unfolds `svcOp`
+by hand. It now takes the input value `x` and its `⌜x = iv i⌝` after `simp only [RBase.svc]`: three lines, and the
+statement is unchanged. kvremote, counter, swift and the other kits build unedited.
+
+### 28.5 What does not change
+
+No `TopLevelRobustness`/`TopLevelDefs`/`Spec` top-level statement, no trusted file (`TrustedCode`, `GooseLang/Ext`,
+`Robustness`, `models/`), no Go: the only statements that change are the library's own `attempt.spec` and
+`Report.spec` (no instance names them) and the definitions in `remote/Defs.lean`. Checks: tier, bounds,
+`gen-link --check`, `tcb-report --check` (all unchanged), targeted builds of remote, kvremote, counter, kits, swift
+and their top-level results, then one full build.
+
+### 28.6 writerCodec, statable (draft for N10a's owner)
+
+`writerWire : RWire GF WIn (List PutRecM)`: `ivAt x ps := ∃ s, ⌜x = slice-of-KV interface s⌝ ∗ s ↦*□ ps.kvs ∗
+⌜small ps⌝` (the input type may carry the orchestrator's ghost names), `ovAt v rs := ∃ s, ⌜v = ...⌝ ∗ s ↦*□ rs ∗
+⌜small rs⌝`, `encIn`/`encOut` `enc`'s bytes (bounded by `small`). `writerCodec.spec : wireOk (reportSvc writerWire
+P Q) (writerCodec)`, `writerOp`'s spec as `reportOp writerWire P Q tok writerOp` (its owned `[]PutRec` persisted
+with `ownSlice_persist`). Draft: `notes/remote-wire/WriterCodec.lean` (28.7).
+
+### 28.7 Results (2026-11-26, branch head after this section)
+
+- **Implemented** as 28.2–28.3: `remote/Defs.lean` (`RWire`, `RWire.ofValues`, `RSvc`, `RBase.svc`, `repP`, `rep_read`,
+  `wireOk`, `codecOk_wireOk`, `svcOp`, `opMaybe_svcOp`, `reportSvc`, `reportOp`, `reportOp_svcOp`), `attempt`/`Report`
+  (spec and proof), `serveConn`'s and `Do`'s proofs; vsrnet's `Op_svcOp` (28.4).
+- **writerCodec is statable**: `notes/remote-wire/WriterCodec.lean` (a draft outside every `lean_lib`; `vmlake env lean`
+  on it: no error). It holds `writerWire N` (inputs `N × List KV`, the ghost part `N` for the orchestrator's adapter
+  names; `ivAt`/`ovAt` a `[]KV`/`[]PutRec` slice interface with `↦*□` of the model and its `enc` bytes in bound),
+  `writerCodec.spec` (`wireOk (reportSvc (writerWire N) P Q)` for every `P`, `Q`), and `writerCall.spec`
+  (`remoteWriters`' per-node `Report` at that wire). N10a's owner links it: prove `writerCodec.spec` over `enc`'s specs
+  (`DecIn` of a fresh slice built by `append` gives `↦*` of the decoded list, persisted), restate `writerOp` as a
+  `reportOp`, and take `Report.wp_proof`.
+- **Checks**: targeted VM builds of `Net` (remote, counter), `Dsverify` (every kit, swift), kvremote's
+  `TopLevelRobustness`/`TopLevelWitness`/`Link`, dist's `TopLevelRobustness`/`TopLevelWitness` and `client`'s
+  `KvLinked`/`NodeMain`/`RunKV`/`InitLinked`: green. Tier: ok (207 known). Bounds: 389, the baseline. Every `gen-link` mode
+  matches. One full VM build: green (29343 jobs). `tcb-report --check`: matches the baseline (380 axioms, 0 `sorry`), and
+  all 68 collections match. `KitLibsCheckTest` (a test lib outside `defaultTargets`) fails on retired `InitHyp` names
+  (`math-rand-isinit`'s), unrelated to this branch and untouched.

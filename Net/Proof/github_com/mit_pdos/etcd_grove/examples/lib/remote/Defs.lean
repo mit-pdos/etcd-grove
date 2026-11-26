@@ -4,16 +4,18 @@
 What crosses a connection of `examples/lib/remote`, over the net extension's protocol library
 (`GooseLang/Ext/Net/Proto.lean`):
 
-* **The service** (`RSvc`) of a node's address: the Go values and bytes of its inputs and outputs
-  (`RWire`: `iv i` an input, `ov o` an output, `encIn i` `EncIn`'s bytes, `encOut v` `EncOut`'s),
-  the answers that are not outputs (`unkAns i v`: an input's unknown output, for `Do`'s store; none
-  for a report), and **the update a slot hands to the far side** (`upd i Φ`: whatever the far side
+* **The service** (`RSvc`) of a node's address: its wire (`RWire`, `notes/etcd-dist-plan.md`, §28):
+  which Go values describe its inputs and outputs (`ivAt x i`, `ovAt v o`: persistent, and may read
+  memory, e.g. a slice with `↦*□` of its elements) and their bytes (`encIn i`, `encOut o`, over the
+  model values); the answers that are not outputs, fixed Go values (`unkAns i v`: an input's unknown
+  output, for `Do`'s store; none for a report), with their bytes `encUnk v`; and **the update a slot hands to the far side** (`upd i Φ`: whatever the far side
   needs to answer `i` with an output `o` and `Φ o`, the dialer's continuation). Two kinds:
   - **a store** (`RBase`, `RBase.svc`): a deterministic base store `B` (txnlin's `linkv.PendSpec`:
     `step`, `isWrite`; a read does not change the state, `reads_stay`), the base state's predicate
     `sysState st` over the global ghost state (the same proposition at every node), the mask `Eop` of
     the invariants the far side's operation may have open at its linearization point, and the unknown
-    output `unk i` of each input; the update is `slotUpd R i Φ` (below). `Do` calls one.
+    output `unk i` of each input; the update is `slotUpd R i Φ` (below). Its wire has fixed values
+    (`ivAt x i := ⌜x = iv i⌝`): porcupine's history holds them. `Do` calls one.
   - **a report** (`reportSvc W P Q`): the far side runs a loop on the input `i`, given `P i` by the
     dialer, and answers an output `o` with `Q i o`, the loop's postcondition, persistent or not; the
     update is `P i ∗ ∀ o, Q i o -∗ Φ o`, and there are no unknown answers. `Report` calls one.
@@ -37,20 +39,20 @@ What crosses a connection of `examples/lib/remote`, over the net extension's pro
   `Φ o` out (`slot_take`).
 * **The protocols** of a node's address (`svcAddr S a`; a store's `remoteAddr R a`): `reqP` (what a
   dialer writes: the frame of `encIn i` for the input of its slot) and `repP` (what an acceptor
-  writes: the frame of `encOut v`, `v` an answer to the slot's input that is not an output,
-  `unkAns i v`, or an output `ov o` the slot has recorded, `doneLb γ o`). Both are persistent; a
+  writes: the frame of `encUnk v`, `v` an answer to the slot's input that is not an output,
+  `unkAns i v`, or of `encOut o`, `o` an output the slot has recorded, `doneLb γ o`). Both are persistent; a
   reader that read a whole frame gets the frame the writer meant (`req_read`, `rep_read`, by
   `frame_prefix_eq`).
 * **The codec**: `wireOk S cd`, `cd`'s encodings and decodings are `S`'s (all `Report` and the
   serving side use); a store's `codecOk R cd` adds `IsRead`, `Unknown` and `IsUnknown`
   (`codecOk_wireOk`).
-* **The far side's operation**: `svcOp S tok op`, given `S.upd i Φ`, `op(sys, iv i)` returns an
-  output `ov o` with `Φ o`, or an answer `unkAns i v`. A store's `opMaybe R tok op`: given
+* **The far side's operation**: `svcOp S tok op`, given `S.ivAt x i` and `S.upd i Φ`, `op(sys, x)`
+  returns a value describing an output `o` (`S.ovAt v o`) with `Φ o`, or an answer `unkAns i v`. A store's `opMaybe R tok op`: given
   `slotUpd R i Φ` (a write's `lin R i Φ`, committed at most once; a read's `□ lin R i Φ`, which it may fire zero or
   more times, each firing giving `Φ` of its output: the read form), `op(sys, iv i)` either returns
   `ov o` with `Φ o`, or returns `unk i` (a write's update may have fired, may fire later, or never:
-  the lab's `opAwpMaybe`); `opMaybe_svcOp`. A report's `reportOp W P Q tok op`: `op(sys, iv i)`, given
-  `P i`, returns an output `ov o` with `Q i o`; `reportOp_svcOp`.
+  the lab's `opAwpMaybe`); `opMaybe_svcOp`. A report's `reportOp W P Q tok op`: `op(sys, x)`, given `W.ivAt x i` and
+  `P i`, returns a value describing an output `o` with `Q i o`; `reportOp_svcOp`.
 -/
 module
 
@@ -79,25 +81,49 @@ namespace github_com.mit_pdos.etcd_grove.examples.lib.remote
 section base
 variable [GooseExts]
 
-/-- The Go values and bytes of a service's inputs and outputs (see the file header). -/
-structure RWire (I O : Type) where
-  iv : I → GoInterface
-  ov : O → GoInterface
+/-- **The wire of a service** (see the file header; `notes/etcd-dist-plan.md`, §28): which Go values
+describe its inputs and outputs, and their bytes. `ivAt x i`: the Go value `x` describes the input
+`i`; `ovAt v o`: `v` describes the output `o`; both persistent, and may read memory (a slice with
+`↦*□` of its elements): several Go values may describe one model value (a decoded copy and the
+sender's). The bytes are functions of the model values (`encIn i`, `encOut o`). The fixed-value wire
+(`x = iv i`) is `RWire.ofValues`. -/
+structure RWire (GF : BundledGFunctors) (I O : Type) where
+  ivAt : GoInterface → I → IProp GF
+  ovAt : GoInterface → O → IProp GF
+  ivAt_persistent : ∀ x i, Persistent (ivAt x i)
+  ovAt_persistent : ∀ v o, Persistent (ovAt v o)
   encIn : I → List w8
-  encOut : GoInterface → List w8
+  encOut : O → List w8
   encIn_len : ∀ i, (encIn i).length < 2 ^ 63
-  encOut_len : ∀ v, (encOut v).length < 2 ^ 63
+  encOut_len : ∀ o, (encOut o).length < 2 ^ 63
+
+instance RWire.ivAt_pers {GF : BundledGFunctors} {I O : Type} (W : RWire GF I O) (x : GoInterface)
+    (i : I) : Persistent (W.ivAt x i) := W.ivAt_persistent x i
+instance RWire.ovAt_pers {GF : BundledGFunctors} {I O : Type} (W : RWire GF I O) (v : GoInterface)
+    (o : O) : Persistent (W.ovAt v o) := W.ovAt_persistent v o
+
+/-- **The fixed-value wire**: an input `i` is the Go value `iv i`, an output `o` the value `ov o`,
+their bytes those of the values (a report whose values are fixed, e.g. a string in, a bool out). -/
+def RWire.ofValues {GF : BundledGFunctors} {I O : Type} (iv : I → GoInterface) (ov : O → GoInterface)
+    (encIn : I → List w8) (encOut : GoInterface → List w8) (encIn_len : ∀ i, (encIn i).length < 2 ^ 63)
+    (encOut_len : ∀ v, (encOut v).length < 2 ^ 63) : RWire GF I O where
+  ivAt x i := iprop(⌜x = iv i⌝)
+  ovAt v o := iprop(⌜v = ov o⌝)
+  ivAt_persistent _ _ := BI.pure_persistent _
+  ovAt_persistent _ _ := BI.pure_persistent _
+  encIn := encIn
+  encOut o := encOut (ov o)
+  encIn_len := encIn_len
+  encOut_len o := encOut_len (ov o)
 
 /-- A node's service (see the file header): its wire, the answers to an input `i` that are not
-outputs (`unkAns i v`), and the update a slot hands to the far side for `i` and the dialer's
-continuation `Φ`. -/
-structure RSvc (GF : BundledGFunctors) (I O : Type) extends RWire I O where
+outputs (`unkAns i v`: fixed Go values, a store's unknown output) and their bytes (`encUnk v`), and
+the update a slot hands to the far side for `i` and the dialer's continuation `Φ`. -/
+structure RSvc (GF : BundledGFunctors) (I O : Type) extends RWire GF I O where
   unkAns : I → GoInterface → Prop
+  encUnk : GoInterface → List w8
+  encUnk_len : ∀ v, (encUnk v).length < 2 ^ 63
   upd : I → (O → IProp GF) → IProp GF
-
-/-- A value the far side of `S` may answer: an output, or an answer that is not one. -/
-def RSvc.outOk {GF : BundledGFunctors} {I O : Type} (S : RSvc GF I O) (v : GoInterface) : Prop :=
-  (∃ o, v = S.ov o) ∨ (∃ i, S.unkAns i v)
 
 /-- The far side's base store and the Go values and bytes of its inputs and outputs (see the file
 header). The store's inputs are the wire's `I` (the Go values `iv`, the bytes `encIn`); the base
@@ -295,16 +321,21 @@ theorem slotUpd_read {i : I} {Φ : O → IProp GF} (h : R.B.isWrite (R.mi i) = f
     slotUpd R i Φ = iprop(□ lin R i Φ) := by
   simp [slotUpd, h]
 
-/-- **A store's service**: its answers that are not outputs are its inputs' unknown outputs, its
+/-- **A store's service**, the fixed-value wire (§28): an input `i` is the Go value `R.iv i`, an
+output `o` the value `R.ov o`; its answers that are not outputs are its inputs' unknown outputs; its
 update `slotUpd`. -/
 abbrev RBase.svc : RSvc GF I O where
-  iv := R.iv
-  ov := R.ov
+  ivAt x i := iprop(⌜x = R.iv i⌝)
+  ovAt v o := iprop(⌜v = R.ov o⌝)
+  ivAt_persistent _ _ := BI.pure_persistent _
+  ovAt_persistent _ _ := BI.pure_persistent _
   encIn := R.encIn
-  encOut := R.encOut
+  encOut o := R.encOut (R.ov o)
   encIn_len := R.encIn_len
-  encOut_len := R.encOut_len
+  encOut_len o := R.encOut_len (R.ov o)
   unkAns i v := v = R.unk i
+  encUnk := R.encOut
+  encUnk_len := R.encOut_len
   upd := slotUpd R
 
 /-- The connection `cn` has the slot `γ`, for the input `i` (persistent). -/
@@ -374,8 +405,8 @@ def reqP (a : GoString) : Proto GF := fun cn W =>
 /-- What an acceptor writes: the frame of an answer to the slot's input that is not an output, or
 of an output the slot recorded. -/
 def repP : Proto GF := fun cn W =>
-  iprop(∃ (γ : SlotNames) (i : I) (v : GoInterface), ⌜W = frame (S.encOut v)⌝ ∗ slotOf cn γ i ∗
-    (⌜S.unkAns i v⌝ ∨ ∃ o, ⌜v = S.ov o⌝ ∗ doneLb (O := O) γ o))
+  iprop(∃ (γ : SlotNames) (i : I), slotOf cn γ i ∗
+    ((∃ v, ⌜S.unkAns i v ∧ W = frame (S.encUnk v)⌝) ∨ ∃ o, ⌜W = frame (S.encOut o)⌝ ∗ doneLb (O := O) γ o))
 
 /-- The node at `a` serves calls of the service `S`: its address's protocols are `reqP` and `repP`
 (persistent). -/
@@ -802,21 +833,29 @@ theorem req_read (a : GoString) (cn : Nat) (bd : List w8) (hbd : bd.length < 2 ^
 `i` that is not an output, or of an output the slot recorded. -/
 theorem rep_read (cn : Nat) (γ : SlotNames) (i : I) (bd : List w8) (hbd : bd.length < 2 ^ 63) :
     ⊢ slotOf (Gg := Gg) cn γ i -∗ protoPrefix (repP (Gg := Gg) S) cn (frame bd) -∗
-      ∃ v, ⌜bd = S.encOut v⌝ ∗ (⌜S.unkAns i v⌝ ∨ ∃ o, ⌜v = S.ov o⌝ ∗ doneLb (Gg := Gg) γ o) := by
+      ((∃ v, ⌜S.unkAns i v ∧ bd = S.encUnk v⌝) ∨ ∃ o, ⌜bd = S.encOut o⌝ ∗ doneLb (Gg := Gg) γ o) := by
   unfold protoPrefix
   iintro #Hso (%h | ⟨%ext, %hext, #HP⟩)
   · exfalso
     have := congrArg List.length h
     simp [frame_length] at this
   · unfold repP
-    icases HP with ⟨%γ', %i', %v, %he, #Hso', #Hv⟩
-    subst he
-    icases slotOf_agree cn γ γ' i i' $$ Hso Hso' with %h
-    obtain ⟨rfl, rfl⟩ := h
-    iexists v
-    iframe Hv
-    ipureintro
-    exact frame_prefix_eq hbd (S.encOut_len v) hext
+    icases HP with ⟨%γ', %i', #Hso', (⟨%v, %Hv⟩ | ⟨%o, %he, #Hlb⟩)⟩
+    · obtain ⟨Hu, he⟩ := Hv
+      subst he
+      icases slotOf_agree cn γ γ' i i' $$ Hso Hso' with %h
+      obtain ⟨rfl, rfl⟩ := h
+      ileft
+      ipureintro
+      exact ⟨v, Hu, frame_prefix_eq hbd (S.encUnk_len v) hext⟩
+    · subst he
+      icases slotOf_agree cn γ γ' i i' $$ Hso Hso' with %h
+      obtain ⟨rfl, rfl⟩ := h
+      iright
+      iexists o
+      iframe Hlb
+      ipureintro
+      exact frame_prefix_eq hbd (S.encOut_len o) hext
 
 end laws
 
@@ -831,17 +870,24 @@ variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O] (R : RBase GF St 
   (S : RSvc GF I O)
 
 /-- `cd`'s functions compute `S`'s encodings and decodings (persistent): all the serving side and
-`Report` use of a codec. A decoder may refuse an encoding; when it accepts, it returns the value
-encoded. -/
+`Report` use of a codec (§28). `EncIn` of a value describing `i` (`S.ivAt x i`, which may read memory)
+gives `i`'s bytes; `EncOut` of a value describing an output `o` gives `o`'s. A decoder may refuse
+an encoding; when it accepts, it returns a value describing the model value encoded. An answer that
+is not an output (`S.unkAns i v`) is a fixed value: its bytes are `S.encUnk v`, and its decoding
+returns `v`. -/
 def wireOk (cd : remote.Codec) : IProp GF :=
-  iprop((∀ i : I, {{ True }} (App (Val #cd.EncIn') (Val #(S.iv i)))
+  iprop((∀ (x : GoInterface) (i : I), {{ S.ivAt x i }} (App (Val #cd.EncIn') (Val #x))
       {{ (b : GoSlice), RET #b; b ↦* S.encIn i }}) ∗
     (∀ (i : I) (b : GoSlice) (dq : DFrac), {{ b ↦*{dq} S.encIn i }} (App (Val #cd.DecIn') (Val #b))
-      {{ (x : GoInterface) (ok : Bool), RET (PairV #x #ok); ⌜ok = true → x = S.iv i⌝ }}) ∗
-    (∀ v : GoInterface, ⌜S.outOk v⌝ -∗ {{ True }} (App (Val #cd.EncOut') (Val #v))
-      {{ (b : GoSlice), RET #b; b ↦* S.encOut v }}) ∗
-    (∀ (v : GoInterface) (b : GoSlice) (dq : DFrac), ⌜S.outOk v⌝ -∗
-      {{ b ↦*{dq} S.encOut v }} (App (Val #cd.DecOut') (Val #b))
+      {{ (x : GoInterface) (ok : Bool), RET (PairV #x #ok); ⌜ok = true⌝ -∗ S.ivAt x i }}) ∗
+    (∀ (v : GoInterface) (o : O), {{ S.ovAt v o }} (App (Val #cd.EncOut') (Val #v))
+      {{ (b : GoSlice), RET #b; b ↦* S.encOut o }}) ∗
+    (∀ (o : O) (b : GoSlice) (dq : DFrac), {{ b ↦*{dq} S.encOut o }} (App (Val #cd.DecOut') (Val #b))
+      {{ (x : GoInterface) (ok : Bool), RET (PairV #x #ok); ⌜ok = true⌝ -∗ S.ovAt x o }}) ∗
+    (∀ (i : I) (v : GoInterface), ⌜S.unkAns i v⌝ -∗ {{ True }} (App (Val #cd.EncOut') (Val #v))
+      {{ (b : GoSlice), RET #b; b ↦* S.encUnk v }}) ∗
+    (∀ (i : I) (v : GoInterface) (b : GoSlice) (dq : DFrac), ⌜S.unkAns i v⌝ -∗
+      {{ b ↦*{dq} S.encUnk v }} (App (Val #cd.DecOut') (Val #b))
       {{ (x : GoInterface) (ok : Bool), RET (PairV #x #ok); ⌜ok = true → x = v⌝ }}))
 
 instance wireOk_persistent (cd : remote.Codec) : Persistent (wireOk (hG := hG) S cd) := by
@@ -870,28 +916,57 @@ def codecOk (cd : remote.Codec) : IProp GF :=
 instance codecOk_persistent (cd : remote.Codec) : Persistent (codecOk (hG := hG) R cd) := by
   unfold codecOk; infer_instance
 
-/-- A store's codec is its service's. -/
+/-- A store's codec is its service's (the fixed-value wire's triples, §28). -/
 theorem codecOk_wireOk (cd : remote.Codec) :
     codecOk (hG := hG) R cd ⊢ wireOk (RBase.svc (Gg := hG.goose_globalGS) R) cd := by
   unfold codecOk wireOk
-  simp only [RSvc.outOk, RBase.outOk, RBase.svc]
+  simp only [RBase.svc]
   iintro ⟨#H1, #H2, #H3, #H4, -⟩
   isplitr
-  · iexact H1
+  · iintro %x %i !> %Φ %Hx HΦ
+    subst Hx
+    wp_apply H1 $$ %i [] as %b Hb
+    iapply HΦ $$ Hb
   isplitr
-  · iexact H2
+  · iintro %i %b %dq !> %Φ Hb HΦ
+    wp_apply H2 $$ %i %b %dq [Hb] as %x %ok %Hx
+    · iexact Hb
+    iapply HΦ
+    iintro %h
+    ipureintro; exact Hx h
   isplitr
-  · iexact H3
-  · iexact H4
+  · iintro %v %o !> %Φ %Hv HΦ
+    subst Hv
+    wp_apply H3 $$ %(R.ov o) %(Or.inl ⟨o, rfl⟩) [] as %b Hb
+    iapply HΦ $$ Hb
+  isplitr
+  · iintro %o %b %dq !> %Φ Hb HΦ
+    wp_apply H4 $$ %(R.ov o) %b %dq %(Or.inl ⟨o, rfl⟩) [Hb] as %x %ok %Hx
+    · iexact Hb
+    iapply HΦ
+    iintro %h
+    ipureintro; exact Hx h
+  isplitr
+  · iintro %i %v %Hv !> %Φ - HΦ
+    subst Hv
+    wp_apply H3 $$ %(R.unk i) %(Or.inr ⟨i, rfl⟩) [] as %b Hb
+    iapply HΦ $$ Hb
+  · iintro %i %v %b %dq %Hv !> %Φ Hb HΦ
+    subst Hv
+    wp_apply H4 $$ %(R.unk i) %b %dq %(Or.inr ⟨i, rfl⟩) [Hb] as %x %ok %Hx
+    · iexact Hb
+    iapply HΦ
+    ipureintro; exact Hx
 
 /-- **The far side's operation** `op` over the system `sys` (its resource `tok sys`) for the
-service `S` at `a`: given the update of `i` and the call's unit (`budUnit a`), it returns an output
-with `Φ` of it, or an answer to `i` that is not an output (see the file header). -/
+service `S` at `a`: given a value `x` describing the input `i`, the update of `i` and the call's
+unit (`budUnit a`), it returns a value describing an output with `Φ` of it, or an answer to `i`
+that is not an output (see the file header). -/
 def svcOp (a : GoString) (tok : GoInterface → IProp GF) (op : GoFunc) : IProp GF :=
-  iprop(∀ (sys : GoInterface) (i : I) (Φ : O → IProp GF),
-    {{ tok sys ∗ S.upd i Φ ∗ budUnit (Gg := hG.goose_globalGS) a }}
-      (App (App (Val #op) (Val #sys)) (Val #(S.iv i)))
-    {{ (v : GoInterface), RET #v; tok sys ∗ ((∃ o, ⌜v = S.ov o⌝ ∗ Φ o) ∨ ⌜S.unkAns i v⌝) }})
+  iprop(∀ (sys x : GoInterface) (i : I) (Φ : O → IProp GF),
+    {{ tok sys ∗ S.ivAt x i ∗ S.upd i Φ ∗ budUnit (Gg := hG.goose_globalGS) a }}
+      (App (App (Val #op) (Val #sys)) (Val #x))
+    {{ (v : GoInterface), RET #v; tok sys ∗ ((∃ o, S.ovAt v o ∗ Φ o) ∨ ⌜S.unkAns i v⌝) }})
 
 instance svcOp_persistent (a : GoString) (tok : GoInterface → IProp GF) (op : GoFunc) :
     Persistent (svcOp (hG := hG) S a tok op) := by
@@ -914,8 +989,14 @@ instance opMaybe_persistent (a : GoString) (tok : GoInterface → IProp GF) (op 
 theorem opMaybe_svcOp (a : GoString) (tok : GoInterface → IProp GF) (op : GoFunc) :
     opMaybe (hG := hG) R a tok op ⊢ svcOp (RBase.svc (Gg := hG.goose_globalGS) R) a tok op := by
   unfold opMaybe svcOp
-  iintro #H
-  iexact H
+  simp only [RBase.svc]
+  iintro #H %sys %x %i %Φ
+  iintro !> %Φr ⟨Htok, %Hx, Hu, Hb⟩ HΦr
+  subst Hx
+  wp_apply H $$ %sys %i [Htok Hu Hb] as %v ⟨Htok, Hv⟩
+  · iframe Htok Hu Hb
+  iapply HΦr
+  iframe Htok Hv
 
 /-! ### Reports -/
 
@@ -923,40 +1004,42 @@ theorem opMaybe_svcOp (a : GoString) (tok : GoInterface → IProp GF) (op : GoFu
 the dialer (what the orchestrator established before the call: a permission, a witness), answers an
 output `o` with `Q i o`, its postcondition (persistent or not); the slot hands it
 `P i ∗ ∀ o, Q i o -∗ Φ o`, and there is no answer but an output. -/
-abbrev reportSvc (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF) : RSvc GF I O where
+abbrev reportSvc (W : RWire GF I O) (P : I → IProp GF) (Q : I → O → IProp GF) : RSvc GF I O where
   toRWire := W
   unkAns _ _ := False
+  encUnk _ := []
+  encUnk_len _ := by simp
   upd i Φ := iprop(P i ∗ ∀ o, Q i o -∗ Φ o)
 
 /-- **The far side's loop** `op` over the system `sys` (its resource `tok sys`) meets the report
-`P`, `Q`: run on `i` with `P i`, it returns an output `o` with `Q i o`. -/
-def reportOp (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF)
+`P`, `Q`: run on a value `x` describing `i`, with `P i`, it returns a value describing an output
+`o`, with `Q i o`. -/
+def reportOp (W : RWire GF I O) (P : I → IProp GF) (Q : I → O → IProp GF)
     (tok : GoInterface → IProp GF) (op : GoFunc) : IProp GF :=
-  iprop(∀ (sys : GoInterface) (i : I),
-    {{ tok sys ∗ P i }} (App (App (Val #op) (Val #sys)) (Val #(W.iv i)))
-    {{ (v : GoInterface), RET #v; tok sys ∗ ∃ o, ⌜v = W.ov o⌝ ∗ Q i o }})
+  iprop(∀ (sys x : GoInterface) (i : I),
+    {{ tok sys ∗ W.ivAt x i ∗ P i }} (App (App (Val #op) (Val #sys)) (Val #x))
+    {{ (v : GoInterface), RET #v; tok sys ∗ ∃ o, W.ovAt v o ∗ Q i o }})
 
-instance reportOp_persistent (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF)
+instance reportOp_persistent (W : RWire GF I O) (P : I → IProp GF) (Q : I → O → IProp GF)
     (tok : GoInterface → IProp GF) (op : GoFunc) :
     Persistent (reportOp (hG := hG) W P Q tok op) := by
   unfold reportOp; infer_instance
 
 /-- A report's loop is its service's operation (at any address; the call's unit is dropped). -/
-theorem reportOp_svcOp (W : RWire I O) (P : I → IProp GF) (Q : I → O → IProp GF) (a : GoString)
+theorem reportOp_svcOp (W : RWire GF I O) (P : I → IProp GF) (Q : I → O → IProp GF) (a : GoString)
     (tok : GoInterface → IProp GF) (op : GoFunc) :
     reportOp (hG := hG) W P Q tok op ⊢ svcOp (reportSvc W P Q) a tok op := by
   unfold reportOp svcOp
-  iintro #H %sys %i %Φ
-  iintro !> %Φr ⟨Htok, ⟨HP, HQ⟩, -⟩ HΦr
-  wp_apply H $$ %sys %i [Htok HP] as %v ⟨Htok, ⟨%o, %Ho, Hq⟩⟩
-  · iframe Htok HP
+  iintro #H %sys %x %i %Φ
+  iintro !> %Φr ⟨Htok, #Hx, ⟨HP, HQ⟩, -⟩ HΦr
+  wp_apply H $$ %sys %x %i [Htok HP] as %v ⟨Htok, ⟨%o, #Ho, Hq⟩⟩
+  · iframe Htok Hx HP
   iapply HΦr
   iframe Htok
   ileft
   iexists o
-  isplitr [HQ Hq]
-  · ipureintro; exact Ho
-  · iapply HQ $$ Hq
+  iframe Ho
+  iapply HQ $$ Hq
 
 end ops
 
