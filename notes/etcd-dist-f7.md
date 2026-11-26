@@ -1402,3 +1402,35 @@ whole lib, since `TxnCommitOnDist`'s docstring change rebuilds its importers); l
 
 **Left:** linking (`RunAuthLease` into a `Results` root) waits on `foreignReads.law` (Upamanyu; the side branch drops
 the two lessor reads instead); then Handoff S3-1 item 5 (the `etcd-dist-auth` tcb collection, axiom-tok).
+
+### Handoff M-merge (2026-11-26; lean merged twice, build green, axiom-tok left)
+
+**Done** (branch `etcd-safe-f7`): lean `776bb603cc` merged (`3e36f7cbd9`), then lean `eb4f1a1633` with G-dial
+(`351641e79f`). Full build of `351641e79f` on fk-lean2 green (29488 jobs; fk-lean2's Perennial override moved to
+`perennial-a706aeb9a`, the pin, built there: lean's new `context`/`errors` files need it).
+- Conflicts: `Spec/.../dist/NewServerDist.lean` (lean's `dist-axiom-diff` header wording plus F7's bullets; both sides
+  had restored `etcdURLsFit`), `MainLogger.lean` (F7's: it already passes `etcdURLsFit`). `status-history.md`: lean's
+  text whole, the branch's 24 entries appended. STATUS's "Last updated" by the merge driver (every entry kept once).
+- G-dial: `dist/client/Results.lean` loses its `DialWithBalancerBody` section variable; nothing else needed it.
+- `clientCore_of_new`: no copy left on either side. kvremote's Spec `TopLevelRobustness` = lean's.
+- lean's new gate `etc/dist-axiom-diff.py`: NewServer_dist's dev lines for F2/F7's `γa`/`γl` binders, `Hlslot`/`Hγa`,
+  post; pair lines for the 20 F2/F7 axioms (`fd09d46699`). SEVEN marked `UNEXPLAINED` for review: the six auth-off
+  lease axioms drop `om`/`metadata.outMD ctx om` with the registration; `New_user_dist` drops `clientAuthPre`'s
+  `ctxErrClientAll`. Gate and selftest ok.
+- Checks: tier-check ok, lease-order ok, `tcb-report.py --check` ok (baseline 380 axioms: vs lean +6 lease axioms
+  `etcd_dist.view.{Client_LeaseLeases,Client_LeaseTimeToLive,Lease_GrantLive,Lease_Grant,Lease_LeasesGranted,
+  Lease_LeasesLive}_dist`; the 14 auth axioms are reached by no root, RunAuthLease unlinked). Collections all match
+  but `etcd-dist` and `etcd-dist-lease`, updated: `etcd-dist` vs lean is `+axiom traceutil.Tracer.Start.wp_proof`,
+  `+opaque v3rpc.ctxCauseOkRaw` (the in-process lease handlers' — `EtcdServer.LeaseGrant`/`Renew`/`Revoke` — reached
+  through F2/F7's lease-serving `Serve_dist`); `etcd-dist-lease` follows lean's grpc changes.
+- gen-link locally differs for `--bbolt --kvraft --kvraft-udp --wal-tester --walfs` only (no Perennial checkout here;
+  files identical to lean's): re-check on fk-lean2.
+
+**Left: the axiom-tok gate** (fails: 44 need an entry, 2 capped, 6 truncated). The roots are the six F2 lease axioms
+above: no entry and no `trunc` line, so they taint `credsYieldRaw`, `grpcConn`, `metadata.*MDRaw`, ... and 38 other
+axioms fail rule 5 as a cascade, `NewServer_dist`/`Serve_dist` among them (capped; no stale key reported, so M1's
+`NewServer_dist` key `3:Wb:produced46/consumed36` still matches our text). Fix: entries for the six as `KV_Put_dist`'s
+(`2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF`, plus whatever the "1 more" is) and `trunc` lines (their
+truncations are `KV_Put_dist`'s: `isCancelCtxOf`, `cd.4`, `toProtoMsg` projections), then re-run. Exact keys: the raw
+run started on fk-lean2, `/shared/tmp/f7atok.sh` (`etc/axiom-tok-check.py --raw ~/eg/tmp/f7-atok.jsonl`, log
+`~/eg/logs/f7-atok2.log`); keys from `finding_key` over the jsonl. Then `axiom-tok-check.py --check` green.

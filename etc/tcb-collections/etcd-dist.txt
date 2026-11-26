@@ -130,6 +130,7 @@ axiom storage.OpenBackend.wp_proof
 axiom streamIcMdIs
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.NewURLs.wp_proof
@@ -189,3 +190,4 @@ opaque prometheus.vecLabels
 opaque snap.dirReadOk
 opaque storage.dbOpensOk
 opaque trace.otelSpan
+opaque v3rpc.ctxCauseOkRaw
