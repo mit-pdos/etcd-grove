@@ -62,7 +62,7 @@ theorem node.campaign.wp_proof
   imod h_spend γ.raft rs.tc ⊤ (by solve_ndisj) $$ Hb Hrc Htc with ⟨%Hbd, Htc⟩
   ihave Hraw := h_raise γ.R.md hs hcc hfw has _ _ _ _ _ _ _ (rs.tc + W64 1) (by word) $$ Hraw
   wp_apply wp_Campaign γ.R.md hs hcc hfw has γ.raft.raftNames rn (AntSim.nodeId j) { rs with tc := rs.tc + W64 1 } v.r []
-      v.r.p.log.length (by simp only; rw [← Hwf.2.2]; word) hrv.2.2.2.2.2
+      v.r.p.log.length (by simp only; rw [← Hwf.2.2]; word) hrv.2.2.2.2.2.1
       Hst.1 $$ [$Hrpkg $Hraw] as %err %t %r' %ip' ⟨Hraw, %Ht, %Herr, %Hend⟩
   obtain ⟨hTE, hip⟩ := Hend γ.R.md rfl
   rw [show ({ rs with tc := rs.tc + W64 1 } : RNState).k = γ.R.k j from hk] at hTE

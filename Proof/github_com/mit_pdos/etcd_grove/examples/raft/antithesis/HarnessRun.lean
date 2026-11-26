@@ -421,10 +421,13 @@ def emitOk (n : Loc) : IProp GF :=
 /-- **The `RawNode`'s record against the view** (pure; S4's `RsView` over the disk): the client
 record's last reported hard state and durable log are the node's disk (`v.dur`, C1), what it handed
 out is the view's delivered and unreported committed entries, nothing queued or unpersisted, not
-following a snapshot. -/
+following a snapshot; (antithesis parity B1, group E's S2) the role the last `Ready` reported
+(`prevSoftSt`'s, which a `Ready` with a `nil` `SoftState` keeps) is the view's (Go's `roleOf` of it,
+`roleStr`, the binding's `roleS`). -/
 def RsView (rs : RNState) (v : AntSim.NodeView) : Prop :=
   rs.phs = HardStateM.mk v.dur.term v.dur.vote v.dur.commit ∧ rs.dur.ents = v.dur.log ∧
-  rs.delivered = v.delivered ++ v.ce ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.flw = false
+  rs.delivered = v.delivered ++ v.ce ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.flw = false ∧
+  roleStr rs.role = AntSim.roleS v
 
 /-- **Node `j`'s disk** (`n.disk` at `d`, `harness.go`'s `disk`): the hard state and the entries of
 the binding's disk `w` (`DurW`, from index 1), no snapshot (batch B3's). -/

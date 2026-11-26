@@ -48,14 +48,15 @@ theorem viewNormal_noteInput {v : AntSim.NodeView} {inp : AntSim.Input} (hN : Vi
   ⟨hN.1, fun m h => hm m h⟩
 
 /-- `RsView` reads none of the term, the ceiling, `psnap`, the node constant; nor the view's input
-fields (`noteInput`). -/
+fields (`noteInput`). (The reported role, which no input moves, by `rfl` by default.) -/
 theorem rsView_noteInput {rs rs' : RNState} {v : AntSim.NodeView} (inp : AntSim.Input)
     (h : RsView rs v)
     (hphs : rs'.phs = rs.phs) (hdur : rs'.dur = rs.dur) (hdel : rs'.delivered = rs.delivered)
-    (hsteps : rs'.steps = rs.steps) (hun : rs'.unpersisted = rs.unpersisted) (hflw : rs'.flw = rs.flw) :
+    (hsteps : rs'.steps = rs.steps) (hun : rs'.unpersisted = rs.unpersisted) (hflw : rs'.flw = rs.flw)
+    (hrole : rs'.role = rs.role := by rfl) :
     RsView rs' (v.noteInput inp) := by
   unfold RsView at h ⊢
-  rw [hphs, hdur, hdel, hsteps, hun, hflw]
+  rw [hphs, hdur, hdel, hsteps, hun, hflw, hrole]
   exact h
 
 end pure

@@ -6723,3 +6723,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** readyWithoutAccept already instantiated `sts := s.rd.states` and had `Hprecand`
   (`ownRaftPhysC_precand`) in scope; RawNode__ReadyAbs reads `rs.k.prevote = s.prevote` off the scope's `KTie`.
 - **Decision.** The Antithesis lead (S4 (a)(b), approved). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group E (S2): `RsView` relates the last reported role (#33)
+- **Spec.** HarnessRun.lean's `RsView` (nodeOwn's record against the view) gains `roleStr rs.role = AntSim.roleS v`
+  (S4's `rs.role = roleGo v.ps.role`, which parity had dropped).
+- **Defect.** A `Ready` with a `nil` `SoftState` reports `n.role`, i.e. `rs.role` (`roleAfter rs.role none`); without the
+  clause the drain could not relate it to the view's role (`ReadyOut`'s role reading).
+- **Evidence.** Inputs do not move `rs.role` nor the view's `pre`/`r` (`rsView_noteInput`'s new `hrole`, `rfl` by
+  default); node.start's fresh node is a follower. Mechanical: node__tick/node__campaign read `rs.flw` as
+  `hrv.2.2.2.2.2.1`; node__start's tuple gains the role component.
+- **Decision.** The Antithesis lead (S2, approved). No axiom, no top-level premise.
