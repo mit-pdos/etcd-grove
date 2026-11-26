@@ -2,7 +2,7 @@
 Proof of `Spec/.../dist/client/RunWatch.lean` (#50 N10a). Lean-first (no Rocq counterpart).
 
 `partition/MainWatch.lean`'s argument at the cluster's KV (`WatchWorkDefs.lean`): `GenAll` picks the
-writers' Puts `trs`; the clients' adapter over the share's client half (`client.kmInv_alloc`, the plan's
+writers' Puts `trs` (`GenAll_receipts.spec`: fewer than `receiptBound GF ≤ 2 ^ 56`, `remoteWriters`' bound); the clients' adapter over the share's client half (`client.kmInv_alloc`, the plan's
 property `wkW (trs.map pairOf)`, true of the boot's changes `[[]]`); `newClient` (its failure ends the
 workload, `ended`); the client's `Watcher` a watcher of the cluster's KV (`watchClient_of_new`,
 `kvWatcherW_of_dist` over the interim `Watch_dist`, a hypothesis), so etcd's watch contract at the
@@ -21,7 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.remo
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.newClient
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.GenAllR
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check
@@ -65,7 +65,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 set_option maxHeartbeats 1600000 in
 set_option maxRecDepth 8192 in
 theorem RunWatch.wp_proof
-    (wp_GenAll : etcdstart.GenAll.spec (GF := GF) (hG := hG))
+    (wp_GenAll : GenAll_receipts.spec (GF := GF) (hG := hG))
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
     (wp_ended : ended.spec (GF := GF) (hG := hG))
     (wp_checked : checked.spec (GF := GF) (hG := hG))
@@ -81,7 +81,7 @@ theorem RunWatch.wp_proof
     (wp_Collect : etcdstart.Collect.spec (GF := GF) (hG := hG))
     (wp_Check : etcdstart.Check.spec (GF := GF) (hG := hG)) :
     RunWatch.spec (GF := GF) (hG := hG) := by
-  intro π ρ eps nodes addrs ns nops ready hV Htb hpl H0 H56 Hmul
+  intro π ρ eps nodes addrs ns nops ready hV Htb hpl H0 Hmul Hrb
   wp_start as ⟨Hlt, #Heps, #Hnodes, #Hready, Hsh⟩
   iunfold watchShare at Hsh
   icases Hsh with ⟨%Γ, %σ₀, %Hσ0, #Hms, Hkv, HWS⟩
@@ -121,9 +121,14 @@ theorem RunWatch.wp_proof
     as %tsl ⟨%trs, Htrs, %Htrs⟩
   · iframe #
   imod ownSlice_persist _ _ _ $$ Htrs with #Htrs
-  have hpk := wk_genKeys_pfx trs Htrs.2
+  have hpk := wk_genKeys_pfx trs Htrs.2.1
   have hps : ∀ p ∈ trs, pairOf p ∈ trs.map pairOf ∧ wkvSmall p := fun p hp =>
-    ⟨List.mem_map_of_mem hp, genKv_small p (Htrs.2 p hp)⟩
+    ⟨List.mem_map_of_mem hp, genKv_small p (Htrs.2.1 p hp)⟩
+  -- the Puts fewer than the receipts' bound, so than `2 ^ 56` (`remoteWriters`')
+  have htr56 : trs.length < 2 ^ 56 := by
+    have h := Htrs.2.2
+    rw [← Htrs.1] at h
+    omega
   have htl : (trs.length : Int) = ns.length * sint.Z nops := by
     have h0 : 0 ≤ sint.Z (nodes.len * nops) := by rw [hmul]; exact Int.mul_nonneg (by omega) H0
     rw [Htrs.1, ← hmul]; word
@@ -257,7 +262,7 @@ theorem RunWatch.wp_proof
   wp_apply Hready
   (try wp_auto)
   -- `oks := remoteWriters(nodes, tried, nops)`
-  wp_apply (wp_remoteWriters nodes tsl ns trs nops Γ (γ.ch, γ.tok, trs.map pairOf) Htb H0 H56 htl hps)
+  wp_apply (wp_remoteWriters nodes tsl ns trs nops Γ (γ.ch, γ.tok, trs.map pairOf) Htb H0 htl htr56 hps)
     $$ [$Hlt HWS] as %okSl ⟨Hlt, %oks, Hos, #Hoks0⟩
   · rw [hγeq]
     iframe #
