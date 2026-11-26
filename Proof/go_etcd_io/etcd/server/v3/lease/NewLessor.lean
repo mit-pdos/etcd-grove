@@ -44,6 +44,22 @@ theorem lease.NewLessor.wp_proof (hNL : lease.newLessor.spec (GF := GF) (hG := h
   iframe Hpost
   ipureintro; rfl
 
+theorem lease.NewLessor.wp_proofAt (hNL : lease.newLessor.specAt (GF := GF) (hG := hG)) :
+    lease.NewLessor.specAt (GF := GF) (hG := hG) := by
+  intro lg cl cfg d W Pk qo GA S r mono recs reqOf Lr γl hS hlp hrecs hrq hLr
+  wp_start as ⟨Hlg, %Hrate, #Hcl, #HB, Ho, Htoks, Hrb, #HGA, %Htb, Hhalf, #Hslot⟩
+  (try wp_auto)
+  wp_apply (hNL lg cl cfg d W Pk qo GA S r mono recs reqOf Lr γl hS hlp hrecs hrq hLr)
+    $$ [$Hpkg $Hlg $Hcl $HB $Ho $Htoks $Hrb $HGA $Hhalf $Hslot]
+    as %lp ⟨Ho, Hrb, Hpost⟩
+  · ipureintro; exact ⟨Hrate, Htb⟩
+  (try wp_auto)
+  iapply HΦ
+  iframe Ho Hrb
+  iexists lp
+  iframe Hpost
+  ipureintro; rfl
+
 end proof
 
 end EtcdGrove

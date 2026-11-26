@@ -57,6 +57,10 @@ def lessorHistOk (γl : GName) : IProp GF :=
 instance lessorHistOk_persistent (γl : GName) : Persistent (lessorHistOk (GF := GF) γl) := by
   unfold lessorHistOk; infer_instance
 
+instance lessorPinR_timeless (γl : GName) (γr : LessorRdNames) :
+    Timeless (lessorPinR (GF := GF) γl γr) := by
+  unfold lessorPinR lessorPinAll; infer_instance
+
 /-- **The start's slot for the lessor name `γl`** (persistent): until the member's `NewLessor` makes the
 lessor at `γl`, half of `γl`'s ghost map's authority at `∅` (the member holds the other half); after, the
 lessor's history law (`lessorHistOk`) and a pin of `γl` (which excludes the member's half at `∅`: the

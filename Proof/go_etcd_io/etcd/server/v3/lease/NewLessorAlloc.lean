@@ -120,11 +120,14 @@ theorem newLessor_alloc_at (γl : GName) (lp lm im np : Loc) (h : GoSlice) (hx :
   imod (saved_pred_alloc (GF := GF) GA DFrac.discard trivial) with ⟨%γga, #Hga⟩
   imod (ghost_map_alloc (GF := GF) (recMap (recs.zip ls))) with ⟨%γcl, Hcla, Hcle⟩
   -- the slot: the member's half at `∅` excludes the published case (its pin); the halves joined
-  iinv Hslot with Hsb Hsclose
+  ihave #Hsi := Hslot
+  iunfold lessorSlot at Hsi
+  iinv Hsi with Hsb Hsclose
   icases Hsb with (>Hh2 | Hpub)
   rotate_left
-  · iexfalso
-    icases Hpub with ⟨-, >⟨%γr', #Hp'⟩⟩
+  · icases Hpub with ⟨-, >Hp'⟩
+    icases Hp' with ⟨%γr', #Hp'⟩
+    iexfalso
     iapply lessorPinR_not_empty γl γr' (1 : Qp).half
     iframe Hhalf Hp'
   ihave Hla : iprop(ghostMapAuth (GF := GF) γl 1 (∅ : GMap Bool LessorGV)) $$ [Hhalf Hh2]
