@@ -231,6 +231,7 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   d9 : LogIdx (V n).ps.log
   hconf : S1.config[n.val]! = confView R.N (V n).r.cfg
   hcf : (V n).r.cfg.cfg = CfgM.simple R.voters0 ∅
+  hcc : R.md.confChanges = false
   hq0 : S1.queue[n.val]! = []
   hvp : (V n).pre = false
   hpf : rd.pre = false
@@ -318,6 +319,7 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDe
     d9 := hdl ▸ hv.facts.logIdx
     hconf := by rw [m3, hcv]
     hcf := hcf
+    hcc := by rw [hmd]
     hq0 := by rw [hv.queue, hsy.1]; rfl
     hvp := hvp, hpf := hpf, hsn := hsnr, hfl := hfl, hrf := hrf, hr := hrP, hro := hroO
     hrep := hrepO, htold := htold, htb := htb, hin := hin', hqs := hqs

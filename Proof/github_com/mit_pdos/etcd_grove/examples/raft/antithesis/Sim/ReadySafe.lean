@@ -179,11 +179,11 @@ theorem ch_ok {G : RaftFacts} {ch : List Entry} {L : List EntryM} {c : w64}
 
 /-- `LogMatching` (B 430-432): the new log (certified, `ReadyFacts`) matches every node's
 (certified, C5), by raft's log matching (`RaftLaws`). -/
-theorem lm_ok {G : RaftFacts} (hG : RaftLaws G) {S : State} {L : List EntryM} (hL : L ∈ G.logs)
-    (hlogs : ∀ n : Fin 3, ∃ l ∈ G.logs, S.log[n.val]! = logOf l) (hlen : S.log.length = 3) :
+theorem lm_ok {G : RaftFacts} (hG : RaftLaws G) {S : State} {L : List EntryM} (hL : L ∈ G.logs) {N : Nat}
+    (hlogs : ∀ n : Fin N, ∃ l ∈ G.logs, S.log[n.val]! = logOf l) (hlen : S.log.length = N) :
     ∀ b : Nat, matching (logOf L) (S.log[b]!) = .ok true := by
   intro b
-  by_cases hb : b < 3
+  by_cases hb : b < N
   · obtain ⟨l, hl, he⟩ := hlogs ⟨b, hb⟩
     rw [show S.log[b]! = logOf l from he]
     exact matching_logOf (fun k e f he hf ht => hG.2.2.1 L hL l hl k e f he hf ht)
