@@ -4383,6 +4383,6 @@ When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` b
   among them are M1's KV/Serve/NewServer/PeerServe entries and several grpc/etcdserver trust axioms whose walks changed
   in the merges (F7's replaced `Serve_dist`/`NewServer_dist`; wenv's `isNewClient`). Each entry is to be re-derived
   from its walk and triaged, never copied (open item; the F9 packet's).
-- gen-link: the 61 Links of the dist/etcd modes match; five Links of other projects (bbolt, kvraft, WAL) differ
+- gen-link: every other Link matches; five Links of other projects (bbolt, kvraft, WAL) differ
   from what `gen-link` prints in this worktree with no `.lake`. They are identical to `lean`'s files, so the difference
   comes from this environment.
