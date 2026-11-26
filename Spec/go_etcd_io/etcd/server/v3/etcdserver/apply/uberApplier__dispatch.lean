@@ -48,7 +48,8 @@ lessor ever had, `U` (`everOwn`), a grant's id new to them unless the lessor is 
 (`grantFresh`), given back with an applied grant's id added (`grantIds`). (The lease-expiry plan's S2–S4, Q-S6 (A-ii), 2026-11-05) The
 record's TTL `t` at least the grant's request (`grantTTLOk`). (Auth-lease S4 item 7b, 2026-11-17)
 In a cluster that grants leases, the lessor window's target for the request (`winTgt`), asked only with `v3`
-(without it nothing reaches the backend). -/
+(without it nothing reaches the backend) (T10 step 2) Its no-lock outcome (`cPost`'s `Pre` disjunct) changed nothing the
+server's models track (`dispatchNoEff`). -/
 abbrev apply.uberApplier.dispatch.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log F : mvcc.Log) (Pre Q Post : IProp GF)
@@ -77,7 +78,8 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
         apply.everOwn E (apply.grantIds rq v3 o U) ∗ apply.revokeOwn E rq ∗
         (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq v3 o
           (apply.grantRest t rq v3 o (apply.restAfter rq v3 rs)))) ∗
-        ⌜apply.grantOutOk c rq v3 T o⌝ ∗ apply.cPost v3 Pre Post ∗
+        ⌜apply.grantOutOk c rq v3 T o⌝ ∗
+        apply.cPost v3 Pre Post (apply.dispatchNoEff c rq v3 log crev T rs o) ∗
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
           apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗ apply.grantRes E rq o ar ∗
