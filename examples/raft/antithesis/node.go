@@ -1,6 +1,8 @@
 package antithesis
 
 import (
+	"sync/atomic"
+
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/proto"
@@ -52,7 +54,9 @@ type node struct {
 	// The configurations raft was switched to since the snapshot in store, oldest first.
 	confs []confAt
 	// Batch: how many times raft, leading, appended the entry that leaves a joint configuration.
-	autoLeft int
+	// Accessed only atomically (sync/atomic): the logger, which raft calls from inside its own
+	// calls, adds to it.
+	autoLeft uint64
 	// The index of the last snapshot a leader sent that raft was handed.
 	confBase uint64
 
@@ -99,7 +103,7 @@ type nodeLogger struct {
 
 func (l *nodeLogger) Infof(format string, v ...interface{}) {
 	if format == "initiating automatic transition out of joint configuration %s" {
-		l.n.autoLeft++
+		atomic.AddUint64(&l.n.autoLeft, 1)
 	}
 }
 
@@ -303,7 +307,8 @@ func (n *node) start() {
 	n.items = 0
 	n.writes, n.inflight, n.applies, n.applying, n.restoring = nil, false, nil, false, 0
 	n.wip, n.aip = nil, nil
-	n.confs, n.autoLeft, n.confBase = nil, 0, 0
+	n.confs, n.confBase = nil, 0
+	atomic.StoreUint64(&n.autoLeft, 0)
 	n.applied = n.storeBase()
 	cs := n.storeConf()
 	n.conf = cs
@@ -403,6 +408,7 @@ func (n *node) note(by string, ents []*pb.Entry) {
 	// What a leader appended: the empty entry its term starts with, or what it was asked to and
 	// did not refuse, and the entry that leaves a joint configuration, if raft appended it.
 	var app []*pb.Entry
+	left := atomic.SwapUint64(&n.autoLeft, 0)
 	if role == "leader" {
 		if n.role != "leader" {
 			app = []*pb.Entry{{Term: u64p(term)}}
@@ -410,12 +416,11 @@ func (n *node) note(by string, ents []*pb.Entry) {
 			for _, e := range ents {
 				app = append(app, &pb.Entry{Term: u64p(term), Type: e.Type, Data: e.GetData()})
 			}
-			for ; n.autoLeft > 0; n.autoLeft-- {
+			for ; left > 0; left-- {
 				app = append(app, &pb.Entry{Term: u64p(term), Type: pb.EntryConfChangeV2.Enum()})
 			}
 		}
 	}
-	n.autoLeft = 0
 	request := n.cause != nil && n.cause.Type == "app" && n.cause.Term == int(term)
 	if hs == n.mhs && role == n.role && !request && len(app) == 0 {
 		return
