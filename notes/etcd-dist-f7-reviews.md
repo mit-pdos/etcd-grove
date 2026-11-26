@@ -1,0 +1,69 @@
+# F7: review list for the auth-on dist drafts (S1, 2026-11-26)
+
+One `axiom`-skill review per row, fresh (given the code and the draft, not `notes/etcd-dist-f7.md`'s
+reasoning), in one batch with the re-reviews of `Serve_dist` and `NewServer_dist`. The drafts are `.spec`
+definitions in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthViewDist.lean` (below: `AVD`)
+and `.../dist/AuthServeProposed.lean` (`ASP`); nothing imports either, no axiom. Go sources: etcd's client
+`client/v3/` and server `server/` at the fork's pin (`.lake/go-src/etcd`, `upamanyus/etcd` `goose-lean`);
+the single-process specs they mirror are in `Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean` and
+`Spec/go_etcd_io/etcd/client/v3/`.
+
+## The lead's condition, and what every review checks
+
+(#50, 2026-11-26T01:29:52Z.) Each success arm says member `mid`'s check passed for the call's user at the
+current auth history (`servedBy eps Γ mid` and one of `writeCheckedD`, `readCheckedD`/`txnReadCheckedD`,
+`leaseCheckD`, `adminRepliedD`, `New`'s `passwordChecked`); each error arm (`err ≠ nil ∧ resp = null`) admits
+every token failure. For every row, also try:
+
+- **A token from member A presented to member B.** clientv3's balancer sends each RPC to any endpoint, with
+  the one token the client holds. The simple token's prefix is drawn at the receiving member and goes through
+  raft (`EtcdServer.Authenticate`, `server/etcdserver/v3_server.go:838`, `SimpleToken: st` at :875); every
+  member's apply assigns `<prefix>.<index>` to the same user (`tokenSimple.assign`,
+  `server/auth/simple_token.go:215`). So B accepts A's token as the same user once B has applied that
+  entry, and before that (or after B's own TTL keeper expired it) answers `ErrInvalidAuthToken`, which the
+  retry interceptor turns into a refresh and a resend (`client/v3/retry_interceptor.go:89`,
+  `shouldRefreshToken` :157). Break the success arm by finding a run where B binds the request to a user
+  other than `principalOf cfg` (or `""`): two members issuing the same token string to different users (the
+  prefix is 16 random letters per call, the index the raft index: distinct entries give distinct indices),
+  a token reassigned after expiry, `cfg.Token` preset (excluded: `cfg.Token' = []`), the client's
+  `Username`/`Password` fields written after `New` (they are public fields of `*Client`; `getToken` reads
+  them at every refresh: is anything in `isNewClient` pinning them?).
+- **Expired tokens.** Each member's `simpleTokenKeeper` deletes a token after `TokenTTL` (300 s in
+  `dist/server/server.go`) independently; a refresh may land at another member. Check nothing in a post
+  assumes the token was valid anywhere.
+- **Resends.** A write is resent after `ErrInvalidAuthToken`/`ErrAuthOldRevision` (mutable RPCs included);
+  `writeAuD` is persistent and fires at most once. Can two attempts both apply (one entry each)? The
+  single-process argument is `srvPropAu1` (one entry per attempt, each told its own grant; a refused
+  attempt's entry applies no step).
+- **`userOk`'s empty user.** With auth on an empty user is refused by every check (`ErrUserEmpty`); the
+  arm still admits it, so it claims less. Check no draft's caller could need more.
+
+## Rows
+
+| # | Draft | Where | Go function (source) | Mirrors | What to try to break |
+|---|---|---|---|---|---|
+| 1 | `New_user_dist` | `AVD:235` | `clientv3.New(cfg)` → `getToken` (`client/v3/client.go:86`, :285, :473) | `clientv3.New.spec` (`clientAuthPre`) | `getToken` treats `ErrAuthNotEnabled` as success with no token: the arm's `enabledVerdict (.on (A mid)) false` disjunct. Does `passwordChecked` at `A mid` hold when the `Authenticate` RPC went to member B but `CheckPassword` ran at B (it does: `mid` is existential over `eps`)? A member whose auth store lags the history (user not yet added there). |
+| 2 | `KV_PutOn_dist` (also F2's `KV_PutLease_dist` row, at `leaseID ≠ 0`) | `AVD:261` | `(*kv).Put` (`client/v3/kv.go:159`) | `client_put_on` (`ResultsOn.lean:58`) | The token from A at B; a resend after `ErrAuthOldRevision` whose first attempt's entry is committed but refused; `WithLease(id)` with `id` revoked meanwhile (`ErrLeaseNotFound`: no step, the update must not fire; `checkLeasePuts` refused at apply). `writeCheckedD`'s `grantedAt` at `L` before the entry. |
+| 3 | `KV_DeleteOn_dist` | `AVD:286` | `(*kv).Delete` (`client/v3/kv.go:192`) | `client_delete_on` (`ResultsOn.lean:263`) | As row 2; a range delete whose permission covers part of the range (`isDeleteRangePermitted` over `[key, end)`), `prevKV` with read permission missing (etcd checks read on `prevKV`). |
+| 4 | `Txn_CommitOn_dist` | `AVD:320` | `(*txn).Commit` (`client/v3/txn.go:138`) | `client_txn_on` (`ResultsOn.lean:371`) | Nested transactions' checks (`irrTxn`'s grant, `txnClassFrom`'s); a read-only txn resent at another endpoint (`□ AU`); a writing txn whose compare reads keys the user may not read (`checkTxnReqsPermission` checks compares as reads). |
+| 5 | `KV_GetOn_dist` (with the barrier floor `authFloorD`) | `AVD:368` | `(*kv).Get` (`client/v3/kv.go:164`) | `client_range_on` (`ResultsOn.lean:188`) | The floor: member `mid`'s published index `m` with its state at `i ≤ m` the history's after `L ⊒ L₀`. Index alignment: `authStateAt γa i` is the member's auth history's `i`-th state, `srvReqLogLb` has no raft fillers (`authFloorAt` uses the raft log and `ai0`). A member that answers after its read index but whose auth store is behind its apply. `readAuthedD` (cluster-level) vs the member-local verdict. |
+| 6 | `Auth_UserAdd_dist` | `AVD:402` | `(*authClient).UserAdd` (`client/v3/auth.go:156`) | `authClient.UserAdd.spec`, `etcdUserAddSpecW` | Sent before `AuthEnable` by an anonymous client (`P = none`); a resend (admin RPCs are mutable: resent only after a refusal) applying twice (`ErrUserAlreadyExist` on the second: the error arm). `adminRepliedD`'s `mid`. |
+| 7 | `Auth_UserGrantRole_dist` | `AVD:425` | `(*authClient).UserGrantRole` (`client/v3/auth.go:176`) | `authClient.UserGrantRole.spec`, `etcdUserGrantRoleSpecW` | Name bound `user.length ≤ maxKeySize` (server-side premise moved to the client); role absent (`ErrRoleNotFound`); grant to `root`. |
+| 8 | `Auth_RoleAdd_dist` | `AVD:446` | `(*authClient).RoleAdd` (`client/v3/auth.go:196`) | `authClient.RoleAdd.spec`, `etcdRoleAddSpecW` | Empty role name (`ErrRoleEmpty`); `root` role. |
+| 9 | `Auth_RoleGrantPermission_dist` | `AVD:468` | `(*authClient).RoleGrantPermission` (`client/v3/auth.go:201`) | `authClient.RoleGrantPermission.spec`, `etcdRoleGrantPermissionSpecW` | `permType` outside READ/WRITE/READWRITE; `rangeEnd = "\x00"` (from-key); the client's key bound `key.length < 2^63 - 1`. |
+| 10 | `Auth_AuthEnable_dist` | `AVD:491` | `(*authClient).AuthEnable` (`client/v3/auth.go:141`) | `authClient.AuthEnable.spec` | No `root` user (`ErrRootUserNotExist`), root without the root role (`ErrRootRoleNotExist`); a lagging member answering. |
+| 11 | `Lease_GrantOn_dist` | `AVD:515` | `(*lessor).Grant` (`client/v3/lease.go:222`) | `client_lease_grant_on` (`ResultsOn.lean:484`), F2's `Lease_GrantLive_dist` | One endpoint: `leaseLiveFrom (Γ.ls mid)` — the reply waits on the member's apply? The id drawn at the receiving member; `□ ∀ id` update; resend after a token refresh drawing a second id (two leases granted, one returned). |
+| 12 | `Lease_RevokeOn_dist` | `AVD:544` | `(*lessor).Revoke` (`client/v3/lease.go:237`), server `LeaseRevoke` (`server/etcdserver/v3_server.go:471`: `requireAuthInfo` then raft) | `client_lease_revoke_on` (`ResultsOn.lean:549`) | The apply-time check (`checkLeasePuts`: write on every attached key, or admin) vs `writeCheckedD`'s `grantedAt`; a lease already expired/revoked (`ErrLeaseNotFound`); a resend. |
+| 13 | `Lease_TimeToLiveKeysOn_dist` | `AVD:573` | `(*lessor).TimeToLive` with `WithAttachedKeys()` (`client/v3/lease.go:246`), server `LeaseTimeToLive` / `checkLeaseTimeToLive` (`v3_server.go:699`, :608) | `lessor.TimeToLive.spec` at `etcdLeaseTTLSpecMdW` (`LeaseSpecs.lean:58`), F2's view-free `Client_LeaseTimeToLive_dist` | The keys check is member-local (`s.lessor.Lookup` at `mid`, `IsRangePermitted` at `mid`) but the answer is the leader's (`leaseTimeToLive` forwards): the post claims only the echoed ID and `mid`'s verdict. `ErrAuthOldRevision` when the auth revision moved during the call. `leaseKeysFold gs false = true` with more options. |
+| 14 | `Lease_LeasesOn_dist` | `AVD:596` | `(*lessor).Leases` (`client/v3/lease.go:262`), server `LeaseLeases` / `checkLeaseLeases` (`v3_server.go:738`, :752) | `lessor.Leases.spec` at `etcdLeaseLeasesSpecMdW` (`LeaseSpecs.lean:101`), F2's `Lease_LeasesLive_dist` | The listing and the check read `mid`'s lessor at one index `j`? (`ls := s.lessor.Leases()` before `checkLeaseLeases`, which reads each lease's keys again.) Revocable mode only. |
+| 15 | `NewServer.specG_dist_proposed` (P-A1) | `ASP:55` | `etcdserver.NewServer` (`server/etcdserver/server.go`) | the current `NewServer.specG_dist` (`Spec/.../dist/NewServerDist.lean`) | `authNamesFreshD` is a PLACEHOLDER (only `γa.fresh`'s authority): list every name `NewAuthStore` allocates; `γa` shared between two members (the start must allocate per member); auth off (`on = false`) ignores `γa`. |
+| 16 | `Serve_dist_proposed.spec` | `ASP:170` | `etcdstart.Serve` (`examples/lib/etcdstart`) | the current `Serve_dist.spec` (`Spec/.../dist/ServeDist.lean`) | The disjunction `Γ.auth = false ∨ ρ.rd.kv.hist = Γ.kv.hist`: a member serving `Γ` with auth on but its own history names; `etcdSvc`'s entries now the `etcd*SpecOn` handlers at `T := False`: a deployment with `ClientCertAuthEnabled`. |
+
+## Findings while drafting (S1)
+
+- The design note says tokens are per member. They are not: the simple token is assigned cluster-wide
+  through raft (above). The drafts are unaffected (they state the user, not the token), but the note's
+  "a client that rotates endpoints re-authenticates" is only the lagging/expired case.
+- `principalOf` ignores `cfg.Token`: a preset token binds the calls to its user. `clientCfgOk` already asks
+  `cfg.Token' = []` of `New`; the client facts (`userClientAt`, `authClientAt`, `leaseUserAt`) now carry it.
+- `getToken` returns success on `ErrAuthNotEnabled`: `New_user_dist`'s success arm admits it.

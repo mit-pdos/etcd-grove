@@ -2235,6 +2235,26 @@ So each is an interim axiom with that reason; the lessor four also wait for P-L1
 - `Compact` with `cmp = true` implies auth off (`NewServer`'s `cmp = true → on = false`); its call is idempotent past the
   compacted revision (an error then), so a retry is harmless either way.
 
+**F7's auth-on rows (S1, 2026-11-26; drafts in `Proof/.../dist/AuthViewDist.lean`, review list
+`notes/etcd-dist-f7-reviews.md`).** All read `Γ.auth = true`, `Γ.kv` (`hist`, `rlog`) and, where member-local,
+the member's auth names `A mid` (`Γ.au` after P-A1); every success arm names the serving member and its check, every
+error arm claims nothing (the lead's condition, #50 01:29:52Z). F2's three rows "after F7's auth view" are
+`KV_PutOn_dist` (its `leaseID ≠ 0` case is `KV_PutLease_dist`), `Lease_RevokeOn_dist`, `Lease_TimeToLiveKeysOn_dist`.
+
+| Draft | Function | Mirrors (client spec / server spec) | Reads of `Γ` | Axiomatizable |
+|---|---|---|---|---|
+| `New_user_dist` | `clientv3.New` (user) | `clientv3.New.spec` / `Authenticate`'s `CheckPassword` | `kv`, `A mid` | after review |
+| `KV_PutOn_dist` | `(*kv).Put` (incl. `WithLease`) | `client_put_on` / `etcdPutSpecOn` | `kv` | after review |
+| `KV_DeleteOn_dist` | `(*kv).Delete` | `client_delete_on` / `etcdDeleteSpecOn` | `kv` | after review |
+| `Txn_CommitOn_dist` | `(*txn).Commit` | `client_txn_on` / `etcdTxnSpecOn` | `kv`, `A mid` | after review |
+| `KV_GetOn_dist` | `(*kv).Get` | `client_range_on` / `etcdRangeSpecOn` | `kv`, `A mid` (the floor) | after review, P-A1 |
+| `Auth_UserAdd_dist`, `Auth_UserGrantRole_dist`, `Auth_RoleAdd_dist`, `Auth_RoleGrantPermission_dist`, `Auth_AuthEnable_dist` | `(*authClient).X` | `authClient.X.spec` / `etcdXSpecW` | `kv` (`hist`) | after review |
+| `Lease_GrantOn_dist` | `(*lessor).Grant` | `client_lease_grant_on` / `etcdLeaseGrantSpecOn` | `kv`, `ls mid`, `A mid` | after review, P-L1, P-A1 |
+| `Lease_RevokeOn_dist` | `(*lessor).Revoke` | `client_lease_revoke_on` / `etcdLeaseRevokeSpecOn` | `kv`, `A mid` | after review, P-A1 |
+| `Lease_TimeToLiveKeysOn_dist` | `(*lessor).TimeToLive` + `WithAttachedKeys()` | `lessor.TimeToLive.spec` / `etcdLeaseTTLSpecMdW` | `ls mid`, `A mid` | after review, P-L1, P-A1 |
+| `Lease_LeasesOn_dist` | `(*lessor).Leases` | `lessor.Leases.spec` / `etcdLeaseLeasesSpecMdW` | `ls mid`, `A mid` | after review, P-L1, P-A1 |
+| `Serve_dist_proposed`, `NewServer.specG_dist_proposed` | `etcdstart.Serve`, `NewServer` | the current axioms (re-review) | `kv.hist`, `A mid` | S2 (`Proof/.../dist/AuthServeProposed.lean`) |
+
 ### 18.5 Streams (N3, out of scope): what they would need
 
 `watcher.Watch` and `RequestProgress` (watch, compact ×2, cache's own watch, auth's root/u/refused watches): a stream
