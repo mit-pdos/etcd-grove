@@ -373,3 +373,8 @@ no `sorry` and no new axiom. No `Spec/`, axiom or `Spec/.../TopLevelRobustness` 
   4. Run tcb-report `--check --update` and the `etcd-dist` collection. Expect the newly reached
      `Lease_{Grant,Revoke,TimeToLive,Leases}On_dist` axioms.
   5. Update STATUS (status-history is append-only), then push.
+- **K-6 build result** (the running build finished after the handoff): it stopped at the first module,
+  `DeploymentClass.lean`, with three errors `No goals to be solved` at 396:4, 488:4 and 501:4. In each, the line
+  after a `simp at hm` is not needed: `simp` already closes the goal (in `kinds_of_authLease`, `lmOf_catchup`'s
+  `h6` and `lmOf_authLease`'s `h9`). Delete the `exact absurd hm (by decide)` there, or write `simp at hm` as
+  `simp at hm <;> exact absurd hm (by decide)`. Nothing after `DeploymentClass` was compiled.

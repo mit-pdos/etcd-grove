@@ -393,7 +393,6 @@ theorem kinds_of_authLease {d : Deployment} (Hd : d.WellFormed) (h : ∃ w ∈ d
     have hm : W64 6 ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w, hwm, hk⟩
     rw [h5] at hm
     simp at hm
-    exact absurd hm (by decide)
   · exact h6
 
 /-- **The lease-granting mode's ids** (`clusterAllocN`'s `hap`): with a `leaseExpiry` workload (a lease-granting
@@ -485,7 +484,6 @@ theorem lmOf_catchup {d : Deployment} (Hd : d.WellFormed) (h : ∃ w ∈ d.workl
     have hm : W64 8 ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w8, hw8, e8⟩
     rw [kinds_of_authLease ⟨t, he, hw⟩ ⟨w6, hw6, e6⟩] at hm
     simp at hm
-    exact absurd hm (by decide)
   unfold lmOf
   rw [h9, h6, if_pos ((d.hasKind_iff _).2 h)]
   rfl
@@ -498,7 +496,6 @@ theorem lmOf_authLease {d : Deployment} (h6 : d.workloads.map (·.kind) = [W64 6
     have hm : W64 9 ∈ d.workloads.map (·.kind) := List.mem_map.2 ⟨w, hw, e⟩
     rw [h6] at hm
     simp at hm
-    exact absurd hm (by decide)
   have h6' : d.hasKind (W64 6) = true := by
     obtain ⟨w, hw, e⟩ := List.mem_map.1 (show W64 6 ∈ d.workloads.map (·.kind) by rw [h6]; simp)
     exact (d.hasKind_iff _).2 ⟨w, hw, e⟩
