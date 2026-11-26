@@ -106,11 +106,11 @@ theorem grpcNS_srvOptFnOk_wp (f : GoFunc) (k : SrvOptKind) (p : Loc)
   | neutral =>
     wp_start_folded as ⟨#Hf, Hp, Hu, Huc, Hs, Hsc, Hh, Hhc⟩
     iunfold srvOptFnOk at Hf
-    iapply (Hf $$ %p %so %Φ Hp)
+    iapply Hf $$ %p %so %Φ Hp
     inext
     iintro %so' Hp' %Hok
     obtain ⟨hsb, hcod, hcu, hcs, hch⟩ := Hok
-    iapply (HΦ $$ %so')
+    iapply HΦ $$ %so'
     isplitl [Hp']
     · iexact Hp'
     isplitl [Hu Huc Hs Hsc Hh Hhc]
@@ -123,11 +123,11 @@ theorem grpcNS_srvOptFnOk_wp (f : GoFunc) (k : SrvOptKind) (p : Loc)
   | chainUnary ics =>
     wp_start_folded as ⟨#Hf, Hp, Hu, Huc, Hs, Hsc, Hh, Hhc⟩
     iunfold srvOptFnOk at Hf
-    iapply (Hf $$ %p %so %us %Φ Hp Hu Huc)
+    iapply Hf $$ %p %so %us %Φ Hp Hu Huc
     inext
     iintro %so' Hp' Hu' Huc' %Hok
     obtain ⟨hsb, hcod, hcs, hch⟩ := Hok
-    iapply (HΦ $$ %so')
+    iapply HΦ $$ %so'
     isplitl [Hp']
     · iexact Hp'
     isplitl [Hu' Huc' Hs Hsc Hh Hhc]
@@ -140,11 +140,11 @@ theorem grpcNS_srvOptFnOk_wp (f : GoFunc) (k : SrvOptKind) (p : Loc)
   | chainStream ics =>
     wp_start_folded as ⟨#Hf, Hp, Hu, Huc, Hs, Hsc, Hh, Hhc⟩
     iunfold srvOptFnOk at Hf
-    iapply (Hf $$ %p %so %ss %Φ Hp Hs Hsc)
+    iapply Hf $$ %p %so %ss %Φ Hp Hs Hsc
     inext
     iintro %so' Hp' Hs' Hsc' %Hok
     obtain ⟨hsb, hcod, hcu, hch⟩ := Hok
-    iapply (HΦ $$ %so')
+    iapply HΦ $$ %so'
     isplitl [Hp']
     · iexact Hp'
     isplitl [Hu Huc Hs' Hsc' Hh Hhc]
@@ -159,11 +159,11 @@ theorem grpcNS_srvOptFnOk_wp (f : GoFunc) (k : SrvOptKind) (p : Loc)
     ihave %Hok0 := grpcNS_stats_ok f h $$ Hf
     iunfold srvOptFnOk at Hf
     icases Hf with ⟨-, #Hf⟩
-    iapply (Hf $$ %p %so %hs %Φ Hp Hh Hhc)
+    iapply Hf $$ %p %so %hs %Φ Hp Hh Hhc
     inext
     iintro %so' Hp' Hh' Hhc' %Hok
     obtain ⟨hsb, hcod, hcu, hcs⟩ := Hok
-    iapply (HΦ $$ %so')
+    iapply HΦ $$ %so'
     isplitl [Hp']
     · iexact Hp'
     isplitl [Hu Huc Hs Hsc Hh' Hhc']
@@ -229,21 +229,21 @@ theorem grpc.NewServer.wp_proof
     simp only [named]
     iframe
     simp only [grpcNS_optsOwn]
-    rw [hcu, hcs, hsh]
+    rw [hcu, hcs, hsh, show (zero_val GoSlice) = slice.nil from rfl]
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, srvOptsUnary, srvOptsStream,
       List.flatMap_nil]
     isplitl []
-    · iapply ownSlice_nil
-    isplitl []
-    · iapply ownSliceCap_nil
-    isplitl []
-    · iapply ownSlice_nil
-    isplitl []
-    · iapply ownSliceCap_nil
-    isplitl []
-    · iapply ownSlice_nil
-    isplitl []
-    · iapply ownSliceCap_nil
+    · isplitl []
+      · iapply ownSlice_nil
+      isplitl []
+      · iapply ownSliceCap_nil
+      isplitl []
+      · iapply ownSlice_nil
+      isplitl []
+      · iapply ownSliceCap_nil
+      isplitl []
+      · iapply ownSlice_nil
+      iapply ownSliceCap_nil
     ipureintro
     exact ⟨by decide, by word, fun h hh => by simp at hh,
       ⟨hcr, hcp, hdc, hui, hsi, husd, hsw, Or.inl hcod⟩⟩
@@ -251,6 +251,7 @@ theorem grpc.NewServer.wp_proof
   wp_if_destruct
   · -- an iteration: `o.apply(&opts)`
     obtain ⟨Hn0, Hnle, Hok, Hhk⟩ := Hn
+    have Hif : sint.Z n < sint.Z sl.len := (first | exact Hif | (have := go.intoVal_inj Hif; simpa using this))
     have Hlt : sint.nat n < vs.length := by rw [Hvl]; word
     obtain ⟨v, Hv⟩ : ∃ v, vs[sint.nat n]? = some v := ⟨_, List.getElem?_eq_getElem Hlt⟩
     obtain ⟨k, Hk⟩ : ∃ k, ks[sint.nat n]? = some k :=
@@ -264,6 +265,7 @@ theorem grpc.NewServer.wp_proof
     (try simp only [Hbnd, _root_.and_self, ite_true])
     wp_apply (wp_load_slice_index sl (sint.Z n) vs DFrac.discard _ Hn0) $$ [$Hsl] as -
     · ipureintro; exact Hv
+    iStructNamed Hl
     (try wp_auto)
     -- the interface call `o.apply(&opts)` on the `*funcServerOption` at `l`: its closure `f`
     wp_method_call
@@ -287,12 +289,13 @@ theorem grpc.NewServer.wp_proof
     · exact Hso'.2.2 h hh
   -- every option applied: the chains are the options' (`srvOptsUnary ks`, `srvOptsStream ks`)
   obtain ⟨Hn0, Hnle, Hok, Hhk⟩ := Hn
+  have Hif : ¬ sint.Z n < sint.Z sl.len := (first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h]) | (intro h; apply Hif; simp [h]))
   have Hnl : sint.nat n = ks.length := by rw [← Hvk]; rw [Hvl] at Hnle ⊢; word
   rw [Hnl, List.take_length]
   icases Hown with ⟨Hu, -, Hs, -, Hh, -⟩
-  ipersist Hu
-  ipersist Hs
-  ipersist Hh
+  imod ownSlice_persist _ _ _ $$ Hu with #Hu
+  imod ownSlice_persist _ _ _ $$ Hs with #Hs
+  imod ownSlice_persist _ _ _ $$ Hh with #Hh
   obtain ⟨hcr, hcp, hdc, hui, hsi, husd, hsw, hcod⟩ := Hhk
   -- `&Server{lis, opts, statsHandler, conns, services, quit, done}`
   wp_apply (wp_map_make1 (K := GoInterface) (V := Bool)) as %lis Hlis

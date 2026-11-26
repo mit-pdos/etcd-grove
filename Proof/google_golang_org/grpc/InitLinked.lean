@@ -247,8 +247,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe HmetadataFromOutgoingContextRaw HglobalServerOptions
   iexists _; iframe HdefaultServerOptions
   ipureintro
-  simp only [_root_.Perennial.go_etcd_io.etcd.cache.v3.grpcDefaultSrvOpts]
-  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.grpcDefaultSrvOpts
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

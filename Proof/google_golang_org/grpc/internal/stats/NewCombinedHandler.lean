@@ -67,9 +67,10 @@ theorem istats.NewCombinedHandler.wp_proof :
       iright
       iright
       iexists l
-      iframe
-      ipureintro
-      exact ⟨by rw [Hl1]; word, rfl⟩
+      isplitr
+      · ipureintro
+        exact ⟨by rw [Hl1]; word, rfl⟩
+      iexact Hl
 
 end proof
 

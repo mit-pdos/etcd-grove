@@ -1782,8 +1782,8 @@ _G['finish'] = (['ipersist HEnableTracing', 'ipersist HmetadataFromOutgoingConte
                 [f'try unfold {_CB}.grpcInit', 'try iframe HEnableTracing',
                  'iframe HmetadataFromOutgoingContextRaw HglobalServerOptions',
                  'iexists _; iframe HdefaultServerOptions', 'ipureintro',
-                 f'simp only [{_CB}.grpcDefaultSrvOpts]',
-                 'exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩'])
+                 f'unfold {_CB}.grpcDefaultSrvOpts',
+                 'refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> rfl'])
 
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(

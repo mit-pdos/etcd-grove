@@ -35,9 +35,8 @@ theorem grpc.chainUnaryServerInterceptors.wp_proof
   obtain ⟨Hl1, Hl2⟩ := Hlen
   wp_auto
   -- `s.opts.unaryInt != nil`: it is nil
-  wp_if_destruct
-  · exfalso
-    first | exact Hif Hui | exact Hif (Hui.trans rfl) | simp_all
+  wp_if_destruct <;>
+    try (exfalso; first | exact Hif Hui | exact Hif (Hui.trans rfl) | (simp_all; done))
   -- the chained interceptor, by the chain's length
   wp_if_destruct
   · -- none: nil
