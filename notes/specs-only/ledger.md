@@ -7013,8 +7013,13 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   covers every configuration `Run.spec` admits (a strengthening). `MainAt.spec`'s proof over a drawn
   `cfg` (`Run.spec` already holds for every `cfg` with `runCfgOk`); a Go non-vacuity test (many seeds:
   the validation passes, `Run`'s checks are reached). The hashes remain outside until F2.
-- **Decision.** Pending: the program the top-level statement is about changes, Upamanyu's (#8, via
-  coordinator-E).
+- **Decision.** Approved (coordinator-E for Upamanyu, #49 7179589277, 2026-11-26). Done on branch
+  `mvcc-followup`: `MainAt` draws every field with `anyInt` (a random 64-bit value shifted right by a
+  random amount below 64: every int, short ones often) and runs the configuration when `inScope` (exactly
+  `runCfgOk`, `ScopeLemmas.lean`'s `runCfgOk_of`) admits it; Read's hash weight is drawn like the others
+  and `inScope` rejects it through `hashing`. The statement's text is unchanged but its docstring; its
+  program covers every configuration `Run.spec` admits. Go tests: `TestDrawConfig` (drawn configurations
+  pass `inScope`; its bounds are the stated ones), `TestMainAt`.
 ## 2026-11-25: `sort.Slice.wp_proofInt32Lt` has no length bound; gryff's `ShortCircuit` moves to `slices.Sort` under a guard (dsv-fix4)
 
 - **Spec.** `sort.Slice.wp_proofInt32Lt` (`Dsverify/Proof/sort/Slice.lean`), the trust-boundary axiom dsv-fix4 made
