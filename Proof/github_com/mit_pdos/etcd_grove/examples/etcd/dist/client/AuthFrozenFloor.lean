@@ -71,7 +71,8 @@ theorem authFloorD_frozen (Γ : DistView) (γR : ServerRaftNames) (mid : w64) (L
   imodintro
   iintro %j %st %Hj #Hst
   ispecialize Hall $$ %E %j %st
-  imod (Hall $$ %(⟨hE, Hj⟩) Hst) with ⟨%L', %HL', #HL'lb⟩
+  ihave Hupd := Hall $$ %(⟨hE, Hj⟩) Hst
+  imod Hupd with ⟨%L', %HL', #HL'lb⟩
   imod authHistLb_of_reqLogLb γR Γ.kv srvAuthSt0 L' E hE1 $$ Hinv HL'lb with #Hlb
   imod authHistFrozen_prefix Γ.kv γz hs _ E hE2 $$ Hfz Hlb with %hp
   imodintro

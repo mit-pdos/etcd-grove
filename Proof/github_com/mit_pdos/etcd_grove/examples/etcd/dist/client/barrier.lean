@@ -97,7 +97,7 @@ theorem barrier.wp_proof
   ihave #Hnil := optsAt_nil (GF := GF)
   ihave Hres := optsAt_res slice.nil [] iprop(True) $$ Hnil
   wp_apply (wp_Get rcl api [addr] V Γ cfg γR L₀ ectx ecd none go!"z/barrier" slice.nil [] iprop(True)
-      (fun _ => iprop(True)) Hau Hauth HγR (by rw [Hprin]; left; rfl)) $$ [$Hlt $Hres]
+      (fun _ => iprop(True)) Hau Hauth HγR (outTokOk_none _)) $$ [$Hlt $Hres]
     as %resp %err ⟨Hlt, -, Hout⟩
   · iframe #
     isplitl []
