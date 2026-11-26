@@ -2069,6 +2069,46 @@ top-level change. Nobody applies `memberGen_crash.law` yet; whoever does passes 
 
 **Next T10 items** (not started): P5's certificate route and the `consInv` image row (session 3's approvals).
 
+### T10 status and handoff, session 9 (2026-11-26, branch `etcd-safe-t10`)
+
+**Build 4 (session 8's)**: green, exit 0 (`/shared/tmp/t10-s8-build4.log`: the 23 users of the protocol and
+`etcdserver.Results`, 9976 jobs).
+
+**Item 1 (a), the server's row: defined, not instantiated.** `etcdserver/ImgRow.lean` (defs tier, imports `InvRest`):
+`srvImgModel γr A` (the mode-off image's models: `kvModel`, `crevOf`, `kvLeases (pre ++ A)`, `restModel c0 boot (pre ++
+A)`, what `bkImg`/`imageRestAt` are of), `srvImgRow γ M e p := ∃ A, srvRLogLb γ A ∗ ⌜p = ai0 + |A| ∧ ∀ m ∈ [e, p],
+M (A.take (m - ai0)) = M A⌝` (timeless, persistent), and the step lemmas: `srvImgRow_at` (from `srvRLogLb A` with
+`k = ai0 + |A|`, the row at `(k, k)`: `writes_doneR` and `ci_swap_auR` need nothing else, the row at one index has no
+model clause to prove), `srvImgRow_nil` (`p = ai0`, from `srvRLogLb []`: `consInv_allocR` at the boot, where
+`m0.1 = ai0`), `srvImgRow_skip` (from `srvRLogLb (A ++ [x])`, `i = p + 1 = ai0 + |A| + 1` and `M (A ++ [x]) = M A`;
+the row's prefix is `A` by `srvRLogLb_prefix` and the length). Built green on fk-lean1 (`/shared/tmp/t10-s9-build1.log`).
+Checked with `/shared/tmp/t10s9-chk.sh FILE…` (copies the files to fk-lean1's worktree and runs `etc/lean-check.py`
+there; the remote worktree then differs from the branch until the next `fklean1-check.sh` resets it).
+
+**What blocks the switch (ledger 2026-11-26, "the skip paths' model fact"; decide first).** `skip_doneR` at the
+server's row needs `M (A ++ [m]) = M A`. The no-data entry has it; the applier's and `applyConfChange`'s outcomes
+without the batch lock (`applyEntryNormal` ~1002, ~1277; `EtcdServer.apply` ~788, ~1874) do not carry it. And the
+mode `on` (`wp_proofOn`) needs the row over the mode's model (`kvModelOn`), so `M` is mode-dependent: pass the row
+where the mode is known (`isServerM on`/`srvFieldsAtM on`, `AppliedOn.lean`, `AuthCompRows.lean`), not in
+`isServerCI` alone.
+
+**Plan for the instantiation (next session)**, so that each step builds green:
+1. Generalize the row-agnostic users over `IR` (section `variable {IR} [∀ a b, Timeless (IR a b)]`, as `InvApply`):
+   `isServerCI s γ ci` gains `(IR := fun _ _ => True)` (`InvServer`; `ci_get_au`, `wp_ci_*` take `consInv γ IR`),
+   `CindexBackend` (566-843), `BuildLemmas` (103, 140), `SnapSendBranch` 121, `SnapApplyOpen` 70/183, `Results`
+   1102-1156, the boot packets' `"#Hcons"` (`BootParts` 433, `InvBoot` 416, `InvRestart` 595). No caller changes.
+2. Settle the ledger entry (the no-lock outcomes' model fact; `srvImgModelOn` for the mode `on`).
+3. `isServer`/`isServerM` (`InvApplier` 749, `AppliedOn` 265, `AuthCompRows` 110) pass `srvImgRow γr.raft (M on γr)`;
+   the 12 call sites switch: `writes_done` → `writes_doneR` with `srvImgRow_at` (the entry's committed prefix:
+   `A ++ ms.take (j+1)` in `apply`, `A ++ [m]` in `applyEntryNormal`), `skip_done` → `skip_doneR` with
+   `srvImgRow_skip`, `ci_swap_au` → `ci_swap_auR` (`SnapApplyOpen` 193) with `srvImgRow_at` at the snapshot's prefix,
+   `consInv_alloc` → `consInv_allocR` (`bootstrapBackend` 214) with `srvImgRow_nil`; the boot packets carry the row.
+4. Item 1 (c), the retired case of `commit_save_auR`, and (d) as in session 8's list.
+
+Item 2 (P5's certificate route): not started, as session 8 says.
+
+No axiom, `sorry`, trusted text, top-level premise or top-level statement changed.
+
 ### T10 status and handoff, session 8 (2026-11-26, branch `etcd-safe-t10`)
 
 **Item 1, the `consInv` image row: first step done** (`InvApply.lean` only; ledger 2026-11-25 "the backend's image row

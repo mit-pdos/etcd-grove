@@ -7262,3 +7262,23 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `idPfxInv_crash` to the old `idPfxInv` of `memberRestartFacts`. **No keep row** (the "cancel token" is the crash rest's authority, not a member's token). No change
   to `NewGenerator.spec`'s or `Next.spec`'s text, no top-level change, no axiom.
 - **Decision.** (b) by etcd-grove-03 on #50; this form of it applied on `etcd-safe-t10` (T10 session 6).
+
+## 2026-11-26: the skip paths' model fact for the image row (T10 session 9; internal, proposed)
+
+- **Spec.** The apply protocol's `skip_doneR` (`etcdserver/InvApply.lean`) takes `□ IR eff p -∗ □ IR eff i`; at the
+  server's row `srvImgRow γr.raft (srvImgModel γr)` (`etcdserver/ImgRow.lean`) that is `srvImgRow_skip`, which needs
+  `srvRLogLb (A ++ [x])` with `i = ai0 + |A| + 1` and the pure `srvImgModel γr (A ++ [x]) = srvImgModel γr A` (the entry
+  `i` changes no model the image is of). Callers: `applyEntryNormal` (four sites: the no-data entry, and the applier's
+  outcome without the batch lock, `Hout`'s right disjunct, whose last conjunct the proofs drop) and `EtcdServer.apply`
+  (two sites: `applyConfChange`'s outcome without the batch lock).
+- **Defect.** The no-data sites have the fact (`entryStep`'s nil case, `srvRest_nodata`). The others do not: the
+  applier's (`apply.Apply.spec*`) and `applyConfChange`'s no-lock outcomes say the batch lock was not taken, not that
+  the entry's models are unchanged (`kvModel`, `crevOf`, `kvLeases`, `restModel` of the log with the entry). In the mode
+  `on` the image's KV model is `kvModelOn`'s, so the row's `M` must be the mode's (`srvImgModel` is the mode-off one).
+- **Evidence.** Code reading of the call sites (`EtcdServer__applyEntryNormal.lean` lines ~1002, ~1277: `icases Hout
+  with (… | ⟨Hst, Happ, Hbe, -⟩)`; `EtcdServer__apply.lean` ~788, ~1874).
+- **Proposed change.** The no-lock outcomes gain `⌜srvImgModel γr (A ++ [m]) = srvImgModel γr A⌝` (or the mode's model),
+  proved inside the applier/`applyConfChange` from the request's model step (`applyStep`'s outcomes that take no lock
+  leave the log, leases and rest buckets); or, if some no-lock outcome does change a model (a write outside the batch
+  lock), the row is weakened there and the finding recorded. To decide before the switch to the `R` lemmas.
+- **Decision.** Open (T10 session 9 handoff).
