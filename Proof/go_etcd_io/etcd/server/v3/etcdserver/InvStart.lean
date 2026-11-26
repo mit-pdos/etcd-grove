@@ -418,7 +418,7 @@ theorem srvTpInv_alloc (s srvp : Loc) :
 /-- **`srvTpInv_alloc` at a given cell** (#50 F7 S2, P-A1): the readiness cell's whole authority at `0` from the
 caller (with auth on, the auth names' `rdy`, `srvAuthNamesFresh`). -/
 theorem srvTpInv_alloc_given (s srvp : Loc) (γy : GName) :
-    monoNatAuthOwn (GF := GF) γy 1 0 ⊢ |={⊤}=> monoNatAuthOwn γy (1 : Qp).half 0 ∗ srvTpInv s srvp γy := by
+    monoNatAuthOwn (GF := GF) γy 1 0 ⊢ |={⊤}=> (monoNatAuthOwn γy (1 : Qp).half 0 ∗ srvTpInv s srvp γy) := by
   iintro H
   have hf := (monoNatAuthOwn_fractional (GF := GF) γy 0).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hf

@@ -102,12 +102,12 @@ def authBootFresh (γa : AuthNames) : IProp GF :=
 
 /-- **`authBoot_alloc` at given names** (#50 F7 S2, P-A1): its conclusion, from `authBootFresh γa`. -/
 theorem authBoot_given (γa : AuthNames) :
-    authBootFresh (GF := GF) γa ⊢ |==>
+    authBootFresh (GF := GF) γa ⊢ |==> (
       authOwn (.on γa) [bootState] ∗ authStoreInit γa [bootState] bootState ∗
       authLockI (.on γa) bootState ∗ capAuth γa [bootState, bump bootState] ∗
       capNext (.on γa) [bootState] (bump bootState) ∗
       (∃ γ0 : GName × GName × GName, ghostVar γa.bk 1 γ0) ∗ token γa.succ ∗
-      authPubQ γa (1 : Qp).half 0 := by
+      authPubQ γa (1 : Qp).half 0) := by
   unfold authBootFresh
   iintro ⟨Hh0, Hc, Hp, He, Hk, Hcap, Hbk, Hsucc, Hrt⟩
   icases (authHist_full γa [bootState]).1 $$ Hh0 with ⟨Hh0, Hq⟩
