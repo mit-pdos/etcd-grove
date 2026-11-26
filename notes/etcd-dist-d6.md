@@ -2682,6 +2682,40 @@ No axiom, `sorry`, trusted text, top-level premise or top-level statement change
   `permission denied`.
 * Next: once the copy ends, the full build of the head, then gates in full; then item 2 by the lead's choice.
 
+**Handoff T10b-2** (session 2, 2026-11-26; stopped at the context rule; head = this commit, pushed). **(B) written, UNBUILT.**
+Coordinator chose (B). No `Spec/`, `TrustedCode/`, image, contract or axiom text changed; no new `sorry` or axiom. What changed:
+* `InvWalCrash.lean`: pure defs `SnapFrom σ0 X τ` (the read has `σ0`'s base and snapshot, or a snapshot record of `X` at its
+  base) and `CertBaseK σ0 k Hs` (`k ≤ |Hs|`, `HistReads σ0 (Hs.take k)`, every prefix past `k` has last commit at least
+  `Hs.take k`'s); `walHistCertsK cl sd Hs n := ∃ σ0 k, ⌜k ≤ n ∧ CertBaseK σ0 k Hs⌝ ∗ walSnapCert cl σ0 ∗ walSnapDur sd σ0 ∗
+  walHistCerts cl sd (Hs.drop k)` (persistent). The body's `walHistCerts γn.cl νk.sd Hs` is now `walHistCertsK … Hs n`;
+  `rnDurK_alloc.law` takes `walHistCertsK γn.cl sd Hs n`; `rnRestartAllocK.law` gains the premise `walSnapDur sd σ`
+  (needed: the crash post gives `walSnapDur νk.sd σ`, and the law is ∀ `sd`); `rnDurK_crash.law`'s post drops
+  `walHistCerts γn.cl νk.sd Hc` (the brief's choice).
+* `InvWalCrashPure.lean`: **the lemma** `walRead_ext_snapFrom (hr : HistReads σ0 H0) (hc : c(H0) ≤ c(H0 ++ X))
+  (h : walRead (H0 ++ X) = some τ) : SnapFrom σ0 X τ` (with `c(H) = uint.nat (walLastHS H).Commit'`), plus
+  `walFold_snapFrom`, `snapFrom_mono`, `certBaseK_read`, `certBaseK_snoc`, `certBaseK_restart`.
+* `InvWalCrashLaws.lean` (now imports `InvWalCrashPure`): `snapFrom_snapCert`, `walHistCertsK_snapCert`; the crash proof
+  uses the latter (`n ≤ j`), no `Hhcj`. `walHistCerts_take`/`walHistCerts_snapCert` now unused (delete if still so).
+* `InvWalCrashSteps.lean`: `walHistCertsK_snoc` (commit premise: save `rw [walLastHS_snoc_saveP, hlast]; exact Hcmono`,
+  snapshots `walLastHS_snoc_snapP`), `walHistCertsK_mono` (enter's `max n (pos+1)`), `walHistCertsK_alloc`,
+  `rnRestartWal_snapDurTriv`; fresh alloc and **`rnRestartAllocK_law_holds` without the `sorry`**.
+* `bootstrappedRaft__newRaftNode.lean` (the law's one caller, `sd = fun _ => True`): `rnRestartWal_snapDurTriv` gives
+  `walSnapDur` and is passed to `hRestartAlloc`.
+* **Risk**: `MemberCrash.lean:415` (not ours to edit) destructs the crash post with a trailing `-` for the dropped
+  conjunct (`… #Hl, -⟩`). If it no longer elaborates, either the owner drops the `-`, or put a placeholder conjunct back
+  (ask the coordinator; do not edit MemberCrash here).
+* **fk-lean1 at handoff**: seed copy `cp -a etcd-safe-f7-runauth/.lake etcd-safe-t10b/` still running (47 of 62 GB),
+  with a watcher that, when it ends, deletes read-only `.ilean`s and `.lake/lean-check` in the destination. The remote
+  worktree `~/eg/wt/etcd-safe-t10b` is still at `ada6d74e2c` (the head's Lean; head differs only in notes).
+* **Next commands**: (1) once `pgrep -f "^cp -a etcd-safe-f7-runauth"` is empty: check `du -sh` of the destination
+  (≈62 GB), delete `~/eg/wt/etcd-safe-f7-runauth` (merged, ours), `df -h ~`. (2) Head build BEFORE syncing (B): on
+  fk-lean1 in the worktree, `flock ~/eg/build.lock systemd-run --user --scope -q -p MemoryMax=55G lake build
+  --packages=.lake/package-overrides.json` (env as in `/shared/tmp/t10b-rb.sh`). (3) `/shared/tmp/t10b-rb.sh
+  Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashSteps Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
+  Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.crash.MemberCrash`, fix; then full build and `GATES=1
+  /shared/tmp/t10b-rb.sh`; `etc/tcb-report.py --check --update` (with `LAKE_OPTS`) should lose `rnRestartAllocK_law_holds`'s
+  `sorry`; list it; update STATUS; push.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its

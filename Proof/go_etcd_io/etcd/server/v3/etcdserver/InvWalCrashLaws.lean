@@ -4,11 +4,12 @@
 
 Proofs of `InvWalCrash.lean`'s statements: `rnDurK_crash_law_holds` (the crash), with the pure lemma
 it needs (`walRead_snapSrc`: the snapshot of what a restart reads is one of the history's records, or
-the records start at index `0`), and `walHistCerts_snapCert` (hence the image's certificate).
+the records start at index `0`), and `walHistCerts_snapCert`/`walHistCertsK_snapCert` (hence the image's
+certificate).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrash
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWalCrashPure
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvCrash
 
 @[expose] public section
@@ -96,6 +97,51 @@ theorem walHistCerts_snapCert (cl : Cluster) (sd : w64 → IProp GF) (Hs I : Wal
       ipureintro
       exact hsn
 
+/-- (P5-RESTART, option (B), 2026-11-26) **A record set whose snapshot comes from a certified base or
+from certified records is certified.** -/
+theorem snapFrom_snapCert (cl : Cluster) (sd : w64 → IProp GF) (σ0 τ : StorContents) (X : WalHist)
+    (hs : SnapFrom σ0 X τ) :
+    walSnapCert (GF := GF) cl σ0 ∗ walSnapDur sd σ0 ∗ walHistCerts cl sd X ⊢
+      walSnapCert cl τ ∗ walSnapDur sd τ := by
+  iintro ⟨#Hc0, #Hd0, #Hc⟩
+  rcases hs with ⟨hb, hsn⟩ | ⟨m, al, hm, hsn, hidx⟩
+  · iunfold walSnapCert
+    iunfold walSnapCert at Hc0
+    iunfold walSnapDur
+    iunfold walSnapDur at Hd0
+    rw [hb, hsn]
+    iframe Hc0 Hd0
+  · obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hm
+    iunfold walHistCerts at Hc
+    ihave #Hv := BigSepL.bigSepL_lookup (Φ := fun _ (o : WalOp) => walOpCert (GF := GF) cl sd o) hi $$ Hc
+    iunfold walOpCert at Hv
+    icases Hv with ⟨#Hv, #Hd⟩
+    iunfold walSnapCert
+    iunfold walSnapDur
+    isplitl
+    · iright
+      iexists m
+      iframe Hv
+      ipureintro
+      exact ⟨hsn, hidx⟩
+    · iright
+      iexists m
+      iframe Hd
+      ipureintro
+      exact hsn
+
+/-- (P5-RESTART, option (B), 2026-11-26) **The body's certificates give each crash prefix's**: the read of
+a prefix from the synced lower bound on is certified (`certBaseK_read`, `snapFrom_snapCert`). -/
+theorem walHistCertsK_snapCert (cl : Cluster) (sd : w64 → IProp GF) (Hs : WalHist) (n j : Nat)
+    (τ : StorContents) (hnj : n ≤ j) (hj : j ≤ Hs.length) (hrd : walRead (Hs.take j) = some τ) :
+    walHistCertsK (GF := GF) cl sd Hs n ⊢ walSnapCert cl τ ∗ walSnapDur sd τ := by
+  iintro #Hk
+  iunfold walHistCertsK at Hk
+  icases Hk with ⟨%σ0, %k, %Hb, #Hc0, #Hd0, #Hc⟩
+  obtain ⟨hkn, hb⟩ := Hb
+  iapply snapFrom_snapCert cl sd σ0 τ (Hs.drop k) (certBaseK_read hb (by omega) hj hrd)
+  iframe Hc0 Hd0 Hc
+
 /-- **The certificates of a history give those of each of its prefixes.** -/
 theorem walHistCerts_take (cl : Cluster) (sd : w64 → IProp GF) (Hs : WalHist) (j : Nat) :
     walHistCerts (GF := GF) cl sd Hs ⊢ walHistCerts cl sd (Hs.take j) := by
@@ -154,9 +200,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
   have hrf : walReadFacts σ'' :=
     walReadFacts_of_read hrd (walIdxLe_take Hhr.1 j) (Hhr.2 j hnj hjl)
   -- the image's certificate
-  ihave ⟨#Hcert, #Hsdur⟩ := walHistCerts_snapCert γn.cl νk.sd Hs (Hs.take j) σ''
-    (fun o ho => List.mem_of_mem_take ho) (walRead_snapSrc hrd) $$ Hhc
-  ihave #Hhcj := walHistCerts_take γn.cl νk.sd Hs j $$ Hhc
+  ihave ⟨#Hcert, #Hsdur⟩ := walHistCertsK_snapCert γn.cl νk.sd Hs n j σ'' hnj hjl hrd $$ Hhc
   -- close with the crash's side
   imod Hclose $$ [Hv Hcm Htn Hr Htk] with -
   · inext; ileft; iunfold rnDurBodyK
@@ -175,7 +219,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
     ileft
     have hS : ImgOk v.S v.l σ'' := hok
     iexists v.S, σ'', v.l, Hs.take j
-    iframe HΦ Hvac Hcert Hsdur Hhcj
+    iframe HΦ Hvac Hcert Hsdur
     rw [rnLogLbsK_none]
     icases Hlb with ⟨Hl, -⟩
     iframe Hl
@@ -205,7 +249,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
       imodintro
       ileft
       iexists v.S, σ'', v.l, Hs.take j
-      iframe HΦ Hvac Hcert Hsdur Hl Hhcj
+      iframe HΦ Hvac Hcert Hsdur Hl
       isplitl [HrS]
       · rw [← Hst2]; iexact HrS
       ipureintro
@@ -216,7 +260,7 @@ theorem rnDurK_crash_law_holds : rnDurK_crash.law (GF := GF) := by
       imodintro
       ileft
       iexists v0.S, σ'', v0.l, Hs.take j
-      iframe HΦ Hvac Hcert Hsdur Hl0 Hhcj
+      iframe HΦ Hvac Hcert Hsdur Hl0
       isplitl [HrS]
       · iexact HrS
       ipureintro

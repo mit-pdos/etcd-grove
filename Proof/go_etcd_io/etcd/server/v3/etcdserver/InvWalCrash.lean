@@ -23,7 +23,8 @@ that must sync is entered after its sync, when only its own prefix is left.
 log's authority; the records as the view says, with their snapshot certificate), the WAL's history
 (`walHistH`) and what it reads as at every commit from its own on (`HistReadsK`: the records, and the
 pending received snapshot's once the commit covers it), a synced lower bound, every snapshot record of
-the history certified (`walHistCerts`), the handed logs committed, the pure crash facts; and, unless a
+the history certified from a base (`walHistCertsK`: the records read at the start or restart, and the
+snapshot records saved after it), the handed logs committed, the pure crash facts; and, unless a
 crash took them
 (`crashed ∗ token νk.tk`, kvnet's pattern), raft's durable state `raftState (durOf vk)` and the
 pending batch's *enter* (`rnPendK`). The WAL rows stay outside the crashed side: the WAL contract's
@@ -183,6 +184,24 @@ at or above the last saved one the history reads as `σ`. -/
 def HistReads (σ : StorContents) (Hs : WalHist) : Prop :=
   ∀ c, uint.nat (walLastHS Hs).Commit' ≤ c → walReadAt Hs c = some σ ∧ walCommitLeAt Hs c
 
+/-- (P5-RESTART, option (B), 2026-11-26) **A read's snapshot comes from the base `σ0` or from `X`**: the
+read `τ` has `σ0`'s base and snapshot, or its snapshot is (the metadata of) a snapshot record of `X` at its
+base (`SnapSrc`'s second case). -/
+def SnapFrom (σ0 : StorContents) (X : WalHist) (τ : StorContents) : Prop :=
+  (τ.b = σ0.b ∧ τ.snap = σ0.snap) ∨
+    ∃ m al, WalOpG.snap m al ∈ X ∧ τ.snap = some (SnapshotM.mk [] m) ∧ uint.nat m.Index' = τ.b
+
+/-- (P5-RESTART, option (B), 2026-11-26) **The history's certificates start at position `k`, read as
+`σ0`**: the prefix `Hs.take k` (the restart's history; empty at a first start) reads as `σ0` at every
+commit from its last saved one on (`HistReads`), and every later prefix's last saved commit is at least
+that one (a `Save` never lowers the commit: `rnDurK_save.law`'s premise). Then every read of a prefix
+past `k` has its snapshot from `σ0` or from a record after `k` (`certBaseK_read`), so the body needs the
+certificate of `σ0` and those of the records after `k` only, not those of the restart's history. -/
+def CertBaseK (σ0 : StorContents) (k : Nat) (Hs : WalHist) : Prop :=
+  k ≤ Hs.length ∧ HistReads σ0 (Hs.take k) ∧
+    ∀ j, k ≤ j → j ≤ Hs.length →
+      uint.nat (walLastHS (Hs.take k)).Commit' ≤ uint.nat (walLastHS (Hs.take j)).Commit'
+
 
 end pure
 
@@ -257,6 +276,20 @@ instance walSnapDur_persistent (sd : w64 → IProp GF) (σ : StorContents) :
     Persistent (walSnapDur (GF := GF) sd σ) := by
   unfold walSnapDur; infer_instance
 
+/-- (P5-RESTART, option (B), 2026-11-26) **The history's certificates, from a base** (the body's; until
+then `walHistCerts` of the whole history): some records `σ0` read at a position `k` at or below the synced
+lower bound `n` (`CertBaseK`), certified (`walSnapCert`, `walSnapDur`), and every snapshot record after
+`k` certified (`walHistCerts`). At a first start `k = 0` and `σ0` the fresh records; at a restart `k` is
+the restarted history's length and `σ0` what it reads as (`rnRestartAllocK.law`'s certificate), so a
+restart needs no certificate of the records it restarted from. -/
+def walHistCertsK (cl : Cluster) (sd : w64 → IProp GF) (Hs : WalHist) (n : Nat) : IProp GF :=
+  iprop(∃ (σ0 : StorContents) (k : Nat), ⌜k ≤ n ∧ CertBaseK σ0 k Hs⌝ ∗ walSnapCert cl σ0 ∗
+    walSnapDur sd σ0 ∗ walHistCerts cl sd (Hs.drop k))
+
+instance walHistCertsK_persistent (cl : Cluster) (sd : w64 → IProp GF) (Hs : WalHist) (n : Nat) :
+    Persistent (walHistCertsK (GF := GF) cl sd Hs n) := by
+  unfold walHistCertsK; infer_instance
+
 /-- The handed logs a crash image may be within, committed: the view's, and the pending batch's
 starting one. -/
 def rnLogLbsK (cl : Cluster) (vk : WalViewK) : IProp GF :=
@@ -292,7 +325,7 @@ def rnDurBodyK (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) : I
   iprop(∃ (vk : WalViewK) (σ : StorContents) (Hs : WalHist) (n : Nat),
     ghostVar νk.ν.view (1 : Qp).half vk ∗ monoListAuthOwn νk.ν.cm 1 vk.1.l ∗
     dghostVar νk.tkn (DFrac.own 1) () ∗ walHistH h Hs true ∗ walSnapCert γn.cl (recsOf vk.1 σ) ∗
-    (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) ∗ walHistCerts γn.cl νk.sd Hs ∗ rnLogLbsK γn.cl vk ∗
+    (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) ∗ walHistCertsK γn.cl νk.sd Hs n ∗ rnLogLbsK γn.cl vk ∗
     ⌜ViewOk vk.1 σ ∧ PendOkK vk ∧ HistOkK vk Hs n ∧ HistReadsK vk.1 σ Hs⌝ ∗
     ((raftState γn.cl id (durOf vk) ∗ rnPendK γn id νk.x vk) ∨ (crashed ∗ token νk.tk)))
 
@@ -382,7 +415,7 @@ abbrev rnDurK_alloc.law : Prop :=
     ViewOk v σ → v.pend = none → DurAgrees v.S v.l →
     HistOkK (v, none) Hs n → HistReads σ Hs →
     ⊢ walHistH h Hs true -∗ walSnapCert γn.cl σ -∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) -∗
-      walHistCerts γn.cl sd Hs -∗ isCommittedLogLb γn.cl v.l -∗ raftState γn.cl id v.S ={⊤}=∗
+      walHistCertsK γn.cl sd Hs n -∗ isCommittedLogLb γn.cl v.l -∗ raftState γn.cl id v.S ={⊤}=∗
       ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd⌝ ∗ rnDurInvK γn id νk h ∗ rnWalViewK νk (v, none) ∗
         token νk.ν.stop ∗ token νk.ν.app ∗ walCommitLb νk.ν v.l ∗ token νk.tk
 
@@ -483,14 +516,18 @@ def rnRestartWal (h : WalH GF) (σ : StorContents) : IProp GF :=
 
 /-- (P5) **The crash-aware durability's allocation at a restart** (the isolated restart step, pending
 the restart slot's decision on #50: `wal.restartOk` over the reader's fold): from the restart's handover
-(`rnRestartWal`), the records' certificate, a committed log `l₀` the restored view `⟨S, σ.hs, none, l₀⟩`
-is within (`ViewOk`) and raft's durable state `S`, the invariant at the view (nothing pending), its
-tokens and the handed log's lower bound, as `rnDurK_alloc.law` at a first start. -/
+(`rnRestartWal`), the records' certificate (valid, and durable in the snapshot directory `sd`), a
+committed log `l₀` the restored view `⟨S, σ.hs, none, l₀⟩` is within (`ViewOk`) and raft's durable state
+`S`, the invariant at the view (nothing pending), its tokens and the handed log's lower bound, as
+`rnDurK_alloc.law` at a first start. (P5-RESTART, option (B), 2026-11-26) Only the restart read's own
+certificate: the invariant's certificates start from it (`walHistCertsK` at the restarted history's
+length), not from the restarted history's snapshot records. -/
 abbrev rnRestartAllocK.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (x : CrashNames) (sd : w64 → IProp GF) (h : WalH GF) (σ : StorContents)
     (S : RaftState) (l₀ : List LogEntry),
     ViewOk ⟨S, σ.hs, none, l₀⟩ σ →
-    ⊢ rnRestartWal h σ -∗ walSnapCert γn.cl σ -∗ isCommittedLogLb γn.cl l₀ -∗ raftState γn.cl id S ={⊤}=∗
+    ⊢ rnRestartWal h σ -∗ walSnapCert γn.cl σ -∗ walSnapDur sd σ -∗ isCommittedLogLb γn.cl l₀ -∗
+      raftState γn.cl id S ={⊤}=∗
       ∃ νk : WalNamesK GF, ⌜νk.x = x ∧ νk.sd = sd ∧ νk.ν.h = h⌝ ∗ rnDurInvK γn id νk h ∗
         rnWalViewK νk (⟨S, σ.hs, none, l₀⟩, none) ∗
         token νk.ν.stop ∗ token νk.ν.app ∗ walCommitLb νk.ν l₀
@@ -511,11 +548,10 @@ crash's; a member that never stops its server excludes it).
 but this invariant's, `CrashReadsHold`), and the image's read facts `walReadFacts σ` come from the
 invariant's `HistReadOk` (`walReadFacts_of_read`).
 
-(P5 (a), 2026-11-26; #50 2026-11-25T16:06:56Z, the image route) `Φ` sees the crashed prefix's history
-`Hs.take j` too, and the post gives that history `Hc` (`walRead Hc = some σ`) with the certificates of
-every snapshot record in it (`walHistCerts`, the body's, `walHistCerts_take`): a record the read drops
-is re-kept once a later `Save` commits past it, so the restart's image carries them (T10's `srvFilesC`
-row). -/
+(P5 (a), 2026-11-26) `Φ` sees the crashed prefix's history `Hs.take j` too, and the post gives that
+history `Hc` (`walRead Hc = some σ`). (P5-RESTART, option (B), 2026-11-26: until then the post had the
+certificates of every snapshot record of `Hc`, `walHistCerts`, for the image route, which no caller used;
+the body no longer holds those of a restarted history's records.) -/
 abbrev rnDurK_crash.law : Prop :=
   ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset)
     (Φ : WalHist → StorContents → IProp GF),
@@ -532,7 +568,7 @@ abbrev rnDurK_crash.law : Prop :=
         raftState γn.cl id S ∗ nodeVacant γn.cl id ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ ∧ walRead Hc = some σ⌝ ∗
         walSnapCert γn.cl σ ∗ walSnapDur νk.sd σ ∗
-        isCommittedLogLb γn.cl l ∗ walHistCerts γn.cl νk.sd Hc) ∨
+        isCommittedLogLb γn.cl l) ∨
       rnTakenK νk)
 
 end defs

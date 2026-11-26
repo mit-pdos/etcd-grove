@@ -220,7 +220,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       subst HSS
       iunfold rnBootWal at Hwal
       icases Hwal with ⟨Hwr, %Hvw, #Hwc, #Hwl0⟩
-      imod hRestartAlloc γr cv.ID' x (fun _ => iprop(True)) hw σ S' _ Hvw $$ Hwr Hwc Hwl0 Hrst
+      icases rnRestartWal_snapDurTriv hw σ $$ Hwr with ⟨Hwr, #Hwd⟩
+      imod hRestartAlloc γr cv.ID' x (fun _ => iprop(True)) hw σ S' _ Hvw $$ Hwr Hwc Hwd Hwl0 Hrst
         with ⟨%νk, %Hνk, #Hdur, Hwv, Hwst, Hwap, #Hwlb⟩
       imodintro
       (try wp_auto)

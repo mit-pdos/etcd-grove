@@ -713,6 +713,97 @@ theorem imgOk_commitOnly {S : RaftState} {p h : HardStateM} {l l' : List LogEntr
   · simp only [readyDurable, RaftState.next]; rw [htv.1, ← ht]; exact h4
   · simp only [readyDurable, RaftState.next]; rw [htv.2, ← hv]; exact h5
 
+/-! ## (P5-RESTART, option (B), 2026-11-26) The certificates' base -/
+
+/-- The fold keeps a snapshot from the base `σ0` or from `X`, over operations of `X`. -/
+theorem walFold_snapFrom (σ0 : StorContents) (X : WalHist) :
+    ∀ (H : WalHist) (τ σ : StorContents), (∀ o ∈ H, o ∈ X) → SnapFrom σ0 X τ →
+      walFoldChkFrom τ H = some σ → SnapFrom σ0 X σ := by
+  intro H
+  induction H with
+  | nil => intro τ σ _ hτ h; simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact hτ
+  | cons o H ih =>
+    intro τ σ hA hτ h
+    have hA' : ∀ o' ∈ H, o' ∈ X := fun o' ho' => hA o' (List.mem_cons_of_mem _ ho')
+    cases o with
+    | snap m al =>
+      simp only [walFoldChkFrom] at h
+      refine ih _ _ hA' ?_ h
+      unfold walSaveSnap
+      split
+      · exact hτ
+      · right
+        exact ⟨m, al, hA _ List.mem_cons_self, rfl, rfl⟩
+    | save hs es =>
+      simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+      obtain ⟨ents, -, h⟩ := h
+      exact ih _ _ hA' hτ h
+
+theorem snapFrom_mono {σ0 τ : StorContents} {X Y : WalHist} (hXY : ∀ o ∈ X, o ∈ Y)
+    (h : SnapFrom σ0 X τ) : SnapFrom σ0 Y τ := by
+  rcases h with h | ⟨m, al, hm, h⟩
+  · exact Or.inl h
+  · exact Or.inr ⟨m, al, hXY _ hm, h⟩
+
+/-- **The pure lemma of option (B)**: a read of an extension `H0 ++ X` of a history `H0` that reads as
+`σ0` at every commit from its last saved one on (`HistReads`: a restarted history, nothing pending), at
+a last saved commit at or above `H0`'s, has its snapshot from `σ0` or from a snapshot record of `X`. The
+reader keeps exactly the records of `H0` that `H0`'s own read at that commit keeps, which fold to `σ0`;
+the records of `X` it keeps fold on from `σ0`. -/
+theorem walRead_ext_snapFrom {σ0 τ : StorContents} {H0 X : WalHist} (hr : HistReads σ0 H0)
+    (hc : uint.nat (walLastHS H0).Commit' ≤ uint.nat (walLastHS (H0 ++ X)).Commit')
+    (h : walRead (H0 ++ X) = some τ) : SnapFrom σ0 X τ := by
+  obtain ⟨h0, -⟩ := hr _ hc
+  unfold walReadAt at h0
+  unfold walRead at h
+  rw [List.filter_append, walFoldChkFrom_append, h0, Option.bind_some] at h
+  exact walFold_snapFrom σ0 X _ σ0 τ (fun o ho => (List.mem_filter.1 ho).1) (Or.inl ⟨rfl, rfl⟩) h
+
+/-- **Every read past the base has its snapshot from the base or from a record after it.** -/
+theorem certBaseK_read {σ0 τ : StorContents} {k j : Nat} {Hs : WalHist} (hb : CertBaseK σ0 k Hs)
+    (hkj : k ≤ j) (hj : j ≤ Hs.length) (h : walRead (Hs.take j) = some τ) :
+    SnapFrom σ0 (Hs.drop k) τ := by
+  obtain ⟨-, hr, hmono⟩ := hb
+  have hsplit : Hs.take j = Hs.take k ++ (Hs.take j).drop k := by
+    conv => lhs; rw [← List.take_append_drop k (Hs.take j)]
+    rw [List.take_take, Nat.min_eq_left hkj]
+  have hc := hmono j hkj hj
+  rw [hsplit] at h hc
+  refine snapFrom_mono ?_ (walRead_ext_snapFrom hr hc h)
+  intro o ho
+  rw [List.drop_take] at ho
+  exact List.mem_of_mem_take ho
+
+/-- **A record that keeps or raises the last saved commit keeps the base.** -/
+theorem certBaseK_snoc {σ0 : StorContents} {k : Nat} {Hs : WalHist} (o : WalOp) (hb : CertBaseK σ0 k Hs)
+    (hle : uint.nat (walLastHS Hs).Commit' ≤ uint.nat (walLastHS (Hs ++ [o])).Commit') :
+    CertBaseK σ0 k (Hs ++ [o]) := by
+  obtain ⟨hk, hr, hmono⟩ := hb
+  have htk : (Hs ++ [o]).take k = Hs.take k := List.take_append_of_le_length hk
+  refine ⟨by simp only [List.length_append, List.length_singleton]; omega, by rw [htk]; exact hr, ?_⟩
+  intro j hkj hj
+  rw [htk]
+  simp only [List.length_append, List.length_singleton] at hj
+  by_cases hjl : j ≤ Hs.length
+  · rw [List.take_append_of_le_length hjl]; exact hmono j hkj hjl
+  · have hj' : j = Hs.length + 1 := by omega
+    have htj : (Hs ++ [o]).take j = Hs ++ [o] := by
+      rw [List.take_of_length_le]; simp only [List.length_append, List.length_singleton]; omega
+    rw [htj]
+    have h1 := hmono Hs.length hk (Nat.le_refl _)
+    rw [List.take_length] at h1
+    omega
+
+/-- **The base at an allocation**: the whole history, read as `σ` (a restart's; a first start's
+empty one). -/
+theorem certBaseK_restart {σ : StorContents} {Hs : WalHist} (hr : HistReads σ Hs) :
+    CertBaseK σ Hs.length Hs := by
+  refine ⟨Nat.le_refl _, by rw [List.take_length]; exact hr, ?_⟩
+  intro j hkj hj
+  have hj' : j = Hs.length := by omega
+  subst hj'
+  exact Nat.le_refl _
+
 end pure
 
 end EtcdGrove
