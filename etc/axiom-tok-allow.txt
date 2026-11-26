@@ -293,9 +293,9 @@ entry Perennial.EtcdGrove.etcd_dist.NewServer_dist.wp_proof 2:*:handedtoacallbac
 # stream (`newWatcherGRPCStream`, whose `go wgs.run()` is the translation's `Fork`), and exchange messages over
 # `reqc`/`retc`. Only `run`, on the forked goroutine, opens the gRPC stream (`openWatchClient` -> `w.remote.Watch`).
 # The proved `newWatcherGRPCStream` gives `run` the fresh thread token of its `go` (`wp_fork_tok_body`), and
-# `watchGRPCStream.run.spec` takes that `threadTok` and returns it. So a token any contract is called with is the
-# forked goroutine's own, not one taken from or given to the caller. The unary contracts the walk counts are never
-# called by either function. The proved in-process `client.v3.watcher.wp_Watch`/`wp_RequestProgress` walk with no
+# `watchGRPCStream.run.spec` takes that `threadTok` and returns it. The counted contracts are never called; the only
+# connection call, `run`'s stream open, uses the forked goroutine's own token. That fork-token flow is the proved
+# in-process code's: the dist call runs the same translated code, and no proof covers it. The proved in-process `client.v3.watcher.wp_Watch`/`wp_RequestProgress` walk with no
 # finding (the instrumented walk of `wp_Watch` meets no token). For an independent triage.
 # The six lease axioms are F2's (etcd-grove-03): for etcd-grove-03's confirmation. F7's walk of the auth-on
 # `Lease_*On` axioms read the same key the same way (notes/axiom-review/f7-auth-axiom-tok.md, "Rule 2, 8/1").
@@ -306,8 +306,8 @@ entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesGranted_dist.wp_proof 2:L:0
 entry Perennial.EtcdGrove.etcd_dist.view.Lease_LeasesLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
 entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseLeases_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseLeases` (the section header; F2's, for etcd-grove-03's confirmation)
 entry Perennial.EtcdGrove.etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly1,7:P:IPropGF  as KV_Put_dist's, for `LeaseTimeToLive` (the section header; F2's, for etcd-grove-03's confirmation)
-entry Perennial.EtcdGrove.etcd_dist.Watch_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  see the section header: `isNewClient`'s unary contract tokens; in Go the call makes no RPC on the caller's goroutine, and the stream's goroutine (`go wgs.run()`) calls the connection with its own fork token (`wp_fork_tok_body`); `P` the contracts' context, as KV_Put_dist's
-entry Perennial.EtcdGrove.etcd_dist.RequestProgress_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  as Watch_dist's (the section header): it only sends on the stream's `reqc`
+entry Perennial.EtcdGrove.etcd_dist.Watch_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  see the section header: `isNewClient`'s unary retry-interceptor contracts (`etcdInterceptorOk`/`OkW` of `clientKVAt`/`kvObjAt`/`lessorAt`/`authObjAt`), which no goroutine of the call runs. The caller's goroutine makes no RPC. The forked `run` only opens a stream (`w.remote.Watch` -> `NewStream`, the stream interceptor), with `levelTok 0` split from its own fork token (in-process: `wp_fork_tok_body`, `threadTok_level0`). `P` is the binder of those uncalled contracts' `ctxOk`.
+entry Perennial.EtcdGrove.etcd_dist.RequestProgress_dist.wp_proof 2:L:0:handedtoacallback8/supplieddirectly0,7:P:IPropGF  as Watch_dist's: it takes the lock, creates the stream when there is none (the same `go wgs.run()`), and sends on `reqc` (retrying itself on `donec`); no RPC on the caller's goroutine
 # The ratchet's exception for these four (dist-putget-interim, 2026-11-25; for the coordinator's review):
 # their walks truncate where the walks of the handles they take already do on `lean`, in definitions this
 # branch did not write: the client axioms in `isNewClient`'s contexts (`stuck projection: cd.4`, the
