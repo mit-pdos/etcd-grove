@@ -25,6 +25,29 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: `EtcdServer.leaseTimeToLive`'s contract owns no reply keys (F7 fork, SPECULATIVE)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__leaseTimeToLive.lean`
+  (`EtcdServer.leaseTimeToLive.spec`, the trust-base contract `axiom EtcdServer.leaseTimeToLive.wp_proof`);
+  no SpecPlan counterpart (the plan's `LeaseTimeToLive` is the entry point's). Branch
+  `etcd-safe-f7-fork/2026-11-26` only.
+- **Defect.** Too weak for its caller at the fork `d26dd5da6` (`notes/etcd-dist-f7-fork.md`): the success arm owns
+  `resp ↦ w` and the header but nothing of `w.Keys'`, and `LeaseTimeToLive` now passes `resp.Keys` to
+  `checkLeaseTimeToLiveKeys`, which hands each key to `IsRangePermitted` (pre `key ↦*{dk} k ∗ ⌜sint.Z key.len
+  < 2 ^ 63 - 1⌝`). No proved callee gives the bytes: `leaseTimeToLive` and `leasehttp.TimeToLiveHTTP` (the
+  follower's decode) are names-only, and no other fact in scope mentions `w.Keys'`.
+- **Evidence.** The fork's body (`v3_server.go:719-725, 733-757`); `EtcdServer.LeaseTimeToLive.wp_proof` cannot
+  take the keys' ownership at the call. Go: the leader's reply builds `kbs := make([][]byte, len(ks))`,
+  `kbs[i] = []byte(ks[i])` (fresh); a follower's is decoded by protobuf-go v1.36.12's `consumeBytesSlice`
+  (`internal/impl/codec_gen.go:5568-5580`, `append(emptyBuf[:], v...)`: a copy, no `AliasBuffer` case), checked
+  by `notes/etcd-dist-f7-fork/unmarshal_alias_test.go` (PASS at the fork).
+- **Proposed change.** The success arm gains one conjunct, ownership only (nothing about which keys):
+  `(∃ kbs : List GoSlice, w.Keys' ↦* kbs ∗ [∗list] kb ∈ kbs, ∃ k : List w8, kb ↦* k ∗ ⌜sint.Z kb.len < 2 ^ 63 - 1⌝)`.
+  `EtcdServer.LeaseTimeToLive.spec` (proved) then gains, with `v.Keys'`, the keys' ownership and a second
+  `leaseCheckFrom` over the returned keys; its callers keep their proofs (a stronger post).
+- **Decision.** Approved speculatively by the lead and the coordinator (2026-11-26) for this branch only, with
+  a delta review (`notes/axiom-review/f7fork-leasettl-keys-contract.md`); pending Upamanyu's decision on F7.
+
 ## 2026-11-26: F7 dist client dispatch (`NodeMain`, `MainReady`, `MainDeployment`, `Orchestrator`) -- W-6's contract gaps (rotation, instances)
 
 - **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/NodeMain.lean` (`NodeMain.spec`),

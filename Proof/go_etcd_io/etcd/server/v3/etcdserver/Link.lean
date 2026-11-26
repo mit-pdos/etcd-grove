@@ -98,6 +98,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapsh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseRenew
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseTimeToLive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkLeaseTimeToLiveKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkMembershipOperationPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
@@ -2420,9 +2421,13 @@ theorem EtcdServer.wp_leaseTimeToLive :
     EtcdServer.leaseTimeToLive.spec (GF := GF) (hG := hG) :=
   EtcdServer.leaseTimeToLive.wp_proof
 
+theorem EtcdServer.wp_checkLeaseTimeToLiveKeys :
+    EtcdServer.checkLeaseTimeToLiveKeys.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkLeaseTimeToLiveKeys.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
 theorem EtcdServer.wp_LeaseTimeToLive :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfoC EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_AuthStore
+  EtcdServer.LeaseTimeToLive.wp_proof EtcdServer.wp_requireAuthInfoC EtcdServer.wp_checkLeaseTimeToLive EtcdServer.wp_leaseTimeToLive EtcdServer.wp_checkLeaseTimeToLiveKeys EtcdServer.wp_AuthStore
 
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
