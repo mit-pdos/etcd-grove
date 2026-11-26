@@ -273,6 +273,24 @@ theorem rnScopeAt_keepSome {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : R
     exact ⟨H Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => (Hs.2.2.2 h).keep hx⟩
   · imodintro; iexact Hc
 
+/-- `rnScopeAt_keepSome` for a step that may change the transfer facts' inputs (a transfer request:
+the ghost records `xw` grow), given `XScopeOk` across it. -/
+theorem rnScopeAt_keepSomeX {γ : RaftNames} {id : w64} (md : RnMode) (rs rs' : RNState)
+    (s s' : NState) (H : RnScope md rs s → RnScope md rs' s')
+    (Hst : s'.logst.storage = s.logst.storage)
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩)
+    (hfl : s'.prevote = s.prevote ∧ s'.cq = s.cq ∧ s'.sdr = s.sdr := by exact ⟨rfl, rfl, rfl⟩)
+    (hk : rs'.k = rs.k := by rfl)
+    (hx : md.transfer = true → XScopeOk γ s → XScopeOk γ s') :
+    rnScopeAt (GF := GF) γ id (some md) rs s ⊢ rnScopeAt γ id (some md) rs' s' := by
+  unfold rnScopeAt
+  iintro ⟨%Hs, #Hc⟩
+  rw [Hst]
+  isplitr
+  · ipureintro
+    exact ⟨H Hs.1, RnCfgIn.keep hcf Hs.2.1, Hs.2.2.1.keep hfl hk, fun h => hx h (Hs.2.2.2 h)⟩
+  · imodintro; iexact Hc
+
 /-- The basic scope kept by a step that keeps what it reads (`RnScopeBasic`), the storage, the
 `Config` flags and the node constant. -/
 theorem rnScopeAt_keep {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)

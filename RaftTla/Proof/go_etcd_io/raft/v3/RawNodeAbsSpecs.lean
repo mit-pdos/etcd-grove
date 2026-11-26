@@ -315,11 +315,11 @@ abbrev RawNode.TransferLeader.form (R : RaftNames → Loc → w64 → RNState �
       "Hrn" ∷ R γ rn id rs r' qs ip ∗
       "%Hend" ∷ ⌜∀ md, S md → TransferEndR id r to r'⌝ }}
 
-/-- **`RawNode.TransferLeader`, strengthened**, at every scope (transfer exists only past the basic
-scope). -/
+/-- **`RawNode.TransferLeader`, strengthened**, in the harness's scope at a mode with transfer (the
+form's premise), without snapshots or configuration changes (`raft.Step.untracedNs`, `AckScope`). -/
 abbrev RawNode.TransferLeader.absSpec : Prop :=
-  ∀ sc : Option RnMode, RawNode.TransferLeader.form
-    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip sc) (fun md => sc = some md)
+  ∀ md : RnMode, md.snapshots = false → md.confChanges = false → RawNode.TransferLeader.form
+    (fun γ rn id rs r qs ip => ownRawNodeAt (GF := GF) γ rn id rs r qs ip (some md)) (fun md' => md' = md)
 
 /-! ### `RawNode.ReportUnreachable` -/
 

@@ -6429,3 +6429,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and the bare ghost frames by `frame_rw.py`; `gated`'s readers by `gated_rw.py` (`(by xtrec_tac)`); the `%Hframe` users'
   one-argument appends (a traced node's `lt = 0`, the type, an `Advance` step's own sender).
 - **Decision.** Lead's option (b) (2026-11-26), #44 cleared. No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `RawNode.TransferLeader` over `ownRawNodeAt` at a transfer-on mode (#33)
+- **Spec (changed scope).** `RawNode.TransferLeader.absSpec` (RawNodeAbsSpecs.lean): was `∀ sc : Option RnMode` with
+  `S = (sc = some ·)` (no proof); now, as ReadIndex/ReportUnreachable, at `some md` for every mode without snapshots or
+  configuration changes (`raft.Step.untracedNs`, `AckScope`), `S = (· = md)`; the form (premise `∀ md, S md →
+  md.transfer = true`, post `TransferEndR id r to r'`) unchanged. No scope with transfer off had a use (the form's
+  premise excludes it); `sc = none` (outside the harness) keeps the old `RawNode.TransferLeader.spec`.
+- **Proof.** `RawNode__TransferLeaderAbs.lean` (new): `transferEnd_of_stepEnd` (`StepEnd.xfer` on a local
+  `MsgTransferLeader`: the state but for the ghost records, `lt`, the outbox and same-`Match` `Progress` values; the
+  protocol reading kept, or a leader's `SendsEnd` to the transferee, a voter other than the node), `transferEndR_of`,
+  `RawNode.TransferLeader.wp_absProof`; the scope's `XScopeOk` kept from `%Hxwframe`'s growth conjunct (the one record a
+  step adds is a follower's forward to its leader, a member by `XScopeOk`'s lead clause). `rnScopeAt_keepSomeX`
+  (RawNodeReadyAt.lean): `rnScopeAt_keepSome` given `XScopeOk` across the step.
+- **Not yet.** `RawNode.TransferLeader.apiSpec` (step D: the sealed `rawNode` at `some md`).
+- **Decision.** Design §4's row (lead-approved); successor 9's plan. No axiom, no premise.
