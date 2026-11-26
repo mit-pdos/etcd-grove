@@ -118,6 +118,12 @@ axiom etcd_dist.PeerServe_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.Txn_Commit_dist.wp_proof
 axiom etcd_dist.etcdSvc
+axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
+axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof
+axiom etcd_dist.view.Lease_GrantLive_dist.wp_proof
+axiom etcd_dist.view.Lease_Grant_dist.wp_proof
+axiom etcd_dist.view.Lease_LeasesGranted_dist.wp_proof
+axiom etcd_dist.view.Lease_LeasesLive_dist.wp_proof
 axiom etcd_noRefusal
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.Sscanf.wp_proof
