@@ -649,6 +649,11 @@ PROJECTS = [
             # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) types only: `grpcsync.Event`, the
             # type of `grpc.Server`'s `quit`/`done` fields
             "google.golang.org/grpc/internal/grpcsync",
+            # (grpc-mem, 2026-11-26) types only but what their initializers run: `mem`'s buffer types,
+            # which grpc's `baseCodec` names (Code/google_golang_org/grpc/mem.toml), and `internal/mem`'s
+            # tiered pool, which `mem`'s `init` builds
+            "google.golang.org/grpc/mem",
+            "google.golang.org/grpc/internal/mem",
             # (status-bodies) types only: the message `internal/status.Status` holds
             "google.golang.org/genproto/googleapis/rpc/status",
             "google.golang.org/protobuf/types/known/anypb",

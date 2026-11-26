@@ -8,6 +8,7 @@ public import GeneratedProof.google_golang_org.grpc.grpclog
 public import GeneratedProof.google_golang_org.grpc.internal
 public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 public import GeneratedProof.google_golang_org.grpc.keepalive
+public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
@@ -29,86 +30,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.grpc
-
-namespace joinServerOption
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance joinServerOption_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.joinServerOption where
-  typedPointstoDef l v dq := iprop(
-    "opts" ∷ typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance joinServerOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.joinServerOption google_golang_org.grpc.joinServerOption.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance joinServerOption_access_load_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance joinServerOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (opts' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) opts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := opts' } : google_golang_org.grpc.joinServerOption) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end joinServerOption
-
-namespace MaxHeaderListSizeServerOption
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance MaxHeaderListSizeServerOption_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MaxHeaderListSizeServerOption where
-  typedPointstoDef l v dq := iprop(
-    "MaxHeaderListSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance MaxHeaderListSizeServerOption_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxHeaderListSizeServerOption google_golang_org.grpc.MaxHeaderListSizeServerOption.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance MaxHeaderListSizeServerOption_access_load_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance MaxHeaderListSizeServerOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (MaxHeaderListSize' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) MaxHeaderListSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxHeaderListSize' := MaxHeaderListSize' } : google_golang_org.grpc.MaxHeaderListSizeServerOption) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end MaxHeaderListSizeServerOption
 
 namespace MethodInfo
 section def_
