@@ -10,7 +10,7 @@
 #
 # `roots PATTERN`: every etcd and Kubernetes example's result (the single-process theorems, the
 # drivers' linked `Main`s, putget's distributed `putget_safe_of_*`) and every top-level robustness
-# theorem of every tree (mvccfull and mvccrand among them).
+# theorem of every tree (mvccfull among them).
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/(etcd|k8s)/
 roots TopLevelRobustness\.lean$
 # `axioms PATTERN`: the family, by declaring module or name (etc/tcb-report.py --help): grpc and its
@@ -39,8 +39,6 @@ axioms ^rafthttp\.netErrNotRemoved_ok$
 axiom Client.Close.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
-axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.net.http.initFuncsOk
 axiom WithRequireLeader.wp_proof
@@ -52,7 +50,6 @@ axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom endpoint.RequiresCredentials.wp_proof
-axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcd_noRefusal
 axiom grpc.ClientConn.Close.wp_proof
@@ -64,7 +61,6 @@ axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
-axiom grpc.StatsHandler.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpcConn
 axiom grpcConn_persistent
@@ -153,10 +149,6 @@ axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom status.Code.wp_proof
-axiom status.Error.wp_proof
-axiom status.FromError.wp_proof
-axiom status.Status.Code.wp_proof
 axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
@@ -166,3 +158,34 @@ axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom withVersion.wp_proof
+opaque credsYieldRaw
+opaque grpcCliPI
+opaque grpcConnClosedRaw
+opaque grpcConnOptsRaw
+opaque grpcRepModelOf
+opaque grpcRepliesFit
+opaque grpcReqModelOf
+opaque grpcSrvPI
+opaque http.bodyReader
+opaque http.bodyStreamRaw
+opaque http.httpListenerAt
+opaque http.httpNetCliP
+opaque http.httpNetSrvP
+opaque http.httpProtoAtRaw
+opaque http.httpProtoOwn
+opaque http.muxOwn
+opaque http.netErrRaw
+opaque http.reqCtxRaw
+opaque http.reqRestRaw
+opaque http.reqStreamRaw
+opaque http.respCloserRaw
+opaque http.respHdrs
+opaque http.respReadAnyRaw
+opaque http.respReader
+opaque http.respWriter
+opaque http.urlHostOk
+opaque http.urlOf
+opaque noRefusalAt
+opaque promUnaryIc
+opaque streamRepModelOf
+opaque streamReqModelOf

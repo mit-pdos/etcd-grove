@@ -346,7 +346,8 @@ variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
 variable [package_sem : raxos.examples.quepaxanet.Assumptions]
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `qR γ`. -/
-theorem qS_pendDec (γ : QNames) : PendDec (qR (Gg := hG.goose_globalGS) γ) (qS (GF := GF)) where
+theorem qS_pendDec (γ : QNames) : PendDec (qR (Gg := hG.goose_globalGS) γ) (qS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := by
     have h' : qOutOk ⟨(Out.mk false o.1.found o.1.v).Found', (Out.mk false o.1.found o.1.v).V'⟩ :=
@@ -361,7 +362,7 @@ theorem qS_pendDec (γ : QNames) : PendDec (qR (Gg := hG.goose_globalGS) γ) (qS
       (qDecQ_box (In.mk i.1.put i.1.k i.1.v) (Out.mk true false []) i.2 h')
   ioOk_ok i o := BI.pure_intro ⟨⟨_, rfl, i.2⟩, _, rfl, o.2⟩
   ioOk_err i := BI.pure_intro ⟨⟨_, rfl, i.2⟩, _, rfl, by unfold qOutOk; simp⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem pendCtx_qS (γ : QNames) (γp : PendNames) :
     pendCtx (Gg := hG.goose_globalGS) (qR γ) (qS0 (GF := GF)) γp =

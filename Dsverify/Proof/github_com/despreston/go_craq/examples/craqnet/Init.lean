@@ -23,7 +23,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.node.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.store.kv.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.netrpc.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.net.Init
 public import Proof.runtime.PkgInitExt
 public import Dsverify.Proof.runtime.PkgInitDsv

@@ -33,8 +33,10 @@ variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples
 def pkgInitTable : List (GoString × IProp GF) :=
   [(pkg_id.context, isPkgInit (PROP := IProp GF) pkg_id.context),
    (pkg_id.errors, isPkgInit (PROP := IProp GF) pkg_id.errors),
+   (pkg_id.github_com.goose_lang.primitive, isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client),
+   (pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire),
    (pkg_id.internal.bytealg, isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg),
    (pkg_id.internal.filepathlite, isPkgInit (PROP := IProp GF) pkg_id.internal.filepathlite),
    (pkg_id.internal.gomodel, isPkgInit (PROP := IProp GF) pkg_id.internal.gomodel),
@@ -159,15 +161,23 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h9, h0, h22, h21, h18, h8, h7, True.intro⟩
-  have h24 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose (getIsPkgInit (GF := GF)) := by
+  have h24 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h23, True.intro⟩
-  have h25 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client (getIsPkgInit (GF := GF)) := by
+    exact True.intro
+  have h25 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.wire (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h24, True.intro⟩
-  exact h25
+    exact ⟨h23, h24, True.intro⟩
+  have h26 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h7, h23, h25, True.intro⟩
+  have h27 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h26, True.intro⟩
+  exact h27
 
 end table
 

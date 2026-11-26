@@ -4,6 +4,7 @@ module
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
+public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import Perennial.Golang.Defn
 
@@ -34,6 +35,12 @@ noncomputable def Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Server.ty
 
+@[reducible] noncomputable def MaxClients [GooseExts] [GoGlobalContext] : val :=
+  #(8 : Int)
+
+@[reducible] noncomputable def MaxOps [GooseExts] [GoGlobalContext] : val :=
+  #(32 : Int)
+
 noncomputable def Model [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest/logkvcompact.Model"
 
@@ -49,7 +56,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- Model is the register's sequential specification: the state is a string, initially empty; a
     write sets it and outputs the empty string, a read outputs it.
 
-    go: logkvcompact.go:22:6 -/
+    go: logkvcompact.go:23:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -131,7 +138,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- New returns a server with an empty log and starts its apply goroutine.
 
-    go: logkvcompact.go:50:6 -/
+    go: logkvcompact.go:51:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
@@ -162,7 +169,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
 /-- applyLoop applies the log's entries in order, forever: it sets the state to each entry, drops
     the entries it applied from the log, and wakes the waiting writers, then waits for more entries.
 
-    go: logkvcompact.go:59:18 -/
+    go: logkvcompact.go:60:18 -/
 noncomputable def Server.applyLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -206,7 +213,7 @@ noncomputable def Server.applyLoop.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Put appends a write of v to the log and returns once the apply goroutine has applied it.
 
-    go: logkvcompact.go:74:18 -/
+    go: logkvcompact.go:75:18 -/
 noncomputable def Server.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
@@ -245,7 +252,7 @@ noncomputable def Server.Put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Get returns the applied state.
 
-    go: logkvcompact.go:86:18 -/
+    go: logkvcompact.go:87:18 -/
 noncomputable def Server.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -273,7 +280,7 @@ noncomputable def Server.Get.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Apply runs one operation: a write returns the empty string, a read the value read.
 
-    go: logkvcompact.go:94:18 -/
+    go: logkvcompact.go:95:18 -/
 noncomputable def Server.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "input"
@@ -308,11 +315,11 @@ noncomputable def Server.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Op.ty))) (Pair (Var "in") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
 
-/-- Check runs clients clients of a fresh server, each running ops operations (client i writes a
-    value of its own if i is even and reads otherwise), traced with the given clock, and checks the
-    trace with porcupine.
+/-- Check runs clients clients of a fresh server, each running ops operations, each at random a
+    write of one of eight values or a read, traced with the given clock, and checks the trace with
+    porcupine.
 
-    go: logkvcompact.go:106:6 -/
+    go: logkvcompact.go:107:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clock"
   (Lam "clients"
@@ -331,15 +338,19 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v1" (Val #(go!"b"))
   (Let "$v2" (Val #(go!"c"))
   (Let "$v3" (Val #(go!"d"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "$v4" (Val #(go!"e"))
+  (Let "$v5" (Val #(go!"f"))
+  (Let "$v6" (Val #(go!"g"))
+  (Let "$v7" (Val #(go!"h"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3"))), (KeyedElement none (ElementExpression go.string (Var "$v4"))), (KeyedElement none (ElementExpression go.string (Var "$v5"))), (KeyedElement none (ElementExpression go.string (Var "$v6"))), (KeyedElement none (ElementExpression go.string (Var "$v7")))]))))))))))
   (Let "vals" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
-  (Let "$r0" (App (Val (GoInstruction (Convert Op.ty go.any))) (Let "$v0" (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "id")) (Val #(W64 2)))) (Val #(W64 0))))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vals")) (App (Val (GoInstruction (GoOp GoRemainder go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "id")) (Val #(W64 4)))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert Op.ty go.any))) (Let "$v0" (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (Val #(W64 2)))) (Val #(W64 0))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vals")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (Val #(W64 8))))))))
   (App (Val (GoInstruction (CompositeLiteral Op.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Put")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -370,16 +381,23 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0"))))))))
 
-/-- Main runs 4 clients of 10 operations each against the server, traced with a counter clock,
-    checks the trace with porcupine (no timeout), and panics unless porcupine answers Ok.
+/-- Main runs a random number of clients (at most MaxClients), each running a random number of
+    random operations (at most MaxOps) against the server, traced with a counter clock, checks the
+    trace with porcupine (no timeout), and panics unless porcupine answers Ok.
 
-    go: logkvcompact.go:115:6 -/
+    go: logkvcompact.go:127:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val MaxClients)))))))
+  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val MaxOps)))))))
+  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock []))) (Val #())) (Val #()))
-  (Let "$a1" (Val #(W64 4))
-  (Let "$a2" (Val #(W64 10))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
   (Let "$a3" (Val #(W64 0))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
@@ -391,16 +409,21 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "r") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "ops") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "clients") (Var "$r0"))))))))
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -410,6 +433,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.anishathalye.porcupine.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.initialize') (Val #()))))))))
 
@@ -537,6 +562,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
 
 attribute [instance] Assumptions.Op_instance
@@ -548,6 +574,7 @@ attribute [instance] Assumptions.Op_instance
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
+  Assumptions.import_primitive_Assumption
   Assumptions.import_lintest_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact

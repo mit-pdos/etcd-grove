@@ -1,14 +1,10 @@
 /-
-**Trust-boundary axiom** (dsv-fix4, mit-pdos/etcd-grove#49 fix 4): `(*rngSource).Int63()`, with
-the source's token, returns a non-negative `int64` and keeps the token. Perennial translates
-`math/rand` with `(*rngSource).Int63` names only (`Perennial/Code/math/rand.toml`), so it cannot be
-proved here. Go's `rng.go`: `func (rng *rngSource) Int63() int64 { return int64(rng.Uint64() &
-rngMask) }`, and `Uint64` steps the generator's own state (`tap`, `feed`, `vec`: indices kept in
-`[0, rngLen)` and the array `vec` of `rngLen` elements) and returns: no panic, no other state.
-Used (with `New.lean`, `NewSource.lean`) to prove `(*Rand).Intn` over `ownRngRand`
-(`RandsLinked.lean`), which was the statement premise `math.rand.Hyps` (rabia, swiftpaxos) until
-dsv-fix4. Review: `notes/axiom-review/dsv-fix4/math-rand-rng.md`. To retire: Perennial translating
-`rngSource`'s methods and `NewSource`/`New`.
+`(*rngSource).Int63()`, with the source's token, returns a non-negative `int64` and keeps the token:
+Perennial's linked `math.rand.rngSource.wp_Int63` (`rngTok` is Perennial's `ownRngSource`). Used
+(with `New.lean`, `NewSource.lean`) to prove `(*Rand).Intn` over `ownRngRand` (`RandsLinked.lean`).
+A trust-boundary axiom from dsv-fix4 (mit-pdos/etcd-grove#49 fix 4) until dsv-retire-2 (#49 step 2),
+when Perennial translated and proved `rngSource`'s `Int63` and `Uint64` (review of the axiom:
+`notes/axiom-review/dsv-fix4/math-rand-rng.md`).
 -/
 module
 
@@ -22,16 +18,18 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section ax
+section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : math.rand.Assumptions]
 
-/-- **Trust-boundary axiom** (the file header). -/
-axiom math.rand.rngSource.Int63.wp_proof : ∀ (p : Loc),
+/-- `(*rngSource).Int63`'s spec over `rngTok`: Perennial's. -/
+theorem math.rand.rng.rngSource_Int63_rng : ∀ (p : Loc),
   {{ math.rand.rngTok (GF := GF) p }}
     (App (Val (p @!! go.GoType.PointerType math.rand.rngSource.ty @!! go!"Int63")) (Val #()))
-  {{ (x : w64), RET #x; math.rand.rngTok p ∗ ⌜0 ≤ sint.Z x⌝ }}
+  {{ (x : w64), RET #x; math.rand.rngTok p ∗ ⌜0 ≤ sint.Z x⌝ }} :=
+  math.rand.rngSource.wp_Int63
 
-end ax
+end proof
 
 end Perennial

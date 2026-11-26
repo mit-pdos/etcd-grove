@@ -3,6 +3,9 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.status
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.fmt.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.status
 
 @[expose] public section

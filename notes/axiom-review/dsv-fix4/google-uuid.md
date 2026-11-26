@@ -165,3 +165,15 @@ no one.
 No counterexample program was built: no gap can be reached from a provable program in the current
 tree. No bug found in the Go code. uuid's documentation states the `SetRand` panic, and swiftpaxos
 uses the default reader.
+
+## 2026-11-25, `dsv-retire-2` (#49 step 2): translated, not yet provable as stated
+
+uuid is now translated with bodies from `models/uuid` (its initializer's axiom retired,
+`dsv-inits/github-com-google-uuid.md`). Neither axiom here can be proved from that translation with
+its spec unchanged: `New.spec` takes no `[github_com.google.uuid.Assumptions]`, so `New` (a
+`functions` value) cannot be unfolded to its body; `UUID.ID.spec`'s precondition is `True`, while
+`ID`'s body calls `(*bigEndian).Uint32` on `&binary.BigEndian`, which loads that address and panics
+on `nil`: its non-nullness comes only from `isPkgInit encoding/binary` (`typedPointsto (globalAddr
+BigEndian) …`), reachable from `isPkgInit uuid`. Retiring them needs `New.spec` to take
+`[uuid.Assumptions]` and `UUID.ID.spec` to take `isPkgInit uuid` (both available at the one call
+site, `client.NewClientLog.wp_proof`): hypotheses added, so not done here.

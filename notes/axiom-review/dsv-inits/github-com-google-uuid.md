@@ -82,3 +82,13 @@ returns) passes at go1.27.3, and every swiftpaxos program starts.
   semantics in which `package.init` or `exceptionSeq` behaves differently) is common to every
   generated `wp_initialize'` axiom of the parts and Perennial's, not specific to uuid; not attacked.
 - No Lean counterexample attempted: no Go program panics, so there is nothing to prove.
+
+## Retired (2026-11-25, branch `dsv-retire-2`, mit-pdos/etcd-grove#49 step 2)
+
+The axiom is gone: project dsv-swiftpaxos takes uuid from its model, `models/uuid` (`module_models` in
+`etc/dsv/swiftpaxos.py`; v1.3.1's code, `NewRandom` over goose's `primitive.RandomUint64`), translated
+with the bodies of `New`, `NewRandom`, `Must`, `UUID.ID` and the model's one variable `xvalues`
+(`Dsverify/Code/github_com/google/uuid.toml`), and `etc/gen-init.py` proves its `wp_initialize'`
+(allocate `xvalues`, initialize `encoding/binary` and `primitive`, store the array literal). The
+model's premise (models/README.md): the program never assigns `crypto/rand.Reader` and is not built
+with boringcrypto.

@@ -135,6 +135,8 @@ if python3 etc/tcb-report.py --check > "$tmp/tcb.log" 2>&1; then
 else
   echo "tcb: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/tcb.log" | tail -20; fail=1
 fi
+# its selftest: which `opaque`s etc/tcb-report.lean counts, on an environment of its own (seconds)
+python3 etc/tcb-report.py --selftest > "$tmp/tcbs.log" 2>&1 || { echo "tcb selftest: FAILED"; tail -10 "$tmp/tcbs.log"; fail=1; }
 # the collections, in one run (the JSON loaded once; each collection checked as on its own: 68
 # runs of 5.6s each, nearly all of it parsing the JSON, took six minutes), beside the axiom-tok gate
 # below: both only read the .lake/tcb.json the check above wrote
@@ -210,11 +212,11 @@ if python3 etc/pb-init-check.py > "$tmp/pbinit.log" 2>&1; then
 else
   echo "pb-init: FAILED"; head -10 "$tmp/pbinit.log"; fail=1
 fi
-# net/rpcdriver's boot table (etc/gen-rpcdriver-boottable.py, from the server command's PkgTable)
-if python3 etc/gen-rpcdriver-boottable.py --check > "$tmp/rpcboot.log" 2>&1; then
-  echo "$(tail -1 "$tmp/rpcboot.log")"
+# the library drivers' boot tables (etc/gen-driver-boottable.py, from each server command's PkgTable)
+if python3 etc/gen-driver-boottable.py --check > "$tmp/driverboot.log" 2>&1; then
+  echo "$(tail -1 "$tmp/driverboot.log")"
 else
-  echo "gen-rpcdriver-boottable: FAILED"; tail -3 "$tmp/rpcboot.log"; fail=1
+  echo "gen-driver-boottable: FAILED"; tail -3 "$tmp/driverboot.log"; fail=1
 fi
 # the dsverify kits' generated plumbing (etc/dsv/kitgen.py, from each kit file's KITGEN: the
 # commands' mains, the statements, TopLevelDefs, the proofs' skeletons, Mains, the boot tables; and
@@ -443,6 +445,15 @@ if python3 etc/iris-premise-check.py --check > "$tmp/irisprem.log" 2>&1; then
 else
   echo "iris-premise: FAILED"; head -20 "$tmp/irisprem.log"; fail=1
 fi
+# 7d. every distributed interim axiom (`*_dist`) differs from the in-process spec it copies only as
+# etc/dist-axiom-diff-allow.txt lists (notes/axiom-review/dist-axiom-diff.md: a copy that missed its
+# source's later premise); and the gate's selftest. Reads the sources only; under a second.
+if python3 etc/dist-axiom-diff.py --check > "$tmp/dad.log" 2>&1; then
+  echo "$(tail -1 "$tmp/dad.log")"
+else
+  echo "dist-axiom-diff: FAILED"; grep -v "^  [A-Za-z_.]*: [0-9]* difference\|no in-process source" "$tmp/dad.log" | head -20; fail=1
+fi
+python3 etc/dist-axiom-diff.py --selftest > "$tmp/dads.log" 2>&1 || { echo "dist-axiom-diff selftest: FAILED"; grep "FAIL" "$tmp/dads.log" | head -10; fail=1; }
 return $fail
 }
 

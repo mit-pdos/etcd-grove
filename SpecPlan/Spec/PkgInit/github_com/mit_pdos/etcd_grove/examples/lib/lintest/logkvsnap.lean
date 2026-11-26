@@ -6,6 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.anishathalye.porcupine
+public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 
 @[expose] public section

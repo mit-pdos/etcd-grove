@@ -971,3 +971,5 @@ particular semantics, looked false where an `init` panics) are deleted with thei
 Here: `gopkg_in.yaml_v2`, `io.ioutil`, `encoding.gob`, `google_golang_org.grpc.codes` are axioms;
 `quepaxa_remote_robust` loses those four `InitHyp` premises and keeps go-redis's and grpc's
 (statement diff: removals only); `NonVacuityLinked.lean` instantiates the two kept ones.
+(dsv-retire-1/-2, 2026-11-25, #49: `io.ioutil`'s and `google_golang_org.grpc.codes`' axioms retired,
+their initializers translated and proved; codes' with the part's grpc `internal`, `CanonicalString`.)

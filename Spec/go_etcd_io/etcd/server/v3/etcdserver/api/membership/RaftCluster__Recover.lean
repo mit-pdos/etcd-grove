@@ -66,7 +66,7 @@ stored string (a fresh version, whose rendering parses), which keeps the lock's 
 (`rcVerSlot`): nil only if the slot was at `0`, because the image's `cluster` bucket holds a version
 whenever the cluster's is set (`memBucketsOk`); the slot's counter then moves to `1` with a version.
 Still an axiom: its post `clusterMem c mem'` needs every member's whole record, which
-`MustReadMembersFromBackend`'s spec (`membersRead`: the peer URLs only) does not give, and
+`MustReadMembersFromBackend`'s spec (`membersRead`: the peer URLs and learner flags only) does not give, and
 `DowngradeInfoFromBackend` is a `json.Unmarshal` (#24). -/
 abbrev membership.RaftCluster.Recover.spec : Prop :=
   ∀ (c : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (r : GMap GoString backend.BktData)

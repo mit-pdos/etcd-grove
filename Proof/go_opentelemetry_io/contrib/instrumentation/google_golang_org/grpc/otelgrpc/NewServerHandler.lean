@@ -22,7 +22,9 @@ variable [sem : go.Semantics]
 
 /-- **Trust boundary** (item 4, the server start): `NewServerHandler` applies its options
 (`otelgrpc.Option`: an interface with an unexported method, so otelgrpc's own, which set its
-configuration) and returns a `*serverHandler`: its `TagRPC` returns the call's context with a span
+configuration) and returns a `*serverHandler`, never nil (its one `return h`, of
+`h := &serverHandler{config: c}`, otelgrpc v0.71.0 `stats_handler.go:55,91`; the meters' errors are
+handled and fall through): its `TagRPC` returns the call's context with a span
 and otelgrpc's own values (its keys, not etcd's), `HandleRPC` records; neither stops a call. -/
 axiom otelgrpc.NewServerHandler.wp_proof : otelgrpc.NewServerHandler.spec (GF := GF) (hG := hG)
 

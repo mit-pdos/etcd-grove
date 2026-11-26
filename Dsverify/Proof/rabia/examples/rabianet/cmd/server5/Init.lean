@@ -10,11 +10,9 @@ module
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.server5.Base
 public import Dsverify.Proof.rabia.examples.rabianet.Init
 public import Proof.runtime.PkgInitExt
-public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
-public import Dsverify.Proof.os.signal.Init
 
 @[expose] public section
 

@@ -337,7 +337,7 @@ theorem wf_github_com_tangledbytes_go_vsr_pkg_client {G : GoString → IProp GF}
 
 theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math G :=
-  And.intro h.e_math True.intro
+  And.intro h.e_math ⟨wf_internal_gomodel h, True.intro⟩
 
 theorem wf_github_com_tangledbytes_go_vsr_pkg_replica {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.tangledbytes.go_vsr.pkg.replica G :=
@@ -585,7 +585,7 @@ theorem wfO_github_com_tangledbytes_go_vsr_pkg_time {G : GoString → IProp GF} 
 theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_math) True.intro
+    h.e_math) ⟨wfO_internal_gomodel h S hS, True.intro⟩
 
 end table
 

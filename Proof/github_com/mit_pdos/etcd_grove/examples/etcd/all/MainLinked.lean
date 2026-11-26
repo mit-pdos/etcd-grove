@@ -60,32 +60,33 @@ theorem etcd_all.wp_spawn : etcd_all.spawn.spec (GF := GF) (hG := hG) :=
   etcd_all.spawn.wp_proof etcd_all.holdToken.wp_proof
 
 /-- **The KV part** (`KV.lean`), over its five drivers' linked results. -/
-theorem etcd_all.wp_KV [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_all.wp_KV
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_all.KV.spec (GF := GF) (hG := hG) :=
   etcd_all.KV.wp_proof etcd_all.wp_spawn etcd_txnlinfaultsN.wp_Main etcd_partition.wp_MainWatch
     etcd_compactwatch.wp_Main etcd_compacted.wp_Main etcd_cache.wp_Main
 
 /-- **The Auth part** (`Auth.lean`), over its two drivers' linked results. -/
-theorem etcd_all.wp_Auth [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_all.wp_Auth :
     etcd_all.Auth.spec (GF := GF) (hG := hG) :=
   etcd_all.Auth.wp_proof etcd_all.wp_spawn etcd_authN.wp_Main etcd_authlease.wp_Main
 
 /-- **The Lease part** (`Lease.lean`), over its two drivers' linked results. -/
-theorem etcd_all.wp_Lease [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_all.wp_Lease
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_all.Lease.spec (GF := GF) (hG := hG) :=
   etcd_all.Lease.wp_proof etcd_all.wp_spawn etcd_leaseN.wp_Main etcd_leasecatchup.wp_Main
 
 /-- **The Restart part** (`Restart.lean`), over its two drivers' linked results. -/
-theorem etcd_all.wp_Restart : etcd_all.Restart.spec (GF := GF) (hG := hG) :=
+theorem etcd_all.wp_Restart
+    : etcd_all.Restart.spec (GF := GF) (hG := hG) :=
   etcd_all.Restart.wp_proof etcd_all.wp_spawn etcd_restartN.wp_Main etcd_restart1.wp_Main
 
 /-- **The one closed etcd theorem's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/Main.lean`), under the semantic premises of the
 eleven drivers' linked results. -/
-theorem etcd_all.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_all.wp_Main
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_all.Main.spec (GF := GF) (hG := hG) :=
   etcd_all.Main.wp_proof etcd_all.wp_spawn etcd_all.wp_KV etcd_all.wp_Auth etcd_all.wp_Lease
     etcd_all.wp_Restart
@@ -101,7 +102,7 @@ theorem etcd_all.wp_ParamsOk : etcd_all.ParamsOk.spec (GF := GF) (hG := hG) :=
 /-- **The program's entry point does not panic** (`MainChecked.lean`): `Main`'s linked triple behind
 `ParamsOk`, with the schedules `cluster3.RandomSchedule` draws. -/
 theorem etcd_all.wp_MainChecked
-    [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [go_etcd_io.etcd.cache.v3.Assumptions] :
     etcd_all.MainChecked.spec (GF := GF) (hG := hG) :=
   etcd_all.MainChecked.wp_proof etcd_all.wp_ParamsOk cluster3.wp_RandomSchedule etcd_all.wp_Main
 

@@ -30,6 +30,10 @@ vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiLaws
 # (mvccfull's Prove, 2026-11-10) `Compact`'s channel made: `compactChan.law` (no function's spec)
 importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
 vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChan
+# (#49, mvccrand's retirement, 2026-11-25) the `Pos.Countable` instances of `Change` and `MvccState`
+# that clients' ghost state is built on (mvccfull, k8s/etcd3; until then mvccrand's `MvccCountable`)
+importable Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCountable
+vocab Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCountable
 
 ## The API's vocabulary, still in the internals (to move to a vocabulary module)
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Model

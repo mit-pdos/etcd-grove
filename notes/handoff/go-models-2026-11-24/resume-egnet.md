@@ -559,3 +559,48 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   packet-rest.md: head row, Evidence, new last section "grpc-driver over the Go-model net".
 - STATE: `go-models-rest-egnet/2026-11-24` fast-forwarded to this branch's head (pushed). LEFT: #8 message;
   merge newer lean when it moves.
+
+## Session 16 (2026-11-26, successor) — Stage 1: the two gate fixes (coordinator-E #8 7176991791)
+- Worktree `eg-lmerge`, branch `go-models-rest-egnet-lmerge3/2026-11-26`; scratch `tmp/gm16/` (gates1/2.log,
+  goose-check.log, merge-status.log, models-remote-s1b.log, scripts/{eggates.sh, models-remote.sh}).
+- **tier** (`Proof.os.Remove` -> proof `Proof.os.RemoveN`, since 65fd91fbfd): `os.Remove.wp_fileSncNFmt` (the
+  shared WP lemma, name and statement unchanged) moved to the new defs module `Proof/os/RemoveParts.lean`
+  (as `MkdirParts`); `Remove` and `RemoveN` both import it. `etc/tier-check.py --check`: ok, 208 known
+  violations, baseline unchanged.
+- **gomodels**: `etc/gomodels.py` only checks (no writer: the Lean of internal/gomodel is Perennial's), so
+  `Code/internal/gomodel.toml` and `Net/Code/internal/gomodel.toml` were edited to say what Perennial
+  `09bd3826c`'s `Perennial/Code/internal/gomodel.toml` says (translate `ChooseString`/`ChooseStrings`,
+  trusted `StartRead`; comment as Perennial's). `gomodels.py check`: ok. Nothing to regenerate: goose.py
+  --check 73 projects up to date.
+- VM: the inherited sync key c61dd42e08d7d686 had been GC'd (re-created from scratch). **Root-disk trap**:
+  `vmlake env` sets no `LAKE_CACHE_DIR`, so gates.sh's `LAKE_ARTIFACT_CACHE=true` writes Lake's cache into
+  the toolchain dir on the VM's 96 GB root disk (`~/.elan/toolchains/.../lake/cache`, 53 GB of
+  single-link files from env-mode gate runs since 11-25); it filled the root (100%) and gates1's build
+  failed "no space left on device". Workaround: `LAKE_CACHE_DIR=$HOME/work/lake-cache` (the data disk,
+  vmlake-remote's own cache) plus GOCACHE/TMPDIR under the sync dir (`scripts/eggates.sh`). The toolchain
+  cache was NOT cleaned (shared; reported).
+- **gates2 (full `etc/gates.sh` on the VM, code `08e66dd44a`)**: build ok (29035 jobs), links ok, tcb
+  matches (384 axioms, 0 sorry), collections 65/65, axiom-tok ok, gomodels ok, gen-init/copy-part/
+  gen-raft-tla/kitgen/gen-specs-pkginit/gen-k8s-deep/gen-pbschema ok, reader-slot ok, tier ok, every
+  other section ok except: goose (VM lacks go1.27.3's goroot-net), models and remote (a Go runtime
+  crash in the VM's run), iris-premise, premise-witness and merge-status (need git; the sync dir is not a
+  repository). Those, locally: goose.py --check 73/73 up to date; reader-slot ok; iris-premise ok
+  (16 premises listed); premise-witness ok (47 statements); merge-status selftest ok; models ok and
+  remote ok (the gates' own commands, `scripts/models-remote.sh`; models needed the module cache warmed
+  once with GOPROXY on for jsonmodel_forks.py's testify, then passed with the gates' GOPROXY=off).
+
+## Session 16, stage 2 (2026-11-26) — repoint at the landed Perennial `da0a82c26`, merge lean `93687cba82`
+- Worktree `eg-s2` (new), branch `go-models-rest-egnet-lmerge4/2026-11-26` off stage 1; VM key 127e958d2f5da04a
+  (eg-s2's own); scratch `tmp/gm16/` (merge.log, resolve*.log, hunks.txt, scripts/{resolve.py, manual.py,
+  regen.sh, genlink-all.sh, eggates-s2.sh}, s2-full*.log, s2-gates1.log, s2-goose-check.log, models-remote-s2.log).
+- Ancestry checked: `a706aeb9a` (lean's pin), `a76168a96` and `09bd3826c` are ancestors of `da0a82c26`.
+  lakefile.toml + lake-manifest.json rev = `da0a82c26`; iris/batteries/Qq = Perennial da0's manifest.
+- Merge: 193 conflicts; 102 PkgTable/BootTable (lean's, regenerated); 41 by FA-strip equivalence
+  (`scripts/resolve.py`, whitespace-normalized); 23 by hand (`scripts/manual.py`: lean's text without the FA
+  binders; intros adjusted; Nodes = lean's draws + our isPkgInit net); mvccrand deleted (retired on lean).
+  strip_fa over lean's changed files: 41; prose in 8 net/httpdriver statements updated.
+- Port: specProto + isPkgInit net; hcStream + isPkgInit poll; poll_ed's shape; intros of putgetk/kvremote/
+  BootBad/httpdriver statements (packet-rest.md, last section). Builds: full1 (4 failures), full2/3, then
+  **full4 EXIT 0, 29400 jobs**. Gates: see packet-rest.md Evidence (session 16, stage 2): all ok.
+- STATE: pushed to `go-models-rest-egnet/2026-11-24` (fast-forward); land-queue line in the session report.
+

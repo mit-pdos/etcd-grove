@@ -1,4 +1,13 @@
-# Names only (notes/dsv-quepaxa.md): the generated service's `codes.Unimplemented`.
-translate = ["!*"]
-imports = ["!*"]
+# (dsv-retire-2, 2026-11-25; mit-pdos/etcd-grove#49 step 2) As the main tree's
+# (`Code/google_golang_org/grpc/codes.toml`): types and names, the codes, `strToCode` (a map literal
+# of the codes) and its `init` (`code_string.go`: `internal.CanonicalString = canonicalString`) with
+# its body, hence the import of grpc's `internal` (the part's, `CanonicalString` and the variables with
+# initializers only). Until then names only, its `wp_initialize'` a trust-boundary axiom. The generated
+# service's `codes.Unimplemented` (notes/dsv-quepaxa.md).
+translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimplemented",
+  "DeadlineExceeded", "Canceled", "Internal",
+  "strToCode", "InvalidArgument", "NotFound", "AlreadyExists", "PermissionDenied",
+  "ResourceExhausted", "Aborted", "OutOfRange", "DataLoss", "Unauthenticated",
+  "init.0"]
+imports = ["!*", "google.golang.org/grpc/internal"]
 translate_types = true

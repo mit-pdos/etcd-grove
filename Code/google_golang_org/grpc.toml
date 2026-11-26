@@ -25,6 +25,9 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # dial options' come with `dialOptions`, whose fields need more of grpc's packages)
   "newFuncServerOption", "funcServerOption.apply", "KeepaliveEnforcementPolicy", "MaxRecvMsgSize",
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
+  # (grpc-statshandler, 2026-11-26) `StatsHandler`, with its body: its closure appends a non-nil
+  # handler to `statsHandlers` (a nil one is logged through `logger` and ignored)
+  "StatsHandler",
   # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
   "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
   "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
@@ -47,7 +50,10 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   # (phase7-inits) the hook variables its `init`s set
   "google.golang.org/grpc/internal",
   # (phase7-inits, batch 2) `logger`'s `grpclog.Component`
-  "google.golang.org/grpc/grpclog"]
+  "google.golang.org/grpc/grpclog",
+  # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) the types of `Server`'s fields (`mu`,
+  # `cv`, `serveWG`, `quit`), so that it is a translated struct
+  "sync", "google.golang.org/grpc/internal/grpcsync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -34,7 +34,7 @@ extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 net swap (tag `single-process-final`) and restored under the `_single_process` name over
 `[idIssueExt, fsExt, netExt]` (`lib/etcdstart/NetExts.lean`'s `etcdNetExts`): `net.Listen` is the net
 extension's since the swap; the addresses' listening tokens come from its start resources
-(`leaseexpiryNAddrs_ok`: every port below `32768`), the statement took `[net.FieldAssumptions]` (dropped 2026-11-24) and the
+(`leaseexpiryNAddrs_ok`: every port below `32768`), the statement took `` (dropped 2026-11-24) and the
 network's initial state (`Hg : extsInitGlobal g`).
 -/
 module
@@ -133,7 +133,6 @@ has finished, its result is `#()`; no thread is stuck; no thread has ended in a 
 theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (k : w64)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)

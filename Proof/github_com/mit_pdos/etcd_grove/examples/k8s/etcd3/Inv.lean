@@ -27,7 +27,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Refine
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Callbacks
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.History
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Steps
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MvccCountable
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCountable
 
 @[expose] public section
 

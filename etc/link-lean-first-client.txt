@@ -79,9 +79,9 @@ v3_authClient__AuthEnable: retryAuthClient__AuthEnable ContextError
 # The KV (client/v3/kv.go, client.go's `ContextError`); grpc's `status.FromError` is an axiom
 # (not translated); `rpctypes.Error`, `ErrorDesc`, `EtcdError.Error` are proved (unit P3a).
 v3_NewKV: RetryKVClient
-status_FromError:
-rpctypes_ErrorDesc: status_FromError
 rpctypes_EtcdError__Error:
+status_FromError: rpctypes_EtcdError__Error
+rpctypes_ErrorDesc: status_FromError
 rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 ContextError: rpctypes_Error status_FromError
 Op__IsSortOptionValid:
@@ -111,7 +111,7 @@ txn__Commit: retryKVClient__Txn ContextError
 grpc_Peer:
 peer_Peer__String:
 grpc_ClientConn__Target:
-status_Code:
+status_Code: status_FromError
 zap_Uint:
 zap_String:
 zap_Error:
@@ -120,7 +120,7 @@ zap_Logger__check:
 zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
-errors_IsStatusErr:
+errors_IsStatusErr: =_root_.Perennial.errors.wp_Is
 # (prove-ps2-wrb, 2026-11-22) `waitRetryBackoff` proved over the real code: its timer and `select`
 # (Perennial's `time`), and `contextErrToGRPCErr` over `errors.Is` (Perennial's, and the trust
 # boundary's `errors.IsDeadlineExceeded`) and `status.Error`; (errors-is-deadline, 2026-11-23)
@@ -163,7 +163,11 @@ Client__unaryClientInterceptor: reuseOrNewWithCallOptions withVersion filterCall
 # `Time.IsZero`, `context.WithCancel` over etcd's `valCtx` (`context_WithCancelValCtx`, Perennial's
 # WithCancel takes a cancelCtx-chain parent only), the names-only `streamKeyFromCtx`.
 OpWatch: Op__applyOpts
-status_Error:
+# (prove-statuserror, 2026-11-26) `status.Error` over grpc's bodies: `fmt.Sprintf`, `codes.Code.String`
+# (over `strconv.FormatInt`) and the trust boundary `proto.Equal` of two `*spb.Status`
+codes_Code__String: =_root_.Perennial.strconv.wp_FormatInt
+proto_EqualStatus:
+status_Error: =_root_.Perennial.fmt.wp_Sprintf codes_Code__String proto_EqualStatus
 WatchResponse__Err: rpctypes_Error status_Error rpctypes_EtcdError__Error
 ResponseHeader__GetRevision:
 WatchResponse__IsProgressNotify: ResponseHeader__GetRevision
@@ -257,7 +261,7 @@ WithRequireLeader:
 NewLeaseFromLeaseClient: WithRequireLeader Client__GetLogger
 # Item 5 (client construction, branch `construct`): `clientv3.New` (client.go: `New`, `newClient`,
 # `SetEndpoints`, `credentialsForEndpoint`, `authority`, `dialSetupOpts`, `dial`,
-# `dialWithBalancer` from its trusted body, `autoSync`). Trust boundary: grpc's dial
+# `dialWithBalancer`, `autoSync`). Trust boundary: grpc's dial
 # (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
 # `internal/resolver` (`New`, `SetEndpoints`, `Close`: proved over the translation since prove-grpc3,
 # 2026-11-21) and the names-only `internal/endpoint`

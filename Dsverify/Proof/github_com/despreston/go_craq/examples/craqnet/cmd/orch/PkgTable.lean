@@ -269,7 +269,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.despreston.go_craq.
   have h41 : GetIsPkgInitProp pkg_id.math (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h2, True.intro⟩
   have h42 : GetIsPkgInitProp pkg_id.path (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

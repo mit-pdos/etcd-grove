@@ -22,7 +22,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {St J I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-- See the file header. -/
 abbrev deadline.spec : Prop :=

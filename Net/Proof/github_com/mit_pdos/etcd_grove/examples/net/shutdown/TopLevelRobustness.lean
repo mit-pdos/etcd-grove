@@ -37,7 +37,11 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `shutdown_crash_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/shutdown/TopLevelRobustness.lean`). -/
 theorem shutdown_crash_robust : shutdown_crash_robust.spec := by
-  intro lctx sem package_sem _ σ0 g Hconns bound
+  intro lctx sem package_sem σ0 g bound hf hig
+  -- `Robust`'s premise `extsInitGlobal g` is, for `netExts = [netExt]`, no connection
+  -- (`NetGlobal.init`, `GooseLang/Ext/Net/Impl.lean`)
+  have Hconns : (extGlobal netExt g.globalWorld).conns = ∅ := hig.1
+  revert hf hig
   refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
   have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σ0) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
     ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩

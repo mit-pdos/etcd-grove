@@ -25,14 +25,15 @@ generation's proof guarantees the next one's precondition.
 
 The conclusion, `halfclose_crash_safety`, mentions no ghost state and no bounds: in every execution
 of the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so
-the client's check (a response read until EOF is a prefix of `"hello"`, the request it sent
-before shutting its write side) never fails, however reads are split, however the connections
+the client's check (a response read until EOF is a prefix of the request it sent, 0 to 255 random
+bytes, before shutting its write side) never fails, however reads are split, however the connections
 fail or break (EOF included: a killed server's kernel sends a FIN), whatever error each failure
 carries (D14), whichever dials are abandoned (D16) and however the nodes crash.
 -/
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server.Main
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.RandomLinked
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server.PkgTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client.Main
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.client.PkgTable
@@ -238,7 +239,7 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
           net.Listener.Accept.wp_proof net.Conn.Read.wp_proof net.Conn.Write.wp_proof
           net.Conn.Close.wp_proof γm) $$ [] Hgs
         iframe Hinvs Hplan
-      · iapply wp_boot_client _ (cmd.client.wp_main net.Dial.wp_proof net.Conn.Read.wp_proof
+      · iapply wp_boot_client _ (cmd.client.wp_main wire.wp_RandomInt wire.wp_RandomBytes net.Dial.wp_proof net.Conn.Read.wp_proof
           net.Conn.Write.wp_proof net.TCPConn.CloseWrite.wp_proof net.Conn.Close.wp_proof
           γm) $$ [] Hgs
         iframe Hinvs Hplan

@@ -19,3 +19,12 @@ axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom strings.ToLower.wp_proof
 axiom zap.Stack.wp_proof
+opaque etcdVerifyEnv
+opaque metadata.builtRawMDRaw
+opaque metadata.transportMDRaw
+opaque mvcc.kvEncode
+opaque mvcc.viewFk
+opaque peer.transportPeer
+opaque prometheus.vecLabels
+opaque reflectM.reflElem
+opaque trace.otelSpan

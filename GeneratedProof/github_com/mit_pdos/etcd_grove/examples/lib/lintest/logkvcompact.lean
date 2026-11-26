@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.github_com.anishathalye.porcupine
+public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time

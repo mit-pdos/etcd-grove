@@ -7,9 +7,10 @@ auth package's fact: read-only, positive), then a loop whose `select` either rec
 `time.Time`: Perennial's ticker channel is a bag of arbitrary times) and, under the provider's
 mutex, deletes every expired token from the provider's map (the delete callback, `delfOk`) and
 from the keeper's own, or receives on `stopc` and returns; its deferred function stops the ticker
-and closes `donec`. Whether a token has expired is `Time.After`'s answer, some boolean (Perennial
-has no order model on times): any tick may delete any token, which the token binding tolerates (a
-token deleted is one `info` no longer answers). After each `Lock` the keeper finds its own map in
+and closes `donec`. Whether a token has expired is `Time.After`'s answer (Go's value,
+`time.Time.after`, in Perennial's spec), which the proof uses only as some boolean (the ticks are
+arbitrary times): any tick may delete any token, which the token binding tolerates (a token deleted
+is one `info` no longer answers). After each `Lock` the keeper finds its own map in
 the lock invariant through its element of the keepers' ghost set (`simpleLk`, S5d).
 
 `keeper_run` discharges S5d's hypothesis `RunSpec`; `tokenSimple_okA_run` is S5d's
@@ -67,7 +68,7 @@ theorem time_wp_ptr_After (l : Loc) (t u : time.Time) :
     {{ (b : Bool), RET #b; l ↦ t }} := by
   wp_start as Hl
   wp_auto
-  wp_apply time.Time.wp_After as %b -
+  wp_apply time.Time.wp_After
   iapply HΦ $$ Hl
 
 /-- **The keeper's goroutine `run`** (see the file header): S5d's `RunSpec`. -/

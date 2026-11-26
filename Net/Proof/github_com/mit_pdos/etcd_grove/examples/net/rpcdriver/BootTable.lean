@@ -3,7 +3,7 @@
 # `net/rpcdriver`: the package facts of its machines' first initialization
 
 The tables of a machine's boot (as the dsverify kits', `etc/dsv/kitgen.py`'s `BootTable.lean`; written by
-`etc/gen-rpcdriver-boottable.py` from the server command's `PkgTable.lean`, both commands having the same closure): generic in
+`etc/gen-driver-boottable.py` from the server command's `PkgTable.lean`, both commands having the same closure): generic in
 a program's table `G` that gives every package of `rpcdriver`'s import closure its `isPkgInit`
 (`KitG G`), the facts at `G` (`wf_*`) and, for the packages whose closure avoids the owned packages
 (`ownedPkgs`: `rpcdriver`, net/rpc, net/http, whose first initializations return the machine's owned
@@ -292,7 +292,7 @@ theorem wf_mime_multipart {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math G :=
-  And.intro h.e_math True.intro
+  And.intro h.e_math ⟨wf_internal_gomodel h, True.intro⟩
 
 theorem wf_path {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.path G :=
@@ -552,7 +552,7 @@ theorem wfO_mime_multipart {G : GoString → IProp GF} (h : KitG G) (S : List Go
 theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_math) True.intro
+    h.e_math) ⟨wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_path {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.path (gOff S G) :=

@@ -406,7 +406,7 @@ instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
 `ics`, the registrations `regs` and the table's models `tys` (`grpcServerAt`, made by `grpc.start'`),
 each registered with its handler and service, at its models, and meeting its run contract
 (`grpcRunOkMd`), are registered at `addr` (`isGrpcRpcMd`): the table's entry is met by the method's
-spec (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`). What runs the handlers is `Server.Serve` (its
+spec (`isGrpcRpcMd_of_addr`, `isGrpcRpcMd_mono_wand`). What runs the handlers is `Server.Serve` (its
 trust-boundary axiom). -/
 theorem grpc.serve (addr : GoString) (ics : List GoFunc)
     (regs : List (GoString × GoFunc × GoInterface))
@@ -429,18 +429,13 @@ theorem grpc.serve (addr : GoString) (ics : List GoFunc)
       have hm : m ∈ ms := List.mem_of_getElem? hk
       have he := grpcStartSvc_go ics regs tys sms m.name _
         (grpcGoSvc_some ics regs tys m.name m.handler m.srv m.Req m.Rep (hreg m hm) (hty m hm))
-      have Hg' : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr
-          (grpcStartSvc ics regs tys sms) ⊢
-          grpcSvcAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr m.name m.Req.toProtoMsg.wire
-            m.Rep.toProtoMsg.wire (grpcGoEntry ics regs m.name m.Req m.Rep).spec :=
-        grpcSvcAt_of_addr (Gg := hG.goose_globalGS) addr m.name (grpcStartSvc ics regs tys sms)
-          (grpcGoEntry ics regs m.name m.Req m.Rep) he
+      have he' : grpcStartSvc ics regs tys sms m.name = some (.unary ⟨m.Req.toProtoMsg.wire,
+          m.Rep.toProtoMsg.wire, (grpcGoEntry ics regs m.name m.Req m.Rep).spec⟩) := he
       iintro #Ha #Hr
-      ihave #Hg := Hg' $$ Ha
-      unfold isGrpcRpcMd
-      iexists hX, π, σ
-      iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) addr m.name m.Req.toProtoMsg.wire
-        m.Rep.toProtoMsg.wire (grpcGoEntry ics regs m.name m.Req m.Rep).spec m.spec) $$ [] Hg
+      ihave Hg0 := isGrpcRpcMd_of_addr (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
+          (grpcStartSvc ics regs tys sms) (grpcGoEntry ics regs m.name m.Req m.Rep).spec he' $$ Ha
+      iapply (isGrpcRpcMd_mono_wand (Req := m.Req.toProtoMsg) (Rep := m.Rep.toProtoMsg) addr m.name
+        (grpcGoEntry ics regs m.name m.Req m.Rep).spec m.spec) $$ [] Hg0
       imodintro
       iintro %md %x %Φ %Ψe HS
       imodintro
@@ -476,11 +471,8 @@ theorem grpc.startCore (gs : Loc) (lis : GoInterface) (addr : GoString) (ics sic
   icases Hleft with ⟨%hX, Hp, #Hv, #Hti⟩
   imod netProto_alloc (Gg := hG.goose_globalGS) ⊤ with ⟨%π, #Hreg⟩
   imod depSlots_alloc (Gg := hG.goose_globalGS) ⊤ with ⟨%σ, #Hsl⟩
-  imod addr_set_proto_tok (Gg := hG.goose_globalGS) ⊤ addr (grpcCliPI (grpcStartSvc ics regs tys sms))
-    (grpcSrvPI (grpcStartSvc ics regs tys sms)) $$ Hreg Hp Hv Hti with #Hpr
-  ihave #Ha : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) addr
-      (grpcStartSvc ics regs tys sms) $$ []
-  · unfold grpcAddrAt; iframe Hpr Hsl
+  imod grpc_addr_set_tok (Gg := hG.goose_globalGS) (π := π) (σ := σ) ⊤ addr
+    (grpcStartSvc ics regs tys sms) $$ Hreg Hsl Hp Hv Hti with #Ha
   ihave #Hsv := (grpcServes_start ics sics regs sregs tys htys sms hsms hnd) $$ Hms
   imodintro
   isplitr [Hn]

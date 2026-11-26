@@ -56,7 +56,10 @@ theorem store.listReadError.wp_proof
   · iPkgInit
   wp_auto
   wp_apply (wp_Is err (GoInterface.ok eFR) (some (d, _)) (Or.inl ⟨x, hx⟩)) $$ [$Hse] as %b %hb
-  · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd HdFR
+  · -- (#45) and the target's description
+    isplitr
+    · iapply go_etcd_io.etcd.cache.v3.isDescs_some $$ Hd HdFR
+    · iexists _; iexact HdFR
   cases b
   · -- not a future revision: `interpretListError`
     wp_auto

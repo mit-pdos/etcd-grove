@@ -24,10 +24,12 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.google_golang_org.grpc.credentials.Init
 public import Proof.google_golang_org.grpc.grpclog.Init
 public import Proof.google_golang_org.grpc.internal.Init
+public import Proof.google_golang_org.grpc.internal.grpcsync.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init

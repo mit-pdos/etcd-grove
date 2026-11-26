@@ -169,8 +169,7 @@ def section_pools():
     print("## pools: thread-pool sites in Proof/ (etcd server, lease, mvcc, etcdstart, grpc)\n")
     dirs = ["Proof/go_etcd_io/etcd/server", "Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart",
             "Proof/go_etcd_io/etcd/client/v3", "Proof/google_golang_org/grpc",
-            "Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull",
-            "Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand"]
+            "Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull"]
     for d in dirs:
         for p in sorted(glob.glob(d + "/**/*.lean", recursive=True)):
             for i, line in enumerate(read(p).splitlines(), 1):

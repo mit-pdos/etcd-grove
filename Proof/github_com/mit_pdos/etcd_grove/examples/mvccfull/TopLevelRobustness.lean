@@ -41,8 +41,8 @@ theorem mvccfull_robust : mvccfull_robust.spec := by
   exact
     Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
       (mvccfull_adequate_below
-        r HEnv σ g hf.1 hf.2.1 Hfs j0 Hr hf.2.2 (2 ^ 28) (Nat.le_refl _) n κs t2 σ2
-        Hsteps (by omega)).2
+        r HEnv σ g hf.1 hf.2.1 Hfs j0 Hr hf.2.2 mvccfullThreads (Nat.le_refl _) n κs t2 σ2
+        Hsteps (by unfold mvccfullSteps at hn; omega)).2
 
 end adequacy
 end EtcdGrove

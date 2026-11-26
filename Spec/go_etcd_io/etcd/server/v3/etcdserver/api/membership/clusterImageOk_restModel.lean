@@ -35,13 +35,16 @@ raft names `γ` from the fresh cluster's start (`γ.pre = []`, the start's consi
 (`clusterMem`, which only the server's apply thread holds, at its applied log: `bootOk`'s
 `memBoot`, then the cluster's contracts as the model says), and a committed log `L'` (`srvRLogLb`)
 extending `L`, at least as long as the boot log, whose conf changes are all ones the server's
-`applyConfChange` takes (`ccLogOk` at raft's configuration, the KV invariant's workload fact): the
+`applyConfChange` takes (`ccLogOk` at raft's configuration, the KV invariant's workload fact:
+promotions admitted past the boot log; route B), those within the boot log's length the boot
+policy's (`srvClusterOk`'s boot fact): the
 model's buckets and members at `L'` satisfy `memBucketsOk c` (`clusterMem` given back). The
 members premise is at any map `mem` with the model's ids at `L` (2026-11-06), not only the model's.
 
 Why it is true of the Go code (etcd: `schema/membership.go`, `api/membership/cluster.go`,
 `version/downgrade.go`) and the deployment (a fresh static cluster, every member running the same
-binary, `bootOk`). Pin: etcd `673da07c8`; every line number below is at it (rechecked 2026-11-07:
+binary, `bootOk`). Pin: etcd `673da07c8`; every line number below is at it (but the route-B
+bullet's, at `6b942d23f`) (rechecked 2026-11-07:
 `cluster.go:256-260` and `:265-302`, `schema/membership.go:83-120`, `server.go:1160-1171`,
 `bootstrap.go:522`, `downgrade.go:42-55`). The first, second and fourth bullets were first checked at
 `bc9c3868c` (2026-10-26); between the two, `schema/membership.go` and `version/downgrade.go` are
@@ -99,15 +102,43 @@ unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bul
   writes `cluster` only through `restSetVersion`), so the model at `L'`, extending `L`, holds a
   version.
 
+* *Promotions in the committed log write nothing* (route B, 2026-11-25, `notes/etcd-dist-plan.md`
+  §17.3; etcd at the pin `6b942d23f`). Past the boot log, a conf change may be a promotion
+  (`ccWideOk`'s second disjunct: an `AddNode` of a configuration member whose context has
+  `IsPromote`, what `EtcdServer.PromoteMember` proposes, also on a forged peer request). Every
+  saved member is a voter: the boot members are (`ccBootOk`'s `isLearner = false`, the boot log
+  having no promotion: the second premise), and no other change saves a member (the non-promotion
+  `AddNode`s are refused, `ErrIDExists`; `ClusterMemberAttrSet` keeps the learner flag). So with
+  `shouldApplyV3` the promotion's validation fails, `ErrMemberNotLearner`
+  (`api/membership/cluster.go:324-330`), and `applyConfChange` returns before
+  `PromoteMember` (`etcdserver/server.go:2038-2050`): no bucket written, and `ccRest`'s
+  validated branch (which would save the context's member, unlike `PromoteMember(id, true)`) is
+  never taken. Without it (an entry at or below the start's consistent index; none here, `c0 = 0`)
+  the validation passes without reading (`cluster.go:307-309`) and `PromoteMember(id, false)` writes
+  no bucket: it logs, and for the local member resets the learner gauge (`cluster.go:498-531`). Go evidence `examples/axiomcx/promotenobucket` (3/3 runs): (a) a
+  real server's promotion of itself, a voter: `ErrMemberNotLearner`, `PromoteMember(id, true)` never
+  run, the `members`, `members_removed` and `cluster` buckets byte for byte as before; (b) the same
+  entry replayed by a restart (`shouldApplyV3` false): `PromoteMember(_, false)` once, the buckets as
+  before; (c) the image `Recover` would load (the members read with learner flags and peer URLs, the
+  removed ids, the cluster version, the downgrade record) unchanged after (a) and (b); (d) a
+  promotion of an id not saved yet: `ErrIDNotFound`, nothing written, replayed nothing written. A
+  promotion **within** the boot log is excluded (the second premise) because it is not harmless:
+  rejected with `ErrIDNotFound` at the first boot, its member is never saved, while raft's bootstrap
+  put it in the configuration.
+
 Not true for a cluster that changes membership (a `RemoveNode`, an added member), for a log
 shorter than the boot log (its image misses boot members `mem` already has), or across binaries
 of different versions; the premises exclude the first two, the deployment the third. -/
 abbrev membership.clusterImageOk_restModel.spec : Prop :=
   ∀ (c : Loc) (γ : ServerRaftNames) (c0 : w64) (L L' : List EntryModel),
     γ.pre = [] → c0 = W64 0 → L <+: L' → γ.raft.boot.length ≤ L'.length →
-    -- (merge of D43 M5, 2026-10-27) `ccLogOk`'s static form, which `ccLogOk` was before M5d made it
-    -- mode-aware (the same statement as before the merge)
-    (∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →
+    -- (route B, 2026-11-25; until then `∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data`,
+    -- which implies both premises below) the committed log's conf changes the committed log's
+    -- policy (`ccWideOk`: promotions admitted), ...
+    (∀ m ∈ L', m.typ ≠ W32 0 → ccWideOk γ.raft.cfg m.data) →
+    -- ... and those within the boot log's length the boot policy's (`ccBootOk`: no promotion)
+    (∀ (j : Nat) (m : EntryModel), L'[j]? = some m → j < γ.raft.boot.length → m.typ ≠ W32 0 →
+      ccBootOk γ.raft.cfg m.data) →
     -- (sweep repairs 1, S4) the normal entries' cluster requests: the KV invariant's per-entry fact
     clusterVerLogOk L' →
     -- (2026-11-06, the ids form) any in-memory members with the model's ids

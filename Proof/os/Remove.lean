@@ -1,5 +1,5 @@
 /-
-The proof of `Spec/os/Remove.lean`: `Proof/os/RemoveN.lean`'s `os.Remove.wp_fileSncNFmt` (Go's
+The proof of `Spec/os/Remove.lean`: `Proof/os/RemoveParts.lean`'s `os.Remove.wp_fileSncNFmt` (Go's
 `os.Remove`: the `unlink` loop, then for an error the `rmdir` loop) with the claim on `.only [b]`, its
 error `fmtErrorOkOrNil` from `syscall`'s package fact (`isPkgInit os` gives it).
 -/
@@ -7,7 +7,7 @@ module
 
 public import Spec.os.Remove
 public import Proof.os.PkgInit
-public import Proof.os.RemoveN
+public import Proof.os.RemoveParts
 
 @[expose] public section
 

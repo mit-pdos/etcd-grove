@@ -212,13 +212,14 @@ theorem kvR_encOut_inj (γ : Names) (o o' : KOut)
     | got w => cases v <;> cases w <;> simp_all [outVal, encOutB]
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `kvR γ`. -/
-theorem kvS_pendDec (γ : Names) : PendDec (kvR (Gg := hG.goose_globalGS) γ) (kvS (GF := GF)) where
+theorem kvS_pendDec (γ : Names) : PendDec (kvR (Gg := hG.goose_globalGS) γ) (kvS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := linkv.pM_step kvB kvDec s _ i _ (kvDec_box i (.ok o))
   err s i := linkv.pM_step kvB kvDec s _ i _ (kvDec_box i .err)
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, .ok o, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, .err, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem pendCtx_kvS (γ : Names) (γp : PendNames) :
     pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp =

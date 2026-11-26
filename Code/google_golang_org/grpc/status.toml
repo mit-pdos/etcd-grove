@@ -1,7 +1,11 @@
-# Names only: `status.Error` is called by `clientv3.WatchResponse.Err`; its body is not
-# translated (see `Spec/google_golang_org/grpc/status/Error.lean`). The alias `Status` (of
-# `internal/status.Status`, names only) is translated for `client/v3/leasing`, which calls
-# `FromError` and the result's `Code()`: an untranslated alias is emitted as an axiomatized type
-# without the `.ty` its users name.
-translate = ["!*", "Status"]
-imports = ["!*", "google.golang.org/grpc/internal/status"]
+# (status-bodies, 2026-11-25) With bodies: `New`, `Error`, `Errorf`, `FromError`, `Convert` and
+# `Code` (`clientv3.WatchResponse.Err`, `client/v3/leasing`, the client's `ContextError`, the
+# server's `togRPCError`, ...), over `internal/status`'s; the alias `Status`. Until then names only,
+# their specs axioms (`Spec/google_golang_org/grpc/status/`).
+translate = ["!*", "Status", "New", "Error", "Errorf", "FromError", "Convert", "Code"]
+imports = ["!*", "errors", "fmt", "google.golang.org/grpc/codes",
+  "google.golang.org/grpc/internal/status"]
+
+# translate the definitions of all type declarations goose supports (`FromError`'s local interface
+# type `grpcstatus`)
+translate_types = true

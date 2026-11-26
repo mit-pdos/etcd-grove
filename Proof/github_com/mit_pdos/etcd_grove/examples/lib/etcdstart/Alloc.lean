@@ -86,7 +86,7 @@ theorem alloc1 (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hklg', hwn', hfs', hinc',
-    hgen'⟩ := Hρ
+    hgen', -⟩ := Hρ
   -- (R2c) the member's first key, its store's index registered, at its names
   ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', hfs]; iexact Hkf
