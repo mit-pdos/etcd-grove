@@ -2751,6 +2751,60 @@ backend), and the apply path's specs take the backend through `mvccBackend E.γ 
 names. B4's `specGK`/`specCK` then need the server's backend opened with the server's payload (`bkPayload ∗
 ciFloorAuth`), not a different bundle; the cost is where the server's `γ` is built (`OpenBackend.spec`'s post).
 
+**Handoff T10s2-1** (session 1 stopped at the context rule; head = this commit, pushed). Plan: the draft
+`/shared/tmp/coord-03/t10-step2-cpost-draft.md` §4 with the lead's conditions (#50, 15:27Z); ledger entry
+"Applied, (2): `cPost` restated" (under 2026-11-26 "the skip paths' model fact").
+
+*Done (stages 1-2), built on fk-lean1 (the seven modules, `lake build` targets, green):*
+* ledger entry (conditions (a)-(c) recorded; `bootClusterRows.spec` "strengthens an unproved law", Go evidence);
+* `apply/Contracts.lean`: `cPost b Pre Post φ`, `cPost_of_pre … φ h`, `cPost_mono`; `isCluster`/`isClusterRest`
+  rows `cPost b Pre Post (restSetVersion b s r = r)`, `(restUpdateAttrs b ⟨id, attr.Name', cus⟩ r = r)`, `True`;
+* `apply/Chain.lean`: `mPostV … Pre Post φ`; `kvPost`/`kvPostF … Pre Post (N := fun _ => True)` with `Pre` disjunct
+  `Pre ∗ ⌜oc.logAfter log = log ∧ N oc⌝` (default stated in the docstring, condition (b)); `kvPostF_backend`
+  (takes `N`); `cmpTriple`'s `Pre ∗ ⌜(if chainCompacts c then cmpRevAfter crev rev else crev) = crev⌝`;
+  `applierSpec`'s cluster row `mPostV … (cr.eff v3 rs = rs)`;
+* `apply/InvUber.lean`: `dispatchNoEff` (before `cmpAdmit`); `apply/GrantRest.lean`: `applyNoEff`,
+  `applyNoEff_skipped`, `_rejected`, `_of_dispatch`;
+* `apply/WriteLemmas.lean`: `mPostV_of … φ`; `apply/ApplyLemmas.lean`: `cPost_if … φ`;
+* `auth/Steps.lean`: `adminOut_keep` (`err ≠ nil ∨ ∀ st o, R st o → o = .same` ⊢ `authOwn M hs` from `adminOut`),
+  in place of the draft's `adminOut_errKeep` (it also covers `AuthEnable`/`AuthDisable`).
+
+*Facts found* (in the ledger entry): `AuthEnable` has a pre-lock return with `err = nil` (`store.go:273-276`), so
+its fact is `en = true`, not the draft's `err ≠ nil`; `AuthDisable` has one too (`store.go:308-310`), fact `en =
+false` (condition (c): not `⌜False⌝`). For both, `(Post ∨ Pre)` must move inside `∃ en` (the `specT`'s
+`∃ en, ⌜en = b0⌝ ∗ …`). `Authenticate` takes no batch lock at all and its post keeps `authOwn M hs` in both
+disjuncts: leave its `(Post ∨ Pre)` unchanged (no fact needed). `UserChangePassword`, `UserGrantRole`,
+`RoleRevokePermission` have no pre-lock return: `err ≠ nil` holds vacuously (their proofs never return `Pre`
+with the lock taken: check, else the fact is the `.err` outcome's).
+
+*Left, by stage (the tree above the defs does not build until stage 5 is done):*
+3. **auth store**: `Spec/.../auth/authStore__{AuthEnable,AuthDisable,RoleAdd,RoleDelete,RoleGrantPermission,
+   RoleRevokePermission,UserAdd (spec, specSure),UserChangePassword,UserDelete,UserGrantRole,UserRevokeRole}.lean`
+   (`Post ∨ (Pre ∗ ⌜err ≠ GoInterface.nil⌝)`, enable/disable as above); `auth/LatestTie.lean`'s `specT` (303-441)
+   and `specTB` (446-490) rows and the `spec_of_T`/`specT_of_TB` lemmas (522-730); the method proofs (the
+   pre-lock sites end in `iapply csContract_noWrite $$ Hcs`: frame the pure fact there, e.g. `RoleAdd.lean:64`);
+   `authStore__UserAdd_tieSure`, `InvAuth` (1 site); then `apply/AuthSteps.lean`/`AuthStepsX.lean` (`isAuthSteps`
+   rows, 11 + 6, restated in place, condition "no parallel rows"), `AuthDerive`, `AuthApplyLatest`,
+   `AuthApplyLatestRevoke`, `AuthLemmas`, `newAuthApplierV3`.
+4. **applier methods and dispatch**: the backend proofs `applierV3backend__{Put,Txn,DeleteRange}` (`Pre` with the
+   outcome's `logAfter = log`: `txn.Put`'s lease-not-found, `txn.Txn`'s read-only/`checkTxn` disjuncts),
+   `__LeaseRevoke` (+ the three `LeaseRevoke` specs with explicit `N := fun o => revokeIds rq true o T = T ∧ ∀ t,
+   revokeRest T rq true o (grantRest t rq true o rs) = rs`, from the lessor's `id ∉ L`), `__Compaction` (+ its
+   spec; the `ErrCompacted` return, `rev ≤ crev`), `__Cluster{VersionSet,MemberAttrSet}`, `__DowngradeInfoSet`
+   (`mPostV_of` with the row's fact), the `__Auth*`/`__Role*`/`__User*` applier methods (use `adminOut_keep`); the
+   wrappers (`applierV3Corrupt__*`, `applierV3Capped__*`, `quotaApplierV3__*`, `authApplierV3__*`,
+   `newApplierV3{Backend,Capped,Corrupt}`, `newQuotaApplierV3`: pass-through); `CompactArm`, `Results` (alarm chain);
+   then `DispatchKVL`, `DispatchAdmin`, `uberApplier__dispatch` (+ its spec: `apply.cPost v3 Pre Post
+   (apply.dispatchNoEff c rq v3 log crev T rs o)`).
+5. **Apply levels and server**: `uberApplier__Apply` (+ spec: `apply.cPost v3 Pre Post (apply.applyNoEff rq v3 x
+   x' T rs out)`), `ApplyRec`, `ApplyKVL`, `ApplyAdmin`, `ApplyAdminL` (mode `on`: `∧ st' = st`, `cPost` inside
+   `∃ hs' st'`), `ApplyFnKVL`, `ApplyFnAdmin`, `ApplyFnAdminL`, `M2ApplyDraft` (if built); then
+   `etcdserver/AdminEntryOn.lean`, `ModeSpecs.lean`, `EtcdServer__applyEntryNormal.lean` (the `(if v3 then
+   iprop(Post ∨ Pre) else Pre)` wrappers become `cPost v3 Pre Post (…)`; destructure only). `ImgRow.lean`'s
+   `srvImgModelOn` is step 3's.
+   Then: full build, `etc/gates.sh` in full (base failures: `mode`, `featuregate`, `model-param`, `errdesc-check`),
+   `etc/tcb-report.py --check` unchanged.
+
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 
 **The ledger entry "the skip paths' model fact" is decided** (coordinator: take the proposed change; recorded under its
