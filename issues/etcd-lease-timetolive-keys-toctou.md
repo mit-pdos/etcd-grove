@@ -84,5 +84,7 @@ semantics (the whole request fails if any key is unreadable).
 
 Not a security report (checked against etcd's `THREAT_MODEL.md`, 2026-11-02): RBAC is "an optional, secondary control" there, off by default, and "name-enumeration leaks behind the transport boundary are hardening concerns, not vulnerabilities"; it leaks key names (not values) to an authenticated user, only with auth enabled. File it as a normal issue.
 
+A third window, with no apply lag: a follower applying a snapshot (its lessor's leases reloaded with no keys, `applySnapshot` between `lessor.Recover` and `kv.Restore`) passes the check over the empty set and forwards; the leader returns the keys. Reproduced with a test-only failpoint: `notes/etcd-dist-f7-bprime.md` (branch `etcd-safe-f7-bprime`). The fix above covers it.
+
 The same shape for `LeaseRenew`'s write check is
 `nonissues/etcd-lease-renew-keys-follower-lag.md`.
