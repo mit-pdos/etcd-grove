@@ -1,10 +1,9 @@
 /-
 **`Open` chooses the file's mode** (W1 of `plans/bbolt-crash-plan.md` §7; Lean-first, no Rocq
 counterpart): right before `loadFreelist` (the file opened, initialized or read, synced unless
-`NoSync`, mapped; nothing carved yet), crash mode when `NoSync` and `NoGrowSync` are off, the file
-system does not fail, and the file's meta pages' tails are zero (`metaTailsZero`: the crash
-invariant's reference image needs them, `RefImg`; an interim condition, until the opened file is
-known to have them). Then the sync left every byte durable, so the cut is cleared
+`NoSync`, mapped; nothing carved yet), crash mode when `NoSync` and `NoGrowSync` are off and the file
+system does not fail (the crash invariant's reference image, `RefImg`, needs the file's meta tails
+zero: `openOK`'s `metaOk` gives them, W7). Then the sync left every byte durable, so the cut is cleared
 (`wp_osClearCut`) and the file goes into its crash invariant (`bfile_alloc`), idle at the committed
 state `C` with the file's own bytes as the reference image (`open_bDur`). Otherwise the file stays
 outside one. Either way the file's resources come back for the record `{ p with cs := cs }`, with
@@ -34,10 +33,10 @@ section pure
 variable [GooseExts]
 
 /-- **The opened file, synced, is durable for its committed state**: its own bytes are a reference
-image of `C` (with zero meta tails), every byte synced. -/
+image of `C`, every byte synced. -/
 theorem open_bDur (C : CommitSt) (D : Data) (m0 m : OsMeta) (xs : List ByteG)
     (hok : openOK C D m0 xs) (hsz : m.size = m0.size)
-    (htz : metaTailsZero (xs.map Prod.fst)) (hl : xs.length = m.size) (h8 : 8192 ≤ m.size)
+    (hl : xs.length = m.size) (h8 : 8192 ≤ m.size)
     (hdur : ∀ y ∈ xs, y = durB y.1) (hlo : m.lo = m.size) (hhi : m.hi = m.size)
     (hxs : m.xs = some [m.size]) (hal : m.size % 4096 = 0) :
     BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨m, xs, 0, 0, .idle⟩ := by
@@ -93,16 +92,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **`Open`'s choice of the file's mode** (see the file header), before a step `e`: crash mode
-when `NoSync` (`nos`) and `NoGrowSync` (`ngs`) are off, the file system does not fail and the file's
-meta tails are zero; there the sync's facts (`hcr`) hold. -/
+when `NoSync` (`nos`) and `NoGrowSync` (`ngs`) are off and the file system does not fail; there the
+sync's facts (`hcr`) hold. -/
 theorem wp_open_mode (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp GF)
     (he : toVal e = none) (gbq : GName) (N : Namespace) (db : Loc) (p : BFile) (fd : w64)
     (C : CommitSt) (m : OsMeta) (xs : List ByteG) (nos ngs : Bool) (hxl : xs.length = m.size)
-    (hcr : FsNoErr → metaTailsZero (xs.map Prod.fst) → nos = false → ngs = false →
+    (hcr : FsNoErr → nos = false → ngs = false →
       m.dhi ≤ m.dlo ∧ (∀ y ∈ xs, y = durB y.1) ∧ XsOne m ∧
-      BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨{ m with cut := none }, xs, 0, 0, .idle⟩)
-    (hfo : ∃ D, fileOK (xs.map Prod.fst) (xs.map Prod.fst).length D ∧
-      (xs.map Prod.fst).length < 2 ^ 62 ∧ (xs.map Prod.fst).length % 4096 = 0) :
+      BDur ⟨C, C, xs.map Prod.fst, xs.map Prod.fst, .idle⟩ ⟨{ m with cut := none }, xs, 0, 0, .idle⟩) :
     db.[DB, go!"NoSync"] ↦□ nos ∗ db.[DB, go!"NoGrowSync"] ↦□ ngs ∗ dbPathLk (GF := GF) db p fd ∗
       osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗ ⧖ C.txid ∗
       (∀ (cs : Option CsN) (gcn : GName) (m' : OsMeta), ⌜m'.size = m.size ∧ m'.maps = m.maps⌝ -∗
@@ -114,10 +111,10 @@ theorem wp_open_mode (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp
   iintro ⟨#Hns, #Hngs, Hpath, Hm, Hb, #Hrc, Hk⟩
   iunfold dbPathLk at Hpath
   icases Hpath with ⟨Hp, Htok, -⟩
-  by_cases hc : FsNoErr ∧ metaTailsZero (xs.map Prod.fst) ∧ nos = false ∧ ngs = false
+  by_cases hc : FsNoErr ∧ nos = false ∧ ngs = false
   · -- crash mode
-    obtain ⟨hfs, htz, hnos, hngs⟩ := hc
-    obtain ⟨hdd, hdur, hone, hD⟩ := hcr hfs htz hnos hngs
+    obtain ⟨hfs, hnos, hngs⟩ := hc
+    obtain ⟨hdd, hdur, hone, hD⟩ := hcr hfs hnos hngs
     subst hnos hngs
     iapply wp_osClearCut e Φ he p.ino m xs hxl hdur hdd
     iframe Hm Hb
@@ -143,14 +140,13 @@ theorem wp_open_mode (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp
     · ipureintro; exact ⟨rfl, rfl⟩
     · unfold bMode; dsimp only
       iframe Hreg
-      iexists nos, ngs, xs.map Prod.fst
+      iexists nos, ngs
       iframe #
       ipureintro
-      refine ⟨?_, hfo⟩
-      intro hfs htz
+      intro hfs
       rcases nos with _ | _
       · rcases ngs with _ | _
-        · exact absurd ⟨hfs, htz, rfl, rfl⟩ hc
+        · exact absurd ⟨hfs, rfl, rfl⟩ hc
         · exact Or.inr rfl
       · exact Or.inl rfl
     · unfold cpart; dsimp only [Option.map]; iempintro

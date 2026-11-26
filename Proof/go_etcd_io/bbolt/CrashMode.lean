@@ -4,7 +4,7 @@ Rocq counterpart): what C-I1's `dbCrashKeep_new` will open. A database `γ` whos
 `NoSync = NoGrowSync = false` (`boltSyncs γ`, C-I1's `dbOpts`), in a run where the file system does
 not fail (`FsNoErr`), has its file in the crash invariant `crashN γ.ns` closed by `boltState`'s
 token (`isBoltCoreP`'s `bMode`, `Open/Mode.lean`). The crash invariant's reference image needs the
-opened file's meta tails zero: every file `Open` accepts has them (`fileOK_tails`, W7).
+opened file's meta tails zero: every file `Open` accepts has them (its `metaOk`, W7).
 -/
 module
 
@@ -54,12 +54,11 @@ theorem crashMode_of (db : Loc) (γ : BoltName) :
   cases hc : p.cs with
   | none =>
     dsimp only
-    icases Hm with ⟨⟨%ns, %ngs, %X0, Hns', Hngs', %hm⟩, -⟩
+    icases Hm with ⟨⟨%ns, %ngs, Hns', Hngs', %hm⟩, -⟩
     ihave %e1 := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hns'
     ihave %e2 := typedPointsto_agree_wand _ _ _ _ _ $$ Hngs Hngs'
     subst e1 e2
-    obtain ⟨D, hD, -, -⟩ := hm.2
-    rcases hm.1 hfs (fileOK_tails X0 D hD) with h | h <;> cases h
+    rcases hm hfs with h | h <;> cases h
   | some c =>
     dsimp only
     icases Hm with ⟨%hcn, -, -⟩
@@ -86,12 +85,11 @@ theorem crashMode_on (B : BNs) (N : Namespace) (db db' : Loc) (p : BFile)
   cases hc : p.cs with
   | none =>
     dsimp only
-    icases Hm with ⟨⟨%ns, %ngs, %X0, Hns', Hngs', %hm⟩, -⟩
+    icases Hm with ⟨⟨%ns, %ngs, Hns', Hngs', %hm⟩, -⟩
     ihave %e1 := typedPointsto_agree_wand _ _ _ _ _ $$ Hns Hns'
     ihave %e2 := typedPointsto_agree_wand _ _ _ _ _ $$ Hngs Hngs'
     subst e1 e2
-    obtain ⟨D, hD, -, -⟩ := hm.2
-    rcases hm.1 hfs (fileOK_tails X0 D hD) with h | h <;> cases h
+    rcases hm hfs with h | h <;> cases h
   | some c =>
     dsimp only
     icases Hm with ⟨%hcn, -, -⟩

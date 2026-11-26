@@ -103,10 +103,8 @@ def dbFixed (γ : GName) (N : Namespace) (db sp : Loc) : IProp GF :=
     (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ ⌜logPtrTyped lg⌝))
 
 /-- **The file's mode** (W1 of `plans/bbolt-crash-plan.md` §7; persistent): outside a crash
-invariant (`p.cs = none`), the sync options' values, of which, if the file system does not fail and
-the opened file's meta tails were zero (`metaTailsZero X0`, `Open`'s interim condition until the
-tails are known zero: the crash invariant's reference image needs them), one is on, the opened file's
-bytes `X0` being a database image (`fileOK`: what `TailsZeroOnOpen` speaks of); inside one
+invariant (`p.cs = none`), the sync options' values, of which, if the file system does not fail,
+one is on; inside one
 (`p.cs = some c`), its names are bbolt's (closing token `gbq`, namespace `N .@ "crash"`), the file
 system does not fail, the crash invariant (`bCsInv`) and the sync options off (`bSyncs`). So crash
 mode is on iff `NoSync` and `NoGrowSync` are off and the file system does not fail (`Open` chooses it
@@ -114,10 +112,8 @@ then). Either way the registry `gcn` (`B.cn`, `cnReg`) holds the crash invariant
 (W3), `none` outside crash mode. -/
 def bMode (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) : IProp GF :=
   match p.cs with
-  | none => iprop((∃ (ns ngs : Bool) (X0 : List w8), db.[DB, go!"NoSync"] ↦□ ns ∗
-      db.[DB, go!"NoGrowSync"] ↦□ ngs ∗
-      ⌜(FsNoErr → metaTailsZero X0 → ns = true ∨ ngs = true) ∧
-        ∃ D, fileOK X0 X0.length D ∧ X0.length < 2 ^ 62 ∧ X0.length % 4096 = 0⌝) ∗
+  | none => iprop((∃ (ns ngs : Bool), db.[DB, go!"NoSync"] ↦□ ns ∗
+      db.[DB, go!"NoGrowSync"] ↦□ ngs ∗ ⌜FsNoErr → ns = true ∨ ngs = true⌝) ∗
       dghostVar gcn DFrac.discard (none : Option CsG))
   | some c => iprop(⌜c.gc = gbq ∧ c.N = N .@ "crash" ∧ FsNoErr⌝ ∗ bCsInv p ∗ bSyncs db p ∗
       dghostVar gcn DFrac.discard (some c.cg))
