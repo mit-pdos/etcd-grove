@@ -253,3 +253,29 @@ only trusted text changes are the two approved ones (change 1 `EtcdServer.leaseT
   and `etcd_authlease.not_permitted_setupSt` (with `not_inRangeK_zK` for u; v reads nothing), all existing.
 - **Build** (step 1 of this session, fk-lean2, at `059eaf26f0`'s content): `etcdserver.Link` + `v3rpc.Results`: success (10439 jobs). The earlier failure in `AuthSrv` was read-only `.ilean` files, not a proof error.
 - **g not started.**
+
+### Handoff K-4 (2026-11-26; option (2) stopped before any Lean edit: the client lemma needs trusted text)
+
+The lead chose option (2): `lessorSlot`'s right disjunct publishes `lessorLb γl 0`, plus a lemma "a served member
+has made its lessor" giving `RunAuthLease` the `lease.lessorLb (Γ.ls midv) m₀` at `av`, with no `Spec/`, axiom or
+`TopLevelRobustness` text change. **Stopped (the brief's stop condition): the lemma has no premise to come from.**
+
+- Publishing `lessorLb γl 0` in the slot is easy (`newLessor_alloc_at` closes the slot holding the reader invariant;
+  `lessorLb_get` + `lessorLb_le`). But a client reads the right disjunct only if it can refute the left one,
+  `ghostMapAuth γl ½ ∅`, and that needs a fragment of `γl`'s map (`lessorPinR`, inside every `lessorAt`/`lessorLb`):
+  the very fact sought.
+- What the client holds of v's member `midv` at `foreign`'s call: `leaseMember Γ av` (made by the start before any
+  machine runs: `etcdAddrAt` + `lessorSlot`, `Start.lean`'s `leaseMembers_of`), the barrier's `KV_GetOn_dist` post
+  (`authFloorD`: `authPubLbM`/`authStateAt` of `Γ.au midv`, log bounds) and v's `New` client. No lease call reaches
+  `av` before `foreign` (`barrier` is a `Get`; `newUserClient` is `clientv3.New`). None of these names `Γ.ls midv`
+  or a ghost name tied to it.
+- A defs-only tie (a start invariant "`Γ.au mid`'s history grew ⇒ `lessorLb (Γ.ls mid) 0`") needs a share of the
+  member's auth authorities, which `NewServer_dist`'s premise `authNamesFreshD γa` takes whole (trusted text);
+  `memberUpOnL` (which has `srvLeaseRd` and `mvccLeases E.γ = γl`, so a member-side `memberUpOnL ⊢ |={⊤}=> lessorLb
+  γl 0` is provable) is consumed by `Serve_dist` (axiom), which publishes nothing.
+- Ways out, each outside the brief: (a) a trusted-text change: `KV_GetOn_dist`'s post (or `authFloorD`) carries
+  `lessorLb (Γ.ls mid) 0`, or `Lease_TimeToLiveOn_dist`/`Lease_LeasesOn_dist` drop `lessorLb` from their
+  precondition (their posts already return `lessorLb (Γ.ls mid) j`); (b) option 1 (v's client at `au`) or option 3
+  (a grant at `av` first: `LeaseGrant`'s post gives `lessorLb` there), Go changes with no trusted-text change.
+- Nothing else changed: `ab2cec0a79`'s tree, plus this entry. f(2)-(4), g not started; the Lean build still breaks at
+  `foreign` (its spec names the 3-argument function).
