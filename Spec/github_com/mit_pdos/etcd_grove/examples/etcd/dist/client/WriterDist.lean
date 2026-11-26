@@ -55,7 +55,7 @@ abbrev Writer_dist.spec : Prop :=
         AU <{ ∃∃ (σ : KVState), etcdKV Γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
           <{ etcdKV Γ.kv (kvOpStep (.put (putWireOf (opPutModel k v []))) σ) ∗ ⌜kvRoom σ⌝,
             COMM QW k v σ }>) ∗
-      (□ ∀ (k v : GoString) (σ : KVState), QW k v σ -∗ ⌜σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝ -∗
+      (□ ∀ (k v : GoString) (σ : KVState), QW k v σ -∗ ⌜kvRevFits (σ.rev + 1) ∧ kvLogOk σ⌝ -∗
         OkF ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩) ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" w)
         (wsInvT w OkF γt) }}

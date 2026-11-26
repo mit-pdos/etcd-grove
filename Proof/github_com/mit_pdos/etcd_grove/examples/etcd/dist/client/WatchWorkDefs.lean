@@ -20,8 +20,9 @@ cluster's KV `Γ.kv` instead of the members' server facts:
   response the cache's etcd response at the adapter's model, `etcdWatchElem_of_km`), so that the
   single-process `Collect` plan (`etcdstart.wp_Collect_plan`, each response by
   `etcd_partition.resp_km`) applies unchanged. The single-process bridge is the same statement over
-  `isKvWatcher` and the linked `watcher.wp_Watch`; it can become a corollary of this one (a later
-  cleanup: `KMWatch.lean` has many importers).
+  `isKvWatcher` and the linked `watcher.wp_Watch` (`KMWatch.lean`, a linking module); both rest on
+  `KMWatchDefs.lean`'s `etcdWatchElem_of_km`. (Not a corollary of this one: the single-process post
+  is at the environment's KV names `V.kv` with the auth row in its elements.)
 * **The writers.** Each Put of the plan has the adapter's write update after the start's changes
   (`km_put_au0`: `client.km_write_au` at `[[]]`, the plan's property kept, `wkW_put`), and a
   successful Put's reply gives `etcdstart.okFactKM` (`okFactKM_of_write`), which is
@@ -39,7 +40,7 @@ cluster's KV `Γ.kv` instead of the members' server facts:
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchDist
-public import Proof.go_etcd_io.etcd.client.v3.KMWatch
+public import Proof.go_etcd_io.etcd.client.v3.KMWatchDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesKM
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WritesF
@@ -62,6 +63,31 @@ namespace etcd_dist_client
 open Iris Iris.BI Iris.ProofMode Net client go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3
   go_etcd_io.etcd.server.v3.etcdserver mvcc
 open etcd_dist etcdstart
+
+section pure
+variable [GooseExts]
+
+/-- **`RunWatch`'s options make a prefix watch of `wk/` from revision `1` that does not panic**
+(`cache`'s `watchEvents_opts` at `wk/`; that lemma is in a proof module). -/
+theorem wk_watch_opts :
+    (opWatchModel etcd_partition.wkPfx [withPrefixM, withRevM (W64 1), withProgressNotifyM,
+        withCreatedNotifyM]).isPrefixWatch etcd_partition.wkPfx (W64 1) = true ∧
+      ¬ opWatchPanics etcd_partition.wkPfx [withPrefixM, withRevM (W64 1), withProgressNotifyM,
+        withCreatedNotifyM] := by
+  have h : etcd_partition.wkPfx ≠ [] := by decide
+  simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, OpFull.isPrefixWatch, h]
+
+/-- The watch's keys, `GenAll`'s, are under the prefix `wk/`. -/
+theorem wk_genKeys_pfx (trs : List wkv) (h : ∀ p ∈ trs, GenKv etcd_partition.genKeys p) :
+    ∀ kv ∈ trs.map pairOf, etcd_partition.wkPfx <+: kv.1 := by
+  intro kv hkv
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.mp hkv
+  have hk := (h p hp).1
+  simp only [pairOf]
+  simp only [etcd_partition.genKeys, List.mem_cons, List.not_mem_nil, or_false] at hk
+  rcases hk with h | h | h <;> rw [h] <;> decide
+
+end pure
 
 section watcher
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]

@@ -91,7 +91,8 @@ theorem writerOp.wp_proof (wp_Writer : Writer_dist.spec (GF := GF) (hG := hG)) :
       iexact Hw
     iintro !> %k' %v' %σ HQ %Hb
     iapply (okFactKM_of_write γ k' v' σ) $$ HQ
-    ipureintro; exact Hb
+    obtain ⟨h1, h2⟩ := Hb
+    ipureintro; exact ⟨by unfold kvRevFits at h1; omega, h2⟩
   (try wp_auto)
   -- the log, read under the lock; the lock left with the token
   wp_apply (sync.Mutex.wp_Lock (structFieldRef
