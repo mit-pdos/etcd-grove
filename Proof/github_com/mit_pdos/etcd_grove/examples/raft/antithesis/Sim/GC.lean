@@ -598,8 +598,8 @@ theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List 
       rw [has_without] at hT
       cases hs : S.staleLed.contains T
       · rw [hs] at hT
-        obtain ⟨l, a, cs, h1, h2, h3, h4⟩ := hb18 T (by simpa using hT)
-        refine ⟨l, a, cs, ?_, ?_, h3, ?_⟩
+        obtain ⟨l, a, cs, h1, h2, h3, h4, h5⟩ := hb18 T (by simpa using hT)
+        refine ⟨l, a, cs, ?_, ?_, h3, ?_, h5⟩
         · show (S.ledLog.without S.staleLed).get T = _; rw [get_without, hs]; exact h1
         · show (S.ledAt.without S.staleLed).get T = _; rw [get_without, hs]; exact h2
         · show (S.ledConf.without S.staleLed).get T = _; rw [get_without, hs]; exact h4
@@ -654,8 +654,8 @@ theorem gc_rel {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List 
     · intro q hq
       obtain ⟨q1, q2, q3, q4, q5⟩ := hQ q hq
       refine ⟨q1, q2, q3, q4, ?_⟩
-      rcases q5 with ⟨h1, h2⟩ | ⟨h1, h2⟩
-      · exact .inl ⟨h1, gcRes_ack_keep hc hg n h2 hct⟩
+      rcases q5 with ⟨h1, h0, h2⟩ | ⟨h1, h2⟩
+      · exact .inl ⟨h1, h0, gcRes_ack_keep hc hg n h2 hct⟩
       · exact .inr ⟨h1, gcRes_votes_keep hc ho h2 n rfl hct⟩
   · -- GlobalOk
     obtain ⟨g1, g2, g3, g4, g5, g6, g7⟩ := hgo

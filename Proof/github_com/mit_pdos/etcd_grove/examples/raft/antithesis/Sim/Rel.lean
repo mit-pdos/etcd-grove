@@ -382,12 +382,12 @@ def PendOk (N : Nat) (id : w64) (v : NodeView) (q : Msg) : Prop :=
   | .readIndexResp => q.src = id
   | .snap => q.src = id ∧ v.ps.role = .leader
 
-/-- The self-addressed messages `Advance` steps (`stepsOnAdvance`): a leader's self-acknowledgement,
-its ack fact already recorded by the `ready` of its write (B 407), or a candidate's self-vote,
-recorded by the campaign's (B 418). -/
+/-- The self-addressed messages `Advance` steps (`stepsOnAdvance`): a leader's self-acknowledgement
+(queued only while it leads: a node that steps down drops its outbox), its ack fact already recorded
+by the `ready` of its write (B 407), or a candidate's self-vote, recorded by the campaign's (B 418). -/
 def QsOk (S : AntCheck.State) {N : Nat} (n : Fin N) (v : NodeView) (q : Msg) : Prop :=
   q.src = nodeId n ∧ q.dst = nodeId n ∧ q.term = v.ps.term ∧ q.reject = false ∧
-  ((q.ty = .appResp ∧
+  ((q.ty = .appResp ∧ v.ps.role = .leader ∧
       AckIn S (nameOf (nodeId n)) (nameOf (nodeId n)) (uint.Z v.ps.term) (uint.Z q.index)) ∨
    (q.ty = .voteResp ∧
       { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes))
@@ -638,11 +638,13 @@ def TermLenOk (N : Nat) (S : AntCheck.State) : Prop :=
 the one the conf entries of that log's first `ledAt` entries make from the initial one (`InMemory`'s
 `lc1` records `config[n]` at a win, B 260, and a leader's applied change moves it, B 627; `GC` drops a
 term from `ledLog`, `ledConf` and `ledAt` together, B 717). `cmt`'s `Acked` quorum (B 252) reads
-`ledConf` at the leader's term. -/
+`ledConf` at the leader's term. With conf changes off the leader log has no conf entry (a
+proposal's entries are normal), so that configuration is the initial one. -/
 def LedConfOk (R : RunCfg) (dec : CCDec) (S : AntCheck.State) : Prop :=
   ∀ T, S.ledLog.has T = true → ∃ (l : List EntryM) (a : Nat) (cs : CCState),
     S.ledLog.get T = .ok (logOf l) ∧ S.ledAt.get T = .ok (a : Int) ∧
-    cfgFold dec R.c0 (l.take a) = some cs ∧ S.ledConf.get T = .ok (confView R.N cs)
+    cfgFold dec R.c0 (l.take a) = some cs ∧ S.ledConf.get T = .ok (confView R.N cs) ∧
+    (R.md.confChanges = false → EntsNormal l)
 
 /-- **C3, `termLen` sorted by term**: `TermFn.with` inserts a term in order (replacing its entry),
 and `GC` leaves `termLen` alone; so a term's entry is the one `tlOld` finds (`tlOld_mem`). A

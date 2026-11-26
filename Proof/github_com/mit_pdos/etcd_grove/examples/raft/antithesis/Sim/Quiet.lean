@@ -599,7 +599,7 @@ theorem quiet_reach {msk : SimMask} (hmsk : msk ≤ mskS4) {dec : CCDec}
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
     refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
     · rcases h5 with h5 | h5
-      · exact h5.2
+      · exact h5.2.2
       · rw [h5.1] at hty; cases hty
     · rcases h5 with h5 | h5
       · rw [h5.1] at hty; cases hty

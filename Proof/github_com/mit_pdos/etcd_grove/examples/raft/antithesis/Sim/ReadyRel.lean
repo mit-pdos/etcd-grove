@@ -331,7 +331,7 @@ structure ReadyOk (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeVi
   -- C3's leader configurations
   lconf : ∀ T, ll.has T = true → ∃ (l : List EntryM) (a : Nat) (cs : CCState),
     ll.get T = .ok (logOf l) ∧ r.ledAt.get T = .ok (a : Int) ∧ cfgFold dec R.c0 (l.take a) = some cs ∧
-    r.ledConf.get T = .ok (confView R.N cs)
+    r.ledConf.get T = .ok (confView R.N cs) ∧ (R.md.confChanges = false → EntsNormal l)
   -- C3's `termLen` sorted
   tlSort : tl.Pairwise (fun a b => a.1 < b.1)
 
@@ -719,7 +719,7 @@ theorem rr_node_other (hs : AntSim R dec S V net xnet) (hgo : GlobalOk R S net G
     rw [hvr]; exact hok.msub _ c2
   · intro q hq
     obtain ⟨a1, a2, a3, a4, a5⟩ := hQ q hq
-    exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, AckIn.mono hok.msub h.2⟩) (fun h => ⟨h.1, hok.vsub _ h.2⟩)⟩
+    exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, h.2.1, AckIn.mono hok.msub h.2.2⟩) (fun h => ⟨h.1, hok.vsub _ h.2⟩)⟩
 
 /-- The node's facts at the new state. -/
 theorem rr_node_self (hs : AntSim R dec S V net xnet) (hok : ReadyOk R dec S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :

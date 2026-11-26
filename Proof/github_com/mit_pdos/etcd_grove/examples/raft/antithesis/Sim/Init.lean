@@ -208,7 +208,8 @@ theorem antSim_init : antSim_init.stmt := by
       cases hb : R.boot
       · simp [hb, TermFn.has] at hT
       · simp [hb, TermFn.has] at hT; subst hT
-        refine ⟨bootLog R, 0, R.c0, ?_, ?_, rfl, ?_⟩
+        refine ⟨bootLog R, 0, R.c0, ?_, ?_, rfl, ?_,
+          fun _ => by unfold bootLog; cases R.boot <;> simp [EntsNormal, bootEnt]⟩
         · rw [initS_ledLog, hb]; simp [TermFn.get]; rfl
         · rw [initS_ledAt, hb]; simp [TermFn.get]; rfl
         · rw [initS_ledConf, hb]; simp [TermFn.get, confView_c0]; rfl

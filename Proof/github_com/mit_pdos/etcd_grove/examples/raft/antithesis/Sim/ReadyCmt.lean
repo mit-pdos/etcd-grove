@@ -231,22 +231,44 @@ theorem quietP_reach {R : RunCfg} {kk : NodeK} {c : CfgM} {S : State} {net : Lis
     obtain ⟨h1, h2, h3, h4, h5⟩ := hqs q hq
     refine ⟨⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩, fun hty => ?_, fun hty => ?_⟩
     · rcases h5 with h5 | h5
-      · exact h5.2
+      · exact h5.2.2
       · rw [h5.1] at hty; cases hty
     · rcases h5 with h5 | h5
       · rw [h5.1] at hty; cases hty
       · exact h5.2
+
+/-- **Normal entries leave the configuration**: the fold of entries none of which is a conf change
+(type 0) is its start. -/
+theorem cfgFold_normal {dec : CCDec} {s : CCState} {l : List EntryM} (h : EntsNormal l) :
+    cfgFold dec s l = some s := by
+  unfold cfgFold
+  suffices hs : ∀ pre : List EntryM, cfgFoldFrom dec pre s l = some s from hs []
+  induction l with
+  | nil => intro pre; rfl
+  | cons e l ih =>
+    intro pre
+    have hn : ¬ IsConfEnt e := by
+      have h0 : e.Type' = W32 0 := h e (List.mem_cons_self ..)
+      have e0 : uint.Z (W32 0) = 0 := rfl
+      have e1 : uint.Z (W32 1) = 1 := rfl
+      have e2 : uint.Z (W32 2) = 2 := rfl
+      rintro (hc | hc)
+      · have h' : uint.Z (W32 0) = uint.Z (W32 1) := by rw [← h0, hc]
+        rw [e0, e1] at h'; omega
+      · have h' : uint.Z (W32 0) = uint.Z (W32 2) := by rw [← h0, hc]
+        rw [e0, e2] at h'; omega
+    simp only [cfgFoldFrom, entStep_not_conf dec pre s e hn, Option.bind_some]
+    exact ih (fun x hx => h x (List.mem_cons_of_mem _ hx)) _
 
 variable {R : RunCfg} {dec : CCDec} {S : State} {V : Fin R.N → NodeView} {net : List Msg}
   {xnet : List XMsg} {evs : List Event} {G : RaftFacts} {n : Fin R.N} {r₁ : RState} {rd : ReadyD}
   {S1 : State}
 
 set_option maxHeartbeats 4000000 in
-/-- **`antSim_ready` for a leader's commit** (`ReadyKind.cmt`), given the leader's configuration at
-its term (`hlc0`: `ledConf` at the node's term is its configuration, which the `Acked` quorum is
-read in, B 252). -/
-theorem ready_cmt_of_ledConf (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
-    (hlc0 : S1.ledConf.get (S1.currentTerm[n.val]!) = .ok S1.config[n.val]!)
+/-- **`antSim_ready` for a leader's commit** (`ReadyKind.cmt`). The `Acked` quorum (B 252) is read
+in the leader configuration at the node's term, the initial one: with conf changes off the leader
+log has no conf entry (`LedConfOk`), so its fold is the start (`cfgFold_normal`). -/
+theorem ready_cmt (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     (hvl : (V n).ps.role = .leader) (hpl : r₁.p.role = .leader) (hpt : r₁.p.term = (V n).ps.term)
     (hpv : r₁.p.vote = (V n).ps.vote) (hplog : r₁.p.log = (V n).ps.log) (hents : rd.ents = [])
     (hlt : uint.Z (V n).ps.commit < uint.Z r₁.p.commit)
@@ -276,7 +298,11 @@ theorem ready_cmt_of_ledConf (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
   have hll : S1.ledLog.get (uint.Z r₁.p.term) = .ok (logOf r₁.p.log) := by
     rw [hpt, hplog, ← hfull]; exact lp2
   have hlc : S1.ledConf.get (uint.Z r₁.p.term) = .ok R.cfg.initConf := by
-    rw [← hT, hlc0, hx.hconf, confView_voters0 hx.hcf]
+    obtain ⟨l, a, cs, -, -, h3, h4, h5⟩ := hb.ledConfOk _ (TermFn.has_of_get hll)
+    have e : cfgFold dec R.c0 (l.take a) = some R.c0 :=
+      cfgFold_normal (fun e he => h5 hx.hcc e (List.mem_of_mem_take he))
+    rw [h3] at e
+    rw [h4, Option.some.inj e, confView_c0]
   have hcG : r₁.p.log.take (uint.nat r₁.p.commit) = G.committed.take (uint.nat r₁.p.commit) := by
     rw [← hfl]; exact hx.hrf.2.2.1
   have hcL0 : uint.Z r₁.p.commit ≤ r₁.p.log.length := by

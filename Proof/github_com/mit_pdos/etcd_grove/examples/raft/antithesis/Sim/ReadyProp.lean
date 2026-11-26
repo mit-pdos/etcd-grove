@@ -83,7 +83,8 @@ theorem prop_matched {kk : NodeK} {cf : CfgM} {id : w64} {net : List Msg} {v : N
     · rfl
   | advance _ _ _ _ ha =>
     have hP : AdvP cf id v.ps True ps₁ :=
-      advP_run hX ha hqs (fun _ _ _ => trivial) (.inl (.inl rfl))
+      advP_run hX ha hqs (fun _ _ _ => trivial) (fun _ _ hc => absurd (hc.symm.trans hvl) (by decide))
+        (.inl (.inl rfl))
     rcases hP with (heq | ⟨hc, -⟩) | ⟨-, hL, -⟩ | ⟨hc, -⟩ | ⟨hc, -⟩
     · rw [heq] at hlne; exact absurd rfl hlne
     · rw [hvl] at hc; cases hc
@@ -364,8 +365,8 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hxpend := ha.hxpend
     hqs := fun q hq => by
       obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso q hq
-      rcases hk with ⟨-, rfl⟩ | ⟨hc', -⟩
-      · refine ⟨h1, h2, h3, h4, .inl ⟨rfl, ?_⟩⟩
+      rcases hk with ⟨hlr, rfl⟩ | ⟨hc', -⟩
+      · refine ⟨h1, h2, h3, h4, .inl ⟨rfl, hlr, ?_⟩⟩
         refine ⟨_, hackN, rfl, rfl, rfl, rfl, ?_⟩
         show uint.Z (plastIndex r₁.p) ≤ (r₁.p.log.length : Int)
         unfold plastIndex plogLastIndexZ
@@ -388,17 +389,18 @@ theorem ready_prop (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     lconf := fun T' h => by
       by_cases eT : T' = uint.Z r₁.p.term
       · subst eT
-        obtain ⟨l, a, cs, h1, h2, h3, h4⟩ := hb.ledConfOk _ (TermFn.has_of_get hll)
+        obtain ⟨l, a, cs, h1, h2, h3, h4, h5⟩ := hb.ledConfOk _ (TermFn.has_of_get hll)
         rw [hll] at h1
         have e1 : logOf (V n).ps.log = logOf l := Except.ok.inj h1
-        refine ⟨l ++ rd.ents, a, cs, ?_, h2, cfgFold_take_append_normal h3 hnorm, h4⟩
+        refine ⟨l ++ rd.ents, a, cs, ?_, h2, cfgFold_take_append_normal h3 hnorm, h4,
+          fun hcc e he => (List.mem_append.mp he).elim (h5 hcc e) (hnorm e)⟩
         rw [TermFn.get_with_self]
         have e2 : logOf (l ++ rd.ents) = logOf l ++ logOf rd.ents := by unfold logOf; rw [List.map_append]
         rw [e2, ← e1, hE, hLeq]
       · rcases has_with_cases h with h' | h'
         · exact absurd h' eT
-        · obtain ⟨l, a, cs, h1, h2, h3, h4⟩ := hb.ledConfOk T' h'
-          exact ⟨l, a, cs, by rw [rr_get_with_ne _ _ eT]; exact h1, h2, h3, h4⟩
+        · obtain ⟨l, a, cs, h1, h2, h3, h4, h5⟩ := hb.ledConfOk T' h'
+          exact ⟨l, a, cs, by rw [rr_get_with_ne _ _ eT]; exact h1, h2, h3, h4, h5⟩
     tlSort := hb.tlSorted }
 
 end ready

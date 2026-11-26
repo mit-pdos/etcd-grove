@@ -484,7 +484,8 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       LeaderMatchOk (nodeId n) (V n).ps mt →
       LeadC (CfgM.simple R.voters0 ∅) (nodeId n)
         (pwinState (nodeId n) { (V n).ps with votes := recordVote (V n).ps.votes src (!rej) } mt) r₁.p →
-      rd.ents = [pleaderEntry (V n).ps] → ReadyGoal R dec V net xnet evs G n r₁ rd)
+      rd.ents = [pleaderEntry (V n).ps] → r₁.p.commit = (V n).ps.commit →
+      ReadyGoal R dec V net xnet evs G n r₁ rd)
     (hprop : ∀ es : List EntryM, (V n).byE = go!"propose" → (V n).ps.role = .leader → es ≠ [] →
       rd.ents = es.mapIdx (stamp (V n).ps.term (plastIndex (V n).ps)) → r₁.p.log = (V n).ps.log ++ rd.ents →
       r₁.p.role = .leader → r₁.p.term = (V n).ps.term → r₁.p.vote = (V n).ps.vote →
@@ -828,7 +829,7 @@ theorem ready_main {S : State} {V : Fin R.N → NodeView} {net : List Msg} {evs 
       rw [hpr] at hok
       exact hx.finish (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ _ hpend) hod) hok
     · exact hstoreB m hm hty hft hpt hpr hpc0 hprv ⟨d, e, hed, hen, hncf, hbef, hidx, hile, hpl⟩ hcmv
-  | win src rej mt h1 h2 h3 h4 h5 h6 => exact hwin src rej mt h1 h2 h3 h4 h5 h6
+  | win src rej mt h1 h2 h3 h4 h5 h6 h7 => exact hwin src rej mt h1 h2 h3 h4 h5 h6 h7
   | prop es h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hprop es h1 h2 h3 h4 h5 h6 h7 h8 h9
   | cmt h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hcmt h1 h2 h3 h4 h5 h6 h7 h8 h9
 
@@ -1104,7 +1105,8 @@ theorem ready_nonleader {S : State} {V : Fin R.N → NodeView} {net : List Msg} 
       LeaderMatchOk (nodeId n) (V n).ps mt →
       LeadC (CfgM.simple R.voters0 ∅) (nodeId n)
         (pwinState (nodeId n) { (V n).ps with votes := recordVote (V n).ps.votes src (!rej) } mt) r₁.p →
-      rd.ents = [pleaderEntry (V n).ps] → ReadyGoal R dec V net xnet evs G n r₁ rd)
+      rd.ents = [pleaderEntry (V n).ps] → r₁.p.commit = (V n).ps.commit →
+      ReadyGoal R dec V net xnet evs G n r₁ rd)
     (hprop : ∀ es : List EntryM, (V n).byE = go!"propose" → (V n).ps.role = .leader → es ≠ [] →
       rd.ents = es.mapIdx (stamp (V n).ps.term (plastIndex (V n).ps)) → r₁.p.log = (V n).ps.log ++ rd.ents →
       r₁.p.role = .leader → r₁.p.term = (V n).ps.term → r₁.p.vote = (V n).ps.vote →

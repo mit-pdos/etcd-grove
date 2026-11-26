@@ -530,8 +530,8 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     hxpend := ha.hxpend
     hqs := fun q hq => by
       obtain ⟨⟨h1, h2, h3, h4, -⟩, hk⟩ := qs_self hx.hro hx.hso q hq
-      rcases hk with ⟨-, rfl⟩ | ⟨hc', -⟩
-      · refine ⟨h1, h2, h3, h4, .inl ⟨rfl, ?_⟩⟩
+      rcases hk with ⟨hlr, rfl⟩ | ⟨hc', -⟩
+      · refine ⟨h1, h2, h3, h4, .inl ⟨rfl, hlr, ?_⟩⟩
         refine ⟨_, hackN, rfl, rfl, rfl, rfl, ?_⟩
         show uint.Z (plastIndex r₁.p) ≤ (r₁.p.log.length : Int)
         unfold plastIndex plogLastIndexZ
@@ -559,15 +559,17 @@ theorem ready_win (hx : RdCtx R dec S V net xnet evs G n r₁ rd S1)
     lconf := fun T' h => by
       by_cases e : T' = uint.Z r₁.p.term
       · subst e
-        refine ⟨r₁.p.log, 0, R.c0, TermFn.get_with_self _ _ _, ?_, rfl, ?_⟩
+        refine ⟨r₁.p.log, 0, R.c0, TermFn.get_with_self _ _ _, ?_, rfl, ?_, fun hcc => ?_⟩
         · show (S1.ledAt.with (uint.Z r₁.p.term) (S1.confAt[n.val]!)).get (uint.Z r₁.p.term) = _
           rw [TermFn.get_with_self, d11] <;> rfl
         · show (S1.ledConf.with (uint.Z r₁.p.term) (S1.config[n.val]!)).get (uint.Z r₁.p.term) = _
           rw [TermFn.get_with_self, hcfgI, confView_c0]
+        · have h := (hx.ha.facts.conf0 hcc).2.1
+          rw [← hx.hfl]; exact h
       · rcases has_with_cases h with h' | h'
         · exact absurd h' e
-        · obtain ⟨l, a, cs, h1, h2, h3, h4⟩ := hb.ledConfOk T' h'
-          refine ⟨l, a, cs, by rw [rr_get_with_ne _ _ e]; exact h1, ?_, h3, ?_⟩
+        · obtain ⟨l, a, cs, h1, h2, h3, h4, h5⟩ := hb.ledConfOk T' h'
+          refine ⟨l, a, cs, by rw [rr_get_with_ne _ _ e]; exact h1, ?_, h3, ?_, h5⟩
           · show (S1.ledAt.with (uint.Z r₁.p.term) (S1.confAt[n.val]!)).get T' = _
             rw [rr_get_with_ne _ _ e]; exact h2
           · show (S1.ledConf.with (uint.Z r₁.p.term) (S1.config[n.val]!)).get T' = _

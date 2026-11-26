@@ -134,7 +134,7 @@ theorem NodeOk.send {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {k n
       hsub _ c2⟩
   · intro x hx
     obtain ⟨a1, a2, a3, a4, a5⟩ := d13 x hx
-    exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, hack h.2⟩) id⟩
+    exact ⟨a1, a2, a3, a4, a5.imp (fun h => ⟨h.1, h.2.1, hack h.2.2⟩) id⟩
   · intro m hm
     obtain ⟨h1, h2⟩ := d15 m hm
     exact ⟨List.mem_append_left _ h1, h2⟩

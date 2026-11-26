@@ -331,7 +331,8 @@ inductive ReadyKind (cf : CfgM) (id : w64) (net : List Msg) (v : NodeView) (ps�
       ps₁.commit = m.commit → rd.ents = [] → ReadyKind cf id net v ps₁ rd
   /-- A candidate's win at its term (`WinEnd`), on a received vote response of its term or on its
   own vote (`Advance`): the tally with the vote recorded a quorum, the empty entry of its term
-  appended (the `Ready`'s entry); in `Advance`, later self-acknowledgements may commit (`LeadC`). -/
+  appended (the `Ready`'s entry), the commit kept (a candidate's queued self-messages are all
+  self-votes, which the new leader ignores). -/
   | win (src : w64) (rej : Bool) (mt : GMap w64 w64) : v.ps.role = .candidate →
       ((∃ m, RecvAt id net v m ∧ m.ty = .voteResp ∧ m.term = v.ps.term ∧ m.src = src ∧
           m.reject = rej) ∨
@@ -339,7 +340,7 @@ inductive ReadyKind (cf : CfgM) (id : w64) (net : List Msg) (v : NodeView) (ps�
       JQuorum cf (granted (recordVote v.ps.votes src (!rej))) →
       LeaderMatchOk id v.ps mt →
       LeadC cf id (pwinState id { v.ps with votes := recordVote v.ps.votes src (!rej) } mt) ps₁ →
-      rd.ents = [pleaderEntry v.ps] → ReadyKind cf id net v ps₁ rd
+      rd.ents = [pleaderEntry v.ps] → ps₁.commit = v.ps.commit → ReadyKind cf id net v ps₁ rd
   /-- A leader's proposal (`ProposeEnd`): entries stamped at its term appended at its end. -/
   | prop (es : List EntryM) : v.byE = go!"propose" → v.ps.role = .leader → es ≠ [] →
       rd.ents = es.mapIdx (stamp v.ps.term (plastIndex v.ps)) → ps₁.log = v.ps.log ++ rd.ents →
@@ -500,7 +501,7 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
         · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
         · obtain ⟨mt, ms, hlm, -, rfl⟩ := hw
           exact .win m.src m.reject mt hcand (.inl ⟨m, hat, hty, hmt, rfl, rfl⟩) hq hlm
-            ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩ (ents_of_append hro rfl)
+            ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩ (ents_of_append hro rfl) rfl
         · exact .demote hcand rfl rfl (by simp [pbecomeFollower]) rfl rfl (ents_nil_of_log hro rfl)
     · subst h; exact kind_of_s1 hro hrep hat ht1 hl1 hc1 hpre rfl rfl rfl rfl rfl
   · -- a `MsgApp`
@@ -647,8 +648,8 @@ theorem kind_propose {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
 
 /-- The phases of `Advance`'s run from `s₀` (`W`: a self-vote was stepped): unchanged but for a
 candidate's own vote tallied; a leader's self-acknowledgements (`LeadC`); a candidate lost
-(a follower, nothing else changed); a candidate won on its own vote, then a leader's
-self-acknowledgements. -/
+(a follower, nothing else changed); a candidate won on its own vote, then (its queued messages all
+self-votes) nothing that changes the commit. -/
 def AdvP (cf : CfgM) (id : w64) (s₀ : PState) (W : Prop) (s : PState) : Prop :=
   (s = s₀ ∨ (s₀.role = .candidate ∧ s = { s₀ with votes := recordVote s₀.votes id true })) ∨
   (s₀.role = .leader ∧ LeadC cf id s₀ s ∧ NoSelf id s) ∨
@@ -656,10 +657,11 @@ def AdvP (cf : CfgM) (id : w64) (s₀ : PState) (W : Prop) (s : PState) : Prop :
     s.log = s₀.log ∧ s.commit = s₀.commit) ∨
   (s₀.role = .candidate ∧ W ∧ ∃ mt, JQuorum cf (granted (recordVote s₀.votes id true)) ∧
     LeaderMatchOk id s₀ mt ∧
-    LeadC cf id (pwinState id { s₀ with votes := recordVote s₀.votes id true } mt) s)
+    LeadC cf id (pwinState id { s₀ with votes := recordVote s₀.votes id true } mt) s ∧
+    s.commit = s₀.commit)
 
 theorem AdvP.term {id : w64} {s₀ s : PState} {W : Prop} (h : AdvP cf id s₀ W s) : s.term = s₀.term := by
-  rcases h with (heq | ⟨-, heq⟩) | ⟨-, hl, -⟩ | ⟨-, -, ht, -⟩ | ⟨-, -, mt, -, -, hl⟩
+  rcases h with (heq | ⟨-, heq⟩) | ⟨-, hl, -⟩ | ⟨-, -, ht, -⟩ | ⟨-, -, mt, -, -, hl, -⟩
   · rw [heq]
   · rw [heq]
   · exact hl.2.1
@@ -718,7 +720,8 @@ theorem noSelf_step {id : w64} {s s' : PState} {q : Msg} (hr : s.role = .leader)
 
 /-- One step of `Advance` keeps `AdvP`. -/
 theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : AdvP cf id s₀ W s)
-    (hX0 : s₀.outbox = []) (hq : SelfMsg id s₀.term q) (hW : q.ty = .voteResp → W) (h : RecvEnd kk cf id s q s') :
+    (hX0 : s₀.outbox = []) (hq : SelfMsg id s₀.term q) (hW : q.ty = .voteResp → W)
+    (hC : s₀.role = .candidate → q.ty = .voteResp) (h : RecvEnd kk cf id s q s') :
     AdvP cf id s₀ W s' := by
   obtain ⟨hqs, -, hqt, hrj, hty⟩ := hq
   have hqt' : q.term = s.term := hqt.trans hi.term.symm
@@ -732,7 +735,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
   have hlead : ∀ y, LeadC cf id y s → LeadC cf id y s' := fun y hL => leadC_step hL hqs hrj hty hh
   have hns : s.role = .leader → NoSelf id s → NoSelf id s' := fun hr hn => noSelf_step hr hn hrj hty hh
   rcases hi with (heq | ⟨hc, heq⟩) | ⟨hl0, hL, hn0⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ |
-      ⟨hc, hw, mt, hq, hlm, hL⟩
+      ⟨hc, hw, mt, hq, hlm, hL, hcm⟩
   · rw [heq] at hh hlead hns
     by_cases hl0 : s₀.role = .leader
     · exact .inr (.inl ⟨hl0, hlead _ (leadC_refl hl0), hns hl0 (fun x hx => by rw [hX0] at hx; cases hx)⟩)
@@ -746,7 +749,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
           · exact .inl (.inr ⟨hc, rfl⟩)
           · obtain ⟨mt, ms, hlm, -, rfl⟩ := hw
             exact .inr (.inr (.inr ⟨hc, hW hty, mt, hq, hlm,
-              ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩⟩))
+              ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩, rfl⟩))
           · exact .inr (.inr (.inl ⟨hc, rfl, rfl, by simp [pbecomeFollower], rfl, rfl⟩))
         · subst hh; exact .inl (.inl rfl)
   · rw [heq] at hh
@@ -762,7 +765,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
       · exact .inl (.inr ⟨hc, rfl⟩)
       · obtain ⟨mt, ms, hlm, -, rfl⟩ := hw
         exact .inr (.inr (.inr ⟨hc, hW hty, mt, hq, hlm,
-          ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩⟩))
+          ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩, rfl⟩))
       · exact .inr (.inr (.inl ⟨hc, rfl, rfl, by simp [pbecomeFollower], rfl, rfl⟩))
   · exact .inr (.inl ⟨hl0, hlead _ hL, hns hL.1 hn0⟩)
   · unfold HandleEnd at hh
@@ -771,28 +774,37 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
       exact .inr (.inr (.inl ⟨hc, hf, ht, hv, hl, hcm⟩))
     · rw [if_neg (by rw [hf]; decide)] at hh; subst hh
       exact .inr (.inr (.inl ⟨hc, hf, ht, hv, hl, hcm⟩))
-  · exact .inr (.inr (.inr ⟨hc, hw, mt, hq, hlm, hlead _ hL⟩))
+  · -- won: the message is a self-vote (`hC`), which a leader ignores
+    have hv : q.ty = .voteResp := hC hc
+    unfold HandleEnd at hh
+    rw [hv] at hh; simp only at hh
+    rw [if_neg (by rw [hL.1]; decide)] at hh; subst hh
+    exact .inr (.inr (.inr ⟨hc, hw, mt, hq, hlm, hL, hcm⟩))
 
 theorem advP_run {id : w64} {s₀ s s' : PState} {qs : List Msg} {W : Prop}
     (hX0 : s₀.outbox = []) (h : AdvanceEnd kk cf id s qs s') (hq : ∀ q ∈ qs, SelfMsg id s₀.term q)
-    (hW : ∀ q ∈ qs, q.ty = .voteResp → W) (hi : AdvP cf id s₀ W s) : AdvP cf id s₀ W s' := by
+    (hW : ∀ q ∈ qs, q.ty = .voteResp → W) (hC : ∀ q ∈ qs, s₀.role = .candidate → q.ty = .voteResp)
+    (hi : AdvP cf id s₀ W s) : AdvP cf id s₀ W s' := by
   induction h with
   | nil => exact hi
   | cons s s1 s' q qs hr _ ih =>
     exact ih (fun x hx => hq x (List.mem_cons_of_mem _ hx))
-      (fun x hx => hW x (List.mem_cons_of_mem _ hx))
-      (advP_step hi hX0 (hq q (List.mem_cons_self ..)) (hW q (List.mem_cons_self ..)) hr)
+      (fun x hx => hW x (List.mem_cons_of_mem _ hx)) (fun x hx => hC x (List.mem_cons_of_mem _ hx))
+      (advP_step hi hX0 (hq q (List.mem_cons_self ..)) (hW q (List.mem_cons_self ..))
+        (hC q (List.mem_cons_self ..)) hr)
 
 /-- **`Advance`'s run** (a drain's later `Ready`), reported: a leader's commit, a candidate's loss,
 or its win on its own vote; never a term or vote change. -/
 theorem kind_advance {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
-    (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (h : AdvanceEnd kk cf id v.ps v.qs ps₁)
-    (hX : v.ps.outbox = []) :
+    (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
+    (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty = .voteResp)
+    (h : AdvanceEnd kk cf id v.ps v.qs ps₁) (hX : v.ps.outbox = []) :
     ReadyKind cf id net v ps₁ rd := by
   have hP : AdvP cf id v.ps (∃ q ∈ v.qs, q.ty = .voteResp) ps₁ :=
-    advP_run hX h hqs (fun q hq hty => ⟨q, hq, hty⟩) (.inl (.inl rfl))
-  rcases hP with (heq | ⟨-, heq⟩) | ⟨hl0, hL, hns⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ | ⟨hc, hw, mt, hq, hlm, hL⟩
+    advP_run hX h hqs (fun q hq hty => ⟨q, hq, hty⟩) (fun q hq hc => hqc hc q hq) (.inl (.inl rfl))
+  rcases hP with (heq | ⟨-, heq⟩) | ⟨hl0, hL, hns⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ |
+      ⟨hc, hw, mt, hq, hlm, hL, hpc⟩
   · subst heq; exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · subst heq; exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · obtain ⟨hr, ht, hv, -, hl, -, hc⟩ := hL
@@ -801,7 +813,7 @@ theorem kind_advance {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState}
     · exact .cmt hl0 hr ht hv hl (ents_nil_of_log hro hl) hlt hcm hns
   · exact .demote hc hf ht hv hl hcm (ents_nil_of_log hro hl)
   · exact .win id false mt hc (.inr ⟨rfl, rfl, hw⟩) hq hlm hL
-      (ents_of_append hro (es := [pleaderEntry v.ps]) hL.2.2.2.2.1)
+      (ents_of_append hro (es := [pleaderEntry v.ps]) hL.2.2.2.2.1) hpc
 
 /-! ## The classification -/
 
@@ -812,7 +824,8 @@ reaching `ps₁` (`Reach`; the messages sent of a type in scope and `MsgShape`),
 theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hr : ReachP kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd) (hrep : ReportedO v rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
+    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
+    (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty = .voteResp) (hX : v.ps.outbox = []) :
     ReadyKind cf id net v ps₁ rd := by
   cases hr with
   | stay _ => exact absurd hrep (stay_quiet hro)
@@ -820,7 +833,7 @@ theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {
     exact kind_recv hro hrep hb hid0 hvs ⟨hbe, hca, hmn, hmd, hm0⟩ (hin m hmn) hs hX
   | tick _ _ hbe hs => exact kind_tick hro hrep hbe hs
   | propose d _ _ hbe hs => exact kind_propose hro hrep hbe hs
-  | advance _ _ _ _ ha => exact kind_advance hro hrep hqs ha hX
+  | advance _ _ _ _ ha => exact kind_advance hro hrep hqs hqc ha hX
 
 
 /-! ## A non-follower's vote is its own -/
@@ -847,10 +860,11 @@ theorem voteSelf_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState
 theorem voteSelf_ready {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hr : ReachP kk cf id net v ps₁) (hro : ReadyOutO N id v ps₁ rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
+    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q)
+    (hqc : v.ps.role = .candidate → ∀ q ∈ v.qs, q.ty = .voteResp) (hX : v.ps.outbox = []) :
     ps₁.role ≠ .follower → ps₁.vote = id := by
   by_cases hrep : ReportedO v rd
-  · exact voteSelf_kind (ready_kind hr hro hrep hb hid0 hvs hin hqs hX) hvs
+  · exact voteSelf_kind (ready_kind hr hro hrep hb hid0 hvs hin hqs hqc hX) hvs
   · have hrr : rd.role = v.ps.role := by
       by_cases h : rd.role = v.ps.role
       · exact h

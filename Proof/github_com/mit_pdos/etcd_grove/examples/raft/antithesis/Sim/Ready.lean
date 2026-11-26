@@ -206,7 +206,7 @@ checker's prefix and steps, the relation and `GlobalOk` at `S1`; the node's old 
 protocol state (`v.ps`: the disk is raft's own state with no ghost prefix); its configuration the
 initial one; no write queued, no pre-candidate reported before or now, no snapshot; the new state's
 full log its protocol log, `ReadyFacts`; the protocol readings of `Reach`, `ReadyOutP`, `Reported`;
-the messages sent `InMsg`, the queued self-messages, the new outbox's self-addressed messages; a
+the messages sent `InMsg`, the queued self-messages (a candidate's all self-votes), the new outbox's self-addressed messages; a
 non-follower's vote its own before and after; the new view's kind-independent fields; the kind. -/
 structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView) (net : List Msg)
     (xnet : List XMsg) (evs : List Event) (G : RaftFacts) (n : Fin R.N) (r₁ : RState) (rd : ReadyD)
@@ -245,6 +245,7 @@ structure RdCtx (R : RunCfg) (dec : CCDec) (S : State) (V : Fin R.N → NodeView
   htb : uint.Z (V n).ps.term + 1 < 2 ^ 64
   hin : ∀ m ∈ net, InMsg m
   hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q
+  hqc : (V n).ps.role = .candidate → ∀ q ∈ (V n).qs, q.ty = .voteResp
   hso : SelfOut (nodeId n) r₁.p
   hvs : (V n).ps.role ≠ .follower → (V n).ps.vote = nodeId n
   hvs1 : r₁.p.role ≠ .follower → r₁.p.vote = nodeId n
@@ -303,7 +304,11 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDe
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hv.qs q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
-  have hkd := ready_kind hrP hroO hrepO d8 (nodeId_ne_zero n) hv.voteSelf hin' hqs d7
+  have hqc : (V n).ps.role = .candidate → ∀ q ∈ (V n).qs, q.ty = .voteResp := fun hc q hq => by
+    rcases (hv.qs q hq).2.2.2.2 with ⟨-, hl, -⟩ | ⟨h, -⟩
+    · rw [hc] at hl; cases hl
+    · exact h
+  have hkd := ready_kind hrP hroO hrepO d8 (nodeId_ne_zero n) hv.voteSelf hin' hqs hqc d7
   refine ⟨S1, {
     hp := hp, hgc := hgc, hs1 := hs1, hgo1 := hgo1, hl := hl, hc := hsh.1
     hdk := fun k => ((hs1.2.2.2.2 k).sync (by rw [hmd]) hbt hspl hpar).2.1
@@ -322,7 +327,7 @@ theorem rdCtx_of {msk : SimMask} (hmsk : msk ≤ mskS4) {R : RunCfg} {dec : CCDe
     hcc := by rw [hmd]
     hq0 := by rw [hv.queue, hsy.1]; rfl
     hvp := hvp, hpf := hpf, hsn := hsnr, hfl := hfl, hrf := hrf, hr := hrP, hro := hroO
-    hrep := hrepO, htold := htold, htb := htb, hin := hin', hqs := hqs
+    hrep := hrepO, htold := htold, htb := htb, hin := hin', hqs := hqs, hqc := hqc
     hso := selfOut_reach hrP d7 hv.leadOk.1 hin' hqs
     hvs := hv.voteSelf
     hvs1 := voteSelf_kind hkd hv.voteSelf
