@@ -1,6 +1,6 @@
 /-
 **The vocabulary of `WatchOn_dist`** (the auth-on cross-machine watch, `Spec/.../dist/WatchOnDist.lean`;
-`notes/etcd-dist-plan.md` §29): what its caller gives of the members' auth state and of its context's
+`notes/etcd-dist-watchon.md`): what its caller gives of the members' auth state and of its context's
 tokens, and what a response with events tells it of the watch's check. Written in F7's vocabulary
 (`AuthViewDist.lean`: `servedBy`, `userOk`, `outTokOk`, `authFloorD`). Definitions only. Lean-first (no Rocq
 counterpart).
@@ -28,8 +28,9 @@ open Iris Iris.BI Net client go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.et
 metadata `m` with the stream key of the watch's own `om`. The watcher shares one gRPC stream among the
 watches whose contexts have the same stream key (`streamKeyFromCtx`, `streamKeyOf`), and the server checks a
 create for the token of the stream's metadata, which is some context's of that key, not necessarily the
-watch's: the key is `fmt`'s `%+v` of the map and collides (`nonissues/etcd-watch-stream-key-collision.md`:
-`{"x": ["1] token:[t"]}` prints as `{"x": ["1"], "token": ["t"]}` does), so `outTokOk P om` alone would let a
+watch's: the key is `fmt`'s `%+v` of the map, keys sorted, and collides
+(`nonissues/etcd-watch-stream-key-collision.md`: `{"a": ["1] token:[t"]}` and `{"a": ["1"], "token": ["t"]}` both
+print `map[a:[1] token:[t]]`; Go test `notes/axiom-review/watchon-dist/`, case (d)), so `outTokOk P om` alone would let a
 watch join a stream another watch opened with an issued token of another user. -/
 def outTokOkS [GooseExts] (P : Option GoString) (om : GrpcMd) : Prop :=
   ∀ m : GrpcMd, streamKeyOf m = streamKeyOf om → outTokOk P m

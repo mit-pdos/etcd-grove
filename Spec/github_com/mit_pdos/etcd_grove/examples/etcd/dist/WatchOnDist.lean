@@ -1,6 +1,6 @@
 /-
 `(*watcher).Watch(ctx, key, opts...)` by a client of auth-on members at other machines, at the cluster view,
-with the auth row (`notes/etcd-dist-plan.md` §29; an interim trust-boundary axiom until S2's etcd side has the
+with the auth row (`notes/etcd-dist-watchon.md`; an interim trust-boundary axiom until S2's etcd side has the
 `Watch` stream entry, as `Watch_dist`: `Proof/.../etcd/dist/WatchOnDist.lean`). Lean-first (no Rocq
 counterpart).
 
