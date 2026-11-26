@@ -1,6 +1,6 @@
 /-
 **The server's image row of the apply protocol** (T10 session 9, 2026-11-26; ledger 2026-11-25 "the
-backend's image row lives in the apply protocol's `consInv`"): the row `IR eff p` that `consInv γ IR`
+backend's image row lives in the apply protocol's `consInv`"): the row `Rw.IR eff p` that `consInv γ Rw`
 (`InvApply.lean`) keeps at the protocol's `(eff, p)`. `srvImgRow γ M e p`: a committed prefix `A` of the
 server's log reaching `p` (`p = ai0 + |A|`), whose models `M` (the image's: `srvImgModel`) are unchanged
 at every index of `[e, p]` (the entries `e+1 … p` wrote nothing), so a commit storing any index
@@ -11,6 +11,7 @@ writes done, `writes_doneR`; a snapshot's swap, `ci_swap_auR`), `srvImgRow_nil` 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApply
 
 @[expose] public section
 
@@ -115,6 +116,13 @@ theorem srvImgRow_skip {α : Type} (γ : ServerRaftNames) (M : List EntryModel �
     rw [hm, List.take_length]
   · have hm : uint.nat m - uint.nat γ.ai0 ≤ A0.length := by omega
     rw [List.take_append_of_le_length hm, hrow m h1 (by omega), hM]
+
+/-- **The row as the apply protocol's bundle** (T10 step 3): `consInv γ (srvImgRowT γr M)`. -/
+def srvImgRowT {α : Type} (γ : ServerRaftNames) (M : List EntryModel → α) : TRow GF :=
+  ⟨srvImgRow γ M, fun _ _ => inferInstance⟩
+
+@[simp] theorem srvImgRowT_IR {α : Type} (γ : ServerRaftNames) (M : List EntryModel → α) (e p : w64) :
+    (srvImgRowT (GF := GF) γ M).IR e p = srvImgRow γ M e p := rfl
 
 end defs
 

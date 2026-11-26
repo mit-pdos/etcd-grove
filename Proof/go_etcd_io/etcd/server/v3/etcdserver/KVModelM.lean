@@ -6,6 +6,7 @@ imports the model without the server's proofs). Lean-first (no Rocq counterpart)
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImgRow
 
 @[expose] public section
 
@@ -86,6 +87,16 @@ theorem kvModelM_false (γk : KVNames) (L : List EntryModel) :
 
 theorem kvModelM_true (γk : KVNames) (L : List EntryModel) :
     kvModelM true γk L = kvModelOn γk srvAuthSt0 L := rfl
+
+/-- **The models an image of a committed prefix `A` is of, in the mode `on`** (T10 step 3;
+`srvImgModel`'s twin, what `dbImageOn`/`imageRestAtOn` are of): the mode-`on` KV model, its compaction
+revision, the mode-`on` lease table and the rest buckets of the full log `pre ++ A`, and the auth state
+after `A` (`srvAuthAtLog γr.kv srvAuthSt0 A`, the image's auth buckets). -/
+def srvImgModelOn (γr : ReadNames) (A : List EntryModel) :
+    mvcc.Log × Int × LeaseTable × apply.RestM × auth.AuthState :=
+  (kvModelOn γr.kv srvAuthSt0 A, crevOf γr.kv A, kvLeasesOn γr.kv srvAuthSt0 (γr.raft.pre ++ A),
+    restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A),
+    (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) A).1)
 
 end pure
 
@@ -216,6 +227,19 @@ theorem leaseItems_of_noLease (l : mvcc.Log) (h : mvcc.LogNoLease l) (k : GoStri
     (hk : mvcc.leaseItemsOf (mvcc.stateAfter l) !! ⟨k⟩ = some id) : False := by
   rw [mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero l h)] at hk
   cases hk
+
+/-- **The server's image row in the mode `on`** (T10 step 3): `srvImgRowT` over the mode's models
+(`srvImgModel` off, `srvImgModelOn` on), the row `isServerM on` keeps in the apply protocol. -/
+def srvImgRowM (on : Bool) (γr : ReadNames) : TRow GF :=
+  match on with
+  | false => srvImgRowT γr.raft (srvImgModel γr)
+  | true => srvImgRowT γr.raft (srvImgModelOn γr)
+
+theorem srvImgRowM_false (γr : ReadNames) :
+    srvImgRowM (GF := GF) false γr = srvImgRowT γr.raft (srvImgModel γr) := rfl
+
+theorem srvImgRowM_true (γr : ReadNames) :
+    srvImgRowM (GF := GF) true γr = srvImgRowT γr.raft (srvImgModelOn γr) := rfl
 
 end rest
 
