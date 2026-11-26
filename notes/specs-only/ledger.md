@@ -5985,6 +5985,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   restarts carry the log-indices fact with the view). Proof: `Proof/.../antithesis/memoryOf.lean`.
 - **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
 
+## 2026-11-26 — antithesis parity B1: `memoryOf.spec` returns the fresh storage's snapshot resources (#33)
+
+- **File.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/memoryOf.lean`.
+- **Change (post strengthened).** `memoryOf.spec`'s post gains `memSnapNone γs memSnapEmpty ∗
+  memStorFresh ms γs 0 memSnapEmpty`: `NewMemoryStorage.spec`'s two resources the proof used to drop
+  (`SetHardState` and `Append` leave them alone). `node.start` needs them: `storeBase`/`storeConf` take
+  `memStorFresh ms γs 0 sv` at a snapshot of index `0`, and attaching the storage to raft (`restartStorage`)
+  consumes it. Proof: `Proof/.../antithesis/memoryOf.lean` keeps them.
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise (a driver-internal spec).
+
 ## 2026-11-26 — antithesis parity B1 (Sim): `BindingOk` bounds terms and vote requests by the boot term (#33)
 
 - **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`BootTermOk`, `BindingOk`),

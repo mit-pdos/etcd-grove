@@ -42,7 +42,7 @@ theorem memoryOf.wp_proof (wp_New : NewMemoryStorage.spec (GF := GF) (hG := hG))
   iunfold diskOwn at Hd
   icases Hd with ⟨%hsl, %esl, Hhs, #Hhsr, Hsnap, Hents, #Hes, Hcap⟩
   wp_auto
-  wp_apply wp_New false $$ [$Hraft] as %ms %γs ⟨%Hsz, #Hlock, #Hl0, Hend, -, Hmeta, -⟩
+  wp_apply wp_New false $$ [$Hraft] as %ms %γs ⟨%Hsz, #Hlock, #Hl0, Hend, Hsnap0, Hmeta, Hfresh⟩
   try wp_auto
   wp_apply wp_SetHardState ms γs _ hsl (HardStateM.mk w.term w.vote w.commit) $$ [$Hraft $Hmeta] as Hmeta
   · iunfold hsOpt; iright; iexact Hhsr
