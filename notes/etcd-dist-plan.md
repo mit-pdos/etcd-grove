@@ -4321,3 +4321,50 @@ work; the merged branches' interim axioms are the F9 packet's (nothing lands bef
   it becomes the one-line corollary `etcd_kv_safe_nocrash_of_full etcd_safe_nocrash` once the hypotheses are gone (Q4),
   and M1's kv-only dispatch specs (`.specKv`) and boots retire then.
 - The premise `KvOnly ∧ auth = false` of M1's statement stays (F9 trust-shrinking item, the user's call).
+
+### 30.3 What was built (F8 proper; helpers' branches `etcd-safe-full-{dispatch,start}/2026-11-26`, merged, deleted)
+- `dist/client/Shares.lean` (defs): `wlShare`/`wlNodeShare`, an if-chain on `w.kind = W64 k` with one rewrite law per
+  arm (auth, authLease `False`: D2), `writerNodePre`, `orchShareF`/`nodeShareF` and their laws; `rotateL_plain`,
+  `mem_rotateL` moved here from M1.
+- The full dispatch: `MainReady`, `MainDeployment`, `Orchestrator`, `NodeMain`, `NodeDeployment` `.spec` over every
+  kind (M1's kv-only ones renamed `.specKv`/`.wp_proofKv`, D3); `MainReady` takes the whole `threadTok` (RunCache's).
+  `NodeMainWatch.spec` covers kinds 1 and 2. `client/DispatchLinked.lean`: `wp_OrchestratorFull`,
+  `wp_NodeDeploymentFull`, **no hypothesis** (every arm linked: M1's kv, `wp_RunWatch`, `wp_RunCache`, `wp_RunCompact`,
+  `wp_RunPutGet`, `wp_RunDurable`, the three lease runs, `wp_NodeMainWatch`). KVWorkLinked's `wp_newClient` is
+  `wp_newClientKVW` (it clashed with WatchLinked's).
+- `dist/AdequacyClient.lean`: `orchBoot`, `nodeBoot` (any deployment: the program checks it), discharging the
+  machine-level premises (`wenv_nonempty`, `etcdThreads`, `receiptBound ≤ 2 ^ 56` from `etcdSteps`, `AsTarget`).
+- `dist/DeploymentClass.lean` (defs): `lmOf`, `cmpOf` and their side conditions, `class_authOff` (E/Ls/S/P),
+  `auth_class`, `workloads_length_le`, `nodeList_length_lt`. `server/ClusterStartD.lean`: `clusterStartDC` (given
+  compaction mode and retention; `clusterStartDL`/`clusterStartD` its corollaries), `kvInv_of_clusterFacts`.
+- `dist/Start.lean` (defs): `startShares d boot i` and its laws; per class `leaseMembers_of`, `lease_arm`,
+  `watch_start`, `pfx_start` (putget, durable, compact over `kvPfx_alloc` at `[pg/, du/, cw/]`), M1's `kv_start`;
+  `etcd_start` (auth off). At the boot state `σ₀.changes = [[]]`, no key, revision 1 (`bootSt_facts`).
+- `dist/TopLevelRobustness.lean`: `etcdBootNCOff_holds : EtcdBootNCAt (·.cfg.auth = false)` (no hypothesis) and
+
+  ```
+  theorem etcd_safe_nocrash (Hauth : EtcdAuthBootNC) (HauthLease : EtcdAuthLeaseBootNC) : etcd_robust_nocrash.spec
+  ```
+  `#print axioms`: no `sorryAx`; 134 axioms. Of the interim dist ones: N2's `KV_Put/Get/Delete/Compact_dist`,
+  `Txn_Commit_dist`; N3's `Watch_dist`, `RequestProgress_dist`; N5's `NewServer_dist`, `PeerServe_dist`,
+  `NewPeerHandler_dist`, `bootstrap.wp_proof_dist`; `Serve_dist` (F7's replaced text); F2's six lease axioms
+  (`Lease_Grant/GrantLive/LeasesGranted/LeasesLive_dist`, `Client_LeaseLeases/LeaseTimeToLive_dist`). None of F7's
+  auth-on axioms (they are reached only from the auth classes).
+
+### 30.4 The remaining hypotheses and what closes each
+
+| Hypothesis | What it is | Closed by |
+|---|---|---|
+| `EtcdAuthBootNC` | `EtcdBootNCAt` at deployments whose one workload is `auth` (kind 5): start, orchestrator, principal machines | F7 S3 (`etcd-safe-f7`): `RunAuth.spec`+proof, the principal arm (`principalOp`/`principalCodec`), the auth-on start (client halves of `etcdKV`/`authHistView` at `kvInvOn`, F7 L5), the auth-on `Watch_dist`; then `wlShare`/`wlNodeShare`'s kind-5 arms replace `False` |
+| `EtcdAuthLeaseBootNC` | the same at one `authLease` workload (kind 6) | F7 S4: the auth-on start at the revocable lease mode (`authLeaseShare` = `RunAuthLease.spec`'s precondition), `foreignReads.law` (pending Upamanyu's `foreign` decision), linking `RunAuthLease.wp_proof`; then the kind-6 arm |
+
+When both close, `etcd_safe_nocrash` loses its binders, `etcd_kv_safe_nocrash` becomes
+`etcd_kv_safe_nocrash_of_full etcd_safe_nocrash`, and M1's kv-only pieces retire (`EtcdKvBootNC`, `kvShares*`,
+`kvOnly_shape`, `kvMemberBoot`, `etcdKvBootNC_holds`, `kvremote/AdequacyClient`, `KvLinked`, the `.specKv` specs).
+
+### 30.5 F9 items raised here (none new in F8 itself)
+- No new axiom, `sorry` or top-level premise in F8's own files; the trusted text on the line is the merged branches'.
+- Trust-shrinking (the user's call): M1's premise `KvOnly d ∧ d.cfg.auth = false` stays until the full theorem
+  closes; then M1 is a corollary and the premise can go with M1 itself (Q4).
+- Narrowings already in `WellFormed` (F7's Q1/Q2 and auth ⇒ no compactor): the classes of §27.1 rest on them.
+- `Serve_dist`'s docstring carries the N3 review's F4 sentence (watch streams) onto F7's replaced text: re-review item.
