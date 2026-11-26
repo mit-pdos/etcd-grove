@@ -49,6 +49,8 @@ REVIEWED = {
         "KV_Get_dist's error arm: statusErrOk err, the in-process kv.Get.spec's kvErr part; real grpc-go "
         "across a network meets it (notes/axiom-review/kv-get-dist-statuserr.md: 44 cases, 0 violations; "
         "a coordinator-approved strengthening, 2026-11-26)",
+    'Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean':
+        'RequestProgress_dist only (Watch_dist names none): nil, errors.New\'s "no stream found", ctx.Err() (isContext) or run\'s closeErr, a raw Recv status/io.EOF or v3rpc.Error of NewStream\'s/getToken\'s error, all built in the caller by grpc-go (cliStreamErr, peer-independent) or clientv3, the member choosing only code, message, details; real 3-member cluster, 13 failure kinds, 0 violations (notes/axiom-review/requestprogress-dist-statuserr.md)',
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
         'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '
