@@ -608,3 +608,123 @@ theorem nodeVacantA_crashTok_agree (γ : Cluster) (N : Namespace) (id : w64) (x 
    write them. The gate's token-identity with `specGAtK`/`specCK` can only be checked against the written specs.
 6. **The crash-mode bbolt `Open`** (D-B4-3) is a dependency of C-I2-K's commit point. It is the bbolt-crash
    lead's.
+
+## Revision 2 (2026-11-26): review D5r applied, G1 answered, kaashoek's `SrvKeep.lean` names
+
+Branch `etcd-safe-crash-b4r/2026-11-26`, on top of rev 1 (@b0478f37e0). Draft text only: no Lean edit, and no
+re-proof.
+
+Inputs:
+- the delta review of rev 1, `coordinator-notes/plans/review-d5r-newserver-slot.md`. Its verdicts: §A and §B are
+  sound with fixes; C-I2-K is **unsound as written**;
+- kaashoek's G1 answer (#50, comment 7199212727; `notes/etcd-dist-d6.md` "T10 step 2 … G1" on
+  `etcd-safe-t10b/2026-11-26`);
+- kaashoek's vocabulary move, `etcd-safe-crash-b4move/2026-11-26` @16fdd8add3 (`SrvKeep.lean`; built);
+- the statements kaashoek left for the owner (#50, comment 7200454986).
+
+Outputs, outside the repo, under `/home/ubuntu/.claude-E/jobs/b20ef685/tmp/b4-scratch/`. Each rev-1 file is kept as
+`*.rev1.md`.
+- `newserver-dist-before-after.md` (rev 2: §A `NewServer_dist`, §B `NewServerC_dist`);
+- `c-i2-before-after.md` (rev 2: C-I2-K);
+- `srvkeep-member-before-after.md` (new):
+  - §1, trusted: `SrvKeep.lean`'s two new definitions, `srvKNDirOk` and `srvWalProg`;
+  - §2, untrusted: `memberKeepS`, `memberKeepR`/`Rc`, and the four member laws over the slot.
+
+### R2.1 Each review finding, and how it was resolved
+
+| Finding (D5r) | Resolution | Where |
+|---|---|---|
+| A-1 (`.first true true true` asserts `srvKNOk`'s witness-free rows) | premise `srvKNDirOk (GF := GF) cfg.DataDir' →` after `bootCfgOk … → N + 7 + bootWB ≤ backend.wbInit →`, in `NewServer_dist` and `specGAtK`. `srvKNDirOk` is new in `SrvKeep.lean`. **Deviation:** `srvKNOk`'s body is kept (a projection lemma `srvKNOk_dirOk` instead of redefining it), so the move's destructurings and `MemberCrash.lean` are untouched | scratch §A.1b; srvkeep §1.1 |
+| A-2 (`specGAtK` blocked on G1) | restated over G1's answer. T10's backend is one bundle with a payload `KB` (`cmtInvK := inv cmtN (cmtBody ∨ crashed ∗ token γk)`, `cmtBody ∋ dbCrashKeep ∗ KB`; `KB := True` untracked). So `srvBuiltG`/`srvStop.keep` keep their text, with no mode argument. `srvKb k` holds only crash tokens, the record being inside `cmtInvK`, so the doubled `dbHalf` does not arise. The landing conditions are restated (§R2.4) | scratch header, §A.5, §A.9, §B.9 |
+| A-2 (vacancy lemma not proved) | stated as obligation O-vac, a landing condition, with F-A1's binder as fallback | scratch §A.0, §A.2, §A.7 item 2, §A.9 |
+| A-3 (docstrings) | applied verbatim: "raft's lemma … (design §R1.6; to be proved from `nodeCrashInv_agree` before this text lands)"; "A crash leaves a prefix of the history at least as long as the synced mark" | scratch §A.0, §A.7(b) |
+| B-1 (WAL program side missing) | `"Hwalp" ∷ srvWalProg h` after `Hvac` in `NewServerC_dist`, `specCK` and the C-I2-K precondition. The row is named (`srvWalProg`, new in `SrvKeep.lean`) instead of inline, for one token-identical row in three places. B.5's table row is corrected | scratch §B.5; srvkeep §1.2; c-i2 §3.2 |
+| B-2 (B.3 "exactly") | replaced by D5r's wording, with the converse's counterexample recorded | scratch §B.3 |
+| B-3 (coverage: `i < σ.b`) | D5r's wording in B.1 and C-I2-K §4. `specC`/C-I2's `.snap.db` case are not retired before `restartSnap`. C-I2's first case goes when `specC` → `specCK`. `memberGen_boot.law` keeps a window arm (W) | scratch §B.1, §B.9; c-i2 §1, §4, §6; srvkeep §2.4 |
+| K-1 (post fixes the fresh `*WAL` address) | `bootOkRK`'s `"Hwal" ∷ wal.restartOkK cfg id cid h bw.w' σ`, at the handle `{h with w := bw.w', γ := γs}`, with no `walRecsH`. Obligation O-w (untrusted lemma, T2/T5) | c-i2 §3.3 |
+| K-1b (new in rev 2, beyond D5r) | `wal.Open` also allocates the handle's ghost names `h.γ.γ`/`h.γ.γl` (`storage.walOpen` holds `ghostVar h.γ.γ`). Fixing them to the boot's `h` is the K-1 refutation again. So `γs : WalShN` is existential, with only `γs.inc = h.γ.inc` tied | c-i2 §3.3 |
+| K-2 (precondition lacks lock token, call permission's half) | `srvWalProg h` in the precondition. It is given back on an error at `.restart false`, and is inside the open handle on success | c-i2 §3.2 |
+| K-3 (step list) | replaced by D5r's list, plus the reason `Unsaved` is false (it reads a state record first) | c-i2 §3.2 docstrings |
+| Q4 (`kr` never an axiom binder) | stated as a rule in all three scratch files. `memberKeepS` and the member laws take `kr` as an existential or binder: allowed, since they are untrusted (srvkeep §2) | all |
+| "Recorded, not filed" (an unsaved WAL with a CRC error is restarted by Go) | open question Q8, for `memberGen_boot.law`'s (T3/C-I3) review | §R2.5 |
+| SrvKeep names (kaashoek's move) | every text uses `SrvKeep.lean`'s names and argument order (`srvKeepInv γ id dd γd Kb Kbc kr γph L`). The `atCtx` read is `hG` itself in the specs (`G`, `lctx` are `hG`'s instances; structure eta) | scratch header, §A.3 |
+| owner's statements (#50 7200454986) | drafted, untrusted: `memberKeepS` (`γ' γd γph kr` existential: `Keep` is per-generation, and the slot is at the run's `{C.γ with reg := r}`), `memberKeepR`/`Rc` as `srvKeepAt … (.restart true)`/`.stopped`, `memberFirstCrash.law` (target `memberGen`), `memberGen_boot.law` (arms F, R, W), `memberGen_crash.law` (text unchanged, instance changed), `memberStop.law` (key premise `∀ ph k, kr ph k → kr .stopped k`) | srvkeep §2 |
+| R1.8 (1) spine, (2) D-B4-5 | decided by the lead: G3 applied (the spine is in `.first _ _ true`), D-B4-5 = (a) (`rnDurInvK` is allocated at the restart's boot) | — |
+
+### R2.2 Trusted items in rev 2 (each in Today / With this change form in the scratch texts)
+
+| Item | Kind | Text |
+|---|---|---|
+| `NewServer_dist` | approved axiom, changed | scratch §A |
+| `NewServerC_dist` | draft axiom | scratch §B |
+| `bootstrapCrashContractK` + `.law` | new interim law (a premise, so trust) | c-i2 §3.2 |
+| `bootOkRK`'s `"Hwal"`, `wal.restartOkK` | read by C-I2-K | c-i2 §3.3 |
+| `srvKNDirOk` | read by `NewServer_dist` | srvkeep §1.1 |
+| `srvWalProg` | read by `NewServerC_dist`, C-I2-K | srvkeep §1.2 |
+| the rest of `SrvKeep.lean` (unchanged) | read by the three | srvkeep §1.3 |
+| `srvKb`, `srvKbc` | read by the three; T10's placeholders | scratch header |
+
+### R2.3 Untrusted (srvkeep §2)
+
+`memberKeepS`, `memberKeepR`, `memberKeepRc`, `etcdstart.memberBootK`, `memberFirstCrash.law`, `memberGen_boot.law`,
+`memberGen_crash.law` (unchanged text), `memberStop.law`. No axiom reads any of them. Each law is proved by its
+owner, and the closed theorem discharges it.
+
+### R2.4 Obligations (untrusted; each is a landing condition of an after-text)
+
+- **O-vac** (raft): prove `nodeVacantA_crashTok_agree` (§R1.6), or fall back to F-A1's binder `x`.
+- **O-w** (T2, T5): `walRecsH`, `walHistH`, `walInv`, `srvWalKeep`, `srvWalProg`, `rnDurInvK`, `srvDurLoop`,
+  `srvDurKeep` and `walSaveH.law`'s update read `h : WalH` only through fields other than `w`, `γ.γ`, `γ.γl`.
+  `srvWalKeep`/`srvWalProg` read only `WalA` fields, so for them it holds by `rfl`. Two things need it: C-I2-K's
+  fresh handle, and `specGAtK`'s re-pick of the slot's WAL witness after `wal.Create`.
+- **O-Kb** (T10): `srvKb`/`srvKbc` read neither `k.h` nor `k.νk`. Reason: at a first start the backend's piece
+  enters (`be`) before `wal.Create` and `newRaftNode`, so the proof re-picks `k.h`/`k.νk` afterwards.
+- **O-pure** (`specGAtK`, `specCK`): the witness-dependent rows of `srvKNOk` at the success posts' phases (roots in
+  `k.h.R`, `IsUnder`, `k.h.md`) follow from `wal.bootRes`/`bootOk` (first start) or the boot's image (restart).
+  This is R1.8 (3) minus A-1's part.
+- **Landing**, beyond these: T10's crash-aware backend in Lean, with `OpenBackend.spec` opening the server's backend
+  with the server's payload; `specGAtK`/`specCK` written, proved, and gated; `NewServer_dist` to the user as a
+  changed approved axiom (scratch §A.9, §B.9).
+
+### R2.5 Still open
+
+1. **K-1b's incarnation.** Does `wal.Open` of an existing WAL keep the files' incarnation (`γs.inc = h.γ.inc`)?
+   That is T5's to confirm. If it does not, `inc` becomes existential too, and `walRecsH`'s tie is restated.
+2. **The tie at the stop** (P5, T10). `kbClose.law` turns the slot's `srvKb k` into `srvKbc k` at `DB.Close`'s
+   commit point. That needs the closing backend's names to be `k.γb`, but `srvBuiltG`/`srvStop.keep` do not expose
+   them. Either the crash-mode `Close` recovers the tie through the token's exclusivity, or the stop keep exposes
+   `B = k.γb`.
+3. **A-1 by derivation?** If `srvKNDirOk` follows from `wal.bootRes`/`bootCfgOk` (D5r: the `PathFits` row plausibly
+   from `WalA.fits`; the file-system context and `snapDirOf`'s path have no derivation in the text), the premise can
+   go before landing.
+4. **`wal.restartOkK`'s `Hs`.** It is existential, as today's `wal.restartOk`. Tying it to `rnDurInvK`'s `walHistH`
+   is T5's.
+5. **`memberFirstCrash.law` lacks `idIssueCrashStart`.** Today's law lacks it, and `memberGen_crash.law` has it.
+   The owner should align the two (srvkeep §2.3).
+6. **Elaboration.** The specs' `srvKeepInv … hG.goose_localGS` is meant to read the slot at `hG` (structure eta).
+   Confirm when `specGAtK` is written.
+7. **Arm (W) of `memberGen_boot.law`.** A generation started inside the `.snap.db` window has no keep slot, so the
+   B4 crash law does not cover it until `restartSnap` exists. That is today's coverage. The etcd_safe crash theorem
+   already takes `¬ clusterNoSnap` and cannot close for runs with snapshot transfer before the window has a phase.
+8. **F-B1's converse** (D5r, recorded). Go restarts an unsaved WAL when `wal.Unsaved` hits a CRC read error
+   (`bootstrap.go:92`), so arm (F)'s "unsaved → first start" is not always what Go does. This is for
+   `memberGen_boot.law`'s and C-I3's review (T3).
+9. Carried from R1.8: the placeholders `srvKb`/`srvKbc`, `srvCrashImagePure` and `(sm := …)`; the crash-mode bbolt
+   `Open` (D-B4-3, the bbolt-crash lead's).
+
+### R2.6 What needs a fresh delta review
+
+- **C-I2-K (c-i2 §3.2–§3.3), in full.** Rev 1 was unsound; rev 2 adds K-1b, which D5r did not ask for, and
+  `wal.restartOkK`'s text. Re-run D5r's refutation with `h.w` and with `h.γ.γ`.
+- **`NewServerC_dist` §B.5/§B.6.** `Hwalp`, and the claim that the post exposes no `h`.
+- **`NewServer_dist` §A.1b**, A-1's premise, and the deviation (projection lemma instead of redefining
+  `srvKNOk`). Also §A.5/§A.9, G1's reading.
+- **`srvkeep` §1** (the two new trusted definitions).
+- **`srvkeep` §2** needs a lighter review, for vacuity or unprovability only, since it is untrusted. Two points
+  above all: `memberKeepS`'s existentials, and `memberStop.law`'s key premise.
+
+### R2.7 Handoff
+
+- No Lean is changed on this branch. `SrvKeep.lean`'s additions (srvkeep §1) are ready for kaashoek's move branch as
+  a delta. The member restatements (srvkeep §2) are for their owner, after the bbolt-crash lead's C-I1 swap lands in
+  `MemberCrash.lean`.
