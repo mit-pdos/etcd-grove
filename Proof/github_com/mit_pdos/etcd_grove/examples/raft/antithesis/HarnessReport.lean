@@ -192,6 +192,92 @@ theorem report_au (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law 
     iapply h_lo γ j
     iframe Hl Hover
 
+/-- `report_updG`'s atomic update: `report_au` with the new view a function of raft's grown facts `G`. -/
+theorem report_auG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law (GF := GF))
+    (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (v' : AntSim.RaftFacts → AntSim.NodeView)
+    (ev : AntCheck.Event) (net₀ add : List Msg) (xnet₀ xadd : List XMsg)
+    (Q : AntSim.RaftFacts → AntSim.RaftFacts → Prop) (Φ : IProp GF)
+    (hnums : ev.NumsOk) (hchg : ev.ChgOk 0)
+    (hstep : ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin γ.R.N → AntSim.NodeView)
+      (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntSim.SimPre γ.R γ.dec S V net xnet evs G0 → (∀ i : Fin γ.R.N, (V i).r.full ∈ G0.logs) →
+      Q G0 G → V j = v → net₀ <+: net → xnet₀ <+: xnet →
+      AntSim.SimStep γ.R γ.dec evs G ev (AntSim.setV V j (v' G)) (net ++ add) (xnet ++ xadd) ∧
+        AntSim.RaftLaws G ∧ ∀ i : Fin γ.R.N, (AntSim.setV V j (v' G) i).r.full ∈ G.logs) :
+    iprop(antCluster (GF := GF) c γ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗ □ factsExt γ Q) ∗
+        iprop(viewFrag γ j v ∗ nodeLive γ j ∗
+          (∀ G : AntSim.RaftFacts, ⌜∃ G0, Q G0 G⌝ -∗ viewFrag γ j (v' G) -∗ nodeLive γ j -∗
+            (∃ (net : List Msg) (xnet : List XMsg), sentLb γ net ∗ xsentLb γ xnet ∗
+              ⌜net₀ <+: net ∧ (∀ m ∈ add, m ∈ net) ∧ xnet₀ <+: xnet ∧ ∀ x ∈ xadd, x ∈ xnet⌝) -∗ Φ)) ⊢
+      AU <{ ∃∃ evs, recAuth (GF := GF) γ.strm evs }> @ ⊤, ∅
+        <{ recAuth γ.strm (evs ++ [ev]) ∗ ⌜Stream.Fits GF (evs ++ [ev])⌝, COMM Φ }> := by
+  refine sep_and.trans (aupd_intro ?_)
+  iintro ⟨⟨#Hc, #Hlb, #Hxlb, #Hext⟩, ⟨Hv, Hl, HΦ⟩⟩
+  ihave #Hc' := Hc
+  iunfold antCluster at Hc'
+  icases Hc' with ⟨%cfg, %r, %ns, %stop, -, -, -, -, -, -, -, -, -, -, -, #Hinv, %Hrf, -⟩
+  iunfold sentLb at Hlb
+  iunfold xsentLb at Hxlb
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold antInv at Hi
+  icases Hi with (Hi | Hover)
+  · iunfold antOpen at Hi
+    icases Hi with ⟨%evs, %S, %V, %net, %xnet, %G0, Hstr, Hviews, Hnet, Hxnet, %Hpure, #HF0⟩
+    iunfold factsExt at Hext
+    imod Hext $$ %G0 %Hpure.2.1 HF0 with ⟨%G, #HF, %HQ⟩
+    ihave %Hpre := mono_list_auth_lb_valid (GF := GF) γ.sent 1 net net₀ $$ Hnet Hlb
+    ihave %Hxpre := mono_list_auth_lb_valid (GF := GF) γ.xsent 1 xnet xnet₀ $$ Hxnet Hxlb
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists ⟨evs, ⟨⟩⟩
+    simp only [Std.Tele.app]
+    unfold recAuth
+    iframe Hstr
+    isplit
+    · iintro Hstr
+      imod Hmask with -
+      imod Hclose $$ [Hstr Hviews Hnet Hxnet] with -
+      · inext
+        iunfold antInv
+        ileft
+        iunfold antOpen
+        iexists evs, S, V, net, xnet, G0
+        iframe Hstr Hviews Hnet Hxnet HF0
+        ipureintro; exact Hpure
+      imodintro
+      iframe Hv Hl HΦ
+    · iintro %y ⟨Hstr, %Hfit⟩
+      imod Hmask with -
+      imod h_vu (⊤ \ ↑antN) γ j V v (v' G) $$ [Hv Hviews] with ⟨%HVj, Hv, Hviews⟩
+      · iframe Hv Hviews
+      obtain ⟨hR, hL0, hG0, hlogs0⟩ := Hpure
+      obtain ⟨⟨S', hP', hA', hG'⟩, hL, hlogs⟩ :=
+        hstep evs S V net xnet G0 G ⟨hR.1, hR.2.1, hL0, hG0⟩ hlogs0 HQ HVj Hpre.2 Hxpre.2
+      have hR' := antRun_snoc GF hR hP' hA' hnums hchg Hfit Hrf
+      imod monoListAuthOwn_update_app (GF := GF) (γ := γ.sent) add $$ Hnet with ⟨Hnet, #Hlb'⟩
+      imod monoListAuthOwn_update_app (GF := GF) (γ := γ.xsent) xadd $$ Hxnet with ⟨Hxnet, #Hxlb'⟩
+      imod Hclose $$ [Hstr Hviews Hnet Hxnet] with -
+      · inext
+        iunfold antInv
+        ileft
+        iunfold antOpen
+        iexists evs ++ [ev], S', AntSim.setV V j (v' G), net ++ add, xnet ++ xadd, G
+        iframe Hstr Hviews Hnet Hxnet HF
+        ipureintro; exact ⟨hR', hL, hG', hlogs⟩
+      imodintro
+      iapply HΦ $$ %G %(⟨G0, HQ⟩) Hv Hl
+      iexists net ++ add, xnet ++ xadd
+      iunfold sentLb
+      iunfold xsentLb
+      iframe Hlb' Hxlb'
+      ipureintro
+      exact ⟨Hpre.2.trans (List.prefix_append _ _), fun m hm => List.mem_append_right _ hm,
+        Hxpre.2.trans (List.prefix_append _ _), fun x hx => List.mem_append_right _ hx⟩
+  · iexfalso
+    iapply h_lo γ j
+    iframe Hl Hover
+
 /-- **A report's update** (every report of a node): with the report's Sim step `hstep` (the
 report's `.stmt` at the invariant's state: the view `v` of node `j`, the sent lists past the
 caller's lower bounds `net₀`, `xnet₀`, raft's facts `G0` grown to `G` by `Q`), its numbers and its
@@ -220,6 +306,32 @@ theorem report_upd (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
   iintro ⟨#Hc, #Hlb, #Hxlb, #Hext, Hr, Hv, Hl, HΦ⟩
   iframe Hr
   iapply report_au h_vu h_lo c γ j v v' ev net₀ add xnet₀ xadd Q Φ hnums hchg hstep
+  iframe Hc Hlb Hxlb Hext Hv Hl HΦ
+
+/-- **A report's update with the new view a function of raft's grown facts** (`report_upd` at
+`v' G`; the `readreq` report, whose view records the read's committed log): the caller's
+continuation takes the facts `G` the commit grew to (`Q G0 G` for some `G0`). -/
+theorem report_updG (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law (GF := GF))
+    (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (v' : AntSim.RaftFacts → AntSim.NodeView)
+    (ev : AntCheck.Event) (net₀ add : List Msg) (xnet₀ xadd : List XMsg)
+    (Q : AntSim.RaftFacts → AntSim.RaftFacts → Prop) (Φ : IProp GF)
+    (hnums : ev.NumsOk) (hchg : ev.ChgOk 0)
+    (hstep : ∀ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin γ.R.N → AntSim.NodeView)
+      (net : List Msg) (xnet : List XMsg) (G0 G : AntSim.RaftFacts),
+      AntSim.SimPre γ.R γ.dec S V net xnet evs G0 → (∀ i : Fin γ.R.N, (V i).r.full ∈ G0.logs) →
+      Q G0 G → V j = v → net₀ <+: net → xnet₀ <+: xnet →
+      AntSim.SimStep γ.R γ.dec evs G ev (AntSim.setV V j (v' G)) (net ++ add) (xnet ++ xadd) ∧
+        AntSim.RaftLaws G ∧ ∀ i : Fin γ.R.N, (AntSim.setV V j (v' G) i).r.full ∈ G.logs) :
+    antCluster (GF := GF) c γ ∗ sentLb γ net₀ ∗ xsentLb γ xnet₀ ∗ □ factsExt γ Q ∗ ⧗ ev.weight ∗
+        viewFrag γ j v ∗ nodeLive γ j ∗
+        (∀ G : AntSim.RaftFacts, ⌜∃ G0, Q G0 G⌝ -∗ viewFrag γ j (v' G) -∗ nodeLive γ j -∗
+          (∃ (net : List Msg) (xnet : List XMsg), sentLb γ net ∗ xsentLb γ xnet ∗
+            ⌜net₀ <+: net ∧ (∀ m ∈ add, m ∈ net) ∧ xnet₀ <+: xnet ∧ ∀ x ∈ xadd, x ∈ xnet⌝) -∗ Φ) ⊢
+      reports γ.strm [ev] Φ := by
+  simp only [reports]
+  iintro ⟨#Hc, #Hlb, #Hxlb, #Hext, Hr, Hv, Hl, HΦ⟩
+  iframe Hr
+  iapply report_auG h_vu h_lo c γ j v v' ev net₀ add xnet₀ xadd Q Φ hnums hchg hstep
   iframe Hc Hlb Hxlb Hext Hv Hl HΦ
 
 end proof
