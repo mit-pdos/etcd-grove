@@ -9,3 +9,4 @@
 roots ^Proof/go_etcd_io/etcd/client/v3/leasing/(Link|Results)\.lean$
 axiom proto.Clone.wp_proof
 axiom proto.EqualStatus.wp_proof
+opaque metadata.builtRawMDRaw

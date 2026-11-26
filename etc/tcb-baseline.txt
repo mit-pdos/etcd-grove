@@ -401,11 +401,8 @@ opaque ccDecodeV2
 opaque context.madeCancelCtxRaw
 opaque credsYieldRaw
 opaque etcdVerifyEnv
-opaque etcd_dist.TrustBoundary
-opaque etcd_dist.clientProg
-opaque etcd_dist.memberId
-opaque etcd_dist.nodeProg
-opaque etcd_dist.serverProg
+opaque etcd_dist.httpPeerSvc
+opaque etcd_dist.peerHandlerRaw
 opaque grpcCliPI
 opaque grpcConnClosedRaw
 opaque grpcConnOptsRaw
@@ -449,6 +446,7 @@ opaque metrics.latencyTrackerOk
 opaque mvcc.kvEncode
 opaque mvcc.viewFk
 opaque noRefusalAt
+opaque osEnvRaw
 opaque pbModelOf
 opaque pbUnmarshalLeft
 opaque peer.transportPeer
