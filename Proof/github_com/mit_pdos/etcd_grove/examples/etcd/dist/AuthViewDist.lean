@@ -99,7 +99,12 @@ provider's shape (`auth.tokShape`: `<prefix>.<index>`), so no member issued it (
 Both keys (F7 S5 review, `notes/axiom-review/f7-s5-review.md` §1, 2026-11-26: until then `token` only, which
 was UNSOUND): the server's `AuthInfoFromCtx` (`server/auth/store.go:1072`, `auth.mdTokenOf`) reads `token`
 and, when it is absent, `authorization`, each with an optional `Bearer ` prefix trimmed; an anonymous client
-sending root's token under `authorization` is served as root (Go test `notes/axiom-review/f7-s5-gotest/`). -/
+sending root's token under `authorization` is served as root (Go test `notes/axiom-review/f7-s5-gotest/`).
+
+Keys are looked up literally: sound only while every way a program builds outgoing metadata lowercases
+keys (`AppendToOutgoingContext.spec` requires `lowerKey`; `NewOutgoingContext` has no spec). A future spec
+for raw metadata maps must require `lowerKey`, or this and `mdTokenOf` must lowercase (confirming review,
+`notes/axiom-review/f7-s5-confirm.md`). -/
 def outTokOk [GooseExts] (P : Option GoString) (om : GrpcMd) : Prop :=
   (metadata.mdVals om go!"token" = [] ∧ metadata.mdVals om go!"authorization" = []) ∨
     (P = none ∧ ∀ k ∈ [go!"token", go!"authorization"], ∀ t ∈ metadata.mdVals om k,
