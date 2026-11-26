@@ -101,6 +101,27 @@ def FnScope (c : CfgM) (id : w64) (t : NState) : Prop :=
 theorem LiftScope.fn {c : CfgM} {id : w64} {s : NState} (h : LiftScope c id s) : FnScope c id s :=
   ⟨fun hr => absurd hr h.2.2.1, fun hr => followerVotesOk_phys s h.2.2.2.1 hr, fun _ => h.2.2.2.2⟩
 
+/-- (antithesis parity B1, phase 2, step B) **`LiftScope` at the node's flags `k`**: check-quorum and
+pre-vote the raft state's (`KTie`), a pre-candidate with no leader, the node in its own progress map
+past the follower role (`RnScope`'s facts at a mode with pre-vote and non-voters, the lead's decisions
+1 and 2), the progress map's facts as `LiftScope`'s. No read-index fact: an arm that reads one takes
+`s.rd.pend = []` itself. -/
+def LiftScopeK (k : NodeK) (c : CfgM) (id : w64) (s : NState) : Prop :=
+  k.cq = s.cq ∧ k.prevote = s.prevote ∧ (s.role = .preCandidate → s.lead = W64 0) ∧
+  FollowerVotesOk (toPState s) ∧ domSet s.prvals = domSet s.progress ∧
+  (s.role ≠ .follower → id ∈ domSet s.prvals) ∧ domSet s.progress = c.ids
+
+theorem LiftScopeK.fn {k : NodeK} {c : CfgM} {id : w64} {s : NState} (h : LiftScopeK k c id s)
+    (hpd : s.rd.pend = []) : FnScope c id s :=
+  ⟨h.2.2.1, fun hr => followerVotesOk_phys s h.2.2.2.1 hr,
+    fun hr => ⟨hpd, h.2.2.2.2.1, h.2.2.2.2.2.1 hr, h.2.2.2.2.2.2⟩⟩
+
+/-- The basic scope's `LiftScope` at the flags off. -/
+theorem LiftScope.toK {k : NodeK} {c : CfgM} {id : w64} {s : NState} (h : LiftScope c id s)
+    (hk : k.cq = false ∧ k.prevote = false) : LiftScopeK k c id s :=
+  ⟨hk.1.trans h.2.1.symm, hk.2.trans h.1.symm, fun hr => absurd hr h.2.2.1, h.2.2.2.1,
+    h.2.2.2.2.2.1, fun _ => h.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2⟩
+
 /-- A send to a peer of a progress map of the configuration's ids is to a peer of the
 configuration. -/
 theorem ie_dst_ids {c : CfgM} {t X : NState} (hX : X.progress = t.progress)
@@ -131,6 +152,14 @@ theorem FnScope.of_preState {c : CfgM} {id : w64} {s : NState} {m : MessageM} (h
   · simp only [preState, hb, ↓reduceIte]
     refine ⟨fun hr => absurd hr (by simp [becomeFollower]), fun _ => rfl, fun hr => absurd rfl hr⟩
   · rw [ie_preState_nobf hb]; exact h.fn
+
+theorem FnScope.of_preStateK {k : NodeK} {c : CfgM} {id : w64} {s : NState} {m : MessageM}
+    (h : LiftScopeK k c id s) (hpd : s.rd.pend = []) (pvs : GMap w64 Progress) :
+    FnScope c id (preState s m pvs) := by
+  by_cases hb : PreBF m s
+  · simp only [preState, hb, ↓reduceIte]
+    refine ⟨fun hr => absurd hr (by simp [becomeFollower]), fun _ => rfl, fun hr => absurd rfl hr⟩
+  · rw [ie_preState_nobf hb]; exact h.fn hpd
 
 /-- `stepFollower`'s `r.lead = m.From` (`raft__Step/repl_lemmas.lean`'s `adopt_follower`, which a
 module outside `raft__Step/` may not import). -/
@@ -829,6 +858,180 @@ theorem recvEnd_of_stepEnd_vote {c : CfgM} {id : w64} {m : MessageM} {ents : Lis
       ie_preEnd_preState pvs h0 hst (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
         (ie_not_preTermKeep (by decide) (by decide)),
       ie_handle_vote c ents ctx (FnScope.of_preState hsc pvs) hty H⟩))
+
+/-! ### The lifting lemmas at the node's flags (antithesis parity B1, step B)
+
+The six received arms over `LiftScopeK` (check-quorum and pre-vote at the node's flags, a
+pre-candidate's arms), with no read-index request pending (`hpd`): stale at any flags
+(`ie_recvEnd_staleK`), a `MsgVote` within the lease ignored (`LeaseIgnore`). -/
+
+/-- `ie_recvEnd_fn` over `LiftScopeK`. -/
+theorem ie_recvEnd_fnK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} {ty : MsgType} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : mtypeOf m.Type' = some ty)
+    (hpv : m.Type' ≠ MsgPreVote) (hh : m.Type' ≠ MsgHup) (hv : m.Type' ≠ MsgVote)
+    (h0 : m.Term' ≠ W64 0) (hbf : PreBF m s ↔ uint.Z s.term < uint.Z m.Term')
+    (hpl : preLead m = if fromLeader ty then m.From' else W64 0)
+    (hpk : ¬ PreTermKeep (absMsg ty m ents ctx))
+    (hH : ∀ t : NState, FnScope c id t → (toPState t).outbox = (toPState s).outbox →
+      StepFnEnd c id t m ents ctx s' → HandleEnd k c id (toPState t) (absMsg ty m ents ctx) (toPState s'))
+    (h : StepEndBody c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') := by
+  by_cases hst : StaleMsg s m
+  · exact ie_recvEnd_staleK ⟨hsc.1, hsc.2.1⟩ hty hpv hst h
+  obtain ⟨-, -, -, hfn⟩ := h
+  obtain ⟨pvs, H⟩ := hfn hst hh hv
+  exact Or.inr (Or.inr (Or.inr ⟨h0, _, ie_preEnd_preState pvs h0 hst hbf hpl hpk,
+    hH _ (FnScope.of_preStateK hsc hpd pvs) (ie_preState_outbox s m pvs) H⟩))
+
+/-- **A stale message** over `LiftScopeK`: ignored, or (check-quorum or pre-vote on) a stale
+`MsgApp`/`MsgHeartbeat` answered. -/
+theorem recvEnd_of_stepEnd_staleK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} {ty : MsgType} (hsc : LiftScopeK k c id s)
+    (hty : m.Type' = MsgApp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeat ∨
+      m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgVote ∨ m.Type' = MsgVoteResp)
+    (hmt : mtypeOf m.Type' = some ty) (hst : StaleMsg s m) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg ty m ents ctx) (toPState s') :=
+  (h.body_xt (by unfold StepEndTy; rcases hty with e | e | e | e | e | e <;> ie_tyclose e)).elim
+    fun Y hb => ie_recvEnd_staleK (s := { s with gh := { s.gh with xt := Y } }) ⟨hsc.1, hsc.2.1⟩ hmt
+      (by rcases hty with e | e | e | e | e | e <;> (rw [e]; ie_tyclose MsgPreVote)) hst hb
+
+/-- **`MsgHeartbeat`** over `LiftScopeK`. -/
+theorem recvEnd_of_stepEnd_heartbeatK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgHeartbeat) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .heartbeat m ents ctx) (toPState s') :=
+  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+    (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
+    (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
+    (fun _ hsc' _ H => ie_handle_heartbeat hsc' hty H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+
+/-- **`MsgApp`** over `LiftScopeK`. -/
+theorem recvEnd_of_stepEnd_appK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgApp) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .app m ents ctx) (toPState s') :=
+  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+    (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
+    (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
+    (fun _ hsc' _ H => ie_handle_app hsc' hty H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+
+/-- **`MsgHeartbeatResp`** over `LiftScopeK`, with no read-index context. -/
+theorem recvEnd_of_stepEnd_heartbeatRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgHeartbeatResp)
+    (h0 : m.Term' ≠ W64 0) (hctx : ctx = []) (hns : NoSnapSent (toPState s) (toPState s'))
+    (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .heartbeatResp m ents ctx) (toPState s') :=
+  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+    (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
+    (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
+    (fun _ hsc' ho H => ie_handle_heartbeatResp hsc' hty hctx (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+
+/-- **`MsgAppResp`** over `LiftScopeK`. -/
+theorem recvEnd_of_stepEnd_appRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgAppResp)
+    (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
+    (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .appResp m ents ctx) (toPState s') :=
+  (h.body_xt (by unfold StepEndTy; ie_tyclose hty)).elim fun Y hb =>
+  ie_recvEnd_fnK (s := { s with gh := { s.gh with xt := Y } }) hsc hpd (by rw [hty]; rfl)
+    (by rw [hty]; ie_tyclose MsgPreVote)
+    (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
+    (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
+    (fun _ hsc' ho H => ie_handle_appResp hsc' hty (hns.of_outbox ho) H) hb
+
+/-- **`MsgVoteResp`** over `LiftScopeK`. -/
+theorem recvEnd_of_stepEnd_voteRespK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgVoteResp)
+    (h0 : m.Term' ≠ W64 0) (hns : NoSnapSent (toPState s) (toPState s'))
+    (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .voteResp m ents ctx) (toPState s') :=
+  ie_recvEnd_fnK hsc hpd (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote)
+    (by rw [hty]; ie_tyclose MsgHup) (by rw [hty]; ie_tyclose MsgVote) h0
+    (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty) (ie_not_preTermKeep (by decide) (by decide))
+    (fun _ hsc' ho H => ie_handle_voteResp hsc' hty (hns.of_outbox ho) H) (h (by unfold StepEndTy; ie_tyclose hty) (by xtrec_tac))
+
+/-- **`MsgVote`** over `LiftScopeK`: stale at any flags; within the lease (check-quorum on, a leader
+known, a higher term, not forced) ignored (`LeaseIgnore`); else `Step`'s own arm. -/
+theorem recvEnd_of_stepEnd_voteK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s) (hpd : s.rd.pend = [])
+    (hty : m.Type' = MsgVote) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .vote m ents ctx) (toPState s') := by
+  have hT : StepEndTy m.Type' := by unfold StepEndTy; ie_tyclose hty
+  by_cases hst : StaleMsg s m
+  · exact ie_recvEnd_staleK ⟨hsc.1, hsc.2.1⟩ (by rw [hty]; rfl) (by rw [hty]; ie_tyclose MsgPreVote) hst
+      (h hT (by xtrec_tac))
+  obtain ⟨-, -, hv, -⟩ := h hT (by xtrec_tac)
+  rcases hv hst hty with ⟨hcq, hl, hlt, hcx, he⟩ | ⟨pvs, H⟩
+  · have hpl : (toPState s).lead ≠ W64 0 := by
+      by_cases hr : s.role = .preCandidate
+      · exact absurd (hsc.2.2.1 hr) hl
+      · rw [toPState_lead_nonpre s hr]; exact hl
+    exact Or.inr (Or.inr (Or.inl ⟨h0, ⟨hsc.1.trans hcq, .inl rfl, hlt, hpl, hcx⟩, by rw [he]⟩))
+  · exact Or.inr (Or.inr (Or.inr ⟨h0, _,
+      ie_preEnd_preState pvs h0 hst (by unfold PreBF; ie_tyclose hty) (by unfold preLead; ie_tyclose hty)
+        (ie_not_preTermKeep (by decide) (by decide)),
+      ie_handle_vote c ents ctx (FnScope.of_preStateK hsc hpd pvs) hty H⟩))
+
+/-- `Step`'s `MsgPreVote` answer at the protocol level (`PreVoteEnd` → `PreVoteEndP`): the grant reads
+the physical `lead`, which a pre-candidate's is `0` too. -/
+theorem ie_handle_preVote (c : CfgM) {id : w64} {t : NState} {m : MessageM} (ents : List EntryM)
+    (ctx : List w8) {s' : NState} (hpre : t.role = .preCandidate → t.lead = W64 0)
+    (hty : m.Type' = MsgPreVote) (H : PreVoteEnd id t m s') :
+    HandleEnd k c id (toPState t) (absMsg .preVote m ents ctx) (toPState s') := by
+  have hlead : (toPState t).lead = t.lead := by
+    by_cases hp : t.role = .preCandidate
+    · rw [hpre hp]; simp [toPState, hp]
+    · exact toPState_lead_nonpre _ hp
+  have hnv : m.Type' ≠ MsgVote := by rw [hty]; ie_tyclose MsgPreVote
+  have hg : VoteGrant t m ↔ ((PCanVote (toPState t) m.From' ∨ uint.Z (toPState t).term < uint.Z m.Term') ∧
+      plogUpToDate (toPState t).base (toPState t).log (entryID.mk m.LogTerm' m.Index') = true) := by
+    unfold VoteGrant PCanVote
+    rw [hlead]
+    constructor
+    · rintro ⟨h1 | h1 | ⟨-, h1⟩, h2⟩
+      · exact ⟨.inl (.inl h1), h2⟩
+      · exact ⟨.inl (.inr h1), h2⟩
+      · exact ⟨.inr h1, h2⟩
+    · rintro ⟨(h1 | h1) | h1, h2⟩
+      · exact ⟨.inl h1, h2⟩
+      · exact ⟨.inr (.inl h1), h2⟩
+      · exact ⟨.inr (.inr ⟨hty, h1⟩), h2⟩
+  unfold HandleEnd
+  dsimp only [absMsg, absMsgFrom]
+  rcases H with ⟨hgr, rfl⟩ | ⟨hgr, rfl⟩
+  · refine Or.inl ⟨(hg.1 hgr).1, (hg.1 hgr).2, ?_⟩
+    simp only [vrespMsgOf, if_neg hnv, ↓reduceIte, Bool.false_eq_true]
+    rfl
+  · refine Or.inr ⟨fun h => hgr (hg.2 h), ?_⟩
+    simp only [vrespMsgOf, if_neg hnv, ↓reduceIte]
+    rfl
+
+/-- (antithesis parity B1, step B) **`MsgPreVote`** over `LiftScopeK` (`StepEnd.prevote`): stale, the
+rejection at the node's term (`StaleEnd`'s third arm); within the lease ignored (`LeaseIgnore`); else
+answered at the node's state (the preamble keeps a pre-vote request's state, `PreTermKeep`). -/
+theorem recvEnd_of_stepEnd_preVoteK {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
+    {ctx : List w8} {s s' : NState} (hsc : LiftScopeK k c id s)
+    (hty : m.Type' = MsgPreVote) (h0 : m.Term' ≠ W64 0) (h : StepEnd c id m ents ctx s s') :
+    RecvEnd k c id (toPState s) (absMsg .preVote m ents ctx) (toPState s') := by
+  obtain ⟨hstl, hfr⟩ := h.prevote hty
+  by_cases hs : StaleMsg s m
+  · refine Or.inr (Or.inl ⟨hs.1, hs.2, Or.inr (Or.inr ⟨rfl, ?_⟩)⟩)
+    rw [hstl hs, toPState_sendMsgs]; rfl
+  rcases hfr hs with ⟨hcq, hl, hlt, hcx, he⟩ | H
+  · have hpl : (toPState s).lead ≠ W64 0 := by
+      by_cases hr : s.role = .preCandidate
+      · exact absurd (hsc.2.2.1 hr) hl
+      · rw [toPState_lead_nonpre s hr]; exact hl
+    exact Or.inr (Or.inr (Or.inl ⟨h0, ⟨hsc.1.trans hcq, .inr rfl, hlt, hpl, hcx⟩, by rw [he]⟩))
+  · refine Or.inr (Or.inr (Or.inr ⟨h0, toPState s, ?_, ie_handle_preVote c ents ctx hsc.2.2.1 hty H⟩))
+    have h2 : ¬ uint.Z m.Term' < uint.Z s.term := fun hl => hs ⟨h0, hl⟩
+    by_cases hgt : uint.Z s.term < uint.Z m.Term'
+    · exact Or.inr (Or.inr ⟨hgt, Or.inl rfl, rfl⟩)
+    · exact Or.inr (Or.inl ⟨by show m.Term' = s.term; word, rfl⟩)
 
 /-- **`MsgProp`** (term `0`: `RawNode.Propose`'s, or a forwarded one), as `ProposeEnd`. -/
 theorem proposeEnd_of_stepEnd {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
