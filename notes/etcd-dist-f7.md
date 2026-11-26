@@ -1402,3 +1402,66 @@ whole lib, since `TxnCommitOnDist`'s docstring change rebuilds its importers); l
 
 **Left:** linking (`RunAuthLease` into a `Results` root) waits on `foreignReads.law` (Upamanyu; the side branch drops
 the two lessor reads instead); then Handoff S3-1 item 5 (the `etcd-dist-auth` tcb collection, axiom-tok).
+
+### Handoff RA-1 (2026-11-26; S6 `RunAuth`: refusal pieces and spec drafts; `RunAuth.wp_proof` not started)
+
+Branch `etcd-safe-f7-runauth` (off `etcd-safe-f7` @ `3e36f7cbd9`, with the lead's `etcd-safe-watchon/2026-11-26` @
+`f98b5cfbe5` merged, clean). Builds on fk-lean1 `~/eg/wt/etcd-safe-f7-runauth` (seeded from `dsv-retire-3`, pin
+`a706aeb9a`); `/shared/tmp/f7ra-rb.sh <targets>` syncs the local changes and runs `lake build` there (flock,
+`MemoryMax=50G`; `CHECK=1` runs `etc/lean-check.py` instead). No `sorry`, no new axiom, no statement changed.
+
+**Build status: UNBUILT at handoff.** Background job (local, started this session): waits on fk-lean1 for the
+`.lake/build` seed copy (`cp -a ../dsv-retire-3/.lake/build`, log `~/eg/tmp/f7ra-cp.log`) to finish, then runs
+`/shared/tmp/f7ra-rb.sh` on the four modules below (`Proof...dist.client.AuthWatchRefusal`, `...AuthRunDefs`,
+`Spec...dist.client.remotePrincipals`, `...RunAuth`); log `/shared/tmp/f7ra-build1.log` (ends `EXIT n`). First step
+of the next session: check it ends `EXIT 0` (if the job was killed, rerun the same `f7ra-rb.sh` command once the
+copy is done), fix forward any error. No module has a `sorry`; none is imported by anything else.
+
+**Written, unbuilt:**
+- `Proof/.../dist/client/AuthWatchRefusal.lean` (defs), the riskiest pieces of the lead's discharge list (#50,
+  comment 7189396217):
+  - `streamKeyOf_single_only`: the untrusted variant of `streamKeyOf_single` (metadata with the stream key of
+    `{k: [v]}` has no value under any other key; `mdSortedKeys_mem`);
+  - `outTokOkS_reqMd P who (who = "bad" → P = none)`: `WatchOn_dist`'s `outTokOkS` for `reqMd who` (`bad`'s
+    `token: badtoken` context; `outTokOkS_none` for the others);
+  - `watchCheckedD_c_refuted`: a principal's (`P ∈ {none, u, v}`) `watchCheckedD … "c/" "c0"` refutes at the frozen
+    set-up state (`authHistLb_of_reqLogLb`, `authHistFrozen_prefix`, `srvAuthAtLog_frozen`, `not_granted_c`).
+    The watch's key and range end are `watch_c_ok`'s (`etcd_auth`, WorkCalls).
+- `Proof/.../dist/client/AuthRunDefs.lean` (defs): `akDistEnv addrs Γ γR`, the persistent environment the
+  orchestrator hands each principal machine (KV invariant, `akHistInv Γ.kv`, frozen history, `Lset`, the floors).
+- `Spec/.../dist/client/remotePrincipals.lean`: `remotePrincipals.specWith PS` (pre: share `PS Γ γR ns` and
+  `akDistEnv`; post `levelTok 0`).
+- `Spec/.../dist/client/RunAuth.lean`: `RunAuth.specWith PS`, RunAuthLease's premises minus the lease ones, plus
+  `nodes ↦*□ ns ∗ PS Γ γR ns`, and `∀ cs ∈ σ0.changes, cs = []` (the boot state, as `stateHistOk_boot`) in place of
+  `findKey "a/x" σ0.kvs = none`.
+
+**Contract gap (for the lead): the principal service.** `RunAuth` runs the principals' `auth.Work` remotely
+(`remotePrincipals`, `reportAll` with `principalCodec`); nothing specifies that service yet (cf. `writersShare`,
+`writerSvcG` for the watch workload). Needed: a principal wire (`principalCodec`: a string in, a bool out), a
+service whose request carries the orchestrator's ghost names (`γz`, `hs`, `Lset`, `r`, and `γR`'s, or `γR` fixed by
+the start) and whose `P` is `akDistEnv`'s body at the global ghost state (the `kmInvG`/`kmInv_eq_G` pattern), its
+`principalsShare Γ γR ns`, `remotePrincipals.wp_proof` (`remoteWriters.wp_proof`'s port), and the machines' side:
+`etcd_auth.Work`'s dist spec and proof (port of `Work.lean`/`WorkCalls.lean`, ~1.7k lines, over the `On_dist` axioms,
+`WatchOn_dist` with `outTokOkS_reqMd` and `watchCheckedD_c_refuted`), and NodeMain's auth dispatch. Until then the
+specs are stated over `PS` (`specWith`), which `RunAuth.spec := RunAuth.specWith principalsShare` will fix.
+
+**Next: `RunAuth.wp_proof`** (new proof module `Proof/.../dist/client/RunAuth.lean`), stated
+`theorem RunAuth.wp_proof (PS) (callees…) (wp_rp : remotePrincipals.specWith PS) : RunAuth.specWith PS`.
+Callees: RunAuthLease's `wp_newClient`, `wp_SetUp : etcd_auth.SetUp.spec_dist`, `wp_barriers`, `wp_newUserClient`,
+`wp_ended`, `wp_checked`, `wp_WithTimeout`, `wp_ErrAny`, `wp_Put : KV_PutOn_dist.spec`; plus `wp_Watch :
+WatchOn_dist.spec`, `wp_WithPrefix`, `wp_WithRev`, `wp_WithRange`, `wp_AfterFunc`, `wp_Stop`, `wp_Collect`
+(`collectFor` has no spec: inline it, or give it one, as `RunWatch.lean` l.268-293 does the same three calls),
+`wp_CheckHistory`, `wp_LastIn`, `wp_Permitted` (`etcd_auth`'s). Plan, after RunAuthLease's prefix
+(`RunAuthLease.lean` to barrier 1 and the clients):
+- `akHist_alloc Γ.kv σ0 (stateHistOk_of_changes_nil σ0 h)` on the precondition's `etcdKV Γ.kv σ0` *before*
+  `SetUp`; SetUp's put offers: `akHist_writeAu Γ.kv _ (opGrantD …) True` (its `G` ignored, `opHistOk_setupPut`) gives
+  `writeAuD` directly (`writeAuD` is `□ kvAu1G … (opGrantD …) Q`); `putWireOf (opPutModel k "setup" [])` vs
+  `client.putKeyOp k "setup"`: see how `cell_setupAuD` bridged it in `AuthCell.lean`.
+- `remotePrincipals` with `akDistEnv addrs Γ γR` built from SetUp's post and barrier 1's floors
+  (`[∗list] barrierFloor … Lset a` is `watchFloorsD addrs Γ γR Lset` after `iunfold`).
+- root's Put of `z/end`: `KV_PutOn_dist` with `akHist_writeAu … opHistOk_endPut`.
+- root's watch: `WatchOn_dist` at `eps := [a0]`, `cfg` root's (`Token' = []` from `userCli`), `om := none`
+  (`outTokOkS_none`), floors `watchFloorsD [a0]` (barrier 1's at index 0), `L₀ := Lset`, read update
+  `akHist_readAu Γ.kv` (`Q σ := ⌜stateHistOk σ⌝`; `kvReadAu` is `□ AU`, `icases … with #H`); then
+  `RootWatch.lean`'s `root_resp`/`histOk_of_rootEvOk` (the elements' check slot unused).
+- u's watch: the same at `[au]`, u's `cfg`; `RootWatch.lean`'s `u_resp` (no auth fact: the range filters).
