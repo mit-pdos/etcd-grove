@@ -86,7 +86,7 @@ instance wrec.countable : Pos.Countable wrec :=
 abbrev WN : Type := GName × GName × List (GoString × GoString)
 
 /-- **The adapter of the names `n` at the view `Γ`**. -/
-def kmOf (Γ : DistView) (n : WN) : KMNames := ⟨Γ.kv, n.1, n.2.1, etcd_partition.wkW n.2.2⟩
+abbrev kmOf (Γ : DistView) (n : WN) : KMNames := ⟨Γ.kv, n.1, n.2.1, etcd_partition.wkW n.2.2⟩
 
 /-- **A small Put**: its key and value at most 8 bytes (`GenAll`'s: keys `wk/k0`.., values `a`..). -/
 def wkvSmall (p : wkv) : Prop := p.Key'.length ≤ 8 ∧ p.Val'.length ≤ 8
@@ -98,6 +98,30 @@ theorem genKv_small (p : wkv) (h : GenKv etcd_partition.genKeys p) : wkvSmall p 
   refine ⟨?_, ?_⟩
   · rcases hk with h | h | h <;> rw [h] <;> decide
   · rcases hv with h | h | h | h <;> rw [h] <;> decide
+
+theorem wkvSmall.sizeOk {p : wkv} (h : wkvSmall p) : wkvSizeOk p := by
+  obtain ⟨h1, h2⟩ := h; exact ⟨by omega, by omega⟩
+
+/-- **A small record**: its key and value at most 8 bytes (a small Put's). -/
+def wrecSmall (r : wrec) : Prop := r.Key'.length ≤ 8 ∧ r.Val'.length ≤ 8
+
+theorem recs_flat_le : ∀ (rs : List wrec), (∀ r ∈ rs, wrecSmall r) →
+    (rs.flatMap (fun r => encU64 r.Rev' ++ encStr r.Key' ++ encStr r.Val')).length ≤ 40 * rs.length
+  | [], _ => by simp
+  | r :: rs, h => by
+    have h1 := h r List.mem_cons_self
+    have ih := recs_flat_le rs (fun x hx => h x (List.mem_cons_of_mem _ hx))
+    simp only [List.flatMap_cons, List.length_append, encStr, encU64_length, List.length_cons] at ih ⊢
+    obtain ⟨hk, hv⟩ := h1
+    omega
+
+/-- **A log of small records encodes in `8 + 40` bytes per record.** -/
+theorem recsBytes_length_le (rs : List wrec) (h : ∀ r ∈ rs, wrecSmall r) :
+    (recsBytes rs).length ≤ 8 + 40 * rs.length := by
+  unfold recsBytes
+  rw [List.length_append, encU64_length]
+  have := recs_flat_le rs h
+  omega
 
 end pure
 
@@ -138,6 +162,16 @@ def writerWire (N : Type) : RWire GF (N × List wkv) (List wrec) where
   encOut o := capped (recsBytes o)
   encIn_len _ := capped_len _
   encOut_len _ := capped_len _
+
+theorem writerWire_ivAt (N : Type) (x : GoInterface) (i : N × List wkv) :
+    (writerWire (GF := GF) N).ivAt x i = iprop(∃ sl : GoSlice,
+      ⌜x = interface.mkOk (go.GoType.SliceType github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.KV.ty) #sl ∧
+        (kvsBytes i.2).length < 2 ^ 63⌝ ∗ sl ↦*□ i.2) := rfl
+
+theorem writerWire_ovAt (N : Type) (v : GoInterface) (o : List wrec) :
+    (writerWire (GF := GF) N).ovAt v o = iprop(∃ sl : GoSlice,
+      ⌜v = interface.mkOk (go.GoType.SliceType github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.PutRec.ty) #sl ∧
+        (recsBytes o).length < 2 ^ 63⌝ ∗ sl ↦*□ o) := rfl
 
 end wire
 
@@ -207,6 +241,30 @@ is the machine's at its values. -/
 theorem svcAddr_writerSvc [π : NetProtoGS] [ρ : RemoteGS] (Γ : DistView) (a : GoString) :
     svcAddr (Gg := hG.goose_globalGS) (writerSvcG (Gg := hG.goose_globalGS) Γ) a =
       svcAddr (Gg := hG.goose_globalGS) (writerSvc Γ) a := rfl
+
+/-- **The facts of a log of small records** are the check's (`okFactK_of_KM`) and their smallness. -/
+theorem okFacts_small (γ : KMNames) : ∀ (l : List wrec),
+    ([∗list] p ∈ l, iprop(okFactKM (GF := GF) γ p ∗ ⌜wrecSmall p⌝)) ⊢
+      ([∗list] p ∈ l, etcd_partition.okFactK γ p) ∗ ⌜∀ p ∈ l, wrecSmall p⌝
+  | [] => by
+    iintro -
+    isplitl
+    · iapply BigSepL.bigSepL_nil.2; itrivial
+    · ipureintro; simp
+  | a :: l => by
+    iintro H
+    icases (BigSepL.bigSepL_cons (Φ := fun _ p => iprop(okFactKM (GF := GF) γ p ∗ ⌜wrecSmall p⌝))).1
+      $$ H with ⟨⟨Ha, %ha⟩, Ht⟩
+    icases okFacts_small γ l $$ Ht with ⟨Ht, %ht⟩
+    isplitl
+    · iapply (BigSepL.bigSepL_cons (Φ := fun _ p => etcd_partition.okFactK (GF := GF) γ p)).2
+      iframe Ht
+      iapply okFactK_of_KM γ a $$ Ha
+    · ipureintro
+      intro x hx
+      rcases List.mem_cons.1 hx with rfl | hx
+      · exact ha
+      · exact ht x hx
 
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]

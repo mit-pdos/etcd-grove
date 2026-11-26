@@ -44,8 +44,8 @@ theorem Writer_dist.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_KV_Put : KV_Put_dist.spec (GF := GF) (hG := hG)) :
     Writer_dist.spec (GF := GF) (hG := hG) := by
-  intro π cl api eps V Γ QW OkF w γt tsl tried lo hi hauth hP hAs hlo hlh hhi hsz
-  wp_start as ⟨Hlt, Htk, #Hkc, #Ht, #Hau, #Hconv, #Hmu⟩
+  intro π cl api eps V Γ QW OkF w γt γn c0 tsl tried lo hi hauth hP hAs hlo hlh hhi hsz
+  wp_start as ⟨Hlt, Htk, Hgn, #Hkc, #Ht, #Hau, #Hconv, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -67,11 +67,13 @@ theorem Writer_dist.wp_proof
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
-  ihave HI : (∃ (k : w64), "k" ∷ k_ptr ↦ k ∗ "Hlt" ∷ levelTok 0 ∗ "Htk" ∷ token γt ∗
-      "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi⌝ : IProp GF) $$ [k Hlt Htk]
-  · iexists lo
+  ihave HI : (∃ (k : w64) (c : Nat), "k" ∷ k_ptr ↦ k ∗ "Hlt" ∷ levelTok 0 ∗ "Htk" ∷ token γt ∗
+      "Hgn" ∷ ghostVar γn (1 : Qp).half c ∗
+      "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi ∧ c + sint.nat lo ≤ c0 + sint.nat k⌝ :
+        IProp GF) $$ [k Hlt Htk Hgn]
+  · iexists lo, c0
     iframe
-    ipureintro; constructor <;> word
+    ipureintro; exact ⟨by word, by word, by omega⟩
   wp_for HI
   wp_if_destruct
   · have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z tsl.len := ⟨by word, by have := Htl.1; word⟩
@@ -113,7 +115,8 @@ theorem Writer_dist.wp_proof
     · subst Herr
       ihave #Hok : OkF ⟨m.hdr.revision, x.Key', x.Val'⟩ $$ [HQ]
       · rw [Hs.1]
-        iapply Hconv $$ HQ
+        ihave Hc := Hconv $$ %x.Key' %x.Val' %σ %hxP HQ
+        iapply Hc
         ipureintro; exact ⟨Hs.2.2.1, Hs.2.2.2.1⟩
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [] as ⟨Hown, Hinv⟩
@@ -122,8 +125,9 @@ theorem Writer_dist.wp_proof
       icases Hinv with (Hinv | ⟨%sl0, -, Htk'⟩)
       rotate_left
       · iexfalso; iapply (token_exclusive γt) $$ Htk Htk'
-      iunfold wsInvF at Hinv
-      icases Hinv with ⟨%osl, %oks, Hof, Hos, Hocap, #Hoks⟩
+      icases Hinv with ⟨%osl, %oks, Hof, Hos, Hocap, #Hoks, Hgi⟩
+      ihave %Heq := ghostVar_agree γn _ _ _ _ $$ Hgi Hgn
+      imod ghostVar_update_halves (c + 1) γn _ _ $$ Hgi Hgn with ⟨Hgi, Hgn⟩
       iunfold putRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %pk, #Hhd, #Hhf, -⟩
       iunfold hdrFull at Hhf
@@ -137,13 +141,15 @@ theorem Writer_dist.wp_proof
       (try wp_auto)
       wp_apply wp_slice_append $$ [$Hos $Hocap $Hl1] as %osl' ⟨Hos, Hocap, -⟩
       (try wp_auto)
-      wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" w) (wsInvT w OkF γt)) $$ [Hown Hof Hos Hocap]
+      wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" w) (wsInvT w OkF γt γn)) $$ [Hown Hof Hos Hocap Hgi]
       · iframe #
         iframe Hown
         iunfold wsInvT
         ileft
-        iunfold wsInvF
         iexists osl', oks ++ [⟨m.hdr.revision, x.Key', x.Val'⟩]
+        have hl : (oks ++ [(⟨m.hdr.revision, x.Key', x.Val'⟩ : wrec)]).length = c + 1 := by
+          simp [Heq]
+        rw [hl]
         iframe
         inext
         imodintro
@@ -152,9 +158,10 @@ theorem Writer_dist.wp_proof
       (try wp_auto)
       wp_for_post
       iframe
-      iexists k + W64 1
+      iexists k + W64 1, c + 1
       iframe
-      ipureintro; constructor <;> word
+      have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+      ipureintro; exact ⟨by word, by word, by omega⟩
     · obtain ⟨Herr, -⟩ := Herr
       cases err with
       | nil => exact absurd rfl Herr
@@ -162,11 +169,16 @@ theorem Writer_dist.wp_proof
       (try wp_auto)
       wp_for_post
       iframe
-      iexists k + W64 1
+      iexists k + W64 1, c
       iframe
-      ipureintro; constructor <;> word
+      have hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+      ipureintro; exact ⟨by word, by word, by omega⟩
   · (try wp_auto)
+    have hkh : sint.nat k = sint.nat hi := by word
     iapply HΦ; iframe Hlt Htk
+    iexists c
+    iframe Hgn
+    ipureintro; omega
 
 end proof
 

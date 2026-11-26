@@ -6,7 +6,9 @@ log's facts `okFactKM γ` and a fresh token (`token_alloc`), which `Writer` hold
 `etcdstart.Writer` across machines (`Writer_dist`, a hypothesis) with each Put's update the adapter's
 write update after the start's changes (`km_put_au0`) and its logged fact `okFactKM_of_write`; the log
 read under the lock, the lock left with the token in its place (the call keeps the slice it returns);
-a `nil` log replaced by an empty one; the log's facts `okFactK` (`okFactK_of_KM`).
+a `nil` log replaced by an empty one; the log's facts `okFactK` (`okFactK_of_KM`). Its records are
+small (each a Put's, `wrecSmall`) and at most as many as the Puts (the log's length at the ghost variable
+`γn`, `Writer_dist`'s post), so the log encodes in a message (`recsBytes_length_le`).
 -/
 module
 
@@ -38,11 +40,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-set_option maxHeartbeats 800000 in
+set_option maxHeartbeats 1600000 in
 theorem writerOp.wp_proof (wp_Writer : Writer_dist.spec (GF := GF) (hG := hG)) :
     writerOp.spec (GF := GF) (hG := hG) := by
-  intro π cl api eps V Γ γ P sl ps hauth hAs hγk hW hps
-  wp_start as ⟨Hlt, #Hkc, #Hps, #Hkm, #Hl0⟩
+  intro π Γ eps V hauth hAs sys x i
+  simp only [writerWire_ivAt, writerWire_ovAt, wP, wQ, writerTok, ← kmInv_eq_G, ← okFactK_eq_G]
+  wp_start as ⟨⟨%cl, %api, %Hsys, Hlt, #Hkc⟩, ⟨%sl, ⟨%Hx, %Hb⟩, #Hps⟩, #Hkm, #Hl0, %Hpre⟩
+  obtain ⟨hps, hlen56⟩ := Hpre
+  subst Hsys Hx
   ihave #Pes : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
@@ -51,21 +56,24 @@ theorem writerOp.wp_proof (wp_Writer : Writer_dist.spec (GF := GF) (hG := hG)) :
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave %Hpl := ownSlice_len $$ Hps
+  ihave #Hl0' : monoListLbOwn (kmOf Γ i.1).ch ([[]] : List (List mvcc.Change)) $$ []
+  · iexact Hl0
   imod token_alloc (GF := GF) with ⟨%γt, Htk⟩
+  imod (ghostVar_alloc (GF := GF) (0 : Nat)) with ⟨%γn, Hgn⟩
+  icases (ghostVar_split_half γn 1 (0 : Nat)).1 $$ Hgn with ⟨Hgi, Hgn⟩
   (try wp_auto)
   -- `w := &etcdstart.Writes{}`: the log under its mutex
   icases typedPointsto_split _ _ _ $$ «$r0» with Hr0
   try simp only [TypedPointsto.typedPointstoDef]
   icases Hr0 with ⟨mu, ok, -⟩
-  imod sync.init_Mutex (wsInvT «$r0_ptr» (okFactKM γ) γt) ⊤
+  imod sync.init_Mutex (wsInvT «$r0_ptr» (fun p => iprop(okFactKM (kmOf Γ i.1) p ∗ ⌜wrecSmall p⌝)) γt γn) ⊤
       (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" «$r0_ptr»)
-    $$ mu [ok] with #Hmu
+    $$ mu [ok Hgi] with #Hmu
   · inext
     iunfold wsInvT
     ileft
-    iunfold wsInvF
     iexists slice.nil, []
-    iframe ok
+    iframe ok Hgi
     isplitr
     · iapply ownSlice_nil
     isplitr
@@ -74,41 +82,50 @@ theorem writerOp.wp_proof (wp_Writer : Writer_dist.spec (GF := GF) (hG := hG)) :
     iapply BigSepL.bigSepL_nil.2; itrivial
   (try wp_auto)
   -- `etcdstart.Writer(sys.(*clientv3.Client), w, ps, 0, len(ps))`
-  have hlen : sint.Z sl.len ≤ ps.length := by have := Hpl.1; word
+  have hlen : sint.Z sl.len ≤ i.2.length := by have := Hpl.1; word
   wp_apply (wp_Writer cl api eps V Γ
-      (fun k v => kmWriteQ γ [[]] (.put (putKeyOp k v))) (okFactKM γ) «$r0_ptr» γt sl ps (W64 0)
+      (fun k v => kmWriteQ (kmOf Γ i.1) [[]] (.put (putKeyOp k v)))
+      (fun p => iprop(okFactKM (kmOf Γ i.1) p ∗ ⌜wrecSmall p⌝)) «$r0_ptr» γt γn 0 sl i.2 (W64 0)
       sl.len hauth (fun _ => inferInstance) hAs (by decide) (by have := Hpl.2; word) hlen
-      (fun x hx => (hps x hx).2)) $$ [$Hlt $Htk] as ⟨Hlt, Htk⟩
+      (fun x hx => (hps x hx).2.sizeOk)) $$ [$Hlt $Htk $Hgn] as ⟨Hlt, Htk, %c, Hgn, %Hc⟩
   · iframe #
     isplitr
     · iintro !> %k' %v' %hkv
       obtain ⟨p, hp, hpe⟩ := List.mem_map.mp hkv
-      have hkvP : (k', v') ∈ P := by rw [← hpe]; exact (hps p hp).1
-      ihave Hw := km_put_au0 γ P hW k' v' hkvP $$ [$Hkm $Hl0]
+      have hkvP : (k', v') ∈ i.1.2.2 := by rw [← hpe]; exact (hps p hp).1
+      ihave Hw := km_put_au0 (kmOf Γ i.1) i.1.2.2 rfl k' v' hkvP $$ [$Hkm $Hl0']
       iunfold kvOpAu1 at Hw
       iunfold kvAu1 at Hw
-      rw [show putWireOf (opPutModel k' v' []) = putKeyOp k' v' from rfl, ← hγk]
+      rw [show putWireOf (opPutModel k' v' []) = putKeyOp k' v' from rfl]
       iexact Hw
-    iintro !> %k' %v' %σ HQ %Hb
-    iapply (okFactKM_of_write γ k' v' σ) $$ HQ
-    obtain ⟨h1, h2⟩ := Hb
-    ipureintro; exact ⟨by unfold kvRevFits at h1; omega, h2⟩
+    iintro !> %k' %v' %σ %hkv HQ %Hb
+    obtain ⟨p, hp, hpe⟩ := List.mem_map.mp hkv
+    have hsm := (hps p hp).2
+    simp only [pairOf, Prod.mk.injEq] at hpe
+    obtain ⟨rfl, rfl⟩ := hpe
+    isplitl
+    · iapply (okFactKM_of_write (kmOf Γ i.1) p.Key' p.Val' σ) $$ HQ
+      obtain ⟨h1, h2⟩ := Hb
+      ipureintro; exact ⟨by unfold kvRevFits at h1; omega, h2⟩
+    · ipureintro; exact hsm
   (try wp_auto)
   -- the log, read under the lock; the lock left with the token
   wp_apply (sync.Mutex.wp_Lock (structFieldRef
       github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" «$r0_ptr»)
-      (wsInvT «$r0_ptr» (okFactKM γ) γt)) $$ [] as ⟨Hown, Hinv⟩
+      (wsInvT «$r0_ptr» (fun p => iprop(okFactKM (kmOf Γ i.1) p ∗ ⌜wrecSmall p⌝)) γt γn)) $$ []
+      as ⟨Hown, Hinv⟩
   · iframe #
   iunfold wsInvT at Hinv
   icases Hinv with (Hinv | ⟨%sl0, -, Htk'⟩)
   rotate_left
   · iexfalso; iapply (token_exclusive γt) $$ Htk Htk'
-  iunfold wsInvF at Hinv
-  icases Hinv with ⟨%osl, %oks, Hok, Hos, Hocap, #Hoks⟩
+  icases Hinv with ⟨%osl, %oks, Hok, Hos, Hocap, #Hoks, Hgi⟩
+  ihave %Heq := ghostVar_agree γn _ _ _ _ $$ Hgi Hgn
   (try wp_auto)
   wp_apply (sync.Mutex.wp_Unlock (structFieldRef
       github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" «$r0_ptr»)
-      (wsInvT «$r0_ptr» (okFactKM γ) γt)) $$ [Hown Hok Htk]
+      (wsInvT «$r0_ptr» (fun p => iprop(okFactKM (kmOf Γ i.1) p ∗ ⌜wrecSmall p⌝)) γt γn))
+      $$ [Hown Hok Htk]
   · iframe #
     iframe Hown
     inext
@@ -116,34 +133,43 @@ theorem writerOp.wp_proof (wp_Writer : Writer_dist.spec (GF := GF) (hG := hG)) :
     iright
     iexists osl
     iframe Hok Htk
-  ihave #Hoks' : □ [∗list] p ∈ oks, etcd_partition.okFactK (GF := GF) γ p $$ []
-  · iintro !>
-    iapply (BigSepL.bigSepL_mono (Φ := fun _ p => okFactKM (GF := GF) γ p)
-      (fun _ => okFactK_of_KM γ _)) $$ Hoks
+  ihave ⟨#Hoks', %Hsm⟩ := okFacts_small (kmOf Γ i.1) oks $$ Hoks
+  have hol : oks.length ≤ i.2.length := by have := Hpl.1; rw [Heq]; word
+  have hbytes : (recsBytes oks).length < 2 ^ 63 := by
+    have := recsBytes_length_le oks Hsm; omega
+  imod ownSlice_persist _ _ _ $$ Hos with #Hos
   (try wp_auto)
   -- `if oks == nil { oks = []etcdstart.PutRec{} }`
   wp_if_destruct
-  · ihave %Hol := ownSlice_len $$ Hos
-    wp_apply wp_slice_literal (l := ([] : List wrec))
+  · wp_apply wp_slice_literal (l := ([] : List wrec))
     isplitr
     · ipureintro; rfl
     iintro %l1 ⟨Hl1, _⟩
+    imod ownSlice_persist _ _ _ $$ Hl1 with #Hl1
     (try wp_auto)
     iapply HΦ
-    iframe Hlt
-    iexists _, []
-    iframe Hl1
+    isplitl [Hlt]
+    · iexists cl, api
+      iframe Hlt Hkc
+      ipureintro; rfl
+    iexists []
     isplitr
-    · ipureintro; rfl
+    · iexists _
+      iframe Hl1
+      ipureintro; exact ⟨rfl, by simp [recsBytes, github_com.mit_pdos.etcd_grove.examples.etcd.dist.enc.encU64_length]⟩
     iintro !>
     iapply BigSepL.bigSepL_nil.2; itrivial
   · (try wp_auto)
     iapply HΦ
-    iframe Hlt
-    iexists osl, oks
-    iframe Hos
+    isplitl [Hlt]
+    · iexists cl, api
+      iframe Hlt Hkc
+      ipureintro; rfl
+    iexists oks
     isplitr
-    · ipureintro; rfl
+    · iexists osl
+      iframe Hos
+      ipureintro; exact ⟨rfl, hbytes⟩
     iexact Hoks'
 
 end proof
