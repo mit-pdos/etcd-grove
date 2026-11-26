@@ -90,7 +90,7 @@ theorem kvOrchBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics
 its index `c` in its workload, its address `a` and the members' client addresses rotated by `c`. -/
 theorem kvNodeBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [cl_sem : client.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel] [net.FieldAssumptions]
     (d : Deployment) (Hkv : KvOnly d) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat) (w : Workload) (c : Nat) (a : GoString) (hn : n < 2 ^ 31)
     (hl : d.nodeList[n]? = some (w, c, a)) (σ : state)

@@ -100,7 +100,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SrvRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
-public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Robustness.Statement
@@ -138,7 +137,7 @@ panic. -/
 def etcd_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [log.NewModel]
     [_root_.Perennial.net.FieldAssumptions]
     -- (wal-nostorageok, 2026-11-21: for the premise `rnNewStorageOk`) `os`'s field steps
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]

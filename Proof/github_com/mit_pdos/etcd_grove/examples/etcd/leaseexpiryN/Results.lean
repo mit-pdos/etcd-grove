@@ -54,7 +54,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_leaseexpiryN.wp_Main`). -/
 theorem leaseexpiryN_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcd_leaseexpiryN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiryN.wp_Main
 
@@ -71,7 +71,6 @@ outside `[1, 1000]`)
 theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (k : w64)

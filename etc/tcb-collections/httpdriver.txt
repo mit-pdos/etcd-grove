@@ -19,3 +19,4 @@ axiom Perennial.net.http.ReadResponse.wp_proof_resp
 axiom Perennial.net.http.Serve.wp_proof
 axiom Perennial.net.http.ServeMux.ServeHTTP.wp_proof
 axiom Perennial.net.http.wp_init_first
+opaque Perennial.net.http.godebugHttpmuxgo121

@@ -50,7 +50,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Ass
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_putgetN.wp_Main`). -/
 theorem putgetN_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     etcd_putgetN.Main.spec (GF := GF) (hG := hG) :=
   etcd_putgetN.wp_Main
 

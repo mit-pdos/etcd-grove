@@ -9,3 +9,4 @@
 #   etc/tcb-report.py --collection etc/tcb-collections/models-net.txt --check    against the lines below
 #   etc/tcb-report.py --collection etc/tcb-collections/models-net.txt --check --update
 roots ^Net/Proof/net/rpc/
+opaque Perennial.net.http.godebugHttpmuxgo121

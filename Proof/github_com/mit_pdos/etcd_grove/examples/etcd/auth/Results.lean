@@ -77,13 +77,12 @@ theorem authkv_startServer [os.file.FieldAssumptions] [os.fileStat.FieldAssumpti
     server_new_auth_on server_Start
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_auth.wp_Main`). At the
-hypothesis on the semantics every client-building `Main` has (`DialWithBalancerBody`, through
-`newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
+member's start with auth on
 (`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s) and hypotheses on the
 semantics (`ErrorStringLeaf`). `Main.spec`'s named workload premises
 include `grpcRepliesFit` (2026-10-31, `grpcServeTok`'s: the replies' encoded size). -/
 theorem authkv_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [EtcdGrove.ErrorStringLeaf] :
     etcd_auth.Main.spec (GF := GF) (hG := hG) :=
   etcd_auth.wp_Main authkv_startServer

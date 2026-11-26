@@ -118,7 +118,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
@@ -268,7 +268,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8sGF) (hG := k8sHeapAt hG lctx))
