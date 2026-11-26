@@ -57,15 +57,16 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- **An idle tail's fdatasync** (see the file header). -/
 theorem wp_idleFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
+    (i : Nat) (I : GMap GoString Nat) (hiI : incOf I dir = i)
     (j : Ino) (X : List GoString) (hj0 : NamesH) (b : GoString) (m : OsMeta) (bs : List ByteG)
     (fd : w64) (dq : DFrac) (d : OsFd) (Φ : val → IProp GF)
     (hb : (walNames hj0.cur).getLast? = some b) (hi : hj0.cur !! b = some (.file d.ino))
     (hlen : bs.length = m.size) :
-    ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
       osNames j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗ walTailsFrag (W := W) ∅ -∗
       walCutFrag (W := W) none -∗
       osMeta d.ino (DFrac.own (1 : Qp).half) m -∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs -∗
-      (∀ e : w64, osFd fd dq d -∗ walDirKey (W := W) dir j X -∗
+      (∀ e : w64, osFd fd dq d -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
         osNames j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗ walTailsFrag (W := W) ∅ -∗
         walCutFrag (W := W) none -∗
         ((⌜e = 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m.synced ∗
@@ -73,14 +74,14 @@ theorem wp_idleFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
-  iintro #Harea Hfd Hk Hn Hf Hcf Hm1 Hb1 HΦ
+  iintro #Harea Hfd Hk HI Hn Hf Hcf Hm1 Hb1 HΦ
   unfold walAreaOk
   icases Harea with ⟨#Hinv, #Hos, -⟩
   iapply (wp_atomic_nc (E1 := ⊤) (E2 := (⊤ : CoPset) \ ↑walN) _ _ rfl)
   iintro Hnc
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_syncIdle walCodec Mr R jr r s dir j X hj0 $$ Hb Hk Hn Hf Hcf with
-    ⟨%lay, %pre, %g0, %hp, Hseg, Hk, Hn, Hf, Hcf, Hconts⟩
+  icases walInvBody_syncIdle walCodec Mr R jr r s dir i I hiI j X hj0 $$ Hb Hk HI Hn Hf Hcf with
+    ⟨%lay, %pre, %g0, %hp, Hseg, Hk, HI, Hn, Hf, Hcf, Hconts⟩
   obtain ⟨hs, hinos, hsz⟩ := hp
   have hino : d.ino = g0.ino := tail_ino_of_last hb hi hinos hs
   unfold segRes
@@ -109,7 +110,7 @@ theorem wp_idleFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
     imodintro
-    iapply HΦ $$ %e Hfd Hk Hn Hf Hcf
+    iapply HΦ $$ %e Hfd Hk HI Hn Hf Hcf
     ileft
     iframe
     ipureintro; exact he
@@ -122,7 +123,7 @@ theorem wp_idleFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
     imodintro
-    iapply HΦ $$ %e Hfd Hk Hn Hf Hcf
+    iapply HΦ $$ %e Hfd Hk HI Hn Hf Hcf
     iright
     iframe
     ipureintro; exact he

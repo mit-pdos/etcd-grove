@@ -25,6 +25,325 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-26: `rnDurBodyK` and its step laws -- the body keeps the WAL's records as the eager fold (`walRecsH`) of the history, which a restart's history does not have (D6-T2 / P5 (b) steps 2-5, etcd-safe-p5)
+
+- **Spec.** `rnDurBodyK`/`HistOkK` (`etcdserver/InvWalCrash.lean`) and the laws over them: `rnDurK_alloc.law`,
+  `rnDurK_save.law`, `rnDurK_saveSnap.law`, `rnDurK_ownSnap.law`, `rnDurK_enter.law`, `rnDurK_crash.law`,
+  `rnRestartWal`/`rnRestartAllocK.law`; the pending batch's image condition `crashOk`.
+- **Defect.** The body holds `walRecsH h (recsOf vk.1 σ) Hs true`: the history's *eager* fold, and
+  `HistOkK` asks `walCommitLeFrom walFresh Hs`. A restarted WAL whose history holds a snapshot record the
+  reader dropped (`walKeep`) has no eager fold equal to what it read (ledger entry "`wal.restartOk` over the
+  reader's fold", defect 2), so `rnRestartAllocK.law` cannot allocate the body at a restart. And the pending
+  batch's images ask `ImgOk vk.1.S vk.1.l σ` at the `Save`, with the handed log `vk.1.l` raft gave at the
+  `Save`, which a crash image above the old commit need not agree with (session 5's finding: the agreement
+  lives in `run`'s state until *enter*).
+- **Evidence.** Step 1 (the entry below) put the contract's `Save`/`SaveSnap` over `walHistH`; the body is
+  the only remaining user of the eager fold besides the derived `walSaveSized_spec`/`walSaveSnapH_spec`.
+  `raftState_logViewE` (`raft/v3/DurableLogView.lean`) gives, at a mask containing raft's, a committed log
+  `L` the entered durable state agrees with up to its commit.
+- **Proposed change.** (2) the body's records `walHistH h Hs true ∗ ⌜walRead Hs = some σ⌝`, `recsOf` kept
+  only for a pending received snapshot (`walSnapCert` over `recsOf vk.1 σ`), `HistOkK` without
+  `walCommitLeFrom walFresh Hs`; (3) `crashOk`'s pending case, for `j > pos`: for every committed log `L`
+  that `vk.1.S` agrees with up to its commit (`DurAgrees`, `|L|` its commit) and that has the read's snapshot
+  term, `ImgOk vk.1.S L σ` (pure, quantified over `L`), discharged with `L` from `raftState_logViewE` at
+  *enter* (the view moves to `{v' with l := L}`) and in `rnDurK_crash.law` after the crash's enter; (4) the
+  step laws' updates over `walHistH` (`rnDurK_save.law`/`rnDurK_saveSnap.law`/`rnDurK_ownSnap.law` take the
+  contract's history update, no `WalSaveOk` premise), their proofs and `wal.restartOk`'s body
+  (`rnRestartWal` over `walHistH` and the read); (5) `walRecsH` deleted once unused. No top-level
+  statement, premise or axiom moves.
+- **Decision.** Accepted under the lead's approval of (b) and its server-side alternative (#50 2026-11-25
+  15:33Z, 2026-11-25T18:04:00Z); internal to the server. Applied step by step on `etcd-safe-p5`.
+
+## 2026-11-26: the WAL contract's `Save`/`SaveSnap` -- their atomic updates are over the eager fold (`walRecsH`), which no restarted WAL's history keeps (D6-T2 / P5 (b) step 1, etcd-safe-p5)
+
+- **Spec.** `isWalStorage`'s `Save` and `SaveSnap` (`etcdserver/WalApi.lean`; proved by `walSave_law`/
+  `walSaveSnap_law`, `RnNewStorage.lean`), the derived `walSaveSized_spec`/`walSaveSnapH_spec`, and P5's
+  `walSaveH.law`/`walSaveSnapH.law` (`InvWalCrash.lean`).
+- **Defect.** Too strong for the crash-aware invariant: the update's state is `walRecsH h σ Hs` with
+  `σ` the history's *eager* fold (`walFoldChkFrom walFresh Hs`) and `Save` asks `WalSaveOk σ es`; after a
+  restart whose history holds a snapshot record the reader drops, the next `Save` is no step of the eager
+  fold (the ledger entry "`wal.restartOk` over the reader's fold", defect 2), so the invariant cannot hand
+  the contract this state. Layer 1 needs neither the fold nor the premise.
+- **Evidence.** `walHistH_saveAU`/`walHistH_saveSnapAU` (`storage/WalRecsH.lean`) give layer 1's update
+  from one over `walHistH h Hs` (the history, no fold) with no premise.
+- **Proposed change.** The contract's two updates over the history: `AU <{ ∃∃ Hs, walHistH h Hs sized }>
+  @ WalFs.walAuMask, ∅ <{ walHistH h (Hs ++ [op]) sized, COMM Q Hs }>` (the refusal arm of `Save` returns
+  this update); `walSave_law`/`walSaveSnap_law` through `walHistH_saveAU`/`walHistH_saveSnapAU`; the direct
+  laws `walSaveHist_spec`/`walSaveSnapHist_spec`; `walSaveSized_spec`/`walSaveSnapH_spec` kept as derived laws
+  over `walRecsH` through `walRecsH_au_toHist` (the fold's step at commit), their refusal arm now handing
+  back the history's update (its only user, `walSaveRn_spec`, drops it); `walSaveH.law`/`walSaveSnapH.law`
+  restated over `walHistH` (the direct laws). Nothing else moves in this step.
+- **Decision.** Step 1 of P5 (b) as planned under the lead's approval of (b) (#50 2026-11-25 15:33Z) and
+  its server-side alternative (#50 2026-11-25T18:04:00Z); internal to the server (no top-level statement,
+  premise or axiom). Applied on `etcd-safe-p5` (P5 session 7).
+
+## 2026-11-26: `rnDurK_crash.law` -- the crash gives no certificate of the crashed WAL's history, so the restart cannot carry the snapshot records a later `Save` re-keeps (D6-T2 / P5 (a), etcd-safe-p5)
+
+- **Spec.** `rnDurK_crash.law` (`etcdserver/InvWalCrash.lean`, P5's; proved by `rnDurK_crash_law_holds`,
+  `InvWalCrashLaws.lean`); its user T7's `memberDur_crash` (`dist/crash/MemberCrash.lean`).
+- **Defect.** Too weak for T10's image route (#50 2026-11-25T16:06:56Z, items 1-3; `notes/etcd-dist-d6.md`, "T10
+  status and handoff, session 8", "What P5 must provide"): the law hands the WAL's crash `Φ` only the read
+  records `σ` and gives back only their snapshot certificate (`walSnapCert`, `walSnapDur`). A snapshot record
+  of the crashed prefix that the read drops (above the prefix's commit) is re-kept by every read once a later
+  `Save` commits past it (the ledger entry "`wal.restartOk` over the reader's fold", defect 1), so the crash
+  image's `srvFilesC` row must hold `walHistCerts γ.cl sd Hs` of the prefix's history `Hs`, and `walFilesC` must
+  name that `Hs`; the law names neither.
+- **Evidence.** The body holds `walHistCerts γn.cl νk.sd Hs` of the whole history (`rnDurBodyK`), and the
+  crash reads the complete prefix `Hs.take j`; the law's `Φ : StorContents → IProp GF` cannot see `j`, and
+  its post has no history.
+- **Proposed change.** `Φ : WalHist → StorContents → IProp GF`; the callback gives `Φ (Hs.take j) σ` for the
+  prefix's read `σ`; the post's left disjunct gains the crashed prefix's history `Hc` with `Φ Hc σ`,
+  `⌜walRead Hc = some σ⌝` and `walHistCerts γn.cl νk.sd Hc` (persistent; from the body's certificates of `Hs`,
+  `walHistCerts_take`). Nothing new is claimed: the certificates are the body's. Moves: `memberDur_crash`
+  passes `fun _ σ => walFilesC …` (unchanged otherwise; T10 then names the history in `walFilesC` and puts the
+  certificates in the image's row, on `etcd-safe-t10`).
+- **Decision.** Within the lead's approval of (a)'s image route (#50 2026-11-25T16:06:56Z: "supplied by T7
+  from `rnDurK_crash.law`, extended to return them"); a P5-internal statement (no axiom, no top-level
+  premise). Applied on `etcd-safe-p5` (P5 session 6).
+
+## 2026-11-25: raft's `readyRest` (the batch's facts) -- the batch's durable log is tied to the committed log only through the handed entries `ce`, so a WAL read re-based at a snapshot record above the handed log holds no provable state (D6-T2 / P5 (b), etcd-safe-p5)
+
+- **Spec.** Raft's node API: `readyRest`/`ReadyRestFacts` (`Proof/go_etcd_io/raft/v3/NodeApiVocab.lean`,
+  `InvNode.lean`'s `readyRest_ceInBatch`, `deliveredLogLb_committed`); on the server, `ViewOk`/`ImgOk`/
+  `crashOk` (`etcdserver/InvWal.lean`, `InvWalCrash.lean`), step 3 of P5 (b) ("a K form of `ViewOk`/`ImgOk`
+  whose base may exceed the handed log when a certified snapshot record gives a committed log of length
+  `m`", the entry below, Decision (b)).
+- **Defect.** (b)'s step 3 is not provable from the certificate alone. After a restart whose history holds a
+  snapshot record `snap m` above the restart's commit `c` (dropped by `walRead`), raft may commit past `m`
+  with a `Ready` whose committed entries stop below `m` (raft limits them, `maxApplyingEntsSize` =
+  `MaxCommittedSizePerReady`; etcd sets `MaxSizePerMsg`): `hs.Commit ≥ m > |v'.l|`. From that `Save` on,
+  every crash prefix reads records re-based at `m` (base `(m, m.Term')`, entries above `m`), and the crash
+  law must give `StorageHolds v'.S σ'` of them, whose second row is `plogTermAt v'.S.base v'.S.ents m = some
+  m.Term'`: raft's durable log has the committed term at `m`. The certificate (`snapshotValid`) gives a
+  committed log `L` of length `m` ending at term `m.Term'`, but nothing ties `v'.S` (the batch's
+  `readyDurable`) to a committed log beyond the handed `ce` (`ReadyRestFacts`' sixth row,
+  `readyRest_ceInBatch`), and `DurAgrees v'.S v'.l` covers only `v'.l`. So neither the base row
+  (`σ.b ≤ l.length`, which `L` would replace) nor the term row (which needs `DurAgrees v'.S L`) holds; it
+  is true of raft (log matching: a node's log up to its commit index is the committed log) but not exported.
+- **Evidence.** `StorageHolds` (`NodeApiVocab.lean`): `plogTermAt S.base S.ents σ.base.index' = some
+  σ.base.term'`; `walRead`'s filter (`storage/WalHist.lean`, `walKeep` by the last commit) and `walSaveSnap`
+  (`WalRecsCore.lean`, a record above the fold's commit starts the records at `m` with no entries); the
+  `ReadyRestFacts` `none` case (`NodeApiVocab.lean`): `(st.delivered ++ ce).length ≤ commit`, the entries of
+  `ce` above the base the batch's, nothing about indices in `(|st.delivered ++ ce|, commit]`. No Lean changed.
+- **Proposed change.** Raft exports, with the batch's facts, the committed log up to the batch's commit,
+  which the batch's durable log holds: in `readyRest` (or a law on it, `readyRest_commitLog`, beside
+  `readyRest_ceInBatch`), `∃ L, isCommittedLogLb γ L ∗ ⌜L.length = uint.nat (phsNext st.hardState h).Commit' ∧
+  st.delivered ++ ce <+: L ∧ ∀ i e, uint.nat d.base.index' ≤ i + 1 → L[i]? = some e → plogTermAt d.base d.ents
+  (W64 (i+1)) = some e.term⌝` with `d = readyDurable st.durable (phsNext st.hardState h) loan es` (and the
+  snapshot case alike). Proof: raft's log matching at its commit index (raft's own proof, its owner). Then
+  the server needs **no** K form of `ViewOk`/`ImgOk`: the loop's view hands `v'.l := L` (the committed log
+  up to the saved commit, of which the apply thread's log is a prefix), so a re-kept `snap m` has `m ≤
+  commit = |v'.l|` and its term is `v'.l`'s (`isCommittedLogLb_agree` with the certificate's log), and
+  `ViewOk`/`ImgOk` stay as they are. Moves: `raftNode__start`'s two `Save` sites (the view's `l`),
+  `walSaveStep_ready` (its `v'.l`), the steps of (b) otherwise as planned (the contract over `walHistH`, the
+  body over `walRead Hs`). Without it, (b) steps 1, 2 and 4 cannot be closed: the `Save` law's post
+  (`ViewOk v' (walRead (Hs ++ [save]))`) fails in the case above. A raft API change (its node API's batch
+  facts): the lead's, and raft's owner's.
+- **Decision.** Approved as an additive law by the lead, acting as raft's API owner (#50, 2026-11-25
+  16:11Z: one new law beside `readyRest_ceInBatch`, proved inside raft from its existing invariants; no
+  change to `ReadyRestFacts`, the `Ready`/`RawNode` specs or any existing law). **Not provable additively**
+  (P5 session 5, no Lean changed): what the server holds at a batch does not carry the fact.
+  - `readyRest` (`InvNode.lean`): in the `none` case only `ceFrozen` (the storage's `ce` frozen),
+    `appendRight`, `readyEnts` (`outEntR`: the handed-out set, sizes only) and `ReadyRestFacts`; no
+    committed log beyond `st.delivered ++ ce`, and nothing ties the batch's entries `es` to raft's log
+    records (`logRecs`).
+  - `nodeDriver` at `st.afterReady …` (`InvApi.lean`'s `nodeDriver`): `hsCommitted` gives a committed log
+    `L` of length `(phsNext st.hardState h).Commit'` (`committedAtTerm`), but not that the batch's
+    durable log `d` agrees with it: busy, the driver holds `dur`'s ghost at `d` (a `dghostVar`, no facts)
+    and `rof`'s half, whose other half `run` holds with raft's in-memory log (`InvNodeRun.lean`).
+  - `raftState γ id st.durable` (the old state, `raftState_logView`) gives the committed log only up to
+    the old commit; `d`'s log records (`durPers`'s `logRecs d.base d.ents`, `isCommitted … d.commit`)
+    exist only once the batch is entered (`raft_enter`, `readyEnter`).
+  So the law needs the node's run loop to hand the fact out with the batch: a new conjunct of `readyRest`
+  (the `Ready` spec's post) or of `nodeDriver`'s busy body (the receive's post), re-proved in `node__run`
+  from its in-memory invariant (log matching at its commit index). Both change an existing statement or
+  sealed body under the Antithesis lead's RawNode work: stopped, reported to the lead.
+  Alternative without a raft change (for the lead to weigh): the view takes `v'.l := L` at *enter*, not at
+  `Save`: after entering `d`, the existing `raftState_logView` gives exactly the committed log up to
+  `d.commit` held by `d`'s log (`isCommittedLogLb γ (strip ((fp ++ d.ents).take d.commit))`, `FullOk
+  d.base fp`); between `Save` and *enter* the saved record is the pending one (`rnPendRec`), and the crash
+  law enters it first (`readyEnterCrash`, when the read holds the save) and then reads `raftState_logView`.
+  That moves `ViewOk`'s obligation for the pending record from `Save` to *enter*/crash (a server-side
+  restatement of `rnDurK_save.law`/`rnDurK_enter.law`, P5's own statements).
+
+## 2026-11-25: `wal.restartOk` over the reader's fold -- not enough for P5-RESTART: the history's snapshot certificates must cross the restart, and the contract's `Save` is not a step of the reader's fold (D6-T2 / P5, etcd-safe-p5)
+
+- **Spec.** `wal.restartOk` (`etcdserver/WalApi.lean`, inside `bootOkR`/`bootstrapCrashContract`), the
+  restatement approved by coordinator-E on #50 (2026-11-25 15:22Z, item 1: over `walRead Hs`, with the
+  post-restart contract `isWalStorage`'s `WalSaveOk`/`ViewOk` against `walRead Hs`); `rnRestartAllocK.law`
+  (`etcdserver/InvWalCrash.lean`), whose proof holds the `sorry` P5-RESTART; `rnDurInvK`'s `walHistCerts`;
+  `walRecsH` (`storage/WalRecsH.lean`) and the contract's `walSaveH.law`.
+- **Defect.** Two, found while scoping the restatement (no Lean changed):
+  1. **Certificates.** P5-RESTART is `walHistCerts γn.cl sd Hs` at the restart: `snapshotValid` (with
+     `snapMade`, a registry entry: not derivable) of every snapshot record of the restart's history. The
+     reader's fold does not remove the need: a record `snap m` dropped at the restart (above the commit `c`,
+     the window of the 09:02Z report) is kept again by every later read once a `Save` commits at or above
+     `m` (`walRead` filters by the *last* commit), and that read's snapshot is then `snap m` (`walRead_snapSrc`),
+     whose certificate `rnDurK_crash.law` must give (`walSnapCert` of the image). So the certificate of
+     every snapshot record above the restart's commit must reach the new generation. Nothing carries it:
+     `wal.restartOk` names no cluster, `wal.stopImage`/the crash image hold only the read records'
+     certificate (`walSnapCert cl σ`), and `rnDurK_crash.law` gives only the image's.
+  2. **The contract's `Save` after such a restart.** `walRecsH h σ Hs` asserts the eager fold
+     (`walFoldChkFrom walFresh Hs = some σ`), and `walSaveH.law` moves `σ` to `walSave σ hs es`. Over the
+     reader's fold neither holds: `walRead (Hs ++ [save hs es])` is not `walSave (walRead Hs) hs es` once
+     `hs` commits at or above `m` (the fold then re-bases at `m`: base `m`, entries above `m` only), and
+     the eager fold `σe` (base `m`, no entries) refuses `WalSaveOk σe es` for the entries raft saves from
+     `c+1`. So "the contract over `walRead Hs`" is not `walSave` on a different record set: the contract's
+     post must name the new history's read (or only the history), `walRecsH` must drop or change its fold
+     row, and the invariant's `ViewOk`/`ImgOk` must accept a read whose base `m` lies above the handed
+     log (`σ.b ≤ v.l.length` fails when the `Ready` that commits `m` hands fewer entries; `snap m`'s
+     certificate gives a committed log of length `m` instead).
+- **Evidence.** `InvWalCrashSteps.lean`'s `rnRestartAllocK_law_holds` (the `sorry`: `walHistCerts γn.cl sd Hs`
+  with `sd` and the records' history arbitrary); `walRead`'s definition (`storage/WalHist.lean`:
+  `walKeep (walLastHS I).Commit'`); `walSaveSnap` (`WalRecsCore.lean`: a record above the commit empties the
+  entries); `readEnt` (an entry at or below the base resets the entries). In Go: `ValidSnapshotEntries` keeps a
+  snapshot record once the last hard state's commit reaches it, and `LoadNewestAvailable` then loads its
+  `.snap` file (written and synced before the record).
+- **Proposed change.** (a) Carry the certificates across the crash: `rnDurK_crash.law` also gives
+  `walHistCerts γn.cl νk.sd (Hs.take j)` (it holds them; persistent), and the restart slot carries them for
+  its history: either `wal.restartOk` gains the cluster and `sd` (`wal.restartOk cfg id cid w σ cl sd`,
+  holding `walHistCerts cl sd Hs`), or the image (`wal.stopImage`, `srvCrashImageAt`'s WAL row) holds
+  `∃ Hs, walHistOf … Hs ∗ walHistCerts cl sd Hs` tied to the slot's history. Either changes the restart hub
+  and T7's producer (the graceful stop's `rnDurK_take.law`/`raftNode.stop`'s post too, to give them). (b) The
+  contract over the history: `walRecsH h Hs` (no fold row; `walRead Hs` succeeding is the invariant's
+  `CrashReadsHold`), `walSaveH.law`'s AU over `Hs` with `WalSaveOk (walRead Hs) es`, and the invariant's
+  current records `walRead Hs`, with `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's
+  certificate. (b) touches `storage/WalRecsH.lean`, `RnNewStorage`'s contract proofs and every step law of
+  `rnDurInvK`.
+- **Decision.** **(b) approved, (a) approved through the restart slot** (coordinator-E, #50 2026-11-25
+  15:33:36Z): (b) first, the WAL contract over the history (`walRecsH` without the fold row; `WalSaveOk
+  (walRead Hs) es`; `ViewOk`/`ImgOk` taking the base's committed log from the snapshot's certificate); then
+  (a), `wal.restartOk` gaining the cluster and `sd` and holding `walHistCerts cl sd Hs`, **not** through
+  the stop or crash images (`srvCrashImageAt` is being restated by T10; `raftNode.stop`'s post feeds T4).
+  Applied so far (session 3): (b)'s first piece, `walHistH` (`storage/WalRecsH.lean`: the history without
+  the fold, its `Save`/`SaveSnap` updates, crash and synced-mark lemmas, `walRecsH_iff_hist`), additive.
+  **(a) through the restart slot cannot be supplied** (session 3, found while scoping, no statement
+  changed): `wal.restartOk` is produced by no proof but by the interim axiom `bootstrapCrashContract.law`
+  (C-I2, `CrashInterim.lean`; and by `bootstrapRestartContract` on the graceful path), inside `bootOkR`,
+  from its pre `srvFilesC cfg.DataDir' id σ D`, whose `walFilesC` hides the files' history (`∃ i d`,
+  `walRead (walSrvHist d.H) = some σ`). T7's `memberGen_crash_law_holds` produces the image, not the
+  slot. Certificates put in `wal.restartOk` without a source in the contract's pre would be new trusted
+  text (`bootstrap` makes no `snapshotValid`). What it needs: (1) `walFilesC` (or a `walFilesCH a id cid σ
+  Hs`) naming the files' history `Hs = walSrvHist d.H`; (2) the crash image (`srvCrashImageAt`, its
+  `srvFilesC` row) holding `walHistCerts γ.cl sd Hs` for that history, with `sd` the snapshot directory's
+  durable indices (T6's), given by T7 from `rnDurK_crash.law` extended to give `walHistCerts γn.cl νk.sd
+  (Hs.take j)`; (3) both contracts' posts (`wal.restartOk … cl sd`) stating the opened WAL's history is the
+  files' `Hs` and returning the certificates; (4) on the graceful path, the stop image (`wal.stopImage`,
+  `raftNode.stop`'s post, `rnDurK_take.law`) the same, or `bootstrapRestartContract`'s restart slot
+  keeping the old certificate-free form. Waiting for the lead's choice (P5 stopped on (a)).
+## 2026-11-25: openAtIndex (read mode's post), WAL.Close (`.opening`'s pre) -- the read handle's key must name its incarnation
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean` (post, both modes) and
+  `WAL__Close.lean` (the `.opening` arm's pre), through `walReadH`/`walReadTie` (`Proof/.../wal/ReadDefs.lean`).
+  Internal; no `SpecPlan/` counterpart.
+- **Defect.** Fix B (entries below): `walReadTie` holds the WAL's key, which is now `walDirKey dir i j X`; a
+  key with no incarnation tied to the holder's cannot be looked up. `walReadH write w dir s` names none, and
+  the read mode's post gives `walLockedTok` (its incarnations hidden), so `ReadAll`/`Close` over a read handle
+  cannot show the key current.
+- **Evidence.** `ReadDefs.lean:123` (P6b session 12 build); `walDirKey_lookup` needs `incOf I dir = i` of the
+  holder's share.
+- **Proposed change.** `walReadTie`/`walReadH` take the incarnation `i` (the key at `i`). `openAtIndex`'s post:
+  write mode `walOpening w dir s ic ∗ walReadH true w dir s ic`; read mode `(∃ I, walLockedTokI I ∗
+  ⌜incOf I dir = ic⌝) ∗ walReadH false w dir s ic` in place of `walLockedTok ∗ walReadH false w dir s`.
+  `WAL.Close`'s `.opening` arm: `∃ i, walOpening w dir s i ∗ walReadH true w dir s i`. The sealed
+  `walReadOnlyF w dir s := ∃ I, walLockedTokI I ∗ walReadH false w dir s (incOf I dir) ∗ …` and `walOpeningF`
+  (already at `i`) follow; no client-visible predicate changes.
+- **Decision.** Applied (P6b session 12, under the coordinator's rule for further internal spec changes);
+  approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: WAL.renameWAL (`RenameWALOk`'s spine law, `renameWALPost`'s committed arms) -- the spine law cannot give the pipeline its eighth of the incarnations and return the update's result unchanged
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`: `RenameWALOk`'s spine law
+  and `renameWALPost`'s arms 1 and 4 (committed); `Create`'s choices (`Proof/.../wal/CreateRename.lean`,
+  `createU`, `create_spine`). Internal; no `SpecPlan/` counterpart.
+- **Defect.** The entry below makes the spine law return `walPipeKey dir J` (the pipeline's eighth of `γI`)
+  while returning the update's result `U (some x)` unchanged. In `Create`, the eighth is the reserve the
+  commit took out with the pipeline names (`walParked_create`), so it is part of `U (some x)`
+  (`walCreateQ … (some _)`): the law cannot both hand it to the pipeline and return `U (some x)` whole.
+- **Evidence.** `CreateRename.lean` `create_spine` (P6b session 12): `walPipeKey (child r nm) J` needs
+  `walIncEAny`, held only by `walCreateQ … (some _)`; `WAL__renameWAL.lean:126` destructs the law's
+  output as persistent (it no longer is).
+- **Proposed change.** The law consumes `U (some x)` and returns `UH x` (the result once the pipeline has
+  its share); `renameWALPost`'s arms 1 and 4 hold `UH x` instead of `U (some x)`. `UH` is the parameter
+  the 2026-11-25 entry left unused (arm 2 dropped), so no caller's argument list changes. `Create` passes
+  `UH x := createUK … x` (`walCreateQK`: `walCreateQ … (some _)` but the reserve, which `walCreateQ … (some
+  _)` now holds as `walCreateQK ∗ walIncEAny`). No other caller (`renameWAL`'s only caller is `Create`).
+- **Decision.** Applied (P6b session 12, under the coordinator's rule "a further internal spec change gets a
+  ledger entry first; report it"); approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: filePipeline (newFilePipeline, Close, run, alloc), WAL.renameWAL, WAL.sync.specIdle(F) -- fix B's key lookup needs a share of the incarnations the pipeline and the idle syncs do not hold
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{newFilePipeline,filePipeline__Close,filePipeline__run,
+  filePipeline__alloc,WAL__renameWAL,WAL__syncIdle,WAL__syncIdleF}.lean` and the predicates they name
+  (`Proof/.../wal/Pipe.lean`: `pipeRes`, `pipeLeft`, `isFilePipe`; `RenameWALOk`). Internal; no `SpecPlan/`
+  counterpart.
+- **Defect.** Fix B (the entry below: `walDirKey dir i j X`, keyed by `(dir, i)`) makes a key lookup
+  conditional on the incarnation being current, which the holder shows with a share of `WalGS.γI`. Two holders
+  have none (P6b session 11, fix B subagent): the pipeline's goroutine (`run`/`alloc` step on the pipeline
+  names through `walTmp_osAUnc`, concurrently with the handle, so it cannot borrow the lock's quarter), and
+  `WAL.sync.specIdle`/`specIdleF` (their callers hold the lock's quarter, the specs do not take it).
+- **Evidence.** `TmpAu.lean` `walInvBody_tmpAcc` (the lookup); `TailSyncIdle.lean`, `TailFsyncIdle.lean`.
+- **Proposed change (option (a) of the session-11 handoff).** (1) The pipeline family holds an eighth of `γI`:
+  `pipeRes R dir dq j` gains `walPipeKey dir j := ∃ I X, ghostVar γI ⅛ I ∗ walDirKey dir (incOf I dir) j X`
+  (so `pipeLeft` returns it at `filePipeline.Close`); `isFilePipe` and `newFilePipeline`'s pre keep the WAL
+  invariant but no longer a key (it is in `pipeRes`); `RenameWALOk`'s spine law returns `walPipeKey dir J` in
+  place of `walDirKey dir J X`. The texts of `filePipeline.Close`/`run`/`alloc` are unchanged; their meaning
+  changes through `pipeRes`/`pipeLeft`. Where the eighth comes from: `γI` is split `walGhostI` ¼, the keys'
+  authority ⅛, the parked pipeline reserve ⅛, the views' ¼ (`walIncQ`), the lock's ¼. The reserve is held with
+  the record of what is out (`walOutAuth o` holds it when `o.T = []`, no pipeline names out; else its holder
+  does, `walOutOut o`; amended in the same session: the parked names were the first plan) and goes out with
+  the pipeline names: a write-mode `Open`
+  (`walParked_takeTmps`) and `Create`'s commit (`WalOut.create`) take it with the directory's pipeline names,
+  `Close`'s put-back (`delTmp`) returns it, so it is in the invariant whenever the lock is free (`walUnlockedTok`
+  holds `walOutFrag WalOut.empty`) and the discard can gather all of `γI`. (2) `WAL.sync.specIdle`/`specIdleF`
+  take `walIncQ I ∗ ⌜incOf I dir = i⌝` in the pre and return it in the post. (3) As approved below: `walDirKey
+  dir i j X`; `renameWAL`, `newFilePipeline`, `syncIdle(F)` name the key at the incarnation.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 12 brief: option (a), the pipeline family's share
+  in `pipeRes`/`pipeLeft` returned at `filePipeline.Close`, and `specIdle`/`specIdleF` taking `walIncQ I ∗
+  ⌜incOf I dir = i⌝` in pre and post). The reserve's place (the parked pipeline names) is this session's
+  encoding of "a share of `γI`", recorded here for review. `walTmp_osAUnc` (the pipeline's steps on its
+  names) takes and returns `walPipeKey dir j` (its commit post `fun o => β ¼ o ∗ walPipeKey dir j`), as
+  `wp_createTmp`/`wp_removeTmp` do.
+  The amendment (the reserve in `walOutAuth`): approved (coordinator, 2026-11-25, P6b session 13 brief).
+
+## 2026-11-25: wal.DiscardUnsaved (new), WAL.renameWAL, newFilePipeline, WAL.syncIdle(F) -- one update cannot cover the discard; `walDirKey` without incarnation
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/DiscardUnsaved.lean` (`wal.DiscardUnsaved.spec`; none in
+  `SpecPlan/`); the internal specs naming `walDirKey` (`WAL__renameWAL`, `newFilePipeline`, `WAL__syncIdle`,
+  `WAL__syncIdleF`).
+- **Defect.** (1) The planned spec (P6b handoff, session 6: one update `<{∃∃ d, walDiskAtI dir ic d}>
+  <{walAbsentI dir (ic+1)}>` committed at the parent's fsync) is unprovable: between `os.Rename(dir, dir.tmp)` and
+  the fsync a crash may keep or lose `dir`, so the real WAL must be unnamed there and `walNamed dir ic` retired (an
+  incarnation bump), which needs the view's quarter of the incarnations and an unnamed view (`walMapLe`); the view
+  changes twice and an update commits once (its abort returns the same `α x`). (2) `walDirKey dir j X` is keyed by
+  `dir` alone, persistent: after the discard the key outlives the layout (`DirKeysOk` fails) and `bootstrap`'s
+  re-`Create` cannot insert its new directory's key.
+- **Evidence.** `Crash.lean` `walDiskAt_crash_keep`/`_any_keep` (a named view or a `walNamed` fact keeps the WAL
+  across a crash; false in the window); `Ghost.lean` `walLeI` (named kept at an unchanged incarnation); `CreateAu.lean:448`
+  and `OpenPinTake.lean:126` (`walDirKey_insert` needs `K !! dir = none`).
+- **Proposed change.** (1) Two updates: `AU₁ <{∃∃ o, walDirIsI dir ic o}> <{∃ d, ⌜o = some d ∧ walBlank (d.H.map
+  WalOpG.toM)⌝ ∗ walDiskAtI dir (ic+1) {d with named := false}, COMM Q₁ o}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir
+  (ic+1) d}> <{walAbsentI dir (ic+2), COMM Q₂}>` at the fsync; pre `Unsaved`'s plus `Create`'s `FsNoErrOn`/`PathFits`
+  premise on `dir`, `dir.tmp`, `r`; post `false, nil` with both updates back (nothing done), `true, nil` with
+  `Q₁ o ∗ Q₂` and the lock token and `walAreaRes` back, `false, err` (the fsync failed) with `Q₁ o ∗ AU₂` (lock token
+  and `walAreaRes` lost; the WAL unnamed at `dir.tmp`, as `Create`'s arm 3). Full text: `notes/wal-p6-handoff.md`,
+  P6b session 7. A client with an owned view instantiates both updates trivially. (2) `walDirKey dir i j X`, the
+  map keyed by `(dir, i)`; the four internal specs take the handle's incarnation (`h.inc`). Internal, no trusted text.
+- **Decision.** Approved (coordinator, 2026-11-25, P6b session 8 brief; after the fact if proved and untrusted): the
+  plan as written (fix A, loans in γnm; fix B, `walDirKey` by `(dir, i)` with the four internal specs; state C; the
+  two-update spec, `true` ⇒ `walAbsentI dir (ic+2)`, the fsync failure losing the lock token and `walAreaRes`).
+  P5 (`bootstrap`'s owner) is asked whether the two-update shape fits its crash invariant; pending its answer.
+- **Loans carried in the handles (P6b session 10, covered by fix A's approval; the handle design approved by the
+  coordinator, session 10 brief).** A handle holds the lock holder's names record as `walHLoans dir nf qs`
+  (`Handle.lean`: `walNamesFragS ⟨nf, none, Lh⟩`, with no registration pending `Lh` the loans of the WAL's name `nm`,
+  `InArea r' dir nm`, one per fraction of `qs`; with one pending, `walNamesFrag (some _)`). `walDirH` takes the
+  pipeline's fraction `qp` (`WalHS.qp`, pinned in `walHandleIn`'s pipeline) and records `[q, qp]`; `Close` returns
+  both (`walInv_returnHLoans2`, `HandleLoans.lean`) before `walCloseLaw` (so `WalCloseLaw` is unchanged).
+  Internal spec changes: `WAL.sync.specC`'s error arm gives `∃ qs, walHLoans dir nf qs` for `walNamesFrag nf`
+  (the `unnamed` close reads `walNamesFrag (some dir)` back by `walHLoans_some`); `walLastOpen` (planned) carries its
+  loan. No trusted text. **Approved** (coordinator, P6b session 11 brief: `WalHS.qp` as a field of the handle
+  state, `InArea r' dir nm` in the loan record, `WAL.sync.specC`'s error arm giving `∃ qs, walHLoans dir nf qs`).
+
 ## 2026-11-25: wal.Create, WAL.renameWAL, the WAL's facts -- no incarnation (a discarded WAL's facts read as a re-created one's)
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), `CreateFresh.lean`,
@@ -6982,7 +7301,11 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `bootstrapContract` will become a per-function interim axiom (`bootstrap.wp_proofOne`'s pattern) before the
   etcd_safe packet; this strengthening lands in that axiom's text, to be reviewed with the axiom skill then.
 - **Decision.** Approved by coordinator-E on #50 (2026-11-25 07:04Z), for the etcd_safe branches, listed as
-  its own line in the final packet.
+  its own line in the final packet. (2026-11-25 15:22Z, #50 item 1: `wal.restartOk` and the post-restart
+  contract to be restated over the reader's fold `walRead Hs`, approved; not yet applied: see the entry
+  "`wal.restartOk` over the reader's fold -- not enough for P5-RESTART" above.) (2026-11-25 15:33Z, #50: that entry's
+  proposals (b), the contract over the history, and (a), the certificates through the restart slot,
+  approved; (a) found not suppliable through the slot alone: that entry's Decision.)
 ## 2026-11-25: `fileutil.TouchDirAll.spec`'s post did not say the new directory's names are committed (P7, D6-T6)
 
 - **Spec.** `fileutil.TouchDirAll.spec` (`Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean`).
@@ -6998,6 +7321,75 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   vocabulary; nothing to change there.
 - **Decision.** Approved by the coordinator (round 4 of `notes/etcd-dist-d6.md`, decision 3); restated 2026-11-25,
   branch `etcd-safe-p7`.
+
+## 2026-11-25: wal.Discard (new; replaces wal.DiscardUnsaved at the pin 251a430ce) -- the fork drops the internal `Unsaved` check
+
+- **Spec.** New `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`; none in `SpecPlan/`), in
+  place of the planned `wal.DiscardUnsaved.spec` (entry "wal.DiscardUnsaved" above, never written).
+- **Defect.** The approved two-update shape was for `DiscardUnsaved(lg, dir) (bool, error)`, which read the WAL
+  (`Unsaved`) before discarding it. The etcd pin `251a430ce` (`goose-lean-fmt1c-discardfix`, coordinator's decision)
+  replaces it by `Discard(lg, dir) error`: no `Unsaved` re-check (`bootstrap` calls it only after its own `Unsaved`
+  returned `(true, nil)` and after `removeBackendDurably`), and a log line after the fsync.
+- **Evidence.** `unsaved.go:93-116` and `bootstrap.go:91-101` at `251a430ce`.
+- **Proposed change.** The same two updates, without the `walBlank` clause (the function does not read the WAL; the
+  blankness is the caller's, from `Unsaved`'s post): `AU₁ <{∃∃ d, walDiskAtI dir ic d}> <{walDiskAtI dir (ic+1)
+  {d with named := false}, COMM Q₁ d}>` at the rename, `AU₂ <{∃∃ d, walDiskAtI dir (ic+1) d}> <{walAbsentI dir
+  (ic+2), COMM Q₂}>` at the parent's fsync. Pre `Create`'s area resources (`zapLoggerOk lg`, `walAreaOk`,
+  `dirDurable r`, `osPathS R r qp jr`, `walAreaRes jr`, `osCallPerm 1`, `walUnlockedTok`) and premises (`InArea`,
+  `NameOk`, `dir.length < 2^59`, `cleanAbsPath r`, `FsNoErrOn`/`PathFits` on `dir`, `dir.tmp`, `r`). Post, always
+  `osPathS`, `osCallPerm 1` and `∃ d, Q₁ d` (the rename cannot fail), and: `nil` with `walAreaRes jr ∗
+  walUnlockedTok ∗ Q₂`; an error (the fsync failed) with `AU₂` back (token and `walAreaRes` lost). P5's three
+  conditions: (1) the window's crash lemma (an unnamed WAL view at `ic+1` crashes to the same WAL or to none) is a
+  WAL-level lemma beside `walDiskAt_crash_keep`, to be proved with state C; (2) on a failed fsync `AU₁`'s result is
+  whatever the client put in `Q₁` (a client keeping it in its crash invariant commits it there and takes `Q₁ := True`);
+  (3) `AU₁` commits inside `Discard`'s rename, after anything the caller did before calling it.
+- **Decision.** Approved as written (the coordinator, P6b session 15 brief, 2026-11-25). On P5's condition 2: handing
+  `Q₁` to the caller on a failed fsync meets it, because the client chooses `Q₁`: P5's client deposits `AU₁`'s result
+  in its crash invariant at the commit and takes `Q₁ := True`, so nothing the crash invariant needs is left with the
+  caller.
+
+## 2026-11-25: wal.Discard's post had no arm for a failed `RemoveAll(dir.tmp)` (P6b session 15)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/Discard.lean` (`wal.Discard.spec`, approved above).
+- **Defect.** Its post hands back `∃ d, Q₁ d` in every arm, so it says the first step, `os.RemoveAll(dir.tmp)`,
+  cannot fail under the premise. `os.RemoveAll.specSubS` (the spec `Create` uses for the same call) does not say
+  that: under `FsNoErrAt` on `dir.tmp` and the area, `nil` means `dir.tmp` is gone, but an error is still allowed,
+  with nothing said of what was removed. `Discard` returns that error before the rename, so `AU₁` is never
+  committed and the post's `Q₁` cannot be produced: the spec is unprovable.
+- **Evidence.** `Spec/os/RemoveAll.lean:139-149` (`specSubS`'s post: `err = nil → FsNoErrAt … → … = none` only);
+  `Create`'s proof has an arm for this error (`Create.lean`, "`RemoveAll` failed: nothing done, `nm.tmp` merged back",
+  `create_abortTmp`); `unsaved.go:93-116` returns `RemoveAll`'s error at once.
+- **Proposed change.** A third arm, as `Create`'s: `err ≠ nil` with `walAreaRes jr ∗ walUnlockedTok ∗ AU₁ ∗ AU₂` back
+  (nothing the WAL invariant or the client's view sees has changed; `dir.tmp`'s subtree may be partly removed, which
+  `walAreaRes` allows). Post: `osPathS ∗ osCallPerm 1 ∗ ((⌜err ≠ nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ AU₁ ∗ AU₂) ∨ (∃ d,
+  Q₁ d) ∗ ((⌜err = nil⌝ ∗ walAreaRes ∗ walUnlockedTok ∗ Q₂) ∨ (⌜err ≠ nil⌝ ∗ AU₂)))`. The docstring's "`RemoveAll` and
+  `Rename` cannot fail under the premise" becomes "`Rename` cannot fail under the premise". P5's conditions are
+  unchanged (the new arm commits neither update). A caller (`bootstrap`) that gets an error does not know which arm,
+  as with `Create`; it holds `AU₂` in both error arms.
+- **Decision.** Approved by the coordinator (P6b session 16 brief, 2026-11-25): `err ≠ nil` with `walAreaRes`,
+  `walUnlockedTok`, `AU₁` and `AU₂` all returned and nothing committed. Applied (WIP branch).
+
+## 2026-11-25: fix B's lemma-level signatures (P6b session 13)
+
+- **Spec.** Internal laws of the WAL proof (`Proof/go_etcd_io/etcd/server/v3/storage/wal/`), none exported:
+  `walInvRegisterPendLaw` (`ReadAllRegPend`), `repair_brokenOpen` (`RepairBrokenOpen`), `WalCloseLaw`/`walCloseLaw`/
+  `walCloseLawU` (`CloseHandle`, `CloseLaw`, `CloseLawU`), `walInv_dirKeyArea`/`walInv_returnHLoans{1,2}`
+  (`HandleLoans`), `walInv_lendOther`/`walInv_unlendOther` (`BrokenLend`), `walPurgeP`/`walPurgeOP` and their
+  updates (`PurgeAu`, `PurgeOther`), `walInv_walFiles` (`PurgeRoundLaws`), `walDirH_lend`/`walOpenWFI_lend`
+  (`PurgeLend`), `probeHandles`/`prefixScanState` and the probe laws (`ReadAllProbe`, `ReadAllPrefixAccess`),
+  `walFailCommon`/`walReadFailedF_{intro,elim,idleIntro,lentIntro}`/`readAll_fail*`/`walInv_failOpening`
+  (`ReadAllFail`, `ReadAllCommit`, `ReadAllExit`), and the tester's `pr_fileOf`/`pr_remove` (`purgeRound`).
+- **Defect.** Consequences of the approved fix B (directory keys at `(dir, incarnation)`): each looked up a
+  3-argument key, which no longer exists; a lookup now needs a share of the incarnations at the key's.
+- **Evidence.** The frontier of `lake build …wal.Link` (`/shared/tmp/p6b-build7.log`).
+- **Proposed change.** Each takes the key at its holder's incarnation and threads that holder's quarter `walIncQ I`
+  (in and out, `incOf I dir = i`); `walCloseLaw`s take `walPipeKey dir j` from `pipeLeft` (the reserve for
+  `walParked_putTmps0`); the lending laws take `walIncQ I` rather than the lock token (the purge round holds only
+  the handle's quarter); `walReadFailed_lockedTok` becomes `walReadFailed_lockedTokI` (at the incarnation);
+  `walOpenWF_lend` (no users) is removed. No exported spec changes beyond the approved entries.
+- **Decision.** Applied (consequence of the approved fix B; reported to the coordinator, session 13); approved
+  (coordinator, 2026-11-25, P6b session 14 brief).
+
 ## 2026-11-25: T6's `snapDirKept` is unprovable as stated (T7, D6)
 
 - **Spec.** `snapCrash.snapDirKept`/`snapDirKeptF` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapDirCrash.lean`), a

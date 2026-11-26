@@ -119,55 +119,29 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
-/-- **A WAL directory's key: its left-out names hold no `.wal.broken` name** (see the file header). -/
+/-- **A WAL directory's key: its left-out names hold no `.wal.broken` name** (see the file header; they
+are the pipeline's, `walDirKey_tmps`). -/
 theorem walInvBody_keyExcl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+    (s : AbsDiskState) (dir : GoString) (i : Nat) (j : Ino) (X : List GoString) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir i j X -∗
       ⌜∀ b ∈ X, ¬ go!".wal.broken" <:+ b⌝ ∗ walInvBody (L := L) (W := W) C Mr R jr r s := by
   iintro Hb #Hkey
-  unfold walInvBody
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, HCR,
-    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
-  obtain ⟨lay, hj1, hl, hlj, hjjr, hX, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
-  rw [← hlj]
-  obtain ⟨l1, l2, hcl, -, -⟩ := honce
-  have hm : (lay.j, NameSet.except X, hj1) ∈ cl := by rw [hcl, hlj]; simp
-  obtain ⟨X2, hj2, hD2, hx2⟩ := Hdko.2.2 dir lay hl
-  obtain ⟨hXe, -⟩ := hD2.eq_of_mem hX hm
-  rw [← hXe] at hx2
-  isplitr
-  · ipureintro; exact hx2.not_broken
-  iexists Ls, cl, n, F
-  iframe Hg Hcl0 Hcm Hlays HCR Htl Hpk Hnms
-  isplitr
-  · ipureintro; exact Har
-  isplitr
-  · ipureintro; exact Hok
-  isplitr
-  · ipureintro; exact Hco
-  isplitr
-  · ipureintro; exact Han
-  isplitr
-  · ipureintro; exact Hnm
-  isplitl [Hdk Hcp]
-  · iexists K, cp; iframe Hdk Hcp; ipureintro; exact Hdko
-  ipureintro; exact ⟨HAt, Hbd⟩
+  icases walDirKey_tmps (W := W) dir i j X $$ Hkey with %hX
+  subst hX
+  iframe Hb
+  ipureintro; exact walTmps_not_broken
 
 /-- `walInvBody_keyExcl` at any step. -/
 theorem walInv_keyExcl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (j : Ino) (X : List GoString) :
+    (E : CoPset) (hE : ↑walN ⊆ E) (dir : GoString) (i : Nat) (j : Ino) (X : List GoString) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walDirKey (W := W) dir j X ={E}=∗
+      walDirKey (W := W) dir i j X ={E}=∗
       notCrashed (hC := L.goose_crashGS) ∗ ⌜∀ b ∈ X, ¬ go!".wal.broken" <:+ b⌝ := by
   iintro #Hinv Hnc #Hk
-  imod walInv_open C Mr R jr r E hE $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_keyExcl C Mr R jr r s dir j X $$ Hb Hk with ⟨%hx, Hb⟩
-  imod Hcl $$ [Hb] with -
-  · iexists s; iexact Hb
-  imodintro
+  icases walDirKey_tmps (W := W) dir i j X $$ Hk with %hX
+  subst hX
   iframe Hnc
-  ipureintro; exact hx
+  ipureintro; exact walTmps_not_broken
 
 end iris
 

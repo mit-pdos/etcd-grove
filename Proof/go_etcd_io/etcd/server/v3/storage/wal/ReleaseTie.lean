@@ -100,21 +100,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **The open handle's look at the invariant** (see the file header). -/
 theorem walInvBody_handleLook (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (γ : GName)
+    (s : AbsDiskState) (dir : GoString) (i : Nat) (I : GMap GoString Nat) (hi : incOf I dir = i) (j : Ino)
+    (X : List GoString) (hj0 : NamesH) (γ : GName)
     (tg : TailG) (T : GMap GoString GName) (Lk : GMap GoString Nat) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walTailsFrag (W := W) T Lk -∗
       ⌜(∃ d lay, s.wal !! dir = some d ∧ WalAbsD C Mr d lay hj0.cur ∧ SegsNamed lay.segs hj0.cur ∧
         (lay.segs.map (·.ino)).Nodup ∧ tg.1 = d.H ∧ tg.2.2.1 = lay.cuts) ∧ LksOk s Lk⌝ ∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir j X ∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
       walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ walTailsFrag (W := W) T Lk := by
-  iintro Hb #Hk Hn Htk Hv Htf
+  iintro Hb #Hk HI Hn Htk Hv Htf
+  subst hi
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hk with %hK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hk HI with %hK
   obtain ⟨lay, hj, hl, hlj, -, hXw, hOnce, -, hOther⟩ := Hdko.1 dir j X hK
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
     cases h : s.wal !! dir with
@@ -141,7 +143,7 @@ theorem walInvBody_handleLook (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   icases walGhost_lksAgree s T Lk $$ Hg Htf with ⟨%hlks, Hg, Htf⟩
   have hsn : SegsNamed lay.segs hj0.cur := (HNm dir lay hl).1 hj0 hWDC
   have hnd : (lay.segs.map (·.ino)).Nodup := segsAll_nodup_segs HW.2.2.1 hl
-  iframe Hn Htk Hv Htf
+  iframe Hn Htk Hv Htf HI
   isplitr
   · ipureintro
     refine ⟨⟨d, lay, hd, habs, hsn, hnd, ?_, ?_⟩, hlks⟩ <;> rw [htg] <;> rfl
@@ -153,27 +155,29 @@ theorem walInvBody_handleLook (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
 
 /-- **`ReleaseLockTo`'s commit** (see the file header). -/
 theorem walInv_releaseLks (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (a : w64) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) (ic : Nat) (j : Ino) (X : List GoString)
+    (dir : GoString) (a : w64) (Pre : WalDur → Prop) (Q : WalDur → IProp GF) (ic : Nat)
+    (ii : Nat) (Ik : GMap GoString Nat) (hii : incOf Ik dir = ii) (j : Ino) (X : List GoString)
     (hj0 : NamesH) (γ : GName) (tg : TailG) (γt : GName) (b : Nat) (hcl : tg.2.2.1.length < 2 ^ 64) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
       (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
         <{ walDiskAtI (W := W) dir ic { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) a) },
           COMM Q d }>) -∗
-      walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
+      walDirKey (W := W) dir ii j X -∗ walIncQ (W := W) Ik -∗
+      osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
       walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) (<[dir := b]> (∅ : GMap GoString Nat))
       ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ (∃ d, Q d) ∗
+      notCrashed (hC := L.goose_crashGS) ∗ (∃ d, Q d) ∗ walIncQ (W := W) Ik ∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗ walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ tg ∗
       ∃ b', walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))
           (<[dir := b']> (∅ : GMap GoString Nat)) ∗
         ⌜b ≤ b' ∧ ∀ (sq ix : Nat) (n : Node), sq < 2 ^ 64 → hj0.cur !! walFileName sq ix = some n →
           uint.nat (W64 ix) < uint.nat a → segStart tg.2.2.1 sq ≤ b'⌝ := by
-  iintro #Hinv Hnc Hau #Hk Hn Htk Hv Htf
+  iintro #Hinv Hnc Hau #Hk HIk Hn Htk Hv Htf
   imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_handleLook C Mr R jr r s dir j X hj0 γ tg _ _ $$ Hb Hk Hn Htk Hv Htf with
-    ⟨%hlook, Hb, -, Hn, Htk, Hv, Htf⟩
+  icases walInvBody_handleLook C Mr R jr r s dir ii Ik hii j X hj0 γ tg _ _ $$ Hb Hk HIk Hn Htk Hv Htf with
+    ⟨%hlook, Hb, -, HIk, Hn, Htk, Hv, Htf⟩
   obtain ⟨⟨d, lay, hd, habs, hsn, hnd, htH, htc⟩, hlks⟩ := hlook
   obtain ⟨d1, hd1, hbu⟩ := hlks dir b (GMap.lookup_insert_eq _ _ _)
   rw [hd] at hd1; cases hd1
@@ -211,7 +215,7 @@ theorem walInv_releaseLks (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   imod Hcl $$ [Hb] with -
   · iexists _; iexact Hb
   imodintro
-  iframe Hnc Hn Htk Hv
+  iframe Hnc Hn Htk Hv HIk
   isplitl [HQ]
   · iexists dc; iexact HQ
   iexists max b p

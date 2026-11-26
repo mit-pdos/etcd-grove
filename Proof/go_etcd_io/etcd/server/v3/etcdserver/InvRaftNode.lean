@@ -564,16 +564,36 @@ fact `commit0 ≤ p.Commit'` (`rnLoopTokP`); row 3 is gone. Of the restart-only 
 fixed when the node is built, true of every graceful stop's image (`raftNode.stop.spec`'s post);
 `|a0| ≤ commit0` is **graceful-only** (after a power loss the backend's consistent index can be above
 the WAL's synced commit: crash-design §2.3), so it stays this one conjunct, and nothing that does not
-need it (the loop's fact, row 2's `commit0 < snapIdx`) is stated with it. -/
+need it (the loop's fact, row 2's `commit0 < snapIdx`) is stated with it.
+
+(2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) At a restart, the node's start
+term is `t0` (`nodeStartTerm`, `RestartNode`'s post): every `MsgSnap` its `Ready`s hand out is past it
+(`readySnapSources_startTerm`; row 4's fact, now raft's law, not a premise).
+
+(2026-11-24, D6 T4 option (a), item 1) And raft's L1 mark at the restart: `a0` committed before every
+campaign of the node up to its restored term `t0` (`cmtBefore`, made by `raftState_cmtBefore` where the
+restart holds the durable state at `t0`, `NodeStartLinked`), which `raftState_leadAgree` takes at each
+*enter*. -/
 def rnRestartOk (γ : RNNames GF) : IProp GF :=
   iprop(⌜γ.a0 = [] ∧ γ.t0 = W64 0 ∧ γ.commit0 = 0 ∧ γ.snap0 = 0⌝ ∨
     -- (auth-lease S4, 2026-11-16) a restart only outside the cluster's no-snapshot mode
     -- (`RestartNode`'s)
     (⌜γ.pre = [] ∧ γ.snap0 ≤ γ.a0.length ∧ γ.a0.length ≤ γ.commit0 ∧ ¬ clusterNoSnap γ.node.cl⌝ ∗
-      srvRLogLb γ.srv γ.a0))
+      srvRLogLb γ.srv γ.a0 ∗ nodeStartTerm γ.nl γ.t0 ∗
+      cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE)))
 
 instance rnRestartOk_persistent (γ : RNNames GF) : Persistent (rnRestartOk (GF := GF) γ) := by
   unfold rnRestartOk; infer_instance
+
+/-- (2026-11-24, D6 T4 option (a), item 1) **L1's mark at a restart**: a restarted node's backend log
+`a0` is marked committed before its campaigns up to the restart's term (raft's `cmtBefore`). -/
+theorem rnRestart_cmtBefore (γ : RNNames GF) :
+    rnRestartOk (GF := GF) γ ⊢ ⌜γ.a0 ≠ []⌝ -∗ cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE) := by
+  unfold rnRestartOk
+  iintro #Hr %hne
+  icases Hr with (%Ha | ⟨-, -, -, #Hcb⟩)
+  · exact absurd Ha.1 hne
+  · iexact Hcb
 
 /-- (S1, 2026-11-11) **The restart point's backend log at or below raft's commit**: from the restart
 data and the loop's fact `commit0 ≤ c` (`rnLoopTokP`), `|a0| ≤ c`; at a first start (`a0 = []`)
@@ -2137,12 +2157,21 @@ instance rnReplayState_persistent (γ : RNNames GF) (view : GoSlice) (n : Nat) :
     Persistent (rnReplayState (GF := GF) γ view n) := by
   unfold rnReplayState; infer_instance
 
+/-- The replay terms an apply job carries, for a `MsgSnap` this node sent at the job's raft term `rt`
+in the replay window (`n < |a0|`): they cover the consistent index with `a0`'s last term.
+(2026-11-24, the lifetime law: `notes/etcd-dist-d6.md`, T4 round 5) Only for a `MsgSnap` of this run
+of the node: one a `Ready` handed out (`rnMessageSource`, which `rnSnapMsg` carries), so that its term
+is past the restart's (`rnReplayJob_lifetime`). An earlier run's `MsgSnap`s, whose `sentMsg` persists,
+are not covered: for them the claim is false (a leader at `rt` that crashed before saving what it
+committed restarts at `t0 = rt`). -/
 def rnReplayJob (γ : RNNames GF) (terms : GoSlice) (rt : w64) (n : Nat) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(□ ∀ (sm : MsgSt) (ci : w64),
     ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < γ.a0.length ∧ uint.Z ci = γ.a0.length⌝ -∗
     sentMsg γ.node.cl srvClusterN γ.id sm -∗
-    ∃ (runs : List replayTermRun) (r : replayTermRun), terms ↦*□ runs ∗
+    ∀ ml : Loc, rnMessageSource γ ⟨ml, sm⟩ -∗
+    -- (2026-11-24, option (a)) an update: raft's `raftState_leadAgree` is one
+    |={⊤}=> ∃ (runs : List replayTermRun) (r : replayTermRun), terms ↦*□ runs ∗
       ⌜replayRunCovers runs ci = true ∧ replayRunAt runs ci = some r ∧
         r.term' = (γ.a0.getLast?.map EntryModel.term).getD (W64 0)⌝)
 

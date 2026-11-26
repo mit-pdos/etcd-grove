@@ -1205,6 +1205,550 @@ obligation (Go: `TouchDirAll`'s parent syncs). Gaps 2 and 3 and simplifications 
 `nonissues/etcd-snapdb-removed-before-dirsync.md`). `snapDir_crash_law_holds` proved
 (`etcdserver/SnapDirCrash.lean`); `bootFs.touchMember.law` untouched.
 
+**2026-11-24, the leader-completeness law: statement and proof route (nothing written in Lean yet).**
+
+*Use.* `rnReplayJob_of_history` (`ReplayJob.lean`) takes, at the `Ready` that hands the payload (durable
+state `S` after its `Save`, `rt` its hard state's term, `S.term = rt` when the hard state is non-empty):
+`□ ∀ sm, ⌜sm.msg.Type' = MsgSnap ∧ sm.msg.Term' = rt ∧ n < |a0|⌝ -∗ sentMsg γ.node.cl N γ.id sm -∗
+⌜DurAgrees S (a0.map toLE)⌝`, with `a0` committed before the restart (`srvRLogLb γ.srv a0`). The
+`raftNode.start` side holds `raftState γ.node.cl γ.id S` (exclusive) at that point and must make this
+persistent implication before giving `S` up.
+
+*Statement (raft API, `Spec/go_etcd_io/raft/v3/Api.lean`, proved in `InvNode.lean`).* Roughly:
+`raftState γ id S ⊢ raftState γ id S ∗ □ (∀ l, isCommittedLogLb γ l -∗ snapshotLeader γ id S.term -∗
+⌜DurAgrees S l⌝)`, with `l` committed **before** the witness is made (a committed log that grows later
+in a higher term can overwrite `S`'s uncommitted tail, so the law must take the commit witness at the
+`raftState`'s time, e.g. as a hypothesis of the persistent implication's construction:
+`raftState γ id S ∗ isCommittedLogLb γ l ⊢ raftState γ id S ∗ □ (snapshotLeader γ id S.term -∗
+⌜DurAgrees S l⌝)`). `sentMsg_localSnapshotLeader` turns the sent `MsgSnap` into `snapshotLeader γ id rt`.
+
+*Why it is true.* A node with `S.term = T` that leads `T` was a candidate at `T` (a follower at `T`
+cannot campaign in `T`): its log from its campaign on only grows during `T`, so `S`'s log extends the
+campaign log `F0` of `isCamp γ id T F0` (or is it). Leader Completeness (`Protocol/LeaderCompleteness.lean`:
+`lc_core`, for entries committed in terms `< T`; `cq_agree` for the same term) puts every entry committed
+before `T` in any full log with records that reaches `F0`'s last entry; with equal terms at an index,
+the logs agree there (log matching over records, `full_match`).
+
+*What the proof needs from the ghost state (to find or add, in `Protocol/GhostState.lean`):*
+(i) from `ownDurGhost γ id S` (`durPers`) and `isLeader γ id S.term`: `S`'s log reaches the last entry of
+`id`'s campaign log for `S.term` (the durable log at the campaign, and append-only while the term lasts:
+the durable ghost's history at the term); (ii) `logRecs γ base0` of `S`'s full log (records, from
+`durPers`); (iii) `isCommittedLogLb γ l` as commit-quorum facts `cq γ t n F` at terms `≤ T` (the
+`reCommit` authority's justification, `raftCommitInv`); (iv) the votes table (`votesTbl`) inside the
+invariant (`lc_core` takes it), so the law is a view shift opening the cluster invariant (`↑N ⊆ E`).
+
+*Scope.* A raft-proof task: (i) is the open part. If the durable ghost keeps no per-term history
+linking `S` to the campaign, it has to be added to `durPers` and kept by every `Ready`'s *enter*
+(`StepGhost`), which reaches raft's step proofs. Estimate: several hundred lines in the protocol
+layer, plus the API statement and its interface (`etc/gen-interface.py etc/api/raft.txt`), the RaftTla
+copies (`etc/gen-raft-tla.py`) and, if `RaftNoAx`'s closure reaches `InvNode`, `etc/copy-part.py`. Not
+started in this session: its context is spent on scoping (items 1-4 above).
+
+**2026-11-24, the leader-completeness law: item (i) answered, and the stated form is false (nothing
+written in Lean).**
+
+*(i): no.* `durPers γ id S E` relates `S`'s log to nothing of `id`'s campaign: `E.camps` enters only as
+a term bound (`∀ T, camps T isSome → T ≤ S.term`), the vote-time logs (`E.vlogs`) only to the
+acknowledgements' histories, `klOkD` gives the term's winner without its log, `commitIn`/`isCommitted`
+only bound `S`'s committed prefix. With `isLeader γ id S.term` nothing says `S`'s full log reaches the
+last entry of `F0` (`isCamp γ id S.term F0`). So a campaign link has to be added to `durPers` (below).
+
+*The stated form is false.* `raftState γ id S ∗ isCommittedLogLb γ l ⊢ raftState γ id S ∗ □
+(snapshotLeader γ id S.term -∗ ⌜DurAgrees S l⌝)`, witness at `raftState`'s time: a leader commits
+entries of its own term before it persists them (raft v3.7: its own `MsgAppResp` waits in
+`msgsAfterAppend` until its storage append, `raft.go:855-863`, so two followers' acks commit an entry in
+a 3-voter cluster), and `node.run` steps those acks while a `Ready` is pending. Run: `id` campaigns at
+`T`; the `Ready` with hard-state term `T` and log `F0` is entered (`raftState γ id S`, `S.term = T`,
+`S`'s log `F0`); `id` wins, appends `e` at `n = |F0|+1`, sends the `MsgApp`s with the next `Ready`; the
+followers ack; `id` commits `e` before that `Ready` is entered. Now `isCommittedLogLb γ l` with
+`l[n-1] = e`, `raftState γ id S` still, `snapshotLeader γ id T`, and `S`'s log ends at `n-1`:
+`DurAgrees S l` is false. Leader completeness covers only entries committed at terms **below** `T`
+(`lc_core`'s `t < T`; for `t = T`, `cq_agree` compares two leader logs, and `S`'s is not one that
+contains the commit).
+
+*What the server's use has.* `rnReplayJob_of_history`'s `a0` was committed **before the restart**, and
+`rt` is a term this node leads **after** it, so `a0`'s certificates are at terms the node cannot lead
+any more. A sound pair of laws (to decide; not started):
+
+- (L1, at the witness) `raftState γ id S0 ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗
+  cmtBefore γ id S0.term l`, `cmtBefore` sealed and persistent: `l` is a prefix of a commit quorum's
+  log `cq γ t n G` (or within the bootstrap log), and every campaign of `id` existing now is at a term
+  `≤ S0.term` (the camp fragments are minted only at *enter*, so `ghostMapAuth γc ½ E.camps` bounds
+  them).
+- (L2) `cmtBefore γ id T0 l ∗ raftState γ id S ∗ snapshotLeader γ id S.term ∗ ⌜T0 < S.term⌝ ⊢
+  |={E}=> raftState γ id S ∗ ⌜DurAgrees S l⌝` (raft-side: `DurAgrees` is the server's, so restated over
+  `plogTermAt S.base S.ents`).
+
+L2's proof: `t < T` is `lc_core` plus `full_match`, given (i'); `t = T` is excluded by L1's campaign
+bound (`T`'s leader is `id`, `isLeader_unique`, whose campaign at `T > T0` did not exist at the
+witness); **`t > T` needs a new protocol lemma**: a commit quorum at `t` existing before `id`'s
+campaign at `T < t` excludes `id` winning `T` (a voter of both acked `(t, n)` before voting at `T`;
+its event history is sorted by term, `EvsOk`/`voteEv`), which no existing lemma states (`tbl_voter` and
+`lc_core` take `t < T` only). The server must also supply `T0 < rt` (its restart's durable term below
+the term it leads after the restart): a third fact, or L1's campaign bound read with a
+`snapshotLeader` obtained later.
+
+(i') The campaign link: a `durPers` conjunct `∀ F0 k, E.camps !! S.term = some (F0, k) → F0 <+: fp ++
+S.ents` (or: `S`'s full log has `F0`'s last entry), kept by every *enter* (`cut_durPers`,
+`Protocol/Enter.lean`: the cut's log is the node's in-memory log, which for a candidate or leader of
+its term extends its campaign log, a volatile-side fact to find in `ownRaftGhost` or add), by
+`durPers_rebase`, the restart (`raft_restart`) and the allocation (`RaftState.init`).
+
+*Estimate.* (i') a few hundred lines in `Protocol/GhostState.lean`/`Enter.lean` (one `durPers`
+conjunct reaches every proof that rebuilds `durPers`), the `t > T` lemma a few hundred in
+`Protocol/LeaderCompleteness.lean`, L1/L2 with sealing in a defs module beside `InvNode` (as
+`DurableLogView.lean`), plus the interface, RaftTla copies and RaftNoAx copies. Needs a decision on
+the form (L1/L2, and how the server gets `T0 < rt`) before writing it.
+
+Checkpoint 2026-11-24: leader-completeness law stopped at the design (above); no Lean changed; last
+green build still `fec7d8cf82`.
+
+**2026-11-24, L1/L2 approved; stopped again before Lean, on `T0 < rt` (the approval's stop condition).**
+
+*`T0 < rt` cannot come from L1's campaign bound.* `snapshotLeader γ id rt` (`isLeader`) and
+`sentMsg … sm` are persistent, so they hold for a term `id` led in an *earlier lifetime*, and the
+server's `rnReplayJob` quantifies over every sent `MsgSnap` at `rt`, old ones included. With `rt = T0`
+L2 is false: `id` leads `rt`, commits `e` through the followers before saving it (the run above),
+crashes; it restarts with `S0` (`S0.term = rt`, no `e`); L1 is taken there (`T0 = rt`; `e`'s
+certificate is at `t = rt` with leader `id`, and `t ≤ T0` holds); `S = S0`, `snapshotLeader γ id rt`
+from before the crash, `DurAgrees S l` false. So L2 needs `T0 < S.term` from outside: either the server
+narrows `rnReplayJob` to snapshots sent in the current lifetime and gets `rt > T0` from that, or raft
+gives a lifetime-scoped leadership fact (a third law). Decision needed; nothing is written.
+
+*What the rest needs (read off the code; for whoever continues).*
+
+(A) The campaign link. A pure `E.camps` link is false (a candidate that loses `T` becomes a follower at
+`T` and the winner's `MsgApp` can cut its campaign log), and a leader can become a follower at its own
+term (CheckQuorum step-down, `becomeFollower(r.Term, None)`; and every restart). Proposed:
+`campLink γ id camps T F := ∀ F0 k, ⌜camps !! T = some (F0, k)⌝ -∗ ⌜F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝`.
+- `campOwn` (`GhostState.lean:585`): the follower case becomes `campLink γ id camps s.term F` (today
+  `True`); the leader case adds `⌜∃ k, camps !! s.term = some (F0, k)⌝` (true at the win,
+  `Refinement.lean:937-979`, where `F0` is the candidate's own map entry).
+- Maintenance: same-term log changes of a follower come from messages with `m.src ≠ id` and
+  `isLeader m.src m.term` (`step_app_accept`, `snap_restore`, `snap_fastfwd`, `heartbeat` already
+  take `m.src ≠ id`), giving the right disjunct; a term change leaves no camp at the new term
+  (`Hcamps_ok`); a leader stepping down keeps `F0 <+: F`. Sites: `Hcown` in `Refinement.lean` (~10),
+  `StepGhost.lean` (~8), plus every step that frames `Hcown` across a follower's log change.
+- `durPers` gets `campLink γ id E.camps S.term (fp ++ S.ents)`: `cut_durPers` (`Enter.lean:372`, from
+  `campOwn` at the cut's virtual maps), `durPers_rebase` (same full log), the restart (`Enter.lean`
+  ~1566/1882: the follower's `campOwn` from it), `durPers_init` (`Facts.lean:799`, empty map).
+- At L2: `isLeader γ id T` gives `isCampK γ id T F0 k`; the fragment against `raftState`'s half of the
+  camps authority (`durShares`) gives `E.camps !! T = some (F0, k)`; the right disjunct contradicts
+  `isLeader_unique`. So `F0 <+: fp ++ S.ents`.
+
+(B) The `t > T` exclusion. A voter `v` of both the commit quorum (ack `(t, n)`, minted before the
+witness) and `id`'s winning quorum at `T < t` (vote via `votesTbl_just`). Needed changes:
+- `voteEv` carries `⌜EvSorted (L0 ++ [Aev.vote T d F])⌝` (as `ackEv` does), from `EvsOk` at *enter*.
+  Then `ackEv`'s `La` and the vote's prefix are comparable (`mono_list_lb_valid`) and sorting puts
+  the vote event in `La`.
+- `EvsOk` gets a vote clause (`Aev.vote T d F ∈ evs → (voted !! T).isSome`), and `ackEv` carries
+  `□ ∀ T' d F, ⌜Aev.vote T' d F ∈ La⌝ → ∃ c, isVote γ v T' c`, minted at *enter* from `durFrags`.
+- `cmtBefore` (L1) then records, for the certificate's quorum, `∃ c, isVote γ v T' c ∗ ⌜c = id → T' ≤ T0⌝`
+  for every vote event of each acknowledgement's `La`, proved at the witness (`votesTbl_just` →
+  `isCamp γ id T'` → `raftState`'s camps authority → `T' ≤ T0`). At L2 the vote at `T` for `id` agrees
+  with it (fragments of `v`'s vote map), so `T ≤ T0 < T`.
+
+(C) L1 also needs `isCommittedLogLb γ l` back to a raft certificate: `isCommitted γ L` with
+`strip L = l`, then `cq γ t n G` covering `|L|` (or the bootstrap log), from `raftCommitInv`.
+(D) L2: `t < T` by `lc_core` + `full_match` on `fp ++ S.ents` (reaching `F0`'s last entry,
+`prefix_camp_last`); `t = T` by `isLeader_unique` and `cmtBefore`'s `c = id → t ≤ T0`; `t > T` by (B).
+
+*Size.* (A) and (B) both change step-level invariants (`campOwn`, `voteEv`, `ackEv`, `EvsOk`), which
+reach `Refinement.lean` (5800 lines) and `StepGhost.lean`/`Enter.lean`: about 1-2k lines and several
+VM builds of the raft tree, then (C)-(D) and the API, interface and copies.
+
+Checkpoint 2026-11-24: no Lean changed; waiting on the `T0 < rt` decision; last green build `fec7d8cf82`.
+
+**2026-11-24, L1/L2 implementation, round 1: steps (A), (B), (C) written; L2's `t > T` case is
+not what (B) gives in raft's dynamic mode.**
+
+*Written (Lean).*
+- (A) `campLink γ id camps T F` (`Protocol/GhostState.lean`: `⌜∀ F0 k, camps !! T = some (F0, k) →
+  F0 <+: F⌝ ∨ ∃ L, isLeader γ L T ∗ ⌜L ≠ id⌝`, with `campLink_none`/`_prefix`/`_leader`/`_cand`). Not
+  inside `campOwn` but a conjunct of its own of `ownLogGhost` (`"#Hclink"`, at `W.camps`, `s.term`,
+  `fp ++ s.log`, every role), so that a leader stepping down keeps it with no new `campOwn` fact; and
+  the last conjunct of `durPers` (at `E.camps`, `S.term`, `fp ++ S.ents`). Kept by: `ownLogGhost_upd`
+  (its log-change obligation gains a last conjunct: the full log extended, or a higher term, or
+  `∃ L ≠ id, isLeader L s.term`; `ownLogGhost_mono'` gives the first, `step_app_accept` and
+  `step_snap_restore` the third from the message's `isLeader m.src`), `ownLogGhost_stepDown`, the
+  campaign (`campLink_cand`), the win and `pappend` (prefix), `cut_durPers`, `durPers_rebase` (its
+  output gains the link), the restarts (both), `durPers_init`.
+- (B) `EvsOk` gains a fourth clause (every vote event's term in `voted`); `AcksEvs` (Enter) is now
+  `EvsOk`'s last two clauses; `voteEv` carries `⌜EvSorted (L0 ++ [vote])⌝`; `ackEv` carries
+  `∀ T d F, vote T d F ∈ L → ∃ c, isVote γ v T c` (minted in `mint_one` from `durFrags`'s vote
+  fragments). `ownEvs_ack`/`ownEvs_vote` (unused) deleted.
+- (C) `api_committed_cert` (`InvApi.lean`): `clusterInv ∗ isCommittedLogLb γ l ={E}=∗ ⌜l = []⌝ ∨ ∃ P,
+  ⌜l <+: strip P ∧ IdxOk P⌝ ∗ isCommitted γ.raft P ∗ (boot log ∨ ∃ t n G ldr, cq γ.raft t n G ∗
+  ⌜P = G.take n⌝ ∗ isLeader γ.raft ldr t)`.
+
+*The gap: (B) does not close `t > T` when the cluster is dynamic.* (B)'s argument takes a voter `v` in
+both the commit quorum at `t` and `id`'s winning quorum at `T`. In the static mode `CfgAt.overlap`
+gives one. In the dynamic mode (`γ.reDyn = some _`, the unified API's clusters, the server's) the two
+quorums are of the configurations at `G.take a` and `F0.take kw`, which overlap only when their conf
+counts differ by at most one (`CfgAt.overlap_adj`); `lc_core` needs `lc_far_newer`/`lc_far_older` and
+its induction for the far cases. The mirror for `t > T`:
+- campaign config ≥ 2 newer: `campDyn`'s witnesses are at terms ≤ `T < t`, so `lc_core` at `t` puts
+  their conf entries in `G` past `a`: two of them, against `ConfI1 G a` (no timing needed);
+- commit config ≥ 2 newer: `cqDyn`'s witnesses (certs at `t' ≤ t`) of two conf entries past `kw`:
+  `t' < T` → `lc_core` puts them in `F0` past `kw`, against the campaign's I1; `t' = T` → a cert of
+  `id` at `T` that existed at the witness, so `T ≤ T0`; `T < t' ≤ t` → the same argument again, by
+  induction on the witness's `a`.
+So the timing facts (every cert in the `cqAt` tree: its leader is not `id` or its term is `≤ T0`;
+every ack of its quorum: the vote events before it are for `(T', c)` with `c = id → T' ≤ T0`) are
+needed for the whole witness tree, not only the top certificate: `cmtBefore` must be a recursive
+predicate over `cqAt`'s structure (as `cqAt` is, `termination_by` the config index), proved at L1 by
+the same recursion, and L2's `t > T` case is a new theorem of `lc_core`'s size. Estimate 600-1000
+lines in `Protocol/LeaderCompleteness.lean` plus the recursive `cmtBefore`.
+
+A cheaper alternative, if the server can discharge it: L2 with a premise that every committed
+prefix has one membership (the server's `srv_confAt_simple`), e.g. `□ ∀ k m, confAt γ k m -∗ ⌜m =
+m0⌝`; then both quorums are of `m0` and (B)'s single-voter argument works. It needs a bridge from
+the API's `confAt` (`decFold`) to the internal `CfgAt` of `G.take a`/`F0.take kw`. Decision needed.
+
+*Built (VM):* the protocol layer, `InvApi`, the modules that unfold the changed definitions
+(`DurableLogView`, `InvRawnode`, `CommitWit`, `Term0`, `TraceSimFacts`, `TracedRaftStepPropBundle`)
+and raft's `Link`, `Linked`, `Results`: 3475 jobs, green. RaftTla copies regenerated
+(`etc/gen-raft-tla.py`, 8 written), RaftNoAx/KvNet copies (`etc/copy-part.py`); `etc/tier-check.py
+--check` ok. No axiom, no `sorry`, no spec or top-level statement changed.
+
+Not written: `cmtBefore`, L1, L2, the API laws, the T0-lifetime law ("a term this node leads in its
+current lifetime is > its restart term": it falls out of the same camps bound as L1's, `durPers`'s
+`camps T isSome → T ≤ S.term` at the restart state, plus `campLink`; not yet stated).
+
+*Next lemma (whichever option is chosen), exact statement:* L1,
+`raftState γ id S0 ∗ isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗ cmtBefore γ id S0.term l`
+(`↑N ⊆ E`), from `api_committed_cert` and, for the certificate's leader `ldr`, `isCamp γ ldr t F0`
+(`cq_base`, `leadFull_camp`) against `raftState`'s half of the camps authority (`durShares`):
+`ldr = id → t ≤ S0.term`.
+
+**2026-11-24, L1 and L2 proved (`Proof/go_etcd_io/raft/v3/LeaderCompleteLaw.lean`, exposed in `Api.lean`,
+listed in `etc/api/raft.txt`).** No axiom, no `sorry`, no spec or top-level statement changed.
+
+- `cmtBefore γ id T0 l` (sealed, persistent; body `cmtBeforeR` over raft's names): `l = []`, or
+  `l <+: strip γ.reBoot`, or `l <+: strip (G.take n)` for a commit certificate `cqAt γ t n G a c q`
+  (`0 < n`) whose leader `ldr` has `ldr = id → t ≤ T0`, and every quorum member's acknowledgement at `t`
+  has a recorded history (`ackBefore`: a sorted event list holding the ack, every vote event in it for
+  some `c`, with `c = id → T' ≤ T0`).
+- `confFixed γ E m0 := □ ∀ l, isCommittedLogLb γ l ={E}=∗ confAt γ l.length m0` (the fixed-membership
+  premise; the server discharges it with `srv_confAt_simple γ l l.length le_refl E ..`).
+- `durLogAgrees S l` (raft's copy of the server's `DurAgrees`, the same body).
+- **L1** `raftState_cmtBefore (γ N E) (HE : ↑N ⊆ E) id S0 l :
+  raftState γ id S0 ∗ isCluster γ N ∗ isCommittedLogLb γ l ⊢ |={E}=> raftState γ id S0 ∗ cmtBefore γ id S0.term l`
+  (from `api_committed_cert`; the leader's and the votes' timing from `durPers`'s camps bound against
+  `durShares`'s camps authority; the votes through the vote table, threaded with `bigSepM_fupd_thread`).
+- **L2** `raftState_cmtBefore_agree (γ N E) (HE : ↑N ⊆ E) m0 id T0 S l : uint.Z T0 < uint.Z S.term →
+  isCluster γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ∗ snapshotLeader γ id S.term ⊢
+  |={E}=> raftState γ id S ∗ ⌜durLogAgrees S l⌝`. `campLink` gives `F0 <+: fp ++ S.ents` (`id`'s
+  campaign log at `S.term`); then `t < T` by `lc_core` + `full_match`, `t = T` by `isLeader_unique` and the
+  mark, `t > T` by a voter of both quorums (`quorums_meet`: static `CfgAt.overlap`; dynamic, both
+  configurations are `cfgOf m0` by `confFixed` + `confAt_agree`, then `D.adj` at one prefix), whose vote
+  at `T` for `id` is in the marked history (`ev_vote_mem`, sorting) against `T0 < T`. Re-checked against
+  the commit-before-save run: it needs `T0 = rt`, which the premise excludes.
+
+**The lifetime law (task 3): not written; it is not derivable over the current API.** Every leadership
+fact the API has (`snapshotLeader`, `sentMsg`, `isLeader`) is persistent and carries no lifetime: after a
+restart at `S0.term = T0` the node still has `snapshotLeader γ id T0` and its old `sentMsg` MsgSnaps at
+`T0`, and `raftState` does not hold the node's role. `durPers`'s camps bound and `campLink` say that a
+campaign the node *makes* after the mark is at a term `> T0`, but nothing the server receives tells a
+current-lifetime MsgSnap from an old one. What it needs is a raft-side fact on the messages a `Ready`
+hands out (e.g. with each MsgSnap at `rt`, a persistent `ledSince γ id T0 rt` with `T0 < rt`, where `T0`
+is the restart mark), i.e. a change to `node.Ready`/`isReadyChan_recvAu`'s post (and `RestartNode`'s, for
+the mark), which this task may not touch. Decision needed.
+
+**Left for the server:** (1) narrow `rnReplayJob` (`InvRaftNode.lean:2140`) to MsgSnaps with `T0 < rt`
+(given the lifetime fact above), then discharge `rnReplayJob_of_history`'s premise with L2 (L1 taken at
+`raftNode.start`'s restart with `l = a0`); (2) discharge `confFixed` by `srv_confAt_simple`
+(`srvRaftLogInv` is persistent: `iintro !> %l #Hl; iapply srv_confAt_simple γ l l.length (Nat.le_refl _) E hC hL $$ Hinv Hl`).
+
+*Built (VM, `25c7bb088e`):* `LeaderCompleteLaw`; raft's `Link`, `Linked`, `Results`, `Api`; the server's
+`ReplayJob`; and the `RaftTla`, `RaftNoAx` and `KvNet` copies of `LeaderCompleteLaw`, `Api` and `Link`:
+7626 jobs, green. `etc/gen-raft-tla.py --check`, `etc/copy-part.py --check`, `etc/tier-check.py --check`
+and `etc/api-check.py etc/api/raft.txt --check` pass. This branch has no `interface/` directory.
+Not rebuilt: the rest of `Api`'s 2675 importers. They gain one import, and none of the new names
+clashes with an existing one (checked by grep).
+
+Checkpoint 2026-11-24: L1 and L2 done. **Next statement:** the lifetime fact (above), which needs a
+decision on changing `node.Ready`'s post. Then the server's `rnReplayJob` narrowing.
+
+**2026-11-24, T4 round 5: the lifetime law (decision: change the API's posts).** No axiom, no `sorry`, no
+new premise on any API spec.
+
+*Raft side (built, VM).*
+- The attachment's term floor: `StorNames.t0 : w64` (default `0`; `Defs.lean`), set by `RestartNode` to
+  the stored term `σ.hs.Term'` (in the `storKeyNames` tuple too). Raft's queue invariant gets
+  `LifeOk s l` as `XfOk`'s last conjunct (`InvRaftPhys.lean`): `t0 ≤ s.term`, `t0 < s.term` at a leader
+  or candidate, and `t0 < m.Term` for every queued `MsgSnap`. Kept by: `raft.wp_store_stateC`'s new
+  premise `Hrt0` (leader/candidate past `t0`: `becomeCandidate` from `ownRaftPhysC_t0` before its
+  `reset(term+1)`; `becomeLeader`'s new spec premise `uint.Z s.gh.sn.t0 < uint.Z s.term`, which
+  `stepCandidate` gets from its candidate role), `send`'s `SendOk` `MsgSnap` clause (new last conjunct
+  `t0 < s.term`; `maybeSendSnapshot`'s new premise, which `maybeSendAppend` gets from its leader role),
+  the queue pushes (`Hxq`'s new last conjunct), `XfOk.term_le` (term raised), `XfOk.drain` (a `Ready`),
+  and `newRaft`/`NewRawNode`/`setupNode`'s new premise `uint.Z sn.t0 ≤ uint.Z hs.Term'` (callers:
+  `RestartNode` `le_refl`, `StartNode` `0 ≤ 0`).
+- `handoutOrigins` (`InvRawnode.lean`) gains `⌜∀ q ∈ ms, MsgSnap → uint.Z sn.t0 < uint.Z q.st.msg.Term'⌝`
+  (from `LifeOk` at the hand-out), so `readyGot`'s statement is unchanged: the fact is inside the sealed
+  `readySnapSources` it already gives.
+- **The mark** (`InvNode.lean`, sealed, persistent): `nodeStartTerm (n : NodeH) (T0 : w64)`, body
+  `⌜n.names.sn.t0 = T0⌝`; `nodeStartTerm_agree`.
+- **The lifetime fact** (`InvNodeRule.lean`): `readySnapSources_startTerm γ n id term ms bound installed T0 :
+  readySnapSources γ n id term ms bound installed ∗ nodeStartTerm n T0 ⊢
+  ⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z T0 < uint.Z q.st.msg.Term'⌝`.
+- **Posts changed:** `RestartNode.spec` only: `nodeStartTerm n S.term` after `nodeArm n γ x` (clients'
+  patterns gain one slot: kv, kvreconf (2), kvdurable, kvnet (KvNet's own `StartNode.lean`), the
+  server's `newRaftNode`). `StartNode.spec` unchanged (a first start's `rnReplayJob` is vacuous,
+  `a0 = []`). Internal specs changed: `raft.send` (`SendOk`), `raft.maybeSendSnapshot`,
+  `raft.becomeLeader` (and its untraced/traced wrappers), `newRaft`, `NewRawNode`, `setupNode`.
+- RaftNoAx's own `newRaft.lean` patched by hand (the same two edits).
+
+*Server side (written; see the build line below).*
+- `rnBootPost`'s restart arm gives `nodeStartTerm n S.term`; `rnRestartOk`'s restart disjunct carries
+  `nodeStartTerm γ.nl γ.t0` (`NodeStartLinked`: `γw.t0 = σ.hs.Term' = S.term`, `StorageHolds`).
+- `rnReplayJob` narrowed to this run's `MsgSnap`s: its premise takes `rnMessageSource γ ⟨ml, sm⟩` (which
+  `rnSnapMsg` carries; `applyAll` passes `%m Hsrc`). `ReplayJob.lean`: `rnReplayJob_lifetime`
+  (`rnRestartOk γ ∗ rnMessageSource γ ⟨ml, sm⟩ ⊢ ⌜MsgSnap → a0 ≠ [] → uint.Z γ.t0 < uint.Z sm.msg.Term'⌝`),
+  and `rnReplayJob_of_history` now takes `rnRestartOk γ` and its premise only at `uint.Z γ.t0 < uint.Z rt`.
+- `srv_confFixed` (`ReplayJob.lean`): `srvRaftLogInv γ ⊢ confFixed γ.raft.cl E (Membership.simple γ.raft.cfg)`
+  for `↑srvConfN ⊆ E`, `↑srvLogN ⊆ E`.
+
+*Not done: `rnReplayJob_of_history`'s premise from L2.* Its premise is a persistent wand returning a pure
+fact (`□ ∀ sm, … -∗ sentMsg … sm -∗ ⌜DurAgrees S a0⌝`), but L2 (`raftState_cmtBefore_agree`) is an
+update that needs the exclusive `raftState γ id S` (its camps authority identifies the leader's campaign
+record). So L2 cannot be fed into that premise as stated. Two ways: (a) a raft law of the wand form
+`raftState γ id S ∗ … ⊢ |={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term -∗ ⌜durLogAgrees S l⌝)`
+(needs, from the authority at the update, a persistent fragment of the camps entry at `S.term`, and for
+an absent entry a persistent "no campaign at `S.term`" fact: a change to `durShares`'s camps ghost);
+or (b) the producer (`raftNode.start`'s snapshot hand-off) applies L2 at its update with a
+`snapshotLeader` it obtains first, which needs the `MsgSnap` in hand, i.e. reorder the job's
+quantifier. Decision needed (raft-proof work for (a)).
+
+*Built (VM, `e3572c99c0`):* raft's `Link`, `Linked`, `Results`, `Api` (3474 jobs); the server's `Link` and
+`ReplayJob`, kv/kvreconf/kvdurable `Link`, `RaftTla`'s raft `Link`, `RaftNoAx`'s raft and kvdurablenoax
+`Link`, `KvNet`'s kvnet `Link` (13763 jobs); every module naming a changed name (`etc/importers.py
+--uses` for `rnRestartOk`, `rnReplayJob`, `rnReplayJob_of_history`, `rnBootPost`, `RestartNode`,
+`StorNames`, `XfOk`, `handoutOrigins`: 102 modules, plus `etcdstart.Restart` and `NewServerCrash`; 5495
+jobs): all green. `etc/gen-raft-tla.py --check`, `etc/copy-part.py --check`, `etc/tier-check.py --check`,
+`etc/api-check.py etc/api/raft.txt --check` pass. Not rebuilt: the rest of `Defs.lean`'s cone (9156
+modules; `StorNames` gains a defaulted field, which only its two constructions and `storKeyNames_agree`
+enumerate). `etc/tcb-report.py --check` not run (needs a local build).
+
+*Left for `wp_proofC`:* step 1 (the snapshot payload's `rnReplayJob` by `rnReplayJob_of_history`) needs
+the L2 bridge above; step 3 (raft's restart configuration point past the stored log: the other branch's
+option D); steps 2, 4, 5 after them; `NewServerCrash.lean`'s `sorry` (the case `σ.commit < i`) stays.
+
+Checkpoint 2026-11-24: the lifetime law proved and exposed (`e3572c99c0`); next decision: the L2
+bridge's form (a) or (b) above.
+
+**2026-11-24, decision: option (b) for the L2 bridge (L2 applied at the producer, not a raft ghost
+change). Not started; the next agent's starting point.**
+
+*Where the `MsgSnap` is in hand.* Not at `rnApSnap`'s production (`raftNode.start`'s snapshot hand-off):
+the payload's `rnReplayJob` quantifies over `MsgSnap`s that reach `applyAll` later through `msgSnapC`,
+from this `Ready` or a later one. The raft loop has the `MsgSnap` in hand where `processMessages` puts it
+on `msgSnapC` (`rnSnapMsg`, built from `rnRawMsgs` after the WAL `Save`, `rn_enter`), and there it holds
+`raftState γ.node.cl γ.id S'` (the busy driver's durable state after the batch is entered). So (b) is:
+1. At that point, for a `MsgSnap` `sm` of the `Ready` (`rnMessageSource`), with `nodeStartTerm γ.nl γ.t0`
+   from `rnRestartOk` and `readySnapSources_startTerm` (`t0 < sm.term`), `sentMsg_localSnapshotLeader`
+   (`snapshotLeader γ id sm.term`), and `sm.term = S'.term` (to check: the `Ready`'s hard-state term is
+   the leader's term while it sends; a later step-down raises `S'.term`, then `snapshotLeader` is at an
+   older term and L2 does not apply: that case must be shown unreachable at the merge, or the fact
+   carried only when the terms agree), apply L2 `raftState_cmtBefore_agree` with `cmtBefore γ id t0 a0`
+   (L1 at `raftNode.start`'s restart, `raftState_cmtBefore` with `l = srvLE … a0`, kept in the loop's
+   persistent restart data next to `rnRestartOk`) and `confFixed` (`srv_confFixed`). Result:
+   `⌜DurAgrees S' (a0.map toLE)⌝`.
+2. Carry it in `rnSnapMsg` (a new pure conjunct `sm.msg.Term' = S'.term → DurAgrees S' a0` with `S'`
+   existential), and change `rnReplayJob`'s premise to take that conjunct instead of
+   `rnMessageSource`.
+3. Open question that decides whether (b) works: `rnReplayJob_of_history` needs `replayRunsDescribe runs S n`
+   for the **same** `S` as the `DurAgrees`; the payload's runs describe the durable state at the snapshot
+   `Ready` (`S` = the snapshot at `k` plus `rd.Entries`), while step 1 gives `DurAgrees` at the `MsgSnap`'s
+   `Ready`. Needed: both durable states agree on `(n, |a0|]`, i.e. log monotonicity of the node's durable
+   log within a term between the two `Ready`s (a leader's log only grows), or produce the job at the
+   merge from the `MsgSnap`'s own `S'`. If neither holds, (b) is blocked and option (a) is the fallback:
+   report before starting it.
+
+Next statement to write (`ReplayJob.lean`, server): `rnReplayJob_of_snapMsg` — from `rnRestartOk γ`, the
+persistent L1 mark `cmtBefore γ.node.cl γ.id γ.t0 (srvLE γ.srv γ.a0)`, `srvRaftLogInv`, and
+`raftState γ.node.cl γ.id S'` with `rnMessageSource γ ⟨ml, sm⟩`, `sentMsg … sm`, `sm.msg.Type' = MsgSnap`,
+`sm.msg.Term' = S'.term`, `γ.a0 ≠ []`: `|={E}=> raftState … S' ∗ ⌜DurAgrees S' (γ.a0.map EntryModel.toLE)⌝`
+(L2 instantiated; `↑srvClusterN ∪ ↑srvConfN ∪ ↑srvLogN ⊆ E`).
+
+**2026-11-24, option (b): blocked; the S/S' question has no answer over raft's current API and ghost
+state. No Lean changed; last green build `e3572c99c0`.**
+
+*What the payload's job needs.* `rnReplayJob_of_history` needs `DurAgrees S_P a0` at the durable state
+`S_P` the payload's runs describe: the state after the payload's own `Ready` `P` (`raftTerm = rt` is
+`P`'s hard-state term). The `MsgSnap` at `rt` comes from a `Ready` `M` that can be before `P`, `P`
+itself, or after `P` (the loop runs ahead of `applyAll`; `applyAll` merges any queued `MsgSnap` with
+`m.Term == apply.raftTerm`). L2 holds only at a state `S` with `snapshotLeader γ id S.term` in hand.
+
+*(1) Relating `S_P` and `S_M`: fails.* In Go, if `id` leads `rt` then at `P`'s hand-out `id` is already
+a candidate or leader at `rt` (a node at term `rt` campaigns only at `rt + 1`), and from then on its log
+only grows, so `S_P` and `S_M` agree below `|a0|`. None of this is visible from `raftState`: the server
+sees each `Ready`'s entries, not the node's role, and a follower's durable entry at an index `≤ |a0|` can
+change within a term (overwrite by the term's leader). Inside raft, `durPers` at `S_P` gives `campLink`
+only for a campaign record that exists in the entered maps at `P` (`E_P.camps !! rt`). When it is `none`
+(a follower at `rt` that never voted at `rt`), nothing in the ghost state stops a record at `rt` from being
+added later: `PromFresh` only asks that the key be absent, and `durPers`'s camps bound allows `T ≤ S.term`.
+The vote map has the same gap (`voted !! rt = none`). Ruling it out needs "no campaign record is ever
+added at a term at or below a durable term that had none". That is a persistent fact about the future
+(closing the camps map up to the durable term), which means new campaign ghost state in raft.
+`EvSorted` and the term registry (`TermsOk`) do not provide it.
+*(2) Moving the production site: fails alone.* The payload goes on `applyc` before the `Save` and before
+*enter*, so `raftState` is still `S_{P-1}`. After *enter* (before the `notifyc` sends, which `applyAll`
+receives before the merge), the loop holds `raftState S_P`. `notifyc`'s deposit can carry a pure fact made
+there, so the job could be discharged from it. But L2 still needs `snapshotLeader γ id rt` at that point,
+which exists only if `id` already leads `rt` at `P`. A payload of a candidate `Ready` that wins later is
+the same gap as (1).
+*(3) Server-side ghost state: fails.* A record per `MsgSnap` of `DurAgrees S_M` does not reach `S_P` (as
+in (1)); the server cannot observe raft's camps.
+
+*The same gap blocks every later step, not only the kept snapshot.* The batch `Ready`s keep `replayPending`
+through `rnReplayState.appendEntries`. Its premise `above` (entries past `|a0|`) comes from `Ha0p`
+(`rnRestartOk_a0_le`: `|a0| ≤ commit0`, `raftNode__start.lean:232`, `:1354`). Dropping `|A₀| ≤ σ.commit`
+(the crash case) removes that, and after a crash the WAL's entries `≤ |a0|` can be stale (round 4,
+step 3). So the crash window needs the history form (runs describe `S_P`, then L2 at `S_P`) for every
+payload.
+
+*Two ways forward (a decision for the lead; neither started):*
+- (a) raft ghost: the camps map closed up to the durable term, i.e. a persistent "no campaign of `id` at
+  `T`" for `T ≤ S.term` with no record. Then the law `raftState γ id S ⊢ |={E}=> raftState γ id S ∗
+  □ (snapshotLeader γ id S.term -∗ ⌜durLogAgrees S l⌝)` holds, made at *enter* and deposited in
+  `notifyc`. This is new campaign ghost state in raft, which this task excluded.
+- (b') a fork change plus a raft law over the existing ghost state. In `raft.go`, set `ap.raftTerm` only
+  on a `Ready` whose role is leader (`islead`), else `0`. A `MsgSnap` is then merged only with a leader
+  `Ready`'s payload (liveness only: an unmerged `MsgSnap` is reported failed and resent). Raft's `Ready`
+  post (`readyGot`/`readyLeaderMsgs`) gains `⌜roleAfter st.role ss = StateLeader⌝ -∗ snapshotLeader γ id
+  (phsNext st.hardState h).Term'`. At a leader, `campOwn` already holds the `isCamp`; the win's certificate
+  is `leadLogOwn`'s term record. Server: after *enter* of a leader `Ready`, L2 at `S_P` (with `t0 < rt`
+  from `LifeOk`'s leader clause, to be exposed with it); `DurAgrees S_P a0` goes in `notifyc`'s deposit;
+  the job reads it. The loop keeps `replayHistoryMatches runs S n` (runs describe the current durable
+  state above the cursor) through `appendEntries`'s cut (`appendEntries_nonempty`'s `hcut`), the snapshot
+  reset and `after`, in place of `replayPending`. The seed is the WAL's entries, which are `S_0`'s.
+  Estimate: the fork change and its test, one raft `Ready` law, the loop's replay invariant reworked in
+  `raftNode__start.lean` (2000 lines; three `Ready` arms) and `replaySeed_facts`, and `applyAll`'s two
+  `notifyc` receives.
+
+Checkpoint 2026-11-24: (b) blocked as above. **Next statement** (once (a) or (b') is chosen): for (b'),
+raft's `readyLeaderMsgs` widened to `⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms ∗
+snapshotLeader γ id (phsNext st.hardState h).Term' ∗ ⌜uint.Z n.names.sn.t0 < uint.Z (phsNext st.hardState
+h).Term'⌝`. For (a), the raft law above.
+
+**2026-11-24, option (a): the campaign map closed up to the durable term; `raftState_leadAgree` proved;
+the replay job's premise in the law's form.** No axiom, no `sorry`, no new top-level premise, no Go change.
+
+*The closure fact (raft, `Protocol/`).* A closure value on the existing campaign map, no new resource:
+- `campNone := ([], W64 (2^64-1))` and `isCampNone γ c T := ∃ γc, ⌜γ.reCamp !! c = some γc⌝ ∗ T ↪[γc]□ campNone`
+  (`Ghost.lean`, persistent): node `c`'s campaign map key `T` is closed, for good. `isCampNone_campK`:
+  `isCampNone γ c T -∗ isCampK γ c T F k -∗ False` (a record's commit index is within its log;
+  `campNone_ne`).
+- A promise `Prom.close T` (`GhostState.lean`): fresh when the key is free, `promNeed` trivial, entering
+  it inserts `campNone` (`mint_one`) and mints `isCampNone`; `durFrags`' camps part is `campFrag`
+  (`isCampK ∨ (⌜x = campNone⌝ ∗ isCampNone)`).
+- The cut closes the node's term's key when it has none (`Enter.lean`: `cutClose V πc s.term`, the
+  pending list with `.close s.term` appended iff `(virt V πc).camps !! s.term = none`; `ownLogGhost_close`,
+  `campOwn_close`, `campLink_close`). This is raft's fact: a node campaigns only at `term + 1`.
+- `durPers γ id S E` gains a last conjunct `⌜uint.Z S.term = 0 ∨ (E.camps !! S.term).isSome⌝`
+  (`cut_durPers` takes `(W.camps !! s.term).isSome`). With the map's fragments (persistent), the key of
+  every durable term is final: a record or `campNone`.
+
+*The law* (`LeaderCompleteLaw.lean`, exposed by `Api.lean`):
+`raftState_leadAgree (γ N E) (HE : ↑N ⊆ E) m0 id T0 S l : uint.Z T0 < uint.Z S.term →
+isCluster γ N ∗ confFixed γ E m0 ∗ cmtBefore γ id T0 l ∗ raftState γ id S ⊢
+|={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term ={E}=∗ ⌜durLogAgrees S l⌝)`.
+It reads the key's fragment through the slot (`Enter.durShares_frags`); in the wand, a record is
+the leader's campaign record (`isCampK_agree`) and `campLink` + `cmtBefore_core` (L2's core) give the
+agreement; `campNone` refutes the leadership. **The wand is an update, not pure** (as the notes' form
+had it): L2's core opens the vote table (`lc_core`) and the membership (`confFixed`) at the time the
+leadership is shown, so no pure form is provable.
+
+*Server (built only as far as noted below).* `rnReplayJob`'s conclusion is now `|={⊤}=> ∃ runs r, …`
+(`applyAll` `imod`s it; `rnReplayState.job` `imodintro`s); `rnReplayJob_of_history`'s premise is
+`□ ∀ sm, … -∗ sentMsg … sm ={⊤}=∗ ⌜DurAgrees S (a0.map toLE)⌝`; new `rnReplayJob_premise_of_lead`
+(`ReplayJob.lean`): the law's wand at `S` with `S.term = rt` gives that premise
+(`sentMsg_localSnapshotLeader`).
+
+*Built (VM, raft at `efec220057`):* raft's `Link`, `Linked`, `Results`, `Api`, `DurableLogView`, the
+protocol modules, `RaftTla`/`RaftNoAx` raft `Link`, `RaftNoAx` kvdurablenoax `Link`, `KvNet` kvnet
+`Link`, the server `Link` (before the server edits): 13236 jobs, green. `gen-raft-tla --check`,
+`copy-part --check`, `tier-check --check`, `api-check etc/api/raft.txt --check` pass.
+*Built (VM, with the server edits):* the server's `Link` and `ReplayJob`: 9494 jobs, green.
+
+*Not done (next, in order).* Nothing of `wp_proofC`'s steps closed yet; its `sorry`
+(`NewServerCrash.lean:77`) stays.
+1. **L1 at the restart.** In `raftNode.start` (restart arm, where `rnRestartOk`'s `nodeStartTerm γ.nl γ.t0`
+   and `raftState γ.node.cl γ.id S0` with `S0.term = γ.t0` are in hand): `raftState_cmtBefore` with
+   `l = γ.a0.map EntryModel.toLE` (its `isCommittedLogLb` from `srvRLogLb`; note `srvLE` prefixes `γ.pre`),
+   kept as a persistent `cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map toLE)` in the loop's restart data.
+2. **The law at each *enter*.** After `rn_enter`/`rn_enterS` (`raftNode__start.lean:721, :1540`), with
+   `raftState … S'`: if `uint.Z γ.t0 < uint.Z S'.term`, `raftState_leadAgree` (with `srv_confFixed`) gives
+   `□ (snapshotLeader … S'.term ={⊤}=∗ ⌜durLogAgrees S' (a0.map toLE)⌝)`.
+3. **The deposit.** `rnApR` (batch) and the snapshot's `isNotify2` first-send deposit carry
+   `∃ S, ⌜replayRunsDescribe runs S n ∧ S.term = rt⌝ ∗ (⌜t0 < rt⌝ -∗ law-wand at S)` for the payload's runs;
+   the loop keeps `replayHistoryMatches runs S n` (runs describe the current durable state above the
+   cursor) in place of `replayPending` through `appendEntries`' cut, the snapshot reset and `after`.
+4. `rnReplayJob` then takes the deposit (received before the merge) instead of being a payload
+   field; `applyAll` discharges it with `rnReplayJob_of_history` + `rnReplayJob_premise_of_lead`.
+5. T4 round 4's steps (drop `|A₀| ≤ σ.commit`, step 1, step 2), the merge of
+   `origin/raft-restart-confpoint/2026-11-24`, then `wp_proofC` and its Link entry.
+
+Checkpoint 2026-11-24: raft (a) and the law done; server job in the law's form. **Next statement:** item 1,
+`rnRestart_cmtBefore` (server, `ReplayJob.lean`): `rnRestartOk γ ∗ raftState γ.node.cl γ.id S0 ∗
+⌜S0.term = γ.t0⌝ ∗ srvRaftLogInv … ∗ srvRLogLb γ.srv γ.a0 ⊢ |={⊤}=> raftState … S0 ∗ cmtBefore γ.node.cl
+γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.
+
+**2026-11-25, option (a), item 1 closed; item 3's pure lemmas proved.** No axiom, no `sorry`, no new
+top-level premise, no Go change.
+
+*Item 1, L1 at the restart (done, `c62ac989e4`).* Made at the producer, not in `raftNode.start` (whose
+loop state has moved past `S0` by then): `NodeStartLinked`'s restart arm holds `raftState γr.cl cv.ID' S`
+with `σ.hs.Term' = S.term` (`StorageHolds`), `isCluster` and the image `isCommittedLogLb (A₀.map toLE)`
+(already there for `replaySeed_facts`), and applies `raftState_cmtBefore`. The mark goes in the restart
+data: `rnRestartOk`'s restart disjunct gains `cmtBefore γ.node.cl γ.id γ.t0 (γ.a0.map EntryModel.toLE)`.
+New (`InvRaftNode.lean`): `rnRestart_cmtBefore (γ) : rnRestartOk γ ⊢ ⌜γ.a0 ≠ []⌝ -∗ cmtBefore γ.node.cl
+γ.id γ.t0 (γ.a0.map EntryModel.toLE)`. Built (VM): `NewServerCrash`, `NodeStartLinked`, `ReplayJob`,
+`AuthCompRows` and their cones (4993 jobs), green.
+
+*Item 3's pure lemmas (`ReplayCoverage.lean`; built with the server's `Link`, 9494 jobs, green).*
+- `replayHistoryMatches_append rs S S' n k first rest idx (h : replayHistoryMatches rs S n)
+  (hcut : replayCutIndex rs first.index k) below here : replayHistoryMatches ((first :: rest).foldl
+  replayAddEntry (replayRetain rs k first.index)) S' n`, with `below : ∀ ci t, n < ci → ci < first.index →
+  plogTermAt S' ci = some t → plogTermAt S ci = some t` and `here : ∀ ci t, n < ci → first.index ≤ ci →
+  plogTermAt S' ci = some t → ∃ e ∈ first :: rest, e.index = ci ∧ e.term = t` (`appendEntries_nonempty`'s
+  output; replaces `rnReplayState.appendEntries`' `above`, i.e. `Ha0p`).
+- `replayHistoryMatches_same rs S S' n m h (hb : S'.base = S.base) (he : S'.ents = S.ents) (hm : n ≤ m)`
+  (an empty batch, the tick arm).
+- `plogTermAt_next_batch S term vote commit first rest idx (hb : uint.Z S.base.index' < uint.Z
+  first.index) (hwf : PlogWf S'.base S'.ents)` with `S' := S.next term vote commit none ((first ::
+  rest).map toM)`: `below ∧ here` (without the cursor). `hwf` from `raftState_logView` at the entered
+  `S'`; `hb` from `rnReadyData`'s `p.Commit' < first.index` plus `S.base.index ≤ p.Commit'` (to find:
+  `rnLoopTokP`/`durPers`; else take it from raft's `Ready` post).
+  For a snapshot `Ready`: `S.next … (some sn) es` has the base/ents of `{S with base := snapId, ents :=
+  []}.next … none es` (by `rfl` on the fields), and `replayHistoryMatches [] {base := snapId, ents := []}
+  n` holds for `n ≥ snapIdx` (no entry above), so the lemma applies after the reset.
+
+*The design for items 2-4 (read off the code; not started).* The job is `applyAll`'s precondition
+(`taReplayBatch`, `EtcdServer__run.lean:1436` from the payload's field) and is used only after
+`<-apply.notifyc` (`EtcdServer__applyAll.lean:214`, the merge at :481). So:
+- `rnReplayState γ view n` → `rnReplayState γ view S n := ∃ runs, view ↦*□ runs ∗ ⌜replayHistoryMatches
+  runs S n⌝`, `S` the loop's durable state (`rnLoopTokP`'s); the seed is `replaySeed_facts`' `DurAgrees`
+  form (the WAL's entries are `S0`'s); `.advance` by `replayHistoryMatches_after`, `.appendEntries` by
+  the lemmas above, with `S'` the receive's (`rn_ready_recv` names it before the `Save`).
+- The payload (`rnApN`, `rnApSnap`, `InvRaftLoop`'s copy): `∃ S, rnReplayHist γ ap.replayTerms' S n ∗
+  ⌜S.term = ap.raftTerm' ∨ uint.Z ap.raftTerm' = 0⌝` in place of `rnReplayJob`, and the same `S` in the
+  `notifyc` deposit: `isNotify γnc ap.notifyc' (rnApR γ F ce ∗ rnLeadLaw γ S)` with `rnLeadLaw γ S :=
+  ⌜γ.a0 ≠ [] ∧ uint.Z γ.t0 < uint.Z S.term⌝ -∗ □ (snapshotLeader γ.node.cl γ.id S.term ={⊤}=∗
+  ⌜durLogAgrees S (γ.a0.map toLE)⌝)` (the snapshot's `isNotify2`: on the first send).
+- Item 2: after `rn_enter`/`rn_enterS` (`raftNode__start.lean:721, :1540`), `raftState_leadAgree` with
+  `rnRestart_cmtBefore`, `srv_confFixed` and `isCluster` (from `rnEnvOk`'s `srvClusterOk`) gives
+  `rnLeadLaw γ S'`; the `notifyc` sends deposit it.
+- Item 4: `taReplayBatch` carries the history; `applyAll` builds `rnReplayJob` after the receive by
+  `rnReplayJob_of_history` + `rnReplayJob_premise_of_lead` (its law premise made conditional as above).
+
+Checkpoint 2026-11-25. **Next statement:** `rnReplayState` over the durable state, `def rnReplayState
+(γ : RNNames GF) (view : GoSlice) (S : RaftState) (n : Nat) : IProp GF := iprop(∃ runs, view ↦*□ runs ∗
+⌜replayHistoryMatches runs S n⌝)`, with `rnReplayState.appendEntries` re-proved over
+`replayHistoryMatches_append`/`plogTermAt_next_batch` (`S → S'`), then the loop invariant of
+`raftNode.start` (`Hhistory`) at `rnLoopTokP`'s `S`.
 
 ## 10T2. T2: the server's crash-aware durability invariant (2026-11-24, branch `etcd-safe-d6t2/2026-11-24`)
 

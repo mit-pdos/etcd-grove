@@ -42,15 +42,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 theorem walInvBody_failOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walOpening (W := W) w dir sn ic ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walReadFailed (W := W) w dir := by
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walHandlePI (W := W) w dir ic .failed := by
   iintro Hb Ho
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
   icases (walGhost_handleAuth (W := W) s).1 $$ Hg with ⟨Ha, Hg⟩
-  unfold walOpening walReadFailed
-  ihave Ho : walHandleP (W := W) w dir (.opening sn) $$ [Ho]
-  · iapply (walHandleP_inc (W := W) w dir _).2; iexists ic; iexact Ho
-  imod walHandleP_set (W := W) w dir (.opening sn) .failed $$ Ha Ho with ⟨Ha, Ho⟩
+  unfold walOpening
+  imod walHandlePI_set (W := W) w dir ic (.opening sn) .failed $$ Ha Ho with ⟨Ha, Ho⟩
   ihave Hg := Hg $$ Ha
   imodintro
   iframe Ho
@@ -61,9 +59,10 @@ theorem walInvBody_failOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr 
 theorem walInv_failOpening (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (w : Loc) (dir : GoString) (sn : w64 × w64) (ic : Nat) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walOpening (W := W) w dir sn ic ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗ walReadFailed (W := W) w dir := by
+      walOpening (W := W) w dir sn ic ={⊤}=∗ notCrashed (hC := L.goose_crashGS) ∗
+        walHandlePI (W := W) w dir ic .failed := by
   iintro #Hinv Hnc Ho
-  iapply walInv_step C Mr R jr r (walOpening (W := W) w dir sn ic) (walReadFailed (W := W) w dir) ⊤
+  iapply walInv_step C Mr R jr r (walOpening (W := W) w dir sn ic) (walHandlePI (W := W) w dir ic .failed) ⊤
     CoPset.subseteq_top (fun s => by
       iintro Hb Ho
       imod walInvBody_failOpening C Mr R jr r s w dir sn ic $$ Hb Ho with ⟨Hb, Ho⟩
@@ -108,7 +107,7 @@ theorem readAll_failWp (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ walOpening (W := W) w dir sn ic -∗
       (AU <{ ∃∃ d : WalDur, walDiskAtI (W := W) dir ic d ∗ ⌜Pre d⌝ }> @ walAuMask, ∅
         <{ walDiskAtI (W := W) dir ic d, COMM Q d }>) -∗
-      (∀ d, Q d -∗ walReadFailed (W := W) w dir -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
+      (∀ d, Q d -∗ walHandlePI (W := W) w dir ic .failed -∗ WP e {{ Φ }}) -∗ WP e {{ Φ }} := by
   iintro #Hinv Ho Hau Hk
   iapply wp_notCrashed_acc _ _ h
   iintro Hnc

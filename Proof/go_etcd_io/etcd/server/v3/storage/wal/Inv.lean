@@ -2194,16 +2194,84 @@ instance walOsPathS_timeless (R : Roots) (p : GoString) (dq : DFrac) (j : Ino) :
   haveI := walOsSpine_timeless (L := L)
   infer_instance
 
+/-- The loans of name `nm` counted at index `k` of the registered names `Wn`: all at its first index
+(`Wn.idxOf nm`), none at a later duplicate. -/
+def shareLs (Wn : List GoString) (Lo : List (GoString × Qp)) (k : Nat) (nm : GoString) : Rat :=
+  if Wn.idxOf nm = k then loanSum Lo nm else 0
+
+/-- The first index of a registered name holds it. -/
+theorem idxOf_getElem? {Wn : List GoString} {nm : GoString} (h : nm ∈ Wn) :
+    Wn[Wn.idxOf nm]? = some nm := by
+  rw [List.getElem?_eq_getElem (List.idxOf_lt_length_of_mem h), List.getElem_idxOf]
+
+@[simp] theorem loanSum_nil (nm : GoString) : loanSum [] nm = 0 := rfl
+
+@[simp] theorem shareLs_nil (Wn : List GoString) (k : Nat) (nm : GoString) : shareLs Wn [] k nm = 0 := by
+  unfold shareLs; split <;> rfl
+
+theorem loanSum_cons_eq (Lo : List (GoString × Qp)) (nm : GoString) (q : Qp) :
+    loanSum ((nm, q) :: Lo) nm = q.val + loanSum Lo nm := by
+  simp [loanSum, List.filter_cons]
+
+theorem loanSum_cons_ne (Lo : List (GoString × Qp)) (nm nm' : GoString) (q : Qp) (h : nm' ≠ nm) :
+    loanSum ((nm, q) :: Lo) nm' = loanSum Lo nm' := by
+  simp [loanSum, List.filter_cons, Ne.symm h]
+
+theorem loanSum_perm {Lo Lo' : List (GoString × Qp)} (h : Lo.Perm Lo') (nm : GoString) :
+    loanSum Lo nm = loanSum Lo' nm := by
+  induction h with
+  | nil => rfl
+  | cons x _ ih =>
+    unfold loanSum at *; simp only [List.filter_cons]; split <;> simp_all
+  | swap x y l =>
+    unfold loanSum; simp only [List.filter_cons]; split <;> split <;> simp [Rat.add_left_comm]
+  | trans _ _ ih1 ih2 => exact ih1.trans ih2
+
+theorem shareLs_perm (Wn : List GoString) {Lo Lo' : List (GoString × Qp)} (h : Lo.Perm Lo') (k : Nat)
+    (nm : GoString) : shareLs Wn Lo k nm = shareLs Wn Lo' k nm := by
+  unfold shareLs; rw [loanSum_perm h]
+
+/-- A loan of `nm` changes no share but the one at `nm`'s first index. -/
+theorem shareLs_cons_ne (Wn : List GoString) (Lo : List (GoString × Qp)) (nm nm' : GoString) (q : Qp)
+    (k : Nat) (hk : Wn[k]? = some nm') (hne : k ≠ Wn.idxOf nm) :
+    shareLs Wn ((nm, q) :: Lo) k nm' = shareLs Wn Lo k nm' := by
+  unfold shareLs
+  by_cases h : Wn.idxOf nm' = k
+  · have e : nm' ≠ nm := by rintro rfl; exact hne h.symm
+    rw [if_pos h, if_pos h, loanSum_cons_ne Lo nm nm' q e]
+  · rw [if_neg h, if_neg h]
+
+theorem shareLs_cons_eq (Wn : List GoString) (Lo : List (GoString × Qp)) (nm : GoString) (q : Qp) :
+    shareLs Wn ((nm, q) :: Lo) (Wn.idxOf nm) nm = q.val + shareLs Wn Lo (Wn.idxOf nm) nm := by
+  unfold shareLs; simp only [if_pos rfl]; exact loanSum_cons_eq Lo nm q
+
+/-- Loans all of one name `nm` count nothing at a later index of `nm :: Wn`. -/
+theorem shareLs_reg_tail (Wn : List GoString) (Lo : List (GoString × Qp)) (nm y : GoString) (k : Nat)
+    (hLn : ∀ x ∈ Lo, x.1 = nm) : shareLs (nm :: Wn) Lo (k + 1) y = shareLs Wn [] k y := by
+  rw [shareLs_nil]
+  unfold shareLs
+  by_cases hy : y = nm
+  · subst hy; simp
+  · split
+    · unfold loanSum
+      rw [List.filter_eq_nil_iff.2 (fun x hx => by
+        simp only [decide_eq_true_eq]; rw [hLn x hx]; exact Ne.symm hy)]
+      rfl
+    · rfl
+
+theorem shareLs_reg_head (Wn : List GoString) (Lo : List (GoString × Qp)) (nm : GoString) :
+    shareLs (nm :: Wn) Lo 0 nm = loanSum Lo nm := by
+  unfold shareLs; simp
+
 /-- **A registered WAL name's claim, as the invariant keeps it** (G-spine; W1 log, thirteenth session):
 a fraction `q` of the program's half of the claim `(jr, .only [nm], hn)` on the WAL's name alone (the
 invariant holds its other half among its claims, `osClaims`), the name valid for the system calls
 (`NameOk`), a WAL name, and holding the WAL's directory (`lay.j` of the layout named `nm`). The rest of
-the program's half is lent out, in paths to the WAL's directory, never returned: the claim never changes
-again in the generation (a registered WAL's name is renamed onto or away by no WAL function; a change
-needs the whole claim), so `hn` is fixed and its holders need not give it back. -/
-def nameShare (jr : Ino) (Ls : GMap GoString WalLay) (nm : GoString) : IProp GF :=
+the program's half, `ls`, is lent out, in paths to the WAL's directory (the loans of `NmSt`, P6b fix A),
+and returned before the lock token is: `Discard`, holding the free token, gets the half whole. -/
+def nameShare (jr : Ino) (Ls : GMap GoString WalLay) (nm : GoString) (ls : Rat) : IProp GF :=
   iprop(∃ (q : Qp) (hn : NamesH), osNames (L := L) jr (.only [nm]) (DFrac.own q) hn ∗
-    ⌜NameOk nm ∧ walNameOk nm ∧
+    ⌜q.val + ls = ((1 : Qp).half).val ∧ NameOk nm ∧ walNameOk nm ∧
       ∀ dir lay, Ls !! dir = some lay → lay.nm = nm → hn.cur !! nm = some (.dir lay.j)⌝)
 
 /-- **The WALs' name claims** (G-spine, framed; W1 log, thirteenth session). A path to a WAL directory
@@ -2221,23 +2289,28 @@ whose caller gets its own spine back whole. Independent of the claims list (a st
 claims leaves it as it is). **The WAL being created is unnamed** (W4 session 4, `notes/wal-units/create.md`):
 `o = some dir`'s WAL is not `named` in the real state `s` (`Create` registers before it names, and
 `ReadAll`'s naming holds a handle's `walNamesFrag none`), so that the cleanup's rename of its name away
-keeps its crash condition (`CrashTo`'s left disjunct). -/
+keeps its crash condition (`CrashTo`'s left disjunct). The loans out (`st.loans`) are of registered
+names, each name's share short by their sum (`nameShare`'s `ls`). **The WAL being discarded** (`st.disc =
+some dir`, P6b state C: `Discard`, holding the lock token's names fragment, has merged its name's claim back
+into the area claim, until the parent's fsync removes its layout) is the one present WAL not registered;
+no registration is pending meanwhile. -/
 def walNamesRes (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay) (s : AbsDiskState) :
     IProp GF :=
-  iprop(∃ (o : Option GoString) (Wn : List GoString),
-    walNamesAuth (W := W) o ∗ walSplitAuth (W := W) Wn ∗
+  iprop(∃ (st : NmSt) (Wn : List GoString),
+    walNamesAuthS (W := W) st ∗ walSplitAuth (W := W) Wn ∗
     ⌜(∀ nm ∈ Wn, ∃ dir lay, Ls !! dir = some lay ∧ lay.nm = nm) ∧
-      ∀ dir lay, Ls !! dir = some lay → o ≠ some dir → lay.nm ∈ Wn⌝ ∗
-    ⌜∀ dir d, o = some dir → s.wal !! dir = some d → d.named = false⌝ ∗
+      ∀ dir lay, Ls !! dir = some lay → st.reg ≠ some dir → st.disc ≠ some dir → lay.nm ∈ Wn⌝ ∗
+    ⌜∀ dir d, st.reg = some dir → s.wal !! dir = some d → d.named = false⌝ ∗
+    ⌜(st.disc ≠ none → st.reg = none) ∧ ∀ x ∈ st.loans, x.1 ∈ Wn⌝ ∗
     (∃ q : Qp, osPathS (L := L) R r (DFrac.own q) jr) ∗
-    [∗list] nm ∈ Wn, nameShare (L := L) jr Ls nm)
+    [∗list] k ↦ nm ∈ Wn, nameShare (L := L) jr Ls nm (shareLs Wn st.loans k nm))
 
 instance walNamesRes_timeless (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
     (s : AbsDiskState) :
     Timeless (walNamesRes (L := L) (W := W) R jr r Ls s) := by
   haveI : ∀ (j : Ino) (N : NameSet) (q : DFrac) (h : NamesH), Timeless (osNames (L := L) j N q h) :=
     fun _ _ _ _ => by unfold osNames; split <;> infer_instance
-  haveI : ∀ nm, Timeless (nameShare (L := L) jr Ls nm) := fun _ => by
+  haveI : ∀ nm ls, Timeless (nameShare (L := L) jr Ls nm ls) := fun _ _ => by
     unfold nameShare; infer_instance
   unfold walNamesRes; infer_instance
 
@@ -2343,18 +2416,18 @@ theorem walInvBody_bounded (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   ipureintro; exact Hbd
 
 /-- A name's share under a change of layouts keeping every layout of its name's directory. -/
-theorem nameShare_mono (jr : Ino) (Ls Ls' : GMap GoString WalLay) (nm : GoString)
+theorem nameShare_mono (jr : Ino) (Ls Ls' : GMap GoString WalLay) (nm : GoString) (ls : Rat)
     (h : ∀ dir lay', Ls' !! dir = some lay' → lay'.nm = nm → ∃ lay, Ls !! dir = some lay ∧
       lay.nm = nm ∧ lay.j = lay'.j) :
-    nameShare (L := L) jr Ls nm ⊢ nameShare (L := L) jr Ls' nm := by
+    nameShare (L := L) jr Ls nm ls ⊢ nameShare (L := L) jr Ls' nm ls := by
   unfold nameShare
   iintro ⟨%q, %hn, H, %hf⟩
   iexists q, hn
   iframe H
   ipureintro
-  refine ⟨hf.1, hf.2.1, fun dir lay' hl' he => ?_⟩
+  refine ⟨hf.1, hf.2.1, hf.2.2.1, fun dir lay' hl' he => ?_⟩
   obtain ⟨lay, hl, hnm, hj⟩ := h dir lay' hl' he
-  rw [← hj]; exact hf.2.2 dir lay hl hnm
+  rw [← hj]; exact hf.2.2.2 dir lay hl hnm
 
 /-- **A new WAL, committed by `Create`** (its rename; the lock taken, `walNamesFrag none`): its name not
 yet registered (the pending registration set to `dir`, until `Create` registers it); no other layout has
@@ -2365,31 +2438,33 @@ theorem walNamesRes_addWal (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
     (hs' : ∀ d, s'.wal !! dir = some d → d.named = false) :
     ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) none ==∗
       walNamesRes (L := L) (W := W) R jr r (<[dir := lay]> Ls) s' ∗ walNamesFrag (W := W) (some dir) := by
-  unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, -, Hsp, Hl⟩ Hf
-  icases walNames_agree (W := W) o none $$ Ha Hf with %ho
+  unfold walNamesRes walNamesFrag
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, -, %hst, Hsp, Hl⟩ Hf
+  icases walNamesS_agree (W := W) o _ $$ Ha Hf with %ho
   subst ho
-  imod walNames_set (W := W) none none (some dir) $$ Ha Hf with ⟨Ha, Hf⟩
+  imod walNamesS_set (W := W) _ _ ⟨some dir, none, []⟩ $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
   iframe Hf
-  iexists some dir, Wn
+  iexists ⟨some dir, none, []⟩, Wn
   iframe Ha Hs Hsp
   isplitr
   · ipureintro
-    refine ⟨fun nm hm => ?_, fun dir' l hl' ho => ?_⟩
+    refine ⟨fun nm hm => ?_, fun dir' l hl' ho _ => ?_⟩
     · obtain ⟨d', l, hl', rfl⟩ := hf.1 nm hm
       have e : d' ≠ dir := by rintro rfl; rw [hLd] at hl'; cases hl'
       exact ⟨d', l, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', rfl⟩
     · have e : dir' ≠ dir := fun e => ho (by rw [e])
       rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-      exact hf.2 dir' l hl' (by simp)
+      exact hf.2 dir' l hl' (by simp) (by simp)
   isplitr
   · ipureintro
     intro dir' d ho hd
     cases ho
     exact hs' d hd
+  isplitr
+  · ipureintro; exact ⟨fun h => absurd rfl h, by simp⟩
   iapply BigSepL.bigSepL_mono (fun {k nm} hk => ?_) $$ Hl
-  refine nameShare_mono jr Ls _ nm (fun d' l' hl' he => ?_)
+  refine nameShare_mono jr Ls _ nm _ (fun d' l' hl' he => ?_)
   by_cases e : d' = dir
   · subst e
     rw [GMap.lookup_insert_eq] at hl'; cases hl'
@@ -2406,12 +2481,12 @@ theorem walNamesRes_insert (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
     walNamesRes (L := L) (W := W) R jr r Ls s ⊢
       walNamesRes (L := L) (W := W) R jr r (<[dir := lay']> Ls) s := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, Hun, Hsp, Hl⟩
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, Hun, Hst, Hsp, Hl⟩
   iexists o, Wn
-  iframe Ha Hs Hsp Hun
+  iframe Ha Hs Hsp Hun Hst
   isplitr
   · ipureintro
-    refine ⟨fun nm hm => ?_, fun dir' l hl' ho => ?_⟩
+    refine ⟨fun nm hm => ?_, fun dir' l hl' ho hd => ?_⟩
     · obtain ⟨d', l, hl', rfl⟩ := hf.1 nm hm
       by_cases e : d' = dir
       · subst e; rw [hl] at hl'; cases hl'
@@ -2419,11 +2494,11 @@ theorem walNamesRes_insert (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoSt
       · exact ⟨d', l, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', rfl⟩
     · by_cases e : dir' = dir
       · subst e; rw [GMap.lookup_insert_eq] at hl'; cases hl'
-        rw [hnm]; exact hf.2 dir' lay hl ho
+        rw [hnm]; exact hf.2 dir' lay hl ho hd
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
-        exact hf.2 dir' l hl' ho
+        exact hf.2 dir' l hl' ho hd
   iapply BigSepL.bigSepL_mono_of_forall (fun {k nm} => ?_) $$ Hl
-  refine nameShare_mono jr Ls _ nm (fun d' l' hl' he => ?_)
+  refine nameShare_mono jr Ls _ nm _ (fun d' l' hl' he => ?_)
   by_cases e : d' = dir
   · subst e
     rw [GMap.lookup_insert_eq] at hl'; cases hl'
@@ -2469,9 +2544,9 @@ theorem walNamesRes_congr (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoStr
       ∃ d, s.wal !! dir = some d ∧ d.named = true) :
     walNamesRes (L := L) (W := W) R jr r Ls s ⊢ walNamesRes (L := L) (W := W) R jr r Ls s' := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hsp, Hl⟩
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hst, Hsp, Hl⟩
   iexists o, Wn
-  iframe Ha Hs Hsp Hl
+  iframe Ha Hs Hsp Hl Hst
   isplitr
   · ipureintro; exact hf
   ipureintro
@@ -2481,23 +2556,30 @@ theorem walNamesRes_congr (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoStr
   · obtain ⟨d, hd, hdn⟩ := hs dir d' hd' hn
     rw [hun dir d ho hd] at hdn; cases hdn
 
-/-- **`walNamesRes` over any real state, with no registration pending** (`walNamesFrag none`: the
-naming steps, whose caller has registered its WAL's name). -/
-theorem walNamesRes_none (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
-    (s s' : AbsDiskState) :
-    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) none -∗
-      walNamesRes (L := L) (W := W) R jr r Ls s' ∗ walNamesFrag (W := W) none := by
+/-- **`walNamesRes` over any real state, with no registration pending** (`walNamesFragS ⟨none, none,
+L⟩`, loans `L` out: the naming steps, whose caller has registered its WAL's name). -/
+theorem walNamesRes_noneL (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s s' : AbsDiskState) (Lo : List (GoString × Qp)) :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ -∗
+      walNamesRes (L := L) (W := W) R jr r Ls s' ∗ walNamesFragS (W := W) ⟨none, none, Lo⟩ := by
   unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, -, Hsp, Hl⟩ Hf
-  icases walNames_agree (W := W) o none $$ Ha Hf with %ho
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, -, Hst, Hsp, Hl⟩ Hf
+  icases walNamesS_agree (W := W) o _ $$ Ha Hf with %ho
   subst ho
   iframe Hf
-  iexists none, Wn
-  iframe Ha Hs Hsp Hl
+  iexists ⟨none, none, Lo⟩, Wn
+  iframe Ha Hs Hsp Hl Hst
   isplitr
   · ipureintro; exact hf
   ipureintro
   intro dir d ho; cases ho
+
+/-- `walNamesRes_noneL` with no loan out (`walNamesFrag none`). -/
+theorem walNamesRes_none (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoString WalLay)
+    (s s' : AbsDiskState) :
+    ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) none -∗
+      walNamesRes (L := L) (W := W) R jr r Ls s' ∗ walNamesFrag (W := W) none :=
+  walNamesRes_noneL R jr r Ls s s' []
 
 /-- **The WAL being created is unnamed** (`walNamesRes`'s fact, with `Create`'s `walNamesFrag (some
 dir)`). -/
@@ -2506,15 +2588,15 @@ theorem walNamesRes_unnamed (R : Roots) (jr : Ino) (r : GoString) (Ls : GMap GoS
     ⊢ walNamesRes (L := L) (W := W) R jr r Ls s -∗ walNamesFrag (W := W) (some dir) -∗
       ⌜∀ d, s.wal !! dir = some d → d.named = false⌝ ∗
       walNamesRes (L := L) (W := W) R jr r Ls s ∗ walNamesFrag (W := W) (some dir) := by
-  unfold walNamesRes
-  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hsp, Hl⟩ Hf
-  icases walNames_agree (W := W) o (some dir) $$ Ha Hf with %ho
+  unfold walNamesRes walNamesFrag
+  iintro ⟨%o, %Wn, Ha, Hs, %hf, %hun, Hst, Hsp, Hl⟩ Hf
+  icases walNamesS_agree (W := W) o _ $$ Ha Hf with %ho
   subst ho
   iframe Hf
   isplitr
   · ipureintro; exact fun d hd => hun dir d rfl hd
-  iexists some dir, Wn
-  iframe Ha Hs Hsp Hl
+  iexists ⟨some dir, none, []⟩, Wn
+  iframe Ha Hs Hsp Hl Hst
   isplitr
   · ipureintro; exact hf
   ipureintro; exact hun

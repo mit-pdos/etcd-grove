@@ -65,7 +65,7 @@ theorem walParked_putSegIno (Ls : GMap GoString WalLay) (cl : List Claim) (F : G
     iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho -
     icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
     subst ho
-    imod walOut_set (W := W) o' o' (o'.delSeg g.ino) $$ Hoa Ho with ⟨Hoa, Ho⟩
+    imod walOut_set (W := W) o' o' (o'.delSeg g.ino) rfl $$ Hoa Ho with ⟨Hoa, Ho⟩
     ihave Hs := segsP_forget (L := L) (segsAll Ls) o'.O g.ino hS $$ Hs
     imodintro
     iframe Ho

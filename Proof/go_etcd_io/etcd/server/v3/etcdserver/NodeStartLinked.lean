@@ -319,6 +319,10 @@ theorem raftNode_of_RestartNode
     iExactEq Himage
     simp [srvLE]
   iapply wp_fupd
+  -- (2026-11-24, D6 T4 option (a), item 1) raft's L1 at the restored durable state: `A₀` committed
+  -- before every campaign so far (`rnRestartOk`'s mark)
+  imod raftState_cmtBefore γr.cl srvClusterN ⊤ (by simp) cv.ID' S (A₀.map EntryModel.toLE)
+    $$ [$HrS $Hclu $Himage] with ⟨HrS, #Hcb⟩
   imod replaySeed_facts γr.cl cv.ID' srvClusterN S σ (A₀.map EntryModel.toLE)
       Hhold (by simp; exact Nat.le_trans Hac Hhold.2.2.2.2.2.2.2.1) $$ [$Hclu $HrS $Himage]
     with ⟨HrS, %hseed⟩
@@ -370,7 +374,7 @@ theorem raftNode_of_RestartNode
   icases Hpost with ⟨%n, %γw, %f, %st, %terms, %Hnames, #Hnode, Hrun, #Hpin, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
     #Hseed, Hbuilt, Hb, Hpeers, #Hdur, #Harm, Hwview, Hwstop, Hwapp, -, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
-  icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, Hncfg⟩
+  icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, Hncfg, #Hst0⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwsd, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   imod dghostVar_update n.installs pin default $$ HpinW with HpinW
@@ -505,7 +509,12 @@ theorem raftNode_of_RestartNode
       iunfold rnRestartOk; iright
       isplitr
       · ipureintro; rw [Hwpre, Hws0, Hwa0, Hwc0]; exact ⟨rfl, Hba, Hac, by rw [Hwnode]; exact Hnsm⟩
-      rw [Hsrv, Hwa0]; iexact HA0
+      isplitr
+      · rw [Hsrv, Hwa0]; iexact HA0
+      -- (2026-11-24, the lifetime law) the node's start term, the restored term (`StorageHolds`)
+      isplitr
+      · rw [Hwnl, Hwt0, Hhold.2.2.2.1]; iexact Hst0
+      rw [Hwnode, Hwid, Hwt0, Hhold.2.2.2.1, Hwa0]; iexact Hcb
     simp only [Hrvcfg]
     iframe Hidri Hsti Htri Hmsi
     isplitr

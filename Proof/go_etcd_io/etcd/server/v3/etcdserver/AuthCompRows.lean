@@ -1117,7 +1117,7 @@ theorem srvRunRows_of_rn (E : RNEnv GF) (γn : RNNames GF) (r : Loc) :
   iunfold isRaftNode at Hrn
   iNamed Hrn
   iunfold rnRestartOk at Hrok
-  icases Hrok with (%h0 | ⟨%hr, #Hlb⟩)
+  icases Hrok with (%h0 | ⟨%hr, #Hlb, -⟩)
   · ipureintro
     rw [h0.1]
     simp

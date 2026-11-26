@@ -46,7 +46,7 @@ def VsePinOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (d : WalDur) (lay : Wal
 names' program halves, the out record of the segments and of the directory's claim, the program's
 halves of every segment and of the claim. -/
 def walPinAllRes (dir : GoString) (lay : WalLay) (X : List GoString) (hj : NamesH) : IProp GF :=
-  iprop(walDirKey (W := W) dir lay.j X ∗ walLockedTok (W := W) ∗
+  iprop(∃ I : GMap GoString Nat, walDirKey (W := W) dir (incOf I dir) lay.j X ∗ walLockedTokI (W := W) I ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨lay.segs.map (·.ino), [(lay.j, .except X)], []⟩ ∗
     ([∗list] g ∈ lay.segs, segRes (L := L) g) ∗
@@ -60,7 +60,7 @@ theorem walInvBody_pinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
         ⌜VsePinOk C Mr jr d lay X hj⌝ ∗ walPinAllRes (L := L) (W := W) dir lay X hj := by
   iintro Hb Hu
   imod walInvBody_pinIdle C Mr R jr r s dir d hd (fun _ => 0) $$ Hb Hu with
-    ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj⟩
+    ⟨%lay, %X, %hj, %I, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj⟩
   obtain ⟨-, h1, h2, h3, h4, h5, h6, h7⟩ := hp
   simp only [List.drop_zero]
   imodintro
@@ -69,6 +69,7 @@ theorem walInvBody_pinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   isplitr
   · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
   unfold walPinAllRes
+  iexists I
   iframe
 
 /-- **The WALs' step bound at `dir`, at a look** (`walGhost_steps`, `walStepsLb_at`; Steps.lean's
@@ -163,8 +164,8 @@ theorem walInv_unpinAll (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Hp
   unfold walPinAllRes
-  icases Hp with ⟨#Hk, Hl, Htf, Ho, HS, Hn⟩
-  iapply walInv_unpin C Mr R jr r dir lay.j X hj lay.segs false hS $$ Hinv Hnc Hl Htf
+  icases Hp with ⟨%I, #Hk, Hl, Htf, Ho, HS, Hn⟩
+  iapply walInv_unpin C Mr R jr r dir lay.j X hj lay.segs false hS I _ rfl $$ Hinv Hnc Hl Htf
     [Ho] HS Hn [] Hk
   · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Ho
   · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro

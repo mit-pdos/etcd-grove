@@ -109,11 +109,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   -- the commit, right after the lock, the locked range raised with `unl`
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
+  icases walOpenWI_incQ (W := W) w dir h.inc $$ Hopen with ⟨%IQ, HIQ, %hIQ, Hopen⟩
   imod walInv_releaseLks walCodec Mr R jr r dir a
-    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q γ.inc j X hj h.γ
+    (fun d => (∃ al, d.H[i]? = some (WalOpG.snap ⟨cs, a, t⟩ al)) ∧ i < n) Q γ.inc h.inc IQ hIQ j X hj h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) γt b hlkr.2.1
-    $$ Hinv Hnc Hau Hdk Hcl Htk [Hv] Htf with ⟨Hnc, HQ, Hcl, Htk, Hv, %b', Htf, %hb'⟩
+    $$ Hinv Hnc Hau Hdk HIQ Hcl Htk [Hv] Htf with ⟨Hnc, HQ, HIQ, Hcl, Htk, Hv, %b', Htf, %hb'⟩
   · unfold tailVar; iexact Hv
+  ihave Hopen := Hopen $$ HIQ
   iunfold tailVar at Hv
   imodintro
   iframe Hnc

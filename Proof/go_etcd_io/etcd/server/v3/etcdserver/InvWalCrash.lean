@@ -273,8 +273,8 @@ def rnWalViewK (νk : WalNamesK GF) (vk : WalViewK) : IProp GF :=
 
 /-- **The contract's `Save`, with the history** (to be proved in the contract, from
 `storage.Save.spec`, whose post has the sync's lower bound, and `walRecs_saveAU`, which appends the
-record): `walSaveSized_spec` with the atomic update over `walRecsH` (the history grows by the
-`Save`), committing at the history `Hs`, and on success the sync's lower bound when the batch must
+record): `walSaveHist_spec`, the atomic update over the history (`walHistH`, P5 (b): no fold, no
+premise; the history grows by the `Save`), committing at the history `Hs`, and on success the sync's lower bound when the batch must
 sync (`walMustSync`). -/
 abbrev walSaveH.law : Prop :=
   ∀ (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk), st = GoInterface.ok si →
@@ -283,11 +283,9 @@ abbrev walSaveH.law : Prop :=
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗ hsOptC hp hs ∗ sl ↦*□ esL ∗
           ([∗list] l; c ∈ esL; cs, entRoC l c) ∗ ⌜∀ c ∈ cs, walSaveEntOk sized c⌝ ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
             @ WalFs.walAuMask, ∅
-            <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
+            <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }> }}
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err;
           (⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗ ∃ Hs : WalHist, Q Hs ∗ (letI := h.W; WalFs.walLenLb h.w h.dir h.γ.inc (Hs.length + 1)) ∗
@@ -295,15 +293,13 @@ abbrev walSaveH.law : Prop :=
               (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc (Hs.length + 1)))) ∨
           (⌜err ≠ GoInterface.nil ∧ maxSaveBatch < (cs.map (fun c => entrySize c + 64)).sum⌝ ∗
             storage.walOpen h q ∗ walStorRd st h ∗
-            AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                  ⌜WalSaveOk σ (cs.map EntryC.model)⌝ }>
+            AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
               @ WalFs.walAuMask, ∅
-              <{ walRecsH h (walSave σ hs (cs.map EntryC.model))
-                  (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }}
+              <{ walHistH h (Hs ++ [WalOpG.save hs (cs.map EntryC.model)]) sized, COMM Q Hs }>) }}
 
 /-- **The contract's `SaveSnap`, with the history** (to be proved in the contract, as
-`walSaveH.law`): `walSaveSnap_spec` with the atomic update over `walRecsH` (the snapshot record
-appended), committing at the history `Hs`, and the record synced (`SaveSnapshot` always syncs). -/
+`walSaveH.law`): `walSaveSnapHist_spec`, the atomic update over the history (`walHistH`; the
+snapshot record appended), committing at the history `Hs`, and the record synced (`SaveSnapshot` always syncs). -/
 abbrev walSaveSnapH.law : Prop :=
   ∀ (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk), st = GoInterface.ok si →
     ∀ (sized : Bool) (q : Qp) (sn mp : Loc) (dq : DFrac) (m : SnapMetaC) (al : Bool)
@@ -314,11 +310,9 @@ abbrev walSaveSnapH.law : Prop :=
           ⌜m.index.isSome ∧ m.term.isSome ∧ storage.metaWalC m = walSnapCanon m.model al⌝ ∗
           ⌜m.model.Index' = W64 0 ∨ m.confState.isSome = true⌝ ∗
           ⌜uint.nat m.model.Index' < 2 ^ 64 - 1 ∧ (walSrvMr.encSnap m.model al).length < 2 ^ 40⌝ ∗
-          AU <{ ∃∃ (σ : StorContents) (Hs : WalHist), walRecsH h σ Hs sized ∗
-                ⌜uint.nat m.model.Index' = σ.b → m.model.Term' = σ.base.term'⌝ }>
+          AU <{ ∃∃ Hs : WalHist, walHistH h Hs sized }>
             @ WalFs.walAuMask, ∅
-            <{ walRecsH h (walSaveSnap σ m.model) (Hs ++ [WalOpG.snap m.model al]) sized,
-              COMM Q Hs }> }}
+            <{ walHistH h (Hs ++ [WalOpG.snap m.model al]) sized, COMM Q Hs }> }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗
@@ -465,9 +459,16 @@ crash's; a member that never stops its server excludes it).
 (P8, 2026-11-25; T5's proposal (3), `notes/wal-p8-handoff.md`) The WAL's crash gives the prefix `j` and
 `Φ` of whatever it reads (`walRecsH_crash`, `WalRecsH.lean`: whether the read succeeds is not the WAL's
 but this invariant's, `CrashReadsHold`), and the image's read facts `walReadFacts σ` come from the
-invariant's `HistReadOk` (`walReadFacts_of_read`). -/
+invariant's `HistReadOk` (`walReadFacts_of_read`).
+
+(P5 (a), 2026-11-26; #50 2026-11-25T16:06:56Z, the image route) `Φ` sees the crashed prefix's history
+`Hs.take j` too, and the post gives that history `Hc` (`walRead Hc = some σ`) with the certificates of
+every snapshot record in it (`walHistCerts`, the body's, `walHistCerts_take`): a record the read drops
+is re-kept once a later `Save` commits past it, so the restart's image carries them (T10's `srvFilesC`
+row). -/
 abbrev rnDurK_crash.law : Prop :=
-  ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset) (Φ : StorContents → IProp GF),
+  ∀ (γn : SrvRaft) (id : w64) (νk : WalNamesK GF) (h : WalH GF) (E : CoPset)
+    (Φ : WalHist → StorContents → IProp GF),
     ↑rnDurKN ⊆ E → ↑srvClusterN ⊆ E \ ↑rnDurKN →
     letI := srvStor (GF := GF) γn;
     (⊢ rnDurInvK γn id νk h -∗ isCluster γn.cl srvClusterN -∗ £ 1 -∗ crashed -∗ token νk.tk -∗
@@ -476,12 +477,12 @@ abbrev rnDurK_crash.law : Prop :=
         walRecsH h σr Hs true -∗ (letI := h.W; WalFs.walSyncedLb h.dir h.γ.inc n) ={E \ ↑rnDurKN}=∗
           walRecsH h σr Hs true ∗
           ∃ j : Nat, ⌜n ≤ j ∧ j ≤ Hs.length⌝ ∗
-            ∀ σ : StorContents, ⌜walRead (Hs.take j) = some σ⌝ -∗ Φ σ) ={E}=∗
-      (∃ (S : RaftState) (σ : StorContents) (l : List LogEntry), Φ σ ∗
+            ∀ σ : StorContents, ⌜walRead (Hs.take j) = some σ⌝ -∗ Φ (Hs.take j) σ) ={E}=∗
+      (∃ (S : RaftState) (σ : StorContents) (l : List LogEntry) (Hc : WalHist), Φ Hc σ ∗
         raftState γn.cl id S ∗ nodeVacant γn.cl id ∗
-        ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ⌝ ∗ walSnapCert γn.cl σ ∗
-        walSnapDur νk.sd σ ∗
-        isCommittedLogLb γn.cl l) ∨
+        ⌜StorageHolds S σ ∧ σ.b ≤ l.length ∧ DurAgrees S l ∧ walReadFacts σ ∧ walRead Hc = some σ⌝ ∗
+        walSnapCert γn.cl σ ∗ walSnapDur νk.sd σ ∗
+        isCommittedLogLb γn.cl l ∗ walHistCerts γn.cl νk.sd Hc) ∨
       rnTakenK νk)
 
 end defs

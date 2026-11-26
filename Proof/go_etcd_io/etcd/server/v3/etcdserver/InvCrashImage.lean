@@ -155,7 +155,7 @@ cases (conjuncts):
   and the WAL's read facts `walReadFacts σ` are the caller's premise (carried by the crash image)
   instead of a promise of the contract. (C-I2 review, 2026-11-24) And the WAL's commit at least the
   bootstrap log's length (`γ.cl.bootLen ≤ σ.commit`): every completed `Save` of the fork's fixed WAL has
-  it, and it excludes the unsaved WALs `DiscardUnsaved` removes (Go then takes the first-start branch,
+  it, and it excludes the unsaved WALs `wal.Discard` removes (Go then takes the first-start branch,
   which `bootOkR` does not describe). (T10, 2026-11-25) No `bootLen ≤ i`: a backend commit can fall
   inside the bootstrap batch, or none have happened (`i = 0`; `imageRestAt` accepts the meta keys absent
   there, `encMeta 0 = none`).

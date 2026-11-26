@@ -191,11 +191,12 @@ theorem halves_agree : ∀ (gs gs' : List SegG), gs.map (·.ino) = gs'.map (·.i
 
 /-- **The WAL as `ReadAll` reads it** (see the file header; was the hypothesis `WalReadState`). -/
 theorem walInvBody_readState (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG)
+    (s : AbsDiskState) (dir : GoString) (i : Nat) (I : GMap GoString Nat) (hi : incOf I dir = i)
+    (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG)
     (hnm : ∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino))
     (hdrop : ∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name))
     (hsz : ∀ g ∈ gs, g.om.size = g.bs.length) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir j X -∗
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walDirKey (W := W) dir i j X -∗ walIncQ (W := W) I -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
       walTailsFrag (W := W) ∅ -∗
       ([∗list] g ∈ gs, osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
@@ -203,15 +204,16 @@ theorem walInvBody_readState (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
       ∃ (d : WalDur) (lay : WalLay) (kk : Nat),
         ⌜s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧ TailExact lay ∧
           lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ lay.segs.drop kk = gs⌝ ∗
-        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir j X ∗
+        walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗
         osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗ walTailsFrag (W := W) ∅ ∗
         ([∗list] g ∈ gs, osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
           osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) := by
-  iintro Hb Hk Hn Hf Hgs
+  iintro Hb Hk HI Hn Hf Hgs
+  subst hi
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
-  icases walDirKey_lookup K dir j X $$ Hdk Hk with %hK
+  icases walDirKey_lookupI K dir j X I $$ Hdk Hk HI with %hK
   obtain ⟨lay, hj, hl, hlj, -, -, hOnce, -, hOther⟩ := Hdko.1 dir j X hK
   obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
     cases h : s.wal !! dir with
@@ -251,7 +253,7 @@ theorem walInvBody_readState (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   iexists d, lay, kk
   isplitr
   · ipureintro; exact ⟨hd, hlj, habs, hid.1, hid.2.1, hdeq⟩
-  iframe Hk Hn Hf Hgs
+  iframe Hk HI Hn Hf Hgs
   iexists Ls, cl, n, ∅
   iframe Hg Hcm HCR Htl Hpk Hnms Hcl
   isplitr

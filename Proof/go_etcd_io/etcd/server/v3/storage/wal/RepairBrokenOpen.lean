@@ -52,18 +52,18 @@ theorem repair_brokenOpen
     (wp_cNWF : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specFile (GF := GF) (hG := hG))
     (wp_OpenN : os.OpenFile.specCreateTruncSncN (GF := GF) (hG := hG))
     (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut)
-    (bt : GoString) (hb : NameOk bt) (hbt : go!".wal.broken" <:+ bt)
+    (dir : GoString) (I : GMap GoString Nat) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH)
+    (o : WalOut) (bt : GoString) (hb : NameOk bt) (hbt : go!".wal.broken" <:+ bt)
     (hX : ∀ b ∈ X, ¬ go!".wal.broken" <:+ b) (hoD : (j, NameSet.except X) ∈ o.D)
     (hD : lendKey j bt ∉ o.D) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ walInv (W := W) C Mr R jr r ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walDirKey (W := W) dir j X ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ walInv (W := W) C Mr R jr r ∗ osInv (GF := GF) ∗ osSharedInv R ∗ walDirKey (W := W) dir (incOf I dir) j X ∗ walLockedTokI (W := W) I ∗
         osPathS R dir dq j ∗ osCallPerm (callKey R dir) 1 ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
         walOutFrag (W := W) o }}
       (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
           [go.GoType.PointerType os.File.ty])) (Val #(child dir bt))) (Val #true))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R dir dq j ∗ osCallPerm (callKey R dir) 1 ∗
-        ((⌜err = interface.nil⌝ ∗ repBrokenOk (W := W) dir bt j X o f) ∨ ⌜err ≠ interface.nil⌝) }} := by
-  iintro %Φ ⟨#Hospkg, #Hinv, #Hos, #Hsi, #Hk, Hp, Hperm, Hn, Ho⟩ HΦ
+        walLockedTokI (W := W) I ∗ ((⌜err = interface.nil⌝ ∗ repBrokenOk (W := W) dir bt j X o f) ∨ ⌜err ≠ interface.nil⌝) }} := by
+  iintro %Φ ⟨#Hospkg, #Hinv, #Hos, #Hsi, #Hk, HlI, Hp, Hperm, Hn, Ho⟩ HΦ
   have hw : walNameP bt = false := walNameP_broken hbt
   have hN : (NameSet.except X).Mem bt := fun h => hX bt h hbt
   rcases hcur : hj.cur !! bt with _ | n
@@ -71,10 +71,10 @@ theorem repair_brokenOpen
     ihave Hn' : osNames j (.except X) (DFrac.own (qQuarter + qQuarter)) hj $$ [Hn]
     · rw [show qQuarter + qQuarter = (1 : Qp).half from Qp.half_add_half _]; iexact Hn
     icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hn' with ⟨Hn1, Hn2⟩
-    ihave Hau := walBroken_osAUnc C Mr R jr r dir j X hj o bt hoD hbt $$ Hinv [Hn2 Ho]
-    · unfold walBrokenP; iframe Hk Hn2 Ho
+    ihave Hau := walBroken_osAUnc C Mr R jr r dir I j X hj o bt hoD hbt $$ Hinv [Hn2 Ho HlI]
+    · unfold walBrokenP; iframe Hk HlI Hn2 Ho
     wp_apply (wp_cNWF (child dir bt) true _ _ _ _
-        (repBroken_tripleNew wp_OpenN R dir dq j X hj o bt 1 hb hN hcur)) $$ [Hp Hperm Hn1 Hau]
+        (repBroken_tripleNew wp_OpenN R dir I dq j X hj o bt 1 hb hN hcur)) $$ [Hp Hperm Hn1 Hau]
       as %f %err Hpo
     · iframe; iframe #
     iunfold fileutil.openPost at Hpo
@@ -86,10 +86,10 @@ theorem repair_brokenOpen
       simp only [crIno] at hi
       subst i
       simp only [walBrokenQ, crOutN, crTr] at *
-      icases HQ with ⟨-, HQn, HQo⟩
+      icases HQ with ⟨-, HlI, HQn, HQo⟩
       icases Hc with ⟨-, -, Hcn⟩
       iapply HΦ
-      iframe Hp Hperm
+      iframe Hp Hperm HlI
       ileft
       isplitr
       · ipureintro; exact he
@@ -105,15 +105,23 @@ theorem repair_brokenOpen
       rw [show qQuarter + qQuarter = (1 : Qp).half from Qp.half_add_half _]
       iexact Hw
     · simp only [repBrokenNewA] at *
-      icases HA with ⟨Hp, Hperm, -⟩
+      icases HA with ⟨Hp, Hperm, HQ, -⟩
+      ihave HlI : walLockedTokI (W := W) I $$ [HQ]
+      · rcases x with _ | ⟨x, s0, i'⟩
+        · simp only [walBrokenQ, walBrokenP]
+          icases HQ with ⟨-, HlI, -⟩; iexact HlI
+        · simp only [walBrokenQ]
+          icases HQ with ⟨-, HlI, -⟩; iexact HlI
       iapply HΦ
-      iframe Hp Hperm
+      iframe Hp Hperm HlI
       iright; ipureintro; exact he
   · -- a leftover: lent, then the `O_TRUNC` open
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod walInv_lendOther C Mr R jr r ⊤ CoPset.subseteq_top dir j X hj (DFrac.own (1 : Qp).half) o bt n
-        hw hD hcur $$ Hinv Hnc Hk Hn Ho with ⟨Hnc, Hn, Ho, Ht⟩
+    icases walLockedTokI_incQ I $$ HlI with ⟨HIq, HlB⟩
+    imod walInv_lendOther C Mr R jr r ⊤ CoPset.subseteq_top dir I j X hj (DFrac.own (1 : Qp).half) o bt n
+        hw hD hcur $$ Hinv Hnc Hk HIq Hn Ho with ⟨Hnc, Hn, HIq, Ho, Ht⟩
+    ihave HlI := HlB $$ HIq
     imodintro
     iframe Hnc
     rcases n with i | dn
@@ -130,7 +138,7 @@ theorem repair_brokenOpen
       subst i'
       icases HA with ⟨Hp, Hn, Hperm, Htr⟩
       iapply HΦ
-      iframe Hp Hperm
+      iframe Hp Hperm HlI
       ileft
       isplitr
       · ipureintro; exact he
@@ -143,7 +151,7 @@ theorem repair_brokenOpen
     · simp only [repBrokenOldA] at *
       icases HA with ⟨Hp, -, Hperm, -⟩
       iapply HΦ
-      iframe Hp Hperm
+      iframe Hp Hperm HlI
       iright; ipureintro; exact he
 
 end triples

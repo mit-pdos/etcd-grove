@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdleF (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w lg : Loc) (locks : GoSlice) (ls : List Loc) (lt f : Loc)
-    (fd : w64) (name dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (b : GoString)
+    (fd : w64) (name dir : GoString) (i : Nat) (I : GMap GoString Nat) (j : Ino) (X : List GoString) (hj : NamesH) (b : GoString)
     (fl : OsFd) (m : OsMeta) (bs : List ByteG) (e : Loc),
   (walNames hj.cur).getLast? = some b → hj.cur !! b = some (.file fl.ino) → bs.length = m.size →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
@@ -41,7 +41,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdleF (Mr : WalMarshal
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
       locks ↦* (ls ++ [lt]) ∗ fileutil.lockedFile lt f ∗ encEnv ∗
       os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗
-      walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+      walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       walTailsFrag (W := W) ∅ ∗ walCutFrag (W := W) none ∗
       osMeta fl.ino (DFrac.own (1 : Qp).half) m ∗ osBytes fl.ino 0 (DFrac.own (1 : Qp).half) bs }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync"))
@@ -54,7 +55,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdleF (Mr : WalMarshal
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
       locks ↦* (ls ++ [lt]) ∗
       os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗
-      walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+      walDirKey (W := W) dir i j X ∗ walIncQ (W := W) I ∗ ⌜incOf I dir = i⌝ ∗
+      osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
       walTailsFrag (W := W) ∅ ∗ walCutFrag (W := W) none ∗
       ((⌜err = GoInterface.nil⌝ ∗ osMeta fl.ino (DFrac.own (1 : Qp).half) m.synced ∗
           osBytes fl.ino 0 (DFrac.own (1 : Qp).half) (bs.map (fun x => durB x.1))) ∨

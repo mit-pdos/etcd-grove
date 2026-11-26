@@ -36,22 +36,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- **The pinned halves back** (see the file header). -/
 theorem walInv_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (S : List SegG) (write : Bool)
-    (hS : ∀ g ∈ S, g.om.size = g.bs.length) :
+    (hS : ∀ g ∈ S, g.om.size = g.bs.length) (I : GMap GoString Nat) (i : Nat) (hi : incOf I dir = i) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walLockedTok (W := W) -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
+      walLockedTokI (W := W) I -∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) -∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ -∗
       ([∗list] g ∈ S, segRes (L := L) g) -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
-      (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) -∗ walDirKey (W := W) dir j X ={⊤}=∗
+      (if write then walTmpsRes (hG := ⟨G, L⟩) j ∗ walIncEAny (W := W) else emp) -∗
+      walDirKey (W := W) dir i j X ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Hl Htf Ho HS Hn Ht #Hk
   iapply walInv_step C Mr R jr r
-    iprop(walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
+    iprop(walLockedTokI (W := W) I ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
       ([∗list] g ∈ S, segRes (L := L) g) ∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-      (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) ∗ walDirKey (W := W) dir j X)
+      (if write then walTmpsRes (hG := ⟨G, L⟩) j ∗ walIncEAny (W := W) else emp) ∗
+      walDirKey (W := W) dir i j X)
     (walUnlockedTok (W := W)) ⊤ CoPset.subseteq_top (fun s => by
       iintro Hb ⟨Hl, ⟨Htf, Hnf⟩, Ho, HS, Hn, Ht, Hk⟩
-      imod walInvBody_unpin C Mr R jr r s dir j X hj S write hS $$ Hb Hl Htf Hnf Ho HS Hn Ht Hk
+      imod walInvBody_unpin C Mr R jr r s dir j X hj S write hS I i hi $$ Hb Hl Htf Hnf Ho HS Hn Ht Hk
         with ⟨Hb, Hu⟩
       imodintro
       iframe)

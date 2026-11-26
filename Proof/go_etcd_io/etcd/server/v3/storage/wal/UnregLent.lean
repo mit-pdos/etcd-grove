@@ -215,6 +215,7 @@ the pending run `Repair` kept, P6), then the pin put back with the synced segmen
 theorem walInv_repairPut (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (k : Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (m : OsMeta) (bs : List ByteG) (j : Ino) (X : List GoString) (hj : NamesH) (gL : SegG)
+    (I : GMap GoString Nat)
     (hTM : TailMetaR m bs ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ ∀ y ∈ bs, y = Fs.durB y.1)
     (hwr : wr = (tailStream Mr H md cuts).length) :
     ⊢ walInv (L := L) (W := W) walCodec Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
@@ -222,10 +223,10 @@ theorem walInv_repairPut (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       tailVar (W := W) γ ((H, md, cuts, wr, gL.ino, none) : TailG) -∗
       osMeta (L := L) gL.ino (DFrac.own (1 : Qp).half) m -∗
       osBytes (L := L) gL.ino 0 (DFrac.own (1 : Qp).half) bs -∗
-      walLockedTok (W := W) -∗ walNamesFrag (W := W) none -∗
+      walLockedTokI (W := W) I -∗ walNamesFrag (W := W) none -∗
       walOutFrag (W := W) ⟨[gL.ino], [(j, .except X)], []⟩ -∗
       osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
-      walDirKey (W := W) dir j X ={⊤}=∗
+      walDirKey (W := W) dir (incOf I dir) j X ={⊤}=∗
       notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
   iintro #Hinv Hnc Htf Hk Hv Hm Hbs Hl Hn Ho Hns #Hdk
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
@@ -234,7 +235,7 @@ theorem walInv_repairPut (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   imod Hcl $$ [Hb]
   · iexists s; iexact Hb
   iapply walInv_unpinLast walCodec Mr R jr r dir j X hj ({ gL with om := m, bs := bs } : SegG)
-    hTM.1.1.symm $$ Hinv Hnc Hl [Htf Hn] Ho [Hm Hbs] Hns Hdk
+    hTM.1.1.symm I $$ Hinv Hnc Hl [Htf Hn] Ho [Hm Hbs] Hns Hdk
   · iframe
   · unfold segRes; iframe
 

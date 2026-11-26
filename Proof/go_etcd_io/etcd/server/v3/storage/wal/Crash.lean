@@ -761,7 +761,7 @@ theorem names_split_start (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Clai
     (hwn : ∀ dir lay, Ls !! dir = some lay → walNameOk lay.nm) (hA : WalsAtS jr Ls cl) :
     ([∗list] c ∈ cl, if WalDirClaimOf Ls c then emp else
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2) ⊢
-      ([∗list] nm ∈ nameClaimsOf jr Ls cl, nameShare (L := L) jr Ls nm) ∗
+      ([∗list] nm ∈ nameClaimsOf jr Ls cl, nameShare (L := L) jr Ls nm 0) ∗
       ([∗list] c ∈ cl, if WalDirClaimOf Ls c ∨ NameClaimOf jr Ls c then emp else
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2) := by
   unfold nameClaimsOf
@@ -785,7 +785,8 @@ theorem names_split_start (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Clai
       iexists (1 : Qp).half, h
       iframe H
       ipureintro
-      exact ⟨hok _ _ hc, hwn dir lay hl, fun d' l' hl' he => he ▸ (hA d' l' hl').2 _ _ hc (by rw [he]; simp [NameSet.Mem])⟩
+      exact ⟨Rat.add_zero _, hok _ _ hc, hwn dir lay hl,
+        fun d' l' hl' he => he ▸ (hA d' l' hl').2 _ _ hc (by rw [he]; simp [NameSet.Mem])⟩
     · iempintro
   · rw [if_neg hn]
     simp only [Option.elim]
@@ -1041,14 +1042,18 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       exact (walsAt_start C Mr R jr s Ls V cl hV hcl hstart).weak
     isplitl [Hnm Hnw Hns Hsp]
     · unfold walNamesRes
-      iexists none, nameClaimsOf jr Ls cl
-      iframe Hnm Hnw Hns
+      iexists ⟨none, none, []⟩, nameClaimsOf jr Ls cl
+      iframe Hnm Hnw
       isplitr
       · ipureintro
-        exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
+        exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
       isplitr
       · ipureintro; intro dir d ho; cases ho
-      iexists qs; iexact Hsp
+      isplitr
+      · ipureintro; exact ⟨fun h => absurd rfl h, by simp⟩
+      isplitr [Hns]
+      · iexists qs; iexact Hsp
+      simp only [shareLs_nil]; iexact Hns
     ipureintro; exact ⟨hbd, hdr⟩
   imodintro
   unfold walInv

@@ -659,13 +659,13 @@ theorem rnRestartAllocK_law_holds : rnRestartAllocK.law (GF := GF) := by
   iframe Hinv Hv Hst Hap Hlb
   ipureintro; exact ⟨Hx.1, Hx.2, Hh⟩
 
-/-- `walSaveH.law` is the contract's `Save` (`walSaveSized_spec`, over the records with their history). -/
+/-- `walSaveH.law` is the contract's `Save` (`walSaveHist_spec`, over the history). -/
 theorem walSaveH_law_holds : walSaveH.law (GF := GF) :=
-  fun st h ss si hst sized q hp hs sl esL cs Q => walSaveSized_spec st h ss si hst sized q hp hs sl esL cs Q
+  fun st h ss si hst sized q hp hs sl esL cs Q => walSaveHist_spec st h ss si hst sized q hp hs sl esL cs Q
 
-/-- `walSaveSnapH.law` is the contract's `SaveSnap` (`walSaveSnapH_spec`). -/
+/-- `walSaveSnapH.law` is the contract's `SaveSnap` (`walSaveSnapHist_spec`). -/
 theorem walSaveSnapH_law_holds : walSaveSnapH.law (GF := GF) :=
-  fun st h ss si hst sized q sn mp dq m al Q => walSaveSnapH_spec st h ss si hst q sn mp dq m al Q sized
+  fun st h ss si hst sized q sn mp dq m al Q => walSaveSnapHist_spec st h ss si hst q sn mp dq m al Q sized
 
 end defs
 

@@ -127,6 +127,15 @@ theorem walOpening_lockedTok (w : Loc) (dir : GoString) (s : w64 × w64) {ic : N
   iintro ⟨%γ, %I, -, -, -, Hl, -⟩
   iexists I; iexact Hl
 
+/-- `walOpening_lockedTok` at the handle's incarnation. -/
+theorem walOpening_lockedTokI (w : Loc) (dir : GoString) (s : w64 × w64) {ic : Nat} :
+    walOpening (W := W) w dir s ic ⊢ ∃ I, walLockedTokI (W := W) I ∗ ⌜incOf I dir = ic⌝ := by
+  unfold walOpening walHandlePI
+  iintro ⟨%γ, %I, -, -, -, Hl, %h⟩
+  iexists I
+  iframe Hl
+  ipureintro; exact h
+
 end files
 
 end WalFs
