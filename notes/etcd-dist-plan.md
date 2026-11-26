@@ -3161,3 +3161,10 @@ The conflicts below are from `git merge-tree` run in sequence: m1-top ⊕ F7, th
 - **Q4: the M1 theorem**, kept as a corollary or retired in F9 (27.4). Retiring it needs the user's sign-off.
 - **Q5: who writes the auth-on `Watch_dist`** (F7's Q4), and the Spec drafts for cache, auth and authLease. Proposed:
   F8 drafts the run specs and shares now, and their owners review them.
+
+### 27.x Coverage decision (Upamanyu, 2026-11-26, via coordinator-E)
+
+The full `etcd_safe_nocrash` covers every kv, auth, lease, watch, compact and cache workload of the single-process
+`etcd_robust_single_process`, plus leaseExpiry and network partitions, which that theorem lacks. The single-process
+theorem's Restart part (restartN: a follower stopped and restarted; restart1), including graceful stop/restart,
+is covered by the crash theorem `etcd_safe`, not by `etcd_safe_nocrash`. F8 proceeds as designed above.
