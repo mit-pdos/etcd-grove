@@ -2849,6 +2849,9 @@ of which changes its statement. So **every instance changes by nothing (rebuild 
 - the dsverify kits over remote: craqnet, swiftnet (swift), epaxosnet, vsrnet, paxosnet, gryffnet, rabianet,
   quepaxanet (`Dsverify/Proof/.../examples/*net/`), and `etc/kitlibs-check-test`.
 If a proof there breaks on unfolding (e.g. `unfold remoteAddr svcAddr`), the fix is local and its statement stays.
+**As built:** only one instance proof changed. vsrnet's `Op_svcOp` (`Dsverify/.../vsrnet/ClientProofDefs.lean`) unfolds `svcOp`
+by hand. It now takes the input value `x` and its `⌜x = iv i⌝` after `simp only [RBase.svc]`: three lines, and the
+statement is unchanged. kvremote, counter, swift and the other kits build unedited.
 
 ### 28.5 What does not change
 
@@ -2864,4 +2867,23 @@ and their top-level results, then one full build.
 ⌜small ps⌝` (the input type may carry the orchestrator's ghost names), `ovAt v rs := ∃ s, ⌜v = ...⌝ ∗ s ↦*□ rs ∗
 ⌜small rs⌝`, `encIn`/`encOut` `enc`'s bytes (bounded by `small`). `writerCodec.spec : wireOk (reportSvc writerWire
 P Q) (writerCodec)`, `writerOp`'s spec as `reportOp writerWire P Q tok writerOp` (its owned `[]PutRec` persisted
-with `ownSlice_persist`). Draft: see 28.7 once written.
+with `ownSlice_persist`). Draft: `notes/remote-wire/WriterCodec.lean` (28.7).
+
+### 28.7 Results (2026-11-26, branch head after this section)
+
+- **Implemented** as 28.2–28.3: `remote/Defs.lean` (`RWire`, `RWire.ofValues`, `RSvc`, `RBase.svc`, `repP`, `rep_read`,
+  `wireOk`, `codecOk_wireOk`, `svcOp`, `opMaybe_svcOp`, `reportSvc`, `reportOp`, `reportOp_svcOp`), `attempt`/`Report`
+  (spec and proof), `serveConn`'s and `Do`'s proofs; vsrnet's `Op_svcOp` (28.4).
+- **writerCodec is statable**: `notes/remote-wire/WriterCodec.lean` (a draft outside every `lean_lib`; `vmlake env lean`
+  on it: no error). It holds `writerWire N` (inputs `N × List KV`, the ghost part `N` for the orchestrator's adapter
+  names; `ivAt`/`ovAt` a `[]KV`/`[]PutRec` slice interface with `↦*□` of the model and its `enc` bytes in bound),
+  `writerCodec.spec` (`wireOk (reportSvc (writerWire N) P Q)` for every `P`, `Q`), and `writerCall.spec`
+  (`remoteWriters`' per-node `Report` at that wire). N10a's owner links it: prove `writerCodec.spec` over `enc`'s specs
+  (`DecIn` of a fresh slice built by `append` gives `↦*` of the decoded list, persisted), restate `writerOp` as a
+  `reportOp`, and take `Report.wp_proof`.
+- **Checks**: targeted VM builds of `Net` (remote, counter), `Dsverify` (every kit, swift), kvremote's
+  `TopLevelRobustness`/`TopLevelWitness`/`Link`, dist's `TopLevelRobustness`/`TopLevelWitness` and `client`'s
+  `KvLinked`/`NodeMain`/`RunKV`/`InitLinked`: green. Tier: ok (207 known). Bounds: 389, the baseline. Every `gen-link` mode
+  matches. One full VM build: green (29343 jobs). `tcb-report --check`: matches the baseline (380 axioms, 0 `sorry`), and
+  all 68 collections match. `KitLibsCheckTest` (a test lib outside `defaultTargets`) fails on retired `InitHyp` names
+  (`math-rand-isinit`'s), unrelated to this branch and untouched.
