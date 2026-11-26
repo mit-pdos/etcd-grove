@@ -624,3 +624,70 @@ findings; FAILED counts: 2 unknown (scenario cap), 1 unknown (truncated), and th
 two-name json (ignore them). Before re-keying: `--reuse-raw ~/eg/logs/f7atok.raw -v` with the same fake json to print
 each finding's key, and check whether the full gate (`etc/gates.sh`'s run, default depth) caps the same two walks;
 `NewServer_dist` had no entry before, so its new findings may need the lead's review rather than an entry.
+
+### Session 8 (2026-11-26): steps 1–4 of Handoff 7
+
+**Step 1 (axiom-tok re-key), partly done; `NewServer_dist` waits for the lead.** Re-judged
+`~/eg/logs/f7atok.raw` (fk-lean2; copy `/shared/tmp/f7atok.raw`) with `--reuse-raw … -v` and the two-name json:
+- `Serve_dist.wp_proof`: line 196's entry re-keyed (`6780c67a11`) to the walk's 22 keys: the old 13 plus
+  `3:A:produced3/consumed2`, `3:Pre:produced2/consumed1`, `3:Pre:produced3/consumed2`, `3:Y:produced1/consumed0`,
+  `7:A`, `7:C`, `7:R`, `7:Lk:auth.AuthState→IPropGF→IPropGF`, `7:Sw:auth.AuthSess→IPropGF`: the auth-on handles of
+  `memberUpOnL` (the reviewed text), every one a key of `EtcdServer.leaseTimeToLive`'s entry (line 64, same
+  handles). The `trunc` line (228) stays: the walk still truncates (`decLb`, `cd.4`, `ownRWMutex`, `lessorPinAll`,
+  the backend's and mvcc's predicates). With the entry, `Serve_dist`'s rule-2/3/7 findings are all accepted; what is
+  left are 7 rule-5 findings (`http.*Raw`, `metadata.*Raw`, `status.statusAtRaw`), the cascade of
+  `NewServer_dist`'s uncovered findings (it taints `metadata.*`/`status.statusAtRaw`, which `Serve_dist` consumes);
+  they go when `NewServer_dist` passes.
+- **Scenario cap.** Both walks hit it (`capped`: `PRUNEAT` 64 undominated scenarios, merged into one worst case);
+  the cap is a constant of `etc/AxiomTokCheck.lean` and a walk is per axiom, at the same default `--depth` (14)
+  the gate uses (`etc/gates.sh` passes no `--depth`), so the full gate caps the same two walks. A capped walk whose
+  findings all have entries passes (`report`: capped counts only with findings left), as `Serve_dist` now does
+  modulo the cascade.
+- **`NewServer_dist.wp_proof` (no entry, not added; for the lead).** 200 findings, capped, and truncated (`depth:`
+  `ownMap`, `backend.bbAt`, `bbolt.isBolt`, … 41 notes), so it needs both an entry and a `trunc` line. The token
+  finding is rule 2b at the generic level point `*`: in the merged scenario the axiom consumes `tok:T` 3
+  (`threadTok`, the token covering every level) of which 2 come back from callbacks (`ret:T 2`), and hands `tok:T`
+  2 to user-supplied callbacks (`cb:T 2`, tokens produced at positive polarity under a flip, `walkTok`); the user
+  supplies 1 directly (`Htok ∷ threadTok`). Rule 2b's reading: a callback may never return, so what is handed to
+  callbacks must be paid by what is supplied directly. Which callbacks: not traced (the walker keeps no
+  provenance); the spec's own `threadTok`s are only `Htok` and the post's (both arms); the callbacks are contracts
+  inside the premises (none of `bootstrapContract`'s triple mentions `threadTok` directly; the new premises
+  `Hlslot`/`Hγa` hold none either: `lessorSlot` is an invariant over `lessorHistOk`, `authNamesFreshD` ghost
+  authorities). Since the walk is capped, `cb:`/`ret:` are maxima over merged scenarios, so `2 vs 1` may be two
+  scenarios each handing one token sequentially (an artefact) rather than one scenario handing two. On M1:
+  `NewServer_dist` exists on `etcd-safe-m1`/`-m1-fin` (same statement as M1's fk-lean2 worktree `d83e9825b7` but a
+  comment), in `etc/tcb-baseline.txt`, with no entry and no `trunc` line in M1's allow file; whether M1's walk had
+  the finding is not measured here (the M1 run: AxiomTokCheck on `Proof…dist.NewServerDist` in
+  `~/eg/wt/etcd-safe-m1` with names = `NewServer_dist.wp_proof` only, the same script as `f7atok.sh`).
+
+**Step 2 built** (`fb6dad2ca4`): `lessorSlots_of`'s first bullet needed `iexact Hsl` after `iframe`;
+`client/Results.lean` is in namespace `etcd_dist_client` (the client proofs' namespace: in `etcd_dist`, `newClient`
+and others resolved to `etcd_dist`'s own names) with `open … Net etcd_dist` (`netExt` is `Net.netExt`). fk-lean2:
+`dist.client.Results` EXIT 0; `kvremote`/`putget`/`putgetk` `TopLevelRobustness` built (the run before failed only on
+`Results`). kvremote's statement text unchanged; no `sorry`, no axiom beyond the six lease ones.
+
+**Root name.** The linking module is `client/Results.lean`, not `LeaseResults.lean`: `etc/proof_roots.py` takes roots
+only from `Link`/`MainLinked`/`Results`/`TopLevelRobustness` files.
+
+### Handoff 8 (2026-11-26, context limit; step-3 job running)
+
+- **Head:** `etcd-safe-f7` at this commit (code at `fb6dad2ca4`; step 1's re-key `6780c67a11`).
+- **Step-3 job, running on fk-lean2** (`~/eg/logs/f7tcb.sh`, copy `/shared/tmp/f7tcb.sh`; summary log
+  `~/eg/logs/f7tcb.log`, ends `EXIT`): `lake build` of all 248 proof roots (`f7tcb-build.log`), then
+  `tcb-report.py --check` (base, NO `--update`: `f7tcb-base.log`), then `--reuse --collection
+  etc/tcb-collections/etcd-dist-lease.txt --check --update` (`f7tcb-lease.log`; writes the collection's baseline
+  in fk-lean2's worktree `~/eg/wt/etcd-safe-f7`, uncommitted), `tier-check.py --check` (`f7tier.log`),
+  `lease-order-check.py` (`f7lo.log`). Under flock and MemoryMax=55G.
+- **Next:** read `f7tcb.log`. If the base diff is exactly +6 (`etcd_dist.view.{Lease_Grant_dist,
+  Lease_GrantLive_dist, Lease_LeasesGranted_dist, Lease_LeasesLive_dist, Client_LeaseLeases_dist,
+  Client_LeaseTimeToLive_dist}.wp_proof`), run `python3 etc/tcb-report.py --reuse --check --update` there (under
+  the lock), then copy `etc/tcb-baseline.txt` and `etc/tcb-collections/etcd-dist-lease.txt` back (scp) to
+  `/shared/etcd-grove-f7`, commit, push. Anything else in the diff: stop and report. Tier and lease-order must pass
+  (the new `Serve_dist` ties `Γ.ls mid`).
+- **Axiom-tok:** `Serve_dist` re-keyed (above); `NewServer_dist` needs an entry and a `trunc` line, which the lead
+  decides (the write-up above). Optional measurement for the lead: `~/eg/logs/f7atok-m1.sh` (copy
+  `/shared/tmp/f7atok-m1.sh`, not run yet) walks M1's `NewServer_dist` in `~/eg/wt/etcd-safe-m1` read-only (log
+  `~/eg/logs/f7atok-m1.log`) to show whether M1's statement already had the token finding; that worktree's
+  `NewServerDist.olean` may be stale.
+- **Left after that:** the axiom-tok gate (once the lead rules on `NewServer_dist`), step 3 of Handoff 7 (the
+  orchestrator's lease dispatch), landing.
