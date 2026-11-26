@@ -9,11 +9,9 @@ MustUnmarshalMessage`'s cases, but in a file of its own); the two have disjoint 
 
 **What it says** (`processInternalRaftRequestOnce` marshals the request it proposes; of a request
 within protobuf-go's recursion limit, "The depth" below): either an
-error (protobuf-go rejects a string field that is not valid UTF-8, a `Header.Username` from the
-auth store; protobuf-go's errors are pointer errors, `*prefixError` with an `Is` method comparing
-the target with its sentinel, `*wrapError` with `Unwrap` too, and `Error()` returns: so in an error
-tree for every target, a safe map key, with a message, `applyErrIs`; 2026-10-12, the request
-path's unit 3a, for `togRPCError`), or a fresh slice of bytes that decode (`irrDecode`) to the request: the same id and
+error (protobuf-go rejects a proto3 string field that is not valid UTF-8, e.g. a `Header.Username`
+from the auth store, `applyErrIs`; 2026-10-12, the request path's unit 3a, for `togRPCError`), or a
+fresh slice of bytes that decode (`irrDecode`) to the request: the same id and
 header, the same kind (`dispatchKind`), and the same model altogether when no range end of its
 KV requests is `[0]` (`irrNoZeroEnd`). The exception is the model's, not the encoding's: a
 request's range end denotes `[0]` both for the bytes `"\x00"` and for an empty non-nil slice
@@ -21,6 +19,22 @@ request's range end denotes `[0]` both for the bytes `"\x00"` and for an empty n
 `nil` (the key alone), so for such a request the decoded model may have `[]` where it had `[0]`.
 A request decoded from the wire (the gRPC server's) has no empty non-nil slice, so its encoding
 decodes to it; that is the premise unit 2 will state of the handlers' requests.
+
+**The error arm is false of Go (open; mapkeys, 2026-11-26, the map-key audit's F1,
+`notes/axiom-review/errkeys-proto-renewhttp.md`).** Invalid UTF-8 is the only failure this call
+has. At the pin (protobuf-go v1.36.12) the generated messages' fast path returns the struct value
+`impl.errInvalidUTF8{}` (`internal/impl/codec_gen.go:5041-5049`, `codec_field.go:17-21`); the
+reflective path returns `errors.InvalidUTF8(name)`, a `*prefixError`. `proto.Marshal` passes either
+on unwrapped (`proto/encode.go:105-116, 198-204`). Both have `Unwrap() error`, so neither is a leaf
+error (`statusErrOk`, in `applyErrIs`'s `srvErrOk`). The struct is not a key of `togRPCError`'s map
+either (`errKeyOk`: `nil`, pointers, `deadlineExceededError{}`, `InvalidCostError`). The docstring
+used to say every protobuf error is a pointer, which is wrong. Real etcd never reaches this arm:
+gRPC's decoding validates every proto3 string, and the auth store's usernames come from such strings.
+Neither fix is in reach yet. One is a UTF-8 premise, as `MarshalUser.lean:49` has. The other is
+widening `errKeyOk` (after translating `errInvalidUTF8` as the field-less struct it is: it is
+names-only, so its `==` is opaque) together with `srvErrOk` to non-leaf errors. The premise needs
+`apply.internalRaftRequestIs` to carry the strings' validity from every proposer, and the
+widening needs grpc's `status.FromError` spec to walk `Unwrap`.
 
 **The keys and values are no longer than the encoding** (2026-10-30, `notes/keylen.md`, for the
 keys; 2026-10-31, `notes/vallen.md`, extended to the values; the user's approvals,

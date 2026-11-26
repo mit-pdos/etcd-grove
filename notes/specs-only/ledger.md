@@ -7148,3 +7148,38 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `util.go` imports; its initializer ran only through `etcdserver`'s). Strengthenings, but the key class,
   which replaces a false statement; no top-level statement changes.
 - **Decision.** Within the brief's rule for false axioms (fix the spec, record it, say so).
+## 2026-11-26: `leasehttp.RenewHTTP.spec`'s post claimed `applyErrIs` of the libraries' errors (mapkeys)
+
+- **Spec.** `leasehttp.RenewHTTP.spec` (`Spec/go_etcd_io/etcd/server/v3/lease/leasehttp/RenewHTTP.lean`), the
+  trust-boundary axiom `leasehttp.RenewHTTP.wp_proof`.
+- **Defect.** The post's error arm, `err ≠ nil ∗ applyErrIs err`, was claimed of every error. `RenewHTTP` passes
+  some library errors on unwrapped: `proto.Marshal`'s (`*prefixError`), `http.NewRequest`'s and `Client.Do`'s
+  (`*url.Error`), `io.ReadAll`'s on the body (`tls.RecordHeaderError`, a struct value, `*net.OpError`, ...),
+  and the decode's behind `%w`. These are neither keys of `togRPCError`'s map (`errKeyOk`) nor leaves
+  (`srvErrOk`). The map-key audit flagged this as its F2; the leaf part was found while fixing it.
+- **Evidence.** `notes/axiom-review/errkeys-proto-renewhttp.md`; `server/lease/leasehttp/http.go`
+  (`RenewHTTP`, `readResponse`).
+- **Proposed change.** Add a third post arm, `err ≠ nil ∗ leasehttp.notLeaseNotFound err`
+  (`Proof/.../lease/leasehttp/RenewErr.lean`): an error tree in which no error is or `Is`
+  `lease.ErrLeaseNotFound`. This weakens the post (the old one implied it). The one consumer,
+  `EtcdServer.LeaseRenew`, gets `errors.Is(err, ErrLeaseNotFound) = false` there and tries the next URL;
+  every caller proves, and no top-level statement changes.
+- **Decision.** Within the pre-approved class (a correction weakening a trusted post to what Go does;
+  coordinator, #18, 2026-11-26).
+## 2026-11-26: `proto.MarshalIRR.spec`'s error arm is false of Go (open; mapkeys)
+
+- **Spec.** `proto.MarshalIRR.spec` (`Spec/google_golang_org/protobuf/proto/MarshalIRR.lean`), the axiom
+  `proto.MarshalIRR.wp_proof`.
+- **Defect.** On an invalid-UTF-8 proto3 string, the only failure, `Marshal` returns `impl.errInvalidUTF8{}`
+  (the fast path) or a `*prefixError` (the reflective path), unwrapped. The post claims `applyErrIs` of it.
+  The struct is no `errKeyOk` key (the map-key audit's F1), and neither error is a leaf (`srvErrOk`): both
+  have `Unwrap() error`.
+- **Evidence.** `notes/axiom-review/errkeys-proto-renewhttp.md`; protobuf-go v1.36.12
+  `internal/impl/codec_gen.go:5041-5049`, `codec_field.go:17-21`, `internal/errors/errors.go`,
+  `proto/encode.go:105-116, 198-204`.
+- **Proposed change.** Either a UTF-8 premise (as `MarshalUser.spec`'s), carried by `apply.internalRaftRequestIs`
+  from the decoded gRPC requests and the auth store's names; or `srvErrOk` widened to non-leaf errors (grpc's
+  `status.FromError` spec walking `Unwrap`), with `errInvalidUTF8` translated as its struct and added to
+  `errKeyOk`. Widening `errKeyOk` alone, the audit's preferred fix, leaves the post false. Until one of these
+  lands, only the docstring is corrected: it said every protobuf error is a pointer.
+- **Decision.** Open: reported to the coordinator (#18). Each fix is larger than a key-class correction.
