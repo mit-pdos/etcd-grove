@@ -168,6 +168,19 @@ def principalTok [NetProtoGS] (Γ : DistView) (addrs : List GoString) (sys : GoI
   iprop(levelTok 0 ∗ ∃ sl : GoSlice, ⌜sys = interface.mkOk (go.GoType.SliceType go.string) #sl⌝ ∗
     sl ↦*□ addrs ∗ membersAt (Gg := hG.goose_globalGS) addrs Γ)
 
+/-- **A principal machine's share** at its address `addr`, with the members' client endpoints `eps`
+(not rotated: `NodeMain`'s auth arm hands `eps` to every call, `principalClient` picks the member): its
+level token, an auth-on view `Γ` with distinct auth names, every endpoint serving a member of it, the
+principal service's protocols at its address (at `γR` and `eps`: the floors of the principals'
+environment are at those endpoints); the pure facts `principalOp` takes. -/
+def nodeAuthPre [π : NetProtoGS] [ρ : RemoteGS] (addr : GoString) (eps : List GoString) : IProp GF :=
+  iprop(levelTok 0 ∗ ∃ (Γ : DistView) (γR : ServerRaftNames),
+    ⌜Γ.auth = true ∧ (∀ a b : w64, Γ.au a = Γ.au b → a = b) ∧ Nonempty (WEnv GF) ∧
+      threadBound GF ≤ 2 ^ 30 ∧ plainEndpoints eps ∧
+      errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ ∗
+    membersAt (Gg := hG.goose_globalGS) eps Γ ∗
+    svcAddr (Gg := hG.goose_globalGS) (principalSvcG (Gg := hG.goose_globalGS) Γ γR eps) addr)
+
 end onMachine
 
 end etcd_dist_client
