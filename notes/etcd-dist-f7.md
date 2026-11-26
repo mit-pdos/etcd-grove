@@ -331,3 +331,50 @@ workloads' statements (`auth`, `authLease`) are F7's new ones.
   plus the collections for exactly the six lease axioms.
 - Build: fk-lean2, `~/eg/wt/etcd-safe-f7` (detached at the pushed head), script `~/eg/logs/f7l-build.sh MODULES…`
   (flock, MemoryMax=55G), log `~/eg/logs/f7l-build.log`.
+
+### Handoff 2 (2026-11-26, L3/L4 written, build running; context limit)
+
+**Done (unbuilt when pushed; the build was running):** L3/L4 at `a6605a2dad`.
+- `ClusterNames` gains `ls : w64 → GName`, `au : w64 → auth.AuthNames`. `ClusterNames.view := ⟨c.γk, c.ls, false, c.au⟩`.
+  `ClusterNames.lsNone`/`auNone` are the constants (`ofKV`'s), passed by `etcdClusterStart` (putgetk) and `putget_shares`.
+  `ClusterNames.NamesInj` is injectivity of both over all `w64`.
+- `MemberDefs.memberNamesShare γl γa` (half of `γl`'s map at `∅`, `lessorSlot γl`, `authNamesFreshG γa`). `memberShareD`
+  gains `c.NamesInj` in its pure conjunct and `memberNamesShare (c.ls id) (c.au id)` as its last conjunct.
+  `MainLogger` drops both for now (`-` in its `icases`/`obtain`).
+- `ClusterStartD`: `lsPad`/`auPad` (padding of non-members above every member's name; `lsPad_inj`, `auPad_inj`), `hists_ne`
+  (exclusivity of the history authority, resources kept), `memberNames_alloc_list` (induction over the nodup ids:
+  `lessorSlot_alloc` outside the names so far, `authNamesFreshG_alloc`), `memberNames_alloc` (padded), `names_members`;
+  `memberShares_of` takes `Hinj` and the names list; `clusterStartD` allocates after `clusterAllocN`.
+- M1's statement text is untouched (`memberShareD` is named, not unfolded, in `kvremote/TopLevelRobustness.lean`'s spec).
+
+**Build:** fk-lean2, `~/eg/wt/etcd-safe-f7` (detached at `a6605a2dad`), log `~/eg/logs/f7l-build.log` (ends `EXIT n`).
+Targets: `dist.server.ClusterStartD`, `dist.server.MainLogger`, `dist.kvremote.TopLevelRobustness`, `dist.putget.TopLevelRobustness`,
+`dist.putgetk.TopLevelRobustness`. Its result was not seen.
+
+**Next:**
+1. Fix any L3/L4 build errors (likely spots: `simp only [... if_true, if_false]` in `lsPad_inj`/`auPad_inj` and the cons step
+   of `memberNames_alloc_list`; `rw [hx] at *` in `hists_ne`; `imod` of the `|==>` from `authNamesFreshG_alloc`;
+   `lessorSlot`'s section instances in `MemberDefs`). Then run `etc/tier-check.py --check` and `etc/lease-order-check.py`.
+2. The putget carry (proof-only). `NewServer.wp_proofG` (`Proof/.../etcdserver/NewServer.lean:208`) calls `h24 :
+   lease.NewLessor.spec` at line ~721. The lessor's name is `γl`, and `Hγl : mvccLeases γm = γl` at ~876; `E.γ = γm`.
+   Plan:
+   - Add `NewServer.specGAt` (specG plus a binder `γl`, the premise `"Hlslot" ∷ ghostMapAuth γl ½ ∅ ∗ lease.lessorSlot γl`,
+     and the post `mvccLeases E.γ = γl`).
+   - Rename the proof to `wp_proofGAt`, with `h24 : lease.NewLessor.specAt` (`lease.NewLessor.wp_proofAt` exists).
+   - Derive `wp_proofG` by allocating the slot first (`lessorSlot_alloc` at `hG.goose_globalGS`).
+   - Link: `etc/link-lean-first-server.txt:993` `lease_NewLessor` → an At entry. `lease_NewLessor: lease_newLessor` at
+     line 764 needs an At counterpart; check how `gen-link.py` names a variant's spec.
+   - Then `etcdstart.StartServer` gets a `specAt` in the same way.
+   - putget's `memberShare` (`putget/Defs.lean:67`) carries `memberNamesShare`, and `putget_shares` allocates with
+     `memberNames_alloc [id]`.
+   - putget's member builds `memberUpL … (Γ.ls mid)`. putget's result statements stay unchanged.
+3. The replacement commit (the lead, #50 03:05Z):
+   - `NewServer_dist` and `Serve_dist` take the proposed texts (`AuthServeProposed.lean`).
+   - The current `Serve_dist` is deleted.
+   - putgetk follows (a): `StartMember_dist.spec`'s post (`Spec/.../dist/StartMemberDist.lean:90`) becomes
+     `memberUpL … Γ.kv.lm (Γ.ls mid)`. It is the hypothesis `HSM` of `putgetK_safe_of_S5` (`putgetk/Start.lean:392`),
+     not a top-level change.
+   - `MainLogger` passes `memberNamesShare`'s parts to `NewServer_dist` and builds `memberUpL`.
+   - `axiom-tok-allow.txt` is re-keyed.
+4. Link leaseRead, leaseCatchup and leaseExpiry. Update the tcb baseline and collections for exactly the new axioms. Run
+   `etc/lease-order-check.py`, `etc/tier-check.py --check` and `etc/tcb-report.py --check`.
