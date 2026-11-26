@@ -536,6 +536,111 @@ theorem plog_pos {l : List EntryM} {k : w64} (hk1 : 1 ≤ uint.Z k) :
   congr 2
 
 
+/-! ## A commit -/
+
+/-- **A commit to `cc` at term `T`** (`OnDisk`'s `ch1` and `termLen` when the commit moves, B 422-423):
+`chain` extended to the new committed prefix where it is longer, `termLen[T]` raised to it; what
+`ReadyOk` needs of them, from `chain` and the new prefix both prefixes of the committed log (C5,
+`ReadyFacts`). -/
+theorem commit_fields {R : RunCfg} {dec : CCDec} {S : State} {net : List Msg} {G : RaftFacts} {n : Fin R.N}
+    {l : List EntryM} {cc T : w64} (hb : BindingOk R dec S) (hgo : GlobalOk R S net G)
+    (hcL : uint.Z cc ≤ l.length) (hcG : l.take (uint.nat cc) = G.committed.take (uint.nat cc))
+    (hcGl : uint.nat cc ≤ G.committed.length) (hcm : (T, uint.nat cc) ∈ G.commits)
+    (hold : S.commitIndex[n.val]! < uint.Z cc) :
+    S.chain <+: (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain) ∧
+    (uint.Z cc ≤ (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain).length ∧
+      (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain).take (uint.Z cc).toNat =
+        (logOf l).take (uint.Z cc).toNat) ∧
+    (∀ q ∈ S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc)),
+      q.2 ≤ (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain).length) ∧
+    (uint.Z cc = 0 ∨ ∃ q ∈ S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc)),
+      q.1 ≤ uint.Z T ∧ uint.Z cc ≤ q.2) ∧
+    (∀ q ∈ S.termLen, ∃ q' ∈ S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc)),
+      q'.1 = q.1 ∧ q.2 ≤ q'.2) ∧
+    (∃ c' ≤ G.committed.length, (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc
+        then (logOf l).take (uint.Z cc).toNat else S.chain) = logOf (G.committed.take c')) ∧
+    (∀ q ∈ S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc)),
+      0 ≤ q.2 ∧ ∃ x, uint.Z x = q.1 ∧ (x, q.2.toNat) ∈ G.commits) := by
+  obtain ⟨c', hc', hch⟩ := hgo.2.2.2.2.1
+  have hb4 := hb.2.1
+  have hnc : (uint.Z cc).toNat = uint.nat cc := uZ_toNat_nat cc
+  have hnew : (logOf l).take (uint.Z cc).toNat = logOf (G.committed.take (uint.nat cc)) := by
+    rw [hnc, logOf_take, hcG]
+  have hchl : (S.chain.length : Int) = c' := by
+    rw [hch, logOf_take_len]; omega
+  have hcz : (uint.nat cc : Int) = uint.Z cc := by word
+  -- the new chain
+  have hP : S.chain <+: (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain) ∧
+      (uint.Z cc ≤ (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain).length ∧
+      (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc then
+        (logOf l).take (uint.Z cc).toNat else S.chain).take (uint.Z cc).toNat =
+        (logOf l).take (uint.Z cc).toNat) ∧
+      (∃ c' ≤ G.committed.length, (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc
+        then (logOf l).take (uint.Z cc).toNat else S.chain) = logOf (G.committed.take c')) := by
+    by_cases h : S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc
+    · rw [if_pos h, hnew, hch]
+      refine ⟨?_, ⟨?_, ?_⟩, uint.nat cc, hcGl, rfl⟩
+      · apply List.IsPrefix.map
+        have : c' ≤ uint.nat cc := by omega
+        have e : G.committed.take c' = (G.committed.take (uint.nat cc)).take c' := by
+          rw [List.take_take]; congr 1; omega
+        rw [e]; exact List.take_prefix _ _
+      · rw [logOf_take_len]; omega
+      · rw [hnc, List.take_of_length_le (by rw [logOf_take_len]; omega)]
+    · rw [if_neg h]
+      have hge : uint.Z cc ≤ S.chain.length := by omega
+      refine ⟨List.prefix_refl _, ⟨hge, ?_⟩, c', hc', hch⟩
+      rw [hnew, hch, hnc, logOf_take, List.take_take]; congr 2; omega
+  obtain ⟨hP1, hP2, hP3⟩ := hP
+  have hlen : (S.chain.length : Int) ≤ (if S.commitIndex[n.val]! < uint.Z cc ∧ (S.chain.length : Int) < uint.Z cc
+        then (logOf l).take (uint.Z cc).toNat else S.chain).length := by
+    have := hP1.length_le; omega
+  have hold0 : 0 ≤ tlOld S.termLen (uint.Z T) ∧ tlOld S.termLen (uint.Z T) ≤ S.chain.length ∧
+      (tlOld S.termLen (uint.Z T) = 0 ∨ (T, (tlOld S.termLen (uint.Z T)).toNat) ∈ G.commits) := by
+    rcases tlOld_cases S.termLen (uint.Z T) with h | ⟨q, hq, h1, h2⟩
+    · rw [h]; exact ⟨Int.le_refl _, by omega, .inl rfl⟩
+    · obtain ⟨g0, x, hx, hxg⟩ := hgo.2.2.2.2.2.1 q hq
+      have hxT : x = T := uZ_inj (by rw [hx, h1])
+      rw [← h2]
+      exact ⟨g0, hb4 q hq, .inr (by rw [← hxT]; exact hxg)⟩
+  have hcz0 : 0 ≤ uint.Z cc := by word
+  refine ⟨hP1, hP2, ?_, .inr ⟨_, rd_with_self _ _ _, Int.le_refl _, by unfold imax; split <;> omega⟩,
+    rd_with_dom _ _ _ (by unfold imax; split <;> omega), hP3, ?_⟩
+  · intro q hq
+    rcases rd_with_mem hq with hq | rfl
+    · have := hb4 q hq; omega
+    · show imax _ _ ≤ _
+      have := hP2.1
+      unfold imax; split <;> omega
+  · intro q hq
+    rcases rd_with_mem hq with hq | rfl
+    · exact hgo.2.2.2.2.2.1 q hq
+    · refine ⟨by unfold imax; split <;> omega, T, rfl, ?_⟩
+      show (T, (imax _ _).toNat) ∈ G.commits
+      unfold imax
+      split
+      · rcases hold0.2.2 with h0 | h0
+        · rename_i hge
+          have : uint.Z cc = 0 := by omega
+          rw [h0]; rw [this] at hnc; rw [← hnc] at hcm; exact hcm
+        · exact h0
+      · rw [hnc]; exact hcm
+
+theorem nat_commit_le {G : RaftFacts} {id : w64} {r : RState} (hrf : ReadyFacts G id r) :
+    uint.Z r.p.commit ≤ r.full.length := by
+  have h1 := hrf.2.1
+  have h2 := congrArg List.length hrf.2.2.1
+  rw [List.length_take, List.length_take] at h2
+  have : uint.nat r.p.commit ≤ r.full.length := by omega
+  word
+
+
 end ready
 
 end AntSim
