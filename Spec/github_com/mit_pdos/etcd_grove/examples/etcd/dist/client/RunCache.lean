@@ -24,8 +24,9 @@ the writer machines' share), `RunCache` returns (no panic: every check holds), t
 goroutines are stopped).
 
 **The pure premises** (facts of the deployment or of the logic): `RunWatch.spec`'s (a watch environment,
-the logic's thread bound, plain endpoints, the writers' count fits, `nops < 2 ^ 56` for the writers'
-wire), and that `errors.As` can take `*rpctypes.EtcdError` (`RunPutGet.spec`'s: the cache's gets take
+the logic's thread bound, plain endpoints, the writers' count fits, the logic's receipt bound `receiptBound
+GF ≤ 2 ^ 56`, so that the writers' Puts, fewer than the receipts (`GenAll_receipts.spec`), fit their wire:
+N10a2 §24.7), and that `errors.As` can take `*rpctypes.EtcdError` (`RunPutGet.spec`'s: the cache's gets take
 any context, whose errors are then client errors, `ctxErrClientAllW_of`).
 -/
 module
@@ -57,7 +58,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 abbrev RunCache.spec : Prop :=
   ∀ [π : NetProtoGS] [ρ : RemoteGS] (eps nodes : GoSlice) (addrs ns : List GoString) (nops : w64) (ready : GoFunc),
   Nonempty (WEnv GF) → threadBound GF ≤ 2 ^ 30 → plainEndpoints addrs →
-  0 ≤ sint.Z nops → sint.Z nops < 2 ^ 56 → ns.length * sint.Z nops < 2 ^ 63 →
+  0 ≤ sint.Z nops → ns.length * sint.Z nops < 2 ^ 63 → receiptBound GF ≤ 2 ^ 56 →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       threadTok ∗ eps ↦*□ addrs ∗ nodes ↦*□ ns ∗

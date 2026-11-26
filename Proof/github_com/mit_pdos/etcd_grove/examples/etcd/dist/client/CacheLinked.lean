@@ -13,6 +13,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RunCache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.GenAllR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.remoteWriters
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.reportAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CallAll
@@ -72,7 +73,7 @@ variable [NaInvG GF]
 /-- **The cache workload's orchestrator, linked** (the writers' calls as the watch workload's,
 `WatchLinked.wp_remoteWriters`, over N10a's linked `writerCodec`). -/
 theorem wp_RunCache : RunCache.spec (GF := GF) (hG := hG) :=
-  RunCache.wp_proof etcdstart.wp_GenAll (newClient.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClients)
+  RunCache.wp_proof (GenAll_receipts.wp_proof EtcdGrove.etcdstart.wp_Gen) (newClient.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClients)
     ended.wp_proof checked.wp_proof KV_Get_dist.wp_proof Watch_dist.wp_proof RequestProgress_dist.wp_proof
     context.wp_ErrAny context.WithTimeoutBackground.wp_proof (WithPrefix.wp_proof getPrefix.wp_proof) WithRev.wp_proof
     wp_New Cache.wp_Watch Cache.wp_RequestProgress Cache.wp_Get Cache.wp_Close

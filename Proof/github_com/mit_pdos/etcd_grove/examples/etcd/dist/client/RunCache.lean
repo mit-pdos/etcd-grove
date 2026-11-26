@@ -31,7 +31,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.cach
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.awaitProgress
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checkProgress
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checkGet
-public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.GenAll
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.GenAllR
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check
 public import Spec.go_etcd_io.etcd.client.v3.WithPrefix
@@ -81,7 +81,7 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 set_option maxHeartbeats 3200000 in
 set_option maxRecDepth 8192 in
 theorem RunCache.wp_proof
-    (wp_GenAll : etcdstart.GenAll.spec (GF := GF) (hG := hG))
+    (wp_GenAll : GenAll_receipts.spec (GF := GF) (hG := hG))
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
     (wp_ended : ended.spec (GF := GF) (hG := hG))
     (wp_checked : checked.spec (GF := GF) (hG := hG))
@@ -107,7 +107,7 @@ theorem RunCache.wp_proof
     (wp_Check : etcdstart.Check.spec (GF := GF) (hG := hG))
     (wp_checkGet : checkGet.spec (GF := GF) (hG := hG)) :
     RunCache.spec (GF := GF) (hG := hG) := by
-  intro π ρ eps nodes addrs ns nops ready hV Htb hpl H0 H56 Hmul hAs
+  intro π ρ eps nodes addrs ns nops ready hV Htb hpl H0 Hmul Hrb hAs
   wp_start as ⟨Htok, #Heps, #Hnodes, #Hready, Hsh⟩
   iunfold cacheShare at Hsh
   iunfold watchShare at Hsh
@@ -153,10 +153,15 @@ theorem RunCache.wp_proof
     as %tsl ⟨%trs, Htrs, %Htrs⟩
   · iframe #
   imod ownSlice_persist _ _ _ $$ Htrs with #Htrs
-  have hpk := ck_genKeys_pfx trs Htrs.2
-  have hkeys := ck_genKeys_range trs Htrs.2
+  have hpk := ck_genKeys_pfx trs Htrs.2.1
+  have hkeys := ck_genKeys_range trs Htrs.2.1
   have hps : ∀ p ∈ trs, pairOf p ∈ trs.map pairOf ∧ wkvSmall p := fun p hp =>
-    ⟨List.mem_map_of_mem hp, ck_genKv_small p (Htrs.2 p hp)⟩
+    ⟨List.mem_map_of_mem hp, ck_genKv_small p (Htrs.2.1 p hp)⟩
+  -- the Puts fewer than the receipts' bound, so than `2 ^ 56` (`remoteWriters`')
+  have htr56 : trs.length < 2 ^ 56 := by
+    have h := Htrs.2.2
+    rw [← Htrs.1] at h
+    omega
   have htl : (trs.length : Int) = ns.length * sint.Z nops := by
     have h0 : 0 ≤ sint.Z (nodes.len * nops) := by rw [hmul]; exact Int.mul_nonneg (by omega) H0
     rw [Htrs.1, ← hmul]; word
@@ -330,7 +335,7 @@ theorem RunCache.wp_proof
   wp_apply Hready
   (try wp_auto)
   -- `oks := remoteWriters(nodes, tried, nops)`
-  wp_apply (wp_remoteWriters nodes tsl ns trs nops Γ (γ.ch, γ.tok, trs.map pairOf) Htb H0 H56 htl hps)
+  wp_apply (wp_remoteWriters nodes tsl ns trs nops Γ (γ.ch, γ.tok, trs.map pairOf) Htb H0 htl htr56 hps)
     $$ [$Hlt HWS] as %okSl ⟨Hlt, %oks, Hos, #Hoks0⟩
   · rw [hγeq]
     iframe #
