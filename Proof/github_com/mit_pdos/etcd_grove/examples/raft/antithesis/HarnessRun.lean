@@ -463,6 +463,28 @@ def nodeMemB1 (n : Loc) : IProp GF :=
     n.[H.node, go!"confs"] ↦ slice.nil ∗ n.[H.node, go!"confBase"] ↦ W64 0 ∗
     emitOk n)
 
+/-- (#33 parity B1) **The durable state a fresh node of the run starts from**: in a bootstrapped
+run, the state `node.start`'s write leaves in its storage (term `1`, no vote, the boot log from
+`base0`, commit `0`); otherwise a node that stored nothing (`RaftState.init`). -/
+def downDur (R : AntSim.RunCfg) : RaftState :=
+  if R.boot then ⟨W64 1, W64 0, base0, AntSim.bootLog R, W64 0, W64 0⟩ else RaftState.init
+
+/-- (#33 parity B1) **Node `j`'s raft resources before `start`** (what the cluster's allocation
+gives each node, `RunCluster`; what `node.start`'s `NewRawNode` takes): the id's slot vacant, its
+durable state at `downDur` (with the term budget, `raftState`, which `nodeRaft`'s `rnTermLB`,
+`rnBudget` come from), the configuration of no entry the initial voters', the cluster with its
+receipts' fit, and the cluster's static facts (`nodeRaft`'s, and the restart's: snapshots on,
+untraced, no data bound, the bootstrap log the run's). -/
+def nodeDownRaft (γ : AntNames) (j : Fin γ.R.N) : IProp GF :=
+  iprop(nodeVacant γ.raft (AntSim.nodeId j) ∗ raftState γ.raft (AntSim.nodeId j) (downDur γ.R) ∗
+    confAt γ.raft 0 (Membership.simple γ.R.voters0) ∗
+    (∃ Nr : Namespace, isCluster γ.raft Nr ∗ readyFits γ.raft Nr) ∗
+    ⌜¬ clusterNoSnap γ.raft ∧ Cluster.trace γ.raft = none ∧ γ.raft.maxData = none ∧
+      γ.raft.bootLen = (AntSim.bootLog γ.R).length ∧
+      γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = γ.R.voters0 ∧
+      γ.raft.raftNames.maxData = none ∧ γ.raft.raftNames.reBoot = AntSim.bootLog γ.R ∧
+      (↑(raftN γ.raft.raftNames) : CoPset) ⊆ ⊤ \ ↑antN⌝)
+
 /-- **Node `j`'s goroutine's state** at `n`, its view `v`, the phase `ph` (see the file header):
 always its disk at `v.dur`, its B2/B3 bookkeeping, the view fragment and the right to report, its
 entries normal; and, once started (any phase but `down`), the `RawNode` and its raft ghost state,
@@ -473,7 +495,7 @@ disk's hard state, `conf` the initial voters' configuration (no conf change in B
 inputs at `R.k j`), the
 cause cell; and the phase's facts (S4's, over `RState`):
 - `down`: not running (`v.alive = false`), nothing of a `Ready` left, the disk the node's state's
-  (`SyncDisk`);
+  (`SyncDisk`), its raft resources (`nodeDownRaft`);
 - `idle`: running, nothing of a `Ready` left, the node at the view's state, idle (`PIdle`), its
   in-progress boundary at the log's end, the cause cell `nil`;
 - `loop net₀ xnet₀ r₁ xs₁`: the node at `r₁`, reached from the view, nothing queued, the boundary at the
@@ -489,7 +511,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
     viewFrag γ j v ∗ nodeLive γ j ∗ ⌜ViewNormal v⌝ ∗
     match ph with
     | .down => iprop(⌜v.alive = false ∧ v.Idle ∧ v.dur = AntSim.durOf v.r ∧ AntSim.PInitR γ.R v.r⌝ ∗
-        diskOwn d ⟨W64 0, W64 0, W64 0, []⟩)
+        diskOwn d ⟨W64 0, W64 0, W64 0, []⟩ ∗ nodeDownRaft γ j)
     | _ => iprop(diskOwn d v.dur ∗ ∃ (si : Loc) (rs : RNState) (qs : List Msg) (ip : Nat) (r : RState),
       nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1))
         (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗

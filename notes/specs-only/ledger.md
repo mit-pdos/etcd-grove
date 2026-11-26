@@ -6310,6 +6310,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the arm at `md.confChanges = false` only (RnScope's pre-candidate conjunct); **B3 item**: widen the arm (or the
   invariant) before conf changes are on.
 
+## 2026-11-26 — antithesis parity B1 group G: `nodeOwn`'s `.down` phase carries the node's raft resources (#33)
+- **Spec.** `HarnessRun.lean`'s `nodeOwn … .down` (the harness's node-goroutine state before `node.start`).
+- **Defect.** `.down` held no raft resource, but `node.start`'s `NewRawNode` (`restartAtSpec`) takes the id's vacant
+  slot, the durable state its storage holds (`raftState`, from which `nodeRaft`'s `rnTermLB`/`rnBudget` come), the
+  configuration of no entry (`confAt γ 0 …`), the cluster with `readyFits`, and the cluster's static facts. In a
+  bootstrapped run the storage holds `node.start`'s boot write (`HardState{Term: 1}`, the entry `{1, 1, bootData}`), so
+  the durable state must be that one (`StorageHolds`), not `RaftState.init`.
+- **Change.** `.down` gains `nodeDownRaft γ j` (new def): `nodeVacant`, `raftState … (downDur γ.R)` (`downDur`: the
+  boot write's state `⟨1, 0, base0, bootLog R, 0, 0⟩` when `R.boot`, else `RaftState.init`), `confAt γ.raft 0
+  (Membership.simple R.voters0)`, `∃ Nr, isCluster γ.raft Nr ∗ readyFits γ.raft Nr`, and the pure static facts
+  (snapshots on, untraced, no data bound, `bootLen`, and `nodeRaft`'s name facts).
+- **Provenance.** Raft's new `ClusterAllocRun.lean` (`cluster_alloc_run`: a cluster whose client writes its own
+  bootstrap log, one normal entry, `NormBoot`; every id at the boot write's durable state, `ownDurGhost_boot`), at the
+  run's `R` by `RunClusterAlloc.antRaft_alloc`. No axiom, no new premise.
+- **Decision.** Lead-approved (2026-11-26, group G blocker 1). Every other phase unchanged.
+
 ## 2026-11-26 — antithesis parity B1 phase 2: a pre-candidate's tally is not a quorum (`RnScope`) (#33)
 - **Change.** `RnScope md rs s` (RawNodeAt.lean) gains a last conjunct `md.confChanges = false → md.prevote = true →
   s.role = .preCandidate → ¬ JQuorum rs.cfg.cfg (granted s.votes)`: without configuration changes, a pre-candidate's
