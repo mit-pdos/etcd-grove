@@ -94,7 +94,12 @@ theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     iframe Hlt
     ileft
     iframe #
-    ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hcfg
+    ipureintro
+    first | exact ⟨rfl, rfl, rfl⟩ | simp
   · obtain ⟨Hcerr, Hnull⟩ := Hcfail
     iapply HΦ
     iframe Hlt

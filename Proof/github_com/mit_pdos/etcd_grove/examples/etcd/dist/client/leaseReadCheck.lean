@@ -78,7 +78,7 @@ theorem leaseReadCheck.wp_proof
   (try wp_auto)
   wp_apply (wp_newClient _ [addr] (Classical.choice hV) Htb hpl) $$ [$Hlt] as %cl %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, #Hnp, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

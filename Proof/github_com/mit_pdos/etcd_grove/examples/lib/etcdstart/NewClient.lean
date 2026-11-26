@@ -49,7 +49,9 @@ theorem NewClient.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe Hlt
-  iexact Hcl
+  icases Hcl with (⟨%Hcerr, #Hnc, #Htok, #Hnp, -⟩ | %Hcfail)
+  · ileft; iframe #; ipureintro; exact Hcerr
+  · iright; ipureintro; exact Hcfail
 
 end proof
 

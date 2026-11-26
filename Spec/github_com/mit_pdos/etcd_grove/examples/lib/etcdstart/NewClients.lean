@@ -50,7 +50,10 @@ abbrev NewClients.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients)) (Val #eps))
       (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗ ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V ∗
-        clientTokAt cl addrs (fun _ => iprop(False)) ∗ clientNoProxy cl) ∨
+        clientTokAt cl addrs (fun _ => iprop(False)) ∗ clientNoProxy cl ∗
+        -- (F7 S5, 2026-11-26) its configuration sets no token, user or password
+        ∃ cfg : go_etcd_io.etcd.client.v3.Config, clientF cl go!"cfg" ↦□ cfg ∗
+          ⌜cfg.Token' = [] ∧ cfg.Username' = go!"" ∧ cfg.Password' = go!""⌝) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec

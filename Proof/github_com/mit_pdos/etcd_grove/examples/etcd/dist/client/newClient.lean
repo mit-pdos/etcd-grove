@@ -52,8 +52,8 @@ theorem newClient.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe Hlt
-  icases Hres with (⟨%Herr, #Hnc, -, #Hnp⟩ | %Hfail)
-  · ileft; iframe #; ipureintro; exact Herr
+  icases Hres with (⟨%Herr, #Hnc, -, #Hnp, #Hcfg⟩ | %Hfail)
+  · ileft; iframe Hnc Hnp Hcfg; ipureintro; exact Herr
   · iright; ipureintro; exact Hfail
 
 end proof

@@ -94,7 +94,7 @@ theorem RunLeaseCatchup.wp_proof
   (try wp_auto)
   wp_apply (wp_newClient _ [x3] (Classical.choice hV) Htb hpl3) $$ [$Hlt] as %c3 %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc3, #Hnp3⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc3, #Hnp3, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -124,7 +124,7 @@ theorem RunLeaseCatchup.wp_proof
   (try wp_auto)
   wp_apply (wp_newClient _ [x1] (Classical.choice hV) Htb hpl1) $$ [$Hlt] as %c1 %cerr ⟨Hlt, Hcl⟩
   · iframe #
-  icases Hcl with (⟨%Hcerr, #Hnc1, #Hnp1⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc1, #Hnp1, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with

@@ -37,7 +37,10 @@ abbrev newClient.spec : Prop :=
       levelTok 0 ∗ eps ↦*□ addrs }}
     (App (Val (@! client.newClient)) (Val #eps))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err); levelTok 0 ∗
-      ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V ∗ clientNoProxy cl) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V ∗ clientNoProxy cl ∗
+        -- (F7 S5, 2026-11-26) the anonymous client: no token, user or password (`NewClients`')
+        ∃ cfg : go_etcd_io.etcd.client.v3.Config, clientF cl go!"cfg" ↦□ cfg ∗
+          ⌜cfg.Token' = [] ∧ cfg.Username' = go!"" ∧ cfg.Password' = go!""⌝) ∨
         ⌜err ≠ GoInterface.nil ∧ cl = null⌝) }}
 
 end spec
