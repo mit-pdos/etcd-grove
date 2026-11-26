@@ -172,3 +172,9 @@ spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/Nod
 # bound (`threadBound GF ≤ 2 ^ 30`, `NewClients`' premise) is a pure premise of the machine's program, discharged
 # from `etcdThreads` by the orchestrator machine's boot (as `kvremote/Node`'s), not a top-level premise.
 spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(newClient|RunPutGet|RunDurable|RunCompact|RunCache)\.lean$
+
+# (N10a, 2026-11-26) the watch workload's machine programs over the logic's thread bound
+# (`threadBound GF ≤ 2 ^ 30`): `newClient` (NewClients', the line above), `RunWatch` (the orchestrator), `remoteWriters`,
+# `reportAll` and `CallAll` (one goroutine per writer: `sync.tokJoinL`'s wait group counter). Discharged
+# from `etcdThreads` by the machine's boot (as kvremote's `Node`), not a top-level premise.
+spec-thread ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/(RunWatch|remoteWriters|reportAll|CallAll)\.lean$
