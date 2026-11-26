@@ -19,6 +19,12 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S2Interim
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientViewDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.LeaseGrantDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.LeaseGrantLiveDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.LeaseLeasesGrantedDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.LeaseLeasesLiveDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientLeaseLeasesDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientLeaseTTLDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
