@@ -120,6 +120,16 @@ def optsNoErr (v : go_etcd_io.bbolt.Options) : Prop :=
 def optsAtNoErr (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
   iprop(∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o ∧ optsNoErr v⌝)
 
+/-- **Options under which `Open` puts its file in crash mode** (W6, `Open.specC`): `optsNoErr`, and
+`NoSync` and `NoGrowSync` off, so that every commit syncs (what `boltSyncs` records). etcd's backend
+sets both off unless `UnsafeNoFsync`. -/
+def optsSyncs (v : go_etcd_io.bbolt.Options) : Prop :=
+  optsNoErr v ∧ v.NoSync' = false ∧ v.NoGrowSync' = false
+
+/-- The `Options` at `l` has the fields `o` and is `optsSyncs` (W6). -/
+def optsAtSyncs (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
+  iprop(∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o ∧ optsSyncs v⌝)
+
 theorem optsAtNoErr_optsAt (l : Loc) (dq : DFrac) (o : OptsM) :
     optsAtNoErr (GF := GF) l dq o ⊢ optsAt l dq o := by
   unfold optsAtNoErr optsAt

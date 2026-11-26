@@ -7,9 +7,12 @@
   4096) are zero (`metaTailsZero`: every meta page bbolt writes is a zeroed buffer with a header and a
   meta; the next generation's crash invariant needs it, `metaOk`'s probes at offsets 1024 and 2048 of
   slot 0 being read from bytes a commit rewrites). `bGoodU` is the same without whole pages.
-* `bGoodInit f`: a file `needsInit` accepts (fork `db.go`, `needsInit`, after the init fix): at most
-  four pages, every byte it holds (and every byte of the page holding its end, which a crash that
-  grows it may bring back) zero or `init`'s byte (`initImg`), and not `init`'s whole image.
+* `bGoodInit f`: a file `needsInit`'s interrupted-init test accepts (fork `db.go`, `needsInit`, after
+  the init fix): at most four pages, every byte it holds (and every byte of the page holding its end,
+  which a crash that grows it may bring back) zero or `init`'s byte (`initImg`), and not `init`'s
+  whole image. (Since the fork's 2c660ee, W6, `needsInit` keeps such a file when a valid meta of it
+  names pages in it with their flags; no proved crash obligation uses the init phase yet: one that
+  does needs `BoltCrashWhole`'s "a validating slot of init's meta write is init's whole meta" there.)
 * `RefImg X C`: `X` is a reference image of the committed state `C` (`fileOK`'s facts and zero meta
   tails); `protData X C` its bytes a crash must keep: the extents of `C`'s tree pages and of its
   synced freelist page.

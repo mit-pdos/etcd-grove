@@ -193,14 +193,15 @@ macro "open_exit_j" hv:term:max xs:term:max : tactic => `(tactic| (
   ipureintro
   first | exact ⟨rfl, (fun h => nomatch h), by assumption⟩ | exact ⟨trivial, (fun h => nomatch h), by assumption⟩))
 
-/-- **`Open`'s last write of `db` begins** (U11i, U11j; `Open/PoolNew.dp_lock`): the whole
-validity token of the client's `boltState` lent to the protocol, which gives back the cell's
-other half around one step of `Open`'s (`open_step`). -/
-theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
-    (dp db : Loc) :
-    dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 0 ∗
-      boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
-    (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν) ∗ crashPart B 1 D ν) ∗
+/-- **`Open`'s last write of `db` begins** (U11i, U11j; `Open/PoolNew.dp_lock`): the validity token's
+share `q` of the client's `boltState γ q` (all of it, `q = 1`; in the crash-mode `Open`, the client's
+half: W6) lent to the protocol, which gives back the cell's other half around one step of `Open`'s
+(`open_step`). -/
+theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName)
+    (q : Qp) (D : Data) (dp db : Loc) :
+    dpProt (GF := GF) N γs B.bq q dp db ∗ ghostVar γs (1 : Qp).half 0 ∗
+      boltState (GF := GF) ⟨mkGs B, N⟩ q D ⊢
+    (∃ ν : Nat, ghostVar B.st q.half (D, ν) ∗ crashPart B q D ν) ∗
       (|={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
       ghostVar γs (1 : Qp).half 1 ∗ dp ↦{DFrac.own (1 : Qp).half} db) := by
   iintro ⟨#Hinv, Hs, Hst⟩
@@ -209,17 +210,17 @@ theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : N
   icases Hst with ⟨%ν, Hst, Hbq, Hcp⟩
   isplitl [Hst Hcp]
   · iexists ν; iframe
-  iapply dp_lock N γs B.bq dp db $$ [Hinv Hs Hbq]
+  iapply dp_lock N γs B.bq q dp db $$ [Hinv Hs Hbq]
   iframe; iframe #
 
-/-- **`Open`'s last write of `db` done, on success**: the token back, `db` persistent. -/
-theorem open_unlock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
-    (dp db : Loc) :
-    dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
-      (∃ ν : Nat, ghostVar B.st (1 : Qp).half (D, ν) ∗ crashPart B 1 D ν) ⊢
-    |={⊤}=> dp ↦□ db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D := by
+/-- **`Open`'s last write of `db` done, on success**: the token's share back, `db` persistent. -/
+theorem open_unlock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName)
+    (q : Qp) (D : Data) (dp db : Loc) :
+    dpProt (GF := GF) N γs B.bq q dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
+      (∃ ν : Nat, ghostVar B.st q.half (D, ν) ∗ crashPart B q D ν) ⊢
+    |={⊤}=> dp ↦□ db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ q D := by
   iintro ⟨#Hinv, Hs, Hdp, ⟨%ν, Hst, Hcp⟩⟩
-  imod dp_unlock N γs B.bq dp db $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
+  imod dp_unlock N γs B.bq q dp db $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
   · iframe; iframe #
   imodintro
   iframe Hdp
@@ -247,7 +248,7 @@ set_option hygiene false in
 the page pool's protocol (`open_lock`, `open_unlock`), the deferred log (`Hdef`), and the
 database. -/
 macro "open_ret" : tactic => `(tactic| (
-  ihave ⟨Hstq, Hlk⟩ := open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs Hst']
+  ihave ⟨Hstq, Hlk⟩ := open_lock B N γs 1 _ db_ptr dbl $$ [Hdpi Hs Hst']
   · iframe; iframe #
   open_step
   try wp_auto
@@ -256,7 +257,7 @@ macro "open_ret" : tactic => `(tactic| (
   · iexact err
   · iexact Herrok
   iintro err
-  imod open_unlock B N γs _ db_ptr dbl $$ [Hdpi Hs db Hstq] with ⟨#db, Hst'⟩
+  imod open_unlock B N γs 1 _ db_ptr dbl $$ [Hdpi Hs db Hstq] with ⟨#db, Hst'⟩
   · iframe; iframe #
   try wp_auto
   iapply HΦ
@@ -303,7 +304,7 @@ macro "open_tx_exit" : tactic => `(tactic| (
   wp_apply hClose dbl ⟨mkGs B, N⟩ $$ [Hclo]
   · unfold isBolt boltCloser; rw [bnsOf_mkGs]; iframe Hclo; iexact Hbolt
   iintro %cerr -
-  ihave ⟨-, Hlk⟩ := open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs Hst']
+  ihave ⟨-, Hlk⟩ := open_lock B N γs 1 _ db_ptr dbl $$ [Hdpi Hs Hst']
   · iframe; iframe #
   open_step
   try wp_auto
@@ -1000,7 +1001,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γs, Hs⟩
   icases (ghostVar_split_half γs 1 (0 : Nat)).1 $$ Hs with ⟨Hs, Hs'⟩
   icases (typedPointsto_half_split db_ptr dbl 1).1 $$ db with ⟨db, Hdp⟩
-  imod dp_init ⊤ N γs γbq db_ptr dbl $$ [Hs' Hdp] with #Hdpi
+  imod dp_init ⊤ N γs γbq 1 db_ptr dbl $$ [Hs' Hdp] with #Hdpi
   · iframe
   imod init_Pool_all _ _ (poolR γbq N) pageBuf ⊤ $$ [pagePool] with #Hp
   · iframe pagePool
@@ -1015,7 +1016,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
       -- given back after the read (`wp_load_loan`, `P` under two laters the next steps take off)
       unfold poolR
       icases HR with ⟨HP, #Href⟩
-      imod dp_borrow N γs γbq db_ptr dbl P $$ [HP] with (⟨#Hdp, HP⟩ | ⟨%q, Hdp, Hloan⟩)
+      imod dp_borrow N γs γbq 1 db_ptr dbl P $$ [HP] with (⟨#Hdp, HP⟩ | ⟨%q, Hdp, Hloan⟩)
       · iframe; iframe #
       · wp_auto
         wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hsl, -⟩
@@ -1028,7 +1029,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         rw [show (zero_val w8 : w8) = W8 0 from rfl] at *
         iframe Hsl
         ipureintro; rfl
-      · wp_apply (wp_load_loan N γs γbq db_ptr dbl P q) $$ [Hdp Hloan] as HP
+      · wp_apply (wp_load_loan N γs γbq 1 db_ptr dbl P q) $$ [Hdp Hloan] as HP
         · iframe
         wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hsl, -⟩
         · ipureintro; decide
@@ -1079,19 +1080,29 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
       by rw [List.length_map, hxl']; exact hsz'.2⟩
   iframe NoSync Hngs path Hfm Hxs HrcC
   iintro %cs %gcn %m'' %Hm'' #Hmode Hseed path Hfm Hxs
+  -- the database's names (W6: allocated here, ahead of the core phase, `openNames`)
+  imod openNames_alloc (GF := GF) γbq gcn C ⊤ with ⟨%B, %HB, Hnames, Hst1⟩
+  obtain ⟨hBbq, hBcn⟩ := HB
+  rw [← hBbq, ← hBcn]
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
-  wp_apply hLoad γbq gcn N dbl sp f fd { p with cs := cs } C base L m'' xs'
+  wp_apply hLoad B N dbl sp f fd { p with cs := cs } C base L m'' xs'
     (lfOK_congr (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn)
       Hm''.1 Hm''.2) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
-      Hxs Hbp Hcells freelistLoad Hbq Hseed HrcC Hmode] as Hlf
+      Hxs Hbp Hcells freelistLoad Hnames HrcC Hmode] as Hlf
   · unfold lfPre
     rw [← hxl']
     iframe; iframe #
     done
   iunfold lfPost at Hlf
-  icases Hlf with ⟨%B, %fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hstate, Hopn, Hclo, ⟨%Hwok, %HBbq⟩⟩
-  subst HBbq
+  icases Hlf with ⟨%fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hopn, Hclo, %Hwok⟩
+  -- the client's committed data (`st`'s other half, the token, the crash part)
+  ihave Hstate : boltStateDef (GF := GF) B 1 (treeData C) $$ [Hst1 Hbq Hseed]
+  · unfold boltStateDef boltStateVDef; iexists C.txid; iframe
+    unfold crashPart
+    iexists (cs.map CsN.cg)
+    iframe Hseed
+    iapply bMode_cnReg B N dbl { p with cs := cs } $$ Hmode
   have hCD : treeData C = D := hC.2.2.2.2.2.2.2
   -- the writer side `W`: `loadFreelist`'s, or with the file's metadata after the sync below
   have hWC : (lfW C base L m'' xs' f fd fl fli).C = C := rfl

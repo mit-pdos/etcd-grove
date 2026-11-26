@@ -14,6 +14,7 @@ public import Spec.go_etcd_io.bbolt.Options
 public import Spec.go_etcd_io.bbolt.Logger
 public import Spec.os.OpenFileS
 public import GooseLang.Ext.Fs.FsNoErr
+public import Spec.go_etcd_io.bbolt.ApiCrash
 
 @[expose] public section
 
@@ -71,6 +72,43 @@ abbrev Open.spec : Prop :=
             ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗
             boltCloser γ) ∨
          ⌜err ≠ GoInterface.nil ∧ (¬ FsNoErr ∨ ¬ PathFits (child d b))⌝)) }}
+
+/-- **`bolt.Open(d/b, mode, opts)` of an existing database file in crash mode** (W6; the dual of
+`DB.Close.specC`): the file of inode `i` at `b`, held by the caller (in its own invariant, so that a
+crash finds it) as a settled durable file of `D` (`fileHoldsMDurC`), reached through the atomic update
+(mask as `Tx.Commit`'s), with options that sync (`optsAtSyncs`: `NoSync` and `NoGrowSync` off). The
+commit point is `Open`'s first use of the file, right after `os.OpenFile`: the update consumes the
+file and gives back bbolt's crash record of the new database `γ` (its name chosen there, `γ.ns = N`),
+at `(D, D)` (`boltCrashRec`: half of the committed data, at the version the file's txid, and the
+file in bbolt's crash invariant), so that a crash before it finds the file, one after it the record
+(C-I1's `dbCrash`).
+- Pre as `Open.spec`'s, for an existing file: the name `b` holds the inode `i` in the claim, and no
+  `nameHolds` (the file is the update's).
+- `FsNoErr` (the file system does not fail, a premise): every crash-mode caller has it (its records
+  live under `onFs`); without it `Open` could not commit (the record carries it) and, the file being
+  the caller's, could not run without committing.
+- On success, as `Open.spec`'s, but the client holds half of the committed data (`boltState γ ½ D`;
+  the record holds the other half), and the update's `Q γ`.
+- On an error, only the path that does not fit (before `OpenFile`, the update not fired).
+The claim on `b` comes back unchanged (the file exists: `OpenFile` creates nothing). -/
+abbrev Open.specC : Prop :=
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [ThreadBoundLe GF (2 ^ 29)]
+    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino)
+    (qc : Qp) (h : NamesH) (i : Ino) (mode : w32) (opts : Loc) (dqo : DFrac) (o : OptsM) (D : Data)
+    (Q : BoltName → IProp GF),
+  NameOk b → h.cur !! b = some (.file i) → FsNoErr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗
+      osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+      osNames j (.only [b]) (DFrac.own 1) h ∗
+      optsAtSyncs opts dqo o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) ∗
+      AU <{ fileHoldsMDurC i D }> @ ⊤ \ ↑N, ∅
+        <{ ∀∀ (γ : BoltName), ⌜γ.ns = N⌝ ∗ boltCrashRec γ i D D, COMM Q γ }> }}
+    (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #(child d b))) (Val #mode)) (Val #opts))
+  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAtSyncs opts dqo o ∗
+      osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ γ : BoltName, ⌜γ.ns = N⌝ ∗ isBolt db γ ∗ boltIno γ i ∗
+          boltState γ (1 : Qp).half D ∗ boltCloser γ ∗ Q γ) ∨
+       ⌜err ≠ GoInterface.nil ∧ ¬ PathFits (child d b)⌝) }}
 
 end spec
 

@@ -256,6 +256,28 @@ theorem fileHoldsMDur_holds (i : Ino) (D : Data) :
   iframe Hm Hb
   rw [hfst]; iexact Hr
 
+/-- **`fileHoldsMDur` with the file's crash bookkeeping settled** (W6; what the crash-mode `Open`,
+`Open.specC`, takes): as `fileHoldsMDur`, not empty (an empty file is initialized by `Open`, which
+writes it), and the `OsMeta` has no sync cut (`cut = none`: the byte resources' candidates are the
+state's, as after a crash or a sync with the bytes) and knows the crash sizes, each the size (`xs`). What `bbolt`'s crash invariant needs of a file it takes in: a file
+after a crash has it (`fileHoldsMDur_crashC`), and so has the file `DB.Close.specC` gives back. -/
+def fileHoldsMDurC (i : Ino) (D : Data) : IProp GF :=
+  iprop(∃ (m : OsMeta) (bs : List w8), osMeta i (DFrac.own 1) m ∗
+    osBytes i 0 (DFrac.own 1) (bs.map durB) ∗
+    ⌜m.maps = ∅ ∧ m.size = bs.length ∧ m.lo = bs.length ∧ m.hi = bs.length ∧ 0 < bs.length ∧
+      m.cut = none ∧ (∃ l, m.xs = some l ∧ ∀ x ∈ l, x = bs.length) ∧ bbolt.boltImage bs D ∧
+      bs.length ≤ bbolt.boltMaxMapSize⌝ ∗ bbolt.boltImageRcpt bs)
+
+/-- The settled file is a durable one. -/
+theorem fileHoldsMDurC_dur (i : Ino) (D : Data) :
+    fileHoldsMDurC (GF := GF) i D ⊢ fileHoldsMDur i D := by
+  unfold fileHoldsMDurC fileHoldsMDur
+  iintro ⟨%m, %bs, Hm, Hb, %h, Hr⟩
+  obtain ⟨h1, h2, h3, h4, -, -, -, h7, h8⟩ := h
+  iexists m, bs
+  iframe Hm Hb Hr
+  ipureintro; exact ⟨h1, h2, h3, h4, h7, h8⟩
+
 end dur
 
 section crash
@@ -273,7 +295,8 @@ private theorem fileOkS_mono {Q Q' : OsState → OsState → Prop} {Gd : Option 
 /-- **C-I1's `dbCrash`**: under the crash premise `BoltCrashWhole` for the inode `i0`, the old
 generation's record and the crash rest of a crash whose tree names `i0` give the file `i0` holding
 `Dl` or `Dn` (whole, with its txid's receipt) at the new generation, `i0` taken: every byte durable
-and the size settled (`fileHoldsMDur`, W6), since a crash leaves every byte of a file durable. The crash invariant
+and the size settled, no sync cut and the crash sizes known (`fileHoldsMDurC`, W6), as a crash leaves
+every file. The crash invariant
 (`csInvIR_crash_keep`, open by the record's half of `bq`) reports a value whose client resource agrees
 with the record: its current state is the record's `(Dn, ν)` (the version variable), its previous one's
 data is `Dl` or `Dn` (the history's element of `ν - 1`, or the synced mark of `ν` making the previous
@@ -286,7 +309,7 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
     (hE : (↑(crashN γ.ns) : CoPset) ⊆ E) :
     ⊢ boltCrashRec (hG := ⟨G, L⟩) γ i0 Dl Dn -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) Dx false V' ={E}=∗
-      ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗ fileHoldsMDur (hG := ⟨G, L'⟩) i0 D' ∗
+      ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗ fileHoldsMDurC (hG := ⟨G, L'⟩) i0 D' ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i0 :: Dx) false V' := by
   unfold boltCrashRec cRecDef boltStateV boltStateVDef
   iintro ⟨%ν, %c, ⟨Hs, Hbq, Hcp⟩, %hc, #Hinv, #Hreg, Hev⟩ Hr
@@ -340,7 +363,7 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
   obtain ⟨f, rfl⟩ := Option.isSome_iff_exists.1 (hnm hN)
   obtain ⟨hbc, htx⟩ := hgd f rfl hfs f rfl
   obtain ⟨hdc, hdt, hdp, hdi⟩ := Ha
-  have hrcpt := htx hdi
+  obtain ⟨hrcpt, hpos⟩ := htx hdi
   -- the data
   obtain ⟨D', hD', hg⟩ : ∃ D', (D' = Dl ∨ D' = Dn) ∧ bGood D' f := by
     unfold bCrash at hbc
@@ -359,12 +382,13 @@ theorem boltCrashRec_crash (Q : OsState → OsState → Prop) (L L' : GooseLocal
   unfold osFileStartO osFileStart
   icases Hf with ⟨Hm', Hb'⟩
   have hfs' : f.size = f.contents.length := (contents_length' f).symm
-  unfold fileHoldsMDur boltImage boltImageRcpt
+  unfold fileHoldsMDurC boltImage boltImageRcpt
   iexists initMeta f, f.contents
   iframe Hm' Hb'
   isplitr
   · ipureintro
-    refine ⟨rfl, hfs', hfs', hfs', ?_, ?_⟩
+    refine ⟨rfl, hfs', hfs', hfs', by rw [← hfs']; exact hpos, rfl, ⟨[f.size], rfl, fun x hx => by
+      rw [List.mem_singleton] at hx; rw [hx]; exact hfs'⟩, ?_, ?_⟩
     · rw [← hfs']; exact ⟨hg.2.1, hg.1⟩
     · unfold boltMaxMapSize; rw [← hfs']; exact hg.2.2.1
   unfold fileRcpt

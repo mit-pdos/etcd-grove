@@ -40,52 +40,54 @@ def mmapOwnFix (db : Loc) (lg : GoInterface) (mf mx : w64) (dq : DFrac) : IProp 
     db.[DB, go!"MaxSize"] ↦{dq} mx ∗ db.[DB, go!"Mlock"] ↦□ false ∗
     db.[DB, go!"MmapFlags"] ↦□ mf ∗ db.[DB, go!"rwtx"] ↦{dq} null)
 
-/-- **`db.mmapUnlocked(minsz)`, owned** (`Open`): the file `p` (`OsMeta` `m`, nothing mapped,
+/-- **`db.mmapUnlocked(minsz)`, owned, either mode** (W6; `spec_own` for a file `p` in its crash
+invariant or not, through the writer's share of its `OsMeta` `bMeta` and bbolt's share of its bytes
+`bBytes`: the crash-mode `Open` maps the file in crash mode): the file `p` (`OsMeta` `m`, nothing mapped,
 its bytes `xs` held whole), at least 8192 bytes holding a valid meta in one of its two first
 slots. On success the mapping `base`/`L` (`mmapSize`'s of the larger of the file's size and
 `minsz`) is in the fields and in OsFs, its client halves of the file's extent hold the file's
 bytes (as bytes at a half), the rest any values. On an error (`fmt` formats it) nothing is mapped
 in the fields (OsFs may keep a leaked mapping). -/
-abbrev DB.mmapUnlocked.spec_own : Prop :=
+abbrev DB.mmapUnlocked.spec_ownB : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : BFile) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
-    (m : OsMeta) (xs : List ByteG) (minsz : w64),
-  db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 →
+    (C : CommitSt) (m : OsMeta) (xs : List ByteG) (minsz : w64),
+  db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 → bNsOk p →
   (mf = W64 0 ∨ mf = W64 0x8000) →
   (8192 ≤ m.size → metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096)) ∨
     metaValid (metaOf (bytesAt (xs.map Prod.fst) 4096 4096))) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗ bCsInv p ∗
       mmapOwnFix (GF := GF) db lg mf mx dq ∗
       db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osMeta p.ino (DFrac.own 1) m ∗
-      osBytes p.ino 0 (DFrac.own 1) xs ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ bMeta p C [] m ∗
+      bBytes p 0 (DFrac.own 1) xs ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
   {{ (err : GoInterface), RET #err; mmapOwnFix db lg mf mx dq ∗
       db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ bBytes p 0 (DFrac.own 1) xs ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (L : Nat),
           ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧
             8192 ≤ m.size ∧ L ≤ 0x800000000000⌝ ∗
           mapFields db (DFrac.own 1) (some (base, L)) ∗ db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
-          osMeta p.ino (DFrac.own 1) { m with maps := GMap.singleton base L } ∗
+          bMeta p C [] { m with maps := GMap.singleton base L } ∗
           bytesPointsto base (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
           ∃ vf, cellsR base m.size (L - m.size) vf) ∨
        (⌜err ≠ interface.nil ∧ (¬ FsNoErr ∨ m.size < 8192 ∨
             mmapSizeOf (max m.size (sint.nat minsz)) = none)⌝ ∗ fmtErrorOk err ∗
           mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
-          ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
+          ∃ m' : OsMeta, bMeta p C [] m')) }}
 
-theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+theorem DB.mmapUnlocked.wp_proof_ownB (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hFileSize : DB.fileSize.spec (GF := GF) (hG := hG))
     (hMmapSize : DB.mmapSize.spec (GF := GF) (hG := hG))
     (hMmapF : mmapF.spec (GF := GF) (hG := hG))
     (hPage : DB.page.spec (GF := GF) (hG := hG))
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
     (hValidate : internal.common.Meta.Validate.spec (GF := GF) (hG := hG)) :
-    DB.mmapUnlocked.spec_own (GF := GF) (hG := hG) := by
-  intro db f fd p lg mf mx dq m xs minsz hdb hmaps hxl hsz hmf hval
+    DB.mmapUnlocked.spec_ownB (GF := GF) (hG := hG) := by
+  intro db f fd p lg mf mx dq C m xs minsz hdb hmaps hxl hsz hns hmf hval
   unfold mmapOwnFix
-  wp_start as ⟨#Hos, ⟨#Hlg, #Hlgok, #Hps, Hmx, #Hml, #Hmff, Hrw⟩, Hfile, Hfo, Hfd, Hosm, Hxs,
+  wp_start as ⟨#Hos, #Hci, ⟨#Hlg, #Hlgok, #Hps, Hmx, #Hml, #Hmff, Hrw⟩, Hfile, Hfo, Hfd, Hosm, Hxs,
     Hmf0, Hdsz⟩
   ihave %hgoos : ⌜goosLinux⌝ $$ []
   · iapply goosLinux_of_pkgInit $$ Hpkg
@@ -100,10 +102,12 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   wp_apply hLogger db lg hdb $$ []
   · iframe #
   try wp_auto
-  wp_apply hFileSize db f fd p dq (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
+  icases bMeta_osMeta p C [] m $$ Hosm with ⟨%qm, Hosm, Hmback⟩
+  wp_apply hFileSize db f fd p dq (DFrac.own 1) (DFrac.own 1) (DFrac.own qm)
     (dbFd p.ino) m rfl hsz $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
+  ihave Hosm := Hmback $$ Hosm
   cases lg with
   | nil => unfold boltLogger; iexfalso; iexact Hlgok
   | ok li =>
@@ -196,16 +200,12 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     omega
   simp only [mapFields]
   icases Hmf0 with ⟨Hdr, Hdd, Hm0f, Hm1f⟩
-  -- the file outside a crash invariant (before `Open` allocates one, W1): its `OsMeta` whole
-  ihave #Hci : bCsInv (GF := GF) ({ p with cs := none } : BFile) $$ []
-  · iapply bCsInv_none rfl
-  wp_apply hMmapF db f fd { p with cs := none } dq (DFrac.own 1) (DFrac.own 1) mf default [] m nsz
-    slice.nil null (W64 0) hmf (by simp only [sint.Z] at hnszZ; omega) (bNsOk_none rfl)
+  -- the file in either mode (`bMeta`, `mmapF`'s)
+  wp_apply hMmapF db f fd p dq (DFrac.own 1) (DFrac.own 1) mf C [] m nsz
+    slice.nil null (W64 0) hmf (by simp only [sint.Z] at hnszZ; omega) hns
     $$ [Hfile Hfo Hfd Hosm Hdr Hdd Hdsz]
     as %e ⟨Hfile, Hfo, Hfd, Hres⟩
-  · simp only [bMeta_none (GF := GF) (p := { p with cs := none }) rfl]
-    iframe; iframe #
-  simp only [bMeta_none (GF := GF) (p := { p with cs := none }) rfl]
+  · iframe; iframe #
   icases Hres with (⟨%base, %hbase, Hdr, Hdd, Hdsz, Hosm, Hmc⟩ | ⟨Hdr, Hdd, Hdsz, %he, #HeS, Hres⟩)
   rotate_left
   · -- `mmap` failed: logged, returned (no deferred unmap yet)
@@ -278,12 +278,12 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   iapply wp_load_bool_split
   ihave Hc0 : cellsR base 0 xs.length (fun i => toCellVal bs'[i]?) $$ [Hc0]
   · rw [hxl]; iexact Hc0
-  -- the file's bytes, whole (before `Open`'s crash invariant), as a file outside one (W1)
-  ihave Hxs := (bBytes_none (GF := GF) (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).2 $$ Hxs
-  iapply (cellsR_agree_bytes _ rfl { p with cs := none } (DFrac.own 1) _ base L' hb2 _
+  -- the file's bytes (bbolt's share, either mode) and a share of its `OsMeta`
+  icases bMeta_osMeta p C [] _ $$ Hosm with ⟨%qm', Hosm, Hmback'⟩
+  iapply (cellsR_agree_bytes _ rfl p (DFrac.own qm') _ base L' hb2 _
     (fun x hx => CoPset.subseteq_top x hx) _ xs 0 _ (by omega)) $$ Hos Hosm Hxs Hc0
   iintro Hosm Hxs Hc0
-  ihave Hxs := (bBytes_none (GF := GF) (p := { p with cs := none }) rfl 0 (DFrac.own 1) xs).1 $$ Hxs
+  ihave Hosm := Hmback' $$ Hosm
   ihave #Hml := HmlW $$ []
   · ipureintro; trivial
   ihave Hml' := bool_heap _ _ _ $$ Hml
@@ -380,6 +380,82 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
       rw [loc_add_assoc]; rfl]
     iframe
     ipureintro; exact ⟨hL'p.2.2.1, hbpos, hL'p.2.2.2⟩
+
+/-- **`db.mmapUnlocked(minsz)`, owned** (`Open`): the file `p` (`OsMeta` `m`, nothing mapped,
+its bytes `xs` held whole), at least 8192 bytes holding a valid meta in one of its two first
+slots. On success the mapping `base`/`L` (`mmapSize`'s of the larger of the file's size and
+`minsz`) is in the fields and in OsFs, its client halves of the file's extent hold the file's
+bytes (as bytes at a half), the rest any values. On an error (`fmt` formats it) nothing is mapped
+in the fields (OsFs may keep a leaked mapping). -/
+abbrev DB.mmapUnlocked.spec_own : Prop :=
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (lg : GoInterface) (mf mx : w64) (dq : DFrac)
+    (m : OsMeta) (xs : List ByteG) (minsz : w64),
+  db ≠ null → m.maps = ∅ → xs.length = m.size → m.size < 2 ^ 63 →
+  (mf = W64 0 ∨ mf = W64 0x8000) →
+  (8192 ≤ m.size → metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096)) ∨
+    metaValid (metaOf (bytesAt (xs.map Prod.fst) 4096 4096))) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+      mmapOwnFix (GF := GF) db lg mf mx dq ∗
+      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osBytes p.ino 0 (DFrac.own 1) xs ∗
+      mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
+  {{ (err : GoInterface), RET #err; mmapOwnFix db lg mf mx dq ∗
+      db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (L : Nat),
+          ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧
+            8192 ≤ m.size ∧ L ≤ 0x800000000000⌝ ∗
+          mapFields db (DFrac.own 1) (some (base, L)) ∗ db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
+          osMeta p.ino (DFrac.own 1) { m with maps := GMap.singleton base L } ∗
+          bytesPointsto base (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
+          ∃ vf, cellsR base m.size (L - m.size) vf) ∨
+       (⌜err ≠ interface.nil ∧ (¬ FsNoErr ∨ m.size < 8192 ∨
+            mmapSizeOf (max m.size (sint.nat minsz)) = none)⌝ ∗ fmtErrorOk err ∗
+          mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
+          ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
+
+/-- `spec_own` from `spec_ownB`, the file outside a crash invariant (`bMeta`/`bBytes` its `OsMeta`
+and bytes whole). -/
+theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+    (hFileSize : DB.fileSize.spec (GF := GF) (hG := hG))
+    (hMmapSize : DB.mmapSize.spec (GF := GF) (hG := hG))
+    (hMmapF : mmapF.spec (GF := GF) (hG := hG))
+    (hPage : DB.page.spec (GF := GF) (hG := hG))
+    (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
+    (hValidate : internal.common.Meta.Validate.spec (GF := GF) (hG := hG)) :
+    DB.mmapUnlocked.spec_own (GF := GF) (hG := hG) := by
+  intro db f fd p lg mf mx dq m xs minsz hdb hmaps hxl hsz hmf hval
+  iintro %Φ ⟨#Hpkg, #Hos, Hfix, Hfile, Hfo, Hfd, Hosm, Hxs, Hmf0, Hdsz⟩ HΦ
+  have hp : ({ p with cs := none } : BFile).cs = none := rfl
+  ihave Hxs := (bBytes_none (GF := GF) hp 0 (DFrac.own 1) xs).2 $$ Hxs
+  ihave Hosm := bMeta_of_os (GF := GF) hp (default : CommitSt) [] m $$ Hosm
+  iapply (DB.mmapUnlocked.wp_proof_ownB hLogger hFileSize hMmapSize hMmapF hPage hMeta hValidate
+    db f fd { p with cs := none } lg mf mx dq default m xs minsz hdb hmaps hxl hsz
+    (bNsOk_none hp) hmf hval) $$ [Hfix Hfile Hfo Hfd Hosm Hxs Hmf0 Hdsz]
+  · iframe; iframe #
+    iapply bCsInv_none hp
+  inext
+  iintro %err ⟨Hfix, Hfile, Hfo, Hfd, Hxs, Hres⟩
+  iapply HΦ
+  ihave Hxs := (bBytes_none (GF := GF) hp 0 (DFrac.own 1) xs).1 $$ Hxs
+  iframe Hfix Hfile Hfo Hfd Hxs
+  icases Hres with (⟨%he, %base, %L, %hL, Hmf, Hds, Hm, Hb, Hc⟩ | ⟨%he, #Hok, Hmf, Hds, %m', Hm⟩)
+  · ileft
+    iframe Hmf Hds Hb Hc
+    isplitr
+    · ipureintro; exact he
+    iexists base, L
+    isplitr
+    · ipureintro; exact hL
+    iapply bMeta_to_os hp $$ Hm
+  · iright
+    iframe Hmf Hds Hok
+    isplitr
+    · ipureintro; exact he
+    iexists m'
+    iapply bMeta_to_os hp $$ Hm
 
 end own
 

@@ -174,7 +174,7 @@ theorem DB.loadFreelist.wp_proof_open
     (hFC : internal.freelist.Interface.FreeCount.spec (GF := GF) (hG := hG))
     (hFP : DB.freepages.spec (GF := GF) (hG := hG)) :
     DB.loadFreelist.spec_open (GF := GF) (hG := hG) := by
-  intro _ _ γbq γcn N db sp f fd p C b L m xs hok hfd
+  intro _ _ B N db sp f fd p C b L m xs hok hfd
   wp_start as ⟨Hpre, Honce, #Hrcm, #Hmode⟩
   iunfold lfPre at Hpre
   icases Hpre with ⟨#Hpkg, Hpre⟩
@@ -182,8 +182,8 @@ theorem DB.loadFreelist.wp_proof_open
   · iPkgInit
   wp_auto
   wp_func_lits
-  wp_apply Once.wp_Do_own _ iprop(db_ptr ↦ db ∗ lfPre γbq N db sp f fd p C b L m xs)
-    (lfPost γbq N db sp f fd p C b L m xs) _ $$ [Honce Hpre db] as HQ
+  wp_apply Once.wp_Do_own _ iprop(db_ptr ↦ db ∗ lfPre B N db sp f fd p C b L m xs)
+    (lfPost B N db sp f fd p C b L m xs) _ $$ [Honce Hpre db] as HQ
   · iframe Honce
     isplitl [Hpre db]
     · iframe db; iunfold lfPre; iframe Hpkg Hpre
@@ -191,7 +191,7 @@ theorem DB.loadFreelist.wp_proof_open
     obtain ⟨himg, hmeta, htree, hflf, hhwm, h8, hxm, hL, hszw, hmaps, htx1, htx2, hN, hdb⟩ := hok
     have hsz := hszw.lt
     iunfold lfPre at Hpre
-    icases Hpre with ⟨-, #Hos, #Hfix, Hbqv, Hcp, Hml, Hmm, Hsl, Hop, Hfli, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
+    icases Hpre with ⟨-, #Hos, #Hfix, Hnames, Hml, Hmm, Hsl, Hop, Hfli, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
       Hosm, Hfo, Hfd, Hps, Hxs, Hb, %vf, Hc⟩
     ihave #Hfix' := Hfix
     iunfold dbFixed at Hfix'
@@ -227,10 +227,10 @@ theorem DB.loadFreelist.wp_proof_open
       have hhwmM : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF := by have := hszw.1; omega
       imod open_core_fl ⊤ N db sp f fd p C b L m
         (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
-        FLPg.empty interface.nil rfl hok' hfx.1 hfx.2 hhwmM ⟨htx1, htx2⟩ hN hdb γbq γcn $$
-        [Hfix Hbqv Hcp Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 HSo
-          HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn, Hclo⟩
-      · iframe Hpkg Hos Hrcm Hmode Hfix Hbqv Hcp Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+        FLPg.empty interface.nil rfl hok' hfx.1 hfx.2 hhwmM ⟨htx1, htx2⟩ hN hdb B $$
+        [Hfix Hnames Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 HSo
+          HWo Hq1 Hq2 HSc HWc] with ⟨#Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hopn, Hclo⟩
+      · iframe Hpkg Hos Hrcm Hmode Hfix Hnames Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
         iframe
       ihave Hcore' := Hcore
       iunfold isBoltCoreP at Hcore'
@@ -334,11 +334,11 @@ theorem DB.loadFreelist.wp_proof_open
         wp_auto
         iapply HΦ'
         iunfold lfPost
-        iexists B, fl0, fli
+        iexists fl0, fli
         unfold lfW openWb
         iframe Hcore Hpool
         iframe
-        ipureintro; exact ⟨hwok, HB⟩
+        ipureintro; exact hwok
       · try wp_auto
         rw [decide_eq_false hsp]
         try wp_auto
@@ -362,11 +362,11 @@ theorem DB.loadFreelist.wp_proof_open
         try wp_auto
         iapply HΦ'
         iunfold lfPost
-        iexists B, fl0, fli
+        iexists fl0, fli
         unfold lfW openWb
         iframe Hcore Hpool
         iframe
-        ipureintro; exact ⟨hwok, HB⟩
+        ipureintro; exact hwok
     -- the synced freelist page: read it before the core phase
     simp only [reduceCtorEq, decide_false, Bool.not_false, Bool.not_true]
     wp_auto
@@ -437,10 +437,10 @@ theorem DB.loadFreelist.wp_proof_open
         rw [← hpg]; exact (mem_sortPgids_lf _ x).1 hx)
     have hhwmM : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF := by have := hszw.1; omega
     imod open_core_fl ⊤ N db sp f fd p C b L m (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
-      (FLPg.ofInit (flIds pg)) fli rfl hok' hfx.1 hfx.2 hhwmM ⟨htx1, htx2⟩ hN hdb γbq γcn $$
-      [Hfix Hbqv Hcp Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 HSo
-        HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn, Hclo⟩
-    · iframe Hpkg Hos Hrcm Hmode Hfix Hbqv Hcp Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+      (FLPg.ofInit (flIds pg)) fli rfl hok' hfx.1 hfx.2 hhwmM ⟨htx1, htx2⟩ hN hdb B $$
+      [Hfix Hnames Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 HSo
+        HWo Hq1 Hq2 HSc HWc] with ⟨#Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hopn, Hclo⟩
+    · iframe Hpkg Hos Hrcm Hmode Hfix Hnames Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
       iframe
     have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (flIds pg)) fli) := by
       unfold lfW openWb
@@ -461,11 +461,11 @@ theorem DB.loadFreelist.wp_proof_open
       wp_auto
       iapply HΦ'
       iunfold lfPost
-      iexists B, fl0, fli
+      iexists fl0, fli
       unfold lfW openWb
       iframe Hcore Hpool
       iframe
-      ipureintro; exact ⟨hwok, HB⟩
+      ipureintro; exact hwok
     · try wp_auto
       rw [decide_eq_false hsp]
       try wp_auto
@@ -489,11 +489,11 @@ theorem DB.loadFreelist.wp_proof_open
       try wp_auto
       iapply HΦ'
       iunfold lfPost
-      iexists B, fl0, fli
+      iexists fl0, fli
       unfold lfW openWb
       iframe Hcore Hpool
       iframe
-      ipureintro; exact ⟨hwok, HB⟩
+      ipureintro; exact hwok
   iapply HΦ; iexact HQ
 
 end proof

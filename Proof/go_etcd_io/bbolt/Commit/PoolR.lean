@@ -28,11 +28,11 @@ variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **A commit update excludes a whole validity token**: open it, its `boltState` holds `B.bq`
-whole. -/
-theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (Q : IProp GF) :
+/-- **A commit update excludes any share of the validity token**: open it, its `boltState` holds
+`B.bq` whole. -/
+theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (Q : IProp GF) (q : Qp) :
     AU <{ ∃∃ (D' : Data) (ν : Nat), boltStateVDef (GF := GF) B 1 D' ν }> @ ⊤ \ ↑N, ∅
-        <{ β D' ν, COMM Q }> ∗ ghostVar B.bq 1 () ={⊤ \ ↑N}=∗ False := by
+        <{ β D' ν, COMM Q }> ∗ ghostVar B.bq q () ={⊤ \ ↑N}=∗ False := by
   iintro ⟨Hau, Hbq⟩
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -41,9 +41,10 @@ theorem au_excl_bq (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (Q
   icases Hacc with ⟨%D', %ν, Hx, -⟩
   unfold boltStateVDef
   icases Hx with ⟨-, Hbq', -⟩
-  ihave %h := ghostVar_valid_2 B.bq () 1 () 1 $$ Hbq Hbq'
+  ihave %h := ghostVar_valid_2 B.bq () q () 1 $$ Hbq Hbq'
   exfalso
   have h1 := h.1
+  have h2 := q.2
   rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
   grind
 
@@ -56,9 +57,9 @@ theorem poolR_of_au (B : BNs) (N : Namespace) (β : Data → Nat → IProp GF) (
   unfold poolR
   iframe HP
   imodintro
-  iintro ⟨HP, Hbq⟩
+  iintro %q ⟨HP, Hbq⟩
   ihave Hau := hP $$ HP
-  iapply au_excl_bq B N β Q $$ [Hau Hbq]
+  iapply au_excl_bq B N β Q q $$ [Hau Hbq]
   iframe
 
 end poolr

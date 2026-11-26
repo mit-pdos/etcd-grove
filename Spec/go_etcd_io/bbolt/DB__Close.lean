@@ -60,8 +60,9 @@ crash record `boltCrashRec γ i Dl Dn` (C-I1's `dbCrashKeep`), which the caller'
 reaches through the atomic update (mask as `Tx.Commit`'s). `Close` syncs the file first (the fork's
 `f55d3ca`: a commit that failed at `maxBytes` can leave unsynced pages and an announced size); the
 commit point is where it takes the file out of bbolt's crash invariant (all three locks held, no
-transaction live): the update consumes the record and gives back the file, every byte durable and
-its size settled (`fileHoldsMDur i D`), and `Dn = D`. So a crash before the commit point finds the
+transaction live): the update consumes the record and gives back the file, every byte durable,
+its size settled, no sync cut and its crash sizes known (`fileHoldsMDurC i D`, W6: what the crash-mode
+`Open`, `Open.specC`, takes), and `Dn = D`. So a crash before the commit point finds the
 record whole (C-I1's `dbCrash`), one after it the durable file (`backend.fileHoldsMDur_crash`).
 Outcomes: `nil` and the update's `Q`; or `¬ FsNoErr` (as `DB.Close.spec`'s; the update then may not
 have fired, and the record stays with the caller). Outside crash mode no record exists: an opened
@@ -71,7 +72,7 @@ abbrev DB.Close.specC : Prop :=
     (Q : IProp GF),
   {{ isBolt (GF := GF) db γ ∗ boltIno γ i ∗ boltState γ (1 : Qp).half D ∗ boltCloser γ ∗
       AU <{ ∃∃ (Dl Dn : Data), boltCrashRec γ i Dl Dn }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ⌜Dn = D⌝ ∗ fileHoldsMDur i D, COMM Q }> }}
+        <{ ⌜Dn = D⌝ ∗ fileHoldsMDurC i D, COMM Q }> }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; (⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ FsNoErr⌝ }}
 

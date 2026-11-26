@@ -60,13 +60,14 @@ def pageBuf (v : GoAny) : IProp GF :=
     s ↦* List.replicate 4096 (W8 0))
 
 /-- **What a caller of the page pool's `Get` lends its `New`** (U11i): a resource `P` that
-excludes the whole of `boltState`'s validity token `γ` (the database's `B.bq`; `N` its namespace). Every caller of `Get` is inside a
+excludes any share of `boltState`'s validity token `γ` (the database's `B.bq`; `N` its namespace). Every caller of `Get` is inside a
 `Commit`, which holds the client's commit update over `boltState γ 1` (an atomic update excludes
-the whole state: opening it gives the state); `Open`, while it writes its named result `db`
-(which `New` reads), holds the whole `boltState` itself, so no `New` runs then (`Open.lean`). The
+the whole state: opening it gives the state, its token whole); `Open`, while it writes its named result `db`
+(which `New` reads), holds a share of the token itself (all of `boltState`, or, in the crash-mode
+`Open`, the client's half: W6), so no `New` runs then (`Open.lean`). The
 caller gets `P` back (`Get` returns `R`). -/
 def poolR (γ : GName) (N : Namespace) (P : IProp GF) : IProp GF :=
-  iprop(P ∗ □ (P ∗ ghostVar γ 1 () ={⊤ \ ↑N}=∗ False))
+  iprop(P ∗ □ (∀ q : Qp, P ∗ ghostVar γ q () ={⊤ \ ↑N}=∗ False))
 
 /-- A logger whose dynamic type is a pointer type holds a location (batch 34: Go's `lg !=
 discardLogger` compares at the dynamic type, a pointer type's `==` on locations; the model's
@@ -167,7 +168,7 @@ theorem bfile_out_dur (gbq gcn : GName) (N : Namespace) (db : Loc) (p : BFile) (
     (hE : (↑(N .@ "crash") : CoPset) ⊆ E) :
     ⊢ bMode (GF := GF) gbq gcn N db p -∗ bMeta p C L m -∗ bBytes p 0 (DFrac.own 1) xs -∗
       ghostVar gbq 1 () ={E}=∗ osMeta p.ino (DFrac.own 1) m ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
-        ⌜p.cs ≠ none → DurOut L xs⌝ := by
+        ⌜p.cs ≠ none → DurOut L xs ∧ m.cut = none ∧ ∃ l, m.xs = some l ∧ ∀ x ∈ l, x = m.size⌝ := by
   iintro #Hmd Hm Hb Hq
   unfold bMode
   cases hc : p.cs with

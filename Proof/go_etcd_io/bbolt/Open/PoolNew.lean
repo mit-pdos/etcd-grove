@@ -98,7 +98,7 @@ def dpSlot0 (N : Namespace) (γbq γm : GName) (dp db : Loc) (i : Nat) : IProp G
   iprop(∃ γk γp : GName, i ↪[γm]□ ((γk, γp) : GName × GName) ∗
     ((ghostVar γk 1 () ∗ dp ↦{DFrac.own (dyad (i + 1))} db) ∨
       (∃ P : IProp GF, savedPropOwn γp DFrac.discard P ∗ P ∗
-        □ (P ∗ ghostVar γbq 1 () ={⊤ \ ↑N}=∗ False))))
+        □ (∀ q : Qp, P ∗ ghostVar γbq q () ={⊤ \ ↑N}=∗ False))))
 
 /-- **Borrow `i`'s record once collected** (states `1`, `2`): the borrower has come back. -/
 def dpSlot1 (γm : GName) (i : Nat) : IProp GF :=
@@ -111,31 +111,31 @@ def dpSlot1 (γm : GName) (i : Nat) : IProp GF :=
   out being refuted by its lease), and the whole token `γbq` is here;
 - `2`, after it (on success): the cell is persistent.
 `γm` names the borrows (`c` of them). -/
-def dpInv (N : Namespace) (γs γbq γm : GName) (dp db : Loc) : IProp GF :=
+def dpInv (N : Namespace) (γs γbq γm : GName) (qb : Qp) (dp db : Loc) : IProp GF :=
   iprop(∃ s c : Nat, ∃ m : GMap Nat (GName × GName), ghostVar γs (1 : Qp).half s ∗
     ghostMapAuth γm 1 m ∗ ⌜∀ k, c ≤ k → m.lookup k = none⌝ ∗
     ((⌜s = 0⌝ ∗ dp ↦{DFrac.own (dyad c)} db ∗ dpSlots (dpSlot0 N γbq γm dp db) c) ∨
-      (⌜s = 1⌝ ∗ ghostVar γbq 1 () ∗ dpSlots (dpSlot1 γm) c) ∨
+      (⌜s = 1⌝ ∗ ghostVar γbq qb () ∗ dpSlots (dpSlot1 γm) c) ∨
       (⌜s = 2⌝ ∗ dp ↦□ db ∗ dpSlots (dpSlot1 γm) c)))
 
 /-- **The protocol** (persistent): `dpInv` for some name of its borrows. -/
-def dpProt (N : Namespace) (γs γbq : GName) (dp db : Loc) : IProp GF :=
-  iprop(∃ γm : GName, inv (dpN N) (dpInv N γs γbq γm dp db))
+def dpProt (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) : IProp GF :=
+  iprop(∃ γm : GName, inv (dpN N) (dpInv N γs γbq γm qb dp db))
 
-instance dpProt_persistent (N : Namespace) (γs γbq : GName) (dp db : Loc) :
-    Persistent (dpProt (GF := GF) N γs γbq dp db) := by
+instance dpProt_persistent (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) :
+    Persistent (dpProt (GF := GF) N γs γbq qb dp db) := by
   unfold dpProt; infer_instance
 
 /-- **A loan of the fraction `q` of the cell** (borrow `i`), against the lease `P`. -/
-def dpLoan (N : Namespace) (γs γbq : GName) (dp db : Loc) (P : IProp GF) (q : Qp) :
+def dpLoan (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) (P : IProp GF) (q : Qp) :
     IProp GF :=
-  iprop(∃ γm i γk γp, inv (dpN N) (dpInv N γs γbq γm dp db) ∗ ⌜q = dyad (i + 1)⌝ ∗
+  iprop(∃ γm i γk γp, inv (dpN N) (dpInv N γs γbq γm qb dp db) ∗ ⌜q = dyad (i + 1)⌝ ∗
     i ↪[γm]□ ((γk, γp) : GName × GName) ∗ ghostVar γk 1 () ∗ savedPropOwn γp DFrac.discard P)
 
 /-- **The protocol begins** (state `0`, no borrow), with `Open`'s other half of the cell. -/
-theorem dp_init (E : CoPset) (N : Namespace) (γs γbq : GName) (dp db : Loc) :
+theorem dp_init (E : CoPset) (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) :
     ghostVar (GF := GF) γs (1 : Qp).half 0 ∗ dp ↦{DFrac.own (1 : Qp).half} db ⊢
-      |={E}=> dpProt N γs γbq dp db := by
+      |={E}=> dpProt N γs γbq qb dp db := by
   iintro ⟨Hs, Hdp⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName × GName) with ⟨%γm, Hm⟩
   unfold dpProt
@@ -159,9 +159,9 @@ theorem dp_init (E : CoPset) (N : Namespace) (γs γbq : GName) (dp db : Loc) :
 is persistent (state `2`: `P` back at once), or (state `0`) the reader is lent a fraction `q` of
 the cell, `P` deposited as collateral (`dp_return` gives both back). State `1` (`Open` holds the
 whole token) is refuted by `P`. -/
-theorem dp_borrow (N : Namespace) (γs γbq : GName) (dp db : Loc) (P : IProp GF) :
-    dpProt N γs γbq dp db ∗ P ∗ □ (P ∗ ghostVar γbq 1 () ={⊤ \ ↑N}=∗ False) ⊢
-    |={⊤}=> (dp ↦□ db ∗ P) ∨ (∃ q : Qp, dp ↦{DFrac.own q} db ∗ dpLoan N γs γbq dp db P q) := by
+theorem dp_borrow (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) (P : IProp GF) :
+    dpProt N γs γbq qb dp db ∗ P ∗ □ (∀ q : Qp, P ∗ ghostVar γbq q () ={⊤ \ ↑N}=∗ False) ⊢
+    |={⊤}=> (dp ↦□ db ∗ P) ∨ (∃ q : Qp, dp ↦{DFrac.own q} db ∗ dpLoan N γs γbq qb dp db P q) := by
   unfold dpProt
   iintro ⟨⟨%γm, #Hinv⟩, HP, #Href⟩
   iinv Hinv with Hi Hclose
@@ -207,7 +207,7 @@ theorem dp_borrow (N : Namespace) (γs γbq : GName) (dp db : Loc) (P : IProp GF
     isplitr
     · ipureintro; rfl
     iframe Hk; iframe #
-  · ihave Hf := Href $$ [HP Hbq]
+  · ihave Hf := Href $$ %qb [HP Hbq]
     · iframe
     imod (fupd_mask_mono (P := iprop(False)) (dp_mask_dp N)) $$ Hf with Hf
     iexfalso; iexact Hf
@@ -228,8 +228,8 @@ theorem dp_borrow (N : Namespace) (γs γbq : GName) (dp db : Loc) (P : IProp GF
 (the deposit was under the protocol's later, and its saved name agrees with `P` under one more).
 The borrow cannot have come back already, nor (states `1`, `2`) been collected: the reader holds
 its token `γk`. -/
-theorem dp_return (N : Namespace) (γs γbq : GName) (dp db : Loc) (P : IProp GF) (q : Qp) :
-    dp ↦{DFrac.own q} db ∗ dpLoan N γs γbq dp db P q ⊢ |={⊤}=> ▷ ▷ P := by
+theorem dp_return (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) (P : IProp GF) (q : Qp) :
+    dp ↦{DFrac.own q} db ∗ dpLoan N γs γbq qb dp db P q ⊢ |={⊤}=> ▷ ▷ P := by
   unfold dpLoan
   iintro ⟨Hdp, %γm, %i, %γk, %γp, #Hinv, %hq, #Hel, Hk, #Hsp⟩
   subst hq
@@ -290,10 +290,10 @@ theorem dp_return (N : Namespace) (γs γbq : GName) (dp db : Loc) (P : IProp GF
 
 /-- **`dp_lock`'s collection**: every borrow's fraction back (its record collected), or the borrow
 still out, its lease refuted by the whole token `γbq`. -/
-theorem dp_collect (N : Namespace) (γbq γm : GName) (dp db : Loc) (c : Nat) :
-    ghostVar (GF := GF) γbq 1 () ∗ dpSlots (dpSlot0 N γbq γm dp db) c ∗
+theorem dp_collect (N : Namespace) (γbq γm : GName) (qb : Qp) (dp db : Loc) (c : Nat) :
+    ghostVar (GF := GF) γbq qb () ∗ dpSlots (dpSlot0 N γbq γm dp db) c ∗
         dp ↦{DFrac.own (dyad c)} db ⊢
-      |={⊤ \ ↑(dpN N)}=> ghostVar γbq 1 () ∗ dp ↦{DFrac.own (1 : Qp).half} db ∗
+      |={⊤ \ ↑(dpN N)}=> ghostVar γbq qb () ∗ dp ↦{DFrac.own (1 : Qp).half} db ∗
         dpSlots (dpSlot1 γm) c := by
   induction c with
   | zero =>
@@ -316,7 +316,7 @@ theorem dp_collect (N : Namespace) (γbq γm : GName) (dp db : Loc) (c : Nat) :
       unfold dpSlot1
       iexists γk, γp
       iframe Hk; iframe #
-    · ihave Hf := Href $$ [HP Hbq]
+    · ihave Hf := Href $$ %qb [HP Hbq]
       · iframe
       imod (fupd_mask_mono (P := iprop(False)) (dp_mask_dp N)) $$ Hf with Hf
       iexfalso; iexact Hf
@@ -324,8 +324,8 @@ theorem dp_collect (N : Namespace) (γbq γm : GName) (dp db : Loc) (c : Nat) :
 /-- **`New`'s read of `db` under a loan**: the load, then (`dp_return`) the fraction back and the
 lease back under two laters, which the closure's next steps take off. -/
 theorem wp_load_loan {t : go.GoType} [IntoValTyped (GF := GF) Loc t] (N : Namespace)
-    (γs γbq : GName) (dp db : Loc) (P : IProp GF) (q : Qp) :
-    {{ dp ↦{DFrac.own q} db ∗ dpLoan N γs γbq dp db P q }}
+    (γs γbq : GName) (qb : Qp) (dp db : Loc) (P : IProp GF) (q : Qp) :
+    {{ dp ↦{DFrac.own q} db ∗ dpLoan N γs γbq qb dp db P q }}
       (App (Val (GoInstruction (GoLoad t))) (Val #dp))
     {{ RET #db; ▷ ▷ P }} := by
   iintro %Φ ⟨Hdp, Hl⟩ HΦ
@@ -333,7 +333,7 @@ theorem wp_load_loan {t : go.GoType} [IntoValTyped (GF := GF) Loc t] (N : Namesp
   iapply (IntoValTyped.wp_load (t := t) dp (DFrac.own q) db) $$ Hdp
   inext
   iintro Hdp
-  imod dp_return N γs γbq dp db P q $$ [Hdp Hl] with HP
+  imod dp_return N γs γbq qb dp db P q $$ [Hdp Hl] with HP
   · iframe
   imodintro
   iapply HΦ $$ HP
@@ -358,8 +358,8 @@ theorem init_Pool_all (p : Loc) (v : sync.Pool) (R : IProp GF → IProp GF) (P :
 /-- **`Open`'s last write begins**, around one step of `Open`'s (so that a lease deposited under
 the protocol's later can refute its borrow): the whole token in, the cell's other half out
 (every borrow's fraction collected, `dp_collect`). -/
-theorem dp_lock (N : Namespace) (γs γbq : GName) (dp db : Loc) :
-    dpProt (GF := GF) N γs γbq dp db ∗ ghostVar γs (1 : Qp).half 0 ∗ ghostVar γbq 1 () ⊢
+theorem dp_lock (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) :
+    dpProt (GF := GF) N γs γbq qb dp db ∗ ghostVar γs (1 : Qp).half 0 ∗ ghostVar γbq qb () ⊢
     |={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
       ghostVar γs (1 : Qp).half 1 ∗ dp ↦{DFrac.own (1 : Qp).half} db := by
   unfold dpProt
@@ -375,7 +375,7 @@ theorem dp_lock (N : Namespace) (γs γbq : GName) (dp db : Loc) :
   rotate_left
   · cases h
   · cases h
-  imod dp_collect N γbq γm dp db c $$ [Hbq Hsl Hdp'] with ⟨Hbq, Hdp', Hsl⟩
+  imod dp_collect N γbq γm qb dp db c $$ [Hbq Hsl Hdp'] with ⟨Hbq, Hdp', Hsl⟩
   · iframe
   ihave Hall := (ghostVar_split_half γs 1 (0 : Nat)).2 $$ [Hs Hs']
   · iframe
@@ -394,9 +394,9 @@ theorem dp_lock (N : Namespace) (γs γbq : GName) (dp db : Loc) :
   iframe Hs Hdp'
 
 /-- **`Open`'s last write done, on success**: the token back, the cell persistent. -/
-theorem dp_unlock (N : Namespace) (γs γbq : GName) (dp db : Loc) :
-    dpProt (GF := GF) N γs γbq dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ⊢
-    |={⊤}=> ghostVar γbq 1 () ∗ dp ↦□ db := by
+theorem dp_unlock (N : Namespace) (γs γbq : GName) (qb : Qp) (dp db : Loc) :
+    dpProt (GF := GF) N γs γbq qb dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ⊢
+    |={⊤}=> ghostVar γbq qb () ∗ dp ↦□ db := by
   unfold dpProt
   iintro ⟨⟨%γm, #Hinv⟩, Hs, Hdp⟩
   ipersist Hdp

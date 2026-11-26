@@ -20,6 +20,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
 public import Spec.go_etcd_io.bbolt.ApiCrash
 public import Spec.go_etcd_io.bbolt.CrashPremise
 public import GooseLang.Ext.Fs.CrashTok
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.FileDur
 
 @[expose] public section
 
@@ -129,9 +130,11 @@ theorem dbCrashKeep_close [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] (γ 
 
 /-- (C-I1, `dbCrash`) **bbolt's file after a power loss** (the axiom's statement, with
 `[sem : go.Semantics]` among its binders, at the old generation's local context `L`: the record is
-over `onFs`, which needs it; approved for the swap), concluding (W6) the stronger `fileHoldsMDur`: the
-file at the new generation every byte durable and its size settled, as a crash leaves every file (the axiom
-says `fileHoldsM`, which `fileHoldsMDur_holds` gives; the C-I1 swap moves this statement there): from
+over `onFs`, which needs it; approved for the swap), concluding (W6) the stronger `fileHoldsMDurC`: the
+file at the new generation every byte durable, its size settled, no sync cut and its crash sizes known,
+as a crash leaves every file, and as the crash-mode `Open` (`Open.specC`) takes it (the axiom says
+`fileHoldsM`, which `fileHoldsMDurC_dur` and `fileHoldsMDur_holds` give; the C-I1 swap moves this
+statement there): from
 bbolt's `boltCrashRec_crash`, the record's instances being the program's (`HasExt.sem_eq`). -/
 theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt] [G : GooseGlobalGS HasLC.hasLC GF]
     (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF)
@@ -143,7 +146,7 @@ theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.f
     ⊢ dbCrashKeep (hG := ⟨G, L⟩) γ i0 Dl Dn -∗ crashed (hC := L.goose_crashGS) -∗
       Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) Dx false V' ={E}=∗
       ∃ D' : Data, ⌜D' = Dl ∨ D' = Dn⌝ ∗
-        bbolt.fileHoldsMDur (hG := ⟨G, L'⟩) i0 D' ∗
+        bbolt.fileHoldsMDurC (hG := ⟨G, L'⟩) i0 D' ∗
         Fs.crashRest Q (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) (i0 :: Dx) false V' := by
   unfold dbCrashKeep onFs
   split
@@ -156,6 +159,47 @@ theorem dbCrash [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.f
   · iintro %h; exact h.elim
 
 end laws
+
+section crash
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
+
+open Fs in
+/-- **A settled durable file the new tree names, at the new generation, settled again** (W6;
+`fileHoldsMDur_crash` with the new generation's `OsMeta`, `initMeta`: no sync cut, the crash sizes
+the size): what a crash leaves of a file the crash-mode `Open` (`Open.specC`) has not yet taken, which
+it can then take. -/
+theorem fileHoldsMDurC_crash (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (i : Ino) (hi : i ∉ D) (hn : Named V'.now i) (Dt : Data) :
+    ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
+      bbolt.fileHoldsMDurC (hG := ⟨G, L⟩) i Dt -∗
+      bbolt.fileHoldsMDurC (hG := ⟨G, L'⟩) i Dt ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (i :: D) tt V' := by
+  unfold bbolt.fileHoldsMDurC
+  iintro Hr ⟨%m, %bs, Hm, Hb, %hm, Hrc⟩
+  obtain ⟨hmaps, hsize, hlo, hhi, hpos, -, -, himg, hlen⟩ := hm
+  icases osCrash_take_runs_keep Q L L' D tt V' i hi (DFrac.own 1) m [(0, DFrac.own 1, bs.map durB)]
+    $$ Hr Hm [Hb] with ⟨%fo, %hfo, Hf, Hr, -, -⟩
+  · iapply BigSepL.bigSepL_singleton.2; iexact Hb
+  obtain ⟨hfc, hnm, -⟩ := hfo
+  obtain ⟨f, rfl⟩ := Option.isSome_iff_exists.1 (hnm hn)
+  have hct : f.contents = bs := fileCrashed_dur hlo hhi hfc
+  subst hct
+  unfold osFileStartO osFileStart
+  icases Hf with ⟨Hm', Hb'⟩
+  iframe Hr
+  iexists initMeta f, f.contents
+  iframe Hm' Hb'
+  isplitr
+  · ipureintro
+    have hfs : f.size = f.contents.length := by simp [OsFile.contents]
+    exact ⟨rfl, hfs, hfs, hfs, hpos, rfl, ⟨[f.size], rfl, fun x hx => by
+      rw [List.mem_singleton] at hx; rw [hx]; exact hfs⟩, himg, hlen⟩
+  iapply bbolt.boltImageRcpt_gen G L L' f.contents $$ Hrc
+
+end crash
 
 end crashLaws
 end backend

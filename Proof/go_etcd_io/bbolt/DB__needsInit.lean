@@ -6,6 +6,7 @@ file's bytes read whole, then compared byte by byte with `initImage`'s.
 module
 
 public import Spec.go_etcd_io.bbolt.DB__needsInit
+public import Spec.go_etcd_io.bbolt.DB__validMetaOverPages
 public import Perennial.Proof.io
 
 @[expose] public section
@@ -33,7 +34,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem DB.needsInit.wp_proof
     (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
-    (hImage : DB.initImage.spec (GF := GF) (hG := hG)) :
+    (hImage : DB.initImage.spec (GF := GF) (hG := hG))
+    (hVM : DB.validMetaOverPages.spec (GF := GF) (hG := hG)) :
     DB.needsInit.spec (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d ro xs hrd hp hx
   rcases p with ⟨pp, pi, pcs⟩; dsimp only at hp ⊢; subst hp
@@ -43,7 +45,9 @@ theorem DB.needsInit.wp_proof
     wp_auto
     iapply HΦ
     iframe Hf Hps Hro Hfo Hfd Hb
-    ileft; ipureintro; exact ⟨rfl, fun _ => rfl, fun _ => Or.inl rfl⟩
+    ileft; ipureintro
+    refine ⟨rfl, fun _ => rfl, fun _ => Or.inl rfl, fun _ i _ h => ?_⟩
+    have := h.1; simp only [List.length_map, h0, Nat.zero_div] at this; omega
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
   ihave #Hn := io.eof_of_init $$ Hio
@@ -59,14 +63,14 @@ theorem DB.needsInit.wp_proof
     try wp_auto
     iapply HΦ
     iframe Hf Hps Hro Hfo Hfd Hb
-    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h⟩
+    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
   try wp_auto
   wp_if_destruct
   · -- more than four pages
     try wp_auto
     iapply HΦ
     iframe Hf Hps Hro Hfo Hfd Hb
-    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h⟩
+    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
   have hle : xs.length ≤ 16384 := by
     have := Hif
     first
@@ -200,23 +204,21 @@ theorem DB.needsInit.wp_proof
         iframe Hf Hps Hro Hfo Hfd Hb
         ileft
         ipureintro
-        exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h⟩
+        exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
   · simp only [hlt, _root_.decide_false, intoVal_eq_iff, Bool.false_eq_true, ↓reduceIte,
       decide_eq_true_eq]
+    have hpart : initPartial (List.map Prod.fst xs) := by
+      refine ⟨by simp only [List.length_map]; omega, fun i c hc => ?_⟩
+      rw [hB] at hc
+      have hi : i < B.length := by
+        rcases Nat.lt_or_ge i B.length with h | h
+        · exact h
+        · rw [List.getElem?_eq_none h] at hc
+          cases hc
+      rw [hI]
+      exact Hk.2 i c (by omega) hc
     wp_auto
-    iapply HΦ
-    rw [fileOwn_eq]
-    iframe Hf Hps Hro Hfo Hfd Hb
-    ileft
-    ipureintro
-    refine ⟨rfl, fun h => absurd h h0, fun _ => Or.inr ⟨by omega, fun i c hc => ?_⟩⟩
-    have hi : i < B.length := by
-      rcases Nat.lt_or_ge i B.length with h | h
-      · exact h
-      · rw [List.getElem?_eq_none h] at hc
-        cases hc
-    rw [hI]
-    exact Hk.2 i c (by omega) hc
+    done
 
 end proof
 

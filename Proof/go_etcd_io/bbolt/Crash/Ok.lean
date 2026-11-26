@@ -448,7 +448,24 @@ theorem bDur_view_txid {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s) (hni : a
 
 /-- `bOk` with the crash images' txid bound (outside `init`). -/
 def bOkT (a : BAbs) (fo : Option OsFile) : Prop :=
-  ∀ f, fo = some f → bCrash a f ∧ (a.phase ≠ .init → txidLe f a.cur.txid)
+  ∀ f, fo = some f → bCrash a f ∧ (a.phase ≠ .init → txidLe f a.cur.txid ∧ 0 < f.size)
+
+/-- **A crash image of a state past `init` is not empty** (W6): it is at least the size's crash
+bound, which a reference image's high-water mark bounds from below (at least 3 pages). -/
+theorem bDur_view_pos {a : BAbs} {s : CSt} {f : OsFile} (h : BDur a s) (hni : a.phase ≠ .init)
+    (hV : BView s f) : 0 < f.size := by
+  obtain ⟨hW, hP⟩ := h
+  have hlo := vmeta_lo_of s hW
+  have hfl := hV.lo
+  revert hP hni
+  cases a.phase <;> intro hP hni <;> dsimp only at hP
+  · have h3 := refImg_hwm hP.1
+    have h4 := hP.2.2.2.1
+    omega
+  · have h3 := refImg_hwm hP.1
+    have h4 := hP.2.2.2.2.2.2.2.2.1
+    omega
+  · exact absurd rfl hni
 
 /-- **bbolt's crash obligation with the txid bound** (`bDur_okS`, and `bDur_view_txid`). -/
 theorem bDur_okST (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s) :
@@ -456,7 +473,8 @@ theorem bDur_okST (i : Ino) (a : BAbs) (s : CSt) (h : BDur a s) :
   intro hcut f hfc hseen g hg
   cases hg
   have hV := bview_of h.1.1 hcut h.1.2.1 hfc hseen
-  exact ⟨bDur_view_al h (crashSeen_crashSize hseen f rfl) hV, fun hni => bDur_view_txid h hni hV⟩
+  exact ⟨bDur_view_al h (crashSeen_crashSize hseen f rfl) hV,
+    fun hni => ⟨bDur_view_txid h hni hV, bDur_view_pos h hni hV⟩⟩
 
 end ok
 

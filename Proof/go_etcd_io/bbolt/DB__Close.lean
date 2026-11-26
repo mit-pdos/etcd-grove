@@ -26,6 +26,7 @@ public import Proof.go_etcd_io.bbolt.Open.CloseFile
 public import Proof.go_etcd_io.bbolt.Open.Congr
 public import Proof.go_etcd_io.bbolt.Open.CloseFlx
 public import Proof.go_etcd_io.bbolt.Inv.PmFile
+public import Proof.go_etcd_io.bbolt.Inv.AuMask
 import all Spec.go_etcd_io.bbolt.Api
 import all Spec.go_etcd_io.bbolt.ApiCrash
 
@@ -139,38 +140,6 @@ private theorem close_meta (p : BFile) (w : WDb) (m0 : OsMeta) (hmm : m0.maps = 
 
 /-! ### The commit point (W5) -/
 
-/-- The mask inside `Close`'s commit point: the database's namespace (`⊤` less the outer mask of
-`DB.Close.specC`'s update). -/
-abbrev closeMask (N : Namespace) : CoPset := (⊤ : CoPset) \ ((⊤ : CoPset) \ ↑N)
-
-omit [ExtSemantics fsExt] [FsSemOk] hos in
-theorem crash_sub_closeMask (N : Namespace) : (↑(N .@ "crash") : CoPset) ⊆ closeMask N := by
-  intro x hx
-  refine CoPset.in_diff.2 ⟨CoPset.subseteq_top x hx, fun hp => ?_⟩
-  exact (CoPset.in_diff.1 hp).2 (nclose_subseteq N "crash" x hx)
-
-omit [ExtSemantics fsExt] [FsSemOk] hos in
-open Iris.Std in
-/-- An update over `⊤ \ ↑N` opened from `⊤`: the mask inside is `N`'s (as `Fs.fupd_open_au`). -/
-theorem fupd_open_closeMask (N : Namespace) (P : IProp GF) :
-    (|={(⊤ : CoPset) \ ↑N, ∅}=> P) ⊢ |={⊤, closeMask N}=> P := by
-  show _ ⊢ |={⊤, (⊤ : CoPset) \ ((⊤ : CoPset) \ ↑N)}=> P
-  have h := fupd_mask_frame_right (P := P) (E1 := (⊤ : CoPset) \ ↑N) (E2 := ∅)
-    (Ef := (⊤ : CoPset) \ ((⊤ : CoPset) \ ↑N)) LawfulSet.disjoint_diff_right
-  rwa [LawfulSet.subset_union_diff (s₁ := (⊤ : CoPset) \ ↑N) (s₂ := (⊤ : CoPset))
-    (fun _ _ => CoPset.mem_full), LawfulSet.union_empty_left] at h
-
-omit [ExtSemantics fsExt] [FsSemOk] hos in
-open Iris.Std in
-/-- The update's closing, from `N`'s mask back to `⊤` (as `Fs.fupd_close_au`). -/
-theorem fupd_close_closeMask (N : Namespace) (P : IProp GF) :
-    (|={∅, (⊤ : CoPset) \ ↑N}=> P) ⊢ |={closeMask N, ⊤}=> P := by
-  show _ ⊢ |={(⊤ : CoPset) \ ((⊤ : CoPset) \ ↑N), ⊤}=> P
-  have h := fupd_mask_frame_right (P := P) (E1 := ∅) (E2 := (⊤ : CoPset) \ ↑N)
-    (Ef := (⊤ : CoPset) \ ((⊤ : CoPset) \ ↑N)) LawfulSet.disjoint_empty_left
-  rwa [LawfulSet.union_empty_left, LawfulSet.subset_union_diff (s₁ := (⊤ : CoPset) \ ↑N)
-    (s₂ := (⊤ : CoPset)) (fun _ _ => CoPset.mem_full)] at h
-
 /-- What the commit point is given beside the committed data's other half: with `true`, the crash
 names' registration (the crash record's), so that the file is in crash mode. -/
 def closeEv (B : BNs) : Bool → IProp GF
@@ -180,7 +149,7 @@ def closeEv (B : BNs) : Bool → IProp GF
 /-- The file the commit point gives back: every byte durable (`fileHoldsMDur`) with the registration,
 else `fileHoldsM`. -/
 def closeOut (i : Ino) (D : Data) : Bool → IProp GF
-  | true => fileHoldsMDur i D
+  | true => fileHoldsMDurC i D
   | false => fileHoldsM i D
 
 /-- **`Close`'s commit point** (W5): at `⊤`, opening into the database's namespace, the committed
@@ -224,7 +193,7 @@ private theorem boltCrashRec_half (γ : BoltName) (i0 : Ino) (Dl Dn : Data) :
 database's namespace), its record's half and registration; committed with the durable file. -/
 theorem closeCommit_au (γ : BoltName) (i : Ino) (D : Data) (Q : IProp GF) :
     AU <{ ∃∃ (Dl Dn : Data), boltCrashRec (GF := GF) γ i Dl Dn }> @ ⊤ \ ↑γ.ns, ∅
-      <{ ⌜Dn = D⌝ ∗ fileHoldsMDur i D, COMM Q }> ⊢ closeCommit γ i D Q := by
+      <{ ⌜Dn = D⌝ ∗ fileHoldsMDurC i D, COMM Q }> ⊢ closeCommit γ i D Q := by
   iintro Hau
   unfold closeCommit
   ihave Hacc := aupd_aacc $$ Hau
@@ -609,7 +578,7 @@ private theorem DB.Close.wp_core
         · iframe #
         have hcs : p.cs ≠ none := by
           intro h; simp [h] at hreg
-        have hd := hdur hcs
+        obtain ⟨hd, hcut, l, hxl', hxls⟩ := hdur hcs
         have hxd : (xs.map Prod.fst).map durB = xs := by
           rw [List.map_map]
           conv => rhs; rw [← List.map_id xs]
@@ -619,14 +588,16 @@ private theorem DB.Close.wp_core
           exact (hd k xs[k] (List.getElem?_eq_getElem hk) (fun r hr => by cases hr)).symm
         obtain ⟨hlo, hhi⟩ := hlh hne hcs
         have hlen : (xs.map Prod.fst).length = w.m.size := by rw [List.length_map]; exact hxs.2
-        unfold fileHoldsMDur
+        unfold fileHoldsMDurC
         iexists m, xs.map Prod.fst
         rw [hxd]
         iframe Hm Hxs
         isplitr
         · ipureintro
           refine ⟨hm.1, by rw [hm.2, hlen], by rw [hmlh.1, hlo, hms', hlen],
-            by rw [hmlh.2, hhi, hms', hlen], ?_, ?_⟩
+            by rw [hmlh.2, hhi, hms', hlen],
+            by rw [hlen]; have := hroot.1; have := hroot.2; omega, hcut, ⟨l, hxl', fun x hx => by
+              rw [hxls x hx, hm.2, hlen]⟩, ?_, ?_⟩
           · unfold boltImage
             rw [hlen, hxs.1]
             exact ⟨hsz, hfok⟩
