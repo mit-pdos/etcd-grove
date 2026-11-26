@@ -133,6 +133,13 @@ class Project:
     # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
     # builds. None: every module from the module cache.
     module_models: dict = None
+    # Modules the translation takes from a fork (module path -> (the fork's module path, its
+    # pseudo-version at the pinned commit, the `h1:` sums of its zip and of its go.mod, as go.sum
+    # lists them)), put in place as module_models are (`replace <path> => <fork> <version>`, the sums
+    # in the temporary go.work.sum or go.sum, checked against sum.golang.org by the go command), for a
+    # dependency whose code needs a behaviour-preserving rewrite to translate, kept upstream's
+    # everywhere else (the Go builds of the fork and of the examples use the module itself). None: none.
+    module_forks: dict = None
     # Expand tabs in the translation's comments to four spaces (Go doc comments indented with tabs:
     # goose copies them into `/-- … -/`, where Lean rejects a tab at the start of a line; a goose gap,
     # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
@@ -399,6 +406,17 @@ PROJECTS = [
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
         module_models={"google.golang.org/grpc": "models/grpc"},
+        # (prove-otel-encoderid, 2026-11-25, mit-pdos/etcd-grove#24 7167334725: a fork rewrite) otel
+        # v1.47.0 (etcd's go.mod) from the fork zeldovich-agent/opentelemetry-go, branch
+        # `goose-lean-encoderid` (8717f503c, on the tag v1.47.0): `attribute`'s `defaultEncoderID =
+        # NewEncoderID()` becomes a zero variable set by an `init` through a local variable
+        # (`id := NewEncoderID(); defaultEncoderID = id`), the same behaviour, which goose's modelcheck
+        # (R4) accepts; it refuses a call building a pointer-free struct in a package variable's
+        # initializer. Until then that initializer was the axiom `attribute.opaqueInitsOk`.
+        module_forks={"go.opentelemetry.io/otel": (
+            "github.com/zeldovich-agent/opentelemetry-go", "v1.47.1-0.20261126012358-8717f503c574",
+            "h1:X4CXKoj7WdN8IWHyeSnnJn7gOmiBuxdu4rfnKZmFIbE=",
+            "h1:8wS9O2qfXrYrzp6hIF/HOYJJf/wIhFPhR2xLuP+iXQU=")},
         # (#24 J3, 2026-11-23) membership's records with the encoding/json model's same-package methods
         # (`JSONModel*`, over models.lab/jsoncodec: the part Net/'s translation, `models.lab=Net`):
         # the member records the backend, the v2 store and the conf-change contexts hold
@@ -2398,10 +2416,14 @@ def module_models_env(proj, src, env, tmp):
     module by its model, named by GOWORK or GOFLAGS' -modfile; and, for a project with model files
     (`model_files_roots`), models.lab added (a `use` of models/ in a workspace, else a `require` and
     `replace`). `env` itself if there are none."""
-    if not proj.module_models and not model_files_roots(proj):
+    if not proj.module_models and not proj.module_forks and not model_files_roots(proj):
         return env
     env = dict(os.environ if env is None else env)
     reps = {m: os.path.join(ROOT, d) for m, d in sorted((proj.module_models or {}).items())}
+    # a fork: `<fork> <version>` in go.work, `<fork>@<version>` for go mod edit
+    forks = {m: (f, v) for m, (f, v, _, _) in sorted((proj.module_forks or {}).items())}
+    fork_sums = [f"{f} {v}{suffix} {h}\n" for m, (f, v, hz, hm) in sorted((proj.module_forks or {}).items())
+                 for suffix, h in (("", hz), ("/go.mod", hm))]
     uses = [os.path.join(ROOT, MODEL_MODULE[1])] if model_files_roots(proj) else []
     if os.path.exists(os.path.join(src, "go.work")):
         j = json.loads(subprocess.run(["go", "work", "edit", "-json", "go.work"], cwd=src,
@@ -2410,7 +2432,7 @@ def module_models_env(proj, src, env, tmp):
         lines += ["use ("] + ["\t" + os.path.normpath(os.path.join(src, u["DiskPath"]))
                               for u in j["Use"]] + ["\t" + u for u in uses] + [")"]
         for r in j.get("Replace") or []:
-            if r["Old"]["Path"] in reps:
+            if r["Old"]["Path"] in reps or r["Old"]["Path"] in forks:
                 continue
             new = r["New"]["Path"]
             if not r["New"].get("Version") and new.startswith("."):
@@ -2419,11 +2441,15 @@ def module_models_env(proj, src, env, tmp):
             lines.append(f"replace {old} => {new}" +
                          (" " + r["New"]["Version"] if r["New"].get("Version") else ""))
         lines += [f"replace {m} => {d}" for m, d in reps.items()]
+        lines += [f"replace {m} => {f} {v}" for m, (f, v) in forks.items()]
         work = os.path.join(tmp, "go.work")
         with open(work, "w") as f:
             f.write("\n".join(lines) + "\n")
         if os.path.exists(os.path.join(src, "go.work.sum")):
             shutil.copyfile(os.path.join(src, "go.work.sum"), work + ".sum")
+        if fork_sums:
+            with open(work + ".sum", "a") as f:
+                f.writelines(fork_sums)
         env["GOWORK"] = work
         return env
     modfile = os.path.join(tmp, "go.mod")
@@ -2435,10 +2461,15 @@ def module_models_env(proj, src, env, tmp):
     edits = []
     for r in j.get("Replace") or []:
         new = r["New"]["Path"]
-        if not r["New"].get("Version") and new.startswith(".") and r["Old"]["Path"] not in reps:
+        if not r["New"].get("Version") and new.startswith(".") and r["Old"]["Path"] not in reps \
+                and r["Old"]["Path"] not in forks:
             old = r["Old"]["Path"] + ("@" + r["Old"]["Version"] if r["Old"].get("Version") else "")
             edits.append(f"-replace={old}={os.path.normpath(os.path.join(src, new))}")
     edits += [f"-replace={m}={d}" for m, d in reps.items()]
+    edits += [f"-replace={m}={f}@{v}" for m, (f, v) in forks.items()]
+    if fork_sums:
+        with open(os.path.join(tmp, "go.sum"), "a") as f:
+            f.writelines(fork_sums)
     if uses:
         edits += [f"-require={MODEL_MODULE[0]}@v0.0.0-00010101000000-000000000000",
                   f"-replace={MODEL_MODULE[0]}={uses[0]}"]

@@ -3790,6 +3790,31 @@ the trust-boundary axiom `opaqueInitsOk`).''',
     before={'codeToStr': map_lit_steps('Hcs', 'w32', 'GoString', f'{_OC}.Code.ty', 'go.string', 3),
             'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_OC}.Code.ty', 3)},
 )
+# (prove-otel-encoderid, 2026-11-25) otel's `attribute`: its `init` (the fork's `id := NewEncoderID();
+# defaultEncoderID = id`, etc/goose.py's `module_forks`; until then `defaultEncoderID`'s initializer, the
+# trust-boundary axiom `opaqueInitsOk`), through `NewEncoderID`'s proof on the freshly allocated counter
+_OA = 'go_opentelemetry_io.otel.«attribute»'
+_OAQ = _OA
+SPECIAL[_OA] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `encoderIDCounter` and `defaultEncoderID`,
+initializes its import (`sync/atomic`) and runs its translated `init` (prove-otel-encoderid,
+2026-11-25: the fork's `id := NewEncoderID(); defaultEncoderID = id`, in place of `defaultEncoderID =
+NewEncoderID()`, which goose's modelcheck refuses and was the trust-boundary axiom `opaqueInitsOk`):
+`NewEncoderID`'s proof, on the counter at zero, returns the ID 1, which it stores.''',
+    alloc_types={'encoderIDCounter': '_root_.Perennial.sync.atomic.Uint64',
+                 'defaultEncoderID': f'{_OAQ}.EncoderID'},
+    after={'init.«0»': [
+        f'ihave Hc : _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr {_OAQ}.encoderIDCounter) (DFrac.own 1) (W64 0) $$ [HencoderIDCounter]',
+        '· rw [_root_.Perennial.sync.atomic.ownUint64_unseal]',
+        '  unfold _root_.Perennial.sync.atomic.ownUint64Def',
+        "  have e : (zero_val _root_.Perennial.sync.atomic.Uint64) =",
+        "      ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : _root_.Perennial.sync.atomic.Uint64) := rfl",
+        '  rw [← e]; iexact HencoderIDCounter',
+        'wp_apply (EtcdGrove.«attribute».NewEncoderID.wp_proof (hG := hG) (W64 0)) $$ [Hc] as -',
+        '· iexact Hc',
+        'try wp_auto']},
+    imports=['Proof.go_opentelemetry_io.otel.attribute.NewEncoderID'],
+)
 # (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4; the mechanism of phase 7 S2 core's
 # `FromOutgoingContextRaw`, 2026-11-23, for every hook) grpc's `internal`: names only but its hook
 # variables, which the translated `init`s of `metadata`, `codes` and grpc set and no translated code

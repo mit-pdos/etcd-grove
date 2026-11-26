@@ -463,6 +463,12 @@ generated: never edit the `.lean` files by hand.
   are `Proof/go_etcd_io/etcd/server/v3/storage/wal/` (`Link.lean`: `etc/gen-link.py --walfs`; trust
   base `etc/tcb-collections/wal-fsext.txt`). Until 2026-11-15 in the part `LinuxFs/`, with the main
   tree's names-only WAL beside it (`notes/wal-lean-integration.md`).
+- A dependency of a project translated from a fork of its own (`etc/goose.py`'s `module_forks`: a
+  `replace` in the translation's temporary workspace only, the fork's and the examples' Go builds keep
+  the module itself), for a behaviour-preserving rewrite goose needs: otel v1.47.0 from
+  `zeldovich-agent/opentelemetry-go`, branch `goose-lean-encoderid` (`8717f503c`, on the tag v1.47.0;
+  project `etcd`), where `attribute`'s `defaultEncoderID = NewEncoderID()` (refused by goose's
+  modelcheck R4) is set by an `init` through a local variable.
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,

@@ -152,6 +152,8 @@ theorem deadlineExceededError_comparable (S : GoError → Prop)
     infer_instance
   · have hd : decide (v1 = v2) = true := decide_eq_true (by cases v1; cases v2; rfl)
     rw [hd]
+    haveI : ⟦GoOp GoEquals _root_.Perennial.context.deadlineExceededError.ty, (#v1, #v2)⟧ ⤳ #true := by
+      infer_instance
     exact _root_.Perennial.errors.pureWp_goEquals_of_step _ _ _ _
 
 end lemmas

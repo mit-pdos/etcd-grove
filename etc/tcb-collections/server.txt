@@ -135,7 +135,6 @@ axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom strings.Contains.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
