@@ -34,7 +34,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.context.Link
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.google_golang_org.grpc.WithNoProxy
 
 @[expose] public section
 
@@ -97,7 +96,7 @@ theorem wp_newClientA : newClient.spec (GF := GF) (hG := hG) :=
 
 /-- A principal's user client, linked over `New_user_dist` (interim). -/
 theorem wp_newUserClient : newUserClient.spec (GF := GF) (hG := hG) :=
-  newUserClient.wp_proof zap.NewNop.wp_proof grpc.WithNoProxy.wp_proof etcd_dist.authd.New_user_dist.wp_proof
+  newUserClient.wp_proof zap.NewNop.wp_proof EtcdGrove.etcdstart.grpc.wp_WithNoProxy etcd_dist.authd.New_user_dist.wp_proof
 
 /-- A principal's client, linked. -/
 theorem wp_principalClient : principalClient.spec (GF := GF) (hG := hG) :=
