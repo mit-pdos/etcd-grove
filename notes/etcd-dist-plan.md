@@ -2653,3 +2653,115 @@ added until a workload's proof reaches them.
 
 **Next (not done here).** The `Watcher` interface dispatch lemmas and the adapter bridges over a shared
 "watcher of KV `γk`" predicate (§22.3); the watch, compact and cache workloads' proofs; F4 with the first of them.
+
+## 25. Watcher-environment refactor (design, 2026-11-26; branch `etcd-safe-wenv/2026-11-26`)
+
+Required by the N3 review's F3 (`notes/axiom-review/n3-watch-dist.md`) before any result rests on
+`Watch_dist`/`RequestProgress_dist`. Untrusted proof refactor: no axiom, no `sorry`, no Go change, no
+top-level statement change, no trusted file touched. Base `etcd-safe-n3/2026-11-25` @ `923a4ae72c`.
+
+### 25.1 What pins `V` today (the full list, not only `watchSrvFacts`)
+
+`isNewClient cl eps V` holds `sync.isMutex mu (watcherMu V' w callSl)` (`V'` = `V` with `conn`, `ics`,
+`wc`, `lg` replaced by `New`'s), and `watcherMu` keeps, for each stream of the map, `isWGS V' G`. What
+`isWGS V' G` asks of `V'`'s member values (`mem`, `memW`, `R`, `W`, `WM`, `WL`):
+1. `watchSrvFacts V'` (the stub, `watchConnFacts`: the in-process `Watch` registration at every
+   `V'.addrs`, every member's `watchMemberFacts`, `∃ i < V'.nm, …`). At `V'.nm = 0` it is `False`: F3.
+2. `respc`'s element (`respcE V'`): each response is `watchDn γs (V'.mem i).2 (V'.memW i) tok` — the
+   server's facts about *its* run at `V'`'s member values (header ids `R.cid`/`R.mid`, `mvccOk r` at
+   `r.W = W`, …).
+3. Each request's row (`reqP`/`wsIs`/`retcP` at `wsRow V' P`): with `V'.nm = 1`, `watchAuthed` at
+   `(V'.mem 0).2.tag`/`.s` for every response with events; and the bound `wsBdOk V' P` (free at bound 0).
+
+**So the review's fix as stated (drop item 1 from `isWGS`) is not enough for validity.** It removes the
+`V.nm = 0` contradiction, but items 2 and 3 still make the lock invariant false of the real heap at a
+generic `V` as soon as a cross-machine member answers: its responses' header ids and server facts are
+the real member's, not `V`'s, and a one-endpoint `V` would need the server check at `V`'s arbitrary
+`tag`.
+
+### 25.2 Why "no member value in the lock" (route (a) reusing the single-process proof) is not a refactor
+
+The natural goal is a lock over a client-only view (connection, stub, logger, prefix), each stream
+carrying its own server view, so that a route-(a) proof could apply `watcher.Watch.spec` at the
+environment `V_T` it builds from the table, whatever `New`'s `V` was. That breaks on **joins**: a
+`Watch` joins the existing stream of its context's key (all metadata-free contexts share one key), and
+the joining call's post depends on its caller's environment in three places the stream's `run` must
+honour: the KV names `V.kv` (its reads fire at `etcdKV V.kv`; `run` needs the members' KV facts at
+names `kvSame` to them), the auth row and the creates' bound (member 0's `tag`, `s`, `authMode`, with
+one endpoint). A stream created by another call, at another server view, gives no agreement with the
+joiner's: the single-process facts (`isGrpcStreamMd a …`: some registration meets *some* spec) carry no
+agreement on specs, and the server view contains `IProp`-valued fields (`SrvW.histLb`, `crevOk`, the
+`AEnv`), so it cannot be agreed through discrete ghost state (saved predicates would give only
+`▷`-equivalence, not equality of `tag`). Across machines the agreement exists only through the address
+table (`grpcAddrAt a (etcdSvc Γ mid)` at each endpoint), which needs `etcdSvc` defined (route (a)
+itself, S2's stream work, §22.6). So the full split is S2-scale (≈147 files over `WEnv`, plus a join
+agreement that only the defined table provides) and belongs with route (a)'s implementation, not here.
+
+### 25.3 The refactor (what this branch does)
+
+**The lock keeps a stream's invariants under the server's facts:**
+```
+def wgsGuard (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
+  iprop(□ (watchSrvFacts V -∗ isWGS V G callSl))
+-- watcherMu: … [∗map] k ↦ wgs ∈ M, ∃ G, ⌜G.wgs = wgs ∧ G.w = w ∧ streamKeyOf G.omd = k⌝ ∗ wgsGuard V G callSl
+```
+- Where the server facts go: nowhere in the lock. A spec that reads a stream from the map presents
+  `watchSrvFacts V` at the call; every such spec already has it in `isClientWatcher V w` (its own
+  conjunct, unchanged). A spec that inserts a stream gives `wgsGuard` from the `isWGS` it built
+  (`wgsGuard_intro`); a reader gets `isWGS` back with its facts (`wgsGuard_elim`).
+- `isWGS` itself is unchanged (it still carries `watchSrvFacts V`, which the stream's goroutines `run`,
+  `serveWatchClient`, `newWatchClient`, … take with it from the creating call: they never open the lock
+  for it). Dropping it from `isWGS` too and passing it to those specs separately is a cosmetic follow-up
+  (≈10 specs, 13 destructuring sites) with no effect on what the lock asks; not done.
+
+**Statements that change: none.** `isClientWatcher`, `isClientWatcherCore`, `isNewClient` keep their
+text (only `watcherMu`'s body changes); `watcher.Watch.spec`, `RequestProgress.spec`, `Close.spec`,
+`closeStream.spec`, `NewWatchFromWatchClient`'s, every `Spec/` file and every top-level statement are
+unchanged; no trusted file is touched (`Proof/.../dist/WatchDist.lean`, the axioms' file, is left as is:
+see 25.5). Proofs that change: `InvWatch.lean` (the definition, two lemmas), `watcher__Watch.lean`,
+`watcher__RequestProgress.lean`, `watcher__Close.lean`, `watcher__closeStream.lean` (the map's body at
+the lookup, the insert and the unlock), and `NewWatchFromWatchClient.lean` if its empty-map
+initialisation needs it. Estimate: ≈100-150 lines; builds: those modules, then the watch, cache and
+compact theorems over them, then the full build.
+
+### 25.4 The `∀ V` triples against the refactored invariant (F3's issue gone)
+
+What `Watch_dist`/`RequestProgress_dist` must keep of the lock after adding a stream `G` is
+`wgsGuard V' G callSl` (and the map's points-to facts, which a proof owns): `□ (watchSrvFacts V' -∗
+isWGS V' G callSl)`.
+- **At `V.nm = 0`** (F3's case): `watchSrvFacts V' ⊢ ⌜∃ i, i < 0 ∧ …⌝ ⊢ False`, so the guard holds
+  outright, whatever the stream is. The triples are no longer refuted there.
+- **At any `V`, the guard is true in every execution that meets the axioms' precondition**, so the
+  triples are valid Iris triples at every `V` (no longer "sound by encapsulation" only): `watchSrvFacts
+  V'` asserts `grpcConn V'.conn V'.addrs …` at the client's real connection (`V'.conn` is `New`'s
+  `conn`, dialed to `eps`: `isNewClient`'s `grpcConn conn eps …`) and an in-process `Watch` registration
+  (`grpcAddrIs a γ`) at every `V'.addrs`. A connection is dialed to one address list, and every `eps`
+  address is set across machines (`membersAt eps Γ`: `etcdAddrAt`), which no in-process server can have
+  (`addrUnset` spent: the review's A1/B). So the antecedent is false and the guard vacuous.
+- **Provable in principle** (route (a)): a proof of the `∀ V` triples refutes the guard's antecedent
+  from the cross-machine facts it has (`membersAt eps Γ`, the table entries) with two true laws of the
+  transport model that the model does not state today: `grpcConn conn A ∗ grpcConn conn B ⊢ ⌜A = B⌝`
+  (or, instead, `⌜V.addrs = eps⌝` pinned in `isNewClient`, a `New.spec` premise its callers meet), and
+  "an address set across machines has no in-process registration" (`etcdAddrAt a … ∗ grpcAddrIs a γ ⊢
+  False`). Neither is an etcd axiom; both are statements about grpc's and the net extension's own
+  address ghost state, to be proved there (or reviewed as model laws) with route (a). The rest of the
+  retiring proof is the watcher's behaviour at the table's content, for which (25.2) the single-process
+  proof is reusable verbatim only at `V = V_T` (the workloads call `New` at the table's environment);
+  the `∀ V` form at another `V` needs either a proof of the goroutines at the table's content or the
+  join agreement of 25.2.
+- **The encapsulation argument retires**: a spec that locks the watcher without `watchSrvFacts V` gets
+  only guards, so the review's standing trigger ("any new spec that locks the watcher from
+  `isNewClient`/`isClientWatcherCore` without `watchSrvFacts` must be reviewed with these axioms") is
+  no longer needed for soundness.
+
+### 25.5 Not done here (follow-ups)
+
+- The axioms' header (`Proof/.../dist/WatchDist.lean`, "The `∀ V` form") still says the triples are
+  not valid at today's `watcherMu`; it is a trusted file, so it is left for the adoption commit
+  (with F4), together with the two `notes/audit.md` rows' trigger sentence.
+- 25.2's full split, with route (a).
+- 25.3's cosmetic `isWGS` cleanup.
+
+### 25.6 Checkpoints
+
+(updated as work lands)
