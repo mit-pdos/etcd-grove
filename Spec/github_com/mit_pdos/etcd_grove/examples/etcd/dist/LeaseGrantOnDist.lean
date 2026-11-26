@@ -36,6 +36,8 @@ statement: the grant's update persistent at every id (`□ ∀ id`, `writeAuD`),
 member's own check (`requireAuthInfo`'s, `leaseCheckD … True`) at its published index at least the
 caller's `n₀`).
 
+**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `leaseCheckD`'s binding is `P = some info.Username'` (`requireAuthInfo`'s condition: a nil `AuthInfo` is refused with auth on), no longer `userOk P`, which admitted the empty user and so made the check vacuous for an anonymous principal (`f7-c.md`).
+
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-c.md` (`d946f6cbda`: NEEDS-FIX; F1 the member names bound to `Γ.au`, F2 the lessor name `Γ.ls mid` tied by Serve), then `f7-rerev-c.md` (`6d9d9fd662`): SOUND given the proposed Serve, adopted as `Serve_dist` (`f7-combined.md`, F7 step 3 `eb138f6f8c`). Unchanged since (`f7-changed-since-review.md`). -/
 abbrev Lease_GrantOn_dist.spec : Prop :=

@@ -35,6 +35,8 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 listing at an index `j ≥ m₀`, and its check at its published auth index `n ≥ n₀`: an admin, or every
 listed lease's attached keys readable (`leaseKeysVerdictFrom` at `j`)).
 
+**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `leaseCheckD`'s binding is `P = some info.Username'` (`requireAuthInfo`'s condition: a nil `AuthInfo` is refused with auth on), no longer `userOk P`, which admitted the empty user and so made the check vacuous for an anonymous principal (`f7-c.md`).
+
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseLeasesOnDist.lean`). Reviews (`notes/axiom-review/`): `f7-c.md` (`d946f6cbda`: UNSOUND as written; F1 the member names bound to `Γ.au`, F2 the lessor name `Γ.ls mid` tied by Serve), then `f7-rerev-c.md` (`6d9d9fd662`): SOUND given the proposed Serve, adopted as `Serve_dist` (`f7-combined.md`, F7 step 3 `eb138f6f8c`). Unchanged since (`f7-changed-since-review.md`). -/
 abbrev Lease_LeasesOn_dist.spec : Prop :=

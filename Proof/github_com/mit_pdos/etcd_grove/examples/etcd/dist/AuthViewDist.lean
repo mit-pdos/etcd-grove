@@ -167,14 +167,26 @@ def readAuthedD (γk : KVNames) (P : Option GoString) (L₀ L : List EntryModel)
     apply.authEndOf o.base.rangeEnd e ∧
     auth.permitted (srvAuthAtLog γk srvAuthSt0 L) ⟨user, rv⟩ o.key e .read
 
-/-- **Member `mid`'s published auth index is at least `m`, and its state at an index `i ≤ m` is the
-history's after a requested prefix `L ⊒ L₀`** (persistent; `authFloorAt` at the cluster, over the
-requested log): the floor a linearizable read's barrier leaves (`KV_GetOn_dist`), which a member-local
-lease check at `Γ.au mid` needs. -/
+/-- **Member `mid`'s published auth index is at least `m`, its state at an index `i ≤ m` is the
+history's after a requested prefix `L ⊒ L₀`, and so is every state it records from `i` on**
+(persistent; `authFloorAt` at the cluster, over the requested log): the floor a linearizable read's
+barrier leaves (`KV_GetOn_dist`), which a member-local lease check at `Γ.au mid` needs.
+
+The last conjunct (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; the shape `KV_GetOn_dist`'s
+`readCheckedD` has after N1): every state the member's apply thread records at an index `j ≥ i` is the
+history's after a committed prefix `L' ⊒ L₀` of the cluster's one requested log (`srvReqLogLb γR L'`).
+Why it holds of etcd (`notes/axiom-review/f7-getOn-n1.md`, retirement obligation R1): each recorded state is
+`authHistTie`'s, `srvAuthAtLog` of a committed log (`isServerReadM_tie`), the member's history a prefix of
+the cap `bootState :: admStates ρ.kv st₀ A` (`authOwn_capped`); a position at or after the floor's is the
+floor's state (`L' := L`) or the state after a later admin entry of `A` (`L'` the prefix of `A` through it,
+which extends `L`). It is what a later member-local lease check at index `≥ m` (`leaseCheckD`) is read
+against: the cross-machine form of the single-process `akAuthFixed`. -/
 def authFloorD (Γ : DistView) (γR : ServerRaftNames) (mid : w64)
     (L₀ : List EntryModel) (m : Nat) : IProp GF :=
   iprop(auth.authPubLbM (.on (Γ.au mid)) m ∗ ∃ (L : List EntryModel) (i : Nat), ⌜L₀ <+: L ∧ i ≤ m⌝ ∗
-    srvReqLogLb γR L ∗ auth.authStateAt (Γ.au mid) i (srvAuthAtLog Γ.kv srvAuthSt0 L))
+    srvReqLogLb γR L ∗ auth.authStateAt (Γ.au mid) i (srvAuthAtLog Γ.kv srvAuthSt0 L) ∗
+    □ (∀ (j : Nat) (st : auth.AuthState), ⌜i ≤ j⌝ -∗ auth.authStateAt (Γ.au mid) j st -∗
+      ∃ L' : List EntryModel, ⌜L₀ <+: L' ∧ st = srvAuthAtLog Γ.kv srvAuthSt0 L'⌝ ∗ srvReqLogLb γR L'))
 
 /-- **A successful linearizable range's check** (persistent; `v3rpc.rangeAuthed` at the cluster):
 member `mid` of the endpoints served it, its verdict (`rangeClassFrom`) passed for `info` at its auth
@@ -196,12 +208,18 @@ def txnReadCheckedD [NetProtoGS] (eps : List GoString) (Γ : DistView)
     txnClassFrom (.on (Γ.au mid)) m info t ∗ authFloorD Γ γR mid L₀ m)
 
 /-- **A member-local lease call's check at `γa` and index `n`** (`leaseCheckFrom` with the binding
-`principalBound T E.authMode tok` replaced by `userOk P`): auth disabled at a state of index at least `n`,
-or the call's `info` (its user one `P` may be bound to) an admin there or passing `K`. -/
+`principalBound T E.authMode tok` replaced by `P = some info.Username'`): auth disabled at a state of index
+at least `n`, or the call's `info`, `P`'s own user, an admin there or passing `K`.
+
+The binding is `requireAuthInfo`'s (`v3_server.go`: with auth enabled a nil `AuthInfo` is refused,
+`ErrUserEmpty`; a non-nil one comes from an accepted token, which `New` obtained for `cfg`'s user), so an
+anonymous principal (`P = none`) never passes the second arm (F7 S5, 2026-11-26, the lead's approval #50
+06:35Z: until then `userOk P`, which admits the empty user and made the arm vacuous for `P = none`,
+`notes/axiom-review/f7-c.md`). -/
 def leaseCheckD (γa : auth.AuthNames) (P : Option GoString) (n : Nat)
     (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) : IProp GF :=
   iprop(auth.enabledVerdictFrom (.on γa) n false ∨
-    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, ⌜userOk P info.Username'⌝ ∗
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, ⌜P = some info.Username'⌝ ∗
       (auth.adminVerdictFrom (.on γa) n info GoInterface.nil ∨ K info))
 
 /-- **What every auth-on KV contract takes of the client**: `kvClientAt`'s (its `KV` the `*kv` `api`),

@@ -38,6 +38,8 @@ check is no older than its read index, which is at least every commit before the
 cluster-level `readAuthedD`). Serializable reads are not covered (no workload sends one with auth on):
 `serializable = false` is a premise.
 
+**Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
+
 An interim trust-boundary axiom (F7, the lead's approval #50 2026-11-26T06:08Z;
 `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetOnDist.lean`). Reviews (`notes/axiom-review/`): first `f7-a.md` (`d946f6cbda`: UNSOUND, the member names a free binder `A`; fixed by `Γ.au`), then `f7-rerev-a.md` (`6d9d9fd662`): SOUND (condition C), with precision note N1 on `readAuthedD`. **Changed since**: N1 applied (`readCheckedD` gives `srvReqLogLb γR L` at the permitted prefix `L`; a stronger post), not yet reviewed (`f7-changed-since-review.md`). **Re-reviewed** `f7-getOn-n1.md` (2026-11-26): SOUND with N1, given `serializable = false` (keep that
 premise). **Retirement obligation R1** (from that review): a lemma that derives the committed `L` from
