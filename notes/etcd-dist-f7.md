@@ -349,7 +349,15 @@ workloads' statements (`auth`, `authLease`) are F7's new ones.
 
 **Build:** fk-lean2, `~/eg/wt/etcd-safe-f7` (detached at `a6605a2dad`), log `~/eg/logs/f7l-build.log` (ends `EXIT n`).
 Targets: `dist.server.ClusterStartD`, `dist.server.MainLogger`, `dist.kvremote.TopLevelRobustness`, `dist.putget.TopLevelRobustness`,
-`dist.putgetk.TopLevelRobustness`. Its result was not seen.
+`dist.putgetk.TopLevelRobustness`. **Result: EXIT 1.** Every error is in `ClusterStartD.lean`, and everything up to it built
+(`ClusterStart`, `MemberDefs`, `MemberNames`):
+- `lsPad_inj`/`auPad_inj` (lines 98-112): `omega` fails and `simp` makes no progress. Probably `uint.nat` is opaque to
+  `omega` (use `word`, or unfold `uint.nat` to `toNat`), and `simp only at this` is a no-op.
+- `hists_ne` (line 274): `iunfold memberNamesShare` fails in the IPM. The definition comes from `MemberDefs` under
+  `etcd_dist`; try `unfold memberNamesShare authNamesFreshG` before `icases`, or `iunfold` on a fresh hypothesis.
+- `memberNames_alloc_list`: line 304, the `⟨fun a h => by cases h, …⟩` of the nil case (use `List.not_mem_nil`); lines 329-346,
+  the cons step's pure part and the `bigSepL_mono` conversion.
+`MainLogger` and the `TopLevelRobustness` targets were not reached.
 
 **Next:**
 1. Fix any L3/L4 build errors (likely spots: `simp only [... if_true, if_false]` in `lsPad_inj`/`auPad_inj` and the cons step

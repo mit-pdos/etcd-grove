@@ -93,11 +93,17 @@ theorem lsPad_inj (ids : List w64) (f : w64 → GName)
     (hf : ∀ a ∈ ids, ∀ b ∈ ids, f a = f b → a = b) : ∀ a b, lsPad ids f a = lsPad ids f b → a = b := by
   intro a b h
   unfold lsPad at h
-  by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids <;> simp only [ha, hb, if_true, if_false] at h
-  · exact hf a ha b hb h
-  · have := le_sum_map_of_mem ids f a ha; omega
-  · have := le_sum_map_of_mem ids f b hb; omega
-  · exact uint_nat_inj a b (by omega)
+  by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids
+  · rw [if_pos ha, if_pos hb] at h; exact hf a ha b hb h
+  · rw [if_pos ha, if_neg hb] at h
+    have h2 : (f a : Nat) = (ids.map f).sum + 1 + uint.nat b := h
+    have := le_sum_map_of_mem ids f a ha; omega
+  · rw [if_neg ha, if_pos hb] at h
+    have h2 : ((ids.map f).sum + 1 + uint.nat a : Nat) = f b := h
+    have := le_sum_map_of_mem ids f b hb; omega
+  · rw [if_neg ha, if_neg hb] at h
+    have h2 : ((ids.map f).sum + 1 + uint.nat a : Nat) = (ids.map f).sum + 1 + uint.nat b := h
+    exact uint_nat_inj (by omega)
 
 theorem auPad_inj (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames)
     (hg : ∀ a ∈ ids, ∀ b ∈ ids, (g a).hist = (g b).hist → a = b) :
@@ -105,11 +111,18 @@ theorem auPad_inj (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames)
   intro a b h
   have h' := congrArg EtcdGrove.auth.AuthNames.hist h
   unfold auPad at h'
-  by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids <;> simp only [ha, hb, if_true, if_false] at h'
-  · exact hg a ha b hb h'
-  · have := le_sum_map_of_mem ids (fun y => (g y).hist) a ha; simp only at this; omega
-  · have := le_sum_map_of_mem ids (fun y => (g y).hist) b hb; simp only at this; omega
-  · exact uint_nat_inj a b (by omega)
+  by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids
+  · rw [if_pos ha, if_pos hb] at h'; exact hg a ha b hb h'
+  · rw [if_pos ha, if_neg hb] at h'
+    have h2 : ((g a).hist : Nat) = (ids.map (fun y => (g y).hist)).sum + 1 + uint.nat b := h'
+    have := le_sum_map_of_mem ids (fun y => (g y).hist) a ha; simp only at this; omega
+  · rw [if_neg ha, if_pos hb] at h'
+    have h2 : ((ids.map (fun y => (g y).hist)).sum + 1 + uint.nat a : Nat) = (g b).hist := h'
+    have := le_sum_map_of_mem ids (fun y => (g y).hist) b hb; simp only at this; omega
+  · rw [if_neg ha, if_neg hb] at h'
+    have h2 : ((ids.map (fun y => (g y).hist)).sum + 1 + uint.nat a : Nat) =
+      (ids.map (fun y => (g y).hist)).sum + 1 + uint.nat b := h'
+    exact uint_nat_inj (by omega)
 
 end pure
 
@@ -271,9 +284,11 @@ theorem hists_ne (γ : GName) (l : List EtcdGrove.auth.AuthState) (ids : List w6
     icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hx, Hs⟩
     by_cases hx : (g x).hist = γ
     · iexfalso
-      iunfold memberNamesShare authNamesFreshG at Hx
-      icases Hx with ⟨-, -, Hh, -⟩
-      rw [hx] at *
+      iunfold memberNamesShare at Hx
+      icases Hx with ⟨-, -, Hx⟩
+      iunfold authNamesFreshG at Hx
+      icases Hx with ⟨Hh, -⟩
+      subst hx
       iapply (monoListAuthOwn_exclusive γ [EtcdGrove.auth.bootState] l) $$ Hh Hγ
     · icases ih $$ Hγ Hs with ⟨%Hne, Hγ, Hs⟩
       isplitr
@@ -301,7 +316,7 @@ theorem memberNames_alloc_list (ids : List w64) (hnd : ids.Nodup) :
     iexists ClusterNames.lsNone, ClusterNames.auNone
     isplitr
     · ipureintro
-      exact ⟨fun a h => by cases h, fun a h => by cases h⟩
+      exact ⟨fun a h => (by cases h), fun a h => (by cases h)⟩
     iapply BigSepL.bigSepL_nil.2
     iempintro
   | cons x ids ih =>
@@ -321,34 +336,40 @@ theorem memberNames_alloc_list (ids : List w64) (hnd : ids.Nodup) :
       obtain ⟨Hf, Hg⟩ := Hfg
       have hfm : ∀ a ∈ ids, f a ≠ γl := fun a ha e => Hγl (e ▸ List.mem_map_of_mem ha)
       constructor
-      · intro a ha b hb
-        rcases List.mem_cons.1 ha with rfl | ha <;> rcases List.mem_cons.1 hb with rfl | hb
-        · intro; rfl
-        · have hb' : b ≠ a := fun e => hx (e ▸ hb)
-          simp only [if_true, hb', if_false]; intro e; exact absurd e.symm (hfm b hb)
-        · have ha' : a ≠ b := fun e => hx (e ▸ ha)
-          simp only [if_true, ha', if_false]; intro e; exact absurd e (hfm a ha)
-        · have ha' : a ≠ x := fun e => hx (e ▸ ha)
-          have hb' : b ≠ x := fun e => hx (e ▸ hb)
-          simp only [ha', hb', if_false]; exact Hf a ha b hb
-      · intro a ha b hb
-        rcases List.mem_cons.1 ha with rfl | ha <;> rcases List.mem_cons.1 hb with rfl | hb
-        · intro; rfl
-        · have hb' : b ≠ a := fun e => hx (e ▸ hb)
-          simp only [if_true, hb', if_false]; intro e; exact absurd e.symm (Hne b hb)
-        · have ha' : a ≠ b := fun e => hx (e ▸ ha)
-          simp only [if_true, ha', if_false]; intro e; exact absurd e (Hne a ha)
-        · have ha' : a ≠ x := fun e => hx (e ▸ ha)
-          have hb' : b ≠ x := fun e => hx (e ▸ hb)
-          simp only [ha', hb', if_false]; exact Hg a ha b hb
+      · intro a ha b hb e
+        have ha2 := List.mem_cons.1 ha
+        have hb2 := List.mem_cons.1 hb
+        beta_reduce at e
+        by_cases hax : a = x <;> by_cases hbx : b = x
+        · rw [hax, hbx]
+        · rw [if_pos hax, if_neg hbx] at e
+          exact absurd e.symm (hfm b (hb2.resolve_left hbx))
+        · rw [if_neg hax, if_pos hbx] at e
+          exact absurd e (hfm a (ha2.resolve_left hax))
+        · rw [if_neg hax, if_neg hbx] at e
+          exact Hf a (ha2.resolve_left hax) b (hb2.resolve_left hbx) e
+      · intro a ha b hb e
+        have ha2 := List.mem_cons.1 ha
+        have hb2 := List.mem_cons.1 hb
+        beta_reduce at e
+        by_cases hax : a = x <;> by_cases hbx : b = x
+        · rw [hax, hbx]
+        · rw [if_pos hax, if_neg hbx] at e
+          exact absurd e.symm (Hne b (hb2.resolve_left hbx))
+        · rw [if_neg hax, if_pos hbx] at e
+          exact absurd e (Hne a (ha2.resolve_left hax))
+        · rw [if_neg hax, if_neg hbx] at e
+          exact Hg a (ha2.resolve_left hax) b (hb2.resolve_left hbx) e
     iapply BigSepL.bigSepL_cons.2
     isplitl [Hl Hh Ha]
-    · simp only [if_true]
-      iunfold memberNamesShare authNamesFreshG
-      iframe Hl Hslot Hh Ha
+    · simp only [ite_true]
+      iunfold memberNamesShare
+      iframe Hl Hslot
+      iunfold authNamesFreshG
+      iframe Hh Ha
     · iapply (BigSepL.bigSepL_mono (fun {k y} (hk : ids[k]? = some y) => by
         have hy : y ≠ x := fun e => hx (e ▸ List.mem_of_getElem? hk)
-        simp only [hy, if_false]
+        simp only [hy, ite_false]
         exact .rfl)) $$ Hs
 
 /-- **The members' names, padded** (#50 F7, L4): `lsPad`/`auPad` of `memberNames_alloc_list`'s, injective over all
@@ -366,7 +387,7 @@ theorem memberNames_alloc (ids : List w64) (hnd : ids.Nodup) :
     exact ⟨lsPad_inj ids f Hfg.1, auPad_inj ids g Hfg.2⟩
   iapply (BigSepL.bigSepL_mono (fun {k y} (hk : ids[k]? = some y) => by
     have hy : y ∈ ids := List.mem_of_getElem? hk
-    simp only [lsPad, auPad, hy, if_true]
+    simp only [lsPad, auPad, hy, ite_true]
     exact .rfl)) $$ Hs
 
 theorem names_members (c : ClusterNames) (d : Deployment) :
