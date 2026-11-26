@@ -588,3 +588,19 @@ merge lean into goose-model-overlay-rest and shrink the packet.
   (16 premises listed); premise-witness ok (47 statements); merge-status selftest ok; models ok and
   remote ok (the gates' own commands, `scripts/models-remote.sh`; models needed the module cache warmed
   once with GOPROXY on for jsonmodel_forks.py's testify, then passed with the gates' GOPROXY=off).
+
+## Session 16, stage 2 (2026-11-26) — repoint at the landed Perennial `da0a82c26`, merge lean `93687cba82`
+- Worktree `eg-s2` (new), branch `go-models-rest-egnet-lmerge4/2026-11-26` off stage 1; VM key 127e958d2f5da04a
+  (eg-s2's own); scratch `tmp/gm16/` (merge.log, resolve*.log, hunks.txt, scripts/{resolve.py, manual.py,
+  regen.sh, genlink-all.sh, eggates-s2.sh}, s2-full*.log, s2-gates1.log, s2-goose-check.log, models-remote-s2.log).
+- Ancestry checked: `a706aeb9a` (lean's pin), `a76168a96` and `09bd3826c` are ancestors of `da0a82c26`.
+  lakefile.toml + lake-manifest.json rev = `da0a82c26`; iris/batteries/Qq = Perennial da0's manifest.
+- Merge: 193 conflicts; 102 PkgTable/BootTable (lean's, regenerated); 41 by FA-strip equivalence
+  (`scripts/resolve.py`, whitespace-normalized); 23 by hand (`scripts/manual.py`: lean's text without the FA
+  binders; intros adjusted; Nodes = lean's draws + our isPkgInit net); mvccrand deleted (retired on lean).
+  strip_fa over lean's changed files: 41; prose in 8 net/httpdriver statements updated.
+- Port: specProto + isPkgInit net; hcStream + isPkgInit poll; poll_ed's shape; intros of putgetk/kvremote/
+  BootBad/httpdriver statements (packet-rest.md, last section). Builds: full1 (4 failures), full2/3, then
+  **full4 EXIT 0, 29400 jobs**. Gates: see packet-rest.md Evidence (session 16, stage 2): all ok.
+- STATE: pushed to `go-models-rest-egnet/2026-11-24` (fast-forward); land-queue line in the session report.
+

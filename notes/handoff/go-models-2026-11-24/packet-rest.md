@@ -7,8 +7,8 @@ trusted exactly as on lean (decision below), so log has no Go model and no delta
 
 | repo | branch | head | state |
 |---|---|---|---|
-| Perennial | `goose-model-overlay-rest` | `09bd3826c` | lean `d5eb93cb5` (basic slice) merged; whole library + PerennialMeta built (int-full11, EXIT 0, all 4 chunks); `etc/model-tests.sh` and `go test ./goose/...` pass; log = lean's |
-| etcd-grove | `go-models-rest-egnet/2026-11-24` | (this notes commit; code at `b8bb95f0ba`) | **the packet's branch**: os/syscall/durable/crc32/go-token + net, pinned to the Perennial head above, **merged with etcd-grove lean `5c036beb77`** (grpc-driver; before it `2926d09437`, basic slice landed + dsv-fix6; lean's trusted UDP kept, #8 (a); dsv-fix6's Net `errPlain` lemmas re-proved over Go's `OpError.Error`, section "dsv-fix6's `errPlain`/`errLeaf` lemmas" at the end); **all default targets built, EXIT 0** (29034 jobs, `tmp/gm15/full1.log`); `tcb-report --check` matches lean's baseline (384 axioms, 0 sorry); **all 65 collections `--check` match** (grpcdriver's included) (kvraft, kvraft-udp, raft-noax 0/0; dsv-craq = lean's 6 axioms); `GooseLang.Ext.NetFsUdp.Adequacy` and kvraft_udp's `TopLevelRobustness` built |
+| Perennial | `goose-model-overlay-rest` | `09bd3826c` | **LANDED** on Perennial lean as `da0a82c26` (merged with lean `a706aeb9a`, with the KNOWN_LIMITATIONS GC section); the etcd-grove branch is pinned to `da0a82c26` |
+| etcd-grove | `go-models-rest-egnet/2026-11-24` | (this notes commit; code at `4a10a63935`) | **the packet's branch**: pinned to the **landed Perennial `da0a82c26`**, **merged with etcd-grove lean `93687cba82`** (pin `a706aeb9a`, an ancestor of `da0a82c26`; session 16); the two gate fixes of #8 7176991791 (tier, gomodels); **all default targets built, EXIT 0** (29400 jobs, `tmp/gm16/s2-full4.log`); **full `etc/gates.sh`: every section ok** (VM, `tmp/gm16/s2-gates1.log`, plus the sections the VM cannot run, run locally: goose, reader-slot, models, remote, merge-status, iris-premise, premise-witness); `tcb-report --check` matches lean's baseline (374 axioms, 0 sorry); **all 68 collections match** |
 | etcd-grove | `go-models-rest/2026-11-24` | `25ff765af9` | the same without net (egnet merged it); the 2026-11-25 review fixes to os are on the egnet branch only (merge egnet, or cherry-pick `d2fa9c8519`, when landing main alone) |
 
 **Decided (coordinator-E, etcd-grove#8 7153952113 / 7166757537), applied 2026-11-25 (session 10):**
@@ -2359,6 +2359,20 @@ Audited 2026-11-25 (fmt/log/syscall by the lead; os/syscall/durable and net by t
   exhaustion, the extension's D12).
 
 # Evidence
+- **(2026-11-26, session 16, stage 2: pin = landed Perennial `da0a82c26`, merge of etcd-grove lean `93687cba82`)**
+  etcd-grove egnet code `4a10a63935`: `goose.py` at `da0a82c26` (write, then `--check`): 73 projects, 0 files
+  changed; every generator regenerated with `PERENNIAL_DIR` at `da0a82c26` (gen-init, copy-part, gen-raft-tla,
+  gen-specs-pkginit, kitgen, gen-driver-boottable, gen-k8s-deep, gen-pbschema; every gen-link mode: 0 differ);
+  `lake build` (all default targets) **EXIT 0, 29400 jobs** (`tmp/gm16/s2-full4.log`). **Full `etc/gates.sh` on
+  the VM** (`tmp/gm16/s2-gates1.log`): build ok, links ok, tcb "trust base matches etc/tcb-baseline.txt (374
+  axioms, 0 sorries)" (lean's baseline byte for byte), collections 68 match / 0 differ, axiom-tok ok, model-param,
+  heapfree, gomodels, gen-init (290 up to date), copy-part (0 differ), gen-raft-tla, kitgen, gen-driver-boottable,
+  dist-axiom-diff, bounds (389), mode (457), api, import-all, tier (207 known), premisefix, k8s, issues, all ok.
+  The VM's failing sections are environmental (no go1.27.3 goroot-net; no git in the sync dir; a Go runtime
+  crash in its models/remote run), run locally on the same commit: goose.py --check 73/73 up to date,
+  reader-slot ok, gomodels ok, models ok, remote ok, merge-status selftest ok, iris-premise ok (16 listed),
+  premise-witness ok (49 statements). Top-level statements vs lean: only `FieldAssumptions` binders removed
+  (and their prose), nothing added.
 - **(2026-11-26, session 16, the two gate fixes, coordinator-E #8 7176991791)** etcd-grove egnet code `08e66dd44a`
   (pin `09bd3826c`): `tier` fixed (`os.Remove.wp_fileSncNFmt` to the defs module `Proof/os/RemoveParts.lean`;
   `tier-check --check` ok, baseline unchanged), `gomodels` fixed (both `internal/gomodel.toml` = Perennial
@@ -2663,4 +2677,16 @@ takes Net's `net.Listen.spec` as a hypothesis and lists grpc's model axioms in i
 - internal: `grpcdriver.drv_listen` (`ListenSet.lean`) gains `isPkgInit pkg_id.net` in its precondition
   (Net's `Listen.specAddrOk` asks it here: `syscall.errnoOk` for the `*OpError`); its one caller,
   `grpcdriver.Server.wp_proof`, obtains it by `iPkgInit`. `Server.spec` unchanged.
+
+## lean `93687cba82` over the Go-model net (session 16)
+lean's new code since `5c036beb77` (httpdriver, etcd dist/kvremote/putgetk, net examples' statements without
+`Hconns`/`BasicIntoValInj` (325bd73a3b), DialWithBalancerBody retired, mvccrand retired) merged; statements:
+lean's, the `FieldAssumptions` binders removed (no premise gained, no conclusion changed). Internal additions:
+- `Spec/net/ListenProto.lean`'s `net.Listen.specProto` (a callee spec, not top-level) takes `isPkgInit pkg_id.net`
+  (Net's `Listen.spec` asks it since the Go-model net); its proof passes it on, its caller (dist server's
+  `MainLogger`) obtains it by `solve_pkg_init`.
+- httpdriver `hcStream` (`ClientStream.lean`, a lemma) takes `isPkgInit pkg_id.internal.poll` (Net's
+  `Conn.Read.specLc` asks it); `session.wp_proof` obtains it by `iPkgInit`. `poll_ed` (`SessionLemmas.lean`)
+  reads the Go-model poll's package fact (`ErrDeadlineExceeded` a `*DeadlineExceededError`). The net examples'
+  `Nodes`: lean's random draws, then our `isPkgInit net` before `Listen`/`Dial`, as before.
 
