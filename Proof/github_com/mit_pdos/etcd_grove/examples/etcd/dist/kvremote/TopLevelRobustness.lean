@@ -23,6 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.M
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.AdequacyClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Shares
 
 @[expose] public section
 
@@ -97,25 +98,26 @@ theorem etcd_kv_safe_nocrash_of_boot (HS : EtcdKvBootNC) : etcd_kv_safe_nocrash.
       iempintro
 
 /-- **Member `i`'s machine's boot at M1's premises** (`EtcdKvBootNC`'s member part): N5's `member_boot_dist`
-from its share `∃ c, memberShareD c d (distPs d) (distCtxs d) boot i`, its start state `σs[i]` given by
-`Hσs` and the scope's `d.cfg.auth = false`. -/
+from its share `∃ c, memberShareD c .none d (distPs d) (distCtxs d) boot i`, its start state `σs[i]` given by
+`Hσs`; at the lease mode `.none` the auth premise holds trivially (the scope's `d.cfg.auth = false` is unused). -/
 theorem kvMemberBoot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel] [net.FieldAssumptions]
-    (d : Deployment) (Hd : d.WellFormed) (Hscope : KvOnly d ∧ d.cfg.auth = false)
+    (d : Deployment) (Hd : d.WellFormed) (_Hscope : KvOnly d ∧ d.cfg.auth = false)
     (boot : List LogEntry) (Hbf : BootFacts d boot) (Henv : EtcdEnv d) (HEnv : EtcdVerifyOff)
     (Hfips : crypto.fips140.GodebugFips140Off) (σs : List state)
     (Hσs : σs.length = d.members.length ∧ ∀ p ∈ d.members.zip σs, ServerStart p.1 p.2)
     (i : Nat) (σ : state) (hi : σs[i]? = some σ)
     [G : GooseGlobalGS .hasLC etcdDistGF] [π : NetProtoGS] :
     Net.DistBootWpSLT etcdThreads 0 etcdSteps (serverProg d i) σ
-      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) := by
+      (iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i)) := by
   obtain ⟨hiσ, rfl⟩ := List.getElem?_eq_some_iff.1 hi
   have hl : i < d.members.length := Hσs.1 ▸ hiσ
   have Hst := Hσs.2 (d.members[i], σs[i]) (List.mem_iff_getElem.mpr
     ⟨i, by simp [List.length_zip]; omega, by simp [List.getElem_zip]⟩)
-  exact server.member_boot_dist d Hd Hscope.2 boot Hbf Henv HEnv Hfips i d.members[i]
+  exact server.member_boot_dist d Hd boot Hbf Henv HEnv Hfips .none (fun h => nomatch h)
+    (fun _ h => nomatch h) i d.members[i]
     (List.getElem?_eq_getElem hl) σs[i] Hst
 
 
@@ -223,33 +225,6 @@ theorem nodeList_length {d : Deployment} {w : Workload} {ns : List GoString} (hw
     (hn : d.nodes = [ns]) : d.nodeList.length = ns.length := by
   simp [Deployment.nodeList, hw, hn]
 
-theorem mem_rotateL {α : Type} [Inhabited α] {xs : List α} {i : Nat} {x : α} (h : x ∈ rotateL xs i) :
-    x ∈ xs := by
-  unfold rotateL at h
-  obtain ⟨j, hj, rfl⟩ := List.mem_map.1 h
-  have hlen : 0 < xs.length := by have := List.mem_range.1 hj; omega
-  have hk : (i + j) % xs.length < xs.length := Nat.mod_lt _ hlen
-  first
-    | (rw [getElem!_pos xs ((i + j) % xs.length) hk]; exact List.getElem_mem hk)
-    | (simp only [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some];
-       exact List.getElem_mem hk)
-    | simp [hk]
-
-/-- The rotated client addresses of a well-formed deployment are plain endpoints. -/
-theorem rotateL_plain {d : Deployment} (Hd : d.WellFormed) (c : Nat) :
-    plainEndpoints (rotateL (d.members.map Member.client) c) := by
-  obtain ⟨hne, -⟩ := Hd.members
-  refine ⟨fun h => ?_, fun ep hep => ?_⟩
-  · have := congrArg List.length h
-    rw [rotateL_length, List.length_map] at this
-    exact hne (List.eq_nil_of_length_eq_zero this)
-  · have hmem := mem_rotateL hep
-    obtain ⟨m, hm', rfl⟩ := List.mem_map.1 hmem
-    apply addrOk_plainEndpoint
-    apply Hd.addrs.2
-    simp only [Deployment.addrs]
-    exact List.mem_append_left _ (List.mem_flatMap.2 ⟨m, hm', by simp⟩)
-
 end shape
 
 section bigops
@@ -303,7 +278,7 @@ member `i`'s `memberShareD`, then the orchestrator's `kvOrchPre`, then each clie
 def kvShares (d : Deployment) (boot : List LogEntry) (w : Workload) (ns : List GoString) (ρ : RemoteGS) (i : Nat) :
     IProp etcdDistGF :=
   if i < d.members.length then
-    iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)
+    iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i)
   else if i = d.members.length then kvOrchPre (GF := etcdDistGF) (ρ := ρ) ns w.ops
   else match d.nodeList[i - (d.members.length + 1)]? with
     | some (_, c, a) =>
@@ -313,7 +288,7 @@ def kvShares (d : Deployment) (boot : List LogEntry) (w : Workload) (ns : List G
 theorem kvShares_member {d : Deployment} {boot : List LogEntry} {w : Workload} {ns : List GoString}
     {ρ : RemoteGS} {i : Nat} (h : i < d.members.length) :
     kvShares d boot w ns ρ i =
-      iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i) := by
+      iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i) := by
   unfold kvShares; rw [if_pos h]
 
 theorem kvShares_orch {d : Deployment} {boot : List LogEntry} {w : Workload} {ns : List GoString}
@@ -353,11 +328,11 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
       exact List.eq_nil_of_length_eq_zero this
     subst hc0 hn0'
     simp only [Deployment.addrs, hn0, List.flatten_nil, List.append_nil]
-    imod (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb) $$ Hreg Hs with ⟨%Γ, -, -, -, HMS⟩
+    imod (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb Hscope.2) $$ Hreg Hs with ⟨%Γ, -, -, -, HMS⟩
     iunfold membersShareKv at HMS
     icases HMS with ⟨%c, -, HMS⟩
     imodintro
-    iexists (fun i => iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i))
+    iexists (fun i => iprop(∃ c : ClusterNames, memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i))
     isplitr
     · ipureintro
       intro i m hm
@@ -367,9 +342,9 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
       exact kvMemberBoot d Hd Hscope boot Hbf Henv HEnv Hfips σs Hσs i σ hσ
     · simp only [machines, clients, nodeMachines, List.mapIdx_nil, List.append_nil]
       iapply (bigSepL_idx' (fun i => iprop(∃ c : ClusterNames,
-        memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i)) d.members (servers d σs) hsl.symm)
+        memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i)) d.members (servers d σs) hsl.symm)
       iapply (BigSepL.bigSepL_impl (Ψ := fun i _ => iprop(∃ c : ClusterNames,
-        memberShareD (GF := etcdDistGF) c d (distPs d) (distCtxs d) boot i))) $$ HMS
+        memberShareD (GF := etcdDistGF) c .none d (distPs d) (distCtxs d) boot i))) $$ HMS
       imodintro
       iintro %k %x %_ H
       iexists c
@@ -387,7 +362,7 @@ theorem etcdKvBootNC_holds : EtcdKvBootNC := by
       simp [servers, clients, Hσs.1]
     imod (kv_start_deployment (GF := etcdDistGF) d w ns hw1 hn1 Hd.addrs.1
         ⟨by unfold etcdSteps at hb; omega, hb1, hb2, hb3⟩ (membersShareKv (GF := etcdDistGF) d boot)
-        (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb)) $$ Hreg Hs
+        (member_boot_dist_law (GF := etcdDistGF) d Hd boot Hbf hrb Hscope.2)) $$ Hreg Hs
       with ⟨%Γ, %ρ, %Hauth, HMS, Ho, #Hmem, #Ha⟩
     iunfold membersShareKv at HMS
     icases HMS with ⟨%c, -, HMS⟩

@@ -67,6 +67,63 @@ theorem members_getD_ids (d : Deployment) (k : Nat) (m : Member) (hk : d.members
   · simp [Deployment.ids, List.getD_eq_getElem?_getD, hk]
   · simp [List.getD_eq_getElem?_getD, hk]
 
+theorem le_sum_map_of_mem {α : Type _} (l : List α) (f : α → Nat) (a : α) (h : a ∈ l) :
+    f a ≤ (l.map f).sum := by
+  induction l with
+  | nil => cases h
+  | cons b l ih =>
+    simp only [List.map_cons, List.sum_cons]
+    rcases List.mem_cons.1 h with rfl | h
+    · omega
+    · have := ih h; omega
+
+/-- **The members' lessor names, padded to all of `w64`** (#50 F7, L4): `f` on the members `ids`, and above every
+member's name, one apart, off them. -/
+def lsPad (ids : List w64) (f : w64 → GName) : w64 → GName :=
+  fun x => if x ∈ ids then f x else (ids.map f).sum + 1 + uint.nat x
+
+/-- **The members' auth names, padded to all of `w64`**: `g` on the members `ids`, and off them a record whose
+fields are all one name above every member's history name. -/
+def auPad (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames) : w64 → EtcdGrove.auth.AuthNames :=
+  fun x => if x ∈ ids then g x else
+    let n := (ids.map (fun y => (g y).hist)).sum + 1 + uint.nat x
+    ⟨n, n, n, n, n, n, n, n, n, n, n, n⟩
+
+theorem lt_add_one_add (s n : Nat) : ¬ s + 1 + n ≤ s :=
+  Nat.not_le.2 (Nat.lt_of_lt_of_le (Nat.lt_succ_self s) (Nat.le_add_right _ _))
+
+theorem lsPad_inj (ids : List w64) (f : w64 → GName)
+    (hf : ∀ a ∈ ids, ∀ b ∈ ids, f a = f b → a = b) : ∀ a b, lsPad ids f a = lsPad ids f b → a = b := by
+  intro a b h
+  unfold lsPad at h
+  by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids
+  · rw [if_pos ha, if_pos hb] at h; exact hf a ha b hb h
+  · rw [if_pos ha, if_neg hb] at h
+    have h3 : f a ≤ (ids.map f).sum := le_sum_map_of_mem ids f a ha
+    rw [h] at h3; exact absurd h3 (lt_add_one_add _ _)
+  · rw [if_neg ha, if_pos hb] at h
+    have h3 : f b ≤ (ids.map f).sum := le_sum_map_of_mem ids f b hb
+    rw [← h] at h3; exact absurd h3 (lt_add_one_add _ _)
+  · rw [if_neg ha, if_neg hb] at h
+    exact uint_nat_inj a b (Nat.add_left_cancel h)
+
+theorem auPad_inj (ids : List w64) (g : w64 → EtcdGrove.auth.AuthNames)
+    (hg : ∀ a ∈ ids, ∀ b ∈ ids, (g a).hist = (g b).hist → a = b) :
+    ∀ a b, auPad ids g a = auPad ids g b → a = b := by
+  intro a b h
+  have h' := congrArg EtcdGrove.auth.AuthNames.hist h
+  unfold auPad at h'
+  by_cases ha : a ∈ ids <;> by_cases hb : b ∈ ids
+  · rw [if_pos ha, if_pos hb] at h'; exact hg a ha b hb h'
+  · rw [if_pos ha, if_neg hb] at h'
+    have h3 : (g a).hist ≤ (ids.map (fun y => (g y).hist)).sum := le_sum_map_of_mem ids (fun y => (g y).hist) a ha
+    rw [h'] at h3; exact absurd h3 (lt_add_one_add _ _)
+  · rw [if_neg ha, if_pos hb] at h'
+    have h3 : (g b).hist ≤ (ids.map (fun y => (g y).hist)).sum := le_sum_map_of_mem ids (fun y => (g y).hist) b hb
+    rw [← h'] at h3; exact absurd h3 (lt_add_one_add _ _)
+  · rw [if_neg ha, if_neg hb] at h'
+    exact uint_nat_inj a b (Nat.add_left_cancel h')
+
 end pure
 
 section compactor
@@ -104,6 +161,21 @@ theorem compactorCfg_of_wf {d : Deployment} (Hd : d.WellFormed) :
     refine ⟨true, 0, ?_⟩
     rw [hm]
     exact v3compactor.bootCfg_periodic _ _ (by omega) rfl
+
+/-- **`compactorCfg_of_wf` with the token provider's tie** (#50 F7 S2 step 4): with auth on the deployment's
+compactor is off (`Deployment.WellFormed.authCompactorOff`), so the slot is chosen as no compaction (`cmp = false`,
+`cret = 0`), what the auth-on allocation (`clusterAllocN`'s `Hon`) takes. -/
+theorem compactorCfg_of_wf_auth {d : Deployment} (Hd : d.WellFormed) :
+    ∃ (cmp : Bool) (cret : Nat), v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret ∧
+      (d.cfg.auth = true → cmp = false ∧ cret = 0) := by
+  cases hau : d.cfg.auth
+  · obtain ⟨cmp, cret, h⟩ := compactorCfg_of_wf Hd
+    exact ⟨cmp, cret, h, fun h' => nomatch h'⟩
+  · have hc := Hd.authCompactorOff hau
+    refine ⟨false, 0, v3compactor.bootCfg_off _ _ _ _ ?_, fun _ => ⟨rfl, rfl⟩⟩
+    first
+      | (apply BitVec.eq_of_toInt_eq; simp only [sint.Z] at hc; rw [hc]; try (first | rfl | decide); done)
+      | word
 
 end compactor
 
@@ -208,54 +280,220 @@ theorem clientSvc_members (d : Deployment) (Γ : DistView) :
   unfold clientSvcFacts
   rw [cmsD_eq, BigSepL.bigSepL_map] <;> exact .rfl
 
+/-- **The member's names exclude a full history authority at the same name** (kept: the resources come back). -/
+theorem hists_ne (γ : GName) (l : List EtcdGrove.auth.AuthState) (ids : List w64) (f : w64 → GName)
+    (g : w64 → EtcdGrove.auth.AuthNames) :
+    ⊢ monoListAuthOwn γ 1 l -∗ ([∗list] id ∈ ids, memberNamesShare (GF := GF) (f id) (g id)) -∗
+      ⌜∀ a ∈ ids, (g a).hist ≠ γ⌝ ∗ monoListAuthOwn γ 1 l ∗
+        [∗list] id ∈ ids, memberNamesShare (GF := GF) (f id) (g id) := by
+  induction ids with
+  | nil =>
+    iintro Hγ _
+    isplitr
+    · ipureintro; intro a h; cases h
+    iframe Hγ
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  | cons x ids ih =>
+    iintro Hγ Hs
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hx, Hs⟩
+    by_cases hx : (g x).hist = γ
+    · iexfalso
+      iunfold memberNamesShare at Hx
+      icases Hx with ⟨-, -, Hx⟩
+      iunfold authNamesFreshG at Hx
+      icases Hx with ⟨Hh, -⟩
+      subst hx
+      iapply (monoListAuthOwn_exclusive _ [EtcdGrove.auth.bootState] l) $$ Hh Hγ
+    · icases ih $$ Hγ Hs with ⟨%Hne, Hγ, Hs⟩
+      isplitr
+      · ipureintro
+        intro a ha
+        rcases List.mem_cons.1 ha with rfl | ha
+        · exact hx
+        · exact Hne a ha
+      iframe Hγ
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hx Hs
+
+/-- **The start's allocation of the members' lessor and auth names** (#50 F7, L4), by induction over the members'
+ids (distinct): per member, `lease.lessorSlot_alloc` outside the names so far and `authNamesFreshG_alloc`, whose
+history names differ from the others' by exclusivity. -/
+theorem memberNames_alloc_list (ids : List w64) (hnd : ids.Nodup) :
+    ⊢ |={⊤}=> ∃ (f : w64 → GName) (g : w64 → EtcdGrove.auth.AuthNames),
+      ⌜(∀ a ∈ ids, ∀ b ∈ ids, f a = f b → a = b) ∧
+        (∀ a ∈ ids, ∀ b ∈ ids, (g a).hist = (g b).hist → a = b)⌝ ∗
+      [∗list] id ∈ ids, memberNamesShare (GF := GF) (f id) (g id) := by
+  induction ids with
+  | nil =>
+    iintro
+    imodintro
+    iexists ClusterNames.lsNone, ClusterNames.auNone
+    isplitr
+    · ipureintro
+      exact ⟨fun a h => (by cases h), fun a h => (by cases h)⟩
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  | cons x ids ih =>
+    obtain ⟨hx, hnd'⟩ := List.nodup_cons.1 hnd
+    iintro
+    imod (ih hnd') with ⟨%f, %g, %Hfg, Hs⟩
+    imod (lease.lessorSlot_alloc (GF := GF) ⊤ (ids.map f)) with ⟨%γl, %Hγl, Hl, #Hslot⟩
+    imod (authNamesFreshG_alloc (GF := GF)) with Ha
+    icases Ha with ⟨%γa, Ha⟩
+    iunfold authNamesFreshG at Ha
+    icases Ha with ⟨Hh, Ha⟩
+    icases hists_ne γa.hist [EtcdGrove.auth.bootState] ids f g $$ Hh Hs with ⟨%Hne, Hh, Hs⟩
+    imodintro
+    iexists (fun y => if y = x then γl else f y), (fun y => if y = x then γa else g y)
+    isplitr
+    · ipureintro
+      obtain ⟨Hf, Hg⟩ := Hfg
+      have hfm : ∀ a ∈ ids, f a ≠ γl := fun a ha e => Hγl (e ▸ List.mem_map_of_mem ha)
+      constructor
+      · intro a ha b hb e
+        have ha2 := List.mem_cons.1 ha
+        have hb2 := List.mem_cons.1 hb
+        dsimp only at e
+        by_cases hax : a = x <;> by_cases hbx : b = x
+        · rw [hax, hbx]
+        · rw [if_pos hax, if_neg hbx] at e
+          exact absurd e.symm (hfm b (hb2.resolve_left hbx))
+        · rw [if_neg hax, if_pos hbx] at e
+          exact absurd e (hfm a (ha2.resolve_left hax))
+        · rw [if_neg hax, if_neg hbx] at e
+          exact Hf a (ha2.resolve_left hax) b (hb2.resolve_left hbx) e
+      · intro a ha b hb e
+        have ha2 := List.mem_cons.1 ha
+        have hb2 := List.mem_cons.1 hb
+        dsimp only at e
+        by_cases hax : a = x <;> by_cases hbx : b = x
+        · rw [hax, hbx]
+        · rw [if_pos hax, if_neg hbx] at e
+          exact absurd e.symm (Hne b (hb2.resolve_left hbx))
+        · rw [if_neg hax, if_pos hbx] at e
+          exact absurd e (Hne a (ha2.resolve_left hax))
+        · rw [if_neg hax, if_neg hbx] at e
+          exact Hg a (ha2.resolve_left hax) b (hb2.resolve_left hbx) e
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hl Hh Ha]
+    · simp only [ite_true]
+      iunfold memberNamesShare
+      iframe Hl Hslot
+      iunfold authNamesFreshG
+      iframe Hh Ha
+    · iapply (BigSepL.bigSepL_mono (fun {k y} (hk : ids[k]? = some y) => by
+        have hy : y ≠ x := fun e => hx (e ▸ List.mem_of_getElem? hk)
+        simp only [hy, ite_false]
+        exact .rfl)) $$ Hs
+
+/-- **The members' names, padded** (#50 F7, L4): `lsPad`/`auPad` of `memberNames_alloc_list`'s, injective over all
+of `w64`, with every member's `memberNamesShare`. -/
+theorem memberNames_alloc (ids : List w64) (hnd : ids.Nodup) :
+    ⊢ |={⊤}=> ∃ (ls : w64 → GName) (au : w64 → EtcdGrove.auth.AuthNames),
+      ⌜(∀ a b, ls a = ls b → a = b) ∧ (∀ a b, au a = au b → a = b)⌝ ∗
+      [∗list] id ∈ ids, memberNamesShare (GF := GF) (ls id) (au id) := by
+  iintro
+  imod (memberNames_alloc_list ids hnd) with ⟨%f, %g, %Hfg, Hs⟩
+  imodintro
+  iexists lsPad ids f, auPad ids g
+  isplitr
+  · ipureintro
+    exact ⟨lsPad_inj ids f Hfg.1, auPad_inj ids g Hfg.2⟩
+  iapply (BigSepL.bigSepL_mono (fun {k y} (hk : ids[k]? = some y) => by
+    have hy : y ∈ ids := List.mem_of_getElem? hk
+    simp only [lsPad, auPad, hy, ite_true]
+    exact .rfl)) $$ Hs
+
+theorem names_members (c : ClusterNames) (d : Deployment) :
+    ([∗list] id ∈ d.ids, memberNamesShare (GF := GF) (c.ls id) (c.au id)) ⊢
+      [∗list] m ∈ d.members, memberNamesShare (GF := GF) (c.ls (memberId (go!"http://" ++ m.peer) d.token))
+        (c.au (memberId (go!"http://" ++ m.peer) d.token)) := by
+  rw [show d.ids = d.members.map (fun m => memberId (go!"http://" ++ m.peer) d.token) from rfl,
+    BigSepL.bigSepL_map] <;> exact .rfl
+
 /-- **Every member's share** (`memberShareD`) from the cluster's facts, the peer facts, the members' slices and their
 client address facts, at names `c` the allocation made true (`ClusterOk`) and a compactor slot the deployment's
 configuration meets. -/
-theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterNames) (cmp : Bool) (cret : Nat)
-    (Hok : ClusterOk c (distPs d) boot .none cmp cret d.ids)
-    (Hcmp : v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret) :
-    ⊢ clusterFactsOf (GF := GF) c -∗ peerAddrFactsAt (GF := GF) c.γ (cmsD d) -∗
+theorem memberShares_of (d : Deployment) (boot : List LogEntry) (c : ClusterNames) (lm : lease.Mode) (cmp : Bool)
+    (cret : Nat) (Hok : ClusterOk c (distPs d) boot lm cmp cret d.ids d.cfg.auth)
+    (Hcmp : v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret) (Hinj : c.NamesInj) :
+    ⊢ clusterFactsOf (GF := GF) c d.cfg.auth -∗ peerAddrFactsAt (GF := GF) c.γ (cmsD d) -∗
       ([∗list] id ∈ d.ids, memberSliceOf (GF := GF) c d.ids (distPs d) (distCtxs d) (LogEntry.toEntries boot 0) id) -∗
-      clientSvcFacts (GF := GF) (cmsD d) c.view -∗
-      [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c d (distPs d) (distCtxs d) boot i := by
-  iintro #Hcf #Hpf Hsl #Hcs
+      clientSvcFacts (GF := GF) (cmsD d) (c.view d.cfg.auth) -∗
+      ([∗list] id ∈ d.ids, memberNamesShare (GF := GF) (c.ls id) (c.au id)) -∗
+      [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
+  iintro #Hcf #Hpf Hsl #Hcs Hnm
   ihave Hsl := slices_members c d (distPs d) (distCtxs d) (LogEntry.toEntries boot 0) $$ Hsl
-  ihave #Hcs' := clientSvc_members d c.view $$ Hcs
+  ihave Hnm := names_members c d $$ Hnm
+  ihave #Hcs' := clientSvc_members d (c.view d.cfg.auth) $$ Hcs
   ihave Hb : [∗list] m ∈ d.members,
       (memberSliceOf (GF := GF) c d.ids (distPs d) (distCtxs d) (LogEntry.toEntries boot 0)
           (memberId (go!"http://" ++ m.peer) d.token) ∗
-        etcdAddrAt (GF := GF) m.client c.view (memberId (go!"http://" ++ m.peer) d.token)) $$ [Hsl]
+        etcdAddrAt (GF := GF) m.client (c.view d.cfg.auth) (memberId (go!"http://" ++ m.peer) d.token)) $$ [Hsl]
   · iapply BigSepL.bigSepL_sep_eqv.2
     isplitl [Hsl]
     · iexact Hsl
     · iexact Hcs'
-  iapply (BigSepL.bigSepL_impl (Ψ := fun k _ => memberShareD (GF := GF) c d (distPs d) (distCtxs d) boot k)) $$ Hb
+  ihave Hb := BigSepL.bigSepL_sep_eqv.2 $$ [Hb Hnm]
+  · isplitl [Hb]
+    · iexact Hb
+    · iexact Hnm
+  iapply (BigSepL.bigSepL_impl (Ψ := fun k _ => memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot k)) $$ Hb
   imodintro
   iintro %k %m %hk Hx
-  icases Hx with ⟨Hs, #Ha⟩
+  icases Hx with ⟨⟨Hs, #Ha⟩, Hn⟩
   obtain ⟨hid, hcl⟩ := members_getD_ids d k m hk
   iunfold memberShareD
   rw [hid, hcl]
   iexists cmp, cret
   isplitr
   · ipureintro
-    exact ⟨Hok, Hcmp⟩
-  iframe Hs
+    exact ⟨Hok, Hcmp, Hinj⟩
+  iframe Hs Hn
   iframe #
 
-/-- **The cluster's start at the members' shares** (see the file header): for a well-formed deployment `d` at the
-bootstrap log `boot` (`BootFacts`), from the protocol registry and every member's peer and client addresses unset,
-the cluster's names `c` (their KV start log the empty one), the client's `etcdKV` at the boot state, every member's
-client address fact at the view `c.view`, and every member's share. -/
-theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
-    (Hrb : receiptBound GF ≤ 2 ^ 60) :
+/-- Forget the auth-on arm of a two-mode resource. -/
+theorem ite_drop_left (b : Bool) (P Q : IProp GF) : (if b then P else Q) ⊢ if b then iprop(True) else Q := by
+  cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> first | exact .rfl | exact BI.true_intro
+
+/-- **The members' lessor slots, kept with their names' shares** (persistent: `lease.lessorSlot`). -/
+theorem lessorSlots_of (ids : List w64) (ls : w64 → GName) (au : w64 → EtcdGrove.auth.AuthNames) :
+    ([∗list] id ∈ ids, memberNamesShare (GF := GF) (ls id) (au id)) ⊢
+      ([∗list] id ∈ ids, memberNamesShare (GF := GF) (ls id) (au id)) ∗
+        [∗list] id ∈ ids, lease.lessorSlot (GF := GF) (ls id) := by
+  refine .trans (BigSepL.bigSepL_mono (Ψ := fun _ id => iprop(memberNamesShare (GF := GF) (ls id) (au id) ∗
+    lease.lessorSlot (GF := GF) (ls id))) (fun {k y} _ => ?_)) BigSepL.bigSepL_sep_eqv.1
+  unfold memberNamesShare
+  iintro ⟨Ha, #Hsl, Hf⟩
+  isplitl [Ha Hf]
+  · iframe
+    iexact Hsl
+  · iexact Hsl
+
+/-- **The cluster's start at the members' shares, at the lease mode `lm` and the compaction setting `(cmp, cret)`**
+(see the file header; F8, `notes/etcd-dist-plan.md` §27.2 step 2): for a well-formed deployment `d` at the bootstrap log
+`boot` (`BootFacts`), a compaction mode and retention the deployment's compactor slot admits (`v3compactor.bootCfg`)
+and, with auth on, no compaction, from the protocol registry and every member's peer and client addresses unset, the
+cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their compaction setting `(cmp, cret)`,
+their lessor and auth names injective), the cluster's persistent facts (`clusterFactsOf`: with auth off its KV invariant
+`kvInv ⟨c.γ, [], 0⟩ c.γk`, `kvInv_of_clusterFacts`), with auth off in the lease mode `none` the client's `etcdKV` at the
+boot state, every member's lessor slot, every member's client address fact at the view `c.view d.cfg.auth`, and every
+member's share. -/
+theorem clusterStartDC (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids)
+    (cmp : Bool) (cret : Nat) (Hcmp : v3compactor.bootCfg d.cfg.compactorMode d.cfg.retention cmp cret)
+    (Hon : d.cfg.auth = true → cmp = false ∧ cret = 0) :
     ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
-      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []]⌝ ∗
-        etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) ∗
-        clientSvcFacts (cmsD d) c.view ∗
-        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c d (distPs d) (distCtxs d) boot i := by
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.γk.cmp = cmp ∧ c.γk.cret = cret ∧
+          c.NamesInj⌝ ∗
+        clusterFactsOf (GF := GF) c d.cfg.auth ∗
+        (if d.cfg.auth then iprop(True) else if decide (lm ≠ .none) then iprop(True) else
+          etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
+        clientSvcFacts (cmsD d) (c.view d.cfg.auth) ∗
+        ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
+        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
   have Hbc : BootCore (distPs d) (distCtxs d) boot := Hbf
-  obtain ⟨cmp, cret, Hcmp⟩ := compactorCfg_of_wf Hd
   obtain ⟨hne, -, -, hlen, -⟩ := Hd.members
   have hperm : (distPs d).Perm d.ids := (BootGoD.of_wf Hd).perm
   obtain ⟨m0, ms, hm0⟩ : ∃ m0 ms, d.members = m0 :: ms := by
@@ -276,23 +514,92 @@ theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry
   ihave Hp := peers_cms d $$ Hp
   ihave Hc := clients_cms d $$ Hc
   imod (clusterAllocN (GF := GF) d.ids (distPs d) hperm _ hid0 (distCtxs d) boot Hbc (by omega) (by omega)
-      .none (fun h => nomatch h) cmp cret)
+      lm hap cmp cret d.cfg.auth Hon)
     with ⟨%γ, %γk, %issued, %cnt, %wn, %fs, %gen, %idx, %cok, %rev, %reg, %Hγ, #Hf, Hsl, Hetcd⟩
-  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  ihave Hetcd := ite_drop_left d.cfg.auth _ _ $$ Hetcd
+  imod (memberNames_alloc (GF := GF) d.ids Hd.idsNodup.1) with ⟨%ls, %au, %Hinj, Hnm⟩
   imod (peersAt_start γ (cmsD d)) $$ Hreg Hp with #Hpf
-  imod (clientsAt_start (ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩) (cmsD d))
+  imod (clientsAt_start (ClusterNames.view ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ d.cfg.auth)
+      (cmsD d))
     $$ Hreg Hc with #Hcs
   imodintro
-  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩
+  iexists ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩
   isplitr
   · ipureintro
-    exact Hγ.2.2.2.2.2.1
+    exact ⟨Hγ.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.2.2.1,
+      Hγ.2.2.2.2.2.2.2.2.2.2.2.1, Hinj⟩
+  isplitr
+  · iexact Hf
   isplitl [Hetcd]
   · iexact Hetcd
   isplitr
   · iexact Hcs
-  iapply (memberShares_of d boot ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg⟩ cmp cret Hγ Hcmp)
-    $$ Hf Hpf Hsl Hcs
+  ihave Hnm := lessorSlots_of (GF := GF) d.ids ls au $$ Hnm
+  icases Hnm with ⟨Hnm, #Hsl8⟩
+  isplitr
+  · iexact Hsl8
+  iapply (memberShares_of d boot ⟨γ, γk, issued, cnt, wn, fs, gen, idx, cok, rev, reg, ls, au⟩ lm cmp cret Hγ Hcmp
+    Hinj) $$ Hf Hpf Hsl Hcs Hnm
+
+/-- **The cluster's facts give its KV invariant** with auth off (`kvInvM false` is `kvInv`): what the compact
+workload's share takes (`compactShare`'s `kvInv γr Γ.kv`). -/
+theorem kvInv_of_clusterFacts (c : ClusterNames) :
+    clusterFactsOf (GF := GF) c false ⊢ kvInv (GF := GF) ⟨c.γ, [], W64 0⟩ c.γk := by
+  unfold clusterFactsOf clusterFacts
+  rw [kvInvM_false]
+  iintro ⟨-, -, -, -, -, H⟩
+  iexact H
+
+/-- **The cluster's start at the members' shares, at the lease mode `lm`** (`clusterStartDC` at the compaction
+setting `compactorCfg_of_wf_auth` chooses; see the file header): for a well-formed deployment `d` at the
+bootstrap log `boot` (`BootFacts`), from the protocol registry and every member's peer and client addresses unset,
+the cluster's names `c` (their KV start log the empty one, their lease mode `lm`, their lessor and auth names
+injective), with auth off in the lease mode `none` the client's `etcdKV` at the boot state, every member's lessor slot,
+every member's client address fact at the view `c.view d.cfg.auth`, and every member's share. The cluster is allocated
+in the deployment's auth mode (#50 F7 S2 step 4; with auth on the compactor off, `compactorCfg_of_wf_auth`). -/
+theorem clusterStartDL (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (lm : lease.Mode) (hap : lm = .revocable → leaseIdsApart d.ids) :
+    ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []] ∧ c.γk.lm = lm ∧ c.NamesInj⌝ ∗
+        (if d.cfg.auth then iprop(True) else if decide (lm ≠ .none) then iprop(True) else
+          etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0)))) ∗
+        clientSvcFacts (cmsD d) (c.view d.cfg.auth) ∗
+        ([∗list] id ∈ d.ids, lease.lessorSlot (GF := GF) (c.ls id)) ∗
+        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c lm d (distPs d) (distCtxs d) boot i := by
+  obtain ⟨cmp, cret, Hcmp, Hon⟩ := compactorCfg_of_wf_auth Hd
+  iintro #Hreg Hs
+  imod (clusterStartDC d Hd boot Hbf Hrb lm hap cmp cret Hcmp Hon) $$ Hreg Hs
+    with ⟨%c, %Hc, -, Hetcd, #Hcs, #Hsl, Hms⟩
+  imodintro
+  iexists c
+  isplitr
+  · ipureintro
+    exact ⟨Hc.1, Hc.2.1, Hc.2.2.2.2⟩
+  iframe Hetcd Hms
+  iframe #
+
+/-- **The cluster's start at the members' shares, lease mode `none`, auth off** (`clusterStartDL` at `.none`): the
+client's `etcdKV` at the boot state. -/
+theorem clusterStartD (d : Deployment) (Hd : d.WellFormed) (boot : List LogEntry) (Hbf : BootFacts d boot)
+    (Hrb : receiptBound GF ≤ 2 ^ 60) (Hauth : d.cfg.auth = false) :
+    ⊢ regCtx -∗ ([∗list] a ∈ d.members.flatMap (fun m => [m.peer, m.client]), addrUnset a) ={⊤}=∗
+      ∃ c : ClusterNames, ⌜c.γk.log0 = [[], []]⌝ ∗
+        etcdKV c.γk (kvModelSt c.γk (bootEntries (LogEntry.toEntries boot 0))) ∗
+        clientSvcFacts (cmsD d) c.view ∗
+        [∗list] i ↦ _m ∈ d.members, memberShareD (GF := GF) c .none d (distPs d) (distCtxs d) boot i := by
+  iintro #Hreg Hs
+  imod (clusterStartDL d Hd boot Hbf Hrb .none (fun h => nomatch h)) $$ Hreg Hs
+    with ⟨%c, %Hc, Hetcd, #Hcs, -, Hms⟩
+  isimp only [Hauth, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  imodintro
+  iexists c
+  isplitr
+  · ipureintro; exact Hc.1
+  isplitl [Hetcd]
+  · iexact Hetcd
+  isplitr
+  · iExactEq Hcs; rw [Hauth]
+  iexact Hms
 
 end start
 

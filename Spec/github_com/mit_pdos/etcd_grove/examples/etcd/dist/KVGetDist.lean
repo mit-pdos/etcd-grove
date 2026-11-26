@@ -18,7 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcd_dist
 
-open Iris Iris.BI Net client go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI Net client go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.cache.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
@@ -32,8 +32,10 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`KV_Get_dist`: `(*kv).Get(ctx, key, opts...)` across machines** (mirrors `kv.Get.spec`,
 server side `etcdRangeSpecEW`/`etcdRangeSpecW`): `kv.Get.spec` with `isKv` replaced by `kvClientAt`
-at `Γ`, `γ := Γ.kv`. Any auth mode: a read is retried only when immutable (`Unavailable`), so the
-read update stays persistent as in `kv.Get.spec`. -/
+at `Γ`, `γ := Γ.kv`, and the error arm's `kvErr err` weakened to its `statusErrOk err` (a leaf error
+grpc's `status` accepts, with a fixed `Error()` string: what `fmt`'s `%v` of it needs; `kvErr`'s other
+two parts, `clientErr` and `errCellOk`, are not claimed). Any auth mode: a read is retried only when
+immutable (`Unavailable`), so the read update stays persistent as in `kv.Get.spec`. -/
 abbrev KV_Get_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (cl api : Loc) (eps : List GoString) (V : WEnv GF) (Γ : DistView)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString)
@@ -58,7 +60,7 @@ abbrev KV_Get_dist.spec : Prop :=
             m.count = txn.srvCount (rangeWireOf (opGetModel key opts))
               (σ.at (σ.readRev (rangeWireOf (opGetModel key opts)).base.rev)).kvs true ∧
             m.hdr.revision = W64 (σ.rev : Int) ∧ kvRevFits σ.rev ∧ kvLogOk σ⌝) ∨
-        ⌜err ≠ GoInterface.nil ∧ resp = null⌝)) }}
+        (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ statusErrOk err))) }}
 
 end spec
 

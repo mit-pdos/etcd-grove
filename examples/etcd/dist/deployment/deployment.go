@@ -184,7 +184,11 @@ func grantsLeases(k Kind) bool {
 }
 func needsNoExpiry(k Kind) bool { return k == AuthLease || k == LeaseCatchup }
 
-// compatible is Lean's Compatible (the kinds known: WellFormed checks them first).
+// compatible is Lean's Compatible (the kinds known: WellFormed checks them first). A kind that
+// needs a sole writer (review F1), or grants leases, runs beside no workload that writes keys (the
+// latter decided 2026-11-26, notes/etcd-dist-plan.md §27.7 Q2: a cluster that grants leases keeps the
+// store's ghost state whole, so no client holds a share of it to write with; the single-process
+// etcd_safe ran every driver on a cluster of its own, so no lease grant met another's key writes).
 func compatible(ws []Workload) bool {
 	seen := map[Kind]bool{}
 	hasExpiry, hasNoExpiry := false, false
@@ -204,7 +208,7 @@ func compatible(ws []Workload) bool {
 		}
 	}
 	for i, w := range ws {
-		if !needsSoleWriter(w.Kind) {
+		if !needsSoleWriter(w.Kind) && !grantsLeases(w.Kind) {
 			continue
 		}
 		for j, x := range ws {
@@ -403,14 +407,18 @@ func WellFormed(d Deployment) error {
 		c.CompactorMode == CompactorPeriodic && c.Retention >= 10) {
 		return fmt.Errorf("compactor")
 	}
-	// 5. compatible; the token provider where needed; no compact under the periodic compactor;
-	// no leaseExpiry beside the token provider
+	// 5. compatible; the token provider exactly where a workload needs it, and only with the
+	// compactor off; no compact under the periodic compactor; no leaseExpiry beside the token provider
 	if !compatible(d.Workloads) {
 		return fmt.Errorf("workloads not compatible")
 	}
+	needed := false
 	for _, w := range d.Workloads {
-		if NeedsAuth(w.Kind) && !c.Auth {
-			return fmt.Errorf("workload kind %d needs the token provider", int(w.Kind))
+		if NeedsAuth(w.Kind) {
+			if !c.Auth {
+				return fmt.Errorf("workload kind %d needs the token provider", int(w.Kind))
+			}
+			needed = true
 		}
 		if w.Kind == Compact && c.Retention != 0 && c.CompactorMode == CompactorPeriodic {
 			return fmt.Errorf("compact under the periodic compactor")
@@ -418,6 +426,18 @@ func WellFormed(d Deployment) error {
 		if w.Kind == LeaseExpiry && c.Auth {
 			return fmt.Errorf("leaseExpiry with the token provider")
 		}
+	}
+	// the token provider only with a workload that needs it (auth and authLease, which run alone;
+	// decided 2026-11-26, notes/etcd-dist-plan.md §27.7 Q1: the other workloads are proved with auth
+	// off, as in the single-process etcd_safe, where auth was on only in the auth drivers' own clusters)
+	if c.Auth && !needed {
+		return fmt.Errorf("the token provider without a workload that needs it")
+	}
+	// the token provider with the compactor off (decided 2026-11-26, notes/etcd-dist-f7.md, Handoff
+	// S2-2's option (a): etcd's NewServer is proved with auth on only without a compactor, cmp = true
+	// → on = false; the auth workloads compact nothing)
+	if c.Auth && c.Retention != 0 {
+		return fmt.Errorf("the token provider beside an auto-compactor")
 	}
 	return nil
 }

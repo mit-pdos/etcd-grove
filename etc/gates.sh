@@ -243,6 +243,11 @@ fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
+# the lease axioms' ordering gate (#50 F2/F7, notes/axiom-review/f7-combined.md section 3): the six
+# lease axioms reading `Γ.ls mid` are linked only once every serve axiom of etcd's table ties the
+# member's lessor to `Γ.ls mid` (source only; with its self-test)
+python3 etc/lease-order-check.py --selftest > /dev/null || { echo "lease-order selftest: FAILED"; fail=1; }
+python3 etc/lease-order-check.py || fail=1
 # every registration on etcd's client port has a row in etc/auth-table.txt with the specs that carry
 # its access check, none weaker than etc/auth-mediation-baseline.txt (notes/auth-mediation-scope.md,
 # M0; reads the Go sources in .lake/goose that goose.py above clones, and the specs: so after it)
@@ -418,6 +423,8 @@ if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then
 else
   echo "bounds: FAILED"; grep -v "^bounds: ok" "$tmp/bounds.log" | head -20; fail=1
 fi
+# its selftest: the allow forms on a synthetic tree (a `decl=` entry hides its declaration's matches only)
+python3 etc/bounds-check.py --selftest > "$tmp/boundss.log" 2>&1 || { echo "bounds selftest: FAILED"; grep "FAIL" "$tmp/boundss.log" | head -10; fail=1; }
 return $fail
 }
 

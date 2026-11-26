@@ -160,9 +160,24 @@ func TestWellFormed(t *testing.T) {
 			t.Errorf("member %s's id %x refused", m.Name, id)
 		}
 	}
+	// the token provider only with the compactor off
+	au := []Workload{{Kind: deployment.Auth}}
+	d, err := RandomDeployment("wf", 3, addr, au, testNodes(au))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad = d
+	bad.Cfg.CompactorMode, bad.Cfg.Retention = deployment.CompactorRevision, 10
+	if WellFormed(bad) == nil {
+		t.Error("the token provider beside a revision compactor passed")
+	}
+	bad.Cfg.CompactorMode, bad.Cfg.Retention = deployment.CompactorPeriodic, int64(time.Second)
+	if WellFormed(bad) == nil {
+		t.Error("the token provider beside a periodic compactor passed")
+	}
 	// the client machines: their number, their addresses
 	kv := []Workload{{Kind: deployment.KV, Clients: 2, Ops: 3}}
-	d, err := RandomDeployment("wf", 3, addr, kv, testNodes(kv))
+	d, err = RandomDeployment("wf", 3, addr, kv, testNodes(kv))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -202,9 +217,51 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("auth without the token provider passed")
 	}
-	bad.Cfg.Auth = true
+	bad.Cfg.Auth, bad.Cfg.Retention = true, 0
 	if err := WellFormed(bad); err != nil {
 		t.Errorf("auth with the token provider failed: %v", err)
+	}
+	// the token provider only for a workload that needs it (§27.7 Q1)
+	bad.Workloads = []Workload{{Kind: deployment.PutGet}}
+	bad.Nodes = [][]string{{}}
+	bad.Cfg.Auth = true
+	if WellFormed(bad) == nil {
+		t.Error("the token provider without an auth workload passed")
+	}
+	bad.Workloads, bad.Nodes = nil, nil
+	if WellFormed(bad) == nil {
+		t.Error("the token provider without workloads passed")
+	}
+	bad.Cfg.Auth = false
+	if err := WellFormed(bad); err != nil {
+		t.Errorf("no workload, no token provider failed: %v", err)
+	}
+	// a workload that grants leases beside no key writer (§27.7 Q2); leaseRead beside anything (over
+	// a deployment whose member ids pass the lease workloads' condition 3, and no compactor)
+	lws := []Workload{{Kind: deployment.LeaseRead}, {Kind: deployment.LeaseCatchup}}
+	bad, err = RandomDeployment("wfl", 3, addr, lws, testNodes(lws))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad.Cfg.Retention = 0
+	for _, g := range []deployment.Kind{deployment.LeaseCatchup, deployment.LeaseExpiry} {
+		for _, x := range []Workload{{Kind: deployment.PutGet}, {Kind: deployment.Compact}, {Kind: deployment.Durable, Clients: 1}} {
+			bad.Workloads = []Workload{x, {Kind: g}}
+			bad.Nodes = [][]string{{}, {}}
+			if WellFormed(bad) == nil {
+				t.Errorf("%v beside %v passed", g, x.Kind)
+			}
+		}
+		bad.Workloads = []Workload{{Kind: deployment.LeaseRead}, {Kind: g}}
+		bad.Nodes = [][]string{{}, {}}
+		if err := WellFormed(bad); err != nil {
+			t.Errorf("%v beside leaseRead failed: %v", g, err)
+		}
+	}
+	bad.Workloads = []Workload{{Kind: deployment.PutGet}, {Kind: deployment.LeaseRead}}
+	bad.Nodes = [][]string{{}, {}}
+	if err := WellFormed(bad); err != nil {
+		t.Errorf("leaseRead beside putget failed: %v", err)
 	}
 	bad.Workloads = []Workload{{Kind: deployment.Durable + 1}}
 	bad.Nodes = [][]string{{}}

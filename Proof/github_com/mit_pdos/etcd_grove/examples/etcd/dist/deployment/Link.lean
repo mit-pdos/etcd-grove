@@ -112,7 +112,7 @@ theorem wp_needsNoExpiry :
 
 theorem wp_compatible :
     EtcdGrove.etcd_dist.compatible.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_dist.compatible.wp_proof wp_alone wp_needsSoleWriter wp_writesKeys wp_needsNoExpiry
+  EtcdGrove.etcd_dist.compatible.wp_proof wp_alone wp_needsSoleWriter wp_writesKeys wp_needsNoExpiry wp_grantsLeases
 
 end links
 

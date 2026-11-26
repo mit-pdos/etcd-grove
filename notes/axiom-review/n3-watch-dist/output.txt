@@ -1,0 +1,24 @@
+=== RUN   TestServerCancelClosesSilently
+    watch_test.go:131: server cancel: responses [events], closed true
+--- PASS: TestServerCancelClosesSilently (0.00s)
+=== RUN   TestEmptyServer
+    watch_test.go:142: empty server: responses [err: rpc error: code = Unimplemented desc = unknown service etcdserverpb.Watch], closed true
+--- PASS: TestEmptyServer (0.00s)
+=== RUN   TestRawListener
+    watch_test.go:172: raw listener: Watch returned after 3.009s; responses [], closed true
+--- PASS: TestRawListener (3.01s)
+=== RUN   TestCallerCancelClosesSilently
+    watch_test.go:192: caller cancel: responses [], closed true
+--- PASS: TestCallerCancelClosesSilently (0.30s)
+=== RUN   TestClientCloseClosesSilently
+    watch_test.go:212: client close: responses [], closed true
+--- PASS: TestClientCloseClosesSilently (0.30s)
+=== RUN   TestResumeFromCursorPlusOne
+    watch_test.go:248: resume: responses [events]; creates [1 4] at [B A]
+--- PASS: TestResumeFromCursorPlusOne (4.02s)
+=== RUN   TestRequestProgress
+    watch_test.go:269: RequestProgress: err <nil>, streams opened 1
+    watch_test.go:272: RequestProgress after Close: err no stream found for context
+--- PASS: TestRequestProgress (0.30s)
+PASS
+ok  	n3review	7.943s

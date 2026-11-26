@@ -8,7 +8,11 @@
 
 pair NewServer_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/NewServerDist.lean NewServer.specG_dist Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean NewServer.specG
 dev NewServer_dist.wp_proof <<<  ||| [ π : Net.NetProtoGS ] >>> the net extension's protocol ghost state (`httpAddrAt` is over it)
-dev NewServer_dist.wp_proof <<< GF ) ( γn : NetNames |||  >>> the network's names `γn` are no binder: the post gives them (below), as `StartMember_dist.spec`
+dev NewServer_dist.wp_proof <<< γn : NetNames GF ) ( |||  >>> the network's names `γn` are no binder: the post gives them (below), as `StartMember_dist.spec`
+dev NewServer_dist.wp_proof <<<  ||| ) ( γa : auth.AuthNames ) ( γl : GName >>> (F7 P-A1, F2 P-L1) the member's auth names `γa` and lessor name `γl` are the caller's binders (the start's per-member `DistView.au mid`/`ls mid`), as `NewServer.specGAt`'s
+dev NewServer_dist.wp_proof <<<  ||| ∗ ( ghostMapAuth γl ( 1 : Qp ) .half ( ∅ : GMap Bool lease.LessorGV ) ∗ lease.lessorSlot γl ) ∗ ( if on then authNamesFreshD γa else iprop ( True ) ) >>> (F2 P-L1) `Hlslot`: half of `γl`'s lessor map at `∅` and the start's slot holding the other half; (F7 P-A1) `Hγa`: with auth on, `γa` fresh (`authNamesFreshD`, what `NewServer` allocates in one process); token-identical to `NewServer.specGAt`'s, which `NewServer.wp_proofGAt` proves
+dev NewServer_dist.wp_proof <<< ∃ γa , |||  >>> (F7 P-A1) `γa` is the caller's binder, not the post's
+dev NewServer_dist.wp_proof <<<  ||| ∧ mvcc.api.mvccLeases E.γ = γl >>> (F2 P-L1) the member's lessor is at the caller's `γl`, as `NewServer.specGAt`'s post
 dev NewServer_dist.wp_proof <<< netHttpOk γn ||| ( □ ∀ ( pid : w64 ) ( a : GoString ) , ⌜ pid ∈ γ.vs ∧ pid ≠ >>> `#Hnet` (the in-process streams' registry) replaced by `#Hpeers`, every other peer's directory address set to etcd's peer protocols (`httpAddrAt`; reviewed, plan §17.3)
 dev NewServer_dist.wp_proof <<<  ||| ∧ go!"http://" ++ a ∈ dir pid ⌝ - >>> the rest of `#Hpeers`' premise (as above)
 dev NewServer_dist.wp_proof <<< ⌜ γn.N = srvNet ||| etcd_dist.httpAddrAt ( Gg := hG.goose_globalGS ) >>> `#Hpeers`' conclusion; the pure premise `%Hγn` (`γn.N = srvNet γ`) moves to the post with `γn`
@@ -41,8 +45,7 @@ dev KV_Get_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`
 dev KV_Get_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView >>> binders: `V`'s type and the cluster's view `Γ`
 dev KV_Get_dist.wp_proof <<< ( isKv kv γ dup ||| kvClientAt cl api eps V Γ >>> `isKv kv γ false` replaced by `kvClientAt` at `Γ` (N2 review §C: the dropped `isKvOf` premises hold wherever a success can occur)
 dev KV_Get_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
-dev KV_Get_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
-dev KV_Get_dist.wp_proof <<< ( |||  >>> the parenthesis that grouped `isKv`'s conjunction (layout)
+dev KV_Get_dist.wp_proof <<< kvErr ||| statusErrOk >>> the error arm's `kvErr` weakened to its `statusErrOk` (2026-11-26, F6: the error is built at the caller's machine, as in one process; `clientErr`/`errCellOk` not claimed; notes/axiom-review/kv-get-dist-statuserr.md)
 dev KV_Get_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
 dev KV_Get_dist.wp_proof <<< ) |||  >>> the closing parenthesis of `isKv`'s group, or of `□?dup (…)` (layout)
 
@@ -102,3 +105,490 @@ dev bootstrap.wp_proof_dist <<<  ||| etcd_dist.bootRTOk ( hG := hG ) γ ( bootGo
 nosource Serve_dist.wp_proof `etcdstart.Serve.spec` is its in-process analogue, not its source: it consumes `etcdstart.memberUp` and serves the view's table `etcdSvc Γ mid` at `etcdAddrAt` (N2 review, notes/axiom-review/n2-kv-dist.md); nothing to compare token by token
 nosource NewPeerHandler_dist.wp_proof `etcdhttp` is untranslated: no in-process spec of `NewPeerHandler` exists (plan §17.3 review: sound)
 nosource PeerServe_dist.wp_proof `http.Serve` of etcd's peer handler (`peerHandlerOf`) at the member's peer address: the in-process proofs apply Perennial's `http.Serve_ok` to the raft handler at the in-process network, a different statement (plan §17.3 reviews)
+
+# (2026-11-26) N3's watch contracts (notes/axiom-review/n3-watch-dist.md; plan §22.4, §22.7, §25): the watcher's
+# environment replaced by the cluster view, as the file header of WatchDist.lean lists.
+pair Watch_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean Watch_dist.spec Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean watcher.Watch.spec
+dev Watch_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (`watchClientAt`'s endpoints are over it)
+dev Watch_dist.wp_proof <<<  ||| cl >>> binders: the client `cl` whose `Watcher` field is `w` (`watchClientAt`)
+dev Watch_dist.wp_proof <<<  ||| ) ( eps : List GoString >>> binders: the endpoints `eps` the client dials
+dev Watch_dist.wp_proof <<< γ ||| Γ >>> binders: the cluster's view `Γ` in place of the KV names `γ` (`γ := Γ.kv`)
+dev Watch_dist.wp_proof <<< KVNames ||| DistView >>> binders: the view's type
+dev Watch_dist.wp_proof <<< ( n : Nat ) |||  >>> binders: no auth bound `n`: the auth row is dropped (below)
+dev Watch_dist.wp_proof <<< isClientWatcher ||| watchClientAt cl w eps >>> `isClientWatcher V w` replaced by `watchClientAt cl w eps V Γ` (New's client of the endpoints, no proxy dial path, its watcher over `V.atEps eps` by `isNewClient`, every endpoint serving a member of `Γ`: `membersAt`; N3 review, §25)
+dev Watch_dist.wp_proof <<< w ∗ ⌜ V.kst = γ.st ⌝ ||| Γ >>> the rest of that replacement: the tie of the watcher's KV state names to `γ` goes with `isClientWatcher`; `γ := Γ.kv` and the post reads only `Γ.kv`, which every endpoint's member serves (`membersAt`, `kvCongr`); judged sound in notes/axiom-review/n3-watch-dist.md and notes/axiom-review/wenv-isnewclient.md
+dev Watch_dist.wp_proof <<< ⌜ V.nm = 1 ∧ 0 < n ⌝ → auth.authPubLbM ( V.mem 0 ) .2.E.authMode n ) ∗ □ ( |||  >>> the auth row's premise dropped (it reads member 0's auth names, which the view lacks: N11); not a strengthening: the source at `n = 0` has it vacuous and the stronger post (its `watchCheckOk` slot, below)
+dev Watch_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv` (`γ := Γ.kv`)
+dev Watch_dist.wp_proof <<< V.kv ||| Γ.kv >>> the elements' KV names: the view's `Γ.kv` in place of the watcher environment's `V.kv` (the post reads nothing of `V`, §25)
+dev Watch_dist.wp_proof <<< □ ( ⌜ V.nm = 1 ⌝ → watchCheckOk ( V.mem 0 ) .2.tag ( V.mem 0 ) .2.s V.conn om n ( opWatchModel key opts ) .key ( opWatchModel key opts ) .base.rangeEnd ) ||| True >>> the auth row's slot `True`: a weaker post (no `watchCheckOk` claimed)
+pair RequestProgress_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/WatchDist.lean RequestProgress_dist.spec Spec/go_etcd_io/etcd/client/v3/watcher__RequestProgress.lean watcher.RequestProgress.spec
+dev RequestProgress_dist.wp_proof <<<  ||| [ π : NetProtoGS ] ( cl w : Loc ) ( eps : List GoString ) >>> binders: the net extension's protocol ghost state, the client `cl`, its watcher `w` and the endpoints `eps` (`watchClientAt`)
+dev RequestProgress_dist.wp_proof <<< w ||| Γ >>> two places: the binder `Γ` (the view) where the source binds `w` (now bound with `cl`, above), and `watchClientAt`'s last argument `Γ` where `isClientWatcher V w` ends with `w`
+dev RequestProgress_dist.wp_proof <<< Loc ||| DistView >>> binders: the view's type
+dev RequestProgress_dist.wp_proof <<< isClientWatcher ||| watchClientAt cl w eps >>> `isClientWatcher V w` replaced by `watchClientAt cl w eps V Γ` (as `Watch_dist`'s); the post is the source's (`statusErrOk err`)
+# F2/F7's (leases, auth) distributed-deployment interim axioms (2026-11-26): F2's lease rows at member `mid` (`Γ.ls mid`, after P-L1)
+# and F7's auth-on rows (`principalOf cfg`, the member's names `Γ.au mid`); each mirrors the in-process client spec at etcd's service spec.
+
+pair Auth_AuthEnable_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthAuthEnableDist.lean Auth_AuthEnable_dist.spec Spec/go_etcd_io/etcd/client/v3/authClient__AuthEnable.lean authClient.AuthEnable.spec
+dev Auth_AuthEnable_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Auth_AuthEnable_dist.wp_proof <<< api conn ||| cl ap >>> binders: the client `cl` and its `Auth` field's `*authClient` `ap` (`authClientAt`) in place of `api` and its connection `conn`
+dev Auth_AuthEnable_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` (`authClientAt`'s `membersAt`) in place of the registered addresses
+dev Auth_AuthEnable_dist.wp_proof <<< ci ||| V : WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( ctx >>> binders: the client's environment `V`, the view `Γ`, the client's configuration `cfg` (its principal `principalOf cfg` in place of the token's binding) and the member's raft names `γR`; the context renamed `ctx`
+dev Auth_AuthEnable_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context description renamed `ctx_desc`; `om` moved after it (below)
+dev Auth_AuthEnable_dist.wp_proof <<< Spec ||| om >>> binders: `om` in place of the service spec `Spec` (no registration)
+dev Auth_AuthEnable_dist.wp_proof <<< GrpcSpecMd ( GF := GF ) pbAuthEnableRequest pbAuthEnableResponse ||| GrpcMd >>> binders: `om`'s type in place of `Spec`'s
+dev Auth_AuthEnable_dist.wp_proof <<< Unit ||| List auth.AuthState >>> binders: `Q` over the auth history's states (`histAu`'s, as the service spec `etcdXSpecW`'s `∃ Q`) in place of the in-process `Q : Unit → _`
+dev Auth_AuthEnable_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev Auth_AuthEnable_dist.wp_proof <<< ( authObjAtC api conn addr ||| authClientAt cl ap eps V Γ cfg ∗ metadata.outMD ctx om >>> `authObjAtC` replaced by `authClientAt` at `Γ` (the address facts of the view); `metadata.outMD` moved up; the in-process group's parenthesis dropped (layout)
+dev Auth_AuthEnable_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context's names (renamed)
+dev Auth_AuthEnable_dist.wp_proof <<< isGrpcRpcsMd addr go!"/etcdserverpb.Auth/AuthEnable" Spec ∗ metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec ||| histAu γR Γ.kv srvAuthSt0 >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view, and `etcdAuthEnableSpecW`'s update (`authHistAuT` at the token) as the caller's `histAu` at the cluster's names
+dev Auth_AuthEnable_dist.wp_proof <<<  ||| fun hm => iprop ( ⌜ userOk ( principalOf cfg >>> the update's header binding: `userOk` of `cfg`'s principal in place of the token's
+dev Auth_AuthEnable_dist.wp_proof <<<  ||| hm.username ⌝ ) ) irrAuthEnable >>> the rest of the update (`irrAuthEnable`)
+dev Auth_AuthEnable_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev Auth_AuthEnable_dist.wp_proof <<< api ||| ap >>> the receiver: the `*authClient` `ap`
+dev Auth_AuthEnable_dist.wp_proof <<< ci ||| ctx >>> the context's name (renamed)
+dev Auth_AuthEnable_dist.wp_proof <<< authCallOut ||| ( ⌜ err = GoInterface.nil ⌝ ∗ adminRepliedD eps Γ γR ( principalOf cfg ) irrAuthEnable >>> `authCallOut` unfolded at `etcdAuthEnableSpecW`'s reply, cluster-level: `adminRepliedD` (`adminReplied` with the member's publication and the token binding dropped, the member `servedBy` and `userOk` of the principal added)
+dev Auth_AuthEnable_dist.wp_proof <<<  ||| ) ∨ ⌜ err ≠ GoInterface.nil ∧ >>> `authCallOut` unfolded: the success arm's end and the error arm (`err ≠ nil`), as `authCallOut`'s
+dev Auth_AuthEnable_dist.wp_proof <<< err ||| = null ⌝ >>> the error arm: `err ≠ nil ∧ resp = null`, nothing more (`authCallOut`'s `clientErr`/`statusErrOk`/`errCellOk` dropped; a weaker post)
+
+pair Auth_RoleAdd_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthRoleAddDist.lean Auth_RoleAdd_dist.spec Spec/go_etcd_io/etcd/client/v3/authClient__RoleAdd.lean authClient.RoleAdd.spec
+dev Auth_RoleAdd_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Auth_RoleAdd_dist.wp_proof <<< api conn ||| cl ap >>> binders: the client `cl` and its `Auth` field's `*authClient` `ap` (`authClientAt`) in place of `api` and its connection `conn`
+dev Auth_RoleAdd_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` (`authClientAt`'s `membersAt`) in place of the registered addresses
+dev Auth_RoleAdd_dist.wp_proof <<< ci ||| V : WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( ctx >>> binders: the client's environment `V`, the view `Γ`, the client's configuration `cfg` (its principal `principalOf cfg` in place of the token's binding) and the member's raft names `γR`; the context renamed `ctx`
+dev Auth_RoleAdd_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context description renamed `ctx_desc`; `om` moved after it (below)
+dev Auth_RoleAdd_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om` (the outgoing metadata, `outTokOk`'s), moved
+dev Auth_RoleAdd_dist.wp_proof <<< Spec : GrpcSpecMd ( GF := GF ) pbAuthRoleAddRequest pbAuthRoleAddResponse ) ( |||  >>> binders: no service spec `Spec` (no registration)
+dev Auth_RoleAdd_dist.wp_proof <<< Unit ||| List auth.AuthState >>> binders: `Q` over the auth history's states (`histAu`'s, as the service spec `etcdXSpecW`'s `∃ Q`) in place of the in-process `Q : Unit → _`
+dev Auth_RoleAdd_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev Auth_RoleAdd_dist.wp_proof <<< ( authObjAtC api conn addr ||| authClientAt cl ap eps V Γ cfg ∗ metadata.outMD ctx om >>> `authObjAtC` replaced by `authClientAt` at `Γ` (the address facts of the view); `metadata.outMD` moved up; the in-process group's parenthesis dropped (layout)
+dev Auth_RoleAdd_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context's names (renamed)
+dev Auth_RoleAdd_dist.wp_proof <<< ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleAdd" Spec ∗ metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec name Q ||| ctx ctx_desc >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view; `outMD` moved up
+dev Auth_RoleAdd_dist.wp_proof <<<  ||| ∧ name.length ≤ backend.maxKeySize ⌝ ∗ histAu γR Γ.kv srvAuthSt0 ( fun hm => iprop ( ⌜ userOk ( principalOf cfg ) hm.username >>> the server's name bound (`etcdRoleAddSpecW`'s premise; one more premise: a weaker axiom), and `etcdRoleAddSpecW`'s update (`authHistAuT` at the token) as the caller's `histAu` at the cluster's names, the binding `userOk` of `cfg`'s principal
+dev Auth_RoleAdd_dist.wp_proof <<<  ||| ) ( irrRoleAdd name ) Q >>> the rest of the update (`irrRoleAdd`)
+dev Auth_RoleAdd_dist.wp_proof <<< api ||| ap >>> the receiver: the `*authClient` `ap`
+dev Auth_RoleAdd_dist.wp_proof <<< ci ||| ctx >>> the context's name (renamed)
+dev Auth_RoleAdd_dist.wp_proof <<< authCallOut ||| ( ⌜ err = GoInterface.nil ⌝ ∗ adminRepliedD eps Γ γR ( principalOf cfg ) ( irrRoleAdd name ) >>> `authCallOut` unfolded at `etcdRoleAddSpecW`'s reply, cluster-level: `adminRepliedD` (`adminReplied` with the member's publication and the token binding dropped, the member `servedBy` and `userOk` of the principal added)
+dev Auth_RoleAdd_dist.wp_proof <<<  ||| ) ∨ ⌜ err ≠ GoInterface.nil ∧ >>> `authCallOut` unfolded: the success arm's end and the error arm (`err ≠ nil`), as `authCallOut`'s
+dev Auth_RoleAdd_dist.wp_proof <<< err ||| = null ⌝ >>> the error arm: `err ≠ nil ∧ resp = null`, nothing more (`authCallOut`'s `clientErr`/`statusErrOk`/`errCellOk` dropped; a weaker post)
+
+pair Auth_RoleGrantPermission_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthRoleGrantPermissionDist.lean Auth_RoleGrantPermission_dist.spec Spec/go_etcd_io/etcd/client/v3/authClient__RoleGrantPermission.lean authClient.RoleGrantPermission.spec
+dev Auth_RoleGrantPermission_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Auth_RoleGrantPermission_dist.wp_proof <<< api conn ||| cl ap >>> binders: the client `cl` and its `Auth` field's `*authClient` `ap` (`authClientAt`) in place of `api` and its connection `conn`
+dev Auth_RoleGrantPermission_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` (`authClientAt`'s `membersAt`) in place of the registered addresses
+dev Auth_RoleGrantPermission_dist.wp_proof <<< ci ||| V : WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( ctx >>> binders: the client's environment `V`, the view `Γ`, the client's configuration `cfg` (its principal `principalOf cfg` in place of the token's binding) and the member's raft names `γR`; the context renamed `ctx`
+dev Auth_RoleGrantPermission_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context description renamed `ctx_desc`; `om` moved after it (below)
+dev Auth_RoleGrantPermission_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: `om` (the outgoing metadata, `outTokOk`'s), moved
+dev Auth_RoleGrantPermission_dist.wp_proof <<< Spec : GrpcSpecMd ( GF := GF ) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse ) ( |||  >>> binders: no service spec `Spec` (no registration)
+dev Auth_RoleGrantPermission_dist.wp_proof <<< Unit ||| List auth.AuthState >>> binders: `Q` over the auth history's states (`histAu`'s, as the service spec `etcdXSpecW`'s `∃ Q`) in place of the in-process `Q : Unit → _`
+dev Auth_RoleGrantPermission_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev Auth_RoleGrantPermission_dist.wp_proof <<< ( authObjAtC api conn addr ||| authClientAt cl ap eps V Γ cfg ∗ metadata.outMD ctx om >>> `authObjAtC` replaced by `authClientAt` at `Γ` (the address facts of the view); `metadata.outMD` moved up; the in-process group's parenthesis dropped (layout)
+dev Auth_RoleGrantPermission_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context's names (renamed)
+dev Auth_RoleGrantPermission_dist.wp_proof <<< ci cd ∗ ⌜ key.length < 2 ^ 63 - 1 ⌝ ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/RoleGrantPermission" Spec ∗ metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec ( name , ( ⟨permType , key , rangeEnd⟩ : auth.PermW ) ) Q ||| ctx ctx_desc >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view; `outMD` moved up; the client's key bound kept (below, in one pure premise)
+dev Auth_RoleGrantPermission_dist.wp_proof <<<  ||| ∧ key.length < 2 ^ 63 - 1 ∧ name.length ≤ backend.maxKeySize ⌝ ∗ histAu γR Γ.kv srvAuthSt0 ( fun hm => iprop ( ⌜ userOk ( principalOf cfg ) hm.username >>> the client's key bound (the in-process premise, moved) and the server's name bound (`etcdRoleGrantPermissionSpecW`'s premise; one more premise: a weaker axiom), and its update (`authHistAuT` at the token) as the caller's `histAu` at the cluster's names, the binding `userOk` of `cfg`'s principal
+dev Auth_RoleGrantPermission_dist.wp_proof <<<  ||| ) ( irrRoleGrantPermission name ( some ⟨permType , key , rangeEnd⟩ ) ) Q >>> the rest of the update (`irrRoleGrantPermission`)
+dev Auth_RoleGrantPermission_dist.wp_proof <<< api ||| ap >>> the receiver: the `*authClient` `ap`
+dev Auth_RoleGrantPermission_dist.wp_proof <<< ci ||| ctx >>> the context's name (renamed)
+dev Auth_RoleGrantPermission_dist.wp_proof <<< authCallOut ||| ( ⌜ err = GoInterface.nil ⌝ ∗ adminRepliedD eps Γ γR ( principalOf cfg ) ( irrRoleGrantPermission name ( some ⟨permType , key , rangeEnd⟩ ) ) >>> `authCallOut` unfolded at `etcdRoleGrantPermissionSpecW`'s reply, cluster-level: `adminRepliedD` (`adminReplied` with the member's publication and the token binding dropped, the member `servedBy` and `userOk` of the principal added)
+dev Auth_RoleGrantPermission_dist.wp_proof <<<  ||| ) ∨ ⌜ err ≠ GoInterface.nil ∧ >>> `authCallOut` unfolded: the success arm's end and the error arm (`err ≠ nil`), as `authCallOut`'s
+dev Auth_RoleGrantPermission_dist.wp_proof <<< err ||| = null ⌝ >>> the error arm: `err ≠ nil ∧ resp = null`, nothing more (`authCallOut`'s `clientErr`/`statusErrOk`/`errCellOk` dropped; a weaker post)
+
+pair Auth_UserAdd_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthUserAddDist.lean Auth_UserAdd_dist.spec Spec/go_etcd_io/etcd/client/v3/authClient__UserAdd.lean authClient.UserAdd.spec
+dev Auth_UserAdd_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Auth_UserAdd_dist.wp_proof <<< api conn ||| cl ap >>> binders: the client `cl` and its `Auth` field's `*authClient` `ap` (`authClientAt`) in place of `api` and its connection `conn`
+dev Auth_UserAdd_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` (`authClientAt`'s `membersAt`) in place of the registered addresses
+dev Auth_UserAdd_dist.wp_proof <<< ci ||| V : WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( ctx >>> binders: the client's environment `V`, the view `Γ`, the client's configuration `cfg` (its principal `principalOf cfg` in place of the token's binding) and the member's raft names `γR`; the context renamed `ctx`
+dev Auth_UserAdd_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context description renamed `ctx_desc`; `om` moved after it (below)
+dev Auth_UserAdd_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om` (the outgoing metadata, `outTokOk`'s), moved
+dev Auth_UserAdd_dist.wp_proof <<< Spec : GrpcSpecMd ( GF := GF ) pbAuthUserAddRequest pbAuthUserAddResponse ) ( |||  >>> binders: no service spec `Spec` (no registration)
+dev Auth_UserAdd_dist.wp_proof <<< Unit ||| List auth.AuthState >>> binders: `Q` over the auth history's states (`histAu`'s, as the service spec `etcdXSpecW`'s `∃ Q`) in place of the in-process `Q : Unit → _`
+dev Auth_UserAdd_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev Auth_UserAdd_dist.wp_proof <<< ( authObjAtC api conn addr ||| authClientAt cl ap eps V Γ cfg ∗ metadata.outMD ctx om >>> `authObjAtC` replaced by `authClientAt` at `Γ` (the address facts of the view); `metadata.outMD` moved up; the in-process group's parenthesis dropped (layout)
+dev Auth_UserAdd_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context's names (renamed)
+dev Auth_UserAdd_dist.wp_proof <<< ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserAdd" Spec ∗ metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec ( ⟨name , pw⟩ : UserAddW ) Q ||| ctx ctx_desc >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view; `outMD` moved up
+dev Auth_UserAdd_dist.wp_proof <<<  ||| ∧ name.length ≤ backend.maxKeySize >>> (F7 review B) the server's name bound, `etcdUserAddSpecW`'s premise (an over-long name is `lg.Fatal`); a weaker axiom: one more premise
+dev Auth_UserAdd_dist.wp_proof <<<  ||| ∗ □ ( ∀ um : apply.UserAddModel , ⌜ um.name = name ∧ um.noPassword = false ⌝ → histAu γR Γ.kv srvAuthSt0 ( fun hm => iprop ( ⌜ userOk ( principalOf cfg ) hm.username ⌝ ) ) ( irrUserAdd um ) Q >>> `etcdUserAddSpecW`'s update (`authHistAuT` at the token) as the caller's persistent `histAu` at the cluster's names, the token's binding replaced by `userOk` of `cfg`'s principal; required of every model, not only `pwSure` ones (a stronger premise: a weaker axiom)
+dev Auth_UserAdd_dist.wp_proof <<< api ||| ap >>> the receiver: the `*authClient` `ap`
+dev Auth_UserAdd_dist.wp_proof <<< ci ||| ctx >>> the context's name (renamed)
+dev Auth_UserAdd_dist.wp_proof <<< authCallOut ||| ( ⌜ err = GoInterface.nil ⌝ ∗ ∃ um : apply.UserAddModel , ⌜ um.name = name ∧ um.noPassword = false ∧ um.pwSure ⌝ ∗ adminRepliedD eps Γ γR ( principalOf cfg ) ( irrUserAdd um ) >>> `authCallOut` unfolded at `etcdUserAddSpecW`'s reply `userAddReplied`, cluster-level: `adminRepliedD` (`adminReplied` with the member's publication and the token binding dropped, the member `servedBy` and `userOk` of the principal added)
+dev Auth_UserAdd_dist.wp_proof <<<  ||| ) ∨ ⌜ err ≠ GoInterface.nil ∧ >>> `authCallOut` unfolded: the success arm's end and the error arm (`err ≠ nil`), as `authCallOut`'s
+dev Auth_UserAdd_dist.wp_proof <<< err ||| = null ⌝ >>> the error arm: `err ≠ nil ∧ resp = null`, nothing more (`authCallOut`'s `clientErr`/`statusErrOk`/`errCellOk` dropped; a weaker post)
+
+pair Auth_UserGrantRole_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/AuthUserGrantRoleDist.lean Auth_UserGrantRole_dist.spec Spec/go_etcd_io/etcd/client/v3/authClient__UserGrantRole.lean authClient.UserGrantRole.spec
+dev Auth_UserGrantRole_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Auth_UserGrantRole_dist.wp_proof <<< api conn ||| cl ap >>> binders: the client `cl` and its `Auth` field's `*authClient` `ap` (`authClientAt`) in place of `api` and its connection `conn`
+dev Auth_UserGrantRole_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` (`authClientAt`'s `membersAt`) in place of the registered addresses
+dev Auth_UserGrantRole_dist.wp_proof <<< ci ||| V : WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( ctx >>> binders: the client's environment `V`, the view `Γ`, the client's configuration `cfg` (its principal `principalOf cfg` in place of the token's binding) and the member's raft names `γR`; the context renamed `ctx`
+dev Auth_UserGrantRole_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context description renamed `ctx_desc`; `om` moved after it (below)
+dev Auth_UserGrantRole_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om` (the outgoing metadata, `outTokOk`'s), moved
+dev Auth_UserGrantRole_dist.wp_proof <<< Spec : GrpcSpecMd ( GF := GF ) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse ) ( |||  >>> binders: no service spec `Spec` (no registration)
+dev Auth_UserGrantRole_dist.wp_proof <<< Unit ||| List auth.AuthState >>> binders: `Q` over the auth history's states (`histAu`'s, as the service spec `etcdXSpecW`'s `∃ Q`) in place of the in-process `Q : Unit → _`
+dev Auth_UserGrantRole_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev Auth_UserGrantRole_dist.wp_proof <<< ( authObjAtC api conn addr ||| authClientAt cl ap eps V Γ cfg ∗ metadata.outMD ctx om >>> `authObjAtC` replaced by `authClientAt` at `Γ` (the address facts of the view); `metadata.outMD` moved up; the in-process group's parenthesis dropped (layout)
+dev Auth_UserGrantRole_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context's names (renamed)
+dev Auth_UserGrantRole_dist.wp_proof <<< ci cd ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Auth/UserGrantRole" Spec ∗ metadata.outMD ci om ∗ □ ▷ attemptPre conn om Spec ( user , role ) Q ||| ctx ctx_desc >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view; `outMD` moved up
+dev Auth_UserGrantRole_dist.wp_proof <<<  ||| ∧ user.length ≤ backend.maxKeySize ⌝ ∗ histAu γR Γ.kv srvAuthSt0 ( fun hm => iprop ( ⌜ userOk ( principalOf cfg ) hm.username >>> the server's name bound `user.length ≤ maxKeySize` (`etcdUserGrantRoleSpecW`'s premise; one more premise: a weaker axiom), and its update (`authHistAuT` at the token) as the caller's `histAu` at the cluster's names, the binding `userOk` of `cfg`'s principal
+dev Auth_UserGrantRole_dist.wp_proof <<<  ||| ) ( irrUserGrantRole user role ) Q >>> the rest of the update (`irrUserGrantRole`)
+dev Auth_UserGrantRole_dist.wp_proof <<< api ||| ap >>> the receiver: the `*authClient` `ap`
+dev Auth_UserGrantRole_dist.wp_proof <<< ci ||| ctx >>> the context's name (renamed)
+dev Auth_UserGrantRole_dist.wp_proof <<< authCallOut ||| ( ⌜ err = GoInterface.nil ⌝ ∗ adminRepliedD eps Γ γR ( principalOf cfg ) ( irrUserGrantRole user role ) >>> `authCallOut` unfolded at `etcdUserGrantRoleSpecW`'s reply, cluster-level: `adminRepliedD` (`adminReplied` with the member's publication and the token binding dropped, the member `servedBy` and `userOk` of the principal added)
+dev Auth_UserGrantRole_dist.wp_proof <<<  ||| ) ∨ ⌜ err ≠ GoInterface.nil ∧ >>> `authCallOut` unfolded: the success arm's end and the error arm (`err ≠ nil`), as `authCallOut`'s
+dev Auth_UserGrantRole_dist.wp_proof <<< err ||| = null ⌝ >>> the error arm: `err ≠ nil ∧ resp = null`, nothing more (`authCallOut`'s `clientErr`/`statusErrOk`/`errCellOk` dropped; a weaker post)
+
+pair KV_DeleteOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVDeleteOnDist.lean KV_DeleteOn_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Delete.lean kv.Delete.spec
+dev KV_DeleteOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev KV_DeleteOn_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`userClientAt`) in place of the `*kv` `kv`
+dev KV_DeleteOn_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (the view's, `Γ.kv`)
+dev KV_DeleteOn_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_DeleteOn_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`; no `dup` (the update is persistent, `writeAuD`/`□`)
+dev KV_DeleteOn_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `V`'s type, the view `Γ`, the configuration `cfg` (its principal in place of the token's binding), the member's raft names `γR` and the requested prefix `L₀`
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev KV_DeleteOn_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev KV_DeleteOn_dist.wp_proof <<< ( isKv kv γ dup ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ` (`kvClientAt` and `cfg`), with the metadata `om` and the requested prefix `L₀` (`client_*_on`'s floor, at the cluster's requested log); the in-process group's parenthesis dropped (layout)
+dev KV_DeleteOn_dist.wp_proof <<< □?dup ||| writeAuD Γ.kv >>> the update persistent (`writeAuD`: a write is resent after `ErrInvalidAuthToken`'s token refresh), with the grant obligation `opGrantD` at `cfg`'s principal
+dev KV_DeleteOn_dist.wp_proof <<< AU < { ∃∃ ( σ : KVState ||| principalOf cfg >>> `writeAuD`'s arguments: the principal (the AU is `writeAuD`'s `kvAu1G`, unfolded in the source)
+dev KV_DeleteOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)
+dev KV_DeleteOn_dist.wp_proof <<< σ ) ∗ ⌜ kvRoom σ ⌝ , COMM ||| L₀ >>> the AU's text inside `writeAuD` (`kvRoom` kept there); its prefix `L₀`
+dev KV_DeleteOn_dist.wp_proof <<< σ } > ) |||  >>> the AU's end, inside `writeAuD`
+dev KV_DeleteOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev KV_DeleteOn_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_DeleteOn_dist.wp_proof <<<  ||| ∗ writeCheckedD eps Γ γR ( principalOf cfg ) ( irrDeleteRange ( deleteWireOf ( opDeleteModel key opts ) ) ) L₀ >>> a success's check: the member and its grant (`writeCheckedD`, `client_delete_on`'s `writeGrantOn` at the cluster)
+dev KV_DeleteOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev KV_DeleteOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+
+pair KV_GetOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVGetOnDist.lean KV_GetOn_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Get.lean kv.Get.spec
+dev KV_GetOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev KV_GetOn_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`userClientAt`) in place of the `*kv` `kv`
+dev KV_GetOn_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (the view's, `Γ.kv`)
+dev KV_GetOn_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_GetOn_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`; no `dup` (the update is persistent, `writeAuD`/`□`)
+dev KV_GetOn_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `V`'s type, the view `Γ`, the configuration `cfg` (its principal in place of the token's binding), the member's raft names `γR` and the requested prefix `L₀`
+dev KV_GetOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev KV_GetOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> (F7 review F1) the members' auth names distinct (`Γ.au`); a weaker axiom: one more premise; auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev KV_GetOn_dist.wp_proof <<< ( isKv kv γ dup ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ` (`kvClientAt` and `cfg`), with the metadata `om` and the requested prefix `L₀` (`client_*_on`'s floor, at the cluster's requested log); the in-process group's parenthesis dropped (layout)
+dev KV_GetOn_dist.wp_proof <<<  ||| ∧ ( rangeWireOf ( opGetModel key opts ) ) .base.serializable = false >>> linearizable reads only: `serializable = false` a premise for every `Q` (no workload sends a serializable read with auth on; a weaker axiom)
+dev KV_GetOn_dist.wp_proof <<< ( ⌜ ( rangeWireOf ( opGetModel key opts ) ) .base.serializable = false ⌝ ∗ |||  >>> the AU arm's `serializable = false`, now the premise above (layout)
+dev KV_GetOn_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv`
+dev KV_GetOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev KV_GetOn_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_GetOn_dist.wp_proof <<< ( if ( rangeWireOf ( opGetModel key opts ) ) .base.serializable then iprop ( True ) else iprop ( |||  >>> `serializable = false`: the post's `if` is its `else` arm `□ Q σ`
+dev KV_GetOn_dist.wp_proof <<< ) ) |||  >>> the end of that `if` (layout)
+dev KV_GetOn_dist.wp_proof <<< m.count = txn.srvCount ( rangeWireOf ( opGetModel key opts ) ) ( σ.at ( σ.readRev ( rangeWireOf ( opGetModel key opts ) ) .base.rev ) ) .kvs true ∧ |||  >>> the reply's `count` not claimed (a weaker post)
+dev KV_GetOn_dist.wp_proof <<<  ||| ∗ readCheckedD eps Γ γR ( principalOf cfg ) L₀ ( rangeWireOf ( opGetModel key opts ) ) >>> a success's check: the member that served it and its verdict (`readCheckedD`: at its published auth index above the floor `authFloorD`, and the cluster-level `readAuthedD`); strengthened before approval (F7 S5, N1), re-reviewed `f7-getOn-n1.md` and `f7-s5-review.md`
+dev KV_GetOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev KV_GetOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+
+pair KV_PutOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutOnDist.lean KV_PutOn_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Put.lean kv.Put.spec
+dev KV_PutOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev KV_PutOn_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`userClientAt`) in place of the `*kv` `kv`
+dev KV_PutOn_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (the view's, `Γ.kv`)
+dev KV_PutOn_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
+dev KV_PutOn_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`; no `dup` (the update is persistent, `writeAuD`/`□`)
+dev KV_PutOn_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `V`'s type, the view `Γ`, the configuration `cfg` (its principal in place of the token's binding), the member's raft names `γR` and the requested prefix `L₀`
+dev KV_PutOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev KV_PutOn_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev KV_PutOn_dist.wp_proof <<< ( isKv kv γ dup ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ` (`kvClientAt` and `cfg`), with the metadata `om` and the requested prefix `L₀` (`client_*_on`'s floor, at the cluster's requested log); the in-process group's parenthesis dropped (layout)
+dev KV_PutOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
+dev KV_PutOn_dist.wp_proof <<<  ||| ∨ Γ.kv.lm = .revocable ) >>> a lease `0` or the revocable lease mode, as `etcdPutSpecOn`'s filter (`client_put_on`'s `hl`; F2's `KV_PutLease_dist` row): wider than `kv.Put.spec`'s `leaseID = 0`, as the mirrored `client.client_put_on`
+dev KV_PutOn_dist.wp_proof <<< □?dup ||| writeAuD Γ.kv >>> the update persistent (`writeAuD`: a write is resent after `ErrInvalidAuthToken`'s token refresh), with the grant obligation `opGrantD` at `cfg`'s principal
+dev KV_PutOn_dist.wp_proof <<< AU < { ∃∃ ( σ : KVState ||| principalOf cfg >>> `writeAuD`'s arguments: the principal (the AU is `writeAuD`'s `kvAu1G`, unfolded in the source)
+dev KV_PutOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)
+dev KV_PutOn_dist.wp_proof <<< σ ) ∗ ⌜ kvRoom σ ⌝ , COMM ||| L₀ >>> the AU's text inside `writeAuD` (`kvRoom` kept there); its prefix `L₀`
+dev KV_PutOn_dist.wp_proof <<< σ } > ) |||  >>> the AU's end, inside `writeAuD`
+dev KV_PutOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev KV_PutOn_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
+dev KV_PutOn_dist.wp_proof <<< m.prev = ( if ( putWireOf ( opPutModel key val opts ) ) .base.prevKV then ( σ.store.lookup ( putWireOf ( opPutModel key val opts ) ) .key ) .map ( KVRec.toKv ( putWireOf ( opPutModel key val opts ) ) .key ) else none ) ∧ |||  >>> the reply's `prev` not claimed (a weaker post)
+dev KV_PutOn_dist.wp_proof <<< ∧ kvLogOk ||| ⌝ ∗ kvRevLb Γ.kv m.hdr.revision ∗ writeCheckedD eps Γ γR >>> `kvLogOk` of the next state not claimed (a weaker post); and a success's check: the member and its grant (`writeCheckedD`, `client_put_on`'s `writeGrantOn` at the cluster)
+dev KV_PutOn_dist.wp_proof <<< kvOpStep ||| principalOf cfg ) >>> `writeCheckedD`'s principal (the dropped `kvLogOk (kvOpStep …)`)
+dev KV_PutOn_dist.wp_proof <<< .put ||| irrPut >>> `writeCheckedD`'s request: `irrPut` of the same wire request
+dev KV_PutOn_dist.wp_proof <<< σ ) ⌝ ∗ kvRevLb γ m.hdr.revision ||| L₀ >>> `kvRevLb` moved before `writeCheckedD` (at `Γ.kv`); `writeCheckedD`'s prefix `L₀`
+dev KV_PutOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev KV_PutOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+
+pair New_user_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/NewUserDist.lean New_user_dist.spec Spec/go_etcd_io/etcd/client/v3/New.lean clientv3.New.spec
+dev New_user_dist.wp_proof <<<  ||| ] [ NetProtoGS >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev New_user_dist.wp_proof <<< P ||| Γ >>> binders: the cluster's view `Γ` in place of the token predicate `P` (`clientTokAt` dropped)
+dev New_user_dist.wp_proof <<< GoString → IProp GF ||| DistView >>> binders: `Γ`'s type
+dev New_user_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → principalOf cfg = some cfg.Username' → >>> the members' auth names distinct (`Γ.au`), an auth-on view, a user name in `cfg`; more premises: a weaker axiom
+dev New_user_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev New_user_dist.wp_proof <<< clientAuthPre cfg ||| ⌜ strsSizeOk [ cfg.Username' , cfg.Password' ] ⌝ ∗ membersAt ( Gg := hG.goose_globalGS ) >>> `clientAuthPre`'s `client.ctxErrClientAll` is a theorem (`client.ctxErrClientAllW_of`, from the kept `isPkgInit` of clientv3, which gives `context`'s, the proved `context.ErrAny` and `rpctypesEtcdError_asTarget`): Go's contexts' `Err()` returns `Canceled`/`DeadlineExceeded`, both client errors; the rest: its registration of `Authenticate` at `eps` (`authTokReg`) replaced by the address facts of the view (`membersAt`), its `strsSizeOk` kept, its `threadBound ≤ 2^30` the instance argument. Reviewed SOUND in notes/axiom-review/f7-distdiff-review.md
+dev New_user_dist.wp_proof <<< P ) ||| Γ >>> `membersAt`'s view in place of `clientAuthPre`'s `P`; the group's parenthesis (layout)
+dev New_user_dist.wp_proof <<< clientTokAt cl eps P ∗ |||  >>> `clientTokAt` dropped from the post (the contracts read the principal from `cfg`; a weaker post)
+dev New_user_dist.wp_proof <<<  ||| ∗ ∃ ( mid : w64 ) ( rev : w64 ) , servedBy eps Γ mid ∗ ( auth.passwordChecked ( .on ( Γ.au mid ) ) cfg.Username' rev GoInterface.nil ∨ auth.enabledVerdict ( .on ( Γ.au mid ) ) false ) >>> a success names the member `mid` that answered `getToken`'s `Authenticate` and its check: `CheckPassword`'s (`passwordChecked`), or `ErrAuthNotEnabled` (`enabledVerdict … false`), at its names `Γ.au mid`
+
+pair Txn_CommitOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean Txn_CommitOn_dist.spec Spec/go_etcd_io/etcd/client/v3/txn__Commit.lean txn.Commit.spec
+dev Txn_CommitOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api`
+dev Txn_CommitOn_dist.wp_proof <<< addr ||| eps >>> the endpoints: `userClientAt`'s `eps` (the builder's `txnObjAt` at the same endpoints)
+dev Txn_CommitOn_dist.wp_proof <<< kv ||| V >>> binders: the client's environment `V` in place of the `*kv` `kv` (now `api`)
+dev Txn_CommitOn_dist.wp_proof <<< Loc ||| WEnv GF >>> binders: `V`'s type
+dev Txn_CommitOn_dist.wp_proof <<< γ ||| Γ >>> binders: the cluster's view `Γ` in place of the KV names `γ` (`γ := Γ.kv`)
+dev Txn_CommitOn_dist.wp_proof <<< KVNames ||| DistView >>> binders: `Γ`'s type
+dev Txn_CommitOn_dist.wp_proof <<< dup ||| cfg >>> binders: the configuration `cfg` (its principal); no `dup` (a writing update is `writeAuD`, persistent)
+dev Txn_CommitOn_dist.wp_proof <<< Bool ||| go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `cfg`'s type, the member's raft names `γR`, the requested prefix `L₀`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> (F7 review F1) the members' auth names distinct (`Γ.au`); a weaker axiom: one more premise; auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
+dev Txn_CommitOn_dist.wp_proof <<< ( ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ`, with the metadata `om` and the requested prefix `L₀`, placed first; the in-process group's parenthesis dropped (layout)
+dev Txn_CommitOn_dist.wp_proof <<< kv ∗ isKv kv γ dup ||| api >>> `txnKvIs` of the client's `*kv` `api`; `isKv` replaced (above)
+dev Txn_CommitOn_dist.wp_proof <<< □?dup |||  >>> no `dup`: the read-only arm's update is `□ AU` already, the writing arm's `writeAuD` is persistent
+dev Txn_CommitOn_dist.wp_proof <<< ⌜ txn.txnReadonly ( txnWireOf b.model ) = true ∧ Q = fun _ => iprop ( True ) ⌝ ∨ |||  >>> linearizable only: the trivial read-only arm (which admits a serializable transaction) dropped (fewer cases: a weaker axiom)
+dev Txn_CommitOn_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ( >>> the parenthesis of the widened write condition (layout)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ∨ ( Γ.kv.lm = .revocable ∧ txnPlainL ( txnWireOf b.model ) ) >>> (F7 S5, widened before approval, reviewed SOUND `f7-txn-review.md` with Go tests) a leased transaction in the revocable lease mode admitted, as `KV_PutOn_dist` and the in-process `client.txnUpdAtOn`; wider than `txn.Commit.spec`'s `txnPlain`
+dev Txn_CommitOn_dist.wp_proof <<< AU < { ∃∃ ||| writeAuD Γ.kv >>> a writing transaction's update persistent (`writeAuD`: resent after a token refresh), with the grant obligation
+dev Txn_CommitOn_dist.wp_proof <<< σ : KVState ||| principalOf cfg >>> `writeAuD`'s principal (its AU is `kvAu1G`, the source's text)
+dev Txn_CommitOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)
+dev Txn_CommitOn_dist.wp_proof <<< σ ) ∗ ⌜ kvRoom σ ⌝ , COMM ||| L₀ >>> the AU's text inside `writeAuD` (`kvRoom` kept there); its prefix `L₀`
+dev Txn_CommitOn_dist.wp_proof <<< σ } > |||  >>> the AU's end, inside `writeAuD`
+dev Txn_CommitOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev Txn_CommitOn_dist.wp_proof <<< ( if txn.txnSerializable ( txnWireOf b.model ) then iprop ( True ) else |||  >>> read-only is linearizable (the trivial arm dropped): the post's `if` is its `else` arm `□ Q σ`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ∗ ( if txn.txnReadonly ( txnWireOf b.model ) then txnReadCheckedD eps Γ γR ( principalOf cfg ) L₀ ( txnWireOf b.model ) else iprop ( ∃ tw : txn.TxnModelW , ⌜ tw.toModel = txnWireOf b.model ⌝ ∗ writeCheckedD eps Γ γR ( principalOf cfg ) ( irrTxn tw ) L₀ ) ) >>> a success's check: read-only, the member's (`txnReadCheckedD`, strengthened before approval F7 S5); writing, the grant of `irrTxn` (`writeCheckedD`, nested operations included)
+dev Txn_CommitOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Txn_CommitOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
+
+pair Client_LeaseLeases_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ClientLeaseLeasesDist.lean Client_LeaseLeases_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Leases.lean lessor.Leases.spec
+dev Client_LeaseLeases_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Client_LeaseLeases_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Client_LeaseLeases_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Client_LeaseLeases_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Client_LeaseLeases_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Client_LeaseLeases_dist.wp_proof <<< GrpcSpecMd ( GF := GF ) pbLeaseLeasesRequest pbLeaseLeasesResponse ) ( Q : LeaseLeasesRespM → IProp ||| WEnv >>> binders: `V`'s type; no `Spec`, no `Q` (the post is `etcdLeaseLeasesSpecAnyW`'s)
+dev Client_LeaseLeases_dist.wp_proof <<< ctx ||| Γ : DistView ) ( mid : w64 ) ( ci >>> binders: the view `Γ` and member `mid` (`leaseClientAt`); the context renamed `ci`
+dev Client_LeaseLeases_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> `metadata.outMD ctx om` follows from the kept `ctxOk` (its `outgoingCtxOkC` is `∃ md, outMD ctx md`), and `om` served only `attemptPre`, gone with the registration. On the lease paths, metadata (`hasleader`, `token`/`authorization`, `client-api-version`) only produces errors (the error arm claims nothing); reviewed SOUND in notes/axiom-review/f7-distdiff-review.md, Go test in notes/axiom-review/f7-distdiff-gotest/
+dev Client_LeaseLeases_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec ( ) Q ||| leaseClientAt cl lp ep V Γ mid >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseClientAt`, re-indexed by the view); `metadata.outMD` dropped with it (see the `om` line)
+dev Client_LeaseLeases_dist.wp_proof <<< ctx ||| ci >>> the context's name (renamed)
+dev Client_LeaseLeases_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev Client_LeaseLeases_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Client_LeaseLeases_dist.wp_proof <<< m ||| ids >>> the reply's model: its listed ids `ids` (the post's only use of `m`)
+dev Client_LeaseLeases_dist.wp_proof <<< LeaseLeasesRespM ) ( h : Loc ||| List w64 >>> binders: `ids`' type; no header `h` (dropped, below)
+dev Client_LeaseLeases_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Client_LeaseLeases_dist.wp_proof <<< m.ids.map ||| ids.map >>> the reply's ids (as above)
+dev Client_LeaseLeases_dist.wp_proof <<< Q m ||| ⌜ ids.Nodup ⌝ >>> `Q` at `etcdLeaseLeasesSpecAnyW`'s reply: no id twice (view-free, any lease mode)
+dev Client_LeaseLeases_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Client_LeaseLeases_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Client_LeaseLeases_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Client_LeaseTimeToLive_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/ClientLeaseTTLDist.lean Client_LeaseTimeToLive_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__TimeToLive.lean lessor.TimeToLive.spec
+dev Client_LeaseTimeToLive_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Client_LeaseTimeToLive_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Client_LeaseTimeToLive_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Client_LeaseTimeToLive_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< GrpcSpecMd ( GF := GF ) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse ) ( Q : LeaseTTLRespM → IProp ||| WEnv >>> binders: `V`'s type; no `Spec`, no `Q` (the post is `etcdLeaseTTLSpecW`'s)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ctx ||| Γ : DistView ) ( mid : w64 ) ( ci >>> binders: the view `Γ` and member `mid` (`leaseClientAt`); the context renamed `ci`
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> `metadata.outMD ctx om` follows from the kept `ctxOk` (its `outgoingCtxOkC` is `∃ md, outMD ctx md`), and `om` served only `attemptPre`, gone with the registration. On the lease paths, metadata (`hasleader`, `token`/`authorization`, `client-api-version`) only produces errors (the error arm claims nothing); reviewed SOUND in notes/axiom-review/f7-distdiff-review.md, Go test in notes/axiom-review/f7-distdiff-gotest/
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ) ( sl : GoSlice ) ( gs : List ( Bool → Bool ) |||  >>> binders: no options (the call without options, `slice.nil`, per the docstring)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec ( id , leaseKeysFold gs false ) Q ∗ leaseOptsAt sl gs ||| leaseClientAt cl lp ep V Γ mid >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseClientAt`, re-indexed by the view); `leaseOptsAt` gone with the options (`slice.nil`); `metadata.outMD` dropped with the registration (see the `om` line)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ctx ||| ci >>> the context's name (renamed)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev Client_LeaseTimeToLive_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Client_LeaseTimeToLive_dist.wp_proof <<< #sl ||| #slice.nil >>> the call without options (the docstring)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ∃ ( m : LeaseTTLRespM ) ( h : Loc ) ( ks : GoSlice ) , structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's header, `TTL`, `GrantedTTL` and `Keys` not claimed (`etcdLeaseTTLSpecW` says nothing of them; a weaker post)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< m.id ∗ structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"TTL" resp ↦□ m.ttl ∗ structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"GrantedTTL" resp ↦□ m.grantedTtl ∗ structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"Keys" resp ↦□ ks ∗ Q m ||| id >>> `Q` at `etcdLeaseTTLSpecW`'s reply: the echoed `ID` is the request's `id` (`m.id = req.1`); the other fields not claimed (a weaker post)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Client_LeaseTimeToLive_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Client_LeaseTimeToLive_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_GrantLive_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantLiveDist.lean Lease_GrantLive_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean lessor.Grant.spec
+dev Lease_GrantLive_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_GrantLive_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_GrantLive_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_GrantLive_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_GrantLive_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_GrantLive_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_GrantLive_dist.wp_proof <<< pbLeaseGrantRequest pbLeaseGrantResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_GrantLive_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_GrantLive_dist.wp_proof <<< LeaseGrantRespM → IProp GF ||| w64 >>> binders: `mid`'s type
+dev Lease_GrantLive_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> `metadata.outMD ctx om` follows from the kept `ctxOk` (its `outgoingCtxOkC` is `∃ md, outMD ctx md`), and `om` served only `attemptPre`, gone with the registration. On the lease paths, metadata (`hasleader`, `token`/`authorization`, `client-api-version`) only produces errors (the error arm claims nothing); reviewed SOUND in notes/axiom-review/f7-distdiff-review.md, Go test in notes/axiom-review/f7-distdiff-gotest/
+dev Lease_GrantLive_dist.wp_proof <<<  ||| Γ.kv.lm = .revocable → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → >>> revocable lease mode (`Γ.kv.lm = .revocable`, the `Live` service spec's) and (F2 axiom review) the members' lessor names distinct (`Γ.ls`, P-L1); a weaker axiom: one more premise
+dev Lease_GrantLive_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec ( ttl , W64 0 ) Q ||| leaseClientAt cl lp ep V Γ mid >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseClientAt`: one endpoint served by member `mid`); `metadata.outMD` dropped with it (see the `om` line)
+dev Lease_GrantLive_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_GrantLive_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_GrantLive_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_GrantLive_dist.wp_proof <<< ) ( h : Loc ) |||  >>> binders: the header's `h` (its fact dropped, below)
+dev Lease_GrantLive_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Lease_GrantLive_dist.wp_proof <<< Q m ||| ⌜ m.id ≠ W64 0 ⌝ ∗ ∃ ( i : Nat ) ( l : Loc ) , lease.leaseLiveFrom ( Γ.ls mid ) i m.id l ∗ lease.leaseReqIs ( Γ.ls mid ) m.id ttl >>> `Q` at `etcdLeaseGrantSpecLiveW (Γ.ls mid)`'s reply (clientv3 sends `ID = 0`, the filter's request): a non-zero id live at the member's lessor, its requested TTL; `etcdReached` not claimed (a weaker post)
+dev Lease_GrantLive_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_GrantLive_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_GrantOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantOnDist.lean Lease_GrantOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean lessor.Grant.spec
+dev Lease_GrantOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_GrantOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_GrantOn_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_GrantOn_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_GrantOn_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_GrantOn_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_GrantOn_dist.wp_proof <<< pbLeaseGrantRequest pbLeaseGrantResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_GrantOn_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_GrantOn_dist.wp_proof <<< LeaseGrantRespM → IProp GF ||| w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( n₀ : Nat >>> binders: `mid`'s type; the configuration `cfg` (its principal), the member's raft names `γR`, the requested prefix `L₀` and the caller's auth index `n₀` (`client_lease_grant_on`'s)
+dev Lease_GrantOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` moved (below)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om`, moved
+dev Lease_GrantOn_dist.wp_proof <<<  ||| ( Q : w64 → KVState → IProp GF ) >>> binders: the caller's update result `Q` (per lease id, `writeAuD`'s)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, revocable lease mode, `outTokOk` (no token of the caller's own), the members' auth names (`Γ.au`, F7 F1) and lessor names (`Γ.ls`, F2) distinct; more premises: a weaker axiom; `γR` the view's raft
+dev Lease_GrantOn_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ||| leaseUserAt cl lp ep V Γ mid cfg >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseUserAt`: `leaseClientAt` and the configuration `cfg`)
+dev Lease_GrantOn_dist.wp_proof <<< ∗ □ ▷ attemptPre conn om Spec ( ttl , W64 0 ) Q |||  >>> the registration's `attemptPre` (replaced, with the service spec, by the update below)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| ∗ srvReqLogLb γR L₀ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n₀ ∗ □ ( ∀ id : w64 , writeAuD Γ.kv ( principalOf cfg ) ( .leaseGrant id ttl ) L₀ ( Q id ) >>> `client_lease_grant_on`'s premises at `γl := Γ.ls mid`: the requested prefix, the member's published auth index, and the grant's update persistent at every id (`writeAuD`: resent after a token refresh)
+dev Lease_GrantOn_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_GrantOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_GrantOn_dist.wp_proof <<< ) ( h : Loc ) |||  >>> binders: the header's `h` (its fact dropped, below)
+dev Lease_GrantOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Lease_GrantOn_dist.wp_proof <<<  ||| ⌜ m.id ≠ W64 0 ⌝ ∗ ( ∃ ( i : Nat ) ( l : Loc ) , lease.leaseLiveFrom ( Γ.ls mid ) i m.id l ∗ lease.leaseReqIs ( Γ.ls mid ) m.id ttl ) ∗ ( ∃ σ : KVState , >>> `Lease_GrantLive_dist`'s reply (`etcdLeaseGrantSpecLiveW` at `Γ.ls mid`), and the update's result
+dev Lease_GrantOn_dist.wp_proof <<< m ||| m.id σ ) ∗ ∃ n : Nat , ⌜ n₀ ≤ n ⌝ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n ∗ leaseCheckD ( Γ.au mid ) ( principalOf cfg ) n ( fun _ => iprop ( True ) ) >>> `Q m.id σ`, and member `mid`'s own check (`requireAuthInfo`'s, `leaseCheckD … True`, binding `P = some info.Username'`) at its published index `n ≥ n₀`
+dev Lease_GrantOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_GrantOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_Grant_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseGrantDist.lean Lease_Grant_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Grant.lean lessor.Grant.spec
+dev Lease_Grant_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_Grant_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_Grant_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_Grant_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_Grant_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_Grant_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_Grant_dist.wp_proof <<< pbLeaseGrantRequest pbLeaseGrantResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_Grant_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_Grant_dist.wp_proof <<< LeaseGrantRespM → IProp GF ||| w64 >>> binders: `mid`'s type
+dev Lease_Grant_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> `metadata.outMD ctx om` follows from the kept `ctxOk` (its `outgoingCtxOkC` is `∃ md, outMD ctx md`), and `om` served only `attemptPre`, gone with the registration. On the lease paths, metadata (`hasleader`, `token`/`authorization`, `client-api-version`) only produces errors (the error arm claims nothing); reviewed SOUND in notes/axiom-review/f7-distdiff-review.md, Go test in notes/axiom-review/f7-distdiff-gotest/
+dev Lease_Grant_dist.wp_proof <<<  ||| Γ.kv.lm = .mono → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → >>> monotone lease mode (`Γ.kv.lm = .mono`; the service spec `etcdLeaseGrantSpecW`'s) and (F2 axiom review) the members' lessor names distinct (`Γ.ls`, P-L1); a weaker axiom: one more premise
+dev Lease_Grant_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec ( ttl , W64 0 ) Q ||| leaseClientAt cl lp ep V Γ mid >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseClientAt`: one endpoint served by member `mid`); `metadata.outMD` dropped with it (see the `om` line)
+dev Lease_Grant_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_Grant_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_Grant_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_Grant_dist.wp_proof <<< ) ( h : Loc ) |||  >>> binders: the header's `h` (its fact dropped, below)
+dev Lease_Grant_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseGrantResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Lease_Grant_dist.wp_proof <<< Q m ||| ⌜ m.id ≠ W64 0 ⌝ ∗ ∃ i : Nat , lease.leaseGrantedAt ( Γ.ls mid ) i m.id >>> `Q` at `etcdLeaseGrantSpecW (Γ.ls mid)`'s reply: a non-zero id granted at the member's lessor; `etcdReached` dropped (no workload reads it; a weaker post)
+dev Lease_Grant_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_Grant_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_LeasesGranted_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseLeasesGrantedDist.lean Lease_LeasesGranted_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Leases.lean lessor.Leases.spec
+dev Lease_LeasesGranted_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_LeasesGranted_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_LeasesGranted_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_LeasesGranted_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_LeasesGranted_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_LeasesGranted_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_LeasesGranted_dist.wp_proof <<< pbLeaseLeasesRequest pbLeaseLeasesResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_LeasesGranted_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_LeasesGranted_dist.wp_proof <<< LeaseLeasesRespM → IProp GF ||| w64 >>> binders: `mid`'s type
+dev Lease_LeasesGranted_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> `metadata.outMD ctx om` follows from the kept `ctxOk` (its `outgoingCtxOkC` is `∃ md, outMD ctx md`), and `om` served only `attemptPre`, gone with the registration. On the lease paths, metadata (`hasleader`, `token`/`authorization`, `client-api-version`) only produces errors (the error arm claims nothing); reviewed SOUND in notes/axiom-review/f7-distdiff-review.md, Go test in notes/axiom-review/f7-distdiff-gotest/
+dev Lease_LeasesGranted_dist.wp_proof <<<  ||| ( G : List w64 ) >>> binders: the caller's grants `G` (`etcdLeaseLeasesSpecW`'s `∃ G`)
+dev Lease_LeasesGranted_dist.wp_proof <<<  ||| Γ.kv.lm = .mono → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → >>> monotone lease mode and (F2 axiom review) the members' lessor names distinct (`Γ.ls`, P-L1); a weaker axiom: one more premise
+dev Lease_LeasesGranted_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec ( ) Q ||| leaseClientAt cl lp ep V Γ mid >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseClientAt`); `metadata.outMD` dropped with it (see the `om` line)
+dev Lease_LeasesGranted_dist.wp_proof <<<  ||| ∗ [ ∗ list ] id ∈ G , ∃ i : Nat , lease.leaseGrantedAt ( Γ.ls mid >>> `etcdLeaseLeasesSpecW (Γ.ls mid)`'s premise: the grants of `G` at the member's lessor
+dev Lease_LeasesGranted_dist.wp_proof <<<  ||| i id >>> the rest of that premise
+dev Lease_LeasesGranted_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_LeasesGranted_dist.wp_proof <<< m ||| ids >>> the reply's model: its listed ids `ids` (the post's only use of `m`)
+dev Lease_LeasesGranted_dist.wp_proof <<< LeaseLeasesRespM ) ( h : Loc ||| List w64 >>> binders: `ids`' type; no header `h` (dropped, below)
+dev Lease_LeasesGranted_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Lease_LeasesGranted_dist.wp_proof <<< m.ids.map ||| ids.map >>> the reply's ids (as above)
+dev Lease_LeasesGranted_dist.wp_proof <<< Q m ||| ⌜ ids.Nodup ∧ ∀ id ∈ G , id ∈ ids ⌝ >>> `Q` at `etcdLeaseLeasesSpecW`'s reply: no id twice, every grant of `G` listed
+dev Lease_LeasesGranted_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_LeasesGranted_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_LeasesGranted_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_LeasesLive_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseLeasesLiveDist.lean Lease_LeasesLive_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Leases.lean lessor.Leases.spec
+dev Lease_LeasesLive_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_LeasesLive_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_LeasesLive_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_LeasesLive_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_LeasesLive_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_LeasesLive_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_LeasesLive_dist.wp_proof <<< pbLeaseLeasesRequest pbLeaseLeasesResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_LeasesLive_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_LeasesLive_dist.wp_proof <<< LeaseLeasesRespM → IProp GF ||| w64 >>> binders: `mid`'s type
+dev Lease_LeasesLive_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> `metadata.outMD ctx om` follows from the kept `ctxOk` (its `outgoingCtxOkC` is `∃ md, outMD ctx md`), and `om` served only `attemptPre`, gone with the registration. On the lease paths, metadata (`hasleader`, `token`/`authorization`, `client-api-version`) only produces errors (the error arm claims nothing); reviewed SOUND in notes/axiom-review/f7-distdiff-review.md, Go test in notes/axiom-review/f7-distdiff-gotest/
+dev Lease_LeasesLive_dist.wp_proof <<<  ||| ( n : Nat ) >>> binders: the caller's lower bound `n` of the lessor history (`etcdLeaseLeasesSpecLiveW`'s `∃ m`)
+dev Lease_LeasesLive_dist.wp_proof <<<  ||| Γ.kv.lm = .revocable → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → >>> revocable lease mode (`Γ.kv.lm = .revocable`, the `Live` service spec's) and (F2 axiom review) the members' lessor names distinct (`Γ.ls`, P-L1); a weaker axiom: one more premise
+dev Lease_LeasesLive_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ∗ metadata.outMD ctx om ∗ □ ▷ attemptPre conn om Spec ( ) Q ||| leaseClientAt cl lp ep V Γ mid >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseClientAt`); `metadata.outMD` dropped with it (see the `om` line)
+dev Lease_LeasesLive_dist.wp_proof <<<  ||| ∗ lease.lessorLb ( Γ.ls mid >>> `etcdLeaseLeasesSpecLiveW (Γ.ls mid)`'s premise: the lessor's lower bound
+dev Lease_LeasesLive_dist.wp_proof <<<  ||| n >>> the rest of that premise
+dev Lease_LeasesLive_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_LeasesLive_dist.wp_proof <<< m ||| ids >>> the reply's model: its listed ids `ids` (the post's only use of `m`)
+dev Lease_LeasesLive_dist.wp_proof <<< LeaseLeasesRespM ) ( h : Loc ||| List w64 >>> binders: `ids`' type; no header `h` (dropped, below)
+dev Lease_LeasesLive_dist.wp_proof <<<  ||| ( j : Nat ) >>> binders: the snapshot's index `j` (`etcdLeaseLeasesSpecLiveW`'s)
+dev Lease_LeasesLive_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Lease_LeasesLive_dist.wp_proof <<< m.ids.map ||| ids.map >>> the reply's ids (as above)
+dev Lease_LeasesLive_dist.wp_proof <<< Q m ||| ⌜ n ≤ j ⌝ ∗ lease.leaseIdsAt ( Γ.ls mid ) j ids >>> `Q` at `etcdLeaseLeasesSpecLiveW`'s reply: the ids of the lessor's snapshot at `j ≥ n`
+dev Lease_LeasesLive_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_LeasesLive_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_LeasesLive_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_LeasesOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseLeasesOnDist.lean Lease_LeasesOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Leases.lean lessor.Leases.spec
+dev Lease_LeasesOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_LeasesOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_LeasesOn_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_LeasesOn_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_LeasesOn_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_LeasesOn_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_LeasesOn_dist.wp_proof <<< pbLeaseLeasesRequest pbLeaseLeasesResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_LeasesOn_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_LeasesOn_dist.wp_proof <<< LeaseLeasesRespM → IProp GF ||| w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( n₀ m₀ : Nat >>> binders: `mid`'s type; the configuration `cfg` (its principal), the caller's auth index `n₀` and lessor index `m₀`
+dev Lease_LeasesOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` moved (below)
+dev Lease_LeasesOn_dist.wp_proof <<<  ||| ( om : GrpcMd ) >>> binders: `om`, moved
+dev Lease_LeasesOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → outTokOk ( principalOf cfg ) om → >>> auth on, revocable lease mode, `outTokOk` (no token of the caller's own), the members' auth names (`Γ.au`, F7 F1) and lessor names (`Γ.ls`, F2) distinct; more premises: a weaker axiom
+dev Lease_LeasesOn_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseLeases" Spec ||| leaseUserAt cl lp ep V Γ mid cfg >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseUserAt`: `leaseClientAt` and the configuration `cfg`)
+dev Lease_LeasesOn_dist.wp_proof <<< ∗ □ ▷ attemptPre conn om Spec ( ) Q |||  >>> the registration's `attemptPre` (replaced, with the service spec, by the post below)
+dev Lease_LeasesOn_dist.wp_proof <<<  ||| ∗ auth.authPubLbM ( .on ( Γ.au mid >>> the member's published auth index `n₀` (`checkLeaseLeases`' check is at the member's state)
+dev Lease_LeasesOn_dist.wp_proof <<<  ||| ) n₀ ∗ lease.lessorLb ( Γ.ls mid ) m₀ >>> and the lessor's lower bound `m₀` (`Lease_LeasesLive_dist`'s premise)
+dev Lease_LeasesOn_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_LeasesOn_dist.wp_proof <<< m ||| ids >>> the reply's model: its listed ids `ids` (the post's only use of `m`)
+dev Lease_LeasesOn_dist.wp_proof <<< LeaseLeasesRespM ) ( h : Loc ||| List w64 >>> binders: `ids`' type; no header `h` (dropped, below)
+dev Lease_LeasesOn_dist.wp_proof <<<  ||| ( j n : Nat ) >>> binders: the lessor snapshot's index `j` and the check's auth index `n`
+dev Lease_LeasesOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseLeasesResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's `ResponseHeader` and `hdrFull` dropped from the post (the service spec's `etcdReached` not claimed; a weaker post)
+dev Lease_LeasesOn_dist.wp_proof <<< m.ids.map ||| ids.map >>> the reply's ids (as above)
+dev Lease_LeasesOn_dist.wp_proof <<< Q m ||| ⌜ m₀ ≤ j ∧ n₀ ≤ n ⌝ ∗ lease.leaseIdsAt ( Γ.ls mid ) j ids ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n ∗ leaseCheckD ( Γ.au mid ) ( principalOf cfg ) n ( fun info => iprop ( [ ∗ list ] id ∈ ids , leaseKeysVerdictFrom ( .on ( Γ.au mid ) ) n info ( Γ.ls mid ) j id .read ) ) >>> `Lease_LeasesLive_dist`'s reply (the lessor's listing at `j ≥ m₀`) with `checkLeaseLeases`' verdict at the member's published index `n ≥ n₀` (`leaseCheckD`, binding `P = some info.Username'`: an admin, or every listed lease's keys readable)
+dev Lease_LeasesOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_LeasesOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_LeasesOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_RevokeOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseRevokeOnDist.lean Lease_RevokeOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__Revoke.lean lessor.Revoke.spec
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_RevokeOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_RevokeOn_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_RevokeOn_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_RevokeOn_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_RevokeOn_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_RevokeOn_dist.wp_proof <<< pbLeaseRevokeRequest pbLeaseRevokeResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_RevokeOn_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_RevokeOn_dist.wp_proof <<< LeaseRevokeRespM → IProp GF ||| w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( n₀ : Nat >>> binders: `mid`'s type; the configuration `cfg` (its principal), the member's raft names `γR`, the requested prefix `L₀` and the caller's auth index `n₀` (`client_lease_revoke_on`'s)
+dev Lease_RevokeOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` moved (below)
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: `om`, moved
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| ( Q : KVState → IProp GF ) >>> binders: the caller's update result `Q` (`writeAuD`'s)
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, revocable lease mode, `γR` the view's raft, `outTokOk` (no token of the caller's own), the members' auth names distinct (`Γ.au`, F7 F1); more premises: a weaker axiom
+dev Lease_RevokeOn_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ||| leaseUserAt cl lp ep V Γ mid cfg >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseUserAt`: `leaseClientAt` and the configuration `cfg`)
+dev Lease_RevokeOn_dist.wp_proof <<< ∗ □ ▷ attemptPre conn om Spec id Q |||  >>> the registration's `attemptPre` (replaced, with the service spec, by the update below)
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| ∗ srvReqLogLb γR L₀ ∗ auth.authPubLbM ( .on ( Γ.au mid >>> `client_lease_revoke_on`'s premises: the requested prefix and member `mid`'s published auth index
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| ) n₀ ∗ writeAuD Γ.kv ( principalOf cfg ) ( .leaseRevoke id ) L₀ Q >>> the revoke's update, persistent (`writeAuD`: a write through raft, resent after a token refresh)
+dev Lease_RevokeOn_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_RevokeOn_dist.wp_proof <<<  ||| ( ∃ σ : KVState , >>> the update's result `Q σ`
+dev Lease_RevokeOn_dist.wp_proof <<< m ||| σ ) ∗ writeCheckedD [ ep ] Γ γR ( principalOf cfg ) ( irrLeaseRevoke id ) L₀ ∗ ∃ n : Nat , ⌜ n₀ ≤ n ⌝ ∗ auth.authPubLbM ( .on ( Γ.au mid ) ) n ∗ leaseCheckD ( Γ.au mid ) ( principalOf cfg ) n ( fun _ => iprop ( True ) ) >>> `Q σ` in place of `Q m`; the grant of `irrLeaseRevoke id` (`writeCheckedD`: the apply-time `checkLeasePuts`) and member `mid`'s `requireAuthInfo` (`leaseCheckD … True`, binding `P = some info.Username'`) at its published index `n ≥ n₀`
+dev Lease_RevokeOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_RevokeOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_RevokeOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis
+
+pair Lease_TimeToLiveOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/LeaseTimeToLiveOnDist.lean Lease_TimeToLiveOn_dist.spec Spec/go_etcd_io/etcd/client/v3/lessor__TimeToLive.lean lessor.TimeToLive.spec
+dev Lease_TimeToLiveOn_dist.wp_proof <<<  ||| [ π : NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< l conn ||| cl lp >>> binders: the client `cl` and its `Lease` field's `*lessor` `lp` (`leaseClientAt`) in place of the lessor `l` and its connection `conn`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< addr ||| ep >>> binders: the one endpoint `ep` of member `mid` in place of the registered addresses `addr`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< List |||  >>> binders: one endpoint (`ep : GoString`), not a list
+dev Lease_TimeToLiveOn_dist.wp_proof <<< Spec ||| V >>> binders: the client's environment `V` (`isNewClient`) in place of the service spec `Spec` (no registration)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< GrpcSpecMd ( GF := ||| WEnv >>> binders: `V`'s type in place of `Spec`'s
+dev Lease_TimeToLiveOn_dist.wp_proof <<< pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse ||| ( Γ : DistView >>> binders: the cluster's view `Γ`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< Q ||| mid >>> binders: the member `mid` in place of the caller's `Q` (the post is the service spec's at `Γ.ls mid`)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< LeaseTTLRespM → IProp GF ||| w64 ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( n₀ m₀ : Nat >>> binders: `mid`'s type; the configuration `cfg` (its principal), the caller's auth index `n₀` and lessor index `m₀`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< ) ( om : GrpcMd |||  >>> binders: `om` moved (below)
+dev Lease_TimeToLiveOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: `om`, moved
+dev Lease_TimeToLiveOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → ( ∀ a b : w64 , Γ.ls a = Γ.ls b → a = b ) → Γ.auth = true → Γ.kv.lm = .revocable → outTokOk ( principalOf cfg ) om → >>> auth on, revocable lease mode, `outTokOk` (no token of the caller's own), the members' auth names (`Γ.au`, F7 F1) and lessor names (`Γ.ls`, F2) distinct; more premises: a weaker axiom
+dev Lease_TimeToLiveOn_dist.wp_proof <<< ( lessorRemoteAtC l conn addr ∗ isGrpcRpcsMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive" Spec ||| leaseUserAt cl lp ep V Γ mid cfg >>> the registration (`isGrpcRpcsMd` of etcd's service spec at `addr`, `attemptPre`) replaced by the address facts of the view (`leaseUserAt`: `leaseClientAt` and the configuration `cfg`)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< ∗ □ ▷ attemptPre conn om Spec ( id , leaseKeysFold gs false ) Q ∗ leaseOptsAt sl gs |||  >>> the registration's `attemptPre` (replaced by the post below); `leaseOptsAt` moved (next line)
+dev Lease_TimeToLiveOn_dist.wp_proof <<<  ||| ∗ leaseOptsAt sl gs ∗ auth.authPubLbM ( .on ( Γ.au mid >>> `leaseOptsAt` (moved), and the member's published auth index `n₀`
+dev Lease_TimeToLiveOn_dist.wp_proof <<<  ||| ) n₀ ∗ lease.lessorLb ( Γ.ls mid ) m₀ >>> and the lessor's lower bound `m₀` (the keys verdict's lessor index)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< l ||| lp >>> the receiver: the `*lessor` `lp`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< ∃ ( m : LeaseTTLRespM ) ( h : Loc ) ( ks : GoSlice ) , structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"ResponseHeader" resp ↦□ h ∗ hdrFull h m.hdr ∗ |||  >>> the reply's header not claimed (a weaker post); no model `m` (the echoed `ID` is the request's `id`)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< m.id ||| id >>> the echoed `ID` is the request's `id` (F2's view-free claim, `etcdLeaseTTLSpecMdW`)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"TTL" resp ↦□ m.ttl ||| ∃ n j : Nat , ⌜ n₀ ≤ n ∧ m₀ ≤ j ⌝ >>> nothing of `TTL` (the leader answers it; the review: keep claiming nothing; a weaker post); the check's indices `n ≥ n₀`, `j ≥ m₀`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"GrantedTTL" resp ↦□ m.grantedTtl ||| auth.authPubLbM ( .on ( Γ.au mid ) ) n >>> nothing of `GrantedTTL` (a weaker post); the member's published auth index `n`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< structFieldRef go_etcd_io.etcd.client.v3.LeaseTimeToLiveResponse go!"Keys" resp ↦□ ks ||| lease.lessorLb ( Γ.ls mid ) j >>> nothing of `Keys` (a weaker post); the lessor's index `j`
+dev Lease_TimeToLiveOn_dist.wp_proof <<< Q m ||| leaseCheckD ( Γ.au mid ) ( principalOf cfg ) n ( fun info => if leaseKeysFold gs false then leaseKeysVerdictFrom ( .on ( Γ.au mid ) ) n info ( Γ.ls mid ) j id .read else iprop ( ⌜ principalOf cfg = some info.Username' ⌝ ) ) >>> `Q` at `etcdLeaseTTLSpecMdW`: `checkLeaseTimeToLive`'s verdict at the member (`leaseCheckD`, binding `P = some info.Username'`): with keys, the lease's keys readable; without, `requireAuthInfo`'s alone (the principal, redundant)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
+dev Lease_TimeToLiveOn_dist.wp_proof <<< clientErr err ∧ |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post)
+dev Lease_TimeToLiveOn_dist.wp_proof <<< ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ) |||  >>> the error arm without `clientErr`/`statusErrOk` (nothing claimed of a remote call's error; a weaker post); its closing parenthesis

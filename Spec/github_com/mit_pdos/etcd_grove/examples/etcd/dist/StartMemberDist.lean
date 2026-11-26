@@ -22,7 +22,13 @@ internal lemmas takes it, and no top-level statement does (Upamanyu, 2026-11-24)
 * `bootPremise` (`bootstrap`'s contract, an Iris premise) is replaced by `bootPremiseDist` (`dist/BootDist.lean`):
   the contract given the round tripper's (`etcd_dist.bootRTOk`, the other peers' addresses), which the member boot
   derives from the interim axiom `bootstrap.wp_proof_dist` (2026-11-25).
-Everything else (`memberBoot`, the bounds, the directory's pure facts) is `StartMember.spec`'s.
+* (F7 step 3, 2026-11-26, the lead's option (a)) the post is `memberUpL … lm γl` (`memberUp` with the member's
+  lessor at `γl`, the new binder), what `Serve_dist` takes at a view `Γ` with `Γ.ls mid = γl` and `Γ.kv.lm = lm`.
+  S5's proof of it needs the lessor slot of `γl` (as `StartServer.specAt`'s `Hlslot`), which the start then
+  allocates; putgetK's start passes `ClusterNames.lsNone` today, so until then this placeholder is stronger than
+  what `StartMember` can be proved to meet at putgetK's names.
+Everything else (`memberBoot`, the bounds, the directory's pure facts, `addrFits peerAddr`, `addrFits client`) is
+`StartMember.spec`'s. (Until 2026-11-26 `addrFits` was dropped: `notes/axiom-review/f7-diff-vs-inprocess.md`.)
 -/
 module
 
@@ -30,6 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Draft
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.BootDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.MemberLessor
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
@@ -57,12 +64,16 @@ abbrev StartMember_dist.spec [π : Net.NetProtoGS] (S5 : S5Draft (G := hG.goose_
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (lm : lease.Mode),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (lm : lease.Mode)
+    -- (F7 step 3) the member's lessor name (the view's `Γ.ls mid`)
+    (γl : GName),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   N + 7 + bootWB ≤ backend.wbInit →
   γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
   netDirOk dir → go!"http://" ++ peerAddr ∈ dir id → rafthttp.bootCfg dir ps →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
   name.length ≤ 200 →
   authRecordsFit → apply.backendUnderQuota → storage.diskOk →
@@ -87,7 +98,7 @@ abbrev StartMember_dist.spec [π : Net.NetProtoGS] (S5 : S5Draft (G := hG.goose_
       (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ γn : NetNames GF, memberUp s ρ E₀ lg γn id lm) }}
+      (⌜err = GoInterface.nil⌝ ∗ ∃ γn : NetNames GF, memberUpL s ρ E₀ lg γn id lm γl) }}
 
 end spec
 

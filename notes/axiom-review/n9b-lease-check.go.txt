@@ -1,0 +1,108 @@
+// n9bcheck: drives Lease.Leases / Lease.TimeToLive against every member of a real 3-member
+// cluster while leases are granted, revoked and expire, and members are stopped, killed
+// and restarted by the harness; panics if a Leases listing names a lease twice, or a
+// TimeToLive reply (err == nil) is about another lease than the one asked.
+package main
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"os"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+)
+
+func main() {
+	eps := os.Args[1:]
+	dur := 40 * time.Second
+	var nl, nlerr, nt, nterr, nneg atomic.Int64
+	gc, err := clientv3.New(clientv3.Config{Endpoints: eps, DialTimeout: 5 * time.Second, Logger: zap.NewNop()})
+	if err != nil {
+		panic(err)
+	}
+	var ids sync.Map
+	stop := time.Now().Add(dur)
+	var wg sync.WaitGroup
+	// granters / revokers
+	for g := 0; g < 4; g++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for time.Now().Before(stop) {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				r, err := gc.Grant(ctx, int64(1+rand.Intn(3)))
+				cancel()
+				if err != nil {
+					continue
+				}
+				ids.Store(r.ID, true)
+				if rand.Intn(2) == 0 {
+					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+					gc.Revoke(ctx, r.ID)
+					cancel()
+				}
+			}
+		}()
+	}
+	// readers, one client per member (as RunLeaseRead's newClient([]string{addr}))
+	for _, ep := range eps {
+		for k := 0; k < 3; k++ {
+			wg.Add(1)
+			go func(ep string) {
+				defer wg.Done()
+				cli, err := clientv3.New(clientv3.Config{Endpoints: []string{ep}, DialTimeout: 5 * time.Second, Logger: zap.NewNop()})
+				if err != nil {
+					panic(err)
+				}
+				defer cli.Close()
+				for time.Now().Before(stop) {
+					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+					ls, err := cli.Lease.Leases(ctx)
+					cancel()
+					nl.Add(1)
+					if err != nil {
+						nlerr.Add(1)
+					} else {
+						seen := map[clientv3.LeaseID]bool{}
+						for _, l := range ls.Leases {
+							if seen[l.ID] {
+								panic(fmt.Sprintf("%s: Leases listed %x twice", ep, l.ID))
+							}
+							seen[l.ID] = true
+						}
+					}
+					// ask about 7 (unknown), a granted one (maybe revoked/expired), or a random id
+					var id clientv3.LeaseID = 7
+					switch rand.Intn(3) {
+					case 0:
+						ids.Range(func(k, _ any) bool { id = k.(clientv3.LeaseID); return rand.Intn(5) != 0 })
+					case 1:
+						id = clientv3.LeaseID(rand.Int63())
+					}
+					ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+					t, err := cli.Lease.TimeToLive(ctx, id)
+					cancel()
+					nt.Add(1)
+					if err != nil {
+						nterr.Add(1)
+						continue
+					}
+					if t.ID != id {
+						panic(fmt.Sprintf("%s: TimeToLive(%x) answered about %x", ep, id, t.ID))
+					}
+					if t.TTL == -1 {
+						nneg.Add(1)
+					}
+				}
+			}(ep)
+		}
+	}
+	wg.Wait()
+	fmt.Printf("Leases calls %d (errors %d); TimeToLive calls %d (errors %d, TTL -1: %d); no violation\n",
+		nl.Load(), nlerr.Load(), nt.Load(), nterr.Load(), nneg.Load())
+}

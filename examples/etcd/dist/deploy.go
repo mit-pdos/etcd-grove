@@ -56,11 +56,12 @@ var (
 func pick[T any](xs ...T) T { return xs[rand.IntN(len(xs))] }
 
 // RandomWorkloads is a random compatible mix of workloads of the sizes sz: one workload that reads revisions as its own (kv,
-// watch or cache) or some of compact, putget and durable, or auth or authLease alone; with the
-// lease workloads beside the first two kinds, at random (never leaseExpiry beside leaseCatchup).
+// watch or cache) or some of compact, putget and durable, each perhaps with leaseRead; or auth or
+// authLease alone; or lease workloads alone (leaseRead, and leaseCatchup or leaseExpiry: a workload
+// that grants leases runs beside no key writer, and leaseExpiry never beside leaseCatchup).
 func RandomWorkloads(sz Sizes) []Workload {
 	var ws []Workload
-	switch rand.IntN(8) {
+	switch rand.IntN(9) {
 	case 0, 1:
 		ws = append(ws, Workload{Kind: deployment.KV, Clients: sz.KVClients, Ops: sz.KVOps})
 	case 2:
@@ -83,36 +84,44 @@ func RandomWorkloads(sz Sizes) []Workload {
 		return []Workload{{Kind: deployment.Auth}}
 	case 7:
 		return []Workload{{Kind: deployment.AuthLease}}
+	case 8:
+		for len(ws) == 0 {
+			if rand.IntN(2) == 0 {
+				ws = append(ws, Workload{Kind: deployment.LeaseRead})
+			}
+			switch rand.IntN(3) {
+			case 0:
+				ws = append(ws, Workload{Kind: deployment.LeaseCatchup})
+			case 1:
+				ws = append(ws, Workload{Kind: deployment.LeaseExpiry})
+			}
+		}
+		return ws
 	}
 	if rand.IntN(2) == 0 {
 		ws = append(ws, Workload{Kind: deployment.LeaseRead})
-	}
-	switch rand.IntN(3) {
-	case 0:
-		ws = append(ws, Workload{Kind: deployment.LeaseCatchup})
-	case 1:
-		ws = append(ws, Workload{Kind: deployment.LeaseExpiry})
 	}
 	return ws
 }
 
 // randomCfg is a random supported server configuration for the workloads ws: the token provider
-// if a workload needs it, and otherwise at random but never beside leaseExpiry; the compactor off,
-// in revision mode or in periodic mode (not beside compact); snapshots often or rarely.
+// exactly if a workload needs it; the compactor off, in revision mode or in periodic mode (not beside
+// compact, nor beside the token provider); snapshots often or rarely.
 func randomCfg(ws []Workload) ServerCfg {
 	var c ServerCfg
-	auth, compact, expiry := false, false, false
+	auth, compact := false, false
 	for _, w := range ws {
 		auth = auth || deployment.NeedsAuth(w.Kind)
 		compact = compact || w.Kind == deployment.Compact
-		expiry = expiry || w.Kind == deployment.LeaseExpiry
 	}
-	c.Auth = auth || (!expiry && rand.IntN(4) == 0)
+	c.Auth = auth
 	switch rand.IntN(4) {
 	case 1:
-		c.CompactorMode, c.Retention = deployment.CompactorRevision, pick[int64](1, 10, 1000)
+		if !auth {
+			c.CompactorMode, c.Retention = deployment.CompactorRevision, pick[int64](1, 10, 1000)
+		}
 	case 2:
-		if !compact {
+		if !auth && !compact {
 			c.CompactorMode, c.Retention = deployment.CompactorPeriodic, pick(int64(10*time.Millisecond), int64(time.Second))
 		}
 	}

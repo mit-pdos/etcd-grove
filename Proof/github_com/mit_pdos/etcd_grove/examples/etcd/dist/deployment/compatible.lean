@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.needsSoleWriter
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.writesKeys
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.needsNoExpiry
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment.grantsLeases
 
 @[expose] public section
 
@@ -33,7 +34,8 @@ theorem compatible.wp_proof
     (hAlone : etcd_dist.alone.spec (GF := GF) (hG := hG))
     (hSole : etcd_dist.needsSoleWriter.spec (GF := GF) (hG := hG))
     (hWrites : etcd_dist.writesKeys.spec (GF := GF) (hG := hG))
-    (hNoExp : etcd_dist.needsNoExpiry.spec (GF := GF) (hG := hG)) :
+    (hNoExp : etcd_dist.needsNoExpiry.spec (GF := GF) (hG := hG))
+    (hGrants : etcd_dist.grantsLeases.spec (GF := GF) (hG := hG)) :
     etcd_dist.compatible.spec (GF := GF) (hG := hG) := by
   intro sl ws
   wp_start as #Hsl
@@ -188,7 +190,8 @@ theorem compatible.wp_proof
     ihave HO : (∃ (a : Nat) (wv : deployment.Workload) (gi : w64),
         "i" ∷ i_ptr ↦ W64 a ∗ "w" ∷ w_ptr ↦ wv ∗ "gi" ∷ gi_ptr ↦ gi ∗
         "%Ha" ∷ ⌜a ≤ ws.length ∧ ∀ (i' j' : Nat) (w x : Workload), i' < a → ws[i']? = some w →
-          ws[j']? = some x → i' ≠ j' → kindNeedsSoleWriter w.kind = true →
+          ws[j']? = some x → i' ≠ j' →
+          (kindNeedsSoleWriter w.kind = true ∨ kindGrantsLeases w.kind = true) →
           kindWritesKeys x.kind = false⌝ : IProp GF) $$ [i w gi]
     · iexists 0, _, _
       iframe
@@ -207,9 +210,23 @@ theorem compatible.wp_proof
       · iframe #; ipureintro; rw [hsa, List.getElem?_map, hy]; rfl
       have hwa : W64 (a : Int) + W64 1 = W64 ((a + 1 : Nat) : Int) := by word
       wp_apply hSole
-      by_cases hs : kindNeedsSoleWriter y.kind = true
-      · rw [hs]
-        wp_auto
+      -- the kind excludes key writers (`needsSoleWriter || grantsLeases`, Go's `&&` of the negations)
+      -- or not: three outcomes, two of them the same inner loop
+      rcases hs : kindNeedsSoleWriter y.kind with _ | _ <;> wp_auto
+      wp_apply hGrants
+      rcases hg : kindGrantsLeases y.kind with _ | _ <;> wp_auto
+      · wp_for_post
+        iframe
+        iexists (a + 1), _, _
+        rw [hwa]
+        iframe
+        ipureintro
+        refine ⟨by omega, ?_⟩
+        intro i' j' w x hi' hw hx hne hsw
+        by_cases hia : i' = a
+        · subst hia; rw [hy] at hw; cases hw; rw [hs, hg] at hsw; simp at hsw
+        · exact Ha2 i' j' w x (by omega) hw hx hne hsw
+      all_goals (
         ihave HJ : (∃ (b : Nat) (xv : deployment.Workload) (jv : w64),
             "i" ∷ i_ptr ↦ W64 b ∗ "x" ∷ x_ptr ↦ xv ∗ "j" ∷ j_ptr ↦ jv ∗
             "%Hb" ∷ ⌜b ≤ ws.length ∧ ∀ (j' : Nat) (z : Workload), j' < b → a ≠ j' → ws[j']? = some z →
@@ -279,21 +296,7 @@ theorem compatible.wp_proof
           by_cases hia : i' = a
           · subst hia; rw [hy] at hw; cases hw
             exact Hb2 j' x (List.getElem?_eq_some_iff.1 hx).1 hne hx
-          · exact Ha2 i' j' w x (by omega) hw hx hne hsw
-      · rw [Bool.not_eq_true] at hs
-        rw [hs]
-        wp_auto
-        wp_for_post
-        iframe
-        iexists (a + 1), _, _
-        rw [hwa]
-        iframe
-        ipureintro
-        refine ⟨by omega, ?_⟩
-        intro i' j' w x hi' hw hx hne hsw
-        by_cases hia : i' = a
-        · subst hia; rw [hy] at hw; cases hw; rw [hs] at hsw; cases hsw
-        · exact Ha2 i' j' w x (by omega) hw hx hne hsw
+          · exact Ha2 i' j' w x (by omega) hw hx hne hsw)
     · have hal : a = ws.length := by word
       subst hal
       have hcomp : (!(hE && hN)) = true → goCompatible ws := by

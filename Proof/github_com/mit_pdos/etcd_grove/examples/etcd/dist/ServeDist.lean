@@ -37,15 +37,18 @@ which answers a call successfully (not an HTTP server: `http.register` needs the
 not bridge it: `bridge.New` also consumes `netAddrLeft a` since review 4's fix); no proof establishes the
 opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this axiom's post is `True`. Its claim that no thread of the
 member gets stuck or panics covers every connection a verified program can make to `a`: the client contracts'
-calls and raw writes, which establish no protocol (true of grpc-go, which closes a connection on a bad
+calls, the watch streams of `Watch_dist`/`RequestProgress_dist` (the clientv3 watcher's create, cancel and
+progress requests, under `watcher.Watch.spec`'s preconditions), which the member's watch handler meets as in its
+in-process proof (`watchUp`; the N3 review's F4, added with the first result resting on those axioms, F5's
+compact workload, 2026-11-26), and raw writes, which establish no protocol (true of grpc-go, which closes a connection on a bad
 preface; re-review after review 4, 2026-11-24; narrowed by the O1-B review's F4, 2026-11-25). Every call that reaches a handler is one a client deposited under `a`'s
 protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's table at `(Γ, mid)`, whose spec
 is at the view's names. The member's KV names agree with the view's (`kvCongr ρ.rd.kv Γ.kv`, what
 `kvInv_congr` and `isKv_intro`'s `kvSame` need: one KV state, model and requested log for the whole
-cluster), its auth is off (`memberUp`) and so is the view's (`Γ.auth = false`, review F2: the table's
-entries are the auth-off handlers), and the member is `mid` (`memberUp`'s id), so every such call
-meets the spec the member's handlers are proved against. The view's lessor names (`Γ.ls`) are read by no
-contract yet (P-L1, `notes/etcd-dist-plan.md` §18.3), so nothing ties them here.
+cluster), its auth mode, auth names, lessor name and lease mode are the view's (`memberUpL`/`memberUpOnL` at
+`Γ.kv.lm`, `Γ.ls mid` and, with auth on, `Γ.au mid`: F7 and F2's P-L1, 2026-11-26, reviews
+`notes/axiom-review/f7-combined.md` §1, §3; until then auth off only and nothing tied `Γ.ls`), and the member is
+`mid` (`memberUpL`'s id), so every such call meets the spec the member's handlers are proved against.
 
 Why it is true: today's `etcdstart.Serve.wp_proof` proves the same body in one process, through
 `grpc.start`/`grpc.serve` and the handlers' run contracts (`grpcRunOkMd`, on the member's own
@@ -64,8 +67,8 @@ the handlers' contracts (`phase7-plan.md` §2.4, §3, "`etcdstart`"), each at th
 `kvCongr` with the view's.
 Its statement needs no change, but S2's version may strengthen the post. **Obligation for S2's
 proof (review F5):** today's `Serve.spec` returns the served member's id existentially (`grpcUpM`),
-while this statement fixes the table's `mid` to `memberUp`'s id; S2's proof must show the id the
-server registers is `memberUp`'s (`mid = id`), or the statement changes at retirement. -/
+while this statement fixes the table's `mid` to `memberUpL`'s (`memberUpOnL`'s) id; S2's proof must show the id the
+server registers is the member's (`mid = id`), or the statement changes at retirement. -/
 axiom Serve_dist.wp_proof : Serve_dist.spec (GF := GF) (hG := hG)
 
 end proof
