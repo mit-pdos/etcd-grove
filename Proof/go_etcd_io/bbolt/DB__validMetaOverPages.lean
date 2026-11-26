@@ -48,7 +48,6 @@ theorem metaOf_view (B : List w8) (i : Nat) :
   unfold metaOf bytesAt
   rw [List.drop_take, List.drop_drop, List.take_take, Nat.min_eq_left (by decide),
     Nat.mul_comm 4096 i]
-  first | rfl | (congr 3; omega) | simp [Nat.add_comm]
 
 end views
 
@@ -75,7 +74,7 @@ macro "vmop_root" : tactic => `(tactic| (
   ihave #HR := meta_root_view _ _ _ $$ HM
   wp_apply hRootPage _ _ _ $$ [HR] as -
   · iexact HR
-  wp_auto
+  try wp_auto
   wp_if_destruct
   · -- the root page past the buffer
     try wp_auto
@@ -89,26 +88,26 @@ macro "vmop_root" : tactic => `(tactic| (
     word
   have hrB : mv.root'.root'.toNat < B.length / 4096 := by word
   wp_apply hPIB db sl mv.root'.root' dqp (by word) (by word) Hp $$ [Hps] as Hps
-  · iframe Hps; iframe #
+  · iframe Hps; try iframe #
   icases bytesPointsto_view_read (V := Page) sl.ptr DFrac.discard B (mv.root'.root'.toNat * 4096) _
     rfl (by omega) Hp $$ Hbs with ⟨#HQ, -⟩
   rw [← pageHdr_view B mv.root'.root'.toNat]
   generalize hqv : pageHdr (bytesAt B (4096 * mv.root'.root'.toNat) 4096) = qv
-  wp_auto
+  try wp_auto
   wp_apply hIsLeaf _ _ _ $$ [HQ] as -
   · iexact HQ
   by_cases hleaf : qv.flags' = W16 2
   · simp only [hleaf, decide_true]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hps
     ipureintro
     intro h; cases h
   · simp only [hleaf, decide_false]
-    wp_auto
+    try wp_auto
     wp_apply hIsBranch _ _ _ $$ [HQ] as -
     · iexact HQ
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hps
     ipureintro
@@ -137,12 +136,12 @@ theorem DB.validMetaOverPages.wp_proof
     (hIsBranch : internal.common.Page.IsBranchPage.spec (GF := GF) (hG := hG)) :
     DB.validMetaOverPages.spec (GF := GF) (hG := hG) := by
   intro db sl B dqp i hi hBl
-  wp_start as ⟨#Hpkg, Hps, #Hsl⟩
+  wp_start as ⟨Hps, #Hsl⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   have hlen : sint.Z sl.len = (B.length : Int) := by have := Hsll.1; have := Hsll.2; word
-  wp_auto
+  try wp_auto
   wp_if_destruct
   · -- `i` past the buffer's pages
     try wp_auto
@@ -163,7 +162,7 @@ theorem DB.validMetaOverPages.wp_proof
     with ⟨-, %Hib⟩
   -- the meta of page `i`
   wp_apply hPIB db sl (W64 (i : Int)) dqp (by word) (by word) Hp $$ [Hps] as Hps
-  · iframe Hps; iframe #
+  · iframe Hps; try iframe #
   have hi64 : (W64 (i : Int)).toNat = i := by word
   rw [hi64]
   wp_apply hMeta (sl.ptr +ₗ ((i * 4096 : Nat) : Int)) (by simp [Loc.add]; omega)
@@ -181,7 +180,7 @@ theorem DB.validMetaOverPages.wp_proof
   cases e1 with
   | ok ei =>
     -- not valid
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hps
     ipureintro
@@ -192,15 +191,18 @@ theorem DB.validMetaOverPages.wp_proof
     exact nomatch He1.2 h2
   | nil =>
   have hval : metaValid mv := He1.1 rfl
-  wp_auto
+  try wp_auto
   wp_apply hFreelist _ _ _ $$ [HM] as -
   · iexact HM
   try wp_auto
   -- the freelist page, if named
   wp_if_destruct
+  · -- no freelist page named
+    try wp_auto
+    vmop_root
   · -- a freelist page named
     have hfl : metaFlpg mv = some mv.freelist'.toNat := by
-      unfold metaFlpg pgidNoFreelist; rw [if_neg]; word
+      unfold metaFlpg; rw [if_neg (by unfold pgidNoFreelist; word)]
     wp_if_destruct
     · -- past the buffer
       try wp_auto
@@ -213,21 +215,24 @@ theorem DB.validMetaOverPages.wp_proof
       word
     have hfB : mv.freelist'.toNat < B.length / 4096 := by word
     wp_apply hPIB db sl mv.freelist' dqp (by word) (by word) Hp $$ [Hps] as Hps
-    · iframe Hps; iframe #
+    · iframe Hps; try iframe #
     icases bytesPointsto_view_read (V := Page) sl.ptr DFrac.discard B (mv.freelist'.toNat * 4096) _
       rfl (by omega) Hp $$ Hbs with ⟨#HP, -⟩
     rw [← pageHdr_view B mv.freelist'.toNat]
     generalize hpv : pageHdr (bytesAt B (4096 * mv.freelist'.toNat) 4096) = pv
-    wp_auto
+    try wp_auto
     wp_apply hIsFl _ _ _ $$ [HP] as -
     · iexact HP
     by_cases hflag : pv.flags' = W16 16
     · simp only [hflag, decide_true]
-      wp_auto
+      try wp_auto
       wp_apply hId _ _ _ $$ [HP] as -
       · iexact HP
-      wp_auto
+      try wp_auto
       wp_if_destruct
+      · -- its own id: the root page next
+        try wp_auto
+        vmop_root
       · -- another page's id
         try wp_auto
         iapply HΦ
@@ -240,10 +245,8 @@ theorem DB.validMetaOverPages.wp_proof
         rw [hpv] at h3
         apply Hif
         word
-      · try wp_auto
-        vmop_root
     · simp only [hflag, decide_false]
-      wp_auto
+      try wp_auto
       iapply HΦ
       iframe Hps
       ipureintro
@@ -254,8 +257,6 @@ theorem DB.validMetaOverPages.wp_proof
       rw [hpv] at h3
       apply hflag
       word
-  · try wp_auto
-    vmop_root
 
 end proof
 

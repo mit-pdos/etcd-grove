@@ -21,6 +21,9 @@ open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
+section defs
+variable [GooseExts]
+
 /-- **A valid meta over the pages it names** (4096-byte pages of `B`): the meta in page `i` lies in
 `B` and validates; the freelist page it names, if any, lies in `B` with the freelist flag and its own
 id; its root page lies in `B` with a leaf or a branch flag. -/
@@ -34,6 +37,8 @@ def metaOverPages (B : List w8) (i : Nat) : Prop :=
       leafPageFlag ∨
     pageFlags (bytesAt B (4096 * (metaOf (bytesAt B (4096 * i) 4096)).root'.root'.toNat) 4096) =
       branchPageFlag)
+
+end defs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

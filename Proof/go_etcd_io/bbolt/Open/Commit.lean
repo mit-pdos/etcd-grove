@@ -42,7 +42,8 @@ open Fs
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pure
-variable [GooseExts]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
 
 /-- **A settled durable file is durable for its committed state** (`Open/Mode.open_bDur` with the
 crash sizes known only to be the size, `fileHoldsMDurC`'s): its own bytes are a reference image of `C`,
@@ -129,7 +130,7 @@ theorem openOK_metaOverPages (C : CommitSt) (D : Data) (m : OsMeta) (xs : List B
     obtain ⟨⟨hwf, -⟩, -⟩ := hT
     cases hwf with
     | page _ pg h2r hlt hlk _ _ hptw =>
-      have hlk' := treePages_le _ _ _ _ (hI.2.2 ▸ hlk)
+      have hlk' := Spill.treePages_le _ _ _ _ (hI.2.2 ▸ hlk)
       rw [filePages_lookup, if_pos hlt] at hlk'
       have hpg : pg = filePage X C.root := (Option.some.inj hlk').symm
       subst hpg

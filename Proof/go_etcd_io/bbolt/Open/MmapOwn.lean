@@ -446,7 +446,6 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     iframe Hmf Hds Hb Hc
     isplitr
     · ipureintro; exact he
-    iexists base, L
     isplitr
     · ipureintro; exact hL
     iapply bMeta_to_os hp $$ Hm

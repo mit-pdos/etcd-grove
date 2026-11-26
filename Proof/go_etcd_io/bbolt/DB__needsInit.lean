@@ -63,14 +63,14 @@ theorem DB.needsInit.wp_proof
     try wp_auto
     iapply HΦ
     iframe Hf Hps Hro Hfo Hfd Hb
-    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
+    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun (h : false = true) => (nomatch h), fun (h : false = true) => (nomatch h)⟩
   try wp_auto
   wp_if_destruct
   · -- more than four pages
     try wp_auto
     iapply HΦ
     iframe Hf Hps Hro Hfo Hfd Hb
-    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
+    ileft; ipureintro; exact ⟨rfl, fun h => absurd h h0, fun (h : false = true) => (nomatch h), fun (h : false = true) => (nomatch h)⟩
   have hle : xs.length ≤ 16384 := by
     have := Hif
     first
@@ -204,7 +204,7 @@ theorem DB.needsInit.wp_proof
         iframe Hf Hps Hro Hfo Hfd Hb
         ileft
         ipureintro
-        exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
+        exact ⟨rfl, fun h => absurd h h0, fun (h : false = true) => (nomatch h), fun (h : false = true) => (nomatch h)⟩
   · simp only [hlt, _root_.decide_false, intoVal_eq_iff, Bool.false_eq_true, ↓reduceIte,
       decide_eq_true_eq]
     have hpart : initPartial (List.map Prod.fst xs) := by
@@ -219,61 +219,59 @@ theorem DB.needsInit.wp_proof
       exact Hk.2 i c (by omega) hc
     wp_auto
     wp_if_destruct
+    · -- the fork's 2c660ee: a valid meta over the pages it names is a database
+      imod ownSlice_persist sl _ _ $$ Hsl with #Hsl
+      try wp_auto
+      ihave IH2 : (∃ (n : Nat), "i" ∷ i_ptr ↦ W64 (n : Int) ∗
+          "%Hn" ∷ ⌜n ≤ 2 ∧ ∀ i' < n, ¬ metaOverPages B i'⌝ : IProp GF) $$ [i]
+      · iexists 0
+        simp only [named]
+        iframe i
+        ipureintro
+        exact ⟨by decide, fun i' h => absurd h (Nat.not_lt_zero _)⟩
+      wp_for IH2
+      have hnZ : sint.Z (W64 (n : Int)) = (n : Int) := by word
+      wp_if_destruct
+      · have hn2 : n < 2 := by word
+        try wp_auto
+        wp_apply hVM db sl B dqdb n (by omega) (by omega) $$ [Hps] as %r ⟨Hps, %Hr⟩
+        · iframe Hps; iframe #
+        cases r
+        · -- not valid: the next meta
+          wp_auto
+          wp_for_post
+          iframe
+          iexists n + 1
+          simp only [named]
+          rw [show W64 ((n + 1 : Nat) : Int) = W64 (n : Int) + W64 1 by word]
+          iframe i
+          ipureintro
+          refine ⟨by omega, fun i' hi' => ?_⟩
+          rcases Nat.lt_succ_iff_lt_or_eq.mp hi' with h | h
+          · exact Hn.2 i' h
+          · subst h; exact Hr rfl
+        · -- a valid meta over its pages: a database
+          wp_auto
+          wp_for_post
+          iapply HΦ
+          rw [fileOwn_eq]
+          iframe Hf Hps Hro Hfo Hfd Hb
+          ileft; ipureintro
+          exact ⟨rfl, fun h => absurd h h0, fun (h : false = true) => (nomatch h), fun (h : false = true) => (nomatch h)⟩
+      · have hn2 : ¬ n < 2 := by word
+        try wp_auto
+        iapply HΦ
+        rw [fileOwn_eq]
+        iframe Hf Hps Hro Hfo Hfd Hb
+        ileft; ipureintro
+        refine ⟨rfl, fun h => absurd h h0, fun _ => Or.inr (hB ▸ hpart), fun _ i' hi' => Hn.2 i' (by omega)⟩
     · -- `init`'s whole image: a database
       try wp_auto
       iapply HΦ
       rw [fileOwn_eq]
       iframe Hf Hps Hro Hfo Hfd Hb
       ileft; ipureintro
-      exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
-    -- the fork's 2c660ee: a valid meta over the pages it names is a database
-    imod ownSlice_persist sl _ _ $$ Hsl with #Hsl
-    iclear i
-    try wp_auto
-    ihave IH2 : (∃ (n : Nat), "i" ∷ i_ptr ↦ W64 (n : Int) ∗
-        "%Hn" ∷ ⌜n ≤ 2 ∧ ∀ i' < n, ¬ metaOverPages B i'⌝ : IProp GF) $$ [i]
-    · iexists 0
-      simp only [named]
-      iframe i
-      ipureintro
-      exact ⟨by decide, fun i' h => absurd h (Nat.not_lt_zero _)⟩
-    wp_for IH2
-    have hnZ : sint.Z (W64 (n : Int)) = (n : Int) := by word
-    rw [hnZ]
-    by_cases hn2 : (n : Int) < 2
-    · simp only [hn2, _root_.decide_true, ↓reduceIte]
-      wp_auto
-      wp_apply hVM db sl B dqdb n (by omega) (by omega) $$ [Hps] as %r ⟨Hps, %Hr⟩
-      · iframe Hps; iframe #
-      cases r
-      · -- not valid: the next meta
-        wp_auto
-        wp_for_post
-        iframe
-        iexists n + 1
-        simp only [named]
-        rw [show W64 ((n + 1 : Nat) : Int) = W64 (n : Int) + W64 1 by word]
-        iframe i
-        ipureintro
-        refine ⟨by omega, fun i' hi' => ?_⟩
-        rcases Nat.lt_succ_iff_lt_or_eq.mp hi' with h | h
-        · exact Hn.2 i' h
-        · subst h; exact Hr rfl
-      · -- a valid meta over its pages: a database
-        wp_auto
-        wp_for_post
-        iapply HΦ
-        rw [fileOwn_eq]
-        iframe Hf Hps Hro Hfo Hfd Hb
-        ileft; ipureintro
-        exact ⟨rfl, fun h => absurd h h0, fun h => nomatch h, fun h => nomatch h⟩
-    · simp only [hn2, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
-      wp_auto
-      iapply HΦ
-      rw [fileOwn_eq]
-      iframe Hf Hps Hro Hfo Hfd Hb
-      ileft; ipureintro
-      refine ⟨rfl, fun h => absurd h h0, fun _ => Or.inr (hB ▸ hpart), fun _ i' hi' => Hn.2 i' (by omega)⟩
+      exact ⟨rfl, fun h => absurd h h0, fun (h : false = true) => (nomatch h), fun (h : false = true) => (nomatch h)⟩
 
 end proof
 

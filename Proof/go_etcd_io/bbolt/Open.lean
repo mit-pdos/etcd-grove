@@ -777,12 +777,12 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
       have hD : D = ∅ := by
         rcases hbr with h | ⟨C, hC⟩
         · exact h.2
-        · rcases hzi rfl with h | h
+        · rcases hzi.1 rfl with h | h
           · have := openOK_size C D m xs hC; omega
           · exact openOK_initPartial C D m xs hC hxl h
       subst hD
       have hm16 : m.size ≤ 16384 := by
-        rcases hzi rfl with h | h
+        rcases hzi.1 rfl with h | h
         · omega
         · have := h.1; rw [List.length_map] at this; omega
       try wp_auto
