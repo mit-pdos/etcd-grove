@@ -125,6 +125,12 @@ axiom etcd_dist.RequestProgress_dist.wp_proof
 axiom etcd_dist.Serve_dist.wp_proof
 axiom etcd_dist.Txn_Commit_dist.wp_proof
 axiom etcd_dist.Watch_dist.wp_proof
+axiom etcd_dist.authd.KV_DeleteOn_dist.wp_proof
+axiom etcd_dist.authd.KV_GetOn_dist.wp_proof
+axiom etcd_dist.authd.KV_PutOn_dist.wp_proof
+axiom etcd_dist.authd.New_user_dist.wp_proof
+axiom etcd_dist.authd.Txn_CommitOn_dist.wp_proof
+axiom etcd_dist.authd.WatchOn_dist.wp_proof
 axiom etcd_dist.etcdSvc
 axiom etcd_dist.view.Client_LeaseLeases_dist.wp_proof
 axiom etcd_dist.view.Client_LeaseTimeToLive_dist.wp_proof

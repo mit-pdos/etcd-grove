@@ -1880,3 +1880,22 @@ then `Shares.lean`, `NodeMain.lean`, `MainReady.lean`, `Start.lean`; fix forward
 --files`: `clusterStartDC`, `clusterAllocN`, `srvClusterBootOn_alloc(G)`, `wlNodeShare`, `nodeShareF`). (2) Full
 build. (3) tier, lease-order, bounds, gen-link, axiom-tok, dist-axiom-diff, `tcb-report.py --check` (baseline must be
 unchanged). (4) Gap 2's kind 5 after the lead's decision on the trust base.
+
+### RL-1 done (2026-11-26; branch `etcd-safe-f7-rlog`)
+
+RL-1's two commits lean-checked with no fix needed; then the lead's two decisions: (1) the four `dist/client` spec
+changes are approved (`notes/specs-only/ledger.md`); (2) kind 5 is real: `wlNodeShare`'s kind-5 arm is `authNodePre
+addr eps` (`client/Shares.lean` imports `AuthShares` and binds `v3rpc.Assumptions`), `NodeMain.wp_proof` takes `hA :
+NodeMainAuth.spec` (auth bullet: `nodeAuthPre_of addr epsL hV htb hpl hAs`), `DispatchLinked` imports
+`PrincipalsLinked` and passes `wp_NodeMainAuth`. Full build green on fk-lean2 (29588 jobs).
+
+**Trust base:** `etcd_safe_nocrash` (statement unchanged) now reaches `etcd_dist.authd.{KV_PutOn,KV_DeleteOn,KV_GetOn,
+Txn_CommitOn,WatchOn,New_user}_dist.wp_proof` (`etc/tcb-baseline.txt`, `etc/tcb-collections/etcd-dist.txt`); the
+collection also gains `metadata.AppendToOutgoingContext.wp_proof` (already in the global baseline: the principal
+ops' `AppendToOutgoingContext`). The `Auth_*` admin axioms are not reached (the orchestrator's kind-5 share is still
+`False`). `etc/axiom-tok-allow.txt`: entries for the six (keys as their auth-off siblings', walk read in
+`notes/axiom-review/f7-auth-axiom-tok.md`) and six `trunc` lines; for the lead's confirmation.
+
+**Gates:** tier, lease-order, bounds, dist-axiom-diff, tcb-report `--check` and every collection, axiom-tok: ok.
+gen-link: five Links unrelated to this branch differ (`bbolt`, `kvraft`, `kvraft-udp`, `wal-tester`, `walfs`); they
+differ already at the base `7bf098247e` (inherited, not this branch's).
