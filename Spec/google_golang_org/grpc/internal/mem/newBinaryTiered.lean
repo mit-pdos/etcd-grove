@@ -31,7 +31,8 @@ abbrev grpc.internal.mem.newBinaryTiered.spec : Prop :=
   ∀ (f : GoFunc) (fb : GoInterface) (s : GoSlice) (xs : List w8),
   (∀ x ∈ xs, uint.Z x ≤ 62) → xs.length ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.internal.mem ∗ s ↦* xs ∗
-      □ (∀ n : w64, WP (App (Val #f) (Val #n)) {{ v, ⌜∃ i : GoInterface, v = #i⌝ }}) }}
+      □ (∀ (n : w64) (Ψ : val → IProp GF), True -∗ ▷ (∀ i : GoInterface, True -∗ Ψ #i) -∗
+          WP (App (Val #f) (Val #n)) {{ Ψ }}) }}
     (App (App (App (Val (@! google_golang_org.grpc.internal.mem.newBinaryTiered)) (Val #f)) (Val #fb))
       (Val #s))
   {{ (l : Loc), RET (PairV #l #(interface.nil : GoInterface)); True }}

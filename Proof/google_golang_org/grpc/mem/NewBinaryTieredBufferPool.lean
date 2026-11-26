@@ -27,11 +27,10 @@ theorem grpc.mem.NewBinaryTieredBufferPool.wp_proof
       grpc.internal.mem.NewBinaryTieredBufferPool.spec (GF := GF) (hG := hG)) :
     grpc.mem.NewBinaryTieredBufferPool.spec (GF := GF) (hG := hG) := by
   intro s xs Hxs Hlen
-  wp_start as ⟨#Hpkg, Hs⟩
+  wp_start as Hs
   wp_auto
   wp_apply wp_NewBinaryTieredBufferPool s xs Hxs Hlen $$ [Hs] as %l -
-  · iframe Hs; iexact Hpkg
-  wp_auto
+  · iexact Hs
   wp_end
 
 end proof

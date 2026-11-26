@@ -290,7 +290,7 @@ theorem wf_strconv {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_fmt {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.fmt G :=
-  And.intro h.e_fmt ⟨wf_errors h, wf_strconv h, wf_unicode_utf8 h, wf_io h, wf_reflect h, wf_sync h, True.intro⟩
+  And.intro h.e_fmt ⟨wf_errors h, wf_internal_stringslite h, wf_strconv h, wf_unicode_utf8 h, wf_io h, wf_reflect h, wf_sync h, wf_internal_gomodel h, True.intro⟩
 
 theorem wf_log {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.log G :=
@@ -620,7 +620,7 @@ theorem wfO_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
 theorem wfO_fmt {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.fmt (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.fmt ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_fmt) ⟨wfO_errors h S hS, wfO_strconv h S hS, wfO_unicode_utf8 h S hS, wfO_io h S hS, wfO_reflect h S hS, wfO_sync h S hS, True.intro⟩
+    h.e_fmt) ⟨wfO_errors h S hS, wfO_internal_stringslite h S hS, wfO_strconv h S hS, wfO_unicode_utf8 h S hS, wfO_io h S hS, wfO_reflect h S hS, wfO_sync h S hS, wfO_internal_gomodel h S hS, True.intro⟩
 
 theorem wfO_log {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.log (gOff S G) :=

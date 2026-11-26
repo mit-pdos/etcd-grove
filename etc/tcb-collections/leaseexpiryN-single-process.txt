@@ -49,7 +49,6 @@ axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
-axiom grpc.CustomCodec.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.NewServer.wp_proof
 axiom grpc.Server.RegisterService.wp_proof

@@ -4108,15 +4108,18 @@ and stores a closure in `internal.SetDefaultBufferPool`, through `internal`'s in
                  'bufferObjectPool': '_root_.Perennial.sync.Pool'},
     before={'defaultBufferPoolSizeExponents': [
         'try wp_auto',
-        'wp_apply (wp_slice_literal (V := w8) (l := _)); isplitr; (· ipureintro; rfl); iintro %sExp ⟨SExp, -⟩',
-        'try wp_auto']},
+        'wp_apply (wp_slice_literal (V := w8) (l := [W8 8, W8 12, W8 14, W8 15, W8 20])); isplitr;'
+        ' (· ipureintro; rfl); iintro %sExp ⟨SExp, -⟩',
+        'try wp_auto'],
+        # a `sync.Pool` literal of a function literal (built, not called)
+        'bufferObjectPool': ['try wp_auto', 'wp_func_lits', 'try wp_auto']},
     imports=['Proof.google_golang_org.grpc.internal.Hooks', 'Proof.google_golang_org.grpc.mem.NewBinaryTieredBufferPool',
              'Proof.google_golang_org.grpc.internal.mem.NewBinaryTieredBufferPool',
              'Proof.google_golang_org.grpc.internal.mem.newBinaryTiered',
              'Proof.google_golang_org.grpc.internal.mem.compactExponents',
              'Proof.google_golang_org.grpc.internal.mem.newSizedBufferPool', 'Perennial.Proof.slices.Link'],
     after={'init.«0»': ['try wp_auto',
-                        f'wp_apply {_GMEM_POOL} sExp _ (by decide) (by decide) $$ [SExp] as %lpool -',
+                        f'wp_apply {_GMEM_POOL} _ [W8 8, W8 12, W8 14, W8 15, W8 20] (by decide) (by decide) $$ [SExp] as %lpool -',
                         '· iframe SExp; try iexact {Hd:google_golang_org.grpc.internal.mem}',
                         'try wp_auto'] + hook_fact_steps() + hook_store_steps(['SetDefaultBufferPool'])},
 )

@@ -29,21 +29,18 @@ theorem grpc.internal.mem.NewBinaryTieredBufferPool.wp_proof
     (wp_newSizedBufferPool : grpc.internal.mem.newSizedBufferPool.spec (GF := GF) (hG := hG)) :
     grpc.internal.mem.NewBinaryTieredBufferPool.spec (GF := GF) (hG := hG) := by
   intro s xs Hxs Hlen
-  wp_start as ⟨#Hpkg, Hs⟩
+  wp_start as Hs
   wp_auto
-  wp_func_lits
-  wp_auto
+  wp_apply (IntoValTyped.wp_alloc (V := google_golang_org.grpc.internal.mem.SimpleBufferPool)
+    (t := google_golang_org.grpc.internal.mem.SimpleBufferPool.ty) _) as %sp -
   wp_apply wp_newBinaryTiered _ _ s xs Hxs Hlen $$ [Hs] as %l -
   · iframe Hs; iframe #
     imodintro
-    iintro %n
-    wp_func_call
-    wp_call
+    iintro %n %Ψ - HΨ
     wp_auto
     wp_apply wp_newSizedBufferPool as %p -
-    wp_auto
-    ipureintro; exact ⟨_, rfl⟩
-  wp_auto
+    try wp_auto
+    iapply HΨ; itrivial
   wp_end
 
 end proof

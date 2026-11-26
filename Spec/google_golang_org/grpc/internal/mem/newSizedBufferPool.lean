@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 /-- `newSizedBufferPool(size, zero)` returns a new `*sizedBufferPool` (no ownership is kept: nothing
 reads the pools during initialization). -/
 abbrev grpc.internal.mem.newSizedBufferPool.spec : Prop :=
-  ∀ (size : w64) (zero : bool),
+  ∀ (size : w64) (zero : Bool),
   {{ (True : IProp GF) }}
     (App (App (Val (@! google_golang_org.grpc.internal.mem.newSizedBufferPool)) (Val #size)) (Val #zero))
   {{ (l : Loc), RET #l; True }}
