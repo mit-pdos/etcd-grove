@@ -18,6 +18,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Base
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KvDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseDefs
