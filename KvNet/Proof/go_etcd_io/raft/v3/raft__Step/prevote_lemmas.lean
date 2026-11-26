@@ -221,7 +221,7 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
   refine ⟨rfl, ?_⟩
   by_cases Hp : s.role = .preCandidate
   · simp only [Hp, ↓reduceIte] at Hres
-    obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
+    obtain ⟨won, lost, peers, pvs, Hw, -, -, rfl⟩ := Hres
     refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
       prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
       prevoteRespResult_frame id s _ _ won lost peers pvs m Hty Hp (Hnw Hp)⟩

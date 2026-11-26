@@ -84,6 +84,8 @@ def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     let votes' := recordVote s.votes m.From' (!m.Reject')
     (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (c.voters \ {[id]})) ∧
     (lost = true → JLost c votes') ∧
+    -- (antithesis parity B1, 2026-11-26) `poll`'s outcome exact: no win, no quorum
+    (won = false → ¬ JQuorum c (granted votes')) ∧
     s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
 
 /-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the

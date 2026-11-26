@@ -1246,7 +1246,7 @@ theorem ie_handle_preVoteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} 
     ie_tysimp hty at hres
     obtain ⟨-, -, hres⟩ := hres
     rw [if_pos hr] at hres
-    obtain ⟨won, lost, peers, pvs, hwon, -, rfl⟩ := hres
+    obtain ⟨won, lost, peers, pvs, hwon, -, -, rfl⟩ := hres
     have hlead : t.lead = W64 0 := hsc.1 hr
     have hpf : (toPState t).role = .follower ∧ (toPState t).lead = W64 0 := by
       simp [toPState, hr, hlead, proleRole]

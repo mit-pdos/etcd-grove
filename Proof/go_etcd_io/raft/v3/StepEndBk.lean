@@ -341,7 +341,7 @@ theorem bk_fn_preVoteResp {c : CfgM} {id : w64} {t : NState} {m : MessageM} {ent
     se_tysimp hty at hres
     obtain ⟨-, -, hres⟩ := hres
     rw [if_pos hr] at hres
-    obtain ⟨won, lost, peers, pvs, -, -, rfl⟩ := hres
+    obtain ⟨won, lost, peers, pvs, -, -, -, rfl⟩ := hres
     cases won <;> cases lost <;>
       exact ⟨by simp [prevoteRespResult, campaignState, becomeFollower, becomeCandidate, resetTo,
           resetTo0, sendMsgs],

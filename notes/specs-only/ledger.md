@@ -6589,3 +6589,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   At `md = {}` (the only scope proved so far) the new conjunct is vacuous (`antStep_xmsg_none`).
   StepEndNetK.lean: `stepTypes_sub` (snapshots, forwarding, async off → `stepTypes md ⊆ netTypesK`).
 - **Decision.** The Antithesis lead (2026-11-26, decisions 1-3). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2, step C: `PrecandVoteRespResultC`'s non-win exact (#33)
+- **Spec (strengthened internal result; additive).** `PrecandVoteRespResultC` (Spec/go_etcd_io/raft/v3/stepCandidate.lean,
+  `stepCandidate`'s pre-candidate `MsgPreVoteResp` result) gains `(won = false → ¬ JQuorum c (granted votes'))`. Defect:
+  only `won = true → JQuorum …` was stated, so a pending `poll` could leave a pre-candidate at a quorum tally, and
+  `RnScope`'s conjunct "a pre-candidate's tally is not a quorum" (conf changes off) was not provably kept by
+  `RawNode.Step`. Evidence: Go's `poll` is exact (`raft__poll.spec`: `res = VoteWon ↔ JQuorum c (granted votes')`), and
+  `stepCandidate` campaigns exactly on `VoteWon`. Proof: stepCandidate.lean's `Hres_pv` takes the conjunct, discharged
+  from `Hwon` in the lost and pending branches. Readers destructuring it gain one `_` (StepEndBk, InputEndLift,
+  raft__Step/prevote_lemmas). Part copies.
+- **Use.** StepEndRole.lean (new): `RoleFn` (a pre-candidate after a B1 network step was one before, its leader kept, its
+  tally kept or not a quorum; a follower leaves the follower role only as a voter), `roleFn_of_stepEnd`.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no premise.

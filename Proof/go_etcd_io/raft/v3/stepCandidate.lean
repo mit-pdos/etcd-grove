@@ -619,15 +619,16 @@ theorem stepCandidate.wp_proof
             peers ≡ₚ elements (c.voters \ {[id]})) →
           (lost = true →
             JLost c (recordVote s.votes m.From' (!m.Reject'))) →
+          (won = false → ¬ JQuorum c (granted (recordVote s.votes m.From' (!m.Reject')))) →
           s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } →
           CandidateStepResultC c scfg id s m ents sv false s' c cl := by
-        intro s' won lost peers pvs Hw Hl Hs'
+        intro s' won lost peers pvs Hw Hl Hnw Hs'
         unfold CandidateStepResultC
         refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
         simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
           MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, Hrole]
         simp
-        exact ⟨won, lost, peers, pvs, Hw, Hl, Hs'⟩
+        exact ⟨won, lost, peers, pvs, Hw, Hl, Hnw, Hs'⟩
       rcases Hres with rfl | rfl | rfl
       · -- `quorum.VoteWon`: the real election, `campaign(campaignElection)`
         have Hwin : m.Type' = MsgPreVoteResp ∧ s.role = .preCandidate ∧
@@ -688,7 +689,7 @@ theorem stepCandidate.wp_proof
         isplitr [HG]
         · ipureintro
           refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
-            (fun h => absurd h (by decide)) ?_
+            (fun h => absurd h (by decide)) (fun h => absurd h (by decide)) ?_
           rw [Htc]
           rfl
         isplitr [HG]
@@ -714,7 +715,8 @@ theorem stepCandidate.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr [HG]
         · ipureintro
-          exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
+          exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl)
+            (fun _ hq => absurd (Hwon.2 hq) (by first | decide | simp [VoteWon, VoteLost, VotePending, Perennial.W8] | simp [VoteWon, VoteLost, VotePending])) rfl
         isplitr [HG]
         · ipureintro; first | rfl | trivial
         ileft
@@ -732,7 +734,7 @@ theorem stepCandidate.wp_proof
         isplitr [HG]
         · ipureintro
           refine Hres_pv _ false false [] s.prvals (fun h => absurd h (by decide))
-            (fun h => absurd h (by decide)) ?_
+            (fun h => absurd h (by decide)) (fun _ hq => absurd (Hwon.2 hq) (by first | decide | simp [VoteWon, VoteLost, VotePending, Perennial.W8] | simp [VoteWon, VoteLost, VotePending])) ?_
           cases s; rfl
         isplitr [HG]
         · ipureintro; first | rfl | trivial
