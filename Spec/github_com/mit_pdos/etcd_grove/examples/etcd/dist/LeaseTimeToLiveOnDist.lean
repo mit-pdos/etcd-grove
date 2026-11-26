@@ -58,8 +58,8 @@ the fork's readability claim below.
 the lead and the coordinator, pending Upamanyu's decision; review `notes/axiom-review/f7fork-ttl-dist-keys.md`):
 with attached keys, the reply's `Keys` (`ks`, read-only: the client's `LeaseTimeToLiveResponse` holds the decoded
 `pb` response's slice, `lease.go:257`, which protobuf-go decodes into fresh copies, `consumeBytesSlice`) are the
-byte lists `kss`, each readable (`IsRangePermitted(k, [])`) by the caller's principal at member `mid`'s applied
-auth state at an index `≥ n` (`n ≥ n₀` its published index, as the keys verdict above), or the principal an
+byte lists `kss`, each readable (`IsRangePermitted(k, [])`, `permVerdictFrom`) by the caller's principal at
+states of member `mid`'s auth store of index `≥ n` (`n ≥ n₀` its published index, as the keys verdict above), or the principal an
 admin there, or auth disabled there (`leaseCheckD`, its own `info`: the re-check calls `AuthInfoFromCtx` again).
 Why it is true of the fork `d26dd5da6` only: `LeaseTimeToLive` checks the keys it returns
 (`checkLeaseTimeToLiveKeys`, `v3_server.go:719-725, 733-757`) after `leaseTimeToLive`'s lookup on the leader or the
