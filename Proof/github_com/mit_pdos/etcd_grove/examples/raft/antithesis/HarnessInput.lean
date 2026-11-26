@@ -13,6 +13,7 @@ Lean-first (no Rocq counterpart). #33 parity B1: **a node taking an input** (`no
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessPersist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Scope
 
 @[expose] public section
 
@@ -117,12 +118,12 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
         ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = γ.R.voters0 ∧
           γ.raft.raftNames.maxData = none⌝ ∗
         n.[H.node, go!"cause"] ↦ (null : Loc) ∗ viewFrag γ j v ∗ nodeLive γ j ∗
-        ⌜RsView rs v ∧ v.Idle ∧ PIdle rs v.r.p ∧ ViewNormal v⌝ ∗
+        ⌜RsView rs v ∧ v.Idle ∧ PIdle rs v.r.p ∧ ViewNormal v ∧ rs.k = γ.R.k j⌝ ∗
         (∀ (rs' : RNState) (r₁ : RState) (ip' : Nat) (inp : AntSim.Input) (net₀ : List Msg)
             (xnet₀ : List XMsg) (xs₁ : List XMsg) (cl : Loc),
           n.[H.node, go!"rn"] ↦ rn -∗
           rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs' r₁ [] ip' -∗
-          ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ RsView rs' (v.noteInput inp) ∧
+          ⌜rs'.storage = rs.storage ∧ rs'.dur = rs.dur ∧ rs'.k = rs.k ∧ RsView rs' (v.noteInput inp) ∧
             AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j (v.noteInput inp) r₁ xs₁ ∧
             ip' = lcpLen v.r.p.log r₁.p.log ∧ ByOk inp.byE ∧ ViewNormal (v.noteInput inp)⌝ -∗
           rnTermLB γ.raft rs'.tc -∗
@@ -142,9 +143,9 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
   isplitr
   · ipureintro; exact Hst
   isplitr
-  · ipureintro; exact ⟨Hrv.1, hI, hP, HN⟩
+  · ipureintro; exact ⟨Hrv.1, hI, hP, HN, Hrv.2.2.2.2⟩
   iintro %rs' %r₁ %ip' %inp %net₀ %xnet₀ %xs₁ %cl' Hrn Hraw %Hf Htc Hcause Hv Hl Hlb Hxlb Hco
-  obtain ⟨hsto, hdur, hrv, hR, hip, hby, hN'⟩ := Hf
+  obtain ⟨hsto, hdur, hk, hrv, hR, hip, hby, hN'⟩ := Hf
   ihave Hnr := Hnrc $$ %rs' %hdur Htc
   iexists d, rn, ms, hsl, cl', csl, role, applied
   iframe Hd Hmem Hrn Hms Hrole Hhs Hcause Happ Hconf Hv Hl
@@ -156,7 +157,8 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
   iexists si, rs', [], ip', r₁
   iframe Hstor Hraw Hnr Hhsro Hcs Hlb Hxlb Hco
   ipureintro
-  exact ⟨by rw [hsto]; exact Hsto, ⟨hrv, Hrv.2.1, Hrv.2.2.1, Hrv.2.2.2⟩, Hc0, rfl, hR, rfl, hip, hby⟩
+  exact ⟨by rw [hsto]; exact Hsto, ⟨hrv, Hrv.2.1, Hrv.2.2.1, Hrv.2.2.2.1, by rw [hk]; exact Hrv.2.2.2.2⟩,
+    Hc0, rfl, hR, rfl, hip, hby⟩
 
 /-- **After a drain not caused by a message**, the cause cell is `nil` (`causeOwn`): node `j` is
 between inputs again. -/
@@ -196,15 +198,35 @@ theorem causeOwn_noRecv (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (
 
 /-! ## The input noted in the view -/
 
+/-- **`antSim_quiet` at the mask `msk`** (`AntSim.antSim_quiet_in`'s statement, below its bound
+`msk ≤ mskS4`: the Link passes `antSim_quiet_in msk hmsk`; widened to `mskB1` with the Sim). -/
+abbrev antSim_quiet_in.law (msk : AntSim.SimMask) : Prop :=
+  ∀ (R : AntSim.RunCfg) (dec : CCDec) (S : AntCheck.State) (V : Fin R.N → AntSim.NodeView)
+    (net : List Msg) (xnet : List XMsg) (G : AntSim.RaftFacts) (n : Fin R.N) (v' : AntSim.NodeView),
+    AntSim.InMask msk R net xnet → AntSim.AntSim R dec S V net xnet → AntSim.RaftLaws G →
+    AntSim.GlobalOk R S net G → AntSim.QuietIn msk R dec (AntSim.admOf G) net xnet n (V n) v' →
+    AntSim.AntSim R dec S (AntSim.setV V n v') net xnet
+
+/-- **A run of the driver is within the mask `msk`** (`AntSim.InMask`), from the cluster's facts
+(`InScope`, `ModeRun`), B1's off bits (`DrainB1`) and the run's relation (`AntRun`: every message
+sent under the run's mask). Proved for the mask the Link instantiates. -/
+abbrev runInMask.law (msk : AntSim.SimMask) : Prop :=
+  ∀ (γ : AntNames) (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin γ.R.N → AntSim.NodeView)
+    (net : List Msg) (xnet : List XMsg),
+    InScope γ.scope γ.mode → ModeRun γ.scope γ.mode γ.R → DrainB1 γ.scope γ.mode →
+    AntRun γ.R γ.dec evs S V net xnet → AntSim.InMask msk γ.R net xnet
+
 /-- **The view notes an input** (`Quiet.input`, `antSim_quiet`): node `j`'s view between inputs, the
 input's message (if any) sent to it; the run's invariant is opened in an update (no step: it is
-timeless), its view halves moved to `v.noteInput inp` (`view_update`), the relation re-proved, and
+timeless), its view halves moved to `v.noteInput inp` (`view_update`), the relation re-proved
+(`antSim_quiet_in` at a mask `msk` admitting the run, `runInMask`, and the input), and
 lower bounds of the sent lists taken, which have the input's message. While node `j` holds its
 `live` token the run is not over (`nodeLive_over`). -/
 theorem view_input (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law (GF := GF))
-    (h_quiet : AntSim.antSim_quiet.stmt)
+    (msk : AntSim.SimMask) (h_quiet : antSim_quiet_in.law msk) (h_mask : runInMask.law msk)
     (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (inp : AntSim.Input)
-    (hI : v.Idle) (hd : ∀ m, inp = .recv m → m.dst = AntSim.nodeId j)
+    (hrun : InScope γ.scope γ.mode ∧ ModeRun γ.scope γ.mode γ.R) (hb1 : DrainB1 γ.scope γ.mode)
+    (hinp : inp.InMask msk) (hI : v.Idle) (hd : ∀ m, inp = .recv m → m.dst = AntSim.nodeId j)
     (hdx : ∀ x, inp = .recvX x → x.dst = AntSim.nodeId j) :
     inv antN (antInv (GF := GF) γ) ∗ □ (∀ m, ⌜inp = .recv m⌝ -∗ sentW γ m) ∗
         □ (∀ x, ⌜inp = .recvX x⌝ -∗ xsentW γ x) ∗ viewFrag γ j v ∗ nodeLive γ j ⊢
@@ -246,12 +268,13 @@ theorem view_input (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
     imod h_vu (⊤ \ ↑antN) γ j V v (v.noteInput inp) $$ [Hv Hviews] with ⟨%HVj, Hv, Hviews⟩
     · iframe Hv Hviews
     obtain ⟨hR, hL, hG, hlogs⟩ := Hpure
+    have hin := h_mask γ evs S V net xnet hrun.1 hrun.2 hb1 hR
     obtain ⟨hP, hA, hB, hCB, hC⟩ := hR
-    have hq : AntSim.Quiet γ.R γ.dec (AntSim.admOf G) net xnet j (V j) (v.noteInput inp) := by
+    have hq : AntSim.QuietIn msk γ.R γ.dec (AntSim.admOf G) net xnet j (V j) (v.noteInput inp) := by
       rw [HVj]
-      exact AntSim.Quiet.input v inp hI (fun m hm => ⟨Hmem m hm, hd m hm⟩)
+      exact AntSim.QuietIn.input v inp hinp hI (fun m hm => ⟨Hmem m hm, hd m hm⟩)
         (fun x hx => ⟨Hxmem x hx, hdx x hx⟩)
-    have hA' := h_quiet γ.R γ.dec S V net xnet G j (v.noteInput inp) hA hL hG hq
+    have hA' := h_quiet γ.R γ.dec S V net xnet G j (v.noteInput inp) hin hA hL hG hq
     imod Hclose $$ [Hstr Hviews Hnet Hxnet] with -
     · inext
       iunfold antInv

@@ -6021,3 +6021,32 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`FollowerStepResultC`'s transfer arm gives `s' = s₁ ≠ s`). It needs a `StepEnd` conjunct for that type at the
   recorded ghost; it goes in with the pre-vote stage's change to the step-function conjunct.
 - **Decision.** Lead's decision (i), 2026-11-26. No new axiom, no new top-level premise.
+
+## 2026-11-26 — antithesis parity B1 (Sim): `LedConfOk`'s leader logs normal with conf changes off; `QsOk`'s self-acknowledgement only at a leader (#33)
+
+- **File.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/Rel.lean` (`LedConfOk`, `QsOk`),
+  `Sim/ReadyRel.lean` (`ReadyOk.lconf`).
+- **Change (strengthening of two invariants).** (1) `LedConfOk R dec S`'s witness log `l` of a led term also gives
+  `R.md.confChanges = false → EntsNormal l` (and `ReadyOk.lconf` the same clause). A win records the candidate's
+  log, a proposal appends normal entries, and with conf changes off every log is normal (`NodeFacts.conf0`), so
+  the leader configuration at a led term is the initial one (`cfgFold_normal`): what `ready_cmt`'s `Acked` quorum
+  (B 252) is read in. Sites: `Init` (`bootLog`), `GC` (same witness), `ReadyRel.rr_binding` (via `ReadyOk.lconf`),
+  `ReadyProp` (old witness ++ the proposal's normal entries), `ReadyWin` (the new log, normal by the new view's
+  `NodeFacts`), `ReadyCmt`/`ReadyMain` (`ledLog` unchanged). (2) `QsOk`'s self-acknowledgement arm gains
+  `v.ps.role = .leader` (`q.ty = .appResp ∧ v.ps.role = .leader ∧ AckIn …`): only a leader queues one, and a node
+  that steps down empties its outbox. So a candidate's queued self-messages are all self-votes (`RdCtx.hqc`), the
+  new leader ignores them in `Advance`, and a win keeps the commit (`ReadyKind.win`'s last premise, `ready_win`'s
+  `hpc`; at `R.K = 1` nothing else excludes a commit). Producers: `ReadyProp`/`ReadyWin` (from `qs_self`'s leader
+  arm), `ReadyCmt`/`ReadyMain` (no queued self-message), `Quiet` and `Init` (none), `SendRel`, `GC`, `ReadyRel`
+  (role kept); consumers shift by one.
+- **Decision.** Approved by the lead (2026-11-26). No new axiom, no new top-level premise.
+
+### 2026-11-26 — `nodeOwn` (antithesis parity B1, `HarnessRun.lean`): the `RawNode`'s node constant is the run's
+
+- **Spec.** `nodeOwn c γ j n v ph`'s started pure conjunct (`RsView rs v ∧ v.alive = true ∧ …`).
+- **Defect.** The input proofs (`node.tick`, `node.campaign`, `node.propose`, …) build `Reach.input`, whose step
+  (`InputStep`) is at the run's node flags `R.k j`; `RawNode`'s ends (`TickEndR`, `CampaignEndR`, `RecvEndR`) are at the
+  client record's `rs.k`. Nothing in `nodeOwn` related the two, so no input proof could close.
+- **Change.** The conjunct gains `rs.k = γ.R.k j`. `node.start` gets it from `NewRawNode`'s post (`k := cfgK cv`) and
+  `ModeRun` (`R.k n = modeK m`); every `RawNode` post keeps `rs.k`.
+- **Decision.** Lead's decision (group D, Q1), 2026-11-26. No new axiom, no new top-level premise.

@@ -469,6 +469,8 @@ entries normal; and, once started (any phase but `down`), the `RawNode` and its 
 its `MemoryStorage` (`nodeStor`: at the disk's hard state, in the `bootStorage` raft reads, with the
 run's initial voters), the Go fields agreeing with the view (`role` the last reported role, `hs` the
 disk's hard state, `conf` the initial voters' configuration (no conf change in B1's mask), `applied` the delivered prefix), the
+`RawNode`'s node constant the run's node flags (`rs.k = γ.R.k j`: the ends `RawNode` gives are at `rs.k`, the Sim's
+inputs at `R.k j`), the
 cause cell; and the phase's facts (S4's, over `RState`):
 - `down`: not running (`v.alive = false`), nothing of a `Ready` left, the disk the node's state's
   (`SyncDisk`);
@@ -493,7 +495,8 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.Nod
         (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
       ⌜rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
       rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs r qs ip ∗ nodeRaft γ j rs ∗
-      ⌜RsView rs v ∧ v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length⌝ ∗
+      ⌜RsView rs v ∧ v.alive = true ∧ role = AntSim.roleS v ∧ uint.nat applied = v.delivered.length ∧
+        rs.k = γ.R.k j⌝ ∗
       hsRO hsl (HardStateM.mk v.dur.term v.dur.vote v.dur.commit) ∗
       csPts csl DFrac.discard
         (ConfStateM.mk ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1)) [] [] [] false) false ∗
