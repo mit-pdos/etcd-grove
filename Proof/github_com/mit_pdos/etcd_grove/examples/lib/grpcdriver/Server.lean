@@ -67,8 +67,7 @@ theorem Server.wp_proof
   ihave #Pgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_apply (wp_NewServer slice.nil [] []) $$ [] as %gs Hgs
-  · isplitr
-    · iexact Pgrpc
+  · -- (`wp_apply` discharges grpc's `isPkgInit` itself)
     isplitr
     · iapply (ownSlice_nil (V := GoInterface) DFrac.discard)
     · iapply (BigSepL2.bigSepL2_nil (PROP := IProp GF)).mpr; iempintro

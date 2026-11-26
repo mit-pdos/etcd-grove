@@ -31,6 +31,7 @@ axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom grpc.CustomCodec.wp_proof
 axiom grpc.StatsHandler.wp_proof
 axiom grpcHealthSrv
 axiom grpcHealthSrv_persistent
