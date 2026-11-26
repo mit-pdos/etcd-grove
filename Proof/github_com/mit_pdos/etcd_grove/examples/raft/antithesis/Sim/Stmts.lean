@@ -109,7 +109,7 @@ def InputStep (R : RunCfg) (dec : CCDec) (Adm : List EntryM → CCState → Prop
   | .propose d, r' => RecvEndR Adm (R.k n) (nodeId n) r (propMsg (nodeId n) d) r'
   | .proposeConf ty d, r' =>
       R.md.confChanges = true ∧ RecvEndR Adm (R.k n) (nodeId n) r (propConfMsg (nodeId n) ty d) r'
-  | .readIndex c, r' => RecvEndR Adm (R.k n) (nodeId n) r (readMsg (nodeId n) c) r'
+  | .readIndex c, r' => RecvEndR Adm (R.k n) (nodeId n) r (readMsg c) r'
   | .campaign, r' => CampaignEndR (R.k n) (nodeId n) r r'
   | .transfer to, r' => TransferEndR (nodeId n) r to r'
   | .snapStatus to ok, r' => SnapStatusEndR (nodeId n) r r'

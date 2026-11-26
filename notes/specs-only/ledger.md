@@ -6321,3 +6321,12 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Producers.** The restart (`RawNodeStart`: a follower); `RnScope_empty` (vacuous at `{}`); `rnScopeAt_keepAll`'s
   callers (role and tally kept). The inputs that move a pre-candidate prove it with the general-mode lifting (item 4).
 - **Decision.** Lead-approved (2026-11-26). No axiom, no premise.
+
+## 2026-11-26 — antithesis parity B1 phase 2: `readMsg` at `From` 0, without the node id (#33)
+- **Defect.** `readMsg id ctx` had `src = id`, but `RawNode.ReadIndex` steps `pb.Message{Type: MsgReadIndex, Entries:
+  [{Data: ctx}]}` with `From` unset. `ReadIdxEnd` records `m.src` exactly (the deferred request, the read-only queue's
+  `⟨commit, src, ents⟩`), so `RecvEndR … (readMsg id ctx) r'` was false for the real step.
+- **Change.** `readMsg (ctx)` (Protocol/InputEnd.lean): `src = 0`, the id parameter dropped; `InputStep`'s
+  `.readIndex` arm (Sim/Stmts.lean) `RecvEndR Adm (R.k n) (nodeId n) r (readMsg c) r'`. Behaviour is the same: a
+  leader answers a request from `0` or itself locally (`preadRespond`), a follower's forward stamps its own id.
+- **Decision.** Lead-approved (2026-11-26). No axiom, no premise.
