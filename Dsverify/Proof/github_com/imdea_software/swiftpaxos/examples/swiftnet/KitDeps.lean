@@ -37,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section deps
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [π : NetProtoGS]
+variable [net.Assumptions] [io.Assumptions] [π : NetProtoGS]
 
 /-- The network callees of the kit's code (see the file header). -/
 structure SwNetDeps : Prop where
@@ -186,7 +186,7 @@ section netlemmas
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [net.Assumptions] [io.Assumptions]
 
 /-- `poll.ErrDeadlineExceeded`'s value, from the kit's initialization. -/
 theorem kit_ed_init :
@@ -230,7 +230,8 @@ theorem wp_ack (D : SwNetDeps (hG := hG)) (t : Loc) (cn : Nat) (a : GoString)
   iintro %Φ ⟨#Hca, #Hed, #HQ, Hsend, Hls⟩ HΦ
   iapply D.write t cn true a la ra ls [W8 107] (DFrac.own 1) ed
     (writeP cn true Q []) $$ [Hls Hsend]
-  · iframe Hca Hls Hed
+  · ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hca
+    iframe Hpoll Hca Hls Hed
     isplitl [Hsend]
     · iapply writeP_init $$ Hsend
     · iapply write_acc cn true Q [] [W8 107] $$ HQ

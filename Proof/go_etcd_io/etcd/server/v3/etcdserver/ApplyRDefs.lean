@@ -274,7 +274,7 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
   iunfold srvRaftLogInv at Hinv2
   icases Hinv2 with ⟨-, #Hcl, -, %Hai, %Hpre, #Hb, %Hok⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -, -, %Hbcc0⟩
   ihave %Hp := srvRLogLb_prefix γr.raft (γr.raft.raft.boot.map EntryModel.ofM) rp.A₀ $$ [Hb HA]
   · iframe Hb HA
   ihave #HA2 := HA
@@ -300,12 +300,9 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
     rw [← hR]
     obtain ⟨hne, hnd, hbo, -⟩ := Hok
     refine restReplay_close γr.raft.raft.vs γr.raft.raft.boot R rp.b hbo hnd Hurl ?_ ?_
-    · intro e he cc hd
-      have hm : EntryModel.ofM e ∈ rp.A₀ := by
-        rw [← hR]; exact List.mem_append_left _ (List.mem_map_of_mem he)
-      obtain ⟨k, hk⟩ := List.getElem?_of_mem he
-      have hty1 := (hbo.2.2 k e hk).2.2.1
-      exact hccA _ hm (by simp only [EntryModel.ofM, hty1]; decide) cc hd
+    · -- (route B) the boot policy's, `srvClusterOk`'s boot fact
+      intro e he cc hd
+      exact Hbcc0 e he cc hd
     · intro m hm ht cc hd
       exact hccA m (by rw [← hR]; exact List.mem_append_right _ hm) ht cc hd
   · -- inside the bootstrap log: every entry a conf change, whose replay is the identity
@@ -324,6 +321,36 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
     | cons m S ih =>
       rw [List.foldl_cons, restEntryV2_conf m _ (hall m (List.mem_cons_self ..))]
       exact ih (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))
+
+/-- (route B, 2026-11-25) **No promotion validates on the rest model of a committed log**: its conf
+changes are the committed log's (`srv_committed_ccBoot`), the boot ones the boot policy's
+(`srvClusterOk`), so its bucket holds voters only (`ccValidOn_restModel_promote`). What
+`applyConfChange.spec`'s promotion premise asks of its caller. -/
+theorem srv_promote_novalid (γ : ServerRaftNames) (L : List EntryModel) (c0 : w64) (Em : CoPset)
+    (hL : ↑srvLogN ⊆ Em) (Hidx : srvIdxOkW γ.ai0 L) :
+    srvRaftLogInv (GF := GF) γ ∗ isCommittedLogLb γ.raft.cl (srvLE γ L) ⊢
+      |={Em}=> ⌜∀ cc : ConfChangeM, cc.type = W32 0 → membership.ccIsPromote cc.context = true →
+        membership.ccValidOn (restModel c0 γ.raft.boot (γ.pre ++ L)).bk cc = false⌝ := by
+  iintro ⟨#Hinv, #Hl⟩
+  ihave #Hinv2 := Hinv
+  iunfold srvRaftLogInv at Hinv2
+  icases Hinv2 with ⟨-, #Hcl, -, -, %Hpre, -, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, -, -, %Hbcc0⟩
+  imod srv_committed_ccBoot γ (srvLE γ L) Em hL $$ [$Hinv $Hl] with %Hcc
+  imodintro
+  ipureintro
+  intro cc hty hp
+  refine ccValidOn_restModel_promote γ.raft.vs c0 γ.raft.boot (γ.pre ++ L)
+    (fun e he cc hd => Hbcc0 e he cc hd) ?_ cc hty hp
+  intro m hm ht cc' hd
+  rw [Hpre, List.nil_append] at hm
+  obtain ⟨k, hk, hke⟩ := List.getElem_of_mem hm
+  obtain ⟨-, hty'⟩ := Hidx k m (by rw [← hke]; exact List.getElem?_eq_getElem hk)
+  rcases hty' with h0 | ⟨h1, -⟩
+  · exact absurd h0 ht
+  · exact Hcc m.toLE (by simp only [srvLE, Hpre, List.nil_append]; exact List.mem_map_of_mem hm) h1
+      cc' hd
 
 /-- **The apply thread's membership resource at a replayed `AddNode`** (R2d' A4): the fields
 `applyConfChange(cc, ep, false)` reads (`server.go:2037-2083` at the pin `673da07c8`: `beHooks`,

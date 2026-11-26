@@ -503,13 +503,14 @@ theorem cS_step {GF : BundledGFunctors} (S : linkv.PSet w64 Bool) (b u : Bool) (
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `cR γ`. -/
 theorem cS_pendDec {GF : BundledGFunctors} [AllG GF] (γ : GName) :
-    PendDec (cR (GF := GF) γ) (cS (GF := GF)) where
+    PendDec (cR (GF := GF) γ) (cS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := cS_step s i false o
   err s i := cS_step s i true (W64 0)
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, false, o, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, true, W64 0, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 end dec
 

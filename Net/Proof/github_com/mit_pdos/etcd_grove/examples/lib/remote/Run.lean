@@ -34,11 +34,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
-omit [DecidableEq I] [Pos.Countable I] [Pos.Countable O] in
+omit [Pos.Countable I] [Pos.Countable O] in
 /-- `n * m` units are `n` calls' worth of `m`. -/
 theorem budUnits_calls (a : GoString) (m : Nat) : ∀ n,
     budUnits (Gg := hG.goose_globalGS) a (n * m) ⊢
@@ -54,7 +53,7 @@ theorem budUnits_calls (a : GoString) (m : Nat) : ∀ n,
     iframe Hm
     iapply budUnits_calls a m n $$ Hn
 
-omit [DecidableEq I] [Pos.Countable I] [Pos.Countable O] in
+omit [Pos.Countable I] [Pos.Countable O] in
 /-- A big separating conjunction over a list, by index. -/
 theorem bigSepL_range_getD {A : Type} [Inhabited A] (L : List A) (Q : A → IProp GF) :
     ([∗list] a ∈ L, Q a) ⊢ [∗list] c ∈ List.range L.length, Q (L.getD c default) := by
@@ -70,7 +69,7 @@ theorem Run.wp_proof
     (wp_perclientRun : EtcdGrove.perclient.Run.spec (GF := GF) (hG := hG))
     (wp_CounterClock : CounterClock.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R S γ m addrs addrL cd gen ops d tmo HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
+  intro J _ _ R S γ m addrs addrL cd gen ops d tmo HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
   haveI := HT
   wp_start as ⟨#Hcc, #Hm, #Hgen, #Haddrs, #Hra, #Hmap, #Hcd, #Hpend, Hlib, Hbud⟩
   wp_auto
@@ -89,7 +88,7 @@ theorem Run.wp_proof
       (budUnits (Gg := hG.goose_globalGS) (addrL.getD c default) readTries) (sint.nat ops))
     (fun _ => budUnits_calls _ readTries _)) $$ Hbud
   rw [Hal.1]
-  wp_apply wp_perclientRun (EtcdGrove.linkv.PSet St I) S m _ gen clock (fun x => iprop(∃ i, ⌜x = R.iv i⌝))
+  wp_apply wp_perclientRun (EtcdGrove.linkv.PSet St J) S m _ gen clock (fun x => iprop(∃ i, ⌜x = R.iv i⌝))
     (pendLib S γ) (fun c => budUnits (Gg := hG.goose_globalGS) (addrL.getD c default) readTries)
     clockVal (W64 0) (R.Eop ∪ ↑pendN) ↑(nroot.@"remoteClock") addrs.len ops tmo
     HlE (mask_ndot_ne' nroot "lintest" "remoteClock" (by decide)) Hal.2 H31 Hops Hmul $$ [Hlib Ht0 Hbud]
@@ -126,7 +125,7 @@ theorem Run.wp_proof
     wp_apply wp_Do R a i _ _ cd d $$ [Hch HP] as %v Hv
     · iframe #
       iframe Hch HP
-      cases hw : R.B.isWrite i
+      cases hw : R.B.isWrite (R.mi i)
       · simp only [Bool.false_eq_true, ↓reduceIte]
         iapply readNoop (Gg := hG.goose_globalGS) R HpE S γ i hw
         iexact Hpend

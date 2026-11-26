@@ -33,7 +33,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions]
 variable [errors.Assumptions] [fmt.Assumptions] [os.Assumptions] [internal.poll.Assumptions]
 
@@ -341,12 +341,8 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
       iunfold sendRes
       ileft
       iexact HR
-    · ihave #Hconn' := Hconn
-      iunfold net.connAt at Hconn'
-      icases Hconn' with ⟨%nw0, -, -, #Hla, #Hra, -⟩
-      ihave %Hl1 := errLeaf_netAddr la $$ Hla
-      ihave %Hl2 := errLeaf_netAddr ra $$ Hra
-      ihave #HEa := errPlain_resErr _ _ _ _ _ _ _ Hl1 Hl2 $$ [$HE]
+    · ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
+      ihave #HEa := errPlain_resErr _ _ _ _ _ _ _ $$ [$Hsys $HE]
       · iintro %ed' %Hed'
         cases Hed'
         iexact Hed

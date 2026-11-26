@@ -64,7 +64,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+variable [net.Assumptions] [net.rpc.Assumptions] [log.Assumptions]
   [net.http.Assumptions] [io.Assumptions] [client.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
@@ -477,8 +477,11 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
         $$ [$Hsl] as Hsl
       rw [hu, show 7 + (k + 1) = 8 + k from by omega]
       ihave %Hlok := RpcHttpAddr.rpcLisP_ok γ.W _ _ _ $$ Hrl
+      ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+      · solve_pkg_init
       wp_apply (D.listen go!"tcp" net.tcpNet_tcp (atStr (8 + k) (W64 1000))) as %lv %lerr Hl
-      · isplitr
+      · (try iframe HnetPk)
+        isplitr
         · ipureintro; exact Hlok
         iapply RpcHttpAddr.rpcLisP_lis
         iexact Hrl

@@ -40,7 +40,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 variable [github_com.emirpasic.gods.maps.treemap.Assumptions] [sync.Assumptions]
 variable [io.Assumptions] [errors.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.rpc.Assumptions]
   [dlog.Assumptions] [time.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions] [config.Assumptions]
 
 theorem replica.Replica.wp_waitForPeerConnections :

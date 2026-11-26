@@ -18,7 +18,7 @@ history".
 def <thm>.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [orch_sem : cmd.orch.Assumptions] [client0_sem : cmd.client0.Assumptions] ...  -- one per machine
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; <premise class> remoteGF) → ...                     -- the premises
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy <kit>Addrs (system σ) g →

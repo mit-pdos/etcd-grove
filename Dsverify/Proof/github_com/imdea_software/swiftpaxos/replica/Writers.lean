@@ -128,7 +128,7 @@ section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [dlog.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [dlog.Assumptions]
   [time.Assumptions]
 
 set_option goose.wp.extras true

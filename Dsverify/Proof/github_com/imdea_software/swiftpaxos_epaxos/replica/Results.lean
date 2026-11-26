@@ -52,7 +52,6 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
-  [field_sem : net.FieldAssumptions]
 
 /-! ## The library hypotheses of the replica proofs (`Interface/LibDeps.lean`), closed
 

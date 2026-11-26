@@ -57,14 +57,25 @@ section adequacy
 
 variable [go_gctx : GoGlobalContext]
 
-/-- The program: `mvccfull`'s initialization, then `MainAt(r)`: `Main`'s run with its files in the
-directory `r` (`Run(MainConfig(r/mvccfull))`), after the program's own checks that `r` fits and that
-nothing is at any of the run's file paths (P3 of the pure-premise plan, 2026-11-24; S3e to then:
-`Run(MainConfig(r/mvccfull))`, those two facts premises of the statement; until S3e `Main()`, whose
-prefix `mvccfull` is relative). -/
+/-- The program: `mvccfull`'s initialization, then `MainAt(r)`: the tester's run of a configuration
+it draws (`drawConfig`), with its files in the directory `r`, after the program's own checks that `r`
+fits, that the configuration is in the proof's scope (`inScope`) and that nothing is at any of the
+run's file paths. -/
 def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
   (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt) #r
+
+/-- **The thread bound** (`mvccfull_robust`'s `threads`): fewer than `2 ^ 28` live threads along the
+execution. A cap the proof needs, not a limit of the code: the backend's reader-slot pool
+(`backend.rdPoolN`) and the stores' reader tokens are sized for it (`Run.spec`'s
+`ThreadBoundLe GF (2 ^ 28)`). -/
+abbrev mvccfullThreads : Nat := 2 ^ 28
+
+/-- **The step bound** (`mvccfull_robust`'s `bound`): fewer than `2 ^ 48` steps. The proof's cap: an
+execution of `n` steps runs at `n + 1` receipts, and the run's receipt budget is `2 ^ 48`
+(`Run.spec`'s `ReceiptBoundLe GF (2 ^ 48)`: the backends' write-back tokens and mvcc's receipt-paid
+supplies). -/
+abbrev mvccfullSteps : Nat := 2 ^ 48
 
 end adequacy
 end EtcdGrove

@@ -1,8 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
-`MainAt.spec` proved: `dirFits` answers `Fs.DirFits r` (so every file path fits); the root's claim
-split to the run's file names (`claims_of_names`, `FileNames.lean`'s `mvccfullNames`, which
-`FilePaths(MainConfig(r/mvccfull))` lists under `r`: `filePaths_at`); the loop's invariant: the names
+`MainAt.spec` proved: `dirFits` answers `Fs.DirFits r` (so every file path fits); the drawn
+configuration (`drawConfig`) in `Run`'s scope when `inScope` answers `true` (`runCfgOk`); the root's
+claim split to the run's file names (`claims_of_names`, `FileNames.lean`'s `runNames`, which
+`FilePaths(cfg)` lists under `r`: `filePaths_at`); the loop's invariant: the names
 before the counter found empty, those from it on still to check (a claim on each); when every
 `absent` answered `true`, the fresh database files made from the claims (`files_of_done`), then
 `Run.spec`.
@@ -12,7 +13,8 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainAt
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.dirFits
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.absent
-public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.drawConfig
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.inScope
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.FileNames
 
@@ -52,21 +54,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
 
--- The kernel's check of this proof takes about 9 minutes (VM, 2026-11-24): `FilePaths`' slice `s ↦* …`
--- (its spec's `TypedPointsto` instance) is compared with the loop body's after each
--- `wp_load_slice_index` (reached through `IntoValTyped`), equal only after unfolding both. Without the
--- options: "(kernel) deterministic timeout". The slice's list is never written out here (the loop
--- invariant leaves `Hs` in the frame, the load takes it from `Hs`), which keeps that comparison to
--- the iteration's re-framing. A proof-perf candidate.
-set_option maxRecDepth 20000 in
-set_option maxHeartbeats 0 in
 theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     (wp_absent : absent.spec (GF := GF) (hG := hG))
-    (wp_MainConfig : MainConfig.spec (GF := GF) (hG := hG))
+    (wp_drawConfig : drawConfig.spec (GF := GF) (hG := hG))
+    (wp_inScope : inScope.spec (GF := GF) (hG := hG))
     (wp_FilePaths : FilePaths.spec (GF := GF) (hG := hG))
     (wp_Run : Run.spec (GF := GF) (hG := hG)) :
     MainAt.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ _ _ _ _ r
+  intro _ _ _ _ _ _ r
   wp_start as ⟨Hroot, Htok, #Hvoff⟩
   try wp_auto
   wp_apply wp_dirFits as %fits %hfits
@@ -76,24 +71,33 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
     iapply HΦ; itrivial
   | true =>
     have hd : Fs.DirFits r := hfits.1 rfl
-    have hok : ∀ b ∈ mvccfullNames, NameOk b ∧ Fs.PathFits (Fs.child r b) := fun b hb =>
-      ⟨mvccfullNames_ok b hb, Fs.pathFits_of_dirFits hd (mvccfullNames_len b hb)⟩
     try wp_auto
     rw [show r ++ go!"/mvccfull" = Fs.child r go!"mvccfull" from rfl]
-    wp_apply wp_MainConfig as %mx Hmix
+    wp_apply wp_drawConfig as %cfg %wr ⟨%hpfx, Hmix⟩
     try wp_auto
-    wp_apply (wp_FilePaths (mainConfigM (Fs.child r go!"mvccfull") mx)
-      (by show sint.Z (W64 12000) < 2 ^ 63 - 1; decide)) as %s Hs
-    rw [filePaths_at r mx]
+    iunfold mixOwn at Hmix
+    icases Hmix with ⟨%dq, %ws, %wo, %wc, %wrr, %wa, %wst, Hs1, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
+    wp_apply wp_inScope cfg wr dq $$ [Hrd] as %ok ⟨Hrd, %hok⟩
+    · iframe
+    cases ok
+    · try wp_auto
+      iapply HΦ; itrivial
+    have hcfg : runCfgOk cfg wr := hok rfl
+    have hops : sint.Z cfg.Ops' < 2 ^ 38 := hcfg.2.2.1
+    have hok : ∀ b ∈ runNames cfg.Ops', NameOk b ∧ Fs.PathFits (Fs.child r b) := fun b hb =>
+      ⟨runNames_ok _ b hb, Fs.pathFits_of_dirFits hd (runNames_len _ hops b hb)⟩
+    try wp_auto
+    wp_apply (wp_FilePaths cfg (by omega)) as %s Hs
+    rw [filePaths_at r cfg hpfx]
     iunfold rootClaimF at Hroot
     icases Hroot with ⟨%R, %j0, %h0, %q, %hr, #Hinv, #Hsh, Hn, Hperm⟩
-    imod claims_of_names (hG := hG) R j0 mvccfullNames [] h0 mvccfullNames_nodup
+    imod claims_of_names (hG := hG) R j0 (runNames cfg.Ops') [] h0 (runNames_nodup _)
       (fun _ _ h => absurd h List.not_mem_nil) $$ Hsh Hn with Hcl
     imod Fs.osPathS_root (E := ⊤) (L := hG.goose_localGS) R r j0 (DFrac.own 1) hr
       (fun _ _ => CoPset.mem_full) $$ Hsh with Hpath
     ihave %Hsl := ownSlice_len _ _ _ $$ Hs
-    -- the names, a variable from here on (12002 of them: never unfold them)
-    generalize hN : mvccfullNames = names at hok Hsl ⊢
+    -- the names, a variable from here on
+    generalize hN : runNames cfg.Ops' = names at hok Hsl ⊢
     rw [List.length_map] at Hsl
     try wp_auto
     ihave HI : (∃ (k : w64) (pv : GoString), "i" ∷ i_ptr ↦ k ∗ "p" ∷ p_ptr ↦ pv ∗
@@ -157,18 +161,14 @@ theorem MainAt.wp_proof (wp_dirFits : dirFits.spec (GF := GF) (hG := hG))
       rw [hend, List.take_of_length_le (Nat.le_refl _)]
       imod files_of_done (hG := hG) R r j0 hr names q hok $$ Hinv Hsh Hdone Hperm with Hfiles
       try wp_auto
-      wp_apply (wp_Run (mainConfigM (Fs.child r go!"mvccfull") mx)
-          [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] (mainConfig_okAt _ mx) trivial trivial)
-        $$ [Hfiles Htok Hmix] as %rep -
+      wp_apply (wp_Run cfg wr hcfg trivial trivial)
+        $$ [Hfiles Htok Hs1 Ho Hc Hrr Hrd Ha Hstt] as %rep -
       · iframe Htok Hvoff
-        iunfold mainMixOwn at Hmix
-        icases Hmix with ⟨%Hp, Hs1, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
         isplitl [Hs1 Ho Hc Hrr Hrd Ha Hstt]
         · iunfold mixOwn
-          simp only [mainConfigM]
-          iexists DFrac.own 1, _, _, _, _, _, _
+          iexists dq, _, _, _, _, _, _
           iframe
-        rw [filePaths_at r mx, hN, BigSepL.bigSepL_map]
+        rw [filePaths_at r cfg hpfx, hN, BigSepL.bigSepL_map]
         have heq : ∀ p, backend.fileHolds (GF := GF) p ∅ = backend.fileHoldsF p ∅ := fun p => by
           unfold backend.fileHolds; exact backend.onFs_eq _
         simp only [heq]

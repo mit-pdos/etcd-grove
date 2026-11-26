@@ -5,10 +5,12 @@ import (
 	"testing"
 )
 
-// TestIsExportedASCII checks the trusted model of go/token.IsExported
-// (Net/TrustedCode/go/token.lean): on the empty name false, on a name whose first byte is ASCII
-// exactly `'A' <= b && b <= 'Z'` (the rest of the name does not matter); a non-ASCII first byte
-// is the model's choice point, so nothing is checked there.
+// TestIsExportedASCII checks the Go model of go/token.IsExported (models/go/token/model.go,
+// Net/Code/go/token.toml's [model] table) against Go's: on the empty name false, on a name whose
+// first byte is ASCII exactly `'A' <= b && b <= 'Z'` (the rest of the name does not matter); a
+// non-ASCII first byte is the model's choice point (gomodel.Choose), so nothing is checked there.
+// It runs against the real go/token and, under the model's overlay, against the model
+// (etc/model-tests.sh).
 func TestIsExportedASCII(t *testing.T) {
 	if token.IsExported("") {
 		t.Errorf("IsExported(\"\") = true")

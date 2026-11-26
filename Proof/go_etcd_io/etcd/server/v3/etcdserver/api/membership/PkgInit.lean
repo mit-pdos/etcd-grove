@@ -34,8 +34,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Se
 -- `etcdserver/version` (types only: `DowngradeInfo`)
 namespace go_etcd_io.etcd.server.v3.etcdserver.version
 
+/-- (grpcerrmap, 2026-11-26) The package's error variables and their messages (`errors.go`: each an
+`errors.New(msg)`), which `v3rpc`'s error map `toGRPCErrorMap` takes as keys. -/
+def versionErrMsgs : List (GoString × GoString) :=
+  [(ErrInvalidDowngradeTargetVersion, go!"etcdserver: invalid downgrade target version"),
+    (ErrDowngradeInProcess, go!"etcdserver: cluster has a downgrade job in progress"),
+    (ErrNoInflightDowngrade, go!"etcdserver: no inflight downgrade job")]
+
+/-- `etcdserver/version`'s package facts: (grpcerrmap, 2026-11-26) every error variable its
+`errors.New` error (`errorsNewVars versionErrMsgs`); `True` until then. -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init (EtcdGrove.errorsNewVars versionErrMsgs)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version :=
   build_get_is_pkg_init_wf
 

@@ -1,7 +1,7 @@
 /-
-`strings.Contains(s, substr)`: whether `substr` occurs in `s`. Perennial translates `strings`
-without it (`notes/perennial-changes.md`). The trust boundary: an axiom, `Proof/strings/Contains.lean`. Lean-first (no Rocq
-counterpart).
+`strings.Contains(s, substr)`: whether `substr` occurs in `s`. Perennial translates the real Go
+(`Index(s, substr) >= 0`) and proves it (`strings.wp_Contains`); `Proof/strings/Contains.lean` is
+that proof. Lean-first (no Rocq counterpart).
 -/
 module
 

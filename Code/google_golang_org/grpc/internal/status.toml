@@ -1,6 +1,13 @@
-# Names only: the type `Status` (of which `grpc/status.Status` is an alias, for
-# `client/v3/leasing`). (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) With its body,
+# (status-bodies, 2026-11-25) With bodies: the constructor and the accessors the status slice's
+# specs are proved over (`New`, `Status.Code`/`Message`/`Err`/`String`, `Error.Error`/`GRPCStatus`/
+# `Is`), and the types `Status` (of which `grpc/status.Status` is an alias) and `Error`. Until then
+# names only. (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) With its body,
 # `IsRestrictedControlPlaneCode` (the client attempt's `createHeaderFields` calls it on a per-RPC
-# credentials' status error), over `Status.Code`'s trust-boundary spec; hence the import of `codes`.
-translate = ["!*", "IsRestrictedControlPlaneCode"]
-imports = ["!*", "google.golang.org/grpc/codes"]
+# credentials' status error), over `Status.Code`'s spec.
+translate = ["!*", "Status", "Error", "New", "Status.Code", "Status.Message", "Status.Err",
+  "Status.String", "Error.Error", "Error.GRPCStatus", "Error.Is", "IsRestrictedControlPlaneCode"]
+imports = ["!*", "fmt", "google.golang.org/genproto/googleapis/rpc/status",
+  "google.golang.org/grpc/codes", "google.golang.org/protobuf/proto"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

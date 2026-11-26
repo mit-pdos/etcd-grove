@@ -74,7 +74,7 @@ def rabia_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy rabiaKitAddrs (system σ) g →

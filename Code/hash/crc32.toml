@@ -7,16 +7,23 @@
 # translated with their bodies, with what they reach: the Castagnoli once (`castagnoliInitOnce`), the
 # package state it sets up (`castagnoliTable`, `castagnoliTable8`, `updateCastagnoli`,
 # `haveCastagnoli`; the IEEE path's `ieeeTable8`, `updateIEEE`), `simpleUpdate` and the slicing-by-8
-# code (`slicingMakeTable`, `slicingUpdate`, over `internal/byteorder`'s `LEUint32`). Trusted: only
-# the amd64 hooks of the Castagnoli fast path (TrustedCode/hash/crc32.lean), whose Go is SSE4.2
-# assembly; the IEEE hooks stay names only (no proof reaches the IEEE path).
+# code (`slicingMakeTable`, `slicingUpdate`, over `internal/byteorder`'s `LEUint32`). The amd64 hooks
+# of the Castagnoli fast path, whose Go reads the CPU's features and calls SSE4.2 assembly, are a Go
+# model (perennial#692, since 2026-11-24; until then trusted, TrustedCode/hash/crc32.lean): the
+# [model] table below, models/hash/crc32/model.go, over internal/gomodel's `Choose`. The IEEE hooks
+# stay names only (no proof reaches the IEEE path).
 translate = ["!*", "New", "digest.Write", "digest.Sum32", "Update", "update", "MakeTable",
   "IEEETable", "simpleMakeTable", "simplePopulateTable", "simpleUpdate", "slicingMakeTable",
   "slicingUpdate", "slicing8Cutoff", "castagnoliInitOnce", "ieeeInitOnce", "castagnoliTable",
   "castagnoliTable8", "updateCastagnoli", "haveCastagnoli", "ieeeTable8", "updateIEEE", "IEEE",
   "Castagnoli"]
-imports = ["!*", "sync", "sync/atomic", "hash", "internal/byteorder"]
-trusted = ["archAvailableCastagnoli", "archInitCastagnoli", "archUpdateCastagnoli"]
+imports = ["!*", "sync", "sync/atomic", "hash", "internal/byteorder", "internal/gomodel"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# The Go model of the three hooks (models/hash/crc32/model.go, each declaration's MODEL: comment says
+# why it has at least Go's behaviours); translated, with internal/gomodel's `Choose` the one choice.
+[model]
+dir = "models/hash/crc32"
+replaces = ["archAvailableCastagnoli", "archInitCastagnoli", "archUpdateCastagnoli"]

@@ -41,7 +41,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [net.Assumptions] [_root_.Perennial.bufio.Assumptions]
 variable [errors.Assumptions]
 
@@ -114,6 +114,31 @@ theorem readErr_some [errors.Assumptions] [fmt.Assumptions] [net.Assumptions] (r
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
+/-- A read's error other than for bytes is a pointer, not `nil`, `errLeaf`, with an `Error()`
+(`io.EOF`'s, or the `*OpError`'s: `resErr_errStr`). -/
+theorem readErr_some' [fmt.Assumptions] (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (m : GoString)
+    (hr : ∀ bs, r ≠ .bytes bs) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
+        (Val #())) {{ Φ }}) -∗
+    net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err -∗
+      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err ∧ models_lab.errLeaf err⌝ ∗
+        net.errStr err := by
+  iintro #Hw HE
+  ihave #Hes : net.errStr (GF := GF) err $$ [HE]
+  · cases r with
+    | bytes bs => exact absurd rfl (hr bs)
+    | eof =>
+      simp only [net.ReadErr]
+      icases HE with %h; subst h
+      iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩ m $$ Hw
+    | err k =>
+      simp only [net.ReadErr]
+      iapply net.resErr_errStr $$ HE
+  ihave %H := readErr_some r la ra ed err xe hr $$ HE
+  iframe Hes
+  ipureintro; exact H
+
 /-- A reader with its protocol fact back. -/
 theorem recvTokL_back (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
     recvTokL (Gg := hG.goose_globalGS) cn s P R ∗ protoPrefix P cn R ⊢
@@ -130,15 +155,15 @@ recorded in `γe`, and every later read returns no byte (`read_after_dead_au`). 
 theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
     (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (t : Loc) (la ra : GoInterface)
     (γe : GName) (ed : GoInterface) (hA : W.hsAns a = connectAns) :
-    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
-      net.connAt (GF := GF) t cn false a la ra ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.internal.poll ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ net.connAt (GF := GF) t cn false a la ra ⊢
     EtcdGrove.io.readerStreamNE ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (crSt W a cn γ γe)
       (crErr γe) := by
-  iintro ⟨#Hio, #Hed, #Hconn⟩
+  iintro ⟨#Hio, #Hpoll, #Hed, #Hconn⟩
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, -, -⟩
   unfold errors.newVar
-  icases HEOF with ⟨%xe, #Hxe, -⟩
+  icases HEOF with ⟨%xe, #Hxe, -, #Hxew⟩
   iunfold EtcdGrove.io.readerStreamNE
   imodintro
   iintro %r %p %xs
@@ -158,7 +183,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
         (fun res => iprop(recvTokL (Gg := hG.goose_globalGS) cn false (respProto W a) r ∗
           ⌜res.got = [] ∧ (p.len.toNat ≠ 0 → ∀ bs, res ≠ .bytes bs)⌝)) $$ [Hp HrL]
       as %k %err ⟨%res, %bs', ⟨HrL, %Hres⟩, Hp, %Hout, HE, -⟩
-    · iframe Hconn Hp Hxe Hed
+    · (try iframe Hio); (try iframe Hpoll); iframe Hconn Hp Hxe Hed
       imod read_after_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat $$ [$HrL $Hdead]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -200,7 +225,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       ileft; iframe Hc Hdead
     all_goals (
       obtain ⟨hk, rfl⟩ := Hout
-      ihave %Hne := readErr_some _ la ra ed err xe (by intro bs h; cases h) $$ HE
+      ihave ⟨%Hne, #Hes⟩ := readErr_some' _ la ra ed err xe _ (by intro bs h; cases h) $$ Hxew HE
       obtain ⟨Hne, Hptr, Hlf⟩ := Hne
       imodintro
       iapply HΦ
@@ -213,7 +238,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
-        · iright; imodintro; iunfold crErr; iframe Hlb; ipureintro; exact Hlf
+        · iright; imodintro; iunfold crErr; iframe Hlb Hes; ipureintro; exact Hlf
         · ipureintro; exact Hptr
       iunfold crSt
       iframe HrT Hrdl Hrpc Hh
@@ -228,7 +253,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
           (⌜res = .eof ∨ res = .err .sys ∨ res = .err .closed⌝ -∗
             readDead (Gg := hG.goose_globalGS) cn false))) $$ [Hp HrL Hrdl]
       as %k %err ⟨%res, %bs', ⟨HrL, Hrdl, %Hro, Hdead⟩, Hp, %Hout, HE, Hlc1, Hlc2⟩
-    · iframe Hconn Hp Hxe Hed
+    · (try iframe Hio); (try iframe Hpoll); iframe Hconn Hp Hxe Hed
       imod read_dead_au (Gg := hG.goose_globalGS) cn false _ _ p.len.toNat false $$ [$HrL $Hrdl]
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -271,7 +296,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
     all_goals (
       obtain ⟨hk, rfl⟩ := Hout
       simp only [ReadRes.got, List.append_nil] at Hpre' ⊢
-      ihave %Hne := readErr_some _ la ra ed err xe (by intro bs h; cases h) $$ HE
+      ihave ⟨%Hne, #Hes⟩ := readErr_some' _ la ra ed err xe _ (by intro bs h; cases h) $$ Hxew HE
       obtain ⟨Hne, Hptr, Hlf⟩ := Hne
       ihave #Hd : readDead (Gg := hG.goose_globalGS) cn false $$ [Hdead]
       · iapply Hdead
@@ -292,7 +317,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
-        · iright; imodintro; iunfold crErr; iframe Hlb; ipureintro; exact Hlf
+        · iright; imodintro; iunfold crErr; iframe Hlb Hes; ipureintro; exact Hlf
         · ipureintro; exact Hptr
       iunfold crSt
       iframe HrT Hrdl Hrpc Hh
@@ -319,7 +344,11 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
   icases Henv' with ⟨%eof, %ueof, %ed, #Hio, #Hsync, #Heof, #Hueof, #Hed, #HefV, #HesV, #Hdbg⟩
   ihave #Hhenv' := Hhenv
   iunfold net.http.httpEnv at Hhenv'
-  icases Hhenv' with ⟨#Hbufio, -⟩
+  icases Hhenv' with ⟨#Hbufio, -, #Hfmt, -⟩
+  -- `Conn.Read` takes `internal/poll`'s package fact: `net`'s (a precondition) imports it
+  ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
+  · solve_pkg_init
+  ihave #Hsys := net.errnoOk_of_poll $$ Hpoll
   wp_auto
   wp_apply wp_Dial nw hnw a iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqProto W a) (respProto W a)
@@ -357,7 +386,7 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
     ihave HwP := writeP_init (Gg := hG.goose_globalGS) cn false (reqProto W a) [] $$ Hsend
     wp_apply wp_Write t cn false a la ra sl (connectReq path) _ ed
         (writeP (Gg := hG.goose_globalGS) cn false (reqProto W a) [])
-        $$ [$Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
+        $$ [$Hpoll $Hca $Hsl $Hed $HwP $Hacc] as %nw0 %werr ⟨%w, %wres, HwP, Hsl, %Hw, -⟩
     obtain ⟨Hw, -⟩ := Hw
     iunfold writeP at HwP
     simp only [List.nil_append]
@@ -367,7 +396,7 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
     · iunfold crSt
       iframe Hrecv Hrdl Hrpc Hreqs Hγe
       ipureintro; exact Or.inl List.nil_prefix
-    ihave #Hstream := crStream wp_ReadLc W a cn γ t la ra γe ed HhsA $$ [$Hio $Hed $Hca]
+    ihave #Hstream := crStream wp_ReadLc W a cn γ t la ra γe ed HhsA $$ [$Hio $Hpoll $Hed $Hca]
     have hty : (⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ : GoInterfaceOk).ty ≠
         go.GoType.PointerType _root_.Perennial.bufio.Reader.ty := by
       simp only [ne_eq, go.GoType.PointerType.injEq]
@@ -403,16 +432,23 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
       iintro %r0 %r' %e He HS
       iapply crErr_final W a cn γ γe r0 r' e $$ [$He $HS]
     ihave #Hlaw3 : (□ ∀ (r0 : List w8) (e : GoInterface), crErr γe r0 e -∗
+        net.errStr e : IProp GF) $$ []
+    · imodintro
+      iintro %r0 %e He
+      iunfold crErr at He
+      icases He with ⟨-, #Hes, -⟩
+      iexact Hes
+    ihave #Hlaw4 : (□ ∀ (r0 : List w8) (e : GoInterface), crErr γe r0 e -∗
         ⌜models_lab.errLeaf e⌝ : IProp GF) $$ []
     · imodintro
       iintro %r0 %e He
       iunfold crErr at He
-      icases He with ⟨-, %Hl⟩
+      icases He with ⟨-, -, %Hl⟩
       ipureintro; exact Hl
     wp_apply wp_ReadResponse models_lab.errLeaf (fun _ h => h) b _ (crSt W a cn γ γe) (crErr γe)
-        req _ $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hreq $Hlaw3] as %resp %rerr Hres
+        req _ $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hlaw3 $Hreq $Hlaw4] as %resp %rerr Hres
     · ipureintro; rfl
-    icases Hres with (⟨%Hne, %Hlf⟩ | ⟨%Hnil, %rv, Hrv, Hst⟩)
+    icases Hres with (⟨⟨%Hne, %Hlf⟩, #Hrm⟩ | ⟨%Hnil, %rv, Hrv, Hst⟩)
     · -- an error: wrapped
       cases rerr with
       | nil => exact absurd rfl Hne
@@ -434,11 +470,15 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errPlain_opErrPtr $$ Hpe
-      first
+      iapply errPlain_opErrPtr $$ Hpe Hsys
+      all_goals try (first
         | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil, Hlf⟩
         | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil,
-            models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩
+            models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩)
+      unfold net.opErrMsgOk net.addrOrNil
+      isplitr
+      · iexact Hrm
+      isplitr <;> (ileft; ipureintro; rfl)
     subst Hnil
     iStructNamed Hrv
     icases Hst with (%Hst | ⟨%Hst, Hb⟩)
@@ -446,7 +486,7 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
       wp_auto
       rw [decide_eq_false Hst]
       wp_auto
-      wp_apply wp_errors_New' as %x #Hx
+      wp_apply wp_errors_New' as %x ⟨-, #Hx⟩
       wp_apply wp_Close t cn false a la ra (fun _ => iprop(True)) $$ [$Hca] as %cerr -
       · imod close_au (Gg := hG.goose_globalGS) cn false $$ Hci with ⟨%st, %d, Hst, Hd, Hk⟩
         imodintro
@@ -463,11 +503,15 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errPlain_opErrPtr $$ Hpe
-      first
+      iapply errPlain_opErrPtr $$ Hpe Hsys
+      all_goals try (first
         | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil, Hlf⟩
         | exact ⟨models_lab.errLeaf_nil, models_lab.errLeaf_nil,
-            models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩
+            models_lab.errLeaf_ptr _ _ models_lab.noFmt_errorString⟩)
+      unfold net.opErrMsgOk net.addrOrNil
+      isplitr
+      · iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ _ $$ Hx
+      isplitr <;> (ileft; ipureintro; rfl)
     -- the answer: the reader delivered it whole
     wp_auto
     rw [decide_eq_true Hst]
@@ -523,8 +567,7 @@ theorem DialHTTPPath.wp_proof_plain (wp_Dial : net.Dial.spec (GF := GF) (hG := h
     iright
     isplitr
     · ipureintro; intro h; cases h
-    ihave %Hl2 := errLeaf_netAddr x $$ Hx
-    iapply errPlain_resErr _ _ _ _ _ _ _ models_lab.errLeaf_nil Hl2 $$ [$HE]
+    iapply errPlain_resErr _ _ _ _ _ _ _ $$ [$Hsys $HE]
     iintro %ed' %Hed'
     cases Hed'
 
@@ -539,8 +582,10 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     DialHTTPPath.spec (GF := GF) (hG := hG) := by
   intro nw hnw W a path
   wp_start_folded as Hpre
+  ihave #Hn : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply DialHTTPPath.wp_proof_plain wp_Dial wp_Write wp_Close wp_NewReader wp_ReadLc
-      wp_ReadResponse wp_NewClient nw hnw W a path $$ Hpre as %c %err Hres
+      wp_ReadResponse wp_NewClient nw hnw W a path $$ [$Hn $Hpre] as %c %err Hres
   iapply HΦ
   icases Hres with (H1 | ⟨%Hne, #Hp⟩)
   · ileft; iexact H1

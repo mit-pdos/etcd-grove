@@ -25,14 +25,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [DecidableEq I] [Pos.Countable I] [Pos.Countable O]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem Check.wp_proof
     (wp_Run : Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O)) :
     Check.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R S γ m addrs addrL cd gen ops d HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
+  intro J _ _ R S γ m addrs addrL cd gen ops d HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb
   wp_start as ⟨#Hcc, #Hm, #Hgen, #Haddrs, #Hra, #Hmap, #Hcd, #Hpend, Hlib, Hbud⟩
   wp_auto
   wp_apply wp_Run R S γ m addrs addrL cd gen ops d (W64 0) HpE HlE HS Hinj HT Hrb H31 Hops Hmul nb Hnb

@@ -70,7 +70,7 @@ variable [sync.Assumptions] [hook.Assumptions] [github_com.orcaman.concurrent_ma
 variable [sync.atomic.Assumptions] [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
 variable [bytes.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [config.Assumptions] [io.Assumptions] [errors.Assumptions] [bufio.Assumptions]
-  [net.Assumptions] [net.FieldAssumptions]
+  [net.Assumptions]
 
 /-- The callees of the case specs that are linked in ServersLink (round 44): the fast-ack pool's
 functions (the server's pool fact). Round 46 (D-SWC2-6): the reply channel's `reply.specI` is

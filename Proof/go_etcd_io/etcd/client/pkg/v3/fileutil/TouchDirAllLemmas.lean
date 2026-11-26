@@ -30,7 +30,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 /-- The directories `TouchDirAll`'s first loop has collected once its `d` is the path of the first `m - 1`
 components of `full` (`d = parent/name` the path of all of them): the paths of the first `m`, …,

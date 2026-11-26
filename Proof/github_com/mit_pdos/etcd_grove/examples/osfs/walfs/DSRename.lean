@@ -33,14 +33,19 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 set_option hygiene false in
-/-- `os.Rename`'s error after a failed attempt `e` (`he : e ≠ 0`): `post` after `iapply HΦ`. -/
+/-- `os.Rename`'s error after a failed attempt `e` (`he : e ≠ 0`, `he4 : e ≠ 4`), the model's
+`&LinkError{"rename", old, new, modelErrno(e)}`: `post` after `iapply HΦ`. -/
 local macro "ren_err" " => " post:tacticSeq : tactic => `(tactic| (
-  rw [decide_eq_false (show ¬ e = W64 0 from he)]
-  wp_auto
-  wp_apply wp_errno
-  unfold os.model.linkError
-  rw [show os.model.LinkError = os.LinkError.ty by unfold os.LinkError.ty; rfl]
-  wp_auto
+  (try rw [decide_eq_false (show e ≠ W64 4 from he4)])
+  try wp_auto
+  (try rw [decide_eq_false (show ¬ e = W64 0 from he)])
+  try wp_auto
+  wp_apply os.wp_modelErrno
+  (try wp_auto)
+  wp_alloc le as Hle
+  iclear Hle
+  (try wp_auto)
+  wp_for_post
   iapply HΦ
   ($post)))
 
@@ -58,6 +63,8 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
   imod osNames_next R J sN _ hs CoPset.subseteq_top $$ Hsi HJ with ⟨HJ, #Hlb⟩
   -- `lstat(wal)`: not a directory
   icases osCallPerm_child R dir walB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsLstatDir.impl
   wp_apply wp_osCallBeginS R _ 1 hs.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk Hls
   iclear Hls
@@ -69,8 +76,8 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
   have hd1 : isDir ≠ W64 1 := fun h1 => by
     obtain ⟨⟨J', hJ'⟩, -⟩ := hd h1
     rw [hA] at hJ'; cases hJ'
-  rw [decide_eq_false hd1]
-  wp_auto
+  (try rw [decide_eq_false hd1])
+  try wp_auto
   ihave Hh : dsHalf (GF := GF) j γ (some k) true hw none $$ [Hv Hw Hs]
   · unfold dsHalf; iframe
   iclear Hp
@@ -80,9 +87,13 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
       ∃ hw' hsO, dsHalf (GF := GF) j γ (some k) true hw' hsO ∗ ⌜hw'.cur !! wtB = none⌝)
     $$ [Hh HJ]
   · ileft; iframe
-  iloeb as IH generalizing Hperm HSt
+  wp_for_bind
+  iloeb as IH generalizing Hperm HSt HΦ
+  wp_for_step
   imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases osCallPerm_child R dir wtB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRename.impl
   wp_apply wp_osCallBeginS R _ 1 hs.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
   iclear Hls1
@@ -92,24 +103,27 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
     unfold dsRenamed
     icases Hr with (⟨%he, Hh, HJ⟩ | ⟨%hw', Hh, %hw2⟩)
     · by_cases he4 : e = W64 4
-      · rw [decide_eq_true he4]
-        wp_auto
-        iapply IH $$ Hperm [Hh HJ] HΦ
+      · (try rw [decide_eq_true he4])
+        try wp_auto
+        wp_for_post
+        inext
+        iapply IH $$ Hperm [Hh HJ] HΦ [$] [$] [$]
         ileft; iframe
-      rw [decide_eq_false he4]
-      wp_auto
       ren_err =>
         iexact Hperm
     · by_cases he4 : e = W64 4
-      · rw [decide_eq_true he4]
-        wp_auto
-        iapply IH $$ Hperm [Hh] HΦ
+      · (try rw [decide_eq_true he4])
+        try wp_auto
+        wp_for_post
+        inext
+        iapply IH $$ Hperm [Hh] HΦ [$] [$] [$]
         iright; iexists hw', some (J, hs); iframe Hh; ipureintro; exact hw2.2
-      rw [decide_eq_false he4]
-      wp_auto
       by_cases he0 : e = W64 0
-      · rw [decide_eq_true he0]
-        wp_auto
+      · (try rw [decide_eq_false (show e ≠ W64 4 from he4)])
+        try wp_auto
+        (try rw [decide_eq_true he0])
+        try wp_auto
+        wp_for_post
         iapply HΦ
         iexact Hperm
       have he : e ≠ W64 0 := he0
@@ -125,15 +139,15 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
     ihave Hh : dsHalf (GF := GF) j γ (some k) true hw' hsO $$ [Hv Hw Hs]
     · unfold dsHalf; iframe
     by_cases he4 : e = W64 4
-    · rw [decide_eq_true he4]
-      wp_auto
-      iapply IH $$ Hperm [Hh] HΦ
+    · (try rw [decide_eq_true he4])
+      try wp_auto
+      wp_for_post
+      inext
+      iapply IH $$ Hperm [Hh] HΦ [$] [$] [$]
       iright; iexists hw', hsO
       isplitl [Hh]
       · first | iexact Hh | (unfold dsHalf at *; iexact Hh) | (unfold dsHalf; iexact Hh)
       ipureintro; exact hwt
-    rw [decide_eq_false he4]
-    wp_auto
     ren_err =>
       iexact Hperm
 

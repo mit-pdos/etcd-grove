@@ -39,26 +39,26 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `ReadDir(d, opts...)` over abstract triples of `os.Open(d)` (from `A`: an fd `fd` of `d`
-with `Fd fd` and `B`, or an error `ErrO` with `C`), `Readdirnames(n)`, `n ≤ 0` (from the fd and
+with `Fd f fd` and `B`, or an error `ErrO` with `C`), `Readdirnames(n)`, `n ≤ 0` (from the fd and
 `B`: names `OkN`, at most `2^62` of them, or an error `ErrR`; `Fd' fd` and `C` back) and `Close`
 (of the fd with `Fd'`). -/
 theorem fileutil.ReadDir.wp_core
     (wp_Strings : sort.Strings.spec (GF := GF) (hG := hG))
     (wp_Ext : filepath.Ext.spec (GF := GF) (hG := hG))
     (d : GoString) (sl : GoSlice) (gs : List GoFunc) (es : List GoString) (dqs : DFrac)
-    (A B C : IProp GF) (Fd Fd' : w64 → IProp GF) (OkN : List GoString → Prop)
+    (A B C : IProp GF) (Fd : Loc → w64 → IProp GF) (Fd' : w64 → IProp GF) (OkN : List GoString → Prop)
     (ErrO ErrR : GoInterface → IProp GF)
     (hlen : es.length = gs.length)
     (hOk : ∀ names, OkN names → names.length ≤ 2 ^ 62)
     (wpOpen : ∀ Φ : val → IProp GF, A -∗ (∀ (f : Loc) (err : GoInterface),
-        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗ Fd fd ∗ B) ∨
+        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd d (DFrac.own 1) ∗ Fd f fd ∗ B) ∨
          (⌜err ≠ interface.nil⌝ ∗ ErrO err ∗ C)) -∗ Φ (PairV #f #err)) -∗
       WP (App (Val (@! os.Open)) (Val #d)) {{ Φ }})
     (wpRead : ∀ (f : Loc) (fd n : w64) (Φ : val → IProp GF), ⌜sint.Z n ≤ 0⌝ -∗
-      os.ownFile f fd d (DFrac.own 1) -∗ Fd fd -∗ B -∗
+      os.ownFile f fd d (DFrac.own 1) -∗ Fd f fd -∗ B -∗
       (∀ (r : GoSlice) (err : GoInterface), os.ownFile f fd d (DFrac.own 1) -∗ Fd' fd -∗ C -∗
         ((∃ names : List GoString, ⌜err = interface.nil ∧ OkN names⌝ ∗ r ↦* names) ∨
          (⌜err ≠ interface.nil⌝ ∗ ErrR err)) -∗ Φ (PairV #r #err)) -∗

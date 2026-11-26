@@ -137,7 +137,7 @@ attribute [instance] RpcHttpAddr.rpcAddrP_persistent RpcHttpAddr.rpcLisP_persist
 /-- `Net/`'s specs of the net/rpc-over-HTTP calls the kit makes (the file header), bundled: the
 proofs take this one premise; `Link.lean`'s `netRpcHttpHyp` gives it from `Net/`'s proofs. -/
 class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
-    [go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+    [go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
     [log.Assumptions] [net.http.Assumptions] : Prop where
   DialHTTP_spec : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)
   HandleHTTP_spec : net.rpc.HandleHTTP.spec (GF := GF) (hG := hG)
@@ -159,7 +159,7 @@ end hyp
 
 section use
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 /-- What `rpc.DialHTTP("tcp", a)` needs (persistent): the client's bounds and package state
@@ -175,12 +175,12 @@ instance rpcHttp_persistent (W : RpcWorld GF) (a : GoString) :
 
 /-- `rpc.DialHTTP("tcp", a)` (`DialHTTP_spec` at `"tcp"`). -/
 theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
-    {{ rpcHttp W a }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ rpcHttp W a }}
       (App (App (Val (@! net.rpc.DialHTTP)) (Val #(go!"tcp"))) (Val #a))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }} := by
-  iintro %Φ Hp HΦ
+  iintro %Φ ⟨#Hnet, Hp⟩ HΦ
   iunfold rpcHttp at Hp
   icases Hp with ⟨%Hb, #Hc, Hd, #Ha⟩
   iunfold dialEnv at Hd
@@ -188,7 +188,7 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
   ihave #He := httpSrvEnv_env $$ Hse
   ihave #Ha' := RpcHttpAddr.rpcAddrP_net W a _ _ $$ Ha
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
-  iframe Hc He Hcon Ha'
+  iframe Hnet Hc He Hcon Ha'
   ipureintro; exact Hb
 
 /-- A listener address's rpc protocols over HTTP give, at every valid address it takes, the world's

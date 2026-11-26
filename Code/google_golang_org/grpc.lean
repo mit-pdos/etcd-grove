@@ -176,6 +176,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MaxConcurrentStreams_unfold : FuncUnfold MaxConcurrentStreams [] MaxConcurrentStreams.impl
   ChainUnaryInterceptor_unfold : FuncUnfold ChainUnaryInterceptor [] ChainUnaryInterceptor.impl
   ChainStreamInterceptor_unfold : FuncUnfold ChainStreamInterceptor [] ChainStreamInterceptor.impl
+  StatsHandler_unfold : FuncUnfold StatsHandler [] StatsHandler.impl
   NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
   chainUnaryServerInterceptors_unfold : FuncUnfold chainUnaryServerInterceptors [] chainUnaryServerInterceptors.impl
   chainUnaryInterceptors_unfold : FuncUnfold chainUnaryInterceptors [] chainUnaryInterceptors.impl
@@ -362,6 +363,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.MaxConcurrentStreams_unfold
   Assumptions.ChainUnaryInterceptor_unfold
   Assumptions.ChainStreamInterceptor_unfold
+  Assumptions.StatsHandler_unfold
   Assumptions.NewServer_unfold
   Assumptions.chainUnaryServerInterceptors_unfold
   Assumptions.chainUnaryInterceptors_unfold

@@ -25,16 +25,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `otelgrpc.NewServerHandler(opts...)` (the options read-only) returns a stats handler with
-`grpcStatsHandlerOk`. (2026-11-06: that property now includes that the span its `TagRPC` stores
-under otel's key, its tracer's `Start`'s, an SDK or no-op span, is a span, `grpcRunCtx`'s
-`trace.spanCtxOk`.) -/
+/-- `otelgrpc.NewServerHandler(opts...)` (the options read-only) returns a non-nil stats handler
+(`&serverHandler{…}` on its one return path) with `grpcStatsHandlerOk`. (2026-11-06: that property
+now includes that the span its `TagRPC` stores under otel's key, its tracer's `Start`'s, an SDK or
+no-op span, is a span, `grpcRunCtx`'s `trace.spanCtxOk`.) -/
 abbrev otelgrpc.NewServerHandler.spec : Prop :=
   ∀ (sl : GoSlice) (os : List GoInterface),
   {{ (sl ↦*□ os : IProp GF) }}
     (App (Val (@! go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.NewServerHandler))
       (Val #sl))
-  {{ (h : GoInterface), RET #h; ⌜grpcStatsHandlerOk h⌝ }}
+  {{ (h : GoInterface), RET #h; ⌜h ≠ interface.nil ∧ grpcStatsHandlerOk h⌝ }}
 
 end spec
 

@@ -43,7 +43,7 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- `bootCrashRobust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/TopLevelRobustness.lean`). -/
 theorem bootCrashRobust : bootCrashRobust.spec := by
-  intro lctx sem package_sem _ _ dir σ g Hinit Hdir Hnone
+  intro lctx sem package_sem dir σ g Hinit Hdir Hnone
   refine Robustness.Robust.of_single_crashing_below fun hf n κs t2 σ2 b _ Hsteps => ?_
   exact bootCrashSafety_bounded (GF := fsGF) (n + 1) (2 ^ 30) (Nat.le_refl _) σ g dir hf.1 hf.2.1
     Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) hf.2.2

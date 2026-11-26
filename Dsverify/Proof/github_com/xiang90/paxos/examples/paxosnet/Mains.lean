@@ -36,7 +36,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.orch.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.orch.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Orch : paxosnet.Orch.spec (GF := GF) (hG := hG)) (Γ : Names)
@@ -69,7 +69,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.client0.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.client0.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : paxosnet.Client.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -99,7 +99,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.client1.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.client1.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : paxosnet.Client.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -129,7 +129,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.client2.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.client2.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : paxosnet.Client.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -159,7 +159,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.client3.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.client3.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : paxosnet.Client.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -189,7 +189,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.server1.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.server1.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Server : paxosnet.Server.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -216,7 +216,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.server2.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.server2.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Server : paxosnet.Server.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -243,7 +243,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.server3.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.server3.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Server : paxosnet.Server.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -270,7 +270,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.server4.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.server4.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Server : paxosnet.Server.spec (GF := GF) (hG := hG)) (Γ : Names) :
@@ -297,7 +297,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : cmd.server5.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : cmd.server5.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Server : paxosnet.Server.spec (GF := GF) (hG := hG)) (Γ : Names) :

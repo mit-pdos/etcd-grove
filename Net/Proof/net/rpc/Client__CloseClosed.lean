@@ -28,7 +28,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [net.Assumptions]
 
 theorem Client.Close.wp_proof_closed (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
@@ -79,7 +79,8 @@ theorem Client.Close.wp_proof_closed (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         ileft; ipureintro; exact Herr
       | some k =>
         iright
-        iapply errAny_resErr $$ Herr
+        ihave #Hsys := net.connAt_errnoOk _ _ _ _ _ _ $$ Hconn
+        iapply errAny_resErr $$ Hsys Herr
     iunfold cliClosed
     iexact Hcls
   · -- closing already: `ErrShutdown`

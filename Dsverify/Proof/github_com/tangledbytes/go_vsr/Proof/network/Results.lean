@@ -39,7 +39,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 section results
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : network.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : network.Assumptions] [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF] [models_lab.jsoncodec.JsonCodec GF]
 variable [go.BasicIntoValInj]
 

@@ -34,7 +34,7 @@ section bind
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [examples.swiftnet.Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
@@ -76,7 +76,7 @@ section werr
 open Dsv in
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp netShaExts_has
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions]
 
 /-- A pure fact of a deposit's spec, read off a `withErr` deposit (which stays). -/
 theorem withErr_pure (S : net.rpc.MethodSpec GF) (m : GoString) (args : List w8)

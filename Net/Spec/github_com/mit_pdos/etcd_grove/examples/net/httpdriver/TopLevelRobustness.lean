@@ -20,7 +20,7 @@ connections, refused dials).
 `GodebugHttpmuxgo121Not1` (on every machine of the deployment, `GODEBUG` does not set `httpmuxgo121=1`:
 the setting is one constant for all machines, `Net/TrustedCode/net/http.lean`; the server's `ServeMux`
 runs Go 1.22's matcher, the one proved; #18's option (a)), and the program's
-typing facts (the commands' `Assumptions`, `net.FieldAssumptions`, `go.BasicIntoValInj`). What it rests
+typing facts (the commands' `Assumptions`, `go.BasicIntoValInj`; `net.FieldAssumptions` went with the Go-model net). What it rests
 on beyond the proofs, besides the net extension's semantics and the net/http model's trusted claim:
 the trust-base collection `etc/tcb-collections/httpdriver.txt`.
 Proved in `Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/httpdriver/TopLevelRobustness.lean`.
@@ -47,7 +47,7 @@ attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
 def httpdriver_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState) (HEnv : net.http.GodebugHttpmuxgo121Not1),
     DistDeploy httpAddrs (system σs σc) g →
     Robustness.Robust [] (system σs σc) g httpThreads httpSteps

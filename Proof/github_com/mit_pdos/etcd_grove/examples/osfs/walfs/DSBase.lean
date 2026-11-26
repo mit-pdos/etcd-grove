@@ -93,7 +93,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 /-- `readNames(d)`, `d` the directory `j` (a spine to it), with a fraction of the call permission
 and of a claim on names `N` of `j`: every name returned is valid, a name of `N` is returned iff it is
@@ -112,7 +112,7 @@ theorem wp_readNamesS (d : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp
   (try wp_auto)
   wp_apply os.Open.wp_dirS d R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
   · iframe; isplitl [] <;> iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, Hoff, Hfd⟩ | %herr)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
@@ -125,7 +125,7 @@ theorem wp_readNamesS (d : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp
   subst herr
   (try wp_auto)
   wp_apply os.File.Readdirnames.wp_dirS f fd d (DFrac.own 1) R j N dqn h _ (by decide)
-    $$ [Hinv Hsi Hf Hfd Hn] as %sl %err ⟨Hf, Hn, Hr⟩
+    $$ [Hinv Hsi Hf Hoff Hfd Hn] as %sl %err ⟨Hf, Hn, Hr⟩
   · iframe; isplitl [] <;> iassumption
   icases Hr with (⟨%names, %hn, Hsl, Hfd⟩ | ⟨⟨%e, %he, Hpe⟩, %r0, %rs, Hfd⟩)
   · obtain ⟨rfl, hok, hmem, hcnt, -⟩ := hn

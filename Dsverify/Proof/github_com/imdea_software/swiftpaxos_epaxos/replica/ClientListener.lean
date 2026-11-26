@@ -8,6 +8,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Net.Proof.net.ConnIo
+public import Net.Proof.net.Errors
 public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.PrefixReader
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.DelayChan
@@ -30,7 +31,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
 
 /-- The lab's `net.TCPConn.RemoteAddr.wp_String` (proved below, `tcpAddrString`): `String()` of a `*TCPAddr` returns some string.
 `clientListener` uses only that it returns (`strings.Split(conn.RemoteAddr().String(), ":")[0]`,
@@ -41,13 +42,13 @@ def TCPAddrStringHyp : Prop :=
     (App (Val #(methods (go.GoType.PointerType net.TCPAddr.ty) go!"String" #pa)) (Val #()))
   {{ (s : GoString), RET #s; True }}
 
-/-- `TCPAddrStringHyp` holds of `Net/`'s model (`TrustedCode/net.lean`'s `TCPAddr.String.impl`, an
+/-- `TCPAddrStringHyp` holds of `Net/`'s model (`models/net/model.go`'s `TCPAddr.String`, `extAnyString`: an
 arbitrary string): dsv-swiftpaxos's `net.wp_TCPAddr_String` (`lib/NetConn.lean`). -/
 theorem tcpAddrString : TCPAddrStringHyp (GF := GF) := by
   intro pa v
   wp_start
-  iapply wp_net_AnyString
-  iintro %s
+  wp_auto
+  wp_apply net.wp_extAnyString as %s
   iapply HΦ
   itrivial
 

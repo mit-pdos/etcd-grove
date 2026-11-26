@@ -29,7 +29,8 @@ REVIEWED = {
         'the description and code from a stable Error()/GRPCStatus() (the premise statusErrOk)',
     'Spec/google_golang_org/grpc/status/Error.lean':
         '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal; '
-        'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg)',
+        'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg); a pointer '
+        'value of its pointer type (statusErrOk\'s stTypedErr since #45, Go\'s typing)',
     'Spec/google_golang_org/grpc/status/Code.lean': 'statusErrOk a premise only',
     'Spec/google_golang_org/grpc/status/Status__Code.lean':
         'status.statusAt a premise only: the read-only status the producer built (its code returned)',
@@ -39,16 +40,11 @@ REVIEWED = {
         'statusErrOk a premise only (no description or code in its post; as RecordEtcdRequest, whose '
         'errorReason Record shares): the caller proves it, store.Get from Client.Get\'s post '
         '(statusErrOk_split); prove-metrics 2026-11-21, examples/premisefix/latencytracker',
-    'Spec/errors/IsStatusErr.lean':
-        'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':
         "the model's errorString cell and Go's wrapError msg are written once; the errDesc prefix "
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
-    'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
-        "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "
-        '(examples/premisefix/fmtarg)',
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
         'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '

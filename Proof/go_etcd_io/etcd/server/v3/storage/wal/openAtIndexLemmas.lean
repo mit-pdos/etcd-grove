@@ -89,7 +89,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
-variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- **The decoder's environment** (hypothesis): from the WAL package's initialization, `io.EOF`'s and
 `io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`), the decoder's
 packages and variables (`decEnv`); the readers' errors `IoE` hold of every `*PathError` (`os.File.Read`'s

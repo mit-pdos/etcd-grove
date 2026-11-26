@@ -141,7 +141,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 theorem wp_dataOk (sl : GoSlice) (dq : DFrac) (vs : List w8) (h : vs = dataC) :
     {{ (sl ↦*{dq} vs : IProp GF) }}
@@ -275,7 +275,7 @@ theorem wp_syncDir (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply os.Open.wp_dirS d R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
   · iframe; isplitl [] <;> iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, -, Hfd⟩ | %herr)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with

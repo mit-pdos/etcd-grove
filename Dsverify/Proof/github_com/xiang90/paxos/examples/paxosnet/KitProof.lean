@@ -35,7 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 variable [bvi : go.BasicIntoValInj]
 
@@ -266,13 +265,14 @@ theorem woR_encOut_inj (Γ : Names) (o o' : BStr)
 def bEmpty : BStr := ⟨[], by simp⟩
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `woR Γ`. -/
-theorem woS_pendDec (Γ : Names) : PendDec (woR (Gg := hG.goose_globalGS) Γ) (woS (GF := GF)) where
+theorem woS_pendDec (Γ : Names) : PendDec (woR (Gg := hG.goose_globalGS) Γ) (woS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := linkv.pM_step woB woDec s _ i _ (woDec_box i false o)
   err s i := linkv.pM_step woB woDec s _ i _ (woDec_box i true bEmpty)
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, false, o, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, true, bEmpty, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem Gen.wp_proof : Gen.spec (GF := GF) (hG := hG) := by
   unfold Gen.spec EtcdGrove.lintest.genSpec

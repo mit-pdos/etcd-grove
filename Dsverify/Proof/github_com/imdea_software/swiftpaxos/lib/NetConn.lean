@@ -11,6 +11,7 @@ nothing in the swift proof uses it (every caller drops it), so the post here is 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
+public import Net.Proof.net.Errors
 
 @[expose] public section
 
@@ -26,7 +27,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.Assumptions] [π : NetProtoGS]
 
 /-- The lab's `net.isTCPAddr`: a non-`nil` `*TCPAddr`. -/
 def net.isTCPAddr (ad : GoInterface) : Prop :=
@@ -81,14 +82,14 @@ theorem net.TCPConn.Close.labProof [github_com.imdea_software.swiftpaxos.SwiftNe
   itrivial
 
 /-- lab `Harness/Proof/net/Base.lean` `net.wp_TCPAddr_String`: an arbitrary string (`Net/`'s model,
-`TrustedCode/net.lean` `TCPAddr.String.impl`). -/
+`models/net/model.go`'s `TCPAddr.String`: `extAnyString`). -/
 theorem net.wp_TCPAddr_String (x : Loc) :
     {{ (True : IProp GF) }}
       (App (Val (x @!! go.GoType.PointerType net.TCPAddr.ty @!! go!"String")) (Val #()))
     {{ (s : GoString), RET #s; True }} := by
   wp_start
-  iapply wp_net_AnyString
-  iintro %s
+  wp_auto
+  wp_apply net.wp_extAnyString as %s
   iapply HΦ
   itrivial
 

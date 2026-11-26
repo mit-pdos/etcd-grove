@@ -75,7 +75,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : framed.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : framed.Assumptions]
 variable [go.BasicIntoValInj]
 
 /-- `wire.readP` before any byte of the call is read. -/
@@ -263,9 +263,12 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hplan, #Heof, #Hed⟩
   icases framedInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HInv⟩
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
-  · iframe %Hplan
+  · (try iframe HnetPk)
+    iframe %Hplan
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
     subst Herr
@@ -494,9 +497,12 @@ theorem wp_Call
   wp_apply wp_RandomInt (W64 3) as %k -
   · ipureintro; decide
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hd⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply wire.dial_both_au addrN srvAddr (connProto γm) (fun cn => dialerProto γm cn) $$
@@ -595,9 +601,12 @@ theorem wp_SendJunk
     have h15 : sint.Z (W64 15) = 15 := rfl
     word
   (try wp_auto)
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · solve_pkg_init
   wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr iprop(True) (fun cn => dialerProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hd⟩ | ⟨-, %x, -, #Herr⟩)
-  · iframe Hplan
+  · (try iframe HnetPk)
+    iframe Hplan
     isplit
     · itrivial
     · iapply wire.dial_both_au addrN srvAddr (connProto γm) (fun cn => dialerProto γm cn) $$

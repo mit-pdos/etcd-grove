@@ -34,7 +34,7 @@ def counter_remote_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [orch_sem : cmd.orch.Assumptions] [c0_sem : cmd.client0.Assumptions]
     [c1_sem : cmd.client1.Assumptions] [srv_sem : cmd.server.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σo σ0 σ1 σs : state) (g : GlobalState) (threads : Nat),
     DistDeploy counterAddrs (system σo σ0 σ1 σs) g →
     Robustness.Robust [] (system σo σ0 σ1 σs) g threads (2 ^ 63)

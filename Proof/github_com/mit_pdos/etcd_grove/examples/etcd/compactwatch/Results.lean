@@ -49,8 +49,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_compactwatch.wp_Main`). -/
-theorem compactkv_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem compactkv_Main :
     etcd_compactwatch.Main.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.wp_Main
 

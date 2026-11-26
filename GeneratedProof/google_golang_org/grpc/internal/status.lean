@@ -2,7 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.google_golang_org.genproto.googleapis.rpc.status
 public import GeneratedProof.google_golang_org.grpc.codes
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.internal.status
 
@@ -26,12 +29,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.internal.status.Assumptions]
 
 noncomputable instance Status_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Status :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Status where
+  typedPointstoDef l v dq := iprop(
+    "s" ∷ typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Status go!"s" l) v.s' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Status_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Status google_golang_org.grpc.internal.status.Status.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Status google_golang_org.grpc.internal.status.Status.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Status_access_load_s (l : Loc) (v : google_golang_org.grpc.internal.status.Status) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Status go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Status go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Status_access_store_s (l : Loc) (v : google_golang_org.grpc.internal.status.Status) (s' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Status go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Status go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : google_golang_org.grpc.internal.status.Status) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Status
@@ -45,12 +69,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.internal.status.Assumptions]
 
 noncomputable instance Error_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Error :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Error where
+  typedPointstoDef l v dq := iprop(
+    "s" ∷ typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Error go!"s" l) v.s' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Error_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Error google_golang_org.grpc.internal.status.Error.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Error google_golang_org.grpc.internal.status.Error.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Error_access_load_s (l : Loc) (v : google_golang_org.grpc.internal.status.Error) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Error go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Error go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Error_access_store_s (l : Loc) (v : google_golang_org.grpc.internal.status.Error) (s' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Error go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.internal.status.Error go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : google_golang_org.grpc.internal.status.Error) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Error

@@ -64,7 +64,7 @@ theorem rpctypes_etcdError_statusErrOk
       simp [hty.2.1] at h
     · iintro %h
       simp [hty.2.2.1] at h
-  · ipureintro; exact hty.2.2.2
+  · ipureintro; exact ⟨hty.2.2.2, stTypedErr_etcdError x⟩
 
 /-- An `EtcdError` value is a client error, if any client error exists (`clientErr`'s first
 conjunct, `errors.AsTarget` of `EtcdError`, is about the type alone). -/

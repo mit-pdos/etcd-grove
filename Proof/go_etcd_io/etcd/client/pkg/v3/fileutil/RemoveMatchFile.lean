@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 /-- `os.Stat` of a directory, its result dropped (the form `fileutil.Exist.spec` takes). -/
 theorem wp_statDir_errRM (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :

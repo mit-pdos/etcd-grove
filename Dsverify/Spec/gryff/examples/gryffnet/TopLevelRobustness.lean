@@ -28,8 +28,8 @@ only). A client answers at most `K` = 4 operations, later ones unknown (remote's
 operations run under its `Sys` lock.
 
 **Premises**: none beyond the deployment. The library functions the proof uses without a proof here
-are per-function trust-boundary axioms, not premises: `math.Pow` (the main tree's `math.Pow.wp_proof`), `math/rand.Seed`
-(`math.rand.Seed.wp_proof`); net/rpc and net/http (the client over HTTP, the server,
+are per-function trust-boundary axioms, not premises: `math/rand.Seed` (`math.rand.Seed.wp_proof`)
+(`math.Pow` is proved: Perennial's `math.wp_Pow`, through the main tree's `math.Pow.wp_proof`); net/rpc and net/http (the client over HTTP, the server,
 `DefaultServeMux`, the packages' initializations) are `Net/`'s proved specs, over the interim
 trust-boundary axioms (their first-run initializers, net/http's `Handle` and `Serve`); every axiom
 the result rests on is listed in `etc/tcb-collections/dsv-gryff.txt`. `encoding/binary`'s varint
@@ -73,7 +73,7 @@ def gryff_remote_robust.spec : Prop :=
     [server2_sem : cmd.server2.Assumptions]
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] [rpc_sem : net.rpc.Assumptions],
+    [go.BasicIntoValInj] [rpc_sem : net.rpc.Assumptions],
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy gryffKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g rpcThreadBound remoteStepBound

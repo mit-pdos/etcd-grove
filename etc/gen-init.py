@@ -60,6 +60,11 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
          'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
+         # etcd_safe (2026-11-24, notes/etcd-dist-plan.md D2): the member machines' and the client machines'
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.server',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.client',
+         # putgetK_safe (2026-11-24, notes/putget-dist-plan.md §13): the k members' and the client's package
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk',
          # gRPC's robustness driver (notes/library-drivers.md): its two machines' commands
          'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.server',
          'github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.cmd.client',
@@ -139,8 +144,7 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
 # notes/trace-validation-plan.md; it runs raft's `with_tla` build and is in the tree `RaftTla/`
 # since the split of raft's two builds, so its `Init.lean` and `PkgTable.lean` are no longer
 # generated here)
-# (R10, 2026-11-07) mvcc's randomized tester (examples/mvccrand), for its closed theorem
-ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
+# (R10, 2026-11-07 to 2026-11-25) mvcc's randomized tester (examples/mvccrand), retired (#49)
 # (F1 Draft, 2026-11-09) mvcc's full tester (examples/mvccfull): no package variables, its fact
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
@@ -243,6 +247,8 @@ def register(cfg, p, regs):
 
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
 PERENNIAL_HERE = {'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+# (Go model overlays, 2026-11-24) the overlay-added `internal/gomodel` of the standard-library models
+# is Perennial's at the pin (`Perennial.Proof.internal.gomodel.Link`: its `isPkgInit`, `wp_initialize'`).
 # The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
 # and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
 PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
@@ -310,6 +316,13 @@ inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
 # over the main tree's imports, as `net`'s (and as #37's `models_lab.pbcodec`).
 inv['models_lab.jsoncodec'] = inventory('Net/Code')['models_lab.jsoncodec']
 inst['models_lab.jsoncodec'] = [('@Net.Proof.models_lab.jsoncodec.Base', 'iprop(True)')]
+# (etcd-dist D2, 2026-11-24) etcd_safe's client machines call `examples/lib/remote`, the part `Net/`'s
+# translation, with its `IsPkgInit` instance in `Net/`'s `Base.lean` (`True`); its main-tree `Init.lean` is
+# generated here over the main tree's imports (Net's own imports the part's copies), as `net`'s.
+inv['github_com.mit_pdos.etcd_grove.examples.lib.remote'] = \
+    inventory('Net/Code')['github_com.mit_pdos.etcd_grove.examples.lib.remote']
+inst['github_com.mit_pdos.etcd_grove.examples.lib.remote'] = \
+    [('@Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base', 'iprop(True)')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -751,7 +764,7 @@ function, which calls the trusted model of
         'ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []',
         '· iapply isPkgInit_access $$ {Hd:io.fs}',
         'icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, #F3⟩, ⟨%fe4, #F4⟩, ⟨%fe5, #F5⟩⟩',
-        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ []',
+        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) (interface.mkOk (go.GoType.PointerType _root_.Perennial.internal.poll.DeadlineExceededError.ty) #x) DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ []',
         '· iapply isPkgInit_access $$ {Hd:internal.poll}',
         'icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩, ⟨%pe3, #P3⟩⟩',
         'repeat (first',
@@ -1389,9 +1402,9 @@ WT_SPECIAL = {'github_com.mit_pdos.etcd_grove.examples.lib.durable':
 SPECIAL.update(LFS_SPECIAL)
 
 SPECIAL['internal.poll'] = dict(
-    doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
-initializer copies, hold some error for good, and `ErrFileClosing`, which `(*os.File).wrapErr`
-compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
+    doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline`, which `os`'s initializer copies, holds some
+error for good, `ErrDeadlineExceeded` (copied too) an `*DeadlineExceededError`, and
+`ErrFileClosing`, which `(*os.File).wrapErr` compares with, an `*errorString` (`errors.New`). Its initializer runs its variables' translated
 initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
 literal).''',
     imports=['Perennial.Proof.sync.Link', 'Perennial.Proof.errors.NewVar'],
@@ -1637,6 +1650,21 @@ runs their translated initializers (`discovery.go`: `errors.New` calls, and the 
 untranslated, `opaqueInitsOk`).''',
     alloc_types={'nRetries': 'w64', 'maxExponentialRetries': 'w64'}),
     ['ErrInvalidURL', 'ErrBadSizeKey', 'ErrSizeNotFound', 'ErrFullCluster', 'ErrTooManyRetries'])
+
+# (grpcerrmap, 2026-11-26) its fact: its three error variables (`versionErrMsgs`, `membership/PkgInit.lean`),
+# keys of `v3rpc`'s error map
+_VER = SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.version']
+_VER['doc'] = '''Its fact (`membership/PkgInit.lean`; grpcerrmap, 2026-11-26, `True` until then): every error
+variable its `errors.New` error (`errorsNewVars versionErrMsgs`), keys of `v3rpc`'s error map. Its
+initializer initializes its imports, allocates its variables and runs their translated initializers
+(`errors.go`: `errors.New` calls; until 2026-11-19 untranslated, `opaqueInitsOk`).'''
+_VER['finish'] = ([f'ipersist H{x}' for x in ['ErrInvalidDowngradeTargetVersion', 'ErrDowngradeInProcess',
+                                               'ErrNoInflightDowngrade']] + FIN_PRE[:6] +
+    ['imodintro',
+     'unfold go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs',
+     'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
+     'iframe #'])
+
 
 # The k8s etcd3 store's packages (stage 6g, 2026-10-23): their facts are in
 # `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`.
@@ -2259,24 +2287,6 @@ trust-boundary axioms `<X>_init`), `opaqueInitsOk` states the others.''',
            + FIN_PRE[:6] + ['imodintro', 'unfold backendInit', 'iframe #'],
 )
 
-# (R10, 2026-11-07) mvcc's randomized tester: its two string-slice literals, persisted
-SPECIAL['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = dict(
-    doc='''Its fact (`mvccrandInit`, `Base.lean`): `keys` and `extraEnds` hold read-only slices of
-`keyList` and `extraEndList`. Its initializer allocates them, initializes its imports and runs their
-translated initializers, two slice literals (`mvccrand.go`), whose slices are made persistent.''',
-    alloc_types={'keys': 'GoSlice', 'extraEnds': 'GoSlice'},
-    before={'keys': ['try wp_auto',
-                     'wp_apply (wp_slice_literal (l := [go!"a", go!"aa", go!"b", go!"ba", go!"c", go!"d"])); isplitr; (· ipureintro; rfl); iintro %pK ⟨SK, -⟩',
-                     'try wp_auto'],
-            'extraEnds': ['try wp_auto',
-                          'wp_apply (wp_slice_literal (l := [go!"bb", go!"z"])); isplitr; (· ipureintro; rfl); iintro %pE ⟨SE, -⟩',
-                          'try wp_auto'],
-            '$end': ['try wp_auto']},
-    finish=['ipersist Hkeys', 'ipersist HextraEnds', 'imod ownSlice_persist $$ SK with #SK',
-            'imod ownSlice_persist $$ SE with #SE'] + FIN_PRE[:6] +
-           ['imodintro', 'unfold mvccrandInit keyList extraEndList', 'iframe #'],
-)
-
 # (grpcdriver, 2026-11-24) gRPC's robustness driver (notes/library-drivers.md): its package's fact is
 # `drvFacts` (`Base.lean`, 2026-11-25; `True` until then): `reached`, a function value, is allocated and
 # stored, and its calls return
@@ -2888,7 +2898,7 @@ _R['doc'] = _R['doc'].replace("the pointer error `ErrGRPCNotSupportedForLearner`
 def status_steps(x, desc=None, ptr=False):
     pat = f'⟨%N{x}, #O{x}, #DR{x}, %T{x}, %L{x}, -⟩' if ptr else f'⟨%N{x}, #O{x}, #DR{x}, -⟩'
     return (['try wp_auto',
-             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %r{x} {pat}',
+             f'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_linked as %r{x} {pat}',
              '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)',
              f'obtain ⟨e{x}, rfl⟩ : ∃ e, r{x} = GoInterface.ok e := match r{x}, N{x} with | .ok e, _ => ⟨e, rfl⟩ | .nil, h => absurd rfl h',
              f'ihave #E{x} : ({CV3}.errorStringSpec e{x} : IProp GF) $$ []',
@@ -2909,7 +2919,7 @@ for x, desc in _RSTATUS.items():
 del _R['custom']['ErrGRPCNotSupportedForLearner']
 _R.setdefault('before', {})['ErrGRPCNotSupportedForLearner'] = status_steps('ErrGRPCNotSupportedForLearner', ptr=True)
 _R['alloc_types']['ErrGRPCNotSupportedForLearner'] = 'GoInterface'
-_R['imports'].append('Proof.google_golang_org.grpc.status.Error')
+_R['imports'].append('Proof.google_golang_org.grpc.status.ErrorLinked')
 
 # (prove-rpcmap, 2026-11-20) the whole package is translated: its other `ErrGRPC* = status.Error(...)`
 # errors (`status_steps`), the map literal `errStringToError` and the client-side errors
@@ -2957,8 +2967,9 @@ _R['alloc_types']['errStringToError'] = 'Loc'
 for x in ['ErrFutureRev', 'ErrCompacted', 'errStringToError', 'ErrUserEmpty', 'ErrInvalidAuthToken',
           'ErrAuthOldRevision', 'ErrNoLeader', 'ErrAuthNotEnabled']:
     del _R['custom'][x]
-_RPC_ARGS = ('EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc')
-_RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init EtcdGrove.status.FromError.wp_proof)'
+_RPC_FE = '(EtcdGrove.status.FromError.wp_proof EtcdGrove.rpctypes.EtcdError.Error.wp_proof)'
+_RPC_ARGS = (_RPC_FE + ' EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc')
+_RPC_ED = '(EtcdGrove.rpctypes.ErrorDesc.wp_init ' + _RPC_FE + ')'
 # the map literal: its keys (`ErrorDesc(X)`, each its description), then the map made and its entries inserted
 _R['before']['errStringToError'] = (
     ['have HtyRpc : go_etcd_io.etcd.cache.v3.rpctypesEtcdErrorTy (GF := GF) (hG := hG) :=',
@@ -2998,6 +3009,34 @@ for x, g in _RPC_ERRS.items():
     st += ['try wp_auto']
     _R['before'][x] = st
 _R['finish'].remove('ipersist HerrStringToError')
+
+# (grpcerrmap, 2026-11-26) `rpctypesInit`'s last conjunct, `rpctypesMapVals` (`cache/v3/Base.lean`): the
+# values of `v3rpc`'s error map `toGRPCErrorMap`, each one grpc's `status` accepts with its description
+# (`status_steps`' `#O<x>`, `#DR<x>`; `ErrTooManyRequests` and `ErrMemberNotEnoughStarted`: `EtcdError`
+# values, `rpctypes_etcdError_statusErrOk` and `Error.wp_initErr`'s description), read off its definition.
+def _rpc_map_vals():
+    s = open('Proof/go_etcd_io/etcd/cache/v3/Base.lean').read()
+    i = s.index('abbrev rpctypesMapVals : IProp GF :=')
+    body = s[i:s.index('\n\n', i)]
+    return re.findall(r'statusErrVar go_etcd_io\.etcd\.api\.v3\.v3rpc\.rpctypes\.(\w+) go!"([^"]*)"', body)
+_RPC_MAPVALS = _rpc_map_vals()
+assert len(_RPC_MAPVALS) == 51, len(_RPC_MAPVALS)
+_rmv = [f'ipersist H{x}' for x, _ in _RPC_MAPVALS if f'ipersist H{x}' not in _R['finish']]
+_rmv += ['-- (grpcerrmap) the values of `v3rpc`\'s error map, with their descriptions',
+         'ihave #RMV : (go_etcd_io.etcd.cache.v3.rpctypesMapVals : IProp GF) $$ []']
+for _i, (x, m) in enumerate(_RPC_MAPVALS):
+    if _i + 1 < len(_RPC_MAPVALS):
+        _rmv += ['isplitl []']
+    if x in _RPC_ERRS:
+        _rmv += [f'· iexists ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, #x{x}⟩',
+                 f'  iframe H{x}',
+                 '  isplitl []',
+                 f'  · iapply (EtcdGrove.rpctypes_etcdError_statusErrOk EtcdGrove.rpctypes.EtcdError.Error.wp_proof HtyRpc x{x})',
+                 f'  · iapply (go_etcd_io.etcd.cache.v3.descIs_etcdError_of _ _ X{x})']
+    else:
+        _rmv += [f'· iexists e{x}; iframe H{x} O{x} DR{x}']
+_R['finish'][_R['finish'].index('iframe Hown'):_R['finish'].index('iframe Hown')] = _rmv
+
 _R['rec_depth'] = 200000
 _R['imports'] += ['Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error',
                   'Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc',
@@ -3595,7 +3634,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              'ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA',
              '-- mvcc\'s',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
-             '· iapply isPkgInit_access $$ Hd37',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.mvcc}',
              'icases Hmi with ⟨' + '-, ' * 32 + '#NEWR, #NWDI, -⟩',
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
@@ -3634,6 +3673,154 @@ promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'clientReques
         ['type', 'client_api_version'])
 # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
 promvec(SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc'], 'streamFailures', 'Counter', ['Type', 'API'])
+
+# (grpcerrmap, 2026-11-26) `toGRPCErrorMap` translated (`util.go:35-93`; until then the trust-boundary
+# axiom `toGRPCErrorMap_init`, whose post owned the map at Perennial's interface keys and so could not
+# hold, `notes/axiom-review/togrpcerrormap-keys.md`): the literal's 53 keys, each an `errKeyOk` error
+# with its description (`v3rpc.errMapKeyVar`, from its package's fact), and its values, `rpctypes`'
+# (`rpctypesMapVals`, from `rpctypes`' fact); after the 106 loads, the map made and the entries
+# inserted under `v3rpc.errMapInv` (`ErrMapInit.lean`), whose end gives the fact's map (`errMap_done`).
+_V = SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc']
+del _V['custom']['toGRPCErrorMap']
+_V['alloc_types']['toGRPCErrorMap'] = 'Loc'
+_V['imports'] = _V['imports'] + ['Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ErrMapInit']
+_V['doc'] = _V['doc'].replace("""(the map untranslated: the trust-boundary axiom
+`toGRPCErrorMap_init`; the vector translated,""", """(the map translated since grpcerrmap,
+2026-11-26: until then the trust-boundary axiom `toGRPCErrorMap_init`; the vector translated,""")
+def _lean_pairs(path, name):
+    s = open(path).read()
+    i = s.index(f'def {name} : List (GoString × GoString) :=')
+    return re.findall(r'\((\w+), go!"([^"]*)"\)', s[i:s.index(']', s.index('[', i))])
+_MB = 'go_etcd_io.etcd.server.v3.etcdserver.api.membership'
+_ER = 'go_etcd_io.etcd.server.v3.etcdserver.errors'
+_VE = 'go_etcd_io.etcd.server.v3.etcdserver.version'
+_AU = 'go_etcd_io.etcd.server.v3.auth'
+_LE = 'go_etcd_io.etcd.server.v3.lease'
+_MV = 'go_etcd_io.etcd.server.v3.storage.mvcc'
+_MBP = 'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/membership/PkgInit.lean'
+# a key's package: its list of `(variable, message)` (the fact's), how to take it from the fact
+_EMK_LISTS = {_MB: (f'{_MB}.membershipErrMsgs', _lean_pairs(_MBP, 'membershipErrMsgs')),
+              _ER: (f'{_ER}.errorsMsgs', _lean_pairs('Proof/go_etcd_io/etcd/server/v3/etcdserver/errors/Base.lean', 'errorsMsgs')),
+              _VE: (f'{_VE}.versionErrMsgs', _lean_pairs(_MBP, 'versionErrMsgs')),
+              _AU: (f'{_AU}.authErrMsgs', _lean_pairs('Proof/go_etcd_io/etcd/server/v3/auth/Base.lean', 'authErrMsgs'))}
+_EMK_ONE = {f'{_MV}.ErrCompacted': (30, 'mvcc: required revision has been compacted'),
+            f'{_MV}.ErrFutureRev': (31, 'mvcc: required revision is a future revision'),
+            f'{_LE}.ErrLeaseNotFound': (7, 'lease not found'),
+            f'{_LE}.ErrLeaseExists': (8, 'lease already exists'),
+            f'{_LE}.ErrLeaseTTLTooLarge': (9, 'too large lease TTL')}
+_EMK_FACT = {_MB: (f'{_MB}.membershipInit', 4, 1), _ER: (f'{_ER}.errorsInit', 3, 1),
+             _AU: (f'{_AU}.authInit', 24, 23), _MV: (f'{_MV}.mvccInit', 43, None),
+             _LE: (f'{_LE}.leaseInit', 11, None)}
+def _mem_term(i):
+    t = 'List.Mem.head _'
+    for _ in range(i):
+        t = f'List.Mem.tail _ ({t})'
+    return t
+def _icases_nth(n, i, name):
+    return '⟨' + ', '.join([f'#{name}' if j == i else '-' for j in range(i + 1)] + (['-'] if i + 1 < n else [])) + '⟩'
+_FR = 'go_etcd_io.etcd.cache.v3.futureRevDesc'
+_CP = 'go_etcd_io.etcd.cache.v3.compactedDesc'
+_UNFF = f'unfold {_FR}; decide'
+_UNFC = f'unfold {_CP}; decide'
+def _key_steps(i, g):
+    """`ihave #KV<i> : errMapKeyVar g m`, from `g`'s package's fact; its message."""
+    pkg, x = g.rsplit('.', 1)
+    if g == 'context.Canceled' or g == 'context.DeadlineExceeded':
+        m = 'context canceled' if x == 'Canceled' else 'context deadline exceeded'
+        st = [f'ihave #KV{i} : (EtcdGrove.v3rpc.errMapKeyVar _root_.Perennial.{g} go!"{m}" : IProp GF) $$ []',
+              '· ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []',
+              '  · iapply _root_.Perennial.context.isInit_access $$ {Hd:context}',
+              '  iNamed Hci']
+        if x == 'Canceled':
+            st += ['  icases HCanceledCell with ⟨%xc, #Hxc, #Hxs⟩',
+                   '  iapply EtcdGrove.v3rpc.keyVar_of_cell',
+                   '  unfold EtcdGrove.errVarCell EtcdGrove.errStrCell',
+                   '  iexists xc; iframe Hxc Hxs']
+        else:
+            st += ['  iapply EtcdGrove.v3rpc.keyVar_deadline $$ HDeadlineExceededTy']
+        return st, m
+    fact, n, at = _EMK_FACT.get(pkg, (None, None, None))
+    acc = ([f'  ihave Hf : ({fact} : IProp GF) $$ []', f'  · iapply isPkgInit_access $$ {{Hd:{pkg}}}']
+           if fact else [f'  ihave Hf : (EtcdGrove.errorsNewVars {_EMK_LISTS[pkg][0]} : IProp GF) $$ []',
+                         f'  · iapply isPkgInit_access $$ {{Hd:{pkg}}}'])
+    if g in _EMK_ONE:
+        j, m = _EMK_ONE[g]
+        lem = 'keyVar_of_newVar' if pkg == _MV else 'keyVar_of_cell'
+        sub = acc + [f'  icases Hf with {_icases_nth(n, j, "Hx")}',
+                     f'  iapply EtcdGrove.v3rpc.{lem} $$ Hx']
+        return [f'ihave #KV{i} : (EtcdGrove.v3rpc.errMapKeyVar {g} go!"{m}" : IProp GF) $$ []',
+                '· ' + sub[0][2:]] + sub[1:], m
+    lname, pairs = _EMK_LISTS[pkg]
+    j = [p[0] for p in pairs].index(x)
+    m = pairs[j][1]
+    cell = pkg == _AU
+    st = list(acc)
+    if at is not None:
+        st += [f'  icases Hf with {_icases_nth(n, at, "Hl")}']
+    else:
+        st += ['  ihave #Hl := Hf']
+    mem = f'({_mem_term(j)} : ({g}, go!"{m}") ∈ {lname})'
+    if cell:
+        st += [f'  ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := {lname}) {mem} $$ Hl',
+               '  iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx']
+    else:
+        st += [f'  ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := {lname}) {mem} $$ Hl',
+               '  iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx']
+    return [f'ihave #KV{i} : (EtcdGrove.v3rpc.errMapKeyVar {g} go!"{m}" : IProp GF) $$ []',
+            '· ' + st[0][2:]] + st[1:], m
+def _v3rpc_code():
+    return open('Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.lean').read()
+_V3C = _v3rpc_code()
+_GA = r'\(App \(Val \(GoInstruction \(GoLoad go\.error\)\)\) \(App \(Val \(GoInstruction \(GlobalVarAddr _root_\.Perennial\.([\w.]+)\)\)\) \(Val #\(\)\)\)\)'
+_EMKEYS = re.findall(r'\(Let "\$k\d+" ' + _GA, _V3C)
+_EMVALS = re.findall(r'\(Let "\$v\d+" ' + _GA, _V3C)
+assert len(_EMKEYS) == 53 and len(_EMVALS) == 53, (len(_EMKEYS), len(_EMVALS))
+_RT = 'go_etcd_io.etcd.api.v3.v3rpc.rpctypes.'
+_VIDX = {x: j for j, (x, _) in enumerate(_RPC_MAPVALS)}
+_VMSG = dict(_RPC_MAPVALS)
+_ifr = _EMKEYS.index(f'{_MV}.ErrFutureRev')
+_icp = _EMKEYS.index(f'{_MV}.ErrCompacted')
+_st = ['-- the keys, from their packages\' facts']
+_kmsg = []
+for _i, _g in enumerate(_EMKEYS):
+    _s, _m = _key_steps(_i, _g)
+    _st += _s + [f'icases KV{_i} with ⟨%k{_i}, #KP{_i}, %KO{_i}, #KD{_i}⟩']
+    _kmsg.append(_m)
+_st += ['-- the values, from `rpctypes`\' fact',
+        'ihave Hrmv : (go_etcd_io.etcd.cache.v3.rpctypesMapVals : IProp GF) $$ []',
+        '· ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
+        '  · iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.api.v3.v3rpc.rpctypes}',
+        '  icases Hri with ⟨' + '-, ' * 45 + '#R⟩',
+        '  iexact R',
+        'icases Hrmv with ⟨' + ', '.join(f'⟨%v{j}, #VP{j}, #VS{j}, #VD{j}⟩' for j in range(len(_RPC_MAPVALS))) + '⟩',
+        '-- the loads, then the map',
+        'try wp_auto',
+        f'wp_apply (EtcdGrove.v3rpc.wp_errMap_make k{_ifr} k{_icp}) as %mpE HmE',
+        'try wp_auto']
+for _i, (_g, _vg) in enumerate(zip(_EMKEYS, _EMVALS)):
+    assert _vg.startswith(_RT), _vg
+    _vx = _vg[len(_RT):]
+    _j = _VIDX[_vx]
+    _mv = _VMSG[_vx]
+    if _vx == 'ErrGRPCFutureRev':
+        assert _i == _ifr
+        _hmv = f'⟨fun _ => rfl, fun h => absurd h (by {_UNFC})⟩'
+    elif _vx == 'ErrGRPCCompacted':
+        assert _i == _icp
+        _hmv = f'⟨fun h => absurd h (by {_UNFF}), fun _ => rfl⟩'
+    else:
+        _hmv = f'⟨fun h => absurd h (by {_UNFF}), fun h => absurd h (by {_UNFC})⟩'
+    _xg = _g if _g.startswith('go_etcd_io') else f'_root_.Perennial.{_g}'
+    _st += [f'wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k{_ifr} k{_icp} {_i} {_xg} k{_i} v{_j}',
+            f'    go!"{_kmsg[_i]}" go!"{_mv}" rfl KO{_i} ⟨by {_UNFF}, by {_UNFC}⟩ {_hmv})',
+            f'    $$ [$HmE $KP{_i} $KD{_i} $VS{_j} $VD{_j}] as HmE',
+            'try wp_auto']
+_st += ['-- the map built: the fact\'s pieces',
+        f'ihave ⟨StoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, #PtoGRPCErrorMap⟩ := EtcdGrove.v3rpc.errMap_done _ _ _ _ 53 (Nat.le_of_eq rfl) $$ HmE KP{_ifr} KP{_icp}',
+        'ipersist StoGRPCErrorMap']
+_V['before']['toGRPCErrorMap'] = _st
+_V['rec_depth'] = 200000
+
 
 
 # Item 8 (2026-10-17): the read package, its `init()`'s `MustRegister` given the registration
@@ -3884,6 +4071,31 @@ the trust-boundary axiom `opaqueInitsOk`).''',
     alloc_types={'codeToStr': 'Loc', 'strToCode': 'Loc'},
     before={'codeToStr': map_lit_steps('Hcs', 'w32', 'GoString', f'{_OC}.Code.ty', 'go.string', 3),
             'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_OC}.Code.ty', 3)},
+)
+# (prove-otel-encoderid, 2026-11-25) otel's `attribute`: its `init` (the fork's `id := NewEncoderID();
+# defaultEncoderID = id`, etc/goose.py's `module_forks`; until then `defaultEncoderID`'s initializer, the
+# trust-boundary axiom `opaqueInitsOk`), through `NewEncoderID`'s proof on the freshly allocated counter
+_OA = 'go_opentelemetry_io.otel.«attribute»'
+_OAQ = _OA
+SPECIAL[_OA] = dict(
+    doc='''Its fact is `True`. Its initializer allocates `encoderIDCounter` and `defaultEncoderID`,
+initializes its import (`sync/atomic`) and runs its translated `init` (prove-otel-encoderid,
+2026-11-25: the fork's `id := NewEncoderID(); defaultEncoderID = id`, in place of `defaultEncoderID =
+NewEncoderID()`, which goose's modelcheck refuses and was the trust-boundary axiom `opaqueInitsOk`):
+`NewEncoderID`'s proof, on the counter at zero, returns the ID 1, which it stores.''',
+    alloc_types={'encoderIDCounter': '_root_.Perennial.sync.atomic.Uint64',
+                 'defaultEncoderID': f'{_OAQ}.EncoderID'},
+    after={'init.«0»': [
+        f'ihave Hc : _root_.Perennial.sync.atomic.ownUint64 (GF := GF) (globalAddr {_OAQ}.encoderIDCounter) (DFrac.own 1) (W64 0) $$ [HencoderIDCounter]',
+        '· rw [_root_.Perennial.sync.atomic.ownUint64_unseal]',
+        '  unfold _root_.Perennial.sync.atomic.ownUint64Def',
+        "  have e : (zero_val _root_.Perennial.sync.atomic.Uint64) =",
+        "      ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : _root_.Perennial.sync.atomic.Uint64) := rfl",
+        '  rw [← e]; iexact HencoderIDCounter',
+        'wp_apply (EtcdGrove.«attribute».NewEncoderID.wp_proof (hG := hG) (W64 0)) $$ [Hc] as -',
+        '· iexact Hc',
+        'try wp_auto']},
+    imports=['Proof.go_opentelemetry_io.otel.attribute.NewEncoderID'],
 )
 # (phase7-inits, 2026-11-25, notes/phase7-endstate.md §4; the mechanism of phase 7 S2 core's
 # `FromOutgoingContextRaw`, 2026-11-23, for every hook) grpc's `internal`: names only but its hook
@@ -5405,6 +5617,12 @@ def _gen(p, cfg=None):
             A(f'  wp_call  -- {x}: its trusted initializer does nothing')
         elif kind == 'opaqueinitfn':
             A(f'  wp_apply (initFuncsOk {x} (by mem_tac))')
+        elif kind == 'initfn' and x in cfg.get('initfn_apply', {}):
+            # (dsv-retire-3, 2026-11-26) a translated `init` with a spec of its own (a loop: zerolog's
+            # `internal/json`), applied instead of stepped into
+            A(f'  -- the translated {x}, by its spec')
+            for l in cfg['initfn_apply'][x]:
+                A('  ' + hdsub(l))
         elif kind == 'initfn':
             A(f'  -- the translated {x}')
             A('  wp_func_call')
@@ -5639,9 +5857,6 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
             'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
-# (R10, 2026-11-07) mvcc's randomized tester
-PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
-    'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
@@ -5649,6 +5864,16 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
 # distributed theorem (notes/putget-dist-plan.md)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
+# (2026-11-24) etcd_safe's programs (notes/etcd-dist-plan.md D2): the member machines' (`server`) and the
+# orchestrators' and client machines' (`client`)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.server'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/server/PkgTable.lean'
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.client'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/client/PkgTable.lean'
+# (2026-11-24) putgetK_safe's package (every machine's boot program runs its initializer), for its
+# distributed theorem (notes/putget-dist-plan.md §13)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putgetk'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putgetk/PkgTable.lean'
 # (grpcdriver, 2026-11-24) gRPC's robustness driver's two commands (each machine's boot program runs its
 # command's initializer), for grpcdriver_robust
 for _c in ['server', 'client']:
@@ -5747,7 +5972,11 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
               # (2026-11-03) `os`'s, now generated (raft's `Init.lean` imports it), and its imports'
               'os', 'syscall', 'io.fs',
               # (2026-11-07) `os`'s translated initializers' imports
-              'internal.poll', 'internal.syscall.unix']
+              'internal.poll', 'internal.syscall.unix',
+              # (2026-11-25, Go model overlays at Perennial e9a45a420) `os`'s new import, whose
+              # `Init.lean` imports `PkgInitExt`: filepathlite (`os` no longer imports `runtime`:
+              # Code/os.toml, rawConn)
+              'internal.filepathlite']
 
 
 def part_paths(inits):
@@ -6135,7 +6364,10 @@ NET_PROGRAMS.update({f'github_com.mit_pdos.etcd_grove.examples.lib.remote.counte
 
 # The main tree's packages the part's `net` imports (`os`, and the packages `os` imports): their
 # translations and `IsPkgInit` instances are the main tree's, their `Init.lean` copies in the part.
-NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix']
+NET_MAIN = ['os', 'syscall', 'internal.poll', 'io.fs', 'internal.syscall.unix',
+            'internal.filepathlite']
+# ((Go model overlays S5) the models' internal/gomodel, which syscall's and os's import, is Perennial's:
+# no `Init.lean` of its own, here or in the part.)
 # (2026-11-22) and the main tree's packages `examples/lib/remote` imports: lintest's driver and
 # porcupine (their `Init.lean` import the main tree's `PkgInitExt`, which the part's replaces).
 NET_MAIN += ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
@@ -6200,7 +6432,8 @@ def net_inits(main_txt):
         # (`etc/goose.py`'s net lean roots): their translations and instances are the main tree's
         for p in NET_MAIN:
             inv[p] = saved[0][p]
-            inst[p] = saved[1][p]
+            if p in saved[1]:  # (runtime's instance is Perennial's)
+                inst[p] = saved[1][p]
         # (rpc-driver) the axiom packages' closures: the main tree's packages the part lacks
         st = [q for p in NET_AXIOM_INITS for q in inv[p]['imports']]
         while st:
@@ -6411,7 +6644,8 @@ def dsv_kit_raw(k, base):
         _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
             inv[p] = main_inv[p]
-            inst[p] = main_inst[p]
+            if p in main_inst:  # (runtime's instance is Perennial's)
+                inst[p] = main_inst[p]
         # the main tree's packages `MAIN` (always the main tree's inventory), and those of their
         # imports that `Net/` lacks
         st, seen = list(main), set()

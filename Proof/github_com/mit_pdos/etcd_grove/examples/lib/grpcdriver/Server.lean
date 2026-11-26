@@ -33,7 +33,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : Assumptions] [field_sem : _root_.Perennial.net.FieldAssumptions]
+variable [package_sem : Assumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -119,6 +119,8 @@ theorem Server.wp_proof
       · exact Or.inl h2
       · exact Or.inr h1
   try wp_auto
+  ihave #HnetPk : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+  · iPkgInit
   wp_apply (drv_listen wp_Listen drvAddr hok) $$ [] as %l %err Hl
   · iframe #
   icases Hl with (⟨%Herr, Hlo⟩ | %Herr)

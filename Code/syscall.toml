@@ -19,21 +19,27 @@ translate = ["!*", "Errno", "LOCK_SH", "LOCK_EX", "LOCK_NB", "LOCK_UN", "PROT_RE
   # (2026-11-22, wal-safe-errors) `Errno.Is` with its body (what `errors.Is` calls on an errno) and the
   # constants it compares with
   "Errno.Is", "EACCES", "EPERM", "EEXIST", "ENOTEMPTY", "ENOTSUP", "EOPNOTSUPP",
+  # (2026-11-24, Go-model overlays S6) what net's translated `OpError.Timeout`/`Temporary` and
+  # `isConnError` call on an errno: `Errno.Timeout`/`Temporary` with Go's bodies, the constants
+  # they compare with
+  "Errno.Timeout", "Errno.Temporary", "EINTR", "EMFILE", "ENFILE", "ETIMEDOUT", "ECONNRESET",
+  "ECONNABORTED",
   # (2026-11-24, fmt stage 1) `Errno.Error` with its body (the `errors` table, else
   # `"errno " + strconv.Itoa`): its message is bounded (`Proof/syscall/ErrorOk.lean`)
   "Errno.Error"]
-imports = ["!*", "sync", "errors", "internal/oserror", "internal/strconv"]
-# The functions minibolt calls, modeled by the Linux file extension fsExt
-# (TrustedCode/syscall.lean, GooseLang/Ext/Fs/Impl.lean).
-trusted = ["Fdatasync", "Flock",
-  # (2026-11-07) the initializer's untranslated pieces, the user's decisions (Perennial fix-semantics
-  # Case 33; TrustedCode/syscall.lean): `runtime_envs` (a linkname, no Go body) an arbitrary
-  # `[]string`; `init.0` (the RLIMIT_NOFILE raise through raw `prlimit`) a no-op, `exec` being
-  # outside what Perennial models
-  "runtime_envs", "init.0",
-  # (2026-11-13, the WAL over fsExt; drafts pending the user's review) fileutil's calls
-  # (preallocate_unix.go, lock_linux.go): as golang.org/x/sys/unix's models, plus F_OFD_GETLK
-  "Fallocate", "FcntlFlock",
+imports = ["!*", "sync", "errors", "internal/oserror", "internal/strconv", "internal/gomodel"]
+# (2026-11-24, Go-model overlays S5, perennial#692) The functions minibolt, the WAL, fileutil and
+# os's Go code call are the Go model of the [model] table below (models/syscall/model.go, each
+# declaration's MODEL: comment says why it has at least Go's behaviours), over the primitive stubs
+# here: one operation of the Linux file extension fsExt each (models/syscall/stubs.go;
+# GooseLang/Ext/Fs/Impl.lean), their GooseLang models in TrustedCode/syscall.lean. Until then the
+# functions were hand-written GooseLang (TrustedCode/syscall.lean).
+trusted = ["fsFsync", "fsFlock", "fsFalloc", "fsFallocKeep", "fsOfdLock", "fsMkdir", "fsUnlink",
+  "fsRmdir", "fsPathKind",
+  # (2026-11-07) `runtime_envs`, a linkname into the runtime with no Go body: an arbitrary `[]string`
+  # (TrustedCode/syscall.lean). A primitive, not a Go model: a model body would replace the
+  # runtime's in gc builds, whose programs (and the packages' own tests) need the real environment.
+  "runtime_envs",
   # (zap-z2, 2026-11-23, as Perennial's syscall.toml since `ca6df841b`) `Exit` (`syscall.go`, a body-less
   # declaration the runtime provides, `syscall_Exit`): the process exits, `AngelicExit`
   # (TrustedCode/syscall.lean); what `os.Exit` calls
@@ -42,3 +48,13 @@ trusted = ["Fdatasync", "Flock",
 # (2026-11-07) every type declaration goose supports, as Perennial's: the initializers build
 # `mmapper` and `sync.Pool` literals
 translate_types = true
+
+# (2026-11-24, S5) `errnoErr` (Go's reads the skipped preallocated errors), the initializer's
+# `init.0` (the RLIMIT_NOFILE raise: the user's decision in Perennial fix-semantics Case 33), the
+# system-call stubs minibolt and fileutil call, and the *at wrappers os's Go `Mkdir`/`Remove` call.
+# (`Errno.Error` was modeled too, an arbitrary string, until the merge of origin/lean's fmt stage 1:
+# it is now translated with its body, `translate` above.)
+[model]
+dir = "models/syscall"
+replaces = ["errnoErr", "init.0", "Fdatasync", "Flock", "Fallocate",
+  "FcntlFlock", "Mkdir", "Unlink", "Rmdir"]

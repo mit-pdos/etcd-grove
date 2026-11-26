@@ -28,7 +28,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 theorem fileutil.TouchDirAll.wp_proofExisting
     (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
@@ -166,7 +166,8 @@ theorem fileutil.TouchDirAll.wp_proofExisting
           ipureintro; omega
     rw [← hdfull]
     try wp_auto
-    rw [show (os.MkdirAll : GoString) = go!"os.MkdirAll" from rfl]
+    -- `wp_spineS` is stated over `os.MkdirAll` (`@! os.MkdirAll`, go-models-rest), not `go!"os.MkdirAll"`
+    try rw [show (go!"os.MkdirAll" : GoString) = os.MkdirAll from rfl]
     wp_apply os.MkdirAll.wp_spineS (joinPath [] rcs) j0 _ R dq qc hR hm cs J hcs $$ [Hs Hperm]
       as %err ⟨Hs, Hperm, #Hfe⟩
     · iframe; (repeat' isplitl []) <;> iassumption

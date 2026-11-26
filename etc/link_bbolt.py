@@ -537,7 +537,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 """
     out.append("""
 @[expose] public section

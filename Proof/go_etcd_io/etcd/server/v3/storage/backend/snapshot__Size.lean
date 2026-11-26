@@ -32,13 +32,13 @@ variable [go_etcd_io.bbolt.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- bbolt's `Tx.Size` of a read transaction in the backend's vocabulary, at `theFs`. -/
 private theorem bbolt.kvGlue_TxSize_ro (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
+, bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data),
   {{ txLive (GF := GF) tx γ q (bbolt.TxView.ro D) }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Size")) (Val #()))
   {{ (n : w64), RET #n; txLive tx γ q (bbolt.TxView.ro D) ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ }} := by
   intro tx γ q D
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, onFs_none hfs]
     iintro %Φ H HΦ
     iexfalso; iexact H
@@ -49,8 +49,8 @@ private theorem bbolt.kvGlue_TxSize_ro (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
 
 /-- `s.Size()`: `s.Tx.Size()` of the snapshot's read transaction. -/
 theorem backend.snapshot.Size.wp_proof
-    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
+    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
     backend.snapshot.Size.spec (GF := GF) (hG := hG) := by
   replace hSize := bbolt.kvGlue_TxSize_ro hSize
   intro sp D γ q

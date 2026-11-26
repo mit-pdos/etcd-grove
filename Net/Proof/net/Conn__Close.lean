@@ -6,7 +6,7 @@ update (`Net.wp_net_Close`).
 module
 
 public import Net.Spec.net.Conn__Close
-public import Net.Proof.net.Errors
+public import Net.Proof.net.OpErrorMsg
 
 @[expose] public section
 
@@ -24,57 +24,46 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra Q
-  unfold connAt
-  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, HAU⟩
-  wp_method_call
-  (try unfold conn.Close.impl)
-  (try unfold model.connId)
-  (try unfold model.connErr)
-  (try rw [conn_ty_eq'])
+  unfold connAt connFd
+  wp_start as ⟨⟨%nw, %Hnw, ⟨%fd, #Ht, #Hfd⟩, #Hla, #Hra, #Hat⟩, HAU⟩
+  ihave ⟨%v, %hv, #Hv⟩ := fdAt_elim _ _ _ _ _ $$ Hfd
+  obtain ⟨-, rfl, rfl, rfl⟩ := hv
+  ihave %Hfdn := typedPointsto_not_null _ _ _ $$ Hv
   ihave #Ht2 := Ht
   iStructNamed Ht2
+  iStructNamed Hv
+  (try wp_method_call)
+  wp_auto
+  wp_apply wp_conn_ok _ fd Hfdn $$ conn
   iStructNamed conn
-  ihave %Hne := netConnAt_endId_ne _ cn a s $$ Hat
-  (try wp_auto)
-  (try (rw [show decide (endId cn s = W64 0) = false by simpa using Hne]; wp_auto))
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Close cn s a $$ Hat
-  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
-  imodintro
-  iexists st, d
-  iframe Hend Hdir
-  iintro %res %st' %d' %Hcr Hend Hdir
-  imod Hk $$ %res %st' %d' %Hcr Hend Hdir with HQ
-  imodintro
+  wp_auto
+  wp_apply wp_fd_Close fd cn s a _ _ _ Q $$ Hfd Hat HAU as %res %e HQ #He
   rcases res with _ | k
-  · wp_auto
-    iapply HΦ
-    iexists none
-    iframe HQ
-    unfold resErr
-    ipureintro; rfl
-  · have hk : k = .closed := by
-      unfold CloseOutcome at Hcr; split at Hcr
-      · exact Option.some.inj Hcr.1
-      · cases Hcr.1
-    subst hk
+  · unfold resKind; icases He with %he; subst he
     wp_auto
-    wp_apply wp_kindErr .closed none go!"close" (· = go!"close") rfl rfl $$ [] as %e #He
-    (try wp_auto)
-    (try unfold model.connNet)
-    (try wp_auto)
-    wp_apply wp_opError $$ %Hnw as %err #Herr
     iapply HΦ
-    iexists some .closed
+    iexists none; iframe HQ
+    unfold resErr; ipureintro; rfl
+  · rw [show resKind (GF := GF) (some k) none (· = go!"close") e =
+      kindErr k none (· = go!"close") e from rfl]
+    ihave %hne := kindErr_ne_nil k none _ e (fun _ h => by cases h) $$ He
+    obtain ⟨ie, rfl⟩ : ∃ ie, e = GoInterface.ok ie := by
+      cases e with | ok ie => exact ⟨ie, rfl⟩ | nil => exact absurd rfl hne
+    wp_auto
+    wp_alloc pe as Hpe
+    ipersist Hpe
+    wp_auto
+    iapply HΦ
+    iexists some k
     iframe HQ
-    unfold resErr
-    iexists e
-    iframe Herr He
+    iapply resErr_intro Hnw
+      (by first | exact edTyped_none | (intro x h; cases h; exact ⟨_, rfl⟩)) $$ Hpe He
+    all_goals first | iapply addrOrNil_nil | (iapply addrOrNil_addr; iassumption)
 
 end proof
 

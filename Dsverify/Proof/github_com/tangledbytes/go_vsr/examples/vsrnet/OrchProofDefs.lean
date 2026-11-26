@@ -61,7 +61,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 variable [bvi : go.BasicIntoValInj]
 
@@ -71,13 +70,14 @@ set_option goose.wp.extras true
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `kvR g`. -/
 theorem kvS_pendDec (g : Impl.GN) :
-    PendDec (kvR (GF := GF) (Gg := hG.goose_globalGS) g) (kvS (GF := GF)) where
+    PendDec (kvR (GF := GF) (Gg := hG.goose_globalGS) g) (kvS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := linkv.pM_step kvB kvDec s _ i _ (kvDec_box i (.ok o))
   err s i := linkv.pM_step kvB kvDec s _ i _ (kvDec_box i .err)
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, .ok o, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, .err, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem kvR_encOut_inj (g : Impl.GN) (o o' : KOut)
     (h : (kvR (GF := GF) (Gg := hG.goose_globalGS) g).encOut

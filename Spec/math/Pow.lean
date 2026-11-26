@@ -1,7 +1,7 @@
 /-
-`math.Pow(x, y)`: the trust boundary (Perennial translates `math` names-only for `Pow`, and
-specifies no float operation). Lean-first; for client-go's exponential failure rate limiter
-(`k8s.io/client-go/util/workqueue`).
+`math.Pow(x, y)`: some `float64`. Perennial translates the real Go (`pow`, over `Exp`/`Log`'s amd64
+assembly with trusted models) and proves it (`math.wp_Pow`); `Proof/math/Pow.lean` is that proof.
+Lean-first; for client-go's exponential failure rate limiter (`k8s.io/client-go/util/workqueue`).
 -/
 module
 

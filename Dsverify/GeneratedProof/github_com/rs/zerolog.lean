@@ -2,7 +2,26 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.bytes
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.encoding.json
+public import Perennial.GeneratedProof.fmt
+public import Dsverify.GeneratedProof.github_com.rs.zerolog.internal.json
 public import Perennial.GeneratedProof.io
+public import Dsverify.GeneratedProof.io.ioutil
+public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.math.rand
+public import Net.GeneratedProof.net
+public import GeneratedProof.os
+public import GeneratedProof.path.filepath
+public import Perennial.GeneratedProof.runtime
+public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.strings
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
+public import Perennial.GeneratedProof.«unsafe»
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.rs.zerolog
 
@@ -552,25 +571,6 @@ noncomputable instance ctxKey_into_val_typed :
 end def_
 end ctxKey
 
-namespace encoder
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
-
-noncomputable instance encoder_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.encoder :=
-  sorry -- axiomatized type
-
-noncomputable instance encoder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.encoder github_com.rs.zerolog.encoder.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end encoder
-
 namespace Event
 section def_
 
@@ -938,12 +938,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.rs.zerolog.Assumptions]
 
 noncomputable instance BurstSampler_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.BurstSampler :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.rs.zerolog.BurstSampler where
+  typedPointstoDef l v dq := iprop(
+    "Burst" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Burst" l) v.Burst' dq ∗
+    "Period" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Period" l) v.Period' dq ∗
+    "NextSampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"NextSampler" l) v.NextSampler' dq ∗
+    "counter" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"counter" l) v.counter' dq ∗
+    "resetAt" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"resetAt" l) v.resetAt' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance BurstSampler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.BurstSampler github_com.rs.zerolog.BurstSampler.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.BurstSampler github_com.rs.zerolog.BurstSampler.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance BurstSampler_access_load_Burst (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Burst" l) v.Burst' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Burst" l) v.Burst' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_store_Burst (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (Burst' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Burst" l) v.Burst' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Burst" l) Burst' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Burst' := Burst' } : github_com.rs.zerolog.BurstSampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_load_Period (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Period" l) v.Period' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Period" l) v.Period' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_store_Period (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (Period' : _root_.Perennial.time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Period" l) v.Period' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"Period" l) Period' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Period' := Period' } : github_com.rs.zerolog.BurstSampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_load_NextSampler (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"NextSampler" l) v.NextSampler' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"NextSampler" l) v.NextSampler' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_store_NextSampler (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (NextSampler' : github_com.rs.zerolog.Sampler) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"NextSampler" l) v.NextSampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"NextSampler" l) NextSampler' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NextSampler' := NextSampler' } : github_com.rs.zerolog.BurstSampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_load_counter (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"counter" l) v.counter' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"counter" l) v.counter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_store_counter (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (counter' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"counter" l) v.counter' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"counter" l) counter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counter' := counter' } : github_com.rs.zerolog.BurstSampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_load_resetAt (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"resetAt" l) v.resetAt' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"resetAt" l) v.resetAt' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance BurstSampler_access_store_resetAt (l : Loc) (v : github_com.rs.zerolog.BurstSampler) (resetAt' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"resetAt" l) v.resetAt' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.BurstSampler go!"resetAt" l) resetAt' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resetAt' := resetAt' } : github_com.rs.zerolog.BurstSampler) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end BurstSampler
@@ -1162,12 +1251,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.rs.zerolog.Assumptions]
 
 noncomputable instance syncWriter_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.syncWriter :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.rs.zerolog.syncWriter where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"mu" l) v.mu' dq ∗
+    "lw" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"lw" l) v.lw' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance syncWriter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.syncWriter github_com.rs.zerolog.syncWriter.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.syncWriter github_com.rs.zerolog.syncWriter.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance syncWriter_access_load_mu (l : Loc) (v : github_com.rs.zerolog.syncWriter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance syncWriter_access_store_mu (l : Loc) (v : github_com.rs.zerolog.syncWriter) (mu' : _root_.Perennial.sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.rs.zerolog.syncWriter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance syncWriter_access_load_lw (l : Loc) (v : github_com.rs.zerolog.syncWriter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"lw" l) v.lw' dq)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"lw" l) v.lw' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance syncWriter_access_store_lw (l : Loc) (v : github_com.rs.zerolog.syncWriter) (lw' : github_com.rs.zerolog.LevelWriter) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"lw" l) v.lw' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.rs.zerolog.syncWriter go!"lw" l) lw' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lw' := lw' } : github_com.rs.zerolog.syncWriter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end syncWriter

@@ -117,19 +117,19 @@ theorem runner.open.wp_proof
   obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := Hrec
   iunfold bkKeep at Hbkn
   icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnbp, Hnoh, HnRT, Hntoks, Hncen⟩
-  simp only [mvccrand.rcKB_P]
+  simp only [mvccfull.rcKB_P]
   have hreq : ∀ x ∈ recs, sint.Z ((fun _ : w64 => W64 3600) x.1) ≤ sint.Z x.2.1 := by
     intro x hx; have := hrecs3 x hx
     have h36 : sint.Z (W64 3600) = 3600 := by decide
     simp only []; rw [h36]; exact this
-  wp_apply (wp_NewLessor lg _ _ (mvccrand.rcKB γB bnb gx (limOf cfg)) (mvccW gx) iprop(True)
+  wp_apply (wp_NewLessor lg _ _ (mvccfull.rcKB γB bnb gx (limOf cfg)) (mvccW gx) iprop(True)
       (1 : Qp).half (fun _ => iprop(True)) (· = leaseName)
-      (backend.rbData (mvccrand.rcP (limOf cfg)) D) false recs (fun _ => W64 3600)
-      (leasesAfter ks ops n) rfl (mvccrand.rcP_lease _) hrecs1 hreq (by rw [hrecs2]))
+      (backend.rbData (mvccfull.rcP (limOf cfg)) D) false recs (fun _ => W64 3600)
+      (leasesAfter ks ops n) rfl (mvccfull.rcP_lease _) hrecs1 hreq (by rw [hrecs2]))
     $$ [Hnoh Hwb1 Hrbn]
     as %l ⟨Hnoh, Hrbn, %lp, %γl, %Hl, #Hlinv, #Hmode, #Hlcfg, -, -, #Hguard, Hlrds, Hlown, -, Hever,
       Hrvk, Hrdo, Hbeon, #Happly, Hstop, #HreqN, -⟩
-  · rw [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
+  · rw [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be]
     iframe #; iframe
     isplitr
     · ipureintro; simp only; exact Int.le_refl _
@@ -183,9 +183,9 @@ theorem runner.open.wp_proof
     -- (premise fixes 6) the runner's logger, a zap logger
     ihave #Hlgo := zapLoggerOk_orNil lg $$ Hlgn
     rw [show (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-        #bnb : GoInterface) = storageVal (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) by
-        rw [etcdStorage_val, mvccrand.rcKB_be]]
-    wp_apply (wp_mNew lg _ _ (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) iprop(True) γl
+        #bnb : GoInterface) = storageVal (etcdStorage (mvccfull.rcKB γB bnb gx (limOf cfg))) by
+        rw [etcdStorage_val, mvccfull.rcKB_be]]
+    wp_apply (wp_mNew lg _ _ (etcdStorage (mvccfull.rcKB γB bnb gx (limOf cfg))) iprop(True) γl
         func.nil σ u (leasesAfter ks ops n) (DFrac.own (1 : Qp).half) func.nil iprop(True)
         iprop(True) iprop(True) iprop(True) iprop(True)) $$ [Hsf Hlrd1 Hrdo Hlown Hpl2]
       as %wsl ⟨%γk, %Hγl, #Hkvm, Hσ, Hopn, Hmb, Hrdrs, ⟨%rd, Hrdo, Hdel⟩, Hlown, -, Hhkp⟩
@@ -204,11 +204,11 @@ theorem runner.open.wp_proof
         · iapply (api.hookRun_nil _ _ _).2; iintro _; imodintro; itrivial
         ihave Hwd : (iprop(True) ={⊤}=∗ (iprop(True) ∗ iprop(True) : IProp GF)) $$ []
         · iintro -; imodintro; isplit <;> itrivial
-        ihave Hcq : backend.commitReq (GF := GF) γB (mvccrand.rcP (limOf cfg)) iprop(True) bnb
+        ihave Hcq : backend.commitReq (GF := GF) γB (mvccfull.rcP (limOf cfg)) iprop(True) bnb
             iprop(True) iprop(True) $$ []
         · iapply backend.commitReq_true
         rw [etcdStorage_hook, etcdStorage_req]
-        simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be]
+        simp only [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be]
         iframe
         ipureintro; simp
     ihave Hplh : backend.plHook γB func.nil $$ [Hpl1 Hhkp]
@@ -216,10 +216,10 @@ theorem runner.open.wp_proof
       · iexact Hpl1
       · rw [etcdStorage_hook]; icases Hhkp with ⟨Hh, -⟩; iexact Hh
     (try wp_auto)
-    rw [etcdStorage_val, mvccrand.rcKB_be]
+    rw [etcdStorage_val, mvccfull.rcKB_be]
     (try wp_auto)
     -- `m.be.SetTxPostLockInsideApplyHook(m.hook)`, the hook frozen
-    wp_apply (wp_SetHook γB (mvccrand.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
+    wp_apply (wp_SetHook γB (mvccfull.rcP (limOf cfg)) (mvccW gx) iprop(True) bnb (1 : Qp).half
         func.nil f) $$ [Hnoh Hplh Hwb2] as ⟨Hnoh, Hplh⟩
     · iframe #; iframe
     imod backend.plHook_persist γB f $$ Hplh with #HhkRO
@@ -271,7 +271,7 @@ theorem runner.open.wp_proof
     wp_apply wp_check
     · ipureintro; simp [hσcrev]
     (try wp_auto)
-    wp_apply (hTEnd γk trc (.read σ) 1 (etcdStorage (mvccrand.rcKB γB bnb gx (limOf cfg))) iprop(True) iprop(True)) $$ [Htx]
+    wp_apply (hTEnd γk trc (.read σ) 1 (etcdStorage (mvccfull.rcKB γB bnb gx (limOf cfg))) iprop(True) iprop(True)) $$ [Htx]
       as ⟨Hr1, -⟩
     · iframe #; iframe
     (try wp_auto)
@@ -282,8 +282,8 @@ theorem runner.open.wp_proof
     · iframe #; iframe
     subst Hι
     -- the member's `memCore` at the new store, backend and lessor
-    have hrecsOk : leaseRecsOk ((backend.rbData (mvccrand.rcP (limOf cfg)) D).insert go!"lease"
-        (((backend.rbData (mvccrand.rcP (limOf cfg)) D).lookup go!"lease").getD ∅))
+    have hrecsOk : leaseRecsOk ((backend.rbData (mvccfull.rcP (limOf cfg)) D).insert go!"lease"
+        (((backend.rbData (mvccfull.rcP (limOf cfg)) D).lookup go!"lease").getD ∅))
         (leasesAfter ks ops n) :=
       leaseRecsOk_insert _ _ ⟨recs, hrecs1, hrecs2, hrecs3⟩
     have hUg : ∀ id ∈ recs.map (·.1), id ∈ grantedAfter ks ops n := by
@@ -299,26 +299,26 @@ theorem runner.open.wp_proof
       rw [e]; iexact HreqN
     ihave Hc : memCore ks γh ops i mp m f ⟨path, lp, interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl, n,
-        mvccrand.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩ 1 mvccReaderN
+        mvccfull.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩ 1 mvccReaderN
         (sint.Z cfg.Ops').toNat $$ [HhookOk Hpath Hbe Hle Hkv Hrev Hcmp Hleases Hret Hσw Hbw Hopn Hmb
           Hrdrs Hr1 Hnbf Hnbp Hnoh HnRT Hntoks Hncen Hlrd Hlown Hrvk Hever Hrdo Hdel Hbeon Hrbp Hstop]
     · iunfold memCore
       dsimp only
-      try simp only [mvccrand.rcKB_be]
+      try simp only [mvccfull.rcKB_be]
       iframe #; iframe
       isplitr
       · ipureintro; exact hn
       isplitl [Hret Hσw Hbw]
       · iunfold incW; iframe #; iframe
       isplitr
-      · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact HhkRO
+      · rw [etcdStorage_hookIs]; simp only [mvccfull.rcKB_γB]; iexact HhkRO
       isplitl [Hrdrs Hr1]
       · iapply hR1.2; iframe
       isplitl [Hnbf Hnbp Hnoh HnRT Hntoks Hncen]
       · iunfold bkKeep
         isplitr
         · ipureintro; exact HnP
-        simp only [mvccrand.rcKB_P, mvccrand.rcKB_γB, mvccrand.rcKB_be, mvccrand.rcKB_gx]
+        simp only [mvccfull.rcKB_P, mvccfull.rcKB_γB, mvccfull.rcKB_be, mvccfull.rcKB_gx]
         iframe #; iframe
       isplitl
       · iunfold lessorW
@@ -329,7 +329,7 @@ theorem runner.open.wp_proof
     -- `x.checkLeases(m)`
     wp_apply (wp_checkLeases x ks cfg wr h γh ops i mp m f ⟨path, lp, interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl, n,
-        mvccrand.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩ 1 mvccReaderN
+        mvccfull.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩ 1 mvccReaderN
         (sint.Z cfg.Ops').toNat hlog) $$ [Hrd Hc Htok] as ⟨Hrd, Hc, Htok⟩
     · iframe #; iframe
     (try wp_auto)
@@ -337,7 +337,7 @@ theorem runner.open.wp_proof
     iframe Htok Hrd
     iexists ⟨path, lp, interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl, n,
-        mvccrand.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩, (sint.Z cfg.Ops').toNat
+        mvccfull.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩, (sint.Z cfg.Ops').toNat
     iframe Hc
     ipureintro; exact ⟨rfl, rfl, rfl, Nat.le_refl _⟩
 

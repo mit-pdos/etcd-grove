@@ -22,3 +22,16 @@ axiom sort.SliceIsSorted.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom zap.Stack.wp_proof
+opaque apply.irrDecodeRest
+opaque apply.semverAtMostServer
+opaque apply.semverValid
+opaque etcdVerifyEnv
+opaque lease.leaseEnc
+opaque metadata.builtRawMDRaw
+opaque metadata.transportMDRaw
+opaque mvcc.kvEncode
+opaque mvcc.viewFk
+opaque peer.transportPeer
+opaque prometheus.vecLabels
+opaque trace.otelSpan
+opaque v3rpc.ctxCauseOkRaw

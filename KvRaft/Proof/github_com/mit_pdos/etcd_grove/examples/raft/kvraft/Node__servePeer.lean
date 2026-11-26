@@ -35,7 +35,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS] [Stor
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.Assumptions]
 theorem Node.servePeer.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (stp : NodeStopper GF)
     (wp_stepPeer : Node.stepPeer.spec (GF := GF) (hG := hG) F rep stp)
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))

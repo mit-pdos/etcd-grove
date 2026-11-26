@@ -97,7 +97,7 @@ end boot
 
 section res
 variable [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [SwiftNetPkgState netDistGF] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- A client machine's boot resources, from its boot. -/
@@ -154,7 +154,7 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi σ g
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 bvi σ g
   refine robust_of_distProtoLisRBTT_sha (GF := netDistGF) swAddrs swLas (system σ) g (2 ^ 30)
     (2 ^ 63) swLas_pairwise swLas_disj ?_
   intro G π hrb

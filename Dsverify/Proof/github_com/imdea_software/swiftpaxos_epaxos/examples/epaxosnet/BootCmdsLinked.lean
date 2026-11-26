@@ -35,7 +35,7 @@ namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.ser
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server1.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server1.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 
@@ -77,7 +77,7 @@ namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.ser
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server2.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server2.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 
@@ -119,7 +119,7 @@ namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.ser
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server3.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server3.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 
@@ -161,7 +161,7 @@ namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.ser
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server4.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server4.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 
@@ -203,7 +203,7 @@ namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.ser
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server5.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server5.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 
@@ -245,7 +245,7 @@ namespace github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.ser
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : cmd.server6.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [package_sem : cmd.server6.Assumptions] [π : NetProtoGS]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcFirstInit (GF := GF)]
 

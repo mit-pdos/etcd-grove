@@ -193,7 +193,7 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [AllG GF]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The far side's store**: the Gryff register (see the file header). -/
-def casR (γ : ProtoNames) : RBase GF w64 In w64 where
+def casR (γ : ProtoNames) : RBase GF w64 In In w64 where
   B := casBK
   sysState σ := regHalf γ σ
   Eop := ↑gryffN
@@ -227,7 +227,8 @@ theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : ProtoNames) (i : In) (Φ : w64 �
     intro v
     show ((applyG v i).1, (applyG v i).2.V') = _
     rw [applyG_casApply]
-  unfold lin opAU
+  refine (lin_linF (casR γ) i Φ).trans ?_
+  unfold linF opAU
   show iprop(|={⊤ \ ↑gryffN, ∅}=> ∃ st, regHalf γ st ∗
       (regHalf γ (casBK.step i st).1 ={∅, ⊤ \ ↑gryffN}=∗ Φ (casBK.step i st).2)) ⊢ _
   simp only [hs]

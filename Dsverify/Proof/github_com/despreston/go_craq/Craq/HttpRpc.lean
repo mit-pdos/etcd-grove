@@ -64,7 +64,7 @@ abbrev muxOwner [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGl
 `RegisterName.spec_fresh` registers on it). -/
 def defaultSrvFresh [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
-    [net.FieldAssumptions] [NetProtoGS] : IProp GF :=
+    [NetProtoGS] : IProp GF :=
   iprop(∃ γs γf, net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅)
 
 /-- **H3** (the file header): `http.ListenAndServe(a, nil)` listens at the valid address `a` and

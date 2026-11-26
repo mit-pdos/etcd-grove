@@ -30,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [fmt.Assumptions] [errors.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link
@@ -67,7 +67,9 @@ theorem client.Client.dialMaster.wp_proof
   · iexists _; iframe; ipureintro; word
   wp_for HI
   wp_if_destruct
-  · wp_apply DialHTTP_tcp W masterAddr $$ [$Ha] as %mc %err Hd
+  · ihave #HnetPk : isPkgInit (PROP := IProp netDistGF) pkg_id.net $$ []
+    · solve_pkg_init
+    wp_apply DialHTTP_tcp W masterAddr $$ [$HnetPk $Ha] as %mc %err Hd
     icases Hd with (⟨%Herr, #Hmc⟩ | ⟨%Herr, -⟩)
     · subst Herr
       wp_auto

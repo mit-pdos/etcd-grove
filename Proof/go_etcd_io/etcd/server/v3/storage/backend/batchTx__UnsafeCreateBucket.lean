@@ -33,8 +33,8 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Tx.CreateBucketIfNotExists_kv`). -/
-private theorem bbolt.kvGlue_Tx__CreateBucketIfNotExists_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.CreateBucketIfNotExists.spec (GF := GF) (hG := hG)) :
+private theorem bbolt.kvGlue_Tx__CreateBucketIfNotExists_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.CreateBucketIfNotExists.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
     (dq : DFrac),
   0 < n.length → n.length ≤ backend.maxKeySize →
@@ -44,7 +44,7 @@ private theorem bbolt.kvGlue_Tx__CreateBucketIfNotExists_kv (h : ∀ [ExtSemanti
       ownWTxG tx γ D (if S.lookup n = none then S.insert n ∅ else S) G ∗ wBkt tx γ b n (G n) ∗
       name ↦*{dq} n }} := by
   intro tx γ D S G name n dq hn0 hnm
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
@@ -70,8 +70,8 @@ private theorem bbolt.kvGlue_Tx__CreateBucketIfNotExists_kv (h : ∀ [ExtSemanti
     · iexact Hb
 
 theorem backend.batchTx.UnsafeCreateBucket.wp_proof
-    (hCreate : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.CreateBucketIfNotExists.spec (GF := GF) (hG := hG))
+    (hCreate : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.CreateBucketIfNotExists.spec (GF := GF) (hG := hG))
     (hStringer : zap.Stringer.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :

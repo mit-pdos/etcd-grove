@@ -39,7 +39,6 @@ section linked
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [field_sem : net.FieldAssumptions]
 variable [NaInvG GF]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 

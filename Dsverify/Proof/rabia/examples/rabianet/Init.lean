@@ -15,14 +15,13 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Proof.net.Init
 public import Dsverify.Proof.rabia.internal.config.Init
 public import Dsverify.Proof.rabia.internal.message.Init
 public import Dsverify.Proof.rabia.internal.tcp.Init
 public import Dsverify.Proof.rabia.roles.server.Init
 public import Proof.runtime.PkgInitExt
-public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init

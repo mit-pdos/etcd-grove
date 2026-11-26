@@ -65,7 +65,7 @@ def kitLibs.premise : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     ∀ G L, letI := heapAt G L; KitLibs remoteGF
 
 /-- See the file header. -/
@@ -83,7 +83,7 @@ def rabia_remote_robust.spec : Prop :=
     [server3_sem : cmd.server3.Assumptions]
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
+    [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; KitLibs remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy rabiaKitAddrs (system σ) g →

@@ -35,7 +35,7 @@ variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- **The core of `w.sync()` with no I/O error** (`wp_core`'s success arm, always; the pending bytes end
 at most at `maxBytes`). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE
     (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG))
@@ -172,7 +172,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
     ipureintro; exact hbx'
 
 /-- `sync.specNoErr`: `wp_coreNE` over the handle. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofNoErr [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofNoErr
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG))
@@ -212,7 +212,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofNoErr [os.file.Fi
   simp only [List.length_append]; omega
 
 /-- `sync.specCNoErr`: `wp_coreNE` over the handle after `Close` closed the pipeline. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCNoErr [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofCNoErr
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG))

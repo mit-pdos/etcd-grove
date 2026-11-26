@@ -36,6 +36,7 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.lease
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.config
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.backend

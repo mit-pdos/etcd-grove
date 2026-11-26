@@ -5,11 +5,11 @@ public import Net.GeneratedProof.net
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.errors.Base
-public import SpecPlan.Spec.PkgInit.syscall
 public import SpecPlan.Spec.PkgInit.os
+public import SpecPlan.Spec.PkgInit.internal.poll
+public import SpecPlan.Spec.PkgInit.syscall
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.io.Base
-public import SpecPlan.Spec.PkgInit.internal.poll
 
 @[expose] public section
 noncomputable section

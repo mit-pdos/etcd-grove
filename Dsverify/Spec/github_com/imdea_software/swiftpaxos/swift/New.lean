@@ -35,7 +35,6 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [examples.swiftnet.Assumptions] [net.rpc.Assumptions]
-  [net.FieldAssumptions]
 
 /-- `rpc.Register`'s obligation on the codec's `Receiver` for the replica `r` (not nil), once the
 codec is registered and the replica's persistent facts (`rcvrRes`) hold: it returns a

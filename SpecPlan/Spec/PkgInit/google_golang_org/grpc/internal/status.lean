@@ -3,7 +3,10 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.internal.status
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.fmt.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.genproto.googleapis.rpc.status
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes
+public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
 
 @[expose] public section
 noncomputable section

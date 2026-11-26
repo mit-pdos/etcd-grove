@@ -91,7 +91,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: the paxos register (see the file header). -/
-def woR (Γ : Names) : RBase GF (Option GoString) BStr BStr where
+def woR (Γ : Names) : RBase GF (Option GoString) BStr BStr BStr where
   B := woB
   sysState σ := own_state Γ σ
   Eop := paxosEop
@@ -121,7 +121,8 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 postcondition read on the bounded output). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (Γ : Names) (i : BStr) (Φ : BStr → IProp GF) :
     lin (Gg := Gg) (woR Γ) i Φ ⊢ opAU Γ i.1 (fun w => Φ (bnd w i)) := by
-  unfold lin opAU
+  refine (lin_linF (woR Γ) i Φ).trans ?_
+  unfold linF opAU
   simp only [woR, woB, woStep_eq]
   exact .rfl
 
@@ -192,7 +193,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
 local notation "kpkg" => pkg_id.github_com.xiang90.paxos.examples.paxosnet

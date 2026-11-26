@@ -5,8 +5,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc`
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`v3rpcInit`, `Base.lean`): its error map `toGRPCErrorMap` and counter vector
-`clientRequests` with its label names (the map untranslated: the trust-boundary axiom
-`toGRPCErrorMap_init`; the vector translated, over `NewCounterVec`'s spec, until 2026-11-19 an
+`clientRequests` with its label names (the map translated since grpcerrmap,
+2026-11-26: until then the trust-boundary axiom `toGRPCErrorMap_init`; the vector translated, over `NewCounterVec`'s spec, until 2026-11-19 an
 axiom `<X>_init`), `metricsServerLock` (an
 unlocked mutex guarding `metricsServerCached`, `nil`: `metricsVars`), `rpctypes`' errors and
 metadata keys and `etcdserverpb`'s sort-name maps and six `ServiceDesc`s (`svcDescsOk`, from their
@@ -53,6 +53,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Init
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.Init
 public import Proof.go_etcd_io.etcd.server.v3.features.Init
@@ -73,6 +74,7 @@ public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.status.Init
 public import Perennial.Proof.sync.RWMutexGuard
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ErrMapInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 
@@ -91,21 +93,6 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc's `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`), and the two have their `errors.New` descriptions (`kvstore.go:38-39`; k8s etcd3 7c-2 part 2, G2-a); every value is one grpc's `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`); the value of each variable of `grpcErrKeyGlobals` (the literal's 53 keys) is a key (k8s etcd3 7c-2 part 2, S2: stated as a persistent wand on the variable's persisted cell, asserting no cell of another package). -/
-axiom toGRPCErrorMap_init :
-    {{ (True : IProp GF) }} (App (Val toGRPCErrorMap.init) (Val #()))
-    {{ RET #(); ∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ grpcErrMapOk M kf kc }}
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-end opaqueInits
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 

@@ -70,7 +70,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : gryff.examples.gryffnet.Assumptions]
-variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS] [AllG GF]
 variable [bvi : go.BasicIntoValInj]
 
@@ -86,7 +85,8 @@ theorem casR_encOut_inj (γ : ProtoNames) (o o' : w64)
   exact u64Le_inj (List.cons.inj h).2
 
 /-- **porcupine's model is the pending-writes model** of the far side's store `casR γ`. -/
-theorem casS_pendDec (γ : ProtoNames) : PendDec (casR (GF := GF) γ) (casS (GF := GF)) where
+theorem casS_pendDec (γ : ProtoNames) : PendDec (casR (GF := GF) γ) (casS (GF := GF)) :=
+  .ofTotal (fun _ => rfl) {
   init := rfl
   ok s i o := by
     show (pM casB casDec).step s (inV i, outV ⟨false, o⟩) = (pSeq casBK).step s (i, .ok o)
@@ -98,7 +98,7 @@ theorem casS_pendDec (γ : ProtoNames) : PendDec (casR (GF := GF) γ) (casS (GF 
     exact pseq_K s i .err
   ioOk_ok i o := BI.pure_intro ⟨⟨i, rfl⟩, ⟨false, o⟩, rfl⟩
   ioOk_err i := BI.pure_intro ⟨⟨i, rfl⟩, ⟨true, W64 0⟩, rfl⟩
-  noObs _ := rfl
+  noObs _ := rfl }
 
 theorem pendCtx_casS (γ : ProtoNames) (γp : PendNames) :
     pendCtx (Gg := hG.goose_globalGS) (casR γ) (casS0 (GF := GF)) γp =

@@ -24,7 +24,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
-variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
+variable [os.Assumptions] [go.BasicIntoValInj]
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent
     (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)) :

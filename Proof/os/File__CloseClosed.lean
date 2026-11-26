@@ -6,6 +6,7 @@ module
 
 public import Spec.os.File__CloseClosed
 public import Proof.os.ErrorOk
+public import Proof.os.ErrnoPathErr
 
 @[expose] public section
 
@@ -27,31 +28,25 @@ variable [os.Assumptions]
 theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG := hG) := by
   intro f name
   unfold os.ownFile
-  wp_start as ⟨-, %inner, #Hf, Hfd, #Hn, #Hsys⟩
+  wp_start as ⟨-, %inner, #Hf, Hfd, #Hn, #Hnb, #Hap, #Hsys⟩
   ihave ⟨%e, #Heok, #He⟩ := os.errClosed_of_pkgInit $$ Hpkg
   unfold os.ErrClosed at *
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  try wp_auto
   rw [decide_eq_false hnn]
-  wp_auto
-  unfold os.model.pathError
-  iapply wp_fupd
-  wp_auto
-  iStructNamed pe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
+  try wp_auto
+  wp_apply os.wp_modelPathError_fields
+  iintro %pe #Op #Path #Err
+  try wp_auto
   iapply HΦ
   isplitl [Hfd]
   · iexists inner
     iframe
     (repeat' isplitl []) <;> iassumption
   · iapply EtcdGrove.fmtErrorOkOrNil_of
-    iapply (os.pathError_fmtErrorOk pe_ptr _ _ e) $$ Op Path Err Heok
+    iapply (os.pathError_fmtErrorOk pe _ _ e) $$ Op Path Err Heok
 
 end proof
 

@@ -27,7 +27,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : wire.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : wire.Assumptions]
 variable [go.BasicIntoValInj]
 
 theorem buf_rejoin (buf : GoSlice) (k : w64) (xs ys : List w8) (hx : xs.length = sint.nat k)
@@ -75,7 +75,9 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
           ⌜r.got.length ≤ (slice.slice buf w8 k buf.len).len.toNat ∧
             (r = .bytes [] → (slice.slice buf w8 k buf.len).len.toNat = 0)⌝)) $$ [Hb2 HP]
       as %k' %err ⟨%r, %bs', ⟨HP, %Hrl0⟩, Hb2, %Hout, HE⟩
-    · iframe Hc Hb2 Heof Hed
+    · ihave #Hio := net.connAt_io _ _ _ _ _ _ $$ Hc
+      ihave #Hpoll := net.connAt_poll _ _ _ _ _ _ $$ Hc
+      (try iframe Hio); (try iframe Hpoll); iframe Hc Hb2 Heof Hed
       imod Hacc $$ %got %((slice.slice buf w8 k buf.len).len.toNat) HP
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro

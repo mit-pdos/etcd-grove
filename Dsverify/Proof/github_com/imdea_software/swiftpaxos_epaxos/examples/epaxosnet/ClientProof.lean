@@ -50,7 +50,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Assumptions]
-variable [net.rpc.Assumptions] [field_sem : net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [epaxos.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [ρ : RemoteGS] [bvi : go.BasicIntoValInj]
 
@@ -177,7 +177,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
 
 omit ρ bvi in
 /-- A slot's update gives its `lin` (a read's persistently). -/
-theorem slotUpd_lin (R : RBase GF KvS EIn BStr) (i : EIn) (Φ : BStr → IProp GF) :
+theorem slotUpd_lin (R : RBase GF KvS EIn EIn BStr) (i : EIn) (Φ : BStr → IProp GF) :
     slotUpd (Gg := hG.goose_globalGS) R i Φ ⊢ lin (Gg := hG.goose_globalGS) R i Φ := by
   unfold slotUpd
   split

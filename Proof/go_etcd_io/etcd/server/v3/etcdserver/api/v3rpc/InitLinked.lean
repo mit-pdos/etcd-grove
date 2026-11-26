@@ -34,6 +34,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InitLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.features.InitLinked
@@ -43,8 +44,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InitLinked
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.InitLinked
-public import Proof.go_opentelemetry_io.otel.attribute.Init
-public import Proof.go_opentelemetry_io.otel.trace.Init
+public import Proof.go_opentelemetry_io.otel.attribute.InitLinked
+public import Proof.go_opentelemetry_io.otel.trace.InitLinked
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.google_golang_org.grpc.InitLinked
 public import Proof.google_golang_org.grpc.codes.InitLinked
@@ -99,6 +100,7 @@ variable [_root_.Perennial.log.NewModel]
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
 set_option maxHeartbeats 8000000 in
+set_option maxRecDepth 200000 in
 theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc get_is_pkg_init) :
     {{ EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) }}
@@ -120,6 +122,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) progressReportIntervalMu _ as HprogressReportIntervalMu
   wp_apply wp_GlobalAlloc (V := w64) progressReportInterval _ as HprogressReportInterval
+  wp_apply wp_GlobalAlloc (V := Loc) toGRPCErrorMap _ as HtoGRPCErrorMap
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopProgressDuration _ as HwatchSendLoopProgressDuration
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopControlStreamDuration _ as HwatchSendLoopControlStreamDuration
   wp_apply wp_GlobalAlloc (V := GoInterface) watchSendLoopWatchStreamDurationPerEvent _ as HwatchSendLoopWatchStreamDurationPerEvent
@@ -130,45 +133,47 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) sentBytes _ as HsentBytes
   wp_apply wp_GlobalAlloc (V := Loc) metricsServerCached _ as HmetricsServerCached
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) metricsServerLock _ as HmetricsServerLock
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd47⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd46⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd45⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd44⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd43⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd42⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_opentelemetry_io.otel.«attribute».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd41⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.math.rand _root_.Perennial.math.rand.initialize'
-      EtcdGrove.ExternalInit.math_rand _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd40⟩
+      EtcdGrove.ExternalInit.math_rand _root_.Perennial.math.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd41⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
-      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd39⟩
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd40⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regKeys)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regQs)
       (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd38⟩
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd39⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regKeys)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd37⟩
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd38⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regKeys)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regQs)
       (List.Sublist.map _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.slnil))))))))))))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd36⟩
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd37⟩
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) [(pkg_id.go_etcd_io.etcd.server.v3.auth, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.auth.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.lease, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regKeys), (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regNames, _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.regKeys)])
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.regQs)
       (List.Sublist.map _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.cons₂ _ (List.Sublist.cons _ (List.Sublist.cons₂ _ (List.Sublist.slnil))))))))))))))
-      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+      _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd36⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd35⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd34⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.config.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd33⟩
@@ -305,12 +310,712 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BwatchSendLoopProgressDuration as %cwatchSendLoopProgressDuration ⟨#CwatchSendLoopProgressDuration, #NwatchSendLoopProgressDuration⟩
   try wp_auto
   iunfold EtcdGrove.prometheus.metric.histSpec at CwatchSendLoopProgressDuration
-  wp_apply toGRPCErrorMap_init as ⟨%mptoGRPCErrorMap, %MtoGRPCErrorMap, %kftoGRPCErrorMap, %kctoGRPCErrorMap, HtoGRPCErrorMap, #StoGRPCErrorMap, #FtoGRPCErrorMap, #CtoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, #PtoGRPCErrorMap⟩
+  -- translated initializer of toGRPCErrorMap))
+  -- the keys, from their packages' facts
+  ihave #KV0 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDRemoved go!"membership: ID removed" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd39
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) (List.Mem.head _ : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDRemoved, go!"membership: ID removed") ∈ go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV0 with ⟨%k0, #KP0, %KO0, #KD0⟩
+  ihave #KV1 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound go!"membership: ID not found" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd39
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)) : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound, go!"membership: ID not found") ∈ go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV1 with ⟨%k1, #KP1, %KO1, #KD1⟩
+  ihave #KV2 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDExists go!"membership: ID exists" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd39
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) (List.Mem.tail _ (List.Mem.head _) : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDExists, go!"membership: ID exists") ∈ go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV2 with ⟨%k2, #KP2, %KO2, #KD2⟩
+  ihave #KV3 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrPeerURLexists go!"membership: peerURL exists" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd39
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))) : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrPeerURLexists, go!"membership: peerURL exists") ∈ go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV3 with ⟨%k3, #KP3, %KO3, #KD3⟩
+  ihave #KV4 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner go!"membership: can only promote a learner member" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd39
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))) : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner, go!"membership: can only promote a learner member") ∈ go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV4 with ⟨%k4, #KP4, %KO4, #KD4⟩
+  ihave #KV5 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrTooManyLearners go!"membership: too many learner members in cluster" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd39
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))) : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrTooManyLearners, go!"membership: too many learner members in cluster") ∈ go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV5 with ⟨%k5, #KP5, %KO5, #KD5⟩
+  ihave #KV6 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers go!"etcdserver: re-configuration failed due to not enough started members" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers, go!"etcdserver: re-configuration failed due to not enough started members") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV6 with ⟨%k6, #KP6, %KO6, #KD6⟩
+  ihave #KV7 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady go!"etcdserver: can only promote a learner member which is in sync with leader" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady, go!"etcdserver: can only promote a learner member which is in sync with leader") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV7 with ⟨%k7, #KP7, %KO7, #KD7⟩
+  ihave #KV8 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd38
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hx, -⟩
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV8 with ⟨%k8, #KP8, %KO8, #KD8⟩
+  ihave #KV9 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd38
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hx, -⟩
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV9 with ⟨%k9, #KP9, %KO9, #KD9⟩
+  ihave #KV10 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge go!"etcdserver: request is too large" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge, go!"etcdserver: request is too large") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV10 with ⟨%k10, #KP10, %KO10, #KD10⟩
+  ihave #KV11 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace go!"etcdserver: no space" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace, go!"etcdserver: no space") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV11 with ⟨%k11, #KP11, %KO11, #KD11⟩
+  ihave #KV12 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests go!"etcdserver: too many requests" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests, go!"etcdserver: too many requests") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV12 with ⟨%k12, #KP12, %KO12, #KD12⟩
+  ihave #KV13 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader go!"etcdserver: no leader" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader, go!"etcdserver: no leader") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV13 with ⟨%k13, #KP13, %KO13, #KD13⟩
+  ihave #KV14 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader go!"etcdserver: not leader" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader, go!"etcdserver: not leader") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV14 with ⟨%k14, #KP14, %KO14, #KD14⟩
+  ihave #KV15 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged go!"etcdserver: leader changed" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged, go!"etcdserver: leader changed") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV15 with ⟨%k15, #KP15, %KO15, #KD15⟩
+  ihave #KV16 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled go!"etcdserver: request cancelled" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled, go!"etcdserver: request cancelled") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV16 with ⟨%k16, #KP16, %KO16, #KD16⟩
+  ihave #KV17 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped go!"etcdserver: server stopped" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.head _) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped, go!"etcdserver: server stopped") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV17 with ⟨%k17, #KP17, %KO17, #KD17⟩
+  ihave #KV18 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout go!"etcdserver: request timed out" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout, go!"etcdserver: request timed out") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV18 with ⟨%k18, #KP18, %KO18, #KD18⟩
+  ihave #KV19 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail go!"etcdserver: request timed out, possibly due to previous leader failure" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail, go!"etcdserver: request timed out, possibly due to previous leader failure") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV19 with ⟨%k19, #KP19, %KO19, #KD19⟩
+  ihave #KV20 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost go!"etcdserver: request timed out, possibly due to connection lost" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost, go!"etcdserver: request timed out, possibly due to connection lost") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV20 with ⟨%k20, #KP20, %KO20, #KD20⟩
+  ihave #KV21 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex go!"etcdserver: request timed out, waiting for the applied index took too long" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex, go!"etcdserver: request timed out, waiting for the applied index took too long") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV21 with ⟨%k21, #KP21, %KO21, #KD21⟩
+  ihave #KV22 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy go!"etcdserver: unhealthy cluster" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy, go!"etcdserver: unhealthy cluster") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV22 with ⟨%k22, #KP22, %KO22, #KD22⟩
+  ihave #KV23 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound go!"etcdserver: key not found" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound, go!"etcdserver: key not found") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV23 with ⟨%k23, #KP23, %KO23, #KD23⟩
+  ihave #KV24 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt go!"etcdserver: corrupt cluster" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt, go!"etcdserver: corrupt cluster") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV24 with ⟨%k24, #KP24, %KO24, #KD24⟩
+  ihave #KV25 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee go!"etcdserver: bad leader transferee" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee, go!"etcdserver: bad leader transferee") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV25 with ⟨%k25, #KP25, %KO25, #KD25⟩
+  ihave #KV26 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable go!"etcdserver: cluster version not found during downgrade" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable, go!"etcdserver: cluster version not found during downgrade") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV26 with ⟨%k26, #KP26, %KO26, #KD26⟩
+  ihave #KV27 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat go!"etcdserver: wrong downgrade target version format" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd34
+    icases Hf with ⟨-, #Hl, -⟩
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))))))))) : (go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat, go!"etcdserver: wrong downgrade target version format") ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV27 with ⟨%k27, #KP27, %KO27, #KD27⟩
+  ihave #KV28 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.version.ErrInvalidDowngradeTargetVersion go!"etcdserver: invalid downgrade target version" : IProp GF) $$ []
+  · ihave Hf : (EtcdGrove.errorsNewVars go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd35
+    ihave #Hl := Hf
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs) (List.Mem.head _ : (go_etcd_io.etcd.server.v3.etcdserver.version.ErrInvalidDowngradeTargetVersion, go!"etcdserver: invalid downgrade target version") ∈ go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV28 with ⟨%k28, #KP28, %KO28, #KD28⟩
+  ihave #KV29 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.version.ErrDowngradeInProcess go!"etcdserver: cluster has a downgrade job in progress" : IProp GF) $$ []
+  · ihave Hf : (EtcdGrove.errorsNewVars go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd35
+    ihave #Hl := Hf
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs) (List.Mem.tail _ (List.Mem.head _) : (go_etcd_io.etcd.server.v3.etcdserver.version.ErrDowngradeInProcess, go!"etcdserver: cluster has a downgrade job in progress") ∈ go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV29 with ⟨%k29, #KP29, %KO29, #KD29⟩
+  ihave #KV30 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.etcdserver.version.ErrNoInflightDowngrade go!"etcdserver: no inflight downgrade job" : IProp GF) $$ []
+  · ihave Hf : (EtcdGrove.errorsNewVars go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd35
+    ihave #Hl := Hf
+    ihave #Hx := EtcdGrove.errorsNewVars_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)) : (go_etcd_io.etcd.server.v3.etcdserver.version.ErrNoInflightDowngrade, go!"etcdserver: no inflight downgrade job") ∈ go_etcd_io.etcd.server.v3.etcdserver.version.versionErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_newVar $$ Hx
+  icases KV30 with ⟨%k30, #KP30, %KO30, #KD30⟩
+  ihave #KV31 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound go!"lease not found" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd32
+    icases Hf with ⟨-, -, -, -, -, -, -, #Hx, -⟩
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV31 with ⟨%k31, #KP31, %KO31, #KD31⟩
+  ihave #KV32 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.lease.ErrLeaseExists go!"lease already exists" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd32
+    icases Hf with ⟨-, -, -, -, -, -, -, -, #Hx, -⟩
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV32 with ⟨%k32, #KP32, %KO32, #KD32⟩
+  ihave #KV33 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd32
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, #Hx, -⟩
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV33 with ⟨%k33, #KP33, %KO33, #KD33⟩
+  ihave #KV34 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist go!"auth: root user does not exist" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.head _ : (go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist, go!"auth: root user does not exist") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV34 with ⟨%k34, #KP34, %KO34, #KD34⟩
+  ihave #KV35 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist go!"auth: root user does not have root role" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.head _) : (go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist, go!"auth: root user does not have root role") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV35 with ⟨%k35, #KP35, %KO35, #KD35⟩
+  ihave #KV36 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist go!"auth: user already exists" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)) : (go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist, go!"auth: user already exists") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV36 with ⟨%k36, #KP36, %KO36, #KD36⟩
+  ihave #KV37 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrUserEmpty go!"auth: user name is empty" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))) : (go_etcd_io.etcd.server.v3.auth.ErrUserEmpty, go!"auth: user name is empty") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV37 with ⟨%k37, #KP37, %KO37, #KD37⟩
+  ihave #KV38 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrUserNotFound go!"auth: user not found" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))) : (go_etcd_io.etcd.server.v3.auth.ErrUserNotFound, go!"auth: user not found") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV38 with ⟨%k38, #KP38, %KO38, #KD38⟩
+  ihave #KV39 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist go!"auth: role already exists" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))) : (go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist, go!"auth: role already exists") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV39 with ⟨%k39, #KP39, %KO39, #KD39⟩
+  ihave #KV40 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound go!"auth: role not found" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))) : (go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound, go!"auth: role not found") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV40 with ⟨%k40, #KP40, %KO40, #KD40⟩
+  ihave #KV41 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty go!"auth: role name is empty" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))) : (go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty, go!"auth: role name is empty") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV41 with ⟨%k41, #KP41, %KO41, #KD41⟩
+  ihave #KV42 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrAuthFailed go!"auth: authentication failed, invalid user ID or password" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrAuthFailed, go!"auth: authentication failed, invalid user ID or password") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV42 with ⟨%k42, #KP42, %KO42, #KD42⟩
+  ihave #KV43 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven go!"auth: permission not given" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))) : (go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven, go!"auth: permission not given") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV43 with ⟨%k43, #KP43, %KO43, #KD43⟩
+  ihave #KV44 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied go!"auth: permission denied" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied, go!"auth: permission denied") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV44 with ⟨%k44, #KP44, %KO44, #KD44⟩
+  ihave #KV45 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted go!"auth: role is not granted to the user" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted, go!"auth: role is not granted to the user") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV45 with ⟨%k45, #KP45, %KO45, #KD45⟩
+  ihave #KV46 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted go!"auth: permission is not granted to the role" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted, go!"auth: permission is not granted to the role") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV46 with ⟨%k46, #KP46, %KO46, #KD46⟩
+  ihave #KV47 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled go!"auth: authentication is not enabled" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled, go!"auth: authentication is not enabled") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV47 with ⟨%k47, #KP47, %KO47, #KD47⟩
+  ihave #KV48 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken go!"auth: invalid auth token" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken, go!"auth: invalid auth token") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV48 with ⟨%k48, #KP48, %KO48, #KD48⟩
+  ihave #KV49 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt go!"auth: invalid auth management" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _)))))))))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt, go!"auth: invalid auth management") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV49 with ⟨%k49, #KP49, %KO49, #KD49⟩
+  ihave #KV50 : (EtcdGrove.v3rpc.errMapKeyVar go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision go!"auth: revision in header is old" : IProp GF) $$ []
+  · ihave Hf : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd3
+    icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hl⟩
+    ihave #Hx := EtcdGrove.errVarCells_mem (GF := GF) (l := go_etcd_io.etcd.server.v3.auth.authErrMsgs) (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.tail _ (List.Mem.head _))))))))))))))) : (go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision, go!"auth: revision in header is old") ∈ go_etcd_io.etcd.server.v3.auth.authErrMsgs) $$ Hl
+    iapply EtcdGrove.v3rpc.keyVar_of_cell $$ Hx
+  icases KV50 with ⟨%k50, #KP50, %KO50, #KD50⟩
+  ihave #KV51 : (EtcdGrove.v3rpc.errMapKeyVar _root_.Perennial.context.Canceled go!"context canceled" : IProp GF) $$ []
+  · ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+    · iapply _root_.Perennial.context.isInit_access $$ Hd1
+    iNamed Hci
+    icases HCanceledCell with ⟨%xc, #Hxc, #Hxs⟩
+    iapply EtcdGrove.v3rpc.keyVar_of_cell
+    unfold EtcdGrove.errVarCell EtcdGrove.errStrCell
+    iexists xc; iframe Hxc Hxs
+  icases KV51 with ⟨%k51, #KP51, %KO51, #KD51⟩
+  ihave #KV52 : (EtcdGrove.v3rpc.errMapKeyVar _root_.Perennial.context.DeadlineExceeded go!"context deadline exceeded" : IProp GF) $$ []
+  · ihave Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+    · iapply _root_.Perennial.context.isInit_access $$ Hd1
+    iNamed Hci
+    iapply EtcdGrove.v3rpc.keyVar_deadline $$ HDeadlineExceededTy
+  icases KV52 with ⟨%k52, #KP52, %KO52, #KD52⟩
+  -- the values, from `rpctypes`' fact
+  ihave Hrmv : (go_etcd_io.etcd.cache.v3.rpctypesMapVals : IProp GF) $$ []
+  · ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hd22
+    icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #R⟩
+    iexact R
+  icases Hrmv with ⟨⟨%v0, #VP0, #VS0, #VD0⟩, ⟨%v1, #VP1, #VS1, #VD1⟩, ⟨%v2, #VP2, #VS2, #VD2⟩, ⟨%v3, #VP3, #VS3, #VD3⟩, ⟨%v4, #VP4, #VS4, #VD4⟩, ⟨%v5, #VP5, #VS5, #VD5⟩, ⟨%v6, #VP6, #VS6, #VD6⟩, ⟨%v7, #VP7, #VS7, #VD7⟩, ⟨%v8, #VP8, #VS8, #VD8⟩, ⟨%v9, #VP9, #VS9, #VD9⟩, ⟨%v10, #VP10, #VS10, #VD10⟩, ⟨%v11, #VP11, #VS11, #VD11⟩, ⟨%v12, #VP12, #VS12, #VD12⟩, ⟨%v13, #VP13, #VS13, #VD13⟩, ⟨%v14, #VP14, #VS14, #VD14⟩, ⟨%v15, #VP15, #VS15, #VD15⟩, ⟨%v16, #VP16, #VS16, #VD16⟩, ⟨%v17, #VP17, #VS17, #VD17⟩, ⟨%v18, #VP18, #VS18, #VD18⟩, ⟨%v19, #VP19, #VS19, #VD19⟩, ⟨%v20, #VP20, #VS20, #VD20⟩, ⟨%v21, #VP21, #VS21, #VD21⟩, ⟨%v22, #VP22, #VS22, #VD22⟩, ⟨%v23, #VP23, #VS23, #VD23⟩, ⟨%v24, #VP24, #VS24, #VD24⟩, ⟨%v25, #VP25, #VS25, #VD25⟩, ⟨%v26, #VP26, #VS26, #VD26⟩, ⟨%v27, #VP27, #VS27, #VD27⟩, ⟨%v28, #VP28, #VS28, #VD28⟩, ⟨%v29, #VP29, #VS29, #VD29⟩, ⟨%v30, #VP30, #VS30, #VD30⟩, ⟨%v31, #VP31, #VS31, #VD31⟩, ⟨%v32, #VP32, #VS32, #VD32⟩, ⟨%v33, #VP33, #VS33, #VD33⟩, ⟨%v34, #VP34, #VS34, #VD34⟩, ⟨%v35, #VP35, #VS35, #VD35⟩, ⟨%v36, #VP36, #VS36, #VD36⟩, ⟨%v37, #VP37, #VS37, #VD37⟩, ⟨%v38, #VP38, #VS38, #VD38⟩, ⟨%v39, #VP39, #VS39, #VD39⟩, ⟨%v40, #VP40, #VS40, #VD40⟩, ⟨%v41, #VP41, #VS41, #VD41⟩, ⟨%v42, #VP42, #VS42, #VD42⟩, ⟨%v43, #VP43, #VS43, #VD43⟩, ⟨%v44, #VP44, #VS44, #VD44⟩, ⟨%v45, #VP45, #VS45, #VD45⟩, ⟨%v46, #VP46, #VS46, #VD46⟩, ⟨%v47, #VP47, #VS47, #VD47⟩, ⟨%v48, #VP48, #VS48, #VD48⟩, ⟨%v49, #VP49, #VS49, #VD49⟩, ⟨%v50, #VP50, #VS50, #VD50⟩⟩
+  -- the loads, then the map
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMap_make k9 k8) as %mpE HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 0 go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDRemoved k0 v0
+      go!"membership: ID removed" go!"etcdserver: member not found" rfl KO0 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP0 $KD0 $VS0 $VD0] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 1 go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound k1 v0
+      go!"membership: ID not found" go!"etcdserver: member not found" rfl KO1 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP1 $KD1 $VS0 $VD0] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 2 go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDExists k2 v1
+      go!"membership: ID exists" go!"etcdserver: member ID already exist" rfl KO2 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP2 $KD2 $VS1 $VD1] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 3 go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrPeerURLexists k3 v2
+      go!"membership: peerURL exists" go!"etcdserver: Peer URLs already exists" rfl KO3 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP3 $KD3 $VS2 $VD2] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 4 go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner k4 v3
+      go!"membership: can only promote a learner member" go!"etcdserver: can only promote a learner member" rfl KO4 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP4 $KD4 $VS3 $VD3] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 5 go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrTooManyLearners k5 v4
+      go!"membership: too many learner members in cluster" go!"etcdserver: too many learner members in cluster" rfl KO5 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP5 $KD5 $VS4 $VD4] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 6 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers k6 v5
+      go!"etcdserver: re-configuration failed due to not enough started members" go!"etcdserver: re-configuration failed due to not enough started members" rfl KO6 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP6 $KD6 $VS5 $VD5] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 7 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady k7 v6
+      go!"etcdserver: can only promote a learner member which is in sync with leader" go!"etcdserver: can only promote a learner member which is in sync with leader" rfl KO7 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP7 $KD7 $VS6 $VD6] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 8 go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted k8 v7
+      go!"mvcc: required revision has been compacted" go!"etcdserver: mvcc: required revision has been compacted" rfl KO8 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun _ => rfl⟩)
+      $$ [$HmE $KP8 $KD8 $VS7 $VD7] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 9 go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev k9 v8
+      go!"mvcc: required revision is a future revision" go!"etcdserver: mvcc: required revision is a future revision" rfl KO9 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun _ => rfl, fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP9 $KD9 $VS8 $VD8] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 10 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge k10 v9
+      go!"etcdserver: request is too large" go!"etcdserver: request is too large" rfl KO10 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP10 $KD10 $VS9 $VD9] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 11 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace k11 v10
+      go!"etcdserver: no space" go!"etcdserver: mvcc: database space exceeded" rfl KO11 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP11 $KD11 $VS10 $VD10] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 12 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests k12 v11
+      go!"etcdserver: too many requests" go!"etcdserver: too many requests" rfl KO12 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP12 $KD12 $VS11 $VD11] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 13 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader k13 v12
+      go!"etcdserver: no leader" go!"etcdserver: no leader" rfl KO13 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP13 $KD13 $VS12 $VD12] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 14 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader k14 v13
+      go!"etcdserver: not leader" go!"etcdserver: not leader" rfl KO14 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP14 $KD14 $VS13 $VD13] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 15 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged k15 v14
+      go!"etcdserver: leader changed" go!"etcdserver: leader changed" rfl KO15 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP15 $KD15 $VS14 $VD14] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 16 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled k16 v15
+      go!"etcdserver: request cancelled" go!"etcdserver: request canceled" rfl KO16 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP16 $KD16 $VS15 $VD15] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 17 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped k17 v16
+      go!"etcdserver: server stopped" go!"etcdserver: server stopped" rfl KO17 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP17 $KD17 $VS16 $VD16] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 18 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout k18 v17
+      go!"etcdserver: request timed out" go!"etcdserver: request timed out" rfl KO18 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP18 $KD18 $VS17 $VD17] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 19 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail k19 v18
+      go!"etcdserver: request timed out, possibly due to previous leader failure" go!"etcdserver: request timed out, possibly due to previous leader failure" rfl KO19 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP19 $KD19 $VS18 $VD18] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 20 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost k20 v19
+      go!"etcdserver: request timed out, possibly due to connection lost" go!"etcdserver: request timed out, possibly due to connection lost" rfl KO20 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP20 $KD20 $VS19 $VD19] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 21 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex k21 v20
+      go!"etcdserver: request timed out, waiting for the applied index took too long" go!"etcdserver: request timed out, waiting for the applied index took too long" rfl KO21 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP21 $KD21 $VS20 $VD20] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 22 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy k22 v21
+      go!"etcdserver: unhealthy cluster" go!"etcdserver: unhealthy cluster" rfl KO22 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP22 $KD22 $VS21 $VD21] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 23 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound k23 v22
+      go!"etcdserver: key not found" go!"etcdserver: key not found" rfl KO23 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP23 $KD23 $VS22 $VD22] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 24 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt k24 v23
+      go!"etcdserver: corrupt cluster" go!"etcdserver: corrupt cluster" rfl KO24 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP24 $KD24 $VS23 $VD23] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 25 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee k25 v24
+      go!"etcdserver: bad leader transferee" go!"etcdserver: bad leader transferee" rfl KO25 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP25 $KD25 $VS24 $VD24] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 26 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable k26 v25
+      go!"etcdserver: cluster version not found during downgrade" go!"etcdserver: cluster version not found during downgrade" rfl KO26 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP26 $KD26 $VS25 $VD25] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 27 go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat k27 v26
+      go!"etcdserver: wrong downgrade target version format" go!"etcdserver: wrong downgrade target version format" rfl KO27 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP27 $KD27 $VS26 $VD26] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 28 go_etcd_io.etcd.server.v3.etcdserver.version.ErrInvalidDowngradeTargetVersion k28 v27
+      go!"etcdserver: invalid downgrade target version" go!"etcdserver: invalid downgrade target version" rfl KO28 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP28 $KD28 $VS27 $VD27] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 29 go_etcd_io.etcd.server.v3.etcdserver.version.ErrDowngradeInProcess k29 v28
+      go!"etcdserver: cluster has a downgrade job in progress" go!"etcdserver: cluster has a downgrade job in progress" rfl KO29 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP29 $KD29 $VS28 $VD28] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 30 go_etcd_io.etcd.server.v3.etcdserver.version.ErrNoInflightDowngrade k30 v29
+      go!"etcdserver: no inflight downgrade job" go!"etcdserver: no inflight downgrade job" rfl KO30 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP30 $KD30 $VS29 $VD29] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 31 go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound k31 v30
+      go!"lease not found" go!"etcdserver: requested lease not found" rfl KO31 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP31 $KD31 $VS30 $VD30] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 32 go_etcd_io.etcd.server.v3.lease.ErrLeaseExists k32 v31
+      go!"lease already exists" go!"etcdserver: lease already exists" rfl KO32 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP32 $KD32 $VS31 $VD31] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 33 go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge k33 v32
+      go!"too large lease TTL" go!"etcdserver: too large lease TTL" rfl KO33 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP33 $KD33 $VS32 $VD32] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 34 go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist k34 v33
+      go!"auth: root user does not exist" go!"etcdserver: root user does not exist" rfl KO34 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP34 $KD34 $VS33 $VD33] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 35 go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist k35 v34
+      go!"auth: root user does not have root role" go!"etcdserver: root user does not have root role" rfl KO35 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP35 $KD35 $VS34 $VD34] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 36 go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist k36 v35
+      go!"auth: user already exists" go!"etcdserver: user name already exists" rfl KO36 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP36 $KD36 $VS35 $VD35] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 37 go_etcd_io.etcd.server.v3.auth.ErrUserEmpty k37 v36
+      go!"auth: user name is empty" go!"etcdserver: user name is empty" rfl KO37 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP37 $KD37 $VS36 $VD36] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 38 go_etcd_io.etcd.server.v3.auth.ErrUserNotFound k38 v37
+      go!"auth: user not found" go!"etcdserver: user name not found" rfl KO38 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP38 $KD38 $VS37 $VD37] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 39 go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist k39 v38
+      go!"auth: role already exists" go!"etcdserver: role name already exists" rfl KO39 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP39 $KD39 $VS38 $VD38] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 40 go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound k40 v39
+      go!"auth: role not found" go!"etcdserver: role name not found" rfl KO40 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP40 $KD40 $VS39 $VD39] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 41 go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty k41 v40
+      go!"auth: role name is empty" go!"etcdserver: role name is empty" rfl KO41 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP41 $KD41 $VS40 $VD40] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 42 go_etcd_io.etcd.server.v3.auth.ErrAuthFailed k42 v41
+      go!"auth: authentication failed, invalid user ID or password" go!"etcdserver: authentication failed, invalid user ID or password" rfl KO42 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP42 $KD42 $VS41 $VD41] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 43 go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven k43 v42
+      go!"auth: permission not given" go!"etcdserver: permission not given" rfl KO43 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP43 $KD43 $VS42 $VD42] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 44 go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied k44 v43
+      go!"auth: permission denied" go!"etcdserver: permission denied" rfl KO44 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP44 $KD44 $VS43 $VD43] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 45 go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted k45 v44
+      go!"auth: role is not granted to the user" go!"etcdserver: role is not granted to the user" rfl KO45 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP45 $KD45 $VS44 $VD44] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 46 go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted k46 v45
+      go!"auth: permission is not granted to the role" go!"etcdserver: permission is not granted to the role" rfl KO46 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP46 $KD46 $VS45 $VD45] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 47 go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled k47 v46
+      go!"auth: authentication is not enabled" go!"etcdserver: authentication is not enabled" rfl KO47 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP47 $KD47 $VS46 $VD46] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 48 go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken k48 v47
+      go!"auth: invalid auth token" go!"etcdserver: invalid auth token" rfl KO48 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP48 $KD48 $VS47 $VD47] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 49 go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt k49 v48
+      go!"auth: invalid auth management" go!"etcdserver: invalid auth management" rfl KO49 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP49 $KD49 $VS48 $VD48] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 50 go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision k50 v49
+      go!"auth: revision in header is old" go!"etcdserver: revision of auth store is old" rfl KO50 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP50 $KD50 $VS49 $VD49] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 51 _root_.Perennial.context.Canceled k51 v15
+      go!"context canceled" go!"etcdserver: request canceled" rfl KO51 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP51 $KD51 $VS15 $VD15] as HmE
+  try wp_auto
+  wp_apply (EtcdGrove.v3rpc.wp_errMapInsert mpE _ k9 k8 52 _root_.Perennial.context.DeadlineExceeded k52 v50
+      go!"context deadline exceeded" go!"etcdserver: context deadline exceeded" rfl KO52 ⟨by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide, by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide⟩ ⟨fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide), fun h => absurd h (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)⟩)
+      $$ [$HmE $KP52 $KD52 $VS50 $VD50] as HmE
+  try wp_auto
+  -- the map built: the fact's pieces
+  ihave ⟨StoGRPCErrorMap, #VtoGRPCErrorMap, #KtoGRPCErrorMap, #PtoGRPCErrorMap⟩ := EtcdGrove.v3rpc.errMap_done _ _ _ _ 53 (Nat.le_of_eq rfl) $$ HmE KP9 KP8
+  ipersist StoGRPCErrorMap
   -- translated initializer of progressReportInterval))
   -- the translated init.«0»
   wp_func_call
   wp_call
   try wp_auto
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDeadlineExceeded))
+  -- translated initializer of _root_.Perennial.context.DeadlineExceeded))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCanceled))
+  -- translated initializer of _root_.Perennial.context.Canceled))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthMgmt))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthNotEnabled))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGranted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotGranted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionNotGiven))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthFailed))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrAuthFailed))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleEmpty))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRoleAlreadyExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrUserNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrUserEmpty))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserAlreadyExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootRoleNotExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRootUserNotExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseTTLTooLarge))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseExists))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaseNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoInflightDowngrade))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.ErrNoInflightDowngrade))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDowngradeInProcess))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.ErrDowngradeInProcess))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidDowngradeTargetVersion))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.version.ErrInvalidDowngradeTargetVersion))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWrongDowngradeVersionFormat))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCClusterVersionUnavailable))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCBadLeaderTransferee))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCorrupt))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUnhealthy))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutWaitAppliedIndex))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToConnectionLost))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeoutDueToLeaderFail))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTimeout))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCStopped))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCanceled))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLeaderChanged))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotLeader))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrTooManyRequests))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCRequestTooLarge))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCLearnerNotReady))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrMemberNotEnoughStarted))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCTooManyLearners))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrTooManyLearners))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotLearner))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPeerURLExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrPeerURLexists))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberExist))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDExists))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCMemberNotFound))
+  -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDRemoved))
   icases (EtcdGrove.prometheus.idToks_names_cons (GF := GF) _ _ _ _).1 $$ HR with ⟨HR1, HR⟩
   wp_apply wp_slice_literal (l := [GoInterface.ok csentBytes])
   isplitr
@@ -469,7 +1174,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ihave #WIA := EtcdGrove.v3rpc.errVarLeaf_of_authErrVar _ $$ AIA
   -- mvcc's
   ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd37
+  · iapply isPkgInit_access $$ Hd38
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NEWR, #NWDI, -⟩
   ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR
   ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI
@@ -499,7 +1204,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · iunfold EtcdGrove.v3rpc.histVar; iexists _; iframe HwatchSendLoopProgressDuration CwatchSendLoopProgressDuration
   -- `traceutil.Tracer`
   ihave Hti : (go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hd46
+  · iapply isPkgInit_access $$ Hd47
   icases Hti with #HTR
   -- the progress interval's lock and what it guards (`progressReportInterval`, `10 * time.Minute`)
   imod (sync.init_RWMutex EtcdGrove.v3rpc.intervalP EtcdGrove.v3rpc.intervalMu (E := ⊤)) $$ [HprogressReportInterval] HprogressReportIntervalMu with HIS

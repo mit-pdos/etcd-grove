@@ -141,7 +141,7 @@ fewer than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 `goose_dist_crash_adequacy` for the system. -/
 theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)
@@ -271,7 +271,7 @@ and the thread bound `n + 2`, which an execution of `n` steps from single thread
 `DistCrashThreadsBelow.of_single`.) -/
 theorem acceptloop_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hconns : (extGlobal netExt g.globalWorld).conns = ∅)

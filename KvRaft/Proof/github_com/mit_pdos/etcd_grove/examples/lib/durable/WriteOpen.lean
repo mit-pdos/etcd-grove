@@ -31,7 +31,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [os.Assumptions] [os.file.FieldAssumptions]
+variable [os.Assumptions]
 
 theorem DurFs.tmpRes_file (f : DFile) (ht : NamesH) (i : Ino) (hx : ht.cur !! f.tb = some (.file i)) :
     tmpRes (GF := GF) f ht ⊣⊢ trFile i False := by

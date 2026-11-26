@@ -10,6 +10,9 @@ variable).
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Perennial.Proof.fmt.Link
+public import Proof.go_etcd_io.raft.v3.Init
+public import Proof.google_golang_org.genproto.googleapis.rpc.status.Init
 public import Proof.google_golang_org.grpc.codes.Init
 
 @[expose] public section

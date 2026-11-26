@@ -53,7 +53,7 @@ theorem EtcdServer.isActive.wp_proof
   (try wp_auto)
   wp_apply _root_.Perennial.time.Time.wp_ptr_Add $$ [$latestTickTs] as %t' latestTickTs
   (try wp_auto)
-  wp_apply _root_.Perennial.time.Time.wp_After as %b -
+  wp_apply _root_.Perennial.time.Time.wp_After
   (try wp_auto)
   iapply HΦ
   iframe Hl

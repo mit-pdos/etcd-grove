@@ -33,7 +33,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
   [raxos.examples.quepaxanet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [net.Assumptions] [go.BasicIntoValInj]
 variable [strconv.Assumptions] [fmt.Assumptions]
 
 attribute [local instance] qpBufioDeps_holds qpNetDeps_holds qpFormatIntDeps_holds

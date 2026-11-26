@@ -64,7 +64,7 @@ read update is fired from the commit invariant's half of the committed data `D` 
 not stopped), where the caller's armed registration is taken out (`reg_take`: `R` back, `Q` of `D`)
 and the invariant's reader lower bound of the compaction keys' flag at `D` read. -/
 private theorem bbolt.snapGlue_DBBegin (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
+, bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
   ∀ (db : Loc) (γ : BNames) (P : BParams) (W Pk : IProp GF) (path : GoString) (qo : Qp) (i n : Nat)
     (R : IProp GF) (Q : ObsQ),
   γ.db.ns = dbNs path →
@@ -77,7 +77,7 @@ private theorem bbolt.snapGlue_DBBegin (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSe
       ⌜err ≠ GoInterface.nil⌝ }} := by
   intro db γ P W Pk path qo i n R Q hns
   have hE : (↑cmtN : CoPset) ⊆ ⊤ \ ↑γ.db.ns := by rw [hns]; exact cmtN_dbNs path
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.isDB, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H
@@ -145,13 +145,13 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- bbolt's `Tx.Size` of a read transaction in the backend's vocabulary, at `theFs`
 (`snapshot__Size.lean`'s glue). -/
 private theorem bbolt.snapGlue_TxSizeRo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-      [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
+, bbolt.Tx.Size.spec (GF := GF) (hG := hG)) :
   ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data),
   {{ txLive (GF := GF) tx γ q (bbolt.TxView.ro D) }}
     (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Size")) (Val #()))
   {{ (n : w64), RET #n; txLive tx γ q (bbolt.TxView.ro D) }} := by
   intro tx γ q D
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, nex⟩
   · simp only [backend.txLive, onFs_none hfs]
     iintro %Φ H HΦ
     iexfalso; iexact H
@@ -163,12 +163,12 @@ private theorem bbolt.snapGlue_TxSizeRo (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsS
 /-- `b.Snapshot()`: see the file header. -/
 theorem backend.backend.Snapshot.wp_proof
     (hCommit : backend.batchTxBuffered.Commit.specCnt (GF := GF) (hG := hG))
-    (hBegin : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG))
+    (hBegin : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.DB.Begin.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
-    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
-      [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec (GF := GF) (hG := hG))
+    (hSize : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+, bbolt.Tx.Size.spec (GF := GF) (hG := hG))
     (hNow : _root_.Perennial.time.Now.spec (GF := GF) (hG := hG))
     (hNewTicker : _root_.Perennial.time.NewTicker.spec (GF := GF) (hG := hG))
     (hStop : _root_.Perennial.time.Ticker.Stop.spec (GF := GF) (hG := hG))

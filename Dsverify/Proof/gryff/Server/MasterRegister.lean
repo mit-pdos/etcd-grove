@@ -432,7 +432,7 @@ section rcvr
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [pA : gryff.src.masterlib.Assumptions] [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [net.rpc.Assumptions]
 
 set_option goose.wp.extras true
 

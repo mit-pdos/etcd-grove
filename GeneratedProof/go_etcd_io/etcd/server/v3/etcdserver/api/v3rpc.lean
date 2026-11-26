@@ -22,6 +22,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.errors
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features

@@ -100,7 +100,7 @@ end boot
 
 /-- **The QuePaxa kit, closed** (see the statement's file). -/
 theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 bvi
     hri hgri qv hgrpc hworld hmap σ g threads
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRB
     (GF := remoteGF) quepaxaKitAddrs kitLis (system σ) g threads

@@ -30,7 +30,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem' : net.rpc.Assumptions]
 variable [π : NetProtoGS] [sync.Assumptions] [errors.Assumptions] [go.token.Assumptions]
 
 private theorem keys_fresh' {K : Type} (keys : List K) (i : Nat) (key : K) (hnd : keys.Nodup)

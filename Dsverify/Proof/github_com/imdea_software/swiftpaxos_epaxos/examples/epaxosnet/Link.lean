@@ -71,7 +71,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : examples.epaxosnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [π : NetProtoGS]
 variable [master.Assumptions] [epaxos.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [io.Assumptions] [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
 variable [replica.Assumptions] [replica.defs.Assumptions] [bufio.Assumptions]

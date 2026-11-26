@@ -23,7 +23,7 @@ ids' 16 low bits distinct and not `0`) and `leaseIdsApart` (their 15 low bits di
 
 (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
 `single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
-name; against the tag the statement gains the instance argument `[net.FieldAssumptions]` and the
+name; against the tag the statement gains the instance argument `` (dropped since, 2026-11-24, Go-model overlays S6) and the
 network's initial state `Hg : extsInitGlobal g`, the semantics the net extension.)
 -/
 module
@@ -53,8 +53,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
 
 /-- **`Main(k)` does not panic** (`MainLinked.lean`'s `etcd_leaseexpiryN.wp_Main`). -/
-theorem leaseexpiryN_Main [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem leaseexpiryN_Main :
     etcd_leaseexpiryN.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiryN.wp_Main
 
@@ -71,9 +70,7 @@ outside `[1, 1000]`)
 theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [log.NewModel]
     (k : w64)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = uint.nat k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)

@@ -77,7 +77,7 @@ theorem slotUpd_opUpd (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
     iintro #H
     iintro !>
     iapply opAU_step
-    iapply (lin_opAU γ i Φ).1 $$ H
+    iapply lin_opAU γ i Φ $$ H
   · have hw : (qR (Gg := Gg) γ).B.isWrite i = true := by
       simp [qR, qB, outB, subB, kvB, h]
     rw [slotUpd_write _ hw]
@@ -86,7 +86,7 @@ theorem slotUpd_opUpd (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
     simp only [↓reduceIte]
     iintro H
     iapply opAU_step
-    iapply (lin_opAU γ i Φ).1 $$ H
+    iapply lin_opAU γ i Φ $$ H
 
 end ghost
 
@@ -95,7 +95,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem' : raxos.examples.quepaxanet.Assumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS] [qv : hyp.QpVocab GF]
-variable [net.Assumptions] [net.FieldAssumptions] [_root_.Perennial.bufio.Assumptions]
+variable [net.Assumptions] [_root_.Perennial.bufio.Assumptions]
 variable [_root_.Perennial.io.Assumptions] [time.Assumptions]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
 variable [QpBufioDeps GF]

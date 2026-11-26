@@ -33,11 +33,11 @@ const roleK8s = "k8s"
 // printed, its set-up done marked by FILE.ready) or a client machine (NodeMain, which never
 // returns).
 func runProcess(args []string) error {
-	if len(args) != 2 {
-		return fmt.Errorf("usage: server|k8s FILE.json")
-	}
-	if args[0] != roleK8s {
+	if len(args) == 0 || args[0] != roleK8s {
 		return etcddist.RunProcess(args)
+	}
+	if len(args) != 2 {
+		return fmt.Errorf("usage: k8s FILE.json")
 	}
 	b, err := os.ReadFile(args[1])
 	if err != nil {
@@ -304,7 +304,7 @@ func deployRound(t *testing.T, round int, netns bool, crash string, k int, sz Si
 		t.Fatal(err)
 	}
 	var lines []string
-	c, err := etcddist.Start(d.Cluster, r, n, ms)
+	c, err := etcddist.Start(d.Cluster, r, n, ms, nil)
 	if err == nil {
 		lines, err = runClients(r, n, d, ms)
 	}

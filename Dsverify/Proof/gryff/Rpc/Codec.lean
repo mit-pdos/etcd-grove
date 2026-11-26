@@ -218,7 +218,7 @@ end methods
 section rcv
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [sem : go.Semantics] [net.rpc.Assumptions] [π : NetProtoGS]
 
 /-- What a method's `NewArg` must meet (`methodOk`'s body; dsv-craq's `newArgOk`). -/
 def newArgOk (C : net.rpc.CodecSpec GF) (rcvr : GoInterface) (Sm : net.rpc.MSpec GF)
