@@ -28,11 +28,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem NodeMain.wp_proof (NP : w64 → GoString → List GoString → IProp GF)
+theorem NodeMain.wp_proofKv (NP : w64 → GoString → List GoString → IProp GF)
     (hNC : NodeCount.spec (GF := GF) (hG := hG))
     (hRot : Rotate.spec (GF := GF) (hG := hG))
     (hNode : Node.specWith (GF := GF) (hG := hG) NP) :
-    NodeMain.spec (GF := GF) (hG := hG) NP := by
+    NodeMain.specKv (GF := GF) (hG := hG) NP := by
   intro w c addr eps epsL
   wp_start as ⟨%Hp, #Heps, HNP⟩
   obtain ⟨Hk, Hb⟩ := Hp

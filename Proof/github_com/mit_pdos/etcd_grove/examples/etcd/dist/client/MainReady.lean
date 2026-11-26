@@ -27,10 +27,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem MainReady.wp_proof (OP : List GoString → w64 → IProp GF)
+theorem MainReady.wp_proofKv (OP : List GoString → w64 → IProp GF)
     (hNC : NodeCount.spec (GF := GF) (hG := hG))
     (hRun : RunKV.spec (GF := GF) (hG := hG) OP) :
-    MainReady.spec (GF := GF) (hG := hG) OP := by
+    MainReady.specKv (GF := GF) (hG := hG) OP := by
   intro w eps nodes ns ready
   wp_start as ⟨%Hk, #Hnodes, #Hready, HOP⟩
   wp_auto

@@ -29,12 +29,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem NodeDeployment.wp_proof (NP : w64 → GoString → List GoString → IProp GF)
+theorem NodeDeployment.wp_proofKv (NP : w64 → GoString → List GoString → IProp GF)
     (hWF : WellFormed.spec (GF := GF) (hG := hG))
     (hEp : Deployment.Endpoints.spec (GF := GF) (hG := hG))
     (hNd : Deployment.Node.spec (GF := GF) (hG := hG))
-    (hNM : NodeMain.spec (GF := GF) (hG := hG) NP) :
-    NodeDeployment.spec (GF := GF) (hG := hG) NP := by
+    (hNM : NodeMain.specKv (GF := GF) (hG := hG) NP) :
+    NodeDeployment.specKv (GF := GF) (hG := hG) NP := by
   intro v d n
   wp_start as ⟨%Hp, #Hd, Hsh⟩
   obtain ⟨Hkv, Hfips⟩ := Hp

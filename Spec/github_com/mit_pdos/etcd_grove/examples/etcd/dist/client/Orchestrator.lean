@@ -1,6 +1,8 @@
 /-
-`client.Orchestrator(d, j)` (`clientProg d j`'s entry point), **kv deployments only** (M1's `KvOnly`):
-`MainDeployment` with a `ready` that does nothing. Proved for any precondition `OP` of `Orch`.
+`client.Orchestrator(d, j)` (`clientProg d j`'s entry point): `MainDeployment` with a `ready` that does nothing.
+- `Orchestrator.spec` (F8, `notes/etcd-dist-plan.md` §27.3): any deployment, from `orchShareF d j`
+  (`client/Shares.lean`), the machine's thread token and its pure facts (`orchMachinePure`).
+- `Orchestrator.specKv` (M1): **kv deployments only** (`KvOnly`), for any precondition `OP` of `Orch`.
 The share and `KvOnly` are needed only of a well-formed `d`: the program reads them only after
 `deployment.WellFormed` returned `nil` (on a malformed `d` it returns at once).
 Lean-first (no Rocq counterpart); N7-kv, M1 (`notes/etcd-dist-n7kv.md`).
@@ -8,6 +10,7 @@ Lean-first (no Rocq counterpart); N7-kv, M1 (`notes/etcd-dist-n7kv.md`).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.KvDefs
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.MainReady
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -30,7 +33,7 @@ variable [package_sem : client.Assumptions]
 
 /-- Of a Go value `v` holding `d`, `kv`-only if well formed, from workload `j`'s share if `d` is well
 formed, `Orchestrator` does not panic. -/
-abbrev Orchestrator.spec (OP : List GoString → w64 → IProp GF) : Prop :=
+abbrev Orchestrator.specKv (OP : List GoString → w64 → IProp GF) : Prop :=
   ∀ (v : deployment.Deployment) (d : Deployment) (j : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
       ⌜(d.WellFormed → KvOnly d) ∧ crypto.fips140.GodebugFips140Off⌝ ∗ deploymentRepr v d ∗ (⌜d.WellFormed⌝ -∗ orchShare OP d j) }}
@@ -38,6 +41,31 @@ abbrev Orchestrator.spec (OP : List GoString → w64 → IProp GF) : Prop :=
   {{ RET #(); True }}
 
 end spec
+
+section specFull
+open Net client etcd_dist_client
+open github_com.mit_pdos.etcd_grove.examples.lib.remote
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : client.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
+
+
+/-- Of a Go value `v` holding `d`, from workload `j`'s share if `d` is well formed, the machine's thread token
+and its pure facts, `Orchestrator` does not panic. -/
+abbrev Orchestrator.spec : Prop :=
+  ∀ [π : NetProtoGS] [ρ : RemoteGS] (v : deployment.Deployment) (d : Deployment) (j : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client ∗
+      ⌜crypto.fips140.GodebugFips140Off ∧ orchMachinePure (GF := GF)⌝ ∗ threadTok ∗ deploymentRepr v d ∗
+      (⌜d.WellFormed⌝ -∗ orchShareF (Gg := hG.goose_globalGS) d j) }}
+    (App (App (Val (@! client.Orchestrator)) (Val #v)) (Val #j))
+  {{ RET #(); True }}
+
+end specFull
 
 end etcd_dist
 end EtcdGrove

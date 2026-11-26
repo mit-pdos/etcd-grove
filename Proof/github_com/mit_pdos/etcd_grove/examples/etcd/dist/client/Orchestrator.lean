@@ -26,9 +26,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : client.Assumptions]
 
-theorem Orchestrator.wp_proof (OP : List GoString → w64 → IProp GF)
-    (hMD : MainDeployment.spec (GF := GF) (hG := hG) OP) :
-    Orchestrator.spec (GF := GF) (hG := hG) OP := by
+theorem Orchestrator.wp_proofKv (OP : List GoString → w64 → IProp GF)
+    (hMD : MainDeployment.specKv (GF := GF) (hG := hG) OP) :
+    Orchestrator.specKv (GF := GF) (hG := hG) OP := by
   intro v d j
   wp_start as ⟨%Hp, #Hd, Hsh⟩
   wp_auto
