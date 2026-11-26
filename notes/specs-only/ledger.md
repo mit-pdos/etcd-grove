@@ -6878,3 +6878,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (drops the pure fact). Also: ApiVocab's `isRaftMsg` comment (MsgTimeoutNow clause: read by the receiver as
   `isAcked_term_le`), and Protocol/RnMode.lean's doc reference to `raft_antithesis_robust_msgs`. Part copies.
 - **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1, group D: RsView ties raft's durable term to the disk's; nodeOwn_acked proved (#33)
+- **Statement (HarnessRun, lead-approved).** `RsView rs v` gains its last conjunct `rs.dur.term = v.dur.term`: raft's
+  durable ghost's term (`nodeRaft`'s `ownDurGhost γ id rs.dur`) is the disk's. It holds across a `Ready`: raft's post
+  moves `rs.dur` to `readyDurable rs.dur (phsNext rs.phs h) L es`, whose term is `(phsNext rs.phs h).Term'`, the new
+  `rs.phs`'s term, which `RsView`'s first conjunct makes the disk's; every input keeps `rs.dur` (`rsView_noteInput`);
+  `node.start` has `rs.dur = downDur R`, whose term is the fresh disk's (`1` bootstrapped, else `0`).
+- **Retired hypothesis.** `nodeOwn_acked.law` (HarnessStep) is now the theorem `nodeOwn_acked` (`isAcked_term_le` on
+  `nodeRaft`'s durable ghost, RsView's new conjunct); `node.step.wp_proof` no longer takes it.
+- **Mechanical.** node__start (the conjunct at the start), DrainB1Loop (rsView_role/drain_exit's role projection
+  `.2.2.2.2.2.2` → `.2.2.2.2.2.2.1`, the new conjunct kept at `{v with r := r₁, qs := []}`).
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.

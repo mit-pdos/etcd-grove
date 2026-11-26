@@ -9,6 +9,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessInput
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.AckedTerm
 
 @[expose] public section
 
@@ -380,15 +381,40 @@ theorem causeOwn_recvX (γ : AntNames) (j : Fin γ.R.N) (v : AntSim.NodeView) (c
   iapply (receipt_add (GF := GF) 1 1).2
   iframe Hr1 Hr2
 
-/-- **A `MsgTimeoutNow`'s acknowledgement against the receiver's disk** (the hypothesis `node.step`
-takes; group D's proposal: `RsView` gains `rs.dur.term = v.dur.term`, which every `Ready`'s
-`readyDurable … (phsNext rs.phs h)` and the start keep, and then this is `isAcked_term_le` on
-`nodeRaft`'s `ownDurGhost γ id rs.dur`): an acknowledgement past index `0` of node `j` is at a term
-at most its disk's. -/
-abbrev nodeOwn_acked.law : Prop :=
-  ∀ (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (t i : w64),
+/-- **A `MsgTimeoutNow`'s acknowledgement against the receiver's disk** (what `node.step` uses for a
+received `MsgTimeoutNow`): an acknowledgement past index `0` of node `j` is at a term at most its
+disk's. `isAcked_term_le` on `nodeRaft`'s `ownDurGhost γ id rs.dur`, whose term is the disk's by
+`RsView`'s last conjunct. -/
+theorem nodeOwn_acked (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
+    (t i : w64) :
     nodeOwn (GF := GF) c γ j n v .idle ∗ isAcked γ.raft.raftNames (AntSim.nodeId j) t i ⊢
-      ⌜uint.Z i ≠ 0 → uint.Z t ≤ uint.Z v.dur.term⌝ ∗ nodeOwn c γ j n v .idle
+      ⌜uint.Z i ≠ 0 → uint.Z t ≤ uint.Z v.dur.term⌝ ∗ nodeOwn c γ j n v .idle := by
+  unfold nodeOwn
+  iintro ⟨⟨%d, %rn, %ms, %hsl, %cl, %csl, %role, %applied, #Hd, Hmem, Hrn, Hms, Hrole, Hhs, Hcause,
+    Happ, Hconf, Hv, Hl, %HN, Hdisk, %si, %rs, %qs, %ip, %r, Hstor, %Hsto, Hraw, Hnr, %Hrv, #Hhsro,
+    #Hcs, %Hc0, %Hph⟩, Ha⟩
+  iunfold nodeRaft at Hnr
+  icases Hnr with ⟨%x, %g, Hgv, Hsf, Hdg, Htc, Hb, %Hst⟩
+  icases isAcked_term_le (GF := GF) γ.raft.raftNames (AntSim.nodeId j) t i rs.dur $$ Hdg Ha with
+    ⟨%hle, Hdg⟩
+  isplitr
+  · ipureintro; intro hi; rw [← Hrv.1.2.2.2.2.2.2.2]; exact hle hi
+  iexists d, rn, ms, hsl, cl, csl, role, applied
+  iframe Hd Hmem Hrn Hms Hrole Hhs Hcause Happ Hconf Hv Hl
+  isplitr
+  · ipureintro; exact HN
+  dsimp only
+  iframe Hdisk
+  iexists si, rs, qs, ip, r
+  iframe Hstor Hraw Hhsro Hcs
+  isplitr
+  · ipureintro; exact Hsto
+  isplitl [Hgv Hsf Hdg Htc Hb]
+  · iunfold nodeRaft
+    iexists x, g
+    iframe Hgv Hsf Hdg Htc Hb
+    ipureintro; exact Hst
+  ipureintro; exact ⟨Hrv, Hc0, Hph⟩
 
 /-- A receipt for a premise that may be off (`rnBudget_step`'s `⧗ (if P then 1 else 0)`). -/
 theorem receipt_ite (P : Prop) [Decidable P] :

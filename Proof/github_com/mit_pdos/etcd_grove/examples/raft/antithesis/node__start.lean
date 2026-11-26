@@ -526,7 +526,7 @@ theorem node.start.wp_proof
       ipureintro; exact ⟨Hrt, Hrc, Hrmd, Hrb, HrN⟩
     isplitr
     · ipureintro
-      refine ⟨⟨rfl, ?_, ?_, rfl, rfl, rfl, ?_⟩, rfl, ?_, ?_, ?_⟩
+      refine ⟨⟨rfl, ?_, ?_, rfl, rfl, rfl, ?_, ?_⟩, rfl, ?_, ?_, ?_⟩
       · show (downDur γ.R).ents = v.dur.log
         rw [Hdur]; unfold downDur startDur
         rcases Bool.eq_false_or_eq_true γ.R.boot with hb | hb <;> simp [hb, RaftState.init, AntSim.bootLog]
@@ -535,6 +535,10 @@ theorem node.start.wp_proof
       · -- (group E's S2) the reported role: the fresh node's follower
         show roleStr _ = AntSim.roleStr v.pre v.r.p.role
         rw [Hpre, HP.2.2.2.1]; rfl
+      · -- (group D) raft's durable ghost's term the disk's
+        show (downDur γ.R).term = v.dur.term
+        rw [Hterm]; unfold downDur
+        rcases Bool.eq_false_or_eq_true γ.R.boot with hb | hb <;> simp [hb, RaftState.init]
       · show go!"follower" = AntSim.roleStr v.pre v.r.p.role
         rw [Hpre, HP.2.2.2.1]; rfl
       · show uint.nat (W64 0) = v.delivered.length

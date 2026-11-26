@@ -50,7 +50,7 @@ the view's pre-candidate flag is Go's, its protocol role `roleProto`'s. -/
 theorem rsView_role {rs : RNState} {v : AntSim.NodeView} (hrv : RsView rs v)
     (hpre : v.pre = true → v.ps.role = .follower) :
     decide (rs.role = StatePreCandidate) = v.pre ∧ roleProto rs.role = v.ps.role := by
-  have h := hrv.2.2.2.2.2.2
+  have h := hrv.2.2.2.2.2.2.1
   rw [roleStr_go] at h
   refine roleStr_inj h ?_ hpre
   intro hp
@@ -249,8 +249,9 @@ theorem drain_exit (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law
   rw [show causeOwn (GF := GF) γ j { v with r := r₁, qs := [] } cl = causeOwn γ j v cl from rfl]
   iframe Hstor Hraw Hnr Hhsro Hcs Hco
   have hrv' : RsView rs { v with r := r₁, qs := [] } := by
-    refine ⟨hrv.1, hrv.2.1, hrv.2.2.1, hrv.2.2.2.1, hrv.2.2.2.2.1, hrv.2.2.2.2.2.1, ?_⟩
-    rw [hroleS]; exact hrv.2.2.2.2.2.2
+    refine ⟨hrv.1, hrv.2.1, hrv.2.2.1, hrv.2.2.2.1, hrv.2.2.2.2.1, hrv.2.2.2.2.2.1, ?_,
+      hrv.2.2.2.2.2.2.2⟩
+    rw [hroleS]; exact hrv.2.2.2.2.2.2.1
   isplitr
   · ipureintro; exact Hsto
   isplitr

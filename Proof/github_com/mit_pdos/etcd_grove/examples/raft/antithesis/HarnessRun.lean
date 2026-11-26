@@ -456,11 +456,13 @@ record's last reported hard state and durable log are the node's disk (`v.dur`, 
 out is the view's delivered and unreported committed entries, nothing queued or unpersisted, not
 following a snapshot; (antithesis parity B1, group E's S2) the role the last `Ready` reported
 (`prevSoftSt`'s, which a `Ready` with a `nil` `SoftState` keeps) is the view's (Go's `roleOf` of it,
-`roleStr`, the binding's `roleS`). -/
+`roleStr`, the binding's `roleS`); (group D) raft's durable ghost's term the disk's (a `Ready`'s
+`readyDurable … (phsNext rs.phs h)` moves both with the same hard state; what makes a received
+`MsgTimeoutNow`'s acknowledgement bound its term by the disk's, `nodeOwn_acked`). -/
 def RsView (rs : RNState) (v : AntSim.NodeView) : Prop :=
   rs.phs = HardStateM.mk v.dur.term v.dur.vote v.dur.commit ∧ rs.dur.ents = v.dur.log ∧
   rs.delivered = v.delivered ++ v.ce ∧ rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.flw = false ∧
-  roleStr rs.role = AntSim.roleS v
+  roleStr rs.role = AntSim.roleS v ∧ rs.dur.term = v.dur.term
 
 /-- **Node `j`'s disk** (`n.disk` at `d`, `harness.go`'s `disk`): the hard state and the entries of
 the binding's disk `w` (`DurW`, from index 1), no snapshot (batch B3's). -/

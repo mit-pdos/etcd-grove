@@ -9,7 +9,7 @@ for a `MsgTimeoutNow`), a stepped `MsgReadIndex`'s read credit minted (`rdCred_o
 `RawNode.Step` at `γ.R.md`, the view noted (`view_input`); the loop head: the unchanged arm
 (`errStepPeer`, a response from a non-voter) by `Reach.stay`, otherwise `Reach.input` (`.recv m`:
 `RecvEndR`; `.recvX x`: `TimeoutNowEndR`/`TransferRecvEndR`, a `MsgTimeoutNow`'s term at most the
-receiver's disk's by `nodeOwn_acked`); the drain (`input`, by `recv`), the cell reset
+receiver's disk's by `nodeOwn_acked`, raft's `isAcked_term_le`); the drain (`input`, by `recv`), the cell reset
 (`nodeOwn_drained_reset`).
 -/
 module
@@ -54,7 +54,6 @@ theorem node.step.wp_proof
     (h_bstep : rnBudget_step.law (GF := GF) (hG := hG))
     (h_vu : view_update.law (GF := GF) (hG := hG))
     (h_lo : nodeLive_over.law (GF := GF) (hG := hG))
-    (h_ack : nodeOwn_acked.law (GF := GF) (hG := hG))
     (msk : AntSim.SimMask) (h_quiet : antSim_quiet_in.law msk) (h_mask : runInMask.law msk)
     (h_tr : msk.md.transfer = true) :
     node.step.spec (GF := GF) (hG := hG) := by
@@ -195,7 +194,7 @@ theorem node.step.wp_proof
         icases Hk with ⟨%i, %hi, #Hai⟩
         ihave #Hai' : isAcked γ.raft.raftNames (AntSim.nodeId j) st.msg.Term' i $$ []
         · rw [← hto]; iexact Hai
-        icases h_ack c γ j n v st.msg.Term' i $$ [Hown] with ⟨%hle, Hown⟩
+        icases nodeOwn_acked (GF := GF) c γ j n v st.msg.Term' i $$ [Hown] with ⟨%hle, Hown⟩
         · iframe Hown Hai'
         iframe Hown
         ipureintro; intro _; rw [hterm]; exact hle hi
