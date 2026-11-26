@@ -20,6 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Sha
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
