@@ -49,10 +49,9 @@ Paxos needs none: its statement rests on Lean's three axioms with no hypotheses.
 ## Challenges: the dsverify skill and the challenge's `CLAUDE.md`
 
 A kit is exported as a **challenge** (a self-contained tree without the kit's proofs, for an agent to
-prove; `etc/dsv/kitgen.py --export-challenge KIT DIR`, branch dsv-kitgen) together with two files of
+prove; `etc/dsv/kitgen.py --export-challenge DIR KIT`) together with two files of
 this repository (notes/dsv-skill.md):
-- `.claude/skills/dsverify/`: the dsverify skill, the method given to the agent (moved here from
-  dsverify-lab's `skill/`). Copied whole into the challenge's `.claude/skills/dsverify/`, or left
+- `.claude/skills/dsverify/`: the dsverify skill, the method given to the agent. Copied whole into the challenge's `.claude/skills/dsverify/`, or left
   out for a control arm. It must hold nothing an agent must not read: no kit's proofs, no kit's
   known bugs.
 - `etc/dsv/challenge-CLAUDE.md`: the template of the challenge's `CLAUDE.md` (the goal, what not to
