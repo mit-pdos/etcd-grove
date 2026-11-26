@@ -1452,10 +1452,8 @@ run started on fk-lean2, `/shared/tmp/f7atok.sh` (`etc/axiom-tok-check.py --raw 
   (stock passed along) and the nine `dist/client` helpers' `threadBound` (the client machine's boot at `etcdThreads`).
   No premise removed: each is a global bound the proof below needs, discharged only by the boot.
 - tier-check, lease-order (and selftest) ok locally; `gen-init --check` ok locally (290 files).
-- **Left (running at handoff, on fk-lean2 at `737890b211`)**: all 60 `gen-link` modes plus `gen-btree-link` against
-  their `Link.lean`, `gen-init --check`, `axiom-tok --check --reuse-raw ~/eg/tmp/f7-atok.jsonl` and `--selftest`
-  (env `LAKE_OPTS=--packages=.lake/package-overrides.json PERENNIAL_DIR=~/eg/perennial-a706aeb9a`, the gates.sh
-  links loop). Output: this session's task file, not a log on fk-lean2: rerun to read it. Locally 55 modes match and
-  `--bbolt --kvraft --kvraft-udp --wal-tester --walfs` differ (`links_pending` lines: no Perennial build here),
-  as at M-merge; if fk-lean2 shows them differing too, rerun `etc/gen-link.py MODE > FILE` there and commit.
+- **fk-lean2 at `737890b211`** (env `LAKE_OPTS=--packages=.lake/package-overrides.json PERENNIAL_DIR=~/eg/perennial-a706aeb9a`):
+  all 60 `gen-link` modes and `gen-btree-link` match their `Link.lean`; `gen-init --check` ok (290 files); `axiom-tok
+  --check --reuse-raw ~/eg/tmp/f7-atok.jsonl` ok; `--selftest` 0 failures. (Locally the five Perennial-dependent modes
+  differ only for want of a Perennial build.)
   No Lean file changed since `351641e79f`'s green build, so no build is needed.
