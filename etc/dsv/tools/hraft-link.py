@@ -17,8 +17,9 @@ with its callees' results, in dependency order (`theorem <pre>.wp_<f> : <pre>.<f
   `<result of G>_<v>` (`fmt.wp_Errorf_tnErr`) of a shared Proof file of the package. (The lab's were
   axioms; here they must be theorems: an axiom is refused.)
 
-The results are declared in `Perennial.EtcdGrove.dsvhraft` (every Link's results are under
-`Perennial.EtcdGrove`, etc/proof_roots.py); a callee's result outside it is written from the root
+The results are declared in `Perennial.EtcdGrove` (every Link's results are under it,
+etc/proof_roots.py), named by the package's qualifier (`raft.Raft.wp_run`,
+`snapstore.Store.wp_Create`: etc/verified-code.py's reading); a callee's result outside it is written from the root
 (`_root_.Perennial.fmt.wp_Errorf`).
 
 A callee in `PENDING` has no result yet: the proofs that need it (transitively) are left out of the
@@ -179,6 +180,20 @@ def check_file_name(path, name, pkg):
         err(f"{rel(path)}: the file of `{name}` should be named after it "
             f"(`{'__'.join(parts[-2:])}.lean` for a method, `{parts[-1]}.lean` for a "
             f"function)", pkg)
+
+
+# a result of the packages' own, named by the package's qualifier (`raft.Raft.wp_run`,
+# `snapstore.Store.wp_Create`), as etc/verified-code.py reads a Link's results
+OWN_PREFIXES = [("github_com.hashicorp.raft.examples.snapstore.", "snapstore."),
+                ("github_com.hashicorp.raft.", "raft.")]
+
+
+def own_result(spec):
+    r = result_name(spec)
+    for long, short in OWN_PREFIXES:
+        if r.startswith(long):
+            return short + r[len(long):]
+    return r
 
 
 def result_name(spec):
@@ -398,7 +413,7 @@ def generate():
                     cpkg = specs[callee][0]
                     if cpkg != pkg:
                         imports.add(module_of(link_path(cpkg)))
-                    args.append(result_name(callee))
+                    args.append(own_result(callee))
                 elif callee in ext and ext[callee][1]:
                     imports.add(ext[callee][1])
                     args.append(ext[callee][2])
@@ -427,7 +442,7 @@ def generate():
         # the results under `Perennial.EtcdGrove`, as every Link's (etc/proof_roots.py); the
         # callees' results outside it are written from the root, so that a name of `EtcdGrove`'s
         # (`EtcdGrove.fmt.wp_Errorf`) never captures one of Perennial's
-        lines += ["", "namespace EtcdGrove.dsvhraft"]
+        lines += ["", "namespace EtcdGrove"]
 
         def own_vars(n):
             return [v for v in proofs[n][2] if v.startswith("variable ")]
@@ -468,9 +483,9 @@ def generate():
             lines += vs
             for n in ns:
                 args = "".join(" " + a for a in args_of[n])
-                lines += ["", f"theorem {result_name(n)} : {n}.spec (GF := GF) (hG := hG) :=",
+                lines += ["", f"theorem {own_result(n)} : {n}.spec (GF := GF) (hG := hG) :=",
                           f"  {n}.wp_proof{args}"]
-        lines += ["", "end link", "", "end EtcdGrove.dsvhraft", "", "end Perennial", ""]
+        lines += ["", "end link", "", "end EtcdGrove", "", "end Perennial", ""]
         outputs[link_path(pkg)] = "\n".join(lines)
     return outputs, skipped
 

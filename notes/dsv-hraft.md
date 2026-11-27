@@ -150,8 +150,9 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
   them as every generated Link). Every `wp_proof` is applied to its callees' results: raft's and snapstore's
   own, Perennial's (`bytes`, `errors`, `fmt`, `strconv`, `strings`, `sync`, `sync/atomic`, `time` Links) and
   `FmtErrorf`'s theorem for the one `spec_<v>` variant a proof takes (`fmt.wp_Errorf_tnErr`; the generator
-  refuses an axiom there). The results are `Perennial.EtcdGrove.dsvhraft.<pre>.wp_<f>`
-  (`etc/proof_roots.py`: every Link's results are under `Perennial.EtcdGrove`). Trust base: collection
+  refuses an axiom there). The results are `Perennial.EtcdGrove.raft.<…>.wp_<f>` and
+  `Perennial.EtcdGrove.snapstore.<…>.wp_<f>` (`etc/proof_roots.py`: every Link's results are under
+  `Perennial.EtcdGrove`; the package's qualifier first, as `etc/verified-code.py` reads a result). Trust base: collection
   `etc/tcb-collections/dsv-hraft.txt`. **Not linked yet:** the cone of `io.Copy.spec`/`io.Copy_Discard.spec`
   (`Spec/io/Copy.lean`, no proof yet: branch `hraft-iocopy/2026-11-27`), the generator's `PENDING`:
   `Raft.installSnapshot` and, through it, `processRPC`, `runFollower`, `runCandidate`, `leaderLoop`,

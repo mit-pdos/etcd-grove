@@ -205,7 +205,7 @@ open github_com.hashicorp.raft github_com.hashicorp.raft.gprot proto
 open proto gprot
 open github_com.hashicorp.raft proto gprot github_com.hashicorp.raft.fsmProof
 
-namespace EtcdGrove.dsvhraft
+namespace EtcdGrove
 
 section link
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -214,358 +214,358 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 
-theorem github_com.hashicorp.raft.AppendEntriesRequest.wp_GetRPCHeader : github_com.hashicorp.raft.AppendEntriesRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
+theorem raft.AppendEntriesRequest.wp_GetRPCHeader : github_com.hashicorp.raft.AppendEntriesRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.AppendEntriesRequest.GetRPCHeader.wp_proof
 
-theorem github_com.hashicorp.raft.wp_ValidateConfig : github_com.hashicorp.raft.ValidateConfig.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_ValidateConfig : github_com.hashicorp.raft.ValidateConfig.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.ValidateConfig.wp_proof
 
-theorem github_com.hashicorp.raft.ServerSuffrage.wp_String : github_com.hashicorp.raft.ServerSuffrage.String.spec (GF := GF) (hG := hG) :=
+theorem raft.ServerSuffrage.wp_String : github_com.hashicorp.raft.ServerSuffrage.String.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.ServerSuffrage.String.wp_proof
 
-theorem github_com.hashicorp.raft.wp_formatServer : github_com.hashicorp.raft.formatServer.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.formatServer.wp_proof github_com.hashicorp.raft.ServerSuffrage.wp_String
+theorem raft.wp_formatServer : github_com.hashicorp.raft.formatServer.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.formatServer.wp_proof raft.ServerSuffrage.wp_String
 
-theorem github_com.hashicorp.raft.wp_formatConfiguration : github_com.hashicorp.raft.formatConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.formatConfiguration.wp_proof github_com.hashicorp.raft.wp_formatServer
+theorem raft.wp_formatConfiguration : github_com.hashicorp.raft.formatConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.formatConfiguration.wp_proof raft.wp_formatServer
 
-theorem github_com.hashicorp.raft.wp_checkConfiguration : github_com.hashicorp.raft.checkConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.checkConfiguration.wp_proof github_com.hashicorp.raft.wp_formatConfiguration _root_.Perennial.fmt.wp_Errorf
+theorem raft.wp_checkConfiguration : github_com.hashicorp.raft.checkConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.checkConfiguration.wp_proof raft.wp_formatConfiguration _root_.Perennial.fmt.wp_Errorf
 
-theorem github_com.hashicorp.raft.wp_HasExistingState : github_com.hashicorp.raft.HasExistingState.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_HasExistingState : github_com.hashicorp.raft.HasExistingState.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.HasExistingState.wp_proof
 
-theorem github_com.hashicorp.raft.wp_appendUint64 : github_com.hashicorp.raft.appendUint64.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_appendUint64 : github_com.hashicorp.raft.appendUint64.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.appendUint64.wp_proof
 
-theorem github_com.hashicorp.raft.wp_appendBytes : github_com.hashicorp.raft.appendBytes.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.appendBytes.wp_proof github_com.hashicorp.raft.wp_appendUint64
+theorem raft.wp_appendBytes : github_com.hashicorp.raft.appendBytes.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.appendBytes.wp_proof raft.wp_appendUint64
 
-theorem github_com.hashicorp.raft.wp_encodeConfigurationBytes : github_com.hashicorp.raft.encodeConfigurationBytes.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.encodeConfigurationBytes.wp_proof github_com.hashicorp.raft.wp_appendUint64 github_com.hashicorp.raft.wp_appendBytes
+theorem raft.wp_encodeConfigurationBytes : github_com.hashicorp.raft.encodeConfigurationBytes.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.encodeConfigurationBytes.wp_proof raft.wp_appendUint64 raft.wp_appendBytes
 
-theorem github_com.hashicorp.raft.wp_EncodeConfiguration : github_com.hashicorp.raft.EncodeConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.EncodeConfiguration.wp_proof github_com.hashicorp.raft.wp_encodeConfigurationBytes
+theorem raft.wp_EncodeConfiguration : github_com.hashicorp.raft.EncodeConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.EncodeConfiguration.wp_proof raft.wp_encodeConfigurationBytes
 
-theorem github_com.hashicorp.raft.wp_BootstrapCluster : github_com.hashicorp.raft.BootstrapCluster.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.BootstrapCluster.wp_proof github_com.hashicorp.raft.wp_ValidateConfig github_com.hashicorp.raft.wp_checkConfiguration github_com.hashicorp.raft.wp_HasExistingState github_com.hashicorp.raft.wp_EncodeConfiguration
+theorem raft.wp_BootstrapCluster : github_com.hashicorp.raft.BootstrapCluster.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.BootstrapCluster.wp_proof raft.wp_ValidateConfig raft.wp_checkConfiguration raft.wp_HasExistingState raft.wp_EncodeConfiguration
 
-theorem github_com.hashicorp.raft.Configuration.wp_Clone : github_com.hashicorp.raft.Configuration.Clone.spec (GF := GF) (hG := hG) :=
+theorem raft.Configuration.wp_Clone : github_com.hashicorp.raft.Configuration.Clone.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Configuration.Clone.wp_proof
 
-theorem github_com.hashicorp.raft.wp_readUint64 : github_com.hashicorp.raft.readUint64.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_readUint64 : github_com.hashicorp.raft.readUint64.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.readUint64.wp_proof
 
-theorem github_com.hashicorp.raft.wp_readBytes : github_com.hashicorp.raft.readBytes.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.readBytes.wp_proof github_com.hashicorp.raft.wp_readUint64
+theorem raft.wp_readBytes : github_com.hashicorp.raft.readBytes.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.readBytes.wp_proof raft.wp_readUint64
 
-theorem github_com.hashicorp.raft.wp_decodeConfigurationBytes : github_com.hashicorp.raft.decodeConfigurationBytes.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.decodeConfigurationBytes.wp_proof github_com.hashicorp.raft.wp_readUint64 github_com.hashicorp.raft.wp_readBytes
+theorem raft.wp_decodeConfigurationBytes : github_com.hashicorp.raft.decodeConfigurationBytes.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.decodeConfigurationBytes.wp_proof raft.wp_readUint64 raft.wp_readBytes
 
-theorem github_com.hashicorp.raft.wp_DecodeConfiguration : github_com.hashicorp.raft.DecodeConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.DecodeConfiguration.wp_proof github_com.hashicorp.raft.wp_decodeConfigurationBytes
+theorem raft.wp_DecodeConfiguration : github_com.hashicorp.raft.DecodeConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.DecodeConfiguration.wp_proof raft.wp_decodeConfigurationBytes
 
-theorem github_com.hashicorp.raft.wp_DefaultConfig : github_com.hashicorp.raft.DefaultConfig.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_DefaultConfig : github_com.hashicorp.raft.DefaultConfig.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.DefaultConfig.wp_proof
 
-theorem github_com.hashicorp.raft.InmemSnapshotStore.wp_List : github_com.hashicorp.raft.InmemSnapshotStore.List.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemSnapshotStore.wp_List : github_com.hashicorp.raft.InmemSnapshotStore.List.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemSnapshotStore.List.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_DeleteRange : github_com.hashicorp.raft.InmemStore.DeleteRange.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_DeleteRange : github_com.hashicorp.raft.InmemStore.DeleteRange.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.DeleteRange.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_FirstIndex : github_com.hashicorp.raft.InmemStore.FirstIndex.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_FirstIndex : github_com.hashicorp.raft.InmemStore.FirstIndex.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.FirstIndex.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_Get : github_com.hashicorp.raft.InmemStore.Get.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_Get : github_com.hashicorp.raft.InmemStore.Get.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.Get.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_GetLog : github_com.hashicorp.raft.InmemStore.GetLog.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_GetLog : github_com.hashicorp.raft.InmemStore.GetLog.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.GetLog.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_GetUint64 : github_com.hashicorp.raft.InmemStore.GetUint64.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_GetUint64 : github_com.hashicorp.raft.InmemStore.GetUint64.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.GetUint64.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_LastIndex : github_com.hashicorp.raft.InmemStore.LastIndex.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_LastIndex : github_com.hashicorp.raft.InmemStore.LastIndex.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.LastIndex.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_Set : github_com.hashicorp.raft.InmemStore.Set.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_Set : github_com.hashicorp.raft.InmemStore.Set.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.Set.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_SetUint64 : github_com.hashicorp.raft.InmemStore.SetUint64.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_SetUint64 : github_com.hashicorp.raft.InmemStore.SetUint64.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.SetUint64.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_StoreLogs : github_com.hashicorp.raft.InmemStore.StoreLogs.spec (GF := GF) (hG := hG) :=
+theorem raft.InmemStore.wp_StoreLogs : github_com.hashicorp.raft.InmemStore.StoreLogs.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InmemStore.StoreLogs.wp_proof
 
-theorem github_com.hashicorp.raft.InmemStore.wp_StoreLog : github_com.hashicorp.raft.InmemStore.StoreLog.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.InmemStore.StoreLog.wp_proof github_com.hashicorp.raft.InmemStore.wp_StoreLogs
+theorem raft.InmemStore.wp_StoreLog : github_com.hashicorp.raft.InmemStore.StoreLog.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.InmemStore.StoreLog.wp_proof raft.InmemStore.wp_StoreLogs
 
-theorem github_com.hashicorp.raft.InstallSnapshotRequest.wp_GetRPCHeader : github_com.hashicorp.raft.InstallSnapshotRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
+theorem raft.InstallSnapshotRequest.wp_GetRPCHeader : github_com.hashicorp.raft.InstallSnapshotRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.InstallSnapshotRequest.GetRPCHeader.wp_proof
 
-theorem github_com.hashicorp.raft.wp_NewInmemSnapshotStore : github_com.hashicorp.raft.NewInmemSnapshotStore.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_NewInmemSnapshotStore : github_com.hashicorp.raft.NewInmemSnapshotStore.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.NewInmemSnapshotStore.wp_proof
 
-theorem github_com.hashicorp.raft.wp_NewInmemStore : github_com.hashicorp.raft.NewInmemStore.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_NewInmemStore : github_com.hashicorp.raft.NewInmemStore.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.NewInmemStore.wp_proof
 
-theorem github_com.hashicorp.raft.wp_NewObserver : github_com.hashicorp.raft.NewObserver.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_NewObserver : github_com.hashicorp.raft.NewObserver.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.NewObserver.wp_proof
 
-theorem github_com.hashicorp.raft.RPC.wp_Respond : github_com.hashicorp.raft.RPC.Respond.spec (GF := GF) (hG := hG) :=
+theorem raft.RPC.wp_Respond : github_com.hashicorp.raft.RPC.Respond.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.RPC.Respond.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_requestConfigChange : github_com.hashicorp.raft.Raft.requestConfigChange.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_requestConfigChange : github_com.hashicorp.raft.Raft.requestConfigChange.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.requestConfigChange.wp_proof _root_.Perennial.time.wp_After
 
-theorem github_com.hashicorp.raft.Raft.wp_AddNonvoter : github_com.hashicorp.raft.Raft.AddNonvoter.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.AddNonvoter.wp_proof github_com.hashicorp.raft.Raft.wp_requestConfigChange
+theorem raft.Raft.wp_AddNonvoter : github_com.hashicorp.raft.Raft.AddNonvoter.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.AddNonvoter.wp_proof raft.Raft.wp_requestConfigChange
 
-theorem github_com.hashicorp.raft.Raft.wp_AddVoter : github_com.hashicorp.raft.Raft.AddVoter.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.AddVoter.wp_proof github_com.hashicorp.raft.Raft.wp_requestConfigChange
+theorem raft.Raft.wp_AddVoter : github_com.hashicorp.raft.Raft.AddVoter.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.AddVoter.wp_proof raft.Raft.wp_requestConfigChange
 
-theorem github_com.hashicorp.raft.deferError.wp_init : github_com.hashicorp.raft.deferError.init.spec (GF := GF) (hG := hG) :=
+theorem raft.deferError.wp_init : github_com.hashicorp.raft.deferError.init.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.deferError.init.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_ApplyLog : github_com.hashicorp.raft.Raft.ApplyLog.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.ApplyLog.wp_proof github_com.hashicorp.raft.deferError.wp_init _root_.Perennial.time.wp_After
+theorem raft.Raft.wp_ApplyLog : github_com.hashicorp.raft.Raft.ApplyLog.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.ApplyLog.wp_proof raft.deferError.wp_init _root_.Perennial.time.wp_After
 
-theorem github_com.hashicorp.raft.Raft.wp_Apply : github_com.hashicorp.raft.Raft.Apply.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.Apply.wp_proof github_com.hashicorp.raft.Raft.wp_ApplyLog
+theorem raft.Raft.wp_Apply : github_com.hashicorp.raft.Raft.Apply.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.Apply.wp_proof raft.Raft.wp_ApplyLog
 
-theorem github_com.hashicorp.raft.Raft.wp_Barrier : github_com.hashicorp.raft.Raft.Barrier.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.Barrier.wp_proof github_com.hashicorp.raft.deferError.wp_init _root_.Perennial.time.wp_After
+theorem raft.Raft.wp_Barrier : github_com.hashicorp.raft.Raft.Barrier.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.Barrier.wp_proof raft.deferError.wp_init _root_.Perennial.time.wp_After
 
-theorem github_com.hashicorp.raft.Raft.wp_DemoteVoter : github_com.hashicorp.raft.Raft.DemoteVoter.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.DemoteVoter.wp_proof github_com.hashicorp.raft.Raft.wp_requestConfigChange
+theorem raft.Raft.wp_DemoteVoter : github_com.hashicorp.raft.Raft.DemoteVoter.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.DemoteVoter.wp_proof raft.Raft.wp_requestConfigChange
 
-theorem github_com.hashicorp.raft.Raft.wp_getLatestConfiguration : github_com.hashicorp.raft.Raft.getLatestConfiguration.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_getLatestConfiguration : github_com.hashicorp.raft.Raft.getLatestConfiguration.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.getLatestConfiguration.wp_proof _root_.Perennial.sync.atomic.Pointer.wp_Load
 
-theorem github_com.hashicorp.raft.Raft.wp_GetConfiguration : github_com.hashicorp.raft.Raft.GetConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.GetConfiguration.wp_proof github_com.hashicorp.raft.Raft.wp_getLatestConfiguration
+theorem raft.Raft.wp_GetConfiguration : github_com.hashicorp.raft.Raft.GetConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.GetConfiguration.wp_proof raft.Raft.wp_getLatestConfiguration
 
-theorem github_com.hashicorp.raft.Raft.wp_LastContact : github_com.hashicorp.raft.Raft.LastContact.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_LastContact : github_com.hashicorp.raft.Raft.LastContact.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.LastContact.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_LeaderWithID : github_com.hashicorp.raft.Raft.LeaderWithID.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_LeaderWithID : github_com.hashicorp.raft.Raft.LeaderWithID.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.LeaderWithID.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_initiateLeadershipTransfer : github_com.hashicorp.raft.Raft.initiateLeadershipTransfer.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_initiateLeadershipTransfer : github_com.hashicorp.raft.Raft.initiateLeadershipTransfer.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.initiateLeadershipTransfer.wp_proof _root_.Perennial.fmt.wp_Errorf
 
-theorem github_com.hashicorp.raft.Raft.wp_LeadershipTransfer : github_com.hashicorp.raft.Raft.LeadershipTransfer.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.LeadershipTransfer.wp_proof github_com.hashicorp.raft.Raft.wp_initiateLeadershipTransfer
+theorem raft.Raft.wp_LeadershipTransfer : github_com.hashicorp.raft.Raft.LeadershipTransfer.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.LeadershipTransfer.wp_proof raft.Raft.wp_initiateLeadershipTransfer
 
-theorem github_com.hashicorp.raft.Raft.wp_LeadershipTransferToServer : github_com.hashicorp.raft.Raft.LeadershipTransferToServer.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.LeadershipTransferToServer.wp_proof github_com.hashicorp.raft.Raft.wp_initiateLeadershipTransfer
+theorem raft.Raft.wp_LeadershipTransferToServer : github_com.hashicorp.raft.Raft.LeadershipTransferToServer.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.LeadershipTransferToServer.wp_proof raft.Raft.wp_initiateLeadershipTransfer
 
-theorem github_com.hashicorp.raft.Raft.wp_RegisterObserver : github_com.hashicorp.raft.Raft.RegisterObserver.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_RegisterObserver : github_com.hashicorp.raft.Raft.RegisterObserver.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.RegisterObserver.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_RemoveServer : github_com.hashicorp.raft.Raft.RemoveServer.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.RemoveServer.wp_proof github_com.hashicorp.raft.Raft.wp_requestConfigChange
+theorem raft.Raft.wp_RemoveServer : github_com.hashicorp.raft.Raft.RemoveServer.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.RemoveServer.wp_proof raft.Raft.wp_requestConfigChange
 
-theorem github_com.hashicorp.raft.Raft.wp_Snapshot : github_com.hashicorp.raft.Raft.Snapshot.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_Snapshot : github_com.hashicorp.raft.Raft.Snapshot.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.Snapshot.wp_proof
 
-theorem github_com.hashicorp.raft.raftState.wp_getState : github_com.hashicorp.raft.raftState.getState.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getState : github_com.hashicorp.raft.raftState.getState.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getState.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_State : github_com.hashicorp.raft.Raft.State.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.State.wp_proof github_com.hashicorp.raft.raftState.wp_getState
+theorem raft.Raft.wp_State : github_com.hashicorp.raft.Raft.State.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.State.wp_proof raft.raftState.wp_getState
 
-theorem github_com.hashicorp.raft.Raft.wp_VerifyLeader : github_com.hashicorp.raft.Raft.VerifyLeader.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_VerifyLeader : github_com.hashicorp.raft.Raft.VerifyLeader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.VerifyLeader.wp_proof
 
-theorem github_com.hashicorp.raft.wp_nextConfiguration : github_com.hashicorp.raft.nextConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.nextConfiguration.wp_proof github_com.hashicorp.raft.wp_checkConfiguration
+theorem raft.wp_nextConfiguration : github_com.hashicorp.raft.nextConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.nextConfiguration.wp_proof raft.wp_checkConfiguration
 
-theorem github_com.hashicorp.raft.wp_max : github_com.hashicorp.raft.max.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_max : github_com.hashicorp.raft.max.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.max.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_tryStageCommitIndex : github_com.hashicorp.raft.Raft.tryStageCommitIndex.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_tryStageCommitIndex : github_com.hashicorp.raft.Raft.tryStageCommitIndex.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.tryStageCommitIndex.wp_proof
 
-theorem github_com.hashicorp.raft.wp_sortUint64s : github_com.hashicorp.raft.sortUint64s.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_sortUint64s : github_com.hashicorp.raft.sortUint64s.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.sortUint64s.wp_proof
 
-theorem github_com.hashicorp.raft.wp_asyncNotifyCh : github_com.hashicorp.raft.asyncNotifyCh.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_asyncNotifyCh : github_com.hashicorp.raft.asyncNotifyCh.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.asyncNotifyCh.wp_proof
 
-theorem github_com.hashicorp.raft.raftState.wp_setLastLog : github_com.hashicorp.raft.raftState.setLastLog.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_setLastLog : github_com.hashicorp.raft.raftState.setLastLog.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setLastLog.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setLatestConfiguration : github_com.hashicorp.raft.Raft.setLatestConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setLatestConfiguration.wp_proof github_com.hashicorp.raft.Configuration.wp_Clone _root_.Perennial.sync.atomic.Pointer.wp_Store
+theorem raft.Raft.wp_setLatestConfiguration : github_com.hashicorp.raft.Raft.setLatestConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setLatestConfiguration.wp_proof raft.Configuration.wp_Clone _root_.Perennial.sync.atomic.Pointer.wp_Store
 
-theorem github_com.hashicorp.raft.raftState.wp_goFunc : github_com.hashicorp.raft.raftState.goFunc.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_goFunc : github_com.hashicorp.raft.raftState.goFunc.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.goFunc.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_config : github_com.hashicorp.raft.Raft.config.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_config : github_com.hashicorp.raft.Raft.config.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.config.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_getRPCHeader : github_com.hashicorp.raft.Raft.getRPCHeader.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.getRPCHeader.wp_proof github_com.hashicorp.raft.Raft.wp_config
+theorem raft.Raft.wp_getRPCHeader : github_com.hashicorp.raft.Raft.getRPCHeader.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.getRPCHeader.wp_proof raft.Raft.wp_config
 
-theorem github_com.hashicorp.raft.wp_randomTimeout : github_com.hashicorp.raft.randomTimeout.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_randomTimeout : github_com.hashicorp.raft.randomTimeout.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.randomTimeout.wp_proof
 
-theorem github_com.hashicorp.raft.wp_min : github_com.hashicorp.raft.min.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_min : github_com.hashicorp.raft.min.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.min.wp_proof
 
-theorem github_com.hashicorp.raft.wp_cappedExponentialBackoff : github_com.hashicorp.raft.cappedExponentialBackoff.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.cappedExponentialBackoff.wp_proof github_com.hashicorp.raft.wp_min
+theorem raft.wp_cappedExponentialBackoff : github_com.hashicorp.raft.cappedExponentialBackoff.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.cappedExponentialBackoff.wp_proof raft.wp_min
 
-theorem github_com.hashicorp.raft.Raft.wp_observe : github_com.hashicorp.raft.Raft.observe.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_observe : github_com.hashicorp.raft.Raft.observe.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.observe.wp_proof
 
-theorem github_com.hashicorp.raft.raftState.wp_getLastSnapshot : github_com.hashicorp.raft.raftState.getLastSnapshot.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getLastSnapshot : github_com.hashicorp.raft.raftState.getLastSnapshot.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getLastSnapshot.wp_proof
 
-theorem github_com.hashicorp.raft.wp_backoff : github_com.hashicorp.raft.backoff.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.backoff.wp_proof github_com.hashicorp.raft.wp_min
+theorem raft.wp_backoff : github_com.hashicorp.raft.backoff.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.backoff.wp_proof raft.wp_min
 
-theorem github_com.hashicorp.raft.deferError.wp_respond : github_com.hashicorp.raft.deferError.respond.spec (GF := GF) (hG := hG) :=
+theorem raft.deferError.wp_respond : github_com.hashicorp.raft.deferError.respond.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.deferError.respond.wp_proof
 
-theorem github_com.hashicorp.raft.raftState.wp_getLastLog : github_com.hashicorp.raft.raftState.getLastLog.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getLastLog : github_com.hashicorp.raft.raftState.getLastLog.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getLastLog.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setLeader : github_com.hashicorp.raft.Raft.setLeader.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setLeader.wp_proof github_com.hashicorp.raft.Raft.wp_observe
+theorem raft.Raft.wp_setLeader : github_com.hashicorp.raft.Raft.setLeader.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setLeader.wp_proof raft.Raft.wp_observe
 
-theorem github_com.hashicorp.raft.raftState.wp_setState : github_com.hashicorp.raft.raftState.setState.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_setState : github_com.hashicorp.raft.raftState.setState.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setState.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setState : github_com.hashicorp.raft.Raft.setState.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setState.wp_proof github_com.hashicorp.raft.Raft.wp_setLeader github_com.hashicorp.raft.raftState.wp_getState github_com.hashicorp.raft.raftState.wp_setState github_com.hashicorp.raft.Raft.wp_observe
+theorem raft.Raft.wp_setState : github_com.hashicorp.raft.Raft.setState.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setState.wp_proof raft.Raft.wp_setLeader raft.raftState.wp_getState raft.raftState.wp_setState raft.Raft.wp_observe
 
-theorem github_com.hashicorp.raft.raftState.wp_setCurrentTerm : github_com.hashicorp.raft.raftState.setCurrentTerm.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_setCurrentTerm : github_com.hashicorp.raft.raftState.setCurrentTerm.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setCurrentTerm.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setCurrentTerm : github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof github_com.hashicorp.raft.raftState.wp_setCurrentTerm
+theorem raft.Raft.wp_setCurrentTerm : github_com.hashicorp.raft.Raft.setCurrentTerm.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setCurrentTerm.wp_proof raft.raftState.wp_setCurrentTerm
 
-theorem github_com.hashicorp.raft.Raft.wp_setCommittedConfiguration : github_com.hashicorp.raft.Raft.setCommittedConfiguration.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_setCommittedConfiguration : github_com.hashicorp.raft.Raft.setCommittedConfiguration.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.setCommittedConfiguration.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_processConfigurationLogEntry : github_com.hashicorp.raft.Raft.processConfigurationLogEntry.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.processConfigurationLogEntry.wp_proof github_com.hashicorp.raft.wp_DecodeConfiguration github_com.hashicorp.raft.Raft.wp_setCommittedConfiguration github_com.hashicorp.raft.Raft.wp_setLatestConfiguration
+theorem raft.Raft.wp_processConfigurationLogEntry : github_com.hashicorp.raft.Raft.processConfigurationLogEntry.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.processConfigurationLogEntry.wp_proof raft.wp_DecodeConfiguration raft.Raft.wp_setCommittedConfiguration raft.Raft.wp_setLatestConfiguration
 
-theorem github_com.hashicorp.raft.raftState.wp_setCommitIndex : github_com.hashicorp.raft.raftState.setCommitIndex.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_setCommitIndex : github_com.hashicorp.raft.raftState.setCommitIndex.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setCommitIndex.wp_proof
 
-theorem github_com.hashicorp.raft.raftState.wp_getLastApplied : github_com.hashicorp.raft.raftState.getLastApplied.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getLastApplied : github_com.hashicorp.raft.raftState.getLastApplied.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getLastApplied.wp_proof
 
-theorem github_com.hashicorp.raft.raftState.wp_setLastApplied : github_com.hashicorp.raft.raftState.setLastApplied.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_setLastApplied : github_com.hashicorp.raft.raftState.setLastApplied.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setLastApplied.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_prepareLog : github_com.hashicorp.raft.Raft.prepareLog.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_prepareLog : github_com.hashicorp.raft.Raft.prepareLog.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.prepareLog.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setLastContact : github_com.hashicorp.raft.Raft.setLastContact.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_setLastContact : github_com.hashicorp.raft.Raft.setLastContact.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.setLastContact.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_quorumSize : github_com.hashicorp.raft.Raft.quorumSize.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_quorumSize : github_com.hashicorp.raft.Raft.quorumSize.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.quorumSize.wp_proof
 
-theorem github_com.hashicorp.raft.RequestVoteRequest.wp_GetRPCHeader : github_com.hashicorp.raft.RequestVoteRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
+theorem raft.RequestVoteRequest.wp_GetRPCHeader : github_com.hashicorp.raft.RequestVoteRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.RequestVoteRequest.GetRPCHeader.wp_proof
 
-theorem github_com.hashicorp.raft.RequestPreVoteRequest.wp_GetRPCHeader : github_com.hashicorp.raft.RequestPreVoteRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
+theorem raft.RequestPreVoteRequest.wp_GetRPCHeader : github_com.hashicorp.raft.RequestPreVoteRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.RequestPreVoteRequest.GetRPCHeader.wp_proof
 
-theorem github_com.hashicorp.raft.TimeoutNowRequest.wp_GetRPCHeader : github_com.hashicorp.raft.TimeoutNowRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
+theorem raft.TimeoutNowRequest.wp_GetRPCHeader : github_com.hashicorp.raft.TimeoutNowRequest.GetRPCHeader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.TimeoutNowRequest.GetRPCHeader.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_checkRPCHeader : github_com.hashicorp.raft.Raft.checkRPCHeader.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.checkRPCHeader.wp_proof github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.AppendEntriesRequest.wp_GetRPCHeader github_com.hashicorp.raft.RequestVoteRequest.wp_GetRPCHeader github_com.hashicorp.raft.RequestPreVoteRequest.wp_GetRPCHeader github_com.hashicorp.raft.TimeoutNowRequest.wp_GetRPCHeader github_com.hashicorp.raft.InstallSnapshotRequest.wp_GetRPCHeader
+theorem raft.Raft.wp_checkRPCHeader : github_com.hashicorp.raft.Raft.checkRPCHeader.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.checkRPCHeader.wp_proof raft.Raft.wp_config raft.AppendEntriesRequest.wp_GetRPCHeader raft.RequestVoteRequest.wp_GetRPCHeader raft.RequestPreVoteRequest.wp_GetRPCHeader raft.TimeoutNowRequest.wp_GetRPCHeader raft.InstallSnapshotRequest.wp_GetRPCHeader
 
-theorem github_com.hashicorp.raft.Raft.wp_persistVote : github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_persistVote : github_com.hashicorp.raft.Raft.persistVote.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.persistVote.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_getLeadershipTransferInProgress : github_com.hashicorp.raft.Raft.getLeadershipTransferInProgress.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_getLeadershipTransferInProgress : github_com.hashicorp.raft.Raft.getLeadershipTransferInProgress.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.getLeadershipTransferInProgress.wp_proof _root_.Perennial.sync.atomic.wp_LoadInt32
 
-theorem github_com.hashicorp.raft.Raft.wp_pickServer : github_com.hashicorp.raft.Raft.pickServer.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_pickServer : github_com.hashicorp.raft.Raft.pickServer.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.pickServer.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64
 
-theorem github_com.hashicorp.raft.wp_inConfiguration : github_com.hashicorp.raft.inConfiguration.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_inConfiguration : github_com.hashicorp.raft.inConfiguration.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.inConfiguration.wp_proof
 
-theorem github_com.hashicorp.raft.wp_hasVote : github_com.hashicorp.raft.hasVote.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_hasVote : github_com.hashicorp.raft.hasVote.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.hasVote.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_restoreFromCommittedLogs : github_com.hashicorp.raft.Raft.restoreFromCommittedLogs.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_restoreFromCommittedLogs : github_com.hashicorp.raft.Raft.restoreFromCommittedLogs.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.restoreFromCommittedLogs.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_restoreSnapshot : github_com.hashicorp.raft.Raft.restoreSnapshot.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_restoreSnapshot : github_com.hashicorp.raft.Raft.restoreSnapshot.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.restoreSnapshot.wp_proof
 
-theorem github_com.hashicorp.raft.wp_newCountingReader : github_com.hashicorp.raft.newCountingReader.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_newCountingReader : github_com.hashicorp.raft.newCountingReader.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.newCountingReader.wp_proof
 
-theorem github_com.hashicorp.raft.wp_newCountingReadCloser : github_com.hashicorp.raft.newCountingReadCloser.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.newCountingReadCloser.wp_proof github_com.hashicorp.raft.wp_newCountingReader
+theorem raft.wp_newCountingReadCloser : github_com.hashicorp.raft.newCountingReadCloser.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.newCountingReadCloser.wp_proof raft.wp_newCountingReader
 
-theorem github_com.hashicorp.raft.countingReader.wp_Read : github_com.hashicorp.raft.countingReader.Read.spec (GF := GF) (hG := hG) :=
+theorem raft.countingReader.wp_Read : github_com.hashicorp.raft.countingReader.Read.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.countingReader.Read.wp_proof
 
-theorem github_com.hashicorp.raft.countingReadCloser.wp_Close : github_com.hashicorp.raft.countingReadCloser.Close.spec (GF := GF) (hG := hG) :=
+theorem raft.countingReadCloser.wp_Close : github_com.hashicorp.raft.countingReadCloser.Close.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.countingReadCloser.Close.wp_proof
 
-theorem github_com.hashicorp.raft.snapshotRestoreMonitor.wp_runOnce : github_com.hashicorp.raft.snapshotRestoreMonitor.runOnce.spec (GF := GF) (hG := hG) :=
+theorem raft.snapshotRestoreMonitor.wp_runOnce : github_com.hashicorp.raft.snapshotRestoreMonitor.runOnce.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.snapshotRestoreMonitor.runOnce.wp_proof
 
-theorem github_com.hashicorp.raft.snapshotRestoreMonitor.wp_run : github_com.hashicorp.raft.snapshotRestoreMonitor.run.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.snapshotRestoreMonitor.run.wp_proof _root_.Perennial.time.Ticker.wp_Stop github_com.hashicorp.raft.snapshotRestoreMonitor.wp_runOnce
+theorem raft.snapshotRestoreMonitor.wp_run : github_com.hashicorp.raft.snapshotRestoreMonitor.run.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.snapshotRestoreMonitor.run.wp_proof _root_.Perennial.time.Ticker.wp_Stop raft.snapshotRestoreMonitor.wp_runOnce
 
-theorem github_com.hashicorp.raft.wp_startSnapshotRestoreMonitor : github_com.hashicorp.raft.startSnapshotRestoreMonitor.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.startSnapshotRestoreMonitor.wp_proof github_com.hashicorp.raft.snapshotRestoreMonitor.wp_run
+theorem raft.wp_startSnapshotRestoreMonitor : github_com.hashicorp.raft.startSnapshotRestoreMonitor.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.startSnapshotRestoreMonitor.wp_proof raft.snapshotRestoreMonitor.wp_run
 
-theorem github_com.hashicorp.raft.snapshotRestoreMonitor.wp_StopAndWait : github_com.hashicorp.raft.snapshotRestoreMonitor.StopAndWait.spec (GF := GF) (hG := hG) :=
+theorem raft.snapshotRestoreMonitor.wp_StopAndWait : github_com.hashicorp.raft.snapshotRestoreMonitor.StopAndWait.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.snapshotRestoreMonitor.StopAndWait.wp_proof
 
-theorem github_com.hashicorp.raft.wp_fsmRestoreAndMeasure : github_com.hashicorp.raft.fsmRestoreAndMeasure.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.fsmRestoreAndMeasure.wp_proof github_com.hashicorp.raft.wp_newCountingReadCloser github_com.hashicorp.raft.countingReader.wp_Read github_com.hashicorp.raft.countingReadCloser.wp_Close github_com.hashicorp.raft.wp_startSnapshotRestoreMonitor github_com.hashicorp.raft.snapshotRestoreMonitor.wp_StopAndWait
+theorem raft.wp_fsmRestoreAndMeasure : github_com.hashicorp.raft.fsmRestoreAndMeasure.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.fsmRestoreAndMeasure.wp_proof raft.wp_newCountingReadCloser raft.countingReader.wp_Read raft.countingReadCloser.wp_Close raft.wp_startSnapshotRestoreMonitor raft.snapshotRestoreMonitor.wp_StopAndWait
 
-theorem github_com.hashicorp.raft.Raft.wp_shouldSnapshot : github_com.hashicorp.raft.Raft.shouldSnapshot.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.shouldSnapshot.wp_proof github_com.hashicorp.raft.raftState.wp_getLastSnapshot github_com.hashicorp.raft.Raft.wp_config
+theorem raft.Raft.wp_shouldSnapshot : github_com.hashicorp.raft.Raft.shouldSnapshot.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.shouldSnapshot.wp_proof raft.raftState.wp_getLastSnapshot raft.Raft.wp_config
 
-theorem github_com.hashicorp.raft.raftState.wp_setLastSnapshot : github_com.hashicorp.raft.raftState.setLastSnapshot.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_setLastSnapshot : github_com.hashicorp.raft.raftState.setLastSnapshot.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.setLastSnapshot.wp_proof
 
-theorem github_com.hashicorp.raft.wp_getSnapshotVersion : github_com.hashicorp.raft.getSnapshotVersion.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_getSnapshotVersion : github_com.hashicorp.raft.getSnapshotVersion.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.getSnapshotVersion.wp_proof
 
-theorem github_com.hashicorp.raft.deferError.wp_Error : github_com.hashicorp.raft.deferError.Error.spec (GF := GF) (hG := hG) :=
+theorem raft.deferError.wp_Error : github_com.hashicorp.raft.deferError.Error.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.deferError.Error.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setLeadershipTransferInProgress : github_com.hashicorp.raft.Raft.setLeadershipTransferInProgress.spec (GF := GF) (hG := hG) :=
+theorem raft.Raft.wp_setLeadershipTransferInProgress : github_com.hashicorp.raft.Raft.setLeadershipTransferInProgress.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.Raft.setLeadershipTransferInProgress.wp_proof _root_.Perennial.sync.atomic.wp_StoreInt32
 
-theorem github_com.hashicorp.raft.Raft.wp_timeoutNow : github_com.hashicorp.raft.Raft.timeoutNow.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.timeoutNow.wp_proof github_com.hashicorp.raft.Raft.wp_setLeader github_com.hashicorp.raft.Raft.wp_setState github_com.hashicorp.raft.RPC.wp_Respond _root_.Perennial.sync.atomic.Bool.wp_Store
+theorem raft.Raft.wp_timeoutNow : github_com.hashicorp.raft.Raft.timeoutNow.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.timeoutNow.wp_proof raft.Raft.wp_setLeader raft.Raft.wp_setState raft.RPC.wp_Respond _root_.Perennial.sync.atomic.Bool.wp_Store
 
-theorem github_com.hashicorp.raft.configurationsFuture.wp_Configuration : github_com.hashicorp.raft.configurationsFuture.Configuration.spec (GF := GF) (hG := hG) :=
+theorem raft.configurationsFuture.wp_Configuration : github_com.hashicorp.raft.configurationsFuture.Configuration.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.configurationsFuture.Configuration.wp_proof
 
-theorem github_com.hashicorp.raft.wp_drainNotifyCh : github_com.hashicorp.raft.drainNotifyCh.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_drainNotifyCh : github_com.hashicorp.raft.drainNotifyCh.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.drainNotifyCh.wp_proof
 
-theorem github_com.hashicorp.raft.errorFuture.wp_Error : github_com.hashicorp.raft.errorFuture.Error.spec (GF := GF) (hG := hG) :=
+theorem raft.errorFuture.wp_Error : github_com.hashicorp.raft.errorFuture.Error.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.errorFuture.Error.wp_proof
 
-theorem github_com.hashicorp.raft.errorFuture.wp_Response : github_com.hashicorp.raft.errorFuture.Response.spec (GF := GF) (hG := hG) :=
+theorem raft.errorFuture.wp_Response : github_com.hashicorp.raft.errorFuture.Response.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.errorFuture.Response.wp_proof
 
-theorem github_com.hashicorp.raft.logFuture.wp_Response : github_com.hashicorp.raft.logFuture.Response.spec (GF := GF) (hG := hG) :=
+theorem raft.logFuture.wp_Response : github_com.hashicorp.raft.logFuture.Response.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.logFuture.Response.wp_proof
 
-theorem github_com.hashicorp.raft.wp_overrideNotifyBool : github_com.hashicorp.raft.overrideNotifyBool.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_overrideNotifyBool : github_com.hashicorp.raft.overrideNotifyBool.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.overrideNotifyBool.wp_proof
 
 end link
@@ -578,142 +578,142 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.hashicorp.raft.Assumptions]
 variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 
-theorem github_com.hashicorp.raft.raftState.wp_getCurrentTerm : github_com.hashicorp.raft.raftState.getCurrentTerm.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getCurrentTerm : github_com.hashicorp.raft.raftState.getCurrentTerm.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getCurrentTerm.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_CurrentTerm : github_com.hashicorp.raft.Raft.CurrentTerm.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.CurrentTerm.wp_proof github_com.hashicorp.raft.raftState.wp_getCurrentTerm
+theorem raft.Raft.wp_CurrentTerm : github_com.hashicorp.raft.Raft.CurrentTerm.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.CurrentTerm.wp_proof raft.raftState.wp_getCurrentTerm
 
-theorem github_com.hashicorp.raft.raftState.wp_getLastIndex : github_com.hashicorp.raft.raftState.getLastIndex.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.raftState.getLastIndex.wp_proof github_com.hashicorp.raft.wp_max
+theorem raft.raftState.wp_getLastIndex : github_com.hashicorp.raft.raftState.getLastIndex.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.raftState.getLastIndex.wp_proof raft.wp_max
 
-theorem github_com.hashicorp.raft.raftState.wp_getCommitIndex : github_com.hashicorp.raft.raftState.getCommitIndex.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getCommitIndex : github_com.hashicorp.raft.raftState.getCommitIndex.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getCommitIndex.wp_proof
 
-theorem github_com.hashicorp.raft.commitment.wp_recalculate : github_com.hashicorp.raft.commitment.recalculate.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.commitment.recalculate.wp_proof github_com.hashicorp.raft.wp_sortUint64s github_com.hashicorp.raft.wp_asyncNotifyCh
+theorem raft.commitment.wp_recalculate : github_com.hashicorp.raft.commitment.recalculate.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.commitment.recalculate.wp_proof raft.wp_sortUint64s raft.wp_asyncNotifyCh
 
-theorem github_com.hashicorp.raft.commitment.wp_match : github_com.hashicorp.raft.commitment.match.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.commitment.match.wp_proof github_com.hashicorp.raft.commitment.wp_recalculate
+theorem raft.commitment.wp_match : github_com.hashicorp.raft.commitment.match.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.commitment.match.wp_proof raft.commitment.wp_recalculate
 
-theorem github_com.hashicorp.raft.commitment.wp_setConfiguration : github_com.hashicorp.raft.commitment.setConfiguration.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.commitment.setConfiguration.wp_proof github_com.hashicorp.raft.commitment.wp_recalculate
+theorem raft.commitment.wp_setConfiguration : github_com.hashicorp.raft.commitment.setConfiguration.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.commitment.setConfiguration.wp_proof raft.commitment.wp_recalculate
 
-theorem github_com.hashicorp.raft.followerReplication.wp_LastContact : github_com.hashicorp.raft.followerReplication.LastContact.spec (GF := GF) (hG := hG) :=
+theorem raft.followerReplication.wp_LastContact : github_com.hashicorp.raft.followerReplication.LastContact.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.followerReplication.LastContact.wp_proof
 
-theorem github_com.hashicorp.raft.followerReplication.wp_setLastContact : github_com.hashicorp.raft.followerReplication.setLastContact.spec (GF := GF) (hG := hG) :=
+theorem raft.followerReplication.wp_setLastContact : github_com.hashicorp.raft.followerReplication.setLastContact.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.followerReplication.setLastContact.wp_proof _root_.Perennial.time.wp_Now
 
-theorem github_com.hashicorp.raft.verifyFuture.wp_vote : github_com.hashicorp.raft.verifyFuture.vote.spec (GF := GF) (hG := hG) :=
+theorem raft.verifyFuture.wp_vote : github_com.hashicorp.raft.verifyFuture.vote.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.verifyFuture.vote.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_heartbeat : github_com.hashicorp.raft.Raft.heartbeat.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.heartbeat.wp_proof _root_.Perennial.time.wp_After github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.wp_randomTimeout github_com.hashicorp.raft.wp_cappedExponentialBackoff github_com.hashicorp.raft.Raft.wp_observe github_com.hashicorp.raft.followerReplication.wp_LastContact github_com.hashicorp.raft.followerReplication.wp_setLastContact github_com.hashicorp.raft.verifyFuture.wp_vote
+theorem raft.Raft.wp_heartbeat : github_com.hashicorp.raft.Raft.heartbeat.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.heartbeat.wp_proof _root_.Perennial.time.wp_After raft.Raft.wp_getRPCHeader raft.Raft.wp_config raft.wp_randomTimeout raft.wp_cappedExponentialBackoff raft.Raft.wp_observe raft.followerReplication.wp_LastContact raft.followerReplication.wp_setLastContact raft.verifyFuture.wp_vote
 
-theorem github_com.hashicorp.raft.Raft.wp_setPreviousLog : github_com.hashicorp.raft.Raft.setPreviousLog.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setPreviousLog.wp_proof github_com.hashicorp.raft.raftState.wp_getLastSnapshot
+theorem raft.Raft.wp_setPreviousLog : github_com.hashicorp.raft.Raft.setPreviousLog.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setPreviousLog.wp_proof raft.raftState.wp_getLastSnapshot
 
-theorem github_com.hashicorp.raft.Raft.wp_setNewLogs : github_com.hashicorp.raft.Raft.setNewLogs.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setNewLogs.wp_proof github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.wp_min
+theorem raft.Raft.wp_setNewLogs : github_com.hashicorp.raft.Raft.setNewLogs.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setNewLogs.wp_proof raft.Raft.wp_config raft.wp_min
 
-theorem github_com.hashicorp.raft.Raft.wp_setupAppendEntries : github_com.hashicorp.raft.Raft.setupAppendEntries.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setupAppendEntries.wp_proof github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_getCommitIndex github_com.hashicorp.raft.Raft.wp_setPreviousLog github_com.hashicorp.raft.Raft.wp_setNewLogs
+theorem raft.Raft.wp_setupAppendEntries : github_com.hashicorp.raft.Raft.setupAppendEntries.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setupAppendEntries.wp_proof raft.Raft.wp_getRPCHeader raft.raftState.wp_getCommitIndex raft.Raft.wp_setPreviousLog raft.Raft.wp_setNewLogs
 
-theorem github_com.hashicorp.raft.followerReplication.wp_notifyAll : github_com.hashicorp.raft.followerReplication.notifyAll.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.followerReplication.notifyAll.wp_proof github_com.hashicorp.raft.verifyFuture.wp_vote
+theorem raft.followerReplication.wp_notifyAll : github_com.hashicorp.raft.followerReplication.notifyAll.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.followerReplication.notifyAll.wp_proof raft.verifyFuture.wp_vote
 
-theorem github_com.hashicorp.raft.Raft.wp_handleStaleTerm : github_com.hashicorp.raft.Raft.handleStaleTerm.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.handleStaleTerm.wp_proof github_com.hashicorp.raft.followerReplication.wp_notifyAll github_com.hashicorp.raft.wp_asyncNotifyCh
+theorem raft.Raft.wp_handleStaleTerm : github_com.hashicorp.raft.Raft.handleStaleTerm.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.handleStaleTerm.wp_proof raft.followerReplication.wp_notifyAll raft.wp_asyncNotifyCh
 
-theorem github_com.hashicorp.raft.Raft.wp_sendLatestSnapshot : github_com.hashicorp.raft.Raft.sendLatestSnapshot.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.sendLatestSnapshot.wp_proof _root_.Perennial.fmt.wp_Errorf _root_.Perennial.sync.atomic.wp_StoreUint64 github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.wp_EncodeConfiguration github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.Raft.wp_handleStaleTerm github_com.hashicorp.raft.followerReplication.wp_setLastContact github_com.hashicorp.raft.commitment.wp_match
+theorem raft.Raft.wp_sendLatestSnapshot : github_com.hashicorp.raft.Raft.sendLatestSnapshot.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.sendLatestSnapshot.wp_proof _root_.Perennial.fmt.wp_Errorf _root_.Perennial.sync.atomic.wp_StoreUint64 raft.Raft.wp_getRPCHeader raft.wp_EncodeConfiguration raft.raftState.wp_getCurrentTerm raft.Raft.wp_handleStaleTerm raft.followerReplication.wp_setLastContact raft.commitment.wp_match
 
-theorem github_com.hashicorp.raft.wp_appendStats : github_com.hashicorp.raft.appendStats.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_appendStats : github_com.hashicorp.raft.appendStats.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.appendStats.wp_proof
 
-theorem github_com.hashicorp.raft.wp_updateLastAppended : github_com.hashicorp.raft.updateLastAppended.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.updateLastAppended.wp_proof _root_.Perennial.sync.atomic.wp_StoreUint64 github_com.hashicorp.raft.commitment.wp_match
+theorem raft.wp_updateLastAppended : github_com.hashicorp.raft.updateLastAppended.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.updateLastAppended.wp_proof _root_.Perennial.sync.atomic.wp_StoreUint64 raft.commitment.wp_match
 
-theorem github_com.hashicorp.raft.Raft.wp_replicateTo : github_com.hashicorp.raft.Raft.replicateTo.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.replicateTo.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64 _root_.Perennial.sync.atomic.wp_StoreUint64 _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_After github_com.hashicorp.raft.Raft.wp_setupAppendEntries github_com.hashicorp.raft.Raft.wp_sendLatestSnapshot github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.wp_appendStats github_com.hashicorp.raft.Raft.wp_handleStaleTerm github_com.hashicorp.raft.followerReplication.wp_setLastContact github_com.hashicorp.raft.wp_updateLastAppended github_com.hashicorp.raft.wp_backoff github_com.hashicorp.raft.wp_min github_com.hashicorp.raft.wp_max
+theorem raft.Raft.wp_replicateTo : github_com.hashicorp.raft.Raft.replicateTo.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.replicateTo.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64 _root_.Perennial.sync.atomic.wp_StoreUint64 _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_After raft.Raft.wp_setupAppendEntries raft.Raft.wp_sendLatestSnapshot raft.raftState.wp_getCurrentTerm raft.wp_appendStats raft.Raft.wp_handleStaleTerm raft.followerReplication.wp_setLastContact raft.wp_updateLastAppended raft.wp_backoff raft.wp_min raft.wp_max
 
-theorem github_com.hashicorp.raft.Raft.wp_pipelineDecode : github_com.hashicorp.raft.Raft.pipelineDecode.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.pipelineDecode.wp_proof github_com.hashicorp.raft.wp_updateLastAppended github_com.hashicorp.raft.wp_appendStats github_com.hashicorp.raft.Raft.wp_handleStaleTerm github_com.hashicorp.raft.followerReplication.wp_setLastContact
+theorem raft.Raft.wp_pipelineDecode : github_com.hashicorp.raft.Raft.pipelineDecode.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.pipelineDecode.wp_proof raft.wp_updateLastAppended raft.wp_appendStats raft.Raft.wp_handleStaleTerm raft.followerReplication.wp_setLastContact
 
-theorem github_com.hashicorp.raft.Raft.wp_pipelineSend : github_com.hashicorp.raft.Raft.pipelineSend.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.pipelineSend.wp_proof _root_.Perennial.sync.atomic.wp_StoreUint64 github_com.hashicorp.raft.Raft.wp_setupAppendEntries github_com.hashicorp.raft.raftState.wp_getCurrentTerm
+theorem raft.Raft.wp_pipelineSend : github_com.hashicorp.raft.Raft.pipelineSend.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.pipelineSend.wp_proof _root_.Perennial.sync.atomic.wp_StoreUint64 raft.Raft.wp_setupAppendEntries raft.raftState.wp_getCurrentTerm
 
-theorem github_com.hashicorp.raft.Raft.wp_pipelineReplicate : github_com.hashicorp.raft.Raft.pipelineReplicate.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.pipelineReplicate.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64 _root_.Perennial.fmt.wp_Errorf github_com.hashicorp.raft.deferError.wp_respond github_com.hashicorp.raft.raftState.wp_goFunc github_com.hashicorp.raft.Raft.wp_pipelineDecode github_com.hashicorp.raft.Raft.wp_pipelineSend github_com.hashicorp.raft.raftState.wp_getLastLog github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.wp_randomTimeout
+theorem raft.Raft.wp_pipelineReplicate : github_com.hashicorp.raft.Raft.pipelineReplicate.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.pipelineReplicate.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64 _root_.Perennial.fmt.wp_Errorf raft.deferError.wp_respond raft.raftState.wp_goFunc raft.Raft.wp_pipelineDecode raft.Raft.wp_pipelineSend raft.raftState.wp_getLastLog raft.Raft.wp_config raft.wp_randomTimeout
 
-theorem github_com.hashicorp.raft.Raft.wp_replicate : github_com.hashicorp.raft.Raft.replicate.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.replicate.wp_proof github_com.hashicorp.raft.Raft.wp_heartbeat github_com.hashicorp.raft.raftState.wp_goFunc github_com.hashicorp.raft.Raft.wp_replicateTo github_com.hashicorp.raft.Raft.wp_pipelineReplicate github_com.hashicorp.raft.raftState.wp_getLastLog github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.wp_randomTimeout _root_.Perennial.fmt.wp_Errorf github_com.hashicorp.raft.deferError.wp_respond
+theorem raft.Raft.wp_replicate : github_com.hashicorp.raft.Raft.replicate.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.replicate.wp_proof raft.Raft.wp_heartbeat raft.raftState.wp_goFunc raft.Raft.wp_replicateTo raft.Raft.wp_pipelineReplicate raft.raftState.wp_getLastLog raft.Raft.wp_config raft.wp_randomTimeout _root_.Perennial.fmt.wp_Errorf raft.deferError.wp_respond
 
-theorem github_com.hashicorp.raft.raftState.wp_getLastEntry : github_com.hashicorp.raft.raftState.getLastEntry.spec (GF := GF) (hG := hG) :=
+theorem raft.raftState.wp_getLastEntry : github_com.hashicorp.raft.raftState.getLastEntry.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.raftState.getLastEntry.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_processLogs : github_com.hashicorp.raft.Raft.processLogs.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.processLogs.wp_proof github_com.hashicorp.raft.raftState.wp_getLastApplied github_com.hashicorp.raft.raftState.wp_setLastApplied github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.Raft.wp_prepareLog github_com.hashicorp.raft.deferError.wp_respond
+theorem raft.Raft.wp_processLogs : github_com.hashicorp.raft.Raft.processLogs.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.processLogs.wp_proof raft.raftState.wp_getLastApplied raft.raftState.wp_setLastApplied raft.Raft.wp_config raft.Raft.wp_prepareLog raft.deferError.wp_respond
 
-theorem github_com.hashicorp.raft.Raft.wp_appendEntries : github_com.hashicorp.raft.Raft.appendEntries.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.appendEntries.wp_proof github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.raftState.wp_getLastIndex github_com.hashicorp.raft.raftState.wp_getState github_com.hashicorp.raft.Raft.wp_setState github_com.hashicorp.raft.Raft.wp_setCurrentTerm github_com.hashicorp.raft.Raft.wp_setLeader github_com.hashicorp.raft.raftState.wp_getLastEntry github_com.hashicorp.raft.raftState.wp_getLastLog github_com.hashicorp.raft.raftState.wp_setLastLog github_com.hashicorp.raft.Raft.wp_tryStageCommitIndex github_com.hashicorp.raft.Raft.wp_processConfigurationLogEntry github_com.hashicorp.raft.raftState.wp_getCommitIndex github_com.hashicorp.raft.raftState.wp_setCommitIndex github_com.hashicorp.raft.wp_min github_com.hashicorp.raft.Raft.wp_setCommittedConfiguration github_com.hashicorp.raft.Raft.wp_setLatestConfiguration github_com.hashicorp.raft.Raft.wp_processLogs github_com.hashicorp.raft.Raft.wp_setLastContact github_com.hashicorp.raft.RPC.wp_Respond _root_.Perennial.sync.atomic.Bool.wp_Load
+theorem raft.Raft.wp_appendEntries : github_com.hashicorp.raft.Raft.appendEntries.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.appendEntries.wp_proof raft.Raft.wp_getRPCHeader raft.raftState.wp_getCurrentTerm raft.raftState.wp_getLastIndex raft.raftState.wp_getState raft.Raft.wp_setState raft.Raft.wp_setCurrentTerm raft.Raft.wp_setLeader raft.raftState.wp_getLastEntry raft.raftState.wp_getLastLog raft.raftState.wp_setLastLog raft.Raft.wp_tryStageCommitIndex raft.Raft.wp_processConfigurationLogEntry raft.raftState.wp_getCommitIndex raft.raftState.wp_setCommitIndex raft.wp_min raft.Raft.wp_setCommittedConfiguration raft.Raft.wp_setLatestConfiguration raft.Raft.wp_processLogs raft.Raft.wp_setLastContact raft.RPC.wp_Respond _root_.Perennial.sync.atomic.Bool.wp_Load
 
-theorem github_com.hashicorp.raft.Raft.wp_checkLeaderLease : github_com.hashicorp.raft.Raft.checkLeaderLease.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.checkLeaderLease.wp_proof github_com.hashicorp.raft.Raft.wp_config _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Sub github_com.hashicorp.raft.followerReplication.wp_LastContact github_com.hashicorp.raft.Raft.wp_quorumSize github_com.hashicorp.raft.Raft.wp_setState
+theorem raft.Raft.wp_checkLeaderLease : github_com.hashicorp.raft.Raft.checkLeaderLease.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.checkLeaderLease.wp_proof raft.Raft.wp_config _root_.Perennial.time.wp_Now _root_.Perennial.time.Time.wp_Sub raft.followerReplication.wp_LastContact raft.Raft.wp_quorumSize raft.Raft.wp_setState
 
-theorem github_com.hashicorp.raft.Raft.wp_compactLogsWithTrailing : github_com.hashicorp.raft.Raft.compactLogsWithTrailing.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof github_com.hashicorp.raft.wp_min
+theorem raft.Raft.wp_compactLogsWithTrailing : github_com.hashicorp.raft.Raft.compactLogsWithTrailing.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.compactLogsWithTrailing.wp_proof raft.wp_min
 
-theorem github_com.hashicorp.raft.Raft.wp_compactLogs : github_com.hashicorp.raft.Raft.compactLogs.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.compactLogs.wp_proof github_com.hashicorp.raft.raftState.wp_getLastLog github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.Raft.wp_compactLogsWithTrailing
+theorem raft.Raft.wp_compactLogs : github_com.hashicorp.raft.Raft.compactLogs.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.compactLogs.wp_proof raft.raftState.wp_getLastLog raft.Raft.wp_config raft.Raft.wp_compactLogsWithTrailing
 
-theorem github_com.hashicorp.raft.Raft.wp_configurationChangeChIfStable : github_com.hashicorp.raft.Raft.configurationChangeChIfStable.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.configurationChangeChIfStable.wp_proof github_com.hashicorp.raft.raftState.wp_getCommitIndex
+theorem raft.Raft.wp_configurationChangeChIfStable : github_com.hashicorp.raft.Raft.configurationChangeChIfStable.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.configurationChangeChIfStable.wp_proof raft.raftState.wp_getCommitIndex
 
-theorem github_com.hashicorp.raft.Raft.wp_dispatchLogs : github_com.hashicorp.raft.Raft.dispatchLogs.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.dispatchLogs.wp_proof github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.raftState.wp_getLastIndex github_com.hashicorp.raft.raftState.wp_getCommitIndex github_com.hashicorp.raft.Raft.wp_tryStageCommitIndex github_com.hashicorp.raft.commitment.wp_match github_com.hashicorp.raft.raftState.wp_setLastLog github_com.hashicorp.raft.wp_asyncNotifyCh _root_.Perennial.time.wp_Now
+theorem raft.Raft.wp_dispatchLogs : github_com.hashicorp.raft.Raft.dispatchLogs.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.dispatchLogs.wp_proof raft.raftState.wp_getCurrentTerm raft.raftState.wp_getLastIndex raft.raftState.wp_getCommitIndex raft.Raft.wp_tryStageCommitIndex raft.commitment.wp_match raft.raftState.wp_setLastLog raft.wp_asyncNotifyCh _root_.Perennial.time.wp_Now
 
-theorem github_com.hashicorp.raft.Raft.wp_electSelf : github_com.hashicorp.raft.Raft.electSelf.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.electSelf.wp_proof github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.Raft.wp_setCurrentTerm github_com.hashicorp.raft.raftState.wp_getLastEntry github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_goFunc github_com.hashicorp.raft.Raft.wp_persistVote _root_.Perennial.sync.atomic.Bool.wp_Load
+theorem raft.Raft.wp_electSelf : github_com.hashicorp.raft.Raft.electSelf.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.electSelf.wp_proof raft.raftState.wp_getCurrentTerm raft.Raft.wp_setCurrentTerm raft.raftState.wp_getLastEntry raft.Raft.wp_getRPCHeader raft.raftState.wp_goFunc raft.Raft.wp_persistVote _root_.Perennial.sync.atomic.Bool.wp_Load
 
-theorem github_com.hashicorp.raft.Raft.wp_leadershipTransfer : github_com.hashicorp.raft.Raft.leadershipTransfer.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.leadershipTransfer.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64 github_com.hashicorp.raft.raftState.wp_getLastIndex github_com.hashicorp.raft.Raft.wp_getRPCHeader _root_.Perennial.fmt.wp_Errorf _root_.Perennial.fmt.wp_Errorf_tnErr
+theorem raft.Raft.wp_leadershipTransfer : github_com.hashicorp.raft.Raft.leadershipTransfer.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.leadershipTransfer.wp_proof _root_.Perennial.sync.atomic.wp_LoadUint64 raft.raftState.wp_getLastIndex raft.Raft.wp_getRPCHeader _root_.Perennial.fmt.wp_Errorf _root_.Perennial.fmt.wp_Errorf_tnErr
 
-theorem github_com.hashicorp.raft.Raft.wp_preElectSelf : github_com.hashicorp.raft.Raft.preElectSelf.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.preElectSelf.wp_proof github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.raftState.wp_getLastEntry github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_goFunc _root_.Perennial.strings.wp_Contains
+theorem raft.Raft.wp_preElectSelf : github_com.hashicorp.raft.Raft.preElectSelf.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.preElectSelf.wp_proof raft.raftState.wp_getCurrentTerm raft.raftState.wp_getLastEntry raft.Raft.wp_getRPCHeader raft.raftState.wp_goFunc _root_.Perennial.strings.wp_Contains
 
-theorem github_com.hashicorp.raft.Raft.wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.processHeartbeat.wp_proof github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_getLastIndex github_com.hashicorp.raft.raftState.wp_getState github_com.hashicorp.raft.Raft.wp_setLeader github_com.hashicorp.raft.Raft.wp_setLastContact github_com.hashicorp.raft.RPC.wp_Respond _root_.Perennial.errors.wp_New
+theorem raft.Raft.wp_processHeartbeat : github_com.hashicorp.raft.Raft.processHeartbeat.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.processHeartbeat.wp_proof raft.Raft.wp_getRPCHeader raft.raftState.wp_getLastIndex raft.raftState.wp_getState raft.Raft.wp_setLeader raft.Raft.wp_setLastContact raft.RPC.wp_Respond _root_.Perennial.errors.wp_New
 
-theorem github_com.hashicorp.raft.Raft.wp_requestPreVote : github_com.hashicorp.raft.Raft.requestPreVote.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.requestPreVote.wp_proof github_com.hashicorp.raft.Raft.wp_observe github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.RequestPreVoteRequest.wp_GetRPCHeader github_com.hashicorp.raft.wp_inConfiguration github_com.hashicorp.raft.Raft.wp_LeaderWithID github_com.hashicorp.raft.wp_hasVote github_com.hashicorp.raft.raftState.wp_getLastEntry github_com.hashicorp.raft.RPC.wp_Respond
+theorem raft.Raft.wp_requestPreVote : github_com.hashicorp.raft.Raft.requestPreVote.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.requestPreVote.wp_proof raft.Raft.wp_observe raft.Raft.wp_getRPCHeader raft.raftState.wp_getCurrentTerm raft.RequestPreVoteRequest.wp_GetRPCHeader raft.wp_inConfiguration raft.Raft.wp_LeaderWithID raft.wp_hasVote raft.raftState.wp_getLastEntry raft.RPC.wp_Respond
 
-theorem github_com.hashicorp.raft.Raft.wp_requestVote : github_com.hashicorp.raft.Raft.requestVote.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.requestVote.wp_proof github_com.hashicorp.raft.Raft.wp_observe github_com.hashicorp.raft.Raft.wp_getRPCHeader github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.wp_inConfiguration github_com.hashicorp.raft.Raft.wp_LeaderWithID github_com.hashicorp.raft.Raft.wp_setState github_com.hashicorp.raft.Raft.wp_setCurrentTerm github_com.hashicorp.raft.wp_hasVote _root_.Perennial.bytes.wp_Equal github_com.hashicorp.raft.raftState.wp_getLastEntry github_com.hashicorp.raft.Raft.wp_persistVote github_com.hashicorp.raft.Raft.wp_setLastContact github_com.hashicorp.raft.RPC.wp_Respond
+theorem raft.Raft.wp_requestVote : github_com.hashicorp.raft.Raft.requestVote.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.requestVote.wp_proof raft.Raft.wp_observe raft.Raft.wp_getRPCHeader raft.raftState.wp_getCurrentTerm raft.wp_inConfiguration raft.Raft.wp_LeaderWithID raft.Raft.wp_setState raft.Raft.wp_setCurrentTerm raft.wp_hasVote _root_.Perennial.bytes.wp_Equal raft.raftState.wp_getLastEntry raft.Raft.wp_persistVote raft.Raft.wp_setLastContact raft.RPC.wp_Respond
 
-theorem github_com.hashicorp.raft.Raft.wp_runFSM : github_com.hashicorp.raft.Raft.runFSM.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.runFSM.wp_proof github_com.hashicorp.raft.deferError.wp_respond github_com.hashicorp.raft.wp_fsmRestoreAndMeasure github_com.hashicorp.raft.wp_DecodeConfiguration
+theorem raft.Raft.wp_runFSM : github_com.hashicorp.raft.Raft.runFSM.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.runFSM.wp_proof raft.deferError.wp_respond raft.wp_fsmRestoreAndMeasure raft.wp_DecodeConfiguration
 
-theorem github_com.hashicorp.raft.Raft.wp_takeSnapshot : github_com.hashicorp.raft.Raft.takeSnapshot.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.takeSnapshot.wp_proof github_com.hashicorp.raft.raftState.wp_setLastSnapshot github_com.hashicorp.raft.Raft.wp_compactLogs github_com.hashicorp.raft.wp_getSnapshotVersion github_com.hashicorp.raft.deferError.wp_Error
+theorem raft.Raft.wp_takeSnapshot : github_com.hashicorp.raft.Raft.takeSnapshot.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.takeSnapshot.wp_proof raft.raftState.wp_setLastSnapshot raft.Raft.wp_compactLogs raft.wp_getSnapshotVersion raft.deferError.wp_Error
 
-theorem github_com.hashicorp.raft.Raft.wp_runSnapshots : github_com.hashicorp.raft.Raft.runSnapshots.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.runSnapshots.wp_proof github_com.hashicorp.raft.Raft.wp_shouldSnapshot github_com.hashicorp.raft.Raft.wp_takeSnapshot github_com.hashicorp.raft.deferError.wp_respond github_com.hashicorp.raft.Raft.wp_config github_com.hashicorp.raft.wp_randomTimeout
+theorem raft.Raft.wp_runSnapshots : github_com.hashicorp.raft.Raft.runSnapshots.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.runSnapshots.wp_proof raft.Raft.wp_shouldSnapshot raft.Raft.wp_takeSnapshot raft.deferError.wp_respond raft.Raft.wp_config raft.wp_randomTimeout
 
-theorem github_com.hashicorp.raft.wp_newCommitment : github_com.hashicorp.raft.newCommitment.spec (GF := GF) (hG := hG) :=
+theorem raft.wp_newCommitment : github_com.hashicorp.raft.newCommitment.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.newCommitment.wp_proof
 
-theorem github_com.hashicorp.raft.Raft.wp_setupLeaderState : github_com.hashicorp.raft.Raft.setupLeaderState.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.setupLeaderState.wp_proof github_com.hashicorp.raft.wp_newCommitment github_com.hashicorp.raft.raftState.wp_getLastIndex
+theorem raft.Raft.wp_setupLeaderState : github_com.hashicorp.raft.Raft.setupLeaderState.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.setupLeaderState.wp_proof raft.wp_newCommitment raft.raftState.wp_getLastIndex
 
-theorem github_com.hashicorp.raft.Raft.wp_verifyLeader : github_com.hashicorp.raft.Raft.verifyLeader.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.verifyLeader.wp_proof github_com.hashicorp.raft.Raft.wp_quorumSize github_com.hashicorp.raft.wp_asyncNotifyCh github_com.hashicorp.raft.wp_hasVote
+theorem raft.Raft.wp_verifyLeader : github_com.hashicorp.raft.Raft.verifyLeader.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.verifyLeader.wp_proof raft.Raft.wp_quorumSize raft.wp_asyncNotifyCh raft.wp_hasVote
 
-theorem github_com.hashicorp.raft.commitment.wp_getCommitIndex : github_com.hashicorp.raft.commitment.getCommitIndex.spec (GF := GF) (hG := hG) :=
+theorem raft.commitment.wp_getCommitIndex : github_com.hashicorp.raft.commitment.getCommitIndex.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.commitment.getCommitIndex.wp_proof
 
-theorem github_com.hashicorp.raft.followerReplication.wp_cleanNotify : github_com.hashicorp.raft.followerReplication.cleanNotify.spec (GF := GF) (hG := hG) :=
+theorem raft.followerReplication.wp_cleanNotify : github_com.hashicorp.raft.followerReplication.cleanNotify.spec (GF := GF) (hG := hG) :=
   github_com.hashicorp.raft.followerReplication.cleanNotify.wp_proof
 
 end link
@@ -727,14 +727,14 @@ variable [package_sem : github_com.hashicorp.raft.Assumptions]
 variable [hRB : ReceiptBoundLe GF (2 ^ 62)]
 variable [htb : ThreadBoundLe GF (2 ^ 28)]
 
-theorem github_com.hashicorp.raft.Raft.wp_startStopReplication : github_com.hashicorp.raft.Raft.startStopReplication.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.startStopReplication.wp_proof github_com.hashicorp.raft.raftState.wp_getLastIndex github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.raftState.wp_goFunc github_com.hashicorp.raft.Raft.wp_replicate github_com.hashicorp.raft.wp_asyncNotifyCh github_com.hashicorp.raft.Raft.wp_observe _root_.Perennial.time.wp_Now
+theorem raft.Raft.wp_startStopReplication : github_com.hashicorp.raft.Raft.startStopReplication.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.startStopReplication.wp_proof raft.raftState.wp_getLastIndex raft.raftState.wp_getCurrentTerm raft.raftState.wp_goFunc raft.Raft.wp_replicate raft.wp_asyncNotifyCh raft.Raft.wp_observe _root_.Perennial.time.wp_Now
 
-theorem github_com.hashicorp.raft.Raft.wp_appendConfigurationEntry : github_com.hashicorp.raft.Raft.appendConfigurationEntry.spec (GF := GF) (hG := hG) :=
-  github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof github_com.hashicorp.raft.wp_nextConfiguration github_com.hashicorp.raft.wp_EncodeConfiguration github_com.hashicorp.raft.raftState.wp_getCurrentTerm github_com.hashicorp.raft.raftState.wp_getLastIndex github_com.hashicorp.raft.raftState.wp_getCommitIndex github_com.hashicorp.raft.Raft.wp_tryStageCommitIndex github_com.hashicorp.raft.commitment.wp_match github_com.hashicorp.raft.raftState.wp_setLastLog github_com.hashicorp.raft.wp_asyncNotifyCh _root_.Perennial.time.wp_Now github_com.hashicorp.raft.Raft.wp_setLatestConfiguration github_com.hashicorp.raft.commitment.wp_setConfiguration github_com.hashicorp.raft.Raft.wp_startStopReplication github_com.hashicorp.raft.deferError.wp_respond
+theorem raft.Raft.wp_appendConfigurationEntry : github_com.hashicorp.raft.Raft.appendConfigurationEntry.spec (GF := GF) (hG := hG) :=
+  github_com.hashicorp.raft.Raft.appendConfigurationEntry.wp_proof raft.wp_nextConfiguration raft.wp_EncodeConfiguration raft.raftState.wp_getCurrentTerm raft.raftState.wp_getLastIndex raft.raftState.wp_getCommitIndex raft.Raft.wp_tryStageCommitIndex raft.commitment.wp_match raft.raftState.wp_setLastLog raft.wp_asyncNotifyCh _root_.Perennial.time.wp_Now raft.Raft.wp_setLatestConfiguration raft.commitment.wp_setConfiguration raft.Raft.wp_startStopReplication raft.deferError.wp_respond
 
 end link
 
-end EtcdGrove.dsvhraft
+end EtcdGrove
 
 end Perennial
