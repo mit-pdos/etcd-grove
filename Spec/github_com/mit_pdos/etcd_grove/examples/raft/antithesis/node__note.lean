@@ -37,10 +37,10 @@ abbrev node.note.spec : Prop :=
     (v : AntSim.NodeView) (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) (q : Qp)
     (sl : GoSlice) (es : List EntryM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v (.loop net₀ xnet₀ r₁ xs₁) ∗ entsRO sl es ∗ netAdder c γ.toAntNames q ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v (.loop net₀ xnet₀ r₁ xs₁) ∗ entsRO sl es ∗ nodeExitB2 c γ q ∗
       threadTok ∗ ⌜DrainB2 γ.scope γ.mode ∧ γ.mode.Batch' = true⌝ }}
     (App (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"note")) (Val #v.byE)) (Val #sl))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = v.byE⌝ }}
 
 end spec

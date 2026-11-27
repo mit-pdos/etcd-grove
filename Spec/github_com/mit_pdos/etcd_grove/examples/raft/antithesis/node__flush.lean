@@ -35,9 +35,9 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 abbrev node.flush.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (v : AntSim.NodeView) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"flush")) (Val #()))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .idle ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .idle ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 end spec
 

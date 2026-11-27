@@ -37,10 +37,10 @@ abbrev node.doneWrite.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (v : AntSim.NodeView) (q : Qp)
     (l : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2H c γ j n v .idle (some (.doneW l)) ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2H c γ j n v .idle (some (.doneW l)) ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode ∧ γ.mode.Async' = true⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"doneWrite")) (Val #l))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 end spec
 

@@ -68,10 +68,10 @@ abbrev Cluster.handle.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (inp : H.input) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ inputOkB2 γ j inp ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ inputOkB2 γ j inp ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"handle")) (Val #n)) (Val #inp))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .idle ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .idle ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 /-- **`(*node).start()` under B2**: from `down`, fresh (B1's) or killed: its storage from its disk
 (`memoryOf`), the `boot` report of the disk (term, vote, commit, last index and term; applied `0`;
@@ -80,9 +80,9 @@ the initial voters), `NewRawNode` (a restart: `restartAtApiSpec` at the disk's `
 abbrev node.start.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (v : AntSim.NodeView) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .down ∗ netAdder c γ.toAntNames q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .down ∗ nodeExitB2 c γ q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"start")) (Val #()))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 /-- **`(*node).emit(p)` under B2**: dead, nothing recorded; a fuse that burns out kills, nothing
 recorded; otherwise recorded (`emitStep`). -/
@@ -136,6 +136,38 @@ abbrev node.sendMsg.specB2 : Prop :=
   {{ RET #(); killOwn n dead fuse ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
       msgPtsC ml DFrac.discard DFrac.discard cap st }}
 
+/-- **`(*node).stateEv(e, hs, ents)` under B2** (`node.stateEv.spec`'s text over the B2 vocabulary). -/
+abbrev node.stateEv.specB2 : Prop :=
+  ∀ (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (e : GoString) (hp : Loc) (hs : HardStateM)
+    (sl : GoSlice) (dq : DFrac) (els : List Loc) (es : List EntryM), AllNormal es →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ hsRO hp hs ∗ sl ↦*{dq} els ∗ [∗list] p;e ∈ els;es, entRO p e }}
+    (App (App (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"stateEv")) (Val #e)) (Val #hp)) (Val #sl))
+  {{ (p : Loc), RET #p; sl ↦*{dq} els ∗ ([∗list] p;e ∈ els;es, entRO p e) ∗ eventOwn p (stateEvM e hs es) ∗
+      ⧗ es.length }}
+
+/-- **`(*node).sendEv(by, m)` under B2** (`node.sendEv.spec`'s text over the B2 vocabulary). -/
+abbrev node.sendEv.specB2 : Prop :=
+  ∀ (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (by_ : GoString) (ml : Loc) (dq dqe : DFrac)
+    (cap : Bool) (st : MsgSt), st.msg.Type' ≠ MsgSnap → AllNormal st.ents →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ msgPtsC ml dq dqe cap st }}
+    (App (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"sendEv")) (Val #by_)) (Val #ml))
+  {{ (p : Loc), RET #p; msgPtsC ml dq dqe cap st ∗ eventOwn p (sendEvM by_ st) ∗ ⧗ st.ents.length }}
+
+/-- **`(*node).reportCause()` under B2**: the cause cell cleared; its report, if any, through `emit`
+(`causeStep`: dead or killed now, not recorded, the reports kept). -/
+abbrev node.reportCause.specB2 : Prop :=
+  ∀ (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (cl : Loc) (o : Option AntCheck.Event) (Q : IProp GF)
+    (dead : Bool) (fuse : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ killOwn n dead fuse ∗ n.[H.node, go!"cause"] ↦ cl ∗
+      pendingCause cl o ∗ reports γ.strm (o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j)))) Q }}
+    (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"reportCause")) (Val #()))
+  {{ RET #(); killOwn n (causeStep o dead fuse).2.1 (causeStep o dead fuse).2.2 ∗ n.[H.node, go!"cause"] ↦ null ∗
+      if (causeStep o dead fuse).1 then Q
+      else reports γ.strm (o.toList.map (atNode (AntSim.nameOf (AntSim.nodeId j)))) Q }}
+
 /-- **`(*node).parts(hs, ents)` under B2**: one write (`Split = 0`, B1's), or `splitTermEntriesCommit`'s
 up to three: the term and vote with the old commit, the entries, the commit (each part's `after` the
 hard state on disk after it). -/
@@ -159,10 +191,10 @@ abbrev node.input.specB2 : Prop :=
     (v : AntSim.NodeView) (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) (q : Qp)
     (sl : GoSlice) (es : List EntryM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v (.loop net₀ xnet₀ r₁ xs₁) ∗ entsRO sl es ∗ netAdder c γ.toAntNames q ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v (.loop net₀ xnet₀ r₁ xs₁) ∗ entsRO sl es ∗ nodeExitB2 c γ q ∗
       threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"input")) (Val #v.byE)) (Val #sl))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = v.byE⌝ }}
 
 /-- **`(*node).drain(by)` under B2**: async → `drainAsync`; sync: per `Ready` B1's, a leader's in
@@ -171,10 +203,10 @@ abbrev node.drain.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (net₀ : List Msg) (xnet₀ : List XMsg) (r₁ : RState) (xs₁ : List XMsg) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v (.loop net₀ xnet₀ r₁ xs₁) ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v (.loop net₀ xnet₀ r₁ xs₁) ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"drain")) (Val #v.byE))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = v.byE⌝ }}
 
 /-- **`(*node).tick()` under B2** (the shape of every input call's, `campaign`, `propose`,
@@ -183,9 +215,9 @@ abbrev node.drain.specB2 : Prop :=
 abbrev node.tick.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (v : AntSim.NodeView) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"tick")) (Val #()))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = go!"tick"⌝ }}
 
 /-- **`(*node).campaign` under B2** (`node.campaign.spec`'s text over the B2 vocabulary, `DrainB2` for `DrainB1`). -/
@@ -193,10 +225,10 @@ abbrev node.campaign.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"campaign")) (Val #()))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = go!"campaign"⌝ }}
 
 /-- **`(*node).propose` under B2** (`node.propose.spec`'s text over the B2 vocabulary, `DrainB2` for `DrainB1`). -/
@@ -204,10 +236,10 @@ abbrev node.propose.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp) (sl : GoSlice) (data : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ ∗ sl ↦*□ data ∗ propOk γ.toAntNames data }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"propose")) (Val #sl))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = go!"propose"⌝ }}
 
 /-- **`(*node).readIndex` under B2** (`node.readIndex.spec`'s text over the B2 vocabulary, `DrainB2` for `DrainB1`). -/
@@ -215,10 +247,10 @@ abbrev node.readIndex.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp) (ctx : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ ∗ readOk γ.toAntNames ctx ∗ ⌜γ.mode.Reads' = true⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"readIndex")) (Val #ctx))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = go!"read"⌝ }}
 
 /-- **`(*node).unreachable` under B2** (`node.unreachable.spec`'s text over the B2 vocabulary, `DrainB2` for `DrainB1`). -/
@@ -226,10 +258,10 @@ abbrev node.unreachable.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"unreachable")) (Val #id))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = go!"tick"⌝ }}
 
 /-- **`(*node).transferLeader` under B2** (`node.transferLeader.spec`'s text over the B2 vocabulary, `DrainB2` for `DrainB1`). -/
@@ -237,10 +269,10 @@ abbrev node.transferLeader.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp) (to : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜DrainB2 γ.scope γ.mode⌝ ∗ ⌜γ.mode.Transfer' = true ∧ ∃ i : Fin γ.R.N, to = AntSim.nodeId i⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"transferLeader")) (Val #to))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗
       ⌜v'.byE = go!"transfer"⌝ }}
 
 /-- **`(*node).step` under B2** (`node.step.spec`'s text over the B2 vocabulary, `DrainB2` for `DrainB1`). -/
@@ -248,20 +280,20 @@ abbrev node.step.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N)
     (v : AntSim.NodeView) (q : Qp) (ml : Loc) (st : MsgSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ netAdder c γ.toAntNames q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ ∗
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .idle ∗ nodeExitB2 c γ q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ ∗
       ((∃ m : Msg, netMsg γ.toAntNames ml st m ∗ ⌜m.dst = AntSim.nodeId j⌝) ∨
        (∃ x : XMsg, netXMsg γ.toAntNames ml st x ∗ ⌜x.dst = AntSim.nodeId j⌝)) }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"step")) (Val #ml))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .idle ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .idle ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 /-- **`(*node).alone()` under B2**: after the boot drain of a batching node, `note("write")`; nothing
 otherwise (B1's spec: batching off). -/
 abbrev node.alone.specB2 : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNamesB2) (n : Loc) (j : Fin γ.R.N) (v : AntSim.NodeView) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
-      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .drained ∗ netAdder c γ.toAntNames q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
+      antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ nodeOwnB2 c γ j n v .drained ∗ nodeExitB2 c γ q ∗ threadTok ∗ ⌜DrainB2 γ.scope γ.mode⌝ }}
     (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"alone")) (Val #()))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwnB2 c γ j n v' .drained ∗ nodeExitB2 c γ q ∗ threadTok }}
 
 end spec
 

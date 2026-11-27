@@ -42,6 +42,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessRun
 public import Proof.go_etcd_io.raft.v3.RawNodeStartApi
 public import Perennial.Proof.sync.WaitGroupTokJoin
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.StmtsB2
 
 @[expose] public section
 
@@ -197,6 +198,12 @@ def batchSendEvM (by_ : AntCheck.Str) (st : MsgSt) : AntCheck.Event :=
 /-- Go `isRequest(m)`: an append request or a heartbeat (what `parallel` sends before the write). -/
 def isRequestTy (t : w32) : Bool := decide (t = MsgApp) || decide (t = MsgHeartbeat)
 
+/-- **The run's relation under B2** (`AntRun`'s, over B2's refinement relation `AntSimD`). -/
+def AntRunD (R : AntSim.RunCfg) (dec : CCDec) (evs : List AntCheck.Event) (S : AntCheck.State)
+    (V : Fin R.N → AntSim.NodeView) (net : List Msg) (xnet : List XMsg) : Prop :=
+  AntSim.Prefix R.cfg evs S ∧ AntSim.AntSimD R dec S V net xnet ∧ AntCheck.Stream.Bounded evs ∧
+    AntCheck.Stream.ConfBounded R.cfg evs ∧ ∀ ev ∈ evs, ev.ChgOk 0
+
 end pure
 
 /-! ## Ghost names and resources -/
@@ -217,9 +224,20 @@ structure AntNamesB2 extends AntNames where
 invariant (`antInvB2`). -/
 def runLive (γ : AntNamesB2) (q : Qp) : IProp GF := dghostVar γ.liveR (DFrac.own q) ()
 
+/-- **The run's invariant under B2, open** (`antOpen`'s, its relation `AntRunD`). -/
+def antOpenB2 (γ : AntNames) : IProp GF :=
+  iprop(∃ (evs : List AntCheck.Event) (S : AntCheck.State) (V : Fin γ.R.N → AntSim.NodeView)
+      (net : List Msg) (xnet : List XMsg) (G : AntSim.RaftFacts),
+    ghostVar γ.strm (1 : Qp).half evs ∗
+    ([∗list] j ∈ List.finRange γ.R.N, ghostVar (γ.view j) (1 : Qp).half (V j)) ∗
+    monoListAuthOwn γ.sent 1 net ∗ monoListAuthOwn γ.xsent 1 xnet ∗
+    ⌜AntRunD γ.R γ.dec evs S V net xnet ∧ AntSim.RaftLaws G ∧ AntSim.GlobalOk γ.R S net G ∧
+      ∀ j : Fin γ.R.N, (V j).r.full ∈ G.logs⌝ ∗
+    raftFactsOwn γ.raft.raftNames G)
+
 /-- **The run's invariant under B2**: open, or over (the whole liveness given up). -/
 def antInvB2 (γ : AntNamesB2) : IProp GF :=
-  iprop(antOpen γ.toAntNames ∨ runLive γ 1)
+  iprop(antOpenB2 γ.toAntNames ∨ runLive γ 1)
 
 /-- **An input to node `j` under B2** (`n.in`'s): B1's arms, and the flusher's (`inFlush`, 9: batching
 on), the storage goroutine's (`inWork`, 10: async on), the restarter's kill (`inKill`, 11: restarts
@@ -247,6 +265,11 @@ def emitStep (dead : Bool) (fuse : w64) : Bool × Bool × w64 :=
   else if uint.Z fuse > 0 then
     (if fuse - W64 1 = W64 0 then (false, true, W64 0) else (true, false, fuse - W64 1))
   else (true, false, fuse)
+
+/-- `reportCause`'s step on the kill fields: with a cause to report, `emit`'s (`emitStep`); with none,
+nothing happens (`true`: the caller's `Q` at once). -/
+def causeStep (o : Option AntCheck.Event) (dead : Bool) (fuse : w64) : Bool × Bool × w64 :=
+  if o.isSome then emitStep dead fuse else (true, dead, fuse)
 
 /-- **The reports `evs` then `Q`, or, if the node died on the way** (`emit`'s fuse), what is left of
 them: a suffix not recorded, still to be given back to the run's invariant. -/
@@ -353,7 +376,8 @@ def nodeMemB2 (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
 
 /-- **What a node goroutine gives back at its end** (`nodesWg.Done()`), under B2: its share of the
 run's liveness and of the network's adders (not its node state: a killed node's waits in the `mu`
-lock for the restarter). -/
+lock for the restarter). The node's reporting functions carry it through (their reports open the
+run's invariant, `antInvB2`: the liveness share rules out its over arm). -/
 def nodeExitB2 (c : Loc) (γ : AntNamesB2) (q : Qp) : IProp GF :=
   iprop(runLive γ q ∗ netAdder c γ.toAntNames q)
 

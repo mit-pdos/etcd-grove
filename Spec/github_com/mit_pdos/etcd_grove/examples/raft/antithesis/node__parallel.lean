@@ -44,7 +44,7 @@ abbrev node.parallel.spec : Prop :=
   (HsNew I.h → hp = I.rd.HardState') → (¬ HsNew I.h → hp = hsl) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
       antClusterB2 c γ ∗ nodeROB2 c γ n j ∗ ⌜DrainB2 γ.scope γ.mode⌝ ∗
-      drainPreB2 γ j n I x g net₀ xnet₀ hsl ∗ netAdder c γ.toAntNames q ∗ threadTok }}
+      drainPreB2 γ j n I x g net₀ xnet₀ hsl ∗ nodeExitB2 c γ q ∗ threadTok }}
     (App (App (App (App (Val (n @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node.ty @!! go!"parallel"))
       (Val #I.v.byE)) (Val #(roleStr (roleAfter I.rs.role I.ss)))) (Val #hp)) (Val #I.rd))
   {{ (v₁ : AntSim.NodeView) (net₁ : List Msg) (xnet₁ : List XMsg), RET #();
@@ -52,7 +52,7 @@ abbrev node.parallel.spec : Prop :=
         ⌜v₁.pend = (I.ms.filter (fun m => !isRequestTy m.st.msg.Type')).filterMap (fun m => absMsgOf m.st) ∧
           v₁.xpend = I.ms.filterMap (fun m => xmsgOf m.st)⌝) ∨
        nodeOwnB2HD c γ j n v₁ .drained none true) ∗
-      netAdder c γ.toAntNames q ∗ threadTok }}
+      nodeExitB2 c γ q ∗ threadTok }}
 
 end spec
 
