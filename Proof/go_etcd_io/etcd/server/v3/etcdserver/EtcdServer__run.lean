@@ -1734,11 +1734,10 @@ theorem EtcdServer.run.wp_proof
     (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (hStop : mvcc.api.mvccImage_stop.law (GF := GF))
     (Hp : mvcc.api.persistent.law (GF := GF))
-    (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
-    (hLF : raftStateLastFits.law (GF := GF)) :
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
   EtcdServer.run.wp_proofG hSStop hRStop
-    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe hRdS hCR hStop Hp Hr hLF) hAA.1 hAA.2
+    (stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe hRdS hCR hStop Hp Hr) hAA.1 hAA.2
     hLg hGI hGT hFifo
     hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch
 

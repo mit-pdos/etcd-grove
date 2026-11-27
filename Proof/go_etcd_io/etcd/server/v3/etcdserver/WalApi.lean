@@ -623,7 +623,7 @@ I4 does not give `bootstrappedWAL.MemoryStorage.spec`'s premise that a base at i
 enforce I3, so (2026-11-27, the restart axiom's review R2; until then the restart contract's post asserted
 them, false of Go) the restart contract takes them as a premise and the stop's image carries them
 (`wal.stopImage`): I1, I4 of the files' read (`walFiles_readShape`), I3 from raft's durable log, I2 from
-the interim law `raftStateLastFits.law` (`StopReadFacts.lean`). -/
+the cluster's room (`raftState_lastFits`, raft's `DurableLastFits.lean`). -/
 def walReadFacts (σ : StorContents) : Prop :=
   (∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j) ∧
     σ.last ≤ 2 ^ 61 - 1 ∧ σ.b ≤ σ.commit ∧ σ.commit ≤ σ.last ∧

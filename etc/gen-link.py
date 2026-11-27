@@ -727,10 +727,7 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked",
                               # (#24 J2, 2026-11-23) the encoding/json model's `Marshal` and
                               # jsoncodec's encoders, which membership's JSON proofs take (`=` callees)
-                              "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked",
-                              # (2026-11-27, the restart axiom's review R2) the interim law the stop's
-                              # image takes (`=raftStateLastFits_law_holds`, `EtcdServer.run`)
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.raftStateLastFits"]}
+                              "Proof.encoding.json.Results", "Net.Proof.models_lab.jsoncodec.Linked"]}
 # (R9, the `lean` merge, 2026-11-07) the examples' allocations take mvcc's `names_nonempty.law`
 # (`=mvcc.api.*`: the stand-in apply environment's store name)
 for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--linkvtxn-main", "--k8setcd3", "--cluster3", "--authkv", "--authkv-main"]:

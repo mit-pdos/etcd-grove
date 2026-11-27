@@ -12,19 +12,17 @@ gives them (`stop_cleanup_image`, `StopShutdown.lean`):
 * I3 (base ≤ commit ≤ last): the records hold the node's durable state `S` (`StorageHolds`: their commit at
   most `S`'s, their entries `S`'s from their base) and raft's durable log reaches `S`'s commit
   (`raftState_logView`), so the records' last index is `S`'s and at least their commit;
-* I2 (the last index within raft's room, `≤ 2^61 - 1`): `S`'s last index is, by **the interim law**
-  `raftStateLastFits.law` (below): a node's durable log ends within its cluster's room (`readyFits`: the
-  receipts' bound past the bootstrap log at most `2^61`), as every index raft hands out (`readyFits`'
-  docstring, `lastRec_receipt`). Interim: raft's proof has the facts (each record past the bootstrap log
-  keeps a time receipt) but no law of `raftState` states it yet; the linking module passes the axiom
-  `raftStateLastFits_law_holds` (`raftStateLastFits.lean`).
+* I2 (the last index within raft's room, `≤ 2^61 - 1`): `S`'s last index is (`raftState_lastFits`, raft's
+  `DurableLastFits.lean`: the last index has a record, `durPers`' `logRecs` or its base's `isSnapMeta`, whose
+  time receipt is below the receipts' bound, which `readyFits` caps past the bootstrap log at `2^61`).
 
-A defs module: the law's statement and the pure composition.
+A defs module: the pure composition.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 public import Proof.go_etcd_io.raft.v3.DurableLogView
+public import Proof.go_etcd_io.raft.v3.DurableLastFits
 
 @[expose] public section
 
@@ -64,19 +62,6 @@ theorem walReadFacts_of_stop (S : RaftState) (σ : StorContents) (fp : List Entr
   unfold StorContents.commit at hcS
   omega
 
-section law
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-
-/-- **The interim law: a node's durable log ends within its cluster's room** (see the file header):
-in a cluster that fits (`readyFits`: the receipts' bound past the bootstrap log at most `2^61`), a
-node's durable state's last index is at most `2^61 - 1`. -/
-abbrev raftStateLastFits.law : Prop :=
-  ∀ (cl : Cluster) (N : Namespace) (id : w64) (S : RaftState),
-    isCluster (GF := GF) cl N ∗ readyFits cl N ∗ raftState cl id S ⊢ |={⊤}=>
-      raftState cl id S ∗ ⌜S.last ≤ 2 ^ 61 - 1⌝
-
-end law
 
 end EtcdGrove
 end Perennial

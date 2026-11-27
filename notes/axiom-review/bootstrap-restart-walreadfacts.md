@@ -23,6 +23,6 @@ at the fork `d26dd5da6` (`… state.commit 9 is out of range [0, 4]`).
 which the caller supplies from the stopped image: `wal.stopImage` (`WalApi.lean`) carries them, and the
 graceful stop proves them (`StopShutdown.lean`, `StopReadFacts.lean`): I1 and I4 of the files' read
 (`walFiles_readShape`, `storage/WalRecs.lean`); I3 from raft's durable log (`raftState_logView`: the durable
-log reaches the node's commit, and `StorageHolds` makes the records' last index the node's); I2 from the
-interim law `raftStateLastFits.law` (axiom `raftStateLastFits_law_holds`, `raftStateLastFits.lean`: a node's
-durable log ends within its cluster's room `readyFits`; to be retired by a raft law).
+log reaches the node's commit, and `StorageHolds` makes the records' last index the node's); I2 from raft's
+`raftState_lastFits` (`DurableLastFits.lean`: a node's durable log ends within its cluster's room `readyFits`;
+an interim axiom for a few hours, proved after its review found it provable).
