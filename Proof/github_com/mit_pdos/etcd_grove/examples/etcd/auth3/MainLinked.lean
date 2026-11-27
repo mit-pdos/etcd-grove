@@ -65,7 +65,7 @@ theorem etcd_auth3.wp_barrier :
 
 /-- **auth3's `run`**: authkv's run across the three members (`run.lean`), over authkv's linked
 `SetUp`, `Work` and checks (`auth/Link.lean`). -/
-theorem etcd_auth3.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem etcd_auth3.wp_run :
     etcd_auth3.run.spec (GF := GF) (hG := hG) :=
   etcd_auth3.run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_auth3.wp_newUserClient etcd_auth3.wp_barrier

@@ -39,8 +39,7 @@ def startBundle (k₅ : w64) : IProp GF :=
 
 /-- See the file header. -/
 abbrev MainChecked.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (N : Nat)
+  ∀ (N : Nat)
     (k₅ : w64) (ids₅ ps₅ : List w64) (ctxs₅ : List (List w8)) (boot₅ : List LogEntry)
     (rId : w64) (ctxsR : List (List w8)) (bootR : List LogEntry)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],

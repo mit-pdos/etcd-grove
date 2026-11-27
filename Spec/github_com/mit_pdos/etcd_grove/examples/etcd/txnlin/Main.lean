@@ -40,8 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+  ∀ (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64),
   etcd_putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →

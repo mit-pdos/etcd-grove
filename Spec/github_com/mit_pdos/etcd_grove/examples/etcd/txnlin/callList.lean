@@ -29,8 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 /-- See the file header. -/
 abbrev callList.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (Q : KVState → IProp GF),

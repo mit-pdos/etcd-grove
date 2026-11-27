@@ -38,7 +38,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [es_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's server, started for a watch client, given the watch path's server facts and the
 watch condition** (`srvWOk V.W`, `srvOnce V.W`: the store does not compact, watchkv's and

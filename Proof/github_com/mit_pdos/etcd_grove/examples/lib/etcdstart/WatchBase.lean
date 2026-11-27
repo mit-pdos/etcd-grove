@@ -186,7 +186,7 @@ theorem collectOk_intro (R : Nat → GoString → GoString → IProp GF) (P : Li
   ipureintro; exact h
 
 /-- **Receiving from a client watch channel** (`etcdWatch_recv_au` as a triple). -/
-theorem wp_etcdWatch_receive [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
+theorem wp_etcdWatch_receive [EM : EtcdModel GF]
     (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n : Nat) (cursor : w64) :
     {{ isEtcdWatchChan ch γ pfx ∗ etcdWatchConsumer γ n cursor }}
       (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))
@@ -208,7 +208,7 @@ theorem wp_etcdWatch_receive [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdMo
 
 /-- The close error of a response etcd's watch contract allows is one grpc's `status` accepts (as
 the cache's `watchRespOk_closeErr`). -/
-theorem watchRespOk_closeErr' [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
+theorem watchRespOk_closeErr' [EM : EtcdModel GF]
     (pfx : GoString) (k k' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
     watchRespOk (GF := GF) pfx k k' v r ⊢ go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' := by

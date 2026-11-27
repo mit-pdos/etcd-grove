@@ -36,7 +36,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev interpretListError.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (c : StoreCfg GF Obj) (err : GoInterface) (paging : Bool)
     (ck kp : GoString),
   (paging = true → k8s_etcd3.encOkL ck kp = true) →

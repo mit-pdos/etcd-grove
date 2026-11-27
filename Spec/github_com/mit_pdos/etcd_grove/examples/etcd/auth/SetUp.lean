@@ -103,7 +103,7 @@ persistent: the put may be delivered several times), the member's Auth service
 and the client's view of the auth history at the boot history; the member in the auth mode `on`
 at `γa`, its consistent index at start at most its start index (as at boot, where it is `0`). -/
 abbrev SetUp.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+  ∀ [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     (cl : Loc) (ep : GoString) (V : client.WEnv GF) (s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (γa : auth.AuthNames),

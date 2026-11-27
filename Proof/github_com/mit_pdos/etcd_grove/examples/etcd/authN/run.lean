@@ -174,7 +174,7 @@ theorem mod_len_sint (len : w64) (L c : Nat) (hkl : uint.nat len = L) (hL : 0 < 
 the thread token (from the `GoAttach` resources `grpcUpOn` holds), and what serving its Lease service
 in its lease mode `m` takes (`leaseReady`: authN's members are in mode `.none` and drop it; authlease's
 `serve_member_lease` serves the Lease service of its `.revocable` members from it). -/
-theorem serve_member [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem serve_member [HasExt idIssueExt]
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (hP : mvcc.api.persistent.law (GF := GF))
