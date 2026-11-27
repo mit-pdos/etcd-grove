@@ -10,7 +10,8 @@ then the write's step), `skipTo(target(x, y, rv))`, then `Model`'s step (`stepL`
 
 - `skipToL`: `skipTo`, as foreign steps (`SharedSem.lean`);
 - `targetL`: `target`, with G7 (`152e1a4634`: a watch-list with an event needs the configuration at its
-  resource version, at least 1);
+  resource version, at least 1) and G8 (K4-3: a write's target does not depend on its `MinRV`
+  parsing; `notes/k8s-dist-k4.md`, "Handoff K4-3");
 - `SettleL A`: `settle`'s reachable configurations, with the landings `landingsFull A [] [] rv`
   (`SharedPlace.lean`): the next revision and every anchor at or above `rv` and the one after it. The
   Go landings add the key's shown revisions and the answer's own one, so the Go search's
@@ -68,12 +69,15 @@ def targetL (x : Input) (y : Output) (rv : Nat) : Nat :=
         else evMaxL evs
   else if y.Err' = W64 1 then uint.nat y.ErrRV'
   else if y.Err' ≠ W64 0 then 0
-  else match parseRVD x.MinRV' with
+  else if x.Kind' = W64 4 then
+    match parseRVD x.MinRV' with
     | none => 0
-    | some req =>
-      if x.Kind' = W64 4 then (if pastReadL x req then uint.nat req else uint.nat y.ListRV')
-      else if x.Kind' = W64 3 then uint.nat req
-      else if rv < uint.nat y.RV' then uint.nat y.RV' - 1 else 0
+    | some req => if pastReadL x req then uint.nat req else uint.nat y.ListRV'
+  else if x.Kind' = W64 3 then
+    match parseRVD x.MinRV' with
+    | none => 0
+    | some req => uint.nat req
+  else if rv < uint.nat y.RV' then uint.nat y.RV' - 1 else 0
 
 /-- **`settle`'s configurations** from `c`, with the full mode's landings over the anchors `A`: the
 `i`-th pending write is dropped if it has no effect on the store (`mstepL` keeps its revision), or
@@ -102,7 +106,8 @@ inductive SearchRun (A : List Nat) : GCfg → List (Input × Output) → Prop wh
 
 /-- **The revisions one operation names** are anchors (`HistoryRevs`, `notes/k8s-dist-k4.md` §2):
 its minimum resource version and resource-version precondition (where they parse); an answer's error
-revision and list revision, a successful answer's object's revision (with a name); the revisions of a
+revision and list revision, a successful answer's object's revision (with or without a name: G9, `notes/k8s-dist-k4.md`, "Handoff
+K4-3"); the revisions of a
 successful list's items, of a watch's events and bookmarks (not its errors), and of the object a failed
 resource-version precondition's message names (Go's `rvOfMsg`). -/
 def OpAnchors (A : List Nat) (x : Input) (y : Output) : Prop :=
@@ -112,7 +117,7 @@ def OpAnchors (A : List Nat) (x : Input) (y : Output) : Prop :=
     e.t ≠ 4 → uint.nat e.o.ResourceVersion' ∈ A) ∧
   (x.Kind' ≠ W64 5 →
     uint.nat y.ErrRV' ∈ A ∧ uint.nat y.ListRV' ∈ A ∧
-    (y.Err' = W64 0 → y.Name' ≠ [] → uint.nat y.RV' ∈ A) ∧
+    (y.Err' = W64 0 → uint.nat y.RV' ∈ A) ∧
     (x.Kind' = W64 4 → y.Err' = W64 0 → ∀ os : List Obj, y.Items' = encItemsL os → ∀ o ∈ os,
       uint.nat o.ResourceVersion' ∈ A) ∧
     (∀ o : Obj, y.ErrMsg' = preMsgL x o → (x.HasPreUID' && !decide (x.PreUID' = o.UID')) = false →

@@ -163,6 +163,177 @@ theorem changeAtL_self : ∀ (l : List item) (r : Nat), changeAtL l l r = none
       decide_true, if_true]
     exact changeAtL_self ps r
 
+/-! ## The cut property -/
+
+/-- **`ρ` cuts `w` like the identity**: every anchor `v`, and the revision after it, is at most `w`
+exactly when it is at most `ρ w` (`canonL_cut`). -/
+def CutW (A : List Nat) (ρ : Nat → Nat) (w : Nat) : Prop :=
+  ∀ v ∈ A, (v ≤ w ↔ v ≤ ρ w) ∧ (v + 1 ≤ w ↔ v + 1 ≤ ρ w)
+
+/-- A revision whose image is an anchor is not renamed. -/
+theorem CutW.fix {A : List Nat} {ρ : Nat → Nat} {w : Nat} (h : CutW A ρ w) (ha : ρ w ∈ A) :
+    ρ w = w := by
+  obtain ⟨⟨h1, h1'⟩, ⟨h2, h2'⟩⟩ := h _ ha
+  have := h1' (Nat.le_refl _)
+  by_contra hne
+  have : ρ w + 1 ≤ w := by omega
+  have := h2 this
+  omega
+
+/-- The image of `w` is the anchor `r` exactly when `w` is. -/
+theorem CutW.eq_iff {A : List Nat} {ρ : Nat → Nat} {w r : Nat} (h : CutW A ρ w) (hr : r ∈ A) :
+    ρ w = r ↔ w = r := by
+  obtain ⟨⟨h1, h1'⟩, ⟨h2, h2'⟩⟩ := h _ hr
+  constructor
+  · intro e
+    have := h1' (by omega)
+    by_contra hne
+    have := h2 (by omega)
+    omega
+  · intro e
+    have := h1 (by omega)
+    by_contra hne
+    have := h2' (by omega)
+    omega
+
+/-! ## A write's step on renamed stores -/
+
+/-- An object at the revision `a`, renamed by a `ρ` taking `a` to `b`, is at `b`. -/
+theorem renObj_setRV (ρ : Nat → Nat) (o : Obj) (a b : w64) (h : ρ (uint.nat a) = uint.nat b) :
+    renObj ρ { o with ResourceVersion' := a } = { o with ResourceVersion' := b } := by
+  simp only [renObj, h]
+  rw [show (W64 (uint.nat b : Int)) = b by word]
+
+theorem renObj_zObj (ρ : Nat → Nat) (hz : ρ 0 = 0) : renObj ρ zObj = zObj := by
+  simp [renObj, zObj, hz]
+
+theorem lookupL_mem (its : List item) (k : GoString) (h : (lookupL its k).2 = true) :
+    (lookupL its k).1 ∈ its := by
+  unfold lookupL at h ⊢
+  cases hf : its.find? (fun it => decide (it.key' = k)) with
+  | none => rw [hf] at h; simp at h
+  | some it => exact List.mem_of_find?_eq_some hf
+
+/-- **How a write's step on two related stores relates the results**: the items stay renamed, and
+both stores take a revision or neither does. -/
+def StepRen (ρ : Nat → Nat) (s c s' c' : GSt) : Prop :=
+  c'.items = s'.items.map (renItem ρ) ∧
+    ((s'.rv = s.rv ∧ c'.rv = c.rv) ∨ (s'.rv = s.rv + W64 1 ∧ c'.rv = c.rv + W64 1))
+
+/-- What the write step needs of the renaming: it fixes 0, it takes the search's next revision to
+the cluster's, it keeps every stored revision below `2^64`, and it keeps each stored object's
+revision equal to a resource-version precondition's exactly when it is. -/
+structure WriteRen (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64) : Prop where
+  zero : ρ 0 = 0
+  next : ρ (uint.nat a + 1) = uint.nat b + 1
+  a_lt : uint.nat a + 1 < 2 ^ 64
+  b_lt : uint.nat b + 1 < 2 ^ 64
+  fits : ∀ it ∈ its, ρ (uint.nat it.obj'.ResourceVersion') < 2 ^ 64
+  pre : ∀ r, parseRVD x.PreRV' = some r → ∀ it ∈ its,
+    (ρ (uint.nat it.obj'.ResourceVersion') = uint.nat r ↔ uint.nat it.obj'.ResourceVersion' = uint.nat r)
+
+theorem WriteRen.next_w {ρ : Nat → Nat} {x : Input} {its : List item} {a b : w64}
+    (h : WriteRen ρ x its a b) : ρ (uint.nat (a + W64 1)) = uint.nat (b + W64 1) := by
+  have h1 : uint.nat (a + W64 1) = uint.nat a + 1 := by have := h.a_lt; word
+  have h2 : uint.nat (b + W64 1) = uint.nat b + 1 := by have := h.b_lt; word
+  rw [h1, h2]; exact h.next
+
+/-- The looked-up object's preconditions are the same renamed. -/
+theorem WriteRen.preOk {ρ : Nat → Nat} {x : Input} {its : List item} {a b : w64}
+    (h : WriteRen ρ x its a b) (k : GoString) (hk : (lookupL its k).2 = true) :
+    preOkL x (renObj ρ (lookupL its k).1.obj') = preOkL x (lookupL its k).1.obj' :=
+  preOkL_ren ρ x _ (h.fits _ (lookupL_mem its k hk))
+    (fun r hr => h.pre r hr _ (lookupL_mem its k hk))
+
+theorem mcreateL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
+    (h : WriteRen ρ x its a b) :
+    StepRen ρ ⟨its, a⟩ ⟨its.map (renItem ρ), b⟩ (mcreateL x ⟨its, a⟩).1
+      (mcreateL x ⟨its.map (renItem ρ), b⟩).1 := by
+  unfold mcreateL
+  simp only [lookupL_ren ρ h.zero]
+  split
+  · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+  · refine ⟨?_, Or.inr ⟨rfl, rfl⟩⟩
+    simp only
+    rw [← setItemL_ren]
+    congr 1
+    simp only [renItem]
+    congr 1
+    exact (renObj_setRV ρ ⟨(splitKeyL x.Key').1, (splitKeyL x.Key').2, x.UID', x.Val', x.Node',
+      x.App', a + W64 1, false⟩ _ _ h.next_w).symm
+
+theorem mdeleteL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
+    (h : WriteRen ρ x its a b) :
+    StepRen ρ ⟨its, a⟩ ⟨its.map (renItem ρ), b⟩ (mdeleteL x ⟨its, a⟩).1
+      (mdeleteL x ⟨its.map (renItem ρ), b⟩).1 := by
+  unfold mdeleteL
+  simp only [lookupL_ren ρ h.zero]
+  by_cases hk : (lookupL its x.Key').2 = true
+  · simp only [hk, Bool.not_true, Bool.false_eq_true, if_false, renItem_obj, h.preOk x.Key' hk]
+    have hn : (renObj ρ (lookupL its x.Key').1.obj').Node' = (lookupL its x.Key').1.obj'.Node' := rfl
+    rw [hn]
+    split
+    · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+    · split
+      · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+      · exact ⟨(delItemL_ren ρ its x.Key').symm, Or.inr ⟨rfl, rfl⟩⟩
+  · simp only [Bool.not_eq_true] at hk
+    simp only [hk, Bool.not_false, if_true]
+    exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+
+theorem mupdateL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
+    (h : WriteRen ρ x its a b) :
+    StepRen ρ ⟨its, a⟩ ⟨its.map (renItem ρ), b⟩ (mupdateL x ⟨its, a⟩).1
+      (mupdateL x ⟨its.map (renItem ρ), b⟩).1 := by
+  unfold mupdateL
+  simp only [lookupL_ren ρ h.zero, renItem_obj, renItem_canon]
+  -- the current object, renamed
+  have hcur : (if (lookupL its x.Key').2 = true then renObj ρ (lookupL its x.Key').1.obj' else zObj) =
+      renObj ρ (if (lookupL its x.Key').2 = true then (lookupL its x.Key').1.obj' else zObj) := by
+    split
+    · rfl
+    · exact (renObj_zObj ρ h.zero).symm
+  have hpre : preOkL x (renObj ρ (if (lookupL its x.Key').2 = true then (lookupL its x.Key').1.obj'
+      else zObj)) = preOkL x (if (lookupL its x.Key').2 = true then (lookupL its x.Key').1.obj'
+      else zObj) := by
+    by_cases hk : (lookupL its x.Key').2 = true
+    · simp only [hk, if_true]; exact h.preOk x.Key' hk
+    · simp only [hk, if_false, Bool.false_eq_true]; rw [renObj_zObj ρ h.zero]
+  rw [hcur, hpre, updatedL_ren, sameObjL_ren]
+  have hn : ∀ o : Obj, (renObj ρ o).Node' = o.Node' := fun _ => rfl
+  rw [hn]
+  split
+  · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+  · split
+    · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+    · split
+      · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+      · split
+        · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+        · refine ⟨?_, Or.inr ⟨rfl, rfl⟩⟩
+          simp only
+          rw [← setItemL_ren]
+          congr 1
+          simp only [renItem]
+          congr 1
+          rw [renObj_setRV ρ _ _ _ h.next_w]
+          simp only [renObj]
+
+/-- **A write's (or a read's) step on renamed stores**: the items stay renamed, and both stores take a
+revision or neither does. -/
+theorem mstepL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
+    (h : WriteRen ρ x its a b) :
+    StepRen ρ ⟨its, a⟩ ⟨its.map (renItem ρ), b⟩ (mstepL x ⟨its, a⟩).1
+      (mstepL x ⟨its.map (renItem ρ), b⟩).1 := by
+  unfold mstepL
+  split
+  · exact mcreateL_ren ρ x its a b h
+  · split
+    · exact mdeleteL_ren ρ x its a b h
+    · split
+      · exact mupdateL_ren ρ x its a b h
+      · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+
 end go
 
 end k8s_dist
