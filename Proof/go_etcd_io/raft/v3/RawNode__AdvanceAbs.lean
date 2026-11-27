@@ -14,7 +14,7 @@ each queued message through `raft.Step` at the no-snapshot flag (`wp_step_pendin
   `bk_of_stepEnd_net`; a storage acknowledgement's `AckEnd`, the protocol reading and
   `pendingConfIndex` unchanged).
 At the end the acknowledgements' `applied` is `AckEndRNoSnap`'s second arm (`StepR.advance`), at the
-caller's no-undecided-conf-entry premise; `AdvanceEndR` follows (`AdvanceEndRNoSnap.advanceEndR`).
+caller's premise, the configuration kept over the entries applied (option D's `CfgKeep`); `AdvanceEndR` follows (`AdvanceEndRNoSnap.advanceEndR`).
 The in-progress boundary is read off the end state (`adv_ip_end`): with the boundary at the log's end at
 the start, the storage holds the whole log (`ownRaftPhysC_ipFacts`); no step moves what it holds, nor the
 boundary back; and the log up to the boundary is a prefix of what it holds (`ownRaftPhysC_ipStored`), so
@@ -397,19 +397,6 @@ theorem AdvAbs.take_eq_of_ents {prev : entryID} {L D : List EntryM}
     rw [he, this]
   · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by omega)]
 
-/-- (antithesis parity B1, item 2b) No undecided conf entry in `[lo, hi)` depends only on the first
-`hi` entries. -/
-theorem AdvAbs.noUndec_of_take {dec : CCDec} {l l' : List EntryM} {lo hi : Nat}
-    (h : l.take hi = l'.take hi) (H : NoUndecConfIn dec l lo hi) : NoUndecConfIn dec l' lo hi := by
-  intro k e h1 h2 he hc
-  have hk : l[k]? = l'[k]? := by
-    rw [← List.getElem?_take_of_lt h2, h, List.getElem?_take_of_lt h2]
-  have ht : l.take k = l'.take k := by
-    have := congrArg (List.take k) h
-    simpa [List.take_take, Nat.min_eq_left (Nat.le_of_lt h2)] using this
-  rw [← ht]
-  exact H k e h1 h2 (hk ▸ he) hc
-
 /-- (antithesis parity B1, item 2b) A common prefix in front of two lists that agree on their first
 `n` entries. -/
 theorem AdvAbs.take_append_congr {fp a b : List EntryM} {n : Nat} (h : a.take n = b.take n) :
@@ -497,17 +484,60 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       (by simp only [List.length_append]; rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega)
       Hen0
   ihave #HA1n := HA1 $$ %hsl
-  iunfold undecFree at HA1n
+  iunfold cfgKeepIn at HA1n
   icases HA1n with ⟨%Ma, #HMa, %HMa⟩
   icases ownStepGhost_absorbM γ rs.mode ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s Ma
     $$ [$HMa $Hghost] with ⟨%Hsuba, Hghost⟩
   have Ha1 : ∀ dec c0 h0 h1, rs.mode = .dyn dec c0 h0 h1 →
-      NoUndecConfIn (effDec dec (ds ∪ Ma)) rs.delivered rs.capplied rs.delivered.length := by
+      CfgKeep (effDec dec (ds ∪ Ma)) rs.delivered rs.capplied rs.delivered.length rs.cfg := by
     intro dec c0 h0 h1 hm
     rcases Hsuba with h | h
     · exact (HMa dec c0 h0 h1 hm).mono_dec (effDec_mono dec h)
     · rw [hm] at h; cases h
   generalize ds ∪ Ma = ds at Ha1 ⊢
+  -- (2026-11-24, option D of `notes/raft-restart-confpoint.md`, as `RawNode.Advance`'s proof)
+  -- dynamically, the configuration index jumps to the committed log handed out (A1: the
+  -- configuration kept up to it), so that every acknowledgement of the queue, at most there, passes
+  -- no entry (`ownStepGhost_cidxJump`)
+  obtain ⟨cj, Hcj1, Hcj2, Hcj3, Hcj4, Hcj5⟩ : ∃ cj, rs.capplied ≤ cj ∧
+      cj ≤ max rs.capplied rs.delivered.length ∧ (rs.mode = .static → cj = rs.capplied) ∧
+      (rs.mode.isDyn = true → rs.delivered.length ≤ cj) ∧
+      (rs.mode.isDyn = true → cj = max rs.capplied rs.delivered.length) := by
+    cases hm : rs.mode with
+    | static => exact ⟨rs.capplied, Nat.le_refl _, Nat.le_max_left _ _, fun _ => rfl,
+        fun h => by simp [RNMode.isDyn] at h, fun h => by simp [RNMode.isDyn] at h⟩
+    | dyn _ _ _ _ => exact ⟨max rs.capplied rs.delivered.length, Nat.le_max_left _ _,
+        Nat.le_refl _, fun h => by simp at h, fun _ => Nat.le_max_right _ _, fun _ => rfl⟩
+  have Hdc : rs.delivered.length ≤ uint.nat s.logst.committed := by
+    have := Hlw0.2; have := uint_nat_eq s.logst.committed
+    have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨cj, rs.cfg, fp, ds⟩) cf id s $$ [Hghost]
+  · cases hm : rs.mode with
+    | static =>
+      have e : cj = rs.capplied := Hcj3 hm
+      iExactEq Hghost; rw [e]
+    | dyn dec c0 h0 h1 =>
+      rw [hm] at Hcj5
+      ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 ⟨rs.capplied, rs.cfg, fp, ds⟩) cf id s
+        $$ [Hghost]
+      · iExactEq Hghost; rfl
+      simp only [RNMode.toG]
+      icases ownStepGhost_deliv γ dec c0 h0 ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s rs.delivered
+        (by have := uint_nat_eq s.logst.committed; omega)
+        $$ Hdeliv Hghost with ⟨%Hpre, Hghost⟩
+      rw [Hcj5 rfl]
+      icases AdvAbs.ownStepGhost_rinv γ dec c0 h0 _ cf id s $$ Hghost with ⟨%HI, Hghost⟩
+      have Hb2 : max rs.capplied rs.delivered.length ≤ uint.nat s.logst.committed :=
+        Nat.max_le.2 ⟨HI.cidx_commit, Hdc⟩
+      have Hk : CfgKeep (effDec dec ds) (rOf s ⟨rs.capplied, rs.cfg, fp, ds⟩).full rs.capplied
+          (max rs.capplied rs.delivered.length) rs.cfg := by
+        rcases Nat.le_total rs.delivered.length rs.capplied with h | h
+        · rw [Nat.max_eq_left h]; exact CfgKeep.of_le (Nat.le_refl _)
+        · rw [Nat.max_eq_right h]
+          exact (Ha1 dec c0 h0 h1 hm).prefix Hpre (Nat.le_refl _)
+      iapply ownStepGhost_cidxJump γ dec c0 h0 ⟨rs.capplied, rs.cfg, fp, ds⟩ cf id s _
+        (Nat.le_max_left _ _) Hb2 Hk
+      iexact Hghost
   ihave Hpend := pendAt_none_elim γ id rs.bw hsl steps rs.steps qs $$ Hpend
   icases Hpend with ⟨%sts, %Hpa, Hpend⟩
   iclear Hret
@@ -538,7 +568,8 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       "%Hq1" ∷ ⌜SnapQueueStep (toPState s) (toPState s1)⌝ ∗
       "%Hph1" ∷ ⌜HsLe (hsOf s) (hsOf s1) ∧ uint.Z s.logst.inprogress ≤ uint.Z s1.logst.inprogress⌝ ∗
       "%Hca" ∷ ⌜rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length ∧
-                (rs.mode = .static → ca = rs.capplied)⌝ ∗
+                (rs.mode = .static → ca = rs.capplied) ∧
+                (rs.mode.isDyn = true → rs.delivered.length ≤ ca)⌝ ∗
       "%Hok1" ∷ ⌜StepsOk s1 (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hsb1" ∷ ⌜AdvAbs.SelfBound s (rs.steps.drop (sint.nat n))⌝ ∗
       "%Hti1" ∷ ⌜AdvAbs.TermInv s s1 (rs.steps.drop (sint.nat n))⌝ ∗
@@ -562,7 +593,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
           (rs.steps.drop (sint.nat n)),
         msgIn l DFrac.discard x.1 ∗ pendingRel γ id rs.bw x.1 x.2))
     $$ [i m ib Hphys Hghost Hsteps Hpend]
-  · iexists W64 0, s, steps, null, zero_val w64, rs.capplied
+  · iexists W64 0, s, steps, null, zero_val w64, cj
     have H0 : sint.nat (W64 0) = 0 := rfl
     rw [H0, List.drop_zero, List.drop_zero, List.drop_zero]
     simp only [named]
@@ -570,7 +601,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     ipureintro
     refine ⟨by word, ⟨trivial, trivial⟩, Hwf, by simp, ⟨trivial, trivial, trivial⟩, Int.le_refl _, (fun _ h _ => .inl h),
       ⟨HsLe.refl _, Int.le_refl _⟩,
-      (by simp [Nat.le_max_left]),
+      ⟨Hcj1, Hcj2, Hcj3, Hcj4⟩,
       Hstok,
       AdvAbs.stepsOk_selfBound s rs.steps Hstok, ⟨Int.le_refl _, by omega, fun _ _ => rfl,
       Hpvoff.2.2.1, Hpvoff.2.2.2.1⟩, ?_, fun _ h => h, Hpvoff.2.2.2.2,
@@ -685,10 +716,12 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
           fun h => absurd (hty.symm.trans h) (by simp [MsgStorageApplyResp, MsgProp])⟩
         have He' := (Hpok e He).2
         rw [Hs1.1] at He'
-        have HA := Ha1 _ _ _ _ hm
-        refine (HA.mono Hca.1 ?_).prefix Hpre ?_
-        · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
-        · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
+        -- (2026-11-24, option D) the index already at the committed log handed out (the jump above)
+        have Hdl := Hca.2.2.2 (by rw [hm]; rfl)
+        apply CfgKeep.of_le
+        show uint.nat e.Index' ≤ ca
+        have := uint_nat_eq e.Index'; have := uint_Z_nonneg s.logst.applying
+        rw [Hdlen] at Hdl; omega
     icases Hres with ⟨%Hpre1, Hghost⟩
     -- (#33 S4) the scope's facts at `s1`, for the protocol reading of the step
     icases pendingRel_pure γ id rs.bw st p $$ Hpm with ⟨%Hpst, Hpm⟩
@@ -764,7 +797,8 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
       ⟨Hsg2.1.trans Hsg1.1, Hsg2.2.1.trans Hsg1.2.1, Hsg2.2.2.trans Hsg1.2.2⟩,
       Int.le_trans Hc1 Hc12, Hq1.trans Hout2.snapQueue Hti1.1 Hc12,
       ⟨Hph1.1.trans (HsLe.of_step Hout2.voteLe Hc12), Int.le_trans Hph1.2 Hip2⟩,
-      ⟨Nat.le_trans Hca.1 Hca1, ?_, fun h => (Hca3 h).trans (Hca.2.2 h)⟩,
+      ⟨Nat.le_trans Hca.1 Hca1, ?_, fun h => (Hca3 h).trans (Hca.2.2.1 h),
+        fun h => Nat.le_trans (Hca.2.2.2 h) Hca1⟩,
       stepsOk_mono_le s1 s2 _ Ht2 ⟨Hpv2, logStoreRec_stored Hsd2⟩ Hc12 Ha2 (tc_le_of_gh Hsg2.2.2) Hrest,
       fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
       AdvAbs.termInv_step s s1 s2 p _ Hok1 Hsb1 Hti1 Ht2 Hps2 Hrl2,
@@ -932,7 +966,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
     isplitr
     · ipureintro
       exact ⟨fun _ => ⟨Hca.1, Hca.2.1⟩, (fun l (h : rs.slent = some l) => by rw [hsl] at h; cases h),
-        Hca.2.2⟩
+        Hca.2.2.1⟩
     isplitr
     · ipureintro; exact fun _ => Hcmax
     ipureintro
@@ -961,7 +995,7 @@ theorem RawNode.Advance.absProofIn (wp_raft_Step : raft.Step.spec (GF := GF) (hG
         (Int.le_trans HlwE.1 HlwE.2) ?_, rfl⟩)
       rw [← Hps] at Hnu
       rw [Hdl1]
-      refine AdvAbs.noUndec_of_take (AdvAbs.take_append_congr ?_) Hnu
+      refine CfgKeep.congr (AdvAbs.take_append_congr ?_) Hnu
       show (s.logst.sents ++ s.logst.uents).take _ = (s1.logst.sents ++ s1.logst.uents).take _
       rw [Htk0, Htk1]
     · have Hpz1 : uint.Z s1.logst.prev.index' = 0 := by rw [Hs1.2.2.2.1]; exact Hprev0

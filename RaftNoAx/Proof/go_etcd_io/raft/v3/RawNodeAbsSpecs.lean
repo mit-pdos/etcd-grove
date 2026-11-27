@@ -560,7 +560,8 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RStat
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ R γ rn id rs r qs ip ∗
       "Hret" ∷ loanRet rs ∗
-      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
+      "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗
+        cfgKeepIn γ rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg) ∗
       "#Hbw" ∷ durFrags γ id rs.bw }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat) (r' : RState) (ip' : Nat), RET #();
@@ -576,13 +577,14 @@ abbrev RawNode.Advance.form (R : RaftNames → Loc → w64 → RNState → RStat
       -- `Ready`): in general an acknowledgement can raise it past `min ip lcp` (ledger)
       -- (antithesis parity B1 stage 3b) `AdvanceEndR`: the queue stepped in order, then the storage
       -- acknowledgements' `applied` (`AckEndR`'s second arm, `StepR.advance`), whose premise is the
-      -- caller's: no undecided conf entry among the entries applied; (antithesis parity B1, item 2b) at
+      -- caller's: the configuration kept over the entries applied (2026-11-27, option D's `CfgKeep`: until
+      -- then no undecided conf entry there, `NoUndecConfIn`); (antithesis parity B1, item 2b) at
       -- a mode without snapshots, `AdvanceEndRNoSnap` (no snapshot applied: the Sim's `AdvanceNoSnap`),
       -- and the premise over the inputs: the committed log handed out, `delivered`, in `r`'s full log
       -- (`applied` reaches its end; `Advance` keeps that prefix)
       ⌜∀ md, S md → γ.reTrace = none →
         (∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec),
-          NoUndecConfIn dec r.full r.cidx rs.delivered.length →
+          CfgKeep dec r.full r.cidx rs.delivered.length r.cfg →
             AdvanceEndR Adm dec rs.k id r qs r' ∧
             (md.snapshots = false → AdvanceEndRNoSnap Adm dec rs.k id r qs r')) ∧
         (ip = r.p.log.length → ip' = min ip (lcpLen r.p.log r'.p.log))⌝ }}

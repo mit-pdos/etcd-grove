@@ -274,6 +274,28 @@ theorem CfgKeep.trans {dec : CCDec} {l : List EntryM} {a b c : Nat} {cs : CCStat
   rw [e1, cfgFoldFrom_append, h1, Option.bind_some, ← take_split_le l hab]
   exact h2
 
+/-- (2026-11-27, the antithesis harness over option D) A fold over entries none of them a conf
+change keeps the configuration. -/
+theorem cfgFoldFrom_of_noConf (dec : CCDec) :
+    ∀ (pre : List EntryM) (s : CCState) (es : List EntryM), (∀ e ∈ es, ¬ IsConfEnt e) →
+      cfgFoldFrom dec pre s es = some s
+  | _, _, [], _ => rfl
+  | pre, s, e :: es, h => by
+    simp only [cfgFoldFrom, entStep, if_neg (h e (by simp)), Option.bind_some]
+    exact cfgFoldFrom_of_noConf dec _ _ es (fun x hx => h x (by simp [hx]))
+
+/-- (2026-11-27) **No conf entry in a range keeps any configuration over it** (`NoConfIn`). -/
+theorem CfgKeep.of_noConf {dec : CCDec} {l : List EntryM} {lo hi : Nat} {cs : CCState}
+    (h : NoConfIn l lo hi) : CfgKeep dec l lo hi cs := by
+  unfold CfgKeep
+  apply cfgFoldFrom_of_noConf
+  intro e he
+  obtain ⟨i, hi'⟩ := List.mem_iff_getElem?.1 he
+  rw [List.getElem?_drop, List.getElem?_take] at hi'
+  split at hi'
+  · exact h (lo + i) e (by omega) (by assumption) hi'
+  · cases hi'
+
 /-! ### I1 and I3 -/
 
 theorem ConfI1.mono {l : List EntryM} {c c' : Nat} (h : ConfI1 l c) (hc : c ≤ c') :

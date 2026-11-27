@@ -2169,6 +2169,14 @@ theorem cfgKeepIn_le (γ : RaftNames) (md : RNMode) (D : List EntryM) {lo hi : N
   isplitr; · iapply decLb_empty
   ipureintro; intro _ _ _ _ _; exact CfgKeep.of_le h
 
+/-- (2026-11-27) Over a range with no conf entry (`CfgKeep.of_noConf`). -/
+theorem cfgKeepIn_noConf (γ : RaftNames) (md : RNMode) {D : List EntryM} {lo hi : Nat} (cfg : CCState)
+    (h : NoConfIn D lo hi) : ⊢ cfgKeepIn (GF := GF) γ md D lo hi cfg := by
+  unfold cfgKeepIn
+  iexists ∅
+  isplitr; · iapply decLb_empty
+  ipureintro; intro _ _ _ _ _; exact CfgKeep.of_noConf h
+
 theorem cfgKeepIn_static (γ : RaftNames) {md : RNMode} (h : md.isDyn = false) (D : List EntryM)
     (lo hi : Nat) (cfg : CCState) : ⊢ cfgKeepIn (GF := GF) γ md D lo hi cfg := by
   unfold cfgKeepIn

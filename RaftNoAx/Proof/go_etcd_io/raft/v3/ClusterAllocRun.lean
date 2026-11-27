@@ -8,8 +8,10 @@ run's `node.start` writes one normal entry `{Term: 1, Index: 1, Data: d}` and th
 
 - `ownDurGhost_boot`: a node's durable half moves from `RaftState.init` to the state that write
   leaves (`bootDurState`: term `1`, no vote, the bootstrap log from `base0`, commit `0`), given the
-  bootstrap log's records. Nothing of the entered maps changes; their histories over the empty log
-  are of no entry, so they hold of any log.
+  bootstrap log's records; (2026-11-27) a ghost update with the node's slot (`raftIdSlot`), which
+  closes the campaign key of the boot term `1` in the entered maps (`campNone`, `durPers`'s campaign
+  map closure); nothing else of them changes; their histories over the empty log are of no entry,
+  so they hold of any log.
 - `cluster_alloc_normBoot`: `cluster_alloc_boot_implG_tr` (untraced, snapshots on, the caller's
   `dup`: the harness's driver duplicates deliveries, forwarded `MsgProp`s too) at a bootstrap log
   of normal entries (`NormBoot`) instead of `BootLog`, for every id of `ids` (the voters `vs` among
@@ -72,18 +74,100 @@ theorem hist_nil_any (γ : RaftNames) (F0 F : List EntryM) (t i : w64) (B B' : I
 
 /-- **A node's durable half at the bootstrap write** (see the file header): from `RaftState.init`
 to `bootDurState γ.reBoot`, given the bootstrap log's records, its entries normal, of term `1`,
-from index `1`. -/
-theorem ownDurGhost_boot (γ : RaftNames) (id : w64) :
+from index `1`. (2026-11-27) A ghost update with the node's slot, which closes term `1`'s campaign
+key (`mint_one` of `.close 1`): until then a wand, before the campaign map's closure. -/
+theorem ownDurGhost_boot (Em : CoPset) (γ : RaftNames) (id : w64) (HE : ↑(raftN γ) ⊆ Em) :
     PlogWf base0 γ.reBoot → (∀ e ∈ γ.reBoot, e.Term' = W64 1) →
     (∀ e ∈ γ.reBoot, ¬ IsConfEnt e) →
-    ⊢ logRecs (GF := GF) γ base0 γ.reBoot -∗ ownDurGhost γ id RaftState.init -∗
-      ownDurGhost γ id (bootDurState γ.reBoot) := by
+    ⊢ logRecs (GF := GF) γ base0 γ.reBoot -∗ ownDurGhost γ id RaftState.init -∗ raftIdSlot γ id
+      ={Em}=∗ ownDurGhost γ id (bootDurState γ.reBoot) ∗ raftIdSlot γ id := by
   intro Hwf Hones Hnc
-  iintro #Hrecs Hd
+  have HsE : (↑(slotN γ id) : CoPset) ⊆ Em := fun p hp => HE p (slotN_raftN γ id p hp)
+  have HlE : (↑(raftLogN γ) : CoPset) ⊆ Em \ ↑(slotN γ id) := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    refine ⟨raftLogN_of HE p hp, fun h => ?_⟩
+    have h1 := nclose_subseteq (raftN γ .@ "slot") id p h
+    exact ndot_ne_disjoint (raftN γ) (show "log" ≠ "slot" by decide) p ⟨hp, h1⟩
+  iintro #Hrecs Hd Hslot
   unfold ownDurGhost
   icases Hd with ⟨%E, Hsh, #Hp, #Hsi, -⟩
+  -- (2026-11-27, our crash line's campaign map closure, `durPers`'s last conjunct) the boot write's
+  -- term `1` gets its campaign key closed (`campNone`): `mint_one` of `.close 1` in the entered maps,
+  -- with the slot's halves (its generation free, so its virtual maps are the entered ones)
+  ihave #Hp0 := Hp
+  iunfold durPers at Hp0
+  icases Hp0 with ⟨%kd0, %fp0, %Hpure0, -, -, -, -, -, -, -, -, -, #Hci0, -⟩
+  have Hcp0 := Hpure0.2.2.1
+  have Hevs0 := Hpure0.2.2.2.1
+  have Hfresh : E.camps !! W64 1 = none := by
+    cases h : E.camps !! W64 1 with
+    | none => rfl
+    | some x =>
+      have := Hcp0 (W64 1) (by rw [h]; rfl)
+      exact absurd this (by show ¬ (uint.Z (W64 1) ≤ uint.Z (W64 0)); decide)
+  iunfold raftIdSlot at Hslot
+  icases Hslot with ⟨%γs, %V, %g, %Hγs, %Hnz, HV, Hlive, Hfree, Hrest⟩
+  ihave #Hsi' := Hsi
+  iunfold slotInv at Hsi'
+  iinv Hsi' with H Hclose
+  iunfold slotBody at H
+  icases H with ⟨%γs', %E0, %g0, %Mq, >%Hγs', >Hsh0, #>Hfr0, #>Hai0, >Hv0, >Hg0, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  rw [Hγs] at Hγs'; cases Hγs'
+  iunfold slotLive at Hlive
+  icases Hlive with ⟨%γs2, %Hγs2, Hlive⟩
+  rw [Hγs] at Hγs2; cases Hγs2
+  icases ghostVar_agree _ _ _ _ _ $$ Hlive Hg0 with %Hgg
+  subst Hgg
+  iunfold slotFree at Hfree
+  icases Hfree with ⟨%γs3, %Hγs3, Hfree⟩
+  rw [Hγs] at Hγs3; cases Hγs3
+  icombine Hq Hfree gives %HMq
+  have HMq' : Mq !! g = some (none : Option RaftBatch) := HMq
+  icases durShares_agree γ id _ _ E0 E $$ Hsh0 Hsh with ⟨Hsh0, Hsh, %HE0⟩
+  subst HE0
+  icases (durShares_combine γ id E0).1 $$ [Hsh0 Hsh] with Hsh
+  · iframe Hsh0 Hsh
+  imod mint_one (Em \ ↑(slotN γ id)) γ id E0 (.close (W64 1)) HlE Hfresh
+    ⟨Hevs0.2.2.1, Hevs0.2.2.2⟩ Hevs0.1 $$ Hci0 Hsh Hfr0 [] with ⟨Hsh, #Hfr'⟩
+  · unfold promJust
+    imodintro; iintro -
+    simp only [promNeed]
+    ipureintro; trivial
+  icases (durShares_combine γ id _).2 $$ Hsh with ⟨Hsh0, Hsh1⟩
+  have HvQ : virtQ E0 (Mq !! g) = E0 := by rw [HMq']; rfl
+  rw [HvQ]
+  imod ghostVar_update_halves (E0.add (.close (W64 1))) γs.1 _ _ $$ HV Hv0 with ⟨HV, Hv0⟩
+  imod Hclose $$ [Hsh0 Hv0 Hg0 Hq] with -
+  · inext
+    unfold slotBody
+    iexists γs, E0.add (.close (W64 1)), g, Mq
+    rw [HMq']
+    simp only [virtQ]
+    rw [show (E0.add (Prom.close (W64 1))).acks = E0.acks from rfl]
+    iframe Hsh0 Hfr' Hai0 Hv0 Hg0 Hq
+    ipureintro
+    refine ⟨Hγs, Hdom, rfl, fun b hb => by cases hb⟩
+  have HDle : DurLe E0 (E0.add (.close (W64 1))) := DurLe_add E0 (.close (W64 1)) Hfresh
+  imodintro
+  isplitr [HV Hlive Hfree Hrest]
+  rotate_left
+  · unfold raftIdSlot
+    iexists γs, _, g
+    iframe HV Hrest
+    isplitr; · ipureintro; exact Hγs
+    isplitr; · ipureintro; exact Hnz
+    isplitl [Hlive]; · unfold slotLive; iexists γs; iframe Hlive; ipureintro; exact Hγs
+    unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hγs
+  obtain ⟨E, hE⟩ : ∃ E', E' = E0.add (.close (W64 1)) := ⟨_, rfl⟩
+  rw [← hE] at HDle ⊢
+  have hEv : E.voted = E0.voted := by rw [hE]; rfl
+  have hEa : E.acks = E0.acks := by rw [hE]; rfl
+  have hEl : E.vlogs = E0.vlogs := by rw [hE]; rfl
+  have hEc : E.camps = <[W64 1 := campNone]> E0.camps := by rw [hE]; rfl
+  have hEevs : EvsOk (W64 1) E ↔ EvsOk (W64 1) E0 := by rw [hE]; rfl
   iexists E
-  iframe Hsh Hsi
+  iframe Hsh1 Hsi
   have Hb : RaftState.init.base = base0 := rfl
   have Hc : RaftState.init.commit = W64 0 := rfl
   have He : RaftState.init.ents = [] := rfl
@@ -91,7 +175,8 @@ theorem ownDurGhost_boot (γ : RaftNames) (id : w64) :
   have Hv : RaftState.init.vote = W64 0 := rfl
   unfold durPers
   rw [Hb, He, Hc, Ht]
-  icases Hp with ⟨%kd, %fp, %Hpure, -, #Hbase, #Hfp, #Hvl, #Hacks, -, #Hag, -, #Hcm, #Hci, #Hfr⟩
+  rw [hEv, hEa, hEl, hEc]
+  icases Hp with ⟨%kd, %fp, %Hpure, -, #Hbase, #Hfp, #Hvl, #Hacks, -, #Hag, -, #Hcm, #Hci, #Hfr, -⟩
   obtain ⟨⟨Hv1, -⟩, Hak, Hcp, Hevs, Hfull, -, -, -, -⟩ := Hpure
   rw [Ht] at Hv1
   have Hfp0 : fp = [] := List.eq_nil_of_length_eq_zero (by
@@ -106,11 +191,15 @@ theorem ownDurGhost_boot (γ : RaftNames) (id : w64) :
     · ipureintro
       refine ⟨⟨fun t ht => by have := Hv1 t ht; simp only [h0, h1] at this ⊢; omega, ?_⟩,
         fun k hk => by have := Hak k hk; simp only [h0, h1] at this ⊢; omega,
-        fun T hT => by have := Hcp T hT; simp only [h0, h1] at this ⊢; omega,
-        EvsOk_mono _ _ E (by simp only [h0, h1]; omega) Hevs, FullOk_base0, Hwf, ?_,
+        fun T hT => by
+          by_cases hT1 : W64 1 = T
+          · subst hT1; simp only [h1]; omega
+          · rw [GMap.lookup_insert_ne _ _ hT1] at hT
+            have := Hcp T hT; simp only [h0, h1] at this ⊢; omega,
+        hEevs.2 (EvsOk_mono _ _ E0 (by simp only [h0, h1]; omega) Hevs), FullOk_base0, Hwf, ?_,
         by rw [base0_index, h0]; omega, by unfold plogLastIndexZ; rw [base0_index, h0]; omega⟩
       · rw [if_pos rfl]
-        cases hv : E.voted !! W64 1 with
+        cases hv : E0.voted !! W64 1 with
         | none => rfl
         | some x =>
           have := Hv1 (W64 1) (by rw [hv]; rfl)
@@ -150,7 +239,7 @@ theorem ownDurGhost_boot (γ : RaftNames) (id : w64) :
       imodintro
       iintro %k %u %Hk - %Hk1
       exfalso
-      have := Hak k (by rw [show (E.acks !! k) = some u from Hk]; rfl)
+      have := Hak k (by rw [show (E0.acks !! k) = some u from Hk]; rfl)
       rw [Hk1.1, h0] at this
       exact absurd this (by show ¬ (uint.Z (W64 1) ≤ 0); rw [h1]; omega)
     isplitr
@@ -168,7 +257,25 @@ theorem ownDurGhost_boot (γ : RaftNames) (id : w64) :
     · iExactEq Hcm
       simp only [List.nil_append, h0]
       rfl
-    · iexact Hfr
+    isplitr
+    · imodintro
+      iintro #HF
+      iapply Hfr
+      iapply durFrags_mono γ id E0 E HDle $$ HF
+    have Hk1 : (<[W64 1 := campNone]> E0.camps) !! W64 1 = some campNone := GMap.lookup_insert _ _ _
+    isplitr
+    · -- the boot term's key closed: no record there
+      unfold campLink
+      ileft; ipureintro
+      intro F0 k Hk
+      have Hk' : (<[W64 1 := campNone]> E0.camps) !! W64 1 = some (F0, k) := Hk
+      rw [Hk1] at Hk'
+      simp only [campNone, Option.some.injEq, Prod.mk.injEq] at Hk'
+      obtain ⟨rfl, -⟩ := Hk'
+      exact List.nil_prefix
+    · ipureintro; right
+      show ((<[W64 1 := campNone]> E0.camps) !! W64 1).isSome
+      rw [Hk1]; rfl
   · unfold durI1 bootDurState
     iintro !> %fp %Hfp -
     ipureintro; intro _
@@ -461,6 +568,21 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
     ipureintro; exact Hrb
   have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by unfold raftN; rw [HNs]; exact HE
   imod boot_facts E γ.raft HrE $$ Hcinv with ⟨#Hcb, #Hrecs, %Hbf⟩
+  -- (2026-11-27) each node's durable half moved to the boot write's state, a ghost update with its
+  -- slot (`ownDurGhost_boot`: the boot term's campaign key closed)
+  ihave Hnodes : |={E}=> [∗map] id ↦ _u ∈ toMap (GMap.listToSet ids),
+      ownDurGhost γ.raft id (if boot = [] then RaftState.init else bootDurState γ.raft.reBoot) ∗
+        raftIdSlot γ.raft id $$ [Hnodes]
+  · iapply (BigSepM.bigSepM_fupd E _ _)
+    iapply BigSepM.bigSepM_impl $$ Hnodes
+    imodintro
+    iintro %id %u %_ ⟨Hg, Ht⟩
+    by_cases hb : boot = []
+    · rw [if_pos hb]; imodintro; iframe Hg Ht
+    · rw [if_neg hb]
+      iapply ownDurGhost_boot E γ.raft id HrE Hbf.1 Hbf.2 (by rw [HbootL]; exact HB.noConf)
+        $$ Hrecs Hg Ht
+  imod Hnodes with Hnodes
   imodintro
   iexists γ
   iframe Hops HU Hdc Hcb Hrecs
@@ -486,9 +608,7 @@ private theorem cluster_alloc_normBoot (N : Namespace) (vs ids : List w64) (boot
   · rw [if_pos hb, show RaftState.init.term = W64 0 from rfl]
     iframe Hg Htlb0
   · rw [if_neg hb]
-    ihave Hg' := ownDurGhost_boot γ.raft id Hbf.1 Hbf.2
-      (by rw [HbootL]; exact HB.noConf) $$ Hrecs Hg
-    iframe Hg'
+    iframe Hg
     rw [show (bootDurState γ.raft.reBoot).term = W64 1 from rfl]
     iexact Htlb
 

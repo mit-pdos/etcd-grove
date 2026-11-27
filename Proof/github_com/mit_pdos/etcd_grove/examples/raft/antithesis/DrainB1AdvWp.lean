@@ -2,8 +2,8 @@
 Lean-first (no Rocq counterpart). #33 parity B1, driver group E: `DrainB1Phases.lean`'s
 `drainAdvanceB1.stmt` proved (`drainAdvanceB1`; `node.drain.tailE`: `reads`, `applyCommitted`,
 `Advance`, the `sent` loop), the loop head closed at the view after the reports (`nodeOwn_loop_close`:
-`Reach.advance` from `Advance`'s `AdvanceEndR`/`AdvanceEndRNoSnap`, whose premise of no undecided conf
-entry holds as the view's entries are normal; `n.applied` the delivered length as the log's indices
+`Reach.advance` from `Advance`'s `AdvanceEndR`/`AdvanceEndRNoSnap`, whose premise (the configuration kept,
+`CfgKeep`) holds as the view's entries are normal; `n.applied` the delivered length as the log's indices
 are its positions, `lastIdx_len`). The reports' pieces: The `read` reports (`readsAfter_intro`: per read state, `report_upd`
 at `readHstep`, the read's index past every committed length its context was asked at from
 `readsOwn` and raft's `readStateRaw`, `reads_fl`), the `apply` report's event (`applyEv_eq`,
@@ -750,10 +750,10 @@ theorem drainAdvanceB1
   · iPkgInit
   ihave Hret : loanRet (GF := GF) I.rs₂ $$ []
   · unfold loanRet DrainIterB1.rs₂; simp only; iempintro
-  ihave #HA1 : □ (⌜I.rs₂.slent = none⌝ -∗ undecFree γ.raft.raftNames I.rs₂.mode I.rs₂.delivered
-      I.rs₂.capplied I.rs₂.delivered.length) $$ []
+  ihave #HA1 : □ (⌜I.rs₂.slent = none⌝ -∗ cfgKeepIn γ.raft.raftNames I.rs₂.mode I.rs₂.delivered
+      I.rs₂.capplied I.rs₂.delivered.length I.rs₂.cfg) $$ []
   · imodintro; iintro -
-    iapply undecFree_noConf
+    iapply cfgKeepIn_noConf
     exact noConf_of_normal (fun e he => hlogN e (hpre.subset he)) _ _
   ihave Hdur : durFrags (GF := GF) γ.raft.raftNames (AntSim.nodeId j) I.rs₂.bw $$ [Hdur]
   · rw [show I.rs₂.bw = I.W from rfl]; iexact Hdur
@@ -762,7 +762,7 @@ theorem drainAdvanceB1
       $$ [$Hrpkg $Hraw $Hret $HA1 $Hdur] as %t %ca %r' %ip' ⟨Hraw, -, -, -, -, %Hend⟩
   obtain ⟨hadvF, hipF⟩ := Hend γ.R.md rfl Htr
   obtain ⟨hadvR, hns⟩ := hadvF (AdmFold γ.dec γ.R.c0) γ.dec
-    (NoConfIn.noUndec (noConf_of_normal hfullN _ _))
+    (CfgKeep.of_noConf (noConf_of_normal hfullN _ _))
   have hrs2 : advRS I.rs₂ t ca = { I.rs₂ with steps := [], term := t, capplied := ca, flw := false } :=
     advRS_none t ca rfl
   have hR : AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₄ xnet₄ j

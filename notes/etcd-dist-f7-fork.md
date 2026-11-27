@@ -623,3 +623,38 @@ Head: the merge `486ce3eaea` plus the `InvApi` fix commit after it (pushed).
 - **Not run**: gates, `tcb-report --check` (build red). Steps left: fix 1 and 2 (+ whatever is behind them),
   regenerate copies, full build, `GATES_FAILFAST=0 etc/gates.sh`, `etc/tcb-report.py --check` (trust delta vs lean
   must be none), STATUS entry update.
+
+### Handoff DELTA-3 (2026-11-27; lean `27cdcc788d` merged, build still RED: one module behind the two DELTA-2 errors)
+
+Same worktree, manifest, Perennial and logs (`/shared/tmp/delta-logs/m2.log` is the last module build).
+
+- **lean `27cdcc788d` (watchmove + a notes-only nonissue) merged** (`fc21b461ef`): clean, no conflicts; pin unchanged
+  (Perennial `9065982fa`).
+- **Fix 1 (`undecFree`), done; ledger entry** (`notes/specs-only/ledger.md`, 2026-11-27): lean's B1 text ported to option D.
+  `RawNode.Advance.form`'s `HA1` is now `cfgKeepIn γ rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg`, and
+  its post's premise `CfgKeep dec r.full r.cidx rs.delivered.length r.cfg` (in place of `NoUndecConfIn`). Both are
+  weaker premises, so the spec is stronger. New lemmas: `cfgFoldFrom_of_noConf` and `CfgKeep.of_noConf`
+  (`Protocol/StepRInv.lean`), `cfgKeepIn_noConf` (`InvRawnode.lean`). `RawNode__AdvanceAbs` takes option D's
+  configuration-index jump, copied from `TracedRawNodeAdvance` (with `cj` and `ownStepGhost_cidxJump`, `Hca`'s fourth
+  conjunct, `CfgKeep.of_le` at the ack, and `CfgKeep.congr` at the end; it uses the existing
+  `AdvAbs.ownStepGhost_rinv`). The unused `AdvAbs.noUndec_of_take` is deleted. `DrainB1AdvWp` now uses
+  `cfgKeepIn_noConf` and `CfgKeep.of_noConf`. Checked with lean-check: AdvanceAbs gives 0 errors.
+  `ApplyConfEndR` (InputEnd) and `NoUndecConfIn` are unchanged, since they still exist and build.
+- **Fix 2 (`ownDurGhost_boot`), done; FOR THE LEAD (coordinator-approved shape change, untrusted lemma):** it is now a
+  fancy update, `logRecs … -∗ ownDurGhost γ id init -∗ raftIdSlot γ id ={Em}=∗ ownDurGhost γ id (bootDurState …) ∗
+  raftIdSlot γ id`, with `↑(raftN γ) ⊆ Em`. The plan was `|==>`, but that cannot work: the slot invariant's half of the
+  authorities has to be opened. The update closes term 1's campaign key with `mint_one` of `.close 1`, using the slot's
+  halves: the generation is free, so the virtual maps are the entered ones. Its caller, `cluster_alloc_normBoot`, runs
+  the per-node updates before its final `imodintro` (`BigSepM.bigSepM_fupd`). Checked with lean-check: 0 errors.
+- **Copies regenerated** (gen-raft-tla, copy-part). The generators' `--check` modes have not been rerun.
+- **Remaining error** (module build of the antithesis TopLevelRobustness/Results): `Proof/go_etcd_io/raft/v3/RawNodeStart.lean:673`
+  `istart: uint.Z sn.t0 ≤ uint.Z σ.hs.Term' is not an emp valid`, then `:789 Herr` unknown. These come from merge
+  fallout and are not fixed (stopped at handoff). The callee's post that the `as %rn %err ⟨⟨%K, #HKn, HFK⟩, -, %s, %r,
+  Hrn, %Herr, %Hsn2, -⟩` pattern at :672 destructures carries a pure conjunct from our crash line
+  (`sn.t0 ≤ hs.Term'`, the snapshot send term) that lean's pattern does not name, or the conjuncts are in a different
+  order. Intended fix: compare the callee's post (the restart/start spec it `wp_apply`s) with the pattern, and add
+  or move a `%_` slot. Expect more errors in the harness cone behind it.
+- **Steps left:** fix RawNodeStart (and whatever follows it) with module builds of the antithesis
+  `TopLevelRobustness`/`Results`; then regenerate copies; run every generator's `--check`; do the full build;
+  run `GATES_FAILFAST=0 etc/gates.sh` and `etc/tcb-report.py --check` (trust delta vs lean must be none); add the STATUS
+  entry (keep ten in "Last updated"; status-history append-only, now 20075 lines).

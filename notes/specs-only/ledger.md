@@ -10087,3 +10087,22 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   retryApplyOk`). No top-level statement changes.
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
+
+## 2026-11-27: `RawNode.Advance.form` over option D's `CfgKeep` (antithesis parity B1 meets the crash line)
+
+- **Spec.** `RawNode.Advance.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`, lean's antithesis parity B1):
+  its `HA1` premise `undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length` and its post's premise
+  `NoUndecConfIn dec r.full r.cidx rs.delivered.length` (the caller's, for `AdvanceEndR`).
+- **Defect.** Written over `undecFree`/`NoUndecConfIn` (every conf entry in the applied range rejected), which the
+  crash line's option D (`notes/raft-restart-confpoint.md`, `acfc6f5afa`) replaced by `cfgKeepIn … rs.cfg` /
+  `CfgKeep … r.cfg` (the configuration kept over the range): `undecFree` no longer exists, and `StepR.advance`
+  now takes `CfgKeep`, so the B1 form neither parses nor matches the rule its post is proved by.
+- **Evidence.** Merge of lean `72809698e8` into `etcd-safe-crash-delta/2026-11-27`: `RawNodeAbsSpecs.lean:562`
+  `undecFree` unknown (Handoff DELTA-2 in `notes/etcd-dist-f7-fork.md`).
+- **Change.** `HA1` becomes `cfgKeepIn γ rs.mode rs.delivered rs.capplied rs.delivered.length rs.cfg` (as
+  `RawNode.Advance.spec`'s); the post's premise `CfgKeep dec r.full r.cidx rs.delivered.length r.cfg`. Both are
+  weaker premises (no undecided conf entry in a range keeps any configuration over it; so does no conf entry,
+  `CfgKeep.of_noConf`, `cfgKeepIn_noConf`), so the spec is stronger. `RawNode__AdvanceAbs` takes option D's
+  configuration-index jump (as `RawNode.Advance`'s proof); the harness (`DrainB1AdvWp`) discharges both premises
+  from its normal entries (`cfgKeepIn_noConf`, `CfgKeep.of_noConf`). No top-level statement changes.
+- **Decision.** Coordinator-directed (DELTA-3 brief, 2026-11-27).
