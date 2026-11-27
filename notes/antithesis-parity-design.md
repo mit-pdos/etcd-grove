@@ -850,7 +850,7 @@ the local messages' fields are the write (`HardState`, `Entries` from `ip + 1`, 
 | `Sim/Rel.lean`, `Stmts.lean`, `MsgShapeStmt.lean` | §3 | restated (the only real restatement, paid once) | lead, 1 |
 | `Sim/*.lean` proofs (~12.4k lines, 28 files) | `Fin 3 → Fin R.N`, `cfgM3 → v.r.cfg.cfg` (with `md.confChanges = false`: `= CfgM.simple voters0 ∅`), `v.ps` kept as an abbrev, `DurableIs → DiskIs ∧ MemIs ∧ SyncDisk` | mostly mechanical; `DiskIs` through `SyncDisk` (`v.dur = durOf v.r`) one rewrite per use; `base0 → v.r.p.base` with `md.snapshots = false` | 2.5 |
 | harness proofs (~11k lines, 45 files naming `Fin 3`/`cfg3`/`nodeId`/`voters3`) | N servers, `RunCfg` drawn, the new driver's goroutines | the `Fin 3` part mechanical (1.5); the new goroutines are B1-B4's new work, not migration | 1.5 |
-| top level (`TopLevelRobustness`, `Results`) | `raft_antithesis_accepts` at `R.cfg`; `_basic` kept by mask `{}` | restated | 0.3 |
+| top level (`TopLevelRobustness`, `Results`) | `raft_antithesis_accepts` at `R.cfg`; each batch's interim theorem replaces the previous one in place (one driver program: `_basic` → `_msgs` at B1 → `_durable` → `_full` → the plain name; accepted by Upamanyu 2026-11-27) | restated | 0.3 |
 
 **Total migration ≈ 8 helper-rounds, paid once at B1's start.** The B1 estimate (12-14) already
 includes the N-server generalization (P4). The rest of the migration (the RState wrapper, mode
