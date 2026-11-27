@@ -1,0 +1,135 @@
+package wal
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
+
+	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
+	"go.etcd.io/raft/v3"
+	"go.etcd.io/raft/v3/raftpb"
+)
+
+// optDWrite is option (D)'s bootstrap write: a snapshot record at ci, then a HardState with
+// Commit = ci, then a sync (Save does not sync a Commit-only change).
+func optDWrite(t *testing.T, w *WAL, ci, term uint64, st *raftpb.HardState, stateToo bool) {
+	cs := &raftpb.ConfState{Voters: []uint64{1, 2, 3}}
+	require.NoError(t, w.SaveSnapshot(&walpb.Snapshot{Index: new(ci), Term: new(term), ConfState: cs}))
+	if !stateToo {
+		return
+	}
+	require.NoError(t, w.Save(st, nil))
+	require.NoError(t, w.Sync())
+}
+
+func mkWAL(t *testing.T, dir string, last uint64, st *raftpb.HardState) {
+	w, err := Create(zaptest.NewLogger(t), dir, []byte("m"))
+	require.NoError(t, err)
+	var es []*raftpb.Entry
+	for i := uint64(1); i <= last; i++ {
+		tm := uint64(1)
+		if i > 2 {
+			tm = 2
+		}
+		es = append(es, ent(i, tm, "x"))
+	}
+	require.NoError(t, w.Save(st, es))
+	require.NoError(t, w.Close())
+}
+
+func reopen(t *testing.T, dir string) (*walpb.Snapshot, *raftpb.HardState, []*raftpb.Entry, *WAL) {
+	snaps, err := ValidSnapshotEntries(zaptest.NewLogger(t), dir)
+	require.NoError(t, err)
+	s := &walpb.Snapshot{Index: new(uint64(0)), Term: new(uint64(0))}
+	for _, x := range snaps {
+		if x.GetIndex() >= s.GetIndex() {
+			s = x
+		}
+	}
+	w, err := Open(zaptest.NewLogger(t), dir, &walpb.Snapshot{Index: s.Index, Term: s.Term})
+	require.NoError(t, err)
+	_, st, ents, err := w.ReadAll()
+	require.NoError(t, err)
+	return s, st, ents, w
+}
+
+func TestOptDBackendAhead(t *testing.T) {
+	dir := t.TempDir()
+	mkWAL(t, dir, 4, hs(2, 1, 3)) // WAL last 4, commit 3; backend ci 7, term(7) = 3
+	_, _, _, w := reopen(t, dir)
+	optDWrite(t, w, 7, 3, hs(3, 0, 7), true)
+	require.NoError(t, w.Close())
+
+	s, st, ents, w := reopen(t, dir)
+	defer w.Close()
+	require.Equal(t, uint64(7), s.GetIndex())
+	require.Equal(t, uint64(7), st.GetCommit())
+	require.Empty(t, ents)
+
+	ms := raft.NewMemoryStorage()
+	require.NoError(t, ms.ApplySnapshot(&raftpb.Snapshot{Metadata: &raftpb.SnapshotMetadata{Index: new(uint64(7)), Term: new(uint64(3)), ConfState: s.ConfState}}))
+	require.NoError(t, ms.SetHardState(st))
+	rn, err := raft.NewRawNode(&raft.Config{ID: 1, ElectionTick: 10, HeartbeatTick: 1, Storage: ms, MaxSizePerMsg: 1 << 20, MaxInflightMsgs: 16})
+	require.NoError(t, err)
+	// A leader snapshot at 6 <= ci is refused; the reply acks the commit index 7.
+	m := &raftpb.Message{Type: raftpb.MsgSnap.Enum(), From: new(uint64(2)), To: new(uint64(1)), Term: new(uint64(3)),
+		Snapshot: &raftpb.Snapshot{Metadata: &raftpb.SnapshotMetadata{Index: new(uint64(6)), Term: new(uint64(3)), ConfState: s.ConfState}}}
+	require.NoError(t, rn.Step(m))
+	rd := rn.Ready()
+	require.True(t, raft.IsEmptySnap(rd.Snapshot))
+	var acked bool
+	for _, o := range rd.Messages {
+		if o.GetType() == raftpb.MsgAppResp && o.GetIndex() == 7 && !o.GetReject() {
+			acked = true
+		}
+	}
+	require.True(t, acked, "%v", rd.Messages)
+}
+
+func TestOptDCrashBeforeState(t *testing.T) {
+	dir := t.TempDir()
+	mkWAL(t, dir, 4, hs(2, 1, 3))
+	_, _, _, w := reopen(t, dir)
+	optDWrite(t, w, 7, 3, nil, false) // crash after the snapshot record, before the state record
+	require.NoError(t, w.Close())
+
+	s, st, ents, w := reopen(t, dir)
+	require.Equal(t, uint64(0), s.GetIndex()) // record at 7 above commit 3: not valid
+	require.Equal(t, uint64(3), st.GetCommit())
+	require.Len(t, ents, 4)
+	optDWrite(t, w, 7, 3, hs(3, 0, 7), true) // redo is idempotent
+	require.NoError(t, w.Close())
+	s, st, ents, w = reopen(t, dir)
+	defer w.Close()
+	require.Equal(t, uint64(7), s.GetIndex())
+	require.Equal(t, uint64(7), st.GetCommit())
+	require.Empty(t, ents)
+}
+
+func TestOptDEntriesAboveCi(t *testing.T) {
+	// Snapshot path with entries above ci: the fork's ReadAll drops them (record above the commit
+	// in force at the record = a received snapshot).
+	dir := t.TempDir()
+	mkWAL(t, dir, 6, hs(2, 1, 2))
+	_, _, _, w := reopen(t, dir)
+	optDWrite(t, w, 3, 2, hs(2, 1, 3), true)
+	require.NoError(t, w.Close())
+	_, st, ents, w := reopen(t, dir)
+	require.Equal(t, uint64(3), st.GetCommit())
+	require.Empty(t, ents)
+	w.Close()
+
+	// Commit-only path: HardState{Commit: ci} alone keeps 1..6, commit 3.
+	dir = t.TempDir()
+	mkWAL(t, dir, 6, hs(2, 1, 2))
+	_, _, _, w = reopen(t, dir)
+	require.NoError(t, w.Save(hs(2, 1, 3), nil))
+	require.NoError(t, w.Sync())
+	require.NoError(t, w.Close())
+	s, st, ents, w := reopen(t, dir)
+	defer w.Close()
+	require.Equal(t, uint64(0), s.GetIndex())
+	require.Equal(t, uint64(3), st.GetCommit())
+	require.Len(t, ents, 6)
+}
