@@ -2063,7 +2063,9 @@ SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
 its message, read-only (`wp_New_errorString_struct`). Its initializer allocates them, initializes
 its imports and runs their translated initializers.''',
     imports=['Proof.errors.NewVarCell'],
-    alloc_types={x: 'GoInterface' for x, _ in _K8E},
+    # (k8s-dist G2, 2026-11-27) `export.go`'s `crossCheck` (a `bool` only `CrossCheckWatches`, a test
+    # hook, sets): allocated, not in the fact
+    alloc_types={**{x: 'GoInterface' for x, _ in _K8E}, 'crossCheck': 'Bool'},
     before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
         f'wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %x{t} ⟨#M{t}, #C{t}⟩',
         'try wp_auto']]},
