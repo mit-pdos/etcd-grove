@@ -4,7 +4,7 @@
 
 `etcdNetExts` (`NetExts.lean`: `[idIssueExt, fsExt at etcdFsSem, netExt]`) with a crash interpretation,
 for deployments whose machines crash and restart (`notes/etcd-dist-plan.md` §12): the file extension's
-at `etcdFsSem` (`Fs.fs_crash_interpS etcdSQ etcdCQ`: `etcdFsSem`'s crash is `OsCrash ∧ etcdCQ`, `etcdCQ` unrestricted), the net
+at `etcdFsSem` (`Fs.fs_crash_interpS etcdSQ etcdCQ`: `etcdFsSem`'s crash is `OsCrash ∧ etcdCQ`, the WAL's `W1`), the net
 extension's (`Net.net_crash_interp`: nothing), and **any** crash interpretation `C` of the issue record
 (D4b designs the one the proofs will use: the record keyed by incarnation). Over it, `DistCrashAdequacy.lean`'s
 general corollary with `Robust`'s thread bound applies (`robust_of_dist_crash_adequacy_etcdNet`, over
@@ -33,12 +33,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Robustness
-
-/-- `etcdFsSem`'s crash premise, by name: none (`fun _ _ => True`, `FsExts.lean`). The proofs that need a crash to
-leave no torn WAL frame the reader accepts (the WAL's `W1`, `walInv_crash`'s `hQ`) take it as a premise at
-`etcdCQ`, which nothing discharges here; making `etcdCQ` `W1 walCodec` (D6 Q2, pending the owner's review) is
-branch `etcd-safe-crash-w1/2026-11-27`. -/
-abbrev etcdCQ : Fs.OsState → Fs.OsState → Prop := fun _ _ => True
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdFsSem
   etcdNetExts_hasIdIssue etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSemOk GooseGlobalGS.gooseInvGS

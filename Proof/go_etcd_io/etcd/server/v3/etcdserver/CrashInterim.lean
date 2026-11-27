@@ -121,8 +121,7 @@ now asks `γ.cl.bootLen ≤ σ.commit` (an unsaved WAL beside an applied backend
 branch). Retired by #34's
 `bootstrap` proof extended to the restart branch over the fixed `ReadAll` (T9). The premise
 `walReadFacts σ` of a crash image, and the claim that `ReadAll` reads back exactly `σ`, rest on the WAL's
-`W1` (`walInv_crash`'s premise `hQ`, not `etcdFsSem`'s crash premise `etcdCQ`, which is none: making it `W1` is
-branch `etcd-safe-crash-w1/2026-11-27`, D6 Q2; target: no CRC-32C collision on the `Data` of a frame whose bytes
+`W1` (`etcdFsSem`'s crash premise `etcdCQ`; target: no CRC-32C collision on the `Data` of a frame whose bytes
 under it were zero, `nonissues/etcd-wal-record-type-outside-crc.md`), through `walInv_crash` (T5); the fixed
 `Save` writes no frame over stale bytes (`notes/etcd-dist-d6.md`, "The WAL crash facts rest on `W1`"). (P8, 2026-11-25) The
 contract's files are `srvFilesC` (the WAL's files without their synced mark, what a crash leaves:

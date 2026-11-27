@@ -145,7 +145,7 @@ the issue record (`etcdNetExtsCrashInterpD4b`), at the thread bound `etcdThreads
 up to `etcdSteps`, the start update from the deployment's addresses unset to
 - for each member `i`, a precondition `Pc i` of its generations (D6's `memberPc C cfg id`, at the names
   `C` the update allocates: chosen inside the update, since it names them), with its boot program safe in
-  every generation (`Net.CrashBootWpGT` at `etcdFsSem`'s crash premise `etcdCQ`, none, and the
+  every generation (`Net.CrashBootWpGT` at `etcdFsSem`'s crash premise `etcdCQ`, the WAL's `W1`, and the
   issue record's crash rest `idIssueCrashStart`) and its first generation's `Pc i L` from the file start
   resources and the empty package state, and
 - for each stable machine `j` (orchestrators, then client machines), a share `Ps j` with its boot
