@@ -383,6 +383,9 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
   `inProcEtcd_laws_law_holds` in the new linking module `Proof/k8s_io/apiserver/pkg/storage/etcd3/InProcLinked.lean`
   (imported by the `--k8setcd3` Link through `EXTRA_IMPORTS`); `newStore.wp_proof` takes it (`h_inproc`, last; link
   list appends `=k8s.inProcEtcd_laws_law_holds`) and builds `k8sClient` by `k8sClient_inProc` before `New`.
+- **K7 note** (coordinator, 2026-11-27): the compactor's `Client.Compact`, `Get` at a revision and `Watch` (and the
+  store's watch) stay on `clientKvOk`/`clientWatchOk`, outside `Laws`. K7 (the dist client) must supply those two
+  predicates for its client, or fold them into `Laws` then.
 - **Ledger.** K5-1's entry extended (`notes/specs-only/ledger.md`, "Extension (K5-3)"): `kvAt`, `ctxFields`, `getLatest`,
   C3.
 - **Build** (fk-lean1, log `/shared/tmp/k5-3-b4.log`; targets `EtcdClientInProc`, `InProcLinked`, the etcd3 `Link`,
