@@ -1,0 +1,177 @@
+vmlake: synced 31809 files to upamanyus@34.121.251.247:work/sync/cc8c2d9c0a3a9314 in 6.0s
+vmlake: lake env lean scratch/SwapRev.lean (on upamanyus@34.121.251.247, LEAN_NUM_THREADS=16)
+vmlake gc: still over the cap; the rest is in use by running builds
+vmlake gc: ~/work now 383 GB (cap 300 GB), /mnt/rocq free 159 GB
+scratch/SwapRev.lean:28:17: warning: Definition `Perennial.GooseGlobalGS.gooseInvGS` of class type is semireducible. Most type class instances should be instance-reducible, so consider marking this
+definition with `@[instance_reducible]`. If it is intentionally semireducible, this warning can be disabled with `set_option warn.classDefReducibility false`.
+scratch/SwapRev.lean:86:0: warning: automatically included section variable(s) unused in theorem `Perennial.EtcdGrove.backend.oldStmt.dbCrashOldConcl_of_new`:
+  [GooseExts]
+  [GooseSemantics]
+  [GooseInterp]
+  go_gctx
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [GooseExts] [GooseSemantics] [GooseInterp] go_gctx in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+backend.oldStmt.dbCrashKeep_new vs backend.dbCrashKeep_new: levels [] / []; eqv=true; binderInfo diffs=[]
+backend.oldStmt.dbCrashKeep_take vs backend.dbCrashKeep_take: levels [] / []; eqv=true; binderInfo diffs=[]
+backend.oldStmt.dbCrashKeep_putSame vs backend.dbCrashKeep_putSame: levels [] / []; eqv=true; binderInfo diffs=[]
+backend.oldStmt.dbCrashKeep_putStep vs backend.dbCrashKeep_putStep: levels [] / []; eqv=true; binderInfo diffs=[]
+backend.oldStmt.dbCrashKeep_close vs backend.dbCrashKeep_close: levels [] / []; eqv=true; binderInfo diffs=[]
+backend.oldStmt.dbCrash vs backend.dbCrash: levels [] / []; eqv=false; binderInfo diffs=[]
+OLD: ∀ [inst : Perennial.GooseExts] [inst_1 : Perennial.GooseSemantics] [inst_2 : Perennial.GooseInterp]
+  [go_gctx : Perennial.GoGlobalContext] {GF : Iris.BundledGFunctors}
+  [inst_3 : Perennial.ExtSemantics Perennial.Fs.fsExt] [inst_4 : Perennial.Fs.FsSemOk]
+  [inst_5 : Perennial.HasExt Perennial.Fs.fsExt] [G : Perennial.GooseGlobalGS Iris.HasLC.hasLC GF]
+  (Q : Perennial.Fs.OsState → Perennial.Fs.OsState → Prop) (L L' : Perennial.GooseLocalGS GF)
+  [sem : Perennial.go.Semantics] (γ : backend.DBNames) (i0 : Perennial.Fs.Ino) (Dl Dn : backend.Data),
+  (∀ (st st' : Perennial.Fs.OsState), Q st st' → backend.BoltCrashWhole (fun x => x = i0) st st') →
+    ∀ (Dx : List Perennial.Fs.Ino),
+      ¬i0 ∈ Dx →
+        ∀ (V' : Perennial.Fs.Hist),
+          Perennial.Fs.Named V'.now i0 →
+            ∀ (E : CoPset),
+              autoParam (↑(bbolt.crashN γ.ns) ⊆ E) backend.oldStmt.dbCrash._auto_1 →
+                ⊢
+                  backend.dbCrashKeep γ i0 Dl Dn -∗
+                    Perennial.crashed -∗
+                      Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS Dx false V' ={E}=∗
+                        ∃ D',
+                          ⌜D' = Dl ∨ D' = Dn⌝ ∗
+                            bbolt.fileHoldsMDur i0 D' ∗
+                              Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS (i0 :: Dx) false V'
+NEW: ∀ [inst : Perennial.GooseExts] [inst_1 : Perennial.GooseSemantics] [inst_2 : Perennial.GooseInterp]
+  [go_gctx : Perennial.GoGlobalContext] {GF : Iris.BundledGFunctors} [S : Perennial.ExtSemantics Perennial.Fs.fsExt]
+  [ok : Perennial.Fs.FsSemOk] [has : Perennial.HasExt Perennial.Fs.fsExt]
+  [G : Perennial.GooseGlobalGS Iris.HasLC.hasLC GF] (Q : Perennial.Fs.OsState → Perennial.Fs.OsState → Prop)
+  (L L' : Perennial.GooseLocalGS GF) [sem : Perennial.go.Semantics] (γ : backend.DBNames) (i0 : Perennial.Fs.Ino)
+  (Dl Dn : backend.Data),
+  (∀ (st st' : Perennial.Fs.OsState), Q st st' → backend.BoltCrashWhole (fun x => x = i0) st st') →
+    ∀ (Dx : List Perennial.Fs.Ino),
+      ¬i0 ∈ Dx →
+        ∀ (V' : Perennial.Fs.Hist),
+          Perennial.Fs.Named V'.now i0 →
+            ∀ (E : CoPset),
+              autoParam (↑(bbolt.crashN γ.ns) ⊆ E) backend.dbCrash._auto_1 →
+                ⊢
+                  backend.dbCrashKeep γ i0 Dl Dn -∗
+                    Perennial.crashed -∗
+                      Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS Dx false V' ={E}=∗
+                        ∃ D',
+                          ⌜D' = Dl ∨ D' = Dn⌝ ∗
+                            bbolt.fileHoldsMDur i0 D' ∗
+                              Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS (i0 :: Dx) false V'
+backend.oldStmt.dbCrashOldConcl vs backend.dbCrash: levels [] / []; eqv=false; binderInfo diffs=[]
+OLD: ∀ [inst : Perennial.GooseExts] [inst_1 : Perennial.GooseSemantics] [inst_2 : Perennial.GooseInterp]
+  [go_gctx : Perennial.GoGlobalContext] {GF : Iris.BundledGFunctors}
+  [inst_3 : Perennial.ExtSemantics Perennial.Fs.fsExt] [inst_4 : Perennial.Fs.FsSemOk]
+  [inst_5 : Perennial.HasExt Perennial.Fs.fsExt] [G : Perennial.GooseGlobalGS Iris.HasLC.hasLC GF]
+  (Q : Perennial.Fs.OsState → Perennial.Fs.OsState → Prop) (L L' : Perennial.GooseLocalGS GF)
+  [sem : Perennial.go.Semantics] (γ : backend.DBNames) (i0 : Perennial.Fs.Ino) (Dl Dn : backend.Data),
+  (∀ (st st' : Perennial.Fs.OsState), Q st st' → backend.BoltCrashWhole (fun x => x = i0) st st') →
+    ∀ (Dx : List Perennial.Fs.Ino),
+      ¬i0 ∈ Dx →
+        ∀ (V' : Perennial.Fs.Hist),
+          Perennial.Fs.Named V'.now i0 →
+            ∀ (E : CoPset),
+              autoParam (↑(bbolt.crashN γ.ns) ⊆ E) backend.oldStmt.dbCrashOldConcl._auto_1 →
+                ⊢
+                  backend.dbCrashKeep γ i0 Dl Dn -∗
+                    Perennial.crashed -∗
+                      Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS Dx false V' ={E}=∗
+                        ∃ D',
+                          ⌜D' = Dl ∨ D' = Dn⌝ ∗
+                            bbolt.fileHoldsM i0 D' ∗
+                              Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS (i0 :: Dx) false V'
+NEW: ∀ [inst : Perennial.GooseExts] [inst_1 : Perennial.GooseSemantics] [inst_2 : Perennial.GooseInterp]
+  [go_gctx : Perennial.GoGlobalContext] {GF : Iris.BundledGFunctors} [S : Perennial.ExtSemantics Perennial.Fs.fsExt]
+  [ok : Perennial.Fs.FsSemOk] [has : Perennial.HasExt Perennial.Fs.fsExt]
+  [G : Perennial.GooseGlobalGS Iris.HasLC.hasLC GF] (Q : Perennial.Fs.OsState → Perennial.Fs.OsState → Prop)
+  (L L' : Perennial.GooseLocalGS GF) [sem : Perennial.go.Semantics] (γ : backend.DBNames) (i0 : Perennial.Fs.Ino)
+  (Dl Dn : backend.Data),
+  (∀ (st st' : Perennial.Fs.OsState), Q st st' → backend.BoltCrashWhole (fun x => x = i0) st st') →
+    ∀ (Dx : List Perennial.Fs.Ino),
+      ¬i0 ∈ Dx →
+        ∀ (V' : Perennial.Fs.Hist),
+          Perennial.Fs.Named V'.now i0 →
+            ∀ (E : CoPset),
+              autoParam (↑(bbolt.crashN γ.ns) ⊆ E) backend.dbCrash._auto_1 →
+                ⊢
+                  backend.dbCrashKeep γ i0 Dl Dn -∗
+                    Perennial.crashed -∗
+                      Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS Dx false V' ={E}=∗
+                        ∃ D',
+                          ⌜D' = Dl ∨ D' = Dn⌝ ∗
+                            bbolt.fileHoldsMDur i0 D' ∗
+                              Perennial.Fs.crashRest Q Perennial.Fs.gooseOsGS Perennial.Fs.gooseOsGS (i0 :: Dx) false V'
+@bbolt.fileHoldsMDur : [inst : Perennial.GooseExts] →
+  [inst_1 : @Perennial.GooseSemantics inst] →
+    [inst_2 : @Perennial.GooseInterp inst] →
+      [inst_3 : Perennial.ExtSemantics Perennial.Fs.fsExt] →
+        [@Perennial.Fs.FsSemOk inst_3] →
+          [@Perennial.HasExt inst inst_1 inst_2 Perennial.Fs.fsExt inst_3 Perennial.Fs.fs_interp] →
+            {hlc : Iris.HasLC} →
+              {GF : Iris.BundledGFunctors} →
+                [hG : @Perennial.HeapGS inst inst_2 hlc GF] → Perennial.Fs.Ino → bbolt.Data → Iris.IProp GF
+@bbolt.fileHoldsM : [inst : Perennial.GooseExts] →
+  [inst_1 : @Perennial.GooseSemantics inst] →
+    [inst_2 : @Perennial.GooseInterp inst] →
+      {hlc : Iris.HasLC} →
+        {GF : Iris.BundledGFunctors} →
+          [hG : @Perennial.HeapGS inst inst_2 hlc GF] →
+            [inst_3 : Perennial.ExtSemantics Perennial.Fs.fsExt] →
+              [@Perennial.Fs.FsSemOk inst_3] →
+                [@Perennial.HasExt inst inst_1 inst_2 Perennial.Fs.fsExt inst_3 Perennial.Fs.fs_interp] →
+                  Perennial.Fs.Ino → bbolt.Data → Iris.IProp GF
+@backend.dbCrashKeep : [inst : Perennial.GooseExts] →
+  [@Perennial.GooseSemantics inst] →
+    [inst_2 : @Perennial.GooseInterp inst] →
+      [go_gctx : @Perennial.GoGlobalContext inst] →
+        {hlc : Iris.HasLC} →
+          {GF : Iris.BundledGFunctors} →
+            [hG : @Perennial.HeapGS inst inst_2 hlc GF] →
+              [sem :
+                  @Perennial.go.Semantics inst
+                    (@Perennial.goose_go_local_context inst inst_2 GF
+                      (@Perennial.HeapGS.goose_localGS inst inst_2 hlc GF hG))
+                    go_gctx] →
+                backend.DBNames → Perennial.Fs.Ino → backend.Data → backend.Data → Iris.IProp GF
+'Perennial.EtcdGrove.backend.dbCrash' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Perennial.EtcdGrove.backend.dbCrashKeep_new' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Perennial.EtcdGrove.backend.dbCrashKeep_take' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Perennial.EtcdGrove.backend.dbCrashKeep_putSame' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Perennial.EtcdGrove.backend.dbCrashKeep_putStep' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Perennial.EtcdGrove.backend.dbCrashKeep_close' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Perennial.EtcdGrove.memberCrash.memberGen_crash_law_holds' depends on axioms: [propext, Classical.choice, Quot.sound]
+def Perennial.EtcdGrove.backend.dbCrashKeep : [inst : Perennial.GooseExts] →
+  [Perennial.GooseSemantics] →
+    [inst_2 : Perennial.GooseInterp] →
+      [go_gctx : Perennial.GoGlobalContext] →
+        {hlc : Iris.HasLC} →
+          {GF : Iris.BundledGFunctors} →
+            [hG : Perennial.HeapGS hlc GF] →
+              [sem : Perennial.go.Semantics] →
+                backend.DBNames → Perennial.Fs.Ino → backend.Data → backend.Data → Iris.IProp GF :=
+fun [Perennial.GooseExts] [Perennial.GooseSemantics] [Perennial.GooseInterp] [Perennial.GoGlobalContext] {hlc} {GF}
+    [Perennial.HeapGS hlc GF] [Perennial.go.Semantics] γ i0 Dl Dn =>
+  backend.onFs
+    fun [Perennial.ExtSemantics Perennial.Fs.fsExt] [Perennial.Fs.FsSemOk] [Perennial.HasExt Perennial.Fs.fsExt] =>
+    bbolt.boltCrashRec γ i0 Dl Dn
+def Perennial.EtcdGrove.backend.dbCrashHole : [inst : Perennial.GooseExts] →
+  [Perennial.GooseSemantics] →
+    [inst_2 : Perennial.GooseInterp] →
+      [go_gctx : Perennial.GoGlobalContext] →
+        {hlc : Iris.HasLC} →
+          {GF : Iris.BundledGFunctors} →
+            [hG : Perennial.HeapGS hlc GF] →
+              [sem : Perennial.go.Semantics] →
+                backend.DBNames → Perennial.Fs.Ino → backend.Data → backend.Data → Nat → Iris.IProp GF :=
+fun [Perennial.GooseExts] [Perennial.GooseSemantics] [Perennial.GooseInterp] [Perennial.GoGlobalContext] {hlc} {GF}
+    [Perennial.HeapGS hlc GF] [Perennial.go.Semantics] γ i0 Dl Dn ν =>
+  backend.onFs
+    fun [Perennial.ExtSemantics Perennial.Fs.fsExt] [Perennial.Fs.FsSemOk] [Perennial.HasExt Perennial.Fs.fsExt] =>
+    bbolt.boltCrashHole γ i0 Dl Dn ν
+'Perennial.EtcdGrove.backend.boltCrashWhole_exists' depends on axioms: [propext, Classical.choice, Quot.sound]
+vmlake: lake exited 0 after 134s on the VM
+-- run 3 (the #cmpAuto block appended to SwapRev.lean; same VM, same build), its one new line:
+backend.oldStmt.dbCrash vs backend.dbCrash modulo _auto_1 name: eqv=true; auto values eqv=true
