@@ -109,6 +109,18 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
   `kvmodel`, porcupine, `hr3`, `Goal`, `DsvStatement`.
 - **P4** (next): the 185 code-proof files, in four independent groups (`/shared/tmp/ps2/hraft/P4-SPLIT.md`).
   Two lab axioms are to be proved there: `fmt.wp_Errorf_tnErr` (`FmtErrorf.lean`) and `io.Copy`'s.
+  - **Group C** (branch `hraft-p4c/2026-11-27`): layers 3-5 (21 files). `Raft__installSnapshot` takes
+    `io.Copy.spec` and `io.Copy_Discard.spec` as callee hypotheses, as for raft's own callees (the lab used
+    `KitStd.Axiom.io.Copy` directly). **`Spec/io/Copy.lean` is not provable as stated** over Perennial's
+    `io.Copy`/`copyBuffer`: (1) a reader of dynamic type `*io.LimitedReader` is not a `WriterTo`, so the spec
+    admits it, and then `copyBuffer` loads `l.N`, which `io.streamReader` does not own: the spec needs a
+    premise `ts ≠ go.PointerType LimitedReader.ty` (installSnapshot's reader, `*countingReader`, meets it);
+    (2) `copyBuffer` compares the reader's error with `io.EOF`, which the model steps only for an error
+    whose pointer-typed value is a location (`io.ptrTyped`, as `io.errAt` carries it): `io.streamReader`'s
+    `err` needs it; (3) `io.Copy_Discard.spec`'s `w` is any value `Discard` holds: Perennial's `io` fact
+    (`io.isInit`, `"#HDiscard"`) says only that `Discard` holds some fixed `Writer`, not `discard{}`, and
+    says nothing of `blackHolePool`, which `discard.ReadFrom` takes its buffer from: proving it needs that
+    fact strengthened in Perennial (its initializer stores `discard{}`; mechanical). Left to the link (P5).
 
 ## The kit (S1)
 
