@@ -435,7 +435,7 @@ def bootBackendRows (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (bk : 
     "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
       lgh) ∗
-    "Hthr" ∷ applyThread γA ⟨W64 0, γA.m0.1, W64 0, false⟩ ∗
+    "Hthr" ∷ applyThread γA ⟨γA.m0.1, γA.m0.1, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
     "#HmetaSnap" ∷ □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),

@@ -309,7 +309,7 @@ theorem bootstrapBackend.wp_proof
   (try wp_auto)
   -- the post, at the names `γA := γ0.withPh π'`, the instance `bootKB γB b gx`, the data `∅`
   have hsl : stLoaded (γ0.withPh π') ⟨W64 0, W64 0, W64 0, false⟩ =
-      ⟨W64 0, (γ0.withPh π').m0.1, W64 0, false⟩ := by
+      ⟨(γ0.withPh π').m0.1, (γ0.withPh π').m0.1, W64 0, false⟩ := by
     simp [stLoaded, π', π0]
   rw [hsl]
   iunfold applyBackend at Hab

@@ -599,7 +599,7 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   have Hrows := And.intro Hrows0 Hrows1
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
-  icases Himg with ⟨%γk', %hk', #Hdb⟩
+  icases Himg with ⟨⟨%γk', %hk', #Hdb⟩, -⟩
   obtain ⟨h0', h1', h2'⟩ := hk'
   have hR : ∀ B, kvRaftOfOn γk'.c0 γk'.ch0 (srvAuthSt0, γk'.log0, []) B =
       kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0, []) B := by

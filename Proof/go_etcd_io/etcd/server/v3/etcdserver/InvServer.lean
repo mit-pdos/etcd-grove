@@ -186,7 +186,13 @@ theorem ci_get_au (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b
   iapply ci_read_au γ st _ $$ Hinv Hst
   iintro Hst
   by_cases hk : st.k = W64 0
-  · simp only [stLoaded, ciEff, hk, ↓reduceIte]
+  · -- (keepfix-d, route (i)) the supply at the loaded pair: its index 0, or its predicate
+    ihave #HP1 : iprop(⌜γ.m0.1 = W64 0⌝ ∨ □ P γ.m0.1 γ.m0.2) $$ []
+    · icases HP0 with (%h | #HP0)
+      · ileft; ipureintro; exact h hk
+      · iright; iexact HP0
+    iclear HP0
+    simp only [stLoaded, ciEff, hk, ↓reduceIte]
     iapply read_ci_au γ st hk $$ Hinv Hst
     iintro Hst
     rw [loadedMeta_fst]
@@ -194,10 +200,9 @@ theorem ci_get_au (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b
     · unfold loadedMeta
       by_cases h0 : γ.m0.1 = W64 0
       · simp only [h0, ↓reduceIte]; ileft; ipureintro; simp
-      · simp only [h0, ↓reduceIte]
-        icases HP0 with (%h | #HP0)
-        · exact absurd (h hk) h0
-        · iexact HP0
+      · icases HP1 with (%h | #HP1)
+        · exact absurd h h0
+        · simp only [h0, ↓reduceIte]; iright; imodintro; iexact HP1
     iapply ci_load_store_au γ st hk hp $$ Hinv Hst
     iintro Hst
     iapply HΦ $$ Hst

@@ -175,11 +175,13 @@ theorem srvImageM_gen (G : GooseGlobalGS HasLC.hasLC GF) (L L' : GooseLocalGS GF
       srvImageM (hG := ⟨G, { L' with goose_go_local_context := lctx }⟩) on γ i D := by
   cases on
   · unfold srvImageM srvImage dbImage
-    exact exists_mono fun γk => sep_mono .rfl <| exists_mono fun A => exists_mono fun u =>
-      sep_mono .rfl <| sep_mono .rfl (mvcc.api.mvccImage_gen G L L' ..).1
+    -- (keepfix-d, 7i) the term row: raft's committed log, the same at every generation
+    exact sep_mono (exists_mono fun γk => sep_mono .rfl <| exists_mono fun A => exists_mono fun u =>
+      sep_mono .rfl <| sep_mono .rfl (mvcc.api.mvccImage_gen G L L' ..).1) .rfl
   · unfold srvImageM srvImageOn dbImageOn
-    exact exists_mono fun γk => sep_mono .rfl <| exists_mono fun A => exists_mono fun u =>
-      sep_mono .rfl <| sep_mono .rfl (mvcc.api.mvccImage_gen G L L' ..).1
+    -- (keepfix-d, 7i) the term row: raft's committed log, the same at every generation
+    exact sep_mono (exists_mono fun γk => sep_mono .rfl <| exists_mono fun A => exists_mono fun u =>
+      sep_mono .rfl <| sep_mono .rfl (mvcc.api.mvccImage_gen G L L' ..).1) .rfl
 
 end gen
 

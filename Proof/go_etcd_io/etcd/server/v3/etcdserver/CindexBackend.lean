@@ -80,7 +80,7 @@ theorem metaTermOf_of_metaIs {S : Data} {m : MetaCI} (h : metaIs S m) : metaTerm
   · rw [if_pos h0, h0]
   · rw [if_neg h0]
     simp only
-    rw [List.take_of_length_le (by rw [u64Be_length]), beToU64_u64Be]
+    rw [List.take_of_length_le (Nat.le_of_eq (u64Be_length _)), beToU64_u64Be]
 
 /-- The backend's parameters make the consistent index's two keys in `Meta` the hook's own
 (`Meta` in the table, a hook's bucket, both keys `HK`), with room for the hook's two puts, and
