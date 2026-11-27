@@ -695,3 +695,68 @@ The old `/shared/tmp/delta-manifest.json` (9065982fa) is stale for this branch.
 - **Trust base**: `tcb-report --check` matches `etc/tcb-baseline.txt` (367 axioms, 0 sorries, 90 opaques), identical to lean
   `5512c33c9b`'s; 70 collections match; `etc/tcb-collections/etcd-dist.txt` differs from lean's only in its header comment.
   Trust delta vs lean: none.
+
+### Handoff DELTA-6 (2026-11-27; the delta without `etcdCQ = W1`; lean `f1c09cbade` merged; NOT built)
+
+Coordinator-E's ruling (#8, 22:35Z): land the delta without the `etcdCQ` change (crash-packet T1, D6 Q2, pending
+Upamanyu), split it onto its own branch, keep with it any proof that needs `W1`.
+
+**What depended on `etcdCQ`/`WalFs.W1`** (at `a2bf577e52`; `git log -S etcdCQ` lists D6 Q2 `87c770d1cc`, `62fc70fbaf`,
+T7 sessions and `9e66b4dbac`):
+- the change itself: `Proof/.../lib/etcdstart/FsExts.lean:69` (`abbrev etcdCQ := WalFs.W1 walCodec`), `:74`
+  (`etcdFsSem := Fs.fsSemWithS etcdSQ etcdCQ`), `:83,88,115,122` (the `fsSemWithS_ok`/`_sat` uses), imports of `wal.W1`, `wal.Codec`;
+- uses of the name `etcdCQ`, all **generic** in the crash premise (none unfolds it): `NetExtsCrash.lean:44,58,63,102,113`,
+  `BootSkel.lean:167,198` (`EtcdBootC`, `EtcdBootCBad`), `BootBad.lean:269` (`crashBootBad_of_wp`),
+  `crash/MemberCrashBoot.lean:155,157,177` (`member_crash_boot`, `EtcdBootCAt`: `sorry` stubs);
+- the consumers of `W1`: `WalFs.walInv_crash`'s premise `hQ : ∀ st st', Q st st' → W1 walCodec st st'`, carried as a
+  premise by `crash/MemberCrash.lean:396` (the WAL area's crash), `:964` (`memberGen_crash_law_holds`),
+  `crash/MemberBoot.lean:205` (`memberGenS_crash_law_holds`, `sorry`); `memberGen_crash.law` (`MemberGen.lean:143`) is generic in
+  `Q`. **No proof discharges `hQ` at `etcdCQ`**, so nothing proved needs `W1` as the crash relation; with `etcdCQ = True` these
+  lemmas stay proved and only a future instantiation at `etcdCQ` would need `W1` (then from `-w1`, or another source).
+- docstrings: `Spec/.../etcd/dist/TopLevelRobustness.lean:57` (the semantics paragraph), `CrashInterim.lean:124`
+  (`bootstrapCrashContract.law`, a law, not an axiom: `walReadFacts σ` is its caller's premise), `BootSkel.lean:148`;
+  the semantics example `examples/osfs/semantics/premise_w1.go` (+ its `doc.go` row).
+- unrelated `W1`s (gryff/epaxos/net hypotheses names, `WalTester`'s `tQ`, which is lean's) untouched.
+
+**Edits on `etcd-safe-crash-delta-now/2026-11-27`** (commit `3f78e60933`, off `a2bf577e52`): `FsExts.lean` = lean's
+(`git diff lean -- '**/FsExts.lean'` empty); `NetExtsCrash.lean` gains `abbrev etcdCQ : Fs.OsState → Fs.OsState → Prop :=
+fun _ _ => True` (docstring: none; `W1` is `-w1`'s) and its header says "unrestricted"; the Spec docstring back to lean's
+("unrestricted"); `BootSkel`/`CrashInterim` docstrings say the premise is none; `premise_w1.go` and its `doc.go` row removed.
+Then lean `f1c09cbade` merged (`0fb4006e7c`), status-history rebuilt as lean's lines in lean's order with this line's
+entries inserted (the merge driver had moved 2 lines: now +37/−0 vs lean with this entry; one duplicated entry kept once).
+`etc/copy-part.py --check` and `etc/gen-raft-tla.py --check` green after the merge (`PERENNIAL_DIR=/shared/perennial-02e741641`).
+
+**`etcd-safe-crash-w1/2026-11-27`** (`a9d9f28476`): the `-now` head (before this handoff) plus one commit, the exact inverse of
+`3f78e60933` (FsExts' `etcdCQ := WalFs.W1 walCodec`, the docstrings, `premise_w1.go`). Unbuilt (the same text built green on
+`a2bf577e52`). Nothing else needs to move there.
+
+**Statement vocabulary vs lean** (`etc/theorem-tcb.py --no-comments` for the 48 `TopLevelRobustness` theorems and
+`etcd_safe_of_boot`, in both trees, premises compared modulo `namespace`/`open`/`variable` lines; scripts and lists in
+`/shared/tmp/delta6/{cmp.py,premdiff.txt}`):
+- `etcd_robust.spec`, its file, `FsExts.lean`, `TopLevelDefs.lean` (`etcdDistGF`): identical to lean; every premise of
+  `etcd_safe_of_boot` that lean's TCBs have is unchanged; the rest are the theorem's hypotheses' vocabulary, new on the delta
+  (`EtcdBootC`, `EtcdBootCBad`, `emptyPkgs`, `etcdNetExtsCrashInterp(D4b)`, `etcdIdCrashRest`, `etcdCQ` = True).
+- `etcd_safe_nocrash` (`etcd_robust_nocrash.spec`) and every other theorem but three: no premise differs.
+- `etcd_robust_single_process`, `etcd_leaseexpiryN_robust_single_process`, `k8s_robust_single_process`: 200 premise
+  declarations differ (59 changed, 125 added, 16 removed), all the delta's own WAL/bbolt crash work (already on
+  `a2bf577e52`), reached through the statements' server contract premises (`premises` → `bootstrapContract` → `bootRes` →
+  `memberAreasFresh` → `walAreaFresh` → `walAreaOk`/`walCodec`). Changed: bbolt `Inv/{Bolt,Locks,Names,State,Store,Tx,Txs}`
+  (`isBoltCoreP closedR dbPathLk metaOsBytes metaR osSlotH wBytes wdbCoreG wdbOwn BNs bnsOf boltStateDef osSlot wtxFrac reg`);
+  etcdserver `consInv bootOk bootOkR bootstrapRestartContract wal.bootOk wal.restartOk snapFreeAll cPost isClusterRest`;
+  storage `opDs storage.walOpen`; wal `Abs` (`CrashTo TailPend WalAbsD WinHead histM`), `Ghost` (`WalGS walDirIs walDirKey
+  walDirKeysAuth walGhost walHandleAuth walHandleDir walLenLb walNamed walNamesFrag walOutAuth walPast walSyncedLb
+  walUnlockedTok walUnlockedTokX`), `Handle` (`WalHS tailRecs walDirH walHandleIn`), `walOpenWFR`, `WalShN walHdl walShInv`,
+  `nameShare walNamesRes`, `isFilePipe pipeRes`; raft `Protocol/Ghost.ackEv` (gains `∀ vote ∈ L, ∃ c, isVote γ v T c`).
+  Removed: `BFile viewOf srvFiles walOpened snapFree walFiles walRecs fileFree fileFreeF LenZ walDiskAt walHandleSt
+  walLockedTok walNamesAuth walOpenW walOpenWF`. Added (by file): wal `Ghost` 22, bbolt `Crash/Dur` 13, `Inv/BFile` 12,
+  `os/CrashSt` 8, `Inv/State` 8, `WalNorm` 6, `Crash/Good` 6, `hash/fnv/Model` 5, `Inv/FileImg` 5, and 40 more in 22 files
+  (full list: `premdiff.txt`).
+
+**Left for the next session** (coordinator, 23:xxZ: a fresh session builds): the build tree is copied (`cp -a`) from
+`/shared/etcd-grove-integpin/.lake/{build,go-src,go1.27.3,goose,gomodel,models,pbschema,lean-scripts,packages}` into
+`/shared/etcd-grove-deltanow/.lake/` (check it completed: `du -sh .lake/build` ≈ 57G; disk had 69G free before it).
+Then: every generator's `--check` (gen-init with `PERENNIAL_DIR`, gen-link, goose, kitgen, gen-specs-pkginit, gen-k8s-deep,
+gen-pbschema, gen-driver-boottable), full build and `GATES_FAILFAST=0 LAKE_PACKAGES=/shared/tmp/delta-manifest-02e.json
+PERENNIAL_CHECKOUT=/shared/perennial-02e741641 etc/gates.sh` under `flock /shared/tmp/local-build.lock systemd-run --scope -p
+MemoryMax=60G`, then `etc/tcb-report.py --check`; build `-w1` too if it is to be queued. A failure to expect: a module that
+reached `wal.W1`/`wal.Codec` only through `FsExts.lean`'s dropped imports (add the import where it is used).
