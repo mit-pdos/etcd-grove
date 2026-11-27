@@ -58,5 +58,11 @@ the server-level one over about 29,000 commits). The proofs at the current pin d
 
 ## Notes
 
+- **Residual (accepted 2026-11-27, no marker key):** a backend a pre-fix binary wrote can hold a torn pair.
+  Restarted on the fixed fork, the keep guard's replacement (`catchUpWithBackend`, branch B) would drop WAL
+  entries above the stored index, which may have been acknowledged, and would rebase raft at a wrong term.
+  This is outside the proof's model (every pair the modelled binary writes is saved under `pairMu`). Upamanyu
+  chose to record it rather than gate branch B on a marker key (`notes/keepguard-optD/residual.md`).
+
 Raft's term for the stored index is otherwise exact: every set takes the entry's own `(Index,
 Term)`, and a backend installed from a leader snapshot carries the leader's pair.
