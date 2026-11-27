@@ -3781,3 +3781,53 @@ CLAUDE.md "Issues" (it is in our fork, so `notes/`, done here) and add a Go test
 `rnRestartOk`'s `|a0| ≤ commit0` and `rnApSnap`'s A8 bound, plus `appendEntries(P)`'s now-unused `above`) needs B5's
 keep arm in `run` first (`hwin`'s other case). (3) B7, B8 as in Handoff T10s3b-5. No axiom statement, `sorry`, premise,
 trusted text or `Spec/` changed this session.
+
+### T10 step 3 (B), session 11 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+**B8, `confRowW`'s second case: done (built green, `/shared/tmp/t10s3b-s11-b1.log`, 10573 jobs: `NewServerCrash`,
+the server's `Link`, the three copies of `InvNodeRule`).** Raft API law `confAt_committed` (proved:
+`InvApiDec.confAt_committed_impl`; `InvNodeRule.confAt_committed`; patch `/shared/tmp/t10s3b-confAt-committed.patch`),
+copies regenerated (`etc/gen-raft-tla.py`, `etc/copy-part.py`: `RaftTla`, `RaftNoAx`, `KvRaft`; both `--check` clean;
+there is no `KvNet` part in this tree). `srvCrashImageAt_disk` (`NewServerRAt.lean`) now takes
+`srvRaftLogInv ⟨γ, [], W64 0⟩` (and `srvConfN`, `srvLogN ⊆ E`) and its failure case is
+`¬ (i ≤ σ.commit ∧ σ.b ≤ i ∧ bootLen ≤ i)`: the conf row's second case gives `confAt (i+1) m'`; both `confAt i m`
+and `confAt (i+1) m'` lie over committed logs (`confAt_committed`), so both are `simple cfg`
+(`srv_confAt_eq_simple`) and `m = m'`. `NewServerCrash` passes `#Hsrl` (at `HρRaft`). No definition an axiom reaches
+changed (two theorems), so no packet row; no axiom, `sorry`, premise, `Spec/` or trusted text changed.
+
+**B7: STOPPED (blocked on B6 part 2, hence on B5's keep arm).** Dropping the commit bound from the stop images breaks
+the graceful restart, which consumes it:
+* `rnStopImage`'s `γ.a0.length ≤ σ.commit` flows through `rn_esc_take` and `raftNode.stop`'s spec
+  (`Spec/…/raftNode__stop.lean:58`) into `StopShutdown`, which needs it for `wal.stopImage`'s `i ≤ σ.commit` at
+  `ai = |pre ++ ghostOf rp A| = max(|A|, |a0|)` (`StopShutdown.lean:363`, `:713`). So B7's two halves go together.
+* `wal.stopImage`'s `i ≤ σ.commit` is consumed by `NewServer.wp_proofRG` (`NewServerR.lean:281`, `restart_idx` at
+  `:341`): `|A| ≤ σ.commit` and `bootLen ≤ σ.commit` feed `bootstrappedRaft.newRaftNode.spec`'s `.restart` premises
+  (`:454`: `rnBootPre`, `NodeStartSpecR`, `replaySeed_facts`) and `rnRestartOk`'s `|a0| ≤ commit0`, and the restart
+  contract's `i ≤ σ.commit` (`bootstrapRestartContract`, `InvRestart.lean:742`). Without the bound the graceful restart
+  *is* B8's case (i) (`σ.commit < i`), which needs B6 part 2 (`rnRestartOk` without `|a0| ≤ commit0`) and B5's keep
+  arm: both on hold by the lead's rule. No partial B7 keeps the graceful restart green (dropping `rnStopImage`'s half
+  alone forces `StopShutdown` to drop `wal.stopImage`'s). Nothing written; packet rows 7, 8 stay "not yet changed".
+
+**B8, `i < bootLen`: STOPPED (the ruled premise does not suffice).** Two things are missing in that case, and
+`γ.cl.bootLen = γ.boot.length` (already derivable from `#Hsrl`'s `srvClusterOk`, so not even a new premise for
+`specC`) gives neither: (1) the crash contract's antecedent `γ.cl.bootLen ≤ σ.commit` (the crash image does not carry
+it; an unsaved WAL, `σ.commit < bootLen`, is Go's `Discard`/first-start branch, which B4 handles by F-B1's premise
+`γ.cl.bootLen ≤ σ.commit →` on `specC_dist`/`specCK`, not by K-4's equation); (2) the restart proof at `i < bootLen`:
+`srvDiskImageAt` (inside `Serve_dist`'s `srvDoneInv`) and `bootstrapAtR` require `bootLen ≤ i`, so the case is not an
+instance of `specRAt`. In `NewServerR` `bootLen ≤ i` is used only through `restart_idx` for `bootLen ≤ σ.commit`, so
+with (1) in hand the fix would be `srvDiskImageAt`'s `⌜bootLen ≤ i⌝` → `⌜bootLen ≤ σ.commit⌝` (an incomparable change
+of a definition `Serve_dist` reaches: review + Upamanyu) or a second hinge. For the lead: where (1) comes from (F-B1's
+premise on `specC`, a crash-image row, or a raft law), and whether to change `srvDiskImageAt`.
+
+**What remains of B8** (`NewServerCrash.lean`'s `sorry`, now under `¬ (i ≤ σ.commit ∧ σ.b ≤ i ∧ bootLen ≤ i)`):
+(i) `σ.commit < i`: B5's keep arm, B6 part 2, B7, `restart_idx`'s `|A| ≤ σ.commit` dropped in `NewServerR` (held);
+(iii) `i < bootLen`: the lead's decision above; (iv) `i < σ.b` (`.snap.db`): second hinge, not started (left as told).
+
+**Handoff T10s3b-11** (stopped at the coordinator's context rule). Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed),
+tree `/shared/etcd-grove-t10s3b`, manifest `/shared/tmp/t10s3b-manifest.json` (Perennial `/shared/perennial-a706aeb9a`).
+Head built green for `NewServerCrash`, `Link` and the copies' `InvNodeRule` (log above). The 54 axiom modules of
+`notes/t10s3b-chk/mods.txt` NOT rebuilt since (raft's `InvNodeRule` changed, so they are stale): build them, then rerun
+`AxCheck6` (`lake env --packages=/shared/tmp/t10s3b-manifest.json lean --run notes/t10s3b-chk/AxCheck6.lean`); expect
+`out6c.txt` (no definition changed this session). Next: nothing startable without decisions — B7 and B8 (i) wait on the
+keep-guard fork decision (B5 keep arm, B6 part 2); B8 (iii) waits on the lead (above); B8 (iv) is the large
+`.snap.db` hinge, not asked for. No axiom statement, `sorry`, premise, `Spec/` or trusted text changed this session.

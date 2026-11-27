@@ -266,6 +266,11 @@ of `initialReplayTerms` (`replaySeed_pending`, kept), merely no longer asserted.
 - **`wal.stopImage`** (B7, `Serve_dist` via `memberUpL → srvStopRight → srvDoneInv → srvDiskImage → srvDiskImageAt`):
   inside `srvDoneInv`'s invariant (`InvRestart.lean:325`): **incomparable** in general. Same review.
 
+**Session 11 (2026-11-27):** rows 7 and 8 were NOT made: B7 breaks the graceful restart (`NewServer.wp_proofRG` consumes
+`i ≤ σ.commit` for `newRaftNode`'s `.restart` premises and `rnRestartOk`), so it waits with B6 part 2 and B5's keep arm
+(`notes/etcd-dist-d6.md`, session 11). B8's `confRowW` change (`srvCrashImageAt_disk`, raft's proved `confAt_committed`)
+changes theorems only: no row.
+
 ## The `bootLen` premise (B8), ruled 2026-11-27
 
 B8's case `i < bootLen` needs `bootLen ≤ σ.commit` (d6, session 3 item 2). The lead ruled: use the premise

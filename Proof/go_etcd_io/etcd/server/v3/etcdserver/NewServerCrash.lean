@@ -13,7 +13,8 @@ Over `NewServer.specRAt` (`NewServerRAt.lean`: the graceful restart's proof `New
 * otherwise: **`sorry` (WIP)**. Since T10's restatement of `srvCrashImageAt` (2026-11-25) this case
   holds, beside the one below, the received-snapshot window (`i < σ.b`, `snapRowB2`: `bootstrap`'s
   `.snap.db` recovery, the contract's second case), a backend index inside the bootstrap batch
-  (`i < bootLen`) and a stored `confState` one conf change ahead (`confRowW`). The case
+  (`i < bootLen`). (A stored `confState` one conf change ahead, `confRowW`'s second case, is no longer
+  here: T10s3b B8, `srvCrashImageAt_disk` shows it is the index's, raft's `confAt_committed`.) The case
   `σ.commit < i` (the backend ahead of the WAL's commit, which a power loss can leave): Not an instance of the graceful proof: raft restarts at the WAL's commit, below the
   backend's log `A` (`|A| = i`), and the graceful restart's construction needs `|A| ≤ σ.commit`
   throughout: `NodeStartSpecR`'s premise and `rnBootPre`'s (`bootstrappedRaft.newRaftNode.spec` at
@@ -58,8 +59,11 @@ theorem NewServer.wp_proofC (hRAt : NewServer.specRAt (GF := GF) (hG := hG)) :
   letI : MemStorReg GF := ⟨γ.reg⟩
   iintro %Φ Hpre HΦ
   iNamed Hpre
-  imod srvCrashImageAt_disk γ ρo id cfg.DataDir' S σ i A D mb M ⊤ $$ Himg with
+  imod srvCrashImageAt_disk γ ρo id cfg.DataDir' S σ i A D mb M ⊤ (by simp) (by simp) $$ [Himg] with
     (⟨Himg, %Hw, HcT⟩ | ⟨Himg, %hng⟩)
+  · isplitr
+    · rw [← HρRaft]; iexact Hsrl
+    iexact Himg
   · have h' := hRAt cfg U γ id ρ ρo E₀ N Φs γn dir m S σ i A D mb M HρRaft HrN Hrule Hnsm Hc0 Hch0
       Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcmp0 HNx0 Hbnd Hrb HrbN Hboot Hpfx HΦs Hfgp Hdirok HpU HfU HfC Hrnc
       Hdirs Hlbc Hbco Hfnc Hdwd Hbwb

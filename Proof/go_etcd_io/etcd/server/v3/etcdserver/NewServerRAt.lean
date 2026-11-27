@@ -124,32 +124,47 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A crash image that is a graceful one** (and its records meet the WAL's read facts): with the
 backend's index at or below the WAL's commit, at or above its snapshot (`snapRowB2`'s first case) and the
-bootstrap log, and the stored `confState` the index's (`confRowW`'s first case), the vacancy armed
+bootstrap log, the stored `confState` the index's (`confRowW`'s first case; its second case, a `confState`
+one conf change ahead, is the same one: (T10s3b B8) both configurations are recorded over the committed
+log, `confAt_committed`, so both are the boot one under the server's raft-log invariant,
+`srv_confAt_eq_simple`), the vacancy armed
 (`nodeVacant_arm`: its crash token returned, for `specC`'s post; and the snapshot directory's crash
 token, `srvSnapKeep`, D-T7-2: the graceful image keeps only the handle), the WAL's slot `wal.stopImage` from
 `wal.crashImageR`; the rest is the same. Otherwise the crash image is returned with the reason (T10's
 restatement, 2026-11-25, weakened those rows). -/
 theorem srvCrashImageAt_disk (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
-    (M : GMap Loc MemStorNamesRec) (E : CoPset) :
-    srvCrashImageAt (GF := GF) γ ρ id dd S σ i A D m M ⊢
+    (M : GMap Loc MemStorNamesRec) (E : CoPset) (hC : ↑srvConfN ⊆ E) (hL : ↑srvLogN ⊆ E) :
+    srvRaftLogInv (GF := GF) ⟨γ, [], W64 0⟩ ∗ srvCrashImageAt (GF := GF) γ ρ id dd S σ i A D m M ⊢
       |={E}=> (srvDiskImageAt γ ρ id dd S σ i A D m M ∗ ⌜walReadFacts σ⌝ ∗
         (∃ x, nodeCrashTok γ.cl id x) ∗ srvSnapKeep γ id dd) ∨
       (srvCrashImageAt γ ρ id dd S σ i A D m M ∗
-        ⌜¬ (uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i ∧
-          ∀ cs, v3ConfStateIs D cs → confStateIs cs m)⌝) := by
-  by_cases hg : uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i ∧
-      ∀ cs, v3ConfStateIs D cs → confStateIs cs m
+        ⌜¬ (uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i)⌝) := by
+  by_cases hg : uint.nat i ≤ σ.commit ∧ σ.b ≤ uint.nat i ∧ γ.cl.bootLen ≤ uint.nat i
   rotate_left
-  · iintro Himg
+  · iintro ⟨-, Himg⟩
     imodintro
     iright
     iframe Himg
     ipureintro; exact hg
-  obtain ⟨hc, hb, hbl, hcs⟩ := hg
+  obtain ⟨hc, hb, hbl⟩ := hg
   unfold srvCrashImageAt srvDiskImageAt wal.crashImageR snapRowB2
-  iintro ⟨Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hconf, -, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
+  iintro ⟨#Hsrl, Hvac, HrS, %Hρ, #HA, %Himp, Hmv, #Hconf, Hcrow, ⟨%Hw, #Hcert, Hl⟩, Hreg, Hfiles,
     ⟨%γd, %γm, %c, %Hsl, Hrow, Hsdi, Hmn⟩⟩
+  -- (T10s3b B8) the stored `confState` is the index's in both cases of `confRowW`: the configurations
+  -- at `i` and `i + 1` are both the boot one
+  ihave Hcs : |={E}=> ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ $$ [Hcrow]
+  · iunfold confRowW at Hcrow
+    icases Hcrow with (%H | ⟨%m', #Hm', %H⟩)
+    · imodintro; ipureintro; exact H
+    icases confAt_committed γ.cl (uint.nat i) m $$ Hconf with ⟨%l, #Hl1, %Hl1⟩
+    icases confAt_committed γ.cl (uint.nat i + 1) m' $$ Hm' with ⟨%l', #Hl2, %Hl2⟩
+    imod srv_confAt_eq_simple ⟨γ, [], W64 0⟩ l (uint.nat i) m Hl1 E hC hL $$ [$Hsrl $Hl1 $Hconf] with %Hm
+    imod srv_confAt_eq_simple ⟨γ, [], W64 0⟩ l' (uint.nat i + 1) m' Hl2 E hC hL $$ [$Hsrl $Hl2 $Hm']
+      with %Hm2
+    imodintro; ipureintro
+    rw [Hm, ← Hm2]; exact H
+  imod Hcs with %hcs
   icases Hrow with (%Hrow | ⟨%j, %Hj, -, -⟩)
   rotate_left
   · iexfalso; ipureintro; omega
