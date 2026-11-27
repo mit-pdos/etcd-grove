@@ -734,7 +734,7 @@ func (r *Raft) leaderLoop() {
 			}
 			state, ok := r.leaderState.replState[*id]
 			if !ok {
-				doneCh <- fmt.Errorf("cannot find replication state for %v", id)
+				doneCh <- fmt.Errorf("cannot find replication state for %s", *id)
 				continue
 			}
 			r.setLeadershipTransferInProgress(true)
