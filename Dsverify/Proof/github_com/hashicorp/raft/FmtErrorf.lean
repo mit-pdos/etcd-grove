@@ -2,11 +2,11 @@
 Ported from dsverify-lab examples/hraft/proof/HrVerify/Proof/github_com/hashicorp/raft/FmtErrorf.lean (241f27e).
 -/
 /-
-The specs of raft's five `fmt.Errorf` calls with a fixed format (decisions D24, D25, D26; hub request
-MAINL-3; attacks: notes/axioms/fmt-errorf.md, fmt-errorf-cfg.md, in the lab). Three are proved here from
-Perennial's `fmt.wp_Errorf` (`tnErr`, the lab's one axiom; `nextCfgErr`; `snapCfgErr`); `cfgErr` and
-`rsErr` are not provable over Perennial's model (it is stuck on `%v` of a struct or a pointer): the fork's
-call sites are rewritten to format explicitly (#48), and the two specs go once nothing uses them.
+Specs of three of raft's `fmt.Errorf` calls with a fixed format (decisions D24, D25, D26; hub request
+MAINL-3; attack: notes/axioms/fmt-errorf.md, in the lab), proved from Perennial's `fmt.wp_Errorf`
+(`tnErr`, the lab's one axiom; `nextCfgErr`; `snapCfgErr`). The lab's `cfgErr` and `rsErr` (`%v` of a
+struct and of a pointer, on which Perennial's `fmt` model is stuck) are gone: the fork formats those
+call sites explicitly (#48), and `checkConfiguration`/`leaderLoop` are proved over `fmt.wp_Errorf`.
 -/
 module
 
@@ -119,31 +119,6 @@ theorem fmt.wp_Errorf_tnErr : fmt.Errorf.spec_tnErr (GF := GF) (hG := hG) := by
   inext
   iapply HΨ
 
-/-- (D35) `fmt.Errorf` at `checkConfiguration`'s no-voter error,
-`fmt.Errorf("need at least one voter in configuration: %v", configuration)`: the format literal is fixed
-(one `%v`), the argument is a `raft.Configuration` value (a struct with one field, `Servers []Server`;
-`Configuration` and `Server` have no methods; `Server`'s fields are `Suffrage ServerSuffrage`, whose
-`String()` is a pure switch on the value, and `ID`/`Address`, named strings without methods): `%v` reflects
-over the struct, reads the `Servers` slice's elements (the caller lends read access, given back) and calls
-`String()` on each suffrage. Post as Perennial's `fmt.Errorf.spec`: a non-nil error with a callable `Error()`.
-Attack: notes/axioms/fmt-errorf-cfg.md.
-**Not proved here** (port, 2026-11-27): the lab proved it from a Perennial `fmt` model that formatted
-nothing (`errors.New(format)`); Perennial's model now formats, and is stuck (`notModelled`) on `%v` of a
-struct, which Go prints by reflection (`pp.printValue`, not translated). Decided (#48, coordinator-E):
-the fork's `checkConfiguration` formats the servers' fields explicitly, and its proof goes over
-`fmt.wp_Errorf`; this spec goes once nothing uses it. -/
-abbrev fmt.Errorf.spec_cfgErr : Prop :=
-  ∀ (args_sl : GoSlice) (c : Configuration) (dq : DFrac) (ss : List Server),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
-       args_sl ↦* [interface.mkOk Configuration.ty #c] ∗ c.Servers' ↦*{dq} ss }}
-      (App (App (Val (@! fmt.Errorf)) (Val #(go!"need at least one voter in configuration: %v")))
-        (Val #args_sl))
-    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
-        c.Servers' ↦*{dq} ss ∗
-        □ ∀ Φ : val → IProp GF, ▷ (∀ str : GoString, Φ #str) -∗
-          WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x)) (Val #()))
-            {{ Φ }} }}
-
 /-- (stage 4, API-S4-1) `fmt.Errorf` at `nextConfiguration`'s stale-change error,
 `fmt.Errorf("configuration changed since %v (latest is %v)", change.prevIndex, currentIndex)`: the
 format literal is fixed (two `%v`), both arguments are `uint64`s (`%v` formats the numbers and calls
@@ -223,22 +198,6 @@ theorem fmt.wp_Errorf_snapCfgErr : fmt.Errorf.spec_snapCfgErr (GF := GF) (hG := 
   subst hl
   iapply HΦ
   itrivial
-
-/-- (stage 4, package leader) `fmt.Errorf` at `leaderLoop`'s leadership transfer to a server without a
-replication goroutine (not in the latest configuration), `fmt.Errorf("cannot find replication state for
-%v", id)`: the format literal is fixed (one `%v`), the argument is a `*raft.ServerID` (a pointer: `%v`
-formats its address, reads no memory and calls no method). Post: a non-nil error (sent on the transfer's
-`doneCh`, whose receiver only compares it with `nil`).
-**Not proved here** (port, 2026-11-27): as `fmt.Errorf.spec_cfgErr`, Perennial's `fmt` model is stuck on
-`%v` of a pointer (Go's `printValue` prints its address). Decided (#48): the fork's `leaderLoop` formats
-the dereferenced `ServerID` with `%s`; this spec goes once nothing uses it. -/
-abbrev fmt.Errorf.spec_rsErr : Prop :=
-  ∀ (args_sl : GoSlice) (p : Loc),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
-       args_sl ↦* [interface.mkOk (go.GoType.PointerType ServerID.ty) #p] }}
-      (App (App (Val (@! fmt.Errorf)) (Val #(go!"cannot find replication state for %v")))
-        (Val #args_sl))
-    {{ (e2 : GoInterfaceOk), RET #(interface.ok e2); True }}
 
 end spec
 
