@@ -9224,3 +9224,30 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   the old premises imply it); `restartAtApiSpecAsync` deleted (now `restartAtApiSpec`). `ownRawNode` unchanged:
   the restart builds `ownRawNodeAt` from `rawNodeAt` directly, and `ownRawNode` stays node.go's synchronous node.
 - **Decision.** Lead-approved (B) (b2raft3, 2026-11-27).
+
+## 2026-11-27: B2 raft round 4, (C) the slot queue and `asyncForm` restated (antithesis parity B2, #33)
+
+- **Spec.** `RawNode.Ready.asyncForm` (`RawNodeAbsSpecs.lean`); the slot ghost (`Protocol/GhostState.lean`:
+  `slotBody`, `slotFree`, `pendBatch` bodies; new `slotTail`, `slotHeadW`, `pendBatchAt`, `SlotEnt`, `virtL`,
+  `QChain`, `SlotOk`); internal lemma statements `raft_enter_core`, `slot_bump` (`Protocol/Enter.lean`).
+- **Defect.** `slotBody` held one batch per generation: the cut needed `slotFree g`, which only *enter* gave back,
+  so an async client could not ask for the next `Ready` before the previous write was entered (their rawnode
+  driver does: `AsyncStorageWrites`). `asyncForm` took `rs.steps = []` and `rs.unpersisted = []` for the same reason.
+- **Evidence.** raft's async `acceptReady` hands out a `Ready` whatever is in flight (`rawnode.go` `acceptReady`,
+  no `stepsOnAdvance` check in async mode); the storage thread writes the appends in order.
+- **Change.** The slot keys `(generation, sequence number)`: entered below a head, the queue `Q` (a chain from the
+  entered maps), the next cut's place (`SlotOk`); `slotFree g = ∃ n, slotTail g n ∗ slotHeadW g n`, `pendBatch g =
+  ∃ n, pendBatchAt g n ∗ slotHeadW g n ∗ slotTail g (n+1)` (same meaning for a synchronous client).
+  `nodeVacantA`, `raftState`, `ownDurGhost`, `durPers`, `raftIdSlot`, `raftArmed` and the statements of
+  `raft_enter`, `raft_crash_enter`, `ownRaftGhost_cut`, `raft_stop`, `raft_crash`, `raft_arm`, `raft_restart`,
+  `raft_start_boot` unchanged (text). New queue forms `ownRaftGhost_cutQ`, `raft_enterQ`, `raft_crash_enterQ`.
+  `asyncForm`: pre `slotTail γ id g n` (not `slotFree`), premises `rs.steps = []`, `rs.unpersisted = []` dropped;
+  post `steps` unchanged (async `acceptReady` queues nothing for `Advance`), `unpersisted := rs.unpersisted ++ es`;
+  only with an append message (`la.isSome`, the lead's decision; `needStorageAppendMsg`, `rawnode.go:200`: entries,
+  a non-empty hard state, a snapshot or `msgsAfterAppend`) a batch is cut: `slotTail γ id g (n+1)` at once,
+  `dur := readyDurable …`, `Henter` on `slotHeadW g n` giving `slotHeadW g (n+1)`, conjoined (`∧`) with its crash
+  form (`raft_crash_enterQ`: `crashed`, the arm's token kept); without one `slotTail γ id g n` back, `dur`
+  unchanged, `W = rs.bw` and every message's `isRaftMsg` at once; the responses `rsp ++ ack ++ apr` owned
+  by `readyRespOwn` (a self-addressed one whole, `msgPtsCC … (DFrac.own 1) DFrac.discard … ∗ ⌜c.model = st ∧
+  c.csUfNil⌝`, as `RawNode.Step`/`StoreAck` take it; to a peer frozen as before).
+- **Decision.** Lead-approved design (b2raft3/slot-design.md); asyncForm's response form the lead's ask (D).

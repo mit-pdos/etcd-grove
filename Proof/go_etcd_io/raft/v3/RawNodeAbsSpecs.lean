@@ -601,12 +601,22 @@ abbrev RawNode.Ready.absSpec : Prop :=
 abbrev RawNode.Ready.spec_of_abs.law : Prop :=
   RawNode.Ready.absSpec (GF := GF) (hG := hG) → RawNode.Ready.spec (GF := GF) (hG := hG)
 
-/-- (antithesis parity B2, design §4 "Async storage writes"; a statement, proved in round 2)
+/-- (antithesis parity B2 round 4) **A response an async `Ready`'s writes carry** (`rsp`, `ack`,
+`apr`): a self-addressed one owned whole, as `RawNode.Step` and `RawNode.StoreAck` take it (the
+storage thread steps it back); one to a peer frozen, as a message sent at once. -/
+def readyRespOwn (dz : Bool) (id : w64) (q : QMsg) : IProp GF :=
+  if q.st.msg.To' = id then
+    iprop(∃ c : MsgC, msgPtsCC q.loc (DFrac.own 1) DFrac.discard (needsCap q.st.msg) c ∗
+      ⌜c.model = q.st ∧ c.csUfNil⌝)
+  else msgOwnZ dz q.loc (readyDq q.st) q.st
+
+/-- (antithesis parity B2, design §4 "Async storage writes"; a statement)
 **`RawNode.Ready` with `AsyncStorageWrites`**: `RawNode.Ready.form`'s triple with the async
 differences. Nothing is queued for `Advance` (`acceptReady` fills `stepsOnAdvance` only in sync mode:
-`steps := []`, the queue after `[]`); `rd.Messages` is the messages sent at once `ms` then the append
+`steps` unchanged); `rd.Messages` is the messages sent at once `ms` then the append
 message `la` and the apply message `lp` (`readyWithoutAccept`'s order), each owned, with the
-`Responses` they carry (`rsp`, `ack`, `apr`) owned; the write's *enter* gives each message handed out
+`Responses` they carry (`rsp`, `ack`, `apr`) owned (round 4: a self-addressed one whole,
+`readyRespOwn`); the write's *enter* gives each message handed out
 and each response released its `isRaftMsg`, a leader's messages at once (`Hlead`), and (antithesis
 parity B2 round 2, E1 option (b), the coordinator's decision) every message handed out but a vote
 request at once too (`Hearly`: no other type's facts rest on the unwritten durable state; a
@@ -614,32 +624,44 @@ request at once too (`Hearly`: no other type's facts rest on the unwritten durab
 requests until the write is entered, as their rawnode does, `node.go:870-951`); under `S` the fields
 `ReadyOutAsync`. The storage side (`Happ`, `Hsnapz`, `Hfrz`, `Hdk`,
 `Hhsw`) is sync mode's: the entries and hard state the append message carries are `rd.Entries` and
-`rd.HardState`. -/
+`rd.HardState`. (Round 4, the slot queue: several `Ready`s may be handed out before the first write
+is entered. The `Ready` is the `n`-th batch of generation `g` (`slotTail`, the next one's given back
+at once); its write enters after the `n - 1` before it (`slotHeadW`), or, `Henter`'s second
+conjunct, at a crash (keeping the arm's crash token, `raft_crash_enterQ`). Only a `Ready` with an
+append message (`la`: `needStorageAppendMsg`, entries, a hard state or a response to write) cuts a
+batch; one without changes nothing durable, keeps the slot, and its messages' facts hold at once. The entries handed out join `unpersisted`.) -/
 abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RState → List Msg → Nat → IProp GF)
     (S : RnMode → Prop) : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (x : CrashNames) (rs : RNState) (r : RState)
-    (qs : List Msg) (ip : Nat) (q : Qp) (g : Nat),
-  rs.steps = [] →
-  rs.unpersisted = [] →
+    (qs : List Msg) (ip : Nat) (q : Qp) (g n : Nat),
   γ.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ R γ rn id rs r qs ip ∗
-      "Hlive" ∷ genView γ id x q g ∗ "Hfree" ∷ slotFree γ id g }}
+      "Hlive" ∷ genView γ id x q g ∗ "Htail" ∷ slotTail γ id g n }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms rsp ack apr : List QMsg) (la lp : Option QMsg)
       (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan)
       (ss : Option (w64 × StateType)) (W : DurMaps) (r' : RState) (ip' : Nat), RET #rd;
       "Hrn" ∷ R γ rn id
-        { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := [],
+        { rs with delivered := rs.delivered ++ ce, unpersisted := rs.unpersisted ++ es,
                   outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
-                  slent := L, dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                  slent := L,
+                  dur := if la.isSome then readyDurable rs.dur (phsNext rs.phs h) L es else rs.dur,
                   role := roleAfter rs.role ss, bw := W } r' [] ip' ∗
       "Hlive" ∷ genView γ id x q g ∗
-      "Henter" ∷ (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ notCrashed -∗
-        ownDurGhost γ id rs.dur ∗ genView γ id x q' g ={E}=∗
-          notCrashed ∗ ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗
-          genView γ id x q' g ∗
-          slotFree γ id g ∗ durFrags γ id W ∗ [∗list] q ∈ ms ++ rsp, isRaftMsg γ id q.st) ∗
+      -- (round 4, the lead's decision) only a `Ready` with an append message cuts a batch
+      "Htail" ∷ slotTail γ id g (if la.isSome then n + 1 else n) ∗
+      "Henter" ∷ (if la.isSome then
+        iprop((∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ notCrashed -∗
+          ownDurGhost γ id rs.dur ∗ genView γ id x q' g ∗ slotHeadW γ id g n ={E}=∗
+            notCrashed ∗ ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗
+            genView γ id x q' g ∗ slotHeadW γ id g (n + 1) ∗
+            durFrags γ id W ∗ [∗list] q ∈ ms ++ rsp, isRaftMsg γ id q.st) ∧
+        (∀ (E : CoPset) (q' : Qp), ⌜↑(raftN γ) ⊆ E⌝ -∗ crashed -∗ raftCrashTok γ id x -∗
+          ownDurGhost γ id rs.dur ∗ genView γ id x q' g ∗ slotHeadW γ id g n ={E}=∗
+            raftCrashTok γ id x ∗ ownDurGhost γ id (readyDurable rs.dur (phsNext rs.phs h) L es) ∗
+            genView γ id x q' g ∗ slotHeadW γ id g (n + 1)))
+        else iprop(⌜W = rs.bw⌝ ∗ [∗list] q ∈ ms ++ rsp, isRaftMsg γ id q.st)) ∗
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       "#Hearly" ∷ ([∗list] q ∈ ms, ⌜q.st.msg.Type' ≠ MsgVote⌝ -∗ isRaftMsg γ id q.st) ∗
       "#Hsnapto" ∷ ([∗list] q ∈ ms ++ rsp, snapToOk γ id q.st) ∗
@@ -650,8 +672,9 @@ abbrev RawNode.Ready.asyncForm (R : RaftNames → Loc → w64 → RNState → RS
       "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
       "Hmsgs" ∷ rd.Messages' ↦* (ms ++ la.toList ++ lp.toList).map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
-      "Hmsgs_own" ∷ ([∗list] q ∈ ms ++ la.toList ++ lp.toList ++ rsp ++ ack ++ apr,
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms ++ la.toList ++ lp.toList,
         msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
+      "Hresp_own" ∷ ([∗list] q ∈ rsp ++ ack ++ apr, readyRespOwn γ.maxData.isSome id q) ∗
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms ++ rsp,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms ++ rsp ++ ack, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗

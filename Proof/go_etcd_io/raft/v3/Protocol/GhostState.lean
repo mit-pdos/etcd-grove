@@ -3026,11 +3026,247 @@ instance RaftState_countable : Pos.Countable RaftState :=
       have h := Pos.encode_inj h
       simp_all)
 
-/-- The virtual maps of the entered ones `E` and a queue entry: with the batch's promises
-applied (its maps), or `E`. -/
-def virtQ (E : DurMaps) : Option (Option RaftBatch) → DurMaps
-  | some (some b) => b.2.1
-  | _ => E
+/-- (2026-11-27, #33 parity B2: several `Ready`s in flight) **An entry of node `id`'s slot queue**,
+at key `(generation, sequence number)`: the next cut's place, a batch cut and not entered, or an
+entered one. -/
+inductive SlotEnt where
+  | free
+  | queued (b : RaftBatch)
+  | entered
+
+/-- (Lean helper) The injection that makes `SlotEnt` countable. -/
+def SlotEnt.toOpt : SlotEnt → Option (Option RaftBatch)
+  | .free => none
+  | .queued b => some (some b)
+  | .entered => some none
+
+instance SlotEnt_countable : Pos.Countable SlotEnt :=
+  .ofInjective (fun e => Pos.Countable.encode e.toOpt)
+    (by
+      intro a b h
+      have h := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all [SlotEnt.toOpt])
+
+/-- The virtual maps of the entered maps `E` with the queue `Q` applied: the last batch's maps,
+or `E`. -/
+def virtL : DurMaps → List RaftBatch → DurMaps
+  | E, [] => E
+  | _, b :: Q => virtL b.2.1 Q
+
+theorem virtL_nil (E : DurMaps) : virtL E [] = E := rfl
+
+theorem virtL_cons (E : DurMaps) (b : RaftBatch) (Q : List RaftBatch) :
+    virtL E (b :: Q) = virtL b.2.1 Q := rfl
+
+theorem virtL_snoc (E : DurMaps) (Q : List RaftBatch) (S : RaftState) (W E' : DurMaps) :
+    virtL E (Q ++ [((S, W, E') : RaftBatch)]) = W := by
+  induction Q generalizing E with
+  | nil => rfl
+  | cons c Q ih => rw [List.cons_append, virtL_cons]; exact ih _
+
+/-- The queue is a chain from the entered maps `E`: each batch cut from the previous one's maps
+(the first from `E`), extending them. -/
+def QChain : DurMaps → List RaftBatch → Prop
+  | _, [] => True
+  | E, b :: Q => b.2.2 = E ∧ DurLe E b.2.1 ∧ QChain b.2.1 Q
+
+theorem QChain_le (E : DurMaps) (Q : List RaftBatch) : QChain E Q → DurLe E (virtL E Q) := by
+  induction Q generalizing E with
+  | nil => intro _; exact DurLe_refl E
+  | cons c Q ih =>
+    intro H
+    have H' : c.2.2 = E ∧ DurLe E c.2.1 ∧ QChain c.2.1 Q := H
+    exact DurLe_trans _ _ _ H'.2.1 (ih _ H'.2.2)
+
+theorem QChain_snoc (E : DurMaps) (Q : List RaftBatch) (b : RaftBatch) :
+    QChain E Q → b.2.2 = virtL E Q → DurLe (virtL E Q) b.2.1 → QChain E (Q ++ [b]) := by
+  induction Q generalizing E with
+  | nil =>
+    intro _ h1 h2
+    show b.2.2 = E ∧ DurLe E b.2.1 ∧ QChain b.2.1 []
+    exact ⟨h1, h2, trivial⟩
+  | cons c Q ih =>
+    intro H h1 h2
+    have H' : c.2.2 = E ∧ DurLe E c.2.1 ∧ QChain c.2.1 Q := H
+    show c.2.2 = E ∧ DurLe E c.2.1 ∧ QChain c.2.1 (Q ++ [b])
+    exact ⟨H'.1, H'.2.1, ih _ H'.2.2 h1 h2⟩
+
+/-- The slot's queue map `Mq` at the generation `g`: entered below `hd`, the queue `Q` from `hd`,
+the next cut's place after it, nothing above it; no key of a later generation. -/
+def SlotOk (Mq : GMap (Nat × Nat) SlotEnt) (g hd : Nat) (Q : List RaftBatch) : Prop :=
+  (∀ k, (Mq !! k).isSome → k.1 ≤ g) ∧
+  (∀ i < hd, Mq !! (g, i) = some .entered) ∧
+  (∀ i (b : RaftBatch), Q[i]? = some b → Mq !! (g, hd + i) = some (.queued b)) ∧
+  Mq !! (g, hd + Q.length) = some .free ∧
+  (∀ i, hd + Q.length < i → Mq !! (g, i) = none)
+
+private theorem slot_key_ne {g n i : Nat} (h : n ≠ i) : ((g, n) : Nat × Nat) ≠ (g, i) :=
+  fun e => h (congrArg Prod.snd e)
+
+private theorem getElem?_some' {Q : List RaftBatch} {i : Nat} (h : i < Q.length) :
+    ∃ b, Q[i]? = some b :=
+  ⟨Q[i], List.getElem?_eq_getElem h⟩
+
+/-- The next cut's place is after the queue. -/
+theorem SlotOk.free_at {Mq : GMap (Nat × Nat) SlotEnt} {g hd : Nat} {Q : List RaftBatch} {n : Nat}
+    (H : SlotOk Mq g hd Q) (hn : Mq !! (g, n) = some .free) : n = hd + Q.length := by
+  obtain ⟨_, Hent, Hq, _, Hnone⟩ := H
+  refine Classical.byContradiction fun hne => ?_
+  rcases Nat.lt_or_gt_of_ne hne with h | h
+  · by_cases h1 : n < hd
+    · rw [Hent n h1] at hn; cases hn
+    · obtain ⟨b, hb⟩ := getElem?_some' (Q := Q) (i := n - hd) (by omega)
+      have := Hq (n - hd) b hb
+      rw [show hd + (n - hd) = n by omega, hn] at this; cases this
+  · rw [Hnone n h] at hn; cases hn
+
+/-- The next cut's place, with every batch below it entered: the queue is empty. -/
+theorem SlotOk.free_head {Mq : GMap (Nat × Nat) SlotEnt} {g hd : Nat} {Q : List RaftBatch}
+    {n : Nat} (H : SlotOk Mq g hd Q) (hn : Mq !! (g, n) = some .free)
+    (hh : n = 0 ∨ Mq !! (g, n - 1) = some .entered) : Q = [] ∧ hd = n := by
+  have hn' := H.free_at hn
+  obtain ⟨_, _, Hq, _, _⟩ := H
+  cases Q with
+  | nil => simp only [List.length_nil, Nat.add_zero] at hn'; exact ⟨rfl, hn'.symm⟩
+  | cons b Q =>
+    exfalso
+    simp only [List.length_cons] at hn'
+    rcases hh with h0 | he
+    · omega
+    · obtain ⟨c, hc⟩ := getElem?_some' (Q := b :: Q) (i := Q.length) (by simp)
+      have hx := Hq Q.length c hc
+      rw [show hd + Q.length = n - 1 by omega, he] at hx; cases hx
+
+/-- A queued batch, with every batch below it entered: the queue's head. -/
+theorem SlotOk.queued_head {Mq : GMap (Nat × Nat) SlotEnt} {g hd : Nat} {Q : List RaftBatch}
+    {n : Nat} {b : RaftBatch} (H : SlotOk Mq g hd Q) (hn : Mq !! (g, n) = some (.queued b))
+    (hh : n = 0 ∨ Mq !! (g, n - 1) = some .entered) : n = hd ∧ ∃ Q', Q = b :: Q' := by
+  obtain ⟨_, Hent, Hq, Hfree, Hnone⟩ := H
+  have hlo : hd ≤ n := by
+    refine Classical.byContradiction fun h => ?_
+    rw [Hent n (by omega)] at hn; cases hn
+  have hhi : n < hd + Q.length := by
+    refine Classical.byContradiction fun h => ?_
+    rcases Nat.lt_or_eq_of_le (Nat.le_of_not_lt h) with h' | h'
+    · rw [Hnone n h'] at hn; cases hn
+    · rw [← h', Hfree] at hn; cases hn
+  have hnh : n = hd := by
+    refine Classical.byContradiction fun hne => ?_
+    rcases hh with h0 | he
+    · omega
+    · obtain ⟨c, hc⟩ := getElem?_some' (Q := Q) (i := n - 1 - hd) (by omega)
+      have := Hq _ c hc
+      rw [show hd + (n - 1 - hd) = n - 1 by omega, he] at this; cases this
+  refine ⟨hnh, ?_⟩
+  cases Q with
+  | nil => simp only [List.length_nil, Nat.add_zero] at hhi; omega
+  | cons c Q' =>
+    have h0 := Hq 0 c (by simp)
+    rw [Nat.add_zero, ← hnh, hn] at h0
+    cases h0
+    exact ⟨Q', rfl⟩
+
+/-- The cut: the next place takes the batch `b`, the place after it is the next cut's. -/
+theorem SlotOk.cut {Mq : GMap (Nat × Nat) SlotEnt} {g hd : Nat} {Q : List RaftBatch} {n : Nat}
+    (H : SlotOk Mq g hd Q) (hn : Mq !! (g, n) = some .free) (b : RaftBatch) :
+    (Mq.insert (g, n) (.queued b)) !! (g, n + 1) = none ∧
+    SlotOk ((Mq.insert (g, n) (.queued b)).insert (g, n + 1) .free) g hd (Q ++ [b]) := by
+  have hn' := H.free_at hn
+  obtain ⟨Hdom, Hent, Hq, _, Hnone⟩ := H
+  have L1 : ∀ i, i ≠ n → i ≠ n + 1 →
+      ((Mq.insert (g, n) (.queued b)).insert (g, n + 1) .free) !! (g, i) = Mq !! (g, i) := by
+    intro i h1 h2
+    rw [GMap.lookup_insert_ne _ _ (slot_key_ne (Ne.symm h2)),
+      GMap.lookup_insert_ne _ _ (slot_key_ne (Ne.symm h1))]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [GMap.lookup_insert_ne _ _ (slot_key_ne (by omega : n ≠ n + 1))]
+    exact Hnone _ (by omega)
+  · intro k hk
+    by_cases e1 : (g, n + 1) = k
+    · subst e1; exact Nat.le_refl _
+    · rw [GMap.lookup_insert_ne _ _ e1] at hk
+      by_cases e2 : (g, n) = k
+      · subst e2; exact Nat.le_refl _
+      · rw [GMap.lookup_insert_ne _ _ e2] at hk; exact Hdom k hk
+  · intro i hi; rw [L1 i (by omega) (by omega)]; exact Hent i hi
+  · intro i c hc
+    obtain ⟨hlt, -⟩ := List.getElem?_eq_some_iff.mp hc
+    simp only [List.length_append, List.length_singleton] at hlt
+    by_cases hi : i < Q.length
+    · rw [List.getElem?_append_left hi] at hc
+      rw [L1 (hd + i) (by omega) (by omega)]; exact Hq i c hc
+    · have hi' : i = Q.length := by omega
+      subst hi'
+      rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self] at hc
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hc
+      subst hc
+      rw [GMap.lookup_insert_ne _ _ (slot_key_ne (by omega)), ← hn', GMap.lookup_insert]
+  · rw [List.length_append, List.length_singleton, ← Nat.add_assoc, ← hn', GMap.lookup_insert]
+  · intro i hi
+    simp only [List.length_append, List.length_singleton] at hi
+    rw [L1 i (by omega) (by omega)]; exact Hnone i (by omega)
+
+/-- *Enter*: the queue's head entered. -/
+theorem SlotOk.enter {Mq : GMap (Nat × Nat) SlotEnt} {g hd : Nat} {b : RaftBatch}
+    {Q : List RaftBatch} (H : SlotOk Mq g hd (b :: Q)) :
+    SlotOk (Mq.insert (g, hd) .entered) g (hd + 1) Q := by
+  obtain ⟨Hdom, Hent, Hq, Hfree, Hnone⟩ := H
+  have L1 : ∀ i, i ≠ hd → (Mq.insert (g, hd) SlotEnt.entered) !! (g, i) = Mq !! (g, i) :=
+    fun i h => GMap.lookup_insert_ne _ _ (slot_key_ne (Ne.symm h))
+  simp only [List.length_cons] at Hfree Hnone
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro k hk
+    by_cases e : (g, hd) = k
+    · subst e; exact Nat.le_refl _
+    · rw [GMap.lookup_insert_ne _ _ e] at hk; exact Hdom k hk
+  · intro i hi
+    by_cases e : i = hd
+    · subst e; exact GMap.lookup_insert _ _ _
+    · rw [L1 i e]; exact Hent i (by omega)
+  · intro i c hc
+    rw [L1 (hd + 1 + i) (by omega), show hd + 1 + i = hd + (i + 1) by omega]
+    exact Hq (i + 1) c (by simpa using hc)
+  · rw [L1 (hd + 1 + Q.length) (by omega), show hd + 1 + Q.length = hd + (Q.length + 1) by omega]
+    exact Hfree
+  · intro i hi; rw [L1 i (by omega)]; exact Hnone i (by omega)
+
+/-- A stop or a crash: the next generation's queue, empty. -/
+theorem SlotOk.bump {Mq : GMap (Nat × Nat) SlotEnt} {g hd : Nat} {Q : List RaftBatch}
+    (H : SlotOk Mq g hd Q) :
+    Mq !! (g + 1, 0) = none ∧ SlotOk (Mq.insert (g + 1, 0) .free) (g + 1) 0 [] := by
+  obtain ⟨Hdom, -, -, -, -⟩ := H
+  have Hn : ∀ i, Mq !! (g + 1, i) = none := by
+    intro i
+    cases h : Mq !! (g + 1, i) with
+    | none => rfl
+    | some x =>
+      have := Hdom (g + 1, i) (by rw [h]; rfl)
+      simp only at this; omega
+  refine ⟨Hn 0, ?_, ?_, ?_, ?_, ?_⟩
+  · intro k hk
+    by_cases e : (g + 1, 0) = k
+    · subst e; exact Nat.le_refl _
+    · rw [GMap.lookup_insert_ne _ _ e] at hk; exact Nat.le_succ_of_le (Hdom k hk)
+  · intro i hi; omega
+  · intro i c hc; simp at hc
+  · exact GMap.lookup_insert _ _ _
+  · intro i hi
+    simp only [List.length_nil, Nat.add_zero] at hi
+    rw [GMap.lookup_insert_ne _ _ (slot_key_ne (by omega))]; exact Hn i
+
+/-- A fresh slot: generation `0`, its queue empty. -/
+theorem SlotOk.init : SlotOk ((∅ : GMap (Nat × Nat) SlotEnt).insert (0, 0) .free) 0 0 [] := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro k hk
+    by_cases e : ((0, 0) : Nat × Nat) = k
+    · subst e; exact Nat.le_refl _
+    · rw [GMap.lookup_insert_ne _ _ e, GMap.lookup_empty] at hk; cases hk
+  · intro i hi; omega
+  · intro i c hc; simp at hc
+  · exact GMap.lookup_insert _ _ _
+  · intro i hi
+    simp only [List.length_nil, Nat.add_zero] at hi
+    rw [GMap.lookup_insert_ne _ _ (slot_key_ne (by omega)), GMap.lookup_empty]
 
 /-- Node `id`'s slot invariant's namespace (R2): within raft's, apart from the commit
 invariant's halves. -/
@@ -3088,21 +3324,27 @@ instance batchOk_persistent (γ : RaftNames) (id : w64) (b : RaftBatch) :
 
 /-- **Node `id`'s slot** (R2, R7, R8): the other half of its promise authorities at the entered
 maps `E`, their fragments, the other half of its virtual maps (`E` with the current generation's
-queued batch applied), the other half of its generation `g`, and the queue: a ghost map of the
-generations up to `g`, each `none` (free) or a batch, the current one's `batchOk`. -/
+queue applied), the other half of its generation `g`, and the queue (2026-11-27, #33 parity B2: a
+queue of batches per generation, entered in order): a ghost map keyed by `(generation, sequence
+number)`, generation `g`'s entries entered below `hd`, the queue `Q` from `hd`, then the next cut's
+place (`SlotOk`), the queue a chain from `E` (`QChain`). -/
 def slotBody (γ : RaftNames) (id : w64) : IProp GF :=
-  iprop(∃ (γs : SlotNames) (E : DurMaps) (g : Nat) (Mq : GMap Nat (Option RaftBatch)),
+  iprop(∃ (γs : SlotNames) (E : DurMaps) (g hd : Nat) (Q : List RaftBatch)
+      (Mq : GMap (Nat × Nat) SlotEnt),
     ⌜γ.reSlot !! id = some γs⌝ ∗
     durShares γ id (1 : Qp).half E ∗ durFrags γ id E ∗
     -- (2026-11-01, stage II(d), approved repair 1) the entered acknowledgements' leaders, for the
     -- cut's `durPers`
     ([∗map] k ↦ _u ∈ E.acks, ackInF γ k.1 k.2) ∗
-    ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g)) ∗
+    -- (2026-11-27, B2) the virtual maps' acknowledgements' leaders, given their fragments (the
+    -- cut's, when the queue is not empty)
+    □ (durFrags γ id (virtL E Q) -∗ [∗map] k ↦ _u ∈ (virtL E Q).acks, ackInF γ k.1 k.2) ∗
+    ghostVar γs.1 (1 : Qp).half (virtL E Q) ∗
     ghostVar γs.2.2 (1 : Qp).half g ∗
-    ghostMapAuth γs.2.1 1 Mq ∗ ⌜∀ k, (Mq !! k).isSome → k ≤ g⌝ ∗ ⌜(Mq !! g).isSome⌝ ∗
-    -- (2026-11-01, stage II(d)) the current batch was cut from the entered maps, and extends
-    -- them; its facts (`batchOk`) are with the client's `pendBatch`, outside the invariant
-    ⌜∀ b, Mq !! g = some (some b) → b.2.2 = E ∧ DurLe E b.2.1⌝)
+    ghostMapAuth γs.2.1 1 Mq ∗
+    -- each queued batch's facts (`batchOk`) are with the client's `pendBatchAt`, outside the
+    -- invariant
+    ⌜SlotOk Mq g hd Q ∧ QChain E Q⌝)
 
 /-- The slot invariant: permanent, allocated with the cluster (R2). -/
 def slotInv (γ : RaftNames) (id : w64) : IProp GF := inv (slotN γ id) (slotBody γ id)
@@ -3110,18 +3352,58 @@ def slotInv (γ : RaftNames) (id : w64) : IProp GF := inv (slotN γ id) (slotBod
 instance slotInv_persistent (γ : RaftNames) (id : w64) : Persistent (slotInv (GF := GF) γ id) := by
   unfold slotInv; infer_instance
 
-/-- Generation `g`'s queue is free: no batch cut and not entered. -/
-def slotFree (γ : RaftNames) (id : w64) (g : Nat) : IProp GF :=
-  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ g ↪[γs.2.1] (none : Option RaftBatch))
+/-- (2026-11-27, B2) The next batch cut in generation `g` is its `n`-th (the cutter's: raft's
+`Ready` side). -/
+def slotTail (γ : RaftNames) (id : w64) (g n : Nat) : IProp GF :=
+  iprop(∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗ (g, n) ↪[γs.2.1] SlotEnt.free)
 
-/-- A batch cut in generation `g` and not entered: it enters `S'`, with the maps `W` (`raft_enter`
-mints `W`'s fragments). -/
-def pendBatch (γ : RaftNames) (id : w64) (g : Nat) (S' : RaftState) (W : DurMaps) : IProp GF :=
+/-- (2026-11-27, B2) Every batch of generation `g` below the `n`-th is entered (persistent: the
+enterer's receipt). -/
+def slotHeadW (γ : RaftNames) (id : w64) (g n : Nat) : IProp GF :=
+  iprop(⌜n = 0⌝ ∨ ∃ γs : SlotNames, ⌜γ.reSlot !! id = some γs⌝ ∗
+    (g, n - 1) ↪[γs.2.1]□ SlotEnt.entered)
+
+instance slotHeadW_persistent (γ : RaftNames) (id : w64) (g n : Nat) :
+    Persistent (slotHeadW (GF := GF) γ id g n) := by
+  unfold slotHeadW; infer_instance
+
+/-- (2026-11-27, B2) The `n`-th batch cut in generation `g`, not entered: it enters `S'`, with the
+maps `W` (`raft_enter` mints `W`'s fragments). -/
+def pendBatchAt (γ : RaftNames) (id : w64) (g n : Nat) (S' : RaftState) (W : DurMaps) :
+    IProp GF :=
   iprop(∃ (γs : SlotNames) (E : DurMaps), ⌜γ.reSlot !! id = some γs⌝ ∗
-    g ↪[γs.2.1] (some ((S', W, E) : RaftBatch) : Option RaftBatch) ∗
+    (g, n) ↪[γs.2.1] SlotEnt.queued ((S', W, E) : RaftBatch) ∗
     -- (2026-11-01, stage II(d), approved stage-I repair) the batch's facts, persistent, with the
     -- client (so that *enter* reads them without a later)
     batchOk γ id ((S', W, E) : RaftBatch))
+
+/-- Generation `g`'s queue is free: no batch cut and not entered (2026-11-27, B2: the next cut's
+place, with every batch below it entered). -/
+def slotFree (γ : RaftNames) (id : w64) (g : Nat) : IProp GF :=
+  iprop(∃ n : Nat, slotTail γ id g n ∗ slotHeadW γ id g n)
+
+/-- A batch cut in generation `g` and not entered: it enters `S'`, with the maps `W` (`raft_enter`
+mints `W`'s fragments). (2026-11-27, B2: generation `g`'s queue is exactly that batch.) -/
+def pendBatch (γ : RaftNames) (id : w64) (g : Nat) (S' : RaftState) (W : DurMaps) : IProp GF :=
+  iprop(∃ n : Nat, pendBatchAt γ id g n S' W ∗ slotHeadW γ id g n ∗ slotTail γ id g (n + 1))
+
+theorem slotFree_split (γ : RaftNames) (id : w64) (g : Nat) :
+    slotFree (GF := GF) γ id g ⊣⊢ iprop(∃ n : Nat, slotTail γ id g n ∗ slotHeadW γ id g n) := .rfl
+
+/-- (Lean helper) The head receipt against the queue's authority. -/
+theorem slotHeadW_lookup (γ : RaftNames) (id : w64) (γs : SlotNames) (g n : Nat)
+    (Mq : GMap (Nat × Nat) SlotEnt) :
+    γ.reSlot !! id = some γs →
+    ⊢ ghostMapAuth (GF := GF) γs.2.1 1 Mq -∗ slotHeadW γ id g n -∗
+      ghostMapAuth γs.2.1 1 Mq ∗ ⌜n = 0 ∨ Mq !! (g, n - 1) = some SlotEnt.entered⌝ := by
+  intro Hs
+  iintro Hq Hh
+  unfold slotHeadW
+  icases Hh with (%H0 | ⟨%γs', %Hs', #He⟩)
+  · iframe Hq; ipureintro; exact Or.inl H0
+  · rw [Hs] at Hs'; cases Hs'
+    icombine Hq He gives %HM
+    iframe Hq; ipureintro; exact Or.inr HM
 
 /-- **The durable half of node `id`'s protocol state at `S`** (I-1; `raftState`'s sealed body,
 which adds the term counter's lower bound, amendment 3): half its promise authorities at the

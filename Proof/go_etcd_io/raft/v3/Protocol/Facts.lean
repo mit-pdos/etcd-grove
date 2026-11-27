@@ -748,11 +748,11 @@ private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF
         · rintro rfl; rw [Hk] at Hk'; cases Hk')) $$ H
 
 /-- (stage II helper) A fresh slot's resources: the virtual maps' variable at the empty maps, the
-queue with its generation-`0` element free, the generation at `0`. -/
+queue with generation `0`'s first place free, the generation at `0`. -/
 def slotFresh (γs : SlotNames) : IProp GF :=
   iprop(ghostVar γs.1 1 DurMaps.empty ∗
-    ghostMapAuth γs.2.1 1 ((∅ : GMap Nat (Option RaftBatch)).insert 0 none) ∗
-    (0 ↪[γs.2.1] (none : Option RaftBatch)) ∗ ghostVar γs.2.2 1 (0 : Nat))
+    ghostMapAuth γs.2.1 1 ((∅ : GMap (Nat × Nat) SlotEnt).insert (0, 0) SlotEnt.free) ∗
+    ((0, 0) ↪[γs.2.1] SlotEnt.free) ∗ ghostVar γs.2.2 1 (0 : Nat))
 
 /-- (stage II helper) Every id's slot names, fresh. -/
 theorem alloc_slots (ids : GSet w64) :
@@ -768,9 +768,9 @@ theorem alloc_slots (ids : GSet w64) :
   | hins x u ids Hx IH =>
     imod IH with ⟨%names, Hm⟩
     imod ghostVar_alloc (GF := GF) DurMaps.empty with ⟨%γ1, Hv⟩
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Option RaftBatch) with ⟨%γ2, Hq⟩
-    imod ghost_map_insert (0 : Nat) (none : Option RaftBatch)
-      (GMap.lookup_empty (K := Nat) (V := Option RaftBatch) 0) $$ Hq with ⟨Hq, Hf⟩
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat × Nat) (V := SlotEnt) with ⟨%γ2, Hq⟩
+    imod ghost_map_insert ((0, 0) : Nat × Nat) SlotEnt.free
+      (GMap.lookup_empty (K := Nat × Nat) (V := SlotEnt) (0, 0)) $$ Hq with ⟨Hq, Hf⟩
     imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γ3, Hg⟩
     imodintro
     iexists <[x := ((γ1, γ2, γ3) : SlotNames)]> names
@@ -900,11 +900,9 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
     with #Hslot
   · inext
     unfold slotBody
-    iexists γs, DurMaps.empty, 0, ((∅ : GMap Nat (Option RaftBatch)).insert 0 none)
-    have Hl0 : ((∅ : GMap Nat (Option RaftBatch)).insert 0 none) !! 0 = some none :=
-      GMap.lookup_insert _ _ _
-    rw [Hl0]
-    simp only [virtQ]
+    iexists γs, DurMaps.empty, 0, 0, ([] : List RaftBatch),
+      ((∅ : GMap (Nat × Nat) SlotEnt).insert (0, 0) SlotEnt.free)
+    rw [virtL_nil]
     iframe Hfr Hvirt2 Hgen2 Hq
     isplitr; · ipureintro; exact Hγs
     isplitl [Hv2 Ha2 Hc2 Hl2 He2]
@@ -916,16 +914,9 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
     isplitr
     · simp only [DurMaps.empty]; iapply (BigSepM.bigSepM_empty).2; iempintro
     isplitr
-    · ipureintro
-      intro k hk
-      by_cases hk0 : k = 0
-      · omega
-      · have : ((∅ : GMap Nat (Option RaftBatch)).insert 0 none) !! k =
-            (∅ : GMap Nat (Option RaftBatch)) !! k := GMap.lookup_insert_ne _ _ (Ne.symm hk0)
-        rw [this, GMap.lookup_empty] at hk
-        cases hk
-    isplitr; · ipureintro; rfl
-    ipureintro; intro b hb; cases hb
+    · imodintro; iintro -
+      simp only [DurMaps.empty]; iapply (BigSepM.bigSepM_empty).2; iempintro
+    ipureintro; exact ⟨SlotOk.init, trivial⟩
   ihave #Hdp := durPers_init γ id $$ Hinv Hc0
   imodintro
   isplitl [Hv1 Ha1 Hc1 Hl1 He1]
@@ -946,7 +937,11 @@ private theorem slot_init (E : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNa
   isplitl [Hgen1]
   · unfold slotLive; iexists γs; iframe Hgen1; ipureintro; exact Hγs
   isplitl [Hfree]
-  · unfold slotFree; iexists γs; iframe Hfree; ipureintro; exact Hγs
+  · unfold slotFree slotTail slotHeadW
+    iexists 0
+    isplitl [Hfree]
+    · iexists γs; iframe Hfree; ipureintro; exact Hγs
+    ileft; ipureintro; rfl
   isplitl [Hm]
   · iexists γm, ∅; iframe Hm
     isplitr; · ipureintro; exact Hγm

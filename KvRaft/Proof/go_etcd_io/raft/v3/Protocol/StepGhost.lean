@@ -1350,17 +1350,6 @@ instance durShares_timeless (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) :
     Timeless (durShares (GF := GF) γ id q E) := by
   unfold durShares; infer_instance
 
-/-- (Lean helper.) The queue's current batch, if any, extends the entered maps. -/
-private theorem slot_batch_le (E : DurMaps) (Mq : GMap Nat (Option RaftBatch)) (g : Nat) :
-    (∀ b, Mq !! g = some (some b) → b.2.2 = E ∧ DurLe E b.2.1) → DurLe E (virtQ E (Mq !! g)) := by
-  intro H
-  cases h : Mq !! g with
-  | none => exact DurLe_refl E
-  | some o =>
-    cases o with
-    | none => exact DurLe_refl E
-    | some b => exact (H b h).2
-
 /-- The mask with every crash invariant of `id` open is within the one with an arm's open. -/
 theorem crashNs_diff_sub (E : CoPset) (γ : RaftNames) (id : w64) (x : CrashNames) :
     E \ ↑(crashNs γ id) ⊆ E \ ↑(crashN γ id x) := by
@@ -1423,10 +1412,10 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
-  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E, %g, %hd, %Q, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, #Hav, >Hv', >Hg, >Hq, >%Hok⟩
   rw [Hs] at Hγs'; cases Hγs'
   icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv Hv' with %HV
-  have Hle := slot_batch_le E Mq g Hb
+  have Hle := QChain_le E Q Hok.2
   imodintro
   iexists E
   isplitr; · ipureintro; rw [HV]; exact Hle
@@ -1435,10 +1424,10 @@ theorem slot_open (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (V
   iintro Hsh
   imod Hclose $$ [Hsh Hv' Hg Hq] with -
   · inext
-    iexists γs, E, g, Mq
+    iexists γs, E, g, hd, Q, Mq
     isplitr; · ipureintro; exact Hs
-    iframe Hsh Hfr Hai Hv' Hg Hq
-    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
+    iframe Hsh Hfr Hai Hav Hv' Hg Hq
+    ipureintro; exact Hok
   imodintro; ipureintro; trivial
 
 variable [CrashGS GF] in
@@ -1468,11 +1457,11 @@ theorem slot_openV (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (
   unfold slotInv
   iinv Hslot with H Hclose
   unfold slotBody
-  icases H with ⟨%γs', %E, %g, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur, >%Hb⟩
+  icases H with ⟨%γs', %E, %g, %hd, %Q, %Mq, >%Hγs', >Hsh, #Hfr, #Hai, #Hav, >Hv', >Hg, >Hq, >%Hok⟩
   rw [Hs] at Hγs'; cases Hγs'
-  have Hle := slot_batch_le E Mq g Hb
+  have Hle := QChain_le E Q Hok.2
   imod cviewV_use (Em \ ↑(slotN γ id)) γ id γs V
-      iprop(⌜V = virtQ E (Mq !! g)⌝ ∗ ghostVar γs.1 (1 : Qp).half (virtQ E (Mq !! g))) Hs
+      iprop(⌜V = virtL E Q⌝ ∗ ghostVar γs.1 (1 : Qp).half (virtL E Q)) Hs
       (crashNs_diff_slot Em γ id HC) $$ Hnc Hv [Hv'] with ⟨Hnc, Hv, %HV, Hv'⟩
   · iintro Hv0
     icases ghostVar_agree γs.1 V (1 : Qp).half _ (1 : Qp).half $$ Hv0 Hv' with %HV
@@ -1487,10 +1476,10 @@ theorem slot_openV (Em : CoPset) (γ : RaftNames) (id : w64) (γs : SlotNames) (
   iintro Hsh
   imod Hclose $$ [Hsh Hv' Hg Hq] with -
   · inext
-    iexists γs, E, g, Mq
+    iexists γs, E, g, hd, Q, Mq
     isplitr; · ipureintro; exact Hs
-    iframe Hsh Hfr Hai Hv' Hg Hq
-    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
+    iframe Hsh Hfr Hai Hav Hv' Hg Hq
+    ipureintro; exact Hok
   imodintro; ipureintro; trivial
 /-- An entered vote's fragment against the authority share. -/
 theorem durShares_vote (γ : RaftNames) (id : w64) (q : Qp) (E : DurMaps) (t c : w64) :

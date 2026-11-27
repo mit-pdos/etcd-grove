@@ -214,20 +214,20 @@ theorem rawNode_vote : rawNode_vote.law (GF := GF) := by
   unfold slotInv
   iinv Hslot with Hb Hclose
   unfold slotBody
-  icases Hb with ⟨%γs', %E', %g, %Mq, >%Hγs', >Hsh', >#Hfr, Hai, >Hv', >Hg, >Hq, >%Hdom, >%Hcur,
-    >%Hb⟩
+  icases Hb with ⟨%γs', %E', %g, %hd, %Q, %Mq, >%Hγs', >Hsh', >#Hfr, Hai, Hav, >Hv', >Hg, >Hq,
+    >%Hok⟩
   icases durShares_agree γ id _ _ E E' $$ Hsh Hsh' with ⟨Hsh, Hsh', %HEE⟩
   subst HEE
   ihave #Hvt : isVote (GF := GF) γ id S.term S.vote $$ []
   · iunfold durFrags at Hfr
     icases Hfr with ⟨#Hvs, -⟩
     iapply BigSepM.bigSepM_lookup (Φ := fun t c => isVote (GF := GF) γ id t c) Hlk $$ Hvs
-  imod Hclose $$ [Hsh' Hai Hv' Hg Hq] with -
+  imod Hclose $$ [Hsh' Hai Hav Hv' Hg Hq] with -
   · inext
-    iexists γs', E, g, Mq
+    iexists γs', E, g, hd, Q, Mq
     isplitr; · ipureintro; exact Hγs'
-    iframe Hsh' Hfr Hai Hv' Hg Hq
-    ipureintro; exact ⟨Hdom, Hcur, Hb⟩
+    iframe Hsh' Hfr Hai Hav Hv' Hg Hq
+    ipureintro; exact Hok
   imodintro
   isplitr
   · iintro !> -; iexact Hvt
