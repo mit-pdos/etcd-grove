@@ -42,7 +42,9 @@ abbrev leaseClient.LeaseKeepAlive.spec : Prop :=
         kaUpZero Up ∗
         cliSendTok (Req := pbLeaseKeepAliveRequest) γ [] ∗
         cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ []) ∨
-      (⌜st = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
+      -- (phase7-s3-interceptor, 2026-11-26) an opening error, without `streamErr`'s error tree
+      -- (`cliOpenErr`; `notes/specs-only/ledger.md`)
+      (⌜st = GoInterface.nil⌝ ∗ cliOpenErr err)) }}
 
 end spec
 

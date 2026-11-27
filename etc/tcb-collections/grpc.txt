@@ -37,7 +37,6 @@ axioms ^(credentials\.perRPCCredential\.GetRequestMetadata|endpoint\.RequiresCre
 axioms ^(transport\.NewTimeoutTransport|httputil\.GracefulClose|types\.NewURLs|leasehttp\.RenewHTTP|rafthttp\.addPeerToProber)\.wp_proof$
 axioms ^rafthttp\.netErrNotRemoved_ok$
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.net.http.initFuncsOk
@@ -143,7 +142,6 @@ axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom types.NewURLs.wp_proof

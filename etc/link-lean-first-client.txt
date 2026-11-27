@@ -290,7 +290,11 @@ strings_SplitN:
 fmt_SprintfArgs:
 context_TODO:
 context_WithCancelTodo: =_root_.Perennial.context.wp_withCancel =_root_.Perennial.context.cancelCtx.wp_cancel =_root_.Perennial.context.cancelCtx.wp_propagateCancel =_root_.Perennial.context.cancelCtx.wp_Done =_root_.Perennial.context.cancelCtx.wp_Err =_root_.Perennial.context.cancelCtx.wp_Value =_root_.Perennial.sync.atomic.Value.wp_Load
-Client__streamClientInterceptor:
+# (phase7-s3-interceptor, 2026-11-26) proved over retry_interceptor.go's body (until then an axiom):
+# `withVersion`, `getToken`, the call options, the logger on `getToken`'s error, `Unimplemented`
+zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
+status_Errorf: =_root_.Perennial.fmt.wp_Sprintf status_Error
+Client__streamClientInterceptor: reuseOrNewWithCallOptions withVersion Client__getToken filterCallOptions Client__GetLogger zap_Error zap_Logger__Error status_Errorf
 # (prove-ps2-rqb, 2026-11-22) `roundRobinQuorumBackoff` proved over the real code: `jitterUp`'s
 # float arithmetic over `rand.Float64` (the trust boundary), zap's `Float64` over Perennial's
 # `math.Float64bits`; `backoffLinearWithJitter` (`defaultOptions`' backoff, in the package initializer)

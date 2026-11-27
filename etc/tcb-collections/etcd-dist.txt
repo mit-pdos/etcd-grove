@@ -17,13 +17,10 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustnes
 # M1 `etcd_kv_safe_nocrash` (etcd_safe_nocrash at kv-only, auth-off deployments; notes/etcd-dist-plan.md §21):
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/kvremote/TopLevelRobustness\.lean$
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
@@ -154,7 +151,6 @@ axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamIcMdIs
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
@@ -216,5 +212,7 @@ opaque peer.transportPeer
 opaque prometheus.vecLabels
 opaque snap.dirReadOk
 opaque storage.dbOpensOk
+opaque streamRepModelOf
+opaque streamReqModelOf
 opaque trace.otelSpan
 opaque v3rpc.ctxCauseOkRaw

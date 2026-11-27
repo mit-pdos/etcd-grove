@@ -158,7 +158,7 @@ theorem Client.dialSetupOpts.wp_proof
   · iapply BigSepL.bigSepL_cons.2; iframe Hm0
     iapply BigSepL.bigSepL_cons.2; iframe Hrro
     iapply BigSepL.bigSepL_nil.2; itrivial
-  wp_apply wp_streamIc c _ [m0, rro] $$ [$Hc $Hl1 $Hros1] as %si %Hsi
+  wp_apply wp_streamIc c _ [m0, rro] $$ [$Hc $Hl1 $Hros1] as %si #Hsi
   wp_apply wp_WithStreamInterceptor si $$ [$Hgrpc] as %o3 #Ho3
   wp_apply wp_withMax nr as %m1 #Hm1
   wp_apply wp_slice_literal (V := go_etcd_io.etcd.client.v3.retryOption) [m1, rro]
@@ -206,7 +206,7 @@ theorem Client.dialSetupOpts.wp_proof
     isplitl []
     · iexact Ho3
     iapply BigSepL2.bigSepL2_singleton.2; iexact Ho4
-  ipureintro; exact Hsi
+  try iexact Hsi
 
 end proof
 

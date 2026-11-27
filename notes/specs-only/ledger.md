@@ -8494,3 +8494,33 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   `srvErrOk` and their receivers are unchanged; no UTF-8 premise.
 - **Decision.** Design (2) approved by the dsverify-net lead and coordinator-E (2026-11-26, in place of widening
   `statusErrOk`); independent axiom review pending before landing.
+## 2026-11-26: the stream stubs' `NewStream` error arm without `streamErr`; `NewStream` interceptor-generic (phase7-s3-interceptor)
+
+- **Spec.** `watchClient.Watch.spec`, `leaseClient.LeaseKeepAlive.spec` (`Spec/go_etcd_io/etcd/api/v3/etcdserverpb/`)
+  and the two that pass the lease stub's error on, `retryLeaseClient.LeaseKeepAlive.spec`, `lessor.resetRecv.spec`
+  (`Spec/go_etcd_io/etcd/client/v3/`): the `nil`-stream arm's `cliStreamErr err`. And the trust-boundary
+  `grpc.ClientConn.NewStream.spec` with the axiomatized `streamIcMdIs`/`streamMdOk` (`InvDial.lean`).
+- **Defect.** (1) `cliStreamErr` holds `streamErr err` (an error tree for every `errors.Is` target). etcd's stream
+  interceptor (`retry_interceptor.go:117-157`) returns two errors of its own: `getToken`'s (its post `clientErrOk`:
+  `clientErr`, `statusErrOk`, `errCellOk`; so are `authClient.Authenticate`'s and `etcdInterceptorOk`'s) and
+  `status.Errorf(codes.Unimplemented, …)` (`max > 0` on a client stream; reachable: a call's `withMax(n)`). A
+  `*status.Error` has an `Is` method, whose spec `statusErrOk`'s `grpcErrMethodsOk` gives only at a target with a
+  `descIs`, so no fact gives `streamErr` of either at every target: the axiom asserted it, and no proof of the
+  interceptor can supply it. (2) `withVersion`'s axiom gives the API version as `∃ v`, so an interceptor over a
+  streamer that states the stream specification only at the actual attempt's metadata cannot give the stubs' post
+  (the specification at every metadata `clientAttemptMd` admits, every `v`).
+- **Evidence.** The only consumers of the arm: `watchGRPCStream__openWatchClient.lean:160` (keeps `statusErrOk`,
+  uses `cliStreamErr_closeErrOk`: `errCellOk`, `statusErrOk`) and `lessor__resetRecv.lean:174` →
+  `lessor__recvKeepAliveLoop.lean:738` (`⟨%Hne, #Hse, -⟩`): neither reads `streamErr`. For (2): the registration
+  (`grpcStreamSvcAt`, `InvGrpcWire.lean:505`) holds `□ ∀ md γ, spec₀ md γ (dn₀ md γ)`, and the stream's content is
+  the table's `dn₀ md γ`, so the specification holds at every metadata.
+- **Change.** (1) The arm becomes `cliOpenErr err` (`InvGrpcStreamer.lean`: `cliStreamErr` without `streamErr`; the
+  stream's own operations keep `cliStreamErr`). (2) `NewStream`'s axiom restated interceptor-generic (WP form, as
+  `Invoke`'s and SpecPlan's): the connection's stream interceptor over grpc's streamer, whose contract
+  `grpcStreamerOk` (trusted text) is the old post at no interceptor with the stream specification at every address
+  and metadata; `streamIcMdIs` (axiom) and `streamMdOk` deleted; the old form at no interceptor is the theorem
+  `NewStreamNoIc_of`, at etcd's interceptor `etcdNewStream_of` (over the proved `Client.streamClientInterceptor`).
+  `filterCallOptions.spec` generalized (a retry option's closure meets any persistent `A`; `callOptsOk` is `A :=
+  retryApplyOk`). No top-level statement changes.
+- **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
+  independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
