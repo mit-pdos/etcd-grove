@@ -1,9 +1,14 @@
 /-
-Trust boundary: `grpc_health_v1.HealthCheckResponse_ServingStatus.String` (an axiom; see `Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`).
+Proof of `Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`,
+over goose's translation of the grpc model's `HealthCheckResponse_ServingStatus.String`
+(`models/grpc/health/grpc_health_v1/health.pb.go`, a `MODEL:` switch in place of protoimpl's
+`EnumStringOf`; prove-healthstr, 2026-11-27, etcd-grove#24 7225943254): the enum's four names for 0-3,
+else `strconv.Itoa`. (Until 2026-11-27 a trust-boundary axiom.)
 -/
 module
 
 public import Spec.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus__String
+public import Spec.strconv.Itoa
 
 @[expose] public section
 
@@ -12,18 +17,43 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
-/-- **Trust boundary** (item 4, the server start): the generated `String` of a protobuf enum returns
-`protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))`: the value's name, or its
-number formatted; it reads only the package's immutable descriptors. -/
-axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof : grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG)
+theorem grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof
+    (hItoa : strconv.Itoa.spec (GF := GF) (hG := hG)) :
+    grpc_health_v1.HealthCheckResponse_ServingStatus.String.spec (GF := GF) (hG := hG) := by
+  intro st
+  wp_start as Hpkg
+  ihave #Hsc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
+  · iPkgInit
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_auto
+  wp_method_call
+  wp_call
+  unfold google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.String.impl
+  wp_auto
+  -- the four names, then the decimal fallback
+  by_cases h0 : st = W32 0
+  · simp only [h0, _root_.decide_true]; wp_auto; iapply HΦ; itrivial
+  simp only [h0, _root_.decide_false]; wp_auto
+  by_cases h1 : st = W32 1
+  · simp only [h1, _root_.decide_true]; wp_auto; iapply HΦ; itrivial
+  simp only [h1, _root_.decide_false]; wp_auto
+  by_cases h2 : st = W32 2
+  · simp only [h2, _root_.decide_true]; wp_auto; iapply HΦ; itrivial
+  simp only [h2, _root_.decide_false]; wp_auto
+  by_cases h3 : st = W32 3
+  · simp only [h3, _root_.decide_true]; wp_auto; iapply HΦ; itrivial
+  simp only [h3, _root_.decide_false]; wp_auto
+  wp_apply hItoa $$ Hsc as %str -
+  iapply HΦ; itrivial
 
 end proof
 

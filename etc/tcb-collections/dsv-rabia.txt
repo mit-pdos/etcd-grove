@@ -26,4 +26,3 @@ axiom Perennial.github_com.rs.zerolog.Event.Msg.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Uint32.wp_proof
 axiom Perennial.os.signal.Notify.wp_proofQuietSigs
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk

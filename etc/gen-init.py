@@ -653,11 +653,12 @@ SPECIAL['runtime'] = dict(
 which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
 model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
 variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
-whose cell is made persistent here), initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
-`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
+whose cell is made persistent here), initializes its imports, and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. Its other 94 initialized
+variables are skipped (goose `[[skip]]`, Perennial's `Code/runtime.toml`: the runtime's own tables and
+state, which no translated code reads), so its initializer does not run them. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated; until 2026-11-27 the
+94 were names-only, run as `X.init`s that the trust-boundary axiom `opaqueInitsOk` said return.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are

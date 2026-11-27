@@ -13,7 +13,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness\.lean$
 axiom Perennial.runtime.initFuncsOk
-axiom Perennial.runtime.opaqueInitsOk
 axiom fmt.SscanfWalName.wp_proof
 axiom hsEncC_ok
 axiom pbEntryC_reg
