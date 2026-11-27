@@ -56,7 +56,6 @@ axiom grpc.ClientConn.Close.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
-axiom grpc.CustomCodec.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof

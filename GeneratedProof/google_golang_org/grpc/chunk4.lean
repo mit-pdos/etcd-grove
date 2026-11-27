@@ -14,6 +14,7 @@ public import GeneratedProof.google_golang_org.grpc.internal.grpcutil
 public import GeneratedProof.google_golang_org.grpc.internal.metadata
 public import GeneratedProof.google_golang_org.grpc.internal.stats
 public import GeneratedProof.google_golang_org.grpc.keepalive
+public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
@@ -1256,7 +1257,7 @@ noncomputable instance serverTransportStream_access_store_state (l : Loc) (v : g
 end def_
 end serverTransportStream
 
-namespace callInfo
+namespace PreparedMsg
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -1264,207 +1265,88 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-noncomputable instance callInfo_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.callInfo where
+noncomputable instance PreparedMsg_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.PreparedMsg where
   typedPointstoDef l v dq := iprop(
-    "compressorName" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"compressorName" l) v.compressorName' dq ∗
-    "failFast" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"failFast" l) v.failFast' dq ∗
-    "maxReceiveMessageSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxReceiveMessageSize" l) v.maxReceiveMessageSize' dq ∗
-    "maxSendMessageSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxSendMessageSize" l) v.maxSendMessageSize' dq ∗
-    "creds" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) v.creds' dq ∗
-    "contentSubtype" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"contentSubtype" l) v.contentSubtype' dq ∗
-    "codec" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"codec" l) v.codec' dq ∗
-    "maxRetryRPCBufferSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxRetryRPCBufferSize" l) v.maxRetryRPCBufferSize' dq ∗
-    "onFinish" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"onFinish" l) v.onFinish' dq ∗
-    "authority" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"authority" l) v.authority' dq ∗
-    "acceptedResponseCompressors" ∷ typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"acceptedResponseCompressors" l) v.acceptedResponseCompressors' dq ∗
+    "encodedData" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"encodedData" l) v.encodedData' dq ∗
+    "hdr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"hdr" l) v.hdr' dq ∗
+    "payload" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"payload" l) v.payload' dq ∗
+    "pf" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"pf" l) v.pf' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance callInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.callInfo google_golang_org.grpc.callInfo.underlying := by
+noncomputable instance PreparedMsg_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PreparedMsg google_golang_org.grpc.PreparedMsg.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance callInfo_access_load_compressorName (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
+noncomputable instance PreparedMsg_access_load_encodedData (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"compressorName" l) v.compressorName' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"compressorName" l) v.compressorName' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"encodedData" l) v.encodedData' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"encodedData" l) v.encodedData' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_store_compressorName (l : Loc) (v : google_golang_org.grpc.callInfo) (compressorName' : GoString) :
+noncomputable instance PreparedMsg_access_store_encodedData (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (encodedData' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"compressorName" l) v.compressorName' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"compressorName" l) compressorName' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compressorName' := compressorName' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"encodedData" l) v.encodedData' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"encodedData" l) encodedData' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encodedData' := encodedData' } : google_golang_org.grpc.PreparedMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_load_failFast (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
+noncomputable instance PreparedMsg_access_load_hdr (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"failFast" l) v.failFast' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"failFast" l) v.failFast' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"hdr" l) v.hdr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_store_failFast (l : Loc) (v : google_golang_org.grpc.callInfo) (failFast' : Bool) :
+noncomputable instance PreparedMsg_access_store_hdr (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (hdr' : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"failFast" l) v.failFast' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"failFast" l) failFast' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with failFast' := failFast' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"hdr" l) v.hdr' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"hdr" l) hdr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := hdr' } : google_golang_org.grpc.PreparedMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_load_maxReceiveMessageSize (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
+noncomputable instance PreparedMsg_access_load_payload (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxReceiveMessageSize" l) v.maxReceiveMessageSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxReceiveMessageSize" l) v.maxReceiveMessageSize' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"payload" l) v.payload' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"payload" l) v.payload' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_store_maxReceiveMessageSize (l : Loc) (v : google_golang_org.grpc.callInfo) (maxReceiveMessageSize' : Loc) :
+noncomputable instance PreparedMsg_access_store_payload (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (payload' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxReceiveMessageSize" l) v.maxReceiveMessageSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxReceiveMessageSize" l) maxReceiveMessageSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxReceiveMessageSize' := maxReceiveMessageSize' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"payload" l) v.payload' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"payload" l) payload' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with payload' := payload' } : google_golang_org.grpc.PreparedMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_load_maxSendMessageSize (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
+noncomputable instance PreparedMsg_access_load_pf (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxSendMessageSize" l) v.maxSendMessageSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxSendMessageSize" l) v.maxSendMessageSize' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"pf" l) v.pf' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"pf" l) v.pf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_store_maxSendMessageSize (l : Loc) (v : google_golang_org.grpc.callInfo) (maxSendMessageSize' : Loc) :
+noncomputable instance PreparedMsg_access_store_pf (l : Loc) (v : google_golang_org.grpc.PreparedMsg) (pf' : google_golang_org.grpc.payloadFormat) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxSendMessageSize" l) v.maxSendMessageSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxSendMessageSize" l) maxSendMessageSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxSendMessageSize' := maxSendMessageSize' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_creds (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) v.creds' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) v.creds' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_creds (l : Loc) (v : google_golang_org.grpc.callInfo) (creds' : _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) v.creds' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) creds' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with creds' := creds' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_contentSubtype (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"contentSubtype" l) v.contentSubtype' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"contentSubtype" l) v.contentSubtype' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_contentSubtype (l : Loc) (v : google_golang_org.grpc.callInfo) (contentSubtype' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"contentSubtype" l) v.contentSubtype' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"contentSubtype" l) contentSubtype' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contentSubtype' := contentSubtype' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_codec (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"codec" l) v.codec' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"codec" l) v.codec' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_codec (l : Loc) (v : google_golang_org.grpc.callInfo) (codec' : google_golang_org.grpc.baseCodec) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"codec" l) v.codec' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"codec" l) codec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with codec' := codec' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_maxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxRetryRPCBufferSize" l) v.maxRetryRPCBufferSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxRetryRPCBufferSize" l) v.maxRetryRPCBufferSize' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_maxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.callInfo) (maxRetryRPCBufferSize' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxRetryRPCBufferSize" l) v.maxRetryRPCBufferSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"maxRetryRPCBufferSize" l) maxRetryRPCBufferSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxRetryRPCBufferSize' := maxRetryRPCBufferSize' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_onFinish (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"onFinish" l) v.onFinish' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"onFinish" l) v.onFinish' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_onFinish (l : Loc) (v : google_golang_org.grpc.callInfo) (onFinish' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"onFinish" l) v.onFinish' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"onFinish" l) onFinish' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onFinish' := onFinish' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_authority (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"authority" l) v.authority' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"authority" l) v.authority' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_authority (l : Loc) (v : google_golang_org.grpc.callInfo) (authority' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"authority" l) v.authority' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"authority" l) authority' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authority' := authority' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_load_acceptedResponseCompressors (l : Loc) (v : google_golang_org.grpc.callInfo) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"acceptedResponseCompressors" l) v.acceptedResponseCompressors' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"acceptedResponseCompressors" l) v.acceptedResponseCompressors' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance callInfo_access_store_acceptedResponseCompressors (l : Loc) (v : google_golang_org.grpc.callInfo) (acceptedResponseCompressors' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"acceptedResponseCompressors" l) v.acceptedResponseCompressors' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"acceptedResponseCompressors" l) acceptedResponseCompressors' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptedResponseCompressors' := acceptedResponseCompressors' } : google_golang_org.grpc.callInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"pf" l) v.pf' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.PreparedMsg go!"pf" l) pf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pf' := pf' } : google_golang_org.grpc.PreparedMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
 end def_
-end callInfo
+end PreparedMsg
 
 end google_golang_org.grpc
 end

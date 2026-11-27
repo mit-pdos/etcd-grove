@@ -14,6 +14,7 @@ public import GeneratedProof.google_golang_org.grpc.internal.grpcutil
 public import GeneratedProof.google_golang_org.grpc.internal.metadata
 public import GeneratedProof.google_golang_org.grpc.internal.stats
 public import GeneratedProof.google_golang_org.grpc.keepalive
+public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
@@ -469,25 +470,6 @@ noncomputable instance modelPicks_access_store_health (l : Loc) (v : google_gola
 
 end def_
 end modelPicks
-
-namespace baseCodec
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance baseCodec_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.baseCodec :=
-  sorry -- axiomatized type
-
-noncomputable instance baseCodec_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.baseCodec google_golang_org.grpc.baseCodec.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end baseCodec
 
 namespace codecV0Bridge
 section def_
@@ -1430,6 +1412,80 @@ noncomputable instance newStreamError_access_store_AllowTransparentRetry (l : Lo
 
 end def_
 end newStreamError
+
+namespace recvQueue
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+noncomputable instance recvQueue_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.recvQueue where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"mu" l) v.mu' dq ∗
+    "items" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"items" l) v.items' dq ∗
+    "signal" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"signal" l) v.signal' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance recvQueue_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.recvQueue google_golang_org.grpc.recvQueue.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance recvQueue_access_load_mu (l : Loc) (v : google_golang_org.grpc.recvQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvQueue_access_store_mu (l : Loc) (v : google_golang_org.grpc.recvQueue) (mu' : _root_.Perennial.sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : google_golang_org.grpc.recvQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvQueue_access_load_items (l : Loc) (v : google_golang_org.grpc.recvQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"items" l) v.items' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"items" l) v.items' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvQueue_access_store_items (l : Loc) (v : google_golang_org.grpc.recvQueue) (items' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"items" l) v.items' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"items" l) items' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := items' } : google_golang_org.grpc.recvQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvQueue_access_load_signal (l : Loc) (v : google_golang_org.grpc.recvQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"signal" l) v.signal' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"signal" l) v.signal' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvQueue_access_store_signal (l : Loc) (v : google_golang_org.grpc.recvQueue) (signal' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"signal" l) v.signal' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvQueue go!"signal" l) signal' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with signal' := signal' } : google_golang_org.grpc.recvQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end recvQueue
 
 end google_golang_org.grpc
 end

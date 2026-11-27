@@ -16,6 +16,25 @@ noncomputable section
 
 namespace google_golang_org.grpc
 
+class traceInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying traceInfo.underlying traceInfo
+  underlying : go.UnderlyingDirectedEq traceInfo.ty traceInfo.underlying
+  get_tr : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"tr") #x (Val #(x.tr'))
+  set_tr : ∀ (x : traceInfo) (y : traceLog), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : traceInfo)))
+  get_firstLine : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"firstLine") #x (Val #(x.firstLine'))
+  set_firstLine : ∀ (x : traceInfo) (y : firstLine), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"firstLine") (PairV #x #y) (Val #(({ x with firstLine' := y } : traceInfo)))
+  method_set : go.MethodSetIs traceInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceInfo.ty) []
+
+attribute [instance] traceInfo.TypeAssumptions.type_repr
+  traceInfo.TypeAssumptions.underlying
+  traceInfo.TypeAssumptions.get_tr
+  traceInfo.TypeAssumptions.set_tr
+  traceInfo.TypeAssumptions.get_firstLine
+  traceInfo.TypeAssumptions.set_firstLine
+  traceInfo.TypeAssumptions.method_set
+  traceInfo.TypeAssumptions.ptr_method_set
+
 class payload.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying payload.underlying payload
   underlying : go.UnderlyingDirectedEq payload.ty payload.underlying

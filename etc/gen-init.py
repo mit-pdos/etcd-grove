@@ -4123,7 +4123,8 @@ NewEncoderID()`, which goose's modelcheck refuses and was the trust-boundary axi
 # reads. Its fact (`internalInit`, `cache/v3/Base.lean`) is the hook cells' invariants
 # (`grpc/internal/Hooks.lean`); a package initializer's store goes through them, lending its package state.
 _GI = 'google_golang_org.grpc.internal'
-_GI_ANY = ['CanonicalString', 'AddGlobalDialOptions',
+_GI_ANY = ['SetDefaultBufferPool', 'SetBufferPoolingThresholdForTesting',
+           'CanonicalString', 'AddGlobalDialOptions',
            'AddGlobalPerTargetDialOptions', 'JoinDialOptions', 'DisableGlobalDialOptions',
            'AcceptCompressors', 'GetServerCredentials', 'IsRegisteredMethod', 'ServerFromContext',
            'AddGlobalServerOptions', 'JoinServerOptions', 'XDSFilterWrapperOption',
@@ -4173,6 +4174,57 @@ other variables with initializers are goose `[[skip]]`s (literals), the rest nam
         + FIN_PRE[:6] + ['try imodintro',
                          f'unfold {_GI_BASE}.internalInit {_GI_BASE}.hooksAny {_GI_BASE}.hooksFunc',
                          f'simp only [{_GI_BASE}.hookCells]', 'iframe #', 'try (imodintro; itrivial)'],
+)
+# (grpc-mem, 2026-11-26) grpc's `internal/mem` and `mem`, imported by grpc since its `baseCodec` names
+# `mem.BufferSlice`: types only but what their initializers run, with the bodies (their `.toml`s)
+_GIM = 'google_golang_org.grpc.internal.mem'
+_GIMB = '_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.mem'
+SPECIAL[_GIM] = dict(
+    doc='''Its fact (`internalMemInit`, `cache/v3/Base.lean`; grpc-mem, 2026-11-26): `uintSize` holds `64` for
+good (no translated code writes it; `newBinaryTiered` reads it). Its initializer allocates
+`BufferPoolingThreshold` and `uintSize`, initializes its imports, runs their translated initializers (the
+constants `1 << 10` and `bits.UintSize`) and its translated `init` function, which stores a closure in
+`internal.SetBufferPoolingThresholdForTesting`, through `internal`'s invariants (`grpc/internal/Hooks.lean`).''',
+    alloc_types={'BufferPoolingThreshold': 'w64', 'uintSize': 'w64'},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks'],
+    after={'init.«0»': hook_fact_steps() + hook_store_steps(['SetBufferPoolingThresholdForTesting'])},
+    finish=['ipersist HuintSize'] + FIN_PRE[:6] + ['try imodintro', f'unfold {_GIMB}.internalMemInit',
+                                                   'iexact HuintSize'],
+)
+_GMEM = 'google_golang_org.grpc.mem'
+# `mem.NewBinaryTieredBufferPool`'s proof, linked over `internal/mem`'s and Perennial's results
+_GMEM_POOL = ('(EtcdGrove.grpc.mem.NewBinaryTieredBufferPool.wp_proof (hG := hG)\n'
+              '      (EtcdGrove.grpc.internal.mem.NewBinaryTieredBufferPool.wp_proof (hG := hG)\n'
+              '        (EtcdGrove.grpc.internal.mem.newBinaryTiered.wp_proof (hG := hG)\n'
+              '          EtcdGrove.grpc.internal.mem.compactExponents.wp_proof _root_.Perennial.slices.wp_Repeat)\n'
+              '        EtcdGrove.grpc.internal.mem.newSizedBufferPool.wp_proof))')
+SPECIAL[_GMEM] = dict(
+    doc='''Its fact is `True` (no translated code reads its variables). Its initializer allocates
+`defaultBufferPoolSizeExponents`, `defaultBufferPool` and `bufferObjectPool`, initializes its imports, runs
+the translated initializers of the first and the third (grpc-mem, 2026-11-26: a slice literal of the exponents
+`8, 12, 14, 15, 20`; a `sync.Pool` literal of a function literal) and its translated `init` function
+(`buffer_pool.go:52`), which builds the default pool (`NewBinaryTieredBufferPool`, proved over `internal/mem`'s
+translation: no error, every exponent being at most `62`, so no panic), stores it in `defaultBufferPool`
+and stores a closure in `internal.SetDefaultBufferPool`, through `internal`'s invariants
+(`grpc/internal/Hooks.lean`).''',
+    alloc_types={'defaultBufferPoolSizeExponents': 'GoSlice', 'defaultBufferPool': 'GoInterface',
+                 'bufferObjectPool': '_root_.Perennial.sync.Pool'},
+    before={'defaultBufferPoolSizeExponents': [
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (V := w8) (l := [W8 8, W8 12, W8 14, W8 15, W8 20])); isplitr;'
+        ' (· ipureintro; rfl); iintro %sExp ⟨SExp, -⟩',
+        'try wp_auto'],
+        # a `sync.Pool` literal of a function literal (built, not called)
+        'bufferObjectPool': ['try wp_auto', 'wp_func_lits', 'try wp_auto']},
+    imports=['Proof.google_golang_org.grpc.internal.Hooks', 'Proof.google_golang_org.grpc.mem.NewBinaryTieredBufferPool',
+             'Proof.google_golang_org.grpc.internal.mem.NewBinaryTieredBufferPool',
+             'Proof.google_golang_org.grpc.internal.mem.newBinaryTiered',
+             'Proof.google_golang_org.grpc.internal.mem.compactExponents',
+             'Proof.google_golang_org.grpc.internal.mem.newSizedBufferPool', 'Perennial.Proof.slices.Link'],
+    after={'init.«0»': ['try wp_auto',
+                        f'wp_apply {_GMEM_POOL} _ [W8 8, W8 12, W8 14, W8 15, W8 20] (by decide) (by decide) $$ [SExp] as %lpool -',
+                        '· iframe SExp; try iexact {Hd:google_golang_org.grpc.internal.mem}',
+                        'try wp_auto'] + hook_fact_steps() + hook_store_steps(['SetDefaultBufferPool'])},
 )
 _GC = 'google_golang_org.grpc.codes'
 SPECIAL[_GC] = dict(

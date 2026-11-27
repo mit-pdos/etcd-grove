@@ -193,6 +193,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
   import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
+  import_mem_Assumption : _root_.Perennial.google_golang_org.grpc.mem.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
   import_grpc_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
@@ -380,6 +381,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_internal_Assumption
   Assumptions.import_keepalive_Assumption
   Assumptions.import_resolver_Assumption
+  Assumptions.import_mem_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_credentials_Assumption
   Assumptions.import_grpc_stats_Assumption

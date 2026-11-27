@@ -14,6 +14,7 @@ public import GeneratedProof.google_golang_org.grpc.internal.grpcutil
 public import GeneratedProof.google_golang_org.grpc.internal.metadata
 public import GeneratedProof.google_golang_org.grpc.internal.stats
 public import GeneratedProof.google_golang_org.grpc.keepalive
+public import GeneratedProof.google_golang_org.grpc.mem
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver

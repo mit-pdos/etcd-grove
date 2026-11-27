@@ -156,7 +156,65 @@ theorem v3rpc.wp_eq_ic (c c' : w64) (s : Stuckness) (E : CoPset) (Φ : val → I
   v3rpc.wp_eq_same _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
     GoGlobalContext.intoVal_inj_w64 c c' s E Φ
 
-/-- The three non-nil kinds of `errKeyOk` keys have different dynamic types. -/
+/-- `errInvalidUTF8` (a field-less struct) has one value, so equality on it is decidable. -/
+instance v3rpc.errInvalidUTF8_decEq :
+    DecidableEq google_golang_org.protobuf.internal.impl.errInvalidUTF8 :=
+  fun a b => isTrue (by cases a; cases b; rfl)
+
+omit ctx_sem bc_sem in
+/-- `==` at `error` of `errInvalidUTF8{}` with itself: `true` (nonleaf-status-errs, 2026-11-26; a
+field-less struct, as `wp_eq_de`). -/
+theorem v3rpc.wp_eq_utf [impl_sem : google_golang_org.protobuf.internal.impl.Assumptions]
+    (s : Stuckness) (E : CoPset) (Φ : val → IProp GF) :
+    Φ #(decide (interface.mkOk google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+        #(zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8) =
+      interface.mkOk google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+        #(zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8))) ⊢
+      WP (App (Val (GoInstruction (GoOp GoEquals go.error)))
+        (Val (PairV
+          #(interface.mkOk google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+            #(zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8))
+          #(interface.mkOk google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+            #(zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8))))) @ s; E {{ Φ }} := by
+  haveI : ⟦CheckComparable google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty, #()⟧ ⤳ #() := by
+    have hf : google_golang_org.protobuf.internal.impl.errInvalidUTF8.fields = [] := by
+      unfold google_golang_org.protobuf.internal.impl.errInvalidUTF8.fields; rfl
+    haveI : ⟦CheckComparable
+        (go.StructType google_golang_org.protobuf.internal.impl.errInvalidUTF8.fields), #()⟧ ⤳[under]
+        #() := by
+      rw [hf]; infer_instance
+    infer_instance
+  haveI : ∀ v1 v2 : google_golang_org.protobuf.internal.impl.errInvalidUTF8,
+      ⟦GoOp GoEquals google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty, (#v1, #v2)⟧ ⤳
+        #(decide (v1 = v2)) := fun v1 v2 => by
+    have hd : decide (v1 = v2) = true := decide_eq_true (by cases v1; cases v2; rfl)
+    rw [hd]
+    infer_instance
+  exact v3rpc.wp_eq_same google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+    (fun a b _ => by cases a; cases b; rfl)
+    (zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8)
+    (zero_val google_golang_org.protobuf.internal.impl.errInvalidUTF8) s E Φ
+
+/-- `errInvalidUTF8`'s type is none of the other `errKeyOk` keys'. -/
+theorem v3rpc.utf_ne_ptr (T : go.GoType) :
+    google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty ≠ go.GoType.PointerType T := by
+  unfold google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty; intro h; cases h
+
+theorem v3rpc.de_ne_utf :
+    _root_.Perennial.context.deadlineExceededError.ty ≠
+      google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty := by
+  unfold _root_.Perennial.context.deadlineExceededError.ty
+    google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+  intro h; cases h
+
+theorem v3rpc.ic_ne_utf :
+    _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty ≠
+      google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty := by
+  unfold _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
+    google_golang_org.protobuf.internal.impl.errInvalidUTF8.ty
+  intro h; cases h
+
+/-- The four non-nil kinds of `errKeyOk` keys have different dynamic types. -/
 theorem v3rpc.de_ne_ptr (T : go.GoType) :
     _root_.Perennial.context.deadlineExceededError.ty ≠ go.GoType.PointerType T := by
   unfold _root_.Perennial.context.deadlineExceededError.ty; intro h; cases h
@@ -172,15 +230,18 @@ theorem v3rpc.de_ne_ic :
     _root_.Perennial.golang_org.x.crypto.bcrypt.InvalidCostError.ty
   intro h; cases h
 
+variable [impl_sem : google_golang_org.protobuf.internal.impl.Assumptions]
+
 /-- **`==` on two `errKeyOk` keys at `error` is equality.** -/
 theorem v3rpc.wp_errKey_eq (k k' : GoInterface) (hk : errKeyOk k) (hk' : errKeyOk k')
     (s : Stuckness) (E : CoPset) (Φ : val → IProp GF) :
     Φ #(decide (k = k')) ⊢
       WP (App (Val (GoInstruction (GoOp GoEquals go.error))) (Val (PairV #k #k'))) @ s; E
         {{ Φ }} := by
-  rcases hk with rfl | ⟨t, l, rfl⟩ | rfl | ⟨c, rfl⟩ <;>
-    rcases hk' with rfl | ⟨t', l', rfl⟩ | rfl | ⟨c', rfl⟩
+  rcases hk with rfl | ⟨t, l, rfl⟩ | rfl | ⟨c, rfl⟩ | rfl <;>
+    rcases hk' with rfl | ⟨t', l', rfl⟩ | rfl | ⟨c', rfl⟩ | rfl
   · exact v3rpc.wp_eq_nil_nil s E Φ
+  · exact v3rpc.wp_eq_nil_ok _ _ s E Φ
   · exact v3rpc.wp_eq_nil_ok _ _ s E Φ
   · exact v3rpc.wp_eq_nil_ok _ _ s E Φ
   · exact v3rpc.wp_eq_nil_ok _ _ s E Φ
@@ -189,14 +250,22 @@ theorem v3rpc.wp_errKey_eq (k k' : GoInterface) (hk : errKeyOk k) (hk' : errKeyO
       (Or.inr ⟨t', l', rfl⟩) s E Φ
   · exact v3rpc.wp_eq_ty_ne _ _ _ _ (v3rpc.de_ne_ptr t).symm s E Φ
   · exact v3rpc.wp_eq_ty_ne _ _ _ _ (v3rpc.ic_ne_ptr t).symm s E Φ
+  · exact v3rpc.wp_eq_ty_ne _ _ _ _ (v3rpc.utf_ne_ptr t).symm s E Φ
   · exact v3rpc.wp_eq_ok_nil _ _ s E Φ
   · exact v3rpc.wp_eq_ty_ne _ _ _ _ (v3rpc.de_ne_ptr t') s E Φ
   · exact v3rpc.wp_eq_de s E Φ
   · exact v3rpc.wp_eq_ty_ne _ _ _ _ v3rpc.de_ne_ic s E Φ
+  · exact v3rpc.wp_eq_ty_ne _ _ _ _ v3rpc.de_ne_utf s E Φ
   · exact v3rpc.wp_eq_ok_nil _ _ s E Φ
   · exact v3rpc.wp_eq_ty_ne _ _ _ _ (v3rpc.ic_ne_ptr t') s E Φ
   · exact v3rpc.wp_eq_ty_ne _ _ _ _ v3rpc.de_ne_ic.symm s E Φ
   · exact v3rpc.wp_eq_ic c c' s E Φ
+  · exact v3rpc.wp_eq_ty_ne _ _ _ _ v3rpc.ic_ne_utf s E Φ
+  · exact v3rpc.wp_eq_ok_nil _ _ s E Φ
+  · exact v3rpc.wp_eq_ty_ne _ _ _ _ (v3rpc.utf_ne_ptr t') s E Φ
+  · exact v3rpc.wp_eq_ty_ne _ _ _ _ v3rpc.de_ne_utf.symm s E Φ
+  · exact v3rpc.wp_eq_ty_ne _ _ _ _ v3rpc.ic_ne_utf.symm s E Φ
+  · exact v3rpc.wp_eq_utf s E Φ
 
 attribute [local instance 1100] v3rpc.errKeys in
 /-- **An `errKeyOk` error is a safe key** of a map at `v3rpc.errKeys`. -/
@@ -205,7 +274,7 @@ theorem v3rpc.safeMapKey_errKeys (k : GoInterface) (hk : errKeyOk k) :
   key_ok := hk
   wp_go_eq_map_key k' hk' s E Φ := v3rpc.wp_errKey_eq k k' hk hk' s E Φ
 
-omit ctx_sem bc_sem in
+omit ctx_sem bc_sem impl_sem in
 /-- A map owned at keys `k1` is owned at any keys `k2` that admit every key `k1` does. -/
 theorem v3rpc.ownMap_keys_mono {K V : Type} [ZeroVal K] [DecidableEq K] [ZeroVal V]
     [go.IntoValInj K] (k1 k2 : MapKeys K) (h : ∀ k, k1.keyOk k → k2.keyOk k) (mp : Loc)
@@ -237,14 +306,14 @@ theorem v3rpc.wp_errMap_lookup2_at (mp : Loc) (M : GMap GoInterface GoInterface)
   iexact Hm2
 
 attribute [local instance 1100] v3rpc.errKeys in
-omit ctx_sem bc_sem in
+omit ctx_sem bc_sem impl_sem in
 /-- A read-only map at `v3rpc.errKeys` is persistent. -/
 instance v3rpc.errMap_persistent (mp : Loc) (M : GMap GoInterface GoInterface) :
     Persistent (letI := v3rpc.errKeys; (mp ↦$□ M : IProp GF)) :=
   ownMap_discarded_persist mp M
 
 attribute [local instance 1100] v3rpc.errKeys in
-omit ctx_sem bc_sem in
+omit ctx_sem bc_sem impl_sem in
 /-- A map at `v3rpc.errKeys` is made read-only (`ipersist`). -/
 instance v3rpc.errMap_update_into_persistently (mp : Loc) (dq : DFrac)
     (M : GMap GoInterface GoInterface) :

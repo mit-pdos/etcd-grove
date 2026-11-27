@@ -14,6 +14,7 @@ public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.keepalive
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.resolver
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.mem
 public import SpecPlan.Spec.PkgInit.net
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.stats

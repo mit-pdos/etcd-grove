@@ -51,6 +51,7 @@ importable Proof.google_golang_org.grpc.grpclog.*
 importable Proof.google_golang_org.grpc.health.*
 importable Proof.google_golang_org.grpc.internal.*
 importable Proof.google_golang_org.grpc.keepalive.*
+importable Proof.google_golang_org.grpc.mem.*
 importable Proof.google_golang_org.grpc.metadata.*
 importable Proof.google_golang_org.grpc.peer.*
 importable Proof.google_golang_org.grpc.reflection.*

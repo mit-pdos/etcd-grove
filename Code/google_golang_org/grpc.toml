@@ -96,7 +96,10 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   "strings", "strconv", "encoding/base64", "google.golang.org/grpc/internal/grpcutil",
   "google.golang.org/grpc/internal/metadata",
   # (W1, 2026-11-26) `NewServer`'s `istats.NewCombinedHandler` and `defaultServerOptions`' `math.MaxUint32`
-  "google.golang.org/grpc/internal/stats", "math"]
+  "google.golang.org/grpc/internal/stats", "math",
+  # (grpc-mem, 2026-11-26) `mem.BufferSlice`, which `baseCodec`'s methods name, so that `baseCodec` is a
+  # translated interface (no longer axiomatized: `CustomCodec`'s conversion to it steps)
+  "google.golang.org/grpc/mem"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

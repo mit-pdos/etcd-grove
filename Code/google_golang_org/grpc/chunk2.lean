@@ -16,6 +16,21 @@ noncomputable section
 
 namespace google_golang_org.grpc
 
+class gzipDecompressor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying gzipDecompressor.underlying gzipDecompressor
+  underlying : go.UnderlyingDirectedEq gzipDecompressor.ty gzipDecompressor.underlying
+  get_pool : ∀ (x : gzipDecompressor), go.IsGoStepPureDetTagged under (StructFieldGet gzipDecompressor.underlying go!"pool") #x (Val #(x.pool'))
+  set_pool : ∀ (x : gzipDecompressor) (y : _root_.Perennial.sync.Pool), go.IsGoStepPureDetTagged under (StructFieldSet gzipDecompressor.underlying go!"pool") (PairV #x #y) (Val #(({ x with pool' := y } : gzipDecompressor)))
+  method_set : go.MethodSetIs gzipDecompressor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gzipDecompressor.ty) [(go!"Do", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Type", (some (go.signature.Signature [] false [go.string]))), (go!"google.golang.org/grpc.doWithMaxSize", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty, go.int64] false [(go.GoType.SliceType go.byte), go.error])))]
+
+attribute [instance] gzipDecompressor.TypeAssumptions.type_repr
+  gzipDecompressor.TypeAssumptions.underlying
+  gzipDecompressor.TypeAssumptions.get_pool
+  gzipDecompressor.TypeAssumptions.set_pool
+  gzipDecompressor.TypeAssumptions.method_set
+  gzipDecompressor.TypeAssumptions.ptr_method_set
+
 class callInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying callInfo.underlying callInfo
   underlying : go.UnderlyingDirectedEq callInfo.ty callInfo.underlying
@@ -342,25 +357,12 @@ attribute [instance] MaxRetryRPCBufferSizeCallOption.TypeAssumptions.type_repr
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.method_set
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.ptr_method_set
 
-class payloadFormat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq payloadFormat.ty payloadFormat.underlying
-  method_set : go.MethodSetIs payloadFormat.ty [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadFormat.ty) [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
-
-attribute [instance] payloadFormat.TypeAssumptions.underlying
-  payloadFormat.TypeAssumptions.method_set
-  payloadFormat.TypeAssumptions.ptr_method_set
-
 class streamReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying streamReader.underlying streamReader
   underlying : go.UnderlyingDirectedEq streamReader.ty streamReader.underlying
-  isUnderlying : go.IsUnderlying streamReader.underlying streamReader.underlying
-  method_set : go.MethodSetIs streamReader.ty [(go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  method_set : go.MethodSetIs streamReader.ty [(go!"Read", (some (go.signature.Signature [go.int] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamReader.ty) []
 
-attribute [instance] streamReader.TypeAssumptions.type_repr
-  streamReader.TypeAssumptions.underlying
-  streamReader.TypeAssumptions.isUnderlying
+attribute [instance] streamReader.TypeAssumptions.underlying
   streamReader.TypeAssumptions.method_set
   streamReader.TypeAssumptions.ptr_method_set
 
@@ -378,26 +380,46 @@ attribute [instance] noCopy.TypeAssumptions.type_repr
 class parser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying parser.underlying parser
   underlying : go.UnderlyingDirectedEq parser.ty parser.underlying
-  isUnderlying : go.IsUnderlying parser.underlying parser.underlying
+  «get__#0» : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"_#0") #x (Val #(x.«_#0'»))
+  «set__#0» : ∀ (x : parser) (y : noCopy), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : parser)))
+  get_r : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"r") #x (Val #(x.r'))
+  set_r : ∀ (x : parser) (y : streamReader), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : parser)))
+  get_header : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"header") #x (Val #(x.header'))
+  set_header : ∀ (x : parser) (y : (GoArray w8 5)), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"header") (PairV #x #y) (Val #(({ x with header' := y } : parser)))
+  get_bufferPool : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"bufferPool") #x (Val #(x.bufferPool'))
+  set_bufferPool : ∀ (x : parser) (y : _root_.Perennial.google_golang_org.grpc.mem.BufferPool), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"bufferPool") (PairV #x #y) (Val #(({ x with bufferPool' := y } : parser)))
   method_set : go.MethodSetIs parser.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parser.ty) [(go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.int] false [payloadFormat.ty, (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parser.ty) [(go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.int] false [payloadFormat.ty, _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error])))]
 
 attribute [instance] parser.TypeAssumptions.type_repr
   parser.TypeAssumptions.underlying
-  parser.TypeAssumptions.isUnderlying
+  parser.TypeAssumptions.«get__#0»
+  parser.TypeAssumptions.«set__#0»
+  parser.TypeAssumptions.get_r
+  parser.TypeAssumptions.set_r
+  parser.TypeAssumptions.get_header
+  parser.TypeAssumptions.set_header
+  parser.TypeAssumptions.get_bufferPool
+  parser.TypeAssumptions.set_bufferPool
   parser.TypeAssumptions.method_set
   parser.TypeAssumptions.ptr_method_set
 
 class payloadInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying payloadInfo.underlying payloadInfo
   underlying : go.UnderlyingDirectedEq payloadInfo.ty payloadInfo.underlying
-  isUnderlying : go.IsUnderlying payloadInfo.underlying payloadInfo.underlying
+  get_compressedLength : ∀ (x : payloadInfo), go.IsGoStepPureDetTagged under (StructFieldGet payloadInfo.underlying go!"compressedLength") #x (Val #(x.compressedLength'))
+  set_compressedLength : ∀ (x : payloadInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet payloadInfo.underlying go!"compressedLength") (PairV #x #y) (Val #(({ x with compressedLength' := y } : payloadInfo)))
+  get_uncompressedBytes : ∀ (x : payloadInfo), go.IsGoStepPureDetTagged under (StructFieldGet payloadInfo.underlying go!"uncompressedBytes") #x (Val #(x.uncompressedBytes'))
+  set_uncompressedBytes : ∀ (x : payloadInfo) (y : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice), go.IsGoStepPureDetTagged under (StructFieldSet payloadInfo.underlying go!"uncompressedBytes") (PairV #x #y) (Val #(({ x with uncompressedBytes' := y } : payloadInfo)))
   method_set : go.MethodSetIs payloadInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadInfo.ty) [(go!"google.golang.org/grpc.free", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] payloadInfo.TypeAssumptions.type_repr
   payloadInfo.TypeAssumptions.underlying
-  payloadInfo.TypeAssumptions.isUnderlying
+  payloadInfo.TypeAssumptions.get_compressedLength
+  payloadInfo.TypeAssumptions.set_compressedLength
+  payloadInfo.TypeAssumptions.get_uncompressedBytes
+  payloadInfo.TypeAssumptions.set_uncompressedBytes
   payloadInfo.TypeAssumptions.method_set
   payloadInfo.TypeAssumptions.ptr_method_set
 
@@ -1038,7 +1060,7 @@ class csAttempt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq csAttempt.ty csAttempt.underlying
   isUnderlying : go.IsUnderlying csAttempt.underlying csAttempt.underlying
   method_set : go.MethodSetIs csAttempt.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType csAttempt.ty) [(go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getTransport", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.newStream", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.any, (go.GoType.PointerType payloadInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.sendMsg", (some (go.signature.Signature [go.any, (go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.int, go.int] false [go.error]))), (go!"google.golang.org/grpc.shouldRetry", (some (go.signature.Signature [go.error] false [go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType csAttempt.ty) [(go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getTransport", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.newStream", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.any, (go.GoType.PointerType payloadInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.sendMsg", (some (go.signature.Signature [go.any, (go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.int, go.int] false [go.error]))), (go!"google.golang.org/grpc.shouldRetry", (some (go.signature.Signature [go.error] false [go.bool, go.error])))]
 
 attribute [instance] csAttempt.TypeAssumptions.type_repr
   csAttempt.TypeAssumptions.underlying
@@ -1221,25 +1243,6 @@ attribute [instance] firstLine.TypeAssumptions.type_repr
   firstLine.TypeAssumptions.set_deadline
   firstLine.TypeAssumptions.method_set
   firstLine.TypeAssumptions.ptr_method_set
-
-class traceInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying traceInfo.underlying traceInfo
-  underlying : go.UnderlyingDirectedEq traceInfo.ty traceInfo.underlying
-  get_tr : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"tr") #x (Val #(x.tr'))
-  set_tr : ∀ (x : traceInfo) (y : traceLog), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"tr") (PairV #x #y) (Val #(({ x with tr' := y } : traceInfo)))
-  get_firstLine : ∀ (x : traceInfo), go.IsGoStepPureDetTagged under (StructFieldGet traceInfo.underlying go!"firstLine") #x (Val #(x.firstLine'))
-  set_firstLine : ∀ (x : traceInfo) (y : firstLine), go.IsGoStepPureDetTagged under (StructFieldSet traceInfo.underlying go!"firstLine") (PairV #x #y) (Val #(({ x with firstLine' := y } : traceInfo)))
-  method_set : go.MethodSetIs traceInfo.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType traceInfo.ty) []
-
-attribute [instance] traceInfo.TypeAssumptions.type_repr
-  traceInfo.TypeAssumptions.underlying
-  traceInfo.TypeAssumptions.get_tr
-  traceInfo.TypeAssumptions.set_tr
-  traceInfo.TypeAssumptions.get_firstLine
-  traceInfo.TypeAssumptions.set_firstLine
-  traceInfo.TypeAssumptions.method_set
-  traceInfo.TypeAssumptions.ptr_method_set
 
 end google_golang_org.grpc
 

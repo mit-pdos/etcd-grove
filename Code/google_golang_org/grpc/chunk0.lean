@@ -12,6 +12,7 @@ public import Perennial.Code.sync
 public import Code.google_golang_org.grpc.internal
 public import Code.google_golang_org.grpc.keepalive
 public import Code.google_golang_org.grpc.resolver
+public import Code.google_golang_org.grpc.mem
 public import Net.Code.net
 public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
@@ -663,21 +664,11 @@ opaque ConnectParams.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque connectivityStateManager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque perTargetDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ForceCodecCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ForceCodecV2CallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque streamReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque parser.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque payloadInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque compressorInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -4146,12 +4137,13 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.math, pkg_id.strings, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.encoding.base64, pkg_id.strconv, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.internal.grpcutil, pkg_id.google_golang_org.grpc.internal.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog, pkg_id.google_golang_org.grpc.internal.grpcsync, pkg_id.google_golang_org.grpc.internal.stats]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.math, pkg_id.strings, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.google_golang_org.grpc.mem, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.encoding.base64, pkg_id.strconv, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.internal.grpcutil, pkg_id.google_golang_org.grpc.internal.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog, pkg_id.google_golang_org.grpc.internal.grpcsync, pkg_id.google_golang_org.grpc.internal.stats]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4298,6 +4290,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.resolver.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.mem.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -4602,11 +4596,10 @@ noncomputable instance equals_unfold_ClientConn [GooseExts] [GoGlobalContext] :
 @[reducible] noncomputable def ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClientConn.fields)
 
-opaque baseCodec.nonempty_type : NonemptyType.{0}
-def baseCodec : Type := baseCodec.nonempty_type.type
-instance baseCodec.nonempty : Nonempty baseCodec := baseCodec.nonempty_type.property
-opaque baseCodec.zero_val : ZeroVal baseCodec := ⟨Classical.ofNonempty⟩
-attribute [instance] baseCodec.zero_val
+abbrev baseCodec [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Marshal" (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error])), (go.InterfaceElem.MethodElem go!"Unmarshal" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error]))])
 
 structure codecV0Bridge [GooseExts] where
   mk ::
@@ -5250,11 +5243,36 @@ noncomputable instance equals_unfold_headerField [GooseExts] [GoGlobalContext] :
 @[reducible] noncomputable def headerField.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType headerField.fields)
 
-opaque PreparedMsg.nonempty_type : NonemptyType.{0}
-def PreparedMsg : Type := PreparedMsg.nonempty_type.type
-instance PreparedMsg.nonempty : Nonempty PreparedMsg := PreparedMsg.nonempty_type.property
-opaque PreparedMsg.zero_val : ZeroVal PreparedMsg := ⟨Classical.ofNonempty⟩
-attribute [instance] PreparedMsg.zero_val
+abbrev payloadFormat [GooseExts] : Type := w8
+
+@[reducible] noncomputable def payloadFormat.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.uint8
+
+structure PreparedMsg [GooseExts] where
+  mk ::
+  encodedData' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice
+  hdr' : GoSlice
+  payload' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice
+  pf' : payloadFormat
+
+noncomputable instance PreparedMsg.zero_val [GooseExts] : ZeroVal PreparedMsg :=
+  ⟨PreparedMsg.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def PreparedMsg.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"encodedData" _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty),
+(go.field_decl.FieldDecl go!"hdr" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"payload" _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty),
+(go.field_decl.FieldDecl go!"pf" payloadFormat.ty)]
+
+@[irreducible] noncomputable def PreparedMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  PreparedMsg.fieldsUnsealed
+
+noncomputable instance equals_unfold_PreparedMsg [GooseExts] [GoGlobalContext] :
+    EqualsUnfold PreparedMsg.fields PreparedMsg.fieldsUnsealed :=
+  ⟨by unfold PreparedMsg.fields; rfl⟩
+
+@[reducible] noncomputable def PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType PreparedMsg.fields)
 
 structure gzipCompressor [GooseExts] where
   mk ::
@@ -5672,16 +5690,10 @@ noncomputable instance equals_unfold_MaxRetryRPCBufferSizeCallOption [GooseExts]
 @[reducible] noncomputable def MaxRetryRPCBufferSizeCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MaxRetryRPCBufferSizeCallOption.fields)
 
-abbrev payloadFormat [GooseExts] : Type := w8
+abbrev streamReader [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def payloadFormat.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.uint8
-
-opaque streamReader.nonempty_type : NonemptyType.{0}
-def streamReader : Type := streamReader.nonempty_type.type
-instance streamReader.nonempty : Nonempty streamReader := streamReader.nonempty_type.property
-opaque streamReader.zero_val : ZeroVal streamReader := ⟨Classical.ofNonempty⟩
-attribute [instance] streamReader.zero_val
+@[reducible] noncomputable def streamReader.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Read" (go.signature.Signature [go.int] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error])), (go.InterfaceElem.MethodElem go!"ReadMessageHeader" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))])
 
 structure noCopy [GooseExts] where
   mk ::
@@ -5702,17 +5714,53 @@ noncomputable instance equals_unfold_noCopy [GooseExts] [GoGlobalContext] :
 @[reducible] noncomputable def noCopy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noCopy.fields)
 
-opaque parser.nonempty_type : NonemptyType.{0}
-def parser : Type := parser.nonempty_type.type
-instance parser.nonempty : Nonempty parser := parser.nonempty_type.property
-opaque parser.zero_val : ZeroVal parser := ⟨Classical.ofNonempty⟩
-attribute [instance] parser.zero_val
+structure parser [GooseExts] where
+  mk ::
+  «_#0'» : noCopy
+  r' : streamReader
+  header' : (GoArray w8 5)
+  bufferPool' : _root_.Perennial.google_golang_org.grpc.mem.BufferPool
 
-opaque payloadInfo.nonempty_type : NonemptyType.{0}
-def payloadInfo : Type := payloadInfo.nonempty_type.type
-instance payloadInfo.nonempty : Nonempty payloadInfo := payloadInfo.nonempty_type.property
-opaque payloadInfo.zero_val : ZeroVal payloadInfo := ⟨Classical.ofNonempty⟩
-attribute [instance] payloadInfo.zero_val
+noncomputable instance parser.zero_val [GooseExts] : ZeroVal parser :=
+  ⟨parser.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def parser.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"_#0" noCopy.ty),
+(go.field_decl.FieldDecl go!"r" streamReader.ty),
+(go.field_decl.FieldDecl go!"header" (go.GoType.ArrayType 5 go.byte)),
+(go.field_decl.FieldDecl go!"bufferPool" _root_.Perennial.google_golang_org.grpc.mem.BufferPool.ty)]
+
+@[irreducible] noncomputable def parser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  parser.fieldsUnsealed
+
+noncomputable instance equals_unfold_parser [GooseExts] [GoGlobalContext] :
+    EqualsUnfold parser.fields parser.fieldsUnsealed :=
+  ⟨by unfold parser.fields; rfl⟩
+
+@[reducible] noncomputable def parser.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType parser.fields)
+
+structure payloadInfo [GooseExts] where
+  mk ::
+  compressedLength' : w64
+  uncompressedBytes' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice
+
+noncomputable instance payloadInfo.zero_val [GooseExts] : ZeroVal payloadInfo :=
+  ⟨payloadInfo.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def payloadInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"compressedLength" go.int),
+(go.field_decl.FieldDecl go!"uncompressedBytes" _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty)]
+
+@[irreducible] noncomputable def payloadInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  payloadInfo.fieldsUnsealed
+
+noncomputable instance equals_unfold_payloadInfo [GooseExts] [GoGlobalContext] :
+    EqualsUnfold payloadInfo.fields payloadInfo.fieldsUnsealed :=
+  ⟨by unfold payloadInfo.fields; rfl⟩
+
+@[reducible] noncomputable def payloadInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType payloadInfo.fields)
 
 abbrev recvCompressor [GooseExts] : Type := GoInterface
 

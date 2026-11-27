@@ -52,6 +52,7 @@ public import Proof.google_golang_org.grpc.internal.grpcutil.Init
 public import Proof.google_golang_org.grpc.internal.metadata.Init
 public import Proof.google_golang_org.grpc.internal.stats.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
+public import Proof.google_golang_org.grpc.mem.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.resolver.Init
