@@ -155,7 +155,7 @@ def EtcdBootC : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (d : Deployment) (_Hd : d.WellFormed) (σs σc σn : List state)
     (_Hp : BootPremises d σs σc σn)
     (_Hfips : crypto.fips140.GodebugFips140Off),
@@ -189,7 +189,7 @@ def EtcdBootCBad : Prop :=
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    [log.NewModel] [net.FieldAssumptions]
+    [log.NewModel]
     (d : Deployment) (_Hd : ¬ d.WellFormed) (σs σc σn : List state)
     (_Hfips : crypto.fips140.GodebugFips140Off),
     letI := etcdNetExtsCrashInterpD4b

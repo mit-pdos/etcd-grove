@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- See the file header. -/
 abbrev storage.syncDir.spec : Prop :=
-  ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+  ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
     (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (n : Nat),
   FsNoErrOn (· = p) → PathFits p →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
