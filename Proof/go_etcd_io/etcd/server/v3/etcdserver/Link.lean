@@ -776,6 +776,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RnNewStorageLinked
 public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.jsoncodec.Linked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftStateLastFits
 public import Proof.bytes.BufferLinked
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__advertiseMatchesCluster
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootClusterRows
@@ -3219,7 +3220,7 @@ theorem raftNode.wp_apply :
 
 theorem EtcdServer.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
-  EtcdServer.run.wp_proof schedule.Scheduler.wp_Stop raftNode.wp_stop EtcdServer.wp_Cleanup storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccImage_stop_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+  EtcdServer.run.wp_proof schedule.Scheduler.wp_Stop raftNode.wp_stop EtcdServer.wp_Cleanup storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule mvcc.api.mvccApi_mvccReaders_split_law_holds mvcc.api.mvccApi_mvccClosed_rest_law_holds mvcc.api.mvccApi_mvccImage_stop_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds raftStateLastFits_law_holds
 
 theorem EtcdServer.wp_Stopping :
     EtcdServer.Stopping.spec (GF := GF) (hG := hG) :=

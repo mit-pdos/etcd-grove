@@ -30,6 +30,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopReadFacts
 
 @[expose] public section
 
@@ -400,7 +401,10 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hCR : mvcc.api.mvccClosed_rest.law (GF := GF))
     (hStop : mvcc.api.mvccImage_stop.law (GF := GF))
     (Hp : mvcc.api.persistent.law (GF := GF))
-    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
+    (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    -- (2026-11-27, the restart axiom's review R2, I2) the interim law: a node's durable log ends within
+    -- its cluster's room (`StopReadFacts.lean`)
+    (hLF : raftStateLastFits.law (GF := GF)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
   intro K C rp A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hmidr, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
@@ -654,7 +658,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvRaftLogInv at Hrl'
   icases Hrl' with ⟨-, #Hcl, -⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, %HbL, -⟩
+  icases Hcl with ⟨#Hiscl, -, -, #Hrfit, -, -, -, -, %HbL, -⟩
   iunfold srvBootApplied at Hba
   icases Hba with ⟨%vb, #Hvb, %hvb⟩
   rw [hρ] at hvb
@@ -676,11 +680,25 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold rnWalClosedW at Hw
   icombine Hst' Hst2 gives %hsteq
   subst hsteq
+  icases Hw with ⟨%cidw, Hw⟩
+  -- (2026-11-27, the restart axiom's review R2) the records' read facts I1-I4 (`walReadFacts`), which
+  -- the restart's contract takes: I1, I4 of the files' read; I3 from raft's durable log at `S`
+  -- (`raftState_logView`); I2 from the interim law `hLF` (`StopReadFacts.lean`)
+  icases walFiles_readShape _ _ _ σ true $$ Hw with ⟨Hw, %Hshape⟩
+  ihave Hrst : raftState C.γr.raft.raft.cl C.rn.id S $$ [Hrst]
+  · rw [hγ]; iexact Hrst
+  imod (letI : StorageModel GF := srvStor C.γr.raft.raft;
+    raftState_logView C.γr.raft.raft.cl C.rn.id S srvClusterN) $$ [Hrst] with ⟨Hrst, %fp, %Hlv, -, -⟩
+  · iframe Hrst Hiscl
+  imod hLF C.γr.raft.raft.cl srvClusterN C.rn.id S $$ [Hrst] with ⟨Hrst, %Hlast⟩
+  · iframe Hrst Hiscl Hrfit
+  have hwrf : walReadFacts σ := walReadFacts_of_stop S σ fp hσ.1 Hshape Hlv.1.1 Hlv.2.2 Hlast
+  ihave Hrst : raftState C.rn.node.cl C.rn.id S $$ [Hrst]
+  · rw [← hγ]; iexact Hrst
   -- (wal-link L3) the WAL's files at its directory, (P2) the data directory's dedicated one (`srvFiles`' form)
   ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗
       walFiles a C.rn.id cid σ true) $$ [Hw]
-  · icases Hw with ⟨%cidw, Hw⟩
-    iexists C.rn.wal.h.toWalA, cidw
+  · iexists C.rn.wal.h.toWalA, cidw
     iframe Hw
     ipureintro; exact hwd
   -- the backend's file
@@ -707,7 +725,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   have h2 := hσ.2.1
   have h3 := hσ.2.2
   rw [hpre] at h2 h3
-  ihave Hσc := wal.stopImage_intro _ S σ ai hσ.1 (by simp at h2; omega) (by simp at h3; omega)
+  ihave Hσc := wal.stopImage_intro _ S σ ai hσ.1 (by simp at h2; omega) (by simp at h3; omega) hwrf
     $$ [Hσc Hdag]
   · iframe Hσc Hdag
   iframe Hvac Hrst HA HM Hfh Hconf Hw Hσc
