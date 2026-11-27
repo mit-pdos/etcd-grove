@@ -507,3 +507,48 @@ Gates (`GATES_FAILFAST=0`, 641s): every gate ok except `featuregate` (fixed by 2
   (`etc/mode-allow.txt` line 94: the restart constructor spec scoped to auth off), with the two baseline rows raised.
 
 Next: the lead's decision on the `mode` classification; then rerun the script (`nogen` skips the regeneration).
+
+### Handoff PIN-1 (2026-11-27; the integration line on lean `cfb65e054f`, Perennial `01f1c6ee1`: built, gates run)
+
+Branch `etcd-safe-integ-pin/2026-11-27` (local worktree `/shared/etcd-grove-integpin`, 32-core host; pushed).
+Perennial: separate checkout `/shared/perennial-01f1c6ee1` (built), manifest copy `/shared/tmp/integpin-manifest.json`
+(perennial as a path entry); the worktree's `.lake/packages/perennial` symlink points at that checkout.
+
+- **Merges, in order** (each `--no-ff`): lean `d3ca204a06` onto integ-f9 `dbfdd1d0d4` (`cc9754f26f`); integ-f9
+  `f6c5a61fbb` (`d06deb1961`), `39f11c5e8b` (`2298623294`), `8fd5e8cb0b` (`8b770c8335`, with `ee5aa3428f`'s
+  MemberCrash/BootBad ports and `53319ac46a`'s featuregate entries: kept as they are, the merged tree's etcd pin is
+  `30df685e43e2`, lean's `df6af0c36a6b` is superseded by ours in `etc/goose.py` and `examples/go.mod`); lean
+  `cfb65e054f` (`b4beca23c4`).
+- **Resolutions (reusable by the lead's F9 line).**
+  - lean `d3ca204a06`: conflicts only in the seven generated PkgTables (`examples/etcd/{all,leaseexpiryN,dist/{client,
+    putget,putgetk,server}}`, `examples/k8s/all`): `git checkout --ours` then `PERENNIAL_DIR=/shared/perennial-01f1c6ee1
+    etc/gen-init.py` (adds `grpc.mem`, `grpc.internal.mem`). STATUS/status-history by the merge drivers (one copy of each
+    entry; history only appended). `etc/tcb-baseline.txt` auto-merged (477 - lean's 6 grpc/health axioms = 471 lines).
+  - lean `cfb65e054f`: `etc/model-param-allow.txt`, both sides appended after the `Txn_Commit_dist` entries: kept both,
+    ours (F9 packet's client-axiom pairs) then lean's S3.4 `streamIcOk/{Req,Rep}` block. STATUS by the drivers.
+  - `etc/tcb-collections/etcd-dist-lease.txt` (ours only): `--check --update`: `-axiom Client.streamClientInterceptor.wp_proof`,
+    `-axiom streamIcMdIs`, `+opaque streamReqModelOf`, `+opaque streamRepModelOf` (the delta lean's S3.4 made to its
+    other collections).
+- **Regeneration.** After each lean merge every generator check is clean: gen-init (292), every gen-link mode, btree
+  link, gen-raft-tla, copy-part, gen-driver-boottable, kitgen, gen-specs-pkginit, gen-k8s-deep, gen-pbschema, gomodels,
+  pb-init, `goose.py --check` (73 projects). The fork pin `30df685e4` is not on github: run goose.py with
+  `ETCD_SRC=<a clone at 30df685e4>` (here `/shared/tmp/integpin-etcd`, cloned from `/shared/etcd-fork-integ`), and give
+  reader-slot/auth-mediation a `.lake/goose/etcd` checkout at that commit (they fail with "cannot fetch" otherwise).
+- **Build.** At `8b770c8335` and at `b4beca23c4`: green (29753 jobs). The first build at `d06deb1961` failed only
+  in MemberCrash/BootBad, as expected (fixed by `ee5aa3428f`).
+- **Gates** (`GATES_FAILFAST=0`, at `b4beca23c4`): build ok; tcb ok (375 axioms, 0 sorries, 91 opaques = lean's 351 + the
+  line's 24; integ-f9 had 385, -10 from lean's grpc-health/mem/S3.4/t18); collections 69 match (after the update above);
+  reader-slot and auth-mediation ok once the etcd source is there; links, copy-part, goose, gomodels, errorf-wrap, api,
+  tier, bounds 389, exit-check, featuregate, dist-axiom-diff, premise-witness, models, remote, issues: ok. FAILED:
+  - `mode`: 466 against the baseline's 457: t10b's 9 literal falses (`NewServer.specC`/`specC_dist`/`specRAt`), the lead's.
+  - `axiom-tok` (rule 2,7, 24 axioms: `KV_Compact_dist`, `RequestProgress_dist`, `Watch_dist`, the `authd.*_dist`,
+    `view.*_dist` ones) and its selftest (`real-pass EtcdServer.leaseTimeToLive` taints `metadata.builtRawMDRaw`/
+    `transportMDRaw`: the same cascade as the allow file's line ~197 note). Cause: lean's S3.4 put the stream
+    interceptor contract (`etcdConnStream` > `etcdStreamIcOk` > `streamIcOk`) into every `isEtcdConn`; lean added
+    entries for its four `KV_Put/Get/Delete/Txn_Commit_dist`, the line's other 24 client axioms need the same.
+  - `model-param` (36): 28 rule-2 findings (the 24 above plus `KV_Put/Get/Delete/Txn_Commit_dist`, reached on this line
+    through `isNewClient` > `clientKVAt`/`kvObjAt`/`etcdWatchConn` > `isEtcdConn` > `etcdConnStream`), and lean's 8
+    S3.4 `streamIcOk/{Req,Rep}` pairs stale ("accepts nothing": the line's binder path differs from lean's).
+  None added: these are trust-review entries for the lead (as K-8's model-param pairs).
+- **Next:** the lead writes the S3.4 axiom-tok entries and model-param pairs for the line's client axioms (and
+  rewrites lean's 8 pairs to the line's path), and classifies mode's 9; then rerun gates.
