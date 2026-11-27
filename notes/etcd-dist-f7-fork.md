@@ -677,3 +677,21 @@ Same worktree, manifest, Perennial and logs (`/shared/tmp/delta-logs/gates2.log`
   comment (the crash line's). Trust delta vs lean: none.
 - **For the lead**: DELTA-3's `ownDurGhost_boot` shape change (a fancy update, untrusted) stands; nothing else new.
 - STATUS entry added (ten kept; the oldest, prove-idfs, appended to status-history: 20075 -> 20076 lines).
+
+### Handoff DELTA-5 (2026-11-27; lean `5512c33c9b` merged, build and gates GREEN)
+
+Same worktree and logs; **new Perennial and manifest**: lean bumped the pin to Perennial `02e741641` (runtime `[[skip]]`s,
+`Perennial.runtime.opaqueInitsOk` retired), so the worktree builds against `/shared/perennial-02e741641` (its `.lake` seeded
+from `/shared/perennial-9065982fa`'s) through `/shared/tmp/delta-manifest-02e.json`; `.lake/packages/perennial` links to it.
+The old `/shared/tmp/delta-manifest.json` (9065982fa) is stale for this branch.
+
+- **Merge**: lean `5512c33c9b` (contains `c773bcc95d`), no conflicts; STATUS and status-history through the merge drivers
+  (ten kept; history only grew: 20076 -> 20079, then 20080 with this session's entry).
+- **Generators**: every `--check` green (gen-raft-tla, copy-part, gen-init with `PERENNIAL_DIR`, gen-link, goose, kitgen,
+  gen-specs-pkginit, gen-k8s-deep, gen-pbschema, gen-driver-boottable). No merge fallout to fix.
+- **Full build + gates** (`/shared/tmp/delta-logs/gates3.log`): `GATES_FAILFAST=0 LAKE_PACKAGES=/shared/tmp/delta-manifest-02e.json
+  PERENNIAL_CHECKOUT=/shared/perennial-02e741641 etc/gates.sh` under the build lock and a 60G cap: build 30481 jobs OK,
+  **gates: all passed** (mode 466 = baseline, bounds 389 = baseline, tier 204 known).
+- **Trust base**: `tcb-report --check` matches `etc/tcb-baseline.txt` (367 axioms, 0 sorries, 90 opaques), identical to lean
+  `5512c33c9b`'s; 70 collections match; `etc/tcb-collections/etcd-dist.txt` differs from lean's only in its header comment.
+  Trust delta vs lean: none.
