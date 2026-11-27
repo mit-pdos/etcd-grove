@@ -9198,3 +9198,22 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   retryApplyOk`). No top-level statement changes.
 - **Decision.** (1) option (a) and (2) decided by the user (through the coordinator, 2026-11-26); (2) with an
   independent axiom review before landing (`notes/axiom-review/s3-interceptor.md`).
+
+## 2026-11-27: the k8s storage library's specs take the etcd client through `k8sClient` (k8s-dist K5)
+
+- **Specs.** `Spec/k8s_io/apiserver/pkg/storage/etcd3/*` that name `StoreCfg.ms`/`V` (store `Get`, `GetList`,
+  `getList`, `pagedChunks`, `Create`, `Delete`, `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `GuaranteedUpdate`, `GetCurrentResourceVersion`, `refreshOnError`, `Watch`, `watcher.Watch`,
+  `watchChan.{run,startWatching,sync,syncPaginated}`, `New`, the compactor's), and the driver's
+  (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/{Apply,Check,call,watchEvents,runWatch}`).
+- **Defect.** Not a wrong spec: the statements hard-code the in-process client (`StoreCfg.ms : List SrvAt`, `V`,
+  `isNewClient … ∗ [∗list] kvRegsAt`, per-member `x.γr.kv`, `noRefusalAt x.addr`), so a client of a cluster over
+  the network (k8s-dist K7, #24 S2) would re-thread about 550 modules.
+- **Evidence.** `notes/k8s-dist-lean-plan.md` §2.3 and §4.1.
+- **Change.** `StoreCfg`'s `ms`/`V` become `K : K8sEtcd GF` (`EtcdClient.lean`); `isStore` holds `k8sClient c.K
+  c.cl`; in the specs `∀ x ∈ c.ms, noRefusalAt x.addr` becomes `c.K.live`, `[∗list]/[∧list] x ∈ c.ms, F x.γr.kv`
+  becomes `[∗list]/[∧list] γ ∈ c.K.kvs, F γ`, `c.ms ≠ []` becomes `c.K.kvs ≠ []`. The in-process instance
+  `inProcEtcd ms V` gives back exactly the old statements (`bigAndL_map`/`bigSepL_map`, definitional `live`).
+  The library's proofs take no client spec as a callee. No top-level statement, axiom, premise or trusted text
+  changes (`k8s_all`'s and authz's `TopLevelRobustness` Spec files byte-identical).
+- **Decision.** Coordinator brief (K5, 2026-11-27); intermediate specs only.
