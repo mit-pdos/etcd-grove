@@ -98,7 +98,8 @@ theorem respChan_recv_au (ch : Loc) (γ : EtcdWatchNames) (Ok : RespOk GF) (n : 
     ipureintro; simp [Hlen]
 
 /-- **Receiving from a watch channel** (`respChan_recv_au` as a triple). -/
-theorem wp_respChan_receive (ch : Loc) (γ : EtcdWatchNames) (Ok : RespOk GF) (n : Nat)
+theorem wp_respChan_receive [github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
+    (ch : Loc) (γ : EtcdWatchNames) (Ok : RespOk GF) (n : Nat)
     (cursor : w64) :
     {{ isRespChan ch γ Ok ∗ etcdWatchConsumer γ n cursor }}
       (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))
