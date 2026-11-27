@@ -109,9 +109,6 @@ attribute [irreducible] Result.ty
 @[reducible] noncomputable def compactRetention [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def kvCheckTimeout [GooseExts] [GoGlobalContext] : val :=
-  #(W64 120000000000)
-
 @[reducible] noncomputable def leaseReadID [GooseExts] [GoGlobalContext] : val :=
   #(W64 7)
 
@@ -3732,9 +3729,11 @@ noncomputable def RunDurable.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RunKV runs the kv workload (see above) with the client machines nodes (client c's at nodes[c],
     its clientv3 client of every endpoint, preferring eps[c mod k]); no set-up (ready at once). A
     client machine that is not listening yet is a call without an answer (no wait: the harness starts
-    the orchestrator once its client machines listen).
+    the orchestrator once its client machines listen). Porcupine's search has no timeout (0): the check
+    always runs to its verdict, Ok or Illegal. The Unknown branch below is kept (porcupine returns
+    Unknown only on a timeout, which a timeout of 0 never sets; the proof does not rely on that).
 
-    go: kv.go:28:6 -/
+    go: kv.go:24:6 -/
 noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nodes"
   (Lam "ops"
@@ -3747,7 +3746,7 @@ noncomputable def RunKV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "nodes"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
-  (Let "$a2" (Val kvCheckTimeout)
+  (Let "$a2" (Val #(W64 0))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.Orch []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
