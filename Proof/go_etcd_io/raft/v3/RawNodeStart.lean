@@ -667,6 +667,7 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
       word) H9
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
     rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk (fun h => absurd HtrG h)
+    (by show uint.Z (W64 0) ≤ _; word)
     $$ [Hc HRb HA]
     as %rn %err ⟨⟨%K, #HKn, HFK⟩, -, %s, %r, Hrn, %Herr, %Hsn2, -⟩
   · -- (2026-11-12, trace-check step 5) untraced: the capability's start is the nil logger
@@ -701,8 +702,8 @@ theorem NewRawNode_restartAt_impl (sc : Option RnMode)
     rw [HtrG]; iframe Hnc
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
-      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs) :
-        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat × Nat) with ⟨%K, HK⟩
+      ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz, sn.history, sn.installs, sn.t0) :
+        Nat × Nat × Nat × Nat × Nat × Nat × Nat × List (Nat × w64) × Bool × Nat × Nat × w64) with ⟨%K, HK⟩
     imod dghostVar_persist K 1 _ $$ HK with #HK
     ihave #HKn : storKeyNames (GF := GF) K sn $$ []
     · unfold storKeyNames; iexact HK
