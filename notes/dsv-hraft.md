@@ -34,6 +34,11 @@ function, no axiom, `sorry` or premise.
 **S4 (2026-11-27, branch `hraft-s4/2026-11-27`): the transport's proof, in progress.** First the two
 program changes coordinator-E approved for it (#48 7228496199; "The kit's changes for the transport
 proof" below), for the next packet to Upamanyu.
+Batch 2: the pure layer (`copyBytes`, `toHeader`/`fromHeader`, the 16 conversions, the size check's 7
+bounds), over `Proof/.../hraftnet/rpctransport/Wire.lean`. Left: the codec laws (the generated codec's
+encodings and decodings of the wire structs), `Conn` (`NewConn`, `get`, `drop`, `Call` over Net's
+`DialTimeout`, `NewClient`, `Client.Go`, `Close`), the transport's methods and `New`, the receiver
+(`RaftRPC`, `deliver`), the pipeline, and the link.
 
 ## Provenance
 
