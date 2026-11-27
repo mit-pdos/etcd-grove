@@ -14,15 +14,13 @@ package dist
 // one store serves all of them.
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
@@ -51,7 +49,9 @@ func storeClients(w Workload) int {
 }
 
 // newKubeClient connects a kubernetes client to eps as the driver's startCluster does
-// (etcdstart's timeouts and keepalive, the default retries), trying until it succeeds.
+// (etcdstart's timeouts and keepalive, the default retries), with no proxy (grpc.WithNoProxy, as
+// etcdstart.NewClients and etcd-dist's clients: every connection goes to an endpoint of eps),
+// trying until it succeeds.
 func newKubeClient(eps []string) *kubernetes.Client {
 	for {
 		kc, err := kubernetes.New(clientv3.Config{
@@ -60,6 +60,7 @@ func newKubeClient(eps []string) *kubernetes.Client {
 			DialKeepAliveTime:    etcdstart.KeepAliveTime,
 			DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
 			Logger:               zap.NewNop(),
+			DialOptions:          []grpc.DialOption{grpc.WithNoProxy()},
 		})
 		if err == nil {
 			return kc
@@ -110,7 +111,7 @@ func StoreNode(w Workload, a int, addrs []string, eps []string) {
 // constrains nothing), a watch's Error event is dropped as Model drops every Error event (the
 // events before it are checked as always). Kubernetes' checker is defined on histories without a
 // failed call, and is skipped in a run with a "compacted" error.
-func RunStore(w Workload, eps []string, addrs []string, ready func()) Result {
+func RunStore(w Workload, eps []string, addrs []string, obs Observer) Result {
 	if !k8s.SetFeatures() {
 		return ended("the features could not be set")
 	}
@@ -126,7 +127,7 @@ func RunStore(w Workload, eps []string, addrs []string, ready func()) Result {
 	if !client.AwaitAccept(addrs) {
 		return ended("an API server machine never answered")
 	}
-	ready()
+	obs.Ready()
 	tbl := seeded.NewCache(w.Clients, w.Ops)
 	var rawLost atomic.Bool
 	var past, pinned atomic.Int64
@@ -160,7 +161,9 @@ func RunStore(w Workload, eps []string, addrs []string, ready func()) Result {
 		comp = "; " + itoa(int(n)) + " compacted errors accepted (" + itoa(int(past.Load())) +
 			" at an explicit old revision, " + itoa(int(pinned.Load())) + " at a pinned one)"
 	}
-	dumpHistory(seeded, lops)
+	if obs.History != nil {
+		obs.History(seeded, lops)
+	}
 	revs := k8s.HistoryRevs(lops)
 	r, mode := CheckShared(seeded, revs, lops, CheckTimeout)
 	full := ""
@@ -193,60 +196,6 @@ func RunStore(w Workload, eps []string, addrs []string, ready func()) Result {
 		return Result{Checked: true, Why: "model only: Kubernetes' checker timed out" + full}
 	}
 	return Result{Checked: true, Why: "model and Kubernetes' checker" + full}
-}
-
-// dumpHistory writes the history ops (without the Raws, which the model does not read) to the file
-// DIST_DUMP names, if any, suffixed with the process's id, with the seeds' revisions, for a check to be rerun or profiled offline
-// (LoadHistory, TestReplayHistory).
-func dumpHistory(seeded k8s.Seeded, ops []porcupine.Operation) {
-	p := os.Getenv("DIST_DUMP")
-	if p == "" {
-		return
-	}
-	h := make([]HistOp, len(ops))
-	for i, op := range ops {
-		out := op.Output.(k8s.Output)
-		out.Raw = k8s.Raw{}
-		h[i] = HistOp{ClientId: op.ClientId, Input: op.Input.(k8s.Input), Output: out, Call: op.Call,
-			Return: op.Return}
-	}
-	var b bytes.Buffer
-	r1, r2 := seeded.SeedRevs()
-	if gob.NewEncoder(&b).Encode(dump{R1: r1, R2: r2, Ops: h}) == nil {
-		os.WriteFile(p+"."+itoa(os.Getpid()), b.Bytes(), 0o644)
-	}
-}
-
-// A HistOp is a store operation as dumpHistory writes it.
-type HistOp struct {
-	ClientId     int
-	Input        k8s.Input
-	Output       k8s.Output
-	Call, Return int64
-}
-
-type dump struct {
-	R1, R2 uint64
-	Ops    []HistOp
-}
-
-// LoadHistory reads a history dumpHistory wrote, with its seeded store.
-func LoadHistory(p string) (k8s.Seeded, []porcupine.Operation, error) {
-	b, err := os.ReadFile(p)
-	if err != nil {
-		return k8s.Seeded{}, nil, err
-	}
-	var d dump
-	if err := gob.NewDecoder(bytes.NewReader(b)).Decode(&d); err != nil {
-		return k8s.Seeded{}, nil, err
-	}
-	h := d.Ops
-	ops := make([]porcupine.Operation, len(h))
-	for i, o := range h {
-		ops[i] = porcupine.Operation{ClientId: o.ClientId, Input: o.Input, Output: o.Output, Call: o.Call,
-			Return: o.Return}
-	}
-	return k8s.SeededAt(d.R1, d.R2), ops, nil
 }
 
 // CheckShared checks the store history ops against SharedModel (revs its HistoryRevs): the lazy

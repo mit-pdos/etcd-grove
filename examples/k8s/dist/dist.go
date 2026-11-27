@@ -29,6 +29,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/anishathalye/porcupine"
+
+	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/etcd3"
+
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/client"
 )
 
@@ -108,11 +112,19 @@ func holdForever() {
 
 func itoa(n int) string { return strconv.Itoa(n) }
 
+// An Observer is what an orchestrator tells its harness, outside what it checks: Ready is called
+// once its set-up is done (the store's seeds, every client machine answering), for the faults to
+// start then; History, if not nil, is given the store's history before it is checked (the test's
+// dump, DIST_DUMP). Orchestrator's is Ready doing nothing and no History.
+type Observer struct {
+	Ready   func()
+	History func(seeded k8s.Seeded, ops []porcupine.Operation)
+}
+
 // MainReady is workload w's orchestrator, against the members' client endpoints eps, its client
 // machines at addrs: it clears the proxy variables, waits for the cluster's first read, and runs
-// the workload. ready is called once its set-up is done (the store's seeds, every client machine
-// answering), for the faults to start then; an observer only.
-func MainReady(w Workload, eps []string, addrs []string, ready func()) Result {
+// the workload, observed by obs.
+func MainReady(w Workload, eps []string, addrs []string, obs Observer) Result {
 	if len(eps) == 0 {
 		return ended("no endpoint")
 	}
@@ -127,9 +139,9 @@ func MainReady(w Workload, eps []string, addrs []string, ready func()) Result {
 		if w.Apiservers < 1 || w.Apiservers > storeClients(w) {
 			return ended("API server count")
 		}
-		return RunStore(w, eps, addrs, ready)
+		return RunStore(w, eps, addrs, obs)
 	case Compactor:
-		return RunCompactor(w, addrs, ready)
+		return RunCompactor(w, addrs, obs.Ready)
 	}
 	return ended("unknown workload")
 }

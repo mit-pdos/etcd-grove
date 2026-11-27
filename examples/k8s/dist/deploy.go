@@ -109,8 +109,8 @@ func WellFormed(d Deployment) error {
 
 // MainDeployment is workload j's orchestrator machine of the deployment d: if d is well formed and
 // has a workload j, MainReady of that workload, the members' client endpoints and the workload's
-// addresses; otherwise it returns at once. ready is MainReady's (an observer only).
-func MainDeployment(d Deployment, j int, ready func()) Result {
+// addresses; otherwise it returns at once. obs is MainReady's (an observer only).
+func MainDeployment(d Deployment, j int, obs Observer) Result {
 	if WellFormed(d) != nil {
 		return ended("the deployment is not well formed")
 	}
@@ -118,14 +118,14 @@ func MainDeployment(d Deployment, j int, ready func()) Result {
 	if !ok {
 		return ended("no such workload")
 	}
-	return MainReady(w, d.Cluster.Endpoints(), addrs, ready)
+	return MainReady(w, d.Cluster.Endpoints(), addrs, obs)
 }
 
 // Orchestrator is workload j's orchestrator machine of the deployment d, as a statement over the
-// deployment names it: MainDeployment with no set-up signal (the test's signal, a file marker, is
-// the harness's), its result discarded (a failed check panics).
+// deployment names it: MainDeployment with no observer (the test's set-up signal, a file marker,
+// and its history dump are the harness's), its result discarded (a failed check panics).
 func Orchestrator(d Deployment, j int) {
-	MainDeployment(d, j, func() {})
+	MainDeployment(d, j, Observer{Ready: func() {}})
 }
 
 // NodeDeployment is the n-th client machine of the deployment d (Deployment.Node): if d is well

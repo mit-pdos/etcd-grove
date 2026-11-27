@@ -37,8 +37,9 @@ type procArgs struct {
 
 // runProcess runs a process of a deployment: a member (etcd-dist's server role: server.Main), or
 // a k8s client machine (roleK8s with a procArgs JSON file): an orchestrator (MainDeployment, its
-// result printed, its set-up done marked by FILE.ready; Orchestrator but for the marker and the
-// line) or a client machine (NodeDeployment, which never returns).
+// result printed, its set-up done marked by FILE.ready, its history dumped (DIST_DUMP);
+// Orchestrator but for the observer and the line) or a client machine (NodeDeployment, which
+// never returns).
 func runProcess(args []string) error {
 	if len(args) == 0 || args[0] != roleK8s {
 		return etcddist.RunProcess(args)
@@ -59,8 +60,8 @@ func runProcess(args []string) error {
 		return fmt.Errorf("NodeDeployment returned")
 	}
 	w, _, _ := a.D.Workload(a.Index)
-	ready := func() { os.WriteFile(args[1]+".ready", nil, 0o644) }
-	fmt.Printf("%s: %v\n", w.Kind, MainDeployment(a.D, a.Index, ready))
+	obs := Observer{Ready: func() { os.WriteFile(args[1]+".ready", nil, 0o644) }, History: dumpHistory}
+	fmt.Printf("%s: %v\n", w.Kind, MainDeployment(a.D, a.Index, obs))
 	return nil
 }
 
