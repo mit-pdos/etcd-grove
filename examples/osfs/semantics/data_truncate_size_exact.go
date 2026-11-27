@@ -40,7 +40,7 @@ import (
 // of the targets, all 8 of them seen).
 //
 // Client: bbolt (C-I1, Proof/go_etcd_io/etcd/server/v3/storage/backend/
-// CrashInterim.lean): DB.grow truncates the file to a page-aligned size and
+// CrashLaws.lean): DB.grow truncates the file to a page-aligned size and
 // fsyncs before any page is written past the old end, so a crash in that
 // window leaves whole pages (bbolt's fileHoldsM).
 func TruncateSizeExact(dir string) {

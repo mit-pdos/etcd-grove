@@ -1,6 +1,6 @@
 /-
 **bbolt's crash record** (W3 of `plans/bbolt-crash-plan.md` §3; Lean-first, no Rocq counterpart): what
-C-I1's `dbCrashKeep`/`dbCrashHole` (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`)
+C-I1's `dbCrashKeep`/`dbCrashHole` (`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashLaws.lean`)
 are, sealed, and the laws of them that need no file reasoning.
 
 `boltCrashRec γ i0 Dl Dn`: half of the committed data at its version `ν` (`boltStateV γ ½ Dn ν`) and the

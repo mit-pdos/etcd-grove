@@ -11,7 +11,7 @@ write; given back with `j` bytes written,
 **Where the update fires** (`cpFired`). When the file system does not fail (`FsNoErr`, which the
 backend's `FsNoErrAll` gives), in the step's first half: right after `metalock.Lock()`, before the
 meta page's `pwrite` starts (`tx.go:612`), which is what C-I1's laws ask of the crash proof
-(`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashInterim.lean`, "Condition"); the write
+(`Proof/go_etcd_io/etcd/server/v3/storage/backend/CrashLaws.lean`); the write
 then lands whole (`commitStep`'s `FsNoErr → j = 4096`), so `j = 0` does not arise. Otherwise on
 landing (`j = 4096`), as before. Between the fire and the landing the data's ghost state is at
 `(Dn, ν + 1)` while the page cache's meta is still `C`'s: no invariant sees the gap, since

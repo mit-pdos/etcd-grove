@@ -39,7 +39,7 @@ public import GooseLang.Ext.Fs.TreeSharedCoh
 public import GooseLang.Ext.Fs.TreeStepLemmas
 public import GooseLang.Ext.Fs.TreeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.BootCrashRes
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashInterim
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CrashLaws
 
 @[expose] public section
 

@@ -36,7 +36,7 @@ gave `New`'s post at any receipt bound, which `New`'s proof does not (false abov
 configuration, `backend/backend.go:230-231` into `bopts.NoSync`/`bopts.NoGrowSync`, which `bolt.Open`
 stores in the `DB`). The one thing the post holds that `New`'s proved post does not: `dbOpts`, bbolt's
 `boltSyncs γ.db` (the `DB`'s two fields persistently `false`), read by the C-I1 laws
-(`backend/CrashInterim.lean`; review `notes/axiom-review/openbackend-dbopts.md`).
+(`backend/CrashLaws.lean`; review `notes/axiom-review/openbackend-dbopts.md`).
 -/
 module
 

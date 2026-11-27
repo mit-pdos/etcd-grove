@@ -1,26 +1,23 @@
 /- Lean-first (no Rocq counterpart).
 
-# C-I1: bbolt's file after a power loss, at the backend's interface (proved)
+# C-I1: bbolt's file after a power loss, at the backend's interface
 
 The crash record `dbCrashKeep γ i0 Dl Dn` of the open database `γ` (its file the inode `i0`, its committed
 data `Dn`, the data `Dl` its file falls back to if the commit that made `Dn` did not reach the disk) and
 the hole `dbCrashHole` it leaves while its half is lent to `Tx.Commit`'s update, defined as bbolt's
 sealed crash record (`Spec/go_etcd_io/bbolt/ApiCrash.lean`: `boltCrashRec`, `boltCrashHole`) under
-`onFs`; and the six laws of it, theorems from bbolt's crash proof over the file extension:
-`dbCrashKeep_new` (a record from a fresh write transaction, under `dbOpts`), `_take`, `_putSame`,
-`_putStep` (the half lent for one update and put back at the same or the next version), `_close`, and
-`dbCrash` (after a power loss, the inode holds `Dl` or `Dn`, every byte durable: `bbolt.fileHoldsMDur`).
+`onFs`. **Proved** (bbolt's crash proof over the file extension): the six laws `dbCrashKeep_new` (a
+record from a fresh write transaction, under `dbOpts`), `_take`, `_putSame`, `_putStep` (the half lent
+for one update and put back at the same or the next version), `_close`, and `dbCrash` (after a power
+loss, the inode holds `Dl` or `Dn`, every byte durable: `bbolt.fileHoldsMDur`).
 
-**What it rests on.** The crash premise `BoltCrashWhole` (`dbCrash`'s `hQ`, one definition,
-`Spec/go_etcd_io/bbolt/CrashPremise.lean`: a torn meta page that validates is one change's, FNV-64a
-collision aside), `dbOpts`'s producer (the axiom `storage.OpenBackend`, `DbOpts.lean`), and the file
-extension's crash semantics. A record exists only for a database past `Open` (`init`'s window is outside
-it: `issues/bbolt-init-not-crash-safe.md`). Reviews of the laws' statements:
-`notes/axiom-review/c-i1-bbolt-crash.md`, `c-i1-takeput.md`, `c-i1-nopath.md`, `c-i1-monotone.md`.
+**The one remaining premise**: `BoltCrashWhole` (`dbCrash`'s `hQ`; `Spec/go_etcd_io/bbolt/CrashPremise.lean`:
+a torn meta page that validates is one change's, FNV-64a collision aside), never vacuous at a crash
+(`boltCrashWhole_exists`). `dbOpts` comes from the axiom `storage.OpenBackend` (`DbOpts.lean`). A record
+exists only for a database past `Open` (`issues/bbolt-init-not-crash-safe.md`).
 
-**Statements.** Each law is the former interim axiom's text, except `dbCrash`, which takes
-`[sem : go.Semantics]` at the old generation's context (the record is over `onFs`, which needs it) and
-concludes `fileHoldsMDur` (`bbolt.fileHoldsMDur_holds` gives the axiom's `fileHoldsM`).
+**Evidence.** Reviews: `notes/axiom-review/c-i1-bbolt-crash.md`, `c-i1-takeput.md`, `c-i1-nopath.md`,
+`c-i1-monotone.md`, `c-i1-swap.md` (with `#print axioms`).
 -/
 module
 
@@ -29,6 +26,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DbOpts
 public import Spec.go_etcd_io.bbolt.ApiCrash
 public import Spec.go_etcd_io.bbolt.CrashPremise
 public import GooseLang.Ext.Fs.CrashTok
+public import GooseLang.Ext.Fs.Tests
 
 @[expose] public section
 
@@ -45,6 +43,11 @@ open Iris Iris.BI Iris.ProofMode
 checksum bytes are as of a change no later than the fields' (review `notes/axiom-review/c-i1-monotone.md`). -/
 abbrev BoltCrashWhole (I : Fs.Ino → Prop) (st st' : Fs.OsState) : Prop :=
   bbolt.BoltCrashWhole I st st'
+
+/-- **`BoltCrashWhole` is never vacuous at a crash** (`bbolt.boltCrashWhole_exists`). -/
+theorem boltCrashWhole_exists (I : Fs.Ino → Prop) {st st' : Fs.OsState} (hok : Fs.Tests.CacheOk st)
+    (hc : Fs.MachineCrash st st') : ∃ st'', Fs.OsCrash st st'' ∧ BoltCrashWhole I st st'' :=
+  bbolt.boltCrashWhole_exists I hok hc
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
