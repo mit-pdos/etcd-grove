@@ -771,7 +771,12 @@ EXTRA_IMPORTS["--antithesis"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.t
                                  # B1's mask, proved
                                  "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessLaws",
                                  "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunInMaskB1",
-                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet"]
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Quiet",
+                                 # (parity B1) node.drain's phases and the simulation's lemmas it takes
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReadyAll",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1ReadStates",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1SendWp",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainB1AdvWp"]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
