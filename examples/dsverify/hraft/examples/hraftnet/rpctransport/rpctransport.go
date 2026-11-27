@@ -375,8 +375,9 @@ func (p *Conn) Call(method string, args any, reply any, d time.Duration) uint64 
 	}
 	call := c.Go(method, args, reply, make(chan *rpc.Call, 1))
 	select {
-	case <-call.Done:
-		if call.Error != nil {
+	case done := <-call.Done:
+		// done is call (net/rpc sends the call on its Done), read as rpc.Client.Call does
+		if done.Error != nil {
 			p.drop(c)
 			return CallFailed
 		}

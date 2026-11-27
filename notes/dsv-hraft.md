@@ -35,9 +35,10 @@ function, no axiom, `sorry` or premise.
 program changes coordinator-E approved for it (#48 7228496199; "The kit's changes for the transport
 proof" below), for the next packet to Upamanyu.
 Batch 2: the pure layer (`copyBytes`, `toHeader`/`fromHeader`, the 16 conversions, the size check's 7
-bounds), over `Proof/.../hraftnet/rpctransport/Wire.lean`. Left: the codec laws (the generated codec's
-encodings and decodings of the wire structs), `Conn` (`NewConn`, `get`, `drop`, `Call` over Net's
-`DialTimeout`, `NewClient`, `Client.Go`, `Close`), the transport's methods and `New`, the receiver
+bounds), over `Proof/.../hraftnet/rpctransport/Wire.lean`. Batch 3: `Conn` (`NewConn`, `get`, `drop`, `Call`
+over Net's `DialTimeout`, `rpc_register`, `NewClient`, `Client.Go`, `Close`, `time.After`;
+`rpctransport/Conn.lean`), with kit change 3. Left: the codec laws (the generated codec's encodings and
+decodings of the wire structs), the transport's methods and `New`, the receiver
 (`RaftRPC`, `deliver`), the pipeline, and the link.
 
 ## Provenance
@@ -224,8 +225,8 @@ alone 8-12 s first). Together: 1459 statements (66.7%) against hr3's 1457 (66.6%
 
 ## The kit's changes for the transport proof (S4)
 
-Two changes to `rpctransport` (the theorem's program), approved by coordinator-E (#48 7228496199), to go
-in the next packet to Upamanyu. The lab's transport contract (`iface/Net.lean`, `isTransport`) was the
+Three changes to `rpctransport` (the theorem's program), for the next packet to Upamanyu: 1 and 2 approved
+by coordinator-E (#48 7228496199), 3 (behavior-preserving) reported on #48 7229406627. The lab's transport contract (`iface/Net.lean`, `isTransport`) was the
 in-process transport's; over Net's net/rpc model it met two differences:
 
 1. **The size check (option B).** Net's `Client.Go.spec` asks that the encoded request fit a frame
@@ -248,7 +249,25 @@ in-process transport's; over Net's net/rpc model it met two differences:
    handler with `go fn(r)` and waits on `respCh` as before: **behavior-preserving** (upstream's
    NetworkTransport runs it on the connection's goroutine, which waits for the answer either way).
 
-The diff (`git diff` of `rpctransport.go`, S1's against S4's):
+3. **`Conn.Call` reads the received call** (S4 batch 3, reported on #48 7229406627): `case done :=
+   <-call.Done: if done.Error != nil`, where S1 read `call.Error` after `case <-call.Done`. Net's
+   `Client.Go.spec` gives the call's outcome (its `Error` field, `callPost`) for the value received on
+   `Done`, not for the `*Call` `Go` returned; net/rpc sends that same `*Call`, and Go's `rpc.Client.Call`
+   reads the received one (`call := <-client.Go(...).Done; return call.Error`). **Behavior-preserving.**
+   Diff:
+
+```diff
+@@ -377,4 +377,5 @@ func (p *Conn) Call(method string, args any, reply any, d time.Duration) uint64
+ 	select {
+-	case <-call.Done:
+-		if call.Error != nil {
++	case done := <-call.Done:
++		// done is call (net/rpc sends the call on its Done), read as rpc.Client.Call does
++		if done.Error != nil {
+ 			p.drop(c)
+```
+
+The diff of changes 1 and 2 (`git diff` of `rpctransport.go`, S1's against S4's batch 1):
 
 ```diff
 @@ -10,4 +10,5 @@
