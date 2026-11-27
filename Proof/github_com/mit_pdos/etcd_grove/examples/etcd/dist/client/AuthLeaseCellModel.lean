@@ -13,7 +13,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WinLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthModel
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Model
 
 @[expose] public section
 

@@ -14,7 +14,7 @@ put is a new pending one.
 module
 
 public import Dsverify.Proof.rabia.Core.Ghost
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.PendModel
 
 @[expose] public section
 

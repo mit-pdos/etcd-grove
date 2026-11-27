@@ -4,7 +4,7 @@ match-mode go_etcd_io/etcd/server/v3/etcdserver 81
 match-mode go_etcd_io/etcd/server/v3/etcdserver/apply 4
 twin go_etcd_io/etcd/client/v3 5
 twin go_etcd_io/etcd/server/v3/etcdserver 4
-lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth 7
+lit-mode github_com/mit_pdos/etcd_grove/examples/lib/authwork 7
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth3 6
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/authN 7
 lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/authlease 1

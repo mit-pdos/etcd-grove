@@ -48,7 +48,7 @@ leased transactions; a weaker premise, callers unaffected). The auth-off `Txn_Co
 **Widened to nested transactions** (F7 S11, 2026-11-26; ledger `notes/specs-only/ledger.md`, review
 `notes/axiom-review/f7-txn-nested-review.md`): no `TxnModel.plain b.model` (a read-only transaction is flat anyway,
 `txnReadonly_plain`), and the write arm takes `client.txnUpdAtOn`'s condition, `txnNestOk` added: a writing
-transaction may nest `OpTxn`s (`examples/etcd/auth`'s T4), as in the in-process `client.client_txn_on`.
+transaction may nest `OpTxn`s (`examples/lib/authwork`'s T4), as in the in-process `client.client_txn_on`.
 
 **Strengthened before approval** (F7 S5, 2026-11-26, the lead's approval #50 06:35Z; needs a fresh review: done, `f9-auth-combined-review.md`, SOUND): `authFloorD` also says every state member `mid` records from the floor's index `i` on is the history's after a committed prefix `L' ⊒ L₀` (`srvReqLogLb γR L'`), the shape `readCheckedD` has after N1 (`f7-getOn-n1.md`'s R1 argument).
 

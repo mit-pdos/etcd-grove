@@ -7,7 +7,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 
-	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
+	"github.com/mit-pdos/etcd-grove/examples/lib/authwork"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -151,7 +151,7 @@ func RunAuthLease(eps []string, ready func()) Result {
 	if err != nil {
 		return ended("authLease: a client failed to connect")
 	}
-	if !auth.SetUp(cli) {
+	if !authwork.SetUp(cli) {
 		return ended("authLease: the set-up failed")
 	}
 	if !barriers(eps) {

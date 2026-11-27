@@ -24,7 +24,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.abse
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.refused
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.checked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ended
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.SetUpDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.SetUpDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.TxnCommitOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVPutOnDist
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.KVGetOnDist
@@ -40,7 +40,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote.C
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRunLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRefusals
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.ForeignRefutes
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkCalls
 public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
@@ -182,7 +182,7 @@ theorem RunAuthLease.wp_proof
   · iframe #
   (try wp_auto)
   -- `auth.SetUp(cli)` through `a0`, the set-up puts offered from the cell
-  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth $$ []
+  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork $$ []
   · iPkgInit
   ihave ⟨%api0, #Huc0⟩ := userClientAt_of_userCli cl a0 V cfg0 Γ $$ [Hu0 Hm0']
   · iframe #

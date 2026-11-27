@@ -1,5 +1,5 @@
 /-
-`Main()` (`examples/etcd/auth/authkv.go`; the auth plan's E2b): **proved** (2026-10-31), over its
+`Main()` (`examples/lib/authwork/authkv.go`; the auth plan's E2b): **proved** (2026-10-31), over its
 callees' specs. Lean-first (no Rocq counterpart).
 
 The steps: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
@@ -21,7 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainAlloc
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section

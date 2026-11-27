@@ -11,7 +11,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.principalOp
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.principalClient
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkDist
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkDist
 public import Spec.go_etcd_io.etcd.client.v3.Client__Close
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.LeaseDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRunLemmas
@@ -53,7 +53,7 @@ theorem principalOp.wp_proof
   wp_start as ⟨⟨Hlt, %sl, %Hsys, #Hsl, #Hms⟩, %Hx, #Henv, %Hw⟩
   obtain ⟨rfl, -⟩ := Hx
   subst Hsys
-  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth $$ []
+  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit

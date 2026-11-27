@@ -25,7 +25,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Inv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Inv
 
 @[expose] public section
 

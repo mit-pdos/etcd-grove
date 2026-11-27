@@ -17,7 +17,7 @@ answer as a function of the state `σ` the update fired at.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Calls
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Base
 
 @[expose] public section
