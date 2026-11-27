@@ -240,7 +240,7 @@ theorem RawNode.Ready.wp_absProof
     fun h => toPState_lead_of_stateW64 s (Hrole1 ▸ h)⟩, Hhs, Hdur, fun e0 he => (Hes e0 he).1,
     by show _ ≡ₚ List.filter _ s.outbox; simpa using Hmsperm, Hto,
     Hdpre, Hdlen, HL⟩, fun e0 he => (Hes e0 he).2.trans Hip, Hip', Hhnew,
-    Hty1, Hxr', fun h => ?_, by rw [Hsts, toRState_p, toPState_rd_states]⟩
+    Hty1, Hxr', (Hscf md hmd).2.2, fun h => ?_, by rw [Hsts, toRState_p, toPState_rd_states]⟩
   -- (antithesis parity B1, group E's S4) the node constant's pre-vote flag the raft state's (`KTie`)
   have hk : NodeK.mk s.prevote s.cq s.sdr = rs.k := (Hscope1 md hmd).2.2.1
   rw [← hk]

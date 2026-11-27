@@ -6890,3 +6890,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Mechanical.** node__start (the conjunct at the start), DrainB1Loop (rsView_role/drain_exit's role projection
   `.2.2.2.2.2.2` → `.2.2.2.2.2.2.1`, the new conjunct kept at `{v with r := r₁, qs := []}`).
 - **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
+
+## 2026-11-26 — antithesis parity B1: RawNode.Ready's messages typed at transfer off (#33)
+- **Spec (lead-approved).** RawNodeAbsSpecs.lean `RawNode.Ready.form`'s `%Hout` gains, after the `XReadyOk` clause,
+  `(md.transfer = false → ∀ q ∈ ms, (absMsgOf q.st).isSome)` (the drain's send side: a protocol message for `netMsg`).
+- **Evidence/Proof.** `RawNode.readyWithoutAccept.spec` already states it (its scope conjunct's last clause, from
+  `XfOk`'s typed-until-a-transfer-request clause); RawNode__ReadyAbs passes it. Part copies.
+- **Not added (needs a Step premise; reported to the lead):** zero Index/LogTerm/Commit/Reject of a handed-out transfer
+  message. A follower forwards a stepped `MsgTransferLeader` with only `To` changed (stepFollower), and raft's Step
+  premise `NetMsgOk` constrains a stepped `MsgTransferLeader` only in its entries and context.
+- **Decision.** The Antithesis lead (2026-11-26). No axiom, no top-level premise.
