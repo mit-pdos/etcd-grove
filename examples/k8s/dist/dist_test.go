@@ -13,6 +13,8 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 
@@ -123,6 +125,18 @@ func TestStoreCodec(t *testing.T) {
 			{Type: watch.Bookmark, Object: &k8s.Obj{ResourceVersion: 9, Annotated: true}},
 			{Type: watch.Error, Object: &metav1.Status{Status: metav1.StatusFailure, Message: "m", Code: 410}}}},
 		{Events: []watch.Event{}},
+		// (G5) every field of a Status, as StatusError and as an Error event's object
+		{Err: apierrors.NewInvalid(schema.GroupKind{Group: "g", Kind: "K"}, "n",
+			field.ErrorList{field.Invalid(field.NewPath("spec", "x"), "v", "bad"), field.Required(field.NewPath("y"), "")})},
+		{Err: apierrors.NewTooManyRequests("slow down", 7)},
+		{Err: &apierrors.StatusError{ErrStatus: metav1.Status{Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{}}}}},
+		{Events: []watch.Event{{Type: watch.Error, Object: &metav1.Status{
+			TypeMeta: metav1.TypeMeta{Kind: "Status", APIVersion: "v1"},
+			ListMeta: metav1.ListMeta{SelfLink: "s", ResourceVersion: "5", Continue: "c", RemainingItemCount: &rem,
+				ShardInfo: &metav1.ShardInfo{Selector: "sel"}},
+			Status: metav1.StatusFailure, Message: "m", Reason: metav1.StatusReasonExpired, Code: 410,
+			Details: &metav1.StatusDetails{Name: "n", Group: "g", Kind: "k", UID: "u", RetryAfterSeconds: 3,
+				Causes: []metav1.StatusCause{{Type: metav1.CauseTypeFieldValueInvalid, Message: "m", Field: "f"}}}}}}},
 	}
 	for _, r := range carried {
 		out := k8s.Output{Err: k8s.ENotFound, ErrKey: str(), ErrRV: 3, ErrMsg: str(), Name: str(), RV: 4,
