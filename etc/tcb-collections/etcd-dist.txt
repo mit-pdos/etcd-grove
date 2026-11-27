@@ -19,8 +19,6 @@ axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
