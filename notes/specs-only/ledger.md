@@ -40,7 +40,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** The premise becomes `GMap.size U.initMap ≤ etcd_dist.typed.maxMembers`, `typed.maxMembers = 1000`
   (= `deployment.MaxMembers`); `ConfigOf.spec`'s and `NodeMain.spec`'s literal 64 become `typed.maxMembers`.
 - **Decision.** Accepted (Upamanyu, 2026-11-27, rule 41 item 2, via the etcd_safe lead); applied on
-  `etcd-safe-rule41/2026-11-27`; the axiom's delta review (`notes/axiom-review/bootstrap-dist.md`) is the lead's.
+  `etcd-safe-rule41/2026-11-27`; the axiom's delta review survives (`notes/axiom-review/bootstrap-dist.md`, 2026-11-27).
 
 ## 2026-11-26: `EtcdServer.leaseTimeToLive`'s contract owns no reply keys (F7 fork, SPECULATIVE)
 

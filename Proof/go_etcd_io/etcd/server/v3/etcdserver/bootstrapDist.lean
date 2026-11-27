@@ -46,7 +46,7 @@ variable [MemStorReg GF]
 (#34's, reviewed with `bootOk`) at the clusters of up to `etcd_dist.typed.maxMembers` (1000) members of one peer URL
 each, with the round tripper's contract `etcd_dist.bootRTOk` for the requests to the other members.
 **The size bound** (raised from 64 to `etcd_dist.typed.maxMembers` = 1000 on 2026-11-27, Upamanyu's approval, rule 41;
-delta review pending in `notes/axiom-review/bootstrap-dist.md`): `bootstrap.spec` itself allows up to `2 ^ 58` entries
+delta review survives, `notes/axiom-review/bootstrap-dist.md`): `bootstrap.spec` itself allows up to `2 ^ 58` entries
 (`bootGo.initMapOk`, `BootValues.lean`), and `etcd_dist.bootstrap.specDist_of_spec` (`dist/BootDist.lean`) derives
 this statement from it without using the bound; the Go argument below names no bound on the cluster's size.
 
