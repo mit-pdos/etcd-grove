@@ -650,25 +650,25 @@ snapshot names); and the new generation's right on the directory (`snap.snapDirO
 on every index's name (`snapSlot`, nothing logged). Gives the new generation's invariant with its crash
 token, at `img'` and `Rm'`, and the restart resources with the kept files `D'` taken. -/
 abbrev snapDir_crash.law : Prop :=
-  ∀ (L L' : GooseLocalGS GF) (c : FsCtx (hG := ⟨G, atC L⟩) GF) (c' : FsCtx (hG := ⟨G, atC L'⟩) GF)
+  ∀ (L L' : GooseLocalGS GF) (c : FsCtx GF) (c' : FsCtx GF)
     (Q : OsState → OsState → Prop) (tt : Bool) (V' : Hist)
     (D : List Ino) (R : Roots) (J : Ino) (sd : GoString) (γd : GName) (img img' : w64 → Data → IProp GF)
     (Rm Rm' : w64 → IProp GF),
-    theFs (hG := ⟨G, atC L⟩) GF = some c → theFs (hG := ⟨G, atC L'⟩) GF = some c' →
+    theFs GF = some c → theFs GF = some c' →
     V'.2 = [] → lookupH R V' sd = some (.dir J) →
     (∀ x ∈ D, ∀ i, V'.now.entry J (snap.snapDBName i) ≠ some (.file x)) →
     ⊢ £ 1 -∗ snapDirKeep (hG := ⟨G, atC L⟩) sd γd img Rm -∗ crashed (hC := (atC L).goose_crashGS) -∗
       □ (∀ j, Rm j -∗ Rm' j) -∗ □ (∀ j Dt, img j Dt -∗ img' j Dt) -∗
       snapDirKept (hG := ⟨G, atC L⟩) R V' sd -∗
-      (letI := FsCtx.S (hG := ⟨G, atC L⟩) c; letI := FsCtx.ok (hG := ⟨G, atC L⟩) c
-       letI := FsCtx.has (hG := ⟨G, atC L⟩) c
+      (letI := FsCtx.S c; letI := FsCtx.ok c
+       letI := FsCtx.has c
        iprop(osSharedInv (L := atC L) R ∗
         crashRest Q (gooseOsGS (L := atC L)) (gooseOsGS (L := atC L')) D tt V')) -∗
       snap.snapDirOwn (hG := ⟨G, atC L'⟩) (snap.snapDBPath sd) -∗
       ([∗list] i ∈ snap.allW64, snapSlot (hG := ⟨G, atC L'⟩) sd J V' i) ={⊤}=∗
       ∃ D' : List Ino, snapDirKeep (hG := ⟨G, atC L'⟩) sd γd img' Rm' ∗
-        (letI := FsCtx.S (hG := ⟨G, atC L⟩) c; letI := FsCtx.ok (hG := ⟨G, atC L⟩) c
-         letI := FsCtx.has (hG := ⟨G, atC L⟩) c
+        (letI := FsCtx.S c; letI := FsCtx.ok c
+         letI := FsCtx.has c
          crashRest Q (gooseOsGS (L := atC L)) (gooseOsGS (L := atC L')) (D' ++ D) tt V')
 
 /-- `snapSaved` is a ghost-map element of the global names: the same at every generation. -/
@@ -679,8 +679,8 @@ theorem snapSaved_gen (L L' : GooseLocalGS GF) (γd : GName) (i : w64) :
 theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
   classical
   intro L L' c c' Q tt V' D R J sd γd img img' Rm Rm' hfs hfs' hV hJ hD
-  obtain ⟨S, ok, has, fa, fsa, ne⟩ := c
-  obtain ⟨S', ok', has', fa', fsa', ne'⟩ := c'
+  obtain ⟨S, ok, has, ne⟩ := c
+  obtain ⟨S', ok', has', ne'⟩ := c'
   have hS : S' = S := has'.sem_eq.symm.trans has.sem_eq
   subst S'
   have hok : ok' = ok := Subsingleton.elim _ _
@@ -693,23 +693,23 @@ theorem snapDir_crash_law_holds : snapDir_crash.law (GF := GF) := by
         fileOldF (atC L) sd img E i Dt := by
     intro E i Dt
     unfold snapFileAt fileOldF fileAtDur fileAtPend
-    rw [onFs_some (hG := ⟨G, atC L⟩) hfs, onFs_some (hG := ⟨G, atC L⟩) hfs]
+    rw [onFs_some hfs, onFs_some hfs]
   have hfileN : ∀ (E : GMap w64 Unit) (i : w64) (Dt : Data),
       (iprop(snapFileAt (hG := ⟨G, atC L'⟩) sd E i Dt ∗ □ img i Dt) : IProp GF) =
         fileOldF (atC L') sd img E i Dt := by
     intro E i Dt
     unfold snapFileAt fileOldF fileAtDur fileAtPend
-    rw [onFs_some (hG := ⟨G, atC L'⟩) hfs', onFs_some (hG := ⟨G, atC L'⟩) hfs']
+    rw [onFs_some hfs', onFs_some hfs']
   have hfreeO : ∀ (i : w64), fileFreeDur (hG := ⟨G, atC L⟩) (snap.snapDBPath sd i) =
       fileFreeDurF (hG := ⟨G, atC L⟩) (snap.snapDBPath sd i) := by
-    intro i; unfold fileFreeDur; rw [onFs_some (hG := ⟨G, atC L⟩) hfs]
+    intro i; unfold fileFreeDur; rw [onFs_some hfs]
   have hfreeN : ∀ (i : w64), fileFreeDur (hG := ⟨G, atC L'⟩) (snap.snapDBPath sd i) =
       fileFreeDurF (hG := ⟨G, atC L'⟩) (snap.snapDBPath sd i) := by
-    intro i; unfold fileFreeDur; rw [onFs_some (hG := ⟨G, atC L'⟩) hfs']
+    intro i; unfold fileFreeDur; rw [onFs_some hfs']
   have hslot : ∀ i, snapSlot (hG := ⟨G, atC L'⟩) sd J V' i = snapSlotF (hG := ⟨G, atC L'⟩) sd J V' i := by
-    intro i; unfold snapSlot; rw [onFs_some (hG := ⟨G, atC L'⟩) hfs']
+    intro i; unfold snapSlot; rw [onFs_some hfs']
   have hkept : snapDirKept (hG := ⟨G, atC L⟩) R V' sd = snapDirKeptF (hG := ⟨G, atC L⟩) R V' sd := by
-    unfold snapDirKept; rw [onFs_some (hG := ⟨G, atC L⟩) hfs]
+    unfold snapDirKept; rw [onFs_some hfs]
   rw [hkept]
   simp only [hslot]
   iintro Hlc Hkeep #Hcrd #Hrm #Himg #Hk ⟨#Hsh, Hcr⟩ Hown Hslots

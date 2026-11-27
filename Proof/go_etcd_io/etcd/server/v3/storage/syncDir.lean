@@ -35,7 +35,7 @@ theorem storage.syncDir.wp_proof
     (wp_Fsync : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt],
       go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG)) :
     storage.syncDir.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ p R j dq qc n hne hfit
+  intro _ _ _ p R j dq qc n hne hfit
   obtain ⟨Sio, hino, h1, h2, hpS⟩ := hne
   haveI := h1; haveI := h2
   have hino' : FsNoErrIno := ⟨Sio, hino, h1, h2, fun _ h => h.elim⟩
