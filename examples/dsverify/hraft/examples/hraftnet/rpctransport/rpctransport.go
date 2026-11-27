@@ -734,11 +734,16 @@ func (s *RaftRPC) RequestPreVote(args *PreVoteReq, reply *PreVoteResp) error {
 	return nil
 }
 
+// installFailed is the error message of a failed install: raft's InstallSnapshot error may be any
+// error (io.Copy's, the sink's, the FSM's Restore's), whose Error() the receiver does not call; the
+// sender only tests the error against nil.
+const installFailed = "rpctransport: snapshot install failed"
+
 func (s *RaftRPC) InstallSnapshot(args *SnapReq, reply *SnapResp) error {
 	resp, err := s.t.deliver(fromSnapReq(args), snapstore.NewReader(args.Data), false)
 	if err != nil {
 		reply.Failed = true
-		reply.Err = err.Error()
+		reply.Err = installFailed
 		return nil
 	}
 	r, ok := resp.(*raft.InstallSnapshotResponse)

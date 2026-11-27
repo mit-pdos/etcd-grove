@@ -247,8 +247,9 @@ alone 8-12 s first). Together: 1459 statements (66.7%) against hr3's 1457 (66.6%
 
 ## The kit's changes for the transport proof (S4)
 
-Three changes to `rpctransport` (the theorem's program), for the next packet to Upamanyu: 1 and 2 approved
-by coordinator-E (#48 7228496199), 3 (behavior-preserving) reported on #48 7229406627. The lab's transport contract (`iface/Net.lean`, `isTransport`) was the
+Four changes to `rpctransport` (the theorem's program), for the next packet to Upamanyu: 1 and 2 approved
+by coordinator-E (#48 7228496199), 3 (behavior-preserving) reported on #48 7229406627, 4 approved by
+coordinator-E (#48, S4b, 2026-11-27). The lab's transport contract (`iface/Net.lean`, `isTransport`) was the
 in-process transport's; over Net's net/rpc model it met two differences:
 
 1. **The size check (option B).** Net's `Client.Go.spec` asks that the encoded request fit a frame
@@ -287,6 +288,30 @@ in-process transport's; over Net's net/rpc model it met two differences:
 +		// done is call (net/rpc sends the call on its Done), read as rpc.Client.Call does
 +		if done.Error != nil {
  			p.drop(c)
+```
+
+4. **`RaftRPC.InstallSnapshot` answers a failed install with a constant message** (S4b): `reply.Err =
+   installFailed` (`"rpctransport: snapshot install failed"`) where S1 sent `err.Error()`. The contract lets
+   raft's `installSnapshot` answer with any non-nil error (`isRpcP`'s `rpcRespAnyP`: `io.Copy`'s, the sink's
+   `Close`, the FSM's `Restore`, `decodePeers`'), whose `Error()` nothing specifies, so calling it cannot be
+   proved. Only the error text the leader gets changes; the leader's raft only tests that error against nil
+   (the contract's InstallSnapshot gives the sender `⌜err ≠ nil⌝`). Not taken: strengthening `rpcRespAnyP` to
+   `errOk`, which would change raft's side (the store and FSM contracts). Diff:
+
+```diff
++// installFailed is the error message of a failed install: raft's InstallSnapshot error may be any
++// error (io.Copy's, the sink's, the FSM's Restore's), whose Error() the receiver does not call; the
++// sender only tests the error against nil.
++const installFailed = "rpctransport: snapshot install failed"
++
+ func (s *RaftRPC) InstallSnapshot(args *SnapReq, reply *SnapResp) error {
+ 	resp, err := s.t.deliver(fromSnapReq(args), snapstore.NewReader(args.Data), false)
+ 	if err != nil {
+ 		reply.Failed = true
+-		reply.Err = err.Error()
++		reply.Err = installFailed
+ 		return nil
+ 	}
 ```
 
 The diff of changes 1 and 2 (`git diff` of `rpctransport.go`, S1's against S4's batch 1):

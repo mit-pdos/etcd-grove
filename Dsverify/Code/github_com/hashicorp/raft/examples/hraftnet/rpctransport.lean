@@ -140,6 +140,9 @@ attribute [irreducible] RaftRPC.ty
 @[reducible] noncomputable def unexpected [GooseExts] [GoGlobalContext] : val :=
   #(go!"rpctransport: unexpected response")
 
+@[reducible] noncomputable def installFailed [GooseExts] [GoGlobalContext] : val :=
+  #(go!"rpctransport: snapshot install failed")
+
 noncomputable def BytesBound [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/hashicorp/raft/examples/hraftnet/rpctransport.BytesBound"
 
@@ -2349,7 +2352,7 @@ noncomputable def RaftRPC.RequestPreVote.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:737:19 -/
+/-- go: rpctransport.go:742:19 -/
 noncomputable def RaftRPC.InstallSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
@@ -2419,7 +2422,7 @@ noncomputable def RaftRPC.InstallSnapshot.impl [GooseExts] [GoGlobalContext] : v
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #()))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val installFailed))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2439,7 +2442,7 @@ noncomputable def RaftRPC.InstallSnapshot.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: rpctransport.go:754:19 -/
+/-- go: rpctransport.go:759:19 -/
 noncomputable def RaftRPC.TimeoutNow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "args"
