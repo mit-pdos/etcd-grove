@@ -37,7 +37,7 @@ theorem store.finalizeList.wp_proof
     (wp_Set : reflect.Value.Set.spec (GF := GF) (hG := hG))
     (wp_SetShard : storage.SelectionPredicate.SetShardInfoOnList.spec (GF := GF) (hG := hG)) :
     store.finalizeList.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c L lx pl pred sel emp rev cont rem remV ag v os rv0 cont0 rem0 hlx
+  intro _ Obj _ sp c L lx pl pred sel emp rev cont rem remV ag v os rv0 cont0 rem0 hlx
   subst hlx
   wp_start as ⟨#Hst, #Hlc, #Hsel, Hag, %hv, Hl, Hrem⟩
   ihave #Pr : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []

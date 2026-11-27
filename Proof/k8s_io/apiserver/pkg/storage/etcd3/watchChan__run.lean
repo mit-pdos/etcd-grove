@@ -44,7 +44,7 @@ theorem watchChan.run.wp_proof
     (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG))
     (wp_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG)) :
     watchChan.run.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 HQok Hhist Hnr Hbm
+  intro _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 HQok Hhist Hnr Hbm
     Hlen
   wp_start as ⟨#Hrs, #Hst, #Hcons, Hir, Hsp, Hra, #Hre, Hps, Hpe, Hproc, %Htb, Htok⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

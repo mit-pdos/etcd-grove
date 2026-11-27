@@ -34,7 +34,7 @@ theorem interpretListError.wp_proof
     (wp_NewResourceExpired : apierrors.NewResourceExpired.spec (GF := GF) (hG := hG))
     (wp_handle : handleCompactedErrorForPaging.spec (GF := GF) (hG := hG)) :
     interpretListError.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ c err paging ck kp henc
+  intro _ Obj _ c err paging ck kp henc
   wp_start as #Herr
   ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit

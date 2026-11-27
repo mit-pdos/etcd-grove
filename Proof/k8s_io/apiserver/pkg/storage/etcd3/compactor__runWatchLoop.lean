@@ -119,7 +119,7 @@ theorem compactor.runWatchLoop.wp_proof
     (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_Errorf : klog.Errorf.spec (GF := GF) (hG := hG)) :
     compactor.runWatchLoop.spec (GF := GF) (hG := hG) := by
-  intro _ _ c cl eps V γk recorded γc sc γs
+  intro _ c cl eps V γk recorded γc sc γs
   wp_start as ⟨Hlt, #Hc, #Hstop, #Hcl, #Hko, #Hwo, #Hkr⟩
   rw [show k8s_io.apiserver.pkg.storage.etcd3.compactRevKey = #compactRevKey from rfl]
   ihave #Hc' := Hc

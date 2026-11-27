@@ -222,7 +222,7 @@ theorem Compact.wp_proof
     (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG))
     (h_client_Compact_kv : client.client_Compact_kv.law (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
+  intro _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
   ihave #Psc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit

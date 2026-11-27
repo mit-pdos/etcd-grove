@@ -69,7 +69,7 @@ theorem Main.wp_proof
     (wp_partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : etcd_partition.Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS k N ids ps ctxs boot clients ops sched steps hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN
+  intro k N ids ps ctxs boot clients ops sched steps hk1 hk Hlen Hbf Htb HLv Hrb48 HrbN
     HwbN Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, Hbrs, #Hsched, Htok, #Hprem⟩
   -- `k == 0` is false

@@ -109,7 +109,7 @@ theorem store.GetList.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GetList.spec (GF := GF) (hG := hG) := by
   have hKind : go.IsStrictlyComparable _root_.Perennial.reflect.Kind.underlying w64 := wp_KindCompare
-  intro _ _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP hnr
+  intro _ Obj _ sp c L ci cd key opts lx rv0 cont0 rem0 k n sel emp Q P hQ hP hnr
   wp_start as ⟨#Hst, %Hpre, #Hsel, #Hlc, #Hrs, #Hctx, #Hce, #Hk8, #Hnd, Htt, %htb, Hlx, HQ, #HP⟩
   obtain ⟨hk, hkl, hrv, hmatch, hcont, hn63, hlim⟩ := Hpre
   ihave #Hst0 := Hst

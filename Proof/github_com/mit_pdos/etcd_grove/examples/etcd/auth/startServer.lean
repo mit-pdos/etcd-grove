@@ -43,7 +43,7 @@ theorem startServer.wp_proof
       NewServer.specM (GF := GF) (hG := hG) true)
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
-  intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
+  intro N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hdirps Haf Hbuq Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg

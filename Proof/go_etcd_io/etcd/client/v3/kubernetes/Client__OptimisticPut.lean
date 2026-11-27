@@ -55,7 +55,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
     (h_txn_Commit_st : etcd_txnlin.txn_Commit_st.law (GF := GF) (hG := hG)) :
     Client.OptimisticPut.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key vsl val rev opts Q hlease hk hv
+  intro _ kc ms V ci cd key vsl val rev opts Q hlease hk hv
   wp_start as ⟨Hlt, #Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hv, Hau⟩
   wp_auto
   wp_apply wp_bytes_to_string vsl val DFrac.discard $$ [Hv] as -

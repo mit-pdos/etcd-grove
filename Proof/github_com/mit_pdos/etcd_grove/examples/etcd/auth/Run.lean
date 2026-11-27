@@ -92,7 +92,7 @@ theorem Run.wp_proof
     (hP : mvcc.api.persistent.law (GF := GF))
     (hR : mvcc.api.mvccState_reachable.law (GF := GF)) :
     Run.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS srv lg addr ρ E₀ γn id γa Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0 hlog
+  intro ES FS RS srv lg addr ρ E₀ γn id γa Hpe Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0 hlog
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨#Hlgz, Haddr, Hup, #Hhist, Hview⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz

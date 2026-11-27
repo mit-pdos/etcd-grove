@@ -66,7 +66,7 @@ theorem SetUp.wp_proof_dist
     (wp_RoleGrantPermission : etcd_dist.authd.Auth_RoleGrantPermission_dist.spec (GF := GF) (hG := hG))
     (wp_AuthEnable : etcd_dist.authd.Auth_AuthEnable_dist.spec (GF := GF) (hG := hG)) :
     SetUp.spec_dist (GF := GF) (hG := hG) := by
-  intro CS EA FA RA π cl api ap eps V Γ cfg γR L₀ hauth hlog hP hAs
+  intro EA FA RA π cl api ap eps V Γ cfg γR L₀ hauth hlog hP hAs
   wp_start as ⟨Hlt, Huc0, Hac0, #HL0, #Hkv, Hview⟩
   iunfold etcd_dist.authd.userClientAt at Huc0
   icases Huc0 with ⟨#Hkc, #Hcfg, %Htok⟩

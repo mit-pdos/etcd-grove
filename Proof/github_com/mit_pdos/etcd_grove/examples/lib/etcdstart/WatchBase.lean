@@ -186,7 +186,8 @@ theorem collectOk_intro (R : Nat → GoString → GoString → IProp GF) (P : Li
   ipureintro; exact h
 
 /-- **Receiving from a client watch channel** (`etcdWatch_recv_au` as a triple). -/
-theorem wp_etcdWatch_receive [EM : EtcdModel GF]
+theorem wp_etcdWatch_receive [github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions]
+    [EM : EtcdModel GF]
     (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n : Nat) (cursor : w64) :
     {{ isEtcdWatchChan ch γ pfx ∗ etcdWatchConsumer γ n cursor }}
       (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))

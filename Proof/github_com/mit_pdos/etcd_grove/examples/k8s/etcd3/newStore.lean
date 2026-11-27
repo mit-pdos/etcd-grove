@@ -64,7 +64,7 @@ theorem newStore.wp_proof
     (wp_GetAnn : Obj.GetAnnotations.spec (GF := GF) (hG := hG))
     (wp_SetAnn : Obj.SetAnnotations.spec (GF := GF) (hG := hG)) :
     newStore.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ kc cl ms V γs γh hAs hmsne Htb
+  intro _ _ kc cl ms V γs γh hAs hmsne Htb
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk objTyOk_holds)
   wp_start as ⟨Hlt, #Hkc, #Hnc, #Hone, #Hregs, #Hsis, Hs⟩
