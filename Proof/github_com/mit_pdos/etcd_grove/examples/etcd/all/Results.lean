@@ -71,6 +71,7 @@ with no connection, along which fewer than `2 ^ 28` threads are live, no thread 
 in a panic, and the main thread's result, if any, is `#()`. -/
 theorem etcd_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     -- restartN's cluster, `k₅` members, and restart1's one member
     (k₅ : w64) (ids₅ ps₅ : List w64) (ctxs₅ : List (List w8))

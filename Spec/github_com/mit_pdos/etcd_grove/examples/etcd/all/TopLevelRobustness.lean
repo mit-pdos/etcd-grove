@@ -65,6 +65,9 @@ The count is the program's `uint64` argument, any value: the premises indexed by
 `Hprem₅`, `Hlow`) are stated at `uint.nat k₅`, and the addresses and data directories (`HAs`, `HDs`,
 `HWal`) are `etcdProgAddrs`/`etcdProgDirs` (`TopLevelDefs.lean`): the clusters' at a count in range,
 none outside, where `MainChecked` starts no member.
+`cache_sem` (the Goose type assumptions of etcd's `cache` package, which restartN's and restart1's
+triples take) was part of `package_sem` until 2026-11-27 (`etcdall`'s `Assumptions` reached it through
+the cache driver's package); with that driver gone it is stated on its own, as leaseexpiryN's theorem did.
 -/
 module
 
@@ -108,6 +111,7 @@ panic. -/
 def etcd_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
     -- restartN's cluster, `k₅` members, and restart1's one member
     (k₅ : w64) (ids₅ ps₅ : List w64) (ctxs₅ : List (List w8))
