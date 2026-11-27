@@ -154,8 +154,10 @@ theorem repeat_foreignL_rv (n : Nat) (h : HSt) (hw : uint.nat h.st.rv + n < 2 ^ 
 /-- `skipToL` reaches the target (below `2^64`), or stays above it. -/
 theorem skipToL_rv (h : HSt) (t : Nat) (ht : t < 2 ^ 64) :
     uint.nat (skipToL h t).st.rv = max (uint.nat h.st.rv) t := by
-  unfold skipToL
-  rw [repeat_foreignL_rv _ _ (by omega)]; omega
+  by_cases hle : t ≤ uint.nat h.st.rv
+  · rw [skipToL_le h t hle]; omega
+  · unfold skipToL
+    rw [repeat_foreignL_rv _ _ (by omega)]; omega
 
 end go
 

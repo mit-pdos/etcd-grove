@@ -149,7 +149,13 @@ fk-lean1).
 ## Handoff K4-2 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
 
 K4-2 started §6 in Lean: the model and the search as definitions, the statement, the first layer of the
-renaming. **Not proved yet: the invariance of `mstepL`/`mlistL`/`watchOkL` and the theorem.**
+renaming. **Build state (fk-lean1, WIP commit `94b6edf709`):** `SharedSem.lean` compiles;
+`SharedSearch.lean` had one error, `skipToL_rv` (line 158, `omega`: the `t ≤ rv` case), fixed afterwards
+by a case split on `skipToL_le` but **not rebuilt**; `SharedRename.lean` was **never compiled** (it waits
+on `SharedSearch`): expect small fixes there (`renItem_zItem`'s `simp`, `preOkL_ren`'s `word` steps and
+final `simp`/`congr`, `setStepI_ren`'s case simps, `changeAtL_self`'s `simp only` lemma names). First step
+of K4-3: build `Proof.github_com.mit_pdos.etcd_grove.examples.k8s.dist.SharedRename` on fk-lean1 (the
+branch's worktree there is seeded) and fix. **Not proved yet: the invariance of `mstepL`/`mlistL`/`watchOkL` and the theorem.**
 
 **In Lean** (`Proof/.../examples/k8s/dist/`, pure, over `KSteps.lean`'s cone; no axiom, no `sorry`):
 
