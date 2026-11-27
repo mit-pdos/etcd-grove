@@ -81,6 +81,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
+  unfold isInit
   unfold _root_.Perennial.errors.newVar
   isplitr
   · iexists _; iframe HErrNoSnapshot SErrNoSnapshot MErrNoSnapshot
