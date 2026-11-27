@@ -165,12 +165,14 @@ The port is step by step (`/shared/tmp/ps2/hraft/PLAN.md`, section 2; the drift 
   them as every generated Link). Every `wp_proof` is applied to its callees' results: raft's and snapstore's
   own, Perennial's (`bytes`, `errors`, `fmt`, `strconv`, `strings`, `sync`, `sync/atomic`, `time` Links) and
   `FmtErrorf`'s theorem for the one `spec_<v>` variant a proof takes (`fmt.wp_Errorf_tnErr`; the generator
-  refuses an axiom there). The results are `Perennial.EtcdGrove.dsvhraft.<pre>.wp_<f>`
-  (`etc/proof_roots.py`: every Link's results are under `Perennial.EtcdGrove`). Trust base: collection
-  `etc/tcb-collections/dsv-hraft.txt`. **Not linked yet:** the cone of `io.Copy.spec`/`io.Copy_Discard.spec`
-  (`Spec/io/Copy.lean`, no proof yet: branch `hraft-iocopy/2026-11-27`), the generator's `PENDING`:
-  `Raft.installSnapshot` and, through it, `processRPC`, `runFollower`, `runCandidate`, `leaderLoop`,
-  `runLeader`, `run` and `NewRaft` (8 of the 188 proofs; 166 of raft's 174 and snapstore's 14 are linked). When `io.Copy`'s proof lands, empty `PENDING` and regenerate.
+  refuses an axiom there). The results are `Perennial.EtcdGrove.raft.<…>.wp_<f>` and
+  `Perennial.EtcdGrove.snapstore.<…>.wp_<f>` (`etc/proof_roots.py`: every Link's results are under
+  `Perennial.EtcdGrove`; the package's qualifier first, as `etc/verified-code.py` reads a result). Trust base: collection
+  `etc/tcb-collections/dsv-hraft.txt` (none of this repository's axioms or `sorry`s). All 188 proofs are linked:
+  `Raft.installSnapshot`'s `io.Copy.spec`/`io.Copy_Discard.spec` (`Spec/io/Copy.lean`) by `Proof/io/Copy.lean`
+  (branch `hraft-iocopy`), `Copy_Discard`'s over Perennial's `sync.Pool.wp_Get`/`wp_Put`; until then that cone
+  (`installSnapshot`, `processRPC`, `runFollower`, `runCandidate`, `leaderLoop`, `runLeader`, `run`, `NewRaft`)
+  was left out (the generator's `PENDING`, now empty).
 
 ## The kit (S1)
 
