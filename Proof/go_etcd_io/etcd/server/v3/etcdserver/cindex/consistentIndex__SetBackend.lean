@@ -34,7 +34,7 @@ theorem consistentIndex.SetBackend.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   unfold isCI
-  icases Hci with ⟨#Hinv, #Hmu⟩
+  icases Hci with ⟨#Hinv, #Hmu, #Hpmu⟩
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HL⟩
   iunfold ciLockInv at HL
   iunfold ciOwner at Hown
@@ -46,7 +46,7 @@ theorem consistentIndex.SetBackend.wp_proof
   wp_auto
   ihave ⟨Hb, Hb'⟩ := (ciBe_halves ci be).2 $$ Hb
   wp_apply_core (hS ci γ (W64 0) (W64 0)) $$ [] [HΦ Hb Hb' Hlocked defer]
-  · iframe Hpkg; unfold isCI; iframe Hinv Hmu
+  · iframe Hpkg; unfold isCI; iframe Hinv Hmu Hpmu; ipureintro; intro h; exact absurd rfl h
   imod HΦ with ⟨%k, Hk, HΦ⟩
   imodintro
   iexists k

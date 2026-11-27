@@ -30,58 +30,66 @@ theorem consistentIndex.UnsafeSave.wp_proof
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) := by
   intro ci γ tx TM PTi PTt m
   wp_start as ⟨#Hci, #Hw, HTM, HPi, HPt⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
   unfold isCI
-  icases Hci with ⟨#Hinv, -⟩
-  wp_auto
-  -- the index: the linearization point
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt ci tx]
+  icases Hci with ⟨#Hinv, -, #Hpmu⟩
+  (try wp_auto)
+  -- (keepfix-d) the pair mutex: the term field, the index's second mirror and the predicate
+  wp_apply sync.Mutex.wp_Lock $$ [$Hpmu] as ⟨Hlocked, HL⟩
+  iunfold ciPairInv at HL
+  icases HL with ⟨%kl, %tl, Hpk, Hterm, %HP⟩
+  (try wp_auto)
+  -- the index: the linearization point; under the pair mutex it is the mutex's `kl`
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt Hpk Hterm Hlocked ci tx]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
   imodintro
   inext
   unfold ciInv
-  icases Hi with ⟨%k0, %t0, Hidx, Hg, Hterm⟩
+  icases Hi with ⟨%k0, Hidx, Hg, Hpk0⟩
   iexists k0
   iframe Hidx
   iintro Hidx
   unfold ciIdx
   icombine Hk Hg gives %Heq
   obtain ⟨_, rfl⟩ := Heq
+  icombine Hpk0 Hpk gives %Heq'
+  obtain ⟨_, rfl⟩ := Heq'
   imod HΦ $$ Hk with ⟨%Hmono, HΦ⟩
-  imod Hclose $$ [Hidx Hg Hterm] with -
-  · inext; iexists k, t0; iframe
+  imod Hclose $$ [Hidx Hg Hpk0] with -
+  · inext; iexists k; iframe
   imodintro
-  wp_auto
-  -- the term
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt tx index]
+  (try wp_auto)
+  -- the term: owned under the pair mutex
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ HTM HPi HPt Hpk Hterm Hlocked ci tx index]
   · iPkgInit
-  iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
-  icases Hi with ⟨%k1, %t1, Hidx, Hg, Hterm⟩
-  iexists t1
+  iexists tl
   iframe Hterm
   iintro Hterm
   imod Hmask with -
-  imod Hclose $$ [Hidx Hg Hterm] with -
-  · inext; iexists k1, t1; iframe
   imodintro
-  wp_auto
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hpmu $Hlocked Hpk Hterm]
+  · inext; iunfold ciPairInv; iexists k, tl; iframe Hpk Hterm; ipureintro; exact HP
+  (try wp_auto)
   wp_bind (App (App (App (Val (@! schema.UnsafeUpdateConsistentIndex)) (Val #(GoInterface.ok tx)))
-      (Val #k)) (Val #t1))
-  iapply (hu tx TM PTi PTt m k t1) $$ [HTM HPi HPt]
+      (Val #k)) (Val #tl))
+  iapply (hu tx TM PTi PTt m k tl) $$ [HTM HPi HPt]
   · iframe Hsch Hw HTM HPi HPt
     ipureintro; exact Hmono
   inext
   iintro HTM
-  wp_auto
-  iapply HΦ $$ HTM
+  (try wp_auto)
+  iapply HΦ $$ %tl %HP HTM
 
 end proof
 

@@ -25,6 +25,33 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: the cindex specs -- the saved term is unconstrained; the Go race that kept it so is fixed (keepfix-d, fork 01b0497d0)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/`: `NewConsistentIndex.spec`,
+  `consistentIndex.{SetConsistentIndex,UnsafeSave,ConsistentIndex,UnsafeConsistentIndex}.spec`; the vocabulary
+  `isCI`/`ciInv`/`CINames` (`Proof/.../etcdserver/InvCindex.lean`). No `SpecPlan/` counterpart.
+- **Defect.** Too weak for the keep guard's replacement: `UnsafeSave`'s post gives `TM (metaAfterSave m k t)` for any
+  `t` (`∀ t`), because `SetConsistentIndex` stored the index and the term in two atomic steps, and a concurrent
+  `UnsafeSave` could save a new index with the old term (the file header, "the specs say nothing about the term for
+  that reason"). The boot step (`catchUpWithBackend`) labels raft's start snapshot with the stored term, so the crash
+  image needs "the stored term is the committed term of the stored index" (T10's row, keepfix-d row 4), which
+  starts here.
+- **Evidence.** `nonissues/etcd-cindex-torn-index-term.md`: the torn pair at upstream 4e090c033 and at the pin
+  251a430ce (`TestEmptyEntrySavesConsistentIndexWithItsTerm`). The fork fix (`pairMu`, one mutex for the pair in
+  `SetConsistentIndex` and `UnsafeSave`) breaks the two proofs (VM build of `etcd-safe-keepfix/2026-11-27`,
+  `consistentIndex__SetConsistentIndex.lean:34`, `consistentIndex__UnsafeSave.lean:41`).
+- **Proposed change.** A pair predicate `P : w64 → w64 → Prop`, the client's (`CINames.P`, chosen at
+  `NewConsistentIndex`), kept by the pair mutex's invariant for every non-zero stored index:
+  - `SetConsistentIndex.spec`: a new premise `⌜v ≠ 0 → γ.P v term⌝` (stronger premise);
+  - `UnsafeSave.spec`: the post's term `t` comes with `⌜k ≠ 0 → γ.P k t⌝` (stronger post);
+  - `ConsistentIndex.spec`/`UnsafeConsistentIndex.spec`: the slow path stores the pair it read from the backend, so
+    the read's continuation owes `⌜m.1 ≠ 0 → γ.P m.1 m.2⌝` (stronger premise);
+  - `NewConsistentIndex.spec`: `∀ P`, the post's `γ.P = P`.
+  Callers (all in `etcdserver`) supply `P`: the server's instance is "the committed term of the index" (T10); until
+  T10 lands, `fun _ _ => True` keeps every caller's obligation trivial.
+- **Decision.** Accepted (the etcd_safe lead, 2026-11-27, keepfix-d row 7; untrusted: specs of proved functions, no
+  axiom states them).
+
 ## 2026-11-26: `rnDurBodyK` and its step laws -- the body keeps the WAL's records as the eager fold (`walRecsH`) of the history, which a restart's history does not have (D6-T2 / P5 (b) steps 2-5, etcd-safe-p5)
 ## 2026-11-26: F7 auth-on dist drafts -- free auth names `A` let a caller refute every member-local success arm
 

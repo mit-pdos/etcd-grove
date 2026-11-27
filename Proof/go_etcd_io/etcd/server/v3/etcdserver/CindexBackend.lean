@@ -596,7 +596,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   iintro %k %s %Hmono %Hok Hmt Hpend #Hkd
   isplitr
   · ipureintro; exact Hmono
-  iintro %tm HTM
+  iintro %tm %_ HTM
   unfold hookTM
   icases HTM with ⟨%st', %ui, %ut, Hl, Hhk, -, -, %Hm'⟩
   iapply HΦ
@@ -809,7 +809,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
   iintro %k %s' %Hmono %Hok Hmt Hpend #Hwd HY
   isplitr
   · ipureintro; exact Hmono
-  iintro %tm HTM
+  iintro %tm %_ HTM
   unfold hookTM
   icases HTM with ⟨%st', %ui, %ut, Hl, Hhk, -, -, %Hm'⟩
   iapply HΦ

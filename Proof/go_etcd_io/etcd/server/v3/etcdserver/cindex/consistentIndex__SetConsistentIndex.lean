@@ -26,47 +26,54 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.cindex.Assumptions]
 theorem consistentIndex.SetConsistentIndex.wp_proof :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) := by
   intro ci γ v term
-  wp_start as #Hci
+  wp_start as ⟨#Hci, %HP⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
+  wp_apply wp_with_defer as %defer defer
   unfold isCI
-  icases Hci with ⟨#Hinv, -⟩
-  wp_auto
+  icases Hci with ⟨#Hinv, -, #Hpmu⟩
+  (try wp_auto)
+  -- (keepfix-d) the pair mutex: the term field and the index's second mirror
+  wp_apply sync.Mutex.wp_Lock $$ [$Hpmu] as ⟨Hlocked, HL⟩
+  iunfold ciPairInv at HL
+  icases HL with ⟨%kl, %tl, Hpk, Hterm, -⟩
+  (try wp_auto)
   -- the index: the linearization point
-  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ ci term]
+  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ Hpk Hterm Hlocked defer ci term]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
   imodintro
   inext
   unfold ciInv
-  icases Hi with ⟨%k0, %t0, Hidx, Hg, Hterm⟩
+  icases Hi with ⟨%k0, Hidx, Hg, Hpk0⟩
   iexists k0
   iframe Hidx
   iintro Hidx
   unfold ciIdx
   imod ghostVar_update_halves v $$ Hk Hg with ⟨Hk, Hg⟩
+  imod ghostVar_update_halves v $$ Hpk Hpk0 with ⟨Hpk, Hpk0⟩
   imod HΦ $$ Hk with HΦ
-  imod Hclose $$ [Hidx Hg Hterm] with -
-  · inext; iexists v, t0; iframe
+  imod Hclose $$ [Hidx Hg Hpk0] with -
+  · inext; iexists v; iframe
   imodintro
-  wp_auto
-  -- the term
-  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ]
+  (try wp_auto)
+  -- the term: owned under the pair mutex
+  wp_apply_core sync.atomic.wp_StoreUint64 $$ [] [HΦ Hpk Hterm Hlocked defer]
   · iPkgInit
-  iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   inext
-  icases Hi with ⟨%k1, %t1, Hidx, Hg, Hterm⟩
-  iexists t1
+  iexists tl
   iframe Hterm
   iintro Hterm
   imod Hmask with -
-  imod Hclose $$ [Hidx Hg Hterm] with -
-  · inext; iexists k1, term; iframe
   imodintro
-  wp_auto
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hpmu $Hlocked Hpk Hterm]
+  · inext; iunfold ciPairInv; iexists v, term; iframe Hpk Hterm; ipureintro; exact HP
   iexact HΦ
 
 end proof
