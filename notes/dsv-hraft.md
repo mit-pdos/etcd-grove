@@ -51,6 +51,20 @@ function, no axiom, `sorry` or premise.
    in raft send a value of the element type exactly (checked: `applyCh`, `verifyCh`, ..., the
    `chan bool`/`chan struct{}` notifications).
 
+4. **Two `fmt.Errorf` sites format explicitly** (coordinator-E for Upamanyu, #48 comment 7227641440): error text
+   differs; proof-driven; no behaviour change beyond the message. Perennial's `fmt` model is stuck on `%v` of a struct
+   or a pointer with no `String()`/`Error()` (`printValue`, which needs reflection).
+   - `checkConfiguration` (`configuration.go`): its three messages that showed a `Configuration` or a `Server` under
+     `%v` ("empty ID in configuration", "empty address in configuration", "need at least one voter in
+     configuration") pass `%s` of the new `formatConfiguration`/`formatServer`, which write `{[{Suffrage ID Address}
+     ...]}` and `{Suffrage ID Address}` with `+` and `ServerSuffrage.String()`: the text `%v` wrote, byte for byte.
+     Test: `fmtsites_test.go`'s `TestCheckConfigurationMessage` compares each message with `fmt.Sprintf` of the
+     original format.
+   - `leaderLoop` (`raft.go`): "cannot find replication state for %v" of `id`, a `*ServerID`, printed the pointer's
+     address; it is `%s` of `*id` (non-nil there: the line above reads `replState[*id]`), the ID it pointed to. Test:
+     `TestLeaderLoopTransferMessage` (a one-server cluster over a stub transport; a transfer to an unknown ID reports
+     "cannot find replication state for nosuch"; it fails on the old code with `0x...`).
+
 The fork's other comments citing `verify/notes/decisions.md` (D17 in `replication.go`, D33 in
 `api.go`) refer to the lab's `examples/hraft/proof/notes/decisions.md`.
 

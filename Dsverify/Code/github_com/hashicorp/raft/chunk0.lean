@@ -685,6 +685,12 @@ noncomputable def hasVote [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def inConfiguration [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/hashicorp/raft.inConfiguration"
 
+noncomputable def formatServer [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/hashicorp/raft.formatServer"
+
+noncomputable def formatConfiguration [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/hashicorp/raft.formatConfiguration"
+
 noncomputable def checkConfiguration [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/hashicorp/raft.checkConfiguration"
 
@@ -4722,10 +4728,71 @@ noncomputable def inConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Server.ty))) (Pair (Var "server") (Var "$value"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- formatServer writes server as fmt's %v does ("{Suffrage ID Address}"),
+    explicitly: goose's fmt model cannot format a struct under %v (notes/dsv-hraft.md).
+
+    go: configuration.go:192:6 -/
+noncomputable def formatServer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "server"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "server" (App (Val (GoInstruction (GoAlloc Server.ty))) (Var "server"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"{")) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServerSuffrage.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Suffrage"))) (Var "server"))) (Val #())))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad ServerID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"ID"))) (Var "server"))))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad ServerAddress.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Address"))) (Var "server"))))) (Val #(go!"}"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
+/-- formatConfiguration writes configuration as fmt's %v does ("{[server ...]}"),
+    explicitly, for the same reason as formatServer.
+
+    go: configuration.go:198:6 -/
+noncomputable def formatConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "configuration"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "configuration" (App (Val (GoInstruction (GoAlloc Configuration.ty))) (Var "configuration"))
+  (Let "$r0" (Val #(go!"{["))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!"]}"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Server.ty)))) (App (Val (GoInstruction (StructFieldRef Configuration.ty go!"Servers"))) (Var "configuration")))
+  (Let "server" (App (Val (GoInstruction (GoAlloc Server.ty))) (App (Val (GoInstruction (GoZeroVal Server.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Server.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Let "$a0" (App (Val (GoInstruction (GoLoad Server.ty))) (Var "server"))
+  (App (App (Val (GoInstruction (FuncResolve formatServer []))) (Val #())) (Var "$a0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!" ")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Server.ty))) (Pair (Var "server") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
 /-- checkConfiguration tests a cluster membership configuration for common
     errors.
 
-    go: configuration.go:192:6 -/
+    go: configuration.go:211:6 -/
 noncomputable def checkConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "configuration"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -4747,8 +4814,9 @@ noncomputable def checkConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "voters")) (Val #(W64 0)))))
-  (Let "$r0" (Let "$a0" (Val #(go!"need at least one voter in configuration: %v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Configuration.ty go.any))) (App (Val (GoInstruction (GoLoad Configuration.ty))) (Var "configuration")))
+  (Let "$r0" (Let "$a0" (Val #(go!"need at least one voter in configuration: %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Configuration.ty))) (Var "configuration"))
+  (App (App (Val (GoInstruction (FuncResolve formatConfiguration []))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4807,8 +4875,9 @@ noncomputable def checkConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals ServerAddress.ty))) (Pair (App (Val (GoInstruction (GoLoad ServerAddress.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"Address"))) (Var "server"))) (Val #(go!"")))))
-  (Let "$r0" (Let "$a0" (Val #(go!"empty address in configuration: %v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Server.ty go.any))) (App (Val (GoInstruction (GoLoad Server.ty))) (Var "server")))
+  (Let "$r0" (Let "$a0" (Val #(go!"empty address in configuration: %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Server.ty))) (Var "server"))
+  (App (App (Val (GoInstruction (FuncResolve formatServer []))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4819,8 +4888,9 @@ noncomputable def checkConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals ServerID.ty))) (Pair (App (Val (GoInstruction (GoLoad ServerID.ty))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"ID"))) (Var "server"))) (Val #(go!"")))))
-  (Let "$r0" (Let "$a0" (Val #(go!"empty ID in configuration: %v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert Configuration.ty go.any))) (App (Val (GoInstruction (GoLoad Configuration.ty))) (Var "configuration")))
+  (Let "$r0" (Let "$a0" (Val #(go!"empty ID in configuration: %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Configuration.ty))) (Var "configuration"))
+  (App (App (Val (GoInstruction (FuncResolve formatConfiguration []))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -4844,7 +4914,7 @@ noncomputable def checkConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
     configuration change request. It's split from appendConfigurationEntry so
     that it can be unit tested easily.
 
-    go: configuration.go:224:6 -/
+    go: configuration.go:243:6 -/
 noncomputable def nextConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "current"
   (Lam "currentIndex"
@@ -5089,7 +5159,7 @@ noncomputable def nextConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
     This is here for backwards compatibility when operating with a mix of old
     servers and should be removed once we deprecate support for protocol version 1.
 
-    go: configuration.go:307:6 -/
+    go: configuration.go:326:6 -/
 noncomputable def encodePeers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "configuration"
   (Lam "trans"
@@ -5134,7 +5204,7 @@ noncomputable def encodePeers.impl [GooseExts] [GoGlobalContext] : val :=
     This is here for backwards compatibility with old log entries and snapshots;
     it should be removed eventually.
 
-    go: configuration.go:324:6 -/
+    go: configuration.go:343:6 -/
 noncomputable def decodePeers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Lam "trans"
@@ -5218,7 +5288,7 @@ noncomputable def decodePeers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- EncodeConfiguration serializes a Configuration using MsgPack, or panics on
     errors.
 
-    go: configuration.go:347:6 -/
+    go: configuration.go:366:6 -/
 noncomputable def EncodeConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "configuration"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -5236,7 +5306,7 @@ noncomputable def EncodeConfiguration.impl [GooseExts] [GoGlobalContext] : val :
 /-- DecodeConfiguration deserializes a Configuration using MsgPack, or panics on
     errors.
 
-    go: configuration.go:353:6 -/
+    go: configuration.go:372:6 -/
 noncomputable def DecodeConfiguration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "buf"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Configuration.ty))) (App (Val (GoInstruction (GoZeroVal Configuration.ty))) (Val #())))
@@ -10109,8 +10179,8 @@ noncomputable def Raft.leaderLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doContinue) (Val #()))))
   (App (Val doExecute)
   (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.error)))) (Var "doneCh"))
-  (Let "$v" (Let "$a0" (Val #(go!"cannot find replication state for %v"))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ServerID.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerID.ty)))) (Var "id")))
+  (Let "$v" (Let "$a0" (Val #(go!"cannot find replication state for %s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert ServerID.ty go.any))) (App (Val (GoInstruction (GoLoad ServerID.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerID.ty)))) (Var "id"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val (chan.send go.error)) (Var "$chan")) (Var "$v"))))))
