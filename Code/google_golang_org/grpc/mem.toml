@@ -1,0 +1,23 @@
+# (grpc-mem, 2026-11-26) The types grpc's `baseCodec` and the server's codec bridge name
+# (`BufferSlice`, `Buffer`, `BufferPool`), so that grpc's `baseCodec` is a translated interface
+# (`CustomCodec`'s conversion to it steps); and, since grpc then imports this package, what its
+# initializer runs, with the bodies: `init` (`buffer_pool.go:52`: the default pool from
+# `NewBinaryTieredBufferPool`, the hook `internal.SetDefaultBufferPool`) and the variables
+# `defaultBufferPoolSizeExponents`, `defaultBufferPool` and `bufferObjectPool`.
+translate = ["!*", "init.0", "NewBinaryTieredBufferPool", "defaultBufferPoolSizeExponents",
+  "defaultBufferPool", "bufferObjectPool"]
+imports = ["!*", "fmt", "sync", "sync/atomic", "io", "google.golang.org/grpc/internal",
+  "google.golang.org/grpc/internal/mem"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+[[skip]]
+names = ["_@buffer_pool.go:92"]
+reason = """
+An interface check: `NopBufferPool{}` converted to `BufferPool`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@buffer_slice.go:220"]
+reason = """
+An interface check: a nil pointer converted to `io.Writer`. No call, no panic, no effect."""

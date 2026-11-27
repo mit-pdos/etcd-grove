@@ -2591,7 +2591,7 @@ theorem path.wp_Base :
 
 theorem types.wp_IDFromString :
     types.IDFromString.spec (GF := GF) (hG := hG) :=
-  types.IDFromString.wp_proof
+  types.IDFromString.wp_proof _root_.Perennial.strconv.wp_ParseUint _root_.Perennial.strconv.NumError.wp_Error _root_.Perennial.strconv.NumError.wp_Unwrap
 
 theorem rafthttp.wp_newCloseNotifier :
     rafthttp.newCloseNotifier.spec (GF := GF) (hG := hG) :=

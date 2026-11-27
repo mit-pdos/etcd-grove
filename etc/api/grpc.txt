@@ -24,6 +24,10 @@ importable Proof.google_golang_org.grpc.InvGrpcWire
 # the unary registration (sealed `isGrpcRpcMd`) and its laws
 importable Proof.google_golang_org.grpc.InvGrpc
 importable Proof.google_golang_org.grpc.InvDial
+# NewStream's interceptor-generic vocabulary (`grpcStreamerOk`, `streamIcOk`, `cliOpenErr`; S3.4, 2026-11-26)
+importable Proof.google_golang_org.grpc.InvGrpcStreamer
+# NewStream's old form at no stream interceptor (`NewStreamNoIc_of`, for the grpc driver's stubs)
+importable Proof.google_golang_org.grpc.NewStreamNoIc
 # the streams, and the stream registration (sealed `isGrpcStreamMd`) and its laws
 importable Proof.google_golang_org.grpc.InvGrpcStream
 importable Proof.google_golang_org.grpc.InvGrpcServer
@@ -46,6 +50,7 @@ importable Proof.google_golang_org.grpc.grpclog.*
 importable Proof.google_golang_org.grpc.health.*
 importable Proof.google_golang_org.grpc.internal.*
 importable Proof.google_golang_org.grpc.keepalive.*
+importable Proof.google_golang_org.grpc.mem.*
 importable Proof.google_golang_org.grpc.metadata.*
 importable Proof.google_golang_org.grpc.peer.*
 importable Proof.google_golang_org.grpc.reflection.*

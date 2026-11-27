@@ -1176,7 +1176,7 @@ strconv_Itoa:
 probing_NewProber:
 # (prove-metrics3, 2026-11-21) proved over the real code
 rate_Every: time_Duration__Seconds_ptr
-types_IDFromString:
+types_IDFromString: =_root_.Perennial.strconv.wp_ParseUint =_root_.Perennial.strconv.NumError.wp_Error =_root_.Perennial.strconv.NumError.wp_Unwrap
 strings_TrimSuffix:
 fmt_ErrorfPlain:
 # (prove-smalllibs, 2026-11-20) semver's `New`, `Major`, `Minor` proved over the real code

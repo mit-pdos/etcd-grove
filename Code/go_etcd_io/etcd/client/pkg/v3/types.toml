@@ -6,8 +6,9 @@
 # (prove-ps2-misc, 2026-11-21) `URLs.StringSlice`, proved over `url.URL.String`'s spec
 # (`http.URLStringAny_spec`).
 # (claim #34 stage 2, 2026-11-25) `URLsMap.String` (`VerifyBootstrap`'s), the ids' sort (`MemberIDs`)
+# (prove-idfs, 2026-11-27) `IDFromString`, proved over `strconv.ParseUint`.
 translate = ["!*", "URLs.Len", "URLs.StringSlice", "ID.String", "_", "URLsMap.String", "IDSlice.Len",
-  "IDSlice.Less", "IDSlice.Swap"]
+  "IDSlice.Less", "IDSlice.Swap", "IDFromString"]
 # (unit N4, 2026-10-17: `net/url`, so that `URLs` is translated)
 imports = ["!*", "net/url", "strconv", "fmt", "sort", "strings"]
 

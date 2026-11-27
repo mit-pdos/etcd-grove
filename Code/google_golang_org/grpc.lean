@@ -8,6 +8,7 @@ public import Perennial.Code.sync
 public import Code.google_golang_org.grpc.internal
 public import Code.google_golang_org.grpc.keepalive
 public import Code.google_golang_org.grpc.resolver
+public import Code.google_golang_org.grpc.mem
 public import Net.Code.net
 public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
@@ -653,23 +654,13 @@ opaque ConnectParams.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque connectivityStateManager.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque perTargetDialOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque clientTransportStream.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque ForceCodecCallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque ForceCodecV2CallOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque streamReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque parser.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque payloadInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque compressorInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1465,6 +1456,21 @@ noncomputable def newTraceContext [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.newTraceEventLog"
 
+/-- go: codec.go:49:6 -/
+noncomputable def newCodecV0Bridge.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc baseCodec.ty))) (App (Val (GoInstruction (GoZeroVal baseCodec.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc Codec.ty))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (Convert codecV0Bridge.ty baseCodec.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad Codec.ty))) (Var "c"))
+  (App (Val (GoInstruction (CompositeLiteral codecV0Bridge.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"codec")) (ElementExpression Codec.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore baseCodec.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad baseCodec.ty))) (Var "$res0")))))
+
 /-- go: dialoptions.go:45:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1941,6 +1947,38 @@ noncomputable def KeepaliveEnforcementPolicy.impl [GooseExts] [GoGlobalContext] 
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy.ty))) (Var "kep"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy.ty))) (Pair (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"keepalivePolicy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverOptions.ty)))) (Var "o"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve newFuncServerOption []))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ServerOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad ServerOption.ty))) (Var "$res0")))))
+
+/-- CustomCodec returns a ServerOption that sets a codec for message marshaling and unmarshaling.
+
+    This will override any lookups by content-subtype for Codecs registered with RegisterCodec.
+
+    Deprecated: register codecs using encoding.RegisterCodec. The server will
+    automatically use registered codecs based on the incoming requests' headers.
+    See also
+    https://github.com/grpc/grpc-go/blob/master/Documentation/encoding.md#using-a-codec.
+    Will be supported throughout 1.x.
+
+    go: server.go:367:6 -/
+noncomputable def CustomCodec.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "codec"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "codec" (App (Val (GoInstruction (GoAlloc Codec.ty))) (Var "codec"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType funcServerOption.ty) ServerOption.ty))) (Let "$a0" (Lam "o"
+  (Seq (App (Val exceptionDo)
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType serverOptions.ty)))) (Var "o"))
+  (Let "$r0" (App (Val (GoInstruction (Convert baseCodec.ty go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Codec.ty))) (Var "codec"))
+  (App (App (Val (GoInstruction (FuncResolve newCodecV0Bridge []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (App (Val (GoInstruction (StructFieldRef serverOptions.ty go!"codec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType serverOptions.ty)))) (Var "o"))) (Var "$r0")))))))
   (Val #())))
   (App (App (Val (GoInstruction (FuncResolve newFuncServerOption []))) (Val #())) (Var "$a0"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2515,12 +2553,13 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog, pkg_id.google_golang_org.grpc.internal.grpcsync]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.google_golang_org.grpc.mem, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.grpclog, pkg_id.google_golang_org.grpc.internal.grpcsync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2567,6 +2606,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.resolver.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.mem.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3217,22 +3258,17 @@ attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.method_set
   ClientConn.TypeAssumptions.ptr_method_set
 
-opaque baseCodec.nonempty_type : NonemptyType.{0}
-def baseCodec : Type := baseCodec.nonempty_type.type
-instance baseCodec.nonempty : Nonempty baseCodec := baseCodec.nonempty_type.property
-opaque baseCodec.zero_val : ZeroVal baseCodec := ⟨Classical.ofNonempty⟩
-attribute [instance] baseCodec.zero_val
+abbrev baseCodec [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def baseCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Marshal" (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error])), (go.InterfaceElem.MethodElem go!"Unmarshal" (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error]))])
 
 class baseCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying baseCodec.underlying baseCodec
   underlying : go.UnderlyingDirectedEq baseCodec.ty baseCodec.underlying
-  isUnderlying : go.IsUnderlying baseCodec.underlying baseCodec.underlying
-  method_set : go.MethodSetIs baseCodec.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
+  method_set : go.MethodSetIs baseCodec.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType baseCodec.ty) []
 
-attribute [instance] baseCodec.TypeAssumptions.type_repr
-  baseCodec.TypeAssumptions.underlying
-  baseCodec.TypeAssumptions.isUnderlying
+attribute [instance] baseCodec.TypeAssumptions.underlying
   baseCodec.TypeAssumptions.method_set
   baseCodec.TypeAssumptions.ptr_method_set
 
@@ -3261,8 +3297,8 @@ class codecV0Bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq codecV0Bridge.ty codecV0Bridge.underlying
   get_codec : ∀ (x : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV0Bridge.underlying go!"codec") #x (Val #(x.codec'))
   set_codec : ∀ (x : codecV0Bridge) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet codecV0Bridge.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : codecV0Bridge)))
-  method_set : go.MethodSetIs codecV0Bridge.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV0Bridge.ty) [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
+  method_set : go.MethodSetIs codecV0Bridge.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV0Bridge.ty) [(go!"Marshal", (some (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error])))]
 
 attribute [instance] codecV0Bridge.TypeAssumptions.type_repr
   codecV0Bridge.TypeAssumptions.underlying
@@ -3300,8 +3336,8 @@ class codecV1Bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_codecV0Bridge : ∀ (x : codecV1Bridge) (y : codecV0Bridge), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"codecV0Bridge") (PairV #x #y) (Val #(({ x with codecV0Bridge' := y } : codecV1Bridge)))
   get_name : ∀ (x : codecV1Bridge), go.IsGoStepPureDetTagged under (StructFieldGet codecV1Bridge.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : codecV1Bridge) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet codecV1Bridge.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : codecV1Bridge)))
-  method_set : go.MethodSetIs codecV1Bridge.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV1Bridge.ty) [(go!"Marshal", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.any] false [go.error])))]
+  method_set : go.MethodSetIs codecV1Bridge.ty [(go!"Marshal", (some (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codecV1Bridge.ty) [(go!"Marshal", (some (go.signature.Signature [go.any] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.any] false [go.error])))]
 
 attribute [instance] codecV1Bridge.TypeAssumptions.type_repr
   codecV1Bridge.TypeAssumptions.underlying
@@ -4137,7 +4173,7 @@ class clientTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq clientTransportStream.ty clientTransportStream.underlying
   isUnderlying : go.IsUnderlying clientTransportStream.underlying clientTransportStream.underlying
   method_set : go.MethodSetIs clientTransportStream.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] clientTransportStream.TypeAssumptions.type_repr
   clientTransportStream.TypeAssumptions.underlying
@@ -4375,7 +4411,7 @@ class serverTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   get_state : ∀ (x : serverTransportStream), go.IsGoStepPureDetTagged under (StructFieldGet serverTransportStream.underlying go!"state") #x (Val #(x.state'))
   set_state : ∀ (x : serverTransportStream) (y : streamState), go.IsGoStepPureDetTagged under (StructFieldSet serverTransportStream.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : serverTransportStream)))
   method_set : go.MethodSetIs serverTransportStream.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransportStream.ty) [(go!"ClientAdvertisedCompressors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ContentSubtype", (some (go.signature.Signature [] false [go.string]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"HeaderWireLength", (some (go.signature.Signature [] false [go.int]))), (go!"Method", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"SendCompress", (some (go.signature.Signature [] false [go.string]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetSendCompress", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"WriteStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getState", (some (go.signature.Signature [] false [streamState.ty]))), (go!"google.golang.org/grpc.streamContextErr", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.writeHeaderLocked", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransportStream.ty) [(go!"ClientAdvertisedCompressors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"ContentSubtype", (some (go.signature.Signature [] false [go.string]))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"HeaderWireLength", (some (go.signature.Signature [] false [go.int]))), (go!"Method", (some (go.signature.Signature [] false [go.string]))), (go!"Read", (some (go.signature.Signature [go.int] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"SendCompress", (some (go.signature.Signature [] false [go.string]))), (go!"SendHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetContext", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))), (go!"SetHeader", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"SetSendCompress", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"WriteStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getState", (some (go.signature.Signature [] false [streamState.ty]))), (go!"google.golang.org/grpc.streamContextErr", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.writeHeaderLocked", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] serverTransportStream.TypeAssumptions.type_repr
   serverTransportStream.TypeAssumptions.underlying
@@ -4459,22 +4495,70 @@ attribute [instance] headerField.TypeAssumptions.type_repr
   headerField.TypeAssumptions.method_set
   headerField.TypeAssumptions.ptr_method_set
 
-opaque PreparedMsg.nonempty_type : NonemptyType.{0}
-def PreparedMsg : Type := PreparedMsg.nonempty_type.type
-instance PreparedMsg.nonempty : Nonempty PreparedMsg := PreparedMsg.nonempty_type.property
-opaque PreparedMsg.zero_val : ZeroVal PreparedMsg := ⟨Classical.ofNonempty⟩
-attribute [instance] PreparedMsg.zero_val
+abbrev payloadFormat [GooseExts] : Type := w8
+
+@[reducible] noncomputable def payloadFormat.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.uint8
+
+class payloadFormat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq payloadFormat.ty payloadFormat.underlying
+  method_set : go.MethodSetIs payloadFormat.ty [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadFormat.ty) [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
+
+attribute [instance] payloadFormat.TypeAssumptions.underlying
+  payloadFormat.TypeAssumptions.method_set
+  payloadFormat.TypeAssumptions.ptr_method_set
+
+structure PreparedMsg [GooseExts] where
+  mk ::
+  encodedData' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice
+  hdr' : GoSlice
+  payload' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice
+  pf' : payloadFormat
+
+noncomputable instance PreparedMsg.zero_val [GooseExts] : ZeroVal PreparedMsg :=
+  ⟨PreparedMsg.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def PreparedMsg.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"encodedData" _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty),
+(go.field_decl.FieldDecl go!"hdr" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"payload" _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty),
+(go.field_decl.FieldDecl go!"pf" payloadFormat.ty)]
+
+@[irreducible] noncomputable def PreparedMsg.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  PreparedMsg.fieldsUnsealed
+
+noncomputable instance equals_unfold_PreparedMsg [GooseExts] [GoGlobalContext] :
+    EqualsUnfold PreparedMsg.fields PreparedMsg.fieldsUnsealed :=
+  ⟨by unfold PreparedMsg.fields; rfl⟩
+
+@[reducible] noncomputable def PreparedMsg.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType PreparedMsg.fields)
 
 class PreparedMsg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PreparedMsg.underlying PreparedMsg
   underlying : go.UnderlyingDirectedEq PreparedMsg.ty PreparedMsg.underlying
-  isUnderlying : go.IsUnderlying PreparedMsg.underlying PreparedMsg.underlying
+  get_encodedData : ∀ (x : PreparedMsg), go.IsGoStepPureDetTagged under (StructFieldGet PreparedMsg.underlying go!"encodedData") #x (Val #(x.encodedData'))
+  set_encodedData : ∀ (x : PreparedMsg) (y : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice), go.IsGoStepPureDetTagged under (StructFieldSet PreparedMsg.underlying go!"encodedData") (PairV #x #y) (Val #(({ x with encodedData' := y } : PreparedMsg)))
+  get_hdr : ∀ (x : PreparedMsg), go.IsGoStepPureDetTagged under (StructFieldGet PreparedMsg.underlying go!"hdr") #x (Val #(x.hdr'))
+  set_hdr : ∀ (x : PreparedMsg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PreparedMsg.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : PreparedMsg)))
+  get_payload : ∀ (x : PreparedMsg), go.IsGoStepPureDetTagged under (StructFieldGet PreparedMsg.underlying go!"payload") #x (Val #(x.payload'))
+  set_payload : ∀ (x : PreparedMsg) (y : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice), go.IsGoStepPureDetTagged under (StructFieldSet PreparedMsg.underlying go!"payload") (PairV #x #y) (Val #(({ x with payload' := y } : PreparedMsg)))
+  get_pf : ∀ (x : PreparedMsg), go.IsGoStepPureDetTagged under (StructFieldGet PreparedMsg.underlying go!"pf") #x (Val #(x.pf'))
+  set_pf : ∀ (x : PreparedMsg) (y : payloadFormat), go.IsGoStepPureDetTagged under (StructFieldSet PreparedMsg.underlying go!"pf") (PairV #x #y) (Val #(({ x with pf' := y } : PreparedMsg)))
   method_set : go.MethodSetIs PreparedMsg.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PreparedMsg.ty) [(go!"Encode", (some (go.signature.Signature [Stream.ty, go.any] false [go.error])))]
 
 attribute [instance] PreparedMsg.TypeAssumptions.type_repr
   PreparedMsg.TypeAssumptions.underlying
-  PreparedMsg.TypeAssumptions.isUnderlying
+  PreparedMsg.TypeAssumptions.get_encodedData
+  PreparedMsg.TypeAssumptions.set_encodedData
+  PreparedMsg.TypeAssumptions.get_hdr
+  PreparedMsg.TypeAssumptions.set_hdr
+  PreparedMsg.TypeAssumptions.get_payload
+  PreparedMsg.TypeAssumptions.set_payload
+  PreparedMsg.TypeAssumptions.get_pf
+  PreparedMsg.TypeAssumptions.set_pf
   PreparedMsg.TypeAssumptions.method_set
   PreparedMsg.TypeAssumptions.ptr_method_set
 
@@ -5250,36 +5334,17 @@ attribute [instance] MaxRetryRPCBufferSizeCallOption.TypeAssumptions.type_repr
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.method_set
   MaxRetryRPCBufferSizeCallOption.TypeAssumptions.ptr_method_set
 
-abbrev payloadFormat [GooseExts] : Type := w8
+abbrev streamReader [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def payloadFormat.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.uint8
-
-class payloadFormat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq payloadFormat.ty payloadFormat.underlying
-  method_set : go.MethodSetIs payloadFormat.ty [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadFormat.ty) [(go!"google.golang.org/grpc.isCompressed", (some (go.signature.Signature [] false [go.bool])))]
-
-attribute [instance] payloadFormat.TypeAssumptions.underlying
-  payloadFormat.TypeAssumptions.method_set
-  payloadFormat.TypeAssumptions.ptr_method_set
-
-opaque streamReader.nonempty_type : NonemptyType.{0}
-def streamReader : Type := streamReader.nonempty_type.type
-instance streamReader.nonempty : Nonempty streamReader := streamReader.nonempty_type.property
-opaque streamReader.zero_val : ZeroVal streamReader := ⟨Classical.ofNonempty⟩
-attribute [instance] streamReader.zero_val
+@[reducible] noncomputable def streamReader.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Read" (go.signature.Signature [go.int] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error])), (go.InterfaceElem.MethodElem go!"ReadMessageHeader" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))])
 
 class streamReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying streamReader.underlying streamReader
   underlying : go.UnderlyingDirectedEq streamReader.ty streamReader.underlying
-  isUnderlying : go.IsUnderlying streamReader.underlying streamReader.underlying
-  method_set : go.MethodSetIs streamReader.ty [(go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  method_set : go.MethodSetIs streamReader.ty [(go!"Read", (some (go.signature.Signature [go.int] false [_root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamReader.ty) []
 
-attribute [instance] streamReader.TypeAssumptions.type_repr
-  streamReader.TypeAssumptions.underlying
-  streamReader.TypeAssumptions.isUnderlying
+attribute [instance] streamReader.TypeAssumptions.underlying
   streamReader.TypeAssumptions.method_set
   streamReader.TypeAssumptions.ptr_method_set
 
@@ -5313,41 +5378,97 @@ attribute [instance] noCopy.TypeAssumptions.type_repr
   noCopy.TypeAssumptions.method_set
   noCopy.TypeAssumptions.ptr_method_set
 
-opaque parser.nonempty_type : NonemptyType.{0}
-def parser : Type := parser.nonempty_type.type
-instance parser.nonempty : Nonempty parser := parser.nonempty_type.property
-opaque parser.zero_val : ZeroVal parser := ⟨Classical.ofNonempty⟩
-attribute [instance] parser.zero_val
+structure parser [GooseExts] where
+  mk ::
+  «_#0'» : noCopy
+  r' : streamReader
+  header' : (GoArray w8 5)
+  bufferPool' : _root_.Perennial.google_golang_org.grpc.mem.BufferPool
+
+noncomputable instance parser.zero_val [GooseExts] : ZeroVal parser :=
+  ⟨parser.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def parser.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"_#0" noCopy.ty),
+(go.field_decl.FieldDecl go!"r" streamReader.ty),
+(go.field_decl.FieldDecl go!"header" (go.GoType.ArrayType 5 go.byte)),
+(go.field_decl.FieldDecl go!"bufferPool" _root_.Perennial.google_golang_org.grpc.mem.BufferPool.ty)]
+
+@[irreducible] noncomputable def parser.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  parser.fieldsUnsealed
+
+noncomputable instance equals_unfold_parser [GooseExts] [GoGlobalContext] :
+    EqualsUnfold parser.fields parser.fieldsUnsealed :=
+  ⟨by unfold parser.fields; rfl⟩
+
+@[reducible] noncomputable def parser.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType parser.fields)
 
 class parser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying parser.underlying parser
   underlying : go.UnderlyingDirectedEq parser.ty parser.underlying
-  isUnderlying : go.IsUnderlying parser.underlying parser.underlying
+  «get__#0» : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"_#0") #x (Val #(x.«_#0'»))
+  «set__#0» : ∀ (x : parser) (y : noCopy), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"_#0") (PairV #x #y) (Val #(({ x with «_#0'» := y } : parser)))
+  get_r : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"r") #x (Val #(x.r'))
+  set_r : ∀ (x : parser) (y : streamReader), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : parser)))
+  get_header : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"header") #x (Val #(x.header'))
+  set_header : ∀ (x : parser) (y : (GoArray w8 5)), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"header") (PairV #x #y) (Val #(({ x with header' := y } : parser)))
+  get_bufferPool : ∀ (x : parser), go.IsGoStepPureDetTagged under (StructFieldGet parser.underlying go!"bufferPool") #x (Val #(x.bufferPool'))
+  set_bufferPool : ∀ (x : parser) (y : _root_.Perennial.google_golang_org.grpc.mem.BufferPool), go.IsGoStepPureDetTagged under (StructFieldSet parser.underlying go!"bufferPool") (PairV #x #y) (Val #(({ x with bufferPool' := y } : parser)))
   method_set : go.MethodSetIs parser.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parser.ty) [(go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.int] false [payloadFormat.ty, (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parser.ty) [(go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.int] false [payloadFormat.ty, _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.error])))]
 
 attribute [instance] parser.TypeAssumptions.type_repr
   parser.TypeAssumptions.underlying
-  parser.TypeAssumptions.isUnderlying
+  parser.TypeAssumptions.«get__#0»
+  parser.TypeAssumptions.«set__#0»
+  parser.TypeAssumptions.get_r
+  parser.TypeAssumptions.set_r
+  parser.TypeAssumptions.get_header
+  parser.TypeAssumptions.set_header
+  parser.TypeAssumptions.get_bufferPool
+  parser.TypeAssumptions.set_bufferPool
   parser.TypeAssumptions.method_set
   parser.TypeAssumptions.ptr_method_set
 
-opaque payloadInfo.nonempty_type : NonemptyType.{0}
-def payloadInfo : Type := payloadInfo.nonempty_type.type
-instance payloadInfo.nonempty : Nonempty payloadInfo := payloadInfo.nonempty_type.property
-opaque payloadInfo.zero_val : ZeroVal payloadInfo := ⟨Classical.ofNonempty⟩
-attribute [instance] payloadInfo.zero_val
+structure payloadInfo [GooseExts] where
+  mk ::
+  compressedLength' : w64
+  uncompressedBytes' : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice
+
+noncomputable instance payloadInfo.zero_val [GooseExts] : ZeroVal payloadInfo :=
+  ⟨payloadInfo.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def payloadInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"compressedLength" go.int),
+(go.field_decl.FieldDecl go!"uncompressedBytes" _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty)]
+
+@[irreducible] noncomputable def payloadInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  payloadInfo.fieldsUnsealed
+
+noncomputable instance equals_unfold_payloadInfo [GooseExts] [GoGlobalContext] :
+    EqualsUnfold payloadInfo.fields payloadInfo.fieldsUnsealed :=
+  ⟨by unfold payloadInfo.fields; rfl⟩
+
+@[reducible] noncomputable def payloadInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType payloadInfo.fields)
 
 class payloadInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying payloadInfo.underlying payloadInfo
   underlying : go.UnderlyingDirectedEq payloadInfo.ty payloadInfo.underlying
-  isUnderlying : go.IsUnderlying payloadInfo.underlying payloadInfo.underlying
+  get_compressedLength : ∀ (x : payloadInfo), go.IsGoStepPureDetTagged under (StructFieldGet payloadInfo.underlying go!"compressedLength") #x (Val #(x.compressedLength'))
+  set_compressedLength : ∀ (x : payloadInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet payloadInfo.underlying go!"compressedLength") (PairV #x #y) (Val #(({ x with compressedLength' := y } : payloadInfo)))
+  get_uncompressedBytes : ∀ (x : payloadInfo), go.IsGoStepPureDetTagged under (StructFieldGet payloadInfo.underlying go!"uncompressedBytes") #x (Val #(x.uncompressedBytes'))
+  set_uncompressedBytes : ∀ (x : payloadInfo) (y : _root_.Perennial.google_golang_org.grpc.mem.BufferSlice), go.IsGoStepPureDetTagged under (StructFieldSet payloadInfo.underlying go!"uncompressedBytes") (PairV #x #y) (Val #(({ x with uncompressedBytes' := y } : payloadInfo)))
   method_set : go.MethodSetIs payloadInfo.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType payloadInfo.ty) [(go!"google.golang.org/grpc.free", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] payloadInfo.TypeAssumptions.type_repr
   payloadInfo.TypeAssumptions.underlying
-  payloadInfo.TypeAssumptions.isUnderlying
+  payloadInfo.TypeAssumptions.get_compressedLength
+  payloadInfo.TypeAssumptions.set_compressedLength
+  payloadInfo.TypeAssumptions.get_uncompressedBytes
+  payloadInfo.TypeAssumptions.set_uncompressedBytes
   payloadInfo.TypeAssumptions.method_set
   payloadInfo.TypeAssumptions.ptr_method_set
 
@@ -6541,7 +6662,7 @@ class csAttempt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq csAttempt.ty csAttempt.underlying
   isUnderlying : go.IsUnderlying csAttempt.underlying csAttempt.underlying
   method_set : go.MethodSetIs csAttempt.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType csAttempt.ty) [(go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getTransport", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.newStream", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.any, (go.GoType.PointerType payloadInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.sendMsg", (some (go.signature.Signature [go.any, (go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.int, go.int] false [go.error]))), (go!"google.golang.org/grpc.shouldRetry", (some (go.signature.Signature [go.error] false [go.bool, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType csAttempt.ty) [(go!"google.golang.org/grpc.finish", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.getTransport", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.newStream", (some (go.signature.Signature [] false [go.error]))), (go!"google.golang.org/grpc.recvMsg", (some (go.signature.Signature [go.any, (go.GoType.PointerType payloadInfo.ty)] false [go.error]))), (go!"google.golang.org/grpc.sendMsg", (some (go.signature.Signature [go.any, (go.GoType.SliceType go.byte), _root_.Perennial.google_golang_org.grpc.mem.BufferSlice.ty, go.int, go.int] false [go.error]))), (go!"google.golang.org/grpc.shouldRetry", (some (go.signature.Signature [go.error] false [go.bool, go.error])))]
 
 attribute [instance] csAttempt.TypeAssumptions.type_repr
   csAttempt.TypeAssumptions.underlying
@@ -7099,6 +7220,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
+  newCodecV0Bridge_unfold : FuncUnfold newCodecV0Bridge [] newCodecV0Bridge.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   newFuncDialOption_unfold : FuncUnfold newFuncDialOption [] newFuncDialOption.impl
   WithNoProxy_unfold : FuncUnfold WithNoProxy [] WithNoProxy.impl
@@ -7116,6 +7238,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   newFuncServerOption_unfold : FuncUnfold newFuncServerOption [] newFuncServerOption.impl
   KeepaliveEnforcementPolicy_unfold : FuncUnfold KeepaliveEnforcementPolicy [] KeepaliveEnforcementPolicy.impl
+  CustomCodec_unfold : FuncUnfold CustomCodec [] CustomCodec.impl
   MaxRecvMsgSize_unfold : FuncUnfold MaxRecvMsgSize [] MaxRecvMsgSize.impl
   MaxSendMsgSize_unfold : FuncUnfold MaxSendMsgSize [] MaxSendMsgSize.impl
   MaxConcurrentStreams_unfold : FuncUnfold MaxConcurrentStreams [] MaxConcurrentStreams.impl
@@ -7129,6 +7252,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
   import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
+  import_mem_Assumption : _root_.Perennial.google_golang_org.grpc.mem.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
   import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
@@ -7260,6 +7384,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
+  Assumptions.newCodecV0Bridge_unfold
   Assumptions.«init.0_unfold»
   Assumptions.newFuncDialOption_unfold
   Assumptions.WithNoProxy_unfold
@@ -7277,6 +7402,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.«init.2_unfold»
   Assumptions.newFuncServerOption_unfold
   Assumptions.KeepaliveEnforcementPolicy_unfold
+  Assumptions.CustomCodec_unfold
   Assumptions.MaxRecvMsgSize_unfold
   Assumptions.MaxSendMsgSize_unfold
   Assumptions.MaxConcurrentStreams_unfold
@@ -7290,6 +7416,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_internal_Assumption
   Assumptions.import_keepalive_Assumption
   Assumptions.import_resolver_Assumption
+  Assumptions.import_mem_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_credentials_Assumption
   Assumptions.import_stats_Assumption

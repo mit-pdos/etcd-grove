@@ -157,9 +157,9 @@ theorem watchGRPCStream.openWatchClient.wp_proof
       iexact Hs
     · subst Hcs
       ihave #Hse' := Hse
-      iunfold cliStreamErr at Hse'
+      iunfold cliOpenErr at Hse'
       icases Hse' with ⟨%Hok, #Hst, -⟩
-      ihave #Hsec := cliStreamErr_closeErrOk _ $$ Hse
+      ihave #Hsec := cliOpenErr_closeErrOk _ $$ Hse
       ihave %Hpc := closeErrOk_pure _ $$ Hsec
       wp_auto
       wp_apply wp_isHaltErr ci cd err' $$ [] as %bh -

@@ -41,7 +41,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "globalServerOptions",
   # (phase7-inits, batch 2) `logger` (`grpclog.Component("core")`, `server.go:101`) with its
   # initializer (until then `opaqueInitsOk`)
-  "logger"]
+  "logger",
+  # (grpc-mem, 2026-11-26) `CustomCodec` with its body, and the bridge it stores
+  # (`newCodecV0Bridge`: `codecV0Bridge{codec: c}` as a `baseCodec`)
+  "CustomCodec", "newCodecV0Bridge"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
@@ -53,7 +56,10 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   "google.golang.org/grpc/grpclog",
   # (phase7-s2a, 2026-11-25; first phase 7 S2, 2026-11-22) the types of `Server`'s fields (`mu`,
   # `cv`, `serveWG`, `quit`), so that it is a translated struct
-  "sync", "google.golang.org/grpc/internal/grpcsync"]
+  "sync", "google.golang.org/grpc/internal/grpcsync",
+  # (grpc-mem, 2026-11-26) `mem.BufferSlice`, which `baseCodec`'s methods name, so that `baseCodec` is a
+  # translated interface (no longer axiomatized: `CustomCodec`'s conversion to it steps)
+  "google.golang.org/grpc/mem"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

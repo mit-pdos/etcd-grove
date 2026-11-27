@@ -58,7 +58,7 @@ theorem Client.dial.wp_proof
   · iPkgInit
   wp_auto
   wp_apply wp_dialSetupOpts c cfg cr sl [.resolvers [rb]] $$ [$Hc $Hcfg $Hds]
-    as %o1 ⟨%si, %ic, #Ho1, Ho1c, %Hsi, #Hic⟩
+    as %o1 ⟨%si, %ic, #Ho1, Ho1c, #Hsi, #Hic⟩
   iunfold dialOptsAt at Ho1
   icases Ho1 with ⟨%os1, #Hos1, #Hos1d⟩
   iStructNamed Hcfg
@@ -220,11 +220,11 @@ theorem Client.dial.wp_proof
       · unfold isEtcdConnG
         iexists ic
         iframe Hconn Hic
-        unfold etcdConnStream
-        iexists _
-        iframe Hco
+        unfold etcdConnStreamG
+        iexists _, si
+        iframe Hco Hsi
         ipureintro
-        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;> (try simp only [connOptsOf, streamIcOf_noProxy]) <;>
+        (try simp only [connOptsOf, streamIcOf_noProxy]) <;>
           (unfold streamIcOf kaOpts; split <;>
             simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_none conn _ P
@@ -264,11 +264,11 @@ theorem Client.dial.wp_proof
       · unfold isEtcdConnG
         iexists ic
         iframe Hconn Hic
-        unfold etcdConnStream
-        iexists _
-        iframe Hco
+        unfold etcdConnStreamG
+        iexists _, si
+        iframe Hco Hsi
         ipureintro
-        refine ⟨?_, Or.inr ⟨si, ?_, Hsi⟩⟩ <;> (try simp only [connOptsOf, streamIcOf_noProxy]) <;>
+        (try simp only [connOptsOf, streamIcOf_noProxy]) <;>
           (unfold streamIcOf kaOpts; split <;>
             simp [GrpcDialOpt.streamOf, List.filterMap_cons, List.filterMap_append])
       · iapply connTokOk_one conn pc P

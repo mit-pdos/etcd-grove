@@ -22,7 +22,6 @@ axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom proto.EqualStatus.wp_proof
-axiom streamIcMdIs
 opaque apply.irrDecodeRest
 opaque credsYieldRaw
 opaque grpcCliPI
@@ -33,3 +32,5 @@ opaque grpcReqModelOf
 opaque grpcSrvPI
 opaque metadata.builtRawMDRaw
 opaque noRefusalAt
+opaque streamRepModelOf
+opaque streamReqModelOf

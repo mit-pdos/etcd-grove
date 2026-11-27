@@ -411,6 +411,8 @@ theorem v3rpc.Server.wp_proof
       rw [List.map_eq_nil_iff.mp HaD.2] at hsd
       cases hsd
   (try wp_auto)
+  ihave #Phv1 : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 $$ []
+  · iPkgInit
   wp_apply hHealth as %hs ⟨%Hhs, #Hhsrv⟩
   (try wp_auto)
   wp_apply (hNotif hs s C.lg C.fg) $$ [Hlr] as %hn Hlr

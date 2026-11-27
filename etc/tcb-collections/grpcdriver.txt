@@ -36,7 +36,6 @@ axiom pbStringValueST_repReg
 axiom pbStringValueST_reqReg
 axiom pbStringValueT_reqReg
 axiom proto.EqualStatus.wp_proof
-axiom streamIcMdIs
 axiom strings.ToLower.wp_proof
 opaque credsYieldRaw
 opaque grpcCliPI

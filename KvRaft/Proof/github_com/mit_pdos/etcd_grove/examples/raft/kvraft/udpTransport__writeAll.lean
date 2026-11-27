@@ -26,7 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS] [Stor
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvraft.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
-variable [net_sem : net.Assumptions] [net_udp_sem : net.UdpFieldAssumptions]
+variable [net_sem : net.Assumptions]
 
 theorem udpTransport.writeAll.wp_proof
     (wp_write : udpNet.write.spec (GF := GF) (hG := hG))

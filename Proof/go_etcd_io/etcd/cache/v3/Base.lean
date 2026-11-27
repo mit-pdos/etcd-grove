@@ -227,10 +227,12 @@ namespace google_golang_org.grpc.internal
 
 -- `hookN`, `hookInv`, `hookCell`, `hookCells`: `Proof/runtime/InitInv.lean` (dsv-retire-2, 2026-11-25)
 
-/-- The hook variables of type `any` the translated `init`s set: `metadata`'s, `codes`', grpc's
-(`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s. -/
+/-- The hook variables of type `any` the translated `init`s set: `metadata`'s, `mem`'s and
+`internal/mem`'s, `codes`', grpc's (`dialoptions.go`, `rpc_util.go`, `server.go`) and `health`'s. -/
 def hooksAny : List GoString :=
   [_root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw,
+   _root_.Perennial.google_golang_org.grpc.internal.SetDefaultBufferPool,
+   _root_.Perennial.google_golang_org.grpc.internal.SetBufferPoolingThresholdForTesting,
    _root_.Perennial.google_golang_org.grpc.internal.CanonicalString,
    _root_.Perennial.google_golang_org.grpc.internal.AddGlobalDialOptions,
    _root_.Perennial.google_golang_org.grpc.internal.AddGlobalPerTargetDialOptions,
@@ -345,6 +347,38 @@ instance get_isPkgInit_wf_inst :
   build_get_is_pkg_init_wf
 
 end google_golang_org.grpc.internal.grpcsync
+
+-- (grpc-mem, 2026-11-26) grpc's `internal/mem` (types only but what `mem`'s `init` runs: the binary-tiered
+-- pool, `newBinaryTiered`), before `mem`, which imports it
+namespace google_golang_org.grpc.internal.mem
+
+/-- **`internal/mem`'s package fact**: `uintSize` holds `64` for good (`var uintSize = bits.UintSize`; no
+translated code writes it), which `newBinaryTiered` reads (`maxExponent := uintSize - 2`). -/
+def internalMemInit : IProp GF :=
+  iprop(globalAddr _root_.Perennial.google_golang_org.grpc.internal.mem.uintSize ↦□ (W64 64))
+
+instance internalMemInit_persistent : Persistent (internalMemInit (GF := GF)) := by
+  unfold internalMemInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.mem :=
+  define_is_pkg_init internalMemInit
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.mem :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal.mem
+
+-- (grpc-mem, 2026-11-26) grpc's `mem` (types only but its initializer: the default pool, the hook
+-- `internal.SetDefaultBufferPool`), before grpc's, which imports it; nothing reads its variables
+namespace google_golang_org.grpc.mem
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.mem :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.mem :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.mem
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it

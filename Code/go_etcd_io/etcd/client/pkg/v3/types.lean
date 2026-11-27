@@ -113,6 +113,43 @@ noncomputable def ID.String.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- IDFromString attempts to create an ID from a base-16 string.
+
+    go: id.go:32:6 -/
+noncomputable def IDFromString.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc ID.ty))) (App (Val (GoInstruction (GoZeroVal ID.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$a1" (Val #(W64 16))
+  (Let "$a2" (Val #(W64 64))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.ParseUint []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
 /-- go: id.go:40:18 -/
 noncomputable def IDSlice.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
@@ -495,6 +532,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Uint64Slice_instance : Uint64Slice.TypeAssumptions
   URLs_instance : URLs.TypeAssumptions
   URLsMap_instance : URLsMap.TypeAssumptions
+  IDFromString_unfold : FuncUnfold IDFromString [] IDFromString.impl
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
@@ -510,6 +548,7 @@ attribute [instance] Assumptions.ID_instance
   Assumptions.Uint64Slice_instance
   Assumptions.URLs_instance
   Assumptions.URLsMap_instance
+  Assumptions.IDFromString_unfold
   Assumptions.import_strconv_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_sort_Assumption

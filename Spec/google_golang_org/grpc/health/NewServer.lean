@@ -1,5 +1,6 @@
 /-
-`health.NewServer()` (grpc's health service, names only; item 4, the server start).
+`health.NewServer()` (grpc's health service; item 4, the server start; proved over the real code since
+2026-11-26, grpc-health).
 -/
 module
 

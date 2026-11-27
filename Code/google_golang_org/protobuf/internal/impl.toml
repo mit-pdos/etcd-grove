@@ -1,7 +1,10 @@
 # Names only, but for the struct MessageState (the target of protoimpl.MessageState,
 # the `state` field of every protobuf message), whose fields are of internal/pragma
-# types and a pointer to the (axiomatized) MessageInfo.
-translate = ["!*", "MessageState"]
+# types and a pointer to the (axiomatized) MessageInfo; and (nonleaf-status-errs, 2026-11-26) the
+# field-less struct `errInvalidUTF8` (`codec_field.go:19`), the error `proto.Marshal`'s fast path
+# returns for invalid UTF-8 (`proto.MarshalIRR`), whose `==` `togRPCError`'s map lookup needs (its
+# methods stay names-only).
+translate = ["!*", "MessageState", "errInvalidUTF8"]
 # (etcd-small-3, 2026-11-23) and `strconv`, which `EnumStringOf` (`api_export.go`) calls: the
 # generated enums' trusted `String` models (etcdserverpb's `AlarmType`, mvccpb's `Event_EventType`)
 # call `strconv.Itoa` in its place, so the enum packages' import closures initialize it, as Go's do

@@ -1,5 +1,5 @@
 /-
-`grpc.CustomCodec(c)` (names only, deprecated in grpc; item 4, the server start): etcd's
+`grpc.CustomCodec(c)` (with its body since grpc-mem, 2026-11-26; deprecated in grpc; item 4, the server start): etcd's
 `v3rpc.Server` installs its protobuf codec.
 -/
 module
