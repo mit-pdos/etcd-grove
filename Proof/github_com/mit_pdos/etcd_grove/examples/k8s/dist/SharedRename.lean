@@ -68,19 +68,11 @@ theorem delItemL_ren (ρ : Nat → Nat) (its : List item) (k : GoString) :
 theorem setStepI_ren (ρ : Nat → Nat) (it e : item) (st : List item × Bool) :
     setStepI (renItem ρ it) (st.1.map (renItem ρ), st.2) (renItem ρ e) =
       ((setStepI it st e).1.map (renItem ρ), (setStepI it st e).2) := by
+  obtain ⟨l, d⟩ := st
   unfold setStepI
   simp only [renItem_key]
-  by_cases h1 : st.2 = false ∧ go.GoStringLt it.key' e.key'
-  · rw [if_pos h1, if_pos h1]
-    by_cases h2 : e.key' = it.key'
-    · simp [h2]
-    · simp [h2]
-  · rw [if_neg h1, if_neg h1]
-    by_cases h2 : e.key' = it.key'
-    · by_cases h3 : st.2 = false
-      · simp [h2, h3]
-      · simp [h2, h3]
-    · simp [h2]
+  by_cases h2 : e.key' = it.key' <;> cases d <;> by_cases h1 : go.GoStringLt it.key' e.key' <;>
+    simp [h1, h2, go.goStringLt_irrefl]
 
 theorem setItem_foldl_ren (ρ : Nat → Nat) (it : item) :
     ∀ (l : List item) (st : List item × Bool),
@@ -99,6 +91,7 @@ theorem setItemL_ren (ρ : Nat → Nat) (its : List item) (it : item) :
   have := setItem_foldl_ren ρ it its ([], false)
   simp only [List.map_nil] at this
   rw [this]
+  dsimp only
   split <;> simp
 
 /-- The selectors do not look at the resource version. -/
@@ -136,14 +129,13 @@ theorem preOkL_ren (ρ : Nat → Nat) (x : Input) (o : Obj)
       have hp : parseRVD x.PreRV' = some o.ResourceVersion' := by
         rw [h]; exact parseRVD_rvStr _
       have := (hfix _ hp).mpr rfl
-      have he : o.ResourceVersion' = W64 (ρ (uint.nat o.ResourceVersion') : Int) := by word
-      rw [h, he]
+      rw [h]; congr 1; word
   simp only [preOkL, renObj]
   by_cases hp : x.HasPreRV' = true
   · simp only [hp, if_true]
     congr 1
     exact decide_eq_decide.mpr key
-  · simp [hp]
+  · simp only [hp]; rfl
 
 /-- A preconditions' message is invariant under the same renaming, when it is the UID's or names an
 anchor. -/
@@ -175,10 +167,9 @@ theorem CutW.fix {A : List Nat} {ρ : Nat → Nat} {w : Nat} (h : CutW A ρ w) (
     ρ w = w := by
   obtain ⟨⟨h1, h1'⟩, ⟨h2, h2'⟩⟩ := h _ ha
   have := h1' (Nat.le_refl _)
-  by_contra hne
-  have : ρ w + 1 ≤ w := by omega
-  have := h2 this
-  omega
+  rcases Nat.lt_or_ge (ρ w) w with hl | hl
+  · have := h2 hl; omega
+  · omega
 
 /-- The image of `w` is the anchor `r` exactly when `w` is. -/
 theorem CutW.eq_iff {A : List Nat} {ρ : Nat → Nat} {w r : Nat} (h : CutW A ρ w) (hr : r ∈ A) :
@@ -187,14 +178,14 @@ theorem CutW.eq_iff {A : List Nat} {ρ : Nat → Nat} {w r : Nat} (h : CutW A ρ
   constructor
   · intro e
     have := h1' (by omega)
-    by_contra hne
-    have := h2 (by omega)
-    omega
+    rcases Nat.lt_or_ge r w with hl | hl
+    · have := h2 hl; omega
+    · omega
   · intro e
     have := h1 (by omega)
-    by_contra hne
-    have := h2' (by omega)
-    omega
+    rcases Nat.lt_or_ge r (ρ w) with hl | hl
+    · have := h2' hl; omega
+    · omega
 
 /-! ## A write's step on renamed stores -/
 
@@ -262,6 +253,8 @@ theorem mcreateL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64
     exact (renObj_setRV ρ ⟨(splitKeyL x.Key').1, (splitKeyL x.Key').2, x.UID', x.Val', x.Node',
       x.App', a + W64 1, false⟩ _ _ h.next_w).symm
 
+theorem renObj_node (ρ : Nat → Nat) (o : Obj) : (renObj ρ o).Node' = o.Node' := rfl
+
 theorem mdeleteL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
     (h : WriteRen ρ x its a b) :
     StepRen ρ ⟨its, a⟩ ⟨its.map (renItem ρ), b⟩ (mdeleteL x ⟨its, a⟩).1
@@ -269,14 +262,15 @@ theorem mdeleteL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64
   unfold mdeleteL
   simp only [lookupL_ren ρ h.zero]
   by_cases hk : (lookupL its x.Key').2 = true
-  · simp only [hk, Bool.not_true, Bool.false_eq_true, if_false, renItem_obj, h.preOk x.Key' hk]
-    have hn : (renObj ρ (lookupL its x.Key').1.obj').Node' = (lookupL its x.Key').1.obj'.Node' := rfl
-    rw [hn]
-    split
-    · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-    · split
-      · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-      · exact ⟨(delItemL_ren ρ its x.Key').symm, Or.inr ⟨rfl, rfl⟩⟩
+  · simp only [hk, Bool.not_true, Bool.false_eq_true, if_false, renItem_obj, h.preOk x.Key' hk,
+      renObj_node]
+    rcases Bool.eq_false_or_eq_true (preOkL x (lookupL its x.Key').1.obj') with hp | hp <;>
+    rcases Bool.eq_false_or_eq_true (rejects x.HasReject' x.Reject' (lookupL its x.Key').1.obj'.Node')
+      with hr | hr <;>
+    simp only [hp, hr, Bool.not_true, Bool.not_false, Bool.false_eq_true, if_true, if_false] <;>
+    first
+      | exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+      | exact ⟨delItemL_ren ρ its x.Key', Or.inr ⟨rfl, rfl⟩⟩
   · simp only [Bool.not_eq_true] at hk
     simp only [hk, Bool.not_false, if_true]
     exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
@@ -299,25 +293,26 @@ theorem mupdateL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64
     by_cases hk : (lookupL its x.Key').2 = true
     · simp only [hk, if_true]; exact h.preOk x.Key' hk
     · simp only [hk, if_false, Bool.false_eq_true]; rw [renObj_zObj ρ h.zero]
-  rw [hcur, hpre, updatedL_ren, sameObjL_ren]
-  have hn : ∀ o : Obj, (renObj ρ o).Node' = o.Node' := fun _ => rfl
-  rw [hn]
-  split
+  rw [hcur, hpre, updatedL_ren, sameObjL_ren, renObj_node]
+  generalize (if (lookupL its x.Key').2 = true then (lookupL its x.Key').1.obj' else zObj) = cur
+  rcases Bool.eq_false_or_eq_true (!(lookupL its x.Key').2 && !x.IgnoreNotFound') with hn | hn <;>
+  simp only [hn, Bool.false_eq_true, if_true, if_false]
   · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-  · split
-    · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-    · split
-      · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-      · split
-        · exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
-        · refine ⟨?_, Or.inr ⟨rfl, rfl⟩⟩
-          simp only
-          rw [← setItemL_ren]
-          congr 1
-          simp only [renItem]
-          congr 1
-          rw [renObj_setRV ρ _ _ _ h.next_w]
-          simp only [renObj]
+  · rcases Bool.eq_false_or_eq_true (preOkL x cur) with hp | hp <;>
+    rcases Bool.eq_false_or_eq_true (rejects x.HasReject' x.Reject' cur.Node') with hr | hr <;>
+    simp only [hp, hr, Bool.not_true, Bool.not_false, Bool.false_eq_true, if_true, if_false]
+    all_goals try exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+    by_cases hs : ((lookupL its x.Key').2 = true ∧ sameObjL (updatedL x cur) (lookupL its x.Key').1.obj' = true ∧
+      (lookupL its x.Key').1.canon' = true)
+    · simp only [hs, if_true]; exact ⟨rfl, Or.inl ⟨rfl, rfl⟩⟩
+    · simp only [hs, if_false]
+      refine ⟨?_, Or.inr ⟨rfl, rfl⟩⟩
+      rw [← setItemL_ren]
+      congr 1
+      simp only [renItem]
+      congr 1
+      rw [renObj_setRV ρ _ _ _ h.next_w]
+      simp only [renObj]
 
 /-- **A write's (or a read's) step on renamed stores**: the items stay renamed, and both stores take a
 revision or neither does. -/

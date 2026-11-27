@@ -204,3 +204,35 @@ events); (5) settle: the cluster's pending writes before an operation, in order,
 `canonAll`'s landings; (6) `FullComplete`'s proof by induction on `SRun`. Open check: `OpAnchors`
 anchors a successful write's `RV` only with a name (Go's `HistoryRevs`), but `targetL` uses `RV - 1` for
 every successful write; if a nameless successful write answer can occur, (1) needs a case.
+
+## K4-3: two more gaps (counterexamples), G8 and G9 (2026-11-27)
+
+K4-3 settled the handoff's open question and found two more histories that linearize in the semantic
+model and that `FullComplete`, as K4-2 stated it, refuses. Both are outside the driver's generator (it
+sends writes with `MinRV ""` and names every object), as G7's was; both are fixed by a one-line Go
+change, and the Lean statement now carries both fixes, **explicitly** (not a weakening: the search and
+the anchors change, so K9 must match them in Go).
+
+- **G8: a write's target must not need its `MinRV` to parse.** Go's `target` (and K4-2's `targetL`)
+  parses `in.MinRV` before the kind switch and returns 0 if it fails; `mcreate`/`mdelete`/`mupdate`
+  never read `MinRV`. History (seeds at 2, 3; `h0.st.rv = 3`), one operation:
+  `Input{Kind: KCreate, Key: "ns/a", MinRV: "a", ...}`, `Output{Err: ENone, Name: "a", RV: 10, ...}`.
+  The semantic model: foreign revisions 4..9, the create at 10. The search: no pending write, target 0,
+  the create at 4: Illegal. **Fix:** parse `MinRV` only in the List and Get arms (`targetL` now does).
+- **G9: a successful answer's revision is an anchor with or without a name.** `HistoryRevs` anchors
+  `out.RV` only when `out.Name != ""`; an object whose key has no `/`-suffix (`"ns/"`, `splitKey` gives
+  name `""`) is stored and shown with an empty name. History (same seeds): (1) `Create "ns/"` answering
+  `EOther` (pending); (2) `Create "ns/b"` answering `RV 10`; (3) `Get "ns/"` answering the object with
+  `Name ""`, `RV 7`. Semantic model: the pending create at 7 (foreign 4..6), foreign 8, 9, (2) at 10, (3)
+  reads it at 7. Search (Go full mode too): (1)'s landings are `{rv+1}`, the anchors `≥ rv` and the next
+  ones, the key's shown revisions (`byKey["ns/"]` is empty: (3)'s object has no name) and the answer's
+  own revision for the same key (only in (3)'s step, after (2) moved the search to 10): never 7.
+  Illegal. (Lean's `landingsFull` has no answer's-own landing: the 2-operation history (1), (3) already
+  fails there.) **Fix:** drop `out.Name != ""` (a zero `RV` is not anchored anyway); `OpAnchors` now
+  anchors `y.RV'` of every successful non-watch answer.
+- **The open question** (a successful write answered without a name): with G8, `targetL` of a
+  successful write answering `RV > rv` is `RV - 1`, the cluster's revision before it, whether or not
+  `RV` is an anchor; the step's write is at `RV` on both sides (`ρ` the identity there). No case needed.
+
+Go side (for K9's session, branch `k8s-dist-go/2026-11-27`): G8 and G9 in `examples/k8s/etcd3/export.go`
+(`target`, `HistoryRevs`), with the two histories above as tests.
