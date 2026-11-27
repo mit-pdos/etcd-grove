@@ -33,6 +33,9 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+section pure
+variable [GooseExts]
+
 /-- **The stopped records' read facts, composed** (pure): from `StorageHolds S σ`, the read's shape (I1,
 I4), raft's durable log reaching `S`'s commit (`raftState_logView`'s) and `S`'s last index within raft's
 room. -/
@@ -62,6 +65,7 @@ theorem walReadFacts_of_stop (S : RaftState) (σ : StorContents) (fp : List Entr
   unfold StorContents.commit at hcS
   omega
 
+end pure
 
 end EtcdGrove
 end Perennial
