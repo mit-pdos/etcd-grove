@@ -183,7 +183,7 @@ theorem pend_shape {R : AntSim.RunCfg} {j : Fin R.N} {v : AntSim.NodeView} {q : 
     (R.md.reads = false → (q.ty = .heartbeat ∨ q.ty = .heartbeatResp) → q.ctx = []) ∧
     AntSim.EntsNormal q.entries ∧ q.dst ≠ AntSim.nodeId j ∧
     (∃ i : Fin R.N, q.dst = AntSim.nodeId i) ∧ (∃ i : Fin R.N, q.src = AntSim.nodeId i) := by
-  obtain ⟨hn, -, hty, hctx⟩ := hm
+  obtain ⟨hn, -, hty, hctx, -⟩ := hm
   unfold AntSim.PendOk at hp
   obtain ⟨hne, hd, hp⟩ := hp
   refine ⟨hty, hctx, hn hcc, hne, hd, ?_⟩

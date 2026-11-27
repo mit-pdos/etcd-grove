@@ -275,6 +275,41 @@ def ConfLag (dec : CCDec) (R : RunCfg) (v : NodeView) : Prop :=
 empty entry, the boot entry. Without conf changes every entry of the run is one. -/
 def EntsNormal (es : List EntryM) : Prop := ∀ e ∈ es, e.Type' = W32 0
 
+/-- A message's numbers the binding reads, below `K`: its index, log term and commit, its entries'
+terms and indices. (Its term is bounded by raft's term budget, `Hmsgs_term`.) -/
+def MsgNums (K : Int) (q : Msg) : Prop :=
+  uint.Z q.index < K ∧ uint.Z q.logterm < K ∧ uint.Z q.commit < K ∧
+  ∀ e ∈ q.entries, uint.Z e.Term' < K ∧ uint.Z e.Index' < K
+
+/-- A message with no payload. -/
+theorem msgNums_plain {K : Int} (hK : 0 < K) (ty : MsgType) (src dst term : w64) (rj : Bool) :
+    MsgNums K (Msg.plain ty src dst term rj) := by
+  unfold MsgNums Msg.plain
+  simp only [List.not_mem_nil, false_implies, implies_true, and_true]
+  have : uint.Z (W64 0) = 0 := rfl
+  simp only [this]; omega
+
+/-- The local read request (`RawNode.ReadIndex`'s, `readMsg`): no numbers. -/
+theorem msgNums_readMsg {K : Int} (hK : 0 < K) (d : List w8) : MsgNums K (readMsg d) := by
+  have h0 : uint.Z (W64 0) = 0 := rfl
+  refine ⟨?_, ?_, ?_, fun e he => ?_⟩
+  · show uint.Z (W64 0) < K; omega
+  · show uint.Z (W64 0) < K; omega
+  · show uint.Z (W64 0) < K; omega
+  · simp only [readMsg, List.mem_singleton] at he; subst he
+    exact ⟨show uint.Z (W64 0) < K by omega, show uint.Z (W64 0) < K by omega⟩
+
+/-- Entries' terms and indices below `K`. -/
+def EntNums (K : Int) (es : List EntryM) : Prop := ∀ e ∈ es, uint.Z e.Term' < K ∧ uint.Z e.Index' < K
+
+/-- **The read requests' numbers** (`NodeFacts`' last conjunct): every deferred request's entries
+(its context) within `2 ^ 61`, and a leader's queued requests each at an index at most its commit
+(the commit it was queued at: commits only grow, `commit_reachP`), its entries within `2 ^ 61`. The
+entries come from a `MsgReadIndex` (`MsgMask`'s last conjunct) or the local `readMsg`. -/
+def ReadOk (s : PState) : Prop :=
+  (∀ p ∈ s.rd.pend, EntNums (2 ^ 61) p.2) ∧
+    (s.role = .leader → ∀ r ∈ s.rd.ro.pending, uint.Z r.index ≤ uint.Z s.commit ∧ EntNums (2 ^ 61) r.ents)
+
 /-- The message types the harness's network carries under the mask `md` (`stepTypes md`'s protocol
 types): `antStepTypes`, and pre-vote, read-index and snapshot messages when their features are on. -/
 def NetTy (md : RnMode) (ty : MsgType) : Prop :=
@@ -286,11 +321,13 @@ def NetTy (md : RnMode) (ty : MsgType) : Prop :=
 (only an append, a proposal and a read request or its answer carry entries; a read request's is
 its context); without snapshots it is no snapshot; it is of a type the network
 carries under the run's features, or a (forwarded) proposal; without reads a heartbeat or its
-response carries no context (a leader's queue is empty, `hbCtx`, and a response echoes it). -/
+response carries no context (a leader's queue is empty, `hbCtx`, and a response echoes it); a read request's
+numbers within `2 ^ 61` (a local one, `readMsg`, has none; a follower forwards one with its numbers). -/
 def MsgMask (R : RunCfg) (m : Msg) : Prop :=
   (R.md.confChanges = false → EntsNormal m.entries) ∧
   (R.md.snapshots = false → m.ty ≠ .snap) ∧ (NetTy R.md m.ty ∨ m.ty = .propose) ∧
-  (R.md.reads = false → (m.ty = .heartbeat ∨ m.ty = .heartbeatResp) → m.ctx = [])
+  (R.md.reads = false → (m.ty = .heartbeat ∨ m.ty = .heartbeatResp) → m.ctx = []) ∧
+  (m.ty = .readIndex → MsgNums (2 ^ 61) m)
 
 /-- **C1, raft's side**: the outbox empty between `Ready`s (taken by the last one); without
 snapshots the log from `base0`, no ghost prefix and no snapshot restored; without conf changes the
@@ -307,7 +344,8 @@ request's source, deferred (`rd.pend`) or in a leader's read-only queue, is loca
 that its answer (`preadRespond`: a `MsgReadIndexResp` unless local) is to a server (the sources
 enter only with a `MsgReadIndex`: the local one's `0`, a network one's sender; `pbecomeLeader` resets
 the queue), and without conf changes its entries (the context the answer carries) are normal (the
-local request's entry is normal, `readMsg`; a network one's by `MsgMask`). -/
+local request's entry is normal, `readMsg`; a network one's by `MsgMask`); the read requests'
+numbers (`ReadOk`). -/
 def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   v.ps.outbox = [] ∧ (R.md.snapshots = false → v.ps.base = base0 ∧ v.r.fp = [] ∧ v.r.snap = false) ∧
   (R.md.confChanges = false →
@@ -321,7 +359,8 @@ def NodeFacts (R : RunCfg) (n : Fin R.N) (v : NodeView) : Prop :=
   (∀ p ∈ v.ps.rd.pend, (p.1.From' = W64 0 ∨ ∃ j : Fin R.N, p.1.From' = nodeId j) ∧
     (R.md.confChanges = false → EntsNormal p.2)) ∧
   (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
-    (R.md.confChanges = false → EntsNormal q.ents))
+    (R.md.confChanges = false → EntsNormal q.ents)) ∧
+  ReadOk v.ps
 
 /-- **A leader's confirmation** (for `LeaderPart`): a leader's `confirmed` is at its term and covers
 its whole log. `CommitBeyondConfirmed` (B 435) reads it for a leader's commit made without a write
@@ -627,7 +666,11 @@ theorem NodeFacts.readSrc {R : RunCfg} {n : Fin R.N} {v : NodeView}
       (R.md.confChanges = false → EntsNormal p.2)) ∧
     (v.ps.role = .leader → ∀ q ∈ v.ps.rd.ro.pending, (q.src = W64 0 ∨ ∃ j : Fin R.N, q.src = nodeId j) ∧
       (R.md.confChanges = false → EntsNormal q.ents)) :=
-  h.2.2.2.2.2.2.2.2.2.2.2
+  ⟨h.2.2.2.2.2.2.2.2.2.2.2.1, h.2.2.2.2.2.2.2.2.2.2.2.2.1⟩
+
+theorem NodeFacts.readOk {R : RunCfg} {n : Fin R.N} {v : NodeView}
+    (h : NodeFacts R n v) : ReadOk v.ps :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C3: the binding's own invariants -/
 

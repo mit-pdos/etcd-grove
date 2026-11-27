@@ -140,7 +140,9 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CC
       fun q hq => ?_, Int.le_refl _,
       (fun h => by change rd.pre = true at h; show r₁.p.role = .follower; rw [← hR]; exact (hpre h).1),
       (fun h => hroOk h), (fun h => (hpre h).2),
-      by have h := readSrc_reach hmsk hin hnet hv hr; exact h⟩
+      by have h := readSrc_reach hmsk hin hnet hv hr; exact h.1,
+      by have h := readSrc_reach hmsk hin hnet hv hr; exact h.2,
+      by have h := readOk_reach hmsk hin hnet hv hr; exact h⟩
     hpend := by have h := pendOk_of_reach hmsk hin hnet hv hr hro'; exact h
     hxpend := fun x hx => hxm x hx
     drain := ⟨rfl, rfl, rfl⟩
@@ -148,7 +150,7 @@ theorem afterOk_of {msk : SimMask} (hmsk : msk ≤ mskB1) {R : RunCfg} {dec : CC
   have hmq := hms q hq
   obtain ⟨-, h2', h3', -, -⟩ := id hmq
   have hqo : q ∈ r₁.p.outbox := (List.mem_filter.mp ((hmsg.mem_iff).mp hq)).1
-  exact ⟨fun _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (hv.cause m hm).1) hmq⟩
+  exact ⟨fun _ => h3', fun _ => hnosnap q hqo, h2', mshape_ctx hnet (fun m hm => (hv.cause m hm).1) hmq, hmq.2.2.2.2.2⟩
 
 /-! ## The drain's `by` and the campaign -/
 

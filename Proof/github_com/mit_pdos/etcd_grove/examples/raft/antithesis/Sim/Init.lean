@@ -257,7 +257,8 @@ theorem antSim_init : antSim_init.stmt := by
       · rw [hpend]; intro q hq; cases hq
       · exact ⟨by rw [hdur]; exact Int.le_refl _, fun _ => hrole, fun _ => ⟨hpd, fun h => (by rw [hrole] at h; cases h)⟩,
           fun h => (by rw [hpre] at h; cases h), fun p hp => (by rw [hpd] at hp; cases hp),
-          fun h => (by rw [hrole] at h; cases h)⟩
+          fun h => (by rw [hrole] at h; cases h),
+          fun p hp => (by rw [hpd] at hp; cases hp), fun h => (by rw [hrole] at h; cases h)⟩
     · intro h; rw [hrole] at h; cases h
     · intro h; rw [hrole] at h; cases h
     · rw [hpend]; intro q hq; cases hq

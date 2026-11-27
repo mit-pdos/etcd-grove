@@ -36,11 +36,7 @@ section bounds
 variable [GooseExts]
 variable {cf : CfgM} {kk : NodeK}
 
-/-- A message's numbers the binding reads, below `K`: its index, log term and commit, its entries'
-terms and indices. (Its term is bounded by raft's term budget, `Hmsgs_term`.) -/
-def MsgNums (K : Int) (q : Msg) : Prop :=
-  uint.Z q.index < K ∧ uint.Z q.logterm < K ∧ uint.Z q.commit < K ∧
-  ∀ e ∈ q.entries, uint.Z e.Term' < K ∧ uint.Z e.Index' < K
+-- `MsgNums`, `EntNums`: `Rel.lean` (`MsgMask` reads them).
 
 /-- A state's numbers below `K`: no snapshot, its last index and commit, its entries' terms and
 indices; `K` positive. -/
@@ -62,14 +58,6 @@ theorem outNums_nil {K : Int} {id : w64} {s : PState} (h : s.outbox = []) : OutN
 /-- `StateNums` reads nothing of the outbox. -/
 theorem stateNums_psend {K : Int} {s : PState} {ms : List Msg} :
     StateNums K (psendMsgs s ms) ↔ StateNums K s := Iff.rfl
-
-/-- A message with no payload. -/
-theorem msgNums_plain {K : Int} (hK : 0 < K) (ty : MsgType) (src dst term : w64) (rj : Bool) :
-    MsgNums K (Msg.plain ty src dst term rj) := by
-  unfold MsgNums Msg.plain
-  simp only [List.not_mem_nil, false_implies, implies_true, and_true]
-  have : uint.Z (W64 0) = 0 := rfl
-  simp only [this]; omega
 
 /-- A term the log has at an index (`plogTermAt` from `base0`) is the base's `0` or an entry's. -/
 theorem plogTermAt_lt {K : Int} {l : List EntryM} {i t : w64} (hK : 0 < K)
@@ -186,9 +174,6 @@ theorem outNums_appEnd {K : Int} {id : w64} {X s' : PState} {m : Msg} (hX : X.ou
     refine ⟨hm.1, by show uint.Z hintterm < K; have := hm.2; omega, hz, fun e he => by cases he⟩
 
 /-! ## The read requests' messages -/
-
-/-- Entries' terms and indices below `K`. -/
-def EntNums (K : Int) (es : List EntryM) : Prop := ∀ e ∈ es, uint.Z e.Term' < K ∧ uint.Z e.Index' < K
 
 /-- A leader's read requests' numbers below `K`: the deferred ones' entries (their contexts), the
 queued ones' indices (the commit index each is answered at) and entries. -/
@@ -515,15 +500,6 @@ theorem outNums_advance {K : Int} {c : CfgM} {id : w64} {s s' : PState} {qs : Li
     have := hs.2.2.2.1
     exact ⟨by rw [hi, h0]; exact hs.1, by rw [hlt, h0]; exact hs.1, by omega, by rw [he]; simp⟩
   · exact hn.1 x hx hne hty
-
-theorem msgNums_readMsg {K : Int} (hK : 0 < K) (d : List w8) : MsgNums K (readMsg d) := by
-  have h0 : uint.Z (W64 0) = 0 := rfl
-  refine ⟨?_, ?_, ?_, fun e he => ?_⟩
-  · show uint.Z (W64 0) < K; omega
-  · show uint.Z (W64 0) < K; omega
-  · show uint.Z (W64 0) < K; omega
-  · simp only [readMsg, List.mem_singleton] at he; subst he
-    exact ⟨show uint.Z (W64 0) < K by omega, show uint.Z (W64 0) < K by omega⟩
 
 /-- **`OutNums` along `ReachP`**: every message to another node is within any bound `K` the end
 state's numbers, the handled message's index and log term (all its numbers for a read request,

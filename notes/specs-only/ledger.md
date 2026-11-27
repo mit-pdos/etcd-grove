@@ -6952,3 +6952,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   start (`FreshView`'s `reads = []`). HarnessInput/HarnessStep/DrainB1Loop: mechanical (the conjunct threaded).
 - **Recorded.** The lead's approval of `readOk`'s `⧗ 1` (the `readreq` report's second receipt; 74fd3d1d11's entry).
 - **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
+
+## 2026-11-27 — antithesis parity B1: the read requests' numbers with reads on (#33)
+- **Defect.** `AntSim.readyMsgNums` asks `ReadNums (2 ^ 61) v.ps` (deferred reads' entries, a leader's queued reads'
+  index and entries) and, for a `MsgReadIndex` cause, its `MsgNums`; with reads on no invariant had them (only
+  `readNums_noReads`/`causeNums_noReads`, reads off).
+- **Why not `NodeFacts += ReadNums (2 ^ 61) v.ps` (the first proposal).** Quiet steps carry no number facts: a leader
+  with no entry of its term committed defers a received `MsgReadIndex` (`ReadIdxEnd` arm 1: `rd.pend` grows, nothing
+  sent, `Quiet.noReady`), and `nodeOk_quiet`/the law `antSim_quiet_in` have only `m ∈ net` and its `MsgMask`, no
+  number; and a queued read's index is the commit of the moment, which no `Sim` fact bounds (`StateNums` is the
+  harness's).
+- **Statement (Sim/Rel, lead-approved 2026-11-27).** `MsgNums`/`EntNums` moved from MsgBounds to Rel. `MsgMask` +=
+  `(m.ty = .readIndex → MsgNums (2 ^ 61) m)` (a local request, `readMsg`, has no numbers; a follower forwards one
+  with its numbers). `NodeFacts` += `ReadOk v.ps`, `ReadOk s := (∀ p ∈ s.rd.pend, EntNums (2 ^ 61) p.2) ∧ (s.role =
+  .leader → ∀ r ∈ s.rd.ro.pending, uint.Z r.index ≤ uint.Z s.commit ∧ EntNums (2 ^ 61) r.ents)`. Untracked Sim
+  vocabulary (MShape += the same `MsgReadIndex` clause). ViewNormal and NetFacts unchanged.
+- **Proofs.** Sim/ReadNums.lean (new): `commit_reachP`/`commit_reach` (commits only grow), `readOk_*`/`readOk_reach`
+  (as `readSrc_*`), `readNums_reach` (`ReadNums (2 ^ 61) v.ps` from `ReadOk` and the reached state's `StateNums`),
+  `causeReadNums`; DrainB1ReadNums.lean (new): `causeNums_reach` (reads on or off). MsgShape (`outShape_readIdx`'s
+  forward arm), Quiet, Ready (`afterOk_of`), Init; DrainB1Send's `pend_shape` (mechanical `-`).
+- **Decision.** The Antithesis lead (2026-11-27). No axiom, no top-level premise.
