@@ -1,6 +1,7 @@
 /- Relate the immutable term runs to the Raft state's entries above the delivered cursor. -/
 module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.raft.v3.DurableLogView
 
 @[expose] public section
 noncomputable section
@@ -215,13 +216,15 @@ theorem rnReplayJob_of_lead (γ : RNNames GF) (view : GoSlice) (S : RaftState) (
     omega
 
 /-- (T10s3b B3) **The law at the loop's *enter***: the node's durable state is the one in the WAL's
-crash-aware invariant, at the loop's view `vk` (its `durOf`); `rnLeadLaw_enterE` inside it. -/
+crash-aware invariant, at the loop's view `vk` (its `durOf`); `rnLeadLaw_enterE` inside it. (Session 6)
+Also that state's log well formed (`raftState_logViewE`), for the replay view's batch premises. -/
 theorem rnDurK_leadLaw [go_etcd_io.raft.v3.Assumptions] (γ : RNNames GF) (γr : ServerRaftNames)
     (hγ : γr.raft = γ.node) (νk : WalNamesK GF) (h : WalH GF) (vk : WalViewK) :
     letI := srvStor (GF := GF) γ.node
     rnDurInvK γ.node γ.id νk h ∗ notCrashed ∗ £ 1 ∗ rnWalViewK νk vk ∗
       rnRestartOk γ ∗ isCluster γ.node.cl srvClusterN ∗ srvRaftLogInv γr ⊢
-      |={⊤}=> notCrashed ∗ rnWalViewK νk vk ∗ rnLeadLaw γ (durOf vk) := by
+      |={⊤}=> notCrashed ∗ rnWalViewK νk vk ∗ rnLeadLaw γ (durOf vk) ∗
+        ⌜PlogWf (durOf vk).base (durOf vk).ents⌝ := by
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hinv, Hnc, Hlc, Hvw, #Hrok, #Hcl, #Hlog⟩
   iunfold rnWalViewK at Hvw
@@ -251,6 +254,9 @@ theorem rnDurK_leadLaw [go_etcd_io.raft.v3.Assumptions] (γ : RNNames GF) (γr :
   · iframe Hrok Hcl Hlog
     rw [← hγ] at *
     iexact HrS
+  -- (session 6) the entered log well formed (raft's), for the replay view's batch premises
+  imod raftState_logViewE γ.node.cl γ.id (durOf vk) srvClusterN _ hN $$ [$Hcl $HrS]
+    with ⟨HrS, %fp, %Hfp, -, -⟩
   imod Hclose $$ [Hv0 Hcm Htn Hr HrS Hpend] with -
   · inext
     ileft
@@ -263,8 +269,10 @@ theorem rnDurK_leadLaw [go_etcd_io.raft.v3.Assumptions] (γ : RNNames GF) (γr :
     iframe HrS Hpend
   imodintro
   iframe Hnc Hlaw
-  iunfold rnWalViewK
-  iframe Hv Hok
+  isplitl [Hv Hok]
+  · iunfold rnWalViewK
+    iframe Hv Hok
+  ipureintro; exact Hfp.2.1
 
 end EtcdGrove
 end Perennial

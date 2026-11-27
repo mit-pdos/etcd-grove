@@ -19,7 +19,8 @@ over `cl.IsIDRemoved` (a contract on the cluster: `isRNIDRemoved`).
 (Restart S3 item 5: the two paragraphs below describe the `fresh` arm, whose premises and
 post are now `rnBootPre`'s and `rnBootPost`'s at `fresh`; at `restart σ cs S a m A₀` they are
 `RestartNode.spec`'s, at `Applied = 0` and the update's state `S`, and the wrapper's labels are the
-boot's, `RNBoot.a0`/`t0`/`commit0`/`snap0`, with `cum` at `RNBoot.P`.)
+boot's, `RNBoot.a0`/`t0`/`commit0`/`snap0` (T10s3b: and `s0`, the boot view's durable state), with `cum` at
+`RNBoot.P`.)
 
 **The premises** (2026-11-05, rewritten from the spec's text: the paragraphs they replace named the
 storage tokens, the `InitialState` closure and the static/dynamic boot tokens of before the node
@@ -114,7 +115,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       ∃ (n : NodeH) (γw : RNNames GF) (f : GoFunc) (st : GoInterface) (terms : GoSlice),
         ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.wal.h = h ∧ γw.walK.sd = (fun _ => iprop(True)) ∧ γw.ss = ss ∧ γw.a0 = bt.a0 ∧ γw.t0 = bt.t0 ∧ γw.commit0 = bt.commit0 ∧
-          γw.snap0 = bt.snap0⌝ ∗
+          γw.snap0 = bt.snap0 ∧ γw.s0 = (bt.view γr).S⌝ ∗
         -- the node API's node and (2026-10-30, the repair) its whole running token
         isNode n γr.cl srvClusterN cv.ID' ∗
         nodeRunning n γr.cl srvClusterN 1 ∗ nodeTagPin γr.cl n SV ∗

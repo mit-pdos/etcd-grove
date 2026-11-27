@@ -153,12 +153,14 @@ theorem raftNode.start.wp_proof
     -- bound at each exit (`rnRestartOk_a0_le`)
     iunfold rnLoopTok at Htok
     icases Htok with ⟨%hbase, %p0, Htok⟩
-    ihave #Hinitial := rnReplayState.advance γ initial _ _ hbase $$ Hseed
-    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM) (view : GoSlice),
+    ihave #Hinitial := rnReplayState.advance γ initial _ _ hbase $$ [Hseed]
+    · iapply rnReplayHist.state γ initial γ.s0 γ.snap0 $$ Hseed
+    ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM) (view : GoSlice)
+        (S : RaftState),
         "#Hhistory" ∷ rnReplayState γ view (rnLogOf γ L').length ∗
         "terms" ∷ terms_ptr ↦ view ∗ "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
         "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
-        "Htok" ∷ rnLoopTokP γ L' p b ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
+        "Htok" ∷ rnLoopTokP γ L' p b S ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
         -- (2026-10-31) the loop's half of the WAL's open token; (2026-11-03, R2b-1 stage 6) the
         -- stop's claim, the metadata and the purge's right, for `onStop`'s `Close`
         "Hwt" ∷ rnWalTok γ r (1 : Qp).half ∗
@@ -167,7 +169,7 @@ theorem raftNode.start.wp_proof
         -- (wal-link L3) the loop's reader token of the storage's lock (its `Save`s, `SaveSnap`, `Sync`)
         "Hrd" ∷ walStorRd (GoInterface.ok si) γ.wal.h)
         $$ [terms islead raftTerm Htok HR HS Hwt Hwl Hrd]
-    · iexists L, false, _, p0, initial
+    · iexists L, false, _, p0, initial, γ.s0
       iframe Hinitial
       iframe
       ipureintro; left; rfl
@@ -198,7 +200,7 @@ theorem raftNode.start.wp_proof
       wp_apply wp_tick E γ r $$ [$Hpkg $Hr]
       wp_for_post
       iframe
-      iexists L', b, rt, p, view
+      iexists L', b, rt, p, view, S
       iframe Hhistory
       iframe
       ipureintro; exact Hrt
@@ -208,7 +210,7 @@ theorem raftNode.start.wp_proof
     · ileft
       simp only [chan.blockingClausePre]
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, %S, %ro, Hdrv, %Hld, Hwv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt,
+      icases Htok with ⟨%sent, %cums, %ro, Hdrv, %Hld, Hwv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt,
         %Hc0, #HcL0⟩
       iunfold rnDrv at Hdrv
       icases Hdrv with ⟨Hdrv, Hcfg⟩
@@ -998,13 +1000,13 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists A', false, rt', p', next
+              iexists A', false, rt', p', next, _
               iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [A'], _, _
+              iexists _, cums ++ [A'], _
               iframe
               isplitr
               · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
@@ -1051,13 +1053,13 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists A', true, rt', p', next
+              iexists A', true, rt', p', next, _
               iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [A'], _, _
+              iexists _, cums ++ [A'], _
               iframe
               isplitr
               · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
@@ -1766,13 +1768,13 @@ theorem raftNode.start.wp_proof
             (try wp_auto)
             wp_for_post
             iframe
-            iexists (L' ++ ce), false, rt', p', next
+            iexists (L' ++ ce), false, rt', p', next, _
             iframe Hnext
             iframe
             isplitr
             · ipureintro; exact Hrt'
             iunfold rnLoopTokP
-            iexists _, cums ++ [L' ++ ce], _, _
+            iexists _, cums ++ [L' ++ ce], _
             iframe
             isplitr
             · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
@@ -1832,13 +1834,13 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists (L' ++ ce), false, rt', p', next
+              iexists (L' ++ ce), false, rt', p', next, _
               iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [L' ++ ce], _, _
+              iexists _, cums ++ [L' ++ ce], _
               iframe
               isplitr
               · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
@@ -1912,13 +1914,13 @@ theorem raftNode.start.wp_proof
             (try wp_auto)
             wp_for_post
             iframe
-            iexists (L' ++ ce), true, rt', p', next
+            iexists (L' ++ ce), true, rt', p', next, _
             iframe Hnext
             iframe
             isplitr
             · ipureintro; exact Hrt'
             iunfold rnLoopTokP
-            iexists _, cums ++ [L' ++ ce], _, _
+            iexists _, cums ++ [L' ++ ce], _
             iframe
             isplitr
             · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
@@ -1972,13 +1974,13 @@ theorem raftNode.start.wp_proof
               (try wp_auto)
               wp_for_post
               iframe
-              iexists (L' ++ ce), true, rt', p', next
+              iexists (L' ++ ce), true, rt', p', next, _
               iframe Hnext
               iframe
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [L' ++ ce], _, _
+              iexists _, cums ++ [L' ++ ce], _
               iframe
               isplitr
               · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
@@ -2066,7 +2068,7 @@ theorem raftNode.start.wp_proof
       wp_auto
       wp_for_post
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, %S, %ro, Hdrv, -, Hwv, Hrun, Hprod, Hauth, %Hcums, -, -, %Hc0,
+      icases Htok with ⟨%sent, %cums, %ro, Hdrv, -, Hwv, Hrun, Hprod, Hauth, %Hcums, -, -, %Hc0,
         #HcL0⟩
       ihave %Ha0p := rnRestartOk_a0_le γ _ Hc0 $$ Hrok
       ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]

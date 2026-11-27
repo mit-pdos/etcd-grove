@@ -64,6 +64,20 @@ theorem replaySeed_pending (S : RaftState) (σ : StorContents) (A : List EntryMo
   change replayHasTerm _ e.Index' e.Term' at covered
   rwa [hidx, hterm] at covered
 
+/-- (T10s3b B3 part 2) **The first start's seed in the history form**: the empty view describes the
+fresh durable state (`RaftState.init`, no term above its base `0`) above any cursor. -/
+theorem replayHistoryMatches_init (n : Nat) : replayHistoryMatches [] RaftState.init n := by
+  refine ⟨by simp [replayLayout], fun ci t hn ht => ?_⟩
+  exfalso
+  have hpos : 0 < uint.nat ci := by omega
+  unfold plogTermAt at ht
+  have h1 : ¬ uint.Z ci < uint.Z RaftState.init.base.index' := by
+    change ¬ uint.Z ci < uint.Z (W64 0); word
+  have h2 : ¬ uint.Z ci = uint.Z RaftState.init.base.index' := by
+    change ¬ uint.Z ci = uint.Z (W64 0); word
+  rw [if_neg h1, if_neg h2] at ht
+  simp [RaftState.init] at ht
+
 /-- (T10 step 3 (B), B2) **The seed in the history form**: the initial slice describes the durable
 state `S` above the storage's base (`replayHistoryMatches`), for every term `S` has there, not only
 the backend's last (`replaySeed_pending`). -/

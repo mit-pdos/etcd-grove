@@ -3369,6 +3369,9 @@ did for the changes so far (the dist proofs build unchanged).
 | same (`rnApP → rnApSnap`) | `rnApSnap` (B5, not done) | `taReplayField`-style, A8's `|a0| < |pre ++ A'|` | the job, the keep case | to fill in at B5 |
 | same | `rnStopImage` (B7, not done) | the stop image's `i ≤ σ.commit` | dropped | to fill in at B7 |
 | `Serve_dist` (`Serve_dist.spec → memberUpL → srvStopRight → srvDoneInv → srvDiskImage → srvDiskImageAt → wal.stopImage`) | `wal.stopImage` (B7, not done) | `uint.nat i ≤ σ.commit` | dropped | to fill in at B7 |
+| `NewServer_dist`; `RNNames` also `NewPeerHandler_dist`, `Serve_dist`, `PeerServe_dist` | `RNNames` (B3 part 2, done) | no durable-state label | a label `s0 : RaftState` beside `a0`/`t0`/`commit0`/`snap0` | A label only: read by `rnLoopTok` and `rnWorkerStartTok` alone; every `∃ γ` an axiom states gains a free field, every `∀ γ` ranges over the same names with one more label. No Go state is described differently. |
+| `NewServer_dist` (`… → rnLoopTok`, `rnLoopTokP`) | `rnLoopTok`, `rnLoopTokP` (B3 part 2, done) | the driver at some durable state `S` (`∃ S` inside `rnLoopTokP`) | `rnLoopTokP γ L p b S` takes `S`; `rnLoopTok` starts the driver at `γ.s0` | As the Go code: `bootstrap` reads the WAL, `RestartNode` restores raft's durable state from it (`RaftState.init` at `StartNode`), and the loop's first `Ready` comes from that state; `rnToks_of_start`/`_of_restart` prove it at both boots. |
+| `NewServer_dist` (`… → rnWorkerStartTok`) | `rnWorkerStartTok` (B3 part 2, done) | the seed `rnReplayState γ terms γ.snap0` (`replayPending`: the backend's last term) | `rnReplayHist γ terms γ.s0 γ.snap0` (`replayPending` and the runs describe `γ.s0` above `snap0`) | Stronger and true of the Go: `initialReplayTerms` is `replayTermsFromStorage` of the WAL's entries above its snapshot, which are `γ.s0`'s (`StorageHolds`), so every term `γ.s0` has there is in the runs (`replaySeed_history`; fresh: no entries, `replayHistoryMatches_init`). |
 
 No axiom reaches `EtcdServer.applyAll.spec*`, `taReplayField`, `taReplayBatch`, `raftNode.onStop.spec`, `rnReplayHist`
 or `rnLeadLaw` (condition (1) holds for the `Spec/` files B3 changed).
@@ -3387,6 +3390,71 @@ raft's importers and its copies `RaftTla`/`RaftNoAx`/`KvNet`: `etc/gen-raft-tla.
 `srvCrashImageAt_disk` over `srvRaftLogInv`; (iii) `i < bootLen`: the lead's decision (`⌜γ.cl.bootLen ≤ σ.commit⌝` in the
 crash image, or a raft law); left; (iv) `i < σ.b` (the `.snap.db`): a second hinge for `specRAt` and `wp_proofRG` over
 both file shapes, large, not started.
+
+### T10 step 3 (B), session 6 (2026-11-27, branch `etcd-safe-t10s3b-a/2026-11-27`; draft under option (a))
+
+**B3 part 2, step 1 (the loop's replay state at the driver's durable state): the threading done.**
+* *Why a new label.* The loop's replay view must describe the driver's durable state `S`
+  (`rnReplayHist γ view S n`). Its seed lives in `rnWorkerStartTok` (beside the `replayTerms` field) and the
+  loop's starting `S` in `rnLoopTok` (the driver's); both are made from the boot's `S` (`NodeStartLinked`), but
+  the two tokens share only `γ`, which named no durable state, so the seed's `S` and the loop's could not be tied
+  (no ghost name either: each token's existential is its own). Hence `RNNames.s0 : RaftState`, the restart
+  point's durable state, a label beside `a0`/`t0`/`commit0`/`snap0` (ledger entry 2026-11-27, "the restart
+  point's durable state as a label").
+* `InvRaftNode.lean`: `RNNames.s0`; `rnLoopTokP γ L p b S` (the durable state a parameter, no longer `∃`);
+  `rnLoopTok γ L := ⌜…⌝ ∗ ∃ p, rnLoopTokP γ L p false γ.s0`; `rnWorkerStartTok`'s seed
+  `rnReplayHist γ terms γ.s0 γ.snap0` (was `rnReplayState γ terms γ.snap0`).
+* `Spec/…/newRaftNode.lean`: parameter `s0`, post `γ.s0 = s0`; `Spec/…/bootstrappedRaft__newRaftNode.lean`: post
+  `γw.s0 = (bt.view γr).S`. Proofs: `newRaftNode.lean` (the constructors), `bootstrappedRaft__newRaftNode.lean`
+  (passes `(bt.view γr).S`). No axiom states either spec (`/shared/tmp/t10s3b-chk/AxCheck6.lean`).
+* `NodeStart.lean`: `rnToks_of_start`/`_of_restart` take `γ.s0 = RaftState.init`/`γ.s0 = S`; the installer
+  takes `rnReplayHist`. `NodeStartLinked.lean`: both seeds in the history form (first start:
+  `replayHistoryMatches_init`, new in `ReplaySeed.lean`; restart: `replaySeed_history` beside
+  `replaySeed_pending`).
+* `raftNode__start.lean`: the loop invariant `HI` binds `S` (`Htok ∷ rnLoopTokP γ L' p b S`); **its `Hhistory` is
+  still `rnReplayState`** (the seed through `rnReplayHist.state`): step 2 switches it.
+* **New lemmas, built, not yet used** (`InvRaftNode.lean`, after `rnReplayHist.after`): `rnReplayHistP γ view P n`
+  (the history at every durable state satisfying `P`), `.state`, `.elim` (at an `S'` with `P S'`), `.after`;
+  `replayBatchP S n es S'` (the batch's `below`/`here`), `rnReplayHist.appendEntriesP` (`appendEntries` with
+  those premises deferred into `P`), `replayBatchP_next` (pure: the premises at `S' = readyDurable S p' none es`
+  from `PlogWf S'` and the batch past `S`'s base). `ReplayJob.lean`: `rnDurK_leadLaw` also returns
+  `⌜PlogWf (durOf vk).base (durOf vk).ents⌝` (`raftState_logViewE` inside the invariant).
+* *Why deferred premises.* The Go code extends the replay view (`terms.appendEntries(rd.Entries)`,
+  `terms.after(...)`) **before** the WAL `Save` and raft's *enter*; the facts that tie the new view to the
+  entered state `S'` (its log well formed: raft's, only inside `rnDurInvK` after the *enter*) come after. So the
+  view carries `replayBatchP S n es` until the *enter*, where `rnDurK_leadLaw` gives both the law and `PlogWf S'`.
+
+**Step 2 (next), the exact edits** (`raftNode__start.lean`; lines at this commit):
+1. `HI` (`:158`): `"#Hhistory" ∷ rnReplayHist γ view S (rnLogOf γ L').length`; seed `:156`
+   `rnReplayHist.advance γ initial γ.s0 γ.s0 _ _ hbase rfl rfl $$ Hseed`.
+2. Entries arm: `:1369` `rnReplayHist.appendEntriesP` (drop nothing else: same `order`, `above`); the join
+   `:1375` over `rnReplayHistP γ next (replayBatchP S (rnLogOf γ L').length es) (rnLogOf γ (L' ++ ce)).length`
+   (careful: `P`'s `n` is the *old* cursor, the view's the new); `:1404` `rnReplayHistP.after`; `:1419`
+   `rnReplayHistP.state` until the deposit moves (or delete `Hjob` there at once).
+3. At the *enter* (`:1575`): `wp_auto_lc 3`; after `rnDurK_enter_law_holds`, before `Hwv` is wrapped:
+   `icases rnEnvOk_logInv E γ $$ Henv with ⟨%HEnR', #HRL'⟩`, `isCluster` from `HRL'`'s `srvClusterOk` (as
+   `InvRaftNode.lean:1398`), `imod rnDurK_leadLaw γ E.γr.raft HEnR' γ.walK γ.wal.h (⟨S', p', none, srvLE γ.srv
+   (L' ++ ce)⟩, none) $$ [$Hdur $Hnc $Hlc3 $Hwv $Hrok $HisCl $HRL'] with ⟨Hnc, Hwv, #Hlaw, %Hwf'⟩`. Then
+   `replayBatchP_next S S' p'.Term' p'.Vote' p'.Commit' es _ (by rw [HSeq]; rfl) (by rw [HSeq]; rfl)
+   (Hentries.1.imp fun h => h.2) hb Hwf'`, `hb` from `HσvOk` (`StorageHolds S σv`: `S.base.index ≤ σv.b ≤
+   σv.commit`, `σv.hs = p`) and `Hentries.2` (`p.Commit' < first.index`); `.elim` gives `#Hhist : rnReplayHist γ
+   next S' n'`.
+4. The two first sends (`:1739`, `:1891`): `rnReplayJob_of_lead γ next S' rt' n' hb0 hrt $$ Hhist Hrok Hlaw` in
+   place of `$Hjob` (`hrt` from `Hrt'` and `S'.term = p'.Term'`; `hb0 : S'.base.index ≤ n'`).
+5. The loop posts (`iexists (L' ++ ce), …, next, _`): `Hhistory` is `Hhist` at `S'` (the driver's new `S`).
+6. The snapshot arm (`:523-526`): `.empty` at `Sb := {S with base := ⟨snap term, snap index⟩, ents := []}`
+   (no term above the snapshot index `= (rnLogOf γ A').length`, `hlenA`), `appendEntriesP` from `Sb`; at its
+   *enter* (`:768`, `wp_auto_lc 3`) `rnDurK_leadLaw` for `PlogWf S'` and `replayBatchP_next Sb S' …` (`S'.base =
+   Sb.base`, `S'.ents = (Sb.next … none es).ents`: both `rfl` after `HSeq`). **Open**: its `hb` (the batch past
+   the snapshot index): not in `rnReadySnap`; look in raft's `readySnap` for it, else ask (a raft API law).
+7. The tick branch and the stop exits carry `Hhistory` unchanged.
+
+**Handoff T10s3b-6.** Branch `etcd-safe-t10s3b-a/2026-11-27` (pushed), tree `/shared/etcd-grove-t10s3b`, manifest and
+Perennial as Handoff T10s3b-1. Done this session: step 1 above (built green: `NewServerCrash` and the server's `Link`, 10085 jobs, log `/shared/tmp/t10s3b-s6-b4.log`; the 54 axiom-declaring modules of the unfolding check NOT rebuilt since: build them (as session 5) before rerunning `AxCheck6`). Next: step 2's edits 1-7 above (the
+snapshot arm's `hb` the one unknown), then rerun the unfolding check (`/shared/tmp/t10s3b-chk/AxCheck6.lean`, session 6's
+targets added: `rnWorkerStartTok`, `rnLoopTok`, `rnLoopTokP`, `RNNames`, the two `newRaftNode` specs; output `out6.txt`),
+then B5, B6, B7 with their table rows, then B8 as in Handoff T10s3b-5. No axiom statement, `sorry`, premise or trusted
+text changed; `Spec/` changes: the two `newRaftNode` specs (ledger first).
 
 ### T10 status and handoff, session 10 (2026-11-26, branch `etcd-safe-t10`)
 

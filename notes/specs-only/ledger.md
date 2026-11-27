@@ -8416,3 +8416,21 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Decision.** B3 approved by the lead (#50, 2026-11-26, conditions 1-4); condition 3 (axioms unfolding to changed
   definitions) taken as option (a) for this draft (user, 2026-11-27, lead away): the changes in the axioms'
   meaning are listed in `notes/etcd-dist-d6.md`, "Option (a): axiom meaning changes".
+## 2026-11-27: `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec`: the restart point's durable state as a label (T10s3b B3 part 2; draft under option (a))
+
+- **Spec.** `newRaftNode.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/newRaftNode.lean`) and
+  `bootstrappedRaft.newRaftNode.spec` (`.../bootstrappedRaft__newRaftNode.lean`).
+- **Defect.** The raft loop's replay view must describe the node's durable state `S` (`rnReplayHist γ view S n`)
+  for B3's job (`rnReplayJob_of_lead`). The view's seed (in `rnWorkerStartTok`, from the boot's WAL read) and the
+  loop's starting durable state (in `rnLoopTok`, the driver's) are made from the same `S` at the boot, but the
+  two tokens share only `γ`, and `γ` names no durable state: the seed's `S` and the loop's cannot be tied.
+- **Evidence.** `notes/etcd-dist-d6.md`, "T10 step 3 (B), session 6" (B3 part 2).
+- **Proposed change.** A label `s0 : RaftState` in `RNNames` (beside `a0`, `t0`, `commit0`, `snap0`, the other
+  restart-point labels): `newRaftNode.spec` takes it as a parameter and its post says `γ.s0 = s0` (claims nothing
+  else of it, as of the other labels); `bootstrappedRaft.newRaftNode.spec`'s post adds `γw.s0 = (bt.view γr).S`
+  (the boot's durable state: `RaftState.init` fresh, `RestartNode`'s `S` at a restart). Then `rnLoopTok` starts
+  the loop at `γ.s0` and `rnWorkerStartTok`'s seed is `rnReplayHist γ terms γ.s0 γ.snap0`.
+- **Decision.** Under the lead's B3 approval (#50, 2026-11-26) and option (a) for this draft (user, 2026-11-27);
+  no axiom states either spec (`/shared/tmp/t10s3b-chk/AxCheck6.lean`); `RNNames`, `rnLoopTok`, `rnLoopTokP` and
+  `rnWorkerStartTok` are reached by `NewServer_dist` (and `RNNames` by `NewPeerHandler_dist`, `Serve_dist`,
+  `PeerServe_dist`): `notes/etcd-dist-d6.md`, "Option (a): axiom meaning changes".
