@@ -21,3 +21,8 @@ upgrade can also carry a pre-fix leader's pair in a `.snap.db`.
 **Why it is residual.** The proof's model runs only the fixed binary, so no modelled execution writes a torn
 pair. Upamanyu approved recording this rather than gating branch B on a marker meta key (2026-11-27, the
 keepfix-d packet, decision 3). Design: `~/coordinator-notes/plans/keepfix-d-design.md`, "Residual risks".
+
+**A related correction (2026-11-27, approved).** The old `bootOk`/`bootOkR` `"Hthr"` row claimed the consistent
+index is 0 after `bootstrap` (`applyThread γA ⟨W64 0, …⟩`). That was false of Go after a restart:
+`bootstrap.go:316/324` (`SetBackend`, then the eager `ConsistentIndex()` in the log call) and `:537/:542` at 251a430ce
+load the stored index. Corrected to `⟨γA.m0.1, γA.m0.1, W64 0, false⟩` (ledger, 2026-11-27).

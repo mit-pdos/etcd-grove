@@ -25,6 +25,22 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-27: `bootOk` / `bootOkR`'s "Hthr" -- the apply thread's state claimed the consistent index 0 after `bootstrap`, which Go has loaded (keepfix-d)
+
+- **Spec.** `bootOk` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`, `"Hthr"`) and `bootOkR`
+  (`InvRestart.lean`, `"Hthr"`), in the posts of `bootstrap.wp_proof_dist`, `bootstrap.wp_proofOne`,
+  `bootstrapRestartContract` and C-I2 (trusted texts).
+- **Defect.** False of Go at a restart: `"Hthr" ∷ applyThread γA ⟨W64 0, γA.m0.1, W64 0, false⟩` puts `k = 0`, and
+  `consInvAt`'s `ciIdx γ.ci s.k` with `ciInv`'s `ciIdxAddr ci ↦ k` says the field `consistentIndex` is 0. But
+  `bootstrapBackend` loads it: `ci.SetBackend(be)` then the eager `ci.ConsistentIndex()` in the log call
+  (`bootstrap.go:316/324` at the pin 251a430ce), and again in `recoverSnapshot` (`:537/:542`). So after a restart the
+  field is the stored index `γA.m0.1`. (At a first start it is 0, so `bootOk`'s text was right there.)
+- **Evidence.** The Go source at 251a430ce, the lines above; found while threading the pair predicate (keepfix-d row 7:
+  the slow-path load the model then did in the run would store `γA.m0`'s pair outside the certificates that justify it).
+- **Proposed change.** `"Hthr" ∷ applyThread γA ⟨γA.m0.1, γA.m0.1, W64 0, false⟩` in both (first start: `m0.1 = 0`,
+  equivalent). The untrusted apply specs then carry `st.k = 0 → γ.m0.1 = 0` (route (i)), no `consInv` conjunct.
+- **Decision.** Approved by Upamanyu 2026-11-27 (via the etcd_safe lead), with route (i).
+
 ## 2026-11-27: the cindex specs -- the saved term is unconstrained; the Go race that kept it so is fixed (keepfix-d, fork 01b0497d0)
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/cindex/`: `NewConsistentIndex.spec`,
