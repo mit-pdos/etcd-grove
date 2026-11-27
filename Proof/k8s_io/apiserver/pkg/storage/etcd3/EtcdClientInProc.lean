@@ -54,7 +54,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) : (inProcEtcd ms V).Laws where
   get := by
     intro _ _ _ kc ci cd key opts Q h1 h2
-    simp only [inProcEtcd, bigAndL_map]
+    simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, -, #Hregs⟩, #Hctx, #Hce, Hau⟩ HΦ
     iapply (wp_Get kc ms V ci cd key opts Q h1 h2) $$ [Hlt Hau] [HΦ]
     · iframe Hlt Hau
@@ -62,7 +62,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     · iexact HΦ
   list := by
     intro _ _ _ kc ci cd pfx opts Q h1 h2 h3 h4 h5
-    simp only [inProcEtcd, bigAndL_map]
+    simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, -, #Hregs⟩, #Hctx, #Hce, Hau⟩ HΦ
     iapply (wp_List kc ms V ci cd pfx opts Q h1 h2 h3 h4 h5) $$ [Hlt Hau] [HΦ]
     · iframe Hlt Hau
@@ -70,7 +70,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     · iexact HΦ
   optimisticPut := by
     intro _ _ _ kc ci cd key vsl val rev opts Q h1 h2 h3
-    simp only [inProcEtcd, bigAndL_map]
+    simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, #Hwo, #Hregs⟩, #Hctx, #Hce, #Hv, Hau⟩ HΦ
     iapply (wp_OptimisticPut kc ms V ci cd key vsl val rev opts Q h1 h2 h3) $$ [Hlt Hau] [HΦ]
     · iframe Hlt Hau
@@ -78,7 +78,7 @@ theorem inProcEtcd_laws [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
     · iexact HΦ
   optimisticDelete := by
     intro _ _ _ kc ci cd key rev opts Q h1
-    simp only [inProcEtcd, bigAndL_map]
+    simp only [inProcEtcd, BigAndL.bigAndL_map]
     iintro %Φ ⟨#P1, #P2, Hlt, ⟨#Hnc, #Hwo, #Hregs⟩, #Hctx, #Hce, Hau⟩ HΦ
     iapply (wp_OptimisticDelete kc ms V ci cd key rev opts Q h1) $$ [Hlt Hau] [HΦ]
     · iframe Hlt Hau

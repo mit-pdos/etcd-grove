@@ -309,6 +309,32 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
    `Link` regenerated, `k8s_all` rebuilt; `etc/tcb-report.py --check`, byte-identity of the two
    `TopLevelRobustness` Spec files checked against `lean`.
 
+#### Handoff K5-1 (2026-11-27)
+
+- **Done.** Design above (§4.1). Batch 1, commit `a84dfc1ecb`: `Proof/k8s_io/apiserver/pkg/storage/etcd3/EtcdClient.lean`
+  (`K8sEtcd` = `kvs`/`live`/`eps`/`handle`; `K8sEtcd.Laws`, C1 = `get`/`list`/`optimisticPut`/`optimisticDelete`,
+  each the `kubernetes.Client` spec over `K.handle kc.Client'`; `k8sClient K cl := ⌜K.Laws⌝ ∗ □ K.handle cl`)
+  and `EtcdClientInProc.lean` (`inProcEtcd ms V`, `inProcEtcd_laws` from the four specs taken
+  `∀ [kubernetes.Assumptions]`, `k8sClient_inProc`). Ledger entry for the Spec changes of batches 2-5 written
+  (`notes/specs-only/ledger.md`, 2026-11-27). Laws are Prop-level triples (not WPs inside the predicate), so the
+  library's proofs call `hK.get …` with `wp_apply` as they call `wp_Get` today, after `icases` of `k8sClient`
+  into `⟨%hK, #Hh⟩`.
+- **Build host.** fk-lean2 refused to seed a worktree (64 GB free, needs 65 GB; its `wt/` holds 10 other
+  sessions' worktrees), so batch 1 was built on **fk-lean1** (`wt/k8s-dist-k5/2026-11-27` there), against the
+  brief. The next session should go back to fk-lean2 once it has disk (or keep fk-lean1 with the coordinator's OK).
+- **Build state.** Built on fk-lean1 (log `/home/ubuntu/eg/logs/k8s-dist-k5_2026-11-27-20261127-192136.log`):
+  `EtcdClient` builds; `EtcdClientInProc` failed only because `bigAndL_map` was unqualified (the follow-on
+  `iframe` errors came from the `simp` that did not run). Fixed to `BigAndL.bigAndL_map` in the handoff commit,
+  **not rebuilt**: the next session builds `Proof.k8s_io.apiserver.pkg.storage.etcd3.EtcdClientInProc` first
+  (if `simp only` does not reduce the `K8sEtcd` projections, `show` the old forms before `iapply`).
+- **Next (batch 2).** `StoreCfg`: `ms`/`V` → `K : K8sEtcd GF`; `isStore`'s `isNewClient … ∗ clientWriteOnce … ∗
+  [∗list] kvRegsAt` → `k8sClient c.K c.cl` (about 20 proofs `icases` isStore with `#Hcl, #Hone, #Hregs`: one slot
+  now). The watch (`syncPaginated` via `client_range_any.law`, `WatchDefs.readAus`) and compactor consumers of
+  `c.ms` break at the same time, so batch 2 cannot build alone unless C2 (the `wp_syncGet` triple) is added to
+  `Laws` first; do C2 before or with batch 2. Spec rewrites: `∀ x ∈ c.ms, noRefusalAt x.addr` → `c.K.live`,
+  `[∗list]/[∧list] x ∈ c.ms, F x.γr.kv` → `… γ ∈ c.K.kvs, F γ` (`bigSepL_map`/`bigAndL_map` give back the
+  in-process forms). Then rerun `etc/gen-link.py --k8s-etcd3`.
+
 ## 5. Approvals
 
 | What | Who |
