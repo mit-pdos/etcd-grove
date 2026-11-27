@@ -80,19 +80,6 @@ func (r Result) String() string {
 	return "ended without a check: " + r.Why
 }
 
-// Args is a process's configuration (a client machine's, as etcd-dist's client.Args): its
-// workload, the members' client endpoints in the members' order, and the workload's addresses (the
-// store's: client c's, len Clients+Watchers, on API server machine c mod Apiservers; the
-// compactor's: its machine c's); on the orchestrator IsNode is false, on client machine Node it is
-// true.
-type Args struct {
-	W      Workload
-	Eps    []string
-	Addrs  []string
-	IsNode bool
-	Node   int
-}
-
 // NodeCount is how many client machines a workload has.
 func NodeCount(w Workload) int {
 	if w.Kind == Store {

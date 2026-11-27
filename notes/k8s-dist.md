@@ -11,10 +11,14 @@ no Lean. The in-process drivers (`examples/k8s/{etcd3,compactor,all}`) and their
 ## The split
 
 `examples/k8s/dist` (package `dist`, a Go module of its own) holds the driver of the deployment:
-the orchestrator and client machine programs (`MainReady`, `NodeMain`), and, test-only
-(`deploy_test.go`, since 2026-11-22: the machines' programs import neither etcd-dist's deployment
-code nor `examples/lib/robust`), the deployment (`Deployment`, `WellFormed`, `RandomDeployment`);
-`dist_test.go` deploys it. **One etcd cluster** (since 2026-11-22, the user's decision: below, "One
+the orchestrator and client machine programs (`MainReady`, `NodeMain`), and the deployment
+(`deploy.go`, program code since 2026-11-27, G1 of `notes/k8s-dist-lean-plan.md`: `Deployment`
+with the client machines' addresses, `WellFormed` over etcd-dist's `deployment.WellFormed`, and the
+machines' entry points `Orchestrator(d, j)`/`MainDeployment` and `NodeDeployment(d, n)`, each
+checking `d` first, as etcd-dist's `client.Orchestrator`; it imports etcd-dist's `deployment`
+package, not its harness or `examples/lib/robust`); test-only, `RandomDeployment`
+(`deploy_test.go`), and `dist_test.go` deploys it, the orchestrator's `ready` a file marker of
+the test's. **One etcd cluster** (since 2026-11-22, the user's decision: below, "One
 cluster"), an etcd-dist deployment with no etcd workload, its members etcd-dist's `server.Main` on
 machines of their own, which both workloads use at once. The cluster has etcd's own compactor off
 and no auth, as the drivers' clusters (`WellFormed` checks it; the snapshot settings are random, from
