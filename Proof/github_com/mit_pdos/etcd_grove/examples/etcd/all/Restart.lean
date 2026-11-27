@@ -1,6 +1,6 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/Restart.lean`: restartN's triple on a
-spawned goroutine, restart1's on the calling thread (as `KV.lean`). Lean-first (no Rocq counterpart).
+spawned goroutine, restart1's on the calling thread. Lean-first (no Rocq counterpart).
 -/
 module
 
