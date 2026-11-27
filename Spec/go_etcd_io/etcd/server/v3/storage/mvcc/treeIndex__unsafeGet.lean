@@ -20,7 +20,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.unsafeGet(key, atRev)` (under the lock, on the tree at any fraction, every key index
 with a revision, a non-nil logger): the key's revision, create revision and version at `atRev`, or

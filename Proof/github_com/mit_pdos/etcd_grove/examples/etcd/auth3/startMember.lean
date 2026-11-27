@@ -45,7 +45,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assum
 
 theorem startMember.wp_proof
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
-    (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
+    (wp_NewServer :
       NewServer.specM (GF := GF) (hG := hG) true)
     (wp_ListenHttp : net.Listen.specHttp (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))

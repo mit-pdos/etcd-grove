@@ -34,7 +34,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev concurrentOrderedEventProcessing.collectEventProcessing.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+  ∀ [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] [Pos.Countable Obj] (pp chQ : Loc) (γq : SpscNames) (wc sp : Loc)
     (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γk : KVNames) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)

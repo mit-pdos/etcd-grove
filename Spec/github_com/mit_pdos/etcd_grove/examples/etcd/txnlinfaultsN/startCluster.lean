@@ -40,8 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfault
 
 /-- See the file header. -/
 abbrev startCluster.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
-    (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+  ∀ (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (lg : Loc),
   1 ≤ k → k ≤ 1000 → ids.length = k →
   BootFacts ids ps ctxs boot →
