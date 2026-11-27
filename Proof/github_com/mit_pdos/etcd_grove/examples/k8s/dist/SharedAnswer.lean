@@ -57,11 +57,8 @@ variable {A : List Nat} {ρ : Nat → Nat} {x : Input} {its : List item} {a b : 
 /-- The preconditions on a stored object are the same renamed (`preOkL_ren`, the precondition's
 revision an anchor: `CutW.eq_iff`). -/
 theorem AnsRen.preOk {y : Output} (h : AnsRen A ρ x its a b y) (it : item) (hi : it ∈ its) :
-    preOkL x (renObj ρ it.obj') = preOkL x it.obj' := by
-  by_cases hp : x.HasPreRV' = true
-  · exact preOkL_ren ρ x _ (h.fits it hi) (fun r hr => (h.cut it hi).eq_iff (h.pre hp r hr))
-  · simp only [Bool.not_eq_true] at hp
-    simp only [preOkL, hp, Bool.false_eq_true, if_false, Bool.and_true]; rfl
+    preOkL x (renObj ρ it.obj') = preOkL x it.obj' :=
+  preOkL_ren ρ x _ (h.fits it hi) (fun hp r hr => (h.cut it hi).eq_iff (h.pre hp r hr))
 
 /-- A "not found" at the cluster's revision pins the search's store to it. -/
 theorem AnsRen.nf_eq (k : GoString) (h : AnsRen A ρ x its a b (notFoundL b k)) : a = b := by

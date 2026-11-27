@@ -111,9 +111,13 @@ precondition's exactly when it is it (the precondition's revision is an anchor, 
 fixes and no other revision maps to), below `2^64`. -/
 theorem preOkL_ren (ρ : Nat → Nat) (x : Input) (o : Obj)
     (hb : ρ (uint.nat o.ResourceVersion') < 2 ^ 64)
-    (hfix : ∀ r, parseRVD x.PreRV' = some r →
+    (hfix : x.HasPreRV' = true → ∀ r, parseRVD x.PreRV' = some r →
       (ρ (uint.nat o.ResourceVersion') = uint.nat r ↔ uint.nat o.ResourceVersion' = uint.nat r)) :
     preOkL x (renObj ρ o) = preOkL x o := by
+  by_cases hp0 : x.HasPreRV' = false
+  · simp only [preOkL, hp0, Bool.false_eq_true, if_false, Bool.and_true]; rfl
+  have hp : x.HasPreRV' = true := by simpa using hp0
+  replace hfix := hfix hp
   have key : x.PreRV' = rvStr (W64 (ρ (uint.nat o.ResourceVersion') : Int)) ↔
       x.PreRV' = rvStr o.ResourceVersion' := by
     have hn : uint.nat (W64 (ρ (uint.nat o.ResourceVersion') : Int)) = ρ (uint.nat o.ResourceVersion') := by
@@ -130,12 +134,9 @@ theorem preOkL_ren (ρ : Nat → Nat) (x : Input) (o : Obj)
         rw [h]; exact parseRVD_rvStr _
       have := (hfix _ hp).mpr rfl
       rw [h]; congr 1; word
-  simp only [preOkL, renObj]
-  by_cases hp : x.HasPreRV' = true
-  · simp only [hp, if_true]
-    congr 1
-    exact decide_eq_decide.mpr key
-  · simp only [hp]; rfl
+  simp only [preOkL, renObj, hp, if_true]
+  congr 1
+  exact decide_eq_decide.mpr key
 
 /-- A preconditions' message is invariant under the same renaming, when it is the UID's or names an
 anchor. -/
@@ -220,7 +221,7 @@ structure WriteRen (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64) 
   a_lt : uint.nat a + 1 < 2 ^ 64
   b_lt : uint.nat b + 1 < 2 ^ 64
   fits : ∀ it ∈ its, ρ (uint.nat it.obj'.ResourceVersion') < 2 ^ 64
-  pre : ∀ r, parseRVD x.PreRV' = some r → ∀ it ∈ its,
+  pre : x.HasPreRV' = true → ∀ r, parseRVD x.PreRV' = some r → ∀ it ∈ its,
     (ρ (uint.nat it.obj'.ResourceVersion') = uint.nat r ↔ uint.nat it.obj'.ResourceVersion' = uint.nat r)
 
 theorem WriteRen.next_w {ρ : Nat → Nat} {x : Input} {its : List item} {a b : w64}
@@ -234,7 +235,7 @@ theorem WriteRen.preOk {ρ : Nat → Nat} {x : Input} {its : List item} {a b : w
     (h : WriteRen ρ x its a b) (k : GoString) (hk : (lookupL its k).2 = true) :
     preOkL x (renObj ρ (lookupL its k).1.obj') = preOkL x (lookupL its k).1.obj' :=
   preOkL_ren ρ x _ (h.fits _ (lookupL_mem its k hk))
-    (fun r hr => h.pre r hr _ (lookupL_mem its k hk))
+    (fun hp r hr => h.pre hp r hr _ (lookupL_mem its k hk))
 
 theorem mcreateL_ren (ρ : Nat → Nat) (x : Input) (its : List item) (a b : w64)
     (h : WriteRen ρ x its a b) :
