@@ -82,15 +82,15 @@ theorem drvCli_of [hX : HasExt netExt] (π : NetProtoGS) (σ : NetSlotGS) (γid 
   iframe #
   isplitr
   · iapply (isGrpcRpcMd_of_addr (Req := (pbStringValueT (GF := GF)).toProtoMsg)
-      (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr echoName (drvSvc γid) _
+      (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr echoName (drvSvc γid) _ _
       (drvSvc_echo γid)) $$ Haddr
   isplitr
   · iapply (isGrpcRpcMd_of_addr (Req := (pbStringValueT (GF := GF)).toProtoMsg)
-      (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr failName (drvSvc γid) _
+      (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr failName (drvSvc γid) _ _
       (drvSvc_fail γid)) $$ Haddr
   isplitr
   · iapply (isGrpcRpcMd_of_addr (Req := (pbStringValueT (GF := GF)).toProtoMsg)
-      (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr metaName (drvSvc γid) _
+      (Rep := (pbStringValueRT (GF := GF)).toProtoMsg) drvAddr metaName (drvSvc γid) _ _
       (drvSvc_meta γid)) $$ Haddr
   unfold drvStrmFacts
   imodintro
