@@ -60,7 +60,7 @@ abbrev store.updateOnce.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜span ≠ null⌝ ∗ ownStateX c st s x ∗ stFrom c key s ∗
       ⌜s.rev = W64 0 → ign = true⌝ ∗
       dsl ↦*□ c.S.encode o' ∗ c.S.objAt dest o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key ign c.S.zero pre f) W Φ)) }}
+      ([∗list] γv ∈ c.K.kvs, k8sAuRW γv c (updStep key ign c.S.zero pre f) W Φ)) }}
     (App (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"updateOnce")) (Val #(GoInterface.ok ci)))
       (Val #span)) (Val #key)) (Val #dest)) (Val #st)) (Val #dsl)) (Val #(W64 0))) (Val #v))

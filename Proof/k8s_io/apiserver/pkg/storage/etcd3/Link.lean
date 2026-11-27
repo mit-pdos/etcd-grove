@@ -819,7 +819,7 @@ theorem store.wp_prepareKey :
 
 theorem store.wp_GetCurrentResourceVersion :
     EtcdGrove.k8s.store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get fmt.wp_ErrorfPlain
+  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest fmt.wp_ErrorfPlain
 
 theorem wp_newBlockLogger :
     EtcdGrove.k8s.newBlockLogger.spec (GF := GF) (hG := hG) :=
@@ -867,7 +867,7 @@ theorem watchChan.wp_queueEvent :
 
 theorem watchChan.wp_syncPaginated :
     EtcdGrove.k8s.watchChan.syncPaginated.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.watchChan.syncPaginated.wp_proof errors.wp_AsLeafTy rpctypes.EtcdError.wp_Code status.Status.wp_Code v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd metrics.wp_RecordEtcdRequest fmt.wp_ErrorfPlain wp_interpretListError wp_parseKV watchChan.wp_queueEvent client.client_range_any_law_holds
+  EtcdGrove.k8s.watchChan.syncPaginated.wp_proof errors.wp_AsLeafTy rpctypes.EtcdError.wp_Code status.Status.wp_Code v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd metrics.wp_RecordEtcdRequest fmt.wp_ErrorfPlain wp_interpretListError wp_parseKV watchChan.wp_queueEvent
 
 theorem watchChan.wp_sync :
     EtcdGrove.k8s.watchChan.sync.spec (GF := GF) (hG := hG) :=
@@ -967,7 +967,7 @@ theorem tracing.wp_Start :
 
 theorem store.wp_Create :
     EtcdGrove.k8s.store.Create.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.Create.wp_proof store.wp_prepareKey wp_getTypeName wp_txnError storage.wp_NewKeyExistsError storage.wp_NewInternalError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.wp_RecordEtcdRequest kubernetes.Client.wp_OptimisticPut
+  EtcdGrove.k8s.store.Create.wp_proof store.wp_prepareKey wp_getTypeName wp_txnError storage.wp_NewKeyExistsError storage.wp_NewInternalError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.wp_RecordEtcdRequest
 
 theorem store.wp_stateFromEtcdResponse :
     EtcdGrove.k8s.store.stateFromEtcdResponse.spec (GF := GF) (hG := hG) :=
@@ -975,7 +975,7 @@ theorem store.wp_stateFromEtcdResponse :
 
 theorem store.wp_getCurrentState :
     EtcdGrove.k8s.store.getCurrentState.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.getCurrentState.wp_proof store.wp_stateFromEtcdResponse metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get
+  EtcdGrove.k8s.store.getCurrentState.wp_proof store.wp_stateFromEtcdResponse metrics.wp_RecordEtcdRequest
 
 theorem store.wp_getStateFromObject :
     EtcdGrove.k8s.store.getStateFromObject.spec (GF := GF) (hG := hG) :=
@@ -983,7 +983,7 @@ theorem store.wp_getStateFromObject :
 
 theorem store.wp_deleteOnce :
     EtcdGrove.k8s.store.deleteOnce.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.deleteOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest klog.wp_V klog.Verbose.wp_Infof kubernetes.Client.wp_OptimisticDelete
+  EtcdGrove.k8s.store.deleteOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest klog.wp_V klog.Verbose.wp_Infof
 
 theorem store.wp_conditionalDelete :
     EtcdGrove.k8s.store.conditionalDelete.spec (GF := GF) (hG := hG) :=
@@ -999,11 +999,11 @@ theorem store.wp_validateMinimumResourceVersion :
 
 theorem store.wp_Get :
     EtcdGrove.k8s.store.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.Get.wp_proof store.wp_prepareKey store.wp_validateMinimumResourceVersion storage.wp_NewKeyNotFoundError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.OperationLatencyTracker.wp_Record kubernetes.Client.wp_Get
+  EtcdGrove.k8s.store.Get.wp_proof store.wp_prepareKey store.wp_validateMinimumResourceVersion storage.wp_NewKeyNotFoundError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.OperationLatencyTracker.wp_Record
 
 theorem store.wp_getList :
     EtcdGrove.k8s.store.getList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.getList.wp_proof kubernetes.Client.wp_List kubernetes.Client.wp_Get metrics.wp_RecordEtcdRequest store.wp_getResourceSizeEstimator
+  EtcdGrove.k8s.store.getList.wp_proof metrics.wp_RecordEtcdRequest store.wp_getResourceSizeEstimator
 
 theorem store.wp_listReadError :
     EtcdGrove.k8s.store.listReadError.spec (GF := GF) (hG := hG) :=
@@ -1035,7 +1035,7 @@ theorem store.wp_updateState :
 
 theorem store.wp_updateOnce :
     EtcdGrove.k8s.store.updateOnce.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.updateOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest storage.wp_NewInternalError tracing.Span.wp_AddEvent «attribute».wp_String «attribute».wp_Int klog.wp_V klog.Verbose.wp_Infof kubernetes.Client.wp_OptimisticPut
+  EtcdGrove.k8s.store.updateOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest storage.wp_NewInternalError tracing.Span.wp_AddEvent «attribute».wp_String «attribute».wp_Int klog.wp_V klog.Verbose.wp_Infof
 
 theorem store.wp_GuaranteedUpdate :
     EtcdGrove.k8s.store.GuaranteedUpdate.spec (GF := GF) (hG := hG) :=

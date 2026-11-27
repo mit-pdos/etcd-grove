@@ -44,7 +44,7 @@ abbrev watcher.Watch.spec : Prop :=
   (∀ lb σ, Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧ kvKeysShort σ ∧ kvWritesDec c σ ∧
     kvRevFits σ.rev⌝) →
   (∀ lb lb' σ σ', Q lb σ ∗ Q lb' σ' ⊢ ⌜kvSameHist σ σ'⌝) →
-  (∀ x ∈ c.ms, noRefusalAt x.addr) →
+  c.K.live →
   c.pfx <+: kp → kp ≠ [] → kp.length ≤ opKeyMax → (opts.Recursive' = true → go!"/" <:+ kp) →
   uint.Z n < 2 ^ 63 - 1 → opts.ProgressNotify' = false → opts.RecordTimestamps' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ levelTok 0 ∗ (isStore sp c ∗
