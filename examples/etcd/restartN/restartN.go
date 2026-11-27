@@ -14,8 +14,10 @@
 // The members are etcdstart.Members' (member i, from 0, is named restartN-i, its peer address
 // 127.0.0.1:(PeerBase+i), its client address 127.0.0.1:(ClientBase+i)), started in order as
 // etcdstart.StartMembers starts them (the initial cluster's map, then per member the server built and
-// served on its peer address, and started), except that each member's peer address is served through
-// the example's own handler (raftSwap) instead of its raft handler directly: the handler forwards each
+// served on its peer address, and started), except that every member is built before any is served
+// (so that no first boot's GET /members finds a listener: startMembers) and each member's peer
+// address is served through the example's own handler (raftSwap) instead of its raft handler
+// directly: the handler forwards each
 // request to the current incarnation's raft handler and is swapped to the restarted incarnation's under
 // a mutex before it starts, so that the address is never closed or listened on again (restart3's
 // D-R3-4; each incarnation is built before its handler is served or swapped in, so the handler is never
@@ -165,9 +167,12 @@ func newMember(s *etcdserver.EtcdServer, name string, peer types.URLs, peerAddr 
 
 // startMembers starts the members ms of a new cluster (etcdstart.StartMembers' steps, each member's
 // peer address served through its raftSwap): the initial cluster's map (each member's name to its one
-// peer URL http://Peer), then, for each member in order, build and newMember. It returns the started
-// servers and the members' records, in the members' order, and the cluster's map, or the first error
-// (the members started before it keep running).
+// peer URL http://Peer), then every member built, in order, and only then, for each member in order,
+// newMember. Every member's first boot (bootstrap, inside build) thus runs while no member's peer
+// address is listened on: its GET of each other member's /members (isMemberBootstrapped) finds no
+// listener, and the boot goes on as a new member. It returns the started servers and the members'
+// records, in the members' order, and the cluster's map, or the first error (the members built or
+// started before it are left as they are).
 func startMembers(ms []etcdstart.Member, lg *zap.Logger) ([]*etcdserver.EtcdServer, []*member,
 	types.URLsMap, error) {
 	cluster := types.URLsMap{}
@@ -181,11 +186,13 @@ func startMembers(ms []etcdstart.Member, lg *zap.Logger) ([]*etcdserver.EtcdServ
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		mem, err := newMember(s, m.Name, cluster[m.Name], m.Peer, m.Client)
+		srvs[j] = s
+	}
+	for j, m := range ms {
+		mem, err := newMember(srvs[j], m.Name, cluster[m.Name], m.Peer, m.Client)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		srvs[j] = s
 		mems[j] = mem
 	}
 	return srvs, mems, cluster, nil
