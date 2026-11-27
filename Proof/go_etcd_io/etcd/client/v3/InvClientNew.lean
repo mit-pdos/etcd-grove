@@ -87,12 +87,6 @@ theorem plainEndpoints_singleton (ep : GoString) : plainEndpoint ep → plainEnd
 /-- The scheme of etcd's manual resolver (`internal/resolver.Schema`). -/
 def etcdScheme : GoString := go!"etcd-endpoints"
 
-/-- **`si` is etcd's client stream interceptor** (grpc-trusted-T, T7, 2026-11-24: a definition, gRPC's
-`streamIcMdIs` at etcd's relation `etcdVersionMd`; until then an axiomatized property of grpc's
-`InvDial.lean`): introduced only by the client's `streamClientInterceptor` axiom, whose `withVersion`
-sets `client-api-version`. -/
-def etcdStreamInterceptor (si : GoFunc) : Prop := streamIcMdIs si etcdVersionMd
-
 end pure
 
 section resolverOwn

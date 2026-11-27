@@ -499,6 +499,7 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
   ptr_roundRobinQuorumBackoff_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" Client.roundRobinQuorumBackoff.impl
   ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" Client.shouldRefreshToken.impl
+  ptr_streamClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"streamClientInterceptor" Client.streamClientInterceptor.impl
   ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" Client.unaryClientInterceptor.impl
 
 attribute [instance] Client.TypeAssumptions.type_repr
@@ -570,6 +571,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_refreshToken_unfold
   Client.TypeAssumptions.ptr_roundRobinQuorumBackoff_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
+  Client.TypeAssumptions.ptr_streamClientInterceptor_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
 
 class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -30,7 +30,6 @@ axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom go_humanize.Bytes.wp_proof
-axiom grpc.CustomCodec.wp_proof
 axiom grpcProtoCodec
 axiom grpcStatsHandlerOk
 axiom grpc_health_v1.HealthCheckResponse_ServingStatus.String.wp_proof

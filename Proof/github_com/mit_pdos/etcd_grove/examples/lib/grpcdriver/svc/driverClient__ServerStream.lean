@@ -10,6 +10,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.grpcdriver.svc.driverClient__ServerStream
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__NewStream
+public import Proof.google_golang_org.grpc.NewStreamNoIc
 public import Spec.google_golang_org.grpc.GenericClientStream__Send
 public import Spec.google_golang_org.grpc.GenericClientStream__Recv
 public import Spec.google_golang_org.grpc.GenericClientStream__CloseSend
@@ -98,7 +99,7 @@ theorem driverClient.ServerStream.wp_proof
     unfold streamCallOptOk
     ileft
     iexact Hsm
-  have hNS := wp_NewStream conn addrs [] anyRes d (fun om om' => om' = om)
+  have hNS := grpc.ClientConn.NewStreamNoIc_of wp_NewStream conn addrs [] anyRes d
     go!"/grpcdriver.Driver/ServerStream" strmTT strmTT strmTT_reqReg
     strmTT_repReg Up Spec ctx cd om
   iapply (hNS _ copts ([sm] ++ []) iprop(True))
@@ -109,7 +110,7 @@ theorem driverClient.ServerStream.wp_proof
     isplitr
     · iframe #
     isplitr
-    · ipureintro; exact Or.inl ⟨hnone, fun _ _ => Iff.rfl⟩
+    · ipureintro; exact hnone
     isplitr
     · ipureintro; trivial
     isplitr

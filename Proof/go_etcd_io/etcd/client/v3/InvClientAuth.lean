@@ -313,25 +313,93 @@ instance etcdInterceptorOkG_persistent (c : Loc) (ic : GoFunc) :
     Persistent (etcdInterceptorOkG (GF := GF) c ic) := by
   unfold etcdInterceptorOkG; infer_instance
 
+/-- **etcd's stream interceptor `si` of the client `c`, once `c` is ready** (persistent;
+phase7-s3-interceptor, 2026-11-26): its contract (`etcdStreamIcOk`), given, a step later, that the
+client is ready on a connection `conn` to `eps` (`clientReady`) whose one unary interceptor `ic` is
+the client's (`etcdInterceptorOkG`): the interceptor's `getToken` makes a unary call on it. The laters
+let the client's readiness, which holds the contract (`etcdConnStream`), be built by Löb induction
+(`clientReady_loeb`). What `Client.streamClientInterceptor` returns. -/
+def etcdStreamIcOkG (c : Loc) (si : GoFunc) : IProp GF :=
+  iprop(□ ∀ (conn : Loc) (eps : List GoString) (ic : GoFunc),
+    ▷ clientReady c conn eps -∗ ▷ grpcConn conn eps [ic] [] clientRes -∗ ▷ etcdInterceptorOkG c ic -∗
+      etcdStreamIcOk si)
+
+instance etcdStreamIcOkG_persistent (c : Loc) (si : GoFunc) :
+    Persistent (etcdStreamIcOkG (GF := GF) c si) := by
+  unfold etcdStreamIcOkG; infer_instance
+
+/-- **The connection `conn` of the client `c` was dialed with its stream interceptor** (persistent;
+phase7-s3-interceptor): `etcdConnStream`, the contract gated on the client's readiness. -/
+def etcdConnStreamG (c conn : Loc) : IProp GF :=
+  iprop(∃ (d : GrpcConnOpts) (si : GoFunc), grpcConnOpts conn d ∗ ⌜d.streamIc = some si⌝ ∗
+    etcdStreamIcOkG c si)
+
+instance etcdConnStreamG_persistent (c conn : Loc) : Persistent (etcdConnStreamG (GF := GF) c conn) := by
+  unfold etcdConnStreamG; infer_instance
+
 /-- **The dial's connection of the client `c`** (persistent; see the file header): `isEtcdConn`,
-its interceptor's contract gated on `clientReady`. -/
+its interceptors' contracts gated on `clientReady`. -/
 def isEtcdConnG (c conn : Loc) (eps : List GoString) : IProp GF :=
   iprop(∃ ic : GoFunc, grpcConn conn eps [ic] [] clientRes ∗ etcdInterceptorOkG c ic ∗
-    -- (grpc-trusted-T, T7, 2026-11-24) dialed with etcd's stream interceptor
-    etcdConnStream conn)
+    -- (grpc-trusted-T, T7, 2026-11-24) dialed with etcd's stream interceptor (gated since
+    -- phase7-s3-interceptor)
+    etcdConnStreamG c conn)
 
 instance isEtcdConnG_persistent (c conn : Loc) (eps : List GoString) :
     Persistent (isEtcdConnG (GF := GF) c conn eps) := by
   unfold isEtcdConnG; infer_instance
 
-theorem isEtcdConnG_ready (c conn : Loc) (eps : List GoString) :
-    isEtcdConnG (GF := GF) c conn eps ∗ clientReady c conn eps ⊢ isEtcdConn conn eps := by
-  unfold isEtcdConnG etcdInterceptorOkG
-  iintro ⟨⟨%ic, #Hg, #Hok, #Hcs⟩, #Hr⟩
+/-- The connection, from its unary interceptor's gate and the client's readiness (which holds the
+stream interceptor's contract, `etcdConnStream`). -/
+theorem isEtcdConn_of_ready (c conn : Loc) (eps : List GoString) (ic : GoFunc) :
+    grpcConn (GF := GF) conn eps [ic] [] clientRes ∗ etcdInterceptorOkG c ic ∗ clientReady c conn eps ⊢
+      isEtcdConn conn eps := by
+  iintro ⟨#Hg, #Hok, #Hr⟩
+  ihave #Hr' := Hr
+  unfold etcdInterceptorOkG
   ihave ⟨#H1, #H2⟩ := Hok $$ %conn %eps Hr Hg
+  iunfold clientReady at Hr'
+  icases Hr' with ⟨%_, %_, -, -, -, #Hcs⟩
   unfold isEtcdConn
   iexists ic
   iframe #
+
+theorem isEtcdConnG_ready (c conn : Loc) (eps : List GoString) :
+    isEtcdConnG (GF := GF) c conn eps ∗ clientReady c conn eps ⊢ isEtcdConn conn eps := by
+  unfold isEtcdConnG
+  iintro ⟨⟨%ic, #Hg, #Hok, -⟩, #Hr⟩
+  iapply isEtcdConn_of_ready c conn eps ic
+  iframe #
+
+/-- **The client is ready, by Löb induction** (phase7-s3-interceptor): its `Auth`, the token fetch's
+facts and the dial's connection give `clientReady`, whose stream interceptor's contract the gate
+(`etcdStreamIcOkG`) gives from the client's readiness a step later. -/
+theorem clientReady_loeb (c conn : Loc) (eps : List GoString) (api : Loc) (P : GoString → IProp GF) :
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"Auth" c ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #api :
+          GoInterface) ∗
+      authObjS (GF := GF) api conn ∗ clientAuthAt c eps P ∗ isEtcdConnG c conn eps ⊢
+      clientReady c conn eps := by
+  iintro ⟨#HA, #Ho, #Hca, #Hg⟩
+  iloeb as IH
+  iunfold isEtcdConnG at Hg
+  icases Hg with ⟨%ic, #Hgc, #Hok, #Hcs⟩
+  iunfold etcdConnStreamG at Hcs
+  icases Hcs with ⟨%d, %si, #Hco, %Hsi, #Hgate⟩
+  iunfold etcdStreamIcOkG at Hgate
+  ihave #Hgc' : iprop(▷ grpcConn (GF := GF) conn eps [ic] [] clientRes) $$ []
+  · inext; iexact Hgc
+  ihave #Hok' : iprop(▷ etcdInterceptorOkG (GF := GF) c ic) $$ []
+  · inext; iexact Hok
+  ihave #Hs := Hgate $$ %conn %eps %ic IH Hgc' Hok'
+  iclear IH
+  unfold clientReady
+  iexists api, P
+  iframe HA Ho Hca
+  unfold etcdConnStream
+  iexists d, si
+  iframe Hco Hs
+  ipureintro; exact Hsi
 
 /-! ## The connection's tokens -/
 

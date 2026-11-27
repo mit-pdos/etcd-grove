@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatchStream
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
+public import Proof.google_golang_org.grpc.InvGrpcStreamer
 
 @[expose] public section
 
@@ -40,7 +41,10 @@ specification is the registration's. Since phase 7's switch (SW1, 2026-11-24, R2
 one client content `Up` for every address, and neither the address nor the metadata is fixed when
 the stream is returned: the stream specification holds at every address of `addrs` and every metadata
 an attempt may deliver (`clientAttemptMd`), at that dispatch's content `Dn a md`, and each response
-says which dispatch it is (`cliWatchStreamIs`' family, `streamDispIs`). -/
+says which dispatch it is (`cliWatchStreamIs`' family, `streamDispIs`). Since phase7-s3-interceptor
+(2026-11-26) the error is an opening error (`cliOpenErr`: `cliStreamErr` without `streamErr`, which
+etcd's interceptor's own errors, `getToken`'s and its `Unimplemented`, are not known to meet; no
+caller used it; `notes/specs-only/ledger.md`). -/
 abbrev watchClient.Watch.spec : Prop :=
   ∀ (wc conn : Loc) (addrs : List GoString) (ics : List GoFunc)
     (Up : Nat → v3rpc.WatchReqM → IProp GF)
@@ -60,7 +64,8 @@ abbrev watchClient.Watch.spec : Prop :=
         cliSendTok (Req := v3rpc.pbWatchRequest) γ [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗
         □ (∀ a md, ⌜a ∈ addrs⌝ -∗ clientAttemptMd conn om md -∗ Spec a md γ (Dn a md))) ∨
-      (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
+      -- (phase7-s3-interceptor, 2026-11-26) an opening error, without `streamErr`'s error tree
+      (⌜cs = GoInterface.nil⌝ ∗ cliOpenErr err)) }}
 
 end spec
 

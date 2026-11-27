@@ -59,6 +59,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import Perennial.Proof.context
 public import Proof.google_golang_org.grpc.InvGrpc
 public import Proof.google_golang_org.grpc.InvDial
+public import Proof.google_golang_org.grpc.InvGrpcStreamer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
 
 @[expose] public section
@@ -1726,17 +1727,90 @@ theorem callOptsOk_app (vs ws : List GoInterface) :
   · iexact H1
   · iexact H2
 
+/-- **A call option holding only scalars, or a `retryOption` whose closure meets `A`** (phase7-
+s3-interceptor, 2026-11-26): `callOptOk` at `A := retryApplyOk`; what `filterCallOptions` splits, for
+the unary interceptor's options and the stream interceptor's (whose retry options build options,
+`optApplyOk`). -/
+def callOptOkA (A : GoFunc → IProp GF) (v : GoInterface) : IProp GF :=
+  iprop(⌜∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys⌝ ∨
+    ∃ ro : go_etcd_io.etcd.client.v3.retryOption,
+      ⌜v = interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro⌝ ∗ A ro.applyFunc')
+
+instance callOptOkA_persistent (A : GoFunc → IProp GF) [hA : ∀ f, Persistent (A f)]
+    (v : GoInterface) : Persistent (callOptOkA A v) := by
+  unfold callOptOkA; infer_instance
+
+open Iris.ProofMode in
+theorem callOptsOk_A (vs : List GoInterface) :
+    callOptsOk (GF := GF) vs ⊢ [∗list] v ∈ vs, callOptOkA retryApplyOk v := by
+  unfold callOptsOk callOptOkA callOptOk
+  iintro H
+  iexact H
+
 theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ callOptsOk [v] := by
   unfold callOptsOk
   iintro H
   iapply BigSepL.bigSepL_singleton.2
   iexact H
 
+/-! ## The client's retry options (moved from `InvRetry.lean`, phase7-s3-interceptor: `etcdConnStream`
+states etcd's stream interceptor's contract over them) -/
+
+/-- **A backoff function that returns, lent a level-0 thread token** (persistent;
+prove-ps2-clientrdlock, 2026-11-24, decision 1b): `backoffOk`'s, given and giving back the caller's
+`levelTok 0` (the client's `roundRobinQuorumBackoff` reads `c.Endpoints()`, a reader slot of
+`epMu`). Every `backoffOk` function is one (`backoffOkT_of`). -/
+def backoffOkT (bf : GoFunc) : IProp GF :=
+  iprop(□ ∀ (a : w64) (Φ : val → IProp GF), levelTok 0 -∗ ▷ (∀ d : w64, levelTok 0 -∗ Φ #d) -∗
+    WP (App (Val #bf) (Val #a)) {{ Φ }})
+
+instance backoffOkT_persistent (bf : GoFunc) : Persistent (backoffOkT (GF := GF) bf) := by
+  unfold backoffOkT; infer_instance
+
+/-- **The interceptor's options value** `ov`: its backoff function returns, lent the caller's
+`levelTok 0` (`backoffOkT`, since 2026-11-24). -/
+def optionsOk (ov : go_etcd_io.etcd.client.v3.options) : IProp GF := backoffOkT ov.backoffFunc'
+
+instance optionsOk_persistent (ov : go_etcd_io.etcd.client.v3.options) :
+    Persistent (optionsOk (GF := GF) ov) := by
+  unfold optionsOk; infer_instance
+
+/-- **A `retryOption`'s closure `f` building options** (persistent): it writes the options it is
+given, keeping `optionsOk` (the dial's `withMax`, `withBackoff`; a call's `retryApplyOk`). -/
+def optApplyOk (f : GoFunc) : IProp GF :=
+  iprop(□ ∀ (o : Loc) (ov : go_etcd_io.etcd.client.v3.options),
+    {{ o ↦ ov ∗ optionsOk ov }}
+      (App (Val #f) (Val #o))
+    {{ RET #(); ∃ ov' : go_etcd_io.etcd.client.v3.options, o ↦ ov' ∗ optionsOk ov' }})
+
+instance optApplyOk_persistent (f : GoFunc) : Persistent (optApplyOk (GF := GF) f) := by
+  unfold optApplyOk; infer_instance
+
+/-- **A call option the client passes to a stream** (persistent; item 1, the client lease,
+2026-10-18): one it passes to a unary call (`callOptOk`), or a `retryOption` whose closure builds
+the interceptor's options (`optApplyOk`: the lessor's `withMax(0)`). The stream interceptor applies
+the retry options to a copy of its own options and, for a client stream, either retries nothing
+(`max` stays `0`) or fails with `Unimplemented` (`retry_interceptor.go`, `NewStream`'s axiom). -/
+def streamCallOptOk (v : GoInterface) : IProp GF :=
+  iprop(callOptOk v ∨ ∃ ro : go_etcd_io.etcd.client.v3.retryOption,
+    ⌜v = interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro⌝ ∗ optApplyOk ro.applyFunc')
+
+instance streamCallOptOk_persistent (v : GoInterface) :
+    Persistent (streamCallOptOk (GF := GF) v) := by
+  unfold streamCallOptOk; infer_instance
+
+/-- Every call option of `vs` is one the client passes to a stream. -/
+def streamCallOptsOk (vs : List GoInterface) : IProp GF := iprop([∗list] v ∈ vs, streamCallOptOk v)
+
+instance streamCallOptsOk_persistent (vs : List GoInterface) :
+    Persistent (streamCallOptsOk (GF := GF) vs) := by
+  unfold streamCallOptsOk; infer_instance
+
 /-! ## The connection -/
 
 /-- **What etcd's interceptors' `withVersion` does to a caller's outgoing metadata** (pure): it sets
 `client-api-version` to some value (`withVersion.spec`). The relation of etcd's stream interceptor
-(`etcdStreamInterceptor`, `streamIcMdIs`). -/
+(`etcdStreamIcOk`). -/
 def etcdVersionMd (om om' : GrpcMd) : Prop :=
   ∃ v : GoString, om' = metadata.mdSet om go!"client-api-version" [v]
 
@@ -1762,12 +1836,23 @@ instance clientAttemptMd_persistent (conn : Loc) (om md : GrpcMd) :
 theorem clientAttemptMd_eq (conn : Loc) (om md : GrpcMd) :
     clientAttemptMd (GF := GF) conn om md = streamAttemptMd conn etcdVersionMd om md := rfl
 
+/-- **etcd's stream interceptor's contract** (persistent; phase7-s3-interceptor, 2026-11-26): grpc's
+`streamIcOk` at the client's stream call options (`streamCallOptsOk`), the connection's resource
+(`clientRes`, a level-0 thread token) and `withVersion`'s relation (`etcdVersionMd`): what
+`Client.streamClientInterceptor` returns, once the client is ready (`etcdStreamIcOkG`). -/
+def etcdStreamIcOk (si : GoFunc) : IProp GF := streamIcOk streamCallOptsOk clientRes etcdVersionMd si
+
+instance etcdStreamIcOk_persistent (si : GoFunc) : Persistent (etcdStreamIcOk (GF := GF) si) := by
+  unfold etcdStreamIcOk; infer_instance
+
 /-- **The connection `conn` was dialed with etcd's stream interceptor** (persistent; grpc-trusted-T,
-T7, 2026-11-24): its options (`grpcConnOpts`, `grpc.NewClient`'s post) have a stream interceptor, of
-etcd's relation (`streamMdOk … etcdVersionMd`: `etcdStreamInterceptor`). What `ClientConn.NewStream`
-needs to state an etcd stream's attempt metadata as `clientAttemptMd`; `Client.dial` gives it. -/
+T7, 2026-11-24): its options (`grpcConnOpts`, `grpc.NewClient`'s post) have a stream interceptor `si`
+meeting etcd's contract (`etcdStreamIcOk`; since phase7-s3-interceptor, 2026-11-26: until then the
+pure `streamMdOk … etcdVersionMd`, over an axiomatized property). What `etcdNewStream` states an etcd
+stream's attempt metadata as `clientAttemptMd` from; the client's readiness (`clientReady`) gives it. -/
 def etcdConnStream (conn : Loc) : IProp GF :=
-  iprop(∃ d : GrpcConnOpts, grpcConnOpts conn d ∗ ⌜d.streamIc ≠ none ∧ streamMdOk d etcdVersionMd⌝)
+  iprop(∃ (d : GrpcConnOpts) (si : GoFunc), grpcConnOpts conn d ∗ ⌜d.streamIc = some si⌝ ∗
+    etcdStreamIcOk si)
 
 instance etcdConnStream_persistent (conn : Loc) : Persistent (etcdConnStream (GF := GF) conn) := by
   unfold etcdConnStream; infer_instance

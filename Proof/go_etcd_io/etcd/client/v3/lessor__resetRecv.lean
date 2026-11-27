@@ -171,7 +171,7 @@ theorem lessor.resetRecv.wp_proof
         iframe #
         iframe
   · ihave #Herr' := Herr
-    iunfold cliStreamErr at Herr'
+    iunfold cliOpenErr at Herr'
     icases Herr' with ⟨%Hne, -, -⟩
     subst Hst
     cases err with

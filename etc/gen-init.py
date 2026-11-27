@@ -5096,6 +5096,28 @@ register(SPECIAL[_MV], _MV, [
     reg_gfunc('compactRev', _D, _MVR, 'compact_revision'),
     reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
 
+# (prove-t18, 2026-11-26) etcdhttp's health metrics (`health.go`), translated with its `init()` (the
+# multi-machine server's peer handler package; names only since etcd-dist D2, 2026-11-24): the
+# counters `healthSuccess`, `healthFailed`, the vectors `healthCheckGauge`, `healthCheckCounter`, over
+# prometheus's constructor specs, registered by `init()` (`MustRegister`) with the names' rights. Until
+# then `opaqueInitsOk` and `initFuncsOk`.
+_EH = 'go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp'
+SPECIAL[_EH] = _more_metrics(dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
+their translated initializers (`health.go`, 2026-11-26; until then untranslated, `opaqueInitsOk`): the
+counters `healthSuccess` and `healthFailed` (over prometheus's `NewCounter` spec) and the vectors
+`healthCheckGauge` and `healthCheckCounter` (`NewGaugeVec`, `NewCounterVec`); then its translated `init`
+function (until then the trust-boundary axiom `initFuncsOk`), which registers the four with prometheus's
+default registry (`MustRegister`), with the rights to their names.'''),
+    [('healthSuccess', 'counter'), ('healthFailed', 'counter')])
+promvec(SPECIAL[_EH], 'healthCheckGauge', 'Gauge', ['type', 'name'])
+promvec(SPECIAL[_EH], 'healthCheckCounter', 'Counter', ['type', 'name', 'status'])
+register(SPECIAL[_EH], _EH, [
+    reg_scalar('healthSuccess', _E, _S, 'health_success'),
+    reg_scalar('healthFailed', _E, _S, 'health_failures'),
+    reg_vec('healthCheckGauge', 'Gauge', _E, _S, 'healthcheck'),
+    reg_vec('healthCheckCounter', 'Counter', _E, _S, 'healthchecks_total')])
+
 
 # (prom-registry, route (b), 2026-11-22: notes/prom-registry.md) prometheus's default registry is the real
 # client_golang code (translated with its bodies): its initializer allocates `defaultRegistry`,

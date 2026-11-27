@@ -236,7 +236,7 @@ theorem newClient.wp_proof
     ipersist conn
     ihave #HconnG' := HconnG
     iunfold isEtcdConnG at HconnG'
-    icases HconnG' with ⟨%ic, #Hgc, -, #Hcs⟩
+    icases HconnG' with ⟨%ic, #Hgc, -, -⟩
     ihave #Hcore : clientCoreAt (GF := GF) «$r0_ptr» $$ []
     · iunfold clientCoreAt
       iframe HcLg'
@@ -272,11 +272,8 @@ theorem newClient.wp_proof
     ipersist Lease
     ipersist Auth
     -- (C1) the client is ready: its `Auth` set, and what the token fetch needs
-    ihave #Hready : clientReady (GF := GF) «$r0_ptr» conn eps $$ []
-    · unfold clientReady
-      iexists ap, P
-      iframe Auth HapS Hcs
-      unfold clientAuthAt
+    ihave #Hca : clientAuthAt (GF := GF) «$r0_ptr» eps P $$ []
+    · unfold clientAuthAt
       iexists un, pw, _, atb
       iframe Username Password Token authTokenBundle Htb
       isplitr
@@ -293,6 +290,14 @@ theorem newClient.wp_proof
           · ipureintro; exact Hsz
           iapply tokenBundleInv_nn
           iexact Hb
+    -- (phase7-s3-interceptor) the client's readiness, by Löb induction (its stream interceptor's
+    -- contract is gated on it)
+    ihave #Hready : clientReady (GF := GF) «$r0_ptr» conn eps $$ []
+    · iapply clientReady_loeb
+      iframe Auth HapS Hca HconnG
+    ihave #Hcs := Hready
+    iunfold clientReady at Hcs
+    icases Hcs with ⟨%_, %_, -, -, -, #Hcs⟩
     ihave #Hconn : isEtcdConn (GF := GF) conn eps $$ []
     · iapply isEtcdConnG_ready
       iframe HconnG Hready

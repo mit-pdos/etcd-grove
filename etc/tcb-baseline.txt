@@ -1,6 +1,5 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom Client.Close.wp_proof
-axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
@@ -33,8 +32,6 @@ axiom Perennial.github_com.rs.zerolog.Event.Msg.wp_proof
 axiom Perennial.github_com.rs.zerolog.Event.Uint32.wp_proof
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.google_golang_org.grpc.grpclog.initFuncsOk
 axiom Perennial.gopkg_in.yaml_v2.wp_initialize'
@@ -323,7 +320,6 @@ axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
-axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
@@ -336,7 +332,6 @@ axiom tracing.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
-axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof

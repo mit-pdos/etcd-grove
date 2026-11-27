@@ -28,7 +28,6 @@ axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom proto.Clone.wp_proof
 axiom proto.EqualStatus.wp_proof
-axiom streamIcMdIs
 axiom streamKeyFromCtx.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
