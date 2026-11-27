@@ -421,7 +421,7 @@ its entries normal, its disk at `dk` related to the view (`DiskRel`); then by ph
   only without batching and, for the queue, without async storage), the Go fields agreeing with the
   view (with synchronous storage `n.hs` the view's disk's hard state at the drain's loop head and
 between inputs, and the disk the view's at the drain's loop head: `DiskRel` alone allows the undo
-record, and `StorageHolds` does not pin the disk's commit). The kill flag `n.dead` is the index `dead`. -/
+record, and `StorageHolds` does not pin the disk's commit; no split write in progress there). The kill flag `n.dead` is the index `dead`. -/
 def nodeOwnB2HD (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (ph : Phase)
     (hole : Option WorkHole) (dead : Bool) : IProp GF :=
   iprop(∃ (d rn ms hsl cl csl : Loc) (role : GoString) (applied : w64) (fuse : w64)
@@ -464,7 +464,8 @@ def nodeOwnB2HD (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntS
           | .loop net₀ xnet₀ r₁ xs₁ => iprop(⌜r = r₁ ∧
               AntSim.Reach γ.R γ.dec (AdmFold γ.dec γ.R.c0) net₀ xnet₀ j v r₁ ∧
               (γ.mode.Async' = false → qs = [] ∧ ip = lcpLen v.r.p.log r₁.p.log ∧
-                hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit ∧ dk = v.dur) ∧ ByOkB2 v.byE⌝ ∗
+                hn = HardStateM.mk v.dur.term v.dur.vote v.dur.commit ∧ dk = v.dur ∧ v.parts = []) ∧
+              ByOkB2 v.byE⌝ ∗
               sentLb γ.toAntNames net₀ ∗ xsentLb γ.toAntNames xnet₀ ∗ causeOwn γ.toAntNames j v cl)
           | .drained => iprop(⌜v.Idle ∧ r = v.r ∧
               (γ.mode.Batch' = false → PIdle rs r.p) ∧
