@@ -11,7 +11,8 @@ for that id (`Qp id`), every attempt's context without outgoing metadata. `true`
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Env
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseEnv
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 
 @[expose] public section
 

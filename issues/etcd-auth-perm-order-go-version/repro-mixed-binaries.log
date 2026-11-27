@@ -1,0 +1,265 @@
+started m1 (v3.5.7) pid 451726, m2 (v3.5.9) pid 451728
+$ <dl>/v3.5.7/etcd-v3.5.7-linux-amd64/etcd --version
+etcd Version: 3.5.7
+Git SHA: 215b53cf3
+Go Version: go1.17.13
+Go OS/Arch: linux/amd64
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcd --version
+etcd Version: 3.5.9
+Git SHA: bdbbde998
+Go Version: go1.19.9
+Go OS/Arch: linux/amd64
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791,http://127.0.0.1:23792 endpoint status -w table
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+|        ENDPOINT        |        ID        | VERSION | DB SIZE | IS LEADER | IS LEARNER | RAFT TERM | RAFT INDEX | RAFT APPLIED INDEX | ERRORS |
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+| http://127.0.0.1:23791 | 24ffa69eb0d9d724 |   3.5.7 |   20 kB |     false |      false |         2 |          8 |                  8 |        |
+| http://127.0.0.1:23792 | 7f269af74dac1f63 |   3.5.9 |   20 kB |      true |      false |         2 |          8 |                  8 |        |
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 user add root --new-user-password=rootpw
+User root created
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 role add root
+Role root created
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 user grant-role root root
+Role root is granted to user root
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 user add u --new-user-password=upw
+User u created
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 role add r
+Role r created
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 user grant-role u r
+Role r is granted to user u
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 auth enable
+Authentication Enabled
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite f g
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read b e
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read a c
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read b c
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read c d
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read d e
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite f h
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite e f
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite a d
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read d f
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite b e
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite f i
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read b d
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read b e
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read c f
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read a d
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read a d
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read f i
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read b d
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r readwrite a c
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role grant-permission r read b e
+Role r updated
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role get r
+Role r
+KV Read:
+	[a, c)
+	[a, d)
+	[a, d)
+	[a, d)
+	[b, d)
+	[b, e)
+	[b, c) (prefix b)
+	[b, e)
+	[c, d) (prefix c)
+	[c, f)
+	[d, e) (prefix d)
+	[d, f)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+	[f, i)
+KV Write:
+	[a, c)
+	[a, d)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23792 --user=root:rootpw role get r
+Role r
+KV Read:
+	[a, c)
+	[a, c)
+	[a, d)
+	[b, e)
+	[b, c) (prefix b)
+	[b, d)
+	[b, d)
+	[c, d) (prefix c)
+	[c, f)
+	[d, e) (prefix d)
+	[d, f)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+	[f, i)
+KV Write:
+	[a, c)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791,http://127.0.0.1:23792 --user=root:rootpw endpoint status -w table
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+|        ENDPOINT        |        ID        | VERSION | DB SIZE | IS LEADER | IS LEARNER | RAFT TERM | RAFT INDEX | RAFT APPLIED INDEX | ERRORS |
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+| http://127.0.0.1:23791 | 24ffa69eb0d9d724 |   3.5.7 |   20 kB |     false |      false |         2 |         63 |                 63 |        |
+| http://127.0.0.1:23792 | 7f269af74dac1f63 |   3.5.9 |   20 kB |      true |      false |         2 |         64 |                 64 |        |
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+[exit 0]
+### as u: put c through each member
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=u:upw put c via-m1
+OK
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23792 --user=u:upw put c via-m2
+{"level":"warn","ts":"2026-11-27T18:04:22.107303Z","logger":"etcd-client","caller":"v3@v3.5.9/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0xc0001b8000/127.0.0.1:23792","attempt":0,"error":"rpc error: code = PermissionDenied desc = etcdserver: permission denied"}
+Error: etcdserver: permission denied
+[exit 1]
+### compare (serializable reads are member-local)
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791,http://127.0.0.1:23792 --user=root:rootpw endpoint status -w table
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+|        ENDPOINT        |        ID        | VERSION | DB SIZE | IS LEADER | IS LEARNER | RAFT TERM | RAFT INDEX | RAFT APPLIED INDEX | ERRORS |
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+| http://127.0.0.1:23791 | 24ffa69eb0d9d724 |   3.5.7 |   20 kB |     false |      false |         2 |         70 |                 70 |        |
+| http://127.0.0.1:23792 | 7f269af74dac1f63 |   3.5.9 |   20 kB |      true |      false |         2 |         71 |                 71 |        |
++------------------------+------------------+---------+---------+-----------+------------+-----------+------------+--------------------+--------+
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791,http://127.0.0.1:23792 --user=root:rootpw endpoint hashkv -w table
++------------------------+------------+
+|        ENDPOINT        |    HASH    |
++------------------------+------------+
+| http://127.0.0.1:23791 | 2297620300 |
+| http://127.0.0.1:23792 | 1084519789 |
++------------------------+------------+
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw get c --consistency=s -w json
+{"header":{"cluster_id":1002115042104239643,"member_id":2666032704928732964,"revision":3,"raft_term":2},"kvs":[{"key":"Yw==","create_revision":2,"mod_revision":3,"version":2,"value":"dmlhLW0y"}],"count":1}
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23792 --user=root:rootpw get c --consistency=s -w json
+{"header":{"cluster_id":1002115042104239643,"member_id":9162180878882578275,"revision":1,"raft_term":2}}
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw get c --consistency=s
+c
+via-m2
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23792 --user=root:rootpw get c --consistency=s
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw get c --consistency=l
+c
+via-m2
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23792 --user=root:rootpw get c --consistency=l
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23791 --user=root:rootpw role get r
+Role r
+KV Read:
+	[a, c)
+	[a, d)
+	[a, d)
+	[a, d)
+	[b, d)
+	[b, e)
+	[b, c) (prefix b)
+	[b, e)
+	[c, d) (prefix c)
+	[c, f)
+	[d, e) (prefix d)
+	[d, f)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+	[f, i)
+KV Write:
+	[a, c)
+	[a, d)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+[exit 0]
+$ <dl>/v3.5.9/etcd-v3.5.9-linux-amd64/etcdctl --endpoints=http://127.0.0.1:23792 --user=root:rootpw role get r
+Role r
+KV Read:
+	[a, c)
+	[a, c)
+	[a, d)
+	[b, e)
+	[b, c) (prefix b)
+	[b, d)
+	[b, d)
+	[c, d) (prefix c)
+	[c, f)
+	[d, e) (prefix d)
+	[d, f)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+	[f, i)
+KV Write:
+	[a, c)
+	[e, f) (prefix e)
+	[f, g) (prefix f)
+	[f, h)
+	[f, i)
+[exit 0]
+stopped pids 451726 451728

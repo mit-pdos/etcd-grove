@@ -7,7 +7,7 @@ body so that this spec imports no other spec.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheBase
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcd
 
 @[expose] public section
