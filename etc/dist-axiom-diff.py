@@ -11,20 +11,27 @@ the proof does, while its header still said "the rest is its text verbatim". Thi
 two texts and fails on any difference not listed, with its reason, in `etc/dist-axiom-diff-allow.txt`:
 
     pair NAME DISTFILE DISTSPEC SRCFILE SRCSPEC   the axiom NAME's statement `DISTSPEC` (an `abbrev` of
-                                                  DISTFILE) is a copy of SRCFILE's `SRCSPEC`
+                                                  DISTFILE) is a copy of SRCFILE's `SRCSPEC`: an
+                                                  `abbrev` (a spec), or a `theorem` (its statement, up
+                                                  to `:= by`: a proved contract with no spec of its
+                                                  own, e.g. the auth-on `client.client_put_on`)
     dev NAME <<< MINUS ||| PLUS >>> reason        a listed difference: SRCSPEC's tokens MINUS replaced by
                                                   DISTSPEC's tokens PLUS (either may be empty); it
                                                   accepts every identical difference of NAME's pair
     nosource NAME reason                          NAME restates no in-process spec (why)
 
-The texts (after the `abbrev`'s name) are compared as token lists: comments, `«name» ∷` Iris names and layout removed, brackets,
+The texts (after the `abbrev`'s or `theorem`'s name) are compared as token lists: comments, `«name» ∷` Iris names and layout removed, brackets,
 commas, `⌜⌝` and `∗` separate tokens. Every axiom of `Proof/**` (a part's `<Part>/Proof/**` too) whose
 name has `_dist` needs a `pair` or `nosource` line. `--check` fails on an unlisted difference, an
 axiom with no line, a line for an axiom that no longer exists, a missing file or spec, and a `dev`
 line no difference matches (stale). `--show NAME` prints NAME's differences in the `dev` format.
+An auth-on axiom (`*On_dist`) is paired with its in-process AUTH-ON contract, not the auth-off spec
+of the same call: the auth-off spec claims facts the auth-on contract gives only with auth off (2026-11-27,
+`KV_PutOn_dist`'s `kvRevLb`, paired with `kv.Put.spec`, went unseen; `notes/axiom-review/onrevlb-weakening.md`).
 `--selftest` checks the gate on `etc/dist-axiom-diff-selftest/`: its listed pair passes, and it is
 refused with a `dev` line removed (a dropped premise), with a stale `dev` line added, and with its
-`pair` line removed. Reads the sources only.
+`pair` line removed; its theorem-sourced pair passes, and is refused with a conjunct the theorem
+does not give added to the copy. Reads the sources only.
 """
 
 from __future__ import annotations
@@ -48,11 +55,16 @@ END = re.compile(r"^(?:/--|@\[|abbrev\s|def\s|theorem\s|lemma\s|axiom\s|instance
 
 def tokens(path: Path, name: str) -> list[str]:
     s = path.read_text(encoding="utf-8")
-    m = re.search(rf"^abbrev\s+{re.escape(name)}(?=[\s\[(:])", s, re.M)
+    m = re.search(rf"^(abbrev|theorem)\s+{re.escape(name)}(?=[\s\[(:])", s, re.M)
     if not m:
-        raise LookupError(f"no `abbrev {name}` in {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
+        raise LookupError(f"no `abbrev {name}` or `theorem {name}` in "
+                          f"{path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
     rest = s[m.end():]
-    e = END.search(rest)
+    if m.group(1) == "theorem":
+        # a proved theorem's statement: its binders and type, up to its proof (`:= by`, or `:=`)
+        e = re.search(r":=\s*by\b", rest) or re.search(r":=", rest)
+    else:
+        e = END.search(rest)
     t = rest[:e.start()] if e else rest
     t = re.sub(r"/-.*?-/", " ", t, flags=re.S)
     t = re.sub(r"--[^\n]*", " ", t)
@@ -146,7 +158,8 @@ def run(root: Path, allow: Path, axioms=None):
 def selftest() -> int:
     allow = (SELFTEST / "allow.txt").read_text(encoding="utf-8").splitlines()
     axioms = {"st_dist": "etc/dist-axiom-diff-selftest/Dist.lean",
-              "st_nosrc_dist": "etc/dist-axiom-diff-selftest/Dist.lean"}
+              "st_nosrc_dist": "etc/dist-axiom-diff-selftest/Dist.lean",
+              "st_on_dist": "etc/dist-axiom-diff-selftest/Dist.lean"}
     root = ROOT
     nfail = 0
 
@@ -167,6 +180,11 @@ def selftest() -> int:
          "no `pair` or `nosource` line")
     case("a line for a removed axiom is refused", allow + ["nosource st_gone_dist gone"], False,
          "no longer exists")
+    # (2026-11-27) a theorem-sourced pair (an auth-on contract with no spec, as `client.client_put_on`):
+    # the listed copy passes (case 1); a copy claiming a conjunct the theorem does not give is refused
+    bad = [l.replace(" st_on_dist.spec ", " st_onbad_dist.spec ") if l.startswith("pair st_on_dist ") else l
+           for l in allow]
+    case("a theorem-sourced pair's unbacked conjunct is refused", bad, False, "unlisted difference")
     print(f"{PROG} selftest: {nfail} failure(s)")
     return 1 if nfail else 0
 

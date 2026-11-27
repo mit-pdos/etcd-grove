@@ -51,6 +51,8 @@ applied, a permission refusal, a timeout or partition all return `err ≠ nil`).
 arm admits a leased transaction in the revocable lease mode (the spec's docstring).
 **Widened to nested transactions** (F7 S11, 2026-11-26; review `notes/axiom-review/f7-txn-nested-review.md`):
 no `TxnModel.plain`, the write arm `client.txnUpdAtOn`'s condition (`txnNestOk`); the spec's docstring.
+**Weakened** (2026-11-27, `notes/axiom-review/onrevlb-weakening.md`): no `client.txnRevLb` (the in-process
+`etcdTxnSpecMW` gives it only with auth off; auth-on revisions follow `kvModelOn`).
 
 Retired by #24's S2 client side (`etcdSvc` defined, `Invoke` over the net model). The statement does not
 change. -/

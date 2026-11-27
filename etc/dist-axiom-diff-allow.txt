@@ -301,30 +301,51 @@ dev KV_GetOn_dist.wp_proof <<<  ||| ∗ readCheckedD eps Γ γR ( principalOf cf
 dev KV_GetOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev KV_GetOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
 
-pair KV_PutOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutOnDist.lean KV_PutOn_dist.spec Spec/go_etcd_io/etcd/client/v3/kv__Put.lean kv.Put.spec
-dev KV_PutOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
-dev KV_PutOn_dist.wp_proof <<< kv ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api` (`userClientAt`) in place of the `*kv` `kv`
-dev KV_PutOn_dist.wp_proof <<< γ ||| eps >>> binders: the endpoints `eps` in place of the KV names `γ` (the view's, `Γ.kv`)
-dev KV_PutOn_dist.wp_proof <<< KVNames ||| List GoString >>> binders: the endpoints' type
-dev KV_PutOn_dist.wp_proof <<< dup ||| V >>> binders: the client's environment `V`; no `dup` (the update is persistent, `writeAuD`/`□`)
-dev KV_PutOn_dist.wp_proof <<< Bool ||| WEnv GF ) ( Γ : DistView ) ( cfg : go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `V`'s type, the view `Γ`, the configuration `cfg` (its principal in place of the token's binding), the member's raft names `γR` and the requested prefix `L₀`
-dev KV_PutOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om` (`outTokOk`'s)
-dev KV_PutOn_dist.wp_proof <<<  ||| Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
-dev KV_PutOn_dist.wp_proof <<< ( isKv kv γ dup ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ` (`kvClientAt` and `cfg`), with the metadata `om` and the requested prefix `L₀` (`client_*_on`'s floor, at the cluster's requested log); the in-process group's parenthesis dropped (layout)
+# (2026-11-27, notes/axiom-review/onrevlb-weakening.md) paired with its in-process AUTH-ON contract, the proved
+# theorem `client.client_put_on` (`ResultsOn.lean`), not the auth-off `kv.Put.spec`: that pairing hid a `kvRevLb` the auth-on
+# contract gives only with auth off (false at auth on; now dropped).
+pair KV_PutOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/KVPutOnDist.lean KV_PutOn_dist.spec Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean client_put_on
+dev KV_PutOn_dist.wp_proof <<<  ||| : Prop := ∀ [ NetProtoGS ] >>> the abbrev's head: the theorem's binders as the ∀'s; the net extension's protocol ghost state (the address facts are over it)
+dev KV_PutOn_dist.wp_proof <<<  ||| cl >>> binders: the client `cl` (its `KV` field's `*kv` is `api`, `userClientAt`)
+dev KV_PutOn_dist.wp_proof <<< conn |||  >>> binders: no connection `conn`: the call goes through `userClientAt`'s client, not a registered connection
+dev KV_PutOn_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` in place of the one registered address `addr`
+dev KV_PutOn_dist.wp_proof <<<  ||| List >>> binders: the endpoints' type (a list)
+dev KV_PutOn_dist.wp_proof <<< T ||| V >>> binders: the client's environment `V` in place of the server's TLS identity `T`
+dev KV_PutOn_dist.wp_proof <<< IProp GF ) [ Persistent T ] ( E : apply.AEnv ||| WEnv >>> binders: `V`'s type; no `[Persistent T]`, no apply environment `E` (the member's, hidden behind the view)
+dev KV_PutOn_dist.wp_proof <<< ρ ||| Γ >>> binders: the cluster's view `Γ` in place of the request names `ρ` (`ρ.kv` is `Γ.kv`)
+dev KV_PutOn_dist.wp_proof <<< ReqNames ||| DistView >>> binders: `Γ`'s type
+dev KV_PutOn_dist.wp_proof <<< cid mid ||| cfg >>> binders: the configuration `cfg` (its principal in place of the token's binding) in place of the member's ids `cid mid`
+dev KV_PutOn_dist.wp_proof <<< w64 ||| go_etcd_io.etcd.client.v3.Config >>> binders: `cfg`'s type
+dev KV_PutOn_dist.wp_proof <<< ci ||| γR : ServerRaftNames ) ( L₀ : List EntryModel ) ( ctx >>> binders: the member's raft names `γR` and the requested prefix `L₀` (`clientOpAuOn`'s lower bound, at the cluster); the context is `ctx`
+dev KV_PutOn_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context's description `ctx_desc` (renamed); `om` moves (next)
+dev KV_PutOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: the outgoing metadata `om` (`outTokOk`'s)
+dev KV_PutOn_dist.wp_proof <<< sl ||| opts_sl >>> binders: the options' slice `opts_sl` (renamed)
+dev KV_PutOn_dist.wp_proof <<< gs ||| opts >>> binders: the options `opts` (renamed)
+dev KV_PutOn_dist.wp_proof <<<  ||| , Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk >>> premises: auth on, the raft names the view's, and `outTokOk` (the caller adds no token of its own): more premises, a weaker axiom
+dev KV_PutOn_dist.wp_proof <<< F : mvcc.Log ||| principalOf cfg >>> no floor binder `F` (the member's `srvApi.kvLogLb`, hidden); `outTokOk`'s principal
+dev KV_PutOn_dist.wp_proof <<< ( hsz : opSizeOk ( opPutModel key val gs ) ) ( hpn : ¬ ( opPutModel key val gs ) .putPanics ) ( ht : ( opPutModel key val gs ) .t = W64 2 ) ( hl : ( putWireOf ( opPutModel key val gs ) ) .leaseID = W64 0 ∨ ρ.kv.lm = .revocable ) : ||| om → >>> the theorem's hypotheses `hsz hpn ht hl` become the pre's pure facts and `opSizeOk` (below); `outTokOk`'s metadata
+dev KV_PutOn_dist.wp_proof <<< kvObjAtC ||| userClientAt cl >>> `kvObjAtC api conn [addr]` replaced by `userClientAt cl api eps V Γ cfg`
+dev KV_PutOn_dist.wp_proof <<< conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" ( etcdPutSpecOn T E ρ cid mid ) ∗ srvApi.kvLogLb E.γs F ||| eps V Γ cfg >>> the registration `isGrpcRpcMd addr … etcdPutSpecOn` and the floor `srvApi.kvLogLb E.γs F` replaced by the view's client (the members' address facts, `Serve_dist`'s auth-on premise)
+dev KV_PutOn_dist.wp_proof <<< ci ||| ctx >>> the context (renamed)
+dev KV_PutOn_dist.wp_proof <<<  ||| srvReqLogLb γR L₀ ∗ >>> the requested prefix `L₀` the caller holds (`clientOpAuOn`'s `srvReqLogLb`, at the cluster)
+dev KV_PutOn_dist.wp_proof <<< ci cd ||| ctx ctx_desc >>> the context and its description (renamed)
+dev KV_PutOn_dist.wp_proof <<< sl gs ||| opts_sl opts >>> the options (renamed)
+dev KV_PutOn_dist.wp_proof <<<  ||| ⌜ ¬ >>> the hypothesis `hpn`'s start (pure in the pre)
+dev KV_PutOn_dist.wp_proof <<< □ clientOpAuOn T E ρ conn om ||| opPutModel key val opts ) .putPanics ∧ ( opPutModel key val opts ) .t = W64 2 ∧ ( ( putWireOf ( opPutModel key val opts ) ) .leaseID = W64 0 ∨ Γ.kv.lm = .revocable ) ⌝ ∗ writeAuD Γ.kv ( principalOf cfg ) >>> `□ clientOpAuOn T E ρ conn om` replaced by `writeAuD Γ.kv (principalOf cfg)` (persistent; its grant `opGrantD` at the principal); the hypotheses `hpn ht hl` as the pre's pure facts, `hl` at `Γ.kv.lm`
+dev KV_PutOn_dist.wp_proof <<<  ||| L₀ >>> `writeAuD`'s prefix `L₀`
+dev KV_PutOn_dist.wp_proof <<< ∨ ( writeOnce api [ addr ] |||  >>> no `writeOnce` arm: the update is persistent (`writeAuD`), as a write is resent after a token refresh
+dev KV_PutOn_dist.wp_proof <<< clientOpAuOn T E ρ conn om ( .put ( putWireOf ||| ⌜ opSizeOk >>> the theorem's `hsz` as the pre's `⌜opSizeOk …⌝`; the `writeOnce` arm's update dropped
+dev KV_PutOn_dist.wp_proof <<< ) ) Q ) ) ||| ⌝ >>> the end of the `writeOnce` arm and `opSizeOk`'s `⌝`
+dev KV_PutOn_dist.wp_proof <<< #sl ||| #opts_sl >>> the options' slice (renamed)
 dev KV_PutOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
-dev KV_PutOn_dist.wp_proof <<<  ||| ∨ Γ.kv.lm = .revocable ) >>> a lease `0` or the revocable lease mode, as `etcdPutSpecOn`'s filter (`client_put_on`'s `hl`; F2's `KV_PutLease_dist` row): wider than `kv.Put.spec`'s `leaseID = 0`, as the mirrored `client.client_put_on`
-dev KV_PutOn_dist.wp_proof <<< □?dup ||| writeAuD Γ.kv >>> the update persistent (`writeAuD`: a write is resent after `ErrInvalidAuthToken`'s token refresh), with the grant obligation `opGrantD` at `cfg`'s principal
-dev KV_PutOn_dist.wp_proof <<< AU < { ∃∃ ( σ : KVState ||| principalOf cfg >>> `writeAuD`'s arguments: the principal (the AU is `writeAuD`'s `kvAu1G`, unfolded in the source)
-dev KV_PutOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)
-dev KV_PutOn_dist.wp_proof <<< σ ) ∗ ⌜ kvRoom σ ⌝ , COMM ||| L₀ >>> the AU's text inside `writeAuD` (`kvRoom` kept there); its prefix `L₀`
-dev KV_PutOn_dist.wp_proof <<< σ } > ) |||  >>> the AU's end, inside `writeAuD`
-dev KV_PutOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
-dev KV_PutOn_dist.wp_proof <<< kv ||| api >>> the receiver: the `*kv` `api`
-dev KV_PutOn_dist.wp_proof <<< m.prev = ( if ( putWireOf ( opPutModel key val opts ) ) .base.prevKV then ( σ.store.lookup ( putWireOf ( opPutModel key val opts ) ) .key ) .map ( KVRec.toKv ( putWireOf ( opPutModel key val opts ) ) .key ) else none ) ∧ |||  >>> the reply's `prev` not claimed (a weaker post)
-dev KV_PutOn_dist.wp_proof <<< ∧ kvLogOk ||| ⌝ ∗ kvRevLb Γ.kv m.hdr.revision ∗ writeCheckedD eps Γ γR >>> `kvLogOk` of the next state not claimed (a weaker post); and a success's check: the member and its grant (`writeCheckedD`, `client_put_on`'s `writeGrantOn` at the cluster)
-dev KV_PutOn_dist.wp_proof <<< kvOpStep ||| principalOf cfg ) >>> `writeCheckedD`'s principal (the dropped `kvLogOk (kvOpStep …)`)
-dev KV_PutOn_dist.wp_proof <<< .put ||| irrPut >>> `writeCheckedD`'s request: `irrPut` of the same wire request
-dev KV_PutOn_dist.wp_proof <<< σ ) ⌝ ∗ kvRevLb γ m.hdr.revision ||| L₀ >>> `kvRevLb` moved before `writeCheckedD` (at `Γ.kv`); `writeCheckedD`'s prefix `L₀`
+dev KV_PutOn_dist.wp_proof <<<  ||| ) ( σ : KVState ) >>> the post's state `σ`: `putReplied`'s (the state of the log the put met, `kvStateOf x.log lt`, at auth on `kvModelOn`'s: `kvInvOn`)
+dev KV_PutOn_dist.wp_proof <<< putReplied E ρ.rd F ||| Q σ ∗ ⌜ m.hdr.revision = W64 >>> `putReplied E ρ.rd F …` replaced by what it gives (`putAns_st`'s argument, mode-agnostic): `Q σ`, the reply's revision `σ`'s next, `kvRevFits`, `kvLogOk σ`; NO `kvRevLb` (`etcdPutSpecMW` gives it only with auth off)
+dev KV_PutOn_dist.wp_proof <<< putWireOf |||  >>> (the same: `putReplied`'s request)
+dev KV_PutOn_dist.wp_proof <<< opPutModel key val gs ||| σ.rev + 1 : Nat >>> (the same: the revision `σ.rev + 1`)
+dev KV_PutOn_dist.wp_proof <<<  ||| : Int >>> (the same)
+dev KV_PutOn_dist.wp_proof <<< Q cid mid m ||| ∧ kvRevFits ( σ.rev + 1 ) ∧ kvLogOk σ ⌝ >>> (the same: `kvRevFits`, `kvLogOk σ` from `putReplied`'s `srvLogCert`, `srvLogCert_logOk`)
+dev KV_PutOn_dist.wp_proof <<< ∃ md , clientAttemptMd conn om md ∗ v3rpc.writeGrantOn T E ρ ||| writeCheckedD eps Γ γR >>> the put's grant at some attempt's token (`v3rpc.writeGrantOn`) replaced by the member's check (`writeCheckedD`: the member and the apply-time grant)
+dev KV_PutOn_dist.wp_proof <<< auth.mdTokenOf md ||| principalOf cfg >>> `writeCheckedD`'s principal (`cfg`'s) in place of the attempt's token
 dev KV_PutOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev KV_PutOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
 
@@ -339,35 +360,54 @@ dev New_user_dist.wp_proof <<< P ) ||| Γ >>> `membersAt`'s view in place of `cl
 dev New_user_dist.wp_proof <<< clientTokAt cl eps P ∗ |||  >>> `clientTokAt` dropped from the post (the contracts read the principal from `cfg`; a weaker post)
 dev New_user_dist.wp_proof <<<  ||| ∗ ∃ ( mid : w64 ) ( rev : w64 ) , servedBy eps Γ mid ∗ ( auth.passwordChecked ( .on ( Γ.au mid ) ) cfg.Username' rev GoInterface.nil ∨ auth.enabledVerdict ( .on ( Γ.au mid ) ) false ) >>> a success names the member `mid` that answered `getToken`'s `Authenticate` and its check: `CheckPassword`'s (`passwordChecked`), or `ErrAuthNotEnabled` (`enabledVerdict … false`), at its names `Γ.au mid`
 
-pair Txn_CommitOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean Txn_CommitOn_dist.spec Spec/go_etcd_io/etcd/client/v3/txn__Commit.lean txn.Commit.spec
-dev Txn_CommitOn_dist.wp_proof <<<  ||| [ NetProtoGS ] >>> the net extension's protocol ghost state (the address facts `etcdAddrAt`/`servedBy` are over it)
-dev Txn_CommitOn_dist.wp_proof <<<  ||| cl api >>> binders: the client `cl` and its `KV` field's `*kv` `api`
-dev Txn_CommitOn_dist.wp_proof <<< addr ||| eps >>> the endpoints: `userClientAt`'s `eps` (the builder's `txnObjAt` at the same endpoints)
-dev Txn_CommitOn_dist.wp_proof <<< kv ||| V >>> binders: the client's environment `V` in place of the `*kv` `kv` (now `api`)
-dev Txn_CommitOn_dist.wp_proof <<< Loc ||| WEnv GF >>> binders: `V`'s type
-dev Txn_CommitOn_dist.wp_proof <<< γ ||| Γ >>> binders: the cluster's view `Γ` in place of the KV names `γ` (`γ := Γ.kv`)
-dev Txn_CommitOn_dist.wp_proof <<< KVNames ||| DistView >>> binders: `Γ`'s type
-dev Txn_CommitOn_dist.wp_proof <<< dup ||| cfg >>> binders: the configuration `cfg` (its principal); no `dup` (a writing update is `writeAuD`, persistent)
-dev Txn_CommitOn_dist.wp_proof <<< Bool ||| go_etcd_io.etcd.client.v3.Config ) ( γR : ServerRaftNames ) ( L₀ : List EntryModel >>> binders: `cfg`'s type, the member's raft names `γR`, the requested prefix `L₀`
-dev Txn_CommitOn_dist.wp_proof <<<  ||| om : GrpcMd ) ( >>> binders: the outgoing metadata `om` (`outTokOk`'s)
-dev Txn_CommitOn_dist.wp_proof <<<  ||| ( ∀ a b : w64 , Γ.au a = Γ.au b → a = b ) → Γ.auth = true → γR.raft.log = Γ.kv.rlog → outTokOk ( principalOf cfg ) om → >>> (F7 review F1) the members' auth names distinct (`Γ.au`); a weaker axiom: one more premise; auth on, the raft names the view's, and `outTokOk`: the caller adds no token of its own (the principal is `cfg`'s); more premises: a weaker axiom
-dev Txn_CommitOn_dist.wp_proof <<< ( ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗ >>> `isKv kv γ dup` replaced by `userClientAt` at `Γ`, with the metadata `om` and the requested prefix `L₀`, placed first; the in-process group's parenthesis dropped (layout)
-dev Txn_CommitOn_dist.wp_proof <<< kv ∗ isKv kv γ dup ||| api >>> `txnKvIs` of the client's `*kv` `api`; `isKv` replaced (above)
-dev Txn_CommitOn_dist.wp_proof <<< □?dup |||  >>> no `dup`: the read-only arm's update is `□ AU` already, the writing arm's `writeAuD` is persistent
-dev Txn_CommitOn_dist.wp_proof <<< ⌜ txn.txnReadonly ( txnWireOf b.model ) = true ∧ Q = fun _ => iprop ( True ) ⌝ ∨ |||  >>> linearizable only: the trivial read-only arm (which admits a serializable transaction) dropped (fewer cases: a weaker axiom)
-dev Txn_CommitOn_dist.wp_proof <<< γ ||| Γ.kv >>> the KV names: the view's, `Γ.kv`
-dev Txn_CommitOn_dist.wp_proof <<<  ||| ( >>> the parenthesis of the widened write condition (layout)
-dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ∨ ( Γ.kv.lm = .revocable ∧ txnPlainL ( txnWireOf b.model ) ) >>> (F7 S5, widened before approval, reviewed SOUND `f7-txn-review.md` with Go tests) a leased transaction in the revocable lease mode admitted, as `KV_PutOn_dist` and the in-process `client.txnUpdAtOn`; wider than `txn.Commit.spec`'s `txnPlain`
-dev Txn_CommitOn_dist.wp_proof <<< TxnModel.plain b.model ∧ |||  >>> (F7 S11, widened before approval, review `f7-txn-nested-review.md`) no plainness premise: a writing transaction may nest `OpTxn`s, as the in-process `client.client_txn_on` (a read-only one is flat anyway, `txnReadonly_plain`); wider than `txn.Commit.spec`
-dev Txn_CommitOn_dist.wp_proof <<<  ||| ∧ txnNestOk ( txnWireOf b.model ) >>> (F7 S11) the write arm's nested shape, `client.txnUpdAtOn`'s `txnNestOk` (no early-cut get at any depth, no nested put a later sibling deletes); what dropping `TxnModel.plain` needs, implied by it (`txnNestOk_of_plain`)
-dev Txn_CommitOn_dist.wp_proof <<< AU < { ∃∃ ||| writeAuD Γ.kv >>> a writing transaction's update persistent (`writeAuD`: resent after a token refresh), with the grant obligation
-dev Txn_CommitOn_dist.wp_proof <<< σ : KVState ||| principalOf cfg >>> `writeAuD`'s principal (its AU is `kvAu1G`, the source's text)
-dev Txn_CommitOn_dist.wp_proof <<< , etcdKV γ σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV γ ( kvOpStep |||  >>> the AU's text, inside `writeAuD` (`kvAu1G`: the same AU, with `kvRoom` and the grant)
-dev Txn_CommitOn_dist.wp_proof <<< σ ) ∗ ⌜ kvRoom σ ⌝ , COMM ||| L₀ >>> the AU's text inside `writeAuD` (`kvRoom` kept there); its prefix `L₀`
-dev Txn_CommitOn_dist.wp_proof <<< σ } > |||  >>> the AU's end, inside `writeAuD`
-dev Txn_CommitOn_dist.wp_proof <<< ) |||  >>> layout: a parenthesis of the in-process grouping
-dev Txn_CommitOn_dist.wp_proof <<< ( if txn.txnSerializable ( txnWireOf b.model ) then iprop ( True ) else |||  >>> read-only is linearizable (the trivial arm dropped): the post's `if` is its `else` arm `□ Q σ`
-dev Txn_CommitOn_dist.wp_proof <<<  ||| ∗ ( if txn.txnReadonly ( txnWireOf b.model ) then txnReadCheckedD eps Γ γR ( principalOf cfg ) L₀ ( txnWireOf b.model ) else iprop ( ∃ tw : txn.TxnModelW , ⌜ tw.toModel = txnWireOf b.model ⌝ ∗ writeCheckedD eps Γ γR ( principalOf cfg ) ( irrTxn tw ) L₀ ) ) >>> a success's check: read-only, the member's (`txnReadCheckedD`, strengthened before approval F7 S5); writing, the grant of `irrTxn` (`writeCheckedD`, nested operations included)
+# (2026-11-27, notes/axiom-review/onrevlb-weakening.md) paired with its in-process AUTH-ON contract, the proved
+# theorem `client.client_txn_on` (`ResultsOn.lean`), not the auth-off `txn.Commit.spec`: that pairing hid a `client.txnRevLb` the auth-on
+# contract gives only with auth off (false at auth on; now dropped).
+pair Txn_CommitOn_dist.wp_proof Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TxnCommitOnDist.lean Txn_CommitOn_dist.spec Proof/go_etcd_io/etcd/client/v3/ResultsOn.lean client_txn_on
+dev Txn_CommitOn_dist.wp_proof <<<  ||| : Prop := ∀ [ NetProtoGS ] >>> the abbrev's head: the theorem's binders as the ∀'s; the net extension's protocol ghost state
+dev Txn_CommitOn_dist.wp_proof <<< tp ||| cl >>> binders: the client `cl` in place of the builder `tp` (now `txn_ptr`)
+dev Txn_CommitOn_dist.wp_proof <<< conn ||| txn_ptr >>> binders: the builder `txn_ptr` in place of the connection `conn` (none: `userClientAt`'s client)
+dev Txn_CommitOn_dist.wp_proof <<< addr ||| eps >>> binders: the endpoints `eps` in place of the one registered address `addr`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| List >>> binders: the endpoints' type (a list)
+dev Txn_CommitOn_dist.wp_proof <<< T ||| V >>> binders: the client's environment `V` in place of the server's TLS identity `T`
+dev Txn_CommitOn_dist.wp_proof <<< IProp GF ) [ Persistent T ] ( E : apply.AEnv ||| WEnv >>> binders: `V`'s type; no `[Persistent T]`, no apply environment `E` (the member's, hidden)
+dev Txn_CommitOn_dist.wp_proof <<< ρ ||| Γ >>> binders: the cluster's view `Γ` in place of the request names `ρ`
+dev Txn_CommitOn_dist.wp_proof <<< ReqNames ||| DistView >>> binders: `Γ`'s type
+dev Txn_CommitOn_dist.wp_proof <<< γr ||| cfg >>> binders: the configuration `cfg` in place of the read names `γr` (the member's, hidden)
+dev Txn_CommitOn_dist.wp_proof <<< ReadNames ||| go_etcd_io.etcd.client.v3.Config >>> binders: `cfg`'s type
+dev Txn_CommitOn_dist.wp_proof <<< cid mid c ||| γR >>> binders: the member's raft names `γR` in place of the member's ids and committed index `c` (hidden: `txnReadCheckedD` carries the member's read facts)
+dev Txn_CommitOn_dist.wp_proof <<< w64 ||| ServerRaftNames >>> binders: `γR`'s type
+dev Txn_CommitOn_dist.wp_proof <<< n ||| L₀ >>> binders: the requested prefix `L₀` in place of the auth index bound `n` (`authFloorD`/`txnReadCheckedD` carry it)
+dev Txn_CommitOn_dist.wp_proof <<< Nat ||| List EntryModel >>> binders: `L₀`'s type
+dev Txn_CommitOn_dist.wp_proof <<< ci ||| ctx >>> binders: the context (renamed)
+dev Txn_CommitOn_dist.wp_proof <<< om : GrpcMd ) ( cd ||| ctx_desc >>> binders: the context's description (renamed); `om` moves (next)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ( om : GrpcMd >>> binders: the outgoing metadata `om`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| , >>> the abbrev's ∀'s end
+dev Txn_CommitOn_dist.wp_proof <<< F ||| ∀ a b >>> no floor binder `F`; (F7 review F1) premise: the members' auth names distinct
+dev Txn_CommitOn_dist.wp_proof <<< mvcc.Log ||| w64 , Γ.au a = Γ.au b → a = b >>> (the same premise)
+dev Txn_CommitOn_dist.wp_proof <<< ( hin : txn.txnReadonly ( txnWireOf b.model ) ||| → Γ.auth >>> the theorem's hypothesis `hin` becomes the pre's `⌜txnModelIn …⌝` (below, unconditional: stronger pre); premises: auth on, the raft names the view's
+dev Txn_CommitOn_dist.wp_proof <<< txnModelIn ||| γR.raft.log = Γ.kv.rlog → outTokOk >>> `outTokOk`: the caller adds no token of its own
+dev Txn_CommitOn_dist.wp_proof <<< txnWireOf b.model ||| principalOf cfg >>> `outTokOk`'s principal
+dev Txn_CommitOn_dist.wp_proof <<< ) ( hsz : txnSizeOk ( txnWireOf b.model ) ) ( hsh : txn.txnReadonly ( txnWireOf b.model ) = false ||| om >>> the theorem's `hsz` becomes the pre's `⌜txnSizeOk …⌝`; its `hsh` (`kvShapeAll`) is not a premise: safe for the success post, a refusal's content only (`notes/axiom-review/f7-txn-nested-review.md`, "Noted"); `outTokOk`'s metadata
+dev Txn_CommitOn_dist.wp_proof <<< ∀ tw : txn.TxnModelW , tw.toModel = txnWireOf b.model → kvShapeAll ( irrTxn tw ) ) : |||  >>> (`hsh` as above)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| userClientAt cl api eps V Γ cfg ∗ metadata.outMD ctx om ∗ srvReqLogLb γR L₀ ∗ >>> the view's client, the metadata and the requested prefix (`userClientAt`, `metadata.outMD`, `srvReqLogLb γR L₀`)
+dev Txn_CommitOn_dist.wp_proof <<< tp [ addr ] ci cd ||| txn_ptr eps ctx ctx_desc >>> `txnObjAt` at the endpoints and the context (renamed)
+dev Txn_CommitOn_dist.wp_proof <<< metadata.outMD ci om ∗ |||  >>> `metadata.outMD` moved up (layout)
+dev Txn_CommitOn_dist.wp_proof <<< tp ||| txn_ptr >>> the builder (renamed)
+dev Txn_CommitOn_dist.wp_proof <<< kvObjAtC api conn [ addr ] ∗ isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" ( etcdTxnSpecOn T E ρ γr cid mid ) ∗ committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ( □ txnUpdAtOn T E ρ conn om γr ||| ⌜ txnModelIn >>> `kvObjAtC`, the registration, `committedAtLeast`, the floor and `authPubLbM` replaced by the view's client; `□ txnUpdAtOn …` replaced by the read-only arm's `□ AU` and the writing arm's `writeAuD` (below); `hin` as `⌜txnModelIn⌝`
+dev Txn_CommitOn_dist.wp_proof <<< Q ∨ ||| ⌝ ∗ >>> `txnUpdAtOn`'s arms written out (`client.txnUpdAtOn`'s condition, `txnNestOk`, F7 S5/S11)
+dev Txn_CommitOn_dist.wp_proof <<< txnWriteOnce tp [ addr ] ∗ txnUpdAtOn T E ρ conn om γr ||| ( ⌜ txn.txnReadonly >>> no `txnWriteOnce` arm (the read-only update is `□ AU`, the writing `writeAuD`, both persistent); `txnUpdAtOn`'s read-only arm
+dev Txn_CommitOn_dist.wp_proof <<<  ||| = true ∧ txn.txnSerializable ( txnWireOf b.model ) = false ⌝ ∗ □ AU < { ∃∃ ( σ : KVState ) , etcdKV Γ.kv σ } > @ ( ⊤ \ ↑srvRaftN ) \ ↑kvN , ∅ < { etcdKV Γ.kv σ ∗ ⌜ kvRoom σ ⌝ , COMM □ Q σ } > ) ∨ ( ⌜ txn.txnReadonly ( txnWireOf b.model ) = false ∧ ( txn.txnPlain ( txnWireOf b.model ) ∨ ( Γ.kv.lm = .revocable ∧ txnPlainL ( txnWireOf b.model ) ) ) ∧ txnNoZeroEnd ( txnWireOf b.model ) ∧ txnNestOk ( txnWireOf b.model ) ⌝ ∗ writeAuD Γ.kv ( principalOf cfg ) ( .txn ( txnWireOf b.model ) ) L₀ >>> `txnUpdAtOn` unfolded at the view: linearizable read-only `□ AU`, or a writing transaction's `writeAuD` at the principal (F7 S5 widening, S11 nesting; reviewed `f7-txn-review.md`, `f7-txn-nested-review.md`)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ∗ ⌜ txnSizeOk ( txnWireOf b.model ) ⌝ >>> the theorem's `hsz` as the pre's `⌜txnSizeOk …⌝`
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ( >>> layout: a parenthesis of the in-process grouping
+dev Txn_CommitOn_dist.wp_proof <<<  ||| ) ( σ : KVState ) >>> the post's state `σ`: `txnReplied`'s (the log the transaction met, at auth on `kvModelOn`'s: `kvInvOn`)
+dev Txn_CommitOn_dist.wp_proof <<< txnReplied E ρ.rd γr c F ||| ( if txn.txnReadonly >>> `txnReplied E ρ.rd γr c F …` replaced by what it gives (`txnAns_st`'s argument, mode-agnostic): `Q σ` (`□` read-only), …
+dev Txn_CommitOn_dist.wp_proof <<<  ||| then iprop ( □ >>> (the same: read-only `□ Q σ`)
+dev Txn_CommitOn_dist.wp_proof <<< cid mid m ||| σ ) else Q σ ) >>> (the same: `Q σ` writing)
+dev Txn_CommitOn_dist.wp_proof <<< ∃ md , clientAttemptMd conn om md ∗ txnAuthOn T E ρ γr c n ||| ⌜ m.succeeded = >>> `txnAuthOn` at some attempt's token replaced by the member's check (below); `txnReplied`'s verdict …
+dev Txn_CommitOn_dist.wp_proof <<< auth.mdTokenOf md ||| txn.srvRunTxn ( W64 ( ( σ.rev + 1 : Nat >>> (the same: `srvRunTxn` at `σ.rev + 1`)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| : Int ) ) σ.kvs >>> (the same)
+dev Txn_CommitOn_dist.wp_proof <<<  ||| .1 ∧ opRespsRel false ( ( txnWireOf b.model ) .branch m.succeeded ) ( txn.srvRunTxn ( W64 ( ( σ.rev + 1 : Nat ) : Int ) ) σ.kvs ( txnWireOf b.model ) ) .2.2 m.resps ∧ m.hdr.revision = W64 ( ( if txn.txnReadonly ( txnWireOf b.model ) then σ.rev else ( σ.commit ( txn.srvRunTxn ( W64 ( ( σ.rev + 1 : Nat ) : Int ) ) σ.kvs ( txnWireOf b.model ) ) .2.1 ) .rev : Nat ) : Int ) ∧ kvRevFits σ.rev ∧ kvLogOk σ ∧ ( txn.txnReadonly ( txnWireOf b.model ) = false → kvLogOk ( σ.commit ( txn.srvRunTxn ( W64 ( ( σ.rev + 1 : Nat ) : Int ) ) σ.kvs ( txnWireOf b.model ) ) .2.1 ) ) ⌝ ∗ ( if txn.txnReadonly ( txnWireOf b.model ) then txnReadCheckedD eps Γ γR ( principalOf cfg ) L₀ ( txnWireOf b.model ) else iprop ( ∃ tw : txn.TxnModelW , ⌜ tw.toModel = txnWireOf b.model ⌝ ∗ writeCheckedD eps Γ γR ( principalOf cfg ) ( irrTxn tw ) L₀ ) ) ) >>> (the same): the branch's responses, the revision, `kvRevFits`, `kvLogOk`; NO `txnRevLb` (`etcdTxnSpecMW` gives it only with auth off); the success's check `txnReadCheckedD`/`writeCheckedD` in place of `txnAuthOn`
 dev Txn_CommitOn_dist.wp_proof <<< ( |||  >>> layout: a parenthesis of the in-process grouping
 dev Txn_CommitOn_dist.wp_proof <<< ∗ kvErr err ) |||  >>> the error arm without `kvErr` (nothing claimed of a remote call's error; a weaker post)
 
