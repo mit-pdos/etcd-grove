@@ -14,7 +14,8 @@ responses `rs` received, none a cancel, as many events in `rs` as returned. (Unt
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.CacheFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Defs
 
 @[expose] public section
 

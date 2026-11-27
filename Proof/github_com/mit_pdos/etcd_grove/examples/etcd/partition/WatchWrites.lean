@@ -13,7 +13,8 @@
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.WatchWkKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Base
 public import Proof.go_etcd_io.etcd.client.v3.ReadUpds
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease

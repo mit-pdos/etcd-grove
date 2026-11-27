@@ -18,7 +18,7 @@ bits distinct and not `0`, one conf change per member). putget3's `BootFacts id�
 (`etcdstart.bootPremise`, putget3's own `bootPremise` with the configuration's token a parameter: the
 same configuration fields), at every server raft names of the cluster, for the member's
 configuration (`etcdstart.cfgOk`) and URLs (`etcdstart.urlsN`: putget3's `urlsOk` for a list), at the
-URL directory `dirN` (each member's one peer URL); `proto.Marshal`'s contract at the bootstrap log's
+URL directory `dirN` (each member's one peer URL; `etcdstart/DirN.lean`); `proto.Marshal`'s contract at the bootstrap log's
 conf changes (`bootMarshal`); the raft wrapper's trust-boundary contracts (`etcdstart.commonPremises`,
 putget3's `commonPremises`).
 -/
@@ -26,6 +26,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.DirN
 
 @[expose] public section
 
@@ -53,13 +54,6 @@ address, member `0`'s client address. -/
 def startOf : List GMember → List (GoString × GoString × Option GoString)
   | [] => []
   | m :: r => (m.Name', m.Peer', some m.Client') :: r.map (fun m => (m.Name', m.Peer', none))
-
-/-- **The peer-URL directory of the cluster** (the members `ms` with the ids `ids`, in order):
-each member's one peer URL. -/
-def dirN (ms : List GMember) (ids : List w64) (id : w64) : List GoString :=
-  match (ms.zip ids).find? (fun p => decide (p.2 = id)) with
-  | some p => [go!"http://" ++ p.1.Peer']
-  | none => []
 
 /-- **`bootstrap`'s results, as Go computes them** (see the file header). -/
 structure BootFacts (ids : List w64) (ps : List w64) (ctxs : List (List w8))

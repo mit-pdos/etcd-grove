@@ -25,7 +25,9 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.foreig
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absent
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.refused
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.newUserClient
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Refusals
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthLeaseRefusalFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.LeaseAttempts
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier
 public import Spec.go_etcd_io.etcd.client.v3.WithLease
 public import Spec.context.WithTimeoutBackgroundMd
 public import Spec.go_etcd_io.etcd.client.v3.OpPut

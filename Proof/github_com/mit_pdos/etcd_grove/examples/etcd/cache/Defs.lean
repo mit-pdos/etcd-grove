@@ -13,6 +13,8 @@ watchkv's (`Proof/.../watchkv/Defs.lean`) at cachekv's names, ports and prefix:
   key and value), `CheckOk` (what `check` needs not to panic).
 * The plan's fact about the KV state's changes (`etcd_watch.wkW`) and its logs (`etcd_watch.WkLog`) are
   watchkv's.
+* The structs `ckv`/`cev`, the prefix `ckPfx` and the shared start's values are in
+  `dist/client/CacheBase.lean` (the multi-machine theorem reuses them).
 -/
 module
 
@@ -21,6 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchBase
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.CacheBase
 
 @[expose] public section
 
@@ -38,9 +41,6 @@ open github_com.mit_pdos.etcd_grove.examples.etcd.cache
 section pure
 variable [GooseExts]
 
-/-- The program's structs (`kv`, `event`, `putRec`), by short names. -/
-abbrev ckv := etcdstart.wkv
-abbrev cev := etcdstart.wev
 /-- `Main`'s peer URL, `http://127.0.0.1:23883`. -/
 abbrev peerURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23883"
 
@@ -55,15 +55,8 @@ abbrev urlsOk (U : BootURLs) : Prop := etcdstart.urls1 go!"cachekv" go!"127.0.0.
 member `id` only (`dirOne`; 2026-10-24, rafthttp stage 6d; until then every id's). -/
 abbrev ckDir (id : w64) : w64 → List GoString := etcdstart.dir1 go!"127.0.0.1:23883" id
 
-/-- The prefix the writers' keys are under and the watch covers. -/
-abbrev ckPfx : GoString := go!"ck/"
-
 /-- The keys `Gen` picks from. -/
 abbrev genKeys : List GoString := [go!"ck/k0", go!"ck/k1", go!"ck/k2"]
-
-/- The values `Gen` picks from, a `KV`'s pair, a `KV` `Gen` may return, what `Check` needs not to
-panic: the shared start's (`common/WatchBase.lean`). -/
-export etcdstart (genVals pairOf GenKv CheckOk)
 
 end pure
 
