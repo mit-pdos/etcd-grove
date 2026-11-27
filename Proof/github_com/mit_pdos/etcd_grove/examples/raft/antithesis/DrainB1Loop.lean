@@ -208,6 +208,32 @@ theorem nodeOwn_loop_open (c : Loc) (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (
   ipureintro
   exact ⟨Hsto, ⟨Hrv.2.1, Hrv.2.2.1, Hrv.2.2.2.1⟩, Hc0⟩
 
+/-- (#33 parity B2) **The kill flag of B1's bookkeeping** (`emitOk`'s `n.dead`, never set under B1's
+mask): read out and put back (`drain`'s `!n.dead` loop guard and its check after the write). -/
+theorem nodeMemB1_dead (n : Loc) :
+    nodeMemB1 (GF := GF) n ⊢
+      n.[H.node, go!"dead"] ↦ false ∗ (n.[H.node, go!"dead"] ↦ false -∗ nodeMemB1 n) := by
+  unfold nodeMemB1 emitOk
+  iintro ⟨%mhs, %rhs, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, Hdead, Hfuse⟩
+  iframe Hdead
+  iintro Hdead
+  iexists mhs, rhs
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 Hdead Hfuse
+
+/-- (#33 parity B2) `nodeMemB1_dead` through `loopRest`. -/
+theorem loopRest_dead (γ : AntNames) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView) (net₀ : List Msg)
+    (xnet₀ : List XMsg) (rs : RNState) :
+    loopRest (GF := GF) γ j n v net₀ xnet₀ rs ⊢
+      n.[H.node, go!"dead"] ↦ false ∗ (n.[H.node, go!"dead"] ↦ false -∗ loopRest γ j n v net₀ xnet₀ rs) := by
+  iunfold loopRest
+  iintro ⟨%d, %ms, %hsl, %cl, %csl, %role, %applied, %si, #Hd, Hmem, Hrest⟩
+  icases nodeMemB1_dead n $$ Hmem with ⟨Hdead, Hmem⟩
+  iframe Hdead
+  iintro Hdead
+  ihave Hmem := Hmem $$ Hdead
+  iexists d, ms, hsl, cl, csl, role, applied, si
+  iframe Hd Hmem Hrest
+
 /-- **The loop's exit** (`HasReady` false at the loop head, no read state): the view moved to the
 node's state (`QuietIn.noReady`, `view_quiet`), the node drained; the view's `by` kept. -/
 theorem drain_exit (h_vu : view_update.law (GF := GF)) (h_lo : nodeLive_over.law (GF := GF))

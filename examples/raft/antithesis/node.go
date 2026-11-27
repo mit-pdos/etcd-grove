@@ -705,7 +705,7 @@ func (n *node) drain(by string) {
 		n.drainAsync(by)
 		return
 	}
-	for n.rn.HasReady() {
+	for !n.dead && n.rn.HasReady() {
 		rd := n.rn.Ready()
 		role := n.role
 		if rd.SoftState != nil {
@@ -752,6 +752,9 @@ func (n *node) drain(by string) {
 				n.emit(withByRole(n.stateEv("ready", hs, nil), by, role))
 			}
 			n.role = role
+		}
+		if n.dead {
+			return // died before its write: nothing more it does is seen; raft is dropped with it
 		}
 		for _, m := range rd.Messages {
 			if early && isRequest(m) {

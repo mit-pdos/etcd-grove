@@ -211,7 +211,10 @@ theorem node.drain.wp_proof
   icases IH with ⟨%v₀, %n₀, %x₀, %r, %xs, Hown, %Hby, Had, Htok⟩
   icases nodeOwn_loop_open c γ j n v₀ n₀ x₀ r xs $$ Hown with ⟨%rn, %rs, %ip, Hrn, Hraw, %Hst, Hrest⟩
   obtain ⟨hrv, hR, hip, hbyok, hN, hk⟩ := Hst
+  -- (#33 parity B2) `!n.dead`: never dead under B1's mask
+  icases loopRest_dead γ j n v₀ n₀ x₀ rs $$ Hrest with ⟨Hdead, Hrest⟩
   wp_auto
+  ihave Hrest := Hrest $$ Hdead
   wp_apply wp_HasReady γ.R.md hs hcc hfw has γ.raft.raftNames rn (AntSim.nodeId j) rs r [] ip
     $$ [$Hrpkg $Hraw] as %b ⟨Hraw, %Hb⟩
   cases b with
@@ -883,6 +886,20 @@ theorem node.drain.wp_proof
         rcases hsrc ht with h | h
         · exact ⟨j, h⟩
         · exact Hnames.1 _ h
+    -- (#33 parity B2) `if n.dead { return }` before the sends: never dead under B1's mask
+    icases nodeMemB1_dead n $$ Hmem with ⟨Hdead, Hmem⟩
+    wp_pure
+    wp_pure
+    wp_pure
+    wp_bind (If _ _ _)
+    iapply (wp_wand (Φ := fun w => iprop(⌜w = executeVal⌝ ∗ n_ptr ↦ n ∗
+        n.[github_com.mit_pdos.etcd_grove.examples.raft.antithesis.node, go!"dead"] ↦ false))) $$ [Hnp Hdead]
+    · wp_auto
+      iframe
+      ipureintro; rfl
+    iintro %w ⟨%Hw, Hnp, Hdead⟩
+    subst Hw
+    ihave Hmem := Hmem $$ Hdead
     ihave Hmid : drainMidB1 n_ptr by_ptr rd_ptr n γ j I v₁ net₁ xnet₁ $$ [Hnp Hbp rd Hrn Hraw Hmem Hms
         Hrole Hhs Hcause Hapl Hconf Hv Hl Hdisk Hstor Hco Hlive Hfree Hdur Htlb Hbud Hdf]
     · iunfold drainMidB1
