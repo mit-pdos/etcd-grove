@@ -406,6 +406,38 @@ linearization ghosts (`x.γr.kv`), the no-refusal premise (`x.addr`), and the en
   the compactor's link mode, if it has one; `MainLinked` there is hand-written), build `k8s_all`'s `Results` and
   `TopLevelRobustness`, `etc/tcb-report.py --check`, `git diff <lean> --` the two `TopLevelRobustness` Spec files.
 
+#### Handoff K5-4 (2026-11-27)
+
+- **Build 1** (fk-lean1, `/shared/tmp/k5-4-b1.log`, K5-3's four targets at `35bd964a11`): `EtcdClient` builds (the
+  `[GooseExts]` fix works). Errors: `EtcdClientInProc.lean:324` (`client.clientWriteOnce_api` needs the client
+  section's `cache.v3`/`etcdserver`/`client.v3` `Assumptions`: inlined as an `iunfold` of `clientWriteOnce`/`writeOnce`),
+  `watchChan__syncPaginated.lean:103` (`iexact` across `(rangeWireOf o).base.rev` vs `o.base.rev`: now `iExactEq Hok; rfl`),
+  `Calls.lean` (`c.ms`). All fixed in `8aeaf7c256`, with batch 5's edits.
+- **Batch 5 edits** (`8aeaf7c256`): driver Specs `Check`/`Apply`/`call`/`runWatch`/`watchEvents` over `c.K.live`,
+  `[∗list] γv ∈ c.K.kvs, kInv γ c g0 γv`, `c.K.kvs ≠ []`; `InvSteps`' makers (`get_maker`, `plain_maker`, `list_maker(P)`,
+  `plainL_maker(P)`), `Inv.kInvs_of_same`, `Calls.callPre`/`listPre`, `Apply`, `WatchQ.watch_readAus` over `List KVNames`;
+  `Main`/`MainCluster`/`MainPartition` (`kInvs_of_same` at `(storeCfgD …).K.kvs`, `hmsne` by `simpa [storeCfgD, inProcEtcd]`);
+  compactor `Aus.casOk_of_cinv` over `List KVNames`, `apiserver.wp_proof` takes `h_inproc` and calls `NewCompactor`/
+  `StartCompactorPerEndpoint` at `inProcEtcd ms V` (spec unchanged); compactor `MainLinked` passes
+  `k8s.inProcEtcd_laws_law_holds` and imports `InProcLinked`; examples' etcd3 `Link` regenerated (`--k8setcd3`: imports
+  `InProcLinked`; `newStore` gets the law). `--k8s-etcd3` Link was already current.
+- **Build 2** (fk-lean1, `/shared/tmp/k5-4-b2.log`, targets etcd3 example `Results`, compactor `Results`, `k8s/all`
+  `Results` + `TopLevelRobustness`, at `8aeaf7c256`): everything else builds (1726 modules; store, watch, compactor library,
+  `Calls`, `Apply`, `Check`, `call`, `runWatch`, `watchEvents`, `WatchQ`, `InvSteps`). **Errors** (next session's item 1):
+  - `InProcLinked.lean:28:46` `Unknown identifier HasLC.hasLC` (missing `open`/qualification: copy the header opens of
+    `EtcdClientInProc`); `:32:63`, `:33:8` follow from it.
+  - `newStore.lean:128:15` `k8sClient_inProc` needs `[HasExt idIssueExt]` (`EtcdClientInProc`'s section variable): add it
+    to newStore's section variables, or drop it from `EtcdClientInProc`'s section if no proof there needs it.
+  - `MainCluster.lean:149:28`, `MainPartition.lean:147:28` `Unknown identifier inProcEtcd` (write `k8s.inProcEtcd` or open
+    `k8s`/import `EtcdClientInProc`); `:150`/`:148` (`cases`) and `:177`/`:183` (the `simpa … using hmsne`) follow from it.
+  - `Main.lean:310:2` `wp_apply (wp_Check …)`: elaboration failed (one argument: likely the `hnr` `by intro y hy; simp only
+    [storeCfgD, …] at hy` (now `.K.live` = `∀ x ∈ [x], …` after `inProcEtcd` unfolds) or `(by simp [storeCfgD, inProcEtcd])`
+    for `K.kvs ≠ []`); check it with `--goal`.
+  - `compactor/apiserver.lean:60:2` `ihave #HK := k8s.k8sClient_inProc … $$ [Hcl Hone Hregs]` leaves its premise as a goal:
+    add `· iframe #` after it.
+  Not reached: `k8s/all` `Results`/`TopLevelRobustness` (downstream of the errors), end checks (`tcb-report --check`,
+  byte-identity of the two `TopLevelRobustness` Spec files vs lean: no Spec file outside the five drivers changed).
+
 ## 5. Approvals
 
 | What | Who |
