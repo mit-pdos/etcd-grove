@@ -46,18 +46,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions]
 
-/-- **Each member with its ghost names and its premises** (putgetN's `memberPres_of`). -/
-theorem memberPres_of (N : Nat) (tok : GoString) (ms0 : List GMember) (ps : List w64)
+/-- **Each member with its ghost names and its premises** (putgetN's `memberPres_of`, at `memberPreU`: 2026-11-27,
+`bootstrap`'s contract borrowing every member's peer address). -/
+theorem memberPres_of (N : Nat) (ms0 : List GMember) (ps : List w64)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
     (ms : List GMember) (gs : List (MemberG GF)) (ids : List w64)
     (hids : gs.map (·.id) = ids) (hlen : ms.length = gs.length) :
     ⊢ ([∗list] m; id ∈ ms; ids,
-        etcdstart.bootPremise N ps bootLog ctxs dir tok m.Name' (urlsN ms0 m) id) -∗
+        etcdstart.bootPremiseF (peersFree ms0) N ps bootLog ctxs dir token m.Name' (urlsN ms0 m) id) -∗
       (□ ∀ lid : w64, netHttpOk γn lid) -∗
-      ([∗list] g ∈ gs, memberBoot g.γ ctxs g.ρ g.E Φs g.id (m := lm)) -∗
+      ([∗list] g ∈ gs, memberBoot g.γ ctxs g.ρ g.E Φs g.id) -∗
       ([∗list] m ∈ ms, memberFreshRes m.Name' ⟨some m.Peer', none⟩ γn) -∗
-      [∗list] x ∈ ms.zip gs, memberPre N tok ms0 ps bootLog ctxs dir Φs γn lm x := by
+      [∗list] x ∈ ms.zip gs, memberPreU N ms0 ps bootLog ctxs dir Φs γn x := by
   induction ms generalizing gs ids with
   | nil =>
     iintro _ _ _ _
@@ -79,7 +80,7 @@ theorem memberPres_of (N : Nat) (tok : GoString) (ms0 : List GMember) (ps : List
       rw [List.zip_cons_cons]
       iapply BigSepL.bigSepL_cons.2
       isplitl [Hbp1 Hb1 Hf1]
-      · iunfold memberPre
+      · iunfold memberPreU
         iframe
         iapply Hnet
       iapply (ih gs (gs.map (·.id)) rfl (by simpa using hlen)) $$ Hbp Hnet Hb Hf
@@ -87,12 +88,12 @@ theorem memberPres_of (N : Nat) (tok : GoString) (ms0 : List GMember) (ps : List
 /-- **Each member's restart facts and compaction mode** (persistent), out of its boot bundle before
 the start (restart3 took them from members 2 and 3; here from every member, any of the last two may be
 stopped). -/
-theorem pres_restartFacts (N : Nat) (tok : GoString) (ms : List GMember) (ps : List w64)
+theorem pres_restartFacts (N : Nat) (ms : List GMember) (ps : List w64)
     (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
     (xs : List (GMember × MemberG GF)) :
-    ([∗list] x ∈ xs, memberPre N tok ms ps bootLog ctxs dir Φs γn .none x) ⊢
-      ([∗list] x ∈ xs, memberPre N tok ms ps bootLog ctxs dir Φs γn .none x) ∗
+    ([∗list] x ∈ xs, memberPreU N ms ps bootLog ctxs dir Φs γn x) ⊢
+      ([∗list] x ∈ xs, memberPreU N ms ps bootLog ctxs dir Φs γn x) ∗
       [∗list] x ∈ xs, iprop(memberRestartFacts x.2.γ x.2.ρ x.2.id ∗ ⌜x.2.E.cmp = false⌝) := by
   induction xs with
   | nil =>
@@ -103,14 +104,14 @@ theorem pres_restartFacts (N : Nat) (tok : GoString) (ms : List GMember) (ps : L
     ihave H := BigSepL.bigSepL_cons.1 $$ H
     icases H with ⟨H1, H⟩
     icases ih $$ H with ⟨H, Hr⟩
-    iunfold memberPre at H1
+    iunfold memberPreU at H1
     icases H1 with ⟨#Hbp, Hmb, #Hnet, Hfr⟩
     icases etcdstart.memberBoot_cmp _ _ _ _ _ _ false $$ Hmb with ⟨%hc, Hmb⟩
     icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb with ⟨#Hrf, Hmb⟩
     isplitl [Hmb Hfr H]
     · iapply BigSepL.bigSepL_cons.2
       isplitl [Hmb Hfr]
-      · iunfold memberPre
+      · iunfold memberPreU
         iframe; iframe #
       iexact H
     · iapply BigSepL.bigSepL_cons.2
@@ -354,9 +355,9 @@ theorem Run.wp_proof
   ihave Hfrs : [∗list] m ∈ members k, memberFreshRes m.Name' ⟨some m.Peer', none⟩ γn $$ [Hfr0 Hfrs]
   · rw [hms]; iapply BigSepL.bigSepL_cons.2; iframe
   -- each member with its ghost names and its premises; its restart facts
-  ihave Hpres := memberPres_of N token (members k) ps (LogEntry.toEntries boot 0) ctxs
-    (dirN (members k) ids) Φs γn .none (members k) gs ids hgids hglen $$ Hbps Hnet Hbs Hfrs
-  icases pres_restartFacts N token (members k) ps (LogEntry.toEntries boot 0) ctxs
+  ihave Hpres := memberPres_of N (members k) ps (LogEntry.toEntries boot 0) ctxs
+    (dirN (members k) ids) Φs γn (members k) gs ids hgids hglen $$ Hbps Hnet Hbs Hfrs
+  icases pres_restartFacts N (members k) ps (LogEntry.toEntries boot 0) ctxs
     (dirN (members k) ids) Φs γn ((members k).zip gs) $$ Hpres with ⟨Hpres, #Hrfs⟩
   have hxs1 : ((members k).zip gs).map (·.1) = members k := List.map_fst_zip (by omega)
   have hutf : ∀ x ∈ (members k).zip gs, utf8Valid x.1.Name' :=

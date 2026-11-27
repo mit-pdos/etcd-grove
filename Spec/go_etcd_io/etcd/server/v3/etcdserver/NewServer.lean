@@ -507,7 +507,10 @@ the auth names' fresh authorities, which `NewServer` allocated until then: the t
 boot ones and the readiness cell), first in the precondition, and in the post the mode `.on γa` in place of
 `∃ γa`. The in-process form of `etcd_dist.NewServer.specG_dist` (whose `authNamesFreshD γa` is
 `srvAuthNamesFresh γa`, `etcd_dist.authNamesFreshD_iff_srv`). `NewServer.wp_proofGAtA` proves it;
-`NewServer.wp_proofGAt` derives `specGAt` from it (`srvAuthNamesFresh_alloc`). -/
+`NewServer.wp_proofGAt` derives `specGAt` from it (`srvAuthNamesFresh_alloc`). (2026-11-27, restartN's first
+boots) With a frame `R` that `bootstrap`'s contract borrows for the call (`bootstrapContractF R`, in place of
+`bootstrapContract`): the caller gives `R` and gets it back in the post, on every path; `specGAt` is the case
+`R = emp`. -/
 abbrev NewServer.specGAtA (on cmp : Bool) : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
     (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
@@ -518,7 +521,9 @@ abbrev NewServer.specGAtA (on cmp : Bool) : Prop :=
     -- (F7 step 2) the member's lessor name, the caller's
     (γl : GName)
     -- (#50 F7 S2, P-A1) the member's auth names, the caller's
-    (γa : auth.AuthNames),
+    (γa : auth.AuthNames)
+    -- (2026-11-27, restartN's first boots) the frame `bootstrap`'s contract borrows (`bootstrapContractF`)
+    (R : IProp GF),
   ρ.rd.raft = ⟨γ, [], W64 0⟩ →
   γ.rule = srvRule (W64 0) γ.boot →
   (clusterNoSnap γ.cl → 2 ^ 48 ≤ uint.Z cfg.SnapshotCatchUpEntries') →
@@ -555,7 +560,7 @@ abbrev NewServer.specGAtA (on cmp : Bool) : Prop :=
       "Htok" ∷ threadTok ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       "#Hlcp" ∷ featureIs cfg.ServerFeatureGate' go!"LeaseCheckpoint" false ∗
-      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
+      "#Hboot" ∷ bootstrapContractF R cfg U γ id ctxs N dir ∗ "HR" ∷ R ∗
       "#Hzlg" ∷ zapLoggerOk cfg.Logger' ∗
       "#Hvoff" ∷ ⌜EtcdVerifyOff⌝ ∗
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
@@ -582,7 +587,7 @@ abbrev NewServer.specGAtA (on cmp : Bool) : Prop :=
       "%Hmmap" ∷ ⌜storage.openMmapOk cfg⌝ ∗
       "#Hcci" ∷ context.isClosedchanInit }}
     (App (Val (@! NewServer)) (Val #cfg))
-  {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err);
+  {{ (srv : Loc) (err : GoInterface), RET (PairV #srv #err); R ∗ (
       (⌜srv = null ∧ err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
@@ -605,7 +610,7 @@ abbrev NewServer.specGAtA (on cmp : Bool) : Prop :=
           leaseTTLRowR srv γ.vs ∗
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
           □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
-          srvStop.keep srv cfg E γrn γk }}
+          srvStop.keep srv cfg E γrn γk) }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/
@@ -614,6 +619,11 @@ abbrev NewServer.spec : Prop := ∀ cmp : Bool, NewServer.specG (GF := GF) (hG :
 /-- **`NewServer` with auth off and the lessor at the caller's name** (F7 step 2): `NewServer.specGAt` at
 `on = false`, in either compaction mode (`NewServer.wp_proofAt`; `etcdstart.newServerMode.specAt`'s callee). -/
 abbrev NewServer.specAt : Prop := ∀ cmp : Bool, NewServer.specGAt (GF := GF) (hG := hG) false cmp
+
+/-- **`NewServer` with auth off, the lessor and the auth names at the caller's, and `bootstrap`'s contract
+with a frame** (2026-11-27): `NewServer.specGAtA` at `on = false`, in either compaction mode
+(`NewServer.wp_proofAtA`; `etcdstart.newServerMode.specF`'s callee). -/
+abbrev NewServer.specAtA : Prop := ∀ cmp : Bool, NewServer.specGAtA (GF := GF) (hG := hG) false cmp
 
 /-- **`NewServer(cfg)` in the auth mode `on`, the compactor off**: `NewServer.specG` at
 `cmp = false` (`NewServer.wp_proofM`; the auth plan's E2i). -/

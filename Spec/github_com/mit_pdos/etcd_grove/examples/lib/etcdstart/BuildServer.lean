@@ -101,6 +101,57 @@ abbrev BuildServer.spec : Prop :=
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
           leaseTTLRowR s ps ∗ srvDataDir s (memberDataDir name)) }}
 
+/-- **`spec` with `bootstrap`'s contract borrowing a frame `R`** (2026-11-27, restartN's first boots): the
+member's `bootPremiseF R` in place of `bootPremise`, `R` in the precondition and given back in the post, on every
+path (`NewServer.specGAtA`'s frame). -/
+abbrev BuildServer.specF : Prop :=
+  ∀ (N : Nat) (name peerAddr client token : GoString)
+    (snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
+    (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
+    (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
+    (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
+    (R : IProp GF)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
+  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
+  rafthttp.bootCfg dir ps →
+  Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- (fmt stage 1, 2026-11-24) the addresses within etcd's URL bounds (`NewServer`'s `etcdURLsFit`)
+  addrFits peerAddr → addrFits client →
+  -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
+  -- `bootPremise`'s condition
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
+  -- (wal-fsfix, 2026-11-20, the user's decision) the member's name at most 200 bytes, so that its data
+  -- directory fits (`bootCfgFresh`'s `Fs.DirFits`, from `dirFits_memberDataDir`)
+  name.length ≤ 200 →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  {{ R ∗
+      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
+      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
+      threadTok ∗
+      peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
+      bootPremiseF R N ps bootLog ctxs dir token name Uok id ∗
+      context.isClosedchanInit ∗
+      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
+      netHttpOk γn id ∗
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its start bundle) the
+      -- member's WAL directory fresh: a first start
+      memberFreshRes name {} γn }}
+    (App (App (App (App (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
+      (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))
+      (Val #snapCount)) (Val #catchUp)) (Val #lg))
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err); R ∗ (
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
+          leaseTTLRowR s ps ∗ srvDataDir s (memberDataDir name))) }}
+
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
   ∀ (N : Nat) (name peerAddr client token : GoString)

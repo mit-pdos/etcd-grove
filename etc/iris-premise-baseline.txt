@@ -5,7 +5,6 @@
 # needs a `witness:` theorem: the premise holds at an initialized world (from `isPkgInit`, or for
 # every heap).
 RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean:raft_tracecheck_robust Hprem unwitnessed grandfathered (2026-11-25): no witness yet
-Spec/github_com/mit_pdos/etcd_grove/examples/etcd/all/TopLevelRobustness.lean:etcd_restart_robust_single_process Hprem₅ unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hafter unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₁ unwitnessed grandfathered (2026-11-25): no witness yet
 Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/TopLevelRobustness.lean:k8s_robust_single_process Hprem₂ unwitnessed grandfathered (2026-11-25): no witness yet

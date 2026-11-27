@@ -36,6 +36,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapOne
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapRestart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrapUnserved
 
 @[expose] public section
 
@@ -130,9 +131,6 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (HDs : dataDirsAbsent (etcdProgram k₅) (etcdProgDirs k₅))
     (HEnv : EtcdVerifyOff) (Hfips : crypto.fips140.GodebugFips140Off)
     (n : Nat)
-    (Hprem₅ : ∀ hG : HeapGS .hasLC etcdGF,
-      ⊢ etcd_restartN.bootPremises (GF := etcdGF) (hG := etcdHeapAt hG lctx) (uint.nat k₅) n ids₅ ps₅
-          ctxs₅ boot₅)
     (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdProgDirs k₅))
@@ -175,15 +173,16 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (2 ^ 60) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
-    ihave #Hbp5 := Hprem₅ hG
     iintro #Hinit Htok ⟨Hms, -⟩
-    -- (premises to axioms, 2026-11-27) the restart contracts and restart1's first-start contract from the
-    -- interim bootstrap axioms (until then in the premises `Hprem₅`, `HpremR`)
+    -- (premises to axioms, 2026-11-27) restartN's and restart1's contracts from the interim bootstrap axioms
+    -- (until then in the premises `Hprem₅`, `HpremR`; restartN's first starts, `bootstrap.wp_proofUnserved`)
     ihave #Hsrvpkg : isPkgInit (PROP := IProp etcdGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
     · iPkgInit
-    ihave #Hp5 := etcd_restartN.premises_of_specRestart (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
+    ihave #Hp5 := etcd_restartN.premises_of_specs
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofUnserved)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
       (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
-      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg Hbp5
+      (by rw [etcdstart.membersOf_length, Hlen₅]) (by word) $$ Hsrvpkg
     ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
     unfold etcd_all.etcdStarts
@@ -222,15 +221,16 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     haveI : ReceiptBoundLe etcdGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (2 ^ 60) := ⟨by rw [HN]; omega⟩
     haveI : ReceiptBoundLe etcdGF (n + 1) := ⟨by rw [HN]; omega⟩
-    ihave #Hbp5 := Hprem₅ hG
     iintro #Hinit Htok -
-    -- (premises to axioms, 2026-11-27) the restart contracts and restart1's first-start contract from the
-    -- interim bootstrap axioms (until then in the premises `Hprem₅`, `HpremR`)
+    -- (premises to axioms, 2026-11-27) restartN's and restart1's contracts from the interim bootstrap axioms
+    -- (until then in the premises `Hprem₅`, `HpremR`; restartN's first starts, `bootstrap.wp_proofUnserved`)
     ihave #Hsrvpkg : isPkgInit (PROP := IProp etcdGF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
     · iPkgInit
-    ihave #Hp5 := etcd_restartN.premises_of_specRestart (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
+    ihave #Hp5 := etcd_restartN.premises_of_specs
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofUnserved)
+      (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart)
       (uint.nat k₅) n ids₅ ps₅ ctxs₅ boot₅ Hfips Hbf₅ Hbg₅
-      (by rw [etcdstart.membersOf_length, Hlen₅]) $$ Hsrvpkg Hbp5
+      (by rw [etcdstart.membersOf_length, Hlen₅]) (by word) $$ Hsrvpkg
     ihave #HpR := etcd_restart1.premises_of_specs (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofOne)
       (fun [_] => _root_.Perennial.EtcdGrove.bootstrap.wp_proofRestart) n rId ctxsR bootR Hfips HbgR $$ Hsrvpkg
     have hM := hMain hG n k₅ ids₅ ps₅ ctxs₅ boot₅ rId ctxsR bootR (srvLevels_of_max HT)

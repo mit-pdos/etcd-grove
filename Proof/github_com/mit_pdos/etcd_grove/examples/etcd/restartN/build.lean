@@ -1,7 +1,7 @@
 /-
 Proofs of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restartN/build.lean` (restart3 C2,
 2026-11-15): `etcdstart.BuildServer` at `restart3`'s token and snapshot settings, over
-`BuildServer.spec` (`wp_proof`) and `BuildServer.specRestart` (`wp_proofRestart`). Lean-first (no Rocq
+`BuildServer.specF` (`wp_proof`) and `BuildServer.specRestart` (`wp_proofRestart`). Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -31,21 +31,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Assumptions]
 
-theorem build.wp_proof (wp_BuildServer : etcdstart.BuildServer.spec (GF := GF) (hG := hG)) :
+theorem build.wp_proof (wp_BuildServer : etcdstart.BuildServer.specF (GF := GF) (hG := hG)) :
     build.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
+  intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn R
     ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo
-  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨HR, #Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
   (try wp_auto)
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
-      ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
+      ps bootLog ctxs dir id γ ρ E₀ Φs γn .none R HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
+      Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq Hdbo) $$ [HR Htok Hmb Hfresh] as %s %err ⟨HR, Hres⟩
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
+  isplitl [HR]; · iexact HR
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -, #Hdd⟩)
   · ileft; iframe Htok; ipureintro; exact Herr
   · iright; iframe; iframe #; ipureintro; exact Herr
