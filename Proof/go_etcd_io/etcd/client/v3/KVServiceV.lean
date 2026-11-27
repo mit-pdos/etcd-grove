@@ -14,7 +14,7 @@ caller's atomic update at `γk` and the reply's fields as functions of the state
   They ignore the metadata: one spec serves every endpoint.
 * **The messages' wire parts** (heap-free, `putReqWire`, ...; `pbPutRequest_wire`, ... at a machine's
   heap, `rfl`), as `grpcdriver/SvcG.lean`'s.
-* **A member serving its auth-off specs serves the view** (`etcdPutSpecV_M`, ...: the view's caller
+* **A member serving its auth-off specs serves the view** (`etcdPutSpecV_M_off`, ...: the view's caller
   meets the member's spec over the mode at `false`, after an update): the floor `[]` and the committed
   index `0` are free (`srvStart_alloc`), the update at `γk` is the member's at names of the same KV
   (`kvSame`), and the member's reply is some member's answer (`putAns`, ...), which says what the
@@ -278,7 +278,7 @@ theorem srvStart_free (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **The view's `Put` meets a member's auth-off spec** (after an update): at names of the same KV
 (`kvSame`), with the store's receipts bounded. -/
-theorem etcdPutSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
+theorem etcdPutSpecV_M_off (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γk : KVNames) (hk : kvSame ρ.rd.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
     ∀ md o Φ Ψe, etcdPutSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdPutSpecM false T E ρ cid mid md o Φ Ψe := by
@@ -316,7 +316,7 @@ theorem etcdPutSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : R
 
 /-- **The view's `Range` meets a member's auth-off spec** (after an update): at names of the same
 KV, with the store's receipts bounded. -/
-theorem etcdRangeSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (γr : ReadNames)
+theorem etcdRangeSpecV_M_off (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (γk : KVNames) (hk : kvSame γr.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
     ∀ md o Φ Ψe, etcdRangeSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdRangeSpecM false T E γr cid mid md o Φ Ψe := by
@@ -359,7 +359,7 @@ theorem etcdRangeSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (γr 
   iexact Hm
 
 /-- **The view's `DeleteRange` meets a member's auth-off spec** (after an update). -/
-theorem etcdDeleteSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
+theorem etcdDeleteSpecV_M_off (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γk : KVNames) (hk : kvSame ρ.rd.kv γk) (hrb : receiptBound GF ≤ 2 ^ 62) :
     ∀ md o Φ Ψe, etcdDeleteSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdDeleteSpecM false T E ρ cid mid md o Φ Ψe := by
@@ -396,7 +396,7 @@ theorem etcdDeleteSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ 
 
 /-- **The view's `Txn` meets a member's auth-off spec** (after an update): its write and read
 names one (`ρ.rd = γr`, as an auth-off server's), of the same KV. -/
-theorem etcdTxnSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
+theorem etcdTxnSpecV_M_off (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (cid mid : w64) (γk : KVNames) (hρ : ρ.rd = γr) (hk : kvSame γr.kv γk)
     (hrb : receiptBound GF ≤ 2 ^ 62) :
     ∀ md t Φ Ψe, etcdTxnSpecV (GF := GF) γk md t Φ Ψe ⊢
@@ -459,7 +459,7 @@ theorem etcdTxnSpecV_M (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : R
 
 /-- **The view's `Compact` meets a member's auth-off spec**: at names of the same KV (the
 compaction mode and retention, the revisions reached). -/
-theorem etcdCompactSpecV_M (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (γk : KVNames)
+theorem etcdCompactSpecV_M_off (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) (γk : KVNames)
     (hk : kvSame ρ.rd.kv γk) :
     ∀ md o Φ Ψe, etcdCompactSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> GrpcSpec.md (etcdCompactSpecM false E ρ cid mid) md o Φ Ψe := by

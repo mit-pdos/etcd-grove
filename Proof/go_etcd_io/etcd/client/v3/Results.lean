@@ -2439,7 +2439,7 @@ theorem etcd_kvRunOksM (p q s : Loc)
 /-- **etcd's KV methods meet grpc's run contract at the view specs** (stage S1 of the defined
 `etcdSvc`, 2026-11-27): with auth off, at KV names `γk` of the same KV as the member's read names
 (`kvSame`), the store's receipts bounded, `etcd_kvRunOksM`'s contracts at the specs that quantify
-the member away (`etcdPutSpecV γk`, ...: `etcdPutSpecV_M`, ...). -/
+the member away (`etcdPutSpecV γk`, ...: `etcdPutSpecV_M_off`, ...). -/
 theorem etcd_kvRunOksV (p q s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) (il im iu : GoFunc)
     (γk : KVNames) (hon : E.authOn = false) (hρ : ρ.rd = γr) (hk : kvSame γr.kv γk)
@@ -2470,19 +2470,19 @@ theorem etcd_kvRunOksV (p q s : Loc)
   have hk' : kvSame ρ.rd.kv γk := by rw [hρ]; exact hk
   have hP : ∀ md o Φ Ψe, etcdPutSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdPutSpecM E.authOn (srvTLSId s) E ρ cid mid md o Φ Ψe := by
-    rw [hon]; exact etcdPutSpecV_M (srvTLSId s) E ρ cid mid γk hk' hrb
+    rw [hon]; exact etcdPutSpecV_M_off (srvTLSId s) E ρ cid mid γk hk' hrb
   have hR : ∀ md o Φ Ψe, etcdRangeSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdRangeSpecM E.authOn (srvTLSId s) E γr cid mid md o Φ Ψe := by
-    rw [hon]; exact etcdRangeSpecV_M (srvTLSId s) E γr cid mid γk hk hrb
+    rw [hon]; exact etcdRangeSpecV_M_off (srvTLSId s) E γr cid mid γk hk hrb
   have hD : ∀ md o Φ Ψe, etcdDeleteSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> etcdDeleteSpecM E.authOn (srvTLSId s) E ρ cid mid md o Φ Ψe := by
-    rw [hon]; exact etcdDeleteSpecV_M (srvTLSId s) E ρ cid mid γk hk' hrb
+    rw [hon]; exact etcdDeleteSpecV_M_off (srvTLSId s) E ρ cid mid γk hk' hrb
   have hT : ∀ md t Φ Ψe, etcdTxnSpecV (GF := GF) γk md t Φ Ψe ⊢
       |==> etcdTxnSpecM E.authOn (srvTLSId s) E ρ γr cid mid md t Φ Ψe := by
-    rw [hon]; exact etcdTxnSpecV_M (srvTLSId s) E ρ γr cid mid γk hρ hk hrb
+    rw [hon]; exact etcdTxnSpecV_M_off (srvTLSId s) E ρ γr cid mid γk hρ hk hrb
   have hC : ∀ md o Φ Ψe, etcdCompactSpecV (GF := GF) γk md o Φ Ψe ⊢
       |==> GrpcSpec.md (etcdCompactSpecM E.authOn E ρ cid mid) md o Φ Ψe := by
-    rw [hon]; exact etcdCompactSpecV_M E ρ cid mid γk hk'
+    rw [hon]; exact etcdCompactSpecV_M_off E ρ cid mid γk hk'
   iintro H
   ihave #Hall := etcd_kvRunOksM p q s E ρ γr cid mid n il im iu (fun _ => hρ) HL $$ H
   icases Hall with ⟨#H1, #H2, #H3, #H4, #H5⟩
