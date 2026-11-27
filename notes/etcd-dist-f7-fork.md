@@ -658,3 +658,22 @@ Same worktree, manifest, Perennial and logs (`/shared/tmp/delta-logs/m2.log` is 
   `TopLevelRobustness`/`Results`; then regenerate copies; run every generator's `--check`; do the full build;
   run `GATES_FAILFAST=0 etc/gates.sh` and `etc/tcb-report.py --check` (trust delta vs lean must be none); add the STATUS
   entry (keep ten in "Last updated"; status-history append-only, now 20075 lines).
+
+### Handoff DELTA-4 (2026-11-27; lean `27cdcc788d` merged, build and gates GREEN)
+
+Same worktree, manifest, Perennial and logs (`/shared/tmp/delta-logs/gates2.log` is the gates run).
+
+- **RawNodeStart (lean's `NewRawNode_restartAt_impl`)**, the last merge fallout: our crash line's `NewRawNode.spec` takes
+  the lifetime premise `uint.Z sn.t0 ≤ uint.Z hs.Term'`; lean's restartAt start builds `sn` without `t0` (the default
+  `W64 0`), so it passes `(by show uint.Z (W64 0) ≤ _; word)`, and its storage key (`dghostVar_alloc`, as `RestartNode`'s)
+  now records `sn.t0` too. No spec change. The antithesis `TopLevelRobustness`/`Results` then built with no further error.
+- **Copies**: gen-raft-tla, copy-part regenerated (no diff); every generator's `--check` green in gates.
+- **Full build + gates**: fk-lean1 had no warm tree (the coordinator's note), so locally:
+  `GATES_FAILFAST=0 LAKE_PACKAGES=/shared/tmp/delta-manifest.json PERENNIAL_CHECKOUT=/shared/perennial-9065982fa
+  etc/gates.sh` under the build lock and a 60G cap: build 30256 jobs OK, **gates: all passed** (mode 466 = baseline,
+  bounds 389 = baseline, tier 204 known).
+- **Trust base**: `tcb-report --check` matches `etc/tcb-baseline.txt` (369 axioms, 0 sorries, 90 opaques), identical to
+  lean `27cdcc788d`'s; 70 collections match; `etc/tcb-collections/etcd-dist.txt` differs from lean's only in its header
+  comment (the crash line's). Trust delta vs lean: none.
+- **For the lead**: DELTA-3's `ownDurGhost_boot` shape change (a fancy update, untrusted) stands; nothing else new.
+- STATUS entry added (ten kept; the oldest, prove-idfs, appended to status-history: 20075 -> 20076 lines).
