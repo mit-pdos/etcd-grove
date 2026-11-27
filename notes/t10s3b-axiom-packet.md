@@ -8,14 +8,17 @@ is built on it beyond the draft.
 - **Today** = `7ff538e61d` (Handoff T10s3b-4, before any (B) definition change). **With this change** = `66991db961`
   (Handoff T10s3b-10, branch `etcd-safe-t10s3b-a/2026-11-27`).
 - Neither axiom's text changes (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/{NewServerDist,ServeDist}.lean`
-  and `ServerOn.lean`, `InvBuild.lean` are identical at both commits). What changes is the Proof-tier definitions the
+  and `ServerOn.lean`, `InvBuild.lean` are identical at both commits). Four other `Spec/` files do change:
+  `applyAll`, `applySnapshot`, `newRaftNode` and `bootstrappedRaft.newRaftNode` (each with its ledger entry). They are
+  specs of proved functions, and no axiom reaches them (`AxCheck6`). What changes is the Proof-tier definitions the
   statement unfolds to: `InvRaftNode.lean` (below `IRN` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRaftNode.lean`)
-  and the new `NotifyCD.lean`. The reached set is Lean's, not grep's: `/shared/tmp/t10s3b-chk/AxCheck6.lean`,
-  output `out6c.txt` (149 axioms; only these four reach a changed definition: `NewServer_dist`, and through
+  and the new `NotifyCD.lean`. The reached set is Lean's, not grep's: `notes/t10s3b-chk/AxCheck6.lean` (committed with its
+  module list `mods.txt`; run as in Handoff T10s3b-4), output `notes/t10s3b-chk/out6c.txt` (149 axioms; only these four reach a changed definition: `NewServer_dist`, and through
   `RNNames` only, `NewPeerHandler_dist`, `Serve_dist`, `PeerServe_dist`).
 - Go: the etcd fork at the pin of `etc/goose.py` (project `etcd`, `rev=251a430ce042`; read with
   `git -C /shared/etcd show 251a430ce042:server/etcdserver/raft.go`, the main tree's `.lake/go-src/etcd` is at a later
-  commit), raft at the pin `565c2bd`.
+  commit), raft v3.7.0 (the fork's `go.mod`, no replace; the translated raft, `upamanyus/etcd`
+  `raft37-goose-lean-a2`, adds three fixes elsewhere and leaves `bootstrap.go` as v3.7.0).
 
 ## Summary
 
@@ -30,6 +33,13 @@ is built on it beyond the draft.
 | 6 | `rnRestartOk` (B6, not yet changed) | `NewServer_dist` | expected **weaker** (equivalent at `a0 = []`) | positive conjunct of `isRaftNode`; dropping `|a0| ≤ commit0` |
 | 7 | `rnStopImage` (B7, not yet changed) | `NewServer_dist` | expected **incomparable** | inside `inv rnStopN (rnStopImage γ ∨ token γ.sc)` |
 | 8 | `wal.stopImage` (B7, not yet changed) | `Serve_dist` | expected **incomparable** | inside `srvDoneInv`'s `inv srvStopN (srvDiskImage … ∨ token c)` |
+
+**Review (2026-11-27, #50):** every row SOUND (lead's fresh review). Rows 1, 2, 3, 5 carried; row 4 strengthens an
+approved axiom: sent to Upamanyu with a recommendation to approve, and stays DRAFT until he signs off.
+
+> **Restart caveat (B4 must carry it):** rows 1, 2 and 5 are equivalent only at `γn.a0 = []`. A restart or
+> crash-restart `NewServer` axiom without it (B4's `NewServerC_dist` on `etcd-safe-crash-b4r/2026-11-26`) makes rows 1
+> and 2 incomparable and needs row 4 re-argued, each reviewed on its own.
 
 **For the reviewer, first:** row 4 (the only strengthening at `66991db961`), and the premise all the
 "equivalent" verdicts rest on, `γn.a0 = []` in `srvBuiltG`'s `%HEr` (`ServerOn.lean:182`). If a dist axiom that reaches
@@ -205,7 +215,7 @@ the loop's driver starts from.**
 `len(b.peers) != 0`, so `terms` stays `nil` and `raft.StartNode(b.config, b.peers)` is called; the seed is empty. The
 durable state the driver starts from has no entries: the WAL was just created with metadata only (`bootstrapNewWAL`,
 `bootstrap.go:764-771`), and raft's `Bootstrap` puts the bootstrap conf changes in the *unstable* log
-(`rn.raft.raftLog.append(ents...)`, raft `bootstrap.go:63`, at `565c2bd`), not in `Storage`; they become durable only at
+(`rn.raft.raftLog.append(ents...)`, raft `bootstrap.go:63`, v3.7.0), not in `Storage`; they become durable only at
 the loop's first `Save` (`raft.go:276`), after `NewServer` returns. In Lean, `bootstrappedRaft.newRaftNode.spec` fixes
 `γw.s0 = (bt.view γr).S` and the premise `raftState γ.cl id RaftState.init`; `replayHistoryMatches_init`
 (`ReplaySeed.lean:69`) proves `replayHistoryMatches [] RaftState.init n`. (On a restart the seed is
