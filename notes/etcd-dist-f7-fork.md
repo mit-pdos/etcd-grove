@@ -483,3 +483,27 @@ Gates and tcb not yet run (the script runs them only after a green build).
 Next: fix those two (`etc/lean-check.py -a`), commit, rerun `~/eg/scratch/integf9-build.sh` (rebuild, then
 `etc/gates.sh` with `GATES_FAILFAST=0`, then `tcb-report.py --check`); report any gate failure. No top-level
 statement, premise or axiom changed so far.
+
+### Handoff INTEG-F9-2 (2026-11-27; build green, gates: one trust-review failure left)
+
+Branch `etcd-safe-integ-f9/2026-11-27` (pushed), fk-lean1 `~/eg/wt/etcd-safe-t10b`, same script and logs as INTEG-F9-1.
+Commits after `39f11c5e8b`:
+
+1. `ee5aa3428f` MemberCrash and BootBad ported to `da0a82c26`: `FsCtx` destructured as `⟨Sc, okc, hasc, nec⟩` (no
+   `fa`/`fsa` fields), `theFs_eq`/`onFs_some` without `(hG := …)`, `(fa := …)`, `(fsa := …)`; `etcdBootCBad_holds`
+   intros ten binders before `d`, as BootSkel. No statement changed.
+2. `53319ac46a` `etc/featuregate-allow.txt`: the three inert etcd `pkg/v3` featuregate entries moved from the old
+   pin's pseudo-version (`d26dd5da6f38`) to the merged pin's (`30df685e43e2`); `featuregate-check.py` ok.
+
+Build 3 (at `ee5aa3428f`): `lake build` exit 0. tcb `--check`: ok (385 axioms, 0 sorries, 91 opaques).
+Gates (`GATES_FAILFAST=0`, 641s): every gate ok except `featuregate` (fixed by 2, rechecked alone) and `mode`:
+
+- `mode`: 466 findings against the baseline's 457, all nine from t10b's crash constructor specs at auth off
+  (not from the port; t10b's own allow file never classified them): `lit-mode` `kvInvM`/`srvErM`/`srvInvAt false`
+  in `NewServer.specC` (`Spec/.../etcdserver/NewServerCrash.lean:112,137,151`), `NewServer.specC_dist`
+  (`Spec/.../examples/etcd/dist/NewServerCDist.lean:116,147,161`) and `NewServer.specRAt`
+  (`Proof/.../etcdserver/NewServerRAt.lean:260,279,293`). Rows: etcdserver 276 -> 282, dist 0 -> 3. A trust-review
+  classification for the lead (K-8's precedent), not added. The natural one is `unmoved`, as `NewServer.specR`'s
+  (`etc/mode-allow.txt` line 94: the restart constructor spec scoped to auth off), with the two baseline rows raised.
+
+Next: the lead's decision on the `mode` classification; then rerun the script (`nogen` skips the regeneration).
