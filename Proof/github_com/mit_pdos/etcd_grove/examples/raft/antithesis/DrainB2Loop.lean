@@ -131,6 +131,77 @@ theorem loopRestB2_dead (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim
   iexists d, ms, cl, csl, role, applied, fuse, dk, si, hn
   iframe Hd Hms Hrole Hhs Hcause Happ Hconf Hdead Hfuse Hrest
 
+/-- **A run write job on a node killed**: what holds alive holds dead (`writeJobMade`'s dead arm is
+a disjunct). -/
+theorem writeJobMade_kill (γ : AntNamesB2) (j : Fin γ.R.N) (l : Loc) (w : WJob) (D : RaftState) :
+    writeJobMade (GF := GF) γ j l w D false ⊢ writeJobMade γ j l w D true := by
+  unfold writeJobMade
+  iintro ⟨Hobj, H⟩
+  iframe Hobj
+  icases H with (H | %H)
+  · ileft; iexact H
+  · exact absurd H.1 Bool.false_ne_true
+
+/-- **The bookkeeping of a node killed** (`nodeMemB2`'s kill index set): the enter promises' chain is
+no longer kept, a run write job's promise may be unfired. -/
+theorem nodeMemB2_kill (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc) (v : AntSim.NodeView)
+    (x : CrashNames) (g : Nat) (phs : HardStateM) (dur D : RaftState) (hole : Option WorkHole) :
+    nodeMemB2 (GF := GF) γ j n v x g phs dur D false hole ⊢ nodeMemB2 γ j n v x g phs dur D true hole := by
+  unfold nodeMemB2
+  iintro ⟨%items, %mhs, %rhs, %wip, %aip, %wsl, %asl, %wls, %als, %jobs, %ajobs, %ow, %oa, %hm, %rh,
+    H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, Hm, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22,
+    %Hp⟩
+  iexists items, mhs, rhs, wip, aip, wsl, asl, wls, als, jobs, ajobs, ow, oa, hm, rh
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22
+  isplitl [Hm]
+  · cases ow with
+    | none => iexact Hm
+    | some w =>
+      by_cases hf : WorkHole.wFresh hole = true
+      · simp only [hf, ite_true]; iexact Hm
+      · simp only [hf, Bool.false_eq_true, ite_false]
+        iapply writeJobMade_kill; iexact Hm
+  · ipureintro
+    obtain ⟨h1, -, h3⟩ := Hp
+    exact ⟨h1, fun h => absurd h (by decide), h3⟩
+
+/-- **A dead node drained** (`nodeOwnB2HD … .drained none true` from its pieces): its fields, the kill
+flag set, the view frozen at `v` (normal, the disk against it), its storage, its `RawNode` at any
+record, raft's ghost pieces (the durable ghost at the disk), its bookkeeping dead. -/
+theorem nodeOwnB2HD_dead_intro (c : Loc) (γ : AntNamesB2) (j : Fin γ.R.N) (n : Loc)
+    (v : AntSim.NodeView) (d rn ms hsl cl csl : Loc) (role : GoString) (applied fuse : w64)
+    (dk : AntSim.DurW) (si : Loc) (rs : RNState) (qs : List Msg) (ip : Nat) (r : RState)
+    (x : CrashNames) (g : Nat) (D : RaftState) (hn : HardStateM)
+    (hvn : ViewNormal v) (hdr : DiskRel v dk) (hre : γ.mode.Restarts' = true)
+    (hsto : rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩)
+    (hD : StorageHolds D (diskContents dk) ∧ uint.Z D.term ≤ uint.Z rs.tc) :
+    n.[H.node, go!"disk"] ↦□ d ∗ n.[H.node, go!"rn"] ↦ rn ∗ n.[H.node, go!"store"] ↦ ms ∗
+      n.[H.node, go!"role"] ↦ role ∗ n.[H.node, go!"hs"] ↦ hsl ∗ n.[H.node, go!"cause"] ↦ cl ∗
+      n.[H.node, go!"applied"] ↦ applied ∗ n.[H.node, go!"conf"] ↦ csl ∗ killOwn n true fuse ∗
+      viewFrag γ.toAntNames j v ∗ diskOwn d dk ∗
+      nodeStor si ms ((List.range γ.R.K).map fun (i : Nat) => W64 ((i : Int) + 1)) hn ∗
+      rawNode γ.raft.raftNames γ.R.md rn (AntSim.nodeId j) rs r qs ip ∗
+      genView γ.raft.raftNames (AntSim.nodeId j) x 1 g ∗
+      ownDurGhost γ.raft.raftNames (AntSim.nodeId j) D ∗ rnTermLB γ.raft rs.tc ∗ rnBudget γ.raft ∗
+      nodeMemB2 γ j n v x g rs.phs rs.dur D true none ∗ hsRO hsl hn ⊢
+    nodeOwnB2HD (GF := GF) c γ j n v .drained none true := by
+  iintro ⟨#Hd, Hrn, Hms, Hrole, Hhs, Hcause, Happ, Hconf, Hkill, Hv, Hdisk, Hstor, Hraw, Hgv, Hdur,
+    Htlb, Hbud, Hmem, Hhsro⟩
+  unfold nodeOwnB2HD
+  iexists d, rn, ms, hsl, cl, csl, role, applied, fuse, dk
+  iframe Hd Hrn Hms Hrole Hhs Hcause Happ Hconf Hkill Hv Hdisk
+  isplitr
+  · ipureintro
+    exact ⟨hvn, hdr, fun h => absurd (hre.symm.trans h) (by decide)⟩
+  iexists si, rs, qs, ip, r, x, g, D, hn
+  iframe Hstor Hraw Hgv Hdur Htlb Hbud Hmem Hhsro
+  isplitr
+  · ipureintro; exact hsto
+  isplitr
+  · ipureintro; exact hD
+  simp only [ite_true]
+  ipureintro; trivial
+
 end laws
 
 end AntHarness
