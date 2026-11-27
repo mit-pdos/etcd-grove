@@ -136,7 +136,7 @@ node constant the run's, the drain's `by` one of the driver's; `RawNode.Ready.fo
 (`ReadyOut`), the boundary at the log's end, every message a protocol or a transfer message
 (protocol only at transfer off), each transfer message against the node (`XReadyOk`) with its other
 numbers zero (`XZero`), the read states the node's; the term ceiling and the node's numbers within
-the checker's bound (`DrainB1Bounds.rawNode_stateNums_b1`). -/
+the checker's bound (`DrainB1Bounds.rawNode_stateNums_b1`); the read states' indices within it. -/
 def DrainIterB1.Ok (γ : AntNames) (j : Fin γ.R.N) (I : DrainIterB1) : Prop :=
   RsView I.rs I.v ∧ I.rs.k = γ.R.k j ∧ ByOk I.v.byE ∧
   I.qs ≡ₚ I.r.p.outbox.filter (fun m => decide (m.dst = AntSim.nodeId j)) ∧
@@ -147,7 +147,8 @@ def DrainIterB1.Ok (γ : AntNames) (j : Fin γ.R.N) (I : DrainIterB1) : Prop :=
     XReadyOk γ.raft.raftNames γ.R.md (AntSim.nodeId j) I.r.p x ∧ XZero q.st) ∧
   (γ.R.md.transfer = false → ∀ q ∈ I.ms, (absMsgOf q.st).isSome) ∧
   I.sts = I.r.p.rd.states ∧
-  uint.Z I.rs.tc < 2 ^ 61 ∧ AntSim.StateNums (2 ^ 61) I.r.p
+  uint.Z I.rs.tc < 2 ^ 61 ∧ AntSim.StateNums (2 ^ 61) I.r.p ∧
+  (∀ st ∈ I.sts, uint.Z st.Index' < 2 ^ 61)
 
 /-- **A `Ready` message's facts the send loop needs beyond the iteration's**: its term within the
 ceiling (`%Hmsgs_term`), a protocol reading's numbers within the checker's bound
