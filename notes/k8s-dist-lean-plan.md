@@ -236,6 +236,14 @@ cl (ms.map SrvAt.addr) V ∗ [∗list] x ∈ ms, kvRegsAt x` and per-member read
   `SendInit == 2` with a non-Error event, `max(t, max(req, 1))`. **Done** (`152e1a4634`):
   `TestSharedWatchList` (K4's counterexample: every mode accepts, and rejects it with a wrong value; all
   three answered Illegal before the fix).
+- **G8, G9, G10** (from K4-3, `notes/k8s-dist-k4.md` "K4-3", branch `k8s-dist-k4/2026-11-27`). G8: `target`
+  parses `MinRV` only for the kinds that read it (a create, delete or update never does); G9: `HistoryRevs`
+  anchors every successful answer's revision, with or without a name; G10: `target`'s write arm only for
+  `KCreate`, `KDelete`, `KUpdate`, every other kind its `MinRV` (`mstep` answers it with `mget`). **Done**
+  (branch `k8s-dist-g8/2026-11-27`): `TestSharedGaps` (K4-3's three counterexamples: CheckShared and Full
+  accept each, and reject it with a wrong value in every mode; Lazy, by design, still rejects G9's, whose
+  pending create it cannot land below a later write it applied first; before the fix every mode and
+  CheckShared answered Illegal on all three).
 
 ## 4. Stages (riskiest first), with estimates
 
