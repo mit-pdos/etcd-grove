@@ -244,3 +244,55 @@ the anchors change, so K9 must match them in Go).
 
 Go side (for K9's session, branch `k8s-dist-go/2026-11-27`): G8, G9 and G10 in `examples/k8s/etcd3/export.go`
 (`target`, `HistoryRevs`), with the two histories above as tests.
+
+## Handoff K4-3 (2026-11-27, branch `k8s-dist-k4/2026-11-27`)
+
+**Built** (fk-lean1, no axiom, no `sorry`): `SharedSem`, `SharedSearch` (with G8, G10; `OpAnchors` with
+G9), `SharedRename`. New in `SharedRename`: `CutW A ρ w` (the cut property: `v ≤ w ↔ v ≤ ρ w` and
+`v + 1 ≤ w ↔ v + 1 ≤ ρ w` for every anchor `v`), `CutW.fix` (an image that is an anchor is not renamed),
+`CutW.eq_iff` (the image is the anchor `r` iff `w` is: the `PreRV` test), `renObj_fix` (a shown object
+is not renamed), `renObj_setRV`, `renObj_zObj`, `lookupL_mem`; `StepRen` and `WriteRen` (what a write's
+step needs of `ρ`: fixes 0, `ρ (a + 1) = b + 1`, no wrap, stored revisions fit, `PreRV` test kept), and
+**`mstepL_ren`** (with `mcreateL_ren`, `mdeleteL_ren`, `mupdateL_ren`): on the stores `⟨its, a⟩` and
+`⟨its.map (renItem ρ), b⟩`, the results' items stay renamed and both take a revision or neither. This
+is the settle step (`a`, `b` = the landing less one on each side) and the step's write (`a = b`).
+
+**`FullComplete` as K4-2 stated it was false** (three counterexamples, G8-G10 above); the statement now
+carries the fixes. The Go side must get G8-G10 (K9's session); until then the Lean search is not the
+Go one on those histories.
+
+**Left, in order** (the plan of K4-2's handoff, refined):
+
+1. **The step's answer** (`mstepL`'s `.2`): on `⟨its, a⟩` vs `⟨its.map ρ, b⟩` with `a ≤ b`, `y` the
+   cluster's answer, `OpAnchors`, and what the target gives (`y.Err = 1 → ErrRV ≤ a`; a write's success
+   `y.RV ≤ a + 1`, so `a = b` when it writes; a non-write `MinRV ≤ a` on success), every item's revision
+   `CutW`: the search answers `y`. Cases: `existsL`/`rejectedL` equal; `notFoundL` (`a = b`); a
+   precondition message (`preMsgL_ren_uid`, else the message's object is anchored: `renObj_fix`); an
+   object answer (`y.RV` anchored, G9: `renObj_fix`); a new object (`a = b`, `ρ (a+1) = a+1`).
+2. **The history relation** (replacing K4-2's `cnt` form, simpler to use): a list `W` of the search's
+   write revisions after the seeds, `ρ` strictly increasing on `[0, h0.rv] ∪ W`, the identity on
+   `[0, h0.rv]`, `w ≤ ρ w`, `CutW A ρ w`, `ρ w ≤ c.rv`; `s.rv ≤ c.rv`; both histories one store per
+   revision (`hist.length = rv`); for every `x ≤ s.rv`, `y ≤ c.rv` with `∀ w ∈ W, w ≤ x ↔ ρ w ≤ y`,
+   `(histN c.hist y).items = (histN s.hist x).items.map (renItem ρ)`; a search revision not in `W`
+   (above the seeds) changes no item; every stored object's revision is in `[0, h0.rv] ∪ W`; pending
+   lists equal up to order. Preservation: a foreign step on the cluster (`x` unchanged pairs with `y+1`),
+   `skipToL` on the search below the cluster's revision, a landed write (`W ++ [L]`, `ρ L = R`, from
+   `canonL_gap`/`canonL_cut`, `mstepL_ren`).
+3. **`mlistL`**: a past read at the anchor `req`: `x = y = req` satisfy the cut condition, so the stores
+   are renamed; the items shown are anchored (`OpAnchors`), so `renObj_fix`. Needs `listLoopL`/`listOutL`
+   to commute with `map renItem` (they read keys, selectors and the objects).
+4. **`watchOkL`**: `changeAtL` of renamed stores (renaming injective on stored revisions, keys kept) is
+   the renamed change at `ρ r`; `evAtL`/`eventsInL` over `[lo, hi)` with `lo`, `hi` anchors or one
+   after (the cut condition gives the same writes in range); events shown are anchored (`renObj_fix`);
+   `initialPrefixOkL`'s `r ∈ [max(req,1), c.rv]` maps to `max(max(req,1), greatest w ∈ W with ρ w ≤ r)`
+   `≤ s.rv` (G7's target gives `req ≤ s.rv`; `1` is an anchor or one after `0`); the initial-events-end
+   bookmark's `brv` is an anchor (`x = y = brv`).
+5. **Settle**: the cluster's `SReach` before an operation (pending writes landing at `R₁ < … < R_k`,
+   foreign steps, reorders) as `SettleL` steps at `canonAll`'s landings (`SharedPlace.lean`), dropping the
+   writes that fail on the store.
+6. **`FullComplete`** by induction on `SRun`, the relation as the invariant.
+
+A local `etc/lean-check.py` is not usable here (the worktree has no `.lake`); the edit loop K4-3 used is
+`/shared/tmp/k4-3/qc.sh FILE` / `err.sh FILE` (copies the file into fk-lean1's worktree of the branch and
+runs `lake env lean` on it alone, no lock: the imports must be built there, which a `fklean1-check.sh`
+build of the target does).
