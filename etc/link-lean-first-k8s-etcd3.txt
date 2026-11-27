@@ -129,17 +129,17 @@ kv__Get: @
 txn__If: @
 txn__Then: @
 txn__Else: @
-Compact: Version v3_Compare OpPut OpGet strconv_FormatInt strconv_ParseInt ResponseOp__GetResponseRange Client__Endpoints v2_V Verbose__Infof kv__Txn txn__If txn__Then txn__Else =client.v3.txn.wp_CommitM =client.client_Compact_kv_law_holds
+Compact: Version v3_Compare OpPut OpGet strconv_FormatInt strconv_ParseInt ResponseOp__GetResponseRange v2_V Verbose__Infof =client.client_Compact_kv_law_holds
 compactor__CompactRevision:
 compactor__UpdateCompactRevision:
 compactor__Stop:
-compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
+compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value clock_RealClock__After Compact compactor__UpdateCompactRevision v2_Errorf
 compactor__getCompactRev: strconv_ParseInt fmt_Errorf kv__Get
 compactor__fromWatchResponse: WatchResponse__Err strconv_ParseInt
-compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev v3_watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
+compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev v3_watcher__Watch compactor__fromWatchResponse v2_Errorf
 NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
 # (Q1 (c), 2026-11-05) the compactor registry
-StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof
+StartCompactorPerEndpoint: NewCompactor v2_V Verbose__Infof
 #
 # (stage 7e-2, notes/k8s-7e-2-draft.md) the paginated list path, GetList, over the kubernetes
 # client's List (a hypothesis until 7e-1, proved since: `kubernetes/Client__List.lean`; its Get at a

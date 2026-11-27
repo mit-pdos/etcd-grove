@@ -18,6 +18,10 @@ The k8s storage library (`etcd3.store`, its watch and compactor) talks to etcd t
 - `K.kvAt api` (C2): what the `Get` of the client's `*kv` `api` needs; in-process its `kvObjAt` and the
   members' registrations. (The client's `Watcher` is already abstract in the library's proofs:
   `clientWatchOk`, over a watch environment of the KV state.)
+- `K.txnAt tp ci cd b` (C3): what the methods of a transaction the client's `KV.Txn` made need, holding
+  `b`; in-process its `txnObjAt`, sending a write at most once. (The compactor's `Compact` and its
+  `Get` of the key go through the client's KV handle, `clientKvOk`, as its `Watch` through
+  `clientWatchOk`: both are per cluster already.)
 
 Each triple is the in-process spec of the call (`Spec/go_etcd_io/etcd/client/v3/kubernetes/`) with the
 handle in place of `isNewClient … ∗ clientWriteOnce … ∗ [∗list] x ∈ ms, kvRegsAt x`, `[∧list] γ ∈ K.kvs`
@@ -32,6 +36,10 @@ public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticDelete
 public import Proof.go_etcd_io.etcd.client.v3.InvOp
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
+public import Proof.go_etcd_io.etcd.client.v3.InvTxnBuilder
+public import Proof.go_etcd_io.etcd.client.v3.KVService
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Client
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.CompactorDefs
 
 @[expose] public section
 
@@ -52,6 +60,15 @@ structure K8sEtcd (GF : BundledGFunctors) where
   /-- what the `Get` of the client's `*kv` `api` needs (C2); in-process its `kvObjAt` and the members'
   registrations -/
   kvAt : Loc → IProp GF
+  /-- what the methods of a transaction `tp` the client's `KV.Txn` made need, with its context and
+  what it holds (`TxnBuild`) (C3); in-process its `txnObjAt` over the endpoints, sending a write at
+  most once, and the members' registrations -/
+  txnAt : Loc → GoInterfaceOk → context.ContextDesc (IProp GF) → TxnBuild → IProp GF
+
+/-- The compactor's round transaction (`Compact`), as the client's builder holds it. -/
+abbrev casClientTxn (ev rev : w64) : TxnModel :=
+  etcd_txnlin.clientTxn [.ver compactRevKey ev] [.put compactRevKey (fmtInt rev (W64 10))]
+    [.get compactRevKey]
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -59,7 +76,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The client calls the library makes** (C1: the store's `kubernetes.Client` methods; C2: the client's `KV.Get`, for the watch), on any
+/-- **The client calls the library makes** (C1: the store's `kubernetes.Client` methods; C2: the client's `KV.Get`, for the watch; C3: the
+compactor's endpoints and round transaction), on any
 `kubernetes.Client` `kc` over a client whose handle holds (see the file header). -/
 structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
   get : ∀ [go_etcd_io.etcd.client.v3.kubernetes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
@@ -183,6 +201,66 @@ structure K8sEtcd.Laws (K : K8sEtcd GF) : Prop where
             σ.readRev (rangeWireOf (opGetModel pk gs)).base.rev ≤ σ.rev ∧ kvRevFits σ.rev⌝) ∨
         (⌜err ≠ GoInterface.nil⌝ ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
           go_etcd_io.etcd.cache.v3.statusErrOk err ∗ go_etcd_io.etcd.cache.v3.errCellOk err)) }}
+  /-- C3 (the compactor): the client's endpoints, `K.eps`. -/
+  endpoints : ∀ cl : Loc,
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗ K.handle cl }}
+      (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"Endpoints"))
+        (Val #()))
+    {{ (sl : GoSlice), RET #sl; levelTok 0 ∗ sl ↦* K.eps }}
+  /-- C3: `Txn` of the client's `*kv` `api` (its `KV` field) starts an empty transaction. -/
+  kvTxn : ∀ (cl api : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ K.handle cl ∗
+        EtcdGrove.clientF cl go!"KV" ↦□
+          interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
+        K.kvAt api ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
+      (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Txn"))
+        (Val #(GoInterface.ok ci)))
+    {{ (t : GoInterface), RET #t; ∃ tp : Loc,
+        ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp⌝ ∗
+        K.txnAt tp ci cd TxnBuild.empty }}
+  /-- C3: the transaction's `If` (`txn.If.spec` over `K.txnAt`). -/
+  txnIf : ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (b : TxnBuild) (sl : GoSlice) (cs : List CmpModel),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ K.txnAt tp ci cd b ∗
+        cmpsAt sl cs ∗ ⌜b.cif = false ∧ b.cthen = false ∧ b.celse = false⌝ }}
+      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"If")) (Val #sl))
+    {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp : GoInterface);
+        K.txnAt tp ci cd { b with model := { b.model with cmps := b.model.cmps ++ cs }, cif := true } }}
+  /-- C3: the transaction's `Then` at plain operations (`txn.Then.specPlain` over `K.txnAt`). -/
+  txnThen : ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (b : TxnBuild) (sl : GoSlice) (os : List OpFull) (ops : List TxnOp),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ K.txnAt tp ci cd b ∗
+        opsAt sl os ∗ ⌜os.map txnOpOf = ops.map some ∧ b.cthen = false ∧ b.celse = false⌝ }}
+      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Then")) (Val #sl))
+    {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp : GoInterface);
+        K.txnAt tp ci cd { b with model := { b.model with thenOps := b.model.thenOps ++ ops }, cthen := true } }}
+  /-- C3: the transaction's `Else` at plain operations (`txn.Else.specPlain` over `K.txnAt`). -/
+  txnElse : ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (b : TxnBuild) (sl : GoSlice) (os : List OpFull) (ops : List TxnOp),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ K.txnAt tp ci cd b ∗
+        opsAt sl os ∗ ⌜os.map txnOpOf = ops.map some ∧ b.celse = false⌝ }}
+      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Else")) (Val #sl))
+    {{ RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp : GoInterface);
+        K.txnAt tp ci cd { b with model := { b.model with elseOps := b.model.elseOps ++ ops }, celse := true } }}
+  /-- C3: the compactor's round's `Commit()` (`casClientTxn ev rev`), with its update `Q` at each of
+  `K.kvs` (each the KV `γk`), fired at most once: the reply's verdict and responses the server's run
+  at the state `σ` the update fired at, its revision `σ`'s after it, positive and reached; or a client
+  error (`kvErr`). -/
+  casCommit : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (γk : KVNames),
+    (∀ γ ∈ K.kvs, kvSame γ γk) →
+    ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
+      (Q : KVState → IProp GF), b.model = casClientTxn ev rev →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ levelTok 0 ∗
+        K.txnAt tp ci cd b ∗ ([∧list] γ ∈ K.kvs, kvOpAu1 γ (.txn (casTxn ev rev)) Q) }}
+      (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
+        (Val #()))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok 0 ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗ Q σ ∗
+          ⌜m.succeeded = casWins ev rev σ ∧
+            client.opRespsRel false ((casTxn ev rev).branch m.succeeded)
+              (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (casTxn ev rev)).2.2 m.resps ∧
+            0 < sint.Z m.hdr.revision⌝ ∗ kvRevLb γk m.hdr.revision) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err)) }}
 
 /-- **`Client.Get` at the latest revision** through the client's laws, as the store's unary paths
 call it (`kubernetes.Client.Get.latest`'s statement over `K`). -/
