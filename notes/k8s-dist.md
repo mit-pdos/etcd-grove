@@ -5,16 +5,20 @@ of `k8s_safe` (`examples/k8s/all`: the etcd3 store's partitioned workload and Ku
 run against real etcd deployments of member machines, every Kubernetes component that is a client of
 etcd on a machine of its own, the checks on orchestrator machines over Remote
 (`examples/lib/remote`). Go only, as etcd-dist's stages D1 and D8 (`notes/etcd-dist-plan.md` §2);
-no Lean. The in-process drivers (`examples/k8s/{etcd3,compactor,all}`) and their tests are unchanged:
+no Lean. The in-process drivers (`examples/k8s/{etcd3,compactor,all}`) and their tests are unchanged (each driver gains only `export.go`, below):
 `k8s_safe` is proved about them.
 
 ## The split
 
 `examples/k8s/dist` (package `dist`, a Go module of its own) holds the driver of the deployment:
-the orchestrator and client machine programs (`MainReady`, `NodeMain`), and, test-only
-(`deploy_test.go`, since 2026-11-22: the machines' programs import neither etcd-dist's deployment
-code nor `examples/lib/robust`), the deployment (`Deployment`, `WellFormed`, `RandomDeployment`);
-`dist_test.go` deploys it. **One etcd cluster** (since 2026-11-22, the user's decision: below, "One
+the orchestrator and client machine programs (`MainReady`, `NodeMain`), and the deployment
+(`deploy.go`, program code since 2026-11-27, G1 of `notes/k8s-dist-lean-plan.md`: `Deployment`
+with the client machines' addresses, `WellFormed` over etcd-dist's `deployment.WellFormed`, and the
+machines' entry points `Orchestrator(d, j)`/`MainDeployment` and `NodeDeployment(d, n)`, each
+checking `d` first, as etcd-dist's `client.Orchestrator`; it imports etcd-dist's `deployment`
+package, not its harness or `examples/lib/robust`); test-only, `RandomDeployment`
+(`deploy_test.go`), and `dist_test.go` deploys it, the orchestrator's `ready` a file marker of
+the test's. **One etcd cluster** (since 2026-11-22, the user's decision: below, "One
 cluster"), an etcd-dist deployment with no etcd workload, its members etcd-dist's `server.Main` on
 machines of their own, which both workloads use at once. The cluster has etcd's own compactor off
 and no auth, as the drivers' clusters (`WellFormed` checks it; the snapshot settings are random, from
@@ -52,8 +56,8 @@ after its seeds and its API server machines answering; the compactor once its ma
 at most 3 minutes.
 
 **The seams.** Store: the driver's `Apply` is split at its prophecy: the store call on the API server
-(`storecopy.Serve`, `call`/`runWatch`), the cache bookkeeping (`tbl.put`, `putW`, `done`) on the
-orchestrator (`storecopy.Record`, after the answer, before the return stamp, as `Apply`'s). The
+(`etcd3.Serve`, `call`/`runWatch`), the cache bookkeeping (`tbl.put`, `putW`, `done`) on the
+orchestrator (`etcd3.Record`, after the answer, before the return stamp, as `Apply`'s). The
 output's `Raw` (the store's own answer, which only Kubernetes' checker reads, by `reflect.DeepEqual`)
 crosses the wire in an encoding of the values the store returns (objects, lists, `StorageError`s,
 the callbacks' errors, `StatusError`s, watch events); the API server checks that it decodes to a
@@ -73,7 +77,7 @@ their tests are unchanged. What sharing the cluster changes, and how the checks 
 
 - **Keys.** The compactor driver's writer puts `/registry/objs/w`, inside the store's keys (Prefix
   `/registry` + `/objs/`): a recursive List or watch of the store would see it. The writer machine
-  puts `/k8sdist-compactor/w` instead (`compactorcopy.WriterAt`, `WriteKeyShared`, in `export.go`:
+  puts `/k8sdist-compactor/w` instead (`compactor.WriterAt`, `WriteKeyShared`, in `export.go`:
   the driver's `writer` loop with the key a parameter). `compact_rev_key` is outside both. The
   compactor's checks (`Sample`, `CheckLog`) are unchanged.
 - **Seeds.** The driver's `seed` wants revisions 2 and 3 of a fresh cluster; the compactor may write
@@ -149,15 +153,22 @@ panicked on a watch from the most recent revision (`MinRV` "", SendInitialEvents
 reads the current revision, then watches from the next, and a kill delays the watch past a
 compaction. Hence `PinnedRead`.
 
-## Copies
+## Exported wrappers (until 2026-11-27: copies)
 
-The drivers' model, seeds, generator, per-client cache and `check` are unexported, and the drivers
-must not change, so the two packages are copied **whole and byte for byte**:
-`examples/k8s/dist/storecopy/{k8setcd3,watch,realcheck}.go` (from `examples/k8s/etcd3`) and
-`examples/k8s/dist/compactorcopy/compactor.go` (from `examples/k8s/compactor`); `TestVerbatim` fails
-if a copy differs from its source or a source has no copy. Each copy has one added file, `export.go`:
+The drivers' model, seeds, generator, per-client cache and `check` are unexported. Each driver's
+package has one added file, `export.go` (`examples/k8s/etcd3/export.go`,
+`examples/k8s/compactor/export.go`), that exports what the distributed workloads need; no existing
+function of the drivers changes, so `k8s_safe`'s proof of them stands (the new functions are
+translated with the drivers' packages, projects k8s-apiserver and k8s-compactor).
 
-| Added (in the copy) | Wraps | Why |
+Until 2026-11-27 (G2 of `notes/k8s-dist-lean-plan.md`, the user's decision, kaashoek) the two
+packages were copied **whole and byte for byte** into `examples/k8s/dist/{storecopy,compactorcopy}`
+(checked by `TestVerbatim`), with `export.go` in the copy. The copies' reason, "the drivers must not
+change", was not a user decision: adding a file changes no proved function, and the copies would
+have needed every proof of the copied 2,955 lines duplicated under the copies' Go path. The copies
+and `TestVerbatim` are gone; `examples/k8s/dist` imports the drivers.
+
+| Added (`export.go`) | Wraps | Why |
 |---|---|---|
 | `SeedShared`, `Seeded.Model`, `Seeded.NewCache`, `Seeded.RealCheck`, `FailureFree` | `seed` (at the revisions the shared cluster gives), `Model`, `newWCache`, `realCheck`, `failureFree` | the orchestrator's half of `Check` |
 | `Seeded.SharedModel`, `HistoryRevs`, `Seeded.NoForeign`, `AcceptAll` | `Model`'s `step`, `mstep`, `advance` with foreign revisions (below) | the store's check on the shared cluster |
@@ -167,7 +178,7 @@ if a copy differs from its source or a source has no copy. Each copy has one add
 | `Serve`, `Record` | `Apply` split at its prophecy | the API server's call; the orchestrator's cache |
 | `IsWrite`, `Rejections` | `isWrite`; `errDeleteRejected`, `errUpdateRejected` | the codec |
 | `WriterAt`, `WriteKeyShared`, `NewOwn`, `NewShared`, `Servers`, `SharedServers`, `Writes` | `writer` with a key of the caller's (the driver's `writeKey`, `/registry/objs/w`, is inside the store's keys); `apiserver`'s two constructors; the constants | the compactor's machines |
-| `Sample`, `CheckLog`, `Log` | `check` (a modified copy: split in two, the same reads and comparisons) | its reads on the API server, its comparisons on the orchestrator |
+| `Sample`, `CheckLog`, `Log` | `check` (new code, a modification of `check`: split in two, the same reads and comparisons) | its reads on the API server, its comparisons on the orchestrator |
 
 **No copies of etcd-dist's runner code (since 2026-11-22, the user's decision).** Until then this
 package copied `awaitCluster`, `awaitNodes`, `rotate`, `connectRetry`, `reportAll` from etcd-dist's
