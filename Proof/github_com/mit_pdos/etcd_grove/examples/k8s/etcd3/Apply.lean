@@ -29,7 +29,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__putW
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchCommit
 public import Perennial.Spec.sync.atomic.Int64__Add
 public import Perennial.Proof.sync.atomic.Link
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 

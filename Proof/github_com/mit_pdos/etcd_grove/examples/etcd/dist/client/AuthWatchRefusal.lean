@@ -19,7 +19,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.AuthFrozenFloor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.WatchOnViewDist
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.WorkAuth
 
 @[expose] public section
 

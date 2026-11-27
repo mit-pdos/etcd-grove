@@ -5,10 +5,10 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.lintest
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.txnwork
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver

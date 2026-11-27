@@ -5,7 +5,7 @@ counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientAuth
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientAuth
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section

@@ -17,7 +17,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.startMembe
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section

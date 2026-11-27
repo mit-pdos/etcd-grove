@@ -1,6 +1,6 @@
 /-
 **The dist auth workload's writes** (F7 stage S10; `Work.wp_proof_dist`'s updates): the dist `akWriteAu`
-(`Proof/.../examples/etcd/auth/WorkCalls.lean`). Every write of a principal `P` (bound to users of `who`'s) sends
+(`Proof/.../examples/lib/authwork/WorkCalls.lean`). Every write of a principal `P` (bound to users of `who`'s) sends
 the update `akHist_writeAu` at the view's grant `opGrantD`: the grant, after the frozen set-up, is granted at
 `setupSt` (`akGrantedL_of_writeGrantGD`), so the write is one `who` is granted (`akOpGranted`), which the history
 admits (`hop`); the update tells that grant, which a refused write's caller refutes. Lean-first.

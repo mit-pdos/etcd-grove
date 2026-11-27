@@ -7,7 +7,7 @@ Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeApiLink  # srvApi_wp_*: raft's no
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiCompactChanResults  # mvccApi_compactChan_law_holds: over mvcc's Link and store.Compact.core_proof
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults  # mvccApi_*_wp_api: mvcc's API laws at mvcc's and backend's Links
 RaftWitness.Proof.go_etcd_io.raft.v3.MemstorageInstance  # is_Storage_MemoryStorage: the Storage interface at the witness raft's Link (MemoryStorage.wp_*)
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # etcd_auth.client_Delete_on: over linked results
+Proof.github_com.mit_pdos.etcd_grove.examples.lib.authwork.ClientOn  # etcd_auth.client_Delete_on: over linked results
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe  # etcd_auth.ak_served_kv: over linked results
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Init  # etcd.cache.wp_initialize'_res: over linked results
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls  # etcd_compactwatch.client_Get_round: over linked results

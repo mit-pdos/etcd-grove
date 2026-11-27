@@ -13,7 +13,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.remotePrincipals
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.reportAll
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.principalCodec
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Principals
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.authwork.Principals
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.RemoteWritersDefs
 
 @[expose] public section
@@ -39,7 +39,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
-variable [auth_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
+variable [auth_sem : github_com.mit_pdos.etcd_grove.examples.lib.authwork.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
@@ -76,7 +76,7 @@ theorem remotePrincipals.wp_proof
   icases Hps with ⟨#Hmap, %Hn4, Hl⟩
   ihave %Hnl := ownSlice_len _ _ _ $$ Hns
   have hP4 : etcd_auth.principals.length = 4 := rfl
-  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth $$ []
+  ihave #Pauth : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.authwork $$ []
   · iPkgInit
   (try wp_auto)
   wp_apply wp_Principals as %psl Hpsl
