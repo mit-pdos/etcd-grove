@@ -26,7 +26,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 /-- **The server's consistent-index pair predicate** (keepfix-d): `t` is the term of the committed entry at
 index `k` of the cluster `cl`'s log (persistent). The pair `(k, t)` a backend commit saves is one the apply

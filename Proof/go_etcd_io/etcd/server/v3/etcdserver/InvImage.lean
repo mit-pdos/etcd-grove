@@ -251,9 +251,11 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
 theorem srvImage_of_dbImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
     (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
     (h2 : γk.log0 = [[], []]) :
-    dbImage (GF := GF) ⟨γ, [], W64 0⟩ γk i D ⊢ srvImage γ i D := by
-  iintro #H
+    dbImage (GF := GF) ⟨γ, [], W64 0⟩ γk i D ∗ (⌜i = W64 0⌝ ∨ srvCIPair γ.cl i (metaTermOf D)) ⊢
+      srvImage γ i D := by
+  iintro ⟨#H, #Ht⟩
   iunfold srvImage
+  iframe Ht
   iexists γk
   iframe H
   ipureintro
@@ -267,7 +269,7 @@ theorem dbImage_of_srvImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
     srvImage (GF := GF) γ i D ⊢ dbImage ⟨γ, [], W64 0⟩ γk i D := by
   iintro H
   iunfold srvImage at H
-  icases H with ⟨%γk', %h, #H⟩
+  icases H with ⟨⟨%γk', %h, #H⟩, -⟩
   obtain ⟨h0', h1', h2'⟩ := h
   iapply (dbImage_kv_congr (γk := γk') (γk' := γk)
     (h0'.trans h0.symm) (h1'.trans h1.symm) (h2'.trans h2.symm)) $$ H

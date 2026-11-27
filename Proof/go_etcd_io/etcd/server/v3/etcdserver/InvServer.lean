@@ -174,7 +174,7 @@ theorem ci_get_au (P : w64 → w64 → IProp GF) (γ : ApplyNames) (ci : Loc) (b
     isplitr
     · unfold loadedMeta
       by_cases h0 : γ.m0.1 = W64 0
-      · simp only [h0, ↓reduceIte]; ileft; ipureintro; rfl
+      · simp only [h0, ↓reduceIte]; ileft; ipureintro; simp
       · simp only [h0, ↓reduceIte]; iexact HP0
     iapply ci_load_store_au γ st hk hp $$ Hinv Hst
     iintro Hst

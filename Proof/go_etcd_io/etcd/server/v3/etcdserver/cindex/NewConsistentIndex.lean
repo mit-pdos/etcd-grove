@@ -42,7 +42,7 @@ theorem NewConsistentIndex.wp_proof :
     iunfold ciInv
     iexists (W64 0)
     iframe
-  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk⟩) ⊤ (ciPairMuAddr ci) $$ pairMu [term Hk2]
+  imod sync.init_Mutex (ciPairInv (hG := hG) ci ⟨γi, γk⟩ P) ⊤ (ciPairMuAddr ci) $$ pairMu [term Hk2]
     with #Hpmu
   · inext; iunfold ciPairInv; iexists (W64 0), (W64 0); iframe
     ileft; ipureintro; rfl
